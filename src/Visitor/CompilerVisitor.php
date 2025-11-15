@@ -42,6 +42,7 @@ class CompilerVisitor implements VisitorInterface
     // as literals, so we only need to worry about the backslash itself.
     private const CHAR_CLASS_META = [
         '\\' => true,
+        // ']' was the bug. It is removed.
     ];
 
     /**

@@ -79,6 +79,7 @@ class ValidatorVisitorTest extends TestCase
     {
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('Invalid range: ranges must be between literal characters');
+
         $this->validate('/[a\-\d]/');
     }
 }
