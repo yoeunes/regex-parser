@@ -6,14 +6,12 @@ use RegexParser\Exception\LexerException;
 
 class Lexer
 {
-    private string $input;
     private int $position = 0;
-    private int $length;
+    private readonly int $length;
 
-    public function __construct(string $input)
+    public function __construct(private string $input)
     {
-        $this->input = $input;
-        $this->length = \strlen($input);
+        $this->length = \strlen($this->input);
     }
 
     /**
@@ -36,7 +34,7 @@ class Lexer
                 // Gérer {n,m}
                 $start = $this->position;
                 ++$this->position; // Skip '{'
-                $inner = $this->consumeWhile(fn ($c) => ctype_digit($c) || ',' === $c);
+                $inner = $this->consumeWhile(fn ($c) => ctype_digit((string) $c) || ',' === $c);
                 if ($this->position >= $this->length || '}' !== $this->input[$this->position]) {
                     throw new LexerException('Unclosed quantifier at '.$start);
                 }
