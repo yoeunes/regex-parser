@@ -5,14 +5,18 @@ namespace RegexParser\Ast;
 use RegexParser\Visitor\VisitorInterface;
 
 /**
- * @template TReturn
+ * Base interface for all AST nodes.
  */
 interface NodeInterface
 {
     /**
-     * @param VisitorInterface<TReturn> $visitor
+     * Accepts a visitor.
      *
-     * @return TReturn
+     * @template T
+     *
+     * @param VisitorInterface<T> $visitor
+     *
+     * @return T
      */
     public function accept(VisitorInterface $visitor);
 }

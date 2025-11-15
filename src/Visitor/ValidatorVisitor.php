@@ -10,10 +10,16 @@ use RegexParser\Ast\SequenceNode;
 use RegexParser\Exception\ParserException;
 
 /**
+ * A visitor that validates semantic rules of the regex AST.
+ * (e.g., quantifier ranges).
+ *
  * @implements VisitorInterface<void>
  */
 class ValidatorVisitor implements VisitorInterface
 {
+    /**
+     * @param AlternationNode<void> $node
+     */
     public function visitAlternation(AlternationNode $node): void
     {
         foreach ($node->alternatives as $alt) {
@@ -23,6 +29,9 @@ class ValidatorVisitor implements VisitorInterface
         return;
     }
 
+    /**
+     * @param GroupNode<void> $node
+     */
     public function visitGroup(GroupNode $node): void
     {
         $node->child->accept($this);
@@ -30,18 +39,24 @@ class ValidatorVisitor implements VisitorInterface
         return;
     }
 
+    /**
+     * @param LiteralNode<void> $node
+     */
     public function visitLiteral(LiteralNode $node): void
     {
-        // Valider si besoin, e.g., pas de chars interdits
+        // Validation logic for literals could go here.
         return;
     }
 
+    /**
+     * @param QuantifierNode<void> $node
+     */
     public function visitQuantifier(QuantifierNode $node): void
     {
         if (\in_array($node->quantifier, ['*', '+', '?'], true)) {
             // OK
         } elseif (preg_match('/^{\d+(,\d*)?}$/', $node->quantifier)) {
-            // Vérifier n <= m
+            // Check n <= m
             $parts = explode(',', trim($node->quantifier, '{}'));
             if (2 === \count($parts) && '' !== $parts[1] && (int) $parts[0] > (int) $parts[1]) {
                 throw new ParserException('Invalid quantifier range: min > max');
@@ -54,6 +69,9 @@ class ValidatorVisitor implements VisitorInterface
         return;
     }
 
+    /**
+     * @param SequenceNode<void> $node
+     */
     public function visitSequence(SequenceNode $node): void
     {
         foreach ($node->children as $child) {

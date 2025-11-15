@@ -4,26 +4,26 @@ namespace RegexParser\Lexer;
 
 enum TokenType: string
 {
-    // Un seul caractère qui n'est pas un méta-caractère
+    // A single character that is not a meta-character
     case T_LITERAL = 'literal';
 
-    // Groupes
+    // Groups
     case T_GROUP_OPEN = 'group_open';  // (
     case T_GROUP_CLOSE = 'group_close';  // )
 
-    // Classes de caractères
+    // Character classes
     case T_CHAR_CLASS_OPEN = 'char_class_open'; // [
     case T_CHAR_CLASS_CLOSE = 'char_class_close'; // ]
 
-    // Quantifieurs
+    // Quantifiers
     case T_QUANTIFIER = 'quantifier';  // *, +, ?, {n,m}
 
-    // Logique
+    // Logical
     case T_ALTERNATION = 'alternation';  // |
     case T_BACKSLASH = 'backslash';    // \
 
-    // Structure
-    case T_FLAG = 'flag';      // i, m, s après /
-    case T_DELIMITER = 'delimiter';    // / au début/fin
-    case T_EOF = 'eof';        // Fin de la chaîne
+    // Structural
+    case T_FLAG = 'flag';      // i, m, s after /
+    case T_DELIMITER = 'delimiter';    // / at start/end
+    case T_EOF = 'eof';        // End of input
 }

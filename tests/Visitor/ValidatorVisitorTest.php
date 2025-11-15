@@ -21,7 +21,9 @@ class ValidatorVisitorTest extends TestCase
     public function testValidateValid(): void
     {
         $this->validate('/foo{1,3}/');
-        self::assertTrue(true); // MODIFIER CETTE LIGNE
+        // This test is successful if no exception is thrown.
+        // To make PHPUnit happy and not report a "risky" test:
+        $this->addToAssertionCount(1);
     }
 
     public function testThrowsOnInvalidQuantifier(): void

@@ -13,6 +13,11 @@ use RegexParser\Lexer\Lexer;
 use RegexParser\Lexer\Token;
 use RegexParser\Lexer\TokenType;
 
+/**
+ * The Parser.
+ * It consumes a stream of Tokens from the Lexer and builds an
+ * Abstract Syntax Tree (AST) based on a formal grammar.
+ */
 class Parser
 {
     /** @var array<Token> */
@@ -23,6 +28,13 @@ class Parser
     {
     }
 
+    /**
+     * Parses the full regex string.
+     *
+     * @return NodeInterface<mixed> the root node of the AST
+     *
+     * @throws ParserException if a syntax error is found
+     */
     public function parse(string $regex): NodeInterface
     {
         $this->tokens = $this->lexer->tokenize();
@@ -33,20 +45,23 @@ class Parser
         $node = $this->parseAlternation();
 
         $this->consume(TokenType::T_DELIMITER, 'Expected closing delimiter');
-        // Ici, on pourrait parser les T_FLAG
+        // TODO: Parse flags (T_FLAG) here
 
         $this->consume(TokenType::T_EOF, 'Unexpected content after closing delimiter');
 
         return $node;
     }
 
-    // Grammaire:
+    // Grammar:
     // alternation      → sequence ( "|" sequence )*
     // sequence         → quantifiedAtom*
     // quantifiedAtom   → atom ( QUANTIFIER )?
     // atom             → T_LITERAL | T_BACKSLASH T_LITERAL | group
     // group            → "(" alternation ")"
 
+    /**
+     * @return NodeInterface<mixed>
+     */
     private function parseAlternation(): NodeInterface
     {
         $nodes = [$this->parseSequence()];
@@ -58,11 +73,14 @@ class Parser
         return \count($nodes) > 1 ? new AlternationNode($nodes) : $nodes[0];
     }
 
+    /**
+     * @return NodeInterface<mixed>
+     */
     private function parseSequence(): NodeInterface
     {
         $nodes = [];
 
-        // Continue de parser tant qu'on n'est pas à un "terminateur" de séquence
+        // Continue parsing as long as it's not a sequence terminator
         while (!$this->check(TokenType::T_GROUP_CLOSE)
                && !$this->check(TokenType::T_ALTERNATION)
                && !$this->check(TokenType::T_DELIMITER)
@@ -71,35 +89,43 @@ class Parser
             $nodes[] = $this->parseQuantifiedAtom();
         }
 
-        // Gérer le cas d'une séquence vide (ex: `()`, `(a||b)`)
+        // Handle empty sequence (e.g., `()`, `(a||b)`)
         if (empty($nodes)) {
-            return new LiteralNode(''); // Nœud "vide"
+            return new LiteralNode(''); // "Empty" node
         }
 
         return \count($nodes) > 1 ? new SequenceNode($nodes) : $nodes[0];
     }
 
+    /**
+     * @return NodeInterface<mixed>
+     */
     private function parseQuantifiedAtom(): NodeInterface
     {
         $node = $this->parseAtom();
 
         if ($this->match(TokenType::T_QUANTIFIER)) {
             $quantifier = $this->previous()->value;
-            // Gérer les quantifieurs invalides (ex: `*`, `+` au début)
-            // SUPPRIMER LE BLOC 'if ($node instanceof LiteralNode ...)'
+            // Check for invalid quantifiers (e.g., `*`, `+` at the start)
+            if ($node instanceof LiteralNode && '' === $node->value) {
+                throw new ParserException('Quantifier without target at position '.$this->previous()->position);
+            }
             $node = new QuantifierNode($node, $quantifier);
         }
 
         return $node;
     }
 
+    /**
+     * @return NodeInterface<mixed>
+     */
     private function parseAtom(): NodeInterface
     {
         if ($this->match(TokenType::T_LITERAL)) {
             return new LiteralNode($this->previous()->value);
         }
 
-        // Gère \*, \+, \? etc.
+        // Handle escaped meta-characters like \*, \+, \?
         if ($this->match(TokenType::T_BACKSLASH)) {
             if ($this->match(TokenType::T_LITERAL)) {
                 return new LiteralNode($this->previous()->value);
@@ -108,18 +134,24 @@ class Parser
         }
 
         if ($this->match(TokenType::T_GROUP_OPEN)) {
-            $expr = $this->parseAlternation(); // Récursion
+            $expr = $this->parseAlternation(); // Recurse
             $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
             return new GroupNode($expr);
         }
 
-        // SUPPRIMER LE BLOC 'if ($this->check(TokenType::T_ALTERNATION) ...)'
+        // Handle empty expression before a terminator (e.g., /|/)
+        if ($this->check(TokenType::T_ALTERNATION) || $this->check(TokenType::T_GROUP_CLOSE) || $this->check(TokenType::T_DELIMITER) || $this->check(TokenType::T_EOF)) {
+            return new LiteralNode(''); // "Empty" node
+        }
 
         $at = $this->isAtEnd() ? 'end of input' : 'position '.$this->current()->position;
         throw new ParserException('Unexpected token '.$this->current()->type->value.' at '.$at);
     }
 
+    /**
+     * Checks if the current token matches the given type. If so, consumes it.
+     */
     private function match(TokenType $type): bool
     {
         if ($this->check($type)) {
@@ -131,6 +163,9 @@ class Parser
         return false;
     }
 
+    /**
+     * Consumes the current token, throwing an error if it doesn't match the expected type.
+     */
     private function consume(TokenType $type, string $error): void
     {
         if ($this->check($type)) {
@@ -142,6 +177,9 @@ class Parser
         throw new ParserException($error.' at '.$at.' (found '.$this->current()->type->value.')');
     }
 
+    /**
+     * Checks the type of the current token without consuming it.
+     */
     private function check(TokenType $type): bool
     {
         if ($this->isAtEnd()) {
@@ -151,6 +189,9 @@ class Parser
         return $this->current()->type === $type;
     }
 
+    /**
+     * Advances to the next token.
+     */
     private function advance(): void
     {
         if (!$this->isAtEnd()) {
@@ -158,17 +199,26 @@ class Parser
         }
     }
 
+    /**
+     * Checks if the parser has reached the end of the token stream.
+     */
     private function isAtEnd(): bool
     {
-        // On ne sera jamais "at end" avant le T_EOF.
+        // We are only "at the end" when we hit the T_EOF token.
         return TokenType::T_EOF === $this->tokens[$this->position]->type;
     }
 
+    /**
+     * Gets the current token.
+     */
     private function current(): Token
     {
         return $this->tokens[$this->position];
     }
 
+    /**
+     * Gets the previously consumed token.
+     */
     private function previous(): Token
     {
         return $this->tokens[$this->position - 1];

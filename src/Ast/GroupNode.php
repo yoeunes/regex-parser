@@ -5,26 +5,24 @@ namespace RegexParser\Ast;
 use RegexParser\Visitor\VisitorInterface;
 
 /**
- * @template TReturn
- *
- * @implements NodeInterface<TReturn>
+ * Represents a group (e.g., "(...)").
  */
 class GroupNode implements NodeInterface
 {
     /**
-     * L'enfant est l'expression contenue dans le groupe,
-     * qui est typiquement une AlternationNode ou SequenceNode.
-     *
-     * @param NodeInterface<TReturn> $child
+     * The child is the expression contained within the group,
+     * which is typically an AlternationNode or SequenceNode.
      */
     public function __construct(public readonly NodeInterface $child)
     {
     }
 
     /**
-     * @param VisitorInterface<TReturn> $visitor
+     * @template T
      *
-     * @return TReturn
+     * @param VisitorInterface<T> $visitor
+     *
+     * @return T
      */
     public function accept(VisitorInterface $visitor)
     {

@@ -35,7 +35,7 @@ class CompilerVisitorTest extends TestCase
 
     public function testCompileEscaped(): void
     {
-        // Le compilateur doit ré-échapper les caractères spéciaux
+        // The compiler must re-escape special characters
         $this->assertSame('a\*c', $this->compile('/a\*c/'));
     }
 }

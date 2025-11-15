@@ -2,6 +2,9 @@
 
 namespace RegexParser\Lexer;
 
+/**
+ * Data Transfer Object representing a single token.
+ */
 class Token
 {
     public function __construct(

@@ -5,9 +5,7 @@ namespace RegexParser\Ast;
 use RegexParser\Visitor\VisitorInterface;
 
 /**
- * @template TReturn
- *
- * @implements NodeInterface<TReturn>
+ * Represents a literal character (e.g., "a", "1").
  */
 class LiteralNode implements NodeInterface
 {
@@ -16,9 +14,11 @@ class LiteralNode implements NodeInterface
     }
 
     /**
-     * @param VisitorInterface<TReturn> $visitor
+     * @template T
      *
-     * @return TReturn
+     * @param VisitorInterface<T> $visitor
+     *
+     * @return T
      */
     public function accept(VisitorInterface $visitor)
     {

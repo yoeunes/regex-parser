@@ -9,24 +9,35 @@ use RegexParser\Ast\QuantifierNode;
 use RegexParser\Ast\SequenceNode;
 
 /**
+ * A visitor that recompiles the AST back into a regex string.
+ *
  * @implements VisitorInterface<string>
  */
 class CompilerVisitor implements VisitorInterface
 {
+    /**
+     * @param AlternationNode<string> $node
+     */
     public function visitAlternation(AlternationNode $node): string
     {
         return implode('|', array_map(fn ($alt) => $alt->accept($this), $node->alternatives));
     }
 
+    /**
+     * @param GroupNode<string> $node
+     */
     public function visitGroup(GroupNode $node): string
     {
-        // L'enfant du groupe est visité
+        // The child of the group is visited
         return '('.$node->child->accept($this).')';
     }
 
+    /**
+     * @param LiteralNode<string> $node
+     */
     public function visitLiteral(LiteralNode $node): string
     {
-        // Échapper les méta-caractères si nécessaire (simplification)
+        // Re-escape special meta-characters
         if (\in_array($node->value, ['(', ')', '[', ']', '*', '+', '?', '|', '\\'], true)) {
             return '\\'.$node->value;
         }
@@ -34,6 +45,9 @@ class CompilerVisitor implements VisitorInterface
         return $node->value;
     }
 
+    /**
+     * @param QuantifierNode<string> $node
+     */
     public function visitQuantifier(QuantifierNode $node): string
     {
         /** @var string $nodeCompiled */
@@ -42,9 +56,12 @@ class CompilerVisitor implements VisitorInterface
         return $nodeCompiled.$node->quantifier;
     }
 
+    /**
+     * @param SequenceNode<string> $node
+     */
     public function visitSequence(SequenceNode $node): string
     {
-        // Concatène les résultats des enfants de la séquence
+        // Concatenates the results of the sequence's children
         return implode('', array_map(fn ($child) => $child->accept($this), $node->children));
     }
 }

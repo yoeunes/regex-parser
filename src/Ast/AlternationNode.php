@@ -5,23 +5,23 @@ namespace RegexParser\Ast;
 use RegexParser\Visitor\VisitorInterface;
 
 /**
- * @template TReturn
- *
- * @implements NodeInterface<TReturn>
+ * Represents an alternation (e.g., "a|b").
  */
 class AlternationNode implements NodeInterface
 {
     /**
-     * @param array<NodeInterface<TReturn>> $alternatives
+     * @param array<NodeInterface> $alternatives
      */
     public function __construct(public readonly array $alternatives)
     {
     }
 
     /**
-     * @param VisitorInterface<TReturn> $visitor
+     * @template T
      *
-     * @return TReturn
+     * @param VisitorInterface<T> $visitor
+     *
+     * @return T
      */
     public function accept(VisitorInterface $visitor)
     {
