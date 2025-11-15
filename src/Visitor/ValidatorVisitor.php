@@ -121,18 +121,16 @@ class ValidatorVisitor implements VisitorInterface
             return true;
         }
 
-        if ($node instanceof GroupNode || $node instanceof AlternationNode || $node instanceof SequenceNode) {
-            $children = match (true) {
-                $node instanceof GroupNode => [$node->child],
-                $node instanceof AlternationNode => $node->alternatives,
-                $node instanceof SequenceNode => $node->children,
-                default => [],
-            };
+        $children = match (true) {
+            $node instanceof GroupNode => [$node->child],
+            $node instanceof AlternationNode => $node->alternatives,
+            $node instanceof SequenceNode => $node->children,
+            default => [],
+        };
 
-            foreach ($children as $child) {
-                if ($this->nodeContainsQuantifier($child)) {
-                    return true;
-                }
+        foreach ($children as $child) {
+            if ($this->nodeContainsQuantifier($child)) {
+                return true;
             }
         }
 
