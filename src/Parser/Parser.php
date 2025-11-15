@@ -31,9 +31,9 @@ class Parser
     /**
      * Parses the full regex string.
      *
-     * @return NodeInterface The root node of the AST.
+     * @return NodeInterface the root node of the AST
      *
-     * @throws ParserException If a syntax error is found.
+     * @throws ParserException if a syntax error is found
      */
     public function parse(string $regex): NodeInterface
     {
@@ -59,9 +59,6 @@ class Parser
     // atom             → T_LITERAL | T_BACKSLASH T_LITERAL | group
     // group            → "(" alternation ")"
 
-    /**
-     * @return NodeInterface
-     */
     private function parseAlternation(): NodeInterface
     {
         $nodes = [$this->parseSequence()];
@@ -73,9 +70,6 @@ class Parser
         return \count($nodes) > 1 ? new AlternationNode($nodes) : $nodes[0];
     }
 
-    /**
-     * @return NodeInterface
-     */
     private function parseSequence(): NodeInterface
     {
         $nodes = [];
@@ -97,9 +91,6 @@ class Parser
         return \count($nodes) > 1 ? new SequenceNode($nodes) : $nodes[0];
     }
 
-    /**
-     * @return NodeInterface
-     */
     private function parseQuantifiedAtom(): NodeInterface
     {
         $node = $this->parseAtom();
@@ -116,9 +107,6 @@ class Parser
         return $node;
     }
 
-    /**
-     * @return NodeInterface
-     */
     private function parseAtom(): NodeInterface
     {
         if ($this->match(TokenType::T_LITERAL)) {

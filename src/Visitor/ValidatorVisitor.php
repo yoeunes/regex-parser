@@ -17,9 +17,6 @@ use RegexParser\Exception\ParserException;
  */
 class ValidatorVisitor implements VisitorInterface
 {
-    /**
-     * @param AlternationNode $node
-     */
     public function visitAlternation(AlternationNode $node): void
     {
         foreach ($node->alternatives as $alt) {
@@ -29,9 +26,6 @@ class ValidatorVisitor implements VisitorInterface
         return;
     }
 
-    /**
-     * @param GroupNode $node
-     */
     public function visitGroup(GroupNode $node): void
     {
         $node->child->accept($this);
@@ -39,18 +33,12 @@ class ValidatorVisitor implements VisitorInterface
         return;
     }
 
-    /**
-     * @param LiteralNode $node
-     */
     public function visitLiteral(LiteralNode $node): void
     {
         // Validation logic for literals could go here.
         return;
     }
 
-    /**
-     * @param QuantifierNode $node
-     */
     public function visitQuantifier(QuantifierNode $node): void
     {
         if (\in_array($node->quantifier, ['*', '+', '?'], true)) {
@@ -69,9 +57,6 @@ class ValidatorVisitor implements VisitorInterface
         return;
     }
 
-    /**
-     * @param SequenceNode $node
-     */
     public function visitSequence(SequenceNode $node): void
     {
         foreach ($node->children as $child) {

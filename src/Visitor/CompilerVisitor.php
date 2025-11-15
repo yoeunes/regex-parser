@@ -15,26 +15,17 @@ use RegexParser\Ast\SequenceNode;
  */
 class CompilerVisitor implements VisitorInterface
 {
-    /**
-     * @param AlternationNode $node
-     */
     public function visitAlternation(AlternationNode $node): string
     {
         return implode('|', array_map(fn ($alt) => $alt->accept($this), $node->alternatives));
     }
 
-    /**
-     * @param GroupNode $node
-     */
     public function visitGroup(GroupNode $node): string
     {
         // The child of the group is visited
         return '('.$node->child->accept($this).')';
     }
 
-    /**
-     * @param LiteralNode $node
-     */
     public function visitLiteral(LiteralNode $node): string
     {
         // Re-escape special meta-characters
@@ -45,9 +36,6 @@ class CompilerVisitor implements VisitorInterface
         return $node->value;
     }
 
-    /**
-     * @param QuantifierNode $node
-     */
     public function visitQuantifier(QuantifierNode $node): string
     {
         /** @var string $nodeCompiled */
@@ -56,9 +44,6 @@ class CompilerVisitor implements VisitorInterface
         return $nodeCompiled.$node->quantifier;
     }
 
-    /**
-     * @param SequenceNode $node
-     */
     public function visitSequence(SequenceNode $node): string
     {
         // Concatenates the results of the sequence's children

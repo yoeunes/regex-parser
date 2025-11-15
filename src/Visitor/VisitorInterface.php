@@ -17,36 +17,26 @@ use RegexParser\Ast\SequenceNode;
 interface VisitorInterface
 {
     /**
-     * @param AlternationNode $node
-     *
      * @return TReturn
      */
     public function visitAlternation(AlternationNode $node);
 
     /**
-     * @param GroupNode $node
-     *
      * @return TReturn
      */
     public function visitGroup(GroupNode $node);
 
     /**
-     * @param LiteralNode $node
-     *
      * @return TReturn
      */
     public function visitLiteral(LiteralNode $node);
 
     /**
-     * @param QuantifierNode $node
-     *
      * @return TReturn
      */
     public function visitQuantifier(QuantifierNode $node);
 
     /**
-     * @param SequenceNode $node
-     *
      * @return TReturn
      */
     public function visitSequence(SequenceNode $node);
