@@ -2,6 +2,7 @@
 
 namespace RegexParser\Parser;
 
+use RegexParser\Ast\AlternationNode;
 use RegexParser\Ast\GroupNode;
 use RegexParser\Ast\LiteralNode;
 use RegexParser\Ast\NodeInterface;
@@ -21,10 +22,21 @@ class Parser
     {
         $lexer = new Lexer($regex);
         $this->tokens = $lexer->tokenize();
-        $node = $this->parseExpression();
+        $node = $this->parseAlternation(); // Commence par le plus bas precedence
         $this->consume(TokenType::T_EOF, 'Expected end of input');
 
         return $node;
+    }
+
+    private function parseAlternation(): NodeInterface
+    {
+        $node = $this->parseExpression();
+        $alternatives = [$node];
+        while ($this->match(TokenType::T_ALTERNATION)) {
+            $alternatives[] = $this->parseExpression();
+        }
+
+        return \count($alternatives) > 1 ? new AlternationNode($alternatives) : $node;
     }
 
     private function parseExpression(): NodeInterface
@@ -43,7 +55,7 @@ class Parser
         if ($this->match(TokenType::T_LITERAL)) {
             return new LiteralNode($this->previous()->value);
         } elseif ($this->match(TokenType::T_GROUP_OPEN)) {
-            $expr = $this->parseExpression();
+            $expr = $this->parseAlternation(); // Permet alternations dans groups
             $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
             return new GroupNode([$expr]);
