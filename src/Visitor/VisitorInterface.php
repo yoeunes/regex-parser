@@ -6,6 +6,7 @@ use RegexParser\Ast\AlternationNode;
 use RegexParser\Ast\GroupNode;
 use RegexParser\Ast\LiteralNode;
 use RegexParser\Ast\QuantifierNode;
+use RegexParser\Ast\SequenceNode;
 
 interface VisitorInterface
 {
@@ -16,4 +17,6 @@ interface VisitorInterface
     public function visitLiteral(LiteralNode $node): mixed;
 
     public function visitQuantifier(QuantifierNode $node): mixed;
+
+    public function visitSequence(SequenceNode $node): mixed;
 }

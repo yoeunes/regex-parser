@@ -7,9 +7,10 @@ use RegexParser\Visitor\VisitorInterface;
 class GroupNode implements NodeInterface
 {
     /**
-     * @param array<NodeInterface> $children
+     * L'enfant est l'expression contenue dans le groupe,
+     * qui est typiquement une AlternationNode ou SequenceNode.
      */
-    public function __construct(public readonly array $children)
+    public function __construct(public readonly NodeInterface $child)
     {
     }
 

@@ -3,24 +3,39 @@
 namespace RegexParser\Tests\Visitor;
 
 use PHPUnit\Framework\TestCase;
+use RegexParser\Lexer\Lexer;
 use RegexParser\Parser\Parser;
 use RegexParser\Visitor\CompilerVisitor;
 
 class CompilerVisitorTest extends TestCase
 {
+    private function compile(string $regex): string
+    {
+        $parser = new Parser(new Lexer($regex));
+        $ast = $parser->parse($regex);
+        $visitor = new CompilerVisitor();
+
+        return $ast->accept($visitor);
+    }
+
     public function testCompileSimple(): void
     {
-        $parser = new Parser();
-        $ast = $parser->parse('foo');
-        $visitor = new CompilerVisitor();
-        $this->assertSame('foo', $ast->accept($visitor));
+        $this->assertSame('foo', $this->compile('/foo/'));
     }
 
     public function testCompileGroupAndAlternation(): void
     {
-        $parser = new Parser();
-        $ast = $parser->parse('(foo|bar)?');
-        $visitor = new CompilerVisitor();
-        $this->assertSame('(foo|bar)?', $ast->accept($visitor));
+        $this->assertSame('(foo|bar)?', $this->compile('/(foo|bar)?/'));
+    }
+
+    public function testCompilePrecedence(): void
+    {
+        $this->assertSame('ab*c', $this->compile('/ab*c/'));
+    }
+
+    public function testCompileEscaped(): void
+    {
+        // Le compilateur doit ré-échapper les caractères spéciaux
+        $this->assertSame('a\*c', $this->compile('/a\*c/'));
     }
 }

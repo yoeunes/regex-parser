@@ -6,6 +6,7 @@ use RegexParser\Ast\AlternationNode;
 use RegexParser\Ast\GroupNode;
 use RegexParser\Ast\LiteralNode;
 use RegexParser\Ast\QuantifierNode;
+use RegexParser\Ast\SequenceNode;
 use RegexParser\Exception\ParserException;
 
 class ValidatorVisitor implements VisitorInterface
@@ -21,9 +22,7 @@ class ValidatorVisitor implements VisitorInterface
 
     public function visitGroup(GroupNode $node): mixed
     {
-        foreach ($node->children as $child) {
-            $child->accept($this);
-        }
+        $node->child->accept($this);
 
         return null;
     }
@@ -48,6 +47,15 @@ class ValidatorVisitor implements VisitorInterface
             throw new ParserException('Invalid quantifier: '.$node->quantifier);
         }
         $node->node->accept($this);
+
+        return null;
+    }
+
+    public function visitSequence(SequenceNode $node): mixed
+    {
+        foreach ($node->children as $child) {
+            $child->accept($this);
+        }
 
         return null;
     }

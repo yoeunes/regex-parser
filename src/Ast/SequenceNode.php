@@ -1,0 +1,24 @@
+<?php
+
+namespace RegexParser\Ast;
+
+use RegexParser\Visitor\VisitorInterface;
+
+/**
+ * Représente une séquence (concaténation) de nœuds.
+ * Ex: "abc" est Sequence(Literal(a), Literal(b), Literal(c)).
+ */
+class SequenceNode implements NodeInterface
+{
+    /**
+     * @param array<NodeInterface> $children
+     */
+    public function __construct(public readonly array $children)
+    {
+    }
+
+    public function accept(VisitorInterface $visitor): mixed
+    {
+        return $visitor->visitSequence($this);
+    }
+}

@@ -1,23 +1,26 @@
-#!/usr/bin/env php
 <?php
 
-require __DIR__ . '/../vendor/autoload.php';
+require __DIR__.'/../vendor/autoload.php';
 
 use RegexParser\Parser\Parser;
 use RegexParser\Visitor\CompilerVisitor;
 use RegexParser\Visitor\ValidatorVisitor;
 use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
+use RegexParser\Lexer\Lexer;
 
 if ($argc < 2) {
-    echo "Usage: php bin/regex-parser 'your_regex_here'\n";
+    echo "Usage: php bin/regex-parser '/your_regex_here/'\n";
     exit(1);
 }
 
 $regex = $argv[1];
 
 try {
-    $parser = new Parser();
+    // Injection de dépendance
+    $lexer = new Lexer($regex);
+    $parser = new Parser($lexer);
+
     $ast = $parser->parse($regex);
 
     // Valide
@@ -34,6 +37,6 @@ try {
     // Bonus: Simple AST dump
     var_dump($ast);
 } catch (LexerException|ParserException $e) {
-    echo "Error: " . $e->getMessage() . "\n";
+    echo 'Error: '.$e->getMessage()."\n";
     exit(1);
 }
