@@ -1,0 +1,10 @@
+exclude:
+    - .cache/
+    - tools/
+
+jobs: 10
+
+extensions:
+    - php
+
+cache-dir: .cache/phplint/

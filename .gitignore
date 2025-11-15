@@ -1,0 +1,7 @@
+/.idea/
+/.cache/
+/vendor/
+
+/.php-cs-fixer.php
+/phpstan.neon
+/phpunit.xml
