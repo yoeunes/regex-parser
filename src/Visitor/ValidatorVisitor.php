@@ -82,11 +82,11 @@ class ValidatorVisitor implements VisitorInterface
         }
 
         // 2. Check for Catastrophic Backtracking (Nested Quantifiers)
-        ++$this->quantifierDepth;
-        if ($this->quantifierDepth > 1 && $this->nodeContainsQuantifier($node->node)) {
+        if ($this->quantifierDepth > 0) {
             throw new ParserException('Potential catastrophic backtracking: nested quantifiers detected.');
         }
 
+        ++$this->quantifierDepth;
         $node->node->accept($this);
         --$this->quantifierDepth;
     }
@@ -121,12 +121,14 @@ class ValidatorVisitor implements VisitorInterface
             return true;
         }
 
-        $children = match (true) {
-            $node instanceof GroupNode => [$node->child],
-            $node instanceof AlternationNode => $node->alternatives,
-            $node instanceof SequenceNode => $node->children,
-            default => [],
-        };
+        $children = [];
+        if ($node instanceof GroupNode) {
+            $children = [$node->child];
+        } elseif ($node instanceof AlternationNode) {
+            $children = $node->alternatives;
+        } elseif ($node instanceof SequenceNode) {
+            $children = $node->children;
+        }
 
         foreach ($children as $child) {
             if ($this->nodeContainsQuantifier($child)) {

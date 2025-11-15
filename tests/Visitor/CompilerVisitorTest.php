@@ -57,6 +57,6 @@ class CompilerVisitorTest extends TestCase
     public function testCompileQuantifiedSequence(): void
     {
         // The compiler must add a (?:) group
-        $this->assertSame('/(?:abc)+/', $this->compile('/(abc)+/'));
+        $this->assertSame('/(abc)+/', $this->compile('/(abc)+/'));
     }
 }

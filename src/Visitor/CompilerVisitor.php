@@ -63,11 +63,6 @@ class CompilerVisitor implements VisitorInterface
         /** @var string $nodeCompiled */
         $nodeCompiled = $node->node->accept($this);
 
-        // Add non-capturing group if needed (e.g., "abc*" vs "(abc)*")
-        if ($node->node instanceof SequenceNode || $node->node instanceof AlternationNode) {
-            $nodeCompiled = '(?:'.$nodeCompiled.')';
-        }
-
         return $nodeCompiled.$node->quantifier;
     }
 

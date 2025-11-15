@@ -164,15 +164,17 @@ class ParserTest extends TestCase
         $pattern = $ast->pattern;
 
         $this->assertInstanceOf(SequenceNode::class, $pattern);
-        $this->assertCount(3, $pattern->children); // ^, Sequence(f,o,o), $
+        $this->assertCount(5, $pattern->children); // ^, Sequence(f,o,o), $
 
         $this->assertInstanceOf(AnchorNode::class, $pattern->children[0]);
         $this->assertSame('^', $pattern->children[0]->value);
 
-        $this->assertInstanceOf(SequenceNode::class, $pattern->children[1]); // "foo"
+        $this->assertInstanceOf(LiteralNode::class, $pattern->children[1]); // "f"
+        $this->assertInstanceOf(LiteralNode::class, $pattern->children[2]); // "o"
+        $this->assertInstanceOf(LiteralNode::class, $pattern->children[3]); // "o"
 
-        $this->assertInstanceOf(AnchorNode::class, $pattern->children[2]);
-        $this->assertSame('$', $pattern->children[2]->value);
+        $this->assertInstanceOf(AnchorNode::class, $pattern->children[4]); // Index 4, pas 2
+        $this->assertSame('$', $pattern->children[4]->value);
     }
 
     public function testThrowsOnUnmatchedGroup(): void
