@@ -17,7 +17,6 @@ use RegexParser\Ast\CharTypeNode;
 use RegexParser\Ast\DotNode;
 use RegexParser\Ast\GroupNode;
 use RegexParser\Ast\LiteralNode;
-use RegexParser\Ast\NodeInterface;
 use RegexParser\Ast\QuantifierNode;
 use RegexParser\Ast\RegexNode;
 use RegexParser\Ast\SequenceNode;
@@ -109,33 +108,5 @@ class ValidatorVisitor implements VisitorInterface
     public function visitAnchor(AnchorNode $node): void
     {
         // No validation needed for anchors
-    }
-
-    /**
-     * Helper to check if a node or its children contain another quantifier.
-     * This is a simple check; a more complex one would be needed for cases like (a*|b*)*.
-     */
-    private function nodeContainsQuantifier(NodeInterface $node): bool
-    {
-        if ($node instanceof QuantifierNode) {
-            return true;
-        }
-
-        $children = [];
-        if ($node instanceof GroupNode) {
-            $children = [$node->child];
-        } elseif ($node instanceof AlternationNode) {
-            $children = $node->alternatives;
-        } elseif ($node instanceof SequenceNode) {
-            $children = $node->children;
-        }
-
-        foreach ($children as $child) {
-            if ($this->nodeContainsQuantifier($child)) {
-                return true;
-            }
-        }
-
-        return false;
     }
 }
