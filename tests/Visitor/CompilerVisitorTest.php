@@ -59,4 +59,18 @@ class CompilerVisitorTest extends TestCase
         // The compiler must add a (?:) group
         $this->assertSame('/(abc)+/', $this->compile('/(abc)+/'));
     }
+
+    public function testCompileCharClass(): void
+    {
+        // Gère la négation, les ranges, les char types, et les littéraux (comme '-')
+        $regex = '/[a-z\d-]/';
+        $this->assertSame($regex, $this->compile($regex));
+
+        $regex = '/[^a-z]/';
+        $this->assertSame($regex, $this->compile($regex));
+
+        // S'assure que les méta-caractères de classe sont échappés
+        $regex = '/[]\^-]/'; // "]", "\", "^", "-"
+        $this->assertSame('/[]\^-]/', $this->compile('/[]\^-]/'));
+    }
 }

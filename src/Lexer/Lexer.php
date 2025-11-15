@@ -17,6 +17,7 @@ use RegexParser\Exception\LexerException;
  * The Lexer (or Tokenizer).
  * Its job is to split the input regex string into a stream of Tokens.
  * It handles single characters, basic escape sequences, and is UTF-8 safe.
+ * It manages state to handle different tokenization rules inside character classes.
  */
 class Lexer
 {
@@ -24,6 +25,11 @@ class Lexer
     private readonly int $length;
     /** @var array<string> */
     private readonly array $characters;
+
+    /**
+     * @var bool Tracks if the lexer is currently inside a character class `[...]`.
+     */
+    private bool $inCharClass = false;
 
     /**
      * @throws LexerException If the input is not valid UTF-8
@@ -62,7 +68,7 @@ class Lexer
                     ++$this->position;
                 } else {
                     // It's an escaped meta-character (e.g., \*, \+, \()
-                    // or a literal (e.g., \a, \b)
+                    // or a literal (e.g., \a, \b, \-)
                     $tokens[] = new Token(TokenType::T_LITERAL, $char, $this->position++);
                 }
                 continue;
@@ -74,14 +80,20 @@ class Lexer
                 continue;
             }
 
+            // If we are inside a character class, rules are different.
+            if ($this->inCharClass) {
+                $tokens[] = $this->tokenizeCharClassToken($char);
+                continue;
+            }
+
+            // Default tokenization (outside character class)
             if ('(' === $char) {
                 $tokens[] = new Token(TokenType::T_GROUP_OPEN, '(', $this->position++);
             } elseif (')' === $char) {
                 $tokens[] = new Token(TokenType::T_GROUP_CLOSE, ')', $this->position++);
             } elseif ('[' === $char) {
+                $this->inCharClass = true; // Enter char class mode
                 $tokens[] = new Token(TokenType::T_CHAR_CLASS_OPEN, '[', $this->position++);
-            } elseif (']' === $char) {
-                $tokens[] = new Token(TokenType::T_CHAR_CLASS_CLOSE, ']', $this->position++);
             } elseif (\in_array($char, ['*', '+', '?'], true)) {
                 $tokens[] = new Token(TokenType::T_QUANTIFIER, $char, $this->position++);
             } elseif ('{' === $char) {
@@ -89,15 +101,13 @@ class Lexer
             } elseif ('|' === $char) {
                 $tokens[] = new Token(TokenType::T_ALTERNATION, '|', $this->position++);
             } elseif ('/' === $char) {
-                // This assumes / is the delimiter, a more robust parser
-                // would treat the *first* char as the delimiter.
                 $tokens[] = new Token(TokenType::T_DELIMITER, '/', $this->position++);
             } elseif ('.' === $char) {
                 $tokens[] = new Token(TokenType::T_DOT, '.', $this->position++);
             } elseif ('^' === $char || '$' === $char) {
                 $tokens[] = new Token(TokenType::T_ANCHOR, $char, $this->position++);
             } else {
-                // Everything else is a T_LITERAL
+                // ']' is a literal if not in char class, same for '-'
                 $tokens[] = new Token(TokenType::T_LITERAL, $char, $this->position++);
             }
         }
@@ -106,9 +116,47 @@ class Lexer
             throw new LexerException('Trailing backslash at position '.($this->position - 1));
         }
 
+        if ($this->inCharClass) {
+            throw new LexerException('Unclosed character class "]" at end of input.');
+        }
+
         $tokens[] = new Token(TokenType::T_EOF, '', $this->position);
 
         return $tokens;
+    }
+
+    /**
+     * Tokenizes a single character while inside a character class.
+     */
+    private function tokenizeCharClassToken(string $char): Token
+    {
+        // Inside a class, most meta-characters are literals
+        if (']' === $char) {
+            $this->inCharClass = false; // Exit char class mode
+
+            return new Token(TokenType::T_CHAR_CLASS_CLOSE, ']', $this->position++);
+        }
+
+        // Negation ^ (only if it's the *first* char after [)
+        if ('^' === $char && isset($this->characters[$this->position - 1]) && '[' === $this->characters[$this->position - 1]) {
+            return new Token(TokenType::T_NEGATION, '^', $this->position++);
+        }
+
+        // Range - (if not first or last char)
+        $isFirstChar = isset($this->characters[$this->position - 1]) && '[' === $this->characters[$this->position - 1];
+        $isFirstCharAfterNegation = isset($this->characters[$this->position - 1], $this->characters[$this->position - 2])
+            && '^' === $this->characters[$this->position - 1]
+            && '[' === $this->characters[$this->position - 2];
+        $isAtStart = $isFirstChar || $isFirstCharAfterNegation;
+
+        $isAtEnd = ($this->position + 1 < $this->length) && ']' === $this->characters[$this->position + 1];
+
+        if ('-' === $char && !$isAtStart && !$isAtEnd) {
+            return new Token(TokenType::T_RANGE, '-', $this->position++);
+        }
+
+        // All other characters (including *, +, ?, ., |) are literals
+        return new Token(TokenType::T_LITERAL, $char, $this->position++);
     }
 
     /**
@@ -123,7 +171,6 @@ class Lexer
 
         if ($this->position >= $this->length || '}' !== $this->characters[$this->position]) {
             // Rewind and treat as literal '{'
-            // This is a more robust approach than throwing an exception.
             $this->position = $start + 1;
 
             return new Token(TokenType::T_LITERAL, '{', $start);
@@ -132,9 +179,7 @@ class Lexer
         $quant .= '}'; // Consume '}'
         ++$this->position;
 
-        // Validate the inner part (e.g., {1,3}, {2,}, {5})
         if (!preg_match('/^{\d+(,\d*)?}$/', $quant)) {
-            // Invalid content like {,} or {1,2,3}
             throw new LexerException(\sprintf('Invalid quantifier syntax "%s" at position %d', $quant, $start));
         }
 

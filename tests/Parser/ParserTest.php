@@ -14,11 +14,13 @@ namespace RegexParser\Tests\Parser;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Ast\AlternationNode;
 use RegexParser\Ast\AnchorNode;
+use RegexParser\Ast\CharClassNode;
 use RegexParser\Ast\CharTypeNode;
 use RegexParser\Ast\DotNode;
 use RegexParser\Ast\GroupNode;
 use RegexParser\Ast\LiteralNode;
 use RegexParser\Ast\QuantifierNode;
+use RegexParser\Ast\RangeNode;
 use RegexParser\Ast\RegexNode;
 use RegexParser\Ast\SequenceNode;
 use RegexParser\Exception\ParserException;
@@ -52,10 +54,46 @@ class ParserTest extends TestCase
         // "foo" is a SEQUENCE of 3 literals
         $this->assertInstanceOf(SequenceNode::class, $pattern);
         $this->assertCount(3, $pattern->children);
+    }
 
-        $child = $pattern->children[0];
-        $this->assertInstanceOf(LiteralNode::class, $child);
-        $this->assertSame('f', $child->value);
+    public function testParseCharClass(): void
+    {
+        $parser = $this->createParser('/[a-z\d-]/');
+        /** @var RegexNode $ast */
+        $ast = $parser->parse('/[a-z\d-]/');
+        $pattern = $ast->pattern;
+
+        $this->assertInstanceOf(CharClassNode::class, $pattern);
+        $this->assertFalse($pattern->isNegated);
+        $this->assertCount(3, $pattern->parts);
+
+        // 1. RangeNode
+        $this->assertInstanceOf(RangeNode::class, $pattern->parts[0]);
+        $this->assertInstanceOf(LiteralNode::class, $pattern->parts[0]->start);
+        $this->assertSame('a', $pattern->parts[0]->start->value);
+        $this->assertInstanceOf(LiteralNode::class, $pattern->parts[0]->end);
+        $this->assertSame('z', $pattern->parts[0]->end->value);
+
+        // 2. CharTypeNode
+        $this->assertInstanceOf(CharTypeNode::class, $pattern->parts[1]);
+        $this->assertSame('d', $pattern->parts[1]->value);
+
+        // 3. LiteralNode
+        $this->assertInstanceOf(LiteralNode::class, $pattern->parts[2]);
+        $this->assertSame('-', $pattern->parts[2]->value);
+    }
+
+    public function testParseNegatedCharClass(): void
+    {
+        $parser = $this->createParser('/[^a-z]/');
+        /** @var RegexNode $ast */
+        $ast = $parser->parse('/[^a-z]/');
+        $pattern = $ast->pattern;
+
+        $this->assertInstanceOf(CharClassNode::class, $pattern);
+        $this->assertTrue($pattern->isNegated);
+        $this->assertCount(1, $pattern->parts);
+        $this->assertInstanceOf(RangeNode::class, $pattern->parts[0]);
     }
 
     public function testParseGroupWithQuantifier(): void

@@ -13,12 +13,14 @@ namespace RegexParser\Parser;
 
 use RegexParser\Ast\AlternationNode;
 use RegexParser\Ast\AnchorNode;
+use RegexParser\Ast\CharClassNode;
 use RegexParser\Ast\CharTypeNode;
 use RegexParser\Ast\DotNode;
 use RegexParser\Ast\GroupNode;
 use RegexParser\Ast\LiteralNode;
 use RegexParser\Ast\NodeInterface;
 use RegexParser\Ast\QuantifierNode;
+use RegexParser\Ast\RangeNode;
 use RegexParser\Ast\RegexNode;
 use RegexParser\Ast\SequenceNode;
 use RegexParser\Exception\ParserException;
@@ -66,8 +68,10 @@ class Parser
     // alternation      → sequence ( "|" sequence )*
     // sequence         → quantifiedAtom*
     // quantifiedAtom   → atom ( QUANTIFIER )?
-    // atom             → T_LITERAL | T_CHAR_TYPE | T_DOT | T_ANCHOR | group
+    // atom             → T_LITERAL | T_CHAR_TYPE | T_DOT | T_ANCHOR | group | char_class
     // group            → "(" alternation ")"
+    // char_class       → "[" ( T_NEGATION )? ( char_class_part )* "]"
+    // char_class_part  → T_LITERAL ( T_RANGE T_LITERAL )? | T_CHAR_TYPE
 
     /**
      * Parses an alternation (e.g., "a|b").
@@ -99,7 +103,6 @@ class Parser
             $nodes[] = $this->parseQuantifiedAtom();
         }
 
-        // Handle empty sequence (e.g., `()`, `(a||b)`)
         if (empty($nodes)) {
             return new LiteralNode(''); // "Empty" node
         }
@@ -116,11 +119,9 @@ class Parser
 
         if ($this->match(TokenType::T_QUANTIFIER)) {
             $quantifier = $this->previous()->value;
-            // Check for invalid quantifiers (e.g., `*`, `+` at the start)
             if ($node instanceof LiteralNode && '' === $node->value) {
                 throw new ParserException('Quantifier without target at position '.$this->previous()->position);
             }
-            // Check for quantifiers that cannot be quantified (e.g. anchors)
             if ($node instanceof AnchorNode) {
                 throw new ParserException(\sprintf('Quantifier "%s" cannot be applied to anchor "%s" at position %d', $quantifier, $node->value, $this->previous()->position));
             }
@@ -158,7 +159,9 @@ class Parser
             return new GroupNode($expr);
         }
 
-        // TODO: Add support for T_CHAR_CLASS_OPEN here
+        if ($this->match(TokenType::T_CHAR_CLASS_OPEN)) {
+            return $this->parseCharClass();
+        }
 
         $at = $this->isAtEnd() ? 'end of input' : 'position '.$this->current()->position;
         $expected = [
@@ -167,8 +170,62 @@ class Parser
             TokenType::T_DOT->value,
             TokenType::T_ANCHOR->value,
             TokenType::T_GROUP_OPEN->value,
+            TokenType::T_CHAR_CLASS_OPEN->value,
         ];
         throw new ParserException(\sprintf('Unexpected token "%s" (%s) at %s. Expected one of: %s', $this->current()->value, $this->current()->type->value, $at, implode(', ', $expected)));
+    }
+
+    /**
+     * Parses a character class (e.g., "[a-z\d]").
+     */
+    private function parseCharClass(): CharClassNode
+    {
+        $isNegated = $this->match(TokenType::T_NEGATION);
+        $parts = [];
+
+        while (!$this->check(TokenType::T_CHAR_CLASS_CLOSE) && !$this->isAtEnd()) {
+            $parts[] = $this->parseCharClassPart();
+        }
+
+        $this->consume(TokenType::T_CHAR_CLASS_CLOSE, 'Expected "]" to close character class');
+
+        return new CharClassNode($parts, $isNegated);
+    }
+
+    /**
+     * Parses a single part of a character class (a literal, a range, or a char type).
+     */
+    private function parseCharClassPart(): NodeInterface
+    {
+        $startNode = null;
+        if ($this->match(TokenType::T_LITERAL)) {
+            $startNode = new LiteralNode($this->previous()->value);
+        } elseif ($this->match(TokenType::T_CHAR_TYPE)) {
+            $startNode = new CharTypeNode($this->previous()->value);
+        } else {
+            $at = $this->isAtEnd() ? 'end of input' : 'position '.$this->current()->position;
+            throw new ParserException(\sprintf('Unexpected token "%s" (%s) in character class at %s. Expected literal or character type.', $this->current()->value, $this->current()->type->value, $at));
+        }
+
+        // Check for a range (e.g., "a-z")
+        if ($this->match(TokenType::T_RANGE)) {
+            $endNode = null;
+            if ($this->match(TokenType::T_LITERAL)) {
+                $endNode = new LiteralNode($this->previous()->value);
+            } elseif ($this->match(TokenType::T_CHAR_TYPE)) {
+                $endNode = new CharTypeNode($this->previous()->value);
+            } else {
+                // This means a trailing "-", (e.g., "[a-]")
+                // We treat the "-" as a literal.
+                --$this->position; // Rewind to re-parse "-" as a literal
+
+                return $startNode;
+            }
+
+            return new RangeNode($startNode, $endNode);
+        }
+
+        return $startNode;
     }
 
     /**

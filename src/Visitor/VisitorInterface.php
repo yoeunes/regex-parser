@@ -13,11 +13,13 @@ namespace RegexParser\Visitor;
 
 use RegexParser\Ast\AlternationNode;
 use RegexParser\Ast\AnchorNode;
+use RegexParser\Ast\CharClassNode;
 use RegexParser\Ast\CharTypeNode;
 use RegexParser\Ast\DotNode;
 use RegexParser\Ast\GroupNode;
 use RegexParser\Ast\LiteralNode;
 use RegexParser\Ast\QuantifierNode;
+use RegexParser\Ast\RangeNode;
 use RegexParser\Ast\RegexNode;
 use RegexParser\Ast\SequenceNode;
 
@@ -73,4 +75,14 @@ interface VisitorInterface
      * @return TReturn
      */
     public function visitAnchor(AnchorNode $node);
+
+    /**
+     * @return TReturn
+     */
+    public function visitCharClass(CharClassNode $node);
+
+    /**
+     * @return TReturn
+     */
+    public function visitRange(RangeNode $node);
 }

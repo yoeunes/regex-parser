@@ -48,4 +48,10 @@ enum TokenType: string
 
     /** The end-of-file marker. */
     case T_EOF = 'eof';
+
+    /** A range operator "-" inside a character class. */
+    case T_RANGE = 'range';
+
+    /** A negation operator "^" at the start of a character class. */
+    case T_NEGATION = 'negation';
 }

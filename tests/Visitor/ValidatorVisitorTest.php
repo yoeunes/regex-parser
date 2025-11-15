@@ -61,4 +61,24 @@ class ValidatorVisitorTest extends TestCase
         // (a*)(b*) is fine
         $this->validate('/(a*)(b*)/');
     }
+
+    #[DoesNotPerformAssertions]
+    public function testValidateValidCharClass(): void
+    {
+        $this->validate('/[a-z\d-]/');
+    }
+
+    public function testThrowsOnInvalidRange(): void
+    {
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('Invalid range "z-a": start character comes after end character.');
+        $this->validate('/[z-a]/');
+    }
+
+    public function testThrowsOnInvalidRangeWithCharType(): void
+    {
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('Invalid range: ranges must be between literal characters');
+        $this->validate('/[a\-\d]/');
+    }
 }

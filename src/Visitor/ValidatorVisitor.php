@@ -13,11 +13,13 @@ namespace RegexParser\Visitor;
 
 use RegexParser\Ast\AlternationNode;
 use RegexParser\Ast\AnchorNode;
+use RegexParser\Ast\CharClassNode;
 use RegexParser\Ast\CharTypeNode;
 use RegexParser\Ast\DotNode;
 use RegexParser\Ast\GroupNode;
 use RegexParser\Ast\LiteralNode;
 use RegexParser\Ast\QuantifierNode;
+use RegexParser\Ast\RangeNode;
 use RegexParser\Ast\RegexNode;
 use RegexParser\Ast\SequenceNode;
 use RegexParser\Exception\ParserException;
@@ -82,6 +84,7 @@ class ValidatorVisitor implements VisitorInterface
 
         // 2. Check for Catastrophic Backtracking (Nested Quantifiers)
         if ($this->quantifierDepth > 0) {
+            // This is a simple but effective check for (a+)*, (a*)*, (a|b*)* etc.
             throw new ParserException('Potential catastrophic backtracking: nested quantifiers detected.');
         }
 
@@ -108,5 +111,27 @@ class ValidatorVisitor implements VisitorInterface
     public function visitAnchor(AnchorNode $node): void
     {
         // No validation needed for anchors
+    }
+
+    public function visitCharClass(CharClassNode $node): void
+    {
+        foreach ($node->parts as $part) {
+            // Note: We don't need to check for nested quantifiers here,
+            // as the grammar (and PCRE) forbids them inside [].
+            $part->accept($this);
+        }
+    }
+
+    public function visitRange(RangeNode $node): void
+    {
+        // A range must be between two literals
+        if (!$node->start instanceof LiteralNode || !$node->end instanceof LiteralNode) {
+            throw new ParserException('Invalid range: ranges must be between literal characters (e.g., "a-z").');
+        }
+
+        // Check ASCII values
+        if (\ord($node->start->value) > \ord($node->end->value)) {
+            throw new ParserException(\sprintf('Invalid range "%s-%s": start character comes after end character.', $node->start->value, $node->end->value));
+        }
     }
 }
