@@ -23,7 +23,7 @@ class Lexer
         while ($this->position < $this->length) {
             $char = $this->input[$this->position];
             if (ctype_alnum($char) || \in_array($char, ['.', '-', '_'], true)) { // Étendu pour literals communs en regex
-                $tokens[] = new Token(TokenType::T_LITERAL, $this->consumeWhile(fn ($c) => !\in_array($c, ['(', ')', '*', '+', '?', '|', '{', '}', '[', ']', '/'], true)), $this->position);
+                $tokens[] = new Token(TokenType::T_LITERAL, $this->consumeWhile(fn (string $c) => !\in_array($c, ['(', ')', '*', '+', '?', '|', '{', '}', '[', ']', '/'], true)), $this->position);
             } elseif ('(' === $char) {
                 $tokens[] = new Token(TokenType::T_GROUP_OPEN, '(', $this->position++);
             } elseif (')' === $char) {
@@ -34,7 +34,7 @@ class Lexer
                 // Gérer {n,m}
                 $start = $this->position;
                 ++$this->position; // Skip '{'
-                $inner = $this->consumeWhile(fn ($c) => ctype_digit((string) $c) || ',' === $c);
+                $inner = $this->consumeWhile(fn (string $c) => ctype_digit($c) || ',' === $c);
                 if ($this->position >= $this->length || '}' !== $this->input[$this->position]) {
                     throw new LexerException('Unclosed quantifier at '.$start);
                 }

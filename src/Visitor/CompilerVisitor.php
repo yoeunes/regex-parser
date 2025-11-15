@@ -9,29 +9,34 @@ use RegexParser\Ast\QuantifierNode;
 
 class CompilerVisitor implements VisitorInterface
 {
-    public function visitAlternation(AlternationNode $node): mixed
+    public function visitAlternation(AlternationNode $node): string
     {
         return implode('|', array_map(fn ($alt) => $alt->accept($this), $node->alternatives));
     }
 
-    public function visitGroup(GroupNode $node): mixed
+    public function visitGroup(GroupNode $node): string
     {
         $compiled = '(';
         foreach ($node->children as $child) {
-            $compiled .= $child->accept($this);
+            /** @var string $childCompiled */
+            $childCompiled = $child->accept($this);
+            $compiled .= $childCompiled;
         }
         $compiled .= ')';
 
         return $compiled;
     }
 
-    public function visitLiteral(LiteralNode $node): mixed
+    public function visitLiteral(LiteralNode $node): string
     {
         return $node->value;
     }
 
-    public function visitQuantifier(QuantifierNode $node): mixed
+    public function visitQuantifier(QuantifierNode $node): string
     {
-        return $node->node->accept($this).$node->quantifier;
+        /** @var string $nodeCompiled */
+        $nodeCompiled = $node->node->accept($this);
+
+        return $nodeCompiled.$node->quantifier;
     }
 }
