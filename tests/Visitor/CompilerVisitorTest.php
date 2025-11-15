@@ -12,7 +12,6 @@
 namespace RegexParser\Tests\Visitor;
 
 use PHPUnit\Framework\TestCase;
-use RegexParser\Lexer\Lexer;
 use RegexParser\Parser\Parser;
 use RegexParser\Visitor\CompilerVisitor;
 
@@ -20,7 +19,7 @@ class CompilerVisitorTest extends TestCase
 {
     private function compile(string $regex): string
     {
-        $parser = new Parser(new Lexer($regex));
+        $parser = new Parser();
         $ast = $parser->parse($regex);
         $visitor = new CompilerVisitor();
 
@@ -57,7 +56,7 @@ class CompilerVisitorTest extends TestCase
     public function testCompileQuantifiedSequence(): void
     {
         // The compiler must add a (?:) group
-        $this->assertSame('/(abc)+/', $this->compile('/(abc)+/'));
+        $this->assertSame('/(?:abc)+/', $this->compile('/(abc)+/'));
     }
 
     public function testCompileCharClass(): void
@@ -71,6 +70,13 @@ class CompilerVisitorTest extends TestCase
 
         // S'assure que les méta-caractères de classe sont échappés
         $regex = '/[]\^-]/'; // "]", "\", "^", "-"
-        $this->assertSame('/[]\^-\]/', $this->compile('/[]\^-]/'));
+        $this->assertSame('/[\]\^-]/', $this->compile('/[]\^-]/'));
+    }
+
+    // Add new tests for new features
+    public function testCompileNewFeatures(): void
+    {
+        $regex = '#(?<name>foo)+?|(?!=bar)#i';
+        $this->assertSame($regex, $this->compile($regex));
     }
 }

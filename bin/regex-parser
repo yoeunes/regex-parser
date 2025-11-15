@@ -14,7 +14,6 @@ require __DIR__.'/../vendor/autoload.php';
 
 use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
-use RegexParser\Lexer\Lexer;
 use RegexParser\Parser\Parser;
 use RegexParser\Visitor\CompilerVisitor;
 use RegexParser\Visitor\ValidatorVisitor;
@@ -27,26 +26,23 @@ if ($argc < 2) {
 $regex = $argv[1];
 
 try {
-    // 1. Lexing
-    $lexer = new Lexer($regex);
-
-    // 2. Parsing
-    $parser = new Parser($lexer);
+    // 1. Parsing (Lexer is now internal to Parser)
+    $parser = new Parser();
     $ast = $parser->parse($regex);
 
-    // 3. Validation
+    // 2. Validation
     $validator = new ValidatorVisitor();
     $ast->accept($validator);
     echo "Validation: OK\n";
 
-    // 4. Recompilation
+    // 3. Recompilation
     $compiler = new CompilerVisitor();
     $compiled = $ast->accept($compiler);
 
     echo "Parsed successfully!\n";
-    echo "Original:   ".$regex."\n";
-    echo "Recompiled: ".$compiled."\n";
+    echo 'Original:   '.$regex."\n";
+    echo 'Recompiled: '.$compiled."\n";
 } catch (LexerException|ParserException $e) {
-    echo "Error: ".$e->getMessage()."\n";
+    echo 'Error: '.$e->getMessage()."\n";
     exit(1);
 }

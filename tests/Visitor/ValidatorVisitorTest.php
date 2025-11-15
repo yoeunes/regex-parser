@@ -14,7 +14,6 @@ namespace RegexParser\Tests\Visitor;
 use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\ParserException;
-use RegexParser\Lexer\Lexer;
 use RegexParser\Parser\Parser;
 use RegexParser\Visitor\ValidatorVisitor;
 
@@ -22,7 +21,7 @@ class ValidatorVisitorTest extends TestCase
 {
     private function validate(string $regex): void
     {
-        $parser = new Parser(new Lexer($regex));
+        $parser = new Parser();
         $ast = $parser->parse($regex);
         $visitor = new ValidatorVisitor();
         $ast->accept($visitor);
@@ -44,7 +43,7 @@ class ValidatorVisitorTest extends TestCase
     public function testThrowsOnInvalidFlags(): void
     {
         $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('Unknown regex flag(s): "z"');
+        $this->expectExceptionMessage('Unknown regex flag(s) found: "z"');
         $this->validate('/foo/imz');
     }
 

@@ -40,8 +40,10 @@ class CompilerVisitor implements VisitorInterface
     ];
 
     // Meta-characters that must be escaped *inside* a character class.
+    // The parser correctly identifies positional meta-chars (like ^, -, ])
+    // as literals, so we only need to worry about \ and ].
     private const CHAR_CLASS_META = [
-        '\\' => true, ']' => true, '-' => true, '^' => true,
+        '\\' => true, ']' => true,
     ];
 
     /**

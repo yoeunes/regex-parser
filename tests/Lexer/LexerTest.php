@@ -20,55 +20,51 @@ class LexerTest extends TestCase
 {
     public function testTokenizeSimpleLiteral(): void
     {
-        $lexer = new Lexer('/foo/');
+        $lexer = new Lexer('foo'); // No delimiters
         $tokens = $lexer->tokenize();
 
-        // / f o o / EOF = 6 tokens
-        $this->assertCount(6, $tokens);
-        $this->assertSame(TokenType::T_DELIMITER, $tokens[0]->type);
+        // f o o EOF = 4 tokens
+        $this->assertCount(4, $tokens);
+        $this->assertSame(TokenType::T_LITERAL, $tokens[0]->type);
+        $this->assertSame('f', $tokens[0]->value);
         $this->assertSame(TokenType::T_LITERAL, $tokens[1]->type);
-        $this->assertSame('f', $tokens[1]->value);
+        $this->assertSame('o', $tokens[1]->value);
         $this->assertSame(TokenType::T_LITERAL, $tokens[2]->type);
         $this->assertSame('o', $tokens[2]->value);
-        $this->assertSame(TokenType::T_LITERAL, $tokens[3]->type);
-        $this->assertSame('o', $tokens[3]->value);
-        $this->assertSame(TokenType::T_DELIMITER, $tokens[4]->type);
-        $this->assertSame(TokenType::T_EOF, $tokens[5]->type);
+        $this->assertSame(TokenType::T_EOF, $tokens[3]->type);
     }
 
     public function testTokenizeMultibyteLiteral(): void
     {
-        $lexer = new Lexer('/fôô/');
+        $lexer = new Lexer('fôô'); // No delimiters
         $tokens = $lexer->tokenize();
 
-        // / f ô ô / EOF = 6 tokens
-        $this->assertCount(6, $tokens);
+        // f ô ô EOF = 4 tokens
+        $this->assertCount(4, $tokens);
+        $this->assertSame(TokenType::T_LITERAL, $tokens[0]->type);
+        $this->assertSame('f', $tokens[0]->value);
         $this->assertSame(TokenType::T_LITERAL, $tokens[1]->type);
-        $this->assertSame('f', $tokens[1]->value);
+        $this->assertSame('ô', $tokens[1]->value);
         $this->assertSame(TokenType::T_LITERAL, $tokens[2]->type);
         $this->assertSame('ô', $tokens[2]->value);
-        $this->assertSame(TokenType::T_LITERAL, $tokens[3]->type);
-        $this->assertSame('ô', $tokens[3]->value);
     }
 
     public function testTokenizeGroupAndQuantifier(): void
     {
-        $lexer = new Lexer('/(bar)?/');
+        $lexer = new Lexer('(bar)?'); // No delimiters
         $tokens = $lexer->tokenize();
 
         $expected = [
-            TokenType::T_DELIMITER,
             TokenType::T_GROUP_OPEN,
             TokenType::T_LITERAL, // b
             TokenType::T_LITERAL, // a
             TokenType::T_LITERAL, // r
             TokenType::T_GROUP_CLOSE,
             TokenType::T_QUANTIFIER, // ?
-            TokenType::T_DELIMITER,
             TokenType::T_EOF,
         ];
         $this->assertCount(\count($expected), $tokens);
-        $this->assertSame('?', $tokens[6]->value);
+        $this->assertSame('?', $tokens[5]->value);
 
         foreach ($expected as $i => $type) {
             $this->assertSame($type, $tokens[$i]->type);
@@ -77,71 +73,68 @@ class LexerTest extends TestCase
 
     public function testTokenizeAlternation(): void
     {
-        $lexer = new Lexer('/foo|bar/');
+        $lexer = new Lexer('foo|bar'); // No delimiters
         $tokens = $lexer->tokenize();
-        // / f o o | b a r / EOF = 10 tokens
-        $this->assertCount(10, $tokens);
-        $this->assertSame(TokenType::T_ALTERNATION, $tokens[4]->type);
+        // f o o | b a r EOF = 8 tokens
+        $this->assertCount(8, $tokens);
+        $this->assertSame(TokenType::T_ALTERNATION, $tokens[3]->type);
     }
 
     public function testTokenizeCustomQuantifier(): void
     {
-        $lexer = new Lexer('/a{2,4}/');
+        $lexer = new Lexer('a{2,4}'); // No delimiters
         $tokens = $lexer->tokenize();
 
-        // / a {2,4} / EOF = 5 tokens
-        $this->assertCount(5, $tokens);
-        $this->assertSame(TokenType::T_LITERAL, $tokens[1]->type);
-        $this->assertSame(TokenType::T_QUANTIFIER, $tokens[2]->type);
-        $this->assertSame('{2,4}', $tokens[2]->value);
+        // a {2,4} EOF = 3 tokens
+        $this->assertCount(3, $tokens);
+        $this->assertSame(TokenType::T_LITERAL, $tokens[0]->type);
+        $this->assertSame(TokenType::T_QUANTIFIER, $tokens[1]->type);
+        $this->assertSame('{2,4}', $tokens[1]->value);
     }
 
     public function testTokenizeInvalidQuantifierAsLiteral(): void
     {
-        $lexer = new Lexer('/a{b}/');
+        $lexer = new Lexer('a{b}'); // No delimiters
         $tokens = $lexer->tokenize();
-        // / a { b } / EOF = 7 tokens
-        $this->assertCount(7, $tokens);
+        // a { b } EOF = 5 tokens
+        $this->assertCount(5, $tokens);
+        $this->assertSame(TokenType::T_LITERAL, $tokens[1]->type);
+        $this->assertSame('{', $tokens[1]->value);
         $this->assertSame(TokenType::T_LITERAL, $tokens[2]->type);
-        $this->assertSame('{', $tokens[2]->value);
+        $this->assertSame('b', $tokens[2]->value);
         $this->assertSame(TokenType::T_LITERAL, $tokens[3]->type);
-        $this->assertSame('b', $tokens[3]->value);
-        $this->assertSame(TokenType::T_LITERAL, $tokens[4]->type);
-        $this->assertSame('}', $tokens[4]->value);
+        $this->assertSame('}', $tokens[3]->value);
     }
 
     public function testTokenizeEscapedMetaChar(): void
     {
-        $lexer = new Lexer('/\(a\*\)/'); // Regex: /\(a\*\)/
+        $lexer = new Lexer('\(a\*\)'); // No delimiters
         $tokens = $lexer->tokenize();
 
-        // / ( a * ) / EOF = 7 tokens
-        $this->assertCount(7, $tokens);
-        $this->assertSame(TokenType::T_DELIMITER, $tokens[0]->type);
+        // ( a * ) EOF = 5 tokens
+        $this->assertCount(5, $tokens);
 
-        $this->assertSame(TokenType::T_LITERAL, $tokens[1]->type); // (
-        $this->assertSame('(', $tokens[1]->value);
+        $this->assertSame(TokenType::T_LITERAL, $tokens[0]->type); // (
+        $this->assertSame('(', $tokens[0]->value);
 
-        $this->assertSame(TokenType::T_LITERAL, $tokens[2]->type); // a
-        $this->assertSame('a', $tokens[2]->value);
+        $this->assertSame(TokenType::T_LITERAL, $tokens[1]->type); // a
+        $this->assertSame('a', $tokens[1]->value);
 
-        $this->assertSame(TokenType::T_LITERAL, $tokens[3]->type); // *
-        $this->assertSame('*', $tokens[3]->value);
+        $this->assertSame(TokenType::T_LITERAL, $tokens[2]->type); // *
+        $this->assertSame('*', $tokens[2]->value);
 
-        $this->assertSame(TokenType::T_LITERAL, $tokens[4]->type); // )
-        $this->assertSame(')', $tokens[4]->value);
+        $this->assertSame(TokenType::T_LITERAL, $tokens[3]->type); // )
+        $this->assertSame(')', $tokens[3]->value);
 
-        $this->assertSame(TokenType::T_DELIMITER, $tokens[5]->type);
-        $this->assertSame(TokenType::T_EOF, $tokens[6]->type);
+        $this->assertSame(TokenType::T_EOF, $tokens[4]->type);
     }
 
     public function testTokenizeCharTypesAndDot(): void
     {
-        $lexer = new Lexer('/.\d\s\w\D\S\W/');
+        $lexer = new Lexer('.\d\s\w\D\S\W'); // No delimiters
         $tokens = $lexer->tokenize();
 
         $expected = [
-            TokenType::T_DELIMITER,
             TokenType::T_DOT,
             TokenType::T_CHAR_TYPE, // \d
             TokenType::T_CHAR_TYPE, // \s
@@ -149,7 +142,6 @@ class LexerTest extends TestCase
             TokenType::T_CHAR_TYPE, // \D
             TokenType::T_CHAR_TYPE, // \S
             TokenType::T_CHAR_TYPE, // \W
-            TokenType::T_DELIMITER,
             TokenType::T_EOF,
         ];
         $this->assertCount(\count($expected), $tokens);
@@ -158,28 +150,28 @@ class LexerTest extends TestCase
             $this->assertSame($type, $tokens[$i]->type);
         }
 
-        $this->assertSame('d', $tokens[2]->value);
-        $this->assertSame('W', $tokens[7]->value);
+        $this->assertSame('d', $tokens[1]->value);
+        $this->assertSame('W', $tokens[6]->value);
     }
 
     public function testTokenizeAnchors(): void
     {
-        $lexer = new Lexer('/^foo$/');
+        $lexer = new Lexer('^foo$'); // No delimiters
         $tokens = $lexer->tokenize();
 
-        // / ^ f o o $ / EOF = 8 tokens
-        $this->assertCount(8, $tokens);
-        $this->assertSame(TokenType::T_ANCHOR, $tokens[1]->type);
-        $this->assertSame('^', $tokens[1]->value);
-        $this->assertSame(TokenType::T_ANCHOR, $tokens[5]->type);
-        $this->assertSame('$', $tokens[5]->value);
+        // ^ f o o $ EOF = 6 tokens
+        $this->assertCount(6, $tokens);
+        $this->assertSame(TokenType::T_ANCHOR, $tokens[0]->type);
+        $this->assertSame('^', $tokens[0]->value);
+        $this->assertSame(TokenType::T_ANCHOR, $tokens[4]->type);
+        $this->assertSame('$', $tokens[4]->value);
     }
 
     public function testThrowsOnTrailingBackslash(): void
     {
         $this->expectException(LexerException::class);
         $this->expectExceptionMessage('Trailing backslash');
-        $lexer = new Lexer('/foo\\');
+        $lexer = new Lexer('foo\\'); // No delimiters
         $lexer->tokenize();
     }
 }

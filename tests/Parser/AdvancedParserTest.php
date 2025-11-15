@@ -17,6 +17,7 @@ use RegexParser\Ast\GroupType;
 use RegexParser\Ast\QuantifierNode;
 use RegexParser\Ast\QuantifierType;
 use RegexParser\Ast\RegexNode;
+use RegexParser\Ast\SequenceNode;
 use RegexParser\Parser\Parser;
 
 class AdvancedParserTest extends TestCase
@@ -61,6 +62,8 @@ class AdvancedParserTest extends TestCase
 
         $this->assertInstanceOf(RegexNode::class, $ast);
         // $ast->pattern est un SequenceNode(Literal(a), GroupNode(...))
+        $this->assertInstanceOf(SequenceNode::class, $ast->pattern);
+        $this->assertCount(2, $ast->pattern->children);
         $group = $ast->pattern->children[1];
         $this->assertInstanceOf(GroupNode::class, $group);
         $this->assertSame(GroupType::T_GROUP_LOOKAHEAD_POSITIVE, $group->type);
@@ -82,6 +85,8 @@ class AdvancedParserTest extends TestCase
 
         $this->assertSame('{', $ast->delimiter);
         $this->assertSame('i', $ast->flags);
+        $this->assertInstanceOf(SequenceNode::class, $ast->pattern);
+        $this->assertCount(4, $ast->pattern->children); // 'f','o','o','(bar)'
         $this->assertInstanceOf(GroupNode::class, $ast->pattern->children[3]);
     }
 }

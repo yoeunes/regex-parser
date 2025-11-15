@@ -24,19 +24,18 @@ use RegexParser\Ast\RangeNode;
 use RegexParser\Ast\RegexNode;
 use RegexParser\Ast\SequenceNode;
 use RegexParser\Exception\ParserException;
-use RegexParser\Lexer\Lexer;
 use RegexParser\Parser\Parser;
 
 class ParserTest extends TestCase
 {
-    private function createParser(string $input): Parser
+    private function createParser(): Parser
     {
-        return new Parser(new Lexer($input));
+        return new Parser();
     }
 
     public function testParseReturnsRegexNodeWithFlags(): void
     {
-        $parser = $this->createParser('/foo/imsU');
+        $parser = $this->createParser();
         $ast = $parser->parse('/foo/imsU');
 
         $this->assertInstanceOf(RegexNode::class, $ast);
@@ -46,7 +45,7 @@ class ParserTest extends TestCase
 
     public function testParseLiteral(): void
     {
-        $parser = $this->createParser('/foo/');
+        $parser = $this->createParser();
         /** @var RegexNode $ast */
         $ast = $parser->parse('/foo/');
         $pattern = $ast->pattern;
@@ -58,7 +57,7 @@ class ParserTest extends TestCase
 
     public function testParseCharClass(): void
     {
-        $parser = $this->createParser('/[a-z\d-]/');
+        $parser = $this->createParser();
         /** @var RegexNode $ast */
         $ast = $parser->parse('/[a-z\d-]/');
         $pattern = $ast->pattern;
@@ -85,7 +84,7 @@ class ParserTest extends TestCase
 
     public function testParseNegatedCharClass(): void
     {
-        $parser = $this->createParser('/[^a-z]/');
+        $parser = $this->createParser();
         /** @var RegexNode $ast */
         $ast = $parser->parse('/[^a-z]/');
         $pattern = $ast->pattern;
@@ -98,7 +97,7 @@ class ParserTest extends TestCase
 
     public function testParseGroupWithQuantifier(): void
     {
-        $parser = $this->createParser('/(bar)?/');
+        $parser = $this->createParser();
         /** @var RegexNode $ast */
         $ast = $parser->parse('/(bar)?/');
         $pattern = $ast->pattern;
@@ -121,7 +120,7 @@ class ParserTest extends TestCase
 
     public function testParseAlternation(): void
     {
-        $parser = $this->createParser('/foo|bar/');
+        $parser = $this->createParser();
         /** @var RegexNode $ast */
         $ast = $parser->parse('/foo|bar/');
         $pattern = $ast->pattern;
@@ -148,7 +147,7 @@ class ParserTest extends TestCase
 
     public function testParseOperatorPrecedence(): void
     {
-        $parser = $this->createParser('/ab*c/');
+        $parser = $this->createParser();
         /** @var RegexNode $ast */
         $ast = $parser->parse('/ab*c/');
         $pattern = $ast->pattern;
@@ -179,7 +178,7 @@ class ParserTest extends TestCase
 
     public function testParseCharTypesAndDot(): void
     {
-        $parser = $this->createParser('/.\d\S/');
+        $parser = $this->createParser();
         /** @var RegexNode $ast */
         $ast = $parser->parse('/.\d\S/');
         $pattern = $ast->pattern;
@@ -196,13 +195,13 @@ class ParserTest extends TestCase
 
     public function testParseAnchors(): void
     {
-        $parser = $this->createParser('/^foo$/');
+        $parser = $this->createParser();
         /** @var RegexNode $ast */
         $ast = $parser->parse('/^foo$/');
         $pattern = $ast->pattern;
 
         $this->assertInstanceOf(SequenceNode::class, $pattern);
-        $this->assertCount(5, $pattern->children); // ^, Sequence(f,o,o), $
+        $this->assertCount(5, $pattern->children); // ^, f, o, o, $
 
         $this->assertInstanceOf(AnchorNode::class, $pattern->children[0]);
         $this->assertSame('^', $pattern->children[0]->value);
@@ -211,7 +210,7 @@ class ParserTest extends TestCase
         $this->assertInstanceOf(LiteralNode::class, $pattern->children[2]); // "o"
         $this->assertInstanceOf(LiteralNode::class, $pattern->children[3]); // "o"
 
-        $this->assertInstanceOf(AnchorNode::class, $pattern->children[4]); // Index 4, pas 2
+        $this->assertInstanceOf(AnchorNode::class, $pattern->children[4]);
         $this->assertSame('$', $pattern->children[4]->value);
     }
 
@@ -219,21 +218,21 @@ class ParserTest extends TestCase
     {
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('Expected )');
-        $parser = $this->createParser('/(foo');
-        $parser->parse('/(foo');
+        $parser = $this->createParser();
+        $parser->parse('/(foo/');
     }
 
     public function testThrowsOnMissingClosingDelimiter(): void
     {
         $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('Expected closing delimiter');
-        $parser = $this->createParser('/foo');
+        $this->expectExceptionMessage('No closing delimiter "/" found.');
+        $parser = $this->createParser();
         $parser->parse('/foo');
     }
 
     public function testParseEscapedChars(): void
     {
-        $parser = $this->createParser('/a\*b/');
+        $parser = $this->createParser();
         /** @var RegexNode $ast */
         $ast = $parser->parse('/a\*b/');
         $pattern = $ast->pattern;
