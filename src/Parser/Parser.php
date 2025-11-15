@@ -31,9 +31,9 @@ class Parser
     /**
      * Parses the full regex string.
      *
-     * @return NodeInterface<mixed> the root node of the AST
+     * @return NodeInterface The root node of the AST.
      *
-     * @throws ParserException if a syntax error is found
+     * @throws ParserException If a syntax error is found.
      */
     public function parse(string $regex): NodeInterface
     {
@@ -60,7 +60,7 @@ class Parser
     // group            → "(" alternation ")"
 
     /**
-     * @return NodeInterface<mixed>
+     * @return NodeInterface
      */
     private function parseAlternation(): NodeInterface
     {
@@ -74,7 +74,7 @@ class Parser
     }
 
     /**
-     * @return NodeInterface<mixed>
+     * @return NodeInterface
      */
     private function parseSequence(): NodeInterface
     {
@@ -98,7 +98,7 @@ class Parser
     }
 
     /**
-     * @return NodeInterface<mixed>
+     * @return NodeInterface
      */
     private function parseQuantifiedAtom(): NodeInterface
     {
@@ -117,7 +117,7 @@ class Parser
     }
 
     /**
-     * @return NodeInterface<mixed>
+     * @return NodeInterface
      */
     private function parseAtom(): NodeInterface
     {
@@ -140,10 +140,8 @@ class Parser
             return new GroupNode($expr);
         }
 
-        // Handle empty expression before a terminator (e.g., /|/)
-        if ($this->check(TokenType::T_ALTERNATION) || $this->check(TokenType::T_GROUP_CLOSE) || $this->check(TokenType::T_DELIMITER) || $this->check(TokenType::T_EOF)) {
-            return new LiteralNode(''); // "Empty" node
-        }
+        // This 'if' block is now removed, as it was 'if.alwaysFalse'
+        // The check is already handled by the `parseSequence` while-loop.
 
         $at = $this->isAtEnd() ? 'end of input' : 'position '.$this->current()->position;
         throw new ParserException('Unexpected token '.$this->current()->type->value.' at '.$at);

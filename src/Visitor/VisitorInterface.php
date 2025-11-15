@@ -17,35 +17,35 @@ use RegexParser\Ast\SequenceNode;
 interface VisitorInterface
 {
     /**
-     * @param AlternationNode<TReturn> $node
+     * @param AlternationNode $node
      *
      * @return TReturn
      */
     public function visitAlternation(AlternationNode $node);
 
     /**
-     * @param GroupNode<TReturn> $node
+     * @param GroupNode $node
      *
      * @return TReturn
      */
     public function visitGroup(GroupNode $node);
 
     /**
-     * @param LiteralNode<TReturn> $node
+     * @param LiteralNode $node
      *
      * @return TReturn
      */
     public function visitLiteral(LiteralNode $node);
 
     /**
-     * @param QuantifierNode<TReturn> $node
+     * @param QuantifierNode $node
      *
      * @return TReturn
      */
     public function visitQuantifier(QuantifierNode $node);
 
     /**
-     * @param SequenceNode<TReturn> $node
+     * @param SequenceNode $node
      *
      * @return TReturn
      */

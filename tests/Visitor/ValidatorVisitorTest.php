@@ -2,6 +2,7 @@
 
 namespace RegexParser\Tests\Visitor;
 
+use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\ParserException;
 use RegexParser\Lexer\Lexer;
@@ -18,12 +19,10 @@ class ValidatorVisitorTest extends TestCase
         $ast->accept($visitor);
     }
 
+    #[DoesNotPerformAssertions]
     public function testValidateValid(): void
     {
         $this->validate('/foo{1,3}/');
-        // This test is successful if no exception is thrown.
-        // To make PHPUnit happy and not report a "risky" test:
-        $this->addToAssertionCount(1);
     }
 
     public function testThrowsOnInvalidQuantifier(): void

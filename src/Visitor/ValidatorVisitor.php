@@ -18,7 +18,7 @@ use RegexParser\Exception\ParserException;
 class ValidatorVisitor implements VisitorInterface
 {
     /**
-     * @param AlternationNode<void> $node
+     * @param AlternationNode $node
      */
     public function visitAlternation(AlternationNode $node): void
     {
@@ -30,7 +30,7 @@ class ValidatorVisitor implements VisitorInterface
     }
 
     /**
-     * @param GroupNode<void> $node
+     * @param GroupNode $node
      */
     public function visitGroup(GroupNode $node): void
     {
@@ -40,7 +40,7 @@ class ValidatorVisitor implements VisitorInterface
     }
 
     /**
-     * @param LiteralNode<void> $node
+     * @param LiteralNode $node
      */
     public function visitLiteral(LiteralNode $node): void
     {
@@ -49,7 +49,7 @@ class ValidatorVisitor implements VisitorInterface
     }
 
     /**
-     * @param QuantifierNode<void> $node
+     * @param QuantifierNode $node
      */
     public function visitQuantifier(QuantifierNode $node): void
     {
@@ -70,7 +70,7 @@ class ValidatorVisitor implements VisitorInterface
     }
 
     /**
-     * @param SequenceNode<void> $node
+     * @param SequenceNode $node
      */
     public function visitSequence(SequenceNode $node): void
     {

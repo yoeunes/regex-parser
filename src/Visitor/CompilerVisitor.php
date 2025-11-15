@@ -16,7 +16,7 @@ use RegexParser\Ast\SequenceNode;
 class CompilerVisitor implements VisitorInterface
 {
     /**
-     * @param AlternationNode<string> $node
+     * @param AlternationNode $node
      */
     public function visitAlternation(AlternationNode $node): string
     {
@@ -24,7 +24,7 @@ class CompilerVisitor implements VisitorInterface
     }
 
     /**
-     * @param GroupNode<string> $node
+     * @param GroupNode $node
      */
     public function visitGroup(GroupNode $node): string
     {
@@ -33,7 +33,7 @@ class CompilerVisitor implements VisitorInterface
     }
 
     /**
-     * @param LiteralNode<string> $node
+     * @param LiteralNode $node
      */
     public function visitLiteral(LiteralNode $node): string
     {
@@ -46,7 +46,7 @@ class CompilerVisitor implements VisitorInterface
     }
 
     /**
-     * @param QuantifierNode<string> $node
+     * @param QuantifierNode $node
      */
     public function visitQuantifier(QuantifierNode $node): string
     {
@@ -57,7 +57,7 @@ class CompilerVisitor implements VisitorInterface
     }
 
     /**
-     * @param SequenceNode<string> $node
+     * @param SequenceNode $node
      */
     public function visitSequence(SequenceNode $node): string
     {
