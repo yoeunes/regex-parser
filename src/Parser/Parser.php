@@ -22,8 +22,10 @@ class Parser
     {
         $lexer = new Lexer($regex);
         $this->tokens = $lexer->tokenize();
-        $node = $this->parseAlternation(); // Commence par le plus bas precedence
-        $this->consume(TokenType::T_EOF, 'Expected end of input');
+        $node = $this->parseAlternation();
+        if (!$this->isAtEnd()) {
+            throw new ParserException('Extra input after expression at position '.$this->current()->position);
+        }
 
         return $node;
     }
@@ -60,7 +62,8 @@ class Parser
 
             return new GroupNode([$expr]);
         }
-        throw new ParserException('Unexpected token at position '.$this->current()->position);
+        $at = $this->isAtEnd() ? 'end of input' : 'position '.$this->current()->position;
+        throw new ParserException('Unexpected token at '.$at);
     }
 
     private function match(TokenType $type): bool
@@ -81,7 +84,8 @@ class Parser
 
             return;
         }
-        throw new ParserException($error.' at position '.$this->current()->position);
+        $at = $this->isAtEnd() ? 'end of input' : 'position '.$this->current()->position;
+        throw new ParserException($error.' at '.$at);
     }
 
     private function check(TokenType $type): bool
@@ -95,18 +99,20 @@ class Parser
 
     private function advance(): void
     {
-        if (!$this->isAtEnd()) {
-            ++$this->position;
-        }
+        ++$this->position;
     }
 
     private function isAtEnd(): bool
     {
-        return TokenType::T_EOF === $this->current()->type;
+        return $this->position >= \count($this->tokens);
     }
 
     private function current(): Token
     {
+        if ($this->isAtEnd()) {
+            throw new ParserException('Unexpected end of input');
+        }
+
         return $this->tokens[$this->position];
     }
 

@@ -13,16 +13,16 @@ class LexerTest extends TestCase
     {
         $lexer = new Lexer('foo');
         $tokens = $lexer->tokenize();
-        $this->assertCount(2, $tokens); // literal + EOF
+        $this->assertCount(1, $tokens);
         $this->assertSame(TokenType::T_LITERAL, $tokens[0]->type);
         $this->assertSame('foo', $tokens[0]->value);
-        $this->assertSame(TokenType::T_EOF, $tokens[1]->type);
     }
 
     public function testTokenizeGroupAndQuantifier(): void
     {
         $lexer = new Lexer('(bar)?');
         $tokens = $lexer->tokenize();
+        $this->assertCount(4, $tokens);
         $this->assertSame(TokenType::T_GROUP_OPEN, $tokens[0]->type);
         $this->assertSame(TokenType::T_LITERAL, $tokens[1]->type);
         $this->assertSame('bar', $tokens[1]->value);
@@ -35,6 +35,7 @@ class LexerTest extends TestCase
     {
         $lexer = new Lexer('foo|bar');
         $tokens = $lexer->tokenize();
+        $this->assertCount(3, $tokens);
         $this->assertSame('foo', $tokens[0]->value);
         $this->assertSame(TokenType::T_ALTERNATION, $tokens[1]->type);
         $this->assertSame('bar', $tokens[2]->value);
@@ -44,6 +45,7 @@ class LexerTest extends TestCase
     {
         $lexer = new Lexer('{2,4}');
         $tokens = $lexer->tokenize();
+        $this->assertCount(1, $tokens);
         $this->assertSame(TokenType::T_QUANTIFIER, $tokens[0]->type);
         $this->assertSame('{2,4}', $tokens[0]->value);
     }

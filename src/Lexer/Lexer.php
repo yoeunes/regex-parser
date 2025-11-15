@@ -34,12 +34,15 @@ class Lexer
                 $tokens[] = new Token(TokenType::T_QUANTIFIER, $char, $this->position++);
             } elseif ('{' === $char) {
                 // Gérer {n,m}
-                $quant = $this->consumeWhile(fn ($c) => ctype_digit($c) || ',' === $c || '}' === $c);
-                if (!str_ends_with($quant, '}')) {
-                    throw new LexerException('Unclosed quantifier at '.$this->position);
+                $start = $this->position;
+                ++$this->position; // Skip '{'
+                $inner = $this->consumeWhile(fn ($c) => ctype_digit($c) || ',' === $c);
+                if ($this->position >= $this->length || '}' !== $this->input[$this->position]) {
+                    throw new LexerException('Unclosed quantifier at '.$start);
                 }
-                $tokens[] = new Token(TokenType::T_QUANTIFIER, $quant, $this->position);
-                $this->position += \strlen($quant) - 1; // Avance après }
+                $quant = '{'.$inner.'}';
+                $tokens[] = new Token(TokenType::T_QUANTIFIER, $quant, $start);
+                ++$this->position; // Skip '}'
             } elseif ('|' === $char) {
                 $tokens[] = new Token(TokenType::T_ALTERNATION, '|', $this->position++);
             } elseif ('/' === $char) {
@@ -50,7 +53,6 @@ class Lexer
                 throw new LexerException("Unexpected char '$char' at position {$this->position}");
             }
         }
-        $tokens[] = new Token(TokenType::T_EOF, '', $this->position);
 
         return $tokens;
     }

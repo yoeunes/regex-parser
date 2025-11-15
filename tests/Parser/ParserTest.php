@@ -29,6 +29,7 @@ class ParserTest extends TestCase
         $this->assertInstanceOf(GroupNode::class, $ast->node);
         $this->assertCount(1, $ast->node->children);
         $this->assertInstanceOf(LiteralNode::class, $ast->node->children[0]);
+        $this->assertSame('bar', $ast->node->children[0]->value);
     }
 
     public function testParseAlternation(): void

@@ -20,6 +20,7 @@ class ValidatorVisitorTest extends TestCase
     public function testThrowsOnInvalidQuantifier(): void
     {
         $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('Invalid quantifier range: min > max');
         $parser = new Parser();
         $ast = $parser->parse('foo{3,1}');
         $visitor = new ValidatorVisitor();
