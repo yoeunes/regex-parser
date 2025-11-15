@@ -1,5 +1,14 @@
 <?php
 
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace RegexParser\Ast;
 
 use RegexParser\Visitor\VisitorInterface;
@@ -9,6 +18,10 @@ use RegexParser\Visitor\VisitorInterface;
  */
 class QuantifierNode implements NodeInterface
 {
+    /**
+     * @param NodeInterface $node       the node to be quantified
+     * @param string        $quantifier The quantifier string (e.g., "*", "{1,3}").
+     */
     public function __construct(public readonly NodeInterface $node, public readonly string $quantifier)
     {
     }

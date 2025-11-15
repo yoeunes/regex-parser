@@ -14,14 +14,14 @@ namespace RegexParser\Ast;
 use RegexParser\Visitor\VisitorInterface;
 
 /**
- * Represents a group (e.g., "(...)").
+ * Represents an escaped character class type (e.g., "\d", "\s", "\W").
  */
-class GroupNode implements NodeInterface
+class CharTypeNode implements NodeInterface
 {
     /**
-     * @param NodeInterface $child the expression contained within the group
+     * @param string $value The character type (e.g., "d", "s", "W").
      */
-    public function __construct(public readonly NodeInterface $child)
+    public function __construct(public readonly string $value)
     {
     }
 
@@ -34,6 +34,6 @@ class GroupNode implements NodeInterface
      */
     public function accept(VisitorInterface $visitor)
     {
-        return $visitor->visitGroup($this);
+        return $visitor->visitCharType($this);
     }
 }

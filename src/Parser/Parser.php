@@ -1,13 +1,25 @@
 <?php
 
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace RegexParser\Parser;
 
-// ... (garder tous les 'use')
 use RegexParser\Ast\AlternationNode;
+use RegexParser\Ast\AnchorNode;
+use RegexParser\Ast\CharTypeNode;
+use RegexParser\Ast\DotNode;
 use RegexParser\Ast\GroupNode;
 use RegexParser\Ast\LiteralNode;
 use RegexParser\Ast\NodeInterface;
 use RegexParser\Ast\QuantifierNode;
+use RegexParser\Ast\RegexNode;
 use RegexParser\Ast\SequenceNode;
 use RegexParser\Exception\ParserException;
 use RegexParser\Lexer\Lexer;
@@ -32,34 +44,34 @@ class Parser
     /**
      * Parses the full regex string.
      *
-     * @return NodeInterface the root node of the AST
+     * @return RegexNode the root node of the AST, containing the pattern and flags
      *
      * @throws ParserException if a syntax error is found
      */
-    public function parse(string $regex): NodeInterface
+    public function parse(string $regex): RegexNode
     {
         $this->tokens = $this->lexer->tokenize();
         $this->position = 0;
 
         $this->consume(TokenType::T_DELIMITER, 'Expected opening delimiter');
-
-        $node = $this->parseAlternation();
-
+        $pattern = $this->parseAlternation();
         $this->consume(TokenType::T_DELIMITER, 'Expected closing delimiter');
-        // TODO: Parse flags (T_FLAG) here
-
+        $flags = $this->parseFlags();
         $this->consume(TokenType::T_EOF, 'Unexpected content after closing delimiter');
 
-        return $node;
+        return new RegexNode($pattern, $flags);
     }
 
     // Grammar:
     // alternation      → sequence ( "|" sequence )*
     // sequence         → quantifiedAtom*
     // quantifiedAtom   → atom ( QUANTIFIER )?
-    // atom             → T_LITERAL | T_BACKSLASH T_LITERAL | group
+    // atom             → T_LITERAL | T_CHAR_TYPE | T_DOT | T_ANCHOR | group
     // group            → "(" alternation ")"
 
+    /**
+     * Parses an alternation (e.g., "a|b").
+     */
     private function parseAlternation(): NodeInterface
     {
         $nodes = [$this->parseSequence()];
@@ -71,6 +83,9 @@ class Parser
         return \count($nodes) > 1 ? new AlternationNode($nodes) : $nodes[0];
     }
 
+    /**
+     * Parses a sequence of atoms (e.g., "abc").
+     */
     private function parseSequence(): NodeInterface
     {
         $nodes = [];
@@ -92,6 +107,9 @@ class Parser
         return \count($nodes) > 1 ? new SequenceNode($nodes) : $nodes[0];
     }
 
+    /**
+     * Parses an atom that may or may not be quantified (e.g., "a", "a*").
+     */
     private function parseQuantifiedAtom(): NodeInterface
     {
         $node = $this->parseAtom();
@@ -102,16 +120,35 @@ class Parser
             if ($node instanceof LiteralNode && '' === $node->value) {
                 throw new ParserException('Quantifier without target at position '.$this->previous()->position);
             }
+            // Check for quantifiers that cannot be quantified (e.g. anchors)
+            if ($node instanceof AnchorNode) {
+                throw new ParserException(\sprintf('Quantifier "%s" cannot be applied to anchor "%s" at position %d', $quantifier, $node->value, $this->previous()->position));
+            }
             $node = new QuantifierNode($node, $quantifier);
         }
 
         return $node;
     }
 
+    /**
+     * Parses a single "atom" (the smallest unit).
+     */
     private function parseAtom(): NodeInterface
     {
         if ($this->match(TokenType::T_LITERAL)) {
             return new LiteralNode($this->previous()->value);
+        }
+
+        if ($this->match(TokenType::T_CHAR_TYPE)) {
+            return new CharTypeNode($this->previous()->value);
+        }
+
+        if ($this->match(TokenType::T_DOT)) {
+            return new DotNode();
+        }
+
+        if ($this->match(TokenType::T_ANCHOR)) {
+            return new AnchorNode($this->previous()->value);
         }
 
         if ($this->match(TokenType::T_GROUP_OPEN)) {
@@ -121,8 +158,30 @@ class Parser
             return new GroupNode($expr);
         }
 
+        // TODO: Add support for T_CHAR_CLASS_OPEN here
+
         $at = $this->isAtEnd() ? 'end of input' : 'position '.$this->current()->position;
-        throw new ParserException('Unexpected token '.$this->current()->type->value.' at '.$at);
+        $expected = [
+            TokenType::T_LITERAL->value,
+            TokenType::T_CHAR_TYPE->value,
+            TokenType::T_DOT->value,
+            TokenType::T_ANCHOR->value,
+            TokenType::T_GROUP_OPEN->value,
+        ];
+        throw new ParserException(\sprintf('Unexpected token "%s" (%s) at %s. Expected one of: %s', $this->current()->value, $this->current()->type->value, $at, implode(', ', $expected)));
+    }
+
+    /**
+     * Parses flags after the closing delimiter.
+     */
+    private function parseFlags(): string
+    {
+        $flags = '';
+        while ($this->match(TokenType::T_LITERAL)) {
+            $flags .= $this->previous()->value;
+        }
+
+        return $flags;
     }
 
     /**

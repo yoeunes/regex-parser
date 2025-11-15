@@ -14,14 +14,14 @@ namespace RegexParser\Ast;
 use RegexParser\Visitor\VisitorInterface;
 
 /**
- * Represents a group (e.g., "(...)").
+ * Represents an anchor (e.g., "^" or "$").
  */
-class GroupNode implements NodeInterface
+class AnchorNode implements NodeInterface
 {
     /**
-     * @param NodeInterface $child the expression contained within the group
+     * @param string $value the anchor character ("^" or "$")
      */
-    public function __construct(public readonly NodeInterface $child)
+    public function __construct(public readonly string $value)
     {
     }
 
@@ -34,6 +34,6 @@ class GroupNode implements NodeInterface
      */
     public function accept(VisitorInterface $visitor)
     {
-        return $visitor->visitGroup($this);
+        return $visitor->visitAnchor($this);
     }
 }

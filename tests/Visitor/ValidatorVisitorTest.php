@@ -1,5 +1,14 @@
 <?php
 
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace RegexParser\Tests\Visitor;
 
 use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
@@ -22,13 +31,34 @@ class ValidatorVisitorTest extends TestCase
     #[DoesNotPerformAssertions]
     public function testValidateValid(): void
     {
-        $this->validate('/foo{1,3}/');
+        $this->validate('/foo{1,3}/ims');
     }
 
-    public function testThrowsOnInvalidQuantifier(): void
+    public function testThrowsOnInvalidQuantifierRange(): void
     {
         $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('Invalid quantifier range: min > max');
+        $this->expectExceptionMessage('Invalid quantifier range "{3,1}": min > max');
         $this->validate('/foo{3,1}/');
+    }
+
+    public function testThrowsOnInvalidFlags(): void
+    {
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('Unknown regex flag(s): "z"');
+        $this->validate('/foo/imz');
+    }
+
+    public function testThrowsOnNestedQuantifiers(): void
+    {
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('Potential catastrophic backtracking: nested quantifiers detected.');
+        $this->validate('/(a+)*b/');
+    }
+
+    #[DoesNotPerformAssertions]
+    public function testAllowsNonNestedQuantifiers(): void
+    {
+        // (a*)(b*) is fine
+        $this->validate('/(a*)(b*)/');
     }
 }

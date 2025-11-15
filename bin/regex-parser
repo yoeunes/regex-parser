@@ -1,42 +1,52 @@
+#!/usr/bin/env php
 <?php
+
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes REGAIA <younes.regaia@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
 
 require __DIR__.'/../vendor/autoload.php';
 
-use RegexParser\Parser\Parser;
-use RegexParser\Visitor\CompilerVisitor;
-use RegexParser\Visitor\ValidatorVisitor;
 use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
 use RegexParser\Lexer\Lexer;
+use RegexParser\Parser\Parser;
+use RegexParser\Visitor\CompilerVisitor;
+use RegexParser\Visitor\ValidatorVisitor;
 
 if ($argc < 2) {
-    echo "Usage: php bin/regex-parser '/your_regex_here/'\n";
+    echo "Usage: php bin/regex-parser '/your_regex_here/flags'\n";
     exit(1);
 }
 
 $regex = $argv[1];
 
 try {
-    // Injection de dépendance
+    // 1. Lexing
     $lexer = new Lexer($regex);
-    $parser = new Parser($lexer);
 
+    // 2. Parsing
+    $parser = new Parser($lexer);
     $ast = $parser->parse($regex);
 
-    // Valide
+    // 3. Validation
     $validator = new ValidatorVisitor();
     $ast->accept($validator);
+    echo "Validation: OK\n";
 
-    // Recompile
+    // 4. Recompilation
     $compiler = new CompilerVisitor();
     $compiled = $ast->accept($compiler);
 
     echo "Parsed successfully!\n";
-    echo "Recompiled: $compiled\n";
-
-    // Bonus: Simple AST dump
-    var_dump($ast);
+    echo "Original:   ".$regex."\n";
+    echo "Recompiled: ".$compiled."\n";
 } catch (LexerException|ParserException $e) {
-    echo 'Error: '.$e->getMessage()."\n";
+    echo "Error: ".$e->getMessage()."\n";
     exit(1);
 }

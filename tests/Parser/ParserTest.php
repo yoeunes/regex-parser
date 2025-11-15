@@ -1,12 +1,25 @@
 <?php
 
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace RegexParser\Tests\Parser;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\Ast\AlternationNode;
+use RegexParser\Ast\AnchorNode;
+use RegexParser\Ast\CharTypeNode;
+use RegexParser\Ast\DotNode;
 use RegexParser\Ast\GroupNode;
 use RegexParser\Ast\LiteralNode;
 use RegexParser\Ast\QuantifierNode;
+use RegexParser\Ast\RegexNode;
 use RegexParser\Ast\SequenceNode;
 use RegexParser\Exception\ParserException;
 use RegexParser\Lexer\Lexer;
@@ -14,24 +27,33 @@ use RegexParser\Parser\Parser;
 
 class ParserTest extends TestCase
 {
-    // SUPPRIMER LA PROPRIÉTÉ $parser ET LA MÉTHODE setUp()
-
     private function createParser(string $input): Parser
     {
         return new Parser(new Lexer($input));
     }
 
+    public function testParseReturnsRegexNodeWithFlags(): void
+    {
+        $parser = $this->createParser('/foo/imsU');
+        $ast = $parser->parse('/foo/imsU');
+
+        $this->assertInstanceOf(RegexNode::class, $ast);
+        $this->assertSame('imsU', $ast->flags);
+        $this->assertInstanceOf(SequenceNode::class, $ast->pattern);
+    }
+
     public function testParseLiteral(): void
     {
         $parser = $this->createParser('/foo/');
+        /** @var RegexNode $ast */
         $ast = $parser->parse('/foo/');
+        $pattern = $ast->pattern;
 
-        // "foo" est une SÉQUENCE de 3 littéraux
-        $this->assertInstanceOf(SequenceNode::class, $ast);
-        $this->assertCount(3, $ast->children);
+        // "foo" is a SEQUENCE of 3 literals
+        $this->assertInstanceOf(SequenceNode::class, $pattern);
+        $this->assertCount(3, $pattern->children);
 
-        // AJOUTER L'ASSERTION
-        $child = $ast->children[0];
+        $child = $pattern->children[0];
         $this->assertInstanceOf(LiteralNode::class, $child);
         $this->assertSame('f', $child->value);
     }
@@ -39,20 +61,21 @@ class ParserTest extends TestCase
     public function testParseGroupWithQuantifier(): void
     {
         $parser = $this->createParser('/(bar)?/');
+        /** @var RegexNode $ast */
         $ast = $parser->parse('/(bar)?/');
+        $pattern = $ast->pattern;
 
-        $this->assertInstanceOf(QuantifierNode::class, $ast);
-        $this->assertSame('?', $ast->quantifier);
+        $this->assertInstanceOf(QuantifierNode::class, $pattern);
+        $this->assertSame('?', $pattern->quantifier);
 
-        // Le nœud quantifié est un groupe
-        $this->assertInstanceOf(GroupNode::class, $ast->node);
-        $groupNode = $ast->node;
+        // The quantified node is a group
+        $this->assertInstanceOf(GroupNode::class, $pattern->node);
+        $groupNode = $pattern->node;
 
-        // L'enfant du groupe est une séquence "bar"
+        // The group's child is a sequence "bar"
         $this->assertInstanceOf(SequenceNode::class, $groupNode->child);
         $this->assertCount(3, $groupNode->child->children);
 
-        // AJOUTER L'ASSERTION
         $sequenceChild = $groupNode->child->children[0];
         $this->assertInstanceOf(LiteralNode::class, $sequenceChild);
         $this->assertSame('b', $sequenceChild->value);
@@ -61,26 +84,26 @@ class ParserTest extends TestCase
     public function testParseAlternation(): void
     {
         $parser = $this->createParser('/foo|bar/');
+        /** @var RegexNode $ast */
         $ast = $parser->parse('/foo|bar/');
+        $pattern = $ast->pattern;
 
-        $this->assertInstanceOf(AlternationNode::class, $ast);
-        $this->assertCount(2, $ast->alternatives);
+        $this->assertInstanceOf(AlternationNode::class, $pattern);
+        $this->assertCount(2, $pattern->alternatives);
 
-        // La première alternative est une séquence "foo"
-        $this->assertInstanceOf(SequenceNode::class, $ast->alternatives[0]);
-        $this->assertCount(3, $ast->alternatives[0]->children);
+        // Alt 1 is a sequence "foo"
+        $this->assertInstanceOf(SequenceNode::class, $pattern->alternatives[0]);
+        $this->assertCount(3, $pattern->alternatives[0]->children);
 
-        // AJOUTER L'ASSERTION
-        $alt1Child = $ast->alternatives[0]->children[0];
+        $alt1Child = $pattern->alternatives[0]->children[0];
         $this->assertInstanceOf(LiteralNode::class, $alt1Child);
         $this->assertSame('f', $alt1Child->value);
 
-        // La seconde est une séquence "bar"
-        $this->assertInstanceOf(SequenceNode::class, $ast->alternatives[1]);
-        $this->assertCount(3, $ast->alternatives[1]->children);
+        // Alt 2 is a sequence "bar"
+        $this->assertInstanceOf(SequenceNode::class, $pattern->alternatives[1]);
+        $this->assertCount(3, $pattern->alternatives[1]->children);
 
-        // AJOUTER L'ASSERTION
-        $alt2Child = $ast->alternatives[1]->children[0];
+        $alt2Child = $pattern->alternatives[1]->children[0];
         $this->assertInstanceOf(LiteralNode::class, $alt2Child);
         $this->assertSame('b', $alt2Child->value);
     }
@@ -88,36 +111,68 @@ class ParserTest extends TestCase
     public function testParseOperatorPrecedence(): void
     {
         $parser = $this->createParser('/ab*c/');
+        /** @var RegexNode $ast */
         $ast = $parser->parse('/ab*c/');
+        $pattern = $ast->pattern;
 
-        // L'AST doit être une Séquence
-        $this->assertInstanceOf(SequenceNode::class, $ast);
-        $this->assertCount(3, $ast->children);
+        // The AST must be a Sequence
+        $this->assertInstanceOf(SequenceNode::class, $pattern);
+        $this->assertCount(3, $pattern->children);
 
-        // Enfant 1: Literal 'a'
-        $this->assertInstanceOf(LiteralNode::class, $ast->children[0]);
-        // AJOUTER L'ASSERTION (en séparant)
-        $childA = $ast->children[0];
+        // Child 1: Literal 'a'
+        $childA = $pattern->children[0];
         $this->assertInstanceOf(LiteralNode::class, $childA);
         $this->assertSame('a', $childA->value);
 
-        // Enfant 2: Quantifier '*'
-        $this->assertInstanceOf(QuantifierNode::class, $ast->children[1]);
-        $this->assertSame('*', $ast->children[1]->quantifier);
+        // Child 2: Quantifier '*'
+        $this->assertInstanceOf(QuantifierNode::class, $pattern->children[1]);
+        $this->assertSame('*', $pattern->children[1]->quantifier);
 
-        // ... qui quantifie un Literal 'b'
-        $this->assertInstanceOf(LiteralNode::class, $ast->children[1]->node);
-        // AJOUTER L'ASSERTION (en séparant)
-        $quantifiedNode = $ast->children[1]->node;
+        // ... which quantifies a Literal 'b'
+        $quantifiedNode = $pattern->children[1]->node;
         $this->assertInstanceOf(LiteralNode::class, $quantifiedNode);
         $this->assertSame('b', $quantifiedNode->value);
 
-        // Enfant 3: Literal 'c'
-        $this->assertInstanceOf(LiteralNode::class, $ast->children[2]);
-        // AJOUTER L'ASSERTION (en séparant)
-        $childC = $ast->children[2];
+        // Child 3: Literal 'c'
+        $childC = $pattern->children[2];
         $this->assertInstanceOf(LiteralNode::class, $childC);
         $this->assertSame('c', $childC->value);
+    }
+
+    public function testParseCharTypesAndDot(): void
+    {
+        $parser = $this->createParser('/.\d\S/');
+        /** @var RegexNode $ast */
+        $ast = $parser->parse('/.\d\S/');
+        $pattern = $ast->pattern;
+
+        $this->assertInstanceOf(SequenceNode::class, $pattern);
+        $this->assertCount(3, $pattern->children);
+
+        $this->assertInstanceOf(DotNode::class, $pattern->children[0]);
+        $this->assertInstanceOf(CharTypeNode::class, $pattern->children[1]);
+        $this->assertSame('d', $pattern->children[1]->value);
+        $this->assertInstanceOf(CharTypeNode::class, $pattern->children[2]);
+        $this->assertSame('S', $pattern->children[2]->value);
+    }
+
+    public function testParseAnchors(): void
+    {
+        $parser = $this->createParser('/^foo$/');
+        /** @var RegexNode $ast */
+        $ast = $parser->parse('/^foo$/');
+        $pattern = $ast->pattern;
+
+        $this->assertInstanceOf(SequenceNode::class, $pattern);
+        $this->assertCount(3, $pattern->children); // ^, Sequence(f,o,o), $
+
+        $this->assertInstanceOf(AnchorNode::class, $pattern->children[0]);
+        $this->assertSame('^', $pattern->children[0]->value);
+
+        $this->assertInstanceOf(SequenceNode::class, $pattern->children[1]); // "foo"
+
+        $this->assertInstanceOf(AnchorNode::class, $pattern->children[2]);
+        $this->assertSame('$', $pattern->children[2]->value);
     }
 
     public function testThrowsOnUnmatchedGroup(): void
@@ -139,15 +194,15 @@ class ParserTest extends TestCase
     public function testParseEscapedChars(): void
     {
         $parser = $this->createParser('/a\*b/');
+        /** @var RegexNode $ast */
         $ast = $parser->parse('/a\*b/');
+        $pattern = $ast->pattern;
 
-        // Séquence de 3 : 'a', '*', 'b'
-        $this->assertInstanceOf(SequenceNode::class, $ast);
-        $this->assertCount(3, $ast->children);
-        $this->assertInstanceOf(LiteralNode::class, $ast->children[1]);
+        // Sequence of 3 : 'a', '*', 'b'
+        $this->assertInstanceOf(SequenceNode::class, $pattern);
+        $this->assertCount(3, $pattern->children);
 
-        // AJOUTER L'ASSERTION
-        $childStar = $ast->children[1];
+        $childStar = $pattern->children[1];
         $this->assertInstanceOf(LiteralNode::class, $childStar);
         $this->assertSame('*', $childStar->value);
     }

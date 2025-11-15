@@ -14,17 +14,10 @@ namespace RegexParser\Ast;
 use RegexParser\Visitor\VisitorInterface;
 
 /**
- * Represents a group (e.g., "(...)").
+ * Represents the dot "." wildcard character.
  */
-class GroupNode implements NodeInterface
+class DotNode implements NodeInterface
 {
-    /**
-     * @param NodeInterface $child the expression contained within the group
-     */
-    public function __construct(public readonly NodeInterface $child)
-    {
-    }
-
     /**
      * @template T
      *
@@ -34,6 +27,6 @@ class GroupNode implements NodeInterface
      */
     public function accept(VisitorInterface $visitor)
     {
-        return $visitor->visitGroup($this);
+        return $visitor->visitDot($this);
     }
 }

@@ -1,5 +1,14 @@
 <?php
 
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace RegexParser\Lexer;
 
 use RegexParser\Exception\LexerException;
@@ -7,16 +16,27 @@ use RegexParser\Exception\LexerException;
 /**
  * The Lexer (or Tokenizer).
  * Its job is to split the input regex string into a stream of Tokens.
- * It handles single characters and basic escape sequences.
+ * It handles single characters, basic escape sequences, and is UTF-8 safe.
  */
 class Lexer
 {
     private int $position = 0;
     private readonly int $length;
+    /** @var array<string> */
+    private readonly array $characters;
 
-    public function __construct(private string $input)
+    /**
+     * @throws LexerException If the input is not valid UTF-8
+     */
+    public function __construct(private readonly string $input)
     {
-        $this->length = \strlen($this->input);
+        if (!mb_check_encoding($this->input, 'UTF-8')) {
+            throw new LexerException('Input string is not valid UTF-8.');
+        }
+
+        // Split the string into an array of UTF-8 characters.
+        $this->characters = preg_split('//u', $this->input, -1, \PREG_SPLIT_NO_EMPTY) ?: [];
+        $this->length = \count($this->characters);
     }
 
     /**
@@ -32,13 +52,19 @@ class Lexer
         $isEscaped = false;
 
         while ($this->position < $this->length) {
-            $char = $this->input[$this->position];
+            $char = $this->characters[$this->position];
 
             if ($isEscaped) {
-                // If the previous char was \, treat this char
-                // as a literal, no matter what it is.
-                $tokens[] = new Token(TokenType::T_LITERAL, $char, $this->position++);
                 $isEscaped = false;
+                // Check for known character types (e.g., \d, \s, \w)
+                if (preg_match('/^[dswDSW]$/u', $char)) {
+                    $tokens[] = new Token(TokenType::T_CHAR_TYPE, $char, $this->position - 1); // Position of the \
+                    ++$this->position;
+                } else {
+                    // It's an escaped meta-character (e.g., \*, \+, \()
+                    // or a literal (e.g., \a, \b)
+                    $tokens[] = new Token(TokenType::T_LITERAL, $char, $this->position++);
+                }
                 continue;
             }
 
@@ -59,13 +85,17 @@ class Lexer
             } elseif (\in_array($char, ['*', '+', '?'], true)) {
                 $tokens[] = new Token(TokenType::T_QUANTIFIER, $char, $this->position++);
             } elseif ('{' === $char) {
-                // Handling {n,m} is a pragmatic lookahead.
-                // It's correct to keep it grouped as one token.
                 $tokens[] = $this->consumeBraceQuantifier();
             } elseif ('|' === $char) {
                 $tokens[] = new Token(TokenType::T_ALTERNATION, '|', $this->position++);
             } elseif ('/' === $char) {
+                // This assumes / is the delimiter, a more robust parser
+                // would treat the *first* char as the delimiter.
                 $tokens[] = new Token(TokenType::T_DELIMITER, '/', $this->position++);
+            } elseif ('.' === $char) {
+                $tokens[] = new Token(TokenType::T_DOT, '.', $this->position++);
+            } elseif ('^' === $char || '$' === $char) {
+                $tokens[] = new Token(TokenType::T_ANCHOR, $char, $this->position++);
             } else {
                 // Everything else is a T_LITERAL
                 $tokens[] = new Token(TokenType::T_LITERAL, $char, $this->position++);
@@ -87,18 +117,26 @@ class Lexer
     private function consumeBraceQuantifier(): Token
     {
         $start = $this->position;
-        ++$this->position; // Skip '{'
-        $inner = $this->consumeWhile(fn (string $c) => ctype_digit($c) || ',' === $c);
+        $quant = $this->characters[$this->position++]; // Consume '{'
+        $inner = $this->consumeWhile(fn (string $c) => 1 === preg_match('/^[0-9,]$/', $c));
+        $quant .= $inner;
 
-        if ($this->position >= $this->length || '}' !== $this->input[$this->position]) {
-            // This might be a literal '{'.
-            // For now, we throw an exception for simplicity.
-            // An advanced version would "rewind" and emit T_LITERAL for '{'
-            throw new LexerException('Unclosed quantifier or invalid content at '.$start);
+        if ($this->position >= $this->length || '}' !== $this->characters[$this->position]) {
+            // Rewind and treat as literal '{'
+            // This is a more robust approach than throwing an exception.
+            $this->position = $start + 1;
+
+            return new Token(TokenType::T_LITERAL, '{', $start);
         }
 
-        $quant = '{'.$inner.'}';
-        ++$this->position; // Skip '}'
+        $quant .= '}'; // Consume '}'
+        ++$this->position;
+
+        // Validate the inner part (e.g., {1,3}, {2,}, {5})
+        if (!preg_match('/^{\d+(,\d*)?}$/', $quant)) {
+            // Invalid content like {,} or {1,2,3}
+            throw new LexerException(\sprintf('Invalid quantifier syntax "%s" at position %d', $quant, $start));
+        }
 
         return new Token(TokenType::T_QUANTIFIER, $quant, $start);
     }
@@ -109,8 +147,8 @@ class Lexer
     private function consumeWhile(callable $predicate): string
     {
         $value = '';
-        while ($this->position < $this->length && $predicate($this->input[$this->position])) {
-            $value .= $this->input[$this->position++];
+        while ($this->position < $this->length && $predicate($this->characters[$this->position])) {
+            $value .= $this->characters[$this->position++];
         }
 
         return $value;

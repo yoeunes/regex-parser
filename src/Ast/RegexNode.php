@@ -14,15 +14,18 @@ namespace RegexParser\Ast;
 use RegexParser\Visitor\VisitorInterface;
 
 /**
- * Represents a group (e.g., "(...)").
+ * Represents the root of a parsed regex, containing the pattern and any flags.
  */
-class GroupNode implements NodeInterface
+class RegexNode implements NodeInterface
 {
     /**
-     * @param NodeInterface $child the expression contained within the group
+     * @param NodeInterface $pattern The root node of the regex pattern (e.g., an AlternationNode or SequenceNode).
+     * @param string        $flags   A string of flags (e.g., "imsU").
      */
-    public function __construct(public readonly NodeInterface $child)
-    {
+    public function __construct(
+        public readonly NodeInterface $pattern,
+        public readonly string $flags,
+    ) {
     }
 
     /**
@@ -34,6 +37,6 @@ class GroupNode implements NodeInterface
      */
     public function accept(VisitorInterface $visitor)
     {
-        return $visitor->visitGroup($this);
+        return $visitor->visitRegex($this);
     }
 }

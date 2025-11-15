@@ -1,28 +1,51 @@
 <?php
 
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace RegexParser\Lexer;
 
 enum TokenType: string
 {
-    // A single character that is not a meta-character
+    /** A single literal character (e.g., "a", "1"). */
     case T_LITERAL = 'literal';
 
-    // Groups
-    case T_GROUP_OPEN = 'group_open';  // (
-    case T_GROUP_CLOSE = 'group_close';  // )
+    /** A special character class type (e.g., \d, \s, \w). */
+    case T_CHAR_TYPE = 'char_type';
 
-    // Character classes
-    case T_CHAR_CLASS_OPEN = 'char_class_open'; // [
-    case T_CHAR_CLASS_CLOSE = 'char_class_close'; // ]
+    /** A group opening parenthesis "(". */
+    case T_GROUP_OPEN = 'group_open';
 
-    // Quantifiers
-    case T_QUANTIFIER = 'quantifier';  // *, +, ?, {n,m}
+    /** A group closing parenthesis ")". */
+    case T_GROUP_CLOSE = 'group_close';
 
-    // Logical
-    case T_ALTERNATION = 'alternation';  // |
+    /** A character class opening bracket "[". */
+    case T_CHAR_CLASS_OPEN = 'char_class_open';
 
-    // Structural
-    case T_FLAG = 'flag';      // i, m, s after /
-    case T_DELIMITER = 'delimiter';    // / at start/end
-    case T_EOF = 'eof';        // End of input
+    /** A character class closing bracket "]". */
+    case T_CHAR_CLASS_CLOSE = 'char_class_close';
+
+    /** A quantifier (e.g., "*", "+", "?", "{n,m}"). */
+    case T_QUANTIFIER = 'quantifier';
+
+    /** The alternation pipe "|". */
+    case T_ALTERNATION = 'alternation';
+
+    /** The wildcard dot ".". */
+    case T_DOT = 'dot';
+
+    /** An anchor (e.g., "^", "$"). */
+    case T_ANCHOR = 'anchor';
+
+    /** A regex delimiter (e.g., "/", "#", "~"). */
+    case T_DELIMITER = 'delimiter';
+
+    /** The end-of-file marker. */
+    case T_EOF = 'eof';
 }
