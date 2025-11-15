@@ -14,7 +14,8 @@ class LexerTest extends TestCase
         $lexer = new Lexer('/foo/');
         $tokens = $lexer->tokenize();
 
-        $this->assertCount(5, $tokens); // / f o o / EOF
+        // / f o o / EOF = 6 tokens
+        $this->assertCount(6, $tokens);
         $this->assertSame(TokenType::T_DELIMITER, $tokens[0]->type);
         $this->assertSame(TokenType::T_LITERAL, $tokens[1]->type);
         $this->assertSame('f', $tokens[1]->value);
@@ -54,6 +55,8 @@ class LexerTest extends TestCase
     {
         $lexer = new Lexer('/foo|bar/');
         $tokens = $lexer->tokenize();
+        // / f o o | b a r / EOF = 10 tokens
+        $this->assertCount(10, $tokens);
         $this->assertSame(TokenType::T_ALTERNATION, $tokens[4]->type);
     }
 
@@ -62,7 +65,8 @@ class LexerTest extends TestCase
         $lexer = new Lexer('/a{2,4}/');
         $tokens = $lexer->tokenize();
 
-        $this->assertCount(5, $tokens); // / a {2,4} / EOF
+        // / a {2,4} / EOF = 5 tokens
+        $this->assertCount(5, $tokens);
         $this->assertSame(TokenType::T_LITERAL, $tokens[1]->type);
         $this->assertSame(TokenType::T_QUANTIFIER, $tokens[2]->type);
         $this->assertSame('{2,4}', $tokens[2]->value);
@@ -70,10 +74,11 @@ class LexerTest extends TestCase
 
     public function testTokenizeEscapedChars(): void
     {
-        $lexer = new Lexer('/\(a\*\)/'); // Regex: \(a\*)\
+        $lexer = new Lexer('/\(a\*\)/'); // Regex: /\(a\*\)/
         $tokens = $lexer->tokenize();
 
-        $this->assertCount(8, $tokens); // / \ ( a \ * ) / EOF
+        // / \ ( a \ * \ ) / EOF = 10 tokens
+        $this->assertCount(10, $tokens);
         $this->assertSame(TokenType::T_DELIMITER, $tokens[0]->type);
         $this->assertSame(TokenType::T_BACKSLASH, $tokens[1]->type);
         $this->assertSame(TokenType::T_LITERAL, $tokens[2]->type); // (
@@ -82,9 +87,11 @@ class LexerTest extends TestCase
         $this->assertSame(TokenType::T_BACKSLASH, $tokens[4]->type);
         $this->assertSame(TokenType::T_LITERAL, $tokens[5]->type); // *
         $this->assertSame('*', $tokens[5]->value);
-        $this->assertSame(TokenType::T_LITERAL, $tokens[6]->type); // )
-        $this->assertSame(TokenType::T_DELIMITER, $tokens[7]->type);
-        $this->assertSame(TokenType::T_EOF, $tokens[8]->type);
+        $this->assertSame(TokenType::T_BACKSLASH, $tokens[6]->type); // \
+        $this->assertSame(TokenType::T_LITERAL, $tokens[7]->type); // )
+        $this->assertSame(')', $tokens[7]->value);
+        $this->assertSame(TokenType::T_DELIMITER, $tokens[8]->type);
+        $this->assertSame(TokenType::T_EOF, $tokens[9]->type);
     }
 
     public function testThrowsOnTrailingBackslash(): void
