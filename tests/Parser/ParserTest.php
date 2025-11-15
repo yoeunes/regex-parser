@@ -14,14 +14,7 @@ use RegexParser\Parser\Parser;
 
 class ParserTest extends TestCase
 {
-    private readonly Parser $parser;
-
-    protected function setUp(): void
-    {
-        // Le Parser est maintenant créé une fois avec son Lexer
-        // On ne peut pas le réutiliser car le Lexer est lié à l'input.
-        // On va l'instancier dans chaque test.
-    }
+    // SUPPRIMER LA PROPRIÉTÉ $parser ET LA MÉTHODE setUp()
 
     private function createParser(string $input): Parser
     {
@@ -36,8 +29,11 @@ class ParserTest extends TestCase
         // "foo" est une SÉQUENCE de 3 littéraux
         $this->assertInstanceOf(SequenceNode::class, $ast);
         $this->assertCount(3, $ast->children);
-        $this->assertInstanceOf(LiteralNode::class, $ast->children[0]);
-        $this->assertSame('f', $ast->children[0]->value);
+
+        // AJOUTER L'ASSERTION
+        $child = $ast->children[0];
+        $this->assertInstanceOf(LiteralNode::class, $child);
+        $this->assertSame('f', $child->value);
     }
 
     public function testParseGroupWithQuantifier(): void
@@ -55,7 +51,11 @@ class ParserTest extends TestCase
         // L'enfant du groupe est une séquence "bar"
         $this->assertInstanceOf(SequenceNode::class, $groupNode->child);
         $this->assertCount(3, $groupNode->child->children);
-        $this->assertSame('b', $groupNode->child->children[0]->value);
+
+        // AJOUTER L'ASSERTION
+        $sequenceChild = $groupNode->child->children[0];
+        $this->assertInstanceOf(LiteralNode::class, $sequenceChild);
+        $this->assertSame('b', $sequenceChild->value);
     }
 
     public function testParseAlternation(): void
@@ -69,12 +69,20 @@ class ParserTest extends TestCase
         // La première alternative est une séquence "foo"
         $this->assertInstanceOf(SequenceNode::class, $ast->alternatives[0]);
         $this->assertCount(3, $ast->alternatives[0]->children);
-        $this->assertSame('f', $ast->alternatives[0]->children[0]->value);
+
+        // AJOUTER L'ASSERTION
+        $alt1Child = $ast->alternatives[0]->children[0];
+        $this->assertInstanceOf(LiteralNode::class, $alt1Child);
+        $this->assertSame('f', $alt1Child->value);
 
         // La seconde est une séquence "bar"
         $this->assertInstanceOf(SequenceNode::class, $ast->alternatives[1]);
         $this->assertCount(3, $ast->alternatives[1]->children);
-        $this->assertSame('b', $ast->alternatives[1]->children[0]->value);
+
+        // AJOUTER L'ASSERTION
+        $alt2Child = $ast->alternatives[1]->children[0];
+        $this->assertInstanceOf(LiteralNode::class, $alt2Child);
+        $this->assertSame('b', $alt2Child->value);
     }
 
     public function testParseOperatorPrecedence(): void
@@ -88,7 +96,10 @@ class ParserTest extends TestCase
 
         // Enfant 1: Literal 'a'
         $this->assertInstanceOf(LiteralNode::class, $ast->children[0]);
-        $this->assertSame('a', $ast->children[0]->value);
+        // AJOUTER L'ASSERTION (en séparant)
+        $childA = $ast->children[0];
+        $this->assertInstanceOf(LiteralNode::class, $childA);
+        $this->assertSame('a', $childA->value);
 
         // Enfant 2: Quantifier '*'
         $this->assertInstanceOf(QuantifierNode::class, $ast->children[1]);
@@ -96,11 +107,17 @@ class ParserTest extends TestCase
 
         // ... qui quantifie un Literal 'b'
         $this->assertInstanceOf(LiteralNode::class, $ast->children[1]->node);
-        $this->assertSame('b', $ast->children[1]->node->value);
+        // AJOUTER L'ASSERTION (en séparant)
+        $quantifiedNode = $ast->children[1]->node;
+        $this->assertInstanceOf(LiteralNode::class, $quantifiedNode);
+        $this->assertSame('b', $quantifiedNode->value);
 
         // Enfant 3: Literal 'c'
         $this->assertInstanceOf(LiteralNode::class, $ast->children[2]);
-        $this->assertSame('c', $ast->children[2]->value);
+        // AJOUTER L'ASSERTION (en séparant)
+        $childC = $ast->children[2];
+        $this->assertInstanceOf(LiteralNode::class, $childC);
+        $this->assertSame('c', $childC->value);
     }
 
     public function testThrowsOnUnmatchedGroup(): void
@@ -128,6 +145,10 @@ class ParserTest extends TestCase
         $this->assertInstanceOf(SequenceNode::class, $ast);
         $this->assertCount(3, $ast->children);
         $this->assertInstanceOf(LiteralNode::class, $ast->children[1]);
-        $this->assertSame('*', $ast->children[1]->value);
+
+        // AJOUTER L'ASSERTION
+        $childStar = $ast->children[1];
+        $this->assertInstanceOf(LiteralNode::class, $childStar);
+        $this->assertSame('*', $childStar->value);
     }
 }

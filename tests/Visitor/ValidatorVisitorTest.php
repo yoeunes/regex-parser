@@ -21,7 +21,7 @@ class ValidatorVisitorTest extends TestCase
     public function testValidateValid(): void
     {
         $this->validate('/foo{1,3}/');
-        $this->assertNull(null); // Si aucune exception n'est levée
+        self::assertTrue(true); // MODIFIER CETTE LIGNE
     }
 
     public function testThrowsOnInvalidQuantifier(): void

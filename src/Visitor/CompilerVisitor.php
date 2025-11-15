@@ -8,6 +8,9 @@ use RegexParser\Ast\LiteralNode;
 use RegexParser\Ast\QuantifierNode;
 use RegexParser\Ast\SequenceNode;
 
+/**
+ * @implements VisitorInterface<string>
+ */
 class CompilerVisitor implements VisitorInterface
 {
     public function visitAlternation(AlternationNode $node): string

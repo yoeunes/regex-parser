@@ -7,17 +7,26 @@ use RegexParser\Visitor\VisitorInterface;
 /**
  * Représente une séquence (concaténation) de nœuds.
  * Ex: "abc" est Sequence(Literal(a), Literal(b), Literal(c)).
+ *
+ * @template TReturn
+ *
+ * @implements NodeInterface<TReturn>
  */
 class SequenceNode implements NodeInterface
 {
     /**
-     * @param array<NodeInterface> $children
+     * @param array<NodeInterface<TReturn>> $children
      */
     public function __construct(public readonly array $children)
     {
     }
 
-    public function accept(VisitorInterface $visitor): mixed
+    /**
+     * @param VisitorInterface<TReturn> $visitor
+     *
+     * @return TReturn
+     */
+    public function accept(VisitorInterface $visitor)
     {
         return $visitor->visitSequence($this);
     }

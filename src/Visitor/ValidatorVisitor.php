@@ -9,31 +9,34 @@ use RegexParser\Ast\QuantifierNode;
 use RegexParser\Ast\SequenceNode;
 use RegexParser\Exception\ParserException;
 
+/**
+ * @implements VisitorInterface<void>
+ */
 class ValidatorVisitor implements VisitorInterface
 {
-    public function visitAlternation(AlternationNode $node): mixed
+    public function visitAlternation(AlternationNode $node): void
     {
         foreach ($node->alternatives as $alt) {
             $alt->accept($this);
         }
 
-        return null;
+        return;
     }
 
-    public function visitGroup(GroupNode $node): mixed
+    public function visitGroup(GroupNode $node): void
     {
         $node->child->accept($this);
 
-        return null;
+        return;
     }
 
-    public function visitLiteral(LiteralNode $node): mixed
+    public function visitLiteral(LiteralNode $node): void
     {
         // Valider si besoin, e.g., pas de chars interdits
-        return null;
+        return;
     }
 
-    public function visitQuantifier(QuantifierNode $node): mixed
+    public function visitQuantifier(QuantifierNode $node): void
     {
         if (\in_array($node->quantifier, ['*', '+', '?'], true)) {
             // OK
@@ -48,15 +51,15 @@ class ValidatorVisitor implements VisitorInterface
         }
         $node->node->accept($this);
 
-        return null;
+        return;
     }
 
-    public function visitSequence(SequenceNode $node): mixed
+    public function visitSequence(SequenceNode $node): void
     {
         foreach ($node->children as $child) {
             $child->accept($this);
         }
 
-        return null;
+        return;
     }
 }

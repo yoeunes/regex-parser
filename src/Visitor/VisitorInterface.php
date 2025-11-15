@@ -8,15 +8,33 @@ use RegexParser\Ast\LiteralNode;
 use RegexParser\Ast\QuantifierNode;
 use RegexParser\Ast\SequenceNode;
 
+/**
+ * @template TReturn Le type de retour du visiteur (ex: 'string' pour Compiler, 'void' pour Validator)
+ */
 interface VisitorInterface
 {
-    public function visitAlternation(AlternationNode $node): mixed;
+    /**
+     * @return TReturn
+     */
+    public function visitAlternation(AlternationNode $node);
 
-    public function visitGroup(GroupNode $node): mixed;
+    /**
+     * @return TReturn
+     */
+    public function visitGroup(GroupNode $node);
 
-    public function visitLiteral(LiteralNode $node): mixed;
+    /**
+     * @return TReturn
+     */
+    public function visitLiteral(LiteralNode $node);
 
-    public function visitQuantifier(QuantifierNode $node): mixed;
+    /**
+     * @return TReturn
+     */
+    public function visitQuantifier(QuantifierNode $node);
 
-    public function visitSequence(SequenceNode $node): mixed;
+    /**
+     * @return TReturn
+     */
+    public function visitSequence(SequenceNode $node);
 }

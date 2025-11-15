@@ -86,9 +86,7 @@ class Parser
         if ($this->match(TokenType::T_QUANTIFIER)) {
             $quantifier = $this->previous()->value;
             // Gérer les quantifieurs invalides (ex: `*`, `+` au début)
-            if ($node instanceof LiteralNode && '' === $node->value) {
-                throw new ParserException('Quantifier without target at position '.$this->previous()->position);
-            }
+            // SUPPRIMER LE BLOC 'if ($node instanceof LiteralNode ...)'
             $node = new QuantifierNode($node, $quantifier);
         }
 
@@ -116,10 +114,7 @@ class Parser
             return new GroupNode($expr);
         }
 
-        // Gérer le cas d'une expression vide avant un terminateur (ex: /|/)
-        if ($this->check(TokenType::T_ALTERNATION) || $this->check(TokenType::T_GROUP_CLOSE) || $this->check(TokenType::T_DELIMITER) || $this->check(TokenType::T_EOF)) {
-            return new LiteralNode(''); // Nœud "vide"
-        }
+        // SUPPRIMER LE BLOC 'if ($this->check(TokenType::T_ALTERNATION) ...)'
 
         $at = $this->isAtEnd() ? 'end of input' : 'position '.$this->current()->position;
         throw new ParserException('Unexpected token '.$this->current()->type->value.' at '.$at);
