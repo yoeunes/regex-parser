@@ -19,12 +19,14 @@ use RegexParser\Visitor\VisitorInterface;
 class RegexNode implements NodeInterface
 {
     /**
-     * @param NodeInterface $pattern The root node of the regex pattern (e.g., an AlternationNode or SequenceNode).
-     * @param string        $flags   A string of flags (e.g., "imsU").
+     * @param NodeInterface $pattern   The root node of the regex pattern (e.g., an AlternationNode or SequenceNode).
+     * @param string        $flags     A string of flags (e.g., "imsU").
+     * @param string        $delimiter The opening delimiter (e.g., "/", "~", "(").
      */
     public function __construct(
         public readonly NodeInterface $pattern,
         public readonly string $flags,
+        public readonly string $delimiter,
     ) {
     }
 

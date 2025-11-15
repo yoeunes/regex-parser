@@ -14,15 +14,20 @@ namespace RegexParser\Ast;
 use RegexParser\Visitor\VisitorInterface;
 
 /**
- * Represents a group (e.g., "(...)").
+ * Represents a group (e.g., "(...)", "(?:...)", "(?<name>...)").
  */
 class GroupNode implements NodeInterface
 {
     /**
      * @param NodeInterface $child the expression contained within the group
+     * @param GroupType     $type  The semantic type of the group
+     * @param ?string       $name  The name, if it's a named group
      */
-    public function __construct(public readonly NodeInterface $child)
-    {
+    public function __construct(
+        public readonly NodeInterface $child,
+        public readonly GroupType $type,
+        public readonly ?string $name = null,
+    ) {
     }
 
     /**

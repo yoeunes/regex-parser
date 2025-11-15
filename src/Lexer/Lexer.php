@@ -15,9 +15,8 @@ use RegexParser\Exception\LexerException;
 
 /**
  * The Lexer (or Tokenizer).
- * Its job is to split the input regex string into a stream of Tokens.
- * It handles single characters, basic escape sequences, and is UTF-8 safe.
- * It manages state to handle different tokenization rules inside character classes.
+ * Its job is to split the regex *pattern* string into a stream of Tokens.
+ * It no longer handles delimiters; that is the Parser's job.
  */
 class Lexer
 {
@@ -32,21 +31,23 @@ class Lexer
     private bool $inCharClass = false;
 
     /**
+     * @param string $pattern The regex pattern (without delimiters or flags)
+     *
      * @throws LexerException If the input is not valid UTF-8
      */
-    public function __construct(private readonly string $input)
+    public function __construct(private readonly string $pattern)
     {
-        if (!mb_check_encoding($this->input, 'UTF-8')) {
+        if (!mb_check_encoding($this->pattern, 'UTF-8')) {
             throw new LexerException('Input string is not valid UTF-8.');
         }
 
         // Split the string into an array of UTF-8 characters.
-        $this->characters = preg_split('//u', $this->input, -1, \PREG_SPLIT_NO_EMPTY) ?: [];
+        $this->characters = preg_split('//u', $this->pattern, -1, \PREG_SPLIT_NO_EMPTY) ?: [];
         $this->length = \count($this->characters);
     }
 
     /**
-     * Tokenizes the input string.
+     * Tokenizes the input pattern string.
      *
      * @return array<Token>
      *
@@ -62,13 +63,13 @@ class Lexer
 
             if ($isEscaped) {
                 $isEscaped = false;
-                // Check for known character types (e.g., \d, \s, \w)
-                if (preg_match('/^[dswDSW]$/u', $char)) {
+                // Check for known character types (e.g., \d, \s, \w, \P, \b)
+                if (preg_match('/^[dswDSWbB]$/u', $char)) {
                     $tokens[] = new Token(TokenType::T_CHAR_TYPE, $char, $this->position - 1); // Position of the \
                     ++$this->position;
                 } else {
                     // It's an escaped meta-character (e.g., \*, \+, \()
-                    // or a literal (e.g., \a, \b, \-)
+                    // or a literal (e.g., \a, \-, \p)
                     $tokens[] = new Token(TokenType::T_LITERAL, $char, $this->position++);
                 }
                 continue;
@@ -88,24 +89,24 @@ class Lexer
 
             // Default tokenization (outside character class)
             if ('(' === $char) {
-                $tokens[] = new Token(TokenType::T_GROUP_OPEN, '(', $this->position++);
+                $tokens[] = $this->consumeGroupOpen();
             } elseif (')' === $char) {
                 $tokens[] = new Token(TokenType::T_GROUP_CLOSE, ')', $this->position++);
             } elseif ('[' === $char) {
                 $this->inCharClass = true; // Enter char class mode
                 $tokens[] = new Token(TokenType::T_CHAR_CLASS_OPEN, '[', $this->position++);
             } elseif (\in_array($char, ['*', '+', '?'], true)) {
-                $tokens[] = new Token(TokenType::T_QUANTIFIER, $char, $this->position++);
+                $tokens[] = $this->consumeSimpleQuantifier($char);
             } elseif ('{' === $char) {
                 $tokens[] = $this->consumeBraceQuantifier();
             } elseif ('|' === $char) {
                 $tokens[] = new Token(TokenType::T_ALTERNATION, '|', $this->position++);
-            } elseif ('/' === $char) {
-                $tokens[] = new Token(TokenType::T_DELIMITER, '/', $this->position++);
             } elseif ('.' === $char) {
                 $tokens[] = new Token(TokenType::T_DOT, '.', $this->position++);
             } elseif ('^' === $char || '$' === $char) {
                 $tokens[] = new Token(TokenType::T_ANCHOR, $char, $this->position++);
+            } elseif (\in_array($char, [':', '=', '!', '<', '>', 'P'], true)) {
+                $tokens[] = $this->tokenizeModifierChar($char);
             } else {
                 // ']' is a literal if not in char class, same for '-'
                 $tokens[] = new Token(TokenType::T_LITERAL, $char, $this->position++);
@@ -160,7 +161,7 @@ class Lexer
     }
 
     /**
-     * Consumes a brace-style quantifier like {n,m}.
+     * Consumes a brace-style quantifier like {n,m} and its lazy/possessive modifier.
      */
     private function consumeBraceQuantifier(): Token
     {
@@ -179,11 +180,87 @@ class Lexer
         $quant .= '}'; // Consume '}'
         ++$this->position;
 
-        if (!preg_match('/^{\d+(,\d*)?}$/', $quant)) {
+        // Consume optional lazy/possessive modifier
+        $quant .= $this->consumeQuantifierModifier();
+
+        if (!preg_match('/^{\d+(,\d*)?}(\?|\+)?$/', $quant)) {
             throw new LexerException(\sprintf('Invalid quantifier syntax "%s" at position %d', $quant, $start));
         }
 
         return new Token(TokenType::T_QUANTIFIER, $quant, $start);
+    }
+
+    /**
+     * Consumes a simple quantifier (*, +, ?) and its lazy/possessive modifier.
+     */
+    private function consumeSimpleQuantifier(string $char): Token
+    {
+        $start = $this->position;
+        $quant = $char; // *, +, or ?
+        ++$this->position;
+
+        // Consume optional lazy/possessive modifier
+        $quant .= $this->consumeQuantifierModifier();
+
+        return new Token(TokenType::T_QUANTIFIER, $quant, $start);
+    }
+
+    /**
+     * Consumes an optional '?' (lazy) or '+' (possessive) modifier.
+     */
+    private function consumeQuantifierModifier(): string
+    {
+        if ($this->position < $this->length) {
+            $modifier = $this->characters[$this->position];
+            if ('?' === $modifier || '+' === $modifier) {
+                ++$this->position;
+
+                return $modifier;
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * Consumes a group opening, checking for modifiers (e.g., "(?", "(?<").
+     */
+    private function consumeGroupOpen(): Token
+    {
+        $start = $this->position;
+        if ($this->position + 1 < $this->length && '?' === $this->characters[$this->position + 1]) {
+            // It's a special group, e.g., "(?:", "(?=", "(?<name>"
+            $this->position += 2; // Consume "(?"
+
+            return new Token(TokenType::T_GROUP_MODIFIER_OPEN, '(?', $start);
+        }
+
+        // It's a simple capturing group
+        ++$this->position; // Consume "("
+
+        return new Token(TokenType::T_GROUP_OPEN, '(', $start);
+    }
+
+    /**
+     * Tokenizes special characters that are only special *after* a "(?".
+     */
+    private function tokenizeModifierChar(string $char): Token
+    {
+        $tokenMap = [
+            ':' => TokenType::T_COLON,
+            '=' => TokenType::T_EQUALS,
+            '!' => TokenType::T_EXCLAMATION,
+            '<' => TokenType::T_LT,
+            '>' => TokenType::T_GT,
+            'P' => TokenType::T_P,
+        ];
+
+        if (isset($tokenMap[$char])) {
+            return new Token($tokenMap[$char], $char, $this->position++);
+        }
+
+        // Should not be reachable if called correctly
+        throw new LexerException('Unexpected internal error parsing modifier char.');
     }
 
     /**

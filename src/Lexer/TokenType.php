@@ -25,13 +25,16 @@ enum TokenType: string
     /** A group closing parenthesis ")". */
     case T_GROUP_CLOSE = 'group_close';
 
+    /** A special group opening sequence (e.g., "(?:", "(?<name>", "(?="). */
+    case T_GROUP_MODIFIER_OPEN = 'group_modifier_open';
+
     /** A character class opening bracket "[". */
     case T_CHAR_CLASS_OPEN = 'char_class_open';
 
     /** A character class closing bracket "]". */
     case T_CHAR_CLASS_CLOSE = 'char_class_close';
 
-    /** A quantifier (e.g., "*", "+", "?", "{n,m}"). */
+    /** A quantifier (e.g., "*", "+", "?", "{n,m}", "*?", "++", "{n,m}+"). */
     case T_QUANTIFIER = 'quantifier';
 
     /** The alternation pipe "|". */
@@ -43,9 +46,6 @@ enum TokenType: string
     /** An anchor (e.g., "^", "$"). */
     case T_ANCHOR = 'anchor';
 
-    /** A regex delimiter (e.g., "/", "#", "~"). */
-    case T_DELIMITER = 'delimiter';
-
     /** The end-of-file marker. */
     case T_EOF = 'eof';
 
@@ -54,4 +54,25 @@ enum TokenType: string
 
     /** A negation operator "^" at the start of a character class. */
     case T_NEGATION = 'negation';
+
+    /** A colon ":" (used in "(?:"). */
+    case T_COLON = 'colon';
+
+    /** An equals sign "=" (used in "(?="). */
+    case T_EQUALS = 'equals';
+
+    /** An exclamation mark "!" (used in "(?!"). */
+    case T_EXCLAMATION = 'exclamation';
+
+    /** A less-than sign "<" (used in "(?<" and "(?<="). */
+    case T_LT = 'lt';
+
+    /** A greater-than sign ">" (used in "(?<name>"). */
+    case T_GT = 'gt';
+
+    /** A "P" character (used in "(?P<name>"). */
+    case T_P = 'P';
+
+    /** A name inside a named group (e.g., "name" in "(?<name>"). */
+    case T_NAME = 'name';
 }

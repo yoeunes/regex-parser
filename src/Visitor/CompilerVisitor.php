@@ -17,8 +17,10 @@ use RegexParser\Ast\CharClassNode;
 use RegexParser\Ast\CharTypeNode;
 use RegexParser\Ast\DotNode;
 use RegexParser\Ast\GroupNode;
+use RegexParser\Ast\GroupType;
 use RegexParser\Ast\LiteralNode;
 use RegexParser\Ast\QuantifierNode;
+use RegexParser\Ast\QuantifierType;
 use RegexParser\Ast\RangeNode;
 use RegexParser\Ast\RegexNode;
 use RegexParser\Ast\SequenceNode;
@@ -38,11 +40,8 @@ class CompilerVisitor implements VisitorInterface
     ];
 
     // Meta-characters that must be escaped *inside* a character class.
-    // The parser correctly identifies positional meta-chars (like ^, -, ])
-    // as literals, so we only need to worry about the backslash itself.
     private const CHAR_CLASS_META = [
-        '\\' => true,
-        // ']' was the bug. It is removed.
+        '\\' => true, ']' => true, '-' => true, '^' => true,
     ];
 
     /**
@@ -52,8 +51,11 @@ class CompilerVisitor implements VisitorInterface
 
     public function visitRegex(RegexNode $node): string
     {
-        // Assumes '/' as the delimiter.
-        return '/'.$node->pattern->accept($this).'/'.$node->flags;
+        // Re-add the dynamic delimiter and flags
+        $map = [')' => '(', ']' => '[', '}' => '{', '>' => '<'];
+        $closingDelimiter = $map[$node->delimiter] ?? $node->delimiter;
+
+        return $node->delimiter.$node->pattern->accept($this).$closingDelimiter.$node->flags;
     }
 
     public function visitAlternation(AlternationNode $node): string
@@ -69,8 +71,17 @@ class CompilerVisitor implements VisitorInterface
 
     public function visitGroup(GroupNode $node): string
     {
-        // The child of the group is visited
-        return '('.$node->child->accept($this).')';
+        $child = $node->child->accept($this);
+
+        return match ($node->type) {
+            GroupType::T_GROUP_CAPTURING => '('.$child.')',
+            GroupType::T_GROUP_NON_CAPTURING => '(?:'.$child.')',
+            GroupType::T_GROUP_NAMED => '(?<'.$node->name.'>'.$child.')',
+            GroupType::T_GROUP_LOOKAHEAD_POSITIVE => '(?='.$child.')',
+            GroupType::T_GROUP_LOOKAHEAD_NEGATIVE => '(?!'.$child.')',
+            GroupType::T_GROUP_LOOKBEHIND_POSITIVE => '(?<='.$child.')',
+            GroupType::T_GROUP_LOOKBEHIND_NEGATIVE => '(?<!'.$child.')',
+        };
     }
 
     public function visitQuantifier(QuantifierNode $node): string
@@ -78,12 +89,18 @@ class CompilerVisitor implements VisitorInterface
         /** @var string $nodeCompiled */
         $nodeCompiled = $node->node->accept($this);
 
-        // Add non-capturing group if needed (e.g., "abc*" vs "(abc)*")
+        // Add non-capturing group if needed (e.g., "abc*" vs "(?:abc)*")
         if ($node->node instanceof SequenceNode || $node->node instanceof AlternationNode) {
             $nodeCompiled = '(?:'.$nodeCompiled.')';
         }
 
-        return $nodeCompiled.$node->quantifier;
+        $suffix = match ($node->type) {
+            QuantifierType::T_LAZY => '?',
+            QuantifierType::T_POSSESSIVE => '+',
+            default => '',
+        };
+
+        return $nodeCompiled.$node->quantifier.$suffix;
     }
 
     public function visitLiteral(LiteralNode $node): string
@@ -128,7 +145,7 @@ class CompilerVisitor implements VisitorInterface
 
     public function visitRange(RangeNode $node): string
     {
-        // Note: visitLiteral will handle escaping for start/end if they are meta-chars (e.g., "[-]")
+        // Note: visitLiteral will handle escaping for start/end if they are meta-chars
         return $node->start->accept($this).'-'.$node->end->accept($this);
     }
 }

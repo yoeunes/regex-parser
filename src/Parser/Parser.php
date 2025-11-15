@@ -17,9 +17,11 @@ use RegexParser\Ast\CharClassNode;
 use RegexParser\Ast\CharTypeNode;
 use RegexParser\Ast\DotNode;
 use RegexParser\Ast\GroupNode;
+use RegexParser\Ast\GroupType;
 use RegexParser\Ast\LiteralNode;
 use RegexParser\Ast\NodeInterface;
 use RegexParser\Ast\QuantifierNode;
+use RegexParser\Ast\QuantifierType;
 use RegexParser\Ast\RangeNode;
 use RegexParser\Ast\RegexNode;
 use RegexParser\Ast\SequenceNode;
@@ -32,19 +34,22 @@ use RegexParser\Lexer\TokenType;
  * The Parser.
  * It consumes a stream of Tokens from the Lexer and builds an
  * Abstract Syntax Tree (AST) based on a formal grammar.
+ * It is now responsible for handling delimiters.
  */
 class Parser
 {
     /** @var array<Token> */
     private array $tokens;
     private int $position = 0;
+    private string $delimiter;
+    private string $flags;
 
-    public function __construct(private readonly Lexer $lexer)
+    public function __construct()
     {
     }
 
     /**
-     * Parses the full regex string.
+     * Parses the full regex string, including delimiters and flags.
      *
      * @return RegexNode the root node of the AST, containing the pattern and flags
      *
@@ -52,26 +57,72 @@ class Parser
      */
     public function parse(string $regex): RegexNode
     {
-        $this->tokens = $this->lexer->tokenize();
+        [$pattern, $flags, $delimiter] = $this->extractPatternAndFlags($regex);
+
+        $this->delimiter = $delimiter;
+        $this->flags = $flags;
+
+        $lexer = new Lexer($pattern);
+        $this->tokens = $lexer->tokenize();
         $this->position = 0;
 
-        $this->consume(TokenType::T_DELIMITER, 'Expected opening delimiter');
-        $pattern = $this->parseAlternation();
-        $this->consume(TokenType::T_DELIMITER, 'Expected closing delimiter');
-        $flags = $this->parseFlags();
-        $this->consume(TokenType::T_EOF, 'Unexpected content after closing delimiter');
+        $patternNode = $this->parseAlternation();
+        $this->consume(TokenType::T_EOF, 'Unexpected content at end of pattern');
 
-        return new RegexNode($pattern, $flags);
+        return new RegexNode($patternNode, $this->flags, $this->delimiter);
     }
 
-    // Grammar:
-    // alternation      → sequence ( "|" sequence )*
-    // sequence         → quantifiedAtom*
-    // quantifiedAtom   → atom ( QUANTIFIER )?
-    // atom             → T_LITERAL | T_CHAR_TYPE | T_DOT | T_ANCHOR | group | char_class
-    // group            → "(" alternation ")"
-    // char_class       → "[" ( T_NEGATION )? ( char_class_part )* "]"
-    // char_class_part  → T_LITERAL ( T_RANGE T_LITERAL )? | T_CHAR_TYPE
+    /**
+     * Extracts the pattern, flags, and delimiter from the full regex string.
+     *
+     * @return array{0: string, 1: string, 2: string} [pattern, flags, delimiter]
+     *
+     * @throws ParserException
+     */
+    private function extractPatternAndFlags(string $regex): array
+    {
+        if (\strlen($regex) < 2) {
+            throw new ParserException('Regex is too short.');
+        }
+
+        $delimiter = $regex[0];
+        $delimiterMap = ['(' => ')', '[' => ']', '{' => '}', '<' => '>'];
+        $closingDelimiter = $delimiterMap[$delimiter] ?? $delimiter;
+
+        $lastPos = strrpos($regex, $closingDelimiter);
+
+        if (false === $lastPos || 0 === $lastPos) {
+            throw new ParserException(\sprintf('No closing delimiter "%s" found.', $closingDelimiter));
+        }
+
+        // Check for escaped delimiter
+        if ($lastPos > 0 && '\\' === $regex[$lastPos - 1]) {
+            throw new ParserException(\sprintf('Closing delimiter "%s" at position %d is escaped.', $closingDelimiter, $lastPos));
+        }
+
+        $pattern = substr($regex, 1, $lastPos - 1);
+        $flags = substr($regex, $lastPos + 1);
+
+        if (preg_match('/[^imsxADSUXJu]/', $flags)) {
+            throw new ParserException(\sprintf('Unknown regex flag(s) found: "%s"', preg_replace('/[imsxADSUXJu]/', '', $flags)));
+        }
+
+        return [$pattern, $flags, $delimiter];
+    }
+
+    // --- GRAMMAR ---
+    // alternation    → sequence ( "|" sequence )*
+    // sequence       → quantifiedAtom*
+    // quantifiedAtom → atom ( QUANTIFIER )?
+    // atom           → T_LITERAL | T_CHAR_TYPE | T_DOT | T_ANCHOR | group | char_class
+    // group          → T_GROUP_OPEN alternation T_GROUP_CLOSE
+    //                | T_GROUP_MODIFIER_OPEN group_modifier T_GROUP_CLOSE
+    // group_modifier → T_COLON alternation
+    //                | ( T_EQUALS | T_EXCLAMATION ) alternation
+    //                | T_LT ( T_EQUALS | T_EXCLAMATION ) alternation
+    //                | T_LT T_NAME T_GT alternation
+    //                | T_P T_LT T_NAME T_GT alternation
+    // ... (etc)
 
     /**
      * Parses an alternation (e.g., "a|b").
@@ -97,7 +148,6 @@ class Parser
         // Continue parsing as long as it's not a sequence terminator
         while (!$this->check(TokenType::T_GROUP_CLOSE)
                && !$this->check(TokenType::T_ALTERNATION)
-               && !$this->check(TokenType::T_DELIMITER)
                && !$this->check(TokenType::T_EOF)
         ) {
             $nodes[] = $this->parseQuantifiedAtom();
@@ -111,24 +161,44 @@ class Parser
     }
 
     /**
-     * Parses an atom that may or may not be quantified (e.g., "a", "a*").
+     * Parses an atom that may or may not be quantified (e.g., "a", "a*?").
      */
     private function parseQuantifiedAtom(): NodeInterface
     {
         $node = $this->parseAtom();
 
         if ($this->match(TokenType::T_QUANTIFIER)) {
-            $quantifier = $this->previous()->value;
+            $token = $this->previous();
             if ($node instanceof LiteralNode && '' === $node->value) {
-                throw new ParserException('Quantifier without target at position '.$this->previous()->position);
+                throw new ParserException('Quantifier without target at position '.$token->position);
             }
             if ($node instanceof AnchorNode) {
-                throw new ParserException(\sprintf('Quantifier "%s" cannot be applied to anchor "%s" at position %d', $quantifier, $node->value, $this->previous()->position));
+                throw new ParserException(\sprintf('Quantifier "%s" cannot be applied to anchor "%s" at position %d', $token->value, $node->value, $token->position));
             }
-            $node = new QuantifierNode($node, $quantifier);
+
+            [$quantifier, $type] = $this->parseQuantifierValue($token->value);
+            $node = new QuantifierNode($node, $quantifier, $type);
         }
 
         return $node;
+    }
+
+    /**
+     * Helper to split quantifier value (e.g. "*?") into value ("*") and type (LAZY).
+     *
+     * @return array{0: string, 1: QuantifierType}
+     */
+    private function parseQuantifierValue(string $value): array
+    {
+        if (str_ends_with($value, '?')) {
+            return [rtrim($value, '?'), QuantifierType::T_LAZY];
+        }
+
+        if (str_ends_with($value, '+')) {
+            return [rtrim($value, '+'), QuantifierType::T_POSSESSIVE];
+        }
+
+        return [$value, QuantifierType::T_GREEDY];
     }
 
     /**
@@ -156,7 +226,11 @@ class Parser
             $expr = $this->parseAlternation(); // Recurse
             $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
-            return new GroupNode($expr);
+            return new GroupNode($expr, GroupType::T_GROUP_CAPTURING);
+        }
+
+        if ($this->match(TokenType::T_GROUP_MODIFIER_OPEN)) {
+            return $this->parseGroupModifier();
         }
 
         if ($this->match(TokenType::T_CHAR_CLASS_OPEN)) {
@@ -164,15 +238,89 @@ class Parser
         }
 
         $at = $this->isAtEnd() ? 'end of input' : 'position '.$this->current()->position;
-        $expected = [
-            TokenType::T_LITERAL->value,
-            TokenType::T_CHAR_TYPE->value,
-            TokenType::T_DOT->value,
-            TokenType::T_ANCHOR->value,
-            TokenType::T_GROUP_OPEN->value,
-            TokenType::T_CHAR_CLASS_OPEN->value,
-        ];
-        throw new ParserException(\sprintf('Unexpected token "%s" (%s) at %s. Expected one of: %s', $this->current()->value, $this->current()->type->value, $at, implode(', ', $expected)));
+        $val = $this->current()->value;
+        $type = $this->current()->type->value;
+        throw new ParserException(\sprintf('Unexpected token "%s" (%s) at %s.', $val, $type, $at));
+    }
+
+    /**
+     * Parses a special group that starts with "(?".
+     */
+    private function parseGroupModifier(): GroupNode
+    {
+        $startPos = $this->previous()->position;
+
+        // (?:...) - Non-capturing
+        if ($this->match(TokenType::T_COLON)) {
+            $expr = $this->parseAlternation();
+            $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
+
+            return new GroupNode($expr, GroupType::T_GROUP_NON_CAPTURING);
+        }
+
+        // (?=...) - Lookahead
+        if ($this->match(TokenType::T_EQUALS)) {
+            $expr = $this->parseAlternation();
+            $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
+
+            return new GroupNode($expr, GroupType::T_GROUP_LOOKAHEAD_POSITIVE);
+        }
+
+        // (?!...) - Negative Lookahead
+        if ($this->match(TokenType::T_EXCLAMATION)) {
+            $expr = $this->parseAlternation();
+            $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
+
+            return new GroupNode($expr, GroupType::T_GROUP_LOOKAHEAD_NEGATIVE);
+        }
+
+        // (?<... or (?P<... - Named Group
+        $isPythonStyle = $this->match(TokenType::T_P);
+        if ($this->match(TokenType::T_LT)) {
+            $nameToken = $this->consume(TokenType::T_LITERAL, 'Expected group name');
+            $name = $nameToken->value;
+            // The lexer is simple, so "name>" might be one literal.
+            // We need to parse this better.
+            if (str_ends_with($name, '>')) {
+                $name = rtrim($name, '>');
+            } else {
+                // Handle optional quotes 'name' or "name"
+                if (\in_array($name[0], ["'", '"'], true)) {
+                    $quote = $name[0];
+                    $name = trim($name, $quote);
+                    $this->consume("'" === $quote ? TokenType::T_LITERAL : TokenType::T_LITERAL, 'Expected closing quote '.$quote);
+                }
+                $this->consume(TokenType::T_GT, 'Expected > after group name');
+            }
+
+            $expr = $this->parseAlternation();
+            $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
+
+            return new GroupNode($expr, GroupType::T_GROUP_NAMED, $name);
+        }
+
+        // (?<=...) - Lookbehind
+        if ($isPythonStyle) {
+            // This case is (?P=name) backreference, not implemented yet
+            throw new ParserException('Backreferences (?P=name) are not supported yet.');
+        }
+
+        // We already matched "<" above if it was a named group
+        // This means we must have (?< without a name, or (?< followed by = or !
+        if ($this->match(TokenType::T_EQUALS)) {
+            $expr = $this->parseAlternation();
+            $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
+
+            return new GroupNode($expr, GroupType::T_GROUP_LOOKBEHIND_POSITIVE);
+        }
+        if ($this->match(TokenType::T_EXCLAMATION)) {
+            $expr = $this->parseAlternation();
+            $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
+
+            return new GroupNode($expr, GroupType::T_GROUP_LOOKBEHIND_NEGATIVE);
+        }
+
+        throw new ParserException('Invalid group modifier syntax at position '.$startPos);
     }
 
     /**
@@ -202,24 +350,33 @@ class Parser
             $startNode = new LiteralNode($this->previous()->value);
         } elseif ($this->match(TokenType::T_CHAR_TYPE)) {
             $startNode = new CharTypeNode($this->previous()->value);
+        } elseif ($this->match(TokenType::T_RANGE)) {
+            // This handles a literal "-" at the start (e.g. "[-a]")
+            return new LiteralNode($this->previous()->value);
         } else {
             $at = $this->isAtEnd() ? 'end of input' : 'position '.$this->current()->position;
-            throw new ParserException(\sprintf('Unexpected token "%s" (%s) in character class at %s. Expected literal or character type.', $this->current()->value, $this->current()->type->value, $at));
+            throw new ParserException(\sprintf('Unexpected token "%s" (%s) in character class at %s. Expected literal, range, or character type.', $this->current()->value, $this->current()->type->value, $at));
         }
 
         // Check for a range (e.g., "a-z")
         if ($this->match(TokenType::T_RANGE)) {
+            // Check if the range is followed by a "]" (e.g., "[a-]")
+            if ($this->check(TokenType::T_CHAR_CLASS_CLOSE)) {
+                // This is a trailing "-", (e.g., "[a-]")
+                // We treat the "-" as a literal.
+                --$this->position; // Rewind to re-parse "-" as a literal in the next loop iteration
+
+                return $startNode;
+            }
+
             $endNode = null;
             if ($this->match(TokenType::T_LITERAL)) {
                 $endNode = new LiteralNode($this->previous()->value);
             } elseif ($this->match(TokenType::T_CHAR_TYPE)) {
                 $endNode = new CharTypeNode($this->previous()->value);
             } else {
-                // This means a trailing "-", (e.g., "[a-]")
-                // We treat the "-" as a literal.
-                --$this->position; // Rewind to re-parse "-" as a literal
-
-                return $startNode;
+                // This should not be reachable due to the check above
+                throw new ParserException('Invalid range syntax at position '.$this->previous()->position);
             }
 
             return new RangeNode($startNode, $endNode);
@@ -230,9 +387,15 @@ class Parser
 
     /**
      * Parses flags after the closing delimiter.
+     * This is now handled by extractPatternAndFlags.
      */
     private function parseFlags(): string
     {
+        // This logic is simplified as $this->flags is already set.
+        // We just need to consume any literal tokens that might be here
+        // from an old lexer.
+        // In the new architecture, this function is no longer called
+        // by parse() in a meaningful way, but we'll keep it for robustness.
         $flags = '';
         while ($this->match(TokenType::T_LITERAL)) {
             $flags .= $this->previous()->value;
@@ -258,12 +421,13 @@ class Parser
     /**
      * Consumes the current token, throwing an error if it doesn't match the expected type.
      */
-    private function consume(TokenType $type, string $error): void
+    private function consume(TokenType $type, string $error): Token
     {
         if ($this->check($type)) {
+            $token = $this->current();
             $this->advance();
 
-            return;
+            return $token;
         }
         $at = $this->isAtEnd() ? 'end of input' : 'position '.$this->current()->position;
         throw new ParserException($error.' at '.$at.' (found '.$this->current()->type->value.')');

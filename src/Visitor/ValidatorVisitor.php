@@ -17,8 +17,10 @@ use RegexParser\Ast\CharClassNode;
 use RegexParser\Ast\CharTypeNode;
 use RegexParser\Ast\DotNode;
 use RegexParser\Ast\GroupNode;
+use RegexParser\Ast\GroupType;
 use RegexParser\Ast\LiteralNode;
 use RegexParser\Ast\QuantifierNode;
+use RegexParser\Ast\QuantifierType;
 use RegexParser\Ast\RangeNode;
 use RegexParser\Ast\RegexNode;
 use RegexParser\Ast\SequenceNode;
@@ -37,15 +39,16 @@ class ValidatorVisitor implements VisitorInterface
      */
     private int $quantifierDepth = 0;
 
+    /**
+     * Tracks if we are inside a lookbehind, where quantifiers are limited.
+     */
+    private bool $inLookbehind = false;
+
     public function visitRegex(RegexNode $node): void
     {
         $node->pattern->accept($this);
 
-        // Validate flags (e.g., check for unknown flags)
-        $unknownFlags = preg_replace('/[imsxADSUXJu]/', '', $node->flags);
-        if ('' !== $unknownFlags) {
-            throw new ParserException(\sprintf('Unknown regex flag(s): "%s"', $unknownFlags));
-        }
+        // Flags are now pre-validated by the Parser's extractPatternAndFlags
     }
 
     public function visitAlternation(AlternationNode $node): void
@@ -64,7 +67,15 @@ class ValidatorVisitor implements VisitorInterface
 
     public function visitGroup(GroupNode $node): void
     {
+        $wasInLookbehind = $this->inLookbehind;
+
+        if (\in_array($node->type, [GroupType::T_GROUP_LOOKBEHIND_POSITIVE, GroupType::T_GROUP_LOOKBEHIND_NEGATIVE], true)) {
+            $this->inLookbehind = true;
+        }
+
         $node->child->accept($this);
+
+        $this->inLookbehind = $wasInLookbehind; // Restore state
     }
 
     public function visitQuantifier(QuantifierNode $node): void
@@ -78,11 +89,17 @@ class ValidatorVisitor implements VisitorInterface
                     throw new ParserException(\sprintf('Invalid quantifier range "%s": min > max', $node->quantifier));
                 }
             } else {
+                // This should be caught by the lexer, but good to double-check
                 throw new ParserException('Invalid quantifier: '.$node->quantifier);
             }
         }
 
-        // 2. Check for Catastrophic Backtracking (Nested Quantifiers)
+        // 2. Validate quantifiers inside lookbehinds
+        if ($this->inLookbehind && QuantifierType::T_GREEDY !== $node->type && preg_match('/^[\*\+]$|{.*,}/', $node->quantifier)) {
+            throw new ParserException(\sprintf('Variable-length quantifiers (%s) are not allowed in lookbehinds.', $node->quantifier));
+        }
+
+        // 3. Check for Catastrophic Backtracking (Nested Quantifiers)
         if ($this->quantifierDepth > 0) {
             // This is a simple but effective check for (a+)*, (a*)*, (a|b*)* etc.
             throw new ParserException('Potential catastrophic backtracking: nested quantifiers detected.');

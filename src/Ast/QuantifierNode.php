@@ -19,11 +19,15 @@ use RegexParser\Visitor\VisitorInterface;
 class QuantifierNode implements NodeInterface
 {
     /**
-     * @param NodeInterface $node       the node to be quantified
-     * @param string        $quantifier The quantifier string (e.g., "*", "{1,3}").
+     * @param NodeInterface  $node       the node to be quantified
+     * @param string         $quantifier The quantifier string (e.g., "*", "{1,3}").
+     * @param QuantifierType $type       The type of quantifier (greedy, lazy, possessive)
      */
-    public function __construct(public readonly NodeInterface $node, public readonly string $quantifier)
-    {
+    public function __construct(
+        public readonly NodeInterface $node,
+        public readonly string $quantifier,
+        public readonly QuantifierType $type,
+    ) {
     }
 
     /**
