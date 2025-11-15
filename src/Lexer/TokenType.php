@@ -20,7 +20,6 @@ enum TokenType: string
 
     // Logical
     case T_ALTERNATION = 'alternation';  // |
-    case T_BACKSLASH = 'backslash';    // \
 
     // Structural
     case T_FLAG = 'flag';      // i, m, s after /

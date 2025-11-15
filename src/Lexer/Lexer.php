@@ -44,7 +44,7 @@ class Lexer
 
             if ('\\' === $char) {
                 $isEscaped = true;
-                $tokens[] = new Token(TokenType::T_BACKSLASH, $char, $this->position++);
+                ++$this->position;
                 continue;
             }
 

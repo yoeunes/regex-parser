@@ -77,21 +77,24 @@ class LexerTest extends TestCase
         $lexer = new Lexer('/\(a\*\)/'); // Regex: /\(a\*\)/
         $tokens = $lexer->tokenize();
 
-        // / \ ( a \ * \ ) / EOF = 10 tokens
-        $this->assertCount(10, $tokens);
+        // / ( a * ) / EOF = 7 tokens
+        $this->assertCount(7, $tokens);
         $this->assertSame(TokenType::T_DELIMITER, $tokens[0]->type);
-        $this->assertSame(TokenType::T_BACKSLASH, $tokens[1]->type);
-        $this->assertSame(TokenType::T_LITERAL, $tokens[2]->type); // (
-        $this->assertSame('(', $tokens[2]->value);
-        $this->assertSame(TokenType::T_LITERAL, $tokens[3]->type); // a
-        $this->assertSame(TokenType::T_BACKSLASH, $tokens[4]->type);
-        $this->assertSame(TokenType::T_LITERAL, $tokens[5]->type); // *
-        $this->assertSame('*', $tokens[5]->value);
-        $this->assertSame(TokenType::T_BACKSLASH, $tokens[6]->type); // \
-        $this->assertSame(TokenType::T_LITERAL, $tokens[7]->type); // )
-        $this->assertSame(')', $tokens[7]->value);
-        $this->assertSame(TokenType::T_DELIMITER, $tokens[8]->type);
-        $this->assertSame(TokenType::T_EOF, $tokens[9]->type);
+
+        $this->assertSame(TokenType::T_LITERAL, $tokens[1]->type); // (
+        $this->assertSame('(', $tokens[1]->value);
+
+        $this->assertSame(TokenType::T_LITERAL, $tokens[2]->type); // a
+        $this->assertSame('a', $tokens[2]->value);
+
+        $this->assertSame(TokenType::T_LITERAL, $tokens[3]->type); // *
+        $this->assertSame('*', $tokens[3]->value);
+
+        $this->assertSame(TokenType::T_LITERAL, $tokens[4]->type); // )
+        $this->assertSame(')', $tokens[4]->value);
+
+        $this->assertSame(TokenType::T_DELIMITER, $tokens[5]->type);
+        $this->assertSame(TokenType::T_EOF, $tokens[6]->type);
     }
 
     public function testThrowsOnTrailingBackslash(): void

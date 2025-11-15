@@ -2,6 +2,7 @@
 
 namespace RegexParser\Parser;
 
+// ... (garder tous les 'use')
 use RegexParser\Ast\AlternationNode;
 use RegexParser\Ast\GroupNode;
 use RegexParser\Ast\LiteralNode;
@@ -113,23 +114,12 @@ class Parser
             return new LiteralNode($this->previous()->value);
         }
 
-        // Handle escaped meta-characters like \*, \+, \?
-        if ($this->match(TokenType::T_BACKSLASH)) {
-            if ($this->match(TokenType::T_LITERAL)) {
-                return new LiteralNode($this->previous()->value);
-            }
-            throw new ParserException('Expected character after backslash at position '.$this->previous()->position);
-        }
-
         if ($this->match(TokenType::T_GROUP_OPEN)) {
             $expr = $this->parseAlternation(); // Recurse
             $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
             return new GroupNode($expr);
         }
-
-        // This 'if' block is now removed, as it was 'if.alwaysFalse'
-        // The check is already handled by the `parseSequence` while-loop.
 
         $at = $this->isAtEnd() ? 'end of input' : 'position '.$this->current()->position;
         throw new ParserException('Unexpected token '.$this->current()->type->value.' at '.$at);
