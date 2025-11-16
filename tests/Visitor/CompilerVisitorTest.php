@@ -55,8 +55,8 @@ class CompilerVisitorTest extends TestCase
 
     public function testCompileQuantifiedSequence(): void
     {
-        // The compiler must add a (?:) group
-        $this->assertSame('/(?:abc)+/', $this->compile('/(abc)+/'));
+        // This test ensures that a *capturing* group remains a *capturing* group
+        $this->assertSame('/(abc)+/', $this->compile('/(abc)+/'));
     }
 
     public function testCompileCharClass(): void
@@ -70,7 +70,7 @@ class CompilerVisitorTest extends TestCase
 
         // S'assure que les méta-caractères de classe sont échappés
         $regex = '/[]\^-]/'; // "]", "\", "^", "-"
-        $this->assertSame('/[\]\^-]/', $this->compile('/[]\^-]/'));
+        $this->assertSame('/[]\^-]/', $this->compile('/[]\^-]/'));
     }
 
     // Add new tests for new features

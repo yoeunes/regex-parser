@@ -199,14 +199,15 @@ class Parser
     {
         $lastChar = substr($value, -1);
 
-        if ('?' === $lastChar) {
+        if ('?' === $lastChar && \strlen($value) > 1) { // e.g. *? or +? or ??
             return [substr($value, 0, -1), QuantifierType::T_LAZY];
         }
 
-        if ('+' === $lastChar && \strlen($value) > 1) { // Avoid confusing '+' quantifier with possessive
+        if ('+' === $lastChar && \strlen($value) > 1) { // e.g. *+ or ++
             return [substr($value, 0, -1), QuantifierType::T_POSSESSIVE];
         }
 
+        // It's a normal, greedy quantifier (e.g. *, +, or ?)
         return [$value, QuantifierType::T_GREEDY];
     }
 
@@ -314,8 +315,11 @@ class Parser
         }
 
         if ($isPythonStyle) {
-            // (?P=name) backreference, not implemented yet
-            throw new ParserException('Backreferences (?P=name) are not supported yet.');
+            // We are here if we have (?P but NOT (?P<
+            // e.g. (?P=name)
+            if ($this->match(TokenType::T_EQUALS)) {
+                throw new ParserException('Backreferences (?P=name) are not supported yet.');
+            }
         }
 
         throw new ParserException('Invalid group modifier syntax at position '.$startPos);
@@ -333,18 +337,27 @@ class Parser
             $quote = $token->value;
             $this->advance(); // Consume opening quote
             $nameToken = $this->consume(TokenType::T_LITERAL, 'Expected group name');
-            $this->consume(TokenType::T_LITERAL, 'Expected closing quote '.$quote); // Consume closing quote
-            if ($this->previous()->value !== $quote) {
-                throw new ParserException('Mismatched closing quote for group name');
+            if ($this->current()->value !== $quote) {
+                throw new ParserException('Expected closing quote '.$quote);
             }
+            $this->advance(); // Consume closing quote
 
             return $nameToken->value;
         }
 
         // Handle <name>
-        $nameToken = $this->consume(TokenType::T_LITERAL, 'Expected group name');
+        $name = '';
+        while ($this->check(TokenType::T_LITERAL) || $this->check(TokenType::T_P)) { // Allow 'P'
+            $name .= $this->current()->value;
+            $this->advance();
+        }
 
-        return $nameToken->value;
+        if ('' === $name) {
+            // This will fail and show a good error message
+            $this->consume(TokenType::T_LITERAL, 'Expected group name');
+        }
+
+        return $name;
     }
 
     /**
