@@ -13,14 +13,18 @@ namespace RegexParser\Parser;
 
 use RegexParser\Ast\AlternationNode;
 use RegexParser\Ast\AnchorNode;
+use RegexParser\Ast\AssertionNode;
 use RegexParser\Ast\BackrefNode;
 use RegexParser\Ast\CharClassNode;
 use RegexParser\Ast\CharTypeNode;
+use RegexParser\Ast\CommentNode;
+use RegexParser\Ast\ConditionalNode;
 use RegexParser\Ast\DotNode;
 use RegexParser\Ast\GroupNode;
 use RegexParser\Ast\GroupType;
 use RegexParser\Ast\LiteralNode;
 use RegexParser\Ast\NodeInterface;
+use RegexParser\Ast\OctalNode;
 use RegexParser\Ast\PosixClassNode;
 use RegexParser\Ast\QuantifierNode;
 use RegexParser\Ast\QuantifierType;
@@ -28,6 +32,7 @@ use RegexParser\Ast\RangeNode;
 use RegexParser\Ast\RegexNode;
 use RegexParser\Ast\SequenceNode;
 use RegexParser\Ast\UnicodeNode;
+use RegexParser\Ast\UnicodePropNode;
 use RegexParser\Exception\ParserException;
 use RegexParser\Lexer\Lexer;
 use RegexParser\Lexer\Token;
@@ -126,7 +131,7 @@ class Parser
     // quantifiedAtom → atom ( QUANTIFIER )?
     // atom           → T_LITERAL | T_CHAR_TYPE | T_DOT | T_ANCHOR | group | char_class
     // group          → T_GROUP_OPEN alternation T_GROUP_CLOSE
-    //                | T_GROUP_MODIFIER_OPEN group_modifier T_GROUP_CLOSE
+    //                  | T_GROUP_MODIFIER_OPEN group_modifier T_GROUP_CLOSE
     // ... (etc)
 
     /**
@@ -152,8 +157,8 @@ class Parser
 
         // Continue parsing as long as it's not a sequence terminator
         while (!$this->check(TokenType::T_GROUP_CLOSE)
-               && !$this->check(TokenType::T_ALTERNATION)
-               && !$this->check(TokenType::T_EOF)
+            && !$this->check(TokenType::T_ALTERNATION)
+            && !$this->check(TokenType::T_EOF)
         ) {
             $nodes[] = $this->parseQuantifiedAtom();
         }
@@ -177,8 +182,15 @@ class Parser
             if ($node instanceof LiteralNode && '' === $node->value) {
                 throw new ParserException('Quantifier without target at position '.$token->position);
             }
-            if ($node instanceof AnchorNode) {
-                throw new ParserException(\sprintf('Quantifier "%s" cannot be applied to anchor "%s" at position %d', $token->value, $node->value, $token->position));
+            if ($node instanceof AnchorNode || $node instanceof AssertionNode) {
+                throw new ParserException(
+                    \sprintf(
+                        'Quantifier "%s" cannot be applied to assertion "%s" at position %d',
+                        $token->value,
+                        $node->value,
+                        $token->position
+                    )
+                );
             }
 
             [$quantifier, $type] = $this->parseQuantifierValue($token->value);
@@ -235,12 +247,24 @@ class Parser
             return new AnchorNode($this->previous()->value);
         }
 
+        if ($this->match(TokenType::T_ASSERTION)) {
+            return new AssertionNode($this->previous()->value);
+        }
+
         if ($this->match(TokenType::T_BACKREF)) {
             return new BackrefNode($this->previous()->value);
         }
 
         if ($this->match(TokenType::T_UNICODE)) {
             return new UnicodeNode($this->previous()->value);
+        }
+
+        if ($this->match(TokenType::T_OCTAL)) {
+            return new OctalNode($this->previous()->value);
+        }
+
+        if ($this->match(TokenType::T_UNICODE_PROP)) {
+            return new UnicodePropNode($this->previous()->value);
         }
 
         if ($this->match(TokenType::T_GROUP_OPEN)) {
@@ -254,6 +278,10 @@ class Parser
             return $this->parseGroupModifier();
         }
 
+        if ($this->match(TokenType::T_COMMENT_OPEN)) {
+            return $this->parseComment();
+        }
+
         if ($this->match(TokenType::T_CHAR_CLASS_OPEN)) {
             return $this->parseCharClass();
         }
@@ -265,6 +293,21 @@ class Parser
     }
 
     /**
+     * Parses a comment group (?#comment).
+     *
+     * @throws ParserException
+     */
+    private function parseComment(): CommentNode
+    {
+        $start = $this->previous()->position;
+        ++$this->position; // #
+        $comment = $this->consumeWhile(fn(string $c) => ')' !== $c);
+        $this->consumeLiteral(')', 'Expected ) to close comment');
+
+        return new CommentNode($comment);
+    }
+
+    /**
      * Parses a special group that starts with "(?".
      * This is the new, robust logic.
      *
@@ -273,6 +316,22 @@ class Parser
     private function parseGroupModifier(): GroupNode
     {
         $startPos = $this->previous()->position;
+        $flags = '';
+        $type = GroupType::T_GROUP_NON_CAPTURING;
+        $name = null;
+        $condition = null;
+
+        $next = $this->current()->value;
+        if (preg_match('/^[imsxADSUXJ-]+$/', $next)) {
+            // Inline flags (?i-m:)
+            $flags = $next;
+            $this->advance();
+            $this->consumeLiteral(':', 'Expected : after inline flags');
+            $expr = $this->parseAlternation();
+            $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
+
+            return new GroupNode($expr, GroupType::T_GROUP_INLINE_FLAGS, null, $flags);
+        }
 
         if ($this->matchLiteral('P')) {
             // (?P<...> named group or (?P=... backref (not supported yet)
@@ -331,9 +390,48 @@ class Parser
             $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
             return new GroupNode($expr, GroupType::T_GROUP_LOOKAHEAD_NEGATIVE);
+        } elseif ($this->matchLiteral('(')) {
+            // Conditional (?(condition)yes|no)
+            $condition = $this->parseConditionalCondition();
+            $yes = $this->parseAlternation();
+            if ($this->match(TokenType::T_ALTERNATION)) {
+                $no = $this->parseAlternation();
+            } else {
+                $no = new LiteralNode('');
+            }
+            $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
+
+            return new ConditionalNode($condition, $yes, $no);
         }
 
         throw new ParserException('Invalid group modifier syntax at position '.$startPos);
+    }
+
+    /**
+     * Parses the condition in a conditional group (?(condition)...).
+     */
+    private function parseConditionalCondition(): NodeInterface
+    {
+        if ($this->match(TokenType::T_LITERAL) && ctype_digit($this->previous()->value)) {
+            // Numeric (?(1)...)
+            $num = $this->previous()->value.$this->consumeWhile(fn($c) => ctype_digit($c));
+
+            return new BackrefNode($num);
+        } elseif ($this->matchLiteral('<') || $this->matchLiteral('{')) {
+            // Named (?(<name>)...) or (?({name})...)
+            $open = $this->previous()->value;
+            $name = $this->parseGroupName();
+            $close = $open === '<' ? '>' : '}';
+            $this->consumeLiteral($close, "Expected $close after condition name");
+
+            return new BackrefNode($name);
+        } elseif ($this->matchLiteral('R')) {
+            // Recursion (?(R)...)
+            return new LiteralNode('R'); // Special recursion condition
+        } else {
+            // Lookaround or assertion as condition (?(?=...)...)
+            return $this->parseAtom();
+        }
     }
 
     /**
@@ -409,12 +507,25 @@ class Parser
             $startNode = new LiteralNode($this->previous()->value);
         } elseif ($this->match(TokenType::T_CHAR_TYPE)) {
             $startNode = new CharTypeNode($this->previous()->value);
+        } elseif ($this->match(TokenType::T_UNICODE_PROP)) {
+            $startNode = new UnicodePropNode($this->previous()->value);
+        } elseif ($this->match(TokenType::T_UNICODE)) {
+            $startNode = new UnicodeNode($this->previous()->value);
+        } elseif ($this->match(TokenType::T_OCTAL)) {
+            $startNode = new OctalNode($this->previous()->value);
         } elseif ($this->match(TokenType::T_RANGE)) {
             // This handles a literal "-" at the start (e.g. "[-a]")
             return new LiteralNode($this->previous()->value);
         } else {
             $at = $this->isAtEnd() ? 'end of input' : 'position '.$this->current()->position;
-            throw new ParserException(\sprintf('Unexpected token "%s" (%s) in character class at %s. Expected literal, range, or character type.', $this->current()->value, $this->current()->type->value, $at));
+            throw new ParserException(
+                \sprintf(
+                    'Unexpected token "%s" (%s) in character class at %s. Expected literal, range, or character type.',
+                    $this->current()->value,
+                    $this->current()->type->value,
+                    $at
+                )
+            );
         }
 
         if ($this->match(TokenType::T_POSIX_CLASS)) {
@@ -437,6 +548,12 @@ class Parser
                 $endNode = new LiteralNode($this->previous()->value);
             } elseif ($this->match(TokenType::T_CHAR_TYPE)) {
                 $endNode = new CharTypeNode($this->previous()->value);
+            } elseif ($this->match(TokenType::T_UNICODE_PROP)) {
+                $endNode = new UnicodePropNode($this->previous()->value);
+            } elseif ($this->match(TokenType::T_UNICODE)) {
+                $endNode = new UnicodeNode($this->previous()->value);
+            } elseif ($this->match(TokenType::T_OCTAL)) {
+                $endNode = new OctalNode($this->previous()->value);
             } else {
                 // This means a range ending with a meta-char, e.g. [a-\]
                 // We treat the "-" as a literal.
@@ -480,6 +597,19 @@ class Parser
     }
 
     /**
+     * Checks if the current token is a T_LITERAL with a specific value.
+     */
+    private function checkLiteral(string $value): bool
+    {
+        if ($this->isAtEnd()) {
+            return false;
+        }
+        $token = $this->current();
+
+        return TokenType::T_LITERAL === $token->type && $token->value === $value;
+    }
+
+    /**
      * Consumes the current token, throwing an error if it doesn't match the expected type.
      *
      * @throws ParserException
@@ -510,7 +640,9 @@ class Parser
             return $token;
         }
         $at = $this->isAtEnd() ? 'end of input' : 'position '.$this->current()->position;
-        throw new ParserException($error.' at '.$at.' (found '.$this->current()->type->value.' with value '.$this->current()->value.')');
+        throw new ParserException(
+            $error.' at '.$at.' (found '.$this->current()->type->value.' with value '.$this->current()->value.')'
+        );
     }
 
     /**
@@ -523,19 +655,6 @@ class Parser
         }
 
         return $this->current()->type === $type;
-    }
-
-    /**
-     * Checks if the current token is a T_LITERAL with a specific value.
-     */
-    private function checkLiteral(string $value): bool
-    {
-        if ($this->isAtEnd()) {
-            return false;
-        }
-        $token = $this->current();
-
-        return TokenType::T_LITERAL === $token->type && $token->value === $value;
     }
 
     /**

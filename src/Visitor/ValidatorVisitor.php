@@ -13,13 +13,17 @@ namespace RegexParser\Visitor;
 
 use RegexParser\Ast\AlternationNode;
 use RegexParser\Ast\AnchorNode;
+use RegexParser\Ast\AssertionNode;
 use RegexParser\Ast\BackrefNode;
 use RegexParser\Ast\CharClassNode;
 use RegexParser\Ast\CharTypeNode;
+use RegexParser\Ast\CommentNode;
+use RegexParser\Ast\ConditionalNode;
 use RegexParser\Ast\DotNode;
 use RegexParser\Ast\GroupNode;
 use RegexParser\Ast\GroupType;
 use RegexParser\Ast\LiteralNode;
+use RegexParser\Ast\OctalNode;
 use RegexParser\Ast\PosixClassNode;
 use RegexParser\Ast\QuantifierNode;
 use RegexParser\Ast\QuantifierType;
@@ -27,6 +31,7 @@ use RegexParser\Ast\RangeNode;
 use RegexParser\Ast\RegexNode;
 use RegexParser\Ast\SequenceNode;
 use RegexParser\Ast\UnicodeNode;
+use RegexParser\Ast\UnicodePropNode;
 use RegexParser\Exception\ParserException;
 
 /**
@@ -41,16 +46,18 @@ class ValidatorVisitor implements VisitorInterface
      * Tracks the depth of nested quantifiers to detect catastrophic backtracking.
      */
     private int $quantifierDepth = 0;
-
     /**
      * Tracks if we are inside a lookbehind, where quantifiers are limited.
      */
     private bool $inLookbehind = false;
+    /**
+     * Tracks capturing group count for backref validation.
+     */
+    private int $groupCount = 0;
 
     public function visitRegex(RegexNode $node): void
     {
         $node->pattern->accept($this);
-
         // Flags are now pre-validated by the Parser's extractPatternAndFlags
     }
 
@@ -72,8 +79,17 @@ class ValidatorVisitor implements VisitorInterface
     {
         $wasInLookbehind = $this->inLookbehind;
 
-        if (\in_array($node->type, [GroupType::T_GROUP_LOOKBEHIND_POSITIVE, GroupType::T_GROUP_LOOKBEHIND_NEGATIVE], true)) {
+        if (\in_array(
+            $node->type,
+            [GroupType::T_GROUP_LOOKBEHIND_POSITIVE, GroupType::T_GROUP_LOOKBEHIND_NEGATIVE],
+            true
+        )
+        ) {
             $this->inLookbehind = true;
+        }
+
+        if ($node->type === GroupType::T_GROUP_CAPTURING || $node->type === GroupType::T_GROUP_NAMED) {
+            ++$this->groupCount;
         }
 
         $node->child->accept($this);
@@ -88,7 +104,7 @@ class ValidatorVisitor implements VisitorInterface
             if (preg_match('/^{\d+(,\d*)?}$/', $node->quantifier)) {
                 // Check n <= m
                 $parts = explode(',', trim($node->quantifier, '{}'));
-                if (2 === \count($parts) && '' !== $parts[1] && (int) $parts[0] > (int) $parts[1]) {
+                if (2 === \count($parts) && '' !== $parts[1] && (int)$parts[0] > (int)$parts[1]) {
                     throw new ParserException(\sprintf('Invalid quantifier range "%s": min > max', $node->quantifier));
                 }
             } else {
@@ -98,8 +114,15 @@ class ValidatorVisitor implements VisitorInterface
         }
 
         // 2. Validate quantifiers inside lookbehinds
-        if ($this->inLookbehind && QuantifierType::T_GREEDY !== $node->type && preg_match('/^[\*\+]$|{.*,}/', $node->quantifier)) {
-            throw new ParserException(\sprintf('Variable-length quantifiers (%s) are not allowed in lookbehinds.', $node->quantifier));
+        if ($this->inLookbehind && QuantifierType::T_GREEDY !== $node->type
+            && preg_match(
+                '/^[\*\+]$|{.*,}/',
+                $node->quantifier
+            )
+        ) {
+            throw new ParserException(
+                \sprintf('Variable-length quantifiers (%s) are not allowed in lookbehinds.', $node->quantifier)
+            );
         }
 
         // 3. Check for Catastrophic Backtracking (Nested Quantifiers)
@@ -133,6 +156,14 @@ class ValidatorVisitor implements VisitorInterface
         // No validation needed for anchors
     }
 
+    public function visitAssertion(AssertionNode $node): void
+    {
+        // Validate valid assertions
+        if (!in_array($node->value, ['A', 'z', 'Z', 'G', 'b', 'B'], true)) {
+            throw new ParserException('Invalid assertion: \\'.$node->value);
+        }
+    }
+
     public function visitCharClass(CharClassNode $node): void
     {
         foreach ($node->parts as $part) {
@@ -151,14 +182,24 @@ class ValidatorVisitor implements VisitorInterface
 
         // Check ASCII values
         if (\ord($node->start->value) > \ord($node->end->value)) {
-            throw new ParserException(\sprintf('Invalid range "%s-%s": start character comes after end character.', $node->start->value, $node->end->value));
+            throw new ParserException(
+                \sprintf(
+                    'Invalid range "%s-%s": start character comes after end character.',
+                    $node->start->value,
+                    $node->end->value
+                )
+            );
         }
     }
 
     public function visitBackref(BackrefNode $node): void
     {
-        // TODO: Check if ref number <= group count (requires group counting in visitor)
-        // For v1.0, just accept
+        if (ctype_digit($node->ref)) {
+            $num = (int)$node->ref;
+            if ($num > $this->groupCount) {
+                throw new ParserException('Backreference to non-existent group: \\'.$node->ref);
+            }
+        } // Named backrefs validated elsewhere if needed
     }
 
     public function visitUnicode(UnicodeNode $node): void
@@ -169,14 +210,71 @@ class ValidatorVisitor implements VisitorInterface
             if ($code > 0x10FFFF) {
                 throw new ParserException('Invalid Unicode codepoint');
             }
-        } // Similar for \u
+        } elseif (preg_match('/^\\\\u\{([0-9a-fA-F]+)\}$/', $node->code, $matches)) {
+            $code = hexdec($matches[1]);
+            if ($code > 0x10FFFF) {
+                throw new ParserException('Invalid Unicode codepoint');
+            }
+        }
+    }
+
+    public function visitUnicodeProp(UnicodePropNode $node): void
+    {
+        // Validate known properties (partial list; expand as needed)
+        $validProps = ['L', 'Lu', 'Ll', 'M', 'N', 'P', 'S', 'Z', 'C']; // etc.
+        $prop = ltrim($node->prop, '^');
+        if (!in_array($prop, $validProps, true)) {
+            throw new ParserException('Invalid Unicode property: \\p{'.$node->prop.'}');
+        }
+    }
+
+    public function visitOctal(OctalNode $node): void
+    {
+        if (preg_match('/^\\\\o\{([0-7]+)\}$/', $node->code, $matches)) {
+            $code = octdec($matches[1]);
+            if ($code > 0x10FFFF) {
+                throw new ParserException('Invalid octal codepoint');
+            }
+        }
     }
 
     public function visitPosixClass(PosixClassNode $node): void
     {
-        $valid = ['alnum', 'alpha', 'ascii', 'blank', 'cntrl', 'digit', 'graph', 'lower', 'print', 'punct', 'space', 'upper', 'word', 'xdigit'];
+        $valid = [
+            'alnum',
+            'alpha',
+            'ascii',
+            'blank',
+            'cntrl',
+            'digit',
+            'graph',
+            'lower',
+            'print',
+            'punct',
+            'space',
+            'upper',
+            'word',
+            'xdigit'
+        ];
         if (!\in_array(strtolower($node->class), $valid)) {
             throw new ParserException('Invalid POSIX class: '.$node->class);
+        }
+    }
+
+    public function visitComment(CommentNode $node): void
+    {
+        // Comments are ignored in validation
+    }
+
+    public function visitConditional(ConditionalNode $node): void
+    {
+        $node->condition->accept($this);
+        $node->yes->accept($this);
+        $node->no->accept($this);
+
+        // Basic check: condition must be valid (e.g., backref <= group count)
+        if ($node->condition instanceof BackrefNode) {
+            $this->visitBackref($node->condition);
         }
     }
 }

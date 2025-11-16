@@ -167,11 +167,81 @@ class LexerTest extends TestCase
         $this->assertSame('$', $tokens[4]->value);
     }
 
+    public function testTokenizeAssertions(): void
+    {
+        $lexer = new Lexer('\Afoo\z\b\G\B'); // No delimiters
+        $tokens = $lexer->tokenize();
+
+        $this->assertSame(TokenType::T_ASSERTION, $tokens[0]->type);
+        $this->assertSame('A', $tokens[0]->value);
+        // ... f o o
+        $this->assertSame(TokenType::T_ASSERTION, $tokens[4]->type);
+        $this->assertSame('z', $tokens[4]->value);
+        $this->assertSame(TokenType::T_ASSERTION, $tokens[5]->type);
+        $this->assertSame('b', $tokens[5]->value);
+        $this->assertSame(TokenType::T_ASSERTION, $tokens[6]->type);
+        $this->assertSame('G', $tokens[6]->value);
+        $this->assertSame(TokenType::T_ASSERTION, $tokens[7]->type);
+        $this->assertSame('B', $tokens[7]->value);
+    }
+
+    public function testTokenizeUnicodeProp(): void
+    {
+        $lexer = new Lexer('\p{L}\P{^L}\pL'); // No delimiters
+        $tokens = $lexer->tokenize();
+
+        $this->assertSame(TokenType::T_UNICODE_PROP, $tokens[0]->type);
+        $this->assertSame('L', $tokens[0]->value); // \p{L}
+        $this->assertSame(TokenType::T_UNICODE_PROP, $tokens[1]->type);
+        $this->assertSame('^L', $tokens[1]->value); // \P{^L}
+        $this->assertSame(TokenType::T_UNICODE_PROP, $tokens[2]->type);
+        $this->assertSame('L', $tokens[2]->value); // \pL
+    }
+
+    public function testTokenizeOctal(): void
+    {
+        $lexer = new Lexer('\o{777}'); // No delimiters
+        $tokens = $lexer->tokenize();
+
+        $this->assertSame(TokenType::T_OCTAL, $tokens[0]->type);
+        $this->assertSame('\o{777}', $tokens[0]->value);
+    }
+
+    public function testTokenizeNamedBackref(): void
+    {
+        $lexer = new Lexer('\k<name>\k{name}'); // No delimiters
+        $tokens = $lexer->tokenize();
+
+        $this->assertSame(TokenType::T_BACKREF, $tokens[0]->type);
+        $this->assertSame('\k<name>', $tokens[0]->value);
+        $this->assertSame(TokenType::T_BACKREF, $tokens[1]->type);
+        $this->assertSame('\k{name}', $tokens[1]->value);
+    }
+
+    public function testTokenizeComment(): void
+    {
+        $lexer = new Lexer('(?#comment)'); // No delimiters
+        $tokens = $lexer->tokenize();
+
+        $this->assertSame(TokenType::T_COMMENT_OPEN, $tokens[0]->type);
+        $this->assertSame('(?#', $tokens[0]->value);
+        // Then literals c o m m e n t
+        $this->assertSame(TokenType::T_GROUP_CLOSE, $tokens[8]->type);
+    }
+
     public function testThrowsOnTrailingBackslash(): void
     {
         $this->expectException(LexerException::class);
         $this->expectExceptionMessage('Trailing backslash');
         $lexer = new Lexer('foo\\'); // No delimiters
+        $lexer->tokenize();
+    }
+
+    public function testThrowsOnInvalidUnicodeProp(): void
+    {
+        $this->expectException(LexerException::class);
+        $this->expectExceptionMessage('Invalid Unicode property');
+        $lexer = new Lexer('\p{invalid'); // Unclosed
         $lexer->tokenize();
     }
 }

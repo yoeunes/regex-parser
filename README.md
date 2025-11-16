@@ -1,32 +1,47 @@
 # RegexParser
 
-[](https://packagist.org/packages/younes-ennaji/regex-parser)
-[](https://www.google.com/search?q=LICENSE)
-[](https://github.com/yoeunes/regex-parser/actions)
-[](https://codecov.io/gh/yoeunes/regex-parser)
-[](https://www.google.com/search?q=phpstan.dist.neon)
+[](
+    https://packagist.org/packages/younes-ennaji/regex-parser)
+    [](
+        https://www.google.com/search?q=LICENSE)
+        [](
+            https://github.com/yoeunes/regex-parser/actions)
+            [](
+                https://codecov.io/gh/yoeunes/regex-parser)
+                [](https://www.google.com/search?q=phpstan.dist.neon)
 
-**RegexParser** is a lightweight, robust, and security-focused regular expression parser (PCRE subset) written in modern PHP.
+**RegexParser ** is a lightweight, robust, and security - focused regular expression parser(PCRE subset) written in modern PHP
+.
 
-It does *not* rely on `preg_*` functions for analysis. Instead, it uses a classic compiler architecture (Lexer, Parser) to transform a regex string into an **Abstract Syntax Tree (AST)**.
+It does * not * rely on `preg_*` functions for analysis.Instead, it uses a classic compiler architecture(Lexer, Parser) to transform a regex string into an
+**abstract Syntax Tree (AST) **.
 
-This project was inspired by tools like `nikic/php-parser` and the Symfony component architecture. It is designed to be extensible, UTF-8 safe, and to prevent common security vulnerabilities.
+This project was inspired by tools like `nikic/php-parser` and the Symfony component architecture.It is designed to be extensible, UTF
+- 8 safe, and to prevent common security vulnerabilities.
 
 ### Key Features
 
-  * **AST Parsing:** Transforms strings like `/^foo(bar|baz)*$/i` into an object tree (Nodes).
-  * **Visitor Architecture:** Allows analyzing, compiling, or validating the AST using "Visitors" (e.g., `CompilerVisitor`, `ValidatorVisitor`).
-  * **Security First:** The included `ValidatorVisitor` detects **Catastrophic Backtracking** (ReDoS) patterns (e.g., `(a+)*`) before execution.
-  * **100% UTF-8 Safe:** The Lexer natively handles multibyte characters.
-  * **Modern PHP 8.4+:** Uses `Enum`, `readonly properties`, and strict typing (PHPStan `level max`).
-  * **Current PCRE Support (v1.0):**
-      * Groups `(...)`
+  * **AST Parsing:** Transforms strings like `/^foo(bar|baz)*$/i` into an object tree(Nodes).
+  * **Visitor Architecture:** Allows analyzing, compiling, or validating the AST using 'Visitors' (
+    e.g., `CompilerVisitor`, `ValidatorVisitor`
+).
+  * **Security First:** The included `ValidatorVisitor` detects ** Catastrophic Backtracking ** (ReDoS) patterns(
+    e.g., `(a+)*`
+) before execution.
+  * **100 % UTF - 8 Safe:** The Lexer natively handles multibyte characters.
+  * **Modern PHP 8.4 +:** Uses `Enum`, `readonly properties`, and strict typing(PHPStan `level max`).
+  * **Current PCRE Support(v1.0):**
+      * Groups `(...)`, named `(?<name>)`, non - capturing `(?:)`, lookarounds `(?=)`, etc.
       * Alternations `|`
-      * Quantifiers `*`, `+`, `?`, and `{n,m}`
-      * Wildcard character `.`
-      * Anchors `^` and `$`
-      * Short Escapes `\d`, `\s`, `\w` (and their negations `\D`, `\S`, `\W`)
-      * Flags (e.g., `/.../imsU`)
+* Quantifiers `*`, `+`, `?`, `{n,m}`, lazy / possessive
+* Wildcard `.`
+* Anchors `^ $`, assertions `\b \A` etc.
+      * Escapes `\d`, Unicode `\p{L}`, octal `\o{777}`
+* Char classes `[a-z]`, POSIX `[:alpha:]`
+* Comments `(?#)`
+* Conditionals `(?(1)yes|no)`
+* Backrefs `\1`, `\k<name>`
+* Flags(e.g., `/.../imsU`)
 
 -----
 
@@ -40,18 +55,16 @@ composer require yoeunes/regex-parser
 
 ### Usage
 
-#### 1\. Basic Parsing
+#### 1. Basic Parsing
 
-Parse a regex string to get the AST (here, a root `RegexNode`).
+Parse a regex string to get the AST(here, a root `RegexNode`).
 
 ```php
-use RegexParser\Lexer\Lexer;
 use RegexParser\Parser\Parser;
 
 $regex = '/^foo(bar|baz)+$/i';
 
-$lexer = new Lexer($regex);
-$parser = new Parser($lexer);
+$parser = new Parser();
 
 $ast = $parser->parse($regex);
 
@@ -60,9 +73,9 @@ $ast = $parser->parse($regex);
 // $ast->flags   (the string "i")
 ```
 
-#### 2\. Validation (Security)
+#### 2. Validation (Security)
 
-Use the `ValidatorVisitor` to check the semantic validity *and* security (ReDoS) of your regex.
+use the `ValidatorVisitor` to check the semantic validity *and* security(ReDoS) of your regex.
 
 ```php
 use RegexParser\Visitor\ValidatorVisitor;
@@ -72,11 +85,11 @@ $validator = new ValidatorVisitor();
 
 try {
     // This pattern is valid
-    $astValid = (new Parser(new Lexer('/(a*b*)+c/')))->parse('/(a*b*)+c/');
+    $astValid = $parser->parse('/(a*b*)+c/');
     $astValid->accept($validator); // Throws nothing
 
     // This pattern is dangerous
-    $astInvalid = (new Parser(new Lexer('/(a+)*b/')))->parse('/(a+)*b/');
+    $astInvalid = $parser->parse('/(a+)*b/');
     $astInvalid->accept($validator); // Will throw an exception
 
 } catch (ParserException $e) {
@@ -85,15 +98,15 @@ try {
 }
 ```
 
-#### 3\. Recompilation
+#### 3. Recompilation
 
-Use the `CompilerVisitor` to regenerate the regex string from the AST.
+use the `CompilerVisitor` to regenerate the regex string from the AST.
 
 ```php
 use RegexParser\Visitor\CompilerVisitor;
 
 $regex = '/^.\d(foo|bar)*$/ims';
-$ast = (new Parser(new Lexer($regex)))->parse($regex);
+$ast = $parser->parse($regex);
 
 $compiler = new CompilerVisitor();
 $recompiled = $ast->accept($compiler);
@@ -105,24 +118,29 @@ $recompiled = $ast->accept($compiler);
 
 ### Architecture Overview (AST)
 
-The AST is composed of nodes implementing `NodeInterface`. The root `RegexNode` contains the pattern and the flags.
+The AST is composed of nodes implementing `NodeInterface`.The root `RegexNode` contains the pattern and the flags.
 
 The pattern itself is a tree of nodes:
 
-  * **`SequenceNode`**: A sequence of nodes (e.g., `abc`).
-  * **`AlternationNode`**: A choice between multiple nodes (e.g., `a|b`).
-  * **`GroupNode`**: A capturing group `(...)`.
-  * **`QuantifierNode`**: Applies a quantifier to another node (e.g., `a*`).
-  * **`LiteralNode`**: A literal character (e.g., `a`, or `*` if escaped `\*`).
-  * **`CharTypeNode`**: A character type (e.g., `\d`, `\W`).
-  * **`DotNode`**: The wildcard `.`.
-  * **`AnchorNode`**: An anchor `^` or `$`.
+  * **`SequenceNode` **: A sequence of nodes(e.g., `abc`).
+  * **`AlternationNode` **: A choice between multiple nodes(e.g., `a|b`).
+  * **`GroupNode` **: A capturing group `(...)`.
+  * **`QuantifierNode` **: Applies a quantifier to another node(e.g., `a*`).
+  * **`LiteralNode` **: A literal character(e.g., `a`, or `*` if escaped `\*`).
+  * **`CharTypeNode` **: A character type(e.g., `\d`, `\W`).
+  * **`DotNode` **: The wildcard `.`.
+  * **`AnchorNode` **: An anchor `^` or `$`.
+  * **`AssertionNode` **: \b, \A, etc.
+  * **`UnicodePropNode` **: \p{
+    L}
+  * **`CommentNode` **: (?#comment)
+  * **`ConditionalNode` **: (?(1)yes | no)
 
 ### Extending the Parser (Advanced Guide)
 
 The library's power lies in the Visitor pattern. You can easily create your own analyzer.
 
-For example, let's create a visitor that calculates an approximate "complexity score" for a regex.
+For example, let's create a visitor that calculates an approximate 'complexity score' for a regex.
 
 **1. Create your Visitor:**
 
@@ -147,12 +165,12 @@ class ComplexityVisitor implements VisitorInterface
     {
         return $node->pattern->accept($this);
     }
-    
+
     public function visitSequence(SequenceNode $node): int
     {
         return array_sum(array_map(fn(NodeInterface $n) => $n->accept($this), $node->children));
     }
-    
+
     public function visitGroup(GroupNode $node): int
     {
         return 1 + $node->child->accept($this); // The group adds 1 point
@@ -173,10 +191,10 @@ class ComplexityVisitor implements VisitorInterface
 }
 ```
 
-**2. Use it:**
+** 2. use it:**
 
 ```php
-$ast = (new Parser(new Lexer('/(a|b\d)+/')))->parse('/(a|b\d)+/');
+$ast = $parser->parse('/(a|b\d)+/');
 $complexity = $ast->accept(new ComplexityVisitor());
 
 // $complexity will be (approximately) 47
@@ -190,16 +208,15 @@ $complexity = $ast->accept(new ComplexityVisitor());
 
 ### Roadmap (v1.1 and Beyond)
 
-This library is functional but incomplete. The next major steps are:
+This library is functional but incomplete.The next major steps are:
 
-  * [ ] **Full Character Class Parsing** (e.g., `[a-z0-9_]`, `[^abc]`, `[\d\s]`).
-  * [ ] **Lazy and Possessive Quantifiers** (e.g., `*?`, `*+`).
-  * [ ] **Lookarounds and Special Groups** (e.g., `(?=...)`, `(?!...)`, `(?:...)`, `(?<name>...)`).
-  * [ ] **Custom Delimiter Handling** (e.g., `#...#`, `~...~`).
+  * [] ** Full Conditionals and Recursion ** (e.g., `(?(R)...)`, `(?&name)`).
+  * [] ** Subroutine Calls and More Assertions **.
+  * [] ** PHPStan / Rector Integration ** for regex refactoring in codebases.
 
 ### Contribution
 
-Pull Requests are welcome\! Please ensure that tests (`phpunit`) and static analysis (`phpstan`) pass.
+Pull Requests are welcome!Please ensure that tests(`phpunit`) and static analysis(`phpstan`) pass.
 
 ```bash
 composer test
@@ -208,4 +225,4 @@ composer analyse
 
 ### License
 
-This project is licensed under the MIT License. See the `LICENSE` file for details.
+This project is licensed under the MIT License.See the `LICENSE` file for details.

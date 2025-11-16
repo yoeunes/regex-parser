@@ -63,4 +63,16 @@ enum TokenType: string
 
     /** A POSIX class inside a character class (e.g., "[:alpha:]"). */
     case T_POSIX_CLASS = 'posix_class';
+
+    /** An assertion (e.g., \b, \B, \A, \z, \Z, \G). */
+    case T_ASSERTION = 'assertion';
+
+    /** A Unicode property (e.g., \p{L}, \P{^L}). */
+    case T_UNICODE_PROP = 'unicode_prop';
+
+    /** An octal escape (e.g., \o{777}). */
+    case T_OCTAL = 'octal';
+
+    /** A comment opening in group (?#). */
+    case T_COMMENT_OPEN = 'comment_open';
 }

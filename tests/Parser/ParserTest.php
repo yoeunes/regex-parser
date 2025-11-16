@@ -14,15 +14,21 @@ namespace RegexParser\Tests\Parser;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Ast\AlternationNode;
 use RegexParser\Ast\AnchorNode;
+use RegexParser\Ast\AssertionNode;
 use RegexParser\Ast\CharClassNode;
 use RegexParser\Ast\CharTypeNode;
+use RegexParser\Ast\CommentNode;
+use RegexParser\Ast\ConditionalNode;
 use RegexParser\Ast\DotNode;
 use RegexParser\Ast\GroupNode;
+use RegexParser\Ast\GroupType;
 use RegexParser\Ast\LiteralNode;
+use RegexParser\Ast\OctalNode;
 use RegexParser\Ast\QuantifierNode;
 use RegexParser\Ast\RangeNode;
 use RegexParser\Ast\RegexNode;
 use RegexParser\Ast\SequenceNode;
+use RegexParser\Ast\UnicodePropNode;
 use RegexParser\Exception\ParserException;
 use RegexParser\Parser\Parser;
 
@@ -214,6 +220,61 @@ class ParserTest extends TestCase
         $this->assertSame('$', $pattern->children[4]->value);
     }
 
+    public function testParseAssertions(): void
+    {
+        $parser = $this->createParser();
+        /** @var RegexNode $ast */
+        $ast = $parser->parse('/\Afoo\b/');
+        $pattern = $ast->pattern;
+
+        $this->assertInstanceOf(SequenceNode::class, $pattern);
+        $this->assertCount(5, $pattern->children); // \A, f, o, o, \b
+
+        $this->assertInstanceOf(AssertionNode::class, $pattern->children[0]);
+        $this->assertSame('A', $pattern->children[0]->value);
+
+        $this->assertInstanceOf(AssertionNode::class, $pattern->children[4]);
+        $this->assertSame('b', $pattern->children[4]->value);
+    }
+
+    public function testParseUnicodeProp(): void
+    {
+        $parser = $this->createParser();
+        /** @var RegexNode $ast */
+        $ast = $parser->parse('/\p{L}/');
+        $pattern = $ast->pattern;
+
+        $this->assertInstanceOf(UnicodePropNode::class, $pattern);
+        $this->assertSame('L', $pattern->prop);
+    }
+
+    public function testParseComment(): void
+    {
+        $parser = $this->createParser();
+        /** @var RegexNode $ast */
+        $ast = $parser->parse('/(?#test)/');
+        $pattern = $ast->pattern;
+
+        $this->assertInstanceOf(CommentNode::class, $pattern);
+        $this->assertSame('test', $pattern->comment);
+    }
+
+    public function testParseConditional(): void
+    {
+        $parser = $this->createParser();
+        /** @var RegexNode $ast */
+        $ast = $parser->parse('/(?(1)a|b)/');
+        $pattern = $ast->pattern;
+
+        $this->assertInstanceOf(ConditionalNode::class, $pattern);
+        $this->assertInstanceOf(BackrefNode::class, $pattern->condition);
+        $this->assertSame('1', $pattern->condition->ref);
+        $this->assertInstanceOf(LiteralNode::class, $pattern->yes);
+        $this->assertSame('a', $pattern->yes->value);
+        $this->assertInstanceOf(LiteralNode::class, $pattern->no);
+        $this->assertSame('b', $pattern->no->value);
+    }
+
     public function testThrowsOnUnmatchedGroup(): void
     {
         $this->expectException(ParserException::class);
@@ -244,5 +305,17 @@ class ParserTest extends TestCase
         $childStar = $pattern->children[1];
         $this->assertInstanceOf(LiteralNode::class, $childStar);
         $this->assertSame('*', $childStar->value);
+    }
+
+    public function testParseInlineFlags(): void
+    {
+        $parser = $this->createParser();
+        /** @var RegexNode $ast */
+        $ast = $parser->parse('/(?i:foo)/');
+        $pattern = $ast->pattern;
+
+        $this->assertInstanceOf(GroupNode::class, $pattern);
+        $this->assertSame(GroupType::T_GROUP_INLINE_FLAGS, $pattern->type);
+        $this->assertSame('i', $pattern->flags);
     }
 }

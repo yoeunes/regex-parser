@@ -82,4 +82,25 @@ class ValidatorVisitorTest extends TestCase
         // This regex is invalid because \d is not a literal
         $this->validate('/[a-\d]/');
     }
+
+    public function testThrowsOnInvalidBackref(): void
+    {
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('Backreference to non-existent group');
+        $this->validate('/\2/'); // No group 2
+    }
+
+    public function testThrowsOnInvalidUnicodeProp(): void
+    {
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('Invalid Unicode property');
+        $this->validate('/\p{invalid}/');
+    }
+
+    public function testThrowsOnInvalidAssertion(): void
+    {
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('Invalid assertion');
+        $this->validate('/\invalid/');
+    }
 }

@@ -81,4 +81,46 @@ class CompilerVisitorTest extends TestCase
         $regex = '#(?<name>foo)+?|(?!=bar)#i';
         $this->assertSame($regex, $this->compile($regex));
     }
+
+    public function testCompileAssertion(): void
+    {
+        $regex = '/\Afoo\b/';
+        $this->assertSame($regex, $this->compile($regex));
+    }
+
+    public function testCompileUnicodeProp(): void
+    {
+        $regex = '/\p{L}\P{^L}/';
+        $this->assertSame($regex, $this->compile($regex));
+    }
+
+    public function testCompileOctal(): void
+    {
+        $regex = '/\o{777}/';
+        $this->assertSame($regex, $this->compile($regex));
+    }
+
+    public function testCompileNamedBackref(): void
+    {
+        $regex = '/\k<name>/';
+        $this->assertSame($regex, $this->compile($regex));
+    }
+
+    public function testCompileComment(): void
+    {
+        $regex = '/(?#test)/';
+        $this->assertSame($regex, $this->compile($regex));
+    }
+
+    public function testCompileConditional(): void
+    {
+        $regex = '/(?(1)a|b)/';
+        $this->assertSame($regex, $this->compile($regex));
+    }
+
+    public function testCompileInlineFlags(): void
+    {
+        $regex = '/(?i:foo)/';
+        $this->assertSame($regex, $this->compile($regex));
+    }
 }
