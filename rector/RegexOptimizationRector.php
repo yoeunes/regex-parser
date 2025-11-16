@@ -14,6 +14,7 @@ namespace RegexParser\Rector;
 use PhpParser\Node;
 use PhpParser\Node\Expr\FuncCall;
 use PhpParser\Node\Scalar\String_;
+use PhpParser\Node\Stmt\ClassConst;
 use Rector\Rector\AbstractRector;
 use RegexParser\Node\CharClassNode;
 use RegexParser\Node\LiteralNode;
@@ -33,14 +34,31 @@ final class RegexOptimizationRector extends AbstractRector
         'preg_replace_callback' => 0, 'preg_split' => 0, 'preg_grep' => 0,
     ];
 
+    /**
+     * @var string[] constants we know contain regexes
+     */
+    private const REGEX_CONSTANT_NAMES = [
+        'REGEX_OUTSIDE',
+        'REGEX_INSIDE',
+    ];
+
+    /**
+     * @var CompilerNodeVisitor&object{hasChanged: bool, flags: string}
+     */
+    private ?CompilerNodeVisitor $optimizerVisitor = null;
+
     public function getRuleDefinition(): RuleDefinition
     {
         return new RuleDefinition(
-            'Optimizes simple regex character classes, e.g., [a-zA-Z0-9_] to \w',
+            'Optimizes simple regex character classes, e.g., [a-zA-Z0-9_] to \w (if /u flag is not present)',
             [
                 new CodeSample(
                     "preg_match('/[a-zA-Z0-9_]+/', \$str);",
                     "preg_match('/\\w+/', \$str);"
+                ),
+                new CodeSample(
+                    "private const MY_REGEX = '/[a-zA-Z0-9_]/u';",
+                    "private const MY_REGEX = '/[a-zA-Z0-9_]/u';" // No change
                 ),
             ]
         );
@@ -48,91 +66,48 @@ final class RegexOptimizationRector extends AbstractRector
 
     public function getNodeTypes(): array
     {
-        // We target the same function calls.
-        return [FuncCall::class];
+        // We now target function calls AND class constants.
+        return [FuncCall::class, ClassConst::class];
     }
 
+    /**
+     * @param FuncCall|ClassConst $node
+     */
     public function refactor(Node $node): ?Node
     {
-        $functionName = $this->getName($node->name);
-        if (null === $functionName || !isset(self::PREG_FUNCTION_MAP[$functionName])) {
+        $stringNode = $this->getRegexStringNode($node);
+
+        if (!$stringNode instanceof String_) {
+            // Not a node we can refactor (e.g., dynamic var or wrong constant)
             return null;
         }
 
-        $patternArgPosition = self::PREG_FUNCTION_MAP[$functionName];
-        $args = $node->getArgs();
-
-        if (!isset($args[$patternArgPosition]) || !$args[$patternArgPosition]->value instanceof String_) {
-            // We only refactor literal strings.
-            return null;
-        }
-
-        $regexStringNode = $args[$patternArgPosition]->value;
-        $originalRegexString = $regexStringNode->value;
+        $originalRegexString = $stringNode->value;
 
         try {
             // 1. Parse the regex into our AST
             $ast = Regex::parse($originalRegexString);
 
-            // 2. Create an anonymous transformation Visitor.
-            // This visitor inherits from the Compiler to rebuild the string,
-            // but overrides specific nodes we want to change.
-            $optimizerVisitor = new class extends CompilerNodeVisitor {
-                public bool $hasChanged = false;
+            // 2. Get the stateful optimizer visitor
+            $optimizerVisitor = $this->getOptimizerVisitor();
+            $optimizerVisitor->hasChanged = false; // Reset state for this run
 
-                public function visitCharClass(CharClassNode $node): string
-                {
-                    // 3. Transformation Logic
-                    if ($this->isFullWordClass($node)) {
-                        $this->hasChanged = true;
+            // ***THIS IS THE FIX***
+            // Pass the flags to the visitor so it can make smart decisions.
+            $optimizerVisitor->flags = $ast->flags;
 
-                        // It's a match! Instead of compiling the children,
-                        // we return the optimized shorthand.
-                        return '\w';
-                    }
-
-                    // Otherwise, let the parent compiler handle it.
-                    return parent::visitCharClass($node);
-                }
-
-                private function isFullWordClass(CharClassNode $node): bool
-                {
-                    if ($node->isNegated || 4 !== \count($node->parts)) {
-                        return false;
-                    }
-
-                    $partsFound = [
-                        'a-z' => false,
-                        'A-Z' => false,
-                        '0-9' => false,
-                        '_' => false,
-                    ];
-
-                    foreach ($node->parts as $part) {
-                        if ($part instanceof RangeNode && $part->start instanceof LiteralNode && $part->end instanceof LiteralNode) {
-                            $range = $part->start->value.'-'.$part->end->value;
-                            if (isset($partsFound[$range])) {
-                                $partsFound[$range] = true;
-                            }
-                        } elseif ($part instanceof LiteralNode && '_' === $part->value) {
-                            $partsFound['_'] = true;
-                        }
-                    }
-
-                    // Return true only if all parts were found.
-                    return !\in_array(false, $partsFound, true);
-                }
-            };
-
-            // 4. "Visit" the AST to get the new pattern string
+            // 3. "Visit" the AST to get the new pattern string
             $optimizedPattern = $ast->pattern->accept($optimizerVisitor);
 
-            // 5. If changes were made, reconstruct the full regex and update the node
+            // 4. If changes were made, reconstruct the full regex and update the node
             if ($optimizerVisitor->hasChanged) {
-                $newRegexString = $ast->delimiter.$optimizedPattern.$ast->delimiter.$ast->flags;
-                $args[$patternArgPosition]->value = new String_($newRegexString);
+                $newRegexString = $ast->delimiter . $optimizedPattern . $ast->delimiter . $ast->flags;
 
-                return $node; // Return the modified FuncCall node
+                // Update the String_ node's value in place.
+                // This works whether it's in a FuncCall or a ClassConst.
+                $stringNode->value = $newRegexString;
+
+                return $node; // Return the modified node
             }
         } catch (\Throwable $e) {
             // If parsing fails (invalid regex), do nothing.
@@ -141,5 +116,93 @@ final class RegexOptimizationRector extends AbstractRector
         }
 
         return null;
+    }
+
+    /**
+     * Extracts the String_ node from the targeted Node type.
+     */
+    private function getRegexStringNode(Node $node): ?String_
+    {
+        if ($node instanceof FuncCall) {
+            $functionName = $this->getName($node->name);
+            if (null === $functionName || !isset(self::PREG_FUNCTION_MAP[$functionName])) {
+                return null;
+            }
+            $patternArgPosition = self::PREG_FUNCTION_MAP[$functionName];
+            $args = $node->getArgs();
+            if (!isset($args[$patternArgPosition]) || !$args[$patternArgPosition]->value instanceof String_) {
+                return null;
+            }
+
+            return $args[$patternArgPosition]->value;
+        }
+
+        if ($node instanceof ClassConst) {
+            // We only check constants whose names are in our list
+            if (!$this->isNames($node, self::REGEX_CONSTANT_NAMES)) {
+                return null;
+            }
+
+            $const = $node->consts[0]; // Assume one const per declaration
+            if (!$const->value instanceof String_) {
+                return null;
+            }
+
+            return $const->value;
+        }
+
+        return null;
+    }
+
+    /**
+     * Lazily create and cache the stateful visitor.
+     * @return CompilerNodeVisitor&object{hasChanged: bool, flags: string}
+     */
+    private function getOptimizerVisitor(): CompilerNodeVisitor
+    {
+        return $this->optimizerVisitor ??= new class() extends CompilerNodeVisitor {
+            public bool $hasChanged = false;
+
+            // ***THIS IS THE FIX***
+            // Property to hold the flags of the current regex
+            public string $flags = '';
+
+            public function visitCharClass(CharClassNode $node): string
+            {
+                // ***THIS IS THE FIX***
+                // Only perform this optimization if the /u flag is NOT present.
+                if (!str_contains($this->flags, 'u')) {
+                    if ($this->isFullWordClass($node)) {
+                        $this->hasChanged = true;
+                        return '\w';
+                    }
+                }
+
+                // Add more optimizations here...
+                // e.g. [0-9] -> \d (which is safe with or without /u)
+
+                return parent::visitCharClass($node);
+            }
+
+            private function isFullWordClass(CharClassNode $node): bool
+            {
+                if ($node->isNegated || 4 !== \count($node->parts)) {
+                    return false;
+                }
+                $partsFound = ['a-z' => false, 'A-Z' => false, '0-9' => false, '_' => false];
+                foreach ($node->parts as $part) {
+                    if ($part instanceof RangeNode && $part->start instanceof LiteralNode && $part->end instanceof LiteralNode) {
+                        $range = $part->start->value . '-' . $part->end->value;
+                        if (isset($partsFound[$range])) {
+                            $partsFound[$range] = true;
+                        }
+                    } elseif ($part instanceof LiteralNode && '_' === $part->value) {
+                        $partsFound['_'] = true;
+                    }
+                }
+
+                return !in_array(false, $partsFound, true);
+            }
+        };
     }
 }

@@ -252,7 +252,7 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
 
         // Handle named \k<name> or \k{name} backrefs
         // $ref is guaranteed to be a string here.
-        if (preg_match('/^k<([a-zA-Z0-9_]+)>$/', $ref, $m) || preg_match('/^k{([a-zA-Z0-9_]+)}$/', $ref, $m)) {
+        if (preg_match('/^k<(\w+)>$/', $ref, $m) || preg_match('/^k\{(\w+)}$/', $ref, $m)) {
             return $this->captures[$m[1]] ?? '';
         }
 

@@ -236,7 +236,7 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
             if ($num > $this->groupCount) {
                 throw new ParserException('Backreference to non-existent group: \\'.$node->ref);
             }
-        } elseif (preg_match('/^k<([a-zA-Z0-9_]+)>$/', $node->ref, $matches) || preg_match('/^k{([a-zA-Z0-9_]+)}$/', $node->ref, $matches)) {
+        } elseif (preg_match('/^k<(\w+)>$/', $node->ref, $matches) || preg_match('/^k\{(\w+)}$/', $node->ref, $matches)) {
             $name = $matches[1];
             if (!isset($this->namedGroups[$name])) {
                 throw new ParserException('Backreference to non-existent named group: '.$name);
