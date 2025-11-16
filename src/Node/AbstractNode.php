@@ -15,7 +15,7 @@ namespace RegexParser\Node;
  * Base class for all AST nodes.
  * Implements the NodeInterface and provides shared position logic.
  */
-abstract class AbstractNode extends AbstractNode
+abstract class AbstractNode implements NodeInterface
 {
     /**
      * @param int $startPos The 0-based start offset
