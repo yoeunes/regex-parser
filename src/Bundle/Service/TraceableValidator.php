@@ -28,7 +28,7 @@ class TraceableValidator implements ValidatorInterface
 {
     public function __construct(
         private readonly ValidatorInterface $validator,
-        private readonly RegexCollector $collector
+        private readonly RegexCollector $collector,
     ) {
     }
 
@@ -42,10 +42,10 @@ class TraceableValidator implements ValidatorInterface
         return $this->validator->hasMetadataFor($value);
     }
 
-    public function validate(mixed $value, Constraint|array $constraints = null, $groups = null): ConstraintViolationListInterface
+    public function validate(mixed $value, Constraint|array|null $constraints = null, $groups = null): ConstraintViolationListInterface
     {
         $this->collectConstraints(
-            is_array($constraints) ? $constraints : (null === $constraints ? [] : [$constraints]),
+            \is_array($constraints) ? $constraints : (null === $constraints ? [] : [$constraints]),
             $value
         );
 

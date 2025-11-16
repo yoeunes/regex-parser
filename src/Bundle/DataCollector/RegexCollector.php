@@ -39,8 +39,8 @@ class RegexCollector extends DataCollector implements LateDataCollectorInterface
     public function collectRegex(
         string $pattern,
         string $source,
-        string $subject = null,
-        bool $matchResult = null
+        ?string $subject = null,
+        ?bool $matchResult = null,
     ): void {
         // Avoid collecting duplicates
         if (isset($this->collectedRegexes[$pattern])) {
@@ -55,7 +55,7 @@ class RegexCollector extends DataCollector implements LateDataCollectorInterface
         );
     }
 
-    public function collect(Request $request, Response $response, \Throwable $exception = null): void
+    public function collect(Request $request, Response $response, ?\Throwable $exception = null): void
     {
         // Reset data for the request
         $this->data = [
