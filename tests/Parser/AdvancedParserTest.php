@@ -27,7 +27,6 @@ class AdvancedParserTest extends TestCase
         $parser = new Parser();
         $ast = $parser->parse('/(?<name>a)/');
 
-        $this->assertInstanceOf(RegexNode::class, $ast);
         $this->assertInstanceOf(GroupNode::class, $ast->pattern);
         $this->assertSame(GroupType::T_GROUP_NAMED, $ast->pattern->type);
         $this->assertSame('name', $ast->pattern->name);
@@ -38,7 +37,6 @@ class AdvancedParserTest extends TestCase
         $parser = new Parser();
         $ast = $parser->parse('/a+?/');
 
-        $this->assertInstanceOf(RegexNode::class, $ast);
         $this->assertInstanceOf(QuantifierNode::class, $ast->pattern);
         $this->assertSame('+', $ast->pattern->quantifier);
         $this->assertSame(QuantifierType::T_LAZY, $ast->pattern->type);
@@ -49,7 +47,6 @@ class AdvancedParserTest extends TestCase
         $parser = new Parser();
         $ast = $parser->parse('/a{2,3}+/');
 
-        $this->assertInstanceOf(RegexNode::class, $ast);
         $this->assertInstanceOf(QuantifierNode::class, $ast->pattern);
         $this->assertSame('{2,3}', $ast->pattern->quantifier);
         $this->assertSame(QuantifierType::T_POSSESSIVE, $ast->pattern->type);
@@ -60,7 +57,6 @@ class AdvancedParserTest extends TestCase
         $parser = new Parser();
         $ast = $parser->parse('/a(?=b)/');
 
-        $this->assertInstanceOf(RegexNode::class, $ast);
         // $ast->pattern is a SequenceNode(Literal(a), GroupNode(...))
         $this->assertInstanceOf(SequenceNode::class, $ast->pattern);
         $this->assertCount(2, $ast->pattern->children);

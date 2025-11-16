@@ -17,7 +17,7 @@ use RegexParser\Node\RangeNode;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
 
 /**
- * @internal This visitor is used by RegexOptimizationRector
+ * This visitor is used by RegexOptimizationRector
  */
 final class RegexOptimizationVisitor extends CompilerNodeVisitor
 {
