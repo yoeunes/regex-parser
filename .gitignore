@@ -5,3 +5,5 @@
 /.php-cs-fixer.php
 /phpstan.neon
 /phpunit.xml
+
+/composer.lock
