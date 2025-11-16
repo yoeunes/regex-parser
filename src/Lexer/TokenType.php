@@ -1,5 +1,4 @@
 <?php
-
 /*
  * This file is part of the RegexParser package.
  *
@@ -8,7 +7,6 @@
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
-
 namespace RegexParser\Lexer;
 
 enum TokenType: string
@@ -54,4 +52,13 @@ enum TokenType: string
 
     /** A negation operator "^" at the start of a character class. */
     case T_NEGATION = 'negation';
+
+    /** A backreference (e.g., "\1", "\k<name>"). */
+    case T_BACKREF = 'backref';
+
+    /** A Unicode escape (e.g., "\xHH", "\u{HHHH}"). */
+    case T_UNICODE = 'unicode';
+
+    /** A POSIX class inside a character class (e.g., "[:alpha:]"). */
+    case T_POSIX_CLASS = 'posix_class';
 }

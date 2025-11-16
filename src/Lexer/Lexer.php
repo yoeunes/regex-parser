@@ -42,8 +42,8 @@ class Lexer
         }
 
         // Split the string into an array of UTF-8 characters.
-        $this->characters = preg_split('//u', $this->pattern, -1, \PREG_SPLIT_NO_EMPTY) ?: [];
-        $this->length = \count($this->characters);
+        $this->characters = mb_str_split($this->pattern);
+        $this->length = count($this->characters);
     }
 
     /**
@@ -57,36 +57,22 @@ class Lexer
     {
         $tokens = [];
         $isEscaped = false;
-
         while ($this->position < $this->length) {
             $char = $this->characters[$this->position];
-
             if ($isEscaped) {
+                $tokens[] = $this->tokenizeEscaped($char);
                 $isEscaped = false;
-                // Check for known character types (e.g., \d, \s, \w, \P, \b)
-                if (preg_match('/^[dswDSWbB]$/u', $char)) {
-                    $tokens[] = new Token(TokenType::T_CHAR_TYPE, $char, $this->position - 1); // Position of the \
-                    ++$this->position;
-                } else {
-                    // It's an escaped meta-character (e.g., \*, \+, \()
-                    // or a literal (e.g., \a, \-, \p)
-                    $tokens[] = new Token(TokenType::T_LITERAL, $char, $this->position++);
-                }
                 continue;
             }
-
             if ('\\' === $char) {
                 $isEscaped = true;
                 ++$this->position;
                 continue;
             }
-
-            // If we are inside a character class, rules are different.
             if ($this->inCharClass) {
                 $tokens[] = $this->tokenizeCharClassToken($char);
                 continue;
             }
-
             // Default tokenization (outside character class)
             if ('(' === $char) {
                 $tokens[] = $this->consumeGroupOpen();
@@ -95,7 +81,7 @@ class Lexer
             } elseif ('[' === $char) {
                 $this->inCharClass = true; // Enter char class mode
                 $tokens[] = new Token(TokenType::T_CHAR_CLASS_OPEN, '[', $this->position++);
-            } elseif (\in_array($char, ['*', '+', '?'], true)) {
+            } elseif (in_array($char, ['*', '+', '?'], true)) {
                 $tokens[] = $this->consumeSimpleQuantifier($char);
             } elseif ('{' === $char) {
                 $tokens[] = $this->consumeBraceQuantifier();
@@ -110,18 +96,70 @@ class Lexer
                 $tokens[] = new Token(TokenType::T_LITERAL, $char, $this->position++);
             }
         }
-
         if ($isEscaped) {
-            throw new LexerException('Trailing backslash at position '.($this->position - 1));
+            throw new LexerException('Trailing backslash at position ' . ($this->position - 1));
         }
-
         if ($this->inCharClass) {
             throw new LexerException('Unclosed character class "]" at end of input.');
         }
-
         $tokens[] = new Token(TokenType::T_EOF, '', $this->position);
-
         return $tokens;
+    }
+
+    /**
+     * Handles escaped characters, including char types, backrefs, Unicode.
+     */
+    private function tokenizeEscaped(string $char): Token
+    {
+        $start = $this->position - 1; // Position of \
+        // Char types \d \s etc.
+        if (preg_match('/^[dswDSWbB]$/u', $char)) {
+            ++$this->position;
+            return new Token(TokenType::T_CHAR_TYPE, $char, $start);
+        }
+        // Backrefs \1 - \9, \10+
+        if (preg_match('/^[1-9]$/', $char)) {
+            $ref = $this->consumeWhile(fn($c) => ctype_digit($c));
+            ++$this->position; // For the initial digit
+            return new Token(TokenType::T_BACKREF, $char . $ref, $start);
+        }
+        // Unicode \xHH, \u{HHHH}
+        if ('x' === $char) {
+            $hex = $this->consumeHex(2);
+            ++$this->position; // For 'x'
+            return new Token(TokenType::T_UNICODE, '\x' . $hex, $start);
+        }
+        if ('u' === $char && $this->peek() === '{') {
+            ++$this->position; // 'u'
+            ++$this->position; // '{'
+            $hex = $this->consumeHex(1, 6); // Up to 6 hex digits
+            if ($this->peek() !== '}') {
+                throw new LexerException('Unclosed Unicode escape at position ' . $start);
+            }
+            ++$this->position; // '}'
+            return new Token(TokenType::T_UNICODE, '\u{' . $hex . '}', $start);
+        }
+        // Default: escaped literal or meta
+        ++$this->position;
+        return new Token(TokenType::T_LITERAL, $char, $start);
+    }
+
+    /**
+     * Consumes hex digits (for \x, \u).
+     */
+    private function consumeHex(int $min, int $max = null): string
+    {
+        $max = $max ?? $min;
+        $hex = '';
+        $count = 0;
+        while ($this->position < $this->length && preg_match('/^[0-9a-fA-F]$/i', $this->characters[$this->position]) && $count < $max) {
+            $hex .= $this->characters[$this->position++];
+            ++$count;
+        }
+        if ($count < $min) {
+            throw new LexerException('Incomplete hex escape, expected at least ' . $min . ' digits.');
+        }
+        return $hex;
     }
 
     /**
@@ -148,6 +186,16 @@ class Lexer
             return new Token(TokenType::T_CHAR_CLASS_CLOSE, ']', $this->position++);
         }
 
+        // Add POSIX [[:alpha:]]
+        if (':' === $char && $this->peek(-1) === '[') {
+            $posix = $this->consumeWhile(fn($c) => preg_match('/^[a-zA-Z^]$/', $c));
+            if ($this->peek() !== ':' || $this->peek(1) !== ']') {
+                throw new LexerException('Invalid POSIX class at position ' . $this->position);
+            }
+            $this->position += 2; // : ]
+            return new Token(TokenType::T_POSIX_CLASS, $posix, $this->position - strlen($posix) - 4); // Adjust pos
+        }
+
         // Negation ^ (only if it's the *first* char after [)
         if ('^' === $char && $isFirstChar) {
             return new Token(TokenType::T_NEGATION, '^', $this->position++);
@@ -162,6 +210,12 @@ class Lexer
 
         // All other characters (including *, +, ?, ., |) are literals
         return new Token(TokenType::T_LITERAL, $char, $this->position++);
+    }
+
+    private function peek(int $offset = 0): ?string
+    {
+        $pos = $this->position + $offset;
+        return $pos < $this->length ? $this->characters[$pos] : null;
     }
 
     /**
