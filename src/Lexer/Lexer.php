@@ -207,7 +207,7 @@ class Lexer
                 return new Token(TokenType::T_UNICODE_PROP, $neg.$prop, $start);
             }
             // Single-char prop \pL, but PCRE requires {} for multi
-            if (preg_match('/^[a-zA-Z]$/', $this->peek())) { // Check char *after* p/P
+            if (preg_match('/^[a-zA-Z]$/', (string) $this->peek())) { // Check char *after* p/P
                 $prop = $this->characters[$this->position]; // Get 'L'
                 ++$this->position; // Consume 'L'
 

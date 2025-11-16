@@ -405,7 +405,7 @@ class Parser
     {
         if ($this->match(TokenType::T_LITERAL) && ctype_digit($this->previous()->value)) {
             // Numeric (?(1)...)
-            $num = (string) ($this->previous()->value.$this->consumeWhile(fn ($c) => ctype_digit($c)));
+            $num = (string) ($this->previous()->value.$this->consumeWhile(fn (string $c) => ctype_digit($c)));
             $this->consume(TokenType::T_GROUP_CLOSE, 'Expected ) after condition number');
 
             return new BackrefNode($num);
