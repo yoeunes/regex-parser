@@ -13,6 +13,7 @@ namespace RegexParser\Parser;
 
 use RegexParser\Ast\AlternationNode;
 use RegexParser\Ast\AnchorNode;
+use RegexParser\Ast\BackrefNode;
 use RegexParser\Ast\CharClassNode;
 use RegexParser\Ast\CharTypeNode;
 use RegexParser\Ast\DotNode;
@@ -20,11 +21,13 @@ use RegexParser\Ast\GroupNode;
 use RegexParser\Ast\GroupType;
 use RegexParser\Ast\LiteralNode;
 use RegexParser\Ast\NodeInterface;
+use RegexParser\Ast\PosixClassNode;
 use RegexParser\Ast\QuantifierNode;
 use RegexParser\Ast\QuantifierType;
 use RegexParser\Ast\RangeNode;
 use RegexParser\Ast\RegexNode;
 use RegexParser\Ast\SequenceNode;
+use RegexParser\Ast\UnicodeNode;
 use RegexParser\Exception\ParserException;
 use RegexParser\Lexer\Lexer;
 use RegexParser\Lexer\Token;
@@ -232,6 +235,14 @@ class Parser
             return new AnchorNode($this->previous()->value);
         }
 
+        if ($this->match(TokenType::T_BACKREF)) {
+            return new BackrefNode($this->previous()->value);
+        }
+
+        if ($this->match(TokenType::T_UNICODE)) {
+            return new UnicodeNode($this->previous()->value);
+        }
+
         if ($this->match(TokenType::T_GROUP_OPEN)) {
             $expr = $this->parseAlternation(); // Recurse
             $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
@@ -404,6 +415,10 @@ class Parser
         } else {
             $at = $this->isAtEnd() ? 'end of input' : 'position '.$this->current()->position;
             throw new ParserException(\sprintf('Unexpected token "%s" (%s) in character class at %s. Expected literal, range, or character type.', $this->current()->value, $this->current()->type->value, $at));
+        }
+
+        if ($this->match(TokenType::T_POSIX_CLASS)) {
+            return new PosixClassNode($this->previous()->value);
         }
 
         // Check for a range (e.g., "a-z")

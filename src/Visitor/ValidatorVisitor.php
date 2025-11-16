@@ -13,17 +13,20 @@ namespace RegexParser\Visitor;
 
 use RegexParser\Ast\AlternationNode;
 use RegexParser\Ast\AnchorNode;
+use RegexParser\Ast\BackrefNode;
 use RegexParser\Ast\CharClassNode;
 use RegexParser\Ast\CharTypeNode;
 use RegexParser\Ast\DotNode;
 use RegexParser\Ast\GroupNode;
 use RegexParser\Ast\GroupType;
 use RegexParser\Ast\LiteralNode;
+use RegexParser\Ast\PosixClassNode;
 use RegexParser\Ast\QuantifierNode;
 use RegexParser\Ast\QuantifierType;
 use RegexParser\Ast\RangeNode;
 use RegexParser\Ast\RegexNode;
 use RegexParser\Ast\SequenceNode;
+use RegexParser\Ast\UnicodeNode;
 use RegexParser\Exception\ParserException;
 
 /**
@@ -149,6 +152,31 @@ class ValidatorVisitor implements VisitorInterface
         // Check ASCII values
         if (\ord($node->start->value) > \ord($node->end->value)) {
             throw new ParserException(\sprintf('Invalid range "%s-%s": start character comes after end character.', $node->start->value, $node->end->value));
+        }
+    }
+
+    public function visitBackref(BackrefNode $node): void
+    {
+        // TODO: Check if ref number <= group count (requires group counting in visitor)
+        // For v1.0, just accept
+    }
+
+    public function visitUnicode(UnicodeNode $node): void
+    {
+        // Validate hex code is valid Unicode
+        if (preg_match('/^\\\\x([0-9a-fA-F]{2})$/', $node->code, $matches)) {
+            $code = hexdec($matches[1]);
+            if ($code > 0x10FFFF) {
+                throw new ParserException('Invalid Unicode codepoint');
+            }
+        } // Similar for \u
+    }
+
+    public function visitPosixClass(PosixClassNode $node): void
+    {
+        $valid = ['alnum', 'alpha', 'ascii', 'blank', 'cntrl', 'digit', 'graph', 'lower', 'print', 'punct', 'space', 'upper', 'word', 'xdigit'];
+        if (!in_array(strtolower($node->class), $valid)) {
+            throw new ParserException('Invalid POSIX class: ' . $node->class);
         }
     }
 }

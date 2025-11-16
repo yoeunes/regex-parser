@@ -1,0 +1,17 @@
+<?php
+namespace RegexParser\Tests\Benchmark;
+
+use PhpBench\Attributes as Bench;
+use RegexParser\Parser\Parser;
+
+class ParserBenchmark
+{
+    #[Bench\Warmup(2)]
+    #[Bench\Iterations(5)]
+    #[Bench\Revs(100)]
+    public function benchParseComplex(): void
+    {
+        $parser = new Parser();
+        $parser->parse('/^(?P<name>[a-z]+)([0-9]{1,3})?$/i');
+    }
+}

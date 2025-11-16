@@ -13,17 +13,20 @@ namespace RegexParser\Visitor;
 
 use RegexParser\Ast\AlternationNode;
 use RegexParser\Ast\AnchorNode;
+use RegexParser\Ast\BackrefNode;
 use RegexParser\Ast\CharClassNode;
 use RegexParser\Ast\CharTypeNode;
 use RegexParser\Ast\DotNode;
 use RegexParser\Ast\GroupNode;
 use RegexParser\Ast\GroupType;
 use RegexParser\Ast\LiteralNode;
+use RegexParser\Ast\PosixClassNode;
 use RegexParser\Ast\QuantifierNode;
 use RegexParser\Ast\QuantifierType;
 use RegexParser\Ast\RangeNode;
 use RegexParser\Ast\RegexNode;
 use RegexParser\Ast\SequenceNode;
+use RegexParser\Ast\UnicodeNode;
 
 /**
  * A visitor that recompiles the AST back into a regex string.
@@ -154,5 +157,20 @@ class CompilerVisitor implements VisitorInterface
     {
         // Note: visitLiteral will handle escaping for start/end if they are meta-chars
         return $node->start->accept($this).'-'.$node->end->accept($this);
+    }
+
+    public function visitBackref(BackrefNode $node): string
+    {
+        return '\\' . $node->ref;
+    }
+
+    public function visitUnicode(UnicodeNode $node): string
+    {
+        return $node->code; // Already \xHH or \u{...}
+    }
+
+    public function visitPosixClass(PosixClassNode $node): string
+    {
+        return '[[:' . $node->class . ':]]';
     }
 }
