@@ -317,7 +317,7 @@ class Parser
             }
 
             // \g<name> or \g{name} (non-numeric) -> Subroutine
-            if (preg_match('/^\\\\g<(\w+)>$/', $value, $m) || preg_match('/^\\\\g\{(\w+)}$/', $value, $m)) {
+            if (preg_match('/^\\\\g<(\w+)>$/', $value, $m) || preg_match('/^\\\\g\{(\w+)\}$/', $value, $m)) {
                 // Pass just the name/ref, and the syntax type 'g'
                 return new SubroutineNode($m[1], 'g', $startPos, $endPos);
             }

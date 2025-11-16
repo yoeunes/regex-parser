@@ -16,15 +16,19 @@ use Rector\ValueObject\PhpVersion;
 
 return static function (RectorConfig $rectorConfig): void {
     $rectorConfig->paths([
-        __DIR__ . '/src',
-        __DIR__ . '/tests',
-        __DIR__ . '/phpstan',
-        __DIR__ . '/rector',
-        __DIR__ . '/config',
-        __DIR__ . '/bin',
+        __DIR__.'/src',
+        __DIR__.'/tests',
+        __DIR__.'/phpstan',
+        __DIR__.'/rector',
+        __DIR__.'/config',
+        __DIR__.'/bin',
     ]);
 
-    $rectorConfig->import(__DIR__ . '/config/rector/regex-parser.php');
+    $rectorConfig->skip([
+        __DIR__.'/src/Lexer.php',
+    ]);
+
+    $rectorConfig->import(__DIR__.'/config/rector/regex-parser.php');
 
     $rectorConfig->phpVersion(PhpVersion::PHP_84);
     $rectorConfig->importShortClasses();

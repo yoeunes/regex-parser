@@ -124,7 +124,7 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
         if (!\in_array($node->quantifier, ['*', '+', '?'], true)) {
             // preg_match is safe here, it's not validating itself recursively
             // because the rule only checks ConstantStringType
-            if (preg_match('/^{\d+(,\d*)?}$/', $node->quantifier)) {
+            if (preg_match('/^\{\d+(,\d*)?\}$/', $node->quantifier)) {
                 // Check n <= m
                 $parts = explode(',', trim($node->quantifier, '{}'));
                 if (2 === \count($parts) && '' !== $parts[1] && (int) $parts[0] > (int) $parts[1]) {
@@ -139,7 +139,7 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
         // 2. Validate quantifiers inside lookbehinds
         if ($this->inLookbehind && QuantifierType::T_GREEDY !== $node->type
             && preg_match(
-                '/^[\*\+]$|^{\d+,}$/', // Matches *, +, and {n,}
+                '/^[*+]$|^\{\d+,\}$/', // Matches *, +, and {n,}
                 $node->quantifier
             )
         ) {
@@ -151,7 +151,7 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
 
         // An unbounded quantifier is *, +, or {n,}
         // This is the correct logic.
-        $isUnbounded = \in_array($quant, ['*', '+'], true) || preg_match('/^{\d+,}$/', $quant);
+        $isUnbounded = \in_array($quant, ['*', '+'], true) || preg_match('/^\{\d+,\}$/', $quant);
 
         if ($isUnbounded && $this->quantifierDepth > 0) {
             // This detects (a*)*, (a+)*, (a*)+, (a{2,})*, etc.
@@ -236,7 +236,7 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
             if ($num > $this->groupCount) {
                 throw new ParserException('Backreference to non-existent group: \\'.$node->ref);
             }
-        } elseif (preg_match('/^k<(\w+)>$/', $node->ref, $matches) || preg_match('/^k\{(\w+)}$/', $node->ref, $matches)) {
+        } elseif (preg_match('/^k<(\w+)>$/', $node->ref, $matches) || preg_match('/^k\{(\w+)\}$/', $node->ref, $matches)) {
             $name = $matches[1];
             if (!isset($this->namedGroups[$name])) {
                 throw new ParserException('Backreference to non-existent named group: '.$name);

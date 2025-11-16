@@ -139,7 +139,7 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
             '*' => [0, $this->maxRepetition],
             '+' => [1, $this->maxRepetition],
             '?' => [0, 1],
-            default => preg_match('/^{(\d+)(?:,(\d*))?}$/', $q, $m) ?
+            default => preg_match('/^\{(\d+)(?:,(\d*))?\}$/', $q, $m) ?
                 (isset($m[2]) ? ('' === $m[2] ?
                     [(int) $m[1], (int) $m[1] + $this->maxRepetition] : // {n,}
                     [(int) $m[1], (int) $m[2]] // {n,m}
@@ -252,7 +252,7 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
 
         // Handle named \k<name> or \k{name} backrefs
         // $ref is guaranteed to be a string here.
-        if (preg_match('/^k<(\w+)>$/', $ref, $m) || preg_match('/^k\{(\w+)}$/', $ref, $m)) {
+        if (preg_match('/^k<(\w+)>$/', $ref, $m) || preg_match('/^k\{(\w+)\}$/', $ref, $m)) {
             return $this->captures[$m[1]] ?? '';
         }
 
