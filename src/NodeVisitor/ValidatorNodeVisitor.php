@@ -137,22 +137,34 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
         // 2. Validate quantifiers inside lookbehinds
         if ($this->inLookbehind && QuantifierType::T_GREEDY !== $node->type
             && preg_match(
-                '/^[\*\+]$|{.*,}/',
+                '/^[\*\+]$|{.*,}/', // Matches *, +, and {n,}
                 $node->quantifier
             )
         ) {
             throw new ParserException(\sprintf('Variable-length quantifiers (%s) are not allowed in lookbehinds.', $node->quantifier));
         }
 
-        // 3. Check for Catastrophic Backtracking (Nested Quantifiers)
-        if ($this->quantifierDepth > 0) {
-            // This is a simple but effective check for (a+)*, (a*)*, (a|b*)* etc.
-            throw new ParserException('Potential catastrophic backtracking: nested quantifiers detected.');
+        // 3. Check for Catastrophic Backtracking (Nested Unbounded Quantifiers)
+        // This is a more robust check. We only care if an UNBOUNDED quantifier
+        // is nested inside another UNBOUNDED quantifier.
+        $isUnbounded = \in_array($node->quantifier, ['*', '+'], true) || str_ends_with($node->quantifier, ',');
+
+        if ($isUnbounded && $this->quantifierDepth > 0) {
+            // This detects (a*)*, (a+)*, (a*)+, (a{2,})*, etc.
+            throw new ParserException('Potential catastrophic backtracking: nested unbounded quantifiers detected.');
         }
 
-        ++$this->quantifierDepth;
+        if ($isUnbounded) {
+            // Only increment depth if this quantifier is unbounded
+            ++$this->quantifierDepth;
+        }
+
         $node->node->accept($this);
-        --$this->quantifierDepth;
+
+        if ($isUnbounded) {
+            // Only decrement depth if we incremented it
+            --$this->quantifierDepth;
+        }
     }
 
     public function visitLiteral(LiteralNode $node): void
