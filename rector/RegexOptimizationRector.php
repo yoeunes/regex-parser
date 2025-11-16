@@ -101,7 +101,7 @@ final class RegexOptimizationRector extends AbstractRector
 
             // 4. If changes were made, reconstruct the full regex and update the node
             if ($optimizerVisitor->hasChanged) {
-                $newRegexString = $ast->delimiter . $optimizedPattern . $ast->delimiter . $ast->flags;
+                $newRegexString = $ast->delimiter.$optimizedPattern.$ast->delimiter.$ast->flags;
 
                 // Update the String_ node's value in place.
                 // This works whether it's in a FuncCall or a ClassConst.
@@ -156,11 +156,12 @@ final class RegexOptimizationRector extends AbstractRector
 
     /**
      * Lazily create and cache the stateful visitor.
+     *
      * @return CompilerNodeVisitor&object{hasChanged: bool, flags: string}
      */
     private function getOptimizerVisitor(): CompilerNodeVisitor
     {
-        return $this->optimizerVisitor ??= new class() extends CompilerNodeVisitor {
+        return $this->optimizerVisitor ??= new class extends CompilerNodeVisitor {
             public bool $hasChanged = false;
 
             // ***THIS IS THE FIX***
@@ -174,6 +175,7 @@ final class RegexOptimizationRector extends AbstractRector
                 if (!str_contains($this->flags, 'u')) {
                     if ($this->isFullWordClass($node)) {
                         $this->hasChanged = true;
+
                         return '\w';
                     }
                 }
@@ -192,7 +194,7 @@ final class RegexOptimizationRector extends AbstractRector
                 $partsFound = ['a-z' => false, 'A-Z' => false, '0-9' => false, '_' => false];
                 foreach ($node->parts as $part) {
                     if ($part instanceof RangeNode && $part->start instanceof LiteralNode && $part->end instanceof LiteralNode) {
-                        $range = $part->start->value . '-' . $part->end->value;
+                        $range = $part->start->value.'-'.$part->end->value;
                         if (isset($partsFound[$range])) {
                             $partsFound[$range] = true;
                         }
@@ -201,7 +203,7 @@ final class RegexOptimizationRector extends AbstractRector
                     }
                 }
 
-                return !in_array(false, $partsFound, true);
+                return !\in_array(false, $partsFound, true);
             }
         };
     }
