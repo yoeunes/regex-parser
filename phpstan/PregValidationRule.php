@@ -68,8 +68,6 @@ final class PregValidationRule implements Rule
         $patternArg = $args[$patternArgPosition]->value;
         $patternType = $scope->getType($patternArg);
 
-        // This is the core of static analysis:
-        // Use getConstantStrings() to handle constant strings and unions of strings.
         $constantStrings = $patternType->getConstantStrings();
         if (0 === \count($constantStrings)) {
             // It's a dynamic variable (e.g., preg_match($pattern, ...)), we cannot check it.
@@ -88,7 +86,7 @@ final class PregValidationRule implements Rule
                 $errors[] = RuleErrorBuilder::message(\sprintf('Invalid PCRE pattern: %s', $result->error))
                     ->line($node->getLine())
                     ->tip(\sprintf('This pattern can cause errors or ReDoS. See regex: %s', $pattern))
-                    ->identifier('regex.validation') // Add a machine-readable identifier
+                    ->identifier('regex.validation')
                     ->build();
             }
         }

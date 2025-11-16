@@ -14,6 +14,8 @@ declare(strict_types=1);
 return Rector\Config\RectorConfig::configure()
     ->withRootFiles()
     ->withPaths([
+        __DIR__.'/bin',
+        __DIR__.'/config',
         __DIR__.'/phpstan',
         __DIR__.'/rector',
         __DIR__.'/src',

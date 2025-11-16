@@ -1,12 +1,14 @@
 includes:
     - extension.neon
     - tools/phpstan/vendor/phpstan/phpstan/conf/bleedingEdge.neon
+    - tools/phpstan/vendor/phpstan/phpstan-phpunit/extension.neon
 
 parameters:
     level: max
 
     paths:
         - bin
+        - config
         - phpstan
         - rector
         - src
