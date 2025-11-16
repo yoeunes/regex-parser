@@ -198,13 +198,16 @@ class Parser
     private function parseQuantifierValue(string $value): array
     {
         $lastChar = substr($value, -1);
+        $baseValue = substr($value, 0, -1);
 
-        if ('?' === $lastChar && \strlen($value) > 1) { // e.g. *? or +? or ??
-            return [substr($value, 0, -1), QuantifierType::T_LAZY];
+        // e.g. *? or +? or ??
+        if ('?' === $lastChar && \strlen($value) > 1) {
+            return [$baseValue, QuantifierType::T_LAZY];
         }
 
-        if ('+' === $lastChar && \strlen($value) > 1) { // e.g. *+ or ++
-            return [substr($value, 0, -1), QuantifierType::T_POSSESSIVE];
+        // e.g. *+ or ++
+        if ('+' === $lastChar && \strlen($value) > 1) {
+            return [$baseValue, QuantifierType::T_POSSESSIVE];
         }
 
         // It's a normal, greedy quantifier (e.g. *, +, or ?)
@@ -255,6 +258,8 @@ class Parser
 
     /**
      * Parses a special group that starts with "(?".
+     *
+     * @throws ParserException
      */
     private function parseGroupModifier(): GroupNode
     {
@@ -327,6 +332,8 @@ class Parser
 
     /**
      * Parses the name of a named group, handling quotes.
+     *
+     * @throws ParserException
      */
     private function parseGroupName(): string
     {
@@ -338,7 +345,7 @@ class Parser
             $this->advance(); // Consume opening quote
             $nameToken = $this->consume(TokenType::T_LITERAL, 'Expected group name');
             if ($this->current()->value !== $quote) {
-                throw new ParserException('Expected closing quote '.$quote);
+                throw new ParserException('Expected closing quote '.$quote.' at position '.$this->current()->position);
             }
             $this->advance(); // Consume closing quote
 
@@ -347,14 +354,19 @@ class Parser
 
         // Handle <name>
         $name = '';
-        while ($this->check(TokenType::T_LITERAL) || $this->check(TokenType::T_P)) { // Allow 'P'
-            $name .= $this->current()->value;
-            $this->advance();
+        while (!$this->check(TokenType::T_GT) && !$this->isAtEnd()) {
+            // A name can be any literal, but not special chars like '(', '[', etc.
+            // Our lexer tokenizes these separately.
+            if ($this->check(TokenType::T_LITERAL) || $this->check(TokenType::T_P)) {
+                $name .= $this->current()->value;
+                $this->advance();
+            } else {
+                throw new ParserException('Unexpected token in group name: '.$this->current()->value);
+            }
         }
 
         if ('' === $name) {
-            // This will fail and show a good error message
-            $this->consume(TokenType::T_LITERAL, 'Expected group name');
+            throw new ParserException('Expected group name at position '.$this->current()->position);
         }
 
         return $name;
@@ -362,6 +374,8 @@ class Parser
 
     /**
      * Parses a character class (e.g., "[a-z\d]").
+     *
+     * @throws ParserException
      */
     private function parseCharClass(): CharClassNode
     {
@@ -379,6 +393,8 @@ class Parser
 
     /**
      * Parses a single part of a character class (a literal, a range, or a char type).
+     *
+     * @throws ParserException
      */
     private function parseCharClassPart(): NodeInterface
     {
@@ -441,6 +457,8 @@ class Parser
 
     /**
      * Consumes the current token, throwing an error if it doesn't match the expected type.
+     *
+     * @throws ParserException
      */
     private function consume(TokenType $type, string $error): Token
     {

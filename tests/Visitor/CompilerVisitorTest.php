@@ -55,7 +55,7 @@ class CompilerVisitorTest extends TestCase
 
     public function testCompileQuantifiedSequence(): void
     {
-        // This test ensures that a *capturing* group remains a *capturing* group
+        // This test ensures a *capturing* group remains a *capturing* group
         $this->assertSame('/(abc)+/', $this->compile('/(abc)+/'));
     }
 
