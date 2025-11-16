@@ -13,12 +13,13 @@
         "php": ">=8.4"
     },
     "require-dev": {
-        "phpunit/phpunit": "^12.4",
-        "phpbench/phpbench": "^1.4"
+        "phpunit/phpunit": "^12.4"
     },
     "autoload": {
         "psr-4": {
-            "RegexParser\\": "src/"
+            "RegexParser\\": "src/",
+            "RegexParser\\PHPStan\\": "phpstan/",
+            "RegexParser\\Rector\\": "rector/"
         }
     },
     "autoload-dev": {
@@ -26,10 +27,27 @@
             "RegexParser\\Tests\\": "tests/"
         }
     },
+    "extra": {
+        "phpstan": {
+            "includes": [
+                "extension.neon"
+            ]
+        },
+        "rector": {
+            "sets": [
+                "config/rector/regex-parser.php"
+            ]
+        }
+    },
+    "suggest": {
+        "phpstan/phpstan": "To run static analysis and detect invalid regex patterns.",
+        "phpstan/extension-installer": "To automatically enable the PHPStan rule for regex validation.",
+        "rector/rector": "To automatically refactor and optimize regex patterns."
+    },
     "scripts": {
         "test": "phpunit",
-        "analyse": "phpstan analyse",
-        "phpcs": "phpcs fix",
-        "bench": "phpbench run --report=default"
+        "analyse": "./tools/phpstan/vendor/bin/phpstan analyse",
+        "phpcs": "./tools/php-cs-fixer/vendor/bin/php-cs-fixer fix",
+        "bench": "./tools/phpbench/vendor/bin/phpbench run --report=default"
     }
 }

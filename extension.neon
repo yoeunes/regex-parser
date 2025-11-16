@@ -1,0 +1,5 @@
+services:
+    -
+        class: RegexParser\PHPStan\PregValidationRule
+        tags:
+            - phpstan.rules.rule
