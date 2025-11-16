@@ -22,3 +22,8 @@ parameters:
     editorUrl: 'phpstorm://open?file=%%file%%&line=%%line%%'
 
     tmpDir: .cache/phpstan
+
+    ignoreErrors:
+        - identifiers:
+            - class.extendsInternalClass
+

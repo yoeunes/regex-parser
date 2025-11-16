@@ -21,8 +21,6 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 /**
  * Decorates the Symfony Validator to trace Regex constraint usage.
- *
- * @internal
  */
 class TraceableValidator implements ValidatorInterface
 {
