@@ -24,7 +24,6 @@ use RegexParser\Node\GroupNode;
 use RegexParser\Node\GroupType;
 use RegexParser\Node\KeepNode;
 use RegexParser\Node\LiteralNode;
-use RegexParser\Node\NodeInterface;
 use RegexParser\Node\OctalLegacyNode;
 use RegexParser\Node\OctalNode;
 use RegexParser\Node\PcreVerbNode;
@@ -45,8 +44,8 @@ use RegexParser\Node\UnicodePropNode;
 class SampleGeneratorVisitor implements NodeVisitorInterface
 {
     /**
-     * @param int $maxRepetition Max times to repeat for * or + quantifiers
-     * to prevent excessively long or infinite samples.
+     * @param int $maxRepetition max times to repeat for * or + quantifiers
+     *                           to prevent excessively long or infinite samples
      */
     public function __construct(private int $maxRepetition = 3)
     {
@@ -55,6 +54,7 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
     /**
      * Stores generated text from capturing groups.
      * Keyed by both numeric index and name (if available).
+     *
      * @var array<int|string, string>
      */
     private array $captures = [];
@@ -223,15 +223,10 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
 
         // Generate a random character within the ASCII range
         try {
-            $min = ord($node->start->value);
-            $max = ord($node->end->value);
+            $ord1 = \ord($node->start->value);
+            $ord2 = \ord($node->end->value);
 
-            // even if the regex was invalid (e.g. [z-a])
-            if ($min > $max) {
-                $max = $min;
-            }
-
-            return chr(random_int($min, $max));
+            return \chr(mt_rand($ord1, $ord2));
         } catch (\Throwable) {
             // Fallback if ord() fails
             return $node->start->value;
@@ -270,11 +265,12 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
     public function visitUnicode(UnicodeNode $node): string
     {
         if (preg_match('/^\\\\x([0-9a-fA-F]{2})$/', $node->code, $m)) {
-            return chr((int) hexdec($m[1]));
+            return \chr((int) hexdec($m[1]));
         }
         if (preg_match('/^\\\\u\{([0-9a-fA-F]+)\}$/', $node->code, $m)) {
             return mb_chr((int) hexdec($m[1]), 'UTF-8');
         }
+
         // Fallback for unknown unicode
         return '?';
     }
