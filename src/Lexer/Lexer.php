@@ -153,39 +153,45 @@ class Lexer
         }
         // Unicode \xHH, \u{HHHH}
         if ('x' === $char) {
+            ++$this->position; // Consume 'x'
             $hex = $this->consumeHex(2);
-            ++$this->position; // For 'x'
 
             return new Token(TokenType::T_UNICODE, '\x'.$hex, $start);
         }
-        if ('u' === $char && '{' === $this->peek()) {
+        if ('u' === $char) {
             ++$this->position; // 'u'
-            ++$this->position; // '{'
-            $hex = $this->consumeHex(1, 6); // Up to 6 hex digits
-            if ('}' !== $this->peek()) {
-                throw new LexerException('Unclosed Unicode escape at position '.$start);
-            }
-            ++$this->position; // '}'
+            if ('{' === $this->peek()) {
+                ++$this->position; // '{'
+                $hex = $this->consumeHex(1, 6); // Up to 6 hex digits
+                if ('}' !== $this->peek()) {
+                    throw new LexerException('Unclosed Unicode escape at position '.$start);
+                }
+                ++$this->position; // '}'
 
-            return new Token(TokenType::T_UNICODE, '\u{'.$hex.'}', $start);
+                return new Token(TokenType::T_UNICODE, '\u{'.$hex.'}', $start);
+            }
+            // If not \u{...}, fallthrough to literal
         }
         // Octal \o{777}
-        if ('o' === $char && '{' === $this->peek()) {
+        if ('o' === $char) {
             ++$this->position; // 'o'
-            ++$this->position; // '{'
-            $oct = $this->consumeWhile(fn (string $c) => preg_match('/^[0-7]$/', $c), 1, 11); // Up to 11 octal digits for \o
-            if ('}' !== $this->peek()) {
-                throw new LexerException('Unclosed octal escape at position '.$start);
-            }
-            ++$this->position; // '}'
+            if ('{' === $this->peek()) {
+                ++$this->position; // '{'
+                $oct = $this->consumeWhile(fn (string $c) => preg_match('/^[0-7]$/', $c), 1, 11); // Up to 11 octal digits for \o
+                if ('}' !== $this->peek()) {
+                    throw new LexerException('Unclosed octal escape at position '.$start);
+                }
+                ++$this->position; // '}'
 
-            return new Token(TokenType::T_OCTAL, '\o{'.$oct.'}', $start);
+                return new Token(TokenType::T_OCTAL, '\o{'.$oct.'}', $start);
+            }
+            // If not \o{...}, fallthrough to literal
         }
         // Unicode properties \p{L}, \P{^L}
         if ('p' === $char || 'P' === $char) {
             ++$this->position; // p or P
             $neg = 'P' === $char ? '^' : '';
-            if ('{' === $this->peek()) {
+            if ('{' === $this->peek()) { // Check char *after* p/P
                 ++$this->position; // '{'
                 $prop = $this->consumeWhile(fn (string $c) => preg_match('/^[a-zA-Z0-9_]+$/', $c));
                 if ('^' === $this->peek()) {
@@ -201,8 +207,7 @@ class Lexer
                 return new Token(TokenType::T_UNICODE_PROP, $neg.$prop, $start);
             }
             // Single-char prop \pL, but PCRE requires {} for multi
-            if (preg_match('/^[a-zA-Z]$/', $this->peek(1))) {
-                ++$this->position; // Consume 'p' or 'P'
+            if (preg_match('/^[a-zA-Z]$/', $this->peek())) { // Check char *after* p/P
                 $prop = $this->characters[$this->position]; // Get 'L'
                 ++$this->position; // Consume 'L'
 

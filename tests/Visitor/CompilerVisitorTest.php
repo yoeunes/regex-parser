@@ -90,7 +90,7 @@ class CompilerVisitorTest extends TestCase
 
     public function testCompileUnicodeProp(): void
     {
-        $regex = '/\p{L}\p{^L}\pL/';
+        $regex = '/\pL\p{^L}\pL/';
         $this->assertSame($regex, $this->compile($regex));
     }
 
