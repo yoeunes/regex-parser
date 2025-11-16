@@ -18,7 +18,7 @@ class ConditionalNode implements NodeInterface
     public function __construct(
         public readonly NodeInterface $condition,
         public readonly NodeInterface $yes,
-        public readonly NodeInterface $no
+        public readonly NodeInterface $no,
     ) {
     }
 

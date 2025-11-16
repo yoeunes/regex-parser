@@ -44,18 +44,18 @@ class CompilerVisitor implements VisitorInterface
     private const META_CHARACTERS
         = [
             '\\' => true,
-            '.'  => true,
-            '^'  => true,
-            '$'  => true,
-            '['  => true,
-            ']'  => true,
-            '('  => true,
-            ')'  => true,
-            '|'  => true,
-            '*'  => true,
-            '+'  => true,
-            '?'  => true,
-            '{'  => true,
+            '.' => true,
+            '^' => true,
+            '$' => true,
+            '[' => true,
+            ']' => true,
+            '(' => true,
+            ')' => true,
+            '|' => true,
+            '*' => true,
+            '+' => true,
+            '?' => true,
+            '{' => true,
         ];
     // Meta-characters that must be escaped *inside* a character class.
     // The parser correctly identifies positional meta-chars (like ^, -, ])
@@ -63,7 +63,7 @@ class CompilerVisitor implements VisitorInterface
     private const CHAR_CLASS_META
         = [
             '\\' => true,
-            ']'  => true,
+            ']' => true,
         ];
     /**
      * Tracks if we are currently compiling inside a character class.
@@ -81,13 +81,13 @@ class CompilerVisitor implements VisitorInterface
 
     public function visitAlternation(AlternationNode $node): string
     {
-        return implode('|', array_map(fn($alt) => $alt->accept($this), $node->alternatives));
+        return implode('|', array_map(fn ($alt) => $alt->accept($this), $node->alternatives));
     }
 
     public function visitSequence(SequenceNode $node): string
     {
         // Concatenates the results of the sequence's children
-        return implode('', array_map(fn($child) => $child->accept($this), $node->children));
+        return implode('', array_map(fn ($child) => $child->accept($this), $node->children));
     }
 
     public function visitGroup(GroupNode $node): string
@@ -168,7 +168,7 @@ class CompilerVisitor implements VisitorInterface
     {
         $this->inCharClass = true; // Set context for visitLiteral
 
-        $parts = implode('', array_map(fn($part) => $part->accept($this), $node->parts));
+        $parts = implode('', array_map(fn ($part) => $part->accept($this), $node->parts));
         $result = '['.($node->isNegated ? '^' : '').$parts.']';
 
         $this->inCharClass = false; // Unset context
@@ -194,9 +194,9 @@ class CompilerVisitor implements VisitorInterface
 
     public function visitUnicodeProp(UnicodePropNode $node): string
     {
-        $neg = strpos($node->prop, '^') === 0 ? 'P' : 'p';
+        $neg = str_starts_with($node->prop, '^') ? 'P' : 'p';
         $prop = ltrim($node->prop, '^');
-        if (strlen($prop) > 1) {
+        if (\strlen($prop) > 1) {
             return '\\'.$neg.'{'.$prop.'}';
         }
 
@@ -223,7 +223,7 @@ class CompilerVisitor implements VisitorInterface
         $cond = $node->condition->accept($this);
         $yes = $node->yes->accept($this);
         $no = $node->no->accept($this);
-        if ($no === '') {
+        if ('' === $no) {
             return '(?('.$cond.')'.$yes.')';
         }
 

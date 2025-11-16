@@ -183,14 +183,7 @@ class Parser
                 throw new ParserException('Quantifier without target at position '.$token->position);
             }
             if ($node instanceof AnchorNode || $node instanceof AssertionNode) {
-                throw new ParserException(
-                    \sprintf(
-                        'Quantifier "%s" cannot be applied to assertion "%s" at position %d',
-                        $token->value,
-                        $node->value,
-                        $token->position
-                    )
-                );
+                throw new ParserException(\sprintf('Quantifier "%s" cannot be applied to assertion "%s" at position %d', $token->value, $node->value, $token->position));
             }
 
             [$quantifier, $type] = $this->parseQuantifierValue($token->value);
@@ -301,7 +294,7 @@ class Parser
     {
         $start = $this->previous()->position;
         ++$this->position; // #
-        $comment = $this->consumeWhile(fn(string $c) => ')' !== $c);
+        $comment = $this->consumeWhile(fn (string $c) => ')' !== $c);
         $this->consumeLiteral(')', 'Expected ) to close comment');
 
         return new CommentNode($comment);
@@ -414,14 +407,14 @@ class Parser
     {
         if ($this->match(TokenType::T_LITERAL) && ctype_digit($this->previous()->value)) {
             // Numeric (?(1)...)
-            $num = $this->previous()->value.$this->consumeWhile(fn($c) => ctype_digit($c));
+            $num = $this->previous()->value.$this->consumeWhile(fn ($c) => ctype_digit((string) $c));
 
             return new BackrefNode($num);
         } elseif ($this->matchLiteral('<') || $this->matchLiteral('{')) {
             // Named (?(<name>)...) or (?({name})...)
             $open = $this->previous()->value;
             $name = $this->parseGroupName();
-            $close = $open === '<' ? '>' : '}';
+            $close = '<' === $open ? '>' : '}';
             $this->consumeLiteral($close, "Expected $close after condition name");
 
             return new BackrefNode($name);
@@ -518,14 +511,7 @@ class Parser
             return new LiteralNode($this->previous()->value);
         } else {
             $at = $this->isAtEnd() ? 'end of input' : 'position '.$this->current()->position;
-            throw new ParserException(
-                \sprintf(
-                    'Unexpected token "%s" (%s) in character class at %s. Expected literal, range, or character type.',
-                    $this->current()->value,
-                    $this->current()->type->value,
-                    $at
-                )
-            );
+            throw new ParserException(\sprintf('Unexpected token "%s" (%s) in character class at %s. Expected literal, range, or character type.', $this->current()->value, $this->current()->type->value, $at));
         }
 
         if ($this->match(TokenType::T_POSIX_CLASS)) {
@@ -640,9 +626,7 @@ class Parser
             return $token;
         }
         $at = $this->isAtEnd() ? 'end of input' : 'position '.$this->current()->position;
-        throw new ParserException(
-            $error.' at '.$at.' (found '.$this->current()->type->value.' with value '.$this->current()->value.')'
-        );
+        throw new ParserException($error.' at '.$at.' (found '.$this->current()->type->value.' with value '.$this->current()->value.')');
     }
 
     /**

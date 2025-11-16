@@ -126,7 +126,7 @@ class Lexer
         }
         // Backrefs \1 - \9, \10+
         if (preg_match('/^[1-9]$/', $char)) {
-            $ref = $this->consumeWhile(fn(string $c) => ctype_digit($c));
+            $ref = $this->consumeWhile(fn (string $c) => ctype_digit($c));
             ++$this->position; // For the initial digit
 
             return new Token(TokenType::T_BACKREF, $char.$ref, $start);
@@ -137,7 +137,7 @@ class Lexer
             $open = $this->peek();
             if ('<' === $open || '{' === $open) {
                 ++$this->position; // < or {
-                $name = $this->consumeWhile(fn(string $c) => preg_match('/^[a-zA-Z0-9_]$/', $c));
+                $name = $this->consumeWhile(fn (string $c) => preg_match('/^[a-zA-Z0-9_]$/', $c));
                 $close = $this->peek();
                 if (('<' === $open && '>' !== $close) || ('{' === $open && '}' !== $close)) {
                     throw new LexerException('Unclosed named backref at position '.$start);
@@ -172,7 +172,7 @@ class Lexer
         if ('o' === $char && '{' === $this->peek()) {
             ++$this->position; // 'o'
             ++$this->position; // '{'
-            $oct = $this->consumeWhile(fn(string $c) => preg_match('/^[0-7]$/', $c),
+            $oct = $this->consumeWhile(fn (string $c) => preg_match('/^[0-7]$/', $c),
                 1,
                 11); // Up to 11 octal digits for \o
             if ('}' !== $this->peek()) {
@@ -188,11 +188,11 @@ class Lexer
             $neg = 'P' === $char ? '^' : '';
             if ('{' === $this->peek()) {
                 ++$this->position; // '{'
-                $prop = $this->consumeWhile(fn(string $c) => preg_match('/^[a-zA-Z0-9_]+$/', $c));
+                $prop = $this->consumeWhile(fn (string $c) => preg_match('/^[a-zA-Z0-9_]+$/', $c));
                 if ('^' === $this->peek()) {
                     $neg = '^';
                     ++$this->position;
-                    $prop .= $this->consumeWhile(fn(string $c) => preg_match('/^[a-zA-Z0-9_]+$/', $c));
+                    $prop .= $this->consumeWhile(fn (string $c) => preg_match('/^[a-zA-Z0-9_]+$/', $c));
                 }
                 if ('}' !== $this->peek()) {
                     throw new LexerException('Unclosed Unicode property at position '.$start);
@@ -202,8 +202,8 @@ class Lexer
                 return new Token(TokenType::T_UNICODE_PROP, $neg.$prop, $start);
             }
             // Single-char prop \pL, but PCRE requires {} for multi
-            if (preg_match('/^[a-zA-Z]$/', $this->peek())) {
-                $prop = $this->consumeWhile(fn(string $c) => preg_match('/^[a-zA-Z]$/', $c), 1, 1);
+            if (preg_match('/^[a-zA-Z]$/', (string) $this->peek())) {
+                $prop = $this->consumeWhile(fn (string $c) => preg_match('/^[a-zA-Z]$/', $c), 1, 1);
 
                 return new Token(TokenType::T_UNICODE_PROP, $neg.$prop, $start);
             }
@@ -243,8 +243,8 @@ class Lexer
         // Check for first char (or first after negation)
         $isFirstChar = isset($this->characters[$this->position - 1]) && '[' === $this->characters[$this->position - 1];
         $isFirstCharAfterNegation = isset(
-                $this->characters[$this->position - 1], $this->characters[$this->position - 2]
-            )
+            $this->characters[$this->position - 1], $this->characters[$this->position - 2]
+        )
             && '^' === $this->characters[$this->position - 1]
             && '[' === $this->characters[$this->position - 2];
         $isAtStart = $isFirstChar || $isFirstCharAfterNegation;
@@ -263,7 +263,7 @@ class Lexer
 
         // POSIX [[:alpha:]]
         if (':' === $char && '[' === $this->peek(-1)) {
-            $posix = $this->consumeWhile(fn(string $c) => preg_match('/^[a-zA-Z^]$/', $c));
+            $posix = $this->consumeWhile(fn (string $c) => preg_match('/^[a-zA-Z^]$/', $c));
             if (':' !== $this->peek() || ']' !== $this->peek(1)) {
                 throw new LexerException('Invalid POSIX class at position '.$this->position);
             }
@@ -309,7 +309,7 @@ class Lexer
     {
         $start = $this->position;
         $quant = $this->characters[$this->position++]; // Consume '{'
-        $inner = $this->consumeWhile(fn(string $c) => 1 === preg_match('/^[0-9,]$/', $c));
+        $inner = $this->consumeWhile(fn (string $c) => 1 === preg_match('/^[0-9,]$/', $c));
         $quant .= $inner;
 
         if ($this->position >= $this->length || '}' !== $this->characters[$this->position]) {
@@ -395,7 +395,7 @@ class Lexer
     {
         $value = '';
         $count = 0;
-        $max ??= PHP_INT_MAX;
+        $max ??= \PHP_INT_MAX;
         while ($this->position < $this->length && $predicate($this->characters[$this->position]) && $count < $max) {
             $value .= $this->characters[$this->position++];
             ++$count;

@@ -88,7 +88,7 @@ class ValidatorVisitor implements VisitorInterface
             $this->inLookbehind = true;
         }
 
-        if ($node->type === GroupType::T_GROUP_CAPTURING || $node->type === GroupType::T_GROUP_NAMED) {
+        if (GroupType::T_GROUP_CAPTURING === $node->type || GroupType::T_GROUP_NAMED === $node->type) {
             ++$this->groupCount;
         }
 
@@ -104,7 +104,7 @@ class ValidatorVisitor implements VisitorInterface
             if (preg_match('/^{\d+(,\d*)?}$/', $node->quantifier)) {
                 // Check n <= m
                 $parts = explode(',', trim($node->quantifier, '{}'));
-                if (2 === \count($parts) && '' !== $parts[1] && (int)$parts[0] > (int)$parts[1]) {
+                if (2 === \count($parts) && '' !== $parts[1] && (int) $parts[0] > (int) $parts[1]) {
                     throw new ParserException(\sprintf('Invalid quantifier range "%s": min > max', $node->quantifier));
                 }
             } else {
@@ -120,9 +120,7 @@ class ValidatorVisitor implements VisitorInterface
                 $node->quantifier
             )
         ) {
-            throw new ParserException(
-                \sprintf('Variable-length quantifiers (%s) are not allowed in lookbehinds.', $node->quantifier)
-            );
+            throw new ParserException(\sprintf('Variable-length quantifiers (%s) are not allowed in lookbehinds.', $node->quantifier));
         }
 
         // 3. Check for Catastrophic Backtracking (Nested Quantifiers)
@@ -159,7 +157,7 @@ class ValidatorVisitor implements VisitorInterface
     public function visitAssertion(AssertionNode $node): void
     {
         // Validate valid assertions
-        if (!in_array($node->value, ['A', 'z', 'Z', 'G', 'b', 'B'], true)) {
+        if (!\in_array($node->value, ['A', 'z', 'Z', 'G', 'b', 'B'], true)) {
             throw new ParserException('Invalid assertion: \\'.$node->value);
         }
     }
@@ -182,20 +180,14 @@ class ValidatorVisitor implements VisitorInterface
 
         // Check ASCII values
         if (\ord($node->start->value) > \ord($node->end->value)) {
-            throw new ParserException(
-                \sprintf(
-                    'Invalid range "%s-%s": start character comes after end character.',
-                    $node->start->value,
-                    $node->end->value
-                )
-            );
+            throw new ParserException(\sprintf('Invalid range "%s-%s": start character comes after end character.', $node->start->value, $node->end->value));
         }
     }
 
     public function visitBackref(BackrefNode $node): void
     {
         if (ctype_digit($node->ref)) {
-            $num = (int)$node->ref;
+            $num = (int) $node->ref;
             if ($num > $this->groupCount) {
                 throw new ParserException('Backreference to non-existent group: \\'.$node->ref);
             }
@@ -223,7 +215,7 @@ class ValidatorVisitor implements VisitorInterface
         // Validate known properties (partial list; expand as needed)
         $validProps = ['L', 'Lu', 'Ll', 'M', 'N', 'P', 'S', 'Z', 'C']; // etc.
         $prop = ltrim($node->prop, '^');
-        if (!in_array($prop, $validProps, true)) {
+        if (!\in_array($prop, $validProps, true)) {
             throw new ParserException('Invalid Unicode property: \\p{'.$node->prop.'}');
         }
     }
@@ -254,7 +246,7 @@ class ValidatorVisitor implements VisitorInterface
             'space',
             'upper',
             'word',
-            'xdigit'
+            'xdigit',
         ];
         if (!\in_array(strtolower($node->class), $valid)) {
             throw new ParserException('Invalid POSIX class: '.$node->class);
