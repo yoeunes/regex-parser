@@ -226,14 +226,15 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
             $min = ord($node->start->value);
             $max = ord($node->end->value);
 
+            // This silences PHPStan by guaranteeing min <= max,
+            // even if the regex was invalid (e.g. [z-a])
             if ($min > $max) {
-                // This should be caught by ValidatorVisitor
-                return $node->start->value;
+                $max = $min;
             }
 
             return chr(random_int($min, $max));
         } catch (\Throwable) {
-            // Fallback if ord() fails or range is invalid
+            // Fallback if ord() fails
             return $node->start->value;
         }
     }
