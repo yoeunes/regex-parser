@@ -12,6 +12,10 @@ parameters:
         - src
         - tests
 
+    scanDirectories:
+        - tools/rector/vendor
+        - tools/phpstan/vendor
+
     editorUrl: 'phpstorm://open?file=%%file%%&line=%%line%%'
 
     tmpDir: .cache/phpstan

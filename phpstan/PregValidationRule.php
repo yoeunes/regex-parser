@@ -17,7 +17,6 @@ use PhpParser\Node\Name;
 use PHPStan\Analyser\Scope;
 use PHPStan\Rules\Rule;
 use PHPStan\Rules\RuleErrorBuilder;
-use PHPStan\Type\Constant\ConstantStringType;
 use RegexParser\Regex;
 
 /**
@@ -28,7 +27,7 @@ use RegexParser\Regex;
 final class PregValidationRule implements Rule
 {
     /**
-     * @var array<string, int> a map of preg_ function names to their pattern argument index
+     * @var array<string, int> A map of preg_ function names to their pattern argument index.
      */
     private const PREG_FUNCTION_MAP = [
         'preg_match' => 0,
@@ -70,28 +69,30 @@ final class PregValidationRule implements Rule
         $patternType = $scope->getType($patternArg);
 
         // This is the core of static analysis:
-        // We only analyse patterns that are constant strings.
-        if (!$patternType instanceof ConstantStringType) {
+        // Use getConstantStrings() to handle constant strings and unions of strings.
+        $constantStrings = $patternType->getConstantStrings();
+        if (0 === \count($constantStrings)) {
             // It's a dynamic variable (e.g., preg_match($pattern, ...)), we cannot check it.
             return [];
         }
 
-        $pattern = $patternType->getValue();
+        $errors = [];
+        foreach ($constantStrings as $constantString) {
+            $pattern = $constantString->getValue();
 
-        // Use our library's validation façade.
-        // This is clean because ::validate() encapsulates the try/catch logic.
-        $result = Regex::validate($pattern);
+            // Use our library's validation façade.
+            $result = Regex::validate($pattern);
 
-        if ($result->isValid) {
-            return [];
+            if (!$result->isValid) {
+                // We found an error!
+                $errors[] = RuleErrorBuilder::message(\sprintf('Invalid PCRE pattern: %s', $result->error))
+                    ->line($node->getLine())
+                    ->tip(\sprintf('This pattern can cause errors or ReDoS. See regex: %s', $pattern))
+                    ->identifier('regex.validation') // Add a machine-readable identifier
+                    ->build();
+            }
         }
 
-        // We found an error!
-        return [
-            RuleErrorBuilder::message(\sprintf('Invalid PCRE pattern: %s', $result->error))
-                ->line($node->getLine())
-                ->tip(\sprintf('This pattern can cause errors or ReDoS. See regex: %s', $pattern))
-                ->build(),
-        ];
+        return $errors;
     }
 }

@@ -50,7 +50,7 @@ class ValidatorNodeVisitorTest extends TestCase
     public function testThrowsOnNestedQuantifiers(): void
     {
         $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('Potential catastrophic backtracking: nested quantifiers detected.');
+        $this->expectExceptionMessage('Potential catastrophic backtracking: nested unbounded quantifiers detected.');
         $this->validate('/(a+)*b/');
     }
 

@@ -43,7 +43,7 @@ final class RegexOptimizationRector extends AbstractRector
     ];
 
     /**
-     * @var CompilerNodeVisitor&object{hasChanged: bool, flags: string}
+     * @var (CompilerNodeVisitor&object{hasChanged: bool, flags: string})|null
      */
     private ?CompilerNodeVisitor $optimizerVisitor = null;
 
@@ -64,6 +64,9 @@ final class RegexOptimizationRector extends AbstractRector
         );
     }
 
+    /**
+     * @return array<class-string<Node>>
+     */
     public function getNodeTypes(): array
     {
         // We now target function calls AND class constants.
@@ -92,7 +95,6 @@ final class RegexOptimizationRector extends AbstractRector
             $optimizerVisitor = $this->getOptimizerVisitor();
             $optimizerVisitor->hasChanged = false; // Reset state for this run
 
-            // ***THIS IS THE FIX***
             // Pass the flags to the visitor so it can make smart decisions.
             $optimizerVisitor->flags = $ast->flags;
 
@@ -101,17 +103,15 @@ final class RegexOptimizationRector extends AbstractRector
 
             // 4. If changes were made, reconstruct the full regex and update the node
             if ($optimizerVisitor->hasChanged) {
-                $newRegexString = $ast->delimiter.$optimizedPattern.$ast->delimiter.$ast->flags;
+                $newRegexString = $ast->delimiter . $optimizedPattern . $ast->delimiter . $ast->flags;
 
                 // Update the String_ node's value in place.
-                // This works whether it's in a FuncCall or a ClassConst.
                 $stringNode->value = $newRegexString;
 
                 return $node; // Return the modified node
             }
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
             // If parsing fails (invalid regex), do nothing.
-            // Let the PHPStan rule report it. Rector rules must not crash.
             return null;
         }
 
@@ -156,26 +156,22 @@ final class RegexOptimizationRector extends AbstractRector
 
     /**
      * Lazily create and cache the stateful visitor.
-     *
      * @return CompilerNodeVisitor&object{hasChanged: bool, flags: string}
      */
     private function getOptimizerVisitor(): CompilerNodeVisitor
     {
-        return $this->optimizerVisitor ??= new class extends CompilerNodeVisitor {
+        return $this->optimizerVisitor ??= new class() extends CompilerNodeVisitor {
             public bool $hasChanged = false;
 
-            // ***THIS IS THE FIX***
             // Property to hold the flags of the current regex
             public string $flags = '';
 
             public function visitCharClass(CharClassNode $node): string
             {
-                // ***THIS IS THE FIX***
                 // Only perform this optimization if the /u flag is NOT present.
                 if (!str_contains($this->flags, 'u')) {
                     if ($this->isFullWordClass($node)) {
                         $this->hasChanged = true;
-
                         return '\w';
                     }
                 }
@@ -194,7 +190,7 @@ final class RegexOptimizationRector extends AbstractRector
                 $partsFound = ['a-z' => false, 'A-Z' => false, '0-9' => false, '_' => false];
                 foreach ($node->parts as $part) {
                     if ($part instanceof RangeNode && $part->start instanceof LiteralNode && $part->end instanceof LiteralNode) {
-                        $range = $part->start->value.'-'.$part->end->value;
+                        $range = $part->start->value . '-' . $part->end->value;
                         if (isset($partsFound[$range])) {
                             $partsFound[$range] = true;
                         }
@@ -203,7 +199,7 @@ final class RegexOptimizationRector extends AbstractRector
                     }
                 }
 
-                return !\in_array(false, $partsFound, true);
+                return !in_array(false, $partsFound, true);
             }
         };
     }
