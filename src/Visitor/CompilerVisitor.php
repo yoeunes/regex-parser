@@ -161,7 +161,7 @@ class CompilerVisitor implements VisitorInterface
 
     public function visitBackref(BackrefNode $node): string
     {
-        return '\\' . $node->ref;
+        return '\\'.$node->ref;
     }
 
     public function visitUnicode(UnicodeNode $node): string
@@ -171,6 +171,6 @@ class CompilerVisitor implements VisitorInterface
 
     public function visitPosixClass(PosixClassNode $node): string
     {
-        return '[[:' . $node->class . ':]]';
+        return '[[:'.$node->class.':]]';
     }
 }

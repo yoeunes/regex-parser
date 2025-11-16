@@ -175,8 +175,8 @@ class ValidatorVisitor implements VisitorInterface
     public function visitPosixClass(PosixClassNode $node): void
     {
         $valid = ['alnum', 'alpha', 'ascii', 'blank', 'cntrl', 'digit', 'graph', 'lower', 'print', 'punct', 'space', 'upper', 'word', 'xdigit'];
-        if (!in_array(strtolower($node->class), $valid)) {
-            throw new ParserException('Invalid POSIX class: ' . $node->class);
+        if (!\in_array(strtolower($node->class), $valid)) {
+            throw new ParserException('Invalid POSIX class: '.$node->class);
         }
     }
 }

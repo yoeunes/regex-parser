@@ -1,4 +1,14 @@
 <?php
+
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace RegexParser\Visitor;
 
 use RegexParser\Ast\AlternationNode;
@@ -27,7 +37,7 @@ class DumperVisitor implements VisitorInterface
 
     public function visitRegex(RegexNode $node): string
     {
-        return "Regex(delimiter: {$node->delimiter}, flags: {$node->flags})\n" . $this->indent($node->pattern->accept($this));
+        return "Regex(delimiter: {$node->delimiter}, flags: {$node->flags})\n".$this->indent($node->pattern->accept($this));
     }
 
     public function visitAlternation(AlternationNode $node): string
@@ -35,9 +45,10 @@ class DumperVisitor implements VisitorInterface
         $str = "Alternation:\n";
         $this->indent += 2;
         foreach ($node->alternatives as $alt) {
-            $str .= $this->indent($alt->accept($this)) . "\n";
+            $str .= $this->indent($alt->accept($this))."\n";
         }
         $this->indent -= 2;
+
         return $str;
     }
 
@@ -46,21 +57,23 @@ class DumperVisitor implements VisitorInterface
         $str = "Sequence:\n";
         $this->indent += 2;
         foreach ($node->children as $child) {
-            $str .= $this->indent($child->accept($this)) . "\n";
+            $str .= $this->indent($child->accept($this))."\n";
         }
         $this->indent -= 2;
+
         return $str;
     }
 
     public function visitGroup(GroupNode $node): string
     {
         $name = $node->name ? " name: {$node->name}" : '';
-        return "Group(type: {$node->type->value}{$name})\n" . $this->indent($node->child->accept($this));
+
+        return "Group(type: {$node->type->value}{$name})\n".$this->indent($node->child->accept($this));
     }
 
     public function visitQuantifier(QuantifierNode $node): string
     {
-        return "Quantifier(quant: {$node->quantifier}, type: {$node->type->value})\n" . $this->indent($node->node->accept($this));
+        return "Quantifier(quant: {$node->quantifier}, type: {$node->type->value})\n".$this->indent($node->node->accept($this));
     }
 
     public function visitLiteral(LiteralNode $node): string
@@ -89,9 +102,10 @@ class DumperVisitor implements VisitorInterface
         $str = "CharClass({$neg})\n";
         $this->indent += 2;
         foreach ($node->parts as $part) {
-            $str .= $this->indent($part->accept($this)) . "\n";
+            $str .= $this->indent($part->accept($this))."\n";
         }
         $this->indent -= 2;
+
         return $str;
     }
 
@@ -117,6 +131,6 @@ class DumperVisitor implements VisitorInterface
 
     private function indent(string $str): string
     {
-        return str_replace("\n", "\n" . str_repeat(' ', $this->indent), $str);
+        return str_replace("\n", "\n".str_repeat(' ', $this->indent), $str);
     }
 }
