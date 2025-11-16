@@ -9,21 +9,21 @@
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Tests\Visitor;
+namespace RegexParser\Tests\NodeVisitor;
 
 use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\ParserException;
-use RegexParser\Parser\Parser;
-use RegexParser\Visitor\ValidatorVisitor;
+use RegexParser\NodeVisitor\ValidatorNodeNodeVisitor;
+use RegexParser\Parser;
 
-class ValidatorVisitorTest extends TestCase
+class ValidatorNodeVisitorTest extends TestCase
 {
     private function validate(string $regex): void
     {
         $parser = new Parser();
         $ast = $parser->parse($regex);
-        $visitor = new ValidatorVisitor();
+        $visitor = new ValidatorNodeNodeVisitor();
         $ast->accept($visitor);
     }
 

@@ -11,7 +11,7 @@
 
 namespace RegexParser\Node;
 
-use RegexParser\Visitor\VisitorInterface;
+use RegexParser\NodeVisitor\NodeVisitorInterface;
 
 /**
  * Represents a subroutine call (e.g., "(?R)", "(?1)", "(?&name)", "(?P>name)").
@@ -31,11 +31,11 @@ class SubroutineNode implements NodeInterface
     /**
      * @template T
      *
-     * @param VisitorInterface<T> $visitor
+     * @param NodeVisitorInterface<T> $visitor
      *
      * @return T
      */
-    public function accept(VisitorInterface $visitor)
+    public function accept(NodeVisitorInterface $visitor)
     {
         return $visitor->visitSubroutine($this);
     }

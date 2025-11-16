@@ -12,7 +12,7 @@
 namespace RegexParser\Tests\Benchmark;
 
 use PhpBench\Attributes as Bench;
-use RegexParser\Parser\Parser;
+use RegexParser\Parser;
 
 class ParserBenchmark
 {

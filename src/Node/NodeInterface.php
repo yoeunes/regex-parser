@@ -11,7 +11,7 @@
 
 namespace RegexParser\Node;
 
-use RegexParser\Visitor\VisitorInterface;
+use RegexParser\NodeVisitor\NodeVisitorInterface;
 
 /**
  * Base interface for all AST nodes.
@@ -23,9 +23,9 @@ interface NodeInterface
      *
      * @template T
      *
-     * @param VisitorInterface<T> $visitor
+     * @param NodeVisitorInterface<T> $visitor
      *
      * @return T
      */
-    public function accept(VisitorInterface $visitor);
+    public function accept(NodeVisitorInterface $visitor);
 }

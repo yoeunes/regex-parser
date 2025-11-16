@@ -11,7 +11,7 @@
 
 namespace RegexParser\Node;
 
-use RegexParser\Visitor\VisitorInterface;
+use RegexParser\NodeVisitor\NodeVisitorInterface;
 
 class ConditionalNode implements NodeInterface
 {
@@ -22,7 +22,7 @@ class ConditionalNode implements NodeInterface
     ) {
     }
 
-    public function accept(VisitorInterface $visitor)
+    public function accept(NodeVisitorInterface $visitor)
     {
         return $visitor->visitConditional($this);
     }

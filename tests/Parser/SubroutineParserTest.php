@@ -15,7 +15,7 @@ use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\ParserException;
 use RegexParser\Node\RegexNode;
 use RegexParser\Node\SubroutineNode;
-use RegexParser\Parser\Parser;
+use RegexParser\Parser;
 
 class SubroutineParserTest extends TestCase
 {

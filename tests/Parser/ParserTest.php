@@ -30,7 +30,7 @@ use RegexParser\Node\RangeNode;
 use RegexParser\Node\RegexNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\Node\UnicodePropNode;
-use RegexParser\Parser\Parser;
+use RegexParser\Parser;
 
 class ParserTest extends TestCase
 {

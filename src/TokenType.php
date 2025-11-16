@@ -9,7 +9,7 @@
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Lexer;
+namespace RegexParser;
 
 enum TokenType: string
 {

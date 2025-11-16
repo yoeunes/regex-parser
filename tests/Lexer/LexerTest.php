@@ -13,8 +13,8 @@ namespace RegexParser\Tests\Lexer;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\LexerException;
-use RegexParser\Lexer\Lexer;
-use RegexParser\Lexer\TokenType;
+use RegexParser\Lexer;
+use RegexParser\TokenType;
 
 class LexerTest extends TestCase
 {

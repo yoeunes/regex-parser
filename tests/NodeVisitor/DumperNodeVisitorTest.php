@@ -9,19 +9,19 @@
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Tests\Visitor;
+namespace RegexParser\Tests\NodeVisitor;
 
 use PHPUnit\Framework\TestCase;
-use RegexParser\Parser\Parser;
-use RegexParser\Visitor\DumperVisitor;
+use RegexParser\NodeVisitor\DumperNodeNodeVisitor;
+use RegexParser\Parser;
 
-class DumperVisitorTest extends TestCase
+class DumperNodeVisitorTest extends TestCase
 {
     public function testDumpSimple(): void
     {
         $parser = new Parser();
         $ast = $parser->parse('/a(b|c)/');
-        $dumper = new DumperVisitor();
+        $dumper = new DumperNodeNodeVisitor();
         $dump = $ast->accept($dumper);
         $this->assertStringContainsString('Group(type: capturing flags: )', $dump);
         $this->assertStringContainsString('Alternation', $dump);

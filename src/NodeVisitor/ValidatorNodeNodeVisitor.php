@@ -9,7 +9,7 @@
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Visitor;
+namespace RegexParser\NodeVisitor;
 
 use RegexParser\Exception\ParserException;
 use RegexParser\Node\AlternationNode;
@@ -39,9 +39,9 @@ use RegexParser\Node\UnicodePropNode;
  * A visitor that validates semantic rules of the regex AST.
  * (e.g., quantifier ranges, catastrophic backtracking).
  *
- * @implements VisitorInterface<void>
+ * @implements NodeVisitorInterface<void>
  */
-class ValidatorVisitor implements VisitorInterface
+class ValidatorNodeNodeVisitor implements NodeVisitorInterface
 {
     /**
      * Tracks the depth of nested quantifiers to detect catastrophic backtracking.

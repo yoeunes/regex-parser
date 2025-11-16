@@ -11,7 +11,7 @@
 
 namespace RegexParser\Node;
 
-use RegexParser\Visitor\VisitorInterface;
+use RegexParser\NodeVisitor\NodeVisitorInterface;
 
 /**
  * Represents an alternation (e.g., "a|b").
@@ -28,11 +28,11 @@ class AlternationNode implements NodeInterface
     /**
      * @template T
      *
-     * @param VisitorInterface<T> $visitor
+     * @param NodeVisitorInterface<T> $visitor
      *
      * @return T
      */
-    public function accept(VisitorInterface $visitor)
+    public function accept(NodeVisitorInterface $visitor)
     {
         return $visitor->visitAlternation($this);
     }

@@ -9,7 +9,7 @@
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Visitor;
+namespace RegexParser\NodeVisitor;
 
 use RegexParser\Node\AlternationNode;
 use RegexParser\Node\AnchorNode;
@@ -38,7 +38,7 @@ use RegexParser\Node\UnicodePropNode;
  *
  * @template-covariant TReturn The return type of the visitor (e.g., 'string' for Compiler, 'void' for Validator)
  */
-interface VisitorInterface
+interface NodeVisitorInterface
 {
     /**
      * @return TReturn

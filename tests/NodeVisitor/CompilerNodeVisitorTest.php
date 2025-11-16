@@ -9,19 +9,19 @@
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Tests\Visitor;
+namespace RegexParser\Tests\NodeVisitor;
 
 use PHPUnit\Framework\TestCase;
-use RegexParser\Parser\Parser;
-use RegexParser\Visitor\CompilerVisitor;
+use RegexParser\NodeVisitor\CompilerNodeNodeVisitor;
+use RegexParser\Parser;
 
-class CompilerVisitorTest extends TestCase
+class CompilerNodeVisitorTest extends TestCase
 {
     private function compile(string $regex): string
     {
         $parser = new Parser();
         $ast = $parser->parse($regex);
-        $visitor = new CompilerVisitor();
+        $visitor = new CompilerNodeNodeVisitor();
 
         return $ast->accept($visitor);
     }

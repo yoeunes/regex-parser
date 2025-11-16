@@ -9,12 +9,9 @@
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Parser;
+namespace RegexParser;
 
 use RegexParser\Exception\ParserException;
-use RegexParser\Lexer\Lexer;
-use RegexParser\Lexer\Token;
-use RegexParser\Lexer\TokenType;
 use RegexParser\Node\AlternationNode;
 use RegexParser\Node\AnchorNode;
 use RegexParser\Node\AssertionNode;

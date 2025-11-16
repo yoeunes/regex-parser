@@ -11,7 +11,7 @@
 
 namespace RegexParser\Node;
 
-use RegexParser\Visitor\VisitorInterface;
+use RegexParser\NodeVisitor\NodeVisitorInterface;
 
 class UnicodePropNode implements NodeInterface
 {
@@ -19,7 +19,7 @@ class UnicodePropNode implements NodeInterface
     {
     }
 
-    public function accept(VisitorInterface $visitor)
+    public function accept(NodeVisitorInterface $visitor)
     {
         return $visitor->visitUnicodeProp($this);
     }

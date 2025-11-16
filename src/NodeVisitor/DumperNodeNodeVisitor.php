@@ -9,7 +9,7 @@
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Visitor;
+namespace RegexParser\NodeVisitor;
 
 use RegexParser\Node\AlternationNode;
 use RegexParser\Node\AnchorNode;
@@ -35,9 +35,9 @@ use RegexParser\Node\UnicodePropNode;
 /**
  * A visitor that dumps the AST as a string for debugging.
  *
- * @implements VisitorInterface<string>
+ * @implements NodeVisitorInterface<string>
  */
-class DumperVisitor implements VisitorInterface
+class DumperNodeNodeVisitor implements NodeVisitorInterface
 {
     private int $indent = 0;
 

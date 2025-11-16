@@ -14,9 +14,9 @@ require __DIR__.'/../vendor/autoload.php';
 
 use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
-use RegexParser\Parser\Parser;
-use RegexParser\Visitor\CompilerVisitor;
-use RegexParser\Visitor\ValidatorVisitor;
+use RegexParser\NodeVisitor\CompilerNodeNodeVisitor;
+use RegexParser\NodeVisitor\ValidatorNodeNodeVisitor;
+use RegexParser\Parser;
 
 if ($argc < 2) {
     echo "Usage: php bin/regex-parser '/your_regex_here/flags'\n";
@@ -31,12 +31,12 @@ try {
     $ast = $parser->parse($regex);
 
     // 2. Validation
-    $validator = new ValidatorVisitor();
+    $validator = new ValidatorNodeNodeVisitor();
     $ast->accept($validator);
     echo "Validation: OK\n";
 
     // 3. Recompilation
-    $compiler = new CompilerVisitor();
+    $compiler = new CompilerNodeNodeVisitor();
     $compiled = $ast->accept($compiler);
 
     echo "Parsed successfully!\n";

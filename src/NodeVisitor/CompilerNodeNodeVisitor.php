@@ -9,7 +9,7 @@
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Visitor;
+namespace RegexParser\NodeVisitor;
 
 use RegexParser\Node\AlternationNode;
 use RegexParser\Node\AnchorNode;
@@ -37,9 +37,9 @@ use RegexParser\Node\UnicodePropNode;
 /**
  * A visitor that recompiles the AST back into a regex string.
  *
- * @implements VisitorInterface<string>
+ * @implements NodeVisitorInterface<string>
  */
-class CompilerVisitor implements VisitorInterface
+class CompilerNodeNodeVisitor implements NodeVisitorInterface
 {
     // PCRE meta-characters that must be escaped *outside* a character class.
     private const META_CHARACTERS = [
