@@ -20,7 +20,7 @@ class CharClassNode extends AbstractNode
 {
     /**
      * @param array<NodeInterface> $parts     the parts of the class (LiteralNode, CharTypeNode, RangeNode)
-     * @param bool                 $isNegated Whether the class is negated (e.g., "[^...]"
+     * @param bool                 $isNegated Whether the class is negated (e.g., '[^...]')
      * @param int                  $startPos  The 0-based start offset
      * @param int                  $endPos    The 0-based end offset (exclusive)
      */

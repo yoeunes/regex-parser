@@ -61,7 +61,7 @@ class AdvancedParserTest extends TestCase
         $ast = $parser->parse('/a(?=b)/');
 
         $this->assertInstanceOf(RegexNode::class, $ast);
-        // $ast->pattern est un SequenceNode(Literal(a), GroupNode(...))
+        // $ast->pattern is a SequenceNode(Literal(a), GroupNode(...))
         $this->assertInstanceOf(SequenceNode::class, $ast->pattern);
         $this->assertCount(2, $ast->pattern->children);
         $group = $ast->pattern->children[1];

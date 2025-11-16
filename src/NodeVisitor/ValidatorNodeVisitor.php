@@ -262,7 +262,6 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
     public function visitUnicodeProp(UnicodePropNode $node): void
     {
         // Validate known properties (partial list; expand as needed)
-        // This is reverted to the original logic to pass the existing test.
         $validProps = ['L', 'Lu', 'Ll', 'M', 'N', 'P', 'S', 'Z', 'C']; // etc.
         $prop = ltrim($node->prop, '^');
         if (!\in_array($prop, $validProps, true)) {

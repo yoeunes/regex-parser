@@ -14,6 +14,8 @@ namespace RegexParser;
 use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
 use RegexParser\Node\RegexNode;
+use RegexParser\NodeVisitor\ExplainVisitor;
+use RegexParser\NodeVisitor\SampleGeneratorVisitor;
 use RegexParser\NodeVisitor\ValidatorNodeVisitor;
 
 /**
@@ -52,26 +54,28 @@ final class Regex
     }
 
     /**
-     * (Stub) Explains the regex in a human-readable format.
+     * Explains the regex in a human-readable format.
+     *
+     * @throws LexerException|ParserException
      */
     public static function explain(string $regex): string
     {
-        // $ast = self::parse($regex);
-        // $visitor = new ExplainVisitor(); // This visitor needs to be created
-        // return $ast->accept($visitor);
+        $ast = self::parse($regex);
+        $visitor = new ExplainVisitor();
 
-        throw new \LogicException('ExplainVisitor is not yet implemented.');
+        return $ast->accept($visitor);
     }
 
     /**
-     * (Stub) Generates a random sample string that matches the regex.
+     * Generates a random sample string that matches the regex.
+     *
+     * @throws LexerException|ParserException
      */
     public static function generate(string $regex): string
     {
-        // $ast = self::parse($regex);
-        // $visitor = new SampleGeneratorVisitor(); // This visitor needs to be created
-        // return $ast->accept($visitor);
+        $ast = self::parse($regex);
+        $visitor = new SampleGeneratorVisitor();
 
-        throw new \LogicException('SampleGeneratorVisitor is not yet implemented.');
+        return $ast->accept($visitor);
     }
 }
