@@ -21,9 +21,14 @@ class SequenceNode implements NodeInterface
 {
     /**
      * @param array<NodeInterface> $children the nodes in the sequence
+     * @param int                  $startPos The 0-based start offset
+     * @param int                  $endPos   The 0-based end offset (exclusive)
      */
-    public function __construct(public readonly array $children)
-    {
+    public function __construct(
+        public readonly array $children,
+        public readonly int $startPos,
+        public readonly int $endPos,
+    ) {
     }
 
     /**
@@ -36,5 +41,15 @@ class SequenceNode implements NodeInterface
     public function accept(NodeVisitorInterface $visitor)
     {
         return $visitor->visitSequence($this);
+    }
+
+    public function getStartPosition(): int
+    {
+        return $this->startPos;
+    }
+
+    public function getEndPosition(): int
+    {
+        return $this->endPos;
     }
 }

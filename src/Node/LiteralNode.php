@@ -19,10 +19,15 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
 class LiteralNode implements NodeInterface
 {
     /**
-     * @param string $value the literal character
+     * @param string $value    the literal character
+     * @param int    $startPos The 0-based start offset
+     * @param int    $endPos   The 0-based end offset (exclusive)
      */
-    public function __construct(public readonly string $value)
-    {
+    public function __construct(
+        public readonly string $value,
+        public readonly int $startPos,
+        public readonly int $endPos,
+    ) {
     }
 
     /**
@@ -35,5 +40,15 @@ class LiteralNode implements NodeInterface
     public function accept(NodeVisitorInterface $visitor)
     {
         return $visitor->visitLiteral($this);
+    }
+
+    public function getStartPosition(): int
+    {
+        return $this->startPos;
+    }
+
+    public function getEndPosition(): int
+    {
+        return $this->endPos;
     }
 }

@@ -28,4 +28,14 @@ interface NodeInterface
      * @return T
      */
     public function accept(NodeVisitorInterface $visitor);
+
+    /**
+     * Gets the 0-based start offset of the node in the original pattern string.
+     */
+    public function getStartPosition(): int;
+
+    /**
+     * Gets the 0-based end offset (exclusive) of the node in the original pattern string.
+     */
+    public function getEndPosition(): int;
 }

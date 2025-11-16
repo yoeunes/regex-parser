@@ -19,16 +19,20 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
 class GroupNode implements NodeInterface
 {
     /**
-     * @param NodeInterface $child the expression contained within the group
-     * @param GroupType     $type  The semantic type of the group
-     * @param ?string       $name  The name, if it's a named group
-     * @param ?string       $flags Inline flags for (?i:...)
+     * @param NodeInterface $child    the expression contained within the group
+     * @param GroupType     $type     The semantic type of the group
+     * @param ?string       $name     The name, if it's a named group
+     * @param ?string       $flags    Inline flags for (?i:...)
+     * @param int           $startPos The 0-based start offset
+     * @param int           $endPos   The 0-based end offset (exclusive)
      */
     public function __construct(
         public readonly NodeInterface $child,
         public readonly GroupType $type,
         public readonly ?string $name = null,
         public readonly ?string $flags = null,
+        public readonly int $startPos = 0,
+        public readonly int $endPos = 0,
     ) {
     }
 
@@ -42,5 +46,15 @@ class GroupNode implements NodeInterface
     public function accept(NodeVisitorInterface $visitor)
     {
         return $visitor->visitGroup($this);
+    }
+
+    public function getStartPosition(): int
+    {
+        return $this->startPos;
+    }
+
+    public function getEndPosition(): int
+    {
+        return $this->endPos;
     }
 }
