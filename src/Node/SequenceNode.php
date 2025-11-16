@@ -17,7 +17,7 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
  * Represents a sequence (concatenation) of nodes.
  * Ex: "abc" is Sequence(Literal(a), Literal(b), Literal(c)).
  */
-class SequenceNode implements NodeInterface
+class SequenceNode extends AbstractNode
 {
     /**
      * @param array<NodeInterface> $children the nodes in the sequence
@@ -26,9 +26,10 @@ class SequenceNode implements NodeInterface
      */
     public function __construct(
         public readonly array $children,
-        public readonly int $startPos,
-        public readonly int $endPos,
+        int $startPos,
+        int $endPos,
     ) {
+        parent::__construct($startPos, $endPos);
     }
 
     /**
@@ -41,15 +42,5 @@ class SequenceNode implements NodeInterface
     public function accept(NodeVisitorInterface $visitor)
     {
         return $visitor->visitSequence($this);
-    }
-
-    public function getStartPosition(): int
-    {
-        return $this->startPos;
-    }
-
-    public function getEndPosition(): int
-    {
-        return $this->endPos;
     }
 }

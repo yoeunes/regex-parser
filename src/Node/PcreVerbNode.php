@@ -16,13 +16,19 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
 /**
  * Represents a PCRE verb (e.g., "(*FAIL)", "(*COMMIT)").
  */
-class PcreVerbNode implements NodeInterface
+class PcreVerbNode extends AbstractNode
 {
     /**
-     * @param string $verb The verb name (e.g., "FAIL", "COMMIT")
+     * @param string $verb     The verb name (e.g., "FAIL", "COMMIT")
+     * @param int    $startPos The 0-based start offset
+     * @param int    $endPos   The 0-based end offset (exclusive)
      */
-    public function __construct(public readonly string $verb)
-    {
+    public function __construct(
+        public readonly string $verb,
+        int $startPos,
+        int $endPos,
+    ) {
+        parent::__construct($startPos, $endPos);
     }
 
     /**

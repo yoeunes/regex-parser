@@ -11,33 +11,29 @@
 
 namespace RegexParser\Node;
 
-use RegexParser\NodeVisitor\NodeVisitorInterface;
-
 /**
- * Represents the dot "." wildcard character.
+ * Base class for all AST nodes.
+ * Implements the NodeInterface and provides shared position logic.
  */
-class DotNode extends AbstractNode
+abstract class AbstractNode extends AbstractNode
 {
     /**
      * @param int $startPos The 0-based start offset
      * @param int $endPos   The 0-based end offset (exclusive)
      */
     public function __construct(
-        int $startPos,
-        int $endPos,
+        public readonly int $startPos,
+        public readonly int $endPos,
     ) {
-        parent::__construct($startPos, $endPos);
     }
 
-    /**
-     * @template T
-     *
-     * @param NodeVisitorInterface<T> $visitor
-     *
-     * @return T
-     */
-    public function accept(NodeVisitorInterface $visitor)
+    public function getStartPosition(): int
     {
-        return $visitor->visitDot($this);
+        return $this->startPos;
+    }
+
+    public function getEndPosition(): int
+    {
+        return $this->endPos;
     }
 }

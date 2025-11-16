@@ -16,8 +16,19 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
 /**
  * Represents the \K "keep" assertion.
  */
-class KeepNode implements NodeInterface
+class KeepNode extends AbstractNode
 {
+    /**
+     * @param int $startPos The 0-based start offset
+     * @param int $endPos   The 0-based end offset (exclusive)
+     */
+    public function __construct(
+        int $startPos,
+        int $endPos,
+    ) {
+        parent::__construct($startPos, $endPos);
+    }
+
     /**
      * @template T
      *

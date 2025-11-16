@@ -16,13 +16,19 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
 /**
  * Represents an alternation (e.g., "a|b").
  */
-class AlternationNode implements NodeInterface
+class AlternationNode extends AbstractNode
 {
     /**
      * @param array<NodeInterface> $alternatives the nodes in the alternation
+     * @param int                  $startPos     The 0-based start offset
+     * @param int                  $endPos       The 0-based end offset (exclusive)
      */
-    public function __construct(public readonly array $alternatives)
-    {
+    public function __construct(
+        public readonly array $alternatives,
+        int $startPos,
+        int $endPos,
+    ) {
+        parent::__construct($startPos, $endPos);
     }
 
     /**

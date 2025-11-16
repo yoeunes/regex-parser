@@ -16,16 +16,21 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
 /**
  * Represents a character class (e.g., "[a-z]", "[^0-9]").
  */
-class CharClassNode implements NodeInterface
+class CharClassNode extends AbstractNode
 {
     /**
      * @param array<NodeInterface> $parts     the parts of the class (LiteralNode, CharTypeNode, RangeNode)
      * @param bool                 $isNegated Whether the class is negated (e.g., "[^...]"
+     * @param int                  $startPos  The 0-based start offset
+     * @param int                  $endPos    The 0-based end offset (exclusive)
      */
     public function __construct(
         public readonly array $parts,
         public readonly bool $isNegated,
+        int $startPos,
+        int $endPos,
     ) {
+        parent::__construct($startPos, $endPos);
     }
 
     /**

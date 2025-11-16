@@ -16,13 +16,19 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
 /**
  * Represents an escaped character class type (e.g., "\d", "\s", "\W").
  */
-class CharTypeNode implements NodeInterface
+class CharTypeNode extends AbstractNode
 {
     /**
-     * @param string $value The character type (e.g., "d", "s", "W").
+     * @param string $value    The character type (e.g., "d", "s", "W").
+     * @param int    $startPos The 0-based start offset
+     * @param int    $endPos   The 0-based end offset (exclusive)
      */
-    public function __construct(public readonly string $value)
-    {
+    public function __construct(
+        public readonly string $value,
+        int $startPos,
+        int $endPos,
+    ) {
+        parent::__construct($startPos, $endPos);
     }
 
     /**

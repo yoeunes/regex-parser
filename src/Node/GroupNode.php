@@ -16,7 +16,7 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
 /**
  * Represents a group (e.g., "(...)", "(?:...)", "(?<name>...)").
  */
-class GroupNode implements NodeInterface
+class GroupNode extends AbstractNode
 {
     /**
      * @param NodeInterface $child    the expression contained within the group
@@ -31,9 +31,10 @@ class GroupNode implements NodeInterface
         public readonly GroupType $type,
         public readonly ?string $name = null,
         public readonly ?string $flags = null,
-        public readonly int $startPos = 0,
-        public readonly int $endPos = 0,
+        int $startPos = 0,
+        int $endPos = 0,
     ) {
+        parent::__construct($startPos, $endPos);
     }
 
     /**
@@ -46,15 +47,5 @@ class GroupNode implements NodeInterface
     public function accept(NodeVisitorInterface $visitor)
     {
         return $visitor->visitGroup($this);
-    }
-
-    public function getStartPosition(): int
-    {
-        return $this->startPos;
-    }
-
-    public function getEndPosition(): int
-    {
-        return $this->endPos;
     }
 }

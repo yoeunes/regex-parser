@@ -16,18 +16,23 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
 /**
  * Represents the root of a parsed regex, containing the pattern and any flags.
  */
-class RegexNode implements NodeInterface
+class RegexNode extends AbstractNode
 {
     /**
      * @param NodeInterface $pattern   The root node of the regex pattern (e.g., an AlternationNode or SequenceNode).
      * @param string        $flags     A string of flags (e.g., "imsU").
      * @param string        $delimiter The opening delimiter (e.g., "/", "~", "(").
+     * @param int           $startPos  The 0-based start offset
+     * @param int           $endPos    The 0-based end offset (exclusive)
      */
     public function __construct(
         public readonly NodeInterface $pattern,
         public readonly string $flags,
         public readonly string $delimiter,
+        int $startPos,
+        int $endPos,
     ) {
+        parent::__construct($startPos, $endPos);
     }
 
     /**

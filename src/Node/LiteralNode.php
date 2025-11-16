@@ -16,7 +16,7 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
 /**
  * Represents a literal character (e.g., "a", "1", or an escaped "\*").
  */
-class LiteralNode implements NodeInterface
+class LiteralNode extends AbstractNode
 {
     /**
      * @param string $value    the literal character
@@ -25,9 +25,10 @@ class LiteralNode implements NodeInterface
      */
     public function __construct(
         public readonly string $value,
-        public readonly int $startPos,
-        public readonly int $endPos,
+        int $startPos,
+        int $endPos,
     ) {
+        parent::__construct($startPos, $endPos);
     }
 
     /**
@@ -40,15 +41,5 @@ class LiteralNode implements NodeInterface
     public function accept(NodeVisitorInterface $visitor)
     {
         return $visitor->visitLiteral($this);
-    }
-
-    public function getStartPosition(): int
-    {
-        return $this->startPos;
-    }
-
-    public function getEndPosition(): int
-    {
-        return $this->endPos;
     }
 }

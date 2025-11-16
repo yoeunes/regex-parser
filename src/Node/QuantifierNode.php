@@ -16,18 +16,23 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
 /**
  * Represents a quantifier (e.g., "*", "+", "{1,3}").
  */
-class QuantifierNode implements NodeInterface
+class QuantifierNode extends AbstractNode
 {
     /**
      * @param NodeInterface  $node       the node to be quantified
      * @param string         $quantifier The quantifier string (e.g., "*", "{1,3}").
      * @param QuantifierType $type       The type of quantifier (greedy, lazy, possessive)
+     * @param int            $startPos   The 0-based start offset
+     * @param int            $endPos     The 0-based end offset (exclusive)
      */
     public function __construct(
         public readonly NodeInterface $node,
         public readonly string $quantifier,
         public readonly QuantifierType $type,
+        int $startPos,
+        int $endPos,
     ) {
+        parent::__construct($startPos, $endPos);
     }
 
     /**

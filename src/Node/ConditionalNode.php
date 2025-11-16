@@ -13,13 +13,20 @@ namespace RegexParser\Node;
 
 use RegexParser\NodeVisitor\NodeVisitorInterface;
 
-class ConditionalNode implements NodeInterface
+class ConditionalNode extends AbstractNode
 {
+    /**
+     * @param int $startPos The 0-based start offset
+     * @param int $endPos   The 0-based end offset (exclusive)
+     */
     public function __construct(
         public readonly NodeInterface $condition,
         public readonly NodeInterface $yes,
         public readonly NodeInterface $no,
+        int $startPos,
+        int $endPos,
     ) {
+        parent::__construct($startPos, $endPos);
     }
 
     public function accept(NodeVisitorInterface $visitor)

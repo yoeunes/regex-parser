@@ -16,16 +16,21 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
 /**
  * Represents a subroutine call (e.g., "(?R)", "(?1)", "(?&name)", "(?P>name)").
  */
-class SubroutineNode implements NodeInterface
+class SubroutineNode extends AbstractNode
 {
     /**
      * @param string $reference The group reference (e.g., "R", "0", "1", "name").
      * @param string $syntax    The original syntax (e.g., "&", "P>", "g", "").
+     * @param int    $startPos  The 0-based start offset
+     * @param int    $endPos    The 0-based end offset (exclusive)
      */
     public function __construct(
         public readonly string $reference,
         public readonly string $syntax = '',
+        int $startPos,
+        int $endPos,
     ) {
+        parent::__construct($startPos, $endPos);
     }
 
     /**

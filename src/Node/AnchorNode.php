@@ -16,13 +16,19 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
 /**
  * Represents an anchor (e.g., "^" or "$").
  */
-class AnchorNode implements NodeInterface
+class AnchorNode extends AbstractNode
 {
     /**
-     * @param string $value the anchor character ("^" or "$")
+     * @param string $value    the anchor character ("^" or "$")
+     * @param int    $startPos The 0-based start offset
+     * @param int    $endPos   The 0-based end offset (exclusive)
      */
-    public function __construct(public readonly string $value)
-    {
+    public function __construct(
+        public readonly string $value,
+        int $startPos,
+        int $endPos,
+    ) {
+        parent::__construct($startPos, $endPos);
     }
 
     /**

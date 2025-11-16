@@ -16,13 +16,19 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
 /**
  * Represents an assertion (e.g., \b, \A).
  */
-class AssertionNode implements NodeInterface
+class AssertionNode extends AbstractNode
 {
     /**
-     * @param string $value the assertion character (\b, \A, etc.)
+     * @param string $value    the assertion character (\b, \A, etc.)
+     * @param int    $startPos The 0-based start offset
+     * @param int    $endPos   The 0-based end offset (exclusive)
      */
-    public function __construct(public readonly string $value)
-    {
+    public function __construct(
+        public readonly string $value,
+        int $startPos,
+        int $endPos,
+    ) {
+        parent::__construct($startPos, $endPos);
     }
 
     /**

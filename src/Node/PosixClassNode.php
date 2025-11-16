@@ -13,10 +13,18 @@ namespace RegexParser\Node;
 
 use RegexParser\NodeVisitor\NodeVisitorInterface;
 
-class PosixClassNode implements NodeInterface
+class PosixClassNode extends AbstractNode
 {
-    public function __construct(public readonly string $class)
-    {
+    /**
+     * @param int $startPos The 0-based start offset
+     * @param int $endPos   The 0-based end offset (exclusive)
+     */
+    public function __construct(
+        public readonly string $class,
+        int $startPos,
+        int $endPos,
+    ) {
+        parent::__construct($startPos, $endPos);
     }
 
     public function accept(NodeVisitorInterface $visitor)
