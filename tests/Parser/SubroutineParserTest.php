@@ -24,7 +24,6 @@ class SubroutineParserTest extends TestCase
         $parser = new Parser();
         $ast = $parser->parse('/(?R)/');
 
-        $this->assertInstanceOf(RegexNode::class, $ast);
         $this->assertInstanceOf(SubroutineNode::class, $ast->pattern);
         $this->assertSame('R', $ast->pattern->reference);
         $this->assertSame('', $ast->pattern->syntax);
@@ -35,7 +34,6 @@ class SubroutineParserTest extends TestCase
         $parser = new Parser();
         $ast = $parser->parse('/(?1)/');
 
-        $this->assertInstanceOf(RegexNode::class, $ast);
         $this->assertInstanceOf(SubroutineNode::class, $ast->pattern);
         $this->assertSame('1', $ast->pattern->reference);
     }
@@ -45,7 +43,6 @@ class SubroutineParserTest extends TestCase
         $parser = new Parser();
         $ast = $parser->parse('/(?-1)/');
 
-        $this->assertInstanceOf(RegexNode::class, $ast);
         $this->assertInstanceOf(SubroutineNode::class, $ast->pattern);
         $this->assertSame('-1', $ast->pattern->reference);
     }
@@ -55,7 +52,6 @@ class SubroutineParserTest extends TestCase
         $parser = new Parser();
         $ast = $parser->parse('/(?&name)/');
 
-        $this->assertInstanceOf(RegexNode::class, $ast);
         $this->assertInstanceOf(SubroutineNode::class, $ast->pattern);
         $this->assertSame('name', $ast->pattern->reference);
         $this->assertSame('&', $ast->pattern->syntax);
@@ -66,7 +62,6 @@ class SubroutineParserTest extends TestCase
         $parser = new Parser();
         $ast = $parser->parse('/(?P>name)/');
 
-        $this->assertInstanceOf(RegexNode::class, $ast);
         $this->assertInstanceOf(SubroutineNode::class, $ast->pattern);
         $this->assertSame('name', $ast->pattern->reference);
         $this->assertSame('P>', $ast->pattern->syntax);

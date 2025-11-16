@@ -44,7 +44,6 @@ class ParserTest extends TestCase
         $parser = $this->createParser();
         $ast = $parser->parse('/foo/imsU');
 
-        $this->assertInstanceOf(RegexNode::class, $ast);
         $this->assertSame('imsU', $ast->flags);
         $this->assertInstanceOf(SequenceNode::class, $ast->pattern);
     }
@@ -52,7 +51,6 @@ class ParserTest extends TestCase
     public function testParseLiteral(): void
     {
         $parser = $this->createParser();
-        /** @var RegexNode $ast */
         $ast = $parser->parse('/foo/');
         $pattern = $ast->pattern;
 
@@ -64,7 +62,7 @@ class ParserTest extends TestCase
     public function testParseCharClass(): void
     {
         $parser = $this->createParser();
-        /** @var RegexNode $ast */
+
         $ast = $parser->parse('/[a-z\d-]/');
         $pattern = $ast->pattern;
 
@@ -91,7 +89,7 @@ class ParserTest extends TestCase
     public function testParseNegatedCharClass(): void
     {
         $parser = $this->createParser();
-        /** @var RegexNode $ast */
+
         $ast = $parser->parse('/[^a-z]/');
         $pattern = $ast->pattern;
 
@@ -104,7 +102,7 @@ class ParserTest extends TestCase
     public function testParseGroupWithQuantifier(): void
     {
         $parser = $this->createParser();
-        /** @var RegexNode $ast */
+
         $ast = $parser->parse('/(bar)?/');
         $pattern = $ast->pattern;
 
@@ -127,7 +125,7 @@ class ParserTest extends TestCase
     public function testParseAlternation(): void
     {
         $parser = $this->createParser();
-        /** @var RegexNode $ast */
+
         $ast = $parser->parse('/foo|bar/');
         $pattern = $ast->pattern;
 
@@ -154,7 +152,7 @@ class ParserTest extends TestCase
     public function testParseOperatorPrecedence(): void
     {
         $parser = $this->createParser();
-        /** @var RegexNode $ast */
+
         $ast = $parser->parse('/ab*c/');
         $pattern = $ast->pattern;
 
@@ -185,7 +183,7 @@ class ParserTest extends TestCase
     public function testParseCharTypesAndDot(): void
     {
         $parser = $this->createParser();
-        /** @var RegexNode $ast */
+
         $ast = $parser->parse('/.\d\S/');
         $pattern = $ast->pattern;
 
@@ -202,7 +200,7 @@ class ParserTest extends TestCase
     public function testParseAnchors(): void
     {
         $parser = $this->createParser();
-        /** @var RegexNode $ast */
+
         $ast = $parser->parse('/^foo$/');
         $pattern = $ast->pattern;
 
@@ -223,7 +221,7 @@ class ParserTest extends TestCase
     public function testParseAssertions(): void
     {
         $parser = $this->createParser();
-        /** @var RegexNode $ast */
+
         $ast = $parser->parse('/\Afoo\b/');
         $pattern = $ast->pattern;
 
@@ -240,7 +238,7 @@ class ParserTest extends TestCase
     public function testParseUnicodeProp(): void
     {
         $parser = $this->createParser();
-        /** @var RegexNode $ast */
+
         $ast = $parser->parse('/\p{L}/');
         $pattern = $ast->pattern;
 
@@ -251,7 +249,7 @@ class ParserTest extends TestCase
     public function testParseComment(): void
     {
         $parser = $this->createParser();
-        /** @var RegexNode $ast */
+
         $ast = $parser->parse('/(?#test)/');
         $pattern = $ast->pattern;
 
@@ -262,7 +260,7 @@ class ParserTest extends TestCase
     public function testParseConditional(): void
     {
         $parser = $this->createParser();
-        /** @var RegexNode $ast */
+
         $ast = $parser->parse('/(?(1)a|b)/');
         $pattern = $ast->pattern;
 
@@ -302,7 +300,7 @@ class ParserTest extends TestCase
     public function testParseEscapedChars(): void
     {
         $parser = $this->createParser();
-        /** @var RegexNode $ast */
+
         $ast = $parser->parse('/a\*b/');
         $pattern = $ast->pattern;
 
@@ -318,7 +316,7 @@ class ParserTest extends TestCase
     public function testParseInlineFlags(): void
     {
         $parser = $this->createParser();
-        /** @var RegexNode $ast */
+
         $ast = $parser->parse('/(?i:foo)/');
         $pattern = $ast->pattern;
 
