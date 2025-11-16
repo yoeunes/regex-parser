@@ -58,7 +58,7 @@ class Lexer
         | (?<T_UNICODE_PROP>        \\\\ [pP] (?: \{ (?<v1_prop> \^? [a-zA-Z0-9_]+) \} | (?<v2_prop> [a-zA-Z]) ) )
         | (?<T_QUOTE_MODE_START>    \\\\ Q )
         | (?<T_QUOTE_MODE_END>      \\\\ E )
-        | (?<T_LITERAL_ESCAPED>     \\\\ . ) # Any other escaped char
+        | (?<T_LITERAL_ESCAPED>     \\\\ . )
         | (?<T_LITERAL>             . )
     /xsuA'; // s: . matches \n, u: unicode, A: anchored
 
