@@ -87,4 +87,13 @@ enum TokenType: string
 
     /** The \K "keep" assertion. */
     case T_KEEP = 'keep';
+
+    /** A literal generated from an escaped sequence (e.g., "\*"). */
+    case T_LITERAL_ESCAPED = 'literal_escaped';
+
+    /** The \Q sequence start. */
+    case T_QUOTE_MODE_START = 'quote_mode_start';
+
+    /** The \E sequence end. */
+    case T_QUOTE_MODE_END = 'quote_mode_end';
 }

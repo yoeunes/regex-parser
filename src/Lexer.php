@@ -14,509 +14,291 @@ namespace RegexParser;
 use RegexParser\Exception\LexerException;
 
 /**
- * The Lexer (or Tokenizer).
- * Its job is to split the regex *pattern* string into a stream of Tokens.
- * It no longer handles delimiters; that is the Parser's job.
+ * The Lexer (Tokenizer) - High-Performance State-Machine Version.
+ *
+ * This implementation uses preg_match() in a loop to "consume"
+ * whole tokens, instead of iterating character-by-character.
+ * This is the approach used by Twig, Doctrine, and other
+ * high-performance parsers.
  */
 class Lexer
 {
+    private string $pattern;
     private int $position = 0;
     private readonly int $length;
-    /** @var array<string> */
-    private readonly array $characters;
-
-    /**
-     * @var bool Tracks if the lexer is currently inside a character class `[...]`.
-     */
     private bool $inCharClass = false;
-
-    /**
-     * @var bool Tracks if the lexer is inside a quoted sequence `\Q...\E`.
-     */
     private bool $inQuoteMode = false;
+    private int $charClassStartPosition = 0;
 
     /**
-     * @param string $pattern The regex pattern (without delimiters or flags)
-     *
-     * @throws LexerException If the input is not valid UTF-8
+     * Regex to capture all possible tokens OUTSIDE of a character class.
+     * Order is crucial. Longer, more specific tokens must come first.
+     * NOTE: All literal backslashes must be quadruple-escaped (\\\\)
+     * to be a literal backslash inside the single-quoted PHP string.
      */
-    public function __construct(private readonly string $pattern)
+    private const REGEX_OUTSIDE = '/
+        (?<T_COMMENT_OPEN>          \(\?\# )
+        | (?<T_PCRE_VERB>           \(\* (?: [^)]+ )+ \) ) # Ex: (*FAIL), (*MARK:foo)
+        | (?<T_GROUP_MODIFIER_OPEN> \(\? )
+        | (?<T_GROUP_OPEN>          \( )
+        | (?<T_GROUP_CLOSE>         \) )
+        | (?<T_CHAR_CLASS_OPEN>     \[ )
+        | (?<T_QUANTIFIER>          (?: [\*\+\?] | \{\d+(?:,\d*)?\} ) [\?\+]? )
+        | (?<T_ALTERNATION>         \| )
+        | (?<T_DOT>                 \. )
+        | (?<T_ANCHOR>              \^ | \$ )
+
+        # Escaped sequences (must precede T_LITERAL)
+        | (?<T_ASSERTION>           \\\\ [AzZGbB] )
+        | (?<T_KEEP>                \\\\ K )
+        | (?<T_CHAR_TYPE>           \\\\ [dswDSWhvR] )
+        | (?<T_G_REFERENCE>         \\\\ g (?: \{[a-zA-Z0-9_+-]+\} | <[a-zA-Z0-9_]+> | [0-9+-]+ )? )
+        | (?<T_BACKREF>             \\\\ (?: k(?:<[a-zA-Z0-9_]+> | \{[a-zA-Z0-9_]+\}) | [1-9]\d* ) )
+        | (?<T_OCTAL_LEGACY>        \\\\ 0[0-7]{0,2} )
+        | (?<T_OCTAL>               \\\\ o\{[0-7]+\} )
+        | (?<T_UNICODE>             \\\\ x[0-9a-fA-F]{2} | \\\\ u\{[0-9a-fA-F]+\} )
+        | (?<T_UNICODE_PROP>        \\\\ [pP] (?: \{ (?<v1_prop> \^? [a-zA-Z0-9_]+) \} | (?<v2_prop> [a-zA-Z]) ) )
+        | (?<T_QUOTE_MODE_START>    \\\\ Q )
+        | (?<T_QUOTE_MODE_END>      \\\\ E )
+        | (?<T_LITERAL_ESCAPED>     \\\\ . ) # Any other escaped char
+
+        # Must be last: Match any single character that wasn\'t matched above.
+        | (?<T_LITERAL>             . )
+    /xsuA'; // s: . matches \n, u: unicode, A: anchored
+
+    /**
+     * Regex to capture tokens INSIDE a character class.
+     */
+    private const REGEX_INSIDE = '/
+        (?<T_CHAR_CLASS_CLOSE> \] )
+        | (?<T_POSIX_CLASS>      \[ \: (?<v_posix> \^? [a-zA-Z]+) \: \] )
+
+        # Escaped sequences
+        | (?<T_CHAR_TYPE>      \\\\ [dswDSWhvR] )
+        | (?<T_OCTAL_LEGACY>   \\\\ 0[0-7]{0,2} )
+        | (?<T_OCTAL>          \\\\ o\{[0-7]+\} )
+        | (?<T_UNICODE>        \\\\ x[0-9a-fA-F]{2} | \\\\ u\{[0-9a-fA-F]+\} )
+        | (?<T_UNICODE_PROP>   \\\\ [pP] (?: \{ (?<v1_prop> \^? [a-zA-Z0-9_]+) \} | (?<v2_prop> [a-zA-Z]) ) )
+        | (?<T_LITERAL_ESCAPED> \\\\ . ) # Includes escaped \], \-, \^
+
+        # Must be last: Match any single character that wasn\'t matched above.
+        | (?<T_LITERAL>        . )
+    /xsuA';
+
+    public function __construct(string $pattern)
     {
-        if (!mb_check_encoding($this->pattern, 'UTF-8')) {
+        if (!mb_check_encoding($pattern, 'UTF-8')) {
             throw new LexerException('Input string is not valid UTF-8.');
         }
 
-        // Split the string into an array of UTF-8 characters.
-        $this->characters = mb_str_split($this->pattern);
-        $this->length = \count($this->characters);
+        $this->pattern = $pattern;
+        // We use strlen (bytes) for the preg_match cursor,
+        // as the 'u' (unicode) flag handles the character matching.
+        $this->length = \strlen($this->pattern);
     }
 
     /**
-     * Tokenizes the input pattern string.
-     *
      * @return array<Token>
      *
-     * @throws LexerException if an invalid character or structure is found
+     * @throws LexerException
      */
     public function tokenize(): array
     {
         $tokens = [];
-        $isEscaped = false;
+        $this->position = 0;
+        $this->inCharClass = false;
+        $this->inQuoteMode = false;
+        $this->charClassStartPosition = 0; // Reset state
+
         while ($this->position < $this->length) {
-            $char = $this->characters[$this->position];
-
-            if ($isEscaped) {
-                // Handle state changers \Q and \E first.
-                if ('Q' === $char) {
-                    $this->inQuoteMode = true;
-                    $isEscaped = false;
-                    ++$this->position;
-                    continue; // No token, just state change
-                }
-                if ('E' === $char) {
-                    $this->inQuoteMode = false;
-                    $isEscaped = false;
-                    ++$this->position;
-                    continue; // No token, just state change
-                }
-
-                $tokens[] = $this->tokenizeEscaped($char);
-                $isEscaped = false;
-                continue;
-            }
-
-            if ('\\' === $char) {
-                $isEscaped = true;
-                ++$this->position;
-                continue;
-            }
-
-            // If in quote mode, all characters (except \E, handled above) are literals.
+            // State 1: Quote Mode (\Q...\E)
+            // This state takes precedence and has its own simple logic.
             if ($this->inQuoteMode) {
-                $tokens[] = new Token(TokenType::T_LITERAL, $char, $this->position++);
-                continue;
+                $token = $this->lexQuoteMode();
+                if ($token) {
+                    $tokens[] = $token;
+                }
+                continue; // Re-evaluate loop with new state (inQuoteMode might be false)
             }
 
-            if ($this->inCharClass) {
-                $tokens[] = $this->tokenizeCharClassToken($char);
-                continue;
+            // State 2: Character Class or Default
+            $regex = $this->inCharClass ? self::REGEX_INSIDE : self::REGEX_OUTSIDE;
+
+            // Add PREG_UNMATCHED_AS_NULL flag.
+            // This ensures unmatched named groups are 'null', not '""'.
+            if (!preg_match($regex, $this->pattern, $matches, PREG_UNMATCHED_AS_NULL, $this->position)) {
+                // Check for a trailing backslash, which preg_match won't match.
+                if ($this->position === $this->length - 1 && $this->pattern[$this->position] === '\\') {
+                    throw new LexerException('Trailing backslash at position '.$this->position);
+                }
+
+                // Any other match failure
+                throw new LexerException(\sprintf('Unable to tokenize pattern at position %d: "%s"...', $this->position, mb_substr($this->pattern, $this->position, 10)));
             }
 
-            // Default tokenization (outside character class)
-            if ('(' === $char) {
-                $tokens[] = $this->consumeGroupOpen();
-            } elseif (')' === $char) {
-                $tokens[] = new Token(TokenType::T_GROUP_CLOSE, ')', $this->position++);
-            } elseif ('[' === $char) {
-                $this->inCharClass = true; // Enter char class mode
-                $tokens[] = new Token(TokenType::T_CHAR_CLASS_OPEN, '[', $this->position++);
-            } elseif (\in_array($char, ['*', '+', '?'], true)) {
-                $tokens[] = $this->consumeSimpleQuantifier($char);
-            } elseif ('{' === $char) {
-                $tokens[] = $this->consumeBraceQuantifier();
-            } elseif ('|' === $char) {
-                $tokens[] = new Token(TokenType::T_ALTERNATION, '|', $this->position++);
-            } elseif ('.' === $char) {
-                $tokens[] = new Token(TokenType::T_DOT, '.', $this->position++);
-            } elseif ('^' === $char || '$' === $char) {
-                $tokens[] = new Token(TokenType::T_ANCHOR, $char, $this->position++);
-            } else {
-                // ']', ':', '=', '!', '<', '>', 'P' are all literals here
-                $tokens[] = new Token(TokenType::T_LITERAL, $char, $this->position++);
+            /** @var string $matchedValue */
+            $matchedValue = $matches[0];
+            $startPos = $this->position;
+
+            // Advance the cursor by the byte-length of the matched token
+            $this->position += \strlen($matchedValue);
+
+            // --- State Management & Token Creation ---
+            $token = null;
+            /**
+             * @var string|int $key
+             * @var string|null $value
+             */
+            foreach ($matches as $key => $value) {
+                // We only care about named groups that have matched
+                // $value can be null here thanks to PREG_UNMATCHED_AS_NULL
+                if (\is_int($key) || $value === null || $value === '') {
+                    continue;
+                }
+
+                // 'T_LITERAL' -> TokenType::T_LITERAL
+                $type = TokenType::from(strtolower(substr($key, 2)));
+
+                // Handle state-changing tokens first
+                if ($type === TokenType::T_CHAR_CLASS_OPEN) {
+                    $this->inCharClass = true;
+                    $this->charClassStartPosition = $startPos;
+                    $token = new Token($type, '[', $startPos);
+                    break;
+                }
+
+                if ($type === TokenType::T_CHAR_CLASS_CLOSE) {
+                    $this->inCharClass = false;
+                    $token = new Token($type, ']', $startPos);
+                    break;
+                }
+
+                if ($type === TokenType::T_QUOTE_MODE_START) {
+                    $this->inQuoteMode = true;
+                    // No token is emitted, just a state change
+                    break;
+                }
+
+                if ($type === TokenType::T_QUOTE_MODE_END) {
+                    $this->inQuoteMode = false;
+                    // No token is emitted, just a state change
+                    break;
+                }
+
+                // Handle context-sensitive tokens *inside* a char class
+                if ($this->inCharClass) {
+                    $lastToken = \count($tokens) > 0 ? $tokens[\count($tokens) - 1] : null;
+
+                    $isAtStart = ($startPos === $this->charClassStartPosition + 1)
+                        || ($startPos === $this->charClassStartPosition + 2 && $lastToken && $lastToken->type === TokenType::T_NEGATION);
+
+                    // T_NEGATION: Only a '^' at the very start is a negation
+                    if ($type === TokenType::T_LITERAL && $matchedValue === '^' && $isAtStart) {
+                        $token = new Token(TokenType::T_NEGATION, '^', $startPos);
+                        break;
+                    }
+
+                    // T_RANGE: Only a '-' *not* at the start is a range
+                    // (The parser will validate if it's not at the end)
+                    if ($type === TokenType::T_LITERAL && $matchedValue === '-' && !$isAtStart) {
+                        $token = new Token(TokenType::T_RANGE, '-', $startPos);
+                        break;
+                    }
+                }
+
+                // Handle T_LITERAL_ESCAPED: it should be tokenized as a T_LITERAL
+                if ($type === TokenType::T_LITERAL_ESCAPED) {
+                    $type = TokenType::T_LITERAL;
+                }
+
+                // Default case: Create a standard token
+                $tokenValue = $this->extractTokenValue($type, $matchedValue, $matches);
+                $token = new Token($type, $tokenValue, $startPos);
+                break;
             }
-        }
-        if ($isEscaped) {
-            throw new LexerException('Trailing backslash at position '.($this->position - 1));
-        }
+
+            if ($token) {
+                $tokens[] = $token;
+            }
+        } // end while
+
         if ($this->inCharClass) {
             throw new LexerException('Unclosed character class "]" at end of input.');
         }
-        if ($this->inQuoteMode) {
-            // Note: PCRE doesn't error on unclosed \Q, it just quotes to the end.
-            // This is consistent.
-        }
+
         $tokens[] = new Token(TokenType::T_EOF, '', $this->position);
 
         return $tokens;
     }
 
     /**
-     * Handles escaped characters, including char types, backrefs, Unicode.
+     * Handles tokenization inside \Q...\E (quote mode).
+     *
+     * This method finds the *next* \E or the end of the string.
+     * All text in between is emitted as a single literal token.
      */
-    private function tokenizeEscaped(string $char): Token
+    private function lexQuoteMode(): ?Token
     {
-        $start = $this->position - 1; // Position of \
-        // Assertions \A \z \Z \G \b \B
-        if (preg_match('/^[AzZGbB]$/', $char)) {
-            ++$this->position;
-
-            return new Token(TokenType::T_ASSERTION, $char, $start);
-        }
-        // Char types \d \s etc.
-        if (preg_match('/^[dswDSWhvR]$/u', $char)) {
-            ++$this->position;
-
-            return new Token(TokenType::T_CHAR_TYPE, $char, $start);
-        }
-        // Keep \K
-        if ('K' === $char) {
-            ++$this->position;
-
-            return new Token(TokenType::T_KEEP, '\K', $start);
-        }
-        // Backrefs \1 - \9, \10+
-        if (preg_match('/^[1-9]$/', $char)) {
-            $ref = $this->consumeWhile(fn (string $c) => ctype_digit($c));
-            ++$this->position; // For the initial digit
-
-            return new Token(TokenType::T_BACKREF, $char.$ref, $start);
-        }
-        // Historic Octal \0, \01, \012
-        if ('0' === $char) {
-            // Consume '0'
-            ++$this->position;
-            // Consume up to 2 *more* octal digits
-            $octal = $this->consumeWhile(fn (string $c) => preg_match('/^[0-7]$/', $c), 0, 2);
-
-            // Return the full octal code (e.g., "0", "01", "012")
-            return new Token(TokenType::T_OCTAL_LEGACY, '0'.$octal, $start);
-        }
-        // Named backrefs \k<name> or \k{name}
-        if ('k' === $char) {
-            ++$this->position; // 'k'
-            $open = $this->peek();
-            if ('<' === $open || '{' === $open) {
-                ++$this->position; // < or {
-                $name = $this->consumeWhile(fn (string $c) => preg_match('/^[a-zA-Z0-9_]$/', $c));
-                $close = $this->peek();
-                if (('<' === $open && '>' !== $close) || ('{' === $open && '}' !== $close)) {
-                    throw new LexerException('Unclosed named backref at position '.$start);
-                }
-                ++$this->position; // > or }
-
-                return new Token(TokenType::T_BACKREF, '\k'.$open.$name.$close, $start);
-            }
-
-            // Fallthrough to literal if not named
-            return new Token(TokenType::T_LITERAL, $char, $start);
+        // Also add PREG_UNMATCHED_AS_NULL here for consistency
+        if (!preg_match('/ (.*?) ( (?: \\\\ E ) | $ ) /xsuA', $this->pattern, $matches, PREG_UNMATCHED_AS_NULL, $this->position)) {
+            // This should be logically impossible if lexQuoteMode is called.
+            // As a fallback, we exit quote mode and stop.
+            $this->inQuoteMode = false;
+            $this->position = $this->length;
+            return null;
         }
 
-        // \g references (backref or subroutine)
-        if ('g' === $char) {
-            ++$this->position; // 'g'
-            $open = $this->peek();
+        $literalText = $matches[1];
+        $endSequence = $matches[2];
+        $startPos = $this->position;
 
-            if ('<' === $open || '{' === $open) {
-                $closer = ('<' === $open) ? '>' : '}';
-                ++$this->position; // < or {
-                // Allow digits, letters, underscore, and +/- (for relative)
-                $ref = $this->consumeWhile(fn (string $c) => preg_match('/^[a-zA-Z0-9_+-]$/', $c));
-
-                if ($this->peek() !== $closer) {
-                    throw new LexerException('Unclosed \g reference at position '.$start);
-                }
-                ++$this->position; // > or }
-
-                return new Token(TokenType::T_G_REFERENCE, '\g'.$open.$ref.$closer, $start);
-            }
-
-            // Check for \g1, \g-1 (no braces)
-            $ref = '';
-            if ('-' === $open || '+' === $open) {
-                $ref = $open;
-                ++$this->position; // Consume '-' or '+'
-            }
-            $digits = $this->consumeWhile(fn (string $c) => ctype_digit($c));
-
-            if ('' !== $digits) {
-                return new Token(TokenType::T_G_REFERENCE, '\g'.$ref.$digits, $start);
-            }
-
-            // If we only saw \g or \g- / \g+, rewind and treat \g as literal
-            if ('' !== $ref) {
-                --$this->position; // Rewind '-' or '+'
-            }
-
-            return new Token(TokenType::T_LITERAL, 'g', $start); // Just a literal \g
+        if ($literalText !== '') {
+            // We found text before \E or end. Emit it as a literal.
+            $this->position += \strlen($literalText);
+            return new Token(TokenType::T_LITERAL, $literalText, $startPos);
         }
 
-        // Unicode \xHH, \u{HHHH}
-        if ('x' === $char) {
-            ++$this->position; // Consume 'x'
-            $hex = $this->consumeHex(2);
-
-            return new Token(TokenType::T_UNICODE, '\x'.$hex, $start);
+        // We are at \E or end of string.
+        if ($endSequence === '\E') {
+            $this->position += 2; // Advance past \E
+            $this->inQuoteMode = false; // Exit quote mode
+        } else {
+            // End of string, \E was never found.
+            $this->position = $this->length;
+            // We remain inQuoteMode (this is PCRE's behavior)
         }
-        if ('u' === $char) {
-            ++$this->position; // 'u'
-            if ('{' === $this->peek()) {
-                ++$this->position; // '{'
-                $hex = $this->consumeHex(1, 6); // Up to 6 hex digits
-                if ('}' !== $this->peek()) {
-                    throw new LexerException('Unclosed Unicode escape at position '.$start);
-                }
-                ++$this->position; // '}'
 
-                return new Token(TokenType::T_UNICODE, '\u{'.$hex.'}', $start);
-            }
-            // If not \u{...}, fallthrough to literal
-        }
-        // Octal \o{777}
-        if ('o' === $char) {
-            ++$this->position; // 'o'
-            if ('{' === $this->peek()) {
-                ++$this->position; // '{'
-                $oct = $this->consumeWhile(fn (string $c) => preg_match('/^[0-7]$/', $c), 1, 11); // Up to 11 octal digits for \o
-                if ('}' !== $this->peek()) {
-                    throw new LexerException('Unclosed octal escape at position '.$start);
-                }
-                ++$this->position; // '}'
-
-                return new Token(TokenType::T_OCTAL, '\o{'.$oct.'}', $start);
-            }
-            // If not \o{...}, fallthrough to literal
-        }
-        // Unicode properties \p{L}, \P{^L}
-        if ('p' === $char || 'P' === $char) {
-            ++$this->position; // p or P
-            $neg = 'P' === $char ? '^' : '';
-            if ('{' === $this->peek()) { // Check char *after* p/P
-                ++$this->position; // '{'
-                $prop = $this->consumeWhile(fn (string $c) => preg_match('/^[a-zA-Z0-9_]+$/', $c));
-                if ('^' === $this->peek()) {
-                    $neg = '^';
-                    ++$this->position;
-                    $prop .= $this->consumeWhile(fn (string $c) => preg_match('/^[a-zA-Z0-9_]+$/', $c));
-                }
-                if ('}' !== $this->peek()) {
-                    throw new LexerException('Unclosed Unicode property at position '.$start);
-                }
-                ++$this->position; // '}'
-
-                return new Token(TokenType::T_UNICODE_PROP, $neg.$prop, $start);
-            }
-            // Single-char prop \pL, but PCRE requires {} for multi
-            if (preg_match('/^[a-zA-Z]$/', (string) $this->peek())) { // Check char *after* p/P
-                $prop = $this->characters[$this->position]; // Get 'L'
-                ++$this->position; // Consume 'L'
-
-                return new Token(TokenType::T_UNICODE_PROP, $neg.$prop, $start);
-            }
-            throw new LexerException('Invalid Unicode property at position '.$start);
-        }
-        // Default: escaped literal or meta
-        ++$this->position;
-
-        return new Token(TokenType::T_LITERAL, $char, $start);
+        return null; // No token emitted, just state change or end.
     }
 
     /**
-     * Consumes hex digits (for \x, \u).
+     * Extracts the simple value from a matched token string.
+     * (e.g., "\d" -> "d", "(*FAIL)" -> "FAIL", "\." -> ".")
+     * @param array<int|string, string|null> $matches
      */
-    private function consumeHex(int $min, ?int $max = null): string
+    private function extractTokenValue(TokenType $type, string $matchedValue, array $matches): string
     {
-        $max ??= $min;
-        $hex = '';
-        $count = 0;
-        while ($this->position < $this->length && preg_match('/^[0-9a-fA-F]$/i', $this->characters[$this->position]) && $count < $max) {
-            $hex .= $this->characters[$this->position++];
-            ++$count;
-        }
-        if ($count < $min) {
-            throw new LexerException('Incomplete hex escape, expected at least '.$min.' digits.');
-        }
-
-        return $hex;
-    }
-
-    /**
-     * Tokenizes a single character while inside a character class.
-     */
-    private function tokenizeCharClassToken(string $char): Token
-    {
-        // Check for first char (or first after negation)
-        $isFirstChar = isset($this->characters[$this->position - 1]) && '[' === $this->characters[$this->position - 1];
-        $isFirstCharAfterNegation = isset($this->characters[$this->position - 1], $this->characters[$this->position - 2])
-            && '^' === $this->characters[$this->position - 1]
-            && '[' === $this->characters[$this->position - 2];
-        $isAtStart = $isFirstChar || $isFirstCharAfterNegation;
-
-        // ']' is a literal if it's the first character
-        if (']' === $char && $isAtStart) {
-            return new Token(TokenType::T_LITERAL, ']', $this->position++);
-        }
-
-        // Inside a class, most meta-characters are literals
-        if (']' === $char) { // Now it's the closing bracket
-            $this->inCharClass = false; // Exit char class mode
-
-            return new Token(TokenType::T_CHAR_CLASS_CLOSE, ']', $this->position++);
-        }
-
-        // POSIX [[:alpha:]]
-        if (':' === $char && '[' === $this->peek(-1)) {
-            $posix = $this->consumeWhile(fn (string $c) => preg_match('/^[a-zA-Z^]$/', $c));
-            if (':' !== $this->peek() || ']' !== $this->peek(1)) {
-                throw new LexerException('Invalid POSIX class at position '.$this->position);
+        // Handle T_LITERAL_ESCAPED first: it becomes a T_LITERAL
+        if ($type === TokenType::T_LITERAL) {
+            if (($matches['T_LITERAL_ESCAPED'] ?? null) !== null) {
+                // It was an escaped literal. Return just the character.
+                return substr($matchedValue, 1);
             }
-            $this->position += 2; // : ]
-
-            return new Token(TokenType::T_POSIX_CLASS, $posix, $this->position - \strlen($posix) - 4); // Adjust pos
+            // It was a normal literal.
+            return $matchedValue;
         }
 
-        // Negation ^ (only if it's the *first* char after [)
-        if ('^' === $char && $isFirstChar) {
-            return new Token(TokenType::T_NEGATION, '^', $this->position++);
-        }
-
-        // Range - (if not first or last char)
-        $isAtEnd = ($this->position + 1 < $this->length) && ']' === $this->characters[$this->position + 1];
-
-        if ('-' === $char && !$isAtStart && !$isAtEnd) {
-            return new Token(TokenType::T_RANGE, '-', $this->position++);
-        }
-
-        // All other characters (including *, +, ?, ., |) are literals
-        return new Token(TokenType::T_LITERAL, $char, $this->position++);
-    }
-
-    private function peek(int $offset = 0): ?string
-    {
-        $pos = $this->position + $offset;
-
-        return $pos < $this->length ? $this->characters[$pos] : null;
-    }
-
-    /**
-     * Consumes a brace-style quantifier like {n,m} and its lazy/possessive modifier.
-     */
-    private function consumeBraceQuantifier(): Token
-    {
-        $start = $this->position;
-        $quant = $this->characters[$this->position++]; // Consume '{'
-        $inner = $this->consumeWhile(fn (string $c) => 1 === preg_match('/^[0-9,]$/', $c));
-        $quant .= $inner;
-
-        if ($this->position >= $this->length || '}' !== $this->characters[$this->position]) {
-            // Rewind and treat as literal '{'
-            $this->position = $start + 1;
-
-            return new Token(TokenType::T_LITERAL, '{', $start);
-        }
-
-        $quant .= '}'; // Consume '}'
-        ++$this->position;
-
-        // Consume optional lazy/possessive modifier
-        $quant .= $this->consumeQuantifierModifier();
-
-        if (!preg_match('/^{\d+(,\d*)?}(\?|\+)?$/', $quant)) {
-            throw new LexerException(\sprintf('Invalid quantifier syntax "%s" at position %d', $quant, $start));
-        }
-
-        return new Token(TokenType::T_QUANTIFIER, $quant, $start);
-    }
-
-    /**
-     * Consumes a simple quantifier (*, +, ?) and its lazy/possessive modifier.
-     */
-    private function consumeSimpleQuantifier(string $char): Token
-    {
-        $start = $this->position;
-        $quant = $char; // *, +, or ?
-        ++$this->position;
-
-        // Consume optional lazy/possessive modifier
-        $quant .= $this->consumeQuantifierModifier();
-
-        return new Token(TokenType::T_QUANTIFIER, $quant, $start);
-    }
-
-    /**
-     * Consumes an optional '?' (lazy) or '+' (possessive) modifier.
-     */
-    private function consumeQuantifierModifier(): string
-    {
-        if ($this->position < $this->length) {
-            $modifier = $this->characters[$this->position];
-            if ('?' === $modifier || '+' === $modifier) {
-                ++$this->position;
-
-                return $modifier;
-            }
-        }
-
-        return '';
-    }
-
-    /**
-     * Consumes a group opening, checking for modifiers (e.g., "(?", "(?<") or verbs "(*".
-     */
-    private function consumeGroupOpen(): Token
-    {
-        $start = $this->position;
-
-        if ($this->position + 1 < $this->length && '?' === $this->characters[$this->position + 1]) {
-            // It's a special group, e.g., "(?:", "(?=", "(?<name>", "(?#comment)"
-            $this->position += 2; // Consume "(?"
-
-            // Peek next for comment (?#)
-            if ('#' === $this->peek()) {
-                ++$this->position; // Consume '#'
-
-                return new Token(TokenType::T_COMMENT_OPEN, '(?#', $start);
-            }
-
-            return new Token(TokenType::T_GROUP_MODIFIER_OPEN, '(?', $start);
-        }
-
-        // Handle PCRE Verbs (*VERB)
-        if ($this->position + 1 < $this->length && '*' === $this->characters[$this->position + 1]) {
-            $this->position += 2; // Consume "(*"
-
-            // Verbs can be complex: (*UTF8), (*MARK:name)
-            // Consume everything up to the closing ')'
-            $verb = $this->consumeWhile(fn (string $c) => ')' !== $c);
-
-            if (')' !== $this->peek()) {
-                throw new LexerException('Unclosed PCRE verb at position '.$start);
-            }
-            ++$this->position; // Consume ")"
-
-            if ('' === $verb) {
-                throw new LexerException('Empty PCRE verb at position '.$start);
-            }
-
-            // Normalize 'F' alias
-            if ('F' === $verb) {
-                $verb = 'FAIL';
-            }
-
-            return new Token(TokenType::T_PCRE_VERB, $verb, $start);
-        }
-
-        // It's a simple capturing group
-        ++$this->position; // Consume "("
-
-        return new Token(TokenType::T_GROUP_OPEN, '(', $start);
-    }
-
-    /**
-     * Consumes characters from input as long as the predicate is true.
-     */
-    private function consumeWhile(callable $predicate, int $min = 0, ?int $max = null): string
-    {
-        $value = '';
-        $count = 0;
-        $max ??= \PHP_INT_MAX;
-        while ($this->position < $this->length && $predicate($this->characters[$this->position]) && $count < $max) {
-            $value .= $this->characters[$this->position++];
-            ++$count;
-        }
-        if ($count < $min) {
-            throw new LexerException('Incomplete consumeWhile, expected at least '.$min.' characters.');
-        }
-
-        return $value;
+        return match ($type) {
+            TokenType::T_PCRE_VERB => substr($matchedValue, 2, -1),
+            TokenType::T_ASSERTION, TokenType::T_CHAR_TYPE, TokenType::T_KEEP => substr($matchedValue, 1),
+            // These types store the full escaped sequence, as per original lexer
+            TokenType::T_G_REFERENCE, TokenType::T_BACKREF, TokenType::T_OCTAL_LEGACY => $matchedValue,
+            TokenType::T_OCTAL, TokenType::T_UNICODE => $matchedValue,
+            // These types need to extract the sub-group
+            TokenType::T_POSIX_CLASS => (string) ($matches['v_posix'] ?? ''), // from [[:(alnum):]]
+            TokenType::T_UNICODE_PROP => (string) ($matches['v1_prop'] ?? $matches['v2_prop'] ?? ''), // from \p{(L)} or \p(L)
+            // Default: the matched value is correct
+            default => $matchedValue,
+        };
     }
 }
