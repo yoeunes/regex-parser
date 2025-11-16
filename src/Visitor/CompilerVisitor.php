@@ -183,13 +183,14 @@ class CompilerVisitor implements VisitorInterface
 
     public function visitUnicodeProp(UnicodePropNode $node): string
     {
-        if (str_starts_with($node->prop, '^')) {
+        if (strpos($node->prop, '^') === 0) {
             return '\\p{'.$node->prop.'}';
         } else {
-            if (\strlen($node->prop) > 1) {
+            if (strlen($node->prop) > 1) {
                 return '\\p{'.$node->prop.'}';
+            } else {
+                return '\\p'.$node->prop;
             }
-            return '\\p'.$node->prop;
         }
     }
 

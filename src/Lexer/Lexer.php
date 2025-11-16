@@ -113,7 +113,7 @@ class Lexer
     private function tokenizeEscaped(string $char): Token
     {
         $start = $this->position - 1; // Position of \
-        // Assertions \A \z \Z \G \b \B first to avoid conflict with char types
+        // Assertions \A \z \Z \G \b \B
         if (preg_match('/^[AzZGbB]$/', $char)) {
             ++$this->position;
 
@@ -148,7 +148,7 @@ class Lexer
                 return new Token(TokenType::T_BACKREF, '\k'.$open.$name.$close, $start);
             }
             // Fallthrough to literal if not named
-            return new Token(TokenType::T_LITERAL, 'k', $start);
+            return new Token(TokenType::T_LITERAL, $char, $start);
         }
         // Unicode \xHH, \u{HHHH}
         if ('x' === $char) {
@@ -363,7 +363,6 @@ class Lexer
 
             // Peek next for comment (?#)
             if ('#' === $this->peek()) {
-                ++$this->position; // Consume #
                 return new Token(TokenType::T_COMMENT_OPEN, '(?#', $start);
             }
 
