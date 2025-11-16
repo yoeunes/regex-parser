@@ -26,7 +26,7 @@ class SubroutineNode extends AbstractNode
      */
     public function __construct(
         public readonly string $reference,
-        public readonly string $syntax = '',
+        public readonly string $syntax,
         int $startPos,
         int $endPos,
     ) {
