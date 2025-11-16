@@ -31,6 +31,7 @@ use RegexParser\Ast\QuantifierType;
 use RegexParser\Ast\RangeNode;
 use RegexParser\Ast\RegexNode;
 use RegexParser\Ast\SequenceNode;
+use RegexParser\Ast\SubroutineNode;
 use RegexParser\Ast\UnicodeNode;
 use RegexParser\Ast\UnicodePropNode;
 use RegexParser\Exception\ParserException;
@@ -325,7 +326,7 @@ class Parser
         }
 
         if ($this->matchLiteral('P')) {
-            // (?P<...> named group or (?P=... backref (not supported yet)
+            // (?P<...> named group or (?P=... backref (not supported yet) or (?P>... subroutine
             if ($this->matchLiteral('<')) {
                 // (?P<name>...)
                 $name = $this->parseGroupName();
@@ -337,6 +338,12 @@ class Parser
             } elseif ($this->matchLiteral('=')) {
                 // (?P=name) backref
                 throw new ParserException('Backreferences (?P=name) are not supported yet.');
+            } elseif ($this->matchLiteral('>')) {
+                // (?P>name) subroutine call
+                $name = $this->parseSubroutineName();
+                $this->consume(TokenType::T_GROUP_CLOSE, 'Expected ) to close subroutine call');
+
+                return new SubroutineNode($name, 'P>');
             } else {
                 throw new ParserException('Invalid syntax after (?P at position '.$startPos);
             }
@@ -393,6 +400,51 @@ class Parser
             $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
             return new ConditionalNode($condition, $yes, $no);
+        }
+
+        // Doit venir après la vérification conditionnelle, car (?(R)...) est différent de (?R)
+
+        if ($this->matchLiteral('&')) {
+            // (?&name) subroutine call
+            $name = $this->parseSubroutineName();
+            $this->consume(TokenType::T_GROUP_CLOSE, 'Expected ) to close subroutine call');
+
+            return new SubroutineNode($name, '&');
+        }
+
+        if ($this->matchLiteral('R')) {
+            // (?R) subroutine call (recurse entire pattern)
+            if ($this->check(TokenType::T_GROUP_CLOSE)) {
+                $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
+
+                return new SubroutineNode('R'); // 'R' ou '0' sont des références spéciales pour "entire pattern"
+            }
+            // Continue vers la vérification numérique si ce n'est pas seulement (?R)
+        }
+
+        // Vérification pour (?1), (?0), (?-1)
+        // Nous vérifions T_LITERAL car '1', '0', '-' sont des littéraux
+        if ($this->check(TokenType::T_LITERAL)) {
+            $num = '';
+            if ($this->matchLiteral('-')) {
+                $num .= '-';
+            }
+
+            if ($this->check(TokenType::T_LITERAL) && ctype_digit($this->current()->value)) {
+                $num .= $this->current()->value;
+                $this->advance();
+                // Consomme tous les chiffres
+                $num .= $this->consumeWhile(fn (string $c) => ctype_digit($c));
+
+                $this->consume(TokenType::T_GROUP_CLOSE, 'Expected ) to close subroutine call');
+
+                return new SubroutineNode($num);
+            }
+
+            // Si nous avons matché '-' mais pas un chiffre, il faut revenir en arrière
+            if ('-' === $num) {
+                --$this->position; // Rewind le '-'
+            }
         }
 
         throw new ParserException('Invalid group modifier syntax at position '.$startPos);
@@ -690,5 +742,34 @@ class Parser
         }
 
         return $value;
+    }
+
+    /**
+     * Parses the name of a subroutine, handling different syntaxes.
+     *
+     * @throws ParserException
+     */
+    private function parseSubroutineName(): string
+    {
+        // Gère (?P>name) ou (?&name)
+        // Nous avons déjà consommé '(?P>' ou '(?&'
+
+        $name = '';
+        while (!$this->check(TokenType::T_GROUP_CLOSE) && !$this->isAtEnd()) {
+            // Un nom peut être n'importe quel littéral, mais pas des caractères spéciaux comme '(', '[', etc.
+            if ($this->check(TokenType::T_LITERAL)) {
+                $name .= $this->current()->value;
+                $this->advance();
+            } else {
+                // ex: (?&name[...]) est invalide
+                throw new ParserException('Unexpected token in subroutine name: '.$this->current()->value);
+            }
+        }
+
+        if ('' === $name) {
+            throw new ParserException('Expected subroutine name at position '.$this->current()->position);
+        }
+
+        return $name;
     }
 }

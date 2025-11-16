@@ -96,4 +96,34 @@ class ValidatorVisitorTest extends TestCase
         $this->expectExceptionMessage('Invalid Unicode property');
         $this->validate('/\p{invalid}/');
     }
+
+    #[DoesNotPerformAssertions]
+    public function testValidateValidSubroutine(): void
+    {
+        $this->validate('/(a)(?1)/');
+        $this->validate('/(a)(?-1)/');
+        $this->validate('/(?<name>a)(?&name)/');
+        $this->validate('/(?R)/');
+    }
+
+    public function testThrowsOnInvalidNumericSubroutine(): void
+    {
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('Subroutine call to non-existent group: 1');
+        $this->validate('/(?1)/'); // No group 1
+    }
+
+    public function testThrowsOnInvalidNamedSubroutine(): void
+    {
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('Subroutine call to non-existent named group: name');
+        $this->validate('/(?&name)/'); // No group "name"
+    }
+
+    public function testThrowsOnDuplicateGroupName(): void
+    {
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('Duplicate group name: name');
+        $this->validate('/(?<name>a)(?<name>b)/');
+    }
 }

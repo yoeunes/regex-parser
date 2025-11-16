@@ -30,6 +30,7 @@ use RegexParser\Ast\QuantifierType;
 use RegexParser\Ast\RangeNode;
 use RegexParser\Ast\RegexNode;
 use RegexParser\Ast\SequenceNode;
+use RegexParser\Ast\SubroutineNode;
 use RegexParser\Ast\UnicodeNode;
 use RegexParser\Ast\UnicodePropNode;
 
@@ -219,5 +220,14 @@ class CompilerVisitor implements VisitorInterface
         }
 
         return '(?('.$cond.')'.$yes.'|'.$no.')';
+    }
+
+    public function visitSubroutine(SubroutineNode $node): string
+    {
+        return match ($node->syntax) {
+            '&' => '(?&'.$node->reference.')',
+            'P>' => '(?P>'.$node->reference.')',
+            default => '(?'.$node->reference.')', // Gère (?R), (?1), (?-1)
+        };
     }
 }

@@ -28,6 +28,7 @@ use RegexParser\Ast\QuantifierNode;
 use RegexParser\Ast\RangeNode;
 use RegexParser\Ast\RegexNode;
 use RegexParser\Ast\SequenceNode;
+use RegexParser\Ast\SubroutineNode;
 use RegexParser\Ast\UnicodeNode;
 use RegexParser\Ast\UnicodePropNode;
 
@@ -169,6 +170,11 @@ class DumperVisitor implements VisitorInterface
         $this->indent -= 2;
 
         return $str;
+    }
+
+    public function visitSubroutine(SubroutineNode $node): string
+    {
+        return "Subroutine(ref: {$node->reference}, syntax: '{$node->syntax}')";
     }
 
     private function indent(string $str): string

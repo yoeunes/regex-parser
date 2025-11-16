@@ -123,4 +123,13 @@ class CompilerVisitorTest extends TestCase
         $regex = '/(?i:foo)/';
         $this->assertSame($regex, $this->compile($regex));
     }
+
+    public function testCompileSubroutines(): void
+    {
+        $this->assertSame('/(?R)/', $this->compile('/(?R)/'));
+        $this->assertSame('/(?1)/', $this->compile('/(?1)/'));
+        $this->assertSame('/(?-1)/', $this->compile('/(?-1)/'));
+        $this->assertSame('/(?&name)/', $this->compile('/(?&name)/'));
+        $this->assertSame('/(?P>name)/', $this->compile('/(?P>name)/'));
+    }
 }

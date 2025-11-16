@@ -28,6 +28,7 @@ use RegexParser\Ast\QuantifierNode;
 use RegexParser\Ast\RangeNode;
 use RegexParser\Ast\RegexNode;
 use RegexParser\Ast\SequenceNode;
+use RegexParser\Ast\SubroutineNode;
 use RegexParser\Ast\UnicodeNode;
 use RegexParser\Ast\UnicodePropNode;
 
@@ -133,4 +134,9 @@ interface VisitorInterface
      * @return TReturn
      */
     public function visitConditional(ConditionalNode $node);
+
+    /**
+     * @return TReturn
+     */
+    public function visitSubroutine(SubroutineNode $node);
 }

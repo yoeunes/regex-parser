@@ -30,6 +30,7 @@ use RegexParser\Ast\QuantifierType;
 use RegexParser\Ast\RangeNode;
 use RegexParser\Ast\RegexNode;
 use RegexParser\Ast\SequenceNode;
+use RegexParser\Ast\SubroutineNode;
 use RegexParser\Ast\UnicodeNode;
 use RegexParser\Ast\UnicodePropNode;
 use RegexParser\Exception\ParserException;
@@ -54,6 +55,9 @@ class ValidatorVisitor implements VisitorInterface
      * Tracks capturing group count for backref validation.
      */
     private int $groupCount = 0;
+
+    /** @var array<string, true> */
+    private array $namedGroups = [];
 
     public function visitRegex(RegexNode $node): void
     {
@@ -88,8 +92,16 @@ class ValidatorVisitor implements VisitorInterface
             $this->inLookbehind = true;
         }
 
-        if (GroupType::T_GROUP_CAPTURING === $node->type || GroupType::T_GROUP_NAMED === $node->type) {
+        if (GroupType::T_GROUP_CAPTURING === $node->type) {
             ++$this->groupCount;
+        } elseif (GroupType::T_GROUP_NAMED === $node->type) {
+            ++$this->groupCount;
+            if (null !== $node->name) {
+                if (isset($this->namedGroups[$node->name])) {
+                    throw new ParserException('Duplicate group name: '.$node->name);
+                }
+                $this->namedGroups[$node->name] = true;
+            }
         }
 
         $node->child->accept($this);
@@ -191,7 +203,12 @@ class ValidatorVisitor implements VisitorInterface
             if ($num > $this->groupCount) {
                 throw new ParserException('Backreference to non-existent group: \\'.$node->ref);
             }
-        } // Named backrefs validated elsewhere if needed
+        } elseif (preg_match('/^k<([a-zA-Z0-9_]+)>$/', $node->ref, $matches) || preg_match('/^k{([a-zA-Z0-9_]+)}$/', $node->ref, $matches)) {
+            $name = $matches[1];
+            if (!isset($this->namedGroups[$name])) {
+                throw new ParserException('Backreference to non-existent named group: '.$name);
+            }
+        }
     }
 
     public function visitUnicode(UnicodeNode $node): void
@@ -267,6 +284,41 @@ class ValidatorVisitor implements VisitorInterface
         // Basic check: condition must be valid (e.g., backref <= group count)
         if ($node->condition instanceof BackrefNode) {
             $this->visitBackref($node->condition);
+        }
+        // Une condition peut aussi être un appel de subroutine (ex: (?(R)...))
+        if ($node->condition instanceof SubroutineNode) {
+            $this->visitSubroutine($node->condition);
+        }
+    }
+
+    public function visitSubroutine(SubroutineNode $node): void
+    {
+        // C'est un appel de subroutine, ex: (?1) ou (?&name) ou (?R)
+        $ref = $node->reference;
+
+        if ('R' === $ref || '0' === $ref) {
+            // (?R) ou (?0) sont toujours valides (référence au pattern entier)
+            return;
+        }
+
+        if (ctype_digit($ref) || (str_starts_with($ref, '-') && ctype_digit(substr($ref, 1)))) {
+            // Référence numérique (?1), (?-1)
+            $num = (int) $ref;
+            if (0 === $num) {
+                return; // (?0) est identique à (?R)
+            }
+            if ($num > $this->groupCount) {
+                throw new ParserException('Subroutine call to non-existent group: '.$ref);
+            }
+            // (?-1) est plus difficile à vérifier statiquement, mais on peut vérifier si c'est "possible"
+            if ($num < 0 && abs($num) > $this->groupCount) {
+                throw new ParserException('Relative subroutine call ('.$ref.') exceeds total group count.');
+            }
+        } else {
+            // Référence nommée (?&name) ou (?P>name)
+            if (!isset($this->namedGroups[$ref])) {
+                throw new ParserException('Subroutine call to non-existent named group: '.$ref);
+            }
         }
     }
 }
