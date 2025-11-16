@@ -14,7 +14,6 @@ namespace RegexParser\Bundle\DataCollector;
 use RegexParser\NodeVisitor\ComplexityScoreVisitor;
 use RegexParser\NodeVisitor\ExplainVisitor;
 use RegexParser\Regex;
-use RegexParser\ValidationResult;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\DataCollector\DataCollector;
