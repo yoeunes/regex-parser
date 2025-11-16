@@ -23,7 +23,7 @@ class DumperVisitorTest extends TestCase
         $ast = $parser->parse('/a(b|c)/');
         $dumper = new DumperVisitor();
         $dump = $ast->accept($dumper);
-        $this->assertStringContainsString('Group(type: capturing)', $dump);
+        $this->assertStringContainsString('Group(type: capturing flags: )', $dump);
         $this->assertStringContainsString('Alternation', $dump);
     }
 }

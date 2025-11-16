@@ -147,6 +147,7 @@ class Lexer
 
                 return new Token(TokenType::T_BACKREF, '\k'.$open.$name.$close, $start);
             }
+
             // Fallthrough to literal if not named
             return new Token(TokenType::T_LITERAL, $char, $start);
         }
@@ -200,8 +201,11 @@ class Lexer
                 return new Token(TokenType::T_UNICODE_PROP, $neg.$prop, $start);
             }
             // Single-char prop \pL, but PCRE requires {} for multi
-            if (preg_match('/^[a-zA-Z]$/', $this->peek())) {
-                $prop = $this->consumeWhile(fn (string $c) => preg_match('/^[a-zA-Z]$/', $c), 1, 1);
+            if (preg_match('/^[a-zA-Z]$/', $this->peek(1))) {
+                ++$this->position; // Consume 'p' or 'P'
+                $prop = $this->characters[$this->position]; // Get 'L'
+                ++$this->position; // Consume 'L'
+
                 return new Token(TokenType::T_UNICODE_PROP, $neg.$prop, $start);
             }
             throw new LexerException('Invalid Unicode property at position '.$start);
@@ -363,6 +367,8 @@ class Lexer
 
             // Peek next for comment (?#)
             if ('#' === $this->peek()) {
+                ++$this->position; // Consume '#'
+
                 return new Token(TokenType::T_COMMENT_OPEN, '(?#', $start);
             }
 
@@ -382,7 +388,7 @@ class Lexer
     {
         $value = '';
         $count = 0;
-        $max ??= PHP_INT_MAX;
+        $max ??= \PHP_INT_MAX;
         while ($this->position < $this->length && $predicate($this->characters[$this->position]) && $count < $max) {
             $value .= $this->characters[$this->position++];
             ++$count;

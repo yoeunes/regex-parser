@@ -320,6 +320,7 @@ class Parser
             $this->consumeLiteral(':', 'Expected : after inline flags');
             $expr = $this->parseAlternation();
             $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
+
             return new GroupNode($expr, GroupType::T_GROUP_INLINE_FLAGS, null, $flags);
         }
 
@@ -404,20 +405,23 @@ class Parser
     {
         if ($this->match(TokenType::T_LITERAL) && ctype_digit($this->previous()->value)) {
             // Numeric (?(1)...)
-            $num = (string) ($this->previous()->value . $this->consumeWhile(fn ($c) => ctype_digit($c)));
+            $num = (string) ($this->previous()->value.$this->consumeWhile(fn ($c) => ctype_digit($c)));
             $this->consume(TokenType::T_GROUP_CLOSE, 'Expected ) after condition number');
+
             return new BackrefNode($num);
         } elseif ($this->matchLiteral('<') || $this->matchLiteral('{')) {
             // Named (?(<name>)...) or (?({name})...)
             $open = $this->previous()->value;
             $name = $this->parseGroupName();
-            $close = $open === '<' ? '>' : '}';
+            $close = '<' === $open ? '>' : '}';
             $this->consumeLiteral($close, "Expected $close after condition name");
             $this->consume(TokenType::T_GROUP_CLOSE, 'Expected ) after named condition');
+
             return new BackrefNode($name);
         } elseif ($this->matchLiteral('R')) {
             // Recursion (?(R)...)
             $this->consume(TokenType::T_GROUP_CLOSE, 'Expected ) after R condition');
+
             return new LiteralNode('R'); // Special recursion condition
         } else {
             // Lookaround or assertion as condition (?(?=...)...)

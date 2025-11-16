@@ -24,7 +24,6 @@ use RegexParser\Ast\DotNode;
 use RegexParser\Ast\GroupNode;
 use RegexParser\Ast\GroupType;
 use RegexParser\Ast\LiteralNode;
-use RegexParser\Ast\OctalNode;
 use RegexParser\Ast\QuantifierNode;
 use RegexParser\Ast\RangeNode;
 use RegexParser\Ast\RegexNode;
@@ -270,10 +269,18 @@ class ParserTest extends TestCase
         $this->assertInstanceOf(ConditionalNode::class, $pattern);
         $this->assertInstanceOf(BackrefNode::class, $pattern->condition);
         $this->assertSame('1', $pattern->condition->ref);
-        $this->assertInstanceOf(LiteralNode::class, $pattern->yes);
-        $this->assertSame('a', $pattern->yes->value);
+
+        // The "yes" branch is the alternation "a|b"
+        $this->assertInstanceOf(AlternationNode::class, $pattern->yes);
+        $this->assertCount(2, $pattern->yes->alternatives);
+        $this->assertInstanceOf(LiteralNode::class, $pattern->yes->alternatives[0]);
+        $this->assertSame('a', $pattern->yes->alternatives[0]->value);
+        $this->assertInstanceOf(LiteralNode::class, $pattern->yes->alternatives[1]);
+        $this->assertSame('b', $pattern->yes->alternatives[1]->value);
+
+        // The "no" branch is empty
         $this->assertInstanceOf(LiteralNode::class, $pattern->no);
-        $this->assertSame('b', $pattern->no->value);
+        $this->assertSame('', $pattern->no->value);
     }
 
     public function testThrowsOnUnmatchedGroup(): void
