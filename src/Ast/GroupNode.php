@@ -28,7 +28,7 @@ class GroupNode implements NodeInterface
         public readonly NodeInterface $child,
         public readonly GroupType $type,
         public readonly ?string $name = null,
-        public readonly ?string $flags = null
+        public readonly ?string $flags = null,
     ) {
     }
 

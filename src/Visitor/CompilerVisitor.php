@@ -183,11 +183,12 @@ class CompilerVisitor implements VisitorInterface
 
     public function visitUnicodeProp(UnicodePropNode $node): string
     {
-        $neg = strpos($node->prop, '^') === 0 ? 'P' : 'p';
+        $neg = str_starts_with($node->prop, '^') ? 'P' : 'p';
         $prop = ltrim($node->prop, '^');
-        if (strlen($prop) > 1) {
+        if (\strlen($prop) > 1) {
             return '\\'.$neg.'{'.$prop.'}';
         }
+
         return '\\'.$neg.$prop;
     }
 
@@ -211,9 +212,10 @@ class CompilerVisitor implements VisitorInterface
         $cond = $node->condition->accept($this);
         $yes = $node->yes->accept($this);
         $no = $node->no->accept($this);
-        if ($no === '') {
+        if ('' === $no) {
             return '(?('.$cond.')'.$yes.')';
         }
+
         return '(?('.$cond.')'.$yes.'|'.$no.')';
     }
 }
