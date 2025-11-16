@@ -12,9 +12,9 @@ parameters:
         - src
         - tests
 
-    # scanDirectories:
-        # - tools/rector/vendor
-        # - tools/phpstan/vendor
+    bootstrapFiles:
+        - tools/rector/vendor/autoload.php
+        - tools/phpbench/vendor/autoload.php
 
     editorUrl: 'phpstorm://open?file=%%file%%&line=%%line%%'
 
