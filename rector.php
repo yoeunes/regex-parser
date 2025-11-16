@@ -12,9 +12,6 @@ declare(strict_types=1);
  */
 
 use Rector\Config\RectorConfig;
-use Rector\Php73\Rector\FuncCall\RegexDashEscapeRector;
-use Rector\Renaming\Rector\FuncCall\RenameFunctionRector;
-use Rector\CodeQuality\Rector\FuncCall\SimplifyRegexPatternRector;
 use Rector\ValueObject\PhpVersion;
 
 return static function (RectorConfig $rectorConfig): void {
@@ -36,14 +33,4 @@ return static function (RectorConfig $rectorConfig): void {
     $rectorConfig->cacheDirectory('.cache/rector/');
     $rectorConfig->parallel();
     $rectorConfig->editorUrl('phpstorm://open?file=%file%&line=%line%');
-
-    $rectorConfig->skip([
-        RegexDashEscapeRector::class,
-
-        SimplifyRegexPatternRector::class,
-
-        RenameFunctionRector::class => [
-            'preg_replace' => 'str_replace',
-        ],
-    ]);
 };
