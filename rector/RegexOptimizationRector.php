@@ -109,7 +109,7 @@ final class RegexOptimizationRector extends AbstractRector
 
                 return $node; // Return the modified node
             }
-        } catch (\Throwable $e) {
+        } catch (\Throwable) {
             // If parsing fails (invalid regex), do nothing.
             // Let the PHPStan rule report it. Rector rules must not crash.
             return null;
