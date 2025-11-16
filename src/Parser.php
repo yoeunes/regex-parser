@@ -194,12 +194,7 @@ class Parser
                     $nodeName = '(*'.$node->verb.')';
                 }
 
-                throw new ParserException(\sprintf(
-                    'Quantifier "%s" cannot be applied to assertion or verb "%s" at position %d',
-                    $token->value,
-                    $nodeName, // $nodeName is now a 'string', not 'mixed'
-                    $token->position
-                ));
+                throw new ParserException(\sprintf('Quantifier "%s" cannot be applied to assertion or verb "%s" at position %d', $token->value, $nodeName, /* $nodeName is now a 'string', not 'mixed' */$token->position));
             }
 
             [$quantifier, $type] = $this->parseQuantifierValue($token->value);

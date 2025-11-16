@@ -70,13 +70,13 @@ class Lexer
                 if ('Q' === $char) {
                     $this->inQuoteMode = true;
                     $isEscaped = false;
-                    $this->position++;
+                    ++$this->position;
                     continue; // No token, just state change
                 }
                 if ('E' === $char) {
                     $this->inQuoteMode = false;
                     $isEscaped = false;
-                    $this->position++;
+                    ++$this->position;
                     continue; // No token, just state change
                 }
 
@@ -87,7 +87,7 @@ class Lexer
 
             if ('\\' === $char) {
                 $isEscaped = true;
-                $this->position++;
+                ++$this->position;
                 continue;
             }
 
@@ -200,6 +200,7 @@ class Lexer
                     throw new LexerException('Unclosed \g reference at position '.$start);
                 }
                 ++$this->position; // > or }
+
                 return new Token(TokenType::T_G_REFERENCE, '\g'.$open.$ref.$closer, $start);
             }
 
@@ -219,6 +220,7 @@ class Lexer
             if ('' !== $ref) {
                 --$this->position; // Rewind '-' or '+'
             }
+
             return new Token(TokenType::T_LITERAL, 'g', $start); // Just a literal \g
         }
 
@@ -466,7 +468,7 @@ class Lexer
             if (')' !== $this->peek()) {
                 throw new LexerException('Unclosed PCRE verb at position '.$start);
             }
-            $this->position++; // Consume ")"
+            ++$this->position; // Consume ")"
 
             if ('' === $verb) {
                 throw new LexerException('Empty PCRE verb at position '.$start);
