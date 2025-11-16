@@ -292,12 +292,10 @@ class Parser
      */
     private function parseComment(): CommentNode
     {
-        $start = $this->previous()->position;
-        ++$this->position; // #
         $comment = $this->consumeWhile(fn (string $c) => ')' !== $c);
-        $this->consumeLiteral(')', 'Expected ) to close comment');
+        $this->consume(TokenType::T_GROUP_CLOSE, 'Expected ) to close comment');
 
-        return new CommentNode((string) $comment);
+        return new CommentNode($comment);
     }
 
     /**
@@ -322,7 +320,6 @@ class Parser
             $this->consumeLiteral(':', 'Expected : after inline flags');
             $expr = $this->parseAlternation();
             $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
-
             return new GroupNode($expr, GroupType::T_GROUP_INLINE_FLAGS, null, $flags);
         }
 
@@ -383,7 +380,7 @@ class Parser
             $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
             return new GroupNode($expr, GroupType::T_GROUP_LOOKAHEAD_NEGATIVE);
-        } elseif ($this->matchLiteral('(')) {
+        } elseif ($this->match(TokenType::T_GROUP_OPEN)) {
             // Conditional (?(condition)yes|no)
             $condition = $this->parseConditionalCondition();
             $yes = $this->parseAlternation();
@@ -407,16 +404,14 @@ class Parser
     {
         if ($this->match(TokenType::T_LITERAL) && ctype_digit($this->previous()->value)) {
             // Numeric (?(1)...)
-            $num = (string) ($this->previous()->value.$this->consumeWhile(fn (string $c) => ctype_digit($c)));
-
+            $num = (string) ($this->previous()->value . $this->consumeWhile(fn ($c) => ctype_digit($c)));
             return new BackrefNode($num);
         } elseif ($this->matchLiteral('<') || $this->matchLiteral('{')) {
             // Named (?(<name>)...) or (?({name})...)
             $open = $this->previous()->value;
             $name = $this->parseGroupName();
-            $close = '<' === $open ? '>' : '}';
+            $close = $open === '<' ? '>' : '}';
             $this->consumeLiteral($close, "Expected $close after condition name");
-
             return new BackrefNode($name);
         } elseif ($this->matchLiteral('R')) {
             // Recursion (?(R)...)

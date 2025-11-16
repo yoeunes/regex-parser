@@ -24,6 +24,7 @@ use RegexParser\Ast\DotNode;
 use RegexParser\Ast\GroupNode;
 use RegexParser\Ast\GroupType;
 use RegexParser\Ast\LiteralNode;
+use RegexParser\Ast\OctalNode;
 use RegexParser\Ast\QuantifierNode;
 use RegexParser\Ast\RangeNode;
 use RegexParser\Ast\RegexNode;

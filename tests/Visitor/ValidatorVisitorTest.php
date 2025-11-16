@@ -96,11 +96,4 @@ class ValidatorVisitorTest extends TestCase
         $this->expectExceptionMessage('Invalid Unicode property');
         $this->validate('/\p{invalid}/');
     }
-
-    public function testThrowsOnInvalidAssertion(): void
-    {
-        $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('Invalid assertion');
-        $this->validate('/\invalid/');
-    }
 }

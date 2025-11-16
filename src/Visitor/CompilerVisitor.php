@@ -183,13 +183,14 @@ class CompilerVisitor implements VisitorInterface
 
     public function visitUnicodeProp(UnicodePropNode $node): string
     {
-        $neg = str_starts_with($node->prop, '^') ? 'P' : 'p';
-        $prop = ltrim($node->prop, '^');
-        if (\strlen($prop) > 1) {
-            return '\\'.$neg.'{'.$prop.'}';
+        if (str_starts_with($node->prop, '^')) {
+            return '\\p{'.$node->prop.'}';
+        } else {
+            if (\strlen($node->prop) > 1) {
+                return '\\p{'.$node->prop.'}';
+            }
+            return '\\p'.$node->prop;
         }
-
-        return '\\'.$neg.$prop;
     }
 
     public function visitOctal(OctalNode $node): string
@@ -215,7 +216,6 @@ class CompilerVisitor implements VisitorInterface
         if ('' === $no) {
             return '(?('.$cond.')'.$yes.')';
         }
-
         return '(?('.$cond.')'.$yes.'|'.$no.')';
     }
 }
