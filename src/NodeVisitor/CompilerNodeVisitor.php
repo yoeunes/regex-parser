@@ -48,7 +48,7 @@ class CompilerNodeVisitor implements NodeVisitorInterface
     private const META_CHARACTERS = [
         '\\' => true, '.' => true, '^' => true, '$' => true,
         '[' => true, ']' => true, '(' => true, ')' => true,
-        '|' => true, '*' => true, '+' => true, '?' => true, '{' => true,
+        '|' => true, '*' => true, '+' => true, '?' => true, '{' => true, '}' => true,
     ];
 
     // Meta-characters that must be escaped *inside* a character class.
