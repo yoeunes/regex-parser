@@ -14,6 +14,7 @@ namespace RegexParser\Bundle\DataCollector;
 use RegexParser\NodeVisitor\ComplexityScoreVisitor;
 use RegexParser\NodeVisitor\ExplainVisitor;
 use RegexParser\Regex;
+use RegexParser\ValidationResult;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\DataCollector\DataCollector;
@@ -28,13 +29,19 @@ class RegexCollector extends DataCollector implements LateDataCollectorInterface
         private readonly ExplainVisitor $explainVisitor,
         private readonly ComplexityScoreVisitor $scoreVisitor,
     ) {
+        // Initialize data to satisfy PHPStan
+        $this->data = [
+            'regexes' => [],
+            'total' => 0,
+            'invalid' => 0,
+        ];
     }
 
     public function collectRegex(
         string $pattern,
         string $source,
-        ?string $subject = null,
-        ?bool $matchResult = null,
+        string $subject = null,
+        bool $matchResult = null
     ): void {
         // Avoid collecting duplicates
         if (isset($this->collectedRegexes[$pattern])) {
@@ -49,10 +56,9 @@ class RegexCollector extends DataCollector implements LateDataCollectorInterface
         );
     }
 
-    public function collect(Request $request, Response $response, ?\Throwable $exception = null): void
+    public function collect(Request $request, Response $response, \Throwable $exception = null): void
     {
-        // This is where we would collect, but our decorators do it live.
-        // We just need to store the total.
+        // Reset data for the request
         $this->data = [
             'regexes' => [],
             'total' => 0,
@@ -114,17 +120,18 @@ class RegexCollector extends DataCollector implements LateDataCollectorInterface
      */
     public function getData(): array
     {
-        return $this->data;
+        // Explicit cast to satisfy PHPStan against DataCollector's cloning
+        return (array) $this->data;
     }
 
     public function getTotal(): int
     {
-        return $this->data['total'] ?? 0;
+        return (int) ($this->data['total'] ?? 0);
     }
 
     public function getInvalid(): int
     {
-        return $this->data['invalid'] ?? 0;
+        return (int) ($this->data['invalid'] ?? 0);
     }
 
     /**
@@ -132,6 +139,6 @@ class RegexCollector extends DataCollector implements LateDataCollectorInterface
      */
     public function getRegexes(): array
     {
-        return $this->data['regexes'] ?? [];
+        return (array) ($this->data['regexes'] ?? []);
     }
 }

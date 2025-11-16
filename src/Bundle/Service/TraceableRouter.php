@@ -21,7 +21,6 @@ use Symfony\Component\Routing\RouterInterface;
 
 /**
  * Decorates the Symfony Router to trace regex usage.
- * We implement all interfaces for maximum compatibility.
  *
  * @internal
  */
@@ -29,7 +28,7 @@ class TraceableRouter implements RouterInterface, RequestMatcherInterface
 {
     public function __construct(
         private readonly RouterInterface $router,
-        private readonly RegexCollector $collector,
+        private readonly RegexCollector $collector
     ) {
     }
 
@@ -48,16 +47,23 @@ class TraceableRouter implements RouterInterface, RequestMatcherInterface
         return $this->router->getRouteCollection();
     }
 
+    /**
+     * @param array<string, mixed> $parameters
+     */
     public function generate(string $name, array $parameters = [], int $referenceType = self::ABSOLUTE_PATH): string
     {
         return $this->router->generate($name, $parameters, $referenceType);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function match(string $pathinfo): array
     {
         try {
             $result = $this->router->match($pathinfo);
-            $this->collectRouteRegex($result['_route'], $pathinfo, true);
+            $routeName = $result['_route'] ?? null;
+            $this->collectRouteRegex(\is_string($routeName) ? $routeName : null, $pathinfo, true);
 
             return $result;
         } catch (RouteNotFoundException $e) {
@@ -66,6 +72,9 @@ class TraceableRouter implements RouterInterface, RequestMatcherInterface
         }
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function matchRequest(Request $request): array
     {
         if (!$this->router instanceof RequestMatcherInterface) {
@@ -75,7 +84,8 @@ class TraceableRouter implements RouterInterface, RequestMatcherInterface
 
         try {
             $result = $this->router->matchRequest($request);
-            $this->collectRouteRegex($result['_route'], $request->getPathInfo(), true);
+            $routeName = $result['_route'] ?? null;
+            $this->collectRouteRegex(\is_string($routeName) ? $routeName : null, $request->getPathInfo(), true);
 
             return $result;
         } catch (RouteNotFoundException $e) {
@@ -97,11 +107,12 @@ class TraceableRouter implements RouterInterface, RequestMatcherInterface
 
         // 1. Collect route requirement regexes
         foreach ($route->getRequirements() as $key => $requirement) {
+            $requirement = (string) $requirement;
             // We only collect requirements that are actual regex patterns
             if ($this->isRegex($requirement)) {
                 $this->collector->collectRegex(
                     $requirement,
-                    \sprintf('Router (Requirement: %s)', $key),
+                    sprintf('Router (Requirement: %s)', $key),
                     $subject,
                     $matchResult
                 );
@@ -113,7 +124,7 @@ class TraceableRouter implements RouterInterface, RequestMatcherInterface
         if ($compiled->getRegex()) {
             $this->collector->collectRegex(
                 $compiled->getRegex(),
-                \sprintf('Router (Route: %s)', $routeName),
+                sprintf('Router (Route: %s)', $routeName),
                 $subject,
                 $matchResult
             );

@@ -16,6 +16,7 @@ use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\Constraints\Regex;
 use Symfony\Component\Validator\ConstraintViolationListInterface;
 use Symfony\Component\Validator\Context\ExecutionContextInterface;
+use Symfony\Component\Validator\Validator\ContextualValidatorInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 /**
@@ -27,7 +28,7 @@ class TraceableValidator implements ValidatorInterface
 {
     public function __construct(
         private readonly ValidatorInterface $validator,
-        private readonly RegexCollector $collector,
+        private readonly RegexCollector $collector
     ) {
     }
 
@@ -41,9 +42,12 @@ class TraceableValidator implements ValidatorInterface
         return $this->validator->hasMetadataFor($value);
     }
 
-    public function validate(mixed $value, Constraint|array|null $constraints = null, $groups = null): ConstraintViolationListInterface
+    public function validate(mixed $value, Constraint|array $constraints = null, $groups = null): ConstraintViolationListInterface
     {
-        $this->collectConstraints((array) $constraints, $value);
+        $this->collectConstraints(
+            is_array($constraints) ? $constraints : (null === $constraints ? [] : [$constraints]),
+            $value
+        );
 
         return $this->validator->validate($value, $constraints, $groups);
     }
@@ -60,19 +64,18 @@ class TraceableValidator implements ValidatorInterface
         return $this->validator->validatePropertyValue($objectOrClass, $propertyName, $value, $groups);
     }
 
-    public function startContext(): \Symfony\Component\Validator\Context\ContextualValidatorInterface
+    public function startContext(): ContextualValidatorInterface
     {
-        // We cannot easily trace constraints from the contextual validator
         return $this->validator->startContext();
     }
 
-    public function inContext(ExecutionContextInterface $context): \Symfony\Component\Validator\Validator\ContextualValidatorInterface
+    public function inContext(ExecutionContextInterface $context): ContextualValidatorInterface
     {
         return $this->validator->inContext($context);
     }
 
     /**
-     * @param Constraint[] $constraints
+     * @param array<Constraint> $constraints
      */
     private function collectConstraints(array $constraints, mixed $subject): void
     {
@@ -80,12 +83,14 @@ class TraceableValidator implements ValidatorInterface
 
         foreach ($constraints as $constraint) {
             if ($constraint instanceof Regex) {
-                $this->collector->collectRegex(
-                    $constraint->pattern,
-                    'Validator (Regex constraint)',
-                    $subject,
-                    null // We don't know the result at this stage
-                );
+                if (null !== $constraint->pattern) {
+                    $this->collector->collectRegex(
+                        $constraint->pattern,
+                        'Validator (Regex constraint)',
+                        $subject,
+                        null // We don't know the result at this stage
+                    );
+                }
             }
         }
     }
