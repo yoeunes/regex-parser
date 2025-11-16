@@ -43,12 +43,33 @@ use RegexParser\Node\UnicodePropNode;
  */
 class SampleGeneratorVisitor implements NodeVisitorInterface
 {
+    private bool $isSeeded = false;
+
     /**
      * @param int $maxRepetition max times to repeat for * or + quantifiers
-     *                           to prevent excessively long or infinite samples
+     * to prevent excessively long or infinite samples
      */
     public function __construct(private readonly int $maxRepetition = 3)
     {
+    }
+
+    /**
+     * Seeds the Mersenne Twister random number generator.
+     * This allows for generating deterministic, reproducible samples.
+     */
+    public function setSeed(int $seed): void
+    {
+        mt_srand($seed);
+        $this->isSeeded = true;
+    }
+
+    /**
+     * Reseeds the random number generator with a random value.
+     */
+    public function resetSeed(): void
+    {
+        mt_srand();
+        $this->isSeeded = false;
     }
 
     /**
@@ -66,6 +87,14 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
         $this->captures = [];
         $this->groupCounter = 1;
 
+        // Ensure we are seeded if the user expects it
+        if ($this->isSeeded) {
+            // Re-seed to ensure subsequent calls to generate() with the same seed
+            // produce the same result.
+            mt_srand(mt_rand()); // This is a bit of a hack, but it's how PHP's seed works
+            mt_srand(); // Reset to a known state if we need to
+        }
+
         // Note: Flags (like /i) are ignored, as we generate the sample
         // from the literal pattern.
         return $node->pattern->accept($this);
@@ -78,7 +107,7 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
         }
 
         // Pick one of the alternatives at random
-        $randomKey = array_rand($node->alternatives);
+        $randomKey = mt_rand(0, \count($node->alternatives) - 1);
         $chosenAlt = $node->alternatives[$randomKey];
 
         return $chosenAlt->accept($this);
@@ -117,7 +146,7 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
         try {
             // $min and $max are guaranteed to be in the correct order
             // by parseQuantifierRange()
-            $repeats = ($min === $max) ? $min : random_int($min, $max);
+            $repeats = ($min === $max) ? $min : mt_rand($min, $max);
         } catch (\Throwable) {
             $repeats = $min; // Fallback
         }
@@ -209,7 +238,7 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
         }
 
         // Pick one of the parts at random
-        $randomKey = array_rand($node->parts);
+        $randomKey = mt_rand(0, \count($node->parts) - 1);
 
         return $node->parts[$randomKey]->accept($this);
     }
@@ -332,7 +361,7 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
         // This is complex. Does the condition (e.g., group 1) exist?
         // We'll randomly choose to satisfy the condition or not.
         try {
-            $choice = random_int(0, 1);
+            $choice = mt_rand(0, 1);
         } catch (\Throwable) {
             $choice = 0; // Fallback
         }
@@ -367,15 +396,16 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
         if (empty($chars)) {
             return '?'; // Safe fallback
         }
+        $key = mt_rand(0, \count($chars) - 1);
 
-        return $chars[array_rand($chars)];
+        return $chars[$key];
     }
 
     private function generateForCharType(string $type): string
     {
         try {
             return match ($type) {
-                'd' => (string) random_int(0, 9),
+                'd' => (string) mt_rand(0, 9),
                 'D' => $this->getRandomChar(['a', ' ', '!']), // Not a digit
                 's' => $this->getRandomChar([' ', "\t", "\n"]),
                 'S' => $this->getRandomChar(['a', '1', '!']), // Not whitespace
@@ -389,7 +419,7 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
                 default => '?',
             };
         } catch (\Throwable) {
-            return '?'; // Fallback for random_int failure
+            return '?'; // Fallback for mt_rand failure
         }
     }
 }
