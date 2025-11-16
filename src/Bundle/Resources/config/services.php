@@ -18,15 +18,14 @@ use RegexParser\NodeVisitor\OptimizerNodeVisitor;
 use RegexParser\NodeVisitor\SampleGeneratorVisitor;
 
 return static function (ContainerConfigurator $container): void {
-    $services = $container->services()
-        ->defaults()
-            ->autowire()
-            ->autoconfigure()
-            ->publicFalse();
+    $container->services()
+        ->set('regex_parser.visitor.explain', ExplainVisitor::class)
 
-    $services->set(ExplainVisitor::class);
-    $services->set(ComplexityScoreVisitor::class);
-    $services->set(HtmlExplainVisitor::class);
-    $services->set(OptimizerNodeVisitor::class);
-    $services->set(SampleGeneratorVisitor::class);
+        ->set('regex_parser.visitor.complexity_score', ComplexityScoreVisitor::class)
+
+        ->set('regex_parser.visitor.html_explain', HtmlExplainVisitor::class)
+
+        ->set('regex_parser.visitor.optimizer', OptimizerNodeVisitor::class)
+
+        ->set('regex_parser.visitor.sample_generator', SampleGeneratorVisitor::class);
 };
