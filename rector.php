@@ -11,32 +11,39 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-return Rector\Config\RectorConfig::configure()
-    ->withRootFiles()
-    ->withPaths([
-        __DIR__.'/bin',
-        __DIR__.'/config',
-        __DIR__.'/phpstan',
-        __DIR__.'/rector',
-        __DIR__.'/src',
-        __DIR__.'/tests',
-    ])
-    ->withPhpSets(php84: true)
-    ->withPhpVersion(Rector\ValueObject\PhpVersion::PHP_82)
-    ->withAttributesSets(phpunit: true)
-    ->withComposerBased(phpunit: true)
-    ->withImportNames(importShortClasses: false, removeUnusedImports: true)
-    ->withIndent()
-    ->withCache(cacheDirectory: '.cache/rector/')
-    ->withEditorUrl('phpstorm://open?file=%file%&line=%line%')
-    ->withParallel()
-    ->withComposerBased(phpunit: true)
-    ->withRules([
-        RegexParser\Rector\RegexOptimizationRector::class,
-    ])
-    ->withSets([
-        Rector\Set\ValueObject\LevelSetList::UP_TO_PHP_84,
-    ])
-    ->withSkip([
-        Rector\Php73\Rector\FuncCall\RegexDashEscapeRector::class,
+use Rector\Config\RectorConfig;
+use Rector\Php73\Rector\FuncCall\RegexDashEscapeRector;
+use Rector\Renaming\Rector\FuncCall\RenameFunctionRector;
+use Rector\CodeQuality\Rector\FuncCall\SimplifyRegexPatternRector;
+use Rector\ValueObject\PhpVersion;
+
+return static function (RectorConfig $rectorConfig): void {
+    $rectorConfig->paths([
+        __DIR__ . '/src',
+        __DIR__ . '/tests',
+        __DIR__ . '/phpstan',
+        __DIR__ . '/rector',
+        __DIR__ . '/config',
+        __DIR__ . '/bin',
     ]);
+
+    $rectorConfig->import(__DIR__ . '/config/rector/regex-parser.php');
+
+    $rectorConfig->phpVersion(PhpVersion::PHP_84);
+    $rectorConfig->importShortClasses();
+    $rectorConfig->removeUnusedImports();
+    $rectorConfig->indent(' ', 4);
+    $rectorConfig->cacheDirectory('.cache/rector/');
+    $rectorConfig->parallel();
+    $rectorConfig->editorUrl('phpstorm://open?file=%file%&line=%line%');
+
+    $rectorConfig->skip([
+        RegexDashEscapeRector::class,
+
+        SimplifyRegexPatternRector::class,
+
+        RenameFunctionRector::class => [
+            'preg_replace' => 'str_replace',
+        ],
+    ]);
+};
