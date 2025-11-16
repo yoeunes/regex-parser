@@ -24,7 +24,6 @@ use RegexParser\Node\GroupNode;
 use RegexParser\Node\GroupType;
 use RegexParser\Node\KeepNode;
 use RegexParser\Node\LiteralNode;
-use RegexParser\Node\NodeInterface;
 use RegexParser\Node\OctalLegacyNode;
 use RegexParser\Node\OctalNode;
 use RegexParser\Node\PcreVerbNode;
@@ -45,16 +44,17 @@ use RegexParser\Node\UnicodePropNode;
 class SampleGeneratorVisitor implements NodeVisitorInterface
 {
     /**
-     * @param int $maxRepetition Max times to repeat for * or + quantifiers
-     * to prevent excessively long or infinite samples.
+     * @param int $maxRepetition max times to repeat for * or + quantifiers
+     *                           to prevent excessively long or infinite samples
      */
-    public function __construct(private int $maxRepetition = 3)
+    public function __construct(private readonly int $maxRepetition = 3)
     {
     }
 
     /**
      * Stores generated text from capturing groups.
      * Keyed by both numeric index and name (if available).
+     *
      * @var array<int|string, string>
      */
     private array $captures = [];
@@ -110,7 +110,7 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
         [$min, $max] = $this->parseQuantifierRange($node->quantifier);
 
         // Pick a random number of repetitions
-        $repeats = rand($min, $max);
+        $repeats = random_int($min, $max);
 
         $parts = [];
         for ($i = 0; $i < $repeats; ++$i) {
@@ -205,7 +205,7 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
 
         // Generate a random character within the ASCII range
         try {
-            return chr(rand(ord($node->start->value), ord($node->end->value)));
+            return \chr(random_int(\ord($node->start->value), \ord($node->end->value)));
         } catch (\Throwable) {
             // Fallback if ord() fails or range is invalid
             return $node->start->value;
@@ -224,7 +224,7 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
         }
 
         // Handle named \k<name> or \k{name}
-        if (preg_match('/^k<([a-zA-Z0-9_]+)>$/', $ref, $m) || preg_match('/^k{([a-zA-Z0-9_]+)}$/', $ref, $m)) {
+        if (preg_match('/^k<([a-zA-Z0-9_]+)>$/', (string) $ref, $m) || preg_match('/^k{([a-zA-Z0-9_]+)}$/', (string) $ref, $m)) {
             return $this->captures[$m[1]] ?? '';
         }
 
@@ -237,11 +237,12 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
     public function visitUnicode(UnicodeNode $node): string
     {
         if (preg_match('/^\\\\x([0-9a-fA-F]{2})$/', $node->code, $m)) {
-            return chr(hexdec($m[1]));
+            return \chr(hexdec($m[1]));
         }
         if (preg_match('/^\\\\u\{([0-9a-fA-F]+)\}$/', $node->code, $m)) {
             return mb_chr(hexdec($m[1]), 'UTF-8');
         }
+
         // Fallback for unknown unicode
         return '?';
     }
@@ -302,7 +303,7 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
     {
         // This is complex. Does the condition (e.g., group 1) exist?
         // We'll randomly choose to satisfy the condition or not.
-        if (rand(0, 1) === 1) {
+        if (1 === random_int(0, 1)) {
             // Simulate "YES" path
             return $node->yes->accept($this);
         }
@@ -335,7 +336,7 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
     private function generateForCharType(string $type): string
     {
         return match ($type) {
-            'd' => (string) rand(0, 9),
+            'd' => (string) random_int(0, 9),
             'D' => $this->getRandomChar(['a', ' ', '!']), // Not a digit
             's' => $this->getRandomChar([' ', "\t", "\n"]),
             'S' => $this->getRandomChar(['a', '1', '!']), // Not whitespace
