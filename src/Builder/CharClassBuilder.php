@@ -43,7 +43,7 @@ class CharClassBuilder
      */
     public function range(string $start, string $end): self
     {
-        if (1 !== \mb_strlen($start) || 1 !== \mb_strlen($end)) {
+        if (1 !== mb_strlen($start) || 1 !== mb_strlen($end)) {
             throw new \InvalidArgumentException('Range parts must be single characters.');
         }
         $this->parts[] = new RangeNode(new LiteralNode($start, 0, 0), new LiteralNode($end, 0, 0), 0, 0);

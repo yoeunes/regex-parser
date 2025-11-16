@@ -14,7 +14,6 @@ namespace RegexParser\Bundle\DataCollector;
 use RegexParser\NodeVisitor\ComplexityScoreVisitor;
 use RegexParser\NodeVisitor\ExplainVisitor;
 use RegexParser\Regex;
-use RegexParser\ValidationResult;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\DataCollector\DataCollector;
@@ -34,8 +33,8 @@ class RegexCollector extends DataCollector implements LateDataCollectorInterface
     public function collectRegex(
         string $pattern,
         string $source,
-        string $subject = null,
-        bool $matchResult = null
+        ?string $subject = null,
+        ?bool $matchResult = null,
     ): void {
         // Avoid collecting duplicates
         if (isset($this->collectedRegexes[$pattern])) {
@@ -50,7 +49,7 @@ class RegexCollector extends DataCollector implements LateDataCollectorInterface
         );
     }
 
-    public function collect(Request $request, Response $response, \Throwable $exception = null): void
+    public function collect(Request $request, Response $response, ?\Throwable $exception = null): void
     {
         // This is where we would collect, but our decorators do it live.
         // We just need to store the total.

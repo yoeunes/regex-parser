@@ -31,7 +31,7 @@ return static function (ContainerConfigurator $container): void {
         ->arg('$scoreVisitor', service(ComplexityScoreVisitor::class))
         ->tag('data_collector', [
             'template' => '@RegexParser/Profiler/regex_panel.html.twig',
-            'id'       => 'regex',
+            'id' => 'regex',
             'priority' => 270,
         ]);
 

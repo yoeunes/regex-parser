@@ -23,7 +23,6 @@ use RegexParser\Node\LiteralNode;
 use RegexParser\Node\NodeInterface;
 use RegexParser\Node\QuantifierNode;
 use RegexParser\Node\QuantifierType;
-use RegexParser\Node\RegexNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
 
@@ -31,7 +30,7 @@ use RegexParser\NodeVisitor\CompilerNodeVisitor;
  * A fluent, object-oriented builder for programmatically creating regex patterns.
  * This helps create complex, readable, and safe regexes without manual escaping.
  *
- * @property-read RegexBuilder $or Adds an alternation.
+ * @property RegexBuilder $or Adds an alternation.
  */
 class RegexBuilder
 {
@@ -246,17 +245,17 @@ class RegexBuilder
 
     public function exactly(int $count): self
     {
-        return $this->quantify(sprintf('{%d}', $count), QuantifierType::T_GREEDY);
+        return $this->quantify(\sprintf('{%d}', $count), QuantifierType::T_GREEDY);
     }
 
     public function atLeast(int $count, bool $lazy = false): self
     {
-        return $this->quantify(sprintf('{%d,}', $count), $lazy ? QuantifierType::T_LAZY : QuantifierType::T_GREEDY);
+        return $this->quantify(\sprintf('{%d,}', $count), $lazy ? QuantifierType::T_LAZY : QuantifierType::T_GREEDY);
     }
 
     public function between(int $min, int $max, bool $lazy = false): self
     {
-        return $this->quantify(sprintf('{%d,%d}', $min, $max), $lazy ? QuantifierType::T_LAZY : QuantifierType::T_GREEDY);
+        return $this->quantify(\sprintf('{%d,%d}', $min, $max), $lazy ? QuantifierType::T_LAZY : QuantifierType::T_GREEDY);
     }
 
     public function withFlags(string $flags): self
@@ -332,6 +331,6 @@ class RegexBuilder
             return $this->newAlternative();
         }
 
-        throw new \BadMethodCallException(sprintf('Property "%s" does not exist.', $name));
+        throw new \BadMethodCallException(\sprintf('Property "%s" does not exist.', $name));
     }
 }

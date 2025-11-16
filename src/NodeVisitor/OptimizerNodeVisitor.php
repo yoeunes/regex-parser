@@ -11,7 +11,6 @@
 
 namespace RegexParser\NodeVisitor;
 
-use RegexParser\Node\AbstractNode;
 use RegexParser\Node\AlternationNode;
 use RegexParser\Node\AnchorNode;
 use RegexParser\Node\AssertionNode;
@@ -136,7 +135,7 @@ class OptimizerNodeVisitor implements NodeVisitorInterface
         ) {
             $parts = [];
             foreach ($optimizedChild->alternatives as $alt) {
-                /** @var LiteralNode $alt */
+                /* @var LiteralNode $alt */
                 $parts[] = $alt;
             }
 
@@ -167,7 +166,7 @@ class OptimizerNodeVisitor implements NodeVisitorInterface
             if (!$alt instanceof LiteralNode) {
                 return false;
             }
-            if (\mb_strlen($alt->value) > 1) {
+            if (mb_strlen($alt->value) > 1) {
                 return false; // Not a single char
             }
             if (isset($meta[$alt->value])) {

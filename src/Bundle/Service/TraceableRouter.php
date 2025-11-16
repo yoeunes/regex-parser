@@ -29,7 +29,7 @@ class TraceableRouter implements RouterInterface, RequestMatcherInterface
 {
     public function __construct(
         private readonly RouterInterface $router,
-        private readonly RegexCollector $collector
+        private readonly RegexCollector $collector,
     ) {
     }
 
@@ -101,7 +101,7 @@ class TraceableRouter implements RouterInterface, RequestMatcherInterface
             if ($this->isRegex($requirement)) {
                 $this->collector->collectRegex(
                     $requirement,
-                    sprintf('Router (Requirement: %s)', $key),
+                    \sprintf('Router (Requirement: %s)', $key),
                     $subject,
                     $matchResult
                 );
@@ -113,7 +113,7 @@ class TraceableRouter implements RouterInterface, RequestMatcherInterface
         if ($compiled->getRegex()) {
             $this->collector->collectRegex(
                 $compiled->getRegex(),
-                sprintf('Router (Route: %s)', $routeName),
+                \sprintf('Router (Route: %s)', $routeName),
                 $subject,
                 $matchResult
             );

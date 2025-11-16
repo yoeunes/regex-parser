@@ -81,7 +81,7 @@ class HtmlExplainVisitor implements NodeVisitorInterface
         $patternExplain = $node->pattern->accept($this);
         $flags = $node->flags ? $this->e(' (with flags: '.$node->flags.')') : '';
 
-        return sprintf(
+        return \sprintf(
             "<div class=\"regex-explain\">\n<strong>Regex matches%s:</strong>\n<ul>%s</ul>\n</div>",
             $flags,
             $patternExplain
@@ -95,7 +95,7 @@ class HtmlExplainVisitor implements NodeVisitorInterface
             $node->alternatives
         );
 
-        return sprintf(
+        return \sprintf(
             "<li><strong>EITHER:</strong>\n<ul>%s</ul>\n</li>",
             implode("\n<li><strong>OR:</strong>\n<ul>", $alts)
         );
@@ -115,16 +115,16 @@ class HtmlExplainVisitor implements NodeVisitorInterface
         $type = match ($node->type) {
             GroupType::T_GROUP_CAPTURING => 'Start Capturing Group',
             GroupType::T_GROUP_NON_CAPTURING => 'Start Non-Capturing Group',
-            GroupType::T_GROUP_NAMED => sprintf("Start Capturing Group (named: '%s')", $this->e($node->name)),
+            GroupType::T_GROUP_NAMED => \sprintf("Start Capturing Group (named: '%s')", $this->e($node->name)),
             GroupType::T_GROUP_LOOKAHEAD_POSITIVE => 'Start Positive Lookahead',
             GroupType::T_GROUP_LOOKAHEAD_NEGATIVE => 'Start Negative Lookahead',
             GroupType::T_GROUP_LOOKBEHIND_POSITIVE => 'Start Positive Lookbehind',
             GroupType::T_GROUP_LOOKBEHIND_NEGATIVE => 'Start Negative Lookbehind',
             GroupType::T_GROUP_ATOMIC => 'Start Atomic Group',
-            GroupType::T_GROUP_INLINE_FLAGS => sprintf("Start Group (with flags: '%s')", $this->e($node->flags)),
+            GroupType::T_GROUP_INLINE_FLAGS => \sprintf("Start Group (with flags: '%s')", $this->e($node->flags)),
         };
 
-        return sprintf(
+        return \sprintf(
             "<li><span title=\"%s\"><strong>%s:</strong></span>\n<ul>%s</ul>\n</li>",
             $this->e($type),
             $this->e($type),
@@ -140,11 +140,11 @@ class HtmlExplainVisitor implements NodeVisitorInterface
         // If the child is simple (one line <li>), put it on one line.
         if (str_starts_with($childExplain, '<li>') && !str_contains(substr($childExplain, 4), '<li>')) {
             // Inject the quantifier explanation into the child's <li>
-            return str_replace('<li>', sprintf('<li>(%s) ', $this->e($quantExplain)), $childExplain);
+            return str_replace('<li>', \sprintf('<li>(%s) ', $this->e($quantExplain)), $childExplain);
         }
 
         // If the child is complex, wrap it
-        return sprintf(
+        return \sprintf(
             "<li><strong>Quantifier (%s):</strong>\n<ul>%s</ul>\n</li>",
             $this->e($quantExplain),
             $childExplain
@@ -159,10 +159,10 @@ class HtmlExplainVisitor implements NodeVisitorInterface
             '?' => 'zero or one time',
             default => preg_match('/^\{(\d+)(?:,(\d*))?\}$/', $q, $m) ?
                 (isset($m[2]) ? ('' === $m[2] ?
-                    sprintf('at least %d times', $m[1]) :
-                    sprintf('between %d and %d times', $m[1], $m[2])
+                    \sprintf('at least %d times', $m[1]) :
+                    \sprintf('between %d and %d times', $m[1], $m[2])
                 ) :
-                    sprintf('exactly %d times', $m[1])
+                    \sprintf('exactly %d times', $m[1])
                 ) :
                 'with quantifier '.$q, // Fallback
         };
@@ -180,7 +180,7 @@ class HtmlExplainVisitor implements NodeVisitorInterface
     {
         $explanation = $this->explainLiteral($node->value);
 
-        return sprintf(
+        return \sprintf(
             '<li><span title="Literal: %s">Literal: <strong>%s</strong></span></li>',
             $this->e($explanation),
             $this->e($explanation)
@@ -191,7 +191,7 @@ class HtmlExplainVisitor implements NodeVisitorInterface
     {
         $explanation = self::CHAR_TYPE_MAP[$node->value] ?? 'unknown (\\'.$node->value.')';
 
-        return sprintf(
+        return \sprintf(
             '<li><span title="Character Type: %s">Character Type: <strong>\%s</strong> (%s)</span></li>',
             $this->e($explanation),
             $this->e($node->value),
@@ -203,7 +203,7 @@ class HtmlExplainVisitor implements NodeVisitorInterface
     {
         $explanation = 'any character (except newline, unless /s flag is used)';
 
-        return sprintf(
+        return \sprintf(
             '<li><span title="%s">Wildcard: <strong>.</strong> (%s)</span></li>',
             $this->e($explanation),
             $this->e($explanation)
@@ -214,7 +214,7 @@ class HtmlExplainVisitor implements NodeVisitorInterface
     {
         $explanation = self::ANCHOR_MAP[$node->value] ?? $node->value;
 
-        return sprintf(
+        return \sprintf(
             '<li><span title="%s">Anchor: <strong>%s</strong> (%s)</span></li>',
             $this->e($explanation),
             $this->e($node->value),
@@ -226,7 +226,7 @@ class HtmlExplainVisitor implements NodeVisitorInterface
     {
         $explanation = self::ASSERTION_MAP[$node->value] ?? '\\'.$node->value;
 
-        return sprintf(
+        return \sprintf(
             '<li><span title="%s">Assertion: <strong>\%s</strong> (%s)</span></li>',
             $this->e($explanation),
             $this->e($node->value),
@@ -238,7 +238,7 @@ class HtmlExplainVisitor implements NodeVisitorInterface
     {
         $explanation = '\K (reset match start)';
 
-        return sprintf(
+        return \sprintf(
             '<li><span title="%s">Assertion: <strong>\K</strong> (%s)</span></li>',
             $this->e($explanation),
             $this->e($explanation)
@@ -253,9 +253,9 @@ class HtmlExplainVisitor implements NodeVisitorInterface
         // Char class parts are just strings, not <li>
         $parts = array_map(fn ($p) => strip_tags($p), $parts);
 
-        $explanation = sprintf('any character %sin [ %s ]', $neg, implode(', ', $parts));
+        $explanation = \sprintf('any character %sin [ %s ]', $neg, implode(', ', $parts));
 
-        return sprintf(
+        return \sprintf(
             '<li><span title="%s">Character Class: [ %s%s ]</span></li>',
             $this->e(strip_tags($explanation)),
             $neg,
@@ -273,14 +273,14 @@ class HtmlExplainVisitor implements NodeVisitorInterface
             ? $this->explainLiteral($node->end->value)
             : $node->end->accept($this);
 
-        return sprintf('Range: from %s to %s', $this->e($start), $this->e($end));
+        return \sprintf('Range: from %s to %s', $this->e($start), $this->e($end));
     }
 
     public function visitBackref(BackrefNode $node): string
     {
-        $explanation = sprintf('matches text from group "%s"', $node->ref);
+        $explanation = \sprintf('matches text from group "%s"', $node->ref);
 
-        return sprintf(
+        return \sprintf(
             '<li><span title="%s">Backreference: <strong>\%s</strong></span></li>',
             $this->e($explanation),
             $this->e($node->ref)
@@ -289,7 +289,7 @@ class HtmlExplainVisitor implements NodeVisitorInterface
 
     public function visitUnicode(UnicodeNode $node): string
     {
-        return sprintf(
+        return \sprintf(
             '<li><span title="Unicode: %s">Unicode: <strong>%s</strong></span></li>',
             $this->e($node->code),
             $this->e($node->code)
@@ -300,9 +300,9 @@ class HtmlExplainVisitor implements NodeVisitorInterface
     {
         $type = str_starts_with($node->prop, '^') ? 'non-matching' : 'matching';
         $prop = ltrim($node->prop, '^');
-        $explanation = sprintf('any character %s "%s"', $type, $prop);
+        $explanation = \sprintf('any character %s "%s"', $type, $prop);
 
-        return sprintf(
+        return \sprintf(
             '<li><span title="%s">Unicode Property: <strong>\p{%s}</strong></span></li>',
             $this->e($explanation),
             $this->e($node->prop)
@@ -311,7 +311,7 @@ class HtmlExplainVisitor implements NodeVisitorInterface
 
     public function visitOctal(OctalNode $node): string
     {
-        return sprintf(
+        return \sprintf(
             '<li><span title="Octal: %s">Octal: <strong>%s</strong></span></li>',
             $this->e($node->code),
             $this->e($node->code)
@@ -320,7 +320,7 @@ class HtmlExplainVisitor implements NodeVisitorInterface
 
     public function visitOctalLegacy(OctalLegacyNode $node): string
     {
-        return sprintf(
+        return \sprintf(
             '<li><span title="Legacy Octal: %s">Legacy Octal: <strong>\%s</strong></span></li>',
             $this->e($node->code),
             $this->e($node->code)
@@ -329,12 +329,12 @@ class HtmlExplainVisitor implements NodeVisitorInterface
 
     public function visitPosixClass(PosixClassNode $node): string
     {
-        return sprintf('POSIX Class: [[:%s:]]', $this->e($node->class));
+        return \sprintf('POSIX Class: [[:%s:]]', $this->e($node->class));
     }
 
     public function visitComment(CommentNode $node): string
     {
-        return sprintf(
+        return \sprintf(
             '<li><span title="Comment" style="color: #888; font-style: italic;">Comment: %s</span></li>',
             $this->e($node->comment)
         );
@@ -350,14 +350,14 @@ class HtmlExplainVisitor implements NodeVisitorInterface
         $condText = trim(strip_tags($cond));
 
         if ('' === $no || '<li></li>' === $no) {
-            return sprintf(
+            return \sprintf(
                 "<li><strong>Conditional: IF</strong> (%s) <strong>THEN:</strong>\n<ul>%s</ul>\n</li>",
                 $this->e($condText),
                 $yes
             );
         }
 
-        return sprintf(
+        return \sprintf(
             "<li><strong>Conditional: IF</strong> (%s) <strong>THEN:</strong>\n<ul>%s</ul>\n<strong>ELSE:</strong>\n<ul>%s</ul>\n</li>",
             $this->e($condText),
             $yes,
@@ -372,9 +372,9 @@ class HtmlExplainVisitor implements NodeVisitorInterface
             '0' => 'the entire pattern',
             default => 'group '.$this->e($node->reference),
         };
-        $explanation = sprintf('recurses to %s', $ref);
+        $explanation = \sprintf('recurses to %s', $ref);
 
-        return sprintf(
+        return \sprintf(
             '<li><span title="%s">Subroutine Call: <strong>(%s%s)</strong></span></li>',
             $this->e($explanation),
             $this->e($node->syntax),
@@ -384,7 +384,7 @@ class HtmlExplainVisitor implements NodeVisitorInterface
 
     public function visitPcreVerb(PcreVerbNode $node): string
     {
-        return sprintf(
+        return \sprintf(
             '<li><span title="PCRE Verb">PCRE Verb: <strong>(*%s)</strong></span></li>',
             $this->e($node->verb)
         );
