@@ -1,6 +1,6 @@
 # RegexParser
 
-[![Build Status](https://img.shields.io/github/actions/workflow/status/yoeunes/VOTRE_REPO/ci.yml?branch=main&style=for-the-badge)](https://github.com/yoeunes/VOTRE_REPO/actions)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/yoeunes/regex-parser/ci.yml?branch=main&style=for-the-badge)](https://github.com/yoeunes/regex-parser/actions)
 [![Latest Stable Version](https://img.shields.io/packagist/v/yoeunes/regex-parser.svg?style=for-the-badge)](https://packagist.org/packages/yoeunes/regex-parser)
 [![Total Downloads](https://img.shields.io/packagist/dt/yoeunes/regex-parser.svg?style=for-the-badge)](https://packagist.org/packages/yoeunes/regex-parser)
 [![License](https://img.shields.io/packagist/l/yoeunes/regex-parser.svg?style=for-the-badge)](https://packagist.org/packages/yoeunes/regex-parser)
