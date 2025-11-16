@@ -121,7 +121,7 @@ class Lexer
         }
         // Backrefs \1 - \9, \10+
         if (preg_match('/^[1-9]$/', $char)) {
-            $ref = $this->consumeWhile(fn ($c) => ctype_digit((string) $c));
+            $ref = $this->consumeWhile(fn (string $c) => ctype_digit($c));
             ++$this->position; // For the initial digit
 
             return new Token(TokenType::T_BACKREF, $char.$ref, $start);
@@ -195,7 +195,7 @@ class Lexer
 
         // Add POSIX [[:alpha:]]
         if (':' === $char && '[' === $this->peek(-1)) {
-            $posix = $this->consumeWhile(fn ($c) => preg_match('/^[a-zA-Z^]$/', (string) $c));
+            $posix = $this->consumeWhile(fn (string $c) => preg_match('/^[a-zA-Z^]$/', $c));
             if (':' !== $this->peek() || ']' !== $this->peek(1)) {
                 throw new LexerException('Invalid POSIX class at position '.$this->position);
             }
