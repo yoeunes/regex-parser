@@ -23,6 +23,7 @@ use RegexParser\Node\DotNode;
 use RegexParser\Node\GroupNode;
 use RegexParser\Node\LiteralNode;
 use RegexParser\Node\OctalNode;
+use RegexParser\Node\PcreVerbNode;
 use RegexParser\Node\PosixClassNode;
 use RegexParser\Node\QuantifierNode;
 use RegexParser\Node\RangeNode;
@@ -139,4 +140,9 @@ interface NodeVisitorInterface
      * @return TReturn
      */
     public function visitSubroutine(SubroutineNode $node);
+
+    /**
+     * @return TReturn
+     */
+    public function visitPcreVerb(PcreVerbNode $node);
 }

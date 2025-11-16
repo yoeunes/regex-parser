@@ -26,6 +26,7 @@ use RegexParser\Node\GroupType;
 use RegexParser\Node\LiteralNode;
 use RegexParser\Node\NodeInterface;
 use RegexParser\Node\OctalNode;
+use RegexParser\Node\PcreVerbNode;
 use RegexParser\Node\PosixClassNode;
 use RegexParser\Node\QuantifierNode;
 use RegexParser\Node\QuantifierType;
@@ -127,7 +128,7 @@ class Parser
     // alternation     → sequence ( "|" sequence )*
     // sequence        → quantifiedAtom*
     // quantifiedAtom  → atom ( QUANTIFIER )?
-    // atom            → T_LITERAL | T_CHAR_TYPE | T_DOT | T_ANCHOR | group | char_class
+    // atom            → T_LITERAL | T_CHAR_TYPE | T_DOT | T_ANCHOR | T_PCRE_VERB | group | char_class
     // group           → T_GROUP_OPEN alternation T_GROUP_CLOSE
     //                 | T_GROUP_MODIFIER_OPEN group_modifier T_GROUP_CLOSE
     // ... (etc)
@@ -180,8 +181,11 @@ class Parser
             if ($node instanceof LiteralNode && '' === $node->value) {
                 throw new ParserException('Quantifier without target at position '.$token->position);
             }
-            if ($node instanceof AnchorNode || $node instanceof AssertionNode) {
-                throw new ParserException(\sprintf('Quantifier "%s" cannot be applied to assertion "%s" at position %d', $token->value, $node->value, $token->position));
+
+            // Assertions, anchors, and verbs cannot be quantified.
+            if ($node instanceof AnchorNode || $node instanceof AssertionNode || $node instanceof PcreVerbNode) {
+                $nodeName = $node->value ?? $node->verb ?? $node::class;
+                throw new ParserException(\sprintf('Quantifier "%s" cannot be applied to assertion or verb "%s" at position %d', $token->value, $nodeName, $token->position));
             }
 
             [$quantifier, $type] = $this->parseQuantifierValue($token->value);
@@ -246,6 +250,26 @@ class Parser
             return new BackrefNode($this->previous()->value);
         }
 
+        // Handle \g references which can be Backrefs or Subroutines
+        if ($this->match(TokenType::T_G_REFERENCE)) {
+            $token = $this->previous();
+            $value = $token->value; // e.g., \g<name>, \g{name}, \g{1}, \g1, \g-1
+
+            // \g{N} or \gN (numeric, incl. relative) -> Backreference
+            if (preg_match('/^\\\\g\{?([0-9+-]+)\}?$/', $value, $m)) {
+                // \g{0}, \g0, \g{+0} etc. are valid backrefs to the whole match.
+                // We let the Validator check for invalid numbers (e.g. > group count).
+                return new BackrefNode($value);
+            }
+
+            // \g<name> or \g{name} (non-numeric) -> Subroutine
+            if (preg_match('/^\\\\g<([a-zA-Z0-9_]+)>$/', $value, $m) || preg_match('/^\\\\g\{([a-zA-Z0-9_]+)\}$/', $value, $m)) {
+                return new SubroutineNode($m[1], 'g'); // Pass just the name/ref, and the syntax type 'g'
+            }
+
+            throw new ParserException('Invalid \g reference syntax: '.$value.' at position '.$token->position);
+        }
+
         if ($this->match(TokenType::T_UNICODE)) {
             return new UnicodeNode($this->previous()->value);
         }
@@ -275,6 +299,11 @@ class Parser
 
         if ($this->match(TokenType::T_CHAR_CLASS_OPEN)) {
             return $this->parseCharClass();
+        }
+
+        // Handle PCRE Verbs
+        if ($this->match(TokenType::T_PCRE_VERB)) {
+            return new PcreVerbNode($this->previous()->value);
         }
 
         $at = $this->isAtEnd() ? 'end of input' : 'position '.$this->current()->position;
@@ -390,7 +419,6 @@ class Parser
             // Fallthrough to conditional check (which will fail, as we already tried)
             // This is now handled by (?(...) check above.
             // We must have (?(...) *before* (?R)
-            // Let's re-order: (?(...) *must* be first.
             // Re-tracing: (?(R)...) is handled by parseConditionalCondition matching 'R'.
             // So, if we match 'R' here, it *must* be (?R).
             throw new ParserException('Invalid syntax after (?R at position '.$startPos);
@@ -453,7 +481,6 @@ class Parser
      */
     private function parseConditionalCondition(): NodeInterface
     {
-        // --- THIS IS THE PHPSTAN FIX ---
         // We use check() + advance() instead of match() to avoid side-effects
         // before the ctype_digit check.
         if ($this->check(TokenType::T_LITERAL) && ctype_digit($this->current()->value)) {

@@ -75,4 +75,10 @@ enum TokenType: string
 
     /** A comment opening in group (?#). */
     case T_COMMENT_OPEN = 'comment_open';
+
+    /** A PCRE verb (e.g., "(*FAIL)", "(*COMMIT)"). */
+    case T_PCRE_VERB = 'pcre_verb';
+
+    /** A \g reference (e.g., "\g{1}", "\g<name>", "\g-1"). */
+    case T_G_REFERENCE = 'g_reference';
 }

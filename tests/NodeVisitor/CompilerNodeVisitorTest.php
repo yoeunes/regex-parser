@@ -12,7 +12,7 @@
 namespace RegexParser\Tests\NodeVisitor;
 
 use PHPUnit\Framework\TestCase;
-use RegexParser\NodeVisitor\CompilerNodeNodeVisitor;
+use RegexParser\NodeVisitor\CompilerNodeVisitor;
 use RegexParser\Parser;
 
 class CompilerNodeVisitorTest extends TestCase
@@ -21,7 +21,7 @@ class CompilerNodeVisitorTest extends TestCase
     {
         $parser = new Parser();
         $ast = $parser->parse($regex);
-        $visitor = new CompilerNodeNodeVisitor();
+        $visitor = new CompilerNodeVisitor();
 
         return $ast->accept($visitor);
     }

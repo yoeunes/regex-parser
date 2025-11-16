@@ -24,6 +24,7 @@ use RegexParser\Node\GroupNode;
 use RegexParser\Node\GroupType;
 use RegexParser\Node\LiteralNode;
 use RegexParser\Node\OctalNode;
+use RegexParser\Node\PcreVerbNode;
 use RegexParser\Node\PosixClassNode;
 use RegexParser\Node\QuantifierNode;
 use RegexParser\Node\QuantifierType;
@@ -39,7 +40,7 @@ use RegexParser\Node\UnicodePropNode;
  *
  * @implements NodeVisitorInterface<string>
  */
-class CompilerNodeNodeVisitor implements NodeVisitorInterface
+class CompilerNodeVisitor implements NodeVisitorInterface
 {
     // PCRE meta-characters that must be escaped *outside* a character class.
     private const META_CHARACTERS = [
@@ -174,7 +175,7 @@ class CompilerNodeNodeVisitor implements NodeVisitorInterface
 
     public function visitBackref(BackrefNode $node): string
     {
-        return $node->ref; // Already \1 or \k<name>
+        return $node->ref; // Already \1 or \k<name> or \g{1}
     }
 
     public function visitUnicode(UnicodeNode $node): string
@@ -227,7 +228,13 @@ class CompilerNodeNodeVisitor implements NodeVisitorInterface
         return match ($node->syntax) {
             '&' => '(?&'.$node->reference.')',
             'P>' => '(?P>'.$node->reference.')',
+            'g' => '\g<'.$node->reference.'>', // Re-compile as \g<name>
             default => '(?'.$node->reference.')', // Handles (?R), (?1), (?-1)
         };
+    }
+
+    public function visitPcreVerb(PcreVerbNode $node): string
+    {
+        return '(*'.$node->verb.')';
     }
 }

@@ -14,18 +14,15 @@ namespace RegexParser\Node;
 use RegexParser\NodeVisitor\NodeVisitorInterface;
 
 /**
- * Represents a subroutine call (e.g., "(?R)", "(?1)", "(?&name)", "(?P>name)").
+ * Represents a PCRE verb (e.g., "(*FAIL)", "(*COMMIT)").
  */
-class SubroutineNode implements NodeInterface
+class PcreVerbNode implements NodeInterface
 {
     /**
-     * @param string $reference The group reference (e.g., "R", "0", "1", "name").
-     * @param string $syntax    The original syntax (e.g., "&", "P>", "g", "").
+     * @param string $verb The verb name (e.g., "FAIL", "COMMIT")
      */
-    public function __construct(
-        public readonly string $reference,
-        public readonly string $syntax = '',
-    ) {
+    public function __construct(public readonly string $verb)
+    {
     }
 
     /**
@@ -37,6 +34,6 @@ class SubroutineNode implements NodeInterface
      */
     public function accept(NodeVisitorInterface $visitor)
     {
-        return $visitor->visitSubroutine($this);
+        return $visitor->visitPcreVerb($this);
     }
 }

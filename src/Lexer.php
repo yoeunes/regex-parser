@@ -31,6 +31,11 @@ class Lexer
     private bool $inCharClass = false;
 
     /**
+     * @var bool Tracks if the lexer is inside a quoted sequence `\Q...\E`.
+     */
+    private bool $inQuoteMode = false;
+
+    /**
      * @param string $pattern The regex pattern (without delimiters or flags)
      *
      * @throws LexerException If the input is not valid UTF-8
@@ -59,20 +64,44 @@ class Lexer
         $isEscaped = false;
         while ($this->position < $this->length) {
             $char = $this->characters[$this->position];
+
             if ($isEscaped) {
+                // Handle state changers \Q and \E first.
+                if ('Q' === $char) {
+                    $this->inQuoteMode = true;
+                    $isEscaped = false;
+                    $this->position++;
+                    continue; // No token, just state change
+                }
+                if ('E' === $char) {
+                    $this->inQuoteMode = false;
+                    $isEscaped = false;
+                    $this->position++;
+                    continue; // No token, just state change
+                }
+
                 $tokens[] = $this->tokenizeEscaped($char);
                 $isEscaped = false;
                 continue;
             }
+
             if ('\\' === $char) {
                 $isEscaped = true;
-                ++$this->position;
+                $this->position++;
                 continue;
             }
+
+            // If in quote mode, all characters (except \E, handled above) are literals.
+            if ($this->inQuoteMode) {
+                $tokens[] = new Token(TokenType::T_LITERAL, $char, $this->position++);
+                continue;
+            }
+
             if ($this->inCharClass) {
                 $tokens[] = $this->tokenizeCharClassToken($char);
                 continue;
             }
+
             // Default tokenization (outside character class)
             if ('(' === $char) {
                 $tokens[] = $this->consumeGroupOpen();
@@ -101,6 +130,10 @@ class Lexer
         }
         if ($this->inCharClass) {
             throw new LexerException('Unclosed character class "]" at end of input.');
+        }
+        if ($this->inQuoteMode) {
+            // Note: PCRE doesn't error on unclosed \Q, it just quotes to the end.
+            // This is consistent.
         }
         $tokens[] = new Token(TokenType::T_EOF, '', $this->position);
 
@@ -151,6 +184,44 @@ class Lexer
             // Fallthrough to literal if not named
             return new Token(TokenType::T_LITERAL, $char, $start);
         }
+
+        // \g references (backref or subroutine)
+        if ('g' === $char) {
+            ++$this->position; // 'g'
+            $open = $this->peek();
+
+            if ('<' === $open || '{' === $open) {
+                $closer = ('<' === $open) ? '>' : '}';
+                ++$this->position; // < or {
+                // Allow digits, letters, underscore, and +/- (for relative)
+                $ref = $this->consumeWhile(fn (string $c) => preg_match('/^[a-zA-Z0-9_+-]$/', $c));
+
+                if ($this->peek() !== $closer) {
+                    throw new LexerException('Unclosed \g reference at position '.$start);
+                }
+                ++$this->position; // > or }
+                return new Token(TokenType::T_G_REFERENCE, '\g'.$open.$ref.$closer, $start);
+            }
+
+            // Check for \g1, \g-1 (no braces)
+            $ref = '';
+            if ('-' === $open || '+' === $open) {
+                $ref = $open;
+                ++$this->position; // Consume '-' or '+'
+            }
+            $digits = $this->consumeWhile(fn (string $c) => ctype_digit($c));
+
+            if ('' !== $digits) {
+                return new Token(TokenType::T_G_REFERENCE, '\g'.$ref.$digits, $start);
+            }
+
+            // If we only saw \g or \g- / \g+, rewind and treat \g as literal
+            if ('' !== $ref) {
+                --$this->position; // Rewind '-' or '+'
+            }
+            return new Token(TokenType::T_LITERAL, 'g', $start); // Just a literal \g
+        }
+
         // Unicode \xHH, \u{HHHH}
         if ('x' === $char) {
             ++$this->position; // Consume 'x'
@@ -361,11 +432,12 @@ class Lexer
     }
 
     /**
-     * Consumes a group opening, checking for modifiers (e.g., "(?", "(?<").
+     * Consumes a group opening, checking for modifiers (e.g., "(?", "(?<") or verbs "(*".
      */
     private function consumeGroupOpen(): Token
     {
         $start = $this->position;
+
         if ($this->position + 1 < $this->length && '?' === $this->characters[$this->position + 1]) {
             // It's a special group, e.g., "(?:", "(?=", "(?<name>", "(?#comment)"
             $this->position += 2; // Consume "(?"
@@ -378,6 +450,29 @@ class Lexer
             }
 
             return new Token(TokenType::T_GROUP_MODIFIER_OPEN, '(?', $start);
+        }
+
+        // Handle PCRE Verbs (*VERB)
+        if ($this->position + 1 < $this->length && '*' === $this->characters[$this->position + 1]) {
+            $this->position += 2; // Consume "(*"
+
+            // Verbs are uppercase letters
+            $verb = $this->consumeWhile(fn (string $c) => ctype_alpha($c) && ctype_upper($c));
+
+            if ('F' === $verb) {
+                $verb = 'FAIL'; // F is an alias for FAIL
+            }
+
+            if (')' !== $this->peek()) {
+                throw new LexerException('Unclosed PCRE verb at position '.$start);
+            }
+            $this->position++; // Consume ")"
+
+            if ('' === $verb) {
+                throw new LexerException('Empty PCRE verb at position '.$start);
+            }
+
+            return new Token(TokenType::T_PCRE_VERB, $verb, $start);
         }
 
         // It's a simple capturing group

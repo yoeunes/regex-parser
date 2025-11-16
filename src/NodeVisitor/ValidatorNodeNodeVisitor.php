@@ -25,6 +25,7 @@ use RegexParser\Node\GroupNode;
 use RegexParser\Node\GroupType;
 use RegexParser\Node\LiteralNode;
 use RegexParser\Node\OctalNode;
+use RegexParser\Node\PcreVerbNode;
 use RegexParser\Node\PosixClassNode;
 use RegexParser\Node\QuantifierNode;
 use RegexParser\Node\QuantifierType;
@@ -214,6 +215,21 @@ class ValidatorNodeNodeVisitor implements NodeVisitorInterface
             if (!isset($this->namedGroups[$name])) {
                 throw new ParserException('Backreference to non-existent named group: '.$name);
             }
+        // Handle \g{N} or \gN
+        } elseif (preg_match('/^\\\\g\{?([0-9+-]+)\}?$/', $node->ref, $matches)) {
+            $numStr = $matches[1];
+            if ('0' === $numStr || '+0' === $numStr || '-0' === $numStr) {
+                // \g{0} or \g0 is a valid backreference to the entire pattern.
+                return;
+            }
+
+            $num = (int) $numStr;
+            if ($num > 0 && $num > $this->groupCount) {
+                throw new ParserException('Backreference to non-existent group: '.$node->ref);
+            }
+            if ($num < 0 && abs($num) > $this->groupCount) {
+                throw new ParserException('Relative backreference ('.$node->ref.') exceeds total group count.');
+            }
         }
     }
 
@@ -321,10 +337,27 @@ class ValidatorNodeNodeVisitor implements NodeVisitorInterface
                 throw new ParserException('Relative subroutine call ('.$ref.') exceeds total group count.');
             }
         } else {
-            // Named reference (?&name) or (?P>name)
+            // Named reference (?&name) or (?P>name) or \g<name>
             if (!isset($this->namedGroups[$ref])) {
                 throw new ParserException('Subroutine call to non-existent named group: '.$ref);
             }
+        }
+    }
+
+    public function visitPcreVerb(PcreVerbNode $node): void
+    {
+        // Validate known PCRE verbs
+        $validVerbs = [
+            'FAIL' => true, // F is an alias, but Lexer normalized it
+            'ACCEPT' => true,
+            'COMMIT' => true,
+            'PRUNE' => true,
+            'SKIP' => true,
+            'THEN' => true,
+            'DEFINE' => true,
+        ];
+        if (!isset($validVerbs[$node->verb])) {
+            throw new ParserException('Invalid or unsupported PCRE verb: '.$node->verb);
         }
     }
 }

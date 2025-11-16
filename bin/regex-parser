@@ -14,7 +14,7 @@ require __DIR__.'/../vendor/autoload.php';
 
 use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
-use RegexParser\NodeVisitor\CompilerNodeNodeVisitor;
+use RegexParser\NodeVisitor\CompilerNodeVisitor;
 use RegexParser\NodeVisitor\ValidatorNodeNodeVisitor;
 use RegexParser\Parser;
 
@@ -36,7 +36,7 @@ try {
     echo "Validation: OK\n";
 
     // 3. Recompilation
-    $compiler = new CompilerNodeNodeVisitor();
+    $compiler = new CompilerNodeVisitor();
     $compiled = $ast->accept($compiler);
 
     echo "Parsed successfully!\n";
