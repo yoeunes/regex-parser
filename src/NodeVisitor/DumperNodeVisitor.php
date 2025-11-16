@@ -40,7 +40,7 @@ use RegexParser\Node\UnicodePropNode;
  *
  * @implements NodeVisitorInterface<string>
  */
-class DumperNodeNodeVisitor implements NodeVisitorInterface
+class DumperNodeVisitor implements NodeVisitorInterface
 {
     private int $indent = 0;
 

@@ -14,7 +14,7 @@ namespace RegexParser\Tests\NodeVisitor;
 use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\ParserException;
-use RegexParser\NodeVisitor\ValidatorNodeNodeVisitor;
+use RegexParser\NodeVisitor\ValidatorNodeVisitor;
 use RegexParser\Parser;
 
 class ValidatorNodeVisitorTest extends TestCase
@@ -23,7 +23,7 @@ class ValidatorNodeVisitorTest extends TestCase
     {
         $parser = new Parser();
         $ast = $parser->parse($regex);
-        $visitor = new ValidatorNodeNodeVisitor();
+        $visitor = new ValidatorNodeVisitor();
         $ast->accept($visitor);
     }
 

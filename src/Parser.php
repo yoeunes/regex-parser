@@ -52,7 +52,6 @@ class Parser
     private int $position = 0;
     private string $delimiter;
     private string $flags;
-    private string $pattern;
 
     public function __construct()
     {
@@ -71,7 +70,6 @@ class Parser
 
         $this->delimiter = $delimiter;
         $this->flags = $flags;
-        $this->pattern = $pattern;
 
         $lexer = new Lexer($pattern);
         $this->tokens = $lexer->tokenize();

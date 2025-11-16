@@ -272,7 +272,7 @@ class Lexer
                 }
                 ++$this->position; // '}'
 
-                return new Token(TokenType::T_OCTAL, $oct, $start);
+                return new Token(TokenType::T_OCTAL, '\o{'.$oct.'}', $start);
             }
             // If not \o{...}, fallthrough to literal
         }

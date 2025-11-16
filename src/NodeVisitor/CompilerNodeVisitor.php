@@ -206,7 +206,7 @@ class CompilerNodeVisitor implements NodeVisitorInterface
 
     public function visitOctal(OctalNode $node): string
     {
-        return '\o{'.$node->code.'}';
+        return $node->code; // Already \o{...}
     }
 
     public function visitOctalLegacy(OctalLegacyNode $node): string

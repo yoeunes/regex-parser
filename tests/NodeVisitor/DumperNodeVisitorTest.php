@@ -12,7 +12,7 @@
 namespace RegexParser\Tests\NodeVisitor;
 
 use PHPUnit\Framework\TestCase;
-use RegexParser\NodeVisitor\DumperNodeNodeVisitor;
+use RegexParser\NodeVisitor\DumperNodeVisitor;
 use RegexParser\Parser;
 
 class DumperNodeVisitorTest extends TestCase
@@ -21,7 +21,7 @@ class DumperNodeVisitorTest extends TestCase
     {
         $parser = new Parser();
         $ast = $parser->parse('/a(b|c)/');
-        $dumper = new DumperNodeNodeVisitor();
+        $dumper = new DumperNodeVisitor();
         $dump = $ast->accept($dumper);
         $this->assertStringContainsString('Group(type: capturing flags: )', $dump);
         $this->assertStringContainsString('Alternation', $dump);
