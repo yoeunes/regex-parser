@@ -27,7 +27,6 @@ use RegexParser\Node\GroupType;
 use RegexParser\Node\LiteralNode;
 use RegexParser\Node\QuantifierNode;
 use RegexParser\Node\RangeNode;
-use RegexParser\Node\RegexNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\Node\UnicodePropNode;
 use RegexParser\Parser;

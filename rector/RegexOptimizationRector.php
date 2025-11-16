@@ -40,7 +40,7 @@ final class RegexOptimizationRector extends AbstractRector
 
     // Use Dependency Injection
     public function __construct(
-        private readonly RegexOptimizationVisitor $optimizerVisitor,
+        private readonly RegexOptimizationVisitor $optimizerVisitor
     ) {
     }
 
@@ -86,13 +86,16 @@ final class RegexOptimizationRector extends AbstractRector
         try {
             $ast = Regex::parse($originalRegexString);
 
-            $this->optimizerVisitor->hasChanged = false;
+            // Pass the flags to the visitor so it can make smart decisions.
             $this->optimizerVisitor->flags = $ast->flags;
 
+            // "Visit" the AST to get the new pattern string
             $optimizedPattern = $ast->pattern->accept($this->optimizerVisitor);
 
-            if ($this->optimizerVisitor->hasChanged) {
-                $newRegexString = $ast->delimiter.$optimizedPattern.$ast->delimiter.$ast->flags;
+            $newRegexString = $ast->delimiter . $optimizedPattern . $ast->delimiter . $ast->flags;
+
+            // This is the new, robust check that PHPStan can understand.
+            if ($newRegexString !== $originalRegexString) {
                 $stringNode->value = $newRegexString;
 
                 return $node;

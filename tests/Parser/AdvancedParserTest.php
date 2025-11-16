@@ -16,7 +16,6 @@ use RegexParser\Node\GroupNode;
 use RegexParser\Node\GroupType;
 use RegexParser\Node\QuantifierNode;
 use RegexParser\Node\QuantifierType;
-use RegexParser\Node\RegexNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\Parser;
 
