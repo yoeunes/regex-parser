@@ -23,7 +23,7 @@ use RegexParser\Exception\LexerException;
  */
 class Lexer
 {
-    private string $pattern;
+    private readonly string $pattern;
     private int $position = 0;
     private readonly int $length;
     private bool $inCharClass = false;
@@ -126,7 +126,7 @@ class Lexer
 
             // Add PREG_UNMATCHED_AS_NULL flag.
             // This ensures unmatched named groups are 'null', not '""'.
-            if (!preg_match($regex, $this->pattern, $matches, PREG_UNMATCHED_AS_NULL, $this->position)) {
+            if (!preg_match($regex, $this->pattern, $matches, \PREG_UNMATCHED_AS_NULL, $this->position)) {
                 // Any other match failure
                 throw new LexerException(\sprintf('Unable to tokenize pattern at position %d: "%s"...', $this->position, mb_substr($this->pattern, $this->position, 10)));
             }
@@ -141,10 +141,10 @@ class Lexer
             // --- State Management & Token Creation ---
 
             // Context-sensitive check for ']' at the start of a char class.
-            if ($this->inCharClass && $matchedValue === ']') {
+            if ($this->inCharClass && ']' === $matchedValue) {
                 $lastToken = \count($tokens) > 0 ? $tokens[\count($tokens) - 1] : null;
                 $isAtStart = ($startPos === $this->charClassStartPosition + 1)
-                    || ($startPos === $this->charClassStartPosition + 2 && $lastToken && $lastToken->type === TokenType::T_NEGATION);
+                    || ($startPos === $this->charClassStartPosition + 2 && $lastToken && TokenType::T_NEGATION === $lastToken->type);
 
                 if ($isAtStart) {
                     // It's a literal ']', not a closing bracket.
@@ -155,13 +155,13 @@ class Lexer
 
             $token = null;
             /**
-             * @var string|int $key
+             * @var string|int  $key
              * @var string|null $value
              */
             foreach ($matches as $key => $value) {
                 // We only care about named groups that have matched
                 // $value can be null here thanks to PREG_UNMATCHED_AS_NULL
-                if (\is_int($key) || $value === null || $value === '') {
+                if (\is_int($key) || null === $value || '' === $value) {
                     continue;
                 }
 
@@ -169,26 +169,26 @@ class Lexer
                 $type = TokenType::from(strtolower(substr($key, 2)));
 
                 // Handle state-changing tokens first
-                if ($type === TokenType::T_CHAR_CLASS_OPEN) {
+                if (TokenType::T_CHAR_CLASS_OPEN === $type) {
                     $this->inCharClass = true;
                     $this->charClassStartPosition = $startPos;
                     $token = new Token($type, '[', $startPos);
                     break;
                 }
 
-                if ($type === TokenType::T_CHAR_CLASS_CLOSE) {
+                if (TokenType::T_CHAR_CLASS_CLOSE === $type) {
                     $this->inCharClass = false;
                     $token = new Token($type, ']', $startPos);
                     break;
                 }
 
-                if ($type === TokenType::T_QUOTE_MODE_START) {
+                if (TokenType::T_QUOTE_MODE_START === $type) {
                     $this->inQuoteMode = true;
                     // No token is emitted, just a state change
                     break;
                 }
 
-                if ($type === TokenType::T_QUOTE_MODE_END) {
+                if (TokenType::T_QUOTE_MODE_END === $type) {
                     $this->inQuoteMode = false;
                     // No token is emitted, just a state change
                     break;
@@ -199,24 +199,24 @@ class Lexer
                     $lastToken = \count($tokens) > 0 ? $tokens[\count($tokens) - 1] : null;
 
                     $isAtStart = ($startPos === $this->charClassStartPosition + 1)
-                        || ($startPos === $this->charClassStartPosition + 2 && $lastToken && $lastToken->type === TokenType::T_NEGATION);
+                        || ($startPos === $this->charClassStartPosition + 2 && $lastToken && TokenType::T_NEGATION === $lastToken->type);
 
                     // T_NEGATION: Only a '^' at the very start is a negation
-                    if ($type === TokenType::T_LITERAL && $matchedValue === '^' && $isAtStart) {
+                    if (TokenType::T_LITERAL === $type && '^' === $matchedValue && $isAtStart) {
                         $token = new Token(TokenType::T_NEGATION, '^', $startPos);
                         break;
                     }
 
                     // T_RANGE: Only a '-' *not* at the start is a range
                     // (The parser will validate if it's not at the end)
-                    if ($type === TokenType::T_LITERAL && $matchedValue === '-' && !$isAtStart) {
+                    if (TokenType::T_LITERAL === $type && '-' === $matchedValue && !$isAtStart) {
                         $token = new Token(TokenType::T_RANGE, '-', $startPos);
                         break;
                     }
                 }
 
                 // Handle T_LITERAL_ESCAPED: it should be tokenized as a T_LITERAL
-                if ($type === TokenType::T_LITERAL_ESCAPED) {
+                if (TokenType::T_LITERAL_ESCAPED === $type) {
                     $type = TokenType::T_LITERAL;
                 }
 
@@ -232,7 +232,7 @@ class Lexer
         } // end while
 
         // Check for a trailing backslash that was not consumed
-        if (!$this->inQuoteMode && $this->position === $this->length && \str_ends_with($this->pattern, '\\')) {
+        if (!$this->inQuoteMode && $this->position === $this->length && str_ends_with($this->pattern, '\\')) {
             throw new LexerException('Trailing backslash at position '.($this->length - 1));
         }
 
@@ -255,11 +255,12 @@ class Lexer
     {
         // Also add PREG_UNMATCHED_AS_NULL here for consistency
         // Note: We use /s (dotall) here, not /x
-        if (!preg_match('/(.*?)((?:\\\\E)|$)/suA', $this->pattern, $matches, PREG_UNMATCHED_AS_NULL, $this->position)) {
+        if (!preg_match('/(.*?)((?:\\\\E)|$)/suA', $this->pattern, $matches, \PREG_UNMATCHED_AS_NULL, $this->position)) {
             // This should be logically impossible if lexQuoteMode is called.
             // As a fallback, we exit quote mode and stop.
             $this->inQuoteMode = false;
             $this->position = $this->length;
+
             return null;
         }
 
@@ -267,14 +268,15 @@ class Lexer
         $endSequence = $matches[2];
         $startPos = $this->position;
 
-        if ($literalText !== '') {
+        if ('' !== $literalText) {
             // We found text before \E or end. Emit it as a literal.
             $this->position += \strlen($literalText);
+
             return new Token(TokenType::T_LITERAL, $literalText, $startPos);
         }
 
         // We are at \E or end of string.
-        if ($endSequence === '\E') {
+        if ('\E' === $endSequence) {
             $this->position += 2; // Advance past \E
             $this->inQuoteMode = false; // Exit quote mode
         } else {
@@ -288,17 +290,19 @@ class Lexer
 
     /**
      * Extracts the simple value from a matched token string.
-     * (e.g., "\d" -> "d", "(*FAIL)" -> "FAIL", "\." -> ".")
+     * (e.g., "\d" -> "d", "(*FAIL)" -> "FAIL", "\." -> ".").
+     *
      * @param array<int|string, string|null> $matches
      */
     private function extractTokenValue(TokenType $type, string $matchedValue, array $matches): string
     {
         // Handle T_LITERAL_ESCAPED first: it becomes a T_LITERAL
-        if ($type === TokenType::T_LITERAL) {
+        if (TokenType::T_LITERAL === $type) {
             if (($matches['T_LITERAL_ESCAPED'] ?? null) !== null) {
                 // It was an escaped literal. Return just the character.
                 return substr($matchedValue, 1);
             }
+
             // It was a normal literal.
             return $matchedValue;
         }
