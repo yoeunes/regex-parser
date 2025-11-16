@@ -38,7 +38,7 @@ class Lexer
      */
     private const REGEX_OUTSIDE = '/
         (?<T_COMMENT_OPEN>          \(\?\# )
-        | (?<T_PCRE_VERB>           \(\* [^)]+ \) )
+        | (?<T_PCRE_VERB>           \(\* [^)]+ \) ) # Ex: (*FAIL), (*MARK:foo)
         | (?<T_GROUP_MODIFIER_OPEN> \(\? )
         | (?<T_GROUP_OPEN>          \( )
         | (?<T_GROUP_CLOSE>         \) )
@@ -47,6 +47,8 @@ class Lexer
         | (?<T_ALTERNATION>         \| )
         | (?<T_DOT>                 \. )
         | (?<T_ANCHOR>              \^ | \$ )
+        
+        # Escaped sequences (must precede T_LITERAL)
         | (?<T_ASSERTION>           \\\\ [AzZGbB] )
         | (?<T_KEEP>                \\\\ K )
         | (?<T_CHAR_TYPE>           \\\\ [dswDSWhvR] )
@@ -58,7 +60,9 @@ class Lexer
         | (?<T_UNICODE_PROP>        \\\\ [pP] (?: \{ (?<v1_prop> \^? [a-zA-Z0-9_]+) \} | (?<v2_prop> [a-zA-Z]) ) )
         | (?<T_QUOTE_MODE_START>    \\\\ Q )
         | (?<T_QUOTE_MODE_END>      \\\\ E )
-        | (?<T_LITERAL_ESCAPED>     \\\\ . )
+        | (?<T_LITERAL_ESCAPED>     \\\\ . ) # Any other escaped char
+        
+        # Must be last: Match any single character that wasn\'t matched above.
         | (?<T_LITERAL>             . )
     /xsuA'; // s: . matches \n, u: unicode, A: anchored
 
@@ -68,12 +72,16 @@ class Lexer
     private const REGEX_INSIDE = '/
         (?<T_CHAR_CLASS_CLOSE> \] )
         | (?<T_POSIX_CLASS>      \[ \: (?<v_posix> \^? [a-zA-Z]+) \: \] )
+        
+        # Escaped sequences
         | (?<T_CHAR_TYPE>      \\\\ [dswDSWhvR] )
         | (?<T_OCTAL_LEGACY>   \\\\ 0[0-7]{0,2} )
         | (?<T_OCTAL>          \\\\ o\{[0-7]+\} )
         | (?<T_UNICODE>        \\\\ x[0-9a-fA-F]{2} | \\\\ u\{[0-9a-fA-F]+\} )
         | (?<T_UNICODE_PROP>   \\\\ [pP] (?: \{ (?<v1_prop> \^? [a-zA-Z0-9_]+) \} | (?<v2_prop> [a-zA-Z]) ) )
-        | (?<T_LITERAL_ESCAPED> \\\\ . )
+        | (?<T_LITERAL_ESCAPED> \\\\ . ) # Includes escaped \], \-, \^
+        
+        # Must be last: Match any single character that wasn\'t matched above.
         | (?<T_LITERAL>        . )
     /xsuA';
 
