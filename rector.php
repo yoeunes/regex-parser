@@ -27,6 +27,9 @@ return Rector\Config\RectorConfig::configure()
     ->withEditorUrl('phpstorm://open?file=%file%&line=%line%')
     ->withParallel()
     ->withComposerBased(phpunit: true)
+    ->withRules([
+        RegexParser\Rector\RegexOptimizationRector::class,
+    ])
     ->withSets([
         Rector\Set\ValueObject\LevelSetList::UP_TO_PHP_84,
     ])
