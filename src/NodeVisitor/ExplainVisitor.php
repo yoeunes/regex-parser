@@ -24,6 +24,7 @@ use RegexParser\Node\GroupNode;
 use RegexParser\Node\GroupType;
 use RegexParser\Node\KeepNode;
 use RegexParser\Node\LiteralNode;
+use RegexParser\Node\NodeInterface;
 use RegexParser\Node\OctalLegacyNode;
 use RegexParser\Node\OctalNode;
 use RegexParser\Node\PcreVerbNode;
@@ -82,24 +83,24 @@ class ExplainVisitor implements NodeVisitorInterface
         $patternExplain = $node->pattern->accept($this);
         $flags = $node->flags ? ' (with flags: '.$node->flags.')' : '';
 
-        return \sprintf("Regex matches%s:\n%s", $flags, $patternExplain);
+        return sprintf("Regex matches%s:\n%s", $flags, $patternExplain);
     }
 
     public function visitAlternation(AlternationNode $node): string
     {
-        ++$this->indentLevel;
+        $this->indentLevel++;
         $alts = array_map(
-            fn (SequenceNode $alt) => $alt->accept($this),
+            fn (NodeInterface $alt) => $alt->accept($this),
             $node->alternatives
         );
-        --$this->indentLevel;
+        $this->indentLevel--;
 
         $indent = $this->indent();
 
-        return \sprintf(
+        return sprintf(
             "EITHER:\n%s%s",
             $indent,
-            implode(\sprintf("\n%sOR:\n%s", $indent, $indent), $alts)
+            implode(sprintf("\n%sOR:\n%s", $indent, $indent), $alts)
         );
     }
 
@@ -110,29 +111,29 @@ class ExplainVisitor implements NodeVisitorInterface
         // Filter out empty strings (e.g., from empty nodes)
         $parts = array_filter($parts, fn ($part) => '' !== $part);
 
-        return implode(\sprintf("\n%s", $this->indent()), $parts);
+        return implode(sprintf("\n%s", $this->indent()), $parts);
     }
 
     public function visitGroup(GroupNode $node): string
     {
-        ++$this->indentLevel;
+        $this->indentLevel++;
         $childExplain = $node->child->accept($this);
-        --$this->indentLevel;
+        $this->indentLevel--;
 
         $indent = $this->indent();
         $type = match ($node->type) {
             GroupType::T_GROUP_CAPTURING => 'Start Capturing Group',
             GroupType::T_GROUP_NON_CAPTURING => 'Start Non-Capturing Group',
-            GroupType::T_GROUP_NAMED => \sprintf("Start Capturing Group (named: '%s')", $node->name),
+            GroupType::T_GROUP_NAMED => sprintf("Start Capturing Group (named: '%s')", $node->name),
             GroupType::T_GROUP_LOOKAHEAD_POSITIVE => 'Start Positive Lookahead',
             GroupType::T_GROUP_LOOKAHEAD_NEGATIVE => 'Start Negative Lookahead',
             GroupType::T_GROUP_LOOKBEHIND_POSITIVE => 'Start Positive Lookbehind',
             GroupType::T_GROUP_LOOKBEHIND_NEGATIVE => 'Start Negative Lookbehind',
             GroupType::T_GROUP_ATOMIC => 'Start Atomic Group',
-            GroupType::T_GROUP_INLINE_FLAGS => \sprintf("Start Group (with flags: '%s')", $node->flags),
+            GroupType::T_GROUP_INLINE_FLAGS => sprintf("Start Group (with flags: '%s')", $node->flags),
         };
 
-        return \sprintf("%s:\n%s%s\n%sEnd Group", $type, $indent, $childExplain, $this->indent(false));
+        return sprintf("%s:\n%s%s\n%sEnd Group", $type, $indent, $childExplain, $this->indent(false));
     }
 
     public function visitQuantifier(QuantifierNode $node): string
@@ -142,15 +143,15 @@ class ExplainVisitor implements NodeVisitorInterface
 
         // If the child is simple (one line), put it on one line.
         if (!str_contains($childExplain, "\n")) {
-            return \sprintf('%s (%s)', $childExplain, $quantExplain);
+            return sprintf('%s (%s)', $childExplain, $quantExplain);
         }
 
         // If the child is complex, indent it.
-        ++$this->indentLevel;
+        $this->indentLevel++;
         $childExplain = $node->node->accept($this);
-        --$this->indentLevel;
+        $this->indentLevel--;
 
-        return \sprintf(
+        return sprintf(
             "Start Quantified Group (%s):\n%s%s\n%sEnd Quantified Group",
             $quantExplain,
             $this->indent(),
@@ -167,10 +168,10 @@ class ExplainVisitor implements NodeVisitorInterface
             '?' => 'zero or one time',
             default => preg_match('/^{(\d+)(?:,(\d*))?}$/', $q, $m) ?
                 (isset($m[2]) ? ('' === $m[2] ?
-                    \sprintf('at least %d times', $m[1]) :
-                    \sprintf('between %d and %d times', $m[1], $m[2])
+                    sprintf('at least %d times', $m[1]) :
+                    sprintf('between %d and %d times', $m[1], $m[2])
                 ) :
-                    \sprintf('exactly %d times', $m[1])
+                    sprintf('exactly %d times', $m[1])
                 ) :
                 'with quantifier '.$q, // Fallback
         };
@@ -186,7 +187,7 @@ class ExplainVisitor implements NodeVisitorInterface
 
     public function visitLiteral(LiteralNode $node): string
     {
-        return 'Literal: '.($this->explainLiteral($node->value) ?? "''");
+        return 'Literal: '.$this->explainLiteral($node->value);
     }
 
     public function visitCharType(CharTypeNode $node): string
@@ -217,27 +218,32 @@ class ExplainVisitor implements NodeVisitorInterface
     public function visitCharClass(CharClassNode $node): string
     {
         $neg = $node->isNegated ? 'NOT ' : '';
-        $parts = array_map(fn ($part) => $part->accept($this), $node->parts);
+        $parts = array_map(fn (NodeInterface $part) => $part->accept($this), $node->parts);
 
-        return \sprintf('Character Class: any character %sin [ %s ]', $neg, implode(', ', $parts));
+        return sprintf('Character Class: any character %sin [ %s ]', $neg, implode(', ', $parts));
     }
 
     public function visitRange(RangeNode $node): string
     {
-        $start = $this->explainLiteral($node->start->value);
-        $end = $this->explainLiteral($node->end->value);
+        $start = ($node->start instanceof LiteralNode)
+            ? $this->explainLiteral($node->start->value)
+            : $node->start->accept($this); // Fallback
 
-        return \sprintf('Range: from %s to %s', $start, $end);
+        $end = ($node->end instanceof LiteralNode)
+            ? $this->explainLiteral($node->end->value)
+            : $node->end->accept($this); // Fallback
+
+        return sprintf('Range: from %s to %s', $start, $end);
     }
 
     public function visitBackref(BackrefNode $node): string
     {
-        return \sprintf('Backreference: matches text from group "%s"', $node->ref);
+        return sprintf('Backreference: matches text from group "%s"', $node->ref);
     }
 
     public function visitUnicode(UnicodeNode $node): string
     {
-        return \sprintf('Unicode: %s', $node->code);
+        return sprintf('Unicode: %s', $node->code);
     }
 
     public function visitUnicodeProp(UnicodePropNode $node): string
@@ -245,7 +251,7 @@ class ExplainVisitor implements NodeVisitorInterface
         $type = str_starts_with($node->prop, '^') ? 'non-matching' : 'matching';
         $prop = ltrim($node->prop, '^');
 
-        return \sprintf('Unicode Property: any character %s "%s"', $type, $prop);
+        return sprintf('Unicode Property: any character %s "%s"', $type, $prop);
     }
 
     public function visitOctal(OctalNode $node): string
@@ -265,24 +271,24 @@ class ExplainVisitor implements NodeVisitorInterface
 
     public function visitComment(CommentNode $node): string
     {
-        return \sprintf("Comment: '%s'", $node->comment);
+        return sprintf("Comment: '%s'", $node->comment);
     }
 
     public function visitConditional(ConditionalNode $node): string
     {
-        ++$this->indentLevel;
+        $this->indentLevel++;
         $cond = $node->condition->accept($this);
         $yes = $node->yes->accept($this);
         $no = $node->no->accept($this);
-        --$this->indentLevel;
+        $this->indentLevel--;
 
         $indent = $this->indent();
 
         if ('' === $no) {
-            return \sprintf("Conditional: IF (%s) THEN:\n%s%s", $cond, $indent, $yes);
+            return sprintf("Conditional: IF (%s) THEN:\n%s%s", $cond, $indent, $yes);
         }
 
-        return \sprintf("Conditional: IF (%s) THEN:\n%s%s\n%sELSE:\n%s%s", $cond, $indent, $yes, $this->indent(false), $indent, $no);
+        return sprintf("Conditional: IF (%s) THEN:\n%s%s\n%sELSE:\n%s%s", $cond, $indent, $yes, $this->indent(false), $indent, $no);
     }
 
     public function visitSubroutine(SubroutineNode $node): string
@@ -293,7 +299,7 @@ class ExplainVisitor implements NodeVisitorInterface
             default => 'group '.$node->reference,
         };
 
-        return \sprintf('Subroutine Call: recurses to %s', $ref);
+        return sprintf('Subroutine Call: recurses to %s', $ref);
     }
 
     public function visitPcreVerb(PcreVerbNode $node): string

@@ -24,6 +24,7 @@ use RegexParser\Node\GroupNode;
 use RegexParser\Node\GroupType;
 use RegexParser\Node\KeepNode;
 use RegexParser\Node\LiteralNode;
+use RegexParser\Node\NodeInterface;
 use RegexParser\Node\OctalLegacyNode;
 use RegexParser\Node\OctalNode;
 use RegexParser\Node\PcreVerbNode;
@@ -44,17 +45,16 @@ use RegexParser\Node\UnicodePropNode;
 class SampleGeneratorVisitor implements NodeVisitorInterface
 {
     /**
-     * @param int $maxRepetition max times to repeat for * or + quantifiers
-     *                           to prevent excessively long or infinite samples
+     * @param int $maxRepetition Max times to repeat for * or + quantifiers
+     * to prevent excessively long or infinite samples.
      */
-    public function __construct(private readonly int $maxRepetition = 3)
+    public function __construct(private int $maxRepetition = 3)
     {
     }
 
     /**
      * Stores generated text from capturing groups.
      * Keyed by both numeric index and name (if available).
-     *
      * @var array<int|string, string>
      */
     private array $captures = [];
@@ -73,6 +73,10 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
 
     public function visitAlternation(AlternationNode $node): string
     {
+        if (empty($node->alternatives)) {
+            return '';
+        }
+
         // Pick one of the alternatives at random
         $randomKey = array_rand($node->alternatives);
         $chosenAlt = $node->alternatives[$randomKey];
@@ -110,7 +114,11 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
         [$min, $max] = $this->parseQuantifierRange($node->quantifier);
 
         // Pick a random number of repetitions
-        $repeats = random_int($min, $max);
+        try {
+            $repeats = ($min === $max) ? $min : random_int($min, $max);
+        } catch (\Throwable) {
+            $repeats = $min; // Fallback
+        }
 
         $parts = [];
         for ($i = 0; $i < $repeats; ++$i) {
@@ -131,10 +139,10 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
             '?' => [0, 1],
             default => preg_match('/^{(\d+)(?:,(\d*))?}$/', $q, $m) ?
                 (isset($m[2]) ? ('' === $m[2] ?
-                    [$m[1], (int) $m[1] + $this->maxRepetition] : // {n,}
-                    [$m[1], (int) $m[2]] // {n,m}
+                    [(int) $m[1], (int) $m[1] + $this->maxRepetition] : // {n,}
+                    [(int) $m[1], (int) $m[2]] // {n,m}
                 ) :
-                    [$m[1], (int) $m[1]] // {n}
+                    [(int) $m[1], (int) $m[1]] // {n}
                 ) :
                 [0, 0], // Fallback (should be impossible)
         };
@@ -205,7 +213,14 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
 
         // Generate a random character within the ASCII range
         try {
-            return \chr(random_int(\ord($node->start->value), \ord($node->end->value)));
+            $min = ord($node->start->value);
+            $max = ord($node->end->value);
+
+            if ($min > $max) {
+                return $node->start->value; // Should be caught by Validator
+            }
+
+            return chr(random_int($min, $max));
         } catch (\Throwable) {
             // Fallback if ord() fails or range is invalid
             return $node->start->value;
@@ -224,7 +239,7 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
         }
 
         // Handle named \k<name> or \k{name}
-        if (preg_match('/^k<([a-zA-Z0-9_]+)>$/', (string) $ref, $m) || preg_match('/^k{([a-zA-Z0-9_]+)}$/', (string) $ref, $m)) {
+        if (preg_match('/^k<([a-zA-Z0-9_]+)>$/', $ref, $m) || preg_match('/^k{([a-zA-Z0-9_]+)}$/', $ref, $m)) {
             return $this->captures[$m[1]] ?? '';
         }
 
@@ -237,12 +252,11 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
     public function visitUnicode(UnicodeNode $node): string
     {
         if (preg_match('/^\\\\x([0-9a-fA-F]{2})$/', $node->code, $m)) {
-            return \chr(hexdec($m[1]));
+            return chr((int) hexdec($m[1]));
         }
         if (preg_match('/^\\\\u\{([0-9a-fA-F]+)\}$/', $node->code, $m)) {
-            return mb_chr(hexdec($m[1]), 'UTF-8');
+            return mb_chr((int) hexdec($m[1]), 'UTF-8');
         }
-
         // Fallback for unknown unicode
         return '?';
     }
@@ -267,7 +281,7 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
     public function visitOctal(OctalNode $node): string
     {
         if (preg_match('/^\\\\o\{([0-7]+)\}$/', $node->code, $m)) {
-            return mb_chr(octdec($m[1]), 'UTF-8');
+            return mb_chr((int) octdec($m[1]), 'UTF-8');
         }
 
         return '?';
@@ -275,7 +289,7 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
 
     public function visitOctalLegacy(OctalLegacyNode $node): string
     {
-        return mb_chr(octdec($node->code), 'UTF-8');
+        return mb_chr((int) octdec($node->code), 'UTF-8');
     }
 
     public function visitPosixClass(PosixClassNode $node): string
@@ -303,7 +317,13 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
     {
         // This is complex. Does the condition (e.g., group 1) exist?
         // We'll randomly choose to satisfy the condition or not.
-        if (1 === random_int(0, 1)) {
+        try {
+            $choice = random_int(0, 1);
+        } catch (\Throwable) {
+            $choice = 0; // Fallback
+        }
+
+        if (1 === $choice) {
             // Simulate "YES" path
             return $node->yes->accept($this);
         }
@@ -330,24 +350,32 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
      */
     private function getRandomChar(array $chars): string
     {
+        if (empty($chars)) {
+            return '?'; // Safe fallback
+        }
+
         return $chars[array_rand($chars)];
     }
 
     private function generateForCharType(string $type): string
     {
-        return match ($type) {
-            'd' => (string) random_int(0, 9),
-            'D' => $this->getRandomChar(['a', ' ', '!']), // Not a digit
-            's' => $this->getRandomChar([' ', "\t", "\n"]),
-            'S' => $this->getRandomChar(['a', '1', '!']), // Not whitespace
-            'w' => $this->getRandomChar(['a', 'Z', '5', '_']),
-            'W' => $this->getRandomChar(['!', ' ', '@']), // Not word
-            'h' => $this->getRandomChar([' ', "\t"]),
-            'H' => $this->getRandomChar(['a', '1', "\n"]), // Not horiz space
-            'v' => "\n", // vertical space
-            'V' => $this->getRandomChar(['a', '1', ' ']), // Not vert space
-            'R' => $this->getRandomChar(["\r\n", "\r", "\n"]),
-            default => '?',
-        };
+        try {
+            return match ($type) {
+                'd' => (string) random_int(0, 9),
+                'D' => $this->getRandomChar(['a', ' ', '!']), // Not a digit
+                's' => $this->getRandomChar([' ', "\t", "\n"]),
+                'S' => $this->getRandomChar(['a', '1', '!']), // Not whitespace
+                'w' => $this->getRandomChar(['a', 'Z', '5', '_']),
+                'W' => $this->getRandomChar(['!', ' ', '@']), // Not word
+                'h' => $this->getRandomChar([' ', "\t"]),
+                'H' => $this->getRandomChar(['a', '1', "\n"]), // Not horiz space
+                'v' => "\n", // vertical space
+                'V' => $this->getRandomChar(['a', '1', ' ']), // Not vert space
+                'R' => $this->getRandomChar(["\r\n", "\r", "\n"]),
+                default => '?',
+            };
+        } catch (\Throwable) {
+            return '?'; // Fallback for random_int failure
+        }
     }
 }
