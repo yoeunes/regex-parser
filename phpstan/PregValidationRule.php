@@ -27,7 +27,7 @@ use RegexParser\Regex;
 final class PregValidationRule implements Rule
 {
     /**
-     * @var array<string, int> A map of preg_ function names to their pattern argument index.
+     * @var array<string, int> a map of preg_ function names to their pattern argument index
      */
     private const PREG_FUNCTION_MAP = [
         'preg_match' => 0,

@@ -40,7 +40,7 @@ final class RegexOptimizationRector extends AbstractRector
 
     // Use Dependency Injection
     public function __construct(
-        private readonly RegexOptimizationVisitor $optimizerVisitor
+        private readonly RegexOptimizationVisitor $optimizerVisitor,
     ) {
     }
 
@@ -92,8 +92,9 @@ final class RegexOptimizationRector extends AbstractRector
             $optimizedPattern = $ast->pattern->accept($this->optimizerVisitor);
 
             if ($this->optimizerVisitor->hasChanged) {
-                $newRegexString = $ast->delimiter . $optimizedPattern . $ast->delimiter . $ast->flags;
+                $newRegexString = $ast->delimiter.$optimizedPattern.$ast->delimiter.$ast->flags;
                 $stringNode->value = $newRegexString;
+
                 return $node;
             }
         } catch (\Throwable) {

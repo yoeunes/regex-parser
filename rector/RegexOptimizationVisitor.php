@@ -49,7 +49,7 @@ final class RegexOptimizationVisitor extends CompilerNodeVisitor
         $partsFound = ['a-z' => false, 'A-Z' => false, '0-9' => false, '_' => false];
         foreach ($node->parts as $part) {
             if ($part instanceof RangeNode && $part->start instanceof LiteralNode && $part->end instanceof LiteralNode) {
-                $range = $part->start->value . '-' . $part->end->value;
+                $range = $part->start->value.'-'.$part->end->value;
                 if (isset($partsFound[$range])) {
                     $partsFound[$range] = true;
                 }
@@ -58,6 +58,6 @@ final class RegexOptimizationVisitor extends CompilerNodeVisitor
             }
         }
 
-        return !in_array(false, $partsFound, true);
+        return !\in_array(false, $partsFound, true);
     }
 }
