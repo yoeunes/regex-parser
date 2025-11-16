@@ -39,4 +39,7 @@ enum GroupType: string
 
     /** Inline flags (?i:...). */
     case T_GROUP_INLINE_FLAGS = 'inline_flags';
+
+    /** An atomic group (?>...). */
+    case T_GROUP_ATOMIC = 'atomic';
 }

@@ -21,7 +21,9 @@ use RegexParser\Node\CommentNode;
 use RegexParser\Node\ConditionalNode;
 use RegexParser\Node\DotNode;
 use RegexParser\Node\GroupNode;
+use RegexParser\Node\KeepNode;
 use RegexParser\Node\LiteralNode;
+use RegexParser\Node\OctalLegacyNode;
 use RegexParser\Node\OctalNode;
 use RegexParser\Node\PcreVerbNode;
 use RegexParser\Node\PosixClassNode;
@@ -94,6 +96,11 @@ interface NodeVisitorInterface
     /**
      * @return TReturn
      */
+    public function visitKeep(KeepNode $node);
+
+    /**
+     * @return TReturn
+     */
     public function visitCharClass(CharClassNode $node);
 
     /**
@@ -120,6 +127,11 @@ interface NodeVisitorInterface
      * @return TReturn
      */
     public function visitOctal(OctalNode $node);
+
+    /**
+     * @return TReturn
+     */
+    public function visitOctalLegacy(OctalLegacyNode $node);
 
     /**
      * @return TReturn

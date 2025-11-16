@@ -23,7 +23,9 @@ use RegexParser\Node\ConditionalNode;
 use RegexParser\Node\DotNode;
 use RegexParser\Node\GroupNode;
 use RegexParser\Node\GroupType;
+use RegexParser\Node\KeepNode;
 use RegexParser\Node\LiteralNode;
+use RegexParser\Node\OctalLegacyNode;
 use RegexParser\Node\OctalNode;
 use RegexParser\Node\PcreVerbNode;
 use RegexParser\Node\PosixClassNode;
@@ -181,6 +183,14 @@ class ValidatorNodeNodeVisitor implements NodeVisitorInterface
         }
     }
 
+    public function visitKeep(KeepNode $node): void
+    {
+        // \K is not allowed inside lookbehind
+        if ($this->inLookbehind) {
+            throw new ParserException('\K not allowed in lookbehinds');
+        }
+    }
+
     public function visitCharClass(CharClassNode $node): void
     {
         foreach ($node->parts as $part) {
@@ -251,21 +261,31 @@ class ValidatorNodeNodeVisitor implements NodeVisitorInterface
 
     public function visitUnicodeProp(UnicodePropNode $node): void
     {
-        // Validate known properties (partial list; expand as needed)
-        $validProps = ['L', 'Lu', 'Ll', 'M', 'N', 'P', 'S', 'Z', 'C']; // etc.
         $prop = ltrim($node->prop, '^');
-        if (!\in_array($prop, $validProps, true)) {
-            throw new ParserException('Invalid Unicode property: \\p{'.$node->prop.'}');
+
+        // We only validate the *syntax* of the property name.
+        // Validating the property *itself* (e.g., "L", "Greek") requires
+        // embedding the entire Unicode database, which is not feasible.
+        if (!preg_match('/^[a-zA-Z0-9_]+$/', $prop)) {
+            throw new ParserException('Invalid Unicode property syntax: \\p{'.$node->prop.'}');
         }
     }
 
     public function visitOctal(OctalNode $node): void
     {
-        if (preg_match('/^\\\\o\{([0-7]+)\}$/', $node->code, $matches)) {
-            $code = octdec($matches[1]);
-            if ($code > 0x10FFFF) {
-                throw new ParserException('Invalid octal codepoint');
-            }
+        // $node->code is just '777'
+        $code = octdec($node->code);
+        if ($code > 0x10FFFF) {
+            throw new ParserException('Invalid octal codepoint');
+        }
+    }
+
+    public function visitOctalLegacy(OctalLegacyNode $node): void
+    {
+        // $node->code is '0' or '01' or '012'
+        $code = octdec($node->code);
+        if ($code > 0x10FFFF) {
+            throw new ParserException('Invalid legacy octal codepoint');
         }
     }
 
@@ -346,18 +366,24 @@ class ValidatorNodeNodeVisitor implements NodeVisitorInterface
 
     public function visitPcreVerb(PcreVerbNode $node): void
     {
+        // Split verb and argument (e.g., "MARK:foo")
+        $parts = explode(':', $node->verb, 2);
+        $verbName = $parts[0];
+
         // Validate known PCRE verbs
         $validVerbs = [
-            'FAIL' => true, // F is an alias, but Lexer normalized it
-            'ACCEPT' => true,
-            'COMMIT' => true,
-            'PRUNE' => true,
-            'SKIP' => true,
-            'THEN' => true,
-            'DEFINE' => true,
+            'FAIL' => true, 'ACCEPT' => true, 'COMMIT' => true,
+            'PRUNE' => true, 'SKIP' => true, 'THEN' => true,
+            'DEFINE' => true, 'MARK' => true, // These can have args
+            // Control verbs
+            'UTF8' => true, 'UTF' => true, 'UCP' => true,
+            'CR' => true, 'LF' => true, 'CRLF' => true,
+            'BSR_ANYCRLF' => true, 'BSR_UNICODE' => true,
+            'NO_AUTO_POSSESS' => true,
         ];
-        if (!isset($validVerbs[$node->verb])) {
-            throw new ParserException('Invalid or unsupported PCRE verb: '.$node->verb);
+
+        if (!isset($validVerbs[$verbName])) {
+            throw new ParserException('Invalid or unsupported PCRE verb: '.$verbName);
         }
     }
 }

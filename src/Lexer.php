@@ -153,10 +153,16 @@ class Lexer
             return new Token(TokenType::T_ASSERTION, $char, $start);
         }
         // Char types \d \s etc.
-        if (preg_match('/^[dswDSW]$/u', $char)) {
+        if (preg_match('/^[dswDSWhvR]$/u', $char)) {
             ++$this->position;
 
             return new Token(TokenType::T_CHAR_TYPE, $char, $start);
+        }
+        // Keep \K
+        if ('K' === $char) {
+            ++$this->position;
+
+            return new Token(TokenType::T_KEEP, '\K', $start);
         }
         // Backrefs \1 - \9, \10+
         if (preg_match('/^[1-9]$/', $char)) {
@@ -164,6 +170,16 @@ class Lexer
             ++$this->position; // For the initial digit
 
             return new Token(TokenType::T_BACKREF, $char.$ref, $start);
+        }
+        // Historic Octal \0, \01, \012
+        if ('0' === $char) {
+            // Consume '0'
+            ++$this->position;
+            // Consume up to 2 *more* octal digits
+            $octal = $this->consumeWhile(fn (string $c) => preg_match('/^[0-7]$/', $c), 0, 2);
+
+            // Return the full octal code (e.g., "0", "01", "012")
+            return new Token(TokenType::T_OCTAL_LEGACY, '0'.$octal, $start);
         }
         // Named backrefs \k<name> or \k{name}
         if ('k' === $char) {
@@ -256,7 +272,7 @@ class Lexer
                 }
                 ++$this->position; // '}'
 
-                return new Token(TokenType::T_OCTAL, '\o{'.$oct.'}', $start);
+                return new Token(TokenType::T_OCTAL, $oct, $start);
             }
             // If not \o{...}, fallthrough to literal
         }
@@ -458,12 +474,9 @@ class Lexer
         if ($this->position + 1 < $this->length && '*' === $this->characters[$this->position + 1]) {
             $this->position += 2; // Consume "(*"
 
-            // Verbs are uppercase letters
-            $verb = $this->consumeWhile(fn (string $c) => ctype_alpha($c) && ctype_upper($c));
-
-            if ('F' === $verb) {
-                $verb = 'FAIL'; // F is an alias for FAIL
-            }
+            // Verbs can be complex: (*UTF8), (*MARK:name)
+            // Consume everything up to the closing ')'
+            $verb = $this->consumeWhile(fn (string $c) => ')' !== $c);
 
             if (')' !== $this->peek()) {
                 throw new LexerException('Unclosed PCRE verb at position '.$start);
@@ -472,6 +485,11 @@ class Lexer
 
             if ('' === $verb) {
                 throw new LexerException('Empty PCRE verb at position '.$start);
+            }
+
+            // Normalize 'F' alias
+            if ('F' === $verb) {
+                $verb = 'FAIL';
             }
 
             return new Token(TokenType::T_PCRE_VERB, $verb, $start);

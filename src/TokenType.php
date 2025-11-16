@@ -73,6 +73,9 @@ enum TokenType: string
     /** An octal escape (e.g., \o{777}). */
     case T_OCTAL = 'octal';
 
+    /** A legacy octal escape (e.g., \012). */
+    case T_OCTAL_LEGACY = 'octal_legacy';
+
     /** A comment opening in group (?#). */
     case T_COMMENT_OPEN = 'comment_open';
 
@@ -81,4 +84,7 @@ enum TokenType: string
 
     /** A \g reference (e.g., "\g{1}", "\g<name>", "\g-1"). */
     case T_G_REFERENCE = 'g_reference';
+
+    /** The \K "keep" assertion. */
+    case T_KEEP = 'keep';
 }

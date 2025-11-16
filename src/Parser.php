@@ -23,8 +23,10 @@ use RegexParser\Node\ConditionalNode;
 use RegexParser\Node\DotNode;
 use RegexParser\Node\GroupNode;
 use RegexParser\Node\GroupType;
+use RegexParser\Node\KeepNode;
 use RegexParser\Node\LiteralNode;
 use RegexParser\Node\NodeInterface;
+use RegexParser\Node\OctalLegacyNode;
 use RegexParser\Node\OctalNode;
 use RegexParser\Node\PcreVerbNode;
 use RegexParser\Node\PosixClassNode;
@@ -50,6 +52,7 @@ class Parser
     private int $position = 0;
     private string $delimiter;
     private string $flags;
+    private string $pattern;
 
     public function __construct()
     {
@@ -68,6 +71,7 @@ class Parser
 
         $this->delimiter = $delimiter;
         $this->flags = $flags;
+        $this->pattern = $pattern;
 
         $lexer = new Lexer($pattern);
         $this->tokens = $lexer->tokenize();
@@ -128,7 +132,7 @@ class Parser
     // alternation     → sequence ( "|" sequence )*
     // sequence        → quantifiedAtom*
     // quantifiedAtom  → atom ( QUANTIFIER )?
-    // atom            → T_LITERAL | T_CHAR_TYPE | T_DOT | T_ANCHOR | T_PCRE_VERB | group | char_class
+    // atom            → T_LITERAL | T_CHAR_TYPE | T_DOT | T_ANCHOR | T_PCRE_VERB | T_KEEP | group | char_class
     // group           → T_GROUP_OPEN alternation T_GROUP_CLOSE
     //                 | T_GROUP_MODIFIER_OPEN group_modifier T_GROUP_CLOSE
     // ... (etc)
@@ -183,7 +187,7 @@ class Parser
             }
 
             // Assertions, anchors, and verbs cannot be quantified.
-            if ($node instanceof AnchorNode || $node instanceof AssertionNode || $node instanceof PcreVerbNode) {
+            if ($node instanceof AnchorNode || $node instanceof AssertionNode || $node instanceof PcreVerbNode || $node instanceof KeepNode) {
                 // This block is now type-safe and fixes the PHPStan error.
                 $nodeName = '';
                 if ($node instanceof AnchorNode) {
@@ -192,9 +196,11 @@ class Parser
                     $nodeName = '\\'.$node->value;
                 } elseif ($node instanceof PcreVerbNode) {
                     $nodeName = '(*'.$node->verb.')';
+                } elseif ($node instanceof KeepNode) {
+                    $nodeName = '\K';
                 }
 
-                throw new ParserException(\sprintf('Quantifier "%s" cannot be applied to assertion or verb "%s" at position %d', $token->value, $nodeName, /* $nodeName is now a 'string', not 'mixed' */$token->position));
+                throw new ParserException(\sprintf('Quantifier "%s" cannot be applied to assertion or verb "%s" at position %d', $token->value, $nodeName, /* $nodeName is now a 'string', not 'mixed' */ $token->position));
             }
 
             [$quantifier, $type] = $this->parseQuantifierValue($token->value);
@@ -287,8 +293,16 @@ class Parser
             return new OctalNode($this->previous()->value);
         }
 
+        if ($this->match(TokenType::T_OCTAL_LEGACY)) {
+            return new OctalLegacyNode($this->previous()->value);
+        }
+
         if ($this->match(TokenType::T_UNICODE_PROP)) {
             return new UnicodePropNode($this->previous()->value);
+        }
+
+        if ($this->match(TokenType::T_KEEP)) {
+            return new KeepNode();
         }
 
         if ($this->match(TokenType::T_GROUP_OPEN)) {
@@ -450,7 +464,7 @@ class Parser
             --$this->position; // Rewind '-' if it wasn't followed by a digit
         }
 
-        // 5. Check for simple non-capturing, lookaheads
+        // 5. Check for simple non-capturing, lookaheads, atomic
         if ($this->matchLiteral(':')) { // (?:...)
             $expr = $this->parseAlternation();
             $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
@@ -468,6 +482,12 @@ class Parser
             $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
             return new GroupNode($expr, GroupType::T_GROUP_LOOKAHEAD_NEGATIVE);
+        }
+        if ($this->matchLiteral('>')) { // (? >...)
+            $expr = $this->parseAlternation();
+            $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
+
+            return new GroupNode($expr, GroupType::T_GROUP_ATOMIC);
         }
 
         // 6. *Last*, check for inline flags.
@@ -600,6 +620,8 @@ class Parser
             $startNode = new UnicodeNode($this->previous()->value);
         } elseif ($this->match(TokenType::T_OCTAL)) {
             $startNode = new OctalNode($this->previous()->value);
+        } elseif ($this->match(TokenType::T_OCTAL_LEGACY)) {
+            $startNode = new OctalLegacyNode($this->previous()->value);
         } elseif ($this->match(TokenType::T_RANGE)) {
             // This handles a literal "-" at the start (e.g. "[-a]")
             return new LiteralNode($this->previous()->value);
@@ -634,6 +656,8 @@ class Parser
                 $endNode = new UnicodeNode($this->previous()->value);
             } elseif ($this->match(TokenType::T_OCTAL)) {
                 $endNode = new OctalNode($this->previous()->value);
+            } elseif ($this->match(TokenType::T_OCTAL_LEGACY)) {
+                $endNode = new OctalLegacyNode($this->previous()->value);
             } else {
                 // This means a range ending with a meta-char, e.g. [a-\]
                 // We treat the "-" as a literal.

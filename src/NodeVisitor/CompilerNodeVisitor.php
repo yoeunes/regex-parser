@@ -22,7 +22,9 @@ use RegexParser\Node\ConditionalNode;
 use RegexParser\Node\DotNode;
 use RegexParser\Node\GroupNode;
 use RegexParser\Node\GroupType;
+use RegexParser\Node\KeepNode;
 use RegexParser\Node\LiteralNode;
+use RegexParser\Node\OctalLegacyNode;
 use RegexParser\Node\OctalNode;
 use RegexParser\Node\PcreVerbNode;
 use RegexParser\Node\PosixClassNode;
@@ -94,6 +96,7 @@ class CompilerNodeVisitor implements NodeVisitorInterface
             GroupType::T_GROUP_LOOKAHEAD_NEGATIVE => '(?!'.$child.')',
             GroupType::T_GROUP_LOOKBEHIND_POSITIVE => '(?<='.$child.')',
             GroupType::T_GROUP_LOOKBEHIND_NEGATIVE => '(?<!'.$child.')',
+            GroupType::T_GROUP_ATOMIC => '(?>'.$child.')',
             GroupType::T_GROUP_INLINE_FLAGS => '(?'.$flags.':'.$child.')',
         };
     }
@@ -155,6 +158,11 @@ class CompilerNodeVisitor implements NodeVisitorInterface
         return '\\'.$node->value;
     }
 
+    public function visitKeep(KeepNode $node): string
+    {
+        return '\K';
+    }
+
     public function visitCharClass(CharClassNode $node): string
     {
         $this->inCharClass = true; // Set context for visitLiteral
@@ -186,19 +194,24 @@ class CompilerNodeVisitor implements NodeVisitorInterface
     public function visitUnicodeProp(UnicodePropNode $node): string
     {
         if (str_starts_with($node->prop, '^')) {
-            return '\\p{'.$node->prop.'}';
+            return '\p{'.$node->prop.'}';
         }
 
         if (\strlen($node->prop) > 1) {
-            return '\\p{'.$node->prop.'}';
+            return '\p{'.$node->prop.'}';
         }
 
-        return '\\p'.$node->prop;
+        return '\p'.$node->prop;
     }
 
     public function visitOctal(OctalNode $node): string
     {
-        return $node->code; // Already \o{...}
+        return '\o{'.$node->code.'}';
+    }
+
+    public function visitOctalLegacy(OctalLegacyNode $node): string
+    {
+        return '\\'.$node->code;
     }
 
     public function visitPosixClass(PosixClassNode $node): string

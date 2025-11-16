@@ -21,7 +21,9 @@ use RegexParser\Node\CommentNode;
 use RegexParser\Node\ConditionalNode;
 use RegexParser\Node\DotNode;
 use RegexParser\Node\GroupNode;
+use RegexParser\Node\KeepNode;
 use RegexParser\Node\LiteralNode;
+use RegexParser\Node\OctalLegacyNode;
 use RegexParser\Node\OctalNode;
 use RegexParser\Node\PcreVerbNode;
 use RegexParser\Node\PosixClassNode;
@@ -113,6 +115,11 @@ class DumperNodeNodeVisitor implements NodeVisitorInterface
         return "Assertion(\\{$node->value})";
     }
 
+    public function visitKeep(KeepNode $node): string
+    {
+        return 'Keep(\K)';
+    }
+
     public function visitCharClass(CharClassNode $node): string
     {
         $neg = $node->isNegated ? '^' : '';
@@ -148,7 +155,12 @@ class DumperNodeNodeVisitor implements NodeVisitorInterface
 
     public function visitOctal(OctalNode $node): string
     {
-        return "Octal({$node->code})";
+        return "Octal(\\o{{$node->code}})";
+    }
+
+    public function visitOctalLegacy(OctalLegacyNode $node): string
+    {
+        return "OctalLegacy(\\{$node->code})";
     }
 
     public function visitPosixClass(PosixClassNode $node): string
