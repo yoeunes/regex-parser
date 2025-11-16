@@ -12,12 +12,12 @@
 namespace RegexParser\Tests\Parser;
 
 use PHPUnit\Framework\TestCase;
-use RegexParser\Ast\GroupNode;
-use RegexParser\Ast\GroupType;
-use RegexParser\Ast\QuantifierNode;
-use RegexParser\Ast\QuantifierType;
-use RegexParser\Ast\RegexNode;
-use RegexParser\Ast\SequenceNode;
+use RegexParser\Node\GroupNode;
+use RegexParser\Node\GroupType;
+use RegexParser\Node\QuantifierNode;
+use RegexParser\Node\QuantifierType;
+use RegexParser\Node\RegexNode;
+use RegexParser\Node\SequenceNode;
 use RegexParser\Parser\Parser;
 
 class AdvancedParserTest extends TestCase

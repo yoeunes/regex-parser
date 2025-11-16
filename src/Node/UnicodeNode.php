@@ -9,21 +9,18 @@
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Ast;
+namespace RegexParser\Node;
 
 use RegexParser\Visitor\VisitorInterface;
 
-class ConditionalNode implements NodeInterface
+class UnicodeNode implements NodeInterface
 {
-    public function __construct(
-        public readonly NodeInterface $condition,
-        public readonly NodeInterface $yes,
-        public readonly NodeInterface $no,
-    ) {
+    public function __construct(public readonly string $code)
+    {
     }
 
     public function accept(VisitorInterface $visitor)
     {
-        return $visitor->visitConditional($this);
+        return $visitor->visitUnicode($this);
     }
 }

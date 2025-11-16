@@ -9,19 +9,20 @@
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Ast;
+namespace RegexParser\Node;
 
 use RegexParser\Visitor\VisitorInterface;
 
 /**
- * Represents a literal character (e.g., "a", "1", or an escaped "\*").
+ * Represents a sequence (concatenation) of nodes.
+ * Ex: "abc" is Sequence(Literal(a), Literal(b), Literal(c)).
  */
-class LiteralNode implements NodeInterface
+class SequenceNode implements NodeInterface
 {
     /**
-     * @param string $value the literal character
+     * @param array<NodeInterface> $children the nodes in the sequence
      */
-    public function __construct(public readonly string $value)
+    public function __construct(public readonly array $children)
     {
     }
 
@@ -34,6 +35,6 @@ class LiteralNode implements NodeInterface
      */
     public function accept(VisitorInterface $visitor)
     {
-        return $visitor->visitLiteral($this);
+        return $visitor->visitSequence($this);
     }
 }

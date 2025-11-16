@@ -9,24 +9,18 @@
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Ast;
+namespace RegexParser\Node;
 
 use RegexParser\Visitor\VisitorInterface;
 
-/**
- * Represents the dot "." wildcard character.
- */
-class DotNode implements NodeInterface
+class OctalNode implements NodeInterface
 {
-    /**
-     * @template T
-     *
-     * @param VisitorInterface<T> $visitor
-     *
-     * @return T
-     */
+    public function __construct(public readonly string $code)
+    {
+    }
+
     public function accept(VisitorInterface $visitor)
     {
-        return $visitor->visitDot($this);
+        return $visitor->visitOctal($this);
     }
 }

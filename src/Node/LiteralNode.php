@@ -9,17 +9,17 @@
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Ast;
+namespace RegexParser\Node;
 
 use RegexParser\Visitor\VisitorInterface;
 
 /**
- * Represents an escaped character class type (e.g., "\d", "\s", "\W").
+ * Represents a literal character (e.g., "a", "1", or an escaped "\*").
  */
-class CharTypeNode implements NodeInterface
+class LiteralNode implements NodeInterface
 {
     /**
-     * @param string $value The character type (e.g., "d", "s", "W").
+     * @param string $value the literal character
      */
     public function __construct(public readonly string $value)
     {
@@ -34,6 +34,6 @@ class CharTypeNode implements NodeInterface
      */
     public function accept(VisitorInterface $visitor)
     {
-        return $visitor->visitCharType($this);
+        return $visitor->visitLiteral($this);
     }
 }

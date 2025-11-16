@@ -9,23 +9,31 @@
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Ast;
+namespace RegexParser\Node;
 
 use RegexParser\Visitor\VisitorInterface;
 
 /**
- * Base interface for all AST nodes.
+ * Represents an anchor (e.g., "^" or "$").
  */
-interface NodeInterface
+class AnchorNode implements NodeInterface
 {
     /**
-     * Accepts a visitor.
-     *
+     * @param string $value the anchor character ("^" or "$")
+     */
+    public function __construct(public readonly string $value)
+    {
+    }
+
+    /**
      * @template T
      *
      * @param VisitorInterface<T> $visitor
      *
      * @return T
      */
-    public function accept(VisitorInterface $visitor);
+    public function accept(VisitorInterface $visitor)
+    {
+        return $visitor->visitAnchor($this);
+    }
 }

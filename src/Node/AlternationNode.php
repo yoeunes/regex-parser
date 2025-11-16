@@ -9,19 +9,19 @@
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Ast;
+namespace RegexParser\Node;
 
 use RegexParser\Visitor\VisitorInterface;
 
 /**
- * Represents an assertion (e.g., \b, \A).
+ * Represents an alternation (e.g., "a|b").
  */
-class AssertionNode implements NodeInterface
+class AlternationNode implements NodeInterface
 {
     /**
-     * @param string $value the assertion character (\b, \A, etc.)
+     * @param array<NodeInterface> $alternatives the nodes in the alternation
      */
-    public function __construct(public readonly string $value)
+    public function __construct(public readonly array $alternatives)
     {
     }
 
@@ -34,6 +34,6 @@ class AssertionNode implements NodeInterface
      */
     public function accept(VisitorInterface $visitor)
     {
-        return $visitor->visitAssertion($this);
+        return $visitor->visitAlternation($this);
     }
 }

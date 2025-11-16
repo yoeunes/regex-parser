@@ -9,18 +9,23 @@
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Ast;
+namespace RegexParser\Node;
 
 use RegexParser\Visitor\VisitorInterface;
 
-class UnicodeNode implements NodeInterface
+/**
+ * Base interface for all AST nodes.
+ */
+interface NodeInterface
 {
-    public function __construct(public readonly string $code)
-    {
-    }
-
-    public function accept(VisitorInterface $visitor)
-    {
-        return $visitor->visitUnicode($this);
-    }
+    /**
+     * Accepts a visitor.
+     *
+     * @template T
+     *
+     * @param VisitorInterface<T> $visitor
+     *
+     * @return T
+     */
+    public function accept(VisitorInterface $visitor);
 }

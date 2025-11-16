@@ -9,21 +9,23 @@
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Ast;
+namespace RegexParser\Node;
 
 use RegexParser\Visitor\VisitorInterface;
 
 /**
- * Represents a sequence (concatenation) of nodes.
- * Ex: "abc" is Sequence(Literal(a), Literal(b), Literal(c)).
+ * Represents a character class (e.g., "[a-z]", "[^0-9]").
  */
-class SequenceNode implements NodeInterface
+class CharClassNode implements NodeInterface
 {
     /**
-     * @param array<NodeInterface> $children the nodes in the sequence
+     * @param array<NodeInterface> $parts     the parts of the class (LiteralNode, CharTypeNode, RangeNode)
+     * @param bool                 $isNegated Whether the class is negated (e.g., "[^...]"
      */
-    public function __construct(public readonly array $children)
-    {
+    public function __construct(
+        public readonly array $parts,
+        public readonly bool $isNegated,
+    ) {
     }
 
     /**
@@ -35,6 +37,6 @@ class SequenceNode implements NodeInterface
      */
     public function accept(VisitorInterface $visitor)
     {
-        return $visitor->visitSequence($this);
+        return $visitor->visitCharClass($this);
     }
 }

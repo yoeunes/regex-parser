@@ -9,18 +9,18 @@
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Ast;
+namespace RegexParser\Node;
 
 use RegexParser\Visitor\VisitorInterface;
 
-class CommentNode implements NodeInterface
+class UnicodePropNode implements NodeInterface
 {
-    public function __construct(public readonly string $comment)
+    public function __construct(public readonly string $prop)
     {
     }
 
     public function accept(VisitorInterface $visitor)
     {
-        return $visitor->visitComment($this);
+        return $visitor->visitUnicodeProp($this);
     }
 }

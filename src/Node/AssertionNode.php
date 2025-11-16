@@ -9,23 +9,20 @@
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Ast;
+namespace RegexParser\Node;
 
 use RegexParser\Visitor\VisitorInterface;
 
 /**
- * Represents a subroutine call (e.g., "(?R)", "(?1)", "(?&name)", "(?P>name)").
+ * Represents an assertion (e.g., \b, \A).
  */
-class SubroutineNode implements NodeInterface
+class AssertionNode implements NodeInterface
 {
     /**
-     * @param string $reference The group reference (e.g., "R", "0", "1", "name").
-     * @param string $syntax    The original syntax (e.g., "&", "P>", "").
+     * @param string $value the assertion character (\b, \A, etc.)
      */
-    public function __construct(
-        public readonly string $reference,
-        public readonly string $syntax = '',
-    ) {
+    public function __construct(public readonly string $value)
+    {
     }
 
     /**
@@ -37,6 +34,6 @@ class SubroutineNode implements NodeInterface
      */
     public function accept(VisitorInterface $visitor)
     {
-        return $visitor->visitSubroutine($this);
+        return $visitor->visitAssertion($this);
     }
 }

@@ -11,26 +11,26 @@
 
 namespace RegexParser\Visitor;
 
-use RegexParser\Ast\AlternationNode;
-use RegexParser\Ast\AnchorNode;
-use RegexParser\Ast\AssertionNode;
-use RegexParser\Ast\BackrefNode;
-use RegexParser\Ast\CharClassNode;
-use RegexParser\Ast\CharTypeNode;
-use RegexParser\Ast\CommentNode;
-use RegexParser\Ast\ConditionalNode;
-use RegexParser\Ast\DotNode;
-use RegexParser\Ast\GroupNode;
-use RegexParser\Ast\LiteralNode;
-use RegexParser\Ast\OctalNode;
-use RegexParser\Ast\PosixClassNode;
-use RegexParser\Ast\QuantifierNode;
-use RegexParser\Ast\RangeNode;
-use RegexParser\Ast\RegexNode;
-use RegexParser\Ast\SequenceNode;
-use RegexParser\Ast\SubroutineNode;
-use RegexParser\Ast\UnicodeNode;
-use RegexParser\Ast\UnicodePropNode;
+use RegexParser\Node\AlternationNode;
+use RegexParser\Node\AnchorNode;
+use RegexParser\Node\AssertionNode;
+use RegexParser\Node\BackrefNode;
+use RegexParser\Node\CharClassNode;
+use RegexParser\Node\CharTypeNode;
+use RegexParser\Node\CommentNode;
+use RegexParser\Node\ConditionalNode;
+use RegexParser\Node\DotNode;
+use RegexParser\Node\GroupNode;
+use RegexParser\Node\LiteralNode;
+use RegexParser\Node\OctalNode;
+use RegexParser\Node\PosixClassNode;
+use RegexParser\Node\QuantifierNode;
+use RegexParser\Node\RangeNode;
+use RegexParser\Node\RegexNode;
+use RegexParser\Node\SequenceNode;
+use RegexParser\Node\SubroutineNode;
+use RegexParser\Node\UnicodeNode;
+use RegexParser\Node\UnicodePropNode;
 
 /**
  * Defines the Visitor interface for traversing the AST.

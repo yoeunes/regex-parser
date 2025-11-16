@@ -9,22 +9,22 @@
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Ast;
+namespace RegexParser\Node;
 
 use RegexParser\Visitor\VisitorInterface;
 
 /**
- * Represents a character class (e.g., "[a-z]", "[^0-9]").
+ * Represents a subroutine call (e.g., "(?R)", "(?1)", "(?&name)", "(?P>name)").
  */
-class CharClassNode implements NodeInterface
+class SubroutineNode implements NodeInterface
 {
     /**
-     * @param array<NodeInterface> $parts     the parts of the class (LiteralNode, CharTypeNode, RangeNode)
-     * @param bool                 $isNegated Whether the class is negated (e.g., "[^...]"
+     * @param string $reference The group reference (e.g., "R", "0", "1", "name").
+     * @param string $syntax    The original syntax (e.g., "&", "P>", "").
      */
     public function __construct(
-        public readonly array $parts,
-        public readonly bool $isNegated,
+        public readonly string $reference,
+        public readonly string $syntax = '',
     ) {
     }
 
@@ -37,6 +37,6 @@ class CharClassNode implements NodeInterface
      */
     public function accept(VisitorInterface $visitor)
     {
-        return $visitor->visitCharClass($this);
+        return $visitor->visitSubroutine($this);
     }
 }

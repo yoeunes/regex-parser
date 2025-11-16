@@ -9,19 +9,19 @@
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Ast;
+namespace RegexParser\Node;
 
 use RegexParser\Visitor\VisitorInterface;
 
 /**
- * Represents an alternation (e.g., "a|b").
+ * Represents an escaped character class type (e.g., "\d", "\s", "\W").
  */
-class AlternationNode implements NodeInterface
+class CharTypeNode implements NodeInterface
 {
     /**
-     * @param array<NodeInterface> $alternatives the nodes in the alternation
+     * @param string $value The character type (e.g., "d", "s", "W").
      */
-    public function __construct(public readonly array $alternatives)
+    public function __construct(public readonly string $value)
     {
     }
 
@@ -34,6 +34,6 @@ class AlternationNode implements NodeInterface
      */
     public function accept(VisitorInterface $visitor)
     {
-        return $visitor->visitAlternation($this);
+        return $visitor->visitCharType($this);
     }
 }

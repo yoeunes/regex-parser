@@ -9,18 +9,21 @@
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Ast;
+namespace RegexParser\Node;
 
 use RegexParser\Visitor\VisitorInterface;
 
-class OctalNode implements NodeInterface
+class ConditionalNode implements NodeInterface
 {
-    public function __construct(public readonly string $code)
-    {
+    public function __construct(
+        public readonly NodeInterface $condition,
+        public readonly NodeInterface $yes,
+        public readonly NodeInterface $no,
+    ) {
     }
 
     public function accept(VisitorInterface $visitor)
     {
-        return $visitor->visitOctal($this);
+        return $visitor->visitConditional($this);
     }
 }

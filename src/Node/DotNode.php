@@ -9,22 +9,15 @@
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Ast;
+namespace RegexParser\Node;
 
 use RegexParser\Visitor\VisitorInterface;
 
 /**
- * Represents an anchor (e.g., "^" or "$").
+ * Represents the dot "." wildcard character.
  */
-class AnchorNode implements NodeInterface
+class DotNode implements NodeInterface
 {
-    /**
-     * @param string $value the anchor character ("^" or "$")
-     */
-    public function __construct(public readonly string $value)
-    {
-    }
-
     /**
      * @template T
      *
@@ -34,6 +27,6 @@ class AnchorNode implements NodeInterface
      */
     public function accept(VisitorInterface $visitor)
     {
-        return $visitor->visitAnchor($this);
+        return $visitor->visitDot($this);
     }
 }
