@@ -41,30 +41,19 @@ use RegexParser\Ast\UnicodePropNode;
 class CompilerVisitor implements VisitorInterface
 {
     // PCRE meta-characters that must be escaped *outside* a character class.
-    private const META_CHARACTERS
-        = [
-            '\\' => true,
-            '.' => true,
-            '^' => true,
-            '$' => true,
-            '[' => true,
-            ']' => true,
-            '(' => true,
-            ')' => true,
-            '|' => true,
-            '*' => true,
-            '+' => true,
-            '?' => true,
-            '{' => true,
-        ];
+    private const META_CHARACTERS = [
+        '\\' => true, '.' => true, '^' => true, '$' => true,
+        '[' => true, ']' => true, '(' => true, ')' => true,
+        '|' => true, '*' => true, '+' => true, '?' => true, '{' => true,
+    ];
+
     // Meta-characters that must be escaped *inside* a character class.
     // The parser correctly identifies positional meta-chars (like ^, -, ])
     // as literals, so we only need to worry about \ and ].
-    private const CHAR_CLASS_META
-        = [
-            '\\' => true,
-            ']' => true,
-        ];
+    private const CHAR_CLASS_META = [
+        '\\' => true, ']' => true,
+    ];
+
     /**
      * Tracks if we are currently compiling inside a character class.
      */
@@ -194,12 +183,11 @@ class CompilerVisitor implements VisitorInterface
 
     public function visitUnicodeProp(UnicodePropNode $node): string
     {
-        $neg = str_starts_with($node->prop, '^') ? 'P' : 'p';
+        $neg = strpos($node->prop, '^') === 0 ? 'P' : 'p';
         $prop = ltrim($node->prop, '^');
-        if (\strlen($prop) > 1) {
+        if (strlen($prop) > 1) {
             return '\\'.$neg.'{'.$prop.'}';
         }
-
         return '\\'.$neg.$prop;
     }
 
@@ -223,10 +211,9 @@ class CompilerVisitor implements VisitorInterface
         $cond = $node->condition->accept($this);
         $yes = $node->yes->accept($this);
         $no = $node->no->accept($this);
-        if ('' === $no) {
+        if ($no === '') {
             return '(?('.$cond.')'.$yes.')';
         }
-
         return '(?('.$cond.')'.$yes.'|'.$no.')';
     }
 }

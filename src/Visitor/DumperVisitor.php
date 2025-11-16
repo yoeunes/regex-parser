@@ -43,8 +43,8 @@ class DumperVisitor implements VisitorInterface
     public function visitRegex(RegexNode $node): string
     {
         return "Regex(delimiter: {$node->delimiter}, flags: {$node->flags})\n".$this->indent(
-            $node->pattern->accept($this)
-        );
+                $node->pattern->accept($this)
+            );
     }
 
     public function visitAlternation(AlternationNode $node): string
@@ -74,7 +74,7 @@ class DumperVisitor implements VisitorInterface
     public function visitGroup(GroupNode $node): string
     {
         $name = $node->name ? " name: {$node->name}" : '';
-        $flags = $node->flags ?? '';
+        $flags = (string)($node->flags ?? '');
 
         return "Group(type: {$node->type->value}{$name} flags: {$flags})\n".$this->indent($node->child->accept($this));
     }
@@ -82,8 +82,8 @@ class DumperVisitor implements VisitorInterface
     public function visitQuantifier(QuantifierNode $node): string
     {
         return "Quantifier(quant: {$node->quantifier}, type: {$node->type->value})\n".$this->indent(
-            $node->node->accept($this)
-        );
+                $node->node->accept($this)
+            );
     }
 
     public function visitLiteral(LiteralNode $node): string

@@ -24,6 +24,7 @@ class Lexer
     private readonly int $length;
     /** @var array<string> */
     private readonly array $characters;
+
     /**
      * @var bool Tracks if the lexer is currently inside a character class `[...]`.
      */
@@ -146,7 +147,6 @@ class Lexer
 
                 return new Token(TokenType::T_BACKREF, '\k'.$open.$name.$close, $start);
             }
-
             // Fallthrough to literal if not named
             return new Token(TokenType::T_LITERAL, 'k', $start);
         }
@@ -172,9 +172,7 @@ class Lexer
         if ('o' === $char && '{' === $this->peek()) {
             ++$this->position; // 'o'
             ++$this->position; // '{'
-            $oct = $this->consumeWhile(fn (string $c) => preg_match('/^[0-7]$/', $c),
-                1,
-                11); // Up to 11 octal digits for \o
+            $oct = $this->consumeWhile(fn (string $c) => preg_match('/^[0-7]$/', $c), 1, 11); // Up to 11 octal digits for \o
             if ('}' !== $this->peek()) {
                 throw new LexerException('Unclosed octal escape at position '.$start);
             }
@@ -204,7 +202,6 @@ class Lexer
             // Single-char prop \pL, but PCRE requires {} for multi
             if (preg_match('/^[a-zA-Z]$/', (string) $this->peek())) {
                 $prop = $this->consumeWhile(fn (string $c) => preg_match('/^[a-zA-Z]$/', $c), 1, 1);
-
                 return new Token(TokenType::T_UNICODE_PROP, $neg.$prop, $start);
             }
             throw new LexerException('Invalid Unicode property at position '.$start);
@@ -223,8 +220,7 @@ class Lexer
         $max ??= $min;
         $hex = '';
         $count = 0;
-        while ($this->position < $this->length && preg_match('/^[0-9a-fA-F]$/i', $this->characters[$this->position])
-            && $count < $max) {
+        while ($this->position < $this->length && preg_match('/^[0-9a-fA-F]$/i', $this->characters[$this->position]) && $count < $max) {
             $hex .= $this->characters[$this->position++];
             ++$count;
         }
@@ -242,9 +238,7 @@ class Lexer
     {
         // Check for first char (or first after negation)
         $isFirstChar = isset($this->characters[$this->position - 1]) && '[' === $this->characters[$this->position - 1];
-        $isFirstCharAfterNegation = isset(
-            $this->characters[$this->position - 1], $this->characters[$this->position - 2]
-        )
+        $isFirstCharAfterNegation = isset($this->characters[$this->position - 1], $this->characters[$this->position - 2])
             && '^' === $this->characters[$this->position - 1]
             && '[' === $this->characters[$this->position - 2];
         $isAtStart = $isFirstChar || $isFirstCharAfterNegation;
@@ -293,13 +287,6 @@ class Lexer
         $pos = $this->position + $offset;
 
         return $pos < $this->length ? $this->characters[$pos] : null;
-    }
-
-    private function peekPrevious(int $offset = 1): ?string
-    {
-        $pos = $this->position - $offset;
-
-        return $pos >= 0 ? $this->characters[$pos] : null;
     }
 
     /**
@@ -395,7 +382,7 @@ class Lexer
     {
         $value = '';
         $count = 0;
-        $max ??= \PHP_INT_MAX;
+        $max ??= PHP_INT_MAX;
         while ($this->position < $this->length && $predicate($this->characters[$this->position]) && $count < $max) {
             $value .= $this->characters[$this->position++];
             ++$count;

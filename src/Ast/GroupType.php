@@ -36,4 +36,7 @@ enum GroupType: string
 
     /** A negative lookbehind (?<!...). */
     case T_GROUP_LOOKBEHIND_NEGATIVE = 'lookbehind_negative';
+
+    /** Inline flags (?i:...). */
+    case T_GROUP_INLINE_FLAGS = 'inline_flags';
 }
