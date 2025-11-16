@@ -263,66 +263,63 @@ class Parser
     {
         $startPos = $this->previous()->position;
 
-        // (?:...) - Non-capturing
-        if ($this->matchLiteral(':')) {
-            $expr = $this->parseAlternation();
-            $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
+        if ($this->matchLiteral('P')) {
+            // (?P<...> named group or (?P=... backref (not supported yet)
+            if ($this->matchLiteral('<')) {
+                // (?P<name>...)
+                $name = $this->parseGroupName();
+                $this->consumeLiteral('>', 'Expected > after group name');
+                $expr = $this->parseAlternation();
+                $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
-            return new GroupNode($expr, GroupType::T_GROUP_NON_CAPTURING);
-        }
-
-        // (?=...) - Lookahead
-        if ($this->matchLiteral('=')) {
-            $expr = $this->parseAlternation();
-            $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
-
-            return new GroupNode($expr, GroupType::T_GROUP_LOOKAHEAD_POSITIVE);
-        }
-
-        // (?!...) - Negative Lookahead
-        if ($this->matchLiteral('!')) {
-            $expr = $this->parseAlternation();
-            $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
-
-            return new GroupNode($expr, GroupType::T_GROUP_LOOKAHEAD_NEGATIVE);
-        }
-
-        // (?P... Python style
-        $isPythonStyle = $this->matchLiteral('P');
-
-        // (?<... or (?P<...
-        if ($this->matchLiteral('<')) {
-            // (?<=...) - Lookbehind
+                return new GroupNode($expr, GroupType::T_GROUP_NAMED, $name);
+            } elseif ($this->matchLiteral('=')) {
+                // (?P=name) backref
+                throw new ParserException('Backreferences (?P=name) are not supported yet.');
+            } else {
+                throw new ParserException('Invalid syntax after (?P at position '.$startPos);
+            }
+        } elseif ($this->matchLiteral('<')) {
+            // (?<...> : lookbehind or named group (non-Python)
             if ($this->matchLiteral('=')) {
+                // (?<=...)
                 $expr = $this->parseAlternation();
                 $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
                 return new GroupNode($expr, GroupType::T_GROUP_LOOKBEHIND_POSITIVE);
-            }
-            // (?<!...) - Negative Lookbehind
-            if ($this->matchLiteral('!')) {
+            } elseif ($this->matchLiteral('!')) {
+                // (?<!...)
                 $expr = $this->parseAlternation();
                 $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
                 return new GroupNode($expr, GroupType::T_GROUP_LOOKBEHIND_NEGATIVE);
+            } else {
+                // (?<name>...)
+                $name = $this->parseGroupName();
+                $this->consumeLiteral('>', 'Expected > after group name');
+                $expr = $this->parseAlternation();
+                $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
+
+                return new GroupNode($expr, GroupType::T_GROUP_NAMED, $name);
             }
-
-            // (?<name>...) or (?P<name>...) - Named Group
-            $name = $this->parseGroupName();
-            $this->consumeLiteral('>', 'Expected > after group name');
-
+        } elseif ($this->matchLiteral(':')) {
+            // (?:...)
             $expr = $this->parseAlternation();
             $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
-            return new GroupNode($expr, GroupType::T_GROUP_NAMED, $name);
-        }
+            return new GroupNode($expr, GroupType::T_GROUP_NON_CAPTURING);
+        } elseif ($this->matchLiteral('=')) {
+            // (?=...)
+            $expr = $this->parseAlternation();
+            $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
-        if ($isPythonStyle) {
-            // We are here if we have (?P but NOT (?P<
-            // e.g. (?P=name)
-            if ($this->matchLiteral('=')) {
-                throw new ParserException('Backreferences (?P=name) are not supported yet.');
-            }
+            return new GroupNode($expr, GroupType::T_GROUP_LOOKAHEAD_POSITIVE);
+        } elseif ($this->matchLiteral('!')) {
+            // (?!...)
+            $expr = $this->parseAlternation();
+            $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
+
+            return new GroupNode($expr, GroupType::T_GROUP_LOOKAHEAD_NEGATIVE);
         }
 
         throw new ParserException('Invalid group modifier syntax at position '.$startPos);
