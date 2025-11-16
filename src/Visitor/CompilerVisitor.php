@@ -186,13 +186,13 @@ class CompilerVisitor implements VisitorInterface
     {
         if (str_starts_with($node->prop, '^')) {
             return '\\p{'.$node->prop.'}';
-        } else {
-            if (\strlen($node->prop) > 1) {
-                return '\\p{'.$node->prop.'}';
-            } else {
-                return '\\p'.$node->prop;
-            }
         }
+
+        if (\strlen($node->prop) > 1) {
+            return '\\p{'.$node->prop.'}';
+        }
+
+        return '\\p'.$node->prop;
     }
 
     public function visitOctal(OctalNode $node): string
@@ -227,7 +227,7 @@ class CompilerVisitor implements VisitorInterface
         return match ($node->syntax) {
             '&' => '(?&'.$node->reference.')',
             'P>' => '(?P>'.$node->reference.')',
-            default => '(?'.$node->reference.')', // Gère (?R), (?1), (?-1)
+            default => '(?'.$node->reference.')', // Handles (?R), (?1), (?-1)
         };
     }
 }

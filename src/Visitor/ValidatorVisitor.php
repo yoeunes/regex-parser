@@ -61,6 +61,12 @@ class ValidatorVisitor implements VisitorInterface
 
     public function visitRegex(RegexNode $node): void
     {
+        // Reset state for this run
+        $this->groupCount = 0;
+        $this->namedGroups = [];
+        $this->inLookbehind = false;
+        $this->quantifierDepth = 0;
+
         $node->pattern->accept($this);
         // Flags are now pre-validated by the Parser's extractPatternAndFlags
     }
@@ -285,7 +291,7 @@ class ValidatorVisitor implements VisitorInterface
         if ($node->condition instanceof BackrefNode) {
             $this->visitBackref($node->condition);
         }
-        // Une condition peut aussi être un appel de subroutine (ex: (?(R)...))
+        // A condition can also be a subroutine call (e.g., (?(R)...))
         if ($node->condition instanceof SubroutineNode) {
             $this->visitSubroutine($node->condition);
         }
@@ -293,29 +299,29 @@ class ValidatorVisitor implements VisitorInterface
 
     public function visitSubroutine(SubroutineNode $node): void
     {
-        // C'est un appel de subroutine, ex: (?1) ou (?&name) ou (?R)
+        // This is a subroutine call, e.g., (?1), (?&name), or (?R)
         $ref = $node->reference;
 
         if ('R' === $ref || '0' === $ref) {
-            // (?R) ou (?0) sont toujours valides (référence au pattern entier)
+            // (?R) or (?0) are always valid (reference entire pattern)
             return;
         }
 
         if (ctype_digit($ref) || (str_starts_with($ref, '-') && ctype_digit(substr($ref, 1)))) {
-            // Référence numérique (?1), (?-1)
+            // Numeric reference (?1), (?-1)
             $num = (int) $ref;
             if (0 === $num) {
-                return; // (?0) est identique à (?R)
+                return; // (?0) is an alias for (?R)
             }
-            if ($num > $this->groupCount) {
+            if ($num > 0 && $num > $this->groupCount) {
                 throw new ParserException('Subroutine call to non-existent group: '.$ref);
             }
-            // (?-1) est plus difficile à vérifier statiquement, mais on peut vérifier si c'est "possible"
+            // (?-1) is harder to validate statically, but we can check if it's "possible"
             if ($num < 0 && abs($num) > $this->groupCount) {
                 throw new ParserException('Relative subroutine call ('.$ref.') exceeds total group count.');
             }
         } else {
-            // Référence nommée (?&name) ou (?P>name)
+            // Named reference (?&name) or (?P>name)
             if (!isset($this->namedGroups[$ref])) {
                 throw new ParserException('Subroutine call to non-existent named group: '.$ref);
             }

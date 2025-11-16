@@ -77,6 +77,7 @@ class SubroutineParserTest extends TestCase
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('Expected ) to close subroutine call');
         $parser = new Parser();
-        $parser->parse('/(?&name');
+        // The regex must be validly delimited for the parser to run
+        $parser->parse('/(?&name/i');
     }
 }

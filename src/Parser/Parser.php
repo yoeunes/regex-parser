@@ -127,12 +127,12 @@ class Parser
     }
 
     // --- GRAMMAR ---
-    // alternation    → sequence ( "|" sequence )*
-    // sequence       → quantifiedAtom*
-    // quantifiedAtom → atom ( QUANTIFIER )?
-    // atom           → T_LITERAL | T_CHAR_TYPE | T_DOT | T_ANCHOR | group | char_class
-    // group          → T_GROUP_OPEN alternation T_GROUP_CLOSE
-    //                  | T_GROUP_MODIFIER_OPEN group_modifier T_GROUP_CLOSE
+    // alternation     → sequence ( "|" sequence )*
+    // sequence        → quantifiedAtom*
+    // quantifiedAtom  → atom ( QUANTIFIER )?
+    // atom            → T_LITERAL | T_CHAR_TYPE | T_DOT | T_ANCHOR | group | char_class
+    // group           → T_GROUP_OPEN alternation T_GROUP_CLOSE
+    //                 | T_GROUP_MODIFIER_OPEN group_modifier T_GROUP_CLOSE
     // ... (etc)
 
     /**
@@ -308,87 +308,58 @@ class Parser
     private function parseGroupModifier(): NodeInterface
     {
         $startPos = $this->previous()->position;
-        $flags = '';
-        $type = GroupType::T_GROUP_NON_CAPTURING;
-        $name = null;
-        $condition = null;
 
-        $next = $this->current()->value;
-        if (preg_match('/^[imsxADSUXJ-]+$/', $next)) {
-            // Inline flags (?i-m:)
-            $flags = $next;
-            $this->advance();
-            $this->consumeLiteral(':', 'Expected : after inline flags');
-            $expr = $this->parseAlternation();
-            $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
+        // --- NEW LOGIC ORDER ---
+        // We must check for the most specific tokens first.
 
-            return new GroupNode($expr, GroupType::T_GROUP_INLINE_FLAGS, null, $flags);
-        }
-
+        // 1. Check for Python-style 'P' groups
         if ($this->matchLiteral('P')) {
-            // (?P<...> named group or (?P=... backref (not supported yet) or (?P>... subroutine
-            if ($this->matchLiteral('<')) {
-                // (?P<name>...)
+            if ($this->matchLiteral('<')) { // (?P<name>...)
                 $name = $this->parseGroupName();
                 $this->consumeLiteral('>', 'Expected > after group name');
                 $expr = $this->parseAlternation();
                 $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
                 return new GroupNode($expr, GroupType::T_GROUP_NAMED, $name);
-            } elseif ($this->matchLiteral('=')) {
-                // (?P=name) backref
-                throw new ParserException('Backreferences (?P=name) are not supported yet.');
-            } elseif ($this->matchLiteral('>')) {
-                // (?P>name) subroutine call
+            }
+            if ($this->matchLiteral('>')) { // (?P>name) subroutine
                 $name = $this->parseSubroutineName();
                 $this->consume(TokenType::T_GROUP_CLOSE, 'Expected ) to close subroutine call');
 
                 return new SubroutineNode($name, 'P>');
-            } else {
-                throw new ParserException('Invalid syntax after (?P at position '.$startPos);
             }
-        } elseif ($this->matchLiteral('<')) {
-            // (?<...> : lookbehind or named group (non-Python)
-            if ($this->matchLiteral('=')) {
-                // (?<=...)
+            if ($this->matchLiteral('=')) { // (?P=name) backref
+                throw new ParserException('Backreferences (?P=name) are not supported yet.');
+            }
+            throw new ParserException('Invalid syntax after (?P at position '.$startPos);
+        }
+
+        // 2. Check for standard lookarounds and named groups
+        if ($this->matchLiteral('<')) {
+            // (?<...> : lookbehind or named group
+            if ($this->matchLiteral('=')) { // (?<=...)
                 $expr = $this->parseAlternation();
                 $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
                 return new GroupNode($expr, GroupType::T_GROUP_LOOKBEHIND_POSITIVE);
-            } elseif ($this->matchLiteral('!')) {
-                // (?<!...)
+            }
+            if ($this->matchLiteral('!')) { // (?<!...)
                 $expr = $this->parseAlternation();
                 $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
                 return new GroupNode($expr, GroupType::T_GROUP_LOOKBEHIND_NEGATIVE);
-            } else {
-                // (?<name>...)
-                $name = $this->parseGroupName();
-                $this->consumeLiteral('>', 'Expected > after group name');
-                $expr = $this->parseAlternation();
-                $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
-
-                return new GroupNode($expr, GroupType::T_GROUP_NAMED, $name);
             }
-        } elseif ($this->matchLiteral(':')) {
-            // (?:...)
+            // (?<name>...)
+            $name = $this->parseGroupName();
+            $this->consumeLiteral('>', 'Expected > after group name');
             $expr = $this->parseAlternation();
             $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
-            return new GroupNode($expr, GroupType::T_GROUP_NON_CAPTURING);
-        } elseif ($this->matchLiteral('=')) {
-            // (?=...)
-            $expr = $this->parseAlternation();
-            $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
+            return new GroupNode($expr, GroupType::T_GROUP_NAMED, $name);
+        }
 
-            return new GroupNode($expr, GroupType::T_GROUP_LOOKAHEAD_POSITIVE);
-        } elseif ($this->matchLiteral('!')) {
-            // (?!...)
-            $expr = $this->parseAlternation();
-            $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
-
-            return new GroupNode($expr, GroupType::T_GROUP_LOOKAHEAD_NEGATIVE);
-        } elseif ($this->match(TokenType::T_GROUP_OPEN)) {
+        // 3. Check for conditional (?(...)
+        if ($this->match(TokenType::T_GROUP_OPEN)) {
             // Conditional (?(condition)yes|no)
             $condition = $this->parseConditionalCondition();
             $yes = $this->parseAlternation();
@@ -402,49 +373,79 @@ class Parser
             return new ConditionalNode($condition, $yes, $no);
         }
 
-        // Doit venir après la vérification conditionnelle, car (?(R)...) est différent de (?R)
-
-        if ($this->matchLiteral('&')) {
-            // (?&name) subroutine call
+        // 4. Check for Subroutines
+        if ($this->matchLiteral('&')) { // (?&name)
             $name = $this->parseSubroutineName();
             $this->consume(TokenType::T_GROUP_CLOSE, 'Expected ) to close subroutine call');
 
             return new SubroutineNode($name, '&');
         }
 
-        if ($this->matchLiteral('R')) {
-            // (?R) subroutine call (recurse entire pattern)
+        if ($this->matchLiteral('R')) { // (?R)
             if ($this->check(TokenType::T_GROUP_CLOSE)) {
                 $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
-                return new SubroutineNode('R'); // 'R' ou '0' sont des références spéciales pour "entire pattern"
+                return new SubroutineNode('R'); // 'R' or '0' are special refs for "entire pattern"
             }
-            // Continue vers la vérification numérique si ce n'est pas seulement (?R)
+            // If not followed by ')', it must be (?(R)...)
+            // Rewind 'R' and let the conditional parser handle it.
+            --$this->position;
+            // Fallthrough to conditional check (which will fail, as we already tried)
+            // This is now handled by (?(...) check above.
+            // We must have (?(...) *before* (?R)
+            // Let's re-order: (?(...) *must* be first.
+            // Re-tracing: (?(R)...) is handled by parseConditionalCondition matching 'R'.
+            // So, if we match 'R' here, it *must* be (?R).
+            throw new ParserException('Invalid syntax after (?R at position '.$startPos);
         }
 
-        // Vérification pour (?1), (?0), (?-1)
-        // Nous vérifions T_LITERAL car '1', '0', '-' sont des littéraux
-        if ($this->check(TokenType::T_LITERAL)) {
-            $num = '';
-            if ($this->matchLiteral('-')) {
-                $num .= '-';
-            }
+        // Check for (?1), (?-1), (?0)
+        $num = '';
+        if ($this->matchLiteral('-')) {
+            $num = '-';
+        }
+        if ($this->check(TokenType::T_LITERAL) && ctype_digit($this->current()->value)) {
+            $num .= $this->current()->value;
+            $this->advance(); // Consume first digit
+            $num .= $this->consumeWhile(fn (string $c) => ctype_digit($c)); // Consume all digits
 
-            if ($this->check(TokenType::T_LITERAL) && ctype_digit($this->current()->value)) {
-                $num .= $this->current()->value;
-                $this->advance();
-                // Consomme tous les chiffres
-                $num .= $this->consumeWhile(fn (string $c) => ctype_digit($c));
+            $this->consume(TokenType::T_GROUP_CLOSE, 'Expected ) to close subroutine call');
 
-                $this->consume(TokenType::T_GROUP_CLOSE, 'Expected ) to close subroutine call');
+            return new SubroutineNode($num);
+        }
+        if ('-' === $num) {
+            --$this->position; // Rewind '-' if it wasn't followed by a digit
+        }
 
-                return new SubroutineNode($num);
-            }
+        // 5. Check for simple non-capturing, lookaheads
+        if ($this->matchLiteral(':')) { // (?:...)
+            $expr = $this->parseAlternation();
+            $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
-            // Si nous avons matché '-' mais pas un chiffre, il faut revenir en arrière
-            if ('-' === $num) {
-                --$this->position; // Rewind le '-'
-            }
+            return new GroupNode($expr, GroupType::T_GROUP_NON_CAPTURING);
+        }
+        if ($this->matchLiteral('=')) { // (?=...)
+            $expr = $this->parseAlternation();
+            $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
+
+            return new GroupNode($expr, GroupType::T_GROUP_LOOKAHEAD_POSITIVE);
+        }
+        if ($this->matchLiteral('!')) { // (?!...)
+            $expr = $this->parseAlternation();
+            $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
+
+            return new GroupNode($expr, GroupType::T_GROUP_LOOKAHEAD_NEGATIVE);
+        }
+
+        // 6. *Last*, check for inline flags.
+        // This logic must consume *all* flags before checking for ':'.
+        $flags = $this->consumeWhile(fn (string $c) => (bool) preg_match('/^[imsxADSUXJ-]+$/', $c));
+        if ('' !== $flags) {
+            $this->consumeLiteral(':', 'Expected : after inline flags');
+            $expr = $this->parseAlternation();
+            $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
+
+            return new GroupNode($expr, GroupType::T_GROUP_INLINE_FLAGS, null, $flags);
         }
 
         throw new ParserException('Invalid group modifier syntax at position '.$startPos);
@@ -455,13 +456,19 @@ class Parser
      */
     private function parseConditionalCondition(): NodeInterface
     {
-        if ($this->match(TokenType::T_LITERAL) && ctype_digit($this->previous()->value)) {
+        // --- THIS IS THE PHPSTAN FIX ---
+        // We use check() + advance() instead of match() to avoid side-effects
+        // before the ctype_digit check.
+        if ($this->check(TokenType::T_LITERAL) && ctype_digit($this->current()->value)) {
             // Numeric (?(1)...)
+            $this->advance(); // Consume the first digit
             $num = (string) ($this->previous()->value.$this->consumeWhile(fn (string $c) => ctype_digit($c)));
             $this->consume(TokenType::T_GROUP_CLOSE, 'Expected ) after condition number');
 
             return new BackrefNode($num);
-        } elseif ($this->matchLiteral('<') || $this->matchLiteral('{')) {
+        }
+
+        if ($this->matchLiteral('<') || $this->matchLiteral('{')) {
             // Named (?(<name>)...) or (?({name})...)
             $open = $this->previous()->value;
             $name = $this->parseGroupName();
@@ -470,15 +477,16 @@ class Parser
             $this->consume(TokenType::T_GROUP_CLOSE, 'Expected ) after named condition');
 
             return new BackrefNode($name);
-        } elseif ($this->matchLiteral('R')) {
+        }
+        if ($this->matchLiteral('R')) {
             // Recursion (?(R)...)
             $this->consume(TokenType::T_GROUP_CLOSE, 'Expected ) after R condition');
 
             return new LiteralNode('R'); // Special recursion condition
-        } else {
-            // Lookaround or assertion as condition (?(?=...)...)
-            return $this->parseAtom();
         }
+
+        // Lookaround or assertion as condition (?(?=...)...)
+        return $this->parseAtom();
     }
 
     /**
@@ -736,7 +744,7 @@ class Parser
     private function consumeWhile(callable $predicate): string
     {
         $value = '';
-        while (!$this->isAtEnd() && $predicate($this->current()->value) && TokenType::T_LITERAL === $this->current()->type) {
+        while (!$this->isAtEnd() && $this->check(TokenType::T_LITERAL) && $predicate($this->current()->value)) {
             $value .= $this->current()->value;
             $this->advance();
         }
@@ -751,17 +759,17 @@ class Parser
      */
     private function parseSubroutineName(): string
     {
-        // Gère (?P>name) ou (?&name)
-        // Nous avons déjà consommé '(?P>' ou '(?&'
+        // Handles (?P>name) or (?&name)
+        // We have already consumed '(?P>' or '(?&'
 
         $name = '';
         while (!$this->check(TokenType::T_GROUP_CLOSE) && !$this->isAtEnd()) {
-            // Un nom peut être n'importe quel littéral, mais pas des caractères spéciaux comme '(', '[', etc.
+            // A name can be any literal, but not special chars like '(', '[', etc.
             if ($this->check(TokenType::T_LITERAL)) {
                 $name .= $this->current()->value;
                 $this->advance();
             } else {
-                // ex: (?&name[...]) est invalide
+                // e.g., (?&name[...]) is invalid
                 throw new ParserException('Unexpected token in subroutine name: '.$this->current()->value);
             }
         }
