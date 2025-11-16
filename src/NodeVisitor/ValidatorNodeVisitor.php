@@ -122,6 +122,8 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
     {
         // 1. Validate quantifier syntax
         if (!\in_array($node->quantifier, ['*', '+', '?'], true)) {
+            // preg_match is safe here, it's not validating itself recursively
+            // because the rule only checks ConstantStringType
             if (preg_match('/^{\d+(,\d*)?}$/', $node->quantifier)) {
                 // Check n <= m
                 $parts = explode(',', trim($node->quantifier, '{}'));
@@ -137,7 +139,7 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
         // 2. Validate quantifiers inside lookbehinds
         if ($this->inLookbehind && QuantifierType::T_GREEDY !== $node->type
             && preg_match(
-                '/^[\*\+]$|{.*,}/', // Matches *, +, and {n,}
+                '/^[\*\+]$|^{\d+,}$/', // Matches *, +, and {n,}
                 $node->quantifier
             )
         ) {
@@ -145,9 +147,11 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
         }
 
         // 3. Check for Catastrophic Backtracking (Nested Unbounded Quantifiers)
-        // This is a more robust check. We only care if an UNBOUNDED quantifier
-        // is nested inside another UNBOUNDED quantifier.
-        $isUnbounded = \in_array($node->quantifier, ['*', '+'], true) || str_ends_with($node->quantifier, ',');
+        $quant = $node->quantifier;
+
+        // An unbounded quantifier is *, +, or {n,}
+        // This is the correct logic.
+        $isUnbounded = \in_array($quant, ['*', '+'], true) || preg_match('/^{\d+,}$/', $quant);
 
         if ($isUnbounded && $this->quantifierDepth > 0) {
             // This detects (a*)*, (a+)*, (a*)+, (a{2,})*, etc.
