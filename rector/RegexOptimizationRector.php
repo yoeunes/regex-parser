@@ -38,9 +38,8 @@ final class RegexOptimizationRector extends AbstractRector
         'REGEX_INSIDE',
     ];
 
-    // Use Dependency Injection
     public function __construct(
-        private readonly RegexOptimizationVisitor $optimizerVisitor
+        private readonly RegexOptimizationVisitor $optimizerVisitor,
     ) {
     }
 
@@ -66,7 +65,6 @@ final class RegexOptimizationRector extends AbstractRector
      */
     public function getNodeTypes(): array
     {
-        // We now target function calls AND class constants.
         return [FuncCall::class, ClassConst::class];
     }
 
@@ -92,7 +90,7 @@ final class RegexOptimizationRector extends AbstractRector
             // "Visit" the AST to get the new pattern string
             $optimizedPattern = $ast->pattern->accept($this->optimizerVisitor);
 
-            $newRegexString = $ast->delimiter . $optimizedPattern . $ast->delimiter . $ast->flags;
+            $newRegexString = $ast->delimiter.$optimizedPattern.$ast->delimiter.$ast->flags;
 
             // This is the new, robust check that PHPStan can understand.
             if ($newRegexString !== $originalRegexString) {
