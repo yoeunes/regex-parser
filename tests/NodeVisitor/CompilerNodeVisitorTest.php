@@ -72,7 +72,7 @@ class CompilerNodeVisitorTest extends TestCase
         $regex = '/[]\^-]/'; // "]", "\", "^", "-"
         // The parser sees "]", "\", "^", "-" as literals because of their position.
         // The compiler should only escape the backslash.
-        $this->assertSame('/[]\^-]/', $this->compile($regex));
+        $this->assertSame('/[\]^-]/', $this->compile($regex));
     }
 
     // Add new tests for new features

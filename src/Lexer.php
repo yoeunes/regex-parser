@@ -53,7 +53,7 @@ class Lexer
         | (?<T_KEEP>                \\\\ K )
         | (?<T_CHAR_TYPE>           \\\\ [dswDSWhvR] )
         | (?<T_G_REFERENCE>         \\\\ g (?: \{[a-zA-Z0-9_+-]+\} | <[a-zA-Z0-9_]+> | [0-9+-]+ )? )
-        | (?<T_BACKREF>             \\\\ (?: k(?:<[a-zA-Z0-9_]+> | \{[a-zA-Z0-9_]+\}) | [1-9]\d* ) )
+        | (?<T_BACKREF>             \\\\ (?: k(?:<[a-zA-Z0-9_]+> | \{[a-zA-Z0-9_]+\}) | (?<v_backref_num> [1-9]\d*) ) )
         | (?<T_OCTAL_LEGACY>        \\\\ 0[0-7]{0,2} )
         | (?<T_OCTAL>               \\\\ o\{[0-7]+\} )
         | (?<T_UNICODE>             \\\\ x[0-9a-fA-F]{2} | \\\\ u\{[0-9a-fA-F]+\} )
@@ -127,11 +127,6 @@ class Lexer
             // Add PREG_UNMATCHED_AS_NULL flag.
             // This ensures unmatched named groups are 'null', not '""'.
             if (!preg_match($regex, $this->pattern, $matches, PREG_UNMATCHED_AS_NULL, $this->position)) {
-                // Check for a trailing backslash, which preg_match won't match.
-                if ($this->position === $this->length - 1 && $this->pattern[$this->position] === '\\') {
-                    throw new LexerException('Trailing backslash at position '.$this->position);
-                }
-
                 // Any other match failure
                 throw new LexerException(\sprintf('Unable to tokenize pattern at position %d: "%s"...', $this->position, mb_substr($this->pattern, $this->position, 10)));
             }
@@ -144,6 +139,20 @@ class Lexer
             $this->position += \strlen($matchedValue);
 
             // --- State Management & Token Creation ---
+
+            // Context-sensitive check for ']' at the start of a char class.
+            if ($this->inCharClass && $matchedValue === ']') {
+                $lastToken = \count($tokens) > 0 ? $tokens[\count($tokens) - 1] : null;
+                $isAtStart = ($startPos === $this->charClassStartPosition + 1)
+                    || ($startPos === $this->charClassStartPosition + 2 && $lastToken && $lastToken->type === TokenType::T_NEGATION);
+
+                if ($isAtStart) {
+                    // It's a literal ']', not a closing bracket.
+                    $tokens[] = new Token(TokenType::T_LITERAL, ']', $startPos);
+                    continue; // Skip the main foreach loop
+                }
+            }
+
             $token = null;
             /**
              * @var string|int $key
@@ -222,6 +231,11 @@ class Lexer
             }
         } // end while
 
+        // Check for a trailing backslash that was not consumed
+        if (!$this->inQuoteMode && $this->position === $this->length && \str_ends_with($this->pattern, '\\')) {
+            throw new LexerException('Trailing backslash at position '.($this->length - 1));
+        }
+
         if ($this->inCharClass) {
             throw new LexerException('Unclosed character class "]" at end of input.');
         }
@@ -240,7 +254,8 @@ class Lexer
     private function lexQuoteMode(): ?Token
     {
         // Also add PREG_UNMATCHED_AS_NULL here for consistency
-        if (!preg_match('/ (.*?) ( (?: \\\\ E ) | $ ) /xsuA', $this->pattern, $matches, PREG_UNMATCHED_AS_NULL, $this->position)) {
+        // Note: We use /s (dotall) here, not /x
+        if (!preg_match('/(.*?)((?:\\\\E)|$)/suA', $this->pattern, $matches, PREG_UNMATCHED_AS_NULL, $this->position)) {
             // This should be logically impossible if lexQuoteMode is called.
             // As a fallback, we exit quote mode and stop.
             $this->inQuoteMode = false;
@@ -290,10 +305,13 @@ class Lexer
 
         return match ($type) {
             TokenType::T_PCRE_VERB => substr($matchedValue, 2, -1),
+            // Note: T_LITERAL is handled above
             TokenType::T_ASSERTION, TokenType::T_CHAR_TYPE, TokenType::T_KEEP => substr($matchedValue, 1),
-            // These types store the full escaped sequence, as per original lexer
-            TokenType::T_G_REFERENCE, TokenType::T_BACKREF, TokenType::T_OCTAL_LEGACY => $matchedValue,
-            TokenType::T_OCTAL, TokenType::T_UNICODE => $matchedValue,
+            // \k<name> is stored as \k<name>, but \2 is stored as 2
+            TokenType::T_BACKREF => ($matches['v_backref_num'] ?? null) !== null ? $matches['v_backref_num'] : $matchedValue,
+            TokenType::T_G_REFERENCE, TokenType::T_OCTAL => $matchedValue,
+            TokenType::T_OCTAL_LEGACY => substr($matchedValue, 1), // \01 -> 01
+            TokenType::T_UNICODE => $matchedValue,
             // These types need to extract the sub-group
             TokenType::T_POSIX_CLASS => (string) ($matches['v_posix'] ?? ''), // from [[:(alnum):]]
             TokenType::T_UNICODE_PROP => (string) ($matches['v1_prop'] ?? $matches['v2_prop'] ?? ''), // from \p{(L)} or \p(L)
