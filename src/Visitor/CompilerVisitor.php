@@ -41,10 +41,9 @@ class CompilerVisitor implements VisitorInterface
 
     // Meta-characters that must be escaped *inside* a character class.
     // The parser correctly identifies positional meta-chars (like ^, -, ])
-    // as literals, so we only need to worry about \.
+    // as literals, so we only need to worry about \ and ].
     private const CHAR_CLASS_META = [
-        '\\' => true,
-        // ']' was the bug. It is removed.
+        '\\' => true, ']' => true,
     ];
 
     /**
@@ -110,6 +109,11 @@ class CompilerVisitor implements VisitorInterface
     {
         // Use different escaping rules depending on context
         $meta = $this->inCharClass ? self::CHAR_CLASS_META : self::META_CHARACTERS;
+
+        // Special case: ']' is not meta if it's not in a char class
+        if (!$this->inCharClass && ']' === $node->value) {
+            return $node->value;
+        }
 
         if (isset($meta[$node->value])) {
             return '\\'.$node->value;

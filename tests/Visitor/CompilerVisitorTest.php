@@ -70,7 +70,9 @@ class CompilerVisitorTest extends TestCase
 
         // S'assure que les méta-caractères de classe sont échappés
         $regex = '/[]\^-]/'; // "]", "\", "^", "-"
-        $this->assertSame('/[]\^-]/', $this->compile('/[]\^-]/'));
+        // The parser sees "]", "\", "^", "-" as literals because of their position.
+        // The compiler should only escape the backslash.
+        $this->assertSame('/[]\^-]/', $this->compile($regex));
     }
 
     // Add new tests for new features

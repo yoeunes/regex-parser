@@ -124,11 +124,6 @@ class Parser
     // atom           → T_LITERAL | T_CHAR_TYPE | T_DOT | T_ANCHOR | group | char_class
     // group          → T_GROUP_OPEN alternation T_GROUP_CLOSE
     //                | T_GROUP_MODIFIER_OPEN group_modifier T_GROUP_CLOSE
-    // group_modifier → T_COLON alternation
-    //                | ( T_EQUALS | T_EXCLAMATION ) alternation
-    //                | T_LT ( T_EQUALS | T_EXCLAMATION ) alternation
-    //                | T_LT T_NAME T_GT alternation
-    //                | T_P T_LT T_NAME T_GT alternation
     // ... (etc)
 
     /**
@@ -201,11 +196,13 @@ class Parser
         $baseValue = substr($value, 0, -1);
 
         // e.g. *? or +? or ??
+        // Note: $value can be '?' so strlen > 1 is crucial
         if ('?' === $lastChar && \strlen($value) > 1) {
             return [$baseValue, QuantifierType::T_LAZY];
         }
 
         // e.g. *+ or ++
+        // Note: $value can be '+' so strlen > 1 is crucial
         if ('+' === $lastChar && \strlen($value) > 1) {
             return [$baseValue, QuantifierType::T_POSSESSIVE];
         }
@@ -258,6 +255,7 @@ class Parser
 
     /**
      * Parses a special group that starts with "(?".
+     * This is the new, robust logic.
      *
      * @throws ParserException
      */
@@ -266,7 +264,7 @@ class Parser
         $startPos = $this->previous()->position;
 
         // (?:...) - Non-capturing
-        if ($this->match(TokenType::T_COLON)) {
+        if ($this->matchLiteral(':')) {
             $expr = $this->parseAlternation();
             $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
@@ -274,7 +272,7 @@ class Parser
         }
 
         // (?=...) - Lookahead
-        if ($this->match(TokenType::T_EQUALS)) {
+        if ($this->matchLiteral('=')) {
             $expr = $this->parseAlternation();
             $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
@@ -282,7 +280,7 @@ class Parser
         }
 
         // (?!...) - Negative Lookahead
-        if ($this->match(TokenType::T_EXCLAMATION)) {
+        if ($this->matchLiteral('!')) {
             $expr = $this->parseAlternation();
             $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
@@ -290,19 +288,19 @@ class Parser
         }
 
         // (?P... Python style
-        $isPythonStyle = $this->match(TokenType::T_P);
+        $isPythonStyle = $this->matchLiteral('P');
 
         // (?<... or (?P<...
-        if ($this->match(TokenType::T_LT)) {
+        if ($this->matchLiteral('<')) {
             // (?<=...) - Lookbehind
-            if ($this->match(TokenType::T_EQUALS)) {
+            if ($this->matchLiteral('=')) {
                 $expr = $this->parseAlternation();
                 $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
                 return new GroupNode($expr, GroupType::T_GROUP_LOOKBEHIND_POSITIVE);
             }
             // (?<!...) - Negative Lookbehind
-            if ($this->match(TokenType::T_EXCLAMATION)) {
+            if ($this->matchLiteral('!')) {
                 $expr = $this->parseAlternation();
                 $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
@@ -311,7 +309,7 @@ class Parser
 
             // (?<name>...) or (?P<name>...) - Named Group
             $name = $this->parseGroupName();
-            $this->consume(TokenType::T_GT, 'Expected > after group name');
+            $this->consumeLiteral('>', 'Expected > after group name');
 
             $expr = $this->parseAlternation();
             $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
@@ -322,7 +320,7 @@ class Parser
         if ($isPythonStyle) {
             // We are here if we have (?P but NOT (?P<
             // e.g. (?P=name)
-            if ($this->match(TokenType::T_EQUALS)) {
+            if ($this->matchLiteral('=')) {
                 throw new ParserException('Backreferences (?P=name) are not supported yet.');
             }
         }
@@ -354,10 +352,10 @@ class Parser
 
         // Handle <name>
         $name = '';
-        while (!$this->check(TokenType::T_GT) && !$this->isAtEnd()) {
+        while (!$this->checkLiteral('>') && !$this->isAtEnd()) {
             // A name can be any literal, but not special chars like '(', '[', etc.
             // Our lexer tokenizes these separately.
-            if ($this->check(TokenType::T_LITERAL) || $this->check(TokenType::T_P)) {
+            if ($this->check(TokenType::T_LITERAL)) {
                 $name .= $this->current()->value;
                 $this->advance();
             } else {
@@ -456,6 +454,20 @@ class Parser
     }
 
     /**
+     * Checks if the current token is a T_LITERAL with a specific value.
+     */
+    private function matchLiteral(string $value): bool
+    {
+        if ($this->checkLiteral($value)) {
+            $this->advance();
+
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
      * Consumes the current token, throwing an error if it doesn't match the expected type.
      *
      * @throws ParserException
@@ -473,6 +485,23 @@ class Parser
     }
 
     /**
+     * Consumes the current token if it's a T_LITERAL with the given value.
+     *
+     * @throws ParserException
+     */
+    private function consumeLiteral(string $value, string $error): Token
+    {
+        if ($this->checkLiteral($value)) {
+            $token = $this->current();
+            $this->advance();
+
+            return $token;
+        }
+        $at = $this->isAtEnd() ? 'end of input' : 'position '.$this->current()->position;
+        throw new ParserException($error.' at '.$at.' (found '.$this->current()->type->value.' with value '.$this->current()->value.')');
+    }
+
+    /**
      * Checks the type of the current token without consuming it.
      */
     private function check(TokenType $type): bool
@@ -482,6 +511,19 @@ class Parser
         }
 
         return $this->current()->type === $type;
+    }
+
+    /**
+     * Checks if the current token is a T_LITERAL with a specific value.
+     */
+    private function checkLiteral(string $value): bool
+    {
+        if ($this->isAtEnd()) {
+            return false;
+        }
+        $token = $this->current();
+
+        return TokenType::T_LITERAL === $token->type && $token->value === $value;
     }
 
     /**

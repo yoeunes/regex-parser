@@ -105,10 +105,8 @@ class Lexer
                 $tokens[] = new Token(TokenType::T_DOT, '.', $this->position++);
             } elseif ('^' === $char || '$' === $char) {
                 $tokens[] = new Token(TokenType::T_ANCHOR, $char, $this->position++);
-            } elseif (\in_array($char, [':', '=', '!', '<', '>', 'P'], true)) {
-                $tokens[] = $this->tokenizeModifierChar($char);
             } else {
-                // ']' is a literal if not in char class, same for '-'
+                // ']', ':', '=', '!', '<', '>', 'P' are all literals here
                 $tokens[] = new Token(TokenType::T_LITERAL, $char, $this->position++);
             }
         }
@@ -131,25 +129,31 @@ class Lexer
      */
     private function tokenizeCharClassToken(string $char): Token
     {
-        // Inside a class, most meta-characters are literals
-        if (']' === $char) {
-            $this->inCharClass = false; // Exit char class mode
-
-            return new Token(TokenType::T_CHAR_CLASS_CLOSE, ']', $this->position++);
-        }
-
-        // Negation ^ (only if it's the *first* char after [)
-        if ('^' === $char && isset($this->characters[$this->position - 1]) && '[' === $this->characters[$this->position - 1]) {
-            return new Token(TokenType::T_NEGATION, '^', $this->position++);
-        }
-
-        // Range - (if not first or last char)
+        // Check for first char (or first after negation)
         $isFirstChar = isset($this->characters[$this->position - 1]) && '[' === $this->characters[$this->position - 1];
         $isFirstCharAfterNegation = isset($this->characters[$this->position - 1], $this->characters[$this->position - 2])
             && '^' === $this->characters[$this->position - 1]
             && '[' === $this->characters[$this->position - 2];
         $isAtStart = $isFirstChar || $isFirstCharAfterNegation;
 
+        // ']' is a literal if it's the first character
+        if (']' === $char && $isAtStart) {
+            return new Token(TokenType::T_LITERAL, ']', $this->position++);
+        }
+
+        // Inside a class, most meta-characters are literals
+        if (']' === $char) { // Now it's the closing bracket
+            $this->inCharClass = false; // Exit char class mode
+
+            return new Token(TokenType::T_CHAR_CLASS_CLOSE, ']', $this->position++);
+        }
+
+        // Negation ^ (only if it's the *first* char after [)
+        if ('^' === $char && $isFirstChar) {
+            return new Token(TokenType::T_NEGATION, '^', $this->position++);
+        }
+
+        // Range - (if not first or last char)
         $isAtEnd = ($this->position + 1 < $this->length) && ']' === $this->characters[$this->position + 1];
 
         if ('-' === $char && !$isAtStart && !$isAtEnd) {
@@ -239,28 +243,6 @@ class Lexer
         ++$this->position; // Consume "("
 
         return new Token(TokenType::T_GROUP_OPEN, '(', $start);
-    }
-
-    /**
-     * Tokenizes special characters that are only special *after* a "(?".
-     */
-    private function tokenizeModifierChar(string $char): Token
-    {
-        $tokenMap = [
-            ':' => TokenType::T_COLON,
-            '=' => TokenType::T_EQUALS,
-            '!' => TokenType::T_EXCLAMATION,
-            '<' => TokenType::T_LT,
-            '>' => TokenType::T_GT,
-            'P' => TokenType::T_P,
-        ];
-
-        if (isset($tokenMap[$char])) {
-            return new Token($tokenMap[$char], $char, $this->position++);
-        }
-
-        // Should not be reachable if called correctly
-        throw new LexerException('Unexpected internal error parsing modifier char.');
     }
 
     /**
