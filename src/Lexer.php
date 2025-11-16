@@ -73,7 +73,7 @@ class Lexer
         | (?<T_OCTAL>          \\\\ o\{[0-7]+\} )
         | (?<T_UNICODE>        \\\\ x[0-9a-fA-F]{2} | \\\\ u\{[0-9a-fA-F]+\} )
         | (?<T_UNICODE_PROP>   \\\\ [pP] (?: \{ (?<v1_prop> \^? [a-zA-Z0-9_]+) \} | (?<v2_prop> [a-zA-Z]) ) )
-        | (?<T_LITERAL_ESCAPED> \\\\ . ) # Includes escaped \], \-, \^
+        | (?<T_LITERAL_ESCAPED> \\\\ . )
         | (?<T_LITERAL>        . )
     /xsuA';
 
