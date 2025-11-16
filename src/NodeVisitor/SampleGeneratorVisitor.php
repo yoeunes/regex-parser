@@ -115,6 +115,8 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
 
         // Pick a random number of repetitions
         try {
+            // $min and $max are guaranteed to be in the correct order
+            // by parseQuantifierRange()
             $repeats = ($min === $max) ? $min : random_int($min, $max);
         } catch (\Throwable) {
             $repeats = $min; // Fallback
@@ -133,7 +135,7 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
      */
     private function parseQuantifierRange(string $q): array
     {
-        return match ($q) {
+        $range = match ($q) {
             '*' => [0, $this->maxRepetition],
             '+' => [1, $this->maxRepetition],
             '?' => [0, 1],
@@ -144,8 +146,16 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
                 ) :
                     [(int) $m[1], (int) $m[1]] // {n}
                 ) :
-                [0, 0], // Fallback (should be impossible)
+                [0, 0], // Fallback
         };
+
+        // Ensure min <= max, as Validator may not have run.
+        // This handles invalid cases like {5,2} and silences PHPStan
+        if ($range[1] < $range[0]) {
+            $range[1] = $range[0];
+        }
+
+        return $range;
     }
 
     public function visitLiteral(LiteralNode $node): string
@@ -217,7 +227,8 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
             $max = ord($node->end->value);
 
             if ($min > $max) {
-                return $node->start->value; // Should be caught by Validator
+                // This should be caught by ValidatorVisitor
+                return $node->start->value;
             }
 
             return chr(random_int($min, $max));
@@ -230,15 +241,22 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
     public function visitBackref(BackrefNode $node): string
     {
         $ref = $node->ref;
+
+        // Check numeric reference first
         if (ctype_digit($ref)) {
-            $ref = (int) $ref;
+            $key = (int) $ref;
+            if (isset($this->captures[$key])) {
+                return $this->captures[$key];
+            }
         }
 
+        // Check string/named reference (e.g. for (?&name) conditionals)
         if (isset($this->captures[$ref])) {
             return $this->captures[$ref];
         }
 
-        // Handle named \k<name> or \k{name}
+        // Handle named \k<name> or \k{name} backrefs
+        // $ref is guaranteed to be a string here.
         if (preg_match('/^k<([a-zA-Z0-9_]+)>$/', $ref, $m) || preg_match('/^k{([a-zA-Z0-9_]+)}$/', $ref, $m)) {
             return $this->captures[$m[1]] ?? '';
         }
