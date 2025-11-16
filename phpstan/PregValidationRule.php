@@ -88,8 +88,7 @@ final class PregValidationRule implements Rule
 
         // We found an error!
         return [
-            RuleErrorBuilder::create()
-                ->message(\sprintf('Invalid PCRE pattern: %s', $result->error))
+            RuleErrorBuilder::message(\sprintf('Invalid PCRE pattern: %s', $result->error))
                 ->line($node->getLine())
                 ->tip(\sprintf('This pattern can cause errors or ReDoS. See regex: %s', $pattern))
                 ->build(),
