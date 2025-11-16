@@ -184,8 +184,22 @@ class Parser
 
             // Assertions, anchors, and verbs cannot be quantified.
             if ($node instanceof AnchorNode || $node instanceof AssertionNode || $node instanceof PcreVerbNode) {
-                $nodeName = $node->value ?? $node->verb ?? $node::class;
-                throw new ParserException(\sprintf('Quantifier "%s" cannot be applied to assertion or verb "%s" at position %d', $token->value, $nodeName, $token->position));
+                // This block is now type-safe and fixes the PHPStan error.
+                $nodeName = '';
+                if ($node instanceof AnchorNode) {
+                    $nodeName = $node->value;
+                } elseif ($node instanceof AssertionNode) {
+                    $nodeName = '\\'.$node->value;
+                } elseif ($node instanceof PcreVerbNode) {
+                    $nodeName = '(*'.$node->verb.')';
+                }
+
+                throw new ParserException(\sprintf(
+                    'Quantifier "%s" cannot be applied to assertion or verb "%s" at position %d',
+                    $token->value,
+                    $nodeName, // $nodeName is now a 'string', not 'mixed'
+                    $token->position
+                ));
             }
 
             [$quantifier, $type] = $this->parseQuantifierValue($token->value);
@@ -335,7 +349,6 @@ class Parser
     {
         $startPos = $this->previous()->position;
 
-        // --- NEW LOGIC ORDER ---
         // We must check for the most specific tokens first.
 
         // 1. Check for Python-style 'P' groups

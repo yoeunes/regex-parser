@@ -23,6 +23,7 @@ use RegexParser\Node\DotNode;
 use RegexParser\Node\GroupNode;
 use RegexParser\Node\LiteralNode;
 use RegexParser\Node\OctalNode;
+use RegexParser\Node\PcreVerbNode;
 use RegexParser\Node\PosixClassNode;
 use RegexParser\Node\QuantifierNode;
 use RegexParser\Node\RangeNode;
@@ -175,6 +176,11 @@ class DumperNodeNodeVisitor implements NodeVisitorInterface
     public function visitSubroutine(SubroutineNode $node): string
     {
         return "Subroutine(ref: {$node->reference}, syntax: '{$node->syntax}')";
+    }
+
+    public function visitPcreVerb(PcreVerbNode $node): string
+    {
+        return "PcreVerb(value: {$node->verb})";
     }
 
     private function indent(string $str): string
