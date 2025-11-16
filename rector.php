@@ -29,4 +29,7 @@ return Rector\Config\RectorConfig::configure()
     ->withComposerBased(phpunit: true)
     ->withSets([
         Rector\Set\ValueObject\LevelSetList::UP_TO_PHP_84,
+    ])
+    ->withSkip([
+        Rector\Php73\Rector\FuncCall\RegexDashEscapeRector::class,
     ]);
