@@ -25,7 +25,7 @@ class SampleGeneratorVisitorTest extends TestCase
         // On génère plusieurs fois pour couvrir l'aléatoire
         $generator = new SampleGeneratorVisitor();
 
-        for ($i = 0; $i < 10; $i++) {
+        for ($i = 0; $i < 10; ++$i) {
             $sample = $ast->accept($generator);
             $this->assertMatchesRegularExpression(
                 $regex,

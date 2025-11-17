@@ -33,16 +33,16 @@ class OptimizerNodeVisitorTest extends TestCase
         $parser = new Parser();
         $ast = $parser->parse('/a.b.c/');
         $optimizer = new OptimizerNodeVisitor();
-        
+
         $newAst = $ast->accept($optimizer);
         $sequence = $newAst->pattern;
 
         // "a", ".", "b", ".", "c" -> Devrait rester tel quel car les points séparent
         // Mais "/abc/" -> Sequence(Literal("abc"))
-        
+
         $ast2 = $parser->parse('/abc/');
         $newAst2 = $ast2->accept($optimizer);
-        
+
         // L'optimiseur devrait avoir fusionné a, b, c en un seul LiteralNode
         $this->assertInstanceOf(LiteralNode::class, $newAst2->pattern);
         $this->assertSame('abc', $newAst2->pattern->value);
@@ -53,7 +53,7 @@ class OptimizerNodeVisitorTest extends TestCase
         $parser = new Parser();
         $ast = $parser->parse('/a|(b|c)|d/');
         $optimizer = new OptimizerNodeVisitor();
-        
+
         $newAst = $ast->accept($optimizer);
         $alternation = $newAst->pattern;
 
@@ -79,11 +79,11 @@ class OptimizerNodeVisitorTest extends TestCase
     {
         $parser = new Parser();
         // [0-9] -> \d
-        $ast = $parser->parse('/[0-9]/'); 
+        $ast = $parser->parse('/[0-9]/');
         $optimizer = new OptimizerNodeVisitor();
-        
+
         $newAst = $ast->accept($optimizer);
-        
+
         $this->assertInstanceOf(CharTypeNode::class, $newAst->pattern);
         $this->assertSame('d', $newAst->pattern->value);
     }
@@ -92,11 +92,11 @@ class OptimizerNodeVisitorTest extends TestCase
     {
         $parser = new Parser();
         // [a-zA-Z0-9_] -> \w
-        $ast = $parser->parse('/[a-zA-Z0-9_]/'); 
+        $ast = $parser->parse('/[a-zA-Z0-9_]/');
         $optimizer = new OptimizerNodeVisitor();
-        
+
         $newAst = $ast->accept($optimizer);
-        
+
         $this->assertInstanceOf(CharTypeNode::class, $newAst->pattern);
         $this->assertSame('w', $newAst->pattern->value);
     }
@@ -127,23 +127,23 @@ class OptimizerNodeVisitorTest extends TestCase
         // Le noeud enfant ne doit PLUS être un groupe, mais direct le literal
         $this->assertInstanceOf(LiteralNode::class, $newAst->pattern->node);
     }
-    
+
     public function testOptimizationDoesNotBreakSemanticsWithHyphen(): void
     {
         // Test critique pour le bug potentiel du compilateur/optimiseur
         $parser = new Parser();
         // a|-|z -> [a-z] serait FAUX. Ça doit être [a\-z] ou rester une alternation si pas sûr.
-        $ast = $parser->parse('/a|-|z/'); 
+        $ast = $parser->parse('/a|-|z/');
         $optimizer = new OptimizerNodeVisitor();
 
         $newAst = $ast->accept($optimizer);
-        
+
         // Si transformé en CharClass, on doit vérifier que le compilateur le gère.
         // Mais ici on vérifie juste que l'optimiseur fait son job.
         if ($newAst->pattern instanceof CharClassNode) {
-             $parts = $newAst->pattern->parts;
-             // On s'attend à voir le tiret comme un LiteralNode
-             $this->assertSame('-', $parts[1]->value);
+            $parts = $newAst->pattern->parts;
+            // On s'attend à voir le tiret comme un LiteralNode
+            $this->assertSame('-', $parts[1]->value);
         }
     }
 }

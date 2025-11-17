@@ -23,9 +23,9 @@ class ExplainVisitorTest extends TestCase
         $parser = new Parser();
         $ast = $parser->parse('/^a|b$/i');
         $visitor = new ExplainVisitor();
-        
+
         $output = $ast->accept($visitor);
-        
+
         $this->assertStringContainsString('Regex matches (with flags: i)', $output);
         $this->assertStringContainsString('EITHER:', $output);
         $this->assertStringContainsString('Anchor: ^', $output);
@@ -38,9 +38,9 @@ class ExplainVisitorTest extends TestCase
         $parser = new Parser();
         $ast = $parser->parse('/<script>/');
         $visitor = new HtmlExplainVisitor();
-        
+
         $output = $ast->accept($visitor);
-        
+
         $this->assertStringNotContainsString('<script>', $output);
         $this->assertStringContainsString('&lt;script&gt;', $output);
         $this->assertStringContainsString('<ul>', $output); // Structure HTML doit être présente

@@ -22,6 +22,7 @@ class ComplexityScoreVisitorTest extends TestCase
         $parser = new Parser();
         $ast = $parser->parse($regex);
         $visitor = new ComplexityScoreVisitor();
+
         return $ast->accept($visitor);
     }
 
@@ -37,7 +38,7 @@ class ComplexityScoreVisitorTest extends TestCase
         // ReDoS classique: (a+)+
         // Ta logique devrait multiplier le score exponentiellement pour les quantificateurs imbriqués
         $score = $this->getScore('/(a+)+/');
-        
+
         $this->assertGreaterThan(20, $score, 'Nested quantifiers should yield a high complexity score');
     }
 

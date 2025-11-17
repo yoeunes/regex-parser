@@ -13,7 +13,6 @@ namespace RegexParser\Tests;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\Regex;
-use RegexParser\ValidationResult;
 
 class RegexTest extends TestCase
 {
@@ -27,10 +26,10 @@ class RegexTest extends TestCase
     public function testValidate(): void
     {
         $regex = Regex::create();
-        
+
         $valid = $regex->validate('/abc/');
         $this->assertTrue($valid->isValid);
-        
+
         $invalid = $regex->validate('/(abc/'); // Parenthèse non fermée
         $this->assertFalse($invalid->isValid);
         $this->assertNotNull($invalid->error);
@@ -41,11 +40,11 @@ class RegexTest extends TestCase
         $regex = Regex::create();
         // Doit optimiser [0-9] en \d
         $optimized = $regex->optimize('/[0-9]/');
-        
+
         // Note: le CompilerNodeVisitor ajoute le \ devant d
         $this->assertSame('/\d/', $optimized);
     }
-    
+
     public function testGenerate(): void
     {
         $regex = Regex::create();

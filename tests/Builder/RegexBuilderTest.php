@@ -32,7 +32,7 @@ class RegexBuilderTest extends TestCase
         // Le builder échappe automatiquement les littéraux, donc / devient \/ sauf si le délimiteur change?
         // Ton compilateur actuel n'échappe pas '/' par défaut si ce n'est pas le délimiteur.
         // Vérifions le résultat attendu.
-        
+
         // ^http?://.+$
         // Note: tes literals échappent tout meta char. : et / ne sont pas meta.
         $this->assertSame('/^http?:\/\/.+$/', $regex);
@@ -76,13 +76,13 @@ class RegexBuilderTest extends TestCase
 
         $this->assertSame('/(?<id>\d+)/i', $regex);
     }
-    
+
     public function testSafeEscapingInLiteral(): void
     {
         $builder = new RegexBuilder();
         // literal() doit échapper les caractères spéciaux
         $regex = $builder->literal('a.b*c')->compile();
-        
+
         $this->assertSame('/a\.b\*c/', $regex);
     }
 }

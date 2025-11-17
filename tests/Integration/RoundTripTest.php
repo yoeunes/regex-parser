@@ -49,12 +49,12 @@ class RoundTripTest extends TestCase
         // Pour la plupart des cas simples, la chaîne doit être identique.
         // Attention: le compilateur peut normaliser certaines choses (ex: flags ordonnés ? non, pas actuellement)
         // Si le test échoue, vérifier si c'est une différence sémantique ou juste syntaxique.
-        
+
         // Pour être flexible sur l'échappement qui peut varier (ex: / vs \/), on peut faire un check plus souple
         // ou simplement vérifier que le nouveau regex est valide.
-        
+
         $this->assertNotNull(@preg_match($compiled, ''), "Compiled regex '$compiled' should be valid PHP PCRE");
-        
+
         // Idéalement :
         $this->assertSame($pattern, $compiled);
     }
