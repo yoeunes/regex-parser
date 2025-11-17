@@ -43,7 +43,7 @@ use RegexParser\Node\UnicodePropNode;
  */
 class SampleGeneratorVisitor implements NodeVisitorInterface
 {
-    private bool $isSeeded = false;
+    private ?int $seed = null;
 
     /**
      * @param int $maxRepetition max times to repeat for * or + quantifiers
@@ -59,8 +59,8 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
      */
     public function setSeed(int $seed): void
     {
+        $this->seed = $seed;
         mt_srand($seed);
-        $this->isSeeded = true;
     }
 
     /**
@@ -68,8 +68,8 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
      */
     public function resetSeed(): void
     {
+        $this->seed = null;
         mt_srand();
-        $this->isSeeded = false;
     }
 
     /**
@@ -88,11 +88,8 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
         $this->groupCounter = 1;
 
         // Ensure we are seeded if the user expects it
-        if ($this->isSeeded) {
-            // Re-seed to ensure subsequent calls to generate() with the same seed
-            // produce the same result.
-            mt_srand(mt_rand()); // This is a bit of a hack, but it's how PHP's seed works
-            mt_srand(); // Reset to a known state if we need to
+        if (null !== $this->seed) {
+            mt_srand($this->seed);
         }
 
         // Note: Flags (like /i) are ignored, as we generate the sample

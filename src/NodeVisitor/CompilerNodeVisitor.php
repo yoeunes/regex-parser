@@ -49,6 +49,7 @@ class CompilerNodeVisitor implements NodeVisitorInterface
         '\\' => true, '.' => true, '^' => true, '$' => true,
         '[' => true, ']' => true, '(' => true, ')' => true,
         '|' => true, '*' => true, '+' => true, '?' => true, '{' => true, '}' => true,
+        '/' => true,
     ];
 
     // Meta-characters that must be escaped *inside* a character class.

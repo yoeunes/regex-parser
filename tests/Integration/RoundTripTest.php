@@ -11,6 +11,7 @@
 
 namespace RegexParser\Tests\Integration;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
 use RegexParser\Parser;
@@ -18,27 +19,27 @@ use RegexParser\Parser;
 class RoundTripTest extends TestCase
 {
     /**
-     * @return array<string[]>
+     * @return array<array{0: string, 1?: string}>
      */
     public static function providePatterns(): array
     {
         return [
             ['/abc/'],
             ['/^test$/i'],
-            ['/[a-z0-9_-]+/'],
+            // Le compilateur échappe le tiret pour la sécurité, on s'attend donc à une différence
+            ['/[a-z0-9_-]+/', '/[a-z0-9_\-]+/'], 
             ['/(?:foo|bar){1,2}?/s'],
             ['/(?<name>\w+)/'],
-            ['/\\/home\\/user/'], // Echappement des délimiteurs
+            ['/\\/home\\/user/'], 
             ['#Hash matches#'],
-            ['/\p{L}+/u'],
+            // Le compilateur normalise \p{L} en \pL
+            ['/\p{L}+/u', '/\pL+/u'], 
             ['/(?(1)foo|bar)/'],
         ];
     }
 
-    /**
-     * @dataProvider providePatterns
-     */
-    public function testParseAndCompileIsIdempotent(string $pattern): void
+    #[DataProvider('providePatterns')]
+    public function testParseAndCompileIsIdempotent(string $pattern, ?string $expected = null): void
     {
         $parser = new Parser();
         $compiler = new CompilerNodeVisitor();
@@ -46,16 +47,11 @@ class RoundTripTest extends TestCase
         $ast = $parser->parse($pattern);
         $compiled = $ast->accept($compiler);
 
-        // Pour la plupart des cas simples, la chaîne doit être identique.
-        // Attention: le compilateur peut normaliser certaines choses (ex: flags ordonnés ? non, pas actuellement)
-        // Si le test échoue, vérifier si c'est une différence sémantique ou juste syntaxique.
-
-        // Pour être flexible sur l'échappement qui peut varier (ex: / vs \/), on peut faire un check plus souple
-        // ou simplement vérifier que le nouveau regex est valide.
-
-        $this->assertNotNull(@preg_match($compiled, ''), "Compiled regex '$compiled' should be valid PHP PCRE");
-
-        // Idéalement :
-        $this->assertSame($pattern, $compiled);
+        // Si une version "attendue" est fournie (car normalisée), on l'utilise.
+        // Sinon, on s'attend à ce que la sortie soit identique à l'entrée.
+        $this->assertSame($expected ?? $pattern, $compiled);
+        
+        // Vérification de sécurité : la regex générée doit toujours être valide
+        $this->assertNotFalse(@preg_match($compiled, ''), "Compiled regex '$compiled' is invalid");
     }
 }
