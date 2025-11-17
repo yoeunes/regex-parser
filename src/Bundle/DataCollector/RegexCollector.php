@@ -29,6 +29,7 @@ class RegexCollector extends DataCollector implements LateDataCollectorInterface
     private array $collectedRegexes = [];
 
     public function __construct(
+        private readonly Regex $regex,
         private readonly ExplainVisitor $explainVisitor,
         private readonly ComplexityScoreVisitor $scoreVisitor,
     ) {
@@ -75,13 +76,13 @@ class RegexCollector extends DataCollector implements LateDataCollectorInterface
         $invalidCount = 0;
 
         foreach ($this->collectedRegexes as $collected) {
-            $validation = Regex::validate($collected->pattern);
+            $validation = $this->regex->validate($collected->pattern);
             if (!$validation->isValid) {
                 ++$invalidCount;
             }
 
             try {
-                $ast = Regex::parse($collected->pattern);
+                $ast = $this->regex->parse($collected->pattern);
                 $explanation = $ast->accept($this->explainVisitor);
                 $score = $ast->accept($this->scoreVisitor);
             } catch (\Exception $e) {

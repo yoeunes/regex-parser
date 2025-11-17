@@ -20,6 +20,7 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 return static function (ContainerConfigurator $container): void {
     $container->services()
         ->set('regex_parser.collector', RegexCollector::class)
+            ->arg('$regex', service('regex_parser.regex'))
             ->arg('$explainVisitor', service('regex_parser.visitor.explain'))
             ->arg('$scoreVisitor', service('regex_parser.visitor.complexity_score'))
             ->tag('data_collector', [
