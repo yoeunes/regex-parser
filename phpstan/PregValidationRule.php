@@ -17,7 +17,9 @@ use PhpParser\Node\Name;
 use PHPStan\Analyser\Scope;
 use PHPStan\Rules\Rule;
 use PHPStan\Rules\RuleErrorBuilder;
-use RegexParser\Regex;
+use RegexParser\NodeVisitor\ValidatorNodeVisitor;
+use RegexParser\Parser;
+use RegexParser\ValidationResult;
 
 /**
  * Validates regex patterns in preg_* functions using RegexParser.
@@ -38,10 +40,23 @@ final class PregValidationRule implements Rule
         'preg_grep' => 0,
     ];
 
+    private ?Parser $parser = null;
+    private ?ValidatorNodeVisitor $validator = null;
+
     public function getNodeType(): string
     {
         // We subscribe to all function calls.
         return FuncCall::class;
+    }
+
+    private function getParser(): Parser
+    {
+        return $this->parser ??= new Parser([]);
+    }
+
+    private function getValidator(): ValidatorNodeVisitor
+    {
+        return $this->validator ??= new ValidatorNodeVisitor();
     }
 
     public function processNode(Node $node, Scope $scope): array
@@ -78,8 +93,14 @@ final class PregValidationRule implements Rule
         foreach ($constantStrings as $constantString) {
             $pattern = $constantString->getValue();
 
-            // Use our library's validation façade.
-            $result = Regex::validate($pattern);
+            try {
+                $ast = $this->getParser()->parse($pattern);
+                $validator = $this->getValidator();
+                $ast->accept($validator);
+                $result = new ValidationResult(true);
+            } catch (\Exception $e) {
+                $result = new ValidationResult(false, $e->getMessage());
+            }
 
             if (!$result->isValid) {
                 // We found an error!

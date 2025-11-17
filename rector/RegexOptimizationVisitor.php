@@ -25,15 +25,17 @@ final class RegexOptimizationVisitor extends CompilerNodeVisitor
 
     public function visitCharClass(CharClassNode $node): string
     {
-        // Only perform this optimization if the /u flag is NOT present.
+        // Optimization 1: [a-zA-Z0-9_] → \w (if no /u flag)
         if (!str_contains($this->flags, 'u')) {
             if ($this->isFullWordClass($node)) {
                 return '\w';
             }
         }
 
-        // Add more optimizations here...
-        // e.g. [0-9] -> \d (which is safe with or without /u)
+        // Optimization 2: [0-9] → \d (safe with or without /u)
+        if ($this->isDigitClass($node)) {
+            return '\d';
+        }
 
         return parent::visitCharClass($node);
     }
@@ -56,5 +58,19 @@ final class RegexOptimizationVisitor extends CompilerNodeVisitor
         }
 
         return !\in_array(false, $partsFound, true);
+    }
+
+    private function isDigitClass(CharClassNode $node): bool
+    {
+        if ($node->isNegated || 1 !== \count($node->parts)) {
+            return false;
+        }
+
+        $part = $node->parts[0];
+        if ($part instanceof RangeNode && $part->start instanceof LiteralNode && $part->end instanceof LiteralNode) {
+            return '0' === $part->start->value && '9' === $part->end->value;
+        }
+
+        return false;
     }
 }

@@ -24,14 +24,13 @@ class RegexParserExtension extends Extension
     public function load(array $configs, ContainerBuilder $container): void
     {
         $configuration = new Configuration();
-        $this->processConfiguration($configuration, $configs);
+        $config = $this->processConfiguration($configuration, $configs);
+
+        $container->setParameter('regex_parser.max_pattern_length', $config['max_pattern_length']);
 
         $loader = new PhpFileLoader($container, new FileLocator(__DIR__.'/../Resources/config'));
-
-        // Load base services (visitors, etc.)
         $loader->load('services.php');
 
-        // Load profiler and decorators only in debug mode
         if ($container->getParameter('kernel.debug')) {
             $loader->load('services_debug.php');
         }

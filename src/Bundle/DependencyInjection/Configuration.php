@@ -11,6 +11,7 @@
 
 namespace RegexParser\Bundle\DependencyInjection;
 
+use RegexParser\Parser;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
 
@@ -20,9 +21,12 @@ class Configuration implements ConfigurationInterface
     {
         $treeBuilder = new TreeBuilder('regex_parser');
 
-        // No configuration options for v1.0, but the root node is required.
         $treeBuilder->getRootNode()
             ->children()
+                ->integerNode('max_pattern_length')
+                    ->defaultValue(Parser::DEFAULT_MAX_PATTERN_LENGTH)
+                    ->info('The maximum allowed length for a regex pattern string to parse.')
+                ->end()
             ->end()
         ;
 

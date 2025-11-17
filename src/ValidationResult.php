@@ -19,6 +19,7 @@ class ValidationResult
     public function __construct(
         public readonly bool $isValid,
         public readonly ?string $error = null,
+        public readonly int $complexityScore = 0,
     ) {
     }
 }

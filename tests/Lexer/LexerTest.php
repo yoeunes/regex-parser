@@ -214,4 +214,29 @@ class LexerTest extends TestCase
         $lexer = new Lexer('foo\\'); // No delimiters
         $lexer->tokenize();
     }
+
+    /**
+     * This test validates that the internal regex constants of the Lexer
+     * are valid PCRE patterns and compile without errors.
+     */
+    public function testValidateRegexConstants(): void
+    {
+        // Use reflection to access private constants
+        $reflection = new \ReflectionClass(Lexer::class);
+        $consts = $reflection->getConstants();
+
+        $this->assertArrayHasKey('REGEX_OUTSIDE', $consts, 'Lexer class must define REGEX_OUTSIDE');
+        $this->assertArrayHasKey('REGEX_INSIDE', $consts, 'Lexer class must define REGEX_INSIDE');
+
+        // preg_match() will return false if the pattern fails to compile
+        $this->assertNotFalse(
+            @preg_match($consts['REGEX_OUTSIDE'], ''),
+            'Lexer::REGEX_OUTSIDE failed to compile.'
+        );
+
+        $this->assertNotFalse(
+            @preg_match($consts['REGEX_INSIDE'], ''),
+            'Lexer::REGEX_INSIDE failed to compile.'
+        );
+    }
 }

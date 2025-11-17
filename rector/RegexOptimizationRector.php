@@ -16,7 +16,7 @@ use PhpParser\Node\Expr\FuncCall;
 use PhpParser\Node\Scalar\String_;
 use PhpParser\Node\Stmt\ClassConst;
 use Rector\Rector\AbstractRector;
-use RegexParser\Regex;
+use RegexParser\Parser;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
 use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
 
@@ -38,9 +38,16 @@ final class RegexOptimizationRector extends AbstractRector
         'REGEX_INSIDE',
     ];
 
+    private ?Parser $parser = null;
+
     public function __construct(
         private readonly RegexOptimizationVisitor $optimizerVisitor,
     ) {
+    }
+
+    private function getParser(): Parser
+    {
+        return $this->parser ??= new Parser([]);
     }
 
     public function getRuleDefinition(): RuleDefinition
@@ -82,13 +89,15 @@ final class RegexOptimizationRector extends AbstractRector
         $originalRegexString = $stringNode->value;
 
         try {
-            $ast = Regex::parse($originalRegexString);
+            $ast = $this->getParser()->parse($originalRegexString);
 
             // Pass the flags to the visitor so it can make smart decisions.
             $this->optimizerVisitor->flags = $ast->flags;
 
             // "Visit" the AST to get the new pattern string
-            $optimizedPattern = $ast->pattern->accept($this->optimizerVisitor);
+            // We clone the visitor to reset its internal state (e.g., inCharClass)
+            $optimizer = clone $this->optimizerVisitor;
+            $optimizedPattern = $ast->pattern->accept($optimizer);
 
             $newRegexString = $ast->delimiter.$optimizedPattern.$ast->delimiter.$ast->flags;
 

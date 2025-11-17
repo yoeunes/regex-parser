@@ -47,6 +47,11 @@ use RegexParser\Node\UnicodePropNode;
  */
 class Parser
 {
+    /**
+     * Default hard limit on the regex string length to prevent excessive processing.
+     */
+    public const DEFAULT_MAX_PATTERN_LENGTH = 100000;
+
     /** @var array<Token> */
     private array $tokens;
     private int $position = 0;
@@ -54,14 +59,20 @@ class Parser
     private string $flags;
     private int $patternLength = 0;
 
-    /**
-     * A hard limit on the regex string length to prevent excessive processing
-     * on potentially malicious or very large inputs.
-     */
-    private const MAX_PATTERN_LENGTH = 100000;
+    private int $maxPatternLength;
 
-    public function __construct()
+    /**
+     * @param array<string, mixed> $options Configuration options
+     *                                      * 'max_pattern_length': (int) Max length of the regex string to parse.
+     *                                      Defaults to 100000.
+     */
+    public function __construct(array $options = [])
     {
+        $options = array_merge([
+            'max_pattern_length' => self::DEFAULT_MAX_PATTERN_LENGTH,
+        ], $options);
+
+        $this->maxPatternLength = (int) $options['max_pattern_length'];
     }
 
     /**
@@ -73,8 +84,8 @@ class Parser
      */
     public function parse(string $regex): RegexNode
     {
-        if (\strlen($regex) > self::MAX_PATTERN_LENGTH) {
-            throw new ParserException(\sprintf('Regex pattern exceeds maximum length of %d characters.', self::MAX_PATTERN_LENGTH));
+        if (\strlen($regex) > $this->maxPatternLength) {
+            throw new ParserException(\sprintf('Regex pattern exceeds maximum length of %d characters.', $this->maxPatternLength));
         }
 
         [$pattern, $flags, $delimiter] = $this->extractPatternAndFlags($regex);
