@@ -18,7 +18,11 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\DataCollector\DataCollector;
 use Symfony\Component\HttpKernel\DataCollector\LateDataCollectorInterface;
+use Symfony\Component\VarDumper\Cloner\Data;
 
+/**
+ * @phpstan-property array{regexes?: array<array<string, mixed>>, total?: int, invalid?: int}|Data $data
+ */
 class RegexCollector extends DataCollector implements LateDataCollectorInterface
 {
     /** @var CollectedRegex[] */
