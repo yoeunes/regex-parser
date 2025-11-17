@@ -60,6 +60,7 @@ class TraceableRouter implements RouterInterface, RequestMatcherInterface
     {
         try {
             $result = $this->router->match($pathinfo);
+            /** @var array<string, mixed> $result */
             $routeName = $result['_route'] ?? null;
             $this->collectRouteRegex(\is_string($routeName) ? $routeName : null, $pathinfo, true);
 
@@ -82,6 +83,7 @@ class TraceableRouter implements RouterInterface, RequestMatcherInterface
 
         try {
             $result = $this->router->matchRequest($request);
+            /** @var array<string, mixed> $result */
             $routeName = $result['_route'] ?? null;
             $this->collectRouteRegex(\is_string($routeName) ? $routeName : null, $request->getPathInfo(), true);
 
@@ -105,11 +107,15 @@ class TraceableRouter implements RouterInterface, RequestMatcherInterface
 
         // 1. Collect route requirement regexes
         foreach ($route->getRequirements() as $key => $requirement) {
-            $requirement = (string) $requirement;
+            if (!is_scalar($requirement)) {
+                continue;
+            }
+            $requirementStr = (string) $requirement;
+
             // We only collect requirements that are actual regex patterns
-            if ($this->isRegex($requirement)) {
+            if ($this->isRegex($requirementStr)) {
                 $this->collector->collectRegex(
-                    $requirement,
+                    $requirementStr,
                     \sprintf('Router (Requirement: %s)', $key),
                     $subject,
                     $matchResult

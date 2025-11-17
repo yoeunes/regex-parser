@@ -119,18 +119,17 @@ class RegexCollector extends DataCollector implements LateDataCollectorInterface
      */
     public function getData(): array
     {
-        // Explicit cast to satisfy PHPStan against DataCollector's cloning
-        return (array) $this->data;
+        return $this->data;
     }
 
     public function getTotal(): int
     {
-        return (int) ($this->data['total'] ?? 0);
+        return $this->data['total'] ?? 0;
     }
 
     public function getInvalid(): int
     {
-        return (int) ($this->data['invalid'] ?? 0);
+        return $this->data['invalid'] ?? 0;
     }
 
     /**
@@ -138,6 +137,6 @@ class RegexCollector extends DataCollector implements LateDataCollectorInterface
      */
     public function getRegexes(): array
     {
-        return (array) ($this->data['regexes'] ?? []);
+        return $this->data['regexes'] ?? [];
     }
 }
