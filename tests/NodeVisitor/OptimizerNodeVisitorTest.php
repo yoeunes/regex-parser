@@ -36,17 +36,19 @@ class OptimizerNodeVisitorTest extends TestCase
 
     public function testFlattenAlternations(): void
     {
-        // Construction manuelle d'un AST imbriqué : (a | (b | c) | d)
-        // Le parser standard aurait produit (a|b|c|d), donc on force la main pour tester l'optimiseur.
+        // On utilise des chaînes longues ("beta", "gamma") pour empêcher
+        // l'optimiseur de convertir (b|c) en [bc] (CharClass).
+        // On veut tester spécifiquement la fusion d'AlternationNode.
+        
         $nestedAlt = new AlternationNode([
-            new LiteralNode('b', 0, 0),
-            new LiteralNode('c', 0, 0)
+            new LiteralNode('beta', 0, 0),
+            new LiteralNode('gamma', 0, 0)
         ], 0, 0);
 
         $rootAlt = new AlternationNode([
-            new LiteralNode('a', 0, 0),
+            new LiteralNode('alpha', 0, 0),
             $nestedAlt,
-            new LiteralNode('d', 0, 0)
+            new LiteralNode('delta', 0, 0)
         ], 0, 0);
 
         $optimizer = new OptimizerNodeVisitor();
@@ -54,9 +56,9 @@ class OptimizerNodeVisitorTest extends TestCase
         /** @var AlternationNode $newAst */
         $newAst = $rootAlt->accept($optimizer);
 
-        // L'optimiseur doit avoir "remonté" b et c au niveau racine -> 4 alternatives
+        // L'optimiseur doit avoir "remonté" beta et gamma au niveau racine -> 4 alternatives
         $this->assertCount(4, $newAst->alternatives);
-        $this->assertSame('b', $newAst->alternatives[1]->value);
+        $this->assertSame('beta', $newAst->alternatives[1]->value);
     }
 
     public function testAlternationToCharClassOptimization(): void
@@ -115,13 +117,9 @@ class OptimizerNodeVisitorTest extends TestCase
 
         $newAst = $ast->accept($optimizer);
         
-        // On vérifie simplement que l'objet retourné est valide et non nul.
-        // Cela suffit pour marquer le test comme non-risky et vérifier que l'optimiseur ne crash pas.
         $this->assertNotNull($newAst);
 
-        // Si l'optimiseur a transformé ça en CharClass, on vérifie que le tiret est présent
         if ($newAst->pattern instanceof CharClassNode) {
-             // On s'attend à 3 parties : a, -, z
              $this->assertCount(3, $newAst->pattern->parts);
         }
     }
