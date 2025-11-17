@@ -11,6 +11,8 @@ tasks:
 
     phpunit: vendor/bin/phpunit {{.CLI_ARGS}}
 
+    bench: tools/phpbench/vendor/bin/phpbench run --report=default {{.CLI_ARGS}}
+
     lint:
         cmds:
             - rector
@@ -18,3 +20,21 @@ tasks:
             - phpcs
             - phpunit
             - phpstan
+
+    install:
+        cmds:
+            - composer install
+            - composer install -d tools/php-cs-fixer
+            - composer install -d tools/phpbench
+            - composer install -d tools/phplint
+            - composer install -d tools/phpstan
+            - composer install -d tools/rector
+
+    update:
+        cmds:
+            - composer update -W
+            - composer update -W -d tools/php-cs-fixer
+            - composer update -W -d tools/phpbench
+            - composer update -W -d tools/phplint
+            - composer update -W -d tools/phpstan
+            - composer update -W -d tools/rector
