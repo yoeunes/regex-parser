@@ -486,7 +486,7 @@ class Parser
      */
     private function reconstructTokenValue(Token $token): string
     {
-         return match($token->type) {
+        return match ($token->type) {
             // Simple literals
             TokenType::T_LITERAL, TokenType::T_NEGATION, TokenType::T_RANGE, TokenType::T_DOT,
             TokenType::T_GROUP_OPEN, TokenType::T_GROUP_CLOSE, TokenType::T_CHAR_CLASS_OPEN, TokenType::T_CHAR_CLASS_CLOSE,
@@ -513,7 +513,7 @@ class Parser
 
             // Should not be encountered here
             TokenType::T_EOF => '',
-         };
+        };
     }
 
     /**
