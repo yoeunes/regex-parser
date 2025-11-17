@@ -206,7 +206,6 @@ class Lexer
 
             foreach ($tokenNames as $tokenName) {
                 // Find the first (and only) token that matched.
-                // **FIX**: isset() is sufficient, as it returns false for null.
                 if (isset($matches[$tokenName])) {
                     $type = TokenType::from(strtolower(substr($tokenName, 2)));
 
@@ -270,7 +269,6 @@ class Lexer
                         }
                     }
 
-                    // **FIX**: Removed re-typing of T_LITERAL_ESCAPED
                     // if (TokenType::T_LITERAL_ESCAPED === $type) {
                     //     $type = TokenType::T_LITERAL;
                     // }
@@ -354,7 +352,6 @@ class Lexer
      */
     private function extractTokenValue(TokenType $type, string $matchedValue, array $matches): string
     {
-        // **FIX**: Updated logic for separate T_LITERAL_ESCAPED
         return match ($type) {
             TokenType::T_LITERAL_ESCAPED => substr($matchedValue, 1), // \. -> .
             TokenType::T_PCRE_VERB => substr($matchedValue, 2, -1),

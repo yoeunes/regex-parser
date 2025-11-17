@@ -36,7 +36,7 @@ class ValidatorNodeVisitorTest extends TestCase
     public function testThrowsOnInvalidQuantifierRange(): void
     {
         $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('Invalid quantifier range "{3,1}": min > max');
+        $this->expectExceptionMessage('Invalid quantifier range "{3,1}": min > max at position 4.');
         $this->validate('/foo{3,1}/');
     }
 
@@ -50,7 +50,7 @@ class ValidatorNodeVisitorTest extends TestCase
     public function testThrowsOnNestedQuantifiers(): void
     {
         $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('Potential catastrophic backtracking: nested unbounded quantifiers detected.');
+        $this->expectExceptionMessage('Potential catastrophic backtracking (ReDoS): nested unbounded quantifier "+" at position 2.');
         $this->validate('/(a+)*b/');
     }
 
@@ -70,14 +70,14 @@ class ValidatorNodeVisitorTest extends TestCase
     public function testThrowsOnInvalidRange(): void
     {
         $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('Invalid range "z-a": start character comes after end character.');
+        $this->expectExceptionMessage('Invalid range "z-a" at position 1: start character comes after end character.');
         $this->validate('/[z-a]/');
     }
 
     public function testThrowsOnInvalidRangeWithCharType(): void
     {
         $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('Invalid range: ranges must be between literal characters');
+        $this->expectExceptionMessage('Invalid range at position 1: ranges must be between literal characters (e.g., "a-z"). Found non-literal.');
 
         // This regex is invalid because \d is not a literal
         $this->validate('/[a-\d]/');
@@ -86,14 +86,14 @@ class ValidatorNodeVisitorTest extends TestCase
     public function testThrowsOnInvalidBackref(): void
     {
         $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('Backreference to non-existent group');
+        $this->expectExceptionMessage('Backreference to non-existent group: \2 at position 0.');
         $this->validate('/\2/'); // No group 2
     }
 
     public function testThrowsOnInvalidUnicodeProp(): void
     {
         $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('Invalid Unicode property');
+        $this->expectExceptionMessage('Invalid or unsupported Unicode property: \p{invalid} at position 0.');
         $this->validate('/\p{invalid}/');
     }
 
@@ -109,21 +109,21 @@ class ValidatorNodeVisitorTest extends TestCase
     public function testThrowsOnInvalidNumericSubroutine(): void
     {
         $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('Subroutine call to non-existent group: 1');
+        $this->expectExceptionMessage('Subroutine call to non-existent group: 1 at position 0.');
         $this->validate('/(?1)/'); // No group 1
     }
 
     public function testThrowsOnInvalidNamedSubroutine(): void
     {
         $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('Subroutine call to non-existent named group: name');
+        $this->expectExceptionMessage('Subroutine call to non-existent named group: "name" at position 0.');
         $this->validate('/(?&name)/'); // No group "name"
     }
 
     public function testThrowsOnDuplicateGroupName(): void
     {
         $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('Duplicate group name: name');
+        $this->expectExceptionMessage('Duplicate group name "name" at position 10.');
         $this->validate('/(?<name>a)(?<name>b)/');
     }
 }

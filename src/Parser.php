@@ -507,7 +507,6 @@ class Parser
             TokenType::T_GROUP_MODIFIER_OPEN => '(?',
             TokenType::T_COMMENT_OPEN => '(?#',
 
-            // **FIX**: Added missing quote mode tokens
             TokenType::T_QUOTE_MODE_START => '\Q',
             TokenType::T_QUOTE_MODE_END => '\E',
 
