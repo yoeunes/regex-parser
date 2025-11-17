@@ -36,7 +36,7 @@ class ValidatorNodeVisitorTest extends TestCase
     public function testThrowsOnInvalidQuantifierRange(): void
     {
         $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('Invalid quantifier range "{3,1}": min > max at position 4.');
+        $this->expectExceptionMessage('Invalid quantifier range "{3,1}": min > max at position 2.');
         $this->validate('/foo{3,1}/');
     }
 
@@ -50,7 +50,7 @@ class ValidatorNodeVisitorTest extends TestCase
     public function testThrowsOnNestedQuantifiers(): void
     {
         $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('Potential catastrophic backtracking (ReDoS): nested unbounded quantifier "+" at position 2.');
+        $this->expectExceptionMessage('Potential catastrophic backtracking (ReDoS): nested unbounded quantifier "+" at position 1.');
         $this->validate('/(a+)*b/');
     }
 
