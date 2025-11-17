@@ -103,12 +103,14 @@ final class ValidatorNodeVisitor implements NodeVisitorInterface
 
     /**
      * Tracks all *defined* named groups to check for duplicates.
+     *
      * @var array<string, true>
      */
     private array $namedGroups = [];
 
     /**
      * Caches the validation result for Unicode properties.
+     *
      * @var array<string, bool>
      */
     private static array $unicodePropCache = [];
@@ -305,6 +307,7 @@ final class ValidatorNodeVisitor implements NodeVisitorInterface
             if ($num > $this->groupCount) {
                 throw new ParserException(\sprintf('Backreference to non-existent group: \%d at position %d.', $num, $node->startPos));
             }
+
             return;
         }
 
@@ -314,6 +317,7 @@ final class ValidatorNodeVisitor implements NodeVisitorInterface
             if (!isset($this->namedGroups[$name])) {
                 throw new ParserException(\sprintf('Backreference to non-existent named group: "%s" at position %d.', $name, $node->startPos));
             }
+
             return;
         }
 
@@ -331,6 +335,7 @@ final class ValidatorNodeVisitor implements NodeVisitorInterface
             if ($num < 0 && abs($num) > $this->groupCount) {
                 throw new ParserException(\sprintf('Relative backreference \g{%d} at position %d exceeds total group count (%d).', $num, $node->startPos, $this->groupCount));
             }
+
             return;
         }
 
@@ -375,7 +380,7 @@ final class ValidatorNodeVisitor implements NodeVisitorInterface
             $error = preg_last_error();
 
             // PREG_NO_ERROR means it compiled successfully.
-            self::$unicodePropCache[$key] = (false !== $result && PREG_NO_ERROR === $error);
+            self::$unicodePropCache[$key] = (false !== $result && \PREG_NO_ERROR === $error);
         }
 
         if (false === self::$unicodePropCache[$key]) {
@@ -500,6 +505,7 @@ final class ValidatorNodeVisitor implements NodeVisitorInterface
             if ($num < 0 && abs($num) > $this->groupCount) {
                 throw new ParserException(\sprintf('Relative subroutine call (%d) at position %d exceeds total group count (%d).', $num, $node->startPos, $this->groupCount));
             }
+
             return;
         }
 
@@ -524,7 +530,7 @@ final class ValidatorNodeVisitor implements NodeVisitorInterface
     /**
      * Parses a quantifier string (e.g., "{2,5}") into min/max bounds.
      *
-     * @return array{0: int, 1: int} [min, max] where max = -1 means unbounded.
+     * @return array{0: int, 1: int} [min, max] where max = -1 means unbounded
      */
     private function parseQuantifierBounds(string $q): array
     {
