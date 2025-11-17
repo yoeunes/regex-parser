@@ -28,7 +28,7 @@ return static function (RectorConfig $rectorConfig): void {
         __DIR__.'/src/Lexer.php',
     ]);
 
-    $rectorConfig->import(__DIR__.'/config/rector/regex-parser.php');
+    // $rectorConfig->import(__DIR__.'/config/rector/regex-parser.php');
 
     $rectorConfig->phpVersion(PhpVersion::PHP_84);
     $rectorConfig->importShortClasses();
