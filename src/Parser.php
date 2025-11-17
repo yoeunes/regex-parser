@@ -54,6 +54,12 @@ class Parser
     private string $flags;
     private int $patternLength = 0;
 
+    /**
+     * A hard limit on the regex string length to prevent excessive processing
+     * on potentially malicious or very large inputs.
+     */
+    private const MAX_PATTERN_LENGTH = 100000;
+
     public function __construct()
     {
     }
@@ -67,6 +73,10 @@ class Parser
      */
     public function parse(string $regex): RegexNode
     {
+        if (\strlen($regex) > self::MAX_PATTERN_LENGTH) {
+            throw new ParserException(\sprintf('Regex pattern exceeds maximum length of %d characters.', self::MAX_PATTERN_LENGTH));
+        }
+
         [$pattern, $flags, $delimiter] = $this->extractPatternAndFlags($regex);
 
         $this->delimiter = $delimiter;
@@ -130,12 +140,12 @@ class Parser
     }
 
     // --- GRAMMAR ---
-    // alternation     → sequence ( "|" sequence )*
-    // sequence        → quantifiedAtom*
-    // quantifiedAtom  → atom ( QUANTIFIER )?
-    // atom            → T_LITERAL | T_CHAR_TYPE | T_DOT | T_ANCHOR | T_PCRE_VERB | T_KEEP | group | char_class
-    // group           → T_GROUP_OPEN alternation T_GROUP_CLOSE
-    //                 | T_GROUP_MODIFIER_OPEN group_modifier T_GROUP_CLOSE
+    // alternation      → sequence ( "|" sequence )*
+    // sequence         → quantifiedAtom*
+    // quantifiedAtom   → atom ( QUANTIFIER )?
+    // atom             → T_LITERAL | T_CHAR_TYPE | T_DOT | T_ANCHOR | T_PCRE_VERB | T_KEEP | group | char_class
+    // group            → T_GROUP_OPEN alternation T_GROUP_CLOSE
+    //                  | T_GROUP_MODIFIER_OPEN group_modifier T_GROUP_CLOSE
     // ... (etc)
 
     /**
@@ -169,8 +179,8 @@ class Parser
 
         // Continue parsing as long as it's not a sequence terminator
         while (!$this->check(TokenType::T_GROUP_CLOSE)
-               && !$this->check(TokenType::T_ALTERNATION)
-               && !$this->check(TokenType::T_EOF)
+            && !$this->check(TokenType::T_ALTERNATION)
+            && !$this->check(TokenType::T_EOF)
         ) {
             $nodes[] = $this->parseQuantifiedAtom();
         }
