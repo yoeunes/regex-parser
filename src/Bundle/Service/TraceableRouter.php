@@ -107,7 +107,7 @@ class TraceableRouter implements RouterInterface, RequestMatcherInterface
 
         // 1. Collect route requirement regexes
         foreach ($route->getRequirements() as $key => $requirement) {
-            if (!is_scalar($requirement)) {
+            if (!\is_scalar($requirement)) {
                 continue;
             }
             $requirementStr = (string) $requirement;
