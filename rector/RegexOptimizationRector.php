@@ -16,6 +16,8 @@ use PhpParser\Node\Expr\FuncCall;
 use PhpParser\Node\Scalar\String_;
 use PhpParser\Node\Stmt\ClassConst;
 use Rector\Rector\AbstractRector;
+use RegexParser\NodeVisitor\CompilerNodeVisitor;
+use RegexParser\NodeVisitor\OptimizerNodeVisitor;
 use RegexParser\Parser;
 use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
 use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
@@ -39,9 +41,14 @@ final class RegexOptimizationRector extends AbstractRector
     ];
 
     private ?Parser $parser = null;
+    private ?CompilerNodeVisitor $compiler = null;
 
+    /**
+     * We inject the main OptimizerNodeVisitor service from the container.
+     * This ensures optimization logic is defined in one single place.
+     */
     public function __construct(
-        private readonly RegexOptimizationVisitor $optimizerVisitor,
+        private readonly OptimizerNodeVisitor $optimizerVisitor,
     ) {
     }
 
@@ -50,18 +57,27 @@ final class RegexOptimizationRector extends AbstractRector
         return $this->parser ??= new Parser([]);
     }
 
+    private function getCompiler(): CompilerNodeVisitor
+    {
+        return $this->compiler ??= new CompilerNodeVisitor();
+    }
+
     public function getRuleDefinition(): RuleDefinition
     {
         return new RuleDefinition(
-            'Optimizes simple regex character classes, e.g., [a-zA-Z0-9_] to \w (if /u flag is not present)',
+            'Optimizes regex patterns using RegexParser\'s OptimizerNodeVisitor.',
             [
                 new CodeSample(
                     "preg_match('/[a-zA-Z0-9_]+/', \$str);",
                     "preg_match('/\\w+/', \$str);"
                 ),
                 new CodeSample(
-                    "private const MY_REGEX = '/[a-zA-Z0-9_]/u';",
-                    "private const MY_REGEX = '/[a-zA-Z0-9_]/u';" // No change
+                    "preg_match('/(a|b|c)/', \$str);",
+                    "preg_match('/[abc]/', \$str);"
+                ),
+                new CodeSample(
+                    "preg_match('/a.b.c.d/', \$str);", // No change
+                    "preg_match('/a.b.c.d/', \$str);"
                 ),
             ]
         );
@@ -91,24 +107,23 @@ final class RegexOptimizationRector extends AbstractRector
         try {
             $ast = $this->getParser()->parse($originalRegexString);
 
-            // Pass the flags to the visitor so it can make smart decisions.
-            $this->optimizerVisitor->flags = $ast->flags;
-
-            // "Visit" the AST to get the new pattern string
-            // We clone the visitor to reset its internal state (e.g., inCharClass)
+            // 1. Optimize the AST (AST -> AST)
+            // We clone the visitor to ensure its state (like $flags) is fresh for this run.
             $optimizer = clone $this->optimizerVisitor;
-            $optimizedPattern = $ast->pattern->accept($optimizer);
+            $optimizedAst = $ast->accept($optimizer);
 
-            $newRegexString = $ast->delimiter.$optimizedPattern.$ast->delimiter.$ast->flags;
+            // 2. Re-compile the optimized AST to a string (AST -> string)
+            $compiler = $this->getCompiler();
+            $newRegexString = $optimizedAst->accept($compiler);
 
-            // This is the new, robust check that PHPStan can understand.
             if ($newRegexString !== $originalRegexString) {
                 $stringNode->value = $newRegexString;
 
                 return $node;
             }
         } catch (\Throwable) {
-            // If parsing fails, do nothing.
+            // If parsing or optimizing fails, do nothing.
+            // This protects against invalid regexes in the codebase.
             return null;
         }
 

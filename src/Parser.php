@@ -59,11 +59,12 @@ class Parser
     private string $flags;
     private int $patternLength = 0;
 
-    private int $maxPatternLength;
+    private readonly int $maxPatternLength;
+    private ?Lexer $lexer = null;
 
     /**
      * @param array{
-     *     max_pattern_length?: int, // Max length of the regex string to parse. Defaults to 100000.
+     * max_pattern_length?: int, // Max length of the regex string to parse. Defaults to 100000.
      * } $options Configuration options
      */
     public function __construct(array $options = [])
@@ -73,6 +74,21 @@ class Parser
         ], $options);
 
         $this->maxPatternLength = (int) $options['max_pattern_length'];
+    }
+
+    private function getLexer(string $pattern): Lexer
+    {
+        // Re-use lexer instance if possible, but reset with new pattern
+        // This avoids re-instantiating the class but ensures state is clean.
+        // In a service-oriented context, this is less relevant, but for
+        // standalone usage, it's slightly more efficient.
+        if (null === $this->lexer) {
+            $this->lexer = new Lexer($pattern);
+        } else {
+            $this->lexer->reset($pattern);
+        }
+
+        return $this->lexer;
     }
 
     /**
@@ -94,7 +110,7 @@ class Parser
         $this->flags = $flags;
         $this->patternLength = mb_strlen($pattern);
 
-        $lexer = new Lexer($pattern);
+        $lexer = $this->getLexer($pattern);
         $this->tokens = $lexer->tokenize();
         $this->position = 0;
 
@@ -107,6 +123,7 @@ class Parser
 
     /**
      * Extracts the pattern, flags, and delimiter from the full regex string.
+     * This implementation is robust against escaped delimiters.
      *
      * @return array{0: string, 1: string, 2: string} [pattern, flags, delimiter]
      *
@@ -115,48 +132,60 @@ class Parser
     private function extractPatternAndFlags(string $regex): array
     {
         if (\strlen($regex) < 2) {
-            throw new ParserException('Regex is too short.');
+            throw new ParserException('Regex is too short. It must include delimiters.');
         }
 
         $delimiter = $regex[0];
         $delimiterMap = ['(' => ')', '[' => ']', '{' => '}', '<' => '>'];
         $closingDelimiter = $delimiterMap[$delimiter] ?? $delimiter;
+        $length = \strlen($regex);
 
-        $lastPos = strrpos($regex, $closingDelimiter);
+        for ($i = $length - 1; $i > 0; --$i) {
+            if ($regex[$i] === $closingDelimiter) {
+                // Check if this delimiter is escaped by counting preceding backslashes.
+                $escapes = 0;
+                for ($j = $i - 1; $j > 0 && '\\' === $regex[$j]; --$j) {
+                    ++$escapes;
+                }
 
-        // Check for escaped delimiter
-        if (false !== $lastPos && $lastPos > 0) {
-            $escaped = false;
-            for ($i = $lastPos - 1; $i >= 0 && '\\' === $regex[$i]; --$i) {
-                $escaped = !$escaped;
+                if (0 === $escapes % 2) {
+                    // Not escaped. This is our delimiter.
+                    $pattern = substr($regex, 1, $i - 1);
+                    $flags = substr($regex, $i + 1);
+
+                    if (false === $pattern || false === $flags) {
+                        throw new ParserException('Internal parser error: failed to slice pattern/flags.');
+                    }
+
+                    // $pattern and $flags are now guaranteed 'string'
+                    $unknownFlags = preg_replace('/[imsxADSUXJu]/', '', $flags);
+                    if (null === $unknownFlags) {
+                        // This can happen on PCRE error
+                        throw new ParserException('Internal parser error: preg_replace failed while checking flags.');
+                    }
+
+                    if ('' !== $unknownFlags) {
+                        throw new ParserException(\sprintf('Unknown regex flag(s) found: "%s"', $unknownFlags[0]));
+                    }
+
+                    // Success
+                    return [$pattern, $flags, $delimiter];
+                }
+                // If escapes % 2 is not 0, it's escaped (e.g., \/), so we continue.
             }
-            if ($escaped) {
-                $lastPos = strrpos(substr($regex, 0, $lastPos), $closingDelimiter);
-            }
         }
 
-        if (false === $lastPos || 0 === $lastPos) {
-            throw new ParserException(\sprintf('No closing delimiter "%s" found.', $closingDelimiter));
-        }
-
-        $pattern = substr($regex, 1, $lastPos - 1);
-        $flags = substr($regex, $lastPos + 1);
-
-        $unknownFlags = preg_replace('/[imsxADSUXJu]/', '', $flags);
-        if ('' !== $unknownFlags) {
-            throw new ParserException(\sprintf('Unknown regex flag(s) found: "%s"', $unknownFlags));
-        }
-
-        return [$pattern, $flags, $delimiter];
+        // Loop finished without finding a delimiter
+        throw new ParserException(\sprintf('No closing delimiter "%s" found.', $closingDelimiter));
     }
 
     // --- GRAMMAR ---
-    // alternation      → sequence ( "|" sequence )*
-    // sequence         → quantifiedAtom*
-    // quantifiedAtom   → atom ( QUANTIFIER )?
-    // atom             → T_LITERAL | T_CHAR_TYPE | T_DOT | T_ANCHOR | T_PCRE_VERB | T_KEEP | group | char_class
-    // group            → T_GROUP_OPEN alternation T_GROUP_CLOSE
-    //                  | T_GROUP_MODIFIER_OPEN group_modifier T_GROUP_CLOSE
+    // alternation     → sequence ( "|" sequence )*
+    // sequence        → quantifiedAtom*
+    // quantifiedAtom  → atom ( QUANTIFIER )?
+    // atom            → T_LITERAL | T_CHAR_TYPE | T_DOT | T_ANCHOR | T_PCRE_VERB | T_KEEP | group | char_class
+    // group           → T_GROUP_OPEN alternation T_GROUP_CLOSE
+    //                 | T_GROUP_MODIFIER_OPEN group_modifier T_GROUP_CLOSE
     // ... (etc)
 
     /**
@@ -164,6 +193,7 @@ class Parser
      */
     private function parseAlternation(): NodeInterface
     {
+        $startPos = $this->current()->position;
         $nodes = [$this->parseSequence()];
 
         while ($this->match(TokenType::T_ALTERNATION)) {
@@ -174,8 +204,7 @@ class Parser
             return $nodes[0];
         }
 
-        $startPos = $nodes[0]->getStartPosition();
-        $endPos = end($nodes)->getEndPosition();
+        $endPos = $this->previous()->position + mb_strlen($this->previous()->value);
 
         return new AlternationNode($nodes, $startPos, $endPos);
     }
@@ -225,17 +254,12 @@ class Parser
 
             // Assertions, anchors, and verbs cannot be quantified.
             if ($node instanceof AnchorNode || $node instanceof AssertionNode || $node instanceof PcreVerbNode || $node instanceof KeepNode) {
-                // This block is now type-safe and fixes the PHPStan error.
-                $nodeName = '';
-                if ($node instanceof AnchorNode) {
-                    $nodeName = $node->value;
-                } elseif ($node instanceof AssertionNode) {
-                    $nodeName = '\\'.$node->value;
-                } elseif ($node instanceof PcreVerbNode) {
-                    $nodeName = '(*'.$node->verb.')';
-                } elseif ($node instanceof KeepNode) {
-                    $nodeName = '\K';
-                }
+                $nodeName = match (true) {
+                    $node instanceof AnchorNode => $node->value,
+                    $node instanceof AssertionNode => '\\'.$node->value,
+                    $node instanceof PcreVerbNode => '(*'.$node->verb.')',
+                    default => '\K', // Must be KeepNode
+                };
 
                 throw new ParserException(\sprintf('Quantifier "%s" cannot be applied to assertion or verb "%s" at position %d', $token->value, $nodeName, $token->position));
             }
@@ -289,6 +313,14 @@ class Parser
             $token = $this->previous();
             $endPos = $startPos + mb_strlen($token->value);
 
+            return new LiteralNode($token->value, $startPos, $endPos);
+        }
+
+        if ($this->match(TokenType::T_LITERAL_ESCAPED)) {
+            $token = $this->previous();
+            $endPos = $startPos + mb_strlen($token->value) + 1; // +1 for the \
+
+            // The value is the escaped char (e.g. '*')
             return new LiteralNode($token->value, $startPos, $endPos);
         }
 
@@ -434,7 +466,13 @@ class Parser
         $startToken = $this->previous(); // (?#
         $startPos = $startToken->position;
 
-        $comment = $this->consumeWhile(fn (string $c) => ')' !== $c);
+        $comment = '';
+        while (!$this->isAtEnd() && !$this->check(TokenType::T_GROUP_CLOSE)) {
+            $token = $this->current();
+            $comment .= $this->reconstructTokenValue($token);
+            $this->advance();
+        }
+
         $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected ) to close comment');
         $endPos = $endToken->position + 1;
 
@@ -442,8 +480,43 @@ class Parser
     }
 
     /**
+     * Reconstructs the original string value of a token.
+     * This is the inverse of Lexer::extractTokenValue.
+     */
+    private function reconstructTokenValue(Token $token): string
+    {
+         return match($token->type) {
+            // Simple literals
+            TokenType::T_LITERAL, TokenType::T_NEGATION, TokenType::T_RANGE, TokenType::T_DOT,
+            TokenType::T_GROUP_OPEN, TokenType::T_GROUP_CLOSE, TokenType::T_CHAR_CLASS_OPEN, TokenType::T_CHAR_CLASS_CLOSE,
+            TokenType::T_QUANTIFIER, TokenType::T_ALTERNATION, TokenType::T_ANCHOR => $token->value,
+
+            // Types that had a \ stripped
+            TokenType::T_CHAR_TYPE, TokenType::T_ASSERTION, TokenType::T_KEEP, TokenType::T_OCTAL_LEGACY,
+            TokenType::T_LITERAL_ESCAPED // This token now exists
+                => '\\'.$token->value,
+
+            // Types that kept their \
+            TokenType::T_BACKREF, TokenType::T_G_REFERENCE, TokenType::T_UNICODE, TokenType::T_OCTAL => $token->value,
+
+            // Complex re-assembly
+            TokenType::T_UNICODE_PROP => (mb_strlen($token->value) > 1 || str_starts_with($token->value, '^')) ? '\p{'.$token->value.'}' : '\p'.$token->value,
+            TokenType::T_POSIX_CLASS => '[[:'.$token->value.':]]',
+            TokenType::T_PCRE_VERB => '(*'.$token->value.')',
+            TokenType::T_GROUP_MODIFIER_OPEN => '(?',
+            TokenType::T_COMMENT_OPEN => '(?#',
+
+            // **FIX**: Added missing quote mode tokens
+            TokenType::T_QUOTE_MODE_START => '\Q',
+            TokenType::T_QUOTE_MODE_END => '\E',
+
+            // Should not be encountered here
+            TokenType::T_EOF => '',
+         };
+    }
+
+    /**
      * Parses a special group that starts with "(?".
-     * This is the new, robust logic.
      *
      * @throws ParserException
      */
@@ -536,8 +609,7 @@ class Parser
 
                 return new SubroutineNode('R', '', $startPos, $endPos);
             }
-            --$this->position;
-            throw new ParserException('Invalid syntax after (?R at position '.$startPos);
+            --$this->position; // Not a (?R) group, rewind 'R'
         }
 
         // Check for (?1), (?-1), (?0)
@@ -550,12 +622,16 @@ class Parser
             $this->advance(); // Consume first digit
             $num .= $this->consumeWhile(fn (string $c) => ctype_digit($c)); // Consume all digits
 
-            $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected ) to close subroutine call');
-            $endPos = $endToken->position + 1;
+            if ($this->check(TokenType::T_GROUP_CLOSE)) {
+                $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected ) to close subroutine call');
+                $endPos = $endToken->position + 1;
 
-            return new SubroutineNode($num, '', $startPos, $endPos);
-        }
-        if ('-' === $num) {
+                return new SubroutineNode($num, '', $startPos, $endPos);
+            }
+            // If not followed by ), it's not a subroutine (e.g. (?-1foo...))
+            // Rewind all consumed digits and the optional '-'
+            $this->position -= mb_strlen($num);
+        } elseif ('-' === $num) {
             --$this->position; // Rewind '-' if it wasn't followed by a digit
         }
 
@@ -592,10 +668,18 @@ class Parser
         // 6. *Last*, check for inline flags.
         $flags = $this->consumeWhile(fn (string $c) => (bool) preg_match('/^[imsxADSUXJ-]+$/', $c));
         if ('' !== $flags) {
-            $this->consumeLiteral(':', 'Expected : after inline flags');
-            $expr = $this->parseAlternation();
+            $expr = null;
+            if ($this->matchLiteral(':')) {
+                $expr = $this->parseAlternation();
+            }
             $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
             $endPos = $endToken->position + 1;
+
+            // If no ':', expr is an empty node
+            if (null === $expr) {
+                $currentPos = $this->previous()->position;
+                $expr = new LiteralNode('', $currentPos, $currentPos);
+            }
 
             return new GroupNode($expr, GroupType::T_GROUP_INLINE_FLAGS, null, $flags, $startPos, $endPos);
         }
@@ -636,7 +720,7 @@ class Parser
             $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected ) after R condition');
             $endPos = $endToken->position; // Position of the ')'
 
-            return new LiteralNode('R', $startPos, $endPos); // Special recursion condition
+            return new SubroutineNode('R', '', $startPos, $endPos);
         }
 
         // Lookaround or assertion as condition (?(?=...)...)
@@ -668,8 +752,8 @@ class Parser
 
         // Handle <name>
         $name = '';
-        while (!$this->checkLiteral('>') && !$this->isAtEnd()) {
-            if ($this->check(TokenType::T_LITERAL)) {
+        while (!$this->checkLiteral('>') && !$this->checkLiteral('}') && !$this->isAtEnd()) {
+            if ($this->check(TokenType::T_LITERAL) || $this->check(TokenType::T_LITERAL_ESCAPED)) {
                 $name .= $this->current()->value;
                 $this->advance();
             } else {
@@ -720,6 +804,10 @@ class Parser
         if ($this->match(TokenType::T_LITERAL)) {
             $token = $this->previous();
             $endPos = $startPos + mb_strlen($token->value);
+            $startNode = new LiteralNode($token->value, $startPos, $endPos);
+        } elseif ($this->match(TokenType::T_LITERAL_ESCAPED)) {
+            $token = $this->previous();
+            $endPos = $startPos + mb_strlen($token->value) + 1;
             $startNode = new LiteralNode($token->value, $startPos, $endPos);
         } elseif ($this->match(TokenType::T_CHAR_TYPE)) {
             $token = $this->previous();
@@ -780,6 +868,10 @@ class Parser
                 $token = $this->previous();
                 $endPos = $endNodeStartPos + mb_strlen($token->value);
                 $endNode = new LiteralNode($token->value, $endNodeStartPos, $endPos);
+            } elseif ($this->match(TokenType::T_LITERAL_ESCAPED)) {
+                $token = $this->previous();
+                $endPos = $endNodeStartPos + mb_strlen($token->value) + 1;
+                $endNode = new LiteralNode($token->value, $endNodeStartPos, $endPos);
             } elseif ($this->match(TokenType::T_CHAR_TYPE)) {
                 $token = $this->previous();
                 $endPos = $endNodeStartPos + mb_strlen($token->value) + 1;
@@ -816,6 +908,35 @@ class Parser
         }
 
         return $startNode;
+    }
+
+    /**
+     * Parses the name of a subroutine, handling different syntaxes.
+     *
+     * @throws ParserException
+     */
+    private function parseSubroutineName(): string
+    {
+        // Handles (?P>name) or (?&name)
+        // We have already consumed '(?P>' or '(?&'
+
+        $name = '';
+        while (!$this->check(TokenType::T_GROUP_CLOSE) && !$this->isAtEnd()) {
+            // A name can be any literal, but not special chars like '(', '[', etc.
+            if ($this->check(TokenType::T_LITERAL) || $this->check(TokenType::T_LITERAL_ESCAPED)) {
+                $name .= $this->current()->value;
+                $this->advance();
+            } else {
+                // e.g., (?&name[...]) is invalid
+                throw new ParserException('Unexpected token in subroutine name: '.$this->current()->value);
+            }
+        }
+
+        if ('' === $name) {
+            throw new ParserException('Expected subroutine name at position '.$this->current()->position);
+        }
+
+        return $name;
     }
 
     /**
@@ -952,34 +1073,5 @@ class Parser
         }
 
         return $value;
-    }
-
-    /**
-     * Parses the name of a subroutine, handling different syntaxes.
-     *
-     * @throws ParserException
-     */
-    private function parseSubroutineName(): string
-    {
-        // Handles (?P>name) or (?&name)
-        // We have already consumed '(?P>' or '(?&'
-
-        $name = '';
-        while (!$this->check(TokenType::T_GROUP_CLOSE) && !$this->isAtEnd()) {
-            // A name can be any literal, but not special chars like '(', '[', etc.
-            if ($this->check(TokenType::T_LITERAL)) {
-                $name .= $this->current()->value;
-                $this->advance();
-            } else {
-                // e.g., (?&name[...]) is invalid
-                throw new ParserException('Unexpected token in subroutine name: '.$this->current()->value);
-            }
-        }
-
-        if ('' === $name) {
-            throw new ParserException('Expected subroutine name at position '.$this->current()->position);
-        }
-
-        return $name;
     }
 }

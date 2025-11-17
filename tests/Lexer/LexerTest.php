@@ -114,16 +114,16 @@ class LexerTest extends TestCase
         // ( a * ) EOF = 5 tokens
         $this->assertCount(5, $tokens);
 
-        $this->assertSame(TokenType::T_LITERAL, $tokens[0]->type); // (
+        $this->assertSame(TokenType::T_LITERAL_ESCAPED, $tokens[0]->type); // \(
         $this->assertSame('(', $tokens[0]->value);
 
         $this->assertSame(TokenType::T_LITERAL, $tokens[1]->type); // a
         $this->assertSame('a', $tokens[1]->value);
 
-        $this->assertSame(TokenType::T_LITERAL, $tokens[2]->type); // *
+        $this->assertSame(TokenType::T_LITERAL_ESCAPED, $tokens[2]->type); // \*
         $this->assertSame('*', $tokens[2]->value);
 
-        $this->assertSame(TokenType::T_LITERAL, $tokens[3]->type); // )
+        $this->assertSame(TokenType::T_LITERAL_ESCAPED, $tokens[3]->type); // \)
         $this->assertSame(')', $tokens[3]->value);
 
         $this->assertSame(TokenType::T_EOF, $tokens[4]->type);

@@ -12,10 +12,10 @@ declare(strict_types=1);
  */
 
 use Rector\Config\RectorConfig;
+use RegexParser\NodeVisitor\OptimizerNodeVisitor;
 use RegexParser\Rector\RegexOptimizationRector;
-use RegexParser\Rector\RegexOptimizationVisitor;
 
 return static function (RectorConfig $rectorConfig): void {
-    $rectorConfig->singleton(RegexOptimizationVisitor::class);
+    $rectorConfig->singleton(OptimizerNodeVisitor::class);
     $rectorConfig->rule(RegexOptimizationRector::class);
 };
