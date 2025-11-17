@@ -52,8 +52,8 @@ class CompilerNodeVisitor implements NodeVisitorInterface
     ];
 
     // Meta-characters that must be escaped *inside* a character class.
-    // The parser correctly identifies positional meta-chars (like ^, -, ])
-    // as literals, so we only need to worry about \ and ].
+    // '-' is crucial to escape to prevent creating unintended ranges.
+    // '^' is crucial to escape to prevent unintended negation if placed at start.
     private const CHAR_CLASS_META = [
         '\\' => true, ']' => true, '-' => true, '^' => true,
     ];
