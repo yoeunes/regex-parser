@@ -62,9 +62,9 @@ class Parser
     private int $maxPatternLength;
 
     /**
-     * @param array<string, mixed> $options Configuration options
-     *                                      * 'max_pattern_length': (int) Max length of the regex string to parse.
-     *                                      Defaults to 100000.
+     * @param array{
+     *     max_pattern_length?: int, // Max length of the regex string to parse. Defaults to 100000.
+     * } $options Configuration options
      */
     public function __construct(array $options = [])
     {

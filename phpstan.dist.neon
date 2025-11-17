@@ -3,9 +3,12 @@ includes:
     - tools/phpstan/vendor/phpstan/phpstan/conf/bleedingEdge.neon
     - tools/phpstan/vendor/phpstan/phpstan-phpunit/extension.neon
     - tools/phpstan/vendor/phpstan/phpstan-symfony/extension.neon
+    - tools/phpstan/vendor/phpstan/phpstan-symfony/rules.neon
 
 parameters:
     level: max
+
+    treatPhpDocTypesAsCertain: false
 
     paths:
         - bin

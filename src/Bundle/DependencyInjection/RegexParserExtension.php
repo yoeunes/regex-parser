@@ -24,6 +24,12 @@ class RegexParserExtension extends Extension
     public function load(array $configs, ContainerBuilder $container): void
     {
         $configuration = new Configuration();
+
+        /**
+         * @var array{
+         *     max_pattern_length: int,
+         * } $config
+         */
         $config = $this->processConfiguration($configuration, $configs);
 
         $container->setParameter('regex_parser.max_pattern_length', $config['max_pattern_length']);

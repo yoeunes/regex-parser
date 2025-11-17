@@ -51,7 +51,9 @@ class Regex
     /**
      * Static constructor for easy use without a DI container.
      *
-     * @param array<string, mixed> $options Options for the parser (e.g., 'max_pattern_length').
+     * @param array{
+     *     max_pattern_length?: int,
+     * } $options Options for the parser (e.g., 'max_pattern_length').
      */
     public static function create(array $options = []): self
     {

@@ -228,6 +228,9 @@ class LexerTest extends TestCase
         $this->assertArrayHasKey('REGEX_OUTSIDE', $consts, 'Lexer class must define REGEX_OUTSIDE');
         $this->assertArrayHasKey('REGEX_INSIDE', $consts, 'Lexer class must define REGEX_INSIDE');
 
+        $this->assertIsString($consts['REGEX_OUTSIDE']);
+        $this->assertIsString($consts['REGEX_INSIDE']);
+
         // preg_match() will return false if the pattern fails to compile
         $this->assertNotFalse(
             @preg_match($consts['REGEX_OUTSIDE'], ''),
