@@ -119,16 +119,28 @@ class RegexCollector extends DataCollector implements LateDataCollectorInterface
      */
     public function getData(): array
     {
+        if (!is_array($this->data)) {
+            return [];
+        }
+
         return $this->data;
     }
 
     public function getTotal(): int
     {
+        if (!is_array($this->data)) {
+            return 0;
+        }
+
         return $this->data['total'] ?? 0;
     }
 
     public function getInvalid(): int
     {
+        if (!is_array($this->data)) {
+            return 0;
+        }
+
         return $this->data['invalid'] ?? 0;
     }
 
@@ -137,6 +149,10 @@ class RegexCollector extends DataCollector implements LateDataCollectorInterface
      */
     public function getRegexes(): array
     {
+        if (!is_array($this->data)) {
+            return [];
+        }
+
         return $this->data['regexes'] ?? [];
     }
 }
