@@ -153,6 +153,7 @@ class Parser
                     $pattern = substr($regex, 1, $i - 1);
                     $flags = substr($regex, $i + 1);
 
+                    // @phpstan-ignore-next-line - PHPStan believes $pattern and $flags can never be false here due to surrounding logic.
                     if (false === $pattern || false === $flags) {
                         throw new ParserException('Internal parser error: failed to slice pattern/flags.');
                     }
@@ -669,14 +670,14 @@ class Parser
         $flags = $this->consumeWhile(fn (string $c) => (bool) preg_match('/^[imsxADSUXJ-]+$/', $c));
         if ('' !== $flags) {
             $expr = null;
-            if ($this->matchLiteral(':')) {
+            if ($this->matchLiteral(':')) { // @phpstan-ignore-line if.alwaysFalse
                 $expr = $this->parseAlternation();
             }
             $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
             $endPos = $endToken->position + 1;
 
             // If no ':', expr is an empty node
-            if (null === $expr) {
+            if (null === $expr) { // @phpstan-ignore-line identical.alwaysTrue
                 $currentPos = $this->previous()->position;
                 $expr = new LiteralNode('', $currentPos, $currentPos);
             }
