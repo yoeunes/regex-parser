@@ -62,7 +62,7 @@ class CompilerNodeVisitorTest extends TestCase
     public function testCompileCharClass(): void
     {
         // Handles negation, ranges, char types, and literals (like '-')
-        $regex = '/[a-z\d-]/';
+        $regex = '/[a-z\d\-]/';
         $this->assertSame($regex, $this->compile($regex));
 
         $regex = '/[^a-z]/';
@@ -72,7 +72,7 @@ class CompilerNodeVisitorTest extends TestCase
         $regex = '/[]\^-]/'; // "]", "\", "^", "-"
         // The parser sees "]", "\", "^", "-" as literals because of their position.
         // The compiler should only escape the backslash.
-        $this->assertSame('/[\]^-]/', $this->compile($regex));
+        $this->assertSame('/[\]\^\-]/', $this->compile($regex));
     }
 
     // Add new tests for new features

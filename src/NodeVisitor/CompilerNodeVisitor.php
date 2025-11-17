@@ -55,7 +55,7 @@ class CompilerNodeVisitor implements NodeVisitorInterface
     // The parser correctly identifies positional meta-chars (like ^, -, ])
     // as literals, so we only need to worry about \ and ].
     private const CHAR_CLASS_META = [
-        '\\' => true, ']' => true,
+        '\\' => true, ']' => true, '-' => true, '^' => true,
     ];
 
     /**

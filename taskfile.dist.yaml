@@ -1,0 +1,20 @@
+version: 3
+
+tasks:
+    phpcs: tools/php-cs-fixer/vendor/bin/php-cs-fixer fix --diff -v {{.CLI_ARGS}}
+
+    phplint: tools/phplint/vendor/bin/phplint {{.CLI_ARGS}}
+
+    phpstan: tools/phpstan/vendor/bin/phpstan analyse --error-format=table --no-progress {{.CLI_ARGS}}
+
+    rector: tools/rector/vendor/bin/rector process {{.CLI_ARGS}}
+
+    phpunit: vendor/bin/phpunit {{.CLI_ARGS}}
+
+    lint:
+        cmds:
+            - rector
+            - phplint
+            - phpcs
+            - phpunit
+            - phpstan
