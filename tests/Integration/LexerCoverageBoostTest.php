@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\Integration;
 
+use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Lexer;
 use RegexParser\Parser;
@@ -243,18 +244,21 @@ class LexerCoverageBoostTest extends TestCase
     /**
      * Test through Parser to ensure integration works correctly.
      */
+    #[DoesNotPerformAssertions]
     public function test_parser_with_quote_mode(): void
     {
         $parser = new Parser([]);
         $parser->parse('/\Qtest.*\E/');
     }
 
+    #[DoesNotPerformAssertions]
     public function test_parser_with_special_escapes(): void
     {
         $parser = new Parser([]);
         $parser->parse('/\t\n\r/');
     }
 
+    #[DoesNotPerformAssertions]
     public function test_parser_with_unicode_props(): void
     {
         $parser = new Parser([]);

@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\Integration;
 
+use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\ParserException;
 use RegexParser\Parser;
@@ -32,6 +33,7 @@ class CoverageImprovementTest extends TestCase
     /**
      * Test conditional with curly brace syntax: (?({name})yes|no)
      */
+    #[DoesNotPerformAssertions]
     public function test_conditional_with_curly_brace_name(): void
     {
         $this->parser->parse('/(?<foo>x)(?({foo})yes|no)/');
@@ -40,6 +42,7 @@ class CoverageImprovementTest extends TestCase
     /**
      * Test conditional with numeric reference: (?(1)yes|no)
      */
+    #[DoesNotPerformAssertions]
     public function test_conditional_with_numeric_reference(): void
     {
         $this->parser->parse('/(a)(?(1)yes|no)/');
@@ -48,6 +51,7 @@ class CoverageImprovementTest extends TestCase
     /**
      * Test conditional with multi-digit numeric reference: (?(12)yes|no)
      */
+    #[DoesNotPerformAssertions]
     public function test_conditional_with_multi_digit_numeric_reference(): void
     {
         $this->parser->parse('/(a)(b)(c)(d)(e)(f)(g)(h)(i)(j)(k)(l)(?(12)yes|no)/');
@@ -56,6 +60,7 @@ class CoverageImprovementTest extends TestCase
     /**
      * Test conditional with lookahead as condition: (?(?=...)yes|no)
      */
+    #[DoesNotPerformAssertions]
     public function test_conditional_with_lookahead_condition(): void
     {
         $this->parser->parse('/(?(?=test)yes|no)/');
@@ -64,6 +69,7 @@ class CoverageImprovementTest extends TestCase
     /**
      * Test conditional with negative lookahead as condition: (?(?!...)yes|no)
      */
+    #[DoesNotPerformAssertions]
     public function test_conditional_with_negative_lookahead_condition(): void
     {
         $this->parser->parse('/(?(?!test)yes|no)/');
@@ -72,6 +78,7 @@ class CoverageImprovementTest extends TestCase
     /**
      * Test conditional with bare group name: (?(name)yes|no)
      */
+    #[DoesNotPerformAssertions]
     public function test_conditional_with_bare_group_name(): void
     {
         $this->parser->parse('/(?<foo>x)(?(foo)yes|no)/');
@@ -80,6 +87,7 @@ class CoverageImprovementTest extends TestCase
     /**
      * Test conditional with recursion check: (?(R)yes|no)
      */
+    #[DoesNotPerformAssertions]
     public function test_conditional_with_recursion_check(): void
     {
         $this->parser->parse('/(?(R)yes|no)/');
@@ -88,6 +96,7 @@ class CoverageImprovementTest extends TestCase
     /**
      * Test conditional with angle bracket name: (?(<name>)yes|no)
      */
+    #[DoesNotPerformAssertions]
     public function test_conditional_with_angle_bracket_name(): void
     {
         $this->parser->parse('/(?<name>x)(?(<name>)yes|no)/');
@@ -107,6 +116,7 @@ class CoverageImprovementTest extends TestCase
     /**
      * Test quantifier range with comma but no max: {2,}
      */
+    #[DoesNotPerformAssertions]
     public function test_quantifier_with_min_only(): void
     {
         $this->parser->parse('/a{2,}/');
@@ -115,6 +125,7 @@ class CoverageImprovementTest extends TestCase
     /**
      * Test quantifier range with exact count: {5}
      */
+    #[DoesNotPerformAssertions]
     public function test_quantifier_with_exact_count(): void
     {
         $this->parser->parse('/a{5}/');
@@ -123,6 +134,7 @@ class CoverageImprovementTest extends TestCase
     /**
      * Test possessive quantifiers: *+, ++, ?+, {2,5}+
      */
+    #[DoesNotPerformAssertions]
     public function test_possessive_quantifiers(): void
     {
         $patterns = [
@@ -140,6 +152,7 @@ class CoverageImprovementTest extends TestCase
     /**
      * Test \g references with different formats
      */
+    #[DoesNotPerformAssertions]
     public function test_g_reference_variations(): void
     {
         $patterns = [
@@ -169,6 +182,7 @@ class CoverageImprovementTest extends TestCase
     /**
      * Test subroutine call (?P>name)
      */
+    #[DoesNotPerformAssertions]
     public function test_subroutine_call_p_syntax(): void
     {
         $this->parser->parse('/(?<foo>a)(?P>foo)/');
@@ -177,6 +191,7 @@ class CoverageImprovementTest extends TestCase
     /**
      * Test Python-style named groups with quotes
      */
+    #[DoesNotPerformAssertions]
     public function test_python_style_named_groups_with_quotes(): void
     {
         $patterns = [
@@ -192,6 +207,7 @@ class CoverageImprovementTest extends TestCase
     /**
      * Test character class with negation at start
      */
+    #[DoesNotPerformAssertions]
     public function test_char_class_negation(): void
     {
         $this->parser->parse('/[^abc]/');
@@ -200,6 +216,7 @@ class CoverageImprovementTest extends TestCase
     /**
      * Test character class with dash at different positions
      */
+    #[DoesNotPerformAssertions]
     public function test_char_class_with_dash_positions(): void
     {
         $patterns = [
@@ -216,6 +233,7 @@ class CoverageImprovementTest extends TestCase
     /**
      * Test empty alternation branches
      */
+    #[DoesNotPerformAssertions]
     public function test_empty_alternation_branches(): void
     {
         $patterns = [
@@ -232,6 +250,7 @@ class CoverageImprovementTest extends TestCase
     /**
      * Test comment groups: (?#comment)
      */
+    #[DoesNotPerformAssertions]
     public function test_comment_groups(): void
     {
         $this->parser->parse('/(?#this is a comment)abc/');
@@ -240,6 +259,7 @@ class CoverageImprovementTest extends TestCase
     /**
      * Test PCRE verbs
      */
+    #[DoesNotPerformAssertions]
     public function test_pcre_verbs(): void
     {
         $patterns = [
@@ -259,6 +279,7 @@ class CoverageImprovementTest extends TestCase
     /**
      * Test atomic groups: (?>...)
      */
+    #[DoesNotPerformAssertions]
     public function test_atomic_groups(): void
     {
         $this->parser->parse('/(?>abc)/');
@@ -267,6 +288,7 @@ class CoverageImprovementTest extends TestCase
     /**
      * Test recursive pattern: (?R)
      */
+    #[DoesNotPerformAssertions]
     public function test_recursive_pattern(): void
     {
         $this->parser->parse('/(?R)/');
@@ -275,6 +297,7 @@ class CoverageImprovementTest extends TestCase
     /**
      * Test octal sequences
      */
+    #[DoesNotPerformAssertions]
     public function test_octal_sequences(): void
     {
         $patterns = [
@@ -291,6 +314,7 @@ class CoverageImprovementTest extends TestCase
     /**
      * Test unicode sequences
      */
+    #[DoesNotPerformAssertions]
     public function test_unicode_sequences(): void
     {
         $patterns = [
@@ -307,6 +331,7 @@ class CoverageImprovementTest extends TestCase
     /**
      * Test unicode properties
      */
+    #[DoesNotPerformAssertions]
     public function test_unicode_properties(): void
     {
         $patterns = [
@@ -325,6 +350,7 @@ class CoverageImprovementTest extends TestCase
     /**
      * Test POSIX character classes
      */
+    #[DoesNotPerformAssertions]
     public function test_posix_character_classes(): void
     {
         $patterns = [
@@ -342,6 +368,7 @@ class CoverageImprovementTest extends TestCase
     /**
      * Test inline flags
      */
+    #[DoesNotPerformAssertions]
     public function test_inline_flags(): void
     {
         $patterns = [
@@ -360,6 +387,7 @@ class CoverageImprovementTest extends TestCase
     /**
      * Test assertions
      */
+    #[DoesNotPerformAssertions]
     public function test_assertions(): void
     {
         $patterns = [
@@ -379,6 +407,7 @@ class CoverageImprovementTest extends TestCase
     /**
      * Test keep assertion: \K
      */
+    #[DoesNotPerformAssertions]
     public function test_keep_assertion(): void
     {
         $this->parser->parse('/test\K/');
@@ -387,6 +416,7 @@ class CoverageImprovementTest extends TestCase
     /**
      * Test character types
      */
+    #[DoesNotPerformAssertions]
     public function test_character_types(): void
     {
         $patterns = [
@@ -411,6 +441,7 @@ class CoverageImprovementTest extends TestCase
     /**
      * Test backreferences
      */
+    #[DoesNotPerformAssertions]
     public function test_backreferences(): void
     {
         $patterns = [
@@ -428,6 +459,7 @@ class CoverageImprovementTest extends TestCase
     /**
      * Test escaped special characters
      */
+    #[DoesNotPerformAssertions]
     public function test_escaped_special_characters(): void
     {
         $patterns = [
@@ -452,6 +484,7 @@ class CoverageImprovementTest extends TestCase
     /**
      * Test quote mode: \Q...\E
      */
+    #[DoesNotPerformAssertions]
     public function test_quote_mode(): void
     {
         $patterns = [
@@ -469,6 +502,7 @@ class CoverageImprovementTest extends TestCase
     /**
      * Test lookaround assertions
      */
+    #[DoesNotPerformAssertions]
     public function test_lookaround_assertions(): void
     {
         $patterns = [
@@ -486,6 +520,7 @@ class CoverageImprovementTest extends TestCase
     /**
      * Test ranges in character classes
      */
+    #[DoesNotPerformAssertions]
     public function test_ranges_in_character_classes(): void
     {
         $patterns = [
@@ -503,6 +538,7 @@ class CoverageImprovementTest extends TestCase
     /**
      * Test dot metacharacter
      */
+    #[DoesNotPerformAssertions]
     public function test_dot_metacharacter(): void
     {
         $this->parser->parse('/./');
@@ -511,6 +547,7 @@ class CoverageImprovementTest extends TestCase
     /**
      * Test anchors
      */
+    #[DoesNotPerformAssertions]
     public function test_anchors(): void
     {
         $patterns = [
@@ -527,6 +564,7 @@ class CoverageImprovementTest extends TestCase
     /**
      * Test nested groups
      */
+    #[DoesNotPerformAssertions]
     public function test_nested_groups(): void
     {
         $this->parser->parse('/((a)(b))/');
@@ -535,6 +573,7 @@ class CoverageImprovementTest extends TestCase
     /**
      * Test mixed quantifiers
      */
+    #[DoesNotPerformAssertions]
     public function test_mixed_quantifiers(): void
     {
         $patterns = [
