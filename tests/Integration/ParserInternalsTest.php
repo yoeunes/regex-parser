@@ -39,4 +39,26 @@ class ParserInternalsTest extends TestCase
         $this->expectExceptionMessage('Regex is too short');
         $accessor->callPrivateMethod('extractPatternAndFlags', ['/']);
     }
+
+    public function test_extract_pattern_regex_too_short(): void
+    {
+        $parser = new Parser();
+        $accessor = new ParserAccessor($parser);
+
+        // Calling private method directly to ensure this specific exception path is hit
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('Regex is too short');
+        $accessor->callPrivateMethod('extractPatternAndFlags', ['/']);
+    }
+
+    public function test_extract_pattern_no_closing_delimiter(): void
+    {
+        $parser = new Parser();
+        $accessor = new ParserAccessor($parser);
+
+        // Forces the loop to finish without finding the delimiter
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('No closing delimiter "/" found');
+        $accessor->callPrivateMethod('extractPatternAndFlags', ['/abc']);
+    }
 }
