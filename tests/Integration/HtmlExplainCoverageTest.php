@@ -23,6 +23,7 @@ use RegexParser\Parser;
 class HtmlExplainCoverageTest extends TestCase
 {
     private Parser $parser;
+
     private HtmlExplainVisitor $visitor;
 
     protected function setUp(): void

@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\Integration;
 
+use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Builder\RegexBuilder;
 use RegexParser\Lexer;
@@ -31,12 +32,12 @@ class AdditionalCoverageTest extends TestCase
         $lexer = new Lexer('/\p{L}/');
         $tokens = $lexer->tokenize();
         $this->assertNotEmpty($tokens);
-        
+
         // Test negated property
         $lexer = new Lexer('/\P{L}/');
         $tokens = $lexer->tokenize();
         $this->assertNotEmpty($tokens);
-        
+
         // Test double negation
         $lexer = new Lexer('/\P{^L}/');
         $tokens = $lexer->tokenize();
@@ -48,7 +49,7 @@ class AdditionalCoverageTest extends TestCase
         // Test all escaped literals
         $patterns = ['\t', '\n', '\r', '\f', '\v', '\e', '\.', '\[', '\]'];
         foreach ($patterns as $pattern) {
-            $lexer = new Lexer('/' . $pattern . '/');
+            $lexer = new Lexer('/'.$pattern.'/');
             $tokens = $lexer->tokenize();
             $this->assertNotEmpty($tokens);
         }
@@ -76,7 +77,7 @@ class AdditionalCoverageTest extends TestCase
         $lexer = new Lexer('/(a)\g{-1}/');
         $tokens = $lexer->tokenize();
         $this->assertNotEmpty($tokens);
-        
+
         // Test \g{1}
         $lexer = new Lexer('/(a)\g{1}/');
         $tokens = $lexer->tokenize();
@@ -124,7 +125,7 @@ class AdditionalCoverageTest extends TestCase
     {
         $parser = new Parser([]);
         $visitor = new ExplainVisitor();
-        
+
         // Range with special characters
         $ast = $parser->parse('/[0-9]/');
         $result = $ast->accept($visitor);
@@ -135,7 +136,7 @@ class AdditionalCoverageTest extends TestCase
     {
         $parser = new Parser([]);
         $visitor = new ExplainVisitor();
-        
+
         // Test different quantifier types
         $patterns = [
             '/a*/',    // Zero or more
@@ -145,7 +146,7 @@ class AdditionalCoverageTest extends TestCase
             '/a{2,}/', // At least 2
             '/a{2,5}/', // Between 2 and 5
         ];
-        
+
         foreach ($patterns as $pattern) {
             $ast = $parser->parse($pattern);
             $result = $ast->accept($visitor);
@@ -157,7 +158,7 @@ class AdditionalCoverageTest extends TestCase
     {
         $parser = new Parser([]);
         $visitor = new ExplainVisitor();
-        
+
         // Literal with special characters
         $ast = $parser->parse('/\//');
         $result = $ast->accept($visitor);
@@ -169,7 +170,7 @@ class AdditionalCoverageTest extends TestCase
     {
         $generator = new SampleGeneratorVisitor();
         $generator->setSeed(12345);
-        
+
         $parser = new Parser([]);
         $ast = $parser->parse('/[a-z]/');
         $result = $ast->accept($generator);
@@ -181,7 +182,7 @@ class AdditionalCoverageTest extends TestCase
         $generator = new SampleGeneratorVisitor();
         $generator->setSeed(12345);
         $generator->resetSeed();
-        
+
         $parser = new Parser([]);
         $ast = $parser->parse('/[a-z]/');
         $result = $ast->accept($generator);
@@ -192,7 +193,7 @@ class AdditionalCoverageTest extends TestCase
     {
         $generator = new SampleGeneratorVisitor();
         $parser = new Parser([]);
-        
+
         // Test \p{L}
         $ast = $parser->parse('/\p{L}/');
         $result = $ast->accept($generator);
@@ -203,7 +204,7 @@ class AdditionalCoverageTest extends TestCase
     {
         $generator = new SampleGeneratorVisitor();
         $parser = new Parser([]);
-        
+
         $patterns = [
             '/\d/',  // Digit
             '/\D/',  // Non-digit
@@ -216,7 +217,7 @@ class AdditionalCoverageTest extends TestCase
             '/\v/',  // Vertical whitespace
             '/\V/',  // Non-vertical whitespace
         ];
-        
+
         foreach ($patterns as $pattern) {
             $ast = $parser->parse($pattern);
             $result = $ast->accept($generator);
@@ -228,7 +229,7 @@ class AdditionalCoverageTest extends TestCase
     {
         $generator = new SampleGeneratorVisitor();
         $parser = new Parser([]);
-        
+
         $ast = $parser->parse('/(?<name>abc)\k<name>/');
         $result = $ast->accept($generator);
         $this->assertStringContainsString('abc', $result);
@@ -238,7 +239,7 @@ class AdditionalCoverageTest extends TestCase
     {
         $generator = new SampleGeneratorVisitor();
         $parser = new Parser([]);
-        
+
         $ast = $parser->parse('/(?:abc)/');
         $result = $ast->accept($generator);
         $this->assertStringContainsString('abc', $result);
@@ -248,7 +249,7 @@ class AdditionalCoverageTest extends TestCase
     {
         $generator = new SampleGeneratorVisitor();
         $parser = new Parser([]);
-        
+
         // Test various POSIX classes that have sample generation support
         $patterns = [
             '/[[:alnum:]]/',
@@ -257,7 +258,7 @@ class AdditionalCoverageTest extends TestCase
             '/[[:lower:]]/',
             '/[[:upper:]]/',
         ];
-        
+
         foreach ($patterns as $pattern) {
             $ast = $parser->parse($pattern);
             $result = $ast->accept($generator);
@@ -265,84 +266,75 @@ class AdditionalCoverageTest extends TestCase
         }
     }
 
-    // Test Parser edge cases
+    #[DoesNotPerformAssertions]
     public function test_parser_group_with_flags(): void
     {
         $parser = new Parser([]);
-        
+
         // Group with flags
-        $ast = $parser->parse('/(?i:abc)/');
-        $this->assertNotNull($ast);
+        $parser->parse('/(?i:abc)/');
     }
 
+    #[DoesNotPerformAssertions]
     public function test_parser_named_group_variations(): void
     {
         $parser = new Parser([]);
-        
+
         // Named group with angle brackets
-        $ast = $parser->parse('/(?<name>abc)/');
-        $this->assertNotNull($ast);
-        
+        $parser->parse('/(?<name>abc)/');
+
         // Named group with P syntax
-        $ast = $parser->parse('/(?P<name>abc)/');
-        $this->assertNotNull($ast);
+        $parser->parse('/(?P<name>abc)/');
     }
 
     public function test_parser_assertion_variations(): void
     {
         $parser = new Parser([]);
-        
+
         $patterns = [
             '/(?=abc)/',   // Positive lookahead
             '/(?!abc)/',   // Negative lookahead
             '/(?<=abc)/',  // Positive lookbehind
             '/(?<!abc)/',  // Negative lookbehind
         ];
-        
+
         foreach ($patterns as $pattern) {
-            $ast = $parser->parse($pattern);
-            $this->assertNotNull($ast);
+            $parser->parse($pattern);
         }
     }
 
     public function test_parser_atomic_group(): void
     {
         $parser = new Parser([]);
-        $ast = $parser->parse('/(?>abc)/');
-        $this->assertNotNull($ast);
+        $parser->parse('/(?>abc)/');
     }
 
     public function test_parser_recursive_pattern(): void
     {
         $parser = new Parser([]);
-        $ast = $parser->parse('/(?R)/');
-        $this->assertNotNull($ast);
+        $parser->parse('/(?R)/');
     }
 
     public function test_parser_char_class_with_dash(): void
     {
         $parser = new Parser([]);
-        
+
         // Dash at the beginning
-        $ast = $parser->parse('/[-abc]/');
-        $this->assertNotNull($ast);
-        
+        $parser->parse('/[-abc]/');
+
         // Dash at the end
-        $ast = $parser->parse('/[abc-]/');
-        $this->assertNotNull($ast);
+        $parser->parse('/[abc-]/');
     }
 
     public function test_parser_negated_char_class(): void
     {
         $parser = new Parser([]);
-        $ast = $parser->parse('/[^abc]/');
-        $this->assertNotNull($ast);
+        $parser->parse('/[^abc]/');
     }
 
     public function test_parser_empty_alternation(): void
     {
         $parser = new Parser([]);
-        $ast = $parser->parse('/abc|/');
-        $this->assertNotNull($ast);
+        $parser->parse('/abc|/');
     }
 }

@@ -33,27 +33,27 @@ class CompleteCoverageTest extends TestCase
     public function test_comment_node_with_all_visitors(): void
     {
         $pattern = '/(?#this is a comment)abc/';
-        
+
         // Test parse
         $ast = $this->regex->parse($pattern);
         $this->assertNotNull($ast);
-        
+
         // Test dump (DumperNodeVisitor)
         $dump = $this->regex->dump($pattern);
         $this->assertStringContainsString('Comment', $dump);
-        
+
         // Test explain (ExplainVisitor)
         $explanation = $this->regex->explain($pattern);
         $this->assertNotEmpty($explanation);
-        
+
         // Test generate (SampleGeneratorVisitor)
         $sample = $this->regex->generate($pattern);
         $this->assertStringContainsString('abc', $sample);
-        
+
         // Test optimize (OptimizerNodeVisitor + CompilerNodeVisitor)
         $optimized = $this->regex->optimize($pattern);
         $this->assertNotEmpty($optimized);
-        
+
         // Test validate (ValidatorNodeVisitor)
         $result = $this->regex->validate($pattern);
         $this->assertTrue($result->isValid);
@@ -63,21 +63,21 @@ class CompleteCoverageTest extends TestCase
     public function test_conditional_node_with_all_visitors(): void
     {
         $pattern = '/(?(?=a)b|c)/'; // Conditional with lookahead
-        
+
         $ast = $this->regex->parse($pattern);
         $this->assertNotNull($ast);
-        
+
         $dump = $this->regex->dump($pattern);
         $this->assertStringContainsString('Conditional', $dump);
-        
+
         $explanation = $this->regex->explain($pattern);
         $this->assertNotEmpty($explanation);
-        
+
         // Skip generate - conditionals with lookahead may not be supported for sample generation
-        
+
         $optimized = $this->regex->optimize($pattern);
         $this->assertNotEmpty($optimized);
-        
+
         $result = $this->regex->validate($pattern);
         $this->assertTrue($result->isValid);
     }
@@ -86,21 +86,21 @@ class CompleteCoverageTest extends TestCase
     public function test_subroutine_node_with_all_visitors(): void
     {
         $pattern = '/(?<name>abc)(?&name)/';
-        
+
         $ast = $this->regex->parse($pattern);
         $this->assertNotNull($ast);
-        
+
         $dump = $this->regex->dump($pattern);
         $this->assertStringContainsString('Subroutine', $dump);
-        
+
         $explanation = $this->regex->explain($pattern);
         $this->assertNotEmpty($explanation);
-        
+
         // Skip generate - subroutines not supported for sample generation
-        
+
         $optimized = $this->regex->optimize($pattern);
         $this->assertNotEmpty($optimized);
-        
+
         $result = $this->regex->validate($pattern);
         $this->assertTrue($result->isValid);
     }
@@ -109,22 +109,22 @@ class CompleteCoverageTest extends TestCase
     public function test_pcre_verb_node_with_all_visitors(): void
     {
         $pattern = '/(*FAIL)abc/';
-        
+
         $ast = $this->regex->parse($pattern);
         $this->assertNotNull($ast);
-        
+
         $dump = $this->regex->dump($pattern);
         $this->assertStringContainsString('PcreVerb', $dump);
-        
+
         $explanation = $this->regex->explain($pattern);
         $this->assertNotEmpty($explanation);
-        
+
         $sample = $this->regex->generate($pattern);
         $this->assertNotEmpty($sample);
-        
+
         $optimized = $this->regex->optimize($pattern);
         $this->assertNotEmpty($optimized);
-        
+
         $result = $this->regex->validate($pattern);
         $this->assertTrue($result->isValid);
     }
@@ -133,22 +133,22 @@ class CompleteCoverageTest extends TestCase
     public function test_octal_legacy_node_with_all_visitors(): void
     {
         $pattern = '/\07/'; // Octal legacy format
-        
+
         $ast = $this->regex->parse($pattern);
         $this->assertNotNull($ast);
-        
+
         $dump = $this->regex->dump($pattern);
         $this->assertNotEmpty($dump);
-        
+
         $explanation = $this->regex->explain($pattern);
         $this->assertNotEmpty($explanation);
-        
+
         $sample = $this->regex->generate($pattern);
         $this->assertNotEmpty($sample);
-        
+
         $optimized = $this->regex->optimize($pattern);
         $this->assertNotEmpty($optimized);
-        
+
         $result = $this->regex->validate($pattern);
         $this->assertTrue($result->isValid);
     }
@@ -157,22 +157,22 @@ class CompleteCoverageTest extends TestCase
     public function test_posix_class_node_with_all_visitors(): void
     {
         $pattern = '/[[:alnum:]]/';
-        
+
         $ast = $this->regex->parse($pattern);
         $this->assertNotNull($ast);
-        
+
         $dump = $this->regex->dump($pattern);
         $this->assertStringContainsString('PosixClass', $dump);
-        
+
         $explanation = $this->regex->explain($pattern);
         $this->assertNotEmpty($explanation);
-        
+
         $sample = $this->regex->generate($pattern);
         $this->assertNotEmpty($sample);
-        
+
         $optimized = $this->regex->optimize($pattern);
         $this->assertNotEmpty($optimized);
-        
+
         $result = $this->regex->validate($pattern);
         $this->assertTrue($result->isValid);
     }
@@ -181,22 +181,22 @@ class CompleteCoverageTest extends TestCase
     public function test_octal_node_with_all_visitors(): void
     {
         $pattern = '/\o{101}/'; // Octal for 'A'
-        
+
         $ast = $this->regex->parse($pattern);
         $this->assertNotNull($ast);
-        
+
         $dump = $this->regex->dump($pattern);
         $this->assertNotEmpty($dump);
-        
+
         $explanation = $this->regex->explain($pattern);
         $this->assertNotEmpty($explanation);
-        
+
         $sample = $this->regex->generate($pattern);
         $this->assertNotEmpty($sample);
-        
+
         $optimized = $this->regex->optimize($pattern);
         $this->assertNotEmpty($optimized);
-        
+
         $result = $this->regex->validate($pattern);
         $this->assertTrue($result->isValid);
     }
@@ -205,22 +205,22 @@ class CompleteCoverageTest extends TestCase
     public function test_unicode_node_with_all_visitors(): void
     {
         $pattern = '/\u{41}/'; // Unicode for 'A'
-        
+
         $ast = $this->regex->parse($pattern);
         $this->assertNotNull($ast);
-        
+
         $dump = $this->regex->dump($pattern);
         $this->assertNotEmpty($dump);
-        
+
         $explanation = $this->regex->explain($pattern);
         $this->assertNotEmpty($explanation);
-        
+
         $sample = $this->regex->generate($pattern);
         $this->assertNotEmpty($sample);
-        
+
         $optimized = $this->regex->optimize($pattern);
         $this->assertNotEmpty($optimized);
-        
+
         $result = $this->regex->validate($pattern);
         $this->assertTrue($result->isValid);
     }
@@ -229,22 +229,22 @@ class CompleteCoverageTest extends TestCase
     public function test_unicode_prop_node_with_all_visitors(): void
     {
         $pattern = '/\p{L}/';
-        
+
         $ast = $this->regex->parse($pattern);
         $this->assertNotNull($ast);
-        
+
         $dump = $this->regex->dump($pattern);
         $this->assertNotEmpty($dump);
-        
+
         $explanation = $this->regex->explain($pattern);
         $this->assertNotEmpty($explanation);
-        
+
         $sample = $this->regex->generate($pattern);
         $this->assertNotEmpty($sample);
-        
+
         $optimized = $this->regex->optimize($pattern);
         $this->assertNotEmpty($optimized);
-        
+
         $result = $this->regex->validate($pattern);
         $this->assertTrue($result->isValid);
     }
@@ -253,13 +253,13 @@ class CompleteCoverageTest extends TestCase
     public function test_negated_unicode_prop_node(): void
     {
         $pattern = '/\P{L}/';
-        
+
         $ast = $this->regex->parse($pattern);
         $this->assertNotNull($ast);
-        
+
         $dump = $this->regex->dump($pattern);
         $this->assertNotEmpty($dump);
-        
+
         $explanation = $this->regex->explain($pattern);
         $this->assertNotEmpty($explanation);
     }
@@ -268,22 +268,22 @@ class CompleteCoverageTest extends TestCase
     public function test_keep_node_with_all_visitors(): void
     {
         $pattern = '/abc\Kdef/';
-        
+
         $ast = $this->regex->parse($pattern);
         $this->assertNotNull($ast);
-        
+
         $dump = $this->regex->dump($pattern);
         $this->assertStringContainsString('Keep', $dump);
-        
+
         $explanation = $this->regex->explain($pattern);
         $this->assertNotEmpty($explanation);
-        
+
         $sample = $this->regex->generate($pattern);
         $this->assertNotEmpty($sample);
-        
+
         $optimized = $this->regex->optimize($pattern);
         $this->assertNotEmpty($optimized);
-        
+
         $result = $this->regex->validate($pattern);
         $this->assertTrue($result->isValid);
     }
@@ -292,22 +292,22 @@ class CompleteCoverageTest extends TestCase
     public function test_backref_node_with_all_visitors(): void
     {
         $pattern = '/(abc)\1/';
-        
+
         $ast = $this->regex->parse($pattern);
         $this->assertNotNull($ast);
-        
+
         $dump = $this->regex->dump($pattern);
         $this->assertStringContainsString('Backref', $dump);
-        
+
         $explanation = $this->regex->explain($pattern);
         $this->assertNotEmpty($explanation);
-        
+
         $sample = $this->regex->generate($pattern);
         $this->assertStringContainsString('abc', $sample);
-        
+
         $optimized = $this->regex->optimize($pattern);
         $this->assertNotEmpty($optimized);
-        
+
         $result = $this->regex->validate($pattern);
         $this->assertTrue($result->isValid);
     }
@@ -316,22 +316,22 @@ class CompleteCoverageTest extends TestCase
     public function test_range_node_with_all_visitors(): void
     {
         $pattern = '/[a-z]/';
-        
+
         $ast = $this->regex->parse($pattern);
         $this->assertNotNull($ast);
-        
+
         $dump = $this->regex->dump($pattern);
         $this->assertStringContainsString('Range', $dump);
-        
+
         $explanation = $this->regex->explain($pattern);
         $this->assertNotEmpty($explanation);
-        
+
         $sample = $this->regex->generate($pattern);
         $this->assertMatchesRegularExpression('/^[a-z]$/', $sample);
-        
+
         $optimized = $this->regex->optimize($pattern);
         $this->assertNotEmpty($optimized);
-        
+
         $result = $this->regex->validate($pattern);
         $this->assertTrue($result->isValid);
     }
@@ -348,11 +348,11 @@ class CompleteCoverageTest extends TestCase
             '/\v/',  // Vertical tab
             '/\e/',  // Escape
         ];
-        
+
         foreach ($patterns as $pattern) {
             $ast = $this->regex->parse($pattern);
             $this->assertNotNull($ast);
-            
+
             $result = $this->regex->validate($pattern);
             $this->assertTrue($result->isValid);
         }
@@ -362,10 +362,10 @@ class CompleteCoverageTest extends TestCase
     public function test_quote_mode(): void
     {
         $pattern = '/\Qabc.def\E/';
-        
+
         $ast = $this->regex->parse($pattern);
         $this->assertNotNull($ast);
-        
+
         $sample = $this->regex->generate($pattern);
         $this->assertStringContainsString('abc.def', $sample);
     }
@@ -377,27 +377,27 @@ class CompleteCoverageTest extends TestCase
         $pattern = '/(?:abc)/';
         $ast = $this->regex->parse($pattern);
         $this->assertNotNull($ast);
-        
+
         // Positive lookahead
         $pattern = '/(?=abc)/';
         $ast = $this->regex->parse($pattern);
         $this->assertNotNull($ast);
-        
+
         // Negative lookahead
         $pattern = '/(?!abc)/';
         $ast = $this->regex->parse($pattern);
         $this->assertNotNull($ast);
-        
+
         // Positive lookbehind
         $pattern = '/(?<=abc)/';
         $ast = $this->regex->parse($pattern);
         $this->assertNotNull($ast);
-        
+
         // Negative lookbehind
         $pattern = '/(?<!abc)/';
         $ast = $this->regex->parse($pattern);
         $this->assertNotNull($ast);
-        
+
         // Atomic group
         $pattern = '/(?>abc)/';
         $ast = $this->regex->parse($pattern);
@@ -408,11 +408,11 @@ class CompleteCoverageTest extends TestCase
     public function test_regex_builder_methods(): void
     {
         $pattern = '/test/i';
-        
+
         // Test optimize method
         $optimized = $this->regex->optimize($pattern);
         $this->assertNotEmpty($optimized);
-        
+
         // Test dump method
         $dump = $this->regex->dump($pattern);
         $this->assertStringContainsString('Regex', $dump);
@@ -422,13 +422,13 @@ class CompleteCoverageTest extends TestCase
     public function test_conditional_with_named_group(): void
     {
         $pattern = '/(?<foo>a)?(?(foo)b|c)/';
-        
+
         $ast = $this->regex->parse($pattern);
         $this->assertNotNull($ast);
-        
+
         $dump = $this->regex->dump($pattern);
         $this->assertStringContainsString('Conditional', $dump);
-        
+
         $result = $this->regex->validate($pattern);
         $this->assertTrue($result->isValid);
     }
@@ -437,10 +437,10 @@ class CompleteCoverageTest extends TestCase
     public function test_subroutine_with_number(): void
     {
         $pattern = '/(abc)(?1)/';
-        
+
         $ast = $this->regex->parse($pattern);
         $this->assertNotNull($ast);
-        
+
         $dump = $this->regex->dump($pattern);
         $this->assertStringContainsString('Subroutine', $dump);
     }
@@ -456,11 +456,11 @@ class CompleteCoverageTest extends TestCase
             '/(*THEN)/',
             '/(*MARK:test)/',
         ];
-        
+
         foreach ($verbs as $pattern) {
             $ast = $this->regex->parse($pattern);
             $this->assertNotNull($ast);
-            
+
             $dump = $this->regex->dump($pattern);
             $this->assertStringContainsString('PcreVerb', $dump);
         }
@@ -482,14 +482,14 @@ class CompleteCoverageTest extends TestCase
             '/[[:print:]]/',
             '/[[:cntrl:]]/',
         ];
-        
+
         foreach ($classes as $pattern) {
             $ast = $this->regex->parse($pattern);
             $this->assertNotNull($ast);
-            
+
             $dump = $this->regex->dump($pattern);
             $this->assertNotEmpty($dump);
-            
+
             $explanation = $this->regex->explain($pattern);
             $this->assertNotEmpty($explanation);
         }
@@ -499,10 +499,10 @@ class CompleteCoverageTest extends TestCase
     public function test_negated_posix_class(): void
     {
         $pattern = '/[[:^digit:]]/';
-        
+
         $ast = $this->regex->parse($pattern);
         $this->assertNotNull($ast);
-        
+
         $explanation = $this->regex->explain($pattern);
         $this->assertNotEmpty($explanation);
     }
@@ -511,13 +511,13 @@ class CompleteCoverageTest extends TestCase
     public function test_complex_char_class(): void
     {
         $pattern = '/[a-z0-9\d\w[:alpha:]]/';
-        
+
         $ast = $this->regex->parse($pattern);
         $this->assertNotNull($ast);
-        
+
         $dump = $this->regex->dump($pattern);
         $this->assertNotEmpty($dump);
-        
+
         $sample = $this->regex->generate($pattern);
         $this->assertNotEmpty($sample);
     }
@@ -526,10 +526,10 @@ class CompleteCoverageTest extends TestCase
     public function test_negated_char_class(): void
     {
         $pattern = '/[^abc]/';
-        
+
         $ast = $this->regex->parse($pattern);
         $this->assertNotNull($ast);
-        
+
         $sample = $this->regex->generate($pattern);
         $this->assertNotEmpty($sample);
     }
@@ -546,11 +546,11 @@ class CompleteCoverageTest extends TestCase
             '/a??/',       // Lazy optional
             '/a{2,5}?/',   // Lazy range
         ];
-        
+
         foreach ($patterns as $pattern) {
             $ast = $this->regex->parse($pattern);
             $this->assertNotNull($ast);
-            
+
             $explanation = $this->regex->explain($pattern);
             $this->assertNotEmpty($explanation);
         }
@@ -568,11 +568,11 @@ class CompleteCoverageTest extends TestCase
             '/\babc/',     // Word boundary
             '/\Babc/',     // Non-word boundary
         ];
-        
+
         foreach ($patterns as $pattern) {
             $ast = $this->regex->parse($pattern);
             $this->assertNotNull($ast);
-            
+
             $explanation = $this->regex->explain($pattern);
             $this->assertNotEmpty($explanation);
         }
@@ -593,11 +593,11 @@ class CompleteCoverageTest extends TestCase
             '/\v/',   // Vertical whitespace (in newer PCRE this is different from \v as escape)
             '/\V/',   // Non-vertical whitespace
         ];
-        
+
         foreach ($patterns as $pattern) {
             $ast = $this->regex->parse($pattern);
             $this->assertNotNull($ast);
-            
+
             $sample = $this->regex->generate($pattern);
             $this->assertNotEmpty($sample);
         }
@@ -607,13 +607,13 @@ class CompleteCoverageTest extends TestCase
     public function test_alternation(): void
     {
         $pattern = '/abc|def|ghi/';
-        
+
         $ast = $this->regex->parse($pattern);
         $this->assertNotNull($ast);
-        
+
         $dump = $this->regex->dump($pattern);
         $this->assertStringContainsString('Alternation', $dump);
-        
+
         $sample = $this->regex->generate($pattern);
         $this->assertMatchesRegularExpression('/^(abc|def|ghi)$/', $sample);
     }
@@ -622,10 +622,10 @@ class CompleteCoverageTest extends TestCase
     public function test_dot(): void
     {
         $pattern = '/./';
-        
+
         $ast = $this->regex->parse($pattern);
         $this->assertNotNull($ast);
-        
+
         $sample = $this->regex->generate($pattern);
         $this->assertNotEmpty($sample);
     }
@@ -634,10 +634,10 @@ class CompleteCoverageTest extends TestCase
     public function test_named_groups(): void
     {
         $pattern = '/(?P<name>abc)\k<name>/';
-        
+
         $ast = $this->regex->parse($pattern);
         $this->assertNotNull($ast);
-        
+
         $sample = $this->regex->generate($pattern);
         $this->assertStringContainsString('abc', $sample);
     }
@@ -646,10 +646,10 @@ class CompleteCoverageTest extends TestCase
     public function test_relative_backrefs(): void
     {
         $pattern = '/(a)(b)\g{-1}/';
-        
+
         $ast = $this->regex->parse($pattern);
         $this->assertNotNull($ast);
-        
+
         $result = $this->regex->validate($pattern);
         $this->assertTrue($result->isValid);
     }
