@@ -200,6 +200,7 @@ class AdditionalCoverageTest extends TestCase
         $this->assertNotEmpty($result);
     }
 
+    #[DoesNotPerformAssertions]
     public function test_sample_generator_char_type_variations(): void
     {
         $generator = new SampleGeneratorVisitor();
@@ -220,7 +221,7 @@ class AdditionalCoverageTest extends TestCase
 
         foreach ($patterns as $pattern) {
             $ast = $parser->parse($pattern);
-            $result = $ast->accept($generator);
+            $ast->accept($generator);
         }
     }
 
