@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\Integration;
 
+use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Lexer;
 use RegexParser\NodeVisitor\ExplainVisitor;
@@ -488,6 +489,7 @@ class CompleteCoverageTest extends TestCase
 
     // ========== ValidatorNodeVisitor Tests ==========
 
+    #[DoesNotPerformAssertions]
     public function test_validator_all_node_types(): void
     {
         $patterns = [
