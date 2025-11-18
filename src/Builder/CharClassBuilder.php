@@ -25,7 +25,9 @@ use RegexParser\Node\RangeNode;
  */
 class CharClassBuilder
 {
-    /** @var NodeInterface[] */
+    /**
+     * @var NodeInterface[]
+     */
     private array $parts = [];
 
     /**

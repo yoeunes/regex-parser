@@ -54,7 +54,9 @@ class Parser
      */
     public const DEFAULT_MAX_PATTERN_LENGTH = 100000;
 
-    /** @var array<Token> */
+    /**
+     * @var array<Token>
+     */
     private array $tokens;
     private int $position = 0;
     private string $delimiter;
@@ -81,9 +83,9 @@ class Parser
     /**
      * Parses the full regex string, including delimiters and flags.
      *
-     * @return RegexNode the root node of the AST, containing the pattern and flags
-     *
      * @throws ParserException if a syntax error is found
+     *
+     * @return RegexNode the root node of the AST, containing the pattern and flags
      */
     public function parse(string $regex): RegexNode
     {
@@ -127,9 +129,9 @@ class Parser
      * Extracts the pattern, flags, and delimiter from the full regex string.
      * This implementation is robust against escaped delimiters.
      *
-     * @return array{0: string, 1: string, 2: string} [pattern, flags, delimiter]
-     *
      * @throws ParserException
+     *
+     * @return array{0: string, 1: string, 2: string} [pattern, flags, delimiter]
      */
     private function extractPatternAndFlags(string $regex): array
     {

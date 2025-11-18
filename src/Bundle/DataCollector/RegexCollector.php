@@ -27,7 +27,9 @@ use Symfony\Component\VarDumper\Cloner\Data;
  */
 class RegexCollector extends DataCollector implements LateDataCollectorInterface
 {
-    /** @var CollectedRegex[] */
+    /**
+     * @var CollectedRegex[]
+     */
     private array $collectedRegexes = [];
 
     public function __construct(

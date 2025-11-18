@@ -42,6 +42,15 @@ return (new PhpCsFixer\Config())
         'php_unit_mock_short_will_return'        => true,
         'php_unit_strict'                        => true,
         'php_unit_test_case_static_method_calls' => false,
+        'phpdoc_add_missing_param_annotation'    => true,
+        'phpdoc_line_span'                       => true,
+        'phpdoc_order'                           => true,
+        'phpdoc_scalar'                          => true,
+        'phpdoc_single_line_var_spacing'         => true,
+        'phpdoc_summary'                         => false,
+        'phpdoc_var_annotation_correct_order'    => true,
+        'phpdoc_var_without_name'                => true,
+        'protected_to_private'                   => true,
     ])
     ->setFinder($finder)
     ->setCacheFile('.cache/php-cs-fixer/cache.json');

@@ -36,10 +36,14 @@ use RegexParser\NodeVisitor\CompilerNodeVisitor;
  */
 class RegexBuilder
 {
-    /** @var NodeInterface[] */
+    /**
+     * @var NodeInterface[]
+     */
     private array $nodes = [];
 
-    /** @var array<NodeInterface[]> */
+    /**
+     * @var array<NodeInterface[]>
+     */
     private array $alternatives = [];
 
     private string $flags = '';

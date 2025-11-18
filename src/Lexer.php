@@ -162,9 +162,9 @@ class Lexer
     }
 
     /**
-     * @return array<Token>
-     *
      * @throws LexerException
+     *
+     * @return array<Token>
      */
     public function tokenize(): array
     {
