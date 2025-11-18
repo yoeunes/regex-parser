@@ -61,4 +61,27 @@ class ParserInternalsTest extends TestCase
         $this->expectExceptionMessage('No closing delimiter "/" found');
         $accessor->callPrivateMethod('extractPatternAndFlags', ['/abc']);
     }
+
+    public function test_consume_literal_throws_on_mismatch(): void
+    {
+        // Test direct de consumeLiteral pour vérifier le message d'erreur exact
+        $parser = new Parser();
+        $parser->parse('/a/'); // Initialise le lexer et les tokens
+
+        $accessor = new ParserAccessor($parser);
+
+        $this->expectException(ParserException::class);
+        // On essaie de consommer 'b' alors que le token courant est 'a' (ou EOF)
+        $accessor->callPrivateMethod('consumeLiteral', ['b', 'Error expected']);
+    }
+
+    public function test_extract_pattern_too_short(): void
+    {
+        $parser = new Parser();
+        $accessor = new ParserAccessor($parser);
+
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('Regex is too short');
+        $accessor->callPrivateMethod('extractPatternAndFlags', ['/']);
+    }
 }

@@ -30,6 +30,8 @@ use RegexParser\Node\SubroutineNode;
 use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
 use RegexParser\NodeVisitor\ComplexityScoreVisitor;
+use RegexParser\NodeVisitor\ExplainVisitor;
+use RegexParser\NodeVisitor\HtmlExplainVisitor;
 use RegexParser\NodeVisitor\OptimizerNodeVisitor;
 use RegexParser\NodeVisitor\SampleGeneratorVisitor;
 use RegexParser\NodeVisitor\ValidatorNodeVisitor;
@@ -131,5 +133,57 @@ class VisitorMethodCoverageTest extends TestCase
             // Should simply not throw
             $node->accept($validator);
         }
+    }
+
+    /**
+     * Ce test force l'appel de chaque méthode visit*() pour chaque visiteur
+     * avec des nœuds feuilles simples.
+     */
+    public function test_all_visitors_handle_all_leaf_nodes(): void
+    {
+        $nodes = [
+            new AnchorNode('^', 0, 0),
+            new AssertionNode('b', 0, 0),
+            new BackrefNode('1', 0, 0),
+            new CharTypeNode('d', 0, 0),
+            new CommentNode('comment', 0, 0),
+            new DotNode(0, 0),
+            new KeepNode(0, 0),
+            new LiteralNode('a', 0, 0),
+            new OctalLegacyNode('0', 0, 0),
+            new OctalNode('123', 0, 0),
+            new PcreVerbNode('FAIL', 0, 0),
+            new PosixClassNode('alnum', 0, 0),
+            new SubroutineNode('1', '', 0, 0),
+            new UnicodeNode('FFFF', 0, 0),
+            new UnicodePropNode('L', 0, 0),
+        ];
+
+        $visitors = [
+            new ExplainVisitor(),
+            new HtmlExplainVisitor(),
+            new OptimizerNodeVisitor(),
+            new ComplexityScoreVisitor(),
+            new ValidatorNodeVisitor(),
+            // SampleGenerator est spécial, certains noeuds retournent '', c'est normal
+            new SampleGeneratorVisitor(),
+        ];
+
+        foreach ($visitors as $visitor) {
+            foreach ($nodes as $node) {
+                // On vérifie juste que ça ne plante pas et que le code est exécuté
+                $result = $node->accept($visitor);
+                $this->assertNotNull($result, sprintf('Visitor %s returned null for node %s', $visitor::class, $node::class));
+            }
+        }
+    }
+
+    public function test_sample_generator_throws_logic_exception_on_subroutine(): void
+    {
+        $visitor = new SampleGeneratorVisitor();
+        $node = new SubroutineNode('R', '', 0, 0);
+
+        $this->expectException(\LogicException::class);
+        $node->accept($visitor);
     }
 }

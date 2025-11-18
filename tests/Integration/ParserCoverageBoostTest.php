@@ -24,6 +24,13 @@ use RegexParser\Parser;
  */
 class ParserCoverageBoostTest extends TestCase
 {
+    private Parser $parser;
+
+    protected function setUp(): void
+    {
+        $this->parser = new Parser();
+    }
+
     /**
      * Test Python-style named groups with single quotes.
      */
@@ -640,5 +647,59 @@ class ParserCoverageBoostTest extends TestCase
         foreach ($patterns as $pattern) {
             $parser->parse($pattern);
         }
+    }
+
+    public function test_invalid_group_modifier_syntax(): void
+    {
+        // Couvre le "Invalid group modifier syntax" à la fin de parseGroupModifier
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('Invalid group modifier syntax');
+        $this->parser->parse('/(??)/'); // Syntaxe invalide (??)
+    }
+
+    public function test_invalid_syntax_after_P(): void
+    {
+        // Couvre "Invalid syntax after (?P"
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('Invalid syntax after (?P');
+        $this->parser->parse('/(?Px)/'); // P suivi de x n'est pas valide
+    }
+
+    public function test_quantifier_without_target(): void
+    {
+        // Couvre "Quantifier without target" au début de parseQuantifiedAtom
+        // (Cas : littéral vide généré par quelque chose d'autre, ou bug interne)
+        $this->expectException(ParserException::class);
+        $this->parser->parse('/+/'); // + sans rien avant
+    }
+
+    public function test_quantifier_on_anchor(): void
+    {
+        // Couvre l'interdiction de quantifier une ancre
+        $this->expectException(ParserException::class);
+        $this->parser->parse('/^* /');
+    }
+
+    public function test_missing_closing_delimiter(): void
+    {
+        // Couvre "No closing delimiter found"
+        $this->expectException(ParserException::class);
+        $this->parser->parse('/abc');
+    }
+
+    public function test_unknown_flag(): void
+    {
+        // Couvre "Unknown regex flag"
+        $this->expectException(ParserException::class);
+        $this->parser->parse('/abc/Z');
+    }
+
+    public function test_invalid_conditional_condition(): void
+    {
+        // Couvre le dernier else de parseConditionalCondition
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('Invalid conditional condition');
+        // (?(?...) où le ? n'est ni = ni ! ni <
+        $this->parser->parse('/(?(?~a)b)/');
     }
 }

@@ -92,4 +92,27 @@ class LexerInternalsTest extends TestCase
 
         $this->assertSame('\1', $result);
     }
+
+    public function test_extract_token_value_default_case(): void
+    {
+        $lexer = new Lexer('');
+        $accessor = new \RegexParser\Tests\TestUtils\LexerAccessor($lexer);
+
+        // Cas où le type est T_LITERAL (le default global du switch)
+        $val = $accessor->callPrivateMethod('extractTokenValue', [
+            \RegexParser\TokenType::T_LITERAL,
+            'X',
+            []
+        ]);
+        $this->assertSame('X', $val);
+
+        // Cas où le type est T_LITERAL_ESCAPED mais le char n'est pas spécial (le default du match interne)
+        $val = $accessor->callPrivateMethod('extractTokenValue', [
+            \RegexParser\TokenType::T_LITERAL_ESCAPED,
+            '\@', // @ n'est pas t, n, r, etc.
+            []
+        ]);
+        // Le code fait substr($val, 1) -> "@"
+        $this->assertSame('@', $val);
+    }
 }
