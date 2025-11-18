@@ -191,14 +191,15 @@ class SampleGeneratorVisitorTest extends TestCase
      */
     public static function providePosixClasses(): \Iterator
     {
-        yield ['[[:alnum:]]'];
-        yield ['[[:alpha:]]'];
-        yield ['[[:digit:]]'];
-        yield ['[[:xdigit:]]'];
-        yield ['[[:space:]]'];
-        yield ['[[:lower:]]'];
-        yield ['[[:upper:]]'];
-        yield ['[[:punct:]]'];
+        // We must provide delimiters (/) so the parser doesn't interpret [] as delimiters
+        yield ['/[[:alnum:]]/'];
+        yield ['/[[:alpha:]]/'];
+        yield ['/[[:digit:]]/'];
+        yield ['/[[:xdigit:]]/'];
+        yield ['/[[:space:]]/'];
+        yield ['/[[:lower:]]/'];
+        yield ['/[[:upper:]]/'];
+        yield ['/[[:punct:]]/'];
     }
 
     #[DataProvider('providePosixClasses')]
@@ -207,7 +208,7 @@ class SampleGeneratorVisitorTest extends TestCase
         $sample = $this->parser->parse($regex)->accept($this->generator);
         $this->assertNotEmpty($sample);
         // We verify it matches the regex itself to ensure correctness
-        $this->assertMatchesRegularExpression('/' . $regex . '/', $sample);
+        $this->assertMatchesRegularExpression($regex, $sample);
     }
 
     public function test_generate_all_whitespace_types(): void

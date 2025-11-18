@@ -421,11 +421,15 @@ class ParserTest extends TestCase
         $parser->parse('/toolong/');
     }
 
-    public function test_invalid_range_codepoints(): void
+    public function test_invalid_range_codepoints_are_parsed_but_invalid(): void
     {
-        $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('start character comes after end character');
-        $this->parser->parse('/[z-a]/');
+        // The parser itself allows [z-a], checking semantics is done by the Validator.
+        // So we assert that it parses into a RangeNode successfully.
+        $ast = $this->parser->parse('/[z-a]/');
+
+        $this->assertInstanceOf(CharClassNode::class, $ast->pattern);
+        $this->assertNotEmpty($ast->pattern->parts);
+        $this->assertInstanceOf(RangeNode::class, $ast->pattern->parts[0]);
     }
 
     public function test_parse_conditional_define(): void

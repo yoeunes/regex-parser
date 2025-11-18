@@ -59,7 +59,7 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
 
     /**
      * @param int $maxRepetition max times to repeat for * or + quantifiers
-     *                           to prevent excessively long or infinite samples
+     * to prevent excessively long or infinite samples
      */
     public function __construct(private readonly int $maxRepetition = 3) {}
 
@@ -326,6 +326,10 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
             'lower' => $this->getRandomChar(['a', 'b', 'c', 'z']),
             'upper' => $this->getRandomChar(['A', 'B', 'C', 'Z']),
             'punct' => $this->getRandomChar(['.', '!', ',', '?']),
+            'word' => $this->getRandomChar(['a', 'Z', '0', '9', '_']),
+            'blank' => $this->getRandomChar([' ', "\t"]),
+            'cntrl' => "\x00", // Control character
+            'graph', 'print' => $this->getRandomChar(['!', '@', '#']),
             default => $this->getRandomChar(['a', '1', ' ']),
         };
     }
