@@ -37,6 +37,8 @@ class ValidatorLogicTest extends TestCase
 
     public function test_quantifier_bounds_logic(): void
     {
+        $this->expectNotToPerformAssertions();
+
         // This tests the Validator's internal parsing logic directly via a QuantifierNode
         // constructed with a raw string that might not come from standard parsing.
         $validator = new ValidatorNodeVisitor();
@@ -44,12 +46,12 @@ class ValidatorLogicTest extends TestCase
         // {n} case
         $node = new QuantifierNode(new LiteralNode('a', 0, 0), '{5}', QuantifierType::T_GREEDY, 0, 0);
         $node->accept($validator); // Should not throw
-
-        $this->addToAssertionCount(1);
     }
 
     public function test_quantifier_bounds_fallback(): void
     {
+        $this->expectNotToPerformAssertions();
+
         // Testing the "default" match in parseQuantifierBounds
         // {5,}
         $validator = new ValidatorNodeVisitor();
@@ -59,7 +61,5 @@ class ValidatorLogicTest extends TestCase
         // {5,10}
         $node = new QuantifierNode(new LiteralNode('a', 0, 0), '{5,10}', QuantifierType::T_GREEDY, 0, 0);
         $node->accept($validator);
-
-        $this->addToAssertionCount(2);
     }
 }
