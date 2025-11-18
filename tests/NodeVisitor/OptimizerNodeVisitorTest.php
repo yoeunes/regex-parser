@@ -27,6 +27,7 @@ use RegexParser\Parser;
 class OptimizerNodeVisitorTest extends TestCase
 {
     private Parser $parser;
+
     private OptimizerNodeVisitor $optimizer;
 
     protected function setUp(): void

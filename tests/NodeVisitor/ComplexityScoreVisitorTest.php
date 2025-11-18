@@ -142,13 +142,6 @@ class ComplexityScoreVisitorTest extends TestCase
         $this->assertLessThan(10, $score);
     }
 
-    private function getScore(string $regex): int
-    {
-        $ast = $this->parser->parse($regex);
-
-        return $ast->accept($this->visitor);
-    }
-
     public function test_nested_quantifiers_exponential_score(): void
     {
         // Hits the logic: if ($this->quantifierDepth > 0) { $score *= ... }
@@ -190,6 +183,13 @@ class ComplexityScoreVisitorTest extends TestCase
         // Score is sum of parts
         $score = $this->getScore('/[abc]/');
         // Base(1) + Literal(1)*3 = 4
-        $this->assertEquals(4, $score);
+        $this->assertSame(4, $score);
+    }
+
+    private function getScore(string $regex): int
+    {
+        $ast = $this->parser->parse($regex);
+
+        return $ast->accept($this->visitor);
     }
 }

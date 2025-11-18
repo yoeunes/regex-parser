@@ -320,7 +320,7 @@ class HtmlExplainVisitor implements NodeVisitorInterface
     {
         $cond = $node->condition->accept($this);
         $yes = $node->yes->accept($this);
-        
+
         // Check if the 'no' branch is an empty literal node
         $hasElseBranch = !($node->no instanceof LiteralNode && '' === $node->no->value);
         $no = $hasElseBranch ? $node->no->accept($this) : '';
