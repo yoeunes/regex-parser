@@ -29,8 +29,8 @@ class LexerErrorTest extends TestCase
         $this->expectException(LexerException::class);
         $this->expectExceptionMessage('Input string is not valid UTF-8.');
 
-        // Simuler une séquence de bytes invalide (non-UTF8)
-        $accessor->callPrivateMethod('reset', ["\xc3\x28"]);
+        // \xFF est garanti invalide en UTF-8
+        $accessor->callPrivateMethod('reset', ["\xFF"]);
     }
 
     public function test_tokenize_throws_on_unclosed_char_class(): void

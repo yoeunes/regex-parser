@@ -17,6 +17,7 @@ use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\ParserException;
 use RegexParser\Parser;
 use RegexParser\Tests\TestUtils\ParserAccessor;
+use RegexParser\TokenType;
 
 class ParserInternalsTest extends TestCase
 {
@@ -60,5 +61,60 @@ class ParserInternalsTest extends TestCase
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('No closing delimiter "/" found');
         $accessor->callPrivateMethod('extractPatternAndFlags', ['/abc']);
+    }
+
+    public function test_consume_literal_throws_on_mismatch(): void
+    {
+        // Test direct de consumeLiteral pour vérifier le message d'erreur exact
+        $parser = new Parser();
+        $parser->parse('/a/'); // Initialise le lexer et les tokens
+
+        $accessor = new ParserAccessor($parser);
+
+        $this->expectException(ParserException::class);
+        // On essaie de consommer 'b' alors que le token courant est 'a' (ou EOF)
+        $accessor->callPrivateMethod('consumeLiteral', ['b', 'Error expected']);
+    }
+
+    public function test_extract_pattern_too_short(): void
+    {
+        $parser = new Parser();
+        $accessor = new ParserAccessor($parser);
+
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('Regex is too short');
+        $accessor->callPrivateMethod('extractPatternAndFlags', ['/']);
+    }
+
+    public function test_consume_literal_throws_exception(): void
+    {
+        $parser = new Parser();
+        $accessor = new ParserAccessor($parser);
+
+        // On initialise avec un token qui n'est pas celui attendu
+        $accessor->setTokens(['b']);
+        $accessor->setPosition(0);
+
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('Expected error message');
+
+        // On demande de consommer 'a', mais on a 'b', ça doit planter
+        $accessor->callPrivateMethod('consumeLiteral', ['a', 'Expected error message']);
+    }
+
+    public function test_consume_throws_exception_at_end_of_input(): void
+    {
+        $parser = new Parser();
+        $accessor = new ParserAccessor($parser);
+
+        // On simule la fin de flux - setTokens() adds T_EOF automatically
+        // So with an empty array, we get only T_EOF at position 0
+        $accessor->setTokens([]);
+        $accessor->setPosition(0); // Now we're at EOF
+
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('Expected something at end of input');
+
+        $accessor->callPrivateMethod('consume', [TokenType::T_LITERAL, 'Expected something']);
     }
 }

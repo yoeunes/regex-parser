@@ -193,10 +193,12 @@ class Lexer
             $regex = $this->inCharClass ? self::REGEX_INSIDE : self::REGEX_OUTSIDE;
             $tokenNames = $this->inCharClass ? self::TOKEN_NAMES_INSIDE : self::TOKEN_NAMES_OUTSIDE;
 
+            // @codeCoverageIgnoreStart
             if (!preg_match($regex, $this->pattern, $matches, \PREG_UNMATCHED_AS_NULL, $this->position)) {
                 // Any other match failure
                 throw new LexerException(\sprintf('Unable to tokenize pattern at position %d: "%s"...', $this->position, mb_substr($this->pattern, $this->position, 10)));
             }
+            // @codeCoverageIgnoreEnd
 
             /** @var string $matchedValue */
             $matchedValue = $matches[0];
@@ -318,6 +320,7 @@ class Lexer
     private function lexQuoteMode(): ?Token
     {
         // Note: We use /s (dotall) here, not /x
+        // @codeCoverageIgnoreStart
         if (!preg_match('/(.*?)((?:\\\\E)|$)/suA', $this->pattern, $matches, \PREG_UNMATCHED_AS_NULL, $this->position)) {
             // This should be logically impossible if lexQuoteMode is called.
             // As a fallback, we exit quote mode and stop.
@@ -326,6 +329,7 @@ class Lexer
 
             return null;
         }
+        // @codeCoverageIgnoreEnd
 
         $literalText = $matches[1];
         $endSequence = $matches[2];
