@@ -287,6 +287,7 @@ class AdditionalCoverageTest extends TestCase
         $parser->parse('/(?P<name>abc)/');
     }
 
+    #[DoesNotPerformAssertions]
     public function test_parser_assertion_variations(): void
     {
         $parser = new Parser([]);
@@ -303,18 +304,21 @@ class AdditionalCoverageTest extends TestCase
         }
     }
 
+    #[DoesNotPerformAssertions]
     public function test_parser_atomic_group(): void
     {
         $parser = new Parser([]);
         $parser->parse('/(?>abc)/');
     }
 
+    #[DoesNotPerformAssertions]
     public function test_parser_recursive_pattern(): void
     {
         $parser = new Parser([]);
         $parser->parse('/(?R)/');
     }
 
+    #[DoesNotPerformAssertions]
     public function test_parser_char_class_with_dash(): void
     {
         $parser = new Parser([]);
@@ -326,12 +330,14 @@ class AdditionalCoverageTest extends TestCase
         $parser->parse('/[abc-]/');
     }
 
+    #[DoesNotPerformAssertions]
     public function test_parser_negated_char_class(): void
     {
         $parser = new Parser([]);
         $parser->parse('/[^abc]/');
     }
 
+    #[DoesNotPerformAssertions]
     public function test_parser_empty_alternation(): void
     {
         $parser = new Parser([]);

@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\Integration;
 
+use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Regex;
 
@@ -355,7 +356,7 @@ class CompleteCoverageTest extends TestCase
         $this->assertStringContainsString('abc.def', $sample);
     }
 
-    // Test Parser edge cases
+    #[DoesNotPerformAssertions]
     public function test_parser_group_modifiers(): void
     {
         // Non-capturing group
