@@ -30,9 +30,6 @@ use RegexParser\ValidationResult;
  */
 final class PregValidationRule implements Rule
 {
-    /**
-     * @var array<string, int> a map of preg_ function names to their pattern argument index
-     */
     private const PREG_FUNCTION_MAP = [
         'preg_match' => 0,
         'preg_match_all' => 0,

@@ -60,8 +60,10 @@ class TraceableRouter implements RequestMatcherInterface, RouterInterface
     public function match(string $pathinfo): array
     {
         try {
+            /**
+             * @var array<string, mixed> $result
+             */
             $result = $this->router->match($pathinfo);
-            /** @var array<string, mixed> $result */
             $routeName = $result['_route'] ?? null;
             $this->collectRouteRegex(\is_string($routeName) ? $routeName : null, $pathinfo, true);
 
@@ -84,8 +86,10 @@ class TraceableRouter implements RequestMatcherInterface, RouterInterface
         }
 
         try {
+            /**
+             * @var array<string, mixed> $result
+             */
             $result = $this->router->matchRequest($request);
-            /** @var array<string, mixed> $result */
             $routeName = $result['_route'] ?? null;
             $this->collectRouteRegex(\is_string($routeName) ? $routeName : null, $request->getPathInfo(), true);
 

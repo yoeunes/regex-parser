@@ -56,17 +56,11 @@ use RegexParser\Node\UnicodePropNode;
  */
 final class ValidatorNodeVisitor implements NodeVisitorInterface
 {
-    /**
-     * @var array<string, true>
-     */
     private const VALID_ASSERTIONS = [
         'A' => true, 'z' => true, 'Z' => true,
         'G' => true, 'b' => true, 'B' => true,
     ];
 
-    /**
-     * @var array<string, true>
-     */
     private const VALID_PCRE_VERBS = [
         'FAIL' => true, 'ACCEPT' => true, 'COMMIT' => true,
         'PRUNE' => true, 'SKIP' => true, 'THEN' => true,
@@ -77,9 +71,6 @@ final class ValidatorNodeVisitor implements NodeVisitorInterface
         'NO_AUTO_POSSESS' => true,
     ];
 
-    /**
-     * @var array<string, true>
-     */
     private const VALID_POSIX_CLASSES = [
         'alnum' => true, 'alpha' => true, 'ascii' => true,
         'blank' => true, 'cntrl' => true, 'digit' => true,
@@ -200,7 +191,7 @@ final class ValidatorNodeVisitor implements NodeVisitorInterface
             throw new ParserException(\sprintf('Invalid quantifier range "%s": min > max at position %d.', $node->quantifier, $node->startPos));
         }
 
-        $isUnbounded = (-1 === $max); // *, +, or {n,}
+        $isUnbounded = -1 === $max; // *, +, or {n,}
 
         // 2. Validate quantifiers inside lookbehinds
         if ($this->inLookbehind && $isUnbounded) {
@@ -382,7 +373,7 @@ final class ValidatorNodeVisitor implements NodeVisitorInterface
             $error = preg_last_error();
 
             // PREG_NO_ERROR means it compiled successfully.
-            self::$unicodePropCache[$key] = (false !== $result && \PREG_NO_ERROR === $error);
+            self::$unicodePropCache[$key] = false !== $result && \PREG_NO_ERROR === $error;
         }
 
         if (false === self::$unicodePropCache[$key]) {

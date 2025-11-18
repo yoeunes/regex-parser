@@ -83,8 +83,6 @@ class Lexer
     /**
      * Defines the explicit order of token matching for the 'outside' state.
      * This matches the alternation order in REGEX_OUTSIDE.
-     *
-     * @var list<string>
      */
     private const TOKEN_NAMES_OUTSIDE = [
         'T_COMMENT_OPEN',
@@ -114,8 +112,6 @@ class Lexer
 
     /**
      * Defines the explicit order of token matching for the 'inside' state.
-     *
-     * @var list<string>
      */
     private const TOKEN_NAMES_INSIDE = [
         'T_CHAR_CLASS_CLOSE',
