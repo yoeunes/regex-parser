@@ -2,6 +2,15 @@
 
 declare(strict_types=1);
 
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
@@ -19,10 +28,15 @@ use RegexParser\Parser;
 class ExtendedCoverageTest extends TestCase
 {
     private Parser $parser;
+
     private ExplainVisitor $explainVisitor;
+
     private HtmlExplainVisitor $htmlExplainVisitor;
+
     private OptimizerNodeVisitor $optimizerVisitor;
+
     private SampleGeneratorVisitor $sampleVisitor;
+
     private ValidatorNodeVisitor $validatorVisitor;
 
     protected function setUp(): void
@@ -104,7 +118,7 @@ class ExtendedCoverageTest extends TestCase
         try {
             $ast = $this->parser->parse('/[]/');
             $this->assertNotNull($ast);
-        } catch (\Exception $e) {
+        } catch (\Exception) {
             $this->assertTrue(true); // May fail, that's ok
         }
     }
@@ -161,7 +175,7 @@ class ExtendedCoverageTest extends TestCase
             try {
                 $ast = $this->parser->parse($pattern);
                 $this->assertNotNull($ast);
-            } catch (\Exception $e) {
+            } catch (\Exception) {
                 // Some may fail
             }
         }
@@ -214,7 +228,7 @@ class ExtendedCoverageTest extends TestCase
         ];
 
         foreach ($classes as $class) {
-            $ast = $this->parser->parse('/' . $class . '/');
+            $ast = $this->parser->parse('/'.$class.'/');
             $sample = $ast->accept($this->sampleVisitor);
             $this->assertIsString($sample);
         }
@@ -224,22 +238,22 @@ class ExtendedCoverageTest extends TestCase
     {
         $ast = $this->parser->parse('/a{5}/');
         $sample = $ast->accept($this->sampleVisitor);
-        $this->assertSame(5, strlen($sample));
+        $this->assertSame(5, \strlen($sample));
     }
 
     public function test_sample_generator_quantifier_range(): void
     {
         $ast = $this->parser->parse('/a{2,4}/');
         $sample = $ast->accept($this->sampleVisitor);
-        $this->assertGreaterThanOrEqual(2, strlen($sample));
-        $this->assertLessThanOrEqual(4, strlen($sample));
+        $this->assertGreaterThanOrEqual(2, \strlen($sample));
+        $this->assertLessThanOrEqual(4, \strlen($sample));
     }
 
     public function test_sample_generator_quantifier_open_range(): void
     {
         $ast = $this->parser->parse('/a{2,}/');
         $sample = $ast->accept($this->sampleVisitor);
-        $this->assertGreaterThanOrEqual(2, strlen($sample));
+        $this->assertGreaterThanOrEqual(2, \strlen($sample));
     }
 
     public function test_sample_generator_non_capturing_group(): void
@@ -273,7 +287,7 @@ class ExtendedCoverageTest extends TestCase
                 $ast = $this->parser->parse($pattern);
                 $result = $ast->accept($this->explainVisitor);
                 $this->assertIsString($result);
-            } catch (\Exception $e) {
+            } catch (\Exception) {
                 // Some may fail
             }
         }
@@ -443,7 +457,7 @@ class ExtendedCoverageTest extends TestCase
                 $ast = $this->parser->parse($pattern);
                 $ast->accept($this->validatorVisitor);
                 $this->assertTrue(true);
-            } catch (\Exception $e) {
+            } catch (\Exception) {
                 // Some may fail
             }
         }

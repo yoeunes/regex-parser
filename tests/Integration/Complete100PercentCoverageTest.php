@@ -2,6 +2,15 @@
 
 declare(strict_types=1);
 
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
@@ -24,10 +33,15 @@ use RegexParser\Parser;
 class Complete100PercentCoverageTest extends TestCase
 {
     private Parser $parser;
+
     private ExplainVisitor $explainVisitor;
+
     private HtmlExplainVisitor $htmlExplainVisitor;
+
     private OptimizerNodeVisitor $optimizerVisitor;
+
     private SampleGeneratorVisitor $sampleVisitor;
+
     private ValidatorNodeVisitor $validatorVisitor;
 
     protected function setUp(): void
@@ -124,7 +138,7 @@ class Complete100PercentCoverageTest extends TestCase
         $this->assertIsString($result);
     }
 
-    public function test_explain_visitor_subroutine_R(): void
+    public function test_explain_visitor_subroutine_r(): void
     {
         // Test visitSubroutine with R (entire pattern reference)
         $ast = $this->parser->parse('/(?R)/');
@@ -321,7 +335,7 @@ class Complete100PercentCoverageTest extends TestCase
                 $ast = $this->parser->parse("/[[:$class:]]/");
                 $sample = $ast->accept($this->sampleVisitor);
                 $this->assertIsString($sample);
-            } catch (\Exception $e) {
+            } catch (\Exception) {
                 // Some classes may not be valid, that's ok
             }
         }

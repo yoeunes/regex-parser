@@ -171,7 +171,7 @@ class Parser
 
                     // $pattern and $flags are now guaranteed 'string'
                     $unknownFlags = preg_replace('/[imsxADSUXJu]/', '', $flags);
-                   // @codeCoverageIgnoreStart
+                    // @codeCoverageIgnoreStart
                     if (null === $unknownFlags) {
                         // This can happen on PCRE error
                         throw new ParserException('Internal parser error: preg_replace failed while checking flags.');
@@ -269,8 +269,8 @@ class Parser
             // Check if it's a group containing an empty literal or empty sequence
             if ($node instanceof GroupNode) {
                 $child = $node->child;
-                if (($child instanceof LiteralNode && '' === $child->value) ||
-                    ($child instanceof SequenceNode && empty($child->children))) {
+                if (($child instanceof LiteralNode && '' === $child->value)
+                    || ($child instanceof SequenceNode && empty($child->children))) {
                     throw new ParserException('Quantifier without target at position '.$token->position);
                 }
             }

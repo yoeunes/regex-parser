@@ -2,6 +2,15 @@
 
 declare(strict_types=1);
 
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
@@ -19,10 +28,15 @@ use RegexParser\Parser;
 class CompleteCoverageTest extends TestCase
 {
     private Parser $parser;
+
     private ExplainVisitor $explainVisitor;
+
     private HtmlExplainVisitor $htmlExplainVisitor;
+
     private OptimizerNodeVisitor $optimizerVisitor;
+
     private SampleGeneratorVisitor $sampleVisitor;
+
     private ValidatorNodeVisitor $validatorVisitor;
 
     protected function setUp(): void
@@ -37,7 +51,7 @@ class CompleteCoverageTest extends TestCase
 
     // ========== SampleGeneratorVisitor Tests ==========
 
-    public function test_sample_generator_unicode_prop_without_L_N_P(): void
+    public function test_sample_generator_unicode_prop_without_l_n_p(): void
     {
         // Test unicode properties that don't contain L, N, or P to hit the fallback
         $ast = $this->parser->parse('/\p{Z}/'); // Separator
@@ -57,7 +71,7 @@ class CompleteCoverageTest extends TestCase
         $this->assertNotEmpty($sample);
     }
 
-    public function test_sample_generator_unicode_prop_with_L(): void
+    public function test_sample_generator_unicode_prop_with_l(): void
     {
         $ast = $this->parser->parse('/\p{L}/'); // Letter
         $sample = $ast->accept($this->sampleVisitor);
@@ -65,7 +79,7 @@ class CompleteCoverageTest extends TestCase
         $this->assertMatchesRegularExpression('/[abc]/', $sample);
     }
 
-    public function test_sample_generator_unicode_prop_with_N(): void
+    public function test_sample_generator_unicode_prop_with_n(): void
     {
         $ast = $this->parser->parse('/\p{N}/'); // Number
         $sample = $ast->accept($this->sampleVisitor);
@@ -73,7 +87,7 @@ class CompleteCoverageTest extends TestCase
         $this->assertMatchesRegularExpression('/[123]/', $sample);
     }
 
-    public function test_sample_generator_unicode_prop_with_P(): void
+    public function test_sample_generator_unicode_prop_with_p(): void
     {
         $ast = $this->parser->parse('/\p{P}/'); // Punctuation
         $sample = $ast->accept($this->sampleVisitor);
@@ -85,35 +99,35 @@ class CompleteCoverageTest extends TestCase
     {
         // Test conditional with NO path - need to generate multiple samples to hit both paths
         $ast = $this->parser->parse('/(a)?(?(?=b)yes|no)/');
-        
+
         for ($i = 0; $i < 10; $i++) {
             $sample = $ast->accept($this->sampleVisitor);
             $this->assertIsString($sample); // Can be empty string
         }
     }
 
-    public function test_sample_generator_setSeed(): void
+    public function test_sample_generator_set_seed(): void
     {
         $this->sampleVisitor->setSeed(12345);
         $ast = $this->parser->parse('/[a-z]+/');
         $sample1 = $ast->accept($this->sampleVisitor);
-        
+
         $this->sampleVisitor->setSeed(12345);
         $sample2 = $ast->accept($this->sampleVisitor);
-        
+
         // Same seed should produce same result
         $this->assertSame($sample1, $sample2);
     }
 
-    public function test_sample_generator_resetSeed(): void
+    public function test_sample_generator_reset_seed(): void
     {
         $this->sampleVisitor->setSeed(12345);
         $ast = $this->parser->parse('/[a-z]+/');
         $sample1 = $ast->accept($this->sampleVisitor);
-        
+
         $this->sampleVisitor->resetSeed();
         $sample2 = $ast->accept($this->sampleVisitor);
-        
+
         // After reset, results may differ
         $this->assertIsString($sample2);
     }
@@ -148,10 +162,10 @@ class CompleteCoverageTest extends TestCase
         // Test parsing with different delimiters (indirectly tests extractPatternAndFlags)
         $ast = $this->parser->parse('#test#i');
         $this->assertNotNull($ast);
-        
+
         $ast = $this->parser->parse('@test@m');
         $this->assertNotNull($ast);
-        
+
         $ast = $this->parser->parse('~test~s');
         $this->assertNotNull($ast);
     }
@@ -161,10 +175,10 @@ class CompleteCoverageTest extends TestCase
         // Test various group modifiers to hit parseGroupModifier branches
         $ast = $this->parser->parse('/(?i:test)/');
         $this->assertNotNull($ast);
-        
+
         $ast = $this->parser->parse('/(?-i:test)/');
         $this->assertNotNull($ast);
-        
+
         $ast = $this->parser->parse('/(?i-m:test)/');
         $this->assertNotNull($ast);
     }
@@ -174,7 +188,7 @@ class CompleteCoverageTest extends TestCase
         // Test different named group syntaxes
         $ast = $this->parser->parse('/(?P<name>test)/');
         $this->assertNotNull($ast);
-        
+
         $ast = $this->parser->parse('/(?<name>test)/');
         $this->assertNotNull($ast);
     }
@@ -183,13 +197,13 @@ class CompleteCoverageTest extends TestCase
     {
         $ast = $this->parser->parse('/(?=test)/');
         $this->assertNotNull($ast);
-        
+
         $ast = $this->parser->parse('/(?!test)/');
         $this->assertNotNull($ast);
-        
+
         $ast = $this->parser->parse('/(?<=test)/');
         $this->assertNotNull($ast);
-        
+
         $ast = $this->parser->parse('/(?<!test)/');
         $this->assertNotNull($ast);
     }
@@ -246,19 +260,19 @@ class CompleteCoverageTest extends TestCase
     {
         $ast = $this->parser->parse('/a*/');
         $this->assertNotNull($ast);
-        
+
         $ast = $this->parser->parse('/a+/');
         $this->assertNotNull($ast);
-        
+
         $ast = $this->parser->parse('/a?/');
         $this->assertNotNull($ast);
-        
+
         $ast = $this->parser->parse('/a{3}/');
         $this->assertNotNull($ast);
-        
+
         $ast = $this->parser->parse('/a{3,}/');
         $this->assertNotNull($ast);
-        
+
         $ast = $this->parser->parse('/a{3,5}/');
         $this->assertNotNull($ast);
     }
@@ -267,13 +281,13 @@ class CompleteCoverageTest extends TestCase
     {
         $ast = $this->parser->parse('/a*?/');
         $this->assertNotNull($ast);
-        
+
         $ast = $this->parser->parse('/a+?/');
         $this->assertNotNull($ast);
-        
+
         $ast = $this->parser->parse('/a??/');
         $this->assertNotNull($ast);
-        
+
         $ast = $this->parser->parse('/a{3,5}?/');
         $this->assertNotNull($ast);
     }
@@ -282,10 +296,10 @@ class CompleteCoverageTest extends TestCase
     {
         $ast = $this->parser->parse('/a*+/');
         $this->assertNotNull($ast);
-        
+
         $ast = $this->parser->parse('/a++/');
         $this->assertNotNull($ast);
-        
+
         $ast = $this->parser->parse('/a?+/');
         $this->assertNotNull($ast);
     }
@@ -322,7 +336,7 @@ class CompleteCoverageTest extends TestCase
                 $ast = $this->parser->parse($pattern);
                 $result = $ast->accept($this->explainVisitor);
                 $this->assertIsString($result);
-            } catch (\Exception $e) {
+            } catch (\Exception) {
                 // Some patterns may fail, that's ok
             }
         }
@@ -333,11 +347,11 @@ class CompleteCoverageTest extends TestCase
         $ast = $this->parser->parse('/a{3}/');
         $result = $ast->accept($this->explainVisitor);
         $this->assertStringContainsString('exactly 3 times', $result);
-        
+
         $ast = $this->parser->parse('/a{3,}/');
         $result = $ast->accept($this->explainVisitor);
         $this->assertStringContainsString('at least 3 times', $result);
-        
+
         $ast = $this->parser->parse('/a{3,5}/');
         $result = $ast->accept($this->explainVisitor);
         $this->assertStringContainsString('between 3 and 5 times', $result);
@@ -345,7 +359,7 @@ class CompleteCoverageTest extends TestCase
 
     public function test_explain_visitor_range_with_escape_sequences(): void
     {
-        $ast = $this->parser->parse("/[\\t-\\n]/");
+        $ast = $this->parser->parse('/[\\t-\\n]/');
         $result = $ast->accept($this->explainVisitor);
         $this->assertIsString($result);
     }
@@ -395,7 +409,7 @@ class CompleteCoverageTest extends TestCase
                 $result = $ast->accept($this->htmlExplainVisitor);
                 $this->assertIsString($result);
                 $this->assertStringContainsString('<', $result);
-            } catch (\Exception $e) {
+            } catch (\Exception) {
                 // Some patterns may fail, that's ok
             }
         }
@@ -415,7 +429,7 @@ class CompleteCoverageTest extends TestCase
         $ast = $this->parser->parse('/a*?/');
         $result = $ast->accept($this->htmlExplainVisitor);
         $this->assertStringContainsString('as few as possible', $result);
-        
+
         $ast = $this->parser->parse('/a*+/');
         $result = $ast->accept($this->htmlExplainVisitor);
         $this->assertStringContainsString('do not backtrack', $result);
@@ -449,7 +463,7 @@ class CompleteCoverageTest extends TestCase
         $ast = $this->parser->parse('/a{1}/');
         $result = $ast->accept($this->optimizerVisitor);
         $this->assertNotNull($result);
-        
+
         $ast = $this->parser->parse('/a{0,1}/');
         $result = $ast->accept($this->optimizerVisitor);
         $this->assertNotNull($result);
@@ -502,7 +516,7 @@ class CompleteCoverageTest extends TestCase
                 $ast = $this->parser->parse($pattern);
                 $result = $ast->accept($this->optimizerVisitor);
                 $this->assertNotNull($result);
-            } catch (\Exception $e) {
+            } catch (\Exception) {
                 // Some patterns may fail, that's ok
             }
         }
@@ -538,7 +552,7 @@ class CompleteCoverageTest extends TestCase
                 $ast = $this->parser->parse($pattern);
                 $result = $ast->accept($this->validatorVisitor);
                 $this->assertNotNull($result);
-            } catch (\Exception $e) {
+            } catch (\Exception) {
                 // Some patterns may fail, that's ok
             }
         }
@@ -550,7 +564,7 @@ class CompleteCoverageTest extends TestCase
         $ast = $this->parser->parse('/a{0}/');
         $ast->accept($this->validatorVisitor);
         $this->assertTrue(true); // No exception means valid
-        
+
         $ast = $this->parser->parse('/a{1,1}/');
         $ast->accept($this->validatorVisitor);
         $this->assertTrue(true); // No exception means valid
@@ -568,7 +582,7 @@ class CompleteCoverageTest extends TestCase
         $ast = $this->parser->parse('/(a)\1/');
         $ast->accept($this->validatorVisitor);
         $this->assertTrue(true); // No exception means valid
-        
+
         $ast = $this->parser->parse('/(?<name>a)\k<name>/');
         $ast->accept($this->validatorVisitor);
         $this->assertTrue(true); // No exception means valid
@@ -579,7 +593,7 @@ class CompleteCoverageTest extends TestCase
         $ast = $this->parser->parse('/\x41/');
         $ast->accept($this->validatorVisitor);
         $this->assertTrue(true); // No exception means valid
-        
+
         $ast = $this->parser->parse('/\u{1F600}/');
         $ast->accept($this->validatorVisitor);
         $this->assertTrue(true); // No exception means valid
@@ -609,7 +623,7 @@ class CompleteCoverageTest extends TestCase
         $this->assertNotEmpty($tokens);
     }
 
-    public function test_lexer_extractTokenValue_escape_sequences(): void
+    public function test_lexer_extract_token_value_escape_sequences(): void
     {
         // These are tested indirectly through parsing
         $lexer = new Lexer('\t\n\r\f\v\e');
@@ -617,7 +631,7 @@ class CompleteCoverageTest extends TestCase
         $this->assertNotEmpty($tokens);
     }
 
-    public function test_lexer_normalizeUnicodeProp_variations(): void
+    public function test_lexer_normalize_unicode_prop_variations(): void
     {
         // Test \p{L}, \P{L}, \p{^L}, \P{^L} variations
         $lexer = new Lexer('\p{L}\P{L}\p{^L}\P{^L}');
@@ -629,10 +643,10 @@ class CompleteCoverageTest extends TestCase
     {
         $lexer = new Lexer('test');
         $tokens1 = $lexer->tokenize();
-        
+
         $lexer->reset('new');
         $tokens2 = $lexer->tokenize();
-        
+
         $this->assertNotSame($tokens1, $tokens2);
     }
 }
