@@ -1,0 +1,714 @@
+<?php
+
+declare(strict_types=1);
+
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+namespace RegexParser\Tests\Lexer;
+
+use PHPUnit\Framework\TestCase;
+use RegexParser\Lexer;
+use RegexParser\TokenType;
+
+/**
+ * Comprehensive tests to improve Lexer coverage to 100%.
+ * Focuses on uncovered code paths in:
+ * - lexQuoteMode()
+ * - extractTokenValue()
+ * - normalizeUnicodeProp()
+ */
+class LexerCompleteCoverageTest extends TestCase
+{
+    // ========================================================================
+    // Tests for extractTokenValue() - Escape sequences
+    // ========================================================================
+
+    public function test_escaped_tab_character(): void
+    {
+        $lexer = new Lexer('\t');
+        $tokens = $lexer->tokenize();
+
+        $this->assertCount(2, $tokens); // T_LITERAL_ESCAPED + EOF
+        $this->assertSame(TokenType::T_LITERAL_ESCAPED, $tokens[0]->type);
+        $this->assertSame("\t", $tokens[0]->value);
+    }
+
+    public function test_escaped_newline_character(): void
+    {
+        $lexer = new Lexer('\n');
+        $tokens = $lexer->tokenize();
+
+        $this->assertCount(2, $tokens);
+        $this->assertSame(TokenType::T_LITERAL_ESCAPED, $tokens[0]->type);
+        $this->assertSame("\n", $tokens[0]->value);
+    }
+
+    public function test_escaped_carriage_return_character(): void
+    {
+        $lexer = new Lexer('\r');
+        $tokens = $lexer->tokenize();
+
+        $this->assertCount(2, $tokens);
+        $this->assertSame(TokenType::T_LITERAL_ESCAPED, $tokens[0]->type);
+        $this->assertSame("\r", $tokens[0]->value);
+    }
+
+    public function test_escaped_form_feed_character(): void
+    {
+        $lexer = new Lexer('\f');
+        $tokens = $lexer->tokenize();
+
+        $this->assertCount(2, $tokens);
+        $this->assertSame(TokenType::T_LITERAL_ESCAPED, $tokens[0]->type);
+        $this->assertSame("\f", $tokens[0]->value);
+    }
+
+    public function test_escaped_vertical_tab_character(): void
+    {
+        // Note: \v is T_CHAR_TYPE in PCRE regex context (vertical whitespace)
+        $lexer = new Lexer('\v');
+        $tokens = $lexer->tokenize();
+
+        $this->assertCount(2, $tokens);
+        $this->assertSame(TokenType::T_CHAR_TYPE, $tokens[0]->type);
+        $this->assertSame('v', $tokens[0]->value);
+    }
+
+    public function test_escaped_escape_character(): void
+    {
+        $lexer = new Lexer('\e');
+        $tokens = $lexer->tokenize();
+
+        $this->assertCount(2, $tokens);
+        $this->assertSame(TokenType::T_LITERAL_ESCAPED, $tokens[0]->type);
+        $this->assertSame("\e", $tokens[0]->value);
+    }
+
+    public function test_multiple_escape_sequences(): void
+    {
+        // Note: \v is T_CHAR_TYPE, not T_LITERAL_ESCAPED in regex context
+        $lexer = new Lexer('\t\n\r\f\e');
+        $tokens = $lexer->tokenize();
+
+        $this->assertCount(6, $tokens); // 5 escaped + EOF
+        $this->assertSame("\t", $tokens[0]->value);
+        $this->assertSame("\n", $tokens[1]->value);
+        $this->assertSame("\r", $tokens[2]->value);
+        $this->assertSame("\f", $tokens[3]->value);
+        $this->assertSame("\e", $tokens[4]->value);
+    }
+
+    public function test_escape_sequences_in_pattern(): void
+    {
+        $lexer = new Lexer('abc\tdef\nghi');
+        $tokens = $lexer->tokenize();
+
+        // Should have: a, b, c, \t, d, e, f, \n, g, h, i, EOF
+        $this->assertSame('a', $tokens[0]->value);
+        $this->assertSame('b', $tokens[1]->value);
+        $this->assertSame('c', $tokens[2]->value);
+        $this->assertSame("\t", $tokens[3]->value);
+        $this->assertSame('d', $tokens[4]->value);
+        $this->assertSame('e', $tokens[5]->value);
+        $this->assertSame('f', $tokens[6]->value);
+        $this->assertSame("\n", $tokens[7]->value);
+    }
+
+    // ========================================================================
+    // Tests for normalizeUnicodeProp() - Double negation and variations
+    // ========================================================================
+
+    public function test_unicode_prop_lowercase_p_simple(): void
+    {
+        $lexer = new Lexer('\p{L}');
+        $tokens = $lexer->tokenize();
+
+        $this->assertCount(2, $tokens);
+        $this->assertSame(TokenType::T_UNICODE_PROP, $tokens[0]->type);
+        $this->assertSame('L', $tokens[0]->value);
+    }
+
+    public function test_unicode_prop_uppercase_p_simple(): void
+    {
+        $lexer = new Lexer('\P{L}');
+        $tokens = $lexer->tokenize();
+
+        $this->assertCount(2, $tokens);
+        $this->assertSame(TokenType::T_UNICODE_PROP, $tokens[0]->type);
+        $this->assertSame('^L', $tokens[0]->value); // Negated
+    }
+
+    public function test_unicode_prop_lowercase_p_with_negation(): void
+    {
+        $lexer = new Lexer('\p{^L}');
+        $tokens = $lexer->tokenize();
+
+        $this->assertCount(2, $tokens);
+        $this->assertSame(TokenType::T_UNICODE_PROP, $tokens[0]->type);
+        $this->assertSame('^L', $tokens[0]->value);
+    }
+
+    public function test_unicode_prop_uppercase_p_with_double_negation(): void
+    {
+        // \P{^L} should result in 'L' (double negation cancels out)
+        $lexer = new Lexer('\P{^L}');
+        $tokens = $lexer->tokenize();
+
+        $this->assertCount(2, $tokens);
+        $this->assertSame(TokenType::T_UNICODE_PROP, $tokens[0]->type);
+        $this->assertSame('L', $tokens[0]->value); // Double negation removed
+    }
+
+    public function test_unicode_prop_short_form_lowercase(): void
+    {
+        // \pL (short form)
+        $lexer = new Lexer('\pL');
+        $tokens = $lexer->tokenize();
+
+        $this->assertCount(2, $tokens);
+        $this->assertSame(TokenType::T_UNICODE_PROP, $tokens[0]->type);
+        $this->assertSame('L', $tokens[0]->value);
+    }
+
+    public function test_unicode_prop_short_form_uppercase(): void
+    {
+        // \PL (short form, negated)
+        $lexer = new Lexer('\PL');
+        $tokens = $lexer->tokenize();
+
+        $this->assertCount(2, $tokens);
+        $this->assertSame(TokenType::T_UNICODE_PROP, $tokens[0]->type);
+        $this->assertSame('^L', $tokens[0]->value);
+    }
+
+    public function test_unicode_prop_various_properties(): void
+    {
+        $patterns = [
+            '\p{Nd}' => 'Nd',           // Decimal number
+            '\P{Nd}' => '^Nd',          // Not decimal number
+            '\p{^Nd}' => '^Nd',         // Negated decimal number
+            '\P{^Nd}' => 'Nd',          // Double negation
+            '\p{Letter}' => 'Letter',   // Long property name
+            '\P{Letter}' => '^Letter',  // Negated long property name
+        ];
+
+        foreach ($patterns as $pattern => $expectedValue) {
+            $lexer = new Lexer($pattern);
+            $tokens = $lexer->tokenize();
+
+            $this->assertSame(
+                $expectedValue,
+                $tokens[0]->value,
+                "Failed for pattern: {$pattern}"
+            );
+        }
+    }
+
+    // ========================================================================
+    // Tests for various token value extractions
+    // ========================================================================
+
+    public function test_pcre_verb_extraction(): void
+    {
+        $patterns = [
+            '(*FAIL)' => 'FAIL',
+            '(*ACCEPT)' => 'ACCEPT',
+            '(*MARK:foo)' => 'MARK:foo',
+            '(*COMMIT)' => 'COMMIT',
+            '(*PRUNE)' => 'PRUNE',
+            '(*SKIP)' => 'SKIP',
+            '(*THEN)' => 'THEN',
+        ];
+
+        foreach ($patterns as $pattern => $expectedValue) {
+            $lexer = new Lexer($pattern);
+            $tokens = $lexer->tokenize();
+
+            $this->assertSame(TokenType::T_PCRE_VERB, $tokens[0]->type);
+            $this->assertSame($expectedValue, $tokens[0]->value, "Failed for: {$pattern}");
+        }
+    }
+
+    public function test_assertion_extraction(): void
+    {
+        $patterns = [
+            '\A' => 'A',
+            '\z' => 'z',
+            '\Z' => 'Z',
+            '\G' => 'G',
+            '\b' => 'b',
+            '\B' => 'B',
+        ];
+
+        foreach ($patterns as $pattern => $expectedValue) {
+            $lexer = new Lexer($pattern);
+            $tokens = $lexer->tokenize();
+
+            $this->assertSame(TokenType::T_ASSERTION, $tokens[0]->type);
+            $this->assertSame($expectedValue, $tokens[0]->value, "Failed for: {$pattern}");
+        }
+    }
+
+    public function test_char_type_extraction(): void
+    {
+        $patterns = [
+            '\d' => 'd',
+            '\D' => 'D',
+            '\s' => 's',
+            '\S' => 'S',
+            '\w' => 'w',
+            '\W' => 'W',
+            '\h' => 'h',
+            '\H' => 'H',
+            '\v' => 'v', // Note: \v in char type context, not escape sequence
+            '\R' => 'R',
+        ];
+
+        foreach ($patterns as $pattern => $expectedValue) {
+            $lexer = new Lexer($pattern);
+            $tokens = $lexer->tokenize();
+
+            // \v can be either T_CHAR_TYPE or T_LITERAL_ESCAPED depending on context
+            $this->assertTrue(
+                $tokens[0]->type === TokenType::T_CHAR_TYPE || 
+                $tokens[0]->type === TokenType::T_LITERAL_ESCAPED,
+                "Failed type check for: {$pattern}"
+            );
+            $this->assertSame($expectedValue, $tokens[0]->value, "Failed for: {$pattern}");
+        }
+    }
+
+    public function test_keep_extraction(): void
+    {
+        $lexer = new Lexer('\K');
+        $tokens = $lexer->tokenize();
+
+        $this->assertSame(TokenType::T_KEEP, $tokens[0]->type);
+        $this->assertSame('K', $tokens[0]->value);
+    }
+
+    public function test_backref_with_number_extraction(): void
+    {
+        $patterns = [
+            '\1' => '1',
+            '\2' => '2',
+            '\9' => '9',
+            '\10' => '10',
+            '\99' => '99',
+        ];
+
+        foreach ($patterns as $pattern => $expectedValue) {
+            $lexer = new Lexer($pattern);
+            $tokens = $lexer->tokenize();
+
+            $this->assertSame(TokenType::T_BACKREF, $tokens[0]->type);
+            $this->assertSame($expectedValue, $tokens[0]->value, "Failed for: {$pattern}");
+        }
+    }
+
+    public function test_backref_with_named_groups(): void
+    {
+        $patterns = [
+            '\k<name>',
+            '\k{name}',
+        ];
+
+        foreach ($patterns as $pattern) {
+            $lexer = new Lexer($pattern);
+            $tokens = $lexer->tokenize();
+
+            $this->assertSame(TokenType::T_BACKREF, $tokens[0]->type);
+            $this->assertSame($pattern, $tokens[0]->value, "Failed for: {$pattern}");
+        }
+    }
+
+    public function test_octal_legacy_extraction(): void
+    {
+        $patterns = [
+            '\0' => '0',
+            '\01' => '01',
+            '\07' => '07',
+            '\012' => '012',
+            '\077' => '077',
+        ];
+
+        foreach ($patterns as $pattern => $expectedValue) {
+            $lexer = new Lexer($pattern);
+            $tokens = $lexer->tokenize();
+
+            $this->assertSame(TokenType::T_OCTAL_LEGACY, $tokens[0]->type);
+            $this->assertSame($expectedValue, $tokens[0]->value, "Failed for: {$pattern}");
+        }
+    }
+
+    public function test_posix_class_extraction(): void
+    {
+        $patterns = [
+            '[[:alnum:]]' => 'alnum',
+            '[[:^alnum:]]' => '^alnum',
+            '[[:alpha:]]' => 'alpha',
+            '[[:digit:]]' => 'digit',
+            '[[:lower:]]' => 'lower',
+            '[[:upper:]]' => 'upper',
+            '[[:space:]]' => 'space',
+        ];
+
+        foreach ($patterns as $pattern => $expectedValue) {
+            $lexer = new Lexer($pattern);
+            $tokens = $lexer->tokenize();
+
+            // Find the POSIX_CLASS token
+            $posixToken = null;
+            foreach ($tokens as $token) {
+                if ($token->type === TokenType::T_POSIX_CLASS) {
+                    $posixToken = $token;
+                    break;
+                }
+            }
+
+            $this->assertNotNull($posixToken, "No POSIX class token found for: {$pattern}");
+            $this->assertSame($expectedValue, $posixToken->value, "Failed for: {$pattern}");
+        }
+    }
+
+    // ========================================================================
+    // Tests for lexQuoteMode edge cases
+    // ========================================================================
+
+    public function test_quote_mode_with_multiple_segments(): void
+    {
+        $lexer = new Lexer('a\Q*+?\Eb\Q[]\Ec');
+        $tokens = $lexer->tokenize();
+
+        // Should have: a, *+?, b, [], c, EOF
+        $values = array_map(fn($t) => $t->value, array_filter($tokens, fn($t) => $t->type !== TokenType::T_EOF));
+        
+        $this->assertContains('a', $values);
+        $this->assertContains('*+?', $values);
+        $this->assertContains('b', $values);
+        $this->assertContains('[]', $values);
+        $this->assertContains('c', $values);
+    }
+
+    public function test_quote_mode_at_start(): void
+    {
+        $lexer = new Lexer('\Q*+?\Eabc');
+        $tokens = $lexer->tokenize();
+
+        // First token should be the quoted literal
+        $this->assertSame('*+?', $tokens[0]->value);
+        $this->assertSame(TokenType::T_LITERAL, $tokens[0]->type);
+    }
+
+    public function test_quote_mode_at_end(): void
+    {
+        $lexer = new Lexer('abc\Q*+?');
+        $tokens = $lexer->tokenize();
+
+        // Last token before EOF should be the quoted literal
+        $nonEofTokens = array_filter($tokens, fn($t) => $t->type !== TokenType::T_EOF);
+        $lastToken = end($nonEofTokens);
+        
+        $this->assertSame('*+?', $lastToken->value);
+        $this->assertSame(TokenType::T_LITERAL, $lastToken->type);
+    }
+
+    public function test_quote_mode_with_special_chars(): void
+    {
+        $lexer = new Lexer('\Q()[]{}^$|.?*+\E');
+        $tokens = $lexer->tokenize();
+
+        $this->assertCount(2, $tokens); // Literal + EOF
+        $this->assertSame('()[]{}^$|.?*+', $tokens[0]->value);
+    }
+
+    public function test_quote_mode_with_backslashes(): void
+    {
+        $lexer = new Lexer('\Q\d\s\w\E');
+        $tokens = $lexer->tokenize();
+
+        $this->assertCount(2, $tokens);
+        $this->assertSame('\d\s\w', $tokens[0]->value);
+    }
+
+    public function test_nested_quote_mode_markers(): void
+    {
+        // \Q starts quote mode, captures '\Q\E' as literal, first \E ends quote mode
+        // Second \E is outside quote mode and is not emitted
+        $lexer = new Lexer('\Q\Q\E\E');
+        $tokens = $lexer->tokenize();
+
+        // Should have: '\Q' (literal), EOF
+        $this->assertCount(2, $tokens);
+        $this->assertSame('\Q', $tokens[0]->value);
+        $this->assertSame(TokenType::T_LITERAL, $tokens[0]->type);
+    }
+
+    // ========================================================================
+    // Additional edge cases for better coverage
+    // ========================================================================
+
+    public function test_g_reference_variations(): void
+    {
+        $patterns = [
+            '\g1',
+            '\g-1',
+            '\g+1',
+            '\g{name}',
+            '\g<name>',
+        ];
+
+        foreach ($patterns as $pattern) {
+            $lexer = new Lexer($pattern);
+            $tokens = $lexer->tokenize();
+
+            $this->assertSame(TokenType::T_G_REFERENCE, $tokens[0]->type, "Failed for: {$pattern}");
+        }
+    }
+
+    public function test_octal_with_braces(): void
+    {
+        $lexer = new Lexer('\o{123}');
+        $tokens = $lexer->tokenize();
+
+        $this->assertSame(TokenType::T_OCTAL, $tokens[0]->type);
+        $this->assertSame('\o{123}', $tokens[0]->value);
+    }
+
+    public function test_unicode_hex_variations(): void
+    {
+        $patterns = [
+            '\x41',        // 2-digit hex
+            '\u{0041}',    // Unicode with braces
+            '\u{1F600}',   // Emoji codepoint
+        ];
+
+        foreach ($patterns as $pattern) {
+            $lexer = new Lexer($pattern);
+            $tokens = $lexer->tokenize();
+
+            $this->assertSame(TokenType::T_UNICODE, $tokens[0]->type, "Failed for: {$pattern}");
+            $this->assertSame($pattern, $tokens[0]->value, "Failed for: {$pattern}");
+        }
+    }
+
+    public function test_combined_escape_sequences_and_unicode(): void
+    {
+        $lexer = new Lexer('\t\n\p{L}\P{Nd}\r');
+        $tokens = $lexer->tokenize();
+
+        $this->assertCount(6, $tokens); // 5 tokens + EOF
+        $this->assertSame("\t", $tokens[0]->value);
+        $this->assertSame("\n", $tokens[1]->value);
+        $this->assertSame('L', $tokens[2]->value);
+        $this->assertSame('^Nd', $tokens[3]->value);
+        $this->assertSame("\r", $tokens[4]->value);
+    }
+
+    // ========================================================================
+    // Additional edge cases to maximize line coverage
+    // ========================================================================
+
+    public function test_escape_sequences_inside_character_class(): void
+    {
+        $lexer = new Lexer('[\t\n\r\f\e]');
+        $tokens = $lexer->tokenize();
+
+        // Should have: [, \t, \n, \r, \f, \e, ], EOF
+        $this->assertSame('[', $tokens[0]->value);
+        $this->assertSame(TokenType::T_CHAR_CLASS_OPEN, $tokens[0]->type);
+        
+        // Check escape sequences are present
+        $values = array_map(fn($t) => $t->value, $tokens);
+        $this->assertContains("\t", $values);
+        $this->assertContains("\n", $values);
+        $this->assertContains("\r", $values);
+        $this->assertContains("\f", $values);
+        $this->assertContains("\e", $values);
+    }
+
+    public function test_all_escape_literal_types(): void
+    {
+        // Test other escaped characters that fall into the default case
+        $patterns = [
+            '\.' => '.',
+            '\*' => '*',
+            '\+' => '+',
+            '\?' => '?',
+            '\[' => '[',
+            '\]' => ']',
+            '\(' => '(',
+            '\)' => ')',
+            '\{' => '{',
+            '\}' => '}',
+            '\|' => '|',
+            '\^' => '^',
+            '\$' => '$',
+            '\-' => '-',
+            '\/' => '/',
+        ];
+
+        foreach ($patterns as $pattern => $expectedValue) {
+            $lexer = new Lexer($pattern);
+            $tokens = $lexer->tokenize();
+
+            $this->assertSame(TokenType::T_LITERAL_ESCAPED, $tokens[0]->type, "Failed for: {$pattern}");
+            $this->assertSame($expectedValue, $tokens[0]->value, "Failed for: {$pattern}");
+        }
+    }
+
+    public function test_unicode_property_with_underscores_and_digits(): void
+    {
+        // Test property names with underscores and digits
+        $patterns = [
+            '\p{Script_Extensions}' => 'Script_Extensions',
+            '\P{Script_Extensions}' => '^Script_Extensions',
+            '\p{InBasic_Latin}' => 'InBasic_Latin',
+        ];
+
+        foreach ($patterns as $pattern => $expectedValue) {
+            $lexer = new Lexer($pattern);
+            $tokens = $lexer->tokenize();
+
+            $this->assertSame(
+                $expectedValue,
+                $tokens[0]->value,
+                "Failed for pattern: {$pattern}"
+            );
+        }
+    }
+
+    public function test_quote_mode_with_newlines_and_special_chars(): void
+    {
+        $lexer = new Lexer("\Q\n\t\r\E");
+        $tokens = $lexer->tokenize();
+
+        // In quote mode, escape sequences are literal
+        $this->assertCount(2, $tokens); // Literal + EOF
+        $this->assertSame("\n\t\r", $tokens[0]->value);
+    }
+
+    public function test_backref_edge_cases(): void
+    {
+        // Test various backreference formats
+        $patterns = [
+            '\k<name123>',
+            '\k{name_test}',
+            '\k<_underscore>',
+        ];
+
+        foreach ($patterns as $pattern) {
+            $lexer = new Lexer($pattern);
+            $tokens = $lexer->tokenize();
+
+            $this->assertSame(TokenType::T_BACKREF, $tokens[0]->type, "Failed for: {$pattern}");
+        }
+    }
+
+    public function test_g_reference_edge_cases(): void
+    {
+        // Test g-reference with various formats
+        $patterns = [
+            '\g0',
+            '\g99',
+            '\g-99',
+            '\g+99',
+            '\g{name_123}',
+            '\g<name_456>',
+        ];
+
+        foreach ($patterns as $pattern) {
+            $lexer = new Lexer($pattern);
+            $tokens = $lexer->tokenize();
+
+            $this->assertSame(TokenType::T_G_REFERENCE, $tokens[0]->type, "Failed for: {$pattern}");
+        }
+    }
+
+    public function test_comment_token(): void
+    {
+        $lexer = new Lexer('(?#comment here)');
+        $tokens = $lexer->tokenize();
+
+        // Should have comment open token
+        $this->assertSame(TokenType::T_COMMENT_OPEN, $tokens[0]->type);
+    }
+
+    public function test_group_modifier_open(): void
+    {
+        $lexer = new Lexer('(?i)');
+        $tokens = $lexer->tokenize();
+
+        $this->assertSame(TokenType::T_GROUP_MODIFIER_OPEN, $tokens[0]->type);
+    }
+
+    public function test_complex_pattern_with_all_token_types(): void
+    {
+        // Complex pattern using many different token types
+        $lexer = new Lexer('(?>abc|def)\d+[[:alpha:]]\p{L}\K\b');
+        $tokens = $lexer->tokenize();
+
+        // Just verify it tokenizes without error and produces tokens
+        $this->assertGreaterThan(5, count($tokens));
+        
+        // Verify we have various token types
+        $types = array_map(fn($t) => $t->type, $tokens);
+        $this->assertContains(TokenType::T_GROUP_MODIFIER_OPEN, $types);
+    }
+
+    public function test_octal_legacy_all_variants(): void
+    {
+        // Test all octal legacy variants
+        $patterns = [
+            '\00' => '00',
+            '\000' => '000',
+        ];
+
+        foreach ($patterns as $pattern => $expectedValue) {
+            $lexer = new Lexer($pattern);
+            $tokens = $lexer->tokenize();
+
+            $this->assertSame(TokenType::T_OCTAL_LEGACY, $tokens[0]->type);
+            $this->assertSame($expectedValue, $tokens[0]->value, "Failed for: {$pattern}");
+        }
+    }
+
+    public function test_quote_mode_empty_before_end(): void
+    {
+        // Test when lexQuoteMode returns null (empty content at \E)
+        $lexer = new Lexer('a\Q\Eb\Q\Ec');
+        $tokens = $lexer->tokenize();
+
+        // Should have: a, b, c, EOF (no tokens from empty \Q\E)
+        $values = array_map(fn($t) => $t->value, array_filter($tokens, fn($t) => $t->type !== TokenType::T_EOF));
+        
+        $this->assertContains('a', $values);
+        $this->assertContains('b', $values);
+        $this->assertContains('c', $values);
+    }
+
+    public function test_pcre_verbs_with_arguments(): void
+    {
+        $patterns = [
+            '(*:NAME)',
+            '(*MARK:test)',
+            '(*PRUNE:label)',
+            '(*THEN:foo)',
+        ];
+
+        foreach ($patterns as $pattern) {
+            $lexer = new Lexer($pattern);
+            $tokens = $lexer->tokenize();
+
+            $this->assertSame(TokenType::T_PCRE_VERB, $tokens[0]->type, "Failed for: {$pattern}");
+            $this->assertNotEmpty($tokens[0]->value);
+        }
+    }
+}
