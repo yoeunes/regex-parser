@@ -266,6 +266,15 @@ class Parser
                 throw new ParserException('Quantifier without target at position '.$token->position);
             }
 
+            // Check if it's a group containing an empty literal or empty sequence
+            if ($node instanceof GroupNode) {
+                $child = $node->child;
+                if (($child instanceof LiteralNode && '' === $child->value) ||
+                    ($child instanceof SequenceNode && empty($child->children))) {
+                    throw new ParserException('Quantifier without target at position '.$token->position);
+                }
+            }
+
             // Assertions, anchors, and verbs cannot be quantified.
             if ($node instanceof AnchorNode || $node instanceof AssertionNode || $node instanceof PcreVerbNode || $node instanceof KeepNode) {
                 $nodeName = match (true) {
