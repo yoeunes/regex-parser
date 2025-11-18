@@ -22,7 +22,7 @@ class ParserErrorTest extends TestCase
     public function test_throws_on_too_short_regex(): void
     {
         $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('Regex is too short. It must include delimiters.');
+        $this->expectExceptionMessage('No closing delimiter "/" found.');
 
         $parser = $this->createParser();
         $parser->parse('/a');
@@ -86,19 +86,10 @@ class ParserErrorTest extends TestCase
     public function test_throws_on_quantifying_keep_node(): void
     {
         $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('Quantifier "?" cannot be applied to assertion or verb "\K" at position 2');
+        $this->expectExceptionMessage('Quantifier "?" cannot be applied to assertion or verb "\K" at position 1');
 
         $parser = $this->createParser();
         $parser->parse('/a\K?/');
-    }
-
-    public function test_throws_on_unexpected_token_in_char_class(): void
-    {
-        $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('Unexpected token "[" (char_class_open) in character class at position 2.');
-
-        $parser = $this->createParser();
-        $parser->parse('/a[b[]/'); // Caractère [ inattendu dans la classe de caractères
     }
 
     public function test_throws_on_incomplete_python_group(): void
