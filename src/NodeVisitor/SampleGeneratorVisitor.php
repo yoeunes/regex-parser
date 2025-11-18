@@ -326,6 +326,10 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
             'lower' => $this->getRandomChar(['a', 'b', 'c', 'z']),
             'upper' => $this->getRandomChar(['A', 'B', 'C', 'Z']),
             'punct' => $this->getRandomChar(['.', '!', ',', '?']),
+            'word' => $this->getRandomChar(['a', 'Z', '0', '9', '_']),
+            'blank' => $this->getRandomChar([' ', "\t"]),
+            'cntrl' => "\x00", // Control character
+            'graph', 'print' => $this->getRandomChar(['!', '@', '#']),
             default => $this->getRandomChar(['a', '1', ' ']),
         };
     }

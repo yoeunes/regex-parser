@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\Parser;
 
+use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\ParserException;
 use RegexParser\Node\AlternationNode;
@@ -382,6 +383,58 @@ class ParserTest extends TestCase
         $this->assertInstanceOf(ConditionalNode::class, $conditional);
         $this->assertInstanceOf(BackrefNode::class, $conditional->condition);
         $this->assertSame('name', $conditional->condition->ref);
+    }
+
+    public function test_python_named_group_syntax(): void
+    {
+        // (?P<name>...)
+        $ast = $this->parser->parse('/(?P<foo>a)/');
+        $this->assertInstanceOf(GroupNode::class, $ast->pattern);
+        $this->assertSame('foo', $ast->pattern->name);
+
+        // (?P'name'...)
+        $ast = $this->parser->parse("/(?P'bar'a)/");
+        $this->assertInstanceOf(GroupNode::class, $ast->pattern);
+        $this->assertSame('bar', $ast->pattern->name);
+
+        // (?P"name"...)
+        $ast = $this->parser->parse('/(?P"baz"a)/');
+        $this->assertInstanceOf(GroupNode::class, $ast->pattern);
+        $this->assertSame('baz', $ast->pattern->name);
+    }
+
+    public function test_python_named_group_invalid_syntax(): void
+    {
+        $this->expectException(ParserException::class);
+        // Missing name quotes or brackets
+        $this->parser->parse('/(?P=foo)/'); // Backref syntax, not currently supported in parser logic for groups
+    }
+
+    public function test_max_pattern_length(): void
+    {
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('Regex pattern exceeds maximum length');
+
+        $parser = new Parser(['max_pattern_length' => 5]);
+        $parser->parse('/toolong/');
+    }
+
+    public function test_invalid_range_codepoints_are_parsed_but_invalid(): void
+    {
+        // The parser itself allows [z-a], checking semantics is done by the Validator.
+        // So we assert that it parses into a RangeNode successfully.
+        $ast = $this->parser->parse('/[z-a]/');
+
+        $this->assertInstanceOf(CharClassNode::class, $ast->pattern);
+        $this->assertNotEmpty($ast->pattern->parts);
+        $this->assertInstanceOf(RangeNode::class, $ast->pattern->parts[0]);
+    }
+
+    #[DoesNotPerformAssertions]
+    public function test_parse_conditional_define(): void
+    {
+        // (?(DEFINE)...)
+        $ast = $this->parser->parse('/(?(DEFINE)(?<A>a))(?&A)/');
     }
 
     private function createParser(): Parser
