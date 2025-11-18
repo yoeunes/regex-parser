@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the RegexParser package.
  *
@@ -25,7 +27,9 @@ use Symfony\Component\VarDumper\Cloner\Data;
  */
 class RegexCollector extends DataCollector implements LateDataCollectorInterface
 {
-    /** @var CollectedRegex[] */
+    /**
+     * @var array<CollectedRegex>
+     */
     private array $collectedRegexes = [];
 
     public function __construct(
@@ -56,7 +60,7 @@ class RegexCollector extends DataCollector implements LateDataCollectorInterface
             $pattern,
             $source,
             $subject,
-            $matchResult
+            $matchResult,
         );
     }
 
@@ -78,7 +82,7 @@ class RegexCollector extends DataCollector implements LateDataCollectorInterface
         foreach ($this->collectedRegexes as $collected) {
             $validation = $this->regex->validate($collected->pattern);
             if (!$validation->isValid) {
-                ++$invalidCount;
+                $invalidCount++;
             }
 
             try {
@@ -113,6 +117,7 @@ class RegexCollector extends DataCollector implements LateDataCollectorInterface
         return 'regex_parser.collector';
     }
 
+    #[\Override]
     public function reset(): void
     {
         $this->data = [];

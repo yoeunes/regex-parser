@@ -50,11 +50,5 @@
         "phpstan/phpstan": "To run static analysis and detect invalid regex patterns.",
         "phpstan/extension-installer": "To automatically enable the PHPStan rule for regex validation.",
         "rector/rector": "To automatically refactor and optimize regex patterns."
-    },
-    "scripts": {
-        "test": "phpunit",
-        "analyse": "./tools/phpstan/vendor/bin/phpstan analyse",
-        "phpcs": "./tools/php-cs-fixer/vendor/bin/php-cs-fixer fix",
-        "bench": "./tools/phpbench/vendor/bin/phpbench run --report=default"
     }
 }

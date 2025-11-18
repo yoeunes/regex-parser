@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the RegexParser package.
  *
@@ -53,14 +55,12 @@ use RegexParser\Node\UnicodePropNode;
  */
 class OptimizerNodeVisitor implements NodeVisitorInterface
 {
-    private string $flags = '';
-
     /**
      * Characters that are meta-characters inside a character class.
-     *
-     * @var array<string, true>
      */
-    private const CHAR_CLASS_META = [']' => true, '\\' => true, '^' => true, '-' => true];
+    private const array CHAR_CLASS_META = [']' => true, '\\' => true, '^' => true, '-' => true];
+
+    private string $flags = '';
 
     public function visitRegex(RegexNode $node): NodeInterface
     {
@@ -108,32 +108,6 @@ class OptimizerNodeVisitor implements NodeVisitorInterface
         return new AlternationNode($optimizedAlts, $node->startPos, $node->endPos);
     }
 
-    /**
-     * Checks if an AlternationNode contains only single, non-meta literal characters.
-     *
-     * @param array<NodeInterface> $alternatives
-     */
-    private function canAlternationBeCharClass(array $alternatives): bool
-    {
-        if (empty($alternatives)) {
-            return false;
-        }
-
-        foreach ($alternatives as $alt) {
-            if (!$alt instanceof LiteralNode) {
-                return false;
-            }
-            if (mb_strlen($alt->value) > 1) {
-                return false; // Not a single char
-            }
-            if (isset(self::CHAR_CLASS_META[$alt->value])) {
-                return false; // Meta char, safer to leave as alternation
-            }
-        }
-
-        return true;
-    }
-
     public function visitSequence(SequenceNode $node): NodeInterface
     {
         $optimizedChildren = [];
@@ -150,9 +124,10 @@ class OptimizerNodeVisitor implements NodeVisitorInterface
                     $optimizedChildren[\count($optimizedChildren) - 1] = new LiteralNode(
                         $prevNode->value.$optimizedChild->value,
                         $prevNode->startPos,
-                        $optimizedChild->endPos
+                        $optimizedChild->endPos,
                     );
                     $hasChanged = true;
+
                     continue;
                 }
             }
@@ -163,12 +138,14 @@ class OptimizerNodeVisitor implements NodeVisitorInterface
                 // sequence have already been merged by its own visitSequence call.
                 array_push($optimizedChildren, ...$optimizedChild->children);
                 $hasChanged = true;
+
                 continue;
             }
 
             // Optimization: Remove empty literals (e.g. from an empty group)
             if ($optimizedChild instanceof LiteralNode && '' === $optimizedChild->value) {
                 $hasChanged = true;
+
                 continue;
             }
 
@@ -293,23 +270,6 @@ class OptimizerNodeVisitor implements NodeVisitorInterface
         return $node;
     }
 
-    private function isFullWordClass(CharClassNode $node): bool
-    {
-        $partsFound = ['a-z' => false, 'A-Z' => false, '0-9' => false, '_' => false];
-        foreach ($node->parts as $part) {
-            if ($part instanceof RangeNode && $part->start instanceof LiteralNode && $part->end instanceof LiteralNode) {
-                $range = $part->start->value.'-'.$part->end->value;
-                if (isset($partsFound[$range])) {
-                    $partsFound[$range] = true;
-                }
-            } elseif ($part instanceof LiteralNode && '_' === $part->value) {
-                $partsFound['_'] = true;
-            }
-        }
-
-        return !\in_array(false, $partsFound, true);
-    }
-
     public function visitRange(RangeNode $node): NodeInterface
     {
         // Start and End are simple nodes, no need to visit
@@ -404,5 +364,48 @@ class OptimizerNodeVisitor implements NodeVisitorInterface
     public function visitPcreVerb(PcreVerbNode $node): NodeInterface
     {
         return $node;
+    }
+
+    /**
+     * Checks if an AlternationNode contains only single, non-meta literal characters.
+     *
+     * @param array<NodeInterface> $alternatives
+     */
+    private function canAlternationBeCharClass(array $alternatives): bool
+    {
+        if (empty($alternatives)) {
+            return false;
+        }
+
+        foreach ($alternatives as $alt) {
+            if (!$alt instanceof LiteralNode) {
+                return false;
+            }
+            if (mb_strlen($alt->value) > 1) {
+                return false; // Not a single char
+            }
+            if (isset(self::CHAR_CLASS_META[$alt->value])) {
+                return false; // Meta char, safer to leave as alternation
+            }
+        }
+
+        return true;
+    }
+
+    private function isFullWordClass(CharClassNode $node): bool
+    {
+        $partsFound = ['a-z' => false, 'A-Z' => false, '0-9' => false, '_' => false];
+        foreach ($node->parts as $part) {
+            if ($part instanceof RangeNode && $part->start instanceof LiteralNode && $part->end instanceof LiteralNode) {
+                $range = $part->start->value.'-'.$part->end->value;
+                if (isset($partsFound[$range])) {
+                    $partsFound[$range] = true;
+                }
+            } elseif ($part instanceof LiteralNode && '_' === $part->value) {
+                $partsFound['_'] = true;
+            }
+        }
+
+        return !\in_array(false, $partsFound, true);
     }
 }

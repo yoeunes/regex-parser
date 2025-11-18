@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the RegexParser package.
  *
@@ -24,8 +26,7 @@ abstract class AbstractNode implements NodeInterface
     public function __construct(
         public readonly int $startPos,
         public readonly int $endPos,
-    ) {
-    }
+    ) {}
 
     public function getStartPosition(): int
     {

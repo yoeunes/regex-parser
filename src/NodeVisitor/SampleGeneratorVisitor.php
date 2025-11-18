@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the RegexParser package.
  *
@@ -43,34 +45,7 @@ use RegexParser\Node\UnicodePropNode;
  */
 class SampleGeneratorVisitor implements NodeVisitorInterface
 {
-    private bool $isSeeded = false;
-
-    /**
-     * @param int $maxRepetition max times to repeat for * or + quantifiers
-     *                           to prevent excessively long or infinite samples
-     */
-    public function __construct(private readonly int $maxRepetition = 3)
-    {
-    }
-
-    /**
-     * Seeds the Mersenne Twister random number generator.
-     * This allows for generating deterministic, reproducible samples.
-     */
-    public function setSeed(int $seed): void
-    {
-        mt_srand($seed);
-        $this->isSeeded = true;
-    }
-
-    /**
-     * Reseeds the random number generator with a random value.
-     */
-    public function resetSeed(): void
-    {
-        mt_srand();
-        $this->isSeeded = false;
-    }
+    private ?int $seed = null;
 
     /**
      * Stores generated text from capturing groups.
@@ -79,7 +54,33 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
      * @var array<int|string, string>
      */
     private array $captures = [];
+
     private int $groupCounter = 1;
+
+    /**
+     * @param int $maxRepetition max times to repeat for * or + quantifiers
+     *                           to prevent excessively long or infinite samples
+     */
+    public function __construct(private readonly int $maxRepetition = 3) {}
+
+    /**
+     * Seeds the Mersenne Twister random number generator.
+     * This allows for generating deterministic, reproducible samples.
+     */
+    public function setSeed(int $seed): void
+    {
+        $this->seed = $seed;
+        mt_srand($seed);
+    }
+
+    /**
+     * Reseeds the random number generator with a random value.
+     */
+    public function resetSeed(): void
+    {
+        $this->seed = null;
+        mt_srand();
+    }
 
     public function visitRegex(RegexNode $node): string
     {
@@ -88,11 +89,8 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
         $this->groupCounter = 1;
 
         // Ensure we are seeded if the user expects it
-        if ($this->isSeeded) {
-            // Re-seed to ensure subsequent calls to generate() with the same seed
-            // produce the same result.
-            mt_srand(mt_rand()); // This is a bit of a hack, but it's how PHP's seed works
-            mt_srand(); // Reset to a known state if we need to
+        if (null !== $this->seed) {
+            mt_srand($this->seed);
         }
 
         // Note: Flags (like /i) are ignored, as we generate the sample
@@ -152,39 +150,11 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
         }
 
         $parts = [];
-        for ($i = 0; $i < $repeats; ++$i) {
+        for ($i = 0; $i < $repeats; $i++) {
             $parts[] = $node->node->accept($this);
         }
 
         return implode('', $parts);
-    }
-
-    /**
-     * @return array{0: int, 1: int} [min, max]
-     */
-    private function parseQuantifierRange(string $q): array
-    {
-        $range = match ($q) {
-            '*' => [0, $this->maxRepetition],
-            '+' => [1, $this->maxRepetition],
-            '?' => [0, 1],
-            default => preg_match('/^\{(\d+)(?:,(\d*))?\}$/', $q, $m) ?
-                (isset($m[2]) ? ('' === $m[2] ?
-                    [(int) $m[1], (int) $m[1] + $this->maxRepetition] : // {n,}
-                    [(int) $m[1], (int) $m[2]] // {n,m}
-                ) :
-                    [(int) $m[1], (int) $m[1]] // {n}
-                ) :
-                [0, 0], // Fallback
-        };
-
-        // Ensure min <= max, as Validator may not have run.
-        // This handles invalid cases like {5,2} and silences PHPStan
-        if ($range[1] < $range[0]) {
-            $range[1] = $range[0];
-        }
-
-        return $range;
     }
 
     public function visitLiteral(LiteralNode $node): string
@@ -386,6 +356,34 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
     {
         // Verbs do not generate text
         return '';
+    }
+
+    /**
+     * @return array{0: int, 1: int} [min, max]
+     */
+    private function parseQuantifierRange(string $q): array
+    {
+        $range = match ($q) {
+            '*' => [0, $this->maxRepetition],
+            '+' => [1, $this->maxRepetition],
+            '?' => [0, 1],
+            default => preg_match('/^\{(\d+)(?:,(\d*))?\}$/', $q, $m) ?
+                (isset($m[2]) ? ('' === $m[2] ?
+                    [(int) $m[1], (int) $m[1] + $this->maxRepetition] : // {n,}
+                    [(int) $m[1], (int) $m[2]] // {n,m}
+                ) :
+                    [(int) $m[1], (int) $m[1]] // {n}
+                ) :
+                [0, 0], // Fallback
+        };
+
+        // Ensure min <= max, as Validator may not have run.
+        // This handles invalid cases like {5,2} and silences PHPStan
+        if ($range[1] < $range[0]) {
+            $range[1] = $range[0];
+        }
+
+        return $range;
     }
 
     /**

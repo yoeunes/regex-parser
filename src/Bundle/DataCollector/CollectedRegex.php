@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the RegexParser package.
  *
@@ -21,6 +23,5 @@ class CollectedRegex
         public readonly string $source,
         public readonly ?string $subject,
         public readonly ?bool $matchResult,
-    ) {
-    }
+    ) {}
 }

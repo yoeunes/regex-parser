@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the RegexParser package.
  *
@@ -45,17 +47,18 @@ use RegexParser\Node\UnicodePropNode;
 class CompilerNodeVisitor implements NodeVisitorInterface
 {
     // PCRE meta-characters that must be escaped *outside* a character class.
-    private const META_CHARACTERS = [
+    private const array META_CHARACTERS = [
         '\\' => true, '.' => true, '^' => true, '$' => true,
         '[' => true, ']' => true, '(' => true, ')' => true,
         '|' => true, '*' => true, '+' => true, '?' => true, '{' => true, '}' => true,
+        '/' => true,
     ];
 
     // Meta-characters that must be escaped *inside* a character class.
-    // The parser correctly identifies positional meta-chars (like ^, -, ])
-    // as literals, so we only need to worry about \ and ].
-    private const CHAR_CLASS_META = [
-        '\\' => true, ']' => true,
+    // '-' is crucial to escape to prevent creating unintended ranges.
+    // '^' is crucial to escape to prevent unintended negation if placed at start.
+    private const array CHAR_CLASS_META = [
+        '\\' => true, ']' => true, '-' => true, '^' => true,
     ];
 
     /**

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the RegexParser package.
  *
@@ -44,8 +46,7 @@ use RegexParser\Node\UnicodePropNode;
  */
 class ExplainVisitor implements NodeVisitorInterface
 {
-    /** @var array<string, string> */
-    private const CHAR_TYPE_MAP = [
+    private const array CHAR_TYPE_MAP = [
         'd' => 'any digit (0-9)',
         'D' => 'any non-digit',
         's' => 'any whitespace character',
@@ -59,14 +60,12 @@ class ExplainVisitor implements NodeVisitorInterface
         'R' => 'a generic newline (\\r\\n, \\r, or \\n)',
     ];
 
-    /** @var array<string, string> */
-    private const ANCHOR_MAP = [
+    private const array ANCHOR_MAP = [
         '^' => 'the start of the string (or line, with /m flag)',
         '$' => 'the end of the string (or line, with /m flag)',
     ];
 
-    /** @var array<string, string> */
-    private const ASSERTION_MAP = [
+    private const array ASSERTION_MAP = [
         'A' => 'the absolute start of the string',
         'z' => 'the absolute end of the string',
         'Z' => 'the end of the string (before final newline)',
@@ -88,19 +87,19 @@ class ExplainVisitor implements NodeVisitorInterface
 
     public function visitAlternation(AlternationNode $node): string
     {
-        ++$this->indentLevel;
+        $this->indentLevel++;
         $alts = array_map(
             fn (NodeInterface $alt) => $alt->accept($this),
-            $node->alternatives
+            $node->alternatives,
         );
-        --$this->indentLevel;
+        $this->indentLevel--;
 
         $indent = $this->indent();
 
         return \sprintf(
             "EITHER:\n%s%s",
             $indent,
-            implode(\sprintf("\n%sOR:\n%s", $indent, $indent), $alts)
+            implode(\sprintf("\n%sOR:\n%s", $indent, $indent), $alts),
         );
     }
 
@@ -116,9 +115,9 @@ class ExplainVisitor implements NodeVisitorInterface
 
     public function visitGroup(GroupNode $node): string
     {
-        ++$this->indentLevel;
+        $this->indentLevel++;
         $childExplain = $node->child->accept($this);
-        --$this->indentLevel;
+        $this->indentLevel--;
 
         $indent = $this->indent();
         $type = match ($node->type) {
@@ -147,42 +146,17 @@ class ExplainVisitor implements NodeVisitorInterface
         }
 
         // If the child is complex, indent it.
-        ++$this->indentLevel;
+        $this->indentLevel++;
         $childExplain = $node->node->accept($this);
-        --$this->indentLevel;
+        $this->indentLevel--;
 
         return \sprintf(
             "Start Quantified Group (%s):\n%s%s\n%sEnd Quantified Group",
             $quantExplain,
             $this->indent(),
             $childExplain,
-            $this->indent(false)
+            $this->indent(false),
         );
-    }
-
-    private function explainQuantifierValue(string $q, string $type): string
-    {
-        $desc = match ($q) {
-            '*' => 'zero or more times',
-            '+' => 'one or more times',
-            '?' => 'zero or one time',
-            default => preg_match('/^\{(\d+)(?:,(\d*))?\}$/', $q, $m) ?
-                (isset($m[2]) ? ('' === $m[2] ?
-                    \sprintf('at least %d times', $m[1]) :
-                    \sprintf('between %d and %d times', $m[1], $m[2])
-                ) :
-                    \sprintf('exactly %d times', $m[1])
-                ) :
-                'with quantifier '.$q, // Fallback
-        };
-
-        $desc .= match ($type) {
-            'lazy' => ' (as few as possible)',
-            'possessive' => ' (and do not backtrack)',
-            default => '',
-        };
-
-        return $desc;
     }
 
     public function visitLiteral(LiteralNode $node): string
@@ -276,11 +250,11 @@ class ExplainVisitor implements NodeVisitorInterface
 
     public function visitConditional(ConditionalNode $node): string
     {
-        ++$this->indentLevel;
+        $this->indentLevel++;
         $cond = $node->condition->accept($this);
         $yes = $node->yes->accept($this);
         $no = $node->no->accept($this);
-        --$this->indentLevel;
+        $this->indentLevel--;
 
         $indent = $this->indent();
 
@@ -305,6 +279,31 @@ class ExplainVisitor implements NodeVisitorInterface
     public function visitPcreVerb(PcreVerbNode $node): string
     {
         return 'PCRE Verb: (*'.$node->verb.')';
+    }
+
+    private function explainQuantifierValue(string $q, string $type): string
+    {
+        $desc = match ($q) {
+            '*' => 'zero or more times',
+            '+' => 'one or more times',
+            '?' => 'zero or one time',
+            default => preg_match('/^\{(\d+)(?:,(\d*))?\}$/', $q, $m) ?
+                (isset($m[2]) ? ('' === $m[2] ?
+                    \sprintf('at least %d times', $m[1]) :
+                    \sprintf('between %d and %d times', $m[1], $m[2])
+                ) :
+                    \sprintf('exactly %d times', $m[1])
+                ) :
+                'with quantifier '.$q, // Fallback
+        };
+
+        $desc .= match ($type) {
+            'lazy' => ' (as few as possible)',
+            'possessive' => ' (and do not backtrack)',
+            default => '',
+        };
+
+        return $desc;
     }
 
     private function indent(bool $withExtra = true): string

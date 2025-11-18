@@ -1,0 +1,133 @@
+<?php
+
+declare(strict_types=1);
+
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+namespace RegexParser\Tests\NodeVisitor;
+
+use PHPUnit\Framework\TestCase;
+use RegexParser\Node\AlternationNode;
+use RegexParser\Node\CharClassNode;
+use RegexParser\Node\CharTypeNode;
+use RegexParser\Node\LiteralNode;
+use RegexParser\Node\QuantifierNode;
+use RegexParser\Node\RegexNode;
+use RegexParser\NodeVisitor\OptimizerNodeVisitor;
+use RegexParser\Parser;
+
+class OptimizerNodeVisitorTest extends TestCase
+{
+    public function test_merge_adjacent_literals(): void
+    {
+        $parser = new Parser();
+        $ast = $parser->parse('/abc/');
+        $optimizer = new OptimizerNodeVisitor();
+
+        $newAst = $ast->accept($optimizer);
+
+        $this->assertInstanceOf(RegexNode::class, $newAst);
+        $this->assertInstanceOf(LiteralNode::class, $newAst->pattern);
+        $this->assertSame('abc', $newAst->pattern->value);
+    }
+
+    public function test_flatten_alternations(): void
+    {
+        // We use long strings ("beta", "gamma") to prevent
+        // the optimizer from converting (b|c) into [bc] (CharClass).
+        // We specifically want to test the merging of AlternationNode.
+
+        $nestedAlt = new AlternationNode([
+            new LiteralNode('beta', 0, 0),
+            new LiteralNode('gamma', 0, 0),
+        ], 0, 0);
+
+        $rootAlt = new AlternationNode([
+            new LiteralNode('alpha', 0, 0),
+            $nestedAlt,
+            new LiteralNode('delta', 0, 0),
+        ], 0, 0);
+
+        $optimizer = new OptimizerNodeVisitor();
+
+        /** @var AlternationNode $newAst */
+        $newAst = $rootAlt->accept($optimizer);
+
+        // The optimizer should have "lifted" beta and gamma to the root level -> 4 alternatives
+        $this->assertCount(4, $newAst->alternatives);
+        $this->assertInstanceOf(LiteralNode::class, $newAst->alternatives[1]);
+        $this->assertSame('beta', $newAst->alternatives[1]->value);
+    }
+
+    public function test_alternation_to_char_class_optimization(): void
+    {
+        $parser = new Parser();
+        $ast = $parser->parse('/a|b|c/');
+        $optimizer = new OptimizerNodeVisitor();
+
+        $newAst = $ast->accept($optimizer);
+
+        $this->assertInstanceOf(RegexNode::class, $newAst);
+        $this->assertInstanceOf(CharClassNode::class, $newAst->pattern);
+        $this->assertCount(3, $newAst->pattern->parts);
+    }
+
+    public function test_digit_optimization(): void
+    {
+        $parser = new Parser();
+        $ast = $parser->parse('/[0-9]/');
+        $optimizer = new OptimizerNodeVisitor();
+
+        $newAst = $ast->accept($optimizer);
+
+        $this->assertInstanceOf(RegexNode::class, $newAst);
+        $this->assertInstanceOf(CharTypeNode::class, $newAst->pattern);
+        $this->assertSame('d', $newAst->pattern->value);
+    }
+
+    public function test_remove_useless_non_capturing_group(): void
+    {
+        $parser = new Parser();
+        $ast = $parser->parse('/(?:abc)/');
+        $optimizer = new OptimizerNodeVisitor();
+
+        $newAst = $ast->accept($optimizer);
+
+        $this->assertInstanceOf(RegexNode::class, $newAst);
+        $this->assertInstanceOf(LiteralNode::class, $newAst->pattern);
+        $this->assertSame('abc', $newAst->pattern->value);
+    }
+
+    public function test_quantifier_optimization(): void
+    {
+        $parser = new Parser();
+        $ast = $parser->parse('/(?:a)*/');
+        $optimizer = new OptimizerNodeVisitor();
+
+        $newAst = $ast->accept($optimizer);
+
+        $this->assertInstanceOf(RegexNode::class, $newAst);
+        $this->assertInstanceOf(QuantifierNode::class, $newAst->pattern);
+        $this->assertInstanceOf(LiteralNode::class, $newAst->pattern->node);
+    }
+
+    public function test_optimization_does_not_break_semantics_with_hyphen(): void
+    {
+        $parser = new Parser();
+        $ast = $parser->parse('/a|-|z/');
+        $optimizer = new OptimizerNodeVisitor();
+
+        $newAst = $ast->accept($optimizer);
+
+        $this->assertInstanceOf(RegexNode::class, $newAst);
+        $this->assertInstanceOf(AlternationNode::class, $newAst->pattern);
+        $this->assertCount(3, $newAst->pattern->alternatives);
+    }
+}

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the RegexParser package.
  *
@@ -20,6 +22,5 @@ class ValidationResult
         public readonly bool $isValid,
         public readonly ?string $error = null,
         public readonly int $complexityScore = 0,
-    ) {
-    }
+    ) {}
 }

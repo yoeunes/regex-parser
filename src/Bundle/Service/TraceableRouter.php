@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the RegexParser package.
  *
@@ -22,13 +24,12 @@ use Symfony\Component\Routing\RouterInterface;
 /**
  * Decorates the Symfony Router to trace regex usage.
  */
-class TraceableRouter implements RouterInterface, RequestMatcherInterface
+class TraceableRouter implements RequestMatcherInterface, RouterInterface
 {
     public function __construct(
         private readonly RouterInterface $router,
         private readonly RegexCollector $collector,
-    ) {
-    }
+    ) {}
 
     public function setContext(RequestContext $context): void
     {
@@ -59,14 +60,17 @@ class TraceableRouter implements RouterInterface, RequestMatcherInterface
     public function match(string $pathinfo): array
     {
         try {
+            /**
+             * @var array<string, mixed> $result
+             */
             $result = $this->router->match($pathinfo);
-            /** @var array<string, mixed> $result */
             $routeName = $result['_route'] ?? null;
             $this->collectRouteRegex(\is_string($routeName) ? $routeName : null, $pathinfo, true);
 
             return $result;
         } catch (RouteNotFoundException $e) {
             $this->collectRouteRegex(null, $pathinfo, false);
+
             throw $e;
         }
     }
@@ -82,14 +86,17 @@ class TraceableRouter implements RouterInterface, RequestMatcherInterface
         }
 
         try {
+            /**
+             * @var array<string, mixed> $result
+             */
             $result = $this->router->matchRequest($request);
-            /** @var array<string, mixed> $result */
             $routeName = $result['_route'] ?? null;
             $this->collectRouteRegex(\is_string($routeName) ? $routeName : null, $request->getPathInfo(), true);
 
             return $result;
         } catch (RouteNotFoundException $e) {
             $this->collectRouteRegex(null, $request->getPathInfo(), false);
+
             throw $e;
         }
     }
@@ -118,7 +125,7 @@ class TraceableRouter implements RouterInterface, RequestMatcherInterface
                     $requirementStr,
                     \sprintf('Router (Requirement: %s)', $key),
                     $subject,
-                    $matchResult
+                    $matchResult,
                 );
             }
         }
@@ -130,7 +137,7 @@ class TraceableRouter implements RouterInterface, RequestMatcherInterface
                 $compiled->getRegex(),
                 \sprintf('Router (Route: %s)', $routeName),
                 $subject,
-                $matchResult
+                $matchResult,
             );
         }
     }

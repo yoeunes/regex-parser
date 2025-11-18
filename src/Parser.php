@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the RegexParser package.
  *
@@ -52,14 +54,21 @@ class Parser
      */
     public const DEFAULT_MAX_PATTERN_LENGTH = 100000;
 
-    /** @var array<Token> */
+    /**
+     * @var array<Token>
+     */
     private array $tokens;
+
     private int $position = 0;
+
     private string $delimiter;
+
     private string $flags;
+
     private int $patternLength = 0;
 
     private readonly int $maxPatternLength;
+
     private ?Lexer $lexer = null;
 
     /**
@@ -76,27 +85,12 @@ class Parser
         $this->maxPatternLength = (int) $options['max_pattern_length'];
     }
 
-    private function getLexer(string $pattern): Lexer
-    {
-        // Re-use lexer instance if possible, but reset with new pattern
-        // This avoids re-instantiating the class but ensures state is clean.
-        // In a service-oriented context, this is less relevant, but for
-        // standalone usage, it's slightly more efficient.
-        if (null === $this->lexer) {
-            $this->lexer = new Lexer($pattern);
-        } else {
-            $this->lexer->reset($pattern);
-        }
-
-        return $this->lexer;
-    }
-
     /**
      * Parses the full regex string, including delimiters and flags.
      *
-     * @return RegexNode the root node of the AST, containing the pattern and flags
-     *
      * @throws ParserException if a syntax error is found
+     *
+     * @return RegexNode the root node of the AST, containing the pattern and flags
      */
     public function parse(string $regex): RegexNode
     {
@@ -121,13 +115,28 @@ class Parser
         return new RegexNode($patternNode, $this->flags, $this->delimiter, 0, $this->patternLength);
     }
 
+    private function getLexer(string $pattern): Lexer
+    {
+        // Re-use lexer instance if possible, but reset with new pattern
+        // This avoids re-instantiating the class but ensures state is clean.
+        // In a service-oriented context, this is less relevant, but for
+        // standalone usage, it's slightly more efficient.
+        if (null === $this->lexer) {
+            $this->lexer = new Lexer($pattern);
+        } else {
+            $this->lexer->reset($pattern);
+        }
+
+        return $this->lexer;
+    }
+
     /**
      * Extracts the pattern, flags, and delimiter from the full regex string.
      * This implementation is robust against escaped delimiters.
      *
-     * @return array{0: string, 1: string, 2: string} [pattern, flags, delimiter]
-     *
      * @throws ParserException
+     *
+     * @return array{0: string, 1: string, 2: string} [pattern, flags, delimiter]
      */
     private function extractPatternAndFlags(string $regex): array
     {
@@ -140,12 +149,12 @@ class Parser
         $closingDelimiter = $delimiterMap[$delimiter] ?? $delimiter;
         $length = \strlen($regex);
 
-        for ($i = $length - 1; $i > 0; --$i) {
+        for ($i = $length - 1; $i > 0; $i--) {
             if ($regex[$i] === $closingDelimiter) {
                 // Check if this delimiter is escaped by counting preceding backslashes.
                 $escapes = 0;
-                for ($j = $i - 1; $j > 0 && '\\' === $regex[$j]; --$j) {
-                    ++$escapes;
+                for ($j = $i - 1; $j > 0 && '\\' === $regex[$j]; $j--) {
+                    $escapes++;
                 }
 
                 if (0 === $escapes % 2) {
@@ -454,6 +463,7 @@ class Parser
         $at = $this->isAtEnd() ? 'end of input' : 'position '.$this->current()->position;
         $val = $this->current()->value;
         $type = $this->current()->type->value;
+
         throw new ParserException(\sprintf('Unexpected token "%s" (%s) at %s.', $val, $type, $at));
     }
 
@@ -546,6 +556,7 @@ class Parser
             if ($this->matchLiteral('=')) { // (?P=name) backref
                 throw new ParserException('Backreferences (?P=name) are not supported yet.');
             }
+
             throw new ParserException('Invalid syntax after (?P at position '.$startPos);
         }
 
@@ -609,7 +620,7 @@ class Parser
 
                 return new SubroutineNode('R', '', $startPos, $endPos);
             }
-            --$this->position; // Not a (?R) group, rewind 'R'
+            $this->position--; // Not a (?R) group, rewind 'R'
         }
 
         // Check for (?1), (?-1), (?0)
@@ -632,7 +643,7 @@ class Parser
             // Rewind all consumed digits and the optional '-'
             $this->position -= mb_strlen($num);
         } elseif ('-' === $num) {
-            --$this->position; // Rewind '-' if it wasn't followed by a digit
+            $this->position--; // Rewind '-' if it wasn't followed by a digit
         }
 
         // 5. Check for simple non-capturing, lookaheads, atomic
@@ -846,6 +857,7 @@ class Parser
             return new PosixClassNode($token->value, $startPos, $endPos);
         } else {
             $at = $this->isAtEnd() ? 'end of input' : 'position '.$this->current()->position;
+
             throw new ParserException(\sprintf('Unexpected token "%s" (%s) in character class at %s. Expected literal, range, or character type.', $this->current()->value, $this->current()->type->value, $at));
         }
 
@@ -855,7 +867,7 @@ class Parser
             if ($this->check(TokenType::T_CHAR_CLASS_CLOSE)) {
                 // This is a trailing "-", (e.g., "[a-]")
                 // We treat the "-" as a literal.
-                --$this->position; // Rewind to re-parse "-" as a literal in the next loop iteration
+                $this->position--; // Rewind to re-parse "-" as a literal in the next loop iteration
 
                 return $startNode;
             }
@@ -899,7 +911,7 @@ class Parser
             } else {
                 // This means a range ending with a meta-char, e.g. [a-\]
                 // We treat the "-" as a literal.
-                --$this->position; // Rewind
+                $this->position--; // Rewind
 
                 return $startNode;
             }
@@ -994,6 +1006,7 @@ class Parser
             return $token;
         }
         $at = $this->isAtEnd() ? 'end of input' : 'position '.$this->current()->position;
+
         throw new ParserException($error.' at '.$at.' (found '.$this->current()->type->value.')');
     }
 
@@ -1011,6 +1024,7 @@ class Parser
             return $token;
         }
         $at = $this->isAtEnd() ? 'end of input' : 'position '.$this->current()->position;
+
         throw new ParserException($error.' at '.$at.' (found '.$this->current()->type->value.' with value '.$this->current()->value.')');
     }
 
@@ -1032,7 +1046,7 @@ class Parser
     private function advance(): void
     {
         if (!$this->isAtEnd()) {
-            ++$this->position;
+            $this->position++;
         }
     }
 

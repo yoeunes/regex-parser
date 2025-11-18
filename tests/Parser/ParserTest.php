@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the RegexParser package.
  *
@@ -33,12 +35,7 @@ use RegexParser\Parser;
 
 class ParserTest extends TestCase
 {
-    private function createParser(): Parser
-    {
-        return new Parser();
-    }
-
-    public function testParseReturnsRegexNodeWithFlags(): void
+    public function test_parse_returns_regex_node_with_flags(): void
     {
         $parser = $this->createParser();
         $ast = $parser->parse('/foo/imsU');
@@ -47,7 +44,7 @@ class ParserTest extends TestCase
         $this->assertInstanceOf(SequenceNode::class, $ast->pattern);
     }
 
-    public function testParseLiteral(): void
+    public function test_parse_literal(): void
     {
         $parser = $this->createParser();
         $ast = $parser->parse('/foo/');
@@ -58,7 +55,7 @@ class ParserTest extends TestCase
         $this->assertCount(3, $pattern->children);
     }
 
-    public function testParseCharClass(): void
+    public function test_parse_char_class(): void
     {
         $parser = $this->createParser();
 
@@ -85,7 +82,7 @@ class ParserTest extends TestCase
         $this->assertSame('-', $pattern->parts[2]->value);
     }
 
-    public function testParseNegatedCharClass(): void
+    public function test_parse_negated_char_class(): void
     {
         $parser = $this->createParser();
 
@@ -98,7 +95,7 @@ class ParserTest extends TestCase
         $this->assertInstanceOf(RangeNode::class, $pattern->parts[0]);
     }
 
-    public function testParseGroupWithQuantifier(): void
+    public function test_parse_group_with_quantifier(): void
     {
         $parser = $this->createParser();
 
@@ -121,7 +118,7 @@ class ParserTest extends TestCase
         $this->assertSame('b', $sequenceChild->value);
     }
 
-    public function testParseAlternation(): void
+    public function test_parse_alternation(): void
     {
         $parser = $this->createParser();
 
@@ -148,7 +145,7 @@ class ParserTest extends TestCase
         $this->assertSame('b', $alt2Child->value);
     }
 
-    public function testParseOperatorPrecedence(): void
+    public function test_parse_operator_precedence(): void
     {
         $parser = $this->createParser();
 
@@ -179,7 +176,7 @@ class ParserTest extends TestCase
         $this->assertSame('c', $childC->value);
     }
 
-    public function testParseCharTypesAndDot(): void
+    public function test_parse_char_types_and_dot(): void
     {
         $parser = $this->createParser();
 
@@ -196,7 +193,7 @@ class ParserTest extends TestCase
         $this->assertSame('S', $pattern->children[2]->value);
     }
 
-    public function testParseAnchors(): void
+    public function test_parse_anchors(): void
     {
         $parser = $this->createParser();
 
@@ -217,7 +214,7 @@ class ParserTest extends TestCase
         $this->assertSame('$', $pattern->children[4]->value);
     }
 
-    public function testParseAssertions(): void
+    public function test_parse_assertions(): void
     {
         $parser = $this->createParser();
 
@@ -234,7 +231,7 @@ class ParserTest extends TestCase
         $this->assertSame('b', $pattern->children[4]->value);
     }
 
-    public function testParseUnicodeProp(): void
+    public function test_parse_unicode_prop(): void
     {
         $parser = $this->createParser();
 
@@ -245,7 +242,7 @@ class ParserTest extends TestCase
         $this->assertSame('L', $pattern->prop);
     }
 
-    public function testParseComment(): void
+    public function test_parse_comment(): void
     {
         $parser = $this->createParser();
 
@@ -256,7 +253,7 @@ class ParserTest extends TestCase
         $this->assertSame('test', $pattern->comment);
     }
 
-    public function testParseConditional(): void
+    public function test_parse_conditional(): void
     {
         $parser = $this->createParser();
 
@@ -280,7 +277,7 @@ class ParserTest extends TestCase
         $this->assertSame('', $pattern->no->value);
     }
 
-    public function testThrowsOnUnmatchedGroup(): void
+    public function test_throws_on_unmatched_group(): void
     {
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('Expected )');
@@ -288,7 +285,7 @@ class ParserTest extends TestCase
         $parser->parse('/(foo/');
     }
 
-    public function testThrowsOnMissingClosingDelimiter(): void
+    public function test_throws_on_missing_closing_delimiter(): void
     {
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('No closing delimiter "/" found.');
@@ -296,7 +293,7 @@ class ParserTest extends TestCase
         $parser->parse('/foo');
     }
 
-    public function testParseEscapedChars(): void
+    public function test_parse_escaped_chars(): void
     {
         $parser = $this->createParser();
 
@@ -312,7 +309,7 @@ class ParserTest extends TestCase
         $this->assertSame('*', $childStar->value);
     }
 
-    public function testParseInlineFlags(): void
+    public function test_parse_inline_flags(): void
     {
         $parser = $this->createParser();
 
@@ -322,5 +319,10 @@ class ParserTest extends TestCase
         $this->assertInstanceOf(GroupNode::class, $pattern);
         $this->assertSame(GroupType::T_GROUP_INLINE_FLAGS, $pattern->type);
         $this->assertSame('i', $pattern->flags);
+    }
+
+    private function createParser(): Parser
+    {
+        return new Parser();
     }
 }

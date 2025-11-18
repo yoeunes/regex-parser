@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the RegexParser package.
  *
@@ -18,7 +20,7 @@ use RegexParser\TokenType;
 
 class LexerTest extends TestCase
 {
-    public function testTokenizeSimpleLiteral(): void
+    public function test_tokenize_simple_literal(): void
     {
         $lexer = new Lexer('foo'); // No delimiters
         $tokens = $lexer->tokenize();
@@ -34,7 +36,7 @@ class LexerTest extends TestCase
         $this->assertSame(TokenType::T_EOF, $tokens[3]->type);
     }
 
-    public function testTokenizeMultibyteLiteral(): void
+    public function test_tokenize_multibyte_literal(): void
     {
         $lexer = new Lexer('fôô'); // No delimiters
         $tokens = $lexer->tokenize();
@@ -49,7 +51,7 @@ class LexerTest extends TestCase
         $this->assertSame('ô', $tokens[2]->value);
     }
 
-    public function testTokenizeGroupAndQuantifier(): void
+    public function test_tokenize_group_and_quantifier(): void
     {
         $lexer = new Lexer('(bar)?'); // No delimiters
         $tokens = $lexer->tokenize();
@@ -71,7 +73,7 @@ class LexerTest extends TestCase
         }
     }
 
-    public function testTokenizeAlternation(): void
+    public function test_tokenize_alternation(): void
     {
         $lexer = new Lexer('foo|bar'); // No delimiters
         $tokens = $lexer->tokenize();
@@ -80,7 +82,7 @@ class LexerTest extends TestCase
         $this->assertSame(TokenType::T_ALTERNATION, $tokens[3]->type);
     }
 
-    public function testTokenizeCustomQuantifier(): void
+    public function test_tokenize_custom_quantifier(): void
     {
         $lexer = new Lexer('a{2,4}'); // No delimiters
         $tokens = $lexer->tokenize();
@@ -92,7 +94,7 @@ class LexerTest extends TestCase
         $this->assertSame('{2,4}', $tokens[1]->value);
     }
 
-    public function testTokenizeInvalidQuantifierAsLiteral(): void
+    public function test_tokenize_invalid_quantifier_as_literal(): void
     {
         $lexer = new Lexer('a{b}'); // No delimiters
         $tokens = $lexer->tokenize();
@@ -106,7 +108,7 @@ class LexerTest extends TestCase
         $this->assertSame('}', $tokens[3]->value);
     }
 
-    public function testTokenizeEscapedMetaChar(): void
+    public function test_tokenize_escaped_meta_char(): void
     {
         $lexer = new Lexer('\\(a\\*\\)'); // No delimiters
         $tokens = $lexer->tokenize();
@@ -129,7 +131,7 @@ class LexerTest extends TestCase
         $this->assertSame(TokenType::T_EOF, $tokens[4]->type);
     }
 
-    public function testTokenizeCharTypesAndDot(): void
+    public function test_tokenize_char_types_and_dot(): void
     {
         $lexer = new Lexer('.\d\s\w\D\S\W'); // No delimiters
         $tokens = $lexer->tokenize();
@@ -154,7 +156,7 @@ class LexerTest extends TestCase
         $this->assertSame('W', $tokens[6]->value);
     }
 
-    public function testTokenizeAnchors(): void
+    public function test_tokenize_anchors(): void
     {
         $lexer = new Lexer('^foo$'); // No delimiters
         $tokens = $lexer->tokenize();
@@ -167,7 +169,7 @@ class LexerTest extends TestCase
         $this->assertSame('$', $tokens[4]->value);
     }
 
-    public function testTokenizeAssertions(): void
+    public function test_tokenize_assertions(): void
     {
         $lexer = new Lexer('\\Afoo\\z\\b\\G\\B'); // No delimiters
         $tokens = $lexer->tokenize();
@@ -185,7 +187,7 @@ class LexerTest extends TestCase
         $this->assertSame('B', $tokens[7]->value);
     }
 
-    public function testTokenizeUnicodeProp(): void
+    public function test_tokenize_unicode_prop(): void
     {
         $lexer = new Lexer('\\p{L}\\P{^L}\\pL'); // No delimiters
         $tokens = $lexer->tokenize();
@@ -198,7 +200,7 @@ class LexerTest extends TestCase
         $this->assertSame('L', $tokens[2]->value); // \pL
     }
 
-    public function testTokenizeOctal(): void
+    public function test_tokenize_octal(): void
     {
         $lexer = new Lexer('\\o{777}'); // No delimiters
         $tokens = $lexer->tokenize();
@@ -207,7 +209,7 @@ class LexerTest extends TestCase
         $this->assertSame('\\o{777}', $tokens[0]->value);
     }
 
-    public function testThrowsOnTrailingBackslash(): void
+    public function test_throws_on_trailing_backslash(): void
     {
         $this->expectException(LexerException::class);
         $this->expectExceptionMessage('Trailing backslash');
@@ -219,7 +221,7 @@ class LexerTest extends TestCase
      * This test validates that the internal regex constants of the Lexer
      * are valid PCRE patterns and compile without errors.
      */
-    public function testValidateRegexConstants(): void
+    public function test_validate_regex_constants(): void
     {
         // Use reflection to access private constants
         $reflection = new \ReflectionClass(Lexer::class);
@@ -234,12 +236,12 @@ class LexerTest extends TestCase
         // preg_match() will return false if the pattern fails to compile
         $this->assertNotFalse(
             @preg_match($consts['REGEX_OUTSIDE'], ''),
-            'Lexer::REGEX_OUTSIDE failed to compile.'
+            'Lexer::REGEX_OUTSIDE failed to compile.',
         );
 
         $this->assertNotFalse(
             @preg_match($consts['REGEX_INSIDE'], ''),
-            'Lexer::REGEX_INSIDE failed to compile.'
+            'Lexer::REGEX_INSIDE failed to compile.',
         );
     }
 }

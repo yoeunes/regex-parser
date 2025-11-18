@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the RegexParser package.
  *
@@ -21,7 +23,7 @@ use RegexParser\Parser;
 
 class AdvancedParserTest extends TestCase
 {
-    public function testParseNamedGroup(): void
+    public function test_parse_named_group(): void
     {
         $parser = new Parser();
         $ast = $parser->parse('/(?<name>a)/');
@@ -31,7 +33,7 @@ class AdvancedParserTest extends TestCase
         $this->assertSame('name', $ast->pattern->name);
     }
 
-    public function testParseLazyQuantifier(): void
+    public function test_parse_lazy_quantifier(): void
     {
         $parser = new Parser();
         $ast = $parser->parse('/a+?/');
@@ -41,7 +43,7 @@ class AdvancedParserTest extends TestCase
         $this->assertSame(QuantifierType::T_LAZY, $ast->pattern->type);
     }
 
-    public function testParsePossessiveQuantifier(): void
+    public function test_parse_possessive_quantifier(): void
     {
         $parser = new Parser();
         $ast = $parser->parse('/a{2,3}+/');
@@ -51,7 +53,7 @@ class AdvancedParserTest extends TestCase
         $this->assertSame(QuantifierType::T_POSSESSIVE, $ast->pattern->type);
     }
 
-    public function testParseLookahead(): void
+    public function test_parse_lookahead(): void
     {
         $parser = new Parser();
         $ast = $parser->parse('/a(?=b)/');
@@ -64,7 +66,7 @@ class AdvancedParserTest extends TestCase
         $this->assertSame(GroupType::T_GROUP_LOOKAHEAD_POSITIVE, $group->type);
     }
 
-    public function testParseAlternativeDelimiter(): void
+    public function test_parse_alternative_delimiter(): void
     {
         $parser = new Parser();
         $ast = $parser->parse('#a|b#imsU');
@@ -73,7 +75,7 @@ class AdvancedParserTest extends TestCase
         $this->assertSame('imsU', $ast->flags);
     }
 
-    public function testParseBraceDelimiter(): void
+    public function test_parse_brace_delimiter(): void
     {
         $parser = new Parser();
         $ast = $parser->parse('{foo(bar)}i');

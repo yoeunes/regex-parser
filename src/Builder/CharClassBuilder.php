@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the RegexParser package.
  *
@@ -23,7 +25,9 @@ use RegexParser\Node\RangeNode;
  */
 class CharClassBuilder
 {
-    /** @var NodeInterface[] */
+    /**
+     * @var array<NodeInterface>
+     */
     private array $parts = [];
 
     /**
@@ -102,7 +106,7 @@ class CharClassBuilder
     }
 
     /**
-     * @return NodeInterface[]
+     * @return array<NodeInterface>
      */
     public function build(): array
     {

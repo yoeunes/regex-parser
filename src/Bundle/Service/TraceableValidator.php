@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the RegexParser package.
  *
@@ -16,6 +18,7 @@ use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\Constraints\Regex;
 use Symfony\Component\Validator\ConstraintViolationListInterface;
 use Symfony\Component\Validator\Context\ExecutionContextInterface;
+use Symfony\Component\Validator\Mapping\MetadataInterface;
 use Symfony\Component\Validator\Validator\ContextualValidatorInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
@@ -27,10 +30,9 @@ class TraceableValidator implements ValidatorInterface
     public function __construct(
         private readonly ValidatorInterface $validator,
         private readonly RegexCollector $collector,
-    ) {
-    }
+    ) {}
 
-    public function getMetadataFor(mixed $value): \Symfony\Component\Validator\Mapping\MetadataInterface
+    public function getMetadataFor(mixed $value): MetadataInterface
     {
         return $this->validator->getMetadataFor($value);
     }
@@ -44,7 +46,7 @@ class TraceableValidator implements ValidatorInterface
     {
         $this->collectConstraints(
             \is_array($constraints) ? $constraints : (null === $constraints ? [] : [$constraints]),
-            $value
+            $value,
         );
 
         return $this->validator->validate($value, $constraints, $groups);
@@ -86,7 +88,7 @@ class TraceableValidator implements ValidatorInterface
                         $constraint->pattern,
                         'Validator (Regex constraint)',
                         $subject,
-                        null // We don't know the result at this stage
+                        null, // We don't know the result at this stage
                     );
                 }
             }

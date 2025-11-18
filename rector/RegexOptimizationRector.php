@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the RegexParser package.
  *
@@ -24,23 +26,18 @@ use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
 
 final class RegexOptimizationRector extends AbstractRector
 {
-    /**
-     * @var array<string, int>
-     */
-    private const PREG_FUNCTION_MAP = [
+    private const array PREG_FUNCTION_MAP = [
         'preg_match' => 0, 'preg_match_all' => 0, 'preg_replace' => 0,
         'preg_replace_callback' => 0, 'preg_split' => 0, 'preg_grep' => 0,
     ];
 
-    /**
-     * @var string[] constants we know contain regexes
-     */
-    private const REGEX_CONSTANT_NAMES = [
+    private const array REGEX_CONSTANT_NAMES = [
         'REGEX_OUTSIDE',
         'REGEX_INSIDE',
     ];
 
     private ?Parser $parser = null;
+
     private ?CompilerNodeVisitor $compiler = null;
 
     /**
@@ -49,18 +46,7 @@ final class RegexOptimizationRector extends AbstractRector
      */
     public function __construct(
         private readonly OptimizerNodeVisitor $optimizerVisitor,
-    ) {
-    }
-
-    private function getParser(): Parser
-    {
-        return $this->parser ??= new Parser([]);
-    }
-
-    private function getCompiler(): CompilerNodeVisitor
-    {
-        return $this->compiler ??= new CompilerNodeVisitor();
-    }
+    ) {}
 
     public function getRuleDefinition(): RuleDefinition
     {
@@ -69,17 +55,17 @@ final class RegexOptimizationRector extends AbstractRector
             [
                 new CodeSample(
                     "preg_match('/[a-zA-Z0-9_]+/', \$str);",
-                    "preg_match('/\\w+/', \$str);"
+                    "preg_match('/\\w+/', \$str);",
                 ),
                 new CodeSample(
                     "preg_match('/(a|b|c)/', \$str);",
-                    "preg_match('/[abc]/', \$str);"
+                    "preg_match('/[abc]/', \$str);",
                 ),
                 new CodeSample(
                     "preg_match('/a.b.c.d/', \$str);", // No change
-                    "preg_match('/a.b.c.d/', \$str);"
+                    "preg_match('/a.b.c.d/', \$str);",
                 ),
-            ]
+            ],
         );
     }
 
@@ -128,6 +114,16 @@ final class RegexOptimizationRector extends AbstractRector
         }
 
         return null;
+    }
+
+    private function getParser(): Parser
+    {
+        return $this->parser ??= new Parser([]);
+    }
+
+    private function getCompiler(): CompilerNodeVisitor
+    {
+        return $this->compiler ??= new CompilerNodeVisitor();
     }
 
     private function getRegexStringNode(Node $node): ?String_

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the RegexParser package.
  *
@@ -42,6 +44,7 @@ class RegexParserExtension extends Extension
         }
     }
 
+    #[\Override]
     public function getAlias(): string
     {
         return 'regex_parser';

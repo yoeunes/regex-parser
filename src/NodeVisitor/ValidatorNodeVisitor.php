@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the RegexParser package.
  *
@@ -54,18 +56,12 @@ use RegexParser\Node\UnicodePropNode;
  */
 final class ValidatorNodeVisitor implements NodeVisitorInterface
 {
-    /**
-     * @var array<string, true>
-     */
-    private const VALID_ASSERTIONS = [
+    private const array VALID_ASSERTIONS = [
         'A' => true, 'z' => true, 'Z' => true,
         'G' => true, 'b' => true, 'B' => true,
     ];
 
-    /**
-     * @var array<string, true>
-     */
-    private const VALID_PCRE_VERBS = [
+    private const array VALID_PCRE_VERBS = [
         'FAIL' => true, 'ACCEPT' => true, 'COMMIT' => true,
         'PRUNE' => true, 'SKIP' => true, 'THEN' => true,
         'DEFINE' => true, 'MARK' => true,
@@ -75,10 +71,7 @@ final class ValidatorNodeVisitor implements NodeVisitorInterface
         'NO_AUTO_POSSESS' => true,
     ];
 
-    /**
-     * @var array<string, true>
-     */
-    private const VALID_POSIX_CLASSES = [
+    private const array VALID_POSIX_CLASSES = [
         'alnum' => true, 'alpha' => true, 'ascii' => true,
         'blank' => true, 'cntrl' => true, 'digit' => true,
         'graph' => true, 'lower' => true, 'print' => true,
@@ -164,16 +157,16 @@ final class ValidatorNodeVisitor implements NodeVisitorInterface
         if (\in_array(
             $node->type,
             [GroupType::T_GROUP_LOOKBEHIND_POSITIVE, GroupType::T_GROUP_LOOKBEHIND_NEGATIVE],
-            true
+            true,
         )) {
             $this->inLookbehind = true;
         }
 
         // Track defined capturing groups
         if (GroupType::T_GROUP_CAPTURING === $node->type) {
-            ++$this->groupCount;
+            $this->groupCount++;
         } elseif (GroupType::T_GROUP_NAMED === $node->type) {
-            ++$this->groupCount;
+            $this->groupCount++;
             if (null !== $node->name) {
                 if (isset($this->namedGroups[$node->name])) {
                     throw new ParserException(\sprintf('Duplicate group name "%s" at position %d.', $node->name, $node->startPos));
@@ -198,7 +191,7 @@ final class ValidatorNodeVisitor implements NodeVisitorInterface
             throw new ParserException(\sprintf('Invalid quantifier range "%s": min > max at position %d.', $node->quantifier, $node->startPos));
         }
 
-        $isUnbounded = (-1 === $max); // *, +, or {n,}
+        $isUnbounded = -1 === $max; // *, +, or {n,}
 
         // 2. Validate quantifiers inside lookbehinds
         if ($this->inLookbehind && $isUnbounded) {
@@ -210,13 +203,13 @@ final class ValidatorNodeVisitor implements NodeVisitorInterface
             if ($this->quantifierDepth > 0) {
                 throw new ParserException(\sprintf('Potential catastrophic backtracking (ReDoS): nested unbounded quantifier "%s" at position %d.', $node->quantifier, $node->startPos));
             }
-            ++$this->quantifierDepth;
+            $this->quantifierDepth++;
         }
 
         $node->node->accept($this);
 
         if ($isUnbounded) {
-            --$this->quantifierDepth;
+            $this->quantifierDepth--;
         }
     }
 
@@ -380,7 +373,7 @@ final class ValidatorNodeVisitor implements NodeVisitorInterface
             $error = preg_last_error();
 
             // PREG_NO_ERROR means it compiled successfully.
-            self::$unicodePropCache[$key] = (false !== $result && \PREG_NO_ERROR === $error);
+            self::$unicodePropCache[$key] = false !== $result && \PREG_NO_ERROR === $error;
         }
 
         if (false === self::$unicodePropCache[$key]) {
@@ -470,11 +463,6 @@ final class ValidatorNodeVisitor implements NodeVisitorInterface
             // (?(DEFINE)...) This is valid.
         } else {
             // Any other atom is not a valid condition
-            //
-            // === PHPSTAN FIX ===
-            // Was: $node->condition->startPos
-            // Now: $node->condition->getStartPosition()
-            // ===================
             throw new ParserException(\sprintf('Invalid conditional construct at position %d. Condition must be a group reference, lookaround, or (DEFINE).', $node->condition->getStartPosition()));
         }
 

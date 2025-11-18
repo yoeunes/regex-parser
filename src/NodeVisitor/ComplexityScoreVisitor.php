@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the RegexParser package.
  *
@@ -48,19 +50,19 @@ class ComplexityScoreVisitor implements NodeVisitorInterface
     /**
      * Base score for a node.
      */
-    private const BASE_SCORE = 1;
+    private const int BASE_SCORE = 1;
     /**
      * Score multiplier for unbounded quantifiers (*, +, {n,}).
      */
-    private const UNBOUNDED_QUANTIFIER_SCORE = 10;
+    private const int UNBOUNDED_QUANTIFIER_SCORE = 10;
     /**
      * Score for complex constructs like lookarounds or backreferences.
      */
-    private const COMPLEX_CONSTRUCT_SCORE = 5;
+    private const int COMPLEX_CONSTRUCT_SCORE = 5;
     /**
      * Exponential multiplier for nested quantifiers.
      */
-    private const NESTING_MULTIPLIER = 2;
+    private const int NESTING_MULTIPLIER = 2;
 
     /**
      * Tracks the depth of nested quantifiers.
@@ -111,7 +113,7 @@ class ComplexityScoreVisitor implements NodeVisitorInterface
                 GroupType::T_GROUP_LOOKBEHIND_POSITIVE,
                 GroupType::T_GROUP_LOOKBEHIND_NEGATIVE,
             ],
-            true
+            true,
         )) {
             return self::COMPLEX_CONSTRUCT_SCORE + $childScore;
         }
@@ -131,7 +133,7 @@ class ComplexityScoreVisitor implements NodeVisitorInterface
                 // Exponentially penalize nested unbounded quantifiers
                 $score *= (self::NESTING_MULTIPLIER * $this->quantifierDepth);
             }
-            ++$this->quantifierDepth;
+            $this->quantifierDepth++;
         } else {
             // Bounded quantifiers are simpler
             $score += self::BASE_SCORE;
@@ -141,7 +143,7 @@ class ComplexityScoreVisitor implements NodeVisitorInterface
         $score += $node->node->accept($this);
 
         if ($isUnbounded) {
-            --$this->quantifierDepth;
+            $this->quantifierDepth--;
         }
 
         return $score;

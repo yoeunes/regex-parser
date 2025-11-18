@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the RegexParser package.
  *
@@ -45,8 +47,7 @@ class Regex
         private readonly OptimizerNodeVisitor $optimizer,
         private readonly DumperNodeVisitor $dumper,
         private readonly ComplexityScoreVisitor $scorer,
-    ) {
-    }
+    ) {}
 
     /**
      * Static constructor for easy use without a DI container.
@@ -64,7 +65,7 @@ class Regex
             new SampleGeneratorVisitor(),
             new OptimizerNodeVisitor(),
             new DumperNodeVisitor(),
-            new ComplexityScoreVisitor()
+            new ComplexityScoreVisitor(),
         );
     }
 

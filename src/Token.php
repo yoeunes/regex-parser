@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the RegexParser package.
  *
@@ -25,6 +27,5 @@ class Token
         public readonly TokenType $type,
         public readonly string $value,
         public readonly int $position,
-    ) {
-    }
+    ) {}
 }

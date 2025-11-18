@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the RegexParser package.
  *
@@ -28,10 +30,7 @@ use RegexParser\ValidationResult;
  */
 final class PregValidationRule implements Rule
 {
-    /**
-     * @var array<string, int> a map of preg_ function names to their pattern argument index
-     */
-    private const PREG_FUNCTION_MAP = [
+    private const array PREG_FUNCTION_MAP = [
         'preg_match' => 0,
         'preg_match_all' => 0,
         'preg_replace' => 0,
@@ -41,22 +40,13 @@ final class PregValidationRule implements Rule
     ];
 
     private ?Parser $parser = null;
+
     private ?ValidatorNodeVisitor $validator = null;
 
     public function getNodeType(): string
     {
         // We subscribe to all function calls.
         return FuncCall::class;
-    }
-
-    private function getParser(): Parser
-    {
-        return $this->parser ??= new Parser([]);
-    }
-
-    private function getValidator(): ValidatorNodeVisitor
-    {
-        return $this->validator ??= new ValidatorNodeVisitor();
     }
 
     public function processNode(Node $node, Scope $scope): array
@@ -113,5 +103,15 @@ final class PregValidationRule implements Rule
         }
 
         return $errors;
+    }
+
+    private function getParser(): Parser
+    {
+        return $this->parser ??= new Parser([]);
+    }
+
+    private function getValidator(): ValidatorNodeVisitor
+    {
+        return $this->validator ??= new ValidatorNodeVisitor();
     }
 }

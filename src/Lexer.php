@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of the RegexParser package.
  *
@@ -23,13 +25,6 @@ use RegexParser\Exception\LexerException;
  */
 class Lexer
 {
-    private string $pattern;
-    private int $position = 0;
-    private int $length;
-    private bool $inCharClass = false;
-    private bool $inQuoteMode = false;
-    private int $charClassStartPosition = 0;
-
     /**
      * Regex to capture all possible tokens OUTSIDE of a character class.
      * Order is crucial. Longer, more specific tokens must come first.
@@ -88,8 +83,6 @@ class Lexer
     /**
      * Defines the explicit order of token matching for the 'outside' state.
      * This matches the alternation order in REGEX_OUTSIDE.
-     *
-     * @var list<string>
      */
     private const TOKEN_NAMES_OUTSIDE = [
         'T_COMMENT_OPEN',
@@ -119,8 +112,6 @@ class Lexer
 
     /**
      * Defines the explicit order of token matching for the 'inside' state.
-     *
-     * @var list<string>
      */
     private const TOKEN_NAMES_INSIDE = [
         'T_CHAR_CLASS_CLOSE',
@@ -133,6 +124,18 @@ class Lexer
         'T_LITERAL_ESCAPED',
         'T_LITERAL',
     ];
+
+    private string $pattern;
+
+    private int $position = 0;
+
+    private int $length;
+
+    private bool $inCharClass = false;
+
+    private bool $inQuoteMode = false;
+
+    private int $charClassStartPosition = 0;
 
     public function __construct(string $pattern)
     {
@@ -161,9 +164,9 @@ class Lexer
     }
 
     /**
-     * @return array<Token>
-     *
      * @throws LexerException
+     *
+     * @return array<Token>
      */
     public function tokenize(): array
     {
@@ -182,6 +185,7 @@ class Lexer
                 if ($token) {
                     $tokens[] = $token;
                 }
+
                 continue; // Re-evaluate loop with new state (inQuoteMode might be false)
             }
 
@@ -215,6 +219,7 @@ class Lexer
                         $this->charClassStartPosition = $startPos;
                         $tokens[] = new Token($type, '[', $startPos);
                         $tokenFound = true;
+
                         break;
                     }
 
@@ -233,18 +238,21 @@ class Lexer
                             $tokens[] = new Token($type, ']', $startPos);
                         }
                         $tokenFound = true;
+
                         break;
                     }
 
                     if (TokenType::T_QUOTE_MODE_START === $type) {
                         $this->inQuoteMode = true;
                         $tokenFound = true; // No token is emitted, just a state change
+
                         break;
                     }
 
                     if (TokenType::T_QUOTE_MODE_END === $type) {
                         $this->inQuoteMode = false;
                         $tokenFound = true; // No token is emitted, just a state change
+
                         break;
                     }
 
@@ -258,6 +266,7 @@ class Lexer
                         if (TokenType::T_LITERAL === $type && '^' === $matchedValue && $isAtStart) {
                             $tokens[] = new Token(TokenType::T_NEGATION, '^', $startPos);
                             $tokenFound = true;
+
                             break;
                         }
 
@@ -265,6 +274,7 @@ class Lexer
                         if (TokenType::T_LITERAL === $type && '-' === $matchedValue && !$isAtStart) {
                             $tokens[] = new Token(TokenType::T_RANGE, '-', $startPos);
                             $tokenFound = true;
+
                             break;
                         }
                     }
@@ -277,6 +287,7 @@ class Lexer
                     $tokenValue = $this->extractTokenValue($type, $matchedValue, $matches);
                     $tokens[] = new Token($type, $tokenValue, $startPos);
                     $tokenFound = true;
+
                     break;
                 }
             } // end foreach tokenName
