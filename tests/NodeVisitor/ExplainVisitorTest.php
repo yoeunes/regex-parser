@@ -20,7 +20,7 @@ use RegexParser\Parser;
 
 class ExplainVisitorTest extends TestCase
 {
-    public function testTextExplain(): void
+    public function test_text_explain(): void
     {
         $parser = new Parser();
         $ast = $parser->parse('/^a|b$/i');
@@ -34,7 +34,7 @@ class ExplainVisitorTest extends TestCase
         $this->assertStringContainsString('OR:', $output);
     }
 
-    public function testHtmlExplainEscaping(): void
+    public function test_html_explain_escaping(): void
     {
         $parser = new Parser();
         // The parser splits "<script>" into multiple literals: "<", "s", "c", ...

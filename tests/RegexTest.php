@@ -18,7 +18,7 @@ use RegexParser\Regex;
 
 class RegexTest extends TestCase
 {
-    public function testCreateAndParse(): void
+    public function test_create_and_parse(): void
     {
         $regex = Regex::create();
 
@@ -27,7 +27,7 @@ class RegexTest extends TestCase
         $this->assertSame(3, $ast->endPos);
     }
 
-    public function testValidate(): void
+    public function test_validate(): void
     {
         $regex = Regex::create();
 
@@ -39,7 +39,7 @@ class RegexTest extends TestCase
         $this->assertNotNull($invalid->error);
     }
 
-    public function testOptimize(): void
+    public function test_optimize(): void
     {
         $regex = Regex::create();
         // Should optimize [0-9] to \d
@@ -49,7 +49,7 @@ class RegexTest extends TestCase
         $this->assertSame('/\d/', $optimized);
     }
 
-    public function testGenerate(): void
+    public function test_generate(): void
     {
         $regex = Regex::create();
         $sample = $regex->generate('/\d{3}/');

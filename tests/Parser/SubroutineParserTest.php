@@ -20,7 +20,7 @@ use RegexParser\Parser;
 
 class SubroutineParserTest extends TestCase
 {
-    public function testParseRecursion(): void
+    public function test_parse_recursion(): void
     {
         $parser = new Parser();
         $ast = $parser->parse('/(?R)/');
@@ -30,7 +30,7 @@ class SubroutineParserTest extends TestCase
         $this->assertSame('', $ast->pattern->syntax);
     }
 
-    public function testParseNumericSubroutine(): void
+    public function test_parse_numeric_subroutine(): void
     {
         $parser = new Parser();
         $ast = $parser->parse('/(?1)/');
@@ -39,7 +39,7 @@ class SubroutineParserTest extends TestCase
         $this->assertSame('1', $ast->pattern->reference);
     }
 
-    public function testParseRelativeNumericSubroutine(): void
+    public function test_parse_relative_numeric_subroutine(): void
     {
         $parser = new Parser();
         $ast = $parser->parse('/(?-1)/');
@@ -48,7 +48,7 @@ class SubroutineParserTest extends TestCase
         $this->assertSame('-1', $ast->pattern->reference);
     }
 
-    public function testParseNamedSubroutine(): void
+    public function test_parse_named_subroutine(): void
     {
         $parser = new Parser();
         $ast = $parser->parse('/(?&name)/');
@@ -58,7 +58,7 @@ class SubroutineParserTest extends TestCase
         $this->assertSame('&', $ast->pattern->syntax);
     }
 
-    public function testParsePNamedSubroutine(): void
+    public function test_parse_p_named_subroutine(): void
     {
         $parser = new Parser();
         $ast = $parser->parse('/(?P>name)/');
@@ -68,7 +68,7 @@ class SubroutineParserTest extends TestCase
         $this->assertSame('P>', $ast->pattern->syntax);
     }
 
-    public function testThrowsOnIncompleteSubroutine(): void
+    public function test_throws_on_incomplete_subroutine(): void
     {
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('Expected ) to close subroutine call');

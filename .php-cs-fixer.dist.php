@@ -130,6 +130,21 @@ return (new PhpCsFixer\Config())
         'no_unset_cast' => true,
         'no_whitespace_before_comma_in_array' => true,
         'no_whitespace_in_blank_line' => true,
+        'normalize_index_brace' => true,
+        'nullable_type_declaration' => true,
+        'object_operator_without_whitespace' => true,
+        'ordered_imports' => ['sort_algorithm' => 'alpha', 'imports_order' => ['const', 'class', 'function']],
+        'php_unit_method_casing' => ['case' => 'snake_case'],
+        'php_unit_set_up_tear_down_visibility' => true,
+        'phpdoc_indent' => true,
+        'phpdoc_inline_tag_normalizer' => true,
+        'phpdoc_no_access' => true,
+        'phpdoc_no_package' => true,
+        'phpdoc_no_useless_inheritdoc' => true,
+        'phpdoc_trim' => true,
+        'phpdoc_types' => true,
+        'psr_autoloading' => false,
+        'return_type_declaration' => ['space_before' => 'none'],
     ])
     ->setFinder($finder)
     ->setCacheFile('.cache/php-cs-fixer/cache.json');

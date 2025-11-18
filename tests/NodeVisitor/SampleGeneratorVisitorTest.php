@@ -19,36 +19,36 @@ use RegexParser\Parser;
 
 class SampleGeneratorVisitorTest extends TestCase
 {
-    public function testGenerateSimple(): void
+    public function test_generate_simple(): void
     {
         $this->assertSampleMatches('/abc/');
     }
 
-    public function testGenerateAlternation(): void
+    public function test_generate_alternation(): void
     {
         $this->assertSampleMatches('/a|b|c/');
     }
 
-    public function testGenerateQuantifiers(): void
+    public function test_generate_quantifiers(): void
     {
         $this->assertSampleMatches('/a{2,5}/');
         $this->assertSampleMatches('/b*/'); // Can generate empty string
         $this->assertSampleMatches('/c+/');
     }
 
-    public function testGenerateCharClasses(): void
+    public function test_generate_char_classes(): void
     {
         $this->assertSampleMatches('/[a-z]/');
         $this->assertSampleMatches('/[0-9]{3}/');
         $this->assertSampleMatches('/[a-zA-Z0-9]/');
     }
 
-    public function testGenerateSpecialTypes(): void
+    public function test_generate_special_types(): void
     {
         $this->assertSampleMatches('/\d\s\w/');
     }
 
-    public function testGenerateGroupsAndBackrefs(): void
+    public function test_generate_groups_and_backrefs(): void
     {
         // Complex test: backreference. The generator must remember what it generated.
         // (a|b)\1 must generate "aa" or "bb", but never "ab"
@@ -60,7 +60,7 @@ class SampleGeneratorVisitorTest extends TestCase
         $this->assertContains($sample, ['aa', 'bb']);
     }
 
-    public function testSeeding(): void
+    public function test_seeding(): void
     {
         $parser = new Parser();
         $ast = $parser->parse('/[a-z]{10}/');

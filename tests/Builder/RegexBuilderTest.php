@@ -18,7 +18,7 @@ use RegexParser\Builder\RegexBuilder;
 
 class RegexBuilderTest extends TestCase
 {
-    public function testBuildSimpleSequence(): void
+    public function test_build_simple_sequence(): void
     {
         $builder = new RegexBuilder();
         $regex = $builder
@@ -40,7 +40,7 @@ class RegexBuilderTest extends TestCase
         $this->assertSame('/^http?:\/\/.+$/', $regex);
     }
 
-    public function testBuildAlternation(): void
+    public function test_build_alternation(): void
     {
         $builder = new RegexBuilder();
         $regex = $builder
@@ -52,7 +52,7 @@ class RegexBuilderTest extends TestCase
         $this->assertSame('/cat|dog/', $regex);
     }
 
-    public function testBuildCharClass(): void
+    public function test_build_char_class(): void
     {
         $builder = new RegexBuilder();
         $regex = $builder
@@ -66,7 +66,7 @@ class RegexBuilderTest extends TestCase
         $this->assertSame('/[a-z\d]+/', $regex);
     }
 
-    public function testBuildNamedGroup(): void
+    public function test_build_named_group(): void
     {
         $builder = new RegexBuilder();
         $regex = $builder
@@ -79,7 +79,7 @@ class RegexBuilderTest extends TestCase
         $this->assertSame('/(?<id>\d+)/i', $regex);
     }
 
-    public function testSafeEscapingInLiteral(): void
+    public function test_safe_escaping_in_literal(): void
     {
         $builder = new RegexBuilder();
         // literal() must escape special characters

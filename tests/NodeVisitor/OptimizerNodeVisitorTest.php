@@ -25,7 +25,7 @@ use RegexParser\Parser;
 
 class OptimizerNodeVisitorTest extends TestCase
 {
-    public function testMergeAdjacentLiterals(): void
+    public function test_merge_adjacent_literals(): void
     {
         $parser = new Parser();
         $ast = $parser->parse('/abc/');
@@ -38,7 +38,7 @@ class OptimizerNodeVisitorTest extends TestCase
         $this->assertSame('abc', $newAst->pattern->value);
     }
 
-    public function testFlattenAlternations(): void
+    public function test_flatten_alternations(): void
     {
         // We use long strings ("beta", "gamma") to prevent
         // the optimizer from converting (b|c) into [bc] (CharClass).
@@ -66,7 +66,7 @@ class OptimizerNodeVisitorTest extends TestCase
         $this->assertSame('beta', $newAst->alternatives[1]->value);
     }
 
-    public function testAlternationToCharClassOptimization(): void
+    public function test_alternation_to_char_class_optimization(): void
     {
         $parser = new Parser();
         $ast = $parser->parse('/a|b|c/');
@@ -79,7 +79,7 @@ class OptimizerNodeVisitorTest extends TestCase
         $this->assertCount(3, $newAst->pattern->parts);
     }
 
-    public function testDigitOptimization(): void
+    public function test_digit_optimization(): void
     {
         $parser = new Parser();
         $ast = $parser->parse('/[0-9]/');
@@ -92,7 +92,7 @@ class OptimizerNodeVisitorTest extends TestCase
         $this->assertSame('d', $newAst->pattern->value);
     }
 
-    public function testRemoveUselessNonCapturingGroup(): void
+    public function test_remove_useless_non_capturing_group(): void
     {
         $parser = new Parser();
         $ast = $parser->parse('/(?:abc)/');
@@ -105,7 +105,7 @@ class OptimizerNodeVisitorTest extends TestCase
         $this->assertSame('abc', $newAst->pattern->value);
     }
 
-    public function testQuantifierOptimization(): void
+    public function test_quantifier_optimization(): void
     {
         $parser = new Parser();
         $ast = $parser->parse('/(?:a)*/');
@@ -118,7 +118,7 @@ class OptimizerNodeVisitorTest extends TestCase
         $this->assertInstanceOf(LiteralNode::class, $newAst->pattern->node);
     }
 
-    public function testOptimizationDoesNotBreakSemanticsWithHyphen(): void
+    public function test_optimization_does_not_break_semantics_with_hyphen(): void
     {
         $parser = new Parser();
         $ast = $parser->parse('/a|-|z/');

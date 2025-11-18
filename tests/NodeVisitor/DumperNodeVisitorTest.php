@@ -19,7 +19,7 @@ use RegexParser\Parser;
 
 class DumperNodeVisitorTest extends TestCase
 {
-    public function testDumpSimple(): void
+    public function test_dump_simple(): void
     {
         $parser = new Parser();
         $ast = $parser->parse('/a(b|c)/');

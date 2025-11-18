@@ -19,14 +19,14 @@ use RegexParser\Parser;
 
 class ComplexityScoreVisitorTest extends TestCase
 {
-    public function testSimpleRegexScore(): void
+    public function test_simple_regex_score(): void
     {
         // abc = 1 (seq) + 1 + 1 + 1 = 4 (or close, depends on your exact base logic)
         $score = $this->getScore('/abc/');
         $this->assertLessThan(10, $score);
     }
 
-    public function testHighComplexityScore(): void
+    public function test_high_complexity_score(): void
     {
         // Classic ReDoS: (a+)+
         // Your logic should multiply the score exponentially for nested quantifiers
@@ -35,7 +35,7 @@ class ComplexityScoreVisitorTest extends TestCase
         $this->assertGreaterThan(20, $score, 'Nested quantifiers should yield a high complexity score');
     }
 
-    public function testLookaroundsIncreaseScore(): void
+    public function test_lookarounds_increase_score(): void
     {
         $simple = $this->getScore('/foo/');
         $complex = $this->getScore('/(?=foo)foo/');
