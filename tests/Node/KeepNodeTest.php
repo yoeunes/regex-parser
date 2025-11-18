@@ -14,28 +14,26 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Node;
 
 use PHPUnit\Framework\TestCase;
-use RegexParser\Node\CommentNode;
+use RegexParser\Node\KeepNode;
 use RegexParser\NodeVisitor\NodeVisitorInterface;
 
-class CommentNodeTest extends TestCase
+class KeepNodeTest extends TestCase
 {
     public function test_constructor_and_getters(): void
     {
-        $comment_text = 'This is a test comment';
-        $node = new CommentNode($comment_text, 10, 30);
+        $node = new KeepNode(10, 12); // \K est de longueur 2
 
-        $this->assertSame($comment_text, $node->comment);
         $this->assertSame(10, $node->getStartPosition());
-        $this->assertSame(30, $node->getEndPosition());
+        $this->assertSame(12, $node->getEndPosition());
     }
 
-    public function test_accept_visitor_calls_visit_comment(): void
+    public function test_accept_visitor_calls_visit_keep(): void
     {
-        $node = new CommentNode('test', 0, 10);
+        $node = new KeepNode(0, 2);
         $visitor = $this->createMock(NodeVisitorInterface::class);
 
         $visitor->expects($this->once())
-            ->method('visitComment')
+            ->method('visitKeep')
             ->with($this->identicalTo($node))
             ->willReturn('visited');
 

@@ -2,6 +2,15 @@
 
 declare(strict_types=1);
 
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace RegexParser\Tests\Node;
 
 use PHPUnit\Framework\TestCase;
@@ -34,7 +43,7 @@ class SequenceNodeTest extends TestCase
         $this->assertSame(5, $node->getEndPosition());
     }
 
-    public function test_accept_visitor_calls_visitSequence(): void
+    public function test_accept_visitor_calls_visit_sequence(): void
     {
         $child = $this->createMock(NodeInterface::class);
         $node = new SequenceNode([$child], 0, 1);

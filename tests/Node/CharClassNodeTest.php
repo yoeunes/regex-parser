@@ -2,6 +2,15 @@
 
 declare(strict_types=1);
 
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace RegexParser\Tests\Node;
 
 use PHPUnit\Framework\TestCase;
@@ -36,7 +45,7 @@ class CharClassNodeTest extends TestCase
         $this->assertCount(1, $node->parts);
     }
 
-    public function test_accept_visitor_calls_visitCharClass(): void
+    public function test_accept_visitor_calls_visit_char_class(): void
     {
         $part1 = $this->createMock(NodeInterface::class);
         $node = new CharClassNode([$part1], false, 0, 5);
