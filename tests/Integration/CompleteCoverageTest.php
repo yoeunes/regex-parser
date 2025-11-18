@@ -159,149 +159,113 @@ class CompleteCoverageTest extends TestCase
 
     public function test_parser_various_delimiters(): void
     {
+        $this->expectNotToPerformAssertions();
         // Test parsing with different delimiters (indirectly tests extractPatternAndFlags)
-        $ast = $this->parser->parse('#test#i');
-        $this->assertNotNull($ast);
-
-        $ast = $this->parser->parse('@test@m');
-        $this->assertNotNull($ast);
-
-        $ast = $this->parser->parse('~test~s');
-        $this->assertNotNull($ast);
+        $this->parser->parse('#test#i');
+        $this->parser->parse('@test@m');
+        $this->parser->parse('~test~s');
     }
 
     public function test_parser_complex_group_modifiers(): void
     {
+        $this->expectNotToPerformAssertions();
         // Test various group modifiers to hit parseGroupModifier branches
-        $ast = $this->parser->parse('/(?i:test)/');
-        $this->assertNotNull($ast);
-
-        $ast = $this->parser->parse('/(?-i:test)/');
-        $this->assertNotNull($ast);
-
-        $ast = $this->parser->parse('/(?i-m:test)/');
-        $this->assertNotNull($ast);
+        $this->parser->parse('/(?i:test)/');
+        $this->parser->parse('/(?-i:test)/');
+        $this->parser->parse('/(?i-m:test)/');
     }
 
     public function test_parser_named_groups_various_syntaxes(): void
     {
+        $this->expectNotToPerformAssertions();
         // Test different named group syntaxes
-        $ast = $this->parser->parse('/(?P<name>test)/');
-        $this->assertNotNull($ast);
-
-        $ast = $this->parser->parse('/(?<name>test)/');
-        $this->assertNotNull($ast);
+        $this->parser->parse('/(?P<name>test)/');
+        $this->parser->parse('/(?<name>test)/');
     }
 
     public function test_parser_assertions_all_types(): void
     {
-        $ast = $this->parser->parse('/(?=test)/');
-        $this->assertNotNull($ast);
-
-        $ast = $this->parser->parse('/(?!test)/');
-        $this->assertNotNull($ast);
-
-        $ast = $this->parser->parse('/(?<=test)/');
-        $this->assertNotNull($ast);
-
-        $ast = $this->parser->parse('/(?<!test)/');
-        $this->assertNotNull($ast);
+        $this->expectNotToPerformAssertions();
+        $this->parser->parse('/(?=test)/');
+        $this->parser->parse('/(?!test)/');
+        $this->parser->parse('/(?<=test)/');
+        $this->parser->parse('/(?<!test)/');
     }
 
     public function test_parser_conditional_with_number(): void
     {
-        $ast = $this->parser->parse('/(a)(?(1)b|c)/');
-        $this->assertNotNull($ast);
+        $this->expectNotToPerformAssertions();
+        $this->parser->parse('/(a)(?(1)b|c)/');
     }
 
     public function test_parser_conditional_with_name(): void
     {
-        $ast = $this->parser->parse('/(?<test>a)(?(test)b|c)/');
-        $this->assertNotNull($ast);
+        $this->expectNotToPerformAssertions();
+        $this->parser->parse('/(?<test>a)(?(test)b|c)/');
     }
 
     public function test_parser_conditional_with_assertion(): void
     {
-        $ast = $this->parser->parse('/(?(?=a)b|c)/');
-        $this->assertNotNull($ast);
+        $this->expectNotToPerformAssertions();
+        $this->parser->parse('/(?(?=a)b|c)/');
     }
 
     public function test_parser_subroutine_with_number(): void
     {
-        $ast = $this->parser->parse('/(a)(?1)/');
-        $this->assertNotNull($ast);
+        $this->expectNotToPerformAssertions();
+        $this->parser->parse('/(a)(?1)/');
     }
 
     public function test_parser_subroutine_with_name(): void
     {
-        $ast = $this->parser->parse('/(?<name>a)(?&name)/');
-        $this->assertNotNull($ast);
+        $this->expectNotToPerformAssertions();
+        $this->parser->parse('/(?<name>a)(?&name)/');
     }
 
     public function test_parser_char_class_with_ranges(): void
     {
-        $ast = $this->parser->parse('/[a-zA-Z0-9]/');
-        $this->assertNotNull($ast);
+        $this->expectNotToPerformAssertions();
+        $this->parser->parse('/[a-zA-Z0-9]/');
     }
 
     public function test_parser_char_class_negated(): void
     {
-        $ast = $this->parser->parse('/[^a-z]/');
-        $this->assertNotNull($ast);
+        $this->expectNotToPerformAssertions();
+        $this->parser->parse('/[^a-z]/');
     }
 
     public function test_parser_char_class_with_escaped_chars(): void
     {
-        $ast = $this->parser->parse('/[\]\-\^]/');
-        $this->assertNotNull($ast);
+        $this->expectNotToPerformAssertions();
+        $this->parser->parse('/[\]\-\^]/');
     }
 
     public function test_parser_quantifiers_all_types(): void
     {
-        $ast = $this->parser->parse('/a*/');
-        $this->assertNotNull($ast);
-
-        $ast = $this->parser->parse('/a+/');
-        $this->assertNotNull($ast);
-
-        $ast = $this->parser->parse('/a?/');
-        $this->assertNotNull($ast);
-
-        $ast = $this->parser->parse('/a{3}/');
-        $this->assertNotNull($ast);
-
-        $ast = $this->parser->parse('/a{3,}/');
-        $this->assertNotNull($ast);
-
-        $ast = $this->parser->parse('/a{3,5}/');
-        $this->assertNotNull($ast);
+        $this->expectNotToPerformAssertions();
+        $this->parser->parse('/a*/');
+        $this->parser->parse('/a+/');
+        $this->parser->parse('/a?/');
+        $this->parser->parse('/a{3}/');
+        $this->parser->parse('/a{3,}/');
+        $this->parser->parse('/a{3,5}/');
     }
 
     public function test_parser_lazy_quantifiers(): void
     {
-        $ast = $this->parser->parse('/a*?/');
-        $this->assertNotNull($ast);
-
-        $ast = $this->parser->parse('/a+?/');
-        $this->assertNotNull($ast);
-
-        $ast = $this->parser->parse('/a??/');
-        $this->assertNotNull($ast);
-
-        $ast = $this->parser->parse('/a{3,5}?/');
-        $this->assertNotNull($ast);
+        $this->expectNotToPerformAssertions();
+        $this->parser->parse('/a*?/');
+        $this->parser->parse('/a+?/');
+        $this->parser->parse('/a??/');
+        $this->parser->parse('/a{3,5}?/');
     }
 
     public function test_parser_possessive_quantifiers(): void
     {
-        $ast = $this->parser->parse('/a*+/');
-        $this->assertNotNull($ast);
-
-        $ast = $this->parser->parse('/a++/');
-        $this->assertNotNull($ast);
-
-        $ast = $this->parser->parse('/a?+/');
-        $this->assertNotNull($ast);
+        $this->expectNotToPerformAssertions();
+        $this->parser->parse('/a*+/');
+        $this->parser->parse('/a++/');
+        $this->parser->parse('/a?+/');
     }
 
     // ========== ExplainVisitor Tests ==========
@@ -550,8 +514,7 @@ class CompleteCoverageTest extends TestCase
         foreach ($patterns as $pattern) {
             try {
                 $ast = $this->parser->parse($pattern);
-                $result = $ast->accept($this->validatorVisitor);
-                $this->assertNotNull($result);
+                $ast->accept($this->validatorVisitor);
             } catch (\Exception) {
                 // Some patterns may fail, that's ok
             }
@@ -560,51 +523,48 @@ class CompleteCoverageTest extends TestCase
 
     public function test_validator_quantifier_edge_cases(): void
     {
+        $this->expectNotToPerformAssertions();
         // Valid quantifiers - validator throws exception if invalid
         $ast = $this->parser->parse('/a{0}/');
         $ast->accept($this->validatorVisitor);
-        $this->assertTrue(true); // No exception means valid
 
         $ast = $this->parser->parse('/a{1,1}/');
         $ast->accept($this->validatorVisitor);
-        $this->assertTrue(true); // No exception means valid
     }
 
     public function test_validator_char_class_ranges(): void
     {
+        $this->expectNotToPerformAssertions();
         $ast = $this->parser->parse('/[a-z]/');
         $ast->accept($this->validatorVisitor);
-        $this->assertTrue(true); // No exception means valid
     }
 
     public function test_validator_backref_variations(): void
     {
+        $this->expectNotToPerformAssertions();
         $ast = $this->parser->parse('/(a)\1/');
         $ast->accept($this->validatorVisitor);
-        $this->assertTrue(true); // No exception means valid
 
         $ast = $this->parser->parse('/(?<name>a)\k<name>/');
         $ast->accept($this->validatorVisitor);
-        $this->assertTrue(true); // No exception means valid
     }
 
     public function test_validator_unicode_variations(): void
     {
+        $this->expectNotToPerformAssertions();
         $ast = $this->parser->parse('/\x41/');
         $ast->accept($this->validatorVisitor);
-        $this->assertTrue(true); // No exception means valid
 
         $ast = $this->parser->parse('/\u{1F600}/');
         $ast->accept($this->validatorVisitor);
-        $this->assertTrue(true); // No exception means valid
     }
 
     public function test_validator_conditional_variations(): void
     {
+        $this->expectNotToPerformAssertions();
         // Test conditional with lookahead assertion (valid)
         $ast = $this->parser->parse('/(?(?=a)b|c)/');
         $ast->accept($this->validatorVisitor);
-        $this->assertTrue(true); // No exception means valid
     }
 
     // ========== Lexer Tests ==========

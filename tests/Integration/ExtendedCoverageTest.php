@@ -53,8 +53,8 @@ class ExtendedCoverageTest extends TestCase
 
     public function test_parser_atomic_groups(): void
     {
-        $ast = $this->parser->parse('/(?>a+)b/');
-        $this->assertNotNull($ast);
+        $this->expectNotToPerformAssertions();
+        $this->parser->parse('/(?>a+)b/');
     }
 
     // Branch reset groups are not supported by this parser
@@ -66,14 +66,14 @@ class ExtendedCoverageTest extends TestCase
 
     public function test_parser_recursive_patterns(): void
     {
-        $ast = $this->parser->parse('/(?R)/');
-        $this->assertNotNull($ast);
+        $this->expectNotToPerformAssertions();
+        $this->parser->parse('/(?R)/');
     }
 
     public function test_parser_subroutine_with_relative_reference(): void
     {
-        $ast = $this->parser->parse('/(a)(?-1)/');
-        $this->assertNotNull($ast);
+        $this->expectNotToPerformAssertions();
+        $this->parser->parse('/(a)(?-1)/');
     }
 
     // Subroutine with plus reference is not supported by this parser
@@ -85,82 +85,83 @@ class ExtendedCoverageTest extends TestCase
 
     public function test_parser_g_reference_with_braces(): void
     {
-        $ast = $this->parser->parse('/\g{1}/');
-        $this->assertNotNull($ast);
+        $this->expectNotToPerformAssertions();
+        $this->parser->parse('/\g{1}/');
     }
 
     public function test_parser_g_reference_with_angle_brackets(): void
     {
-        $ast = $this->parser->parse('/\g<name>/');
-        $this->assertNotNull($ast);
+        $this->expectNotToPerformAssertions();
+        $this->parser->parse('/\g<name>/');
     }
 
     public function test_parser_g_reference_with_number(): void
     {
-        $ast = $this->parser->parse('/\g1/');
-        $this->assertNotNull($ast);
+        $this->expectNotToPerformAssertions();
+        $this->parser->parse('/\g1/');
     }
 
     public function test_parser_char_class_with_posix_negated(): void
     {
-        $ast = $this->parser->parse('/[[:^alpha:]]/');
-        $this->assertNotNull($ast);
+        $this->expectNotToPerformAssertions();
+        $this->parser->parse('/[[:^alpha:]]/');
     }
 
     public function test_parser_char_class_with_multiple_ranges(): void
     {
-        $ast = $this->parser->parse('/[a-zA-Z0-9_\-]/');
-        $this->assertNotNull($ast);
+        $this->expectNotToPerformAssertions();
+        $this->parser->parse('/[a-zA-Z0-9_\-]/');
     }
 
     public function test_parser_empty_char_class(): void
     {
+        $this->expectNotToPerformAssertions();
         try {
-            $ast = $this->parser->parse('/[]/');
-            $this->assertNotNull($ast);
+            $this->parser->parse('/[]/');
         } catch (\Exception) {
-            $this->assertTrue(true); // May fail, that's ok
+            // May fail, that's ok
         }
     }
 
     public function test_parser_quantifier_possessive_on_group(): void
     {
-        $ast = $this->parser->parse('/(abc)++/');
-        $this->assertNotNull($ast);
+        $this->expectNotToPerformAssertions();
+        $this->parser->parse('/(abc)++/');
     }
 
     public function test_parser_comment_in_pattern(): void
     {
-        $ast = $this->parser->parse('/a(?#this is a comment)b/');
-        $this->assertNotNull($ast);
+        $this->expectNotToPerformAssertions();
+        $this->parser->parse('/a(?#this is a comment)b/');
     }
 
     public function test_parser_multiple_flags(): void
     {
-        $ast = $this->parser->parse('/test/imsxuADJU');
-        $this->assertNotNull($ast);
+        $this->expectNotToPerformAssertions();
+        $this->parser->parse('/test/imsxuADJU');
     }
 
     public function test_parser_inline_modifier_add_remove(): void
     {
-        $ast = $this->parser->parse('/(?i-ms:test)/');
-        $this->assertNotNull($ast);
+        $this->expectNotToPerformAssertions();
+        $this->parser->parse('/(?i-ms:test)/');
     }
 
     public function test_parser_inline_modifier_standalone(): void
     {
-        $ast = $this->parser->parse('/(?i)test/');
-        $this->assertNotNull($ast);
+        $this->expectNotToPerformAssertions();
+        $this->parser->parse('/(?i)test/');
     }
 
     public function test_parser_backref_with_k_braces(): void
     {
-        $ast = $this->parser->parse('/(?<name>a)\k{name}/');
-        $this->assertNotNull($ast);
+        $this->expectNotToPerformAssertions();
+        $this->parser->parse('/(?<name>a)\k{name}/');
     }
 
     public function test_parser_pcre_verbs_various(): void
     {
+        $this->expectNotToPerformAssertions();
         $patterns = [
             '/(*ACCEPT)/',
             '/(*FAIL)/',
@@ -173,8 +174,7 @@ class ExtendedCoverageTest extends TestCase
 
         foreach ($patterns as $pattern) {
             try {
-                $ast = $this->parser->parse($pattern);
-                $this->assertNotNull($ast);
+                $this->parser->parse($pattern);
             } catch (\Exception) {
                 // Some may fail
             }
@@ -445,6 +445,7 @@ class ExtendedCoverageTest extends TestCase
 
     public function test_validator_unicode_variations_all(): void
     {
+        $this->expectNotToPerformAssertions();
         $patterns = [
             '/\x00/',      // null byte
             '/\xFF/',      // max byte
@@ -456,7 +457,6 @@ class ExtendedCoverageTest extends TestCase
             try {
                 $ast = $this->parser->parse($pattern);
                 $ast->accept($this->validatorVisitor);
-                $this->assertTrue(true);
             } catch (\Exception) {
                 // Some may fail
             }
@@ -465,6 +465,7 @@ class ExtendedCoverageTest extends TestCase
 
     public function test_validator_octal_variations(): void
     {
+        $this->expectNotToPerformAssertions();
         $patterns = [
             // '/\0/', // \0 is treated as backreference \0, not octal
             '/\01/',
@@ -476,29 +477,28 @@ class ExtendedCoverageTest extends TestCase
         foreach ($patterns as $pattern) {
             $ast = $this->parser->parse($pattern);
             $ast->accept($this->validatorVisitor);
-            $this->assertTrue(true);
         }
     }
 
     public function test_validator_posix_class_negated(): void
     {
+        $this->expectNotToPerformAssertions();
         $ast = $this->parser->parse('/[[:^alpha:]]/');
         $ast->accept($this->validatorVisitor);
-        $this->assertTrue(true);
     }
 
     public function test_validator_subroutine(): void
     {
+        $this->expectNotToPerformAssertions();
         $ast = $this->parser->parse('/(?<name>a)(?&name)/');
         $ast->accept($this->validatorVisitor);
-        $this->assertTrue(true);
     }
 
     public function test_validator_atomic_group(): void
     {
+        $this->expectNotToPerformAssertions();
         $ast = $this->parser->parse('/(?>a+)/');
         $ast->accept($this->validatorVisitor);
-        $this->assertTrue(true);
     }
 
     // ========== Lexer Edge Cases ==========

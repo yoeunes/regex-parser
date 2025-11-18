@@ -408,6 +408,7 @@ class LexerCompleteCoverageTest extends TestCase
         $nonEofTokens = array_filter($tokens, fn ($t) => TokenType::T_EOF !== $t->type);
         $lastToken = end($nonEofTokens);
 
+        $this->assertNotFalse($lastToken);
         $this->assertSame('*+?', $lastToken->value);
         $this->assertSame(TokenType::T_LITERAL, $lastToken->type);
     }

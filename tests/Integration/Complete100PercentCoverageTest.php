@@ -387,99 +387,94 @@ class Complete100PercentCoverageTest extends TestCase
 
     public function test_validator_visitor_dot_node(): void
     {
+        $this->expectNotToPerformAssertions();
         $ast = $this->parser->parse('/./');
         $ast->accept($this->validatorVisitor);
-        $this->assertTrue(true); // No exception means valid
     }
 
     public function test_validator_visitor_keep_node(): void
     {
+        $this->expectNotToPerformAssertions();
         $ast = $this->parser->parse('/\K/');
         $ast->accept($this->validatorVisitor);
-        $this->assertTrue(true); // No exception means valid
     }
 
     public function test_validator_visitor_comment_node(): void
     {
+        $this->expectNotToPerformAssertions();
         $ast = $this->parser->parse('/(?#comment)/');
         $ast->accept($this->validatorVisitor);
-        $this->assertTrue(true); // No exception means valid
     }
 
     public function test_validator_visitor_pcre_verb_node(): void
     {
+        $this->expectNotToPerformAssertions();
         $ast = $this->parser->parse('/(*FAIL)/');
         $ast->accept($this->validatorVisitor);
-        $this->assertTrue(true); // No exception means valid
     }
 
     public function test_validator_visitor_octal_legacy_node(): void
     {
+        $this->expectNotToPerformAssertions();
         $ast = $this->parser->parse('/\01/');
         $ast->accept($this->validatorVisitor);
-        $this->assertTrue(true); // No exception means valid
     }
 
     public function test_validator_visitor_octal_node(): void
     {
+        $this->expectNotToPerformAssertions();
         $ast = $this->parser->parse('/\o{101}/');
         $ast->accept($this->validatorVisitor);
-        $this->assertTrue(true); // No exception means valid
     }
 
     public function test_validator_visitor_quantifier_bounds(): void
     {
+        $this->expectNotToPerformAssertions();
         // Test parseQuantifierBounds with different quantifier types
         $ast = $this->parser->parse('/a{5}/'); // exact
         $ast->accept($this->validatorVisitor);
-        $this->assertTrue(true);
 
         $ast = $this->parser->parse('/a{2,5}/'); // range
         $ast->accept($this->validatorVisitor);
-        $this->assertTrue(true);
 
         $ast = $this->parser->parse('/a{2,}/'); // open-ended
         $ast->accept($this->validatorVisitor);
-        $this->assertTrue(true);
 
         $ast = $this->parser->parse('/a*/'); // star
         $ast->accept($this->validatorVisitor);
-        $this->assertTrue(true);
 
         $ast = $this->parser->parse('/a+/'); // plus
         $ast->accept($this->validatorVisitor);
-        $this->assertTrue(true);
 
         $ast = $this->parser->parse('/a?/'); // question
         $ast->accept($this->validatorVisitor);
-        $this->assertTrue(true);
     }
 
     public function test_validator_visitor_unicode_prop(): void
     {
+        $this->expectNotToPerformAssertions();
         $ast = $this->parser->parse('/\p{L}/');
         $ast->accept($this->validatorVisitor);
-        $this->assertTrue(true);
     }
 
     public function test_validator_visitor_conditional(): void
     {
+        $this->expectNotToPerformAssertions();
         $ast = $this->parser->parse('/(?(?=a)yes|no)/');
         $ast->accept($this->validatorVisitor);
-        $this->assertTrue(true);
     }
 
     public function test_validator_visitor_subroutine(): void
     {
+        $this->expectNotToPerformAssertions();
         $ast = $this->parser->parse('/(?<name>a)(?&name)/');
         $ast->accept($this->validatorVisitor);
-        $this->assertTrue(true);
     }
 
     public function test_validator_visitor_assertion_nodes(): void
     {
+        $this->expectNotToPerformAssertions();
         $ast = $this->parser->parse('/\b\B\A\z\Z\G/');
         $ast->accept($this->validatorVisitor);
-        $this->assertTrue(true);
     }
 }

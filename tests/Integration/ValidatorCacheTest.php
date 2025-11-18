@@ -21,6 +21,7 @@ class ValidatorCacheTest extends TestCase
 {
     public function test_unicode_property_cache_hit(): void
     {
+        $this->expectNotToPerformAssertions();
         $parser = new Parser();
         $validator = new ValidatorNodeVisitor();
 
@@ -31,8 +32,5 @@ class ValidatorCacheTest extends TestCase
         // 2ème passe : utilise le cache (couvre la branche "cache hit")
         $ast2 = $parser->parse('/\p{L}/');
         $ast2->accept($validator);
-
-        // Assertion implicite : pas d'exception levée
-        $this->addToAssertionCount(1);
     }
 }
