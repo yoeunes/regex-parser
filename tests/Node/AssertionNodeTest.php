@@ -13,27 +13,26 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\Node;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Node\AssertionNode;
 use RegexParser\NodeVisitor\NodeVisitorInterface;
 
 class AssertionNodeTest extends TestCase
 {
-    public static function data_provider_assertions(): array
+    public static function data_provider_assertions(): \Iterator
     {
-        return [
-            // Assertions de position
-            'start_of_subject' => ['A', 0, 2],
-            'end_of_subject' => ['z', 5, 7],
-            'end_of_subject_or_newline' => ['Z', 5, 7],
-            'last_match_end' => ['G', 5, 7],
-            // Assertions de mot
-            'word_boundary' => ['b', 1, 3],
-            'non_word_boundary' => ['B', 1, 3],
-        ];
+        // Assertions de position
+        yield 'start_of_subject' => ['A', 0, 2];
+        yield 'end_of_subject' => ['z', 5, 7];
+        yield 'end_of_subject_or_newline' => ['Z', 5, 7];
+        yield 'last_match_end' => ['G', 5, 7];
+        // Assertions de mot
+        yield 'word_boundary' => ['b', 1, 3];
+        yield 'non_word_boundary' => ['B', 1, 3];
     }
 
-    #[\PHPUnit\Framework\Attributes\DataProvider('data_provider_assertions')]
+    #[DataProvider('data_provider_assertions')]
     public function test_constructor_and_getters(string $value, int $start, int $end): void
     {
         $node = new AssertionNode($value, $start, $end);

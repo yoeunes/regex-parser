@@ -13,24 +13,23 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\Node;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Node\CharTypeNode;
 use RegexParser\NodeVisitor\NodeVisitorInterface;
 
 class CharTypeNodeTest extends TestCase
 {
-    public static function data_provider_char_types(): array
+    public static function data_provider_char_types(): \Iterator
     {
-        return [
-            'digit' => ['d', 0, 2],
-            'not_digit' => ['D', 3, 5],
-            'whitespace' => ['s', 6, 8],
-            'not_word' => ['W', 9, 11],
-            'horizontal_whitespace' => ['h', 12, 14],
-        ];
+        yield 'digit' => ['d', 0, 2];
+        yield 'not_digit' => ['D', 3, 5];
+        yield 'whitespace' => ['s', 6, 8];
+        yield 'not_word' => ['W', 9, 11];
+        yield 'horizontal_whitespace' => ['h', 12, 14];
     }
 
-    #[\PHPUnit\Framework\Attributes\DataProvider('data_provider_char_types')]
+    #[DataProvider('data_provider_char_types')]
     public function test_constructor_and_getters(string $value, int $start, int $end): void
     {
         $node = new CharTypeNode($value, $start, $end);

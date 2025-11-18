@@ -21,24 +21,22 @@ use RegexParser\Parser;
 class RoundTripTest extends TestCase
 {
     /**
-     * @return array<array{0: string, 1?: string}>
+     * @return \Iterator<(int|string), array{0: string, 1?: string}>
      */
-    public static function providePatterns(): array
+    public static function providePatterns(): \Iterator
     {
-        return [
-            ['/abc/'],
-            ['/^test$/i'],
-            // The compiler escapes the hyphen for safety
-            ['/[a-z0-9_-]+/', '/[a-z0-9_\-]+/'],
-            ['/(?:foo|bar){1,2}?/s'],
-            ['/(?<name>\w+)/'],
-            ['/\\/home\\/user/'],
-            ['#Hash matches#'],
-            // The compiler normalizes \p{L} to \pL
-            ['/\p{L}+/u', '/\pL+/u'],
-            // Correction here: We define group 1 (a) so that the condition (?(1)...) is valid
-            ['/(a)(?(1)b|c)/'],
-        ];
+        yield ['/abc/'];
+        yield ['/^test$/i'];
+        // The compiler escapes the hyphen for safety
+        yield ['/[a-z0-9_-]+/', '/[a-z0-9_\-]+/'];
+        yield ['/(?:foo|bar){1,2}?/s'];
+        yield ['/(?<name>\w+)/'];
+        yield ['/\\/home\\/user/'];
+        yield ['#Hash matches#'];
+        // The compiler normalizes \p{L} to \pL
+        yield ['/\p{L}+/u', '/\pL+/u'];
+        // Correction here: We define group 1 (a) so that the condition (?(1)...) is valid
+        yield ['/(a)(?(1)b|c)/'];
     }
 
     #[DataProvider('providePatterns')]

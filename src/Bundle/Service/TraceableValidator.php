@@ -18,6 +18,7 @@ use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\Constraints\Regex;
 use Symfony\Component\Validator\ConstraintViolationListInterface;
 use Symfony\Component\Validator\Context\ExecutionContextInterface;
+use Symfony\Component\Validator\Mapping\MetadataInterface;
 use Symfony\Component\Validator\Validator\ContextualValidatorInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
@@ -31,7 +32,7 @@ class TraceableValidator implements ValidatorInterface
         private readonly RegexCollector $collector,
     ) {}
 
-    public function getMetadataFor(mixed $value): \Symfony\Component\Validator\Mapping\MetadataInterface
+    public function getMetadataFor(mixed $value): MetadataInterface
     {
         return $this->validator->getMetadataFor($value);
     }

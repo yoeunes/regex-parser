@@ -13,26 +13,27 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\Node;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Node\LiteralNode;
 use RegexParser\NodeVisitor\NodeVisitorInterface;
 
 class LiteralNodeTest extends TestCase
 {
-    public static function data_provider_literals(): array
+    public static function data_provider_literals(): \Iterator
     {
-        return [
-            // Littéraux simples
-            'simple_char' => ['a', 0, 1],
-            'number' => ['1', 5, 6],
-            // Métacaractères échappés (la valeur stockée est le caractère lui-même)
-            'escaped_star' => ['*', 2, 4], // stocké comme '*', la position couvre '\*'
-            'escaped_backslash' => ['\\', 10, 12], // stocké comme '\', la position couvre '\\\\' dans la regex source
-            'long_string' => ['http', 0, 4], // fusionné par l'optimiseur, mais stocké par le parser
-        ];
+        // Littéraux simples
+        yield 'simple_char' => ['a', 0, 1];
+        yield 'number' => ['1', 5, 6];
+        // Métacaractères échappés (la valeur stockée est le caractère lui-même)
+        yield 'escaped_star' => ['*', 2, 4];
+        // stocké comme '*', la position couvre '\*'
+        yield 'escaped_backslash' => ['\\', 10, 12];
+        // stocké comme '\', la position couvre '\\\\' dans la regex source
+        yield 'long_string' => ['http', 0, 4];
     }
 
-    #[\PHPUnit\Framework\Attributes\DataProvider('data_provider_literals')]
+    #[DataProvider('data_provider_literals')]
     public function test_constructor_and_getters(string $value, int $start, int $end): void
     {
         $node = new LiteralNode($value, $start, $end);

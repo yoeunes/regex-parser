@@ -13,25 +13,24 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\Node;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Node\BackrefNode;
 use RegexParser\NodeVisitor\NodeVisitorInterface;
 
 class BackrefNodeTest extends TestCase
 {
-    public static function data_provider_backrefs(): array
+    public static function data_provider_backrefs(): \Iterator
     {
-        return [
-            // Références numériques (format \1, \2...)
-            'numeric_ref' => ['1', 5, 7],
-            'two_digit_ref' => ['10', 8, 11],
-            // Références nommées (stockées brutes sans \k)
-            'named_k_lt_gt_ref' => ['k<name>', 1, 9],
-            'named_k_brace_ref' => ['k{name}', 1, 9],
-        ];
+        // Références numériques (format \1, \2...)
+        yield 'numeric_ref' => ['1', 5, 7];
+        yield 'two_digit_ref' => ['10', 8, 11];
+        // Références nommées (stockées brutes sans \k)
+        yield 'named_k_lt_gt_ref' => ['k<name>', 1, 9];
+        yield 'named_k_brace_ref' => ['k{name}', 1, 9];
     }
 
-    #[\PHPUnit\Framework\Attributes\DataProvider('data_provider_backrefs')]
+    #[DataProvider('data_provider_backrefs')]
     public function test_constructor_and_getters(string $ref, int $start, int $end): void
     {
         $node = new BackrefNode($ref, $start, $end);
