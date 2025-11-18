@@ -14,8 +14,8 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
-use RegexParser\Parser;
 use RegexParser\Exception\ParserException;
+use RegexParser\Parser;
 
 /**
  * Tests targeting uncovered branches in Parser and Lexer classes.

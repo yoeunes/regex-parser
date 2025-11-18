@@ -14,8 +14,8 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
-use RegexParser\Parser;
 use RegexParser\Exception\ParserException;
+use RegexParser\Parser;
 
 /**
  * Tests to improve code coverage for the Parser class.
@@ -30,7 +30,7 @@ class ParserCoverageBoostTest extends TestCase
     {
         $parser = new Parser([]);
         $ast = $parser->parse("/(?P'name'test)/");
-        
+
         $this->assertNotNull($ast);
     }
 
@@ -41,7 +41,7 @@ class ParserCoverageBoostTest extends TestCase
     {
         $parser = new Parser([]);
         $ast = $parser->parse('/(?P"name"test)/');
-        
+
         $this->assertNotNull($ast);
     }
 
@@ -52,7 +52,7 @@ class ParserCoverageBoostTest extends TestCase
     {
         $parser = new Parser([]);
         $ast = $parser->parse('/(?P<name>test)/');
-        
+
         $this->assertNotNull($ast);
     }
 
@@ -63,7 +63,7 @@ class ParserCoverageBoostTest extends TestCase
     {
         $parser = new Parser([]);
         $ast = $parser->parse('/(?P<name>test)(?P>name)/');
-        
+
         $this->assertNotNull($ast);
     }
 
@@ -74,7 +74,7 @@ class ParserCoverageBoostTest extends TestCase
     {
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('Backreferences (?P=name) are not supported yet');
-        
+
         $parser = new Parser([]);
         $parser->parse('/(?P<name>test)(?P=name)/');
     }
@@ -86,7 +86,7 @@ class ParserCoverageBoostTest extends TestCase
     {
         $parser = new Parser([]);
         $ast = $parser->parse('/(?<=test)abc/');
-        
+
         $this->assertNotNull($ast);
     }
 
@@ -97,7 +97,7 @@ class ParserCoverageBoostTest extends TestCase
     {
         $parser = new Parser([]);
         $ast = $parser->parse('/(?<!test)abc/');
-        
+
         $this->assertNotNull($ast);
     }
 
@@ -108,7 +108,7 @@ class ParserCoverageBoostTest extends TestCase
     {
         $parser = new Parser([]);
         $ast = $parser->parse('/(test)(?(1)yes|no)/');
-        
+
         $this->assertNotNull($ast);
     }
 
@@ -119,7 +119,7 @@ class ParserCoverageBoostTest extends TestCase
     {
         $parser = new Parser([]);
         $ast = $parser->parse('/(?<name>test)(?(<name>)yes|no)/');
-        
+
         $this->assertNotNull($ast);
     }
 
@@ -130,7 +130,7 @@ class ParserCoverageBoostTest extends TestCase
     {
         $parser = new Parser([]);
         $ast = $parser->parse('/(?((?=test))yes|no)/');
-        
+
         $this->assertNotNull($ast);
     }
 
@@ -141,7 +141,7 @@ class ParserCoverageBoostTest extends TestCase
     {
         $parser = new Parser([]);
         $ast = $parser->parse('/(?((?!test))yes|no)/');
-        
+
         $this->assertNotNull($ast);
     }
 
@@ -152,7 +152,7 @@ class ParserCoverageBoostTest extends TestCase
     {
         $parser = new Parser([]);
         $ast = $parser->parse('/(?((?<=test))yes|no)/');
-        
+
         $this->assertNotNull($ast);
     }
 
@@ -163,7 +163,7 @@ class ParserCoverageBoostTest extends TestCase
     {
         $parser = new Parser([]);
         $ast = $parser->parse('/(?((?<!test))yes|no)/');
-        
+
         $this->assertNotNull($ast);
     }
 
@@ -174,7 +174,7 @@ class ParserCoverageBoostTest extends TestCase
     {
         $parser = new Parser([]);
         $ast = $parser->parse('/(test)(?(1)yes)/');
-        
+
         $this->assertNotNull($ast);
     }
 
@@ -185,7 +185,7 @@ class ParserCoverageBoostTest extends TestCase
     {
         $parser = new Parser([]);
         $ast = $parser->parse('/(test)(?1)/');
-        
+
         $this->assertNotNull($ast);
     }
 
@@ -196,7 +196,7 @@ class ParserCoverageBoostTest extends TestCase
     {
         $parser = new Parser([]);
         $ast = $parser->parse('/(test)(?-1)/');
-        
+
         $this->assertNotNull($ast);
     }
 
@@ -207,7 +207,7 @@ class ParserCoverageBoostTest extends TestCase
     {
         $parser = new Parser([]);
         $ast = $parser->parse('/(?<name>test)(?&name)/');
-        
+
         $this->assertNotNull($ast);
     }
 
@@ -218,7 +218,7 @@ class ParserCoverageBoostTest extends TestCase
     {
         $parser = new Parser([]);
         $ast = $parser->parse('/(?>test)/');
-        
+
         $this->assertNotNull($ast);
     }
 
@@ -229,7 +229,7 @@ class ParserCoverageBoostTest extends TestCase
     {
         $parser = new Parser([]);
         $ast = $parser->parse('/(?:test)/');
-        
+
         $this->assertNotNull($ast);
     }
 
@@ -240,7 +240,7 @@ class ParserCoverageBoostTest extends TestCase
     {
         $parser = new Parser([]);
         $ast = $parser->parse('/(?i:test)/');
-        
+
         $this->assertNotNull($ast);
     }
 
@@ -251,7 +251,7 @@ class ParserCoverageBoostTest extends TestCase
     {
         $parser = new Parser([]);
         $ast = $parser->parse('/(?im:test)/');
-        
+
         $this->assertNotNull($ast);
     }
 
@@ -262,7 +262,7 @@ class ParserCoverageBoostTest extends TestCase
     {
         $parser = new Parser([]);
         $ast = $parser->parse('/(?-i:test)/');
-        
+
         $this->assertNotNull($ast);
     }
 
@@ -273,7 +273,7 @@ class ParserCoverageBoostTest extends TestCase
     {
         $parser = new Parser([]);
         $ast = $parser->parse('/(?i-m:test)/');
-        
+
         $this->assertNotNull($ast);
     }
 
@@ -284,7 +284,7 @@ class ParserCoverageBoostTest extends TestCase
     {
         $parser = new Parser([]);
         $ast = $parser->parse('/[a-z]/');
-        
+
         $this->assertNotNull($ast);
     }
 
@@ -295,7 +295,7 @@ class ParserCoverageBoostTest extends TestCase
     {
         $parser = new Parser([]);
         $ast = $parser->parse('/[a-zA-Z0-9]/');
-        
+
         $this->assertNotNull($ast);
     }
 
@@ -306,7 +306,7 @@ class ParserCoverageBoostTest extends TestCase
     {
         $parser = new Parser([]);
         $ast = $parser->parse('/[^a-z]/');
-        
+
         $this->assertNotNull($ast);
     }
 
@@ -317,7 +317,7 @@ class ParserCoverageBoostTest extends TestCase
     {
         $parser = new Parser([]);
         $ast = $parser->parse('/[[:alnum:]]/');
-        
+
         $this->assertNotNull($ast);
     }
 
@@ -328,7 +328,7 @@ class ParserCoverageBoostTest extends TestCase
     {
         $parser = new Parser([]);
         $ast = $parser->parse('/[[:^alnum:]]/');
-        
+
         $this->assertNotNull($ast);
     }
 
@@ -339,7 +339,7 @@ class ParserCoverageBoostTest extends TestCase
     {
         $parser = new Parser([]);
         $ast = $parser->parse('/\101/');
-        
+
         $this->assertNotNull($ast);
     }
 
@@ -350,7 +350,7 @@ class ParserCoverageBoostTest extends TestCase
     {
         $parser = new Parser([]);
         $ast = $parser->parse('/\o{101}/');
-        
+
         $this->assertNotNull($ast);
     }
 
@@ -361,7 +361,7 @@ class ParserCoverageBoostTest extends TestCase
     {
         $parser = new Parser([]);
         $ast = $parser->parse('/\x41/');
-        
+
         $this->assertNotNull($ast);
     }
 
@@ -372,7 +372,7 @@ class ParserCoverageBoostTest extends TestCase
     {
         $parser = new Parser([]);
         $ast = $parser->parse('/\u{0041}/');
-        
+
         $this->assertNotNull($ast);
     }
 
@@ -383,7 +383,7 @@ class ParserCoverageBoostTest extends TestCase
     {
         $parser = new Parser([]);
         $ast = $parser->parse('/(*FAIL)/');
-        
+
         $this->assertNotNull($ast);
     }
 
@@ -394,7 +394,7 @@ class ParserCoverageBoostTest extends TestCase
     {
         $parser = new Parser([]);
         $ast = $parser->parse('/(*MARK:test)/');
-        
+
         $this->assertNotNull($ast);
     }
 
@@ -405,7 +405,7 @@ class ParserCoverageBoostTest extends TestCase
     {
         $parser = new Parser([]);
         $ast = $parser->parse('/test\K/');
-        
+
         $this->assertNotNull($ast);
     }
 
@@ -415,7 +415,7 @@ class ParserCoverageBoostTest extends TestCase
     public function test_anchors(): void
     {
         $parser = new Parser([]);
-        
+
         $patterns = [
             '/^test/',    // Start anchor
             '/test$/',    // End anchor
@@ -434,7 +434,7 @@ class ParserCoverageBoostTest extends TestCase
     public function test_assertions(): void
     {
         $parser = new Parser([]);
-        
+
         $patterns = [
             '/\A/',      // Start of string
             '/\z/',      // End of string
@@ -456,7 +456,7 @@ class ParserCoverageBoostTest extends TestCase
     public function test_char_types(): void
     {
         $parser = new Parser([]);
-        
+
         $patterns = [
             '/\d/',      // Digit
             '/\D/',      // Not digit
@@ -484,7 +484,7 @@ class ParserCoverageBoostTest extends TestCase
     {
         $parser = new Parser([]);
         $ast = $parser->parse('/(test)\1/');
-        
+
         $this->assertNotNull($ast);
     }
 
@@ -495,7 +495,7 @@ class ParserCoverageBoostTest extends TestCase
     {
         $parser = new Parser([]);
         $ast = $parser->parse('/(?<name>test)\k<name>/');
-        
+
         $this->assertNotNull($ast);
     }
 
@@ -506,7 +506,7 @@ class ParserCoverageBoostTest extends TestCase
     {
         $parser = new Parser([]);
         $ast = $parser->parse('/(?<name>test)\k{name}/');
-        
+
         $this->assertNotNull($ast);
     }
 
@@ -517,7 +517,7 @@ class ParserCoverageBoostTest extends TestCase
     {
         $parser = new Parser([]);
         $ast = $parser->parse('/(test)\g1/');
-        
+
         $this->assertNotNull($ast);
     }
 
@@ -528,7 +528,7 @@ class ParserCoverageBoostTest extends TestCase
     {
         $parser = new Parser([]);
         $ast = $parser->parse('/(test)\g-1/');
-        
+
         $this->assertNotNull($ast);
     }
 
@@ -539,7 +539,7 @@ class ParserCoverageBoostTest extends TestCase
     {
         $parser = new Parser([]);
         $ast = $parser->parse('/(?<name>test)\g<name>/');
-        
+
         $this->assertNotNull($ast);
     }
 
@@ -550,7 +550,7 @@ class ParserCoverageBoostTest extends TestCase
     {
         $parser = new Parser([]);
         $ast = $parser->parse('/(?<name>test)\g{name}/');
-        
+
         $this->assertNotNull($ast);
     }
 
@@ -561,7 +561,7 @@ class ParserCoverageBoostTest extends TestCase
     {
         $parser = new Parser([]);
         $ast = $parser->parse('/./');
-        
+
         $this->assertNotNull($ast);
     }
 
@@ -571,7 +571,7 @@ class ParserCoverageBoostTest extends TestCase
     public function test_quantifiers(): void
     {
         $parser = new Parser([]);
-        
+
         $patterns = [
             '/a*/',      // Zero or more
             '/a+/',      // One or more
@@ -602,7 +602,7 @@ class ParserCoverageBoostTest extends TestCase
     {
         $parser = new Parser([]);
         $ast = $parser->parse('/(?#this is a comment)test/');
-        
+
         $this->assertNotNull($ast);
     }
 
@@ -613,7 +613,7 @@ class ParserCoverageBoostTest extends TestCase
     {
         $parser = new Parser([]);
         $ast = $parser->parse('/foo|bar|baz/');
-        
+
         $this->assertNotNull($ast);
     }
 
@@ -624,7 +624,7 @@ class ParserCoverageBoostTest extends TestCase
     {
         $parser = new Parser([]);
         $ast = $parser->parse('/foo||bar/');
-        
+
         $this->assertNotNull($ast);
     }
 
@@ -635,7 +635,7 @@ class ParserCoverageBoostTest extends TestCase
     {
         $parser = new Parser([]);
         $ast = $parser->parse('/(?:(?<name>test)|(?P<other>foo)){2,5}/');
-        
+
         $this->assertNotNull($ast);
     }
 
@@ -645,7 +645,7 @@ class ParserCoverageBoostTest extends TestCase
     public function test_various_delimiters(): void
     {
         $parser = new Parser([]);
-        
+
         $patterns = [
             '/test/',
             '#test#',
@@ -668,7 +668,7 @@ class ParserCoverageBoostTest extends TestCase
     public function test_extract_pattern_and_flags(): void
     {
         $parser = new Parser([]);
-        
+
         $patterns = [
             '/test/i',
             '/test/im',
