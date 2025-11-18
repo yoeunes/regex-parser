@@ -46,6 +46,7 @@ return (new PhpCsFixer\Config())
         'doctrine_annotation_indentation'                                              => true,
         'doctrine_annotation_spaces'                                                   => true,
         'final_class'                                                                  => false,
+        'random_api_migration'                                                         => false,
         'general_phpdoc_annotation_remove'                                             => [
             'annotations' => [
                 'copyright',
