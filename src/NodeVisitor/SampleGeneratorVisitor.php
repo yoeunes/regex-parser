@@ -151,7 +151,7 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
         }
 
         $parts = [];
-        for ($i = 0; $i < $repeats; ++$i) {
+        for ($i = 0; $i < $repeats; $i++) {
             $parts[] = $node->node->accept($this);
         }
 

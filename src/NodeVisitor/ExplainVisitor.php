@@ -96,12 +96,12 @@ class ExplainVisitor implements NodeVisitorInterface
 
     public function visitAlternation(AlternationNode $node): string
     {
-        ++$this->indentLevel;
+        $this->indentLevel++;
         $alts = array_map(
             fn (NodeInterface $alt) => $alt->accept($this),
             $node->alternatives,
         );
-        --$this->indentLevel;
+        $this->indentLevel--;
 
         $indent = $this->indent();
 
@@ -124,9 +124,9 @@ class ExplainVisitor implements NodeVisitorInterface
 
     public function visitGroup(GroupNode $node): string
     {
-        ++$this->indentLevel;
+        $this->indentLevel++;
         $childExplain = $node->child->accept($this);
-        --$this->indentLevel;
+        $this->indentLevel--;
 
         $indent = $this->indent();
         $type = match ($node->type) {
@@ -155,9 +155,9 @@ class ExplainVisitor implements NodeVisitorInterface
         }
 
         // If the child is complex, indent it.
-        ++$this->indentLevel;
+        $this->indentLevel++;
         $childExplain = $node->node->accept($this);
-        --$this->indentLevel;
+        $this->indentLevel--;
 
         return \sprintf(
             "Start Quantified Group (%s):\n%s%s\n%sEnd Quantified Group",
@@ -259,11 +259,11 @@ class ExplainVisitor implements NodeVisitorInterface
 
     public function visitConditional(ConditionalNode $node): string
     {
-        ++$this->indentLevel;
+        $this->indentLevel++;
         $cond = $node->condition->accept($this);
         $yes = $node->yes->accept($this);
         $no = $node->no->accept($this);
-        --$this->indentLevel;
+        $this->indentLevel--;
 
         $indent = $this->indent();
 

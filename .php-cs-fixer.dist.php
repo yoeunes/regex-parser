@@ -83,6 +83,19 @@ return (new PhpCsFixer\Config())
         'elseif' => true,
         'encoding' => true,
         'full_opening_tag' => true,
+        'fully_qualified_strict_types' => false,
+        'function_declaration' => true,
+        'general_phpdoc_tag_rename' => true,
+        'include' => true,
+        'increment_style' => ['style' => 'post'],
+        'indentation_type' => true,
+        'integer_literal_case' => true,
+        'lambda_not_used_import' => true,
+        'line_ending' => true,
+        'linebreak_after_opening_tag' => true,
+        'list_syntax' => true,
+        'lowercase_cast' => true,
+        'lowercase_keywords' => true,
     ])
     ->setFinder($finder)
     ->setCacheFile('.cache/php-cs-fixer/cache.json');

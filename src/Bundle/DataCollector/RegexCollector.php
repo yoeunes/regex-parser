@@ -82,7 +82,7 @@ class RegexCollector extends DataCollector implements LateDataCollectorInterface
         foreach ($this->collectedRegexes as $collected) {
             $validation = $this->regex->validate($collected->pattern);
             if (!$validation->isValid) {
-                ++$invalidCount;
+                $invalidCount++;
             }
 
             try {

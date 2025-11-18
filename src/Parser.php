@@ -144,12 +144,12 @@ class Parser
         $closingDelimiter = $delimiterMap[$delimiter] ?? $delimiter;
         $length = \strlen($regex);
 
-        for ($i = $length - 1; $i > 0; --$i) {
+        for ($i = $length - 1; $i > 0; $i--) {
             if ($regex[$i] === $closingDelimiter) {
                 // Check if this delimiter is escaped by counting preceding backslashes.
                 $escapes = 0;
-                for ($j = $i - 1; $j > 0 && '\\' === $regex[$j]; --$j) {
-                    ++$escapes;
+                for ($j = $i - 1; $j > 0 && '\\' === $regex[$j]; $j--) {
+                    $escapes++;
                 }
 
                 if (0 === $escapes % 2) {
@@ -615,7 +615,7 @@ class Parser
 
                 return new SubroutineNode('R', '', $startPos, $endPos);
             }
-            --$this->position; // Not a (?R) group, rewind 'R'
+            $this->position--; // Not a (?R) group, rewind 'R'
         }
 
         // Check for (?1), (?-1), (?0)
@@ -638,7 +638,7 @@ class Parser
             // Rewind all consumed digits and the optional '-'
             $this->position -= mb_strlen($num);
         } elseif ('-' === $num) {
-            --$this->position; // Rewind '-' if it wasn't followed by a digit
+            $this->position--; // Rewind '-' if it wasn't followed by a digit
         }
 
         // 5. Check for simple non-capturing, lookaheads, atomic
@@ -862,7 +862,7 @@ class Parser
             if ($this->check(TokenType::T_CHAR_CLASS_CLOSE)) {
                 // This is a trailing "-", (e.g., "[a-]")
                 // We treat the "-" as a literal.
-                --$this->position; // Rewind to re-parse "-" as a literal in the next loop iteration
+                $this->position--; // Rewind to re-parse "-" as a literal in the next loop iteration
 
                 return $startNode;
             }
@@ -906,7 +906,7 @@ class Parser
             } else {
                 // This means a range ending with a meta-char, e.g. [a-\]
                 // We treat the "-" as a literal.
-                --$this->position; // Rewind
+                $this->position--; // Rewind
 
                 return $startNode;
             }
@@ -1041,7 +1041,7 @@ class Parser
     private function advance(): void
     {
         if (!$this->isAtEnd()) {
-            ++$this->position;
+            $this->position++;
         }
     }
 

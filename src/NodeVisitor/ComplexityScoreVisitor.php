@@ -133,7 +133,7 @@ class ComplexityScoreVisitor implements NodeVisitorInterface
                 // Exponentially penalize nested unbounded quantifiers
                 $score *= (self::NESTING_MULTIPLIER * $this->quantifierDepth);
             }
-            ++$this->quantifierDepth;
+            $this->quantifierDepth++;
         } else {
             // Bounded quantifiers are simpler
             $score += self::BASE_SCORE;
@@ -143,7 +143,7 @@ class ComplexityScoreVisitor implements NodeVisitorInterface
         $score += $node->node->accept($this);
 
         if ($isUnbounded) {
-            --$this->quantifierDepth;
+            $this->quantifierDepth--;
         }
 
         return $score;

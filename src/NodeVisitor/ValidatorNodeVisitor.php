@@ -173,9 +173,9 @@ final class ValidatorNodeVisitor implements NodeVisitorInterface
 
         // Track defined capturing groups
         if (GroupType::T_GROUP_CAPTURING === $node->type) {
-            ++$this->groupCount;
+            $this->groupCount++;
         } elseif (GroupType::T_GROUP_NAMED === $node->type) {
-            ++$this->groupCount;
+            $this->groupCount++;
             if (null !== $node->name) {
                 if (isset($this->namedGroups[$node->name])) {
                     throw new ParserException(\sprintf('Duplicate group name "%s" at position %d.', $node->name, $node->startPos));
@@ -212,13 +212,13 @@ final class ValidatorNodeVisitor implements NodeVisitorInterface
             if ($this->quantifierDepth > 0) {
                 throw new ParserException(\sprintf('Potential catastrophic backtracking (ReDoS): nested unbounded quantifier "%s" at position %d.', $node->quantifier, $node->startPos));
             }
-            ++$this->quantifierDepth;
+            $this->quantifierDepth++;
         }
 
         $node->node->accept($this);
 
         if ($isUnbounded) {
-            --$this->quantifierDepth;
+            $this->quantifierDepth--;
         }
     }
 
