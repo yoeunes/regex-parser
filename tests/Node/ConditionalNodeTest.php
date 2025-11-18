@@ -44,7 +44,7 @@ class ConditionalNodeTest extends TestCase
         $no = new LiteralNode('', 5, 5); // Empty node for no branch
 
         $node = new ConditionalNode($condition, $yes, $no, 0, 6);
-
+        $this->assertInstanceOf(LiteralNode::class, $node->no);
         $this->assertSame('', $node->no->value);
     }
 
