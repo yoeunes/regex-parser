@@ -28,15 +28,15 @@ class ComplexityScoreVisitorTest extends TestCase
 
     public function testSimpleRegexScore(): void
     {
-        // abc = 1 (seq) + 1 + 1 + 1 = 4 (ou proche, dépend de ta logique exacte de base)
+        // abc = 1 (seq) + 1 + 1 + 1 = 4 (or close, depends on your exact base logic)
         $score = $this->getScore('/abc/');
         $this->assertLessThan(10, $score);
     }
 
     public function testHighComplexityScore(): void
     {
-        // ReDoS classique: (a+)+
-        // Ta logique devrait multiplier le score exponentiellement pour les quantificateurs imbriqués
+        // Classic ReDoS: (a+)+
+        // Your logic should multiply the score exponentially for nested quantifiers
         $score = $this->getScore('/(a+)+/');
 
         $this->assertGreaterThan(20, $score, 'Nested quantifiers should yield a high complexity score');

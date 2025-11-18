@@ -32,7 +32,7 @@ class RegexTest extends TestCase
         $valid = $regex->validate('/abc/');
         $this->assertTrue($valid->isValid);
 
-        $invalid = $regex->validate('/(abc/'); // Parenthèse non fermée
+        $invalid = $regex->validate('/(abc/'); // Unclosed parenthesis
         $this->assertFalse($invalid->isValid);
         $this->assertNotNull($invalid->error);
     }
@@ -40,10 +40,10 @@ class RegexTest extends TestCase
     public function testOptimize(): void
     {
         $regex = Regex::create();
-        // Doit optimiser [0-9] en \d
+        // Should optimize [0-9] to \d
         $optimized = $regex->optimize('/[0-9]/');
 
-        // Note: le CompilerNodeVisitor ajoute le \ devant d
+        // Note: the CompilerNodeVisitor adds the \ before d
         $this->assertSame('/\d/', $optimized);
     }
 

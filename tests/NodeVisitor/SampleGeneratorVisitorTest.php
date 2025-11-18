@@ -22,7 +22,7 @@ class SampleGeneratorVisitorTest extends TestCase
         $parser = new Parser();
         $ast = $parser->parse($regex);
 
-        // On génère plusieurs fois pour couvrir l'aléatoire
+        // We generate multiple times to cover randomness
         $generator = new SampleGeneratorVisitor();
 
         for ($i = 0; $i < 10; ++$i) {
@@ -48,7 +48,7 @@ class SampleGeneratorVisitorTest extends TestCase
     public function testGenerateQuantifiers(): void
     {
         $this->assertSampleMatches('/a{2,5}/');
-        $this->assertSampleMatches('/b*/'); // Peut générer vide
+        $this->assertSampleMatches('/b*/'); // Can generate empty string
         $this->assertSampleMatches('/c+/');
     }
 
@@ -66,8 +66,8 @@ class SampleGeneratorVisitorTest extends TestCase
 
     public function testGenerateGroupsAndBackrefs(): void
     {
-        // Test complexe: backreference. Le générateur doit retenir ce qu'il a généré.
-        // (a|b)\1 doit générer "aa" ou "bb", mais jamais "ab"
+        // Complex test: backreference. The generator must remember what it generated.
+        // (a|b)\1 must generate "aa" or "bb", but never "ab"
         $parser = new Parser();
         $ast = $parser->parse('/(a|b)\1/');
         $generator = new SampleGeneratorVisitor();

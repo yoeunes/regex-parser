@@ -28,7 +28,6 @@ class ExplainVisitorTest extends TestCase
 
         $this->assertStringContainsString('Regex matches (with flags: i)', $output);
         $this->assertStringContainsString('EITHER:', $output);
-        // Correction : On cherche la traduction humaine générée par le code
         $this->assertStringContainsString('Anchor: the start of the string', $output);
         $this->assertStringContainsString('OR:', $output);
     }
@@ -36,13 +35,13 @@ class ExplainVisitorTest extends TestCase
     public function testHtmlExplainEscaping(): void
     {
         $parser = new Parser();
-        // Le parser découpe "<script>" en plusieurs littéraux : "<", "s", "c", ...
+        // The parser splits "<script>" into multiple literals: "<", "s", "c", ...
         $ast = $parser->parse('/<script>/');
         $visitor = new HtmlExplainVisitor();
 
         $output = $ast->accept($visitor);
 
-        // On vérifie que les caractères spéciaux HTML sont bien échappés dans le rendu
+        // We check that special HTML characters are correctly escaped in the rendering
         $this->assertStringNotContainsString('<script>', $output);
         $this->assertStringContainsString('&lt;', $output);
         $this->assertStringContainsString('&gt;', $output);

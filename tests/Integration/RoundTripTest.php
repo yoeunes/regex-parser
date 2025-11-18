@@ -26,15 +26,15 @@ class RoundTripTest extends TestCase
         return [
             ['/abc/'],
             ['/^test$/i'],
-            // Le compilateur échappe le tiret pour la sécurité
+            // The compiler escapes the hyphen for safety
             ['/[a-z0-9_-]+/', '/[a-z0-9_\-]+/'],
             ['/(?:foo|bar){1,2}?/s'],
             ['/(?<name>\w+)/'],
             ['/\\/home\\/user/'],
             ['#Hash matches#'],
-            // Le compilateur normalise \p{L} en \pL
+            // The compiler normalizes \p{L} to \pL
             ['/\p{L}+/u', '/\pL+/u'],
-            // Correction ici : On définit le groupe 1 (a) pour que la condition (?(1)...) soit valide
+            // Correction here: We define group 1 (a) so that the condition (?(1)...) is valid
             ['/(a)(?(1)b|c)/'],
         ];
     }
@@ -50,7 +50,7 @@ class RoundTripTest extends TestCase
 
         $this->assertSame($expected ?? $pattern, $compiled);
 
-        // Cette assertion échouait car la regex n'avait pas de groupe 1
+        // This assertion was failing because the regex didn't have group 1
         $this->assertNotFalse(@preg_match($compiled, ''), "Compiled regex '$compiled' is invalid");
     }
 }

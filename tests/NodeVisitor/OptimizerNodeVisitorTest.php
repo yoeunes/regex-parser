@@ -38,9 +38,9 @@ class OptimizerNodeVisitorTest extends TestCase
 
     public function testFlattenAlternations(): void
     {
-        // On utilise des chaînes longues ("beta", "gamma") pour empêcher
-        // l'optimiseur de convertir (b|c) en [bc] (CharClass).
-        // On veut tester spécifiquement la fusion d'AlternationNode.
+        // We use long strings ("beta", "gamma") to prevent
+        // the optimizer from converting (b|c) into [bc] (CharClass).
+        // We specifically want to test the merging of AlternationNode.
 
         $nestedAlt = new AlternationNode([
             new LiteralNode('beta', 0, 0),
@@ -58,7 +58,7 @@ class OptimizerNodeVisitorTest extends TestCase
         /** @var AlternationNode $newAst */
         $newAst = $rootAlt->accept($optimizer);
 
-        // L'optimiseur doit avoir "remonté" beta et gamma au niveau racine -> 4 alternatives
+        // The optimizer should have "lifted" beta and gamma to the root level -> 4 alternatives
         $this->assertCount(4, $newAst->alternatives);
         $this->assertInstanceOf(LiteralNode::class, $newAst->alternatives[1]);
         $this->assertSame('beta', $newAst->alternatives[1]->value);
