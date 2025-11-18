@@ -356,7 +356,6 @@ class ParserCoverageBoostTest extends TestCase
 
         foreach ($patterns as $pattern) {
             $parser->parse($pattern);
-
         }
     }
 
@@ -378,7 +377,6 @@ class ParserCoverageBoostTest extends TestCase
 
         foreach ($patterns as $pattern) {
             $parser->parse($pattern);
-
         }
     }
 
@@ -405,7 +403,6 @@ class ParserCoverageBoostTest extends TestCase
 
         foreach ($patterns as $pattern) {
             $parser->parse($pattern);
-
         }
     }
 
@@ -507,7 +504,6 @@ class ParserCoverageBoostTest extends TestCase
 
         foreach ($patterns as $pattern) {
             $parser->parse($pattern);
-
         }
     }
 
@@ -566,7 +562,6 @@ class ParserCoverageBoostTest extends TestCase
 
         foreach ($patterns as $pattern) {
             $parser->parse($pattern);
-
         }
     }
 
@@ -591,7 +586,6 @@ class ParserCoverageBoostTest extends TestCase
 
         foreach ($patterns as $pattern) {
             $parser->parse($pattern);
-
         }
     }
 }

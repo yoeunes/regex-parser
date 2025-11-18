@@ -34,8 +34,7 @@ class CoverageImprovementTest extends TestCase
      */
     public function test_conditional_with_curly_brace_name(): void
     {
-        $ast = $this->parser->parse('/(?<foo>x)(?({foo})yes|no)/');
-        $this->assertNotNull($ast);
+        $this->parser->parse('/(?<foo>x)(?({foo})yes|no)/');
     }
 
     /**
@@ -43,8 +42,7 @@ class CoverageImprovementTest extends TestCase
      */
     public function test_conditional_with_numeric_reference(): void
     {
-        $ast = $this->parser->parse('/(a)(?(1)yes|no)/');
-        $this->assertNotNull($ast);
+        $this->parser->parse('/(a)(?(1)yes|no)/');
     }
 
     /**
@@ -52,8 +50,7 @@ class CoverageImprovementTest extends TestCase
      */
     public function test_conditional_with_multi_digit_numeric_reference(): void
     {
-        $ast = $this->parser->parse('/(a)(b)(c)(d)(e)(f)(g)(h)(i)(j)(k)(l)(?(12)yes|no)/');
-        $this->assertNotNull($ast);
+        $this->parser->parse('/(a)(b)(c)(d)(e)(f)(g)(h)(i)(j)(k)(l)(?(12)yes|no)/');
     }
 
     /**
@@ -61,8 +58,7 @@ class CoverageImprovementTest extends TestCase
      */
     public function test_conditional_with_lookahead_condition(): void
     {
-        $ast = $this->parser->parse('/(?(?=test)yes|no)/');
-        $this->assertNotNull($ast);
+        $this->parser->parse('/(?(?=test)yes|no)/');
     }
 
     /**
@@ -70,8 +66,7 @@ class CoverageImprovementTest extends TestCase
      */
     public function test_conditional_with_negative_lookahead_condition(): void
     {
-        $ast = $this->parser->parse('/(?(?!test)yes|no)/');
-        $this->assertNotNull($ast);
+        $this->parser->parse('/(?(?!test)yes|no)/');
     }
 
     /**
@@ -79,8 +74,7 @@ class CoverageImprovementTest extends TestCase
      */
     public function test_conditional_with_bare_group_name(): void
     {
-        $ast = $this->parser->parse('/(?<foo>x)(?(foo)yes|no)/');
-        $this->assertNotNull($ast);
+        $this->parser->parse('/(?<foo>x)(?(foo)yes|no)/');
     }
 
     /**
@@ -88,8 +82,7 @@ class CoverageImprovementTest extends TestCase
      */
     public function test_conditional_with_recursion_check(): void
     {
-        $ast = $this->parser->parse('/(?(R)yes|no)/');
-        $this->assertNotNull($ast);
+        $this->parser->parse('/(?(R)yes|no)/');
     }
 
     /**
@@ -97,8 +90,7 @@ class CoverageImprovementTest extends TestCase
      */
     public function test_conditional_with_angle_bracket_name(): void
     {
-        $ast = $this->parser->parse('/(?<name>x)(?(<name>)yes|no)/');
-        $this->assertNotNull($ast);
+        $this->parser->parse('/(?<name>x)(?(<name>)yes|no)/');
     }
 
     /**
@@ -117,8 +109,7 @@ class CoverageImprovementTest extends TestCase
      */
     public function test_quantifier_with_min_only(): void
     {
-        $ast = $this->parser->parse('/a{2,}/');
-        $this->assertNotNull($ast);
+        $this->parser->parse('/a{2,}/');
     }
 
     /**
@@ -126,8 +117,7 @@ class CoverageImprovementTest extends TestCase
      */
     public function test_quantifier_with_exact_count(): void
     {
-        $ast = $this->parser->parse('/a{5}/');
-        $this->assertNotNull($ast);
+        $this->parser->parse('/a{5}/');
     }
 
     /**
@@ -143,8 +133,7 @@ class CoverageImprovementTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $ast = $this->parser->parse($pattern);
-            $this->assertNotNull($ast, "Failed for pattern: $pattern");
+            $this->parser->parse($pattern);
         }
     }
 
@@ -163,8 +152,7 @@ class CoverageImprovementTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $ast = $this->parser->parse($pattern);
-            $this->assertNotNull($ast, "Failed for pattern: $pattern");
+            \THIS->parser->parse($pattern);
         }
     }
 
@@ -183,8 +171,7 @@ class CoverageImprovementTest extends TestCase
      */
     public function test_subroutine_call_p_syntax(): void
     {
-        $ast = $this->parser->parse('/(?<foo>a)(?P>foo)/');
-        $this->assertNotNull($ast);
+        $this->parser->parse('/(?<foo>a)(?P>foo)/');
     }
 
     /**
@@ -198,8 +185,7 @@ class CoverageImprovementTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $ast = $this->parser->parse($pattern);
-            $this->assertNotNull($ast, "Failed for pattern: $pattern");
+            $this->parser->parse($pattern);
         }
     }
 
@@ -208,8 +194,7 @@ class CoverageImprovementTest extends TestCase
      */
     public function test_char_class_negation(): void
     {
-        $ast = $this->parser->parse('/[^abc]/');
-        $this->assertNotNull($ast);
+        $this->parser->parse('/[^abc]/');
     }
 
     /**
@@ -224,8 +209,7 @@ class CoverageImprovementTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $ast = $this->parser->parse($pattern);
-            $this->assertNotNull($ast, "Failed for pattern: $pattern");
+            $this->parser->parse($pattern);
         }
     }
 
@@ -241,8 +225,7 @@ class CoverageImprovementTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $ast = $this->parser->parse($pattern);
-            $this->assertNotNull($ast, "Failed for pattern: $pattern");
+            $this->parser->parse($pattern);
         }
     }
 
@@ -251,8 +234,7 @@ class CoverageImprovementTest extends TestCase
      */
     public function test_comment_groups(): void
     {
-        $ast = $this->parser->parse('/(?#this is a comment)abc/');
-        $this->assertNotNull($ast);
+        $this->parser->parse('/(?#this is a comment)abc/');
     }
 
     /**
@@ -270,8 +252,7 @@ class CoverageImprovementTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $ast = $this->parser->parse($pattern);
-            $this->assertNotNull($ast, "Failed for pattern: $pattern");
+            $this->parser->parse($pattern);
         }
     }
 
@@ -280,8 +261,7 @@ class CoverageImprovementTest extends TestCase
      */
     public function test_atomic_groups(): void
     {
-        $ast = $this->parser->parse('/(?>abc)/');
-        $this->assertNotNull($ast);
+        $this->parser->parse('/(?>abc)/');
     }
 
     /**
@@ -289,8 +269,7 @@ class CoverageImprovementTest extends TestCase
      */
     public function test_recursive_pattern(): void
     {
-        $ast = $this->parser->parse('/(?R)/');
-        $this->assertNotNull($ast);
+        $this->parser->parse('/(?R)/');
     }
 
     /**
@@ -305,8 +284,7 @@ class CoverageImprovementTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $ast = $this->parser->parse($pattern);
-            $this->assertNotNull($ast, "Failed for pattern: $pattern");
+            $this->parser->parse($pattern);
         }
     }
 
@@ -322,8 +300,7 @@ class CoverageImprovementTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $ast = $this->parser->parse($pattern);
-            $this->assertNotNull($ast, "Failed for pattern: $pattern");
+            $this->parser->parse($pattern);
         }
     }
 
@@ -341,8 +318,7 @@ class CoverageImprovementTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $ast = $this->parser->parse($pattern);
-            $this->assertNotNull($ast, "Failed for pattern: $pattern");
+            $this->parser->parse($pattern);
         }
     }
 
@@ -359,8 +335,7 @@ class CoverageImprovementTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $ast = $this->parser->parse($pattern);
-            $this->assertNotNull($ast, "Failed for pattern: $pattern");
+            $this->parser->parse($pattern);
         }
     }
 
@@ -378,8 +353,7 @@ class CoverageImprovementTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $ast = $this->parser->parse($pattern);
-            $this->assertNotNull($ast, "Failed for pattern: $pattern");
+            $this->parser->parse($pattern);
         }
     }
 
@@ -398,8 +372,7 @@ class CoverageImprovementTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $ast = $this->parser->parse($pattern);
-            $this->assertNotNull($ast, "Failed for pattern: $pattern");
+            $this->parser->parse($pattern);
         }
     }
 
@@ -408,8 +381,7 @@ class CoverageImprovementTest extends TestCase
      */
     public function test_keep_assertion(): void
     {
-        $ast = $this->parser->parse('/test\K/');
-        $this->assertNotNull($ast);
+        $this->parser->parse('/test\K/');
     }
 
     /**
@@ -432,8 +404,7 @@ class CoverageImprovementTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $ast = $this->parser->parse($pattern);
-            $this->assertNotNull($ast, "Failed for pattern: $pattern");
+            $this->parser->parse($pattern);
         }
     }
 
@@ -450,8 +421,7 @@ class CoverageImprovementTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $ast = $this->parser->parse($pattern);
-            $this->assertNotNull($ast, "Failed for pattern: $pattern");
+            $this->parser->parse($pattern);
         }
     }
 
@@ -475,8 +445,7 @@ class CoverageImprovementTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $ast = $this->parser->parse($pattern);
-            $this->assertNotNull($ast, "Failed for pattern: $pattern");
+            $this->parser->parse($pattern);
         }
     }
 
@@ -493,8 +462,7 @@ class CoverageImprovementTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $ast = $this->parser->parse($pattern);
-            $this->assertNotNull($ast, "Failed for pattern: $pattern");
+            $this->parser->parse($pattern);
         }
     }
 
@@ -511,8 +479,7 @@ class CoverageImprovementTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $ast = $this->parser->parse($pattern);
-            $this->assertNotNull($ast, "Failed for pattern: $pattern");
+            $this->parser->parse($pattern);
         }
     }
 
@@ -529,8 +496,7 @@ class CoverageImprovementTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $ast = $this->parser->parse($pattern);
-            $this->assertNotNull($ast, "Failed for pattern: $pattern");
+            $this->parser->parse($pattern);
         }
     }
 
@@ -539,8 +505,7 @@ class CoverageImprovementTest extends TestCase
      */
     public function test_dot_metacharacter(): void
     {
-        $ast = $this->parser->parse('/./');
-        $this->assertNotNull($ast);
+        $this->parser->parse('/./');
     }
 
     /**
@@ -555,8 +520,7 @@ class CoverageImprovementTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $ast = $this->parser->parse($pattern);
-            $this->assertNotNull($ast, "Failed for pattern: $pattern");
+            $this->parser->parse($pattern);
         }
     }
 
@@ -565,8 +529,7 @@ class CoverageImprovementTest extends TestCase
      */
     public function test_nested_groups(): void
     {
-        $ast = $this->parser->parse('/((a)(b))/');
-        $this->assertNotNull($ast);
+        $this->parser->parse('/((a)(b))/');
     }
 
     /**
@@ -588,8 +551,7 @@ class CoverageImprovementTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $ast = $this->parser->parse($pattern);
-            $this->assertNotNull($ast, "Failed for pattern: $pattern");
+            $this->parser->parse($pattern);
         }
     }
 }

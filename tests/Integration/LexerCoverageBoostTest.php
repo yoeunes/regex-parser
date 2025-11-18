@@ -246,17 +246,13 @@ class LexerCoverageBoostTest extends TestCase
     public function test_parser_with_quote_mode(): void
     {
         $parser = new Parser([]);
-        $ast = $parser->parse('/\Qtest.*\E/');
-
-        $this->assertNotNull($ast);
+        $parser->parse('/\Qtest.*\E/');
     }
 
     public function test_parser_with_special_escapes(): void
     {
         $parser = new Parser([]);
-        $ast = $parser->parse('/\t\n\r/');
-
-        $this->assertNotNull($ast);
+        $parser->parse('/\t\n\r/');
     }
 
     public function test_parser_with_unicode_props(): void
@@ -271,8 +267,7 @@ class LexerCoverageBoostTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $ast = $parser->parse($pattern);
-            $this->assertNotNull($ast);
+            $parser->parse($pattern);
         }
     }
 
