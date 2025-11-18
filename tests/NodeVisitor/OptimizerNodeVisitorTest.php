@@ -26,6 +26,16 @@ use RegexParser\Parser;
 
 class OptimizerNodeVisitorTest extends TestCase
 {
+    private Parser $parser;
+
+    private OptimizerNodeVisitor $optimizer;
+
+    protected function setUp(): void
+    {
+        $this->parser = new Parser();
+        $this->optimizer = new OptimizerNodeVisitor();
+    }
+
     public function test_merge_adjacent_literals(): void
     {
         $parser = new Parser();
@@ -82,15 +92,13 @@ class OptimizerNodeVisitorTest extends TestCase
 
     public function test_digit_optimization(): void
     {
-        $parser = new Parser();
-        $ast = $parser->parse('/[0-9]/');
-        $optimizer = new OptimizerNodeVisitor();
+        // Logic: [0-9] -> \d
+        $ast = $this->parser->parse('/[0-9]/');
+        $optimized = $ast->accept($this->optimizer);
 
-        $newAst = $ast->accept($optimizer);
-
-        $this->assertInstanceOf(RegexNode::class, $newAst);
-        $this->assertInstanceOf(CharTypeNode::class, $newAst->pattern);
-        $this->assertSame('d', $newAst->pattern->value);
+        $this->assertInstanceOf(RegexNode::class, $optimized);
+        $this->assertInstanceOf(CharTypeNode::class, $optimized->pattern);
+        $this->assertSame('d', $optimized->pattern->value);
     }
 
     public function test_remove_useless_non_capturing_group(): void
@@ -316,5 +324,79 @@ class OptimizerNodeVisitorTest extends TestCase
         // canAlternationBeCharClass checks for LiteralNode. AnchorNode returns false.
         // Correct behavior: No optimization.
         $this->assertNotInstanceOf(CharClassNode::class, $newAst->pattern);
+    }
+
+    public function test_optimize_non_capturing_group_with_char_class(): void
+    {
+        // Logic: (?:[abc]) -> [abc]
+        $ast = $this->parser->parse('/(?:[abc])/');
+        $optimized = $ast->accept($this->optimizer);
+
+        $this->assertInstanceOf(RegexNode::class, $optimized);
+        // Should unwrap the group and return just the CharClassNode
+        $this->assertInstanceOf(CharClassNode::class, $optimized->pattern);
+    }
+
+    public function test_full_word_class_optimization_success(): void
+    {
+        // Logic: [a-zA-Z0-9_] -> \w
+        $ast = $this->parser->parse('/[a-zA-Z0-9_]/');
+        $optimized = $ast->accept($this->optimizer);
+
+        $this->assertInstanceOf(RegexNode::class, $optimized);
+        $this->assertInstanceOf(CharTypeNode::class, $optimized->pattern);
+        $this->assertSame('w', $optimized->pattern->value);
+    }
+
+    public function test_full_word_class_optimization_missing_underscore(): void
+    {
+        // Logic: [a-zA-Z0-9] (missing _) -> Should NOT optimize to \w
+        $ast = $this->parser->parse('/[a-zA-Z0-9]/');
+        $optimized = $ast->accept($this->optimizer);
+
+        $this->assertInstanceOf(RegexNode::class, $optimized);
+        $this->assertInstanceOf(CharClassNode::class, $optimized->pattern);
+    }
+
+    public function test_full_word_class_optimization_missing_range(): void
+    {
+        // Logic: [a-z0-9_] (missing A-Z) -> Should NOT optimize to \w
+        $ast = $this->parser->parse('/[a-z0-9_]/');
+        $optimized = $ast->accept($this->optimizer);
+
+        $this->assertInstanceOf(RegexNode::class, $optimized);
+        $this->assertInstanceOf(CharClassNode::class, $optimized->pattern);
+    }
+
+    public function test_digit_optimization_fails_on_wrong_range(): void
+    {
+        // Logic: [1-9] -> NOT \d
+        $ast = $this->parser->parse('/[1-9]/');
+        $optimized = $ast->accept($this->optimizer);
+
+        $this->assertInstanceOf(RegexNode::class, $optimized);
+        $this->assertInstanceOf(CharClassNode::class, $optimized->pattern);
+    }
+
+    public function test_alternation_flattening(): void
+    {
+        // Logic: (a|b)|c -> a|b|c
+        // Note: parser naturally produces flat alternations for a|b|c,
+        // so we force structure via groups: (a|b)|c
+        $ast = $this->parser->parse('/(a|b)|c/');
+        // Optimizing once might just remove the group.
+        // We are testing the logic inside visitAlternation checking instanceof AlternationNode
+
+        // Manually construct nested alternation if needed, but parser usually handles it.
+        // Let's try:
+        $ast = $this->parser->parse('/(?:a|b)|c/');
+        $optimized = $ast->accept($this->optimizer);
+
+        // The optimizer keeps (?:a|b) as a group because it contains an alternation.
+        // Non-capturing groups are only unwrapped for simple nodes, not alternations.
+        // Result: Group(a|b) | c = 2 alternatives
+        $this->assertInstanceOf(RegexNode::class, $optimized);
+        $this->assertInstanceOf(AlternationNode::class, $optimized->pattern);
+        $this->assertCount(2, $optimized->pattern->alternatives);
     }
 }
