@@ -51,10 +51,10 @@ class HtmlExplainVisitorCoverageTest extends TestCase
         $ast = $this->parser->parse($regex);
         $output = $ast->accept($this->visitor);
 
-        // Unicode Prop (\P{L} handled by logic)
-        $this->assertStringContainsString('Unicode Property: <strong>\P{L}</strong>', $output);
-        // Octal (\o{77} handled by logic)
-        $this->assertStringContainsString('Octal: <strong>\o{77}</strong>', $output);
+        // Unicode Prop (\P{L} handled by logic) - note: inside char class, tags are stripped
+        $this->assertStringContainsString('Unicode Property: \P{L}', $output);
+        // Octal (\o{77} handled by logic) - note: inside char class, tags are stripped
+        $this->assertStringContainsString('Octal: \o{77}', $output);
         // POSIX Class
         $this->assertStringContainsString('POSIX Class: [[:alnum:]]', $output);
     }

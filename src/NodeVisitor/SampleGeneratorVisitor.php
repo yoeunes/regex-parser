@@ -120,6 +120,16 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
 
     public function visitGroup(GroupNode $node): string
     {
+        // Lookarounds are zero-width assertions and should not generate text
+        if (in_array($node->type, [
+            GroupType::T_GROUP_LOOKAHEAD_POSITIVE,
+            GroupType::T_GROUP_LOOKAHEAD_NEGATIVE,
+            GroupType::T_GROUP_LOOKBEHIND_POSITIVE,
+            GroupType::T_GROUP_LOOKBEHIND_NEGATIVE,
+        ])) {
+            return '';
+        }
+
         $result = $node->child->accept($this);
 
         // Store the result if it's a capturing group
@@ -132,7 +142,7 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
             }
         }
 
-        // For non-capturing, lookarounds, etc., just return the child's result
+        // For non-capturing, etc., just return the child's result
         return $result;
     }
 

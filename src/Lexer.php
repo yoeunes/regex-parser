@@ -378,9 +378,37 @@ class Lexer
             TokenType::T_BACKREF => ($matches['v_backref_num'] ?? null) !== null ? $matches['v_backref_num'] : $matchedValue,
             TokenType::T_OCTAL_LEGACY => substr($matchedValue, 1), // \01 -> 01
             TokenType::T_POSIX_CLASS => (string) ($matches['v_posix'] ?? ''), // from [[:(alnum):]]
-            TokenType::T_UNICODE_PROP => (string) ($matches['v1_prop'] ?? $matches['v2_prop'] ?? ''), // from \p{(L)} or \p(L)
+            TokenType::T_UNICODE_PROP => $this->normalizeUnicodeProp($matchedValue, $matches), // Normalize \P{L} to ^L
             // Default: the matched value is correct (T_LITERAL, T_OCTAL, T_UNICODE, etc.)
             default => $matchedValue,
         };
+    }
+
+    /**
+     * Normalizes Unicode property notation.
+     * \p{L} -> L
+     * \P{L} -> ^L
+     * \p{^L} -> ^L
+     * \P{^L} -> L (double negation)
+     *
+     * @param array<int|string, string|null> $matches
+     */
+    private function normalizeUnicodeProp(string $matchedValue, array $matches): string
+    {
+        $prop = (string) ($matches['v1_prop'] ?? $matches['v2_prop'] ?? '');
+        $isUppercaseP = str_starts_with($matchedValue, '\\P');
+        
+        // If it's \P{...}, negate the property
+        if ($isUppercaseP) {
+            // If property already starts with ^, remove it (double negation)
+            if (str_starts_with($prop, '^')) {
+                return substr($prop, 1);
+            }
+            // Otherwise, add ^ to negate
+            return '^' . $prop;
+        }
+        
+        // For \p{...}, return as-is
+        return $prop;
     }
 }

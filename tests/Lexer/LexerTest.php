@@ -195,7 +195,7 @@ class LexerTest extends TestCase
         $this->assertSame(TokenType::T_UNICODE_PROP, $tokens[0]->type);
         $this->assertSame('L', $tokens[0]->value); // \p{L}
         $this->assertSame(TokenType::T_UNICODE_PROP, $tokens[1]->type);
-        $this->assertSame('^L', $tokens[1]->value); // \P{^L}
+        $this->assertSame('L', $tokens[1]->value); // \P{^L} - double negation cancels out
         $this->assertSame(TokenType::T_UNICODE_PROP, $tokens[2]->type);
         $this->assertSame('L', $tokens[2]->value); // \pL
     }
