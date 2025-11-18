@@ -47,6 +47,10 @@ return (new PhpCsFixer\Config())
         'doctrine_annotation_spaces'                                                   => true,
         'final_class'                                                                  => false,
         'random_api_migration'                                                         => false,
+        'binary_operator_spaces'                                                       => [
+            'default'   => 'single_space',
+            'operators' => ['=>' => 'single_space'],
+        ],
         'general_phpdoc_annotation_remove'                                             => [
             'annotations' => [
                 'copyright',
