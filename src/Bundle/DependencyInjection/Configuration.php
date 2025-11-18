@@ -29,8 +29,7 @@ class Configuration implements ConfigurationInterface
                     ->defaultValue(Parser::DEFAULT_MAX_PATTERN_LENGTH)
                     ->info('The maximum allowed length for a regex pattern string to parse.')
                 ->end()
-            ->end()
-        ;
+            ->end();
 
         return $treeBuilder;
     }

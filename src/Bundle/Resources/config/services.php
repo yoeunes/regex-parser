@@ -47,6 +47,5 @@ return static function (ContainerConfigurator $container): void {
         ->set('regex_parser.visitor.optimizer', OptimizerNodeVisitor::class)
         ->set('regex_parser.visitor.sample_generator', SampleGeneratorVisitor::class)
         ->set('regex_parser.visitor.dumper', DumperNodeVisitor::class)
-        ->set('regex_parser.visitor.compiler', CompilerNodeVisitor::class)
-    ;
+        ->set('regex_parser.visitor.compiler', CompilerNodeVisitor::class);
 };

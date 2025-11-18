@@ -58,7 +58,7 @@ class RegexBuilderTest extends TestCase
         $regex = $builder
             ->charClass(function ($c) {
                 $c->range('a', 'z')
-                  ->digit();
+                    ->digit();
             })
             ->oneOrMore()
             ->compile();
