@@ -244,4 +244,60 @@ class LexerTest extends TestCase
             'Lexer::REGEX_INSIDE failed to compile.',
         );
     }
+
+    public function test_tokenize_inside_char_class_range_negation_literals(): void
+    {
+        // Tests context-sensitive tokens: ^ (negation), - (range), and ] (literal)
+        $lexer = new Lexer('[^a-z-]]');
+        $tokens = $lexer->tokenize();
+
+        $this->assertSame(TokenType::T_CHAR_CLASS_OPEN, $tokens[0]->type);
+        $this->assertSame(TokenType::T_NEGATION, $tokens[1]->type); // ^ at start
+        $this->assertSame(TokenType::T_LITERAL, $tokens[2]->type); // a
+        $this->assertSame(TokenType::T_RANGE, $tokens[3]->type); // - in middle
+        $this->assertSame(TokenType::T_LITERAL, $tokens[4]->type); // z
+        $this->assertSame(TokenType::T_RANGE, $tokens[5]->type); // - in middle (literal if last, but here it's followed by ])
+        $this->assertSame(TokenType::T_CHAR_CLASS_CLOSE, $tokens[6]->type); // ] at end
+        $this->assertSame(TokenType::T_LITERAL, $tokens[7]->type); // Trailing ] (literal because of position logic)
+    }
+
+    public function test_tokenize_char_class_literal_at_start(): void
+    {
+        // [^]a] - literal ']' at start
+        $lexer = new Lexer('[^]a]');
+        $tokens = $lexer->tokenize();
+
+        $this->assertSame(TokenType::T_NEGATION, $tokens[1]->type);
+        $this->assertSame(TokenType::T_LITERAL, $tokens[2]->type); // ']' as literal
+    }
+
+    public function test_tokenize_posix_class(): void
+    {
+        $lexer = new Lexer('[[:alnum:]]');
+        $tokens = $lexer->tokenize();
+
+        $this->assertSame(TokenType::T_POSIX_CLASS, $tokens[1]->type);
+        $this->assertSame('alnum', $tokens[1]->value);
+    }
+
+    public function test_tokenize_unclosed_char_class_error_with_end_of_input(): void
+    {
+        $this->expectException(LexerException::class);
+        $this->expectExceptionMessage('Unclosed character class "]" at end of input.');
+        $lexer = new Lexer('[a');
+        $lexer->tokenize();
+    }
+
+    public function test_tokenize_quote_mode(): void
+    {
+        $lexer = new Lexer('\Q*+.\Efoo');
+        $tokens = $lexer->tokenize();
+
+        // Should have skipped \Q and \E and merged *+. into a single literal
+        $this->assertSame(TokenType::T_LITERAL, $tokens[0]->type);
+        $this->assertSame('*+.', $tokens[0]->value);
+        $this->assertSame(TokenType::T_LITERAL, $tokens[1]->type);
+        $this->assertSame('f', $tokens[1]->value);
+        $this->assertSame(TokenType::T_EOF, $tokens[4]->type);
+    }
 }

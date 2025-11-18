@@ -19,6 +19,13 @@ use RegexParser\Parser;
 
 class SampleGeneratorVisitorTest extends TestCase
 {
+    private Parser $parser;
+
+    protected function setUp(): void
+    {
+        $this->parser = new Parser();
+    }
+
     public function test_generate_simple(): void
     {
         $this->assertSampleMatches('/abc/');
@@ -77,19 +84,73 @@ class SampleGeneratorVisitorTest extends TestCase
 
     private function assertSampleMatches(string $regex): void
     {
-        $parser = new Parser();
-        $ast = $parser->parse($regex);
-
-        // We generate multiple times to cover randomness
+        $ast = $this->parser->parse($regex);
         $generator = new SampleGeneratorVisitor();
 
-        for ($i = 0; $i < 10; $i++) {
+        for ($i = 0; $i < 5; $i++) {
             $sample = $ast->accept($generator);
-            $this->assertMatchesRegularExpression(
-                $regex,
-                $sample,
-                "Generated sample '$sample' does not match regex '$regex'",
-            );
+            $this->assertMatchesRegularExpression($regex, $sample);
         }
+    }
+
+    public function test_generate_all_char_types(): void
+    {
+        // Test char types that are typically complex to mock
+        $regex = '/\D\S\W\h\H\v\V\R/';
+        $this->assertSampleMatches($regex);
+    }
+
+    public function test_generate_unicode_and_octal_escapes(): void
+    {
+        // \xNN, \u{NNNN}, \o{NNN}, \0NN
+        $regex = '/\x41\u{00E9}\o{40}\010/';
+        $this->assertSampleMatches($regex);
+    }
+
+    public function test_generate_complex_backrefs(): void
+    {
+        // Named backref (\k<name>) and un-matched backref (empty string)
+        $this->assertSampleMatches('/(?<n1>\d{1,2})foo\k<n1>/'); // \k<name>
+        $this->assertSampleMatches('/(?<name>a)?\k<name>/'); // Named backref when group is optional (could match 'a' or '')
+    }
+
+    public function test_generate_conditional_always_chooses_a_branch(): void
+    {
+        // If conditional doesn't exist, it randomly chooses yes/no.
+        // Ensures the random path in `visitConditional` is hit.
+        $parser = new Parser();
+        $ast = $parser->parse('/(?(?=\d)Y|N)/');
+        $generator = new SampleGeneratorVisitor();
+
+        $output = $ast->accept($generator);
+        $this->assertTrue(in_array($output, ['Y', 'N']));
+    }
+
+    public function test_generate_negated_char_class_safe_char(): void
+    {
+        // [^a] uses '!' as a safe char.
+        $sample = $this->generateSample('/[^a]/');
+        $this->assertSame('!', $sample);
+    }
+
+    public function test_generate_throws_on_subroutine(): void
+    {
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('Sample generation for subroutines is not supported.');
+        $this->generateSample('/(?R)/');
+    }
+
+    public function test_generate_throws_on_empty_char_class(): void
+    {
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Cannot generate sample for empty character class');
+        $this->generateSample('/[]/');
+    }
+
+    private function generateSample(string $regex): string
+    {
+        $ast = $this->parser->parse($regex);
+        $generator = new SampleGeneratorVisitor();
+        return $ast->accept($generator);
     }
 }

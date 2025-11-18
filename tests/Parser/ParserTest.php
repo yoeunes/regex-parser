@@ -30,11 +30,19 @@ use RegexParser\Node\LiteralNode;
 use RegexParser\Node\QuantifierNode;
 use RegexParser\Node\RangeNode;
 use RegexParser\Node\SequenceNode;
+use RegexParser\Node\SubroutineNode;
 use RegexParser\Node\UnicodePropNode;
 use RegexParser\Parser;
 
 class ParserTest extends TestCase
 {
+    private Parser $parser;
+
+    protected function setUp(): void
+    {
+        $this->parser = new Parser();
+    }
+
     public function test_parse_returns_regex_node_with_flags(): void
     {
         $parser = $this->createParser();
@@ -324,5 +332,56 @@ class ParserTest extends TestCase
     private function createParser(): Parser
     {
         return new Parser();
+    }
+
+    public function test_parse_named_group_with_single_quote(): void
+    {
+        $ast = $this->parser->parse("/(?P'name'a)/");
+        $this->assertInstanceOf(GroupNode::class, $ast->pattern);
+        $this->assertSame(GroupType::T_GROUP_NAMED, $ast->pattern->type);
+        $this->assertSame('name', $ast->pattern->name);
+    }
+
+    public function test_parse_named_group_with_double_quote(): void
+    {
+        $ast = $this->parser->parse('/(?P"name"a)/');
+        $this->assertInstanceOf(GroupNode::class, $ast->pattern);
+        $this->assertSame(GroupType::T_GROUP_NAMED, $ast->pattern->type);
+        $this->assertSame('name', $ast->pattern->name);
+    }
+
+    public function test_parse_g_references_as_backref(): void
+    {
+        $ast = $this->parser->parse('/a\g{1}b\g{-1}c/');
+        $this->assertInstanceOf(BackrefNode::class, $ast->pattern->children[1]);
+        $this->assertInstanceOf(BackrefNode::class, $ast->pattern->children[3]);
+        $this->assertSame('\g{1}', $ast->pattern->children[1]->ref);
+        $this->assertSame('\g{-1}', $ast->pattern->children[3]->ref);
+    }
+
+    public function test_parse_g_references_as_subroutine(): void
+    {
+        $ast = $this->parser->parse('/(a)\g<name>/');
+        $this->assertInstanceOf(SubroutineNode::class, $ast->pattern->children[1]);
+        $this->assertSame('name', $ast->pattern->children[1]->reference);
+        $this->assertSame('g', $ast->pattern->children[1]->syntax);
+    }
+
+    public function test_parse_conditional_with_group_ref(): void
+    {
+        // (?(1)a|b)
+        $ast = $this->parser->parse('/(?(1)a|b)/');
+        $this->assertInstanceOf(BackrefNode::class, $ast->pattern->condition);
+        $this->assertSame('1', $ast->pattern->condition->ref);
+    }
+
+    public function test_parse_conditional_with_named_group_ref(): void
+    {
+        // (?(<name>)a|b)
+        $ast = $this->parser->parse('/(?<name>x)(?(<name>)a|b)/');
+        $conditional = $ast->pattern->children[1];
+        $this->assertInstanceOf(ConditionalNode::class, $conditional);
+        $this->assertInstanceOf(BackrefNode::class, $conditional->condition);
+        $this->assertSame('name', $conditional->condition->ref);
     }
 }
