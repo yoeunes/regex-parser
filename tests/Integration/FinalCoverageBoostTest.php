@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\Integration;
 
+use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\NodeVisitor\DumperNodeVisitor;
 use RegexParser\NodeVisitor\OptimizerNodeVisitor;
@@ -25,7 +26,7 @@ use RegexParser\Regex;
  */
 class FinalCoverageBoostTest extends TestCase
 {
-    // Test Validator edge cases
+    #[DoesNotPerformAssertions]
     public function test_validator_posix_class_variations(): void
     {
         $validator = new ValidatorNodeVisitor();
@@ -41,10 +42,10 @@ class FinalCoverageBoostTest extends TestCase
         foreach ($patterns as $pattern) {
             $ast = $parser->parse($pattern);
             $ast->accept($validator);
-            $this->assertTrue(true); // If no exception, validation passed
         }
     }
 
+    #[DoesNotPerformAssertions]
     public function test_validator_unicode_prop_variations(): void
     {
         $validator = new ValidatorNodeVisitor();
@@ -61,10 +62,10 @@ class FinalCoverageBoostTest extends TestCase
         foreach ($patterns as $pattern) {
             $ast = $parser->parse($pattern);
             $ast->accept($validator);
-            $this->assertTrue(true);
         }
     }
 
+    #[DoesNotPerformAssertions]
     public function test_validator_backref_edge_cases(): void
     {
         $validator = new ValidatorNodeVisitor();
@@ -81,8 +82,6 @@ class FinalCoverageBoostTest extends TestCase
         // Relative backref
         $ast = $parser->parse('/(a)\g{-1}/');
         $ast->accept($validator);
-
-        $this->assertTrue(true);
     }
 
     // Test Optimizer edge cases
@@ -182,75 +181,67 @@ class FinalCoverageBoostTest extends TestCase
         }
     }
 
-    // Test Regex class methods
+    #[DoesNotPerformAssertions]
     public function test_regex_create_with_options(): void
     {
         $regex = Regex::create(['max_pattern_length' => 10000]);
-        $this->assertInstanceOf(Regex::class, $regex);
 
-        $result = $regex->parse('/test/');
-        $this->assertNotNull($result);
+        $regex->parse('/test/');
     }
 
-    // Test Parser edge cases
+    #[DoesNotPerformAssertions]
     public function test_parser_conditional_with_assertion(): void
     {
         $parser = new Parser([]);
 
         // Conditional with lookahead
-        $ast = $parser->parse('/(?(?=test)yes|no)/');
-        $this->assertNotNull($ast);
+        $parser->parse('/(?(?=test)yes|no)/');
 
         // Conditional with lookbehind
-        $ast = $parser->parse('/(?(?<=test)yes|no)/');
-        $this->assertNotNull($ast);
+        $parser->parse('/(?(?<=test)yes|no)/');
     }
 
+    #[DoesNotPerformAssertions]
     public function test_parser_subroutine_variations(): void
     {
         $parser = new Parser([]);
 
         // Subroutine by number
-        $ast = $parser->parse('/(abc)(?1)/');
-        $this->assertNotNull($ast);
+        $parser->parse('/(abc)(?1)/');
 
         // Subroutine by name
-        $ast = $parser->parse('/(?<name>abc)(?&name)/');
-        $this->assertNotNull($ast);
+        $parser->parse('/(?<name>abc)(?&name)/');
 
         // Recursive pattern
-        $ast = $parser->parse('/(?R)/');
-        $this->assertNotNull($ast);
+        $parser->parse('/(?R)/');
     }
 
+    #[DoesNotPerformAssertions]
     public function test_parser_pcre_verb_with_argument(): void
     {
         $parser = new Parser([]);
 
         // PCRE verb with argument
-        $ast = $parser->parse('/(*MARK:label)/');
-        $this->assertNotNull($ast);
+        $parser->parse('/(*MARK:label)/');
 
-        $ast = $parser->parse('/(*PRUNE:name)/');
-        $this->assertNotNull($ast);
+        $parser->parse('/(*PRUNE:name)/');
 
-        $ast = $parser->parse('/(*THEN:label)/');
-        $this->assertNotNull($ast);
+        $parser->parse('/(*THEN:label)/');
     }
 
+    #[DoesNotPerformAssertions]
     public function test_parser_complex_char_class(): void
     {
         $parser = new Parser([]);
 
         // Char class with multiple ranges and literals
-        $ast = $parser->parse('/[a-zA-Z0-9_\-\.]/');
-        $this->assertNotNull($ast);
+        $parser->parse('/[a-zA-Z0-9_\-\.]/');
 
         // Negated char class with POSIX
-        $ast = $parser->parse('/[^[:digit:]]/');
-        $this->assertNotNull($ast);
+        $parser->parse('/[^[:digit:]]/');
     }
 
+    #[DoesNotPerformAssertions]
     public function test_parser_quantifier_possessive(): void
     {
         $parser = new Parser([]);
@@ -264,41 +255,38 @@ class FinalCoverageBoostTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $ast = $parser->parse($pattern);
-            $this->assertNotNull($ast);
+            $parser->parse($pattern);
         }
     }
 
+    #[DoesNotPerformAssertions]
     public function test_parser_unicode_variations(): void
     {
         $parser = new Parser([]);
 
         // Unicode with multiple digits
-        $ast = $parser->parse('/\u{1F600}/');
-        $this->assertNotNull($ast);
+        $parser->parse('/\u{1F600}/');
 
         // Octal with braces
-        $ast = $parser->parse('/\o{177}/');
-        $this->assertNotNull($ast);
+        $parser->parse('/\o{177}/');
     }
 
+    #[DoesNotPerformAssertions]
     public function test_parser_backref_variations(): void
     {
         $parser = new Parser([]);
 
         // Numbered backref with braces
-        $ast = $parser->parse('/(a)\g{1}/');
-        $this->assertNotNull($ast);
+        $parser->parse('/(a)\g{1}/');
 
         // Relative backref
-        $ast = $parser->parse('/(a)(b)\g{-1}/');
-        $this->assertNotNull($ast);
+        $parser->parse('/(a)(b)\g{-1}/');
 
         // Named backref with quotes
-        $ast = $parser->parse('/(?<name>a)\k<name>/');
-        $this->assertNotNull($ast);
+        $parser->parse('/(?<name>a)\k<name>/');
     }
 
+    #[DoesNotPerformAssertions]
     public function test_parser_group_with_modifiers(): void
     {
         $parser = new Parser([]);
@@ -313,11 +301,11 @@ class FinalCoverageBoostTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $ast = $parser->parse($pattern);
-            $this->assertNotNull($ast);
+            $parser->parse($pattern);
         }
     }
 
+    #[DoesNotPerformAssertions]
     public function test_parser_anchors_all_types(): void
     {
         $parser = new Parser([]);
@@ -334,8 +322,7 @@ class FinalCoverageBoostTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $ast = $parser->parse($pattern);
-            $this->assertNotNull($ast);
+            $parser->parse($pattern);
         }
     }
 
@@ -346,8 +333,7 @@ class FinalCoverageBoostTest extends TestCase
         // A complex real-world-like pattern
         $pattern = '/^(?:(?<scheme>https?):\/\/)?(?<host>[\w\-\.]+)(?::(?<port>\d+))?(?<path>\/[^\s]*)?$/i';
 
-        $ast = $regex->parse($pattern);
-        $this->assertNotNull($ast);
+        $regex->parse($pattern);
 
         $result = $regex->validate($pattern);
         $this->assertTrue($result->isValid);
