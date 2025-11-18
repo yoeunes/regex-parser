@@ -401,12 +401,13 @@ final class ValidatorNodeVisitor implements NodeVisitorInterface
 
             // Check if all digits are valid octal (0-7)
             if (!preg_match('/^[0-7]+$/', $octalStr)) {
-                throw new ParserException(\sprintf('Invalid octal codepoint "%s" (out of range) at position %d.', $node->code, $node->startPos));
+                throw new ParserException(\sprintf('Invalid octal codepoint "%s" at position %d.', $node->code, $node->startPos));
             }
 
+            // PCRE limits \o{} to single-byte values (0-255)
             $code = (int) octdec($octalStr);
-            if ($code > 0x10FFFF) {
-                throw new ParserException(\sprintf('Invalid octal codepoint "%s" (out of range) at position %d.', $node->code, $node->startPos));
+            if ($code > 0xFF) {
+                throw new ParserException(\sprintf('Invalid octal codepoint "%s" at position %d.', $node->code, $node->startPos));
             }
         }
     }

@@ -196,8 +196,8 @@ class ValidatorNodeVisitorTest extends TestCase
     public function test_throws_on_invalid_octal_codepoint(): void
     {
         $this->expectException(ParserException::class);
-        // Octal 77777777 = 16777215 decimal = 0xFFFFFF, which exceeds 0x10FFFF
-        $this->expectExceptionMessage('Invalid octal codepoint "\o{77777777}" (out of range)');
+        // Octal 77777777 = 16777215 decimal = 0xFFFFFF, which exceeds 0xFF (PCRE limit for \o{})
+        $this->expectExceptionMessage('Invalid octal codepoint "\o{77777777}"');
         $this->validate('/\o{77777777}/u');
     }
 
