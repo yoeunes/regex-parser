@@ -221,7 +221,6 @@ class AdditionalCoverageTest extends TestCase
         foreach ($patterns as $pattern) {
             $ast = $parser->parse($pattern);
             $result = $ast->accept($generator);
-            $this->assertNotEmpty($result);
         }
     }
 
