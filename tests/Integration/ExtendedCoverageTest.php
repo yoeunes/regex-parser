@@ -116,6 +116,7 @@ class ExtendedCoverageTest extends TestCase
     public function test_parser_empty_char_class(): void
     {
         $this->expectNotToPerformAssertions();
+
         try {
             $this->parser->parse('/[]/');
         } catch (\Exception) {
