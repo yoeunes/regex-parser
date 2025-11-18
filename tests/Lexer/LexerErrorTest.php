@@ -48,20 +48,20 @@ class LexerErrorTest extends TestCase
         $lexer = new Lexer('start\Qabc\Eend');
         $accessor = new LexerAccessor($lexer);
 
-        // 1. Lexer s'arrête à \Q (position 5)
-        $accessor->setPosition(5);
+        // 1. Lexer s'arrête après \Q (position 7)
+        $accessor->setPosition(7);
         $accessor->setInQuoteMode(true);
 
         // 2. Doit trouver 'abc'
         $token = $accessor->callPrivateMethod('lexQuoteMode');
         $this->assertSame('abc', $token->value);
-        $this->assertSame(8, $accessor->getPosition()); // Position après 'abc' (5 + 3)
+        $this->assertSame(10, $accessor->getPosition()); // Position après 'abc' (7 + 3)
         $this->assertTrue($accessor->getInQuoteMode()); // Toujours en mode quote
 
         // 3. Doit trouver \E
         $token = $accessor->callPrivateMethod('lexQuoteMode');
         $this->assertNull($token);
-        $this->assertSame(10, $accessor->getPosition()); // Position après \E (8 + 2)
+        $this->assertSame(12, $accessor->getPosition()); // Position après \E (10 + 2)
         $this->assertFalse($accessor->getInQuoteMode()); // Sortie du mode quote
 
         // 4. Doit trouver 'end'

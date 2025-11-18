@@ -86,9 +86,7 @@ class ParserUtilityTest extends TestCase
         $this->accessor->setTokens($tokens);
         $this->accessor->setPosition(0);
 
-        // Simuler la consommation du jeton ouvrant (qui n'est pas dans parseGroupName)
-        $this->accessor->advance(); // Consomme l'ouverture (doit être fait par parseGroupModifier)
-
+        // parseGroupName handles the quotes itself
         $name = $this->accessor->callPrivateMethod('parseGroupName');
         $this->assertSame('test_name', $name);
 
@@ -98,12 +96,12 @@ class ParserUtilityTest extends TestCase
 
     public function test_consume_literal_throws_on_type_mismatch(): void
     {
-        // Token actuel est T_EOF, attend T_LITERAL
+        // Token actuel est T_LITERAL with empty value, attend T_LITERAL with value 'a'
         $this->accessor->setTokens(['']);
         $this->accessor->setPosition(0);
 
         $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('Expected error at end of input (found eof)');
+        $this->expectExceptionMessage('Expected error at position 0 (found literal with value )');
 
         $this->accessor->callPrivateMethod('consumeLiteral', ['a', 'Expected error']);
     }

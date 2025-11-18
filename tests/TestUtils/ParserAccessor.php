@@ -58,11 +58,12 @@ class ParserAccessor
         foreach ($tokens as $token) {
             if ($token instanceof Token) {
                 $processedTokens[] = $token;
+                $pos += \strlen($token->value);
             } else {
                 // Créer un token simple T_LITERAL si une simple chaîne est passée
                 $processedTokens[] = $this->createToken(TokenType::T_LITERAL, $token, $pos);
+                $pos += \strlen($token);
             }
-            $pos += \strlen($token);
         }
         // Assurer que le T_EOF est présent
         $processedTokens[] = $this->createToken(TokenType::T_EOF, '', $pos);
