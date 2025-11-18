@@ -28,13 +28,4 @@ class ParserInternalsTest extends TestCase
         $this->expectExceptionMessage('Regex is too short');
         $accessor->callPrivateMethod('extractPatternAndFlags', ['/']);
     }
-
-    public function test_extract_pattern_fails_slice(): void
-    {
-        // Testing the "Internal parser error: failed to slice"
-        // This happens if substr returns false. In PHP 8, substr returns empty string, not false.
-        // So that specific check might be dead code in PHP 8, but we keep it for BC.
-        // We can skip testing this specific dead line if coverage is high enough.
-        $this->addToAssertionCount(1);
-    }
 }
