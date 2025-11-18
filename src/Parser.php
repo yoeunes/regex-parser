@@ -460,6 +460,11 @@ class Parser
             return new PcreVerbNode($token->value, $startPos, $endPos);
         }
 
+        // Special case: if we encounter a quantifier without a target, throw a more specific error
+        if ($this->check(TokenType::T_QUANTIFIER)) {
+            throw new ParserException('Quantifier without target at position '.$this->current()->position);
+        }
+
         $at = $this->isAtEnd() ? 'end of input' : 'position '.$this->current()->position;
         $val = $this->current()->value;
         $type = $this->current()->type->value;
@@ -737,7 +742,15 @@ class Parser
 
         // Lookaround or assertion as condition (?(?=...)...)
         // The condition *is* the atom, which includes its own end parenthesis
-        return $this->parseAtom();
+        $condition = $this->parseAtom();
+
+        // Validate that the condition is a valid type
+        if (!($condition instanceof BackrefNode || $condition instanceof GroupNode
+              || $condition instanceof AssertionNode || $condition instanceof SubroutineNode)) {
+            throw new ParserException('Invalid conditional construct at position '.$startPos.'. Condition must be a group reference, lookaround, or (DEFINE).');
+        }
+
+        return $condition;
     }
 
     /**
@@ -1071,6 +1084,10 @@ class Parser
      */
     private function previous(): Token
     {
+        if (0 === $this->position) {
+            return $this->tokens[0];
+        }
+
         return $this->tokens[$this->position - 1];
     }
 
