@@ -1,14 +1,26 @@
 <?php
 
+declare(strict_types=1);
+
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace RegexParser\Tests\NodeVisitor;
 
-use RegexParser\Parser;
-use RegexParser\NodeVisitor\HtmlExplainVisitor;
 use PHPUnit\Framework\TestCase;
+use RegexParser\NodeVisitor\HtmlExplainVisitor;
+use RegexParser\Parser;
 
 class HtmlExplainVisitorCoverageTest extends TestCase
 {
     private Parser $parser;
+
     private HtmlExplainVisitor $visitor;
 
     protected function setUp(): void
@@ -65,10 +77,10 @@ class HtmlExplainVisitorCoverageTest extends TestCase
         $ast = $this->parser->parse($regex);
         $output = $ast->accept($this->visitor);
 
-        $this->assertStringContainsString("Literal: <strong>&#039;\\t&#039; (tab)</strong>", $output);
-        $this->assertStringContainsString("Literal: <strong>&#039;\\r&#039; (carriage return)</strong>", $output);
-        $this->assertStringContainsString("Literal: <strong>&#039;\\n&#039; (newline)</strong>", $output);
-        $this->assertStringContainsString("Literal: <strong>&#039; &#039; (space)</strong>", $output);
+        $this->assertStringContainsString('Literal: <strong>&#039;\\t&#039; (tab)</strong>', $output);
+        $this->assertStringContainsString('Literal: <strong>&#039;\\r&#039; (carriage return)</strong>', $output);
+        $this->assertStringContainsString('Literal: <strong>&#039;\\n&#039; (newline)</strong>', $output);
+        $this->assertStringContainsString('Literal: <strong>&#039; &#039; (space)</strong>', $output);
     }
 
     public function test_visit_complex_quantified_group(): void
@@ -94,4 +106,3 @@ class HtmlExplainVisitorCoverageTest extends TestCase
         $this->assertStringContainsString('<li>(exactly 2 times) <span title="Literal: &#039;a&#039;">Literal: <strong>&#039;a&#039;</strong></span>', $output);
     }
 }
-

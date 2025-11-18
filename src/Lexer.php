@@ -397,17 +397,18 @@ class Lexer
     {
         $prop = (string) ($matches['v1_prop'] ?? $matches['v2_prop'] ?? '');
         $isUppercaseP = str_starts_with($matchedValue, '\\P');
-        
+
         // If it's \P{...}, negate the property
         if ($isUppercaseP) {
             // If property already starts with ^, remove it (double negation)
             if (str_starts_with($prop, '^')) {
                 return substr($prop, 1);
             }
+
             // Otherwise, add ^ to negate
-            return '^' . $prop;
+            return '^'.$prop;
         }
-        
+
         // For \p{...}, return as-is
         return $prop;
     }

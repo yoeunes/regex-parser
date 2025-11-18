@@ -52,16 +52,16 @@ class DumperNodeVisitor implements NodeVisitorInterface
         $this->indent += 2;
         $str .= $node->pattern->accept($this);
         $this->indent -= 2;
-        
+
         return $str;
     }
 
     public function visitAlternation(AlternationNode $node): string
     {
-        $str = str_repeat(' ', $this->indent) . "Alternation:\n";
+        $str = str_repeat(' ', $this->indent)."Alternation:\n";
         $this->indent += 2;
         foreach ($node->alternatives as $alt) {
-            $str .= str_repeat(' ', $this->indent) . $alt->accept($this) . "\n";
+            $str .= str_repeat(' ', $this->indent).$alt->accept($this)."\n";
         }
         $this->indent -= 2;
 
@@ -70,10 +70,10 @@ class DumperNodeVisitor implements NodeVisitorInterface
 
     public function visitSequence(SequenceNode $node): string
     {
-        $str = str_repeat(' ', $this->indent) . "Sequence:\n";
+        $str = str_repeat(' ', $this->indent)."Sequence:\n";
         $this->indent += 2;
         foreach ($node->children as $child) {
-            $str .= str_repeat(' ', $this->indent) . $child->accept($this) . "\n";
+            $str .= str_repeat(' ', $this->indent).$child->accept($this)."\n";
         }
         $this->indent -= 2;
 
@@ -84,9 +84,9 @@ class DumperNodeVisitor implements NodeVisitorInterface
     {
         $name = $node->name ?? '';
         $flags = $node->flags ?? '';
-        
+
         // Only include "name:" label if name is not empty
-        $nameStr = ($name !== '') ? " name: {$name}" : '';
+        $nameStr = ('' !== $name) ? " name: {$name}" : '';
         $str = "Group(type: {$node->type->value}{$nameStr} flags: {$flags})\n";
         $this->indent += 2;
         $str .= $node->child->accept($this);
@@ -210,6 +210,7 @@ class DumperNodeVisitor implements NodeVisitorInterface
     private function indent(string $str): string
     {
         $indentStr = str_repeat(' ', $this->indent);
-        return $indentStr . str_replace("\n", "\n".$indentStr, $str);
+
+        return $indentStr.str_replace("\n", "\n".$indentStr, $str);
     }
 }

@@ -547,7 +547,7 @@ class Parser
             if ($this->checkLiteral("'") || $this->checkLiteral('"')) {
                 $quote = $this->current()->value;
                 $this->advance(); // Consume opening quote
-                
+
                 // Read the name directly (don't use parseGroupName which expects quotes or brackets)
                 $name = '';
                 while (!$this->checkLiteral($quote) && !$this->isAtEnd()) {
@@ -558,11 +558,11 @@ class Parser
                         throw new ParserException('Unexpected token in group name at position '.$this->current()->position);
                     }
                 }
-                
+
                 if ('' === $name) {
                     throw new ParserException('Expected group name at position '.$this->current()->position);
                 }
-                
+
                 if (!$this->checkLiteral($quote)) {
                     throw new ParserException('Expected closing quote '.$quote.' at position '.$this->current()->position);
                 }
@@ -632,8 +632,8 @@ class Parser
         } elseif ($this->match(TokenType::T_GROUP_OPEN)) {
             $isConditionalWithModifier = false;
         }
-        
-        if ($isConditionalWithModifier !== null) {
+
+        if (null !== $isConditionalWithModifier) {
             // Conditional (?(condition)yes|no)
             // If T_GROUP_MODIFIER_OPEN was matched, we need to parse the lookaround directly
             // because the (? has already been consumed
@@ -669,14 +669,14 @@ class Parser
                 // Consume the ) that closes the condition (e.g., in (?(1)yes|no), consume the ) after 1)
                 $this->consume(TokenType::T_GROUP_CLOSE, 'Expected ) after condition');
             }
-            
+
             // Parse yes branch as an alternation (can contain | for alternatives)
             $yes = $this->parseAlternation();
-            
+
             // No branch is always empty in this parser's interpretation
             $currentPos = $this->current()->position;
             $no = new LiteralNode('', $currentPos, $currentPos);
-            
+
             $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
             $endPos = $endToken->position + 1;
 
@@ -784,24 +784,25 @@ class Parser
     private function parseConditionalBranch(): NodeInterface
     {
         $children = [];
-        
+
         // Parse atoms until we hit | (alternation separator) or ) (end of conditional)
         while (!$this->check(TokenType::T_ALTERNATION) && !$this->check(TokenType::T_GROUP_CLOSE) && !$this->isAtEnd()) {
             $children[] = $this->parseQuantifiedAtom();
         }
-        
+
         if (empty($children)) {
             $currentPos = $this->current()->position;
+
             return new LiteralNode('', $currentPos, $currentPos);
         }
-        
-        if (1 === count($children)) {
+
+        if (1 === \count($children)) {
             return $children[0];
         }
-        
+
         $startPos = $children[0]->getStartPosition();
-        $endPos = $children[count($children) - 1]->getEndPosition();
-        
+        $endPos = $children[\count($children) - 1]->getEndPosition();
+
         return new SequenceNode($children, $startPos, $endPos);
     }
 
@@ -849,12 +850,14 @@ class Parser
                 $expr = $this->parseAlternation();
                 $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected ) to close lookahead condition');
                 $endPos = $endToken->position;
+
                 return new GroupNode($expr, GroupType::T_GROUP_LOOKAHEAD_POSITIVE, null, null, $startPos, $endPos);
             }
             if ($this->matchLiteral('!')) { // (?!...)
                 $expr = $this->parseAlternation();
                 $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected ) to close lookahead condition');
                 $endPos = $endToken->position;
+
                 return new GroupNode($expr, GroupType::T_GROUP_LOOKAHEAD_NEGATIVE, null, null, $startPos, $endPos);
             }
             if ($this->matchLiteral('<')) {
@@ -862,15 +865,18 @@ class Parser
                     $expr = $this->parseAlternation();
                     $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected ) to close lookbehind condition');
                     $endPos = $endToken->position;
+
                     return new GroupNode($expr, GroupType::T_GROUP_LOOKBEHIND_POSITIVE, null, null, $startPos, $endPos);
                 }
                 if ($this->matchLiteral('!')) { // (?<!...)
                     $expr = $this->parseAlternation();
                     $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected ) to close lookbehind condition');
                     $endPos = $endToken->position;
+
                     return new GroupNode($expr, GroupType::T_GROUP_LOOKBEHIND_NEGATIVE, null, null, $startPos, $endPos);
                 }
             }
+
             // If we consumed '?' but didn't match any lookaround, it's invalid
             throw new ParserException('Invalid conditional condition at position '.$startPos);
         }
@@ -884,15 +890,15 @@ class Parser
                 $name .= $this->current()->value;
                 $this->advance();
             }
-            
+
             // If we found a name and it's followed by ), treat it as a named group reference
-            if ($name !== '' && $this->check(TokenType::T_GROUP_CLOSE)) {
+            if ('' !== $name && $this->check(TokenType::T_GROUP_CLOSE)) {
                 // Don't consume the ), let the conditional parser handle it
                 $endPos = $this->current()->position;
-                
+
                 return new BackrefNode($name, $startPos, $endPos);
             }
-            
+
             // Otherwise, rewind and try to parse as an atom
             $this->position = $savedPos;
         }

@@ -121,12 +121,12 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
     public function visitGroup(GroupNode $node): string
     {
         // Lookarounds are zero-width assertions and should not generate text
-        if (in_array($node->type, [
+        if (\in_array($node->type, [
             GroupType::T_GROUP_LOOKAHEAD_POSITIVE,
             GroupType::T_GROUP_LOOKAHEAD_NEGATIVE,
             GroupType::T_GROUP_LOOKBEHIND_POSITIVE,
             GroupType::T_GROUP_LOOKBEHIND_NEGATIVE,
-        ])) {
+        ], true)) {
             return '';
         }
 

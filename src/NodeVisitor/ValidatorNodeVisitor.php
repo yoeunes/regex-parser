@@ -295,7 +295,7 @@ final class ValidatorNodeVisitor implements NodeVisitorInterface
             // Numeric backref: \1, \2, etc.
             $num = (int) $ref;
             if (0 === $num) {
-                throw new ParserException(\sprintf('Backreference \0 is not valid'));
+                throw new ParserException('Backreference \0 is not valid');
             }
             if ($num > $this->groupCount) {
                 throw new ParserException(\sprintf('Backreference to non-existent group: \%d at position %d.', $num, $node->startPos));
@@ -398,12 +398,12 @@ final class ValidatorNodeVisitor implements NodeVisitorInterface
         // \o{...}
         if (preg_match('/^\\\\o\{([0-9]+)\}$/', $node->code, $m)) {
             $octalStr = $m[1];
-            
+
             // Check if all digits are valid octal (0-7)
             if (!preg_match('/^[0-7]+$/', $octalStr)) {
                 throw new ParserException(\sprintf('Invalid octal codepoint "%s" (out of range) at position %d.', $node->code, $node->startPos));
             }
-            
+
             $code = (int) octdec($octalStr);
             if ($code > 0x10FFFF) {
                 throw new ParserException(\sprintf('Invalid octal codepoint "%s" (out of range) at position %d.', $node->code, $node->startPos));
@@ -420,7 +420,7 @@ final class ValidatorNodeVisitor implements NodeVisitorInterface
         if ('0' === $node->code) {
             throw new ParserException('Backreference \0 is not valid');
         }
-        
+
         // \0...
         $code = (int) octdec($node->code);
         if ($code > 0x10FFFF) {

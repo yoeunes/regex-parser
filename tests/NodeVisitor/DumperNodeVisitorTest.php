@@ -38,16 +38,16 @@ class DumperNodeVisitorTest extends TestCase
         $dump = $ast->accept($dumper);
 
         // Expected to test Alternation and Sequence dumping/indentation
-        $expected = <<<EOT
-Regex(delimiter: /, flags: )
-  Sequence:
-    Literal('a')
-    Group(type: capturing flags: )
-      Alternation:
-        Literal('b')
-        Literal('c')
-    Literal('d')
-EOT;
+        $expected = <<<'EOT'
+            Regex(delimiter: /, flags: )
+              Sequence:
+                Literal('a')
+                Group(type: capturing flags: )
+                  Alternation:
+                    Literal('b')
+                    Literal('c')
+                Literal('d')
+            EOT;
         $this->assertStringContainsString(trim($expected), trim($dump));
     }
 

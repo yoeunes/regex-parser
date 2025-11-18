@@ -329,11 +329,6 @@ class ParserTest extends TestCase
         $this->assertSame('i', $pattern->flags);
     }
 
-    private function createParser(): Parser
-    {
-        return new Parser();
-    }
-
     public function test_parse_named_group_with_single_quote(): void
     {
         $ast = $this->parser->parse("/(?P'name'a)/");
@@ -383,5 +378,10 @@ class ParserTest extends TestCase
         $this->assertInstanceOf(ConditionalNode::class, $conditional);
         $this->assertInstanceOf(BackrefNode::class, $conditional->condition);
         $this->assertSame('name', $conditional->condition->ref);
+    }
+
+    private function createParser(): Parser
+    {
+        return new Parser();
     }
 }

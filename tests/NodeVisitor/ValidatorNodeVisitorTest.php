@@ -121,14 +121,6 @@ class ValidatorNodeVisitorTest extends TestCase
         $this->validate('/(?<name>a)(?<name>b)/');
     }
 
-    private function validate(string $regex): void
-    {
-        $parser = new Parser();
-        $ast = $parser->parse($regex);
-        $visitor = new ValidatorNodeVisitor();
-        $ast->accept($visitor);
-    }
-
     public function test_throws_on_variable_length_quantifier_in_lookbehind(): void
     {
         $this->expectException(ParserException::class);
@@ -214,5 +206,13 @@ class ValidatorNodeVisitorTest extends TestCase
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('Negation of POSIX class "word" is not supported');
         $this->validate('/[[:^word:]]/');
+    }
+
+    private function validate(string $regex): void
+    {
+        $parser = new Parser();
+        $ast = $parser->parse($regex);
+        $visitor = new ValidatorNodeVisitor();
+        $ast->accept($visitor);
     }
 }

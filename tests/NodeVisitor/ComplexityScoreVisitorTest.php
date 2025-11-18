@@ -21,7 +21,8 @@ use RegexParser\Parser;
 
 class ComplexityScoreVisitorTest extends TestCase
 {
-     private Parser $parser;
+    private Parser $parser;
+
     private ComplexityScoreVisitor $visitor;
 
     protected function setUp(): void
@@ -104,12 +105,6 @@ class ComplexityScoreVisitorTest extends TestCase
         $this->assertStringContainsString('Literal: (non-printable char)', $parser->parse("/\x01/")->accept($visitor));
     }
 
-    private function getScore(string $regex): int
-    {
-        $ast = $this->parser->parse($regex);
-        return $ast->accept($this->visitor);
-    }
-
     public function test_score_nested_unbounded_quantifiers_redo_penalty(): void
     {
         // Classic ReDoS: (a*)*. Score should be exponentially high.
@@ -132,11 +127,11 @@ class ComplexityScoreVisitorTest extends TestCase
 
         // Subroutine (COMPLEX_CONSTRUCT_SCORE * 2)
         $subroutineScore = $this->getScore('/(?R)/');
-        $this->assertEquals(10, $subroutineScore, 'Subroutine must be highly complex (10).');
+        $this->assertSame(10, $subroutineScore, 'Subroutine must be highly complex (10).');
 
         // PcreVerb (COMPLEX_CONSTRUCT_SCORE)
         $pcreVerbScore = $this->getScore('/(*FAIL)/');
-        $this->assertEquals(5, $pcreVerbScore, 'PcreVerb must be complex (5).');
+        $this->assertSame(5, $pcreVerbScore, 'PcreVerb must be complex (5).');
     }
 
     public function test_score_complex_group_lookbehinds(): void
@@ -145,5 +140,12 @@ class ComplexityScoreVisitorTest extends TestCase
         $score = $this->getScore('/a(?<!b)/'); // Sequence(Literal(a), Group(b))
         $this->assertGreaterThan(5, $score);
         $this->assertLessThan(10, $score);
+    }
+
+    private function getScore(string $regex): int
+    {
+        $ast = $this->parser->parse($regex);
+
+        return $ast->accept($this->visitor);
     }
 }
