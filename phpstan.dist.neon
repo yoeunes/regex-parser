@@ -27,7 +27,6 @@ parameters:
     tmpDir: .cache/phpstan
 
     ignoreErrors:
-        - '#^Parameter \#1 \$min \(int<0, 255>\) of function random_int expects lower number than parameter \#2 \$max \(int<0, 255>\)\.$#'
         - identifiers:
             - class.extendsInternalClass
 

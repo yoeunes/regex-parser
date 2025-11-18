@@ -1,0 +1,50 @@
+name: CI Linting Tasks
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php-version: ['8.4', '8.5']
+
+    name: PHP ${{ matrix.php-version }} Static Analysis
+
+    steps:
+      - name: ⬇️ Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Task
+        uses: go-task/setup-task@v1
+
+      - name: 🛠️ Setup PHP ${{ matrix.php-version }} & Composer
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: mbstring, intl, pcre, tokenizer, xml
+          ini-values: error_reporting=E_ALL
+          tools: composer:v2
+
+      - name: 📦 Install All Dependencies (Composer)
+        run: task install
+
+      - name: 🔎 1. Run PHPLint (Basic Syntax Check)
+        run: task phplint
+
+      - name: 🔨 2. Run Rector (Check for Code Optimization)
+        run: task rector -- --dry-run --ansi
+
+      - name: 🧼 3. Run PHP-CS-Fixer (Check Code Style)
+        run: task phpcs -- --dry-run
+
+      - name: 🧪 4. Run PHPUnit (Unit Tests)
+        run: task phpunit
+
+      - name: 🔬 5. Run PHPStan (Static Analysis)
+        run: task phpstan
