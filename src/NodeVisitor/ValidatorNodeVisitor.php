@@ -470,11 +470,6 @@ final class ValidatorNodeVisitor implements NodeVisitorInterface
             // (?(DEFINE)...) This is valid.
         } else {
             // Any other atom is not a valid condition
-            //
-            // === PHPSTAN FIX ===
-            // Was: $node->condition->startPos
-            // Now: $node->condition->getStartPosition()
-            // ===================
             throw new ParserException(\sprintf('Invalid conditional construct at position %d. Condition must be a group reference, lookaround, or (DEFINE).', $node->condition->getStartPosition()));
         }
 
