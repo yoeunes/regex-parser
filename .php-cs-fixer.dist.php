@@ -27,8 +27,8 @@ $finder = (new PhpCsFixer\Finder())
         'tools/',
         'vendor/',
     ])
-    ->ignoreDotFiles(true)
-    ->ignoreVCS(true);
+    ->ignoreDotFiles(false)
+    ->ignoreVCS(false);
 
 return (new PhpCsFixer\Config())
     ->registerCustomFixers(new PhpCsFixerCustomFixers\Fixers())
