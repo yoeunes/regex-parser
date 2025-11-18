@@ -27,8 +27,10 @@ class PcreVerbNodeTest extends TestCase
     {
         yield 'fail' => ['FAIL', 0, 8];
         yield 'accept' => ['ACCEPT', 5, 13];
-        yield 'mark' => ['MARK:FOO', 10, 20];
+        yield 'mark_with_name' => ['MARK:FOO', 10, 20];
+        yield 'commit' => ['COMMIT', 0, 10];
         yield 'define' => ['DEFINE', 0, 10];
+        yield 'then' => ['THEN', 0, 8];
     }
 
     #[DataProvider('data_provider_pcre_verbs')]

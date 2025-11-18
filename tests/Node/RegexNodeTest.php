@@ -30,6 +30,9 @@ class RegexNodeTest extends TestCase
         yield 'slash_no_flags' => ['/', ''];
         yield 'hash_with_flags' => ['#', 'im'];
         yield 'brace_delimiter' => ['{', 'u'];
+        yield 'paren_delimiter' => ['(', 's'];
+        yield 'angled_delimiter' => ['<', 'x'];
+        yield 'tilde_delimiter' => ['~', 'A'];
     }
 
     #[DataProvider('data_provider_regex_properties')]
