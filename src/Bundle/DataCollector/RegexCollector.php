@@ -117,6 +117,7 @@ class RegexCollector extends DataCollector implements LateDataCollectorInterface
         return 'regex_parser.collector';
     }
 
+    #[\Override]
     public function reset(): void
     {
         $this->data = [];

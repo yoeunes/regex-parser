@@ -30,7 +30,7 @@ use RegexParser\ValidationResult;
  */
 final class PregValidationRule implements Rule
 {
-    private const PREG_FUNCTION_MAP = [
+    private const array PREG_FUNCTION_MAP = [
         'preg_match' => 0,
         'preg_match_all' => 0,
         'preg_replace' => 0,

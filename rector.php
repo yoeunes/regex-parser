@@ -12,6 +12,9 @@ declare(strict_types=1);
  */
 
 use Rector\Config\RectorConfig;
+use Rector\Php73\Rector\FuncCall\RegexDashEscapeRector;
+use Rector\PHPUnit\Set\PHPUnitSetList;
+use Rector\Set\ValueObject\LevelSetList;
 use Rector\ValueObject\PhpVersion;
 
 return static function (RectorConfig $rectorConfig): void {
@@ -37,4 +40,14 @@ return static function (RectorConfig $rectorConfig): void {
     $rectorConfig->cacheDirectory('.cache/rector/');
     $rectorConfig->parallel();
     $rectorConfig->editorUrl('phpstorm://open?file=%file%&line=%line%');
+
+    $rectorConfig->sets([
+        LevelSetList::UP_TO_PHP_84,
+
+        PHPUnitSetList::ANNOTATIONS_TO_ATTRIBUTES,
+    ]);
+
+    $rectorConfig->skip([
+        RegexDashEscapeRector::class,
+    ]);
 };

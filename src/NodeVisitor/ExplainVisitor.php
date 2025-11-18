@@ -46,7 +46,7 @@ use RegexParser\Node\UnicodePropNode;
  */
 class ExplainVisitor implements NodeVisitorInterface
 {
-    private const CHAR_TYPE_MAP = [
+    private const array CHAR_TYPE_MAP = [
         'd' => 'any digit (0-9)',
         'D' => 'any non-digit',
         's' => 'any whitespace character',
@@ -60,12 +60,12 @@ class ExplainVisitor implements NodeVisitorInterface
         'R' => 'a generic newline (\\r\\n, \\r, or \\n)',
     ];
 
-    private const ANCHOR_MAP = [
+    private const array ANCHOR_MAP = [
         '^' => 'the start of the string (or line, with /m flag)',
         '$' => 'the end of the string (or line, with /m flag)',
     ];
 
-    private const ASSERTION_MAP = [
+    private const array ASSERTION_MAP = [
         'A' => 'the absolute start of the string',
         'z' => 'the absolute end of the string',
         'Z' => 'the end of the string (before final newline)',

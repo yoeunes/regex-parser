@@ -56,12 +56,12 @@ use RegexParser\Node\UnicodePropNode;
  */
 final class ValidatorNodeVisitor implements NodeVisitorInterface
 {
-    private const VALID_ASSERTIONS = [
+    private const array VALID_ASSERTIONS = [
         'A' => true, 'z' => true, 'Z' => true,
         'G' => true, 'b' => true, 'B' => true,
     ];
 
-    private const VALID_PCRE_VERBS = [
+    private const array VALID_PCRE_VERBS = [
         'FAIL' => true, 'ACCEPT' => true, 'COMMIT' => true,
         'PRUNE' => true, 'SKIP' => true, 'THEN' => true,
         'DEFINE' => true, 'MARK' => true,
@@ -71,7 +71,7 @@ final class ValidatorNodeVisitor implements NodeVisitorInterface
         'NO_AUTO_POSSESS' => true,
     ];
 
-    private const VALID_POSIX_CLASSES = [
+    private const array VALID_POSIX_CLASSES = [
         'alnum' => true, 'alpha' => true, 'ascii' => true,
         'blank' => true, 'cntrl' => true, 'digit' => true,
         'graph' => true, 'lower' => true, 'print' => true,

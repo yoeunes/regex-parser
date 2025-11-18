@@ -44,6 +44,7 @@ class RegexParserExtension extends Extension
         }
     }
 
+    #[\Override]
     public function getAlias(): string
     {
         return 'regex_parser';

@@ -58,7 +58,7 @@ class OptimizerNodeVisitor implements NodeVisitorInterface
     /**
      * Characters that are meta-characters inside a character class.
      */
-    private const CHAR_CLASS_META = [']' => true, '\\' => true, '^' => true, '-' => true];
+    private const array CHAR_CLASS_META = [']' => true, '\\' => true, '^' => true, '-' => true];
 
     private string $flags = '';
 

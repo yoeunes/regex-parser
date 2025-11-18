@@ -47,7 +47,7 @@ use RegexParser\Node\UnicodePropNode;
 class CompilerNodeVisitor implements NodeVisitorInterface
 {
     // PCRE meta-characters that must be escaped *outside* a character class.
-    private const META_CHARACTERS = [
+    private const array META_CHARACTERS = [
         '\\' => true, '.' => true, '^' => true, '$' => true,
         '[' => true, ']' => true, '(' => true, ')' => true,
         '|' => true, '*' => true, '+' => true, '?' => true, '{' => true, '}' => true,
@@ -57,7 +57,7 @@ class CompilerNodeVisitor implements NodeVisitorInterface
     // Meta-characters that must be escaped *inside* a character class.
     // '-' is crucial to escape to prevent creating unintended ranges.
     // '^' is crucial to escape to prevent unintended negation if placed at start.
-    private const CHAR_CLASS_META = [
+    private const array CHAR_CLASS_META = [
         '\\' => true, ']' => true, '-' => true, '^' => true,
     ];
 

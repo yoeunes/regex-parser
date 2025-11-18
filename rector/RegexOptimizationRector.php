@@ -26,12 +26,12 @@ use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
 
 final class RegexOptimizationRector extends AbstractRector
 {
-    private const PREG_FUNCTION_MAP = [
+    private const array PREG_FUNCTION_MAP = [
         'preg_match' => 0, 'preg_match_all' => 0, 'preg_replace' => 0,
         'preg_replace_callback' => 0, 'preg_split' => 0, 'preg_grep' => 0,
     ];
 
-    private const REGEX_CONSTANT_NAMES = [
+    private const array REGEX_CONSTANT_NAMES = [
         'REGEX_OUTSIDE',
         'REGEX_INSIDE',
     ];
