@@ -18,7 +18,6 @@ use RegexParser\Exception\ParserException;
 use RegexParser\Node\AssertionNode;
 use RegexParser\Node\GroupNode;
 use RegexParser\Node\GroupType;
-use RegexParser\Node\LiteralNode;
 use RegexParser\Parser;
 use RegexParser\Tests\TestUtils\ParserAccessor;
 use RegexParser\TokenType;

@@ -743,13 +743,13 @@ class Parser
         // Lookaround or assertion as condition (?(?=...)...)
         // The condition *is* the atom, which includes its own end parenthesis
         $condition = $this->parseAtom();
-        
+
         // Validate that the condition is a valid type
-        if (!($condition instanceof BackrefNode || $condition instanceof GroupNode || 
-              $condition instanceof AssertionNode || $condition instanceof SubroutineNode)) {
+        if (!($condition instanceof BackrefNode || $condition instanceof GroupNode
+              || $condition instanceof AssertionNode || $condition instanceof SubroutineNode)) {
             throw new ParserException('Invalid conditional construct at position '.$startPos.'. Condition must be a group reference, lookaround, or (DEFINE).');
         }
-        
+
         return $condition;
     }
 
@@ -1084,9 +1084,10 @@ class Parser
      */
     private function previous(): Token
     {
-        if ($this->position === 0) {
+        if (0 === $this->position) {
             return $this->tokens[0];
         }
+
         return $this->tokens[$this->position - 1];
     }
 

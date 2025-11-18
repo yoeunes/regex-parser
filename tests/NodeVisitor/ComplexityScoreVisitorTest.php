@@ -21,10 +21,10 @@ use RegexParser\Parser;
 
 class ComplexityScoreVisitorTest extends TestCase
 {
-    private const BASE_SCORE = 1;
-    private const COMPLEX_SCORE = 5;
-    private const UNBOUNDED_SCORE = 10;
-    private const RECURSIVE_SCORE = 10; // COMPLEX_SCORE * 2
+    private const int BASE_SCORE = 1;
+    private const int COMPLEX_SCORE = 5;
+    private const int UNBOUNDED_SCORE = 10;
+    private const int RECURSIVE_SCORE = 10; // COMPLEX_SCORE * 2
 
     public function test_simple_regex_score(): void
     {
@@ -48,15 +48,6 @@ class ComplexityScoreVisitorTest extends TestCase
         $complex = $this->getScore('/(?=foo)foo/');
 
         $this->assertGreaterThan($simple, $complex);
-    }
-
-    private function getScore(string $regex): int
-    {
-        $parser = new Parser();
-        $ast = $parser->parse($regex);
-        $visitor = new ComplexityScoreVisitor();
-
-        return $ast->accept($visitor);
     }
 
     public static function data_provider_quantifier_explanations(): \Iterator
@@ -86,15 +77,15 @@ class ComplexityScoreVisitorTest extends TestCase
 
         $this->assertStringContainsString(
             'Start Positive Lookbehind',
-            $parser->parse('/(?<=a)/')->accept(new ExplainVisitor())
+            $parser->parse('/(?<=a)/')->accept(new ExplainVisitor()),
         );
         $this->assertStringContainsString(
             'Start Atomic Group',
-            $parser->parse('/(?>a)/')->accept(new ExplainVisitor())
+            $parser->parse('/(?>a)/')->accept(new ExplainVisitor()),
         );
         $this->assertStringContainsString(
             "Start Capturing Group (named: 'id')",
-            $parser->parse('/(?<id>a)/')->accept(new ExplainVisitor())
+            $parser->parse('/(?<id>a)/')->accept(new ExplainVisitor()),
         );
     }
 
@@ -107,5 +98,14 @@ class ComplexityScoreVisitorTest extends TestCase
         $this->assertStringContainsString("Literal: '\\t' (tab)", $parser->parse('/\t/')->accept($visitor));
         $this->assertStringContainsString("Literal: '\\n' (newline)", $parser->parse('/\n/')->accept($visitor));
         $this->assertStringContainsString('Literal: (non-printable char)', $parser->parse("/\x01/")->accept($visitor));
+    }
+
+    private function getScore(string $regex): int
+    {
+        $parser = new Parser();
+        $ast = $parser->parse($regex);
+        $visitor = new ComplexityScoreVisitor();
+
+        return $ast->accept($visitor);
     }
 }
