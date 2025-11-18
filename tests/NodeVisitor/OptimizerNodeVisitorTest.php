@@ -237,4 +237,84 @@ class OptimizerNodeVisitorTest extends TestCase
             'Should not optimize to \w due to /u flag.',
         );
     }
+
+    public function test_full_word_optimization(): void
+    {
+        // [a-zA-Z0-9_] -> \w
+        $parser = new Parser();
+        $ast = $parser->parse('/[a-zA-Z0-9_]/');
+        $optimizer = new OptimizerNodeVisitor();
+
+        /** @var RegexNode $newAst */
+        $newAst = $ast->accept($optimizer);
+
+        $this->assertInstanceOf(CharTypeNode::class, $newAst->pattern);
+        $this->assertSame('w', $newAst->pattern->value);
+    }
+
+    public function test_does_not_optimize_word_if_flag_u_present(): void
+    {
+        // [a-zA-Z0-9_] -> NOT \w if /u is present (semantics change in PCRE)
+        $parser = new Parser();
+        $ast = $parser->parse('/[a-zA-Z0-9_]/u');
+        $optimizer = new OptimizerNodeVisitor();
+
+        /** @var RegexNode $newAst */
+        $newAst = $ast->accept($optimizer);
+
+        $this->assertInstanceOf(CharClassNode::class, $newAst->pattern);
+    }
+
+    public function test_merges_nested_sequences(): void
+    {
+        // Sequence(Sequence(a, b), c) -> Sequence(a, b, c) -> Literal(abc)
+        $inner = new SequenceNode([
+            new LiteralNode('a', 0, 0),
+            new LiteralNode('b', 0, 0)
+        ], 0, 0);
+
+        $outer = new SequenceNode([
+            $inner,
+            new LiteralNode('c', 0, 0)
+        ], 0, 0);
+
+        $optimizer = new OptimizerNodeVisitor();
+        $result = $outer->accept($optimizer);
+
+        $this->assertInstanceOf(LiteralNode::class, $result);
+        $this->assertSame('abc', $result->value);
+    }
+
+    public function test_alternation_single_char_optimization(): void
+    {
+        // a|b|c -> [abc]
+        $parser = new Parser();
+        $ast = $parser->parse('/a|b|c/');
+        $optimizer = new OptimizerNodeVisitor();
+
+        /** @var RegexNode $newAst */
+        $newAst = $ast->accept($optimizer);
+
+        $this->assertInstanceOf(CharClassNode::class, $newAst->pattern);
+    }
+
+    public function test_alternation_optimization_skips_meta_chars(): void
+    {
+        // a|^|c -> Should NOT become [a^c] because ^ is meta in char class start
+        // Ideally the optimizer is smart enough to know ^ is safe in middle,
+        // but your logic strictly avoids meta chars.
+        $parser = new Parser();
+        $ast = $parser->parse('/a|^|c/'); // ^ is anchor here
+        $optimizer = new OptimizerNodeVisitor();
+
+        /** @var RegexNode $newAst */
+        $newAst = $ast->accept($optimizer);
+
+        // Should remain alternation because ^ was an AnchorNode in parse,
+        // or if parsed as literals, the optimizer check prevents it.
+        // Wait, parse('/a|^|c/') -> Alternation(Literal(a), Anchor(^), Literal(c)).
+        // canAlternationBeCharClass checks for LiteralNode. AnchorNode returns false.
+        // Correct behavior: No optimization.
+        $this->assertNotInstanceOf(CharClassNode::class, $newAst->pattern);
+    }
 }

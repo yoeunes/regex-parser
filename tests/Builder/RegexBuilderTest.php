@@ -184,4 +184,74 @@ class RegexBuilderTest extends TestCase
         $builder = new RegexBuilder();
         $builder->oneOrMore();
     }
+
+    public function test_all_fluent_methods(): void
+    {
+        $builder = new RegexBuilder();
+
+        $regex = $builder
+            ->startOfLine()
+            ->digit()
+            ->notDigit()
+            ->whitespace()
+            ->notWhitespace()
+            ->word()
+            ->notWord()
+            ->any()
+            ->wordBoundary()
+            ->literal('a')
+            ->exactly(3)
+            ->literal('b')
+            ->atLeast(2, true) // Lazy
+            ->literal('c')
+            ->between(1, 3, true) // Lazy
+            ->endOfLine()
+            ->compile();
+
+        $this->assertSame('/^\d\D\s\S\w\W.\ba{3}b{2,}?c{1,3}?$/', $regex);
+    }
+
+    public function test_char_class_builder_coverage(): void
+    {
+        $builder = new RegexBuilder();
+        $regex = $builder
+            ->charClass(function ($c) {
+                $c->digit()
+                  ->notDigit()
+                  ->whitespace()
+                  ->notWhitespace()
+                  ->word()
+                  ->notWord()
+                  ->posix('alnum');
+            })
+            ->compile();
+
+        $this->assertSame('/[\d\D\s\S\w\W[[:alnum:]]]/', $regex);
+    }
+
+    public function test_alternation_via_property(): void
+    {
+        $builder = new RegexBuilder();
+        $regex = $builder
+            ->literal('a')
+            ->or // Magic getter
+            ->literal('b')
+            ->compile();
+
+        $this->assertSame('/a|b/', $regex);
+    }
+
+    public function test_getter_throws_on_unknown_property(): void
+    {
+        $this->expectException(\BadMethodCallException::class);
+        $builder = new RegexBuilder();
+        $builder->invalidProperty;
+    }
+
+    public function test_invalid_delimiter_throws(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $builder = new RegexBuilder();
+        $builder->withDelimiter('XX');
+    }
 }

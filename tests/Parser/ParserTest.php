@@ -388,4 +388,51 @@ class ParserTest extends TestCase
     {
         return new Parser();
     }
+
+    public function test_python_named_group_syntax(): void
+    {
+        // (?P<name>...)
+        $ast = $this->parser->parse('/(?P<foo>a)/');
+        $this->assertInstanceOf(GroupNode::class, $ast->pattern);
+        $this->assertSame('foo', $ast->pattern->name);
+
+        // (?P'name'...)
+        $ast = $this->parser->parse("/(?P'bar'a)/");
+        $this->assertSame('bar', $ast->pattern->name);
+
+        // (?P"name"...)
+        $ast = $this->parser->parse('/(?P"baz"a)/');
+        $this->assertSame('baz', $ast->pattern->name);
+    }
+
+    public function test_python_named_group_invalid_syntax(): void
+    {
+        $this->expectException(ParserException::class);
+        // Missing name quotes or brackets
+        $this->parser->parse('/(?P=foo)/'); // Backref syntax, not currently supported in parser logic for groups
+    }
+
+    public function test_max_pattern_length(): void
+    {
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('Regex pattern exceeds maximum length');
+
+        $parser = new Parser(['max_pattern_length' => 5]);
+        $parser->parse('/toolong/');
+    }
+
+    public function test_invalid_range_codepoints(): void
+    {
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('start character comes after end character');
+        $this->parser->parse('/[z-a]/');
+    }
+
+    public function test_parse_conditional_define(): void
+    {
+        // (?(DEFINE)...)
+        $ast = $this->parser->parse('/(?(DEFINE)(?<A>a))(?&A)/');
+        // Just ensure it parses without error and structure exists
+        $this->assertNotNull($ast);
+    }
 }

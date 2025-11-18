@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\NodeVisitor;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RegexParser\NodeVisitor\SampleGeneratorVisitor;
 use RegexParser\Parser;
@@ -20,10 +21,13 @@ use RegexParser\Parser;
 class SampleGeneratorVisitorTest extends TestCase
 {
     private Parser $parser;
+    private SampleGeneratorVisitor $generator;
 
     protected function setUp(): void
     {
         $this->parser = new Parser();
+        $this->generator = new SampleGeneratorVisitor();
+        $this->generator->setSeed(42); // Deterministic
     }
 
     public function test_generate_simple(): void
@@ -180,5 +184,55 @@ class SampleGeneratorVisitorTest extends TestCase
         $generator = new SampleGeneratorVisitor();
 
         return $ast->accept($generator);
+    }
+
+    /**
+     * @return \Iterator<array{string}>
+     */
+    public static function providePosixClasses(): \Iterator
+    {
+        yield ['[[:alnum:]]'];
+        yield ['[[:alpha:]]'];
+        yield ['[[:digit:]]'];
+        yield ['[[:xdigit:]]'];
+        yield ['[[:space:]]'];
+        yield ['[[:lower:]]'];
+        yield ['[[:upper:]]'];
+        yield ['[[:punct:]]'];
+    }
+
+    #[DataProvider('providePosixClasses')]
+    public function test_generate_posix_classes(string $regex): void
+    {
+        $sample = $this->parser->parse($regex)->accept($this->generator);
+        $this->assertNotEmpty($sample);
+        // We verify it matches the regex itself to ensure correctness
+        $this->assertMatchesRegularExpression('/' . $regex . '/', $sample);
+    }
+
+    public function test_generate_all_whitespace_types(): void
+    {
+        // \h \H \v \V
+        $regex = '/\h\H\v\V/';
+        $sample = $this->parser->parse($regex)->accept($this->generator);
+        // Basic sanity check length
+        $this->assertSame(4, strlen($sample));
+    }
+
+    public function test_reset_seed(): void
+    {
+        $regex = '/[a-z]/';
+        $ast = $this->parser->parse($regex);
+
+        $this->generator->setSeed(123);
+        $val1 = $ast->accept($this->generator);
+
+        $this->generator->resetSeed();
+        // Statistically, it *could* be the same, but unlikely with enough runs.
+        // Mostly just testing the method runs without error.
+        $val2 = $ast->accept($this->generator);
+
+        $this->assertIsString($val1);
+        $this->assertIsString($val2);
     }
 }
