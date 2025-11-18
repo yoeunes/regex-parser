@@ -75,6 +75,14 @@ return (new PhpCsFixer\Config())
         'clean_namespace'                        => true,
         'compact_nullable_type_declaration'      => true,
         'concat_space'                           => ['spacing' => 'none'],
+        'constant_case' => ['case' => 'lower'],
+        'control_structure_braces' => true,
+        'control_structure_continuation_position' => ['position' => 'same_line'],
+        'declare_equal_normalize' => true,
+        'declare_parentheses' => true,
+        'elseif' => true,
+        'encoding' => true,
+        'full_opening_tag' => true,
     ])
     ->setFinder($finder)
     ->setCacheFile('.cache/php-cs-fixer/cache.json');
