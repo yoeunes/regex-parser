@@ -245,7 +245,7 @@ class RegexBuilderTest extends TestCase
     {
         $this->expectException(\BadMethodCallException::class);
         $builder = new RegexBuilder();
-        $builder->invalidProperty;
+        $builder->invalidProperty; // @phpstan-ignore property.notFound, expr.resultUnused
     }
 
     public function test_invalid_delimiter_throws(): void

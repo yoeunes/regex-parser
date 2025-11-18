@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\Parser;
 
+use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\ParserException;
 use RegexParser\Node\AlternationNode;
@@ -398,10 +399,12 @@ class ParserTest extends TestCase
 
         // (?P'name'...)
         $ast = $this->parser->parse("/(?P'bar'a)/");
+        $this->assertInstanceOf(GroupNode::class, $ast->pattern);
         $this->assertSame('bar', $ast->pattern->name);
 
         // (?P"name"...)
         $ast = $this->parser->parse('/(?P"baz"a)/');
+        $this->assertInstanceOf(GroupNode::class, $ast->pattern);
         $this->assertSame('baz', $ast->pattern->name);
     }
 
@@ -432,11 +435,10 @@ class ParserTest extends TestCase
         $this->assertInstanceOf(RangeNode::class, $ast->pattern->parts[0]);
     }
 
+    #[DoesNotPerformAssertions]
     public function test_parse_conditional_define(): void
     {
         // (?(DEFINE)...)
         $ast = $this->parser->parse('/(?(DEFINE)(?<A>a))(?&A)/');
-        // Just ensure it parses without error and structure exists
-        $this->assertNotNull($ast);
     }
 }
