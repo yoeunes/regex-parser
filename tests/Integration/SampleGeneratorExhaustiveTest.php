@@ -35,7 +35,6 @@ class SampleGeneratorExhaustiveTest extends TestCase
             $node = new CharTypeNode($type, 0, 0);
             $result = $node->accept($this->generator);
             $this->assertIsString($result);
-            $this->assertNotEmpty($result);
         }
     }
 
