@@ -25,16 +25,19 @@ return (new PhpCsFixer\Config())
     ->setRiskyAllowed(true)
     ->setParallelConfig(PhpCsFixer\Runner\Parallel\ParallelConfigFactory::detect())
     ->setRules([
-        '@PSR12'                      => true,
-        '@PSR12:risky'                => true,
-        '@Symfony'                    => true,
-        '@Symfony:risky'              => true,
-        '@PHPUnit10x0Migration:risky' => true,
-        'header_comment'              => ['header' => $header],
-        'declare_strict_types'        => true,
-        'ordered_class_elements'      => true,
-        'ordered_interfaces'          => true,
-        'ordered_traits'              => true,
+        '@PSR12'                                 => true,
+        '@PSR12:risky'                           => true,
+        '@Symfony'                               => true,
+        '@Symfony:risky'                         => true,
+        '@PHPUnit10x0Migration:risky'            => true,
+        'header_comment'                         => ['header' => $header],
+        'declare_strict_types'                   => true,
+        'ordered_class_elements'                 => true,
+        'ordered_interfaces'                     => true,
+        'ordered_traits'                         => true,
+        'php_unit_construct'                     => true,
+        'php_unit_dedicate_assert'               => true,
+        'php_unit_dedicate_assert_internal_type' => true,
     ])
     ->setFinder($finder)
     ->setCacheFile('.cache/php-cs-fixer/cache.json');
