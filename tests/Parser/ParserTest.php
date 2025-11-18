@@ -348,6 +348,7 @@ class ParserTest extends TestCase
     public function test_parse_g_references_as_backref(): void
     {
         $ast = $this->parser->parse('/a\g{1}b\g{-1}c/');
+        $this->assertInstanceOf(SequenceNode::class, $ast->pattern);
         $this->assertInstanceOf(BackrefNode::class, $ast->pattern->children[1]);
         $this->assertInstanceOf(BackrefNode::class, $ast->pattern->children[3]);
         $this->assertSame('\g{1}', $ast->pattern->children[1]->ref);
@@ -357,6 +358,7 @@ class ParserTest extends TestCase
     public function test_parse_g_references_as_subroutine(): void
     {
         $ast = $this->parser->parse('/(a)\g<name>/');
+        $this->assertInstanceOf(SequenceNode::class, $ast->pattern);
         $this->assertInstanceOf(SubroutineNode::class, $ast->pattern->children[1]);
         $this->assertSame('name', $ast->pattern->children[1]->reference);
         $this->assertSame('g', $ast->pattern->children[1]->syntax);
@@ -366,6 +368,7 @@ class ParserTest extends TestCase
     {
         // (?(1)a|b)
         $ast = $this->parser->parse('/(?(1)a|b)/');
+        $this->assertInstanceOf(ConditionalNode::class, $ast->pattern);
         $this->assertInstanceOf(BackrefNode::class, $ast->pattern->condition);
         $this->assertSame('1', $ast->pattern->condition->ref);
     }
@@ -374,6 +377,7 @@ class ParserTest extends TestCase
     {
         // (?(<name>)a|b)
         $ast = $this->parser->parse('/(?<name>x)(?(<name>)a|b)/');
+        $this->assertInstanceOf(SequenceNode::class, $ast->pattern);
         $conditional = $ast->pattern->children[1];
         $this->assertInstanceOf(ConditionalNode::class, $conditional);
         $this->assertInstanceOf(BackrefNode::class, $conditional->condition);

@@ -648,18 +648,6 @@ class Parser
                     $expr = $this->parseAlternation();
                     $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected ) to close lookahead condition');
                     $condition = new GroupNode($expr, GroupType::T_GROUP_LOOKAHEAD_NEGATIVE, null, null, $conditionStartPos, $endToken->position);
-                } elseif ($this->matchLiteral('<')) {
-                    if ($this->matchLiteral('=')) { // (?<=...)
-                        $expr = $this->parseAlternation();
-                        $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected ) to close lookbehind condition');
-                        $condition = new GroupNode($expr, GroupType::T_GROUP_LOOKBEHIND_POSITIVE, null, null, $conditionStartPos, $endToken->position);
-                    } elseif ($this->matchLiteral('!')) { // (?<!...)
-                        $expr = $this->parseAlternation();
-                        $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected ) to close lookbehind condition');
-                        $condition = new GroupNode($expr, GroupType::T_GROUP_LOOKBEHIND_NEGATIVE, null, null, $conditionStartPos, $endToken->position);
-                    } else {
-                        throw new ParserException('Invalid conditional condition at position '.$conditionStartPos);
-                    }
                 } else {
                     throw new ParserException('Invalid conditional condition at position '.$conditionStartPos);
                 }
@@ -778,35 +766,6 @@ class Parser
     }
 
     /**
-     * Parses a branch within a conditional (?(cond)yes|no).
-     * Similar to parseSequence, but stops at | or ) to allow proper branch separation.
-     */
-    private function parseConditionalBranch(): NodeInterface
-    {
-        $children = [];
-
-        // Parse atoms until we hit | (alternation separator) or ) (end of conditional)
-        while (!$this->check(TokenType::T_ALTERNATION) && !$this->check(TokenType::T_GROUP_CLOSE) && !$this->isAtEnd()) {
-            $children[] = $this->parseQuantifiedAtom();
-        }
-
-        if (empty($children)) {
-            $currentPos = $this->current()->position;
-
-            return new LiteralNode('', $currentPos, $currentPos);
-        }
-
-        if (1 === \count($children)) {
-            return $children[0];
-        }
-
-        $startPos = $children[0]->getStartPosition();
-        $endPos = $children[\count($children) - 1]->getEndPosition();
-
-        return new SequenceNode($children, $startPos, $endPos);
-    }
-
-    /**
      * Parses the condition in a conditional group (?(condition)...).
      */
     private function parseConditionalCondition(): NodeInterface
@@ -859,22 +818,6 @@ class Parser
                 $endPos = $endToken->position;
 
                 return new GroupNode($expr, GroupType::T_GROUP_LOOKAHEAD_NEGATIVE, null, null, $startPos, $endPos);
-            }
-            if ($this->matchLiteral('<')) {
-                if ($this->matchLiteral('=')) { // (?<=...)
-                    $expr = $this->parseAlternation();
-                    $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected ) to close lookbehind condition');
-                    $endPos = $endToken->position;
-
-                    return new GroupNode($expr, GroupType::T_GROUP_LOOKBEHIND_POSITIVE, null, null, $startPos, $endPos);
-                }
-                if ($this->matchLiteral('!')) { // (?<!...)
-                    $expr = $this->parseAlternation();
-                    $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected ) to close lookbehind condition');
-                    $endPos = $endToken->position;
-
-                    return new GroupNode($expr, GroupType::T_GROUP_LOOKBEHIND_NEGATIVE, null, null, $startPos, $endPos);
-                }
             }
 
             // If we consumed '?' but didn't match any lookaround, it's invalid
