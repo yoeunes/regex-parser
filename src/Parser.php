@@ -58,12 +58,17 @@ class Parser
      * @var array<Token>
      */
     private array $tokens;
+
     private int $position = 0;
+
     private string $delimiter;
+
     private string $flags;
+
     private int $patternLength = 0;
 
     private readonly int $maxPatternLength;
+
     private ?Lexer $lexer = null;
 
     /**

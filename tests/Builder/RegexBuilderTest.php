@@ -56,7 +56,7 @@ class RegexBuilderTest extends TestCase
     {
         $builder = new RegexBuilder();
         $regex = $builder
-            ->charClass(function ($c) {
+            ->charClass(function ($c): void {
                 $c->range('a', 'z')
                     ->digit();
             })
@@ -70,7 +70,7 @@ class RegexBuilderTest extends TestCase
     {
         $builder = new RegexBuilder();
         $regex = $builder
-            ->namedGroup('id', function ($b) {
+            ->namedGroup('id', function ($b): void {
                 $b->digit()->oneOrMore();
             })
             ->withFlags('i')

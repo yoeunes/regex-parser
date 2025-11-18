@@ -25,11 +25,20 @@ return (new PhpCsFixer\Config())
     ->setRiskyAllowed(true)
     ->setParallelConfig(PhpCsFixer\Runner\Parallel\ParallelConfigFactory::detect())
     ->setRules([
+        '@PHP8x2Migration'                            => true,
+        '@PHP8x2Migration:risky'                      => true,
         '@PSR12'                                      => true,
         '@PSR12:risky'                                => true,
         '@Symfony'                                    => true,
         '@Symfony:risky'                              => true,
         '@PHPUnit10x0Migration:risky'                 => true,
+        'array_syntax'                                => ['syntax' => 'short'],
+        'class_attributes_separation'                 => [
+            'elements' => [
+                'property' => 'one',
+                'method'   => 'one',
+            ],
+        ],
         'header_comment'                              => ['header' => $header],
         'declare_strict_types'                        => true,
         'ordered_class_elements'                      => true,

@@ -43,6 +43,7 @@ final class RegexOptimizationRector extends AbstractRector
     ];
 
     private ?Parser $parser = null;
+
     private ?CompilerNodeVisitor $compiler = null;
 
     /**

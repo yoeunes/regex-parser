@@ -61,6 +61,7 @@ class OptimizerNodeVisitor implements NodeVisitorInterface
      * @var array<string, true>
      */
     private const CHAR_CLASS_META = [']' => true, '\\' => true, '^' => true, '-' => true];
+
     private string $flags = '';
 
     public function visitRegex(RegexNode $node): NodeInterface

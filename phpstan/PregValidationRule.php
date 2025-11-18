@@ -43,6 +43,7 @@ final class PregValidationRule implements Rule
     ];
 
     private ?Parser $parser = null;
+
     private ?ValidatorNodeVisitor $validator = null;
 
     public function getNodeType(): string

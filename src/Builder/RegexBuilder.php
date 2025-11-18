@@ -47,6 +47,7 @@ class RegexBuilder
     private array $alternatives = [];
 
     private string $flags = '';
+
     private string $delimiter = '/';
 
     public function __construct()
