@@ -23,13 +23,13 @@ class ExplainVisitorTest extends TestCase
         $parser = new Parser();
         $ast = $parser->parse('/^a|b$/i');
         $visitor = new ExplainVisitor();
-        
+
         $output = $ast->accept($visitor);
-        
+
         $this->assertStringContainsString('Regex matches (with flags: i)', $output);
         $this->assertStringContainsString('EITHER:', $output);
         // Correction : On cherche la traduction humaine générée par le code
-        $this->assertStringContainsString('Anchor: the start of the string', $output); 
+        $this->assertStringContainsString('Anchor: the start of the string', $output);
         $this->assertStringContainsString('OR:', $output);
     }
 
@@ -39,9 +39,9 @@ class ExplainVisitorTest extends TestCase
         // Le parser découpe "<script>" en plusieurs littéraux : "<", "s", "c", ...
         $ast = $parser->parse('/<script>/');
         $visitor = new HtmlExplainVisitor();
-        
+
         $output = $ast->accept($visitor);
-        
+
         // On vérifie que les caractères spéciaux HTML sont bien échappés dans le rendu
         $this->assertStringNotContainsString('<script>', $output);
         $this->assertStringContainsString('&lt;', $output);

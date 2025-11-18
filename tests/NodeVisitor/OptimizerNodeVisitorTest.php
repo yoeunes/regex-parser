@@ -28,7 +28,7 @@ class OptimizerNodeVisitorTest extends TestCase
         $parser = new Parser();
         $ast = $parser->parse('/abc/');
         $optimizer = new OptimizerNodeVisitor();
-        
+
         $newAst = $ast->accept($optimizer);
 
         $this->assertInstanceOf(RegexNode::class, $newAst);
@@ -41,20 +41,20 @@ class OptimizerNodeVisitorTest extends TestCase
         // On utilise des chaînes longues ("beta", "gamma") pour empêcher
         // l'optimiseur de convertir (b|c) en [bc] (CharClass).
         // On veut tester spécifiquement la fusion d'AlternationNode.
-        
+
         $nestedAlt = new AlternationNode([
             new LiteralNode('beta', 0, 0),
-            new LiteralNode('gamma', 0, 0)
+            new LiteralNode('gamma', 0, 0),
         ], 0, 0);
 
         $rootAlt = new AlternationNode([
             new LiteralNode('alpha', 0, 0),
             $nestedAlt,
-            new LiteralNode('delta', 0, 0)
+            new LiteralNode('delta', 0, 0),
         ], 0, 0);
 
         $optimizer = new OptimizerNodeVisitor();
-        
+
         /** @var AlternationNode $newAst */
         $newAst = $rootAlt->accept($optimizer);
 
@@ -80,9 +80,9 @@ class OptimizerNodeVisitorTest extends TestCase
     public function testDigitOptimization(): void
     {
         $parser = new Parser();
-        $ast = $parser->parse('/[0-9]/'); 
+        $ast = $parser->parse('/[0-9]/');
         $optimizer = new OptimizerNodeVisitor();
-        
+
         $newAst = $ast->accept($optimizer);
 
         $this->assertInstanceOf(RegexNode::class, $newAst);
@@ -115,15 +115,15 @@ class OptimizerNodeVisitorTest extends TestCase
         $this->assertInstanceOf(QuantifierNode::class, $newAst->pattern);
         $this->assertInstanceOf(LiteralNode::class, $newAst->pattern->node);
     }
-    
+
     public function testOptimizationDoesNotBreakSemanticsWithHyphen(): void
     {
         $parser = new Parser();
-        $ast = $parser->parse('/a|-|z/'); 
+        $ast = $parser->parse('/a|-|z/');
         $optimizer = new OptimizerNodeVisitor();
 
         $newAst = $ast->accept($optimizer);
-        
+
         $this->assertInstanceOf(RegexNode::class, $newAst);
         $this->assertInstanceOf(AlternationNode::class, $newAst->pattern);
         $this->assertCount(3, $newAst->pattern->alternatives);
