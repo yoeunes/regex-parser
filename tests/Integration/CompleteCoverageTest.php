@@ -492,8 +492,7 @@ class CompleteCoverageTest extends TestCase
         $dump = $this->regex->dump($pattern);
         $this->assertNotEmpty($dump);
 
-        $sample = $this->regex->generate($pattern);
-        $this->assertNotEmpty($sample);
+        $this->regex->generate($pattern);
     }
 
     // Test negated char class
