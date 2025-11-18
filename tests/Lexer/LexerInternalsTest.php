@@ -24,16 +24,13 @@ class LexerInternalsTest extends TestCase
         $lexer = new Lexer('');
         $accessor = new LexerAccessor($lexer);
 
-        // On simule un match où 'v_posix' est manquant
-        $matches = ['[[:alnum:]]'];
-
+        // Simule un match incomplet pour forcer le `?? ''`
         $result = $accessor->callPrivateMethod('extractTokenValue', [
             TokenType::T_POSIX_CLASS,
             '[[:alnum:]]',
-            $matches
+            [] // Pas de clé 'v_posix'
         ]);
 
-        // Doit retourner une chaîne vide grâce au ?? ''
         $this->assertSame('', $result);
     }
 
@@ -45,12 +42,10 @@ class LexerInternalsTest extends TestCase
         $lexer = new Lexer('');
         $accessor = new LexerAccessor($lexer);
 
-        // Simule un match incomplet sans v1_prop ni v2_prop
-        $matches = ['\p{L}'];
-
+        // Simule un match incomplet pour forcer le `?? ''`
         $result = $accessor->callPrivateMethod('normalizeUnicodeProp', [
             '\p{L}',
-            $matches
+            [] // Pas de clés v1_prop ni v2_prop
         ]);
 
         $this->assertSame('', $result);
@@ -65,7 +60,8 @@ class LexerInternalsTest extends TestCase
         $lexer = new Lexer('');
         $accessor = new LexerAccessor($lexer);
 
-        // \@ n'est pas dans la liste (t, n, r, f, v, e)
+        // Teste un caractère échappé qui n'est pas spécial (ex: \@)
+        // Cela force le `default => substr(...)`
         $result = $accessor->callPrivateMethod('extractTokenValue', [
             TokenType::T_LITERAL_ESCAPED,
             '\@',
@@ -83,11 +79,11 @@ class LexerInternalsTest extends TestCase
         $lexer = new Lexer('');
         $accessor = new LexerAccessor($lexer);
 
-        // Simule \1 mais sans la capture nommée v_backref_num
+        // Force le `??` pour le numéro de backref
         $result = $accessor->callPrivateMethod('extractTokenValue', [
             TokenType::T_BACKREF,
             '\1',
-            []
+            [] // Pas de clé 'v_backref_num'
         ]);
 
         $this->assertSame('\1', $result);
