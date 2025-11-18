@@ -279,10 +279,6 @@ class Lexer
                         }
                     }
 
-                    // if (TokenType::T_LITERAL_ESCAPED === $type) {
-                    //     $type = TokenType::T_LITERAL;
-                    // }
-
                     // Default case: Create a standard token
                     $tokenValue = $this->extractTokenValue($type, $matchedValue, $matches);
                     $tokens[] = new Token($type, $tokenValue, $startPos);
