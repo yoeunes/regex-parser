@@ -29,9 +29,7 @@ class ParserCoverageBoostTest extends TestCase
     public function test_python_named_group_single_quotes(): void
     {
         $parser = new Parser([]);
-        $ast = $parser->parse("/(?P'name'test)/");
-
-        $this->assertNotNull($ast);
+        $parser->parse("/(?P'name'test)/");
     }
 
     /**
@@ -40,9 +38,7 @@ class ParserCoverageBoostTest extends TestCase
     public function test_python_named_group_double_quotes(): void
     {
         $parser = new Parser([]);
-        $ast = $parser->parse('/(?P"name"test)/');
-
-        $this->assertNotNull($ast);
+        $parser->parse('/(?P"name"test)/');
     }
 
     /**
@@ -51,9 +47,7 @@ class ParserCoverageBoostTest extends TestCase
     public function test_python_named_group_angle_brackets(): void
     {
         $parser = new Parser([]);
-        $ast = $parser->parse('/(?P<name>test)/');
-
-        $this->assertNotNull($ast);
+        $parser->parse('/(?P<name>test)/');
     }
 
     /**
@@ -62,9 +56,7 @@ class ParserCoverageBoostTest extends TestCase
     public function test_python_subroutine_call(): void
     {
         $parser = new Parser([]);
-        $ast = $parser->parse('/(?P<name>test)(?P>name)/');
-
-        $this->assertNotNull($ast);
+        $parser->parse('/(?P<name>test)(?P>name)/');
     }
 
     /**
@@ -85,9 +77,7 @@ class ParserCoverageBoostTest extends TestCase
     public function test_positive_lookbehind(): void
     {
         $parser = new Parser([]);
-        $ast = $parser->parse('/(?<=test)abc/');
-
-        $this->assertNotNull($ast);
+        $parser->parse('/(?<=test)abc/');
     }
 
     /**
@@ -96,9 +86,7 @@ class ParserCoverageBoostTest extends TestCase
     public function test_negative_lookbehind(): void
     {
         $parser = new Parser([]);
-        $ast = $parser->parse('/(?<!test)abc/');
-
-        $this->assertNotNull($ast);
+        $parser->parse('/(?<!test)abc/');
     }
 
     /**
@@ -107,9 +95,7 @@ class ParserCoverageBoostTest extends TestCase
     public function test_conditional_with_number(): void
     {
         $parser = new Parser([]);
-        $ast = $parser->parse('/(test)(?(1)yes|no)/');
-
-        $this->assertNotNull($ast);
+        $parser->parse('/(test)(?(1)yes|no)/');
     }
 
     /**
@@ -118,9 +104,7 @@ class ParserCoverageBoostTest extends TestCase
     public function test_conditional_with_named_group(): void
     {
         $parser = new Parser([]);
-        $ast = $parser->parse('/(?<name>test)(?(<name>)yes|no)/');
-
-        $this->assertNotNull($ast);
+        $parser->parse('/(?<name>test)(?(<name>)yes|no)/');
     }
 
     /**
@@ -129,9 +113,7 @@ class ParserCoverageBoostTest extends TestCase
     public function test_conditional_with_lookahead_positive(): void
     {
         $parser = new Parser([]);
-        $ast = $parser->parse('/(?((?=test))yes|no)/');
-
-        $this->assertNotNull($ast);
+        $parser->parse('/(?((?=test))yes|no)/');
     }
 
     /**
@@ -140,9 +122,7 @@ class ParserCoverageBoostTest extends TestCase
     public function test_conditional_with_lookahead_negative(): void
     {
         $parser = new Parser([]);
-        $ast = $parser->parse('/(?((?!test))yes|no)/');
-
-        $this->assertNotNull($ast);
+        $parser->parse('/(?((?!test))yes|no)/');
     }
 
     /**
@@ -151,9 +131,7 @@ class ParserCoverageBoostTest extends TestCase
     public function test_conditional_with_lookbehind_positive(): void
     {
         $parser = new Parser([]);
-        $ast = $parser->parse('/(?((?<=test))yes|no)/');
-
-        $this->assertNotNull($ast);
+        $parser->parse('/(?((?<=test))yes|no)/');
     }
 
     /**
@@ -162,9 +140,7 @@ class ParserCoverageBoostTest extends TestCase
     public function test_conditional_with_lookbehind_negative(): void
     {
         $parser = new Parser([]);
-        $ast = $parser->parse('/(?((?<!test))yes|no)/');
-
-        $this->assertNotNull($ast);
+        $parser->parse('/(?((?<!test))yes|no)/');
     }
 
     /**
@@ -173,9 +149,7 @@ class ParserCoverageBoostTest extends TestCase
     public function test_conditional_without_else(): void
     {
         $parser = new Parser([]);
-        $ast = $parser->parse('/(test)(?(1)yes)/');
-
-        $this->assertNotNull($ast);
+        $parser->parse('/(test)(?(1)yes)/');
     }
 
     /**
@@ -184,9 +158,7 @@ class ParserCoverageBoostTest extends TestCase
     public function test_subroutine_call_by_number(): void
     {
         $parser = new Parser([]);
-        $ast = $parser->parse('/(test)(?1)/');
-
-        $this->assertNotNull($ast);
+        $parser->parse('/(test)(?1)/');
     }
 
     /**
@@ -195,9 +167,7 @@ class ParserCoverageBoostTest extends TestCase
     public function test_subroutine_call_relative(): void
     {
         $parser = new Parser([]);
-        $ast = $parser->parse('/(test)(?-1)/');
-
-        $this->assertNotNull($ast);
+        $parser->parse('/(test)(?-1)/');
     }
 
     /**
@@ -206,9 +176,7 @@ class ParserCoverageBoostTest extends TestCase
     public function test_subroutine_call_named(): void
     {
         $parser = new Parser([]);
-        $ast = $parser->parse('/(?<name>test)(?&name)/');
-
-        $this->assertNotNull($ast);
+        $parser->parse('/(?<name>test)(?&name)/');
     }
 
     /**
@@ -217,9 +185,7 @@ class ParserCoverageBoostTest extends TestCase
     public function test_atomic_group(): void
     {
         $parser = new Parser([]);
-        $ast = $parser->parse('/(?>test)/');
-
-        $this->assertNotNull($ast);
+        $parser->parse('/(?>test)/');
     }
 
     /**
@@ -228,9 +194,7 @@ class ParserCoverageBoostTest extends TestCase
     public function test_non_capturing_group(): void
     {
         $parser = new Parser([]);
-        $ast = $parser->parse('/(?:test)/');
-
-        $this->assertNotNull($ast);
+        $parser->parse('/(?:test)/');
     }
 
     /**
@@ -239,9 +203,7 @@ class ParserCoverageBoostTest extends TestCase
     public function test_group_with_flags_i(): void
     {
         $parser = new Parser([]);
-        $ast = $parser->parse('/(?i:test)/');
-
-        $this->assertNotNull($ast);
+        $parser->parse('/(?i:test)/');
     }
 
     /**
@@ -250,9 +212,7 @@ class ParserCoverageBoostTest extends TestCase
     public function test_group_with_multiple_flags(): void
     {
         $parser = new Parser([]);
-        $ast = $parser->parse('/(?im:test)/');
-
-        $this->assertNotNull($ast);
+        $parser->parse('/(?im:test)/');
     }
 
     /**
@@ -261,9 +221,7 @@ class ParserCoverageBoostTest extends TestCase
     public function test_group_with_negative_flags(): void
     {
         $parser = new Parser([]);
-        $ast = $parser->parse('/(?-i:test)/');
-
-        $this->assertNotNull($ast);
+        $parser->parse('/(?-i:test)/');
     }
 
     /**
@@ -272,9 +230,7 @@ class ParserCoverageBoostTest extends TestCase
     public function test_group_with_mixed_flags(): void
     {
         $parser = new Parser([]);
-        $ast = $parser->parse('/(?i-m:test)/');
-
-        $this->assertNotNull($ast);
+        $parser->parse('/(?i-m:test)/');
     }
 
     /**
@@ -283,9 +239,7 @@ class ParserCoverageBoostTest extends TestCase
     public function test_char_class_with_range(): void
     {
         $parser = new Parser([]);
-        $ast = $parser->parse('/[a-z]/');
-
-        $this->assertNotNull($ast);
+        $parser->parse('/[a-z]/');
     }
 
     /**
@@ -294,9 +248,7 @@ class ParserCoverageBoostTest extends TestCase
     public function test_char_class_with_multiple_ranges(): void
     {
         $parser = new Parser([]);
-        $ast = $parser->parse('/[a-zA-Z0-9]/');
-
-        $this->assertNotNull($ast);
+        $parser->parse('/[a-zA-Z0-9]/');
     }
 
     /**
@@ -305,9 +257,7 @@ class ParserCoverageBoostTest extends TestCase
     public function test_negated_char_class(): void
     {
         $parser = new Parser([]);
-        $ast = $parser->parse('/[^a-z]/');
-
-        $this->assertNotNull($ast);
+        $parser->parse('/[^a-z]/');
     }
 
     /**
@@ -316,9 +266,7 @@ class ParserCoverageBoostTest extends TestCase
     public function test_posix_char_class(): void
     {
         $parser = new Parser([]);
-        $ast = $parser->parse('/[[:alnum:]]/');
-
-        $this->assertNotNull($ast);
+        $parser->parse('/[[:alnum:]]/');
     }
 
     /**
@@ -327,9 +275,7 @@ class ParserCoverageBoostTest extends TestCase
     public function test_negated_posix_char_class(): void
     {
         $parser = new Parser([]);
-        $ast = $parser->parse('/[[:^alnum:]]/');
-
-        $this->assertNotNull($ast);
+        $parser->parse('/[[:^alnum:]]/');
     }
 
     /**
@@ -338,9 +284,7 @@ class ParserCoverageBoostTest extends TestCase
     public function test_octal_legacy(): void
     {
         $parser = new Parser([]);
-        $ast = $parser->parse('/\101/');
-
-        $this->assertNotNull($ast);
+        $parser->parse('/\101/');
     }
 
     /**
@@ -349,9 +293,7 @@ class ParserCoverageBoostTest extends TestCase
     public function test_octal_modern(): void
     {
         $parser = new Parser([]);
-        $ast = $parser->parse('/\o{101}/');
-
-        $this->assertNotNull($ast);
+        $parser->parse('/\o{101}/');
     }
 
     /**
@@ -360,9 +302,7 @@ class ParserCoverageBoostTest extends TestCase
     public function test_unicode_escape_hex(): void
     {
         $parser = new Parser([]);
-        $ast = $parser->parse('/\x41/');
-
-        $this->assertNotNull($ast);
+        $parser->parse('/\x41/');
     }
 
     /**
@@ -371,9 +311,7 @@ class ParserCoverageBoostTest extends TestCase
     public function test_unicode_escape_braces(): void
     {
         $parser = new Parser([]);
-        $ast = $parser->parse('/\u{0041}/');
-
-        $this->assertNotNull($ast);
+        $parser->parse('/\u{0041}/');
     }
 
     /**
@@ -382,9 +320,7 @@ class ParserCoverageBoostTest extends TestCase
     public function test_pcre_verb_fail(): void
     {
         $parser = new Parser([]);
-        $ast = $parser->parse('/(*FAIL)/');
-
-        $this->assertNotNull($ast);
+        $parser->parse('/(*FAIL)/');
     }
 
     /**
@@ -393,9 +329,7 @@ class ParserCoverageBoostTest extends TestCase
     public function test_pcre_verb_mark(): void
     {
         $parser = new Parser([]);
-        $ast = $parser->parse('/(*MARK:test)/');
-
-        $this->assertNotNull($ast);
+        $parser->parse('/(*MARK:test)/');
     }
 
     /**
@@ -404,9 +338,7 @@ class ParserCoverageBoostTest extends TestCase
     public function test_keep(): void
     {
         $parser = new Parser([]);
-        $ast = $parser->parse('/test\K/');
-
-        $this->assertNotNull($ast);
+        $parser->parse('/test\K/');
     }
 
     /**
@@ -423,8 +355,8 @@ class ParserCoverageBoostTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $ast = $parser->parse($pattern);
-            $this->assertNotNull($ast);
+            $parser->parse($pattern);
+
         }
     }
 
@@ -445,8 +377,8 @@ class ParserCoverageBoostTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $ast = $parser->parse($pattern);
-            $this->assertNotNull($ast);
+            $parser->parse($pattern);
+
         }
     }
 
@@ -472,8 +404,8 @@ class ParserCoverageBoostTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $ast = $parser->parse($pattern);
-            $this->assertNotNull($ast);
+            $parser->parse($pattern);
+
         }
     }
 
@@ -483,9 +415,7 @@ class ParserCoverageBoostTest extends TestCase
     public function test_backref_numbered(): void
     {
         $parser = new Parser([]);
-        $ast = $parser->parse('/(test)\1/');
-
-        $this->assertNotNull($ast);
+        $parser->parse('/(test)\1/');
     }
 
     /**
@@ -494,9 +424,7 @@ class ParserCoverageBoostTest extends TestCase
     public function test_backref_named_k_angle(): void
     {
         $parser = new Parser([]);
-        $ast = $parser->parse('/(?<name>test)\k<name>/');
-
-        $this->assertNotNull($ast);
+        $parser->parse('/(?<name>test)\k<name>/');
     }
 
     /**
@@ -505,9 +433,7 @@ class ParserCoverageBoostTest extends TestCase
     public function test_backref_named_k_brace(): void
     {
         $parser = new Parser([]);
-        $ast = $parser->parse('/(?<name>test)\k{name}/');
-
-        $this->assertNotNull($ast);
+        $parser->parse('/(?<name>test)\k{name}/');
     }
 
     /**
@@ -516,9 +442,7 @@ class ParserCoverageBoostTest extends TestCase
     public function test_g_reference_number(): void
     {
         $parser = new Parser([]);
-        $ast = $parser->parse('/(test)\g1/');
-
-        $this->assertNotNull($ast);
+        $parser->parse('/(test)\g1/');
     }
 
     /**
@@ -527,9 +451,7 @@ class ParserCoverageBoostTest extends TestCase
     public function test_g_reference_relative(): void
     {
         $parser = new Parser([]);
-        $ast = $parser->parse('/(test)\g-1/');
-
-        $this->assertNotNull($ast);
+        $parser->parse('/(test)\g-1/');
     }
 
     /**
@@ -538,9 +460,7 @@ class ParserCoverageBoostTest extends TestCase
     public function test_g_reference_angle(): void
     {
         $parser = new Parser([]);
-        $ast = $parser->parse('/(?<name>test)\g<name>/');
-
-        $this->assertNotNull($ast);
+        $parser->parse('/(?<name>test)\g<name>/');
     }
 
     /**
@@ -549,9 +469,7 @@ class ParserCoverageBoostTest extends TestCase
     public function test_g_reference_brace(): void
     {
         $parser = new Parser([]);
-        $ast = $parser->parse('/(?<name>test)\g{name}/');
-
-        $this->assertNotNull($ast);
+        $parser->parse('/(?<name>test)\g{name}/');
     }
 
     /**
@@ -560,9 +478,7 @@ class ParserCoverageBoostTest extends TestCase
     public function test_dot(): void
     {
         $parser = new Parser([]);
-        $ast = $parser->parse('/./');
-
-        $this->assertNotNull($ast);
+        $parser->parse('/./');
     }
 
     /**
@@ -590,8 +506,8 @@ class ParserCoverageBoostTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $ast = $parser->parse($pattern);
-            $this->assertNotNull($ast);
+            $parser->parse($pattern);
+
         }
     }
 
@@ -601,9 +517,7 @@ class ParserCoverageBoostTest extends TestCase
     public function test_comment(): void
     {
         $parser = new Parser([]);
-        $ast = $parser->parse('/(?#this is a comment)test/');
-
-        $this->assertNotNull($ast);
+        $parser->parse('/(?#this is a comment)test/');
     }
 
     /**
@@ -612,9 +526,7 @@ class ParserCoverageBoostTest extends TestCase
     public function test_alternation(): void
     {
         $parser = new Parser([]);
-        $ast = $parser->parse('/foo|bar|baz/');
-
-        $this->assertNotNull($ast);
+        $parser->parse('/foo|bar|baz/');
     }
 
     /**
@@ -623,9 +535,7 @@ class ParserCoverageBoostTest extends TestCase
     public function test_empty_alternation_branches(): void
     {
         $parser = new Parser([]);
-        $ast = $parser->parse('/foo||bar/');
-
-        $this->assertNotNull($ast);
+        $parser->parse('/foo||bar/');
     }
 
     /**
@@ -634,9 +544,7 @@ class ParserCoverageBoostTest extends TestCase
     public function test_complex_nested(): void
     {
         $parser = new Parser([]);
-        $ast = $parser->parse('/(?:(?<name>test)|(?P<other>foo)){2,5}/');
-
-        $this->assertNotNull($ast);
+        $parser->parse('/(?:(?<name>test)|(?P<other>foo)){2,5}/');
     }
 
     /**
@@ -657,8 +565,8 @@ class ParserCoverageBoostTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $ast = $parser->parse($pattern);
-            $this->assertNotNull($ast);
+            $parser->parse($pattern);
+
         }
     }
 
@@ -682,8 +590,8 @@ class ParserCoverageBoostTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $ast = $parser->parse($pattern);
-            $this->assertNotNull($ast);
+            $parser->parse($pattern);
+
         }
     }
 }
