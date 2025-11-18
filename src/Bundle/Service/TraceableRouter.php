@@ -29,8 +29,7 @@ class TraceableRouter implements RequestMatcherInterface, RouterInterface
     public function __construct(
         private readonly RouterInterface $router,
         private readonly RegexCollector $collector,
-    ) {
-    }
+    ) {}
 
     public function setContext(RequestContext $context): void
     {

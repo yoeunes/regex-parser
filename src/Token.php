@@ -27,6 +27,5 @@ class Token
         public readonly TokenType $type,
         public readonly string $value,
         public readonly int $position,
-    ) {
-    }
+    ) {}
 }

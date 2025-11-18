@@ -13,6 +13,4 @@ declare(strict_types=1);
 
 namespace RegexParser\Exception;
 
-class LexerException extends \Exception
-{
-}
+class LexerException extends \Exception {}

@@ -23,6 +23,5 @@ class CollectedRegex
         public readonly string $source,
         public readonly ?string $subject,
         public readonly ?bool $matchResult,
-    ) {
-    }
+    ) {}
 }

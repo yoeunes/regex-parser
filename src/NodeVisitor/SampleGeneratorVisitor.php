@@ -60,9 +60,7 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
      * @param int $maxRepetition max times to repeat for * or + quantifiers
      *                           to prevent excessively long or infinite samples
      */
-    public function __construct(private readonly int $maxRepetition = 3)
-    {
-    }
+    public function __construct(private readonly int $maxRepetition = 3) {}
 
     /**
      * Seeds the Mersenne Twister random number generator.

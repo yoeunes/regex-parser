@@ -22,6 +22,5 @@ class ValidationResult
         public readonly bool $isValid,
         public readonly ?string $error = null,
         public readonly int $complexityScore = 0,
-    ) {
-    }
+    ) {}
 }

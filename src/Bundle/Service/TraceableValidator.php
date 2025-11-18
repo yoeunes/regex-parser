@@ -29,8 +29,7 @@ class TraceableValidator implements ValidatorInterface
     public function __construct(
         private readonly ValidatorInterface $validator,
         private readonly RegexCollector $collector,
-    ) {
-    }
+    ) {}
 
     public function getMetadataFor(mixed $value): \Symfony\Component\Validator\Mapping\MetadataInterface
     {

@@ -26,8 +26,7 @@ abstract class AbstractNode implements NodeInterface
     public function __construct(
         public readonly int $startPos,
         public readonly int $endPos,
-    ) {
-    }
+    ) {}
 
     public function getStartPosition(): int
     {
