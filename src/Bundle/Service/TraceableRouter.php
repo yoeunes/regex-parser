@@ -24,7 +24,7 @@ use Symfony\Component\Routing\RouterInterface;
 /**
  * Decorates the Symfony Router to trace regex usage.
  */
-class TraceableRouter implements RouterInterface, RequestMatcherInterface
+class TraceableRouter implements RequestMatcherInterface, RouterInterface
 {
     public function __construct(
         private readonly RouterInterface $router,

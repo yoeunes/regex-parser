@@ -33,6 +33,8 @@ return (new PhpCsFixer\Config())
         'header_comment'              => ['header' => $header],
         'declare_strict_types'        => true,
         'ordered_class_elements'      => true,
+        'ordered_interfaces'          => true,
+        'ordered_traits'              => true,
     ])
     ->setFinder($finder)
     ->setCacheFile('.cache/php-cs-fixer/cache.json');
