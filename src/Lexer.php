@@ -364,7 +364,15 @@ class Lexer
     private function extractTokenValue(TokenType $type, string $matchedValue, array $matches): string
     {
         return match ($type) {
-            TokenType::T_LITERAL_ESCAPED => substr($matchedValue, 1), // \. -> .
+            TokenType::T_LITERAL_ESCAPED => match (substr($matchedValue, 1)) {
+                't' => "\t",  // Tab
+                'n' => "\n",  // Newline
+                'r' => "\r",  // Carriage return
+                'f' => "\f",  // Form feed
+                'v' => "\v",  // Vertical tab
+                'e' => "\e",  // Escape
+                default => substr($matchedValue, 1), // Other escaped literals: \. -> .
+            },
             TokenType::T_PCRE_VERB => substr($matchedValue, 2, -1),
             TokenType::T_ASSERTION, TokenType::T_CHAR_TYPE, TokenType::T_KEEP => substr($matchedValue, 1),
             TokenType::T_BACKREF => ($matches['v_backref_num'] ?? null) !== null ? $matches['v_backref_num'] : $matchedValue,

@@ -15,8 +15,13 @@ namespace RegexParser\Tests\Parser;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\ParserException;
+use RegexParser\Node\AssertionNode;
+use RegexParser\Node\GroupNode;
+use RegexParser\Node\GroupType;
+use RegexParser\Node\LiteralNode;
 use RegexParser\Parser;
 use RegexParser\Tests\TestUtils\ParserAccessor;
+use RegexParser\TokenType;
 
 /**
  * Tests the private utility methods of the Parser class.
@@ -116,5 +121,137 @@ class ParserUtilityTest extends TestCase
 
         $result = $this->accessor->callPrivateMethod('checkLiteral', ['a']);
         $this->assertFalse($result);
+    }
+
+    public function test_throws_on_quantifier_without_target(): void
+    {
+        // Le parser appelle parseQuantifiedAtom. Si le premier atom est absent,
+        // et le token suivant est T_QUANTIFIER, il lève l'erreur.
+        // Simuler: Token T_QUANTIFIER au début.
+        $tokens = [
+            $this->accessor->createToken(TokenType::T_QUANTIFIER, '*', 0),
+        ];
+        $this->accessor->setTokens($tokens);
+        $this->accessor->setPosition(0);
+
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('Quantifier without target at position 0');
+
+        $this->accessor->callPrivateMethod('parseQuantifiedAtom');
+    }
+
+    public function test_parse_atom_throws_on_unexpected_token(): void
+    {
+        // Simuler un jeton de fermeture de groupe inattendu dans un contexte atomique
+        $tokens = [
+            $this->accessor->createToken(TokenType::T_GROUP_CLOSE, ')', 0),
+            $this->accessor->createToken(TokenType::T_EOF, '', 1),
+        ];
+        $this->accessor->setTokens($tokens);
+        $this->accessor->setPosition(0);
+
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('Unexpected token ")" (group_close) at position 0.');
+
+        $this->accessor->callPrivateMethod('parseAtom');
+    }
+
+    public function test_parse_group_modifier_inline_flags_no_colon_valid(): void
+    {
+        // Regex: /?(im)/. Le parser consomme '('. Puis il consomme '?' (dans parseGroupModifier).
+        // Il doit consommer les flags 'i', 'm', puis ')'
+        $tokens = [
+            $this->accessor->createToken(TokenType::T_LITERAL, 'i', 2),
+            $this->accessor->createToken(TokenType::T_LITERAL, 'm', 3),
+            $this->accessor->createToken(TokenType::T_GROUP_CLOSE, ')', 4),
+        ];
+        $this->accessor->setTokens($tokens);
+        $this->accessor->setPosition(0); // Position 0 -> Token 'i'
+
+        // Le jeton '(?-' est géré par la logique du parser en amont.
+        // Ici, on teste l'extraction des flags 'im' sans ':'.
+        $node = $this->accessor->callPrivateMethod('parseGroupModifier');
+
+        $this->assertInstanceOf(GroupNode::class, $node);
+        $this->assertSame(GroupType::T_GROUP_INLINE_FLAGS, $node->type);
+        $this->assertSame('im', $node->flags);
+        $this->assertSame('', $node->child->value, 'Child should be an empty node.');
+    }
+
+    public function test_parse_group_modifier_throws_on_invalid_python_syntax(): void
+    {
+        // Simuler (?P[invalid]) - parseGroupModifier est appelé après avoir consommé (?
+        // Position 0 = '/', 1 = '(', 2 = '?', 3 = 'P', 4 = '['
+        $tokens = [
+            $this->accessor->createToken(TokenType::T_LITERAL, 'P', 2), // P à la position 2
+            $this->accessor->createToken(TokenType::T_LITERAL, '[', 3), // [ à la position 3
+            $this->accessor->createToken(TokenType::T_GROUP_CLOSE, ')', 4),
+            $this->accessor->createToken(TokenType::T_EOF, '', 5),
+        ];
+        $this->accessor->setTokens($tokens);
+        $this->accessor->setPosition(0); // Start at 'P'
+
+        $this->expectException(ParserException::class);
+        // Le message d'erreur est "Invalid syntax after (?P at position 2" (position de P)
+        $this->expectExceptionMessage('Invalid syntax after (?P at position 2');
+
+        $this->accessor->callPrivateMethod('parseGroupModifier');
+    }
+
+    public function test_parse_conditional_lookaround(): void
+    {
+        // Simuler (?(?=a))
+        // The condition is a lookaround: (?=a)
+        // Tokens: (?, =, a, ), )
+        $tokens = [
+            $this->accessor->createToken(TokenType::T_GROUP_MODIFIER_OPEN, '(?', 2), // (?
+            $this->accessor->createToken(TokenType::T_LITERAL, '=', 4), // =
+            $this->accessor->createToken(TokenType::T_LITERAL, 'a', 5), // a
+            $this->accessor->createToken(TokenType::T_GROUP_CLOSE, ')', 6), // Fermeture Lookahead
+            $this->accessor->createToken(TokenType::T_GROUP_CLOSE, ')', 7), // Fermeture Conditionnelle
+            $this->accessor->createToken(TokenType::T_EOF, '', 8),
+        ];
+        $this->accessor->setTokens($tokens);
+        $this->accessor->setPosition(0); // Start at position 0, on '(?'
+
+        // parseConditionalCondition will parse the lookaround condition itself via parseAtom
+        $condition = $this->accessor->callPrivateMethod('parseConditionalCondition');
+
+        $this->assertInstanceOf(GroupNode::class, $condition);
+        $this->assertSame(GroupType::T_GROUP_LOOKAHEAD_POSITIVE, $condition->type);
+    }
+
+    public function test_parse_conditional_assertion(): void
+    {
+        // Simuler (?(DEFINE)...)
+        $tokens = [
+            $this->accessor->createToken(TokenType::T_ASSERTION, 'DEFINE', 2),
+            $this->accessor->createToken(TokenType::T_GROUP_CLOSE, ')', 8),
+            $this->accessor->createToken(TokenType::T_GROUP_CLOSE, ')', 9), // Fermeture externe
+        ];
+        $this->accessor->setTokens($tokens);
+        $this->accessor->setPosition(0);
+
+        // Simuler l'état où le parser a consommé '(?('
+        $condition = $this->accessor->callPrivateMethod('parseConditionalCondition');
+
+        $this->assertInstanceOf(AssertionNode::class, $condition);
+        $this->assertSame('DEFINE', $condition->value);
+    }
+
+    public function test_parse_conditional_invalid_atom_throws(): void
+    {
+        // Simuler (?(.)...) où T_DOT n'est pas une condition valide (devrait être Backref ou Group)
+        $tokens = [
+            $this->accessor->createToken(TokenType::T_DOT, '.', 2), // Jeton T_DOT
+            $this->accessor->createToken(TokenType::T_GROUP_CLOSE, ')', 3),
+        ];
+        $this->accessor->setTokens($tokens);
+        $this->accessor->setPosition(0);
+
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('Invalid conditional construct at position 2. Condition must be a group reference, lookaround, or (DEFINE).');
+
+        $this->accessor->callPrivateMethod('parseConditionalCondition');
     }
 }
