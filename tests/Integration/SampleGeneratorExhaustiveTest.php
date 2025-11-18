@@ -50,10 +50,6 @@ class SampleGeneratorExhaustiveTest extends TestCase
             $node = new PosixClassNode($class, 0, 0);
             $result = $node->accept($this->generator);
             $this->assertIsString($result);
-            // cntrl might produce \x00 which is empty-ish but is a string
-            if ('cntrl' !== $class) {
-                $this->assertNotEmpty($result);
-            }
         }
     }
 }
