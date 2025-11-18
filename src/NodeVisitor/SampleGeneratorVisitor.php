@@ -105,7 +105,7 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
         }
 
         // Pick one of the alternatives at random
-        $randomKey = random_int(0, \count($node->alternatives) - 1);
+        $randomKey = mt_rand(0, \count($node->alternatives) - 1);
         $chosenAlt = $node->alternatives[$randomKey];
 
         return $chosenAlt->accept($this);
@@ -144,7 +144,7 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
         try {
             // $min and $max are guaranteed to be in the correct order
             // by parseQuantifierRange()
-            $repeats = ($min === $max) ? $min : random_int($min, $max);
+            $repeats = ($min === $max) ? $min : mt_rand($min, $max);
         } catch (\Throwable) {
             $repeats = $min; // Fallback
         }
@@ -208,7 +208,7 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
         }
 
         // Pick one of the parts at random
-        $randomKey = random_int(0, \count($node->parts) - 1);
+        $randomKey = mt_rand(0, \count($node->parts) - 1);
 
         return $node->parts[$randomKey]->accept($this);
     }
@@ -225,7 +225,7 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
             $ord1 = \ord($node->start->value);
             $ord2 = \ord($node->end->value);
 
-            return \chr(random_int($ord1, $ord2));
+            return \chr(mt_rand($ord1, $ord2));
         } catch (\Throwable) {
             // Fallback if ord() fails
             return $node->start->value;
@@ -331,7 +331,7 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
         // This is complex. Does the condition (e.g., group 1) exist?
         // We'll randomly choose to satisfy the condition or not.
         try {
-            $choice = random_int(0, 1);
+            $choice = mt_rand(0, 1);
         } catch (\Throwable) {
             $choice = 0; // Fallback
         }
@@ -394,7 +394,7 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
         if (empty($chars)) {
             return '?'; // Safe fallback
         }
-        $key = random_int(0, \count($chars) - 1);
+        $key = mt_rand(0, \count($chars) - 1);
 
         return $chars[$key];
     }
@@ -403,7 +403,7 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
     {
         try {
             return match ($type) {
-                'd' => (string) random_int(0, 9),
+                'd' => (string) mt_rand(0, 9),
                 'D' => $this->getRandomChar(['a', ' ', '!']), // Not a digit
                 's' => $this->getRandomChar([' ', "\t", "\n"]),
                 'S' => $this->getRandomChar(['a', '1', '!']), // Not whitespace
