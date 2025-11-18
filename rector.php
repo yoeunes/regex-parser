@@ -16,6 +16,7 @@ use Rector\Php73\Rector\FuncCall\RegexDashEscapeRector;
 use Rector\PHPUnit\Set\PHPUnitSetList;
 use Rector\Privatization\Rector\Class_\FinalizeTestCaseClassRector;
 use Rector\Set\ValueObject\LevelSetList;
+use Rector\Set\ValueObject\SetList;
 use Rector\ValueObject\PhpVersion;
 
 return static function (RectorConfig $rectorConfig): void {
@@ -45,6 +46,7 @@ return static function (RectorConfig $rectorConfig): void {
 
     $rectorConfig->sets([
         LevelSetList::UP_TO_PHP_84,
+        SetList::PHP_84,
 
         PHPUnitSetList::PHPUNIT_120,
         PHPUnitSetList::ANNOTATIONS_TO_ATTRIBUTES,
