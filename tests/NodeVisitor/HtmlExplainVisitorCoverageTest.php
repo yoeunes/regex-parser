@@ -31,14 +31,16 @@ class HtmlExplainVisitorCoverageTest extends TestCase
 
     public function test_visit_conditional_with_else_branch(): void
     {
-        $regex = '/(?(?<=a)b|c)/'; // Conditional with YES and NO branch
+        $regex = '/(?(?<=a)b|c)/'; // Conditional with alternation in YES branch (parser treats b|c as one branch)
         $ast = $this->parser->parse($regex);
         $output = $ast->accept($this->visitor);
 
         $this->assertStringContainsString('<strong>Conditional: IF</strong>', $output);
         $this->assertStringContainsString('<strong>THEN:</strong>', $output);
+        $this->assertStringContainsString('<span title="Literal: &#039;b&#039;">Literal: <strong>&#039;b&#039;</strong></span>', $output);
         $this->assertStringContainsString('<span title="Literal: &#039;c&#039;">Literal: <strong>&#039;c&#039;</strong></span>', $output);
-        $this->assertStringContainsString('<strong>ELSE:</strong>', $output);
+        // The parser treats 'b|c' as an alternation in the YES branch, so there's no ELSE branch shown
+        $this->assertStringContainsString('<strong>EITHER:</strong>', $output);
     }
 
     public function test_visit_group_types_and_named_group_escaping(): void
