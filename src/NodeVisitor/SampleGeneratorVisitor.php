@@ -388,7 +388,9 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
                 ) :
                     [(int) $m[1], (int) $m[1]] // {n}
                 ) :
+                // @codeCoverageIgnoreStart
                 [0, 0], // Fallback
+                // @codeCoverageIgnoreEnd
         };
 
         // Ensure min <= max, as Validator may not have run.
@@ -430,8 +432,10 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
                 'R' => $this->getRandomChar(["\r\n", "\r", "\n"]),
                 default => '?',
             };
+        // @codeCoverageIgnoreStart
         } catch (\Throwable) {
             return '?'; // Fallback for mt_rand failure
         }
+        // @codeCoverageIgnoreEnd
     }
 }

@@ -162,17 +162,21 @@ class Parser
                     $pattern = substr($regex, 1, $i - 1);
                     $flags = substr($regex, $i + 1);
 
+                    // @codeCoverageIgnoreStart
                     // @phpstan-ignore-next-line - PHPStan believes $pattern and $flags can never be false here due to surrounding logic.
                     if (false === $pattern || false === $flags) {
                         throw new ParserException('Internal parser error: failed to slice pattern/flags.');
                     }
+                    // @codeCoverageIgnoreEnd
 
                     // $pattern and $flags are now guaranteed 'string'
                     $unknownFlags = preg_replace('/[imsxADSUXJu]/', '', $flags);
+                   // @codeCoverageIgnoreStart
                     if (null === $unknownFlags) {
                         // This can happen on PCRE error
                         throw new ParserException('Internal parser error: preg_replace failed while checking flags.');
                     }
+                    // @codeCoverageIgnoreEnd
 
                     if ('' !== $unknownFlags) {
                         throw new ParserException(\sprintf('Unknown regex flag(s) found: "%s"', $unknownFlags[0]));
@@ -465,11 +469,13 @@ class Parser
             throw new ParserException('Quantifier without target at position '.$this->current()->position);
         }
 
+        // @codeCoverageIgnoreStart
         $at = $this->isAtEnd() ? 'end of input' : 'position '.$this->current()->position;
         $val = $this->current()->value;
         $type = $this->current()->type->value;
 
         throw new ParserException(\sprintf('Unexpected token "%s" (%s) at %s.', $val, $type, $at));
+        // @codeCoverageIgnoreEnd
     }
 
     /**

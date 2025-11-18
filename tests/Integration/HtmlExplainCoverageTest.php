@@ -237,4 +237,13 @@ class HtmlExplainCoverageTest extends TestCase
         $result = $ast->accept($this->visitor);
         $this->assertNotEmpty($result);
     }
+
+    public function test_html_explain_non_printable(): void
+    {
+        // Caractère ASCII 1 (Start of Heading), non imprimable et non mappé spécifiquement
+        $ast = $this->parser->parse("/\x01/");
+        $result = $ast->accept($this->visitor);
+
+        $this->assertStringContainsString('non-printable char', $result);
+    }
 }
