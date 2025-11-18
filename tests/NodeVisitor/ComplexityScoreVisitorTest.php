@@ -148,4 +148,48 @@ class ComplexityScoreVisitorTest extends TestCase
 
         return $ast->accept($this->visitor);
     }
+
+    public function test_nested_quantifiers_exponential_score(): void
+    {
+        // Hits the logic: if ($this->quantifierDepth > 0) { $score *= ... }
+        // (a+)+
+        $regex = '/(a+)+/';
+        $ast = $this->parser->parse($regex);
+        $score = $ast->accept($this->visitor);
+
+        // Base(1) + Quantifier(10) + Group(1) + Quantifier(10 * 2) = ~32
+        $this->assertGreaterThan(30, $score);
+    }
+
+    public function test_complex_constructs_scores(): void
+    {
+        // Conditionals
+        $this->assertGreaterThan(10, $this->getScore('/(?(1)a|b)/'));
+
+        // Subroutines
+        $this->assertGreaterThan(10, $this->getScore('/(?R)/'));
+
+        // PCRE Verbs
+        $this->assertGreaterThan(1, $this->getScore('/(*FAIL)/'));
+
+        // Backreferences
+        $this->assertGreaterThan(5, $this->getScore('/\1/'));
+    }
+
+    public function test_lookarounds_score(): void
+    {
+        // Hits logic in visitGroup checking for LOOKAHEAD/LOOKBEHIND types
+        $scoreNormal = $this->getScore('/(a)/');
+        $scoreLookahead = $this->getScore('/(?=a)/');
+
+        $this->assertGreaterThan($scoreNormal, $scoreLookahead);
+    }
+
+    public function test_char_class_score(): void
+    {
+        // Score is sum of parts
+        $score = $this->getScore('/[abc]/');
+        // Base(1) + Literal(1)*3 = 4
+        $this->assertEquals(4, $score);
+    }
 }
