@@ -152,7 +152,7 @@ class CoverageImprovementTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            \THIS->parser->parse($pattern);
+            $this->parser->parse($pattern);
         }
     }
 
