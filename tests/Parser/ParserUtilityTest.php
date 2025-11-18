@@ -36,7 +36,7 @@ class ParserUtilityTest extends TestCase
         // Regex: /abc\/def/i
         // Le slash au milieu est échappé et ne doit pas être considéré comme le délimiteur de fin.
         $result = $this->accessor->callPrivateMethod('extractPatternAndFlags', ['/abc\/def/i']);
-        assert(is_array($result));
+        \assert(\is_array($result));
         [$pattern, $flags, $delimiter] = $result;
 
         $this->assertSame('/', $delimiter);
@@ -48,7 +48,7 @@ class ParserUtilityTest extends TestCase
     {
         // Regex: (abc)i
         $result = $this->accessor->callPrivateMethod('extractPatternAndFlags', ['(abc)i']);
-        assert(is_array($result));
+        \assert(\is_array($result));
         [$pattern, $flags, $delimiter] = $result;
 
         $this->assertSame('(', $delimiter);

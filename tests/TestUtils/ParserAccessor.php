@@ -86,7 +86,8 @@ class ParserAccessor
     {
         $property = $this->reflection->getProperty('position');
         $value = $property->getValue($this->parser);
-        assert(is_int($value));
+        \assert(\is_int($value));
+
         return $value;
     }
 
@@ -112,7 +113,8 @@ class ParserAccessor
     public function current(): Token
     {
         $result = $this->callPrivateMethod('current');
-        assert($result instanceof Token);
+        \assert($result instanceof Token);
+
         return $result;
     }
 }

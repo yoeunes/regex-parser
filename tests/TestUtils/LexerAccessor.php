@@ -60,7 +60,8 @@ class LexerAccessor
     {
         $property = $this->reflection->getProperty('position');
         $value = $property->getValue($this->lexer);
-        assert(is_int($value));
+        \assert(\is_int($value));
+
         return $value;
     }
 
