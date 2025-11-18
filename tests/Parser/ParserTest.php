@@ -385,11 +385,6 @@ class ParserTest extends TestCase
         $this->assertSame('name', $conditional->condition->ref);
     }
 
-    private function createParser(): Parser
-    {
-        return new Parser();
-    }
-
     public function test_python_named_group_syntax(): void
     {
         // (?P<name>...)
@@ -440,5 +435,10 @@ class ParserTest extends TestCase
     {
         // (?(DEFINE)...)
         $ast = $this->parser->parse('/(?(DEFINE)(?<A>a))(?&A)/');
+    }
+
+    private function createParser(): Parser
+    {
+        return new Parser();
     }
 }

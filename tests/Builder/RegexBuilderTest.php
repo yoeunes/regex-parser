@@ -215,7 +215,7 @@ class RegexBuilderTest extends TestCase
     {
         $builder = new RegexBuilder();
         $regex = $builder
-            ->charClass(function ($c) {
+            ->charClass(function ($c): void {
                 $c->digit()
                   ->notDigit()
                   ->whitespace()

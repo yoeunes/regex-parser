@@ -21,6 +21,7 @@ use RegexParser\Parser;
 class SampleGeneratorVisitorTest extends TestCase
 {
     private Parser $parser;
+
     private SampleGeneratorVisitor $generator;
 
     protected function setUp(): void
@@ -167,25 +168,6 @@ class SampleGeneratorVisitorTest extends TestCase
         $this->generateSample('/[]/');
     }
 
-    private function assertSampleMatches(string $regex): void
-    {
-        $ast = $this->parser->parse($regex);
-        $generator = new SampleGeneratorVisitor();
-
-        for ($i = 0; $i < 5; $i++) {
-            $sample = $ast->accept($generator);
-            $this->assertMatchesRegularExpression($regex, $sample);
-        }
-    }
-
-    private function generateSample(string $regex): string
-    {
-        $ast = $this->parser->parse($regex);
-        $generator = new SampleGeneratorVisitor();
-
-        return $ast->accept($generator);
-    }
-
     /**
      * @return \Iterator<array{string}>
      */
@@ -217,7 +199,7 @@ class SampleGeneratorVisitorTest extends TestCase
         $regex = '/\h\H\v\V/';
         $sample = $this->parser->parse($regex)->accept($this->generator);
         // Basic sanity check length
-        $this->assertSame(4, strlen($sample));
+        $this->assertSame(4, \strlen($sample));
     }
 
     public function test_reset_seed(): void
@@ -235,5 +217,24 @@ class SampleGeneratorVisitorTest extends TestCase
 
         $this->assertIsString($val1);
         $this->assertIsString($val2);
+    }
+
+    private function assertSampleMatches(string $regex): void
+    {
+        $ast = $this->parser->parse($regex);
+        $generator = new SampleGeneratorVisitor();
+
+        for ($i = 0; $i < 5; $i++) {
+            $sample = $ast->accept($generator);
+            $this->assertMatchesRegularExpression($regex, $sample);
+        }
+    }
+
+    private function generateSample(string $regex): string
+    {
+        $ast = $this->parser->parse($regex);
+        $generator = new SampleGeneratorVisitor();
+
+        return $ast->accept($generator);
     }
 }
