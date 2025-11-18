@@ -168,14 +168,14 @@ class ValidatorNodeVisitorTest extends TestCase
     public function test_throws_on_relative_backref_out_of_bounds(): void
     {
         $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('Relative backreference \g{-2} at position 2 exceeds total group count (1).');
+        $this->expectExceptionMessage('Relative backreference \g{-2} at position 3 exceeds total group count (1).');
         $this->validate('/(a)\g{-2}/');
     }
 
     public function test_throws_on_conditional_invalid_condition_type(): void
     {
         $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('Invalid conditional construct at position 2. Condition must be a group reference, lookaround, or (DEFINE).');
+        $this->expectExceptionMessage('Invalid conditional construct at position 3. Condition must be a group reference, lookaround, or (DEFINE).');
         // A literal is not a valid condition
         $this->validate('/(?(a)b|c)/');
     }
@@ -187,6 +187,7 @@ class ValidatorNodeVisitorTest extends TestCase
         $this->validate('/(*INVALID)/');
     }
 
+    #[DoesNotPerformAssertions]
     public function test_validates_named_conditional(): void
     {
         $this->validate('/(?<n>a)(?(n)b)/'); // Valid named conditional

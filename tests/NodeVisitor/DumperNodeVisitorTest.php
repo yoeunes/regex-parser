@@ -42,7 +42,7 @@ class DumperNodeVisitorTest extends TestCase
 Regex(delimiter: /, flags: )
   Sequence:
     Literal('a')
-    Group(type: capturing name: flags: )
+    Group(type: capturing flags: )
       Alternation:
         Literal('b')
         Literal('c')
