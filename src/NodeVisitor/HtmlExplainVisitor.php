@@ -275,11 +275,13 @@ class HtmlExplainVisitor implements NodeVisitorInterface
         $type = str_starts_with($node->prop, '^') ? 'non-matching' : 'matching';
         $prop = ltrim($node->prop, '^');
         $explanation = \sprintf('any character %s "%s"', $type, $prop);
+        $prefix = str_starts_with($node->prop, '^') ? 'P' : 'p';
 
         return \sprintf(
-            '<li><span title="%s">Unicode Property: <strong>\p{%s}</strong></span></li>',
+            '<li><span title="%s">Unicode Property: <strong>\%s{%s}</strong></span></li>',
             $this->e($explanation),
-            $this->e($node->prop),
+            $prefix,
+            $this->e($prop),
         );
     }
 

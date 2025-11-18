@@ -25,7 +25,7 @@ class HtmlExplainVisitorCoverageTest extends TestCase
 
         $this->assertStringContainsString('<strong>Conditional: IF</strong>', $output);
         $this->assertStringContainsString('<strong>THEN:</strong>', $output);
-        $this->assertStringContainsString('<li>Literal: <strong>&#039;c&#039;</strong>', $output);
+        $this->assertStringContainsString('<span title="Literal: &#039;c&#039;">Literal: <strong>&#039;c&#039;</strong></span>', $output);
         $this->assertStringContainsString('<strong>ELSE:</strong>', $output);
     }
 
@@ -65,10 +65,10 @@ class HtmlExplainVisitorCoverageTest extends TestCase
         $ast = $this->parser->parse($regex);
         $output = $ast->accept($this->visitor);
 
-        $this->assertStringContainsString("Literal: <strong>'\\t' (tab)</strong>", $output);
-        $this->assertStringContainsString("Literal: <strong>'\\r' (carriage return)</strong>", $output);
-        $this->assertStringContainsString("Literal: <strong>'\\n' (newline)</strong>", $output);
-        $this->assertStringContainsString("Literal: <strong>' ' (space)</strong>", $output);
+        $this->assertStringContainsString("Literal: <strong>&#039;\\t&#039; (tab)</strong>", $output);
+        $this->assertStringContainsString("Literal: <strong>&#039;\\r&#039; (carriage return)</strong>", $output);
+        $this->assertStringContainsString("Literal: <strong>&#039;\\n&#039; (newline)</strong>", $output);
+        $this->assertStringContainsString("Literal: <strong>&#039; &#039; (space)</strong>", $output);
     }
 
     public function test_visit_complex_quantified_group(): void
@@ -91,7 +91,7 @@ class HtmlExplainVisitorCoverageTest extends TestCase
         $output = $ast->accept($this->visitor);
 
         // This ensures the logic that injects the quantifier into the child's <li> is hit
-        $this->assertStringContainsString('<li>(exactly 2 times) Literal: <strong>&#039;a&#039;</strong>', $output);
+        $this->assertStringContainsString('<li>(exactly 2 times) <span title="Literal: &#039;a&#039;">Literal: <strong>&#039;a&#039;</strong></span>', $output);
     }
 }
 
