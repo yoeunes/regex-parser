@@ -21,11 +21,6 @@ use RegexParser\Parser;
 
 class ComplexityScoreVisitorTest extends TestCase
 {
-    private const int BASE_SCORE = 1;
-    private const int COMPLEX_SCORE = 5;
-    private const int UNBOUNDED_SCORE = 10;
-    private const int RECURSIVE_SCORE = 10; // COMPLEX_SCORE * 2
-
     public function test_simple_regex_score(): void
     {
         // abc = 1 (seq) + 1 + 1 + 1 = 4 (or close, depends on your exact base logic)

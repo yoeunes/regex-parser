@@ -18,6 +18,7 @@ use RegexParser\Exception\ParserException;
 use RegexParser\Node\AssertionNode;
 use RegexParser\Node\GroupNode;
 use RegexParser\Node\GroupType;
+use RegexParser\Node\LiteralNode;
 use RegexParser\Parser;
 use RegexParser\Tests\TestUtils\ParserAccessor;
 use RegexParser\TokenType;
@@ -174,6 +175,7 @@ class ParserUtilityTest extends TestCase
         $this->assertInstanceOf(GroupNode::class, $node);
         $this->assertSame(GroupType::T_GROUP_INLINE_FLAGS, $node->type);
         $this->assertSame('im', $node->flags);
+        $this->assertInstanceOf(LiteralNode::class, $node->child);
         $this->assertSame('', $node->child->value, 'Child should be an empty node.');
     }
 
