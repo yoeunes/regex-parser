@@ -197,7 +197,7 @@ class VisitorMethodCoverageTest extends TestCase
                     $this->assertNull($result);
                 } else {
                     // Les autres doivent retourner quelque chose (string, int, Node)
-                    $this->assertNotNull($result, sprintf('Visitor %s returned null for node %s', $visitor::class, $node::class));
+                    $this->assertNotNull($result, \sprintf('Visitor %s returned null for node %s', $visitor::class, $node::class));
                 }
             }
         }

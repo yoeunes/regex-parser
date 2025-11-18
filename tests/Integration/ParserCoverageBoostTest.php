@@ -657,7 +657,7 @@ class ParserCoverageBoostTest extends TestCase
         $this->parser->parse('/(??)/'); // Syntaxe invalide (??)
     }
 
-    public function test_invalid_syntax_after_P(): void
+    public function test_invalid_syntax_after_p(): void
     {
         // Couvre "Invalid syntax after (?P"
         $this->expectException(ParserException::class);

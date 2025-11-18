@@ -206,7 +206,7 @@ class LexerCompleteCoverageTest extends TestCase
             $this->assertSame(
                 $expectedValue,
                 $tokens[0]->value,
-                "Failed for pattern: {$pattern}"
+                "Failed for pattern: {$pattern}",
             );
         }
     }
@@ -277,9 +277,9 @@ class LexerCompleteCoverageTest extends TestCase
 
             // \v can be either T_CHAR_TYPE or T_LITERAL_ESCAPED depending on context
             $this->assertTrue(
-                $tokens[0]->type === TokenType::T_CHAR_TYPE || 
-                $tokens[0]->type === TokenType::T_LITERAL_ESCAPED,
-                "Failed type check for: {$pattern}"
+                TokenType::T_CHAR_TYPE === $tokens[0]->type
+                || TokenType::T_LITERAL_ESCAPED === $tokens[0]->type,
+                "Failed type check for: {$pattern}",
             );
             $this->assertSame($expectedValue, $tokens[0]->value, "Failed for: {$pattern}");
         }
@@ -363,17 +363,9 @@ class LexerCompleteCoverageTest extends TestCase
         foreach ($patterns as $pattern => $expectedValue) {
             $lexer = new Lexer($pattern);
             $tokens = $lexer->tokenize();
+            $posixToken = array_find($tokens, fn ($token) => TokenType::T_POSIX_CLASS === $token->type);
 
-            // Find the POSIX_CLASS token
-            $posixToken = null;
-            foreach ($tokens as $token) {
-                if ($token->type === TokenType::T_POSIX_CLASS) {
-                    $posixToken = $token;
-                    break;
-                }
-            }
-
-            $this->assertNotNull($posixToken, "No POSIX class token found for: {$pattern}");
+            $this->assertInstanceOf(\RegexParser\Token::class, $posixToken, "No POSIX class token found for: {$pattern}");
             $this->assertSame($expectedValue, $posixToken->value, "Failed for: {$pattern}");
         }
     }
@@ -388,8 +380,8 @@ class LexerCompleteCoverageTest extends TestCase
         $tokens = $lexer->tokenize();
 
         // Should have: a, *+?, b, [], c, EOF
-        $values = array_map(fn($t) => $t->value, array_filter($tokens, fn($t) => $t->type !== TokenType::T_EOF));
-        
+        $values = array_map(fn ($t) => $t->value, array_filter($tokens, fn ($t) => TokenType::T_EOF !== $t->type));
+
         $this->assertContains('a', $values);
         $this->assertContains('*+?', $values);
         $this->assertContains('b', $values);
@@ -413,9 +405,9 @@ class LexerCompleteCoverageTest extends TestCase
         $tokens = $lexer->tokenize();
 
         // Last token before EOF should be the quoted literal
-        $nonEofTokens = array_filter($tokens, fn($t) => $t->type !== TokenType::T_EOF);
+        $nonEofTokens = array_filter($tokens, fn ($t) => TokenType::T_EOF !== $t->type);
         $lastToken = end($nonEofTokens);
-        
+
         $this->assertSame('*+?', $lastToken->value);
         $this->assertSame(TokenType::T_LITERAL, $lastToken->type);
     }
@@ -524,9 +516,9 @@ class LexerCompleteCoverageTest extends TestCase
         // Should have: [, \t, \n, \r, \f, \e, ], EOF
         $this->assertSame('[', $tokens[0]->value);
         $this->assertSame(TokenType::T_CHAR_CLASS_OPEN, $tokens[0]->type);
-        
+
         // Check escape sequences are present
-        $values = array_map(fn($t) => $t->value, $tokens);
+        $values = array_map(fn ($t) => $t->value, $tokens);
         $this->assertContains("\t", $values);
         $this->assertContains("\n", $values);
         $this->assertContains("\r", $values);
@@ -580,7 +572,7 @@ class LexerCompleteCoverageTest extends TestCase
             $this->assertSame(
                 $expectedValue,
                 $tokens[0]->value,
-                "Failed for pattern: {$pattern}"
+                "Failed for pattern: {$pattern}",
             );
         }
     }
@@ -656,10 +648,10 @@ class LexerCompleteCoverageTest extends TestCase
         $tokens = $lexer->tokenize();
 
         // Just verify it tokenizes without error and produces tokens
-        $this->assertGreaterThan(5, count($tokens));
-        
+        $this->assertGreaterThan(5, \count($tokens));
+
         // Verify we have various token types
-        $types = array_map(fn($t) => $t->type, $tokens);
+        $types = array_map(fn ($t) => $t->type, $tokens);
         $this->assertContains(TokenType::T_GROUP_MODIFIER_OPEN, $types);
     }
 
@@ -687,8 +679,8 @@ class LexerCompleteCoverageTest extends TestCase
         $tokens = $lexer->tokenize();
 
         // Should have: a, b, c, EOF (no tokens from empty \Q\E)
-        $values = array_map(fn($t) => $t->value, array_filter($tokens, fn($t) => $t->type !== TokenType::T_EOF));
-        
+        $values = array_map(fn ($t) => $t->value, array_filter($tokens, fn ($t) => TokenType::T_EOF !== $t->type));
+
         $this->assertContains('a', $values);
         $this->assertContains('b', $values);
         $this->assertContains('c', $values);
