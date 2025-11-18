@@ -648,6 +648,18 @@ class Parser
                     $expr = $this->parseAlternation();
                     $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected ) to close lookahead condition');
                     $condition = new GroupNode($expr, GroupType::T_GROUP_LOOKAHEAD_NEGATIVE, null, null, $conditionStartPos, $endToken->position);
+                } elseif ($this->matchLiteral('<')) {
+                    if ($this->matchLiteral('=')) { // (?<=...)
+                        $expr = $this->parseAlternation();
+                        $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected ) to close lookbehind condition');
+                        $condition = new GroupNode($expr, GroupType::T_GROUP_LOOKBEHIND_POSITIVE, null, null, $conditionStartPos, $endToken->position);
+                    } elseif ($this->matchLiteral('!')) { // (?<!...)
+                        $expr = $this->parseAlternation();
+                        $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected ) to close lookbehind condition');
+                        $condition = new GroupNode($expr, GroupType::T_GROUP_LOOKBEHIND_NEGATIVE, null, null, $conditionStartPos, $endToken->position);
+                    } else {
+                        throw new ParserException('Invalid conditional condition at position '.$conditionStartPos);
+                    }
                 } else {
                     throw new ParserException('Invalid conditional condition at position '.$conditionStartPos);
                 }
