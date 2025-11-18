@@ -254,4 +254,26 @@ class RegexBuilderTest extends TestCase
         $builder = new RegexBuilder();
         $builder->withDelimiter('XX');
     }
+
+    public function test_invalid_delimiter_throws_too_long(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $builder = new RegexBuilder();
+        $builder->withDelimiter('##'); // Too long
+    }
+
+    public function test_raw_method(): void
+    {
+        $builder = new RegexBuilder();
+        $regex = $builder->raw('[a-z]')->compile();
+        // Raw should simply append, not escape
+        $this->assertSame('/[a-z]/', $regex);
+    }
+
+    public function test_quantify_empty_throws(): void
+    {
+        $this->expectException(\LogicException::class);
+        $builder = new RegexBuilder();
+        $builder->zeroOrMore(); // Nothing to quantify
+    }
 }
