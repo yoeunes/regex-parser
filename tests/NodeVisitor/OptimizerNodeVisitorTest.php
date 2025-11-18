@@ -17,6 +17,7 @@ use RegexParser\Node\CharClassNode;
 use RegexParser\Node\CharTypeNode;
 use RegexParser\Node\LiteralNode;
 use RegexParser\Node\QuantifierNode;
+use RegexParser\Node\RegexNode;
 use RegexParser\NodeVisitor\OptimizerNodeVisitor;
 use RegexParser\Parser;
 
@@ -29,7 +30,8 @@ class OptimizerNodeVisitorTest extends TestCase
         $optimizer = new OptimizerNodeVisitor();
         
         $newAst = $ast->accept($optimizer);
-        
+
+        $this->assertInstanceOf(RegexNode::class, $newAst);
         $this->assertInstanceOf(LiteralNode::class, $newAst->pattern);
         $this->assertSame('abc', $newAst->pattern->value);
     }
@@ -58,6 +60,7 @@ class OptimizerNodeVisitorTest extends TestCase
 
         // L'optimiseur doit avoir "remonté" beta et gamma au niveau racine -> 4 alternatives
         $this->assertCount(4, $newAst->alternatives);
+        $this->assertInstanceOf(LiteralNode::class, $newAst->alternatives[1]);
         $this->assertSame('beta', $newAst->alternatives[1]->value);
     }
 
@@ -69,6 +72,7 @@ class OptimizerNodeVisitorTest extends TestCase
 
         $newAst = $ast->accept($optimizer);
 
+        $this->assertInstanceOf(RegexNode::class, $newAst);
         $this->assertInstanceOf(CharClassNode::class, $newAst->pattern);
         $this->assertCount(3, $newAst->pattern->parts);
     }
@@ -80,7 +84,8 @@ class OptimizerNodeVisitorTest extends TestCase
         $optimizer = new OptimizerNodeVisitor();
         
         $newAst = $ast->accept($optimizer);
-        
+
+        $this->assertInstanceOf(RegexNode::class, $newAst);
         $this->assertInstanceOf(CharTypeNode::class, $newAst->pattern);
         $this->assertSame('d', $newAst->pattern->value);
     }
@@ -93,6 +98,7 @@ class OptimizerNodeVisitorTest extends TestCase
 
         $newAst = $ast->accept($optimizer);
 
+        $this->assertInstanceOf(RegexNode::class, $newAst);
         $this->assertInstanceOf(LiteralNode::class, $newAst->pattern);
         $this->assertSame('abc', $newAst->pattern->value);
     }
@@ -105,6 +111,7 @@ class OptimizerNodeVisitorTest extends TestCase
 
         $newAst = $ast->accept($optimizer);
 
+        $this->assertInstanceOf(RegexNode::class, $newAst);
         $this->assertInstanceOf(QuantifierNode::class, $newAst->pattern);
         $this->assertInstanceOf(LiteralNode::class, $newAst->pattern->node);
     }
@@ -117,10 +124,8 @@ class OptimizerNodeVisitorTest extends TestCase
 
         $newAst = $ast->accept($optimizer);
         
-        $this->assertNotNull($newAst);
-
-        if ($newAst->pattern instanceof CharClassNode) {
-             $this->assertCount(3, $newAst->pattern->parts);
-        }
+        $this->assertInstanceOf(RegexNode::class, $newAst);
+        $this->assertInstanceOf(AlternationNode::class, $newAst->pattern);
+        $this->assertCount(3, $newAst->pattern->alternatives);
     }
 }

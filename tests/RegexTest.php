@@ -19,8 +19,10 @@ class RegexTest extends TestCase
     public function testCreateAndParse(): void
     {
         $regex = Regex::create();
+
         $ast = $regex->parse('/abc/');
-        $this->assertNotNull($ast);
+        $this->assertSame(0, $ast->startPos);
+        $this->assertSame(3, $ast->endPos);
     }
 
     public function testValidate(): void

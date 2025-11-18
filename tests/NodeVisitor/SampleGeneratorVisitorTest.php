@@ -74,8 +74,6 @@ class SampleGeneratorVisitorTest extends TestCase
 
         $sample = $ast->accept($generator);
         $this->assertContains($sample, ['aa', 'bb']);
-        $this->assertNotSame('ab', $sample);
-        $this->assertNotSame('ba', $sample);
     }
 
     public function testSeeding(): void
