@@ -19,4 +19,14 @@
             <directory>tests</directory>
         </testsuite>
     </testsuites>
+
+    <source>
+        <include>
+            <directory>src</directory>
+        </include>
+        <exclude>
+            <directory>src/Exception</directory>
+            <directory>src/Bundle</directory>
+        </exclude>
+    </source>
 </phpunit>

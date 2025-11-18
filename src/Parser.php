@@ -271,7 +271,7 @@ class Parser
                     default => '\K', // Must be KeepNode
                 };
 
-                throw new ParserException(\sprintf('Quantifier "%s" cannot be applied to assertion or verb "%s" at position %d', $token->value, $nodeName, $token->position));
+                throw new ParserException(\sprintf('Quantifier "%s" cannot be applied to assertion or verb "%s" at position %d', $token->value, $nodeName, $node->getStartPosition()));
             }
 
             [$quantifier, $type] = $this->parseQuantifierValue($token->value);
@@ -536,6 +536,7 @@ class Parser
         $startPos = $startToken->position;
 
         // 1. Check for Python-style 'P' groups
+        $pPos = $this->current()->position; // Capture position of 'P' before matching
         if ($this->matchLiteral('P')) {
             if ($this->matchLiteral('<')) { // (?P<name>...)
                 $name = $this->parseGroupName();
@@ -557,7 +558,7 @@ class Parser
                 throw new ParserException('Backreferences (?P=name) are not supported yet.');
             }
 
-            throw new ParserException('Invalid syntax after (?P at position '.$startPos);
+            throw new ParserException('Invalid syntax after (?P at position '.$pPos);
         }
 
         // 2. Check for standard lookarounds and named groups
@@ -768,7 +769,7 @@ class Parser
                 $name .= $this->current()->value;
                 $this->advance();
             } else {
-                throw new ParserException('Unexpected token in group name: '.$this->current()->value);
+                throw new ParserException('Unexpected token "'.$this->current()->value.'" in group name: '.$this->current()->value);
             }
         }
 
@@ -856,9 +857,7 @@ class Parser
 
             return new PosixClassNode($token->value, $startPos, $endPos);
         } else {
-            $at = $this->isAtEnd() ? 'end of input' : 'position '.$this->current()->position;
-
-            throw new ParserException(\sprintf('Unexpected token "%s" (%s) in character class at %s. Expected literal, range, or character type.', $this->current()->value, $this->current()->type->value, $at));
+            throw new ParserException(\sprintf('Unexpected token "%s" (%s) in character class at position %d.', $this->current()->value, $this->current()->type->value, $this->current()->position));
         }
 
         // Check for a range (e.g., "a-z")

@@ -50,7 +50,7 @@ class CompilerNodeVisitor implements NodeVisitorInterface
     private const array META_CHARACTERS = [
         '\\' => true, '.' => true, '^' => true, '$' => true,
         '[' => true, ']' => true, '(' => true, ')' => true,
-        '|' => true, '*' => true, '+' => true, '?' => true, '{' => true, '}' => true,
+        '*' => true, '+' => true, '?' => true, '{' => true, '}' => true,
         '/' => true,
     ];
 
