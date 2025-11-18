@@ -51,6 +51,12 @@ return (new PhpCsFixer\Config())
         'phpdoc_var_annotation_correct_order'    => true,
         'phpdoc_var_without_name'                => true,
         'protected_to_private'                   => true,
+        'semicolon_after_instruction'            => true,
+        'single_line_throw'                      => false,
+        'single_trait_insert_per_statement'      => true,
+        'strict_comparison'                      => true,
+        'strict_param'                           => true,
+        'ternary_to_null_coalescing'             => true,
     ])
     ->setFinder($finder)
     ->setCacheFile('.cache/php-cs-fixer/cache.json');
