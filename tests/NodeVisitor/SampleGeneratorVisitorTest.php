@@ -103,8 +103,15 @@ class SampleGeneratorVisitorTest extends TestCase
     public function test_generate_unicode_and_octal_escapes(): void
     {
         // \xNN, \u{NNNN}, \o{NNN}, \0NN
+        // Note: PHP PCRE doesn't support \u{} and \o{} syntax, so we test the generated output directly
         $regex = '/\x41\u{00E9}\o{40}\010/';
-        $this->assertSampleMatches($regex);
+        $ast = $this->parser->parse($regex);
+        $generator = new SampleGeneratorVisitor();
+        $sample = $ast->accept($generator);
+        
+        // Expected: \x41 = 'A', \u{00E9} = 'é', \o{40} = ' ' (space, octal 40 = decimal 32), \010 = backspace (octal 10 = decimal 8)
+        $expected = "A\xc3\xa9 \x08"; // 'A' + UTF-8 'é' + space + backspace
+        $this->assertSame($expected, $sample);
     }
 
     public function test_generate_complex_backrefs(): void
