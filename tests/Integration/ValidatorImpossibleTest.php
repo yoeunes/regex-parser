@@ -25,13 +25,12 @@ class ValidatorImpossibleTest extends TestCase
     {
         $validator = new ValidatorNodeVisitor();
 
-        // Manual construction of a node that Parser would normally reject or parse differently
-        // \u{110000} (Too large for Unicode)
-        // We pass the raw string that matches the regex check inside Visitor
+        // \u{110000} (Too large for Unicode, max is 10FFFF)
+        // We pass the raw string that matches the regex check inside Validator
         $node = new UnicodeNode('\u{110000}', 0, 0);
 
         $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('Invalid Unicode codepoint');
+        $this->expectExceptionMessage('out of range');
         $node->accept($validator);
     }
 
@@ -51,7 +50,7 @@ class ValidatorImpossibleTest extends TestCase
     {
         $validator = new ValidatorNodeVisitor();
 
-        // \o{9} (Invalid octal digit)
+        // \o{8} (Invalid octal digit, Parser regex usually catches this, but Validator has a check too)
         $node = new OctalNode('\o{9}', 0, 0);
 
         $this->expectException(ParserException::class);
