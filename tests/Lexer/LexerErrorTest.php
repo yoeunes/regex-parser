@@ -17,6 +17,7 @@ use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\LexerException;
 use RegexParser\Lexer;
 use RegexParser\Tests\TestUtils\LexerAccessor;
+use RegexParser\Token;
 
 class LexerErrorTest extends TestCase
 {
@@ -54,6 +55,7 @@ class LexerErrorTest extends TestCase
 
         // 2. Doit trouver 'abc'
         $token = $accessor->callPrivateMethod('lexQuoteMode');
+        $this->assertInstanceOf(Token::class, $token);
         $this->assertSame('abc', $token->value);
         $this->assertSame(10, $accessor->getPosition()); // Position après 'abc' (7 + 3)
         $this->assertTrue($accessor->getInQuoteMode()); // Toujours en mode quote
@@ -66,6 +68,7 @@ class LexerErrorTest extends TestCase
 
         // 4. Doit trouver 'end'
         $token = $accessor->callPrivateMethod('lexQuoteMode');
+        $this->assertInstanceOf(Token::class, $token);
         $this->assertSame('end', $token->value);
     }
 
@@ -80,6 +83,7 @@ class LexerErrorTest extends TestCase
 
         // 2. Doit trouver 'abc'
         $token = $accessor->callPrivateMethod('lexQuoteMode');
+        $this->assertInstanceOf(Token::class, $token);
         $this->assertSame('abc', $token->value);
 
         // 3. Doit atteindre la fin de chaîne (position 5)

@@ -23,20 +23,21 @@ use RegexParser\Tests\TestUtils\ParserAccessor;
  */
 class ParserUtilityTest extends TestCase
 {
-    private Parser $parser;
     private ParserAccessor $accessor;
 
     protected function setUp(): void
     {
-        $this->parser = new Parser();
-        $this->accessor = new ParserAccessor($this->parser);
+        $parser = new Parser();
+        $this->accessor = new ParserAccessor($parser);
     }
 
     public function test_extract_pattern_handles_escaped_delimiter_in_flags(): void
     {
         // Regex: /abc\/def/i
         // Le slash au milieu est échappé et ne doit pas être considéré comme le délimiteur de fin.
-        [$pattern, $flags, $delimiter] = $this->accessor->callPrivateMethod('extractPatternAndFlags', ['/abc\/def/i']);
+        $result = $this->accessor->callPrivateMethod('extractPatternAndFlags', ['/abc\/def/i']);
+        assert(is_array($result));
+        [$pattern, $flags, $delimiter] = $result;
 
         $this->assertSame('/', $delimiter);
         $this->assertSame('i', $flags);
@@ -46,7 +47,9 @@ class ParserUtilityTest extends TestCase
     public function test_extract_pattern_handles_alternating_delimiters(): void
     {
         // Regex: (abc)i
-        [$pattern, $flags, $delimiter] = $this->accessor->callPrivateMethod('extractPatternAndFlags', ['(abc)i']);
+        $result = $this->accessor->callPrivateMethod('extractPatternAndFlags', ['(abc)i']);
+        assert(is_array($result));
+        [$pattern, $flags, $delimiter] = $result;
 
         $this->assertSame('(', $delimiter);
         $this->assertSame('i', $flags);
@@ -64,7 +67,7 @@ class ParserUtilityTest extends TestCase
     public function test_parse_group_name_throws_on_missing_name(): void
     {
         // Simuler un état où nous avons consommé '(?<' mais pas le nom
-        $this->accessor->setTokens(['>', 'a', ')' ]); // Tentative de fermer immédiatement
+        $this->accessor->setTokens(['>', 'a', ')']); // Tentative de fermer immédiatement
         $this->accessor->setPosition(0);
 
         $this->expectException(ParserException::class);

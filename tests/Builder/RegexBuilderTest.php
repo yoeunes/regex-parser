@@ -108,12 +108,17 @@ class RegexBuilderTest extends TestCase
     public function test_group_without_capture(): void
     {
         $builder = new RegexBuilder();
-        $regex = $builder->group(fn ($b) => $b->literal('test'), false)->compile();
+        $regex = $builder->group(function ($b): void {
+            $b->literal('test');
+        }, false)->compile();
 
         $this->assertStringContainsString('(?:test)', $regex);
         $this->assertStringNotContainsString('(?<', $regex);
     }
 
+    /**
+     * @param array<int|bool> $args
+     */
     #[DataProvider('quantifierProvider')]
     public function test_specific_quantifiers(
         string $method,

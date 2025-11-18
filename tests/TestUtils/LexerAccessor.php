@@ -16,34 +16,31 @@ namespace RegexParser\Tests\TestUtils;
 use RegexParser\Lexer;
 use RegexParser\Token;
 use RegexParser\TokenType;
-use ReflectionClass;
-use ReflectionMethod;
 
 /**
  * Accessor class to expose and manipulate private methods/properties of the Lexer for unit testing.
  */
 class LexerAccessor
 {
-    private readonly Lexer $lexer;
-    private readonly ReflectionClass $reflection;
+    /**
+     * @var \ReflectionClass<Lexer>
+     */
+    private readonly \ReflectionClass $reflection;
 
-    public function __construct(Lexer $lexer)
+    public function __construct(private readonly Lexer $lexer)
     {
-        $this->lexer = $lexer;
-        $this->reflection = new ReflectionClass($lexer);
+        $this->reflection = new \ReflectionClass($this->lexer);
     }
 
     /**
      * Calls a private method on the Lexer instance.
      *
-     * @param string $methodName
      * @param array<mixed> $args
-     * @return mixed
      */
     public function callPrivateMethod(string $methodName, array $args = []): mixed
     {
         $method = $this->reflection->getMethod($methodName);
-        $method->setAccessible(true);
+
         return $method->invoke($this->lexer, ...$args);
     }
 
@@ -62,7 +59,9 @@ class LexerAccessor
     public function getPosition(): int
     {
         $property = $this->reflection->getProperty('position');
-        return $property->getValue($this->lexer);
+        $value = $property->getValue($this->lexer);
+        assert(is_int($value));
+        return $value;
     }
 
     /**
@@ -80,7 +79,8 @@ class LexerAccessor
     public function getInQuoteMode(): bool
     {
         $property = $this->reflection->getProperty('inQuoteMode');
-        return $property->getValue($this->lexer);
+
+        return (bool) $property->getValue($this->lexer);
     }
 
     /**

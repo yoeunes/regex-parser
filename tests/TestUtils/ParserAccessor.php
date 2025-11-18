@@ -16,33 +16,31 @@ namespace RegexParser\Tests\TestUtils;
 use RegexParser\Parser;
 use RegexParser\Token;
 use RegexParser\TokenType;
-use ReflectionClass;
 
 /**
  * Accessor class to expose and manipulate private methods/properties of the Parser for unit testing.
  */
 class ParserAccessor
 {
-    private readonly Parser $parser;
-    private readonly ReflectionClass $reflection;
+    /**
+     * @var \ReflectionClass<Parser>
+     */
+    private readonly \ReflectionClass $reflection;
 
-    public function __construct(Parser $parser)
+    public function __construct(private readonly Parser $parser)
     {
-        $this->parser = $parser;
-        $this->reflection = new ReflectionClass($parser);
+        $this->reflection = new \ReflectionClass($this->parser);
     }
 
     /**
      * Calls a private method on the Parser instance.
      *
-     * @param string $methodName
      * @param array<mixed> $args
-     * @return mixed
      */
     public function callPrivateMethod(string $methodName, array $args = []): mixed
     {
         $method = $this->reflection->getMethod($methodName);
-        $method->setAccessible(true);
+
         return $method->invoke($this->parser, ...$args);
     }
 
@@ -87,7 +85,9 @@ class ParserAccessor
     public function getPosition(): int
     {
         $property = $this->reflection->getProperty('position');
-        return $property->getValue($this->parser);
+        $value = $property->getValue($this->parser);
+        assert(is_int($value));
+        return $value;
     }
 
     /**
@@ -111,6 +111,8 @@ class ParserAccessor
      */
     public function current(): Token
     {
-        return $this->callPrivateMethod('current');
+        $result = $this->callPrivateMethod('current');
+        assert($result instanceof Token);
+        return $result;
     }
 }

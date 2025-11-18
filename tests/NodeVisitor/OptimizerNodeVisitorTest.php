@@ -181,6 +181,7 @@ class OptimizerNodeVisitorTest extends TestCase
         $optimizer = new OptimizerNodeVisitor();
         $optimizedAst = $rawAst->accept($optimizer);
 
+        $this->assertInstanceOf(RegexNode::class, $optimizedAst);
         $this->assertInstanceOf(LiteralNode::class, $optimizedAst->pattern);
         $this->assertSame('xy', $optimizedAst->pattern->value, 'Empty literal should be removed and remaining merged.');
     }
@@ -228,6 +229,8 @@ class OptimizerNodeVisitorTest extends TestCase
         $optimizedAst = $ast->accept($optimizer);
 
         // Le pattern devrait rester CharClassNode, pas CharTypeNode('\w')
+        $this->assertInstanceOf(RegexNode::class, $optimizedAst);
+        $this->assertInstanceOf(QuantifierNode::class, $optimizedAst->pattern);
         $this->assertInstanceOf(
             CharClassNode::class,
             $optimizedAst->pattern->node,

@@ -39,6 +39,8 @@ class CharClassBuilderTest extends TestCase
 
         $this->assertCount(1, $parts);
         $this->assertInstanceOf(RangeNode::class, $parts[0]);
+        $this->assertInstanceOf(LiteralNode::class, $parts[0]->start);
+        $this->assertInstanceOf(LiteralNode::class, $parts[0]->end);
         $this->assertSame('a', $parts[0]->start->value);
         $this->assertSame('z', $parts[0]->end->value);
     }
@@ -66,6 +68,11 @@ class CharClassBuilderTest extends TestCase
 
         $this->assertCount(6, $parts);
         $this->assertInstanceOf(CharTypeNode::class, $parts[0]);
+        $this->assertInstanceOf(CharTypeNode::class, $parts[1]);
+        $this->assertInstanceOf(CharTypeNode::class, $parts[2]);
+        $this->assertInstanceOf(CharTypeNode::class, $parts[3]);
+        $this->assertInstanceOf(CharTypeNode::class, $parts[4]);
+        $this->assertInstanceOf(CharTypeNode::class, $parts[5]);
         $this->assertSame('d', $parts[0]->value);
         $this->assertSame('D', $parts[1]->value);
         $this->assertSame('s', $parts[2]->value);
