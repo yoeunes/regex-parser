@@ -31,7 +31,7 @@ return (new PhpCsFixer\Config())
         '@Symfony:risky'              => true,
         '@PHPUnit10x0Migration:risky' => true,
         'header_comment'              => ['header' => $header],
-        'declare_strict_types' => true,
+        'declare_strict_types'        => true,
     ])
     ->setFinder($finder)
     ->setCacheFile('.cache/php-cs-fixer/cache.json');
