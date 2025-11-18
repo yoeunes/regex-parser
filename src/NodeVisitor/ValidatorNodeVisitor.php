@@ -166,7 +166,7 @@ final class ValidatorNodeVisitor implements NodeVisitorInterface
         if (\in_array(
             $node->type,
             [GroupType::T_GROUP_LOOKBEHIND_POSITIVE, GroupType::T_GROUP_LOOKBEHIND_NEGATIVE],
-            true
+            true,
         )) {
             $this->inLookbehind = true;
         }

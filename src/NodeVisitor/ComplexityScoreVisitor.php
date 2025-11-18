@@ -113,7 +113,7 @@ class ComplexityScoreVisitor implements NodeVisitorInterface
                 GroupType::T_GROUP_LOOKBEHIND_POSITIVE,
                 GroupType::T_GROUP_LOOKBEHIND_NEGATIVE,
             ],
-            true
+            true,
         )) {
             return self::COMPLEX_CONSTRUCT_SCORE + $childScore;
         }

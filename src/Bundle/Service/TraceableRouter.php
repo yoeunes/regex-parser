@@ -69,6 +69,7 @@ class TraceableRouter implements RequestMatcherInterface, RouterInterface
             return $result;
         } catch (RouteNotFoundException $e) {
             $this->collectRouteRegex(null, $pathinfo, false);
+
             throw $e;
         }
     }
@@ -92,6 +93,7 @@ class TraceableRouter implements RequestMatcherInterface, RouterInterface
             return $result;
         } catch (RouteNotFoundException $e) {
             $this->collectRouteRegex(null, $request->getPathInfo(), false);
+
             throw $e;
         }
     }
@@ -120,7 +122,7 @@ class TraceableRouter implements RequestMatcherInterface, RouterInterface
                     $requirementStr,
                     \sprintf('Router (Requirement: %s)', $key),
                     $subject,
-                    $matchResult
+                    $matchResult,
                 );
             }
         }
@@ -132,7 +134,7 @@ class TraceableRouter implements RequestMatcherInterface, RouterInterface
                 $compiled->getRegex(),
                 \sprintf('Router (Route: %s)', $routeName),
                 $subject,
-                $matchResult
+                $matchResult,
             );
         }
     }

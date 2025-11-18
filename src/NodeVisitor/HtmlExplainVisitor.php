@@ -92,7 +92,7 @@ class HtmlExplainVisitor implements NodeVisitorInterface
         return \sprintf(
             "<div class=\"regex-explain\">\n<strong>Regex matches%s:</strong>\n<ul>%s</ul>\n</div>",
             $flags,
-            $patternExplain
+            $patternExplain,
         );
     }
 
@@ -100,12 +100,12 @@ class HtmlExplainVisitor implements NodeVisitorInterface
     {
         $alts = array_map(
             fn (NodeInterface $alt) => $alt->accept($this),
-            $node->alternatives
+            $node->alternatives,
         );
 
         return \sprintf(
             "<li><strong>EITHER:</strong>\n<ul>%s</ul>\n</li>",
-            implode("\n<li><strong>OR:</strong>\n<ul>", $alts)
+            implode("\n<li><strong>OR:</strong>\n<ul>", $alts),
         );
     }
 
@@ -136,7 +136,7 @@ class HtmlExplainVisitor implements NodeVisitorInterface
             "<li><span title=\"%s\"><strong>%s:</strong></span>\n<ul>%s</ul>\n</li>",
             $this->e($type),
             $this->e($type),
-            $childExplain
+            $childExplain,
         );
     }
 
@@ -155,7 +155,7 @@ class HtmlExplainVisitor implements NodeVisitorInterface
         return \sprintf(
             "<li><strong>Quantifier (%s):</strong>\n<ul>%s</ul>\n</li>",
             $this->e($quantExplain),
-            $childExplain
+            $childExplain,
         );
     }
 
@@ -166,7 +166,7 @@ class HtmlExplainVisitor implements NodeVisitorInterface
         return \sprintf(
             '<li><span title="Literal: %s">Literal: <strong>%s</strong></span></li>',
             $this->e($explanation),
-            $this->e($explanation)
+            $this->e($explanation),
         );
     }
 
@@ -178,7 +178,7 @@ class HtmlExplainVisitor implements NodeVisitorInterface
             '<li><span title="Character Type: %s">Character Type: <strong>\%s</strong> (%s)</span></li>',
             $this->e($explanation),
             $this->e($node->value),
-            $this->e($explanation)
+            $this->e($explanation),
         );
     }
 
@@ -189,7 +189,7 @@ class HtmlExplainVisitor implements NodeVisitorInterface
         return \sprintf(
             '<li><span title="%s">Wildcard: <strong>.</strong> (%s)</span></li>',
             $this->e($explanation),
-            $this->e($explanation)
+            $this->e($explanation),
         );
     }
 
@@ -201,7 +201,7 @@ class HtmlExplainVisitor implements NodeVisitorInterface
             '<li><span title="%s">Anchor: <strong>%s</strong> (%s)</span></li>',
             $this->e($explanation),
             $this->e($node->value),
-            $this->e($explanation)
+            $this->e($explanation),
         );
     }
 
@@ -213,7 +213,7 @@ class HtmlExplainVisitor implements NodeVisitorInterface
             '<li><span title="%s">Assertion: <strong>\%s</strong> (%s)</span></li>',
             $this->e($explanation),
             $this->e($node->value),
-            $this->e($explanation)
+            $this->e($explanation),
         );
     }
 
@@ -224,7 +224,7 @@ class HtmlExplainVisitor implements NodeVisitorInterface
         return \sprintf(
             '<li><span title="%s">Assertion: <strong>\K</strong> (%s)</span></li>',
             $this->e($explanation),
-            $this->e($explanation)
+            $this->e($explanation),
         );
     }
 
@@ -242,7 +242,7 @@ class HtmlExplainVisitor implements NodeVisitorInterface
             '<li><span title="%s">Character Class: [ %s%s ]</span></li>',
             $this->e(strip_tags($explanation)),
             $neg,
-            $this->e(implode(', ', $parts))
+            $this->e(implode(', ', $parts)),
         );
     }
 
@@ -266,7 +266,7 @@ class HtmlExplainVisitor implements NodeVisitorInterface
         return \sprintf(
             '<li><span title="%s">Backreference: <strong>\%s</strong></span></li>',
             $this->e($explanation),
-            $this->e($node->ref)
+            $this->e($node->ref),
         );
     }
 
@@ -275,7 +275,7 @@ class HtmlExplainVisitor implements NodeVisitorInterface
         return \sprintf(
             '<li><span title="Unicode: %s">Unicode: <strong>%s</strong></span></li>',
             $this->e($node->code),
-            $this->e($node->code)
+            $this->e($node->code),
         );
     }
 
@@ -288,7 +288,7 @@ class HtmlExplainVisitor implements NodeVisitorInterface
         return \sprintf(
             '<li><span title="%s">Unicode Property: <strong>\p{%s}</strong></span></li>',
             $this->e($explanation),
-            $this->e($node->prop)
+            $this->e($node->prop),
         );
     }
 
@@ -297,7 +297,7 @@ class HtmlExplainVisitor implements NodeVisitorInterface
         return \sprintf(
             '<li><span title="Octal: %s">Octal: <strong>%s</strong></span></li>',
             $this->e($node->code),
-            $this->e($node->code)
+            $this->e($node->code),
         );
     }
 
@@ -306,7 +306,7 @@ class HtmlExplainVisitor implements NodeVisitorInterface
         return \sprintf(
             '<li><span title="Legacy Octal: %s">Legacy Octal: <strong>\%s</strong></span></li>',
             $this->e($node->code),
-            $this->e($node->code)
+            $this->e($node->code),
         );
     }
 
@@ -319,7 +319,7 @@ class HtmlExplainVisitor implements NodeVisitorInterface
     {
         return \sprintf(
             '<li><span title="Comment" style="color: #888; font-style: italic;">Comment: %s</span></li>',
-            $this->e($node->comment)
+            $this->e($node->comment),
         );
     }
 
@@ -336,7 +336,7 @@ class HtmlExplainVisitor implements NodeVisitorInterface
             return \sprintf(
                 "<li><strong>Conditional: IF</strong> (%s) <strong>THEN:</strong>\n<ul>%s</ul>\n</li>",
                 $this->e($condText),
-                $yes
+                $yes,
             );
         }
 
@@ -344,7 +344,7 @@ class HtmlExplainVisitor implements NodeVisitorInterface
             "<li><strong>Conditional: IF</strong> (%s) <strong>THEN:</strong>\n<ul>%s</ul>\n<strong>ELSE:</strong>\n<ul>%s</ul>\n</li>",
             $this->e($condText),
             $yes,
-            $no
+            $no,
         );
     }
 
@@ -361,7 +361,7 @@ class HtmlExplainVisitor implements NodeVisitorInterface
             '<li><span title="%s">Subroutine Call: <strong>(%s%s)</strong></span></li>',
             $this->e($explanation),
             $this->e($node->syntax),
-            $this->e($node->reference)
+            $this->e($node->reference),
         );
     }
 
@@ -369,7 +369,7 @@ class HtmlExplainVisitor implements NodeVisitorInterface
     {
         return \sprintf(
             '<li><span title="PCRE Verb">PCRE Verb: <strong>(*%s)</strong></span></li>',
-            $this->e($node->verb)
+            $this->e($node->verb),
         );
     }
 

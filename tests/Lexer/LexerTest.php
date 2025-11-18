@@ -236,12 +236,12 @@ class LexerTest extends TestCase
         // preg_match() will return false if the pattern fails to compile
         $this->assertNotFalse(
             @preg_match($consts['REGEX_OUTSIDE'], ''),
-            'Lexer::REGEX_OUTSIDE failed to compile.'
+            'Lexer::REGEX_OUTSIDE failed to compile.',
         );
 
         $this->assertNotFalse(
             @preg_match($consts['REGEX_INSIDE'], ''),
-            'Lexer::REGEX_INSIDE failed to compile.'
+            'Lexer::REGEX_INSIDE failed to compile.',
         );
     }
 }

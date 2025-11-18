@@ -49,7 +49,7 @@ class DumperNodeVisitor implements NodeVisitorInterface
     public function visitRegex(RegexNode $node): string
     {
         return "Regex(delimiter: {$node->delimiter}, flags: {$node->flags})\n".$this->indent(
-            $node->pattern->accept($this)
+            $node->pattern->accept($this),
         );
     }
 
@@ -88,7 +88,7 @@ class DumperNodeVisitor implements NodeVisitorInterface
     public function visitQuantifier(QuantifierNode $node): string
     {
         return "Quantifier(quant: {$node->quantifier}, type: {$node->type->value})\n".$this->indent(
-            $node->node->accept($this)
+            $node->node->accept($this),
         );
     }
 

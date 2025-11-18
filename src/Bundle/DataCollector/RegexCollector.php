@@ -60,7 +60,7 @@ class RegexCollector extends DataCollector implements LateDataCollectorInterface
             $pattern,
             $source,
             $subject,
-            $matchResult
+            $matchResult,
         );
     }
 

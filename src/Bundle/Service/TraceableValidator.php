@@ -46,7 +46,7 @@ class TraceableValidator implements ValidatorInterface
     {
         $this->collectConstraints(
             \is_array($constraints) ? $constraints : (null === $constraints ? [] : [$constraints]),
-            $value
+            $value,
         );
 
         return $this->validator->validate($value, $constraints, $groups);
@@ -88,7 +88,7 @@ class TraceableValidator implements ValidatorInterface
                         $constraint->pattern,
                         'Validator (Regex constraint)',
                         $subject,
-                        null // We don't know the result at this stage
+                        null, // We don't know the result at this stage
                     );
                 }
             }

@@ -125,9 +125,10 @@ class OptimizerNodeVisitor implements NodeVisitorInterface
                     $optimizedChildren[\count($optimizedChildren) - 1] = new LiteralNode(
                         $prevNode->value.$optimizedChild->value,
                         $prevNode->startPos,
-                        $optimizedChild->endPos
+                        $optimizedChild->endPos,
                     );
                     $hasChanged = true;
+
                     continue;
                 }
             }
@@ -138,12 +139,14 @@ class OptimizerNodeVisitor implements NodeVisitorInterface
                 // sequence have already been merged by its own visitSequence call.
                 array_push($optimizedChildren, ...$optimizedChild->children);
                 $hasChanged = true;
+
                 continue;
             }
 
             // Optimization: Remove empty literals (e.g. from an empty group)
             if ($optimizedChild instanceof LiteralNode && '' === $optimizedChild->value) {
                 $hasChanged = true;
+
                 continue;
             }
 

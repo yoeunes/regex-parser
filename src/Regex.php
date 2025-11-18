@@ -66,7 +66,7 @@ class Regex
             new SampleGeneratorVisitor(),
             new OptimizerNodeVisitor(),
             new DumperNodeVisitor(),
-            new ComplexityScoreVisitor()
+            new ComplexityScoreVisitor(),
         );
     }
 

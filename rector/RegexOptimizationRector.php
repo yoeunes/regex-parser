@@ -61,17 +61,17 @@ final class RegexOptimizationRector extends AbstractRector
             [
                 new CodeSample(
                     "preg_match('/[a-zA-Z0-9_]+/', \$str);",
-                    "preg_match('/\\w+/', \$str);"
+                    "preg_match('/\\w+/', \$str);",
                 ),
                 new CodeSample(
                     "preg_match('/(a|b|c)/', \$str);",
-                    "preg_match('/[abc]/', \$str);"
+                    "preg_match('/[abc]/', \$str);",
                 ),
                 new CodeSample(
                     "preg_match('/a.b.c.d/', \$str);", // No change
-                    "preg_match('/a.b.c.d/', \$str);"
+                    "preg_match('/a.b.c.d/', \$str);",
                 ),
-            ]
+            ],
         );
     }
 

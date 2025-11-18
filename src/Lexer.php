@@ -183,6 +183,7 @@ class Lexer
                 if ($token) {
                     $tokens[] = $token;
                 }
+
                 continue; // Re-evaluate loop with new state (inQuoteMode might be false)
             }
 
@@ -216,6 +217,7 @@ class Lexer
                         $this->charClassStartPosition = $startPos;
                         $tokens[] = new Token($type, '[', $startPos);
                         $tokenFound = true;
+
                         break;
                     }
 
@@ -234,18 +236,21 @@ class Lexer
                             $tokens[] = new Token($type, ']', $startPos);
                         }
                         $tokenFound = true;
+
                         break;
                     }
 
                     if (TokenType::T_QUOTE_MODE_START === $type) {
                         $this->inQuoteMode = true;
                         $tokenFound = true; // No token is emitted, just a state change
+
                         break;
                     }
 
                     if (TokenType::T_QUOTE_MODE_END === $type) {
                         $this->inQuoteMode = false;
                         $tokenFound = true; // No token is emitted, just a state change
+
                         break;
                     }
 
@@ -259,6 +264,7 @@ class Lexer
                         if (TokenType::T_LITERAL === $type && '^' === $matchedValue && $isAtStart) {
                             $tokens[] = new Token(TokenType::T_NEGATION, '^', $startPos);
                             $tokenFound = true;
+
                             break;
                         }
 
@@ -266,6 +272,7 @@ class Lexer
                         if (TokenType::T_LITERAL === $type && '-' === $matchedValue && !$isAtStart) {
                             $tokens[] = new Token(TokenType::T_RANGE, '-', $startPos);
                             $tokenFound = true;
+
                             break;
                         }
                     }
@@ -278,6 +285,7 @@ class Lexer
                     $tokenValue = $this->extractTokenValue($type, $matchedValue, $matches);
                     $tokens[] = new Token($type, $tokenValue, $startPos);
                     $tokenFound = true;
+
                     break;
                 }
             } // end foreach tokenName

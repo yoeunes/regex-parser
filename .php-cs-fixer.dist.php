@@ -57,6 +57,15 @@ return (new PhpCsFixer\Config())
         'strict_comparison'                      => true,
         'strict_param'                           => true,
         'ternary_to_null_coalescing'             => true,
+        'trailing_comma_in_multiline'            => ['elements' => ['arguments']],
+        'unary_operator_spaces'                  => true,
+        'phpdoc_to_comment'                      => true,
+        'array_indentation'                      => true,
+        'blank_line_after_namespace'             => true,
+        'blank_line_after_opening_tag'           => true,
+        'blank_line_before_statement'            => true,
+        'blank_line_between_import_groups'       => true,
+        'blank_lines_before_namespace'           => true,
     ])
     ->setFinder($finder)
     ->setCacheFile('.cache/php-cs-fixer/cache.json');

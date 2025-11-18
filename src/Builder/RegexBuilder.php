@@ -180,7 +180,7 @@ class RegexBuilder
             null,
             null,
             0,
-            0
+            0,
         );
 
         return $this;
@@ -200,7 +200,7 @@ class RegexBuilder
             $name,
             null,
             0,
-            0
+            0,
         );
 
         return $this;

@@ -458,6 +458,7 @@ class Parser
         $at = $this->isAtEnd() ? 'end of input' : 'position '.$this->current()->position;
         $val = $this->current()->value;
         $type = $this->current()->type->value;
+
         throw new ParserException(\sprintf('Unexpected token "%s" (%s) at %s.', $val, $type, $at));
     }
 
@@ -550,6 +551,7 @@ class Parser
             if ($this->matchLiteral('=')) { // (?P=name) backref
                 throw new ParserException('Backreferences (?P=name) are not supported yet.');
             }
+
             throw new ParserException('Invalid syntax after (?P at position '.$startPos);
         }
 
@@ -850,6 +852,7 @@ class Parser
             return new PosixClassNode($token->value, $startPos, $endPos);
         } else {
             $at = $this->isAtEnd() ? 'end of input' : 'position '.$this->current()->position;
+
             throw new ParserException(\sprintf('Unexpected token "%s" (%s) in character class at %s. Expected literal, range, or character type.', $this->current()->value, $this->current()->type->value, $at));
         }
 
@@ -998,6 +1001,7 @@ class Parser
             return $token;
         }
         $at = $this->isAtEnd() ? 'end of input' : 'position '.$this->current()->position;
+
         throw new ParserException($error.' at '.$at.' (found '.$this->current()->type->value.')');
     }
 
@@ -1015,6 +1019,7 @@ class Parser
             return $token;
         }
         $at = $this->isAtEnd() ? 'end of input' : 'position '.$this->current()->position;
+
         throw new ParserException($error.' at '.$at.' (found '.$this->current()->type->value.' with value '.$this->current()->value.')');
     }
 

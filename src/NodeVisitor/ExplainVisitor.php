@@ -99,7 +99,7 @@ class ExplainVisitor implements NodeVisitorInterface
         ++$this->indentLevel;
         $alts = array_map(
             fn (NodeInterface $alt) => $alt->accept($this),
-            $node->alternatives
+            $node->alternatives,
         );
         --$this->indentLevel;
 
@@ -108,7 +108,7 @@ class ExplainVisitor implements NodeVisitorInterface
         return \sprintf(
             "EITHER:\n%s%s",
             $indent,
-            implode(\sprintf("\n%sOR:\n%s", $indent, $indent), $alts)
+            implode(\sprintf("\n%sOR:\n%s", $indent, $indent), $alts),
         );
     }
 
@@ -164,7 +164,7 @@ class ExplainVisitor implements NodeVisitorInterface
             $quantExplain,
             $this->indent(),
             $childExplain,
-            $this->indent(false)
+            $this->indent(false),
         );
     }
 

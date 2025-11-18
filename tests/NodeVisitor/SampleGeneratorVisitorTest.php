@@ -88,7 +88,7 @@ class SampleGeneratorVisitorTest extends TestCase
             $this->assertMatchesRegularExpression(
                 $regex,
                 $sample,
-                "Generated sample '$sample' does not match regex '$regex'"
+                "Generated sample '$sample' does not match regex '$regex'",
             );
         }
     }
