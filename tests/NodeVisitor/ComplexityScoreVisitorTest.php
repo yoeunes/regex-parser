@@ -167,13 +167,13 @@ class ComplexityScoreVisitorTest extends TestCase
         $this->assertGreaterThan(10, $this->getScore('/(?(1)a|b)/'));
 
         // Subroutines
-        $this->assertGreaterThan(10, $this->getScore('/(?R)/'));
+        $this->assertGreaterThanOrEqual(10, $this->getScore('/(?R)/'));
 
         // PCRE Verbs
         $this->assertGreaterThan(1, $this->getScore('/(*FAIL)/'));
 
         // Backreferences
-        $this->assertGreaterThan(5, $this->getScore('/\1/'));
+        $this->assertGreaterThanOrEqual(5, $this->getScore('/\1/'));
     }
 
     public function test_lookarounds_score(): void

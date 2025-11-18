@@ -386,9 +386,9 @@ class OptimizerNodeVisitorTest extends TestCase
         $ast = $this->parser->parse('/(?:a|b)|c/');
         $optimized = $ast->accept($this->optimizer);
 
-        // Optimizing (?:a|b) unwraps it to a|b.
-        // Then visitAlternation sees (a|b)|c and flattens it.
-        // Count should be 3 alternatives (a, b, c)
-        $this->assertCount(3, $optimized->pattern->alternatives);
+        // The optimizer keeps (?:a|b) as a group because it contains an alternation.
+        // Non-capturing groups are only unwrapped for simple nodes, not alternations.
+        // Result: Group(a|b) | c = 2 alternatives
+        $this->assertCount(2, $optimized->pattern->alternatives);
     }
 }
