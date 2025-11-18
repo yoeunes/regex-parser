@@ -66,6 +66,15 @@ return (new PhpCsFixer\Config())
         'blank_line_before_statement'            => true,
         'blank_line_between_import_groups'       => true,
         'blank_lines_before_namespace'           => true,
+        'cast_spaces'                            => true,
+        'class_definition'                       => [
+            'multi_line_extends_each_single_line' => true,
+            'single_item_single_line'             => true,
+            'single_line'                         => true,
+        ],
+        'clean_namespace'                        => true,
+        'compact_nullable_type_declaration'      => true,
+        'concat_space'                           => ['spacing' => 'none'],
     ])
     ->setFinder($finder)
     ->setCacheFile('.cache/php-cs-fixer/cache.json');
