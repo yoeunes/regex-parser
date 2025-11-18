@@ -107,9 +107,10 @@ class ParserInternalsTest extends TestCase
         $parser = new Parser();
         $accessor = new ParserAccessor($parser);
 
-        // On simule la fin de flux
-        $accessor->setTokens(['']);
-        $accessor->setPosition(0); // Sur EOF
+        // On simule la fin de flux - setTokens() adds T_EOF automatically
+        // So with an empty array, we get only T_EOF at position 0
+        $accessor->setTokens([]);
+        $accessor->setPosition(0); // Now we're at EOF
 
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('Expected something at end of input');

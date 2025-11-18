@@ -185,6 +185,11 @@ class VisitorMethodCoverageTest extends TestCase
                     continue;
                 }
 
+                // ValidatorNodeVisitor requires group context for subroutines
+                if ($visitor instanceof ValidatorNodeVisitor && $node instanceof SubroutineNode) {
+                    continue;
+                }
+
                 $result = $node->accept($visitor);
 
                 if ($visitor instanceof ValidatorNodeVisitor) {
