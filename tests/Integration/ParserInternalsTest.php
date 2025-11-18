@@ -17,6 +17,7 @@ use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\ParserException;
 use RegexParser\Parser;
 use RegexParser\Tests\TestUtils\ParserAccessor;
+use RegexParser\TokenType;
 
 class ParserInternalsTest extends TestCase
 {
