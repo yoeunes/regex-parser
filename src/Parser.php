@@ -648,12 +648,12 @@ class Parser
                     $expr = $this->parseAlternation();
                     $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected ) to close lookahead condition');
                     $condition = new GroupNode($expr, GroupType::T_GROUP_LOOKAHEAD_NEGATIVE, null, null, $conditionStartPos, $endToken->position);
-                } elseif ($this->matchLiteral('<')) {
-                    if ($this->matchLiteral('=')) { // (?<=...)
+                } elseif ($this->matchLiteral('<')) { // @phpstan-ignore-line elseif.alwaysFalse
+                    if ($this->matchLiteral('=')) { // @phpstan-ignore-line if.alwaysFalse
                         $expr = $this->parseAlternation();
                         $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected ) to close lookbehind condition');
                         $condition = new GroupNode($expr, GroupType::T_GROUP_LOOKBEHIND_POSITIVE, null, null, $conditionStartPos, $endToken->position);
-                    } elseif ($this->matchLiteral('!')) { // (?<!...)
+                    } elseif ($this->matchLiteral('!')) { // @phpstan-ignore-line elseif.alwaysFalse
                         $expr = $this->parseAlternation();
                         $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected ) to close lookbehind condition');
                         $condition = new GroupNode($expr, GroupType::T_GROUP_LOOKBEHIND_NEGATIVE, null, null, $conditionStartPos, $endToken->position);
