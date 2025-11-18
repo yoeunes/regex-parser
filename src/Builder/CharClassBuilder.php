@@ -26,7 +26,7 @@ use RegexParser\Node\RangeNode;
 class CharClassBuilder
 {
     /**
-     * @var NodeInterface[]
+     * @var array<NodeInterface>
      */
     private array $parts = [];
 
@@ -106,7 +106,7 @@ class CharClassBuilder
     }
 
     /**
-     * @return NodeInterface[]
+     * @return array<NodeInterface>
      */
     public function build(): array
     {

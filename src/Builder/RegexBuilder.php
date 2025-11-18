@@ -37,12 +37,12 @@ use RegexParser\NodeVisitor\CompilerNodeVisitor;
 class RegexBuilder
 {
     /**
-     * @var NodeInterface[]
+     * @var array<NodeInterface>
      */
     private array $nodes = [];
 
     /**
-     * @var array<NodeInterface[]>
+     * @var array<array<NodeInterface>>
      */
     private array $alternatives = [];
 

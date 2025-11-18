@@ -174,6 +174,23 @@ return (new PhpCsFixer\Config())
         'spaces_inside_parentheses'                   => true,
         'standardize_not_equals'                      => true,
         'statement_indentation'                       => true,
+        'switch_case_semicolon_to_colon'              => true,
+        'switch_case_space'                           => true,
+        'ternary_operator_spaces'                     => true,
+        'trim_array_spaces'                           => true,
+        'type_declaration_spaces'                     => true,
+        'types_spaces'                                => true,
+        'modifier_keywords'                           => ['elements' => ['method', 'property']],
+        'whitespace_after_comma_in_array'             => true,
+        'attribute_empty_parentheses'                 => true,
+        'php_unit_attributes'                         => true,
+        'phpdoc_param_order'                          => true,
+        'phpdoc_array_type'                           => true,
+        'multiline_promoted_properties'               => [
+            'keep_blank_lines'             => true,
+            'minimum_number_of_parameters' => 3,
+        ],
+        'class_reference_name_casing'                 => true,
     ])
     ->setFinder($finder)
     ->setCacheFile('.cache/php-cs-fixer/cache.json');

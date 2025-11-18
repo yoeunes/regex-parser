@@ -35,7 +35,7 @@ final class RegexOptimizationRector extends AbstractRector
     ];
 
     /**
-     * @var string[] constants we know contain regexes
+     * @var array<string> constants we know contain regexes
      */
     private const REGEX_CONSTANT_NAMES = [
         'REGEX_OUTSIDE',
