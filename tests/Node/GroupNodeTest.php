@@ -28,13 +28,16 @@ class GroupNodeTest extends TestCase
      */
     public static function data_provider_group_types(): \Iterator
     {
-        yield 'capturing' => [GroupType::T_GROUP_CAPTURING, null, null];
+        yield 'capturing_default' => [GroupType::T_GROUP_CAPTURING, null, null];
         yield 'non_capturing' => [GroupType::T_GROUP_NON_CAPTURING, null, null];
-        yield 'named' => [GroupType::T_GROUP_NAMED, 'id', null];
+        yield 'named_simple' => [GroupType::T_GROUP_NAMED, 'id', null];
         yield 'lookahead_positive' => [GroupType::T_GROUP_LOOKAHEAD_POSITIVE, null, null];
+        yield 'lookahead_negative' => [GroupType::T_GROUP_LOOKAHEAD_NEGATIVE, null, null];
+        yield 'lookbehind_positive' => [GroupType::T_GROUP_LOOKBEHIND_POSITIVE, null, null];
         yield 'lookbehind_negative' => [GroupType::T_GROUP_LOOKBEHIND_NEGATIVE, null, null];
         yield 'atomic' => [GroupType::T_GROUP_ATOMIC, null, null];
-        yield 'inline_flags' => [GroupType::T_GROUP_INLINE_FLAGS, null, 'ims'];
+        yield 'inline_flags_simple' => [GroupType::T_GROUP_INLINE_FLAGS, null, 'i'];
+        yield 'inline_flags_complex' => [GroupType::T_GROUP_INLINE_FLAGS, null, 'imsx'];
     }
 
     #[DataProvider('data_provider_group_types')]
@@ -49,6 +52,16 @@ class GroupNodeTest extends TestCase
         $this->assertSame($flags, $node->flags);
         $this->assertSame(0, $node->getStartPosition());
         $this->assertSame(5, $node->getEndPosition());
+    }
+
+    public function test_group_without_name_does_not_set_flags(): void
+    {
+        // T_GROUP_CAPTURING ne devrait pas avoir de flags, mais la structure le permet.
+        $child = new LiteralNode('a', 1, 2);
+        $node = new GroupNode($child, GroupType::T_GROUP_CAPTURING, null, 'i', 0, 5);
+
+        $this->assertNull($node->name);
+        $this->assertSame('i', $node->flags);
     }
 
     public function test_accept_visitor_calls_visit_group(): void
