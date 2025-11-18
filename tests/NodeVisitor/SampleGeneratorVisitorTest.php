@@ -149,8 +149,9 @@ class SampleGeneratorVisitorTest extends TestCase
 
     public function test_generate_throws_on_empty_char_class(): void
     {
-        $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('Cannot generate sample for empty character class');
+        // Empty character class /[]/ is actually a lexer error (unclosed class with ] as literal)
+        $this->expectException(\RegexParser\Exception\LexerException::class);
+        $this->expectExceptionMessage('Unclosed character class');
         $this->generateSample('/[]/');
     }
 
