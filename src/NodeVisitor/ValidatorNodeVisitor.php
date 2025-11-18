@@ -295,7 +295,7 @@ final class ValidatorNodeVisitor implements NodeVisitorInterface
             // Numeric backref: \1, \2, etc.
             $num = (int) $ref;
             if (0 === $num) {
-                throw new ParserException(\sprintf('Backreference \0 is not valid (did you mean \o{0}?) at position %d.', $node->startPos));
+                throw new ParserException('Backreference \0 is not valid');
             }
             if ($num > $this->groupCount) {
                 throw new ParserException(\sprintf('Backreference to non-existent group: \%d at position %d.', $num, $node->startPos));
@@ -305,10 +305,19 @@ final class ValidatorNodeVisitor implements NodeVisitorInterface
         }
 
         // Named backref: \k<name> or \k'name' or \k{name}
-        if (preg_match('/^k[<{\'](?<name>\w+)[>}\']$/', $ref, $matches)) {
+        if (preg_match('/^\\\\k[<{\'](?<name>\w+)[>}\']$/', $ref, $matches)) {
             $name = $matches['name'];
             if (!isset($this->namedGroups[$name])) {
-                throw new ParserException(\sprintf('Backreference to non-existent named group: "%s" at position %d.', $name, $node->startPos));
+                throw new ParserException(\sprintf('Backreference to non-existent named group: "%s"', $name));
+            }
+
+            return;
+        }
+
+        // Bare name (used in conditionals like (?(name)...))
+        if (preg_match('/^\w+$/', $ref)) {
+            if (!isset($this->namedGroups[$ref])) {
+                throw new ParserException(\sprintf('Backreference to non-existent named group: "%s"', $ref));
             }
 
             return;
@@ -387,8 +396,15 @@ final class ValidatorNodeVisitor implements NodeVisitorInterface
     public function visitOctal(OctalNode $node): void
     {
         // \o{...}
-        if (preg_match('/^\\\\o\{([0-7]+)\}$/', $node->code, $m)) {
-            $code = (int) octdec($m[1]);
+        if (preg_match('/^\\\\o\{([0-9]+)\}$/', $node->code, $m)) {
+            $octalStr = $m[1];
+
+            // Check if all digits are valid octal (0-7)
+            if (!preg_match('/^[0-7]+$/', $octalStr)) {
+                throw new ParserException(\sprintf('Invalid octal codepoint "%s" (out of range) at position %d.', $node->code, $node->startPos));
+            }
+
+            $code = (int) octdec($octalStr);
             if ($code > 0x10FFFF) {
                 throw new ParserException(\sprintf('Invalid octal codepoint "%s" (out of range) at position %d.', $node->code, $node->startPos));
             }
@@ -400,6 +416,11 @@ final class ValidatorNodeVisitor implements NodeVisitorInterface
      */
     public function visitOctalLegacy(OctalLegacyNode $node): void
     {
+        // \0 is treated as an invalid backreference
+        if ('0' === $node->code) {
+            throw new ParserException('Backreference \0 is not valid');
+        }
+
         // \0...
         $code = (int) octdec($node->code);
         if ($code > 0x10FFFF) {
@@ -441,17 +462,21 @@ final class ValidatorNodeVisitor implements NodeVisitorInterface
      */
     public function visitConditional(ConditionalNode $node): void
     {
-        // The condition itself must be valid
-        $node->condition->accept($this);
-
-        // Check if the condition is a valid *type* of condition
+        // Check if the condition is a valid *type* of condition first
         // (e.g., a backreference, a subroutine call, or a lookaround)
         if ($node->condition instanceof BackrefNode) {
-            // This is (?(1)...) or (?(<name>)...)
-            // visitBackref has already validated it.
+            // This is (?(1)...) or (?(<name>)...) or (?(name)...)
+            // For bare names, check if the group exists before calling accept
+            $ref = $node->condition->ref;
+            if (preg_match('/^\w+$/', $ref) && !isset($this->namedGroups[$ref])) {
+                // Bare name that doesn't exist - this is an invalid conditional
+                throw new ParserException(\sprintf('Invalid conditional construct at position %d. Condition must be a group reference, lookaround, or (DEFINE).', $node->condition->getStartPosition()));
+            }
+            // Now validate the backreference itself
+            $node->condition->accept($this);
         } elseif ($node->condition instanceof SubroutineNode) {
             // This is (?(R)...) or (?(R1)...)
-            // visitSubroutine has already validated it.
+            $node->condition->accept($this);
         } elseif ($node->condition instanceof GroupNode && \in_array($node->condition->type, [
             GroupType::T_GROUP_LOOKAHEAD_POSITIVE,
             GroupType::T_GROUP_LOOKAHEAD_NEGATIVE,
@@ -459,8 +484,10 @@ final class ValidatorNodeVisitor implements NodeVisitorInterface
             GroupType::T_GROUP_LOOKBEHIND_NEGATIVE,
         ], true)) {
             // This is (?(?=...)...) etc. This is valid.
+            $node->condition->accept($this);
         } elseif ($node->condition instanceof AssertionNode && 'DEFINE' === $node->condition->value) {
             // (?(DEFINE)...) This is valid.
+            $node->condition->accept($this);
         } else {
             // Any other atom is not a valid condition
             throw new ParserException(\sprintf('Invalid conditional construct at position %d. Condition must be a group reference, lookaround, or (DEFINE).', $node->condition->getStartPosition()));

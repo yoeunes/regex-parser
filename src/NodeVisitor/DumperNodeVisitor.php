@@ -48,41 +48,51 @@ class DumperNodeVisitor implements NodeVisitorInterface
 
     public function visitRegex(RegexNode $node): string
     {
-        return "Regex(delimiter: {$node->delimiter}, flags: {$node->flags})\n".$this->indent(
-            $node->pattern->accept($this),
-        );
+        $str = "Regex(delimiter: {$node->delimiter}, flags: {$node->flags})\n";
+        $this->indent += 2;
+        $str .= $node->pattern->accept($this);
+        $this->indent -= 2;
+
+        return $str;
     }
 
     public function visitAlternation(AlternationNode $node): string
     {
-        $str = "Alternation:\n";
+        $str = str_repeat(' ', $this->indent)."Alternation:\n";
         $this->indent += 2;
         foreach ($node->alternatives as $alt) {
-            $str .= $this->indent($alt->accept($this))."\n";
+            $str .= str_repeat(' ', $this->indent).$alt->accept($this)."\n";
         }
         $this->indent -= 2;
 
-        return $str;
+        return rtrim($str, "\n");
     }
 
     public function visitSequence(SequenceNode $node): string
     {
-        $str = "Sequence:\n";
+        $str = str_repeat(' ', $this->indent)."Sequence:\n";
         $this->indent += 2;
         foreach ($node->children as $child) {
-            $str .= $this->indent($child->accept($this))."\n";
+            $str .= str_repeat(' ', $this->indent).$child->accept($this)."\n";
         }
         $this->indent -= 2;
 
-        return $str;
+        return rtrim($str, "\n");
     }
 
     public function visitGroup(GroupNode $node): string
     {
-        $name = $node->name ? " name: {$node->name}" : '';
-        $flags = (string) ($node->flags ?? '');
+        $name = $node->name ?? '';
+        $flags = $node->flags ?? '';
 
-        return "Group(type: {$node->type->value}{$name} flags: {$flags})\n".$this->indent($node->child->accept($this));
+        // Only include "name:" label if name is not empty
+        $nameStr = ('' !== $name) ? " name: {$name}" : '';
+        $str = "Group(type: {$node->type->value}{$nameStr} flags: {$flags})\n";
+        $this->indent += 2;
+        $str .= $node->child->accept($this);
+        $this->indent -= 2;
+
+        return $str;
     }
 
     public function visitQuantifier(QuantifierNode $node): string
@@ -157,7 +167,7 @@ class DumperNodeVisitor implements NodeVisitorInterface
 
     public function visitOctal(OctalNode $node): string
     {
-        return "Octal(\\o{{$node->code}})";
+        return "Octal({$node->code})";
     }
 
     public function visitOctalLegacy(OctalLegacyNode $node): string
@@ -199,6 +209,8 @@ class DumperNodeVisitor implements NodeVisitorInterface
 
     private function indent(string $str): string
     {
-        return str_replace("\n", "\n".str_repeat(' ', $this->indent), $str);
+        $indentStr = str_repeat(' ', $this->indent);
+
+        return $indentStr.str_replace("\n", "\n".$indentStr, $str);
     }
 }

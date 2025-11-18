@@ -21,6 +21,16 @@ use RegexParser\Parser;
 
 class ComplexityScoreVisitorTest extends TestCase
 {
+    private Parser $parser;
+
+    private ComplexityScoreVisitor $visitor;
+
+    protected function setUp(): void
+    {
+        $this->parser = new Parser();
+        $this->visitor = new ComplexityScoreVisitor();
+    }
+
     public function test_simple_regex_score(): void
     {
         // abc = 1 (seq) + 1 + 1 + 1 = 4 (or close, depends on your exact base logic)
@@ -95,12 +105,47 @@ class ComplexityScoreVisitorTest extends TestCase
         $this->assertStringContainsString('Literal: (non-printable char)', $parser->parse("/\x01/")->accept($visitor));
     }
 
+    public function test_score_nested_unbounded_quantifiers_redo_penalty(): void
+    {
+        // Classic ReDoS: (a*)*. Score should be exponentially high.
+        // Outer quantifier depth=1. Inner quantifier depth=2.
+        // Expected: (Base Score + Quantified Node Score * (NESTING_MULTIPLIER * depth))
+        $score = $this->getScore('/(a*)*/');
+
+        $this->assertGreaterThan(30, $score, 'Nested unbounded quantifiers must incur high penalty (ReDoS).');
+
+        // Triple nested: ((a*)*)*
+        $tripleScore = $this->getScore('/((a*)*)*/');
+        $this->assertGreaterThan($score, $tripleScore);
+    }
+
+    public function test_score_complex_constructs(): void
+    {
+        // Conditional (COMPLEX_CONSTRUCT_SCORE * 2) + children
+        $conditionalScore = $this->getScore('/(?(1)a|b)/');
+        $this->assertGreaterThan(10, $conditionalScore, 'Conditional must be highly complex.');
+
+        // Subroutine (COMPLEX_CONSTRUCT_SCORE * 2)
+        $subroutineScore = $this->getScore('/(?R)/');
+        $this->assertSame(10, $subroutineScore, 'Subroutine must be highly complex (10).');
+
+        // PcreVerb (COMPLEX_CONSTRUCT_SCORE)
+        $pcreVerbScore = $this->getScore('/(*FAIL)/');
+        $this->assertSame(5, $pcreVerbScore, 'PcreVerb must be complex (5).');
+    }
+
+    public function test_score_complex_group_lookbehinds(): void
+    {
+        // Negative lookbehind (?<!a) is COMPLEX_CONSTRUCT_SCORE
+        $score = $this->getScore('/a(?<!b)/'); // Sequence(Literal(a), Group(b))
+        $this->assertGreaterThan(5, $score);
+        $this->assertLessThan(10, $score);
+    }
+
     private function getScore(string $regex): int
     {
-        $parser = new Parser();
-        $ast = $parser->parse($regex);
-        $visitor = new ComplexityScoreVisitor();
+        $ast = $this->parser->parse($regex);
 
-        return $ast->accept($visitor);
+        return $ast->accept($this->visitor);
     }
 }

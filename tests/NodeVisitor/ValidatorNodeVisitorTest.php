@@ -121,6 +121,93 @@ class ValidatorNodeVisitorTest extends TestCase
         $this->validate('/(?<name>a)(?<name>b)/');
     }
 
+    public function test_throws_on_variable_length_quantifier_in_lookbehind(): void
+    {
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('Variable-length quantifiers (*) are not allowed in lookbehinds');
+        $this->validate('/(?<=a*b)/');
+    }
+
+    public function test_throws_on_invalid_keep_in_lookbehind(): void
+    {
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('\K (keep) is not allowed in lookbehinds');
+        $this->validate('/(?<=a\K)/');
+    }
+
+    public function test_throws_on_backref_to_non_existent_named_group(): void
+    {
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('Backreference to non-existent named group: "name"');
+        $this->validate('/a\k<name>/');
+    }
+
+    public function test_throws_on_invalid_range_non_literal_start_node(): void
+    {
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('Invalid range at position 1: ranges must be between literal characters');
+        // This is invalid because the parser treats `\d` as a CharTypeNode, not LiteralNode
+        $this->validate('/[\d-z]/');
+    }
+
+    public function test_throws_on_backref_to_group_zero(): void
+    {
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('Backreference \0 is not valid');
+        $this->validate('/\0/');
+    }
+
+    public function test_throws_on_relative_backref_out_of_bounds(): void
+    {
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('Relative backreference \g{-2} at position 3 exceeds total group count (1).');
+        $this->validate('/(a)\g{-2}/');
+    }
+
+    public function test_throws_on_conditional_invalid_condition_type(): void
+    {
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('Invalid conditional construct at position 3. Condition must be a group reference, lookaround, or (DEFINE).');
+        // A literal is not a valid condition
+        $this->validate('/(?(a)b|c)/');
+    }
+
+    public function test_throws_on_invalid_pcre_verb(): void
+    {
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('Invalid or unsupported PCRE verb: "INVALID"');
+        $this->validate('/(*INVALID)/');
+    }
+
+    #[DoesNotPerformAssertions]
+    public function test_validates_named_conditional(): void
+    {
+        $this->validate('/(?<n>a)(?(n)b)/'); // Valid named conditional
+    }
+
+    public function test_throws_on_invalid_unicode_codepoint(): void
+    {
+        $this->expectException(ParserException::class);
+        // Codepoint U+110000 is beyond the valid Unicode range U+10FFFF
+        $this->expectExceptionMessage('Invalid Unicode codepoint "\u{110000}" (out of range)');
+        $this->validate('/\u{110000}/u');
+    }
+
+    public function test_throws_on_invalid_octal_codepoint(): void
+    {
+        $this->expectException(ParserException::class);
+        // Octal 77777777 = 16777215 decimal = 0xFFFFFF, which exceeds 0x10FFFF
+        $this->expectExceptionMessage('Invalid octal codepoint "\o{77777777}" (out of range)');
+        $this->validate('/\o{77777777}/u');
+    }
+
+    public function test_throws_on_negated_posix_word_class(): void
+    {
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('Negation of POSIX class "word" is not supported');
+        $this->validate('/[[:^word:]]/');
+    }
+
     private function validate(string $regex): void
     {
         $parser = new Parser();
