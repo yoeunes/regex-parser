@@ -54,16 +54,6 @@ final class RegexOptimizationRector extends AbstractRector
     ) {
     }
 
-    private function getParser(): Parser
-    {
-        return $this->parser ??= new Parser([]);
-    }
-
-    private function getCompiler(): CompilerNodeVisitor
-    {
-        return $this->compiler ??= new CompilerNodeVisitor();
-    }
-
     public function getRuleDefinition(): RuleDefinition
     {
         return new RuleDefinition(
@@ -130,6 +120,16 @@ final class RegexOptimizationRector extends AbstractRector
         }
 
         return null;
+    }
+
+    private function getParser(): Parser
+    {
+        return $this->parser ??= new Parser([]);
+    }
+
+    private function getCompiler(): CompilerNodeVisitor
+    {
+        return $this->compiler ??= new CompilerNodeVisitor();
     }
 
     private function getRegexStringNode(Node $node): ?String_

@@ -51,16 +51,16 @@ class RegexBuilder
         $this->newAlternative();
     }
 
-    private function newAlternative(): self
+    /**
+     * Magic getter for fluent alternation.
+     */
+    public function __get(string $name): self
     {
-        // Build the current sequence
-        if (0 !== \count($this->nodes)) {
-            $this->alternatives[] = $this->nodes;
+        if ('or' === $name) {
+            return $this->newAlternative();
         }
-        // Start a new sequence
-        $this->nodes = [];
 
-        return $this;
+        throw new \BadMethodCallException(\sprintf('Property "%s" does not exist.', $name));
     }
 
     /**
@@ -215,21 +215,6 @@ class RegexBuilder
         return $this;
     }
 
-    /**
-     * Applies a quantifier to the previous node.
-     */
-    private function quantify(string $quantifier, QuantifierType $type): self
-    {
-        $lastNode = array_pop($this->nodes);
-        if (null === $lastNode) {
-            throw new \LogicException('Cannot apply quantifier to an empty expression.');
-        }
-
-        $this->nodes[] = new QuantifierNode($lastNode, $quantifier, $type, 0, 0);
-
-        return $this;
-    }
-
     public function zeroOrMore(bool $lazy = false): self
     {
         return $this->quantify('*', $lazy ? QuantifierType::T_LAZY : QuantifierType::T_GREEDY);
@@ -278,6 +263,53 @@ class RegexBuilder
     }
 
     /**
+     * Compiles the built AST into a regex string.
+     */
+    public function compile(): string
+    {
+        $patternNode = $this->build();
+
+        // Use the library's own compiler
+        $compiler = new CompilerNodeVisitor();
+
+        // We can't use $compiler->visitRegex() as that expects a RegexNode.
+        // We compile the pattern part and wrap it manually.
+        $patternString = $patternNode->accept($compiler);
+
+        $map = [')' => '(', ']' => '[', '}' => '{', '>' => '<'];
+        $closingDelimiter = $map[$this->delimiter] ?? $this->delimiter;
+
+        return $this->delimiter.$patternString.$closingDelimiter.$this->flags;
+    }
+
+    private function newAlternative(): self
+    {
+        // Build the current sequence
+        if (0 !== \count($this->nodes)) {
+            $this->alternatives[] = $this->nodes;
+        }
+        // Start a new sequence
+        $this->nodes = [];
+
+        return $this;
+    }
+
+    /**
+     * Applies a quantifier to the previous node.
+     */
+    private function quantify(string $quantifier, QuantifierType $type): self
+    {
+        $lastNode = array_pop($this->nodes);
+        if (null === $lastNode) {
+            throw new \LogicException('Cannot apply quantifier to an empty expression.');
+        }
+
+        $this->nodes[] = new QuantifierNode($lastNode, $quantifier, $type, 0, 0);
+
+        return $this;
+    }
+
+    /**
      * Builds the final AST node for the current builder state.
      */
     private function build(): NodeInterface
@@ -302,37 +334,5 @@ class RegexBuilder
         }
 
         return new AlternationNode($sequences, 0, 0);
-    }
-
-    /**
-     * Compiles the built AST into a regex string.
-     */
-    public function compile(): string
-    {
-        $patternNode = $this->build();
-
-        // Use the library's own compiler
-        $compiler = new CompilerNodeVisitor();
-
-        // We can't use $compiler->visitRegex() as that expects a RegexNode.
-        // We compile the pattern part and wrap it manually.
-        $patternString = $patternNode->accept($compiler);
-
-        $map = [')' => '(', ']' => '[', '}' => '{', '>' => '<'];
-        $closingDelimiter = $map[$this->delimiter] ?? $this->delimiter;
-
-        return $this->delimiter.$patternString.$closingDelimiter.$this->flags;
-    }
-
-    /**
-     * Magic getter for fluent alternation.
-     */
-    public function __get(string $name): self
-    {
-        if ('or' === $name) {
-            return $this->newAlternative();
-        }
-
-        throw new \BadMethodCallException(\sprintf('Property "%s" does not exist.', $name));
     }
 }

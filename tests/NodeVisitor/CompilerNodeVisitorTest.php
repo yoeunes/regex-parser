@@ -19,15 +19,6 @@ use RegexParser\Parser;
 
 class CompilerNodeVisitorTest extends TestCase
 {
-    private function compile(string $regex): string
-    {
-        $parser = new Parser();
-        $ast = $parser->parse($regex);
-        $visitor = new CompilerNodeVisitor();
-
-        return $ast->accept($visitor);
-    }
-
     public function testCompileSimple(): void
     {
         $this->assertSame('/foo/', $this->compile('/foo/'));
@@ -133,5 +124,14 @@ class CompilerNodeVisitorTest extends TestCase
         $this->assertSame('/(?-1)/', $this->compile('/(?-1)/'));
         $this->assertSame('/(?&name)/', $this->compile('/(?&name)/'));
         $this->assertSame('/(?P>name)/', $this->compile('/(?P>name)/'));
+    }
+
+    private function compile(string $regex): string
+    {
+        $parser = new Parser();
+        $ast = $parser->parse($regex);
+        $visitor = new CompilerNodeVisitor();
+
+        return $ast->accept($visitor);
     }
 }

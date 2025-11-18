@@ -48,6 +48,15 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
     private ?int $seed = null;
 
     /**
+     * Stores generated text from capturing groups.
+     * Keyed by both numeric index and name (if available).
+     *
+     * @var array<int|string, string>
+     */
+    private array $captures = [];
+    private int $groupCounter = 1;
+
+    /**
      * @param int $maxRepetition max times to repeat for * or + quantifiers
      *                           to prevent excessively long or infinite samples
      */
@@ -73,15 +82,6 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
         $this->seed = null;
         mt_srand();
     }
-
-    /**
-     * Stores generated text from capturing groups.
-     * Keyed by both numeric index and name (if available).
-     *
-     * @var array<int|string, string>
-     */
-    private array $captures = [];
-    private int $groupCounter = 1;
 
     public function visitRegex(RegexNode $node): string
     {
@@ -156,34 +156,6 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
         }
 
         return implode('', $parts);
-    }
-
-    /**
-     * @return array{0: int, 1: int} [min, max]
-     */
-    private function parseQuantifierRange(string $q): array
-    {
-        $range = match ($q) {
-            '*' => [0, $this->maxRepetition],
-            '+' => [1, $this->maxRepetition],
-            '?' => [0, 1],
-            default => preg_match('/^\{(\d+)(?:,(\d*))?\}$/', $q, $m) ?
-                (isset($m[2]) ? ('' === $m[2] ?
-                    [(int) $m[1], (int) $m[1] + $this->maxRepetition] : // {n,}
-                    [(int) $m[1], (int) $m[2]] // {n,m}
-                ) :
-                    [(int) $m[1], (int) $m[1]] // {n}
-                ) :
-                [0, 0], // Fallback
-        };
-
-        // Ensure min <= max, as Validator may not have run.
-        // This handles invalid cases like {5,2} and silences PHPStan
-        if ($range[1] < $range[0]) {
-            $range[1] = $range[0];
-        }
-
-        return $range;
     }
 
     public function visitLiteral(LiteralNode $node): string
@@ -385,6 +357,34 @@ class SampleGeneratorVisitor implements NodeVisitorInterface
     {
         // Verbs do not generate text
         return '';
+    }
+
+    /**
+     * @return array{0: int, 1: int} [min, max]
+     */
+    private function parseQuantifierRange(string $q): array
+    {
+        $range = match ($q) {
+            '*' => [0, $this->maxRepetition],
+            '+' => [1, $this->maxRepetition],
+            '?' => [0, 1],
+            default => preg_match('/^\{(\d+)(?:,(\d*))?\}$/', $q, $m) ?
+                (isset($m[2]) ? ('' === $m[2] ?
+                    [(int) $m[1], (int) $m[1] + $this->maxRepetition] : // {n,}
+                    [(int) $m[1], (int) $m[2]] // {n,m}
+                ) :
+                    [(int) $m[1], (int) $m[1]] // {n}
+                ) :
+                [0, 0], // Fallback
+        };
+
+        // Ensure min <= max, as Validator may not have run.
+        // This handles invalid cases like {5,2} and silences PHPStan
+        if ($range[1] < $range[0]) {
+            $range[1] = $range[0];
+        }
+
+        return $range;
     }
 
     /**

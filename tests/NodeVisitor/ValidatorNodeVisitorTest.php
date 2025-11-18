@@ -21,14 +21,6 @@ use RegexParser\Parser;
 
 class ValidatorNodeVisitorTest extends TestCase
 {
-    private function validate(string $regex): void
-    {
-        $parser = new Parser();
-        $ast = $parser->parse($regex);
-        $visitor = new ValidatorNodeVisitor();
-        $ast->accept($visitor);
-    }
-
     #[DoesNotPerformAssertions]
     public function testValidateValid(): void
     {
@@ -127,5 +119,13 @@ class ValidatorNodeVisitorTest extends TestCase
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('Duplicate group name "name" at position 10.');
         $this->validate('/(?<name>a)(?<name>b)/');
+    }
+
+    private function validate(string $regex): void
+    {
+        $parser = new Parser();
+        $ast = $parser->parse($regex);
+        $visitor = new ValidatorNodeVisitor();
+        $ast->accept($visitor);
     }
 }

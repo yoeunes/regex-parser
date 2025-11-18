@@ -19,15 +19,6 @@ use RegexParser\Parser;
 
 class ComplexityScoreVisitorTest extends TestCase
 {
-    private function getScore(string $regex): int
-    {
-        $parser = new Parser();
-        $ast = $parser->parse($regex);
-        $visitor = new ComplexityScoreVisitor();
-
-        return $ast->accept($visitor);
-    }
-
     public function testSimpleRegexScore(): void
     {
         // abc = 1 (seq) + 1 + 1 + 1 = 4 (or close, depends on your exact base logic)
@@ -50,5 +41,14 @@ class ComplexityScoreVisitorTest extends TestCase
         $complex = $this->getScore('/(?=foo)foo/');
 
         $this->assertGreaterThan($simple, $complex);
+    }
+
+    private function getScore(string $regex): int
+    {
+        $parser = new Parser();
+        $ast = $parser->parse($regex);
+        $visitor = new ComplexityScoreVisitor();
+
+        return $ast->accept($visitor);
     }
 }

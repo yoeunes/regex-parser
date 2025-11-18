@@ -51,16 +51,6 @@ final class PregValidationRule implements Rule
         return FuncCall::class;
     }
 
-    private function getParser(): Parser
-    {
-        return $this->parser ??= new Parser([]);
-    }
-
-    private function getValidator(): ValidatorNodeVisitor
-    {
-        return $this->validator ??= new ValidatorNodeVisitor();
-    }
-
     public function processNode(Node $node, Scope $scope): array
     {
         if (!$node->name instanceof Name) {
@@ -115,5 +105,15 @@ final class PregValidationRule implements Rule
         }
 
         return $errors;
+    }
+
+    private function getParser(): Parser
+    {
+        return $this->parser ??= new Parser([]);
+    }
+
+    private function getValidator(): ValidatorNodeVisitor
+    {
+        return $this->validator ??= new ValidatorNodeVisitor();
     }
 }

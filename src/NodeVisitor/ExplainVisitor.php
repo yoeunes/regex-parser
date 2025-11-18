@@ -162,31 +162,6 @@ class ExplainVisitor implements NodeVisitorInterface
         );
     }
 
-    private function explainQuantifierValue(string $q, string $type): string
-    {
-        $desc = match ($q) {
-            '*' => 'zero or more times',
-            '+' => 'one or more times',
-            '?' => 'zero or one time',
-            default => preg_match('/^\{(\d+)(?:,(\d*))?\}$/', $q, $m) ?
-                (isset($m[2]) ? ('' === $m[2] ?
-                    \sprintf('at least %d times', $m[1]) :
-                    \sprintf('between %d and %d times', $m[1], $m[2])
-                ) :
-                    \sprintf('exactly %d times', $m[1])
-                ) :
-                'with quantifier '.$q, // Fallback
-        };
-
-        $desc .= match ($type) {
-            'lazy' => ' (as few as possible)',
-            'possessive' => ' (and do not backtrack)',
-            default => '',
-        };
-
-        return $desc;
-    }
-
     public function visitLiteral(LiteralNode $node): string
     {
         return 'Literal: '.$this->explainLiteral($node->value);
@@ -307,6 +282,31 @@ class ExplainVisitor implements NodeVisitorInterface
     public function visitPcreVerb(PcreVerbNode $node): string
     {
         return 'PCRE Verb: (*'.$node->verb.')';
+    }
+
+    private function explainQuantifierValue(string $q, string $type): string
+    {
+        $desc = match ($q) {
+            '*' => 'zero or more times',
+            '+' => 'one or more times',
+            '?' => 'zero or one time',
+            default => preg_match('/^\{(\d+)(?:,(\d*))?\}$/', $q, $m) ?
+                (isset($m[2]) ? ('' === $m[2] ?
+                    \sprintf('at least %d times', $m[1]) :
+                    \sprintf('between %d and %d times', $m[1], $m[2])
+                ) :
+                    \sprintf('exactly %d times', $m[1])
+                ) :
+                'with quantifier '.$q, // Fallback
+        };
+
+        $desc .= match ($type) {
+            'lazy' => ' (as few as possible)',
+            'possessive' => ' (and do not backtrack)',
+            default => '',
+        };
+
+        return $desc;
     }
 
     private function indent(bool $withExtra = true): string

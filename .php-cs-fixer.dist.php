@@ -32,6 +32,7 @@ return (new PhpCsFixer\Config())
         '@PHPUnit10x0Migration:risky' => true,
         'header_comment'              => ['header' => $header],
         'declare_strict_types'        => true,
+        'ordered_class_elements'      => true,
     ])
     ->setFinder($finder)
     ->setCacheFile('.cache/php-cs-fixer/cache.json');

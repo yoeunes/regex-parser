@@ -35,11 +35,6 @@ use RegexParser\Parser;
 
 class ParserTest extends TestCase
 {
-    private function createParser(): Parser
-    {
-        return new Parser();
-    }
-
     public function testParseReturnsRegexNodeWithFlags(): void
     {
         $parser = $this->createParser();
@@ -324,5 +319,10 @@ class ParserTest extends TestCase
         $this->assertInstanceOf(GroupNode::class, $pattern);
         $this->assertSame(GroupType::T_GROUP_INLINE_FLAGS, $pattern->type);
         $this->assertSame('i', $pattern->flags);
+    }
+
+    private function createParser(): Parser
+    {
+        return new Parser();
     }
 }

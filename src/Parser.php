@@ -78,21 +78,6 @@ class Parser
         $this->maxPatternLength = (int) $options['max_pattern_length'];
     }
 
-    private function getLexer(string $pattern): Lexer
-    {
-        // Re-use lexer instance if possible, but reset with new pattern
-        // This avoids re-instantiating the class but ensures state is clean.
-        // In a service-oriented context, this is less relevant, but for
-        // standalone usage, it's slightly more efficient.
-        if (null === $this->lexer) {
-            $this->lexer = new Lexer($pattern);
-        } else {
-            $this->lexer->reset($pattern);
-        }
-
-        return $this->lexer;
-    }
-
     /**
      * Parses the full regex string, including delimiters and flags.
      *
@@ -121,6 +106,21 @@ class Parser
 
         // The RegexNode spans the entire pattern
         return new RegexNode($patternNode, $this->flags, $this->delimiter, 0, $this->patternLength);
+    }
+
+    private function getLexer(string $pattern): Lexer
+    {
+        // Re-use lexer instance if possible, but reset with new pattern
+        // This avoids re-instantiating the class but ensures state is clean.
+        // In a service-oriented context, this is less relevant, but for
+        // standalone usage, it's slightly more efficient.
+        if (null === $this->lexer) {
+            $this->lexer = new Lexer($pattern);
+        } else {
+            $this->lexer->reset($pattern);
+        }
+
+        return $this->lexer;
     }
 
     /**

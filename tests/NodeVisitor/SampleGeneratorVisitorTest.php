@@ -19,24 +19,6 @@ use RegexParser\Parser;
 
 class SampleGeneratorVisitorTest extends TestCase
 {
-    private function assertSampleMatches(string $regex): void
-    {
-        $parser = new Parser();
-        $ast = $parser->parse($regex);
-
-        // We generate multiple times to cover randomness
-        $generator = new SampleGeneratorVisitor();
-
-        for ($i = 0; $i < 10; ++$i) {
-            $sample = $ast->accept($generator);
-            $this->assertMatchesRegularExpression(
-                $regex,
-                $sample,
-                "Generated sample '$sample' does not match regex '$regex'"
-            );
-        }
-    }
-
     public function testGenerateSimple(): void
     {
         $this->assertSampleMatches('/abc/');
@@ -91,5 +73,23 @@ class SampleGeneratorVisitorTest extends TestCase
         $sample2 = $ast->accept($generator);
 
         $this->assertSame($sample1, $sample2, 'Seeding should produce deterministic results');
+    }
+
+    private function assertSampleMatches(string $regex): void
+    {
+        $parser = new Parser();
+        $ast = $parser->parse($regex);
+
+        // We generate multiple times to cover randomness
+        $generator = new SampleGeneratorVisitor();
+
+        for ($i = 0; $i < 10; ++$i) {
+            $sample = $ast->accept($generator);
+            $this->assertMatchesRegularExpression(
+                $regex,
+                $sample,
+                "Generated sample '$sample' does not match regex '$regex'"
+            );
+        }
     }
 }

@@ -25,13 +25,6 @@ use RegexParser\Exception\LexerException;
  */
 class Lexer
 {
-    private string $pattern;
-    private int $position = 0;
-    private int $length;
-    private bool $inCharClass = false;
-    private bool $inQuoteMode = false;
-    private int $charClassStartPosition = 0;
-
     /**
      * Regex to capture all possible tokens OUTSIDE of a character class.
      * Order is crucial. Longer, more specific tokens must come first.
@@ -135,6 +128,12 @@ class Lexer
         'T_LITERAL_ESCAPED',
         'T_LITERAL',
     ];
+    private string $pattern;
+    private int $position = 0;
+    private int $length;
+    private bool $inCharClass = false;
+    private bool $inQuoteMode = false;
+    private int $charClassStartPosition = 0;
 
     public function __construct(string $pattern)
     {

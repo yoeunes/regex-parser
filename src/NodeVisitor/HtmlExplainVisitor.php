@@ -153,31 +153,6 @@ class HtmlExplainVisitor implements NodeVisitorInterface
         );
     }
 
-    private function explainQuantifierValue(string $q, QuantifierType $type): string
-    {
-        $desc = match ($q) {
-            '*' => 'zero or more times',
-            '+' => 'one or more times',
-            '?' => 'zero or one time',
-            default => preg_match('/^\{(\d+)(?:,(\d*))?\}$/', $q, $m) ?
-                (isset($m[2]) ? ('' === $m[2] ?
-                    \sprintf('at least %d times', $m[1]) :
-                    \sprintf('between %d and %d times', $m[1], $m[2])
-                ) :
-                    \sprintf('exactly %d times', $m[1])
-                ) :
-                'with quantifier '.$q, // Fallback
-        };
-
-        $desc .= match ($type) {
-            QuantifierType::T_LAZY => ' (as few as possible)',
-            QuantifierType::T_POSSESSIVE => ' (and do not backtrack)',
-            default => '',
-        };
-
-        return $desc;
-    }
-
     public function visitLiteral(LiteralNode $node): string
     {
         $explanation = $this->explainLiteral($node->value);
@@ -390,6 +365,31 @@ class HtmlExplainVisitor implements NodeVisitorInterface
             '<li><span title="PCRE Verb">PCRE Verb: <strong>(*%s)</strong></span></li>',
             $this->e($node->verb)
         );
+    }
+
+    private function explainQuantifierValue(string $q, QuantifierType $type): string
+    {
+        $desc = match ($q) {
+            '*' => 'zero or more times',
+            '+' => 'one or more times',
+            '?' => 'zero or one time',
+            default => preg_match('/^\{(\d+)(?:,(\d*))?\}$/', $q, $m) ?
+                (isset($m[2]) ? ('' === $m[2] ?
+                    \sprintf('at least %d times', $m[1]) :
+                    \sprintf('between %d and %d times', $m[1], $m[2])
+                ) :
+                    \sprintf('exactly %d times', $m[1])
+                ) :
+                'with quantifier '.$q, // Fallback
+        };
+
+        $desc .= match ($type) {
+            QuantifierType::T_LAZY => ' (as few as possible)',
+            QuantifierType::T_POSSESSIVE => ' (and do not backtrack)',
+            default => '',
+        };
+
+        return $desc;
     }
 
     private function explainLiteral(string $value): string
