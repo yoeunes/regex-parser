@@ -331,6 +331,7 @@ class OptimizerNodeVisitorTest extends TestCase
         $ast = $this->parser->parse('/(?:[abc])/');
         $optimized = $ast->accept($this->optimizer);
 
+        $this->assertInstanceOf(RegexNode::class, $optimized);
         // Should unwrap the group and return just the CharClassNode
         $this->assertInstanceOf(CharClassNode::class, $optimized->pattern);
     }
@@ -341,6 +342,7 @@ class OptimizerNodeVisitorTest extends TestCase
         $ast = $this->parser->parse('/[a-zA-Z0-9_]/');
         $optimized = $ast->accept($this->optimizer);
 
+        $this->assertInstanceOf(RegexNode::class, $optimized);
         $this->assertInstanceOf(CharTypeNode::class, $optimized->pattern);
         $this->assertSame('w', $optimized->pattern->value);
     }
@@ -351,6 +353,7 @@ class OptimizerNodeVisitorTest extends TestCase
         $ast = $this->parser->parse('/[a-zA-Z0-9]/');
         $optimized = $ast->accept($this->optimizer);
 
+        $this->assertInstanceOf(RegexNode::class, $optimized);
         $this->assertInstanceOf(CharClassNode::class, $optimized->pattern);
     }
 
@@ -360,6 +363,7 @@ class OptimizerNodeVisitorTest extends TestCase
         $ast = $this->parser->parse('/[a-z0-9_]/');
         $optimized = $ast->accept($this->optimizer);
 
+        $this->assertInstanceOf(RegexNode::class, $optimized);
         $this->assertInstanceOf(CharClassNode::class, $optimized->pattern);
     }
 
@@ -369,6 +373,7 @@ class OptimizerNodeVisitorTest extends TestCase
         $ast = $this->parser->parse('/[1-9]/');
         $optimized = $ast->accept($this->optimizer);
 
+        $this->assertInstanceOf(RegexNode::class, $optimized);
         $this->assertInstanceOf(CharClassNode::class, $optimized->pattern);
     }
 
@@ -389,6 +394,8 @@ class OptimizerNodeVisitorTest extends TestCase
         // The optimizer keeps (?:a|b) as a group because it contains an alternation.
         // Non-capturing groups are only unwrapped for simple nodes, not alternations.
         // Result: Group(a|b) | c = 2 alternatives
+        $this->assertInstanceOf(RegexNode::class, $optimized);
+        $this->assertInstanceOf(AlternationNode::class, $optimized->pattern);
         $this->assertCount(2, $optimized->pattern->alternatives);
     }
 }
