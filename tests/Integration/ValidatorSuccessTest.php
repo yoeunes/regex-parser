@@ -33,6 +33,8 @@ class ValidatorSuccessTest extends TestCase
 
     public function test_valid_backreferences_pass(): void
     {
+        $this->expectNotToPerformAssertions();
+
         // Need to simulate group count context, but Validator tracks it internally via visitGroup.
         // Since we are manually constructing nodes, we can't easily update the internal groupCount
         // without visiting a GroupNode first.
@@ -47,12 +49,12 @@ class ValidatorSuccessTest extends TestCase
         // 1. Valid \g{0} (entire match)
         $node = new BackrefNode('\g{0}', 0, 0);
         $node->accept($this->validator);
-
-        $this->addToAssertionCount(1);
     }
 
     public function test_valid_unicode_and_octal_pass(): void
     {
+        $this->expectNotToPerformAssertions();
+
         // Valid Unicode
         new UnicodeNode('\x41', 0, 0)->accept($this->validator);
         new UnicodeNode('\u{00E9}', 0, 0)->accept($this->validator);
@@ -65,16 +67,14 @@ class ValidatorSuccessTest extends TestCase
 
         // Valid Unicode Prop (cached)
         new UnicodePropNode('L', 0, 0)->accept($this->validator);
-
-        $this->addToAssertionCount(5);
     }
 
     public function test_valid_subroutines_pass(): void
     {
+        $this->expectNotToPerformAssertions();
+
         // (?R) and (?0) are always valid
         new SubroutineNode('R', '', 0, 0)->accept($this->validator);
         new SubroutineNode('0', '', 0, 0)->accept($this->validator);
-
-        $this->addToAssertionCount(2);
     }
 }

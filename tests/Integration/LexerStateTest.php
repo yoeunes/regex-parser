@@ -20,6 +20,8 @@ class LexerStateTest extends TestCase
 {
     public function test_parser_reuses_lexer_and_resets(): void
     {
+        $this->expectNotToPerformAssertions();
+
         $parser = new Parser();
 
         // First parse creates Lexer
@@ -27,7 +29,5 @@ class LexerStateTest extends TestCase
 
         // Second parse reuses Lexer and calls reset()
         $parser->parse('/b/');
-
-        $this->addToAssertionCount(1);
     }
 }

@@ -115,6 +115,8 @@ class VisitorMethodCoverageTest extends TestCase
 
     public function test_validator_leaf_nodes_valid(): void
     {
+        $this->expectNotToPerformAssertions();
+
         $validator = new ValidatorNodeVisitor();
 
         $nodes = [
@@ -128,7 +130,6 @@ class VisitorMethodCoverageTest extends TestCase
         foreach ($nodes as $node) {
             // Should simply not throw
             $node->accept($validator);
-            $this->addToAssertionCount(1);
         }
     }
 }
