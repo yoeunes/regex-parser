@@ -38,6 +38,10 @@ return (new PhpCsFixer\Config())
         'php_unit_construct'                     => true,
         'php_unit_dedicate_assert'               => true,
         'php_unit_dedicate_assert_internal_type' => true,
+        'php_unit_mock'                          => true,
+        'php_unit_mock_short_will_return'        => true,
+        'php_unit_strict'                        => true,
+        'php_unit_test_case_static_method_calls' => false,
     ])
     ->setFinder($finder)
     ->setCacheFile('.cache/php-cs-fixer/cache.json');
