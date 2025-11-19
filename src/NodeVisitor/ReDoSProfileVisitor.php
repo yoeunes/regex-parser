@@ -50,7 +50,14 @@ use RegexParser\ReDoSSeverity;
 final class ReDoSProfileVisitor implements NodeVisitorInterface
 {
     private int $unboundedQuantifierDepth = 0;
+
+    /**
+     * Tracks total nesting of quantifiers (bounded or not) to detect LOW risks.
+     */
+    private int $totalQuantifierDepth = 0;
+
     private array $vulnerabilities = [];
+
     // Track if we are inside an atomic group (which mitigates ReDoS)
     private bool $inAtomicGroup = false;
 
@@ -73,8 +80,8 @@ final class ReDoSProfileVisitor implements NodeVisitorInterface
         }
 
         return [
-            'severity'          => $maxSeverity,
-            'recommendations'   => array_unique($recommendations),
+            'severity' => $maxSeverity,
+            'recommendations' => array_unique($recommendations),
             'vulnerablePattern' => $pattern,
         ];
     }
@@ -82,6 +89,7 @@ final class ReDoSProfileVisitor implements NodeVisitorInterface
     public function visitRegex(RegexNode $node): ReDoSSeverity
     {
         $this->unboundedQuantifierDepth = 0;
+        $this->totalQuantifierDepth = 0;
         $this->vulnerabilities = [];
         $this->inAtomicGroup = false;
 
@@ -95,10 +103,18 @@ final class ReDoSProfileVisitor implements NodeVisitorInterface
             return $node->node->accept($this);
         }
 
+        $this->totalQuantifierDepth++;
         $isUnbounded = $this->isUnbounded($node->quantifier);
+
+        // Check if we are quantifying an atomic group directly (e.g. (? >...)+ )
+        // If so, this quantifier essentially acts like it's quantifying a fixed token,
+        // so it doesn't contribute to exponential backtracking risk.
+        $isTargetAtomic = ($node->node instanceof GroupNode && $node->node->type === GroupType::T_GROUP_ATOMIC);
+
         $severity = ReDoSSeverity::SAFE;
 
-        if ($isUnbounded) {
+        // Only increment unbounded depth if the target isn't already atomic
+        if ($isUnbounded && !$isTargetAtomic) {
             $this->unboundedQuantifierDepth++;
 
             if ($this->unboundedQuantifierDepth > 1) {
@@ -106,46 +122,54 @@ final class ReDoSProfileVisitor implements NodeVisitorInterface
                 $severity = ReDoSSeverity::HIGH;
                 $this->addVulnerability(
                     ReDoSSeverity::HIGH,
-                    'Nested unbounded quantifiers detected. This allows exponential backtracking.',
+                    "Nested unbounded quantifiers detected. This allows exponential backtracking.",
                     $node->quantifier
                 );
             } elseif ($this->unboundedQuantifierDepth === 1) {
                 $severity = ReDoSSeverity::MEDIUM;
-                // FIX: We must register MEDIUM vulnerabilities too, otherwise single unbounded quantifiers report SAFE
                 $this->addVulnerability(
                     ReDoSSeverity::MEDIUM,
-                    'Unbounded quantifier used. Ensure input length is limited.',
+                    "Unbounded quantifier used. Ensure input length is limited.",
                     $node->quantifier
                 );
             }
         } else {
-            // Bounded but potentially large
-            if ($this->isLargeBounded($node->quantifier)) {
-                $severity = ReDoSSeverity::LOW;
-                $this->addVulnerability(
+             // Bounded logic
+             if (!$isUnbounded && $this->totalQuantifierDepth > 1 && !$isTargetAtomic) {
+                 // Nested bounded quantifiers: (a{1,5}){1,5} -> LOW risk
+                 $severity = ReDoSSeverity::LOW;
+                 $this->addVulnerability(
                     ReDoSSeverity::LOW,
-                    'Large bounded quantifier detected. May cause slow matching.',
+                    "Nested bounded quantifiers detected. Matches can be slow but finite.",
                     $node->quantifier
-                );
-            }
+                 );
+             } elseif ($this->isLargeBounded($node->quantifier)) {
+                 $severity = ReDoSSeverity::LOW;
+                 $this->addVulnerability(
+                    ReDoSSeverity::LOW,
+                    "Large bounded quantifier detected. May cause slow matching.",
+                    $node->quantifier
+                 );
+             }
         }
 
         // Check child
         $childSeverity = $node->node->accept($this);
 
         // Check for "Star Height > 1" logic (simplified)
-        if ($isUnbounded && $childSeverity === ReDoSSeverity::HIGH) {
+        if ($isUnbounded && !$isTargetAtomic && $childSeverity === ReDoSSeverity::HIGH) {
             $severity = ReDoSSeverity::CRITICAL;
-            $this->addVulnerability(
+             $this->addVulnerability(
                 ReDoSSeverity::CRITICAL,
-                'Critical nesting of quantifiers detected (Star Height > 1).',
+                "Critical nesting of quantifiers detected (Star Height > 1).",
                 $node->quantifier
             );
         }
 
-        if ($isUnbounded) {
+        if ($isUnbounded && !$isTargetAtomic) {
             $this->unboundedQuantifierDepth--;
         }
+        $this->totalQuantifierDepth--;
 
         return $this->maxSeverity($severity, $childSeverity);
     }
@@ -159,8 +183,8 @@ final class ReDoSProfileVisitor implements NodeVisitorInterface
         if ($this->unboundedQuantifierDepth > 0 && $this->hasOverlappingAlternatives($node)) {
             $this->addVulnerability(
                 ReDoSSeverity::CRITICAL,
-                'Overlapping alternation branches inside a quantifier. e.g. (a|a)*',
-                '|'
+                "Overlapping alternation branches inside a quantifier. e.g. (a|a)*",
+                "|"
             );
             $max = ReDoSSeverity::CRITICAL;
         }
@@ -193,91 +217,27 @@ final class ReDoSProfileVisitor implements NodeVisitorInterface
         foreach ($node->children as $child) {
             $max = $this->maxSeverity($max, $child->accept($this));
         }
-
         return $max;
     }
 
     // --- Leaf nodes usually return SAFE unless they contain logic ---
 
-    public function visitLiteral(LiteralNode $node): ReDoSSeverity
-    {
-        return ReDoSSeverity::SAFE;
-    }
-
-    public function visitCharType(CharTypeNode $node): ReDoSSeverity
-    {
-        return ReDoSSeverity::SAFE;
-    }
-
-    public function visitDot(DotNode $node): ReDoSSeverity
-    {
-        return ReDoSSeverity::SAFE;
-    }
-
-    public function visitAnchor(AnchorNode $node): ReDoSSeverity
-    {
-        return ReDoSSeverity::SAFE;
-    }
-
-    public function visitAssertion(AssertionNode $node): ReDoSSeverity
-    {
-        return ReDoSSeverity::SAFE;
-    }
-
-    public function visitKeep(KeepNode $node): ReDoSSeverity
-    {
-        return ReDoSSeverity::SAFE;
-    }
-
-    public function visitCharClass(CharClassNode $node): ReDoSSeverity
-    {
-        return ReDoSSeverity::SAFE;
-    }
-
-    public function visitRange(RangeNode $node): ReDoSSeverity
-    {
-        return ReDoSSeverity::SAFE;
-    }
-
-    public function visitBackref(BackrefNode $node): ReDoSSeverity
-    {
-        return ReDoSSeverity::SAFE;
-    }
-
-    public function visitUnicode(UnicodeNode $node): ReDoSSeverity
-    {
-        return ReDoSSeverity::SAFE;
-    }
-
-    public function visitUnicodeProp(UnicodePropNode $node): ReDoSSeverity
-    {
-        return ReDoSSeverity::SAFE;
-    }
-
-    public function visitOctal(OctalNode $node): ReDoSSeverity
-    {
-        return ReDoSSeverity::SAFE;
-    }
-
-    public function visitOctalLegacy(OctalLegacyNode $node): ReDoSSeverity
-    {
-        return ReDoSSeverity::SAFE;
-    }
-
-    public function visitPosixClass(PosixClassNode $node): ReDoSSeverity
-    {
-        return ReDoSSeverity::SAFE;
-    }
-
-    public function visitComment(CommentNode $node): ReDoSSeverity
-    {
-        return ReDoSSeverity::SAFE;
-    }
-
-    public function visitPcreVerb(PcreVerbNode $node): ReDoSSeverity
-    {
-        return ReDoSSeverity::SAFE;
-    }
+    public function visitLiteral(LiteralNode $node): ReDoSSeverity { return ReDoSSeverity::SAFE; }
+    public function visitCharType(CharTypeNode $node): ReDoSSeverity { return ReDoSSeverity::SAFE; }
+    public function visitDot(DotNode $node): ReDoSSeverity { return ReDoSSeverity::SAFE; }
+    public function visitAnchor(AnchorNode $node): ReDoSSeverity { return ReDoSSeverity::SAFE; }
+    public function visitAssertion(AssertionNode $node): ReDoSSeverity { return ReDoSSeverity::SAFE; }
+    public function visitKeep(KeepNode $node): ReDoSSeverity { return ReDoSSeverity::SAFE; }
+    public function visitCharClass(CharClassNode $node): ReDoSSeverity { return ReDoSSeverity::SAFE; }
+    public function visitRange(RangeNode $node): ReDoSSeverity { return ReDoSSeverity::SAFE; }
+    public function visitBackref(BackrefNode $node): ReDoSSeverity { return ReDoSSeverity::SAFE; }
+    public function visitUnicode(UnicodeNode $node): ReDoSSeverity { return ReDoSSeverity::SAFE; }
+    public function visitUnicodeProp(UnicodePropNode $node): ReDoSSeverity { return ReDoSSeverity::SAFE; }
+    public function visitOctal(OctalNode $node): ReDoSSeverity { return ReDoSSeverity::SAFE; }
+    public function visitOctalLegacy(OctalLegacyNode $node): ReDoSSeverity { return ReDoSSeverity::SAFE; }
+    public function visitPosixClass(PosixClassNode $node): ReDoSSeverity { return ReDoSSeverity::SAFE; }
+    public function visitComment(CommentNode $node): ReDoSSeverity { return ReDoSSeverity::SAFE; }
+    public function visitPcreVerb(PcreVerbNode $node): ReDoSSeverity { return ReDoSSeverity::SAFE; }
 
     public function visitConditional(ConditionalNode $node): ReDoSSeverity
     {
@@ -303,11 +263,9 @@ final class ReDoSProfileVisitor implements NodeVisitorInterface
         }
 
         // {n,} is unbounded, but {n,m} is bounded.
-        // Check if we have a comma AND no following digits before the closing brace.
         if (str_contains($quantifier, ',')) {
-            // Matches {n,} but not {n,m}
-            // If there is a digit between , and }, it's bounded.
-            return !preg_match('/,\d+\}$/', $quantifier);
+             // If there is a digit between , and }, it's bounded {n,m}
+             return !preg_match('/,\d+\}$/', $quantifier);
         }
 
         return false;
@@ -317,10 +275,8 @@ final class ReDoSProfileVisitor implements NodeVisitorInterface
     {
         if (preg_match('/\{(\d+)(?:,(\d+))?\}/', $quantifier, $m)) {
             $max = isset($m[2]) ? (int)$m[2] : (int)$m[1];
-
             return $max > 1000; // Arbitrary threshold for "Large"
         }
-
         return false;
     }
 
@@ -334,27 +290,18 @@ final class ReDoSProfileVisitor implements NodeVisitorInterface
             }
             $prefixes[$prefix] = true;
         }
-
         return false;
     }
 
     private function getPrefixSignature(NodeInterface $node): string
     {
-        if ($node instanceof LiteralNode) {
-            return 'L:'.$node->value;
-        }
-        if ($node instanceof CharTypeNode) {
-            return 'T:'.$node->value;
-        }
-        if ($node instanceof DotNode) {
-            return 'DOT';
-        }
+        if ($node instanceof LiteralNode) return 'L:' . $node->value;
+        if ($node instanceof CharTypeNode) return 'T:' . $node->value;
+        if ($node instanceof DotNode) return 'DOT';
         if ($node instanceof SequenceNode && !empty($node->children)) {
             return $this->getPrefixSignature($node->children[0]);
         }
-        if ($node instanceof GroupNode) {
-            return $this->getPrefixSignature($node->child);
-        }
+        if ($node instanceof GroupNode) return $this->getPrefixSignature($node->child);
 
         return uniqid();
     }
@@ -363,18 +310,18 @@ final class ReDoSProfileVisitor implements NodeVisitorInterface
     {
         $this->vulnerabilities[] = [
             'severity' => $severity,
-            'message'  => $message,
-            'pattern'  => $pattern,
+            'message' => $message,
+            'pattern' => $pattern,
         ];
     }
 
     private function severityGreaterThan(ReDoSSeverity $a, ReDoSSeverity $b): bool
     {
         $levels = [
-            ReDoSSeverity::SAFE->value     => 0,
-            ReDoSSeverity::LOW->value      => 1,
-            ReDoSSeverity::MEDIUM->value   => 2,
-            ReDoSSeverity::HIGH->value     => 3,
+            ReDoSSeverity::SAFE->value => 0,
+            ReDoSSeverity::LOW->value => 1,
+            ReDoSSeverity::MEDIUM->value => 2,
+            ReDoSSeverity::HIGH->value => 3,
             ReDoSSeverity::CRITICAL->value => 4,
         ];
 
