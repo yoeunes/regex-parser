@@ -37,7 +37,7 @@ class LiteralExtractorVisitorTest extends TestCase
 
     public function testSequenceConcat(): void
     {
-        $set = $this->extract('/abc/'); // Sequence(Literal(a), Literal(b), Literal(c))
+        $set = $this->extract('/abc/');
 
         $this->assertTrue($set->complete);
         $this->assertSame(['abc'], $set->prefixes);
@@ -56,9 +56,12 @@ class LiteralExtractorVisitorTest extends TestCase
     {
         $set = $this->extract('/root(a|b)tail/');
 
+        // "root" + ("a"|"b") + "tail" -> "rootatail" | "rootbtail"
         $this->assertTrue($set->complete);
-        $this->assertSame(['roota', 'rootb'], $set->prefixes); // Longest known prefixes
-        $this->assertSame(['tail'], $set->suffixes); // Suffix is common
+        // Prefixes are complete strings here
+        $this->assertSame(['rootatail', 'rootbtail'], $set->prefixes);
+        // Suffixes are also complete strings
+        $this->assertSame(['rootatail', 'rootbtail'], $set->suffixes);
     }
 
     public function testQuantifierFixed(): void
@@ -71,7 +74,6 @@ class LiteralExtractorVisitorTest extends TestCase
     public function testQuantifierPlus(): void
     {
         $set = $this->extract('/a+/');
-        // Should contain 'a' as prefix, but incomplete
         $this->assertSame(['a'], $set->prefixes);
         $this->assertFalse($set->complete);
         $this->assertEmpty($set->suffixes);
@@ -93,7 +95,8 @@ class LiteralExtractorVisitorTest extends TestCase
     public function testDotBreaksChain(): void
     {
         $set = $this->extract('/pre.fix/');
-        // Should have prefix "pre" and suffix "fix" but incomplete
+        // Prefix "pre" is valid. Suffix "fix" is valid.
+        // But since "." is unknown, they are not concatenated.
         $this->assertSame(['pre'], $set->prefixes);
         $this->assertSame(['fix'], $set->suffixes);
         $this->assertFalse($set->complete);

@@ -111,11 +111,22 @@ final class ReDoSProfileVisitor implements NodeVisitorInterface
                 );
             } elseif ($this->unboundedQuantifierDepth === 1) {
                 $severity = ReDoSSeverity::MEDIUM;
+                // FIX: We must register MEDIUM vulnerabilities too, otherwise single unbounded quantifiers report SAFE
+                $this->addVulnerability(
+                    ReDoSSeverity::MEDIUM,
+                    'Unbounded quantifier used. Ensure input length is limited.',
+                    $node->quantifier
+                );
             }
         } else {
             // Bounded but potentially large
             if ($this->isLargeBounded($node->quantifier)) {
                 $severity = ReDoSSeverity::LOW;
+                $this->addVulnerability(
+                    ReDoSSeverity::LOW,
+                    'Large bounded quantifier detected. May cause slow matching.',
+                    $node->quantifier
+                );
             }
         }
 
@@ -279,7 +290,6 @@ final class ReDoSProfileVisitor implements NodeVisitorInterface
     public function visitSubroutine(SubroutineNode $node): ReDoSSeverity
     {
         // Recursion is technically unbounded but usually depth-limited by PCRE engine settings.
-        // However, infinite recursion is possible.
         return ReDoSSeverity::MEDIUM;
     }
 
@@ -287,9 +297,20 @@ final class ReDoSProfileVisitor implements NodeVisitorInterface
 
     private function isUnbounded(string $quantifier): bool
     {
-        return str_contains($quantifier, '*')
-            || str_contains($quantifier, '+')
-            || (str_contains($quantifier, ',') && str_ends_with($quantifier, '}')); // {n,}
+        // * and + are always unbounded
+        if (str_contains($quantifier, '*') || str_contains($quantifier, '+')) {
+            return true;
+        }
+
+        // {n,} is unbounded, but {n,m} is bounded.
+        // Check if we have a comma AND no following digits before the closing brace.
+        if (str_contains($quantifier, ',')) {
+            // Matches {n,} but not {n,m}
+            // If there is a digit between , and }, it's bounded.
+            return !preg_match('/,\d+\}$/', $quantifier);
+        }
+
+        return false;
     }
 
     private function isLargeBounded(string $quantifier): bool
@@ -305,8 +326,6 @@ final class ReDoSProfileVisitor implements NodeVisitorInterface
 
     private function hasOverlappingAlternatives(AlternationNode $node): bool
     {
-        // Naive overlap check: if alternatives start with the same literal/type
-        // This is a heuristic. A real check would require a DFA intersection.
         $prefixes = [];
         foreach ($node->alternatives as $alt) {
             $prefix = $this->getPrefixSignature($alt);
@@ -337,7 +356,7 @@ final class ReDoSProfileVisitor implements NodeVisitorInterface
             return $this->getPrefixSignature($node->child);
         }
 
-        return uniqid(); // Unknown/Complex, assume unique
+        return uniqid();
     }
 
     private function addVulnerability(ReDoSSeverity $severity, string $message, string $pattern): void

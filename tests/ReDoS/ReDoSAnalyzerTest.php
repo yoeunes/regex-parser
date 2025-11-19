@@ -31,15 +31,16 @@ class ReDoSAnalyzerTest extends TestCase
         yield ['/abc/', ReDoSSeverity::SAFE];
         yield ['/^\d{4}-\d{2}-\d{2}$/', ReDoSSeverity::SAFE];
 
-        // LOW (Bounded nested)
+        // LOW (Bounded nested) - Correctly identified as bounded now
         yield ['/(a{1,5}){1,5}/', ReDoSSeverity::LOW];
 
-        // MEDIUM (Single unbounded)
+        // MEDIUM (Single unbounded) - Now detected thanks to addVulnerability
         yield ['/a+/', ReDoSSeverity::MEDIUM];
         yield ['/.*ok/', ReDoSSeverity::MEDIUM];
 
-        // HIGH (Nested unbounded)
-        yield ['/(a+)+/', ReDoSSeverity::HIGH];
+        // HIGH/CRITICAL (Nested unbounded)
+        // (a+)+ triggers Star Height > 1 logic => CRITICAL
+        yield ['/(a+)+/', ReDoSSeverity::CRITICAL];
         yield ['/(.*)*/', ReDoSSeverity::CRITICAL];
 
         // CRITICAL (Overlapping alternation in loop)
@@ -47,20 +48,15 @@ class ReDoSAnalyzerTest extends TestCase
         yield ['/(a|a)*/', ReDoSSeverity::CRITICAL];
 
         // Atomic groups (Mitigation)
-        yield ['/(?>a+)+/', ReDoSSeverity::SAFE]; // Atomic prevents backtracking
-        yield ['/a++/', ReDoSSeverity::SAFE]; // Possessive
+        yield ['/(?>a+)+/', ReDoSSeverity::SAFE];
+        yield ['/a++/', ReDoSSeverity::SAFE];
     }
 
     public function testAnalysisDetails(): void
     {
         $analysis = $this->analyzer->analyze('/(a+)+/');
 
-        // Le visiteur détecte une imbrication critique pour ce pattern spécifique
-        $this->assertTrue(
-            $analysis->severity === ReDoSSeverity::HIGH || $analysis->severity === ReDoSSeverity::CRITICAL,
-            'Severity should be HIGH or CRITICAL'
-        );
-
+        $this->assertSame(ReDoSSeverity::CRITICAL, $analysis->severity);
         $this->assertNotEmpty($analysis->recommendations);
     }
 }
