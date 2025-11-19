@@ -33,7 +33,7 @@ use RegexParser\Regex;
 /**
  * A fluent, type-safe builder for creating complex regex patterns.
  *
- * @property-read self $or Magic property for alternation
+ * @property self $or Magic property for alternation
  */
 class RegexBuilder
 {

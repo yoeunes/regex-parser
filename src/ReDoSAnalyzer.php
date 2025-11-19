@@ -25,7 +25,7 @@ final readonly class ReDoSAnalyzer
     public function analyze(string $pattern): ReDoSAnalysis
     {
         try {
-            assert($this->parser !== null);
+            \assert(null !== $this->parser);
             $ast = $this->parser->parse($pattern);
             $visitor = new ReDoSProfileVisitor();
             $ast->accept($visitor);
