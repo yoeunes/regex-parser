@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\Integration;
 
+use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Builder\RegexBuilder;
 use RegexParser\Exception\LexerException;
@@ -33,8 +34,6 @@ use RegexParser\Parser;
  */
 class FullCoverageTest extends TestCase
 {
-    // ========== LEXER TESTS ==========
-
     public function test_lexer_trailing_backslash(): void
     {
         $this->expectException(LexerException::class);
@@ -74,8 +73,6 @@ class FullCoverageTest extends TestCase
         }
     }
 
-    // ========== PARSER TESTS ==========
-
     public function test_parser_conditional_with_invalid_syntax_after_question(): void
     {
         $this->expectException(ParserException::class);
@@ -96,52 +93,52 @@ class FullCoverageTest extends TestCase
         $parser->parse('/(?([a-z])yes|no)/');
     }
 
+    #[DoesNotPerformAssertions]
     public function test_parser_conditional_with_recursion(): void
     {
         // Test (?(R)...) condition
         $parser = new Parser([]);
-        $result = $parser->parse('/(?(R)a|b)/');
-        $this->assertNotNull($result);
+        $parser->parse('/(?(R)a|b)/');
     }
 
+    #[DoesNotPerformAssertions]
     public function test_parser_conditional_with_numeric_backref(): void
     {
         // Test (?(1)...) condition
         $parser = new Parser([]);
-        $result = $parser->parse('/()abc(?(1)yes|no)/');
-        $this->assertNotNull($result);
+        $parser->parse('/()abc(?(1)yes|no)/');
     }
 
+    #[DoesNotPerformAssertions]
     public function test_parser_conditional_with_angle_bracket_name(): void
     {
         // Test (?(<name>)...) condition
         $parser = new Parser([]);
-        $result = $parser->parse('/(?<name>x)(?(>name<)yes|no)/');
-        $this->assertNotNull($result);
+        $parser->parse('/(?<name>x)(?(>name<)yes|no)/');
     }
 
+    #[DoesNotPerformAssertions]
     public function test_parser_conditional_with_curly_brace_name(): void
     {
         // Test (?({name})...) condition
         $parser = new Parser([]);
-        $result = $parser->parse('/(?<name>x)(?({name})yes|no)/');
-        $this->assertNotNull($result);
+        $parser->parse('/(?<name>x)(?({name})yes|no)/');
     }
 
+    #[DoesNotPerformAssertions]
     public function test_parser_conditional_with_lookahead_negative(): void
     {
         // Test (?(?!...)...) condition
         $parser = new Parser([]);
-        $result = $parser->parse('/(?((?!x))yes|no)/');
-        $this->assertNotNull($result);
+        $parser->parse('/(?((?!x))yes|no)/');
     }
 
+    #[DoesNotPerformAssertions]
     public function test_parser_conditional_bare_name_reference(): void
     {
         // Test (?(name)...) condition with bare name
         $parser = new Parser([]);
-        $result = $parser->parse('/(?<test>x)(?(test)yes|no)/');
-        $this->assertNotNull($result);
+        $parser->parse('/(?<test>x)(?(test)yes|no)/');
     }
 
 
@@ -163,74 +160,69 @@ class FullCoverageTest extends TestCase
         $parser->parse('/(?P<"name>x)/');
     }
 
+    #[DoesNotPerformAssertions]
     public function test_parser_char_class_with_posix_and_range(): void
     {
         // Test character class with POSIX class and range combinations
         $parser = new Parser([]);
-        $result = $parser->parse('/[[:alpha:]a-z]/');
-        $this->assertNotNull($result);
+        $parser->parse('/[[:alpha:]a-z]/');
     }
 
+    #[DoesNotPerformAssertions]
     public function test_parser_char_class_with_nested_posix(): void
     {
         // Test character class with nested POSIX classes
         $parser = new Parser([]);
-        $result = $parser->parse('/[[:alpha:][:digit:]]/');
-        $this->assertNotNull($result);
+        $parser->parse('/[[:alpha:][:digit:]]/');
     }
 
+    #[DoesNotPerformAssertions]
     public function test_parser_char_class_with_unicode_prop(): void
     {
         // Test character class with unicode property
         $parser = new Parser([]);
-        $result = $parser->parse('/[\p{L}\p{N}]/');
-        $this->assertNotNull($result);
+        $parser->parse('/[\p{L}\p{N}]/');
     }
 
+    #[DoesNotPerformAssertions]
     public function test_parser_char_class_negated_unicode_prop(): void
     {
         // Test character class with negated unicode property
         $parser = new Parser([]);
-        $result = $parser->parse('/[\P{L}\P{N}]/');
-        $this->assertNotNull($result);
+        $parser->parse('/[\P{L}\P{N}]/');
     }
 
+    #[DoesNotPerformAssertions]
     public function test_parser_char_class_with_char_type(): void
     {
         // Test character class with char type like \d, \w, \s
         $parser = new Parser([]);
-        $result = $parser->parse('/[\d\w\s]/');
-        $this->assertNotNull($result);
+        $parser->parse('/[\d\w\s]/');
     }
 
+    #[DoesNotPerformAssertions]
     public function test_parser_char_class_with_octal(): void
     {
         // Test character class with octal sequences
         $parser = new Parser([]);
-        $result = $parser->parse('/[\101\o{102}]/');
-        $this->assertNotNull($result);
+        $parser->parse('/[\101\o{102}]/');
     }
 
+    #[DoesNotPerformAssertions]
     public function test_parser_char_class_with_unicode(): void
     {
         // Test character class with unicode sequences
         $parser = new Parser([]);
-        $result = $parser->parse('/[\u{41}\x42]/');
-        $this->assertNotNull($result);
+        $parser->parse('/[\u{41}\x42]/');
     }
 
+    #[DoesNotPerformAssertions]
     public function test_parser_char_class_range_with_escaped_chars(): void
     {
         // Test character class range with escaped characters
         $parser = new Parser([]);
-        $result = $parser->parse('/[\n-\r]/');
-        $this->assertNotNull($result);
+        $parser->parse('/[\n-\r]/');
     }
-
-    // ========== BUILDER TESTS ==========
-    // Builder already has 98.28% coverage, skipping for now
-
-    // ========== NODE VISITOR TESTS ==========
 
     public function test_explain_visitor_with_unicode_prop_negated(): void
     {
@@ -292,6 +284,7 @@ class FullCoverageTest extends TestCase
         $this->assertNotEmpty($result);
     }
 
+    #[DoesNotPerformAssertions]
     public function test_optimizer_visitor_with_nested_groups(): void
     {
         // Test OptimizerNodeVisitor with nested groups
@@ -299,9 +292,7 @@ class FullCoverageTest extends TestCase
         $ast = $parser->parse('/(((a)))/');
         
         $visitor = new OptimizerNodeVisitor();
-        $result = $ast->accept($visitor);
-        
-        $this->assertNotNull($result);
+        $ast->accept($visitor);
     }
 
     public function test_sample_generator_with_conditional(): void
@@ -388,6 +379,7 @@ class FullCoverageTest extends TestCase
         $ast->accept($visitor);
     }
 
+    #[DoesNotPerformAssertions]
     public function test_validator_with_pcre_verb(): void
     {
         // Test ValidatorNodeVisitor with PCRE verb - should pass
@@ -396,10 +388,9 @@ class FullCoverageTest extends TestCase
         
         $visitor = new ValidatorNodeVisitor();
         $ast->accept($visitor);
-        
-        $this->assertTrue(true); // If no exception, validation passed
     }
 
+    #[DoesNotPerformAssertions]
     public function test_validator_with_keep(): void
     {
         // Test ValidatorNodeVisitor with \K - should pass
@@ -408,10 +399,9 @@ class FullCoverageTest extends TestCase
         
         $visitor = new ValidatorNodeVisitor();
         $ast->accept($visitor);
-        
-        $this->assertTrue(true); // If no exception, validation passed
     }
 
+    #[DoesNotPerformAssertions]
     public function test_validator_with_octal_legacy(): void
     {
         // Test ValidatorNodeVisitor with octal legacy - should pass
@@ -420,10 +410,9 @@ class FullCoverageTest extends TestCase
         
         $visitor = new ValidatorNodeVisitor();
         $ast->accept($visitor);
-        
-        $this->assertTrue(true); // If no exception, validation passed
     }
 
+    #[DoesNotPerformAssertions]
     public function test_validator_with_unicode(): void
     {
         // Test ValidatorNodeVisitor with unicode - should pass
@@ -432,7 +421,5 @@ class FullCoverageTest extends TestCase
         
         $visitor = new ValidatorNodeVisitor();
         $ast->accept($visitor);
-        
-        $this->assertTrue(true); // If no exception, validation passed
     }
 }
