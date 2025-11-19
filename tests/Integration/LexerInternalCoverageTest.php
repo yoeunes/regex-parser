@@ -22,17 +22,17 @@ use RegexParser\TokenType;
 class LexerInternalCoverageTest extends TestCase
 {
     /**
-     * Teste le cas "default" du switch dans extractTokenValue.
-     * Ce cas est normalement inaccessible car la Regex principale filtre les tokens,
-     * mais pour 100% nous devons le forcer via Reflection.
+     * Tests the "default" case of the switch in extractTokenValue.
+     * This case is normally unreachable as the main Regex filters tokens,
+     * but for 100% coverage we must force it via Reflection.
      */
     public function test_extract_token_value_fallback(): void
     {
         $lexer = new Lexer('');
         $accessor = new LexerAccessor($lexer);
 
-        // Forcer un token qui n'a pas de logique d'extraction spécifique
-        // (ex: T_LITERAL passe dans le default)
+        // Force a token that has no specific extraction logic
+        // (e.g. T_LITERAL goes to the default)
         $val = $accessor->callPrivateMethod('extractTokenValue', [
             TokenType::T_LITERAL,
             'X',
@@ -40,43 +40,43 @@ class LexerInternalCoverageTest extends TestCase
         ]);
         $this->assertSame('X', $val);
 
-        // Test du fallback des tableaux vides (coalescence nulle) dans le Lexer
-        // Cas: T_POSIX_CLASS sans la clé 'v_posix' dans les matches
+        // Test empty array fallback (null coalescing) in Lexer
+        // Case: T_POSIX_CLASS without 'v_posix' key in matches
         $val = $accessor->callPrivateMethod('extractTokenValue', [
             TokenType::T_POSIX_CLASS,
             '[[:alnum:]]',
-            [] // Tableau vide pour simuler un match partiel
+            [] // Empty array to simulate partial match
         ]);
-        // Le code fait ($matches['v_posix'] ?? '') -> ''
+        // The code does ($matches['v_posix'] ?? '') -> ''
         $this->assertSame('', $val);
     }
 
     /**
-     * Teste la normalisation Unicode avec des données mal formées
-     * pour atteindre les fallbacks `??`.
+     * Tests Unicode normalization with malformed data
+     * to reach the `??` fallbacks.
      */
     public function test_normalize_unicode_prop_fallbacks(): void
     {
         $lexer = new Lexer('');
         $accessor = new LexerAccessor($lexer);
 
-        // Cas où v1_prop et v2_prop sont absents
+        // Case where v1_prop and v2_prop are absent
         $val = $accessor->callPrivateMethod('normalizeUnicodeProp', [
             '\p{L}',
-            [] // Matches vides
+            [] // Empty matches
         ]);
         $this->assertSame('', $val);
     }
 
     /**
-     * Teste le fallback de lexQuoteMode (si le preg_match échoue totalement).
-     * C'est théoriquement impossible avec le pattern actuel, mais on sécurise la couverture.
+     * Tests the fallback of lexQuoteMode (if preg_match fails completely).
+     * This is theoretically impossible with the current pattern, but we secure coverage.
      */
     #[DoesNotPerformAssertions]
     public function test_lex_quote_mode_failure_fallback(): void
     {
-        // Ce test est difficile car il faut faire échouer un preg_match simple.
-        // Si tu as un @codeCoverageIgnoreStart dans Lexer::lexQuoteMode, ignore ce test.
-        // Sinon, on passe à la suite.
+        // This test is difficult because it requires a simple preg_match to fail.
+        // If you have a @codeCoverageIgnoreStart in Lexer::lexQuoteMode, ignore this test.
+        // Otherwise, we move on.
     }
 }

@@ -37,9 +37,9 @@ class ReflectionCoverageTest extends TestCase
     }
 
     /**
-     * Teste le fallback "default" de extractTokenValue dans Lexer.
-     * Simule un token T_LITERAL_ESCAPED qui n'est pas dans la liste connue (\t, \n, etc.)
-     * pour forcer le 'default => substr($matchedValue, 1)'.
+     * Tests the "default" fallback of extractTokenValue in Lexer.
+     * Simulates a T_LITERAL_ESCAPED token that is not in the known list (\t, \n, etc.)
+     * to force the 'default => substr($matchedValue, 1)'.
      */
     public function test_lexer_extract_token_value_default_escape(): void
     {
@@ -47,15 +47,15 @@ class ReflectionCoverageTest extends TestCase
         $reflection = new \ReflectionClass($lexer);
         $method = $reflection->getMethod('extractTokenValue');
 
-        // Simule un caractère échappé inconnu, ex: '\@' -> '@'
+        // Simulates an unknown escaped character, e.g. '\@' -> '@'
         $result = $method->invoke($lexer, TokenType::T_LITERAL_ESCAPED, '\@', []);
 
         $this->assertSame('@', $result);
     }
 
     /**
-     * Teste le fallback "default" global de extractTokenValue.
-     * Force un type de token qui n'a pas de logique spécifique.
+     * Tests the global "default" fallback of extractTokenValue.
+     * Forces a token type that has no specific logic.
      */
     public function test_lexer_extract_token_value_global_default(): void
     {
@@ -63,14 +63,14 @@ class ReflectionCoverageTest extends TestCase
         $reflection = new \ReflectionClass($lexer);
         $method = $reflection->getMethod('extractTokenValue');
 
-        // T_LITERAL tombe dans le default
+        // T_LITERAL falls into the default
         $result = $method->invoke($lexer, TokenType::T_LITERAL, 'A', []);
 
         $this->assertSame('A', $result);
     }
 
     /**
-     * Teste le fallback de normalizeUnicodeProp quand les captures sont manquantes.
+     * Tests the fallback of normalizeUnicodeProp when captures are missing.
      */
     public function test_lexer_normalize_unicode_missing_captures(): void
     {
@@ -78,7 +78,7 @@ class ReflectionCoverageTest extends TestCase
         $reflection = new \ReflectionClass($lexer);
         $method = $reflection->getMethod('normalizeUnicodeProp');
 
-        // Pas de v1_prop ni v2_prop dans le tableau matches
+        // No v1_prop or v2_prop in the matches array
         $result = $method->invoke($lexer, '\p{L}', []);
 
         $this->assertSame('', $result);
