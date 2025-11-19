@@ -25,7 +25,7 @@ class TokenReconstructionTest extends TestCase
             TokenType::T_CHAR_TYPE->value => '\d',           // Ajoute \
             TokenType::T_GROUP_OPEN->value => '(',
             TokenType::T_GROUP_CLOSE->value => ')',
-            TokenType::T_GROUP_MODIFIER_OPEN->value => '(? ', // Espace ajouté pour différencier
+            TokenType::T_GROUP_MODIFIER_OPEN->value => '(?',
             TokenType::T_CHAR_CLASS_OPEN->value => '[',
             TokenType::T_CHAR_CLASS_CLOSE->value => ']',
             TokenType::T_QUANTIFIER->value => '*',

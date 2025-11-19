@@ -26,10 +26,11 @@ class LexerInternalStateTest extends TestCase
         // Appel direct à la méthode privée
         $result = $accessor->callPrivateMethod('lexCommentMode');
 
-        // Elle doit consommer le reste et retourner null car pas de ')'
-        $this->assertNull($result);
-        // La position doit être à la fin
-        $this->assertSame(13, $accessor->getPosition());
+        // Elle doit d'abord retourner un token avec le texte du commentaire
+        $this->assertNotNull($result);
+        $this->assertSame(' ... sans fin', $result->value);
+        // La position doit être à la fin du texte
+        $this->assertSame(16, $accessor->getPosition());
     }
 
     /**
@@ -45,8 +46,10 @@ class LexerInternalStateTest extends TestCase
 
         $result = $accessor->callPrivateMethod('lexQuoteMode');
 
-        // Elle doit consommer le reste, retourner null (pas de token émis à la fin, juste changement d'état)
-        $this->assertNull($result);
-        $this->assertSame(13, $accessor->getPosition());
+        // Elle doit d'abord retourner un token avec le texte littéral
+        $this->assertNotNull($result);
+        $this->assertSame(' ... sans fin', $result->value);
+        // La position doit être à la fin du texte
+        $this->assertSame(15, $accessor->getPosition());
     }
 }
