@@ -15,13 +15,9 @@ namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
-use RegexParser\Builder\RegexBuilder;
 use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
 use RegexParser\Lexer;
-use RegexParser\Node\BackrefNode;
-use RegexParser\Node\GroupNode;
-use RegexParser\Node\LiteralNode;
 use RegexParser\NodeVisitor\ExplainVisitor;
 use RegexParser\NodeVisitor\HtmlExplainVisitor;
 use RegexParser\NodeVisitor\OptimizerNodeVisitor;
@@ -65,6 +61,7 @@ class FullCoverageTest extends TestCase
     {
         // Test comment mode that reaches end of string
         $lexer = new Lexer('abc(?#test');
+
         try {
             $lexer->tokenize();
             $this->fail('Expected LexerException');
@@ -140,7 +137,6 @@ class FullCoverageTest extends TestCase
         $parser = new Parser([]);
         $parser->parse('/(?<test>x)(?(test)yes|no)/');
     }
-
 
     public function test_parser_group_name_missing_closing_single_quote(): void
     {
@@ -229,10 +225,10 @@ class FullCoverageTest extends TestCase
         // Test ExplainVisitor with negated unicode property
         $parser = new Parser([]);
         $ast = $parser->parse('/\P{L}/');
-        
+
         $visitor = new ExplainVisitor();
         $result = $ast->accept($visitor);
-        
+
         $this->assertNotEmpty($result);
     }
 
@@ -241,10 +237,10 @@ class FullCoverageTest extends TestCase
         // Test ExplainVisitor with octal legacy
         $parser = new Parser([]);
         $ast = $parser->parse('/\07/');
-        
+
         $visitor = new ExplainVisitor();
         $result = $ast->accept($visitor);
-        
+
         $this->assertNotEmpty($result);
     }
 
@@ -253,10 +249,10 @@ class FullCoverageTest extends TestCase
         // Test HtmlExplainVisitor with PCRE verb
         $parser = new Parser([]);
         $ast = $parser->parse('/(*FAIL)/');
-        
+
         $visitor = new HtmlExplainVisitor();
         $result = $ast->accept($visitor);
-        
+
         $this->assertNotEmpty($result);
     }
 
@@ -265,10 +261,10 @@ class FullCoverageTest extends TestCase
         // Test HtmlExplainVisitor with \K (keep)
         $parser = new Parser([]);
         $ast = $parser->parse('/test\Kmore/');
-        
+
         $visitor = new HtmlExplainVisitor();
         $result = $ast->accept($visitor);
-        
+
         $this->assertNotEmpty($result);
     }
 
@@ -277,10 +273,10 @@ class FullCoverageTest extends TestCase
         // Test HtmlExplainVisitor with subroutine
         $parser = new Parser([]);
         $ast = $parser->parse('/(?<group>test)(?&group)/');
-        
+
         $visitor = new HtmlExplainVisitor();
         $result = $ast->accept($visitor);
-        
+
         $this->assertNotEmpty($result);
     }
 
@@ -290,7 +286,7 @@ class FullCoverageTest extends TestCase
         // Test OptimizerNodeVisitor with nested groups
         $parser = new Parser([]);
         $ast = $parser->parse('/(((a)))/');
-        
+
         $visitor = new OptimizerNodeVisitor();
         $ast->accept($visitor);
     }
@@ -300,10 +296,10 @@ class FullCoverageTest extends TestCase
         // Test SampleGeneratorVisitor with conditional
         $parser = new Parser([]);
         $ast = $parser->parse('/(x)(?(1)y|z)/');
-        
+
         $visitor = new SampleGeneratorVisitor();
         $sample = $ast->accept($visitor);
-        
+
         $this->assertIsString($sample);
     }
 
@@ -312,10 +308,10 @@ class FullCoverageTest extends TestCase
         // Test SampleGeneratorVisitor with PCRE verb
         $parser = new Parser([]);
         $ast = $parser->parse('/(*ACCEPT)test/');
-        
+
         $visitor = new SampleGeneratorVisitor();
         $sample = $ast->accept($visitor);
-        
+
         $this->assertIsString($sample);
     }
 
@@ -324,10 +320,10 @@ class FullCoverageTest extends TestCase
         // Test SampleGeneratorVisitor with \K
         $parser = new Parser([]);
         $ast = $parser->parse('/prefix\Ksuffix/');
-        
+
         $visitor = new SampleGeneratorVisitor();
         $sample = $ast->accept($visitor);
-        
+
         $this->assertIsString($sample);
     }
 
@@ -336,10 +332,10 @@ class FullCoverageTest extends TestCase
         // Test SampleGeneratorVisitor with octal legacy
         $parser = new Parser([]);
         $ast = $parser->parse('/\07/');
-        
+
         $visitor = new SampleGeneratorVisitor();
         $sample = $ast->accept($visitor);
-        
+
         $this->assertIsString($sample);
     }
 
@@ -348,10 +344,10 @@ class FullCoverageTest extends TestCase
         // Test SampleGeneratorVisitor with unicode sequences
         $parser = new Parser([]);
         $ast = $parser->parse('/\u{41}/');
-        
+
         $visitor = new SampleGeneratorVisitor();
         $sample = $ast->accept($visitor);
-        
+
         $this->assertIsString($sample);
     }
 
@@ -359,10 +355,10 @@ class FullCoverageTest extends TestCase
     {
         // Test ValidatorNodeVisitor with invalid backreference
         $this->expectException(ParserException::class);
-        
+
         $parser = new Parser([]);
         $ast = $parser->parse('/\1/');
-        
+
         $visitor = new ValidatorNodeVisitor();
         $ast->accept($visitor);
     }
@@ -371,10 +367,10 @@ class FullCoverageTest extends TestCase
     {
         // Test ValidatorNodeVisitor with invalid subroutine
         $this->expectException(ParserException::class);
-        
+
         $parser = new Parser([]);
         $ast = $parser->parse('/(?&nonexistent)/');
-        
+
         $visitor = new ValidatorNodeVisitor();
         $ast->accept($visitor);
     }
@@ -385,7 +381,7 @@ class FullCoverageTest extends TestCase
         // Test ValidatorNodeVisitor with PCRE verb - should pass
         $parser = new Parser([]);
         $ast = $parser->parse('/(*FAIL)/');
-        
+
         $visitor = new ValidatorNodeVisitor();
         $ast->accept($visitor);
     }
@@ -396,7 +392,7 @@ class FullCoverageTest extends TestCase
         // Test ValidatorNodeVisitor with \K - should pass
         $parser = new Parser([]);
         $ast = $parser->parse('/test\K/');
-        
+
         $visitor = new ValidatorNodeVisitor();
         $ast->accept($visitor);
     }
@@ -407,7 +403,7 @@ class FullCoverageTest extends TestCase
         // Test ValidatorNodeVisitor with octal legacy - should pass
         $parser = new Parser([]);
         $ast = $parser->parse('/\07/');
-        
+
         $visitor = new ValidatorNodeVisitor();
         $ast->accept($visitor);
     }
@@ -418,7 +414,7 @@ class FullCoverageTest extends TestCase
         // Test ValidatorNodeVisitor with unicode - should pass
         $parser = new Parser([]);
         $ast = $parser->parse('/\u{41}/');
-        
+
         $visitor = new ValidatorNodeVisitor();
         $ast->accept($visitor);
     }

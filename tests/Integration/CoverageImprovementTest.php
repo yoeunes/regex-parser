@@ -642,10 +642,10 @@ class CoverageImprovementTest extends TestCase
     {
         // First parse - creates new Lexer
         $this->parser->parse('/abc/');
-        
+
         // Second parse - should reuse Lexer via getLexer()
         $this->parser->parse('/def/');
-        
+
         // Third parse - ensures reset works correctly
         $this->parser->parse('/[a-z]+/');
     }
@@ -696,13 +696,13 @@ class CoverageImprovementTest extends TestCase
     {
         // Simple comment
         $this->parser->parse('/(?#comment)test/');
-        
+
         // Comment with special characters
         $this->parser->parse('/(?#this is a comment with spaces)abc/');
-        
+
         // Comment at the end
         $this->parser->parse('/test(?#end comment)/');
-        
+
         // Multiple comments
         $this->parser->parse('/(?#first)a(?#second)b/');
     }
@@ -716,26 +716,26 @@ class CoverageImprovementTest extends TestCase
     {
         // T_LITERAL_ESCAPED: \t, \n, \r, \f, \v, \e
         $this->parser->parse('/\t\n\r\f\v\e/');
-        
+
         // T_PCRE_VERB: (*FAIL), (*ACCEPT)
         $this->parser->parse('/(*FAIL)/');
         $this->parser->parse('/(*ACCEPT)/');
-        
+
         // T_ASSERTION: \b, \B, \A, \Z, \z
         $this->parser->parse('/\b\B\A\Z\z/');
-        
+
         // T_CHAR_TYPE: \d, \D, \w, \W, \s, \S
         $this->parser->parse('/\d\D\w\W\s\S/');
-        
+
         // T_KEEP: \K
         $this->parser->parse('/\K/');
-        
+
         // T_BACKREF: \1, \2
         $this->parser->parse('/(a)\1/');
-        
+
         // T_OCTAL_LEGACY: \01, \02
         $this->parser->parse('/\01\02/');
-        
+
         // T_POSIX_CLASS: [[:alnum:]]
         $this->parser->parse('/[[:alnum:]]/');
         $this->parser->parse('/[[:alpha:]]/');
@@ -750,16 +750,16 @@ class CoverageImprovementTest extends TestCase
     {
         // \p{L} - regular property
         $this->parser->parse('/\p{L}/');
-        
+
         // \P{L} - negated property (adds ^)
         $this->parser->parse('/\P{L}/');
-        
+
         // \p{^L} - already negated
         $this->parser->parse('/\p{^L}/');
-        
+
         // \P{^L} - double negation (removes ^)
         $this->parser->parse('/\P{^L}/');
-        
+
         // Various Unicode properties
         $this->parser->parse('/\p{Ll}/');  // Lowercase letter
         $this->parser->parse('/\P{Lu}/');  // Not uppercase letter

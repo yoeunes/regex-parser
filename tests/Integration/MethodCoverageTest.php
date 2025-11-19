@@ -42,7 +42,7 @@ class MethodCoverageTest extends TestCase
     }
 
     /**
-     * Test Parser.parseSubroutineName() via (?&name) syntax  
+     * Test Parser.parseSubroutineName() via (?&name) syntax
      * This also triggers the parseSubroutineName() method
      */
     #[DoesNotPerformAssertions]
@@ -61,10 +61,10 @@ class MethodCoverageTest extends TestCase
     {
         // First call creates lexer
         $this->parser->parse('/test/');
-        
+
         // Second call should reuse lexer via getLexer
         $this->parser->parse('/another/');
-        
+
         // Third call
         $this->parser->parse('/pattern/');
     }
@@ -126,19 +126,19 @@ class MethodCoverageTest extends TestCase
         $this->parser->parse('/\v/');  // Vertical tab
         $this->parser->parse('/\e/');  // Escape
         $this->parser->parse('/\./');  // Escaped dot
-        
+
         // T_PCRE_VERB
         $this->parser->parse('/(*FAIL)/');
         $this->parser->parse('/(*ACCEPT)/');
         $this->parser->parse('/(*COMMIT)/');
-        
+
         // T_ASSERTION
         $this->parser->parse('/\b/');  // Word boundary
         $this->parser->parse('/\B/');  // Not word boundary
         $this->parser->parse('/\A/');  // Start of string
         $this->parser->parse('/\Z/');  // End of string
         $this->parser->parse('/\z/');  // Absolute end
-        
+
         // T_CHAR_TYPE
         $this->parser->parse('/\d/');  // Digit
         $this->parser->parse('/\D/');  // Not digit
@@ -146,18 +146,18 @@ class MethodCoverageTest extends TestCase
         $this->parser->parse('/\W/');  // Not word char
         $this->parser->parse('/\s/');  // Whitespace
         $this->parser->parse('/\S/');  // Not whitespace
-        
+
         // T_KEEP
         $this->parser->parse('/\K/');
-        
+
         // T_BACKREF
         $this->parser->parse('/(a)\1/');
         $this->parser->parse('/(a)(b)\2/');
-        
+
         // T_OCTAL_LEGACY
         $this->parser->parse('/\01/');
         $this->parser->parse('/\77/');
-        
+
         // T_POSIX_CLASS
         $this->parser->parse('/[[:alnum:]]/');
         $this->parser->parse('/[[:alpha:]]/');
@@ -173,7 +173,7 @@ class MethodCoverageTest extends TestCase
         $lexer = new Lexer('test');
         $tokens = $lexer->tokenize();
         $this->assertIsArray($tokens);
-        
+
         // Reset and tokenize again
         $lexer->reset('another');
         $tokens2 = $lexer->tokenize();
