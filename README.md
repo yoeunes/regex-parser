@@ -47,7 +47,7 @@ use RegexParser\Regex;
 use RegexParser\Exception\ParserException;
 
 try {
-    $ast = Regex::parse('/^Hello (?<name>\w+)!$/i');
+    $ast = Regex::create()->parse('/^Hello (?<name>\w+)!$/i');
     
     // $ast is now a RegexParser\Node\RegexNode object
     echo $ast->flags; // "i"
@@ -64,14 +64,14 @@ Check a regex for syntax errors, semantic errors, and ReDoS vulnerabilities.
 ```php
 use RegexParser\Regex;
 
-$result = Regex::validate('/(a+)*b/');
+$result = Regex::create()->validate('/(a+)*b/');
 
 if (!$result->isValid) {
     echo $result->error;
     // Output: Potential catastrophic backtracking: nested quantifiers detected.
 }
 
-$result = Regex::validate('/(?<!a*b)/');
+$result = Regex::create()->validate('/(?<!a*b)/');
 
 if (!$result->isValid) {
     echo $result->error;
@@ -86,7 +86,7 @@ Generate a human-readable explanation of a complex pattern.
 ```php
 use RegexParser\Regex;
 
-$explanation = Regex::explain('/(foo|bar){1,2}?/s');
+$explanation = Regex::create()->explain('/(foo|bar){1,2}?/s');
 echo $explanation;
 ```
 
@@ -117,7 +117,7 @@ Generate a random string that will successfully match a pattern.
 ```php
 use RegexParser\Regex;
 
-$sample = Regex::generate('/[a-f0-9]{4}-\[a-f0-9]{4}/');
+$sample = Regex::create()->generate('/[a-f0-9]{4}-\[a-f0-9]{4}/');
 echo $sample;
 
 // Possible Output: c4e1-[9b2a]
@@ -133,7 +133,7 @@ For example, you can use the built-in `DumperNodeVisitor` to see the AST structu
 use RegexParser\Regex;
 use RegexParser\NodeVisitor\DumperNodeVisitor;
 
-$ast = Regex::parse('/^(?<id>\d+)/');
+$ast = Regex::create()->parse('/^(?<id>\d+)/');
 
 $dumper = new DumperNodeVisitor();
 echo $ast->accept($dumper);

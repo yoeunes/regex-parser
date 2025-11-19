@@ -1052,6 +1052,11 @@ class Parser
                 $token = $this->previous();
                 $endPos = $endNodeStartPos + mb_strlen($token->value) + 1;
                 $endNode = new OctalLegacyNode($token->value, $endNodeStartPos, $endPos);
+            } elseif ($this->match(TokenType::T_RANGE)) {
+                // Handle "-" as the end of a range (e.g. [a--])
+                // It is treated as a literal "-"
+                $endPos = $endNodeStartPos + 1;
+                $endNode = new LiteralNode('-', $endNodeStartPos, $endPos);
             } else {
                 // This means a range ending with a meta-char, e.g. [a-\]
                 // We treat the "-" as a literal.
