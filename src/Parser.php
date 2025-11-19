@@ -531,7 +531,7 @@ class Parser
             TokenType::T_BACKREF, TokenType::T_G_REFERENCE, TokenType::T_UNICODE, TokenType::T_OCTAL => $token->value,
 
             // Complex re-assembly
-            TokenType::T_UNICODE_PROP => (mb_strlen($token->value) > 1 || str_starts_with($token->value, '^')) ? '\p{'.$token->value.'}' : '\p'.$token->value,
+            TokenType::T_UNICODE_PROP => str_starts_with($token->value, '{') ? '\p'.$token->value : ((mb_strlen($token->value) > 1 || str_starts_with($token->value, '^')) ? '\p{'.$token->value.'}' : '\p'.$token->value),
             TokenType::T_POSIX_CLASS => '[[:'.$token->value.':]]',
             TokenType::T_PCRE_VERB => '(*'.$token->value.')',
             TokenType::T_GROUP_MODIFIER_OPEN => '(?',
