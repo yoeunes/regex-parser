@@ -19,30 +19,8 @@ class ParserReconstructionTest extends TestCase
 
         // Une regex contenant un commentaire avec TOUS les types de syntaxe possibles
         // Cela force le parser à passer dans chaque branch du match() de reconstructTokenValue
-        $regex = '/(?#
-            [abc]           # T_CHAR_CLASS_OPEN, T_CHAR_CLASS_CLOSE
-            (group)         # T_GROUP_OPEN, T_GROUP_CLOSE
-            (?:non)         # T_GROUP_MODIFIER_OPEN
-            * + ?           # T_QUANTIFIER
-            |               # T_ALTERNATION
-            .               # T_DOT
-            ^ $             # T_ANCHOR
-            -               # T_RANGE (si contexte)
-            \b \A           # T_ASSERTION
-            \K              # T_KEEP
-            \d \s           # T_CHAR_TYPE
-            \g{1}           # T_G_REFERENCE
-            \1 \k<name>     # T_BACKREF
-            \01             # T_OCTAL_LEGACY
-            \o{123}         # T_OCTAL
-            \x00 \u{FFFF}   # T_UNICODE
-            \p{L} \P{L}     # T_UNICODE_PROP
-            \Q \E           # T_QUOTE_MODE_START/END
-            \a              # T_LITERAL_ESCAPED
-            text            # T_LITERAL
-            [[:alnum:]]     # T_POSIX_CLASS (dans char class)
-            (*FAIL)         # T_PCRE_VERB
-        )/x'; // flag x pour ignorer les espaces dans la regex principale, mais pas dans le commentaire
+        // Note: In PCRE (?#...) comments, the comment ends at the first ) character
+        $regex = '/(?#[abc] (group (?:non * + ? | . ^ $ - \b \A \K \d \s \g{1} \1 \k<name> \01 \o{123} \x00 \u{FFFF} \p{L} \P{L} \Q \E \a text [[:alnum:]] (*FAIL)/x';
 
         $ast = $parser->parse($regex);
 
@@ -52,6 +30,6 @@ class ParserReconstructionTest extends TestCase
         // On vérifie la présence de quelques éléments clés reconstruits
         $this->assertStringContainsString('[abc]', $ast->pattern->comment);
         $this->assertStringContainsString('\p{L}', $ast->pattern->comment);
-        $this->assertStringContainsString('(*FAIL)', $ast->pattern->comment);
+        $this->assertStringContainsString('(*FAIL', $ast->pattern->comment);
     }
 }

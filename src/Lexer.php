@@ -135,6 +135,8 @@ class Lexer
 
     private bool $inQuoteMode = false;
 
+    private bool $inCommentMode = false;
+
     private int $charClassStartPosition = 0;
 
     public function __construct(string $pattern)
@@ -160,6 +162,7 @@ class Lexer
         $this->position = 0;
         $this->inCharClass = false;
         $this->inQuoteMode = false;
+        $this->inCommentMode = false;
         $this->charClassStartPosition = 0;
     }
 
@@ -175,6 +178,7 @@ class Lexer
         $this->position = 0;
         $this->inCharClass = false;
         $this->inQuoteMode = false;
+        $this->inCommentMode = false;
         $this->charClassStartPosition = 0;
 
         while ($this->position < $this->length) {
@@ -189,7 +193,17 @@ class Lexer
                 continue; // Re-evaluate loop with new state (inQuoteMode might be false)
             }
 
-            // State 2: Character Class or Default
+            // State 2: Comment Mode (?#...)
+            if ($this->inCommentMode) {
+                $token = $this->lexCommentMode();
+                if ($token) {
+                    $tokens[] = $token;
+                }
+
+                continue; // Re-evaluate loop with new state (inCommentMode might be false)
+            }
+
+            // State 3: Character Class or Default
             $regex = $this->inCharClass ? self::REGEX_INSIDE : self::REGEX_OUTSIDE;
             $tokenNames = $this->inCharClass ? self::TOKEN_NAMES_INSIDE : self::TOKEN_NAMES_OUTSIDE;
 
@@ -239,6 +253,14 @@ class Lexer
                             $this->inCharClass = false;
                             $tokens[] = new Token($type, ']', $startPos);
                         }
+                        $tokenFound = true;
+
+                        break;
+                    }
+
+                    if (TokenType::T_COMMENT_OPEN === $type) {
+                        $this->inCommentMode = true;
+                        $tokens[] = new Token($type, '(?#', $startPos);
                         $tokenFound = true;
 
                         break;
@@ -306,6 +328,10 @@ class Lexer
             throw new LexerException('Unclosed character class "]" at end of input.');
         }
 
+        if ($this->inCommentMode) {
+            throw new LexerException('Unclosed comment ")" at end of input.');
+        }
+
         $tokens[] = new Token(TokenType::T_EOF, '', $this->position);
 
         return $tokens;
@@ -353,6 +379,54 @@ class Lexer
         }
 
         return null; // No token emitted, just state change or end.
+    }
+
+    /**
+     * Handles tokenization inside (?#...) (comment mode).
+     *
+     * This method finds the *next* ) or the end of the string.
+     * All text in between is the comment content.
+     */
+    private function lexCommentMode(): ?Token
+    {
+        // Find the closing ) for the comment
+        // @codeCoverageIgnoreStart
+        if (!preg_match('/(.*?)(\)|$)/suA', $this->pattern, $matches, \PREG_UNMATCHED_AS_NULL, $this->position)) {
+            // This should be logically impossible if lexCommentMode is called.
+            // As a fallback, we exit comment mode and stop.
+            $this->inCommentMode = false;
+            $this->position = $this->length;
+
+            return null;
+        }
+        // @codeCoverageIgnoreEnd
+
+        $commentText = $matches[1];
+        $endSequence = $matches[2];
+        $startPos = $this->position;
+
+        if ('' !== $commentText) {
+            // We found text before ) or end. Emit it as comment content.
+            $this->position += \strlen($commentText);
+
+            return new Token(TokenType::T_LITERAL, $commentText, $startPos);
+        }
+
+        // We are at ) or end of string.
+        if (')' === $endSequence) {
+            $this->inCommentMode = false; // Exit comment mode
+            // Emit the closing ) as T_GROUP_CLOSE
+            $token = new Token(TokenType::T_GROUP_CLOSE, ')', $this->position);
+            $this->position += 1; // Advance past )
+
+            return $token;
+        }
+
+        // End of string, ) was never found.
+        $this->position = $this->length;
+        $this->inCommentMode = false;
+
+        return null;
     }
 
     /**
