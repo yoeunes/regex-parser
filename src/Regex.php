@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser;
 
+use RegexParser\Builder\RegexBuilder;
 use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
 use RegexParser\Node\RegexNode;
@@ -179,5 +180,13 @@ class Regex
         // We can reuse the internal parser
         $analyzer = new ReDoSAnalyzer($this->parser);
         return $analyzer->analyze($regex);
+    }
+
+    /**
+     * Returns a fluent builder to construct regex programmatically.
+     */
+    public static function builder(): RegexBuilder
+    {
+        return RegexBuilder::create();
     }
 }

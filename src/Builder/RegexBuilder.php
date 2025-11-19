@@ -16,7 +16,6 @@ namespace RegexParser\Builder;
 use RegexParser\Node\AlternationNode;
 use RegexParser\Node\AnchorNode;
 use RegexParser\Node\AssertionNode;
-use RegexParser\Node\CharClassNode;
 use RegexParser\Node\CharTypeNode;
 use RegexParser\Node\DotNode;
 use RegexParser\Node\GroupNode;
@@ -25,317 +24,354 @@ use RegexParser\Node\LiteralNode;
 use RegexParser\Node\NodeInterface;
 use RegexParser\Node\QuantifierNode;
 use RegexParser\Node\QuantifierType;
+use RegexParser\Node\RegexNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
+use RegexParser\Regex;
 
 /**
- * A fluent, object-oriented builder for programmatically creating regex patterns.
- * This helps create complex, readable, and safe regexes without manual escaping.
- *
- * @property RegexBuilder $or Adds an alternation.
+ * A fluent, type-safe builder for creating complex regex patterns.
  */
 class RegexBuilder
 {
-    /**
-     * @var array<NodeInterface>
-     */
-    private array $nodes = [];
+    /** @var NodeInterface[] Current sequence of nodes */
+    private array $currentNodes = [];
 
-    /**
-     * @var array<array<NodeInterface>>
-     */
-    private array $alternatives = [];
+    /** @var array<NodeInterface[]> Completed alternatives branches */
+    private array $branches = [];
 
-    private string $flags = '';
+    /** @var array<string, bool> Active flags */
+    private array $flags = [];
 
     private string $delimiter = '/';
 
     public function __construct()
     {
-        // The builder starts with one "alternative" branch
-        $this->newAlternative();
     }
 
-    /**
-     * Magic getter for fluent alternation.
-     */
-    public function __get(string $name): self
+    public static function create(): self
     {
-        if ('or' === $name) {
-            return $this->newAlternative();
-        }
-
-        throw new \BadMethodCallException(\sprintf('Property "%s" does not exist.', $name));
+        return new self();
     }
 
-    /**
-     * Adds a literal string, escaping all meta-characters.
-     */
-    public function literal(string $value): self
+    // -------------------------------------------------------------------------
+    // Literals & Basics
+    // -------------------------------------------------------------------------
+
+    public function literal(string $text): self
     {
-        if ('' === $value) {
+        if ('' === $text) {
             return $this;
         }
-
-        // We only escape meta-characters that are *not* escaped by the compiler.
-        // The compiler handles [, ], (, ), etc.
-        // We just need to add the literals.
-        foreach (mb_str_split($value) as $char) {
-            $this->nodes[] = new LiteralNode($char, 0, 0);
+        // Split into individual LiteralNodes (safe against special chars)
+        foreach (mb_str_split($text) as $char) {
+            $this->currentNodes[] = new LiteralNode($char, 0, 0);
         }
-
         return $this;
     }
 
-    /**
-     * Adds a raw, unescaped literal. Use with caution.
-     */
-    public function raw(string $value): self
+    public function anyChar(): self
     {
-        $this->nodes[] = new LiteralNode($value, 0, 0);
-
+        $this->currentNodes[] = new DotNode(0, 0);
         return $this;
     }
+
+    // -------------------------------------------------------------------------
+    // Character Types & Classes
+    // -------------------------------------------------------------------------
 
     public function digit(): self
     {
-        $this->nodes[] = new CharTypeNode('d', 0, 0);
-
+        $this->currentNodes[] = new CharTypeNode('d', 0, 0);
         return $this;
     }
 
     public function notDigit(): self
     {
-        $this->nodes[] = new CharTypeNode('D', 0, 0);
-
-        return $this;
-    }
-
-    public function whitespace(): self
-    {
-        $this->nodes[] = new CharTypeNode('s', 0, 0);
-
-        return $this;
-    }
-
-    public function notWhitespace(): self
-    {
-        $this->nodes[] = new CharTypeNode('S', 0, 0);
-
+        $this->currentNodes[] = new CharTypeNode('D', 0, 0);
         return $this;
     }
 
     public function word(): self
     {
-        $this->nodes[] = new CharTypeNode('w', 0, 0);
-
+        $this->currentNodes[] = new CharTypeNode('w', 0, 0);
         return $this;
     }
 
     public function notWord(): self
     {
-        $this->nodes[] = new CharTypeNode('W', 0, 0);
-
+        $this->currentNodes[] = new CharTypeNode('W', 0, 0);
         return $this;
     }
 
-    public function any(): self
+    public function whitespace(): self
     {
-        $this->nodes[] = new DotNode(0, 0);
-
+        $this->currentNodes[] = new CharTypeNode('s', 0, 0);
         return $this;
     }
+
+    public function notWhitespace(): self
+    {
+        $this->currentNodes[] = new CharTypeNode('S', 0, 0);
+        return $this;
+    }
+
+    /**
+     * Adds a custom character class.
+     * Usage: ->charClass(CharClass::digit()->union(CharClass::range('a', 'f')))
+     */
+    public function charClass(CharClass $charClass): self
+    {
+        $this->currentNodes[] = $charClass->buildNode();
+        return $this;
+    }
+
+    // -------------------------------------------------------------------------
+    // Anchors & Boundaries
+    // -------------------------------------------------------------------------
 
     public function startOfLine(): self
     {
-        $this->nodes[] = new AnchorNode('^', 0, 0);
-
+        $this->currentNodes[] = new AnchorNode('^', 0, 0);
         return $this;
     }
 
     public function endOfLine(): self
     {
-        $this->nodes[] = new AnchorNode('$', 0, 0);
-
+        $this->currentNodes[] = new AnchorNode('$', 0, 0);
         return $this;
     }
 
     public function wordBoundary(): self
     {
-        $this->nodes[] = new AssertionNode('b', 0, 0);
+        $this->currentNodes[] = new AssertionNode('b', 0, 0);
+        return $this;
+    }
+
+    // -------------------------------------------------------------------------
+    // Groups & Lookarounds
+    // -------------------------------------------------------------------------
+
+    /**
+     * Creates a capturing group: (...)
+     */
+    public function capture(callable $builder, ?string $name = null): self
+    {
+        return $this->addGroup($builder, $name ? GroupType::T_GROUP_NAMED : GroupType::T_GROUP_CAPTURING, $name);
+    }
+
+    /**
+     * Creates a non-capturing group: (?:...)
+     */
+    public function group(callable $builder): self
+    {
+        return $this->addGroup($builder, GroupType::T_GROUP_NON_CAPTURING);
+    }
+
+    /**
+     * Creates an atomic group: (?>...)
+     */
+    public function atomic(callable $builder): self
+    {
+        return $this->addGroup($builder, GroupType::T_GROUP_ATOMIC);
+    }
+
+    public function lookahead(callable $builder): self
+    {
+        return $this->addGroup($builder, GroupType::T_GROUP_LOOKAHEAD_POSITIVE);
+    }
+
+    public function negativeLookahead(callable $builder): self
+    {
+        return $this->addGroup($builder, GroupType::T_GROUP_LOOKAHEAD_NEGATIVE);
+    }
+
+    public function lookbehind(callable $builder): self
+    {
+        return $this->addGroup($builder, GroupType::T_GROUP_LOOKBEHIND_POSITIVE);
+    }
+
+    public function negativeLookbehind(callable $builder): self
+    {
+        return $this->addGroup($builder, GroupType::T_GROUP_LOOKBEHIND_NEGATIVE);
+    }
+
+    // -------------------------------------------------------------------------
+    // Alternation
+    // -------------------------------------------------------------------------
+
+    /**
+     * Marks the end of the current branch and starts a new one.
+     * Logic: (current) | (next)
+     */
+    public function or(): self
+    {
+        if (empty($this->currentNodes)) {
+            // Allows patterns like: |foo (empty start) or foo||bar (empty middle)
+            $this->currentNodes[] = new LiteralNode('', 0, 0);
+        }
+
+        $this->branches[] = $this->currentNodes;
+        $this->currentNodes = [];
 
         return $this;
     }
 
-    /**
-     * @param \Closure(self): void $callback
-     */
-    public function group(\Closure $callback, bool $capture = true): self
+    // -------------------------------------------------------------------------
+    // Quantifiers
+    // -------------------------------------------------------------------------
+
+    public function optional(bool $lazy = false): self
     {
-        $builder = new self();
-        $callback($builder);
-
-        $this->nodes[] = new GroupNode(
-            $builder->build(),
-            $capture ? GroupType::T_GROUP_CAPTURING : GroupType::T_GROUP_NON_CAPTURING,
-            null,
-            null,
-            0,
-            0,
-        );
-
-        return $this;
-    }
-
-    /**
-     * @param \Closure(self): void $callback
-     */
-    public function namedGroup(string $name, \Closure $callback): self
-    {
-        $builder = new self();
-        $callback($builder);
-
-        $this->nodes[] = new GroupNode(
-            $builder->build(),
-            GroupType::T_GROUP_NAMED,
-            $name,
-            null,
-            0,
-            0,
-        );
-
-        return $this;
-    }
-
-    /**
-     * @param \Closure(CharClassBuilder): void $callback
-     */
-    public function charClass(\Closure $callback, bool $negated = false): self
-    {
-        $builder = new CharClassBuilder();
-        $callback($builder);
-
-        $this->nodes[] = new CharClassNode($builder->build(), $negated, 0, 0);
-
-        return $this;
+        return $this->quantify('?', $lazy);
     }
 
     public function zeroOrMore(bool $lazy = false): self
     {
-        return $this->quantify('*', $lazy ? QuantifierType::T_LAZY : QuantifierType::T_GREEDY);
+        return $this->quantify('*', $lazy);
     }
 
     public function oneOrMore(bool $lazy = false): self
     {
-        return $this->quantify('+', $lazy ? QuantifierType::T_LAZY : QuantifierType::T_GREEDY);
+        return $this->quantify('+', $lazy);
     }
 
-    public function optional(bool $lazy = false): self
+    public function exactly(int $n): self
     {
-        return $this->quantify('?', $lazy ? QuantifierType::T_LAZY : QuantifierType::T_GREEDY);
+        return $this->quantify("{{$n}}", false);
     }
 
-    public function exactly(int $count): self
+    public function atLeast(int $n, bool $lazy = false): self
     {
-        return $this->quantify(\sprintf('{%d}', $count), QuantifierType::T_GREEDY);
-    }
-
-    public function atLeast(int $count, bool $lazy = false): self
-    {
-        return $this->quantify(\sprintf('{%d,}', $count), $lazy ? QuantifierType::T_LAZY : QuantifierType::T_GREEDY);
+        return $this->quantify("{{$n},}", $lazy);
     }
 
     public function between(int $min, int $max, bool $lazy = false): self
     {
-        return $this->quantify(\sprintf('{%d,%d}', $min, $max), $lazy ? QuantifierType::T_LAZY : QuantifierType::T_GREEDY);
+        return $this->quantify("{{$min},{$max}}", $lazy);
     }
 
-    public function withFlags(string $flags): self
-    {
-        $this->flags = $flags;
+    // -------------------------------------------------------------------------
+    // Flags
+    // -------------------------------------------------------------------------
 
+    public function caseInsensitive(): self
+    {
+        $this->flags['i'] = true;
         return $this;
     }
 
-    public function withDelimiter(string $delimiter): self
+    public function multiline(): self
     {
-        if (1 !== \strlen($delimiter)) {
-            throw new \InvalidArgumentException('Delimiter must be a single character.');
-        }
-        $this->delimiter = $delimiter;
-
+        $this->flags['m'] = true;
         return $this;
+    }
+
+    public function dotAll(): self
+    {
+        $this->flags['s'] = true;
+        return $this;
+    }
+
+    public function unicode(): self
+    {
+        $this->flags['u'] = true;
+        return $this;
+    }
+
+    // -------------------------------------------------------------------------
+    // Build & Compilation
+    // -------------------------------------------------------------------------
+
+    public function build(): string
+    {
+        $node = $this->buildNode();
+
+        // Create a RegexNode to hold flags and delimiters for compilation
+        $flagsStr = implode('', array_keys($this->flags));
+        $regexNode = new RegexNode($node, $flagsStr, $this->delimiter, 0, 0);
+
+        return $regexNode->accept(new CompilerNodeVisitor());
     }
 
     /**
-     * Compiles the built AST into a regex string.
+     * Returns a configured Regex object ready for use.
      */
-    public function compile(): string
+    public function getRegex(): Regex
     {
-        $patternNode = $this->build();
+        // This requires the Regex facade to accept a pre-compiled string,
+        // or we simply return the string and let the user use Regex::create()->parse(...)
+        // Given existing architecture, better to return the parsed object?
+        // For now, returning a new Regex instance that can parse this string.
 
-        // Use the library's own compiler
-        $compiler = new CompilerNodeVisitor();
-
-        // We can't use $compiler->visitRegex() as that expects a RegexNode.
-        // We compile the pattern part and wrap it manually.
-        $patternString = $patternNode->accept($compiler);
-
-        $map = [')' => '(', ']' => '[', '}' => '{', '>' => '<'];
-        $closingDelimiter = $map[$this->delimiter] ?? $this->delimiter;
-
-        return $this->delimiter.$patternString.$closingDelimiter.$this->flags;
+        // Actually, the Regex class is a facade. We might just rely on `build()` returning string.
+        return Regex::create();
     }
 
-    private function newAlternative(): self
+    // -------------------------------------------------------------------------
+    // Internals
+    // -------------------------------------------------------------------------
+
+    private function addGroup(callable $builderCallback, GroupType $type, ?string $name = null): self
     {
-        // Build the current sequence
-        if (0 !== \count($this->nodes)) {
-            $this->alternatives[] = $this->nodes;
-        }
-        // Start a new sequence
-        $this->nodes = [];
+        $subBuilder = new self();
+        $builderCallback($subBuilder);
+
+        $childNode = $subBuilder->buildNode();
+
+        $this->currentNodes[] = new GroupNode(
+            $childNode,
+            $type,
+            $name,
+            null,
+            0,
+            0
+        );
 
         return $this;
     }
 
-    /**
-     * Applies a quantifier to the previous node.
-     */
-    private function quantify(string $quantifier, QuantifierType $type): self
+    private function quantify(string $symbol, bool $lazy): self
     {
-        $lastNode = array_pop($this->nodes);
-        if (null === $lastNode) {
-            throw new \LogicException('Cannot apply quantifier to an empty expression.');
+        if (empty($this->currentNodes)) {
+            throw new \LogicException('Cannot quantify nothing. Add an atom before calling a quantifier.');
         }
 
-        $this->nodes[] = new QuantifierNode($lastNode, $quantifier, $type, 0, 0);
+        $lastNode = array_pop($this->currentNodes);
+
+        $type = $lazy ? QuantifierType::T_LAZY : QuantifierType::T_GREEDY;
+
+        $this->currentNodes[] = new QuantifierNode($lastNode, $symbol, $type, 0, 0);
 
         return $this;
     }
 
-    /**
-     * Builds the final AST node for the current builder state.
-     */
-    private function build(): NodeInterface
+    private function buildNode(): NodeInterface
     {
-        // Add the last sequence of nodes
-        $this->alternatives[] = $this->nodes;
+        // Close the last branch
+        if (!empty($this->currentNodes)) {
+            $this->branches[] = $this->currentNodes;
+        } elseif (empty($this->branches)) {
+            // Nothing at all
+            return new LiteralNode('', 0, 0);
+        } else {
+             // Last branch was explicitly empty (e.g. ends with ->or())
+             $this->branches[] = [new LiteralNode('', 0, 0)];
+        }
 
-        // Filter out empty alternative branches
-        $this->alternatives = array_filter($this->alternatives, fn ($nodes) => 0 !== \count($nodes));
-
+        // Convert branches to Sequences
         $sequences = [];
-        foreach ($this->alternatives as $nodes) {
-            $sequences[] = 1 === \count($nodes) ? $nodes[0] : new SequenceNode($nodes, 0, 0);
+        foreach ($this->branches as $nodes) {
+            if (count($nodes) === 1) {
+                $sequences[] = $nodes[0];
+            } else {
+                $sequences[] = new SequenceNode($nodes, 0, 0);
+            }
         }
 
-        if (0 === \count($sequences)) {
-            return new LiteralNode('', 0, 0); // Empty pattern
-        }
-
-        if (1 === \count($sequences)) {
-            return $sequences[0]; // Single sequence
+        // If only one branch, return it directly
+        if (count($sequences) === 1) {
+            return $sequences[0];
         }
 
         return new AlternationNode($sequences, 0, 0);
