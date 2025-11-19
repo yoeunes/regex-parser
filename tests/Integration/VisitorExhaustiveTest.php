@@ -1,5 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
@@ -35,7 +46,6 @@ use RegexParser\NodeVisitor\DumperNodeVisitor;
 use RegexParser\NodeVisitor\ExplainVisitor;
 use RegexParser\NodeVisitor\HtmlExplainVisitor;
 use RegexParser\NodeVisitor\OptimizerNodeVisitor;
-use RegexParser\NodeVisitor\SampleGeneratorVisitor;
 use RegexParser\NodeVisitor\ValidatorNodeVisitor;
 
 class VisitorExhaustiveTest extends TestCase
@@ -96,7 +106,7 @@ class VisitorExhaustiveTest extends TestCase
 
                 try {
                     $node->accept($visitor);
-                } catch (\Throwable $e) {
+                } catch (\Throwable) {
                     // On ignore les exceptions logiques (ex: SampleGenerator sur Subroutine)
                     // car le but ici est juste de toucher le code des méthodes visit*
                 }
@@ -116,7 +126,7 @@ class VisitorExhaustiveTest extends TestCase
         // Le groupe doit détecter ce changement et retourner une nouvelle instance.
 
         // AST manuel: Group( CharClass( Range(0-9) ) )
-        $range = new RangeNode(new LiteralNode('0',0,0), new LiteralNode('9',0,0), 0, 0);
+        $range = new RangeNode(new LiteralNode('0', 0, 0), new LiteralNode('9', 0, 0), 0, 0);
         $charClass = new CharClassNode([$range], false, 0, 0);
         $group = new GroupNode($charClass, GroupType::T_GROUP_CAPTURING, null, null, 0, 0);
 
