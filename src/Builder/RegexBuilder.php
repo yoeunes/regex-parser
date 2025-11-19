@@ -90,13 +90,23 @@ class RegexBuilder
      */
     public function raw(string $value): self
     {
-        // For raw strings like '\w+', we treat them as a single literal chunk
-        // that the compiler will output as-is (hopefully).
-        // However, LiteralNode usually escapes.
-        // To truly support RAW injection without escaping, we might need a RawNode,
-        // but for now, let's assume the user wants to inject a string that *looks* like regex.
-        // The previous implementation used LiteralNode($value).
-        $this->currentNodes[] = new LiteralNode($value, 0, 0);
+        // Parse the raw regex fragment into an AST
+        // We use a safe delimiter (~) to avoid conflicts with common regex chars
+        // and escape any occurrences of the delimiter in the value.
+        $delimiter = '~';
+        $safeValue = str_replace($delimiter, '\\'.$delimiter, $value);
+        $pattern = $delimiter.$safeValue.$delimiter;
+
+        try {
+            // We use the static create() to get a fresh parser instance
+            $ast = Regex::create()->parse($pattern);
+            $this->currentNodes[] = $ast->pattern;
+        } catch (\Throwable $e) {
+            // Fallback: if parsing fails (e.g. invalid partial regex), 
+            // we might want to throw or fallback to LiteralNode?
+            // For now, let's throw to alert the user their "raw" regex is invalid.
+            throw new \InvalidArgumentException('Invalid raw regex fragment: '.$e->getMessage(), 0, $e);
+        }
 
         return $this;
     }

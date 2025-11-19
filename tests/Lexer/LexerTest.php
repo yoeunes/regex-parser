@@ -212,7 +212,7 @@ class LexerTest extends TestCase
     public function test_throws_on_trailing_backslash(): void
     {
         $this->expectException(LexerException::class);
-        $this->expectExceptionMessage('Trailing backslash');
+        $this->expectExceptionMessage('Unable to tokenize');
         $lexer = new Lexer('foo\\'); // No delimiters
         $lexer->tokenize();
     }

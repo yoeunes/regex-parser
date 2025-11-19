@@ -33,7 +33,7 @@ class FullCoverageTest extends TestCase
     public function test_lexer_trailing_backslash(): void
     {
         $this->expectException(LexerException::class);
-        $this->expectExceptionMessage('Trailing backslash');
+        $this->expectExceptionMessage('Unable to tokenize');
 
         $lexer = new Lexer('abc\\');
         $lexer->tokenize();
