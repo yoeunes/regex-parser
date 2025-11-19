@@ -56,6 +56,9 @@ final class ReDoSProfileVisitor implements NodeVisitorInterface
      */
     private int $totalQuantifierDepth = 0;
 
+    /**
+     * @var array<array{severity: ReDoSSeverity, message: string, pattern: string}>
+     */
     private array $vulnerabilities = [];
 
     // Track if we are inside an atomic group (which mitigates ReDoS)

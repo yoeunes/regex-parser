@@ -72,9 +72,9 @@ class FluentBuilderTest extends TestCase
     public function test_lookarounds(): void
     {
         $regex = RegexBuilder::create()
-            ->lookbehind(fn ($b) => $b->literal('$'))
+            ->lookbehind(fn (RegexBuilder $b) => $b->literal('$'))
             ->digit()->oneOrMore()
-            ->lookahead(fn ($b) => $b->literal('.'))
+            ->lookahead(fn (RegexBuilder $b) => $b->literal('.'))
             ->build();
 
         // Note: le compilateur échappe le $ dans un littéral
