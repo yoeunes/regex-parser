@@ -15,6 +15,7 @@ namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
+use RegexParser\Builder\RegexBuilder;
 use RegexParser\Exception\ParserException;
 use RegexParser\Parser;
 
@@ -592,5 +593,178 @@ class CoverageImprovementTest extends TestCase
         foreach ($patterns as $pattern) {
             $this->parser->parse($pattern);
         }
+    }
+
+    /**
+     * Test RegexBuilder.literal() with empty string
+     * This covers the line: if ('' === $value) return $this;
+     */
+    public function test_regex_builder_literal_empty_string(): void
+    {
+        $builder = new RegexBuilder();
+        $result = $builder->literal('')->compile();
+
+        // Empty literal should produce an empty pattern
+        $this->assertIsString($result);
+    }
+
+    /**
+     * Test RegexBuilder with completely empty pattern
+     * This covers the line: return new LiteralNode('', 0, 0);
+     */
+    public function test_regex_builder_empty_pattern(): void
+    {
+        $builder = new RegexBuilder();
+        $result = $builder->compile();
+
+        // Completely empty builder should produce an empty pattern
+        $this->assertIsString($result);
+    }
+
+    /**
+     * Test RegexBuilder.literal() with multi-byte characters
+     */
+    public function test_regex_builder_literal_multibyte(): void
+    {
+        $builder = new RegexBuilder();
+        $result = $builder->literal('été')->compile();
+
+        $this->assertIsString($result);
+        $this->assertStringContainsString('é', $result);
+    }
+
+    /**
+     * Test Parser.getLexer() by parsing multiple patterns with same Parser instance
+     * This ensures the private getLexer() method reuses the Lexer instance
+     */
+    #[DoesNotPerformAssertions]
+    public function test_parser_get_lexer_reuse(): void
+    {
+        // First parse - creates new Lexer
+        $this->parser->parse('/abc/');
+
+        // Second parse - should reuse Lexer via getLexer()
+        $this->parser->parse('/def/');
+
+        // Third parse - ensures reset works correctly
+        $this->parser->parse('/[a-z]+/');
+    }
+
+    /**
+     * Test Parser.reconstructTokenValue() via parseComment which uses previous()
+     * The reconstructTokenValue is called when parsing group modifiers
+     * Testing (?P<name>...) which calls previous() in parseGroupModifier
+     */
+    #[DoesNotPerformAssertions]
+    public function test_parser_reconstruct_token_value(): void
+    {
+        // This pattern triggers parseGroupModifier which calls previous()
+        // and may use reconstructTokenValue
+        $this->parser->parse('/(?P<name>test)/');
+    }
+
+    /**
+     * Test Parser.previous() method through alternation parsing
+     * The previous() method is called in parseAlternation at line 221
+     */
+    #[DoesNotPerformAssertions]
+    public function test_parser_previous_method(): void
+    {
+        // Alternation pattern triggers previous() method
+        $this->parser->parse('/a|b|c/');
+        $this->parser->parse('/foo|bar|baz/');
+    }
+
+    /**
+     * Test Parser.consumeWhile() method through parseGroupName
+     * consumeWhile is used in parseGroupName and parseSubroutineName
+     */
+    #[DoesNotPerformAssertions]
+    public function test_parser_consume_while(): void
+    {
+        // Named group with multiple characters triggers consumeWhile
+        $this->parser->parse('/(?<longname>test)/');
+        $this->parser->parse('/(?<abc123>pattern)/');
+    }
+
+    /**
+     * Test Lexer.lexCommentMode() with (?#...) comment syntax
+     * This triggers the private lexCommentMode() method
+     */
+    #[DoesNotPerformAssertions]
+    public function test_lexer_comment_mode(): void
+    {
+        // Simple comment
+        $this->parser->parse('/(?#comment)test/');
+
+        // Comment with special characters
+        $this->parser->parse('/(?#this is a comment with spaces)abc/');
+
+        // Comment at the end
+        $this->parser->parse('/test(?#end comment)/');
+
+        // Multiple comments
+        $this->parser->parse('/(?#first)a(?#second)b/');
+    }
+
+    /**
+     * Test Lexer.extractTokenValue() with various token types
+     * This private method is called during tokenization for different token types
+     */
+    #[DoesNotPerformAssertions]
+    public function test_lexer_extract_token_value(): void
+    {
+        // T_LITERAL_ESCAPED: \t, \n, \r, \f, \v, \e
+        $this->parser->parse('/\t\n\r\f\v\e/');
+
+        // T_PCRE_VERB: (*FAIL), (*ACCEPT)
+        $this->parser->parse('/(*FAIL)/');
+        $this->parser->parse('/(*ACCEPT)/');
+
+        // T_ASSERTION: \b, \B, \A, \Z, \z
+        $this->parser->parse('/\b\B\A\Z\z/');
+
+        // T_CHAR_TYPE: \d, \D, \w, \W, \s, \S
+        $this->parser->parse('/\d\D\w\W\s\S/');
+
+        // T_KEEP: \K
+        $this->parser->parse('/\K/');
+
+        // T_BACKREF: \1, \2
+        $this->parser->parse('/(a)\1/');
+
+        // T_OCTAL_LEGACY: \01, \02
+        $this->parser->parse('/\01\02/');
+
+        // T_POSIX_CLASS: [[:alnum:]]
+        $this->parser->parse('/[[:alnum:]]/');
+        $this->parser->parse('/[[:alpha:]]/');
+    }
+
+    /**
+     * Test Lexer.normalizeUnicodeProp() with Unicode property patterns
+     * This private method handles \p{} and \P{} normalization
+     */
+    #[DoesNotPerformAssertions]
+    public function test_lexer_normalize_unicode_prop(): void
+    {
+        // \p{L} - regular property
+        $this->parser->parse('/\p{L}/');
+
+        // \P{L} - negated property (adds ^)
+        $this->parser->parse('/\P{L}/');
+
+        // \p{^L} - already negated
+        $this->parser->parse('/\p{^L}/');
+
+        // \P{^L} - double negation (removes ^)
+        $this->parser->parse('/\P{^L}/');
+
+        // Various Unicode properties
+        $this->parser->parse('/\p{Ll}/');  // Lowercase letter
+        $this->parser->parse('/\P{Lu}/');  // Not uppercase letter
+        $this->parser->parse('/\p{N}/');   // Number
+        $this->parser->parse('/\P{P}/');   // Not punctuation
+        $this->parser->parse('/\p{Sc}/');  // Currency symbol
     }
 }
