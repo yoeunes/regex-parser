@@ -91,6 +91,7 @@ class VisitorFallbackTest extends TestCase
         // Assert that we got a NEW CharClassNode (meaning $hasChanged was true)
         $this->assertNotSame($node, $result);
         $this->assertInstanceOf(CharClassNode::class, $result);
+        $this->assertInstanceOf(LiteralNode::class, $result->parts[0]);
         $this->assertSame('changed', $result->parts[0]->value);
     }
 }
