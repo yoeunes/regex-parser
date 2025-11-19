@@ -1,2 +1,13 @@
+# Support the development of this regex parser library
+# This file configures funding platforms to help support open-source development
+
+# GitHub Sponsors - Sponsor this project directly on GitHub
 github: yoeunes
-custom: https://www.paypal.com/paypalme/yoeunes
+
+# Ko-fi - Support through Ko-fi
+ko_fi: yoeunes
+
+# Buy Me A Coffee - One-time or recurring support
+custom:
+  - https://www.buymeacoffee.com/yoeunes
+  - https://www.paypal.com/paypalme/yoeunes
