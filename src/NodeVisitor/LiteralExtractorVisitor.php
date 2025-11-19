@@ -26,7 +26,6 @@ use RegexParser\Node\DotNode;
 use RegexParser\Node\GroupNode;
 use RegexParser\Node\KeepNode;
 use RegexParser\Node\LiteralNode;
-use RegexParser\Node\NodeInterface;
 use RegexParser\Node\OctalLegacyNode;
 use RegexParser\Node\OctalNode;
 use RegexParser\Node\PcreVerbNode;
@@ -50,12 +49,12 @@ use RegexParser\Node\UnicodePropNode;
  */
 final class LiteralExtractorVisitor implements NodeVisitorInterface
 {
-    private bool $caseInsensitive = false;
-
     /**
      * Maximum number of literals generated to prevent explosion (e.g. [a-z]{10}).
      */
-    private const MAX_LITERALS_COUNT = 128;
+    private const int MAX_LITERALS_COUNT = 128;
+
+    private bool $caseInsensitive = false;
 
     public function visitRegex(RegexNode $node): LiteralSet
     {
@@ -79,7 +78,7 @@ final class LiteralExtractorVisitor implements NodeVisitorInterface
             }
 
             // Safety valve for memory
-            if (count($result->prefixes) > self::MAX_LITERALS_COUNT) {
+            if (\count($result->prefixes) > self::MAX_LITERALS_COUNT) {
                 return LiteralSet::empty();
             }
         }
@@ -97,7 +96,7 @@ final class LiteralExtractorVisitor implements NodeVisitorInterface
             $result = $result->concat($childSet);
 
             // Safety valve
-            if (count($result->prefixes) > self::MAX_LITERALS_COUNT) {
+            if (\count($result->prefixes) > self::MAX_LITERALS_COUNT) {
                 return LiteralSet::empty();
             }
         }
@@ -130,7 +129,7 @@ final class LiteralExtractorVisitor implements NodeVisitorInterface
     {
         // Case 1: Exact quantifier {n} -> repeat literals n times
         if (preg_match('/^\{(\d+)\}$/', $node->quantifier, $m)) {
-            $count = (int)$m[1];
+            $count = (int) $m[1];
             if (0 === $count) {
                 return LiteralSet::fromString(''); // Matches empty string
             }
@@ -142,10 +141,11 @@ final class LiteralExtractorVisitor implements NodeVisitorInterface
             $result = $childSet;
             for ($i = 1; $i < $count; $i++) {
                 $result = $result->concat($childSet);
-                if (count($result->prefixes) > self::MAX_LITERALS_COUNT) {
+                if (\count($result->prefixes) > self::MAX_LITERALS_COUNT) {
                     return LiteralSet::empty();
                 }
             }
+
             return $result;
         }
 
@@ -154,6 +154,7 @@ final class LiteralExtractorVisitor implements NodeVisitorInterface
         if ('+' === $node->quantifier || preg_match('/^\{(\d+),/', $node->quantifier)) {
             /** @var LiteralSet $childSet */
             $childSet = $node->node->accept($this);
+
             // The literal is present at least once, but followed by unknown quantity.
             // So suffixes are lost, completeness is lost.
             return new LiteralSet($childSet->prefixes, [], false);
@@ -169,13 +170,14 @@ final class LiteralExtractorVisitor implements NodeVisitorInterface
         if ($this->caseInsensitive) {
             return $this->expandCaseInsensitive($node->value);
         }
+
         return LiteralSet::fromString($node->value);
     }
 
     public function visitCharClass(CharClassNode $node): LiteralSet
     {
         // Optimization: Single character class [a] is literal 'a'
-        if (!$node->isNegated && 1 === count($node->parts) && $node->parts[0] instanceof LiteralNode) {
+        if (!$node->isNegated && 1 === \count($node->parts) && $node->parts[0] instanceof LiteralNode) {
             return $this->visitLiteral($node->parts[0]);
         }
 
@@ -196,6 +198,7 @@ final class LiteralExtractorVisitor implements NodeVisitorInterface
                     return LiteralSet::empty();
                 }
             }
+
             return new LiteralSet($literals, $literals, true); // Complete single char match
         }
 
@@ -204,34 +207,89 @@ final class LiteralExtractorVisitor implements NodeVisitorInterface
 
     // --- The following nodes interrupt literal sequences ---
 
-    public function visitCharType(CharTypeNode $node): LiteralSet { return LiteralSet::empty(); }
-    public function visitDot(DotNode $node): LiteralSet { return LiteralSet::empty(); }
+    public function visitCharType(CharTypeNode $node): LiteralSet
+    {
+        return LiteralSet::empty();
+    }
+
+    public function visitDot(DotNode $node): LiteralSet
+    {
+        return LiteralSet::empty();
+    }
+
     public function visitAnchor(AnchorNode $node): LiteralSet
     {
         // Anchors match empty strings, so they are "complete" empty matches
         // This allows /^abc/ to return prefix 'abc'
         return LiteralSet::fromString('');
     }
-    public function visitAssertion(AssertionNode $node): LiteralSet { return LiteralSet::fromString(''); }
-    public function visitKeep(KeepNode $node): LiteralSet { return LiteralSet::fromString(''); }
-    public function visitRange(RangeNode $node): LiteralSet { return LiteralSet::empty(); }
-    public function visitBackref(BackrefNode $node): LiteralSet { return LiteralSet::empty(); }
+
+    public function visitAssertion(AssertionNode $node): LiteralSet
+    {
+        return LiteralSet::fromString('');
+    }
+
+    public function visitKeep(KeepNode $node): LiteralSet
+    {
+        return LiteralSet::fromString('');
+    }
+
+    public function visitRange(RangeNode $node): LiteralSet
+    {
+        return LiteralSet::empty();
+    }
+
+    public function visitBackref(BackrefNode $node): LiteralSet
+    {
+        return LiteralSet::empty();
+    }
 
     public function visitUnicode(UnicodeNode $node): LiteralSet
     {
-         // Could resolve hex, but for now treat as empty set unless we decode it
-         // Assuming RegexParser doesn't decode unicode in AST yet (it keeps raw \xHH)
-         return LiteralSet::empty();
+        // Could resolve hex, but for now treat as empty set unless we decode it
+        // Assuming RegexParser doesn't decode unicode in AST yet (it keeps raw \xHH)
+        return LiteralSet::empty();
     }
 
-    public function visitUnicodeProp(UnicodePropNode $node): LiteralSet { return LiteralSet::empty(); }
-    public function visitOctal(OctalNode $node): LiteralSet { return LiteralSet::empty(); }
-    public function visitOctalLegacy(OctalLegacyNode $node): LiteralSet { return LiteralSet::empty(); }
-    public function visitPosixClass(PosixClassNode $node): LiteralSet { return LiteralSet::empty(); }
-    public function visitComment(CommentNode $node): LiteralSet { return LiteralSet::fromString(''); }
-    public function visitConditional(ConditionalNode $node): LiteralSet { return LiteralSet::empty(); }
-    public function visitSubroutine(SubroutineNode $node): LiteralSet { return LiteralSet::empty(); }
-    public function visitPcreVerb(PcreVerbNode $node): LiteralSet { return LiteralSet::fromString(''); }
+    public function visitUnicodeProp(UnicodePropNode $node): LiteralSet
+    {
+        return LiteralSet::empty();
+    }
+
+    public function visitOctal(OctalNode $node): LiteralSet
+    {
+        return LiteralSet::empty();
+    }
+
+    public function visitOctalLegacy(OctalLegacyNode $node): LiteralSet
+    {
+        return LiteralSet::empty();
+    }
+
+    public function visitPosixClass(PosixClassNode $node): LiteralSet
+    {
+        return LiteralSet::empty();
+    }
+
+    public function visitComment(CommentNode $node): LiteralSet
+    {
+        return LiteralSet::fromString('');
+    }
+
+    public function visitConditional(ConditionalNode $node): LiteralSet
+    {
+        return LiteralSet::empty();
+    }
+
+    public function visitSubroutine(SubroutineNode $node): LiteralSet
+    {
+        return LiteralSet::empty();
+    }
+
+    public function visitPcreVerb(PcreVerbNode $node): LiteralSet
+    {
+        return LiteralSet::fromString('');
+    }
 
     /**
      * Generates case variants. Currently limited to basic ASCII for performance/simplicity.
@@ -240,12 +298,12 @@ final class LiteralExtractorVisitor implements NodeVisitorInterface
     private function expandCaseInsensitive(string $value): LiteralSet
     {
         // Limit expansion length
-        if (strlen($value) > 8) {
+        if (\strlen($value) > 8) {
             return LiteralSet::empty(); // Too expensive to compute permutations
         }
 
         $results = [''];
-        for ($i = 0; $i < strlen($value); $i++) {
+        for ($i = 0; $i < \strlen($value); $i++) {
             $char = $value[$i];
             $lower = strtolower($char);
             $upper = strtoupper($char);
@@ -253,16 +311,16 @@ final class LiteralExtractorVisitor implements NodeVisitorInterface
             $nextResults = [];
             foreach ($results as $prefix) {
                 if ($lower === $upper) {
-                    $nextResults[] = $prefix . $char;
+                    $nextResults[] = $prefix.$char;
                 } else {
-                    $nextResults[] = $prefix . $lower;
-                    $nextResults[] = $prefix . $upper;
+                    $nextResults[] = $prefix.$lower;
+                    $nextResults[] = $prefix.$upper;
                 }
             }
             $results = $nextResults;
         }
 
-        if (count($results) > self::MAX_LITERALS_COUNT) {
+        if (\count($results) > self::MAX_LITERALS_COUNT) {
             return LiteralSet::empty();
         }
 

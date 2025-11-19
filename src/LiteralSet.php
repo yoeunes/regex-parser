@@ -2,6 +2,15 @@
 
 declare(strict_types=1);
 
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace RegexParser;
 
 /**
@@ -19,8 +28,7 @@ readonly class LiteralSet
         public array $prefixes = [],
         public array $suffixes = [],
         public bool $complete = false,
-    ) {
-    }
+    ) {}
 
     public static function empty(): self
     {
@@ -72,7 +80,7 @@ readonly class LiteralSet
 
         // If the resulting combined set has no valid prefixes or suffixes, it's empty
         if (empty($newPrefixes) && empty($newSuffixes)) {
-             return self::empty();
+            return self::empty();
         }
 
         return new self($this->deduplicate($newPrefixes), $this->deduplicate($newSuffixes), $newComplete);
@@ -112,6 +120,7 @@ readonly class LiteralSet
     /**
      * @param array<string> $left
      * @param array<string> $right
+     *
      * @return array<string>
      */
     private function crossProduct(array $left, array $right): array
@@ -119,14 +128,16 @@ readonly class LiteralSet
         $result = [];
         foreach ($left as $l) {
             foreach ($right as $r) {
-                $result[] = $l . $r;
+                $result[] = $l.$r;
             }
         }
+
         return $result;
     }
 
     /**
      * @param array<string> $items
+     *
      * @return array<string>
      */
     private function deduplicate(array $items): array
@@ -145,11 +156,11 @@ readonly class LiteralSet
 
         $longest = '';
         foreach ($candidates as $s) {
-            if (strlen($s) > strlen($longest)) {
+            if (\strlen($s) > \strlen($longest)) {
                 $longest = $s;
             }
         }
 
-        return '' === $longest && !in_array('', $candidates, true) ? null : $longest;
+        return '' === $longest && !\in_array('', $candidates, true) ? null : $longest;
     }
 }

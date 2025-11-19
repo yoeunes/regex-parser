@@ -2,6 +2,15 @@
 
 declare(strict_types=1);
 
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace RegexParser\Tests\ReDoS;
 
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -19,7 +28,7 @@ class ReDoSAnalyzerTest extends TestCase
     }
 
     #[DataProvider('patternProvider')]
-    public function testSeverityAnalysis(string $pattern, ReDoSSeverity $expectedSeverity): void
+    public function test_severity_analysis(string $pattern, ReDoSSeverity $expectedSeverity): void
     {
         $analysis = $this->analyzer->analyze($pattern);
         $this->assertSame($expectedSeverity, $analysis->severity, "Failed asserting severity for pattern: $pattern");
@@ -52,7 +61,7 @@ class ReDoSAnalyzerTest extends TestCase
         yield ['/a++/', ReDoSSeverity::SAFE];
     }
 
-    public function testAnalysisDetails(): void
+    public function test_analysis_details(): void
     {
         $analysis = $this->analyzer->analyze('/(a+)+/');
 

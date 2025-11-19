@@ -159,6 +159,7 @@ class Regex
     /**
      * Extracts literal strings that must appear in any match.
      * useful for pre-match optimizations (e.g. strpos check).
+     *
      * * @throws LexerException|ParserException
      */
     public function extractLiterals(string $regex): LiteralSet
@@ -179,6 +180,7 @@ class Regex
     {
         // We can reuse the internal parser
         $analyzer = new ReDoSAnalyzer($this->parser);
+
         return $analyzer->analyze($regex);
     }
 

@@ -24,16 +24,15 @@ use RegexParser\Node\RangeNode;
  * A helper to build character class definitions (content inside [...]).
  * Immutable builder pattern.
  */
-final class CharClass
+final readonly class CharClass
 {
     /**
-     * @param NodeInterface[] $parts
+     * @param array<NodeInterface> $parts
      */
     private function __construct(
-        private readonly array $parts = [],
-        private readonly bool $negated = false
-    ) {
-    }
+        private array $parts = [],
+        private bool $negated = false
+    ) {}
 
     public static function create(): self
     {
@@ -66,7 +65,7 @@ final class CharClass
             new LiteralNode($from, 0, 0),
             new LiteralNode($to, 0, 0),
             0,
-            0
+            0,
         ));
     }
 
@@ -78,6 +77,7 @@ final class CharClass
                 $instance = $instance->add(new LiteralNode($char, 0, 0));
             }
         }
+
         return $instance;
     }
 
@@ -103,6 +103,7 @@ final class CharClass
     {
         $newParts = $this->parts;
         $newParts[] = $node;
+
         return new self($newParts, $this->negated);
     }
 

@@ -2,6 +2,15 @@
 
 declare(strict_types=1);
 
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace RegexParser\Tests\NodeVisitor;
 
 use PHPUnit\Framework\TestCase;
@@ -12,6 +21,7 @@ use RegexParser\Parser;
 class LiteralExtractorVisitorTest extends TestCase
 {
     private Parser $parser;
+
     private LiteralExtractorVisitor $visitor;
 
     protected function setUp(): void
@@ -20,13 +30,7 @@ class LiteralExtractorVisitorTest extends TestCase
         $this->visitor = new LiteralExtractorVisitor();
     }
 
-    private function extract(string $regex): LiteralSet
-    {
-        $ast = $this->parser->parse($regex);
-        return $ast->accept($this->visitor);
-    }
-
-    public function testSimpleLiteral(): void
+    public function test_simple_literal(): void
     {
         $set = $this->extract('/hello/');
 
@@ -35,7 +39,7 @@ class LiteralExtractorVisitorTest extends TestCase
         $this->assertSame(['hello'], $set->suffixes);
     }
 
-    public function testSequenceConcat(): void
+    public function test_sequence_concat(): void
     {
         $set = $this->extract('/abc/');
 
@@ -43,7 +47,7 @@ class LiteralExtractorVisitorTest extends TestCase
         $this->assertSame(['abc'], $set->prefixes);
     }
 
-    public function testAlternation(): void
+    public function test_alternation(): void
     {
         $set = $this->extract('/(foo|bar)/');
 
@@ -52,7 +56,7 @@ class LiteralExtractorVisitorTest extends TestCase
         $this->assertSame(['foo', 'bar'], $set->suffixes);
     }
 
-    public function testPrefixSuffixLogic(): void
+    public function test_prefix_suffix_logic(): void
     {
         $set = $this->extract('/root(a|b)tail/');
 
@@ -64,14 +68,14 @@ class LiteralExtractorVisitorTest extends TestCase
         $this->assertSame(['rootatail', 'rootbtail'], $set->suffixes);
     }
 
-    public function testQuantifierFixed(): void
+    public function test_quantifier_fixed(): void
     {
         $set = $this->extract('/a{3}/');
         $this->assertSame(['aaa'], $set->prefixes);
         $this->assertTrue($set->complete);
     }
 
-    public function testQuantifierPlus(): void
+    public function test_quantifier_plus(): void
     {
         $set = $this->extract('/a+/');
         $this->assertSame(['a'], $set->prefixes);
@@ -79,20 +83,20 @@ class LiteralExtractorVisitorTest extends TestCase
         $this->assertEmpty($set->suffixes);
     }
 
-    public function testQuantifierStar(): void
+    public function test_quantifier_star(): void
     {
         $set = $this->extract('/a*/');
         $this->assertEmpty($set->prefixes);
         $this->assertFalse($set->complete);
     }
 
-    public function testAnchorDoesNotBreakPrefix(): void
+    public function test_anchor_does_not_break_prefix(): void
     {
         $set = $this->extract('/^root/');
         $this->assertSame(['root'], $set->prefixes);
     }
 
-    public function testDotBreaksChain(): void
+    public function test_dot_breaks_chain(): void
     {
         $set = $this->extract('/pre.fix/');
         // Prefix "pre" is valid. Suffix "fix" is valid.
@@ -102,7 +106,7 @@ class LiteralExtractorVisitorTest extends TestCase
         $this->assertFalse($set->complete);
     }
 
-    public function testCaseInsensitive(): void
+    public function test_case_insensitive(): void
     {
         $set = $this->extract('/ab/i');
         // Expect: ab, aB, Ab, AB
@@ -111,7 +115,7 @@ class LiteralExtractorVisitorTest extends TestCase
         $this->assertContains('AB', $set->prefixes);
     }
 
-    public function testOptimizationUsage(): void
+    public function test_optimization_usage(): void
     {
         $pattern = '/user_(\d+)/';
         $set = $this->extract($pattern);
@@ -121,5 +125,12 @@ class LiteralExtractorVisitorTest extends TestCase
 
         $prefix = $set->getLongestPrefix();
         $this->assertSame('user_', $prefix);
+    }
+
+    private function extract(string $regex): LiteralSet
+    {
+        $ast = $this->parser->parse($regex);
+
+        return $ast->accept($this->visitor);
     }
 }

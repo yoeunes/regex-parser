@@ -2,6 +2,15 @@
 
 declare(strict_types=1);
 
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace RegexParser\Tests\Builder;
 
 use PHPUnit\Framework\TestCase;
@@ -10,7 +19,7 @@ use RegexParser\Builder\RegexBuilder;
 
 class FluentBuilderTest extends TestCase
 {
-    public function testSimpleLiteral(): void
+    public function test_simple_literal(): void
     {
         $regex = RegexBuilder::create()
             ->literal('hello')
@@ -19,19 +28,19 @@ class FluentBuilderTest extends TestCase
         $this->assertSame('/hello/', $regex);
     }
 
-    public function testUrlPattern(): void
+    public function test_url_pattern(): void
     {
         $regex = RegexBuilder::create()
             ->startOfLine()
             ->literal('http')
             ->literal('s')->optional()
             ->literal('://')
-            ->capture(function (RegexBuilder $b) {
+            ->capture(function (RegexBuilder $b): void {
                 // Utilisation correcte de union() au lieu de add() pour combiner des CharClass
                 $b->charClass(CharClass::word()->union(CharClass::literal('.')))
                   ->oneOrMore();
             }, 'domain')
-            ->group(function (RegexBuilder $b) {
+            ->group(function (RegexBuilder $b): void {
                 $b->literal(':')
                   ->digit()->between(1, 5);
             })->optional()
@@ -47,7 +56,7 @@ class FluentBuilderTest extends TestCase
         $this->assertStringContainsString('https?', $regex);
     }
 
-    public function testAlternationFluent(): void
+    public function test_alternation_fluent(): void
     {
         $regex = RegexBuilder::create()
             ->literal('cat')
@@ -60,12 +69,12 @@ class FluentBuilderTest extends TestCase
         $this->assertSame('/cat|dog|fish/', $regex);
     }
 
-    public function testLookarounds(): void
+    public function test_lookarounds(): void
     {
         $regex = RegexBuilder::create()
-            ->lookbehind(fn($b) => $b->literal('$'))
+            ->lookbehind(fn ($b) => $b->literal('$'))
             ->digit()->oneOrMore()
-            ->lookahead(fn($b) => $b->literal('.'))
+            ->lookahead(fn ($b) => $b->literal('.'))
             ->build();
 
         // Note: le compilateur échappe le $ dans un littéral
@@ -73,7 +82,7 @@ class FluentBuilderTest extends TestCase
         $this->assertStringContainsString('(?=\.)', $regex);
     }
 
-    public function testCharClassCombination(): void
+    public function test_char_class_combination(): void
     {
         $class = CharClass::digit()
             ->union(CharClass::range('a', 'f'))
@@ -88,7 +97,7 @@ class FluentBuilderTest extends TestCase
         $this->assertStringContainsString('[^', $regex);
     }
 
-    public function testFlags(): void
+    public function test_flags(): void
     {
         $regex = RegexBuilder::create()
             ->literal('test')
@@ -101,7 +110,7 @@ class FluentBuilderTest extends TestCase
         $this->assertStringMatchesFormat('/%s/msu', $regex);
     }
 
-    public function testQuantifierException(): void
+    public function test_quantifier_exception(): void
     {
         $this->expectException(\LogicException::class);
         RegexBuilder::create()->zeroOrMore();

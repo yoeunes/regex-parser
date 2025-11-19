@@ -16,18 +16,17 @@ namespace RegexParser;
 readonly class ReDoSAnalysis
 {
     /**
-     * @param string[] $recommendations
+     * @param array<string> $recommendations
      */
     public function __construct(
         public ReDoSSeverity $severity,
         public int $score,
         public ?string $vulnerablePart = null,
         public array $recommendations = [],
-    ) {
-    }
+    ) {}
 
     public function isSafe(): bool
     {
-        return $this->severity === ReDoSSeverity::SAFE || $this->severity === ReDoSSeverity::LOW;
+        return ReDoSSeverity::SAFE === $this->severity || ReDoSSeverity::LOW === $this->severity;
     }
 }

@@ -35,25 +35,24 @@ use RegexParser\Regex;
  */
 class RegexBuilder
 {
-    /** @var NodeInterface[] Current sequence of nodes */
+    /**
+     * @var array<NodeInterface> Current sequence of nodes
+     */
     private array $currentNodes = [];
 
-    /** @var array<NodeInterface[]> Completed alternatives branches */
+    /**
+     * @var array<array<NodeInterface>> Completed alternatives branches
+     */
     private array $branches = [];
 
-    /** @var array<string, bool> Active flags */
+    /**
+     * @var array<string, bool> Active flags
+     */
     private array $flags = [];
 
     private string $delimiter = '/';
 
-    public function __construct()
-    {
-    }
-
-    public static function create(): self
-    {
-        return new self();
-    }
+    public function __construct() {}
 
     // --- Compatibilité Magic Getter pour l'ancien style ---
     public function __get(string $name): self
@@ -61,7 +60,13 @@ class RegexBuilder
         if ('or' === $name) {
             return $this->or();
         }
+
         throw new \BadMethodCallException(\sprintf('Property "%s" does not exist.', $name));
+    }
+
+    public static function create(): self
+    {
+        return new self();
     }
 
     // -------------------------------------------------------------------------
@@ -77,6 +82,7 @@ class RegexBuilder
         foreach (mb_str_split($text) as $char) {
             $this->currentNodes[] = new LiteralNode($char, 0, 0);
         }
+
         return $this;
     }
 
@@ -101,10 +107,13 @@ class RegexBuilder
     public function anyChar(): self
     {
         $this->currentNodes[] = new DotNode(0, 0);
+
         return $this;
     }
 
-    /** Alias for anyChar() for BC */
+    /**
+     * Alias for anyChar() for BC
+     */
     public function any(): self
     {
         return $this->anyChar();
@@ -117,36 +126,42 @@ class RegexBuilder
     public function digit(): self
     {
         $this->currentNodes[] = new CharTypeNode('d', 0, 0);
+
         return $this;
     }
 
     public function notDigit(): self
     {
         $this->currentNodes[] = new CharTypeNode('D', 0, 0);
+
         return $this;
     }
 
     public function word(): self
     {
         $this->currentNodes[] = new CharTypeNode('w', 0, 0);
+
         return $this;
     }
 
     public function notWord(): self
     {
         $this->currentNodes[] = new CharTypeNode('W', 0, 0);
+
         return $this;
     }
 
     public function whitespace(): self
     {
         $this->currentNodes[] = new CharTypeNode('s', 0, 0);
+
         return $this;
     }
 
     public function notWhitespace(): self
     {
         $this->currentNodes[] = new CharTypeNode('S', 0, 0);
+
         return $this;
     }
 
@@ -156,7 +171,7 @@ class RegexBuilder
      */
     public function charClass(CharClass|callable $charClass): self
     {
-        if (is_callable($charClass)) {
+        if (\is_callable($charClass)) {
             // Support old callback style: function(CharClassBuilder $c)
             // We adapter it to use the new CharClass object manually
             // Since CharClass is immutable and static factory based, passing it to a callback
@@ -166,10 +181,12 @@ class RegexBuilder
             $charClass($builder);
             $parts = $builder->build();
             $this->currentNodes[] = new CharClassNode($parts, false, 0, 0);
+
             return $this;
         }
 
         $this->currentNodes[] = $charClass->buildNode();
+
         return $this;
     }
 
@@ -180,18 +197,21 @@ class RegexBuilder
     public function startOfLine(): self
     {
         $this->currentNodes[] = new AnchorNode('^', 0, 0);
+
         return $this;
     }
 
     public function endOfLine(): self
     {
         $this->currentNodes[] = new AnchorNode('$', 0, 0);
+
         return $this;
     }
 
     public function wordBoundary(): self
     {
         $this->currentNodes[] = new AssertionNode('b', 0, 0);
+
         return $this;
     }
 
@@ -225,6 +245,7 @@ class RegexBuilder
         if ($capture) {
             return $this->addGroup($builder, GroupType::T_GROUP_CAPTURING);
         }
+
         return $this->addGroup($builder, GroupType::T_GROUP_NON_CAPTURING);
     }
 
@@ -320,6 +341,7 @@ class RegexBuilder
         foreach (str_split($flags) as $flag) {
             $this->flags[$flag] = true;
         }
+
         return $this;
     }
 
@@ -329,30 +351,35 @@ class RegexBuilder
             throw new \InvalidArgumentException('Delimiter must be a single character.');
         }
         $this->delimiter = $delimiter;
+
         return $this;
     }
 
     public function caseInsensitive(): self
     {
         $this->flags['i'] = true;
+
         return $this;
     }
 
     public function multiline(): self
     {
         $this->flags['m'] = true;
+
         return $this;
     }
 
     public function dotAll(): self
     {
         $this->flags['s'] = true;
+
         return $this;
     }
 
     public function unicode(): self
     {
         $this->flags['u'] = true;
+
         return $this;
     }
 
@@ -404,7 +431,7 @@ class RegexBuilder
             $name,
             null,
             0,
-            0
+            0,
         );
 
         return $this;
@@ -434,14 +461,14 @@ class RegexBuilder
             // Nothing at all
             return new LiteralNode('', 0, 0);
         } else {
-             // Last branch was explicitly empty (e.g. ends with ->or())
-             $this->branches[] = [new LiteralNode('', 0, 0)];
+            // Last branch was explicitly empty (e.g. ends with ->or())
+            $this->branches[] = [new LiteralNode('', 0, 0)];
         }
 
         // Convert branches to Sequences
         $sequences = [];
         foreach ($this->branches as $nodes) {
-            if (count($nodes) === 1) {
+            if (1 === \count($nodes)) {
                 $sequences[] = $nodes[0];
             } else {
                 $sequences[] = new SequenceNode($nodes, 0, 0);
@@ -449,7 +476,7 @@ class RegexBuilder
         }
 
         // If only one branch, return it directly
-        if (count($sequences) === 1) {
+        if (1 === \count($sequences)) {
             return $sequences[0];
         }
 
