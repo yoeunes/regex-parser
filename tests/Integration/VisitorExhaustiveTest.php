@@ -2,6 +2,15 @@
 
 declare(strict_types=1);
 
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
@@ -95,7 +104,7 @@ class VisitorExhaustiveTest extends TestCase
                     }
                 }
 
-                 // Cas spécifique SampleGenerator qui ne supporte pas les subroutines
+                // Cas spécifique SampleGenerator qui ne supporte pas les subroutines
                 if ($visitor instanceof SampleGeneratorVisitor && $node instanceof SubroutineNode) {
                     continue;
                 }
