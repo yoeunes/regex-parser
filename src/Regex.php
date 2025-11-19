@@ -20,6 +20,7 @@ use RegexParser\NodeVisitor\CompilerNodeVisitor;
 use RegexParser\NodeVisitor\ComplexityScoreVisitor;
 use RegexParser\NodeVisitor\DumperNodeVisitor;
 use RegexParser\NodeVisitor\ExplainVisitor;
+use RegexParser\NodeVisitor\LiteralExtractorVisitor;
 use RegexParser\NodeVisitor\OptimizerNodeVisitor;
 use RegexParser\NodeVisitor\SampleGeneratorVisitor;
 use RegexParser\NodeVisitor\ValidatorNodeVisitor;
@@ -152,5 +153,20 @@ class Regex
         $ast = $this->parser->parse($regex);
 
         return $ast->accept(clone $this->dumper);
+    }
+
+    /**
+     * Extracts literal strings that must appear in any match.
+     * useful for pre-match optimizations (e.g. strpos check).
+     * * @throws LexerException|ParserException
+     */
+    public function extractLiterals(string $regex): LiteralSet
+    {
+        $ast = $this->parser->parse($regex);
+
+        // Use a fresh visitor instance
+        $visitor = new LiteralExtractorVisitor();
+
+        return $ast->accept($visitor);
     }
 }
