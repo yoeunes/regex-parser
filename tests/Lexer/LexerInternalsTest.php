@@ -19,58 +19,58 @@ use RegexParser\Tests\TestUtils\LexerAccessor;
 use RegexParser\TokenType;
 
 /**
- * Tests de "boîte blanche" pour forcer l'exécution des branches défensives
- * (coalescence nulle, switch default) inaccessibles via le parsing normal.
+ * White-box tests to force execution of defensive branches
+ * (null coalescing, switch default) unreachable via normal parsing.
  */
 class LexerInternalsTest extends TestCase
 {
     /**
-     * Teste le fallback "?? ''" dans l'extraction des classes POSIX.
-     * Normalement, la regex garantit que v_posix est set, mais on teste la robustesse PHP.
+     * Tests the "?? ''" fallback in POSIX class extraction.
+     * Normally, the regex guarantees v_posix is set, but we test PHP robustness.
      */
     public function test_extract_posix_fallback(): void
     {
         $lexer = new Lexer('');
         $accessor = new LexerAccessor($lexer);
 
-        // Simule un match incomplet pour forcer le `?? ''`
+        // Simulates an incomplete match to force the `?? ''`
         $result = $accessor->callPrivateMethod('extractTokenValue', [
             TokenType::T_POSIX_CLASS,
             '[[:alnum:]]',
-            [] // Pas de clé 'v_posix'
+            [] // No 'v_posix' key
         ]);
 
         $this->assertSame('', $result);
     }
 
     /**
-     * Teste le fallback "?? ''" dans normalizeUnicodeProp.
+     * Tests the "?? ''" fallback in normalizeUnicodeProp.
      */
     public function test_normalize_unicode_fallback(): void
     {
         $lexer = new Lexer('');
         $accessor = new LexerAccessor($lexer);
 
-        // Simule un match incomplet pour forcer le `?? ''`
+        // Simulates an incomplete match to force the `?? ''`
         $result = $accessor->callPrivateMethod('normalizeUnicodeProp', [
             '\p{L}',
-            [] // Pas de clés v1_prop ni v2_prop
+            [] // No v1_prop or v2_prop keys
         ]);
 
         $this->assertSame('', $result);
     }
 
     /**
-     * Teste le cas `default` du switch T_LITERAL_ESCAPED avec un caractère bizarre.
-     * Les tests normaux couvrent \t, \n etc. On veut tester le fallback `substr($val, 1)`.
+     * Tests the `default` case of the T_LITERAL_ESCAPED switch with a weird character.
+     * Normal tests cover \t, \n etc. We want to test the `substr($val, 1)` fallback.
      */
     public function test_extract_literal_escaped_default(): void
     {
         $lexer = new Lexer('');
         $accessor = new LexerAccessor($lexer);
 
-        // Teste un caractère échappé qui n'est pas spécial (ex: \@)
-        // Cela force le `default => substr(...)`
+        // Tests an escaped character that is not special (e.g. \@)
+        // This forces the `default => substr(...)`
         $result = $accessor->callPrivateMethod('extractTokenValue', [
             TokenType::T_LITERAL_ESCAPED,
             '\@',
@@ -81,18 +81,18 @@ class LexerInternalsTest extends TestCase
     }
 
     /**
-     * Teste le fallback des backreferences si v_backref_num manque.
+     * Tests the backreference fallback if v_backref_num is missing.
      */
     public function test_extract_backref_fallback(): void
     {
         $lexer = new Lexer('');
         $accessor = new LexerAccessor($lexer);
 
-        // Force le `??` pour le numéro de backref
+        // Forces the `??` for the backref number
         $result = $accessor->callPrivateMethod('extractTokenValue', [
             TokenType::T_BACKREF,
             '\1',
-            [] // Pas de clé 'v_backref_num'
+            [] // No 'v_backref_num' key
         ]);
 
         $this->assertSame('\1', $result);
@@ -103,7 +103,7 @@ class LexerInternalsTest extends TestCase
         $lexer = new Lexer('');
         $accessor = new \RegexParser\Tests\TestUtils\LexerAccessor($lexer);
 
-        // Cas où le type est T_LITERAL (le default global du switch)
+        // Case where type is T_LITERAL (the global switch default)
         $val = $accessor->callPrivateMethod('extractTokenValue', [
             \RegexParser\TokenType::T_LITERAL,
             'X',
@@ -111,13 +111,13 @@ class LexerInternalsTest extends TestCase
         ]);
         $this->assertSame('X', $val);
 
-        // Cas où le type est T_LITERAL_ESCAPED mais le char n'est pas spécial (le default du match interne)
+        // Case where type is T_LITERAL_ESCAPED but char is not special (the internal match default)
         $val = $accessor->callPrivateMethod('extractTokenValue', [
             \RegexParser\TokenType::T_LITERAL_ESCAPED,
-            '\@', // @ n'est pas t, n, r, etc.
+            '\@', // @ is not t, n, r, etc.
             []
         ]);
-        // Le code fait substr($val, 1) -> "@"
+        // The code performs substr($val, 1) -> "@"
         $this->assertSame('@', $val);
     }
 }

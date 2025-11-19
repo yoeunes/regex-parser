@@ -19,30 +19,30 @@ use RegexParser\Lexer;
 class LexerFallbackTest extends TestCase
 {
     /**
-     * Couvre le cas où lexQuoteMode atteint la fin de la chaîne sans trouver \E.
+     * Covers the case where lexQuoteMode reaches the end of the string without finding \E.
      */
     public function test_lex_quote_mode_unterminated(): void
     {
-        $lexer = new Lexer('\Qstart'); // Pas de \E
+        $lexer = new Lexer('\Qstart'); // No \E
         $tokens = $lexer->tokenize();
 
-        // Doit contenir T_LITERAL "start" et T_EOF
+        // Must contain T_LITERAL "start" and T_EOF
         $this->assertCount(2, $tokens);
         $this->assertSame('start', $tokens[0]->value);
     }
 
     /**
-     * Couvre le cas où lexCommentMode atteint la fin de la chaîne sans trouver ).
-     * (Note: cela lance une exception plus tard dans tokenize(), mais on veut tester l'appel interne).
+     * Covers the case where lexCommentMode reaches the end of the string without finding ).
+     * (Note: this throws an exception later in tokenize(), but we want to test the internal call).
      */
     public function test_lex_comment_mode_unterminated_internal(): void
     {
-        $lexer = new Lexer('(?#start'); // Pas de )
+        $lexer = new Lexer('(?#start'); // No )
 
         try {
             $lexer->tokenize();
         } catch (\Exception $e) {
-            // On s'attend à une exception, mais on veut surtout que le code soit exécuté
+            // We expect an exception, but we mainly want the code to be executed
             $this->assertStringContainsString('Unclosed comment', $e->getMessage());
         }
     }

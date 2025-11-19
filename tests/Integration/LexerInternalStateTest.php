@@ -21,32 +21,32 @@ use RegexParser\Token;
 class LexerInternalStateTest extends TestCase
 {
     /**
-     * Couvre la fin de lexCommentMode quand la parenthèse fermante manque.
-     * Normalement tokenize() lance une exception après, mais nous voulons couvrir le "return null" interne.
+     * Covers the end of lexCommentMode when the closing parenthesis is missing.
+     * Normally tokenize() throws an exception afterwards, but we want to cover the internal "return null".
      */
     public function test_lex_comment_mode_unterminated_returns_null(): void
     {
         $lexer = new Lexer('(?# ... sans fin');
         $accessor = new LexerAccessor($lexer);
 
-        // On force le mode commentaire
+        // Force comment mode
         $accessor->callPrivateMethod('reset', ['(?# ... sans fin']);
-        // On avance manuellement après le (?#
+        // Manually advance after (?#
         $accessor->setPosition(3);
 
-        // Appel direct à la méthode privée
+        // Direct call to private method
         $result = $accessor->callPrivateMethod('lexCommentMode');
 
-        // Elle doit d'abord retourner un token avec le texte du commentaire
+        // It must first return a token with the comment text
         $this->assertNotNull($result);
         $this->assertInstanceof(Token::class, $result);
         $this->assertSame(' ... sans fin', $result->value);
-        // La position doit être à la fin du texte
+        // Position must be at the end of the text
         $this->assertSame(16, $accessor->getPosition());
     }
 
     /**
-     * Couvre la fin de lexQuoteMode quand \E manque.
+     * Covers the end of lexQuoteMode when \E is missing.
      */
     public function test_lex_quote_mode_unterminated_returns_null(): void
     {
@@ -54,15 +54,15 @@ class LexerInternalStateTest extends TestCase
         $accessor = new LexerAccessor($lexer);
 
         $accessor->callPrivateMethod('reset', ['\Q ... sans fin']);
-        $accessor->setPosition(2); // Après \Q
+        $accessor->setPosition(2); // After \Q
 
         $result = $accessor->callPrivateMethod('lexQuoteMode');
 
-        // Elle doit d'abord retourner un token avec le texte littéral
+        // It must first return a token with the literal text
         $this->assertNotNull($result);
         $this->assertInstanceof(Token::class, $result);
         $this->assertSame(' ... sans fin', $result->value);
-        // La position doit être à la fin du texte
+        // Position must be at the end of the text
         $this->assertSame(15, $accessor->getPosition());
     }
 }
