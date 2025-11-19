@@ -100,6 +100,10 @@ class Parser
 
         [$pattern, $flags, $delimiter] = $this->extractPatternAndFlags($regex);
 
+        if (!preg_match('/^[imsxADSUXJu]*$/', $flags)) {
+            throw new ParserException(sprintf('Unknown modifier "%s"', $flags));
+        }
+
         $this->delimiter = $delimiter;
         $this->flags = $flags;
         $this->patternLength = mb_strlen($pattern);
@@ -149,7 +153,7 @@ class Parser
         $closingDelimiter = $delimiterMap[$delimiter] ?? $delimiter;
         $length = \strlen($regex);
 
-        for ($i = $length - 1; $i > 0; $i--) {
+        for ($i = 1; $i < $length; $i++) {
             if ($regex[$i] === $closingDelimiter) {
                 // Check if this delimiter is escaped by counting preceding backslashes.
                 $escapes = 0;
@@ -163,7 +167,7 @@ class Parser
                     $flags = substr($regex, $i + 1);
 
                     // @codeCoverageIgnoreStart
-                    // @phpstan-ignore-next-line - PHPStan believes $pattern and $flags can never be false here due to surrounding logic.
+                    // @phpstan-ignore-next-line
                     if (false === $pattern || false === $flags) {
                         throw new ParserException('Internal parser error: failed to slice pattern/flags.');
                     }
@@ -173,21 +177,20 @@ class Parser
                     $unknownFlags = preg_replace('/[imsxADSUXJu]/', '', $flags);
                     // @codeCoverageIgnoreStart
                     if (null === $unknownFlags) {
-                        // This can happen on PCRE error
-                        throw new ParserException('Internal parser error: preg_replace failed while checking flags.');
+                         // Should not happen
+                         throw new ParserException('Internal parser error: preg_replace failed.');
                     }
                     // @codeCoverageIgnoreEnd
-
+                    
                     if ('' !== $unknownFlags) {
-                        throw new ParserException(\sprintf('Unknown regex flag(s) found: "%s"', $unknownFlags[0]));
+                         throw new ParserException(sprintf('Unknown modifier "%s"', $flags));
                     }
 
-                    // Success
                     return [$pattern, $flags, $delimiter];
                 }
-                // If escapes % 2 is not 0, it's escaped (e.g., \/), so we continue.
             }
         }
+
 
         // Loop finished without finding a delimiter
         throw new ParserException(\sprintf('No closing delimiter "%s" found.', $closingDelimiter));
