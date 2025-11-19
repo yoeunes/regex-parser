@@ -2,6 +2,7 @@
 
 namespace RegexParser\Tests\Integration;
 
+use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Node\AlternationNode;
 use RegexParser\Node\AnchorNode;
@@ -39,6 +40,7 @@ use RegexParser\NodeVisitor\ValidatorNodeVisitor;
 
 class VisitorExhaustiveTest extends TestCase
 {
+    #[DoesNotPerformAssertions]
     public function test_all_visitors_visit_all_nodes(): void
     {
         // 1. Instancier tous les visiteurs
@@ -94,7 +96,6 @@ class VisitorExhaustiveTest extends TestCase
 
                 try {
                     $node->accept($visitor);
-                    $this->addToAssertionCount(1);
                 } catch (\Throwable $e) {
                     // On ignore les exceptions logiques (ex: SampleGenerator sur Subroutine)
                     // car le but ici est juste de toucher le code des méthodes visit*
