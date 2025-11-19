@@ -1080,7 +1080,12 @@ class Parser
         while (!$this->check(TokenType::T_GROUP_CLOSE) && !$this->isAtEnd()) {
             // A name can be any literal, but not special chars like '(', '[', etc.
             if ($this->check(TokenType::T_LITERAL) || $this->check(TokenType::T_LITERAL_ESCAPED)) {
-                $name .= $this->current()->value;
+                $char = $this->current()->value;
+                // Validate that the character is alphanumeric or underscore
+                if (!preg_match('/^[a-zA-Z0-9_]$/', $char)) {
+                    throw new ParserException('Unexpected token in subroutine name: '.$char);
+                }
+                $name .= $char;
                 $this->advance();
             } else {
                 // e.g., (?&name[...]) is invalid

@@ -51,7 +51,8 @@ class VisitorFallbackTest extends TestCase
     public function test_validator_bad_backref_syntax(): void
     {
         // Inject BackrefNode with value that fails internal validator regex
-        $node = new BackrefNode('BAD_REF', 0, 0);
+        // Use a value with invalid characters that won't match any valid pattern
+        $node = new BackrefNode('BAD-REF', 0, 0);
         $validator = new ValidatorNodeVisitor();
 
         $this->expectException(\RegexParser\Exception\ParserException::class);
