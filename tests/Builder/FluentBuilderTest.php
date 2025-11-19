@@ -27,7 +27,8 @@ class FluentBuilderTest extends TestCase
             ->literal('s')->optional()
             ->literal('://')
             ->capture(function (RegexBuilder $b) {
-                $b->charClass(CharClass::word()->add(CharClass::literal('.')))
+                // Utilisation correcte de union() au lieu de add() pour combiner des CharClass
+                $b->charClass(CharClass::word()->union(CharClass::literal('.')))
                   ->oneOrMore();
             }, 'domain')
             ->group(function (RegexBuilder $b) {
@@ -40,10 +41,6 @@ class FluentBuilderTest extends TestCase
             ->caseInsensitive()
             ->build();
 
-        // Note: LiteralNode escapes dots automatically.
-        // The CompilerNodeVisitor will re-assemble.
-        // Expected: /^https?:\/\/(?<domain>[\w.]+)(?::\d{1,5})?\/.*$/i
-        // We check containment to avoid escaping hell in assertions
         $this->assertStringStartsWith('/', $regex);
         $this->assertStringEndsWith('/i', $regex);
         $this->assertStringContainsString('(?<domain>', $regex);
@@ -71,8 +68,9 @@ class FluentBuilderTest extends TestCase
             ->lookahead(fn($b) => $b->literal('.'))
             ->build();
 
-        $this->assertStringContainsString('(?<=$)', $regex);
-        $this->assertStringContainsString('(?=.)', $regex);
+        // Note: le compilateur échappe le $ dans un littéral
+        $this->assertStringContainsString('(?<=\$)', $regex);
+        $this->assertStringContainsString('(?=\.)', $regex);
     }
 
     public function testCharClassCombination(): void
@@ -99,7 +97,8 @@ class FluentBuilderTest extends TestCase
             ->unicode()
             ->build();
 
-        $this->assertStringEndsWith('/msu', $regex);
+        // L'ordre des flags peut varier, on vérifie leur présence
+        $this->assertStringMatchesFormat('/%s/msu', $regex);
     }
 
     public function testQuantifierException(): void

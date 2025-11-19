@@ -2,15 +2,6 @@
 
 declare(strict_types=1);
 
-/*
- * This file is part of the RegexParser package.
- *
- * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
- */
-
 namespace RegexParser;
 
 /**
@@ -47,30 +38,42 @@ readonly class LiteralSet
      */
     public function concat(self $other): self
     {
-        // If either is totally empty (and not just an empty string literal), result is empty/incomplete
-        if ($this->isVoid() || $other->isVoid()) {
+        // If "this" matches nothing (void), result is void.
+        // Note: We don't check if "other" is void immediately because "this" prefix might still be valid
+        if ($this->isVoid() && empty($this->prefixes)) {
             return self::empty();
         }
 
         // 1. Calculate new Prefixes
-        // Start with current prefixes.
-        // If current is "complete" (fixed width, no ambiguity), we append other's prefixes.
         $newPrefixes = $this->prefixes;
+
         if ($this->complete) {
-            $newPrefixes = $this->crossProduct($this->prefixes, $other->prefixes);
+            if (!empty($other->prefixes)) {
+                // Cross product: A is complete, B starts with something known
+                $newPrefixes = $this->crossProduct($this->prefixes, $other->prefixes);
+            }
+            // If B has NO prefixes (unknown start), we KEEP A's prefixes as the start of the sequence
+            // e.g. "user_" . "\d" -> prefix is "user_"
         }
 
         // 2. Calculate new Suffixes
-        // Start with other's suffixes.
-        // If other is "complete", we prepend current suffixes.
         $newSuffixes = $other->suffixes;
+
         if ($other->complete) {
-            $newSuffixes = $this->crossProduct($this->suffixes, $other->suffixes);
+            if (!empty($this->suffixes)) {
+                $newSuffixes = $this->crossProduct($this->suffixes, $other->suffixes);
+            }
+            // If A is unknown but B is complete, suffix is B (already set above)
         }
 
         // 3. Completeness
         // A sequence is complete only if both parts are complete.
         $newComplete = $this->complete && $other->complete;
+
+        // If the resulting combined set has no valid prefixes or suffixes, it's empty
+        if (empty($newPrefixes) && empty($newSuffixes)) {
+             return self::empty();
+        }
 
         return new self($this->deduplicate($newPrefixes), $this->deduplicate($newSuffixes), $newComplete);
     }

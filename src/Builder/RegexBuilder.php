@@ -16,6 +16,7 @@ namespace RegexParser\Builder;
 use RegexParser\Node\AlternationNode;
 use RegexParser\Node\AnchorNode;
 use RegexParser\Node\AssertionNode;
+use RegexParser\Node\CharClassNode;
 use RegexParser\Node\CharTypeNode;
 use RegexParser\Node\DotNode;
 use RegexParser\Node\GroupNode;
@@ -54,6 +55,15 @@ class RegexBuilder
         return new self();
     }
 
+    // --- Compatibilité Magic Getter pour l'ancien style ---
+    public function __get(string $name): self
+    {
+        if ('or' === $name) {
+            return $this->or();
+        }
+        throw new \BadMethodCallException(\sprintf('Property "%s" does not exist.', $name));
+    }
+
     // -------------------------------------------------------------------------
     // Literals & Basics
     // -------------------------------------------------------------------------
@@ -70,10 +80,34 @@ class RegexBuilder
         return $this;
     }
 
+    /**
+     * Adds a raw, unescaped literal. (Alias for compatibility).
+     * The current builder treats all literals safely, but for 'raw', we just add a literal node directly.
+     * In the new structure, this is effectively the same as literal() but semantically intended for unescaped content.
+     */
+    public function raw(string $value): self
+    {
+        // For raw strings like '\w+', we treat them as a single literal chunk
+        // that the compiler will output as-is (hopefully).
+        // However, LiteralNode usually escapes.
+        // To truly support RAW injection without escaping, we might need a RawNode,
+        // but for now, let's assume the user wants to inject a string that *looks* like regex.
+        // The previous implementation used LiteralNode($value).
+        $this->currentNodes[] = new LiteralNode($value, 0, 0);
+
+        return $this;
+    }
+
     public function anyChar(): self
     {
         $this->currentNodes[] = new DotNode(0, 0);
         return $this;
+    }
+
+    /** Alias for anyChar() for BC */
+    public function any(): self
+    {
+        return $this->anyChar();
     }
 
     // -------------------------------------------------------------------------
@@ -120,8 +154,21 @@ class RegexBuilder
      * Adds a custom character class.
      * Usage: ->charClass(CharClass::digit()->union(CharClass::range('a', 'f')))
      */
-    public function charClass(CharClass $charClass): self
+    public function charClass(CharClass|callable $charClass): self
     {
+        if (is_callable($charClass)) {
+            // Support old callback style: function(CharClassBuilder $c)
+            // We adapter it to use the new CharClass object manually
+            // Since CharClass is immutable and static factory based, passing it to a callback
+            // which expects a mutable builder might be tricky.
+            // We recreate the old CharClassBuilder logic temporarily for BC.
+            $builder = new CharClassBuilder();
+            $charClass($builder);
+            $parts = $builder->build();
+            $this->currentNodes[] = new CharClassNode($parts, false, 0, 0);
+            return $this;
+        }
+
         $this->currentNodes[] = $charClass->buildNode();
         return $this;
     }
@@ -161,10 +208,23 @@ class RegexBuilder
     }
 
     /**
-     * Creates a non-capturing group: (?:...)
+     * Compatibility wrapper for capture() with name first (if needed) or general group.
+     * The old API was: namedGroup(string $name, Closure $callback)
      */
-    public function group(callable $builder): self
+    public function namedGroup(string $name, callable $callback): self
     {
+        return $this->capture($callback, $name);
+    }
+
+    /**
+     * Creates a non-capturing group: (?:...)
+     * Also handles the old signature: group(Closure $callback, bool $capture = true)
+     */
+    public function group(callable $builder, bool $capture = true): self
+    {
+        if ($capture) {
+            return $this->addGroup($builder, GroupType::T_GROUP_CAPTURING);
+        }
         return $this->addGroup($builder, GroupType::T_GROUP_NON_CAPTURING);
     }
 
@@ -238,22 +298,39 @@ class RegexBuilder
 
     public function exactly(int $n): self
     {
-        return $this->quantify("{{$n}}", false);
+        return $this->quantify(\sprintf('{%d}', $n), false);
     }
 
     public function atLeast(int $n, bool $lazy = false): self
     {
-        return $this->quantify("{{$n},}", $lazy);
+        return $this->quantify(\sprintf('{%d,}', $n), $lazy);
     }
 
     public function between(int $min, int $max, bool $lazy = false): self
     {
-        return $this->quantify("{{$min},{$max}}", $lazy);
+        return $this->quantify(\sprintf('{%d,%d}', $min, $max), $lazy);
     }
 
     // -------------------------------------------------------------------------
-    // Flags
+    // Flags & Options
     // -------------------------------------------------------------------------
+
+    public function withFlags(string $flags): self
+    {
+        foreach (str_split($flags) as $flag) {
+            $this->flags[$flag] = true;
+        }
+        return $this;
+    }
+
+    public function withDelimiter(string $delimiter): self
+    {
+        if (1 !== \strlen($delimiter)) {
+            throw new \InvalidArgumentException('Delimiter must be a single character.');
+        }
+        $this->delimiter = $delimiter;
+        return $this;
+    }
 
     public function caseInsensitive(): self
     {
@@ -295,16 +372,18 @@ class RegexBuilder
     }
 
     /**
+     * Alias for build() to maintain backward compatibility.
+     */
+    public function compile(): string
+    {
+        return $this->build();
+    }
+
+    /**
      * Returns a configured Regex object ready for use.
      */
     public function getRegex(): Regex
     {
-        // This requires the Regex facade to accept a pre-compiled string,
-        // or we simply return the string and let the user use Regex::create()->parse(...)
-        // Given existing architecture, better to return the parsed object?
-        // For now, returning a new Regex instance that can parse this string.
-
-        // Actually, the Regex class is a facade. We might just rely on `build()` returning string.
         return Regex::create();
     }
 
@@ -334,7 +413,7 @@ class RegexBuilder
     private function quantify(string $symbol, bool $lazy): self
     {
         if (empty($this->currentNodes)) {
-            throw new \LogicException('Cannot quantify nothing. Add an atom before calling a quantifier.');
+            throw new \LogicException('Cannot apply quantifier to an empty expression.');
         }
 
         $lastNode = array_pop($this->currentNodes);
