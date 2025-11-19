@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser;
 
+use RegexParser\Builder\RegexBuilder;
 use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
 use RegexParser\Node\RegexNode;
@@ -20,6 +21,7 @@ use RegexParser\NodeVisitor\CompilerNodeVisitor;
 use RegexParser\NodeVisitor\ComplexityScoreVisitor;
 use RegexParser\NodeVisitor\DumperNodeVisitor;
 use RegexParser\NodeVisitor\ExplainVisitor;
+use RegexParser\NodeVisitor\LiteralExtractorVisitor;
 use RegexParser\NodeVisitor\OptimizerNodeVisitor;
 use RegexParser\NodeVisitor\SampleGeneratorVisitor;
 use RegexParser\NodeVisitor\ValidatorNodeVisitor;
@@ -152,5 +154,41 @@ class Regex
         $ast = $this->parser->parse($regex);
 
         return $ast->accept(clone $this->dumper);
+    }
+
+    /**
+     * Extracts literal strings that must appear in any match.
+     * useful for pre-match optimizations (e.g. strpos check).
+     *
+     * * @throws LexerException|ParserException
+     */
+    public function extractLiterals(string $regex): LiteralSet
+    {
+        $ast = $this->parser->parse($regex);
+
+        // Use a fresh visitor instance
+        $visitor = new LiteralExtractorVisitor();
+
+        return $ast->accept($visitor);
+    }
+
+    /**
+     * Performs a detailed ReDoS vulnerability analysis.
+     * Returns a report with severity, score, and recommendations.
+     */
+    public function analyzeReDoS(string $regex): ReDoSAnalysis
+    {
+        // We can reuse the internal parser
+        $analyzer = new ReDoSAnalyzer($this->parser);
+
+        return $analyzer->analyze($regex);
+    }
+
+    /**
+     * Returns a fluent builder to construct regex programmatically.
+     */
+    public static function builder(): RegexBuilder
+    {
+        return RegexBuilder::create();
     }
 }

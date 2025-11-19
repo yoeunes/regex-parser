@@ -15,6 +15,7 @@ namespace RegexParser\Tests\Builder;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use RegexParser\Builder\CharClassBuilder;
 use RegexParser\Builder\RegexBuilder;
 
 class RegexBuilderTest extends TestCase
@@ -57,7 +58,7 @@ class RegexBuilderTest extends TestCase
     {
         $builder = new RegexBuilder();
         $regex = $builder
-            ->charClass(function ($c): void {
+            ->charClass(function (CharClassBuilder $c): void {
                 $c->range('a', 'z')
                     ->digit();
             })
@@ -71,7 +72,7 @@ class RegexBuilderTest extends TestCase
     {
         $builder = new RegexBuilder();
         $regex = $builder
-            ->namedGroup('id', function ($b): void {
+            ->namedGroup('id', function (RegexBuilder $b): void {
                 $b->digit()->oneOrMore();
             })
             ->withFlags('i')
@@ -108,7 +109,7 @@ class RegexBuilderTest extends TestCase
     public function test_group_without_capture(): void
     {
         $builder = new RegexBuilder();
-        $regex = $builder->group(function ($b): void {
+        $regex = $builder->group(function (RegexBuilder $b): void {
             $b->literal('test');
         }, false)->compile();
 
@@ -215,7 +216,7 @@ class RegexBuilderTest extends TestCase
     {
         $builder = new RegexBuilder();
         $regex = $builder
-            ->charClass(function ($c): void {
+            ->charClass(function (CharClassBuilder $c): void {
                 $c->digit()
                   ->notDigit()
                   ->whitespace()
