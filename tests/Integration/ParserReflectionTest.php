@@ -21,8 +21,8 @@ use RegexParser\TokenType;
 class ParserReflectionTest extends TestCase
 {
     /**
-     * Ce test couvre 100% de la méthode privée Parser::reconstructTokenValue
-     * qui contient un switch géant normalement inaccessible.
+     * This test covers 100% of the private Parser::reconstructTokenValue method
+     * which contains a giant switch normally inaccessible.
      */
     public function test_reconstruct_token_value_exhaustive(): void
     {
@@ -30,11 +30,11 @@ class ParserReflectionTest extends TestCase
         $reflection = new \ReflectionClass($parser);
         $method = $reflection->getMethod('reconstructTokenValue');
 
-        // Liste exhaustive de tous les cas du match()
+        // Exhaustive list of all match() cases
         $scenarios = [
             [TokenType::T_LITERAL, 'a', 'a'],
             [TokenType::T_DOT, '.', '.'],
-            [TokenType::T_CHAR_TYPE, 'd', '\d'], // Ajoute le backslash
+            [TokenType::T_CHAR_TYPE, 'd', '\d'], // Adds backslash
             [TokenType::T_ASSERTION, 'b', '\b'],
             [TokenType::T_KEEP, 'K', '\K'],
             [TokenType::T_OCTAL_LEGACY, '01', '\01'],
@@ -61,20 +61,20 @@ class ParserReflectionTest extends TestCase
     }
 
     /**
-     * Teste exhaustivement la méthode privée reconstructTokenValue via la réflexion.
-     * Cette méthode contient un grand switch/match qui est difficile à couvrir
-     * entièrement via l'analyse normale des commentaires.
+     * Exhaustively tests the private reconstructTokenValue method via reflection.
+     * This method contains a large switch/match that is difficult to fully cover
+     * via normal comment analysis.
      */
     public function test_reconstruct_token_value_exhaustive_others(): void
     {
         $parser = new Parser();
         $reflection = new \ReflectionClass($parser);
         $method = $reflection->getMethod('reconstructTokenValue');
-        // $method->setAccessible(true); // Pas nécessaire en PHP moderne si invoke() est utilisé, mais bon à savoir
+        // $method->setAccessible(true); // Not necessary in modern PHP if invoke() is used, but good to know
 
-        // Scénarios : [TokenType, Valeur du token, Résultat attendu après reconstruction]
+        // Scenarios: [TokenType, Token value, Expected result after reconstruction]
         $scenarios = [
-            // Cas simples (retourne la valeur telle quelle)
+            // Simple cases (returns value as is)
             [TokenType::T_LITERAL, 'a', 'a'],
             [TokenType::T_NEGATION, '^', '^'],
             [TokenType::T_RANGE, '-', '-'],
@@ -91,33 +91,33 @@ class ParserReflectionTest extends TestCase
             [TokenType::T_UNICODE, '\x41', '\x41'],
             [TokenType::T_OCTAL, '\o{123}', '\o{123}'],
 
-            // Cas avec ajout de backslash
+            // Cases with backslash addition
             [TokenType::T_CHAR_TYPE, 'd', '\d'],
             [TokenType::T_ASSERTION, 'b', '\b'],
             [TokenType::T_KEEP, 'K', '\K'],
             [TokenType::T_OCTAL_LEGACY, '01', '\01'],
             [TokenType::T_LITERAL_ESCAPED, '.', '\.'],
 
-            // Cas complexes
-            // Unicode Prop: court, long, négation, accolades
+            // Complex cases
+            // Unicode Prop: short, long, negation, braces
             [TokenType::T_UNICODE_PROP, 'L', '\pL'],
-            [TokenType::T_UNICODE_PROP, '{L}', '\p{L}'], // Déjà accolades
-            [TokenType::T_UNICODE_PROP, 'Lu', '\p{Lu}'], // Long sans accolades -> ajoute {}
-            [TokenType::T_UNICODE_PROP, '^L', '\p{^L}'], // Négation -> ajoute {}
+            [TokenType::T_UNICODE_PROP, '{L}', '\p{L}'], // Already with braces
+            [TokenType::T_UNICODE_PROP, 'Lu', '\p{Lu}'], // Long without braces -> adds {}
+            [TokenType::T_UNICODE_PROP, '^L', '\p{^L}'], // Negation -> adds {}
 
             [TokenType::T_POSIX_CLASS, 'alnum', '[[:alnum:]]'],
             [TokenType::T_PCRE_VERB, 'FAIL', '(*FAIL)'],
-            [TokenType::T_GROUP_MODIFIER_OPEN, '', '(?'], // Valeur ignorée
-            [TokenType::T_COMMENT_OPEN, '', '(?#'],      // Valeur ignorée
-            [TokenType::T_QUOTE_MODE_START, '', '\Q'],    // Valeur ignorée
-            [TokenType::T_QUOTE_MODE_END, '', '\E'],      // Valeur ignorée
+            [TokenType::T_GROUP_MODIFIER_OPEN, '', '(?'], // Value ignored
+            [TokenType::T_COMMENT_OPEN, '', '(?#'],      // Value ignored
+            [TokenType::T_QUOTE_MODE_START, '', '\Q'],    // Value ignored
+            [TokenType::T_QUOTE_MODE_END, '', '\E'],      // Value ignored
             [TokenType::T_EOF, '', ''],
         ];
 
         foreach ($scenarios as [$type, $value, $expected]) {
             $token = new Token($type, $value, 0);
             $result = $method->invoke($parser, $token);
-            $this->assertSame($expected, $result, "Échec pour le token {$type->name} avec valeur '$value'");
+            $this->assertSame($expected, $result, "Failed for token {$type->name} with value '$value'");
         }
     }
 }

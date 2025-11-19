@@ -56,7 +56,6 @@ class RegexBuilder
 
     public function __construct() {}
 
-    // --- Compatibilité Magic Getter pour l'ancien style ---
     public function __get(string $name): self
     {
         if ('or' === $name) {
@@ -70,10 +69,6 @@ class RegexBuilder
     {
         return new self();
     }
-
-    // -------------------------------------------------------------------------
-    // Literals & Basics
-    // -------------------------------------------------------------------------
 
     public function literal(string $text): self
     {
@@ -120,10 +115,6 @@ class RegexBuilder
     {
         return $this->anyChar();
     }
-
-    // -------------------------------------------------------------------------
-    // Character Types & Classes
-    // -------------------------------------------------------------------------
 
     public function digit(): self
     {
@@ -192,10 +183,6 @@ class RegexBuilder
         return $this;
     }
 
-    // -------------------------------------------------------------------------
-    // Anchors & Boundaries
-    // -------------------------------------------------------------------------
-
     public function startOfLine(): self
     {
         $this->currentNodes[] = new AnchorNode('^', 0, 0);
@@ -216,10 +203,6 @@ class RegexBuilder
 
         return $this;
     }
-
-    // -------------------------------------------------------------------------
-    // Groups & Lookarounds
-    // -------------------------------------------------------------------------
 
     /**
      * Creates a capturing group: (...)
@@ -279,10 +262,6 @@ class RegexBuilder
         return $this->addGroup($builder, GroupType::T_GROUP_LOOKBEHIND_NEGATIVE);
     }
 
-    // -------------------------------------------------------------------------
-    // Alternation
-    // -------------------------------------------------------------------------
-
     /**
      * Marks the end of the current branch and starts a new one.
      * Logic: (current) | (next)
@@ -299,10 +278,6 @@ class RegexBuilder
 
         return $this;
     }
-
-    // -------------------------------------------------------------------------
-    // Quantifiers
-    // -------------------------------------------------------------------------
 
     public function optional(bool $lazy = false): self
     {
@@ -333,10 +308,6 @@ class RegexBuilder
     {
         return $this->quantify(\sprintf('{%d,%d}', $min, $max), $lazy);
     }
-
-    // -------------------------------------------------------------------------
-    // Flags & Options
-    // -------------------------------------------------------------------------
 
     public function withFlags(string $flags): self
     {
@@ -385,10 +356,6 @@ class RegexBuilder
         return $this;
     }
 
-    // -------------------------------------------------------------------------
-    // Build & Compilation
-    // -------------------------------------------------------------------------
-
     public function build(): string
     {
         $node = $this->buildNode();
@@ -415,10 +382,6 @@ class RegexBuilder
     {
         return Regex::create();
     }
-
-    // -------------------------------------------------------------------------
-    // Internals
-    // -------------------------------------------------------------------------
 
     private function addGroup(callable $builderCallback, GroupType $type, ?string $name = null): self
     {

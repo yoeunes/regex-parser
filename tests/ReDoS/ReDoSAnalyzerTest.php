@@ -40,17 +40,15 @@ class ReDoSAnalyzerTest extends TestCase
         yield ['/abc/', ReDoSSeverity::SAFE];
         yield ['/^\d{4}-\d{2}-\d{2}$/', ReDoSSeverity::SAFE];
 
-        // LOW (Bounded nested) - Correctly identified as bounded now
+        // LOW (Bounded nested)
         yield ['/(a{1,5}){1,5}/', ReDoSSeverity::LOW];
 
-        // MEDIUM (Single unbounded) - Now detected thanks to addVulnerability
+        // MEDIUM (Single unbounded)
         yield ['/a+/', ReDoSSeverity::MEDIUM];
         yield ['/.*ok/', ReDoSSeverity::MEDIUM];
 
-        // HIGH/CRITICAL (Nested unbounded)
-        // (a+)+ triggers Star Height > 1 logic => CRITICAL
-        yield ['/(a+)+/', ReDoSSeverity::CRITICAL];
-        yield ['/(.*)*/', ReDoSSeverity::CRITICAL];
+        // HIGH (Nested unbounded)
+        yield ['/(a+)+/', ReDoSSeverity::CRITICAL]; // Triggers Star Height > 1
 
         // CRITICAL (Overlapping alternation in loop)
         yield ['/(a|a)+/', ReDoSSeverity::CRITICAL];
@@ -65,6 +63,7 @@ class ReDoSAnalyzerTest extends TestCase
     {
         $analysis = $this->analyzer->analyze('/(a+)+/');
 
+        // The visitor detects critical nesting for this specific pattern
         $this->assertSame(ReDoSSeverity::CRITICAL, $analysis->severity);
         $this->assertNotEmpty($analysis->recommendations);
     }

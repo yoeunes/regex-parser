@@ -21,8 +21,8 @@ use RegexParser\TokenType;
 class ReflectionCoverageTest extends TestCase
 {
     /**
-     * Teste le fallback "empty" de getRandomChar dans SampleGeneratorVisitor.
-     * Ce cas est impossible via l'API publique car le visiteur ne passe jamais de tableau vide.
+     * Tests the "empty" fallback of getRandomChar in SampleGeneratorVisitor.
+     * This case is impossible via the public API as the visitor never passes an empty array.
      */
     public function test_sample_generator_get_random_char_empty(): void
     {
@@ -30,7 +30,7 @@ class ReflectionCoverageTest extends TestCase
         $reflection = new \ReflectionClass($visitor);
         $method = $reflection->getMethod('getRandomChar');
 
-        // Appel direct : getRandomChar([])
+        // Direct call: getRandomChar([])
         $result = $method->invoke($visitor, []);
 
         $this->assertSame('?', $result);

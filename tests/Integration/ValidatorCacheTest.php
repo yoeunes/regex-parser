@@ -25,11 +25,11 @@ class ValidatorCacheTest extends TestCase
         $parser = new Parser();
         $validator = new ValidatorNodeVisitor();
 
-        // 1ère passe : remplit le cache
+        // 1st pass: fills the cache
         $ast1 = $parser->parse('/\p{L}/');
         $ast1->accept($validator);
 
-        // 2ème passe : utilise le cache (couvre la branche "cache hit")
+        // 2nd pass: uses the cache (covers "cache hit" branch)
         $ast2 = $parser->parse('/\p{L}/');
         $ast2->accept($validator);
     }

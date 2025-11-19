@@ -29,7 +29,7 @@ class LexerErrorTest extends TestCase
         $this->expectException(LexerException::class);
         $this->expectExceptionMessage('Input string is not valid UTF-8.');
 
-        // \xFF est garanti invalide en UTF-8
+        // \xFF is guaranteed invalid in UTF-8
         $accessor->callPrivateMethod('reset', ["\xFF"]);
     }
 
@@ -49,24 +49,24 @@ class LexerErrorTest extends TestCase
         $lexer = new Lexer('start\Qabc\Eend');
         $accessor = new LexerAccessor($lexer);
 
-        // 1. Lexer s'arrête après \Q (position 7)
+        // 1. Lexer stops after \Q (position 7)
         $accessor->setPosition(7);
         $accessor->setInQuoteMode(true);
 
-        // 2. Doit trouver 'abc'
+        // 2. Must find 'abc'
         $token = $accessor->callPrivateMethod('lexQuoteMode');
         $this->assertInstanceOf(Token::class, $token);
         $this->assertSame('abc', $token->value);
-        $this->assertSame(10, $accessor->getPosition()); // Position après 'abc' (7 + 3)
-        $this->assertTrue($accessor->getInQuoteMode()); // Toujours en mode quote
+        $this->assertSame(10, $accessor->getPosition()); // Position after 'abc' (7 + 3)
+        $this->assertTrue($accessor->getInQuoteMode()); // Still in quote mode
 
-        // 3. Doit trouver \E
+        // 3. Must find \E
         $token = $accessor->callPrivateMethod('lexQuoteMode');
         $this->assertNull($token);
-        $this->assertSame(12, $accessor->getPosition()); // Position après \E (10 + 2)
-        $this->assertFalse($accessor->getInQuoteMode()); // Sortie du mode quote
+        $this->assertSame(12, $accessor->getPosition()); // Position after \E (10 + 2)
+        $this->assertFalse($accessor->getInQuoteMode()); // Exit quote mode
 
-        // 4. Doit trouver 'end'
+        // 4. Must find 'end'
         $token = $accessor->callPrivateMethod('lexQuoteMode');
         $this->assertInstanceOf(Token::class, $token);
         $this->assertSame('end', $token->value);
@@ -77,20 +77,20 @@ class LexerErrorTest extends TestCase
         $lexer = new Lexer('\Qabc');
         $accessor = new LexerAccessor($lexer);
 
-        // 1. Simuler l'entrée en mode quote (position 2)
+        // 1. Simulate entering quote mode (position 2)
         $accessor->setPosition(2);
         $accessor->setInQuoteMode(true);
 
-        // 2. Doit trouver 'abc'
+        // 2. Must find 'abc'
         $token = $accessor->callPrivateMethod('lexQuoteMode');
         $this->assertInstanceOf(Token::class, $token);
         $this->assertSame('abc', $token->value);
 
-        // 3. Doit atteindre la fin de chaîne (position 5)
+        // 3. Must reach end of string (position 5)
         $token = $accessor->callPrivateMethod('lexQuoteMode');
         $this->assertNull($token);
         $this->assertSame(5, $accessor->getPosition());
-        // Reste dans l'état $inQuoteMode = true à la fin de la chaîne (comportement PCRE)
+        // Remains in $inQuoteMode = true at end of string (PCRE behavior)
         $this->assertTrue($accessor->getInQuoteMode());
     }
 }

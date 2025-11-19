@@ -41,7 +41,7 @@ class LiteralExtractorVisitorTest extends TestCase
 
     public function test_sequence_concat(): void
     {
-        $set = $this->extract('/abc/');
+        $set = $this->extract('/abc/'); // Sequence(Literal(a), Literal(b), Literal(c))
 
         $this->assertTrue($set->complete);
         $this->assertSame(['abc'], $set->prefixes);
@@ -78,6 +78,7 @@ class LiteralExtractorVisitorTest extends TestCase
     public function test_quantifier_plus(): void
     {
         $set = $this->extract('/a+/');
+        // Should contain 'a' as prefix, but incomplete
         $this->assertSame(['a'], $set->prefixes);
         $this->assertFalse($set->complete);
         $this->assertEmpty($set->suffixes);
