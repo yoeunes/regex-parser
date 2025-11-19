@@ -417,7 +417,7 @@ class Lexer
             $this->inCommentMode = false; // Exit comment mode
             // Emit the closing ) as T_GROUP_CLOSE
             $token = new Token(TokenType::T_GROUP_CLOSE, ')', $this->position);
-            $this->position += 1; // Advance past )
+            $this->position++; // Advance past )
 
             return $token;
         }
