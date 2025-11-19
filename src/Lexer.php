@@ -58,7 +58,7 @@ class Lexer
       | (?<T_LITERAL_ESCAPED>     \\\\ . ) # Any other escaped char
       
       # Must be last: Match any single character that wasn\'t matched above.
-      | (?<T_LITERAL>             . )
+      | (?<T_LITERAL>             [^\\\\] )
     /xsuA'; // s: . matches \n, u: unicode, A: anchored
 
     /**
@@ -74,10 +74,11 @@ class Lexer
       | (?<T_OCTAL>            \\\\ o\{[0-7]+\} )
       | (?<T_UNICODE>          \\\\ x[0-9a-fA-F]{2} | \\\\ u\{[0-9a-fA-F]+\} )
       | (?<T_UNICODE_PROP>     \\\\ [pP] (?: \{ (?<v1_prop> \^? [a-zA-Z0-9_]+) \} | (?<v2_prop> [a-zA-Z]) ) )
+      | (?<T_QUOTE_MODE_START> \\\\ Q )
       | (?<T_LITERAL_ESCAPED>  \\\\ . ) # Includes escaped \], \-, \^
       
       # Must be last: Match any single character that wasn\'t matched above.
-      | (?<T_LITERAL>          . )
+      | (?<T_LITERAL>          [^\\\\] )
     /xsuA';
 
     /**
@@ -121,6 +122,7 @@ class Lexer
         'T_OCTAL',
         'T_UNICODE',
         'T_UNICODE_PROP',
+        'T_QUOTE_MODE_START',
         'T_LITERAL_ESCAPED',
         'T_LITERAL',
     ];
@@ -319,10 +321,7 @@ class Lexer
             }
         } // end while
 
-        // Check for a trailing backslash that was not consumed
-        if (!$this->inQuoteMode && $this->position === $this->length && str_ends_with($this->pattern, '\\')) {
-            throw new LexerException('Trailing backslash at position '.($this->length - 1));
-        }
+
 
         if ($this->inCharClass) {
             throw new LexerException('Unclosed character class "]" at end of input.');

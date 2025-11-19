@@ -1,0 +1,69 @@
+<?php
+
+declare(strict_types=1);
+
+namespace RegexParser\Tests\Integration;
+
+use PHPUnit\Framework\TestCase;
+use RegexParser\Exception\LexerException;
+use RegexParser\Exception\ParserException;
+use RegexParser\Node\CharClassNode;
+use RegexParser\Node\LiteralNode;
+use RegexParser\NodeVisitor\CompilerNodeVisitor;
+use RegexParser\Regex;
+
+class DeepDiveBugFixTest extends TestCase
+{
+    public function testQuoteModeInCharClass(): void
+    {
+        // [\Q-\E] should be parsed as a character class containing a literal hyphen
+        $ast = Regex::create()->parse('/[\Q-\E]/');
+        $charClass = $ast->pattern;
+        
+        $this->assertInstanceOf(CharClassNode::class, $charClass);
+        $this->assertCount(1, $charClass->parts);
+        $this->assertInstanceOf(LiteralNode::class, $charClass->parts[0]);
+        $this->assertEquals('-', $charClass->parts[0]->value);
+    }
+
+    public function testCompilerEscapesMultiCharLiterals(): void
+    {
+        // \Q[a-z]\E should be parsed as a literal string "[a-z]"
+        // And compiled back to "\[a-z\]" (or similar escaping)
+        $pattern = '/\Q[a-z]\E/';
+        $ast = Regex::create()->parse($pattern);
+        
+        $compiler = new CompilerNodeVisitor();
+        $compiled = $ast->accept($compiler);
+        
+        // The compiled regex should match the literal string "[a-z]"
+        // So it must be escaped.
+        $this->assertStringContainsString('\[', $compiled);
+        $this->assertStringContainsString('\]', $compiled);
+        
+        // Verify round-trip parse
+        $ast2 = Regex::create()->parse($compiled);
+        // The AST might be a Sequence of Literals or a single Literal depending on optimization.
+        // Let's verify it compiles back to a valid regex that matches the literal string "[a-z]".
+        $compiled2 = $ast2->accept(new CompilerNodeVisitor());
+        
+        // We expect the compiled regex to match the literal string "[a-z]"
+        // The compiled regex should be something like /\[a-z\]/ or /\[a-z]/
+        // It already includes delimiters because we visited the RegexNode
+        $this->assertSame(1, preg_match($compiled2, '[a-z]'), "Compiled regex '$compiled2' should match literal '[a-z]'");
+    }
+
+    public function testTrailingBackslashCheck(): void
+    {
+        // /\\/ is valid (matches literal backslash)
+        $ast = Regex::create()->parse('/\\\\/');
+        $this->assertInstanceOf(LiteralNode::class, $ast->pattern);
+        $this->assertEquals('\\', $ast->pattern->value);
+
+        // /abc\/ is invalid (trailing backslash)
+        // Note: In PHP string, '/abc\\/' is /abc\/.
+        // The parser will fail to find the closing delimiter because it's escaped.
+        $this->expectException(ParserException::class);
+        Regex::create()->parse('/abc\\/');
+    }
+}

@@ -133,11 +133,18 @@ class CompilerNodeVisitor implements NodeVisitorInterface
             return $node->value;
         }
 
-        if (isset($meta[$node->value])) {
-            return '\\'.$node->value;
+        $result = '';
+        $length = mb_strlen($node->value);
+        for ($i = 0; $i < $length; ++$i) {
+            $char = mb_substr($node->value, $i, 1);
+            if (isset($meta[$char])) {
+                $result .= '\\'.$char;
+            } else {
+                $result .= $char;
+            }
         }
 
-        return $node->value;
+        return $result;
     }
 
     public function visitCharType(CharTypeNode $node): string

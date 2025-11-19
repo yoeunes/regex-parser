@@ -352,8 +352,34 @@ final class ReDoSProfileVisitor implements NodeVisitorInterface
     private function hasOverlappingAlternatives(AlternationNode $node): bool
     {
         $prefixes = [];
+        $hasDot = false;
+        $hasCharClass = false;
+
         foreach ($node->alternatives as $alt) {
             $prefix = $this->getPrefixSignature($alt);
+
+            if ('DOT' === $prefix) {
+                if ($hasDot || !empty($prefixes) || $hasCharClass) {
+                    return true; // Dot overlaps with everything (except empty, but we assume non-empty)
+                }
+                $hasDot = true;
+                continue;
+            }
+
+            if ('CLASS' === $prefix) {
+                // For now, assume any two classes or class+literal overlap.
+                // A more sophisticated check would compute intersections.
+                if ($hasDot || $hasCharClass || !empty($prefixes)) {
+                    return true;
+                }
+                $hasCharClass = true;
+                continue;
+            }
+
+            if ($hasDot || $hasCharClass) {
+                return true;
+            }
+
             if ($prefix && isset($prefixes[$prefix])) {
                 return true;
             }
@@ -373,6 +399,9 @@ final class ReDoSProfileVisitor implements NodeVisitorInterface
         }
         if ($node instanceof DotNode) {
             return 'DOT';
+        }
+        if ($node instanceof CharClassNode) {
+            return 'CLASS';
         }
         if ($node instanceof SequenceNode && !empty($node->children)) {
             return $this->getPrefixSignature($node->children[0]);
