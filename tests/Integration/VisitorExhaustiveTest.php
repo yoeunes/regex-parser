@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\Integration;
 
+use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Node\AlternationNode;
 use RegexParser\Node\AnchorNode;
@@ -41,6 +42,7 @@ use RegexParser\NodeVisitor\ValidatorNodeVisitor;
 
 class VisitorExhaustiveTest extends TestCase
 {
+    #[DoesNotPerformAssertions]
     public function test_all_visitors_visit_all_nodes(): void
     {
         // Liste de tous les visiteurs
@@ -100,12 +102,7 @@ class VisitorExhaustiveTest extends TestCase
 
                 try {
                     $node->accept($visitor);
-                    // Si on arrive ici, c'est que la méthode visit* a été exécutée sans erreur fatale
-                    $this->assertTrue(true);
-                } catch (\Throwable $e) {
-                    // On ignore les exceptions "métier" (ex: pas de target pour le quantifieur)
-                    // car le but est juste de passer dans la méthode visit* pour la couverture.
-                    $this->assertTrue(true);
+                } catch (\Throwable) {
                 }
             }
         }
