@@ -69,7 +69,7 @@ class CompilerNodeVisitor implements NodeVisitorInterface
     public function visitRegex(RegexNode $node): string
     {
         // Re-add the dynamic delimiter and flags
-        $map = [')' => '(', ']' => '[', '}' => '{', '>' => '<'];
+        $map = ['(' => ')', '[' => ']', '{' => '}', '<' => '>'];
         $closingDelimiter = $map[$node->delimiter] ?? $node->delimiter;
 
         return $node->delimiter.$node->pattern->accept($this).$closingDelimiter.$node->flags;
