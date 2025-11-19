@@ -28,8 +28,8 @@ class ParserEdgeCaseTest extends TestCase
 
     public function test_quantifier_on_empty_sequence(): void
     {
-        // Cas : /(?:)+/ -> Groupe vide (séquence vide) quantifié
-        // Cela déclenche la condition "if ($node instanceof LiteralNode && '' === $node->value)" dans parseQuantifiedAtom
+        // Case: /(?:)+/ -> Empty group (empty sequence) quantified
+        // This triggers the condition "if ($node instanceof LiteralNode && '' === $node->value)" in parseQuantifiedAtom
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('Quantifier without target');
         $this->parser->parse('/(?:)+/');
@@ -37,7 +37,7 @@ class ParserEdgeCaseTest extends TestCase
 
     public function test_subroutine_empty_name(): void
     {
-        // Cas : (?&) -> appel de subroutine sans nom
+        // Case: (?&) -> subroutine call without name
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('Expected subroutine name');
         $this->parser->parse('/(?&)/');
@@ -45,7 +45,7 @@ class ParserEdgeCaseTest extends TestCase
 
     public function test_named_group_empty_name_angle_brackets(): void
     {
-        // Cas : (?<>) -> Groupe nommé vide
+        // Case: (?<>) -> Empty named group
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('Expected group name');
         $this->parser->parse('/(?<>)/');
@@ -53,8 +53,8 @@ class ParserEdgeCaseTest extends TestCase
 
     public function test_unclosed_group_in_subroutine_name(): void
     {
-        // Cas : (?&name -> pas de parenthèse fermante, mais fin de chaine
-        // Doit déclencher "Unexpected token" ou "Expected )"
+        // Case: (?&name -> no closing parenthesis, but end of string
+        // Should trigger "Unexpected token" or "Expected )"
         $this->expectException(ParserException::class);
         $this->parser->parse('/(?&name/');
     }
