@@ -1,5 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
@@ -37,7 +48,7 @@ class TokenReconstructionTest extends TestCase
             TokenType::T_NEGATION->value => '^',
             TokenType::T_BACKREF->value => '\1',             // Garde \
             TokenType::T_UNICODE->value => '\x00',           // Garde \
-            TokenType::T_POSIX_CLASS->value => '[[:alnum:]]',// Reconstruit tout
+            TokenType::T_POSIX_CLASS->value => '[[:alnum:]]', // Reconstruit tout
             TokenType::T_ASSERTION->value => '\b',           // Ajoute \
             TokenType::T_UNICODE_PROP->value => '\p{L}',     // Cas standard
             TokenType::T_OCTAL->value => '\o{123}',          // Garde \
@@ -53,7 +64,7 @@ class TokenReconstructionTest extends TestCase
 
         foreach (TokenType::cases() as $case) {
             // Valeur par défaut pour le token
-            $val = match($case) {
+            $val = match ($case) {
                 TokenType::T_CHAR_TYPE => 'd',
                 TokenType::T_ASSERTION => 'b',
                 TokenType::T_KEEP => 'K',
@@ -66,7 +77,7 @@ class TokenReconstructionTest extends TestCase
             };
 
             // Cas spéciaux pour les méthodes qui transforment la valeur
-            $expected = match($case) {
+            $expected = match ($case) {
                 TokenType::T_CHAR_TYPE => '\d',
                 TokenType::T_ASSERTION => '\b',
                 TokenType::T_KEEP => '\K',
