@@ -6,6 +6,7 @@ namespace RegexParser\Tests\Integration;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Lexer;
 use RegexParser\Tests\TestUtils\LexerAccessor;
+use RegexParser\Token;
 
 class LexerInternalStateTest extends TestCase
 {
@@ -28,6 +29,7 @@ class LexerInternalStateTest extends TestCase
 
         // Elle doit d'abord retourner un token avec le texte du commentaire
         $this->assertNotNull($result);
+        $this->assertInstanceof(Token::class, $result);
         $this->assertSame(' ... sans fin', $result->value);
         // La position doit être à la fin du texte
         $this->assertSame(16, $accessor->getPosition());
@@ -48,6 +50,7 @@ class LexerInternalStateTest extends TestCase
 
         // Elle doit d'abord retourner un token avec le texte littéral
         $this->assertNotNull($result);
+        $this->assertInstanceof(Token::class, $result);
         $this->assertSame(' ... sans fin', $result->value);
         // La position doit être à la fin du texte
         $this->assertSame(15, $accessor->getPosition());
