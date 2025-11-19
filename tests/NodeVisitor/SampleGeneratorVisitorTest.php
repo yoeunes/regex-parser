@@ -220,25 +220,6 @@ class SampleGeneratorVisitorTest extends TestCase
         $this->assertIsString($val2);
     }
 
-    private function assertSampleMatches(string $regex): void
-    {
-        $ast = $this->parser->parse($regex);
-        $generator = new SampleGeneratorVisitor();
-
-        for ($i = 0; $i < 5; $i++) {
-            $sample = $ast->accept($generator);
-            $this->assertMatchesRegularExpression($regex, $sample);
-        }
-    }
-
-    private function generateSample(string $regex): string
-    {
-        $ast = $this->parser->parse($regex);
-        $generator = new SampleGeneratorVisitor();
-
-        return $ast->accept($generator);
-    }
-
     public function test_generate_negated_char_class_fallback(): void
     {
         // Ton code retourne '!' pour les classes niées complexes.
@@ -259,5 +240,24 @@ class SampleGeneratorVisitorTest extends TestCase
             $regex = Regex::create();
             $this->assertNotEmpty($regex->generate('/'.$t.'/'));
         }
+    }
+
+    private function assertSampleMatches(string $regex): void
+    {
+        $ast = $this->parser->parse($regex);
+        $generator = new SampleGeneratorVisitor();
+
+        for ($i = 0; $i < 5; $i++) {
+            $sample = $ast->accept($generator);
+            $this->assertMatchesRegularExpression($regex, $sample);
+        }
+    }
+
+    private function generateSample(string $regex): string
+    {
+        $ast = $this->parser->parse($regex);
+        $generator = new SampleGeneratorVisitor();
+
+        return $ast->accept($generator);
     }
 }
