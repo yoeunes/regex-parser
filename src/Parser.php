@@ -531,7 +531,7 @@ class Parser
             TokenType::T_BACKREF, TokenType::T_G_REFERENCE, TokenType::T_UNICODE, TokenType::T_OCTAL => $token->value,
 
             // Complex re-assembly
-            TokenType::T_UNICODE_PROP => (mb_strlen($token->value) > 1 || str_starts_with($token->value, '^')) ? '\p{'.$token->value.'}' : '\p'.$token->value,
+            TokenType::T_UNICODE_PROP => str_starts_with($token->value, '{') ? '\p'.$token->value : ((mb_strlen($token->value) > 1 || str_starts_with($token->value, '^')) ? '\p{'.$token->value.'}' : '\p'.$token->value),
             TokenType::T_POSIX_CLASS => '[[:'.$token->value.':]]',
             TokenType::T_PCRE_VERB => '(*'.$token->value.')',
             TokenType::T_GROUP_MODIFIER_OPEN => '(?',
@@ -1080,7 +1080,12 @@ class Parser
         while (!$this->check(TokenType::T_GROUP_CLOSE) && !$this->isAtEnd()) {
             // A name can be any literal, but not special chars like '(', '[', etc.
             if ($this->check(TokenType::T_LITERAL) || $this->check(TokenType::T_LITERAL_ESCAPED)) {
-                $name .= $this->current()->value;
+                $char = $this->current()->value;
+                // Validate that the character is alphanumeric or underscore
+                if (!preg_match('/^[a-zA-Z0-9_]$/', $char)) {
+                    throw new ParserException('Unexpected token in subroutine name: '.$char);
+                }
+                $name .= $char;
                 $this->advance();
             } else {
                 // e.g., (?&name[...]) is invalid

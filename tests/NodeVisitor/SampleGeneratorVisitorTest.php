@@ -17,6 +17,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RegexParser\NodeVisitor\SampleGeneratorVisitor;
 use RegexParser\Parser;
+use RegexParser\Regex;
 
 class SampleGeneratorVisitorTest extends TestCase
 {
@@ -217,6 +218,28 @@ class SampleGeneratorVisitorTest extends TestCase
 
         $this->assertIsString($val1);
         $this->assertIsString($val2);
+    }
+
+    public function test_generate_negated_char_class_fallback(): void
+    {
+        // Ton code retourne '!' pour les classes niées complexes.
+        // On s'assure que cette ligne est exécutée.
+        $parser = new \RegexParser\Parser();
+        $ast = $parser->parse('/[^abc]/');
+        $generator = new \RegexParser\NodeVisitor\SampleGeneratorVisitor();
+
+        $result = $ast->accept($generator);
+        $this->assertSame('!', $result);
+    }
+
+    public function test_generate_fallback_char_types(): void
+    {
+        // Tester les types moins courants pour être sûr de passer dans tous les 'case' du switch
+        $types = ['\h', '\H', '\v', '\V', '\R'];
+        foreach ($types as $t) {
+            $regex = Regex::create();
+            $this->assertNotEmpty($regex->generate('/'.$t.'/'));
+        }
     }
 
     private function assertSampleMatches(string $regex): void
