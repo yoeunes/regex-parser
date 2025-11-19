@@ -2,6 +2,7 @@
 
 namespace RegexParser\Tests\Integration;
 
+use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Node\AnchorNode;
 use RegexParser\Node\CharTypeNode;
@@ -16,6 +17,7 @@ class VisitorVoidTest extends TestCase
      * Couvre les méthodes vides du ValidatorNodeVisitor (visitLiteral, visitDot, etc.)
      * qui sont techniquement du code exécuté même si elles ne font rien.
      */
+    #[DoesNotPerformAssertions]
     public function test_validator_visits_simple_nodes(): void
     {
         $validator = new ValidatorNodeVisitor();
@@ -26,8 +28,5 @@ class VisitorVoidTest extends TestCase
         (new AnchorNode('^', 0, 0))->accept($validator);
         (new CharTypeNode('d', 0, 0))->accept($validator);
         (new CommentNode('comment', 0, 0))->accept($validator);
-
-        // Si aucune exception n'est levée, le test passe et la couverture augmente
-        $this->assertTrue(true);
     }
 }
