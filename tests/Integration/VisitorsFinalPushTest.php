@@ -36,6 +36,7 @@ class VisitorsFinalPushTest extends TestCase
         // Le résultat doit être une nouvelle CharClassNode (pas la même instance)
         $this->assertNotSame($node, $result);
         $this->assertInstanceOf(CharClassNode::class, $result);
+        $this->assertInstanceOf(LiteralNode::class, $result->parts[0]);
         $this->assertSame('changed', $result->parts[0]->value);
     }
 
