@@ -63,8 +63,9 @@ class ParserReconstructionTest extends TestCase
 
         // Vérifications basiques pour sassurer que la reconstruction a fonctionné
         $this->assertStringContainsString('[abc]', $comment);
-        $this->assertStringContainsString('\p{L}', $comment);
         $this->assertStringContainsString('*FAIL', $comment);
+        $this->assertStringContainsString('\p{L}', $comment);
         $this->assertStringContainsString('\d', $comment);
+        $this->assertStringContainsString('\Q', $comment);
     }
 }
