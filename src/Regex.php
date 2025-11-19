@@ -169,4 +169,15 @@ class Regex
 
         return $ast->accept($visitor);
     }
+
+    /**
+     * Performs a detailed ReDoS vulnerability analysis.
+     * Returns a report with severity, score, and recommendations.
+     */
+    public function analyzeReDoS(string $regex): ReDoSAnalysis
+    {
+        // We can reuse the internal parser
+        $analyzer = new ReDoSAnalyzer($this->parser);
+        return $analyzer->analyze($regex);
+    }
 }
