@@ -19,7 +19,7 @@ use RegexParser\Lexer;
 class LexerFallbackTest extends TestCase
 {
     /**
-     * Covers the case where lexQuoteMode reaches the end of the string without finding \E.
+     * Covers the case where consumeQuoteMode reaches the end of the string without finding \E.
      */
     public function test_lex_quote_mode_unterminated(): void
     {
@@ -32,7 +32,7 @@ class LexerFallbackTest extends TestCase
     }
 
     /**
-     * Covers the case where lexCommentMode reaches the end of the string without finding ).
+     * Covers the case where consumeCommentMode reaches the end of the string without finding ).
      * (Note: this throws an exception later in tokenize(), but we want to test the internal call).
      */
     public function test_lex_comment_mode_unterminated_internal(): void

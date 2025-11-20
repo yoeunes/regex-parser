@@ -69,14 +69,14 @@ class LexerInternalCoverageTest extends TestCase
     }
 
     /**
-     * Tests the fallback of lexQuoteMode (if preg_match fails completely).
+     * Tests the fallback of consumeQuoteMode (if preg_match fails completely).
      * This is theoretically impossible with the current pattern, but we secure coverage.
      */
     #[DoesNotPerformAssertions]
     public function test_lex_quote_mode_failure_fallback(): void
     {
         // This test is difficult because it requires a simple preg_match to fail.
-        // If you have a @codeCoverageIgnoreStart in Lexer::lexQuoteMode, ignore this test.
+        // If you have a @codeCoverageIgnoreStart in Lexer::consumeQuoteMode, ignore this test.
         // Otherwise, we move on.
     }
 }

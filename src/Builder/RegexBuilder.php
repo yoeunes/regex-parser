@@ -102,7 +102,7 @@ class RegexBuilder
             $ast = Regex::create()->parse($pattern);
             $this->currentNodes[] = $ast->pattern;
         } catch (\Throwable $e) {
-            // Fallback: if parsing fails (e.g. invalid partial regex), 
+            // Fallback: if parsing fails (e.g. invalid partial regex),
             // we might want to throw or fallback to LiteralNode?
             // For now, let's throw to alert the user their "raw" regex is invalid.
             throw new \InvalidArgumentException('Invalid raw regex fragment: '.$e->getMessage(), 0, $e);

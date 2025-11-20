@@ -51,7 +51,7 @@ class QuoteModeTest extends TestCase
 
         // Should produce literal 'a', then literal 'b'.
         // \Q\E produces nothing or empty literal (logic check).
-        // Current logic: lexQuoteMode returns null if empty content inside.
+        // Current logic: consumeQuoteMode returns null if empty content inside.
 
         $this->assertSame('a', $tokens[0]->value);
         $this->assertSame('b', $tokens[1]->value);

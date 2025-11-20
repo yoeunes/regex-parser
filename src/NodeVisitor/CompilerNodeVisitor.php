@@ -135,7 +135,7 @@ class CompilerNodeVisitor implements NodeVisitorInterface
 
         $result = '';
         $length = mb_strlen($node->value);
-        for ($i = 0; $i < $length; ++$i) {
+        for ($i = 0; $i < $length; $i++) {
             $char = mb_substr($node->value, $i, 1);
             if (isset($meta[$char])) {
                 $result .= '\\'.$char;

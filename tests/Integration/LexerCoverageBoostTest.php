@@ -21,12 +21,12 @@ use RegexParser\TokenType;
 
 /**
  * Tests to improve code coverage for the Lexer class.
- * Specifically targeting uncovered methods: lexQuoteMode, extractTokenValue, and normalizeUnicodeProp.
+ * Specifically targeting uncovered methods: consumeQuoteMode, extractTokenValue, and normalizeUnicodeProp.
  */
 class LexerCoverageBoostTest extends TestCase
 {
     /**
-     * Test \Q...\E quote mode - ensures lexQuoteMode() is called.
+     * Test \Q...\E quote mode - ensures consumeQuoteMode() is called.
      */
     public function test_quote_mode_basic(): void
     {

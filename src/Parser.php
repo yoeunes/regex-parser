@@ -101,7 +101,7 @@ class Parser
         [$pattern, $flags, $delimiter] = $this->extractPatternAndFlags($regex);
 
         if (!preg_match('/^[imsxADSUXJu]*$/', $flags)) {
-            throw new ParserException(sprintf('Unknown modifier "%s"', $flags));
+            throw new ParserException(\sprintf('Unknown modifier "%s"', $flags));
         }
 
         $this->delimiter = $delimiter;
@@ -177,20 +177,19 @@ class Parser
                     $unknownFlags = preg_replace('/[imsxADSUXJu]/', '', $flags);
                     // @codeCoverageIgnoreStart
                     if (null === $unknownFlags) {
-                         // Should not happen
-                         throw new ParserException('Internal parser error: preg_replace failed.');
+                        // Should not happen
+                        throw new ParserException('Internal parser error: preg_replace failed.');
                     }
                     // @codeCoverageIgnoreEnd
-                    
+
                     if ('' !== $unknownFlags) {
-                         throw new ParserException(sprintf('Unknown modifier "%s"', $flags));
+                        throw new ParserException(\sprintf('Unknown modifier "%s"', $flags));
                     }
 
                     return [$pattern, $flags, $delimiter];
                 }
             }
         }
-
 
         // Loop finished without finding a delimiter
         throw new ParserException(\sprintf('No closing delimiter "%s" found.', $closingDelimiter));

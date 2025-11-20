@@ -198,7 +198,7 @@ final class ValidatorNodeVisitor implements NodeVisitorInterface
             // Strict check: Lookbehinds must be fixed length.
             // Any quantifier that allows variable length (min != max) is invalid.
             if ($min !== $max) {
-                 throw new ParserException(\sprintf('Variable-length quantifiers (%s) are not allowed in lookbehinds at position %d.', $node->quantifier, $node->startPos));
+                throw new ParserException(\sprintf('Variable-length quantifiers (%s) are not allowed in lookbehinds at position %d.', $node->quantifier, $node->startPos));
             }
         }
 

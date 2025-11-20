@@ -688,8 +688,8 @@ class CoverageImprovementTest extends TestCase
     }
 
     /**
-     * Test Lexer.lexCommentMode() with (?#...) comment syntax
-     * This triggers the private lexCommentMode() method
+     * Test Lexer.consumeCommentMode() with (?#...) comment syntax
+     * This triggers the private consumeCommentMode() method
      */
     #[DoesNotPerformAssertions]
     public function test_lexer_comment_mode(): void

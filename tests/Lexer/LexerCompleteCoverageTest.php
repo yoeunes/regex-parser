@@ -20,7 +20,7 @@ use RegexParser\TokenType;
 /**
  * Comprehensive tests to improve Lexer coverage to 100%.
  * Focuses on uncovered code paths in:
- * - lexQuoteMode()
+ * - consumeQuoteMode()
  * - extractTokenValue()
  * - normalizeUnicodeProp()
  */
@@ -371,7 +371,7 @@ class LexerCompleteCoverageTest extends TestCase
     }
 
     // ========================================================================
-    // Tests for lexQuoteMode edge cases
+    // Tests for consumeQuoteMode edge cases
     // ========================================================================
 
     public function test_quote_mode_with_multiple_segments(): void
@@ -675,7 +675,7 @@ class LexerCompleteCoverageTest extends TestCase
 
     public function test_quote_mode_empty_before_end(): void
     {
-        // Test when lexQuoteMode returns null (empty content at \E)
+        // Test when consumeQuoteMode returns null (empty content at \E)
         $lexer = new Lexer('a\Q\Eb\Q\Ec');
         $tokens = $lexer->tokenize();
 

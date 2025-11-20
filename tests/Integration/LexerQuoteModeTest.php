@@ -33,7 +33,7 @@ class LexerQuoteModeTest extends TestCase
 
     /**
      * Teste \Q...\E où ... est vide.
-     * Cela peut retourner null dans lexQuoteMode et doit être géré.
+     * Cela peut retourner null dans consumeQuoteMode et doit être géré.
      */
     public function test_quote_mode_empty_content(): void
     {

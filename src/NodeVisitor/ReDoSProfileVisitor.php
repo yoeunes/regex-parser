@@ -363,6 +363,7 @@ final class ReDoSProfileVisitor implements NodeVisitorInterface
                     return true; // Dot overlaps with everything (except empty, but we assume non-empty)
                 }
                 $hasDot = true;
+
                 continue;
             }
 
@@ -373,6 +374,7 @@ final class ReDoSProfileVisitor implements NodeVisitorInterface
                     return true;
                 }
                 $hasCharClass = true;
+
                 continue;
             }
 
