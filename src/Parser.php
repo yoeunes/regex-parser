@@ -166,21 +166,21 @@ class Parser
                     $pattern = substr($regex, 1, $i - 1);
                     $flags = substr($regex, $i + 1);
 
-                    // @codeCoverageIgnoreStart
                     // @phpstan-ignore-next-line
                     if (false === $pattern || false === $flags) {
+                         // @codeCoverageIgnoreStart
                         throw new ParserException('Internal parser error: failed to slice pattern/flags.');
+                         // @codeCoverageIgnoreEnd
                     }
-                    // @codeCoverageIgnoreEnd
 
                     // $pattern and $flags are now guaranteed 'string'
                     $unknownFlags = preg_replace('/[imsxADSUXJu]/', '', $flags);
-                    // @codeCoverageIgnoreStart
+
                     if (null === $unknownFlags) {
-                        // Should not happen
+                         // @codeCoverageIgnoreStart
                         throw new ParserException('Internal parser error: preg_replace failed.');
+                         // @codeCoverageIgnoreEnd
                     }
-                    // @codeCoverageIgnoreEnd
 
                     if ('' !== $unknownFlags) {
                         throw new ParserException(\sprintf('Unknown modifier "%s"', $flags));
@@ -238,6 +238,11 @@ class Parser
             && !$this->check(TokenType::T_ALTERNATION)
             && !$this->check(TokenType::T_EOF)
         ) {
+            // FIX: Ignore quote mode markers inside sequences
+            if ($this->match(TokenType::T_QUOTE_MODE_START) || $this->match(TokenType::T_QUOTE_MODE_END)) {
+                continue;
+            }
+
             $nodes[] = $this->parseQuantifiedAtom();
         }
 
@@ -473,6 +478,13 @@ class Parser
             $endPos = $startPos + mb_strlen($token->value) + 3; // +3 for "(*)"
 
             return new PcreVerbNode($token->value, $startPos, $endPos);
+        }
+
+        // Handle Quote Mode tokens (ignore them here if they leak into atom parsing)
+        // Note: parseSequence handles them, but if one appears unexpectedly, we can consume it.
+        if ($this->match(TokenType::T_QUOTE_MODE_START) || $this->match(TokenType::T_QUOTE_MODE_END)) {
+             // Recursive call to get the next real atom
+             return $this->parseAtom();
         }
 
         // Special case: if we encounter a quantifier without a target, throw a more specific error
@@ -940,6 +952,10 @@ class Parser
         $parts = [];
 
         while (!$this->check(TokenType::T_CHAR_CLASS_CLOSE) && !$this->isAtEnd()) {
+            // FIX: Handle quote mode inside char class (skip it)
+            if ($this->match(TokenType::T_QUOTE_MODE_START) || $this->match(TokenType::T_QUOTE_MODE_END)) {
+                continue;
+            }
             $parts[] = $this->parseCharClassPart();
         }
 
