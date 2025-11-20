@@ -764,12 +764,14 @@ final class Parser
             return new GroupNode($expr, GroupType::T_GROUP_LOOKAHEAD_NEGATIVE, null, null, $startPos, $endToken->position);
         }
         if ($this->matchLiteral('<')) {
+            // @phpstan-ignore-next-line if.alwaysFalse (false positive: position advanced after matching '<')
             if ($this->matchLiteral('=')) {
                 $expr = $this->parseAlternation();
                 $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
                 return new GroupNode($expr, GroupType::T_GROUP_LOOKBEHIND_POSITIVE, null, null, $startPos, $endToken->position);
             }
+            // @phpstan-ignore-next-line if.alwaysFalse (false positive: position advanced after matching '<')
             if ($this->matchLiteral('!')) {
                 $expr = $this->parseAlternation();
                 $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
@@ -1066,7 +1068,8 @@ final class Parser
 
     private function previous(): Token
     {
-        return $this->tokens[0 === $this->position ? 0 : $this->position - 1];
+        $index = $this->position > 0 ? $this->position - 1 : 0;
+        return $this->tokens[$index];
     }
 
     private function consumeWhile(callable $predicate): string

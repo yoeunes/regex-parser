@@ -258,9 +258,9 @@ final class Lexer
      * Identifies which token type matched and creates the Token object.
      * Handles complex state transitions (e.g., entering char classes).
      *
-     * @param array<string>              $tokenMap
-     * @param array<string, string|null> $matches
-     * @param list<Token>                $currentTokens
+     * @param array<string>                   $tokenMap
+     * @param array<int|string, string|null> $matches
+     * @param list<Token>                     $currentTokens
      */
     private function createTokenFromMatch(array $tokenMap, array $matches, string $matchedValue, int $startPos, array $currentTokens): Token
     {
@@ -418,7 +418,7 @@ final class Lexer
      * Extracts and normalizes the value of a token.
      * Handles escape sequences like \n, \t, \xHH, etc.
      *
-     * @param array<string, string|null> $matches
+     * @param array<int|string, string|null> $matches
      */
     private function extractTokenValue(TokenType $type, string $matchedValue, array $matches): string
     {
@@ -452,7 +452,7 @@ final class Lexer
      * - \P{L}  -> ^L (Negated)
      * - \P{^L} -> L  (Double negation)
      *
-     * @param array<string, string|null> $matches
+     * @param array<int|string, string|null> $matches
      */
     private function normalizeUnicodeProp(string $matchedValue, array $matches): string
     {

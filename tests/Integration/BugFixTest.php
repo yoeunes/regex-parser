@@ -15,6 +15,7 @@ namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\Node\CharClassNode;
+use RegexParser\Node\LiteralNode;
 use RegexParser\Node\RangeNode;
 use RegexParser\ReDoSSeverity;
 use RegexParser\Regex;
@@ -35,8 +36,11 @@ class BugFixTest extends TestCase
         $this->assertInstanceOf(CharClassNode::class, $charClass);
         $this->assertCount(1, $charClass->parts);
         $this->assertInstanceOf(RangeNode::class, $charClass->parts[0]);
-        $this->assertSame('a', $charClass->parts[0]->start->value);
-        $this->assertSame('-', $charClass->parts[0]->end->value);
+        $range = $charClass->parts[0];
+        $this->assertInstanceOf(LiteralNode::class, $range->start);
+        $this->assertInstanceOf(LiteralNode::class, $range->end);
+        $this->assertSame('a', $range->start->value);
+        $this->assertSame('-', $range->end->value);
     }
 
     public function test_parser_handles_hyphen_range(): void
@@ -48,8 +52,11 @@ class BugFixTest extends TestCase
         $this->assertInstanceOf(CharClassNode::class, $charClass);
         $this->assertCount(1, $charClass->parts);
         $this->assertInstanceOf(RangeNode::class, $charClass->parts[0]);
-        $this->assertSame('-', $charClass->parts[0]->start->value);
-        $this->assertSame('-', $charClass->parts[0]->end->value);
+        $range = $charClass->parts[0];
+        $this->assertInstanceOf(LiteralNode::class, $range->start);
+        $this->assertInstanceOf(LiteralNode::class, $range->end);
+        $this->assertSame('-', $range->start->value);
+        $this->assertSame('-', $range->end->value);
     }
 
     public function test_re_do_s_analyzer_detects_dot_overlap(): void
