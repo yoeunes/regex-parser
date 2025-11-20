@@ -134,15 +134,21 @@ final class Lexer
     ];
 
     private string $pattern;
+
     private int $position = 0;
+
     private int $length = 0;
 
     // State flags
     private bool $inCharClass = false;
+
     private bool $inQuoteMode = false;
+
     private bool $inCommentMode = false;
 
-    /** @var int Marks the start of the current character class to handle special placement rules (e.g., ']' at start). */
+    /**
+     * @var int Marks the start of the current character class to handle special placement rules (e.g., ']' at start).
+     */
     private int $charClassStartPosition = 0;
 
     public function __construct(string $pattern)
@@ -153,7 +159,7 @@ final class Lexer
     /**
      * Resets the lexer with a new pattern string.
      *
-     * @throws LexerException If the input is not valid UTF-8.
+     * @throws LexerException if the input is not valid UTF-8
      */
     public function reset(string $pattern): void
     {
@@ -176,8 +182,9 @@ final class Lexer
     /**
      * Performs the tokenization.
      *
-     * @return list<Token>
      * @throws LexerException
+     *
+     * @return list<Token>
      */
     public function tokenize(): array
     {
@@ -191,6 +198,7 @@ final class Lexer
                 if ($token = $this->consumeQuoteMode()) {
                     $tokens[] = $token;
                 }
+
                 continue;
             }
 
@@ -198,6 +206,7 @@ final class Lexer
                 if ($token = $this->consumeCommentMode()) {
                     $tokens[] = $token;
                 }
+
                 continue;
             }
 
@@ -210,14 +219,15 @@ final class Lexer
             $result = preg_match($regex, $this->pattern, $matches, \PREG_UNMATCHED_AS_NULL, $this->position);
 
             if (false === $result) {
-                throw new LexerException(sprintf('PCRE Error during tokenization: %s', preg_last_error_msg()));
+                throw new LexerException(\sprintf('PCRE Error during tokenization: %s', preg_last_error_msg()));
             }
 
             if (0 === $result) {
                 // This implies a character that matches NOTHING in our regex (even T_LITERAL).
                 // Should theoretically be impossible with [^\\\\] fallback, but serves as a safety net.
                 $context = mb_substr($this->pattern, $this->position, 10);
-                throw new LexerException(sprintf('Unable to tokenize pattern at position %d. Context: "%s..."', $this->position, $context));
+
+                throw new LexerException(\sprintf('Unable to tokenize pattern at position %d. Context: "%s..."', $this->position, $context));
             }
 
             /** @var string $matchedValue */
@@ -248,9 +258,9 @@ final class Lexer
      * Identifies which token type matched and creates the Token object.
      * Handles complex state transitions (e.g., entering char classes).
      *
-     * @param array<string> $tokenMap
+     * @param array<string>              $tokenMap
      * @param array<string, string|null> $matches
-     * @param list<Token> $currentTokens
+     * @param list<Token>                $currentTokens
      */
     private function createTokenFromMatch(array $tokenMap, array $matches, string $matchedValue, int $startPos, array $currentTokens): Token
     {
@@ -263,6 +273,7 @@ final class Lexer
                 if (TokenType::T_CHAR_CLASS_OPEN === $type) {
                     $this->inCharClass = true;
                     $this->charClassStartPosition = $startPos;
+
                     return new Token($type, '[', $startPos);
                 }
 
@@ -276,16 +287,19 @@ final class Lexer
                         return new Token(TokenType::T_LITERAL, ']', $startPos);
                     }
                     $this->inCharClass = false;
+
                     return new Token($type, ']', $startPos);
                 }
 
                 if (TokenType::T_COMMENT_OPEN === $type) {
                     $this->inCommentMode = true;
+
                     return new Token($type, '(?#', $startPos);
                 }
 
                 if (TokenType::T_QUOTE_MODE_START === $type) {
                     $this->inQuoteMode = true;
+
                     // We emit the token so the Parser knows \Q was here (Full Fidelity)
                     return new Token($type, '\Q', $startPos);
                 }
@@ -309,12 +323,13 @@ final class Lexer
 
                 // --- Standard Value Extraction ---
                 $value = $this->extractTokenValue($type, $matchedValue, $matches);
+
                 return new Token($type, $value, $startPos);
             }
         }
 
         // Should be unreachable
-        throw new LexerException(sprintf('Lexer internal error: No known token matched at position %d.', $startPos));
+        throw new LexerException(\sprintf('Lexer internal error: No known token matched at position %d.', $startPos));
     }
 
     /**
@@ -328,6 +343,7 @@ final class Lexer
             // Fallback: if parsing fails completely (unlikely), verify strict safety by resetting.
             $this->inQuoteMode = false;
             $this->position = $this->length;
+
             return null;
         }
 
@@ -338,6 +354,7 @@ final class Lexer
         // 1. If there is content before \E, return it as a Literal
         if ('' !== $literalText) {
             $this->position += \strlen($literalText);
+
             return new Token(TokenType::T_LITERAL, $literalText, $startPos);
         }
 
@@ -346,11 +363,13 @@ final class Lexer
             $this->inQuoteMode = false;
             $token = new Token(TokenType::T_QUOTE_MODE_END, '\E', $this->position);
             $this->position += 2; // Skip \E
+
             return $token;
         }
 
         // 3. End of string reached (PCRE allows unclosed \Q, it extends to EOF)
         $this->position = $this->length;
+
         // Note: We stay inQuoteMode logically until EOF, effectively behaving as literals.
         return null;
     }
@@ -365,6 +384,7 @@ final class Lexer
         if (!preg_match('/(.*?)(\)|$)/suA', $this->pattern, $matches, \PREG_UNMATCHED_AS_NULL, $this->position)) {
             $this->inCommentMode = false;
             $this->position = $this->length;
+
             return null;
         }
 
@@ -375,6 +395,7 @@ final class Lexer
         // 1. If there is text, return it as Literal content
         if ('' !== $commentText) {
             $this->position += \strlen($commentText);
+
             return new Token(TokenType::T_LITERAL, $commentText, $startPos);
         }
 
@@ -383,11 +404,13 @@ final class Lexer
             $this->inCommentMode = false;
             $token = new Token(TokenType::T_GROUP_CLOSE, ')', $this->position);
             $this->position++;
+
             return $token;
         }
 
         // 3. End of string reached (Error will be thrown by main loop checks)
         $this->position = $this->length;
+
         return null;
     }
 
@@ -441,6 +464,7 @@ final class Lexer
             if (str_starts_with($prop, '^')) {
                 return substr($prop, 1);
             }
+
             // Handle single negation: \P{...} becomes ^...
             return '^'.$prop;
         }
