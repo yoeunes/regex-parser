@@ -339,6 +339,16 @@ class Parser
         $token = $this->current(); // Peek at the current token for its position
         $startPos = $token->position;
 
+        // FIX: Handle Comment Mode token (now emitted by Lexer)
+        if ($this->match(TokenType::T_COMMENT_OPEN)) {
+            return $this->parseComment();
+        }
+
+        // FIX: Handle unexpected Quote Mode tokens if they leaked here (e.g. if sequence parsing logic failed)
+        if ($this->match(TokenType::T_QUOTE_MODE_START) || $this->match(TokenType::T_QUOTE_MODE_END)) {
+            return $this->parseAtom(); // Skip and try next token
+        }
+
         if ($this->match(TokenType::T_LITERAL)) {
             $token = $this->previous();
             $endPos = $startPos + mb_strlen($token->value);
@@ -461,8 +471,8 @@ class Parser
             return $this->parseGroupModifier();
         }
 
+        // FIX: Also handle T_COMMENT_OPEN if it wasn't caught before (redundant but safe)
         if ($this->match(TokenType::T_COMMENT_OPEN)) {
-            // parseComment handles its own positions
             return $this->parseComment();
         }
 
@@ -478,13 +488,6 @@ class Parser
             $endPos = $startPos + mb_strlen($token->value) + 3; // +3 for "(*)"
 
             return new PcreVerbNode($token->value, $startPos, $endPos);
-        }
-
-        // Handle Quote Mode tokens (ignore them here if they leak into atom parsing)
-        // Note: parseSequence handles them, but if one appears unexpectedly, we can consume it.
-        if ($this->match(TokenType::T_QUOTE_MODE_START) || $this->match(TokenType::T_QUOTE_MODE_END)) {
-             // Recursive call to get the next real atom
-             return $this->parseAtom();
         }
 
         // Special case: if we encounter a quantifier without a target, throw a more specific error
