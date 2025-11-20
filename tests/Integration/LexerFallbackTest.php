@@ -26,9 +26,10 @@ class LexerFallbackTest extends TestCase
         $lexer = new Lexer('\Qstart'); // No \E
         $tokens = $lexer->tokenize();
 
-        // Must contain T_LITERAL "start" and T_EOF
-        $this->assertCount(2, $tokens);
-        $this->assertSame('start', $tokens[0]->value);
+        // Now emits T_QUOTE_MODE_START, T_LITERAL "start", T_EOF
+        $this->assertCount(3, $tokens);
+        $this->assertSame('\Q', $tokens[0]->value);
+        $this->assertSame('start', $tokens[1]->value);
     }
 
     /**

@@ -25,10 +25,14 @@ class QuoteModeTest extends TestCase
         $lexer = new Lexer('\Q*+?\E');
         $tokens = $lexer->tokenize();
 
-        // Should result in a single LITERAL token "*+?"
-        $this->assertCount(2, $tokens); // Literal + EOF
-        $this->assertSame(TokenType::T_LITERAL, $tokens[0]->type);
-        $this->assertSame('*+?', $tokens[0]->value);
+        // Now emits T_QUOTE_MODE_START, T_LITERAL, T_QUOTE_MODE_END, T_EOF
+        $this->assertCount(4, $tokens);
+        $this->assertSame(TokenType::T_QUOTE_MODE_START, $tokens[0]->type);
+        $this->assertSame('\Q', $tokens[0]->value);
+        $this->assertSame(TokenType::T_LITERAL, $tokens[1]->type);
+        $this->assertSame('*+?', $tokens[1]->value);
+        $this->assertSame(TokenType::T_QUOTE_MODE_END, $tokens[2]->type);
+        $this->assertSame('\E', $tokens[2]->value);
     }
 
     public function test_quote_mode_until_end_of_string(): void
@@ -37,10 +41,12 @@ class QuoteModeTest extends TestCase
         $lexer = new Lexer('\Q*+?');
         $tokens = $lexer->tokenize();
 
-        // Should treat everything after \Q as literal until EOF
-        $this->assertCount(2, $tokens);
-        $this->assertSame(TokenType::T_LITERAL, $tokens[0]->type);
-        $this->assertSame('*+?', $tokens[0]->value);
+        // Now emits T_QUOTE_MODE_START, T_LITERAL, T_EOF (no T_QUOTE_MODE_END since no \E)
+        $this->assertCount(3, $tokens);
+        $this->assertSame(TokenType::T_QUOTE_MODE_START, $tokens[0]->type);
+        $this->assertSame('\Q', $tokens[0]->value);
+        $this->assertSame(TokenType::T_LITERAL, $tokens[1]->type);
+        $this->assertSame('*+?', $tokens[1]->value);
     }
 
     public function test_empty_quote_mode(): void
@@ -49,11 +55,14 @@ class QuoteModeTest extends TestCase
         $lexer = new Lexer('a\Q\Eb');
         $tokens = $lexer->tokenize();
 
-        // Should produce literal 'a', then literal 'b'.
-        // \Q\E produces nothing or empty literal (logic check).
-        // Current logic: consumeQuoteMode returns null if empty content inside.
-
+        // Now emits: T_LITERAL('a'), T_QUOTE_MODE_START, T_QUOTE_MODE_END, T_LITERAL('b'), T_EOF
+        $this->assertSame(TokenType::T_LITERAL, $tokens[0]->type);
         $this->assertSame('a', $tokens[0]->value);
-        $this->assertSame('b', $tokens[1]->value);
+        $this->assertSame(TokenType::T_QUOTE_MODE_START, $tokens[1]->type);
+        $this->assertSame('\Q', $tokens[1]->value);
+        $this->assertSame(TokenType::T_QUOTE_MODE_END, $tokens[2]->type);
+        $this->assertSame('\E', $tokens[2]->value);
+        $this->assertSame(TokenType::T_LITERAL, $tokens[3]->type);
+        $this->assertSame('b', $tokens[3]->value);
     }
 }

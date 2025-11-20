@@ -593,15 +593,31 @@ final class Parser
         if ($this->checkLiteral("'") || $this->checkLiteral('"')) {
             $quote = $this->current()->value;
             $this->advance();
-            $nameToken = $this->consume(TokenType::T_LITERAL, 'Expected group name');
-            if ($this->current()->value !== $quote) {
+            
+            // Consume T_LITERAL tokens to build the name character by character
+            $name = '';
+            while (!$this->isAtEnd() && !$this->checkLiteral($quote)) {
+                if ($this->check(TokenType::T_LITERAL)) {
+                    $name .= $this->current()->value;
+                    $this->advance();
+                } else {
+                    throw new ParserException(\sprintf('Unexpected token in group name at position %d', $this->current()->position));
+                }
+            }
+            
+            if ('' === $name) {
+                throw new ParserException(\sprintf('Expected group name at position %d', $this->current()->position));
+            }
+            
+            if (!$this->checkLiteral($quote)) {
                 throw new ParserException(\sprintf('Expected closing quote %s at position %d', $quote, $this->current()->position));
             }
             $this->advance();
+            
             $expr = $this->parseAlternation();
             $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
-            return new GroupNode($expr, GroupType::T_GROUP_NAMED, $nameToken->value, null, $startPos, $endToken->position + 1);
+            return new GroupNode($expr, GroupType::T_GROUP_NAMED, $name, null, $startPos, $endToken->position + 1);
         }
 
         if ($this->matchLiteral('<')) { // (?P<name>...)

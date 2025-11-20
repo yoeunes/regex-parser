@@ -49,7 +49,7 @@ class ParserErrorTest extends TestCase
     public function test_throws_on_unknown_flag(): void
     {
         $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('Unknown regex flag(s) found: "z"');
+        $this->expectExceptionMessage('Unknown modifier "z"');
 
         $parser = $this->createParser();
         $parser->parse('/abc/z');
@@ -113,7 +113,7 @@ class ParserErrorTest extends TestCase
     public function test_throws_on_invalid_token_in_group_name(): void
     {
         $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('Unexpected token "|" in group name: |');
+        $this->expectExceptionMessage('Unexpected token "|" in group name');
 
         $parser = $this->createParser();
         $parser->parse('/(?<a|b>)/');

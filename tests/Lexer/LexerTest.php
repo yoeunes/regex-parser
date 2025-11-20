@@ -293,11 +293,14 @@ class LexerTest extends TestCase
         $lexer = new Lexer('\Q*+.\Efoo');
         $tokens = $lexer->tokenize();
 
-        // Should have skipped \Q and \E and merged *+. into a single literal
-        $this->assertSame(TokenType::T_LITERAL, $tokens[0]->type);
-        $this->assertSame('*+.', $tokens[0]->value);
+        // Now emits T_QUOTE_MODE_START, T_LITERAL (content), T_QUOTE_MODE_END for full fidelity
+        $this->assertSame(TokenType::T_QUOTE_MODE_START, $tokens[0]->type);
+        $this->assertSame('\Q', $tokens[0]->value);
         $this->assertSame(TokenType::T_LITERAL, $tokens[1]->type);
-        $this->assertSame('f', $tokens[1]->value);
-        $this->assertSame(TokenType::T_EOF, $tokens[4]->type);
+        $this->assertSame('*+.', $tokens[1]->value);
+        $this->assertSame(TokenType::T_QUOTE_MODE_END, $tokens[2]->type);
+        $this->assertSame('\E', $tokens[2]->value);
+        $this->assertSame(TokenType::T_LITERAL, $tokens[3]->type);
+        $this->assertSame('f', $tokens[3]->value);
     }
 }

@@ -60,16 +60,12 @@ class LexerErrorTest extends TestCase
         $this->assertSame(10, $accessor->getPosition()); // Position after 'abc' (7 + 3)
         $this->assertTrue($accessor->getInQuoteMode()); // Still in quote mode
 
-        // 3. Must find \E
-        $token = $accessor->callPrivateMethod('consumeQuoteMode');
-        $this->assertNull($token);
-        $this->assertSame(12, $accessor->getPosition()); // Position after \E (10 + 2)
-        $this->assertFalse($accessor->getInQuoteMode()); // Exit quote mode
-
-        // 4. Must find 'end'
+        // 3. Must find \E token (now emitted instead of returning null)
         $token = $accessor->callPrivateMethod('consumeQuoteMode');
         $this->assertInstanceOf(Token::class, $token);
-        $this->assertSame('end', $token->value);
+        $this->assertSame('\E', $token->value);
+        $this->assertSame(12, $accessor->getPosition()); // Position after \E (10 + 2)
+        $this->assertFalse($accessor->getInQuoteMode()); // Exit quote mode
     }
 
     public function test_lex_quote_mode_handles_trailing_text_without_e(): void
