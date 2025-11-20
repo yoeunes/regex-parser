@@ -258,9 +258,9 @@ final class Lexer
      * Identifies which token type matched and creates the Token object.
      * Handles complex state transitions (e.g., entering char classes).
      *
-     * @param array<string>                   $tokenMap
+     * @param array<string>                  $tokenMap
      * @param array<int|string, string|null> $matches
-     * @param list<Token>                     $currentTokens
+     * @param list<Token>                    $currentTokens
      */
     private function createTokenFromMatch(array $tokenMap, array $matches, string $matchedValue, int $startPos, array $currentTokens): Token
     {

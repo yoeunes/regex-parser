@@ -1069,6 +1069,7 @@ final class Parser
     private function previous(): Token
     {
         $index = $this->position > 0 ? $this->position - 1 : 0;
+
         return $this->tokens[$index];
     }
 
