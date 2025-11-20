@@ -49,7 +49,7 @@ class ParserErrorTest extends TestCase
     public function test_throws_on_unknown_flag(): void
     {
         $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('Unknown modifier "z"');
+        $this->expectExceptionMessage('Unknown regex flag(s) found: "z"');
 
         $parser = $this->createParser();
         $parser->parse('/abc/z');

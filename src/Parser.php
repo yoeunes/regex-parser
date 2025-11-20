@@ -87,14 +87,6 @@ final class Parser
 
         [$pattern, $flags, $delimiter] = $this->extractPatternAndFlags($regex);
 
-        // Validate flags (only allow standard PCRE flags)
-        if (!preg_match('/^[imsxADSUXJu]*$/', $flags)) {
-            // Find the invalid flag for a better error message
-            $invalid = preg_replace('/[imsxADSUXJu]/', '', $flags);
-
-            throw new ParserException(\sprintf('Unknown modifier "%s"', $invalid ?? $flags));
-        }
-
         // Initialize Token Stream
         $lexer = $this->getLexer($pattern);
         $this->tokens = $lexer->tokenize();
@@ -157,6 +149,14 @@ final class Parser
                     // Found the end delimiter
                     $pattern = substr($regex, 1, $i - 1);
                     $flags = substr($regex, $i + 1);
+
+                    // Validate flags (only allow standard PCRE flags)
+                    if (!preg_match('/^[imsxADSUXJu]*$/', $flags)) {
+                        // Find the invalid flag for a better error message
+                        $invalid = preg_replace('/[imsxADSUXJu]/', '', $flags);
+
+                        throw new ParserException(\sprintf('Unknown regex flag(s) found: "%s"', $invalid ?? $flags));
+                    }
 
                     return [$pattern, $flags, $delimiter];
                 }
@@ -828,7 +828,7 @@ final class Parser
 
         if (!($condition instanceof BackrefNode || $condition instanceof GroupNode
               || $condition instanceof AssertionNode || $condition instanceof SubroutineNode)) {
-            throw new ParserException(\sprintf('Invalid conditional construct at position %d.', $startPos));
+            throw new ParserException(\sprintf('Invalid conditional construct at position %d. Condition must be a group reference, lookaround, or (DEFINE).', $startPos));
         }
 
         return $condition;
