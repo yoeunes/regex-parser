@@ -194,8 +194,12 @@ final class ValidatorNodeVisitor implements NodeVisitorInterface
         $isUnbounded = -1 === $max; // *, +, or {n,}
 
         // 2. Validate quantifiers inside lookbehinds
-        if ($this->inLookbehind && $isUnbounded) {
-            throw new ParserException(\sprintf('Variable-length quantifiers (%s) are not allowed in lookbehinds at position %d.', $node->quantifier, $node->startPos));
+        if ($this->inLookbehind) {
+            // Strict check: Lookbehinds must be fixed length.
+            // Any quantifier that allows variable length (min != max) is invalid.
+            if ($min !== $max) {
+                throw new ParserException(\sprintf('Variable-length quantifiers (%s) are not allowed in lookbehinds at position %d.', $node->quantifier, $node->startPos));
+            }
         }
 
         // 3. Check for Catastrophic Backtracking (ReDoS)

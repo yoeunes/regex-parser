@@ -19,20 +19,21 @@ use RegexParser\Lexer;
 class LexerFallbackTest extends TestCase
 {
     /**
-     * Covers the case where lexQuoteMode reaches the end of the string without finding \E.
+     * Covers the case where consumeQuoteMode reaches the end of the string without finding \E.
      */
     public function test_lex_quote_mode_unterminated(): void
     {
         $lexer = new Lexer('\Qstart'); // No \E
         $tokens = $lexer->tokenize();
 
-        // Must contain T_LITERAL "start" and T_EOF
-        $this->assertCount(2, $tokens);
-        $this->assertSame('start', $tokens[0]->value);
+        // Now emits T_QUOTE_MODE_START, T_LITERAL "start", T_EOF
+        $this->assertCount(3, $tokens);
+        $this->assertSame('\Q', $tokens[0]->value);
+        $this->assertSame('start', $tokens[1]->value);
     }
 
     /**
-     * Covers the case where lexCommentMode reaches the end of the string without finding ).
+     * Covers the case where consumeCommentMode reaches the end of the string without finding ).
      * (Note: this throws an exception later in tokenize(), but we want to test the internal call).
      */
     public function test_lex_comment_mode_unterminated_internal(): void

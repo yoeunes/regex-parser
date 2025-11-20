@@ -20,7 +20,7 @@ use RegexParser\TokenType;
 /**
  * Comprehensive tests to improve Lexer coverage to 100%.
  * Focuses on uncovered code paths in:
- * - lexQuoteMode()
+ * - consumeQuoteMode()
  * - extractTokenValue()
  * - normalizeUnicodeProp()
  */
@@ -371,7 +371,7 @@ class LexerCompleteCoverageTest extends TestCase
     }
 
     // ========================================================================
-    // Tests for lexQuoteMode edge cases
+    // Tests for consumeQuoteMode edge cases
     // ========================================================================
 
     public function test_quote_mode_with_multiple_segments(): void
@@ -394,9 +394,12 @@ class LexerCompleteCoverageTest extends TestCase
         $lexer = new Lexer('\Q*+?\Eabc');
         $tokens = $lexer->tokenize();
 
-        // First token should be the quoted literal
-        $this->assertSame('*+?', $tokens[0]->value);
-        $this->assertSame(TokenType::T_LITERAL, $tokens[0]->type);
+        // Now emits T_QUOTE_MODE_START first, then literal content
+        $this->assertSame(TokenType::T_QUOTE_MODE_START, $tokens[0]->type);
+        $this->assertSame('\Q', $tokens[0]->value);
+        $this->assertSame(TokenType::T_LITERAL, $tokens[1]->type);
+        $this->assertSame('*+?', $tokens[1]->value);
+        $this->assertSame(TokenType::T_QUOTE_MODE_END, $tokens[2]->type);
     }
 
     public function test_quote_mode_at_end(): void
@@ -418,8 +421,12 @@ class LexerCompleteCoverageTest extends TestCase
         $lexer = new Lexer('\Q()[]{}^$|.?*+\E');
         $tokens = $lexer->tokenize();
 
-        $this->assertCount(2, $tokens); // Literal + EOF
-        $this->assertSame('()[]{}^$|.?*+', $tokens[0]->value);
+        // Now emits T_QUOTE_MODE_START, T_LITERAL, T_QUOTE_MODE_END, T_EOF
+        $this->assertCount(4, $tokens);
+        $this->assertSame(TokenType::T_QUOTE_MODE_START, $tokens[0]->type);
+        $this->assertSame(TokenType::T_LITERAL, $tokens[1]->type);
+        $this->assertSame('()[]{}^$|.?*+', $tokens[1]->value);
+        $this->assertSame(TokenType::T_QUOTE_MODE_END, $tokens[2]->type);
     }
 
     public function test_quote_mode_with_backslashes(): void
@@ -427,21 +434,28 @@ class LexerCompleteCoverageTest extends TestCase
         $lexer = new Lexer('\Q\d\s\w\E');
         $tokens = $lexer->tokenize();
 
-        $this->assertCount(2, $tokens);
-        $this->assertSame('\d\s\w', $tokens[0]->value);
+        // Now emits T_QUOTE_MODE_START, T_LITERAL, T_QUOTE_MODE_END, T_EOF
+        $this->assertCount(4, $tokens);
+        $this->assertSame(TokenType::T_QUOTE_MODE_START, $tokens[0]->type);
+        $this->assertSame(TokenType::T_LITERAL, $tokens[1]->type);
+        $this->assertSame('\d\s\w', $tokens[1]->value);
+        $this->assertSame(TokenType::T_QUOTE_MODE_END, $tokens[2]->type);
     }
 
     public function test_nested_quote_mode_markers(): void
     {
-        // \Q starts quote mode, captures '\Q\E' as literal, first \E ends quote mode
-        // Second \E is outside quote mode and is not emitted
+        // \Q starts quote mode, captures '\Q' as literal, first \E ends quote mode
+        // Second \E is outside quote mode and becomes T_QUOTE_MODE_END token
         $lexer = new Lexer('\Q\Q\E\E');
         $tokens = $lexer->tokenize();
 
-        // Should have: '\Q' (literal), EOF
-        $this->assertCount(2, $tokens);
-        $this->assertSame('\Q', $tokens[0]->value);
-        $this->assertSame(TokenType::T_LITERAL, $tokens[0]->type);
+        // Now emits: T_QUOTE_MODE_START, T_LITERAL('\Q'), T_QUOTE_MODE_END, T_QUOTE_MODE_END, T_EOF
+        $this->assertCount(5, $tokens);
+        $this->assertSame(TokenType::T_QUOTE_MODE_START, $tokens[0]->type);
+        $this->assertSame(TokenType::T_LITERAL, $tokens[1]->type);
+        $this->assertSame('\Q', $tokens[1]->value);
+        $this->assertSame(TokenType::T_QUOTE_MODE_END, $tokens[2]->type);
+        $this->assertSame(TokenType::T_QUOTE_MODE_END, $tokens[3]->type);
     }
 
     // ========================================================================
@@ -583,9 +597,12 @@ class LexerCompleteCoverageTest extends TestCase
         $lexer = new Lexer("\Q\n\t\r\E");
         $tokens = $lexer->tokenize();
 
-        // In quote mode, escape sequences are literal
-        $this->assertCount(2, $tokens); // Literal + EOF
-        $this->assertSame("\n\t\r", $tokens[0]->value);
+        // Now emits T_QUOTE_MODE_START, T_LITERAL, T_QUOTE_MODE_END, T_EOF
+        $this->assertCount(4, $tokens);
+        $this->assertSame(TokenType::T_QUOTE_MODE_START, $tokens[0]->type);
+        $this->assertSame(TokenType::T_LITERAL, $tokens[1]->type);
+        $this->assertSame("\n\t\r", $tokens[1]->value);
+        $this->assertSame(TokenType::T_QUOTE_MODE_END, $tokens[2]->type);
     }
 
     public function test_backref_edge_cases(): void
@@ -675,7 +692,7 @@ class LexerCompleteCoverageTest extends TestCase
 
     public function test_quote_mode_empty_before_end(): void
     {
-        // Test when lexQuoteMode returns null (empty content at \E)
+        // Test when consumeQuoteMode returns null (empty content at \E)
         $lexer = new Lexer('a\Q\Eb\Q\Ec');
         $tokens = $lexer->tokenize();
 

@@ -26,23 +26,27 @@ class LexerQuoteModeTest extends TestCase
         $lexer = new Lexer('a\Qbc');
         $tokens = $lexer->tokenize();
 
-        // a (LITERAL), bc (LITERAL via quote mode), EOF
-        $this->assertCount(3, $tokens);
-        $this->assertSame('bc', $tokens[1]->value);
+        // Now emits: a (LITERAL), \Q (T_QUOTE_MODE_START), bc (LITERAL via quote mode), EOF
+        $this->assertCount(4, $tokens);
+        $this->assertSame('a', $tokens[0]->value);
+        $this->assertSame('\Q', $tokens[1]->value);
+        $this->assertSame('bc', $tokens[2]->value);
     }
 
     /**
      * Teste \Q...\E où ... est vide.
-     * Cela peut retourner null dans lexQuoteMode et doit être géré.
+     * Cela peut retourner null dans consumeQuoteMode et doit être géré.
      */
     public function test_quote_mode_empty_content(): void
     {
         $lexer = new Lexer('a\Q\Eb');
         $tokens = $lexer->tokenize();
 
-        // a, b, EOF. (Le vide entre \Q et \E est ignoré)
-        $this->assertCount(3, $tokens);
+        // Now emits: a, \Q, \E, b, EOF
+        $this->assertCount(5, $tokens);
         $this->assertSame('a', $tokens[0]->value);
-        $this->assertSame('b', $tokens[1]->value);
+        $this->assertSame('\Q', $tokens[1]->value);
+        $this->assertSame('\E', $tokens[2]->value);
+        $this->assertSame('b', $tokens[3]->value);
     }
 }

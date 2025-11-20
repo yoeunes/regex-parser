@@ -83,8 +83,8 @@ class MethodCoverageTest extends TestCase
     }
 
     /**
-     * Test Lexer.lexQuoteMode() with \Q...\E syntax
-     * This triggers the private lexQuoteMode() method
+     * Test Lexer.consumeQuoteMode() with \Q...\E syntax
+     * This triggers the private consumeQuoteMode() method
      */
     #[DoesNotPerformAssertions]
     public function test_lexer_quote_mode(): void
@@ -97,8 +97,8 @@ class MethodCoverageTest extends TestCase
     }
 
     /**
-     * Test Lexer.lexCommentMode() with (?#...) syntax
-     * This triggers the private lexCommentMode() method
+     * Test Lexer.consumeCommentMode() with (?#...) syntax
+     * This triggers the private consumeCommentMode() method
      */
     #[DoesNotPerformAssertions]
     public function test_lexer_comment_mode_detailed(): void

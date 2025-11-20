@@ -21,7 +21,7 @@ use RegexParser\Token;
 class LexerInternalStateTest extends TestCase
 {
     /**
-     * Covers the end of lexCommentMode when the closing parenthesis is missing.
+     * Covers the end of consumeCommentMode when the closing parenthesis is missing.
      * Normally tokenize() throws an exception afterwards, but we want to cover the internal "return null".
      */
     public function test_lex_comment_mode_unterminated_returns_null(): void
@@ -35,7 +35,7 @@ class LexerInternalStateTest extends TestCase
         $accessor->setPosition(3);
 
         // Direct call to private method
-        $result = $accessor->callPrivateMethod('lexCommentMode');
+        $result = $accessor->callPrivateMethod('consumeCommentMode');
 
         // It must first return a token with the comment text
         $this->assertNotNull($result);
@@ -46,7 +46,7 @@ class LexerInternalStateTest extends TestCase
     }
 
     /**
-     * Covers the end of lexQuoteMode when \E is missing.
+     * Covers the end of consumeQuoteMode when \E is missing.
      */
     public function test_lex_quote_mode_unterminated_returns_null(): void
     {
@@ -56,7 +56,7 @@ class LexerInternalStateTest extends TestCase
         $accessor->callPrivateMethod('reset', ['\Q ... sans fin']);
         $accessor->setPosition(2); // After \Q
 
-        $result = $accessor->callPrivateMethod('lexQuoteMode');
+        $result = $accessor->callPrivateMethod('consumeQuoteMode');
 
         // It must first return a token with the literal text
         $this->assertNotNull($result);
