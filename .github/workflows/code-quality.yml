@@ -1,0 +1,131 @@
+name: Code Quality
+
+on:
+  push:
+    branches: [ main, dev ]
+  pull_request:
+    branches: [ main, dev ]
+
+jobs:
+  phpstan:
+    name: PHPStan Static Analysis
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring
+          tools: composer:v2
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Run PHPStan
+        run: |
+          cd tools/phpstan
+          composer install --no-interaction
+          ../../vendor/bin/phpstan analyze --memory-limit=1G
+
+  php-cs-fixer:
+    name: PHP CS Fixer
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          tools: composer:v2
+
+      - name: Install dependencies
+        run: |
+          cd tools/php-cs-fixer
+          composer install --no-interaction
+
+      - name: Run PHP CS Fixer (dry-run)
+        run: |
+          cd tools/php-cs-fixer
+          ../../vendor/bin/php-cs-fixer fix --dry-run --diff --verbose
+
+  rector:
+    name: Rector
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          tools: composer:v2
+
+      - name: Install dependencies
+        run: |
+          cd tools/rector
+          composer install --no-interaction
+
+      - name: Run Rector (dry-run)
+        run: |
+          cd tools/rector
+          ../../vendor/bin/rector process --dry-run
+
+  phplint:
+    name: PHP Lint
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+
+      - name: Install dependencies
+        run: |
+          cd tools/phplint
+          composer install --no-interaction
+
+      - name: Run PHP Lint
+        run: |
+          cd tools/phplint
+          ../../vendor/bin/phplint --no-cache
+
+  type-coverage:
+    name: Type Coverage
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Check for mixed types
+        run: |
+          echo "Checking for 'mixed' type usage..."
+          ! grep -r "mixed" src/ --include="*.php" | grep -v "// @phpstan-ignore" || (echo "Found mixed types in src/" && exit 1)
+          echo "✅ No mixed types found"
+
+      - name: Check for declare strict types
+        run: |
+          echo "Checking all PHP files have declare(strict_types=1)..."
+          ! find src/ -name "*.php" -exec grep -L "declare(strict_types=1)" {} \; | grep . && echo "✅ All files have strict types" || (echo "Files missing strict types:" && find src/ -name "*.php" -exec grep -L "declare(strict_types=1)" {} \; && exit 1)

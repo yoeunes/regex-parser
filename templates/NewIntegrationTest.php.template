@@ -1,0 +1,86 @@
+<?php
+
+declare(strict_types=1);
+
+namespace RegexParser\Tests\Integration;
+
+use PHPUnit\Framework\TestCase;
+use RegexParser\Parser;
+use RegexParser\Regex;
+use RegexParser\Node\[NodeName]Node;
+use RegexParser\NodeVisitor\CompilerNodeVisitor;
+use RegexParser\Exception\ParserException;
+
+class [NodeName]Test extends TestCase
+{
+    private Parser $parser;
+    private Regex $regex;
+
+    protected function setUp(): void
+    {
+        $this->parser = new Parser();
+        $this->regex = Regex::create();
+    }
+
+    public function testParse[NodeName](): void
+    {
+        $pattern = '/[EXAMPLE_PATTERN]/';
+        $ast = $this->parser->parse($pattern);
+        
+        $this->assertNotNull($ast);
+        // TODO: Assert [NodeName]Node exists in AST
+    }
+
+    public function testRoundTripCompilation(): void
+    {
+        $pattern = '/[EXAMPLE_PATTERN]/';
+        $ast = $this->parser->parse($pattern);
+        
+        $compiler = new CompilerNodeVisitor();
+        $compiled = $ast->accept($compiler);
+        
+        $this->assertEquals($pattern, $compiled);
+    }
+
+    public function testValidation(): void
+    {
+        $pattern = '/[EXAMPLE_PATTERN]/';
+        $result = $this->regex->validate($pattern);
+        
+        $this->assertTrue($result->isValid);
+        $this->assertEmpty($result->errors);
+    }
+
+    /**
+     * @dataProvider [nodeName]Patterns
+     */
+    public function test[NodeName]Patterns(string $pattern): void
+    {
+        $ast = $this->parser->parse($pattern);
+        $this->assertNotNull($ast);
+        
+        $compiler = new CompilerNodeVisitor();
+        $compiled = $ast->accept($compiler);
+        
+        $this->assertEquals($pattern, $compiled);
+    }
+
+    public static function [nodeName]Patterns(): array
+    {
+        return [
+            ['/ [PATTERN_1]/'],
+            ['/[PATTERN_2]/'],
+            ['/[PATTERN_3]/'],
+            ['/[PATTERN_4]/'],
+            ['/[PATTERN_5]/'],
+        ];
+    }
+
+    public function testInvalid[NodeName]ThrowsException(): void
+    {
+        $this->expectException(ParserException::class);
+        
+        $pattern = '/[INVALID_PATTERN]/';
+        $this->parser->parse($pattern);
+    }
+}

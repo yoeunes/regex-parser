@@ -1,0 +1,142 @@
+name: Performance
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  benchmark:
+    name: Performance Benchmarks
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring
+          tools: composer:v2
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Run benchmarks (if available)
+        run: |
+          if [ -d "tests/Benchmark" ]; then
+            cd tools/phpbench
+            composer install --no-interaction
+            ../../vendor/bin/phpbench run --report=default
+          else
+            echo "⚠️ No benchmarks found in tests/Benchmark/"
+            echo "TODO: Implement PHPBench tests"
+          fi
+        continue-on-error: true
+
+      - name: Performance smoke tests
+        run: |
+          php -r "
+          require 'vendor/autoload.php';
+          \$parser = new \RegexParser\Parser();
+          \$start = microtime(true);
+          for (\$i = 0; \$i < 1000; \$i++) {
+              \$parser->parse('/test/');
+          }
+          \$duration = (microtime(true) - \$start) * 1000;
+          echo 'Parsed 1000 simple patterns in: ' . round(\$duration, 2) . 'ms' . PHP_EOL;
+          if (\$duration > 100) {
+              echo '⚠️ Performance regression detected' . PHP_EOL;
+              exit(1);
+          }
+          echo '✅ Performance acceptable' . PHP_EOL;
+          "
+
+      - name: Memory usage test
+        run: |
+          php -r "
+          require 'vendor/autoload.php';
+          \$parser = new \RegexParser\Parser();
+          \$start = memory_get_usage();
+          for (\$i = 0; \$i < 100; \$i++) {
+              \$ast = \$parser->parse('/(?<test>\w+@\w+\.\w+)/');
+          }
+          \$used = (memory_get_usage() - \$start) / 1024 / 1024;
+          echo 'Memory used for 100 medium patterns: ' . round(\$used, 2) . 'MB' . PHP_EOL;
+          if (\$used > 10) {
+              echo '⚠️ Memory usage too high' . PHP_EOL;
+              exit(1);
+          }
+          echo '✅ Memory usage acceptable' . PHP_EOL;
+          "
+
+  performance-comparison:
+    name: Performance vs Baseline
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - name: Checkout PR
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Benchmark PR
+        id: pr-bench
+        run: |
+          php -r "
+          require 'vendor/autoload.php';
+          \$parser = new \RegexParser\Parser();
+          \$start = microtime(true);
+          for (\$i = 0; \$i < 10000; \$i++) {
+              \$parser->parse('/test/');
+          }
+          \$duration = (microtime(true) - \$start) * 1000;
+          file_put_contents('pr_benchmark.txt', \$duration);
+          echo 'PR Duration: ' . round(\$duration, 2) . 'ms' . PHP_EOL;
+          "
+
+      - name: Checkout main branch
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Install dependencies (main)
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Benchmark main
+        id: main-bench
+        run: |
+          php -r "
+          require 'vendor/autoload.php';
+          \$parser = new \RegexParser\Parser();
+          \$start = microtime(true);
+          for (\$i = 0; \$i < 10000; \$i++) {
+              \$parser->parse('/test/');
+          }
+          \$duration = (microtime(true) - \$start) * 1000;
+          file_put_contents('main_benchmark.txt', \$duration);
+          echo 'Main Duration: ' . round(\$duration, 2) . 'ms' . PHP_EOL;
+          "
+
+      - name: Compare performance
+        run: |
+          PR_TIME=$(cat pr_benchmark.txt)
+          MAIN_TIME=$(cat main_benchmark.txt)
+          DIFF=$(php -r "echo round(((\$PR_TIME - \$MAIN_TIME) / \$MAIN_TIME) * 100, 2);")
+          echo "Performance change: ${DIFF}%"
+          if (( $(echo "$DIFF > 20" | bc -l) )); then
+            echo "⚠️ Performance regression > 20%"
+            exit 1
+          fi
+          echo "✅ Performance acceptable"
