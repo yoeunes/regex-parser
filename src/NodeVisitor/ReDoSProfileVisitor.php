@@ -128,32 +128,21 @@ final class ReDoSProfileVisitor implements NodeVisitorInterface
                     'Nested unbounded quantifiers detected. This allows exponential backtracking.',
                     $node->quantifier,
                 );
-            } elseif (1 === $this->unboundedQuantifierDepth) {
-                $severity = ReDoSSeverity::MEDIUM;
-                $this->addVulnerability(
-                    ReDoSSeverity::MEDIUM,
-                    'Unbounded quantifier used. Ensure input length is limited.',
-                    $node->quantifier,
-                );
             }
+            // Single unbounded quantifiers are safe - don't flag them
+            // Only nested quantifiers or overlapping patterns are problematic
         } else {
-            // Bounded logic
-            if (!$isUnbounded && $this->totalQuantifierDepth > 1 && !$isTargetAtomic) {
-                // Nested bounded quantifiers: (a{1,5}){1,5} -> LOW risk
+            // Bounded quantifiers are generally safe
+            // Only flag if they're extremely large or deeply nested with complex patterns
+            if ($this->isLargeBounded($node->quantifier)) {
                 $severity = ReDoSSeverity::LOW;
                 $this->addVulnerability(
                     ReDoSSeverity::LOW,
-                    'Nested bounded quantifiers detected. Matches can be slow but finite.',
-                    $node->quantifier,
-                );
-            } elseif ($this->isLargeBounded($node->quantifier)) {
-                $severity = ReDoSSeverity::LOW;
-                $this->addVulnerability(
-                    ReDoSSeverity::LOW,
-                    'Large bounded quantifier detected. May cause slow matching.',
+                    'Large bounded quantifier detected (>1000). May cause slow matching.',
                     $node->quantifier,
                 );
             }
+            // Don't flag simple nested bounded quantifiers - they're safe
         }
 
         // Check child

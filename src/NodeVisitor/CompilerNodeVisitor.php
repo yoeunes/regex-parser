@@ -100,6 +100,7 @@ class CompilerNodeVisitor implements NodeVisitorInterface
             GroupType::T_GROUP_LOOKBEHIND_POSITIVE => '(?<='.$child.')',
             GroupType::T_GROUP_LOOKBEHIND_NEGATIVE => '(?<!'.$child.')',
             GroupType::T_GROUP_ATOMIC => '(?>'.$child.')',
+            GroupType::T_GROUP_BRANCH_RESET => '(?|'.$child.')',
             GroupType::T_GROUP_INLINE_FLAGS => '(?'.$flags.':'.$child.')',
         };
     }
@@ -193,7 +194,13 @@ class CompilerNodeVisitor implements NodeVisitorInterface
 
     public function visitBackref(BackrefNode $node): string
     {
-        return $node->ref; // Already \1 or \k<name> or \g{1}
+        // For numeric backreferences, ensure backslash is present
+        if (ctype_digit($node->ref)) {
+            return '\\'.$node->ref;
+        }
+        
+        // For \g{N}, \k<name>, etc., return as-is
+        return $node->ref;
     }
 
     public function visitUnicode(UnicodeNode $node): string

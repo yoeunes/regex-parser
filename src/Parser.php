@@ -555,7 +555,7 @@ final class Parser
             return $subroutine;
         }
 
-        // 5. Check for simple non-capturing, lookaheads, atomic
+        // 5. Check for simple non-capturing, lookaheads, atomic, branch reset
         if ($this->matchLiteral(':')) {
             $expr = $this->parseAlternation();
             $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
@@ -579,6 +579,13 @@ final class Parser
             $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
             return new GroupNode($expr, GroupType::T_GROUP_ATOMIC, null, null, $startPos, $endToken->position + 1);
+        }
+        if ($this->match(TokenType::T_ALTERNATION)) {
+            // Branch reset group (?|...)
+            $expr = $this->parseAlternation();
+            $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
+
+            return new GroupNode($expr, GroupType::T_GROUP_BRANCH_RESET, null, null, $startPos, $endToken->position + 1);
         }
 
         // 6. Inline flags
