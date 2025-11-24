@@ -2,6 +2,15 @@
 
 declare(strict_types=1);
 
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
@@ -16,23 +25,14 @@ use RegexParser\Regex;
 class PregFunctionCompatibilityTest extends TestCase
 {
     private Parser $parser;
+
     private CompilerNodeVisitor $compiler;
-    private Regex $regex;
 
     protected function setUp(): void
     {
         $this->parser = new Parser();
         $this->compiler = new CompilerNodeVisitor();
-        $this->regex = Regex::create();
-    }
-
-    /**
-     * Helper method to compile a pattern through parse -> compile cycle.
-     */
-    private function roundTripPattern(string $pattern): string
-    {
-        $ast = $this->parser->parse($pattern);
-        return $ast->accept($this->compiler);
+        $regex = Regex::create();
     }
 
     // ============================================================================
@@ -142,8 +142,8 @@ class PregFunctionCompatibilityTest extends TestCase
         $compiled = $this->roundTripPattern($pattern);
         $subject = 'foo=123 bar=456';
 
-        preg_match_all($pattern, $subject, $originalMatches, PREG_PATTERN_ORDER);
-        preg_match_all($compiled, $subject, $compiledMatches, PREG_PATTERN_ORDER);
+        preg_match_all($pattern, $subject, $originalMatches, \PREG_PATTERN_ORDER);
+        preg_match_all($compiled, $subject, $compiledMatches, \PREG_PATTERN_ORDER);
 
         $this->assertSame($originalMatches, $compiledMatches);
     }
@@ -154,8 +154,8 @@ class PregFunctionCompatibilityTest extends TestCase
         $compiled = $this->roundTripPattern($pattern);
         $subject = 'foo=123 bar=456';
 
-        preg_match_all($pattern, $subject, $originalMatches, PREG_SET_ORDER);
-        preg_match_all($compiled, $subject, $compiledMatches, PREG_SET_ORDER);
+        preg_match_all($pattern, $subject, $originalMatches, \PREG_SET_ORDER);
+        preg_match_all($compiled, $subject, $compiledMatches, \PREG_SET_ORDER);
 
         $this->assertSame($originalMatches, $compiledMatches);
     }
@@ -166,8 +166,8 @@ class PregFunctionCompatibilityTest extends TestCase
         $compiled = $this->roundTripPattern($pattern);
         $subject = 'foo bar baz';
 
-        preg_match_all($pattern, $subject, $originalMatches, PREG_OFFSET_CAPTURE);
-        preg_match_all($compiled, $subject, $compiledMatches, PREG_OFFSET_CAPTURE);
+        preg_match_all($pattern, $subject, $originalMatches, \PREG_OFFSET_CAPTURE);
+        preg_match_all($compiled, $subject, $compiledMatches, \PREG_OFFSET_CAPTURE);
 
         $this->assertSame($originalMatches, $compiledMatches);
         // Verify offset capture structure
@@ -271,8 +271,8 @@ class PregFunctionCompatibilityTest extends TestCase
         $pattern = '/\d+/';
         $compiled = $this->roundTripPattern($pattern);
         $subject = 'abc123def456';
-        
-        $callback = fn($matches) => '[' . $matches[0] . ']';
+
+        $callback = fn ($matches) => '['.$matches[0].']';
 
         $originalResult = preg_replace_callback($pattern, $callback, $subject);
         $compiledResult = preg_replace_callback($compiled, $callback, $subject);
@@ -286,8 +286,8 @@ class PregFunctionCompatibilityTest extends TestCase
         $pattern = '/(\w+)=(\d+)/';
         $compiled = $this->roundTripPattern($pattern);
         $subject = 'foo=123 bar=456';
-        
-        $callback = fn($matches) => $matches[1] . ':' . ($matches[2] * 2);
+
+        $callback = fn ($matches) => $matches[1].':'.($matches[2] * 2);
 
         $originalResult = preg_replace_callback($pattern, $callback, $subject);
         $compiledResult = preg_replace_callback($compiled, $callback, $subject);
@@ -301,8 +301,8 @@ class PregFunctionCompatibilityTest extends TestCase
         $pattern = '/(?<name>\w+)@(?<domain>\w+)/';
         $compiled = $this->roundTripPattern($pattern);
         $subject = 'user@example';
-        
-        $callback = fn($matches) => strtoupper($matches['name']) . '@' . strtoupper($matches['domain']);
+
+        $callback = fn ($matches) => strtoupper((string) $matches['name']).'@'.strtoupper((string) $matches['domain']);
 
         $originalResult = preg_replace_callback($pattern, $callback, $subject);
         $compiledResult = preg_replace_callback($compiled, $callback, $subject);
@@ -316,8 +316,8 @@ class PregFunctionCompatibilityTest extends TestCase
         $pattern = '/\b\w+\b/';
         $compiled = $this->roundTripPattern($pattern);
         $subject = 'hello world';
-        
-        $callback = fn($matches) => strtoupper($matches[0]);
+
+        $callback = fn ($matches) => strtoupper((string) $matches[0]);
 
         $originalResult = preg_replace_callback($pattern, $callback, $subject);
         $compiledResult = preg_replace_callback($compiled, $callback, $subject);
@@ -362,8 +362,8 @@ class PregFunctionCompatibilityTest extends TestCase
         $compiled = $this->roundTripPattern($pattern);
         $subject = 'a,b;c,d';
 
-        $originalResult = preg_split($pattern, $subject, -1, PREG_SPLIT_DELIM_CAPTURE);
-        $compiledResult = preg_split($compiled, $subject, -1, PREG_SPLIT_DELIM_CAPTURE);
+        $originalResult = preg_split($pattern, $subject, -1, \PREG_SPLIT_DELIM_CAPTURE);
+        $compiledResult = preg_split($compiled, $subject, -1, \PREG_SPLIT_DELIM_CAPTURE);
 
         $this->assertSame($originalResult, $compiledResult);
         $this->assertContains(',', $compiledResult);
@@ -376,8 +376,8 @@ class PregFunctionCompatibilityTest extends TestCase
         $compiled = $this->roundTripPattern($pattern);
         $subject = '  foo   bar  ';
 
-        $originalResult = preg_split($pattern, $subject, -1, PREG_SPLIT_NO_EMPTY);
-        $compiledResult = preg_split($compiled, $subject, -1, PREG_SPLIT_NO_EMPTY);
+        $originalResult = preg_split($pattern, $subject, -1, \PREG_SPLIT_NO_EMPTY);
+        $compiledResult = preg_split($compiled, $subject, -1, \PREG_SPLIT_NO_EMPTY);
 
         $this->assertSame($originalResult, $compiledResult);
         $this->assertSame(['foo', 'bar'], $compiledResult);
@@ -389,8 +389,8 @@ class PregFunctionCompatibilityTest extends TestCase
         $compiled = $this->roundTripPattern($pattern);
         $subject = 'a,b,c';
 
-        $originalResult = preg_split($pattern, $subject, -1, PREG_SPLIT_OFFSET_CAPTURE);
-        $compiledResult = preg_split($compiled, $subject, -1, PREG_SPLIT_OFFSET_CAPTURE);
+        $originalResult = preg_split($pattern, $subject, -1, \PREG_SPLIT_OFFSET_CAPTURE);
+        $compiledResult = preg_split($compiled, $subject, -1, \PREG_SPLIT_OFFSET_CAPTURE);
 
         $this->assertSame($originalResult, $compiledResult);
         // Verify structure: [['a', 0], ['b', 2], ['c', 4]]
@@ -421,8 +421,8 @@ class PregFunctionCompatibilityTest extends TestCase
         $compiled = $this->roundTripPattern($pattern);
         $input = ['abc', '123', 'def', '456', 'ghi'];
 
-        $originalResult = preg_grep($pattern, $input, PREG_GREP_INVERT);
-        $compiledResult = preg_grep($compiled, $input, PREG_GREP_INVERT);
+        $originalResult = preg_grep($pattern, $input, \PREG_GREP_INVERT);
+        $compiledResult = preg_grep($compiled, $input, \PREG_GREP_INVERT);
 
         $this->assertSame($originalResult, $compiledResult);
         $this->assertSame([0 => 'abc', 2 => 'def', 4 => 'ghi'], $compiledResult);
@@ -476,8 +476,8 @@ class PregFunctionCompatibilityTest extends TestCase
         $quoted = preg_quote($string, '/');
 
         // Verify that the quoted string can be used in a pattern
-        $pattern = '/' . $quoted . '/';
-        $this->assertSame(1, preg_match($pattern, $string));
+        $pattern = '/'.$quoted.'/';
+        $this->assertMatchesRegularExpression($pattern, $string);
     }
 
     public function test_preg_quote_with_delimiter(): void
@@ -486,9 +486,9 @@ class PregFunctionCompatibilityTest extends TestCase
         $quoted = preg_quote($string, '/');
 
         $this->assertStringContainsString('\/', $quoted);
-        
-        $pattern = '/' . $quoted . '/';
-        $this->assertSame(1, preg_match($pattern, $string));
+
+        $pattern = '/'.$quoted.'/';
+        $this->assertMatchesRegularExpression($pattern, $string);
     }
 
     public function test_preg_quote_without_delimiter(): void
@@ -514,16 +514,16 @@ class PregFunctionCompatibilityTest extends TestCase
         // Demonstrate using preg_quote with the parser
         $literal = 'user.name+tag@example.com';
         $escaped = preg_quote($literal, '/');
-        $pattern = '/^' . $escaped . '$/';
+        $pattern = '/^'.$escaped.'$/';
 
         // Parse and compile the pattern
         $compiled = $this->roundTripPattern($pattern);
 
         // Should match the exact literal
-        $this->assertSame(1, preg_match($compiled, $literal));
-        
+        $this->assertMatchesRegularExpression($compiled, $literal);
+
         // Should not match variations
-        $this->assertSame(0, preg_match($compiled, 'userXnameXtag@exampleXcom'));
+        $this->assertDoesNotMatchRegularExpression($compiled, 'userXnameXtag@exampleXcom');
     }
 
     // ============================================================================
@@ -561,5 +561,15 @@ class PregFunctionCompatibilityTest extends TestCase
         $g1 = preg_grep($pattern, $words);
         $g2 = preg_grep($compiled, $words);
         $this->assertSame($g1, $g2);
+    }
+
+    /**
+     * Helper method to compile a pattern through parse -> compile cycle.
+     */
+    private function roundTripPattern(string $pattern): string
+    {
+        $ast = $this->parser->parse($pattern);
+
+        return $ast->accept($this->compiler);
     }
 }

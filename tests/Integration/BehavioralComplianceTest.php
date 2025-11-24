@@ -2,12 +2,21 @@
 
 declare(strict_types=1);
 
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use RegexParser\Parser;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
+use RegexParser\Parser;
 
 /**
  * Tests that verify parsed patterns behave identically to PHP's PCRE engine.
@@ -194,42 +203,42 @@ class BehavioralComplianceTest extends TestCase
     {
         $parser = new Parser();
         $compiler = new CompilerNodeVisitor();
-        
+
         // Parse and recompile the pattern
         $ast = $parser->parse($pattern);
         $compiled = $ast->accept($compiler);
-        
+
         // Test that both patterns behave identically
         foreach ($testCases as $input => $shouldMatch) {
             $input = (string) $input; // Ensure input is string
             $originalMatch = (bool) @preg_match($pattern, $input);
             $compiledMatch = (bool) @preg_match($compiled, $input);
-            
-            $this->assertEquals(
+
+            $this->assertSame(
                 $originalMatch,
                 $compiledMatch,
-                sprintf(
-                    "Pattern behavior mismatch for input '%s':\n" .
-                    "Original pattern: %s (matches: %s)\n" .
-                    "Compiled pattern: %s (matches: %s)\n" .
-                    "Expected: %s",
+                \sprintf(
+                    "Pattern behavior mismatch for input '%s':\n".
+                    "Original pattern: %s (matches: %s)\n".
+                    "Compiled pattern: %s (matches: %s)\n".
+                    'Expected: %s',
                     $input,
                     $pattern,
                     $originalMatch ? 'YES' : 'NO',
                     $compiled,
                     $compiledMatch ? 'YES' : 'NO',
-                    $shouldMatch ? 'MATCH' : 'NO MATCH'
-                )
+                    $shouldMatch ? 'MATCH' : 'NO MATCH',
+                ),
             );
-            
-            $this->assertEquals(
+
+            $this->assertSame(
                 $shouldMatch,
                 $originalMatch,
-                sprintf(
+                \sprintf(
                     "Test case expectation incorrect for '%s' with pattern %s",
                     $input,
-                    $pattern
-                )
+                    $pattern,
+                ),
             );
         }
     }
@@ -241,17 +250,17 @@ class BehavioralComplianceTest extends TestCase
     {
         $pattern = '/(?<year>\d{4})-(?<month>\d{2})-(?<day>\d{2})/';
         $input = '2025-11-24';
-        
+
         $parser = new Parser();
         $compiler = new CompilerNodeVisitor();
-        
+
         $ast = $parser->parse($pattern);
         $compiled = $ast->accept($compiler);
-        
+
         preg_match($pattern, $input, $originalMatches);
         preg_match($compiled, $input, $compiledMatches);
-        
-        $this->assertEquals($originalMatches, $compiledMatches);
+
+        $this->assertSame($originalMatches, $compiledMatches);
     }
 
     /**
@@ -262,16 +271,16 @@ class BehavioralComplianceTest extends TestCase
         $pattern = '/(\w+)\s+(\w+)/';
         $replacement = '$2 $1';
         $input = 'hello world';
-        
+
         $parser = new Parser();
         $compiler = new CompilerNodeVisitor();
-        
+
         $ast = $parser->parse($pattern);
         $compiled = $ast->accept($compiler);
-        
+
         $originalResult = preg_replace($pattern, $replacement, $input);
         $compiledResult = preg_replace($compiled, $replacement, $input);
-        
-        $this->assertEquals($originalResult, $compiledResult);
+
+        $this->assertSame($originalResult, $compiledResult);
     }
 }

@@ -2,15 +2,22 @@
 
 declare(strict_types=1);
 
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace RegexParser\Tests\Integration;
 
-use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
 use RegexParser\Node\RegexNode;
-use RegexParser\Regex;
 use RegexParser\ReDoSSeverity;
+use RegexParser\Regex;
 use RegexParser\ValidationResult;
 
 /**
@@ -231,14 +238,14 @@ class ComprehensivePublicAPITest extends TestCase
     {
         $result = $this->regex->validate('/\1(foo)/');
         $this->assertFalse($result->isValid);
-        $this->assertStringContainsString('backreference', strtolower($result->error));
+        $this->assertStringContainsString('backreference', strtolower((string) $result->error));
     }
 
     public function test_validate_detects_variable_length_lookbehind(): void
     {
         $result = $this->regex->validate('/(?<!a*)b/');
         $this->assertFalse($result->isValid);
-        $this->assertStringContainsString('lookbehind', strtolower($result->error));
+        $this->assertStringContainsString('lookbehind', strtolower((string) $result->error));
     }
 
     public function test_validate_allows_fixed_length_lookbehind(): void
@@ -333,7 +340,7 @@ class ComprehensivePublicAPITest extends TestCase
         $sample = $this->regex->generate('/\d{3}/');
         $this->assertIsString($sample);
         $this->assertMatchesRegularExpression('/\d{3}/', $sample);
-        $this->assertSame(3, strlen($sample));
+        $this->assertSame(3, \strlen($sample));
     }
 
     public function test_generate_word_pattern(): void
@@ -348,7 +355,7 @@ class ComprehensivePublicAPITest extends TestCase
         $sample = $this->regex->generate('/[a-z]{5}/');
         $this->assertIsString($sample);
         $this->assertMatchesRegularExpression('/[a-z]{5}/', $sample);
-        $this->assertSame(5, strlen($sample));
+        $this->assertSame(5, \strlen($sample));
     }
 
     public function test_generate_alternation(): void
@@ -356,7 +363,7 @@ class ComprehensivePublicAPITest extends TestCase
         $sample = $this->regex->generate('/(foo|bar)/');
         $this->assertIsString($sample);
         $this->assertMatchesRegularExpression('/(foo|bar)/', $sample);
-        $this->assertTrue($sample === 'foo' || $sample === 'bar');
+        $this->assertTrue('foo' === $sample || 'bar' === $sample);
     }
 
     public function test_generate_with_anchors(): void
@@ -379,10 +386,10 @@ class ComprehensivePublicAPITest extends TestCase
         for ($i = 0; $i < 10; $i++) {
             $samples[] = $this->regex->generate('/[a-z]{10}/');
         }
-        
+
         // At least some samples should be different (randomness check)
         $unique = array_unique($samples);
-        $this->assertGreaterThan(1, count($unique), 'Generator should produce varied samples');
+        $this->assertGreaterThan(1, \count($unique), 'Generator should produce varied samples');
     }
 
     // ============================================================================
@@ -400,11 +407,11 @@ class ComprehensivePublicAPITest extends TestCase
     {
         $original = '/test/';
         $optimized = $this->regex->optimize($original);
-        
+
         $testString = 'this is a test string';
         $this->assertSame(
             (bool) preg_match($original, $testString),
-            (bool) preg_match($optimized, $testString)
+            (bool) preg_match($optimized, $testString),
         );
     }
 
@@ -453,7 +460,7 @@ class ComprehensivePublicAPITest extends TestCase
         $literals = $this->regex->extractLiterals('/start_\d+_end/');
         $prefix = $literals->getLongestPrefix();
         $suffix = $literals->getLongestSuffix();
-        
+
         $this->assertSame('start_', $prefix);
         $this->assertSame('_end', $suffix);
     }
@@ -463,7 +470,7 @@ class ComprehensivePublicAPITest extends TestCase
         $literals = $this->regex->extractLiterals('/\d+/');
         $prefix = $literals->getLongestPrefix();
         // May return null or empty string when no literals found
-        $this->assertTrue($prefix === '' || $prefix === null);
+        $this->assertTrue('' === $prefix || null === $prefix);
     }
 
     public function test_extract_literals_full_literal_pattern(): void
@@ -607,7 +614,7 @@ class ComprehensivePublicAPITest extends TestCase
     public function test_generate_respects_quantifier_bounds(): void
     {
         $sample = $this->regex->generate('/a{5}/');
-        $this->assertSame(5, strlen($sample));
+        $this->assertSame(5, \strlen($sample));
         $this->assertSame('aaaaa', $sample);
     }
 
@@ -624,11 +631,11 @@ class ComprehensivePublicAPITest extends TestCase
         foreach ($testCases as $type => $input) {
             $originalResult = (bool) preg_match($original, $input);
             $optimizedResult = (bool) preg_match($optimized, $input);
-            
+
             $this->assertSame(
                 $originalResult,
                 $optimizedResult,
-                "Optimization changed behavior for input: $input (type: $type)"
+                "Optimization changed behavior for input: $input (type: $type)",
             );
         }
     }
@@ -639,14 +646,14 @@ class ComprehensivePublicAPITest extends TestCase
         $prefix = $literals->getLongestPrefix();
         // Current implementation may vary on how it handles alternations
         $this->assertIsString($prefix ?? '');
-        $this->assertStringContainsString('prefix', $prefix);
+        $this->assertStringContainsString('prefix', (string) $prefix);
     }
 
     public function test_analyze_redos_complex_email_pattern(): void
     {
         $pattern = '/^([a-zA-Z0-9._%-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})$/';
         $analysis = $this->regex->analyzeReDoS($pattern);
-        
+
         $this->assertContains($analysis->severity, [
             ReDoSSeverity::SAFE,
             ReDoSSeverity::LOW,

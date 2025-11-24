@@ -2,6 +2,15 @@
 
 declare(strict_types=1);
 
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
@@ -39,7 +48,7 @@ class SymfonyIntegrationTest extends TestCase
             $this->assertSame(
                 $expectedValid,
                 $result->isValid,
-                "Pattern validation mismatch for: $pattern"
+                "Pattern validation mismatch for: $pattern",
             );
         }
     }
@@ -49,7 +58,7 @@ class SymfonyIntegrationTest extends TestCase
         // Test that validation errors provide user-friendly messages
         // suitable for Symfony form violations
         $result = $this->regex->validate('/(a+)+b/');
-        
+
         $this->assertFalse($result->isValid);
         $this->assertNotNull($result->error);
         $this->assertIsString($result->error);
@@ -123,7 +132,7 @@ class SymfonyIntegrationTest extends TestCase
             $validation = $this->regex->validate($data['pattern']);
             $this->assertTrue(
                 $validation->isValid,
-                "Pattern for $field should be valid"
+                "Pattern for $field should be valid",
             );
 
             $matches = (bool) preg_match($data['pattern'], $data['value']);
@@ -148,7 +157,7 @@ class SymfonyIntegrationTest extends TestCase
             $result = $this->regex->validate($pattern);
             $this->assertTrue(
                 $result->isValid,
-                "Route constraint for $param should be valid"
+                "Route constraint for $param should be valid",
             );
         }
     }
@@ -164,11 +173,11 @@ class SymfonyIntegrationTest extends TestCase
 
         foreach ($constraints as $pattern => $paramName) {
             $sample = $this->regex->generate($pattern);
-            
+
             $this->assertMatchesRegularExpression(
                 $pattern,
                 $sample,
-                "Generated sample for $paramName should match constraint"
+                "Generated sample for $paramName should match constraint",
             );
         }
     }
@@ -181,9 +190,9 @@ class SymfonyIntegrationTest extends TestCase
     {
         // Test that Regex can be instantiated as a Symfony service
         $service = Regex::create();
-        
+
         $this->assertInstanceOf(Regex::class, $service);
-        
+
         // Test basic functionality
         $result = $service->validate('/test/');
         $this->assertTrue($result->isValid);
@@ -193,7 +202,7 @@ class SymfonyIntegrationTest extends TestCase
     {
         // Test service configuration with options (e.g., in services.yaml)
         $service = Regex::create(['max_pattern_length' => 500]);
-        
+
         $this->assertInstanceOf(Regex::class, $service);
     }
 
@@ -232,7 +241,7 @@ class SymfonyIntegrationTest extends TestCase
             $this->assertSame(
                 $shouldBeValid,
                 $result->isValid,
-                "ReDoS detection failed for: $pattern"
+                "ReDoS detection failed for: $pattern",
             );
         }
     }
@@ -257,7 +266,7 @@ class SymfonyIntegrationTest extends TestCase
         $prefix = $literals->getLongestPrefix();
 
         $this->assertSame('ERROR: ', $prefix);
-        
+
         // Can be used for WHERE clause optimization:
         // WHERE log_message LIKE 'ERROR:%' before running regex
     }
@@ -280,7 +289,7 @@ class SymfonyIntegrationTest extends TestCase
             $this->assertSame(
                 $expectedValid,
                 $result->isValid,
-                "Console input validation failed for: $input"
+                "Console input validation failed for: $input",
             );
 
             if (!$expectedValid) {
@@ -314,21 +323,21 @@ class SymfonyIntegrationTest extends TestCase
         // AST should be serializable
         $serialized = serialize($ast);
         $this->assertIsString($serialized);
-        
+
         $unserialized = unserialize($serialized);
-        $this->assertEquals($ast, $unserialized);
+        $this->assertSame($ast, $unserialized);
     }
 
     public function test_validation_result_caching(): void
     {
         // Validation results can be cached to avoid repeated checks
         $pattern = '/^[a-z0-9_-]{3,16}$/';
-        
+
         $result1 = $this->regex->validate($pattern);
         $result2 = $this->regex->validate($pattern);
 
         // Results should be consistent
-        $this->assertEquals($result1, $result2);
+        $this->assertSame($result1, $result2);
         $this->assertTrue($result1->isValid);
         $this->assertTrue($result2->isValid);
     }
@@ -351,7 +360,7 @@ class SymfonyIntegrationTest extends TestCase
             $this->assertSame(
                 $expectedValid,
                 $result->isValid,
-                "Unicode pattern validation failed for: $pattern"
+                "Unicode pattern validation failed for: $pattern",
             );
         }
     }
@@ -421,7 +430,7 @@ class SymfonyIntegrationTest extends TestCase
 
         // 4. Check security (ReDoS)
         $security = $this->regex->analyzeReDoS($pattern);
-        $this->assertTrue($security->isSafe() || $security->severity->value === 'low');
+        $this->assertTrue($security->isSafe() || 'low' === $security->severity->value);
 
         // 5. Extract literals (optimization)
         $literals = $this->regex->extractLiterals($pattern);
