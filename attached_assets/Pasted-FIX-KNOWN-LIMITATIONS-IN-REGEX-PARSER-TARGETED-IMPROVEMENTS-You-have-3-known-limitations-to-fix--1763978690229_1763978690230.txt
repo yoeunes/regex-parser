@@ -1,0 +1,134 @@
+FIX KNOWN LIMITATIONS IN REGEX-PARSER - TARGETED IMPROVEMENTS
+
+You have 3 known limitations to fix. Execute ALL fixes sequentially. This is a precision task - target only the issues specified.
+
+=== LIMITATION 1: ReDoS DETECTION FALSE POSITIVES/NEGATIVES ===
+
+Problem: Some PCRE features trigger false positives or negatives in ReDoS severity scoring.
+
+Create: tests/Integration/ReDoSEdgeCasesTest.php
+
+Test cases (15+ patterns):
+FALSE POSITIVES (currently flagged as HIGH/CRITICAL but actually SAFE):
+1. /a+b/ - Single unbounded quantifier (should be MEDIUM or SAFE)
+2. /[a-z]+test/ - Character class with literal (should be SAFE)
+3. /(a|b)+c/ - Simple alternation (should be SAFE)
+4. /(?:foo|bar)*baz/ - Non-capturing alternation (should be LOW/SAFE)
+5. /\w+@\w+/ - Word chars (should be SAFE)
+
+FALSE NEGATIVES (currently SAFE but should be flagged):
+1. /(a+)+b/ - Nested quantifiers (CRITICAL)
+2. /(a*)*b/ - Nested unbounded (CRITICAL)
+3. /(a|a)*/   - Overlapping alternation (CRITICAL)
+4. /(?:a|ab)*c/ - Overlapping alternation patterns (HIGH)
+
+ACTUAL EDGE CASES:
+1. /^(a+)+b$/ - With anchors (vs without)
+2. /(a{1,3})+b/ - Bounded nested quantifiers
+3. /(?:(?:a+)+)+b/ - Triple nesting
+
+For each, verify: expected severity vs actual, fix scoring logic in ReDoSAnalyzer
+Run: ./vendor/bin/phpunit tests/Integration/ReDoSEdgeCasesTest.php
+Report: Patterns with mismatched severity, root cause, fixes applied
+
+=== LIMITATION 2: BACKREFERENCE COMPILATION EDGE CASES ===
+
+Problem: Backreferences were fixed but may fail on edge cases.
+
+Create: tests/Integration/BackreferenceEdgeCasesTest.php
+
+Test cases (20+ patterns):
+BASIC BACKREFERENCES:
+1. /(a)\1/ - Basic backreference
+2. /(\d\d)\1/ - Double digit
+3. /([a-z])\1{2}/ - Backreference with quantifier
+4. /(foo|bar)\1/ - Backreference to alternation
+
+MULTIPLE BACKREFERENCES:
+1. /(a)(b)\1\2/ - Multiple different backreferences
+2. /(a)(b)(c)\3\2\1/ - Reverse order
+3. /([a-z])\1([0-9])\2/ - Mixed
+
+NAMED BACKREFERENCES:
+1. /(?P<x>a)(?P=x)/ - Named backreference
+2. /(?P<word>\w+) (?P=word)/ - Named repeated
+
+COMPLEX CASES:
+1. /((?:a+)+)\1/ - Backreference to nested quantifier
+2. /(?:(a)\1)+/ - Backreference inside quantifier
+3. /((a))\1\2/ - Nested groups with multiple backrefs
+4. /(?:(?P<x>a)|(?P<y>b))(?P=x)?/ - Conditional named groups
+
+For each: Parse -> compile -> match test
+Verify round-trip: pattern == compile(parse(pattern))
+Run: ./vendor/bin/phpunit tests/Integration/BackreferenceEdgeCasesTest.php
+Report: Failed patterns, compilation errors, fixes
+
+=== LIMITATION 3: VARIABLE-LENGTH LOOKBEHINDS ===
+
+Problem: Variable-length lookbehinds detection may have gaps.
+
+Create: tests/Integration/LookbehindEdgeCasesTest.php
+
+Test cases (25+ patterns):
+FIXED-LENGTH LOOKBEHINDS (VALID):
+1. /(?<=foo)bar/ - Fixed 3-char lookbehind
+2. /(?<=\d{3})test/ - Fixed quantified
+3. /(?<=[a-z]{2})\d/ - Character class with fixed quantifier
+
+VARIABLE-LENGTH LOOKBEHINDS (SHOULD FAIL):
+1. /(?<=a*)b/ - Variable quantifier
+2. /(?<=a+)b/ - Unbounded quantifier
+3. /(?<=a{1,3})b/ - Bounded but variable
+4. /(?<=[a-z]*)test/ - Character class variable
+5. /(?<=(foo|bar))baz/ - Alternation (variable length)
+6. /(?<=\d+@\d+)test/ - Multiple variable parts
+
+MIXED PATTERNS:
+1. /(?<=foo\d+)bar/ - Fixed prefix + variable suffix (INVALID)
+2. /(?<=(a+|b{2}))c/ - Alternation with one variable (INVALID)
+3. /(?<=[a-zA-Z])\d/ - Single char class (VALID if treated as fixed)
+
+CORNER CASES:
+1. /(?<=(?:a)*)b/ - Non-capturing group with variable
+2. /(?<=\b\w+)\s/ - Word boundary + variable
+3. /(?<!a+)b/ - Negative variable lookbehind
+4. /(?<=(\w+)?)/  - Optional group in lookbehind
+
+For each: Should either parse successfully (fixed-length) or throw ParserException (variable-length)
+Verify: Validator correctly identifies variable-length as invalid
+Run: ./vendor/bin/phpunit tests/Integration/LookbehindEdgeCasesTest.php
+Report: False positives, false negatives, fixes
+
+=== EXECUTION & FIXES ===
+
+1. Create all 3 test files
+2. Run each test suite individually
+3. For EACH FAILED TEST:
+   - Identify root cause in src/ code
+   - Examine relevant visitor/analyzer classes
+   - Apply minimal fix
+   - Re-run test
+4. Document all fixes in IMPROVEMENTS.md
+5. Update VALIDATION_REPORT.md with edge case findings
+6. Commit: "Fix ReDoS/Backreference/Lookbehind edge cases"
+
+=== EXPECTED OUTCOMES ===
+
+After fixes:
+- ReDoS detection: 100% accuracy on test cases
+- Backreferences: All edge cases compile & match correctly
+- Lookbehinds: Proper validation of fixed vs variable length
+
+=== REPORTING ===
+
+For each limitation:
+- Test count and pass rate
+- Patterns that failed (if any)
+- Root cause analysis
+- Fix applied
+- Verification result
+
+Do NOT continue if tests pass 100% initially - investigate and improve detection logic anyway.
+
+Start now. Execute sequentially.
