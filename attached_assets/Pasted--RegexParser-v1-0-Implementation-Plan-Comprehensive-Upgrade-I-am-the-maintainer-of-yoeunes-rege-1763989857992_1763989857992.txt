@@ -1,0 +1,74 @@
+# RegexParser v1.0 Implementation Plan - Comprehensive Upgrade
+
+I am the maintainer of `yoeunes/regex-parser`. I need you to perform a major upgrade to prepare this library for a production-ready v1.0 release. The codebase is PHP 8.4+ with strict typing.
+
+**Objective:** Implement missing security guardrails, performance benchmarking, and advanced visualization features inspired by Rust (`regex-syntax`), Python (`re`), and JS (`regexp-tree`).
+
+Please implement the following 3 distinct components. Do not ask clarifying questions; follow the specifications below strictly.
+
+---
+
+### PART 1: Security & Resource Management (The "Rust" Standard)
+
+We need to prevent DoS attacks via resource exhaustion.
+
+1.  **Create `src/ParserOptions.php`:**
+    * A `final readonly class` DTO.
+    * Properties: `int $maxPatternLength` (default 10,000), `int $maxNodes` (default 10,000), `int $maxRecursionDepth` (default 250).
+
+2.  **Refactor `src/Parser.php`:**
+    * Inject `ParserOptions` into the constructor.
+    * In `parse()`, throw `ResourceLimitException` immediately if the pattern length exceeds the limit.
+    * Add internal counters for recursion depth and node count.
+    * In every recursive parsing method (e.g., `parseGroup`, `parseAlternation`), increment the depth counter. Throw `ResourceLimitException` if it exceeds the limit.
+    * When creating new Nodes, increment the node counter. Throw if it exceeds the limit.
+
+---
+
+### PART 2: Visualization & Developer Experience (The "Python/JS" Standard)
+
+We need "Wow" features for documentation and debugging.
+
+1.  **Create `src/NodeVisitor/MermaidVisitor.php`:**
+    * Implements `NodeVisitorInterface<string>`.
+    * Generates a Mermaid.js flowchart string representing the AST.
+    * Use specific shapes: Diamonds for `ConditionalNode`, Rounded Rects for `GroupNode`, Circles for `AnchorNode`.
+    * Example output format: `graph TD; node1["Regex"] --> node2["Start"]; ...`
+
+2.  **Update `src/Regex.php`:**
+    * Add a method `visualize(string $regex): string` that uses the `MermaidVisitor`.
+
+3.  **Update `src/Builder/RegexBuilder.php`:**
+    * Add a method `addPart(string $regex): self`.
+    * This method should parse the incoming string into an AST using `Parser`, and then append that AST to the current builder state. This allows mixing fluent building with raw regex strings.
+
+---
+
+### PART 3: Performance Infrastructure
+
+We need to prove performance, not just estimate it.
+
+1.  **Install `phpbench/phpbench`** via Composer (dev dependency).
+2.  **Create `tests/Benchmark/ParserBench.php`:**
+    * Create a class compliant with PHPBench.
+    * Add benchmarks for:
+        * `benchSimplePattern()`: A short `/abc/` regex.
+        * `benchComplexPattern()`: A typical email validation regex.
+        * `benchDeeplyNested()`: A pattern like `((((a))))` to stress recursion.
+    * Use 1000 revolutions/iterations to get stable numbers.
+
+---
+
+### Implementation Constraints & Rules
+
+* **Strict Typing:** All new files must have `declare(strict_types=1);`.
+* **Immutability:** Use `readonly` classes where possible.
+* **Clean Code:** Follow PSR-12. Use short array syntax.
+* **No Breaking Changes:** Do not remove existing public API methods in `Regex` or `Parser`, only extend them.
+* **Tests:** Create a new test file `tests/Integration/FeaturesUpgradeTest.php` to verify:
+    * `ParserOptions` correctly throws exceptions when limits are hit.
+    * `MermaidVisitor` returns a valid string starting with `graph TD`.
+    * `RegexBuilder::addPart` correctly appends a parsed node.
+
+**Action:**
+Please generate all the files described above (Class code, modified existing classes, and tests). Proceed step-by-step.

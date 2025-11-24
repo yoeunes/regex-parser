@@ -26,6 +26,7 @@ use RegexParser\NodeVisitor\LiteralExtractorVisitor;
 use RegexParser\NodeVisitor\OptimizerNodeVisitor;
 use RegexParser\NodeVisitor\SampleGeneratorVisitor;
 use RegexParser\NodeVisitor\ValidatorNodeVisitor;
+use RegexParser\NodeVisitor\MermaidVisitor;
 
 /**
  * Main service for parsing, validating, and manipulating regex patterns.
@@ -146,6 +147,20 @@ class Regex
         $compiler = new CompilerNodeVisitor();
 
         return $optimizedAst->accept($compiler);
+    }
+
+    /**
+     * Visualizes the regex AST as a Mermaid.js flowchart.
+     *
+     * Useful for debugging complex patterns and documentation.
+     *
+     * @throws LexerException|ParserException
+     */
+    public function visualize(string $regex): string
+    {
+        $ast = $this->parser->parse($regex);
+
+        return $ast->accept(new MermaidVisitor());
     }
 
     /**

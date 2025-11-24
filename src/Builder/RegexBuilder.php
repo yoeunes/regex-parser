@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Builder;
 
+use RegexParser\Parser;
 use RegexParser\Node\AlternationNode;
 use RegexParser\Node\AnchorNode;
 use RegexParser\Node\AssertionNode;
@@ -106,6 +107,30 @@ class RegexBuilder
             // we might want to throw or fallback to LiteralNode?
             // For now, let's throw to alert the user their "raw" regex is invalid.
             throw new \InvalidArgumentException('Invalid raw regex fragment: '.$e->getMessage(), 0, $e);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Parses and appends a raw regex string to the builder.
+     *
+     * This allows mixing fluent building with raw regex syntax.
+     * The incoming regex pattern is parsed and its AST is appended to the current builder state.
+     *
+     * @param string $regex Full regex pattern with delimiters (e.g. '/pattern/flags')
+     *
+     * @throws \InvalidArgumentException if the regex cannot be parsed
+     */
+    public function addPart(string $regex): self
+    {
+        try {
+            $parser = new Parser();
+            $ast = $parser->parse($regex);
+            // Append the parsed pattern node to current nodes
+            $this->currentNodes[] = $ast->pattern;
+        } catch (\Throwable $e) {
+            throw new \InvalidArgumentException('Failed to parse regex in addPart: '.$e->getMessage(), 0, $e);
         }
 
         return $this;
