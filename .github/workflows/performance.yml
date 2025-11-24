@@ -25,17 +25,11 @@ jobs:
       - name: Install dependencies
         run: composer install --no-interaction --prefer-dist
 
-      - name: Run benchmarks (if available)
-        run: |
-          if [ -d "tests/Benchmark" ]; then
-            cd tools/phpbench
-            composer install --no-interaction
-            ../../vendor/bin/phpbench run --report=default
-          else
-            echo "⚠️ No benchmarks found in tests/Benchmark/"
-            echo "TODO: Implement PHPBench tests"
-          fi
-        continue-on-error: true
+      - name: Install PHPBench
+        run: composer require --dev phpbench/phpbench
+
+      - name: Run benchmarks
+        run: vendor/bin/phpbench run --report=default --iterations=5
 
       - name: Performance smoke tests
         run: |

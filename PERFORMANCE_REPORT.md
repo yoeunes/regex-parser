@@ -20,11 +20,19 @@
 
 ## Benchmark Methodology
 
-Tests performed on:
-- **CPU**: Modern x86_64 processor
-- **Memory**: 16GB RAM
-- **PHP**: 8.4.10
-- **Tool**: PHPBench (not yet implemented, estimates provided)
+To run real benchmarks on your machine:
+
+```bash
+vendor/bin/phpbench run --report=default --iterations=5
+```
+
+Tests are performed on:
+- **CPU**: Your local machine (results vary by hardware)
+- **Memory**: Your system memory
+- **PHP**: 8.4+
+- **Tool**: PHPBench (see `tests/Benchmark/ParserBench.php`)
+
+**IMPORTANT**: The numbers below are ESTIMATES from development. Use `phpbench run` to get real metrics on your machine.
 
 ---
 
@@ -32,14 +40,19 @@ Tests performed on:
 
 ### Simple Patterns (Recommended baseline)
 
-| Pattern | Parse Time | Memory | AST Nodes |
-|---------|------------|--------|-----------|
-| `/test/` | ~0.05ms | 2KB | 2 |
-| `/\d+/` | ~0.08ms | 2KB | 2 |
-| `/[a-z]/` | ~0.10ms | 3KB | 3 |
-| `/^test$/` | ~0.12ms | 3KB | 4 |
+| Pattern | Parse Time | Memory | AST Nodes | Notes |
+|---------|------------|--------|-----------|-------|
+| `/test/` | ~0.05ms | 2KB | 2 | **ESTIMATE** - Run benchmarks for actual |
+| `/\d+/` | ~0.08ms | 2KB | 2 | **ESTIMATE** |
+| `/[a-z]/` | ~0.10ms | 3KB | 3 | **ESTIMATE** |
+| `/^test$/` | ~0.12ms | 3KB | 4 | **ESTIMATE** |
 
-**Performance**: ✅ **EXCELLENT** - Negligible overhead
+**Performance**: ✅ **EXPECTED EXCELLENT** (Run `vendor/bin/phpbench run` for real data)
+
+**⚠️ CRITICAL WARNING**: Parsing is memory-intensive. Do NOT parse regex at runtime in hot paths. Always:
+1. Cache parsed AST for reuse
+2. Cache extracted metadata (literals, features, etc.)
+3. Validate once at startup, not per-request
 
 ### Medium Complexity
 

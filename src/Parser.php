@@ -14,6 +14,9 @@ declare(strict_types=1);
 namespace RegexParser;
 
 use RegexParser\Exception\ParserException;
+use RegexParser\Exception\RecursionLimitException;
+use RegexParser\Exception\ResourceLimitException;
+use RegexParser\Stream\TokenStream;
 use RegexParser\Node\AlternationNode;
 use RegexParser\Node\AnchorNode;
 use RegexParser\Node\AssertionNode;
@@ -54,30 +57,58 @@ final class Parser
      */
     public const int DEFAULT_MAX_PATTERN_LENGTH = 100_000;
 
-    private readonly int $maxPatternLength;
+    /**
+     * Default maximum recursion depth (prevents stack overflow on deeply nested patterns).
+     */
+    public const int DEFAULT_MAX_RECURSION_DEPTH = 200;
 
     /**
-     * @var list<Token>
+     * Default maximum number of AST nodes (prevents DoS through node exhaustion).
      */
-    private array $tokens = [];
+    public const int DEFAULT_MAX_NODES = 10000;
 
-    private int $position = 0;
+    private readonly int $maxPatternLength;
+
+    private readonly int $maxRecursionDepth;
+
+    private readonly int $maxNodes;
+
+    /**
+     * Current recursion depth (tracks during parsing).
+     */
+    private int $recursionDepth = 0;
+
+    /**
+     * Current node count (tracks during parsing).
+     */
+    private int $nodeCount = 0;
+
+    /**
+     * Token stream (replaces array of tokens for memory efficiency).
+     */
+    private TokenStream $stream;
 
     /**
      * @param array{
      * max_pattern_length?: int,
+     * max_recursion_depth?: int,
+     * max_nodes?: int,
      * } $options Configuration options
      * @param Lexer|null $lexer Optional Lexer instance for dependency injection
      */
     public function __construct(array $options = [], private ?Lexer $lexer = null)
     {
         $this->maxPatternLength = (int) ($options['max_pattern_length'] ?? self::DEFAULT_MAX_PATTERN_LENGTH);
+        $this->maxRecursionDepth = (int) ($options['max_recursion_depth'] ?? self::DEFAULT_MAX_RECURSION_DEPTH);
+        $this->maxNodes = (int) ($options['max_nodes'] ?? self::DEFAULT_MAX_NODES);
     }
 
     /**
      * Parses a full regex string (including delimiters and flags) into an AST.
      *
      * @throws ParserException if the regex syntax is invalid
+     * @throws RecursionLimitException if recursion depth exceeds limit
+     * @throws ResourceLimitException if node count exceeds limit
      */
     public function parse(string $regex): RegexNode
     {
@@ -87,10 +118,13 @@ final class Parser
 
         [$pattern, $flags, $delimiter] = $this->extractPatternAndFlags($regex);
 
-        // Initialize Token Stream
+        // Reset state for new parse
+        $this->recursionDepth = 0;
+        $this->nodeCount = 0;
+
+        // Initialize Token Stream (Generator-based)
         $lexer = $this->getLexer($pattern);
-        $this->tokens = $lexer->tokenize();
-        $this->position = 0;
+        $this->stream = new TokenStream($lexer->tokenize());
 
         // Parse the pattern content
         $patternNode = $this->parseAlternation();
@@ -1059,25 +1093,68 @@ final class Parser
     private function advance(): void
     {
         if (!$this->isAtEnd()) {
-            $this->position++;
+            $this->stream->next();
         }
     }
 
     private function isAtEnd(): bool
     {
-        return TokenType::T_EOF === $this->tokens[$this->position]->type;
+        return TokenType::T_EOF === $this->current()->type;
     }
 
     private function current(): Token
     {
-        return $this->tokens[$this->position];
+        return $this->stream->current();
     }
 
     private function previous(): Token
     {
-        $index = $this->position > 0 ? $this->position - 1 : 0;
+        return $this->stream->peek(-1);
+    }
 
-        return $this->tokens[$index];
+    /**
+     * Check and enforce recursion limit.
+     * Must be called at the start of each recursive parsing method.
+     *
+     * @throws RecursionLimitException if recursion depth exceeds limit
+     */
+    private function checkRecursionLimit(): void
+    {
+        $this->recursionDepth++;
+
+        if ($this->recursionDepth > $this->maxRecursionDepth) {
+            throw new RecursionLimitException(\sprintf(
+                'Recursion limit of %d exceeded (current: %d). Pattern is too deeply nested.',
+                $this->maxRecursionDepth,
+                $this->recursionDepth
+            ));
+        }
+    }
+
+    /**
+     * End a recursion scope.
+     */
+    private function exitRecursionScope(): void
+    {
+        $this->recursionDepth--;
+    }
+
+    /**
+     * Check and enforce node count limit.
+     * Must be called before creating a new node.
+     *
+     * @throws ResourceLimitException if node count exceeds limit
+     */
+    private function checkNodeLimit(): void
+    {
+        $this->nodeCount++;
+
+        if ($this->nodeCount > $this->maxNodes) {
+            throw new ResourceLimitException(\sprintf(
+                'Node count limit of %d exceeded. Pattern is too complex.',
+                $this->maxNodes
+            ));
+        }
     }
 
     private function consumeWhile(callable $predicate): string
