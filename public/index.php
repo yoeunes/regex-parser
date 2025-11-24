@@ -281,6 +281,15 @@ if ($regex) {
             <p>A powerful PCRE regex parser with lexer, AST, and validation</p>
         </div>
         
+        <div class="card" style="background: #fff3cd; border-left: 4px solid #ffc107; margin-bottom: 20px;">
+            <h3 style="color: #856404; margin-bottom: 10px;">⚠️ Experimental Library Notice</h3>
+            <p style="color: #856404; margin: 0;">
+                This library is in <strong>experimental/alpha status</strong>. While it demonstrates functional parsing, AST generation, and analysis capabilities, 
+                <strong>it has not been systematically validated against the official PCRE specification</strong>. 
+                See <code>VALIDATION_REPORT.md</code> for detailed findings. Use for learning and experimentation, not production systems.
+            </p>
+        </div>
+        
         <div class="card">
             <form method="POST">
                 <div class="form-group">

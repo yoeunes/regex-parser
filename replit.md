@@ -153,6 +153,31 @@ The library is distributed via Composer/Packagist as `yoeunes/regex-parser`.
 
 ## Recent Changes (November 24, 2025)
 
+### Library Validation Audit
+
+**IMPORTANT:** A comprehensive validation audit was performed on the library (see `VALIDATION_REPORT.md`). Key findings:
+
+**Status:** EXPERIMENTAL/ALPHA - Not validated against official PCRE specification
+
+**What Works:**
+- Basic parsing and AST generation for common patterns
+- Sample generation for simple patterns
+- ReDoS detection (with some false positives)
+- Error detection for obvious invalid patterns
+- Round-trip compilation for tested patterns
+
+**Critical Issues:**
+- Tests only validate AST structure, not PCRE behavior compliance
+- No cross-validation against PHP's PCRE engine
+- Missing PCRE features (branch reset groups, some PCRE verbs)
+- ReDoS detector has false positives for safe patterns
+- Integration tools (PHPStan/Rector) not validated end-to-end
+- Optimizer refactorings not proven to preserve semantics
+
+**Recommendation:** Use for learning/experimentation only, not production. See validation report for detailed analysis and improvement roadmap.
+
+**Validation Results:** 24/27 tests passed (89%) - Run `php validate_library.php` for details.
+
 ### Web Demo Interface
 Added an interactive web demo to showcase the library's features:
 
