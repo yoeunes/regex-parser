@@ -100,6 +100,7 @@ class CompilerNodeVisitor implements NodeVisitorInterface
             GroupType::T_GROUP_LOOKBEHIND_POSITIVE => '(?<='.$child.')',
             GroupType::T_GROUP_LOOKBEHIND_NEGATIVE => '(?<!'.$child.')',
             GroupType::T_GROUP_ATOMIC => '(?>'.$child.')',
+            GroupType::T_GROUP_BRANCH_RESET => '(?|'.$child.')',
             GroupType::T_GROUP_INLINE_FLAGS => '(?'.$flags.':'.$child.')',
         };
     }

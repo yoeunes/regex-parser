@@ -44,4 +44,7 @@ enum GroupType: string
 
     /** An atomic group (?>...). */
     case T_GROUP_ATOMIC = 'atomic';
+
+    /** A branch reset group (?|...). */
+    case T_GROUP_BRANCH_RESET = 'branch_reset';
 }
