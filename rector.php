@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 use Rector\Config\RectorConfig;
 use Rector\Php73\Rector\FuncCall\RegexDashEscapeRector;
+use Rector\PHPUnit\CodeQuality\Rector\Class_\RemoveDataProviderParamKeysRector;
 use Rector\PHPUnit\Set\PHPUnitSetList;
 use Rector\Privatization\Rector\Class_\FinalizeTestCaseClassRector;
 use Rector\Set\ValueObject\LevelSetList;
@@ -56,5 +57,6 @@ return static function (RectorConfig $rectorConfig): void {
     $rectorConfig->skip([
         RegexDashEscapeRector::class,
         FinalizeTestCaseClassRector::class,
+        RemoveDataProviderParamKeysRector::class,
     ]);
 };
