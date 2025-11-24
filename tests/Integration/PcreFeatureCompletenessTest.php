@@ -90,12 +90,10 @@ class PcreFeatureCompletenessTest extends TestCase
             '/(?<name>a)(?(name)b|c)/',
             '/(a)b(?(1)c)/',
             '/(a)(b)?(?(2)c|d)/',
-            '/(?(1)yes|no)/',
             '/(?(?=test)a|b)/',
             '/(?(?!test)a|b)/',
             '/(?(?<=a)b|c)/',
             '/(?(?<!a)b|c)/',
-            '/(a)(?(DEFINE)(?<foo>bar))(?(1)\k<foo>)/',
         ];
 
         foreach ($patterns as $pattern) {
@@ -103,12 +101,24 @@ class PcreFeatureCompletenessTest extends TestCase
                 $ast = $this->parser->parse($pattern);
                 $this->assertNotNull($ast, "Conditional pattern should parse: {$pattern}");
             } catch (ParserException $e) {
-                $result = $this->regex->validate($pattern);
-                if (!$result->isValid && str_contains($e->getMessage(), 'conditional')) {
-                    $this->markTestSkipped("Conditional pattern not fully supported: {$pattern}");
-                } else {
-                    $this->fail("Conditional pattern parsing failed: {$pattern}. Error: {$e->getMessage()}");
-                }
+                $this->fail("Conditional pattern parsing failed: {$pattern}. Error: {$e->getMessage()}");
+            }
+        }
+    }
+
+    public function testConditionalPatterns_AdvancedFeatures(): void
+    {
+        $advancedPatterns = [
+            '/(?(1)yes|no)/',
+            '/(a)(?(DEFINE)(?<foo>bar))(?(1)\k<foo>)/',
+        ];
+
+        foreach ($advancedPatterns as $pattern) {
+            try {
+                $ast = $this->parser->parse($pattern);
+                $this->assertNotNull($ast, "Advanced conditional pattern should parse: {$pattern}");
+            } catch (ParserException $e) {
+                $this->fail("Advanced conditional pattern failed: {$pattern}. Error: {$e->getMessage()}");
             }
         }
     }
@@ -190,12 +200,7 @@ class PcreFeatureCompletenessTest extends TestCase
                 $ast = $this->parser->parse($pattern);
                 $this->assertNotNull($ast, "Subroutine pattern should parse: {$pattern}");
             } catch (ParserException $e) {
-                $result = $this->regex->validate($pattern);
-                if (!$result->isValid) {
-                    $this->markTestSkipped("Subroutine pattern may not be fully supported: {$pattern}");
-                } else {
-                    $this->fail("Subroutine pattern parsing failed: {$pattern}. Error: {$e->getMessage()}");
-                }
+                $this->fail("Subroutine pattern parsing failed: {$pattern}. Error: {$e->getMessage()}");
             }
         }
     }
@@ -286,11 +291,7 @@ class PcreFeatureCompletenessTest extends TestCase
                 $ast = $this->parser->parse($pattern);
                 $this->assertNotNull($ast, "Extended mode pattern should parse: {$pattern}");
             } catch (ParserException $e) {
-                if (str_contains($e->getMessage(), 'Unexpected') || str_contains($e->getMessage(), 'whitespace')) {
-                    $this->markTestSkipped("Extended mode /x flag may not be fully supported: {$pattern}");
-                } else {
-                    $this->fail("Extended mode pattern parsing failed: {$pattern}. Error: {$e->getMessage()}");
-                }
+                $this->fail("Extended mode pattern parsing failed: {$pattern}. Error: {$e->getMessage()}");
             }
         }
     }
