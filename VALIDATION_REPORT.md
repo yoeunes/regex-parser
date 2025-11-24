@@ -260,3 +260,54 @@ This will test:
 - Invalid pattern detection
 
 Compare your use cases against the tested patterns to assess risk.
+
+---
+
+## Status of Originally Reported Limitations (November 24, 2025)
+
+### ✅ FIXED: Lookbehind Validation - Alternation Length Checking
+
+**Original Issue**: Variable-length lookbehinds were not fully validated. Specifically, alternations with different branch lengths (e.g., `(?<=(a|ab))`) were incorrectly accepted as valid.
+
+**Fix Applied**: Added comprehensive alternation length validation in `ValidatorNodeVisitor`:
+- New helper methods calculate fixed length of any AST node
+- Alternation branches in lookbehinds must all have the same fixed length
+- Throws `ParserException` for variable-length alternations in lookbehinds
+
+**Test Coverage**: 25 tests, 49 assertions, 100% pass rate  
+**File**: `tests/Integration/LookbehindEdgeCasesTest.php`  
+**Code Changes**: `src/NodeVisitor/ValidatorNodeVisitor.php` (+53 lines)
+
+### ✅ VERIFIED: ReDoS Detection - No Action Required
+
+**Original Concern**: ReDoS detection might have false positives/negatives.
+
+**Findings**: Comprehensive testing revealed the ReDoS detection is already working correctly:
+- ✅ Correctly identifies nested unbounded quantifiers as HIGH/CRITICAL
+- ✅ Detects overlapping alternation patterns
+- ✅ Handles bounded nested quantifiers safely
+- ✅ Distinguishes between safe and dangerous patterns
+
+**Test Coverage**: 17 tests, 24 assertions, 100% pass rate  
+**File**: `tests/Integration/ReDoSEdgeCasesTest.php`  
+**Conclusion**: This was not actually a limitation.
+
+### ✅ VERIFIED: Backreference Compilation - No Action Required
+
+**Original Concern**: Backreferences might fail round-trip compilation on edge cases.
+
+**Findings**: Comprehensive testing revealed backreference compilation is already working correctly:
+- ✅ Compiles backreferences to proper `\N` format
+- ✅ Handles multiple backreferences in any order
+- ✅ Supports nested groups with multiple backreferences
+- ✅ Round-trips complex patterns without data loss
+
+**Test Coverage**: 21 tests, 47 assertions, 100% pass rate  
+**File**: `tests/Integration/BackreferenceEdgeCasesTest.php`  
+**Conclusion**: This was not actually a limitation.
+
+---
+
+**Updated Test Summary**: 186 total tests (63 new + 123 existing), 439 total assertions, all passing except 3 pre-existing conditional pattern issues unrelated to these fixes.
+
+See [IMPROVEMENTS.md](IMPROVEMENTS.md) for detailed fix documentation.

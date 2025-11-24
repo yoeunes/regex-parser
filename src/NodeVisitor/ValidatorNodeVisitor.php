@@ -27,6 +27,7 @@ use RegexParser\Node\GroupNode;
 use RegexParser\Node\GroupType;
 use RegexParser\Node\KeepNode;
 use RegexParser\Node\LiteralNode;
+use RegexParser\Node\NodeInterface;
 use RegexParser\Node\OctalLegacyNode;
 use RegexParser\Node\OctalNode;
 use RegexParser\Node\PcreVerbNode;
@@ -589,7 +590,7 @@ final class ValidatorNodeVisitor implements NodeVisitorInterface
      * Calculates the fixed length of a node.
      * Returns the length if fixed, null if variable.
      */
-    private function calculateFixedLength(\RegexParser\Node\NodeInterface $node): ?int
+    private function calculateFixedLength(NodeInterface $node): ?int
     {
         return match (true) {
             $node instanceof LiteralNode => \mb_strlen($node->value),
