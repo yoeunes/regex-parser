@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser;
 
+use Psr\SimpleCache\CacheInterface;
 use RegexParser\Builder\RegexBuilder;
 use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
@@ -56,12 +57,15 @@ class Regex
      *
      * @param array{
      *     max_pattern_length?: int,
-     * } $options Options for the parser (e.g., 'max_pattern_length').
+     *     max_recursion_depth?: int,
+     *     max_nodes?: int,
+     * } $options Options for the parser (e.g., 'max_pattern_length', 'max_recursion_depth', 'max_nodes').
+     * @param CacheInterface|null $cache Optional PSR-16 cache for persistent caching of parsed ASTs
      */
-    public static function create(array $options = []): self
+    public static function create(array $options = [], ?CacheInterface $cache = null): self
     {
         return new self(
-            new Parser($options),
+            new Parser($options, cache: $cache),
             new ValidatorNodeVisitor(),
             new ExplainVisitor(),
             new SampleGeneratorVisitor(),
