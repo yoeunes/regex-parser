@@ -2,11 +2,18 @@
 
 declare(strict_types=1);
 
-require __DIR__ . '/vendor/autoload.php';
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+require __DIR__.'/vendor/autoload.php';
 
 use RegexParser\Regex;
-use RegexParser\Exception\ParserException;
-use RegexParser\Exception\LexerException;
 
 echo "=== RegexParser Library Validation Report ===\n\n";
 
@@ -59,10 +66,10 @@ foreach ($redosPatterns as $pattern => $shouldDetect) {
         $analysis = Regex::create()->analyzeReDoS($pattern);
         $detected = !$analysis->isSafe();
         if ($detected === $shouldDetect) {
-            echo "✓ Pattern: $pattern → ReDoS detection: " . ($detected ? 'YES' : 'NO') . " (correct)\n";
+            echo "✓ Pattern: $pattern → ReDoS detection: ".($detected ? 'YES' : 'NO')." (correct)\n";
             $passedTests++;
         } else {
-            echo "✗ Pattern: $pattern → Expected " . ($shouldDetect ? 'detected' : 'safe') . ", got " . ($detected ? 'detected' : 'safe') . "\n";
+            echo "✗ Pattern: $pattern → Expected ".($shouldDetect ? 'detected' : 'safe').', got '.($detected ? 'detected' : 'safe')."\n";
             $failedTests++;
             $issues[] = "ReDoS detection incorrect for: $pattern";
         }
@@ -97,7 +104,7 @@ foreach ($pcreFeatures as $feature => $pattern) {
         // Check if it's actually valid PCRE
         $testString = 'test';
         @preg_match($pattern, $testString);
-        if (preg_last_error() === PREG_NO_ERROR) {
+        if (\PREG_NO_ERROR === preg_last_error()) {
             echo "✓ $feature: Parsed successfully\n";
             $passedTests++;
         } else {
@@ -126,10 +133,10 @@ foreach ($roundTripPatterns as $pattern) {
     try {
         $parser = new \RegexParser\Parser();
         $compiler = new \RegexParser\NodeVisitor\CompilerNodeVisitor();
-        
+
         $ast = $parser->parse($pattern);
         $compiled = $ast->accept($compiler);
-        
+
         // Test if they behave the same
         $testStrings = ['abc', 'ABC', 'foo', 'bar', '123', '12345'];
         $matches = true;
@@ -138,10 +145,11 @@ foreach ($roundTripPatterns as $pattern) {
             $recompiled = @preg_match($compiled, $test);
             if ($original !== $recompiled) {
                 $matches = false;
+
                 break;
             }
         }
-        
+
         if ($matches) {
             echo "✓ Pattern: $pattern → Compiles to: $compiled (behavior matches)\n";
             $passedTests++;
@@ -188,7 +196,7 @@ echo "\n";
 if (!empty($issues)) {
     echo "=== Critical Issues Found ===\n";
     foreach ($issues as $i => $issue) {
-        echo ($i + 1) . ". $issue\n";
+        echo ($i + 1).". $issue\n";
     }
     echo "\n";
 }

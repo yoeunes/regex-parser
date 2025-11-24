@@ -198,7 +198,7 @@ class CompilerNodeVisitor implements NodeVisitorInterface
         if (ctype_digit($node->ref)) {
             return '\\'.$node->ref;
         }
-        
+
         // For \g{N}, \k<name>, etc., return as-is
         return $node->ref;
     }

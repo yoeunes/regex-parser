@@ -1,10 +1,10 @@
 <?php
 
-require __DIR__ . '/../vendor/autoload.php';
+require __DIR__.'/../vendor/autoload.php';
 
-use RegexParser\Regex;
-use RegexParser\Exception\ParserException;
 use RegexParser\Exception\LexerException;
+use RegexParser\Exception\ParserException;
+use RegexParser\Regex;
 
 header('Content-Type: text/html; charset=utf-8');
 
@@ -16,7 +16,7 @@ $error = null;
 if ($regex) {
     try {
         $regexParser = Regex::create();
-        
+
         switch ($action) {
             case 'parse':
                 $ast = $regexParser->parse($regex);
@@ -25,8 +25,9 @@ if ($regex) {
                     'ast' => $regexParser->dump($regex),
                     'flags' => $ast->flags,
                 ];
+
                 break;
-                
+
             case 'validate':
                 $validation = $regexParser->validate($regex);
                 $result = [
@@ -34,24 +35,27 @@ if ($regex) {
                     'isValid' => $validation->isValid,
                     'error' => $validation->error,
                 ];
+
                 break;
-                
+
             case 'explain':
                 $explanation = $regexParser->explain($regex);
                 $result = [
                     'type' => 'explain',
                     'explanation' => $explanation,
                 ];
+
                 break;
-                
+
             case 'generate':
                 $sample = $regexParser->generate($regex);
                 $result = [
                     'type' => 'generate',
                     'sample' => $sample,
                 ];
+
                 break;
-                
+
             case 'redos':
                 $analysis = $regexParser->analyzeReDoS($regex);
                 $result = [
@@ -61,8 +65,9 @@ if ($regex) {
                     'isSafe' => $analysis->isSafe(),
                     'recommendations' => $analysis->recommendations,
                 ];
+
                 break;
-                
+
             case 'literals':
                 $literals = $regexParser->extractLiterals($regex);
                 $result = [
@@ -73,9 +78,10 @@ if ($regex) {
                     'longestPrefix' => $literals->getLongestPrefix(),
                     'longestSuffix' => $literals->getLongestSuffix(),
                 ];
+
                 break;
         }
-    } catch (ParserException | LexerException $e) {
+    } catch (ParserException|LexerException $e) {
         $error = $e->getMessage();
     }
 }
@@ -294,7 +300,7 @@ if ($regex) {
             <form method="POST">
                 <div class="form-group">
                     <label for="regex">Enter your regex pattern:</label>
-                    <input type="text" id="regex" name="regex" placeholder="/^[a-z0-9]+@[a-z]+\.[a-z]{2,}$/i" value="<?= htmlspecialchars($regex) ?>" autofocus>
+                    <input type="text" id="regex" name="regex" placeholder="/^[a-z0-9]+@[a-z]+\.[a-z]{2,}$/i" value="<?php echo htmlspecialchars($regex); ?>" autofocus>
                 </div>
                 
                 <div class="button-group">
@@ -307,81 +313,81 @@ if ($regex) {
                 </div>
             </form>
             
-            <?php if ($error): ?>
+            <?php if ($error) { ?>
                 <div class="result error">
-                    <strong>Error:</strong> <?= htmlspecialchars($error) ?>
+                    <strong>Error:</strong> <?php echo htmlspecialchars($error); ?>
                 </div>
-            <?php endif; ?>
+            <?php } ?>
             
-            <?php if ($result): ?>
+            <?php if ($result) { ?>
                 <div class="result">
-                    <?php if ($result['type'] === 'parse'): ?>
+                    <?php if ('parse' === $result['type']) { ?>
                         <h3>Abstract Syntax Tree (AST)</h3>
-                        <p><strong>Flags:</strong> <?= htmlspecialchars($result['flags'] ?: 'none') ?></p>
-                        <pre><?= htmlspecialchars($result['ast']) ?></pre>
+                        <p><strong>Flags:</strong> <?php echo htmlspecialchars($result['flags'] ?: 'none'); ?></p>
+                        <pre><?php echo htmlspecialchars($result['ast']); ?></pre>
                         
-                    <?php elseif ($result['type'] === 'validate'): ?>
-                        <?php if ($result['isValid']): ?>
+                    <?php } elseif ('validate' === $result['type']) { ?>
+                        <?php if ($result['isValid']) { ?>
                             <div class="success">
                                 <strong>✓ Valid Regex</strong>
                                 <p>This regex pattern is syntactically and semantically correct.</p>
                             </div>
-                        <?php else: ?>
+                        <?php } else { ?>
                             <div class="error">
                                 <strong>✗ Invalid Regex</strong>
-                                <p><?= htmlspecialchars($result['error']) ?></p>
+                                <p><?php echo htmlspecialchars($result['error']); ?></p>
                             </div>
-                        <?php endif; ?>
+                        <?php } ?>
                         
-                    <?php elseif ($result['type'] === 'explain'): ?>
+                    <?php } elseif ('explain' === $result['type']) { ?>
                         <h3>Pattern Explanation</h3>
-                        <pre><?= htmlspecialchars($result['explanation']) ?></pre>
+                        <pre><?php echo htmlspecialchars($result['explanation']); ?></pre>
                         
-                    <?php elseif ($result['type'] === 'generate'): ?>
+                    <?php } elseif ('generate' === $result['type']) { ?>
                         <h3>Generated Sample String</h3>
                         <p>A string that matches your pattern:</p>
-                        <pre><?= htmlspecialchars($result['sample']) ?></pre>
+                        <pre><?php echo htmlspecialchars($result['sample']); ?></pre>
                         
-                    <?php elseif ($result['type'] === 'redos'): ?>
+                    <?php } elseif ('redos' === $result['type']) { ?>
                         <h3>ReDoS Vulnerability Analysis</h3>
                         <p>
-                            <span class="badge <?= $result['severity'] ?>"><?= strtoupper($result['severity']) ?></span>
-                            <strong>Score:</strong> <?= $result['score'] ?>/10
-                            <?php if ($result['isSafe']): ?>
+                            <span class="badge <?php echo $result['severity']; ?>"><?php echo strtoupper($result['severity']); ?></span>
+                            <strong>Score:</strong> <?php echo $result['score']; ?>/10
+                            <?php if ($result['isSafe']) { ?>
                                 <span class="badge safe">SAFE</span>
-                            <?php else: ?>
+                            <?php } else { ?>
                                 <span class="badge high">VULNERABLE</span>
-                            <?php endif; ?>
+                            <?php } ?>
                         </p>
-                        <?php if (!empty($result['recommendations'])): ?>
+                        <?php if (!empty($result['recommendations'])) { ?>
                             <h4>Recommendations:</h4>
                             <ul>
-                                <?php foreach ($result['recommendations'] as $rec): ?>
-                                    <li><?= htmlspecialchars($rec) ?></li>
-                                <?php endforeach; ?>
+                                <?php foreach ($result['recommendations'] as $rec) { ?>
+                                    <li><?php echo htmlspecialchars($rec); ?></li>
+                                <?php } ?>
                             </ul>
-                        <?php endif; ?>
+                        <?php } ?>
                         
-                    <?php elseif ($result['type'] === 'literals'): ?>
+                    <?php } elseif ('literals' === $result['type']) { ?>
                         <h3>Extracted Literals</h3>
-                        <p><strong>Complete:</strong> <?= $result['complete'] ? 'Yes' : 'No' ?></p>
-                        <?php if ($result['longestPrefix']): ?>
-                            <p><strong>Longest Prefix:</strong> <code><?= htmlspecialchars($result['longestPrefix']) ?></code></p>
-                        <?php endif; ?>
-                        <?php if ($result['longestSuffix']): ?>
-                            <p><strong>Longest Suffix:</strong> <code><?= htmlspecialchars($result['longestSuffix']) ?></code></p>
-                        <?php endif; ?>
-                        <?php if (!empty($result['prefixes'])): ?>
+                        <p><strong>Complete:</strong> <?php echo $result['complete'] ? 'Yes' : 'No'; ?></p>
+                        <?php if ($result['longestPrefix']) { ?>
+                            <p><strong>Longest Prefix:</strong> <code><?php echo htmlspecialchars($result['longestPrefix']); ?></code></p>
+                        <?php } ?>
+                        <?php if ($result['longestSuffix']) { ?>
+                            <p><strong>Longest Suffix:</strong> <code><?php echo htmlspecialchars($result['longestSuffix']); ?></code></p>
+                        <?php } ?>
+                        <?php if (!empty($result['prefixes'])) { ?>
                             <p><strong>Prefixes:</strong></p>
-                            <pre><?= htmlspecialchars(implode(', ', $result['prefixes'])) ?></pre>
-                        <?php endif; ?>
-                        <?php if (!empty($result['suffixes'])): ?>
+                            <pre><?php echo htmlspecialchars(implode(', ', $result['prefixes'])); ?></pre>
+                        <?php } ?>
+                        <?php if (!empty($result['suffixes'])) { ?>
                             <p><strong>Suffixes:</strong></p>
-                            <pre><?= htmlspecialchars(implode(', ', $result['suffixes'])) ?></pre>
-                        <?php endif; ?>
-                    <?php endif; ?>
+                            <pre><?php echo htmlspecialchars(implode(', ', $result['suffixes'])); ?></pre>
+                        <?php } ?>
+                    <?php } ?>
                 </div>
-            <?php endif; ?>
+            <?php } ?>
         </div>
         
         <div class="card">
