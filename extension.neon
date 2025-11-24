@@ -1,5 +1,13 @@
-services:
-    -
-        class: RegexParser\PHPStan\PregValidationRule
-        tags:
-            - phpstan.rules.rule
+# PHPStan Extension for RegexParser
+# 
+# This extension can be enhanced with custom rules for validating regex patterns
+# in preg_* function calls. Currently, this is a placeholder for future development.
+#
+# Example future rule:
+# services:
+#     -
+#         class: RegexParser\PHPStan\PregValidationRule
+#         tags:
+#             - phpstan.rules.rule
+
+services: []
