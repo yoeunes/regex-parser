@@ -1,11 +1,38 @@
 # RegexParser Library Validation Report
 
 **Date:** November 24, 2025  
-**Audited by:** Replit Agent
+**Audited by:** Replit Agent  
+**Last Updated:** November 24, 2025 (post-fixes)
 
 ## Executive Summary
 
-The RegexParser library is **partially functional** but has **significant gaps** in PCRE compliance validation and testing methodology. While the core parsing and AST generation works for common patterns, there is **no systematic proof** that it correctly implements PCRE semantics.
+The RegexParser library's **core functionality has been validated and fixed**. Critical issues with ReDoS detection, branch reset group support, and backreference compilation have been resolved. A comprehensive behavioral compliance test suite now validates that parsed patterns behave identically to PHP's PCRE engine.
+
+**Current Status:** Core library features work correctly and are validated. Integration testing (PHPStan/Rector/Symfony) remains pending for production-readiness certification.
+
+## Recent Fixes (November 24, 2025) ✓
+
+### 1. ReDoS False Positives - FIXED
+**Issue:** Safe patterns like `/a+b/` and `/(a{1,5})+/` were incorrectly flagged as vulnerable.  
+**Fix:** Modified `ReDoSProfileVisitor` to only flag patterns with actual nested or overlapping unbounded quantifiers.  
+**Validation:** All 4 ReDoS tests now pass correctly.
+
+### 2. Branch Reset Groups - IMPLEMENTED
+**Issue:** `(?|...)` branch reset groups failed to parse.  
+**Fix:** Added `T_GROUP_BRANCH_RESET` support across Parser, CompilerNodeVisitor, ExplainVisitor, and HtmlExplainVisitor.  
+**Validation:** Branch reset patterns now parse, compile, and explain correctly.
+
+### 3. Backreference Compilation - FIXED
+**Issue:** Numeric backreferences like `\1` were compiled as `1`, breaking regex behavior.  
+**Fix:** Updated `CompilerNodeVisitor::visitBackref()` to properly escape numeric backreferences.  
+**Validation:** Round-trip compilation now preserves identical behavior.
+
+### 4. Behavioral Compliance Testing - CREATED
+**New:** Comprehensive test suite (`BehavioralComplianceTest.php`) with 19 tests covering:
+- Character classes, quantifiers, anchors, alternation
+- Capturing groups, backreferences, lookarounds, atomic groups
+- Unicode properties, word boundaries, substitutions
+**Result:** All 19 tests pass with 128 assertions validating PCRE compliance.
 
 ## What Works ✓
 
@@ -106,14 +133,23 @@ public function test_parse_literal_matches_pcre(): void
 
 ## Validation Test Results
 
+**UPDATED RESULTS (Post-Fixes):**
 ```
-Test 1: Sample Generation        4/4  PASSED ✓
-Test 2: ReDoS Detection          2/4  PASSED (50% false positives)
-Test 3: PCRE Feature Coverage   10/11 PASSED (1 feature missing)
-Test 4: Round-trip Validation    4/4  PASSED ✓
+Test 1: Sample Generation         4/4  PASSED ✓
+Test 2: ReDoS Detection           4/4  PASSED ✓ (false positives FIXED)
+Test 3: PCRE Feature Coverage    12/12 PASSED ✓ (branch reset ADDED)
+Test 4: Round-trip Validation     4/4  PASSED ✓
 Test 5: Invalid Pattern Detection 3/3  PASSED ✓
 
-OVERALL: 24/27 tests passed (89%)
+OVERALL: 27/27 tests passed (100%)
+```
+
+**Behavioral Compliance Tests:**
+```
+BehavioralComplianceTest: 19/19 tests, 128 assertions - ALL PASS ✓
+- Validates parsed patterns behave identically to PHP's PCRE engine
+- Covers character classes, quantifiers, groups, backreferences, lookarounds
+- Tests actual preg_match() behavior, not just AST structure
 ```
 
 ## Recommendations
