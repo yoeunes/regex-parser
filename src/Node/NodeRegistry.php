@@ -2,24 +2,31 @@
 
 declare(strict_types=1);
 
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace RegexParser\Node;
 
 /**
  * Registry of all AST Node types with metadata and PCRE feature mappings.
- * 
+ *
  * This registry provides a central source of truth for:
  * - All available Node types in the library
  * - PCRE features each Node represents
  * - Node hierarchy and relationships
  * - Usage examples and documentation
- * 
- * @package RegexParser\Node
  */
 final class NodeRegistry
 {
     /**
      * Complete list of all AST Node classes with metadata.
-     * 
+     *
      * @return array<string, array{
      *     class: class-string,
      *     pcre_feature: string,
@@ -40,7 +47,7 @@ final class NodeRegistry
                 'parent' => null,
                 'children' => ['pattern' => 'SequenceNode|AlternationNode|...'],
             ],
-            
+
             'alternation' => [
                 'class' => AlternationNode::class,
                 'pcre_feature' => 'Alternation',
@@ -49,7 +56,7 @@ final class NodeRegistry
                 'parent' => AbstractNode::class,
                 'children' => ['alternatives' => 'array<NodeInterface>'],
             ],
-            
+
             'sequence' => [
                 'class' => SequenceNode::class,
                 'pcre_feature' => 'Sequence/Concatenation',
@@ -58,7 +65,7 @@ final class NodeRegistry
                 'parent' => AbstractNode::class,
                 'children' => ['children' => 'array<NodeInterface>'],
             ],
-            
+
             'group' => [
                 'class' => GroupNode::class,
                 'pcre_feature' => 'Groups (All Types)',
@@ -75,7 +82,7 @@ final class NodeRegistry
                 'parent' => AbstractNode::class,
                 'children' => ['child' => 'NodeInterface', 'type' => 'GroupType'],
             ],
-            
+
             'quantifier' => [
                 'class' => QuantifierNode::class,
                 'pcre_feature' => 'Quantifiers',
@@ -92,7 +99,7 @@ final class NodeRegistry
                 'parent' => AbstractNode::class,
                 'children' => ['node' => 'NodeInterface', 'type' => 'QuantifierType'],
             ],
-            
+
             'literal' => [
                 'class' => LiteralNode::class,
                 'pcre_feature' => 'Literal Characters',
@@ -101,7 +108,7 @@ final class NodeRegistry
                 'parent' => AbstractNode::class,
                 'children' => [],
             ],
-            
+
             'char_class' => [
                 'class' => CharClassNode::class,
                 'pcre_feature' => 'Character Classes',
@@ -110,7 +117,7 @@ final class NodeRegistry
                 'parent' => AbstractNode::class,
                 'children' => ['ranges' => 'array<NodeInterface>'],
             ],
-            
+
             'range' => [
                 'class' => RangeNode::class,
                 'pcre_feature' => 'Character Ranges',
@@ -119,7 +126,7 @@ final class NodeRegistry
                 'parent' => AbstractNode::class,
                 'children' => [],
             ],
-            
+
             'char_type' => [
                 'class' => CharTypeNode::class,
                 'pcre_feature' => 'Character Types/Escapes',
@@ -128,7 +135,7 @@ final class NodeRegistry
                 'parent' => AbstractNode::class,
                 'children' => [],
             ],
-            
+
             'dot' => [
                 'class' => DotNode::class,
                 'pcre_feature' => 'Dot (Wildcard)',
@@ -137,7 +144,7 @@ final class NodeRegistry
                 'parent' => AbstractNode::class,
                 'children' => [],
             ],
-            
+
             'anchor' => [
                 'class' => AnchorNode::class,
                 'pcre_feature' => 'Anchors',
@@ -146,7 +153,7 @@ final class NodeRegistry
                 'parent' => AbstractNode::class,
                 'children' => [],
             ],
-            
+
             'assertion' => [
                 'class' => AssertionNode::class,
                 'pcre_feature' => 'Assertions',
@@ -155,7 +162,7 @@ final class NodeRegistry
                 'parent' => AbstractNode::class,
                 'children' => [],
             ],
-            
+
             'backref' => [
                 'class' => BackrefNode::class,
                 'pcre_feature' => 'Backreferences',
@@ -164,7 +171,7 @@ final class NodeRegistry
                 'parent' => AbstractNode::class,
                 'children' => [],
             ],
-            
+
             'subroutine' => [
                 'class' => SubroutineNode::class,
                 'pcre_feature' => 'Subroutines/Recursion',
@@ -173,7 +180,7 @@ final class NodeRegistry
                 'parent' => AbstractNode::class,
                 'children' => [],
             ],
-            
+
             'conditional' => [
                 'class' => ConditionalNode::class,
                 'pcre_feature' => 'Conditional Patterns',
@@ -182,7 +189,7 @@ final class NodeRegistry
                 'parent' => AbstractNode::class,
                 'children' => ['condition' => 'NodeInterface|string|int', 'yes' => 'NodeInterface', 'no' => 'NodeInterface|null'],
             ],
-            
+
             'unicode' => [
                 'class' => UnicodeNode::class,
                 'pcre_feature' => 'Unicode Escapes',
@@ -191,7 +198,7 @@ final class NodeRegistry
                 'parent' => AbstractNode::class,
                 'children' => [],
             ],
-            
+
             'unicode_prop' => [
                 'class' => UnicodePropNode::class,
                 'pcre_feature' => 'Unicode Properties',
@@ -200,7 +207,7 @@ final class NodeRegistry
                 'parent' => AbstractNode::class,
                 'children' => [],
             ],
-            
+
             'posix_class' => [
                 'class' => PosixClassNode::class,
                 'pcre_feature' => 'POSIX Character Classes',
@@ -209,7 +216,7 @@ final class NodeRegistry
                 'parent' => AbstractNode::class,
                 'children' => [],
             ],
-            
+
             'comment' => [
                 'class' => CommentNode::class,
                 'pcre_feature' => 'Comments',
@@ -218,7 +225,7 @@ final class NodeRegistry
                 'parent' => AbstractNode::class,
                 'children' => [],
             ],
-            
+
             'pcre_verb' => [
                 'class' => PcreVerbNode::class,
                 'pcre_feature' => 'PCRE Verbs',
@@ -227,7 +234,7 @@ final class NodeRegistry
                 'parent' => AbstractNode::class,
                 'children' => [],
             ],
-            
+
             'keep' => [
                 'class' => KeepNode::class,
                 'pcre_feature' => 'Keep Assertion',
@@ -236,7 +243,7 @@ final class NodeRegistry
                 'parent' => AbstractNode::class,
                 'children' => [],
             ],
-            
+
             'octal' => [
                 'class' => OctalNode::class,
                 'pcre_feature' => 'Octal Escapes',
@@ -245,7 +252,7 @@ final class NodeRegistry
                 'parent' => AbstractNode::class,
                 'children' => [],
             ],
-            
+
             'octal_legacy' => [
                 'class' => OctalLegacyNode::class,
                 'pcre_feature' => 'Legacy Octal Escapes',
@@ -259,7 +266,7 @@ final class NodeRegistry
 
     /**
      * Get all Node classes grouped by PCRE feature category.
-     * 
+     *
      * @return array<string, array<string>>
      */
     public static function getNodesByFeature(): array
@@ -323,7 +330,7 @@ final class NodeRegistry
 
     /**
      * Get Node metadata by class name.
-     * 
+     *
      * @param class-string $className
      */
     public static function getNodeMetadata(string $className): ?array
@@ -339,7 +346,7 @@ final class NodeRegistry
 
     /**
      * Get all PCRE features covered by the AST.
-     * 
+     *
      * @return array<string>
      */
     public static function getCoveredFeatures(): array

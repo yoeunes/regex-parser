@@ -2,6 +2,15 @@
 
 declare(strict_types=1);
 
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
@@ -14,6 +23,7 @@ use RegexParser\Regex;
 class PcreFeatureCompletenessTest extends TestCase
 {
     private Parser $parser;
+
     private Regex $regex;
 
     protected function setUp(): void
@@ -22,7 +32,7 @@ class PcreFeatureCompletenessTest extends TestCase
         $this->regex = Regex::create();
     }
 
-    public function testAtomicGroups(): void
+    public function test_atomic_groups(): void
     {
         $patterns = [
             '/(?>foo)bar/',
@@ -43,7 +53,7 @@ class PcreFeatureCompletenessTest extends TestCase
             try {
                 $ast = $this->parser->parse($pattern);
                 $this->assertNotNull($ast, "Pattern should parse: {$pattern}");
-                
+
                 $hasAtomic = $this->hasGroupType($ast, GroupType::T_GROUP_ATOMIC);
                 $this->assertTrue($hasAtomic, "Pattern should contain atomic group: {$pattern}");
             } catch (ParserException $e) {
@@ -52,7 +62,7 @@ class PcreFeatureCompletenessTest extends TestCase
         }
     }
 
-    public function testPossessiveQuantifiers(): void
+    public function test_possessive_quantifiers(): void
     {
         $patterns = [
             '/a++/',
@@ -73,7 +83,7 @@ class PcreFeatureCompletenessTest extends TestCase
             try {
                 $ast = $this->parser->parse($pattern);
                 $this->assertNotNull($ast, "Pattern should parse: {$pattern}");
-                
+
                 $hasPossessive = $this->hasQuantifierType($ast, QuantifierType::T_POSSESSIVE);
                 $this->assertTrue($hasPossessive, "Pattern should contain possessive quantifier: {$pattern}");
             } catch (ParserException $e) {
@@ -82,7 +92,7 @@ class PcreFeatureCompletenessTest extends TestCase
         }
     }
 
-    public function testConditionalPatterns(): void
+    public function test_conditional_patterns(): void
     {
         $patterns = [
             '/(a)(?(1)b|c)/',
@@ -106,7 +116,7 @@ class PcreFeatureCompletenessTest extends TestCase
         }
     }
 
-    public function testConditionalPatterns_AdvancedFeatures(): void
+    public function test_conditional_patterns_advanced_features(): void
     {
         $advancedPatterns = [
             '/(?(1)yes|no)/',
@@ -123,7 +133,7 @@ class PcreFeatureCompletenessTest extends TestCase
         }
     }
 
-    public function testNamedGroups(): void
+    public function test_named_groups(): void
     {
         $patterns = [
             '/(?<word>\w+)/',
@@ -144,7 +154,7 @@ class PcreFeatureCompletenessTest extends TestCase
             try {
                 $ast = $this->parser->parse($pattern);
                 $this->assertNotNull($ast, "Named group pattern should parse: {$pattern}");
-                
+
                 $hasNamed = $this->hasGroupType($ast, GroupType::T_GROUP_NAMED);
                 $this->assertTrue($hasNamed, "Pattern should contain named group: {$pattern}");
             } catch (ParserException $e) {
@@ -153,7 +163,7 @@ class PcreFeatureCompletenessTest extends TestCase
         }
     }
 
-    public function testUnicodeProperties(): void
+    public function test_unicode_properties(): void
     {
         $patterns = [
             '/\p{L}+/',
@@ -180,7 +190,7 @@ class PcreFeatureCompletenessTest extends TestCase
         }
     }
 
-    public function testSubroutinesAndRecursion(): void
+    public function test_subroutines_and_recursion(): void
     {
         $patterns = [
             '/(?R)/',
@@ -205,7 +215,7 @@ class PcreFeatureCompletenessTest extends TestCase
         }
     }
 
-    public function testComments(): void
+    public function test_comments(): void
     {
         $patterns = [
             '/test(?#this is a comment)/',
@@ -232,7 +242,7 @@ class PcreFeatureCompletenessTest extends TestCase
         }
     }
 
-    public function testAssertions(): void
+    public function test_assertions(): void
     {
         $patterns = [
             '/(?=test)/',
@@ -256,12 +266,12 @@ class PcreFeatureCompletenessTest extends TestCase
             try {
                 $ast = $this->parser->parse($pattern);
                 $this->assertNotNull($ast, "Assertion pattern should parse: {$pattern}");
-                
+
                 $hasLookaround = $this->hasGroupType($ast, GroupType::T_GROUP_LOOKAHEAD_POSITIVE)
                     || $this->hasGroupType($ast, GroupType::T_GROUP_LOOKAHEAD_NEGATIVE)
                     || $this->hasGroupType($ast, GroupType::T_GROUP_LOOKBEHIND_POSITIVE)
                     || $this->hasGroupType($ast, GroupType::T_GROUP_LOOKBEHIND_NEGATIVE);
-                    
+
                 $this->assertTrue($hasLookaround, "Pattern should contain assertion: {$pattern}");
             } catch (ParserException $e) {
                 $this->fail("Assertion pattern should parse: {$pattern}. Error: {$e->getMessage()}");
@@ -269,7 +279,7 @@ class PcreFeatureCompletenessTest extends TestCase
         }
     }
 
-    public function testExtendedMode(): void
+    public function test_extended_mode(): void
     {
         $patterns = [
             '/a b c/x',
@@ -296,7 +306,7 @@ class PcreFeatureCompletenessTest extends TestCase
         }
     }
 
-    public function testPcreVerbs(): void
+    public function test_pcre_verbs(): void
     {
         $patterns = [
             '/(*FAIL)/',
@@ -335,7 +345,7 @@ class PcreFeatureCompletenessTest extends TestCase
                 if ($this->hasGroupType($prop, $type)) {
                     return true;
                 }
-            } elseif (is_array($prop)) {
+            } elseif (\is_array($prop)) {
                 foreach ($prop as $item) {
                     if ($item instanceof \RegexParser\Node\NodeInterface) {
                         if ($this->hasGroupType($item, $type)) {
@@ -361,7 +371,7 @@ class PcreFeatureCompletenessTest extends TestCase
                 if ($this->hasQuantifierType($prop, $type)) {
                     return true;
                 }
-            } elseif (is_array($prop)) {
+            } elseif (\is_array($prop)) {
                 foreach ($prop as $item) {
                     if ($item instanceof \RegexParser\Node\NodeInterface) {
                         if ($this->hasQuantifierType($item, $type)) {

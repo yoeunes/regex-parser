@@ -2,14 +2,22 @@
 
 declare(strict_types=1);
 
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace RegexParser\Tests\Benchmark;
 
-use PhpBench\Attributes\BeforeMethods;
 use PhpBench\Attributes\Iterations;
 use PhpBench\Attributes\Revs;
-use RegexParser\Parser;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
 use RegexParser\NodeVisitor\ExplainVisitor;
+use RegexParser\Parser;
 
 /**
  * Comprehensive performance benchmarks for RegexParser.
@@ -26,16 +34,16 @@ class ParserBench
 
     private ExplainVisitor $explainer;
 
-    public function beforeMethods(): array
-    {
-        return ['setUp'];
-    }
-
     public function setUp(): void
     {
         $this->parser = new Parser();
         $this->compiler = new CompilerNodeVisitor();
         $this->explainer = new ExplainVisitor();
+    }
+
+    public function beforeMethods(): array
+    {
+        return ['setUp'];
     }
 
     /**

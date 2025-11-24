@@ -142,7 +142,7 @@ final class ValidatorNodeVisitor implements NodeVisitorInterface
                 }
                 $lengths[] = $length;
             }
-            
+
             $firstLength = $lengths[0] ?? null;
             foreach ($lengths as $length) {
                 if ($length !== $firstLength) {
@@ -150,7 +150,7 @@ final class ValidatorNodeVisitor implements NodeVisitorInterface
                 }
             }
         }
-        
+
         foreach ($node->alternatives as $alt) {
             $alt->accept($this);
         }
@@ -593,7 +593,7 @@ final class ValidatorNodeVisitor implements NodeVisitorInterface
     private function calculateFixedLength(NodeInterface $node): ?int
     {
         return match (true) {
-            $node instanceof LiteralNode => \mb_strlen($node->value),
+            $node instanceof LiteralNode => mb_strlen($node->value),
             $node instanceof CharTypeNode, $node instanceof DotNode => 1,
             $node instanceof AnchorNode, $node instanceof AssertionNode => 0,
             $node instanceof SequenceNode => $this->calculateSequenceLength($node),
@@ -622,17 +622,17 @@ final class ValidatorNodeVisitor implements NodeVisitorInterface
     private function calculateQuantifierLength(QuantifierNode $node): ?int
     {
         [$min, $max] = $this->parseQuantifierBounds($node->quantifier);
-        
+
         // Only fixed if min == max (and both are not -1)
         if ($min !== $max || -1 === $max) {
             return null; // Variable length
         }
-        
+
         $childLength = $this->calculateFixedLength($node->node);
         if (null === $childLength) {
             return null;
         }
-        
+
         return $min * $childLength;
     }
 }
