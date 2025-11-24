@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser;
 
+use Psr\SimpleCache\CacheInterface;
 use RegexParser\Exception\ParserException;
 use RegexParser\Exception\RecursionLimitException;
 use RegexParser\Exception\ResourceLimitException;
@@ -89,15 +90,27 @@ final class Parser
     private TokenStream $stream;
 
     /**
+     * Runtime cache for parsed ASTs (Layer 1).
+     * Maps cache keys to RegexNode instances for fast repeated access within same request.
+     *
+     * @var array<string, RegexNode>
+     */
+    private array $runtimeCache = [];
+
+    /**
      * @param array{
      * max_pattern_length?: int,
      * max_recursion_depth?: int,
      * max_nodes?: int,
      * } $options Configuration options
      * @param Lexer|null $lexer Optional Lexer instance for dependency injection
+     * @param CacheInterface|null $cache Optional PSR-16 cache for persistent caching (Layer 2)
      */
-    public function __construct(array $options = [], private ?Lexer $lexer = null)
-    {
+    public function __construct(
+        array $options = [],
+        private ?Lexer $lexer = null,
+        private readonly ?CacheInterface $cache = null
+    ) {
         $this->maxPatternLength = (int) ($options['max_pattern_length'] ?? self::DEFAULT_MAX_PATTERN_LENGTH);
         $this->maxRecursionDepth = (int) ($options['max_recursion_depth'] ?? self::DEFAULT_MAX_RECURSION_DEPTH);
         $this->maxNodes = (int) ($options['max_nodes'] ?? self::DEFAULT_MAX_NODES);
@@ -105,6 +118,10 @@ final class Parser
 
     /**
      * Parses a full regex string (including delimiters and flags) into an AST.
+     *
+     * Implements a two-layer caching strategy:
+     * 1. Runtime Cache (Layer 1): Fast in-memory cache for repeated calls within same request
+     * 2. PSR-16 Persistent Cache (Layer 2): Optional external cache for cross-request optimization
      *
      * @throws ParserException if the regex syntax is invalid
      * @throws RecursionLimitException if recursion depth exceeds limit
@@ -116,6 +133,31 @@ final class Parser
             throw new ParserException(\sprintf('Regex pattern exceeds maximum length of %d characters.', $this->maxPatternLength));
         }
 
+        // Generate cache key
+        $cacheKey = 'regex_parser_'.md5($regex);
+
+        // Layer 1: Check runtime cache
+        if (isset($this->runtimeCache[$cacheKey])) {
+            return $this->runtimeCache[$cacheKey];
+        }
+
+        // Layer 2: Check persistent cache (if available)
+        if (null !== $this->cache) {
+            try {
+                $cached = $this->cache->get($cacheKey);
+                if ($cached instanceof RegexNode) {
+                    // Found in persistent cache - save to runtime for next call
+                    $this->runtimeCache[$cacheKey] = $cached;
+
+                    return $cached;
+                }
+            } catch (\Psr\SimpleCache\InvalidArgumentException $e) {
+                // Cache key is invalid - proceed with parsing
+                // (should not happen with our key format, but catch for safety)
+            }
+        }
+
+        // Cache miss - proceed with actual parsing
         [$pattern, $flags, $delimiter] = $this->extractPatternAndFlags($regex);
 
         // Reset state for new parse
@@ -132,7 +174,22 @@ final class Parser
         // Ensure we reached the end of the pattern
         $this->consume(TokenType::T_EOF, 'Unexpected content at end of pattern');
 
-        return new RegexNode($patternNode, $flags, $delimiter, 0, \strlen($pattern));
+        $ast = new RegexNode($patternNode, $flags, $delimiter, 0, \strlen($pattern));
+
+        // Save to runtime cache (Layer 1)
+        $this->runtimeCache[$cacheKey] = $ast;
+
+        // Save to persistent cache (Layer 2) if available
+        if (null !== $this->cache) {
+            try {
+                $this->cache->set($cacheKey, $ast);
+            } catch (\Psr\SimpleCache\InvalidArgumentException $e) {
+                // Cache write failed - log would be nice but not critical
+                // Continue without caching
+            }
+        }
+
+        return $ast;
     }
 
     private function getLexer(string $pattern): Lexer
