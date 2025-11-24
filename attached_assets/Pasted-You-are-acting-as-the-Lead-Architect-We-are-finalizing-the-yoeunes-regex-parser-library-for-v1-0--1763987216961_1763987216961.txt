@@ -1,0 +1,55 @@
+You are acting as the Lead Architect. We are finalizing the `yoeunes/regex-parser` library for v1.0.0.
+Your goal is to perform a "Single Pass Refactor" to address security, performance, and memory issues.
+
+Context: The library currently parses PCRE regex into an AST but lacks resource limits (security risk), uses arrays for tokens (memory risk), and lacks real benchmarks.
+
+Execute the following 6-step implementation plan strictly. Do not ask for clarification, just implement these changes.
+
+### STEP 1: Core Refactoring (Memory & Security)
+1.  **Refactor `src/Lexer.php`**:
+    -   Change `tokenize()` to return a `\Generator<int, Token>` using `yield` instead of building a huge array.
+2.  **Create `src/Stream/TokenStream.php`**:
+    -   Create a class that accepts the Generator from the Lexer.
+    -   Implement `current()`, `next()`, and a limited lookahead buffer (e.g., `peek()`) so the Parser can still check upcoming tokens without loading everything into memory.
+3.  **Refactor `src/Parser.php`**:
+    -   Update the constructor to enforce security limits:
+        `public function __construct(private int $maxNodes = 10000, private int $maxRecursionDepth = 200, ...)`
+    -   Inject `TokenStream` instead of the raw array.
+    -   In every recursive method (e.g., `parseGroup`), increment a recursion counter and throw `RecursionLimitException` if exceeded.
+    -   In every node creation, increment a node counter and throw `ResourceLimitException` if exceeded.
+
+### STEP 2: Specific Exception Handling
+1.  **Create `src/Exception/RegexParserExceptionInterface.php`**.
+2.  **Create granular exceptions** in `src/Exception/` extending `ParserException`:
+    -   `RecursionLimitException` (for stack overflow protection).
+    -   `ResourceLimitException` (for DoS protection).
+    -   `SyntaxErrorException` (for invalid PCRE).
+3.  **Update `Lexer` and `Parser`** to throw these specific exceptions instead of the generic one where applicable.
+
+### STEP 3: Real Benchmarking & Documentation
+1.  **Install PHPBench**: Run `composer require --dev phpbench/phpbench`.
+2.  **Create `tests/Benchmark/ParserBench.php`**:
+    -   Implement real benchmarks comparing `preg_match` (baseline) vs `Parser::parse()` vs `Parser + LiteralExtractorVisitor`.
+3.  **Update `PERFORMANCE_REPORT.md`**:
+    -   Wipe the "estimated" numbers.
+    -   Add instruction: "Run `vendor/bin/phpbench run` to see real performance metrics on your machine."
+    -   Add the disclaimer: "**Warning:** Parsing is heavy. Do not parse regex at runtime in hot paths. Caching the AST or the extracted metadata is MANDATORY."
+
+### STEP 4: The Symfony Hook (New Feature)
+1.  **Create `src/Bridge/Symfony/Routing/RegexParserMatcherDumper.php`**:
+    -   This class should act as a utility to help Symfony Routing.
+    -   It should accept a list of routes/regexes.
+    -   Use `LiteralExtractorVisitor` to extract prefixes.
+    -   Generate a PHP snippet demonstrating how to use `str_starts_with()` before `preg_match()` for those routes.
+
+### STEP 5: CI/CD Fixes
+1.  **Update `.github/workflows/performance.yml`**:
+    -   Remove any calls to non-existent scripts.
+    -   Replace them with the actual `vendor/bin/phpbench run` command.
+    -   Ensure `tools/phpbench` dependencies are installed in the workflow step.
+
+### STEP 6: Final Cleanup
+1.  Verify `src/Parser.php` handles the new Exceptions correctly.
+2.  Ensure `HONEST_STATUS_UPDATE.md` is updated to reflect that Benchmarks and Resource Limits are now **IMPLEMENTED**.
+
+Proceed with implementation.

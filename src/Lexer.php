@@ -180,23 +180,23 @@ final class Lexer
     }
 
     /**
-     * Performs the tokenization.
+     * Tokenizes the pattern using a generator for memory efficiency.
+     * Yields tokens one at a time instead of building a large array.
      *
      * @throws LexerException
      *
-     * @return list<Token>
+     * @return \Generator<int, Token>
      */
-    public function tokenize(): array
+    public function tokenize(): \Generator
     {
         $tokens = [];
 
         while ($this->position < $this->length) {
             // 1. Handle "Tunnel" Modes (Quote & Comment)
-            // In these modes, standard regex syntax is ignored until a terminator is found.
-
             if ($this->inQuoteMode) {
                 if ($token = $this->consumeQuoteMode()) {
-                    $tokens[] = $token;
+                    yield $token;
+                    $tokens[] = $token; // Keep for context
                 }
 
                 continue;
@@ -204,7 +204,8 @@ final class Lexer
 
             if ($this->inCommentMode) {
                 if ($token = $this->consumeCommentMode()) {
-                    $tokens[] = $token;
+                    yield $token;
+                    $tokens[] = $token; // Keep for context
                 }
 
                 continue;
@@ -215,7 +216,6 @@ final class Lexer
             $tokenMap = $this->inCharClass ? self::TOKENS_INSIDE : self::TOKENS_OUTSIDE;
 
             // 3. Execute Matching
-            // PREG_UNMATCHED_AS_NULL ensures we get nulls instead of empty strings for unmatched groups, simplifying logic.
             $result = preg_match($regex, $this->pattern, $matches, \PREG_UNMATCHED_AS_NULL, $this->position);
 
             if (false === $result) {
@@ -223,8 +223,6 @@ final class Lexer
             }
 
             if (0 === $result) {
-                // This implies a character that matches NOTHING in our regex (even T_LITERAL).
-                // Should theoretically be impossible with [^\\\\] fallback, but serves as a safety net.
                 $context = mb_substr($this->pattern, $this->position, 10);
 
                 throw new LexerException(\sprintf('Unable to tokenize pattern at position %d. Context: "%s..."', $this->position, $context));
@@ -235,8 +233,10 @@ final class Lexer
             $startPos = $this->position;
             $this->position += \strlen($matchedValue);
 
-            // 4. Create Token from Match
-            $tokens[] = $this->createTokenFromMatch($tokenMap, $matches, $matchedValue, $startPos, $tokens);
+            // 4. Create Token from Match and yield it
+            $token = $this->createTokenFromMatch($tokenMap, $matches, $matchedValue, $startPos, $tokens);
+            yield $token;
+            $tokens[] = $token;
         }
 
         // 5. Post-Processing Validation
@@ -248,10 +248,8 @@ final class Lexer
             throw new LexerException('Unclosed comment ")" at end of input.');
         }
 
-        // Append EOF token to signal parsing completion
-        $tokens[] = new Token(TokenType::T_EOF, '', $this->position);
-
-        return $tokens;
+        // Yield EOF token to signal parsing completion
+        yield new Token(TokenType::T_EOF, '', $this->position);
     }
 
     /**
