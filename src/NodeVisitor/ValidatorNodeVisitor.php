@@ -27,6 +27,7 @@ use RegexParser\Node\GroupNode;
 use RegexParser\Node\GroupType;
 use RegexParser\Node\KeepNode;
 use RegexParser\Node\LiteralNode;
+use RegexParser\Node\NodeInterface;
 use RegexParser\Node\OctalLegacyNode;
 use RegexParser\Node\OctalNode;
 use RegexParser\Node\PcreVerbNode;
@@ -132,6 +133,24 @@ final class ValidatorNodeVisitor implements NodeVisitorInterface
      */
     public function visitAlternation(AlternationNode $node): void
     {
+        if ($this->inLookbehind) {
+            $lengths = [];
+            foreach ($node->alternatives as $alt) {
+                $length = $this->calculateFixedLength($alt);
+                if (null === $length) {
+                    throw new ParserException(\sprintf('Variable-length alternation branch in lookbehind at position %d.', $alt->startPos));
+                }
+                $lengths[] = $length;
+            }
+            
+            $firstLength = $lengths[0] ?? null;
+            foreach ($lengths as $length) {
+                if ($length !== $firstLength) {
+                    throw new ParserException(\sprintf('Alternation branches in lookbehind must have the same fixed length at position %d.', $node->startPos));
+                }
+            }
+        }
+        
         foreach ($node->alternatives as $alt) {
             $alt->accept($this);
         }
@@ -565,5 +584,55 @@ final class ValidatorNodeVisitor implements NodeVisitorInterface
                 ) :
                 [1, 1], // Should be impossible if Lexer is correct
         };
+    }
+
+    /**
+     * Calculates the fixed length of a node.
+     * Returns the length if fixed, null if variable.
+     */
+    private function calculateFixedLength(NodeInterface $node): ?int
+    {
+        return match (true) {
+            $node instanceof LiteralNode => \mb_strlen($node->value),
+            $node instanceof CharTypeNode, $node instanceof DotNode => 1,
+            $node instanceof AnchorNode, $node instanceof AssertionNode => 0,
+            $node instanceof SequenceNode => $this->calculateSequenceLength($node),
+            $node instanceof GroupNode => $this->calculateFixedLength($node->child),
+            $node instanceof QuantifierNode => $this->calculateQuantifierLength($node),
+            $node instanceof CharClassNode => 1,
+            $node instanceof AlternationNode => null, // Handled separately
+            default => null, // Unknown or variable
+        };
+    }
+
+    private function calculateSequenceLength(SequenceNode $node): ?int
+    {
+        $total = 0;
+        foreach ($node->children as $child) {
+            $length = $this->calculateFixedLength($child);
+            if (null === $length) {
+                return null; // Variable length
+            }
+            $total += $length;
+        }
+
+        return $total;
+    }
+
+    private function calculateQuantifierLength(QuantifierNode $node): ?int
+    {
+        [$min, $max] = $this->parseQuantifierBounds($node->quantifier);
+        
+        // Only fixed if min == max (and both are not -1)
+        if ($min !== $max || -1 === $max) {
+            return null; // Variable length
+        }
+        
+        $childLength = $this->calculateFixedLength($node->node);
+        if (null === $childLength) {
+            return null;
+        }
+        
+        return $min * $childLength;
     }
 }
