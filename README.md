@@ -23,8 +23,6 @@ A robust, extensible PCRE regex parser for PHP that transforms complex regex pat
 - ⚠️ Integration testing (PHPStan/Rector/Symfony) pending
 - ⚠️ Production deployment validation needed
 
-**See [VALIDATION_REPORT.md](VALIDATION_REPORT.md) for detailed findings.**
-
 **Recommendation:** Use for learning, experimentation, and development tooling. Exercise caution in production systems.
 
 ---
