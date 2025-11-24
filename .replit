@@ -33,6 +33,10 @@ outputType = "webview"
 localPort = 5000
 externalPort = 80
 
+[[ports]]
+localPort = 45245
+externalPort = 3000
+
 [deployment]
 deploymentTarget = "autoscale"
 run = ["php", "-S", "0.0.0.0:5000", "-t", "public"]
