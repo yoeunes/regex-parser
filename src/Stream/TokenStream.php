@@ -2,6 +2,15 @@
 
 declare(strict_types=1);
 
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace RegexParser\Stream;
 
 use RegexParser\Token;
@@ -84,6 +93,22 @@ final class TokenStream
     }
 
     /**
+     * Check if stream has more tokens.
+     */
+    public function hasMore(): bool
+    {
+        return !empty($this->buffer);
+    }
+
+    /**
+     * Get current position in stream.
+     */
+    public function getPosition(): int
+    {
+        return $this->position;
+    }
+
+    /**
      * Fill the buffer with tokens from the generator.
      */
     private function fillBuffer(int $minSize): void
@@ -100,21 +125,5 @@ final class TokenStream
         if (!$this->generator->valid()) {
             $this->exhausted = true;
         }
-    }
-
-    /**
-     * Check if stream has more tokens.
-     */
-    public function hasMore(): bool
-    {
-        return !empty($this->buffer);
-    }
-
-    /**
-     * Get current position in stream.
-     */
-    public function getPosition(): int
-    {
-        return $this->position;
     }
 }

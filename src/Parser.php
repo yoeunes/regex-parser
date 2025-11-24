@@ -17,7 +17,6 @@ use Psr\SimpleCache\CacheInterface;
 use RegexParser\Exception\ParserException;
 use RegexParser\Exception\RecursionLimitException;
 use RegexParser\Exception\ResourceLimitException;
-use RegexParser\Stream\TokenStream;
 use RegexParser\Node\AlternationNode;
 use RegexParser\Node\AnchorNode;
 use RegexParser\Node\AssertionNode;
@@ -44,6 +43,7 @@ use RegexParser\Node\SequenceNode;
 use RegexParser\Node\SubroutineNode;
 use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
+use RegexParser\Stream\TokenStream;
 
 /**
  * The Parser.
@@ -103,7 +103,7 @@ final class Parser
      * max_recursion_depth?: int,
      * max_nodes?: int,
      * } $options Configuration options
-     * @param Lexer|null $lexer Optional Lexer instance for dependency injection
+     * @param Lexer|null          $lexer Optional Lexer instance for dependency injection
      * @param CacheInterface|null $cache Optional PSR-16 cache for persistent caching (Layer 2)
      */
     public function __construct(
@@ -123,9 +123,9 @@ final class Parser
      * 1. Runtime Cache (Layer 1): Fast in-memory cache for repeated calls within same request
      * 2. PSR-16 Persistent Cache (Layer 2): Optional external cache for cross-request optimization
      *
-     * @throws ParserException if the regex syntax is invalid
+     * @throws ParserException         if the regex syntax is invalid
      * @throws RecursionLimitException if recursion depth exceeds limit
-     * @throws ResourceLimitException if node count exceeds limit
+     * @throws ResourceLimitException  if node count exceeds limit
      */
     public function parse(string $regex): RegexNode
     {
@@ -1183,7 +1183,7 @@ final class Parser
             throw new RecursionLimitException(\sprintf(
                 'Recursion limit of %d exceeded (current: %d). Pattern is too deeply nested.',
                 $this->maxRecursionDepth,
-                $this->recursionDepth
+                $this->recursionDepth,
             ));
         }
     }
@@ -1209,7 +1209,7 @@ final class Parser
         if ($this->nodeCount > $this->maxNodes) {
             throw new ResourceLimitException(\sprintf(
                 'Node count limit of %d exceeded. Pattern is too complex.',
-                $this->maxNodes
+                $this->maxNodes,
             ));
         }
     }

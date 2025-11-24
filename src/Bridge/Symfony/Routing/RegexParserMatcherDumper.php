@@ -2,10 +2,19 @@
 
 declare(strict_types=1);
 
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace RegexParser\Bridge\Symfony\Routing;
 
-use RegexParser\Parser;
 use RegexParser\NodeVisitor\LiteralExtractorVisitor;
+use RegexParser\Parser;
 
 /**
  * Utility for Symfony Routing integration.
@@ -48,22 +57,22 @@ final class RegexParserMatcherDumper
         $routesByPrefix = $this->groupByLiteralPrefix($routePatterns);
 
         foreach ($routesByPrefix as $prefix => $routes) {
-            if ($prefix === '') {
+            if ('' === $prefix) {
                 // Routes without a literal prefix - use regex directly
                 foreach ($routes as $pattern => $name) {
-                    $code .= sprintf("\$route = %s; // Pattern: %s\n", var_export($name, true), $pattern);
+                    $code .= \sprintf("\$route = %s; // Pattern: %s\n", var_export($name, true), $pattern);
                 }
 
                 continue;
             }
 
             // Generate optimized check with str_starts_with
-            $code .= sprintf("if (str_starts_with(\$path, %s)) {\n", var_export($prefix, true));
+            $code .= \sprintf("if (str_starts_with(\$path, %s)) {\n", var_export($prefix, true));
             $code .= "    // Literal prefix matched, now check full regex\n";
 
             foreach ($routes as $pattern => $name) {
-                $code .= sprintf("    if (preg_match(%s, \$path)) {\n", var_export($pattern, true));
-                $code .= sprintf("        \$route = %s;\n", var_export($name, true));
+                $code .= \sprintf("    if (preg_match(%s, \$path)) {\n", var_export($pattern, true));
+                $code .= \sprintf("        \$route = %s;\n", var_export($name, true));
                 $code .= "    }\n";
             }
 
