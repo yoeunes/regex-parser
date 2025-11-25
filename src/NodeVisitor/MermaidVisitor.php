@@ -72,7 +72,7 @@ class MermaidVisitor implements NodeVisitorInterface
         $nodeId = $this->nextNodeId();
         $this->lines[] = \sprintf('    %s{"Alternation"}', $nodeId);
 
-        foreach ($node->nodes as $child) {
+        foreach ($node->alternatives as $child) {
             $childId = $child->accept($this);
             $this->lines[] = \sprintf('    %s --> %s', $nodeId, $childId);
         }
@@ -197,7 +197,7 @@ class MermaidVisitor implements NodeVisitorInterface
     public function visitBackref(BackrefNode $node): string
     {
         $nodeId = $this->nextNodeId();
-        $this->lines[] = \sprintf('    %s["Backref: %s"]', $nodeId, $this->escape($node->value));
+        $this->lines[] = \sprintf('    %s["Backref: %s"]', $nodeId, $this->escape($node->ref));
 
         return $nodeId;
     }
@@ -205,7 +205,7 @@ class MermaidVisitor implements NodeVisitorInterface
     public function visitUnicode(UnicodeNode $node): string
     {
         $nodeId = $this->nextNodeId();
-        $this->lines[] = \sprintf('    %s["Unicode: %s"]', $nodeId, $this->escape($node->value));
+        $this->lines[] = \sprintf('    %s["Unicode: %s"]', $nodeId, $this->escape($node->code));
 
         return $nodeId;
     }
@@ -213,7 +213,7 @@ class MermaidVisitor implements NodeVisitorInterface
     public function visitUnicodeProp(UnicodePropNode $node): string
     {
         $nodeId = $this->nextNodeId();
-        $this->lines[] = \sprintf('    %s["UnicodeProp: %s"]', $nodeId, $this->escape($node->value));
+        $this->lines[] = \sprintf('    %s["UnicodeProp: %s"]', $nodeId, $this->escape($node->prop));
 
         return $nodeId;
     }
@@ -221,7 +221,7 @@ class MermaidVisitor implements NodeVisitorInterface
     public function visitOctal(OctalNode $node): string
     {
         $nodeId = $this->nextNodeId();
-        $this->lines[] = \sprintf('    %s["Octal: %s"]', $nodeId, $this->escape($node->value));
+        $this->lines[] = \sprintf('    %s["Octal: %s"]', $nodeId, $this->escape($node->code));
 
         return $nodeId;
     }
@@ -229,7 +229,7 @@ class MermaidVisitor implements NodeVisitorInterface
     public function visitOctalLegacy(OctalLegacyNode $node): string
     {
         $nodeId = $this->nextNodeId();
-        $this->lines[] = \sprintf('    %s["OctalLegacy: %s"]', $nodeId, $this->escape($node->value));
+        $this->lines[] = \sprintf('    %s["OctalLegacy: %s"]', $nodeId, $this->escape($node->code));
 
         return $nodeId;
     }
@@ -237,7 +237,7 @@ class MermaidVisitor implements NodeVisitorInterface
     public function visitPosixClass(PosixClassNode $node): string
     {
         $nodeId = $this->nextNodeId();
-        $this->lines[] = \sprintf('    %s["PosixClass: %s"]', $nodeId, $this->escape($node->value));
+        $this->lines[] = \sprintf('    %s["PosixClass: %s"]', $nodeId, $this->escape($node->class));
 
         return $nodeId;
     }
@@ -245,7 +245,7 @@ class MermaidVisitor implements NodeVisitorInterface
     public function visitComment(CommentNode $node): string
     {
         $nodeId = $this->nextNodeId();
-        $comment = substr($node->value, 0, 20);
+        $comment = substr($node->comment, 0, 20);
         $this->lines[] = \sprintf('    %s["Comment: %s"]', $nodeId, $this->escape($comment));
 
         return $nodeId;
@@ -256,18 +256,14 @@ class MermaidVisitor implements NodeVisitorInterface
         $nodeId = $this->nextNodeId();
         $this->lines[] = \sprintf('    %s{{"Conditional"}}', $nodeId);
 
-        if (null !== $node->condition) {
-            $condId = $node->condition->accept($this);
-            $this->lines[] = \sprintf('    %s -->|condition| %s', $nodeId, $condId);
-        }
-        if (null !== $node->yesNode) {
-            $yesId = $node->yesNode->accept($this);
-            $this->lines[] = \sprintf('    %s -->|yes| %s', $nodeId, $yesId);
-        }
-        if (null !== $node->noNode) {
-            $noId = $node->noNode->accept($this);
-            $this->lines[] = \sprintf('    %s -->|no| %s', $nodeId, $noId);
-        }
+        $condId = $node->condition->accept($this);
+        $this->lines[] = \sprintf('    %s -->|condition| %s', $nodeId, $condId);
+
+        $yesId = $node->yes->accept($this);
+        $this->lines[] = \sprintf('    %s -->|yes| %s', $nodeId, $yesId);
+
+        $noId = $node->no->accept($this);
+        $this->lines[] = \sprintf('    %s -->|no| %s', $nodeId, $noId);
 
         return $nodeId;
     }
@@ -275,8 +271,7 @@ class MermaidVisitor implements NodeVisitorInterface
     public function visitSubroutine(SubroutineNode $node): string
     {
         $nodeId = $this->nextNodeId();
-        $name = $node->name ?? 'recursive';
-        $this->lines[] = \sprintf('    %s["Subroutine: %s"]', $nodeId, $this->escape($name));
+        $this->lines[] = \sprintf('    %s["Subroutine: %s"]', $nodeId, $this->escape($node->reference));
 
         return $nodeId;
     }
@@ -284,7 +279,7 @@ class MermaidVisitor implements NodeVisitorInterface
     public function visitPcreVerb(PcreVerbNode $node): string
     {
         $nodeId = $this->nextNodeId();
-        $this->lines[] = \sprintf('    %s["PcreVerb: %s"]', $nodeId, $this->escape($node->value));
+        $this->lines[] = \sprintf('    %s["PcreVerb: %s"]', $nodeId, $this->escape($node->verb));
 
         return $nodeId;
     }

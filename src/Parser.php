@@ -684,7 +684,7 @@ final class Parser
 
                 return new SubroutineNode('R', '', $startPos, $endToken->position + 1);
             }
-            $this->position--; // Rewind 'R'
+            $this->stream->rewind(1); // Rewind 'R'
         }
 
         // Check for (?1), (?-1), (?0)
@@ -828,9 +828,9 @@ final class Parser
 
                 return new SubroutineNode($num, '', $startPos, $endToken->position + 1);
             }
-            $this->position -= mb_strlen($num);
+            $this->stream->rewind(mb_strlen($num));
         } elseif ('-' === $num) {
-            $this->position--;
+            $this->stream->rewind(1);
         }
 
         return null;
@@ -960,7 +960,7 @@ final class Parser
 
         // Bare name check
         if ($this->check(TokenType::T_LITERAL)) {
-            $savedPos = $this->position;
+            $savedPos = $this->stream->getPosition();
             $name = '';
             while ($this->check(TokenType::T_LITERAL) && !$this->checkLiteral(')') && !$this->isAtEnd()) {
                 $name .= $this->current()->value;
@@ -969,7 +969,7 @@ final class Parser
             if ('' !== $name && $this->check(TokenType::T_GROUP_CLOSE)) {
                 return new BackrefNode($name, $startPos, $this->current()->position);
             }
-            $this->position = $savedPos;
+            $this->stream->setPosition($savedPos);
         }
 
         $condition = $this->parseAtom();
@@ -1082,7 +1082,7 @@ final class Parser
         if ($this->match(TokenType::T_RANGE)) {
             if ($this->check(TokenType::T_CHAR_CLASS_CLOSE)) {
                 // Trailing hyphen
-                $this->position--;
+                $this->stream->rewind(1);
 
                 return $startNode;
             }
@@ -1225,6 +1225,8 @@ final class Parser
      * Must be called at the start of each recursive parsing method.
      *
      * @throws RecursionLimitException if recursion depth exceeds limit
+     *
+     * @phpstan-ignore method.unused (reserved for future resource limiting integration)
      */
     private function checkRecursionLimit(): void
     {
@@ -1242,6 +1244,8 @@ final class Parser
 
     /**
      * End a recursion scope.
+     *
+     * @phpstan-ignore method.unused (reserved for future resource limiting integration)
      */
     private function exitRecursionScope(): void
     {
@@ -1253,6 +1257,8 @@ final class Parser
      * Must be called before creating a new node.
      *
      * @throws ResourceLimitException if node count exceeds limit
+     *
+     * @phpstan-ignore method.unused (reserved for future resource limiting integration)
      */
     private function checkNodeLimit(): void
     {
