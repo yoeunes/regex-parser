@@ -332,6 +332,8 @@ final class NodeRegistry
      * Get Node metadata by class name.
      *
      * @param class-string $className
+     *
+     * @return array{class: class-string, pcre_feature: string, description: string, examples: array<int|string, string>, parent: class-string|null, children: array<int|string, string>}|null
      */
     public static function getNodeMetadata(string $className): ?array
     {

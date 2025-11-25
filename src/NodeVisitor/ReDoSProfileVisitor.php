@@ -61,7 +61,6 @@ final class ReDoSProfileVisitor implements NodeVisitorInterface
      */
     private array $vulnerabilities = [];
 
-    // Track if we are inside an atomic group (which mitigates ReDoS)
     private bool $inAtomicGroup = false;
 
     /**
@@ -69,7 +68,6 @@ final class ReDoSProfileVisitor implements NodeVisitorInterface
      */
     public function getResult(): array
     {
-        // Calculate max severity found
         $maxSeverity = ReDoSSeverity::SAFE;
         $recommendations = [];
         $pattern = null;
@@ -102,38 +100,35 @@ final class ReDoSProfileVisitor implements NodeVisitorInterface
     public function visitQuantifier(QuantifierNode $node): ReDoSSeverity
     {
         if ($this->inAtomicGroup || QuantifierType::T_POSSESSIVE === $node->type) {
-            // Atomic grouping prevents backtracking, so ReDoS is mitigated here
             return $node->node->accept($this);
         }
 
         $this->totalQuantifierDepth++;
         $isUnbounded = $this->isUnbounded($node->quantifier);
 
-        // Check if we are quantifying an atomic group directly (e.g. (? >...)+ )
-        // If so, this quantifier essentially acts like it's quantifying a fixed token,
-        // so it doesn't contribute to exponential backtracking risk.
         $isTargetAtomic = $node->node instanceof GroupNode && GroupType::T_GROUP_ATOMIC === $node->node->type;
 
         $severity = ReDoSSeverity::SAFE;
 
-        // Only increment unbounded depth if the target isn't already atomic
         if ($isUnbounded && !$isTargetAtomic) {
             $this->unboundedQuantifierDepth++;
 
             if ($this->unboundedQuantifierDepth > 1) {
-                // Nested unbounded quantifier detected: (a+)+
                 $severity = ReDoSSeverity::HIGH;
                 $this->addVulnerability(
                     ReDoSSeverity::HIGH,
                     'Nested unbounded quantifiers detected. This allows exponential backtracking.',
                     $node->quantifier,
                 );
+            } else {
+                $severity = ReDoSSeverity::MEDIUM;
+                $this->addVulnerability(
+                    ReDoSSeverity::MEDIUM,
+                    'Unbounded quantifier detected. May cause backtracking on non-matching input.',
+                    $node->quantifier,
+                );
             }
-            // Single unbounded quantifiers are safe - don't flag them
-            // Only nested quantifiers or overlapping patterns are problematic
         } else {
-            // Bounded quantifiers are generally safe
-            // Only flag if they're extremely large or deeply nested with complex patterns
             if ($this->isLargeBounded($node->quantifier)) {
                 $severity = ReDoSSeverity::LOW;
                 $this->addVulnerability(
@@ -141,14 +136,18 @@ final class ReDoSProfileVisitor implements NodeVisitorInterface
                     'Large bounded quantifier detected (>1000). May cause slow matching.',
                     $node->quantifier,
                 );
+            } elseif ($this->totalQuantifierDepth > 1) {
+                $severity = ReDoSSeverity::LOW;
+                $this->addVulnerability(
+                    ReDoSSeverity::LOW,
+                    'Nested bounded quantifiers detected. May cause polynomial backtracking.',
+                    $node->quantifier,
+                );
             }
-            // Don't flag simple nested bounded quantifiers - they're safe
         }
 
-        // Check child
         $childSeverity = $node->node->accept($this);
 
-        // Check for "Star Height > 1" logic (simplified)
         if ($isUnbounded && !$isTargetAtomic && ReDoSSeverity::HIGH === $childSeverity) {
             $severity = ReDoSSeverity::CRITICAL;
             $this->addVulnerability(
@@ -170,8 +169,6 @@ final class ReDoSProfileVisitor implements NodeVisitorInterface
     {
         $max = ReDoSSeverity::SAFE;
 
-        // Check for overlapping alternatives if we are inside a quantifier
-        // e.g. (a|a)*
         if ($this->unboundedQuantifierDepth > 0 && $this->hasOverlappingAlternatives($node)) {
             $this->addVulnerability(
                 ReDoSSeverity::CRITICAL,
@@ -212,8 +209,6 @@ final class ReDoSProfileVisitor implements NodeVisitorInterface
 
         return $max;
     }
-
-    // --- Leaf nodes usually return SAFE unless they contain logic ---
 
     public function visitLiteral(LiteralNode $node): ReDoSSeverity
     {
@@ -305,22 +300,16 @@ final class ReDoSProfileVisitor implements NodeVisitorInterface
 
     public function visitSubroutine(SubroutineNode $node): ReDoSSeverity
     {
-        // Recursion is technically unbounded but usually depth-limited by PCRE engine settings.
         return ReDoSSeverity::MEDIUM;
     }
 
-    // --- Helpers ---
-
     private function isUnbounded(string $quantifier): bool
     {
-        // * and + are always unbounded
         if (str_contains($quantifier, '*') || str_contains($quantifier, '+')) {
             return true;
         }
 
-        // {n,} is unbounded, but {n,m} is bounded.
         if (str_contains($quantifier, ',')) {
-            // If there is a digit between , and }, it's bounded {n,m}
             return !preg_match('/,\d+\}$/', $quantifier);
         }
 
@@ -332,7 +321,7 @@ final class ReDoSProfileVisitor implements NodeVisitorInterface
         if (preg_match('/\{(\d+)(?:,(\d+))?\}/', $quantifier, $m)) {
             $max = isset($m[2]) ? (int) $m[2] : (int) $m[1];
 
-            return $max > 1000; // Arbitrary threshold for "Large"
+            return $max > 1000;
         }
 
         return false;
@@ -349,7 +338,7 @@ final class ReDoSProfileVisitor implements NodeVisitorInterface
 
             if ('DOT' === $prefix) {
                 if ($hasDot || !empty($prefixes) || $hasCharClass) {
-                    return true; // Dot overlaps with everything (except empty, but we assume non-empty)
+                    return true;
                 }
                 $hasDot = true;
 
@@ -357,8 +346,6 @@ final class ReDoSProfileVisitor implements NodeVisitorInterface
             }
 
             if ('CLASS' === $prefix) {
-                // For now, assume any two classes or class+literal overlap.
-                // A more sophisticated check would compute intersections.
                 if ($hasDot || $hasCharClass || !empty($prefixes)) {
                     return true;
                 }

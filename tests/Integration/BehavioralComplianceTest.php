@@ -88,8 +88,8 @@ class BehavioralComplianceTest extends TestCase
             'pattern' => '/^test$/',
             'testCases' => [
                 'test' => true,
-                'test' => false,
-                'test' => false,
+                ' test' => false,
+                'test ' => false,
                 'testing' => false,
             ],
         ];

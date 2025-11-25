@@ -16,6 +16,7 @@ namespace RegexParser\Tests\TestUtils;
 use RegexParser\Lexer;
 use RegexParser\Node\RegexNode;
 use RegexParser\Parser;
+use RegexParser\RegexCompiler;
 use RegexParser\Stream\TokenStream;
 
 /**
@@ -46,7 +47,7 @@ final class ParserHelper
     public static function getCompiler(): RegexCompiler
     {
         if (null === self::$compiler) {
-            self::$parser = new Parser();
+            self::$compiler = new RegexCompiler();
         }
 
         return self::$compiler;
@@ -97,7 +98,7 @@ final class ParserHelper
         string $delimiter = '/'
     ): RegexNode {
         $lexer = new Lexer($pattern);
-        $stream = new TokenStream($lexer->tokenizeToArray());
+        $stream = new TokenStream($lexer->tokenize());
 
         return self::getParser()->parseTokenStream($stream, $flags, $delimiter, \strlen($pattern));
     }
