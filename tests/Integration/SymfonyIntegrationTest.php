@@ -325,7 +325,7 @@ class SymfonyIntegrationTest extends TestCase
         $this->assertIsString($serialized);
 
         $unserialized = unserialize($serialized);
-        $this->assertEquals($ast, $unserialized);
+        $this->assertSame($ast, $unserialized);
     }
 
     public function test_validation_result_caching(): void
@@ -337,7 +337,7 @@ class SymfonyIntegrationTest extends TestCase
         $result2 = $this->regex->validate($pattern);
 
         // Results should be consistent (equal values, not necessarily same object)
-        $this->assertEquals($result1, $result2);
+        $this->assertSame($result1, $result2);
         $this->assertTrue($result1->isValid);
         $this->assertTrue($result2->isValid);
     }
@@ -431,7 +431,7 @@ class SymfonyIntegrationTest extends TestCase
         // 4. Check security (ReDoS)
         $security = $this->regex->analyzeReDoS($pattern);
         $this->assertTrue(
-            $security->isSafe() || in_array($security->severity->value, ['low', 'medium'], true),
+            $security->isSafe() || \in_array($security->severity->value, ['low', 'medium'], true),
             'Email pattern should not be flagged as high/critical ReDoS risk',
         );
 

@@ -107,7 +107,7 @@ final class TokenStream
             throw new \RuntimeException(\sprintf(
                 'Cannot rewind %d tokens, only %d in history',
                 $count,
-                \count($this->history)
+                \count($this->history),
             ));
         }
 
