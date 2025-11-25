@@ -1,0 +1,3 @@
+phpbench:
+    cmds:
+        - tools/phpbench/vendor/bin/phpbench run --report=default
