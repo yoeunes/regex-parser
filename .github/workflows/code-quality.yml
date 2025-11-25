@@ -27,9 +27,8 @@ jobs:
 
       - name: Run PHPStan
         run: |
-          cd tools/phpstan
-          composer install --no-interaction
-          ../../vendor/bin/phpstan analyze --memory-limit=1G
+          composer install -d tools/phpstan --no-interaction
+          tools/phpstan/vendor/bin/phpstan analyze --memory-limit=1G
 
   php-cs-fixer:
     name: PHP CS Fixer
@@ -46,14 +45,10 @@ jobs:
           tools: composer:v2
 
       - name: Install dependencies
-        run: |
-          cd tools/php-cs-fixer
-          composer install --no-interaction
+        run: composer install -d tools/php-cs-fixer --no-interaction
 
       - name: Run PHP CS Fixer (dry-run)
-        run: |
-          cd tools/php-cs-fixer
-          ../../vendor/bin/php-cs-fixer fix --dry-run --diff --verbose
+        run: tools/php-cs-fixer/vendor/bin/php-cs-fixer fix --dry-run --diff --verbose
 
   rector:
     name: Rector
@@ -70,14 +65,10 @@ jobs:
           tools: composer:v2
 
       - name: Install dependencies
-        run: |
-          cd tools/rector
-          composer install --no-interaction
+        run: composer install -w tools/rector --no-interaction
 
       - name: Run Rector (dry-run)
-        run: |
-          cd tools/rector
-          ../../vendor/bin/rector process --dry-run
+        run: tools/rector/vendor/bin/rector process --dry-run
 
   phplint:
     name: PHP Lint
@@ -93,14 +84,10 @@ jobs:
           php-version: '8.4'
 
       - name: Install dependencies
-        run: |
-          cd tools/phplint
-          composer install --no-interaction
+        run: composer install -w tools/phplint --no-interaction
 
       - name: Run PHP Lint
-        run: |
-          cd tools/phplint
-          ../../vendor/bin/phplint --no-cache
+        run: tools/phplint/vendor/bin/phplint --no-cache
 
   type-coverage:
     name: Type Coverage
