@@ -15,7 +15,6 @@ namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\ParserException;
-use RegexParser\Node\RegexNode;
 use RegexParser\ReDoSSeverity;
 use RegexParser\Regex;
 use RegexParser\ValidationResult;

@@ -40,7 +40,6 @@ use RegexParser\Stream\TokenStream;
  * $compiler = new RegexCompiler();
  * $ast = $compiler->parse('/[a-z]+/i');
  * ```
- *
  * @example With custom options:
  * ```php
  * $compiler = new RegexCompiler([
@@ -50,7 +49,6 @@ use RegexParser\Stream\TokenStream;
  * ]);
  * $ast = $compiler->parse('/complex-pattern/');
  * ```
- *
  * @example Parsing from existing TokenStream (advanced):
  * ```php
  * $lexer = new Lexer($pattern);

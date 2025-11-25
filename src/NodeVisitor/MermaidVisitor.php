@@ -48,7 +48,9 @@ class MermaidVisitor implements NodeVisitorInterface
 {
     private int $nodeCounter = 0;
 
-    /** @var list<string> */
+    /**
+     * @var list<string>
+     */
     private array $lines = [];
 
     public function visitRegex(RegexNode $node): string

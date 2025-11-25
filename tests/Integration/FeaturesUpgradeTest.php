@@ -85,7 +85,7 @@ class FeaturesUpgradeTest extends TestCase
 
         // Attempting to set a property should throw an error
         $this->expectException(\Error::class);
-        /** @phpstan-ignore property.readOnlyAssignOutOfClass */
+        /* @phpstan-ignore property.readOnlyAssignOutOfClass */
         $options->maxPatternLength = 999;
     }
 
