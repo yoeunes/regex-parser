@@ -411,6 +411,14 @@ class RegexBuilder
     }
 
     /**
+     * Alias for build() - returns the compiled pattern string.
+     */
+    public function getPattern(): string
+    {
+        return $this->build();
+    }
+
+    /**
      * Returns a configured Regex object ready for use.
      */
     public function getRegex(): Regex

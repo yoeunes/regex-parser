@@ -243,7 +243,13 @@ class CompilerNodeVisitor implements NodeVisitorInterface
 
     public function visitConditional(ConditionalNode $node): string
     {
-        $cond = $node->condition->accept($this);
+        // Special handling for condition: BackrefNode should output just the ref (no backslash)
+        if ($node->condition instanceof BackrefNode) {
+            $cond = $node->condition->ref;
+        } else {
+            $cond = $node->condition->accept($this);
+        }
+
         $yes = $node->yes->accept($this);
         $no = $node->no->accept($this);
         if ('' === $no) {

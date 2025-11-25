@@ -4,6 +4,7 @@ expertMode = true
 
 [nix]
 channel = "stable-25_05"
+packages = ["go-task"]
 
 [workflows]
 runButton = "Project"
@@ -32,6 +33,10 @@ outputType = "webview"
 [[ports]]
 localPort = 5000
 externalPort = 80
+
+[[ports]]
+localPort = 37075
+externalPort = 3000
 
 [deployment]
 deploymentTarget = "autoscale"

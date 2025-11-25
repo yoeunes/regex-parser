@@ -180,6 +180,19 @@ final class Lexer
     }
 
     /**
+     * Tokenizes the pattern and returns all tokens as an array.
+     * For memory efficiency with large patterns, use tokenize() generator.
+     *
+     * @throws LexerException
+     *
+     * @return list<Token>
+     */
+    public function tokenizeToArray(): array
+    {
+        return iterator_to_array($this->tokenize(), false);
+    }
+
+    /**
      * Tokenizes the pattern using a generator for memory efficiency.
      * Yields tokens one at a time instead of building a large array.
      *

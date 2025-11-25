@@ -97,7 +97,7 @@ final class ParserHelper
         string $delimiter = '/'
     ): RegexNode {
         $lexer = new Lexer($pattern);
-        $stream = new TokenStream($lexer->tokenize());
+        $stream = new TokenStream($lexer->tokenizeToArray());
 
         return self::getParser()->parseTokenStream($stream, $flags, $delimiter, \strlen($pattern));
     }

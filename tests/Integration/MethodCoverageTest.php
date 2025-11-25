@@ -27,7 +27,7 @@ class MethodCoverageTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->compiler = new RegexCompiler([]);
+        $this->parser = new Parser();
     }
 
     /**
@@ -171,12 +171,12 @@ class MethodCoverageTest extends TestCase
     {
         // Direct Lexer instantiation
         $lexer = new Lexer('test');
-        $tokens = $lexer->tokenize();
+        $tokens = $lexer->tokenizeToArray();
         $this->assertIsArray($tokens);
 
         // Reset and tokenize again
         $lexer->reset('another');
-        $tokens2 = $lexer->tokenize();
+        $tokens2 = $lexer->tokenizeToArray();
         $this->assertIsArray($tokens2);
     }
 }

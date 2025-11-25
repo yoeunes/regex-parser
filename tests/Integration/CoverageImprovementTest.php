@@ -28,7 +28,7 @@ class CoverageImprovementTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->compiler = new RegexCompiler([]);
+        $this->parser = new Parser();
     }
 
     /**

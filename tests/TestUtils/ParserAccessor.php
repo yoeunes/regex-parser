@@ -14,11 +14,15 @@ declare(strict_types=1);
 namespace RegexParser\Tests\TestUtils;
 
 use RegexParser\Parser;
+use RegexParser\Stream\TokenStream;
 use RegexParser\Token;
 use RegexParser\TokenType;
 
 /**
  * Accessor class to expose and manipulate private methods/properties of the Parser for unit testing.
+ *
+ * NOTE: After the TokenStream refactoring, this accessor works differently.
+ * The Parser now uses a TokenStream internally instead of a tokens array and position property.
  */
 class ParserAccessor
 {
@@ -45,7 +49,7 @@ class ParserAccessor
     }
 
     /**
-     * Sets the private token array (used to simulate the Lexer output).
+     * Sets the internal TokenStream by creating one from an array of tokens.
      *
      * @param array<string|Token> $tokens
      */
@@ -58,16 +62,23 @@ class ParserAccessor
                 $processedTokens[] = $token;
                 $pos += \strlen($token->value);
             } else {
-                // Créer un token simple T_LITERAL si une simple chaîne est passée
                 $processedTokens[] = $this->createToken(TokenType::T_LITERAL, $token, $pos);
                 $pos += \strlen($token);
             }
         }
-        // Assurer que le T_EOF est présent
         $processedTokens[] = $this->createToken(TokenType::T_EOF, '', $pos);
 
-        $property = $this->reflection->getProperty('tokens');
-        $property->setValue($this->parser, $processedTokens);
+        // Create a generator from the tokens
+        $generator = (static function () use ($processedTokens): \Generator {
+            foreach ($processedTokens as $token) {
+                yield $token;
+            }
+        })();
+
+        $stream = new TokenStream($generator);
+
+        $property = $this->reflection->getProperty('stream');
+        $property->setValue($this->parser, $stream);
     }
 
     /**
@@ -75,8 +86,12 @@ class ParserAccessor
      */
     public function setPosition(int $position): void
     {
-        $property = $this->reflection->getProperty('position');
-        $property->setValue($this->parser, $position);
+        $property = $this->reflection->getProperty('stream');
+        $stream = $property->getValue($this->parser);
+
+        if ($stream instanceof TokenStream) {
+            $stream->setPosition($position);
+        }
     }
 
     /**
@@ -84,11 +99,14 @@ class ParserAccessor
      */
     public function getPosition(): int
     {
-        $property = $this->reflection->getProperty('position');
-        $value = $property->getValue($this->parser);
-        \assert(\is_int($value));
+        $property = $this->reflection->getProperty('stream');
+        $stream = $property->getValue($this->parser);
 
-        return $value;
+        if ($stream instanceof TokenStream) {
+            return $stream->getPosition();
+        }
+
+        return 0;
     }
 
     /**

@@ -42,7 +42,7 @@ class CompleteCoverageTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->compiler = new RegexCompiler([]);
+        $this->parser = new Parser();
         $this->explainVisitor = new ExplainVisitor();
         $this->htmlExplainVisitor = new HtmlExplainVisitor();
         $this->optimizerVisitor = new OptimizerNodeVisitor();
@@ -574,14 +574,14 @@ class CompleteCoverageTest extends TestCase
     public function test_lexer_quote_mode_with_empty_literal(): void
     {
         $lexer = new Lexer('\Q\E');
-        $tokens = $lexer->tokenize();
+        $tokens = $lexer->tokenizeToArray();
         $this->assertNotEmpty($tokens);
     }
 
     public function test_lexer_quote_mode_ending_at_string_end(): void
     {
         $lexer = new Lexer('\Qtest');
-        $tokens = $lexer->tokenize();
+        $tokens = $lexer->tokenizeToArray();
         $this->assertNotEmpty($tokens);
     }
 
@@ -589,7 +589,7 @@ class CompleteCoverageTest extends TestCase
     {
         // These are tested indirectly through parsing
         $lexer = new Lexer('\t\n\r\f\v\e');
-        $tokens = $lexer->tokenize();
+        $tokens = $lexer->tokenizeToArray();
         $this->assertNotEmpty($tokens);
     }
 
@@ -597,17 +597,17 @@ class CompleteCoverageTest extends TestCase
     {
         // Test \p{L}, \P{L}, \p{^L}, \P{^L} variations
         $lexer = new Lexer('\p{L}\P{L}\p{^L}\P{^L}');
-        $tokens = $lexer->tokenize();
+        $tokens = $lexer->tokenizeToArray();
         $this->assertNotEmpty($tokens);
     }
 
     public function test_lexer_reset(): void
     {
         $lexer = new Lexer('test');
-        $tokens1 = $lexer->tokenize();
+        $tokens1 = $lexer->tokenizeToArray();
 
         $lexer->reset('new');
-        $tokens2 = $lexer->tokenize();
+        $tokens2 = $lexer->tokenizeToArray();
 
         $this->assertNotSame($tokens1, $tokens2);
     }
