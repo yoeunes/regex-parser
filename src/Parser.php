@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace RegexParser;
 
 use Psr\SimpleCache\CacheInterface;
+use Psr\SimpleCache\InvalidArgumentException;
 use RegexParser\Exception\ParserException;
 use RegexParser\Exception\RecursionLimitException;
 use RegexParser\Exception\ResourceLimitException;
@@ -44,6 +45,10 @@ use RegexParser\Node\SubroutineNode;
 use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
 use RegexParser\Stream\TokenStream;
+
+use function count;
+use function sprintf;
+use function strlen;
 
 /**
  * The Parser.
@@ -97,23 +102,25 @@ final class Parser
      */
     private array $runtimeCache = [];
 
+    private ?CacheInterface $cache = null;
+
     /**
      * @param array{
-     * max_pattern_length?: int,
-     * max_recursion_depth?: int,
-     * max_nodes?: int,
+     *     max_pattern_length?: int,
+     *     max_recursion_depth?: int,
+     *     max_nodes?: int,
+     *     cache?: CacheInterface|null,
      * } $options Configuration options
      * @param Lexer|null          $lexer Optional Lexer instance for dependency injection
-     * @param CacheInterface|null $cache Optional PSR-16 cache for persistent caching (Layer 2)
      */
     public function __construct(
         array $options = [],
         private ?Lexer $lexer = null,
-        private readonly ?CacheInterface $cache = null
     ) {
         $this->maxPatternLength = (int) ($options['max_pattern_length'] ?? self::DEFAULT_MAX_PATTERN_LENGTH);
         $this->maxRecursionDepth = (int) ($options['max_recursion_depth'] ?? self::DEFAULT_MAX_RECURSION_DEPTH);
         $this->maxNodes = (int) ($options['max_nodes'] ?? self::DEFAULT_MAX_NODES);
+        $this->cache = $options['cache'] ?? null;
     }
 
     /**
@@ -129,8 +136,8 @@ final class Parser
      */
     public function parse(string $regex): RegexNode
     {
-        if (\strlen($regex) > $this->maxPatternLength) {
-            throw new ParserException(\sprintf('Regex pattern exceeds maximum length of %d characters.', $this->maxPatternLength));
+        if (strlen($regex) > $this->maxPatternLength) {
+            throw new ParserException(sprintf('Regex pattern exceeds maximum length of %d characters.', $this->maxPatternLength));
         }
 
         // Generate cache key
@@ -151,7 +158,7 @@ final class Parser
 
                     return $cached;
                 }
-            } catch (\Psr\SimpleCache\InvalidArgumentException $e) {
+            } catch (InvalidArgumentException) {
                 // Cache key is invalid - proceed with parsing
                 // (should not happen with our key format, but catch for safety)
             }
@@ -174,7 +181,7 @@ final class Parser
         // Ensure we reached the end of the pattern
         $this->consume(TokenType::T_EOF, 'Unexpected content at end of pattern');
 
-        $ast = new RegexNode($patternNode, $flags, $delimiter, 0, \strlen($pattern));
+        $ast = new RegexNode($patternNode, $flags, $delimiter, 0, strlen($pattern));
 
         // Save to runtime cache (Layer 1)
         $this->runtimeCache[$cacheKey] = $ast;
@@ -183,7 +190,7 @@ final class Parser
         if (null !== $this->cache) {
             try {
                 $this->cache->set($cacheKey, $ast);
-            } catch (\Psr\SimpleCache\InvalidArgumentException $e) {
+            } catch (InvalidArgumentException $e) {
                 // Cache write failed - log would be nice but not critical
                 // Continue without caching
             }
@@ -211,7 +218,7 @@ final class Parser
      */
     private function extractPatternAndFlags(string $regex): array
     {
-        $len = \strlen($regex);
+        $len = strlen($regex);
         if ($len < 2) {
             throw new ParserException('Regex is too short. It must include delimiters.');
         }
@@ -246,7 +253,7 @@ final class Parser
                         // Find the invalid flag for a better error message
                         $invalid = preg_replace('/[imsxADSUXJu]/', '', $flags);
 
-                        throw new ParserException(\sprintf('Unknown regex flag(s) found: "%s"', $invalid ?? $flags));
+                        throw new ParserException(sprintf('Unknown regex flag(s) found: "%s"', $invalid ?? $flags));
                     }
 
                     return [$pattern, $flags, $delimiter];
@@ -254,7 +261,7 @@ final class Parser
             }
         }
 
-        throw new ParserException(\sprintf('No closing delimiter "%s" found.', $closingDelimiter));
+        throw new ParserException(sprintf('No closing delimiter "%s" found.', $closingDelimiter));
     }
 
     // ========================================================================
@@ -273,7 +280,7 @@ final class Parser
             $nodes[] = $this->parseSequence();
         }
 
-        if (1 === \count($nodes)) {
+        if (1 === count($nodes)) {
             return $nodes[0];
         }
 
@@ -308,7 +315,7 @@ final class Parser
             return new LiteralNode('', $startPos, $startPos);
         }
 
-        if (1 === \count($nodes)) {
+        if (1 === count($nodes)) {
             return $nodes[0];
         }
 
@@ -329,7 +336,7 @@ final class Parser
 
             // Validation: Quantifier on empty literal
             if ($node instanceof LiteralNode && '' === $node->value) {
-                throw new ParserException(\sprintf('Quantifier without target at position %d', $token->position));
+                throw new ParserException(sprintf('Quantifier without target at position %d', $token->position));
             }
 
             // Validation: Quantifier on empty group sequence
@@ -337,7 +344,7 @@ final class Parser
                 $child = $node->child;
                 if (($child instanceof LiteralNode && '' === $child->value)
                     || ($child instanceof SequenceNode && empty($child->children))) {
-                    throw new ParserException(\sprintf('Quantifier without target at position %d', $token->position));
+                    throw new ParserException(sprintf('Quantifier without target at position %d', $token->position));
                 }
             }
 
@@ -350,7 +357,8 @@ final class Parser
                     default => '\K',
                 };
 
-                throw new ParserException(\sprintf('Quantifier "%s" cannot be applied to assertion or verb "%s" at position %d', $token->value, $nodeName, $node->getStartPosition()));
+                throw new ParserException(
+                    sprintf('Quantifier "%s" cannot be applied to assertion or verb "%s" at position %d', $token->value, $nodeName, $node->getStartPosition()));
             }
 
             [$quantifier, $type] = $this->parseQuantifierValue($token->value);
@@ -372,11 +380,11 @@ final class Parser
         $lastChar = substr($value, -1);
         $baseValue = substr($value, 0, -1);
 
-        if ('?' === $lastChar && \strlen($value) > 1) {
+        if ('?' === $lastChar && strlen($value) > 1) {
             return [$baseValue, QuantifierType::T_LAZY];
         }
 
-        if ('+' === $lastChar && \strlen($value) > 1) {
+        if ('+' === $lastChar && strlen($value) > 1) {
             return [$baseValue, QuantifierType::T_POSSESSIVE];
         }
 
@@ -519,14 +527,14 @@ final class Parser
 
         // Special case: quantifier without target
         if ($this->check(TokenType::T_QUANTIFIER)) {
-            throw new ParserException(\sprintf('Quantifier without target at position %d', $this->current()->position));
+            throw new ParserException(sprintf('Quantifier without target at position %d', $this->current()->position));
         }
 
         // @codeCoverageIgnoreStart
         $val = $this->current()->value;
         $type = $this->current()->type->value;
 
-        throw new ParserException(\sprintf('Unexpected token "%s" (%s) at position %d.', $val, $type, $startPos));
+        throw new ParserException(sprintf('Unexpected token "%s" (%s) at position %d.', $val, $type, $startPos));
         // @codeCoverageIgnoreEnd
     }
 
@@ -546,7 +554,7 @@ final class Parser
             return new SubroutineNode($m[1], 'g', $startPos, $endPos);
         }
 
-        throw new ParserException(\sprintf('Invalid \g reference syntax: %s at position %d', $value, $token->position));
+        throw new ParserException(sprintf('Invalid \g reference syntax: %s at position %d', $value, $token->position));
     }
 
     private function parseComment(): CommentNode
@@ -699,16 +707,18 @@ final class Parser
                     $name .= $this->current()->value;
                     $this->advance();
                 } else {
-                    throw new ParserException(\sprintf('Unexpected token in group name at position %d', $this->current()->position));
+                    throw new ParserException(
+                        sprintf('Unexpected token in group name at position %d', $this->current()->position));
                 }
             }
 
             if ('' === $name) {
-                throw new ParserException(\sprintf('Expected group name at position %d', $this->current()->position));
+                throw new ParserException(sprintf('Expected group name at position %d', $this->current()->position));
             }
 
             if (!$this->checkLiteral($quote)) {
-                throw new ParserException(\sprintf('Expected closing quote %s at position %d', $quote, $this->current()->position));
+                throw new ParserException(
+                    sprintf('Expected closing quote %s at position %d', $quote, $this->current()->position));
             }
             $this->advance();
 
@@ -738,7 +748,7 @@ final class Parser
             throw new ParserException('Backreferences (?P=name) are not supported yet.');
         }
 
-        throw new ParserException(\sprintf('Invalid syntax after (?P at position %d', $pPos));
+        throw new ParserException(sprintf('Invalid syntax after (?P at position %d', $pPos));
     }
 
     private function parseStandardGroup(int $startPos): NodeInterface
@@ -806,7 +816,7 @@ final class Parser
             return new GroupNode($expr, GroupType::T_GROUP_INLINE_FLAGS, null, $flags, $startPos, $endToken->position + 1);
         }
 
-        throw new ParserException(\sprintf('Invalid group modifier syntax at position %d', $startPos));
+        throw new ParserException(sprintf('Invalid group modifier syntax at position %d', $startPos));
     }
 
     private function parseConditional(int $startPos, bool $isModifier): ConditionalNode
@@ -928,7 +938,8 @@ final class Parser
 
         if (!($condition instanceof BackrefNode || $condition instanceof GroupNode
               || $condition instanceof AssertionNode || $condition instanceof SubroutineNode)) {
-            throw new ParserException(\sprintf('Invalid conditional construct at position %d. Condition must be a group reference, lookaround, or (DEFINE).', $startPos));
+            throw new ParserException(
+                sprintf('Invalid conditional construct at position %d. Condition must be a group reference, lookaround, or (DEFINE).', $startPos));
         }
 
         return $condition;
@@ -943,7 +954,8 @@ final class Parser
             $this->advance();
             $nameToken = $this->consume(TokenType::T_LITERAL, 'Expected group name');
             if ($this->current()->value !== $quote) {
-                throw new ParserException(\sprintf('Expected closing quote %s at position %d', $quote, $this->current()->position));
+                throw new ParserException(
+                    sprintf('Expected closing quote %s at position %d', $quote, $this->current()->position));
             }
             $this->advance();
 
@@ -956,12 +968,12 @@ final class Parser
                 $name .= $this->current()->value;
                 $this->advance();
             } else {
-                throw new ParserException(\sprintf('Unexpected token "%s" in group name', $this->current()->value));
+                throw new ParserException(sprintf('Unexpected token "%s" in group name', $this->current()->value));
             }
         }
 
         if ('' === $name) {
-            throw new ParserException(\sprintf('Expected group name at position %d', $this->current()->position));
+            throw new ParserException(sprintf('Expected group name at position %d', $this->current()->position));
         }
 
         return $name;
@@ -1024,7 +1036,8 @@ final class Parser
             $token = $this->previous();
             $startNode = new PosixClassNode($token->value, $startPos, $startPos + mb_strlen($token->value) + 4);
         } else {
-            throw new ParserException(\sprintf('Unexpected token "%s" in character class at position %d.', $this->current()->value, $this->current()->position));
+            throw new ParserException(
+                sprintf('Unexpected token "%s" in character class at position %d.', $this->current()->value, $this->current()->position));
         }
 
         // Check for Range
@@ -1180,7 +1193,8 @@ final class Parser
         $this->recursionDepth++;
 
         if ($this->recursionDepth > $this->maxRecursionDepth) {
-            throw new RecursionLimitException(\sprintf(
+            throw new RecursionLimitException(
+                sprintf(
                 'Recursion limit of %d exceeded (current: %d). Pattern is too deeply nested.',
                 $this->maxRecursionDepth,
                 $this->recursionDepth,
@@ -1207,7 +1221,8 @@ final class Parser
         $this->nodeCount++;
 
         if ($this->nodeCount > $this->maxNodes) {
-            throw new ResourceLimitException(\sprintf(
+            throw new ResourceLimitException(
+                sprintf(
                 'Node count limit of %d exceeded. Pattern is too complex.',
                 $this->maxNodes,
             ));

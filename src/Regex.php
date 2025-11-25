@@ -60,13 +60,13 @@ class Regex
      *     max_pattern_length?: int,
      *     max_recursion_depth?: int,
      *     max_nodes?: int,
+     *     cache?: CacheInterface|null,
      * } $options Options for the parser (e.g., 'max_pattern_length', 'max_recursion_depth', 'max_nodes').
-     * @param CacheInterface|null $cache Optional PSR-16 cache for persistent caching of parsed ASTs
      */
-    public static function create(array $options = [], ?CacheInterface $cache = null): self
+    public static function create(array $options = []): self
     {
         return new self(
-            new Parser($options, cache: $cache),
+            new Parser($options),
             new ValidatorNodeVisitor(),
             new ExplainVisitor(),
             new SampleGeneratorVisitor(),
