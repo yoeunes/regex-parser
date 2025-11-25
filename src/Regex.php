@@ -23,10 +23,10 @@ use RegexParser\NodeVisitor\ComplexityScoreVisitor;
 use RegexParser\NodeVisitor\DumperNodeVisitor;
 use RegexParser\NodeVisitor\ExplainVisitor;
 use RegexParser\NodeVisitor\LiteralExtractorVisitor;
+use RegexParser\NodeVisitor\MermaidVisitor;
 use RegexParser\NodeVisitor\OptimizerNodeVisitor;
 use RegexParser\NodeVisitor\SampleGeneratorVisitor;
 use RegexParser\NodeVisitor\ValidatorNodeVisitor;
-use RegexParser\NodeVisitor\MermaidVisitor;
 
 /**
  * Main service for parsing, validating, and manipulating regex patterns.

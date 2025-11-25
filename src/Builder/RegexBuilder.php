@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace RegexParser\Builder;
 
-use RegexParser\Parser;
 use RegexParser\Node\AlternationNode;
 use RegexParser\Node\AnchorNode;
 use RegexParser\Node\AssertionNode;
@@ -29,6 +28,7 @@ use RegexParser\Node\QuantifierType;
 use RegexParser\Node\RegexNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
+use RegexParser\Parser;
 use RegexParser\Regex;
 
 /**
