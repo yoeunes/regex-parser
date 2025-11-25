@@ -23,10 +23,10 @@ use RegexParser\NodeVisitor\ComplexityScoreVisitor;
 use RegexParser\NodeVisitor\DumperNodeVisitor;
 use RegexParser\NodeVisitor\ExplainVisitor;
 use RegexParser\NodeVisitor\LiteralExtractorVisitor;
+use RegexParser\NodeVisitor\MermaidVisitor;
 use RegexParser\NodeVisitor\OptimizerNodeVisitor;
 use RegexParser\NodeVisitor\SampleGeneratorVisitor;
 use RegexParser\NodeVisitor\ValidatorNodeVisitor;
-use RegexParser\NodeVisitor\MermaidVisitor;
 
 /**
  * Main service for parsing, validating, and manipulating regex patterns.
@@ -60,13 +60,13 @@ class Regex
      *     max_pattern_length?: int,
      *     max_recursion_depth?: int,
      *     max_nodes?: int,
+     *     cache?: CacheInterface|null,
      * } $options Options for the parser (e.g., 'max_pattern_length', 'max_recursion_depth', 'max_nodes').
-     * @param CacheInterface|null $cache Optional PSR-16 cache for persistent caching of parsed ASTs
      */
-    public static function create(array $options = [], ?CacheInterface $cache = null): self
+    public static function create(array $options = []): self
     {
         return new self(
-            new Parser($options, cache: $cache),
+            new Parser($options),
             new ValidatorNodeVisitor(),
             new ExplainVisitor(),
             new SampleGeneratorVisitor(),

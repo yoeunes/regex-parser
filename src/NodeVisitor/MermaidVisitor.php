@@ -13,8 +13,8 @@ declare(strict_types=1);
 
 namespace RegexParser\NodeVisitor;
 
-use RegexParser\Node\AnchorNode;
 use RegexParser\Node\AlternationNode;
+use RegexParser\Node\AnchorNode;
 use RegexParser\Node\AssertionNode;
 use RegexParser\Node\BackrefNode;
 use RegexParser\Node\CharClassNode;

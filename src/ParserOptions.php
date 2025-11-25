@@ -43,8 +43,8 @@ final readonly class ParserOptions
     /**
      * Create parser options with default values.
      *
-     * @param int $maxPatternLength Maximum pattern length (default: 10,000)
-     * @param int $maxNodes Maximum number of AST nodes (default: 10,000)
+     * @param int $maxPatternLength  Maximum pattern length (default: 10,000)
+     * @param int $maxNodes          Maximum number of AST nodes (default: 10,000)
      * @param int $maxRecursionDepth Maximum recursion depth (default: 250)
      */
     public function __construct(

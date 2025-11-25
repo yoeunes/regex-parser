@@ -2,16 +2,23 @@
 
 declare(strict_types=1);
 
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
-use RegexParser\ParserOptions;
-use RegexParser\Parser;
-use RegexParser\Regex;
 use RegexParser\Builder\RegexBuilder;
-use RegexParser\Exception\ResourceLimitException;
 use RegexParser\NodeVisitor\MermaidVisitor;
-use RegexParser\Node\RegexNode;
+use RegexParser\Parser;
+use RegexParser\ParserOptions;
+use RegexParser\Regex;
 
 /**
  * Integration tests for v1.0 upgrade features.
@@ -26,7 +33,7 @@ class FeaturesUpgradeTest extends TestCase
     /**
      * Test ParserOptions DTO instantiation with defaults.
      */
-    public function testParserOptionsDefaults(): void
+    public function test_parser_options_defaults(): void
     {
         $options = new ParserOptions();
 
@@ -38,12 +45,12 @@ class FeaturesUpgradeTest extends TestCase
     /**
      * Test ParserOptions with custom values.
      */
-    public function testParserOptionsCustom(): void
+    public function test_parser_options_custom(): void
     {
         $options = new ParserOptions(
             maxPatternLength: 5000,
             maxNodes: 500,
-            maxRecursionDepth: 100
+            maxRecursionDepth: 100,
         );
 
         $this->assertSame(5000, $options->maxPatternLength);
@@ -54,7 +61,7 @@ class FeaturesUpgradeTest extends TestCase
     /**
      * Test ParserOptions::fromArray() factory.
      */
-    public function testParserOptionsFromArray(): void
+    public function test_parser_options_from_array(): void
     {
         $config = [
             'max_pattern_length' => 20_000,
@@ -72,7 +79,7 @@ class FeaturesUpgradeTest extends TestCase
     /**
      * Test ParserOptions is immutable (readonly).
      */
-    public function testParserOptionsIsReadonly(): void
+    public function test_parser_options_is_readonly(): void
     {
         $options = new ParserOptions();
 
@@ -84,7 +91,7 @@ class FeaturesUpgradeTest extends TestCase
     /**
      * Test MermaidVisitor generates valid Mermaid syntax.
      */
-    public function testMermaidVisitorGeneratesValidSyntax(): void
+    public function test_mermaid_visitor_generates_valid_syntax(): void
     {
         $regex = Regex::create();
         $mermaidOutput = $regex->visualize('/abc/');
@@ -102,7 +109,7 @@ class FeaturesUpgradeTest extends TestCase
     /**
      * Test MermaidVisitor output for simple pattern.
      */
-    public function testMermaidVisitorSimplePattern(): void
+    public function test_mermaid_visitor_simple_pattern(): void
     {
         $regex = Regex::create();
         $mermaidOutput = $regex->visualize('/test/');
@@ -115,7 +122,7 @@ class FeaturesUpgradeTest extends TestCase
     /**
      * Test MermaidVisitor with complex pattern (group + quantifier).
      */
-    public function testMermaidVisitorComplexPattern(): void
+    public function test_mermaid_visitor_complex_pattern(): void
     {
         $regex = Regex::create();
         $mermaidOutput = $regex->visualize('/(abc)+/');
@@ -128,7 +135,7 @@ class FeaturesUpgradeTest extends TestCase
     /**
      * Test RegexBuilder::addPart() appends parsed regex.
      */
-    public function testRegexBuilderAddPartBasic(): void
+    public function test_regex_builder_add_part_basic(): void
     {
         $builder = RegexBuilder::create()
             ->literal('hello')
@@ -144,7 +151,7 @@ class FeaturesUpgradeTest extends TestCase
     /**
      * Test RegexBuilder::addPart() with raw regex pattern.
      */
-    public function testRegexBuilderAddPartRawRegex(): void
+    public function test_regex_builder_add_part_raw_regex(): void
     {
         $builder = RegexBuilder::create()
             ->literal('user')
@@ -161,7 +168,7 @@ class FeaturesUpgradeTest extends TestCase
     /**
      * Test RegexBuilder::addPart() throws on invalid regex.
      */
-    public function testRegexBuilderAddPartInvalidRegex(): void
+    public function test_regex_builder_add_part_invalid_regex(): void
     {
         $builder = RegexBuilder::create();
 
@@ -175,7 +182,7 @@ class FeaturesUpgradeTest extends TestCase
     /**
      * Test RegexBuilder::addPart() with flags.
      */
-    public function testRegexBuilderAddPartWithFlags(): void
+    public function test_regex_builder_add_part_with_flags(): void
     {
         $builder = RegexBuilder::create()
             ->addPart('/test/i');  // Case-insensitive
@@ -188,7 +195,7 @@ class FeaturesUpgradeTest extends TestCase
     /**
      * Test RegexBuilder::addPart() chaining.
      */
-    public function testRegexBuilderAddPartChaining(): void
+    public function test_regex_builder_add_part_chaining(): void
     {
         $builder = RegexBuilder::create()
             ->addPart('/start/')
@@ -204,7 +211,7 @@ class FeaturesUpgradeTest extends TestCase
     /**
      * Test Regex::visualize() integrates with parser.
      */
-    public function testRegexVisualizeIntegration(): void
+    public function test_regex_visualize_integration(): void
     {
         $regex = Regex::create();
 
@@ -218,7 +225,7 @@ class FeaturesUpgradeTest extends TestCase
     /**
      * Test Regex::visualize() with multiple alternatives.
      */
-    public function testRegexVisualizeAlternation(): void
+    public function test_regex_visualize_alternation(): void
     {
         $regex = Regex::create();
 
@@ -231,7 +238,7 @@ class FeaturesUpgradeTest extends TestCase
     /**
      * Test ParserOptions prevents DoS via pattern length.
      */
-    public function testParserOptionsEnforcesPatternLength(): void
+    public function test_parser_options_enforces_pattern_length(): void
     {
         $options = new ParserOptions(maxPatternLength: 5);
         $parser = new Parser(['max_pattern_length' => 5]);
@@ -245,7 +252,7 @@ class FeaturesUpgradeTest extends TestCase
     /**
      * Test MermaidVisitor handles all node types.
      */
-    public function testMermaidVisitorComprehensiveNodeTypes(): void
+    public function test_mermaid_visitor_comprehensive_node_types(): void
     {
         $regex = Regex::create();
 
