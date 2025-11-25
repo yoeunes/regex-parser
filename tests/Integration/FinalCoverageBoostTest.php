@@ -30,7 +30,7 @@ class FinalCoverageBoostTest extends TestCase
     public function test_validator_posix_class_variations(): void
     {
         $validator = new ValidatorNodeVisitor();
-        $parser = new Parser([]);
+        $parser = new Parser();
 
         // Test various POSIX classes
         $patterns = [
@@ -49,7 +49,7 @@ class FinalCoverageBoostTest extends TestCase
     public function test_validator_unicode_prop_variations(): void
     {
         $validator = new ValidatorNodeVisitor();
-        $parser = new Parser([]);
+        $parser = new Parser();
 
         // Test different unicode properties
         $patterns = [
@@ -69,7 +69,7 @@ class FinalCoverageBoostTest extends TestCase
     public function test_validator_backref_edge_cases(): void
     {
         $validator = new ValidatorNodeVisitor();
-        $parser = new Parser([]);
+        $parser = new Parser();
 
         // Named backref
         $ast = $parser->parse('/(?<name>a)\k<name>/');
@@ -88,7 +88,7 @@ class FinalCoverageBoostTest extends TestCase
     public function test_optimizer_char_class_optimization(): void
     {
         $optimizer = new OptimizerNodeVisitor();
-        $parser = new Parser([]);
+        $parser = new Parser();
 
         // Character class that could be optimized
         $ast = $parser->parse('/[a]/');
@@ -104,7 +104,7 @@ class FinalCoverageBoostTest extends TestCase
     public function test_optimizer_quantifier_edge_cases(): void
     {
         $optimizer = new OptimizerNodeVisitor();
-        $parser = new Parser([]);
+        $parser = new Parser();
 
         // Quantifier with 0 min
         $ast = $parser->parse('/a{0,5}/');
@@ -120,7 +120,7 @@ class FinalCoverageBoostTest extends TestCase
     public function test_optimizer_sequence_flattening(): void
     {
         $optimizer = new OptimizerNodeVisitor();
-        $parser = new Parser([]);
+        $parser = new Parser();
 
         // Nested sequences
         $ast = $parser->parse('/abc/');
@@ -131,7 +131,7 @@ class FinalCoverageBoostTest extends TestCase
     public function test_optimizer_alternation_with_empty(): void
     {
         $optimizer = new OptimizerNodeVisitor();
-        $parser = new Parser([]);
+        $parser = new Parser();
 
         // Alternation with one empty branch
         $ast = $parser->parse('/a|/');
@@ -143,7 +143,7 @@ class FinalCoverageBoostTest extends TestCase
     public function test_dumper_group_types(): void
     {
         $dumper = new DumperNodeVisitor();
-        $parser = new Parser([]);
+        $parser = new Parser();
 
         // Non-capturing group
         $ast = $parser->parse('/(?:abc)/');
@@ -164,7 +164,7 @@ class FinalCoverageBoostTest extends TestCase
     public function test_dumper_assertion_types(): void
     {
         $dumper = new DumperNodeVisitor();
-        $parser = new Parser([]);
+        $parser = new Parser();
 
         $patterns = [
             '/(?=abc)/',   // Positive lookahead
@@ -192,7 +192,7 @@ class FinalCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_parser_conditional_with_assertion(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
 
         // Conditional with lookahead
         $parser->parse('/(?(?=test)yes|no)/');
@@ -204,7 +204,7 @@ class FinalCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_parser_subroutine_variations(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
 
         // Subroutine by number
         $parser->parse('/(abc)(?1)/');
@@ -219,7 +219,7 @@ class FinalCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_parser_pcre_verb_with_argument(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
 
         // PCRE verb with argument
         $parser->parse('/(*MARK:label)/');
@@ -232,7 +232,7 @@ class FinalCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_parser_complex_char_class(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
 
         // Char class with multiple ranges and literals
         $parser->parse('/[a-zA-Z0-9_\-\.]/');
@@ -244,7 +244,7 @@ class FinalCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_parser_quantifier_possessive(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
 
         // Possessive quantifiers
         $patterns = [
@@ -262,7 +262,7 @@ class FinalCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_parser_unicode_variations(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
 
         // Unicode with multiple digits
         $parser->parse('/\u{1F600}/');
@@ -274,7 +274,7 @@ class FinalCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_parser_backref_variations(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
 
         // Numbered backref with braces
         $parser->parse('/(a)\g{1}/');
@@ -289,7 +289,7 @@ class FinalCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_parser_group_with_modifiers(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
 
         // Group with inline modifiers
         $patterns = [
@@ -308,7 +308,7 @@ class FinalCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_parser_anchors_all_types(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
 
         $patterns = [
             '/^test/',    // Start of line

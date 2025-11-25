@@ -28,8 +28,8 @@ use RegexParser\Node\QuantifierType;
 use RegexParser\Node\RegexNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
-use RegexParser\Parser;
 use RegexParser\Regex;
+use RegexParser\RegexCompiler;
 
 /**
  * A fluent, type-safe builder for creating complex regex patterns.
@@ -125,8 +125,8 @@ class RegexBuilder
     public function addPart(string $regex): self
     {
         try {
-            $parser = new Parser();
-            $ast = $parser->parse($regex);
+            $compiler = new RegexCompiler();
+            $ast = $compiler->parse($regex);
             // Append the parsed pattern node to current nodes
             $this->currentNodes[] = $ast->pattern;
         } catch (\Throwable $e) {
@@ -406,6 +406,14 @@ class RegexBuilder
      * Alias for build() to maintain backward compatibility.
      */
     public function compile(): string
+    {
+        return $this->build();
+    }
+
+    /**
+     * Alias for build() - returns the compiled pattern string.
+     */
+    public function getPattern(): string
     {
         return $this->build();
     }

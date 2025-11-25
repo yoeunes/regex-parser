@@ -24,7 +24,7 @@ class LexerQuoteModeTest extends TestCase
     public function test_quote_mode_mid_string_unterminated(): void
     {
         $lexer = new Lexer('a\Qbc');
-        $tokens = $lexer->tokenize();
+        $tokens = $lexer->tokenizeToArray();
 
         // Now emits: a (LITERAL), \Q (T_QUOTE_MODE_START), bc (LITERAL via quote mode), EOF
         $this->assertCount(4, $tokens);
@@ -40,7 +40,7 @@ class LexerQuoteModeTest extends TestCase
     public function test_quote_mode_empty_content(): void
     {
         $lexer = new Lexer('a\Q\Eb');
-        $tokens = $lexer->tokenize();
+        $tokens = $lexer->tokenizeToArray();
 
         // Now emits: a, \Q, \E, b, EOF
         $this->assertCount(5, $tokens);

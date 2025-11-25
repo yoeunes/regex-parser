@@ -24,7 +24,7 @@ class LexerFallbackTest extends TestCase
     public function test_lex_quote_mode_unterminated(): void
     {
         $lexer = new Lexer('\Qstart'); // No \E
-        $tokens = $lexer->tokenize();
+        $tokens = $lexer->tokenizeToArray();
 
         // Now emits T_QUOTE_MODE_START, T_LITERAL "start", T_EOF
         $this->assertCount(3, $tokens);
@@ -41,7 +41,7 @@ class LexerFallbackTest extends TestCase
         $lexer = new Lexer('(?#start'); // No )
 
         try {
-            $lexer->tokenize();
+            $lexer->tokenizeToArray();
         } catch (\Exception $e) {
             // We expect an exception, but we mainly want the code to be executed
             $this->assertStringContainsString('Unclosed comment', $e->getMessage());

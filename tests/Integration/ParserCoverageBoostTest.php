@@ -37,7 +37,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_python_named_group_single_quotes(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
         $parser->parse("/(?P'name'test)/");
     }
 
@@ -47,7 +47,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_python_named_group_double_quotes(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
         $parser->parse('/(?P"name"test)/');
     }
 
@@ -57,7 +57,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_python_named_group_angle_brackets(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
         $parser->parse('/(?P<name>test)/');
     }
 
@@ -67,7 +67,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_python_subroutine_call(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
         $parser->parse('/(?P<name>test)(?P>name)/');
     }
 
@@ -79,7 +79,7 @@ class ParserCoverageBoostTest extends TestCase
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('Backreferences (?P=name) are not supported yet');
 
-        $parser = new Parser([]);
+        $parser = new Parser();
         $parser->parse('/(?P<name>test)(?P=name)/');
     }
 
@@ -89,7 +89,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_positive_lookbehind(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
         $parser->parse('/(?<=test)abc/');
     }
 
@@ -99,7 +99,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_negative_lookbehind(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
         $parser->parse('/(?<!test)abc/');
     }
 
@@ -109,7 +109,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_conditional_with_number(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
         $parser->parse('/(test)(?(1)yes|no)/');
     }
 
@@ -119,7 +119,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_conditional_with_named_group(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
         $parser->parse('/(?<name>test)(?(<name>)yes|no)/');
     }
 
@@ -129,7 +129,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_conditional_with_lookahead_positive(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
         $parser->parse('/(?((?=test))yes|no)/');
     }
 
@@ -139,7 +139,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_conditional_with_lookahead_negative(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
         $parser->parse('/(?((?!test))yes|no)/');
     }
 
@@ -149,7 +149,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_conditional_with_lookbehind_positive(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
         $parser->parse('/(?((?<=test))yes|no)/');
     }
 
@@ -159,7 +159,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_conditional_with_lookbehind_negative(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
         $parser->parse('/(?((?<!test))yes|no)/');
     }
 
@@ -169,7 +169,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_conditional_without_else(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
         $parser->parse('/(test)(?(1)yes)/');
     }
 
@@ -179,7 +179,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_subroutine_call_by_number(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
         $parser->parse('/(test)(?1)/');
     }
 
@@ -189,7 +189,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_subroutine_call_relative(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
         $parser->parse('/(test)(?-1)/');
     }
 
@@ -199,7 +199,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_subroutine_call_named(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
         $parser->parse('/(?<name>test)(?&name)/');
     }
 
@@ -209,7 +209,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_atomic_group(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
         $parser->parse('/(?>test)/');
     }
 
@@ -219,7 +219,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_non_capturing_group(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
         $parser->parse('/(?:test)/');
     }
 
@@ -229,7 +229,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_group_with_flags_i(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
         $parser->parse('/(?i:test)/');
     }
 
@@ -239,7 +239,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_group_with_multiple_flags(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
         $parser->parse('/(?im:test)/');
     }
 
@@ -249,7 +249,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_group_with_negative_flags(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
         $parser->parse('/(?-i:test)/');
     }
 
@@ -259,7 +259,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_group_with_mixed_flags(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
         $parser->parse('/(?i-m:test)/');
     }
 
@@ -269,7 +269,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_char_class_with_range(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
         $parser->parse('/[a-z]/');
     }
 
@@ -279,7 +279,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_char_class_with_multiple_ranges(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
         $parser->parse('/[a-zA-Z0-9]/');
     }
 
@@ -289,7 +289,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_negated_char_class(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
         $parser->parse('/[^a-z]/');
     }
 
@@ -299,7 +299,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_posix_char_class(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
         $parser->parse('/[[:alnum:]]/');
     }
 
@@ -309,7 +309,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_negated_posix_char_class(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
         $parser->parse('/[[:^alnum:]]/');
     }
 
@@ -319,7 +319,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_octal_legacy(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
         $parser->parse('/\101/');
     }
 
@@ -329,7 +329,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_octal_modern(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
         $parser->parse('/\o{101}/');
     }
 
@@ -339,7 +339,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_unicode_escape_hex(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
         $parser->parse('/\x41/');
     }
 
@@ -349,7 +349,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_unicode_escape_braces(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
         $parser->parse('/\u{0041}/');
     }
 
@@ -359,7 +359,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_pcre_verb_fail(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
         $parser->parse('/(*FAIL)/');
     }
 
@@ -369,7 +369,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_pcre_verb_mark(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
         $parser->parse('/(*MARK:test)/');
     }
 
@@ -379,7 +379,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_keep(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
         $parser->parse('/test\K/');
     }
 
@@ -389,7 +389,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_anchors(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
 
         $patterns = [
             '/^test/',    // Start anchor
@@ -408,7 +408,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_assertions(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
 
         $patterns = [
             '/\A/',      // Start of string
@@ -430,7 +430,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_char_types(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
 
         $patterns = [
             '/\d/',      // Digit
@@ -457,7 +457,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_backref_numbered(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
         $parser->parse('/(test)\1/');
     }
 
@@ -467,7 +467,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_backref_named_k_angle(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
         $parser->parse('/(?<name>test)\k<name>/');
     }
 
@@ -477,7 +477,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_backref_named_k_brace(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
         $parser->parse('/(?<name>test)\k{name}/');
     }
 
@@ -487,7 +487,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_g_reference_number(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
         $parser->parse('/(test)\g1/');
     }
 
@@ -497,7 +497,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_g_reference_relative(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
         $parser->parse('/(test)\g-1/');
     }
 
@@ -507,7 +507,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_g_reference_angle(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
         $parser->parse('/(?<name>test)\g<name>/');
     }
 
@@ -517,7 +517,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_g_reference_brace(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
         $parser->parse('/(?<name>test)\g{name}/');
     }
 
@@ -527,7 +527,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_dot(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
         $parser->parse('/./');
     }
 
@@ -537,7 +537,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_quantifiers(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
 
         $patterns = [
             '/a*/',      // Zero or more
@@ -567,7 +567,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_comment(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
         $parser->parse('/(?#this is a comment)test/');
     }
 
@@ -577,7 +577,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_alternation(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
         $parser->parse('/foo|bar|baz/');
     }
 
@@ -587,7 +587,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_empty_alternation_branches(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
         $parser->parse('/foo||bar/');
     }
 
@@ -597,7 +597,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_complex_nested(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
         $parser->parse('/(?:(?<name>test)|(?P<other>foo)){2,5}/');
     }
 
@@ -607,7 +607,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_various_delimiters(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
 
         $patterns = [
             '/test/',
@@ -630,7 +630,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_extract_pattern_and_flags(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
 
         $patterns = [
             '/test/i',

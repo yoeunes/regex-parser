@@ -23,7 +23,7 @@ class LexerEdgeCasesTest extends TestCase
     {
         // \t \n \r \f \e
         $lexer = new Lexer('\\t\\n\\r\\f\\e');
-        $tokens = $lexer->tokenize();
+        $tokens = $lexer->tokenizeToArray();
 
         // \t
         $this->assertSame("\t", $tokens[0]->value);
@@ -41,7 +41,7 @@ class LexerEdgeCasesTest extends TestCase
     {
         // \. should become .
         $lexer = new Lexer('\\.');
-        $tokens = $lexer->tokenize();
+        $tokens = $lexer->tokenizeToArray();
 
         $this->assertSame(TokenType::T_LITERAL_ESCAPED, $tokens[0]->type);
         $this->assertSame('.', $tokens[0]->value);

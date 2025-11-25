@@ -30,12 +30,15 @@ use RegexParser\NodeVisitor\ValidatorNodeVisitor;
 
 /**
  * Main service for parsing, validating, and manipulating regex patterns.
- * This class is intended to be instantiated via a DI container.
+ *
+ * This class provides a high-level API for common regex operations.
+ * It uses RegexCompiler internally, which combines Lexer + Parser
+ * for convenient string-based parsing with caching support.
  */
 class Regex
 {
     /**
-     * @param Parser                 $parser    the configured parser instance
+     * @param RegexCompiler          $compiler  the configured compiler instance (combines Lexer + Parser)
      * @param ValidatorNodeVisitor   $validator a reusable validator visitor
      * @param ExplainVisitor         $explainer a reusable explain visitor
      * @param SampleGeneratorVisitor $generator a reusable sample generator visitor
@@ -44,7 +47,7 @@ class Regex
      * @param ComplexityScoreVisitor $scorer    a reusable complexity scorer
      */
     public function __construct(
-        private readonly Parser $parser,
+        private readonly RegexCompiler $compiler,
         private readonly ValidatorNodeVisitor $validator,
         private readonly ExplainVisitor $explainer,
         private readonly SampleGeneratorVisitor $generator,
@@ -61,12 +64,12 @@ class Regex
      *     max_recursion_depth?: int,
      *     max_nodes?: int,
      *     cache?: CacheInterface|null,
-     * } $options Options for the parser (e.g., 'max_pattern_length', 'max_recursion_depth', 'max_nodes').
+     * } $options Options for the compiler (e.g., 'max_pattern_length', 'max_recursion_depth', 'max_nodes').
      */
     public static function create(array $options = []): self
     {
         return new self(
-            new Parser($options),
+            new RegexCompiler($options),
             new ValidatorNodeVisitor(),
             new ExplainVisitor(),
             new SampleGeneratorVisitor(),
@@ -83,7 +86,7 @@ class Regex
      */
     public function parse(string $regex): RegexNode
     {
-        return $this->parser->parse($regex);
+        return $this->compiler->parse($regex);
     }
 
     /**
@@ -92,12 +95,10 @@ class Regex
     public function validate(string $regex): ValidationResult
     {
         try {
-            $ast = $this->parser->parse($regex);
-            // We must use a fresh visitor instance for each run to reset internal state.
+            $ast = $this->compiler->parse($regex);
             $validator = clone $this->validator;
             $ast->accept($validator);
 
-            // Validation passed, now get the score
             $scorer = clone $this->scorer;
             $score = $ast->accept($scorer);
 
@@ -114,7 +115,7 @@ class Regex
      */
     public function explain(string $regex): string
     {
-        $ast = $this->parser->parse($regex);
+        $ast = $this->compiler->parse($regex);
 
         return $ast->accept(clone $this->explainer);
     }
@@ -126,7 +127,7 @@ class Regex
      */
     public function generate(string $regex): string
     {
-        $ast = $this->parser->parse($regex);
+        $ast = $this->compiler->parse($regex);
 
         return $ast->accept(clone $this->generator);
     }
@@ -138,12 +139,10 @@ class Regex
      */
     public function optimize(string $regex): string
     {
-        $ast = $this->parser->parse($regex);
+        $ast = $this->compiler->parse($regex);
 
-        // 1. Optimize the AST (AST -> AST)
         $optimizedAst = $ast->accept(clone $this->optimizer);
 
-        // 2. Compile the new AST to a string (AST -> string)
         $compiler = new CompilerNodeVisitor();
 
         return $optimizedAst->accept($compiler);
@@ -158,7 +157,7 @@ class Regex
      */
     public function visualize(string $regex): string
     {
-        $ast = $this->parser->parse($regex);
+        $ast = $this->compiler->parse($regex);
 
         return $ast->accept(new MermaidVisitor());
     }
@@ -170,7 +169,7 @@ class Regex
      */
     public function dump(string $regex): string
     {
-        $ast = $this->parser->parse($regex);
+        $ast = $this->compiler->parse($regex);
 
         return $ast->accept(clone $this->dumper);
     }
@@ -179,13 +178,12 @@ class Regex
      * Extracts literal strings that must appear in any match.
      * useful for pre-match optimizations (e.g. strpos check).
      *
-     * * @throws LexerException|ParserException
+     * @throws LexerException|ParserException
      */
     public function extractLiterals(string $regex): LiteralSet
     {
-        $ast = $this->parser->parse($regex);
+        $ast = $this->compiler->parse($regex);
 
-        // Use a fresh visitor instance
         $visitor = new LiteralExtractorVisitor();
 
         return $ast->accept($visitor);
@@ -197,8 +195,7 @@ class Regex
      */
     public function analyzeReDoS(string $regex): ReDoSAnalysis
     {
-        // We can reuse the internal parser
-        $analyzer = new ReDoSAnalyzer($this->parser);
+        $analyzer = new ReDoSAnalyzer($this->compiler);
 
         return $analyzer->analyze($regex);
     }
@@ -209,5 +206,23 @@ class Regex
     public static function builder(): RegexBuilder
     {
         return RegexBuilder::create();
+    }
+
+    /**
+     * Returns the underlying RegexCompiler instance.
+     * Useful for advanced scenarios requiring direct access to the compiler.
+     */
+    public function getCompiler(): RegexCompiler
+    {
+        return $this->compiler;
+    }
+
+    /**
+     * Returns the underlying Parser instance.
+     * Useful for advanced scenarios requiring direct TokenStream parsing.
+     */
+    public function getParser(): Parser
+    {
+        return $this->compiler->getParser();
     }
 }

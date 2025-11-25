@@ -101,6 +101,10 @@ class PregFunctionCompatibilityTest extends TestCase
         preg_match($pattern, $subject, $originalMatches);
         preg_match($compiled, $subject, $compiledMatches);
 
+        $this->assertArrayHasKey('user', $originalMatches);
+        $this->assertArrayHasKey('domain', $originalMatches);
+        $this->assertArrayHasKey('user', $compiledMatches);
+        $this->assertArrayHasKey('domain', $compiledMatches);
         $this->assertSame($originalMatches['user'], $compiledMatches['user']);
         $this->assertSame($originalMatches['domain'], $compiledMatches['domain']);
     }
@@ -272,10 +276,12 @@ class PregFunctionCompatibilityTest extends TestCase
         $compiled = $this->roundTripPattern($pattern);
         $subject = 'abc123def456';
 
-        $callback = fn ($matches) => '['.$matches[0].']';
-
-        $originalResult = preg_replace_callback($pattern, $callback, $subject);
-        $compiledResult = preg_replace_callback($compiled, $callback, $subject);
+        $originalResult = preg_replace_callback($pattern, static function (array $matches): string {
+            return '['.(string) $matches[0].']';
+        }, $subject);
+        $compiledResult = preg_replace_callback($compiled, static function (array $matches): string {
+            return '['.(string) $matches[0].']';
+        }, $subject);
 
         $this->assertSame($originalResult, $compiledResult);
         $this->assertSame('abc[123]def[456]', $compiledResult);
@@ -287,10 +293,12 @@ class PregFunctionCompatibilityTest extends TestCase
         $compiled = $this->roundTripPattern($pattern);
         $subject = 'foo=123 bar=456';
 
-        $callback = fn ($matches) => $matches[1].':'.($matches[2] * 2);
-
-        $originalResult = preg_replace_callback($pattern, $callback, $subject);
-        $compiledResult = preg_replace_callback($compiled, $callback, $subject);
+        $originalResult = preg_replace_callback($pattern, static function (array $matches): string {
+            return (string) $matches[1].':'.((int) $matches[2] * 2);
+        }, $subject);
+        $compiledResult = preg_replace_callback($compiled, static function (array $matches): string {
+            return (string) $matches[1].':'.((int) $matches[2] * 2);
+        }, $subject);
 
         $this->assertSame($originalResult, $compiledResult);
         $this->assertSame('foo:246 bar:912', $compiledResult);
@@ -302,10 +310,12 @@ class PregFunctionCompatibilityTest extends TestCase
         $compiled = $this->roundTripPattern($pattern);
         $subject = 'user@example';
 
-        $callback = fn ($matches) => strtoupper((string) $matches['name']).'@'.strtoupper((string) $matches['domain']);
-
-        $originalResult = preg_replace_callback($pattern, $callback, $subject);
-        $compiledResult = preg_replace_callback($compiled, $callback, $subject);
+        $originalResult = preg_replace_callback($pattern, static function (array $matches): string {
+            return strtoupper((string) $matches['name']).'@'.strtoupper((string) $matches['domain']);
+        }, $subject);
+        $compiledResult = preg_replace_callback($compiled, static function (array $matches): string {
+            return strtoupper((string) $matches['name']).'@'.strtoupper((string) $matches['domain']);
+        }, $subject);
 
         $this->assertSame($originalResult, $compiledResult);
         $this->assertSame('USER@EXAMPLE', $compiledResult);
@@ -317,10 +327,12 @@ class PregFunctionCompatibilityTest extends TestCase
         $compiled = $this->roundTripPattern($pattern);
         $subject = 'hello world';
 
-        $callback = fn ($matches) => strtoupper((string) $matches[0]);
-
-        $originalResult = preg_replace_callback($pattern, $callback, $subject);
-        $compiledResult = preg_replace_callback($compiled, $callback, $subject);
+        $originalResult = preg_replace_callback($pattern, static function (array $matches): string {
+            return strtoupper((string) $matches[0]);
+        }, $subject);
+        $compiledResult = preg_replace_callback($compiled, static function (array $matches): string {
+            return strtoupper((string) $matches[0]);
+        }, $subject);
 
         $this->assertSame($originalResult, $compiledResult);
         $this->assertSame('HELLO WORLD', $compiledResult);
@@ -366,6 +378,7 @@ class PregFunctionCompatibilityTest extends TestCase
         $compiledResult = preg_split($compiled, $subject, -1, \PREG_SPLIT_DELIM_CAPTURE);
 
         $this->assertSame($originalResult, $compiledResult);
+        $this->assertIsArray($compiledResult);
         $this->assertContains(',', $compiledResult);
         $this->assertContains(';', $compiledResult);
     }
@@ -393,9 +406,11 @@ class PregFunctionCompatibilityTest extends TestCase
         $compiledResult = preg_split($compiled, $subject, -1, \PREG_SPLIT_OFFSET_CAPTURE);
 
         $this->assertSame($originalResult, $compiledResult);
-        // Verify structure: [['a', 0], ['b', 2], ['c', 4]]
-        $this->assertIsArray($compiledResult[0]);
-        $this->assertCount(2, $compiledResult[0]);
+        $this->assertIsArray($compiledResult);
+        $this->assertGreaterThan(0, \count($compiledResult));
+        $firstItem = $compiledResult[0];
+        $this->assertIsArray($firstItem);
+        $this->assertCount(2, $firstItem);
     }
 
     // ============================================================================
@@ -450,6 +465,7 @@ class PregFunctionCompatibilityTest extends TestCase
         $compiledResult = preg_grep($compiled, $input);
 
         $this->assertSame($originalResult, $compiledResult);
+        $this->assertIsArray($compiledResult);
         $this->assertCount(3, $compiledResult);
     }
 

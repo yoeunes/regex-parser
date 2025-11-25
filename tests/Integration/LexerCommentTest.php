@@ -26,7 +26,7 @@ class LexerCommentTest extends TestCase
     public function test_lexer_empty_comment(): void
     {
         $lexer = new Lexer('/(?#)/');
-        $tokens = $lexer->tokenize();
+        $tokens = $lexer->tokenizeToArray();
 
         // Must contain: /, (?#, ), /, EOF
         $this->assertCount(5, $tokens);
@@ -45,7 +45,7 @@ class LexerCommentTest extends TestCase
         $this->expectExceptionMessage('Unclosed comment ")" at end of input');
 
         $lexer = new Lexer('/(?#oups');
-        $lexer->tokenize();
+        $lexer->tokenizeToArray();
     }
 
     /**
@@ -54,7 +54,7 @@ class LexerCommentTest extends TestCase
     public function test_lexer_comment_content(): void
     {
         $lexer = new Lexer('/(?# hello world )/');
-        $tokens = $lexer->tokenize();
+        $tokens = $lexer->tokenizeToArray();
 
         // Token 0: /
         // Token 1: (?#

@@ -138,7 +138,7 @@ final class ValidatorNodeVisitor implements NodeVisitorInterface
             foreach ($node->alternatives as $alt) {
                 $length = $this->calculateFixedLength($alt);
                 if (null === $length) {
-                    throw new ParserException(\sprintf('Variable-length alternation branch in lookbehind at position %d.', $alt->startPos));
+                    throw new ParserException(\sprintf('Variable-length alternation branch in lookbehind at position %d.', $alt->getStartPosition()));
                 }
                 $lengths[] = $length;
             }

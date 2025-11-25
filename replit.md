@@ -151,19 +151,29 @@ The library is distributed via Composer/Packagist as `yoeunes/regex-parser`.
 
 # Replit Setup
 
-## Recent Changes (November 24, 2025)
+## Recent Changes (November 25, 2025)
 
-### Library Validation Audit & Critical Fixes
+### Architectural Refactoring: Parser/Lexer Decoupling
 
-**IMPORTANT:** A comprehensive validation audit was performed and critical issues have been **FIXED**. See `VALIDATION_REPORT.md` for details.
+**Major Changes:**
+1. **Parser Decoupled from Lexer**: Added `Parser::parseTokenStream(TokenStream, flags, delimiter, length)` method making Parser independent of Lexer
+2. **RegexCompiler Facade**: New `RegexCompiler` class combines Lexer + Parser + 2-layer caching (runtime + PSR-16). This is the recommended entry point for string parsing.
+3. **TokenStream Enhancements**: Added `rewind()`, `setPosition()`, and negative offset support in `peek()` for parser backtracking.
+4. **MermaidVisitor Fixed**: Updated to properly implement all NodeVisitorInterface methods with correct property names.
+5. **Conditional Compilation Fixed**: CompilerNodeVisitor now correctly compiles conditional backreferences as `(?(1)a|b)` instead of `(?(\1)a|b)`.
 
-**Status:** CORE FEATURES VALIDATED - Integration testing pending for production certification
+**Backward Compatibility:**
+- `Parser::parse(string)` still works for existing code
+- `Regex` facade uses RegexCompiler internally
 
-**Fixed Issues (November 24, 2025):**
-1. ✓ **ReDoS False Positives**: Fixed analyzer to eliminate false positives for safe patterns like `/a+b/` and `/(a{1,5})+/`
-2. ✓ **Branch Reset Groups**: Added complete support for `(?|...)` syntax across all core visitors
-3. ✓ **Backreference Compilation**: Fixed numeric backreferences to compile correctly (`\1` instead of `1`)
-4. ✓ **Behavioral Compliance Tests**: Created comprehensive test suite validating against PHP's PCRE engine
+**API Changes:**
+- New: `RegexCompiler::parse(string)` - recommended entry point
+- New: `Parser::parseTokenStream(TokenStream, ...)` - for direct token stream parsing
+- New: `Lexer::tokenizeToArray()` - returns tokens as array (for tests)
+
+### Library Validation Audit & Critical Fixes (November 24, 2025)
+
+**Status:** CORE FEATURES VALIDATED - 27/27 validation tests pass
 
 **What Works:**
 - Basic parsing and AST generation for common patterns ✓
@@ -172,14 +182,9 @@ The library is distributed via Composer/Packagist as `yoeunes/regex-parser`.
 - Error detection for invalid patterns ✓
 - Round-trip compilation preserves behavior ✓
 - Branch reset groups fully supported ✓
-- Behavioral compliance validated via test suite ✓
+- Conditional compilation fixed ✓
 
-**Remaining Work:**
-- Integration testing for PHPStan/Rector/Symfony integrations
-- End-to-end validation of optimizer semantic preservation
-- Production deployment smoke tests
-
-**Validation Results:** 27/27 core tests passed (100%) + 19/19 behavioral compliance tests (128 assertions) - Run `php validate_library.php` for details.
+**Validation Results:** Run `php validate_library.php` for details.
 
 ### Web Demo Interface
 Added an interactive web demo to showcase the library's features:

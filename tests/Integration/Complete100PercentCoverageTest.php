@@ -46,7 +46,7 @@ class Complete100PercentCoverageTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->parser = new Parser([]);
+        $this->parser = new Parser();
         $this->explainVisitor = new ExplainVisitor();
         $this->htmlExplainVisitor = new HtmlExplainVisitor();
         $this->optimizerVisitor = new OptimizerNodeVisitor();

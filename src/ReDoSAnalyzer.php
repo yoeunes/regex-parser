@@ -17,7 +17,7 @@ use RegexParser\NodeVisitor\ReDoSProfileVisitor;
 
 final readonly class ReDoSAnalyzer
 {
-    public function __construct(private ?Parser $parser = new Parser()) {}
+    public function __construct(private ?RegexCompiler $compiler = new RegexCompiler()) {}
 
     /**
      * Analyzes a regex pattern for ReDoS vulnerabilities and returns a detailed report.
@@ -25,8 +25,8 @@ final readonly class ReDoSAnalyzer
     public function analyze(string $pattern): ReDoSAnalysis
     {
         try {
-            \assert(null !== $this->parser);
-            $ast = $this->parser->parse($pattern);
+            \assert(null !== $this->compiler);
+            $ast = $this->compiler->parse($pattern);
             $visitor = new ReDoSProfileVisitor();
             $ast->accept($visitor);
 
@@ -40,8 +40,6 @@ final readonly class ReDoSAnalyzer
             );
         } catch (\Throwable $e) {
             // Fallback for parsing errors, treat as unknown/safe or rethrow
-            // Here we return a basic SAFE analysis to avoid breaking flows,
-            // but ideally the user should validate() first.
             return new ReDoSAnalysis(ReDoSSeverity::SAFE, 0, null, ['Error parsing regex: '.$e->getMessage()]);
         }
     }

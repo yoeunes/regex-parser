@@ -41,6 +41,9 @@ class ParserBench
         $this->explainer = new ExplainVisitor();
     }
 
+    /**
+     * @return array<int, string>
+     */
     public function beforeMethods(): array
     {
         return ['setUp'];

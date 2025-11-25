@@ -27,7 +27,7 @@ class AdditionalCoverageBoostTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->parser = new Parser([]);
+        $this->parser = new Parser();
     }
 
     /**

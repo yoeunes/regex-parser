@@ -41,7 +41,7 @@ class ExtendedCoverageTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->parser = new Parser([]);
+        $this->parser = new Parser();
         $this->explainVisitor = new ExplainVisitor();
         $this->htmlExplainVisitor = new HtmlExplainVisitor();
         $this->optimizerVisitor = new OptimizerNodeVisitor();
@@ -507,56 +507,56 @@ class ExtendedCoverageTest extends TestCase
     public function test_lexer_all_escape_sequences_in_char_class(): void
     {
         $lexer = new Lexer('[\\t\\n\\r\\f\\v\\e\\d\\s\\w]');
-        $tokens = $lexer->tokenize();
+        $tokens = $lexer->tokenizeToArray();
         $this->assertNotEmpty($tokens);
     }
 
     public function test_lexer_unicode_props_in_char_class(): void
     {
         $lexer = new Lexer('[\\p{L}\\P{L}]');
-        $tokens = $lexer->tokenize();
+        $tokens = $lexer->tokenizeToArray();
         $this->assertNotEmpty($tokens);
     }
 
     public function test_lexer_posix_in_char_class(): void
     {
         $lexer = new Lexer('[[:alpha:][:digit:]]');
-        $tokens = $lexer->tokenize();
+        $tokens = $lexer->tokenizeToArray();
         $this->assertNotEmpty($tokens);
     }
 
     public function test_lexer_backref_variations(): void
     {
         $lexer = new Lexer('\\1\\k<name>\\k{name}');
-        $tokens = $lexer->tokenize();
+        $tokens = $lexer->tokenizeToArray();
         $this->assertNotEmpty($tokens);
     }
 
     public function test_lexer_g_reference_all_forms(): void
     {
         $lexer = new Lexer('\\g1\\g{1}\\g<name>\\g-1\\g+1');
-        $tokens = $lexer->tokenize();
+        $tokens = $lexer->tokenizeToArray();
         $this->assertNotEmpty($tokens);
     }
 
     public function test_lexer_pcre_verbs(): void
     {
         $lexer = new Lexer('(*ACCEPT)(*FAIL)(*MARK:name)');
-        $tokens = $lexer->tokenize();
+        $tokens = $lexer->tokenizeToArray();
         $this->assertNotEmpty($tokens);
     }
 
     public function test_lexer_quote_mode_with_backslash(): void
     {
         $lexer = new Lexer('\\Q\\\\E');
-        $tokens = $lexer->tokenize();
+        $tokens = $lexer->tokenizeToArray();
         $this->assertNotEmpty($tokens);
     }
 
     public function test_lexer_quote_mode_with_metacharacters(): void
     {
         $lexer = new Lexer('\\Q.*+?^$[](){}|\\E');
-        $tokens = $lexer->tokenize();
+        $tokens = $lexer->tokenizeToArray();
         $this->assertNotEmpty($tokens);
     }
 }
