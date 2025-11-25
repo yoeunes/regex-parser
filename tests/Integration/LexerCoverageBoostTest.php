@@ -247,21 +247,21 @@ class LexerCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_parser_with_quote_mode(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
         $parser->parse('/\Qtest.*\E/');
     }
 
     #[DoesNotPerformAssertions]
     public function test_parser_with_special_escapes(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
         $parser->parse('/\t\n\r/');
     }
 
     #[DoesNotPerformAssertions]
     public function test_parser_with_unicode_props(): void
     {
-        $parser = new Parser([]);
+        $parser = new Parser();
 
         $patterns = [
             '/\p{L}/',

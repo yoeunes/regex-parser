@@ -41,7 +41,7 @@ class ExtendedCoverageTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->parser = new Parser([]);
+        $this->compiler = new RegexCompiler([]);
         $this->explainVisitor = new ExplainVisitor();
         $this->htmlExplainVisitor = new HtmlExplainVisitor();
         $this->optimizerVisitor = new OptimizerNodeVisitor();

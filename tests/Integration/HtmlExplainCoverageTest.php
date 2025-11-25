@@ -28,7 +28,7 @@ class HtmlExplainCoverageTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->parser = new Parser([]);
+        $this->compiler = new RegexCompiler([]);
         $this->visitor = new HtmlExplainVisitor();
     }
 

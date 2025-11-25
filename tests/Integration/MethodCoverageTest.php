@@ -27,7 +27,7 @@ class MethodCoverageTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->parser = new Parser([]);
+        $this->compiler = new RegexCompiler([]);
     }
 
     /**
