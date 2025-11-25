@@ -11,7 +11,7 @@ tasks:
 
     phpunit: vendor/bin/phpunit {{.CLI_ARGS}}
 
-    bench: tools/phpbench/vendor/bin/phpbench run --report=default {{.CLI_ARGS}}
+    phpbench: tools/phpbench/vendor/bin/phpbench run tests/Benchmark --report=default {{.CLI_ARGS}}
 
     lint:
         cmds:
