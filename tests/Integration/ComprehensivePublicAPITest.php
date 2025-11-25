@@ -40,19 +40,19 @@ class ComprehensivePublicAPITest extends TestCase
     public function test_create_returns_regex_instance(): void
     {
         $regex = Regex::create();
-        $this->assertInstanceOf(Regex::class, $regex);
+        $this->assertSame(Regex::class, $regex::class);
     }
 
     public function test_create_with_options_accepts_max_pattern_length(): void
     {
         $regex = Regex::create(['max_pattern_length' => 1000]);
-        $this->assertInstanceOf(Regex::class, $regex);
+        $this->assertSame(Regex::class, $regex::class);
     }
 
     public function test_create_without_options_works(): void
     {
         $regex = Regex::create([]);
-        $this->assertInstanceOf(Regex::class, $regex);
+        $this->assertSame(Regex::class, $regex::class);
     }
 
     // ============================================================================
@@ -62,7 +62,7 @@ class ComprehensivePublicAPITest extends TestCase
     public function test_parse_simple_literal_returns_regex_node(): void
     {
         $ast = $this->regex->parse('/hello/');
-        $this->assertInstanceOf(RegexNode::class, $ast);
+        $this->assertSame('/', $ast->delimiter);
     }
 
     public function test_parse_preserves_delimiter(): void
@@ -93,79 +93,79 @@ class ComprehensivePublicAPITest extends TestCase
     public function test_parse_capturing_groups(): void
     {
         $ast = $this->regex->parse('/(foo)(bar)/');
-        $this->assertInstanceOf(RegexNode::class, $ast);
+        $this->assertSame('/', $ast->delimiter);
     }
 
     public function test_parse_named_groups(): void
     {
         $ast = $this->regex->parse('/(?<name>\w+)/');
-        $this->assertInstanceOf(RegexNode::class, $ast);
+        $this->assertSame('/', $ast->delimiter);
     }
 
     public function test_parse_non_capturing_groups(): void
     {
         $ast = $this->regex->parse('/(?:foo|bar)/');
-        $this->assertInstanceOf(RegexNode::class, $ast);
+        $this->assertSame('/', $ast->delimiter);
     }
 
     public function test_parse_lookahead(): void
     {
         $ast = $this->regex->parse('/foo(?=bar)/');
-        $this->assertInstanceOf(RegexNode::class, $ast);
+        $this->assertSame('/', $ast->delimiter);
     }
 
     public function test_parse_lookbehind(): void
     {
         $ast = $this->regex->parse('/(?<=foo)bar/');
-        $this->assertInstanceOf(RegexNode::class, $ast);
+        $this->assertSame('/', $ast->delimiter);
     }
 
     public function test_parse_branch_reset_groups(): void
     {
         $ast = $this->regex->parse('/(?|(a)|(b))/');
-        $this->assertInstanceOf(RegexNode::class, $ast);
+        $this->assertSame('/', $ast->delimiter);
     }
 
     public function test_parse_quantifiers_greedy(): void
     {
         $ast = $this->regex->parse('/a+b*c?d{2,5}/');
-        $this->assertInstanceOf(RegexNode::class, $ast);
+        $this->assertSame('/', $ast->delimiter);
     }
 
     public function test_parse_quantifiers_lazy(): void
     {
         $ast = $this->regex->parse('/a+?b*?c??d{2,5}?/');
-        $this->assertInstanceOf(RegexNode::class, $ast);
+        $this->assertSame('/', $ast->delimiter);
     }
 
     public function test_parse_quantifiers_possessive(): void
     {
         $ast = $this->regex->parse('/a++b*+c?+/');
-        $this->assertInstanceOf(RegexNode::class, $ast);
+        $this->assertSame('/', $ast->delimiter);
     }
 
     public function test_parse_character_classes(): void
     {
         $ast = $this->regex->parse('/[a-z0-9_]+/');
-        $this->assertInstanceOf(RegexNode::class, $ast);
+        $this->assertSame('/', $ast->delimiter);
     }
 
     public function test_parse_anchors(): void
     {
         $ast = $this->regex->parse('/^start.*end$/');
-        $this->assertInstanceOf(RegexNode::class, $ast);
+        $this->assertSame('/', $ast->delimiter);
     }
 
     public function test_parse_backreferences(): void
     {
         $ast = $this->regex->parse('/(foo)\1/');
-        $this->assertInstanceOf(RegexNode::class, $ast);
+        $this->assertSame('/', $ast->delimiter);
     }
 
     public function test_parse_unicode_properties(): void
     {
         $ast = $this->regex->parse('/\p{L}+/u');
-        $this->assertInstanceOf(RegexNode::class, $ast);
+        $this->assertSame('/', $ast->delimiter);
     }
 
     public function test_parse_throws_exception_for_invalid_pattern(): void
@@ -187,7 +187,7 @@ class ComprehensivePublicAPITest extends TestCase
     public function test_validate_simple_pattern_returns_valid_result(): void
     {
         $result = $this->regex->validate('/hello/');
-        $this->assertInstanceOf(ValidationResult::class, $result);
+        $this->assertSame(ValidationResult::class, $result::class);
         $this->assertTrue($result->isValid);
         $this->assertNull($result->error);
     }
@@ -219,7 +219,7 @@ class ComprehensivePublicAPITest extends TestCase
         $result = $this->regex->validate('/(a|a)*/');
         // Note: Current implementation may not catch all alternation ReDoS cases
         // This is marked as a known limitation
-        $this->assertInstanceOf(ValidationResult::class, $result);
+        $this->assertSame(ValidationResult::class, $result::class);
     }
 
     public function test_validate_safe_bounded_quantifiers(): void
@@ -575,7 +575,7 @@ class ComprehensivePublicAPITest extends TestCase
     public function test_builder_returns_regex_builder_instance(): void
     {
         $builder = Regex::builder();
-        $this->assertInstanceOf(\RegexParser\Builder\RegexBuilder::class, $builder);
+        $this->assertSame(\RegexParser\Builder\RegexBuilder::class, $builder::class);
     }
 
     // ============================================================================
@@ -585,25 +585,25 @@ class ComprehensivePublicAPITest extends TestCase
     public function test_parse_empty_alternation(): void
     {
         $ast = $this->regex->parse('/(|foo)/');
-        $this->assertInstanceOf(RegexNode::class, $ast);
+        $this->assertSame('/', $ast->delimiter);
     }
 
     public function test_parse_atomic_groups(): void
     {
         $ast = $this->regex->parse('/(?>foo|bar)/');
-        $this->assertInstanceOf(RegexNode::class, $ast);
+        $this->assertSame('/', $ast->delimiter);
     }
 
     public function test_parse_conditional_pattern(): void
     {
         $ast = $this->regex->parse('/(?(1)yes|no)/');
-        $this->assertInstanceOf(RegexNode::class, $ast);
+        $this->assertSame('/', $ast->delimiter);
     }
 
     public function test_parse_comment(): void
     {
         $ast = $this->regex->parse('/foo(?#comment)bar/');
-        $this->assertInstanceOf(RegexNode::class, $ast);
+        $this->assertSame('/', $ast->delimiter);
     }
 
     public function test_validate_multiple_patterns_sequentially(): void

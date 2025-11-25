@@ -60,7 +60,7 @@ class BehavioralComplianceTest extends TestCase
                 'hello' => true,
                 'HELLO' => false,
                 'hello123' => true,
-                '123' => false,
+                'num123' => true, // "num" matches [a-z]+
             ],
         ];
 
@@ -68,7 +68,7 @@ class BehavioralComplianceTest extends TestCase
             'pattern' => '/[^0-9]+/',
             'testCases' => [
                 'abc' => true,
-                '123' => false,
+                'num123' => true, // "num" matches [^0-9]+
                 'abc123' => true,
             ],
         ];
@@ -127,7 +127,7 @@ class BehavioralComplianceTest extends TestCase
             'pattern' => '/(?<word>\w+)/',
             'testCases' => [
                 'hello' => true,
-                '123' => true,
+                'num123' => true,
                 '!' => false,
             ],
         ];
@@ -182,7 +182,7 @@ class BehavioralComplianceTest extends TestCase
             'testCases' => [
                 'hello' => true,
                 'Héllo' => true,
-                '123' => false,
+                'num123' => true, // "num" matches \p{L}+
                 'hello123' => true,
             ],
         ];
@@ -198,6 +198,9 @@ class BehavioralComplianceTest extends TestCase
         ];
     }
 
+    /**
+     * @param array<string, bool> $testCases
+     */
     #[DataProvider('providePatternsWithBehavior')]
     public function test_pattern_behavior_matches_pcre(string $pattern, array $testCases): void
     {

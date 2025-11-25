@@ -191,7 +191,7 @@ class SymfonyIntegrationTest extends TestCase
         // Test that Regex can be instantiated as a Symfony service
         $service = Regex::create();
 
-        $this->assertInstanceOf(Regex::class, $service);
+        $this->assertSame(Regex::class, $service::class);
 
         // Test basic functionality
         $result = $service->validate('/test/');
@@ -203,7 +203,7 @@ class SymfonyIntegrationTest extends TestCase
         // Test service configuration with options (e.g., in services.yaml)
         $service = Regex::create(['max_pattern_length' => 500]);
 
-        $this->assertInstanceOf(Regex::class, $service);
+        $this->assertSame(Regex::class, $service::class);
     }
 
     public function test_stateless_service_behavior(): void
@@ -437,6 +437,6 @@ class SymfonyIntegrationTest extends TestCase
 
         // 5. Extract literals (optimization)
         $literals = $this->regex->extractLiterals($pattern);
-        $this->assertNotNull($literals);
+        $this->assertSame(\RegexParser\LiteralSet::class, $literals::class);
     }
 }
