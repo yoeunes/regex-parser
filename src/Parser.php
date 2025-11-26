@@ -188,7 +188,7 @@ final class Parser
         if (null !== $this->cache) {
             try {
                 $this->cache->set($cacheKey, $ast);
-            } catch (InvalidArgumentException $e) {
+            } catch (InvalidArgumentException) {
                 // Cache write failed - log would be nice but not critical
                 // Continue without caching
             }

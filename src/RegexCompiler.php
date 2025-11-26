@@ -76,7 +76,7 @@ final class RegexCompiler
 
     private ?Lexer $lexer = null;
 
-    private Parser $parser;
+    private readonly Parser $parser;
 
     /**
      * @param array{

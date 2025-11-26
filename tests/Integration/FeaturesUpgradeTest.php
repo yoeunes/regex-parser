@@ -15,7 +15,6 @@ namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\Builder\RegexBuilder;
-use RegexParser\NodeVisitor\MermaidVisitor;
 use RegexParser\Parser;
 use RegexParser\ParserOptions;
 use RegexParser\Regex;
