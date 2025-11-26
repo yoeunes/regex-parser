@@ -21,9 +21,7 @@ A robust, extensible PCRE regex parser for PHP that transforms complex regex pat
 - ✓ Behavioral compliance testing against PHP's PCRE engine
 - ✓ 27/27 validation tests + 19/19 behavioral tests (128 assertions)
 - ✓ **Comprehensive testing completed: 140 tests, 284 assertions, 100% pass rate**
-- ✓ **Integration testing validated: Symfony, Rector, PHPStan**
-
-**Recommendation:** Ready for production use with experimental notice. Suitable for development, testing, and integration into existing projects.
+- ✓ **Integration: Symfony, Rector, PHPStan**
 
 ---
 
@@ -566,7 +564,6 @@ php vendor/bin/php-cs-fixer fix --dry-run
 **Issue: Pattern fails to parse**
 - Check the pattern uses valid PCRE syntax
 - Review error message for specific issue location
-- See [VALIDATION_REPORT.md](VALIDATION_REPORT.md) for known limitations
 
 **Issue: ReDoS false positives**
 - Update to latest version (false positives fixed in recent releases)
@@ -578,7 +575,6 @@ php vendor/bin/php-cs-fixer fix --dry-run
 
 ### Getting Help
 
-- 📖 Check [VALIDATION_REPORT.md](VALIDATION_REPORT.md) for known issues
 - 🐛 [Open an issue](https://github.com/yoeunes/regex-parser/issues) on GitHub
 - 💬 Describe your pattern, expected behavior, and actual behavior
 - 📎 Include code samples and error messages
@@ -605,20 +601,7 @@ This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) f
 
 ---
 
-## 🙏 Acknowledgments
-
-Built with modern PHP practices, inspired by the need for better regex tooling and static analysis capabilities.
-
-**Key Technologies:**
-- PHP 8.4+ with strict types
-- Visitor pattern for extensible AST traversal
-- Comprehensive PHPUnit test suite
-- Modern development tooling (PHPStan, Rector, PHP-CS-Fixer)
-
----
-
 ## 📚 Further Reading
 
-- [VALIDATION_REPORT.md](VALIDATION_REPORT.md) - Detailed validation findings and test results
 - [PCRE Specification](https://www.pcre.org/current/doc/html/pcre2syntax.html) - Official PCRE syntax reference
 - [ReDoS Explained](https://owasp.org/www-community/attacks/Regular_expression_Denial_of_Service_-_ReDoS) - Understanding Regular Expression Denial of Service
