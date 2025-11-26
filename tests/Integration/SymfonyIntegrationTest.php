@@ -325,7 +325,8 @@ class SymfonyIntegrationTest extends TestCase
         $this->assertIsString($serialized);
 
         $unserialized = unserialize($serialized);
-        $this->assertSame($ast, $unserialized);
+        // After serialize/unserialize, objects are equal but not same reference
+        $this->assertEquals($ast, $unserialized);
     }
 
     public function test_validation_result_caching(): void
@@ -337,7 +338,7 @@ class SymfonyIntegrationTest extends TestCase
         $result2 = $this->regex->validate($pattern);
 
         // Results should be consistent (equal values, not necessarily same object)
-        $this->assertSame($result1, $result2);
+        $this->assertEquals($result1, $result2);
         $this->assertTrue($result1->isValid);
         $this->assertTrue($result2->isValid);
     }
