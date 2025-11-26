@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\Benchmark;
 
+use PhpBench\Attributes\BeforeMethods;
 use PhpBench\Attributes\Iterations;
 use PhpBench\Attributes\Revs;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
@@ -26,6 +27,7 @@ use RegexParser\Parser;
  */
 #[Iterations(5)]
 #[Revs(1000)]
+#[BeforeMethods('setUp')]
 class ParserBench
 {
     private Parser $parser;
@@ -39,14 +41,6 @@ class ParserBench
         $this->parser = new Parser();
         $this->compiler = new CompilerNodeVisitor();
         $this->explainer = new ExplainVisitor();
-    }
-
-    /**
-     * @return array<int, string>
-     */
-    public function beforeMethods(): array
-    {
-        return ['setUp'];
     }
 
     /**
@@ -75,7 +69,7 @@ class ParserBench
      */
     public function benchDeeplyNested(): void
     {
-        $this->parser->parse('/((((((((((a)))))))))))/');
+        $this->parser->parse('/((((((((((a))))))))))/');
     }
 
     /**
