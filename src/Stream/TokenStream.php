@@ -24,11 +24,6 @@ use RegexParser\TokenType;
 final class TokenStream
 {
     /**
-     * @var \Generator<int, Token>
-     */
-    private \Generator $generator;
-
-    /**
      * Buffer for lookahead tokens.
      *
      * @var array<int, Token>
@@ -55,9 +50,8 @@ final class TokenStream
     /**
      * @param \Generator<int, Token> $generator
      */
-    public function __construct(\Generator $generator)
+    public function __construct(private readonly \Generator $generator)
     {
-        $this->generator = $generator;
         // Pre-fill buffer with first token
         $this->fillBuffer(1);
     }

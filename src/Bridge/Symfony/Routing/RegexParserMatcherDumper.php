@@ -27,15 +27,12 @@ use RegexParser\Parser;
  *       '/api/v\d+/users' => 'ApiUserAction',
  *   ]);
  */
-final class RegexParserMatcherDumper
+final readonly class RegexParserMatcherDumper
 {
-    private Parser $parser;
-
     private LiteralExtractorVisitor $literalExtractor;
 
-    public function __construct(?Parser $parser = null)
+    public function __construct(private ?Parser $parser = new Parser())
     {
-        $this->parser = $parser ?? new Parser();
         $this->literalExtractor = new LiteralExtractorVisitor();
     }
 
@@ -98,7 +95,7 @@ final class RegexParserMatcherDumper
                 $ast = $this->parser->parse($pattern);
                 $literals = $ast->accept($this->literalExtractor);
                 $prefix = reset($literals) ?: '';
-            } catch (\Exception $e) {
+            } catch (\Exception) {
                 // If parsing fails, treat pattern as non-optimizable
                 $prefix = '';
             }

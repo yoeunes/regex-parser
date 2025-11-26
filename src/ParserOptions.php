@@ -23,24 +23,6 @@ namespace RegexParser;
 final readonly class ParserOptions
 {
     /**
-     * Maximum pattern length in characters.
-     * Prevents processing extremely large patterns that could exhaust memory.
-     */
-    public int $maxPatternLength;
-
-    /**
-     * Maximum number of AST nodes to create during parsing.
-     * Prevents DoS through node exhaustion.
-     */
-    public int $maxNodes;
-
-    /**
-     * Maximum recursion depth during recursive descent parsing.
-     * Prevents stack overflow attacks on deeply nested patterns.
-     */
-    public int $maxRecursionDepth;
-
-    /**
      * Create parser options with default values.
      *
      * @param int $maxPatternLength  Maximum pattern length (default: 10,000)
@@ -48,14 +30,10 @@ final readonly class ParserOptions
      * @param int $maxRecursionDepth Maximum recursion depth (default: 250)
      */
     public function __construct(
-        int $maxPatternLength = 10_000,
-        int $maxNodes = 10_000,
-        int $maxRecursionDepth = 250,
-    ) {
-        $this->maxPatternLength = $maxPatternLength;
-        $this->maxNodes = $maxNodes;
-        $this->maxRecursionDepth = $maxRecursionDepth;
-    }
+        public int $maxPatternLength = 10_000,
+        public int $maxNodes = 10_000,
+        public int $maxRecursionDepth = 250
+    ) {}
 
     /**
      * Create options from an array configuration.
