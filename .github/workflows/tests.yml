@@ -46,7 +46,7 @@ jobs:
         run: composer install --no-interaction --no-progress --prefer-dist
 
       - name: Run unit tests
-        run: ./vendor/bin/phpunit tests/Unit/ --colors=always --testdox
+        run: ./vendor/bin/phpunit tests/ --colors=always --testdox
 
       - name: Run integration tests
         run: ./vendor/bin/phpunit tests/Integration/ --colors=always --testdox
