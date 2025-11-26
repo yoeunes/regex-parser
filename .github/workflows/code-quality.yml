@@ -65,7 +65,7 @@ jobs:
           tools: composer:v2
 
       - name: Install dependencies
-        run: composer install -w tools/rector --no-interaction
+        run: composer install -d tools/rector --no-interaction
 
       - name: Run Rector (dry-run)
         run: tools/rector/vendor/bin/rector process --dry-run
@@ -84,7 +84,7 @@ jobs:
           php-version: '8.4'
 
       - name: Install dependencies
-        run: composer install -w tools/phplint --no-interaction
+        run: composer install -d tools/phplint --no-interaction
 
       - name: Run PHP Lint
         run: tools/phplint/vendor/bin/phplint --no-cache
