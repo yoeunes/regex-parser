@@ -20,6 +20,9 @@ parameters:
 
     excludePaths:
         - src/Bundle/*
+        - config/rector/*
+        - rector/*
+        - tests/Benchmark/*
 
     bootstrapFiles:
 #        - tools/rector/vendor/autoload.php
