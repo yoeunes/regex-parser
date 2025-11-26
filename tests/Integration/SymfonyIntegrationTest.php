@@ -325,6 +325,7 @@ class SymfonyIntegrationTest extends TestCase
         $this->assertIsString($serialized);
 
         $unserialized = unserialize($serialized);
+        // After serialize/unserialize, objects are equal but not same reference
         $this->assertSame($ast, $unserialized);
     }
 

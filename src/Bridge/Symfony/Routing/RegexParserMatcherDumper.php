@@ -92,9 +92,13 @@ final readonly class RegexParserMatcherDumper
 
         foreach ($routePatterns as $pattern => $name) {
             try {
-                $ast = $this->parser->parse($pattern);
-                $literals = $ast->accept($this->literalExtractor);
-                $prefix = reset($literals) ?: '';
+                if (null === $this->parser) {
+                    $prefix = '';
+                } else {
+                    $ast = $this->parser->parse($pattern);
+                    $literals = $ast->accept($this->literalExtractor);
+                    $prefix = reset($literals) ?: '';
+                }
             } catch (\Exception) {
                 // If parsing fails, treat pattern as non-optimizable
                 $prefix = '';
