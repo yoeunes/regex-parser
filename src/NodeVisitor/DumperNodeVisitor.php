@@ -21,6 +21,7 @@ use RegexParser\Node\CharClassNode;
 use RegexParser\Node\CharTypeNode;
 use RegexParser\Node\CommentNode;
 use RegexParser\Node\ConditionalNode;
+use RegexParser\Node\DefineNode;
 use RegexParser\Node\DotNode;
 use RegexParser\Node\GroupNode;
 use RegexParser\Node\KeepNode;
@@ -205,6 +206,16 @@ class DumperNodeVisitor implements NodeVisitorInterface
     public function visitPcreVerb(PcreVerbNode $node): string
     {
         return "PcreVerb(value: {$node->verb})";
+    }
+
+    public function visitDefine(DefineNode $node): string
+    {
+        $str = "Define:\n";
+        $this->indent += 2;
+        $str .= $this->indent('Content: '.$node->content->accept($this))."\n";
+        $this->indent -= 2;
+
+        return $str;
     }
 
     private function indent(string $str): string
