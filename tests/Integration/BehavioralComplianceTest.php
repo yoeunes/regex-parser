@@ -87,7 +87,7 @@ class BehavioralComplianceTest extends TestCase
         yield 'anchors' => [
             'pattern' => '/^test$/',
             'testCases' => [
-                'test' => false,
+                'test' => true,
                 'testing' => false,
             ],
         ];

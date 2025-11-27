@@ -71,7 +71,7 @@ class ValidatorNodeVisitorTest extends TestCase
     public function test_throws_on_invalid_range_with_char_type(): void
     {
         $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('Invalid range at position 1: ranges must be between literal characters (e.g., "a-z"). Found non-literal.');
+        $this->expectExceptionMessage('Invalid range at position 1: ranges must be between literal characters or single escape sequences.');
 
         // This regex is invalid because \d is not a literal
         $this->validate('/[a-\d]/');

@@ -21,6 +21,7 @@ use RegexParser\Node\CharClassNode;
 use RegexParser\Node\CharTypeNode;
 use RegexParser\Node\CommentNode;
 use RegexParser\Node\ConditionalNode;
+use RegexParser\Node\DefineNode;
 use RegexParser\Node\DotNode;
 use RegexParser\Node\GroupNode;
 use RegexParser\Node\GroupType;
@@ -284,6 +285,17 @@ class ExplainVisitor implements NodeVisitorInterface
     public function visitPcreVerb(PcreVerbNode $node): string
     {
         return 'PCRE Verb: (*'.$node->verb.')';
+    }
+
+    public function visitDefine(DefineNode $node): string
+    {
+        $this->indentLevel++;
+        $content = $node->content->accept($this);
+        $this->indentLevel--;
+
+        $indent = $this->indent();
+
+        return \sprintf("DEFINE Block (defines subpatterns without matching):\n%s%s\n%sEnd DEFINE Block", $indent, $content, $this->indent(false));
     }
 
     private function explainQuantifierValue(string $q, string $type): string

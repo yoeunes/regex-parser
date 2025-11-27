@@ -256,9 +256,10 @@ class ComplexityScoreVisitor implements NodeVisitorInterface
         return self::COMPLEX_CONSTRUCT_SCORE;
     }
 
-    public function visitDefine(DefineNode $node): mixed
+    public function visitDefine(DefineNode $node): int
     {
-        return null;
+        // DEFINE blocks add complexity from their content
+        return self::COMPLEX_CONSTRUCT_SCORE + $node->content->accept($this);
     }
 }
 

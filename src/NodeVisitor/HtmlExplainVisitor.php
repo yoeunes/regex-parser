@@ -21,6 +21,7 @@ use RegexParser\Node\CharClassNode;
 use RegexParser\Node\CharTypeNode;
 use RegexParser\Node\CommentNode;
 use RegexParser\Node\ConditionalNode;
+use RegexParser\Node\DefineNode;
 use RegexParser\Node\DotNode;
 use RegexParser\Node\GroupNode;
 use RegexParser\Node\GroupType;
@@ -367,6 +368,16 @@ class HtmlExplainVisitor implements NodeVisitorInterface
         return \sprintf(
             '<li><span title="PCRE Verb">PCRE Verb: <strong>(*%s)</strong></span></li>',
             $this->e($node->verb),
+        );
+    }
+
+    public function visitDefine(DefineNode $node): string
+    {
+        $content = $node->content->accept($this);
+
+        return \sprintf(
+            "<li><strong>DEFINE Block</strong> (defines subpatterns without matching):\n<ul>%s</ul>\n</li>",
+            $content,
         );
     }
 
