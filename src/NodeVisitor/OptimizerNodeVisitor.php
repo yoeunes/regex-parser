@@ -21,6 +21,7 @@ use RegexParser\Node\CharClassNode;
 use RegexParser\Node\CharTypeNode;
 use RegexParser\Node\CommentNode;
 use RegexParser\Node\ConditionalNode;
+use RegexParser\Node\DefineNode;
 use RegexParser\Node\DotNode;
 use RegexParser\Node\GroupNode;
 use RegexParser\Node\GroupType;
@@ -364,6 +365,15 @@ class OptimizerNodeVisitor implements NodeVisitorInterface
     public function visitPcreVerb(PcreVerbNode $node): NodeInterface
     {
         return $node;
+    }
+
+    public function visitDefine(DefineNode $node): NodeInterface
+    {
+        return new DefineNode(
+            $node->content->accept($this),
+            $node->startPos,
+            $node->endPos,
+        );
     }
 
     /**
