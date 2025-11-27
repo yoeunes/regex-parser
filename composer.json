@@ -25,9 +25,7 @@
     },
     "autoload": {
         "psr-4": {
-            "RegexParser\\": "src/",
-            "RegexParser\\PHPStan\\": "phpstan/",
-            "RegexParser\\Rector\\": "rector/"
+            "RegexParser\\": "src/"
         }
     },
     "autoload-dev": {
