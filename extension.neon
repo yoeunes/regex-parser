@@ -10,4 +10,8 @@
 #         tags:
 #             - phpstan.rules.rule
 
-services: []
+services:
+     -
+         class: RegexParser\PHPStan\PregValidationRule
+         tags:
+             - phpstan.rules.rule

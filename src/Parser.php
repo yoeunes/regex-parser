@@ -931,6 +931,14 @@ final class Parser
     {
         $startPos = $this->current()->position;
 
+        // This handles the PCRE feature where (?(DEFINE)...) allows defining subroutines
+        // without matching them immediately.
+        if ($this->matchLiteral('DEFINE')) {
+            // We return a special AssertionNode. The Validator needs to treat 'DEFINE'
+            // assertions as valid conditions for this to fully work.
+            return new AssertionNode('DEFINE', $startPos, $this->current()->position);
+        }
+
         if ($this->check(TokenType::T_LITERAL) && ctype_digit($this->current()->value)) {
             $this->advance();
             $num = (string) ($this->previous()->value.$this->consumeWhile(fn (string $c) => ctype_digit($c)));
@@ -956,7 +964,7 @@ final class Parser
             return $this->parseLookaroundCondition($startPos);
         }
 
-        // Bare name check
+        // Bare name check (for conditions like (?(name)...))
         if ($this->check(TokenType::T_LITERAL)) {
             $savedPos = $this->stream->getPosition();
             $name = '';

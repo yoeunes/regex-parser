@@ -292,19 +292,51 @@ final class ValidatorNodeVisitor implements NodeVisitorInterface
      */
     public function visitRange(RangeNode $node): void
     {
-        // A range must be between two single-character literals
-        if (!$node->start instanceof LiteralNode || !$node->end instanceof LiteralNode) {
-            throw new ParserException(\sprintf('Invalid range at position %d: ranges must be between literal characters (e.g., "a-z"). Found non-literal.', $node->startPos));
+        // 1. Validation: Ensure start and end nodes represent a single character.
+        // We allow LiteralNode, but also UnicodeNode, OctalNode, etc.
+        if (!$this->isSingleCharNode($node->start) || !$this->isSingleCharNode($node->end)) {
+            throw new ParserException(\sprintf(
+                'Invalid range at position %d: ranges must be between literal characters or single escape sequences. Found %s and %s.',
+                $node->startPos,
+                get_class($node->start),
+                get_class($node->end)
+            ));
         }
 
-        if (mb_strlen($node->start->value) > 1 || mb_strlen($node->end->value) > 1) {
-            throw new ParserException(\sprintf('Invalid range at position %d: range parts must be single characters.', $node->startPos));
+        // 2. Validation: Ensure characters are single-byte or single codepoint (for LiteralNodes).
+        if ($node->start instanceof LiteralNode && mb_strlen($node->start->value) > 1) {
+            throw new ParserException(\sprintf('Invalid range at position %d: start char must be a single character.', $node->startPos));
+        }
+        if ($node->end instanceof LiteralNode && mb_strlen($node->end->value) > 1) {
+            throw new ParserException(\sprintf('Invalid range at position %d: end char must be a single character.', $node->startPos));
         }
 
-        // Check ASCII/Unicode code point values
-        if (mb_ord($node->start->value) > mb_ord($node->end->value)) {
-            throw new ParserException(\sprintf('Invalid range "%s-%s" at position %d: start character comes after end character.', $node->start->value, $node->end->value, $node->startPos));
+        // 3. Validation: ASCII/Unicode order check.
+        // Note: We only strictly compare two LiteralNodes here to avoid complex cross-type decoding logic.
+        if ($node->start instanceof LiteralNode && $node->end instanceof LiteralNode) {
+            if (mb_ord($node->start->value) > mb_ord($node->end->value)) {
+                throw new ParserException(\sprintf(
+                    'Invalid range "%s-%s" at position %d: start character comes after end character.',
+                    $node->start->value,
+                    $node->end->value,
+                    $node->startPos
+                ));
+            }
         }
+    }
+
+    /**
+     * Helper to check if a node represents a valid single character for a range.
+     */
+    private function isSingleCharNode(NodeInterface $node): bool
+    {
+        return $node instanceof LiteralNode
+            || $node instanceof UnicodeNode
+            || $node instanceof OctalNode
+            || $node instanceof OctalLegacyNode
+            // CharTypeNode (e.g., \d) is technically invalid in a standard PCRE range start/end,
+            // but we exclude it here to remain spec-compliant unless lenient mode is desired.
+            ;
     }
 
     /**

@@ -99,13 +99,31 @@ final class ReDoSProfileVisitor implements NodeVisitorInterface
 
     public function visitQuantifier(QuantifierNode $node): ReDoSSeverity
     {
-        if ($this->inAtomicGroup || QuantifierType::T_POSSESSIVE === $node->type) {
-            return $node->node->accept($this);
+        // Save the current atomic state to restore it later
+        $wasAtomic = $this->inAtomicGroup;
+
+        // If the quantifier is possessive (*+, ++), its content is implicitly atomic.
+        // This means it does not backtrack, preventing ReDoS in nested structures.
+        if (QuantifierType::T_POSSESSIVE === $node->type) {
+            $this->inAtomicGroup = true;
         }
+
+        // If we are inside an atomic group (explicit or via possessive quantifier),
+        // we visit the child without ReDoS checks (as backtracking is disabled),
+        // then restore the state and return immediately.
+        if ($this->inAtomicGroup) {
+            $result = $node->node->accept($this);
+            $this->inAtomicGroup = $wasAtomic; // Restore state is crucial here!
+
+            return $result;
+        }
+
+        // --- Standard ReDoS logic for non-atomic quantifiers ---
 
         $this->totalQuantifierDepth++;
         $isUnbounded = $this->isUnbounded($node->quantifier);
 
+        // Check if the immediate target is an atomic group (e.g., (? >...)+)
         $isTargetAtomic = $node->node instanceof GroupNode && GroupType::T_GROUP_ATOMIC === $node->node->type;
 
         $severity = ReDoSSeverity::SAFE;
@@ -161,6 +179,9 @@ final class ReDoSProfileVisitor implements NodeVisitorInterface
             $this->unboundedQuantifierDepth--;
         }
         $this->totalQuantifierDepth--;
+
+        // Restore state (just in case, though the early return handles the true case)
+        $this->inAtomicGroup = $wasAtomic;
 
         return $this->maxSeverity($severity, $childSeverity);
     }
