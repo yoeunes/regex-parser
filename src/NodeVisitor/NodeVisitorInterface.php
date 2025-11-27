@@ -21,6 +21,7 @@ use RegexParser\Node\CharClassNode;
 use RegexParser\Node\CharTypeNode;
 use RegexParser\Node\CommentNode;
 use RegexParser\Node\ConditionalNode;
+use RegexParser\Node\DefineNode;
 use RegexParser\Node\DotNode;
 use RegexParser\Node\GroupNode;
 use RegexParser\Node\KeepNode;
@@ -159,4 +160,9 @@ interface NodeVisitorInterface
      * @return TReturn
      */
     public function visitPcreVerb(PcreVerbNode $node);
+
+    /**
+     * @return TReturn
+     */
+    public function visitDefine(DefineNode $node);
 }
