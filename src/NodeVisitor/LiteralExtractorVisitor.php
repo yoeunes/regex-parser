@@ -22,6 +22,7 @@ use RegexParser\Node\CharClassNode;
 use RegexParser\Node\CharTypeNode;
 use RegexParser\Node\CommentNode;
 use RegexParser\Node\ConditionalNode;
+use RegexParser\Node\DefineNode;
 use RegexParser\Node\DotNode;
 use RegexParser\Node\GroupNode;
 use RegexParser\Node\KeepNode;
@@ -289,6 +290,12 @@ final class LiteralExtractorVisitor implements NodeVisitorInterface
     public function visitPcreVerb(PcreVerbNode $node): LiteralSet
     {
         return LiteralSet::fromString('');
+    }
+
+    public function visitDefine(DefineNode $node): LiteralSet
+    {
+        // DEFINE blocks don't produce any literal matches
+        return LiteralSet::empty();
     }
 
     /**

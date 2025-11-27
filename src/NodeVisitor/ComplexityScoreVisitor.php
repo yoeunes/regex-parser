@@ -21,6 +21,7 @@ use RegexParser\Node\CharClassNode;
 use RegexParser\Node\CharTypeNode;
 use RegexParser\Node\CommentNode;
 use RegexParser\Node\ConditionalNode;
+use RegexParser\Node\DefineNode;
 use RegexParser\Node\DotNode;
 use RegexParser\Node\GroupNode;
 use RegexParser\Node\GroupType;
@@ -254,4 +255,11 @@ class ComplexityScoreVisitor implements NodeVisitorInterface
     {
         return self::COMPLEX_CONSTRUCT_SCORE;
     }
+
+    public function visitDefine(DefineNode $node): int
+    {
+        // DEFINE blocks add complexity from their content
+        return self::COMPLEX_CONSTRUCT_SCORE + $node->content->accept($this);
+    }
 }
+

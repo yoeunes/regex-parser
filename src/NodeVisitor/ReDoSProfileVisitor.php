@@ -21,6 +21,7 @@ use RegexParser\Node\CharClassNode;
 use RegexParser\Node\CharTypeNode;
 use RegexParser\Node\CommentNode;
 use RegexParser\Node\ConditionalNode;
+use RegexParser\Node\DefineNode;
 use RegexParser\Node\DotNode;
 use RegexParser\Node\GroupNode;
 use RegexParser\Node\GroupType;
@@ -322,6 +323,12 @@ final class ReDoSProfileVisitor implements NodeVisitorInterface
     public function visitSubroutine(SubroutineNode $node): ReDoSSeverity
     {
         return ReDoSSeverity::MEDIUM;
+    }
+
+    public function visitDefine(DefineNode $node): ReDoSSeverity
+    {
+        // Analyze the content of the DEFINE block for ReDoS vulnerabilities
+        return $node->content->accept($this);
     }
 
     private function isUnbounded(string $quantifier): bool

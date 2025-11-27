@@ -26,6 +26,7 @@ use RegexParser\Node\CharClassNode;
 use RegexParser\Node\CharTypeNode;
 use RegexParser\Node\CommentNode;
 use RegexParser\Node\ConditionalNode;
+use RegexParser\Node\DefineNode;
 use RegexParser\Node\DotNode;
 use RegexParser\Node\GroupNode;
 use RegexParser\Node\GroupType;
@@ -855,7 +856,7 @@ final class Parser
         throw new ParserException(\sprintf('Invalid group modifier syntax at position %d', $startPos));
     }
 
-    private function parseConditional(int $startPos, bool $isModifier): ConditionalNode
+    private function parseConditional(int $startPos, bool $isModifier): ConditionalNode|DefineNode
     {
         if ($isModifier) {
             // Inline Lookaround condition
@@ -867,6 +868,14 @@ final class Parser
         }
 
         $yes = $this->parseAlternation();
+
+        // Special case: (?(DEFINE)...) creates a DefineNode instead of ConditionalNode
+        if ($condition instanceof AssertionNode && 'DEFINE' === $condition->value) {
+            $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
+            $endPos = $endToken->position + 1;
+
+            return new DefineNode($yes, $startPos, $endPos);
+        }
 
         // Note: The "no" branch (ELSE) is implicitly handled by parseAlternation returning an AlternationNode.
         // If the "yes" branch is an alternation (a|b), then "b" is the ELSE branch.
@@ -933,10 +942,20 @@ final class Parser
 
         // This handles the PCRE feature where (?(DEFINE)...) allows defining subroutines
         // without matching them immediately.
-        if ($this->matchLiteral('DEFINE')) {
-            // We return a special AssertionNode. The Validator needs to treat 'DEFINE'
-            // assertions as valid conditions for this to fully work.
-            return new AssertionNode('DEFINE', $startPos, $this->current()->position);
+        // We need to check for 'DEFINE' by peeking at multiple tokens since the lexer
+        // tokenizes each character separately.
+        if ($this->check(TokenType::T_LITERAL) && 'D' === $this->current()->value) {
+            $savedPos = $this->stream->getPosition();
+            $word = '';
+            while ($this->check(TokenType::T_LITERAL) && ctype_alpha($this->current()->value)) {
+                $word .= $this->current()->value;
+                $this->advance();
+            }
+            if ('DEFINE' === $word && $this->check(TokenType::T_GROUP_CLOSE)) {
+                return new AssertionNode('DEFINE', $startPos, $this->current()->position);
+            }
+            // Not DEFINE, restore position
+            $this->stream->setPosition($savedPos);
         }
 
         if ($this->check(TokenType::T_LITERAL) && ctype_digit($this->current()->value)) {

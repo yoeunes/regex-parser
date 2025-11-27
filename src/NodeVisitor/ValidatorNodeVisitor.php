@@ -22,6 +22,7 @@ use RegexParser\Node\CharClassNode;
 use RegexParser\Node\CharTypeNode;
 use RegexParser\Node\CommentNode;
 use RegexParser\Node\ConditionalNode;
+use RegexParser\Node\DefineNode;
 use RegexParser\Node\DotNode;
 use RegexParser\Node\GroupNode;
 use RegexParser\Node\GroupType;
@@ -298,8 +299,8 @@ final class ValidatorNodeVisitor implements NodeVisitorInterface
             throw new ParserException(\sprintf(
                 'Invalid range at position %d: ranges must be between literal characters or single escape sequences. Found %s and %s.',
                 $node->startPos,
-                get_class($node->start),
-                get_class($node->end)
+                \get_class($node->start),
+                \get_class($node->end),
             ));
         }
 
@@ -319,24 +320,10 @@ final class ValidatorNodeVisitor implements NodeVisitorInterface
                     'Invalid range "%s-%s" at position %d: start character comes after end character.',
                     $node->start->value,
                     $node->end->value,
-                    $node->startPos
+                    $node->startPos,
                 ));
             }
         }
-    }
-
-    /**
-     * Helper to check if a node represents a valid single character for a range.
-     */
-    private function isSingleCharNode(NodeInterface $node): bool
-    {
-        return $node instanceof LiteralNode
-            || $node instanceof UnicodeNode
-            || $node instanceof OctalNode
-            || $node instanceof OctalLegacyNode
-            // CharTypeNode (e.g., \d) is technically invalid in a standard PCRE range start/end,
-            // but we exclude it here to remain spec-compliant unless lenient mode is desired.
-            ;
     }
 
     /**
@@ -596,6 +583,24 @@ final class ValidatorNodeVisitor implements NodeVisitorInterface
         if (!isset(self::VALID_PCRE_VERBS[$verbName])) {
             throw new ParserException(\sprintf('Invalid or unsupported PCRE verb: "%s" at position %d.', $verbName, $node->startPos));
         }
+    }
+
+    public function visitDefine(DefineNode $node): void
+    {
+        $node->content->accept($this);
+    }
+
+    /**
+     * Helper to check if a node represents a valid single character for a range.
+     */
+    private function isSingleCharNode(NodeInterface $node): bool
+    {
+        return $node instanceof LiteralNode
+            || $node instanceof UnicodeNode
+            || $node instanceof OctalNode
+            || $node instanceof OctalLegacyNode;
+        // CharTypeNode (e.g., \d) is technically invalid in a standard PCRE range start/end,
+        // but we exclude it here to remain spec-compliant unless lenient mode is desired.
     }
 
     /**

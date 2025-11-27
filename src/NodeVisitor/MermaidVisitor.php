@@ -21,6 +21,7 @@ use RegexParser\Node\CharClassNode;
 use RegexParser\Node\CharTypeNode;
 use RegexParser\Node\CommentNode;
 use RegexParser\Node\ConditionalNode;
+use RegexParser\Node\DefineNode;
 use RegexParser\Node\DotNode;
 use RegexParser\Node\GroupNode;
 use RegexParser\Node\KeepNode;
@@ -282,6 +283,17 @@ class MermaidVisitor implements NodeVisitorInterface
     {
         $nodeId = $this->nextNodeId();
         $this->lines[] = \sprintf('    %s["PcreVerb: %s"]', $nodeId, $this->escape($node->verb));
+
+        return $nodeId;
+    }
+
+    public function visitDefine(DefineNode $node): string
+    {
+        $nodeId = $this->nextNodeId();
+        $this->lines[] = \sprintf('    %s["DEFINE Block"]', $nodeId);
+
+        $contentId = $node->content->accept($this);
+        $this->lines[] = \sprintf('    %s --> %s', $nodeId, $contentId);
 
         return $nodeId;
     }
