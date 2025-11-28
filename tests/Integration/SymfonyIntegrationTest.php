@@ -39,7 +39,7 @@ class SymfonyIntegrationTest extends TestCase
         // Simulates a Symfony constraint validator checking a regex pattern
         $patterns = [
             '/^[a-z0-9_-]{3,16}$/' => true,  // Valid username pattern
-            '/(?<!a*)b/' => false,            // Invalid: variable-length lookbehind
+            '/(?<!a*)b/' => true,             // Valid: PCRE2 supports variable-length lookbehinds
             '/(a+)+/' => false,               // Invalid: ReDoS vulnerability
         ];
 

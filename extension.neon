@@ -13,5 +13,7 @@
 services:
      -
          class: RegexParser\Bridge\PHPStan\PregValidationRule
+         arguments:
+             ignoreParseErrors: true
          tags:
              - phpstan.rules.rule

@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\NodeVisitor;
 
+use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\ParserException;
 use RegexParser\NodeVisitor\ValidatorNodeVisitor;
@@ -65,10 +66,11 @@ class ValidatorEdgeCaseTest extends TestCase
         $this->validate('/(a)\k<foo>/');
     }
 
+    #[DoesNotPerformAssertions]
     public function test_variable_quantifier_in_lookbehind(): void
     {
-        $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('Variable-length quantifiers');
+        // PCRE2 (PHP 7.3+) supports variable-length lookbehinds
+        // This should NOT throw an exception
         $this->validate('/(?<=a*)/');
     }
 

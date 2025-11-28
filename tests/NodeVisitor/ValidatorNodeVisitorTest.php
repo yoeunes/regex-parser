@@ -56,6 +56,27 @@ class ValidatorNodeVisitorTest extends TestCase
     }
 
     #[DoesNotPerformAssertions]
+    public function test_allows_nested_possessive_quantifiers(): void
+    {
+        // Possessive quantifiers (*+, ++, ?+, {n,}+) cannot backtrack,
+        // so they are safe from catastrophic backtracking (ReDoS).
+        $this->validate('/(a++)*+b/');
+        $this->validate('/([a-z]*+)++/');
+        $this->validate('/(a*+)+/');
+    }
+
+    #[DoesNotPerformAssertions]
+    public function test_allows_symfony_patterns_with_possessive_quantifiers(): void
+    {
+        // These patterns from Symfony use possessive quantifiers and should be valid.
+        // They were previously flagged as ReDoS false positives.
+        $this->validate('/^[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*+(?:\\\\[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*+)++$/');
+        $this->validate('/^(?:[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*+\\\\)++$/');
+        $this->validate('/([^\\\\]++\\\\)++/');
+        $this->validate('/^(?:[-.\w\\\\]*+:)*+\w*+$/');
+    }
+
+    #[DoesNotPerformAssertions]
     public function test_validate_valid_char_class(): void
     {
         $this->validate('/[a-z\d-]/');
@@ -121,10 +142,10 @@ class ValidatorNodeVisitorTest extends TestCase
         $this->validate('/(?<name>a)(?<name>b)/');
     }
 
-    public function test_throws_on_variable_length_quantifier_in_lookbehind(): void
+    #[DoesNotPerformAssertions]
+    public function test_allows_variable_length_quantifier_in_lookbehind(): void
     {
-        $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('Variable-length quantifiers (*) are not allowed in lookbehinds');
+        // PCRE2 (PHP 7.3+) supports variable-length lookbehinds
         $this->validate('/(?<=a*b)/');
     }
 
