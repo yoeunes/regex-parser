@@ -11,10 +11,10 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Bundle;
+namespace RegexParser\Bridge\Symfony;
 
-use RegexParser\Bundle\Service\TraceableRouter;
-use RegexParser\Bundle\Service\TraceableValidator;
+use RegexParser\Bridge\Symfony\Service\TraceableRouter;
+use RegexParser\Bridge\Symfony\Service\TraceableValidator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Reference;

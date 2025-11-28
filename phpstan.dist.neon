@@ -13,15 +13,13 @@ parameters:
     paths:
         - bin
         - config
-        - phpstan
-        - rector
         - src
         - tests
 
     excludePaths:
-        - src/Bundle/*
+        - src/Bridge/Symfony/*
+        - src/Bridge/Rector/*
         - config/rector/*
-        - rector/*
         - tests/Benchmark/*
 
     bootstrapFiles:

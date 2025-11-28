@@ -12,8 +12,8 @@ declare(strict_types=1);
  */
 
 use Rector\Config\RectorConfig;
+use RegexParser\Bridge\Rector\RegexOptimizationRector;
 use RegexParser\NodeVisitor\OptimizerNodeVisitor;
-use RegexParser\Rector\RegexOptimizationRector;
 
 return static function (RectorConfig $rectorConfig): void {
     $rectorConfig->singleton(OptimizerNodeVisitor::class);

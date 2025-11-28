@@ -11,9 +11,9 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Bundle\Service;
+namespace RegexParser\Bridge\Symfony\Service;
 
-use RegexParser\Bundle\DataCollector\RegexCollector;
+use RegexParser\Bridge\Symfony\DataCollector\RegexCollector;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
 use Symfony\Component\Routing\Matcher\RequestMatcherInterface;

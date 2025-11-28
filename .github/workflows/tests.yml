@@ -2,9 +2,9 @@ name: Tests
 
 on:
   push:
-    branches: [ main, dev ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, dev ]
+    branches: [ main ]
 
 jobs:
   test:
@@ -16,9 +16,7 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         php-version: ['8.4']
-        # Future: Add PHP 8.3, 8.2 when ready
-        # php-version: ['8.2', '8.3', '8.4']
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Bundle\DataCollector;
+namespace RegexParser\Bridge\Symfony\DataCollector;
 
 /**
  * A DTO for holding regex information before analysis.

@@ -12,6 +12,6 @@
 
 services:
      -
-         class: RegexParser\PHPStan\PregValidationRule
+         class: RegexParser\Bridge\PHPStan\PregValidationRule
          tags:
              - phpstan.rules.rule
