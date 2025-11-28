@@ -262,4 +262,3 @@ class ComplexityScoreVisitor implements NodeVisitorInterface
         return self::COMPLEX_CONSTRUCT_SCORE + $node->content->accept($this);
     }
 }
-

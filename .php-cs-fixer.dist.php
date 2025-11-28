@@ -87,7 +87,7 @@ return (new PhpCsFixer\Config())
         'php_unit_dedicate_assert_internal_type' => true,
         'php_unit_mock' => true,
         'php_unit_mock_short_will_return' => true,
-        'php_unit_strict' => true,
+        'php_unit_strict' => false,
         'php_unit_test_case_static_method_calls' => false,
         'phpdoc_add_missing_param_annotation' => true,
         'phpdoc_line_span' => true,

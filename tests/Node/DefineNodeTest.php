@@ -127,7 +127,7 @@ class DefineNodeTest extends TestCase
         if ($node instanceof SequenceNode) {
             foreach ($node->children as $child) {
                 $result = $this->findDefineNode($child);
-                if ($result !== null) {
+                if (null !== $result) {
                     return $result;
                 }
             }
@@ -145,14 +145,14 @@ class DefineNodeTest extends TestCase
      */
     private function findFirstNamedGroup(mixed $node): ?GroupNode
     {
-        if ($node instanceof GroupNode && $node->type === GroupType::T_GROUP_NAMED) {
+        if ($node instanceof GroupNode && GroupType::T_GROUP_NAMED === $node->type) {
             return $node;
         }
 
         if ($node instanceof SequenceNode) {
             foreach ($node->children as $child) {
                 $result = $this->findFirstNamedGroup($child);
-                if ($result !== null) {
+                if (null !== $result) {
                     return $result;
                 }
             }
