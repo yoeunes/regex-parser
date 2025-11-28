@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Bundle\DependencyInjection;
+namespace RegexParser\Bridge\Symfony\DependencyInjection;
 
 use RegexParser\Parser;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;

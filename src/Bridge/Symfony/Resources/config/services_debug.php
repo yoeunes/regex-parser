@@ -13,9 +13,9 @@ declare(strict_types=1);
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
-use RegexParser\Bundle\DataCollector\RegexCollector;
-use RegexParser\Bundle\Service\TraceableRouter;
-use RegexParser\Bundle\Service\TraceableValidator;
+use RegexParser\Bridge\Symfony\DataCollector\RegexCollector;
+use RegexParser\Bridge\Symfony\Service\TraceableRouter;
+use RegexParser\Bridge\Symfony\Service\TraceableValidator;
 use Symfony\Component\Routing\RouterInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 

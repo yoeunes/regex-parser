@@ -11,9 +11,9 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Bundle\Service;
+namespace RegexParser\Bridge\Symfony\Service;
 
-use RegexParser\Bundle\DataCollector\RegexCollector;
+use RegexParser\Bridge\Symfony\DataCollector\RegexCollector;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\Constraints\Regex;
 use Symfony\Component\Validator\ConstraintViolationListInterface;
