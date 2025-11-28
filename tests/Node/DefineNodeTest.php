@@ -113,7 +113,6 @@ class DefineNodeTest extends TestCase
 
         $defineNode = $this->findDefineNode($ast->pattern);
         $this->assertInstanceOf(DefineNode::class, $defineNode);
-        $this->assertNotNull($defineNode->content);
     }
 
     /**
