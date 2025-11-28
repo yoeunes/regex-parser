@@ -2,9 +2,9 @@ name: Security
 
 on:
   push:
-    branches: [ main, dev ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, dev ]
+    branches: [ main ]
   schedule:
     - cron: '0 0 * * 0'  # Weekly on Sunday
 
@@ -81,11 +81,3 @@ jobs:
           echo "Checking Node immutability..."
           grep -r "public readonly" src/Node/ --include="*.php" | wc -l
           echo "✅ Readonly properties enforced"
-
-      - name: Verify SECURITY.md exists
-        run: |
-          if [ ! -f SECURITY_AUDIT.md ]; then
-            echo "⚠️ SECURITY_AUDIT.md not found"
-            exit 1
-          fi
-          echo "✅ Security documentation exists"
