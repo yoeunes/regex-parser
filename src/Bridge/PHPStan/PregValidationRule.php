@@ -19,6 +19,7 @@ use PhpParser\Node\Name;
 use PHPStan\Analyser\Scope;
 use PHPStan\Rules\Rule;
 use PHPStan\Rules\RuleErrorBuilder;
+use RegexParser\Exception\ParserException;
 use RegexParser\NodeVisitor\ValidatorNodeVisitor;
 use RegexParser\Parser;
 use RegexParser\ValidationResult;
@@ -39,9 +40,19 @@ final class PregValidationRule implements Rule
         'preg_grep' => 0,
     ];
 
+    /**
+     * Common PCRE delimiters.
+     */
+    private const string VALID_DELIMITERS = '/~#%@!';
+
     private ?Parser $parser = null;
 
     private ?ValidatorNodeVisitor $validator = null;
+
+    public function __construct(
+        private readonly bool $ignoreParseErrors = true,
+    ) {
+    }
 
     public function getNodeType(): string
     {
@@ -83,11 +94,23 @@ final class PregValidationRule implements Rule
         foreach ($constantStrings as $constantString) {
             $pattern = $constantString->getValue();
 
+            // Skip validation if pattern doesn't look like a complete regex
+            if (!$this->looksLikeCompleteRegex($pattern)) {
+                continue;
+            }
+
             try {
                 $ast = $this->getParser()->parse($pattern);
                 $validator = $this->getValidator();
                 $ast->accept($validator);
                 $result = new ValidationResult(true);
+            } catch (ParserException $e) {
+                // Handle parse errors (syntax issues) based on configuration
+                if ($this->ignoreParseErrors && $this->isLikelyPartialRegexError($e->getMessage())) {
+                    // Skip validation for likely partial/incomplete patterns
+                    continue;
+                }
+                $result = new ValidationResult(false, $e->getMessage());
             } catch (\Exception $e) {
                 $result = new ValidationResult(false, $e->getMessage());
             }
@@ -103,6 +126,51 @@ final class PregValidationRule implements Rule
         }
 
         return $errors;
+    }
+
+    /**
+     * Checks if the pattern looks like a complete regex with valid delimiters.
+     */
+    private function looksLikeCompleteRegex(string $pattern): bool
+    {
+        if (\strlen($pattern) < 2) {
+            return false;
+        }
+
+        $firstChar = $pattern[0];
+
+        // Check if pattern starts with a valid delimiter
+        if (!str_contains(self::VALID_DELIMITERS, $firstChar)) {
+            return false;
+        }
+
+        // Check if pattern ends with the same delimiter (possibly followed by flags)
+        // Find the closing delimiter position
+        $lastDelimiterPos = strrpos($pattern, $firstChar, 1);
+
+        return false !== $lastDelimiterPos && $lastDelimiterPos > 0;
+    }
+
+    /**
+     * Determines if a parse error suggests a partial/incomplete regex string.
+     */
+    private function isLikelyPartialRegexError(string $errorMessage): bool
+    {
+        $partialRegexIndicators = [
+            'No closing delimiter',
+            'Regex too short',
+            'Unknown modifier',
+            'Invalid delimiter',
+            'Unexpected end',
+        ];
+
+        foreach ($partialRegexIndicators as $indicator) {
+            if (stripos($errorMessage, $indicator) !== false) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function getParser(): Parser

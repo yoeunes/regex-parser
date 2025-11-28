@@ -34,6 +34,7 @@ use RegexParser\Node\OctalNode;
 use RegexParser\Node\PcreVerbNode;
 use RegexParser\Node\PosixClassNode;
 use RegexParser\Node\QuantifierNode;
+use RegexParser\Node\QuantifierType;
 use RegexParser\Node\RangeNode;
 use RegexParser\Node\RegexNode;
 use RegexParser\Node\SequenceNode;
@@ -71,6 +72,7 @@ final class ValidatorNodeVisitor implements NodeVisitorInterface
         'CR' => true, 'LF' => true, 'CRLF' => true,
         'BSR_ANYCRLF' => true, 'BSR_UNICODE' => true,
         'NO_AUTO_POSSESS' => true,
+        'script_run' => true, 'atomic_script_run' => true,
     ];
 
     private const array VALID_POSIX_CLASSES = [
@@ -134,23 +136,8 @@ final class ValidatorNodeVisitor implements NodeVisitorInterface
      */
     public function visitAlternation(AlternationNode $node): void
     {
-        if ($this->inLookbehind) {
-            $lengths = [];
-            foreach ($node->alternatives as $alt) {
-                $length = $this->calculateFixedLength($alt);
-                if (null === $length) {
-                    throw new ParserException(\sprintf('Variable-length alternation branch in lookbehind at position %d.', $alt->getStartPosition()));
-                }
-                $lengths[] = $length;
-            }
-
-            $firstLength = $lengths[0] ?? null;
-            foreach ($lengths as $length) {
-                if ($length !== $firstLength) {
-                    throw new ParserException(\sprintf('Alternation branches in lookbehind must have the same fixed length at position %d.', $node->startPos));
-                }
-            }
-        }
+        // Note: PHP 7.3+ (PCRE2) supports variable-length lookbehinds,
+        // so we no longer enforce fixed-length or same-length alternation restrictions.
 
         foreach ($node->alternatives as $alt) {
             $alt->accept($this);
@@ -213,17 +200,16 @@ final class ValidatorNodeVisitor implements NodeVisitorInterface
 
         $isUnbounded = -1 === $max; // *, +, or {n,}
 
-        // 2. Validate quantifiers inside lookbehinds
-        if ($this->inLookbehind) {
-            // Strict check: Lookbehinds must be fixed length.
-            // Any quantifier that allows variable length (min != max) is invalid.
-            if ($min !== $max) {
-                throw new ParserException(\sprintf('Variable-length quantifiers (%s) are not allowed in lookbehinds at position %d.', $node->quantifier, $node->startPos));
-            }
-        }
+        // Possessive quantifiers (*+, ++, ?+, {n,}+) cannot backtrack,
+        // so they are safe from catastrophic backtracking (ReDoS).
+        $isPossessive = QuantifierType::T_POSSESSIVE === $node->type;
 
-        // 3. Check for Catastrophic Backtracking (ReDoS)
-        if ($isUnbounded) {
+        // Note: PHP 7.3+ (PCRE2) supports variable-length lookbehinds,
+        // so we no longer enforce fixed-length restrictions here.
+
+        // 2. Check for Catastrophic Backtracking (ReDoS)
+        // Only non-possessive unbounded quantifiers can cause ReDoS.
+        if ($isUnbounded && !$isPossessive) {
             if ($this->quantifierDepth > 0) {
                 throw new ParserException(\sprintf('Potential catastrophic backtracking (ReDoS): nested unbounded quantifier "%s" at position %d.', $node->quantifier, $node->startPos));
             }
@@ -232,7 +218,7 @@ final class ValidatorNodeVisitor implements NodeVisitorInterface
 
         $node->node->accept($this);
 
-        if ($isUnbounded) {
+        if ($isUnbounded && !$isPossessive) {
             $this->quantifierDepth--;
         }
     }

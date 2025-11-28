@@ -240,11 +240,11 @@ class ComprehensivePublicAPITest extends TestCase
         $this->assertStringContainsString('backreference', strtolower((string) $result->error));
     }
 
-    public function test_validate_detects_variable_length_lookbehind(): void
+    public function test_validate_allows_variable_length_lookbehind(): void
     {
+        // PCRE2 (PHP 7.3+) supports variable-length lookbehinds
         $result = $this->regex->validate('/(?<!a*)b/');
-        $this->assertFalse($result->isValid);
-        $this->assertStringContainsString('lookbehind', strtolower((string) $result->error));
+        $this->assertTrue($result->isValid, 'Variable-length lookbehind should be valid in PCRE2');
     }
 
     public function test_validate_allows_fixed_length_lookbehind(): void
