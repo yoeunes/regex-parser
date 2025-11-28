@@ -168,7 +168,7 @@ class SymfonyCompatibilityTest extends TestCase
         // Verify the rule is properly configured and can be instantiated
         // The actual partial pattern handling is tested via the processNode method
         // which requires PHPStan's Scope and Node infrastructure
-        $this->assertSame('PhpParser\Node\Expr\FuncCall', $rule->getNodeType());
+        $this->assertSame(\PhpParser\Node\Expr\FuncCall::class, $rule->getNodeType());
     }
 
     public function test_phpstan_rule_validates_complete_patterns(): void
@@ -182,7 +182,7 @@ class SymfonyCompatibilityTest extends TestCase
         $rule = new PregValidationRule(ignoreParseErrors: true);
 
         // Complete patterns should be validated
-        $this->assertSame('PhpParser\Node\Expr\FuncCall', $rule->getNodeType());
+        $this->assertSame(\PhpParser\Node\Expr\FuncCall::class, $rule->getNodeType());
     }
 
     public function test_phpstan_rule_with_ignore_parse_errors_disabled(): void
@@ -196,7 +196,7 @@ class SymfonyCompatibilityTest extends TestCase
         $rule = new PregValidationRule(ignoreParseErrors: false);
 
         // Verify the rule is properly configured
-        $this->assertSame('PhpParser\Node\Expr\FuncCall', $rule->getNodeType());
+        $this->assertSame(\PhpParser\Node\Expr\FuncCall::class, $rule->getNodeType());
     }
 
     // ============================================================================

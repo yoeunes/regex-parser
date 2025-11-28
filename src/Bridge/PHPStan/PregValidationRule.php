@@ -51,8 +51,7 @@ final class PregValidationRule implements Rule
 
     public function __construct(
         private readonly bool $ignoreParseErrors = true,
-    ) {
-    }
+    ) {}
 
     public function getNodeType(): string
     {
@@ -164,13 +163,7 @@ final class PregValidationRule implements Rule
             'Unexpected end',
         ];
 
-        foreach ($partialRegexIndicators as $indicator) {
-            if (stripos($errorMessage, $indicator) !== false) {
-                return true;
-            }
-        }
-
-        return false;
+        return array_any($partialRegexIndicators, fn ($indicator) => false !== stripos($errorMessage, (string) $indicator));
     }
 
     private function getParser(): Parser
