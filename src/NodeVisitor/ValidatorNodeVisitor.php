@@ -299,8 +299,8 @@ final class ValidatorNodeVisitor implements NodeVisitorInterface
             throw new ParserException(\sprintf(
                 'Invalid range at position %d: ranges must be between literal characters or single escape sequences. Found %s and %s.',
                 $node->startPos,
-                \get_class($node->start),
-                \get_class($node->end),
+                $node->start::class,
+                $node->end::class,
             ));
         }
 
