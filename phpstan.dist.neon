@@ -17,8 +17,8 @@ parameters:
         - tests
 
     excludePaths:
-        - src/Bundle/*
-        - src/Rector/*
+        - src/Bridge/Symfony/*
+        - src/Bridge/Rector/*
         - config/rector/*
         - tests/Benchmark/*
 
