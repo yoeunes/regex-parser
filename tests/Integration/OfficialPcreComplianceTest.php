@@ -56,7 +56,7 @@ final class OfficialPcreComplianceTest extends TestCase
         if (!$nativeValid) {
             if (null !== $parseException) {
                 // Success: Native rejects it, and we reject it too.
-                $this->addToAssertionCount(1);
+                $this->assertNotEmpty($parseException->getMessage(), 'Native PHP and Parser both rejected the invalid pattern.');
 
                 return;
             }
@@ -124,6 +124,7 @@ final class OfficialPcreComplianceTest extends TestCase
             return [];
         }
 
+        /** @var array $patterns */
         $patterns = require $file;
 
         foreach ($patterns as $pattern) {
