@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full antialiased">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RegexParser // Studio</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        slate: { 850: '#1e293b', 900: '#0f172a' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* UX Enhancements */
+        .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 3px; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
+
+        summary::-webkit-details-marker { display: none; }
+
+        .code-preview {
+            background-image: radial-gradient(#e2e8f0 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        .preset-card.active {
+            border-color: #6366f1;
+            background-color: #f5f3ff;
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col text-slate-800 bg-white">
+
+    <nav class="h-14 border-b border-slate-200 flex items-center justify-between px-4 bg-white z-20 sticky top-0">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-slate-900 text-white rounded-lg flex items-center justify-center shadow-md">
+                <i class="fa-solid fa-code-branch text-sm"></i>
+            </div>
+            <div class="flex flex-col">
+                <h1 class="font-bold text-sm text-slate-900 leading-none">RegexParser</h1>
+                <span class="text-[10px] font-medium text-slate-500 uppercase tracking-wider mt-0.5">Studio (WASM)</span>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-4">
+            <div id="perf-badge" class="hidden inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 border border-slate-200 text-[10px] font-mono font-medium text-slate-600">
+                <i class="fa-solid fa-bolt text-amber-500"></i> <span id="perf-val">0ms</span>
+            </div>
+            <a href="https://github.com/yoeunes/regex-parser" target="_blank" class="text-slate-400 hover:text-slate-900 transition-colors">
+                <i class="fa-brands fa-github text-xl"></i>
+            </a>
+        </div>
+    </nav>
+
+    <div class="flex flex-1 overflow-hidden">
+        <aside class="w-[340px] bg-slate-50 border-r border-slate-200 flex flex-col overflow-hidden">
+            <form id="regexForm" class="flex flex-col h-full" onsubmit="return false;">
+
+                <div class="p-4 border-b border-slate-200 bg-white">
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Current Pattern</label>
+                        <span class="text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">PCRE2</span>
+                    </div>
+                    <div class="relative">
+                        <input type="text" id="regex" name="regex"
+                               class="block w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-mono text-slate-700 shadow-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+                               placeholder="/expression/i"
+                               autocomplete="off" spellcheck="false">
+                    </div>
+                </div>
+
+                <div class="flex-1 overflow-y-auto custom-scroll p-4">
+
+                    <div class="mb-6">
+                        <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3 px-1">Actions</div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button onclick="runAction('parse')" class="tool-btn active" data-action="parse">
+                                <i class="fa-solid fa-code text-sm"></i>
+                                <span class="text-[11px] font-medium leading-tight">Parse AST</span>
+                            </button>
+                            <button onclick="runAction('validate')" class="tool-btn" data-action="validate">
+                                <i class="fa-solid fa-check-double text-sm"></i>
+                                <span class="text-[11px] font-medium leading-tight">Validate</span>
+                            </button>
+                            <button onclick="runAction('explain')" class="tool-btn" data-action="explain">
+                                <i class="fa-solid fa-list-ul text-sm"></i>
+                                <span class="text-[11px] font-medium leading-tight">Explain</span>
+                            </button>
+                            <button onclick="runAction('generate')" class="tool-btn" data-action="generate">
+                                <i class="fa-solid fa-shuffle text-sm"></i>
+                                <span class="text-[11px] font-medium leading-tight">Generate</span>
+                            </button>
+                            <button onclick="runAction('redos')" class="tool-btn" data-action="redos">
+                                <i class="fa-solid fa-shield-virus text-sm"></i>
+                                <span class="text-[11px] font-medium leading-tight">Security</span>
+                            </button>
+                            <button onclick="runAction('literals')" class="tool-btn" data-action="literals">
+                                <i class="fa-solid fa-filter text-sm"></i>
+                                <span class="text-[11px] font-medium leading-tight">Optimize</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3 px-1">Pattern Library</div>
+                        <div class="space-y-2" id="preset-list">
+
+                            <div onclick="setPattern(this, '/^[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,}$/i', 'parse')"
+                                 class="preset-card group bg-white border border-slate-200 rounded-lg p-2.5 cursor-pointer hover:border-indigo-400 hover:shadow-sm transition-all"
+                                 id="default-preset">
+                                <div class="flex items-center gap-2 mb-1.5">
+                                    <i class="fa-solid fa-envelope text-xs text-indigo-500"></i>
+                                    <span class="text-xs font-semibold text-slate-700 group-hover:text-indigo-600">Email Validation</span>
+                                </div>
+                                <div class="text-[10px] font-mono text-slate-500 bg-slate-50 px-1.5 py-1 rounded border border-slate-100 truncate">/^[a-z0-9._%+-]+@...</div>
+                            </div>
+
+                            <div onclick="setPattern(this, '/^(?<year>\\d{4})-(?<month>\\d{2})-(?<day>\\d{2})$/', 'parse')"
+                                 class="preset-card group bg-white border border-slate-200 rounded-lg p-2.5 cursor-pointer hover:border-indigo-400 hover:shadow-sm transition-all">
+                                <div class="flex items-center gap-2 mb-1.5">
+                                    <i class="fa-solid fa-calendar text-xs text-slate-400"></i>
+                                    <span class="text-xs font-semibold text-slate-700 group-hover:text-indigo-600">ISO Date (Named Groups)</span>
+                                </div>
+                                <div class="text-[10px] font-mono text-slate-500 bg-slate-50 px-1.5 py-1 rounded border border-slate-100 truncate">/^(?&lt;year&gt;\d{4})...</div>
+                            </div>
+
+                            <div onclick="setPattern(this, '/(a+)+b/', 'redos')"
+                                  class="preset-card group bg-white border border-slate-200 rounded-lg p-2.5 cursor-pointer hover:border-rose-300 hover:shadow-sm transition-all">
+                                <div class="flex items-center gap-2 mb-1.5">
+                                    <i class="fa-solid fa-bomb text-xs text-rose-500"></i>
+                                    <span class="text-xs font-semibold text-slate-700 group-hover:text-rose-600">ReDoS Exploit</span>
+                                </div>
+                                <div class="text-[10px] font-mono text-slate-500 bg-slate-50 px-1.5 py-1 rounded border border-slate-100 truncate">/(a+)+b/</div>
+                            </div>
+
+                            <div onclick="setPattern(this, '/^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/', 'explain')"
+                                 class="preset-card group bg-white border border-slate-200 rounded-lg p-2.5 cursor-pointer hover:border-indigo-400 hover:shadow-sm transition-all">
+                                <div class="flex items-center gap-2 mb-1.5">
+                                    <i class="fa-solid fa-network-wired text-xs text-slate-400"></i>
+                                    <span class="text-xs font-semibold text-slate-700 group-hover:text-indigo-600">IPv4 Address</span>
+                                </div>
+                                <div class="text-[10px] font-mono text-slate-500 bg-slate-50 px-1.5 py-1 rounded border border-slate-100 truncate">/^(?:(?:25[0-5]...</div>
+                            </div>
+
+                            <div onclick="setPattern(this, '/^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$/', 'explain')"
+                                 class="preset-card group bg-white border border-slate-200 rounded-lg p-2.5 cursor-pointer hover:border-indigo-400 hover:shadow-sm transition-all">
+                                <div class="flex items-center gap-2 mb-1.5">
+                                    <i class="fa-solid fa-lock text-xs text-slate-400"></i>
+                                    <span class="text-xs font-semibold text-slate-700 group-hover:text-indigo-600">Strong Password</span>
+                                </div>
+                                <div class="text-[10px] font-mono text-slate-500 bg-slate-50 px-1.5 py-1 rounded border border-slate-100 truncate">/^(?=.*[A-Z])...</div>
+                            </div>
+
+                            <div onclick="setPattern(this, '/<(?<tag>\\w+)[^>]*>(.*?)<\\/\\k<tag>>/s', 'parse')"
+                                 class="preset-card group bg-white border border-slate-200 rounded-lg p-2.5 cursor-pointer hover:border-indigo-400 hover:shadow-sm transition-all">
+                                <div class="flex items-center gap-2 mb-1.5">
+                                    <i class="fa-brands fa-html5 text-xs text-orange-500"></i>
+                                    <span class="text-xs font-semibold text-slate-700 group-hover:text-indigo-600">HTML Tag (Backref)</span>
+                                </div>
+                                <div class="text-[10px] font-mono text-slate-500 bg-slate-50 px-1.5 py-1 rounded border border-slate-100 truncate">/&lt;(?&lt;tag&gt;\w+)...</div>
+                            </div>
+
+                             <div onclick="setPattern(this, '/^\\[(?<date>\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2})\\] (?<level>INFO|ERROR|WARN): (?<msg>.*)$/m', 'generate')"
+                                 class="preset-card group bg-white border border-slate-200 rounded-lg p-2.5 cursor-pointer hover:border-indigo-400 hover:shadow-sm transition-all">
+                                <div class="flex items-center gap-2 mb-1.5">
+                                    <i class="fa-solid fa-file-lines text-xs text-slate-400"></i>
+                                    <span class="text-xs font-semibold text-slate-700 group-hover:text-indigo-600">Log Line Parser</span>
+                                </div>
+                                <div class="text-[10px] font-mono text-slate-500 bg-slate-50 px-1.5 py-1 rounded border border-slate-100 truncate">/^\[(?&lt;date&gt;...</div>
+                            </div>
+
+                            <div onclick="setPattern(this, '/(?<=price: )\\$\\d+\\.\\d{2}/', 'literals')"
+                                 class="preset-card group bg-white border border-slate-200 rounded-lg p-2.5 cursor-pointer hover:border-indigo-400 hover:shadow-sm transition-all">
+                                <div class="flex items-center gap-2 mb-1.5">
+                                    <i class="fa-solid fa-eye text-xs text-slate-400"></i>
+                                    <span class="text-xs font-semibold text-slate-700 group-hover:text-indigo-600">Positive Lookbehind</span>
+                                </div>
+                                <div class="text-[10px] font-mono text-slate-500 bg-slate-50 px-1.5 py-1 rounded border border-slate-100 truncate">/(?&lt;=price: )...</div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </aside>
+
+        <main class="flex-1 bg-white overflow-hidden flex flex-col relative code-preview">
+            <div id="result-container" class="flex-1 overflow-y-auto custom-scroll">
+                <div class="flex flex-col items-center justify-center h-full p-20 text-center opacity-60">
+                    <div class="w-20 h-20 bg-slate-100 rounded-2xl flex items-center justify-center mb-6">
+                        <i class="fa-solid fa-microchip text-3xl text-indigo-300"></i>
+                    </div>
+                    <p class="text-lg font-medium text-slate-600">Booting PHP Engine...</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script type="module">
+        import { PhpWeb } from 'https://unpkg.com/php-wasm/PhpWeb.mjs';
+
+        let php = null;
+        const resultContainer = document.getElementById('result-container');
+        let libraryLoaded = false;
+
+        // Boot WASM Engine and Load Library
+        async function initPHP() {
+            if (php) return;
+
+            resultContainer.innerHTML = `
+                <div class="flex flex-col items-center justify-center h-full">
+                    <i class="fa-solid fa-circle-notch fa-spin text-3xl text-indigo-500 mb-4"></i>
+                    <p class="text-slate-500 text-xs font-mono">Booting PHP Engine & Loading Library...</p>
+                </div>`;
+
+            php = new PhpWeb;
+            // Initialize the engine
+            await php.run('<?php echo "Ready"; ?>');
+
+            if (!libraryLoaded) {
+                try {
+                    // Fetch the bundled JSON containing source files
+                    const response = await fetch('library-bundle.json');
+                    if (!response.ok) throw new Error("Failed to load library-bundle.json. Run 'php bin/dump-wasm.php' first.");
+
+                    const bundle = await response.json();
+
+                    // Mount files into virtual filesystem
+                    php.run('<?php @mkdir("/var/www/src", 0777, true); ?>');
+
+                    for (const [path, content] of Object.entries(bundle)) {
+                        const b64Content = btoa(content);
+                        const targetPath = '/var/www/' + (path === 'autoload.php' ? 'autoload.php' : 'src/' + path);
+                        const dir = targetPath.substring(0, targetPath.lastIndexOf('/'));
+
+                        const phpScript = `<?php
+                            @mkdir('${dir}', 0777, true);
+                            file_put_contents('${targetPath}', base64_decode('${b64Content}'));
+                        ?>`;
+                        await php.run(phpScript);
+                    }
+                    libraryLoaded = true;
+                } catch (e) {
+                    renderError("Build Error: " + e.message);
+                    throw e;
+                }
+            }
+        }
+
+        // Execute Action via Worker
+        window.runAction = async function(action) {
+            const regex = document.getElementById('regex').value;
+            if (!regex) return;
+
+            // UI State Update
+            document.querySelectorAll('.tool-btn').forEach(b => {
+                b.className = "tool-btn w-full flex flex-col items-center justify-center p-3 rounded-lg border text-center transition-all cursor-pointer gap-2 bg-white border-slate-200 text-slate-600 hover:bg-slate-50";
+            });
+            const activeBtn = document.querySelector(`button[data-action="${action}"]`);
+            if(activeBtn) activeBtn.className = "tool-btn w-full flex flex-col items-center justify-center p-3 rounded-lg border text-center transition-all cursor-pointer gap-2 bg-slate-800 text-white border-slate-800 shadow-md";
+
+            try {
+                await initPHP();
+            } catch(e) { return; }
+
+            const start = performance.now();
+
+            // Prepare Payload
+            const inputData = JSON.stringify({ regex, action });
+            const inputBase64 = btoa(inputData);
+
+            try {
+                // Fetch and Execute Worker
+                const workerResponse = await fetch('worker.php');
+                if (!workerResponse.ok) throw new Error("Could not load worker.php");
+                const workerScript = await workerResponse.text();
+
+                // Inject input payload into worker script
+                const patchedWorker = workerScript.replace(
+                    "file_get_contents('php://stdin')",
+                    `base64_decode('${inputBase64}')`
+                );
+
+                // Strip opening tag for eval
+                const codeToRun = '<?php ' + patchedWorker.replace(/^<\?php/, '');
+
+                const result = await php.run(codeToRun);
+                const end = performance.now();
+
+                document.getElementById('perf-badge').classList.remove('hidden');
+                document.getElementById('perf-val').textContent = (end - start).toFixed(2) + 'ms';
+
+                // Handle Response
+                try {
+                    const output = result.stdout;
+                    const jsonStart = output.indexOf('{');
+                    if (jsonStart === -1) throw new Error("No JSON in output. PHP Log: " + result.stderr);
+
+                    const jsonStr = output.substring(jsonStart);
+                    const data = JSON.parse(jsonStr);
+
+                    if (data.error) {
+                        renderError(data.error);
+                    } else {
+                        renderResult(data.result, action);
+                    }
+                } catch (e) {
+                    console.error("PHP Stdout:", result.stdout);
+                    renderError("Invalid JSON response: " + e.message);
+                }
+
+            } catch (e) {
+                renderError("Execution Failed: " + e.message);
+            }
+        };
+
+        function renderError(msg) {
+             resultContainer.innerHTML = `
+                <div class="flex flex-col items-center justify-center h-full p-10">
+                    <div class="bg-red-50 border border-red-100 rounded-2xl p-8 max-w-lg text-center shadow-sm">
+                        <div class="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4"><i class="fa-solid fa-bug"></i></div>
+                        <h3 class="text-lg font-bold text-red-900 mb-2">Error</h3>
+                        <code class="block bg-white border border-red-100 p-3 rounded text-xs font-mono text-red-600 text-left break-all">${msg}</code>
+                    </div>
+                </div>`;
+        }
+
+        function renderResult(data, type) {
+            let html = '';
+
+            if (type === 'parse') {
+                html = `
+                    <div class="grid grid-cols-1 xl:grid-cols-3 h-full divide-y xl:divide-y-0 xl:divide-x divide-slate-100">
+                        <div class="xl:col-span-2 p-6 bg-slate-50/30 overflow-y-auto custom-scroll">
+                            <div class="flex items-center justify-between mb-6">
+                                <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wide">Tree Structure</h3>
+                                ${data.flags ? `<span class="px-2 py-1 bg-indigo-100 text-indigo-700 text-xs font-bold rounded uppercase">Flags: ${data.flags}</span>` : ''}
+                            </div>
+                            ${data.html_tree}
+                        </div>
+                        <div class="xl:col-span-1 p-0 bg-slate-900 text-slate-300 overflow-hidden rounded-r-xl flex flex-col">
+                             <div class="p-3 bg-slate-800 border-b border-slate-700 text-xs font-mono font-bold text-slate-400 uppercase tracking-wider">Raw Dump</div>
+                             <div class="p-6 font-mono text-xs overflow-auto flex-1 custom-scroll leading-relaxed">${data.raw}</div>
+                        </div>
+                    </div>`;
+            } else if (type === 'validate') {
+                html = `
+                <div class="flex flex-col items-center justify-center h-full p-10 text-center">
+                    <div class="w-24 h-24 rounded-full flex items-center justify-center mb-6 ${data.isValid ? 'bg-green-50 text-green-500 ring-8 ring-green-50/50' : 'bg-red-50 text-red-500 ring-8 ring-red-50/50'}">
+                        <i class="fa-solid ${data.isValid ? 'fa-shield-check' : 'fa-shield-xmark'} text-5xl"></i>
+                    </div>
+                    <h2 class="text-3xl font-bold text-slate-900 mb-2">${data.isValid ? 'Valid Pattern' : 'Invalid Pattern'}</h2>
+                    <p class="text-slate-500 mb-8">${data.isValid ? 'Syntax is correct and safe.' : 'Parser detected errors.'}</p>
+                     ${!data.isValid ? `<div class="mt-4 px-6 py-3 bg-red-50 text-red-700 rounded-lg border border-red-100 font-mono text-sm">${data.error}</div>` : ''}
+                </div>`;
+            } else if (type === 'explain') {
+                 html = `
+                    <div class="p-0 h-full flex flex-col">
+                        <div class="bg-slate-50 p-4 border-b border-slate-100 flex justify-between items-center">
+                            <span class="text-xs font-bold text-slate-500 uppercase">Human Readable</span>
+                        </div>
+                        <div class="flex-1 p-8 overflow-auto font-mono text-sm leading-8 text-slate-700">
+                            ${data.explanation.replace(/\n/g, '<br>').replace(/^(.*?)(:)/gm, '<strong class="text-indigo-700">$1</strong>$2')}
+                        </div>
+                    </div>`;
+            } else if (type === 'redos') {
+                const sevColor = {
+                    'safe': 'bg-emerald-100 text-emerald-700 border-emerald-200',
+                    'low': 'bg-blue-100 text-blue-700 border-blue-200',
+                    'medium': 'bg-yellow-100 text-yellow-700 border-yellow-200',
+                    'high': 'bg-red-100 text-red-700 border-red-200',
+                    'critical': 'bg-red-100 text-red-700 border-red-200',
+                }[data.severity] || 'bg-slate-100';
+
+                html = `
+                    <div class="p-8 h-full overflow-y-auto custom-scroll">
+                        <div class="grid grid-cols-3 gap-6 mb-8">
+                            <div class="p-6 rounded-2xl border text-center ${sevColor}">
+                                <div class="text-xs uppercase font-bold opacity-80 mb-1">Severity</div>
+                                <div class="text-2xl font-bold tracking-tight">${data.severity.toUpperCase()}</div>
+                            </div>
+                            <div class="p-6 rounded-2xl border bg-white border-slate-200 text-center shadow-sm">
+                                <div class="text-xs uppercase font-bold text-slate-400 mb-1">Score</div>
+                                <div class="text-4xl font-bold text-slate-800">${data.score}<span class="text-lg text-slate-400">/10</span></div>
+                            </div>
+                            <div class="p-6 rounded-2xl border bg-white border-slate-200 text-center shadow-sm">
+                                <div class="text-xs uppercase font-bold text-slate-400 mb-1">Safety</div>
+                                <div class="text-2xl font-bold ${data.isSafe ? 'text-green-600' : 'text-red-600'}">
+                                    ${data.isSafe ? 'SAFE' : 'VULNERABLE'}
+                                </div>
+                            </div>
+                        </div>
+                        ${data.recommendations.length > 0 ? `
+                            <div class="bg-white border border-orange-200 rounded-xl overflow-hidden">
+                                <div class="bg-orange-50 px-6 py-4 border-b border-orange-100 font-bold text-orange-800 flex items-center gap-2">
+                                    <i class="fa-solid fa-list-check"></i> Recommendations
+                                </div>
+                                <ul class="divide-y divide-orange-50">
+                                    ${data.recommendations.map(rec => `<li class="px-6 py-3 text-sm text-slate-700 flex gap-3"><i class="fa-solid fa-angle-right text-orange-400 mt-1"></i> ${rec}</li>`).join('')}
+                                </ul>
+                            </div>` : ''}
+                    </div>`;
+            } else if (type === 'generate') {
+                 html = `
+                    <div class="flex flex-col items-center justify-center h-full pb-20">
+                        <div class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Generated Match</div>
+                        <div class="text-3xl md:text-4xl font-mono text-indigo-600 bg-indigo-50/50 px-10 py-8 rounded-2xl border border-indigo-100 text-center break-all max-w-3xl shadow-sm cursor-pointer hover:bg-indigo-100/50 transition-colors"
+                             onclick="navigator.clipboard.writeText(this.innerText)">
+                            ${data.sample}
+                        </div>
+                        <div class="mt-4 text-xs text-slate-400">Click to copy</div>
+                    </div>`;
+            } else if (type === 'literals') {
+                 html = `
+                    <div class="p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="p-6 bg-slate-50 rounded-xl border border-slate-200">
+                            <div class="flex items-center gap-2 mb-3 text-slate-500 font-bold text-xs uppercase">
+                                <i class="fa-solid fa-arrow-right-to-bracket"></i> Longest Prefix
+                            </div>
+                            <code class="block p-3 bg-white rounded-lg border border-slate-200 text-indigo-600 font-mono break-all shadow-sm">
+                                "${data.longestPrefix || ''}"
+                            </code>
+                        </div>
+                        <div class="p-6 bg-slate-50 rounded-xl border border-slate-200">
+                            <div class="flex items-center gap-2 mb-3 text-slate-500 font-bold text-xs uppercase">
+                                <i class="fa-solid fa-arrow-right-from-bracket"></i> Longest Suffix
+                            </div>
+                            <code class="block p-3 bg-white rounded-lg border border-slate-200 text-indigo-600 font-mono break-all shadow-sm">
+                                "${data.longestSuffix || ''}"
+                            </code>
+                        </div>
+                    </div>`;
+            }
+
+            resultContainer.innerHTML = html;
+        }
+
+        window.setPattern = function(el, pat, act) {
+            document.querySelectorAll('.preset-card').forEach(c => {
+                c.classList.remove('active', 'bg-indigo-50', 'border-indigo-200');
+                c.classList.add('bg-white', 'border-slate-200');
+            });
+            el.classList.remove('bg-white', 'border-slate-200');
+            el.classList.add('active', 'bg-indigo-50', 'border-indigo-200');
+
+            document.getElementById('regex').value = pat;
+            runAction(act);
+        }
+
+        // Auto-boot
+        window.addEventListener('DOMContentLoaded', () => {
+            const firstPreset = document.getElementById('default-preset');
+            if(firstPreset) firstPreset.click();
+        });
+
+    </script>
+</body>
+</html>

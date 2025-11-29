@@ -42,8 +42,8 @@ use RegexParser\Node\UnicodePropNode;
 /**
  * Transforms the AST into a structured array tree suitable for UI visualization.
  *
- * This visitor is used by the interactive playground to render the AST
- * in a hierarchical, collapsible format (similar to regexr.com).
+ * This visitor acts as a Serializer, converting the Domain Model (AST)
+ * into a View Model (Array) for the frontend.
  *
  * @implements NodeVisitorInterface<array<string, mixed>>
  */
@@ -58,14 +58,12 @@ final class ArrayExplorerVisitor implements NodeVisitorInterface
             'icon' => 'fa-solid fa-globe',
             'color' => 'text-indigo-600',
             'bg' => 'bg-indigo-50',
-            'border' => 'border-indigo-200',
             'children' => [$node->pattern->accept($this)],
         ];
     }
 
     public function visitGroup(GroupNode $node): array
     {
-        // Determine visual style based on group type
         [$label, $icon, $color, $bg] = match ($node->type) {
             GroupType::T_GROUP_CAPTURING => ['Capturing Group', 'fa-solid fa-brackets-round', 'text-green-600', 'bg-green-50'],
             GroupType::T_GROUP_NAMED => ["Named Group: <span class='font-mono'>{$node->name}</span>", 'fa-solid fa-tag', 'text-emerald-600', 'bg-emerald-50'],
@@ -103,15 +101,12 @@ final class ArrayExplorerVisitor implements NodeVisitorInterface
 
     public function visitSequence(SequenceNode $node): array
     {
-        // Map all children
-        $children = array_map(fn ($child) => $child->accept($this), $node->children);
-
         return [
             'type' => 'Sequence',
             'label' => 'Sequence',
             'icon' => 'fa-solid fa-arrow-right-long',
             'color' => 'text-slate-400',
-            'children' => $children,
+            'children' => array_map(fn ($child) => $child->accept($this), $node->children),
         ];
     }
 
@@ -259,6 +254,16 @@ final class ArrayExplorerVisitor implements NodeVisitorInterface
         ];
     }
 
+    public function visitOctal(OctalNode $node): array
+    {
+        return $this->genericLeaf('Octal', $node->code);
+    }
+
+    public function visitOctalLegacy(OctalLegacyNode $node): array
+    {
+        return $this->genericLeaf('Legacy Octal', $node->code);
+    }
+
     public function visitPosixClass(PosixClassNode $node): array
     {
         return [
@@ -346,16 +351,6 @@ final class ArrayExplorerVisitor implements NodeVisitorInterface
         ];
     }
 
-    public function visitOctal(OctalNode $node): array
-    {
-        return $this->genericLeaf('Octal', $node->code);
-    }
-
-    public function visitOctalLegacy(OctalLegacyNode $node): array
-    {
-        return $this->genericLeaf('Legacy Octal', $node->code);
-    }
-
     private function genericLeaf(string $label, string $detail): array
     {
         return [
@@ -370,7 +365,6 @@ final class ArrayExplorerVisitor implements NodeVisitorInterface
 
     private function formatValue(string $value): string
     {
-        // Format non-printable chars for display
         $map = ["\n" => '\n', "\r" => '\r', "\t" => '\t'];
         return '"' . strtr($value, $map) . '"';
     }
