@@ -47,7 +47,7 @@ class OfficialPcreComplianceTest extends TestCase
                 $this->fail("Parser failed on valid pattern: $pattern. Error: ".$e->getMessage());
             }
             // If native failed, our parser failing is correct (or at least acceptable)
-            $this->assertTrue(true);
+            // $this->assertTrue(true);
 
             return;
         }
