@@ -32,6 +32,6 @@ final class RegexParserBundle extends Bundle
     #[\Override]
     public function getPath(): string
     {
-        return \dirname(__DIR__, 2).'/Bridge/Symfony';
+        return __DIR__.'/../../Bridge/Symfony';
     }
 }

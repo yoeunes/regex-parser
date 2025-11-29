@@ -139,16 +139,16 @@ final class RegexCollector extends DataCollector implements LateDataCollectorInt
                 $regexData[] = $result;
 
                 if (!$result['is_valid']) {
-                    ++$invalidCount;
+                    $invalidCount++;
                 }
                 if ($result['is_redos_risk']) {
-                    ++$redosCount;
+                    $redosCount++;
                 } elseif ($result['is_warning']) {
-                    ++$warningCount;
+                    $warningCount++;
                 }
                 if ($result['score'] >= 0) {
                     $totalScore += $result['score'];
-                    ++$analyzedCount;
+                    $analyzedCount++;
                 }
             } catch (\Throwable $e) {
                 // Capture the error and add a minimal entry
@@ -171,7 +171,7 @@ final class RegexCollector extends DataCollector implements LateDataCollectorInt
                     'is_redos_risk' => false,
                     'is_warning' => false,
                 ];
-                ++$invalidCount;
+                $invalidCount++;
             }
         }
 
@@ -186,69 +186,6 @@ final class RegexCollector extends DataCollector implements LateDataCollectorInt
             'errors' => $errors,
             'average_complexity' => $averageComplexity,
         ];
-    }
-
-    /**
-     * Analyzes a single pattern and returns structured data.
-     *
-     * @return RegexData
-     */
-    private function analyzePattern(CollectedRegex $collected): array
-    {
-        $isValid = true;
-        $error = null;
-        $explanation = null;
-        $score = 0;
-
-        // Validate the pattern
-        try {
-            $validation = $this->regex->validate($collected->pattern);
-            $isValid = $validation->isValid;
-            if (!$isValid) {
-                $error = $validation->error ?? 'Invalid pattern';
-            }
-        } catch (\Throwable $e) {
-            $isValid = false;
-            $error = 'Validation error: '.$e->getMessage();
-        }
-
-        // Parse and analyze (even invalid patterns might parse partially)
-        try {
-            $ast = $this->regex->parse($collected->pattern);
-            $explanation = $ast->accept($this->explainVisitor);
-            $score = (int) $ast->accept($this->scoreVisitor);
-        } catch (\Throwable $e) {
-            $explanation = 'Parse error: '.$e->getMessage();
-            $score = -1;
-        }
-
-        $isRedosRisk = $score >= $this->redosThreshold;
-        $isWarning = !$isRedosRisk && $score >= $this->warningThreshold;
-
-        return [
-            'pattern' => $collected->pattern,
-            'source' => $collected->source,
-            'subject' => $collected->subject,
-            'match_result' => $collected->matchResult,
-            'is_valid' => $isValid,
-            'error' => $error,
-            'explanation' => $explanation,
-            'score' => $score,
-            'is_redos_risk' => $isRedosRisk,
-            'is_warning' => $isWarning,
-        ];
-    }
-
-    /**
-     * Truncates a pattern for error messages.
-     */
-    private function truncatePattern(string $pattern, int $maxLength = 50): string
-    {
-        if (\strlen($pattern) <= $maxLength) {
-            return $pattern;
-        }
-
-        return substr($pattern, 0, $maxLength - 3).'...';
     }
 
     #[\Override]
@@ -368,10 +305,75 @@ final class RegexCollector extends DataCollector implements LateDataCollectorInt
     }
 
     /**
+     * Analyzes a single pattern and returns structured data.
+     *
+     * @return RegexData
+     */
+    private function analyzePattern(CollectedRegex $collected): array
+    {
+        $isValid = true;
+        $error = null;
+        $explanation = null;
+        $score = 0;
+
+        // Validate the pattern
+        try {
+            $validation = $this->regex->validate($collected->pattern);
+            $isValid = $validation->isValid;
+            if (!$isValid) {
+                $error = $validation->error ?? 'Invalid pattern';
+            }
+        } catch (\Throwable $e) {
+            $isValid = false;
+            $error = 'Validation error: '.$e->getMessage();
+        }
+
+        // Parse and analyze (even invalid patterns might parse partially)
+        try {
+            $ast = $this->regex->parse($collected->pattern);
+            $explanation = $ast->accept($this->explainVisitor);
+            $score = (int) $ast->accept($this->scoreVisitor);
+        } catch (\Throwable $e) {
+            $explanation = 'Parse error: '.$e->getMessage();
+            $score = -1;
+        }
+
+        $isRedosRisk = $score >= $this->redosThreshold;
+        $isWarning = !$isRedosRisk && $score >= $this->warningThreshold;
+
+        return [
+            'pattern' => $collected->pattern,
+            'source' => $collected->source,
+            'subject' => $collected->subject,
+            'match_result' => $collected->matchResult,
+            'is_valid' => $isValid,
+            'error' => $error,
+            'explanation' => $explanation,
+            'score' => $score,
+            'is_redos_risk' => $isRedosRisk,
+            'is_warning' => $isWarning,
+        ];
+    }
+
+    /**
+     * Truncates a pattern for error messages.
+     */
+    private function truncatePattern(string $pattern, int $maxLength = 50): string
+    {
+        if (\strlen($pattern) <= $maxLength) {
+            return $pattern;
+        }
+
+        return substr($pattern, 0, $maxLength - 3).'...';
+    }
+
+    /**
      * Helper to safely get values from data array.
      *
      * @template T
+     *
      * @param T $default
+     *
      * @return T
      */
     private function getDataValue(string $key, mixed $default): mixed

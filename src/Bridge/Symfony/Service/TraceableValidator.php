@@ -28,7 +28,7 @@ use Symfony\Contracts\Service\ResetInterface;
  *
  * Implements ResetInterface for Swoole/FrankenPHP compatibility.
  */
-final readonly class TraceableValidator implements ValidatorInterface, ResetInterface
+final readonly class TraceableValidator implements ResetInterface, ValidatorInterface
 {
     public function __construct(
         private ValidatorInterface $validator,
@@ -49,7 +49,6 @@ final readonly class TraceableValidator implements ValidatorInterface, ResetInte
 
     /**
      * @param Constraint|array<Constraint>|null $constraints
-     * @param mixed $groups
      */
     #[\Override]
     public function validate(mixed $value, Constraint|array|null $constraints = null, mixed $groups = null): ConstraintViolationListInterface
@@ -62,9 +61,6 @@ final readonly class TraceableValidator implements ValidatorInterface, ResetInte
         return $this->validator->validate($value, $constraints, $groups);
     }
 
-    /**
-     * @param mixed $groups
-     */
     #[\Override]
     public function validateProperty(object $object, string $propertyName, mixed $groups = null): ConstraintViolationListInterface
     {
@@ -95,9 +91,6 @@ final readonly class TraceableValidator implements ValidatorInterface, ResetInte
         return $this->validator->validateProperty($object, $propertyName, $groups);
     }
 
-    /**
-     * @param mixed $groups
-     */
     #[\Override]
     public function validatePropertyValue(object|string $objectOrClass, string $propertyName, mixed $value, mixed $groups = null): ConstraintViolationListInterface
     {

@@ -20,7 +20,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Routing\RouterInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
-/**
+/*
  * Debug services for the RegexParser bundle.
  *
  * These services are only loaded when profiler is enabled (typically in debug mode).

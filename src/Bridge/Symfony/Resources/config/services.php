@@ -25,7 +25,7 @@ use RegexParser\Parser;
 use RegexParser\Regex;
 use RegexParser\RegexCompiler;
 
-/**
+/*
  * Base services for the RegexParser library.
  *
  * These services are always loaded when the bundle is enabled.

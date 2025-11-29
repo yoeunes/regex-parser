@@ -35,7 +35,7 @@ use Symfony\Contracts\Service\ResetInterface;
  * during `cache:warmup`, and ResetInterface for long-running process compatibility
  * (Swoole, FrankenPHP, RoadRunner).
  */
-final readonly class TraceableRouter implements RouterInterface, RequestMatcherInterface, WarmableInterface, ResetInterface
+final readonly class TraceableRouter implements RequestMatcherInterface, ResetInterface, RouterInterface, WarmableInterface
 {
     /**
      * Common PCRE pattern delimiters.
@@ -128,7 +128,7 @@ final readonly class TraceableRouter implements RouterInterface, RequestMatcherI
      * This is essential for production deployments where routes are compiled
      * and cached. Without proper delegation, the cache warmup would fail.
      *
-     * @param string $cacheDir The cache directory
+     * @param string      $cacheDir The cache directory
      * @param string|null $buildDir The build directory (Symfony 6.1+)
      *
      * @return list<string> A list of classes to preload
@@ -253,6 +253,6 @@ final readonly class TraceableRouter implements RouterInterface, RequestMatcherI
         // Wrap the fragment with `#` delimiters to make it a valid PCRE pattern.
         // Using `#` avoids conflicts with patterns containing forward slashes,
         // which are common in URL-related regex patterns.
-        return '#' . $pattern . '#';
+        return '#'.$pattern.'#';
     }
 }
