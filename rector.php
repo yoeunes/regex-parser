@@ -30,6 +30,7 @@ return static function (RectorConfig $rectorConfig): void {
 
     $rectorConfig->skip([
         __DIR__.'/src/Lexer.php',
+        __DIR__.'/tests/Fixtures/pcre_patterns.php',
     ]);
 
     // $rectorConfig->import(__DIR__.'/config/rector/regex-parser.php');

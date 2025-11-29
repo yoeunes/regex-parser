@@ -1,23 +1,35 @@
 <?php
 
+declare(strict_types=1);
+
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace RegexParser\Tests\Integration;
 
-use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
-use RegexParser\Parser;
+use PHPUnit\Framework\TestCase;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
+use RegexParser\Parser;
 
 class OfficialPcreComplianceTest extends TestCase
 {
     #[DataProvider('providePcrePatterns')]
-    public function testPatternCompliance(string $pattern)
+    public function test_pattern_compliance(string $pattern): void
     {
         // 1. Check if native PHP supports this pattern
         $nativeValid = false;
+
         try {
             // We use an empty string as subject just to check compilation
             @preg_match($pattern, '');
-            if (preg_last_error() === PREG_NO_ERROR) {
+            if (\PREG_NO_ERROR === preg_last_error()) {
                 $nativeValid = true;
             }
         } catch (\Throwable $e) {
@@ -27,14 +39,16 @@ class OfficialPcreComplianceTest extends TestCase
         // 2. Parse with our library
         $parser = new Parser();
         $ast = null;
+
         try {
             $ast = $parser->parse($pattern);
         } catch (\Throwable $e) {
             if ($nativeValid) {
-                $this->fail("Parser failed on valid pattern: $pattern. Error: " . $e->getMessage());
+                $this->fail("Parser failed on valid pattern: $pattern. Error: ".$e->getMessage());
             }
             // If native failed, our parser failing is correct (or at least acceptable)
             $this->assertTrue(true);
+
             return;
         }
 
@@ -52,7 +66,7 @@ class OfficialPcreComplianceTest extends TestCase
 
         // 4. Behavioral Comparison
         $subject = 'test string 123 abc !@#';
-        
+
         // Native match
         $nativeResult = @preg_match($pattern, $subject, $nativeMatches);
         $nativeError = preg_last_error();
@@ -68,7 +82,8 @@ class OfficialPcreComplianceTest extends TestCase
 
     public static function providePcrePatterns(): array
     {
-        $patterns = require __DIR__ . '/../Fixtures/pcre_patterns.php';
-        return array_map(function($p) { return [$p]; }, $patterns);
+        $patterns = require __DIR__.'/../Fixtures/pcre_patterns.php';
+
+        return array_map(fn ($p) => [$p], $patterns);
     }
 }
