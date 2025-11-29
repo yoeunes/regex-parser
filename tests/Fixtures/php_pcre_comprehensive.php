@@ -2,12 +2,22 @@
 
 declare(strict_types=1);
 
-/**
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+/*
  * Comprehensive PCRE Test Suite extracted from php-src/ext/pcre/tests
  * Contains 216 test cases covering preg_* functions and edge cases
  *
  * Auto-generated on 2025-11-29 01:38:00
  */
+
 return [
 
     // ==================== CATEGORY: BASIC MATCHING ====================
@@ -874,7 +884,8 @@ return [
         'category' => 'bug_regressions',
     ],
     [
-        'pattern' => '/foo/i',
+        'pattern' => '/foo/i
+',
         'subject' => 'FOO',
         'flags' => 0,
         'offset' => 0,
@@ -1459,7 +1470,8 @@ return [
     ],
     [
         'pattern' => '/a e
-i	ou/x',
+i	o
+u/x',
         'subject' => 'aeiou',
         'flags' => 0,
         'offset' => 0,
@@ -1539,7 +1551,7 @@ i	ou/x',
     // ==================== CATEGORY: OTHER ====================
     [
         'pattern' => '/\\w/',
-        'subject' => 'ä',
+        'subject' => 'ï¿½',
         'flags' => 0,
         'offset' => 0,
         'expectedReturn' => 0,
@@ -1551,7 +1563,7 @@ i	ou/x',
     ],
     [
         'pattern' => '/\\w/',
-        'subject' => 'ä',
+        'subject' => 'ï¿½',
         'flags' => 0,
         'offset' => 0,
         'expectedReturn' => 0,
@@ -1609,7 +1621,7 @@ i	ou/x',
     ],
     [
         'pattern' => '/^\\w{6}$/',
-        'subject' => 'aàáçéè',
+        'subject' => 'aï¿½ï¿½ï¿½ï¿½ï¿½',
         'flags' => 0,
         'offset' => 0,
         'expectedReturn' => 0,
@@ -1621,7 +1633,7 @@ i	ou/x',
     ],
     [
         'pattern' => '/^\\w{6}$/',
-        'subject' => 'aàáçéè',
+        'subject' => 'aï¿½ï¿½ï¿½ï¿½ï¿½',
         'flags' => 0,
         'offset' => 0,
         'expectedReturn' => 0,
@@ -1633,7 +1645,7 @@ i	ou/x',
     ],
     [
         'pattern' => '/^\\w{6}$/',
-        'subject' => 'aàáçéè',
+        'subject' => 'aï¿½ï¿½ï¿½ï¿½ï¿½',
         'flags' => 0,
         'offset' => 0,
         'expectedReturn' => 0,

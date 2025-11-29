@@ -27,9 +27,9 @@ use PHPUnit\Framework\TestCase;
 final class PhpPcreComplianceValidator extends TestCase
 {
     /**
-     * @param array<int|string, mixed> $expectedMatches
+     * @param array<int|string, mixed>      $expectedMatches
      * @param array<int|string, mixed>|null $expectedResult
-     * @param array<int, string> $functions
+     * @param array<int, string>            $functions
      */
     #[DataProvider('providePhpPcreTestCases')]
     public function test_php_pcre_compliance(
@@ -101,7 +101,7 @@ final class PhpPcreComplianceValidator extends TestCase
      */
     public static function providePhpPcreTestCases(): iterable
     {
-        $fixtureFile = __DIR__ . '/../Fixtures/php_pcre_comprehensive.php';
+        $fixtureFile = __DIR__.'/../Fixtures/php_pcre_comprehensive.php';
 
         if (!file_exists($fixtureFile)) {
             return;
@@ -155,11 +155,11 @@ final class PhpPcreComplianceValidator extends TestCase
         $this->assertNotFalse(
             $result,
             \sprintf(
-                "preg_match() returned false (error) for: %s\n" .
-                "Pattern: %s\n" .
-                "Subject: %s\n" .
-                "Source: %s\n" .
-                "Error: %s",
+                "preg_match() returned false (error) for: %s\n".
+                "Pattern: %s\n".
+                "Subject: %s\n".
+                "Source: %s\n".
+                'Error: %s',
                 $description,
                 $pattern,
                 $subject,
@@ -172,11 +172,11 @@ final class PhpPcreComplianceValidator extends TestCase
             $expectedReturn,
             $result,
             \sprintf(
-                "preg_match() returned %d but expected %d for: %s\n" .
-                "Pattern: %s\n" .
-                "Subject: %s\n" .
-                "Source: %s\n" .
-                "Category: %s",
+                "preg_match() returned %d but expected %d for: %s\n".
+                "Pattern: %s\n".
+                "Subject: %s\n".
+                "Source: %s\n".
+                'Category: %s',
                 $result,
                 $expectedReturn,
                 $description,
@@ -187,17 +187,17 @@ final class PhpPcreComplianceValidator extends TestCase
             ),
         );
 
-        if ($expectedReturn === 1 && !empty($expectedMatches)) {
+        if (1 === $expectedReturn && !empty($expectedMatches)) {
             $this->assertSame(
                 $expectedMatches,
                 $matches,
                 \sprintf(
-                    "Matches structure doesn't match expected for: %s\n" .
-                    "Pattern: %s\n" .
-                    "Subject: %s\n" .
-                    "Source: %s\n" .
-                    "Category: %s\n" .
-                    "Expected:\n%s\n" .
+                    "Matches structure doesn't match expected for: %s\n".
+                    "Pattern: %s\n".
+                    "Subject: %s\n".
+                    "Source: %s\n".
+                    "Category: %s\n".
+                    "Expected:\n%s\n".
                     "Got:\n%s",
                     $description,
                     $pattern,
@@ -231,11 +231,11 @@ final class PhpPcreComplianceValidator extends TestCase
         $this->assertNotFalse(
             $result,
             \sprintf(
-                "preg_match_all() returned false (error) for: %s\n" .
-                "Pattern: %s\n" .
-                "Subject: %s\n" .
-                "Source: %s\n" .
-                "Error: %s",
+                "preg_match_all() returned false (error) for: %s\n".
+                "Pattern: %s\n".
+                "Subject: %s\n".
+                "Source: %s\n".
+                'Error: %s',
                 $description,
                 $pattern,
                 $subject,
@@ -248,11 +248,11 @@ final class PhpPcreComplianceValidator extends TestCase
             $expectedReturn,
             $result,
             \sprintf(
-                "preg_match_all() returned %d but expected %d for: %s\n" .
-                "Pattern: %s\n" .
-                "Subject: %s\n" .
-                "Source: %s\n" .
-                "Category: %s",
+                "preg_match_all() returned %d but expected %d for: %s\n".
+                "Pattern: %s\n".
+                "Subject: %s\n".
+                "Source: %s\n".
+                'Category: %s',
                 $result,
                 $expectedReturn,
                 $description,
@@ -268,12 +268,12 @@ final class PhpPcreComplianceValidator extends TestCase
                 $expectedMatches,
                 $matches,
                 \sprintf(
-                    "Matches structure doesn't match expected for: %s\n" .
-                    "Pattern: %s\n" .
-                    "Subject: %s\n" .
-                    "Source: %s\n" .
-                    "Category: %s\n" .
-                    "Expected:\n%s\n" .
+                    "Matches structure doesn't match expected for: %s\n".
+                    "Pattern: %s\n".
+                    "Subject: %s\n".
+                    "Source: %s\n".
+                    "Category: %s\n".
+                    "Expected:\n%s\n".
                     "Got:\n%s",
                     $description,
                     $pattern,
@@ -305,11 +305,11 @@ final class PhpPcreComplianceValidator extends TestCase
         $this->assertNotFalse(
             $result,
             \sprintf(
-                "preg_split() returned false (error) for: %s\n" .
-                "Pattern: %s\n" .
-                "Subject: %s\n" .
-                "Source: %s\n" .
-                "Error: %s",
+                "preg_split() returned false (error) for: %s\n".
+                "Pattern: %s\n".
+                "Subject: %s\n".
+                "Source: %s\n".
+                'Error: %s',
                 $description,
                 $pattern,
                 $subject,
@@ -322,11 +322,11 @@ final class PhpPcreComplianceValidator extends TestCase
             $expectedReturn,
             $result,
             \sprintf(
-                "preg_split() returned %d parts but expected %d for: %s\n" .
-                "Pattern: %s\n" .
-                "Subject: %s\n" .
-                "Source: %s\n" .
-                "Category: %s",
+                "preg_split() returned %d parts but expected %d for: %s\n".
+                "Pattern: %s\n".
+                "Subject: %s\n".
+                "Source: %s\n".
+                'Category: %s',
                 \count($result),
                 $expectedReturn,
                 $description,
@@ -342,12 +342,12 @@ final class PhpPcreComplianceValidator extends TestCase
                 $expectedResult,
                 $result,
                 \sprintf(
-                    "Split result doesn't match expected for: %s\n" .
-                    "Pattern: %s\n" .
-                    "Subject: %s\n" .
-                    "Source: %s\n" .
-                    "Category: %s\n" .
-                    "Expected:\n%s\n" .
+                    "Split result doesn't match expected for: %s\n".
+                    "Pattern: %s\n".
+                    "Subject: %s\n".
+                    "Source: %s\n".
+                    "Category: %s\n".
+                    "Expected:\n%s\n".
                     "Got:\n%s",
                     $description,
                     $pattern,
