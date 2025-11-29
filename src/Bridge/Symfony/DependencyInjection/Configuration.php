@@ -22,10 +22,10 @@ use Symfony\Component\Config\Definition\ConfigurationInterface;
  *
  * @see https://symfony.com/doc/current/bundles/configuration.html
  */
-final class Configuration implements ConfigurationInterface
+final readonly class Configuration implements ConfigurationInterface
 {
     public function __construct(
-        private readonly bool $debug = false,
+        private bool $debug = false,
     ) {}
 
     public function getConfigTreeBuilder(): TreeBuilder
