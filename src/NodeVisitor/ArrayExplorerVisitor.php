@@ -351,6 +351,9 @@ final class ArrayExplorerVisitor implements NodeVisitorInterface
         ];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     private function genericLeaf(string $label, string $detail): array
     {
         return [
