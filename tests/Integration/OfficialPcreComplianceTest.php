@@ -82,6 +82,7 @@ class OfficialPcreComplianceTest extends TestCase
 
     public static function providePcrePatterns(): array
     {
+        /** @var array $patterns */
         $patterns = require __DIR__.'/../Fixtures/pcre_patterns.php';
 
         return array_map(fn ($p) => [$p], $patterns);
