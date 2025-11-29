@@ -17,100 +17,207 @@ use PhpParser\Node;
 use PhpParser\Node\Expr\FuncCall;
 use PhpParser\Node\Scalar\String_;
 use PhpParser\Node\Stmt\ClassConst;
+use Rector\Contract\Rector\ConfigurableRectorInterface;
 use Rector\Rector\AbstractRector;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
 use RegexParser\NodeVisitor\OptimizerNodeVisitor;
 use RegexParser\Parser;
-use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\ConfiguredCodeSample;
 use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
 
-final class RegexOptimizationRector extends AbstractRector
+/**
+ * Optimizes PCRE regex patterns found in function calls and class constants.
+ *
+ * This rule parses the regex string, applies AST optimizations (like flattening groups
+ * or merging character classes), and recompiles it back to a cleaner string.
+ */
+final class RegexOptimizationRector extends AbstractRector implements ConfigurableRectorInterface
 {
-    private const array PREG_FUNCTION_MAP = [
-        'preg_match' => 0, 'preg_match_all' => 0, 'preg_replace' => 0,
-        'preg_replace_callback' => 0, 'preg_split' => 0, 'preg_grep' => 0,
+    public const EXTRA_FUNCTIONS = 'extra_functions';
+
+    public const EXTRA_CONSTANTS = 'extra_constants';
+
+    private const array DEFAULT_FUNCTIONS = [
+        'preg_match',
+        'preg_match_all',
+        'preg_replace',
+        'preg_replace_callback',
+        'preg_split',
+        'preg_grep',
+        'preg_filter',
     ];
 
-    private const array REGEX_CONSTANT_NAMES = [
-        'REGEX_OUTSIDE',
-        'REGEX_INSIDE',
+    private const array DEFAULT_CONSTANTS = [
+        'REGEX',
+        'PATTERN',
     ];
+
+    /**
+     * @var array<string, bool>
+     */
+    private array $targetFunctions = [];
+
+    /**
+     * @var array<string, bool>
+     */
+    private array $targetConstants = [];
 
     private ?Parser $parser = null;
 
     private ?CompilerNodeVisitor $compiler = null;
 
-    /**
-     * We inject the main OptimizerNodeVisitor service from the container.
-     * This ensures optimization logic is defined in one single place.
-     */
     public function __construct(
         private readonly OptimizerNodeVisitor $optimizerVisitor,
-    ) {}
+    ) {
+        // Initialize defaults
+        foreach (self::DEFAULT_FUNCTIONS as $func) {
+            $this->targetFunctions[$func] = true;
+        }
+        foreach (self::DEFAULT_CONSTANTS as $const) {
+            $this->targetConstants[$const] = true;
+        }
+    }
 
     public function getRuleDefinition(): RuleDefinition
     {
         return new RuleDefinition(
-            'Optimizes regex patterns using RegexParser\'s OptimizerNodeVisitor.',
+            'Optimizes regex patterns using RegexParser\'s AST transformation.',
             [
-                new CodeSample(
-                    "preg_match('/[a-zA-Z0-9_]+/', \$str);",
-                    "preg_match('/\\w+/', \$str);",
-                ),
-                new CodeSample(
-                    "preg_match('/(a|b|c)/', \$str);",
-                    "preg_match('/[abc]/', \$str);",
-                ),
-                new CodeSample(
-                    "preg_match('/a.b.c.d/', \$str);", // No change
-                    "preg_match('/a.b.c.d/', \$str);",
+                new ConfiguredCodeSample(
+                    <<<'CODE_SAMPLE'
+                        class SomeClass
+                        {
+                            public function run($str)
+                            {
+                                preg_match('/[a-zA-Z0-9_]+/', $str);
+                            }
+                        }
+                        CODE_SAMPLE,
+                    <<<'CODE_SAMPLE'
+                        class SomeClass
+                        {
+                            public function run($str)
+                            {
+                                preg_match('/\\w+/', $str);
+                            }
+                        }
+                        CODE_SAMPLE,
+                    [
+                        self::EXTRA_FUNCTIONS => ['my_custom_preg_wrapper'],
+                    ],
                 ),
             ],
         );
     }
 
     /**
-     * @return array<class-string<Node>>
+     * @param array<string, mixed> $configuration
      */
+    public function configure(array $configuration): void
+    {
+        if (isset($configuration[self::EXTRA_FUNCTIONS])) {
+            foreach ((array) $configuration[self::EXTRA_FUNCTIONS] as $func) {
+                $this->targetFunctions[(string) $func] = true;
+            }
+        }
+
+        if (isset($configuration[self::EXTRA_CONSTANTS])) {
+            foreach ((array) $configuration[self::EXTRA_CONSTANTS] as $const) {
+                $this->targetConstants[(string) $const] = true;
+            }
+        }
+    }
+
     public function getNodeTypes(): array
     {
         return [FuncCall::class, ClassConst::class];
     }
 
-    /**
-     * @param FuncCall|ClassConst $node
-     */
     public function refactor(Node $node): ?Node
     {
-        $stringNode = $this->getRegexStringNode($node);
+        $stringNode = $this->resolveRegexStringNode($node);
 
         if (!$stringNode instanceof String_) {
             return null;
         }
 
-        $originalRegexString = $stringNode->value;
+        $originalPattern = $stringNode->value;
+
+        // Quick check: if it doesn't look like a regex, skip to save performance
+        if (\strlen($originalPattern) < 2) {
+            return null;
+        }
 
         try {
-            $ast = $this->getParser()->parse($originalRegexString);
+            $parser = $this->getParser();
+            $ast = $parser->parse($originalPattern);
 
-            // 1. Optimize the AST (AST -> AST)
-            // We clone the visitor to ensure its state (like $flags) is fresh for this run.
+            // 1. Optimization Phase (AST -> AST)
+            // We clone the visitor to ensure a fresh state for each run
             $optimizer = clone $this->optimizerVisitor;
             $optimizedAst = $ast->accept($optimizer);
 
-            // 2. Re-compile the optimized AST to a string (AST -> string)
+            // 2. Compilation Phase (AST -> String)
             $compiler = $this->getCompiler();
-            $newRegexString = $optimizedAst->accept($compiler);
+            $newPattern = $optimizedAst->accept($compiler);
 
-            if ($newRegexString !== $originalRegexString) {
-                $stringNode->value = $newRegexString;
+            // Only modify the AST if the optimization resulted in a change
+            if ($newPattern !== $originalPattern) {
+                $stringNode->value = $newPattern;
 
                 return $node;
             }
         } catch (\Throwable) {
-            // If parsing or optimizing fails, do nothing.
-            // This protects against invalid regexes in the codebase.
+            // Silently ignore invalid regexes or parsing errors.
+            // Rector's job is to refactor valid code, not to act as a linter.
+        }
+
+        return null;
+    }
+
+    private function resolveRegexStringNode(Node $node): ?String_
+    {
+        if ($node instanceof FuncCall) {
+            return $this->resolveFuncCallArgument($node);
+        }
+
+        if ($node instanceof ClassConst) {
+            return $this->resolveClassConstantValue($node);
+        }
+
+        return null;
+    }
+
+    private function resolveFuncCallArgument(FuncCall $node): ?String_
+    {
+        if (!$node->name instanceof Node\Name) {
             return null;
+        }
+
+        $name = $this->getName($node->name);
+        if (null === $name || !isset($this->targetFunctions[$name])) {
+            return null;
+        }
+
+        // In standard preg_ functions, the pattern is always the first argument (index 0)
+        // If custom functions use a different index, we might need more advanced config later.
+        $args = $node->getArgs();
+        if (!isset($args[0])) {
+            return null;
+        }
+
+        $patternArg = $args[0]->value;
+
+        return $patternArg instanceof String_ ? $patternArg : null;
+    }
+
+    private function resolveClassConstantValue(ClassConst $node): ?String_
+    {
+        // Check if any of the constant names match our target list
+        foreach ($node->consts as $const) {
+            if (isset($this->targetConstants[$const->name->toString()])) {
+                return $const->value instanceof String_ ? $const->value : null;
+            }
         }
 
         return null;
@@ -118,42 +225,13 @@ final class RegexOptimizationRector extends AbstractRector
 
     private function getParser(): Parser
     {
-        return $this->parser ??= new Parser([]);
+        // Lazy initialization
+        return $this->parser ??= new Parser();
     }
 
     private function getCompiler(): CompilerNodeVisitor
     {
+        // Lazy initialization
         return $this->compiler ??= new CompilerNodeVisitor();
-    }
-
-    private function getRegexStringNode(Node $node): ?String_
-    {
-        if ($node instanceof FuncCall) {
-            $functionName = $this->getName($node->name);
-            if (null === $functionName || !isset(self::PREG_FUNCTION_MAP[$functionName])) {
-                return null;
-            }
-            $patternArgPosition = self::PREG_FUNCTION_MAP[$functionName];
-            $args = $node->getArgs();
-            if (!isset($args[$patternArgPosition]) || !$args[$patternArgPosition]->value instanceof String_) {
-                return null;
-            }
-
-            return $args[$patternArgPosition]->value;
-        }
-
-        if ($node instanceof ClassConst) {
-            if (!$this->isNames($node, self::REGEX_CONSTANT_NAMES)) {
-                return null;
-            }
-            $const = $node->consts[0];
-            if (!$const->value instanceof String_) {
-                return null;
-            }
-
-            return $const->value;
-        }
-
-        return null;
     }
 }
