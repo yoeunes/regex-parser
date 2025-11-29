@@ -2,15 +2,26 @@
 
 {% block toolbar %}
     {% set total = collector.total %}
-    {% set invalid = collector.invalid %}
-    {% set icon_color = invalid ? 'red' : (total ? 'green' : 'gray') %}
-    {% set text_color = invalid ? 'red' : 'default' %}
+    {% set has_issues = collector.hasIssues %}
+    {% set status_color = has_issues ? 'red' : (total ? 'default' : 'disabled') %}
 
     {% set icon %}
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-diagram-3" viewBox="0 0 16 16">
-            <path fill-rule="evenodd" d="M6 3.5A1.5 1.5 0 0 1 7.5 2h1A1.5 1.5 0 0 1 10 3.5v1A1.5 1.5 0 0 1 8.5 6v1H11a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-1 0V8h-5v.5a.5.5 0 0 1-1 0v-1A.5.5 0 0 1 5 7h2.5V6A1.5 1.5 0 0 1 6 4.5v-1zM8.5 5a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1zM3 11.5A1.5 1.5 0 0 1 4.5 10h1A1.5 1.5 0 0 1 7 11.5v1A1.5 1.5 0 0 1 5.5 14h-1A1.5 1.5 0 0 1 3 12.5v-1zm1.5-.5a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-1zm4.5.5A1.5 1.5 0 0 1 10.5 10h1a1.5 1.5 0 0 1 1.5 1.5v1a1.5 1.5 0 0 1-1.5 1.5h-1A1.5 1.5 0 0 1 9 12.5v-1zm1.5-.5a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-1z"/>
+        {# Microscope/Regex analysis icon #}
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M12 2v4"/>
+            <path d="M12 18v4"/>
+            <path d="m4.93 4.93 2.83 2.83"/>
+            <path d="m16.24 16.24 2.83 2.83"/>
+            <path d="M2 12h4"/>
+            <path d="M18 12h4"/>
+            <path d="m4.93 19.07 2.83-2.83"/>
+            <path d="m16.24 7.76 2.83-2.83"/>
         </svg>
-        <span class="sf-toolbar-value {{ text_color }}">{{ total }}</span>
+        <span class="sf-toolbar-value">{{ total }}</span>
+        {% if has_issues %}
+            <span class="sf-toolbar-label">!</span>
+        {% endif %}
     {% endset %}
 
     {% set text %}
@@ -18,30 +29,57 @@
             <b>Regex Patterns</b>
             <span class="sf-toolbar-status {{ total ? '' : 'sf-toolbar-status-gray' }}">{{ total }}</span>
         </div>
+        {% if collector.redosRisks > 0 %}
+            <div class="sf-toolbar-info-piece">
+                <b>ReDoS Risks</b>
+                <span class="sf-toolbar-status sf-toolbar-status-red">{{ collector.redosRisks }}</span>
+            </div>
+        {% endif %}
+        {% if collector.invalid > 0 %}
+            <div class="sf-toolbar-info-piece">
+                <b>Invalid Patterns</b>
+                <span class="sf-toolbar-status sf-toolbar-status-red">{{ collector.invalid }}</span>
+            </div>
+        {% endif %}
+        {% if collector.warnings > 0 %}
+            <div class="sf-toolbar-info-piece">
+                <b>Warnings</b>
+                <span class="sf-toolbar-status sf-toolbar-status-yellow">{{ collector.warnings }}</span>
+            </div>
+        {% endif %}
         <div class="sf-toolbar-info-piece">
-            <b>Invalid / ReDoS</b>
-            <span class="sf-toolbar-status {{ invalid ? 'sf-toolbar-status-red' : (total ? 'sf-toolbar-status-green' : 'sf-toolbar-status-gray') }}">{{ invalid }}</span>
+            <b>Avg. Complexity</b>
+            <span class="sf-toolbar-status">{{ collector.averageComplexity|number_format(1) }}</span>
         </div>
     {% endset %}
 
-    {{ include('@WebProfiler/Profiler/toolbar_item.html.twig', { link: profiler_url, status: icon_color }) }}
+    {{ include('@WebProfiler/Profiler/toolbar_item.html.twig', { link: profiler_url, status: status_color }) }}
 {% endblock %}
 
 {% block menu %}
-    <span class="label {{ collector.invalid ? 'label-status-error' : (collector.total ? 'label-status-success' : 'label-status-disabled') }}">
+    <span class="label {{ collector.hasIssues ? 'label-status-error' : (collector.total ? '' : 'disabled') }}">
         <span class="icon">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                 <path fill-rule="evenodd" d="M6 3.5A1.5 1.5 0 0 1 7.5 2h1A1.5 1.5 0 0 1 10 3.5v1A1.5 1.5 0 0 1 8.5 6v1H11a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-1 0V8h-5v.5a.5.5 0 0 1-1 0v-1A.5.5 0 0 1 5 7h2.5V6A1.5 1.5 0 0 1 6 4.5v-1zM8.5 5a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1zM3 11.5A1.5 1.5 0 0 1 4.5 10h1A1.5 1.5 0 0 1 7 11.5v1A1.5 1.5 0 0 1 5.5 14h-1A1.5 1.5 0 0 1 3 12.5v-1zm1.5-.5a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-1zm4.5.5A1.5 1.5 0 0 1 10.5 10h1a1.5 1.5 0 0 1 1.5 1.5v1a1.5 1.5 0 0 1-1.5 1.5h-1A1.5 1.5 0 0 1 9 12.5v-1zm1.5-.5a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-1z"/>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M12 2v4"/>
+                <path d="M12 18v4"/>
+                <path d="m4.93 4.93 2.83 2.83"/>
+                <path d="m16.24 16.24 2.83 2.83"/>
+                <path d="M2 12h4"/>
+                <path d="M18 12h4"/>
+                <path d="m4.93 19.07 2.83-2.83"/>
+                <path d="m16.24 7.76 2.83-2.83"/>
             </svg>
         </span>
         <strong>Regex</strong>
-        {% if collector.invalid > 0 %}
+        {% if collector.hasIssues %}
             <span class="count">
                 <span>{{ collector.total }}</span>
-                <span class="status-error">{{ collector.invalid }}</span>
             </span>
-        {% else %}
-             <span class="count">{{ collector.total }}</span>
+        {% elseif collector.total > 0 %}
+            <span class="count">
+                <span>{{ collector.total }}</span>
+            </span>
         {% endif %}
     </span>
 {% endblock %}
@@ -49,65 +87,202 @@
 {% block panel %}
     <h2>Regex Parser</h2>
 
+    {# Metrics Cards #}
+    <div class="metrics">
+        <div class="metric">
+            <span class="value">{{ collector.total }}</span>
+            <span class="label">Total Patterns</span>
+        </div>
+        <div class="metric {{ collector.redosRisks > 0 ? 'metric-red' : '' }}">
+            <span class="value">{{ collector.redosRisks }}</span>
+            <span class="label">ReDoS Risks</span>
+        </div>
+        <div class="metric {{ collector.invalid > 0 ? 'metric-red' : '' }}">
+            <span class="value">{{ collector.invalid }}</span>
+            <span class="label">Parse Errors</span>
+        </div>
+        <div class="metric {{ collector.warnings > 0 ? 'metric-yellow' : '' }}">
+            <span class="value">{{ collector.warnings }}</span>
+            <span class="label">Warnings</span>
+        </div>
+        <div class="metric">
+            <span class="value">{{ collector.averageComplexity|number_format(1) }}</span>
+            <span class="label">Avg. Complexity</span>
+        </div>
+    </div>
+
+    {# Collection Errors (if any) #}
+    {% if collector.errors|length > 0 %}
+        <div class="sf-tabs">
+            <div class="tab">
+                <h3 class="tab-title">Collection Errors <span class="badge status-error">{{ collector.errors|length }}</span></h3>
+                <div class="tab-content">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Error Message</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for error in collector.errors %}
+                                <tr class="status-error">
+                                    <td>{{ error }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
     {% if collector.total == 0 %}
         <div class="empty">
-            <p>No regular expressions were collected for this request.</p>
+            <p>No regular expressions were collected during this request.</p>
         </div>
     {% else %}
-        <div class="metrics">
-            <div class="metric">
-                <span class="value">{{ collector.total }}</span>
-                <span class="label">Total Patterns</span>
-            </div>
-            <div class="metric {{ collector.invalid ? 'status-error' : 'status-success' }}">
-                <span class="value">{{ collector.invalid }}</span>
-                <span class="label">Invalid / ReDoS</span>
-            </div>
-        </div>
-
-        {% for regex in collector.regexes %}
-            {% set validation = regex.validation %}
-            {% set score_color = 'green' %}
-            {% if regex.score > 50 %}
-                {% set score_color = 'yellow' %}
-            {% endif %}
-            {% if regex.score > 100 %}
-                {% set score_color = 'red' %}
-            {% endif %}
-
-            <div class="card {{ not validation.isValid ? 'card-error' : '' }}">
-                <div class="card-title">
-                    <span class="font-normal">{{ regex.source }}</span>
-                    <span class="text-muted">Complexity Score: <span class="badge status-{{ score_color }}">{{ regex.score }}</span></span>
-                </div>
-
-                <div class="card-body">
-                    <div class="regex-pattern">{{ regex.pattern }}</div>
-
-                    {% if not validation.isValid %}
-                        <div class="call-error">
-                            <span class="badge status-error">Validation Error</span>
-                            {{ validation.error }}
-                        </div>
-                    {% endif %}
-
-                    {% if regex.subject is not null %}
-                        <div class="regex-subject">
-                            <strong>Subject:</strong>
-                            <span class="badge {{ regex.match_result ? 'status-success' : 'status-error' }}">
-                                {{ regex.match_result ? 'Match' : 'No Match' }}
-                            </span>
-                            <pre><code>{{ regex.subject }}</code></pre>
-                        </div>
-                    {% endif %}
-
-                    <h4>Explanation</h4>
-                    <div class="regex-explain">
-                        <pre>{{ regex.explanation }}</pre>
+        <div class="sf-tabs">
+            {# Critical Issues Tab #}
+            {% set critical = collector.criticalRegexes %}
+            {% if critical|length > 0 %}
+                <div class="tab">
+                    <h3 class="tab-title">Critical Issues <span class="badge status-error">{{ critical|length }}</span></h3>
+                    <div class="tab-content">
+                        {{ _self.render_regex_table(critical, 'critical') }}
                     </div>
                 </div>
-            </div>
-        {% endfor %}
+            {% endif %}
 
+            {# Warnings Tab #}
+            {% set warnings = collector.warningRegexes %}
+            {% if warnings|length > 0 %}
+                <div class="tab">
+                    <h3 class="tab-title">Warnings <span class="badge status-warning">{{ warnings|length }}</span></h3>
+                    <div class="tab-content">
+                        {{ _self.render_regex_table(warnings, 'warning') }}
+                    </div>
+                </div>
+            {% endif %}
+
+            {# Safe Patterns Tab #}
+            {% set safe = collector.safeRegexes %}
+            {% if safe|length > 0 %}
+                <div class="tab {{ critical|length == 0 and warnings|length == 0 ? 'active' : '' }}">
+                    <h3 class="tab-title">Safe Patterns <span class="badge status-success">{{ safe|length }}</span></h3>
+                    <div class="tab-content">
+                        {{ _self.render_regex_table(safe, 'safe') }}
+                    </div>
+                </div>
+            {% endif %}
+
+            {# All Patterns Tab #}
+            <div class="tab {{ critical|length == 0 and warnings|length == 0 and safe|length == 0 ? 'active' : '' }}">
+                <h3 class="tab-title">All Patterns <span class="badge">{{ collector.total }}</span></h3>
+                <div class="tab-content">
+                    {{ _self.render_regex_table(collector.regexes, 'all') }}
+                </div>
+            </div>
+        </div>
     {% endif %}
+
+    <style>
+        .metric-red { background: linear-gradient(to bottom, var(--metric-red-bg, #dc3545) 0%, var(--metric-red-bg-dark, #c82333) 100%); color: #fff; }
+        .metric-red .value, .metric-red .label { color: #fff !important; }
+        .metric-yellow { background: linear-gradient(to bottom, var(--metric-yellow-bg, #ffc107) 0%, var(--metric-yellow-bg-dark, #e0a800) 100%); }
+        .metric-yellow .value, .metric-yellow .label { color: #212529 !important; }
+        
+        .regex-pattern-cell { font-family: var(--font-family-monospace, monospace); font-size: 12px; word-break: break-all; max-width: 400px; }
+        .regex-source-cell { font-size: 12px; color: var(--color-muted, #999); }
+        .regex-explanation { font-size: 11px; color: var(--color-muted, #666); margin-top: 4px; white-space: pre-wrap; }
+        
+        .complexity-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; }
+        .complexity-low { background-color: #d4edda; color: #155724; }
+        .complexity-medium { background-color: #fff3cd; color: #856404; }
+        .complexity-high { background-color: #f8d7da; color: #721c24; }
+        
+        .status-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-right: 4px; }
+        .status-badge.invalid { background-color: #f8d7da; color: #721c24; }
+        .status-badge.redos { background-color: #721c24; color: #fff; }
+        .status-badge.warning { background-color: #fff3cd; color: #856404; }
+        .status-badge.valid { background-color: #d4edda; color: #155724; }
+        
+        .match-result { font-size: 11px; }
+        .match-result.matched { color: #28a745; }
+        .match-result.not-matched { color: #dc3545; }
+    </style>
 {% endblock %}
+
+{% macro render_regex_table(regexes, type) %}
+    <table>
+        <thead>
+            <tr>
+                <th>Status</th>
+                <th>Pattern</th>
+                <th>Source</th>
+                <th>Complexity</th>
+                <th>Details</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for regex in regexes %}
+                {% set row_class = '' %}
+                {% if not regex.is_valid or regex.is_redos_risk %}
+                    {% set row_class = 'status-error' %}
+                {% elseif regex.is_warning %}
+                    {% set row_class = 'status-warning' %}
+                {% endif %}
+                <tr class="{{ row_class }}">
+                    <td>
+                        {% if not regex.is_valid %}
+                            <span class="status-badge invalid">Invalid</span>
+                        {% elseif regex.is_redos_risk %}
+                            <span class="status-badge redos">ReDoS Risk</span>
+                        {% elseif regex.is_warning %}
+                            <span class="status-badge warning">Warning</span>
+                        {% else %}
+                            <span class="status-badge valid">OK</span>
+                        {% endif %}
+                    </td>
+                    <td class="regex-pattern-cell">
+                        <code>{{ regex.pattern }}</code>
+                        {% if regex.error %}
+                            <div class="text-small text-muted" style="color: #dc3545; margin-top: 4px;">
+                                {{ regex.error }}
+                            </div>
+                        {% endif %}
+                    </td>
+                    <td class="regex-source-cell">{{ regex.source }}</td>
+                    <td>
+                        {% if regex.score >= 0 %}
+                            {% if regex.score >= 100 %}
+                                <span class="complexity-badge complexity-high">{{ regex.score }}</span>
+                            {% elseif regex.score >= 50 %}
+                                <span class="complexity-badge complexity-medium">{{ regex.score }}</span>
+                            {% else %}
+                                <span class="complexity-badge complexity-low">{{ regex.score }}</span>
+                            {% endif %}
+                        {% else %}
+                            <span class="text-muted">N/A</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if regex.subject is not null %}
+                            <div class="match-result {{ regex.match_result ? 'matched' : 'not-matched' }}">
+                                Subject: <code>{{ regex.subject|length > 30 ? regex.subject[:30] ~ '...' : regex.subject }}</code>
+                                {% if regex.match_result is not null %}
+                                    → {{ regex.match_result ? '✓ Match' : '✗ No match' }}
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                        {% if regex.explanation %}
+                            <details>
+                                <summary style="cursor: pointer; font-size: 11px; color: #666;">Show explanation</summary>
+                                <div class="regex-explanation">{{ regex.explanation }}</div>
+                            </details>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endmacro %}

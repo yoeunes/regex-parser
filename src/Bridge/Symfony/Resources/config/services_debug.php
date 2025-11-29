@@ -16,28 +16,46 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 use RegexParser\Bridge\Symfony\DataCollector\RegexCollector;
 use RegexParser\Bridge\Symfony\Service\TraceableRouter;
 use RegexParser\Bridge\Symfony\Service\TraceableValidator;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Routing\RouterInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
+/**
+ * Debug services for the RegexParser bundle.
+ *
+ * These services are only loaded when profiler is enabled (typically in debug mode).
+ * Includes the data collector and traceable decorators for Router and Validator.
+ */
 return static function (ContainerConfigurator $container): void {
-    $container->services()
-        ->set('regex_parser.collector', RegexCollector::class)
-            ->arg('$regex', service('regex_parser.regex'))
-            ->arg('$explainVisitor', service('regex_parser.visitor.explain'))
-            ->arg('$scoreVisitor', service('regex_parser.visitor.complexity_score'))
-            ->tag('data_collector', [
-                'template' => '@RegexParser/Profiler/regex_panel.html.twig',
-                'id' => 'regex',
-                'priority' => 270,
-            ])
+    $services = $container->services()
+        ->defaults()
+            ->private();
 
-        ->set('regex_parser.router.decorator', TraceableRouter::class)
-            ->decorate(RouterInterface::class, null, 10)
-            ->arg('$router', service('.inner'))
-            ->arg('$collector', service('regex_parser.collector'))
+    // Data collector for the Symfony Web Profiler
+    $services->set('regex_parser.collector', RegexCollector::class)
+        ->arg('$regex', service('regex_parser.regex'))
+        ->arg('$explainVisitor', service('regex_parser.visitor.explain'))
+        ->arg('$scoreVisitor', service('regex_parser.visitor.complexity_score'))
+        ->arg('$redosThreshold', param('regex_parser.profiler.redos_threshold'))
+        ->arg('$warningThreshold', param('regex_parser.profiler.warning_threshold'))
+        ->tag('data_collector', [
+            'template' => '@RegexParser/Profiler/regex_panel.html.twig',
+            'id' => 'regex_parser',
+            'priority' => 270,
+        ])
+        ->public();
 
-        ->set('regex_parser.validator.decorator', TraceableValidator::class)
-            ->decorate(ValidatorInterface::class, null, 10)
-            ->arg('$validator', service('.inner'))
-            ->arg('$collector', service('regex_parser.collector'));
+    // Traceable Router decorator
+    // Uses decoration_on_invalid: ignore to gracefully handle missing Router service
+    $services->set('regex_parser.traceable_router', TraceableRouter::class)
+        ->decorate(RouterInterface::class, null, 10, ContainerInterface::IGNORE_ON_INVALID_REFERENCE)
+        ->arg('$router', service('.inner'))
+        ->arg('$collector', service('regex_parser.collector'));
+
+    // Traceable Validator decorator
+    // Uses decoration_on_invalid: ignore to gracefully handle missing Validator service
+    $services->set('regex_parser.traceable_validator', TraceableValidator::class)
+        ->decorate(ValidatorInterface::class, null, 10, ContainerInterface::IGNORE_ON_INVALID_REFERENCE)
+        ->arg('$validator', service('.inner'))
+        ->arg('$collector', service('regex_parser.collector'));
 };

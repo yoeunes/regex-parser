@@ -17,17 +17,47 @@ use RegexParser\Parser;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
 
-class Configuration implements ConfigurationInterface
+/**
+ * Configuration for the RegexParser bundle.
+ *
+ * @see https://symfony.com/doc/current/bundles/configuration.html
+ */
+final class Configuration implements ConfigurationInterface
 {
+    public function __construct(
+        private readonly bool $debug = false,
+    ) {}
+
     public function getConfigTreeBuilder(): TreeBuilder
     {
         $treeBuilder = new TreeBuilder('regex_parser');
 
         $treeBuilder->getRootNode()
             ->children()
+                ->booleanNode('enabled')
+                    ->defaultTrue()
+                    ->info('Enable or disable the RegexParser bundle entirely.')
+                ->end()
                 ->integerNode('max_pattern_length')
                     ->defaultValue(Parser::DEFAULT_MAX_PATTERN_LENGTH)
                     ->info('The maximum allowed length for a regex pattern string to parse.')
+                ->end()
+                ->arrayNode('profiler')
+                    ->addDefaultsIfNotSet()
+                    ->children()
+                        ->booleanNode('enabled')
+                            ->defaultValue($this->debug)
+                            ->info('Enable the profiler data collector. Defaults to the value of kernel.debug.')
+                        ->end()
+                        ->integerNode('redos_threshold')
+                            ->defaultValue(100)
+                            ->info('Complexity score threshold above which a pattern is flagged as ReDoS risk.')
+                        ->end()
+                        ->integerNode('warning_threshold')
+                            ->defaultValue(50)
+                            ->info('Complexity score threshold above which a pattern is flagged as warning.')
+                        ->end()
+                    ->end()
                 ->end()
             ->end();
 

@@ -1,7 +1,7 @@
 {
     "name": "yoeunes/regex-parser",
     "description": "A PCRE regex parser with lexer, AST, and validation",
-    "type": "library",
+    "type": "symfony-bundle",
     "license": "MIT",
     "authors": [
         {
