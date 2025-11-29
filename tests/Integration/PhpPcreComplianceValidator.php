@@ -47,51 +47,41 @@ final class PhpPcreComplianceValidator extends TestCase
     ): void {
         $function = $functions[0] ?? 'preg_match';
 
-        switch ($function) {
-            case 'preg_match':
-                $this->assertPregMatch(
-                    $pattern,
-                    $subject,
-                    $flags,
-                    $offset,
-                    $expectedReturn,
-                    $expectedMatches,
-                    $description,
-                    $source,
-                    $category,
-                );
-                break;
-
-            case 'preg_match_all':
-                $this->assertPregMatchAll(
-                    $pattern,
-                    $subject,
-                    $flags,
-                    $offset,
-                    $expectedReturn,
-                    $expectedMatches,
-                    $description,
-                    $source,
-                    $category,
-                );
-                break;
-
-            case 'preg_split':
-                $this->assertPregSplit(
-                    $pattern,
-                    $subject,
-                    $flags,
-                    $expectedReturn,
-                    $expectedResult ?? [],
-                    $description,
-                    $source,
-                    $category,
-                );
-                break;
-
-            default:
-                $this->markTestSkipped(\sprintf('Function %s not yet supported in validator', $function));
-        }
+        match ($function) {
+            'preg_match' => $this->assertPregMatch(
+                $pattern,
+                $subject,
+                $flags,
+                $offset,
+                $expectedReturn,
+                $expectedMatches,
+                $description,
+                $source,
+                $category,
+            ),
+            'preg_match_all' => $this->assertPregMatchAll(
+                $pattern,
+                $subject,
+                $flags,
+                $offset,
+                $expectedReturn,
+                $expectedMatches,
+                $description,
+                $source,
+                $category,
+            ),
+            'preg_split' => $this->assertPregSplit(
+                $pattern,
+                $subject,
+                $flags,
+                $expectedReturn,
+                $expectedResult ?? [],
+                $description,
+                $source,
+                $category,
+            ),
+            default => $this->markTestSkipped(\sprintf('Function %s not yet supported in validator', $function)),
+        };
     }
 
     /**
@@ -328,9 +318,9 @@ final class PhpPcreComplianceValidator extends TestCase
             ),
         );
 
-        $this->assertSame(
+        $this->assertCount(
             $expectedReturn,
-            \count($result),
+            $result,
             \sprintf(
                 "preg_split() returned %d parts but expected %d for: %s\n" .
                 "Pattern: %s\n" .
