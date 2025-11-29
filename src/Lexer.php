@@ -54,7 +54,7 @@ final class Lexer
         | (?<T_BACKREF>               \\ (?: k(?:<[a-zA-Z0-9_]+> | \{[a-zA-Z0-9_]+\}) | (?<v_backref_num> [1-9]\d*) ) )
         | (?<T_OCTAL_LEGACY>          \\ 0[0-7]{0,2} )
         | (?<T_OCTAL>                 \\ o\{[0-7]+\} )
-        | (?<T_UNICODE>               \\ x[0-9a-fA-F]{2} | \\ u\{[0-9a-fA-F]+\} )
+        | (?<T_UNICODE>               \\ x (?: [0-9a-fA-F]{2} | \{[0-9a-fA-F]+\} ) | \\ u\{[0-9a-fA-F]+\} )
         | (?<T_UNICODE_PROP>          \\ [pP] (?: \{ (?<v1_prop> \^? [a-zA-Z0-9_]+) \} | (?<v2_prop> [a-zA-Z]) ) )
         | (?<T_QUOTE_MODE_START>      \\ Q )
         | (?<T_QUOTE_MODE_END>        \\ E )
@@ -77,7 +77,7 @@ final class Lexer
         | (?<T_CHAR_TYPE>        \\ [dswDSWhvR] )
         | (?<T_OCTAL_LEGACY>     \\ 0[0-7]{0,2} )
         | (?<T_OCTAL>            \\ o\{[0-7]+\} )
-        | (?<T_UNICODE>          \\ x[0-9a-fA-F]{2} | \\ u\{[0-9a-fA-F]+\} )
+        | (?<T_UNICODE>          \\ x (?: [0-9a-fA-F]{2} | \{[0-9a-fA-F]+\} ) | \\ u\{[0-9a-fA-F]+\} )
         | (?<T_UNICODE_PROP>     \\ [pP] (?: \{ (?<v1_prop> \^? [a-zA-Z0-9_]+) \} | (?<v2_prop> [a-zA-Z]) ) )
         | (?<T_QUOTE_MODE_START> \\ Q )
         | (?<T_LITERAL_ESCAPED>  \\ . ) # Includes escaped ], -, ^
