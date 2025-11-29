@@ -12,8 +12,8 @@ declare(strict_types=1);
  */
 
 // Ensure we are in the WASM environment
-if (!defined('STDERR')) {
-    define('STDERR', fopen('php://stderr', 'wb'));
+if (!\defined('STDERR')) {
+    \define('STDERR', fopen('php://stderr', 'w'));
 }
 
 // 1. Bootstrap the environment
@@ -37,13 +37,12 @@ use RegexParser\Regex;
 // 2. Parse Input
 // In the PHP-WASM environment, we inject the input as a variable $jsonInput
 // to avoid issues with php://stdin stream blocking in some runtimes.
-/** @var string|null $jsonInput */
 $rawInput = $jsonInput ?? '{}';
 
 try {
-    $input = json_decode($rawInput, true, 512, JSON_THROW_ON_ERROR);
+    $input = json_decode($rawInput, true, 512, \JSON_THROW_ON_ERROR);
 } catch (JsonException $e) {
-    echo json_encode(['error' => 'Invalid JSON input: ' . $e->getMessage()]);
+    echo json_encode(['error' => 'Invalid JSON input: '.$e->getMessage()]);
     exit(1);
 }
 
@@ -74,6 +73,7 @@ if ('' !== $regex) {
                     'raw' => $parser->dump($regex),
                     'flags' => $ast->flags,
                 ];
+
                 break;
 
             case 'validate':
@@ -84,6 +84,7 @@ if ('' !== $regex) {
                     'error' => $res->error,
                     'score' => $res->complexityScore,
                 ];
+
                 break;
 
             case 'explain':
@@ -91,6 +92,7 @@ if ('' !== $regex) {
                     'type' => 'explain',
                     'explanation' => $parser->explain($regex),
                 ];
+
                 break;
 
             case 'generate':
@@ -98,6 +100,7 @@ if ('' !== $regex) {
                     'type' => 'generate',
                     'sample' => $parser->generate($regex),
                 ];
+
                 break;
 
             case 'redos':
@@ -109,6 +112,7 @@ if ('' !== $regex) {
                     'isSafe' => $analysis->isSafe(),
                     'recommendations' => $analysis->recommendations,
                 ];
+
                 break;
 
             case 'literals':
@@ -120,10 +124,11 @@ if ('' !== $regex) {
                     'longestPrefix' => $literals->getLongestPrefix(),
                     'longestSuffix' => $literals->getLongestSuffix(),
                 ];
+
                 break;
 
             default:
-                throw new \InvalidArgumentException(sprintf('Unknown action "%s".', $action));
+                throw new \InvalidArgumentException(\sprintf('Unknown action "%s".', $action));
         }
     } catch (ParserException|LexerException|\Throwable $e) {
         $response['error'] = $e->getMessage();
@@ -178,15 +183,15 @@ function renderTree(array $node, int $depth = 0): void
     }
 
     // Node Icon
-    echo sprintf('<div class="w-5 h-5 rounded flex items-center justify-center shrink-0 %s text-[10px] border border-black/5"><i class="%s"></i></div>', $styleClass, $icon);
+    echo \sprintf('<div class="w-5 h-5 rounded flex items-center justify-center shrink-0 %s text-[10px] border border-black/5"><i class="%s"></i></div>', $styleClass, $icon);
 
     // Node Label & Detail
     echo '<div class="flex items-baseline gap-2 overflow-hidden">';
-    echo sprintf('<span class="text-xs font-semibold text-slate-700 truncate">%s</span>', $label);
+    echo \sprintf('<span class="text-xs font-semibold text-slate-700 truncate">%s</span>', $label);
 
     if (!empty($node['detail'])) {
         $detail = htmlspecialchars((string) $node['detail']);
-        echo sprintf('<code class="text-[10px] font-mono text-slate-500 bg-white px-1 border border-slate-200 rounded truncate max-w-[200px]">%s</code>', $detail);
+        echo \sprintf('<code class="text-[10px] font-mono text-slate-500 bg-white px-1 border border-slate-200 rounded truncate max-w-[200px]">%s</code>', $detail);
     }
     echo '</div>';
 
@@ -194,7 +199,7 @@ function renderTree(array $node, int $depth = 0): void
         echo '</summary>';
         echo '<div class="pl-4 ml-1.5 border-l border-slate-200/50">';
         foreach ($children as $child) {
-            if (is_array($child)) {
+            if (\is_array($child)) {
                 renderTree($child, $depth + 1);
             }
         }

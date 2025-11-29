@@ -11,17 +11,17 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-$srcDir = dirname(__DIR__).'/src';
-$outputFile = dirname(__DIR__).'/public/library-bundle.json';
+$srcDir = __DIR__.'/../src';
+$outputFile = __DIR__.'/../public/library-bundle.json';
 
 if (!is_dir($srcDir)) {
-    fwrite(STDERR, sprintf("Error: Source directory not found at \"%s\".\n", $srcDir));
+    fwrite(\STDERR, \sprintf("Error: Source directory not found at \"%s\".\n", $srcDir));
     exit(1);
 }
 
 $files = [];
 $iterator = new RecursiveIteratorIterator(
-    new RecursiveDirectoryIterator($srcDir, RecursiveDirectoryIterator::SKIP_DOTS)
+    new RecursiveDirectoryIterator($srcDir, RecursiveDirectoryIterator::SKIP_DOTS),
 );
 
 echo "📦 Packaging library for WASM environment...\n";
@@ -33,38 +33,38 @@ foreach ($iterator as $file) {
         $relativePath = str_replace(
             '\\',
             '/',
-            substr($file->getPathname(), strlen($srcDir) + 1)
+            substr($file->getPathname(), \strlen($srcDir) + 1),
         );
 
         $files[$relativePath] = file_get_contents($file->getPathname());
-        echo sprintf(" - Added: %s\n", $relativePath);
+        echo \sprintf(" - Added: %s\n", $relativePath);
     }
 }
 
 // Inject a dedicated autoloader for the WASM environment.
 // This replaces Composer, which is not available in the browser context.
 $autoloader = <<<'PHP'
-<?php
+    <?php
 
-declare(strict_types=1);
+    declare(strict_types=1);
 
-spl_autoload_register(function (string $class): void {
-    $prefix = 'RegexParser\\';
-    $baseDir = __DIR__.'/src/';
+    spl_autoload_register(function (string $class): void {
+        $prefix = 'RegexParser\\';
+        $baseDir = __DIR__.'/src/';
 
-    $len = strlen($prefix);
-    if (strncmp($prefix, $class, $len) !== 0) {
-        return;
-    }
+        $len = strlen($prefix);
+        if (strncmp($prefix, $class, $len) !== 0) {
+            return;
+        }
 
-    $relativeClass = substr($class, $len);
-    $file = $baseDir.str_replace('\\', '/', $relativeClass).'.php';
+        $relativeClass = substr($class, $len);
+        $file = $baseDir.str_replace('\\', '/', $relativeClass).'.php';
 
-    if (file_exists($file)) {
-        require $file;
-    }
-});
-PHP;
+        if (file_exists($file)) {
+            require $file;
+        }
+    });
+    PHP;
 
 $files['autoload.php'] = $autoloader;
 
@@ -72,8 +72,8 @@ try {
     $json = json_encode($files, \JSON_PRETTY_PRINT | \JSON_THROW_ON_ERROR);
     file_put_contents($outputFile, $json);
 } catch (JsonException $e) {
-    fwrite(STDERR, sprintf("Error encoding JSON bundle: %s\n", $e->getMessage()));
+    fwrite(\STDERR, \sprintf("Error encoding JSON bundle: %s\n", $e->getMessage()));
     exit(1);
 }
 
-echo sprintf("\n✅ Bundle successfully generated at \"%s\" (%d files).\n", $outputFile, count($files));
+echo \sprintf("\n✅ Bundle successfully generated at \"%s\" (%d files).\n", $outputFile, \count($files));

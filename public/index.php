@@ -5,8 +5,8 @@ require __DIR__.'/../vendor/autoload.php';
 
 use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
-use RegexParser\Regex;
 use RegexParser\NodeVisitor\ArrayExplorerVisitor;
+use RegexParser\Regex;
 
 // 2. Configuration
 header('Content-Type: text/html; charset=utf-8');
@@ -27,57 +27,63 @@ if ($regex) {
                 $ast = $regexParser->parse($regex);
                 $explorer = new ArrayExplorerVisitor();
                 $result = [
-                    'type'  => 'parse',
-                    'tree'  => $ast->accept($explorer),
-                    'raw'   => $regexParser->dump($regex),
+                    'type' => 'parse',
+                    'tree' => $ast->accept($explorer),
+                    'raw' => $regexParser->dump($regex),
                     'flags' => $ast->flags,
                 ];
+
                 break;
 
             case 'validate':
                 $validation = $regexParser->validate($regex);
                 $result = [
-                    'type'    => 'validate',
+                    'type' => 'validate',
                     'isValid' => $validation->isValid,
-                    'error'   => $validation->error,
-                    'score'   => $validation->complexityScore,
+                    'error' => $validation->error,
+                    'score' => $validation->complexityScore,
                 ];
+
                 break;
 
             case 'explain':
                 $result = [
-                    'type'        => 'explain',
+                    'type' => 'explain',
                     'explanation' => $regexParser->explain($regex),
                 ];
+
                 break;
 
             case 'generate':
                 $result = [
-                    'type'   => 'generate',
+                    'type' => 'generate',
                     'sample' => $regexParser->generate($regex),
                 ];
+
                 break;
 
             case 'redos':
                 $analysis = $regexParser->analyzeReDoS($regex);
                 $result = [
-                    'type'            => 'redos',
-                    'severity'        => $analysis->severity->value,
-                    'score'           => $analysis->score,
-                    'isSafe'          => $analysis->isSafe(),
+                    'type' => 'redos',
+                    'severity' => $analysis->severity->value,
+                    'score' => $analysis->score,
+                    'isSafe' => $analysis->isSafe(),
                     'recommendations' => $analysis->recommendations,
                 ];
+
                 break;
 
             case 'literals':
                 $literals = $regexParser->extractLiterals($regex);
                 $result = [
-                    'type'          => 'literals',
-                    'prefixes'      => $literals->prefixes,
-                    'suffixes'      => $literals->suffixes,
+                    'type' => 'literals',
+                    'prefixes' => $literals->prefixes,
+                    'suffixes' => $literals->suffixes,
                     'longestPrefix' => $literals->getLongestPrefix(),
                     'longestSuffix' => $literals->getLongestSuffix(),
                 ];
+
                 break;
         }
         $duration = round((microtime(true) - $start) * 1000, 2);
@@ -95,15 +101,15 @@ function renderTree(array $node, int $depth = 0): void
     $hasChildren = !empty($children);
     // Mapping colors to simpler UI classes
     $colors = [
-        'text-indigo-600'  => 'text-indigo-600 bg-indigo-50',
-        'text-green-600'   => 'text-emerald-600 bg-emerald-50',
+        'text-indigo-600' => 'text-indigo-600 bg-indigo-50',
+        'text-green-600' => 'text-emerald-600 bg-emerald-50',
         'text-emerald-600' => 'text-teal-600 bg-teal-50',
-        'text-blue-500'    => 'text-blue-600 bg-blue-50',
-        'text-blue-600'    => 'text-blue-600 bg-blue-50',
-        'text-orange-600'  => 'text-amber-600 bg-amber-50',
-        'text-purple-600'  => 'text-purple-600 bg-purple-50',
-        'text-red-600'     => 'text-rose-600 bg-rose-50',
-        'text-slate-700'   => 'text-slate-600 bg-slate-100',
+        'text-blue-500' => 'text-blue-600 bg-blue-50',
+        'text-blue-600' => 'text-blue-600 bg-blue-50',
+        'text-orange-600' => 'text-amber-600 bg-amber-50',
+        'text-purple-600' => 'text-purple-600 bg-purple-50',
+        'text-red-600' => 'text-rose-600 bg-rose-50',
+        'text-slate-700' => 'text-slate-600 bg-slate-100',
     ];
 
     $styleClass = $colors[$node['color'] ?? ''] ?? 'text-slate-500 bg-slate-50';
@@ -148,7 +154,7 @@ function renderTree(array $node, int $depth = 0): void
         // Indented children container
         echo '<div class="pl-4 ml-1.5 border-l border-slate-200/50">';
         foreach ($children as $child) {
-            if (is_array($child)) {
+            if (\is_array($child)) {
                 renderTree($child, $depth + 1);
             }
         }
@@ -239,14 +245,14 @@ function renderTree(array $node, int $depth = 0): void
 
     <div class="flex items-center gap-4">
         <?php
-        if ($result): ?>
+        if ($result) { ?>
             <span
                 class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 border border-slate-200 text-[10px] font-mono font-medium text-slate-600">
                     <i class="fa-solid fa-bolt text-amber-500"></i> <?php
                 echo $duration; ?>ms
                 </span>
         <?php
-        endif; ?>
+        } ?>
         <a href="https://github.com/yoeunes/regex-parser" target="_blank"
            class="text-slate-400 hover:text-slate-900 transition-colors">
             <i class="fa-brands fa-github text-xl"></i>
@@ -281,52 +287,52 @@ function renderTree(array $node, int $depth = 0): void
                     <div class="grid grid-cols-2 gap-2">
                         <?php
                         $tools = [
-                            'parse'    => [
-                                'icon'  => 'fa-code',
+                            'parse' => [
+                                'icon' => 'fa-code',
                                 'label' => 'Parse AST',
-                                'bg'    => 'hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200'
+                                'bg' => 'hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200'
                             ],
                             'validate' => [
-                                'icon'  => 'fa-check-double',
+                                'icon' => 'fa-check-double',
                                 'label' => 'Validate',
-                                'bg'    => 'hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200'
+                                'bg' => 'hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200'
                             ],
-                            'explain'  => [
-                                'icon'  => 'fa-list-ul',
+                            'explain' => [
+                                'icon' => 'fa-list-ul',
                                 'label' => 'Explain',
-                                'bg'    => 'hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200'
+                                'bg' => 'hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200'
                             ],
                             'generate' => [
-                                'icon'  => 'fa-shuffle',
+                                'icon' => 'fa-shuffle',
                                 'label' => 'Generate',
-                                'bg'    => 'hover:bg-violet-50 hover:text-violet-700 hover:border-violet-200'
+                                'bg' => 'hover:bg-violet-50 hover:text-violet-700 hover:border-violet-200'
                             ],
-                            'redos'    => [
-                                'icon'  => 'fa-shield-virus',
+                            'redos' => [
+                                'icon' => 'fa-shield-virus',
                                 'label' => 'Audit Security',
-                                'bg'    => 'hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200'
+                                'bg' => 'hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200'
                             ],
                             'literals' => [
-                                'icon'  => 'fa-filter',
+                                'icon' => 'fa-filter',
                                 'label' => 'Optimize',
-                                'bg'    => 'hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200'
+                                'bg' => 'hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200'
                             ],
                         ];
 
-                        foreach ($tools as $key => $tool) {
-                            $isActive = $action === $key;
-                            $base
-                                = 'flex flex-col items-center justify-center p-3 rounded-lg border text-center transition-all cursor-pointer gap-2';
-                            $style = $isActive
-                                ? 'bg-slate-800 text-white border-slate-800 shadow-md'
-                                : 'bg-white border-slate-200 text-slate-600 '.$tool['bg'];
+foreach ($tools as $key => $tool) {
+    $isActive = $action === $key;
+    $base
+        = 'flex flex-col items-center justify-center p-3 rounded-lg border text-center transition-all cursor-pointer gap-2';
+    $style = $isActive
+        ? 'bg-slate-800 text-white border-slate-800 shadow-md'
+        : 'bg-white border-slate-200 text-slate-600 '.$tool['bg'];
 
-                            echo "<button type='submit' name='action' value='$key' class='$base $style'>";
-                            echo "<i class='fa-solid {$tool['icon']} text-sm'></i>";
-                            echo "<span class='text-[11px] font-medium leading-tight'>{$tool['label']}</span>";
-                            echo '</button>';
-                        }
-                        ?>
+    echo "<button type='submit' name='action' value='$key' class='$base $style'>";
+    echo "<i class='fa-solid {$tool['icon']} text-sm'></i>";
+    echo "<span class='text-[11px] font-medium leading-tight'>{$tool['label']}</span>";
+    echo '</button>';
+}
+?>
                     </div>
                 </div>
 
@@ -336,51 +342,51 @@ function renderTree(array $node, int $depth = 0): void
                     </div>
                     <div class="space-y-2">
                         <?php
-                        $presets = [
-                            [
-                                'name'   => 'Email Validation',
-                                'regex'  => '/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i',
-                                'icon'   => 'fa-envelope',
-                                'action' => 'parse'
-                            ],
-                            [
-                                'name'   => 'ISO Date (Named Groups)',
-                                'regex'  => '/^(?<Y>\d{4})-(?<M>\d{2})-(?<D>\d{2})$/',
-                                'icon'   => 'fa-calendar',
-                                'action' => 'parse'
-                            ],
-                            [
-                                'name'    => 'ReDoS Exploit Check',
-                                'regex'   => '/(a+)+b/',
-                                'icon'    => 'fa-bomb',
-                                'action'  => 'redos',
-                                'warning' => true
-                            ],
-                            [
-                                'name'   => 'URL Matcher',
-                                'regex'  => '/^https?:\/\/([\w.-]+)(:\d+)?(\/.*)?$/i',
-                                'icon'   => 'fa-link',
-                                'action' => 'explain'
-                            ],
-                            [
-                                'name'   => 'Lookbehind Price',
-                                'regex'  => '/(?<=price: )\$\d+\.\d{2}/',
-                                'icon'   => 'fa-tag',
-                                'action' => 'parse'
-                            ],
-                            [
-                                'name'   => 'Recursive Pattern',
-                                'regex'  => '/\((?>[^()]|(?R))*\)/',
-                                'icon'   => 'fa-recycle',
-                                'action' => 'parse'
-                            ],
-                        ];
+$presets = [
+    [
+        'name' => 'Email Validation',
+        'regex' => '/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i',
+        'icon' => 'fa-envelope',
+        'action' => 'parse'
+    ],
+    [
+        'name' => 'ISO Date (Named Groups)',
+        'regex' => '/^(?<Y>\d{4})-(?<M>\d{2})-(?<D>\d{2})$/',
+        'icon' => 'fa-calendar',
+        'action' => 'parse'
+    ],
+    [
+        'name' => 'ReDoS Exploit Check',
+        'regex' => '/(a+)+b/',
+        'icon' => 'fa-bomb',
+        'action' => 'redos',
+        'warning' => true
+    ],
+    [
+        'name' => 'URL Matcher',
+        'regex' => '/^https?:\/\/([\w.-]+)(:\d+)?(\/.*)?$/i',
+        'icon' => 'fa-link',
+        'action' => 'explain'
+    ],
+    [
+        'name' => 'Lookbehind Price',
+        'regex' => '/(?<=price: )\$\d+\.\d{2}/',
+        'icon' => 'fa-tag',
+        'action' => 'parse'
+    ],
+    [
+        'name' => 'Recursive Pattern',
+        'regex' => '/\((?>[^()]|(?R))*\)/',
+        'icon' => 'fa-recycle',
+        'action' => 'parse'
+    ],
+];
 
-                        foreach ($presets as $p) {
-                            $patternDisplay = strlen($p['regex']) > 35 ? substr($p['regex'], 0, 35).'...' : $p['regex'];
-                            $iconColor = isset($p['warning']) ? 'text-red-400' : 'text-slate-400';
+foreach ($presets as $p) {
+    $patternDisplay = \strlen($p['regex']) > 35 ? substr($p['regex'], 0, 35).'...' : $p['regex'];
+    $iconColor = isset($p['warning']) ? 'text-red-400' : 'text-slate-400';
 
-                            echo "
+    echo "
                                 <div onclick=\"setPattern('".addslashes($p['regex'])."', '{$p['action']}')\" 
                                      class='group bg-white border border-slate-200 rounded-lg p-2.5 cursor-pointer hover:border-indigo-400 hover:shadow-sm transition-all'>
                                     <div class='flex items-center gap-2 mb-1.5'>
@@ -391,8 +397,8 @@ function renderTree(array $node, int $depth = 0): void
                                         {$patternDisplay}
                                     </div>
                                 </div>";
-                        }
-                        ?>
+}
+?>
                     </div>
                 </div>
 
@@ -403,7 +409,7 @@ function renderTree(array $node, int $depth = 0): void
     <main class="flex-1 bg-white overflow-hidden flex flex-col relative code-preview">
 
         <?php
-        if ($error): ?>
+        if ($error) { ?>
             <div class="flex-1 flex flex-col items-center justify-center p-10">
                 <div class="bg-red-50 border border-red-100 rounded-2xl p-8 max-w-lg text-center shadow-sm">
                     <div
@@ -414,13 +420,13 @@ function renderTree(array $node, int $depth = 0): void
                     <code
                         class="block bg-white border border-red-100 p-3 rounded text-xs font-mono text-red-600 text-left">
                         <?php
-                        echo htmlspecialchars($error); ?>
+echo htmlspecialchars($error); ?>
                     </code>
                 </div>
             </div>
 
         <?php
-        elseif (!$result): ?>
+        } elseif (!$result) { ?>
             <div class="flex-1 overflow-y-auto custom-scroll">
                 <div class="max-w-3xl mx-auto p-12">
                     <div class="text-center mb-12">
@@ -487,7 +493,7 @@ echo $parser->explain($pattern); // "Start Capturing Group..."</code></pre>
             </div>
 
         <?php
-        else: ?>
+        } else { ?>
 
             <div class="flex-1 overflow-hidden flex flex-col">
 
@@ -495,17 +501,17 @@ echo $parser->explain($pattern); // "Start Capturing Group..."</code></pre>
                     <h2 class="text-sm font-bold text-slate-700 uppercase tracking-wide flex items-center gap-2">
                         <?php
                         $icons = [
-                            'parse'    => 'fa-sitemap',
+                            'parse' => 'fa-sitemap',
                             'validate' => 'fa-check-double',
-                            'explain'  => 'fa-list',
-                            'redos'    => 'fa-shield-virus'
+                            'explain' => 'fa-list',
+                            'redos' => 'fa-shield-virus'
                         ];
-                        $ico = $icons[$result['type']] ?? 'fa-terminal';
-                        ?>
+            $ico = $icons[$result['type']] ?? 'fa-terminal';
+            ?>
                         <i class="fa-solid <?php
-                        echo $ico; ?> text-indigo-500"></i>
+            echo $ico; ?> text-indigo-500"></i>
                         <?php
-                        echo ucfirst($result['type']); ?> Output
+            echo ucfirst($result['type']); ?> Output
                     </h2>
                     <div class="flex gap-2">
                         <button
@@ -518,11 +524,11 @@ echo $parser->explain($pattern); // "Start Capturing Group..."</code></pre>
                 <div class="flex-1 overflow-y-auto custom-scroll bg-white relative">
 
                     <?php
-                    if ($result['type'] === 'parse'): ?>
+                    if ('parse' === $result['type']) { ?>
                         <div class="flex h-full">
                             <div class="flex-1 p-6 overflow-y-auto custom-scroll">
                                 <?php
-                                renderTree($result['tree']); ?>
+                    renderTree($result['tree']); ?>
                             </div>
                             <div class="w-[350px] bg-slate-50 border-l border-slate-200 p-0 flex flex-col">
                                 <div
@@ -531,12 +537,12 @@ echo $parser->explain($pattern); // "Start Capturing Group..."</code></pre>
                                 </div>
                                 <pre
                                     class="p-4 font-mono text-[10px] text-slate-600 overflow-auto custom-scroll flex-1 leading-relaxed"><?php
-                                    echo htmlspecialchars($result['raw']); ?></pre>
+                        echo htmlspecialchars($result['raw']); ?></pre>
                             </div>
                         </div>
 
                     <?php
-                    elseif ($result['type'] === 'explain'): ?>
+                    } elseif ('explain' === $result['type']) { ?>
                         <div class="max-w-3xl mx-auto p-10">
                             <div class="prose prose-sm max-w-none">
                                 <div
@@ -544,36 +550,36 @@ echo $parser->explain($pattern); // "Start Capturing Group..."</code></pre>
                                     <?php
                                     // Highlight keywords manually for better look
                                     $exp = htmlspecialchars($result['explanation']);
-                                    $exp = preg_replace(
-                                        '/^(.*?)(:)/m',
-                                        '<strong class="text-indigo-700">$1</strong>$2',
-                                        $exp
-                                    );
-                                    echo nl2br($exp);
-                                    ?>
+                        $exp = preg_replace(
+                            '/^(.*?)(:)/m',
+                            '<strong class="text-indigo-700">$1</strong>$2',
+                            $exp,
+                        );
+                        echo nl2br($exp);
+                        ?>
                                 </div>
                             </div>
                         </div>
 
                     <?php
-                    elseif ($result['type'] === 'redos'): ?>
+                    } elseif ('redos' === $result['type']) { ?>
                         <div class="p-10 max-w-4xl mx-auto">
                             <div class="grid grid-cols-3 gap-6 mb-8">
                                 <div class="bg-white border border-slate-200 rounded-xl p-6 text-center shadow-sm">
                                     <div class="text-xs font-bold text-slate-400 uppercase mb-2">Vulnerability Status
                                     </div>
                                     <?php
-                                    if ($result['isSafe']): ?>
+                                    if ($result['isSafe']) { ?>
                                         <div class="text-2xl font-bold text-emerald-600"><i
                                                 class="fa-solid fa-check-circle mr-2"></i>SAFE
                                         </div>
                                     <?php
-                                    else: ?>
+                                    } else { ?>
                                         <div class="text-2xl font-bold text-rose-600"><i
                                                 class="fa-solid fa-triangle-exclamation mr-2"></i>VULNERABLE
                                         </div>
                                     <?php
-                                    endif; ?>
+                                    } ?>
                                 </div>
                                 <div class="bg-white border border-slate-200 rounded-xl p-6 text-center shadow-sm">
                                     <div class="text-xs font-bold text-slate-400 uppercase mb-2">Complexity Score</div>
@@ -597,29 +603,29 @@ echo $parser->explain($pattern); // "Start Capturing Group..."</code></pre>
                             </div>
 
                             <?php
-                            if (!empty($result['recommendations'])): ?>
+                            if (!empty($result['recommendations'])) { ?>
                                 <div class="bg-rose-50 border border-rose-100 rounded-xl p-6">
                                     <h3 class="text-sm font-bold text-rose-800 uppercase mb-4 flex items-center gap-2">
                                         <i class="fa-solid fa-list-check"></i> Fix Recommendations
                                     </h3>
                                     <ul class="space-y-3">
                                         <?php
-                                        foreach ($result['recommendations'] as $rec): ?>
+                                        foreach ($result['recommendations'] as $rec) { ?>
                                             <li class="flex gap-3 text-sm text-rose-700">
                                                 <i class="fa-solid fa-arrow-right mt-1 opacity-50"></i>
                                                 <?php
                                                 echo htmlspecialchars($rec); ?>
                                             </li>
                                         <?php
-                                        endforeach; ?>
+                                        } ?>
                                     </ul>
                                 </div>
                             <?php
-                            endif; ?>
+                            } ?>
                         </div>
 
                     <?php
-                    elseif ($result['type'] === 'generate'): ?>
+                    } elseif ('generate' === $result['type']) { ?>
                         <div class="flex flex-col items-center justify-center h-full pb-20">
                             <div class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Generated
                                 Match
@@ -637,20 +643,20 @@ echo $parser->explain($pattern); // "Start Capturing Group..."</code></pre>
                         </div>
 
                     <?php
-                    else: ?>
+                    } else { ?>
                         <div class="p-10">
                             <pre
                                 class="bg-slate-50 p-6 rounded-xl border border-slate-200 font-mono text-sm text-slate-700 overflow-auto"><?php
                                 print_r($result); ?></pre>
                         </div>
                     <?php
-                    endif; ?>
+                    } ?>
 
                 </div>
             </div>
 
         <?php
-        endif; ?>
+        } ?>
     </main>
 </div>
 

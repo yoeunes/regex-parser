@@ -91,7 +91,7 @@ final class ArrayExplorerVisitor implements NodeVisitorInterface
         return [
             'type' => 'Quantifier',
             'label' => 'Quantifier',
-            'detail' => "{$node->quantifier} (" . ucfirst($node->type->value) . ')',
+            'detail' => "{$node->quantifier} (".ucfirst($node->type->value).')',
             'icon' => 'fa-solid fa-rotate-right',
             'color' => 'text-orange-600',
             'bg' => 'bg-orange-50',
@@ -173,7 +173,7 @@ final class ArrayExplorerVisitor implements NodeVisitorInterface
         return [
             'type' => 'CharType',
             'label' => 'Character Type',
-            'detail' => '\\' . $node->value . ' (' . ($map[$node->value] ?? 'Custom') . ')',
+            'detail' => '\\'.$node->value.' ('.($map[$node->value] ?? 'Custom').')',
             'icon' => 'fa-solid fa-filter',
             'color' => 'text-blue-600',
             'isLeaf' => true,
@@ -199,7 +199,7 @@ final class ArrayExplorerVisitor implements NodeVisitorInterface
         return [
             'type' => 'Anchor',
             'label' => 'Anchor',
-            'detail' => $node->value . ' (' . ($map[$node->value] ?? 'Custom') . ')',
+            'detail' => $node->value.' ('.($map[$node->value] ?? 'Custom').')',
             'icon' => 'fa-solid fa-anchor',
             'color' => 'text-rose-600',
             'isLeaf' => true,
@@ -211,7 +211,7 @@ final class ArrayExplorerVisitor implements NodeVisitorInterface
         return [
             'type' => 'Assertion',
             'label' => 'Assertion',
-            'detail' => '\\' . $node->value,
+            'detail' => '\\'.$node->value,
             'icon' => 'fa-solid fa-check-double',
             'color' => 'text-amber-600',
             'isLeaf' => true,
@@ -223,7 +223,7 @@ final class ArrayExplorerVisitor implements NodeVisitorInterface
         return [
             'type' => 'Backref',
             'label' => 'Backreference',
-            'detail' => 'To group: ' . $node->ref,
+            'detail' => 'To group: '.$node->ref,
             'icon' => 'fa-solid fa-clock-rotate-left',
             'color' => 'text-cyan-600',
             'isLeaf' => true,
@@ -247,7 +247,7 @@ final class ArrayExplorerVisitor implements NodeVisitorInterface
         return [
             'type' => 'UnicodeProp',
             'label' => 'Unicode Property',
-            'detail' => '\p{' . $node->prop . '}',
+            'detail' => '\p{'.$node->prop.'}',
             'icon' => 'fa-solid fa-globe-europe',
             'color' => 'text-violet-600',
             'isLeaf' => true,
@@ -269,7 +269,7 @@ final class ArrayExplorerVisitor implements NodeVisitorInterface
         return [
             'type' => 'PosixClass',
             'label' => 'POSIX Class',
-            'detail' => '[:' . $node->class . ':]',
+            'detail' => '[:'.$node->class.':]',
             'icon' => 'fa-solid fa-box-archive',
             'color' => 'text-slate-600',
             'isLeaf' => true,
@@ -309,7 +309,7 @@ final class ArrayExplorerVisitor implements NodeVisitorInterface
         return [
             'type' => 'Subroutine',
             'label' => 'Subroutine',
-            'detail' => 'Call: ' . $node->reference,
+            'detail' => 'Call: '.$node->reference,
             'icon' => 'fa-solid fa-recycle',
             'color' => 'text-cyan-600',
             'isLeaf' => true,
@@ -321,7 +321,7 @@ final class ArrayExplorerVisitor implements NodeVisitorInterface
         return [
             'type' => 'PcreVerb',
             'label' => 'Control Verb',
-            'detail' => '(*' . $node->verb . ')',
+            'detail' => '(*'.$node->verb.')',
             'icon' => 'fa-solid fa-gamepad',
             'color' => 'text-pink-500',
             'isLeaf' => true,
@@ -366,6 +366,7 @@ final class ArrayExplorerVisitor implements NodeVisitorInterface
     private function formatValue(string $value): string
     {
         $map = ["\n" => '\n', "\r" => '\r', "\t" => '\t'];
-        return '"' . strtr($value, $map) . '"';
+
+        return '"'.strtr($value, $map).'"';
     }
 }
