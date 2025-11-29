@@ -48,11 +48,12 @@ use RegexParser\Node\UnicodePropNode;
 class CompilerNodeVisitor implements NodeVisitorInterface
 {
     // PCRE meta-characters that must be escaped *outside* a character class.
+    // Note: The delimiter is handled dynamically via $this->delimiter.
+    // '|' is not included because it's handled by AlternationNode, not LiteralNode.
     private const array META_CHARACTERS = [
         '\\' => true, '.' => true, '^' => true, '$' => true,
         '[' => true, ']' => true, '(' => true, ')' => true,
         '*' => true, '+' => true, '?' => true, '{' => true, '}' => true,
-        '/' => true,
     ];
 
     // Meta-characters that must be escaped *inside* a character class.
@@ -67,8 +68,16 @@ class CompilerNodeVisitor implements NodeVisitorInterface
      */
     private bool $inCharClass = false;
 
+    /**
+     * The current regex delimiter (needed to escape it in literals).
+     */
+    private string $delimiter = '/';
+
     public function visitRegex(RegexNode $node): string
     {
+        // Store the delimiter so visitLiteral can escape it properly
+        $this->delimiter = $node->delimiter;
+
         // Re-add the dynamic delimiter and flags
         $map = ['(' => ')', '[' => ']', '{' => '}', '<' => '>'];
         $closingDelimiter = $map[$node->delimiter] ?? $node->delimiter;
@@ -102,7 +111,8 @@ class CompilerNodeVisitor implements NodeVisitorInterface
             GroupType::T_GROUP_LOOKBEHIND_NEGATIVE => '(?<!'.$child.')',
             GroupType::T_GROUP_ATOMIC => '(?>'.$child.')',
             GroupType::T_GROUP_BRANCH_RESET => '(?|'.$child.')',
-            GroupType::T_GROUP_INLINE_FLAGS => '(?'.$flags.':'.$child.')',
+            // For inline flags, only add ':' if there's actual content
+            GroupType::T_GROUP_INLINE_FLAGS => '' === $child ? '(?'.$flags.')' : '(?'.$flags.':'.$child.')',
         };
     }
 
@@ -139,7 +149,8 @@ class CompilerNodeVisitor implements NodeVisitorInterface
         $length = mb_strlen($node->value);
         for ($i = 0; $i < $length; $i++) {
             $char = mb_substr($node->value, $i, 1);
-            if (isset($meta[$char])) {
+            // Always escape the delimiter character (both inside and outside char classes)
+            if ($char === $this->delimiter || isset($meta[$char])) {
                 $result .= '\\'.$char;
             } else {
                 $result .= $char;

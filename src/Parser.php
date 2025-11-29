@@ -286,9 +286,10 @@ final class Parser
                     $flags = substr($regex, $i + 1);
 
                     // Validate flags (only allow standard PCRE flags)
-                    if (!preg_match('/^[imsxADSUXJu]*$/', $flags)) {
+                    // n = NO_AUTO_CAPTURE, r = PCRE2_EXTRA_CASELESS_RESTRICT (unicode restricted)
+                    if (!preg_match('/^[imsxADSUXJunr]*$/', $flags)) {
                         // Find the invalid flag for a better error message
-                        $invalid = preg_replace('/[imsxADSUXJu]/', '', $flags);
+                        $invalid = preg_replace('/[imsxADSUXJunr]/', '', $flags);
 
                         throw new ParserException(\sprintf('Unknown regex flag(s) found: "%s"', $invalid ?? $flags));
                     }
@@ -837,7 +838,14 @@ final class Parser
 
     private function parseInlineFlags(int $startPos): NodeInterface
     {
-        $flags = $this->consumeWhile(fn (string $c) => (bool) preg_match('/^[imsxADSUXJ-]+$/', $c));
+        // Support all PCRE2 flags including n (NO_AUTO_CAPTURE), r (unicode restricted), and ^ (unset)
+        // Handle ^ (T_ANCHOR) at the start - it means "unset all flags" in PCRE2
+        $flags = '';
+        if ($this->check(TokenType::T_ANCHOR) && '^' === $this->current()->value) {
+            $flags = '^';
+            $this->advance();
+        }
+        $flags .= $this->consumeWhile(fn (string $c) => (bool) preg_match('/^[imsxADSUXJnr-]+$/', $c));
         if ('' !== $flags) {
             $expr = null;
             if ($this->matchLiteral(':')) {
