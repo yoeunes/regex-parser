@@ -33,9 +33,9 @@ use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
  */
 final class RegexOptimizationRector extends AbstractRector implements ConfigurableRectorInterface
 {
-    public const EXTRA_FUNCTIONS = 'extra_functions';
+    public const string EXTRA_FUNCTIONS = 'extra_functions';
 
-    public const EXTRA_CONSTANTS = 'extra_constants';
+    public const string EXTRA_CONSTANTS = 'extra_constants';
 
     private const array DEFAULT_FUNCTIONS = [
         'preg_match',

@@ -197,14 +197,7 @@ final class PregValidationRule implements Rule
             'Invalid delimiter',
             'Unexpected end',
         ];
-
-        foreach ($indicators as $indicator) {
-            if (false !== stripos($errorMessage, $indicator)) {
-                return true;
-            }
-        }
-
-        return false;
+        return array_any($indicators, fn($indicator) => false !== stripos($errorMessage, (string) $indicator));
     }
 
     private function truncatePattern(string $pattern, int $length = 50): string
