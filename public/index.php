@@ -6,81 +6,74 @@ use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
 use RegexParser\Regex;
 
+// Configuration
 header('Content-Type: text/html; charset=utf-8');
-
 $regex = $_POST['regex'] ?? '';
 $action = $_POST['action'] ?? 'parse';
 $result = null;
 $error = null;
+$activeTab = $action;
 
 if ($regex) {
     try {
         $regexParser = Regex::create();
+        $start = microtime(true);
 
         switch ($action) {
             case 'parse':
                 $ast = $regexParser->parse($regex);
                 $result = [
-                    'type' => 'parse',
-                    'ast' => $regexParser->dump($regex),
+                    'type'  => 'parse',
+                    'ast'   => $regexParser->dump($regex),
                     'flags' => $ast->flags,
                 ];
-
                 break;
 
             case 'validate':
                 $validation = $regexParser->validate($regex);
                 $result = [
-                    'type' => 'validate',
+                    'type'    => 'validate',
                     'isValid' => $validation->isValid,
-                    'error' => $validation->error,
+                    'error'   => $validation->error,
                 ];
-
                 break;
 
             case 'explain':
                 $explanation = $regexParser->explain($regex);
                 $result = [
-                    'type' => 'explain',
+                    'type'        => 'explain',
                     'explanation' => $explanation,
                 ];
-
                 break;
 
             case 'generate':
                 $sample = $regexParser->generate($regex);
                 $result = [
-                    'type' => 'generate',
+                    'type'   => 'generate',
                     'sample' => $sample,
                 ];
-
                 break;
 
             case 'redos':
                 $analysis = $regexParser->analyzeReDoS($regex);
                 $result = [
-                    'type' => 'redos',
-                    'severity' => $analysis->severity->value,
-                    'score' => $analysis->score,
-                    'isSafe' => $analysis->isSafe(),
+                    'type'            => 'redos',
+                    'severity'        => $analysis->severity->value,
+                    'score'           => $analysis->score,
+                    'isSafe'          => $analysis->isSafe(),
                     'recommendations' => $analysis->recommendations,
                 ];
-
                 break;
 
             case 'literals':
                 $literals = $regexParser->extractLiterals($regex);
                 $result = [
                     'type' => 'literals',
-                    'prefixes' => $literals->prefixes,
-                    'suffixes' => $literals->suffixes,
-                    'complete' => $literals->complete,
-                    'longestPrefix' => $literals->getLongestPrefix(),
-                    'longestSuffix' => $literals->getLongestSuffix(),
+                    'data' => $literals, // Pass object directly for flexibility
                 ];
-
                 break;
         }
+        $duration = round((microtime(true) - $start) * 1000, 2);
     } catch (ParserException|LexerException $e) {
         $error = $e->getMessage();
     }
@@ -91,342 +84,612 @@ if ($regex) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RegexParser - Interactive Demo</title>
+    <title>RegexParser // Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;600&family=Inter:wght@400;600;800&display=swap"
+        rel="stylesheet">
     <style>
+        :root {
+            --bg-app: #09090b;
+            --bg-panel: #18181b;
+            --bg-input: #27272a;
+            --border: #3f3f46;
+
+            --primary: #8b5cf6;
+            --primary-glow: rgba(139, 92, 246, 0.5);
+            --accent: #06b6d4;
+
+            --success: #10b981;
+            --success-glow: rgba(16, 185, 129, 0.2);
+            --danger: #ef4444;
+            --danger-glow: rgba(239, 68, 68, 0.2);
+
+            --text-main: #f4f4f5;
+            --text-muted: #a1a1aa;
+
+            --font-mono: 'Fira Code', monospace;
+            --font-ui: 'Inter', sans-serif;
+        }
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            outline: none;
         }
-        
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background-color: var(--bg-app);
+            color: var(--text-main);
+            font-family: var(--font-ui);
             min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            background-image: radial-gradient(circle at 15% 50%, rgba(139, 92, 246, 0.08), transparent 25%),
+            radial-gradient(circle at 85% 30%, rgba(6, 182, 212, 0.08), transparent 25%);
+        }
+
+        /* Layout */
+        .app-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            width: 100%;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        /* Header */
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .brand {
+            font-family: var(--font-mono);
+            font-weight: 700;
+            font-size: 1.5rem;
+            letter-spacing: -1px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .brand span {
+            color: var(--primary);
+        }
+
+        .brand .badge {
+            font-size: 0.7rem;
+            background: var(--bg-input);
+            padding: 2px 8px;
+            border-radius: 4px;
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+        }
+
+        /* Main Grid */
+        .studio-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 30px;
+        }
+
+        @media (min-width: 1024px) {
+            .studio-grid {
+                grid-template-columns: 350px 1fr;
+                align-items: start;
+            }
+        }
+
+        /* Input Section */
+        .panel {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .panel-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            display: flex;
+            justify-content: space-between;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .panel-body {
             padding: 20px;
         }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        
-        .header {
-            text-align: center;
-            color: white;
-            margin-bottom: 30px;
-        }
-        
-        .header h1 {
-            font-size: 3em;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
-        }
-        
-        .header p {
-            font-size: 1.2em;
-            opacity: 0.9;
-        }
-        
-        .card {
-            background: white;
-            border-radius: 12px;
-            padding: 30px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+
+        /* Regex Input */
+        .regex-input-wrapper {
+            position: relative;
             margin-bottom: 20px;
         }
-        
-        .form-group {
-            margin-bottom: 20px;
-        }
-        
-        label {
-            display: block;
+
+        .regex-label {
+            position: absolute;
+            top: -10px;
+            left: 15px;
+            background: var(--bg-panel);
+            padding: 0 5px;
+            font-size: 0.75rem;
+            color: var(--primary);
             font-weight: 600;
-            margin-bottom: 8px;
-            color: #333;
         }
-        
+
         input[type="text"] {
             width: 100%;
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 6px;
-            font-size: 16px;
-            font-family: 'Courier New', monospace;
-            transition: border-color 0.3s;
-        }
-        
-        input[type="text"]:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-        
-        .button-group {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        
-        button {
-            padding: 12px 20px;
-            border: none;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        button.primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-        
-        button.primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
-        
-        button.secondary {
-            background: #f0f0f0;
-            color: #333;
-        }
-        
-        button.secondary:hover {
-            background: #e0e0e0;
-        }
-        
-        .result {
-            margin-top: 20px;
-            padding: 20px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 18px 15px;
             border-radius: 8px;
-            background: #f8f9fa;
-            border-left: 4px solid #667eea;
+            font-family: var(--font-mono);
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
         }
-        
-        .error {
-            background: #fee;
-            border-left-color: #e74c3c;
-            color: #c0392b;
+
+        input[type="text"]:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15), inset 0 2px 4px rgba(0, 0, 0, 0.3);
         }
-        
-        .success {
-            background: #efe;
-            border-left-color: #27ae60;
-            color: #1e8449;
-        }
-        
-        pre {
-            background: #2d2d2d;
-            color: #f8f8f2;
-            padding: 15px;
-            border-radius: 6px;
-            overflow-x: auto;
-            font-size: 14px;
-            line-height: 1.6;
-        }
-        
-        .badge {
-            display: inline-block;
-            padding: 4px 10px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
-            margin-right: 8px;
-        }
-        
-        .badge.safe { background: #d4edda; color: #155724; }
-        .badge.low { background: #d1ecf1; color: #0c5460; }
-        .badge.medium { background: #fff3cd; color: #856404; }
-        .badge.high { background: #f8d7da; color: #721c24; }
-        .badge.critical { background: #f5c6cb; color: #491217; }
-        
-        .examples {
+
+        /* Action Grid */
+        .actions-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 15px;
-            margin-top: 20px;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
         }
-        
-        .example {
+
+        .action-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
             padding: 12px;
-            background: #f8f9fa;
             border-radius: 6px;
             cursor: pointer;
-            transition: all 0.3s;
-            border: 2px solid transparent;
+            font-weight: 500;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
-        
-        .example:hover {
-            border-color: #667eea;
-            transform: translateY(-2px);
+
+        .action-btn:hover {
+            background: var(--bg-input);
+            color: var(--text-main);
+            border-color: var(--text-muted);
         }
-        
-        .example-title {
+
+        .action-btn.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+            box-shadow: 0 4px 12px var(--primary-glow);
+        }
+
+        /* Examples */
+        .examples-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .example-item {
+            padding: 10px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.03);
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .example-item:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: var(--border);
+        }
+
+        .example-name {
+            font-size: 0.8rem;
             font-weight: 600;
-            margin-bottom: 5px;
-            color: #333;
+            color: var(--text-muted);
+            margin-bottom: 4px;
         }
-        
-        .example-pattern {
-            font-family: 'Courier New', monospace;
-            color: #667eea;
-            font-size: 14px;
+
+        .example-code {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--accent);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
+
+        /* Output Area */
+        .output-area {
+            min-height: 500px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .terminal-window {
+            background: #0f0f11;
+            border-radius: 8px;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.6;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            height: 100%;
+        }
+
+        .terminal-header {
+            background: #1f1f22;
+            padding: 8px 15px;
+            display: flex;
+            gap: 6px;
+            border-bottom: 1px solid #2a2a2d;
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .dot.red {
+            background: #ff5f56;
+        }
+
+        .dot.yellow {
+            background: #ffbd2e;
+        }
+
+        .dot.green {
+            background: #27c93f;
+        }
+
+        .terminal-content {
+            padding: 20px;
+            color: #e4e4e7;
+            overflow-x: auto;
+        }
+
+        /* AST & Code Styling */
+        .tree-view {
+            list-style: none;
+            padding-left: 20px;
+            border-left: 1px solid var(--border);
+        }
+
+        .tree-item {
+            margin: 5px 0;
+            position: relative;
+        }
+
+        .tree-item::before {
+            content: '';
+            position: absolute;
+            left: -20px;
+            top: 10px;
+            width: 15px;
+            height: 1px;
+            background: var(--border);
+        }
+
+        .keyword {
+            color: var(--primary);
+        }
+
+        .string {
+            color: #a5f3fc;
+        }
+
+        .number {
+            color: #fca5a5;
+        }
+
+        .type {
+            color: var(--accent);
+            font-weight: bold;
+        }
+
+        /* Status States */
+        .status-box {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .status-valid {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: var(--success);
+        }
+
+        .status-error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: var(--danger);
+        }
+
+        .stat-pill {
+            font-size: 0.75rem;
+            padding: 4px 10px;
+            border-radius: 100px;
+            background: rgba(255, 255, 255, 0.1);
+            margin-left: auto;
+        }
+
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🔍 RegexParser</h1>
-            <p>A powerful PCRE regex parser with lexer, AST, and validation</p>
+
+<div class="app-container">
+    <nav class="navbar">
+        <div class="brand">
+            <span>Regex</span>Parser <span class="badge">v1.0-dev</span>
         </div>
-        
-        <div class="card" style="background: #fff3cd; border-left: 4px solid #ffc107; margin-bottom: 20px;">
-            <h3 style="color: #856404; margin-bottom: 10px;">⚠️ Experimental Library Notice</h3>
-            <p style="color: #856404; margin: 0;">
-                This library is in <strong>experimental/alpha status</strong>. While it demonstrates functional parsing, AST generation, and analysis capabilities, 
-                <strong>it has not been systematically validated against the official PCRE specification</strong>. 
-                See <code>VALIDATION_REPORT.md</code> for detailed findings. Use for learning and experimentation, not production systems.
-            </p>
+        <div style="display: flex; gap: 15px;">
+            <a href="https://github.com/yoeunes/regex-parser" target="_blank"
+               style="color: var(--text-muted); text-decoration: none; font-size: 0.9rem;">GitHub</a>
+            <a href="#" style="color: var(--text-muted); text-decoration: none; font-size: 0.9rem;">Docs</a>
         </div>
-        
-        <div class="card">
-            <form method="POST">
-                <div class="form-group">
-                    <label for="regex">Enter your regex pattern:</label>
-                    <input type="text" id="regex" name="regex" placeholder="/^[a-z0-9]+@[a-z]+\.[a-z]{2,}$/i" value="<?php echo htmlspecialchars($regex); ?>" autofocus>
+    </nav>
+
+    <div class="studio-grid">
+
+        <aside>
+            <form method="POST" id="regexForm">
+                <div class="panel" style="margin-bottom: 30px; box-shadow: 0 0 40px rgba(139, 92, 246, 0.05);">
+                    <div class="panel-header">Input Pattern</div>
+                    <div class="panel-body">
+                        <div class="regex-input-wrapper">
+                            <label class="regex-label" for="regex">PATTERN</label>
+                            <input type="text" id="regex" name="regex"
+                                   placeholder="/expression/flags"
+                                   value="<?php
+                                   echo htmlspecialchars($regex); ?>"
+                                   spellcheck="false"
+                                   autocomplete="off"
+                                   autofocus>
+                        </div>
+                        <div
+                            style="font-size: 0.75rem; color: var(--text-muted); margin-top: -10px; text-align: right;">
+                            Supported: PCRE2, Unicode
+                        </div>
+                    </div>
                 </div>
-                
-                <div class="button-group">
-                    <button type="submit" name="action" value="parse" class="primary">Parse AST</button>
-                    <button type="submit" name="action" value="validate" class="primary">Validate</button>
-                    <button type="submit" name="action" value="explain" class="primary">Explain</button>
-                    <button type="submit" name="action" value="generate" class="primary">Generate Sample</button>
-                    <button type="submit" name="action" value="redos" class="primary">ReDoS Analysis</button>
-                    <button type="submit" name="action" value="literals" class="primary">Extract Literals</button>
+
+                <div class="panel" style="margin-bottom: 30px;">
+                    <div class="panel-header">Operation Mode</div>
+                    <div class="panel-body">
+                        <div class="actions-grid">
+                            <?php
+                            $buttons = [
+                                'parse'    => '⚡ Parse AST',
+                                'validate' => '🛡️ Validate',
+                                'explain'  => '📖 Explain',
+                                'generate' => '🎲 Generate',
+                                'redos'    => '🔥 ReDoS Check',
+                                'literals' => '🔍 Extract',
+                            ];
+                            foreach ($buttons as $val => $label) {
+                                $isActive = $activeTab === $val ? 'active' : '';
+                                echo "<button type='submit' name='action' value='$val' class='action-btn $isActive'>$label</button>";
+                            }
+                            ?>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header">Quick Load</div>
+                    <div class="panel-body examples-list">
+                        <div class="example-item" onclick="setPattern('/^[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,}$/i')">
+                            <div class="example-name">Email Validation</div>
+                            <div class="example-code">/^[a-z0-9._%+-]+@...</div>
+                        </div>
+                        <div class="example-item"
+                             onclick="setPattern('/^(?&lt;year&gt;\\d{4})-(?&lt;month&gt;\\d{2})-(?&lt;day&gt;\\d{2})$/')">
+                            <div class="example-name">Date (Named Groups)</div>
+                            <div class="example-code">/^(?&lt;year&gt;\d{4})...</div>
+                        </div>
+                        <div class="example-item" onclick="setPattern('/(a+)+b/')">
+                            <div class="example-name">ReDoS Exploit</div>
+                            <div class="example-code">/(a+)+b/</div>
+                        </div>
+                    </div>
                 </div>
             </form>
-            
-            <?php if ($error) { ?>
-                <div class="result error">
-                    <strong>Error:</strong> <?php echo htmlspecialchars($error); ?>
+        </aside>
+
+        <main class="output-area">
+            <div class="terminal-window">
+                <div class="terminal-header">
+                    <div class="dot red"></div>
+                    <div class="dot yellow"></div>
+                    <div class="dot green"></div>
+                    <div style="margin-left: auto; color: #666; font-size: 0.75rem;">
+                        <?php
+                        echo isset($duration) ? "Completed in {$duration}ms" : 'Ready'; ?>
+                    </div>
                 </div>
-            <?php } ?>
-            
-            <?php if ($result) { ?>
-                <div class="result">
-                    <?php if ('parse' === $result['type']) { ?>
-                        <h3>Abstract Syntax Tree (AST)</h3>
-                        <p><strong>Flags:</strong> <?php echo htmlspecialchars($result['flags'] ?: 'none'); ?></p>
-                        <pre><?php echo htmlspecialchars($result['ast']); ?></pre>
-                        
-                    <?php } elseif ('validate' === $result['type']) { ?>
-                        <?php if ($result['isValid']) { ?>
-                            <div class="success">
-                                <strong>✓ Valid Regex</strong>
-                                <p>This regex pattern is syntactically and semantically correct.</p>
+                <div class="terminal-content">
+                    <?php
+                    if (!$regex): ?>
+                        <div
+                            style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 400px; color: var(--text-muted);">
+                            <div style="font-size: 4rem; opacity: 0.2; margin-bottom: 20px;">⌘</div>
+                            <p>Enter a regex pattern to begin analysis.</p>
+                        </div>
+                    <?php
+                    elseif ($error): ?>
+                        <div class="status-box status-error">
+                            <div style="font-size: 1.5rem;">✕</div>
+                            <div>
+                                <h3 style="margin-bottom: 5px;">Parsing Failed</h3>
+                                <div style="font-family: var(--font-mono); opacity: 0.9;"><?php
+                                    echo htmlspecialchars($error); ?></div>
                             </div>
-                        <?php } else { ?>
-                            <div class="error">
-                                <strong>✗ Invalid Regex</strong>
-                                <p><?php echo htmlspecialchars($result['error']); ?></p>
+                        </div>
+                    <?php
+                    elseif ($result): ?>
+
+                        <?php
+                        if ($result['type'] === 'parse'): ?>
+                            <div style="margin-bottom: 20px; color: var(--text-muted);">
+                                Flags detected: <span class="type"><?php
+                                    echo htmlspecialchars($result['flags'] ?: 'None'); ?></span>
                             </div>
-                        <?php } ?>
-                        
-                    <?php } elseif ('explain' === $result['type']) { ?>
-                        <h3>Pattern Explanation</h3>
-                        <pre><?php echo htmlspecialchars($result['explanation']); ?></pre>
-                        
-                    <?php } elseif ('generate' === $result['type']) { ?>
-                        <h3>Generated Sample String</h3>
-                        <p>A string that matches your pattern:</p>
-                        <pre><?php echo htmlspecialchars($result['sample']); ?></pre>
-                        
-                    <?php } elseif ('redos' === $result['type']) { ?>
-                        <h3>ReDoS Vulnerability Analysis</h3>
-                        <p>
-                            <span class="badge <?php echo $result['severity']; ?>"><?php echo strtoupper($result['severity']); ?></span>
-                            <strong>Score:</strong> <?php echo $result['score']; ?>/10
-                            <?php if ($result['isSafe']) { ?>
-                                <span class="badge safe">SAFE</span>
-                            <?php } else { ?>
-                                <span class="badge high">VULNERABLE</span>
-                            <?php } ?>
-                        </p>
-                        <?php if (!empty($result['recommendations'])) { ?>
-                            <h4>Recommendations:</h4>
-                            <ul>
-                                <?php foreach ($result['recommendations'] as $rec) { ?>
-                                    <li><?php echo htmlspecialchars($rec); ?></li>
-                                <?php } ?>
-                            </ul>
-                        <?php } ?>
-                        
-                    <?php } elseif ('literals' === $result['type']) { ?>
-                        <h3>Extracted Literals</h3>
-                        <p><strong>Complete:</strong> <?php echo $result['complete'] ? 'Yes' : 'No'; ?></p>
-                        <?php if ($result['longestPrefix']) { ?>
-                            <p><strong>Longest Prefix:</strong> <code><?php echo htmlspecialchars($result['longestPrefix']); ?></code></p>
-                        <?php } ?>
-                        <?php if ($result['longestSuffix']) { ?>
-                            <p><strong>Longest Suffix:</strong> <code><?php echo htmlspecialchars($result['longestSuffix']); ?></code></p>
-                        <?php } ?>
-                        <?php if (!empty($result['prefixes'])) { ?>
-                            <p><strong>Prefixes:</strong></p>
-                            <pre><?php echo htmlspecialchars(implode(', ', $result['prefixes'])); ?></pre>
-                        <?php } ?>
-                        <?php if (!empty($result['suffixes'])) { ?>
-                            <p><strong>Suffixes:</strong></p>
-                            <pre><?php echo htmlspecialchars(implode(', ', $result['suffixes'])); ?></pre>
-                        <?php } ?>
-                    <?php } ?>
-                </div>
-            <?php } ?>
-        </div>
-        
-        <div class="card">
-            <h2>Example Patterns</h2>
-            <p>Click on any example to try it:</p>
-            <div class="examples">
-                <div class="example" onclick="setPattern('/^[a-z0-9]+@[a-z]+\\.[a-z]{2,}$/i')">
-                    <div class="example-title">Email Validation</div>
-                    <div class="example-pattern">/^[a-z0-9]+@[a-z]+\.[a-z]{2,}$/i</div>
-                </div>
-                <div class="example" onclick="setPattern('/^(?&lt;year&gt;\\d{4})-(?&lt;month&gt;\\d{2})-(?&lt;day&gt;\\d{2})$/')">
-                    <div class="example-title">Date (YYYY-MM-DD)</div>
-                    <div class="example-pattern">/^(?&lt;year&gt;\d{4})-(?&lt;month&gt;\d{2})-(?&lt;day&gt;\d{2})$/</div>
-                </div>
-                <div class="example" onclick="setPattern('/(a+)*b/')">
-                    <div class="example-title">ReDoS Vulnerable</div>
-                    <div class="example-pattern">/(a+)*b/</div>
-                </div>
-                <div class="example" onclick="setPattern('/^https?:\\/\\/[\\w.-]+\\.[a-z]{2,}(:\\d+)?(\\/.*)?$/i')">
-                    <div class="example-title">URL Pattern</div>
-                    <div class="example-pattern">/^https?:\/\/[\w.-]+\.[a-z]{2,}(:\d+)?(\/.*)?$/i</div>
-                </div>
-                <div class="example" onclick="setPattern('/user_(\\d+)@example\\.com/')">
-                    <div class="example-title">Literal Extraction</div>
-                    <div class="example-pattern">/user_(\d+)@example\.com/</div>
-                </div>
-                <div class="example" onclick="setPattern('/(?&lt;=price: )\\$\\d+\\.\\d{2}/')">
-                    <div class="example-title">Lookbehind</div>
-                    <div class="example-pattern">/(?&lt;=price: )\$\d+\.\d{2}/</div>
+                            <pre style="color: #d4d4d8;"><?php
+                                echo htmlspecialchars($result['ast']); ?></pre>
+
+                        <?php
+                        elseif ($result['type'] === 'validate'): ?>
+                            <div class="status-box <?php
+                            echo $result['isValid'] ? 'status-valid' : 'status-error'; ?>">
+                                <div style="font-size: 1.5rem;"><?php
+                                    echo $result['isValid'] ? '✓' : '✕'; ?></div>
+                                <div>
+                                    <h3 style="margin-bottom: 5px;"><?php
+                                        echo $result['isValid'] ? 'Pattern is Valid' : 'Pattern is Invalid'; ?></h3>
+                                    <?php
+                                    if (!$result['isValid']): ?>
+                                        <div style="font-family: var(--font-mono);"><?php
+                                            echo htmlspecialchars($result['error']); ?></div>
+                                    <?php
+                                    else: ?>
+                                        <div style="opacity: 0.8;">AST constructed successfully. Semantics checked.
+                                        </div>
+                                    <?php
+                                    endif; ?>
+                                </div>
+                            </div>
+
+                        <?php
+                        elseif ($result['type'] === 'explain'): ?>
+                            <pre style="white-space: pre-wrap; font-family: var(--font-mono); line-height: 1.8;"><?php
+                                echo htmlspecialchars($result['explanation']); ?></pre>
+
+                        <?php
+                        elseif ($result['type'] === 'generate'): ?>
+                            <div style="text-align: center; padding: 40px;">
+                                <div style="color: var(--text-muted); margin-bottom: 15px;">Generated Sample</div>
+                                <div
+                                    style="font-size: 2rem; font-family: var(--font-mono); color: var(--accent); word-break: break-all;">
+                                    <?php
+                                    echo htmlspecialchars($result['sample']); ?>
+                                </div>
+                            </div>
+
+                        <?php
+                        elseif ($result['type'] === 'redos'): ?>
+                            <div
+                                style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px;">
+                                <div class="panel"
+                                     style="text-align: center; padding: 15px; background: rgba(255,255,255,0.05);">
+                                    <div style="color: var(--text-muted); font-size: 0.8rem;">Severity</div>
+                                    <div style="font-size: 1.2rem; font-weight: bold; color: <?php
+                                    echo $result['isSafe'] ? 'var(--success)' : 'var(--danger)'; ?>">
+                                        <?php
+                                        echo strtoupper($result['severity']); ?>
+                                    </div>
+                                </div>
+                                <div class="panel"
+                                     style="text-align: center; padding: 15px; background: rgba(255,255,255,0.05);">
+                                    <div style="color: var(--text-muted); font-size: 0.8rem;">Safety Score</div>
+                                    <div style="font-size: 1.2rem; font-weight: bold;"><?php
+                                        echo $result['score']; ?>/10
+                                    </div>
+                                </div>
+                                <div class="panel"
+                                     style="text-align: center; padding: 15px; background: rgba(255,255,255,0.05);">
+                                    <div style="color: var(--text-muted); font-size: 0.8rem;">Status</div>
+                                    <div style="font-size: 1.2rem; font-weight: bold;"><?php
+                                        echo $result['isSafe'] ? 'SAFE' : 'VULNERABLE'; ?></div>
+                                </div>
+                            </div>
+
+                            <?php
+                            if (!empty($result['recommendations'])): ?>
+                                <h4 style="color: var(--danger); margin-bottom: 10px;">Recommendations:</h4>
+                                <ul style="padding-left: 20px; color: #fda4af;">
+                                    <?php
+                                    foreach ($result['recommendations'] as $rec): ?>
+                                        <li style="margin-bottom: 5px;"><?php
+                                            echo htmlspecialchars($rec); ?></li>
+                                    <?php
+                                    endforeach; ?>
+                                </ul>
+                            <?php
+                            endif; ?>
+
+                        <?php
+                        elseif ($result['type'] === 'literals'): ?>
+                            <?php
+                            $d = $result;
+                            ?>
+                            <div style="display: grid; gap: 20px;">
+                                <div>
+                                    <span class="keyword">Longest Prefix:</span>
+                                    <span class="string">"<?php
+                                        echo htmlspecialchars($d['longestPrefix'] ?? '<none>'); ?>"</span>
+                                </div>
+                                <div>
+                                    <span class="keyword">Longest Suffix:</span>
+                                    <span class="string">"<?php
+                                        echo htmlspecialchars($d['longestSuffix'] ?? '<none>'); ?>"</span>
+                                </div>
+                                <div style="border-top: 1px solid #333; padding-top: 10px; margin-top: 10px;">
+                                    <div style="color: var(--text-muted); margin-bottom: 5px;">All Prefixes:</div>
+                                    <div class="type">[<?php
+                                        echo htmlspecialchars(implode(', ', $d['prefixes'])); ?>]
+                                    </div>
+                                </div>
+                            </div>
+                        <?php
+                        endif; ?>
+
+                    <?php
+                    endif; ?>
                 </div>
             </div>
-        </div>
+        </main>
     </div>
-    
-    <script>
-        function setPattern(pattern) {
-            document.getElementById('regex').value = pattern;
-            document.getElementById('regex').focus();
-        }
-    </script>
+</div>
+
+<script>
+    function setPattern(pattern) {
+        const input = document.getElementById('regex');
+        input.value = pattern;
+        input.focus();
+        // Optional: Auto submit or just highlight
+        input.style.borderColor = 'var(--accent)';
+        setTimeout(() => input.style.borderColor = '', 300);
+    }
+</script>
 </body>
 </html>
