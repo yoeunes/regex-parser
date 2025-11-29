@@ -60,7 +60,9 @@ final class PregValidationRule implements Rule
     ];
 
     private ?Parser $parser = null;
+
     private ?ValidatorNodeVisitor $validator = null;
+
     private ?ReDoSAnalyzer $redosAnalyzer = null;
 
     /**
@@ -125,7 +127,7 @@ final class PregValidationRule implements Rule
                     continue;
                 }
 
-                $errors[] = RuleErrorBuilder::message(sprintf('Regex syntax error: %s', $e->getMessage()))
+                $errors[] = RuleErrorBuilder::message(\sprintf('Regex syntax error: %s', $e->getMessage()))
                     ->line($node->getLine())
                     ->identifier('regex.syntax')
                     ->build();
@@ -142,10 +144,10 @@ final class PregValidationRule implements Rule
                 $analysis = $this->getRedosAnalyzer()->analyze($pattern);
 
                 if (!$analysis->isSafe() && $this->exceedsThreshold($analysis->severity)) {
-                    $errors[] = RuleErrorBuilder::message(sprintf(
+                    $errors[] = RuleErrorBuilder::message(\sprintf(
                         'ReDoS vulnerability detected (%s): %s',
                         strtoupper($analysis->severity->value),
-                        $this->truncatePattern($pattern)
+                        $this->truncatePattern($pattern),
                     ))
                         ->line($node->getLine())
                         ->tip(implode("\n", $analysis->recommendations))
@@ -207,7 +209,7 @@ final class PregValidationRule implements Rule
 
     private function truncatePattern(string $pattern, int $length = 50): string
     {
-        return \strlen($pattern) > $length ? substr($pattern, 0, $length) . '...' : $pattern;
+        return \strlen($pattern) > $length ? substr($pattern, 0, $length).'...' : $pattern;
     }
 
     private function getParser(): Parser

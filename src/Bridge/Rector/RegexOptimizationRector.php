@@ -33,14 +33,8 @@ use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
  */
 final class RegexOptimizationRector extends AbstractRector implements ConfigurableRectorInterface
 {
-    /**
-     * @var string
-     */
     public const EXTRA_FUNCTIONS = 'extra_functions';
 
-    /**
-     * @var string
-     */
     public const EXTRA_CONSTANTS = 'extra_constants';
 
     private const array DEFAULT_FUNCTIONS = [
@@ -69,6 +63,7 @@ final class RegexOptimizationRector extends AbstractRector implements Configurab
     private array $targetConstants = [];
 
     private ?Parser $parser = null;
+
     private ?CompilerNodeVisitor $compiler = null;
 
     public function __construct(
@@ -90,30 +85,28 @@ final class RegexOptimizationRector extends AbstractRector implements Configurab
             [
                 new ConfiguredCodeSample(
                     <<<'CODE_SAMPLE'
-class SomeClass
-{
-    public function run($str)
-    {
-        preg_match('/[a-zA-Z0-9_]+/', $str);
-    }
-}
-CODE_SAMPLE
-                    ,
+                        class SomeClass
+                        {
+                            public function run($str)
+                            {
+                                preg_match('/[a-zA-Z0-9_]+/', $str);
+                            }
+                        }
+                        CODE_SAMPLE,
                     <<<'CODE_SAMPLE'
-class SomeClass
-{
-    public function run($str)
-    {
-        preg_match('/\\w+/', $str);
-    }
-}
-CODE_SAMPLE
-                    ,
+                        class SomeClass
+                        {
+                            public function run($str)
+                            {
+                                preg_match('/\\w+/', $str);
+                            }
+                        }
+                        CODE_SAMPLE,
                     [
                         self::EXTRA_FUNCTIONS => ['my_custom_preg_wrapper'],
-                    ]
+                    ],
                 ),
-            ]
+            ],
         );
     }
 
@@ -151,7 +144,7 @@ CODE_SAMPLE
         $originalPattern = $stringNode->value;
 
         // Quick check: if it doesn't look like a regex, skip to save performance
-        if (strlen($originalPattern) < 2) {
+        if (\strlen($originalPattern) < 2) {
             return null;
         }
 
