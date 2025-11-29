@@ -26,19 +26,11 @@ use PHPUnit\Framework\TestCase;
  */
 final class PhpPcreComplianceValidator extends TestCase
 {
-    private static ?array $fixtures = null;
-
-    public static function setUpBeforeClass(): void
-    {
-        $fixtureFile = __DIR__ . '/../Fixtures/php_pcre_comprehensive.php';
-
-        if (!file_exists($fixtureFile)) {
-            self::markTestSkipped('Fixture file not found: ' . $fixtureFile);
-        }
-
-        self::$fixtures = require $fixtureFile;
-    }
-
+    /**
+     * @param array<int|string, mixed> $expectedMatches
+     * @param array<int|string, mixed>|null $expectedResult
+     * @param array<int, string> $functions
+     */
     #[DataProvider('providePhpPcreTestCases')]
     public function test_php_pcre_compliance(
         string $pattern,
@@ -109,11 +101,11 @@ final class PhpPcreComplianceValidator extends TestCase
      *     flags: int,
      *     offset: int,
      *     expectedReturn: int,
-     *     expectedMatches: array,
-     *     expectedResult: array|null,
+     *     expectedMatches: array<int|string, mixed>,
+     *     expectedResult: array<int|string, mixed>|null,
      *     description: string,
      *     source: string,
-     *     functions: array,
+     *     functions: array<int, string>,
      *     category: string
      * }>
      */
@@ -125,9 +117,10 @@ final class PhpPcreComplianceValidator extends TestCase
             return;
         }
 
+        /** @var array<int, array{pattern: string, subject: string, flags: int, offset?: int, expectedReturn: int, expectedMatches: array<int|string, mixed>, expectedResult?: array<int|string, mixed>|null, description: string, source: string, functions: array<int, string>, category: string}> $fixtures */
         $fixtures = require $fixtureFile;
 
-        foreach ($fixtures as $index => $fixture) {
+        foreach ($fixtures as $fixture) {
             $key = \sprintf(
                 '[%s] %s - %s',
                 $fixture['source'],
@@ -151,6 +144,9 @@ final class PhpPcreComplianceValidator extends TestCase
         }
     }
 
+    /**
+     * @param array<int|string, mixed> $expectedMatches
+     */
     private function assertPregMatch(
         string $pattern,
         string $subject,
@@ -163,6 +159,7 @@ final class PhpPcreComplianceValidator extends TestCase
         string $category,
     ): void {
         $matches = [];
+        /** @phpstan-ignore argument.type */
         $result = @preg_match($pattern, $subject, $matches, $flags, $offset);
 
         $this->assertNotFalse(
@@ -224,6 +221,9 @@ final class PhpPcreComplianceValidator extends TestCase
         }
     }
 
+    /**
+     * @param array<int|string, mixed> $expectedMatches
+     */
     private function assertPregMatchAll(
         string $pattern,
         string $subject,
@@ -297,6 +297,9 @@ final class PhpPcreComplianceValidator extends TestCase
         }
     }
 
+    /**
+     * @param array<int|string, mixed> $expectedResult
+     */
     private function assertPregSplit(
         string $pattern,
         string $subject,
