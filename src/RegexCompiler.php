@@ -158,40 +158,6 @@ class RegexCompiler
     }
 
     /**
-     * Gets a cached AST if available, null otherwise.
-     * Useful for checking cache state without triggering a parse.
-     */
-    public function getCached(string $regex): ?RegexNode
-    {
-        $cacheKey = 'regex_parser_'.md5($regex);
-
-        if (isset($this->runtimeCache[$cacheKey])) {
-            return $this->runtimeCache[$cacheKey];
-        }
-
-        if (null !== $this->cache) {
-            try {
-                $cached = $this->cache->get($cacheKey);
-                if ($cached instanceof RegexNode) {
-                    return $cached;
-                }
-            } catch (InvalidArgumentException) {
-                // Ignore cache errors
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * Clears the runtime cache.
-     */
-    public function clearRuntimeCache(): void
-    {
-        $this->runtimeCache = [];
-    }
-
-    /**
      * Returns the underlying Parser instance.
      * Useful for advanced scenarios where direct TokenStream parsing is needed.
      */
