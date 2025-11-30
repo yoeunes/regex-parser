@@ -47,8 +47,6 @@ use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
 use RegexParser\Stream\TokenStream;
 
-use function count;
-
 /**
  * The Parser.
  *
@@ -62,31 +60,7 @@ class Parser
      */
     public const int DEFAULT_MAX_PATTERN_LENGTH = 100_000;
 
-    /**
-     * Default maximum recursion depth (prevents stack overflow on deeply nested patterns).
-     */
-    public const int DEFAULT_MAX_RECURSION_DEPTH = 200;
-
-    /**
-     * Default maximum number of AST nodes (prevents DoS through node exhaustion).
-     */
-    public const int DEFAULT_MAX_NODES = 10000;
-
     private readonly int $maxPatternLength;
-
-    private readonly int $maxRecursionDepth;
-
-    private readonly int $maxNodes;
-
-    /**
-     * Current recursion depth (tracks during parsing).
-     */
-    private int $recursionDepth = 0;
-
-    /**
-     * Current node count (tracks during parsing).
-     */
-    private int $nodeCount = 0;
 
     /**
      * Token stream (replaces array of tokens for memory efficiency).
@@ -117,8 +91,6 @@ class Parser
         private ?Lexer $lexer = null,
     ) {
         $this->maxPatternLength = (int) ($options['max_pattern_length'] ?? self::DEFAULT_MAX_PATTERN_LENGTH);
-        $this->maxRecursionDepth = (int) ($options['max_recursion_depth'] ?? self::DEFAULT_MAX_RECURSION_DEPTH);
-        $this->maxNodes = (int) ($options['max_nodes'] ?? self::DEFAULT_MAX_NODES);
         $this->cache = $options['cache'] ?? null;
     }
 
@@ -165,10 +137,6 @@ class Parser
 
         // Cache miss - proceed with actual parsing
         [$pattern, $flags, $delimiter] = $this->extractPatternAndFlags($regex);
-
-        // Reset state for new parse
-        $this->recursionDepth = 0;
-        $this->nodeCount = 0;
 
         // Initialize Token Stream (Generator-based)
         $lexer = $this->getLexer($pattern);
@@ -223,8 +191,6 @@ class Parser
         int $patternLength = 0
     ): RegexNode {
         // Reset state for new parse
-        $this->recursionDepth = 0;
-        $this->nodeCount = 0;
         $this->stream = $stream;
 
         // Parse the pattern content
@@ -301,10 +267,6 @@ class Parser
 
         throw new ParserException(\sprintf('No closing delimiter "%s" found.', $closingDelimiter));
     }
-
-    // ========================================================================
-    // GRAMMAR IMPLEMENTATION (Recursive Descent)
-    // ========================================================================
 
     /**
      * alternation -> sequence ( "|" sequence )*
@@ -437,8 +399,6 @@ class Parser
         $token = $this->current();
         $startPos = $token->position;
 
-        // --- Handle Full Fidelity Tokens ---
-
         // Comments (emitted by Lexer) must be parsed into CommentNode
         if ($this->match(TokenType::T_COMMENT_OPEN)) {
             return $this->parseComment();
@@ -449,8 +409,6 @@ class Parser
         if ($this->match(TokenType::T_QUOTE_MODE_START) || $this->match(TokenType::T_QUOTE_MODE_END)) {
             return $this->parseAtom();
         }
-
-        // --- Standard Atoms ---
 
         if ($this->match(TokenType::T_LITERAL)) {
             $token = $this->previous();
@@ -728,8 +686,6 @@ class Parser
         // 6. Inline flags
         return $this->parseInlineFlags($startPos);
     }
-
-    // --- Helper methods for parseGroupModifier decomposition ---
 
     private function parsePythonGroup(int $startPos, int $pPos): NodeInterface
     {
@@ -1162,8 +1118,6 @@ class Parser
         return $name;
     }
 
-    // ... (Navigation helpers match, matchLiteral, check, etc. are standard)
-
     private function match(TokenType $type): bool
     {
         if ($this->check($type)) {
@@ -1251,59 +1205,6 @@ class Parser
     private function previous(): Token
     {
         return $this->stream->peek(-1);
-    }
-
-    /**
-     * Check and enforce recursion limit.
-     * Must be called at the start of each recursive parsing method.
-     *
-     * @throws RecursionLimitException if recursion depth exceeds limit
-     *
-     * @phpstan-ignore method.unused (reserved for future resource limiting integration)
-     */
-    private function checkRecursionLimit(): void
-    {
-        $this->recursionDepth++;
-
-        if ($this->recursionDepth > $this->maxRecursionDepth) {
-            throw new RecursionLimitException(
-                \sprintf(
-                    'Recursion limit of %d exceeded (current: %d). Pattern is too deeply nested.',
-                    $this->maxRecursionDepth,
-                    $this->recursionDepth,
-                ));
-        }
-    }
-
-    /**
-     * End a recursion scope.
-     *
-     * @phpstan-ignore method.unused (reserved for future resource limiting integration)
-     */
-    private function exitRecursionScope(): void
-    {
-        $this->recursionDepth--;
-    }
-
-    /**
-     * Check and enforce node count limit.
-     * Must be called before creating a new node.
-     *
-     * @throws ResourceLimitException if node count exceeds limit
-     *
-     * @phpstan-ignore method.unused (reserved for future resource limiting integration)
-     */
-    private function checkNodeLimit(): void
-    {
-        $this->nodeCount++;
-
-        if ($this->nodeCount > $this->maxNodes) {
-            throw new ResourceLimitException(
-                \sprintf(
-                    'Node count limit of %d exceeded. Pattern is too complex.',
-                    $this->maxNodes,
-                ));
-        }
     }
 
     private function consumeWhile(callable $predicate): string

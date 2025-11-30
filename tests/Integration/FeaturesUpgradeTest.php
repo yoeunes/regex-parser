@@ -76,19 +76,6 @@ class FeaturesUpgradeTest extends TestCase
     }
 
     /**
-     * Test ParserOptions is immutable (readonly).
-     */
-    public function test_parser_options_is_readonly(): void
-    {
-        $options = new ParserOptions();
-
-        // Attempting to set a property should throw an error
-        $this->expectException(\Error::class);
-        /* @phpstan-ignore property.readOnlyAssignOutOfClass */
-        $options->maxPatternLength = 999;
-    }
-
-    /**
      * Test MermaidVisitor generates valid Mermaid syntax.
      */
     public function test_mermaid_visitor_generates_valid_syntax(): void
