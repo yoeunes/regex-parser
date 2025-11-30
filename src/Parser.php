@@ -13,8 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser;
 
-use Psr\SimpleCache\CacheInterface;
-use Psr\SimpleCache\InvalidArgumentException;
+use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
 use RegexParser\Exception\RecursionLimitException;
 use RegexParser\Exception\ResourceLimitException;
@@ -68,42 +67,25 @@ class Parser
     private TokenStream $stream;
 
     /**
-     * Runtime cache for parsed ASTs (Layer 1).
-     * Maps cache keys to RegexNode instances for fast repeated access within same request.
-     *
-     * @var array<string, RegexNode>
-     */
-    private array $runtimeCache = [];
-
-    private ?CacheInterface $cache = null;
-
-    /**
      * @param array{
      *     max_pattern_length?: int,
      *     max_recursion_depth?: int,
      *     max_nodes?: int,
-     *     cache?: CacheInterface|null,
      * } $options Configuration options
      * @param Lexer|null $lexer Optional Lexer instance for dependency injection
      */
-    public function __construct(
-        array $options = [],
-        private ?Lexer $lexer = null,
-    ) {
+    public function __construct(array $options = [], private ?Lexer $lexer = null)
+    {
         $this->maxPatternLength = (int) ($options['max_pattern_length'] ?? self::DEFAULT_MAX_PATTERN_LENGTH);
-        $this->cache = $options['cache'] ?? null;
     }
 
     /**
      * Parses a full regex string (including delimiters and flags) into an AST.
      *
-     * Implements a two-layer caching strategy:
-     * 1. Runtime Cache (Layer 1): Fast in-memory cache for repeated calls within same request
-     * 2. PSR-16 Persistent Cache (Layer 2): Optional external cache for cross-request optimization
-     *
      * @throws ParserException         if the regex syntax is invalid
      * @throws RecursionLimitException if recursion depth exceeds limit
      * @throws ResourceLimitException  if node count exceeds limit
+     * @throws LexerException          if tokenization fails
      */
     public function parse(string $regex): RegexNode
     {
@@ -111,31 +93,6 @@ class Parser
             throw new ParserException(\sprintf('Regex pattern exceeds maximum length of %d characters.', $this->maxPatternLength));
         }
 
-        // Generate cache key
-        $cacheKey = 'regex_parser_'.md5($regex);
-
-        // Layer 1: Check runtime cache
-        if (isset($this->runtimeCache[$cacheKey])) {
-            return $this->runtimeCache[$cacheKey];
-        }
-
-        // Layer 2: Check persistent cache (if available)
-        if (null !== $this->cache) {
-            try {
-                $cached = $this->cache->get($cacheKey);
-                if ($cached instanceof RegexNode) {
-                    // Found in persistent cache - save to runtime for next call
-                    $this->runtimeCache[$cacheKey] = $cached;
-
-                    return $cached;
-                }
-            } catch (InvalidArgumentException) {
-                // Cache key is invalid - proceed with parsing
-                // (should not happen with our key format, but catch for safety)
-            }
-        }
-
-        // Cache miss - proceed with actual parsing
         [$pattern, $flags, $delimiter] = $this->extractPatternAndFlags($regex);
 
         // Initialize Token Stream (Generator-based)
@@ -148,22 +105,7 @@ class Parser
         // Ensure we reached the end of the pattern
         $this->consume(TokenType::T_EOF, 'Unexpected content at end of pattern');
 
-        $ast = new RegexNode($patternNode, $flags, $delimiter, 0, \strlen($pattern));
-
-        // Save to runtime cache (Layer 1)
-        $this->runtimeCache[$cacheKey] = $ast;
-
-        // Save to persistent cache (Layer 2) if available
-        if (null !== $this->cache) {
-            try {
-                $this->cache->set($cacheKey, $ast);
-            } catch (InvalidArgumentException) {
-                // Cache write failed - log would be nice but not critical
-                // Continue without caching
-            }
-        }
-
-        return $ast;
+        return new RegexNode($patternNode, $flags, $delimiter, 0, \strlen($pattern));
     }
 
     /**
@@ -184,12 +126,8 @@ class Parser
      * @throws RecursionLimitException if recursion depth exceeds limit
      * @throws ResourceLimitException  if node count exceeds limit
      */
-    public function parseTokenStream(
-        TokenStream $stream,
-        string $flags = '',
-        string $delimiter = '/',
-        int $patternLength = 0
-    ): RegexNode {
+    public function parseTokenStream(TokenStream $stream, string $flags = '', string $delimiter = '/', int $patternLength = 0): RegexNode
+    {
         // Reset state for new parse
         $this->stream = $stream;
 

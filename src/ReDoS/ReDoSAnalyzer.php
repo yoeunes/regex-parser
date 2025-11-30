@@ -14,20 +14,17 @@ declare(strict_types=1);
 namespace RegexParser\ReDoS;
 
 use RegexParser\NodeVisitor\ReDoSProfileVisitor;
-use RegexParser\RegexCompiler;
+use RegexParser\Parser;
 
 class ReDoSAnalyzer
 {
-    public function __construct(private readonly ?RegexCompiler $compiler = new RegexCompiler()) {}
-
     /**
      * Analyzes a regex pattern for ReDoS vulnerabilities and returns a detailed report.
      */
     public function analyze(string $pattern): ReDoSAnalysis
     {
         try {
-            \assert(null !== $this->compiler);
-            $ast = $this->compiler->parse($pattern);
+            $ast = $this->getParser()->parse($pattern);
             $visitor = new ReDoSProfileVisitor();
             $ast->accept($visitor);
 
@@ -54,5 +51,10 @@ class ReDoSAnalyzer
             ReDoSSeverity::HIGH => 8,
             ReDoSSeverity::CRITICAL => 10,
         };
+    }
+
+    private function getParser(): Parser
+    {
+        return new Parser();
     }
 }

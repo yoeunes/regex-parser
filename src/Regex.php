@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace RegexParser;
 
-use Psr\SimpleCache\CacheInterface;
 use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
 use RegexParser\Node\RegexNode;
@@ -39,7 +38,6 @@ use RegexParser\ReDoS\ReDoSAnalyzer;
 readonly class Regex
 {
     /**
-     * @param RegexCompiler          $compiler  the configured compiler instance (combines Lexer + Parser)
      * @param ValidatorNodeVisitor   $validator a reusable validator visitor
      * @param ExplainVisitor         $explainer a reusable explain visitor
      * @param SampleGeneratorVisitor $generator a reusable sample generator visitor
@@ -48,7 +46,6 @@ readonly class Regex
      * @param ComplexityScoreVisitor $scorer    a reusable complexity scorer
      */
     public function __construct(
-        private RegexCompiler $compiler,
         private ValidatorNodeVisitor $validator,
         private ExplainVisitor $explainer,
         private SampleGeneratorVisitor $generator,
@@ -64,13 +61,11 @@ readonly class Regex
      *     max_pattern_length?: int,
      *     max_recursion_depth?: int,
      *     max_nodes?: int,
-     *     cache?: CacheInterface|null,
      * } $options Options for the compiler (e.g., 'max_pattern_length', 'max_recursion_depth', 'max_nodes').
      */
     public static function create(array $options = []): self
     {
         return new self(
-            new RegexCompiler($options),
             new ValidatorNodeVisitor(),
             new ExplainVisitor(),
             new SampleGeneratorVisitor(),
@@ -87,7 +82,7 @@ readonly class Regex
      */
     public function parse(string $regex): RegexNode
     {
-        return $this->compiler->parse($regex);
+        return $this->getParser()->parse($regex);
     }
 
     /**
@@ -96,7 +91,7 @@ readonly class Regex
     public function validate(string $regex): ValidationResult
     {
         try {
-            $ast = $this->compiler->parse($regex);
+            $ast = $this->getParser()->parse($regex);
             $validator = clone $this->validator;
             $ast->accept($validator);
 
@@ -116,7 +111,7 @@ readonly class Regex
      */
     public function explain(string $regex): string
     {
-        $ast = $this->compiler->parse($regex);
+        $ast = $this->getParser()->parse($regex);
 
         return $ast->accept(clone $this->explainer);
     }
@@ -128,7 +123,7 @@ readonly class Regex
      */
     public function generate(string $regex): string
     {
-        $ast = $this->compiler->parse($regex);
+        $ast = $this->getParser()->parse($regex);
 
         return $ast->accept(clone $this->generator);
     }
@@ -140,7 +135,7 @@ readonly class Regex
      */
     public function optimize(string $regex): string
     {
-        $ast = $this->compiler->parse($regex);
+        $ast = $this->getParser()->parse($regex);
 
         $optimizedAst = $ast->accept(clone $this->optimizer);
 
@@ -158,7 +153,7 @@ readonly class Regex
      */
     public function visualize(string $regex): string
     {
-        $ast = $this->compiler->parse($regex);
+        $ast = $this->getParser()->parse($regex);
 
         return $ast->accept(new MermaidVisitor());
     }
@@ -170,7 +165,7 @@ readonly class Regex
      */
     public function dump(string $regex): string
     {
-        $ast = $this->compiler->parse($regex);
+        $ast = $this->getParser()->parse($regex);
 
         return $ast->accept(clone $this->dumper);
     }
@@ -183,7 +178,7 @@ readonly class Regex
      */
     public function extractLiterals(string $regex): LiteralSet
     {
-        $ast = $this->compiler->parse($regex);
+        $ast = $this->getParser()->parse($regex);
 
         $visitor = new LiteralExtractorVisitor();
 
@@ -202,20 +197,11 @@ readonly class Regex
     }
 
     /**
-     * Returns the underlying RegexCompiler instance.
-     * Useful for advanced scenarios requiring direct access to the compiler.
-     */
-    public function getCompiler(): RegexCompiler
-    {
-        return $this->compiler;
-    }
-
-    /**
      * Returns the underlying Parser instance.
      * Useful for advanced scenarios requiring direct TokenStream parsing.
      */
     public function getParser(): Parser
     {
-        return $this->compiler->getParser();
+        return new Parser();
     }
 }
