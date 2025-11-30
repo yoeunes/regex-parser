@@ -21,16 +21,16 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
 class AssertionNode extends AbstractNode
 {
     /**
-     * @param string $value    the assertion character (\b, \A, etc.)
-     * @param int    $startPos The 0-based start offset
-     * @param int    $endPos   The 0-based end offset (exclusive)
+     * @param string $value         the assertion character (\b, \A, etc.)
+     * @param int    $startPosition The 0-based start offset
+     * @param int    $endPosition   The 0-based end offset (exclusive)
      */
     public function __construct(
         public readonly string $value,
-        int $startPos,
-        int $endPos,
+        int $startPosition,
+        int $endPosition,
     ) {
-        parent::__construct($startPos, $endPos);
+        parent::__construct($startPosition, $endPosition);
     }
 
     /**

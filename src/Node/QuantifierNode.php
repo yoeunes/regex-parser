@@ -21,20 +21,20 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
 class QuantifierNode extends AbstractNode
 {
     /**
-     * @param NodeInterface  $node       the node to be quantified
-     * @param string         $quantifier The quantifier string (e.g., "*", "{1,3}").
-     * @param QuantifierType $type       The type of quantifier (greedy, lazy, possessive)
-     * @param int            $startPos   The 0-based start offset
-     * @param int            $endPos     The 0-based end offset (exclusive)
+     * @param NodeInterface  $node          the node to be quantified
+     * @param string         $quantifier    The quantifier string (e.g., "*", "{1,3}").
+     * @param QuantifierType $type          The type of quantifier (greedy, lazy, possessive)
+     * @param int            $startPosition The 0-based start offset
+     * @param int            $endPosition   The 0-based end offset (exclusive)
      */
     public function __construct(
         public readonly NodeInterface $node,
         public readonly string $quantifier,
         public readonly QuantifierType $type,
-        int $startPos,
-        int $endPos,
+        int $startPosition,
+        int $endPosition,
     ) {
-        parent::__construct($startPos, $endPos);
+        parent::__construct($startPosition, $endPosition);
     }
 
     /**

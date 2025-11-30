@@ -21,20 +21,20 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
 class RegexNode extends AbstractNode
 {
     /**
-     * @param NodeInterface $pattern   The root node of the regex pattern (e.g., an AlternationNode or SequenceNode).
-     * @param string        $flags     A string of flags (e.g., "imsU").
-     * @param string        $delimiter The opening delimiter (e.g., "/", "~", "(").
-     * @param int           $startPos  The 0-based start offset
-     * @param int           $endPos    The 0-based end offset (exclusive)
+     * @param NodeInterface $pattern       The root node of the regex pattern (e.g., an AlternationNode or SequenceNode).
+     * @param string        $flags         A string of flags (e.g., "imsU").
+     * @param string        $delimiter     The opening delimiter (e.g., "/", "~", "(").
+     * @param int           $startPosition The 0-based start offset
+     * @param int           $endPosition   The 0-based end offset (exclusive)
      */
     public function __construct(
         public readonly NodeInterface $pattern,
         public readonly string $flags,
         public readonly string $delimiter,
-        int $startPos,
-        int $endPos,
+        int $startPosition,
+        int $endPosition,
     ) {
-        parent::__construct($startPos, $endPos);
+        parent::__construct($startPosition, $endPosition);
     }
 
     /**

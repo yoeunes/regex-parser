@@ -22,16 +22,16 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
 class SequenceNode extends AbstractNode
 {
     /**
-     * @param array<NodeInterface> $children the nodes in the sequence
-     * @param int                  $startPos The 0-based start offset
-     * @param int                  $endPos   The 0-based end offset (exclusive)
+     * @param array<NodeInterface> $children      the nodes in the sequence
+     * @param int                  $startPosition The 0-based start offset
+     * @param int                  $endPosition   The 0-based end offset (exclusive)
      */
     public function __construct(
         public readonly array $children,
-        int $startPos,
-        int $endPos,
+        int $startPosition,
+        int $endPosition,
     ) {
-        parent::__construct($startPos, $endPos);
+        parent::__construct($startPosition, $endPosition);
     }
 
     /**

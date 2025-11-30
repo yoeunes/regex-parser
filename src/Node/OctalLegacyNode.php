@@ -21,16 +21,16 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
 class OctalLegacyNode extends AbstractNode
 {
     /**
-     * @param string $code     The octal code (e.g., "0", "01", "012")
-     * @param int    $startPos The 0-based start offset
-     * @param int    $endPos   The 0-based end offset (exclusive)
+     * @param string $code          The octal code (e.g., "0", "01", "012")
+     * @param int    $startPosition The 0-based start offset
+     * @param int    $endPosition   The 0-based end offset (exclusive)
      */
     public function __construct(
         public readonly string $code,
-        int $startPos,
-        int $endPos,
+        int $startPosition,
+        int $endPosition,
     ) {
-        parent::__construct($startPos, $endPos);
+        parent::__construct($startPosition, $endPosition);
     }
 
     public function accept(NodeVisitorInterface $visitor)

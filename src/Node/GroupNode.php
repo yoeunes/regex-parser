@@ -21,22 +21,22 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
 class GroupNode extends AbstractNode
 {
     /**
-     * @param NodeInterface $child    the expression contained within the group
-     * @param GroupType     $type     The semantic type of the group
-     * @param ?string       $name     The name, if it's a named group
-     * @param ?string       $flags    Inline flags for (?i:...)
-     * @param int           $startPos The 0-based start offset
-     * @param int           $endPos   The 0-based end offset (exclusive)
+     * @param NodeInterface $child         the expression contained within the group
+     * @param GroupType     $type          The semantic type of the group
+     * @param ?string       $name          The name, if it's a named group
+     * @param ?string       $flags         Inline flags for (?i:...)
+     * @param int           $startPosition The 0-based start offset
+     * @param int           $endPos        The 0-based end offset (exclusive)
      */
     public function __construct(
         public readonly NodeInterface $child,
         public readonly GroupType $type,
         public readonly ?string $name = null,
         public readonly ?string $flags = null,
-        int $startPos = 0,
+        int $startPosition = 0,
         int $endPos = 0,
     ) {
-        parent::__construct($startPos, $endPos);
+        parent::__construct($startPosition, $endPos);
     }
 
     /**

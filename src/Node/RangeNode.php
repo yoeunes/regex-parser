@@ -21,18 +21,18 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
 class RangeNode extends AbstractNode
 {
     /**
-     * @param NodeInterface $start    the start of the range (LiteralNode or CharTypeNode)
-     * @param NodeInterface $end      the end of the range (LiteralNode or CharTypeNode)
-     * @param int           $startPos The 0-based start offset
-     * @param int           $endPos   The 0-based end offset (exclusive)
+     * @param NodeInterface $start         the start of the range (LiteralNode or CharTypeNode)
+     * @param NodeInterface $end           the end of the range (LiteralNode or CharTypeNode)
+     * @param int           $startPosition The 0-based start offset
+     * @param int           $endPosition   The 0-based end offset (exclusive)
      */
     public function __construct(
         public readonly NodeInterface $start,
         public readonly NodeInterface $end,
-        int $startPos,
-        int $endPos,
+        int $startPosition,
+        int $endPosition,
     ) {
-        parent::__construct($startPos, $endPos);
+        parent::__construct($startPosition, $endPosition);
     }
 
     /**

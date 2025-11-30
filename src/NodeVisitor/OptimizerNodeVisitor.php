@@ -371,8 +371,8 @@ class OptimizerNodeVisitor implements NodeVisitorInterface
     {
         return new DefineNode(
             $node->content->accept($this),
-            $node->startPos,
-            $node->endPos,
+            $node->startPosition,
+            $node->endPosition,
         );
     }
 

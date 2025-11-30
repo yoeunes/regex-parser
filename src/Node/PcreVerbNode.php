@@ -21,16 +21,16 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
 class PcreVerbNode extends AbstractNode
 {
     /**
-     * @param string $verb     The verb name (e.g., "FAIL", "COMMIT")
-     * @param int    $startPos The 0-based start offset
-     * @param int    $endPos   The 0-based end offset (exclusive)
+     * @param string $verb          The verb name (e.g., "FAIL", "COMMIT")
+     * @param int    $startPosition The 0-based start offset
+     * @param int    $endPosition   The 0-based end offset (exclusive)
      */
     public function __construct(
         public readonly string $verb,
-        int $startPos,
-        int $endPos,
+        int $startPosition,
+        int $endPosition,
     ) {
-        parent::__construct($startPos, $endPos);
+        parent::__construct($startPosition, $endPosition);
     }
 
     /**

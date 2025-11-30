@@ -18,15 +18,15 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
 class BackrefNode extends AbstractNode
 {
     /**
-     * @param int $startPos The 0-based start offset
-     * @param int $endPos   The 0-based end offset (exclusive)
+     * @param int $startPosition The 0-based start offset
+     * @param int $endPosition   The 0-based end offset (exclusive)
      */
     public function __construct(
         public readonly string $ref,
-        int $startPos,
-        int $endPos,
+        int $startPosition,
+        int $endPosition,
     ) {
-        parent::__construct($startPos, $endPos);
+        parent::__construct($startPosition, $endPosition);
     }
 
     public function accept(NodeVisitorInterface $visitor)

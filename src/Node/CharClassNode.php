@@ -21,18 +21,18 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
 class CharClassNode extends AbstractNode
 {
     /**
-     * @param array<NodeInterface> $parts     the parts of the class (LiteralNode, CharTypeNode, RangeNode)
-     * @param bool                 $isNegated Whether the class is negated (e.g., '[^...]')
-     * @param int                  $startPos  The 0-based start offset
-     * @param int                  $endPos    The 0-based end offset (exclusive)
+     * @param array<NodeInterface> $parts         the parts of the class (LiteralNode, CharTypeNode, RangeNode)
+     * @param bool                 $isNegated     Whether the class is negated (e.g., '[^...]')
+     * @param int                  $startPosition The 0-based start offset
+     * @param int                  $endPosition   The 0-based end offset (exclusive)
      */
     public function __construct(
         public readonly array $parts,
         public readonly bool $isNegated,
-        int $startPos,
-        int $endPos,
+        int $startPosition,
+        int $endPosition,
     ) {
-        parent::__construct($startPos, $endPos);
+        parent::__construct($startPosition, $endPosition);
     }
 
     /**

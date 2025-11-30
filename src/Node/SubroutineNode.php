@@ -21,18 +21,18 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
 class SubroutineNode extends AbstractNode
 {
     /**
-     * @param string $reference The group reference (e.g., "R", "0", "1", "name").
-     * @param string $syntax    The original syntax (e.g., "&", "P>", "g", "").
-     * @param int    $startPos  The 0-based start offset
-     * @param int    $endPos    The 0-based end offset (exclusive)
+     * @param string $reference     The group reference (e.g., "R", "0", "1", "name").
+     * @param string $syntax        The original syntax (e.g., "&", "P>", "g", "").
+     * @param int    $startPosition The 0-based start offset
+     * @param int    $endPosition   The 0-based end offset (exclusive)
      */
     public function __construct(
         public readonly string $reference,
         public readonly string $syntax,
-        int $startPos,
-        int $endPos,
+        int $startPosition,
+        int $endPosition,
     ) {
-        parent::__construct($startPos, $endPos);
+        parent::__construct($startPosition, $endPosition);
     }
 
     /**

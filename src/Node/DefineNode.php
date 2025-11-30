@@ -22,8 +22,8 @@ class DefineNode implements NodeInterface
      */
     public function __construct(
         public readonly NodeInterface $content,
-        public readonly int $startPos,
-        public readonly int $endPos,
+        public readonly int $startPosition,
+        public readonly int $endPosition,
     ) {}
 
     public function accept(NodeVisitorInterface $visitor): mixed
@@ -33,11 +33,11 @@ class DefineNode implements NodeInterface
 
     public function getStartPosition(): int
     {
-        return $this->startPos;
+        return $this->startPosition;
     }
 
     public function getEndPosition(): int
     {
-        return $this->endPos;
+        return $this->endPosition;
     }
 }
