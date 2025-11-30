@@ -26,7 +26,7 @@ use RegexParser\Stream\TokenStream;
  * Uses RegexCompiler for string parsing (recommended) or provides access to
  * the low-level Parser for TokenStream parsing.
  */
-final class ParserHelper
+class ParserHelper
 {
     private static ?RegexCompiler $compiler = null;
 

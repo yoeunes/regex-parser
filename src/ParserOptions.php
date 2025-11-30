@@ -20,7 +20,7 @@ namespace RegexParser;
  * Immutable Data Transfer Object following the Rust `regex-syntax` standard
  * for resource management and security.
  */
-final readonly class ParserOptions
+class ParserOptions
 {
     /**
      * Create parser options with default values.
@@ -30,9 +30,9 @@ final readonly class ParserOptions
      * @param int $maxRecursionDepth Maximum recursion depth (default: 250)
      */
     public function __construct(
-        public int $maxPatternLength = 10_000,
-        public int $maxNodes = 10_000,
-        public int $maxRecursionDepth = 250
+        public readonly int $maxPatternLength = 10_000,
+        public readonly int $maxNodes = 10_000,
+        public readonly int $maxRecursionDepth = 250
     ) {}
 
     /**

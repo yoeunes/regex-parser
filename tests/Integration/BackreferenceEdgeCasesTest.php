@@ -17,7 +17,7 @@ use PHPUnit\Framework\TestCase;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
 use RegexParser\Regex;
 
-final class BackreferenceEdgeCasesTest extends TestCase
+class BackreferenceEdgeCasesTest extends TestCase
 {
     private Regex $regex;
 

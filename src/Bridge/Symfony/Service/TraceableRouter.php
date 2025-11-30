@@ -35,7 +35,7 @@ use Symfony\Contracts\Service\ResetInterface;
  * during `cache:warmup`, and ResetInterface for long-running process compatibility
  * (Swoole, FrankenPHP, RoadRunner).
  */
-final readonly class TraceableRouter implements RequestMatcherInterface, ResetInterface, RouterInterface, WarmableInterface
+class TraceableRouter implements RequestMatcherInterface, ResetInterface, RouterInterface, WarmableInterface
 {
     /**
      * Common PCRE pattern delimiters.
@@ -47,8 +47,8 @@ final readonly class TraceableRouter implements RequestMatcherInterface, ResetIn
     private const array PATTERN_DELIMITERS = ['/', '#', '~', '%'];
 
     public function __construct(
-        private RouterInterface $router,
-        private RegexCollector $collector,
+        private readonly RouterInterface $router,
+        private readonly RegexCollector $collector,
     ) {}
 
     #[\Override]

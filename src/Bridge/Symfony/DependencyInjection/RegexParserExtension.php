@@ -24,7 +24,7 @@ use Symfony\Component\HttpKernel\DependencyInjection\Extension;
  * Loads base services and conditionally loads debug services (data collector,
  * traceable decorators) based on the `profiler.enabled` configuration option.
  */
-final class RegexParserExtension extends Extension
+class RegexParserExtension extends Extension
 {
     /**
      * @param array<array<string, mixed>> $configs

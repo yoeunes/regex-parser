@@ -22,7 +22,7 @@ namespace RegexParser\Node;
  * - Node hierarchy and relationships
  * - Usage examples and documentation
  */
-final class NodeRegistry
+class NodeRegistry
 {
     /**
      * Complete list of all AST Node classes with metadata.

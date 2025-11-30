@@ -24,7 +24,7 @@ use PHPUnit\Framework\TestCase;
  *
  * @see https://github.com/php/php-src/tree/master/ext/pcre/tests
  */
-final class PhpPcreComplianceValidator extends TestCase
+class PhpPcreComplianceValidator extends TestCase
 {
     /**
      * @param array<int|string, mixed>      $expectedMatches

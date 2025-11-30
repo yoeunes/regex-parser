@@ -28,11 +28,11 @@ use Symfony\Contracts\Service\ResetInterface;
  *
  * Implements ResetInterface for Swoole/FrankenPHP compatibility.
  */
-final readonly class TraceableValidator implements ResetInterface, ValidatorInterface
+class TraceableValidator implements ResetInterface, ValidatorInterface
 {
     public function __construct(
-        private ValidatorInterface $validator,
-        private RegexCollector $collector,
+        private readonly ValidatorInterface $validator,
+        private readonly RegexCollector $collector,
     ) {}
 
     #[\Override]

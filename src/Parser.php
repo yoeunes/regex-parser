@@ -55,7 +55,7 @@ use function count;
  * It transforms a stream of Tokens (from the Lexer) into an Abstract Syntax Tree (AST).
  * It implements a Recursive Descent Parser based on PCRE grammar.
  */
-final class Parser
+class Parser
 {
     /**
      * Default hard limit on the regex string length to prevent excessive processing/memory usage.

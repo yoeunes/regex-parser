@@ -52,7 +52,7 @@ use Symfony\Contracts\Service\ResetInterface;
  *     average_complexity: float,
  * }
  */
-final class RegexCollector extends DataCollector implements LateDataCollectorInterface, ResetInterface
+class RegexCollector extends DataCollector implements LateDataCollectorInterface, ResetInterface
 {
     /**
      * @var array<string, CollectedRegex>

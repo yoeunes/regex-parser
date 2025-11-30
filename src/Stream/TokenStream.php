@@ -21,7 +21,7 @@ use RegexParser\TokenType;
  * Provides lookahead capabilities while maintaining memory efficiency.
  * Uses a limited buffer for peeking ahead without loading entire token list.
  */
-final class TokenStream
+class TokenStream
 {
     /**
      * Buffer for lookahead tokens.

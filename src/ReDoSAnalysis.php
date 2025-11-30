@@ -13,16 +13,16 @@ declare(strict_types=1);
 
 namespace RegexParser;
 
-readonly class ReDoSAnalysis
+class ReDoSAnalysis
 {
     /**
      * @param array<string> $recommendations
      */
     public function __construct(
-        public ReDoSSeverity $severity,
-        public int $score,
-        public ?string $vulnerablePart = null,
-        public array $recommendations = [],
+        public readonly ReDoSSeverity $severity,
+        public readonly int $score,
+        public readonly ?string $vulnerablePart = null,
+        public readonly array $recommendations = [],
     ) {}
 
     public function isSafe(): bool

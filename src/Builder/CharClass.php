@@ -24,14 +24,14 @@ use RegexParser\Node\RangeNode;
  * A helper to build character class definitions (content inside [...]).
  * Immutable builder pattern.
  */
-final readonly class CharClass
+class CharClass
 {
     /**
      * @param array<NodeInterface> $parts
      */
     private function __construct(
-        private array $parts = [],
-        private bool $negated = false
+        private readonly array $parts = [],
+        private readonly bool $negated = false
     ) {}
 
     public static function create(): self

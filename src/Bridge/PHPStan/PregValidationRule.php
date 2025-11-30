@@ -34,7 +34,7 @@ use RegexParser\ReDoSSeverity;
  *
  * @implements Rule<FuncCall>
  */
-final class PregValidationRule implements Rule
+class PregValidationRule implements Rule
 {
     private const array PREG_FUNCTION_MAP = [
         'preg_match' => 0,

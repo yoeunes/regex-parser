@@ -15,9 +15,9 @@ namespace RegexParser;
 
 use RegexParser\NodeVisitor\ReDoSProfileVisitor;
 
-final readonly class ReDoSAnalyzer
+class ReDoSAnalyzer
 {
-    public function __construct(private ?RegexCompiler $compiler = new RegexCompiler()) {}
+    public function __construct(private readonly ?RegexCompiler $compiler = new RegexCompiler()) {}
 
     /**
      * Analyzes a regex pattern for ReDoS vulnerabilities and returns a detailed report.

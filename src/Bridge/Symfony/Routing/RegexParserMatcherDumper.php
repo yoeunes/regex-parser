@@ -27,11 +27,11 @@ use RegexParser\Parser;
  *       '/api/v\d+/users' => 'ApiUserAction',
  *   ]);
  */
-final readonly class RegexParserMatcherDumper
+class RegexParserMatcherDumper
 {
     private LiteralExtractorVisitor $literalExtractor;
 
-    public function __construct(private ?Parser $parser = new Parser())
+    public function __construct(private readonly ?Parser $parser = new Parser())
     {
         $this->literalExtractor = new LiteralExtractorVisitor();
     }

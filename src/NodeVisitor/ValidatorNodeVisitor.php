@@ -57,7 +57,7 @@ use RegexParser\Node\UnicodePropNode;
  *
  * @implements NodeVisitorInterface<void>
  */
-final class ValidatorNodeVisitor implements NodeVisitorInterface
+class ValidatorNodeVisitor implements NodeVisitorInterface
 {
     private const array VALID_ASSERTIONS = [
         'A' => true, 'z' => true, 'Z' => true,

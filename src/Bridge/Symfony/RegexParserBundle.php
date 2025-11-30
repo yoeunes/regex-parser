@@ -27,7 +27,7 @@ use Symfony\Component\HttpKernel\Bundle\Bundle;
  * @see \RegexParser\Bridge\Symfony\DependencyInjection\RegexParserExtension
  * @see \RegexParser\Bridge\Symfony\DependencyInjection\Configuration
  */
-final class RegexParserBundle extends Bundle
+class RegexParserBundle extends Bundle
 {
     #[\Override]
     public function getPath(): string

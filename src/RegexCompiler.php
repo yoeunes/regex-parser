@@ -56,7 +56,7 @@ use RegexParser\Stream\TokenStream;
  * $ast = $parser->parseTokenStream($stream, $flags, $delimiter, strlen($pattern));
  * ```
  */
-final class RegexCompiler
+class RegexCompiler
 {
     /**
      * Default hard limit on the regex string length.
