@@ -14,7 +14,6 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
-use RegexParser\Parser;
 use RegexParser\Regex;
 
 /**

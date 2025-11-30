@@ -18,7 +18,7 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
 /**
  * Represents an anchor (e.g., "^" or "$").
  */
-class AnchorNode extends AbstractNode
+readonly class AnchorNode extends AbstractNode
 {
     /**
      * @param string $value         the anchor character ("^" or "$")
@@ -26,7 +26,7 @@ class AnchorNode extends AbstractNode
      * @param int    $endPosition   The 0-based end offset (exclusive)
      */
     public function __construct(
-        public readonly string $value,
+        public string $value,
         int $startPosition,
         int $endPosition
     ) {

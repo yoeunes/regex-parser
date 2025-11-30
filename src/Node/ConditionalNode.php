@@ -15,16 +15,16 @@ namespace RegexParser\Node;
 
 use RegexParser\NodeVisitor\NodeVisitorInterface;
 
-class ConditionalNode extends AbstractNode
+readonly class ConditionalNode extends AbstractNode
 {
     /**
      * @param int $startPosition The 0-based start offset
      * @param int $endPosition   The 0-based end offset (exclusive)
      */
     public function __construct(
-        public readonly NodeInterface $condition,
-        public readonly NodeInterface $yes,
-        public readonly NodeInterface $no,
+        public NodeInterface $condition,
+        public NodeInterface $yes,
+        public NodeInterface $no,
         int $startPosition,
         int $endPosition
     ) {

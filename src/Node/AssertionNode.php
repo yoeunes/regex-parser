@@ -18,7 +18,7 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
 /**
  * Represents an assertion (e.g., \b, \A).
  */
-class AssertionNode extends AbstractNode
+readonly class AssertionNode extends AbstractNode
 {
     /**
      * @param string $value         the assertion character (\b, \A, etc.)
@@ -26,7 +26,7 @@ class AssertionNode extends AbstractNode
      * @param int    $endPosition   The 0-based end offset (exclusive)
      */
     public function __construct(
-        public readonly string $value,
+        public string $value,
         int $startPosition,
         int $endPosition
     ) {

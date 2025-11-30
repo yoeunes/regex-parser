@@ -18,7 +18,7 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
 /**
  * Represents the root of a parsed regex, containing the pattern and any flags.
  */
-class RegexNode extends AbstractNode
+readonly class RegexNode extends AbstractNode
 {
     /**
      * @param NodeInterface $pattern       The root node of the regex pattern (e.g., an AlternationNode or SequenceNode).
@@ -28,9 +28,9 @@ class RegexNode extends AbstractNode
      * @param int           $endPosition   The 0-based end offset (exclusive)
      */
     public function __construct(
-        public readonly NodeInterface $pattern,
-        public readonly string $flags,
-        public readonly string $delimiter,
+        public NodeInterface $pattern,
+        public string $flags,
+        public string $delimiter,
         int $startPosition,
         int $endPosition
     ) {

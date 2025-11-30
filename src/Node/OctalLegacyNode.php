@@ -18,7 +18,7 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
 /**
  * Represents a legacy octal escape (e.g., \0, \01, \012).
  */
-class OctalLegacyNode extends AbstractNode
+readonly class OctalLegacyNode extends AbstractNode
 {
     /**
      * @param string $code          The octal code (e.g., "0", "01", "012")
@@ -26,7 +26,7 @@ class OctalLegacyNode extends AbstractNode
      * @param int    $endPosition   The 0-based end offset (exclusive)
      */
     public function __construct(
-        public readonly string $code,
+        public string $code,
         int $startPosition,
         int $endPosition
     ) {

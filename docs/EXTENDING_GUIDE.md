@@ -60,7 +60,7 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
  * 
  * Example: (?C) or (?C99)
  */
-class CalloutNode extends AbstractNode
+readonly class CalloutNode extends AbstractNode
 {
     /**
      * @param int|null $number Callout number (null for (?C))

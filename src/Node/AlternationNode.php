@@ -18,7 +18,7 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
 /**
  * Represents an alternation (e.g., "a|b").
  */
-class AlternationNode extends AbstractNode
+readonly class AlternationNode extends AbstractNode
 {
     /**
      * @param array<NodeInterface> $alternatives  the nodes in the alternation
@@ -26,7 +26,7 @@ class AlternationNode extends AbstractNode
      * @param int                  $endPosition   The 0-based end offset (exclusive)
      */
     public function __construct(
-        public readonly array $alternatives,
+        public array $alternatives,
         int $startPosition,
         int $endPosition
     ) {

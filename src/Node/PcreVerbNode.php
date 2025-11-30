@@ -18,7 +18,7 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
 /**
  * Represents a PCRE verb (e.g., "(*FAIL)", "(*COMMIT)").
  */
-class PcreVerbNode extends AbstractNode
+readonly class PcreVerbNode extends AbstractNode
 {
     /**
      * @param string $verb          The verb name (e.g., "FAIL", "COMMIT")
@@ -26,7 +26,7 @@ class PcreVerbNode extends AbstractNode
      * @param int    $endPosition   The 0-based end offset (exclusive)
      */
     public function __construct(
-        public readonly string $verb,
+        public string $verb,
         int $startPosition,
         int $endPosition
     ) {

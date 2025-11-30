@@ -18,7 +18,7 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
 /**
  * Represents a character class (e.g., "[a-z]", "[^0-9]").
  */
-class CharClassNode extends AbstractNode
+readonly class CharClassNode extends AbstractNode
 {
     /**
      * @param array<NodeInterface> $parts         the parts of the class (LiteralNode, CharTypeNode, RangeNode)
@@ -27,8 +27,8 @@ class CharClassNode extends AbstractNode
      * @param int                  $endPosition   The 0-based end offset (exclusive)
      */
     public function __construct(
-        public readonly array $parts,
-        public readonly bool $isNegated,
+        public array $parts,
+        public bool $isNegated,
         int $startPosition,
         int $endPosition
     ) {

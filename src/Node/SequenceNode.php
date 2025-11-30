@@ -19,7 +19,7 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
  * Represents a sequence (concatenation) of nodes.
  * Ex: "abc" is Sequence(Literal(a), Literal(b), Literal(c)).
  */
-class SequenceNode extends AbstractNode
+readonly class SequenceNode extends AbstractNode
 {
     /**
      * @param array<NodeInterface> $children      the nodes in the sequence
@@ -27,7 +27,7 @@ class SequenceNode extends AbstractNode
      * @param int                  $endPosition   The 0-based end offset (exclusive)
      */
     public function __construct(
-        public readonly array $children,
+        public array $children,
         int $startPosition,
         int $endPosition
     ) {

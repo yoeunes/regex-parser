@@ -17,13 +17,13 @@ namespace RegexParser\Node;
  * Base class for all AST nodes.
  * Implements the NodeInterface and provides shared position logic.
  */
-abstract class AbstractNode implements NodeInterface
+abstract readonly class AbstractNode implements NodeInterface
 {
     /**
      * @param int $startPosition The 0-based start offset
      * @param int $endPosition   The 0-based end offset (exclusive)
      */
-    public function __construct(public readonly int $startPosition, public readonly int $endPosition) {}
+    public function __construct(public int $startPosition, public int $endPosition) {}
 
     public function getStartPosition(): int
     {

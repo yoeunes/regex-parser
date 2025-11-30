@@ -18,7 +18,7 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
 /**
  * Represents the dot "." wildcard character.
  */
-class DotNode extends AbstractNode
+readonly class DotNode extends AbstractNode
 {
     public function accept(NodeVisitorInterface $visitor)
     {

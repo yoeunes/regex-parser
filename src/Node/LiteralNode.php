@@ -18,7 +18,7 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
 /**
  * Represents a literal character (e.g., "a", "1", or an escaped "\*").
  */
-class LiteralNode extends AbstractNode
+readonly class LiteralNode extends AbstractNode
 {
     /**
      * @param string $value         the literal character
@@ -26,7 +26,7 @@ class LiteralNode extends AbstractNode
      * @param int    $endPosition   The 0-based end offset (exclusive)
      */
     public function __construct(
-        public readonly string $value,
+        public string $value,
         int $startPosition,
         int $endPosition
     ) {

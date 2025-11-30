@@ -18,7 +18,7 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
 /**
  * Represents a quantifier (e.g., "*", "+", "{1,3}").
  */
-class QuantifierNode extends AbstractNode
+readonly class QuantifierNode extends AbstractNode
 {
     /**
      * @param NodeInterface  $node          the node to be quantified
@@ -28,9 +28,9 @@ class QuantifierNode extends AbstractNode
      * @param int            $endPosition   The 0-based end offset (exclusive)
      */
     public function __construct(
-        public readonly NodeInterface $node,
-        public readonly string $quantifier,
-        public readonly QuantifierType $type,
+        public NodeInterface $node,
+        public string $quantifier,
+        public QuantifierType $type,
         int $startPosition,
         int $endPosition
     ) {

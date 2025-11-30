@@ -18,7 +18,7 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
 /**
  * Represents a subroutine call (e.g., "(?R)", "(?1)", "(?&name)", "(?P>name)").
  */
-class SubroutineNode extends AbstractNode
+readonly class SubroutineNode extends AbstractNode
 {
     /**
      * @param string $reference     The group reference (e.g., "R", "0", "1", "name").
@@ -27,8 +27,8 @@ class SubroutineNode extends AbstractNode
      * @param int    $endPosition   The 0-based end offset (exclusive)
      */
     public function __construct(
-        public readonly string $reference,
-        public readonly string $syntax,
+        public string $reference,
+        public string $syntax,
         int $startPosition,
         int $endPosition
     ) {

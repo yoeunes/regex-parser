@@ -15,13 +15,13 @@ namespace RegexParser\Node;
 
 use RegexParser\NodeVisitor\NodeVisitorInterface;
 
-class DefineNode extends AbstractNode
+readonly class DefineNode extends AbstractNode
 {
     /**
      * @param NodeInterface $content // tout ce qui est à l'intérieur du (?(DEFINE) ... )
      */
     public function __construct(
-        public readonly NodeInterface $content,
+        public NodeInterface $content,
         int $startPosition,
         int $endPosition
     ) {

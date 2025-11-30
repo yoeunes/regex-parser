@@ -12,7 +12,7 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
  * PCRE Syntax: [EXAMPLE_SYNTAX]
  * Example: /[EXAMPLE_PATTERN]/
  */
-class [NodeName]Node extends AbstractNode
+readonly class [NodeName]Node extends AbstractNode
 {
     /**
      * @param [PARAM_TYPE] $[paramName] [PARAM_DESCRIPTION]

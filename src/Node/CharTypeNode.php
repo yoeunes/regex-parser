@@ -18,7 +18,7 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
 /**
  * Represents an escaped character class type (e.g., "\d", "\s", "\W").
  */
-class CharTypeNode extends AbstractNode
+readonly class CharTypeNode extends AbstractNode
 {
     /**
      * @param string $value         The character type (e.g., "d", "s", "W").
@@ -26,7 +26,7 @@ class CharTypeNode extends AbstractNode
      * @param int    $endPosition   The 0-based end offset (exclusive)
      */
     public function __construct(
-        public readonly string $value,
+        public string $value,
         int $startPosition,
         int $endPosition
     ) {

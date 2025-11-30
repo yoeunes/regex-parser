@@ -18,7 +18,7 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
 /**
  * Represents a range inside a character class (e.g., "a-z").
  */
-class RangeNode extends AbstractNode
+readonly class RangeNode extends AbstractNode
 {
     /**
      * @param NodeInterface $start         the start of the range (LiteralNode or CharTypeNode)
@@ -27,8 +27,8 @@ class RangeNode extends AbstractNode
      * @param int           $endPosition   The 0-based end offset (exclusive)
      */
     public function __construct(
-        public readonly NodeInterface $start,
-        public readonly NodeInterface $end,
+        public NodeInterface $start,
+        public NodeInterface $end,
         int $startPosition,
         int $endPosition
     ) {

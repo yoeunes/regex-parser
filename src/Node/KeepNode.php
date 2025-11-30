@@ -18,7 +18,7 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
 /**
  * Represents the \K "keep" assertion.
  */
-class KeepNode extends AbstractNode
+readonly class KeepNode extends AbstractNode
 {
     public function accept(NodeVisitorInterface $visitor)
     {

@@ -15,14 +15,14 @@ namespace RegexParser\Node;
 
 use RegexParser\NodeVisitor\NodeVisitorInterface;
 
-class UnicodeNode extends AbstractNode
+readonly class UnicodeNode extends AbstractNode
 {
     /**
      * @param int $startPosition The 0-based start offset
      * @param int $endPosition   The 0-based end offset (exclusive)
      */
     public function __construct(
-        public readonly string $code,
+        public string $code,
         int $startPosition,
         int $endPosition
     ) {

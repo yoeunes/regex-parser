@@ -18,7 +18,7 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
 /**
  * Represents a group (e.g., "(...)", "(?:...)", "(?<name>...)").
  */
-class GroupNode extends AbstractNode
+readonly class GroupNode extends AbstractNode
 {
     /**
      * @param NodeInterface $child         the expression contained within the group
@@ -29,10 +29,10 @@ class GroupNode extends AbstractNode
      * @param int           $endPosition   The 0-based end offset (exclusive)
      */
     public function __construct(
-        public readonly NodeInterface $child,
-        public readonly GroupType $type,
-        public readonly ?string $name = null,
-        public readonly ?string $flags = null,
+        public NodeInterface $child,
+        public GroupType $type,
+        public ?string $name = null,
+        public ?string $flags = null,
         int $startPosition = 0,
         int $endPosition = 0
     ) {
