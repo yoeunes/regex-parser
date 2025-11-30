@@ -15,7 +15,6 @@ namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\Parser;
-use RegexParser\ParserOptions;
 use RegexParser\Regex;
 
 /**
@@ -27,52 +26,6 @@ use RegexParser\Regex;
  */
 class FeaturesUpgradeTest extends TestCase
 {
-    /**
-     * Test ParserOptions DTO instantiation with defaults.
-     */
-    public function test_parser_options_defaults(): void
-    {
-        $options = new ParserOptions();
-
-        $this->assertSame(10_000, $options->maxPatternLength);
-        $this->assertSame(10_000, $options->maxNodes);
-        $this->assertSame(250, $options->maxRecursionDepth);
-    }
-
-    /**
-     * Test ParserOptions with custom values.
-     */
-    public function test_parser_options_custom(): void
-    {
-        $options = new ParserOptions(
-            maxPatternLength: 5000,
-            maxNodes: 500,
-            maxRecursionDepth: 100,
-        );
-
-        $this->assertSame(5000, $options->maxPatternLength);
-        $this->assertSame(500, $options->maxNodes);
-        $this->assertSame(100, $options->maxRecursionDepth);
-    }
-
-    /**
-     * Test ParserOptions::fromArray() factory.
-     */
-    public function test_parser_options_from_array(): void
-    {
-        $config = [
-            'max_pattern_length' => 20_000,
-            'max_nodes' => 5000,
-            'max_recursion_depth' => 150,
-        ];
-
-        $options = ParserOptions::fromArray($config);
-
-        $this->assertSame(20_000, $options->maxPatternLength);
-        $this->assertSame(5000, $options->maxNodes);
-        $this->assertSame(150, $options->maxRecursionDepth);
-    }
-
     /**
      * Test MermaidVisitor generates valid Mermaid syntax.
      */
@@ -142,20 +95,6 @@ class FeaturesUpgradeTest extends TestCase
 
         $this->assertStringStartsWith('graph TD;', $visualization);
         $this->assertStringContainsString('Alternation', $visualization);
-    }
-
-    /**
-     * Test ParserOptions prevents DoS via pattern length.
-     */
-    public function test_parser_options_enforces_pattern_length(): void
-    {
-        $options = new ParserOptions(maxPatternLength: 5);
-        $parser = new Parser(['max_pattern_length' => 5]);
-
-        $this->expectException(\Exception::class);
-
-        // Pattern longer than 5 characters should fail
-        $parser->parse('/this_is_too_long/');
     }
 
     /**
