@@ -28,8 +28,14 @@ class GroupNode extends AbstractNode
      * @param int           $startPosition The 0-based start offset
      * @param int           $endPosition   The 0-based end offset (exclusive)
      */
-    public function __construct(public readonly NodeInterface $child, public readonly GroupType $type, public readonly ?string $name = null, public readonly ?string $flags = null, int $startPosition = 0, int $endPosition = 0)
-    {
+    public function __construct(
+        public readonly NodeInterface $child,
+        public readonly GroupType $type,
+        public readonly ?string $name = null,
+        public readonly ?string $flags = null,
+        int $startPosition = 0,
+        int $endPosition = 0
+    ) {
         parent::__construct($startPosition, $endPosition);
     }
 

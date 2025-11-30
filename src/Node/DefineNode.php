@@ -20,8 +20,11 @@ class DefineNode extends AbstractNode
     /**
      * @param NodeInterface $content // tout ce qui est à l'intérieur du (?(DEFINE) ... )
      */
-    public function __construct(public readonly NodeInterface $content, int $startPosition, int $endPosition)
-    {
+    public function __construct(
+        public readonly NodeInterface $content,
+        int $startPosition,
+        int $endPosition
+    ) {
         parent::__construct($startPosition, $endPosition);
     }
 
