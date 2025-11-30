@@ -36,7 +36,7 @@ use RegexParser\ReDoS\ReDoSAnalyzer;
  * It uses RegexCompiler internally, which combines Lexer + Parser
  * for convenient string-based parsing with caching support.
  */
-class Regex
+readonly class Regex
 {
     /**
      * @param RegexCompiler          $compiler  the configured compiler instance (combines Lexer + Parser)
@@ -48,13 +48,13 @@ class Regex
      * @param ComplexityScoreVisitor $scorer    a reusable complexity scorer
      */
     public function __construct(
-        private readonly RegexCompiler $compiler,
-        private readonly ValidatorNodeVisitor $validator,
-        private readonly ExplainVisitor $explainer,
-        private readonly SampleGeneratorVisitor $generator,
-        private readonly OptimizerNodeVisitor $optimizer,
-        private readonly DumperNodeVisitor $dumper,
-        private readonly ComplexityScoreVisitor $scorer,
+        private RegexCompiler $compiler,
+        private ValidatorNodeVisitor $validator,
+        private ExplainVisitor $explainer,
+        private SampleGeneratorVisitor $generator,
+        private OptimizerNodeVisitor $optimizer,
+        private DumperNodeVisitor $dumper,
+        private ComplexityScoreVisitor $scorer,
     ) {}
 
     /**

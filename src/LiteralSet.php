@@ -17,7 +17,7 @@ namespace RegexParser;
  * Represents a set of literal strings extracted from a regex pattern.
  * This object is immutable.
  */
-class LiteralSet
+readonly class LiteralSet
 {
     /**
      * @param array<string> $prefixes Possible starting strings
@@ -25,9 +25,9 @@ class LiteralSet
      * @param bool          $complete Whether these literals cover the entire match
      */
     public function __construct(
-        public readonly array $prefixes = [],
-        public readonly array $suffixes = [],
-        public readonly bool $complete = false,
+        public array $prefixes = [],
+        public array $suffixes = [],
+        public bool $complete = false,
     ) {}
 
     public static function empty(): self
