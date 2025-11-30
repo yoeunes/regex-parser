@@ -20,21 +20,21 @@ namespace RegexParser\Node;
 abstract class AbstractNode implements NodeInterface
 {
     /**
-     * @param int $startPos The 0-based start offset
-     * @param int $endPos   The 0-based end offset (exclusive)
+     * @param int $startPosition The 0-based start offset
+     * @param int $endPosition   The 0-based end offset (exclusive)
      */
     public function __construct(
-        public readonly int $startPos,
-        public readonly int $endPos,
+        public readonly int $startPosition,
+        public readonly int $endPosition,
     ) {}
 
     public function getStartPosition(): int
     {
-        return $this->startPos;
+        return $this->startPosition;
     }
 
     public function getEndPosition(): int
     {
-        return $this->endPos;
+        return $this->endPosition;
     }
 }

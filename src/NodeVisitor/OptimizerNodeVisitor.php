@@ -72,7 +72,7 @@ class OptimizerNodeVisitor implements NodeVisitorInterface
             return $node; // No changes
         }
 
-        return new RegexNode($optimizedPattern, $node->flags, $node->delimiter, $node->startPos, $node->endPos);
+        return new RegexNode($optimizedPattern, $node->flags, $node->delimiter, $node->startPosition, $node->endPosition);
     }
 
     public function visitAlternation(AlternationNode $node): NodeInterface
@@ -99,14 +99,14 @@ class OptimizerNodeVisitor implements NodeVisitorInterface
         // Optimization: a|b|c -> [abc]
         if ($this->canAlternationBeCharClass($optimizedAlts)) {
             /* @var list<LiteralNode> $optimizedAlts */
-            return new CharClassNode($optimizedAlts, false, $node->startPos, $node->endPos);
+            return new CharClassNode($optimizedAlts, false, $node->startPosition, $node->endPosition);
         }
 
         if (!$hasChanged) {
             return $node;
         }
 
-        return new AlternationNode($optimizedAlts, $node->startPos, $node->endPos);
+        return new AlternationNode($optimizedAlts, $node->startPosition, $node->endPosition);
     }
 
     public function visitSequence(SequenceNode $node): NodeInterface
@@ -124,8 +124,8 @@ class OptimizerNodeVisitor implements NodeVisitorInterface
                     // Merge with previous node
                     $optimizedChildren[\count($optimizedChildren) - 1] = new LiteralNode(
                         $prevNode->value.$optimizedChild->value,
-                        $prevNode->startPos,
-                        $optimizedChild->endPos,
+                        $prevNode->startPosition,
+                        $optimizedChild->endPosition,
                     );
                     $hasChanged = true;
 
@@ -168,10 +168,10 @@ class OptimizerNodeVisitor implements NodeVisitorInterface
 
         // A sequence with no children is an empty literal
         if (0 === \count($optimizedChildren)) {
-            return new LiteralNode('', $node->startPos, $node->endPos);
+            return new LiteralNode('', $node->startPosition, $node->endPosition);
         }
 
-        return new SequenceNode($optimizedChildren, $node->startPos, $node->endPos);
+        return new SequenceNode($optimizedChildren, $node->startPosition, $node->endPosition);
     }
 
     public function visitGroup(GroupNode $node): NodeInterface
@@ -200,7 +200,7 @@ class OptimizerNodeVisitor implements NodeVisitorInterface
 
         // Re-build group if child changed
         if ($optimizedChild !== $node->child) {
-            return new GroupNode($optimizedChild, $node->type, $node->name, $node->flags, $node->startPos, $node->endPos);
+            return new GroupNode($optimizedChild, $node->type, $node->name, $node->flags, $node->startPosition, $node->endPosition);
         }
 
         return $node; // No changes
@@ -222,7 +222,7 @@ class OptimizerNodeVisitor implements NodeVisitorInterface
         // TODO: Add a?a? -> a{0,2}
 
         if ($optimizedNode !== $node->node) {
-            return new QuantifierNode($optimizedNode, $node->quantifier, $node->type, $node->startPos, $node->endPos);
+            return new QuantifierNode($optimizedNode, $node->quantifier, $node->type, $node->startPosition, $node->endPosition);
         }
 
         return $node;
@@ -238,7 +238,7 @@ class OptimizerNodeVisitor implements NodeVisitorInterface
             $part = $node->parts[0];
             if ($part instanceof RangeNode && $part->start instanceof LiteralNode && $part->end instanceof LiteralNode) {
                 if ('0' === $part->start->value && '9' === $part->end->value) {
-                    return new CharTypeNode('d', $node->startPos, $node->endPos);
+                    return new CharTypeNode('d', $node->startPosition, $node->endPosition);
                 }
             }
         }
@@ -246,7 +246,7 @@ class OptimizerNodeVisitor implements NodeVisitorInterface
         // Optimization: [a-zA-Z0-9_] -> \w (only if NOT unicode)
         if (!$isUnicode && !$node->isNegated && 4 === \count($node->parts)) {
             if ($this->isFullWordClass($node)) {
-                return new CharTypeNode('w', $node->startPos, $node->endPos);
+                return new CharTypeNode('w', $node->startPosition, $node->endPosition);
             }
         }
 
@@ -265,7 +265,7 @@ class OptimizerNodeVisitor implements NodeVisitorInterface
         }
 
         if ($hasChanged) {
-            return new CharClassNode($optimizedParts, $node->isNegated, $node->startPos, $node->endPos);
+            return new CharClassNode($optimizedParts, $node->isNegated, $node->startPosition, $node->endPosition);
         }
 
         return $node;
@@ -284,7 +284,7 @@ class OptimizerNodeVisitor implements NodeVisitorInterface
         $optimizedNo = $node->no->accept($this);
 
         if ($optimizedCond !== $node->condition || $optimizedYes !== $node->yes || $optimizedNo !== $node->no) {
-            return new ConditionalNode($optimizedCond, $optimizedYes, $optimizedNo, $node->startPos, $node->endPos);
+            return new ConditionalNode($optimizedCond, $optimizedYes, $optimizedNo, $node->startPosition, $node->endPosition);
         }
 
         return $node;

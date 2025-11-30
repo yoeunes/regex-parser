@@ -176,7 +176,7 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
             $this->groupCount++;
             if (null !== $node->name) {
                 if (isset($this->namedGroups[$node->name])) {
-                    throw new ParserException(\sprintf('Duplicate group name "%s" at position %d.', $node->name, $node->startPos));
+                    throw new ParserException(\sprintf('Duplicate group name "%s" at position %d.', $node->name, $node->startPosition));
                 }
                 $this->namedGroups[$node->name] = true;
             }
@@ -195,7 +195,7 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
         // 1. Validate quantifier range (e.g., {5,2})
         [$min, $max] = $this->parseQuantifierBounds($node->quantifier);
         if (-1 !== $max && $min > $max) {
-            throw new ParserException(\sprintf('Invalid quantifier range "%s": min > max at position %d.', $node->quantifier, $node->startPos));
+            throw new ParserException(\sprintf('Invalid quantifier range "%s": min > max at position %d.', $node->quantifier, $node->startPosition));
         }
 
         $isUnbounded = -1 === $max; // *, +, or {n,}
@@ -211,7 +211,7 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
         // Only non-possessive unbounded quantifiers can cause ReDoS.
         if ($isUnbounded && !$isPossessive) {
             if ($this->quantifierDepth > 0) {
-                throw new ParserException(\sprintf('Potential catastrophic backtracking (ReDoS): nested unbounded quantifier "%s" at position %d.', $node->quantifier, $node->startPos));
+                throw new ParserException(\sprintf('Potential catastrophic backtracking (ReDoS): nested unbounded quantifier "%s" at position %d.', $node->quantifier, $node->startPosition));
             }
             $this->quantifierDepth++;
         }
@@ -250,7 +250,7 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
     {
         if (!isset(self::VALID_ASSERTIONS[$node->value])) {
             // This should be caught by the Lexer/Parser, but validates as a safeguard.
-            throw new ParserException(\sprintf('Invalid assertion: \%s at position %d.', $node->value, $node->startPos));
+            throw new ParserException(\sprintf('Invalid assertion: \%s at position %d.', $node->value, $node->startPosition));
         }
     }
 
@@ -260,7 +260,7 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
     public function visitKeep(KeepNode $node): void
     {
         if ($this->inLookbehind) {
-            throw new ParserException('\K (keep) is not allowed in lookbehinds at position %d.', $node->startPos);
+            throw new ParserException('\K (keep) is not allowed in lookbehinds at position %d.', $node->startPosition);
         }
     }
 
@@ -284,7 +284,7 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
         if (!$this->isSingleCharNode($node->start) || !$this->isSingleCharNode($node->end)) {
             throw new ParserException(\sprintf(
                 'Invalid range at position %d: ranges must be between literal characters or single escape sequences. Found %s and %s.',
-                $node->startPos,
+                $node->startPosition,
                 $node->start::class,
                 $node->end::class,
             ));
@@ -292,10 +292,10 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
 
         // 2. Validation: Ensure characters are single-byte or single codepoint (for LiteralNodes).
         if ($node->start instanceof LiteralNode && mb_strlen($node->start->value) > 1) {
-            throw new ParserException(\sprintf('Invalid range at position %d: start char must be a single character.', $node->startPos));
+            throw new ParserException(\sprintf('Invalid range at position %d: start char must be a single character.', $node->startPosition));
         }
         if ($node->end instanceof LiteralNode && mb_strlen($node->end->value) > 1) {
-            throw new ParserException(\sprintf('Invalid range at position %d: end char must be a single character.', $node->startPos));
+            throw new ParserException(\sprintf('Invalid range at position %d: end char must be a single character.', $node->startPosition));
         }
 
         // 3. Validation: ASCII/Unicode order check.
@@ -306,7 +306,7 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
                     'Invalid range "%s-%s" at position %d: start character comes after end character.',
                     $node->start->value,
                     $node->end->value,
-                    $node->startPos,
+                    $node->startPosition,
                 ));
             }
         }
@@ -326,7 +326,7 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
                 throw new ParserException('Backreference \0 is not valid');
             }
             if ($num > $this->groupCount) {
-                throw new ParserException(\sprintf('Backreference to non-existent group: \%d at position %d.', $num, $node->startPos));
+                throw new ParserException(\sprintf('Backreference to non-existent group: \%d at position %d.', $num, $node->startPosition));
             }
 
             return;
@@ -360,17 +360,17 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
 
             $num = (int) $numStr;
             if ($num > 0 && $num > $this->groupCount) {
-                throw new ParserException(\sprintf('Backreference to non-existent group: \g{%d} at position %d.', $num, $node->startPos));
+                throw new ParserException(\sprintf('Backreference to non-existent group: \g{%d} at position %d.', $num, $node->startPosition));
             }
             if ($num < 0 && abs($num) > $this->groupCount) {
-                throw new ParserException(\sprintf('Relative backreference \g{%d} at position %d exceeds total group count (%d).', $num, $node->startPos, $this->groupCount));
+                throw new ParserException(\sprintf('Relative backreference \g{%d} at position %d exceeds total group count (%d).', $num, $node->startPosition, $this->groupCount));
             }
 
             return;
         }
 
         // Note: \g<name> is a subroutine, handled by visitSubroutine, not a backref
-        throw new ParserException(\sprintf('Invalid backreference syntax: "%s" at position %d.', $ref, $node->startPos));
+        throw new ParserException(\sprintf('Invalid backreference syntax: "%s" at position %d.', $ref, $node->startPosition));
     }
 
     /**
@@ -388,7 +388,7 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
         }
 
         if ($code > 0x10FFFF) {
-            throw new ParserException(\sprintf('Invalid Unicode codepoint "%s" (out of range) at position %d.', $node->code, $node->startPos));
+            throw new ParserException(\sprintf('Invalid Unicode codepoint "%s" (out of range) at position %d.', $node->code, $node->startPosition));
         }
     }
 
@@ -414,7 +414,7 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
         }
 
         if (false === self::$unicodePropCache[$key]) {
-            throw new ParserException(\sprintf('Invalid or unsupported Unicode property: \%s at position %d.', $key, $node->startPos));
+            throw new ParserException(\sprintf('Invalid or unsupported Unicode property: \%s at position %d.', $key, $node->startPosition));
         }
     }
 
@@ -429,13 +429,13 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
 
             // Check if all digits are valid octal (0-7)
             if (!preg_match('/^[0-7]+$/', $octalStr)) {
-                throw new ParserException(\sprintf('Invalid octal codepoint "%s" at position %d.', $node->code, $node->startPos));
+                throw new ParserException(\sprintf('Invalid octal codepoint "%s" at position %d.', $node->code, $node->startPosition));
             }
 
             // PCRE limits \o{} to single-byte values (0-255)
             $code = (int) octdec($octalStr);
             if ($code > 0xFF) {
-                throw new ParserException(\sprintf('Invalid octal codepoint "%s" at position %d.', $node->code, $node->startPos));
+                throw new ParserException(\sprintf('Invalid octal codepoint "%s" at position %d.', $node->code, $node->startPosition));
             }
         }
     }
@@ -454,7 +454,7 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
         $code = (int) octdec($node->code);
         if ($code > 0x10FFFF) {
             // This is unlikely as \077 is max, but good to check.
-            throw new ParserException(\sprintf('Invalid legacy octal codepoint "\%s" (out of range) at position %d.', $node->code, $node->startPos));
+            throw new ParserException(\sprintf('Invalid legacy octal codepoint "\%s" (out of range) at position %d.', $node->code, $node->startPosition));
         }
     }
 
@@ -472,12 +472,12 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
         }
 
         if (!isset(self::VALID_POSIX_CLASSES[$class])) {
-            throw new ParserException(\sprintf('Invalid POSIX class: "%s" at position %d.', $node->class, $node->startPos));
+            throw new ParserException(\sprintf('Invalid POSIX class: "%s" at position %d.', $node->class, $node->startPosition));
         }
 
         if ($isNegated && 'word' === $class) {
             // [[:^word:]] is not a valid construct.
-            throw new ParserException(\sprintf('Negation of POSIX class "word" is not supported at position %d.', $node->startPos));
+            throw new ParserException(\sprintf('Negation of POSIX class "word" is not supported at position %d.', $node->startPosition));
         }
     }
 
@@ -544,10 +544,10 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
                 return; // (?0) is an alias for (?R)
             }
             if ($num > 0 && $num > $this->groupCount) {
-                throw new ParserException(\sprintf('Subroutine call to non-existent group: %d at position %d.', $num, $node->startPos));
+                throw new ParserException(\sprintf('Subroutine call to non-existent group: %d at position %d.', $num, $node->startPosition));
             }
             if ($num < 0 && abs($num) > $this->groupCount) {
-                throw new ParserException(\sprintf('Relative subroutine call (%d) at position %d exceeds total group count (%d).', $num, $node->startPos, $this->groupCount));
+                throw new ParserException(\sprintf('Relative subroutine call (%d) at position %d exceeds total group count (%d).', $num, $node->startPosition, $this->groupCount));
             }
 
             return;
@@ -555,7 +555,7 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
 
         // Named reference: (?&name), (?P>name), \g<name>
         if (!isset($this->namedGroups[$ref])) {
-            throw new ParserException(\sprintf('Subroutine call to non-existent named group: "%s" at position %d.', $ref, $node->startPos));
+            throw new ParserException(\sprintf('Subroutine call to non-existent named group: "%s" at position %d.', $ref, $node->startPosition));
         }
     }
 
@@ -567,7 +567,7 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
         $verbName = explode(':', $node->verb, 2)[0];
 
         if (!isset(self::VALID_PCRE_VERBS[$verbName])) {
-            throw new ParserException(\sprintf('Invalid or unsupported PCRE verb: "%s" at position %d.', $verbName, $node->startPos));
+            throw new ParserException(\sprintf('Invalid or unsupported PCRE verb: "%s" at position %d.', $verbName, $node->startPosition));
         }
     }
 

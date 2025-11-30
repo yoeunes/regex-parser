@@ -23,8 +23,8 @@ class RegexTest extends TestCase
         $regex = Regex::create();
 
         $ast = $regex->parse('/abc/');
-        $this->assertSame(0, $ast->startPos);
-        $this->assertSame(3, $ast->endPos);
+        $this->assertSame(0, $ast->startPosition);
+        $this->assertSame(3, $ast->endPosition);
     }
 
     public function test_validate(): void
