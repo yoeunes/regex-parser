@@ -72,9 +72,8 @@ class Parser
      *     max_recursion_depth?: int,
      *     max_nodes?: int,
      * } $options Configuration options
-     * @param Lexer|null $lexer Optional Lexer instance for dependency injection
      */
-    public function __construct(array $options = [], private ?Lexer $lexer = null)
+    public function __construct(array $options = [])
     {
         $this->maxPatternLength = (int) ($options['max_pattern_length'] ?? self::DEFAULT_MAX_PATTERN_LENGTH);
     }
@@ -142,13 +141,7 @@ class Parser
 
     private function getLexer(string $pattern): Lexer
     {
-        if (null === $this->lexer) {
-            $this->lexer = new Lexer($pattern);
-        } else {
-            $this->lexer->reset($pattern);
-        }
-
-        return $this->lexer;
+        return new Lexer($pattern);
     }
 
     /**

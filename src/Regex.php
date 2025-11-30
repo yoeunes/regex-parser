@@ -191,9 +191,7 @@ readonly class Regex
      */
     public function analyzeReDoS(string $regex): ReDoSAnalysis
     {
-        $analyzer = new ReDoSAnalyzer($this->compiler);
-
-        return $analyzer->analyze($regex);
+        return (new ReDoSAnalyzer())->analyze($regex);
     }
 
     /**
