@@ -17,7 +17,7 @@ use PHPUnit\Framework\TestCase;
 use RegexParser\Node\CharClassNode;
 use RegexParser\Node\LiteralNode;
 use RegexParser\Node\RangeNode;
-use RegexParser\ReDoSSeverity;
+use RegexParser\ReDoS\ReDoSSeverity;
 use RegexParser\Regex;
 
 class BugFixTest extends TestCase

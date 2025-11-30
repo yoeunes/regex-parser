@@ -26,6 +26,8 @@ use RegexParser\NodeVisitor\MermaidVisitor;
 use RegexParser\NodeVisitor\OptimizerNodeVisitor;
 use RegexParser\NodeVisitor\SampleGeneratorVisitor;
 use RegexParser\NodeVisitor\ValidatorNodeVisitor;
+use RegexParser\ReDoS\ReDoSAnalysis;
+use RegexParser\ReDoS\ReDoSAnalyzer;
 
 /**
  * Main service for parsing, validating, and manipulating regex patterns.

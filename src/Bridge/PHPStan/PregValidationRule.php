@@ -22,8 +22,8 @@ use PHPStan\Rules\RuleErrorBuilder;
 use RegexParser\Exception\ParserException;
 use RegexParser\NodeVisitor\ValidatorNodeVisitor;
 use RegexParser\Parser;
-use RegexParser\ReDoSAnalyzer;
-use RegexParser\ReDoSSeverity;
+use RegexParser\ReDoS\ReDoSAnalyzer;
+use RegexParser\ReDoS\ReDoSSeverity;
 
 /**
  * Validates regex patterns in preg_* functions.

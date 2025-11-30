@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace Yoeunes\RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
-use RegexParser\ReDoSSeverity;
+use RegexParser\ReDoS\ReDoSSeverity;
 use RegexParser\Regex;
 
 class ReDoSEdgeCasesTest extends TestCase

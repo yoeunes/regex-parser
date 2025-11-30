@@ -15,8 +15,8 @@ namespace RegexParser\Tests\ReDoS;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use RegexParser\ReDoSAnalyzer;
-use RegexParser\ReDoSSeverity;
+use RegexParser\ReDoS\ReDoSAnalyzer;
+use RegexParser\ReDoS\ReDoSSeverity;
 
 class ReDoSAnalyzerTest extends TestCase
 {

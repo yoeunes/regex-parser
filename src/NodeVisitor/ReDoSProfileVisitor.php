@@ -40,7 +40,7 @@ use RegexParser\Node\SequenceNode;
 use RegexParser\Node\SubroutineNode;
 use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
-use RegexParser\ReDoSSeverity;
+use RegexParser\ReDoS\ReDoSSeverity;
 
 /**
  * Analyzes the AST to detect ReDoS vulnerabilities.

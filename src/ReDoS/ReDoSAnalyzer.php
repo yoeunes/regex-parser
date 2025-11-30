@@ -11,9 +11,10 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace RegexParser;
+namespace RegexParser\ReDoS;
 
 use RegexParser\NodeVisitor\ReDoSProfileVisitor;
+use RegexParser\RegexCompiler;
 
 class ReDoSAnalyzer
 {
