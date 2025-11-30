@@ -14,7 +14,6 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
-use RegexParser\Builder\RegexBuilder;
 use RegexParser\Parser;
 use RegexParser\ParserOptions;
 use RegexParser\Regex;
@@ -25,7 +24,6 @@ use RegexParser\Regex;
  * Tests:
  * 1. ParserOptions with resource limits
  * 2. MermaidVisitor visualization
- * 3. RegexBuilder::addPart() for mixing fluent + raw syntax
  */
 class FeaturesUpgradeTest extends TestCase
 {
@@ -117,82 +115,6 @@ class FeaturesUpgradeTest extends TestCase
         $this->assertStringStartsWith('graph TD;', $mermaidOutput);
         $this->assertStringContainsString('Group:', $mermaidOutput);
         $this->assertStringContainsString('Quantifier:', $mermaidOutput);
-    }
-
-    /**
-     * Test RegexBuilder::addPart() appends parsed regex.
-     */
-    public function test_regex_builder_add_part_basic(): void
-    {
-        $builder = RegexBuilder::create()
-            ->literal('hello')
-            ->addPart('/\s+/')
-            ->literal('world');
-
-        $pattern = $builder->getPattern();
-
-        // Pattern should contain all parts
-        $this->assertNotEmpty($pattern);
-    }
-
-    /**
-     * Test RegexBuilder::addPart() with raw regex pattern.
-     */
-    public function test_regex_builder_add_part_raw_regex(): void
-    {
-        $builder = RegexBuilder::create()
-            ->literal('user')
-            ->addPart('/\d+/')
-            ->literal('@');
-
-        $pattern = $builder->getPattern();
-
-        // Should compile successfully
-        $this->assertNotEmpty($pattern);
-        $this->assertIsString($pattern);
-    }
-
-    /**
-     * Test RegexBuilder::addPart() throws on invalid regex.
-     */
-    public function test_regex_builder_add_part_invalid_regex(): void
-    {
-        $builder = RegexBuilder::create();
-
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('Failed to parse regex in addPart');
-
-        // Invalid regex (unclosed group)
-        $builder->addPart('/(unclosed/');
-    }
-
-    /**
-     * Test RegexBuilder::addPart() with flags.
-     */
-    public function test_regex_builder_add_part_with_flags(): void
-    {
-        $builder = RegexBuilder::create()
-            ->addPart('/test/i');  // Case-insensitive
-
-        $pattern = $builder->getPattern();
-
-        $this->assertNotEmpty($pattern);
-    }
-
-    /**
-     * Test RegexBuilder::addPart() chaining.
-     */
-    public function test_regex_builder_add_part_chaining(): void
-    {
-        $builder = RegexBuilder::create()
-            ->addPart('/start/')
-            ->addPart('/middle/')
-            ->addPart('/end/');
-
-        $pattern = $builder->getPattern();
-
-        $this->assertNotEmpty($pattern);
-        $this->assertIsString($pattern);
     }
 
     /**

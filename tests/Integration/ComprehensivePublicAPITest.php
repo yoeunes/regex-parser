@@ -571,16 +571,6 @@ class ComprehensivePublicAPITest extends TestCase
         $this->assertNotEmpty($dump);
     }
 
-    public function test_builder_returns_regex_builder_instance(): void
-    {
-        $builder = Regex::builder();
-        $this->assertSame(\RegexParser\Builder\RegexBuilder::class, $builder::class);
-    }
-
-    // ============================================================================
-    // TEST 10: Edge Cases & Complex Patterns
-    // ============================================================================
-
     public function test_parse_empty_alternation(): void
     {
         $ast = $this->regex->parse('/(|foo)/');

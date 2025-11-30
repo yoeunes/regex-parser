@@ -14,7 +14,6 @@ declare(strict_types=1);
 namespace RegexParser;
 
 use Psr\SimpleCache\CacheInterface;
-use RegexParser\Builder\RegexBuilder;
 use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
 use RegexParser\Node\RegexNode;
@@ -198,14 +197,6 @@ class Regex
         $analyzer = new ReDoSAnalyzer($this->compiler);
 
         return $analyzer->analyze($regex);
-    }
-
-    /**
-     * Returns a fluent builder to construct regex programmatically.
-     */
-    public static function builder(): RegexBuilder
-    {
-        return RegexBuilder::create();
     }
 
     /**

@@ -15,7 +15,6 @@ namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
-use RegexParser\Builder\RegexBuilder;
 use RegexParser\Lexer;
 use RegexParser\NodeVisitor\ExplainVisitor;
 use RegexParser\NodeVisitor\SampleGeneratorVisitor;
@@ -96,28 +95,6 @@ class AdditionalCoverageTest extends TestCase
         $lexer = new Lexer('/[[:alpha:]]/');
         $tokens = $lexer->tokenizeToArray();
         $this->assertNotEmpty($tokens);
-    }
-
-    // Test RegexBuilder uncovered methods
-    public function test_regex_builder_word_boundary(): void
-    {
-        $builder = new RegexBuilder();
-        $pattern = $builder->wordBoundary()->compile();
-        $this->assertStringContainsString('\b', $pattern);
-    }
-
-    public function test_regex_builder_with_flags(): void
-    {
-        $builder = new RegexBuilder();
-        $pattern = $builder->literal('test')->withFlags('i')->compile();
-        $this->assertStringContainsString('i', $pattern);
-    }
-
-    public function test_regex_builder_with_delimiter(): void
-    {
-        $builder = new RegexBuilder();
-        $pattern = $builder->literal('test')->withDelimiter('#')->compile();
-        $this->assertStringStartsWith('#', $pattern);
     }
 
     // Test ExplainVisitor edge cases

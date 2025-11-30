@@ -32,7 +32,7 @@ class ParserOptions
     public function __construct(
         public readonly int $maxPatternLength = 10_000,
         public readonly int $maxNodes = 10_000,
-        public readonly int $maxRecursionDepth = 250
+        public readonly int $maxRecursionDepth = 250,
     ) {}
 
     /**

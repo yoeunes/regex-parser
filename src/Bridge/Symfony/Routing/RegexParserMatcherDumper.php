@@ -29,7 +29,7 @@ use RegexParser\Parser;
  */
 class RegexParserMatcherDumper
 {
-    private LiteralExtractorVisitor $literalExtractor;
+    private readonly LiteralExtractorVisitor $literalExtractor;
 
     public function __construct(private readonly ?Parser $parser = new Parser())
     {

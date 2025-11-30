@@ -15,7 +15,6 @@ namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
-use RegexParser\Builder\RegexBuilder;
 use RegexParser\Exception\ParserException;
 use RegexParser\Parser;
 
@@ -593,44 +592,6 @@ class CoverageImprovementTest extends TestCase
         foreach ($patterns as $pattern) {
             $this->parser->parse($pattern);
         }
-    }
-
-    /**
-     * Test RegexBuilder.literal() with empty string
-     * This covers the line: if ('' === $value) return $this;
-     */
-    public function test_regex_builder_literal_empty_string(): void
-    {
-        $builder = new RegexBuilder();
-        $result = $builder->literal('')->compile();
-
-        // Empty literal should produce an empty pattern
-        $this->assertIsString($result);
-    }
-
-    /**
-     * Test RegexBuilder with completely empty pattern
-     * This covers the line: return new LiteralNode('', 0, 0);
-     */
-    public function test_regex_builder_empty_pattern(): void
-    {
-        $builder = new RegexBuilder();
-        $result = $builder->compile();
-
-        // Completely empty builder should produce an empty pattern
-        $this->assertIsString($result);
-    }
-
-    /**
-     * Test RegexBuilder.literal() with multi-byte characters
-     */
-    public function test_regex_builder_literal_multibyte(): void
-    {
-        $builder = new RegexBuilder();
-        $result = $builder->literal('été')->compile();
-
-        $this->assertIsString($result);
-        $this->assertStringContainsString('é', $result);
     }
 
     /**
