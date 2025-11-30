@@ -68,7 +68,7 @@ readonly class CalloutNode extends AbstractNode
      * @param int      $endPos 0-based end offset (exclusive)
      */
     public function __construct(
-        public readonly ?int $number,
+        public ?int $number,
         int $startPos,
         int $endPos,
     ) {
@@ -122,7 +122,7 @@ if ($this->match('(?C')) {
 ```
 
 **Parsing Tips**:
-- Track positions accurately (`startPos`, `endPos`)
+- Track positions accurately (`startPosition`, `endPosition`)
 - Throw `ParserException` for invalid syntax
 - Handle all syntax variations
 - Test edge cases
@@ -391,33 +391,7 @@ public function testCallouts(): void
 
 ### Step 6: Update Documentation
 
-#### 6.1 Update PCRE Features Matrix
-
-**Location**: `PCRE_FEATURES_MATRIX.md`
-
-Add new section:
-
-```markdown
-## 11. Callouts ✅ FULL SUPPORT
-
-**Syntax**: `(?C)`, `(?C99)`  
-**Purpose**: Debugging hooks for regex engine  
-**Node**: `CalloutNode`
-
-### Tested Patterns (5/5 ✅)
-
-| Pattern | Description | Status |
-|---------|-------------|--------|
-| `/(?C)/` | Simple callout | ✅ |
-| `/(?C0)/` | Numbered callout 0 | ✅ |
-| `/(?C99)/` | Numbered callout 99 | ✅ |
-| `/test(?C)end/` | Callout in pattern | ✅ |
-| `/(?C1)a(?C2)b/` | Multiple callouts | ✅ |
-
-**Implementation**: Complete AST representation and visitor support.
-```
-
-#### 6.2 Update Node README
+#### 6.1 Update Node README
 
 **Location**: `src/Node/README.md`
 
@@ -434,12 +408,6 @@ Represents regex engine callouts for debugging.
 new CalloutNode(number: 42, ...)
 \```
 ```
-
-#### 6.3 Update Nodes Audit Report
-
-**Location**: `NODES_AUDIT_REPORT.md`
-
-Add entry to inventory.
 
 ---
 
