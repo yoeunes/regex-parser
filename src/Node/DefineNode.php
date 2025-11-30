@@ -15,29 +15,18 @@ namespace RegexParser\Node;
 
 use RegexParser\NodeVisitor\NodeVisitorInterface;
 
-class DefineNode implements NodeInterface
+class DefineNode extends AbstractNode
 {
     /**
      * @param NodeInterface $content // tout ce qui est à l'intérieur du (?(DEFINE) ... )
      */
-    public function __construct(
-        public readonly NodeInterface $content,
-        public readonly int $startPosition,
-        public readonly int $endPosition,
-    ) {}
+    public function __construct(public readonly NodeInterface $content, int $startPosition, int $endPosition)
+    {
+        parent::__construct($startPosition, $endPosition);
+    }
 
     public function accept(NodeVisitorInterface $visitor): mixed
     {
         return $visitor->visitDefine($this);
-    }
-
-    public function getStartPosition(): int
-    {
-        return $this->startPosition;
-    }
-
-    public function getEndPosition(): int
-    {
-        return $this->endPosition;
     }
 }

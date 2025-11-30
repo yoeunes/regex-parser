@@ -20,24 +20,6 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
  */
 class DotNode extends AbstractNode
 {
-    /**
-     * @param int $startPos    The 0-based start offset
-     * @param int $endPosition The 0-based end offset (exclusive)
-     */
-    public function __construct(
-        int $startPos,
-        int $endPosition,
-    ) {
-        parent::__construct($startPos, $endPosition);
-    }
-
-    /**
-     * @template T
-     *
-     * @param NodeVisitorInterface<T> $visitor
-     *
-     * @return T
-     */
     public function accept(NodeVisitorInterface $visitor)
     {
         return $visitor->visitDot($this);

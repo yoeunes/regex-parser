@@ -26,26 +26,13 @@ class GroupNode extends AbstractNode
      * @param ?string       $name          The name, if it's a named group
      * @param ?string       $flags         Inline flags for (?i:...)
      * @param int           $startPosition The 0-based start offset
-     * @param int           $endPos        The 0-based end offset (exclusive)
+     * @param int           $endPosition   The 0-based end offset (exclusive)
      */
-    public function __construct(
-        public readonly NodeInterface $child,
-        public readonly GroupType $type,
-        public readonly ?string $name = null,
-        public readonly ?string $flags = null,
-        int $startPosition = 0,
-        int $endPos = 0,
-    ) {
-        parent::__construct($startPosition, $endPos);
+    public function __construct(public readonly NodeInterface $child, public readonly GroupType $type, public readonly ?string $name = null, public readonly ?string $flags = null, int $startPosition = 0, int $endPosition = 0)
+    {
+        parent::__construct($startPosition, $endPosition);
     }
 
-    /**
-     * @template T
-     *
-     * @param NodeVisitorInterface<T> $visitor
-     *
-     * @return T
-     */
     public function accept(NodeVisitorInterface $visitor)
     {
         return $visitor->visitGroup($this);

@@ -23,10 +23,7 @@ abstract class AbstractNode implements NodeInterface
      * @param int $startPosition The 0-based start offset
      * @param int $endPosition   The 0-based end offset (exclusive)
      */
-    public function __construct(
-        public readonly int $startPosition,
-        public readonly int $endPosition,
-    ) {}
+    public function __construct(public readonly int $startPosition, public readonly int $endPosition) {}
 
     public function getStartPosition(): int
     {

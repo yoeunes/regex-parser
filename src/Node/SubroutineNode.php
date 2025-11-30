@@ -26,22 +26,11 @@ class SubroutineNode extends AbstractNode
      * @param int    $startPosition The 0-based start offset
      * @param int    $endPosition   The 0-based end offset (exclusive)
      */
-    public function __construct(
-        public readonly string $reference,
-        public readonly string $syntax,
-        int $startPosition,
-        int $endPosition,
-    ) {
+    public function __construct(public readonly string $reference, public readonly string $syntax, int $startPosition, int $endPosition)
+    {
         parent::__construct($startPosition, $endPosition);
     }
 
-    /**
-     * @template T
-     *
-     * @param NodeVisitorInterface<T> $visitor
-     *
-     * @return T
-     */
     public function accept(NodeVisitorInterface $visitor)
     {
         return $visitor->visitSubroutine($this);
