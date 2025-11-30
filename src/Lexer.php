@@ -163,7 +163,7 @@ class Lexer
      */
     public function reset(string $pattern): void
     {
-        if (!mb_check_encoding($pattern, 'UTF-8')) {
+        if (false === preg_match('//u', $pattern)) {
             throw new LexerException('Input string is not valid UTF-8.');
         }
 
