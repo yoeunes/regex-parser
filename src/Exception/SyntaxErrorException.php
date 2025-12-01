@@ -14,6 +14,13 @@ declare(strict_types=1);
 namespace RegexParser\Exception;
 
 /**
- * Thrown when a syntax error is encountered in the PCRE pattern.
+ * Represents a specific type of parsing error related to invalid syntax.
+ *
+ * Purpose: This exception is a specialization of `ParserException`. While `ParserException`
+ * is general, this class can be used to signify errors that are explicitly about the
+ * grammatical structure of the regex, such as a misplaced token or an invalid sequence.
+ * It helps in distinguishing between general parsing failures and concrete syntax violations.
+ *
+ * @see \RegexParser\Parser
  */
 class SyntaxErrorException extends ParserException implements RegexParserExceptionInterface {}

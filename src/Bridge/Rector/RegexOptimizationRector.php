@@ -78,6 +78,16 @@ class RegexOptimizationRector extends AbstractRector implements ConfigurableRect
         }
     }
 
+    /**
+     * Provides the definition of the rule for documentation generation.
+     *
+     * Purpose: This method is used by Rector's documentation generator to create a
+     * clear explanation of what the rule does, including before-and-after code samples.
+     * As a contributor, if you change the rule's behavior or add new configuration,
+     * you must update this definition to reflect those changes.
+     *
+     * @return RuleDefinition the definition of the rule
+     */
     public function getRuleDefinition(): RuleDefinition
     {
         return new RuleDefinition(
@@ -111,7 +121,15 @@ class RegexOptimizationRector extends AbstractRector implements ConfigurableRect
     }
 
     /**
-     * @param array<string, mixed> $configuration
+     * Configures the rector with user-defined settings.
+     *
+     * Purpose: This method allows users of the Rector rule to extend its functionality.
+     * By default, the rule targets standard `preg_*` functions and common constant names.
+     * This method merges user-provided lists of additional function and constant names
+     * into the rector's target list, making the rule adaptable to different codebases.
+     *
+     * @param array<string, mixed> $configuration The configuration array from the user's `rector.php` file.
+     *                                            Expected keys are `EXTRA_FUNCTIONS` and `EXTRA_CONSTANTS`.
      */
     public function configure(array $configuration): void
     {
@@ -128,11 +146,34 @@ class RegexOptimizationRector extends AbstractRector implements ConfigurableRect
         }
     }
 
+    /**
+     * Specifies which types of PHP-Parser nodes this rector should visit.
+     *
+     * Purpose: This is a performance optimization for Rector. By telling Rector that
+     * this rule is only interested in `FuncCall` and `ClassConst` nodes, Rector can
+     * skip calling the `refactor()` method for all other node types, speeding up the
+     * overall analysis process.
+     *
+     * @return array<class-string<Node>> the list of node types to process
+     */
     public function getNodeTypes(): array
     {
         return [FuncCall::class, ClassConst::class];
     }
 
+    /**
+     * The core transformation logic of the rector.
+     *
+     * Purpose: This method is called by Rector for each node matching the types defined
+     * in `getNodeTypes()`. It identifies the string containing the regex pattern,
+     * parses it, runs the `OptimizerNodeVisitor` to simplify the AST, and then uses the
+     * `CompilerNodeVisitor` to generate the new, optimized regex string. If the string
+     * has changed, it modifies the node in place.
+     *
+     * @param Node $node the AST node being visited (either a `FuncCall` or `ClassConst`)
+     *
+     * @return Node|null the modified node if a change was made, or null if no change was needed
+     */
     public function refactor(Node $node): ?Node
     {
         $stringNode = $this->resolveRegexStringNode($node);
