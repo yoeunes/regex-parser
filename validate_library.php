@@ -14,7 +14,6 @@ declare(strict_types=1);
 require __DIR__.'/vendor/autoload.php';
 
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
-use RegexParser\Parser;
 use RegexParser\Regex;
 
 echo "=== RegexParser Library Validation Report ===\n\n";
@@ -106,7 +105,7 @@ foreach ($pcreFeatures as $feature => $pattern) {
         // Check if it's actually valid PCRE
         $testString = 'test';
         @preg_match($pattern, $testString);
-        if (PREG_NO_ERROR === preg_last_error()) {
+        if (\PREG_NO_ERROR === preg_last_error()) {
             echo "✓ $feature: Parsed successfully\n";
             $passedTests++;
         } else {
