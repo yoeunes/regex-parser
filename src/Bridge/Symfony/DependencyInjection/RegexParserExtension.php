@@ -41,10 +41,10 @@ class RegexParserExtension extends Extension
      * this is where you would manage the registration of new services or handle new
      * configuration options.
      *
-     * @param array<array<string, mixed>> $configs       An array of configuration values from the application's config files.
-     * @param ContainerBuilder            $container     The DI container builder instance.
+     * @param array<array<string, mixed>> $configs   an array of configuration values from the application's config files
+     * @param ContainerBuilder            $container the DI container builder instance
      *
-     * @throws \Exception if the service definition files cannot be loaded.
+     * @throws \Exception if the service definition files cannot be loaded
      */
     #[\Override]
     public function load(array $configs, ContainerBuilder $container): void
@@ -95,7 +95,7 @@ class RegexParserExtension extends Extension
      * in YAML files (e.g., `regex_parser:`). It provides a unique namespace for the
      * bundle's settings.
      *
-     * @return string The configuration alias.
+     * @return string the configuration alias
      */
     #[\Override]
     public function getAlias(): string

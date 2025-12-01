@@ -32,7 +32,7 @@ readonly class CollectedRegex
      * gathered at the point of collection. This data is then used later during the
      * analysis phase to provide a rich report in the Symfony Web Profiler.
      *
-     * @param string      $pattern     The full PCRE regex pattern string that was used.
+     * @param string      $pattern     the full PCRE regex pattern string that was used
      * @param string      $source      The origin of the regex (e.g., "Router", "Validator", "Custom Check").
      *                                 This helps developers identify where the regex is being used.
      * @param string|null $subject     The subject string that the regex was tested against, if available.

@@ -58,24 +58,27 @@ interface NodeVisitorInterface
     /**
      * Logic to execute when visiting a `RegexNode`.
      *
-     * @param RegexNode $node The root node of the entire regex.
-     * @return TReturn The result of visiting this node.
+     * @param RegexNode $node the root node of the entire regex
+     *
+     * @return TReturn the result of visiting this node
      */
     public function visitRegex(RegexNode $node);
 
     /**
      * Logic to execute when visiting an `AlternationNode`.
      *
-     * @param AlternationNode $node The node representing an alternation (`|`).
-     * @return TReturn The result of visiting this node.
+     * @param AlternationNode $node the node representing an alternation (`|`)
+     *
+     * @return TReturn the result of visiting this node
      */
     public function visitAlternation(AlternationNode $node);
 
     /**
      * Logic to execute when visiting a `SequenceNode`.
      *
-     * @param SequenceNode $node The node representing a sequence of other nodes.
-     * @return TReturn The result of visiting this node.
+     * @param SequenceNode $node the node representing a sequence of other nodes
+     *
+     * @return TReturn the result of visiting this node
      */
     public function visitSequence(SequenceNode $node);
 
@@ -83,7 +86,8 @@ interface NodeVisitorInterface
      * Logic to execute when visiting a `GroupNode`.
      *
      * @param GroupNode $node The node representing any type of group (capturing, lookaround, etc.).
-     * @return TReturn The result of visiting this node.
+     *
+     * @return TReturn the result of visiting this node
      */
     public function visitGroup(GroupNode $node);
 
@@ -91,15 +95,17 @@ interface NodeVisitorInterface
      * Logic to execute when visiting a `QuantifierNode`.
      *
      * @param QuantifierNode $node The node representing a quantifier (`*`, `+`, `{n,m}`, etc.).
-     * @return TReturn The result of visiting this node.
+     *
+     * @return TReturn the result of visiting this node
      */
     public function visitQuantifier(QuantifierNode $node);
 
     /**
      * Logic to execute when visiting a `LiteralNode`.
      *
-     * @param LiteralNode $node The node representing a literal character or string.
-     * @return TReturn The result of visiting this node.
+     * @param LiteralNode $node the node representing a literal character or string
+     *
+     * @return TReturn the result of visiting this node
      */
     public function visitLiteral(LiteralNode $node);
 
@@ -107,7 +113,8 @@ interface NodeVisitorInterface
      * Logic to execute when visiting a `CharTypeNode`.
      *
      * @param CharTypeNode $node The node representing a character type escape (`\d`, `\s`, etc.).
-     * @return TReturn The result of visiting this node.
+     *
+     * @return TReturn the result of visiting this node
      */
     public function visitCharType(CharTypeNode $node);
 
@@ -115,15 +122,17 @@ interface NodeVisitorInterface
      * Logic to execute when visiting a `DotNode`.
      *
      * @param DotNode $node The node representing the `.` wildcard.
-     * @return TReturn The result of visiting this node.
+     *
+     * @return TReturn the result of visiting this node
      */
     public function visitDot(DotNode $node);
 
     /**
      * Logic to execute when visiting an `AnchorNode`.
      *
-     * @param AnchorNode $node The node representing an anchor (`^`, `$`).
-     * @return TReturn The result of visiting this node.
+     * @param AnchorNode $node the node representing an anchor (`^`, `$`)
+     *
+     * @return TReturn the result of visiting this node
      */
     public function visitAnchor(AnchorNode $node);
 
@@ -131,15 +140,17 @@ interface NodeVisitorInterface
      * Logic to execute when visiting an `AssertionNode`.
      *
      * @param AssertionNode $node The node representing a zero-width assertion (`\b`, `\A`, etc.).
-     * @return TReturn The result of visiting this node.
+     *
+     * @return TReturn the result of visiting this node
      */
     public function visitAssertion(AssertionNode $node);
 
     /**
      * Logic to execute when visiting a `KeepNode`.
      *
-     * @param KeepNode $node The node representing the `\K` "keep" assertion.
-     * @return TReturn The result of visiting this node.
+     * @param KeepNode $node the node representing the `\K` "keep" assertion
+     *
+     * @return TReturn the result of visiting this node
      */
     public function visitKeep(KeepNode $node);
 
@@ -147,39 +158,44 @@ interface NodeVisitorInterface
      * Logic to execute when visiting a `CharClassNode`.
      *
      * @param CharClassNode $node The node representing a character class (`[...]`).
-     * @return TReturn The result of visiting this node.
+     *
+     * @return TReturn the result of visiting this node
      */
     public function visitCharClass(CharClassNode $node);
 
     /**
      * Logic to execute when visiting a `RangeNode`.
      *
-     * @param RangeNode $node The node representing a range inside a character class (`a-z`).
-     * @return TReturn The result of visiting this node.
+     * @param RangeNode $node the node representing a range inside a character class (`a-z`)
+     *
+     * @return TReturn the result of visiting this node
      */
     public function visitRange(RangeNode $node);
 
     /**
      * Logic to execute when visiting a `BackrefNode`.
      *
-     * @param BackrefNode $node The node representing a backreference (`\1`, `\k<name>`).
-     * @return TReturn The result of visiting this node.
+     * @param BackrefNode $node the node representing a backreference (`\1`, `\k<name>`)
+     *
+     * @return TReturn the result of visiting this node
      */
     public function visitBackref(BackrefNode $node);
 
     /**
      * Logic to execute when visiting a `UnicodeNode`.
      *
-     * @param UnicodeNode $node The node representing a Unicode character escape (`\xHH`).
-     * @return TReturn The result of visiting this node.
+     * @param UnicodeNode $node the node representing a Unicode character escape (`\xHH`)
+     *
+     * @return TReturn the result of visiting this node
      */
     public function visitUnicode(UnicodeNode $node);
 
     /**
      * Logic to execute when visiting a `UnicodePropNode`.
      *
-     * @param UnicodePropNode $node The node representing a Unicode property escape (`\p{L}`).
-     * @return TReturn The result of visiting this node.
+     * @param UnicodePropNode $node the node representing a Unicode property escape (`\p{L}`)
+     *
+     * @return TReturn the result of visiting this node
      */
     public function visitUnicodeProp(UnicodePropNode $node);
 
@@ -187,23 +203,26 @@ interface NodeVisitorInterface
      * Logic to execute when visiting an `OctalNode`.
      *
      * @param OctalNode $node The node representing a modern octal escape (`\o{...}`).
-     * @return TReturn The result of visiting this node.
+     *
+     * @return TReturn the result of visiting this node
      */
     public function visitOctal(OctalNode $node);
 
     /**
      * Logic to execute when visiting an `OctalLegacyNode`.
      *
-     * @param OctalLegacyNode $node The node representing a legacy octal escape (`\077`).
-     * @return TReturn The result of visiting this node.
+     * @param OctalLegacyNode $node the node representing a legacy octal escape (`\077`)
+     *
+     * @return TReturn the result of visiting this node
      */
     public function visitOctalLegacy(OctalLegacyNode $node);
 
     /**
      * Logic to execute when visiting a `PosixClassNode`.
      *
-     * @param PosixClassNode $node The node representing a POSIX character class (`[:alpha:]`).
-     * @return TReturn The result of visiting this node.
+     * @param PosixClassNode $node the node representing a POSIX character class (`[:alpha:]`)
+     *
+     * @return TReturn the result of visiting this node
      */
     public function visitPosixClass(PosixClassNode $node);
 
@@ -211,7 +230,8 @@ interface NodeVisitorInterface
      * Logic to execute when visiting a `CommentNode`.
      *
      * @param CommentNode $node The node representing an inline comment (`(?#...)`).
-     * @return TReturn The result of visiting this node.
+     *
+     * @return TReturn the result of visiting this node
      */
     public function visitComment(CommentNode $node);
 
@@ -219,23 +239,26 @@ interface NodeVisitorInterface
      * Logic to execute when visiting a `ConditionalNode`.
      *
      * @param ConditionalNode $node The node representing a conditional subpattern (`(?(cond)...)`).
-     * @return TReturn The result of visiting this node.
+     *
+     * @return TReturn the result of visiting this node
      */
     public function visitConditional(ConditionalNode $node);
 
     /**
      * Logic to execute when visiting a `SubroutineNode`.
      *
-     * @param SubroutineNode $node The node representing a subroutine call (`(?R)`, `(?&name)`).
-     * @return TReturn The result of visiting this node.
+     * @param SubroutineNode $node the node representing a subroutine call (`(?R)`, `(?&name)`)
+     *
+     * @return TReturn the result of visiting this node
      */
     public function visitSubroutine(SubroutineNode $node);
 
     /**
      * Logic to execute when visiting a `PcreVerbNode`.
      *
-     * @param PcreVerbNode $node The node representing a PCRE verb (`(*FAIL)`).
-     * @return TReturn The result of visiting this node.
+     * @param PcreVerbNode $node the node representing a PCRE verb (`(*FAIL)`)
+     *
+     * @return TReturn the result of visiting this node
      */
     public function visitPcreVerb(PcreVerbNode $node);
 
@@ -243,7 +266,8 @@ interface NodeVisitorInterface
      * Logic to execute when visiting a `DefineNode`.
      *
      * @param DefineNode $node The node representing a `(?(DEFINE)...)` block.
-     * @return TReturn The result of visiting this node.
+     *
+     * @return TReturn the result of visiting this node
      */
     public function visitDefine(DefineNode $node);
 }

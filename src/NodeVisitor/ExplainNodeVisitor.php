@@ -90,8 +90,9 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      * context, mentioning the regex flags, and then recursively calls the visitor
      * on the main pattern.
      *
-     * @param RegexNode $node The root node of the AST.
-     * @return string The complete, human-readable explanation of the regex.
+     * @param RegexNode $node the root node of the AST
+     *
+     * @return string the complete, human-readable explanation of the regex
      */
     public function visitRegex(RegexNode $node): string
     {
@@ -109,8 +110,9 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      * regex engine will try to match one of several possibilities. It formats the
      * output with "EITHER...OR..." to be intuitive.
      *
-     * @param AlternationNode $node The alternation node to explain.
-     * @return string A description of the alternative branches.
+     * @param AlternationNode $node the alternation node to explain
+     *
+     * @return string a description of the alternative branches
      */
     public function visitAlternation(AlternationNode $node): string
     {
@@ -137,8 +139,9 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      * matched in order. It recursively explains each child and joins the
      * descriptions with newlines to represent the sequence.
      *
-     * @param SequenceNode $node The sequence node to explain.
-     * @return string A description of the sequential components.
+     * @param SequenceNode $node the sequence node to explain
+     *
+     * @return string a description of the sequential components
      */
     public function visitSequence(SequenceNode $node): string
     {
@@ -157,8 +160,9 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      * stating its function (e.g., capturing, non-capturing, lookahead) and any
      * associated metadata like a name or inline flags.
      *
-     * @param GroupNode $node The group node to explain.
-     * @return string A description of the group and its contents.
+     * @param GroupNode $node the group node to explain
+     *
+     * @return string a description of the group and its contents
      */
     public function visitGroup(GroupNode $node): string
     {
@@ -190,8 +194,9 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      * matched, translating tokens like `*`, `+`, and `{n,m}` into clear English
      * phrases like "zero or more times" or "between 2 and 5 times".
      *
-     * @param QuantifierNode $node The quantifier node to explain.
-     * @return string A description of the quantified element.
+     * @param QuantifierNode $node the quantifier node to explain
+     *
+     * @return string a description of the quantified element
      */
     public function visitQuantifier(QuantifierNode $node): string
     {
@@ -223,8 +228,9 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      * Purpose: This method describes a literal character or string, handling
      * special whitespace characters to make them readable.
      *
-     * @param LiteralNode $node The literal node to explain.
-     * @return string A description of the literal value.
+     * @param LiteralNode $node the literal node to explain
+     *
+     * @return string a description of the literal value
      */
     public function visitLiteral(LiteralNode $node): string
     {
@@ -237,8 +243,9 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      * Purpose: This method translates a character type escape sequence (e.g., `\d`, `\s`)
      * into its well-known meaning (e.g., "any digit", "any whitespace character").
      *
-     * @param CharTypeNode $node The character type node to explain.
-     * @return string A description of the character type.
+     * @param CharTypeNode $node the character type node to explain
+     *
+     * @return string a description of the character type
      */
     public function visitCharType(CharTypeNode $node): string
     {
@@ -251,8 +258,9 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      * Purpose: This method describes the wildcard (`.`) character, noting its
      * behavior with respect to newlines and the `/s` flag.
      *
-     * @param DotNode $node The dot node to explain.
-     * @return string A description of the wildcard.
+     * @param DotNode $node the dot node to explain
+     *
+     * @return string a description of the wildcard
      */
     public function visitDot(DotNode $node): string
     {
@@ -265,8 +273,9 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      * Purpose: This method describes an anchor like `^` or `$`, explaining that it
      * asserts a position (start or end of string/line).
      *
-     * @param AnchorNode $node The anchor node to explain.
-     * @return string A description of the anchor.
+     * @param AnchorNode $node the anchor node to explain
+     *
+     * @return string a description of the anchor
      */
     public function visitAnchor(AnchorNode $node): string
     {
@@ -279,8 +288,9 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      * Purpose: This method describes a zero-width assertion like `\b` (word boundary)
      * or `\A` (start of string).
      *
-     * @param AssertionNode $node The assertion node to explain.
-     * @return string A description of the assertion.
+     * @param AssertionNode $node the assertion node to explain
+     *
+     * @return string a description of the assertion
      */
     public function visitAssertion(AssertionNode $node): string
     {
@@ -293,8 +303,9 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      * Purpose: This method describes the `\K` sequence, explaining its function of
      * resetting the start of the overall match.
      *
-     * @param KeepNode $node The keep node to explain.
-     * @return string A description of the `\K` assertion.
+     * @param KeepNode $node the keep node to explain
+     *
+     * @return string a description of the `\K` assertion
      */
     public function visitKeep(KeepNode $node): string
     {
@@ -307,8 +318,9 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      * Purpose: This method describes a character class `[...]`, indicating whether it's
      * negated and listing the characters or ranges it contains.
      *
-     * @param CharClassNode $node The character class node to explain.
-     * @return string A description of the character class.
+     * @param CharClassNode $node the character class node to explain
+     *
+     * @return string a description of the character class
      */
     public function visitCharClass(CharClassNode $node): string
     {
@@ -324,8 +336,9 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      * Purpose: This method describes a range within a character class (e.g., `a-z`),
      * making it clear what the start and end of the range are.
      *
-     * @param RangeNode $node The range node to explain.
-     * @return string A description of the character range.
+     * @param RangeNode $node the range node to explain
+     *
+     * @return string a description of the character range
      */
     public function visitRange(RangeNode $node): string
     {
@@ -346,8 +359,9 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      * Purpose: This method describes a backreference (e.g., `\1`), explaining that
      * it matches the text previously captured by a specific group.
      *
-     * @param BackrefNode $node The backreference node to explain.
-     * @return string A description of the backreference.
+     * @param BackrefNode $node the backreference node to explain
+     *
+     * @return string a description of the backreference
      */
     public function visitBackref(BackrefNode $node): string
     {
@@ -359,8 +373,9 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      *
      * Purpose: This method describes a Unicode character escape sequence.
      *
-     * @param UnicodeNode $node The Unicode node to explain.
-     * @return string A description of the Unicode character.
+     * @param UnicodeNode $node the Unicode node to explain
+     *
+     * @return string a description of the Unicode character
      */
     public function visitUnicode(UnicodeNode $node): string
     {
@@ -373,8 +388,9 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      * Purpose: This method describes a Unicode property escape (e.g., `\p{L}`),
      * explaining that it matches any character with a specific Unicode property.
      *
-     * @param UnicodePropNode $node The Unicode property node to explain.
-     * @return string A description of the Unicode property match.
+     * @param UnicodePropNode $node the Unicode property node to explain
+     *
+     * @return string a description of the Unicode property match
      */
     public function visitUnicodeProp(UnicodePropNode $node): string
     {
@@ -389,8 +405,9 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      *
      * Purpose: This method describes a modern octal character escape (`\o{...}`).
      *
-     * @param OctalNode $node The octal node to explain.
-     * @return string A description of the octal character.
+     * @param OctalNode $node the octal node to explain
+     *
+     * @return string a description of the octal character
      */
     public function visitOctal(OctalNode $node): string
     {
@@ -402,8 +419,9 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      *
      * Purpose: This method describes a legacy octal character escape (e.g., `\077`).
      *
-     * @param OctalLegacyNode $node The legacy octal node to explain.
-     * @return string A description of the legacy octal character.
+     * @param OctalLegacyNode $node the legacy octal node to explain
+     *
+     * @return string a description of the legacy octal character
      */
     public function visitOctalLegacy(OctalLegacyNode $node): string
     {
@@ -415,8 +433,9 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      *
      * Purpose: This method describes a POSIX character class (e.g., `[:alpha:]`).
      *
-     * @param PosixClassNode $node The POSIX class node to explain.
-     * @return string A description of the POSIX class.
+     * @param PosixClassNode $node the POSIX class node to explain
+     *
+     * @return string a description of the POSIX class
      */
     public function visitPosixClass(PosixClassNode $node): string
     {
@@ -428,8 +447,9 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      *
      * Purpose: This method describes an inline regex comment `(?#...)`.
      *
-     * @param CommentNode $node The comment node to explain.
-     * @return string The content of the comment.
+     * @param CommentNode $node the comment node to explain
+     *
+     * @return string the content of the comment
      */
     public function visitComment(CommentNode $node): string
     {
@@ -442,8 +462,9 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      * Purpose: This method describes a conditional subpattern `(?(cond)yes|no)`,
      * clearly laying out the condition, the "yes" pattern, and the optional "no" pattern.
      *
-     * @param ConditionalNode $node The conditional node to explain.
-     * @return string A description of the conditional logic.
+     * @param ConditionalNode $node the conditional node to explain
+     *
+     * @return string a description of the conditional logic
      */
     public function visitConditional(ConditionalNode $node): string
     {
@@ -472,8 +493,9 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      * Purpose: This method describes a subroutine call (e.g., `(?R)`), explaining
      * that it recursively calls another part of the pattern.
      *
-     * @param SubroutineNode $node The subroutine node to explain.
-     * @return string A description of the subroutine call.
+     * @param SubroutineNode $node the subroutine node to explain
+     *
+     * @return string a description of the subroutine call
      */
     public function visitSubroutine(SubroutineNode $node): string
     {
@@ -492,8 +514,9 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      * Purpose: This method describes a PCRE verb like `(*FAIL)`, which controls
      * the backtracking process of the regex engine.
      *
-     * @param PcreVerbNode $node The PCRE verb node to explain.
-     * @return string A description of the PCRE verb.
+     * @param PcreVerbNode $node the PCRE verb node to explain
+     *
+     * @return string a description of the PCRE verb
      */
     public function visitPcreVerb(PcreVerbNode $node): string
     {
@@ -506,8 +529,9 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      * Purpose: This method describes a `(?(DEFINE)...)` block, explaining that it
      * defines subpatterns for later use in subroutines without matching anything itself.
      *
-     * @param DefineNode $node The define node to explain.
-     * @return string A description of the DEFINE block.
+     * @param DefineNode $node the define node to explain
+     *
+     * @return string a description of the DEFINE block
      */
     public function visitDefine(DefineNode $node): string
     {

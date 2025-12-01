@@ -13,9 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Bridge\Symfony\Routing;
 
-use RegexParser\Node\NodeInterface;
 use RegexParser\NodeVisitor\LiteralExtractorNodeVisitor;
-use RegexParser\Parser;
 use RegexParser\Regex;
 
 /**
@@ -30,6 +28,7 @@ use RegexParser\Regex;
 class RegexParserMatcherDumper
 {
     private readonly LiteralExtractorNodeVisitor $literalExtractor;
+
     private readonly Regex $regex;
 
     /**
@@ -55,10 +54,10 @@ class RegexParserMatcherDumper
      * comparisons over immediate regex evaluation, which can significantly improve
      * performance for URL matching in a Symfony application.
      *
-     * @param array<string, string> $routePatterns A map where the key is the route's full regex
-     *                                             pattern and the value is the route's name or identifier.
+     * @param array<string, string> $routePatterns a map where the key is the route's full regex
+     *                                             pattern and the value is the route's name or identifier
      *
-     * @return string The generated PHP code snippet, ready to be written to a cache file.
+     * @return string the generated PHP code snippet, ready to be written to a cache file
      *
      * @example
      * ```php

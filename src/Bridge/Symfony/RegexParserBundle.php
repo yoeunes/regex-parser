@@ -37,7 +37,7 @@ class RegexParserBundle extends Bundle
      * method overrides the default behavior to point to the correct directory structure
      * for this bridge, ensuring that assets like the Web Profiler templates are found.
      *
-     * @return string The absolute path to the bundle's root directory.
+     * @return string the absolute path to the bundle's root directory
      */
     #[\Override]
     public function getPath(): string

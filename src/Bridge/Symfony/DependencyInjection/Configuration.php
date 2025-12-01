@@ -52,7 +52,7 @@ class Configuration implements ConfigurationInterface
      * need to add a new configuration option, you would add it to the `TreeBuilder`
      * in this method. This is the single source of truth for the bundle's configuration schema.
      *
-     * @return TreeBuilder The tree builder instance.
+     * @return TreeBuilder the tree builder instance
      */
     public function getConfigTreeBuilder(): TreeBuilder
     {

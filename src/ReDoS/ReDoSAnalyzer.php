@@ -27,11 +27,11 @@ class ReDoSAnalyzer
      * patterns, such as "evil twins" (ambiguous, repeated quantifiers). This method then
      * compiles the visitor's findings into a structured `ReDoSAnalysis` report.
      *
-     * @param string $regex The full PCRE regex string to be analyzed for vulnerabilities.
+     * @param string $regex the full PCRE regex string to be analyzed for vulnerabilities
      *
-     * @return ReDoSAnalysis A comprehensive report object containing the severity of any
+     * @return ReDoSAnalysis a comprehensive report object containing the severity of any
      *                       detected issues, a complexity score, the problematic part of
-     *                       the pattern, and suggestions for how to fix it.
+     *                       the pattern, and suggestions for how to fix it
      *
      * @example
      * ```php

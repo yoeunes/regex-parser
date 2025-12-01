@@ -67,7 +67,8 @@ class MermaidNodeVisitor implements NodeVisitorInterface
      * regex (including its flags), and then recursively calls the visitor on the
      * main pattern.
      *
-     * @param RegexNode $node The root node of the AST.
+     * @param RegexNode $node the root node of the AST
+     *
      * @return string The complete Mermaid.js graph definition.
      */
     public function visitRegex(RegexNode $node): string
@@ -93,8 +94,9 @@ class MermaidNodeVisitor implements NodeVisitorInterface
      * and then draws arrows from it to each of its alternative branches, clearly
      * visualizing the "either/or" logic.
      *
-     * @param AlternationNode $node The alternation node to visualize.
-     * @return string The unique ID of the generated graph node.
+     * @param AlternationNode $node the alternation node to visualize
+     *
+     * @return string the unique ID of the generated graph node
      */
     public function visitAlternation(AlternationNode $node): string
     {
@@ -115,8 +117,9 @@ class MermaidNodeVisitor implements NodeVisitorInterface
      * Purpose: This method creates a "Sequence" node and then draws arrows to each
      * of its children in order, visualizing the sequential nature of the components.
      *
-     * @param SequenceNode $node The sequence node to visualize.
-     * @return string The unique ID of the generated graph node.
+     * @param SequenceNode $node the sequence node to visualize
+     *
+     * @return string the unique ID of the generated graph node
      */
     public function visitSequence(SequenceNode $node): string
     {
@@ -138,8 +141,9 @@ class MermaidNodeVisitor implements NodeVisitorInterface
      * type (e.g., capturing, lookahead) and name, and then connects it to the
      * subgraph representing the group's contents.
      *
-     * @param GroupNode $node The group node to visualize.
-     * @return string The unique ID of the generated graph node.
+     * @param GroupNode $node the group node to visualize
+     *
+     * @return string the unique ID of the generated graph node
      */
     public function visitGroup(GroupNode $node): string
     {
@@ -160,8 +164,9 @@ class MermaidNodeVisitor implements NodeVisitorInterface
      * Purpose: This method creates a node representing a quantifier (e.g., `*`, `+`),
      * and connects it to the node that it modifies.
      *
-     * @param QuantifierNode $node The quantifier node to visualize.
-     * @return string The unique ID of the generated graph node.
+     * @param QuantifierNode $node the quantifier node to visualize
+     *
+     * @return string the unique ID of the generated graph node
      */
     public function visitQuantifier(QuantifierNode $node): string
     {
@@ -180,8 +185,9 @@ class MermaidNodeVisitor implements NodeVisitorInterface
      *
      * Purpose: This method creates a simple node representing a literal character or string.
      *
-     * @param LiteralNode $node The literal node to visualize.
-     * @return string The unique ID of the generated graph node.
+     * @param LiteralNode $node the literal node to visualize
+     *
+     * @return string the unique ID of the generated graph node
      */
     public function visitLiteral(LiteralNode $node): string
     {
@@ -197,8 +203,9 @@ class MermaidNodeVisitor implements NodeVisitorInterface
      *
      * Purpose: This method creates a node for a character type like `\d` or `\s`.
      *
-     * @param CharTypeNode $node The character type node to visualize.
-     * @return string The unique ID of the generated graph node.
+     * @param CharTypeNode $node the character type node to visualize
+     *
+     * @return string the unique ID of the generated graph node
      */
     public function visitCharType(CharTypeNode $node): string
     {
@@ -213,8 +220,9 @@ class MermaidNodeVisitor implements NodeVisitorInterface
      *
      * Purpose: This method creates a node for the "any character" wildcard (`.`).
      *
-     * @param DotNode $node The dot node to visualize.
-     * @return string The unique ID of the generated graph node.
+     * @param DotNode $node the dot node to visualize
+     *
+     * @return string the unique ID of the generated graph node
      */
     public function visitDot(DotNode $node): string
     {
@@ -229,8 +237,9 @@ class MermaidNodeVisitor implements NodeVisitorInterface
      *
      * Purpose: This method creates a circular node for an anchor like `^` or `$`.
      *
-     * @param AnchorNode $node The anchor node to visualize.
-     * @return string The unique ID of the generated graph node.
+     * @param AnchorNode $node the anchor node to visualize
+     *
+     * @return string the unique ID of the generated graph node
      */
     public function visitAnchor(AnchorNode $node): string
     {
@@ -245,8 +254,9 @@ class MermaidNodeVisitor implements NodeVisitorInterface
      *
      * Purpose: This method creates a node for a zero-width assertion like `\b`.
      *
-     * @param AssertionNode $node The assertion node to visualize.
-     * @return string The unique ID of the generated graph node.
+     * @param AssertionNode $node the assertion node to visualize
+     *
+     * @return string the unique ID of the generated graph node
      */
     public function visitAssertion(AssertionNode $node): string
     {
@@ -261,8 +271,9 @@ class MermaidNodeVisitor implements NodeVisitorInterface
      *
      * Purpose: This method creates a node for the `\K` (keep) assertion.
      *
-     * @param KeepNode $node The keep node to visualize.
-     * @return string The unique ID of the generated graph node.
+     * @param KeepNode $node the keep node to visualize
+     *
+     * @return string the unique ID of the generated graph node
      */
     public function visitKeep(KeepNode $node): string
     {
@@ -278,8 +289,9 @@ class MermaidNodeVisitor implements NodeVisitorInterface
      * Purpose: This method creates a node for a character class `[...]`, indicating if
      * it is negated, and then connects it to the nodes representing its contents.
      *
-     * @param CharClassNode $node The character class node to visualize.
-     * @return string The unique ID of the generated graph node.
+     * @param CharClassNode $node the character class node to visualize
+     *
+     * @return string the unique ID of the generated graph node
      */
     public function visitCharClass(CharClassNode $node): string
     {
@@ -301,8 +313,9 @@ class MermaidNodeVisitor implements NodeVisitorInterface
      * Purpose: This method creates a "Range" node and connects it to the start and
      * end points of the range (e.g., `a` and `z` in `a-z`).
      *
-     * @param RangeNode $node The range node to visualize.
-     * @return string The unique ID of the generated graph node.
+     * @param RangeNode $node the range node to visualize
+     *
+     * @return string the unique ID of the generated graph node
      */
     public function visitRange(RangeNode $node): string
     {
@@ -322,8 +335,9 @@ class MermaidNodeVisitor implements NodeVisitorInterface
      *
      * Purpose: This method creates a node for a backreference like `\1`.
      *
-     * @param BackrefNode $node The backreference node to visualize.
-     * @return string The unique ID of the generated graph node.
+     * @param BackrefNode $node the backreference node to visualize
+     *
+     * @return string the unique ID of the generated graph node
      */
     public function visitBackref(BackrefNode $node): string
     {
@@ -338,8 +352,9 @@ class MermaidNodeVisitor implements NodeVisitorInterface
      *
      * Purpose: This method creates a node for a Unicode character escape.
      *
-     * @param UnicodeNode $node The Unicode node to visualize.
-     * @return string The unique ID of the generated graph node.
+     * @param UnicodeNode $node the Unicode node to visualize
+     *
+     * @return string the unique ID of the generated graph node
      */
     public function visitUnicode(UnicodeNode $node): string
     {
@@ -354,8 +369,9 @@ class MermaidNodeVisitor implements NodeVisitorInterface
      *
      * Purpose: This method creates a node for a Unicode property escape like `\p{L}`.
      *
-     * @param UnicodePropNode $node The Unicode property node to visualize.
-     * @return string The unique ID of the generated graph node.
+     * @param UnicodePropNode $node the Unicode property node to visualize
+     *
+     * @return string the unique ID of the generated graph node
      */
     public function visitUnicodeProp(UnicodePropNode $node): string
     {
@@ -370,8 +386,9 @@ class MermaidNodeVisitor implements NodeVisitorInterface
      *
      * Purpose: This method creates a node for a modern octal character escape.
      *
-     * @param OctalNode $node The octal node to visualize.
-     * @return string The unique ID of the generated graph node.
+     * @param OctalNode $node the octal node to visualize
+     *
+     * @return string the unique ID of the generated graph node
      */
     public function visitOctal(OctalNode $node): string
     {
@@ -386,8 +403,9 @@ class MermaidNodeVisitor implements NodeVisitorInterface
      *
      * Purpose: This method creates a node for a legacy octal character escape.
      *
-     * @param OctalLegacyNode $node The legacy octal node to visualize.
-     * @return string The unique ID of the generated graph node.
+     * @param OctalLegacyNode $node the legacy octal node to visualize
+     *
+     * @return string the unique ID of the generated graph node
      */
     public function visitOctalLegacy(OctalLegacyNode $node): string
     {
@@ -402,8 +420,9 @@ class MermaidNodeVisitor implements NodeVisitorInterface
      *
      * Purpose: This method creates a node for a POSIX character class like `[:alpha:]`.
      *
-     * @param PosixClassNode $node The POSIX class node to visualize.
-     * @return string The unique ID of the generated graph node.
+     * @param PosixClassNode $node the POSIX class node to visualize
+     *
+     * @return string the unique ID of the generated graph node
      */
     public function visitPosixClass(PosixClassNode $node): string
     {
@@ -418,8 +437,9 @@ class MermaidNodeVisitor implements NodeVisitorInterface
      *
      * Purpose: This method creates a node representing an inline comment.
      *
-     * @param CommentNode $node The comment node to visualize.
-     * @return string The unique ID of the generated graph node.
+     * @param CommentNode $node the comment node to visualize
+     *
+     * @return string the unique ID of the generated graph node
      */
     public function visitComment(CommentNode $node): string
     {
@@ -436,8 +456,9 @@ class MermaidNodeVisitor implements NodeVisitorInterface
      * Purpose: This method creates a diamond-shaped "Conditional" node and connects it
      * to its three branches: the condition, the "yes" pattern, and the "no" pattern.
      *
-     * @param ConditionalNode $node The conditional node to visualize.
-     * @return string The unique ID of the generated graph node.
+     * @param ConditionalNode $node the conditional node to visualize
+     *
+     * @return string the unique ID of the generated graph node
      */
     public function visitConditional(ConditionalNode $node): string
     {
@@ -461,8 +482,9 @@ class MermaidNodeVisitor implements NodeVisitorInterface
      *
      * Purpose: This method creates a node for a subroutine call like `(?R)`.
      *
-     * @param SubroutineNode $node The subroutine node to visualize.
-     * @return string The unique ID of the generated graph node.
+     * @param SubroutineNode $node the subroutine node to visualize
+     *
+     * @return string the unique ID of the generated graph node
      */
     public function visitSubroutine(SubroutineNode $node): string
     {
@@ -477,8 +499,9 @@ class MermaidNodeVisitor implements NodeVisitorInterface
      *
      * Purpose: This method creates a node for a PCRE verb like `(*FAIL)`.
      *
-     * @param PcreVerbNode $node The PCRE verb node to visualize.
-     * @return string The unique ID of the generated graph node.
+     * @param PcreVerbNode $node the PCRE verb node to visualize
+     *
+     * @return string the unique ID of the generated graph node
      */
     public function visitPcreVerb(PcreVerbNode $node): string
     {
@@ -493,8 +516,9 @@ class MermaidNodeVisitor implements NodeVisitorInterface
      *
      * Purpose: This method creates a node for a `(?(DEFINE)...)` block.
      *
-     * @param DefineNode $node The define node to visualize.
-     * @return string The unique ID of the generated graph node.
+     * @param DefineNode $node the define node to visualize
+     *
+     * @return string the unique ID of the generated graph node
      */
     public function visitDefine(DefineNode $node): string
     {

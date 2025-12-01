@@ -60,8 +60,9 @@ class DumperNodeVisitor implements NodeVisitorInterface
      * node, including its delimiters and flags, and then recursively calls the visitor
      * on its child pattern.
      *
-     * @param RegexNode $node The root node of the AST.
-     * @return string The string representation of the entire AST.
+     * @param RegexNode $node the root node of the AST
+     *
+     * @return string the string representation of the entire AST
      */
     public function visitRegex(RegexNode $node): string
     {
@@ -80,8 +81,9 @@ class DumperNodeVisitor implements NodeVisitorInterface
      * label and then recursively dumps each of its alternative child sequences, clearly
      * showing the different branches the regex can take.
      *
-     * @param AlternationNode $node The alternation node to dump.
-     * @return string The string representation of the alternation and its children.
+     * @param AlternationNode $node the alternation node to dump
+     *
+     * @return string the string representation of the alternation and its children
      */
     public function visitAlternation(AlternationNode $node): string
     {
@@ -102,8 +104,9 @@ class DumperNodeVisitor implements NodeVisitorInterface
      * prints the "Sequence" label and then recursively dumps each child node in order,
      * showing how the components are arranged sequentially.
      *
-     * @param SequenceNode $node The sequence node to dump.
-     * @return string The string representation of the sequence and its children.
+     * @param SequenceNode $node the sequence node to dump
+     *
+     * @return string the string representation of the sequence and its children
      */
     public function visitSequence(SequenceNode $node): string
     {
@@ -125,8 +128,9 @@ class DumperNodeVisitor implements NodeVisitorInterface
      * name (if any), and flags, then recursively dumps the child expression inside
      * the group.
      *
-     * @param GroupNode $node The group node to dump.
-     * @return string The string representation of the group and its child.
+     * @param GroupNode $node the group node to dump
+     *
+     * @return string the string representation of the group and its child
      */
     public function visitGroup(GroupNode $node): string
     {
@@ -150,8 +154,9 @@ class DumperNodeVisitor implements NodeVisitorInterface
      * prints the quantifier's token and type (greedy, lazy, possessive), then
      * recursively dumps the node that the quantifier applies to.
      *
-     * @param QuantifierNode $node The quantifier node to dump.
-     * @return string The string representation of the quantifier and its child.
+     * @param QuantifierNode $node the quantifier node to dump
+     *
+     * @return string the string representation of the quantifier and its child
      */
     public function visitQuantifier(QuantifierNode $node): string
     {
@@ -166,8 +171,9 @@ class DumperNodeVisitor implements NodeVisitorInterface
      * Purpose: This method visualizes a literal character or string. It simply
      * prints "Literal" followed by the literal value itself.
      *
-     * @param LiteralNode $node The literal node to dump.
-     * @return string The string representation of the literal.
+     * @param LiteralNode $node the literal node to dump
+     *
+     * @return string the string representation of the literal
      */
     public function visitLiteral(LiteralNode $node): string
     {
@@ -180,8 +186,9 @@ class DumperNodeVisitor implements NodeVisitorInterface
      * Purpose: This method visualizes a character type escape sequence like `\d` or `\s`.
      * It prints "CharType" followed by the escaped sequence.
      *
-     * @param CharTypeNode $node The character type node to dump.
-     * @return string The string representation of the character type.
+     * @param CharTypeNode $node the character type node to dump
+     *
+     * @return string the string representation of the character type
      */
     public function visitCharType(CharTypeNode $node): string
     {
@@ -193,8 +200,9 @@ class DumperNodeVisitor implements NodeVisitorInterface
      *
      * Purpose: This method visualizes the "any character" wildcard (`.`).
      *
-     * @param DotNode $node The dot node to dump.
-     * @return string The string representation of the dot.
+     * @param DotNode $node the dot node to dump
+     *
+     * @return string the string representation of the dot
      */
     public function visitDot(DotNode $node): string
     {
@@ -206,8 +214,9 @@ class DumperNodeVisitor implements NodeVisitorInterface
      *
      * Purpose: This method visualizes an anchor like `^` or `$`.
      *
-     * @param AnchorNode $node The anchor node to dump.
-     * @return string The string representation of the anchor.
+     * @param AnchorNode $node the anchor node to dump
+     *
+     * @return string the string representation of the anchor
      */
     public function visitAnchor(AnchorNode $node): string
     {
@@ -219,8 +228,9 @@ class DumperNodeVisitor implements NodeVisitorInterface
      *
      * Purpose: This method visualizes a zero-width assertion like `\b` or `\A`.
      *
-     * @param AssertionNode $node The assertion node to dump.
-     * @return string The string representation of the assertion.
+     * @param AssertionNode $node the assertion node to dump
+     *
+     * @return string the string representation of the assertion
      */
     public function visitAssertion(AssertionNode $node): string
     {
@@ -233,8 +243,9 @@ class DumperNodeVisitor implements NodeVisitorInterface
      * Purpose: This method visualizes the `\K` (keep) escape sequence, which resets
      * the beginning of the reported match.
      *
-     * @param KeepNode $node The keep node to dump.
-     * @return string The string representation of the keep node.
+     * @param KeepNode $node the keep node to dump
+     *
+     * @return string the string representation of the keep node
      */
     public function visitKeep(KeepNode $node): string
     {
@@ -248,8 +259,9 @@ class DumperNodeVisitor implements NodeVisitorInterface
      * the class is negated and then recursively dumps each of the components inside
      * the class (e.g., literals, ranges, character types).
      *
-     * @param CharClassNode $node The character class node to dump.
-     * @return string The string representation of the character class and its parts.
+     * @param CharClassNode $node the character class node to dump
+     *
+     * @return string the string representation of the character class and its parts
      */
     public function visitCharClass(CharClassNode $node): string
     {
@@ -270,8 +282,9 @@ class DumperNodeVisitor implements NodeVisitorInterface
      * Purpose: This method visualizes a range within a character class, like `a-z`.
      * It recursively dumps the start and end nodes of the range.
      *
-     * @param RangeNode $node The range node to dump.
-     * @return string The string representation of the range.
+     * @param RangeNode $node the range node to dump
+     *
+     * @return string the string representation of the range
      */
     public function visitRange(RangeNode $node): string
     {
@@ -283,8 +296,9 @@ class DumperNodeVisitor implements NodeVisitorInterface
      *
      * Purpose: This method visualizes a backreference, like `\1` or `\k<name>`.
      *
-     * @param BackrefNode $node The backreference node to dump.
-     * @return string The string representation of the backreference.
+     * @param BackrefNode $node the backreference node to dump
+     *
+     * @return string the string representation of the backreference
      */
     public function visitBackref(BackrefNode $node): string
     {
@@ -296,8 +310,9 @@ class DumperNodeVisitor implements NodeVisitorInterface
      *
      * Purpose: This method visualizes a Unicode character escape, like `\x{...}`.
      *
-     * @param UnicodeNode $node The Unicode node to dump.
-     * @return string The string representation of the Unicode character.
+     * @param UnicodeNode $node the Unicode node to dump
+     *
+     * @return string the string representation of the Unicode character
      */
     public function visitUnicode(UnicodeNode $node): string
     {
@@ -309,8 +324,9 @@ class DumperNodeVisitor implements NodeVisitorInterface
      *
      * Purpose: This method visualizes a Unicode property escape, like `\p{L}`.
      *
-     * @param UnicodePropNode $node The Unicode property node to dump.
-     * @return string The string representation of the Unicode property.
+     * @param UnicodePropNode $node the Unicode property node to dump
+     *
+     * @return string the string representation of the Unicode property
      */
     public function visitUnicodeProp(UnicodePropNode $node): string
     {
@@ -322,8 +338,9 @@ class DumperNodeVisitor implements NodeVisitorInterface
      *
      * Purpose: This method visualizes a modern octal character escape, like `\o{...}`.
      *
-     * @param OctalNode $node The octal node to dump.
-     * @return string The string representation of the octal character.
+     * @param OctalNode $node the octal node to dump
+     *
+     * @return string the string representation of the octal character
      */
     public function visitOctal(OctalNode $node): string
     {
@@ -335,8 +352,9 @@ class DumperNodeVisitor implements NodeVisitorInterface
      *
      * Purpose: This method visualizes a legacy octal character escape, like `\077`.
      *
-     * @param OctalLegacyNode $node The legacy octal node to dump.
-     * @return string The string representation of the legacy octal character.
+     * @param OctalLegacyNode $node the legacy octal node to dump
+     *
+     * @return string the string representation of the legacy octal character
      */
     public function visitOctalLegacy(OctalLegacyNode $node): string
     {
@@ -348,8 +366,9 @@ class DumperNodeVisitor implements NodeVisitorInterface
      *
      * Purpose: This method visualizes a POSIX character class, like `[:alpha:]`.
      *
-     * @param PosixClassNode $node The POSIX class node to dump.
-     * @return string The string representation of the POSIX class.
+     * @param PosixClassNode $node the POSIX class node to dump
+     *
+     * @return string the string representation of the POSIX class
      */
     public function visitPosixClass(PosixClassNode $node): string
     {
@@ -361,8 +380,9 @@ class DumperNodeVisitor implements NodeVisitorInterface
      *
      * Purpose: This method visualizes an inline comment, like `(?#...)`.
      *
-     * @param CommentNode $node The comment node to dump.
-     * @return string The string representation of the comment.
+     * @param CommentNode $node the comment node to dump
+     *
+     * @return string the string representation of the comment
      */
     public function visitComment(CommentNode $node): string
     {
@@ -375,8 +395,9 @@ class DumperNodeVisitor implements NodeVisitorInterface
      * Purpose: This method visualizes a conditional subpattern, like `(?(cond)yes|no)`.
      * It recursively dumps the condition, the "yes" pattern, and the "no" pattern.
      *
-     * @param ConditionalNode $node The conditional node to dump.
-     * @return string The string representation of the conditional structure.
+     * @param ConditionalNode $node the conditional node to dump
+     *
+     * @return string the string representation of the conditional structure
      */
     public function visitConditional(ConditionalNode $node): string
     {
@@ -395,8 +416,9 @@ class DumperNodeVisitor implements NodeVisitorInterface
      *
      * Purpose: This method visualizes a subroutine call, like `(?R)` or `(?&name)`.
      *
-     * @param SubroutineNode $node The subroutine node to dump.
-     * @return string The string representation of the subroutine call.
+     * @param SubroutineNode $node the subroutine node to dump
+     *
+     * @return string the string representation of the subroutine call
      */
     public function visitSubroutine(SubroutineNode $node): string
     {
@@ -408,8 +430,9 @@ class DumperNodeVisitor implements NodeVisitorInterface
      *
      * Purpose: This method visualizes a PCRE verb, like `(*FAIL)` or `(*MARK)`.
      *
-     * @param PcreVerbNode $node The PCRE verb node to dump.
-     * @return string The string representation of the verb.
+     * @param PcreVerbNode $node the PCRE verb node to dump
+     *
+     * @return string the string representation of the verb
      */
     public function visitPcreVerb(PcreVerbNode $node): string
     {
@@ -422,8 +445,9 @@ class DumperNodeVisitor implements NodeVisitorInterface
      * Purpose: This method visualizes a `(?(DEFINE)...)` group, which is used to
      * define subroutines that are not executed in place.
      *
-     * @param DefineNode $node The define node to dump.
-     * @return string The string representation of the define group.
+     * @param DefineNode $node the define node to dump
+     *
+     * @return string the string representation of the define group
      */
     public function visitDefine(DefineNode $node): string
     {

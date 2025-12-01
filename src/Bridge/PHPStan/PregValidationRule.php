@@ -83,7 +83,7 @@ class PregValidationRule implements Rule
      * @param bool   $ignoreParseErrors If `true`, the rule will not report syntax errors that seem to be
      *                                  caused by incomplete or partial regex strings. This is useful for
      *                                  avoiding false positives in dynamic code.
-     * @param bool   $reportRedos       If `true`, the rule will perform and report ReDoS vulnerability analysis.
+     * @param bool   $reportRedos       if `true`, the rule will perform and report ReDoS vulnerability analysis
      * @param string $redosThreshold    The minimum ReDoS severity level to report. Can be one of 'low',
      *                                  'medium', 'high', or 'critical'. For example, if set to 'high',
      *                                  only high and critical severity issues will be reported.
@@ -101,7 +101,7 @@ class PregValidationRule implements Rule
      * this rule is only interested in `FuncCall` nodes, PHPStan can skip calling the
      * `processNode()` method for all other node types, speeding up the analysis.
      *
-     * @return string The fully qualified class name of the node type to process.
+     * @return string the fully qualified class name of the node type to process
      */
     public function getNodeType(): string
     {
@@ -116,8 +116,8 @@ class PregValidationRule implements Rule
      * regex pattern, and then runs the syntax and ReDoS validation checks. It collects
      * any findings and returns them as an array of `RuleError` objects for PHPStan to display.
      *
-     * @param Node  $node  The AST node being visited (a `FuncCall` in this case).
-     * @param Scope $scope The current analysis scope, providing type information about nodes.
+     * @param Node  $node  the AST node being visited (a `FuncCall` in this case)
+     * @param Scope $scope the current analysis scope, providing type information about nodes
      *
      * @return array An array of `RuleError` objects. Returns an empty array if no issues are found.
      */
@@ -240,13 +240,7 @@ class PregValidationRule implements Rule
             'Unexpected end',
         ];
 
-        foreach ($indicators as $indicator) {
-            if (false !== stripos($errorMessage, $indicator)) {
-                return true;
-            }
-        }
-
-        return false;
+        return array_any($indicators, fn ($indicator) => false !== stripos($errorMessage, (string) $indicator));
     }
 
     private function truncatePattern(string $pattern, int $length = 50): string

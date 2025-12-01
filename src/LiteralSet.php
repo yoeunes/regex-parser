@@ -32,8 +32,8 @@ readonly class LiteralSet
      * to build up knowledge about the constant parts of a regular expression. It's the
      * foundational building block for literal analysis.
      *
-     * @param array<string> $prefixes An array of possible literal strings that can appear at the beginning of a match.
-     * @param array<string> $suffixes An array of possible literal strings that can appear at the end of a match.
+     * @param array<string> $prefixes an array of possible literal strings that can appear at the beginning of a match
+     * @param array<string> $suffixes an array of possible literal strings that can appear at the end of a match
      * @param bool          $complete If true, indicates that the prefixes and suffixes represent the *entire*
      *                                possible match. For example, the regex `/cat/` would have a complete set
      *                                `{"cat"}`, while `/cat\d+/` would have an incomplete set with prefix `{"cat"}`.
