@@ -13,8 +13,8 @@ declare(strict_types=1);
 
 namespace RegexParser\Bridge\Symfony\DataCollector;
 
-use RegexParser\NodeVisitor\ComplexityScoreVisitor;
-use RegexParser\NodeVisitor\ExplainVisitor;
+use RegexParser\NodeVisitor\ComplexityScoreNodeVisitor;
+use RegexParser\NodeVisitor\ExplainNodeVisitor;
 use RegexParser\Regex;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -66,8 +66,8 @@ class RegexCollector extends DataCollector implements LateDataCollectorInterface
 
     public function __construct(
         private readonly Regex $regex,
-        private readonly ExplainVisitor $explainVisitor,
-        private readonly ComplexityScoreVisitor $scoreVisitor,
+        private readonly ExplainNodeVisitor $explainVisitor,
+        private readonly ComplexityScoreNodeVisitor $scoreVisitor,
         private readonly int $redosThreshold = 100,
         private readonly int $warningThreshold = 50,
     ) {

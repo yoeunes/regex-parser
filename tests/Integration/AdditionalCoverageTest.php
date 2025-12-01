@@ -16,8 +16,8 @@ namespace RegexParser\Tests\Integration;
 use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Lexer;
-use RegexParser\NodeVisitor\ExplainVisitor;
-use RegexParser\NodeVisitor\SampleGeneratorVisitor;
+use RegexParser\NodeVisitor\ExplainNodeVisitor;
+use RegexParser\NodeVisitor\SampleGeneratorNodeVisitor;
 use RegexParser\Regex;
 
 /**
@@ -101,7 +101,7 @@ class AdditionalCoverageTest extends TestCase
     public function test_explain_visitor_range_special_chars(): void
     {
         $regex = Regex::create();
-        $visitor = new ExplainVisitor();
+        $visitor = new ExplainNodeVisitor();
 
         // Range with special characters
         $ast = $regex->parse('/[0-9]/');
@@ -112,7 +112,7 @@ class AdditionalCoverageTest extends TestCase
     public function test_explain_visitor_quantifier_variations(): void
     {
         $regex = Regex::create();
-        $visitor = new ExplainVisitor();
+        $visitor = new ExplainNodeVisitor();
 
         // Test different quantifier types
         $patterns = [
@@ -134,7 +134,7 @@ class AdditionalCoverageTest extends TestCase
     public function test_explain_visitor_literal_special_chars(): void
     {
         $regex = Regex::create();
-        $visitor = new ExplainVisitor();
+        $visitor = new ExplainNodeVisitor();
 
         // Literal with special characters
         $ast = $regex->parse('/\//');
@@ -145,7 +145,7 @@ class AdditionalCoverageTest extends TestCase
     // Test SampleGeneratorVisitor edge cases
     public function test_sample_generator_with_seed(): void
     {
-        $generator = new SampleGeneratorVisitor();
+        $generator = new SampleGeneratorNodeVisitor();
         $generator->setSeed(12345);
 
         $regex = Regex::create();
@@ -156,7 +156,7 @@ class AdditionalCoverageTest extends TestCase
 
     public function test_sample_generator_reset_seed(): void
     {
-        $generator = new SampleGeneratorVisitor();
+        $generator = new SampleGeneratorNodeVisitor();
         $generator->setSeed(12345);
         $generator->resetSeed();
 
@@ -168,7 +168,7 @@ class AdditionalCoverageTest extends TestCase
 
     public function test_sample_generator_unicode_prop(): void
     {
-        $generator = new SampleGeneratorVisitor();
+        $generator = new SampleGeneratorNodeVisitor();
         $regex = Regex::create();
 
         // Test \p{L}
@@ -180,7 +180,7 @@ class AdditionalCoverageTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_sample_generator_char_type_variations(): void
     {
-        $generator = new SampleGeneratorVisitor();
+        $generator = new SampleGeneratorNodeVisitor();
         $regex = Regex::create();
 
         $patterns = [
@@ -204,7 +204,7 @@ class AdditionalCoverageTest extends TestCase
 
     public function test_sample_generator_backref_named(): void
     {
-        $generator = new SampleGeneratorVisitor();
+        $generator = new SampleGeneratorNodeVisitor();
         $regex = Regex::create();
 
         $ast = $regex->parse('/(?<name>abc)\k<name>/');
@@ -214,7 +214,7 @@ class AdditionalCoverageTest extends TestCase
 
     public function test_sample_generator_group_non_capturing(): void
     {
-        $generator = new SampleGeneratorVisitor();
+        $generator = new SampleGeneratorNodeVisitor();
         $regex = Regex::create();
 
         $ast = $regex->parse('/(?:abc)/');
@@ -225,7 +225,7 @@ class AdditionalCoverageTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_sample_generator_posix_classes(): void
     {
-        $generator = new SampleGeneratorVisitor();
+        $generator = new SampleGeneratorNodeVisitor();
         $regex = Regex::create();
 
         // Test various POSIX classes that have sample generation support

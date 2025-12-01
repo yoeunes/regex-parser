@@ -25,8 +25,8 @@ use RegexParser\Node\QuantifierType;
 use RegexParser\Node\SubroutineNode;
 use RegexParser\Node\UnicodePropNode;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
-use RegexParser\NodeVisitor\ExplainVisitor;
-use RegexParser\NodeVisitor\HtmlExplainVisitor;
+use RegexParser\NodeVisitor\ExplainNodeVisitor;
+use RegexParser\NodeVisitor\HtmlExplainNodeVisitor;
 
 class ExhaustiveVisitorTest extends TestCase
 {
@@ -101,8 +101,8 @@ class ExhaustiveVisitorTest extends TestCase
 
     public function test_explain_all_char_types_and_assertions(): void
     {
-        $explainer = new ExplainVisitor();
-        $htmlExplainer = new HtmlExplainVisitor();
+        $explainer = new ExplainNodeVisitor();
+        $htmlExplainer = new HtmlExplainNodeVisitor();
 
         // Char Types: d, D, s, S, w, W, h, H, v, V, R
         $types = ['d', 'D', 's', 'S', 'w', 'W', 'h', 'H', 'v', 'V', 'R'];
@@ -131,7 +131,7 @@ class ExhaustiveVisitorTest extends TestCase
 
     public function test_explain_group_types(): void
     {
-        $explainer = new ExplainVisitor();
+        $explainer = new ExplainNodeVisitor();
 
         // Lookbehind Positive
         $node = new GroupNode(new LiteralNode('a', 0, 0), GroupType::T_GROUP_LOOKBEHIND_POSITIVE);
@@ -148,7 +148,7 @@ class ExhaustiveVisitorTest extends TestCase
 
     public function test_explain_quantifiers(): void
     {
-        $explainer = new ExplainVisitor();
+        $explainer = new ExplainNodeVisitor();
         $node = new LiteralNode('a', 0, 0);
 
         // Range {1,3}

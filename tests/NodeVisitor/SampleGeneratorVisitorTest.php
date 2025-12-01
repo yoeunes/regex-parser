@@ -15,19 +15,19 @@ namespace RegexParser\Tests\NodeVisitor;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use RegexParser\NodeVisitor\SampleGeneratorVisitor;
+use RegexParser\NodeVisitor\SampleGeneratorNodeVisitor;
 use RegexParser\Regex;
 
 class SampleGeneratorVisitorTest extends TestCase
 {
     private Regex $regex;
 
-    private SampleGeneratorVisitor $generator;
+    private SampleGeneratorNodeVisitor $generator;
 
     protected function setUp(): void
     {
         $this->regex = Regex::create();
-        $this->generator = new SampleGeneratorVisitor();
+        $this->generator = new SampleGeneratorNodeVisitor();
         $this->generator->setSeed(42); // Deterministic
     }
 
@@ -66,7 +66,7 @@ class SampleGeneratorVisitorTest extends TestCase
         // (a|b)\1 must generate "aa" or "bb", but never "ab"
         $regex = Regex::create();
         $ast = $regex->parse('/(a|b)\1/');
-        $generator = new SampleGeneratorVisitor();
+        $generator = new SampleGeneratorNodeVisitor();
 
         $sample = $ast->accept($generator);
         $this->assertContains($sample, ['aa', 'bb']);
@@ -76,7 +76,7 @@ class SampleGeneratorVisitorTest extends TestCase
     {
         $regex = Regex::create();
         $ast = $regex->parse('/[a-z]{10}/');
-        $generator = new SampleGeneratorVisitor();
+        $generator = new SampleGeneratorNodeVisitor();
 
         $generator->setSeed(12345);
         $sample1 = $ast->accept($generator);
@@ -100,7 +100,7 @@ class SampleGeneratorVisitorTest extends TestCase
         // Note: PHP PCRE doesn't support \u{} and \o{} syntax, so we test the generated output directly
         $regex = '/\x41\u{00E9}\o{40}\010/';
         $ast = $this->regex->parse($regex);
-        $generator = new SampleGeneratorVisitor();
+        $generator = new SampleGeneratorNodeVisitor();
         $sample = $ast->accept($generator);
 
         // Expected: \x41 = 'A', \u{00E9} = 'é', \o{40} = ' ' (space, octal 40 = decimal 32), \010 = backspace (octal 10 = decimal 8)
@@ -117,7 +117,7 @@ class SampleGeneratorVisitorTest extends TestCase
         // the backref fails the entire match in PCRE. The generator randomly chooses 0 or 1
         // for '?', so we test this separately to ensure it can generate a valid match.
         $ast = $this->regex->parse('/(?<name>a)?\k<name>/');
-        $generator = new SampleGeneratorVisitor();
+        $generator = new SampleGeneratorNodeVisitor();
 
         // Try multiple times - at least one should generate 'aa' (when group matches)
         $validSampleFound = false;
@@ -139,7 +139,7 @@ class SampleGeneratorVisitorTest extends TestCase
         // So the generator can produce 'Y', 'N', or '' (when no branch is chosen)
         $regex = Regex::create();
         $ast = $regex->parse('/(?(?=\d)Y|N)/');
-        $generator = new SampleGeneratorVisitor();
+        $generator = new SampleGeneratorNodeVisitor();
 
         $output = $ast->accept($generator);
         // The output should be one of these values based on how the parser interprets the pattern
@@ -225,7 +225,7 @@ class SampleGeneratorVisitorTest extends TestCase
         // On s'assure que cette ligne est exécutée.
         $regex = \RegexParser\Regex::create();
         $ast = $regex->parse('/[^abc]/');
-        $generator = new \RegexParser\NodeVisitor\SampleGeneratorVisitor();
+        $generator = new \RegexParser\NodeVisitor\SampleGeneratorNodeVisitor();
 
         $result = $ast->accept($generator);
         $this->assertSame('!', $result);
@@ -244,7 +244,7 @@ class SampleGeneratorVisitorTest extends TestCase
     private function assertSampleMatches(string $regex): void
     {
         $ast = $this->regex->parse($regex);
-        $generator = new SampleGeneratorVisitor();
+        $generator = new SampleGeneratorNodeVisitor();
 
         for ($i = 0; $i < 5; $i++) {
             $sample = $ast->accept($generator);
@@ -255,7 +255,7 @@ class SampleGeneratorVisitorTest extends TestCase
     private function generateSample(string $regex): string
     {
         $ast = $this->regex->parse($regex);
-        $generator = new SampleGeneratorVisitor();
+        $generator = new SampleGeneratorNodeVisitor();
 
         return $ast->accept($generator);
     }

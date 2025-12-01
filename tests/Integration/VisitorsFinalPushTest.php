@@ -19,7 +19,7 @@ use RegexParser\Node\CharTypeNode;
 use RegexParser\Node\LiteralNode;
 use RegexParser\Node\NodeInterface;
 use RegexParser\NodeVisitor\OptimizerNodeVisitor;
-use RegexParser\NodeVisitor\SampleGeneratorVisitor;
+use RegexParser\NodeVisitor\SampleGeneratorNodeVisitor;
 
 class VisitorsFinalPushTest extends TestCase
 {
@@ -57,7 +57,7 @@ class VisitorsFinalPushTest extends TestCase
      */
     public function test_sample_generator_unknown_char_type(): void
     {
-        $generator = new SampleGeneratorVisitor();
+        $generator = new SampleGeneratorNodeVisitor();
         // 'Z' n'est pas un type standard connu du générateur
         $node = new CharTypeNode('Z', 0, 0);
 

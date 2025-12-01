@@ -14,12 +14,12 @@ declare(strict_types=1);
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
-use RegexParser\NodeVisitor\ComplexityScoreVisitor;
+use RegexParser\NodeVisitor\ComplexityScoreNodeVisitor;
 use RegexParser\NodeVisitor\DumperNodeVisitor;
-use RegexParser\NodeVisitor\ExplainVisitor;
-use RegexParser\NodeVisitor\HtmlExplainVisitor;
+use RegexParser\NodeVisitor\ExplainNodeVisitor;
+use RegexParser\NodeVisitor\HtmlExplainNodeVisitor;
 use RegexParser\NodeVisitor\OptimizerNodeVisitor;
-use RegexParser\NodeVisitor\SampleGeneratorVisitor;
+use RegexParser\NodeVisitor\SampleGeneratorNodeVisitor;
 use RegexParser\NodeVisitor\ValidatorNodeVisitor;
 use RegexParser\Parser;
 use RegexParser\Regex;
@@ -39,11 +39,11 @@ return static function (ContainerConfigurator $container): void {
 
     // Node visitors
     $services->set('regex_parser.visitor.validator', ValidatorNodeVisitor::class);
-    $services->set('regex_parser.visitor.explain', ExplainVisitor::class);
-    $services->set('regex_parser.visitor.complexity_score', ComplexityScoreVisitor::class);
-    $services->set('regex_parser.visitor.html_explain', HtmlExplainVisitor::class);
+    $services->set('regex_parser.visitor.explain', ExplainNodeVisitor::class);
+    $services->set('regex_parser.visitor.complexity_score', ComplexityScoreNodeVisitor::class);
+    $services->set('regex_parser.visitor.html_explain', HtmlExplainNodeVisitor::class);
     $services->set('regex_parser.visitor.optimizer', OptimizerNodeVisitor::class);
-    $services->set('regex_parser.visitor.sample_generator', SampleGeneratorVisitor::class);
+    $services->set('regex_parser.visitor.sample_generator', SampleGeneratorNodeVisitor::class);
     $services->set('regex_parser.visitor.dumper', DumperNodeVisitor::class);
     $services->set('regex_parser.visitor.compiler', CompilerNodeVisitor::class);
 
@@ -63,6 +63,6 @@ return static function (ContainerConfigurator $container): void {
         ->public();
 
     $services->alias(Parser::class, 'regex_parser.parser');
-    $services->alias(ExplainVisitor::class, 'regex_parser.visitor.explain');
-    $services->alias(ComplexityScoreVisitor::class, 'regex_parser.visitor.complexity_score');
+    $services->alias(ExplainNodeVisitor::class, 'regex_parser.visitor.explain');
+    $services->alias(ComplexityScoreNodeVisitor::class, 'regex_parser.visitor.complexity_score');
 };

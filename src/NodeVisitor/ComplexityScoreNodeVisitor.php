@@ -46,7 +46,7 @@ use RegexParser\Node\UnicodePropNode;
  *
  * @implements NodeVisitorInterface<int>
  */
-class ComplexityScoreVisitor implements NodeVisitorInterface
+class ComplexityScoreNodeVisitor implements NodeVisitorInterface
 {
     /**
      * Base score for a node.

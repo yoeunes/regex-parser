@@ -15,10 +15,10 @@ namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\Lexer;
-use RegexParser\NodeVisitor\ExplainVisitor;
-use RegexParser\NodeVisitor\HtmlExplainVisitor;
+use RegexParser\NodeVisitor\ExplainNodeVisitor;
+use RegexParser\NodeVisitor\HtmlExplainNodeVisitor;
 use RegexParser\NodeVisitor\OptimizerNodeVisitor;
-use RegexParser\NodeVisitor\SampleGeneratorVisitor;
+use RegexParser\NodeVisitor\SampleGeneratorNodeVisitor;
 use RegexParser\NodeVisitor\ValidatorNodeVisitor;
 use RegexParser\Regex;
 
@@ -29,23 +29,23 @@ class ExtendedCoverageTest extends TestCase
 {
     private Regex $regex;
 
-    private ExplainVisitor $explainVisitor;
+    private ExplainNodeVisitor $explainVisitor;
 
-    private HtmlExplainVisitor $htmlExplainVisitor;
+    private HtmlExplainNodeVisitor $htmlExplainVisitor;
 
     private OptimizerNodeVisitor $optimizerVisitor;
 
-    private SampleGeneratorVisitor $sampleVisitor;
+    private SampleGeneratorNodeVisitor $sampleVisitor;
 
     private ValidatorNodeVisitor $validatorVisitor;
 
     protected function setUp(): void
     {
         $this->regex = Regex::create();
-        $this->explainVisitor = new ExplainVisitor();
-        $this->htmlExplainVisitor = new HtmlExplainVisitor();
+        $this->explainVisitor = new ExplainNodeVisitor();
+        $this->htmlExplainVisitor = new HtmlExplainNodeVisitor();
         $this->optimizerVisitor = new OptimizerNodeVisitor();
-        $this->sampleVisitor = new SampleGeneratorVisitor();
+        $this->sampleVisitor = new SampleGeneratorNodeVisitor();
         $this->validatorVisitor = new ValidatorNodeVisitor();
     }
 

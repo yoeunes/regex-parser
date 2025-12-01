@@ -34,21 +34,21 @@ readonly class Regex
     public const int DEFAULT_MAX_PATTERN_LENGTH = 100_000;
 
     /**
-     * @param NodeVisitor\ValidatorNodeVisitor   $validator        a reusable validator visitor
-     * @param NodeVisitor\ExplainVisitor         $explainer        a reusable explain visitor
-     * @param NodeVisitor\SampleGeneratorVisitor $generator        a reusable sample generator visitor
-     * @param NodeVisitor\OptimizerNodeVisitor   $optimizer        a reusable optimizer visitor
-     * @param NodeVisitor\DumperNodeVisitor      $dumper           a reusable dumper visitor
-     * @param NodeVisitor\ComplexityScoreVisitor $scorer           a reusable complexity scorer
-     * @param int                                $maxPatternLength maximum allowed pattern length
+     * @param NodeVisitor\ValidatorNodeVisitor       $validator        a reusable validator visitor
+     * @param NodeVisitor\ExplainNodeVisitor         $explainer        a reusable explain visitor
+     * @param NodeVisitor\SampleGeneratorNodeVisitor $generator        a reusable sample generator visitor
+     * @param NodeVisitor\OptimizerNodeVisitor       $optimizer        a reusable optimizer visitor
+     * @param NodeVisitor\DumperNodeVisitor          $dumper           a reusable dumper visitor
+     * @param NodeVisitor\ComplexityScoreNodeVisitor $scorer           a reusable complexity scorer
+     * @param int                                    $maxPatternLength maximum allowed pattern length
      */
     public function __construct(
         private NodeVisitor\ValidatorNodeVisitor $validator,
-        private NodeVisitor\ExplainVisitor $explainer,
-        private NodeVisitor\SampleGeneratorVisitor $generator,
+        private NodeVisitor\ExplainNodeVisitor $explainer,
+        private NodeVisitor\SampleGeneratorNodeVisitor $generator,
         private NodeVisitor\OptimizerNodeVisitor $optimizer,
         private NodeVisitor\DumperNodeVisitor $dumper,
-        private NodeVisitor\ComplexityScoreVisitor $scorer,
+        private NodeVisitor\ComplexityScoreNodeVisitor $scorer,
         private int $maxPatternLength = self::DEFAULT_MAX_PATTERN_LENGTH,
     ) {}
 
@@ -63,11 +63,11 @@ readonly class Regex
     {
         return new self(
             new NodeVisitor\ValidatorNodeVisitor(),
-            new NodeVisitor\ExplainVisitor(),
-            new NodeVisitor\SampleGeneratorVisitor(),
+            new NodeVisitor\ExplainNodeVisitor(),
+            new NodeVisitor\SampleGeneratorNodeVisitor(),
             new NodeVisitor\OptimizerNodeVisitor(),
             new NodeVisitor\DumperNodeVisitor(),
-            new NodeVisitor\ComplexityScoreVisitor(),
+            new NodeVisitor\ComplexityScoreNodeVisitor(),
             (int) ($options['max_pattern_length'] ?? self::DEFAULT_MAX_PATTERN_LENGTH),
         );
     }
@@ -152,7 +152,7 @@ readonly class Regex
     {
         $ast = $this->parseRegex($regex);
 
-        return $ast->accept(new NodeVisitor\MermaidVisitor());
+        return $ast->accept(new NodeVisitor\MermaidNodeVisitor());
     }
 
     /**
@@ -177,7 +177,7 @@ readonly class Regex
     {
         $ast = $this->parseRegex($regex);
 
-        $visitor = new NodeVisitor\LiteralExtractorVisitor();
+        $visitor = new NodeVisitor\LiteralExtractorNodeVisitor();
 
         return $ast->accept($visitor);
     }

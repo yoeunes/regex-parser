@@ -47,7 +47,7 @@ use RegexParser\Node\UnicodePropNode;
  *
  * @implements NodeVisitorInterface<array<string, mixed>>
  */
-class ArrayExplorerVisitor implements NodeVisitorInterface
+class ArrayExplorerNodeVisitor implements NodeVisitorInterface
 {
     public function visitRegex(RegexNode $node): array
     {

@@ -15,19 +15,19 @@ namespace RegexParser\Tests\NodeVisitor;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\LiteralSet;
-use RegexParser\NodeVisitor\LiteralExtractorVisitor;
+use RegexParser\NodeVisitor\LiteralExtractorNodeVisitor;
 use RegexParser\Regex;
 
 class LiteralExtractorVisitorTest extends TestCase
 {
     private Regex $regex;
 
-    private LiteralExtractorVisitor $visitor;
+    private LiteralExtractorNodeVisitor $visitor;
 
     protected function setUp(): void
     {
         $this->regex = Regex::create();
-        $this->visitor = new LiteralExtractorVisitor();
+        $this->visitor = new LiteralExtractorNodeVisitor();
     }
 
     public function test_simple_literal(): void

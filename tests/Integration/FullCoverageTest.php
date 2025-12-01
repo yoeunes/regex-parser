@@ -18,10 +18,10 @@ use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
 use RegexParser\Lexer;
-use RegexParser\NodeVisitor\ExplainVisitor;
-use RegexParser\NodeVisitor\HtmlExplainVisitor;
+use RegexParser\NodeVisitor\ExplainNodeVisitor;
+use RegexParser\NodeVisitor\HtmlExplainNodeVisitor;
 use RegexParser\NodeVisitor\OptimizerNodeVisitor;
-use RegexParser\NodeVisitor\SampleGeneratorVisitor;
+use RegexParser\NodeVisitor\SampleGeneratorNodeVisitor;
 use RegexParser\NodeVisitor\ValidatorNodeVisitor;
 use RegexParser\Regex;
 
@@ -226,7 +226,7 @@ class FullCoverageTest extends TestCase
         $regex = Regex::create();
         $ast = $regex->parse('/\P{L}/');
 
-        $visitor = new ExplainVisitor();
+        $visitor = new ExplainNodeVisitor();
         $result = $ast->accept($visitor);
 
         $this->assertNotEmpty($result);
@@ -238,7 +238,7 @@ class FullCoverageTest extends TestCase
         $regex = Regex::create();
         $ast = $regex->parse('/\07/');
 
-        $visitor = new ExplainVisitor();
+        $visitor = new ExplainNodeVisitor();
         $result = $ast->accept($visitor);
 
         $this->assertNotEmpty($result);
@@ -250,7 +250,7 @@ class FullCoverageTest extends TestCase
         $regex = Regex::create();
         $ast = $regex->parse('/(*FAIL)/');
 
-        $visitor = new HtmlExplainVisitor();
+        $visitor = new HtmlExplainNodeVisitor();
         $result = $ast->accept($visitor);
 
         $this->assertNotEmpty($result);
@@ -262,7 +262,7 @@ class FullCoverageTest extends TestCase
         $regex = Regex::create();
         $ast = $regex->parse('/test\Kmore/');
 
-        $visitor = new HtmlExplainVisitor();
+        $visitor = new HtmlExplainNodeVisitor();
         $result = $ast->accept($visitor);
 
         $this->assertNotEmpty($result);
@@ -274,7 +274,7 @@ class FullCoverageTest extends TestCase
         $regex = Regex::create();
         $ast = $regex->parse('/(?<group>test)(?&group)/');
 
-        $visitor = new HtmlExplainVisitor();
+        $visitor = new HtmlExplainNodeVisitor();
         $result = $ast->accept($visitor);
 
         $this->assertNotEmpty($result);
@@ -297,7 +297,7 @@ class FullCoverageTest extends TestCase
         $regex = Regex::create();
         $ast = $regex->parse('/(x)(?(1)y|z)/');
 
-        $visitor = new SampleGeneratorVisitor();
+        $visitor = new SampleGeneratorNodeVisitor();
         $sample = $ast->accept($visitor);
 
         $this->assertIsString($sample);
@@ -309,7 +309,7 @@ class FullCoverageTest extends TestCase
         $regex = Regex::create();
         $ast = $regex->parse('/(*ACCEPT)test/');
 
-        $visitor = new SampleGeneratorVisitor();
+        $visitor = new SampleGeneratorNodeVisitor();
         $sample = $ast->accept($visitor);
 
         $this->assertIsString($sample);
@@ -321,7 +321,7 @@ class FullCoverageTest extends TestCase
         $regex = Regex::create();
         $ast = $regex->parse('/prefix\Ksuffix/');
 
-        $visitor = new SampleGeneratorVisitor();
+        $visitor = new SampleGeneratorNodeVisitor();
         $sample = $ast->accept($visitor);
 
         $this->assertIsString($sample);
@@ -333,7 +333,7 @@ class FullCoverageTest extends TestCase
         $regex = Regex::create();
         $ast = $regex->parse('/\07/');
 
-        $visitor = new SampleGeneratorVisitor();
+        $visitor = new SampleGeneratorNodeVisitor();
         $sample = $ast->accept($visitor);
 
         $this->assertIsString($sample);
@@ -345,7 +345,7 @@ class FullCoverageTest extends TestCase
         $regex = Regex::create();
         $ast = $regex->parse('/\u{41}/');
 
-        $visitor = new SampleGeneratorVisitor();
+        $visitor = new SampleGeneratorNodeVisitor();
         $sample = $ast->accept($visitor);
 
         $this->assertIsString($sample);

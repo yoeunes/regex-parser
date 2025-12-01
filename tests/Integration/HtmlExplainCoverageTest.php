@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
-use RegexParser\NodeVisitor\HtmlExplainVisitor;
+use RegexParser\NodeVisitor\HtmlExplainNodeVisitor;
 use RegexParser\Regex;
 
 /**
@@ -24,12 +24,12 @@ class HtmlExplainCoverageTest extends TestCase
 {
     private Regex $regex;
 
-    private HtmlExplainVisitor $visitor;
+    private HtmlExplainNodeVisitor $visitor;
 
     protected function setUp(): void
     {
         $this->regex = Regex::create();
-        $this->visitor = new HtmlExplainVisitor();
+        $this->visitor = new HtmlExplainNodeVisitor();
     }
 
     public function test_html_explain_unicode_prop(): void

@@ -15,7 +15,7 @@ namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\Lexer;
-use RegexParser\NodeVisitor\SampleGeneratorVisitor;
+use RegexParser\NodeVisitor\SampleGeneratorNodeVisitor;
 use RegexParser\TokenType;
 
 class ReflectionCoverageTest extends TestCase
@@ -26,7 +26,7 @@ class ReflectionCoverageTest extends TestCase
      */
     public function test_sample_generator_get_random_char_empty(): void
     {
-        $visitor = new SampleGeneratorVisitor();
+        $visitor = new SampleGeneratorNodeVisitor();
         $reflection = new \ReflectionClass($visitor);
         $method = $reflection->getMethod('getRandomChar');
 

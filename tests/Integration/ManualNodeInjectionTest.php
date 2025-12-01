@@ -20,13 +20,13 @@ use RegexParser\Node\LiteralNode;
 use RegexParser\Node\OctalNode;
 use RegexParser\Node\UnicodeNode;
 use RegexParser\NodeVisitor\OptimizerNodeVisitor;
-use RegexParser\NodeVisitor\SampleGeneratorVisitor;
+use RegexParser\NodeVisitor\SampleGeneratorNodeVisitor;
 
 class ManualNodeInjectionTest extends TestCase
 {
     public function test_sample_generator_fallbacks(): void
     {
-        $generator = new SampleGeneratorVisitor();
+        $generator = new SampleGeneratorNodeVisitor();
 
         // 1. CharTypeNode with unknown type
         // Parser only allows d, D, s, S, etc. We force '?' to hit the default match arm.

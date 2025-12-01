@@ -14,19 +14,19 @@ declare(strict_types=1);
 namespace RegexParser\Tests\NodeVisitor;
 
 use PHPUnit\Framework\TestCase;
-use RegexParser\NodeVisitor\HtmlExplainVisitor;
+use RegexParser\NodeVisitor\HtmlExplainNodeVisitor;
 use RegexParser\Regex;
 
 class HtmlExplainVisitorCoverageTest extends TestCase
 {
     private Regex $regex;
 
-    private HtmlExplainVisitor $visitor;
+    private HtmlExplainNodeVisitor $visitor;
 
     protected function setUp(): void
     {
         $this->regex = Regex::create();
-        $this->visitor = new HtmlExplainVisitor();
+        $this->visitor = new HtmlExplainNodeVisitor();
     }
 
     public function test_visit_conditional_with_else_branch(): void

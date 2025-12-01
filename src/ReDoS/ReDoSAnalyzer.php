@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace RegexParser\ReDoS;
 
 use RegexParser\Lexer;
-use RegexParser\NodeVisitor\ReDoSProfileVisitor;
+use RegexParser\NodeVisitor\ReDoSProfileNodeVisitor;
 use RegexParser\Parser;
 use RegexParser\Regex;
 use RegexParser\TokenStream;
@@ -28,7 +28,7 @@ class ReDoSAnalyzer
     {
         try {
             $ast = $this->parseRegex($regex);
-            $visitor = new ReDoSProfileVisitor();
+            $visitor = new ReDoSProfileNodeVisitor();
             $ast->accept($visitor);
 
             $result = $visitor->getResult();

@@ -17,7 +17,7 @@ use PHPUnit\Framework\TestCase;
 use RegexParser\Node\CharTypeNode;
 use RegexParser\Node\SubroutineNode;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
-use RegexParser\NodeVisitor\SampleGeneratorVisitor;
+use RegexParser\NodeVisitor\SampleGeneratorNodeVisitor;
 
 class ManualFallbackTest extends TestCase
 {
@@ -29,7 +29,7 @@ class ManualFallbackTest extends TestCase
     {
         // On injecte un nœud avec un type invalide 'z'
         $node = new CharTypeNode('z', 0, 0);
-        $generator = new SampleGeneratorVisitor();
+        $generator = new SampleGeneratorNodeVisitor();
 
         // Doit retourner '?' (le default du switch)
         $this->assertSame('?', $node->accept($generator));
@@ -55,7 +55,7 @@ class ManualFallbackTest extends TestCase
      */
     public function test_sample_generator_parse_quantifier_fallback(): void
     {
-        $generator = new SampleGeneratorVisitor();
+        $generator = new SampleGeneratorNodeVisitor();
         $reflection = new \ReflectionClass($generator);
         $method = $reflection->getMethod('parseQuantifierRange');
 

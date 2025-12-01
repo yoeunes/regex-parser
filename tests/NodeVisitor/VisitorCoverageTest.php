@@ -17,8 +17,8 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
 use RegexParser\NodeVisitor\DumperNodeVisitor;
-use RegexParser\NodeVisitor\ExplainVisitor;
-use RegexParser\NodeVisitor\HtmlExplainVisitor;
+use RegexParser\NodeVisitor\ExplainNodeVisitor;
+use RegexParser\NodeVisitor\HtmlExplainNodeVisitor;
 use RegexParser\Regex;
 
 class VisitorCoverageTest extends TestCase
@@ -87,12 +87,12 @@ class VisitorCoverageTest extends TestCase
         $this->assertNotEmpty($dump);
 
         // 3. Test Explain (Text)
-        $explainer = new ExplainVisitor();
+        $explainer = new ExplainNodeVisitor();
         $explanation = $ast->accept($explainer);
         $this->assertNotEmpty($explanation);
 
         // 4. Test HTML Explain
-        $htmlExplainer = new HtmlExplainVisitor();
+        $htmlExplainer = new HtmlExplainNodeVisitor();
         $html = $ast->accept($htmlExplainer);
         $this->assertNotEmpty($html);
     }

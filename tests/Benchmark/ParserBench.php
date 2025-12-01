@@ -17,7 +17,7 @@ use PhpBench\Attributes\BeforeMethods;
 use PhpBench\Attributes\Iterations;
 use PhpBench\Attributes\Revs;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
-use RegexParser\NodeVisitor\ExplainVisitor;
+use RegexParser\NodeVisitor\ExplainNodeVisitor;
 use RegexParser\Regex;
 
 /**
@@ -34,13 +34,13 @@ class ParserBench
 
     private CompilerNodeVisitor $compiler;
 
-    private ExplainVisitor $explainer;
+    private ExplainNodeVisitor $explainer;
 
     public function setUp(): void
     {
         $this->regex = Regex::create();
         $this->compiler = new CompilerNodeVisitor();
-        $this->explainer = new ExplainVisitor();
+        $this->explainer = new ExplainNodeVisitor();
     }
 
     /**

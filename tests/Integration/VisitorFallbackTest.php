@@ -21,7 +21,7 @@ use RegexParser\Node\NodeInterface;
 use RegexParser\Node\OctalNode;
 use RegexParser\Node\UnicodeNode;
 use RegexParser\NodeVisitor\OptimizerNodeVisitor;
-use RegexParser\NodeVisitor\SampleGeneratorVisitor;
+use RegexParser\NodeVisitor\SampleGeneratorNodeVisitor;
 use RegexParser\NodeVisitor\ValidatorNodeVisitor;
 use RegexParser\Regex;
 
@@ -34,7 +34,7 @@ class VisitorFallbackTest extends TestCase
         $regex = Regex::create();
         $ast = $regex->parse('/\1/');
 
-        $generator = new SampleGeneratorVisitor();
+        $generator = new SampleGeneratorNodeVisitor();
         // Should return empty string (fallback)
         $this->assertSame('', $ast->accept($generator));
     }
@@ -43,7 +43,7 @@ class VisitorFallbackTest extends TestCase
     {
         // Inject a UnicodeNode with a value that doesn't match the regex pattern expected
         $node = new UnicodeNode('BAD', 0, 0);
-        $generator = new SampleGeneratorVisitor();
+        $generator = new SampleGeneratorNodeVisitor();
 
         // Should hit the '?' fallback
         $this->assertSame('?', $node->accept($generator));
@@ -53,7 +53,7 @@ class VisitorFallbackTest extends TestCase
     {
         // Inject OctalNode with bad value
         $node = new OctalNode('BAD', 0, 0);
-        $generator = new SampleGeneratorVisitor();
+        $generator = new SampleGeneratorNodeVisitor();
 
         // Should hit the '?' fallback
         $this->assertSame('?', $node->accept($generator));

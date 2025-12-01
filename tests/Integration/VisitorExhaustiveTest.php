@@ -41,12 +41,12 @@ use RegexParser\Node\SubroutineNode;
 use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
-use RegexParser\NodeVisitor\ComplexityScoreVisitor;
+use RegexParser\NodeVisitor\ComplexityScoreNodeVisitor;
 use RegexParser\NodeVisitor\DumperNodeVisitor;
-use RegexParser\NodeVisitor\ExplainVisitor;
-use RegexParser\NodeVisitor\HtmlExplainVisitor;
+use RegexParser\NodeVisitor\ExplainNodeVisitor;
+use RegexParser\NodeVisitor\HtmlExplainNodeVisitor;
 use RegexParser\NodeVisitor\OptimizerNodeVisitor;
-use RegexParser\NodeVisitor\SampleGeneratorVisitor;
+use RegexParser\NodeVisitor\SampleGeneratorNodeVisitor;
 use RegexParser\NodeVisitor\ValidatorNodeVisitor;
 
 class VisitorExhaustiveTest extends TestCase
@@ -57,14 +57,14 @@ class VisitorExhaustiveTest extends TestCase
         // Liste de tous les visiteurs
         $visitors = [
             new CompilerNodeVisitor(),
-            new ComplexityScoreVisitor(),
+            new ComplexityScoreNodeVisitor(),
             new DumperNodeVisitor(),
-            new ExplainVisitor(),
-            new HtmlExplainVisitor(),
+            new ExplainNodeVisitor(),
+            new HtmlExplainNodeVisitor(),
             new OptimizerNodeVisitor(),
             // Note: SampleGenerator et Validator ont des logiques strictes qui peuvent throw des exceptions
             // sur des nœuds isolés. On les inclut mais on catchera les erreurs.
-            new SampleGeneratorVisitor(),
+            new SampleGeneratorNodeVisitor(),
             new ValidatorNodeVisitor(),
         ];
 
@@ -105,7 +105,7 @@ class VisitorExhaustiveTest extends TestCase
                 }
 
                 // Cas spécifique SampleGenerator qui ne supporte pas les subroutines
-                if ($visitor instanceof SampleGeneratorVisitor && $node instanceof SubroutineNode) {
+                if ($visitor instanceof SampleGeneratorNodeVisitor && $node instanceof SubroutineNode) {
                     continue;
                 }
 

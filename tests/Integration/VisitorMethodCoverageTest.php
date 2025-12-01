@@ -29,11 +29,11 @@ use RegexParser\Node\PosixClassNode;
 use RegexParser\Node\SubroutineNode;
 use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
-use RegexParser\NodeVisitor\ComplexityScoreVisitor;
-use RegexParser\NodeVisitor\ExplainVisitor;
-use RegexParser\NodeVisitor\HtmlExplainVisitor;
+use RegexParser\NodeVisitor\ComplexityScoreNodeVisitor;
+use RegexParser\NodeVisitor\ExplainNodeVisitor;
+use RegexParser\NodeVisitor\HtmlExplainNodeVisitor;
 use RegexParser\NodeVisitor\OptimizerNodeVisitor;
-use RegexParser\NodeVisitor\SampleGeneratorVisitor;
+use RegexParser\NodeVisitor\SampleGeneratorNodeVisitor;
 use RegexParser\NodeVisitor\ValidatorNodeVisitor;
 
 class VisitorMethodCoverageTest extends TestCase
@@ -68,7 +68,7 @@ class VisitorMethodCoverageTest extends TestCase
 
     public function test_sample_generator_ignored_nodes_return_empty_string(): void
     {
-        $generator = new SampleGeneratorVisitor();
+        $generator = new SampleGeneratorNodeVisitor();
 
         $nodes = [
             new AnchorNode('^', 0, 0),
@@ -86,7 +86,7 @@ class VisitorMethodCoverageTest extends TestCase
 
     public function test_complexity_score_leaf_nodes(): void
     {
-        $scorer = new ComplexityScoreVisitor();
+        $scorer = new ComplexityScoreNodeVisitor();
 
         // Base score of 1
         $baseNodes = [
@@ -160,18 +160,18 @@ class VisitorMethodCoverageTest extends TestCase
         ];
 
         $visitors = [
-            new ExplainVisitor(),
-            new HtmlExplainVisitor(),
+            new ExplainNodeVisitor(),
+            new HtmlExplainNodeVisitor(),
             new OptimizerNodeVisitor(),
-            new ComplexityScoreVisitor(),
+            new ComplexityScoreNodeVisitor(),
             new ValidatorNodeVisitor(),
-            new SampleGeneratorVisitor(),
+            new SampleGeneratorNodeVisitor(),
         ];
 
         foreach ($visitors as $visitor) {
             foreach ($nodes as $node) {
                 // SampleGenerator ne supporte pas les subroutines
-                if ($visitor instanceof SampleGeneratorVisitor && $node instanceof SubroutineNode) {
+                if ($visitor instanceof SampleGeneratorNodeVisitor && $node instanceof SubroutineNode) {
                     continue;
                 }
 
@@ -205,7 +205,7 @@ class VisitorMethodCoverageTest extends TestCase
 
     public function test_sample_generator_throws_logic_exception_on_subroutine(): void
     {
-        $visitor = new SampleGeneratorVisitor();
+        $visitor = new SampleGeneratorNodeVisitor();
         $node = new SubroutineNode('R', '', 0, 0);
 
         $this->expectException(\LogicException::class);

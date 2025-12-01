@@ -15,20 +15,20 @@ namespace RegexParser\Tests\NodeVisitor;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use RegexParser\NodeVisitor\ComplexityScoreVisitor;
-use RegexParser\NodeVisitor\ExplainVisitor;
+use RegexParser\NodeVisitor\ComplexityScoreNodeVisitor;
+use RegexParser\NodeVisitor\ExplainNodeVisitor;
 use RegexParser\Regex;
 
 class ComplexityScoreVisitorTest extends TestCase
 {
     private Regex $regex;
 
-    private ComplexityScoreVisitor $visitor;
+    private ComplexityScoreNodeVisitor $visitor;
 
     protected function setUp(): void
     {
         $this->regex = Regex::create();
-        $this->visitor = new ComplexityScoreVisitor();
+        $this->visitor = new ComplexityScoreNodeVisitor();
     }
 
     public function test_simple_regex_score(): void
@@ -70,7 +70,7 @@ class ComplexityScoreVisitorTest extends TestCase
     {
         $regex = Regex::create();
         $ast = $regex->parse($pattern);
-        $visitor = new ExplainVisitor();
+        $visitor = new ExplainNodeVisitor();
         $output = $ast->accept($visitor);
         $this->assertStringContainsString($expectedQuantifierText, $output);
     }
@@ -81,22 +81,22 @@ class ComplexityScoreVisitorTest extends TestCase
 
         $this->assertStringContainsString(
             'Start Positive Lookbehind',
-            $regex->parse('/(?<=a)/')->accept(new ExplainVisitor()),
+            $regex->parse('/(?<=a)/')->accept(new ExplainNodeVisitor()),
         );
         $this->assertStringContainsString(
             'Start Atomic Group',
-            $regex->parse('/(?>a)/')->accept(new ExplainVisitor()),
+            $regex->parse('/(?>a)/')->accept(new ExplainNodeVisitor()),
         );
         $this->assertStringContainsString(
             "Start Capturing Group (named: 'id')",
-            $regex->parse('/(?<id>a)/')->accept(new ExplainVisitor()),
+            $regex->parse('/(?<id>a)/')->accept(new ExplainNodeVisitor()),
         );
     }
 
     public function test_literal_special_character_explanations(): void
     {
         $regex = Regex::create();
-        $visitor = new ExplainVisitor();
+        $visitor = new ExplainNodeVisitor();
 
         $this->assertStringContainsString("Literal: ' ' (space)", $regex->parse('/ /')->accept($visitor));
         $this->assertStringContainsString("Literal: '\\t' (tab)", $regex->parse('/\t/')->accept($visitor));

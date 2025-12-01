@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Bridge\Symfony\Routing;
 
-use RegexParser\NodeVisitor\LiteralExtractorVisitor;
+use RegexParser\NodeVisitor\LiteralExtractorNodeVisitor;
 use RegexParser\Parser;
 
 /**
@@ -29,11 +29,11 @@ use RegexParser\Parser;
  */
 class RegexParserMatcherDumper
 {
-    private readonly LiteralExtractorVisitor $literalExtractor;
+    private readonly LiteralExtractorNodeVisitor $literalExtractor;
 
     public function __construct(private readonly ?Parser $parser = new Parser())
     {
-        $this->literalExtractor = new LiteralExtractorVisitor();
+        $this->literalExtractor = new LiteralExtractorNodeVisitor();
     }
 
     /**

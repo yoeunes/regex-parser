@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
-use RegexParser\NodeVisitor\SampleGeneratorVisitor;
+use RegexParser\NodeVisitor\SampleGeneratorNodeVisitor;
 
 class SampleGeneratorEdgeCasesTest extends TestCase
 {
@@ -24,7 +24,7 @@ class SampleGeneratorEdgeCasesTest extends TestCase
      */
     public function test_get_random_char_with_empty_array(): void
     {
-        $generator = new SampleGeneratorVisitor();
+        $generator = new SampleGeneratorNodeVisitor();
         $reflection = new \ReflectionClass($generator);
         $method = $reflection->getMethod('getRandomChar');
 
@@ -39,7 +39,7 @@ class SampleGeneratorEdgeCasesTest extends TestCase
      */
     public function test_parse_quantifier_range_fallback(): void
     {
-        $generator = new SampleGeneratorVisitor();
+        $generator = new SampleGeneratorNodeVisitor();
         $reflection = new \ReflectionClass($generator);
         $method = $reflection->getMethod('parseQuantifierRange');
 

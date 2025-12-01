@@ -14,8 +14,8 @@ declare(strict_types=1);
 namespace RegexParser\Tests\NodeVisitor;
 
 use PHPUnit\Framework\TestCase;
-use RegexParser\NodeVisitor\ExplainVisitor;
-use RegexParser\NodeVisitor\HtmlExplainVisitor;
+use RegexParser\NodeVisitor\ExplainNodeVisitor;
+use RegexParser\NodeVisitor\HtmlExplainNodeVisitor;
 use RegexParser\Regex;
 
 class ExplainVisitorTest extends TestCase
@@ -31,7 +31,7 @@ class ExplainVisitorTest extends TestCase
     {
         $regex = Regex::create();
         $ast = $regex->parse('/^a|b$/i');
-        $visitor = new ExplainVisitor();
+        $visitor = new ExplainNodeVisitor();
 
         $output = $ast->accept($visitor);
 
@@ -46,7 +46,7 @@ class ExplainVisitorTest extends TestCase
         $regex = Regex::create();
         // The parser splits "<script>" into multiple literals: "<", "s", "c", ...
         $ast = $regex->parse('/<script>/');
-        $visitor = new HtmlExplainVisitor();
+        $visitor = new HtmlExplainNodeVisitor();
 
         $output = $ast->accept($visitor);
 
@@ -60,16 +60,16 @@ class ExplainVisitorTest extends TestCase
     {
         // Simple: a* -> single line
         $ast = $this->regex->parse('/a*/');
-        $text = $ast->accept(new ExplainVisitor());
-        $html = $ast->accept(new HtmlExplainVisitor());
+        $text = $ast->accept(new ExplainNodeVisitor());
+        $html = $ast->accept(new HtmlExplainNodeVisitor());
 
         $this->assertStringNotContainsString('Start Quantified Group', $text); // Simple format
         $this->assertStringContainsString('<li>(zero or more times)', $html); // Injected into <li>
 
         // Complex: (a|b)* -> multi line block
         $ast = $this->regex->parse('/(a|b)*/');
-        $text = $ast->accept(new ExplainVisitor());
-        $html = $ast->accept(new HtmlExplainVisitor());
+        $text = $ast->accept(new ExplainNodeVisitor());
+        $html = $ast->accept(new HtmlExplainNodeVisitor());
 
         $this->assertStringContainsString('Start Quantified Group', $text);
         $this->assertStringContainsString('<li><strong>Quantifier', $html); // Wrapped
@@ -79,8 +79,8 @@ class ExplainVisitorTest extends TestCase
     {
         // (?(1)a) -> No else branch
         $ast = $this->regex->parse('/(?(1)a)/');
-        $text = $ast->accept(new ExplainVisitor());
-        $html = $ast->accept(new HtmlExplainVisitor());
+        $text = $ast->accept(new ExplainNodeVisitor());
+        $html = $ast->accept(new HtmlExplainNodeVisitor());
 
         $this->assertStringNotContainsString('ELSE:', $text);
         $this->assertStringNotContainsString('ELSE:', $html);
@@ -90,7 +90,7 @@ class ExplainVisitorTest extends TestCase
     {
         // (?0), (?R), (?1)
         $ast = $this->regex->parse('/(?R)(?1)/');
-        $text = $ast->accept(new ExplainVisitor());
+        $text = $ast->accept(new ExplainNodeVisitor());
 
         $this->assertStringContainsString('recurses to the entire pattern', $text);
         $this->assertStringContainsString('recurses to group 1', $text);
@@ -100,7 +100,7 @@ class ExplainVisitorTest extends TestCase
     {
         // \d \D \s \S \w \W \v \V \h \H \R
         $ast = $this->regex->parse('/\d\D\s\S\w\W\v\V\h\H\R/');
-        $text = $ast->accept(new ExplainVisitor());
+        $text = $ast->accept(new ExplainNodeVisitor());
 
         $this->assertStringContainsString('digit', $text);
         $this->assertStringContainsString('non-digit', $text);
