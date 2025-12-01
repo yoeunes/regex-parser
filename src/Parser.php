@@ -660,9 +660,6 @@ class Parser
         // If the "yes" branch is an alternation (a|b), then "b" is the ELSE branch.
         // However, if parseAlternation returns a single SequenceNode, then the "no" branch is empty.
 
-        // The original code structure assumed 'no' is always empty unless handled by alternation logic,
-        // but ConditionalNode structure expects 3 arguments: condition, yes, no.
-
         // Correct interpretation:
         // (?(cond)yes|no) -> parseAlternation will return an AlternationNode if '|' exists.
         // But wait! parseAlternation consumes EVERYTHING until ')' or EOF.
@@ -789,29 +786,35 @@ class Parser
 
     private function parseGroupName(): string
     {
-        $token = $this->current();
+        $quote = null;
 
-        if (TokenType::T_LITERAL === $token->type && ("'" === $token->value || '"' === $token->value)) {
-            $quote = $token->value;
+        // Check for quoted group name (Python-style: 'name' or "name")
+        if ($this->checkLiteral("'") || $this->checkLiteral('"')) {
+            $quote = $this->current()->value;
             $this->advance();
-            $nameToken = $this->consume(TokenType::T_LITERAL, 'Expected group name');
-            if ($this->current()->value !== $quote) {
-                throw new ParserException(
-                    \sprintf('Expected closing quote %s at position %d', $quote, $this->current()->position));
-            }
-            $this->advance();
-
-            return $nameToken->value;
         }
 
         $name = '';
         while (!$this->checkLiteral('>') && !$this->checkLiteral('}') && !$this->isAtEnd()) {
+            // If we're in quoted mode and hit the closing quote, stop collecting
+            if (null !== $quote && $this->checkLiteral($quote)) {
+                break;
+            }
+
             if ($this->check(TokenType::T_LITERAL) || $this->check(TokenType::T_LITERAL_ESCAPED)) {
                 $name .= $this->current()->value;
                 $this->advance();
             } else {
                 throw new ParserException(\sprintf('Unexpected token "%s" in group name', $this->current()->value));
             }
+        }
+
+        // If quoted, expect the closing quote
+        if (null !== $quote) {
+            if (!$this->checkLiteral($quote)) {
+                throw new ParserException(\sprintf('Expected closing quote "%s" for group name at position %d', $quote, $this->current()->position));
+            }
+            $this->advance();
         }
 
         if ('' === $name) {

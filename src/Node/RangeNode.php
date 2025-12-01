@@ -16,15 +16,25 @@ namespace RegexParser\Node;
 use RegexParser\NodeVisitor\NodeVisitorInterface;
 
 /**
- * Represents a range inside a character class (e.g., "a-z").
+ * Represents a range of characters within a character class, such as `a-z` in `[a-z0-9]`.
+ *
+ * Purpose: This node is a specific component of a `CharClassNode` that defines a continuous
+ * sequence of characters between a start and an end point. It's a compact and efficient way
+ * to specify large sets of characters. The `Parser` creates this node when it finds a hyphen
+ * between two valid range endpoints inside a character class.
  */
 readonly class RangeNode extends AbstractNode
 {
     /**
-     * @param NodeInterface $start         the start of the range (LiteralNode or CharTypeNode)
-     * @param NodeInterface $end           the end of the range (LiteralNode or CharTypeNode)
-     * @param int           $startPosition The 0-based start offset
-     * @param int           $endPosition   The 0-based end offset (exclusive)
+     * Initializes a range node.
+     *
+     * Purpose: This constructor creates a node representing a `start-end` range within a character class.
+     *
+     * @param NodeInterface $start         The node representing the starting character of the range. This is
+     *                                     typically a `LiteralNode` or `CharTypeNode`.
+     * @param NodeInterface $end           the node representing the ending character of the range
+     * @param int           $startPosition the zero-based byte offset where the starting character of the range appears
+     * @param int           $endPosition   the zero-based byte offset immediately after the ending character of the range
      */
     public function __construct(
         public NodeInterface $start,
@@ -35,6 +45,20 @@ readonly class RangeNode extends AbstractNode
         parent::__construct($startPosition, $endPosition);
     }
 
+    /**
+     * Implements the visitor pattern for traversing the AST.
+     *
+     * Purpose: This method is the entry point for any `NodeVisitorInterface` that needs to
+     * process this `RangeNode`. It allows for operations like compilation, validation,
+     * or explanation to be performed without adding logic to the node itself. The method
+     * simply dispatches the call to the appropriate `visitRange` method on the visitor.
+     *
+     * @template T The return type of the visitor's methods.
+     *
+     * @param NodeVisitorInterface<T> $visitor the visitor object that is traversing the tree
+     *
+     * @return T the result of the visitor's processing for this node
+     */
     public function accept(NodeVisitorInterface $visitor)
     {
         return $visitor->visitRange($this);
