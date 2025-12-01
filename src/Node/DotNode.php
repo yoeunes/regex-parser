@@ -27,6 +27,21 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
 readonly class DotNode extends AbstractNode
 {
     /**
+     * Initializes a dot node.
+     *
+     * Purpose: This constructor creates a node representing the `.` wildcard. The `Parser`
+     * generates this node when it encounters a `.` token. It simply records its position
+     * in the original pattern.
+     *
+     * @param int $startPosition The zero-based byte offset where the `.` character appears.
+     * @param int $endPosition   The zero-based byte offset immediately after the `.` character.
+     */
+    public function __construct(int $startPosition, int $endPosition)
+    {
+        parent::__construct($startPosition, $endPosition);
+    }
+
+    /**
      * Implements the visitor pattern for traversing the AST.
      *
      * Purpose: This method is the entry point for any `NodeVisitorInterface` that needs to
