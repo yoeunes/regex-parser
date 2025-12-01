@@ -44,7 +44,7 @@ use RegexParser\Node\UnicodePropNode;
  *
  * @implements NodeVisitorInterface<string>
  */
-class SampleGeneratorVisitor implements NodeVisitorInterface
+class SampleGeneratorNodeVisitor implements NodeVisitorInterface
 {
     private ?int $seed = null;
 

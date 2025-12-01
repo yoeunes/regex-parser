@@ -16,15 +16,15 @@ namespace RegexParser\Tests\Integration;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Node\CharTypeNode;
 use RegexParser\Node\PosixClassNode;
-use RegexParser\NodeVisitor\SampleGeneratorVisitor;
+use RegexParser\NodeVisitor\SampleGeneratorNodeVisitor;
 
 class SampleGeneratorExhaustiveTest extends TestCase
 {
-    private SampleGeneratorVisitor $generator;
+    private SampleGeneratorNodeVisitor $generator;
 
     protected function setUp(): void
     {
-        $this->generator = new SampleGeneratorVisitor();
+        $this->generator = new SampleGeneratorNodeVisitor();
     }
 
     public function test_generate_all_char_types(): void

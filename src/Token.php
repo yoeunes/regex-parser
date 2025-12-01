@@ -16,7 +16,7 @@ namespace RegexParser;
 /**
  * Data Transfer Object representing a single token.
  */
-class Token
+readonly class Token
 {
     /**
      * @param TokenType $type     The token type (e.g., T_LITERAL).
@@ -24,8 +24,8 @@ class Token
      * @param int       $position the 0-based character offset in the original string
      */
     public function __construct(
-        public readonly TokenType $type,
-        public readonly string $value,
-        public readonly int $position,
+        public TokenType $type,
+        public string $value,
+        public int $position,
     ) {}
 }

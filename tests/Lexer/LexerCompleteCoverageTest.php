@@ -26,14 +26,9 @@ use RegexParser\TokenType;
  */
 class LexerCompleteCoverageTest extends TestCase
 {
-    // ========================================================================
-    // Tests for extractTokenValue() - Escape sequences
-    // ========================================================================
-
     public function test_escaped_tab_character(): void
     {
-        $lexer = new Lexer('\t');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('\t')->getTokens();
 
         $this->assertCount(2, $tokens); // T_LITERAL_ESCAPED + EOF
         $this->assertSame(TokenType::T_LITERAL_ESCAPED, $tokens[0]->type);
@@ -42,8 +37,7 @@ class LexerCompleteCoverageTest extends TestCase
 
     public function test_escaped_newline_character(): void
     {
-        $lexer = new Lexer('\n');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('\n')->getTokens();
 
         $this->assertCount(2, $tokens);
         $this->assertSame(TokenType::T_LITERAL_ESCAPED, $tokens[0]->type);
@@ -52,8 +46,7 @@ class LexerCompleteCoverageTest extends TestCase
 
     public function test_escaped_carriage_return_character(): void
     {
-        $lexer = new Lexer('\r');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('\r')->getTokens();
 
         $this->assertCount(2, $tokens);
         $this->assertSame(TokenType::T_LITERAL_ESCAPED, $tokens[0]->type);
@@ -62,8 +55,7 @@ class LexerCompleteCoverageTest extends TestCase
 
     public function test_escaped_form_feed_character(): void
     {
-        $lexer = new Lexer('\f');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('\f')->getTokens();
 
         $this->assertCount(2, $tokens);
         $this->assertSame(TokenType::T_LITERAL_ESCAPED, $tokens[0]->type);
@@ -73,8 +65,7 @@ class LexerCompleteCoverageTest extends TestCase
     public function test_escaped_vertical_tab_character(): void
     {
         // Note: \v is T_CHAR_TYPE in PCRE regex context (vertical whitespace)
-        $lexer = new Lexer('\v');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('\v')->getTokens();
 
         $this->assertCount(2, $tokens);
         $this->assertSame(TokenType::T_CHAR_TYPE, $tokens[0]->type);
@@ -83,8 +74,7 @@ class LexerCompleteCoverageTest extends TestCase
 
     public function test_escaped_escape_character(): void
     {
-        $lexer = new Lexer('\e');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('\e')->getTokens();
 
         $this->assertCount(2, $tokens);
         $this->assertSame(TokenType::T_LITERAL_ESCAPED, $tokens[0]->type);
@@ -94,8 +84,7 @@ class LexerCompleteCoverageTest extends TestCase
     public function test_multiple_escape_sequences(): void
     {
         // Note: \v is T_CHAR_TYPE, not T_LITERAL_ESCAPED in regex context
-        $lexer = new Lexer('\t\n\r\f\e');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('\t\n\r\f\e')->getTokens();
 
         $this->assertCount(6, $tokens); // 5 escaped + EOF
         $this->assertSame("\t", $tokens[0]->value);
@@ -107,8 +96,7 @@ class LexerCompleteCoverageTest extends TestCase
 
     public function test_escape_sequences_in_pattern(): void
     {
-        $lexer = new Lexer('abc\tdef\nghi');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('abc\tdef\nghi')->getTokens();
 
         // Should have: a, b, c, \t, d, e, f, \n, g, h, i, EOF
         $this->assertSame('a', $tokens[0]->value);
@@ -121,14 +109,9 @@ class LexerCompleteCoverageTest extends TestCase
         $this->assertSame("\n", $tokens[7]->value);
     }
 
-    // ========================================================================
-    // Tests for normalizeUnicodeProp() - Double negation and variations
-    // ========================================================================
-
     public function test_unicode_prop_lowercase_p_simple(): void
     {
-        $lexer = new Lexer('\p{L}');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('\p{L}')->getTokens();
 
         $this->assertCount(2, $tokens);
         $this->assertSame(TokenType::T_UNICODE_PROP, $tokens[0]->type);
@@ -137,8 +120,7 @@ class LexerCompleteCoverageTest extends TestCase
 
     public function test_unicode_prop_uppercase_p_simple(): void
     {
-        $lexer = new Lexer('\P{L}');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('\P{L}')->getTokens();
 
         $this->assertCount(2, $tokens);
         $this->assertSame(TokenType::T_UNICODE_PROP, $tokens[0]->type);
@@ -147,8 +129,7 @@ class LexerCompleteCoverageTest extends TestCase
 
     public function test_unicode_prop_lowercase_p_with_negation(): void
     {
-        $lexer = new Lexer('\p{^L}');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('\p{^L}')->getTokens();
 
         $this->assertCount(2, $tokens);
         $this->assertSame(TokenType::T_UNICODE_PROP, $tokens[0]->type);
@@ -158,8 +139,7 @@ class LexerCompleteCoverageTest extends TestCase
     public function test_unicode_prop_uppercase_p_with_double_negation(): void
     {
         // \P{^L} should result in 'L' (double negation cancels out)
-        $lexer = new Lexer('\P{^L}');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('\P{^L}')->getTokens();
 
         $this->assertCount(2, $tokens);
         $this->assertSame(TokenType::T_UNICODE_PROP, $tokens[0]->type);
@@ -169,8 +149,7 @@ class LexerCompleteCoverageTest extends TestCase
     public function test_unicode_prop_short_form_lowercase(): void
     {
         // \pL (short form)
-        $lexer = new Lexer('\pL');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('\pL')->getTokens();
 
         $this->assertCount(2, $tokens);
         $this->assertSame(TokenType::T_UNICODE_PROP, $tokens[0]->type);
@@ -180,8 +159,7 @@ class LexerCompleteCoverageTest extends TestCase
     public function test_unicode_prop_short_form_uppercase(): void
     {
         // \PL (short form, negated)
-        $lexer = new Lexer('\PL');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('\PL')->getTokens();
 
         $this->assertCount(2, $tokens);
         $this->assertSame(TokenType::T_UNICODE_PROP, $tokens[0]->type);
@@ -200,8 +178,7 @@ class LexerCompleteCoverageTest extends TestCase
         ];
 
         foreach ($patterns as $pattern => $expectedValue) {
-            $lexer = new Lexer($pattern);
-            $tokens = $lexer->tokenizeToArray();
+            $tokens = new Lexer()->tokenize($pattern)->getTokens();
 
             $this->assertSame(
                 $expectedValue,
@@ -210,10 +187,6 @@ class LexerCompleteCoverageTest extends TestCase
             );
         }
     }
-
-    // ========================================================================
-    // Tests for various token value extractions
-    // ========================================================================
 
     public function test_pcre_verb_extraction(): void
     {
@@ -228,8 +201,7 @@ class LexerCompleteCoverageTest extends TestCase
         ];
 
         foreach ($patterns as $pattern => $expectedValue) {
-            $lexer = new Lexer($pattern);
-            $tokens = $lexer->tokenizeToArray();
+            $tokens = new Lexer()->tokenize($pattern)->getTokens();
 
             $this->assertSame(TokenType::T_PCRE_VERB, $tokens[0]->type);
             $this->assertSame($expectedValue, $tokens[0]->value, "Failed for: {$pattern}");
@@ -248,8 +220,7 @@ class LexerCompleteCoverageTest extends TestCase
         ];
 
         foreach ($patterns as $pattern => $expectedValue) {
-            $lexer = new Lexer($pattern);
-            $tokens = $lexer->tokenizeToArray();
+            $tokens = new Lexer()->tokenize($pattern)->getTokens();
 
             $this->assertSame(TokenType::T_ASSERTION, $tokens[0]->type);
             $this->assertSame($expectedValue, $tokens[0]->value, "Failed for: {$pattern}");
@@ -272,8 +243,7 @@ class LexerCompleteCoverageTest extends TestCase
         ];
 
         foreach ($patterns as $pattern => $expectedValue) {
-            $lexer = new Lexer($pattern);
-            $tokens = $lexer->tokenizeToArray();
+            $tokens = new Lexer()->tokenize($pattern)->getTokens();
 
             // \v can be either T_CHAR_TYPE or T_LITERAL_ESCAPED depending on context
             $this->assertTrue(
@@ -287,8 +257,7 @@ class LexerCompleteCoverageTest extends TestCase
 
     public function test_keep_extraction(): void
     {
-        $lexer = new Lexer('\K');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('\K')->getTokens();
 
         $this->assertSame(TokenType::T_KEEP, $tokens[0]->type);
         $this->assertSame('K', $tokens[0]->value);
@@ -305,8 +274,7 @@ class LexerCompleteCoverageTest extends TestCase
         ];
 
         foreach ($patterns as $pattern => $expectedValue) {
-            $lexer = new Lexer($pattern);
-            $tokens = $lexer->tokenizeToArray();
+            $tokens = new Lexer()->tokenize($pattern)->getTokens();
 
             $this->assertSame(TokenType::T_BACKREF, $tokens[0]->type);
             $this->assertSame($expectedValue, $tokens[0]->value, "Failed for: {$pattern}");
@@ -321,8 +289,7 @@ class LexerCompleteCoverageTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $lexer = new Lexer($pattern);
-            $tokens = $lexer->tokenizeToArray();
+            $tokens = new Lexer()->tokenize($pattern)->getTokens();
 
             $this->assertSame(TokenType::T_BACKREF, $tokens[0]->type);
             $this->assertSame($pattern, $tokens[0]->value, "Failed for: {$pattern}");
@@ -340,8 +307,7 @@ class LexerCompleteCoverageTest extends TestCase
         ];
 
         foreach ($patterns as $pattern => $expectedValue) {
-            $lexer = new Lexer($pattern);
-            $tokens = $lexer->tokenizeToArray();
+            $tokens = new Lexer()->tokenize($pattern)->getTokens();
 
             $this->assertSame(TokenType::T_OCTAL_LEGACY, $tokens[0]->type);
             $this->assertSame($expectedValue, $tokens[0]->value, "Failed for: {$pattern}");
@@ -361,8 +327,7 @@ class LexerCompleteCoverageTest extends TestCase
         ];
 
         foreach ($patterns as $pattern => $expectedValue) {
-            $lexer = new Lexer($pattern);
-            $tokens = $lexer->tokenizeToArray();
+            $tokens = new Lexer()->tokenize($pattern)->getTokens();
             $posixToken = array_find($tokens, fn ($token) => TokenType::T_POSIX_CLASS === $token->type);
 
             $this->assertInstanceOf(\RegexParser\Token::class, $posixToken, "No POSIX class token found for: {$pattern}");
@@ -370,14 +335,9 @@ class LexerCompleteCoverageTest extends TestCase
         }
     }
 
-    // ========================================================================
-    // Tests for consumeQuoteMode edge cases
-    // ========================================================================
-
     public function test_quote_mode_with_multiple_segments(): void
     {
-        $lexer = new Lexer('a\Q*+?\Eb\Q[]\Ec');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('a\Q*+?\Eb\Q[]\Ec')->getTokens();
 
         // Should have: a, *+?, b, [], c, EOF
         $values = array_map(fn ($t) => $t->value, array_filter($tokens, fn ($t) => TokenType::T_EOF !== $t->type));
@@ -391,8 +351,7 @@ class LexerCompleteCoverageTest extends TestCase
 
     public function test_quote_mode_at_start(): void
     {
-        $lexer = new Lexer('\Q*+?\Eabc');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('\Q*+?\Eabc')->getTokens();
 
         // Now emits T_QUOTE_MODE_START first, then literal content
         $this->assertSame(TokenType::T_QUOTE_MODE_START, $tokens[0]->type);
@@ -404,8 +363,7 @@ class LexerCompleteCoverageTest extends TestCase
 
     public function test_quote_mode_at_end(): void
     {
-        $lexer = new Lexer('abc\Q*+?');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('abc\Q*+?')->getTokens();
 
         // Last token before EOF should be the quoted literal
         $nonEofTokens = array_filter($tokens, fn ($t) => TokenType::T_EOF !== $t->type);
@@ -418,8 +376,7 @@ class LexerCompleteCoverageTest extends TestCase
 
     public function test_quote_mode_with_special_chars(): void
     {
-        $lexer = new Lexer('\Q()[]{}^$|.?*+\E');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('\Q()[]{}^$|.?*+\E')->getTokens();
 
         // Now emits T_QUOTE_MODE_START, T_LITERAL, T_QUOTE_MODE_END, T_EOF
         $this->assertCount(4, $tokens);
@@ -431,8 +388,7 @@ class LexerCompleteCoverageTest extends TestCase
 
     public function test_quote_mode_with_backslashes(): void
     {
-        $lexer = new Lexer('\Q\d\s\w\E');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('\Q\d\s\w\E')->getTokens();
 
         // Now emits T_QUOTE_MODE_START, T_LITERAL, T_QUOTE_MODE_END, T_EOF
         $this->assertCount(4, $tokens);
@@ -446,8 +402,7 @@ class LexerCompleteCoverageTest extends TestCase
     {
         // \Q starts quote mode, captures '\Q' as literal, first \E ends quote mode
         // Second \E is outside quote mode and becomes T_QUOTE_MODE_END token
-        $lexer = new Lexer('\Q\Q\E\E');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('\Q\Q\E\E')->getTokens();
 
         // Now emits: T_QUOTE_MODE_START, T_LITERAL('\Q'), T_QUOTE_MODE_END, T_QUOTE_MODE_END, T_EOF
         $this->assertCount(5, $tokens);
@@ -457,10 +412,6 @@ class LexerCompleteCoverageTest extends TestCase
         $this->assertSame(TokenType::T_QUOTE_MODE_END, $tokens[2]->type);
         $this->assertSame(TokenType::T_QUOTE_MODE_END, $tokens[3]->type);
     }
-
-    // ========================================================================
-    // Additional edge cases for better coverage
-    // ========================================================================
 
     public function test_g_reference_variations(): void
     {
@@ -473,8 +424,7 @@ class LexerCompleteCoverageTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $lexer = new Lexer($pattern);
-            $tokens = $lexer->tokenizeToArray();
+            $tokens = new Lexer()->tokenize($pattern)->getTokens();
 
             $this->assertSame(TokenType::T_G_REFERENCE, $tokens[0]->type, "Failed for: {$pattern}");
         }
@@ -482,8 +432,7 @@ class LexerCompleteCoverageTest extends TestCase
 
     public function test_octal_with_braces(): void
     {
-        $lexer = new Lexer('\o{123}');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('\o{123}')->getTokens();
 
         $this->assertSame(TokenType::T_OCTAL, $tokens[0]->type);
         $this->assertSame('\o{123}', $tokens[0]->value);
@@ -498,8 +447,7 @@ class LexerCompleteCoverageTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $lexer = new Lexer($pattern);
-            $tokens = $lexer->tokenizeToArray();
+            $tokens = new Lexer()->tokenize($pattern)->getTokens();
 
             $this->assertSame(TokenType::T_UNICODE, $tokens[0]->type, "Failed for: {$pattern}");
             $this->assertSame($pattern, $tokens[0]->value, "Failed for: {$pattern}");
@@ -508,8 +456,7 @@ class LexerCompleteCoverageTest extends TestCase
 
     public function test_combined_escape_sequences_and_unicode(): void
     {
-        $lexer = new Lexer('\t\n\p{L}\P{Nd}\r');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('\t\n\p{L}\P{Nd}\r')->getTokens();
 
         $this->assertCount(6, $tokens); // 5 tokens + EOF
         $this->assertSame("\t", $tokens[0]->value);
@@ -519,14 +466,9 @@ class LexerCompleteCoverageTest extends TestCase
         $this->assertSame("\r", $tokens[4]->value);
     }
 
-    // ========================================================================
-    // Additional edge cases to maximize line coverage
-    // ========================================================================
-
     public function test_escape_sequences_inside_character_class(): void
     {
-        $lexer = new Lexer('[\t\n\r\f\e]');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('[\t\n\r\f\e]')->getTokens();
 
         // Should have: [, \t, \n, \r, \f, \e, ], EOF
         $this->assertSame('[', $tokens[0]->value);
@@ -563,8 +505,7 @@ class LexerCompleteCoverageTest extends TestCase
         ];
 
         foreach ($patterns as $pattern => $expectedValue) {
-            $lexer = new Lexer($pattern);
-            $tokens = $lexer->tokenizeToArray();
+            $tokens = new Lexer()->tokenize($pattern)->getTokens();
 
             $this->assertSame(TokenType::T_LITERAL_ESCAPED, $tokens[0]->type, "Failed for: {$pattern}");
             $this->assertSame($expectedValue, $tokens[0]->value, "Failed for: {$pattern}");
@@ -581,8 +522,7 @@ class LexerCompleteCoverageTest extends TestCase
         ];
 
         foreach ($patterns as $pattern => $expectedValue) {
-            $lexer = new Lexer($pattern);
-            $tokens = $lexer->tokenizeToArray();
+            $tokens = new Lexer()->tokenize($pattern)->getTokens();
 
             $this->assertSame(
                 $expectedValue,
@@ -594,8 +534,7 @@ class LexerCompleteCoverageTest extends TestCase
 
     public function test_quote_mode_with_newlines_and_special_chars(): void
     {
-        $lexer = new Lexer("\Q\n\t\r\E");
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize("\Q\n\t\r\E")->getTokens();
 
         // Now emits T_QUOTE_MODE_START, T_LITERAL, T_QUOTE_MODE_END, T_EOF
         $this->assertCount(4, $tokens);
@@ -615,8 +554,7 @@ class LexerCompleteCoverageTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $lexer = new Lexer($pattern);
-            $tokens = $lexer->tokenizeToArray();
+            $tokens = new Lexer()->tokenize($pattern)->getTokens();
 
             $this->assertSame(TokenType::T_BACKREF, $tokens[0]->type, "Failed for: {$pattern}");
         }
@@ -635,8 +573,7 @@ class LexerCompleteCoverageTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $lexer = new Lexer($pattern);
-            $tokens = $lexer->tokenizeToArray();
+            $tokens = new Lexer()->tokenize($pattern)->getTokens();
 
             $this->assertSame(TokenType::T_G_REFERENCE, $tokens[0]->type, "Failed for: {$pattern}");
         }
@@ -644,8 +581,7 @@ class LexerCompleteCoverageTest extends TestCase
 
     public function test_comment_token(): void
     {
-        $lexer = new Lexer('(?#comment here)');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('(?#comment here)')->getTokens();
 
         // Should have comment open token
         $this->assertSame(TokenType::T_COMMENT_OPEN, $tokens[0]->type);
@@ -653,8 +589,7 @@ class LexerCompleteCoverageTest extends TestCase
 
     public function test_group_modifier_open(): void
     {
-        $lexer = new Lexer('(?i)');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('(?i)')->getTokens();
 
         $this->assertSame(TokenType::T_GROUP_MODIFIER_OPEN, $tokens[0]->type);
     }
@@ -662,8 +597,7 @@ class LexerCompleteCoverageTest extends TestCase
     public function test_complex_pattern_with_all_token_types(): void
     {
         // Complex pattern using many different token types
-        $lexer = new Lexer('(?>abc|def)\d+[[:alpha:]]\p{L}\K\b');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('(?>abc|def)\d+[[:alpha:]]\p{L}\K\b')->getTokens();
 
         // Just verify it tokenizes without error and produces tokens
         $this->assertGreaterThan(5, \count($tokens));
@@ -682,8 +616,7 @@ class LexerCompleteCoverageTest extends TestCase
         ];
 
         foreach ($patterns as $pattern => $expectedValue) {
-            $lexer = new Lexer($pattern);
-            $tokens = $lexer->tokenizeToArray();
+            $tokens = new Lexer()->tokenize($pattern)->getTokens();
 
             $this->assertSame(TokenType::T_OCTAL_LEGACY, $tokens[0]->type);
             $this->assertSame($expectedValue, $tokens[0]->value, "Failed for: {$pattern}");
@@ -693,8 +626,7 @@ class LexerCompleteCoverageTest extends TestCase
     public function test_quote_mode_empty_before_end(): void
     {
         // Test when consumeQuoteMode returns null (empty content at \E)
-        $lexer = new Lexer('a\Q\Eb\Q\Ec');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('a\Q\Eb\Q\Ec')->getTokens();
 
         // Should have: a, b, c, EOF (no tokens from empty \Q\E)
         $values = array_map(fn ($t) => $t->value, array_filter($tokens, fn ($t) => TokenType::T_EOF !== $t->type));
@@ -714,8 +646,7 @@ class LexerCompleteCoverageTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $lexer = new Lexer($pattern);
-            $tokens = $lexer->tokenizeToArray();
+            $tokens = new Lexer()->tokenize($pattern)->getTokens();
 
             $this->assertSame(TokenType::T_PCRE_VERB, $tokens[0]->type, "Failed for: {$pattern}");
             $this->assertNotEmpty($tokens[0]->value);

@@ -20,6 +20,7 @@ use RegexParser\Node\GroupNode;
 use RegexParser\Node\GroupType;
 use RegexParser\Node\LiteralNode;
 use RegexParser\Parser;
+use RegexParser\Regex;
 use RegexParser\Tests\TestUtils\ParserAccessor;
 use RegexParser\TokenType;
 
@@ -30,19 +31,21 @@ class ParserUtilityTest extends TestCase
 {
     private ParserAccessor $accessor;
 
+    private Regex $regex;
+
     protected function setUp(): void
     {
         $parser = new Parser();
         $this->accessor = new ParserAccessor($parser);
+        $this->regex = Regex::create();
     }
 
     public function test_extract_pattern_handles_escaped_delimiter_in_flags(): void
     {
         // Regex: /abc\/def/i
         // Le slash au milieu est échappé et ne doit pas être considéré comme le délimiteur de fin.
-        $result = $this->accessor->callPrivateMethod('extractPatternAndFlags', ['/abc\/def/i']);
-        \assert(\is_array($result));
-        [$pattern, $flags, $delimiter] = $result;
+        // extractPatternAndFlags is now on Regex class
+        [$pattern, $flags, $delimiter] = $this->regex->extractPatternAndFlags('/abc\/def/i');
 
         $this->assertSame('/', $delimiter);
         $this->assertSame('i', $flags);
@@ -52,9 +55,8 @@ class ParserUtilityTest extends TestCase
     public function test_extract_pattern_handles_alternating_delimiters(): void
     {
         // Regex: (abc)i
-        $result = $this->accessor->callPrivateMethod('extractPatternAndFlags', ['(abc)i']);
-        \assert(\is_array($result));
-        [$pattern, $flags, $delimiter] = $result;
+        // extractPatternAndFlags is now on Regex class
+        [$pattern, $flags, $delimiter] = $this->regex->extractPatternAndFlags('(abc)i');
 
         $this->assertSame('(', $delimiter);
         $this->assertSame('i', $flags);
@@ -66,7 +68,8 @@ class ParserUtilityTest extends TestCase
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('Unknown regex flag(s) found: "!"');
 
-        $this->accessor->callPrivateMethod('extractPatternAndFlags', ['/abc/i!']);
+        // extractPatternAndFlags is now on Regex class
+        $this->regex->extractPatternAndFlags('/abc/i!');
     }
 
     public function test_parse_group_name_throws_on_missing_name(): void

@@ -30,8 +30,7 @@ class LexerInternalsTest extends TestCase
      */
     public function test_extract_posix_fallback(): void
     {
-        $lexer = new Lexer('');
-        $accessor = new LexerAccessor($lexer);
+        $accessor = new LexerAccessor(new Lexer());
 
         // Simulates an incomplete match to force the `?? ''`
         $result = $accessor->callPrivateMethod('extractTokenValue', [
@@ -48,8 +47,7 @@ class LexerInternalsTest extends TestCase
      */
     public function test_normalize_unicode_fallback(): void
     {
-        $lexer = new Lexer('');
-        $accessor = new LexerAccessor($lexer);
+        $accessor = new LexerAccessor(new Lexer());
 
         // Simulates an incomplete match to force the `?? ''`
         $result = $accessor->callPrivateMethod('normalizeUnicodeProp', [
@@ -66,8 +64,7 @@ class LexerInternalsTest extends TestCase
      */
     public function test_extract_literal_escaped_default(): void
     {
-        $lexer = new Lexer('');
-        $accessor = new LexerAccessor($lexer);
+        $accessor = new LexerAccessor(new Lexer());
 
         // Tests an escaped character that is not special (e.g. \@)
         // This forces the `default => substr(...)`
@@ -85,8 +82,7 @@ class LexerInternalsTest extends TestCase
      */
     public function test_extract_backref_fallback(): void
     {
-        $lexer = new Lexer('');
-        $accessor = new LexerAccessor($lexer);
+        $accessor = new LexerAccessor(new Lexer());
 
         // Forces the `??` for the backref number
         $result = $accessor->callPrivateMethod('extractTokenValue', [
@@ -100,12 +96,11 @@ class LexerInternalsTest extends TestCase
 
     public function test_extract_token_value_default_case(): void
     {
-        $lexer = new Lexer('');
-        $accessor = new \RegexParser\Tests\TestUtils\LexerAccessor($lexer);
+        $accessor = new LexerAccessor(new Lexer());
 
         // Case where type is T_LITERAL (the global switch default)
         $val = $accessor->callPrivateMethod('extractTokenValue', [
-            \RegexParser\TokenType::T_LITERAL,
+            TokenType::T_LITERAL,
             'X',
             []
         ]);
@@ -113,7 +108,7 @@ class LexerInternalsTest extends TestCase
 
         // Case where type is T_LITERAL_ESCAPED but char is not special (the internal match default)
         $val = $accessor->callPrivateMethod('extractTokenValue', [
-            \RegexParser\TokenType::T_LITERAL_ESCAPED,
+            TokenType::T_LITERAL_ESCAPED,
             '\@', // @ is not t, n, r, etc.
             []
         ]);

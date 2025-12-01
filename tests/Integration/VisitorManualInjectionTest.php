@@ -21,7 +21,7 @@ use RegexParser\Node\QuantifierNode;
 use RegexParser\Node\QuantifierType;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
 use RegexParser\NodeVisitor\OptimizerNodeVisitor;
-use RegexParser\NodeVisitor\SampleGeneratorVisitor;
+use RegexParser\NodeVisitor\SampleGeneratorNodeVisitor;
 
 class VisitorManualInjectionTest extends TestCase
 {
@@ -51,7 +51,7 @@ class VisitorManualInjectionTest extends TestCase
         // Une classe vide [] est normalement une erreur de parsing,
         // mais si on la construit manuellement :
         $node = new CharClassNode([], false, 0, 0);
-        $generator = new SampleGeneratorVisitor();
+        $generator = new SampleGeneratorNodeVisitor();
 
         $this->expectException(\RuntimeException::class); // Ou le comportement attendu
         $node->accept($generator);

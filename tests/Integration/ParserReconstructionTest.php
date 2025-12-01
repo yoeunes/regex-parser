@@ -15,7 +15,7 @@ namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\Node\CommentNode;
-use RegexParser\Parser;
+use RegexParser\Regex;
 
 class ParserReconstructionTest extends TestCase
 {
@@ -26,12 +26,12 @@ class ParserReconstructionTest extends TestCase
      */
     public function test_parser_reconstructs_all_token_types_in_comment(): void
     {
-        $parser = new Parser();
+        $regexService = Regex::create();
 
         // On met tout ce qui ressemble à des tokens spéciaux DANS un commentaire.
         // Le lexer va les tokeniser, et le parser va devoir les remettre en string.
         // Note: parentheses cannot be used inside (?#...) comments as they end the comment
-        $regex = '/(?#
+        $pattern = '/(?#
             [abc]           # T_CHAR_CLASS_OPEN, T_CHAR_CLASS_CLOSE
             group           # T_GROUP_OPEN, T_GROUP_CLOSE
             non-capture     # T_GROUP_MODIFIER_OPEN
@@ -56,7 +56,7 @@ class ParserReconstructionTest extends TestCase
             *FAIL           # T_PCRE_VERB
         )/x';
 
-        $ast = $parser->parse($regex);
+        $ast = $regexService->parse($pattern);
 
         $this->assertInstanceOf(CommentNode::class, $ast->pattern);
         $comment = $ast->pattern->comment;

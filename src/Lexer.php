@@ -151,17 +151,13 @@ class Lexer
      */
     private int $charClassStartPosition = 0;
 
-    public function __construct(string $pattern)
-    {
-        $this->reset($pattern);
-    }
-
     /**
-     * Resets the lexer with a new pattern string.
+     * Tokenizes the pattern using a generator for memory efficiency.
+     * Yields tokens one at a time instead of building a large array.
      *
-     * @throws LexerException if the input is not valid UTF-8
+     * @throws LexerException
      */
-    public function reset(string $pattern): void
+    public function tokenize(string $pattern): TokenStream
     {
         if (false === preg_match('//u', $pattern)) {
             throw new LexerException('Input string is not valid UTF-8.');
@@ -177,47 +173,23 @@ class Lexer
         $this->inQuoteMode = false;
         $this->inCommentMode = false;
         $this->charClassStartPosition = 0;
-    }
 
-    /**
-     * Tokenizes the pattern and returns all tokens as an array.
-     * For memory efficiency with large patterns, use tokenize() generator.
-     *
-     * @throws LexerException
-     *
-     * @return list<Token>
-     */
-    public function tokenizeToArray(): array
-    {
-        return iterator_to_array($this->tokenize(), false);
-    }
-
-    /**
-     * Tokenizes the pattern using a generator for memory efficiency.
-     * Yields tokens one at a time instead of building a large array.
-     *
-     * @throws LexerException
-     *
-     * @return \Generator<int, Token>
-     */
-    public function tokenize(): \Generator
-    {
         $tokens = [];
 
         while ($this->position < $this->length) {
             // 1. Handle "Tunnel" Modes (Quote & Comment)
+            // @phpstan-ignore if.alwaysFalse (State changes via createTokenFromMatch on subsequent iterations)
             if ($this->inQuoteMode) {
                 if ($token = $this->consumeQuoteMode()) {
-                    yield $token;
                     $tokens[] = $token; // Keep for context
                 }
 
                 continue;
             }
 
+            // @phpstan-ignore if.alwaysFalse (State changes via createTokenFromMatch on subsequent iterations)
             if ($this->inCommentMode) {
                 if ($token = $this->consumeCommentMode()) {
-                    yield $token;
                     $tokens[] = $token; // Keep for context
                 }
 
@@ -225,7 +197,9 @@ class Lexer
             }
 
             // 2. Select Context-Aware Regex
+            // @phpstan-ignore ternary.alwaysFalse (State changes via createTokenFromMatch on subsequent iterations)
             $regex = $this->inCharClass ? self::REGEX_INSIDE : self::REGEX_OUTSIDE;
+            // @phpstan-ignore ternary.alwaysFalse (State changes via createTokenFromMatch on subsequent iterations)
             $tokenMap = $this->inCharClass ? self::TOKENS_INSIDE : self::TOKENS_OUTSIDE;
 
             // 3. Execute Matching
@@ -247,22 +221,23 @@ class Lexer
             $this->position += \strlen($matchedValue);
 
             // 4. Create Token from Match and yield it
-            $token = $this->createTokenFromMatch($tokenMap, $matches, $matchedValue, $startPos, $tokens);
-            yield $token;
-            $tokens[] = $token;
+            $tokens[] = $this->createTokenFromMatch($tokenMap, $matches, $matchedValue, $startPos, $tokens);
         }
 
         // 5. Post-Processing Validation
+        // @phpstan-ignore if.alwaysFalse (Reachable if pattern has unclosed character class)
         if ($this->inCharClass) {
             throw new LexerException('Unclosed character class "]" at end of input.');
         }
 
+        // @phpstan-ignore if.alwaysFalse (Reachable if pattern has unclosed comment)
         if ($this->inCommentMode) {
             throw new LexerException('Unclosed comment ")" at end of input.');
         }
 
-        // Yield EOF token to signal parsing completion
-        yield new Token(TokenType::T_EOF, '', $this->position);
+        $tokens[] = new Token(TokenType::T_EOF, '', $this->position);
+
+        return new TokenStream($tokens, $pattern);
     }
 
     /**
@@ -315,8 +290,6 @@ class Lexer
                     return new Token($type, '\Q', $startPos);
                 }
 
-                // --- Context-Sensitive Token Logic ---
-
                 if ($this->inCharClass) {
                     $lastToken = end($currentTokens);
                     $isAtStart = ($startPos === $this->charClassStartPosition + 1)
@@ -332,7 +305,6 @@ class Lexer
                     }
                 }
 
-                // --- Standard Value Extraction ---
                 $value = $this->extractTokenValue($type, $matchedValue, $matches);
 
                 return new Token($type, $value, $startPos);

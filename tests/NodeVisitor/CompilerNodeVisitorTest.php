@@ -15,7 +15,7 @@ namespace RegexParser\Tests\NodeVisitor;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
-use RegexParser\Parser;
+use RegexParser\Regex;
 
 class CompilerNodeVisitorTest extends TestCase
 {
@@ -126,10 +126,10 @@ class CompilerNodeVisitorTest extends TestCase
         $this->assertSame('/(?P>name)/', $this->compile('/(?P>name)/'));
     }
 
-    private function compile(string $regex): string
+    private function compile(string $pattern): string
     {
-        $parser = new Parser();
-        $ast = $parser->parse($regex);
+        $regex = Regex::create();
+        $ast = $regex->parse($pattern);
         $visitor = new CompilerNodeVisitor();
 
         return $ast->accept($visitor);

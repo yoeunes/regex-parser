@@ -15,15 +15,15 @@ namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\ParserException;
-use RegexParser\Parser;
+use RegexParser\Regex;
 
 class ParserEdgeCaseTest extends TestCase
 {
-    private Parser $parser;
+    private Regex $regex;
 
     protected function setUp(): void
     {
-        $this->parser = new Parser();
+        $this->regex = Regex::create();
     }
 
     public function test_quantifier_on_empty_sequence(): void
@@ -32,7 +32,7 @@ class ParserEdgeCaseTest extends TestCase
         // This triggers the condition "if ($node instanceof LiteralNode && '' === $node->value)" in parseQuantifiedAtom
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('Quantifier without target');
-        $this->parser->parse('/(?:)+/');
+        $this->regex->parse('/(?:)+/');
     }
 
     public function test_subroutine_empty_name(): void
@@ -40,7 +40,7 @@ class ParserEdgeCaseTest extends TestCase
         // Case: (?&) -> subroutine call without name
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('Expected subroutine name');
-        $this->parser->parse('/(?&)/');
+        $this->regex->parse('/(?&)/');
     }
 
     public function test_named_group_empty_name_angle_brackets(): void
@@ -48,7 +48,7 @@ class ParserEdgeCaseTest extends TestCase
         // Case: (?<>) -> Empty named group
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('Expected group name');
-        $this->parser->parse('/(?<>)/');
+        $this->regex->parse('/(?<>)/');
     }
 
     public function test_unclosed_group_in_subroutine_name(): void
@@ -56,6 +56,6 @@ class ParserEdgeCaseTest extends TestCase
         // Case: (?&name -> no closing parenthesis, but end of string
         // Should trigger "Unexpected token" or "Expected )"
         $this->expectException(ParserException::class);
-        $this->parser->parse('/(?&name/');
+        $this->regex->parse('/(?&name/');
     }
 }

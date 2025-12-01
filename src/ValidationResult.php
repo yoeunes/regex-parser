@@ -16,11 +16,11 @@ namespace RegexParser;
 /**
  * A DTO representing the result of a validation pass.
  */
-class ValidationResult
+readonly class ValidationResult
 {
     public function __construct(
-        public readonly bool $isValid,
-        public readonly ?string $error = null,
-        public readonly int $complexityScore = 0,
+        public bool $isValid,
+        public ?string $error = null,
+        public int $complexityScore = 0,
     ) {}
 }

@@ -16,18 +16,19 @@ namespace RegexParser\Tests\Integration;
 use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\ParserException;
-use RegexParser\Parser;
+use RegexParser\Node\RegexNode;
+use RegexParser\Regex;
 
 /**
  * Additional tests targeting specific uncovered branches in Parser.
  */
 class AdditionalCoverageBoostTest extends TestCase
 {
-    private Parser $parser;
+    private Regex $regex;
 
     protected function setUp(): void
     {
-        $this->parser = new Parser();
+        $this->regex = Regex::create();
     }
 
     /**
@@ -37,7 +38,7 @@ class AdditionalCoverageBoostTest extends TestCase
     {
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('Backreferences (?P=name) are not supported yet');
-        $this->parser->parse('/(?<foo>a)(?P=foo)/');
+        $this->parseRegex('/(?<foo>a)(?P=foo)/');
     }
 
     /**
@@ -47,7 +48,7 @@ class AdditionalCoverageBoostTest extends TestCase
     {
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('Invalid syntax after (?P');
-        $this->parser->parse('/(?Px)/');
+        $this->parseRegex('/(?Px)/');
     }
 
     /**
@@ -56,7 +57,7 @@ class AdditionalCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_subroutine_with_ampersand_syntax(): void
     {
-        $this->parser->parse('/(?<foo>a)(?&foo)/');
+        $this->parseRegex('/(?<foo>a)(?&foo)/');
     }
 
     /**
@@ -65,7 +66,7 @@ class AdditionalCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_numeric_subroutine_positive(): void
     {
-        $this->parser->parse('/(a)(?1)/');
+        $this->parseRegex('/(a)(?1)/');
     }
 
     /**
@@ -74,7 +75,7 @@ class AdditionalCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_numeric_subroutine_negative(): void
     {
-        $this->parser->parse('/(a)(?-1)/');
+        $this->parseRegex('/(a)(?-1)/');
     }
 
     /**
@@ -83,7 +84,7 @@ class AdditionalCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_numeric_subroutine_zero(): void
     {
-        $this->parser->parse('/(?0)/');
+        $this->parseRegex('/(?0)/');
     }
 
     /**
@@ -92,7 +93,7 @@ class AdditionalCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_numeric_subroutine_multi_digit(): void
     {
-        $this->parser->parse('/(a)(b)(c)(d)(e)(f)(g)(h)(i)(j)(?10)/');
+        $this->parseRegex('/(a)(b)(c)(d)(e)(f)(g)(h)(i)(j)(?10)/');
     }
 
     /**
@@ -101,7 +102,7 @@ class AdditionalCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_inline_flags_without_colon(): void
     {
-        $this->parser->parse('/(?i)abc/');
+        $this->parseRegex('/(?i)abc/');
     }
 
     /**
@@ -110,7 +111,7 @@ class AdditionalCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_inline_flags_with_colon(): void
     {
-        $this->parser->parse('/(?i:abc)/');
+        $this->parseRegex('/(?i:abc)/');
     }
 
     /**
@@ -119,7 +120,7 @@ class AdditionalCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_inline_flags_multiple(): void
     {
-        $this->parser->parse('/(?ims)abc/');
+        $this->parseRegex('/(?ims)abc/');
     }
 
     /**
@@ -128,7 +129,7 @@ class AdditionalCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_inline_flags_disable(): void
     {
-        $this->parser->parse('/(?-i)abc/');
+        $this->parseRegex('/(?-i)abc/');
     }
 
     /**
@@ -137,7 +138,7 @@ class AdditionalCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_inline_flags_mixed(): void
     {
-        $this->parser->parse('/(?i-s)abc/');
+        $this->parseRegex('/(?i-s)abc/');
     }
 
     /**
@@ -146,7 +147,7 @@ class AdditionalCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_inline_flags_all_options(): void
     {
-        $this->parser->parse('/(?imsxADSUXJ)abc/');
+        $this->parseRegex('/(?imsxADSUXJ)abc/');
     }
 
     /**
@@ -156,7 +157,7 @@ class AdditionalCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_conditional_with_lookbehind_condition_positive(): void
     {
-        $this->parser->parse('/(?(?<=test)yes|no)/');
+        $this->parseRegex('/(?(?<=test)yes|no)/');
     }
 
     /**
@@ -165,7 +166,7 @@ class AdditionalCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_conditional_with_lookbehind_condition_negative(): void
     {
-        $this->parser->parse('/(?(?<!test)yes|no)/');
+        $this->parseRegex('/(?(?<!test)yes|no)/');
     }
 
     /**
@@ -175,7 +176,7 @@ class AdditionalCoverageBoostTest extends TestCase
     {
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('Expected group name');
-        $this->parser->parse("/(?P'')/");
+        $this->parseRegex("/(?P'')/");
     }
 
     /**
@@ -185,7 +186,7 @@ class AdditionalCoverageBoostTest extends TestCase
     {
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('Unexpected token in group name');
-        $this->parser->parse("/(?P'name)/");
+        $this->parseRegex("/(?P'name)/");
     }
 
     /**
@@ -196,7 +197,7 @@ class AdditionalCoverageBoostTest extends TestCase
     {
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('Unexpected token in group name');
-        $this->parser->parse("/(?P'test)/");
+        $this->parseRegex("/(?P'test)/");
     }
 
     /**
@@ -206,7 +207,7 @@ class AdditionalCoverageBoostTest extends TestCase
     {
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('Expected subroutine name');
-        $this->parser->parse('/(?P>)/');
+        $this->parseRegex('/(?P>)/');
     }
 
     /**
@@ -215,7 +216,7 @@ class AdditionalCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_char_class_negation_with_literal_bracket(): void
     {
-        $this->parser->parse('/[^]abc]/');
+        $this->parseRegex('/[^]abc]/');
     }
 
     /**
@@ -224,7 +225,7 @@ class AdditionalCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_char_class_starting_with_bracket(): void
     {
-        $this->parser->parse('/[]abc]/');
+        $this->parseRegex('/[]abc]/');
     }
 
     /**
@@ -233,7 +234,7 @@ class AdditionalCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_alternation_empty_right(): void
     {
-        $this->parser->parse('/a|/');
+        $this->parseRegex('/a|/');
     }
 
     /**
@@ -242,7 +243,7 @@ class AdditionalCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_alternation_empty_left(): void
     {
-        $this->parser->parse('/|a/');
+        $this->parseRegex('/|a/');
     }
 
     /**
@@ -251,7 +252,7 @@ class AdditionalCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_alternation_multiple_empty(): void
     {
-        $this->parser->parse('/||/');
+        $this->parseRegex('/||/');
     }
 
     /**
@@ -260,7 +261,7 @@ class AdditionalCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_comment_with_special_chars(): void
     {
-        $this->parser->parse('/(?#test.*+?|^$)abc/');
+        $this->parseRegex('/(?#test.*+?|^$)abc/');
     }
 
     /**
@@ -269,7 +270,7 @@ class AdditionalCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_nested_posix_classes(): void
     {
-        $this->parser->parse('/[a[[:digit:]]b]/');
+        $this->parseRegex('/[a[[:digit:]]b]/');
     }
 
     /**
@@ -278,7 +279,7 @@ class AdditionalCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_char_class_range_with_negation(): void
     {
-        $this->parser->parse('/[^a-z]/');
+        $this->parseRegex('/[^a-z]/');
     }
 
     /**
@@ -287,7 +288,7 @@ class AdditionalCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_backref_k_with_number(): void
     {
-        $this->parser->parse('/(a)\k<1>/');
+        $this->parseRegex('/(a)\k<1>/');
     }
 
     /**
@@ -296,7 +297,7 @@ class AdditionalCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_backref_k_with_number_braces(): void
     {
-        $this->parser->parse('/(a)\k{1}/');
+        $this->parseRegex('/(a)\k{1}/');
     }
 
     /**
@@ -305,7 +306,7 @@ class AdditionalCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_g_reference_bare_number(): void
     {
-        $this->parser->parse('/(a)\g1/');
+        $this->parseRegex('/(a)\g1/');
     }
 
     /**
@@ -314,7 +315,7 @@ class AdditionalCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_quantifier_on_group(): void
     {
-        $this->parser->parse('/(abc)+/');
+        $this->parseRegex('/(abc)+/');
     }
 
     /**
@@ -323,7 +324,7 @@ class AdditionalCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_quantifier_on_char_class(): void
     {
-        $this->parser->parse('/[abc]+/');
+        $this->parseRegex('/[abc]+/');
     }
 
     /**
@@ -333,7 +334,7 @@ class AdditionalCoverageBoostTest extends TestCase
     {
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('Quantifier "+" cannot be applied to assertion');
-        $this->parser->parse('/\b+/');
+        $this->parseRegex('/\b+/');
     }
 
     /**
@@ -342,7 +343,7 @@ class AdditionalCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_empty_pattern(): void
     {
-        $this->parser->parse('//');
+        $this->parseRegex('//');
     }
 
     /**
@@ -351,7 +352,7 @@ class AdditionalCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_pattern_only_anchors(): void
     {
-        $this->parser->parse('/^$/');
+        $this->parseRegex('/^$/');
     }
 
     /**
@@ -360,7 +361,7 @@ class AdditionalCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_deeply_nested_groups(): void
     {
-        $this->parser->parse('/(((((a)))))/');
+        $this->parseRegex('/(((((a)))))/');
     }
 
     /**
@@ -369,7 +370,7 @@ class AdditionalCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_multiple_quantifiers(): void
     {
-        $this->parser->parse('/a+b*c?d{2,3}/');
+        $this->parseRegex('/a+b*c?d{2,3}/');
     }
 
     /**
@@ -378,7 +379,7 @@ class AdditionalCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_complex_nested_alternation(): void
     {
-        $this->parser->parse('/(a|b)|(c|d)/');
+        $this->parseRegex('/(a|b)|(c|d)/');
     }
 
     /**
@@ -387,7 +388,7 @@ class AdditionalCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_char_class_multiple_ranges(): void
     {
-        $this->parser->parse('/[a-zA-Z0-9_]/');
+        $this->parseRegex('/[a-zA-Z0-9_]/');
     }
 
     /**
@@ -396,7 +397,7 @@ class AdditionalCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_char_class_with_escapes(): void
     {
-        $this->parser->parse('/[\^\-\]]/');
+        $this->parseRegex('/[\^\-\]]/');
     }
 
     /**
@@ -405,7 +406,7 @@ class AdditionalCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_unicode_prop_in_char_class(): void
     {
-        $this->parser->parse('/[\p{L}\d]/');
+        $this->parseRegex('/[\p{L}\d]/');
     }
 
     /**
@@ -414,7 +415,7 @@ class AdditionalCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_negated_unicode_prop_in_char_class(): void
     {
-        $this->parser->parse('/[\P{L}]/');
+        $this->parseRegex('/[\P{L}]/');
     }
 
     /**
@@ -423,7 +424,7 @@ class AdditionalCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_char_type_in_char_class(): void
     {
-        $this->parser->parse('/[\d\s\w]/');
+        $this->parseRegex('/[\d\s\w]/');
     }
 
     /**
@@ -432,7 +433,7 @@ class AdditionalCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_octal_in_char_class(): void
     {
-        $this->parser->parse('/[\01\o{77}]/');
+        $this->parseRegex('/[\01\o{77}]/');
     }
 
     /**
@@ -441,6 +442,14 @@ class AdditionalCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_unicode_in_char_class(): void
     {
-        $this->parser->parse('/[\x41\u{42}]/');
+        $this->parseRegex('/[\x41\u{42}]/');
+    }
+
+    /**
+     * Helper method to parse a regex string.
+     */
+    private function parseRegex(string $pattern): RegexNode
+    {
+        return $this->regex->parse($pattern);
     }
 }

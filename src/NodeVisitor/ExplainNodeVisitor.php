@@ -33,7 +33,6 @@ use RegexParser\Node\OctalNode;
 use RegexParser\Node\PcreVerbNode;
 use RegexParser\Node\PosixClassNode;
 use RegexParser\Node\QuantifierNode;
-use RegexParser\Node\QuantifierType;
 use RegexParser\Node\RangeNode;
 use RegexParser\Node\RegexNode;
 use RegexParser\Node\SequenceNode;
@@ -42,11 +41,11 @@ use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
 
 /**
- * A visitor that explains the AST in an HTML format for rich display.
+ * A visitor that explains the AST in a human-readable string.
  *
  * @implements NodeVisitorInterface<string>
  */
-class HtmlExplainVisitor implements NodeVisitorInterface
+class ExplainNodeVisitor implements NodeVisitorInterface
 {
     private const array CHAR_TYPE_MAP = [
         'd' => 'any digit (0-9)',
@@ -76,250 +75,184 @@ class HtmlExplainVisitor implements NodeVisitorInterface
         'B' => 'a non-word boundary',
     ];
 
+    private int $indentLevel = 0;
+
     public function visitRegex(RegexNode $node): string
     {
+        $this->indentLevel = 0;
         $patternExplain = $node->pattern->accept($this);
-        $flags = $node->flags ? $this->e(' (with flags: '.$node->flags.')') : '';
+        $flags = $node->flags ? ' (with flags: '.$node->flags.')' : '';
 
-        return \sprintf(
-            "<div class=\"regex-explain\">\n<strong>Regex matches%s:</strong>\n<ul>%s</ul>\n</div>",
-            $flags,
-            $patternExplain,
-        );
+        return \sprintf("Regex matches%s:\n%s", $flags, $patternExplain);
     }
 
     public function visitAlternation(AlternationNode $node): string
     {
+        $this->indentLevel++;
         $alts = array_map(
             fn (NodeInterface $alt) => $alt->accept($this),
             $node->alternatives,
         );
+        $this->indentLevel--;
+
+        $indent = $this->indent();
 
         return \sprintf(
-            "<li><strong>EITHER:</strong>\n<ul>%s</ul>\n</li>",
-            implode("\n<li><strong>OR:</strong>\n<ul>", $alts),
+            "EITHER:\n%s%s",
+            $indent,
+            implode(\sprintf("\n%sOR:\n%s", $indent, $indent), $alts),
         );
     }
 
     public function visitSequence(SequenceNode $node): string
     {
         $parts = array_map(fn ($child) => $child->accept($this), $node->children);
+
+        // Filter out empty strings (e.g., from empty nodes)
         $parts = array_filter($parts, fn ($part) => '' !== $part);
 
-        return implode("\n", $parts);
+        return implode(\sprintf("\n%s", $this->indent()), $parts);
     }
 
     public function visitGroup(GroupNode $node): string
     {
+        $this->indentLevel++;
         $childExplain = $node->child->accept($this);
+        $this->indentLevel--;
+
+        $indent = $this->indent();
         $type = match ($node->type) {
             GroupType::T_GROUP_CAPTURING => 'Start Capturing Group',
             GroupType::T_GROUP_NON_CAPTURING => 'Start Non-Capturing Group',
-            GroupType::T_GROUP_NAMED => \sprintf("Start Capturing Group (named: '%s')", $this->e($node->name)),
+            GroupType::T_GROUP_NAMED => \sprintf("Start Capturing Group (named: '%s')", $node->name),
             GroupType::T_GROUP_LOOKAHEAD_POSITIVE => 'Start Positive Lookahead',
             GroupType::T_GROUP_LOOKAHEAD_NEGATIVE => 'Start Negative Lookahead',
             GroupType::T_GROUP_LOOKBEHIND_POSITIVE => 'Start Positive Lookbehind',
             GroupType::T_GROUP_LOOKBEHIND_NEGATIVE => 'Start Negative Lookbehind',
             GroupType::T_GROUP_ATOMIC => 'Start Atomic Group',
             GroupType::T_GROUP_BRANCH_RESET => 'Start Branch Reset Group',
-            GroupType::T_GROUP_INLINE_FLAGS => \sprintf("Start Group (with flags: '%s')", $this->e($node->flags)),
+            GroupType::T_GROUP_INLINE_FLAGS => \sprintf("Start Group (with flags: '%s')", $node->flags),
         };
 
-        return \sprintf(
-            "<li><span title=\"%s\"><strong>%s:</strong></span>\n<ul>%s</ul>\n</li>",
-            $this->e($type),
-            $this->e($type),
-            $childExplain,
-        );
+        return \sprintf("%s:\n%s%s\n%sEnd Group", $type, $indent, $childExplain, $this->indent(false));
     }
 
     public function visitQuantifier(QuantifierNode $node): string
     {
         $childExplain = $node->node->accept($this);
-        $quantExplain = $this->explainQuantifierValue($node->quantifier, $node->type);
+        $quantExplain = $this->explainQuantifierValue($node->quantifier, $node->type->value);
 
-        // If the child is simple (one line <li>), put it on one line.
-        if (str_starts_with($childExplain, '<li>') && !str_contains(substr($childExplain, 4), '<li>')) {
-            // Inject the quantifier explanation into the child's <li>
-            return str_replace('<li>', \sprintf('<li>(%s) ', $this->e($quantExplain)), $childExplain);
+        // If the child is simple (one line), put it on one line.
+        if (!str_contains($childExplain, "\n")) {
+            return \sprintf('%s (%s)', $childExplain, $quantExplain);
         }
 
-        // If the child is complex, wrap it
+        // If the child is complex, indent it.
+        $this->indentLevel++;
+        $childExplain = $node->node->accept($this);
+        $this->indentLevel--;
+
         return \sprintf(
-            "<li><strong>Quantifier (%s):</strong>\n<ul>%s</ul>\n</li>",
-            $this->e($quantExplain),
+            "Start Quantified Group (%s):\n%s%s\n%sEnd Quantified Group",
+            $quantExplain,
+            $this->indent(),
             $childExplain,
+            $this->indent(false),
         );
     }
 
     public function visitLiteral(LiteralNode $node): string
     {
-        $explanation = $this->explainLiteral($node->value);
-
-        return \sprintf(
-            '<li><span title="Literal: %s">Literal: <strong>%s</strong></span></li>',
-            $this->e($explanation),
-            $this->e($explanation),
-        );
+        return 'Literal: '.$this->explainLiteral($node->value);
     }
 
     public function visitCharType(CharTypeNode $node): string
     {
-        $explanation = self::CHAR_TYPE_MAP[$node->value] ?? 'unknown (\\'.$node->value.')';
-
-        return \sprintf(
-            '<li><span title="Character Type: %s">Character Type: <strong>\%s</strong> (%s)</span></li>',
-            $this->e($explanation),
-            $this->e($node->value),
-            $this->e($explanation),
-        );
+        return 'Character Type: '.(self::CHAR_TYPE_MAP[$node->value] ?? 'unknown (\\'.$node->value.')');
     }
 
     public function visitDot(DotNode $node): string
     {
-        $explanation = 'any character (except newline, unless /s flag is used)';
-
-        return \sprintf(
-            '<li><span title="%s">Wildcard: <strong>.</strong> (%s)</span></li>',
-            $this->e($explanation),
-            $this->e($explanation),
-        );
+        return 'Wildcard: any character (except newline, unless /s flag is used)';
     }
 
     public function visitAnchor(AnchorNode $node): string
     {
-        $explanation = self::ANCHOR_MAP[$node->value] ?? $node->value;
-
-        return \sprintf(
-            '<li><span title="%s">Anchor: <strong>%s</strong> (%s)</span></li>',
-            $this->e($explanation),
-            $this->e($node->value),
-            $this->e($explanation),
-        );
+        return 'Anchor: '.(self::ANCHOR_MAP[$node->value] ?? $node->value);
     }
 
     public function visitAssertion(AssertionNode $node): string
     {
-        $explanation = self::ASSERTION_MAP[$node->value] ?? '\\'.$node->value;
-
-        return \sprintf(
-            '<li><span title="%s">Assertion: <strong>\%s</strong> (%s)</span></li>',
-            $this->e($explanation),
-            $this->e($node->value),
-            $this->e($explanation),
-        );
+        return 'Assertion: '.(self::ASSERTION_MAP[$node->value] ?? '\\'.$node->value);
     }
 
     public function visitKeep(KeepNode $node): string
     {
-        $explanation = '\K (reset match start)';
-
-        return \sprintf(
-            '<li><span title="%s">Assertion: <strong>\K</strong> (%s)</span></li>',
-            $this->e($explanation),
-            $this->e($explanation),
-        );
+        return 'Assertion: \K (reset match start)';
     }
 
     public function visitCharClass(CharClassNode $node): string
     {
-        $neg = $node->isNegated ? '<strong>NOT</strong> ' : '';
+        $neg = $node->isNegated ? 'NOT ' : '';
         $parts = array_map(fn (NodeInterface $part) => $part->accept($this), $node->parts);
 
-        // Char class parts are just strings, not <li>
-        $parts = array_map(strip_tags(...), $parts);
-
-        $explanation = \sprintf('any character %sin [ %s ]', $neg, implode(', ', $parts));
-
-        return \sprintf(
-            '<li><span title="%s">Character Class: [ %s%s ]</span></li>',
-            $this->e(strip_tags($explanation)),
-            $neg,
-            $this->e(implode(', ', $parts)),
-        );
+        return \sprintf('Character Class: any character %sin [ %s ]', $neg, implode(', ', $parts));
     }
 
     public function visitRange(RangeNode $node): string
     {
         $start = ($node->start instanceof LiteralNode)
             ? $this->explainLiteral($node->start->value)
-            : $node->start->accept($this);
+            : $node->start->accept($this); // Fallback
 
         $end = ($node->end instanceof LiteralNode)
             ? $this->explainLiteral($node->end->value)
-            : $node->end->accept($this);
+            : $node->end->accept($this); // Fallback
 
-        return \sprintf('Range: from %s to %s', $this->e($start), $this->e($end));
+        return \sprintf('Range: from %s to %s', $start, $end);
     }
 
     public function visitBackref(BackrefNode $node): string
     {
-        $explanation = \sprintf('matches text from group "%s"', $node->ref);
-
-        return \sprintf(
-            '<li><span title="%s">Backreference: <strong>\%s</strong></span></li>',
-            $this->e($explanation),
-            $this->e($node->ref),
-        );
+        return \sprintf('Backreference: matches text from group "%s"', $node->ref);
     }
 
     public function visitUnicode(UnicodeNode $node): string
     {
-        return \sprintf(
-            '<li><span title="Unicode: %s">Unicode: <strong>%s</strong></span></li>',
-            $this->e($node->code),
-            $this->e($node->code),
-        );
+        return \sprintf('Unicode: %s', $node->code);
     }
 
     public function visitUnicodeProp(UnicodePropNode $node): string
     {
         $type = str_starts_with($node->prop, '^') ? 'non-matching' : 'matching';
         $prop = ltrim($node->prop, '^');
-        $explanation = \sprintf('any character %s "%s"', $type, $prop);
-        $prefix = str_starts_with($node->prop, '^') ? 'P' : 'p';
 
-        return \sprintf(
-            '<li><span title="%s">Unicode Property: <strong>\%s{%s}</strong></span></li>',
-            $this->e($explanation),
-            $prefix,
-            $this->e($prop),
-        );
+        return \sprintf('Unicode Property: any character %s "%s"', $type, $prop);
     }
 
     public function visitOctal(OctalNode $node): string
     {
-        return \sprintf(
-            '<li><span title="Octal: %s">Octal: <strong>%s</strong></span></li>',
-            $this->e($node->code),
-            $this->e($node->code),
-        );
+        return 'Octal: '.$node->code;
     }
 
     public function visitOctalLegacy(OctalLegacyNode $node): string
     {
-        return \sprintf(
-            '<li><span title="Legacy Octal: %s">Legacy Octal: <strong>\%s</strong></span></li>',
-            $this->e($node->code),
-            $this->e($node->code),
-        );
+        return 'Legacy Octal: \\'.$node->code;
     }
 
     public function visitPosixClass(PosixClassNode $node): string
     {
-        return \sprintf('POSIX Class: [[:%s:]]', $this->e($node->class));
+        return 'POSIX Class: '.$node->class;
     }
 
     public function visitComment(CommentNode $node): string
     {
-        return \sprintf(
-            '<li><span title="Comment" style="color: #888; font-style: italic;">Comment: %s</span></li>',
-            $this->e($node->comment),
-        );
+        return \sprintf("Comment: '%s'", $node->comment);
     }
 
     public function visitConditional(ConditionalNode $node): string
     {
+        $this->indentLevel++;
         $cond = $node->condition->accept($this);
         $yes = $node->yes->accept($this);
 
@@ -327,23 +260,15 @@ class HtmlExplainVisitor implements NodeVisitorInterface
         $hasElseBranch = !($node->no instanceof LiteralNode && '' === $node->no->value);
         $no = $hasElseBranch ? $node->no->accept($this) : '';
 
-        // Condition node will be a <li>, just need its text
-        $condText = trim(strip_tags($cond));
+        $this->indentLevel--;
 
-        if ('' === $no || '<li></li>' === $no) {
-            return \sprintf(
-                "<li><strong>Conditional: IF</strong> (%s) <strong>THEN:</strong>\n<ul>%s</ul>\n</li>",
-                $this->e($condText),
-                $yes,
-            );
+        $indent = $this->indent();
+
+        if ('' === $no) {
+            return \sprintf("Conditional: IF (%s) THEN:\n%s%s", $cond, $indent, $yes);
         }
 
-        return \sprintf(
-            "<li><strong>Conditional: IF</strong> (%s) <strong>THEN:</strong>\n<ul>%s</ul>\n<strong>ELSE:</strong>\n<ul>%s</ul>\n</li>",
-            $this->e($condText),
-            $yes,
-            $no,
-        );
+        return \sprintf("Conditional: IF (%s) THEN:\n%s%s\n%sELSE:\n%s%s", $cond, $indent, $yes, $this->indent(false), $indent, $no);
     }
 
     public function visitSubroutine(SubroutineNode $node): string
@@ -351,37 +276,29 @@ class HtmlExplainVisitor implements NodeVisitorInterface
         $ref = match ($node->reference) {
             'R' => 'the entire pattern',
             '0' => 'the entire pattern',
-            default => 'group '.$this->e($node->reference),
+            default => 'group '.$node->reference,
         };
-        $explanation = \sprintf('recurses to %s', $ref);
 
-        return \sprintf(
-            '<li><span title="%s">Subroutine Call: <strong>(%s%s)</strong></span></li>',
-            $this->e($explanation),
-            $this->e($node->syntax),
-            $this->e($node->reference),
-        );
+        return \sprintf('Subroutine Call: recurses to %s', $ref);
     }
 
     public function visitPcreVerb(PcreVerbNode $node): string
     {
-        return \sprintf(
-            '<li><span title="PCRE Verb">PCRE Verb: <strong>(*%s)</strong></span></li>',
-            $this->e($node->verb),
-        );
+        return 'PCRE Verb: (*'.$node->verb.')';
     }
 
     public function visitDefine(DefineNode $node): string
     {
+        $this->indentLevel++;
         $content = $node->content->accept($this);
+        $this->indentLevel--;
 
-        return \sprintf(
-            "<li><strong>DEFINE Block</strong> (defines subpatterns without matching):\n<ul>%s</ul>\n</li>",
-            $content,
-        );
+        $indent = $this->indent();
+
+        return \sprintf("DEFINE Block (defines subpatterns without matching):\n%s%s\n%sEnd DEFINE Block", $indent, $content, $this->indent(false));
     }
 
-    private function explainQuantifierValue(string $q, QuantifierType $type): string
+    private function explainQuantifierValue(string $q, string $type): string
     {
         $desc = match ($q) {
             '*' => 'zero or more times',
@@ -398,12 +315,17 @@ class HtmlExplainVisitor implements NodeVisitorInterface
         };
 
         $desc .= match ($type) {
-            QuantifierType::T_LAZY => ' (as few as possible)',
-            QuantifierType::T_POSSESSIVE => ' (and do not backtrack)',
+            'lazy' => ' (as few as possible)',
+            'possessive' => ' (and do not backtrack)',
             default => '',
         };
 
         return $desc;
+    }
+
+    private function indent(bool $withExtra = true): string
+    {
+        return str_repeat(' ', $this->indentLevel * 2).($withExtra ? '  ' : '');
     }
 
     private function explainLiteral(string $value): string
@@ -415,13 +337,5 @@ class HtmlExplainVisitor implements NodeVisitorInterface
             "\r" => "'\\r' (carriage return)",
             default => ctype_print($value) ? "'".$value."'" : '(non-printable char)',
         };
-    }
-
-    /**
-     * Helper for HTML escaping.
-     */
-    private function e(?string $s): string
-    {
-        return htmlspecialchars((string) $s, \ENT_QUOTES, 'UTF-8');
     }
 }

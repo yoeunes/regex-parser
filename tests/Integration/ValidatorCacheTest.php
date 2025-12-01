@@ -15,22 +15,22 @@ namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\NodeVisitor\ValidatorNodeVisitor;
-use RegexParser\Parser;
+use RegexParser\Regex;
 
 class ValidatorCacheTest extends TestCase
 {
     public function test_unicode_property_cache_hit(): void
     {
         $this->expectNotToPerformAssertions();
-        $parser = new Parser();
+        $regex = Regex::create();
         $validator = new ValidatorNodeVisitor();
 
         // 1st pass: fills the cache
-        $ast1 = $parser->parse('/\p{L}/');
+        $ast1 = $regex->parse('/\p{L}/');
         $ast1->accept($validator);
 
         // 2nd pass: uses the cache (covers "cache hit" branch)
-        $ast2 = $parser->parse('/\p{L}/');
+        $ast2 = $regex->parse('/\p{L}/');
         $ast2->accept($validator);
     }
 }

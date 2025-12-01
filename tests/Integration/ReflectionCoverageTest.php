@@ -15,7 +15,7 @@ namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\Lexer;
-use RegexParser\NodeVisitor\SampleGeneratorVisitor;
+use RegexParser\NodeVisitor\SampleGeneratorNodeVisitor;
 use RegexParser\TokenType;
 
 class ReflectionCoverageTest extends TestCase
@@ -26,7 +26,7 @@ class ReflectionCoverageTest extends TestCase
      */
     public function test_sample_generator_get_random_char_empty(): void
     {
-        $visitor = new SampleGeneratorVisitor();
+        $visitor = new SampleGeneratorNodeVisitor();
         $reflection = new \ReflectionClass($visitor);
         $method = $reflection->getMethod('getRandomChar');
 
@@ -43,7 +43,8 @@ class ReflectionCoverageTest extends TestCase
      */
     public function test_lexer_extract_token_value_default_escape(): void
     {
-        $lexer = new Lexer('');
+        $lexer = new Lexer();
+        $lexer->tokenize('');
         $reflection = new \ReflectionClass($lexer);
         $method = $reflection->getMethod('extractTokenValue');
 
@@ -59,7 +60,8 @@ class ReflectionCoverageTest extends TestCase
      */
     public function test_lexer_extract_token_value_global_default(): void
     {
-        $lexer = new Lexer('');
+        $lexer = new Lexer();
+        $lexer->tokenize('');
         $reflection = new \ReflectionClass($lexer);
         $method = $reflection->getMethod('extractTokenValue');
 
@@ -74,7 +76,8 @@ class ReflectionCoverageTest extends TestCase
      */
     public function test_lexer_normalize_unicode_missing_captures(): void
     {
-        $lexer = new Lexer('');
+        $lexer = new Lexer();
+        $lexer->tokenize('');
         $reflection = new \ReflectionClass($lexer);
         $method = $reflection->getMethod('normalizeUnicodeProp');
 

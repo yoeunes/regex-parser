@@ -26,13 +26,15 @@ class LexerInternalStateTest extends TestCase
      */
     public function test_lex_comment_mode_unterminated_returns_null(): void
     {
-        $lexer = new Lexer('(?# ... sans fin');
+        $lexer = new Lexer();
         $accessor = new LexerAccessor($lexer);
 
-        // Force comment mode
-        $accessor->callPrivateMethod('reset', ['(?# ... sans fin']);
-        // Manually advance after (?#
-        $accessor->setPosition(3);
+        // Set up internal state directly without calling tokenize() to avoid post-processing exception
+        $pattern = '(?# ... sans fin';
+        $accessor->setPattern($pattern);
+        $accessor->setLength(\strlen($pattern));
+        $accessor->setPosition(3); // After (?#
+        $accessor->setInCommentMode(true);
 
         // Direct call to private method
         $result = $accessor->callPrivateMethod('consumeCommentMode');
@@ -50,10 +52,10 @@ class LexerInternalStateTest extends TestCase
      */
     public function test_lex_quote_mode_unterminated_returns_null(): void
     {
-        $lexer = new Lexer('\Q ... sans fin');
+        $lexer = new Lexer();
         $accessor = new LexerAccessor($lexer);
 
-        $accessor->callPrivateMethod('reset', ['\Q ... sans fin']);
+        $lexer->tokenize('\Q ... sans fin');
         $accessor->setPosition(2); // After \Q
 
         $result = $accessor->callPrivateMethod('consumeQuoteMode');

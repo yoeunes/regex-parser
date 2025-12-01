@@ -15,20 +15,20 @@ namespace RegexParser\Tests\NodeVisitor;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use RegexParser\NodeVisitor\ComplexityScoreVisitor;
-use RegexParser\NodeVisitor\ExplainVisitor;
-use RegexParser\Parser;
+use RegexParser\NodeVisitor\ComplexityScoreNodeVisitor;
+use RegexParser\NodeVisitor\ExplainNodeVisitor;
+use RegexParser\Regex;
 
 class ComplexityScoreVisitorTest extends TestCase
 {
-    private Parser $parser;
+    private Regex $regex;
 
-    private ComplexityScoreVisitor $visitor;
+    private ComplexityScoreNodeVisitor $visitor;
 
     protected function setUp(): void
     {
-        $this->parser = new Parser();
-        $this->visitor = new ComplexityScoreVisitor();
+        $this->regex = Regex::create();
+        $this->visitor = new ComplexityScoreNodeVisitor();
     }
 
     public function test_simple_regex_score(): void
@@ -66,43 +66,42 @@ class ComplexityScoreVisitorTest extends TestCase
     }
 
     #[DataProvider('data_provider_quantifier_explanations')]
-    public function test_quantifier_explanations(string $regex, string $expectedQuantifierText): void
+    public function test_quantifier_explanations(string $pattern, string $expectedQuantifierText): void
     {
-        $parser = new Parser();
-        $ast = $parser->parse($regex);
-        $visitor = new ExplainVisitor();
-
+        $regex = Regex::create();
+        $ast = $regex->parse($pattern);
+        $visitor = new ExplainNodeVisitor();
         $output = $ast->accept($visitor);
         $this->assertStringContainsString($expectedQuantifierText, $output);
     }
 
     public function test_group_types_explanations(): void
     {
-        $parser = new Parser();
+        $regex = Regex::create();
 
         $this->assertStringContainsString(
             'Start Positive Lookbehind',
-            $parser->parse('/(?<=a)/')->accept(new ExplainVisitor()),
+            $regex->parse('/(?<=a)/')->accept(new ExplainNodeVisitor()),
         );
         $this->assertStringContainsString(
             'Start Atomic Group',
-            $parser->parse('/(?>a)/')->accept(new ExplainVisitor()),
+            $regex->parse('/(?>a)/')->accept(new ExplainNodeVisitor()),
         );
         $this->assertStringContainsString(
             "Start Capturing Group (named: 'id')",
-            $parser->parse('/(?<id>a)/')->accept(new ExplainVisitor()),
+            $regex->parse('/(?<id>a)/')->accept(new ExplainNodeVisitor()),
         );
     }
 
     public function test_literal_special_character_explanations(): void
     {
-        $parser = new Parser();
-        $visitor = new ExplainVisitor();
+        $regex = Regex::create();
+        $visitor = new ExplainNodeVisitor();
 
-        $this->assertStringContainsString("Literal: ' ' (space)", $parser->parse('/ /')->accept($visitor));
-        $this->assertStringContainsString("Literal: '\\t' (tab)", $parser->parse('/\t/')->accept($visitor));
-        $this->assertStringContainsString("Literal: '\\n' (newline)", $parser->parse('/\n/')->accept($visitor));
-        $this->assertStringContainsString('Literal: (non-printable char)', $parser->parse("/\x01/")->accept($visitor));
+        $this->assertStringContainsString("Literal: ' ' (space)", $regex->parse('/ /')->accept($visitor));
+        $this->assertStringContainsString("Literal: '\\t' (tab)", $regex->parse('/\t/')->accept($visitor));
+        $this->assertStringContainsString("Literal: '\\n' (newline)", $regex->parse('/\n/')->accept($visitor));
+        $this->assertStringContainsString('Literal: (non-printable char)', $regex->parse("/\x01/")->accept($visitor));
     }
 
     public function test_score_nested_unbounded_quantifiers_redo_penalty(): void
@@ -147,7 +146,7 @@ class ComplexityScoreVisitorTest extends TestCase
         // Hits the logic: if ($this->quantifierDepth > 0) { $score *= ... }
         // (a+)+
         $regex = '/(a+)+/';
-        $ast = $this->parser->parse($regex);
+        $ast = $this->regex->parse($regex);
         $score = $ast->accept($this->visitor);
 
         // Base(1) + Quantifier(10) + Group(1) + Quantifier(10 * 2) = ~32
@@ -188,7 +187,7 @@ class ComplexityScoreVisitorTest extends TestCase
 
     private function getScore(string $regex): int
     {
-        $ast = $this->parser->parse($regex);
+        $ast = $this->regex->parse($regex);
 
         return $ast->accept($this->visitor);
     }

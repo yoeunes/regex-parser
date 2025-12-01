@@ -17,17 +17,17 @@ use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\ParserException;
 use RegexParser\NodeVisitor\ValidatorNodeVisitor;
-use RegexParser\Parser;
+use RegexParser\Regex;
 
 class ValidatorEdgeCaseTest extends TestCase
 {
-    private Parser $parser;
+    private Regex $regex;
 
     private ValidatorNodeVisitor $validator;
 
     protected function setUp(): void
     {
-        $this->parser = new Parser();
+        $this->regex = Regex::create();
         $this->validator = new ValidatorNodeVisitor();
     }
 
@@ -119,7 +119,7 @@ class ValidatorEdgeCaseTest extends TestCase
 
     private function validate(string $regex): void
     {
-        $ast = $this->parser->parse($regex);
+        $ast = $this->regex->parse($regex);
         $ast->accept($this->validator);
     }
 }

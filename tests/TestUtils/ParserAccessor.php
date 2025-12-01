@@ -14,8 +14,8 @@ declare(strict_types=1);
 namespace RegexParser\Tests\TestUtils;
 
 use RegexParser\Parser;
-use RegexParser\Stream\TokenStream;
 use RegexParser\Token;
+use RegexParser\TokenStream;
 use RegexParser\TokenType;
 
 /**
@@ -68,14 +68,7 @@ class ParserAccessor
         }
         $processedTokens[] = $this->createToken(TokenType::T_EOF, '', $pos);
 
-        // Create a generator from the tokens
-        $generator = (static function () use ($processedTokens): \Generator {
-            foreach ($processedTokens as $token) {
-                yield $token;
-            }
-        })();
-
-        $stream = new TokenStream($generator);
+        $stream = new TokenStream($processedTokens, '');
 
         $property = $this->reflection->getProperty('stream');
         $property->setValue($this->parser, $stream);

@@ -48,7 +48,7 @@ use RegexParser\Node\UnicodePropNode;
  *
  * @implements NodeVisitorInterface<LiteralSet>
  */
-class LiteralExtractorVisitor implements NodeVisitorInterface
+class LiteralExtractorNodeVisitor implements NodeVisitorInterface
 {
     /**
      * Maximum number of literals generated to prevent explosion (e.g. [a-z]{10}).

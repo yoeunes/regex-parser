@@ -16,18 +16,18 @@ namespace RegexParser\Tests\Integration;
 use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\ParserException;
-use RegexParser\Parser;
+use RegexParser\Regex;
 
 /**
  * Tests targeting uncovered branches in Parser and Lexer classes.
  */
 class CoverageImprovementTest extends TestCase
 {
-    private Parser $parser;
+    private Regex $regex;
 
     protected function setUp(): void
     {
-        $this->parser = new Parser();
+        $this->regex = Regex::create();
     }
 
     /**
@@ -36,7 +36,7 @@ class CoverageImprovementTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_conditional_with_curly_brace_name(): void
     {
-        $this->parser->parse('/(?<foo>x)(?({foo})yes|no)/');
+        $this->regex->parse('/(?<foo>x)(?({foo})yes|no)/');
     }
 
     /**
@@ -45,7 +45,7 @@ class CoverageImprovementTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_conditional_with_numeric_reference(): void
     {
-        $this->parser->parse('/(a)(?(1)yes|no)/');
+        $this->regex->parse('/(a)(?(1)yes|no)/');
     }
 
     /**
@@ -54,7 +54,7 @@ class CoverageImprovementTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_conditional_with_multi_digit_numeric_reference(): void
     {
-        $this->parser->parse('/(a)(b)(c)(d)(e)(f)(g)(h)(i)(j)(k)(l)(?(12)yes|no)/');
+        $this->regex->parse('/(a)(b)(c)(d)(e)(f)(g)(h)(i)(j)(k)(l)(?(12)yes|no)/');
     }
 
     /**
@@ -63,7 +63,7 @@ class CoverageImprovementTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_conditional_with_lookahead_condition(): void
     {
-        $this->parser->parse('/(?(?=test)yes|no)/');
+        $this->regex->parse('/(?(?=test)yes|no)/');
     }
 
     /**
@@ -72,7 +72,7 @@ class CoverageImprovementTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_conditional_with_negative_lookahead_condition(): void
     {
-        $this->parser->parse('/(?(?!test)yes|no)/');
+        $this->regex->parse('/(?(?!test)yes|no)/');
     }
 
     /**
@@ -81,7 +81,7 @@ class CoverageImprovementTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_conditional_with_bare_group_name(): void
     {
-        $this->parser->parse('/(?<foo>x)(?(foo)yes|no)/');
+        $this->regex->parse('/(?<foo>x)(?(foo)yes|no)/');
     }
 
     /**
@@ -90,7 +90,7 @@ class CoverageImprovementTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_conditional_with_recursion_check(): void
     {
-        $this->parser->parse('/(?(R)yes|no)/');
+        $this->regex->parse('/(?(R)yes|no)/');
     }
 
     /**
@@ -99,7 +99,7 @@ class CoverageImprovementTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_conditional_with_angle_bracket_name(): void
     {
-        $this->parser->parse('/(?<name>x)(?(<name>)yes|no)/');
+        $this->regex->parse('/(?<name>x)(?(<name>)yes|no)/');
     }
 
     /**
@@ -110,7 +110,7 @@ class CoverageImprovementTest extends TestCase
     {
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('Invalid conditional condition');
-        $this->parser->parse('/(?(?x)yes|no)/');
+        $this->regex->parse('/(?(?x)yes|no)/');
     }
 
     /**
@@ -119,7 +119,7 @@ class CoverageImprovementTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_quantifier_with_min_only(): void
     {
-        $this->parser->parse('/a{2,}/');
+        $this->regex->parse('/a{2,}/');
     }
 
     /**
@@ -128,7 +128,7 @@ class CoverageImprovementTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_quantifier_with_exact_count(): void
     {
-        $this->parser->parse('/a{5}/');
+        $this->regex->parse('/a{5}/');
     }
 
     /**
@@ -145,7 +145,7 @@ class CoverageImprovementTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $this->parser->parse($pattern);
+            $this->regex->parse($pattern);
         }
     }
 
@@ -165,7 +165,7 @@ class CoverageImprovementTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $this->parser->parse($pattern);
+            $this->regex->parse($pattern);
         }
     }
 
@@ -176,7 +176,7 @@ class CoverageImprovementTest extends TestCase
     {
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('Invalid \g reference syntax');
-        $this->parser->parse('/\g/');
+        $this->regex->parse('/\g/');
     }
 
     /**
@@ -185,7 +185,7 @@ class CoverageImprovementTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_subroutine_call_p_syntax(): void
     {
-        $this->parser->parse('/(?<foo>a)(?P>foo)/');
+        $this->regex->parse('/(?<foo>a)(?P>foo)/');
     }
 
     /**
@@ -200,7 +200,7 @@ class CoverageImprovementTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $this->parser->parse($pattern);
+            $this->regex->parse($pattern);
         }
     }
 
@@ -210,7 +210,7 @@ class CoverageImprovementTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_char_class_negation(): void
     {
-        $this->parser->parse('/[^abc]/');
+        $this->regex->parse('/[^abc]/');
     }
 
     /**
@@ -226,7 +226,7 @@ class CoverageImprovementTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $this->parser->parse($pattern);
+            $this->regex->parse($pattern);
         }
     }
 
@@ -243,7 +243,7 @@ class CoverageImprovementTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $this->parser->parse($pattern);
+            $this->regex->parse($pattern);
         }
     }
 
@@ -253,7 +253,7 @@ class CoverageImprovementTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_comment_groups(): void
     {
-        $this->parser->parse('/(?#this is a comment)abc/');
+        $this->regex->parse('/(?#this is a comment)abc/');
     }
 
     /**
@@ -272,7 +272,7 @@ class CoverageImprovementTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $this->parser->parse($pattern);
+            $this->regex->parse($pattern);
         }
     }
 
@@ -282,7 +282,7 @@ class CoverageImprovementTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_atomic_groups(): void
     {
-        $this->parser->parse('/(?>abc)/');
+        $this->regex->parse('/(?>abc)/');
     }
 
     /**
@@ -291,7 +291,7 @@ class CoverageImprovementTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_recursive_pattern(): void
     {
-        $this->parser->parse('/(?R)/');
+        $this->regex->parse('/(?R)/');
     }
 
     /**
@@ -307,7 +307,7 @@ class CoverageImprovementTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $this->parser->parse($pattern);
+            $this->regex->parse($pattern);
         }
     }
 
@@ -324,7 +324,7 @@ class CoverageImprovementTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $this->parser->parse($pattern);
+            $this->regex->parse($pattern);
         }
     }
 
@@ -343,7 +343,7 @@ class CoverageImprovementTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $this->parser->parse($pattern);
+            $this->regex->parse($pattern);
         }
     }
 
@@ -361,7 +361,7 @@ class CoverageImprovementTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $this->parser->parse($pattern);
+            $this->regex->parse($pattern);
         }
     }
 
@@ -380,7 +380,7 @@ class CoverageImprovementTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $this->parser->parse($pattern);
+            $this->regex->parse($pattern);
         }
     }
 
@@ -400,7 +400,7 @@ class CoverageImprovementTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $this->parser->parse($pattern);
+            $this->regex->parse($pattern);
         }
     }
 
@@ -410,7 +410,7 @@ class CoverageImprovementTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_keep_assertion(): void
     {
-        $this->parser->parse('/test\K/');
+        $this->regex->parse('/test\K/');
     }
 
     /**
@@ -434,7 +434,7 @@ class CoverageImprovementTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $this->parser->parse($pattern);
+            $this->regex->parse($pattern);
         }
     }
 
@@ -452,7 +452,7 @@ class CoverageImprovementTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $this->parser->parse($pattern);
+            $this->regex->parse($pattern);
         }
     }
 
@@ -477,7 +477,7 @@ class CoverageImprovementTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $this->parser->parse($pattern);
+            $this->regex->parse($pattern);
         }
     }
 
@@ -495,7 +495,7 @@ class CoverageImprovementTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $this->parser->parse($pattern);
+            $this->regex->parse($pattern);
         }
     }
 
@@ -513,7 +513,7 @@ class CoverageImprovementTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $this->parser->parse($pattern);
+            $this->regex->parse($pattern);
         }
     }
 
@@ -531,7 +531,7 @@ class CoverageImprovementTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $this->parser->parse($pattern);
+            $this->regex->parse($pattern);
         }
     }
 
@@ -541,7 +541,7 @@ class CoverageImprovementTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_dot_metacharacter(): void
     {
-        $this->parser->parse('/./');
+        $this->regex->parse('/./');
     }
 
     /**
@@ -557,7 +557,7 @@ class CoverageImprovementTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $this->parser->parse($pattern);
+            $this->regex->parse($pattern);
         }
     }
 
@@ -567,7 +567,7 @@ class CoverageImprovementTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_nested_groups(): void
     {
-        $this->parser->parse('/((a)(b))/');
+        $this->regex->parse('/((a)(b))/');
     }
 
     /**
@@ -590,7 +590,7 @@ class CoverageImprovementTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $this->parser->parse($pattern);
+            $this->regex->parse($pattern);
         }
     }
 
@@ -602,13 +602,13 @@ class CoverageImprovementTest extends TestCase
     public function test_parser_get_lexer_reuse(): void
     {
         // First parse - creates new Lexer
-        $this->parser->parse('/abc/');
+        $this->regex->parse('/abc/');
 
         // Second parse - should reuse Lexer via getLexer()
-        $this->parser->parse('/def/');
+        $this->regex->parse('/def/');
 
         // Third parse - ensures reset works correctly
-        $this->parser->parse('/[a-z]+/');
+        $this->regex->parse('/[a-z]+/');
     }
 
     /**
@@ -621,7 +621,7 @@ class CoverageImprovementTest extends TestCase
     {
         // This pattern triggers parseGroupModifier which calls previous()
         // and may use reconstructTokenValue
-        $this->parser->parse('/(?P<name>test)/');
+        $this->regex->parse('/(?P<name>test)/');
     }
 
     /**
@@ -632,8 +632,8 @@ class CoverageImprovementTest extends TestCase
     public function test_parser_previous_method(): void
     {
         // Alternation pattern triggers previous() method
-        $this->parser->parse('/a|b|c/');
-        $this->parser->parse('/foo|bar|baz/');
+        $this->regex->parse('/a|b|c/');
+        $this->regex->parse('/foo|bar|baz/');
     }
 
     /**
@@ -644,8 +644,8 @@ class CoverageImprovementTest extends TestCase
     public function test_parser_consume_while(): void
     {
         // Named group with multiple characters triggers consumeWhile
-        $this->parser->parse('/(?<longname>test)/');
-        $this->parser->parse('/(?<abc123>pattern)/');
+        $this->regex->parse('/(?<longname>test)/');
+        $this->regex->parse('/(?<abc123>pattern)/');
     }
 
     /**
@@ -656,16 +656,16 @@ class CoverageImprovementTest extends TestCase
     public function test_lexer_comment_mode(): void
     {
         // Simple comment
-        $this->parser->parse('/(?#comment)test/');
+        $this->regex->parse('/(?#comment)test/');
 
         // Comment with special characters
-        $this->parser->parse('/(?#this is a comment with spaces)abc/');
+        $this->regex->parse('/(?#this is a comment with spaces)abc/');
 
         // Comment at the end
-        $this->parser->parse('/test(?#end comment)/');
+        $this->regex->parse('/test(?#end comment)/');
 
         // Multiple comments
-        $this->parser->parse('/(?#first)a(?#second)b/');
+        $this->regex->parse('/(?#first)a(?#second)b/');
     }
 
     /**
@@ -676,30 +676,30 @@ class CoverageImprovementTest extends TestCase
     public function test_lexer_extract_token_value(): void
     {
         // T_LITERAL_ESCAPED: \t, \n, \r, \f, \v, \e
-        $this->parser->parse('/\t\n\r\f\v\e/');
+        $this->regex->parse('/\t\n\r\f\v\e/');
 
         // T_PCRE_VERB: (*FAIL), (*ACCEPT)
-        $this->parser->parse('/(*FAIL)/');
-        $this->parser->parse('/(*ACCEPT)/');
+        $this->regex->parse('/(*FAIL)/');
+        $this->regex->parse('/(*ACCEPT)/');
 
         // T_ASSERTION: \b, \B, \A, \Z, \z
-        $this->parser->parse('/\b\B\A\Z\z/');
+        $this->regex->parse('/\b\B\A\Z\z/');
 
         // T_CHAR_TYPE: \d, \D, \w, \W, \s, \S
-        $this->parser->parse('/\d\D\w\W\s\S/');
+        $this->regex->parse('/\d\D\w\W\s\S/');
 
         // T_KEEP: \K
-        $this->parser->parse('/\K/');
+        $this->regex->parse('/\K/');
 
         // T_BACKREF: \1, \2
-        $this->parser->parse('/(a)\1/');
+        $this->regex->parse('/(a)\1/');
 
         // T_OCTAL_LEGACY: \01, \02
-        $this->parser->parse('/\01\02/');
+        $this->regex->parse('/\01\02/');
 
         // T_POSIX_CLASS: [[:alnum:]]
-        $this->parser->parse('/[[:alnum:]]/');
-        $this->parser->parse('/[[:alpha:]]/');
+        $this->regex->parse('/[[:alnum:]]/');
+        $this->regex->parse('/[[:alpha:]]/');
     }
 
     /**
@@ -710,22 +710,22 @@ class CoverageImprovementTest extends TestCase
     public function test_lexer_normalize_unicode_prop(): void
     {
         // \p{L} - regular property
-        $this->parser->parse('/\p{L}/');
+        $this->regex->parse('/\p{L}/');
 
         // \P{L} - negated property (adds ^)
-        $this->parser->parse('/\P{L}/');
+        $this->regex->parse('/\P{L}/');
 
         // \p{^L} - already negated
-        $this->parser->parse('/\p{^L}/');
+        $this->regex->parse('/\p{^L}/');
 
         // \P{^L} - double negation (removes ^)
-        $this->parser->parse('/\P{^L}/');
+        $this->regex->parse('/\P{^L}/');
 
         // Various Unicode properties
-        $this->parser->parse('/\p{Ll}/');  // Lowercase letter
-        $this->parser->parse('/\P{Lu}/');  // Not uppercase letter
-        $this->parser->parse('/\p{N}/');   // Number
-        $this->parser->parse('/\P{P}/');   // Not punctuation
-        $this->parser->parse('/\p{Sc}/');  // Currency symbol
+        $this->regex->parse('/\p{Ll}/');  // Lowercase letter
+        $this->regex->parse('/\P{Lu}/');  // Not uppercase letter
+        $this->regex->parse('/\p{N}/');   // Number
+        $this->regex->parse('/\P{P}/');   // Not punctuation
+        $this->regex->parse('/\p{Sc}/');  // Currency symbol
     }
 }

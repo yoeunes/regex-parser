@@ -16,7 +16,7 @@ namespace RegexParser\Tests\Integration;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
-use RegexParser\Parser;
+use RegexParser\Regex;
 
 class RoundTripTest extends TestCase
 {
@@ -42,10 +42,10 @@ class RoundTripTest extends TestCase
     #[DataProvider('providePatterns')]
     public function test_parse_and_compile_is_idempotent(string $pattern, ?string $expected = null): void
     {
-        $parser = new Parser();
+        $regex = Regex::create();
         $compiler = new CompilerNodeVisitor();
 
-        $ast = $parser->parse($pattern);
+        $ast = $regex->parse($pattern);
         $compiled = $ast->accept($compiler);
 
         $this->assertSame($expected ?? $pattern, $compiled);

@@ -14,25 +14,25 @@ declare(strict_types=1);
 namespace RegexParser\Tests\NodeVisitor;
 
 use PHPUnit\Framework\TestCase;
-use RegexParser\NodeVisitor\HtmlExplainVisitor;
-use RegexParser\Parser;
+use RegexParser\NodeVisitor\HtmlExplainNodeVisitor;
+use RegexParser\Regex;
 
 class HtmlExplainVisitorCoverageTest extends TestCase
 {
-    private Parser $parser;
+    private Regex $regex;
 
-    private HtmlExplainVisitor $visitor;
+    private HtmlExplainNodeVisitor $visitor;
 
     protected function setUp(): void
     {
-        $this->parser = new Parser();
-        $this->visitor = new HtmlExplainVisitor();
+        $this->regex = Regex::create();
+        $this->visitor = new HtmlExplainNodeVisitor();
     }
 
     public function test_visit_conditional_with_else_branch(): void
     {
         $regex = '/(?(?<=a)b|c)/'; // Conditional with alternation in YES branch (parser treats b|c as one branch)
-        $ast = $this->parser->parse($regex);
+        $ast = $this->regex->parse($regex);
         $output = $ast->accept($this->visitor);
 
         $this->assertStringContainsString('<strong>Conditional: IF</strong>', $output);
@@ -46,7 +46,7 @@ class HtmlExplainVisitorCoverageTest extends TestCase
     public function test_visit_group_types_and_named_group_escaping(): void
     {
         $regex = '/(?<tag>a)(?i:b)(?<!c)(?>d)/';
-        $ast = $this->parser->parse($regex);
+        $ast = $this->regex->parse($regex);
         $output = $ast->accept($this->visitor);
 
         // Named group (tests escaping for name and type)
@@ -62,7 +62,7 @@ class HtmlExplainVisitorCoverageTest extends TestCase
     public function test_visit_complex_char_class_parts(): void
     {
         $regex = '/[\d\P{L}\o{77}[[:alnum:]]]/';
-        $ast = $this->parser->parse($regex);
+        $ast = $this->regex->parse($regex);
         $output = $ast->accept($this->visitor);
 
         // Unicode Prop (\P{L} handled by logic) - note: inside char class, tags are stripped
@@ -76,7 +76,7 @@ class HtmlExplainVisitorCoverageTest extends TestCase
     public function test_visit_complex_literal_types(): void
     {
         $regex = "/\t\r\n /"; // Tab, CR, NL, Space
-        $ast = $this->parser->parse($regex);
+        $ast = $this->regex->parse($regex);
         $output = $ast->accept($this->visitor);
 
         $this->assertStringContainsString('Literal: <strong>&#039;\\t&#039; (tab)</strong>', $output);
@@ -89,7 +89,7 @@ class HtmlExplainVisitorCoverageTest extends TestCase
     {
         // A complex sequence that will trigger the multi-line quantifier formatting
         $regex = '/(a|b){2}/';
-        $ast = $this->parser->parse($regex);
+        $ast = $this->regex->parse($regex);
         $output = $ast->accept($this->visitor);
 
         // This ensures the logic that wraps complex children in a new <ul>/<li> is hit
@@ -101,7 +101,7 @@ class HtmlExplainVisitorCoverageTest extends TestCase
     {
         // A simple literal that should trigger the single-line quantifier formatting
         $regex = '/a{2}/';
-        $ast = $this->parser->parse($regex);
+        $ast = $this->regex->parse($regex);
         $output = $ast->accept($this->visitor);
 
         // This ensures the logic that injects the quantifier into the child's <li> is hit

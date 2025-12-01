@@ -15,7 +15,7 @@ namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\Node\CharTypeNode;
-use RegexParser\NodeVisitor\SampleGeneratorVisitor;
+use RegexParser\NodeVisitor\SampleGeneratorNodeVisitor;
 
 class GeneratorEdgeCaseTest extends TestCase
 {
@@ -25,7 +25,7 @@ class GeneratorEdgeCaseTest extends TestCase
      */
     public function test_generate_unknown_char_type(): void
     {
-        $generator = new SampleGeneratorVisitor();
+        $generator = new SampleGeneratorNodeVisitor();
         // 'Z' n'existe pas comme type de caractère standard
         $node = new CharTypeNode('Z', 0, 0);
 
@@ -41,7 +41,7 @@ class GeneratorEdgeCaseTest extends TestCase
      */
     public function test_parse_quantifier_range_fallback(): void
     {
-        $generator = new SampleGeneratorVisitor();
+        $generator = new SampleGeneratorNodeVisitor();
         $reflection = new \ReflectionClass($generator);
         $method = $reflection->getMethod('parseQuantifierRange');
 

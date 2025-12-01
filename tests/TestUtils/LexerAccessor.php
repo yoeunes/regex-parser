@@ -85,6 +85,33 @@ class LexerAccessor
     }
 
     /**
+     * Sets the private inCommentMode property.
+     */
+    public function setInCommentMode(bool $inCommentMode): void
+    {
+        $property = $this->reflection->getProperty('inCommentMode');
+        $property->setValue($this->lexer, $inCommentMode);
+    }
+
+    /**
+     * Sets the private pattern property.
+     */
+    public function setPattern(string $pattern): void
+    {
+        $property = $this->reflection->getProperty('pattern');
+        $property->setValue($this->lexer, $pattern);
+    }
+
+    /**
+     * Sets the private length property.
+     */
+    public function setLength(int $length): void
+    {
+        $property = $this->reflection->getProperty('length');
+        $property->setValue($this->lexer, $length);
+    }
+
+    /**
      * Creates a Token instance (useful for mocking complex token structures).
      */
     public function createToken(TokenType $type, string $value, int $position): Token

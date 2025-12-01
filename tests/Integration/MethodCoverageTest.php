@@ -16,18 +16,18 @@ namespace RegexParser\Tests\Integration;
 use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Lexer;
-use RegexParser\Parser;
+use RegexParser\Regex;
 
 /**
  * Tests specifically targeting uncovered methods to achieve 100% method coverage.
  */
 class MethodCoverageTest extends TestCase
 {
-    private Parser $parser;
+    private Regex $regex;
 
     protected function setUp(): void
     {
-        $this->parser = new Parser();
+        $this->regex = Regex::create();
     }
 
     /**
@@ -38,7 +38,7 @@ class MethodCoverageTest extends TestCase
     public function test_parser_subroutine_p_syntax(): void
     {
         // (?P>name) syntax - triggers parseSubroutineName
-        $this->parser->parse('/(?<foo>x)(?P>foo)/');
+        $this->regex->parse('/(?<foo>x)(?P>foo)/');
     }
 
     /**
@@ -49,7 +49,7 @@ class MethodCoverageTest extends TestCase
     public function test_parser_subroutine_ampersand_syntax(): void
     {
         // (?&name) syntax - triggers parseSubroutineName
-        $this->parser->parse('/(?<bar>y)(?&bar)/');
+        $this->regex->parse('/(?<bar>y)(?&bar)/');
     }
 
     /**
@@ -60,13 +60,13 @@ class MethodCoverageTest extends TestCase
     public function test_parser_get_lexer_multiple_calls(): void
     {
         // First call creates lexer
-        $this->parser->parse('/test/');
+        $this->regex->parse('/test/');
 
         // Second call should reuse lexer via getLexer
-        $this->parser->parse('/another/');
+        $this->regex->parse('/another/');
 
         // Third call
-        $this->parser->parse('/pattern/');
+        $this->regex->parse('/pattern/');
     }
 
     /**
@@ -77,9 +77,9 @@ class MethodCoverageTest extends TestCase
     public function test_parser_is_at_end(): void
     {
         // Simple patterns that cause isAtEnd checks
-        $this->parser->parse('/a/');
-        $this->parser->parse('/ab/');
-        $this->parser->parse('//'); // Empty pattern
+        $this->regex->parse('/a/');
+        $this->regex->parse('/ab/');
+        $this->regex->parse('//'); // Empty pattern
     }
 
     /**
@@ -90,10 +90,10 @@ class MethodCoverageTest extends TestCase
     public function test_lexer_quote_mode(): void
     {
         // \Q...\E quote mode
-        $this->parser->parse('/\Qtest\E/');
-        $this->parser->parse('/\Qhello world\E/');
-        $this->parser->parse('/\Q.*+?{}[]()\E/'); // Special chars in quote mode
-        $this->parser->parse('/\Qunclosed/'); // Quote mode without \E
+        $this->regex->parse('/\Qtest\E/');
+        $this->regex->parse('/\Qhello world\E/');
+        $this->regex->parse('/\Q.*+?{}[]()\E/'); // Special chars in quote mode
+        $this->regex->parse('/\Qunclosed/'); // Quote mode without \E
     }
 
     /**
@@ -104,11 +104,11 @@ class MethodCoverageTest extends TestCase
     public function test_lexer_comment_mode_detailed(): void
     {
         // (?#...) comment mode
-        $this->parser->parse('/(?#simple comment)/');
-        $this->parser->parse('/(?#comment with spaces and punctuation!)/');
-        $this->parser->parse('/a(?#comment)b/');
-        $this->parser->parse('/(?#first)x(?#second)/');
-        $this->parser->parse('/(?#)/'); // Empty comment
+        $this->regex->parse('/(?#simple comment)/');
+        $this->regex->parse('/(?#comment with spaces and punctuation!)/');
+        $this->regex->parse('/a(?#comment)b/');
+        $this->regex->parse('/(?#first)x(?#second)/');
+        $this->regex->parse('/(?#)/'); // Empty comment
     }
 
     /**
@@ -119,49 +119,49 @@ class MethodCoverageTest extends TestCase
     public function test_lexer_extract_token_value_comprehensive(): void
     {
         // T_LITERAL_ESCAPED with special escapes
-        $this->parser->parse('/\t/');  // Tab
-        $this->parser->parse('/\n/');  // Newline
-        $this->parser->parse('/\r/');  // Carriage return
-        $this->parser->parse('/\f/');  // Form feed
-        $this->parser->parse('/\v/');  // Vertical tab
-        $this->parser->parse('/\e/');  // Escape
-        $this->parser->parse('/\./');  // Escaped dot
+        $this->regex->parse('/\t/');  // Tab
+        $this->regex->parse('/\n/');  // Newline
+        $this->regex->parse('/\r/');  // Carriage return
+        $this->regex->parse('/\f/');  // Form feed
+        $this->regex->parse('/\v/');  // Vertical tab
+        $this->regex->parse('/\e/');  // Escape
+        $this->regex->parse('/\./');  // Escaped dot
 
         // T_PCRE_VERB
-        $this->parser->parse('/(*FAIL)/');
-        $this->parser->parse('/(*ACCEPT)/');
-        $this->parser->parse('/(*COMMIT)/');
+        $this->regex->parse('/(*FAIL)/');
+        $this->regex->parse('/(*ACCEPT)/');
+        $this->regex->parse('/(*COMMIT)/');
 
         // T_ASSERTION
-        $this->parser->parse('/\b/');  // Word boundary
-        $this->parser->parse('/\B/');  // Not word boundary
-        $this->parser->parse('/\A/');  // Start of string
-        $this->parser->parse('/\Z/');  // End of string
-        $this->parser->parse('/\z/');  // Absolute end
+        $this->regex->parse('/\b/');  // Word boundary
+        $this->regex->parse('/\B/');  // Not word boundary
+        $this->regex->parse('/\A/');  // Start of string
+        $this->regex->parse('/\Z/');  // End of string
+        $this->regex->parse('/\z/');  // Absolute end
 
         // T_CHAR_TYPE
-        $this->parser->parse('/\d/');  // Digit
-        $this->parser->parse('/\D/');  // Not digit
-        $this->parser->parse('/\w/');  // Word char
-        $this->parser->parse('/\W/');  // Not word char
-        $this->parser->parse('/\s/');  // Whitespace
-        $this->parser->parse('/\S/');  // Not whitespace
+        $this->regex->parse('/\d/');  // Digit
+        $this->regex->parse('/\D/');  // Not digit
+        $this->regex->parse('/\w/');  // Word char
+        $this->regex->parse('/\W/');  // Not word char
+        $this->regex->parse('/\s/');  // Whitespace
+        $this->regex->parse('/\S/');  // Not whitespace
 
         // T_KEEP
-        $this->parser->parse('/\K/');
+        $this->regex->parse('/\K/');
 
         // T_BACKREF
-        $this->parser->parse('/(a)\1/');
-        $this->parser->parse('/(a)(b)\2/');
+        $this->regex->parse('/(a)\1/');
+        $this->regex->parse('/(a)(b)\2/');
 
         // T_OCTAL_LEGACY
-        $this->parser->parse('/\01/');
-        $this->parser->parse('/\77/');
+        $this->regex->parse('/\01/');
+        $this->regex->parse('/\77/');
 
         // T_POSIX_CLASS
-        $this->parser->parse('/[[:alnum:]]/');
-        $this->parser->parse('/[[:alpha:]]/');
-        $this->parser->parse('/[[:digit:]]/');
+        $this->regex->parse('/[[:alnum:]]/');
+        $this->regex->parse('/[[:alpha:]]/');
+        $this->regex->parse('/[[:digit:]]/');
     }
 
     /**
@@ -170,13 +170,7 @@ class MethodCoverageTest extends TestCase
     public function test_lexer_direct_instantiation(): void
     {
         // Direct Lexer instantiation
-        $lexer = new Lexer('test');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('test')->getTokens();
         $this->assertIsArray($tokens);
-
-        // Reset and tokenize again
-        $lexer->reset('another');
-        $tokens2 = $lexer->tokenizeToArray();
-        $this->assertIsArray($tokens2);
     }
 }

@@ -28,7 +28,8 @@ class LexerInternalCoverageTest extends TestCase
      */
     public function test_extract_token_value_fallback(): void
     {
-        $lexer = new Lexer('');
+        $lexer = new Lexer();
+        $lexer->tokenize('');
         $accessor = new LexerAccessor($lexer);
 
         // Force a token that has no specific extraction logic
@@ -57,7 +58,8 @@ class LexerInternalCoverageTest extends TestCase
      */
     public function test_normalize_unicode_prop_fallbacks(): void
     {
-        $lexer = new Lexer('');
+        $lexer = new Lexer();
+        $lexer->tokenize('');
         $accessor = new LexerAccessor($lexer);
 
         // Case where v1_prop and v2_prop are absent

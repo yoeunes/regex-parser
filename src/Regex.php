@@ -13,19 +13,9 @@ declare(strict_types=1);
 
 namespace RegexParser;
 
-use Psr\SimpleCache\CacheInterface;
 use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
 use RegexParser\Node\RegexNode;
-use RegexParser\NodeVisitor\CompilerNodeVisitor;
-use RegexParser\NodeVisitor\ComplexityScoreVisitor;
-use RegexParser\NodeVisitor\DumperNodeVisitor;
-use RegexParser\NodeVisitor\ExplainVisitor;
-use RegexParser\NodeVisitor\LiteralExtractorVisitor;
-use RegexParser\NodeVisitor\MermaidVisitor;
-use RegexParser\NodeVisitor\OptimizerNodeVisitor;
-use RegexParser\NodeVisitor\SampleGeneratorVisitor;
-use RegexParser\NodeVisitor\ValidatorNodeVisitor;
 use RegexParser\ReDoS\ReDoSAnalysis;
 use RegexParser\ReDoS\ReDoSAnalyzer;
 
@@ -33,51 +23,38 @@ use RegexParser\ReDoS\ReDoSAnalyzer;
  * Main service for parsing, validating, and manipulating regex patterns.
  *
  * This class provides a high-level API for common regex operations.
- * It uses RegexCompiler internally, which combines Lexer + Parser
- * for convenient string-based parsing with caching support.
+ * It orchestrates the Lexer and Parser to provide convenient string-based
+ * parsing while keeping those components decoupled from each other.
  */
-class Regex
+readonly class Regex
 {
     /**
-     * @param RegexCompiler          $compiler  the configured compiler instance (combines Lexer + Parser)
-     * @param ValidatorNodeVisitor   $validator a reusable validator visitor
-     * @param ExplainVisitor         $explainer a reusable explain visitor
-     * @param SampleGeneratorVisitor $generator a reusable sample generator visitor
-     * @param OptimizerNodeVisitor   $optimizer a reusable optimizer visitor
-     * @param DumperNodeVisitor      $dumper    a reusable dumper visitor
-     * @param ComplexityScoreVisitor $scorer    a reusable complexity scorer
+     * Default hard limit on the regex string length to prevent excessive processing/memory usage.
      */
-    public function __construct(
-        private readonly RegexCompiler $compiler,
-        private readonly ValidatorNodeVisitor $validator,
-        private readonly ExplainVisitor $explainer,
-        private readonly SampleGeneratorVisitor $generator,
-        private readonly OptimizerNodeVisitor $optimizer,
-        private readonly DumperNodeVisitor $dumper,
-        private readonly ComplexityScoreVisitor $scorer,
-    ) {}
+    public const int DEFAULT_MAX_PATTERN_LENGTH = 100_000;
+
+    private int $maxPatternLength;
+
+    /**
+     * @param array{
+     *     max_pattern_length?: int,
+     * } $options
+     */
+    private function __construct(array $options = [])
+    {
+        $this->maxPatternLength = $options['max_pattern_length'] ?? self::DEFAULT_MAX_PATTERN_LENGTH;
+    }
 
     /**
      * Static constructor for easy use without a DI container.
      *
      * @param array{
      *     max_pattern_length?: int,
-     *     max_recursion_depth?: int,
-     *     max_nodes?: int,
-     *     cache?: CacheInterface|null,
-     * } $options Options for the compiler (e.g., 'max_pattern_length', 'max_recursion_depth', 'max_nodes').
+     * } $options Options (e.g., 'max_pattern_length').
      */
     public static function create(array $options = []): self
     {
-        return new self(
-            new RegexCompiler($options),
-            new ValidatorNodeVisitor(),
-            new ExplainVisitor(),
-            new SampleGeneratorVisitor(),
-            new OptimizerNodeVisitor(),
-            new DumperNodeVisitor(),
-            new ComplexityScoreVisitor(),
-        );
+        return new self($options);
     }
 
     /**
@@ -87,7 +64,16 @@ class Regex
      */
     public function parse(string $regex): RegexNode
     {
-        return $this->compiler->parse($regex);
+        if (\strlen($regex) > $this->maxPatternLength) {
+            throw new ParserException(\sprintf('Regex pattern exceeds maximum length of %d characters.', $this->maxPatternLength));
+        }
+
+        [$pattern, $flags, $delimiter] = $this->extractPatternAndFlags($regex);
+
+        $stream = $this->getLexer()->tokenize($pattern);
+        $parser = $this->getParser();
+
+        return $parser->parse($stream, $flags, $delimiter, \strlen($pattern));
     }
 
     /**
@@ -96,12 +82,9 @@ class Regex
     public function validate(string $regex): ValidationResult
     {
         try {
-            $ast = $this->compiler->parse($regex);
-            $validator = clone $this->validator;
-            $ast->accept($validator);
-
-            $scorer = clone $this->scorer;
-            $score = $ast->accept($scorer);
+            $ast = $this->parse($regex);
+            $ast->accept(new NodeVisitor\ValidatorNodeVisitor());
+            $score = $ast->accept(new NodeVisitor\ComplexityScoreNodeVisitor());
 
             return new ValidationResult(true, null, $score);
         } catch (LexerException|ParserException $e) {
@@ -116,9 +99,7 @@ class Regex
      */
     public function explain(string $regex): string
     {
-        $ast = $this->compiler->parse($regex);
-
-        return $ast->accept(clone $this->explainer);
+        return $this->parse($regex)->accept(new NodeVisitor\ExplainNodeVisitor());
     }
 
     /**
@@ -128,9 +109,7 @@ class Regex
      */
     public function generate(string $regex): string
     {
-        $ast = $this->compiler->parse($regex);
-
-        return $ast->accept(clone $this->generator);
+        return $this->parse($regex)->accept(new NodeVisitor\SampleGeneratorNodeVisitor());
     }
 
     /**
@@ -140,13 +119,7 @@ class Regex
      */
     public function optimize(string $regex): string
     {
-        $ast = $this->compiler->parse($regex);
-
-        $optimizedAst = $ast->accept(clone $this->optimizer);
-
-        $compiler = new CompilerNodeVisitor();
-
-        return $optimizedAst->accept($compiler);
+        return $this->parse($regex)->accept(new NodeVisitor\OptimizerNodeVisitor())->accept(new NodeVisitor\CompilerNodeVisitor());
     }
 
     /**
@@ -158,9 +131,7 @@ class Regex
      */
     public function visualize(string $regex): string
     {
-        $ast = $this->compiler->parse($regex);
-
-        return $ast->accept(new MermaidVisitor());
+        return $this->parse($regex)->accept(new NodeVisitor\MermaidNodeVisitor());
     }
 
     /**
@@ -170,9 +141,7 @@ class Regex
      */
     public function dump(string $regex): string
     {
-        $ast = $this->compiler->parse($regex);
-
-        return $ast->accept(clone $this->dumper);
+        return $this->parse($regex)->accept(new NodeVisitor\DumperNodeVisitor());
     }
 
     /**
@@ -183,11 +152,7 @@ class Regex
      */
     public function extractLiterals(string $regex): LiteralSet
     {
-        $ast = $this->compiler->parse($regex);
-
-        $visitor = new LiteralExtractorVisitor();
-
-        return $ast->accept($visitor);
+        return $this->parse($regex)->accept(new NodeVisitor\LiteralExtractorNodeVisitor());
     }
 
     /**
@@ -196,18 +161,7 @@ class Regex
      */
     public function analyzeReDoS(string $regex): ReDoSAnalysis
     {
-        $analyzer = new ReDoSAnalyzer($this->compiler);
-
-        return $analyzer->analyze($regex);
-    }
-
-    /**
-     * Returns the underlying RegexCompiler instance.
-     * Useful for advanced scenarios requiring direct access to the compiler.
-     */
-    public function getCompiler(): RegexCompiler
-    {
-        return $this->compiler;
+        return new ReDoSAnalyzer()->analyze($regex);
     }
 
     /**
@@ -216,6 +170,81 @@ class Regex
      */
     public function getParser(): Parser
     {
-        return $this->compiler->getParser();
+        return new Parser();
+    }
+
+    /**
+     * Returns a new Lexer instance for the given pattern.
+     */
+    public function getLexer(): Lexer
+    {
+        return new Lexer();
+    }
+
+    /**
+     * Creates a TokenStream from a pattern string.
+     *
+     * @param string $pattern The regex pattern (without delimiters)
+     */
+    public function createTokenStream(string $pattern): TokenStream
+    {
+        return $this->getLexer()->tokenize($pattern);
+    }
+
+    /**
+     * Extracts pattern, flags, and delimiter from a full regex string.
+     * Handles escaped delimiters correctly (e.g., "/abc\/def/i").
+     *
+     * @throws ParserException
+     *
+     * @return array{0: string, 1: string, 2: string} [pattern, flags, delimiter]
+     */
+    public function extractPatternAndFlags(string $regex): array
+    {
+        $len = \strlen($regex);
+        if ($len < 2) {
+            throw new ParserException('Regex is too short. It must include delimiters.');
+        }
+
+        $delimiter = $regex[0];
+        // Handle bracket delimiters style: (pattern), [pattern], {pattern}, <pattern>
+        $closingDelimiter = match ($delimiter) {
+            '(' => ')',
+            '[' => ']',
+            '{' => '}',
+            '<' => '>',
+            default => $delimiter,
+        };
+
+        // Find the last occurrence of the closing delimiter that is NOT escaped
+        // We scan from the end to optimize for flags
+        for ($i = $len - 1; $i > 0; $i--) {
+            if ($regex[$i] === $closingDelimiter) {
+                // Check if escaped (count odd number of backslashes before it)
+                $escapes = 0;
+                for ($j = $i - 1; $j > 0 && '\\' === $regex[$j]; $j--) {
+                    $escapes++;
+                }
+
+                if (0 === $escapes % 2) {
+                    // Found the end delimiter
+                    $pattern = substr($regex, 1, $i - 1);
+                    $flags = substr($regex, $i + 1);
+
+                    // Validate flags (only allow standard PCRE flags)
+                    // n = NO_AUTO_CAPTURE, r = PCRE2_EXTRA_CASELESS_RESTRICT (unicode restricted)
+                    if (!preg_match('/^[imsxADSUXJunr]*$/', $flags)) {
+                        // Find the invalid flag for a better error message
+                        $invalid = preg_replace('/[imsxADSUXJunr]/', '', $flags);
+
+                        throw new ParserException(\sprintf('Unknown regex flag(s) found: "%s"', $invalid ?? $flags));
+                    }
+
+                    return [$pattern, $flags, $delimiter];
+                }
+            }
+        }
+
+        throw new ParserException(\sprintf('No closing delimiter "%s" found.', $closingDelimiter));
     }
 }

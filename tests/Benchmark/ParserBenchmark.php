@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Benchmark;
 
 use PhpBench\Attributes as Bench;
-use RegexParser\Parser;
+use RegexParser\Regex;
 
 class ParserBenchmark
 {
@@ -23,7 +23,7 @@ class ParserBenchmark
     #[Bench\Revs(100)]
     public function benchParseComplex(): void
     {
-        $parser = new Parser();
-        $parser->parse('/^(?P<name>[a-z]+)([0-9]{1,3})?$/i');
+        $regex = Regex::create();
+        $regex->parse('/^(?P<name>[a-z]+)([0-9]{1,3})?$/i');
     }
 }

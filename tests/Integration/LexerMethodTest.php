@@ -25,7 +25,8 @@ class LexerMethodTest extends TestCase
      */
     public function test_extract_token_value_unknown_type(): void
     {
-        $lexer = new Lexer('');
+        $lexer = new Lexer();
+        $lexer->tokenize('');
         $accessor = new LexerAccessor($lexer);
 
         // Type qui n'a pas de logique spécifique -> retourne la valeur brute
@@ -42,7 +43,8 @@ class LexerMethodTest extends TestCase
      */
     public function test_extract_token_value_backref_fallback(): void
     {
-        $lexer = new Lexer('');
+        $lexer = new Lexer();
+        $lexer->tokenize('');
         $accessor = new LexerAccessor($lexer);
 
         $val = $accessor->callPrivateMethod('extractTokenValue', [
@@ -58,7 +60,8 @@ class LexerMethodTest extends TestCase
      */
     public function test_normalize_unicode_prop_fallback(): void
     {
-        $lexer = new Lexer('');
+        $lexer = new Lexer();
+        $lexer->tokenize('');
         $accessor = new LexerAccessor($lexer);
 
         $val = $accessor->callPrivateMethod('normalizeUnicodeProp', [

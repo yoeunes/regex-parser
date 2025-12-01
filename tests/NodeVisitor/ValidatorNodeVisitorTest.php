@@ -17,7 +17,7 @@ use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\ParserException;
 use RegexParser\NodeVisitor\ValidatorNodeVisitor;
-use RegexParser\Parser;
+use RegexParser\Regex;
 
 class ValidatorNodeVisitorTest extends TestCase
 {
@@ -229,10 +229,10 @@ class ValidatorNodeVisitorTest extends TestCase
         $this->validate('/[[:^word:]]/');
     }
 
-    private function validate(string $regex): void
+    private function validate(string $pattern): void
     {
-        $parser = new Parser();
-        $ast = $parser->parse($regex);
+        $regex = Regex::create();
+        $ast = $regex->parse($pattern);
         $visitor = new ValidatorNodeVisitor();
         $ast->accept($visitor);
     }

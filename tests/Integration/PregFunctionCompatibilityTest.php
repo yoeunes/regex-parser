@@ -15,7 +15,6 @@ namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
-use RegexParser\Parser;
 use RegexParser\Regex;
 
 /**
@@ -24,20 +23,16 @@ use RegexParser\Regex;
  */
 class PregFunctionCompatibilityTest extends TestCase
 {
-    private Parser $parser;
+    private Regex $regex;
 
     private CompilerNodeVisitor $compiler;
 
     protected function setUp(): void
     {
-        $this->parser = new Parser();
+        $this->regex = Regex::create();
         $this->compiler = new CompilerNodeVisitor();
         $regex = Regex::create();
     }
-
-    // ============================================================================
-    // TEST 1: preg_match() - Single Match
-    // ============================================================================
 
     public function test_preg_match_simple_literal(): void
     {
@@ -122,10 +117,6 @@ class PregFunctionCompatibilityTest extends TestCase
         $this->assertSame($originalResult, $compiledResult);
     }
 
-    // ============================================================================
-    // TEST 2: preg_match_all() - All Matches
-    // ============================================================================
-
     public function test_preg_match_all_basic(): void
     {
         $pattern = '/\d+/';
@@ -191,10 +182,6 @@ class PregFunctionCompatibilityTest extends TestCase
         $this->assertSame(0, $originalCount);
         $this->assertSame($originalCount, $compiledCount);
     }
-
-    // ============================================================================
-    // TEST 3: preg_replace() - Pattern Replacement
-    // ============================================================================
 
     public function test_preg_replace_basic(): void
     {
@@ -266,10 +253,6 @@ class PregFunctionCompatibilityTest extends TestCase
         $this->assertSame($subject, $compiledResult);
     }
 
-    // ============================================================================
-    // TEST 4: preg_replace_callback() - Callback Replacement
-    // ============================================================================
-
     public function test_preg_replace_callback_basic(): void
     {
         $pattern = '/\d+/';
@@ -321,10 +304,6 @@ class PregFunctionCompatibilityTest extends TestCase
         $this->assertSame($originalResult, $compiledResult);
         $this->assertSame('HELLO WORLD', $compiledResult);
     }
-
-    // ============================================================================
-    // TEST 5: preg_split() - Pattern Splitting
-    // ============================================================================
 
     public function test_preg_split_basic(): void
     {
@@ -397,10 +376,6 @@ class PregFunctionCompatibilityTest extends TestCase
         $this->assertCount(2, $firstItem);
     }
 
-    // ============================================================================
-    // TEST 6: preg_grep() - Array Filtering
-    // ============================================================================
-
     public function test_preg_grep_basic(): void
     {
         $pattern = '/^\d+$/';
@@ -466,10 +441,6 @@ class PregFunctionCompatibilityTest extends TestCase
         $this->assertSame([], $compiledResult);
     }
 
-    // ============================================================================
-    // TEST 7: preg_quote() - Pattern Escaping
-    // ============================================================================
-
     public function test_preg_quote_special_characters(): void
     {
         $string = 'a.b*c?d+e(f)g[h]i{j}k^l$m|n\\o';
@@ -526,10 +497,6 @@ class PregFunctionCompatibilityTest extends TestCase
         $this->assertDoesNotMatchRegularExpression($compiled, 'userXnameXtag@exampleXcom');
     }
 
-    // ============================================================================
-    // Summary & Additional Compatibility Tests
-    // ============================================================================
-
     public function test_all_preg_functions_preserve_behavior(): void
     {
         $pattern = '/\b\w{3,}\b/';
@@ -568,7 +535,7 @@ class PregFunctionCompatibilityTest extends TestCase
      */
     private function roundTripPattern(string $pattern): string
     {
-        $ast = $this->parser->parse($pattern);
+        $ast = $this->regex->parse($pattern);
 
         return $ast->accept($this->compiler);
     }

@@ -18,7 +18,6 @@ use PHPUnit\Framework\TestCase;
 use RegexParser\NodeVisitor\DumperNodeVisitor;
 use RegexParser\NodeVisitor\OptimizerNodeVisitor;
 use RegexParser\NodeVisitor\ValidatorNodeVisitor;
-use RegexParser\Parser;
 use RegexParser\Regex;
 
 /**
@@ -30,7 +29,7 @@ class FinalCoverageBoostTest extends TestCase
     public function test_validator_posix_class_variations(): void
     {
         $validator = new ValidatorNodeVisitor();
-        $parser = new Parser();
+        $regex = Regex::create();
 
         // Test various POSIX classes
         $patterns = [
@@ -40,7 +39,7 @@ class FinalCoverageBoostTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $ast = $parser->parse($pattern);
+            $ast = $regex->parse($pattern);
             $ast->accept($validator);
         }
     }
@@ -49,7 +48,7 @@ class FinalCoverageBoostTest extends TestCase
     public function test_validator_unicode_prop_variations(): void
     {
         $validator = new ValidatorNodeVisitor();
-        $parser = new Parser();
+        $regex = Regex::create();
 
         // Test different unicode properties
         $patterns = [
@@ -60,7 +59,7 @@ class FinalCoverageBoostTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $ast = $parser->parse($pattern);
+            $ast = $regex->parse($pattern);
             $ast->accept($validator);
         }
     }
@@ -69,18 +68,18 @@ class FinalCoverageBoostTest extends TestCase
     public function test_validator_backref_edge_cases(): void
     {
         $validator = new ValidatorNodeVisitor();
-        $parser = new Parser();
+        $regex = Regex::create();
 
         // Named backref
-        $ast = $parser->parse('/(?<name>a)\k<name>/');
+        $ast = $regex->parse('/(?<name>a)\k<name>/');
         $ast->accept($validator);
 
         // Numbered backref
-        $ast = $parser->parse('/(a)\1/');
+        $ast = $regex->parse('/(a)\1/');
         $ast->accept($validator);
 
         // Relative backref
-        $ast = $parser->parse('/(a)\g{-1}/');
+        $ast = $regex->parse('/(a)\g{-1}/');
         $ast->accept($validator);
     }
 
@@ -88,15 +87,15 @@ class FinalCoverageBoostTest extends TestCase
     public function test_optimizer_char_class_optimization(): void
     {
         $optimizer = new OptimizerNodeVisitor();
-        $parser = new Parser();
+        $regex = Regex::create();
 
         // Character class that could be optimized
-        $ast = $parser->parse('/[a]/');
+        $ast = $regex->parse('/[a]/');
         $result = $ast->accept($optimizer);
         $this->assertNotNull($result);
 
         // Multiple single chars
-        $ast = $parser->parse('/[abc]/');
+        $ast = $regex->parse('/[abc]/');
         $result = $ast->accept($optimizer);
         $this->assertNotNull($result);
     }
@@ -104,15 +103,15 @@ class FinalCoverageBoostTest extends TestCase
     public function test_optimizer_quantifier_edge_cases(): void
     {
         $optimizer = new OptimizerNodeVisitor();
-        $parser = new Parser();
+        $regex = Regex::create();
 
         // Quantifier with 0 min
-        $ast = $parser->parse('/a{0,5}/');
+        $ast = $regex->parse('/a{0,5}/');
         $result = $ast->accept($optimizer);
         $this->assertNotNull($result);
 
         // Quantifier {1,1} should become no quantifier
-        $ast = $parser->parse('/a{1,1}/');
+        $ast = $regex->parse('/a{1,1}/');
         $result = $ast->accept($optimizer);
         $this->assertNotNull($result);
     }
@@ -120,10 +119,10 @@ class FinalCoverageBoostTest extends TestCase
     public function test_optimizer_sequence_flattening(): void
     {
         $optimizer = new OptimizerNodeVisitor();
-        $parser = new Parser();
+        $regex = Regex::create();
 
         // Nested sequences
-        $ast = $parser->parse('/abc/');
+        $ast = $regex->parse('/abc/');
         $result = $ast->accept($optimizer);
         $this->assertNotNull($result);
     }
@@ -131,10 +130,10 @@ class FinalCoverageBoostTest extends TestCase
     public function test_optimizer_alternation_with_empty(): void
     {
         $optimizer = new OptimizerNodeVisitor();
-        $parser = new Parser();
+        $regex = Regex::create();
 
         // Alternation with one empty branch
-        $ast = $parser->parse('/a|/');
+        $ast = $regex->parse('/a|/');
         $result = $ast->accept($optimizer);
         $this->assertNotNull($result);
     }
@@ -143,20 +142,20 @@ class FinalCoverageBoostTest extends TestCase
     public function test_dumper_group_types(): void
     {
         $dumper = new DumperNodeVisitor();
-        $parser = new Parser();
+        $regex = Regex::create();
 
         // Non-capturing group
-        $ast = $parser->parse('/(?:abc)/');
+        $ast = $regex->parse('/(?:abc)/');
         $result = $ast->accept($dumper);
         $this->assertStringContainsString('Group', $result);
 
         // Named group
-        $ast = $parser->parse('/(?<name>abc)/');
+        $ast = $regex->parse('/(?<name>abc)/');
         $result = $ast->accept($dumper);
         $this->assertStringContainsString('Group', $result);
 
         // Atomic group
-        $ast = $parser->parse('/(?>abc)/');
+        $ast = $regex->parse('/(?>abc)/');
         $result = $ast->accept($dumper);
         $this->assertStringContainsString('Group', $result);
     }
@@ -164,7 +163,7 @@ class FinalCoverageBoostTest extends TestCase
     public function test_dumper_assertion_types(): void
     {
         $dumper = new DumperNodeVisitor();
-        $parser = new Parser();
+        $regex = Regex::create();
 
         $patterns = [
             '/(?=abc)/',   // Positive lookahead
@@ -174,7 +173,7 @@ class FinalCoverageBoostTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $ast = $parser->parse($pattern);
+            $ast = $regex->parse($pattern);
             $result = $ast->accept($dumper);
             // Assertions are represented as Groups with specific types
             $this->assertStringContainsString('Group', $result);
@@ -192,59 +191,59 @@ class FinalCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_parser_conditional_with_assertion(): void
     {
-        $parser = new Parser();
+        $regex = Regex::create();
 
         // Conditional with lookahead
-        $parser->parse('/(?(?=test)yes|no)/');
+        $regex->parse('/(?(?=test)yes|no)/');
 
         // Conditional with lookbehind
-        $parser->parse('/(?(?<=test)yes|no)/');
+        $regex->parse('/(?(?<=test)yes|no)/');
     }
 
     #[DoesNotPerformAssertions]
     public function test_parser_subroutine_variations(): void
     {
-        $parser = new Parser();
+        $regex = Regex::create();
 
         // Subroutine by number
-        $parser->parse('/(abc)(?1)/');
+        $regex->parse('/(abc)(?1)/');
 
         // Subroutine by name
-        $parser->parse('/(?<name>abc)(?&name)/');
+        $regex->parse('/(?<name>abc)(?&name)/');
 
         // Recursive pattern
-        $parser->parse('/(?R)/');
+        $regex->parse('/(?R)/');
     }
 
     #[DoesNotPerformAssertions]
     public function test_parser_pcre_verb_with_argument(): void
     {
-        $parser = new Parser();
+        $regex = Regex::create();
 
         // PCRE verb with argument
-        $parser->parse('/(*MARK:label)/');
+        $regex->parse('/(*MARK:label)/');
 
-        $parser->parse('/(*PRUNE:name)/');
+        $regex->parse('/(*PRUNE:name)/');
 
-        $parser->parse('/(*THEN:label)/');
+        $regex->parse('/(*THEN:label)/');
     }
 
     #[DoesNotPerformAssertions]
     public function test_parser_complex_char_class(): void
     {
-        $parser = new Parser();
+        $regex = Regex::create();
 
         // Char class with multiple ranges and literals
-        $parser->parse('/[a-zA-Z0-9_\-\.]/');
+        $regex->parse('/[a-zA-Z0-9_\-\.]/');
 
         // Negated char class with POSIX
-        $parser->parse('/[^[:digit:]]/');
+        $regex->parse('/[^[:digit:]]/');
     }
 
     #[DoesNotPerformAssertions]
     public function test_parser_quantifier_possessive(): void
     {
-        $parser = new Parser();
+        $regex = Regex::create();
 
         // Possessive quantifiers
         $patterns = [
@@ -255,41 +254,41 @@ class FinalCoverageBoostTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $parser->parse($pattern);
+            $regex->parse($pattern);
         }
     }
 
     #[DoesNotPerformAssertions]
     public function test_parser_unicode_variations(): void
     {
-        $parser = new Parser();
+        $regex = Regex::create();
 
         // Unicode with multiple digits
-        $parser->parse('/\u{1F600}/');
+        $regex->parse('/\u{1F600}/');
 
         // Octal with braces
-        $parser->parse('/\o{177}/');
+        $regex->parse('/\o{177}/');
     }
 
     #[DoesNotPerformAssertions]
     public function test_parser_backref_variations(): void
     {
-        $parser = new Parser();
+        $regex = Regex::create();
 
         // Numbered backref with braces
-        $parser->parse('/(a)\g{1}/');
+        $regex->parse('/(a)\g{1}/');
 
         // Relative backref
-        $parser->parse('/(a)(b)\g{-1}/');
+        $regex->parse('/(a)(b)\g{-1}/');
 
         // Named backref with quotes
-        $parser->parse('/(?<name>a)\k<name>/');
+        $regex->parse('/(?<name>a)\k<name>/');
     }
 
     #[DoesNotPerformAssertions]
     public function test_parser_group_with_modifiers(): void
     {
-        $parser = new Parser();
+        $regex = Regex::create();
 
         // Group with inline modifiers
         $patterns = [
@@ -301,14 +300,14 @@ class FinalCoverageBoostTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $parser->parse($pattern);
+            $regex->parse($pattern);
         }
     }
 
     #[DoesNotPerformAssertions]
     public function test_parser_anchors_all_types(): void
     {
-        $parser = new Parser();
+        $regex = Regex::create();
 
         $patterns = [
             '/^test/',    // Start of line
@@ -322,7 +321,7 @@ class FinalCoverageBoostTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $parser->parse($pattern);
+            $regex->parse($pattern);
         }
     }
 

@@ -19,14 +19,14 @@ use RegexParser\Node\GroupType;
 use RegexParser\Node\QuantifierNode;
 use RegexParser\Node\QuantifierType;
 use RegexParser\Node\SequenceNode;
-use RegexParser\Parser;
+use RegexParser\Regex;
 
 class AdvancedParserTest extends TestCase
 {
     public function test_parse_named_group(): void
     {
-        $parser = new Parser();
-        $ast = $parser->parse('/(?<name>a)/');
+        $regex = Regex::create();
+        $ast = $regex->parse('/(?<name>a)/');
 
         $this->assertInstanceOf(GroupNode::class, $ast->pattern);
         $this->assertSame(GroupType::T_GROUP_NAMED, $ast->pattern->type);
@@ -35,8 +35,8 @@ class AdvancedParserTest extends TestCase
 
     public function test_parse_lazy_quantifier(): void
     {
-        $parser = new Parser();
-        $ast = $parser->parse('/a+?/');
+        $regex = Regex::create();
+        $ast = $regex->parse('/a+?/');
 
         $this->assertInstanceOf(QuantifierNode::class, $ast->pattern);
         $this->assertSame('+', $ast->pattern->quantifier);
@@ -45,8 +45,8 @@ class AdvancedParserTest extends TestCase
 
     public function test_parse_possessive_quantifier(): void
     {
-        $parser = new Parser();
-        $ast = $parser->parse('/a{2,3}+/');
+        $regex = Regex::create();
+        $ast = $regex->parse('/a{2,3}+/');
 
         $this->assertInstanceOf(QuantifierNode::class, $ast->pattern);
         $this->assertSame('{2,3}', $ast->pattern->quantifier);
@@ -55,8 +55,8 @@ class AdvancedParserTest extends TestCase
 
     public function test_parse_lookahead(): void
     {
-        $parser = new Parser();
-        $ast = $parser->parse('/a(?=b)/');
+        $regex = Regex::create();
+        $ast = $regex->parse('/a(?=b)/');
 
         // $ast->pattern is a SequenceNode(Literal(a), GroupNode(...))
         $this->assertInstanceOf(SequenceNode::class, $ast->pattern);
@@ -68,8 +68,8 @@ class AdvancedParserTest extends TestCase
 
     public function test_parse_alternative_delimiter(): void
     {
-        $parser = new Parser();
-        $ast = $parser->parse('#a|b#imsU');
+        $regex = Regex::create();
+        $ast = $regex->parse('#a|b#imsU');
 
         $this->assertSame('#', $ast->delimiter);
         $this->assertSame('imsU', $ast->flags);
@@ -77,8 +77,8 @@ class AdvancedParserTest extends TestCase
 
     public function test_parse_brace_delimiter(): void
     {
-        $parser = new Parser();
-        $ast = $parser->parse('{foo(bar)}i');
+        $regex = Regex::create();
+        $ast = $regex->parse('{foo(bar)}i');
 
         $this->assertSame('{', $ast->delimiter);
         $this->assertSame('i', $ast->flags);

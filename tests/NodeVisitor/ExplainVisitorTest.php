@@ -14,24 +14,24 @@ declare(strict_types=1);
 namespace RegexParser\Tests\NodeVisitor;
 
 use PHPUnit\Framework\TestCase;
-use RegexParser\NodeVisitor\ExplainVisitor;
-use RegexParser\NodeVisitor\HtmlExplainVisitor;
-use RegexParser\Parser;
+use RegexParser\NodeVisitor\ExplainNodeVisitor;
+use RegexParser\NodeVisitor\HtmlExplainNodeVisitor;
+use RegexParser\Regex;
 
 class ExplainVisitorTest extends TestCase
 {
-    private Parser $parser;
+    private Regex $regex;
 
     protected function setUp(): void
     {
-        $this->parser = new Parser();
+        $this->regex = Regex::create();
     }
 
     public function test_text_explain(): void
     {
-        $parser = new Parser();
-        $ast = $parser->parse('/^a|b$/i');
-        $visitor = new ExplainVisitor();
+        $regex = Regex::create();
+        $ast = $regex->parse('/^a|b$/i');
+        $visitor = new ExplainNodeVisitor();
 
         $output = $ast->accept($visitor);
 
@@ -43,10 +43,10 @@ class ExplainVisitorTest extends TestCase
 
     public function test_html_explain_escaping(): void
     {
-        $parser = new Parser();
+        $regex = Regex::create();
         // The parser splits "<script>" into multiple literals: "<", "s", "c", ...
-        $ast = $parser->parse('/<script>/');
-        $visitor = new HtmlExplainVisitor();
+        $ast = $regex->parse('/<script>/');
+        $visitor = new HtmlExplainNodeVisitor();
 
         $output = $ast->accept($visitor);
 
@@ -59,17 +59,17 @@ class ExplainVisitorTest extends TestCase
     public function test_quantifier_formatting_simple_vs_complex(): void
     {
         // Simple: a* -> single line
-        $ast = $this->parser->parse('/a*/');
-        $text = $ast->accept(new ExplainVisitor());
-        $html = $ast->accept(new HtmlExplainVisitor());
+        $ast = $this->regex->parse('/a*/');
+        $text = $ast->accept(new ExplainNodeVisitor());
+        $html = $ast->accept(new HtmlExplainNodeVisitor());
 
         $this->assertStringNotContainsString('Start Quantified Group', $text); // Simple format
         $this->assertStringContainsString('<li>(zero or more times)', $html); // Injected into <li>
 
         // Complex: (a|b)* -> multi line block
-        $ast = $this->parser->parse('/(a|b)*/');
-        $text = $ast->accept(new ExplainVisitor());
-        $html = $ast->accept(new HtmlExplainVisitor());
+        $ast = $this->regex->parse('/(a|b)*/');
+        $text = $ast->accept(new ExplainNodeVisitor());
+        $html = $ast->accept(new HtmlExplainNodeVisitor());
 
         $this->assertStringContainsString('Start Quantified Group', $text);
         $this->assertStringContainsString('<li><strong>Quantifier', $html); // Wrapped
@@ -78,9 +78,9 @@ class ExplainVisitorTest extends TestCase
     public function test_conditional_no_else_branch(): void
     {
         // (?(1)a) -> No else branch
-        $ast = $this->parser->parse('/(?(1)a)/');
-        $text = $ast->accept(new ExplainVisitor());
-        $html = $ast->accept(new HtmlExplainVisitor());
+        $ast = $this->regex->parse('/(?(1)a)/');
+        $text = $ast->accept(new ExplainNodeVisitor());
+        $html = $ast->accept(new HtmlExplainNodeVisitor());
 
         $this->assertStringNotContainsString('ELSE:', $text);
         $this->assertStringNotContainsString('ELSE:', $html);
@@ -89,8 +89,8 @@ class ExplainVisitorTest extends TestCase
     public function test_subroutine_references(): void
     {
         // (?0), (?R), (?1)
-        $ast = $this->parser->parse('/(?R)(?1)/');
-        $text = $ast->accept(new ExplainVisitor());
+        $ast = $this->regex->parse('/(?R)(?1)/');
+        $text = $ast->accept(new ExplainNodeVisitor());
 
         $this->assertStringContainsString('recurses to the entire pattern', $text);
         $this->assertStringContainsString('recurses to group 1', $text);
@@ -99,8 +99,8 @@ class ExplainVisitorTest extends TestCase
     public function test_all_char_types_explanation(): void
     {
         // \d \D \s \S \w \W \v \V \h \H \R
-        $ast = $this->parser->parse('/\d\D\s\S\w\W\v\V\h\H\R/');
-        $text = $ast->accept(new ExplainVisitor());
+        $ast = $this->regex->parse('/\d\D\s\S\w\W\v\V\h\H\R/');
+        $text = $ast->accept(new ExplainNodeVisitor());
 
         $this->assertStringContainsString('digit', $text);
         $this->assertStringContainsString('non-digit', $text);

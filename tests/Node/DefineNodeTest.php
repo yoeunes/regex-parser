@@ -21,7 +21,7 @@ use RegexParser\Node\GroupType;
 use RegexParser\Node\LiteralNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\NodeVisitor\NodeVisitorInterface;
-use RegexParser\Parser;
+use RegexParser\Regex;
 
 class DefineNodeTest extends TestCase
 {
@@ -55,8 +55,8 @@ class DefineNodeTest extends TestCase
     #[DataProvider('data_provider_define_patterns')]
     public function test_parse_define_creates_define_node(string $pattern, string $expectedFirstGroupName): void
     {
-        $parser = new Parser();
-        $ast = $parser->parse($pattern);
+        $regex = Regex::create();
+        $ast = $regex->parse($pattern);
 
         // The pattern should contain a DefineNode somewhere in the tree
         $defineNode = $this->findDefineNode($ast->pattern);
@@ -95,8 +95,8 @@ class DefineNodeTest extends TestCase
 
     public function test_define_node_positions(): void
     {
-        $parser = new Parser();
-        $ast = $parser->parse('/(?(DEFINE)(?<A>a))/');
+        $regex = Regex::create();
+        $ast = $regex->parse('/(?(DEFINE)(?<A>a))/');
 
         $defineNode = $this->findDefineNode($ast->pattern);
         $this->assertInstanceOf(DefineNode::class, $defineNode);
@@ -108,8 +108,8 @@ class DefineNodeTest extends TestCase
 
     public function test_define_content_is_accessible(): void
     {
-        $parser = new Parser();
-        $ast = $parser->parse('/(?(DEFINE)(?<test>abc))/');
+        $regex = Regex::create();
+        $ast = $regex->parse('/(?(DEFINE)(?<test>abc))/');
 
         $defineNode = $this->findDefineNode($ast->pattern);
         $this->assertInstanceOf(DefineNode::class, $defineNode);

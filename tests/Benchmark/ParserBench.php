@@ -17,8 +17,8 @@ use PhpBench\Attributes\BeforeMethods;
 use PhpBench\Attributes\Iterations;
 use PhpBench\Attributes\Revs;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
-use RegexParser\NodeVisitor\ExplainVisitor;
-use RegexParser\Parser;
+use RegexParser\NodeVisitor\ExplainNodeVisitor;
+use RegexParser\Regex;
 
 /**
  * Comprehensive performance benchmarks for RegexParser.
@@ -30,17 +30,17 @@ use RegexParser\Parser;
 #[BeforeMethods('setUp')]
 class ParserBench
 {
-    private Parser $parser;
+    private Regex $regex;
 
     private CompilerNodeVisitor $compiler;
 
-    private ExplainVisitor $explainer;
+    private ExplainNodeVisitor $explainer;
 
     public function setUp(): void
     {
-        $this->parser = new Parser();
+        $this->regex = Regex::create();
         $this->compiler = new CompilerNodeVisitor();
-        $this->explainer = new ExplainVisitor();
+        $this->explainer = new ExplainNodeVisitor();
     }
 
     /**
@@ -49,7 +49,7 @@ class ParserBench
      */
     public function benchSimplePattern(): void
     {
-        $this->parser->parse('/abc/');
+        $this->regex->parse('/abc/');
     }
 
     /**
@@ -59,7 +59,7 @@ class ParserBench
     public function benchComplexPattern(): void
     {
         // Realistic email validation pattern
-        $this->parser->parse('/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/');
+        $this->regex->parse('/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/');
     }
 
     /**
@@ -69,7 +69,7 @@ class ParserBench
      */
     public function benchDeeplyNested(): void
     {
-        $this->parser->parse('/((((((((((a))))))))))/');
+        $this->regex->parse('/((((((((((a))))))))))/');
     }
 
     /**
@@ -78,7 +78,7 @@ class ParserBench
      */
     public function benchCharacterClass(): void
     {
-        $this->parser->parse('/[a-zA-Z0-9_.-]/');
+        $this->regex->parse('/[a-zA-Z0-9_.-]/');
     }
 
     /**
@@ -87,7 +87,7 @@ class ParserBench
      */
     public function benchQuantifiers(): void
     {
-        $this->parser->parse('/a{2,5}b+c*/');
+        $this->regex->parse('/a{2,5}b+c*/');
     }
 
     /**
@@ -96,7 +96,7 @@ class ParserBench
      */
     public function benchAlternation(): void
     {
-        $this->parser->parse('/(apple|banana|cherry|date|elderberry)/');
+        $this->regex->parse('/(apple|banana|cherry|date|elderberry)/');
     }
 
     /**
@@ -105,7 +105,7 @@ class ParserBench
      */
     public function benchParseAndCompile(): void
     {
-        $ast = $this->parser->parse('/[a-z]+/');
+        $ast = $this->regex->parse('/[a-z]+/');
         $ast->accept($this->compiler);
     }
 
@@ -115,7 +115,7 @@ class ParserBench
      */
     public function benchParseAndExplain(): void
     {
-        $ast = $this->parser->parse('/\d{3}-\d{3}-\d{4}/');
+        $ast = $this->regex->parse('/\d{3}-\d{3}-\d{4}/');
         $ast->accept($this->explainer);
     }
 }

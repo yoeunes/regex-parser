@@ -16,9 +16,9 @@ namespace RegexParser\Tests\Integration;
 use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Lexer;
-use RegexParser\NodeVisitor\ExplainVisitor;
-use RegexParser\NodeVisitor\SampleGeneratorVisitor;
-use RegexParser\Parser;
+use RegexParser\NodeVisitor\ExplainNodeVisitor;
+use RegexParser\NodeVisitor\SampleGeneratorNodeVisitor;
+use RegexParser\Regex;
 
 /**
  * Additional tests to reach 100% coverage for various classes.
@@ -28,18 +28,15 @@ class AdditionalCoverageTest extends TestCase
     // Test Lexer with various edge cases
     public function test_lexer_unicode_prop_normalization(): void
     {
-        $lexer = new Lexer('/\p{L}/');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('/\p{L}/')->getTokens();
         $this->assertNotEmpty($tokens);
 
         // Test negated property
-        $lexer = new Lexer('/\P{L}/');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('/\P{L}/')->getTokens();
         $this->assertNotEmpty($tokens);
 
         // Test double negation
-        $lexer = new Lexer('/\P{^L}/');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('/\P{^L}/')->getTokens();
         $this->assertNotEmpty($tokens);
     }
 
@@ -48,8 +45,7 @@ class AdditionalCoverageTest extends TestCase
         // Test all escaped literals
         $patterns = ['\t', '\n', '\r', '\f', '\v', '\e', '\.', '\[', '\]'];
         foreach ($patterns as $pattern) {
-            $lexer = new Lexer('/'.$pattern.'/');
-            $tokens = $lexer->tokenizeToArray();
+            $tokens = new Lexer()->tokenize('/'.$pattern.'/')->getTokens();
             $this->assertNotEmpty($tokens);
         }
     }
@@ -57,62 +53,56 @@ class AdditionalCoverageTest extends TestCase
     public function test_lexer_quote_mode_without_end(): void
     {
         // Quote mode without \E
-        $lexer = new Lexer('/\Qabc/');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('/\Qabc/')->getTokens();
         $this->assertNotEmpty($tokens);
     }
 
     public function test_lexer_quote_mode_with_end(): void
     {
         // Quote mode with \E
-        $lexer = new Lexer('/\Qabc\Edef/');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('/\Qabc\Edef/')->getTokens();
         $this->assertNotEmpty($tokens);
     }
 
     public function test_lexer_backref_variations(): void
     {
         // Test \g{-1}
-        $lexer = new Lexer('/(a)\g{-1}/');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('/(a)\g{-1}/')->getTokens();
         $this->assertNotEmpty($tokens);
 
         // Test \g{1}
-        $lexer = new Lexer('/(a)\g{1}/');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('/(a)\g{1}/')->getTokens();
         $this->assertNotEmpty($tokens);
     }
 
     public function test_lexer_octal_legacy(): void
     {
-        $lexer = new Lexer('/\01/');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('/\01/')->getTokens();
         $this->assertNotEmpty($tokens);
     }
 
     public function test_lexer_posix_class(): void
     {
-        $lexer = new Lexer('/[[:alpha:]]/');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('/[[:alpha:]]/')->getTokens();
         $this->assertNotEmpty($tokens);
     }
 
     // Test ExplainVisitor edge cases
     public function test_explain_visitor_range_special_chars(): void
     {
-        $parser = new Parser();
-        $visitor = new ExplainVisitor();
+        $regex = Regex::create();
+        $visitor = new ExplainNodeVisitor();
 
         // Range with special characters
-        $ast = $parser->parse('/[0-9]/');
+        $ast = $regex->parse('/[0-9]/');
         $result = $ast->accept($visitor);
         $this->assertNotEmpty($result);
     }
 
     public function test_explain_visitor_quantifier_variations(): void
     {
-        $parser = new Parser();
-        $visitor = new ExplainVisitor();
+        $regex = Regex::create();
+        $visitor = new ExplainNodeVisitor();
 
         // Test different quantifier types
         $patterns = [
@@ -125,7 +115,7 @@ class AdditionalCoverageTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $ast = $parser->parse($pattern);
+            $ast = $regex->parse($pattern);
             $result = $ast->accept($visitor);
             $this->assertNotEmpty($result);
         }
@@ -133,11 +123,11 @@ class AdditionalCoverageTest extends TestCase
 
     public function test_explain_visitor_literal_special_chars(): void
     {
-        $parser = new Parser();
-        $visitor = new ExplainVisitor();
+        $regex = Regex::create();
+        $visitor = new ExplainNodeVisitor();
 
         // Literal with special characters
-        $ast = $parser->parse('/\//');
+        $ast = $regex->parse('/\//');
         $result = $ast->accept($visitor);
         $this->assertNotEmpty($result);
     }
@@ -145,34 +135,34 @@ class AdditionalCoverageTest extends TestCase
     // Test SampleGeneratorVisitor edge cases
     public function test_sample_generator_with_seed(): void
     {
-        $generator = new SampleGeneratorVisitor();
+        $generator = new SampleGeneratorNodeVisitor();
         $generator->setSeed(12345);
 
-        $parser = new Parser();
-        $ast = $parser->parse('/[a-z]/');
+        $regex = Regex::create();
+        $ast = $regex->parse('/[a-z]/');
         $result = $ast->accept($generator);
         $this->assertNotEmpty($result);
     }
 
     public function test_sample_generator_reset_seed(): void
     {
-        $generator = new SampleGeneratorVisitor();
+        $generator = new SampleGeneratorNodeVisitor();
         $generator->setSeed(12345);
         $generator->resetSeed();
 
-        $parser = new Parser();
-        $ast = $parser->parse('/[a-z]/');
+        $regex = Regex::create();
+        $ast = $regex->parse('/[a-z]/');
         $result = $ast->accept($generator);
         $this->assertNotEmpty($result);
     }
 
     public function test_sample_generator_unicode_prop(): void
     {
-        $generator = new SampleGeneratorVisitor();
-        $parser = new Parser();
+        $generator = new SampleGeneratorNodeVisitor();
+        $regex = Regex::create();
 
         // Test \p{L}
-        $ast = $parser->parse('/\p{L}/');
+        $ast = $regex->parse('/\p{L}/');
         $result = $ast->accept($generator);
         $this->assertNotEmpty($result);
     }
@@ -180,8 +170,8 @@ class AdditionalCoverageTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_sample_generator_char_type_variations(): void
     {
-        $generator = new SampleGeneratorVisitor();
-        $parser = new Parser();
+        $generator = new SampleGeneratorNodeVisitor();
+        $regex = Regex::create();
 
         $patterns = [
             '/\d/',  // Digit
@@ -197,27 +187,27 @@ class AdditionalCoverageTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $ast = $parser->parse($pattern);
+            $ast = $regex->parse($pattern);
             $ast->accept($generator);
         }
     }
 
     public function test_sample_generator_backref_named(): void
     {
-        $generator = new SampleGeneratorVisitor();
-        $parser = new Parser();
+        $generator = new SampleGeneratorNodeVisitor();
+        $regex = Regex::create();
 
-        $ast = $parser->parse('/(?<name>abc)\k<name>/');
+        $ast = $regex->parse('/(?<name>abc)\k<name>/');
         $result = $ast->accept($generator);
         $this->assertStringContainsString('abc', $result);
     }
 
     public function test_sample_generator_group_non_capturing(): void
     {
-        $generator = new SampleGeneratorVisitor();
-        $parser = new Parser();
+        $generator = new SampleGeneratorNodeVisitor();
+        $regex = Regex::create();
 
-        $ast = $parser->parse('/(?:abc)/');
+        $ast = $regex->parse('/(?:abc)/');
         $result = $ast->accept($generator);
         $this->assertStringContainsString('abc', $result);
     }
@@ -225,8 +215,8 @@ class AdditionalCoverageTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_sample_generator_posix_classes(): void
     {
-        $generator = new SampleGeneratorVisitor();
-        $parser = new Parser();
+        $generator = new SampleGeneratorNodeVisitor();
+        $regex = Regex::create();
 
         // Test various POSIX classes that have sample generation support
         $patterns = [
@@ -238,7 +228,7 @@ class AdditionalCoverageTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $ast = $parser->parse($pattern);
+            $ast = $regex->parse($pattern);
             $ast->accept($generator);
         }
     }
@@ -246,28 +236,28 @@ class AdditionalCoverageTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_parser_group_with_flags(): void
     {
-        $parser = new Parser();
+        $regex = Regex::create();
 
         // Group with flags
-        $parser->parse('/(?i:abc)/');
+        $regex->parse('/(?i:abc)/');
     }
 
     #[DoesNotPerformAssertions]
     public function test_parser_named_group_variations(): void
     {
-        $parser = new Parser();
+        $regex = Regex::create();
 
         // Named group with angle brackets
-        $parser->parse('/(?<name>abc)/');
+        $regex->parse('/(?<name>abc)/');
 
         // Named group with P syntax
-        $parser->parse('/(?P<name>abc)/');
+        $regex->parse('/(?P<name>abc)/');
     }
 
     #[DoesNotPerformAssertions]
     public function test_parser_assertion_variations(): void
     {
-        $parser = new Parser();
+        $regex = Regex::create();
 
         $patterns = [
             '/(?=abc)/',   // Positive lookahead
@@ -277,47 +267,47 @@ class AdditionalCoverageTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $parser->parse($pattern);
+            $regex->parse($pattern);
         }
     }
 
     #[DoesNotPerformAssertions]
     public function test_parser_atomic_group(): void
     {
-        $parser = new Parser();
-        $parser->parse('/(?>abc)/');
+        $regex = Regex::create();
+        $regex->parse('/(?>abc)/');
     }
 
     #[DoesNotPerformAssertions]
     public function test_parser_recursive_pattern(): void
     {
-        $parser = new Parser();
-        $parser->parse('/(?R)/');
+        $regex = Regex::create();
+        $regex->parse('/(?R)/');
     }
 
     #[DoesNotPerformAssertions]
     public function test_parser_char_class_with_dash(): void
     {
-        $parser = new Parser();
+        $regex = Regex::create();
 
         // Dash at the beginning
-        $parser->parse('/[-abc]/');
+        $regex->parse('/[-abc]/');
 
         // Dash at the end
-        $parser->parse('/[abc-]/');
+        $regex->parse('/[abc-]/');
     }
 
     #[DoesNotPerformAssertions]
     public function test_parser_negated_char_class(): void
     {
-        $parser = new Parser();
-        $parser->parse('/[^abc]/');
+        $regex = Regex::create();
+        $regex->parse('/[^abc]/');
     }
 
     #[DoesNotPerformAssertions]
     public function test_parser_empty_alternation(): void
     {
-        $parser = new Parser();
-        $parser->parse('/abc|/');
+        $regex = Regex::create();
+        $regex->parse('/abc|/');
     }
 }

@@ -45,7 +45,7 @@ use RegexParser\Node\UnicodePropNode;
  *
  * @implements NodeVisitorInterface<string>
  */
-class MermaidVisitor implements NodeVisitorInterface
+class MermaidNodeVisitor implements NodeVisitorInterface
 {
     private int $nodeCounter = 0;
 

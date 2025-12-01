@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 require __DIR__.'/vendor/autoload.php';
 
+use RegexParser\NodeVisitor\CompilerNodeVisitor;
 use RegexParser\Regex;
 
 echo "=== RegexParser Library Validation Report ===\n\n";
@@ -131,10 +132,9 @@ $roundTripPatterns = [
 
 foreach ($roundTripPatterns as $pattern) {
     try {
-        $parser = new \RegexParser\Parser();
-        $compiler = new \RegexParser\NodeVisitor\CompilerNodeVisitor();
+        $compiler = new CompilerNodeVisitor();
 
-        $ast = $parser->parse($pattern);
+        $ast = Regex::create()->parse($pattern);
         $compiled = $ast->accept($compiler);
 
         // Test if they behave the same

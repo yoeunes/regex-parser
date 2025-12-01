@@ -19,11 +19,12 @@ use PhpParser\Node\Name;
 use PHPStan\Analyser\Scope;
 use PHPStan\Rules\Rule;
 use PHPStan\Rules\RuleErrorBuilder;
+use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
 use RegexParser\NodeVisitor\ValidatorNodeVisitor;
-use RegexParser\Parser;
 use RegexParser\ReDoS\ReDoSAnalyzer;
 use RegexParser\ReDoS\ReDoSSeverity;
+use RegexParser\Regex;
 
 /**
  * Validates regex patterns in preg_* functions.
@@ -59,7 +60,7 @@ class PregValidationRule implements Rule
         'critical' => 4,
     ];
 
-    private ?Parser $parser = null;
+    private ?Regex $regex = null;
 
     private ?ValidatorNodeVisitor $validator = null;
 
@@ -118,10 +119,10 @@ class PregValidationRule implements Rule
 
             // 1. Syntax Validation
             try {
-                $ast = $this->getParser()->parse($pattern);
+                $ast = $this->getRegex()->parse($pattern);
                 // ValidatorNodeVisitor checks for semantic errors (e.g., duplicate group names)
                 $ast->accept($this->getValidator());
-            } catch (ParserException $e) {
+            } catch (LexerException|ParserException $e) {
                 // Skip validation for likely partial/incomplete patterns if configured
                 if ($this->ignoreParseErrors && $this->isLikelyPartialRegexError($e->getMessage())) {
                     continue;
@@ -206,9 +207,9 @@ class PregValidationRule implements Rule
         return \strlen($pattern) > $length ? substr($pattern, 0, $length).'...' : $pattern;
     }
 
-    private function getParser(): Parser
+    private function getRegex(): Regex
     {
-        return $this->parser ??= new Parser();
+        return $this->regex ??= Regex::create();
     }
 
     private function getValidator(): ValidatorNodeVisitor
