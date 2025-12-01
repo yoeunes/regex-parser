@@ -8,7 +8,7 @@ declare(strict_types=1);
  * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
  *
  * For the full copyright and license information, please view the LICENSE
- * file that was distributed with the source code.
+ * file that was distributed with this source code.
  */
 
 namespace RegexParser\NodeVisitor;
@@ -88,6 +88,22 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      *                              potential mitigations.
      *         - 'vulnerablePattern': The specific regex pattern fragment that triggered the highest
      *                                severity, if any.
+     *
+     * @example
+     * ```php
+     * $visitor = new ReDoSProfileNodeVisitor();
+     * $regexNode->accept($visitor); // Assuming $regexNode is the root of your parsed AST
+     * $result = $visitor->getResult();
+     * // $result might look like:
+     * // [
+     * //   'severity' => ReDoSSeverity::HIGH,
+     * //   'recommendations' => [
+     * //     'Nested unbounded quantifiers detected. This allows exponential backtracking. Consider using atomic groups (?>...) or possessive quantifiers (*+, ++).',
+     * //     'Overlapping alternation branches inside a quantifier. e.g. (a|a)* or (ab|a)*. This can lead to catastrophic backtracking.'
+     * //   ],
+     * //   'vulnerablePattern' => 'a*a*'
+     * // ]
+     * ```
      */
     public function getResult(): array
     {
@@ -121,6 +137,13 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      * @param RegexNode $node The `RegexNode` representing the entire regular expression.
      *
      * @return ReDoSSeverity The highest ReDoS severity found within the regex pattern.
+     *
+     * @example
+     * ```php
+     * // Assuming $regexNode is the root of your parsed AST for '/(a+)+/'
+     * $visitor = new ReDoSProfileNodeVisitor();
+     * $severity = $regexNode->accept($visitor); // $severity would be ReDoSSeverity::CRITICAL
+     * ```
      */
     public function visitRegex(RegexNode $node): ReDoSSeverity
     {
@@ -145,6 +168,15 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      *
      * @return ReDoSSeverity The highest ReDoS severity detected within this quantifier
      *                       and its child node.
+     *
+     * @example
+     * ```php
+     * // For a pattern like `(a*)*` (critical ReDoS)
+     * $quantifierNode->accept($visitor); // Will add a CRITICAL vulnerability and return ReDoSSeverity::CRITICAL
+     *
+     * // For a pattern like `a{10000}` (low ReDoS)
+     * $quantifierNode->accept($visitor); // Will add a LOW vulnerability and return ReDoSSeverity::LOW
+     * ```
      */
     public function visitQuantifier(QuantifierNode $node): ReDoSSeverity
     {
@@ -184,14 +216,14 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
                 $severity = ReDoSSeverity::HIGH;
                 $this->addVulnerability(
                     ReDoSSeverity::HIGH,
-                    'Nested unbounded quantifiers detected. This allows exponential backtracking.',
+                    'Nested unbounded quantifiers detected. This allows exponential backtracking. Consider using atomic groups (?>...) or possessive quantifiers (*+, ++).',
                     $node->quantifier,
                 );
             } else {
                 $severity = ReDoSSeverity::MEDIUM;
                 $this->addVulnerability(
                     ReDoSSeverity::MEDIUM,
-                    'Unbounded quantifier detected. May cause backtracking on non-matching input.',
+                    'Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...).',
                     $node->quantifier,
                 );
             }
@@ -200,14 +232,14 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
                 $severity = ReDoSSeverity::LOW;
                 $this->addVulnerability(
                     ReDoSSeverity::LOW,
-                    'Large bounded quantifier detected (>1000). May cause slow matching.',
+                    'Large bounded quantifier detected (>1000). May cause slow matching. Consider reducing the upper bound.',
                     $node->quantifier,
                 );
             } elseif ($this->totalQuantifierDepth > 1) {
                 $severity = ReDoSSeverity::LOW;
                 $this->addVulnerability(
                     ReDoSSeverity::LOW,
-                    'Nested bounded quantifiers detected. May cause polynomial backtracking.',
+                    'Nested bounded quantifiers detected. May cause polynomial backtracking. Consider simplifying the pattern or using atomic groups (?>...).',
                     $node->quantifier,
                 );
             }
@@ -219,7 +251,7 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
             $severity = ReDoSSeverity::CRITICAL;
             $this->addVulnerability(
                 ReDoSSeverity::CRITICAL,
-                'Critical nesting of quantifiers detected (Star Height > 1).',
+                'Critical nesting of quantifiers detected (Star Height > 1). This is a classic ReDoS vulnerability. Refactor the pattern to avoid nested unbounded quantifiers over the same subpattern.',
                 $node->quantifier,
             );
         }
@@ -247,6 +279,15 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      *
      * @return ReDoSSeverity The highest ReDoS severity detected within this alternation
      *                       and its alternatives.
+     *
+     * @example
+     * ```php
+     * // For a pattern like `(a|a)*` (critical ReDoS)
+     * $alternationNode->accept($visitor); // Will add a CRITICAL vulnerability and return ReDoSSeverity::CRITICAL
+     *
+     * // For a pattern like `(ab|a)*` (critical ReDoS)
+     * $alternationNode->accept($visitor); // Will add a CRITICAL vulnerability and return ReDoSSeverity::CRITICAL
+     * ```
      */
     public function visitAlternation(AlternationNode $node): ReDoSSeverity
     {
@@ -255,7 +296,7 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
         if ($this->unboundedQuantifierDepth > 0 && $this->hasOverlappingAlternatives($node)) {
             $this->addVulnerability(
                 ReDoSSeverity::CRITICAL,
-                'Overlapping alternation branches inside a quantifier. e.g. (a|a)*',
+                'Overlapping alternation branches inside a quantifier. e.g. (a|a)* or (ab|a)*. This can lead to catastrophic backtracking.',
                 '|',
             );
             $max = ReDoSSeverity::CRITICAL;
@@ -280,6 +321,12 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      * @param GroupNode $node The `GroupNode` representing a specific grouping construct.
      *
      * @return ReDoSSeverity The highest ReDoS severity detected within the group's child node.
+     *
+     * @example
+     * ```php
+     * // For an atomic group `(?>a*)`
+     * $groupNode->accept($visitor); // Will set `inAtomicGroup` to true, preventing ReDoS detection inside.
+     * ```
      */
     public function visitGroup(GroupNode $node): ReDoSSeverity
     {
@@ -307,6 +354,12 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      * @param SequenceNode $node The `SequenceNode` representing a series of regex components.
      *
      * @return ReDoSSeverity The highest ReDoS severity found among all child nodes in the sequence.
+     *
+     * @example
+     * ```php
+     * // For a sequence `a(b+)*c`
+     * $sequenceNode->accept($visitor); // Will return the max severity found in 'a', '(b+)*', and 'c'.
+     * ```
      */
     public function visitSequence(SequenceNode $node): ReDoSSeverity
     {
@@ -585,6 +638,12 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      * @param ConditionalNode $node The `ConditionalNode` representing a conditional sub-pattern.
      *
      * @return ReDoSSeverity The highest ReDoS severity found in either the 'yes' or 'no' branch.
+     *
+     * @example
+     * ```php
+     * // For a conditional `(?(1)a*|b*)`
+     * $conditionalNode->accept($visitor); // Will return the max severity of 'a*' and 'b*'.
+     * ```
      */
     public function visitConditional(ConditionalNode $node): ReDoSSeverity
     {
@@ -605,9 +664,21 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      * @param SubroutineNode $node The `SubroutineNode` representing a subroutine call.
      *
      * @return ReDoSSeverity Always `ReDoSSeverity::MEDIUM`.
+     *
+     * @example
+     * ```php
+     * // For a subroutine call `(?&my_pattern)`
+     * $subroutineNode->accept($visitor); // Will return ReDoSSeverity::MEDIUM
+     * ```
      */
     public function visitSubroutine(SubroutineNode $node): ReDoSSeverity
     {
+        $this->addVulnerability(
+            ReDoSSeverity::MEDIUM,
+            'Subroutines can lead to complex backtracking and potential ReDoS if not used carefully, especially with recursion. Review the referenced pattern.',
+            '(?&'.$node->reference.')'
+        );
+
         return ReDoSSeverity::MEDIUM;
     }
 
@@ -623,6 +694,12 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      * @param DefineNode $node The `DefineNode` representing a `(?(DEFINE)...)` block.
      *
      * @return ReDoSSeverity The highest ReDoS severity found within the DEFINE block's content.
+     *
+     * @example
+     * ```php
+     * // For a DEFINE block `(?(DEFINE)(?<digit>\d+))`
+     * $defineNode->accept($visitor); // Will analyze `\d+` for ReDoS.
+     * ```
      */
     public function visitDefine(DefineNode $node): ReDoSSeverity
     {
@@ -630,6 +707,17 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
         return $node->content->accept($this);
     }
 
+    /**
+     * Checks if a given quantifier is unbounded (e.g., `*`, `+`, `{n,}`).
+     *
+     * Purpose: This helper method determines if a quantifier allows for an infinite
+     * number of repetitions. This is a key factor in identifying potential ReDoS
+     * vulnerabilities, as unbounded quantifiers are often involved in catastrophic backtracking.
+     *
+     * @param string $quantifier The quantifier string (e.g., `*`, `+`, `{1,5}`).
+     *
+     * @return bool True if the quantifier is unbounded, false otherwise.
+     */
     private function isUnbounded(string $quantifier): bool
     {
         if (str_contains($quantifier, '*') || str_contains($quantifier, '+')) {
@@ -637,12 +725,25 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
         }
 
         if (str_contains($quantifier, ',')) {
+            // Check for {n,} (unbounded upper limit)
             return !preg_match('/,\d+\}$/', $quantifier);
         }
 
         return false;
     }
 
+    /**
+     * Checks if a given quantifier is bounded but allows for a very large number of
+     * repetitions.
+     *
+     * Purpose: While not as dangerous as unbounded quantifiers, very large bounded quantifiers
+     * (e.g., `{1,10000}`) can still lead to performance issues and potential denial of service
+     * if the regex engine has to backtrack extensively. This method helps flag such cases.
+     *
+     * @param string $quantifier The quantifier string (e.g., `{1,5}`, `{1000}`).
+     *
+     * @return bool True if the quantifier is bounded and large, false otherwise.
+     */
     private function isLargeBounded(string $quantifier): bool
     {
         if (preg_match('/\{(\d+)(?:,(\d+))?\}/', $quantifier, $m)) {
@@ -654,6 +755,18 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
         return false;
     }
 
+    /**
+     * Determines if an AlternationNode contains overlapping alternatives.
+     *
+     * Purpose: This complex helper method detects a common ReDoS pattern where different
+     * branches of an alternation can match the same prefix (e.g., `(ab|a)`). When such
+     * an alternation is quantified, it can lead to exponential backtracking. It analyzes
+     * the initial characters or types of each alternative to find overlaps.
+     *
+     * @param AlternationNode $node The `AlternationNode` to check for overlaps.
+     *
+     * @return bool True if overlapping alternatives are found, false otherwise.
+     */
     private function hasOverlappingAlternatives(AlternationNode $node): bool
     {
         $prefixes = [];
@@ -694,6 +807,17 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
         return false;
     }
 
+    /**
+     * Generates a "signature" for the starting element of a node, used for overlap detection.
+     *
+     * Purpose: This helper method is used by `hasOverlappingAlternatives` to quickly
+     * determine if two different regex branches start with a potentially overlapping pattern.
+     * It extracts the type and value of the first significant element (literal, char type, dot, char class).
+     *
+     * @param NodeInterface $node The AST node to get the prefix signature for.
+     *
+     * @return string A string representing the prefix signature (e.g., 'L:a', 'T:d', 'DOT', 'CLASS').
+     */
     private function getPrefixSignature(NodeInterface $node): string
     {
         if ($node instanceof LiteralNode) {
@@ -715,9 +839,23 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
             return $this->getPrefixSignature($node->child);
         }
 
+        // Fallback for other node types that don't have a simple prefix
         return uniqid();
     }
 
+    /**
+     * Adds a detected ReDoS vulnerability to the internal list.
+     *
+     * Purpose: This private helper method standardizes the way vulnerabilities are recorded.
+     * It stores the severity, a descriptive message, and the specific pattern fragment
+     * that triggered the detection, which is then used by `getResult()` to compile the final report.
+     *
+     * @param ReDoSSeverity $severity The severity level of the detected vulnerability.
+     * @param string        $message  A descriptive message explaining the vulnerability.
+     * @param string        $pattern  The regex pattern fragment that caused the vulnerability.
+     *
+     * @return void
+     */
     private function addVulnerability(ReDoSSeverity $severity, string $message, string $pattern): void
     {
         $this->vulnerabilities[] = [
@@ -727,6 +865,19 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
         ];
     }
 
+    /**
+     * Compares two ReDoSSeverity values to check if the first is greater than
+     * the second.
+     *
+     * Purpose: This helper method provides a consistent way to compare severity levels,
+     * which are represented by an enum. It's used to determine the highest severity
+     * encountered during the AST traversal.
+     *
+     * @param ReDoSSeverity $a The first severity level to compare.
+     * @param ReDoSSeverity $b The second severity level to compare.
+     *
+     * @return bool True if severity `$a` is greater than severity `$b`, false otherwise.
+     */
     private function severityGreaterThan(ReDoSSeverity $a, ReDoSSeverity $b): bool
     {
         $levels = [
@@ -740,6 +891,17 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
         return $levels[$a->value] > $levels[$b->value];
     }
 
+    /**
+     * Returns the higher of two ReDoSSeverity values.
+     *
+     * Purpose: This helper method simplifies finding the maximum severity level
+     * when combining results from different parts of the AST.
+     *
+     * @param ReDoSSeverity $a The first severity level.
+     * @param ReDoSSeverity $b The second severity level.
+     *
+     * @return ReDoSSeverity The higher of the two severity levels.
+     */
     private function maxSeverity(ReDoSSeverity $a, ReDoSSeverity $b): ReDoSSeverity
     {
         return $this->severityGreaterThan($a, $b) ? $a : $b;

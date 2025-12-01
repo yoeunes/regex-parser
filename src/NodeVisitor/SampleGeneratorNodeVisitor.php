@@ -812,8 +812,8 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
     /**
      * Visits a PcreVerbNode. PCRE verbs do not generate text.
      *
-     * Purpose: PCRE control verbs (e.g., `(*FAIL)`, `(*COMMIT)`) influence the regex
-     * engine's backtracking behavior but do not consume characters or add literal text to the match.
+     * Purpose: PCRE control verbs (e.g., `(*FAIL)`, `(*COMMIT)`) influence the regex engine's
+     * backtracking behavior but do not consume characters or add literal text to the match.
      * As such, this method returns an empty string, as these verbs do not contribute to the
      * generated sample string.
      *
@@ -861,11 +861,10 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * Parses a quantifier string into its minimum and maximum repetition counts.
      *
      * Purpose: This helper method interprets the various quantifier syntaxes (e.g., `*`, `+`, `?`, `{n}`, `{n,}`, `{n,m}`)
-     * and converts them into a standardized `[min, max]` integer array. This abstraction simplifies
-     * the logic in `visitQuantifier` by providing a consistent range for repetition.
-     * It also applies the `maxRepetition` limit for unbounded quantifiers to prevent excessive sample lengths.
+     * and converts them into a standardized `[min, max]` array. It also applies the `maxRepetition`
+     * limit to prevent excessively long samples for unbounded quantifiers.
      *
-     * @param string $q The quantifier string (e.g., `*`, `+`, `?`, `{1,5}`).
+     * @param string $q The quantifier string (e.g., `*`, `+`, `{1,5}`).
      *
      * @return array{0: int, 1: int} An array containing the minimum and maximum repetition counts.
      */
@@ -899,10 +898,9 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
     /**
      * Selects a random character from a given array of characters.
      *
-     * Purpose: This helper method provides a simple way to pick one character
-     * from a predefined set. It's used by various visitor methods to generate
-     * a representative character when the exact character doesn't matter,
-     * but it must belong to a certain category (e.g., a digit, a letter).
+     * Purpose: This utility method provides a simple way to pick one character
+     * from a predefined set. It's used by various `visit` methods to generate
+     * a representative character when a specific type or class of character is needed.
      *
      * @param array<string> $chars An array of single-character strings to choose from.
      *
@@ -919,16 +917,15 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
     }
 
     /**
-     * Generates a sample character based on a character type code (e.g., 'd', 's', 'w').
+     * Generates a sample character for a given character type (e.g., `d`, `s`, `w`).
      *
-     * Purpose: This helper method encapsulates the logic for generating a single character
-     * that matches a specific character type escape sequence (e.g., `\d`, `\s`, `\w`).
-     * It provides a diverse set of representative characters for each type, ensuring
-     * that the generated samples are realistic.
+     * Purpose: This helper method centralizes the logic for generating sample characters
+     * for various `\d`, `\s`, `\w`, etc., character types. It provides a specific
+     * random character that fits the definition of the character type.
      *
-     * @param string $type The character type code (e.g., 'd' for digit, 's' for whitespace).
+     * @param string $type The character type identifier (e.g., 'd', 'D', 's', 'S').
      *
-     * @return string A single character matching the specified character type, or '?' as a fallback.
+     * @return string A single character matching the specified type, or '?' as a fallback.
      */
     private function generateForCharType(string $type): string
     {
