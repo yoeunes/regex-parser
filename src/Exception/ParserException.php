@@ -13,4 +13,14 @@ declare(strict_types=1);
 
 namespace RegexParser\Exception;
 
-class ParserException extends \Exception {}
+/**
+ * Represents an error that occurred during the parsing phase.
+ *
+ * Purpose: This exception is thrown by the `Parser` when it encounters a sequence
+ * of tokens that violates the grammatical rules of a regular expression. This typically
+ * happens after the `Lexer` has successfully tokenized the string, but the arrangement
+ * of those tokens is invalid (e.g., a quantifier with no target, an unclosed group).
+ *
+ * @see \RegexParser\Parser
+ */
+class ParserException extends \Exception implements RegexParserExceptionInterface {}

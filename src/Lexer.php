@@ -152,10 +152,38 @@ class Lexer
     private int $charClassStartPosition = 0;
 
     /**
-     * Tokenizes the pattern using a generator for memory efficiency.
-     * Yields tokens one at a time instead of building a large array.
+     * Converts a regular expression string into a consumable stream of tokens.
      *
-     * @throws LexerException
+     * Purpose: This method is the entry point for the lexical analysis phase. Its primary role
+     * is to deconstruct the raw regex string into a structured `TokenStream`. This stream
+     * acts as the input for the `Parser`, which then builds the Abstract Syntax Tree (AST).
+     * As a contributor, think of this class as the foundation of the parsing process; it
+     * translates unstructured text into a format the rest of the library can understand.
+     *
+     * The lexer is a state machine. It tracks its context (e.g., inside a character class,
+     * a comment, or a quoted sequence) to apply different tokenization rules, ensuring
+     * that characters like `[` or `(` are interpreted correctly based on their position.
+     *
+     * @param string $pattern The raw regular expression pattern to be tokenized. For correct
+     *                        operation, this string must be UTF-8 encoded.
+     *
+     * @return TokenStream An object containing the full sequence of `Token` objects. This
+     *                     stream is ready to be consumed by the `Parser`.
+     *
+     * @throws LexerException Thrown under two conditions:
+     *                        1. The input `$pattern` is not a valid UTF-8 string.
+     *                        2. A sequence of characters is found that does not match any
+     *                           known token definition, indicating a lexical syntax error.
+     *
+     * @example
+     * ```php
+     * $lexer = new Lexer();
+     * $tokenStream = $lexer->tokenize('/(a|b)+/i');
+     *
+     * // The TokenStream can then be passed to the parser.
+     * $parser = new Parser();
+     * $ast = $parser->parse($tokenStream);
+     * ```
      */
     public function tokenize(string $pattern): TokenStream
     {

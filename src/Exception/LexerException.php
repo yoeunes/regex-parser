@@ -13,4 +13,14 @@ declare(strict_types=1);
 
 namespace RegexParser\Exception;
 
-class LexerException extends \Exception {}
+/**
+ * Represents an error that occurred during the lexical analysis phase.
+ *
+ * Purpose: This exception is thrown by the `Lexer` when it encounters a sequence
+ * of characters that it cannot tokenize. This indicates a fundamental syntax error
+ * in the regular expression pattern itself, such as an invalid character sequence
+ * or an unterminated construct that the lexer can detect.
+ *
+ * @see \RegexParser\Lexer
+ */
+class LexerException extends \Exception implements RegexParserExceptionInterface {}
