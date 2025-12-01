@@ -16,15 +16,6 @@ namespace RegexParser;
 use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
 use RegexParser\Node\RegexNode;
-use RegexParser\NodeVisitor\CompilerNodeVisitor;
-use RegexParser\NodeVisitor\ComplexityScoreVisitor;
-use RegexParser\NodeVisitor\DumperNodeVisitor;
-use RegexParser\NodeVisitor\ExplainVisitor;
-use RegexParser\NodeVisitor\LiteralExtractorVisitor;
-use RegexParser\NodeVisitor\MermaidVisitor;
-use RegexParser\NodeVisitor\OptimizerNodeVisitor;
-use RegexParser\NodeVisitor\SampleGeneratorVisitor;
-use RegexParser\NodeVisitor\ValidatorNodeVisitor;
 use RegexParser\ReDoS\ReDoSAnalysis;
 use RegexParser\ReDoS\ReDoSAnalyzer;
 use RegexParser\Stream\TokenStream;
@@ -44,21 +35,21 @@ readonly class Regex
     public const int DEFAULT_MAX_PATTERN_LENGTH = 100_000;
 
     /**
-     * @param ValidatorNodeVisitor   $validator        a reusable validator visitor
-     * @param ExplainVisitor         $explainer        a reusable explain visitor
-     * @param SampleGeneratorVisitor $generator        a reusable sample generator visitor
-     * @param OptimizerNodeVisitor   $optimizer        a reusable optimizer visitor
-     * @param DumperNodeVisitor      $dumper           a reusable dumper visitor
-     * @param ComplexityScoreVisitor $scorer           a reusable complexity scorer
-     * @param int                    $maxPatternLength maximum allowed pattern length
+     * @param NodeVisitor\ValidatorNodeVisitor   $validator        a reusable validator visitor
+     * @param NodeVisitor\ExplainVisitor         $explainer        a reusable explain visitor
+     * @param NodeVisitor\SampleGeneratorVisitor $generator        a reusable sample generator visitor
+     * @param NodeVisitor\OptimizerNodeVisitor   $optimizer        a reusable optimizer visitor
+     * @param NodeVisitor\DumperNodeVisitor      $dumper           a reusable dumper visitor
+     * @param NodeVisitor\ComplexityScoreVisitor $scorer           a reusable complexity scorer
+     * @param int                                $maxPatternLength maximum allowed pattern length
      */
     public function __construct(
-        private ValidatorNodeVisitor $validator,
-        private ExplainVisitor $explainer,
-        private SampleGeneratorVisitor $generator,
-        private OptimizerNodeVisitor $optimizer,
-        private DumperNodeVisitor $dumper,
-        private ComplexityScoreVisitor $scorer,
+        private NodeVisitor\ValidatorNodeVisitor $validator,
+        private NodeVisitor\ExplainVisitor $explainer,
+        private NodeVisitor\SampleGeneratorVisitor $generator,
+        private NodeVisitor\OptimizerNodeVisitor $optimizer,
+        private NodeVisitor\DumperNodeVisitor $dumper,
+        private NodeVisitor\ComplexityScoreVisitor $scorer,
         private int $maxPatternLength = self::DEFAULT_MAX_PATTERN_LENGTH,
     ) {}
 
@@ -72,12 +63,12 @@ readonly class Regex
     public static function create(array $options = []): self
     {
         return new self(
-            new ValidatorNodeVisitor(),
-            new ExplainVisitor(),
-            new SampleGeneratorVisitor(),
-            new OptimizerNodeVisitor(),
-            new DumperNodeVisitor(),
-            new ComplexityScoreVisitor(),
+            new NodeVisitor\ValidatorNodeVisitor(),
+            new NodeVisitor\ExplainVisitor(),
+            new NodeVisitor\SampleGeneratorVisitor(),
+            new NodeVisitor\OptimizerNodeVisitor(),
+            new NodeVisitor\DumperNodeVisitor(),
+            new NodeVisitor\ComplexityScoreVisitor(),
             (int) ($options['max_pattern_length'] ?? self::DEFAULT_MAX_PATTERN_LENGTH),
         );
     }
@@ -146,7 +137,7 @@ readonly class Regex
 
         $optimizedAst = $ast->accept(clone $this->optimizer);
 
-        $compiler = new CompilerNodeVisitor();
+        $compiler = new NodeVisitor\CompilerNodeVisitor();
 
         return $optimizedAst->accept($compiler);
     }
@@ -162,7 +153,7 @@ readonly class Regex
     {
         $ast = $this->parseRegex($regex);
 
-        return $ast->accept(new MermaidVisitor());
+        return $ast->accept(new NodeVisitor\MermaidVisitor());
     }
 
     /**
@@ -187,7 +178,7 @@ readonly class Regex
     {
         $ast = $this->parseRegex($regex);
 
-        $visitor = new LiteralExtractorVisitor();
+        $visitor = new NodeVisitor\LiteralExtractorVisitor();
 
         return $ast->accept($visitor);
     }
