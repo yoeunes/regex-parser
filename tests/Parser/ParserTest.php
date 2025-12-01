@@ -16,7 +16,6 @@ namespace RegexParser\Tests\Parser;
 use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\ParserException;
-use RegexParser\Lexer;
 use RegexParser\Node\AlternationNode;
 use RegexParser\Node\AnchorNode;
 use RegexParser\Node\AssertionNode;
@@ -37,7 +36,6 @@ use RegexParser\Node\SubroutineNode;
 use RegexParser\Node\UnicodePropNode;
 use RegexParser\Parser;
 use RegexParser\Regex;
-use RegexParser\Stream\TokenStream;
 
 class ParserTest extends TestCase
 {

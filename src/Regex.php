@@ -198,7 +198,7 @@ readonly class Regex
      */
     public function analyzeReDoS(string $regex): ReDoSAnalysis
     {
-        return (new ReDoSAnalyzer())->analyze($regex);
+        return new ReDoSAnalyzer()->analyze($regex);
     }
 
     /**
