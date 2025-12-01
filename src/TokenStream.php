@@ -50,10 +50,17 @@ class TokenStream
     private bool $exhausted = false;
 
     /**
-     * Initializes the token stream.
+     * Initializes the token stream, which provides a consumable interface over the token array.
      *
-     * @param array<Token> $tokens  the array of `Token` objects from the `Lexer`
-     * @param string       $pattern the original pattern string, stored for context and potential error reporting
+     * Purpose: This constructor sets up the stream that the `Parser` will consume. It takes the
+     * flat array of tokens from the `Lexer` and prepares it for stateful, sequential access.
+     * By wrapping the array, this class allows the parser to look ahead, consume, and even
+     * rewind tokens, which is essential for implementing the recursive descent parsing logic.
+     *
+     * @param array<Token> $tokens  The raw, ordered array of `Token` objects produced by the `Lexer`.
+     * @param string       $pattern The original regex pattern string. This is stored for context and
+     *                              is useful for error reporting, allowing messages to reference the
+     *                              source text.
      */
     public function __construct(private readonly array $tokens, private readonly string $pattern)
     {

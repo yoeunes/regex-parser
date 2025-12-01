@@ -16,14 +16,25 @@ namespace RegexParser\Node;
 use RegexParser\NodeVisitor\NodeVisitorInterface;
 
 /**
- * Represents an anchor (e.g., "^" or "$").
+ * Represents an anchor in a regular expression, such as `^` (start of string/line) or `$` (end of string/line).
+ *
+ * Purpose: This node represents a zero-width assertion that constrains the match to a specific
+ * position without consuming any characters. Anchors are fundamental for ensuring that a pattern
+ * matches at the beginning or end of the input, which is a common requirement in validation
+* and routing.
  */
 readonly class AnchorNode extends AbstractNode
 {
     /**
-     * @param string $value         the anchor character ("^" or "$")
-     * @param int    $startPosition The 0-based start offset
-     * @param int    $endPosition   The 0-based end offset (exclusive)
+     * Initializes an anchor node.
+     *
+     * Purpose: This constructor creates a node representing a positional anchor. The `Parser`
+     * generates this node when it encounters an anchor token like `^` or `$`.
+     *
+     * @param string $value         The anchor character itself (e.g., "^", "$"). This value is used by
+     *                              visitors to determine the type of anchor.
+     * @param int    $startPosition The zero-based byte offset where the anchor character appears.
+     * @param int    $endPosition   The zero-based byte offset immediately after the anchor character.
      */
     public function __construct(
         public string $value,
@@ -34,11 +45,18 @@ readonly class AnchorNode extends AbstractNode
     }
 
     /**
-     * @template T
+     * Implements the visitor pattern for traversing the AST.
      *
-     * @param NodeVisitorInterface<T> $visitor
+     * Purpose: This method is the entry point for any `NodeVisitorInterface` that needs to
+     * process this `AnchorNode`. It allows for operations like compilation, validation,
+     * or explanation to be performed without adding logic to the node itself. The method
+     * simply dispatches the call to the appropriate `visitAnchor` method on the visitor.
      *
-     * @return T
+     * @template T The return type of the visitor's methods.
+     *
+     * @param NodeVisitorInterface<T> $visitor The visitor object that is traversing the tree.
+     *
+     * @return T The result of the visitor's processing for this node.
      */
     public function accept(NodeVisitorInterface $visitor)
     {

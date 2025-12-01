@@ -16,15 +16,24 @@ namespace RegexParser\Node;
 use RegexParser\NodeVisitor\NodeVisitorInterface;
 
 /**
- * Represents a sequence (concatenation) of nodes.
- * Ex: "abc" is Sequence(Literal(a), Literal(b), Literal(c)).
+ * Represents a sequence of concatenated atoms in a regular expression.
+ *
+ * Purpose: This node is a container for a list of sub-nodes that must be matched in a specific
+ * order. For example, the pattern `a+b` would be represented as a `SequenceNode` containing two
+ * children: a `QuantifierNode` for `a+` and a `LiteralNode` for `b`. It is a fundamental
+ * structural node that forms the backbone of most patterns.
  */
 readonly class SequenceNode extends AbstractNode
 {
     /**
-     * @param array<NodeInterface> $children      the nodes in the sequence
-     * @param int                  $startPosition The 0-based start offset
-     * @param int                  $endPosition   The 0-based end offset (exclusive)
+     * Initializes a sequence node.
+     *
+     * Purpose: This constructor creates a node that holds an ordered list of child nodes. The `Parser`
+     * groups consecutive, non-alternating tokens into a `SequenceNode`.
+     *
+     * @param array<NodeInterface> $children      An ordered array of child nodes that make up the sequence.
+     * @param int                  $startPosition The zero-based byte offset where the first node in the sequence begins.
+     * @param int                  $endPosition   The zero-based byte offset immediately after the last node in the sequence.
      */
     public function __construct(
         public array $children,
@@ -34,6 +43,20 @@ readonly class SequenceNode extends AbstractNode
         parent::__construct($startPosition, $endPosition);
     }
 
+    /**
+     * Implements the visitor pattern for traversing the AST.
+     *
+     * Purpose: This method is the entry point for any `NodeVisitorInterface` that needs to
+     * process this `SequenceNode`. It allows for operations like compilation, validation,
+     * or explanation to be performed without adding logic to the node itself. The method
+     * simply dispatches the call to the appropriate `visitSequence` method on the visitor.
+     *
+     * @template T The return type of the visitor's methods.
+     *
+     * @param NodeVisitorInterface<T> $visitor The visitor object that is traversing the tree.
+     *
+     * @return T The result of the visitor's processing for this node.
+     */
     public function accept(NodeVisitorInterface $visitor)
     {
         return $visitor->visitSequence($this);
