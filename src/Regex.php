@@ -33,24 +33,17 @@ readonly class Regex
      */
     public const int DEFAULT_MAX_PATTERN_LENGTH = 100_000;
 
+    private int $maxPatternLength;
+
     /**
-     * @param NodeVisitor\ValidatorNodeVisitor       $validator        a reusable validator visitor
-     * @param NodeVisitor\ExplainNodeVisitor         $explainer        a reusable explain visitor
-     * @param NodeVisitor\SampleGeneratorNodeVisitor $generator        a reusable sample generator visitor
-     * @param NodeVisitor\OptimizerNodeVisitor       $optimizer        a reusable optimizer visitor
-     * @param NodeVisitor\DumperNodeVisitor          $dumper           a reusable dumper visitor
-     * @param NodeVisitor\ComplexityScoreNodeVisitor $scorer           a reusable complexity scorer
-     * @param int                                    $maxPatternLength maximum allowed pattern length
+     * @param array{
+     *     max_pattern_length?: int,
+     * } $options
      */
-    public function __construct(
-        private NodeVisitor\ValidatorNodeVisitor $validator,
-        private NodeVisitor\ExplainNodeVisitor $explainer,
-        private NodeVisitor\SampleGeneratorNodeVisitor $generator,
-        private NodeVisitor\OptimizerNodeVisitor $optimizer,
-        private NodeVisitor\DumperNodeVisitor $dumper,
-        private NodeVisitor\ComplexityScoreNodeVisitor $scorer,
-        private int $maxPatternLength = self::DEFAULT_MAX_PATTERN_LENGTH,
-    ) {}
+    private function __construct(array $options = [])
+    {
+        $this->maxPatternLength = $options['max_pattern_length'] ?? self::DEFAULT_MAX_PATTERN_LENGTH;
+    }
 
     /**
      * Static constructor for easy use without a DI container.
@@ -61,15 +54,7 @@ readonly class Regex
      */
     public static function create(array $options = []): self
     {
-        return new self(
-            new NodeVisitor\ValidatorNodeVisitor(),
-            new NodeVisitor\ExplainNodeVisitor(),
-            new NodeVisitor\SampleGeneratorNodeVisitor(),
-            new NodeVisitor\OptimizerNodeVisitor(),
-            new NodeVisitor\DumperNodeVisitor(),
-            new NodeVisitor\ComplexityScoreNodeVisitor(),
-            (int) ($options['max_pattern_length'] ?? self::DEFAULT_MAX_PATTERN_LENGTH),
-        );
+        return new self($options);
     }
 
     /**
@@ -98,11 +83,8 @@ readonly class Regex
     {
         try {
             $ast = $this->parse($regex);
-            $validator = clone $this->validator;
-            $ast->accept($validator);
-
-            $scorer = clone $this->scorer;
-            $score = $ast->accept($scorer);
+            $ast->accept(new NodeVisitor\ValidatorNodeVisitor());
+            $score = $ast->accept(new NodeVisitor\ComplexityScoreNodeVisitor());
 
             return new ValidationResult(true, null, $score);
         } catch (LexerException|ParserException $e) {
@@ -117,9 +99,7 @@ readonly class Regex
      */
     public function explain(string $regex): string
     {
-        $ast = $this->parse($regex);
-
-        return $ast->accept(clone $this->explainer);
+        return $this->parse($regex)->accept(new NodeVisitor\ExplainNodeVisitor());
     }
 
     /**
@@ -129,9 +109,7 @@ readonly class Regex
      */
     public function generate(string $regex): string
     {
-        $ast = $this->parse($regex);
-
-        return $ast->accept(clone $this->generator);
+        return $this->parse($regex)->accept(new NodeVisitor\SampleGeneratorNodeVisitor());
     }
 
     /**
@@ -141,13 +119,7 @@ readonly class Regex
      */
     public function optimize(string $regex): string
     {
-        $ast = $this->parse($regex);
-
-        $optimizedAst = $ast->accept(clone $this->optimizer);
-
-        $compiler = new NodeVisitor\CompilerNodeVisitor();
-
-        return $optimizedAst->accept($compiler);
+        return $this->parse($regex)->accept(new NodeVisitor\OptimizerNodeVisitor())->accept(new NodeVisitor\CompilerNodeVisitor());
     }
 
     /**
@@ -159,9 +131,7 @@ readonly class Regex
      */
     public function visualize(string $regex): string
     {
-        $ast = $this->parse($regex);
-
-        return $ast->accept(new NodeVisitor\MermaidNodeVisitor());
+        return $this->parse($regex)->accept(new NodeVisitor\MermaidNodeVisitor());
     }
 
     /**
@@ -171,9 +141,7 @@ readonly class Regex
      */
     public function dump(string $regex): string
     {
-        $ast = $this->parse($regex);
-
-        return $ast->accept(clone $this->dumper);
+        return $this->parse($regex)->accept(new NodeVisitor\DumperNodeVisitor());
     }
 
     /**
@@ -184,11 +152,7 @@ readonly class Regex
      */
     public function extractLiterals(string $regex): LiteralSet
     {
-        $ast = $this->parse($regex);
-
-        $visitor = new NodeVisitor\LiteralExtractorNodeVisitor();
-
-        return $ast->accept($visitor);
+        return $this->parse($regex)->accept(new NodeVisitor\LiteralExtractorNodeVisitor());
     }
 
     /**
@@ -224,9 +188,7 @@ readonly class Regex
      */
     public function createTokenStream(string $pattern): TokenStream
     {
-        $lexer = $this->getLexer($pattern);
-
-        return new TokenStream($lexer->tokenize());
+        return new TokenStream($this->getLexer($pattern)->tokenize());
     }
 
     /**
