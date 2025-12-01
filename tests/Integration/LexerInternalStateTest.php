@@ -29,9 +29,12 @@ class LexerInternalStateTest extends TestCase
         $lexer = new Lexer();
         $accessor = new LexerAccessor($lexer);
 
-        $lexer->tokenize('(?# ... sans fin');
-        // Manually advance after (?#
-        $accessor->setPosition(3);
+        // Set up internal state directly without calling tokenize() to avoid post-processing exception
+        $pattern = '(?# ... sans fin';
+        $accessor->setPattern($pattern);
+        $accessor->setLength(\strlen($pattern));
+        $accessor->setPosition(3); // After (?#
+        $accessor->setInCommentMode(true);
 
         // Direct call to private method
         $result = $accessor->callPrivateMethod('consumeCommentMode');
