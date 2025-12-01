@@ -119,10 +119,12 @@ class PregValidationRule implements Rule
      * @param Node  $node  the AST node being visited (a `FuncCall` in this case)
      * @param Scope $scope the current analysis scope, providing type information about nodes
      *
-     * @return array An array of `RuleError` objects. Returns an empty array if no issues are found.
+     * @return list<\PHPStan\Rules\RuleError> An array of `RuleError` objects. Returns an empty array if no issues are found.
      */
     public function processNode(Node $node, Scope $scope): array
     {
+        \assert($node instanceof FuncCall);
+
         if (!$node->name instanceof Name) {
             return [];
         }

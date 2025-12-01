@@ -30,3 +30,14 @@ parameters:
 
     tmpDir: .cache/phpstan
 
+    ignoreErrors:
+        # ReDoS warnings are false positives for this regex parser library:
+        # - Internal patterns in src/ are carefully designed and bounded
+        # - Test patterns intentionally include various regex constructs for testing
+        -
+            identifier: regex.redos
+            path: src/*
+        -
+            identifier: regex.redos
+            path: tests/*
+
