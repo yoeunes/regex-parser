@@ -786,14 +786,35 @@ class Parser
 
     private function parseGroupName(): string
     {
+        $quote = null;
+
+        // Check for quoted group name (Python-style: 'name' or "name")
+        if ($this->checkLiteral("'") || $this->checkLiteral('"')) {
+            $quote = $this->current()->value;
+            $this->advance();
+        }
+
         $name = '';
         while (!$this->checkLiteral('>') && !$this->checkLiteral('}') && !$this->isAtEnd()) {
+            // If we're in quoted mode and hit the closing quote, stop collecting
+            if (null !== $quote && $this->checkLiteral($quote)) {
+                break;
+            }
+
             if ($this->check(TokenType::T_LITERAL) || $this->check(TokenType::T_LITERAL_ESCAPED)) {
                 $name .= $this->current()->value;
                 $this->advance();
             } else {
                 throw new ParserException(\sprintf('Unexpected token "%s" in group name', $this->current()->value));
             }
+        }
+
+        // If quoted, expect the closing quote
+        if (null !== $quote) {
+            if (!$this->checkLiteral($quote)) {
+                throw new ParserException(\sprintf('Expected closing quote "%s" for group name at position %d', $quote, $this->current()->position));
+            }
+            $this->advance();
         }
 
         if ('' === $name) {
