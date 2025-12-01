@@ -32,10 +32,6 @@ class ComprehensivePublicAPITest extends TestCase
         $this->regex = Regex::create();
     }
 
-    // ============================================================================
-    // TEST 1: Regex::create() - Factory/Instantiation
-    // ============================================================================
-
     public function test_create_returns_regex_instance(): void
     {
         $regex = Regex::create();
@@ -53,10 +49,6 @@ class ComprehensivePublicAPITest extends TestCase
         $regex = Regex::create([]);
         $this->assertSame(Regex::class, $regex::class);
     }
-
-    // ============================================================================
-    // TEST 2: Regex::parse() - AST Generation
-    // ============================================================================
 
     public function test_parse_simple_literal_returns_regex_node(): void
     {
@@ -179,10 +171,6 @@ class ComprehensivePublicAPITest extends TestCase
         $this->regex->parse('/(unclosed/');
     }
 
-    // ============================================================================
-    // TEST 3: Regex::validate() - Validation
-    // ============================================================================
-
     public function test_validate_simple_pattern_returns_valid_result(): void
     {
         $result = $this->regex->validate('/hello/');
@@ -268,10 +256,6 @@ class ComprehensivePublicAPITest extends TestCase
         $this->assertGreaterThanOrEqual(0, $result->complexityScore);
     }
 
-    // ============================================================================
-    // TEST 4: Regex::explain() - Human-Readable Explanations
-    // ============================================================================
-
     public function test_explain_simple_literal(): void
     {
         $explanation = $this->regex->explain('/hello/');
@@ -322,10 +306,6 @@ class ComprehensivePublicAPITest extends TestCase
         $this->expectException(ParserException::class);
         $this->regex->explain('/(?P<invalid>/');
     }
-
-    // ============================================================================
-    // TEST 5: Regex::generate() - Sample String Generation
-    // ============================================================================
 
     public function test_generate_simple_literal(): void
     {
@@ -391,10 +371,6 @@ class ComprehensivePublicAPITest extends TestCase
         $this->assertGreaterThan(1, \count($unique), 'Generator should produce varied samples');
     }
 
-    // ============================================================================
-    // TEST 6: Regex::optimize() - Pattern Optimization
-    // ============================================================================
-
     public function test_optimize_returns_valid_pattern(): void
     {
         $optimized = $this->regex->optimize('/hello/');
@@ -435,10 +411,6 @@ class ComprehensivePublicAPITest extends TestCase
         $this->expectException(ParserException::class);
         $this->regex->optimize('/(?P<invalid>/');
     }
-
-    // ============================================================================
-    // TEST 7: Regex::extractLiterals() - Prefix/Suffix Extraction
-    // ============================================================================
 
     public function test_extract_literals_simple_prefix(): void
     {
@@ -485,10 +457,6 @@ class ComprehensivePublicAPITest extends TestCase
         $prefix = $literals->getLongestPrefix();
         $this->assertSame('error: ', $prefix);
     }
-
-    // ============================================================================
-    // TEST 8: Regex::analyzeReDoS() - Severity Scoring
-    // ============================================================================
 
     public function test_analyze_redos_safe_pattern(): void
     {
@@ -559,10 +527,6 @@ class ComprehensivePublicAPITest extends TestCase
             'Character class with + should be safe or medium (linear backtracking only)',
         );
     }
-
-    // ============================================================================
-    // TEST 9: Additional Public API Tests
-    // ============================================================================
 
     public function test_dump_returns_ast_representation(): void
     {
@@ -658,10 +622,6 @@ class ComprehensivePublicAPITest extends TestCase
             ReDoSSeverity::MEDIUM
         ]);
     }
-
-    // ============================================================================
-    // Summary Stats
-    // ============================================================================
 
     public static function assertionCount(): int
     {

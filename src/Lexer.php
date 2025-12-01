@@ -151,11 +151,6 @@ class Lexer
      */
     private int $charClassStartPosition = 0;
 
-    public function __construct(string $pattern)
-    {
-        $this->reset($pattern);
-    }
-
     /**
      * Resets the lexer with a new pattern string.
      *
@@ -185,11 +180,11 @@ class Lexer
      *
      * @throws LexerException
      *
-     * @return list<Token>
+     * @return array<Token>
      */
-    public function tokenizeToArray(): array
+    public function tokenizeToArray(string $pattern): array
     {
-        return iterator_to_array($this->tokenize(), false);
+        return $this->tokenize($pattern)->getTokens();
     }
 
     /**
@@ -197,18 +192,30 @@ class Lexer
      * Yields tokens one at a time instead of building a large array.
      *
      * @throws LexerException
-     *
-     * @return \Generator<int, Token>
      */
-    public function tokenize(): \Generator
+    public function tokenize(string $pattern): TokenStream
     {
+        if (false === preg_match('//u', $pattern)) {
+            throw new LexerException('Input string is not valid UTF-8.');
+        }
+
+        $this->pattern = $pattern;
+        // Use strlen (bytes) for preg_match cursor logic, as the 'u' modifier handles UTF-8 matching naturally.
+        $this->length = \strlen($this->pattern);
+
+        // Reset state
+        $this->position = 0;
+        $this->inCharClass = false;
+        $this->inQuoteMode = false;
+        $this->inCommentMode = false;
+        $this->charClassStartPosition = 0;
+
         $tokens = [];
 
         while ($this->position < $this->length) {
             // 1. Handle "Tunnel" Modes (Quote & Comment)
             if ($this->inQuoteMode) {
                 if ($token = $this->consumeQuoteMode()) {
-                    yield $token;
                     $tokens[] = $token; // Keep for context
                 }
 
@@ -217,7 +224,6 @@ class Lexer
 
             if ($this->inCommentMode) {
                 if ($token = $this->consumeCommentMode()) {
-                    yield $token;
                     $tokens[] = $token; // Keep for context
                 }
 
@@ -247,9 +253,7 @@ class Lexer
             $this->position += \strlen($matchedValue);
 
             // 4. Create Token from Match and yield it
-            $token = $this->createTokenFromMatch($tokenMap, $matches, $matchedValue, $startPos, $tokens);
-            yield $token;
-            $tokens[] = $token;
+            $tokens[] = $this->createTokenFromMatch($tokenMap, $matches, $matchedValue, $startPos, $tokens);
         }
 
         // 5. Post-Processing Validation
@@ -261,8 +265,9 @@ class Lexer
             throw new LexerException('Unclosed comment ")" at end of input.');
         }
 
-        // Yield EOF token to signal parsing completion
-        yield new Token(TokenType::T_EOF, '', $this->position);
+        $tokens[] = new Token(TokenType::T_EOF, '', $this->position);
+
+        return new TokenStream($tokens, $pattern);
     }
 
     /**
@@ -315,8 +320,6 @@ class Lexer
                     return new Token($type, '\Q', $startPos);
                 }
 
-                // --- Context-Sensitive Token Logic ---
-
                 if ($this->inCharClass) {
                     $lastToken = end($currentTokens);
                     $isAtStart = ($startPos === $this->charClassStartPosition + 1)
@@ -332,7 +335,6 @@ class Lexer
                     }
                 }
 
-                // --- Standard Value Extraction ---
                 $value = $this->extractTokenValue($type, $matchedValue, $matches);
 
                 return new Token($type, $value, $startPos);

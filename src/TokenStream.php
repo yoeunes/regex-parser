@@ -45,9 +45,9 @@ class TokenStream
     private bool $exhausted = false;
 
     /**
-     * @param \Generator<int, Token> $generator
+     * @param array<Token> $tokens
      */
-    public function __construct(private readonly \Generator $generator)
+    public function __construct(private readonly array $tokens, private readonly string $pattern)
     {
         // Pre-fill buffer with first token
         $this->fillBuffer(1);
@@ -165,6 +165,19 @@ class TokenStream
         return $this->position;
     }
 
+    public function getPattern(): string
+    {
+        return $this->pattern;
+    }
+
+    /**
+     * @return array<Token>
+     */
+    public function getTokens(): array
+    {
+        return $this->tokens;
+    }
+
     /**
      * Fill the buffer with tokens from the generator.
      */
@@ -174,13 +187,15 @@ class TokenStream
             return;
         }
 
-        while (\count($this->buffer) < $minSize && $this->generator->valid()) {
-            $this->buffer[] = $this->generator->current();
-            $this->generator->next();
-        }
+        while (\count($this->buffer) < $minSize) {
+            $nextIndex = $this->position + \count($this->buffer);
+            if (isset($this->tokens[$nextIndex])) {
+                $this->buffer[] = $this->tokens[$nextIndex];
+            } else {
+                $this->exhausted = true;
 
-        if (!$this->generator->valid()) {
-            $this->exhausted = true;
+                break;
+            }
         }
     }
 }

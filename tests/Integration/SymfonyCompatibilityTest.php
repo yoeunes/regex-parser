@@ -32,10 +32,6 @@ class SymfonyCompatibilityTest extends TestCase
         $this->regex = Regex::create();
     }
 
-    // ============================================================================
-    // TEST 1: Variable-Length Lookbehind Support (PHP 7.3+ / PCRE2)
-    // ============================================================================
-
     public function test_variable_length_lookbehind_is_valid(): void
     {
         // PHP 7.3+ (PCRE2) supports variable-length lookbehinds
@@ -102,10 +98,6 @@ class SymfonyCompatibilityTest extends TestCase
         );
     }
 
-    // ============================================================================
-    // TEST 2: Modern PCRE Verbs Support
-    // ============================================================================
-
     public function test_script_run_verb_is_valid(): void
     {
         // (*script_run:...) is a modern PCRE verb for Unicode script validation
@@ -151,10 +143,6 @@ class SymfonyCompatibilityTest extends TestCase
         }
     }
 
-    // ============================================================================
-    // TEST 3: Partial Regex Handling (PHPStan Rule)
-    // ============================================================================
-
     public function test_phpstan_rule_skips_pattern_without_delimiters(): void
     {
         // Skip if PHPStan is not installed
@@ -199,10 +187,6 @@ class SymfonyCompatibilityTest extends TestCase
         $this->assertSame(\PhpParser\Node\Expr\FuncCall::class, $rule->getNodeType());
     }
 
-    // ============================================================================
-    // TEST 4: Complex Symfony-like Patterns
-    // ============================================================================
-
     public function test_complex_symfony_routing_pattern(): void
     {
         // Pattern similar to those found in Symfony routing
@@ -238,10 +222,6 @@ class SymfonyCompatibilityTest extends TestCase
             'Lookbehind with Unicode property should be valid',
         );
     }
-
-    // ============================================================================
-    // TEST 5: Edge Cases
-    // ============================================================================
 
     public function test_nested_lookbehind_with_variable_length(): void
     {

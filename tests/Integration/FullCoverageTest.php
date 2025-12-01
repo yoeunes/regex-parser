@@ -35,8 +35,7 @@ class FullCoverageTest extends TestCase
         $this->expectException(LexerException::class);
         $this->expectExceptionMessage('Unable to tokenize');
 
-        $lexer = new Lexer('abc\\');
-        $lexer->tokenizeToArray();
+        new Lexer()->tokenize('abc\\')->getTokens();
     }
 
     public function test_lexer_unclosed_character_class(): void
@@ -44,8 +43,7 @@ class FullCoverageTest extends TestCase
         $this->expectException(LexerException::class);
         $this->expectExceptionMessage('Unclosed character class');
 
-        $lexer = new Lexer('[abc');
-        $lexer->tokenizeToArray();
+        new Lexer()->tokenize('[abc')->getTokens();
     }
 
     public function test_lexer_unclosed_comment(): void
@@ -53,17 +51,14 @@ class FullCoverageTest extends TestCase
         $this->expectException(LexerException::class);
         $this->expectExceptionMessage('Unclosed comment');
 
-        $lexer = new Lexer('(?#comment without closing');
-        $lexer->tokenizeToArray();
+        new Lexer()->tokenize('(?#comment without closing')->getTokens();
     }
 
     public function test_lexer_comment_at_end_of_string(): void
     {
         // Test comment mode that reaches end of string
-        $lexer = new Lexer('abc(?#test');
-
         try {
-            $lexer->tokenizeToArray();
+            new Lexer()->tokenize('abc(?#test')->getTokens();
             $this->fail('Expected LexerException');
         } catch (LexerException $e) {
             $this->assertStringContainsString('Unclosed comment', $e->getMessage());

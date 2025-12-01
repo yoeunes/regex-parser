@@ -22,8 +22,7 @@ class LexerTest extends TestCase
 {
     public function test_tokenize_simple_literal(): void
     {
-        $lexer = new Lexer('foo'); // No delimiters
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('foo')->getTokens();
 
         // f o o EOF = 4 tokens
         $this->assertCount(4, $tokens);
@@ -38,8 +37,7 @@ class LexerTest extends TestCase
 
     public function test_tokenize_multibyte_literal(): void
     {
-        $lexer = new Lexer('fôô'); // No delimiters
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('fôô')->getTokens();
 
         // f ô ô EOF = 4 tokens
         $this->assertCount(4, $tokens);
@@ -53,8 +51,7 @@ class LexerTest extends TestCase
 
     public function test_tokenize_group_and_quantifier(): void
     {
-        $lexer = new Lexer('(bar)?'); // No delimiters
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('(bar)?')->getTokens();
 
         $expected = [
             TokenType::T_GROUP_OPEN,
@@ -75,8 +72,7 @@ class LexerTest extends TestCase
 
     public function test_tokenize_alternation(): void
     {
-        $lexer = new Lexer('foo|bar'); // No delimiters
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('foo|bar')->getTokens();
         // f o o | b a r EOF = 8 tokens
         $this->assertCount(8, $tokens);
         $this->assertSame(TokenType::T_ALTERNATION, $tokens[3]->type);
@@ -84,8 +80,7 @@ class LexerTest extends TestCase
 
     public function test_tokenize_custom_quantifier(): void
     {
-        $lexer = new Lexer('a{2,4}'); // No delimiters
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('a{2,4}')->getTokens();
 
         // a {2,4} EOF = 3 tokens
         $this->assertCount(3, $tokens);
@@ -96,8 +91,7 @@ class LexerTest extends TestCase
 
     public function test_tokenize_invalid_quantifier_as_literal(): void
     {
-        $lexer = new Lexer('a{b}'); // No delimiters
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('a{b}')->getTokens();
         // a { b } EOF = 5 tokens
         $this->assertCount(5, $tokens);
         $this->assertSame(TokenType::T_LITERAL, $tokens[1]->type);
@@ -110,8 +104,7 @@ class LexerTest extends TestCase
 
     public function test_tokenize_escaped_meta_char(): void
     {
-        $lexer = new Lexer('\\(a\\*\\)'); // No delimiters
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('\\(a\\*\\)')->getTokens();
 
         // ( a * ) EOF = 5 tokens
         $this->assertCount(5, $tokens);
@@ -133,8 +126,7 @@ class LexerTest extends TestCase
 
     public function test_tokenize_char_types_and_dot(): void
     {
-        $lexer = new Lexer('.\d\s\w\D\S\W'); // No delimiters
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('.\d\s\w\D\S\W')->getTokens();
 
         $expected = [
             TokenType::T_DOT,
@@ -158,8 +150,7 @@ class LexerTest extends TestCase
 
     public function test_tokenize_anchors(): void
     {
-        $lexer = new Lexer('^foo$'); // No delimiters
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('^foo$')->getTokens();
 
         // ^ f o o $ EOF = 6 tokens
         $this->assertCount(6, $tokens);
@@ -171,8 +162,7 @@ class LexerTest extends TestCase
 
     public function test_tokenize_assertions(): void
     {
-        $lexer = new Lexer('\\Afoo\\z\\b\\G\\B'); // No delimiters
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('\\Afoo\\z\\b\\G\\B')->getTokens();
 
         $this->assertSame(TokenType::T_ASSERTION, $tokens[0]->type);
         $this->assertSame('A', $tokens[0]->value);
@@ -189,8 +179,7 @@ class LexerTest extends TestCase
 
     public function test_tokenize_unicode_prop(): void
     {
-        $lexer = new Lexer('\\p{L}\\P{^L}\\pL'); // No delimiters
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('\\p{L}\\P{^L}\\pL')->getTokens();
 
         $this->assertSame(TokenType::T_UNICODE_PROP, $tokens[0]->type);
         $this->assertSame('L', $tokens[0]->value); // \p{L}
@@ -202,8 +191,7 @@ class LexerTest extends TestCase
 
     public function test_tokenize_octal(): void
     {
-        $lexer = new Lexer('\\o{777}'); // No delimiters
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('\\o{777}')->getTokens();
 
         $this->assertSame(TokenType::T_OCTAL, $tokens[0]->type);
         $this->assertSame('\\o{777}', $tokens[0]->value);
@@ -213,8 +201,7 @@ class LexerTest extends TestCase
     {
         $this->expectException(LexerException::class);
         $this->expectExceptionMessage('Unable to tokenize');
-        $lexer = new Lexer('foo\\'); // No delimiters
-        $lexer->tokenizeToArray();
+        new Lexer()->tokenize('foo\\')->getTokens();
     }
 
     /**
@@ -248,8 +235,7 @@ class LexerTest extends TestCase
     public function test_tokenize_inside_char_class_range_negation_literals(): void
     {
         // Tests context-sensitive tokens: ^ (negation), - (range), and ] (literal)
-        $lexer = new Lexer('[^a-z-]]');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('[^a-z-]]')->getTokens();
 
         $this->assertSame(TokenType::T_CHAR_CLASS_OPEN, $tokens[0]->type);
         $this->assertSame(TokenType::T_NEGATION, $tokens[1]->type); // ^ at start
@@ -264,8 +250,7 @@ class LexerTest extends TestCase
     public function test_tokenize_char_class_literal_at_start(): void
     {
         // [^]a] - literal ']' at start
-        $lexer = new Lexer('[^]a]');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('[^]a]')->getTokens();
 
         $this->assertSame(TokenType::T_NEGATION, $tokens[1]->type);
         $this->assertSame(TokenType::T_LITERAL, $tokens[2]->type); // ']' as literal
@@ -273,8 +258,7 @@ class LexerTest extends TestCase
 
     public function test_tokenize_posix_class(): void
     {
-        $lexer = new Lexer('[[:alnum:]]');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('[[:alnum:]]')->getTokens();
 
         $this->assertSame(TokenType::T_POSIX_CLASS, $tokens[1]->type);
         $this->assertSame('alnum', $tokens[1]->value);
@@ -284,14 +268,12 @@ class LexerTest extends TestCase
     {
         $this->expectException(LexerException::class);
         $this->expectExceptionMessage('Unclosed character class "]" at end of input.');
-        $lexer = new Lexer('[a');
-        $lexer->tokenizeToArray();
+        new Lexer()->tokenize('[a')->getTokens();
     }
 
     public function test_tokenize_quote_mode(): void
     {
-        $lexer = new Lexer('\Q*+.\Efoo');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('\Q*+.\Efoo')->getTokens();
 
         // Now emits T_QUOTE_MODE_START, T_LITERAL (content), T_QUOTE_MODE_END for full fidelity
         $this->assertSame(TokenType::T_QUOTE_MODE_START, $tokens[0]->type);

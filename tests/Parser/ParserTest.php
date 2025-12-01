@@ -34,24 +34,20 @@ use RegexParser\Node\RegexNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\Node\SubroutineNode;
 use RegexParser\Node\UnicodePropNode;
-use RegexParser\Parser;
 use RegexParser\Regex;
 
 class ParserTest extends TestCase
 {
-    private Parser $parser;
-
     private Regex $regex;
 
     protected function setUp(): void
     {
-        $this->parser = new Parser();
         $this->regex = Regex::create();
     }
 
     public function test_parse_returns_regex_node_with_flags(): void
     {
-        $ast = $this->parseRegex('/foo/imsU');
+        $ast = $this->parse('/foo/imsU');
 
         $this->assertSame('imsU', $ast->flags);
         $this->assertInstanceOf(SequenceNode::class, $ast->pattern);
@@ -59,7 +55,7 @@ class ParserTest extends TestCase
 
     public function test_parse_literal(): void
     {
-        $ast = $this->parseRegex('/foo/');
+        $ast = $this->parse('/foo/');
         $pattern = $ast->pattern;
 
         // "foo" is a SEQUENCE of 3 literals
@@ -69,7 +65,7 @@ class ParserTest extends TestCase
 
     public function test_parse_char_class(): void
     {
-        $ast = $this->parseRegex('/[a-z\d-]/');
+        $ast = $this->parse('/[a-z\d-]/');
         $pattern = $ast->pattern;
 
         $this->assertInstanceOf(CharClassNode::class, $pattern);
@@ -94,7 +90,7 @@ class ParserTest extends TestCase
 
     public function test_parse_negated_char_class(): void
     {
-        $ast = $this->parseRegex('/[^a-z]/');
+        $ast = $this->parse('/[^a-z]/');
         $pattern = $ast->pattern;
 
         $this->assertInstanceOf(CharClassNode::class, $pattern);
@@ -105,7 +101,7 @@ class ParserTest extends TestCase
 
     public function test_parse_group_with_quantifier(): void
     {
-        $ast = $this->parseRegex('/(bar)?/');
+        $ast = $this->parse('/(bar)?/');
         $pattern = $ast->pattern;
 
         $this->assertInstanceOf(QuantifierNode::class, $pattern);
@@ -126,7 +122,7 @@ class ParserTest extends TestCase
 
     public function test_parse_alternation(): void
     {
-        $ast = $this->parseRegex('/foo|bar/');
+        $ast = $this->parse('/foo|bar/');
         $pattern = $ast->pattern;
 
         $this->assertInstanceOf(AlternationNode::class, $pattern);
@@ -151,7 +147,7 @@ class ParserTest extends TestCase
 
     public function test_parse_operator_precedence(): void
     {
-        $ast = $this->parseRegex('/ab*c/');
+        $ast = $this->parse('/ab*c/');
         $pattern = $ast->pattern;
 
         // The AST must be a Sequence
@@ -180,7 +176,7 @@ class ParserTest extends TestCase
 
     public function test_parse_char_types_and_dot(): void
     {
-        $ast = $this->parseRegex('/.\d\S/');
+        $ast = $this->parse('/.\d\S/');
         $pattern = $ast->pattern;
 
         $this->assertInstanceOf(SequenceNode::class, $pattern);
@@ -195,7 +191,7 @@ class ParserTest extends TestCase
 
     public function test_parse_anchors(): void
     {
-        $ast = $this->parseRegex('/^foo$/');
+        $ast = $this->parse('/^foo$/');
         $pattern = $ast->pattern;
 
         $this->assertInstanceOf(SequenceNode::class, $pattern);
@@ -214,7 +210,7 @@ class ParserTest extends TestCase
 
     public function test_parse_assertions(): void
     {
-        $ast = $this->parseRegex('/\Afoo\b/');
+        $ast = $this->parse('/\Afoo\b/');
         $pattern = $ast->pattern;
 
         $this->assertInstanceOf(SequenceNode::class, $pattern);
@@ -229,7 +225,7 @@ class ParserTest extends TestCase
 
     public function test_parse_unicode_prop(): void
     {
-        $ast = $this->parseRegex('/\p{L}/');
+        $ast = $this->parse('/\p{L}/');
         $pattern = $ast->pattern;
 
         $this->assertInstanceOf(UnicodePropNode::class, $pattern);
@@ -238,7 +234,7 @@ class ParserTest extends TestCase
 
     public function test_parse_comment(): void
     {
-        $ast = $this->parseRegex('/(?#test)/');
+        $ast = $this->parse('/(?#test)/');
         $pattern = $ast->pattern;
 
         $this->assertInstanceOf(CommentNode::class, $pattern);
@@ -247,7 +243,7 @@ class ParserTest extends TestCase
 
     public function test_parse_conditional(): void
     {
-        $ast = $this->parseRegex('/(?(1)a|b)/');
+        $ast = $this->parse('/(?(1)a|b)/');
         $pattern = $ast->pattern;
 
         $this->assertInstanceOf(ConditionalNode::class, $pattern);
@@ -271,19 +267,19 @@ class ParserTest extends TestCase
     {
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('Expected )');
-        $this->parseRegex('/(foo/');
+        $this->parse('/(foo/');
     }
 
     public function test_throws_on_missing_closing_delimiter(): void
     {
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('No closing delimiter "/" found.');
-        $this->parseRegex('/foo');
+        $this->parse('/foo');
     }
 
     public function test_parse_escaped_chars(): void
     {
-        $ast = $this->parseRegex('/a\*b/');
+        $ast = $this->parse('/a\*b/');
         $pattern = $ast->pattern;
 
         // Sequence of 3 : 'a', '*', 'b'
@@ -297,7 +293,7 @@ class ParserTest extends TestCase
 
     public function test_parse_inline_flags(): void
     {
-        $ast = $this->parseRegex('/(?i:foo)/');
+        $ast = $this->parse('/(?i:foo)/');
         $pattern = $ast->pattern;
 
         $this->assertInstanceOf(GroupNode::class, $pattern);
@@ -307,7 +303,7 @@ class ParserTest extends TestCase
 
     public function test_parse_named_group_with_single_quote(): void
     {
-        $ast = $this->parseRegex("/(?P'name'a)/");
+        $ast = $this->parse("/(?P'name'a)/");
         $this->assertInstanceOf(GroupNode::class, $ast->pattern);
         $this->assertSame(GroupType::T_GROUP_NAMED, $ast->pattern->type);
         $this->assertSame('name', $ast->pattern->name);
@@ -315,7 +311,7 @@ class ParserTest extends TestCase
 
     public function test_parse_named_group_with_double_quote(): void
     {
-        $ast = $this->parseRegex('/(?P"name"a)/');
+        $ast = $this->parse('/(?P"name"a)/');
         $this->assertInstanceOf(GroupNode::class, $ast->pattern);
         $this->assertSame(GroupType::T_GROUP_NAMED, $ast->pattern->type);
         $this->assertSame('name', $ast->pattern->name);
@@ -323,7 +319,7 @@ class ParserTest extends TestCase
 
     public function test_parse_g_references_as_backref(): void
     {
-        $ast = $this->parseRegex('/a\g{1}b\g{-1}c/');
+        $ast = $this->parse('/a\g{1}b\g{-1}c/');
         $this->assertInstanceOf(SequenceNode::class, $ast->pattern);
         $this->assertInstanceOf(BackrefNode::class, $ast->pattern->children[1]);
         $this->assertInstanceOf(BackrefNode::class, $ast->pattern->children[3]);
@@ -333,7 +329,7 @@ class ParserTest extends TestCase
 
     public function test_parse_g_references_as_subroutine(): void
     {
-        $ast = $this->parseRegex('/(a)\g<name>/');
+        $ast = $this->parse('/(a)\g<name>/');
         $this->assertInstanceOf(SequenceNode::class, $ast->pattern);
         $this->assertInstanceOf(SubroutineNode::class, $ast->pattern->children[1]);
         $this->assertSame('name', $ast->pattern->children[1]->reference);
@@ -343,7 +339,7 @@ class ParserTest extends TestCase
     public function test_parse_conditional_with_group_ref(): void
     {
         // (?(1)a|b)
-        $ast = $this->parseRegex('/(?(1)a|b)/');
+        $ast = $this->parse('/(?(1)a|b)/');
         $this->assertInstanceOf(ConditionalNode::class, $ast->pattern);
         $this->assertInstanceOf(BackrefNode::class, $ast->pattern->condition);
         $this->assertSame('1', $ast->pattern->condition->ref);
@@ -352,7 +348,7 @@ class ParserTest extends TestCase
     public function test_parse_conditional_with_named_group_ref(): void
     {
         // (?(<name>)a|b)
-        $ast = $this->parseRegex('/(?<name>x)(?(<name>)a|b)/');
+        $ast = $this->parse('/(?<name>x)(?(<name>)a|b)/');
         $this->assertInstanceOf(SequenceNode::class, $ast->pattern);
         $conditional = $ast->pattern->children[1];
         $this->assertInstanceOf(ConditionalNode::class, $conditional);
@@ -363,17 +359,17 @@ class ParserTest extends TestCase
     public function test_python_named_group_syntax(): void
     {
         // (?P<name>...)
-        $ast = $this->parseRegex('/(?P<foo>a)/');
+        $ast = $this->parse('/(?P<foo>a)/');
         $this->assertInstanceOf(GroupNode::class, $ast->pattern);
         $this->assertSame('foo', $ast->pattern->name);
 
         // (?P'name'...)
-        $ast = $this->parseRegex("/(?P'bar'a)/");
+        $ast = $this->parse("/(?P'bar'a)/");
         $this->assertInstanceOf(GroupNode::class, $ast->pattern);
         $this->assertSame('bar', $ast->pattern->name);
 
         // (?P"name"...)
-        $ast = $this->parseRegex('/(?P"baz"a)/');
+        $ast = $this->parse('/(?P"baz"a)/');
         $this->assertInstanceOf(GroupNode::class, $ast->pattern);
         $this->assertSame('baz', $ast->pattern->name);
     }
@@ -382,7 +378,7 @@ class ParserTest extends TestCase
     {
         $this->expectException(ParserException::class);
         // Missing name quotes or brackets
-        $this->parseRegex('/(?P=foo)/'); // Backref syntax, not currently supported in parser logic for groups
+        $this->parse('/(?P=foo)/'); // Backref syntax, not currently supported in parser logic for groups
     }
 
     public function test_max_pattern_length(): void
@@ -399,7 +395,7 @@ class ParserTest extends TestCase
     {
         // The parser itself allows [z-a], checking semantics is done by the Validator.
         // So we assert that it parses into a RangeNode successfully.
-        $ast = $this->parseRegex('/[z-a]/');
+        $ast = $this->parse('/[z-a]/');
 
         $this->assertInstanceOf(CharClassNode::class, $ast->pattern);
         $this->assertNotEmpty($ast->pattern->parts);
@@ -410,17 +406,14 @@ class ParserTest extends TestCase
     public function test_parse_conditional_define(): void
     {
         // (?(DEFINE)...)
-        $this->parseRegex('/(?(DEFINE)(?<A>a))(?&A)/');
+        $this->parse('/(?(DEFINE)(?<A>a))(?&A)/');
     }
 
     /**
      * Helper method to parse a regex string using the decoupled Lexer and Parser.
      */
-    private function parseRegex(string $regex): RegexNode
+    private function parse(string $regex): RegexNode
     {
-        [$pattern, $flags, $delimiter] = $this->regex->extractPatternAndFlags($regex);
-        $stream = $this->regex->createTokenStream($pattern);
-
-        return $this->parser->parse($stream, $flags, $delimiter, \strlen($pattern));
+        return $this->regex->parse($regex);
     }
 }

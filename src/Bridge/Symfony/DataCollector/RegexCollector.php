@@ -210,8 +210,6 @@ class RegexCollector extends DataCollector implements LateDataCollectorInterface
         $this->collectionErrors = [];
     }
 
-    // ========== Accessor Methods for Twig Template ==========
-
     /**
      * @return CollectorData|Data
      */

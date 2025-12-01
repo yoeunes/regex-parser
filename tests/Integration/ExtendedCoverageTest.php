@@ -49,20 +49,11 @@ class ExtendedCoverageTest extends TestCase
         $this->validatorVisitor = new ValidatorNodeVisitor();
     }
 
-    // ========== Parser Edge Cases ==========
-
     public function test_parser_atomic_groups(): void
     {
         $this->expectNotToPerformAssertions();
         $this->regex->parse('/(?>a+)b/');
     }
-
-    // Branch reset groups are not supported by this parser
-    // public function test_parser_branch_reset_groups(): void
-    // {
-    //     $ast = $this->regex->parse('/(?|(a)|(b))/');
-    //     $this->assertNotNull($ast);
-    // }
 
     public function test_parser_recursive_patterns(): void
     {
@@ -75,13 +66,6 @@ class ExtendedCoverageTest extends TestCase
         $this->expectNotToPerformAssertions();
         $this->regex->parse('/(a)(?-1)/');
     }
-
-    // Subroutine with plus reference is not supported by this parser
-    // public function test_parser_subroutine_with_plus_reference(): void
-    // {
-    //     $ast = $this->regex->parse('/(a)(?+1)/');
-    //     $this->assertNotNull($ast);
-    // }
 
     public function test_parser_g_reference_with_braces(): void
     {
@@ -182,8 +166,6 @@ class ExtendedCoverageTest extends TestCase
         }
     }
 
-    // ========== SampleGeneratorVisitor Edge Cases ==========
-
     public function test_sample_generator_group_with_name(): void
     {
         $ast = $this->regex->parse('/(?<letter>[a-z])(?<digit>\d)/');
@@ -271,8 +253,6 @@ class ExtendedCoverageTest extends TestCase
         $this->assertNotEmpty($sample);
     }
 
-    // ========== ExplainVisitor Edge Cases ==========
-
     public function test_explain_visitor_group_types(): void
     {
         $patterns = [
@@ -336,8 +316,6 @@ class ExtendedCoverageTest extends TestCase
         $this->assertStringContainsString('Subroutine Call', $result);
     }
 
-    // ========== HtmlExplainVisitor Edge Cases ==========
-
     public function test_html_explain_group_with_name(): void
     {
         $ast = $this->regex->parse('/(?<name>test)/');
@@ -351,14 +329,6 @@ class ExtendedCoverageTest extends TestCase
         $result = $ast->accept($this->htmlExplainVisitor);
         $this->assertStringContainsString('Atomic', $result);
     }
-
-    // Branch reset groups are not supported by this parser
-    // public function test_html_explain_branch_reset(): void
-    // {
-    //     $ast = $this->regex->parse('/(?|(a)|(b))/');
-    //     $result = $ast->accept($this->htmlExplainVisitor);
-    //     $this->assertIsString($result);
-    // }
 
     public function test_html_explain_assertions_all(): void
     {
@@ -397,8 +367,6 @@ class ExtendedCoverageTest extends TestCase
             $this->assertIsString($result);
         }
     }
-
-    // ========== OptimizerNodeVisitor Edge Cases ==========
 
     public function test_optimizer_quantifier_zero_times(): void
     {
@@ -441,8 +409,6 @@ class ExtendedCoverageTest extends TestCase
         $result = $ast->accept($this->optimizerVisitor);
         $this->assertNotNull($result);
     }
-
-    // ========== ValidatorNodeVisitor Edge Cases ==========
 
     public function test_validator_unicode_variations_all(): void
     {
@@ -502,61 +468,51 @@ class ExtendedCoverageTest extends TestCase
         $ast->accept($this->validatorVisitor);
     }
 
-    // ========== Lexer Edge Cases ==========
-
     public function test_lexer_all_escape_sequences_in_char_class(): void
     {
-        $lexer = new Lexer('[\\t\\n\\r\\f\\v\\e\\d\\s\\w]');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('[\\t\\n\\r\\f\\v\\e\\d\\s\\w]')->getTokens();
         $this->assertNotEmpty($tokens);
     }
 
     public function test_lexer_unicode_props_in_char_class(): void
     {
-        $lexer = new Lexer('[\\p{L}\\P{L}]');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('[\\p{L}\\P{L}]')->getTokens();
         $this->assertNotEmpty($tokens);
     }
 
     public function test_lexer_posix_in_char_class(): void
     {
-        $lexer = new Lexer('[[:alpha:][:digit:]]');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('[[:alpha:][:digit:]]')->getTokens();
         $this->assertNotEmpty($tokens);
     }
 
     public function test_lexer_backref_variations(): void
     {
-        $lexer = new Lexer('\\1\\k<name>\\k{name}');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('\\1\\k<name>\\k{name}')->getTokens();
         $this->assertNotEmpty($tokens);
     }
 
     public function test_lexer_g_reference_all_forms(): void
     {
-        $lexer = new Lexer('\\g1\\g{1}\\g<name>\\g-1\\g+1');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('\\g1\\g{1}\\g<name>\\g-1\\g+1')->getTokens();
         $this->assertNotEmpty($tokens);
     }
 
     public function test_lexer_pcre_verbs(): void
     {
-        $lexer = new Lexer('(*ACCEPT)(*FAIL)(*MARK:name)');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('(*ACCEPT)(*FAIL)(*MARK:name)')->getTokens();
         $this->assertNotEmpty($tokens);
     }
 
     public function test_lexer_quote_mode_with_backslash(): void
     {
-        $lexer = new Lexer('\\Q\\\\E');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('\\Q\\\\E')->getTokens();
         $this->assertNotEmpty($tokens);
     }
 
     public function test_lexer_quote_mode_with_metacharacters(): void
     {
-        $lexer = new Lexer('\\Q.*+?^$[](){}|\\E');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('\\Q.*+?^$[](){}|\\E')->getTokens();
         $this->assertNotEmpty($tokens);
     }
 }

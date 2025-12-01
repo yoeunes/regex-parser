@@ -22,8 +22,7 @@ class LexerEdgeCasesTest extends TestCase
     public function test_escaped_special_chars(): void
     {
         // \t \n \r \f \e
-        $lexer = new Lexer('\\t\\n\\r\\f\\e');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('\\t\\n\\r\\f\\e')->getTokens();
 
         // \t
         $this->assertSame("\t", $tokens[0]->value);
@@ -40,8 +39,7 @@ class LexerEdgeCasesTest extends TestCase
     public function test_other_escaped_literal(): void
     {
         // \. should become .
-        $lexer = new Lexer('\\.');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('\\.')->getTokens();
 
         $this->assertSame(TokenType::T_LITERAL_ESCAPED, $tokens[0]->type);
         $this->assertSame('.', $tokens[0]->value);

@@ -30,8 +30,7 @@ class LexerCoverageBoostTest extends TestCase
      */
     public function test_quote_mode_basic(): void
     {
-        $lexer = new Lexer('\Qhello world\E');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('\Qhello world\E')->getTokens();
 
         // Should have: T_QUOTE_MODE_START, T_LITERAL, T_QUOTE_MODE_END, T_EOF
         $this->assertGreaterThan(0, \count($tokens));
@@ -41,8 +40,7 @@ class LexerCoverageBoostTest extends TestCase
 
     public function test_quote_mode_with_special_chars(): void
     {
-        $lexer = new Lexer('\Q.*+?[]{}()\E');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('\Q.*+?[]{}()\E')->getTokens();
 
         // All special chars should be treated as literals inside \Q...\E
         $this->assertGreaterThan(0, \count($tokens));
@@ -51,8 +49,7 @@ class LexerCoverageBoostTest extends TestCase
     public function test_quote_mode_without_end(): void
     {
         // \Q without \E - should treat rest of pattern as literal
-        $lexer = new Lexer('\Qhello world');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('\Qhello world')->getTokens();
 
         $this->assertGreaterThan(0, \count($tokens));
     }
@@ -60,8 +57,7 @@ class LexerCoverageBoostTest extends TestCase
     public function test_quote_mode_empty(): void
     {
         // Empty quote mode
-        $lexer = new Lexer('\Q\E');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('\Q\E')->getTokens();
 
         $this->assertGreaterThan(0, \count($tokens));
     }
@@ -69,8 +65,7 @@ class LexerCoverageBoostTest extends TestCase
     public function test_quote_mode_nested_backslashes(): void
     {
         // Test \Q with backslashes inside
-        $lexer = new Lexer('\Q\\n\\t\E');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('\Q\\n\\t\E')->getTokens();
 
         $this->assertGreaterThan(0, \count($tokens));
     }
@@ -80,8 +75,7 @@ class LexerCoverageBoostTest extends TestCase
      */
     public function test_escape_tab(): void
     {
-        $lexer = new Lexer('\t');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('\t')->getTokens();
 
         $this->assertCount(2, $tokens); // \t + EOF
         $this->assertSame(TokenType::T_LITERAL_ESCAPED, $tokens[0]->type);
@@ -90,8 +84,7 @@ class LexerCoverageBoostTest extends TestCase
 
     public function test_escape_newline(): void
     {
-        $lexer = new Lexer('\n');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('\n')->getTokens();
 
         $this->assertCount(2, $tokens); // \n + EOF
         $this->assertSame(TokenType::T_LITERAL_ESCAPED, $tokens[0]->type);
@@ -100,8 +93,7 @@ class LexerCoverageBoostTest extends TestCase
 
     public function test_escape_carriage_return(): void
     {
-        $lexer = new Lexer('\r');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('\r')->getTokens();
 
         $this->assertCount(2, $tokens); // \r + EOF
         $this->assertSame(TokenType::T_LITERAL_ESCAPED, $tokens[0]->type);
@@ -110,8 +102,7 @@ class LexerCoverageBoostTest extends TestCase
 
     public function test_escape_form_feed(): void
     {
-        $lexer = new Lexer('\f');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('\f')->getTokens();
 
         $this->assertCount(2, $tokens); // \f + EOF
         $this->assertSame(TokenType::T_LITERAL_ESCAPED, $tokens[0]->type);
@@ -121,8 +112,7 @@ class LexerCoverageBoostTest extends TestCase
     public function test_escape_vertical_tab(): void
     {
         // Note: \v in PCRE is a vertical whitespace character type, not a literal escape
-        $lexer = new Lexer('\v');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('\v')->getTokens();
 
         $this->assertCount(2, $tokens); // \v + EOF
         $this->assertSame(TokenType::T_CHAR_TYPE, $tokens[0]->type);
@@ -131,8 +121,7 @@ class LexerCoverageBoostTest extends TestCase
 
     public function test_escape_escape_char(): void
     {
-        $lexer = new Lexer('\e');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('\e')->getTokens();
 
         $this->assertCount(2, $tokens); // \e + EOF
         $this->assertSame(TokenType::T_LITERAL_ESCAPED, $tokens[0]->type);
@@ -142,8 +131,7 @@ class LexerCoverageBoostTest extends TestCase
     public function test_all_special_escapes_together(): void
     {
         // Note: \v is a char type, not a literal escape, so we test only actual escapes
-        $lexer = new Lexer('\t\n\r\f\e');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('\t\n\r\f\e')->getTokens();
 
         // 5 escape sequences + EOF
         $this->assertCount(6, $tokens);
@@ -159,8 +147,7 @@ class LexerCoverageBoostTest extends TestCase
      */
     public function test_unicode_prop_lowercase_p(): void
     {
-        $lexer = new Lexer('\p{L}');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('\p{L}')->getTokens();
 
         $this->assertGreaterThan(0, \count($tokens));
         $this->assertSame(TokenType::T_UNICODE_PROP, $tokens[0]->type);
@@ -170,8 +157,7 @@ class LexerCoverageBoostTest extends TestCase
     public function test_unicode_prop_uppercase_p(): void
     {
         // \P{L} should be negated to ^L
-        $lexer = new Lexer('\P{L}');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('\P{L}')->getTokens();
 
         $this->assertGreaterThan(0, \count($tokens));
         $this->assertSame(TokenType::T_UNICODE_PROP, $tokens[0]->type);
@@ -181,8 +167,7 @@ class LexerCoverageBoostTest extends TestCase
     public function test_unicode_prop_lowercase_p_with_negation(): void
     {
         // \p{^L} should remain ^L
-        $lexer = new Lexer('\p{^L}');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('\p{^L}')->getTokens();
 
         $this->assertGreaterThan(0, \count($tokens));
         $this->assertSame(TokenType::T_UNICODE_PROP, $tokens[0]->type);
@@ -192,8 +177,7 @@ class LexerCoverageBoostTest extends TestCase
     public function test_unicode_prop_uppercase_p_with_negation_double_negation(): void
     {
         // \P{^L} should be double negation -> L
-        $lexer = new Lexer('\P{^L}');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('\P{^L}')->getTokens();
 
         $this->assertGreaterThan(0, \count($tokens));
         $this->assertSame(TokenType::T_UNICODE_PROP, $tokens[0]->type);
@@ -203,8 +187,7 @@ class LexerCoverageBoostTest extends TestCase
     public function test_unicode_prop_short_form_lowercase(): void
     {
         // \pL (short form)
-        $lexer = new Lexer('\pL');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('\pL')->getTokens();
 
         $this->assertGreaterThan(0, \count($tokens));
         $this->assertSame(TokenType::T_UNICODE_PROP, $tokens[0]->type);
@@ -214,8 +197,7 @@ class LexerCoverageBoostTest extends TestCase
     public function test_unicode_prop_short_form_uppercase(): void
     {
         // \PL (short form) should be negated to ^L
-        $lexer = new Lexer('\PL');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('\PL')->getTokens();
 
         $this->assertGreaterThan(0, \count($tokens));
         $this->assertSame(TokenType::T_UNICODE_PROP, $tokens[0]->type);
@@ -234,8 +216,7 @@ class LexerCoverageBoostTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $lexer = new Lexer($pattern);
-            $tokens = $lexer->tokenizeToArray();
+            $tokens = new Lexer()->tokenize($pattern)->getTokens();
             $this->assertGreaterThan(0, \count($tokens));
             $this->assertSame(TokenType::T_UNICODE_PROP, $tokens[0]->type);
         }
@@ -280,8 +261,7 @@ class LexerCoverageBoostTest extends TestCase
      */
     public function test_quote_mode_multiple(): void
     {
-        $lexer = new Lexer('\Qabc\Edef\Qghi\E');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('\Qabc\Edef\Qghi\E')->getTokens();
 
         $this->assertGreaterThan(0, \count($tokens));
     }
@@ -289,8 +269,7 @@ class LexerCoverageBoostTest extends TestCase
     public function test_escaped_literal_other_chars(): void
     {
         // Test other escaped literals that aren't special escapes
-        $lexer = new Lexer('\.\*\+\?');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('\.\*\+\?')->getTokens();
 
         $this->assertCount(5, $tokens); // 4 escaped literals + EOF
         $this->assertSame('.', $tokens[0]->value);
@@ -302,8 +281,7 @@ class LexerCoverageBoostTest extends TestCase
     public function test_pcre_verb_extraction(): void
     {
         // Test PCRE verb value extraction
-        $lexer = new Lexer('(*FAIL)');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('(*FAIL)')->getTokens();
 
         $this->assertCount(2, $tokens); // (*FAIL) + EOF
         $this->assertSame(TokenType::T_PCRE_VERB, $tokens[0]->type);
@@ -312,8 +290,7 @@ class LexerCoverageBoostTest extends TestCase
 
     public function test_pcre_verb_with_argument(): void
     {
-        $lexer = new Lexer('(*MARK:foo)');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('(*MARK:foo)')->getTokens();
 
         $this->assertCount(2, $tokens); // (*MARK:foo) + EOF
         $this->assertSame(TokenType::T_PCRE_VERB, $tokens[0]->type);

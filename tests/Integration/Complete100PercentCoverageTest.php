@@ -54,8 +54,6 @@ class Complete100PercentCoverageTest extends TestCase
         $this->validatorVisitor = new ValidatorNodeVisitor();
     }
 
-    // ========== ExplainVisitor Tests ==========
-
     public function test_explain_visitor_complex_quantifier_multiline_child(): void
     {
         // Test quantifier with complex child (multiline output) to hit lines 149-159
@@ -154,8 +152,6 @@ class Complete100PercentCoverageTest extends TestCase
         $this->assertStringContainsString('entire pattern', $result);
     }
 
-    // ========== HtmlExplainVisitor Tests ==========
-
     public function test_html_explain_visitor_complex_quantifier_multiline(): void
     {
         // Test quantifier with complex child to hit multiline quantifier explanation
@@ -226,8 +222,6 @@ class Complete100PercentCoverageTest extends TestCase
         $this->assertStringContainsString('entire pattern', $result);
     }
 
-    // ========== OptimizerNodeVisitor Tests ==========
-
     public function test_optimizer_visitor_dot_node(): void
     {
         $ast = $this->regex->parse('/./');
@@ -271,8 +265,6 @@ class Complete100PercentCoverageTest extends TestCase
         $result = $ast->accept($this->optimizerVisitor);
         $this->assertNotNull($result);
     }
-
-    // ========== SampleGeneratorVisitor Tests ==========
 
     public function test_sample_generator_dot_node(): void
     {
@@ -382,8 +374,6 @@ class Complete100PercentCoverageTest extends TestCase
         $sample = $ast->accept($this->sampleVisitor);
         $this->assertIsString($sample);
     }
-
-    // ========== ValidatorNodeVisitor Tests ==========
 
     public function test_validator_visitor_dot_node(): void
     {

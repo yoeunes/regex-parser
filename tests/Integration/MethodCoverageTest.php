@@ -170,13 +170,7 @@ class MethodCoverageTest extends TestCase
     public function test_lexer_direct_instantiation(): void
     {
         // Direct Lexer instantiation
-        $lexer = new Lexer('test');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('test')->getTokens();
         $this->assertIsArray($tokens);
-
-        // Reset and tokenize again
-        $lexer->reset('another');
-        $tokens2 = $lexer->tokenizeToArray();
-        $this->assertIsArray($tokens2);
     }
 }

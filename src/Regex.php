@@ -70,7 +70,7 @@ readonly class Regex
 
         [$pattern, $flags, $delimiter] = $this->extractPatternAndFlags($regex);
 
-        $stream = $this->createTokenStream($pattern);
+        $stream = $this->getLexer()->tokenize($pattern);
         $parser = $this->getParser();
 
         return $parser->parse($stream, $flags, $delimiter, \strlen($pattern));
@@ -176,9 +176,9 @@ readonly class Regex
     /**
      * Returns a new Lexer instance for the given pattern.
      */
-    public function getLexer(string $pattern): Lexer
+    public function getLexer(): Lexer
     {
-        return new Lexer($pattern);
+        return new Lexer();
     }
 
     /**
@@ -188,7 +188,7 @@ readonly class Regex
      */
     public function createTokenStream(string $pattern): TokenStream
     {
-        return new TokenStream($this->getLexer($pattern)->tokenize());
+        return $this->getLexer()->tokenize($pattern);
     }
 
     /**

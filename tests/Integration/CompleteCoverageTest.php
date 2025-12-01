@@ -50,8 +50,6 @@ class CompleteCoverageTest extends TestCase
         $this->validatorVisitor = new ValidatorNodeVisitor();
     }
 
-    // ========== SampleGeneratorVisitor Tests ==========
-
     public function test_sample_generator_unicode_prop_without_l_n_p(): void
     {
         // Test unicode properties that don't contain L, N, or P to hit the fallback
@@ -155,8 +153,6 @@ class CompleteCoverageTest extends TestCase
         $sample = $ast->accept($this->sampleVisitor);
         $this->assertNotEmpty($sample);
     }
-
-    // ========== Parser Tests ==========
 
     public function test_parser_various_delimiters(): void
     {
@@ -269,8 +265,6 @@ class CompleteCoverageTest extends TestCase
         $this->regex->parse('/a?+/');
     }
 
-    // ========== ExplainVisitor Tests ==========
-
     public function test_explain_visitor_all_node_types(): void
     {
         // Test all visit methods
@@ -343,8 +337,6 @@ class CompleteCoverageTest extends TestCase
         $this->assertIsString($result);
     }
 
-    // ========== HtmlExplainVisitor Tests ==========
-
     public function test_html_explain_all_node_types(): void
     {
         $patterns = [
@@ -413,8 +405,6 @@ class CompleteCoverageTest extends TestCase
         $result = $ast->accept($this->htmlExplainVisitor);
         $this->assertIsString($result);
     }
-
-    // ========== OptimizerNodeVisitor Tests ==========
 
     public function test_optimizer_alternation_with_literals(): void
     {
@@ -486,8 +476,6 @@ class CompleteCoverageTest extends TestCase
             }
         }
     }
-
-    // ========== ValidatorNodeVisitor Tests ==========
 
     #[DoesNotPerformAssertions]
     public function test_validator_all_node_types(): void
@@ -569,46 +557,29 @@ class CompleteCoverageTest extends TestCase
         $ast->accept($this->validatorVisitor);
     }
 
-    // ========== Lexer Tests ==========
-
     public function test_lexer_quote_mode_with_empty_literal(): void
     {
-        $lexer = new Lexer('\Q\E');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('\Q\E')->getTokens();
         $this->assertNotEmpty($tokens);
     }
 
     public function test_lexer_quote_mode_ending_at_string_end(): void
     {
-        $lexer = new Lexer('\Qtest');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('\Qtest')->getTokens();
         $this->assertNotEmpty($tokens);
     }
 
     public function test_lexer_extract_token_value_escape_sequences(): void
     {
         // These are tested indirectly through parsing
-        $lexer = new Lexer('\t\n\r\f\v\e');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('\t\n\r\f\v\e')->getTokens();
         $this->assertNotEmpty($tokens);
     }
 
     public function test_lexer_normalize_unicode_prop_variations(): void
     {
         // Test \p{L}, \P{L}, \p{^L}, \P{^L} variations
-        $lexer = new Lexer('\p{L}\P{L}\p{^L}\P{^L}');
-        $tokens = $lexer->tokenizeToArray();
+        $tokens = new Lexer()->tokenize('\p{L}\P{L}\p{^L}\P{^L}')->getTokens();
         $this->assertNotEmpty($tokens);
-    }
-
-    public function test_lexer_reset(): void
-    {
-        $lexer = new Lexer('test');
-        $tokens1 = $lexer->tokenizeToArray();
-
-        $lexer->reset('new');
-        $tokens2 = $lexer->tokenizeToArray();
-
-        $this->assertNotSame($tokens1, $tokens2);
     }
 }
