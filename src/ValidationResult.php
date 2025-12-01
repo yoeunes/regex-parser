@@ -33,7 +33,7 @@ readonly class ValidationResult
      * after a regex is parsed and analyzed for both syntactic correctness and semantic issues.
      *
      * @param bool        $isValid         `true` if the regex pattern is syntactically and semantically valid,
-     *                                     `false` otherwise
+     *                                     `false` otherwise.
      * @param string|null $error           If validation fails, this contains a human-readable message explaining the
      *                                     issue (e.g., "Unclosed group"). It is `null` for valid patterns.
      * @param int         $complexityScore A numerical score representing the calculated complexity of the regex,

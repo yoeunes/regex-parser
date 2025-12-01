@@ -58,7 +58,7 @@ readonly class Regex
      *                                                 string to prevent performance issues with overly long patterns. Defaults to
      *                                                 `self::DEFAULT_MAX_PATTERN_LENGTH`.
      *
-     * @return self a new, configured instance of the `Regex` service, ready to be used
+     * @return self A new, configured instance of the `Regex` service, ready to be used.
      *
      * @example
      * ```php
@@ -84,11 +84,11 @@ readonly class Regex
      * This method is the foundation for all other analysis methods in this class (`validate`,
      * `explain`, etc.), as they all operate on the AST produced here.
      *
-     * @param string $regex the full PCRE regex string, including delimiters and flags
+     * @param string $regex The full PCRE regex string, including delimiters and flags.
      *
-     * @throws LexerException  if the lexer encounters an invalid sequence of characters
-     * @throws ParserException if the parser encounters a syntax error or if the pattern
-     *                         exceeds the configured `max_pattern_length`
+     * @throws LexerException If the lexer encounters an invalid sequence of characters.
+     * @throws ParserException If the parser encounters a syntax error or if the pattern
+     *                         exceeds the configured `max_pattern_length`.
      *
      * @return RegexNode The root node of the generated Abstract Syntax Tree. This object
      *                   and its children represent the complete structure of the regex.
@@ -123,7 +123,7 @@ readonly class Regex
      * the AST to check for semantic issues, like invalid backreference calls. It's a
      * convenient "all-in-one" validation tool.
      *
-     * @param string $regex the full PCRE regex string to validate
+     * @param string $regex The full PCRE regex string to validate.
      *
      * @return ValidationResult An object containing the result. `isValid()` will be `true`
      *                          if the regex is valid, or `false` otherwise. If invalid,
@@ -160,12 +160,12 @@ readonly class Regex
      * AST and then walking it with the `ExplainNodeVisitor`. This is incredibly useful
      * for developers trying to understand a complex pattern or for generating documentation.
      *
-     * @param string $regex the full PCRE regex string to explain
+     * @param string $regex The full PCRE regex string to explain.
      *
-     * @throws LexerException  if the regex has a lexical error
-     * @throws ParserException if the regex has a syntax error
+     * @throws LexerException If the regex has a lexical error.
+     * @throws ParserException If the regex has a syntax error.
      *
-     * @return string a natural language description of the regex pattern's logic
+     * @return string A natural language description of the regex pattern's logic.
      *
      * @example
      * ```php
@@ -192,12 +192,12 @@ readonly class Regex
      * string that satisfies the pattern. This can be used to generate test cases for
      * systems that use regex validation, or to show users an example of valid input.
      *
-     * @param string $regex the full PCRE regex string for which to generate a sample
+     * @param string $regex The full PCRE regex string for which to generate a sample.
      *
-     * @throws LexerException  if the regex has a lexical error
-     * @throws ParserException if the regex has a syntax error
+     * @throws LexerException If the regex has a lexical error.
+     * @throws ParserException If the regex has a syntax error.
      *
-     * @return string a randomly generated string that matches the regex
+     * @return string A randomly generated string that matches the regex.
      *
      * @example
      * ```php
@@ -221,12 +221,12 @@ readonly class Regex
      * Finally, it uses the `CompilerNodeVisitor` to convert the optimized AST back into a
      * string. This is useful for cleaning up user-provided regexes or improving performance.
      *
-     * @param string $regex the full PCRE regex string to optimize
+     * @param string $regex The full PCRE regex string to optimize.
      *
-     * @throws LexerException  if the original regex has a lexical error
-     * @throws ParserException if the original regex has a syntax error
+     * @throws LexerException If the original regex has a lexical error.
+     * @throws ParserException If the original regex has a syntax error.
      *
-     * @return string the optimized and recompiled PCRE regex string
+     * @return string The optimized and recompiled PCRE regex string.
      *
      * @example
      * ```php
@@ -250,10 +250,10 @@ readonly class Regex
      * especially those with many alternations and groups. Contributors can use this to
      * verify the structure of the AST created by the parser.
      *
-     * @param string $regex the full PCRE regex string to visualize
+     * @param string $regex The full PCRE regex string to visualize.
      *
-     * @throws LexerException  if the regex has a lexical error
-     * @throws ParserException if the regex has a syntax error
+     * @throws LexerException If the regex has a lexical error.
+     * @throws ParserException If the regex has a syntax error.
      *
      * @return string A string containing the Mermaid.js graph definition. This can be
      *                rendered in any environment that supports Mermaid.js.
@@ -279,12 +279,12 @@ readonly class Regex
      * shows the exact structure of the parsed nodes. This allows you to verify that the
      * `Parser` is correctly interpreting a regex and building the corresponding tree.
      *
-     * @param string $regex the full PCRE regex string to dump
+     * @param string $regex The full PCRE regex string to dump.
      *
-     * @throws LexerException  if the regex has a lexical error
-     * @throws ParserException if the regex has a syntax error
+     * @throws LexerException If the regex has a lexical error.
+     * @throws ParserException If the regex has a syntax error.
      *
-     * @return string an indented string showing the AST structure
+     * @return string An indented string showing the AST structure.
      *
      * @example
      * ```php
@@ -312,12 +312,12 @@ readonly class Regex
      * search for one of the extracted literals. If it's not found, the full regex match
      * is guaranteed to fail.
      *
-     * @param string $regex the full PCRE regex string to analyze
+     * @param string $regex The full PCRE regex string to analyze.
      *
-     * @throws LexerException  if the regex has a lexical error
-     * @throws ParserException if the regex has a syntax error
+     * @throws LexerException If the regex has a lexical error.
+     * @throws ParserException If the regex has a syntax error.
      *
-     * @return LiteralSet a set containing all the mandatory literal substrings
+     * @return LiteralSet A set containing all the mandatory literal substrings.
      *
      * @example
      * ```php
@@ -342,10 +342,10 @@ readonly class Regex
      * list of detected issues. This is a critical tool for ensuring the security and
      * stability of applications that accept user-defined regexes.
      *
-     * @param string $regex the full PCRE regex string to analyze
+     * @param string $regex The full PCRE regex string to analyze.
      *
-     * @return ReDoSAnalysis a report object containing the analysis results, including
-     *                       severity, a complexity score, and detailed findings
+     * @return ReDoSAnalysis A report object containing the analysis results, including
+     *                       severity, a complexity score, and detailed findings.
      *
      * @example
      * ```php
@@ -371,7 +371,7 @@ readonly class Regex
      * the `Parser` instance, allowing contributors to, for example, parse a `TokenStream`
      * that has been manually created or modified.
      *
-     * @return Parser a new instance of the `Parser`
+     * @return Parser A new instance of the `Parser`.
      *
      * @example
      * ```php
@@ -395,7 +395,7 @@ readonly class Regex
      * Advanced users or contributors might use this to inspect the tokenization process
      * or to build custom tools that operate on the token level.
      *
-     * @return Lexer a new instance of the `Lexer`
+     * @return Lexer A new instance of the `Lexer`.
      *
      * @example
      * ```php
@@ -420,11 +420,11 @@ readonly class Regex
      * when you have a raw regex pattern (the part between the delimiters) and want to
      * quickly get a `TokenStream` without needing to instantiate the `Lexer` yourself.
      *
-     * @param string $pattern the regex pattern content, without delimiters or flags
+     * @param string $pattern The regex pattern content, without delimiters or flags.
      *
-     * @throws LexerException if the pattern contains invalid characters
+     * @throws LexerException If the pattern contains invalid characters.
      *
-     * @return TokenStream the resulting stream of tokens
+     * @return TokenStream The resulting stream of tokens.
      *
      * @example
      * ```php
@@ -447,12 +447,12 @@ readonly class Regex
      * handles escaped delimiters within the pattern and supports paired delimiters
      * like `(...)` or `[...]`.
      *
-     * @param string $regex the full PCRE regex string
+     * @param string $regex The full PCRE regex string.
      *
-     * @throws ParserException if the delimiters are missing or mismatched, or if an
-     *                         invalid flag is provided
+     * @throws ParserException If the delimiters are missing or mismatched, or if an
+     *                         invalid flag is provided.
      *
-     * @return array{0: string, 1: string, 2: string} a tuple containing `[pattern, flags, delimiter]`
+     * @return array{0: string, 1: string, 2: string} A tuple containing `[pattern, flags, delimiter]`.
      *
      * @example
      * ```php

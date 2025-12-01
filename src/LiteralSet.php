@@ -30,10 +30,11 @@ readonly class LiteralSet
      * Purpose: This constructor initializes the data structure that holds extracted literal
      * strings. As a contributor, you'll see this used by the `LiteralExtractorNodeVisitor`
      * to build up knowledge about the constant parts of a regular expression. It's the
-     * foundational building block for literal analysis.
+     * foundational building block for literal analysis, helping to identify fixed strings
+     * that must be present in any match.
      *
-     * @param array<string> $prefixes an array of possible literal strings that can appear at the beginning of a match
-     * @param array<string> $suffixes an array of possible literal strings that can appear at the end of a match
+     * @param array<string> $prefixes An array of possible literal strings that can appear at the beginning of a match.
+     * @param array<string> $suffixes An array of possible literal strings that can appear at the end of a match.
      * @param bool          $complete If true, indicates that the prefixes and suffixes represent the *entire*
      *                                possible match. For example, the regex `/cat/` would have a complete set
      *                                `{"cat"}`, while `/cat\d+/` would have an incomplete set with prefix `{"cat"}`.
@@ -49,9 +50,11 @@ readonly class LiteralSet
      *
      * Purpose: This factory method is the standard way to initialize a "void" or "null"
      * literal set. It represents a regex component that does not contribute any known
-     * literal characters, such as `\d+` or `.*`.
+     * literal characters, such as `\d+` or `.*`. This is useful for initializing the
+     * literal extraction process or for handling branches of a regex that yield no
+     * concrete literal information.
      *
-     * @return self an empty LiteralSet instance
+     * @return self An empty LiteralSet instance, signifying no fixed literal parts.
      */
     public static function empty(): self
     {
@@ -63,11 +66,12 @@ readonly class LiteralSet
      *
      * Purpose: This factory is used by the `LiteralExtractorNodeVisitor` when it encounters
      * a `LiteralNode`. It creates a "complete" set, indicating that this part of the
-     * regex matches this exact string and nothing else.
+     * regex matches this exact string and nothing else. This is a direct representation
+     * of a fixed string within the regex.
      *
-     * @param string $literal the literal string that makes up the entire match
+     * @param string $literal The literal string that makes up the entire match.
      *
-     * @return self a new, complete LiteralSet containing the provided string
+     * @return self A new, complete LiteralSet containing the provided string as both a prefix and a suffix.
      */
     public static function fromString(string $literal): self
     {
@@ -79,13 +83,14 @@ readonly class LiteralSet
      *
      * Purpose: When the `LiteralExtractorNodeVisitor` traverses a `SequenceNode`, it uses
      * this method to merge the literal sets of its children. The logic correctly
-     * determines the new set of possible prefixes and suffixes. For example, concatenating
-     * `{"a"}` and `{"b"}` results in `{"ab"}`. If the first set is "complete", its prefixes
-     * are prepended to the second set's prefixes.
+     * determines the new set of possible prefixes and suffixes by concatenating them.
+     * For example, concatenating `{"start_"}` and `{"middle", "center"}` results in
+     * prefixes `{"start_middle", "start_center"}`. This is crucial for building up
+     * literal knowledge across sequential regex components.
      *
-     * @param self $other the LiteralSet to append to the current one
+     * @param self $other The LiteralSet to append to the current one.
      *
-     * @return self a new LiteralSet representing the combined sequence
+     * @return self A new LiteralSet representing the combined sequence.
      *
      * @example
      * ```php
@@ -143,11 +148,13 @@ readonly class LiteralSet
      * Purpose: When the `LiteralExtractorNodeVisitor` traverses an `AlternationNode`,
      * it uses this method to merge the literal sets of the different branches. The new
      * set's prefixes are the union of all branch prefixes, and the same applies to suffixes.
-     * The resulting set is only "complete" if *all* branches were themselves complete.
+     * The resulting set is only "complete" if *all* branches were themselves complete,
+     * meaning every alternative matches a fixed string. This helps in identifying common
+     * literal parts across different regex paths.
      *
-     * @param self $other the LiteralSet representing the alternate branch
+     * @param self $other The LiteralSet representing the alternate branch.
      *
-     * @return self a new LiteralSet representing the combined alternation
+     * @return self A new LiteralSet representing the combined alternation.
      *
      * @example
      * ```php
@@ -175,8 +182,9 @@ readonly class LiteralSet
      * Purpose: This accessor is useful for optimization. When multiple prefixes are
      * identified (e.g., from an alternation like `(cat|kitten)`), choosing the longest
      * one for a pre-match `strpos` check can sometimes be a more effective heuristic.
+     * A longer prefix provides a more specific and potentially faster initial filter.
      *
-     * @return string|null the longest prefix string, or null if no prefixes exist
+     * @return string|null The longest prefix string, or `null` if no prefixes exist in the set.
      */
     public function getLongestPrefix(): ?string
     {
@@ -188,9 +196,10 @@ readonly class LiteralSet
      *
      * Purpose: Similar to `getLongestPrefix`, this accessor is useful for optimizations
      * that can be performed from the end of a string. It finds the longest guaranteed
-     * suffix from all the possibilities identified by the extractor.
+     * suffix from all the possibilities identified by the extractor, which can be used
+     * for reverse string searches or other end-of-string checks.
      *
-     * @return string|null the longest suffix string, or null if no suffixes exist
+     * @return string|null The longest suffix string, or `null` if no suffixes exist in the set.
      */
     public function getLongestSuffix(): ?string
     {
@@ -202,9 +211,10 @@ readonly class LiteralSet
      *
      * Purpose: A "void" set is one that represents a part of a regex with no discernible
      * constant strings (e.g., `\w+` or `[a-z]*`). This check allows the extractor logic
-     * to identify when a component offers no literal information to contribute.
+     * to identify when a component offers no literal information to contribute, helping
+     * to prune irrelevant branches during analysis.
      *
-     * @return bool true if both prefixes and suffixes are empty, false otherwise
+     * @return bool True if both prefixes and suffixes are empty, false otherwise.
      */
     public function isVoid(): bool
     {
