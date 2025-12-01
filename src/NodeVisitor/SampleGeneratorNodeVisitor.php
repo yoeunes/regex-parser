@@ -85,9 +85,7 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * sample string for a given regex every time it's run with that seed. This is highly
      * beneficial for reproducible testing and debugging.
      *
-     * @param int $seed The integer seed value to use for the random number generator.
-     *
-     * @return void
+     * @param int $seed the integer seed value to use for the random number generator
      */
     public function setSeed(int $seed): void
     {
@@ -102,8 +100,6 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * where it is seeded with a truly random value (or based on the system time).
      * This is useful when you want to generate different, non-reproducible samples
      * after having previously set a specific seed.
-     *
-     * @return void
      */
     public function resetSeed(): void
     {
@@ -119,9 +115,9 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * to ensure a clean generation for each new regex. It then delegates the actual
      * string generation to the root pattern of the regex.
      *
-     * @param RegexNode $node The `RegexNode` representing the entire regular expression.
+     * @param RegexNode $node the `RegexNode` representing the entire regular expression
      *
-     * @return string A sample string that matches the given regular expression.
+     * @return string a sample string that matches the given regular expression
      *
      * @example
      * ```php
@@ -154,11 +150,11 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * from it. This ensures that the generated sample adheres to the branching logic
      * of the regex.
      *
-     * @param AlternationNode $node The `AlternationNode` representing a choice between patterns.
-     *
-     * @return string A sample string generated from one of the chosen alternatives.
+     * @param AlternationNode $node the `AlternationNode` representing a choice between patterns
      *
      * @throws \RuntimeException If the alternation node has no alternatives (e.g., `(|)`).
+     *
+     * @return string a sample string generated from one of the chosen alternatives
      *
      * @example
      * ```php
@@ -186,9 +182,9 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * It recursively generates a sample string for each child node in the sequence and
      * then joins them together in order, forming a complete sample for that part of the regex.
      *
-     * @param SequenceNode $node The `SequenceNode` representing a series of regex components.
+     * @param SequenceNode $node the `SequenceNode` representing a series of regex components
      *
-     * @return string A sample string formed by concatenating the samples of its children.
+     * @return string a sample string formed by concatenating the samples of its children
      *
      * @example
      * ```php
@@ -211,10 +207,10 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * zero-width assertions, do not generate any text. For capturing and named groups, it
      * stores the generated content so it can be referenced later by backreferences.
      *
-     * @param GroupNode $node The `GroupNode` representing a specific grouping construct.
+     * @param GroupNode $node the `GroupNode` representing a specific grouping construct
      *
-     * @return string A sample string generated from the group's content, or an empty string
-     *                if it's a zero-width assertion.
+     * @return string a sample string generated from the group's content, or an empty string
+     *                if it's a zero-width assertion
      *
      * @example
      * ```php
@@ -264,9 +260,9 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * quantifier, then randomly selects a number within that range (respecting `maxRepetition`).
      * The child node is then visited that many times, and its generated samples are concatenated.
      *
-     * @param QuantifierNode $node The `QuantifierNode` representing a repetition operator.
+     * @param QuantifierNode $node the `QuantifierNode` representing a repetition operator
      *
-     * @return string A sample string formed by repeating the quantified element.
+     * @return string a sample string formed by repeating the quantified element
      *
      * @example
      * ```php
@@ -305,9 +301,9 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * or string (e.g., `a`, `hello`) is encountered, its exact value is returned
      * as the sample, as it matches itself directly.
      *
-     * @param LiteralNode $node The `LiteralNode` representing a literal character or string.
+     * @param LiteralNode $node the `LiteralNode` representing a literal character or string
      *
-     * @return string The literal value of the node.
+     * @return string the literal value of the node
      *
      * @example
      * ```php
@@ -328,9 +324,9 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * random character that satisfies the criteria of the character type, providing
      * a realistic sample.
      *
-     * @param CharTypeNode $node The `CharTypeNode` representing a predefined character type.
+     * @param CharTypeNode $node the `CharTypeNode` representing a predefined character type
      *
-     * @return string A single character that matches the specified character type.
+     * @return string a single character that matches the specified character type
      *
      * @example
      * ```php
@@ -353,7 +349,7 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * This method generates a simple, printable ASCII character as a sample,
      * representing the broad matching capability of the dot.
      *
-     * @param DotNode $node The `DotNode` representing the wildcard dot character.
+     * @param DotNode $node the `DotNode` representing the wildcard dot character
      *
      * @return string A single, generic character (e.g., 'a', '1', ' ').
      *
@@ -377,9 +373,9 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * this method always returns an empty string, as anchors contribute no literal
      * text to the sample.
      *
-     * @param AnchorNode $node The `AnchorNode` representing a positional anchor.
+     * @param AnchorNode $node the `AnchorNode` representing a positional anchor
      *
-     * @return string An empty string.
+     * @return string an empty string
      *
      * @example
      * ```php
@@ -401,9 +397,9 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * Consequently, this method always returns an empty string, as assertions do not
      * contribute literal text to the generated sample.
      *
-     * @param AssertionNode $node The `AssertionNode` representing a zero-width assertion.
+     * @param AssertionNode $node the `AssertionNode` representing a zero-width assertion
      *
-     * @return string An empty string.
+     * @return string an empty string
      *
      * @example
      * ```php
@@ -424,9 +420,9 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * influences the final matched string, it does not itself consume characters
      * or add literal text to the pattern. Thus, this method returns an empty string.
      *
-     * @param KeepNode $node The `KeepNode` representing the `\K` assertion.
+     * @param KeepNode $node the `KeepNode` representing the `\K` assertion
      *
-     * @return string An empty string.
+     * @return string an empty string
      *
      * @example
      * ```php
@@ -449,11 +445,11 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * character classes, it returns a safe, generic character as generating a
      * truly random character *not* in the set is complex and context-dependent.
      *
-     * @param CharClassNode $node The `CharClassNode` representing a character class.
-     *
-     * @return string A single character that matches the character class.
+     * @param CharClassNode $node the `CharClassNode` representing a character class
      *
      * @throws \RuntimeException If attempting to generate a sample for an empty character class (e.g., `[]`).
+     *
+     * @return string a single character that matches the character class
      *
      * @example
      * ```php
@@ -493,9 +489,9 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * This method generates a random character whose ASCII (or Unicode) ordinal value falls
      * inclusively between the start and end characters of the range.
      *
-     * @param RangeNode $node The `RangeNode` representing a character range.
+     * @param RangeNode $node the `RangeNode` representing a character range
      *
-     * @return string A single character within the specified range.
+     * @return string a single character within the specified range
      *
      * @example
      * ```php
@@ -530,10 +526,10 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * content using the backreference's identifier (numeric or named) and returns it.
      * If the group hasn't captured anything yet or doesn't exist, it returns an empty string.
      *
-     * @param BackrefNode $node The `BackrefNode` representing a backreference.
+     * @param BackrefNode $node the `BackrefNode` representing a backreference
      *
-     * @return string The captured string from the referenced group, or an empty string
-     *                if the group has not captured anything or does not exist.
+     * @return string the captured string from the referenced group, or an empty string
+     *                if the group has not captured anything or does not exist
      *
      * @example
      * ```php
@@ -579,9 +575,9 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * Unicode character, ensuring that the generated sample correctly represents the
      * specified character.
      *
-     * @param UnicodeNode $node The `UnicodeNode` representing a Unicode character escape.
+     * @param UnicodeNode $node the `UnicodeNode` representing a Unicode character escape
      *
-     * @return string The Unicode character corresponding to the node's code, or '?' as a fallback.
+     * @return string the Unicode character corresponding to the node's code, or '?' as a fallback
      *
      * @example
      * ```php
@@ -610,9 +606,9 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * Unicode property is extremely complex, this method provides a known-good, representative
      * sample character for common properties.
      *
-     * @param UnicodePropNode $node The `UnicodePropNode` representing a Unicode property.
+     * @param UnicodePropNode $node the `UnicodePropNode` representing a Unicode property
      *
-     * @return string A single character that is representative of the specified Unicode property.
+     * @return string a single character that is representative of the specified Unicode property
      *
      * @example
      * ```php
@@ -647,9 +643,9 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * It converts the octal string into its corresponding character, allowing the
      * sample generator to correctly interpret and represent these specific characters.
      *
-     * @param OctalNode $node The `OctalNode` representing a modern octal escape.
+     * @param OctalNode $node the `OctalNode` representing a modern octal escape
      *
-     * @return string The character represented by the octal code, or '?' as a fallback.
+     * @return string the character represented by the octal code, or '?' as a fallback
      *
      * @example
      * ```php
@@ -673,9 +669,9 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * It converts the octal string into its corresponding character, ensuring compatibility
      * with older regex syntax for character representation.
      *
-     * @param OctalLegacyNode $node The `OctalLegacyNode` representing a legacy octal escape.
+     * @param OctalLegacyNode $node the `OctalLegacyNode` representing a legacy octal escape
      *
-     * @return string The character represented by the legacy octal code.
+     * @return string the character represented by the legacy octal code
      *
      * @example
      * ```php
@@ -695,9 +691,9 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * It provides a representative sample character for each common POSIX class, allowing
      * the sample generator to produce valid characters for these predefined sets.
      *
-     * @param PosixClassNode $node The `PosixClassNode` representing a POSIX character class.
+     * @param PosixClassNode $node the `PosixClassNode` representing a POSIX character class
      *
-     * @return string A single character that matches the specified POSIX class.
+     * @return string a single character that matches the specified POSIX class
      *
      * @example
      * ```php
@@ -734,9 +730,9 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * during matching. Similarly, this visitor ignores them during sample generation,
      * as they do not contribute to the actual string that matches the pattern.
      *
-     * @param CommentNode $node The `CommentNode` representing an inline comment.
+     * @param CommentNode $node the `CommentNode` representing an inline comment
      *
-     * @return string An empty string.
+     * @return string an empty string
      *
      * @example
      * ```php
@@ -758,9 +754,9 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * has captured), this method simplifies by randomly choosing to generate a sample
      * from either the "if true" branch or the "if false" branch.
      *
-     * @param ConditionalNode $node The `ConditionalNode` representing a conditional sub-pattern.
+     * @param ConditionalNode $node the `ConditionalNode` representing a conditional sub-pattern
      *
-     * @return string A sample string generated from either the 'yes' or 'no' branch.
+     * @return string a sample string generated from either the 'yes' or 'no' branch
      *
      * @example
      * ```php
@@ -796,11 +792,9 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * Therefore, this method explicitly throws an exception to indicate that this advanced
      * feature is not supported for sample generation.
      *
-     * @param SubroutineNode $node The `SubroutineNode` representing a subroutine call.
+     * @param SubroutineNode $node the `SubroutineNode` representing a subroutine call
      *
-     * @return string
-     *
-     * @throws \LogicException Always throws an exception as subroutine sample generation is not supported.
+     * @throws \LogicException always throws an exception as subroutine sample generation is not supported
      */
     public function visitSubroutine(SubroutineNode $node): string
     {
@@ -817,9 +811,9 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * As such, this method returns an empty string, as these verbs do not contribute to the
      * generated sample string.
      *
-     * @param PcreVerbNode $node The `PcreVerbNode` representing a PCRE verb.
+     * @param PcreVerbNode $node the `PcreVerbNode` representing a PCRE verb
      *
-     * @return string An empty string.
+     * @return string an empty string
      *
      * @example
      * ```php
@@ -843,7 +837,7 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      *
      * @param DefineNode $node The `DefineNode` representing a `(?(DEFINE)...)` block.
      *
-     * @return string An empty string.
+     * @return string an empty string
      *
      * @example
      * ```php
@@ -866,7 +860,7 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      *
      * @param string $q The quantifier string (e.g., `*`, `+`, `{1,5}`).
      *
-     * @return array{0: int, 1: int} An array containing the minimum and maximum repetition counts.
+     * @return array{0: int, 1: int} an array containing the minimum and maximum repetition counts
      */
     private function parseQuantifierRange(string $q): array
     {
@@ -902,9 +896,9 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * from a predefined set. It's used by various `visit` methods to generate
      * a representative character when a specific type or class of character is needed.
      *
-     * @param array<string> $chars An array of single-character strings to choose from.
+     * @param array<string> $chars an array of single-character strings to choose from
      *
-     * @return string A randomly selected character from the input array, or '?' if the array is empty.
+     * @return string a randomly selected character from the input array, or '?' if the array is empty
      */
     private function getRandomChar(array $chars): string
     {
@@ -925,7 +919,7 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      *
      * @param string $type The character type identifier (e.g., 'd', 'D', 's', 'S').
      *
-     * @return string A single character matching the specified type, or '?' as a fallback.
+     * @return string a single character matching the specified type, or '?' as a fallback
      */
     private function generateForCharType(string $type): string
     {

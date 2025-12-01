@@ -38,8 +38,8 @@ readonly class AlternationNode extends AbstractNode
      *                                            one of the possible choices in the alternation. For `a|b|c`,
      *                                            this array would contain three `SequenceNode` or `LiteralNode`
      *                                            children.
-     * @param int                  $startPosition The zero-based byte offset where the first alternative begins.
-     * @param int                  $endPosition   The zero-based byte offset where the last alternative ends.
+     * @param int                  $startPosition the zero-based byte offset where the first alternative begins
+     * @param int                  $endPosition   the zero-based byte offset where the last alternative ends
      */
     public function __construct(
         public array $alternatives,
@@ -59,9 +59,9 @@ readonly class AlternationNode extends AbstractNode
      *
      * @template T The return type of the visitor's methods.
      *
-     * @param NodeVisitorInterface<T> $visitor The visitor object that is traversing the tree.
+     * @param NodeVisitorInterface<T> $visitor the visitor object that is traversing the tree
      *
-     * @return T The result of the visitor's processing for this node.
+     * @return T the result of the visitor's processing for this node
      */
     public function accept(NodeVisitorInterface $visitor)
     {

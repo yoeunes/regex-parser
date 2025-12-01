@@ -91,9 +91,9 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      * on the main pattern. This method provides a high-level summary of the entire
      * regular expression.
      *
-     * @param RegexNode $node The root node of the AST.
+     * @param RegexNode $node the root node of the AST
      *
-     * @return string The complete, human-readable explanation of the regex.
+     * @return string the complete, human-readable explanation of the regex
      */
     public function visitRegex(RegexNode $node): string
     {
@@ -112,9 +112,9 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      * output with "EITHER...OR..." to be intuitive, helping to understand the
      * branching logic within the pattern.
      *
-     * @param AlternationNode $node The alternation node to explain.
+     * @param AlternationNode $node the alternation node to explain
      *
-     * @return string A description of the alternative branches.
+     * @return string a description of the alternative branches
      */
     public function visitAlternation(AlternationNode $node): string
     {
@@ -142,9 +142,9 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      * descriptions with newlines to represent the sequence, making the step-by-step
      * matching process clear.
      *
-     * @param SequenceNode $node The sequence node to explain.
+     * @param SequenceNode $node the sequence node to explain
      *
-     * @return string A description of the sequential components.
+     * @return string a description of the sequential components
      */
     public function visitSequence(SequenceNode $node): string
     {
@@ -164,9 +164,9 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      * associated metadata like a name or inline flags. This helps in understanding
      * the structural and behavioral aspects of grouped patterns.
      *
-     * @param GroupNode $node The group node to explain.
+     * @param GroupNode $node the group node to explain
      *
-     * @return string A description of the group and its contents.
+     * @return string a description of the group and its contents
      */
     public function visitGroup(GroupNode $node): string
     {
@@ -199,9 +199,9 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      * phrases like "zero or more times" or "between 2 and 5 times". It also
      * clarifies the quantifier's greediness (greedy, lazy, or possessive).
      *
-     * @param QuantifierNode $node The quantifier node to explain.
+     * @param QuantifierNode $node the quantifier node to explain
      *
-     * @return string A description of the quantified element.
+     * @return string a description of the quantified element
      */
     public function visitQuantifier(QuantifierNode $node): string
     {
@@ -234,9 +234,9 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      * special whitespace characters to make them readable. It represents the
      * most basic form of matching: an exact character sequence.
      *
-     * @param LiteralNode $node The literal node to explain.
+     * @param LiteralNode $node the literal node to explain
      *
-     * @return string A description of the literal value.
+     * @return string a description of the literal value
      */
     public function visitLiteral(LiteralNode $node): string
     {
@@ -250,9 +250,9 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      * into its well-known meaning (e.g., "any digit", "any whitespace character"). This
      * helps in understanding these common shorthand character classes.
      *
-     * @param CharTypeNode $node The character type node to explain.
+     * @param CharTypeNode $node the character type node to explain
      *
-     * @return string A description of the character type.
+     * @return string a description of the character type
      */
     public function visitCharType(CharTypeNode $node): string
     {
@@ -266,9 +266,9 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      * behavior with respect to newlines and the `/s` flag. It clarifies that it
      * matches almost any single character.
      *
-     * @param DotNode $node The dot node to explain.
+     * @param DotNode $node the dot node to explain
      *
-     * @return string A description of the wildcard.
+     * @return string a description of the wildcard
      */
     public function visitDot(DotNode $node): string
     {
@@ -282,9 +282,9 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      * asserts a position (start or end of string/line) without consuming any characters.
      * This is crucial for understanding positional constraints.
      *
-     * @param AnchorNode $node The anchor node to explain.
+     * @param AnchorNode $node the anchor node to explain
      *
-     * @return string A description of the anchor.
+     * @return string a description of the anchor
      */
     public function visitAnchor(AnchorNode $node): string
     {
@@ -298,9 +298,9 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      * or `\A` (start of subject). These assertions check for conditions at the current
      * position without consuming characters, providing precise matching control.
      *
-     * @param AssertionNode $node The assertion node to explain.
+     * @param AssertionNode $node the assertion node to explain
      *
-     * @return string A description of the assertion.
+     * @return string a description of the assertion
      */
     public function visitAssertion(AssertionNode $node): string
     {
@@ -315,9 +315,9 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      * the final matched string is determined, especially when parts of the match should
      * be excluded from the result.
      *
-     * @param KeepNode $node The keep node to explain.
+     * @param KeepNode $node the keep node to explain
      *
-     * @return string A description of the `\K` assertion.
+     * @return string a description of the `\K` assertion
      */
     public function visitKeep(KeepNode $node): string
     {
@@ -331,9 +331,9 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      * negated and listing the characters or ranges it contains. This helps in understanding
      * the specific set of characters that are allowed or disallowed at a given position.
      *
-     * @param CharClassNode $node The character class node to explain.
+     * @param CharClassNode $node the character class node to explain
      *
-     * @return string A description of the character class.
+     * @return string a description of the character class
      */
     public function visitCharClass(CharClassNode $node): string
     {
@@ -350,9 +350,9 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      * making it clear what the start and end of the range are. This simplifies the
      * understanding of character sets defined by ranges.
      *
-     * @param RangeNode $node The range node to explain.
+     * @param RangeNode $node the range node to explain
      *
-     * @return string A description of the character range.
+     * @return string a description of the character range
      */
     public function visitRange(RangeNode $node): string
     {
@@ -374,9 +374,9 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      * it matches the text previously captured by a specific group. This is crucial for
      * understanding patterns that enforce repetition or symmetry based on earlier matches.
      *
-     * @param BackrefNode $node The backreference node to explain.
+     * @param BackrefNode $node the backreference node to explain
      *
-     * @return string A description of the backreference.
+     * @return string a description of the backreference
      */
     public function visitBackref(BackrefNode $node): string
     {
@@ -390,9 +390,9 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      * It clarifies that a specific Unicode character is being matched, which is important
      * for patterns dealing with international character sets.
      *
-     * @param UnicodeNode $node The Unicode node to explain.
+     * @param UnicodeNode $node the Unicode node to explain
      *
-     * @return string A description of the Unicode character.
+     * @return string a description of the Unicode character
      */
     public function visitUnicode(UnicodeNode $node): string
     {
@@ -406,9 +406,9 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      * explaining that it matches any character with a specific Unicode property. This
      * is vital for patterns dealing with diverse character sets and their classifications.
      *
-     * @param UnicodePropNode $node The Unicode property node to explain.
+     * @param UnicodePropNode $node the Unicode property node to explain
      *
-     * @return string A description of the Unicode property match.
+     * @return string a description of the Unicode property match
      */
     public function visitUnicodeProp(UnicodePropNode $node): string
     {
@@ -425,9 +425,9 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      * It clarifies that a character is being matched by its octal code, which is
      * a way to specify characters by their numerical value.
      *
-     * @param OctalNode $node The octal node to explain.
+     * @param OctalNode $node the octal node to explain
      *
-     * @return string A description of the octal character.
+     * @return string a description of the octal character
      */
     public function visitOctal(OctalNode $node): string
     {
@@ -441,9 +441,9 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      * It highlights the older syntax, which can sometimes be ambiguous with backreferences,
      * and clarifies that a character is being matched by its octal code.
      *
-     * @param OctalLegacyNode $node The legacy octal node to explain.
+     * @param OctalLegacyNode $node the legacy octal node to explain
      *
-     * @return string A description of the legacy octal character.
+     * @return string a description of the legacy octal character
      */
     public function visitOctalLegacy(OctalLegacyNode $node): string
     {
@@ -457,9 +457,9 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      * It clarifies that a predefined set of characters (like letters or digits) is
      * being matched, which is useful for common character group definitions.
      *
-     * @param PosixClassNode $node The POSIX class node to explain.
+     * @param PosixClassNode $node the POSIX class node to explain
      *
-     * @return string A description of the POSIX class.
+     * @return string a description of the POSIX class
      */
     public function visitPosixClass(PosixClassNode $node): string
     {
@@ -473,9 +473,9 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      * It clarifies that the content is a comment, ignored by the regex engine,
      * but present for human readability and documentation within the pattern.
      *
-     * @param CommentNode $node The comment node to explain.
+     * @param CommentNode $node the comment node to explain
      *
-     * @return string The content of the comment.
+     * @return string the content of the comment
      */
     public function visitComment(CommentNode $node): string
     {
@@ -490,9 +490,9 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      * This helps in understanding the complex branching logic and context-dependent
      * matching within the regex.
      *
-     * @param ConditionalNode $node The conditional node to explain.
+     * @param ConditionalNode $node the conditional node to explain
      *
-     * @return string A description of the conditional logic.
+     * @return string a description of the conditional logic
      */
     public function visitConditional(ConditionalNode $node): string
     {
@@ -522,9 +522,9 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      * that it recursively calls another part of the pattern. This is important for
      * understanding patterns that reuse or refer to other parts of themselves.
      *
-     * @param SubroutineNode $node The subroutine node to explain.
+     * @param SubroutineNode $node the subroutine node to explain
      *
-     * @return string A description of the subroutine call.
+     * @return string a description of the subroutine call
      */
     public function visitSubroutine(SubroutineNode $node): string
     {
@@ -544,9 +544,9 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      * the backtracking process of the regex engine. It clarifies the specific
      * directive being used to influence matching behavior.
      *
-     * @param PcreVerbNode $node The PCRE verb node to explain.
+     * @param PcreVerbNode $node the PCRE verb node to explain
      *
-     * @return string A description of the PCRE verb.
+     * @return string a description of the PCRE verb
      */
     public function visitPcreVerb(PcreVerbNode $node): string
     {
@@ -560,9 +560,9 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      * defines subpatterns for later use in subroutines without matching anything itself.
      * This helps in understanding how reusable components are structured within a complex regex.
      *
-     * @param DefineNode $node The define node to explain.
+     * @param DefineNode $node the define node to explain
      *
-     * @return string A description of the DEFINE block.
+     * @return string a description of the DEFINE block
      */
     public function visitDefine(DefineNode $node): string
     {

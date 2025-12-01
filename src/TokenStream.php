@@ -57,7 +57,7 @@ class TokenStream
      * By wrapping the array, this class allows the parser to look ahead, consume, and even
      * rewind tokens, which is essential for implementing the recursive descent parsing logic.
      *
-     * @param array<Token> $tokens  The raw, ordered array of `Token` objects produced by the `Lexer`.
+     * @param array<Token> $tokens  the raw, ordered array of `Token` objects produced by the `Lexer`
      * @param string       $pattern The original regex pattern string. This is stored for context and
      *                              is useful for error reporting, allowing messages to reference the
      *                              source text.
@@ -75,9 +75,9 @@ class TokenStream
      * needs to evaluate now. It does not advance the stream pointer. Calling it
      * multiple times in a row will return the same token.
      *
-     * @throws \RuntimeException If the stream has been fully consumed.
+     * @throws \RuntimeException if the stream has been fully consumed
      *
-     * @return Token The token at the current cursor position.
+     * @return Token the token at the current cursor position
      */
     public function current(): Token
     {
@@ -95,7 +95,7 @@ class TokenStream
      * core action of "consuming" a token after the parser has processed it. The consumed
      * token is temporarily stored in a history buffer to enable the `rewind()` feature.
      *
-     * @throws \RuntimeException If the stream is already at the end.
+     * @throws \RuntimeException if the stream is already at the end
      */
     public function next(): void
     {
@@ -125,7 +125,7 @@ class TokenStream
      *
      * @param int $count The number of tokens to rewind. Must be a positive integer.
      *
-     * @throws \RuntimeException If trying to rewind more tokens than are available in the history buffer.
+     * @throws \RuntimeException if trying to rewind more tokens than are available in the history buffer
      */
     public function rewind(int $count = 1): void
     {
@@ -159,7 +159,7 @@ class TokenStream
      * original position to try another path. It's a more robust alternative to
      * manually tracking how much to `rewind()`.
      *
-     * @param int $position The absolute token index to move to.
+     * @param int $position the absolute token index to move to
      */
     public function setPosition(int $position): void
     {
@@ -213,7 +213,7 @@ class TokenStream
      * end of the input. It's typically used in loops to ensure the parser doesn't try
      * to read past the final `T_EOF` token.
      *
-     * @return bool True if there are more tokens available in the buffer, false otherwise.
+     * @return bool true if there are more tokens available in the buffer, false otherwise
      */
     public function hasMore(): bool
     {
@@ -228,7 +228,7 @@ class TokenStream
      * attempting a speculative parse, and then use `setPosition()` to return to that
      * exact spot if the speculation fails.
      *
-     * @return int The zero-based index of the current token in the stream.
+     * @return int the zero-based index of the current token in the stream
      */
     public function getPosition(): int
     {
@@ -242,7 +242,7 @@ class TokenStream
      * original string is useful for error reporting and context. It allows error
      * messages to include snippets of the original pattern, making debugging easier.
      *
-     * @return string The original regex pattern.
+     * @return string the original regex pattern
      */
     public function getPattern(): string
     {
@@ -257,7 +257,7 @@ class TokenStream
      * output of the `Lexer` at once. In normal operation, the parser should consume
      * tokens via `current()` and `next()`.
      *
-     * @return array<Token> The full array of tokens.
+     * @return array<Token> the full array of tokens
      */
     public function getTokens(): array
     {

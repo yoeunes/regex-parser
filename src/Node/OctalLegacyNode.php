@@ -32,8 +32,8 @@ readonly class OctalLegacyNode extends AbstractNode
      *
      * @param string $code          The octal code itself (e.g., "0", "01", "012"). Note that the
      *                              leading `\` is not included.
-     * @param int    $startPosition The zero-based byte offset where the octal sequence begins.
-     * @param int    $endPosition   The zero-based byte offset immediately after the octal sequence.
+     * @param int    $startPosition the zero-based byte offset where the octal sequence begins
+     * @param int    $endPosition   the zero-based byte offset immediately after the octal sequence
      */
     public function __construct(
         public string $code,
@@ -53,9 +53,9 @@ readonly class OctalLegacyNode extends AbstractNode
      *
      * @template T The return type of the visitor's methods.
      *
-     * @param NodeVisitorInterface<T> $visitor The visitor object that is traversing the tree.
+     * @param NodeVisitorInterface<T> $visitor the visitor object that is traversing the tree
      *
-     * @return T The result of the visitor's processing for this node.
+     * @return T the result of the visitor's processing for this node
      */
     public function accept(NodeVisitorInterface $visitor)
     {

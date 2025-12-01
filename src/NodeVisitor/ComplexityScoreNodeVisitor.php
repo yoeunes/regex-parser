@@ -85,9 +85,9 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * quantifier depth) and then delegates the scoring to the main pattern node,
      * effectively returning the total complexity score of the regex.
      *
-     * @param RegexNode $node The `RegexNode` representing the entire regular expression.
+     * @param RegexNode $node the `RegexNode` representing the entire regular expression
      *
-     * @return int The total complexity score of the regex pattern.
+     * @return int the total complexity score of the regex pattern
      *
      * @example
      * ```php
@@ -113,9 +113,9 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * complexity scores of all its alternative branches, reflecting the increased
      * cognitive load and potential for different matching paths.
      *
-     * @param AlternationNode $node The `AlternationNode` representing a choice between patterns.
+     * @param AlternationNode $node the `AlternationNode` representing a choice between patterns
      *
-     * @return int The complexity score of the alternation node, including its alternatives.
+     * @return int the complexity score of the alternation node, including its alternatives
      *
      * @example
      * ```php
@@ -142,9 +142,9 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * complexity scores of all its child nodes, reflecting the linear accumulation
      * of complexity.
      *
-     * @param SequenceNode $node The `SequenceNode` representing a series of regex components.
+     * @param SequenceNode $node the `SequenceNode` representing a series of regex components
      *
-     * @return int The total complexity score of the sequence node.
+     * @return int the total complexity score of the sequence node
      *
      * @example
      * ```php
@@ -171,9 +171,9 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * itself and a higher score for complex group types like lookarounds, which
      * significantly increase cognitive complexity due to their zero-width assertion behavior.
      *
-     * @param GroupNode $node The `GroupNode` representing a specific grouping construct.
+     * @param GroupNode $node the `GroupNode` representing a specific grouping construct
      *
-     * @return int The complexity score of the group node, including its child.
+     * @return int the complexity score of the group node, including its child
      *
      * @example
      * ```php
@@ -214,9 +214,9 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * increases the penalty for nested unbounded quantifiers, reflecting the increased
      * backtracking complexity.
      *
-     * @param QuantifierNode $node The `QuantifierNode` representing a repetition operator.
+     * @param QuantifierNode $node the `QuantifierNode` representing a repetition operator
      *
-     * @return int The complexity score of the quantifier node, including its quantified element.
+     * @return int the complexity score of the quantifier node, including its quantified element
      *
      * @example
      * ```php
@@ -267,9 +267,9 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * class itself and sums the scores of all its constituent parts (literals, ranges, etc.),
      * reflecting the complexity of the character set definition.
      *
-     * @param CharClassNode $node The `CharClassNode` representing a character class.
+     * @param CharClassNode $node the `CharClassNode` representing a character class
      *
-     * @return int The complexity score of the character class node.
+     * @return int the complexity score of the character class node
      *
      * @example
      * ```php
@@ -296,9 +296,9 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * reason about and potentially more prone to backtracking issues. Therefore,
      * they are assigned a higher complexity score.
      *
-     * @param BackrefNode $node The `BackrefNode` representing a backreference.
+     * @param BackrefNode $node the `BackrefNode` representing a backreference
      *
-     * @return int The complexity score for a backreference.
+     * @return int the complexity score for a backreference
      *
      * @example
      * ```php
@@ -320,9 +320,9 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * of its condition, 'yes' branch, and 'no' branch, reflecting the substantial
      * increase in complexity.
      *
-     * @param ConditionalNode $node The `ConditionalNode` representing a conditional sub-pattern.
+     * @param ConditionalNode $node the `ConditionalNode` representing a conditional sub-pattern
      *
-     * @return int The complexity score of the conditional node.
+     * @return int the complexity score of the conditional node
      *
      * @example
      * ```php
@@ -349,9 +349,9 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * assigns a very high complexity score to reflect the advanced nature and
      * potential for intricate behavior associated with subroutines.
      *
-     * @param SubroutineNode $node The `SubroutineNode` representing a subroutine call.
+     * @param SubroutineNode $node the `SubroutineNode` representing a subroutine call
      *
-     * @return int The complexity score for a subroutine node.
+     * @return int the complexity score for a subroutine node
      *
      * @example
      * ```php
@@ -372,9 +372,9 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * in a regex, matching themselves directly without any special logic or backtracking.
      * They contribute a minimal base score to the overall complexity.
      *
-     * @param LiteralNode $node The `LiteralNode` representing a literal character or string.
+     * @param LiteralNode $node the `LiteralNode` representing a literal character or string
      *
-     * @return int The base complexity score for a literal.
+     * @return int the base complexity score for a literal
      *
      * @example
      * ```php
@@ -394,9 +394,9 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * well-defined set of characters. While more abstract than a literal, they are
      * still relatively simple and contribute a minimal base score to complexity.
      *
-     * @param CharTypeNode $node The `CharTypeNode` representing a predefined character type.
+     * @param CharTypeNode $node the `CharTypeNode` representing a predefined character type
      *
-     * @return int The base complexity score for a character type.
+     * @return int the base complexity score for a character type
      *
      * @example
      * ```php
@@ -415,9 +415,9 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * Purpose: The wildcard dot (`.`) matches almost any single character. While broad,
      * its behavior is straightforward. It contributes a minimal base score to complexity.
      *
-     * @param DotNode $node The `DotNode` representing the wildcard dot character.
+     * @param DotNode $node the `DotNode` representing the wildcard dot character
      *
-     * @return int The base complexity score for a dot.
+     * @return int the base complexity score for a dot
      *
      * @example
      * ```php
@@ -437,9 +437,9 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * without consuming characters. Their behavior is well-defined and they do not
      * introduce significant complexity. They contribute a minimal base score.
      *
-     * @param AnchorNode $node The `AnchorNode` representing a positional anchor.
+     * @param AnchorNode $node the `AnchorNode` representing a positional anchor
      *
-     * @return int The base complexity score for an anchor.
+     * @return int the base complexity score for an anchor
      *
      * @example
      * ```php
@@ -459,9 +459,9 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * consuming characters. Similar to anchors, their behavior is specific and
      * they do not add substantial complexity. They contribute a minimal base score.
      *
-     * @param AssertionNode $node The `AssertionNode` representing a zero-width assertion.
+     * @param AssertionNode $node the `AssertionNode` representing a zero-width assertion
      *
-     * @return int The base complexity score for an assertion.
+     * @return int the base complexity score for an assertion
      *
      * @example
      * ```php
@@ -481,9 +481,9 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * affects the final matched string, its direct contribution to the pattern's
      * complexity is minimal. It contributes a base score.
      *
-     * @param KeepNode $node The `KeepNode` representing the `\K` assertion.
+     * @param KeepNode $node the `KeepNode` representing the `\K` assertion
      *
-     * @return int The base complexity score for a keep assertion.
+     * @return int the base complexity score for a keep assertion
      *
      * @example
      * ```php
@@ -504,9 +504,9 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * itself and sums the scores of its start and end literal nodes, reflecting
      * the definition of the range.
      *
-     * @param RangeNode $node The `RangeNode` representing a character range.
+     * @param RangeNode $node the `RangeNode` representing a character range
      *
-     * @return int The complexity score of the range node.
+     * @return int the complexity score of the range node
      *
      * @example
      * ```php
@@ -526,9 +526,9 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * specific character. While they might appear complex due to their hexadecimal
      * notation, their matching behavior is straightforward. They contribute a minimal base score.
      *
-     * @param UnicodeNode $node The `UnicodeNode` representing a Unicode character escape.
+     * @param UnicodeNode $node the `UnicodeNode` representing a Unicode character escape
      *
-     * @return int The base complexity score for a Unicode character.
+     * @return int the base complexity score for a Unicode character
      *
      * @example
      * ```php
@@ -548,9 +548,9 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * on their linguistic or script properties. Similar to character types, they
      * represent a defined set and contribute a minimal base score to complexity.
      *
-     * @param UnicodePropNode $node The `UnicodePropNode` representing a Unicode property.
+     * @param UnicodePropNode $node the `UnicodePropNode` representing a Unicode property
      *
-     * @return int The base complexity score for a Unicode property.
+     * @return int the base complexity score for a Unicode property
      *
      * @example
      * ```php
@@ -570,9 +570,9 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * specific character. Their matching behavior is direct, and they contribute a
      * minimal base score to complexity.
      *
-     * @param OctalNode $node The `OctalNode` representing a modern octal escape.
+     * @param OctalNode $node the `OctalNode` representing a modern octal escape
      *
-     * @return int The base complexity score for an octal character.
+     * @return int the base complexity score for an octal character
      *
      * @example
      * ```php
@@ -592,9 +592,9 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * specific character. Despite their older syntax, their matching behavior is
      * direct, and they contribute a minimal base score to complexity.
      *
-     * @param OctalLegacyNode $node The `OctalLegacyNode` representing a legacy octal escape.
+     * @param OctalLegacyNode $node the `OctalLegacyNode` representing a legacy octal escape
      *
-     * @return int The base complexity score for a legacy octal character.
+     * @return int the base complexity score for a legacy octal character
      *
      * @example
      * ```php
@@ -614,9 +614,9 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * a predefined set. Similar to other character types, they are well-defined
      * and contribute a minimal base score to complexity.
      *
-     * @param PosixClassNode $node The `PosixClassNode` representing a POSIX character class.
+     * @param PosixClassNode $node the `PosixClassNode` representing a POSIX character class
      *
-     * @return int The base complexity score for a POSIX class.
+     * @return int the base complexity score for a POSIX class
      *
      * @example
      * ```php
@@ -636,9 +636,9 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * and do not affect the matching logic. Therefore, they do not contribute to the
      * functional complexity of the pattern and are assigned a score of zero.
      *
-     * @param CommentNode $node The `CommentNode` representing an inline comment.
+     * @param CommentNode $node the `CommentNode` representing an inline comment
      *
-     * @return int Always 0, as comments do not add to functional complexity.
+     * @return int always 0, as comments do not add to functional complexity
      *
      * @example
      * ```php
@@ -660,9 +660,9 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * These are advanced constructs that significantly increase the complexity of
      * understanding and debugging a regex. They are assigned a higher complexity score.
      *
-     * @param PcreVerbNode $node The `PcreVerbNode` representing a PCRE verb.
+     * @param PcreVerbNode $node the `PcreVerbNode` representing a PCRE verb
      *
-     * @return int The complexity score for a PCRE verb.
+     * @return int the complexity score for a PCRE verb
      *
      * @example
      * ```php
@@ -686,7 +686,7 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      *
      * @param DefineNode $node The `DefineNode` representing a `(?(DEFINE)...)` block.
      *
-     * @return int The complexity score of the DEFINE block, including its content.
+     * @return int the complexity score of the DEFINE block, including its content
      *
      * @example
      * ```php

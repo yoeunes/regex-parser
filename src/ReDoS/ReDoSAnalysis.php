@@ -55,7 +55,7 @@ readonly class ReDoSAnalysis
      * analysis's severity level. "Safe" in this context typically means no high or critical
      * vulnerabilities were detected, though low-risk issues might still exist.
      *
-     * @return bool `true` if the severity is `SAFE` or `LOW`, `false` otherwise.
+     * @return bool `true` if the severity is `SAFE` or `LOW`, `false` otherwise
      *
      * @example
      * ```php

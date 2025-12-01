@@ -33,8 +33,8 @@ readonly class PosixClassNode extends AbstractNode
      * @param string $class         The name of the POSIX class (e.g., "alpha", "digit", "^space"). The
      *                              surrounding `[:` and `:]` are not included. The `^` is included for
      *                              negated classes.
-     * @param int    $startPosition The zero-based byte offset where the opening `[:` begins.
-     * @param int    $endPosition   The zero-based byte offset immediately after the closing `:]`.
+     * @param int    $startPosition the zero-based byte offset where the opening `[:` begins
+     * @param int    $endPosition   the zero-based byte offset immediately after the closing `:]`
      */
     public function __construct(
         public string $class,
@@ -54,9 +54,9 @@ readonly class PosixClassNode extends AbstractNode
      *
      * @template T The return type of the visitor's methods.
      *
-     * @param NodeVisitorInterface<T> $visitor The visitor object that is traversing the tree.
+     * @param NodeVisitorInterface<T> $visitor the visitor object that is traversing the tree
      *
-     * @return T The result of the visitor's processing for this node.
+     * @return T the result of the visitor's processing for this node
      */
     public function accept(NodeVisitorInterface $visitor)
     {

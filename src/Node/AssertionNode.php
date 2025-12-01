@@ -35,7 +35,7 @@ readonly class AssertionNode extends AbstractNode
      * @param string $value         The character representing the assertion (e.g., 'b', 'A', 'Z'). Note that
      *                              the backslash is not included in this value.
      * @param int    $startPosition The zero-based byte offset where the assertion sequence (e.g., `\b`) begins.
-     * @param int    $endPosition   The zero-based byte offset immediately after the assertion sequence.
+     * @param int    $endPosition   the zero-based byte offset immediately after the assertion sequence
      */
     public function __construct(
         public string $value,
@@ -55,9 +55,9 @@ readonly class AssertionNode extends AbstractNode
      *
      * @template T The return type of the visitor's methods.
      *
-     * @param NodeVisitorInterface<T> $visitor The visitor object that is traversing the tree.
+     * @param NodeVisitorInterface<T> $visitor the visitor object that is traversing the tree
      *
-     * @return T The result of the visitor's processing for this node.
+     * @return T the result of the visitor's processing for this node
      */
     public function accept(NodeVisitorInterface $visitor)
     {

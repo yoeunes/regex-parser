@@ -32,9 +32,9 @@ readonly class RangeNode extends AbstractNode
      *
      * @param NodeInterface $start         The node representing the starting character of the range. This is
      *                                     typically a `LiteralNode` or `CharTypeNode`.
-     * @param NodeInterface $end           The node representing the ending character of the range.
-     * @param int           $startPosition The zero-based byte offset where the starting character of the range appears.
-     * @param int           $endPosition   The zero-based byte offset immediately after the ending character of the range.
+     * @param NodeInterface $end           the node representing the ending character of the range
+     * @param int           $startPosition the zero-based byte offset where the starting character of the range appears
+     * @param int           $endPosition   the zero-based byte offset immediately after the ending character of the range
      */
     public function __construct(
         public NodeInterface $start,
@@ -55,9 +55,9 @@ readonly class RangeNode extends AbstractNode
      *
      * @template T The return type of the visitor's methods.
      *
-     * @param NodeVisitorInterface<T> $visitor The visitor object that is traversing the tree.
+     * @param NodeVisitorInterface<T> $visitor the visitor object that is traversing the tree
      *
-     * @return T The result of the visitor's processing for this node.
+     * @return T the result of the visitor's processing for this node
      */
     public function accept(NodeVisitorInterface $visitor)
     {

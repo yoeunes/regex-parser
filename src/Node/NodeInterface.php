@@ -32,9 +32,9 @@ interface NodeInterface
      *
      * @template T The return type of the visitor's `visit` methods.
      *
-     * @param NodeVisitorInterface<T> $visitor The visitor object that is currently traversing the AST.
+     * @param NodeVisitorInterface<T> $visitor the visitor object that is currently traversing the AST
      *
-     * @return T The result returned by the specific `visit` method on the visitor for this node.
+     * @return T the result returned by the specific `visit` method on the visitor for this node
      */
     public function accept(NodeVisitorInterface $visitor);
 
@@ -46,7 +46,7 @@ interface NodeInterface
      * for error reporting (pinpointing exact locations of issues), highlighting, and
      * reconstructing the original pattern.
      *
-     * @return int The zero-based starting byte offset.
+     * @return int the zero-based starting byte offset
      */
     public function getStartPosition(): int;
 
@@ -59,7 +59,7 @@ interface NodeInterface
      * for easy calculation of the node's length (`getEndPosition() - getStartPosition()`).
      * It's vital for accurate source mapping and reconstruction.
      *
-     * @return int The zero-based ending byte offset (exclusive).
+     * @return int the zero-based ending byte offset (exclusive)
      */
     public function getEndPosition(): int;
 }

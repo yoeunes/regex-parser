@@ -36,8 +36,8 @@ readonly class CharClassNode extends AbstractNode
      *                                            `PosixClassNode`, etc.
      * @param bool                 $isNegated     `true` if the class is negated (starts with `^`), meaning it matches
      *                                            any character *not* in the set. `false` otherwise.
-     * @param int                  $startPosition The zero-based byte offset where the opening `[` appears.
-     * @param int                  $endPosition   The zero-based byte offset immediately after the closing `]`.
+     * @param int                  $startPosition the zero-based byte offset where the opening `[` appears
+     * @param int                  $endPosition   the zero-based byte offset immediately after the closing `]`
      */
     public function __construct(
         public array $parts,
@@ -58,9 +58,9 @@ readonly class CharClassNode extends AbstractNode
      *
      * @template T The return type of the visitor's methods.
      *
-     * @param NodeVisitorInterface<T> $visitor The visitor object that is traversing the tree.
+     * @param NodeVisitorInterface<T> $visitor the visitor object that is traversing the tree
      *
-     * @return T The result of the visitor's processing for this node.
+     * @return T the result of the visitor's processing for this node
      */
     public function accept(NodeVisitorInterface $visitor)
     {

@@ -33,8 +33,8 @@ readonly class UnicodePropNode extends AbstractNode
      * @param string $prop          The name of the Unicode property, potentially with a negation prefix.
      *                              For example, for `\p{L}`, the value is "L". For `\P{L}`, the value is "^L".
      *                              For `\P{^L}` (double negative), the value is "L".
-     * @param int    $startPosition The zero-based byte offset where the `\p` or `\P` sequence begins.
-     * @param int    $endPosition   The zero-based byte offset immediately after the sequence.
+     * @param int    $startPosition the zero-based byte offset where the `\p` or `\P` sequence begins
+     * @param int    $endPosition   the zero-based byte offset immediately after the sequence
      */
     public function __construct(
         public string $prop,
@@ -54,9 +54,9 @@ readonly class UnicodePropNode extends AbstractNode
      *
      * @template T The return type of the visitor's methods.
      *
-     * @param NodeVisitorInterface<T> $visitor The visitor object that is traversing the tree.
+     * @param NodeVisitorInterface<T> $visitor the visitor object that is traversing the tree
      *
-     * @return T The result of the visitor's processing for this node.
+     * @return T the result of the visitor's processing for this node
      */
     public function accept(NodeVisitorInterface $visitor)
     {

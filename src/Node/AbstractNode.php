@@ -32,14 +32,12 @@ abstract readonly class AbstractNode implements NodeInterface
      * by visitors for various purposes, such as highlighting syntax in an explanation or
      * pinpointing the source of a validation error.
      *
-     * @param int $startPosition The zero-based byte offset where this node's corresponding syntax begins
-     *                           in the original pattern string.
+     * @param int $startPosition the zero-based byte offset where this node's corresponding syntax begins
+     *                           in the original pattern string
      * @param int $endPosition   The zero-based byte offset where this node's corresponding syntax ends.
      *                           This position typically points to the character immediately after the node's syntax.
      */
-    public function __construct(public int $startPosition, public int $endPosition)
-    {
-    }
+    public function __construct(public int $startPosition, public int $endPosition) {}
 
     /**
      * Retrieves the starting position of the node in the original regex string.
@@ -49,7 +47,7 @@ abstract readonly class AbstractNode implements NodeInterface
      * operation that needs to map the AST back to the source text, such as error reporting
      * or visualization.
      *
-     * @return int The zero-based starting byte offset.
+     * @return int the zero-based starting byte offset
      */
     public function getStartPosition(): int
     {
@@ -64,7 +62,7 @@ abstract readonly class AbstractNode implements NodeInterface
      * offset of the first character *after* the node's syntax. This allows for easy calculation
      * of the syntax length (`end - start`).
      *
-     * @return int The zero-based ending byte offset (exclusive).
+     * @return int the zero-based ending byte offset (exclusive)
      */
     public function getEndPosition(): int
     {

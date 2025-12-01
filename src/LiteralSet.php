@@ -33,8 +33,8 @@ readonly class LiteralSet
      * foundational building block for literal analysis, helping to identify fixed strings
      * that must be present in any match.
      *
-     * @param array<string> $prefixes An array of possible literal strings that can appear at the beginning of a match.
-     * @param array<string> $suffixes An array of possible literal strings that can appear at the end of a match.
+     * @param array<string> $prefixes an array of possible literal strings that can appear at the beginning of a match
+     * @param array<string> $suffixes an array of possible literal strings that can appear at the end of a match
      * @param bool          $complete If true, indicates that the prefixes and suffixes represent the *entire*
      *                                possible match. For example, the regex `/cat/` would have a complete set
      *                                `{"cat"}`, while `/cat\d+/` would have an incomplete set with prefix `{"cat"}`.
@@ -54,7 +54,7 @@ readonly class LiteralSet
      * literal extraction process or for handling branches of a regex that yield no
      * concrete literal information.
      *
-     * @return self An empty LiteralSet instance, signifying no fixed literal parts.
+     * @return self an empty LiteralSet instance, signifying no fixed literal parts
      */
     public static function empty(): self
     {
@@ -69,9 +69,9 @@ readonly class LiteralSet
      * regex matches this exact string and nothing else. This is a direct representation
      * of a fixed string within the regex.
      *
-     * @param string $literal The literal string that makes up the entire match.
+     * @param string $literal the literal string that makes up the entire match
      *
-     * @return self A new, complete LiteralSet containing the provided string as both a prefix and a suffix.
+     * @return self a new, complete LiteralSet containing the provided string as both a prefix and a suffix
      */
     public static function fromString(string $literal): self
     {
@@ -88,9 +88,9 @@ readonly class LiteralSet
      * prefixes `{"start_middle", "start_center"}`. This is crucial for building up
      * literal knowledge across sequential regex components.
      *
-     * @param self $other The LiteralSet to append to the current one.
+     * @param self $other the LiteralSet to append to the current one
      *
-     * @return self A new LiteralSet representing the combined sequence.
+     * @return self a new LiteralSet representing the combined sequence
      *
      * @example
      * ```php
@@ -152,9 +152,9 @@ readonly class LiteralSet
      * meaning every alternative matches a fixed string. This helps in identifying common
      * literal parts across different regex paths.
      *
-     * @param self $other The LiteralSet representing the alternate branch.
+     * @param self $other the LiteralSet representing the alternate branch
      *
-     * @return self A new LiteralSet representing the combined alternation.
+     * @return self a new LiteralSet representing the combined alternation
      *
      * @example
      * ```php
@@ -184,7 +184,7 @@ readonly class LiteralSet
      * one for a pre-match `strpos` check can sometimes be a more effective heuristic.
      * A longer prefix provides a more specific and potentially faster initial filter.
      *
-     * @return string|null The longest prefix string, or `null` if no prefixes exist in the set.
+     * @return string|null the longest prefix string, or `null` if no prefixes exist in the set
      */
     public function getLongestPrefix(): ?string
     {
@@ -199,7 +199,7 @@ readonly class LiteralSet
      * suffix from all the possibilities identified by the extractor, which can be used
      * for reverse string searches or other end-of-string checks.
      *
-     * @return string|null The longest suffix string, or `null` if no suffixes exist in the set.
+     * @return string|null the longest suffix string, or `null` if no suffixes exist in the set
      */
     public function getLongestSuffix(): ?string
     {
@@ -214,7 +214,7 @@ readonly class LiteralSet
      * to identify when a component offers no literal information to contribute, helping
      * to prune irrelevant branches during analysis.
      *
-     * @return bool True if both prefixes and suffixes are empty, false otherwise.
+     * @return bool true if both prefixes and suffixes are empty, false otherwise
      */
     public function isVoid(): bool
     {

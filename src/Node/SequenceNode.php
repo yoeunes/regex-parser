@@ -31,9 +31,9 @@ readonly class SequenceNode extends AbstractNode
      * Purpose: This constructor creates a node that holds an ordered list of child nodes. The `Parser`
      * groups consecutive, non-alternating tokens into a `SequenceNode`.
      *
-     * @param array<NodeInterface> $children      An ordered array of child nodes that make up the sequence.
-     * @param int                  $startPosition The zero-based byte offset where the first node in the sequence begins.
-     * @param int                  $endPosition   The zero-based byte offset immediately after the last node in the sequence.
+     * @param array<NodeInterface> $children      an ordered array of child nodes that make up the sequence
+     * @param int                  $startPosition the zero-based byte offset where the first node in the sequence begins
+     * @param int                  $endPosition   the zero-based byte offset immediately after the last node in the sequence
      */
     public function __construct(
         public array $children,
@@ -53,9 +53,9 @@ readonly class SequenceNode extends AbstractNode
      *
      * @template T The return type of the visitor's methods.
      *
-     * @param NodeVisitorInterface<T> $visitor The visitor object that is traversing the tree.
+     * @param NodeVisitorInterface<T> $visitor the visitor object that is traversing the tree
      *
-     * @return T The result of the visitor's processing for this node.
+     * @return T the result of the visitor's processing for this node
      */
     public function accept(NodeVisitorInterface $visitor)
     {

@@ -34,8 +34,8 @@ readonly class BackrefNode extends AbstractNode
      * @param string $ref           The identifier of the group being referenced. This can be a numeric string
      *                              (e.g., "1", "-1") or a group name (e.g., "tagName"). The raw value from the
      *                              token is stored, including syntax like `\g{1}`.
-     * @param int    $startPosition The zero-based byte offset where the backreference sequence begins.
-     * @param int    $endPosition   The zero-based byte offset immediately after the backreference sequence.
+     * @param int    $startPosition the zero-based byte offset where the backreference sequence begins
+     * @param int    $endPosition   the zero-based byte offset immediately after the backreference sequence
      */
     public function __construct(
         public string $ref,
@@ -55,9 +55,9 @@ readonly class BackrefNode extends AbstractNode
      *
      * @template T The return type of the visitor's methods.
      *
-     * @param NodeVisitorInterface<T> $visitor The visitor object that is traversing the tree.
+     * @param NodeVisitorInterface<T> $visitor the visitor object that is traversing the tree
      *
-     * @return T The result of the visitor's processing for this node.
+     * @return T the result of the visitor's processing for this node
      */
     public function accept(NodeVisitorInterface $visitor)
     {

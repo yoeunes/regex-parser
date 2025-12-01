@@ -33,15 +33,15 @@ readonly class GroupNode extends AbstractNode
      * determines the `GroupType` based on the syntax (e.g., `(?:` for non-capturing, `(?=` for
      * lookahead) and wraps the inner expression in this node.
      *
-     * @param NodeInterface $child         The root node of the AST for the expression contained within the group's parentheses.
+     * @param NodeInterface $child         the root node of the AST for the expression contained within the group's parentheses
      * @param GroupType     $type          An enum value that specifies the semantic meaning of the group (e.g., capturing,
      *                                     lookahead, atomic). This is critical for visitors to interpret the group correctly.
      * @param string|null   $name          If the group is a named capturing group (e.g., `(?<name>...)`), this property
      *                                     holds its name. It is `null` for all other group types.
      * @param string|null   $flags         If the group is an inline flag modifier (e.g., `(?i-s:...)`), this property
      *                                     holds the flag string (e.g., "i-s"). It is `null` otherwise.
-     * @param int           $startPosition The zero-based byte offset where the opening `(` appears.
-     * @param int           $endPosition   The zero-based byte offset immediately after the closing `)`.
+     * @param int           $startPosition the zero-based byte offset where the opening `(` appears
+     * @param int           $endPosition   the zero-based byte offset immediately after the closing `)`
      */
     public function __construct(
         public NodeInterface $child,
@@ -64,9 +64,9 @@ readonly class GroupNode extends AbstractNode
      *
      * @template T The return type of the visitor's methods.
      *
-     * @param NodeVisitorInterface<T> $visitor The visitor object that is traversing the tree.
+     * @param NodeVisitorInterface<T> $visitor the visitor object that is traversing the tree
      *
-     * @return T The result of the visitor's processing for this node.
+     * @return T the result of the visitor's processing for this node
      */
     public function accept(NodeVisitorInterface $visitor)
     {

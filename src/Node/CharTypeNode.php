@@ -33,7 +33,7 @@ readonly class CharTypeNode extends AbstractNode
      * @param string $value         The character representing the type (e.g., 'd', 's', 'W'). Note that the
      *                              backslash is not included in this value.
      * @param int    $startPosition The zero-based byte offset where the sequence (e.g., `\d`) begins.
-     * @param int    $endPosition   The zero-based byte offset immediately after the sequence.
+     * @param int    $endPosition   the zero-based byte offset immediately after the sequence
      */
     public function __construct(
         public string $value,
@@ -53,9 +53,9 @@ readonly class CharTypeNode extends AbstractNode
      *
      * @template T The return type of the visitor's methods.
      *
-     * @param NodeVisitorInterface<T> $visitor The visitor object that is traversing the tree.
+     * @param NodeVisitorInterface<T> $visitor the visitor object that is traversing the tree
      *
-     * @return T The result of the visitor's processing for this node.
+     * @return T the result of the visitor's processing for this node
      */
     public function accept(NodeVisitorInterface $visitor)
     {

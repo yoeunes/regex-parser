@@ -32,14 +32,14 @@ readonly class QuantifierNode extends AbstractNode
      * Purpose: This constructor creates a node that applies a quantifier to another node (the "atom").
      *
      * @param NodeInterface  $node          The node representing the atom to be quantified (e.g., a `LiteralNode`
-     *                                     for `a` in `a+`).
+     *                                      for `a` in `a+`).
      * @param string         $quantifier    The base quantifier string, excluding any lazy or possessive modifiers
-     *                                     (e.g., "*", "+", "?", "{1,3}").
-     * @param QuantifierType $type          An enum indicating the matching strategy: `T_GREEDY` (match as much as
-     *                                     possible), `T_LAZY` (match as little as possible), or `T_POSSESSIVE`
-     *                                     (match as much as possible, without backtracking).
-     * @param int            $startPosition The zero-based byte offset where the quantified atom begins.
-     * @param int            $endPosition   The zero-based byte offset immediately after the quantifier syntax.
+     *                                      (e.g., "*", "+", "?", "{1,3}").
+     * @param QuantifierType $type          an enum indicating the matching strategy: `T_GREEDY` (match as much as
+     *                                      possible), `T_LAZY` (match as little as possible), or `T_POSSESSIVE`
+     *                                      (match as much as possible, without backtracking)
+     * @param int            $startPosition the zero-based byte offset where the quantified atom begins
+     * @param int            $endPosition   the zero-based byte offset immediately after the quantifier syntax
      */
     public function __construct(
         public NodeInterface $node,
@@ -61,9 +61,9 @@ readonly class QuantifierNode extends AbstractNode
      *
      * @template T The return type of the visitor's methods.
      *
-     * @param NodeVisitorInterface<T> $visitor The visitor object that is traversing the tree.
+     * @param NodeVisitorInterface<T> $visitor the visitor object that is traversing the tree
      *
-     * @return T The result of the visitor's processing for this node.
+     * @return T the result of the visitor's processing for this node
      */
     public function accept(NodeVisitorInterface $visitor)
     {

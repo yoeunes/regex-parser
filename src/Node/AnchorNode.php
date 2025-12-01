@@ -21,7 +21,7 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
  * Purpose: This node represents a zero-width assertion that constrains the match to a specific
  * position without consuming any characters. Anchors are fundamental for ensuring that a pattern
  * matches at the beginning or end of the input, which is a common requirement in validation
-* and routing.
+ * and routing.
  */
 readonly class AnchorNode extends AbstractNode
 {
@@ -33,8 +33,8 @@ readonly class AnchorNode extends AbstractNode
      *
      * @param string $value         The anchor character itself (e.g., "^", "$"). This value is used by
      *                              visitors to determine the type of anchor.
-     * @param int    $startPosition The zero-based byte offset where the anchor character appears.
-     * @param int    $endPosition   The zero-based byte offset immediately after the anchor character.
+     * @param int    $startPosition the zero-based byte offset where the anchor character appears
+     * @param int    $endPosition   the zero-based byte offset immediately after the anchor character
      */
     public function __construct(
         public string $value,
@@ -54,9 +54,9 @@ readonly class AnchorNode extends AbstractNode
      *
      * @template T The return type of the visitor's methods.
      *
-     * @param NodeVisitorInterface<T> $visitor The visitor object that is traversing the tree.
+     * @param NodeVisitorInterface<T> $visitor the visitor object that is traversing the tree
      *
-     * @return T The result of the visitor's processing for this node.
+     * @return T the result of the visitor's processing for this node
      */
     public function accept(NodeVisitorInterface $visitor)
     {

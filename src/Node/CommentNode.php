@@ -32,9 +32,9 @@ readonly class CommentNode extends AbstractNode
      * The `Parser` generates this node to ensure that comments are part of the AST, even
      * though they are ignored by the matching engine.
      *
-     * @param string $comment       The raw text content of the comment, excluding the `(?#` and `)` delimiters.
-     * @param int    $startPosition The zero-based byte offset where the `(?#` sequence begins.
-     * @param int    $endPosition   The zero-based byte offset immediately after the closing `)`.
+     * @param string $comment       the raw text content of the comment, excluding the `(?#` and `)` delimiters
+     * @param int    $startPosition the zero-based byte offset where the `(?#` sequence begins
+     * @param int    $endPosition   the zero-based byte offset immediately after the closing `)`
      */
     public function __construct(
         public string $comment,
@@ -54,9 +54,9 @@ readonly class CommentNode extends AbstractNode
      *
      * @template T The return type of the visitor's methods.
      *
-     * @param NodeVisitorInterface<T> $visitor The visitor object that is traversing the tree.
+     * @param NodeVisitorInterface<T> $visitor the visitor object that is traversing the tree
      *
-     * @return T The result of the visitor's processing for this node.
+     * @return T the result of the visitor's processing for this node
      */
     public function accept(NodeVisitorInterface $visitor)
     {

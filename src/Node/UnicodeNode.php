@@ -33,7 +33,7 @@ readonly class UnicodeNode extends AbstractNode
      *                              token, which may include the surrounding braces (e.g., `{2603}`) or just the
      *                              digits (e.g., `41`).
      * @param int    $startPosition The zero-based byte offset where the Unicode escape sequence begins (e.g., at `\x`).
-     * @param int    $endPosition   The zero-based byte offset immediately after the sequence.
+     * @param int    $endPosition   the zero-based byte offset immediately after the sequence
      */
     public function __construct(
         public string $code,
@@ -53,9 +53,9 @@ readonly class UnicodeNode extends AbstractNode
      *
      * @template T The return type of the visitor's methods.
      *
-     * @param NodeVisitorInterface<T> $visitor The visitor object that is traversing the tree.
+     * @param NodeVisitorInterface<T> $visitor the visitor object that is traversing the tree
      *
-     * @return T The result of the visitor's processing for this node.
+     * @return T the result of the visitor's processing for this node
      */
     public function accept(NodeVisitorInterface $visitor)
     {

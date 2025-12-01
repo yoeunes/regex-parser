@@ -82,12 +82,12 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      * a clear summary of the ReDoS risk and how to address it.
      *
      * @return array{severity: ReDoSSeverity, recommendations: array<string>, vulnerablePattern: ?string}
-     *         An associative array containing:
-     *         - 'severity': The highest `ReDoSSeverity` level detected.
-     *         - 'recommendations': An array of unique strings describing the detected issues and
-     *                              potential mitigations.
-     *         - 'vulnerablePattern': The specific regex pattern fragment that triggered the highest
-     *                                severity, if any.
+     *                                                                                                    An associative array containing:
+     *                                                                                                    - 'severity': The highest `ReDoSSeverity` level detected.
+     *                                                                                                    - 'recommendations': An array of unique strings describing the detected issues and
+     *                                                                                                    potential mitigations.
+     *                                                                                                    - 'vulnerablePattern': The specific regex pattern fragment that triggered the highest
+     *                                                                                                    severity, if any.
      *
      * @example
      * ```php
@@ -134,9 +134,9 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      * to ensure a fresh analysis for each new regex. It then delegates the actual analysis
      * to the main pattern node.
      *
-     * @param RegexNode $node The `RegexNode` representing the entire regular expression.
+     * @param RegexNode $node the `RegexNode` representing the entire regular expression
      *
-     * @return ReDoSSeverity The highest ReDoS severity found within the regex pattern.
+     * @return ReDoSSeverity the highest ReDoS severity found within the regex pattern
      *
      * @example
      * ```php
@@ -164,10 +164,10 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      * bounded quantifiers, and the overall nesting depth. It also accounts for
      * possessive quantifiers and atomic groups, which mitigate ReDoS by disabling backtracking.
      *
-     * @param QuantifierNode $node The `QuantifierNode` representing a repetition operator.
+     * @param QuantifierNode $node the `QuantifierNode` representing a repetition operator
      *
-     * @return ReDoSSeverity The highest ReDoS severity detected within this quantifier
-     *                       and its child node.
+     * @return ReDoSSeverity the highest ReDoS severity detected within this quantifier
+     *                       and its child node
      *
      * @example
      * ```php
@@ -275,10 +275,10 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      * can lead to catastrophic backtracking, resulting in a critical ReDoS vulnerability.
      * It also recursively analyzes each alternative.
      *
-     * @param AlternationNode $node The `AlternationNode` representing a choice between patterns.
+     * @param AlternationNode $node the `AlternationNode` representing a choice between patterns
      *
-     * @return ReDoSSeverity The highest ReDoS severity detected within this alternation
-     *                       and its alternatives.
+     * @return ReDoSSeverity the highest ReDoS severity detected within this alternation
+     *                       and its alternatives
      *
      * @example
      * ```php
@@ -318,9 +318,9 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      * quantifiers within an atomic group are not flagged as ReDoS vulnerabilities,
      * as their backtracking behavior is suppressed.
      *
-     * @param GroupNode $node The `GroupNode` representing a specific grouping construct.
+     * @param GroupNode $node the `GroupNode` representing a specific grouping construct
      *
-     * @return ReDoSSeverity The highest ReDoS severity detected within the group's child node.
+     * @return ReDoSSeverity the highest ReDoS severity detected within the group's child node
      *
      * @example
      * ```php
@@ -351,9 +351,9 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      * found in its constituent parts are carried forward, contributing to the overall
      * severity of the regex.
      *
-     * @param SequenceNode $node The `SequenceNode` representing a series of regex components.
+     * @param SequenceNode $node the `SequenceNode` representing a series of regex components
      *
-     * @return ReDoSSeverity The highest ReDoS severity found among all child nodes in the sequence.
+     * @return ReDoSSeverity the highest ReDoS severity found among all child nodes in the sequence
      *
      * @example
      * ```php
@@ -378,9 +378,9 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      * and do not involve any backtracking or repetition that could lead to ReDoS.
      * Therefore, this method always returns `ReDoSSeverity::SAFE`.
      *
-     * @param LiteralNode $node The `LiteralNode` representing a literal character or string.
+     * @param LiteralNode $node the `LiteralNode` representing a literal character or string
      *
-     * @return ReDoSSeverity Always `ReDoSSeverity::SAFE`.
+     * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
      */
     public function visitLiteral(LiteralNode $node): ReDoSSeverity
     {
@@ -394,9 +394,9 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      * character from a defined set and do not introduce backtracking issues on their own.
      * Therefore, this method always returns `ReDoSSeverity::SAFE`.
      *
-     * @param CharTypeNode $node The `CharTypeNode` representing a predefined character type.
+     * @param CharTypeNode $node the `CharTypeNode` representing a predefined character type
      *
-     * @return ReDoSSeverity Always `ReDoSSeverity::SAFE`.
+     * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
      */
     public function visitCharType(CharTypeNode $node): ReDoSSeverity
     {
@@ -410,9 +410,9 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      * and does not introduce backtracking issues on its own. Therefore, this method
      * always returns `ReDoSSeverity::SAFE`.
      *
-     * @param DotNode $node The `DotNode` representing the wildcard dot character.
+     * @param DotNode $node the `DotNode` representing the wildcard dot character
      *
-     * @return ReDoSSeverity Always `ReDoSSeverity::SAFE`.
+     * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
      */
     public function visitDot(DotNode $node): ReDoSSeverity
     {
@@ -426,9 +426,9 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      * but do not consume characters or involve repetition. They are therefore safe from ReDoS.
      * This method always returns `ReDoSSeverity::SAFE`.
      *
-     * @param AnchorNode $node The `AnchorNode` representing a positional anchor.
+     * @param AnchorNode $node the `AnchorNode` representing a positional anchor
      *
-     * @return ReDoSSeverity Always `ReDoSSeverity::SAFE`.
+     * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
      */
     public function visitAnchor(AnchorNode $node): ReDoSSeverity
     {
@@ -442,9 +442,9 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      * consuming characters or involving repetition. They are therefore safe from ReDoS.
      * This method always returns `ReDoSSeverity::SAFE`.
      *
-     * @param AssertionNode $node The `AssertionNode` representing a zero-width assertion.
+     * @param AssertionNode $node the `AssertionNode` representing a zero-width assertion
      *
-     * @return ReDoSSeverity Always `ReDoSSeverity::SAFE`.
+     * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
      */
     public function visitAssertion(AssertionNode $node): ReDoSSeverity
     {
@@ -458,9 +458,9 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      * consume characters or involve repetition in a way that leads to ReDoS.
      * This method always returns `ReDoSSeverity::SAFE`.
      *
-     * @param KeepNode $node The `KeepNode` representing the `\K` assertion.
+     * @param KeepNode $node the `KeepNode` representing the `\K` assertion
      *
-     * @return ReDoSSeverity Always `ReDoSSeverity::SAFE`.
+     * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
      */
     public function visitKeep(KeepNode $node): ReDoSSeverity
     {
@@ -474,9 +474,9 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      * from a defined set and do not introduce backtracking issues on their own.
      * Therefore, this method always returns `ReDoSSeverity::SAFE`.
      *
-     * @param CharClassNode $node The `CharClassNode` representing a character class.
+     * @param CharClassNode $node the `CharClassNode` representing a character class
      *
-     * @return ReDoSSeverity Always `ReDoSSeverity::SAFE`.
+     * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
      */
     public function visitCharClass(CharClassNode $node): ReDoSSeverity
     {
@@ -490,9 +490,9 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      * character from a defined range and do not introduce backtracking issues on their own.
      * Therefore, this method always returns `ReDoSSeverity::SAFE`.
      *
-     * @param RangeNode $node The `RangeNode` representing a character range.
+     * @param RangeNode $node the `RangeNode` representing a character range
      *
-     * @return ReDoSSeverity Always `ReDoSSeverity::SAFE`.
+     * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
      */
     public function visitRange(RangeNode $node): ReDoSSeverity
     {
@@ -506,9 +506,9 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      * While they can be part of complex patterns that lead to ReDoS, the backreference
      * itself does not introduce the vulnerability. This method returns `ReDoSSeverity::SAFE`.
      *
-     * @param BackrefNode $node The `BackrefNode` representing a backreference.
+     * @param BackrefNode $node the `BackrefNode` representing a backreference
      *
-     * @return ReDoSSeverity Always `ReDoSSeverity::SAFE`.
+     * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
      */
     public function visitBackref(BackrefNode $node): ReDoSSeverity
     {
@@ -522,9 +522,9 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      * character and do not introduce backtracking or repetition issues.
      * This method always returns `ReDoSSeverity::SAFE`.
      *
-     * @param UnicodeNode $node The `UnicodeNode` representing a Unicode character escape.
+     * @param UnicodeNode $node the `UnicodeNode` representing a Unicode character escape
      *
-     * @return ReDoSSeverity Always `ReDoSSeverity::SAFE`.
+     * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
      */
     public function visitUnicode(UnicodeNode $node): ReDoSSeverity
     {
@@ -538,9 +538,9 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      * based on its property and do not introduce backtracking or repetition issues on their own.
      * This method always returns `ReDoSSeverity::SAFE`.
      *
-     * @param UnicodePropNode $node The `UnicodePropNode` representing a Unicode property.
+     * @param UnicodePropNode $node the `UnicodePropNode` representing a Unicode property
      *
-     * @return ReDoSSeverity Always `ReDoSSeverity::SAFE`.
+     * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
      */
     public function visitUnicodeProp(UnicodePropNode $node): ReDoSSeverity
     {
@@ -554,9 +554,9 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      * character and do not introduce backtracking or repetition issues.
      * This method always returns `ReDoSSeverity::SAFE`.
      *
-     * @param OctalNode $node The `OctalNode` representing a modern octal escape.
+     * @param OctalNode $node the `OctalNode` representing a modern octal escape
      *
-     * @return ReDoSSeverity Always `ReDoSSeverity::SAFE`.
+     * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
      */
     public function visitOctal(OctalNode $node): ReDoSSeverity
     {
@@ -570,9 +570,9 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      * character and do not introduce backtracking or repetition issues.
      * This method always returns `ReDoSSeverity::SAFE`.
      *
-     * @param OctalLegacyNode $node The `OctalLegacyNode` representing a legacy octal escape.
+     * @param OctalLegacyNode $node the `OctalLegacyNode` representing a legacy octal escape
      *
-     * @return ReDoSSeverity Always `ReDoSSeverity::SAFE`.
+     * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
      */
     public function visitOctalLegacy(OctalLegacyNode $node): ReDoSSeverity
     {
@@ -586,9 +586,9 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      * from a defined set and do not introduce backtracking or repetition issues on their own.
      * This method always returns `ReDoSSeverity::SAFE`.
      *
-     * @param PosixClassNode $node The `PosixClassNode` representing a POSIX character class.
+     * @param PosixClassNode $node the `PosixClassNode` representing a POSIX character class
      *
-     * @return ReDoSSeverity Always `ReDoSSeverity::SAFE`.
+     * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
      */
     public function visitPosixClass(PosixClassNode $node): ReDoSSeverity
     {
@@ -602,9 +602,9 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      * behavior and thus cannot introduce ReDoS vulnerabilities.
      * This method always returns `ReDoSSeverity::SAFE`.
      *
-     * @param CommentNode $node The `CommentNode` representing an inline comment.
+     * @param CommentNode $node the `CommentNode` representing an inline comment
      *
-     * @return ReDoSSeverity Always `ReDoSSeverity::SAFE`.
+     * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
      */
     public function visitComment(CommentNode $node): ReDoSSeverity
     {
@@ -618,9 +618,9 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      * engine's behavior but do not typically introduce ReDoS vulnerabilities directly.
      * This method always returns `ReDoSSeverity::SAFE`.
      *
-     * @param PcreVerbNode $node The `PcreVerbNode` representing a PCRE verb.
+     * @param PcreVerbNode $node the `PcreVerbNode` representing a PCRE verb
      *
-     * @return ReDoSSeverity Always `ReDoSSeverity::SAFE`.
+     * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
      */
     public function visitPcreVerb(PcreVerbNode $node): ReDoSSeverity
     {
@@ -635,9 +635,9 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      * and returns the highest ReDoS severity found in either path, as both are
      * potential execution paths for the regex engine.
      *
-     * @param ConditionalNode $node The `ConditionalNode` representing a conditional sub-pattern.
+     * @param ConditionalNode $node the `ConditionalNode` representing a conditional sub-pattern
      *
-     * @return ReDoSSeverity The highest ReDoS severity found in either the 'yes' or 'no' branch.
+     * @return ReDoSSeverity the highest ReDoS severity found in either the 'yes' or 'no' branch
      *
      * @example
      * ```php
@@ -661,9 +661,9 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      * contribute to complex backtracking scenarios, especially when combined with quantifiers.
      * Therefore, they are flagged as a medium risk to encourage careful review.
      *
-     * @param SubroutineNode $node The `SubroutineNode` representing a subroutine call.
+     * @param SubroutineNode $node the `SubroutineNode` representing a subroutine call
      *
-     * @return ReDoSSeverity Always `ReDoSSeverity::MEDIUM`.
+     * @return ReDoSSeverity always `ReDoSSeverity::MEDIUM`
      *
      * @example
      * ```php
@@ -676,7 +676,7 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
         $this->addVulnerability(
             ReDoSSeverity::MEDIUM,
             'Subroutines can lead to complex backtracking and potential ReDoS if not used carefully, especially with recursion. Review the referenced pattern.',
-            '(?&'.$node->reference.')'
+            '(?&'.$node->reference.')',
         );
 
         return ReDoSSeverity::MEDIUM;
@@ -693,7 +693,7 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      *
      * @param DefineNode $node The `DefineNode` representing a `(?(DEFINE)...)` block.
      *
-     * @return ReDoSSeverity The highest ReDoS severity found within the DEFINE block's content.
+     * @return ReDoSSeverity the highest ReDoS severity found within the DEFINE block's content
      *
      * @example
      * ```php
@@ -716,7 +716,7 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      *
      * @param string $quantifier The quantifier string (e.g., `*`, `+`, `{1,5}`).
      *
-     * @return bool True if the quantifier is unbounded, false otherwise.
+     * @return bool true if the quantifier is unbounded, false otherwise
      */
     private function isUnbounded(string $quantifier): bool
     {
@@ -742,7 +742,7 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      *
      * @param string $quantifier The quantifier string (e.g., `{1,5}`, `{1000}`).
      *
-     * @return bool True if the quantifier is bounded and large, false otherwise.
+     * @return bool true if the quantifier is bounded and large, false otherwise
      */
     private function isLargeBounded(string $quantifier): bool
     {
@@ -763,9 +763,9 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      * an alternation is quantified, it can lead to exponential backtracking. It analyzes
      * the initial characters or types of each alternative to find overlaps.
      *
-     * @param AlternationNode $node The `AlternationNode` to check for overlaps.
+     * @param AlternationNode $node the `AlternationNode` to check for overlaps
      *
-     * @return bool True if overlapping alternatives are found, false otherwise.
+     * @return bool true if overlapping alternatives are found, false otherwise
      */
     private function hasOverlappingAlternatives(AlternationNode $node): bool
     {
@@ -814,7 +814,7 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      * determine if two different regex branches start with a potentially overlapping pattern.
      * It extracts the type and value of the first significant element (literal, char type, dot, char class).
      *
-     * @param NodeInterface $node The AST node to get the prefix signature for.
+     * @param NodeInterface $node the AST node to get the prefix signature for
      *
      * @return string A string representing the prefix signature (e.g., 'L:a', 'T:d', 'DOT', 'CLASS').
      */
@@ -850,11 +850,9 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      * It stores the severity, a descriptive message, and the specific pattern fragment
      * that triggered the detection, which is then used by `getResult()` to compile the final report.
      *
-     * @param ReDoSSeverity $severity The severity level of the detected vulnerability.
-     * @param string        $message  A descriptive message explaining the vulnerability.
-     * @param string        $pattern  The regex pattern fragment that caused the vulnerability.
-     *
-     * @return void
+     * @param ReDoSSeverity $severity the severity level of the detected vulnerability
+     * @param string        $message  a descriptive message explaining the vulnerability
+     * @param string        $pattern  the regex pattern fragment that caused the vulnerability
      */
     private function addVulnerability(ReDoSSeverity $severity, string $message, string $pattern): void
     {
@@ -873,10 +871,10 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      * which are represented by an enum. It's used to determine the highest severity
      * encountered during the AST traversal.
      *
-     * @param ReDoSSeverity $a The first severity level to compare.
-     * @param ReDoSSeverity $b The second severity level to compare.
+     * @param ReDoSSeverity $a the first severity level to compare
+     * @param ReDoSSeverity $b the second severity level to compare
      *
-     * @return bool True if severity `$a` is greater than severity `$b`, false otherwise.
+     * @return bool true if severity `$a` is greater than severity `$b`, false otherwise
      */
     private function severityGreaterThan(ReDoSSeverity $a, ReDoSSeverity $b): bool
     {
@@ -897,10 +895,10 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      * Purpose: This helper method simplifies finding the maximum severity level
      * when combining results from different parts of the AST.
      *
-     * @param ReDoSSeverity $a The first severity level.
-     * @param ReDoSSeverity $b The second severity level.
+     * @param ReDoSSeverity $a the first severity level
+     * @param ReDoSSeverity $b the second severity level
      *
-     * @return ReDoSSeverity The higher of the two severity levels.
+     * @return ReDoSSeverity the higher of the two severity levels
      */
     private function maxSeverity(ReDoSSeverity $a, ReDoSSeverity $b): ReDoSSeverity
     {

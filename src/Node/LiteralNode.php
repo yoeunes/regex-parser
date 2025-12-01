@@ -34,8 +34,8 @@ readonly class LiteralNode extends AbstractNode
      *
      * @param string $value         The literal character or string of characters to be matched. This can include
      *                              the content of escaped literals (e.g., the value for `\t` would be the tab character).
-     * @param int    $startPosition The zero-based byte offset where the literal character(s) begin.
-     * @param int    $endPosition   The zero-based byte offset immediately after the literal character(s).
+     * @param int    $startPosition the zero-based byte offset where the literal character(s) begin
+     * @param int    $endPosition   the zero-based byte offset immediately after the literal character(s)
      */
     public function __construct(
         public string $value,
@@ -55,9 +55,9 @@ readonly class LiteralNode extends AbstractNode
      *
      * @template T The return type of the visitor's methods.
      *
-     * @param NodeVisitorInterface<T> $visitor The visitor object that is traversing the tree.
+     * @param NodeVisitorInterface<T> $visitor the visitor object that is traversing the tree
      *
-     * @return T The result of the visitor's processing for this node.
+     * @return T the result of the visitor's processing for this node
      */
     public function accept(NodeVisitorInterface $visitor)
     {

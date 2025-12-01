@@ -32,13 +32,13 @@ readonly class ConditionalNode extends AbstractNode
      * builds this node to represent the three key parts of the conditional: the condition to check,
      * the pattern to match on success, and the pattern to match on failure.
      *
-     * @param NodeInterface $condition   The node representing the condition to be evaluated. This is typically
-     *                                   a `BackrefNode` or a lookaround `GroupNode`.
-     * @param NodeInterface $yes         The sub-pattern to be matched if the condition is met.
-     * @param NodeInterface $no          The sub-pattern to be matched if the condition is not met. If no "else"
-     *                                   branch is specified in the regex, this will be an empty `LiteralNode`.
-     * @param int           $startPosition The zero-based byte offset where the `(?(` sequence begins.
-     * @param int           $endPosition   The zero-based byte offset immediately after the final `)`.
+     * @param NodeInterface $condition     The node representing the condition to be evaluated. This is typically
+     *                                     a `BackrefNode` or a lookaround `GroupNode`.
+     * @param NodeInterface $yes           the sub-pattern to be matched if the condition is met
+     * @param NodeInterface $no            The sub-pattern to be matched if the condition is not met. If no "else"
+     *                                     branch is specified in the regex, this will be an empty `LiteralNode`.
+     * @param int           $startPosition the zero-based byte offset where the `(?(` sequence begins
+     * @param int           $endPosition   the zero-based byte offset immediately after the final `)`
      */
     public function __construct(
         public NodeInterface $condition,
@@ -60,9 +60,9 @@ readonly class ConditionalNode extends AbstractNode
      *
      * @template T The return type of the visitor's methods.
      *
-     * @param NodeVisitorInterface<T> $visitor The visitor object that is traversing the tree.
+     * @param NodeVisitorInterface<T> $visitor the visitor object that is traversing the tree
      *
-     * @return T The result of the visitor's processing for this node.
+     * @return T the result of the visitor's processing for this node
      */
     public function accept(NodeVisitorInterface $visitor)
     {

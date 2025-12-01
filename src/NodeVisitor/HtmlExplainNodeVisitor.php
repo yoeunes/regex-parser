@@ -89,9 +89,9 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * It wraps the explanation of the main pattern with overall regex context, including any flags,
      * providing a structured and comprehensive overview.
      *
-     * @param RegexNode $node The `RegexNode` representing the entire regular expression.
+     * @param RegexNode $node the `RegexNode` representing the entire regular expression
      *
-     * @return string An HTML string explaining the regex pattern and its flags.
+     * @return string an HTML string explaining the regex pattern and its flags
      *
      * @example
      * ```php
@@ -120,9 +120,9 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * It clearly separates each alternative in the HTML output, making it easy to
      * understand that the regex engine will try to match one of the provided options.
      *
-     * @param AlternationNode $node The `AlternationNode` representing a choice between patterns.
+     * @param AlternationNode $node the `AlternationNode` representing a choice between patterns
      *
-     * @return string An HTML string explaining the alternation, with each alternative listed.
+     * @return string an HTML string explaining the alternation, with each alternative listed
      *
      * @example
      * ```php
@@ -154,9 +154,9 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * It concatenates the HTML explanations of all child nodes, preserving their order,
      * to show that these elements must match consecutively.
      *
-     * @param SequenceNode $node The `SequenceNode` representing a series of regex components.
+     * @param SequenceNode $node the `SequenceNode` representing a series of regex components
      *
-     * @return string An HTML string concatenating the explanations of its child nodes.
+     * @return string an HTML string concatenating the explanations of its child nodes
      *
      * @example
      * ```php
@@ -184,9 +184,9 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * the group's purpose and then recursively explains its internal pattern, helping
      * users understand the role of each grouping construct.
      *
-     * @param GroupNode $node The `GroupNode` representing a specific grouping construct.
+     * @param GroupNode $node the `GroupNode` representing a specific grouping construct
      *
-     * @return string An HTML string explaining the group's type and its child's pattern.
+     * @return string an HTML string explaining the group's type and its child's pattern
      *
      * @example
      * ```php
@@ -234,9 +234,9 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * (e.g., `*`, `+`, `{1,5}`). It also clarifies the "greediness" type (greedy, lazy, possessive).
      * The explanation is integrated with the quantified element's explanation for clarity.
      *
-     * @param QuantifierNode $node The `QuantifierNode` representing a repetition operator.
+     * @param QuantifierNode $node the `QuantifierNode` representing a repetition operator
      *
-     * @return string An HTML string explaining the quantifier and its quantified child.
+     * @return string an HTML string explaining the quantifier and its quantified child
      *
      * @example
      * ```php
@@ -278,9 +278,9 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * It formats the literal value for display, including handling special characters
      * like newlines (`\n`) for better readability in the HTML output.
      *
-     * @param LiteralNode $node The `LiteralNode` representing a literal character or string.
+     * @param LiteralNode $node the `LiteralNode` representing a literal character or string
      *
-     * @return string An HTML string explaining the literal value.
+     * @return string an HTML string explaining the literal value
      *
      * @example
      * ```php
@@ -309,9 +309,9 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * It provides a human-readable description of what the character type matches, enhancing clarity
      * in the HTML output.
      *
-     * @param CharTypeNode $node The `CharTypeNode` representing a predefined character type.
+     * @param CharTypeNode $node the `CharTypeNode` representing a predefined character type
      *
-     * @return string An HTML string explaining the character type.
+     * @return string an HTML string explaining the character type
      *
      * @example
      * ```php
@@ -339,9 +339,9 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * description indicating that it matches "any character" (with caveats depending on flags),
      * which is helpful for understanding its broad matching capability in the HTML output.
      *
-     * @param DotNode $node The `DotNode` representing the wildcard dot character.
+     * @param DotNode $node the `DotNode` representing the wildcard dot character
      *
-     * @return string An HTML string explaining the wildcard dot.
+     * @return string an HTML string explaining the wildcard dot
      *
      * @example
      * ```php
@@ -368,9 +368,9 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * It provides a clear description of what position the anchor asserts, which is crucial for
      * understanding boundary matching in the HTML output.
      *
-     * @param AnchorNode $node The `AnchorNode` representing a positional anchor.
+     * @param AnchorNode $node the `AnchorNode` representing a positional anchor
      *
-     * @return string An HTML string explaining the anchor.
+     * @return string an HTML string explaining the anchor
      *
      * @example
      * ```php
@@ -398,9 +398,9 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * It displays the assertion value and its meaning, helping users understand conditions that must be met
      * without consuming characters, presented clearly in HTML.
      *
-     * @param AssertionNode $node The `AssertionNode` representing a zero-width assertion.
+     * @param AssertionNode $node the `AssertionNode` representing a zero-width assertion
      *
-     * @return string An HTML string explaining the assertion.
+     * @return string an HTML string explaining the assertion
      *
      * @example
      * ```php
@@ -428,9 +428,9 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * match start position is reset at this point, which is important for understanding
      * how the final matched string is determined. The explanation is provided in HTML.
      *
-     * @param KeepNode $node The `KeepNode` representing the `\K` assertion.
+     * @param KeepNode $node the `KeepNode` representing the `\K` assertion
      *
-     * @return string An HTML string explaining the `\K` assertion.
+     * @return string an HTML string explaining the `\K` assertion
      *
      * @example
      * ```php
@@ -457,9 +457,9 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * if the class is negated and lists its constituent parts, providing a clear HTML
      * representation of the characters that are (or are not) matched.
      *
-     * @param CharClassNode $node The `CharClassNode` representing a character class.
+     * @param CharClassNode $node the `CharClassNode` representing a character class
      *
-     * @return string An HTML string explaining the character class.
+     * @return string an HTML string explaining the character class
      *
      * @example
      * ```php
@@ -497,9 +497,9 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * It processes the start and end characters of the range, providing a clear HTML
      * representation of the inclusive character set.
      *
-     * @param RangeNode $node The `RangeNode` representing a character range.
+     * @param RangeNode $node the `RangeNode` representing a character range
      *
-     * @return string An HTML string explaining the character range.
+     * @return string an HTML string explaining the character range
      *
      * @example
      * ```php
@@ -527,9 +527,9 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * indicates which group is being referenced (by number or name), which is essential for
      * understanding patterns that match repeated text, presented in HTML.
      *
-     * @param BackrefNode $node The `BackrefNode` representing a backreference.
+     * @param BackrefNode $node the `BackrefNode` representing a backreference
      *
-     * @return string An HTML string explaining the backreference.
+     * @return string an HTML string explaining the backreference
      *
      * @example
      * ```php
@@ -556,9 +556,9 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * It displays the code, helping users understand the exact character being matched, especially
      * for non-ASCII characters, presented clearly in HTML.
      *
-     * @param UnicodeNode $node The `UnicodeNode` representing a Unicode character escape.
+     * @param UnicodeNode $node the `UnicodeNode` representing a Unicode character escape
      *
-     * @return string An HTML string explaining the Unicode character.
+     * @return string an HTML string explaining the Unicode character
      *
      * @example
      * ```php
@@ -583,9 +583,9 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * It displays the property name and whether it's matching or non-matching, allowing users
      * to understand character matching based on Unicode categories, presented in HTML.
      *
-     * @param UnicodePropNode $node The `UnicodePropNode` representing a Unicode property.
+     * @param UnicodePropNode $node the `UnicodePropNode` representing a Unicode property
      *
-     * @return string An HTML string explaining the Unicode property.
+     * @return string an HTML string explaining the Unicode property
      *
      * @example
      * ```php
@@ -620,9 +620,9 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * It displays the octal code, helping users understand the exact character being matched,
      * presented clearly in HTML.
      *
-     * @param OctalNode $node The `OctalNode` representing a modern octal escape.
+     * @param OctalNode $node the `OctalNode` representing a modern octal escape
      *
-     * @return string An HTML string explaining the octal character escape.
+     * @return string an HTML string explaining the octal character escape
      *
      * @example
      * ```php
@@ -647,9 +647,9 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * It displays the octal code, highlighting its legacy nature, and helping users understand
      * the exact character being matched, presented clearly in HTML.
      *
-     * @param OctalLegacyNode $node The `OctalLegacyNode` representing a legacy octal escape.
+     * @param OctalLegacyNode $node the `OctalLegacyNode` representing a legacy octal escape
      *
-     * @return string An HTML string explaining the legacy octal character escape.
+     * @return string an HTML string explaining the legacy octal character escape
      *
      * @example
      * ```php
@@ -674,9 +674,9 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * It displays the class name, providing a clear HTML representation of these predefined
      * character sets.
      *
-     * @param PosixClassNode $node The `PosixClassNode` representing a POSIX character class.
+     * @param PosixClassNode $node the `PosixClassNode` representing a POSIX character class
      *
-     * @return string An HTML string explaining the POSIX character class.
+     * @return string an HTML string explaining the POSIX character class
      *
      * @example
      * ```php
@@ -696,9 +696,9 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * don't affect matching, displaying them helps in understanding the original author's
      * intent and provides context for complex patterns, presented in HTML.
      *
-     * @param CommentNode $node The `CommentNode` representing an inline comment.
+     * @param CommentNode $node the `CommentNode` representing an inline comment
      *
-     * @return string An HTML string explaining the comment.
+     * @return string an HTML string explaining the comment
      *
      * @example
      * ```php
@@ -722,9 +722,9 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * It clearly separates the condition, the "if true" branch, and the "if false" branch
      * (if present), making complex branching patterns easier to understand in HTML.
      *
-     * @param ConditionalNode $node The `ConditionalNode` representing a conditional sub-pattern.
+     * @param ConditionalNode $node the `ConditionalNode` representing a conditional sub-pattern
      *
-     * @return string An HTML string explaining the conditional construct.
+     * @return string an HTML string explaining the conditional construct
      *
      * @example
      * ```php
@@ -778,9 +778,9 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * reference (e.g., group number or name) of the pattern being called, helping to
      * understand recursive or reused patterns, presented in HTML.
      *
-     * @param SubroutineNode $node The `SubroutineNode` representing a subroutine call.
+     * @param SubroutineNode $node the `SubroutineNode` representing a subroutine call
      *
-     * @return string An HTML string explaining the subroutine call.
+     * @return string an HTML string explaining the subroutine call
      *
      * @example
      * ```php
@@ -817,9 +817,9 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * It displays the verb, providing insight into how the regex engine's backtracking
      * behavior is being manipulated, presented in HTML.
      *
-     * @param PcreVerbNode $node The `PcreVerbNode` representing a PCRE verb.
+     * @param PcreVerbNode $node the `PcreVerbNode` representing a PCRE verb
      *
-     * @return string An HTML string explaining the PCRE verb.
+     * @return string an HTML string explaining the PCRE verb
      *
      * @example
      * ```php
@@ -846,7 +846,7 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      *
      * @param DefineNode $node The `DefineNode` representing a `(?(DEFINE)...)` block.
      *
-     * @return string An HTML string explaining the DEFINE block and its content.
+     * @return string an HTML string explaining the DEFINE block and its content
      *
      * @example
      * ```php
@@ -875,9 +875,9 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * into clear, descriptive phrases suitable for the HTML explanation.
      *
      * @param string         $q    The raw quantifier string (e.g., `*`, `+`, `{1,5}`).
-     * @param QuantifierType $type The type of quantifier (greedy, lazy, possessive).
+     * @param QuantifierType $type the type of quantifier (greedy, lazy, possessive)
      *
-     * @return string A human-readable description of the quantifier.
+     * @return string a human-readable description of the quantifier
      */
     private function explainQuantifierValue(string $q, QuantifierType $type): string
     {
@@ -911,9 +911,9 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * especially handling common control characters (like `\n`, `\t`) by translating them
      * into their escaped form and a descriptive name, or indicating non-printable characters.
      *
-     * @param string $value The raw literal character string.
+     * @param string $value the raw literal character string
      *
-     * @return string A human-readable description of the literal character.
+     * @return string a human-readable description of the literal character
      */
     private function explainLiteral(string $value): string
     {
@@ -933,9 +933,9 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * into the HTML output is properly escaped to prevent XSS vulnerabilities and
      * ensure correct rendering of special characters.
      *
-     * @param string|null $s The string to be HTML escaped.
+     * @param string|null $s the string to be HTML escaped
      *
-     * @return string The HTML escaped string.
+     * @return string the HTML escaped string
      */
     private function e(?string $s): string
     {
