@@ -1,0 +1,4 @@
+tests/Fixtures/*.php
+composer.lock
+vendor/**
+.git/**
