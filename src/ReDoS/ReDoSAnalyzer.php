@@ -13,11 +13,8 @@ declare(strict_types=1);
 
 namespace RegexParser\ReDoS;
 
-use RegexParser\Lexer;
 use RegexParser\NodeVisitor\ReDoSProfileNodeVisitor;
-use RegexParser\Parser;
 use RegexParser\Regex;
-use RegexParser\TokenStream;
 
 class ReDoSAnalyzer
 {
@@ -27,7 +24,7 @@ class ReDoSAnalyzer
     public function analyze(string $regex): ReDoSAnalysis
     {
         try {
-            $ast = $this->parseRegex($regex);
+            $ast = Regex::create()->parse($regex);
             $visitor = new ReDoSProfileNodeVisitor();
             $ast->accept($visitor);
 
@@ -54,30 +51,5 @@ class ReDoSAnalyzer
             ReDoSSeverity::HIGH => 8,
             ReDoSSeverity::CRITICAL => 10,
         };
-    }
-
-    /**
-     * Parses a regex string using the decoupled Lexer and Parser.
-     */
-    private function parseRegex(string $regex): \RegexParser\Node\RegexNode
-    {
-        [$pattern, $flags, $delimiter] = $this->extractPatternAndFlags($regex);
-
-        $lexer = new Lexer($pattern);
-        $stream = new TokenStream($lexer->tokenize());
-        $parser = new Parser();
-
-        return $parser->parse($stream, $flags, $delimiter, \strlen($pattern));
-    }
-
-    /**
-     * Extracts pattern, flags, and delimiter from a full regex string.
-     *
-     * @return array{0: string, 1: string, 2: string} [pattern, flags, delimiter]
-     */
-    private function extractPatternAndFlags(string $regex): array
-    {
-        // Use Regex class's static method for consistency
-        return Regex::create()->extractPatternAndFlags($regex);
     }
 }
