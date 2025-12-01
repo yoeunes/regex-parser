@@ -15,7 +15,6 @@ namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
-use RegexParser\Parser;
 use RegexParser\Regex;
 
 /**
@@ -24,13 +23,13 @@ use RegexParser\Regex;
  */
 class PregFunctionCompatibilityTest extends TestCase
 {
-    private Parser $parser;
+    private Regex $regex;
 
     private CompilerNodeVisitor $compiler;
 
     protected function setUp(): void
     {
-        $this->parser = new Parser();
+        $this->regex = Regex::create();
         $this->compiler = new CompilerNodeVisitor();
         $regex = Regex::create();
     }
@@ -568,7 +567,7 @@ class PregFunctionCompatibilityTest extends TestCase
      */
     private function roundTripPattern(string $pattern): string
     {
-        $ast = $this->parser->parse($pattern);
+        $ast = $this->regex->parse($pattern);
 
         return $ast->accept($this->compiler);
     }

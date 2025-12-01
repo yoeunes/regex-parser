@@ -16,7 +16,7 @@ namespace RegexParser\Tests\Integration;
 use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Lexer;
-use RegexParser\Parser;
+use RegexParser\Regex;
 use RegexParser\TokenType;
 
 /**
@@ -247,21 +247,21 @@ class LexerCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_parser_with_quote_mode(): void
     {
-        $parser = new Parser();
-        $parser->parse('/\Qtest.*\E/');
+        $regex = Regex::create();
+        $regex->parse('/\Qtest.*\E/');
     }
 
     #[DoesNotPerformAssertions]
     public function test_parser_with_special_escapes(): void
     {
-        $parser = new Parser();
-        $parser->parse('/\t\n\r/');
+        $regex = Regex::create();
+        $regex->parse('/\t\n\r/');
     }
 
     #[DoesNotPerformAssertions]
     public function test_parser_with_unicode_props(): void
     {
-        $parser = new Parser();
+        $regex = Regex::create();
 
         $patterns = [
             '/\p{L}/',
@@ -271,7 +271,7 @@ class LexerCoverageBoostTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $parser->parse($pattern);
+            $regex->parse($pattern);
         }
     }
 

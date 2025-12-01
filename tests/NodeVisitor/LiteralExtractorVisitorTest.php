@@ -16,17 +16,17 @@ namespace RegexParser\Tests\NodeVisitor;
 use PHPUnit\Framework\TestCase;
 use RegexParser\LiteralSet;
 use RegexParser\NodeVisitor\LiteralExtractorVisitor;
-use RegexParser\Parser;
+use RegexParser\Regex;
 
 class LiteralExtractorVisitorTest extends TestCase
 {
-    private Parser $parser;
+    private Regex $regex;
 
     private LiteralExtractorVisitor $visitor;
 
     protected function setUp(): void
     {
-        $this->parser = new Parser();
+        $this->regex = Regex::create();
         $this->visitor = new LiteralExtractorVisitor();
     }
 
@@ -130,7 +130,7 @@ class LiteralExtractorVisitorTest extends TestCase
 
     private function extract(string $regex): LiteralSet
     {
-        $ast = $this->parser->parse($regex);
+        $ast = $this->regex->parse($regex);
 
         return $ast->accept($this->visitor);
     }

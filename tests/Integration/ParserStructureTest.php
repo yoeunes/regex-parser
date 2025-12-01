@@ -15,7 +15,7 @@ namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\ParserException;
-use RegexParser\Parser;
+use RegexParser\Regex;
 
 class ParserStructureTest extends TestCase
 {
@@ -25,12 +25,12 @@ class ParserStructureTest extends TestCase
     public function test_parse_exceeds_max_length(): void
     {
         // On configure une limite très basse pour le test
-        $parser = new Parser(['max_pattern_length' => 10]);
+        $regex = Regex::create(['max_pattern_length' => 10]);
 
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('Regex pattern exceeds maximum length');
 
-        $parser->parse('/this_is_too_long/');
+        $regex->parse('/this_is_too_long/');
     }
 
     /**
@@ -38,12 +38,12 @@ class ParserStructureTest extends TestCase
      */
     public function test_parse_too_short(): void
     {
-        $parser = new Parser();
+        $regex = Regex::create();
 
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('Regex is too short');
 
-        $parser->parse('/'); // Juste un caractère
+        $regex->parse('/'); // Juste un caractère
     }
 
     /**
@@ -51,12 +51,12 @@ class ParserStructureTest extends TestCase
      */
     public function test_parse_no_closing_delimiter(): void
     {
-        $parser = new Parser();
+        $regex = Regex::create();
 
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('No closing delimiter "/" found');
 
-        $parser->parse('/abc'); // Pas de slash final
+        $regex->parse('/abc'); // Pas de slash final
     }
 
     /**
@@ -64,13 +64,13 @@ class ParserStructureTest extends TestCase
      */
     public function test_parse_escaped_closing_delimiter_at_end(): void
     {
-        $parser = new Parser();
+        $regex = Regex::create();
 
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('No closing delimiter "/" found');
 
         // Ici le dernier slash est échappé, donc ce n'est pas un délimiteur valide
-        $parser->parse('/abc\/');
+        $regex->parse('/abc\/');
     }
 
     /**
@@ -78,11 +78,11 @@ class ParserStructureTest extends TestCase
      */
     public function test_parse_unknown_flags(): void
     {
-        $parser = new Parser();
+        $regex = Regex::create();
 
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('Unknown regex flag(s) found: "k"');
 
-        $parser->parse('/abc/k'); // 'k' n'est pas un flag valide
+        $regex->parse('/abc/k'); // 'k' n'est pas un flag valide
     }
 }

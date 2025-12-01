@@ -15,7 +15,7 @@ namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\ParserException;
-use RegexParser\Parser;
+use RegexParser\Regex;
 
 class ParserUnsupportedSyntaxTest extends TestCase
 {
@@ -25,12 +25,12 @@ class ParserUnsupportedSyntaxTest extends TestCase
      */
     public function test_unsupported_named_backref_syntax(): void
     {
-        $parser = new Parser();
+        $regex = Regex::create();
 
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('Backreferences (?P=name) are not supported yet');
 
-        $parser->parse('/(?P=name)/');
+        $regex->parse('/(?P=name)/');
     }
 
     /**
@@ -39,12 +39,12 @@ class ParserUnsupportedSyntaxTest extends TestCase
      */
     public function test_invalid_p_group_syntax(): void
     {
-        $parser = new Parser();
+        $regex = Regex::create();
 
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('Invalid syntax after (?P');
 
-        $parser->parse('/(?P!)/');
+        $regex->parse('/(?P!)/');
     }
 
     /**
@@ -53,13 +53,13 @@ class ParserUnsupportedSyntaxTest extends TestCase
      */
     public function test_conditional_invalid_lookaround_char(): void
     {
-        $parser = new Parser();
+        $regex = Regex::create();
 
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('Invalid conditional condition');
 
         // (? ( ? ~ ) ) -> ~ n'est pas = ou ! ou <
-        $parser->parse('/(?(?~))/');
+        $regex->parse('/(?(?~))/');
     }
 
     /**
@@ -67,10 +67,10 @@ class ParserUnsupportedSyntaxTest extends TestCase
      */
     public function test_conditional_invalid_lookbehind_syntax(): void
     {
-        $parser = new Parser();
+        $regex = Regex::create();
         $this->expectException(ParserException::class);
         // Si on met (?< mais pas suivi de = ou !, c'est invalide dans ce contexte précis
         // sauf si c'est une named group, mais ici on teste le path du lookbehind
-        $parser->parse('/(?(?<*))/');
+        $regex->parse('/(?(?<*))/');
     }
 }

@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace RegexParser;
 
-use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
 use RegexParser\Exception\RecursionLimitException;
 use RegexParser\Exception\ResourceLimitException;
@@ -51,70 +50,24 @@ use RegexParser\Stream\TokenStream;
  *
  * It transforms a stream of Tokens (from the Lexer) into an Abstract Syntax Tree (AST).
  * It implements a Recursive Descent Parser based on PCRE grammar.
+ *
+ * The Parser is independent of the Lexer and operates purely on a TokenStream.
+ * Use the Regex class for convenient string-based parsing that handles
+ * delimiter extraction, tokenization, and parsing automatically.
  */
 class Parser
 {
-    /**
-     * Default hard limit on the regex string length to prevent excessive processing/memory usage.
-     */
-    public const int DEFAULT_MAX_PATTERN_LENGTH = 100_000;
-
-    private readonly int $maxPatternLength;
-
     /**
      * Token stream (replaces array of tokens for memory efficiency).
      */
     private TokenStream $stream;
 
     /**
-     * @param array{
-     *     max_pattern_length?: int,
-     *     max_recursion_depth?: int,
-     *     max_nodes?: int,
-     * } $options Configuration options
-     */
-    public function __construct(array $options = [])
-    {
-        $this->maxPatternLength = (int) ($options['max_pattern_length'] ?? self::DEFAULT_MAX_PATTERN_LENGTH);
-    }
-
-    /**
-     * Parses a full regex string (including delimiters and flags) into an AST.
-     *
-     * @throws ParserException         if the regex syntax is invalid
-     * @throws RecursionLimitException if recursion depth exceeds limit
-     * @throws ResourceLimitException  if node count exceeds limit
-     * @throws LexerException          if tokenization fails
-     */
-    public function parse(string $regex): RegexNode
-    {
-        if (\strlen($regex) > $this->maxPatternLength) {
-            throw new ParserException(\sprintf('Regex pattern exceeds maximum length of %d characters.', $this->maxPatternLength));
-        }
-
-        [$pattern, $flags, $delimiter] = $this->extractPatternAndFlags($regex);
-
-        // Initialize Token Stream (Generator-based)
-        $lexer = $this->getLexer($pattern);
-        $this->stream = new TokenStream($lexer->tokenize());
-
-        // Parse the pattern content
-        $patternNode = $this->parseAlternation();
-
-        // Ensure we reached the end of the pattern
-        $this->consume(TokenType::T_EOF, 'Unexpected content at end of pattern');
-
-        return new RegexNode($patternNode, $flags, $delimiter, 0, \strlen($pattern));
-    }
-
-    /**
      * Parses a TokenStream into a complete RegexNode AST.
      *
-     * This is the low-level parsing method that operates purely on tokens.
-     * It has no knowledge of raw strings, delimiters, or caching.
-     *
-     * For most use cases, use RegexCompiler::parse() which handles string
-     * processing, tokenization, and caching automatically.
+     * This method operates purely on tokens and has no knowledge of raw strings,
+     * delimiters, or caching. Use the Regex class for convenient string-based
+     * parsing that handles delimiter extraction, tokenization, and parsing automatically.
      *
      * @param TokenStream $stream        The token stream to parse
      * @param string      $flags         Regex flags (e.g., 'i', 'ms')
@@ -125,9 +78,9 @@ class Parser
      * @throws RecursionLimitException if recursion depth exceeds limit
      * @throws ResourceLimitException  if node count exceeds limit
      */
-    public function parseTokenStream(TokenStream $stream, string $flags = '', string $delimiter = '/', int $patternLength = 0): RegexNode
+    public function parse(TokenStream $stream, string $flags = '', string $delimiter = '/', int $patternLength = 0): RegexNode
     {
-        // Reset state for new parse
+        // Set the stream for parsing
         $this->stream = $stream;
 
         // Parse the pattern content
@@ -137,66 +90,6 @@ class Parser
         $this->consume(TokenType::T_EOF, 'Unexpected content at end of pattern');
 
         return new RegexNode($patternNode, $flags, $delimiter, 0, $patternLength);
-    }
-
-    private function getLexer(string $pattern): Lexer
-    {
-        return new Lexer($pattern);
-    }
-
-    /**
-     * Extracts pattern, flags, and delimiter.
-     * Handles escaped delimiters correctly (e.g., "/abc\/def/i").
-     *
-     * @return array{0: string, 1: string, 2: string} [pattern, flags, delimiter]
-     */
-    private function extractPatternAndFlags(string $regex): array
-    {
-        $len = \strlen($regex);
-        if ($len < 2) {
-            throw new ParserException('Regex is too short. It must include delimiters.');
-        }
-
-        $delimiter = $regex[0];
-        // Handle bracket delimiters style: (pattern), [pattern], {pattern}, <pattern>
-        $closingDelimiter = match ($delimiter) {
-            '(' => ')',
-            '[' => ']',
-            '{' => '}',
-            '<' => '>',
-            default => $delimiter,
-        };
-
-        // Find the last occurrence of the closing delimiter that is NOT escaped
-        // We scan from the end to optimize for flags
-        for ($i = $len - 1; $i > 0; $i--) {
-            if ($regex[$i] === $closingDelimiter) {
-                // Check if escaped (count odd number of backslashes before it)
-                $escapes = 0;
-                for ($j = $i - 1; $j > 0 && '\\' === $regex[$j]; $j--) {
-                    $escapes++;
-                }
-
-                if (0 === $escapes % 2) {
-                    // Found the end delimiter
-                    $pattern = substr($regex, 1, $i - 1);
-                    $flags = substr($regex, $i + 1);
-
-                    // Validate flags (only allow standard PCRE flags)
-                    // n = NO_AUTO_CAPTURE, r = PCRE2_EXTRA_CASELESS_RESTRICT (unicode restricted)
-                    if (!preg_match('/^[imsxADSUXJunr]*$/', $flags)) {
-                        // Find the invalid flag for a better error message
-                        $invalid = preg_replace('/[imsxADSUXJunr]/', '', $flags);
-
-                        throw new ParserException(\sprintf('Unknown regex flag(s) found: "%s"', $invalid ?? $flags));
-                    }
-
-                    return [$pattern, $flags, $delimiter];
-                }
-            }
-        }
-
-        throw new ParserException(\sprintf('No closing delimiter "%s" found.', $closingDelimiter));
     }
 
     /**

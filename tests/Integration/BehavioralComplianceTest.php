@@ -16,7 +16,7 @@ namespace RegexParser\Tests\Integration;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
-use RegexParser\Parser;
+use RegexParser\Regex;
 
 /**
  * Tests that verify parsed patterns behave identically to PHP's PCRE engine.
@@ -202,11 +202,11 @@ class BehavioralComplianceTest extends TestCase
     #[DataProvider('providePatternsWithBehavior')]
     public function test_pattern_behavior_matches_pcre(string $pattern, array $testCases): void
     {
-        $parser = new Parser();
+        $regex = Regex::create();
         $compiler = new CompilerNodeVisitor();
 
         // Parse and recompile the pattern
-        $ast = $parser->parse($pattern);
+        $ast = $regex->parse($pattern);
         $compiled = $ast->accept($compiler);
 
         // Test that both patterns behave identically
@@ -252,10 +252,10 @@ class BehavioralComplianceTest extends TestCase
         $pattern = '/(?<year>\d{4})-(?<month>\d{2})-(?<day>\d{2})/';
         $input = '2025-11-24';
 
-        $parser = new Parser();
+        $regex = Regex::create();
         $compiler = new CompilerNodeVisitor();
 
-        $ast = $parser->parse($pattern);
+        $ast = $regex->parse($pattern);
         $compiled = $ast->accept($compiler);
 
         preg_match($pattern, $input, $originalMatches);
@@ -273,10 +273,10 @@ class BehavioralComplianceTest extends TestCase
         $replacement = '$2 $1';
         $input = 'hello world';
 
-        $parser = new Parser();
+        $regex = Regex::create();
         $compiler = new CompilerNodeVisitor();
 
-        $ast = $parser->parse($pattern);
+        $ast = $regex->parse($pattern);
         $compiled = $ast->accept($compiler);
 
         $originalResult = preg_replace($pattern, $replacement, $input);

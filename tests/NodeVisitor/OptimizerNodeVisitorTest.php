@@ -22,24 +22,24 @@ use RegexParser\Node\QuantifierNode;
 use RegexParser\Node\RegexNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\NodeVisitor\OptimizerNodeVisitor;
-use RegexParser\Parser;
+use RegexParser\Regex;
 
 class OptimizerNodeVisitorTest extends TestCase
 {
-    private Parser $parser;
+    private Regex $regex;
 
     private OptimizerNodeVisitor $optimizer;
 
     protected function setUp(): void
     {
-        $this->parser = new Parser();
+        $this->regex = Regex::create();
         $this->optimizer = new OptimizerNodeVisitor();
     }
 
     public function test_merge_adjacent_literals(): void
     {
-        $parser = new Parser();
-        $ast = $parser->parse('/abc/');
+        $regex = Regex::create();
+        $ast = $regex->parse('/abc/');
         $optimizer = new OptimizerNodeVisitor();
 
         $newAst = $ast->accept($optimizer);
@@ -79,8 +79,8 @@ class OptimizerNodeVisitorTest extends TestCase
 
     public function test_alternation_to_char_class_optimization(): void
     {
-        $parser = new Parser();
-        $ast = $parser->parse('/a|b|c/');
+        $regex = Regex::create();
+        $ast = $regex->parse('/a|b|c/');
         $optimizer = new OptimizerNodeVisitor();
 
         $newAst = $ast->accept($optimizer);
@@ -93,7 +93,7 @@ class OptimizerNodeVisitorTest extends TestCase
     public function test_digit_optimization(): void
     {
         // Logic: [0-9] -> \d
-        $ast = $this->parser->parse('/[0-9]/');
+        $ast = $this->regex->parse('/[0-9]/');
         $optimized = $ast->accept($this->optimizer);
 
         $this->assertInstanceOf(RegexNode::class, $optimized);
@@ -103,8 +103,8 @@ class OptimizerNodeVisitorTest extends TestCase
 
     public function test_remove_useless_non_capturing_group(): void
     {
-        $parser = new Parser();
-        $ast = $parser->parse('/(?:abc)/');
+        $regex = Regex::create();
+        $ast = $regex->parse('/(?:abc)/');
         $optimizer = new OptimizerNodeVisitor();
 
         $newAst = $ast->accept($optimizer);
@@ -116,8 +116,8 @@ class OptimizerNodeVisitorTest extends TestCase
 
     public function test_quantifier_optimization(): void
     {
-        $parser = new Parser();
-        $ast = $parser->parse('/(?:a)*/');
+        $regex = Regex::create();
+        $ast = $regex->parse('/(?:a)*/');
         $optimizer = new OptimizerNodeVisitor();
 
         $newAst = $ast->accept($optimizer);
@@ -129,8 +129,8 @@ class OptimizerNodeVisitorTest extends TestCase
 
     public function test_optimization_does_not_break_semantics_with_hyphen(): void
     {
-        $parser = new Parser();
-        $ast = $parser->parse('/a|-|z/');
+        $regex = Regex::create();
+        $ast = $regex->parse('/a|-|z/');
         $optimizer = new OptimizerNodeVisitor();
 
         $newAst = $ast->accept($optimizer);
@@ -145,8 +145,8 @@ class OptimizerNodeVisitorTest extends TestCase
         // Pattern: /a(b)(c)(d(e)f)/
         // Devrait être optimisé en: /a b c d e f/ (LiteralNode)
 
-        $parser = new Parser();
-        $ast = $parser->parse('/abc/');
+        $regex = Regex::create();
+        $ast = $regex->parse('/abc/');
         $optimizer = new OptimizerNodeVisitor();
 
         // Simuler un AST plus complexe pour tester la fusion de LiteralNode adjacents
@@ -197,8 +197,8 @@ class OptimizerNodeVisitorTest extends TestCase
     public function test_alternation_to_char_class_with_hyphen_as_literal(): void
     {
         // a|-|z ne devrait PAS devenir [a-z] car le '-' est un littéral, pas une partie d'un range.
-        $parser = new Parser();
-        $ast = $parser->parse('/a|-|z/');
+        $regex = Regex::create();
+        $ast = $regex->parse('/a|-|z/');
         $optimizer = new OptimizerNodeVisitor();
 
         $newAst = $ast->accept($optimizer);
@@ -230,8 +230,8 @@ class OptimizerNodeVisitorTest extends TestCase
     public function test_char_class_word_optimization_unicode_flag_present(): void
     {
         // [a-zA-Z0-9_] -> \w, mais PAS si le flag 'u' est présent
-        $parser = new Parser();
-        $ast = $parser->parse('/[a-zA-Z0-9_]+/u'); // flag 'u' est présent
+        $regex = Regex::create();
+        $ast = $regex->parse('/[a-zA-Z0-9_]+/u'); // flag 'u' est présent
         $optimizer = new OptimizerNodeVisitor();
 
         $optimizedAst = $ast->accept($optimizer);
@@ -249,8 +249,8 @@ class OptimizerNodeVisitorTest extends TestCase
     public function test_full_word_optimization(): void
     {
         // [a-zA-Z0-9_] -> \w
-        $parser = new Parser();
-        $ast = $parser->parse('/[a-zA-Z0-9_]/');
+        $regex = Regex::create();
+        $ast = $regex->parse('/[a-zA-Z0-9_]/');
         $optimizer = new OptimizerNodeVisitor();
 
         /** @var RegexNode $newAst */
@@ -263,8 +263,8 @@ class OptimizerNodeVisitorTest extends TestCase
     public function test_does_not_optimize_word_if_flag_u_present(): void
     {
         // [a-zA-Z0-9_] -> NOT \w if /u is present (semantics change in PCRE)
-        $parser = new Parser();
-        $ast = $parser->parse('/[a-zA-Z0-9_]/u');
+        $regex = Regex::create();
+        $ast = $regex->parse('/[a-zA-Z0-9_]/u');
         $optimizer = new OptimizerNodeVisitor();
 
         /** @var RegexNode $newAst */
@@ -296,8 +296,8 @@ class OptimizerNodeVisitorTest extends TestCase
     public function test_alternation_single_char_optimization(): void
     {
         // a|b|c -> [abc]
-        $parser = new Parser();
-        $ast = $parser->parse('/a|b|c/');
+        $regex = Regex::create();
+        $ast = $regex->parse('/a|b|c/');
         $optimizer = new OptimizerNodeVisitor();
 
         /** @var RegexNode $newAst */
@@ -311,8 +311,8 @@ class OptimizerNodeVisitorTest extends TestCase
         // a|^|c -> Should NOT become [a^c] because ^ is meta in char class start
         // Ideally the optimizer is smart enough to know ^ is safe in middle,
         // but your logic strictly avoids meta chars.
-        $parser = new Parser();
-        $ast = $parser->parse('/a|^|c/'); // ^ is anchor here
+        $regex = Regex::create();
+        $ast = $regex->parse('/a|^|c/'); // ^ is anchor here
         $optimizer = new OptimizerNodeVisitor();
 
         /** @var RegexNode $newAst */
@@ -329,7 +329,7 @@ class OptimizerNodeVisitorTest extends TestCase
     public function test_optimize_non_capturing_group_with_char_class(): void
     {
         // Logic: (?:[abc]) -> [abc]
-        $ast = $this->parser->parse('/(?:[abc])/');
+        $ast = $this->regex->parse('/(?:[abc])/');
         $optimized = $ast->accept($this->optimizer);
 
         $this->assertInstanceOf(RegexNode::class, $optimized);
@@ -340,7 +340,7 @@ class OptimizerNodeVisitorTest extends TestCase
     public function test_full_word_class_optimization_success(): void
     {
         // Logic: [a-zA-Z0-9_] -> \w
-        $ast = $this->parser->parse('/[a-zA-Z0-9_]/');
+        $ast = $this->regex->parse('/[a-zA-Z0-9_]/');
         $optimized = $ast->accept($this->optimizer);
 
         $this->assertInstanceOf(RegexNode::class, $optimized);
@@ -351,7 +351,7 @@ class OptimizerNodeVisitorTest extends TestCase
     public function test_full_word_class_optimization_missing_underscore(): void
     {
         // Logic: [a-zA-Z0-9] (missing _) -> Should NOT optimize to \w
-        $ast = $this->parser->parse('/[a-zA-Z0-9]/');
+        $ast = $this->regex->parse('/[a-zA-Z0-9]/');
         $optimized = $ast->accept($this->optimizer);
 
         $this->assertInstanceOf(RegexNode::class, $optimized);
@@ -361,7 +361,7 @@ class OptimizerNodeVisitorTest extends TestCase
     public function test_full_word_class_optimization_missing_range(): void
     {
         // Logic: [a-z0-9_] (missing A-Z) -> Should NOT optimize to \w
-        $ast = $this->parser->parse('/[a-z0-9_]/');
+        $ast = $this->regex->parse('/[a-z0-9_]/');
         $optimized = $ast->accept($this->optimizer);
 
         $this->assertInstanceOf(RegexNode::class, $optimized);
@@ -371,7 +371,7 @@ class OptimizerNodeVisitorTest extends TestCase
     public function test_digit_optimization_fails_on_wrong_range(): void
     {
         // Logic: [1-9] -> NOT \d
-        $ast = $this->parser->parse('/[1-9]/');
+        $ast = $this->regex->parse('/[1-9]/');
         $optimized = $ast->accept($this->optimizer);
 
         $this->assertInstanceOf(RegexNode::class, $optimized);
@@ -383,13 +383,13 @@ class OptimizerNodeVisitorTest extends TestCase
         // Logic: (a|b)|c -> a|b|c
         // Note: parser naturally produces flat alternations for a|b|c,
         // so we force structure via groups: (a|b)|c
-        $ast = $this->parser->parse('/(a|b)|c/');
+        $ast = $this->regex->parse('/(a|b)|c/');
         // Optimizing once might just remove the group.
         // We are testing the logic inside visitAlternation checking instanceof AlternationNode
 
         // Manually construct nested alternation if needed, but parser usually handles it.
         // Let's try:
-        $ast = $this->parser->parse('/(?:a|b)|c/');
+        $ast = $this->regex->parse('/(?:a|b)|c/');
         $optimized = $ast->accept($this->optimizer);
 
         // The optimizer keeps (?:a|b) as a group because it contains an alternation.

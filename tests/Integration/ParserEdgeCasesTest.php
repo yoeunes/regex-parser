@@ -16,15 +16,18 @@ namespace RegexParser\Tests\Integration;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\ParserException;
 use RegexParser\Parser;
+use RegexParser\Regex;
 use RegexParser\Tests\TestUtils\ParserAccessor;
 use RegexParser\TokenType;
 
 class ParserEdgeCasesTest extends TestCase
 {
+    private Regex $regex;
     private Parser $parser;
 
     protected function setUp(): void
     {
+        $this->regex = Regex::create();
         $this->parser = new Parser();
     }
 
@@ -46,7 +49,7 @@ class ParserEdgeCasesTest extends TestCase
         // ^+ est invalide
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('Quantifier "+" cannot be applied to assertion or verb "^"');
-        $this->parser->parse('/^+/');
+        $this->regex->parse('/^+/');
     }
 
     public function test_quantifier_on_verb_throws(): void
@@ -54,7 +57,7 @@ class ParserEdgeCasesTest extends TestCase
         // (*FAIL)+ est invalide
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('Quantifier "+" cannot be applied to assertion or verb "(*FAIL)"');
-        $this->parser->parse('/(*FAIL)+/');
+        $this->regex->parse('/(*FAIL)+/');
     }
 
     public function test_conditional_invalid_condition(): void
@@ -62,7 +65,7 @@ class ParserEdgeCasesTest extends TestCase
         // (?(?~)...) -> ?~ n'est pas une condition valide (ni lookaround, ni assertion)
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('Invalid conditional condition');
-        $this->parser->parse('/(?(?~a)b)/');
+        $this->regex->parse('/(?(?~a)b)/');
     }
 
     public function test_group_modifier_invalid_syntax(): void
@@ -70,13 +73,13 @@ class ParserEdgeCasesTest extends TestCase
         // (??) est invalide
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('Invalid group modifier syntax');
-        $this->parser->parse('/(??)/');
+        $this->regex->parse('/(??)/');
     }
 
     public function test_unclosed_group_in_subroutine(): void
     {
         $this->expectException(ParserException::class);
         // (?&name sans fermer
-        $this->parser->parse('/(?&name/');
+        $this->regex->parse('/(?&name/');
     }
 }

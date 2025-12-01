@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
-use RegexParser\Parser;
+use RegexParser\Regex;
 
 class LexerStateTest extends TestCase
 {
@@ -22,12 +22,12 @@ class LexerStateTest extends TestCase
     {
         $this->expectNotToPerformAssertions();
 
-        $parser = new Parser();
+        $regex = Regex::create();
 
         // First parse creates Lexer
-        $parser->parse('/a/');
+        $regex->parse('/a/');
 
         // Second parse reuses Lexer and calls reset()
-        $parser->parse('/b/');
+        $regex->parse('/b/');
     }
 }

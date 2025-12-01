@@ -34,11 +34,8 @@ return static function (ContainerConfigurator $container): void {
         ->defaults()
             ->private();
 
-    // Core parser and compiler
-    $services->set('regex_parser.parser', Parser::class)
-        ->arg('$options', [
-            'max_pattern_length' => param('regex_parser.max_pattern_length'),
-        ]);
+    // Core parser (stateless, operates on TokenStream)
+    $services->set('regex_parser.parser', Parser::class);
 
     // Node visitors
     $services->set('regex_parser.visitor.validator', ValidatorNodeVisitor::class);
@@ -50,7 +47,7 @@ return static function (ContainerConfigurator $container): void {
     $services->set('regex_parser.visitor.dumper', DumperNodeVisitor::class);
     $services->set('regex_parser.visitor.compiler', CompilerNodeVisitor::class);
 
-    // Main Regex facade service
+    // Main Regex facade service (orchestrates Lexer and Parser)
     $services->set('regex_parser.regex', Regex::class)
         ->arg('$validator', service('regex_parser.visitor.validator'))
         ->arg('$explainer', service('regex_parser.visitor.explain'))
@@ -58,6 +55,7 @@ return static function (ContainerConfigurator $container): void {
         ->arg('$optimizer', service('regex_parser.visitor.optimizer'))
         ->arg('$dumper', service('regex_parser.visitor.dumper'))
         ->arg('$scorer', service('regex_parser.visitor.complexity_score'))
+        ->arg('$maxPatternLength', param('regex_parser.max_pattern_length'))
         ->public();
 
     // Aliases for autowiring

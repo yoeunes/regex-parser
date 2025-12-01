@@ -16,7 +16,7 @@ namespace RegexParser\Tests\Integration;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
-use RegexParser\Parser;
+use RegexParser\Regex;
 
 /**
  * Validates that the library behaves identically to PHP's native PCRE engine.
@@ -42,12 +42,12 @@ class OfficialPcreComplianceTest extends TestCase
         }
 
         // 2. Parse with the library
-        $parser = new Parser();
+        $regex = Regex::create();
         $ast = null;
         $parseException = null;
 
         try {
-            $ast = $parser->parse($pattern);
+            $ast = $regex->parse($pattern);
         } catch (\Throwable $e) {
             $parseException = $e;
         }

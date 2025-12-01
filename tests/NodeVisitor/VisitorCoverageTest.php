@@ -19,15 +19,15 @@ use RegexParser\NodeVisitor\CompilerNodeVisitor;
 use RegexParser\NodeVisitor\DumperNodeVisitor;
 use RegexParser\NodeVisitor\ExplainVisitor;
 use RegexParser\NodeVisitor\HtmlExplainVisitor;
-use RegexParser\Parser;
+use RegexParser\Regex;
 
 class VisitorCoverageTest extends TestCase
 {
-    private Parser $parser;
+    private Regex $regex;
 
     protected function setUp(): void
     {
-        $this->parser = new Parser();
+        $this->regex = Regex::create();
     }
 
     /**
@@ -70,7 +70,7 @@ class VisitorCoverageTest extends TestCase
         // that might not be supported by the underlying PCRE version of the OS,
         // but our Parser supports them.
         try {
-            $ast = $this->parser->parse($regex);
+            $ast = $this->regex->parse($regex);
         } catch (\Exception $e) {
             // If the parser fails, the test fails.
             $this->fail('Parser failed on: '.$regex.' Error: '.$e->getMessage());

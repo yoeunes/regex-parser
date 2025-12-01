@@ -16,18 +16,17 @@ namespace RegexParser\Tests\NodeVisitor;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RegexParser\NodeVisitor\SampleGeneratorVisitor;
-use RegexParser\Parser;
 use RegexParser\Regex;
 
 class SampleGeneratorVisitorTest extends TestCase
 {
-    private Parser $parser;
+    private Regex $regex;
 
     private SampleGeneratorVisitor $generator;
 
     protected function setUp(): void
     {
-        $this->parser = new Parser();
+        $this->regex = Regex::create();
         $this->generator = new SampleGeneratorVisitor();
         $this->generator->setSeed(42); // Deterministic
     }
@@ -65,8 +64,8 @@ class SampleGeneratorVisitorTest extends TestCase
     {
         // Complex test: backreference. The generator must remember what it generated.
         // (a|b)\1 must generate "aa" or "bb", but never "ab"
-        $parser = new Parser();
-        $ast = $parser->parse('/(a|b)\1/');
+        $regex = Regex::create();
+        $ast = $regex->parse('/(a|b)\1/');
         $generator = new SampleGeneratorVisitor();
 
         $sample = $ast->accept($generator);
@@ -75,8 +74,8 @@ class SampleGeneratorVisitorTest extends TestCase
 
     public function test_seeding(): void
     {
-        $parser = new Parser();
-        $ast = $parser->parse('/[a-z]{10}/');
+        $regex = Regex::create();
+        $ast = $regex->parse('/[a-z]{10}/');
         $generator = new SampleGeneratorVisitor();
 
         $generator->setSeed(12345);
@@ -100,7 +99,7 @@ class SampleGeneratorVisitorTest extends TestCase
         // \xNN, \u{NNNN}, \o{NNN}, \0NN
         // Note: PHP PCRE doesn't support \u{} and \o{} syntax, so we test the generated output directly
         $regex = '/\x41\u{00E9}\o{40}\010/';
-        $ast = $this->parser->parse($regex);
+        $ast = $this->regex->parse($regex);
         $generator = new SampleGeneratorVisitor();
         $sample = $ast->accept($generator);
 
@@ -117,7 +116,7 @@ class SampleGeneratorVisitorTest extends TestCase
         // Note: Optional groups with backrefs are tricky because if the group doesn't match,
         // the backref fails the entire match in PCRE. The generator randomly chooses 0 or 1
         // for '?', so we test this separately to ensure it can generate a valid match.
-        $ast = $this->parser->parse('/(?<name>a)?\k<name>/');
+        $ast = $this->regex->parse('/(?<name>a)?\k<name>/');
         $generator = new SampleGeneratorVisitor();
 
         // Try multiple times - at least one should generate 'aa' (when group matches)
@@ -138,8 +137,8 @@ class SampleGeneratorVisitorTest extends TestCase
         // Conditional with lookahead condition randomly chooses yes/no branch.
         // Note: The pattern is parsed as: condition=(?=\d), yes=(Y|N), no=''
         // So the generator can produce 'Y', 'N', or '' (when no branch is chosen)
-        $parser = new Parser();
-        $ast = $parser->parse('/(?(?=\d)Y|N)/');
+        $regex = Regex::create();
+        $ast = $regex->parse('/(?(?=\d)Y|N)/');
         $generator = new SampleGeneratorVisitor();
 
         $output = $ast->accept($generator);
@@ -188,7 +187,7 @@ class SampleGeneratorVisitorTest extends TestCase
     #[DataProvider('providePosixClasses')]
     public function test_generate_posix_classes(string $regex): void
     {
-        $sample = $this->parser->parse($regex)->accept($this->generator);
+        $sample = $this->regex->parse($regex)->accept($this->generator);
         $this->assertNotEmpty($sample);
         // We verify it matches the regex itself to ensure correctness
         $this->assertMatchesRegularExpression($regex, $sample);
@@ -198,7 +197,7 @@ class SampleGeneratorVisitorTest extends TestCase
     {
         // \h \H \v \V
         $regex = '/\h\H\v\V/';
-        $sample = $this->parser->parse($regex)->accept($this->generator);
+        $sample = $this->regex->parse($regex)->accept($this->generator);
         // Basic sanity check length
         $this->assertSame(4, \strlen($sample));
     }
@@ -206,7 +205,7 @@ class SampleGeneratorVisitorTest extends TestCase
     public function test_reset_seed(): void
     {
         $regex = '/[a-z]/';
-        $ast = $this->parser->parse($regex);
+        $ast = $this->regex->parse($regex);
 
         $this->generator->setSeed(123);
         $val1 = $ast->accept($this->generator);
@@ -224,8 +223,8 @@ class SampleGeneratorVisitorTest extends TestCase
     {
         // Ton code retourne '!' pour les classes niées complexes.
         // On s'assure que cette ligne est exécutée.
-        $parser = new \RegexParser\Parser();
-        $ast = $parser->parse('/[^abc]/');
+        $regex = \RegexParser\Regex::create();
+        $ast = $regex->parse('/[^abc]/');
         $generator = new \RegexParser\NodeVisitor\SampleGeneratorVisitor();
 
         $result = $ast->accept($generator);
@@ -244,7 +243,7 @@ class SampleGeneratorVisitorTest extends TestCase
 
     private function assertSampleMatches(string $regex): void
     {
-        $ast = $this->parser->parse($regex);
+        $ast = $this->regex->parse($regex);
         $generator = new SampleGeneratorVisitor();
 
         for ($i = 0; $i < 5; $i++) {
@@ -255,7 +254,7 @@ class SampleGeneratorVisitorTest extends TestCase
 
     private function generateSample(string $regex): string
     {
-        $ast = $this->parser->parse($regex);
+        $ast = $this->regex->parse($regex);
         $generator = new SampleGeneratorVisitor();
 
         return $ast->accept($generator);

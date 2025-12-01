@@ -23,7 +23,7 @@ use RegexParser\Node\UnicodeNode;
 use RegexParser\NodeVisitor\OptimizerNodeVisitor;
 use RegexParser\NodeVisitor\SampleGeneratorVisitor;
 use RegexParser\NodeVisitor\ValidatorNodeVisitor;
-use RegexParser\Parser;
+use RegexParser\Regex;
 
 class VisitorFallbackTest extends TestCase
 {
@@ -31,8 +31,8 @@ class VisitorFallbackTest extends TestCase
     {
         // Access a backreference that hasn't been captured yet
         // e.g. \1 when group 1 hasn't matched
-        $parser = new Parser();
-        $ast = $parser->parse('/\1/');
+        $regex = Regex::create();
+        $ast = $regex->parse('/\1/');
 
         $generator = new SampleGeneratorVisitor();
         // Should return empty string (fallback)

@@ -16,7 +16,7 @@ namespace RegexParser\Tests\Integration;
 use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\ParserException;
-use RegexParser\Parser;
+use RegexParser\Regex;
 
 /**
  * Tests to improve code coverage for the Parser class.
@@ -24,11 +24,11 @@ use RegexParser\Parser;
  */
 class ParserCoverageBoostTest extends TestCase
 {
-    private Parser $parser;
+    private Regex $regex;
 
     protected function setUp(): void
     {
-        $this->parser = new Parser();
+        $this->regex = Regex::create();
     }
 
     /**
@@ -37,8 +37,8 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_python_named_group_single_quotes(): void
     {
-        $parser = new Parser();
-        $parser->parse("/(?P'name'test)/");
+        $regex = Regex::create();
+        $regex->parse("/(?P'name'test)/");
     }
 
     /**
@@ -47,8 +47,8 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_python_named_group_double_quotes(): void
     {
-        $parser = new Parser();
-        $parser->parse('/(?P"name"test)/');
+        $regex = Regex::create();
+        $regex->parse('/(?P"name"test)/');
     }
 
     /**
@@ -57,8 +57,8 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_python_named_group_angle_brackets(): void
     {
-        $parser = new Parser();
-        $parser->parse('/(?P<name>test)/');
+        $regex = Regex::create();
+        $regex->parse('/(?P<name>test)/');
     }
 
     /**
@@ -67,8 +67,8 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_python_subroutine_call(): void
     {
-        $parser = new Parser();
-        $parser->parse('/(?P<name>test)(?P>name)/');
+        $regex = Regex::create();
+        $regex->parse('/(?P<name>test)(?P>name)/');
     }
 
     /**
@@ -79,8 +79,8 @@ class ParserCoverageBoostTest extends TestCase
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('Backreferences (?P=name) are not supported yet');
 
-        $parser = new Parser();
-        $parser->parse('/(?P<name>test)(?P=name)/');
+        $regex = Regex::create();
+        $regex->parse('/(?P<name>test)(?P=name)/');
     }
 
     /**
@@ -89,8 +89,8 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_positive_lookbehind(): void
     {
-        $parser = new Parser();
-        $parser->parse('/(?<=test)abc/');
+        $regex = Regex::create();
+        $regex->parse('/(?<=test)abc/');
     }
 
     /**
@@ -99,8 +99,8 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_negative_lookbehind(): void
     {
-        $parser = new Parser();
-        $parser->parse('/(?<!test)abc/');
+        $regex = Regex::create();
+        $regex->parse('/(?<!test)abc/');
     }
 
     /**
@@ -109,8 +109,8 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_conditional_with_number(): void
     {
-        $parser = new Parser();
-        $parser->parse('/(test)(?(1)yes|no)/');
+        $regex = Regex::create();
+        $regex->parse('/(test)(?(1)yes|no)/');
     }
 
     /**
@@ -119,8 +119,8 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_conditional_with_named_group(): void
     {
-        $parser = new Parser();
-        $parser->parse('/(?<name>test)(?(<name>)yes|no)/');
+        $regex = Regex::create();
+        $regex->parse('/(?<name>test)(?(<name>)yes|no)/');
     }
 
     /**
@@ -129,8 +129,8 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_conditional_with_lookahead_positive(): void
     {
-        $parser = new Parser();
-        $parser->parse('/(?((?=test))yes|no)/');
+        $regex = Regex::create();
+        $regex->parse('/(?((?=test))yes|no)/');
     }
 
     /**
@@ -139,8 +139,8 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_conditional_with_lookahead_negative(): void
     {
-        $parser = new Parser();
-        $parser->parse('/(?((?!test))yes|no)/');
+        $regex = Regex::create();
+        $regex->parse('/(?((?!test))yes|no)/');
     }
 
     /**
@@ -149,8 +149,8 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_conditional_with_lookbehind_positive(): void
     {
-        $parser = new Parser();
-        $parser->parse('/(?((?<=test))yes|no)/');
+        $regex = Regex::create();
+        $regex->parse('/(?((?<=test))yes|no)/');
     }
 
     /**
@@ -159,8 +159,8 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_conditional_with_lookbehind_negative(): void
     {
-        $parser = new Parser();
-        $parser->parse('/(?((?<!test))yes|no)/');
+        $regex = Regex::create();
+        $regex->parse('/(?((?<!test))yes|no)/');
     }
 
     /**
@@ -169,8 +169,8 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_conditional_without_else(): void
     {
-        $parser = new Parser();
-        $parser->parse('/(test)(?(1)yes)/');
+        $regex = Regex::create();
+        $regex->parse('/(test)(?(1)yes)/');
     }
 
     /**
@@ -179,8 +179,8 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_subroutine_call_by_number(): void
     {
-        $parser = new Parser();
-        $parser->parse('/(test)(?1)/');
+        $regex = Regex::create();
+        $regex->parse('/(test)(?1)/');
     }
 
     /**
@@ -189,8 +189,8 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_subroutine_call_relative(): void
     {
-        $parser = new Parser();
-        $parser->parse('/(test)(?-1)/');
+        $regex = Regex::create();
+        $regex->parse('/(test)(?-1)/');
     }
 
     /**
@@ -199,8 +199,8 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_subroutine_call_named(): void
     {
-        $parser = new Parser();
-        $parser->parse('/(?<name>test)(?&name)/');
+        $regex = Regex::create();
+        $regex->parse('/(?<name>test)(?&name)/');
     }
 
     /**
@@ -209,8 +209,8 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_atomic_group(): void
     {
-        $parser = new Parser();
-        $parser->parse('/(?>test)/');
+        $regex = Regex::create();
+        $regex->parse('/(?>test)/');
     }
 
     /**
@@ -219,8 +219,8 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_non_capturing_group(): void
     {
-        $parser = new Parser();
-        $parser->parse('/(?:test)/');
+        $regex = Regex::create();
+        $regex->parse('/(?:test)/');
     }
 
     /**
@@ -229,8 +229,8 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_group_with_flags_i(): void
     {
-        $parser = new Parser();
-        $parser->parse('/(?i:test)/');
+        $regex = Regex::create();
+        $regex->parse('/(?i:test)/');
     }
 
     /**
@@ -239,8 +239,8 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_group_with_multiple_flags(): void
     {
-        $parser = new Parser();
-        $parser->parse('/(?im:test)/');
+        $regex = Regex::create();
+        $regex->parse('/(?im:test)/');
     }
 
     /**
@@ -249,8 +249,8 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_group_with_negative_flags(): void
     {
-        $parser = new Parser();
-        $parser->parse('/(?-i:test)/');
+        $regex = Regex::create();
+        $regex->parse('/(?-i:test)/');
     }
 
     /**
@@ -259,8 +259,8 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_group_with_mixed_flags(): void
     {
-        $parser = new Parser();
-        $parser->parse('/(?i-m:test)/');
+        $regex = Regex::create();
+        $regex->parse('/(?i-m:test)/');
     }
 
     /**
@@ -269,8 +269,8 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_char_class_with_range(): void
     {
-        $parser = new Parser();
-        $parser->parse('/[a-z]/');
+        $regex = Regex::create();
+        $regex->parse('/[a-z]/');
     }
 
     /**
@@ -279,8 +279,8 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_char_class_with_multiple_ranges(): void
     {
-        $parser = new Parser();
-        $parser->parse('/[a-zA-Z0-9]/');
+        $regex = Regex::create();
+        $regex->parse('/[a-zA-Z0-9]/');
     }
 
     /**
@@ -289,8 +289,8 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_negated_char_class(): void
     {
-        $parser = new Parser();
-        $parser->parse('/[^a-z]/');
+        $regex = Regex::create();
+        $regex->parse('/[^a-z]/');
     }
 
     /**
@@ -299,8 +299,8 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_posix_char_class(): void
     {
-        $parser = new Parser();
-        $parser->parse('/[[:alnum:]]/');
+        $regex = Regex::create();
+        $regex->parse('/[[:alnum:]]/');
     }
 
     /**
@@ -309,8 +309,8 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_negated_posix_char_class(): void
     {
-        $parser = new Parser();
-        $parser->parse('/[[:^alnum:]]/');
+        $regex = Regex::create();
+        $regex->parse('/[[:^alnum:]]/');
     }
 
     /**
@@ -319,8 +319,8 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_octal_legacy(): void
     {
-        $parser = new Parser();
-        $parser->parse('/\101/');
+        $regex = Regex::create();
+        $regex->parse('/\101/');
     }
 
     /**
@@ -329,8 +329,8 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_octal_modern(): void
     {
-        $parser = new Parser();
-        $parser->parse('/\o{101}/');
+        $regex = Regex::create();
+        $regex->parse('/\o{101}/');
     }
 
     /**
@@ -339,8 +339,8 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_unicode_escape_hex(): void
     {
-        $parser = new Parser();
-        $parser->parse('/\x41/');
+        $regex = Regex::create();
+        $regex->parse('/\x41/');
     }
 
     /**
@@ -349,8 +349,8 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_unicode_escape_braces(): void
     {
-        $parser = new Parser();
-        $parser->parse('/\u{0041}/');
+        $regex = Regex::create();
+        $regex->parse('/\u{0041}/');
     }
 
     /**
@@ -359,8 +359,8 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_pcre_verb_fail(): void
     {
-        $parser = new Parser();
-        $parser->parse('/(*FAIL)/');
+        $regex = Regex::create();
+        $regex->parse('/(*FAIL)/');
     }
 
     /**
@@ -369,8 +369,8 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_pcre_verb_mark(): void
     {
-        $parser = new Parser();
-        $parser->parse('/(*MARK:test)/');
+        $regex = Regex::create();
+        $regex->parse('/(*MARK:test)/');
     }
 
     /**
@@ -379,8 +379,8 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_keep(): void
     {
-        $parser = new Parser();
-        $parser->parse('/test\K/');
+        $regex = Regex::create();
+        $regex->parse('/test\K/');
     }
 
     /**
@@ -389,7 +389,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_anchors(): void
     {
-        $parser = new Parser();
+        $regex = Regex::create();
 
         $patterns = [
             '/^test/',    // Start anchor
@@ -398,7 +398,7 @@ class ParserCoverageBoostTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $parser->parse($pattern);
+            $regex->parse($pattern);
         }
     }
 
@@ -408,7 +408,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_assertions(): void
     {
-        $parser = new Parser();
+        $regex = Regex::create();
 
         $patterns = [
             '/\A/',      // Start of string
@@ -420,7 +420,7 @@ class ParserCoverageBoostTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $parser->parse($pattern);
+            $regex->parse($pattern);
         }
     }
 
@@ -430,7 +430,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_char_types(): void
     {
-        $parser = new Parser();
+        $regex = Regex::create();
 
         $patterns = [
             '/\d/',      // Digit
@@ -447,7 +447,7 @@ class ParserCoverageBoostTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $parser->parse($pattern);
+            $regex->parse($pattern);
         }
     }
 
@@ -457,8 +457,8 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_backref_numbered(): void
     {
-        $parser = new Parser();
-        $parser->parse('/(test)\1/');
+        $regex = Regex::create();
+        $regex->parse('/(test)\1/');
     }
 
     /**
@@ -467,8 +467,8 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_backref_named_k_angle(): void
     {
-        $parser = new Parser();
-        $parser->parse('/(?<name>test)\k<name>/');
+        $regex = Regex::create();
+        $regex->parse('/(?<name>test)\k<name>/');
     }
 
     /**
@@ -477,8 +477,8 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_backref_named_k_brace(): void
     {
-        $parser = new Parser();
-        $parser->parse('/(?<name>test)\k{name}/');
+        $regex = Regex::create();
+        $regex->parse('/(?<name>test)\k{name}/');
     }
 
     /**
@@ -487,8 +487,8 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_g_reference_number(): void
     {
-        $parser = new Parser();
-        $parser->parse('/(test)\g1/');
+        $regex = Regex::create();
+        $regex->parse('/(test)\g1/');
     }
 
     /**
@@ -497,8 +497,8 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_g_reference_relative(): void
     {
-        $parser = new Parser();
-        $parser->parse('/(test)\g-1/');
+        $regex = Regex::create();
+        $regex->parse('/(test)\g-1/');
     }
 
     /**
@@ -507,8 +507,8 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_g_reference_angle(): void
     {
-        $parser = new Parser();
-        $parser->parse('/(?<name>test)\g<name>/');
+        $regex = Regex::create();
+        $regex->parse('/(?<name>test)\g<name>/');
     }
 
     /**
@@ -517,8 +517,8 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_g_reference_brace(): void
     {
-        $parser = new Parser();
-        $parser->parse('/(?<name>test)\g{name}/');
+        $regex = Regex::create();
+        $regex->parse('/(?<name>test)\g{name}/');
     }
 
     /**
@@ -527,8 +527,8 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_dot(): void
     {
-        $parser = new Parser();
-        $parser->parse('/./');
+        $regex = Regex::create();
+        $regex->parse('/./');
     }
 
     /**
@@ -537,7 +537,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_quantifiers(): void
     {
-        $parser = new Parser();
+        $regex = Regex::create();
 
         $patterns = [
             '/a*/',      // Zero or more
@@ -557,7 +557,7 @@ class ParserCoverageBoostTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $parser->parse($pattern);
+            $regex->parse($pattern);
         }
     }
 
@@ -567,8 +567,8 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_comment(): void
     {
-        $parser = new Parser();
-        $parser->parse('/(?#this is a comment)test/');
+        $regex = Regex::create();
+        $regex->parse('/(?#this is a comment)test/');
     }
 
     /**
@@ -577,8 +577,8 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_alternation(): void
     {
-        $parser = new Parser();
-        $parser->parse('/foo|bar|baz/');
+        $regex = Regex::create();
+        $regex->parse('/foo|bar|baz/');
     }
 
     /**
@@ -587,8 +587,8 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_empty_alternation_branches(): void
     {
-        $parser = new Parser();
-        $parser->parse('/foo||bar/');
+        $regex = Regex::create();
+        $regex->parse('/foo||bar/');
     }
 
     /**
@@ -597,8 +597,8 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_complex_nested(): void
     {
-        $parser = new Parser();
-        $parser->parse('/(?:(?<name>test)|(?P<other>foo)){2,5}/');
+        $regex = Regex::create();
+        $regex->parse('/(?:(?<name>test)|(?P<other>foo)){2,5}/');
     }
 
     /**
@@ -607,7 +607,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_various_delimiters(): void
     {
-        $parser = new Parser();
+        $regex = Regex::create();
 
         $patterns = [
             '/test/',
@@ -620,7 +620,7 @@ class ParserCoverageBoostTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $parser->parse($pattern);
+            $regex->parse($pattern);
         }
     }
 
@@ -630,7 +630,7 @@ class ParserCoverageBoostTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_extract_pattern_and_flags(): void
     {
-        $parser = new Parser();
+        $regex = Regex::create();
 
         $patterns = [
             '/test/i',
@@ -645,7 +645,7 @@ class ParserCoverageBoostTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $parser->parse($pattern);
+            $regex->parse($pattern);
         }
     }
 
@@ -654,7 +654,7 @@ class ParserCoverageBoostTest extends TestCase
         // Couvre le "Invalid group modifier syntax" à la fin de parseGroupModifier
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('Invalid group modifier syntax');
-        $this->parser->parse('/(??)/'); // Syntaxe invalide (??)
+        $this->regex->parse('/(??)/'); // Syntaxe invalide (??)
     }
 
     public function test_invalid_syntax_after_p(): void
@@ -662,7 +662,7 @@ class ParserCoverageBoostTest extends TestCase
         // Couvre "Invalid syntax after (?P"
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('Invalid syntax after (?P');
-        $this->parser->parse('/(?Px)/'); // P suivi de x n'est pas valide
+        $this->regex->parse('/(?Px)/'); // P suivi de x n'est pas valide
     }
 
     public function test_quantifier_without_target(): void
@@ -670,28 +670,28 @@ class ParserCoverageBoostTest extends TestCase
         // Couvre "Quantifier without target" au début de parseQuantifiedAtom
         // (Cas : littéral vide généré par quelque chose d'autre, ou bug interne)
         $this->expectException(ParserException::class);
-        $this->parser->parse('/+/'); // + sans rien avant
+        $this->regex->parse('/+/'); // + sans rien avant
     }
 
     public function test_quantifier_on_anchor(): void
     {
         // Couvre l'interdiction de quantifier une ancre
         $this->expectException(ParserException::class);
-        $this->parser->parse('/^* /');
+        $this->regex->parse('/^* /');
     }
 
     public function test_missing_closing_delimiter(): void
     {
         // Couvre "No closing delimiter found"
         $this->expectException(ParserException::class);
-        $this->parser->parse('/abc');
+        $this->regex->parse('/abc');
     }
 
     public function test_unknown_flag(): void
     {
         // Couvre "Unknown regex flag"
         $this->expectException(ParserException::class);
-        $this->parser->parse('/abc/Z');
+        $this->regex->parse('/abc/Z');
     }
 
     public function test_invalid_conditional_condition(): void
@@ -700,6 +700,6 @@ class ParserCoverageBoostTest extends TestCase
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('Invalid conditional condition');
         // (?(?...) où le ? n'est ni = ni ! ni <
-        $this->parser->parse('/(?(?~a)b)/');
+        $this->regex->parse('/(?(?~a)b)/');
     }
 }
