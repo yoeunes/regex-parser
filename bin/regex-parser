@@ -16,7 +16,7 @@ use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
 use RegexParser\NodeVisitor\ValidatorNodeVisitor;
-use RegexParser\Parser;
+use RegexParser\Regex;
 
 if ($argc < 2) {
     echo "Usage: php bin/regex-parser '/your_regex_here/flags'\n";
@@ -26,9 +26,10 @@ if ($argc < 2) {
 $regex = $argv[1];
 
 try {
-    // 1. Parsing (Lexer is now internal to Parser)
-    $parser = new Parser();
-    $ast = $parser->parse($regex);
+    $regexService = Regex::create(); // Instantiate the Regex facade
+
+    // 1. Parsing (Regex facade handles Lexer and Parser internally)
+    $ast = $regexService->parse($regex);
 
     // 2. Validation
     $validator = new ValidatorNodeVisitor();
