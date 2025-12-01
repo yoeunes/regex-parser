@@ -41,15 +41,20 @@ use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
 
 /**
- * A visitor that recompiles the AST back into a regex string.
+ * Recompiles the Abstract Syntax Tree (AST) back into a regular expression string.
+ *
+ * Purpose: This visitor is the counterpart to the `Parser`. It traverses a (potentially
+ * modified) AST and reconstructs the original PCRE string. This is crucial for features
+ * like `Regex::optimize()`, where the AST is simplified and then needs to be converted
+ * back into a string. For contributors, this class demonstrates how to correctly
+ * serialize each node back to its string representation, including handling context-sensitive
+ * escaping (e.g., inside and outside of character classes).
  *
  * @implements NodeVisitorInterface<string>
  */
 class CompilerNodeVisitor implements NodeVisitorInterface
 {
     // PCRE meta-characters that must be escaped *outside* a character class.
-    // Note: The delimiter is handled dynamically via $this->delimiter.
-    // '|' is not included because it's handled by AlternationNode, not LiteralNode.
     private const array META_CHARACTERS = [
         '\\' => true, '.' => true, '^' => true, '$' => true,
         '[' => true, ']' => true, '(' => true, ')' => true,
@@ -57,45 +62,74 @@ class CompilerNodeVisitor implements NodeVisitorInterface
     ];
 
     // Meta-characters that must be escaped *inside* a character class.
-    // '-' is crucial to escape to prevent creating unintended ranges.
-    // '^' is crucial to escape to prevent unintended negation if placed at start.
     private const array CHAR_CLASS_META = [
         '\\' => true, ']' => true, '-' => true, '^' => true,
     ];
 
-    /**
-     * Tracks if we are currently compiling inside a character class.
-     */
     private bool $inCharClass = false;
 
-    /**
-     * The current regex delimiter (needed to escape it in literals).
-     */
     private string $delimiter = '/';
 
+    /**
+     * Compiles the root `RegexNode`.
+     *
+     * Purpose: This is the entry point for the compilation. It reconstructs the full
+     * PCRE string by wrapping the compiled pattern with its original delimiters and flags.
+     *
+     * @param RegexNode $node the root node of the AST
+     *
+     * @return string the complete, recompiled PCRE regex string
+     */
     public function visitRegex(RegexNode $node): string
     {
-        // Store the delimiter so visitLiteral can escape it properly
         $this->delimiter = $node->delimiter;
-
-        // Re-add the dynamic delimiter and flags
         $map = ['(' => ')', '[' => ']', '{' => '}', '<' => '>'];
         $closingDelimiter = $map[$node->delimiter] ?? $node->delimiter;
 
         return $node->delimiter.$node->pattern->accept($this).$closingDelimiter.$node->flags;
     }
 
+    /**
+     * Compiles an `AlternationNode`.
+     *
+     * Purpose: This method reconstructs an alternation by compiling each of its
+     * branches and joining them with the `|` character.
+     *
+     * @param AlternationNode $node the alternation node to compile
+     *
+     * @return string the recompiled alternation string
+     */
     public function visitAlternation(AlternationNode $node): string
     {
         return implode('|', array_map(fn ($alt) => $alt->accept($this), $node->alternatives));
     }
 
+    /**
+     * Compiles a `SequenceNode`.
+     *
+     * Purpose: This method reconstructs a sequence by simply concatenating the
+     * compiled output of each of its child nodes in order.
+     *
+     * @param SequenceNode $node the sequence node to compile
+     *
+     * @return string the recompiled sequence string
+     */
     public function visitSequence(SequenceNode $node): string
     {
-        // Concatenates the results of the sequence's children
         return implode('', array_map(fn ($child) => $child->accept($this), $node->children));
     }
 
+    /**
+     * Compiles a `GroupNode`.
+     *
+     * Purpose: This method reconstructs the syntax for all group types (e.g., `(...)`,
+     * `(?:...)`, `(?<name>...)`) by wrapping the compiled child expression with the
+     * correct opening and closing syntax.
+     *
+     * @param GroupNode $node the group node to compile
+     *
+     * @return string the recompiled group string
+     */
     public function visitGroup(GroupNode $node): string
     {
         $child = $node->child->accept($this);
@@ -111,17 +145,25 @@ class CompilerNodeVisitor implements NodeVisitorInterface
             GroupType::T_GROUP_LOOKBEHIND_NEGATIVE => '(?<!'.$child.')',
             GroupType::T_GROUP_ATOMIC => '(?>'.$child.')',
             GroupType::T_GROUP_BRANCH_RESET => '(?|'.$child.')',
-            // For inline flags, only add ':' if there's actual content
             GroupType::T_GROUP_INLINE_FLAGS => '' === $child ? '(?'.$flags.')' : '(?'.$flags.':'.$child.')',
         };
     }
 
+    /**
+     * Compiles a `QuantifierNode`.
+     *
+     * Purpose: This method reconstructs a quantifier by appending the quantifier
+     * token (e.g., `*`, `+?`, `{2,5}+`) to the compiled child node. It also correctly
+     * wraps the child in a non-capturing group if necessary to avoid ambiguity.
+     *
+     * @param QuantifierNode $node the quantifier node to compile
+     *
+     * @return string the recompiled quantified expression
+     */
     public function visitQuantifier(QuantifierNode $node): string
     {
-        /** @var string $nodeCompiled */
         $nodeCompiled = $node->node->accept($this);
 
-        // Add non-capturing group if needed (e.g., "abc*" vs "(?:abc)*")
         if ($node->node instanceof SequenceNode || $node->node instanceof AlternationNode) {
             $nodeCompiled = '(?:'.$nodeCompiled.')';
         }
@@ -135,12 +177,21 @@ class CompilerNodeVisitor implements NodeVisitorInterface
         return $nodeCompiled.$node->quantifier.$suffix;
     }
 
+    /**
+     * Compiles a `LiteralNode`.
+     *
+     * Purpose: This method reconstructs a literal string, carefully escaping any
+     * characters that have a special meaning in the current context (e.g., escaping `[`
+     * outside a character class, but escaping `-` inside one).
+     *
+     * @param LiteralNode $node the literal node to compile
+     *
+     * @return string the escaped literal string
+     */
     public function visitLiteral(LiteralNode $node): string
     {
-        // Use different escaping rules depending on context
         $meta = $this->inCharClass ? self::CHAR_CLASS_META : self::META_CHARACTERS;
 
-        // Special case: ']' is not meta if it's not in a char class
         if (!$this->inCharClass && ']' === $node->value) {
             return $node->value;
         }
@@ -149,7 +200,6 @@ class CompilerNodeVisitor implements NodeVisitorInterface
         $length = mb_strlen($node->value);
         for ($i = 0; $i < $length; $i++) {
             $char = mb_substr($node->value, $i, 1);
-            // Always escape the delimiter character (both inside and outside char classes)
             if ($char === $this->delimiter || isset($meta[$char])) {
                 $result .= '\\'.$char;
             } else {
@@ -160,66 +210,154 @@ class CompilerNodeVisitor implements NodeVisitorInterface
         return $result;
     }
 
+    /**
+     * Compiles a `CharTypeNode`.
+     *
+     * Purpose: This method reconstructs a character type escape sequence like `\d` or `\s`.
+     *
+     * @param CharTypeNode $node the character type node to compile
+     *
+     * @return string the recompiled character type
+     */
     public function visitCharType(CharTypeNode $node): string
     {
-        // Re-add the backslash
         return '\\'.$node->value;
     }
 
+    /**
+     * Compiles a `DotNode`.
+     *
+     * Purpose: This method reconstructs the `.` wildcard character.
+     *
+     * @param DotNode $node the dot node to compile
+     *
+     * @return string The `.` character.
+     */
     public function visitDot(DotNode $node): string
     {
         return '.';
     }
 
+    /**
+     * Compiles an `AnchorNode`.
+     *
+     * Purpose: This method reconstructs an anchor like `^` or `$`.
+     *
+     * @param AnchorNode $node the anchor node to compile
+     *
+     * @return string the anchor character
+     */
     public function visitAnchor(AnchorNode $node): string
     {
         return $node->value;
     }
 
+    /**
+     * Compiles an `AssertionNode`.
+     *
+     * Purpose: This method reconstructs a zero-width assertion like `\b` or `\A`.
+     *
+     * @param AssertionNode $node the assertion node to compile
+     *
+     * @return string the recompiled assertion
+     */
     public function visitAssertion(AssertionNode $node): string
     {
         return '\\'.$node->value;
     }
 
+    /**
+     * Compiles a `KeepNode`.
+     *
+     * Purpose: This method reconstructs the `\K` escape sequence.
+     *
+     * @param KeepNode $node the keep node to compile
+     *
+     * @return string the `\K` sequence
+     */
     public function visitKeep(KeepNode $node): string
     {
         return '\K';
     }
 
+    /**
+     * Compiles a `CharClassNode`.
+     *
+     * Purpose: This method reconstructs a character class `[...]`. It sets a flag to
+     * ensure child nodes are escaped correctly for this context, adds the negation
+     * character `^` if needed, and wraps the compiled parts in brackets.
+     *
+     * @param CharClassNode $node the character class node to compile
+     *
+     * @return string the recompiled character class
+     */
     public function visitCharClass(CharClassNode $node): string
     {
-        $this->inCharClass = true; // Set context for visitLiteral
-
+        $this->inCharClass = true;
         $parts = implode('', array_map(fn ($part) => $part->accept($this), $node->parts));
         $result = '['.($node->isNegated ? '^' : '').$parts.']';
-
-        $this->inCharClass = false; // Unset context
+        $this->inCharClass = false;
 
         return $result;
     }
 
+    /**
+     * Compiles a `RangeNode`.
+     *
+     * Purpose: This method reconstructs a range within a character class by compiling
+     * the start and end nodes and joining them with a hyphen.
+     *
+     * @param RangeNode $node the range node to compile
+     *
+     * @return string the recompiled range string
+     */
     public function visitRange(RangeNode $node): string
     {
-        // Note: visitLiteral will handle escaping for start/end if they are meta-chars
         return $node->start->accept($this).'-'.$node->end->accept($this);
     }
 
+    /**
+     * Compiles a `BackrefNode`.
+     *
+     * Purpose: This method reconstructs a backreference like `\1` or `\k<name>`.
+     *
+     * @param BackrefNode $node the backreference node to compile
+     *
+     * @return string the recompiled backreference
+     */
     public function visitBackref(BackrefNode $node): string
     {
-        // For numeric backreferences, ensure backslash is present
         if (ctype_digit($node->ref)) {
             return '\\'.$node->ref;
         }
 
-        // For \g{N}, \k<name>, etc., return as-is
         return $node->ref;
     }
 
+    /**
+     * Compiles a `UnicodeNode`.
+     *
+     * Purpose: This method reconstructs a Unicode character escape like `\xHH`.
+     *
+     * @param UnicodeNode $node the Unicode node to compile
+     *
+     * @return string the recompiled Unicode escape
+     */
     public function visitUnicode(UnicodeNode $node): string
     {
-        return $node->code; // Already \xHH or \u{...}
+        return $node->code;
     }
 
+    /**
+     * Compiles a `UnicodePropNode`.
+     *
+     * Purpose: This method reconstructs a Unicode property escape, correctly choosing
+     * between the short form `\pL` and the full form `\p{Letter}`.
+     *
+     * @param UnicodePropNode $node the Unicode property node to compile
+     *
+     * @return string the recompiled Unicode property escape
+     */
     public function visitUnicodeProp(UnicodePropNode $node): string
     {
         if (str_starts_with($node->prop, '^')) {
@@ -233,29 +371,74 @@ class CompilerNodeVisitor implements NodeVisitorInterface
         return '\p'.$node->prop;
     }
 
+    /**
+     * Compiles an `OctalNode`.
+     *
+     * Purpose: This method reconstructs a modern octal escape `\o{...}`.
+     *
+     * @param OctalNode $node the octal node to compile
+     *
+     * @return string the recompiled octal escape
+     */
     public function visitOctal(OctalNode $node): string
     {
-        return $node->code; // Already \o{...}
+        return $node->code;
     }
 
+    /**
+     * Compiles an `OctalLegacyNode`.
+     *
+     * Purpose: This method reconstructs a legacy octal escape like `\077`.
+     *
+     * @param OctalLegacyNode $node the legacy octal node to compile
+     *
+     * @return string the recompiled legacy octal escape
+     */
     public function visitOctalLegacy(OctalLegacyNode $node): string
     {
         return '\\'.$node->code;
     }
 
+    /**
+     * Compiles a `PosixClassNode`.
+     *
+     * Purpose: This method reconstructs a POSIX character class like `[[:alpha:]]`.
+     *
+     * @param PosixClassNode $node the POSIX class node to compile
+     *
+     * @return string the recompiled POSIX class
+     */
     public function visitPosixClass(PosixClassNode $node): string
     {
         return '[[:'.$node->class.':]]';
     }
 
+    /**
+     * Compiles a `CommentNode`.
+     *
+     * Purpose: This method reconstructs an inline comment `(?#...)`.
+     *
+     * @param CommentNode $node the comment node to compile
+     *
+     * @return string the recompiled comment
+     */
     public function visitComment(CommentNode $node): string
     {
         return '(?#'.$node->comment.')';
     }
 
+    /**
+     * Compiles a `ConditionalNode`.
+     *
+     * Purpose: This method reconstructs a conditional subpattern `(?(cond)yes|no)`,
+     * correctly handling the syntax for the condition and the two branches.
+     *
+     * @param ConditionalNode $node the conditional node to compile
+     *
+     * @return string the recompiled conditional subpattern
+     */
     public function visitConditional(ConditionalNode $node): string
     {
-        // Special handling for condition: BackrefNode should output just the ref (no backslash)
         if ($node->condition instanceof BackrefNode) {
             $cond = $node->condition->ref;
         } else {
@@ -271,21 +454,49 @@ class CompilerNodeVisitor implements NodeVisitorInterface
         return '(?('.$cond.')'.$yes.'|'.$no.')';
     }
 
+    /**
+     * Compiles a `SubroutineNode`.
+     *
+     * Purpose: This method reconstructs a subroutine call, choosing the correct
+     * syntax (e.g., `(?R)`, `(?&name)`, `(?P>name)`) based on the node's properties.
+     *
+     * @param SubroutineNode $node the subroutine node to compile
+     *
+     * @return string the recompiled subroutine call
+     */
     public function visitSubroutine(SubroutineNode $node): string
     {
         return match ($node->syntax) {
             '&' => '(?&'.$node->reference.')',
             'P>' => '(?P>'.$node->reference.')',
-            'g' => '\g<'.$node->reference.'>', // Re-compile as \g<name>
-            default => '(?'.$node->reference.')', // Handles (?R), (?1), (?-1)
+            'g' => '\g<'.$node->reference.'>',
+            default => '(?'.$node->reference.')',
         };
     }
 
+    /**
+     * Compiles a `PcreVerbNode`.
+     *
+     * Purpose: This method reconstructs a PCRE verb like `(*FAIL)`.
+     *
+     * @param PcreVerbNode $node the PCRE verb node to compile
+     *
+     * @return string the recompiled PCRE verb
+     */
     public function visitPcreVerb(PcreVerbNode $node): string
     {
         return '(*'.$node->verb.')';
     }
 
+    /**
+     * Compiles a `DefineNode`.
+     *
+     * Purpose: This method reconstructs a `(?(DEFINE)...)` block.
+     *
+     * @param DefineNode $node the define node to compile
+     *
+     * @return string the recompiled DEFINE block
+     */
     public function visitDefine(DefineNode $node): string
     {
         return '(?(DEFINE)'.$node->content->accept($this).')';

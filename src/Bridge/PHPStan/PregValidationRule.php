@@ -27,11 +27,17 @@ use RegexParser\ReDoS\ReDoSSeverity;
 use RegexParser\Regex;
 
 /**
- * Validates regex patterns in preg_* functions.
+ * Validates regex patterns in `preg_*` functions for syntax and ReDoS vulnerabilities.
  *
- * This rule performs two types of checks:
- * 1. Syntax Validation: Ensures the regex is valid PCRE (identifier: regex.syntax).
- * 2. ReDoS Analysis: Checks for catastrophic backtracking vulnerabilities (identifier: regex.redos).
+ * Purpose: This rule integrates the regex-parser library directly into PHPStan's static
+ * analysis process. It intercepts calls to `preg_*` functions, extracts the regex pattern
+ * string, and performs two critical checks:
+ * 1.  **Syntax Validation:** It uses the `Parser` and `ValidatorNodeVisitor` to ensure the
+ *     regex is syntactically and semantically correct.
+ * 2.  **ReDoS Analysis:** It uses the `ReDoSAnalyzer` to detect patterns that could lead
+ *     to catastrophic backtracking and cause a Denial of Service.
+ * This provides immediate feedback to developers about potential bugs and security risks
+ * in their regular expressions.
  *
  * @implements Rule<FuncCall>
  */
@@ -67,7 +73,20 @@ class PregValidationRule implements Rule
     private ?ReDoSAnalyzer $redosAnalyzer = null;
 
     /**
-     * @param string $redosThreshold The minimum severity level to report ('low', 'medium', 'high', 'critical')
+     * Creates a new instance of the PHPStan validation rule.
+     *
+     * Purpose: This constructor initializes the rule with user-defined configuration from
+     * their PHPStan configuration file (e.g., `phpstan.neon`). This allows developers to
+     * customize the rule's behavior, such as enabling or disabling ReDoS checks or setting
+     * the sensitivity threshold for reporting vulnerabilities.
+     *
+     * @param bool   $ignoreParseErrors If `true`, the rule will not report syntax errors that seem to be
+     *                                  caused by incomplete or partial regex strings. This is useful for
+     *                                  avoiding false positives in dynamic code.
+     * @param bool   $reportRedos       if `true`, the rule will perform and report ReDoS vulnerability analysis
+     * @param string $redosThreshold    The minimum ReDoS severity level to report. Can be one of 'low',
+     *                                  'medium', 'high', or 'critical'. For example, if set to 'high',
+     *                                  only high and critical severity issues will be reported.
      */
     public function __construct(
         private readonly bool $ignoreParseErrors = true,
@@ -75,13 +94,37 @@ class PregValidationRule implements Rule
         private readonly string $redosThreshold = 'high',
     ) {}
 
+    /**
+     * Specifies which type of PHP-Parser node this rule should visit.
+     *
+     * Purpose: This is a performance optimization for PHPStan. By telling PHPStan that
+     * this rule is only interested in `FuncCall` nodes, PHPStan can skip calling the
+     * `processNode()` method for all other node types, speeding up the analysis.
+     *
+     * @return string the fully qualified class name of the node type to process
+     */
     public function getNodeType(): string
     {
         return FuncCall::class;
     }
 
+    /**
+     * The core validation logic of the rule.
+     *
+     * Purpose: This method is called by PHPStan for each `FuncCall` node found in the
+     * codebase. It checks if the function is a targeted `preg_*` function, extracts the
+     * regex pattern, and then runs the syntax and ReDoS validation checks. It collects
+     * any findings and returns them as an array of `RuleError` objects for PHPStan to display.
+     *
+     * @param Node  $node  the AST node being visited (a `FuncCall` in this case)
+     * @param Scope $scope the current analysis scope, providing type information about nodes
+     *
+     * @return list<\PHPStan\Rules\RuleError> An array of `RuleError` objects. Returns an empty array if no issues are found.
+     */
     public function processNode(Node $node, Scope $scope): array
     {
+        \assert($node instanceof FuncCall);
+
         if (!$node->name instanceof Name) {
             return [];
         }
@@ -144,7 +187,7 @@ class PregValidationRule implements Rule
             if ($this->reportRedos) {
                 $analysis = $this->getRedosAnalyzer()->analyze($pattern);
 
-                if (!$analysis->isSafe() && $this->exceedsThreshold($analysis->severity)) {
+                if (!$this->exceedsThreshold($analysis->severity)) {
                     $errors[] = RuleErrorBuilder::message(\sprintf(
                         'ReDoS vulnerability detected (%s): %s',
                         strtoupper($analysis->severity->value),

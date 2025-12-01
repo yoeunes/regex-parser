@@ -25,13 +25,18 @@ namespace RegexParser;
 readonly class LiteralSet
 {
     /**
-     * Creates a new LiteralSet.
+     * Creates a new, immutable LiteralSet instance.
+     *
+     * Purpose: This constructor initializes the data structure that holds extracted literal
+     * strings. As a contributor, you'll see this used by the `LiteralExtractorNodeVisitor`
+     * to build up knowledge about the constant parts of a regular expression. It's the
+     * foundational building block for literal analysis.
      *
      * @param array<string> $prefixes an array of possible literal strings that can appear at the beginning of a match
      * @param array<string> $suffixes an array of possible literal strings that can appear at the end of a match
-     * @param bool          $complete If true, it means the prefixes and suffixes represent the *entire* possible match.
-     *                                For example, the regex `/cat/` would have a complete set `{"cat"}`, while `/cat\d+/`
-     *                                would have an incomplete set with prefix `{"cat"}`.
+     * @param bool          $complete If true, indicates that the prefixes and suffixes represent the *entire*
+     *                                possible match. For example, the regex `/cat/` would have a complete set
+     *                                `{"cat"}`, while `/cat\d+/` would have an incomplete set with prefix `{"cat"}`.
      */
     public function __construct(
         public array $prefixes = [],

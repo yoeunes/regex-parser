@@ -41,40 +41,58 @@ use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
 
 /**
- * A visitor that transforms the AST to apply optimizations.
- * It returns a new (or identical) NodeInterface for each node visited.
- * This allows for true AST-to-AST transformation.
+ * Transforms the AST to apply optimizations, returning a new, simplified AST.
  *
- * Optimizations include:
- * - Merging adjacent LiteralNodes
- * - Flattening nested SequenceNodes and AlternationNodes
- * - Converting simple alternations to CharacterClasses (e.g., a|b|c -> [abc])
- * - Simplifying character classes (e.g., [0-9] -> \d)
- * - Removing redundant non-capturing groups
+ * Purpose: This visitor is the engine behind `Regex::optimize()`. It traverses the
+ * AST and applies a series of rules to simplify the regex without changing its
+ * meaning. This can lead to more readable and sometimes more performant patterns.
+ * For contributors, this class is a great example of AST-to-AST transformation.
+ * Each `visit` method can return a new, modified node, effectively rewriting
+ * parts of the tree.
  *
  * @implements NodeVisitorInterface<NodeInterface>
  */
 class OptimizerNodeVisitor implements NodeVisitorInterface
 {
-    /**
-     * Characters that are meta-characters inside a character class.
-     */
     private const array CHAR_CLASS_META = [']' => true, '\\' => true, '^' => true, '-' => true];
 
     private string $flags = '';
 
+    /**
+     * Optimizes the root `RegexNode`.
+     *
+     * Purpose: This is the entry point for the optimization. It stores the regex
+     * flags for context-aware optimizations (like unicode-dependent rules) and then
+     * recursively optimizes the main pattern.
+     *
+     * @param RegexNode $node the root node of the AST
+     *
+     * @return NodeInterface the new, optimized root node
+     */
     public function visitRegex(RegexNode $node): NodeInterface
     {
         $this->flags = $node->flags;
         $optimizedPattern = $node->pattern->accept($this);
 
         if ($optimizedPattern === $node->pattern) {
-            return $node; // No changes
+            return $node;
         }
 
         return new RegexNode($optimizedPattern, $node->flags, $node->delimiter, $node->startPosition, $node->endPosition);
     }
 
+    /**
+     * Optimizes an `AlternationNode`.
+     *
+     * Purpose: This method applies two key optimizations:
+     * 1.  **Flattening:** It merges nested alternations (e.g., `a|(b|c)` becomes `a|b|c`).
+     * 2.  **Character Class Conversion:** It converts simple alternations of single
+     *     characters into a more efficient character class (e.g., `a|b|c` becomes `[abc]`).
+     *
+     * @param AlternationNode $node the alternation node to optimize
+     *
+     * @return NodeInterface the new, optimized node (which could be an `AlternationNode` or `CharClassNode`)
+     */
     public function visitAlternation(AlternationNode $node): NodeInterface
     {
         $optimizedAlts = [];
@@ -83,7 +101,6 @@ class OptimizerNodeVisitor implements NodeVisitorInterface
         foreach ($node->alternatives as $alt) {
             $optimizedAlt = $alt->accept($this);
 
-            // Optimization: Flatten nested alternations (e.g., a|(b|c))
             if ($optimizedAlt instanceof AlternationNode) {
                 array_push($optimizedAlts, ...$optimizedAlt->alternatives);
                 $hasChanged = true;
@@ -96,7 +113,6 @@ class OptimizerNodeVisitor implements NodeVisitorInterface
             }
         }
 
-        // Optimization: a|b|c -> [abc]
         if ($this->canAlternationBeCharClass($optimizedAlts)) {
             /* @var list<LiteralNode> $optimizedAlts */
             return new CharClassNode($optimizedAlts, false, $node->startPosition, $node->endPosition);
@@ -109,6 +125,20 @@ class OptimizerNodeVisitor implements NodeVisitorInterface
         return new AlternationNode($optimizedAlts, $node->startPosition, $node->endPosition);
     }
 
+    /**
+     * Optimizes a `SequenceNode`.
+     *
+     * Purpose: This method applies several optimizations to sequences:
+     * 1.  **Literal Merging:** It combines adjacent `LiteralNode`s into a single node
+     *     (e.g., the sequence `('a', 'b')` becomes `('ab')`).
+     * 2.  **Flattening:** It merges nested sequences into the parent sequence.
+     * 3.  **Empty Node Removal:** It removes empty `LiteralNode`s that might result
+     *     from other optimizations (like an empty group).
+     *
+     * @param SequenceNode $node the sequence node to optimize
+     *
+     * @return NodeInterface the new, optimized node (which could be a `SequenceNode` or a single child node)
+     */
     public function visitSequence(SequenceNode $node): NodeInterface
     {
         $optimizedChildren = [];
@@ -117,11 +147,9 @@ class OptimizerNodeVisitor implements NodeVisitorInterface
         foreach ($node->children as $child) {
             $optimizedChild = $child->accept($this);
 
-            // Optimization: Merge adjacent literals (e.g., "a" . "b" -> "ab")
             if ($optimizedChild instanceof LiteralNode && \count($optimizedChildren) > 0) {
                 $prevNode = $optimizedChildren[\count($optimizedChildren) - 1];
                 if ($prevNode instanceof LiteralNode) {
-                    // Merge with previous node
                     $optimizedChildren[\count($optimizedChildren) - 1] = new LiteralNode(
                         $prevNode->value.$optimizedChild->value,
                         $prevNode->startPosition,
@@ -133,17 +161,13 @@ class OptimizerNodeVisitor implements NodeVisitorInterface
                 }
             }
 
-            // Optimization: Flatten nested sequences (e.g., a(bc)d)
             if ($optimizedChild instanceof SequenceNode) {
-                // This is safe because adjacent literals *within* the child
-                // sequence have already been merged by its own visitSequence call.
                 array_push($optimizedChildren, ...$optimizedChild->children);
                 $hasChanged = true;
 
                 continue;
             }
 
-            // Optimization: Remove empty literals (e.g. from an empty group)
             if ($optimizedChild instanceof LiteralNode && '' === $optimizedChild->value) {
                 $hasChanged = true;
 
@@ -161,12 +185,10 @@ class OptimizerNodeVisitor implements NodeVisitorInterface
             return $node;
         }
 
-        // A sequence with one child is just that child
         if (1 === \count($optimizedChildren)) {
             return $optimizedChildren[0];
         }
 
-        // A sequence with no children is an empty literal
         if (0 === \count($optimizedChildren)) {
             return new LiteralNode('', $node->startPosition, $node->endPosition);
         }
@@ -174,23 +196,30 @@ class OptimizerNodeVisitor implements NodeVisitorInterface
         return new SequenceNode($optimizedChildren, $node->startPosition, $node->endPosition);
     }
 
+    /**
+     * Optimizes a `GroupNode`.
+     *
+     * Purpose: This method simplifies groups where possible. Its main optimization is
+     * to "unwrap" redundant non-capturing groups. For example, `(?:a)` is simplified
+     * to just `a`, and `(?:[a-z])` becomes `[a-z]`, as the group serves no purpose.
+     *
+     * @param GroupNode $node the group node to optimize
+     *
+     * @return NodeInterface the new, optimized node (which might be the unwrapped child node)
+     */
     public function visitGroup(GroupNode $node): NodeInterface
     {
         $optimizedChild = $node->child->accept($this);
 
-        // Optimization: (?:a) -> a
-        // A non-capturing group with a single, simple child can be unwrapped.
         if (
             GroupType::T_GROUP_NON_CAPTURING === $node->type
             && ($optimizedChild instanceof LiteralNode
                 || $optimizedChild instanceof CharTypeNode
                 || $optimizedChild instanceof DotNode)
         ) {
-            return $optimizedChild; // Return the child directly
+            return $optimizedChild;
         }
 
-        // Optimization: (?:[abc]) -> [abc]
-        // A non-capturing group with only a CharClassNode can be unwrapped.
         if (
             GroupType::T_GROUP_NON_CAPTURING === $node->type
             && $optimizedChild instanceof CharClassNode
@@ -198,28 +227,27 @@ class OptimizerNodeVisitor implements NodeVisitorInterface
             return $optimizedChild;
         }
 
-        // Re-build group if child changed
         if ($optimizedChild !== $node->child) {
             return new GroupNode($optimizedChild, $node->type, $node->name, $node->flags, $node->startPosition, $node->endPosition);
         }
 
-        return $node; // No changes
+        return $node;
     }
 
+    /**
+     * Optimizes a `QuantifierNode`.
+     *
+     * Purpose: This method recursively optimizes the node that the quantifier applies
+     * to. Future optimizations could be added here, such as merging adjacent identical
+     * quantifiers (e.g., `a?a?` -> `a{0,2}`) or simplifying nested quantifiers (e.g., `(a*)*` -> `a*`).
+     *
+     * @param QuantifierNode $node the quantifier node to optimize
+     *
+     * @return NodeInterface the new, optimized quantifier node
+     */
     public function visitQuantifier(QuantifierNode $node): NodeInterface
     {
         $optimizedNode = $node->node->accept($this);
-
-        // Optimization: (?:a)* -> a*
-        // If the quantified node was a non-capturing group that got
-        // optimized away (e.g. (?:a)), $optimizedNode is now just Literal(a).
-        // The QuantifierNode constructor doesn't need to change, but
-        // the CompilerNodeVisitor must be smart about adding (?:...) back
-        // *only* if the quantified node is a Sequence or Alternation.
-        // Your CompilerNodeVisitor already does this, so we are good.
-
-        // TODO: Add (a*)* -> (a*)
-        // TODO: Add a?a? -> a{0,2}
 
         if ($optimizedNode !== $node->node) {
             return new QuantifierNode($optimizedNode, $node->quantifier, $node->type, $node->startPosition, $node->endPosition);
@@ -228,12 +256,21 @@ class OptimizerNodeVisitor implements NodeVisitorInterface
         return $node;
     }
 
+    /**
+     * Optimizes a `CharClassNode`.
+     *
+     * Purpose: This method simplifies character classes. For example, it can convert
+     * a class containing a full digit range `[0-9]` into the more concise and efficient
+     * `\d` token. It can also perform the same optimization for `\w`.
+     *
+     * @param CharClassNode $node the character class node to optimize
+     *
+     * @return NodeInterface the new, optimized node (which could be a `CharTypeNode`)
+     */
     public function visitCharClass(CharClassNode $node): NodeInterface
     {
-        // This is where the logic from your Rector visitor belongs.
         $isUnicode = str_contains($this->flags, 'u');
 
-        // Optimization: [0-9] -> \d (only if NOT unicode)
         if (!$isUnicode && !$node->isNegated && 1 === \count($node->parts)) {
             $part = $node->parts[0];
             if ($part instanceof RangeNode && $part->start instanceof LiteralNode && $part->end instanceof LiteralNode) {
@@ -243,17 +280,12 @@ class OptimizerNodeVisitor implements NodeVisitorInterface
             }
         }
 
-        // Optimization: [a-zA-Z0-9_] -> \w (only if NOT unicode)
         if (!$isUnicode && !$node->isNegated && 4 === \count($node->parts)) {
             if ($this->isFullWordClass($node)) {
                 return new CharTypeNode('w', $node->startPosition, $node->endPosition);
             }
         }
 
-        // TODO: Optimization: [a-cdefg] -> [a-g] (merge ranges)
-        // TODO: Optimization: [aa] -> [a] (deduplicate literals)
-
-        // Recurse into parts (though not much to optimize in class parts)
         $optimizedParts = [];
         $hasChanged = false;
         foreach ($node->parts as $part) {
@@ -271,12 +303,31 @@ class OptimizerNodeVisitor implements NodeVisitorInterface
         return $node;
     }
 
+    /**
+     * Visits a `RangeNode`.
+     *
+     * Purpose: Ranges are considered atomic and are not changed by the optimizer.
+     * This method simply returns the node as is.
+     *
+     * @param RangeNode $node the range node
+     *
+     * @return NodeInterface the unchanged node
+     */
     public function visitRange(RangeNode $node): NodeInterface
     {
-        // Start and End are simple nodes, no need to visit
         return $node;
     }
 
+    /**
+     * Optimizes a `ConditionalNode`.
+     *
+     * Purpose: This method recursively optimizes the three branches of a conditional
+     * node: the condition, the "yes" pattern, and the "no" pattern.
+     *
+     * @param ConditionalNode $node the conditional node to optimize
+     *
+     * @return NodeInterface the new, optimized conditional node
+     */
     public function visitConditional(ConditionalNode $node): NodeInterface
     {
         $optimizedCond = $node->condition->accept($this);
@@ -290,83 +341,226 @@ class OptimizerNodeVisitor implements NodeVisitorInterface
         return $node;
     }
 
-    // --- Simple nodes are leaves; they cannot be optimized further ---
-
+    /**
+     * Visits a `LiteralNode`.
+     *
+     * Purpose: Literals are atomic and cannot be optimized further by this visitor.
+     * The merging of adjacent literals is handled by the `visitSequence` method.
+     *
+     * @param LiteralNode $node the literal node
+     *
+     * @return NodeInterface the unchanged node
+     */
     public function visitLiteral(LiteralNode $node): NodeInterface
     {
         return $node;
     }
 
+    /**
+     * Visits a `CharTypeNode`.
+     *
+     * Purpose: Character types like `\d` are already in their most optimal form.
+     *
+     * @param CharTypeNode $node the character type node
+     *
+     * @return NodeInterface the unchanged node
+     */
     public function visitCharType(CharTypeNode $node): NodeInterface
     {
         return $node;
     }
 
+    /**
+     * Visits a `DotNode`.
+     *
+     * Purpose: The `.` wildcard is atomic and cannot be optimized.
+     *
+     * @param DotNode $node the dot node
+     *
+     * @return NodeInterface the unchanged node
+     */
     public function visitDot(DotNode $node): NodeInterface
     {
         return $node;
     }
 
+    /**
+     * Visits an `AnchorNode`.
+     *
+     * Purpose: Anchors like `^` and `$` are atomic and cannot be optimized.
+     *
+     * @param AnchorNode $node the anchor node
+     *
+     * @return NodeInterface the unchanged node
+     */
     public function visitAnchor(AnchorNode $node): NodeInterface
     {
         return $node;
     }
 
+    /**
+     * Visits an `AssertionNode`.
+     *
+     * Purpose: Assertions like `\b` are atomic and cannot be optimized.
+     *
+     * @param AssertionNode $node the assertion node
+     *
+     * @return NodeInterface the unchanged node
+     */
     public function visitAssertion(AssertionNode $node): NodeInterface
     {
         return $node;
     }
 
+    /**
+     * Visits a `KeepNode`.
+     *
+     * Purpose: The `\K` assertion is atomic and cannot be optimized.
+     *
+     * @param KeepNode $node the keep node
+     *
+     * @return NodeInterface the unchanged node
+     */
     public function visitKeep(KeepNode $node): NodeInterface
     {
         return $node;
     }
 
+    /**
+     * Visits a `BackrefNode`.
+     *
+     * Purpose: Backreferences are dynamic and cannot be optimized.
+     *
+     * @param BackrefNode $node the backreference node
+     *
+     * @return NodeInterface the unchanged node
+     */
     public function visitBackref(BackrefNode $node): NodeInterface
     {
         return $node;
     }
 
+    /**
+     * Visits a `UnicodeNode`.
+     *
+     * Purpose: Unicode character escapes are atomic and cannot be optimized.
+     *
+     * @param UnicodeNode $node the Unicode node
+     *
+     * @return NodeInterface the unchanged node
+     */
     public function visitUnicode(UnicodeNode $node): NodeInterface
     {
         return $node;
     }
 
+    /**
+     * Visits a `UnicodePropNode`.
+     *
+     * Purpose: Unicode property escapes are atomic and cannot be optimized.
+     *
+     * @param UnicodePropNode $node the Unicode property node
+     *
+     * @return NodeInterface the unchanged node
+     */
     public function visitUnicodeProp(UnicodePropNode $node): NodeInterface
     {
         return $node;
     }
 
+    /**
+     * Visits an `OctalNode`.
+     *
+     * Purpose: Octal character escapes are atomic and cannot be optimized.
+     *
+     * @param OctalNode $node the octal node
+     *
+     * @return NodeInterface the unchanged node
+     */
     public function visitOctal(OctalNode $node): NodeInterface
     {
         return $node;
     }
 
+    /**
+     * Visits an `OctalLegacyNode`.
+     *
+     * Purpose: Legacy octal escapes are atomic and cannot be optimized.
+     *
+     * @param OctalLegacyNode $node the legacy octal node
+     *
+     * @return NodeInterface the unchanged node
+     */
     public function visitOctalLegacy(OctalLegacyNode $node): NodeInterface
     {
         return $node;
     }
 
+    /**
+     * Visits a `PosixClassNode`.
+     *
+     * Purpose: POSIX classes are atomic and cannot be optimized further.
+     *
+     * @param PosixClassNode $node the POSIX class node
+     *
+     * @return NodeInterface the unchanged node
+     */
     public function visitPosixClass(PosixClassNode $node): NodeInterface
     {
         return $node;
     }
 
+    /**
+     * Visits a `CommentNode`.
+     *
+     * Purpose: Comments do not affect matching and are preserved as is.
+     *
+     * @param CommentNode $node the comment node
+     *
+     * @return NodeInterface the unchanged node
+     */
     public function visitComment(CommentNode $node): NodeInterface
     {
         return $node;
     }
 
+    /**
+     * Visits a `SubroutineNode`.
+     *
+     * Purpose: Subroutine calls are dynamic and cannot be optimized.
+     *
+     * @param SubroutineNode $node the subroutine node
+     *
+     * @return NodeInterface the unchanged node
+     */
     public function visitSubroutine(SubroutineNode $node): NodeInterface
     {
         return $node;
     }
 
+    /**
+     * Visits a `PcreVerbNode`.
+     *
+     * Purpose: PCRE verbs control the matching engine and are not optimized.
+     *
+     * @param PcreVerbNode $node the PCRE verb node
+     *
+     * @return NodeInterface the unchanged node
+     */
     public function visitPcreVerb(PcreVerbNode $node): NodeInterface
     {
         return $node;
     }
 
+    /**
+     * Optimizes a `DefineNode`.
+     *
+     * Purpose: This method recursively optimizes the content within a `(?(DEFINE)...)` block.
+     *
+     * @param DefineNode $node the define node to optimize
+     *
+     * @return NodeInterface the new, optimized define node
+     */
     public function visitDefine(DefineNode $node): NodeInterface
     {
         return new DefineNode(
@@ -377,8 +571,6 @@ class OptimizerNodeVisitor implements NodeVisitorInterface
     }
 
     /**
-     * Checks if an AlternationNode contains only single, non-meta literal characters.
-     *
      * @param array<NodeInterface> $alternatives
      */
     private function canAlternationBeCharClass(array $alternatives): bool
@@ -392,10 +584,10 @@ class OptimizerNodeVisitor implements NodeVisitorInterface
                 return false;
             }
             if (mb_strlen($alt->value) > 1) {
-                return false; // Not a single char
+                return false;
             }
             if (isset(self::CHAR_CLASS_META[$alt->value])) {
-                return false; // Meta char, safer to leave as alternation
+                return false;
             }
         }
 
