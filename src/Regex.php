@@ -79,7 +79,16 @@ readonly class Regex
      */
     public function parse(string $regex): RegexNode
     {
-        return $this->parseRegex($regex);
+        if (\strlen($regex) > $this->maxPatternLength) {
+            throw new ParserException(\sprintf('Regex pattern exceeds maximum length of %d characters.', $this->maxPatternLength));
+        }
+
+        [$pattern, $flags, $delimiter] = $this->extractPatternAndFlags($regex);
+
+        $stream = $this->createTokenStream($pattern);
+        $parser = $this->getParser();
+
+        return $parser->parse($stream, $flags, $delimiter, \strlen($pattern));
     }
 
     /**
@@ -88,7 +97,7 @@ readonly class Regex
     public function validate(string $regex): ValidationResult
     {
         try {
-            $ast = $this->parseRegex($regex);
+            $ast = $this->parse($regex);
             $validator = clone $this->validator;
             $ast->accept($validator);
 
@@ -108,7 +117,7 @@ readonly class Regex
      */
     public function explain(string $regex): string
     {
-        $ast = $this->parseRegex($regex);
+        $ast = $this->parse($regex);
 
         return $ast->accept(clone $this->explainer);
     }
@@ -120,7 +129,7 @@ readonly class Regex
      */
     public function generate(string $regex): string
     {
-        $ast = $this->parseRegex($regex);
+        $ast = $this->parse($regex);
 
         return $ast->accept(clone $this->generator);
     }
@@ -132,7 +141,7 @@ readonly class Regex
      */
     public function optimize(string $regex): string
     {
-        $ast = $this->parseRegex($regex);
+        $ast = $this->parse($regex);
 
         $optimizedAst = $ast->accept(clone $this->optimizer);
 
@@ -150,7 +159,7 @@ readonly class Regex
      */
     public function visualize(string $regex): string
     {
-        $ast = $this->parseRegex($regex);
+        $ast = $this->parse($regex);
 
         return $ast->accept(new NodeVisitor\MermaidNodeVisitor());
     }
@@ -162,7 +171,7 @@ readonly class Regex
      */
     public function dump(string $regex): string
     {
-        $ast = $this->parseRegex($regex);
+        $ast = $this->parse($regex);
 
         return $ast->accept(clone $this->dumper);
     }
@@ -175,7 +184,7 @@ readonly class Regex
      */
     public function extractLiterals(string $regex): LiteralSet
     {
-        $ast = $this->parseRegex($regex);
+        $ast = $this->parse($regex);
 
         $visitor = new NodeVisitor\LiteralExtractorNodeVisitor();
 
@@ -275,24 +284,5 @@ readonly class Regex
         }
 
         throw new ParserException(\sprintf('No closing delimiter "%s" found.', $closingDelimiter));
-    }
-
-    /**
-     * Internal method to parse a regex string using the decoupled Lexer and Parser.
-     *
-     * @throws LexerException|ParserException
-     */
-    private function parseRegex(string $regex): RegexNode
-    {
-        if (\strlen($regex) > $this->maxPatternLength) {
-            throw new ParserException(\sprintf('Regex pattern exceeds maximum length of %d characters.', $this->maxPatternLength));
-        }
-
-        [$pattern, $flags, $delimiter] = $this->extractPatternAndFlags($regex);
-
-        $stream = $this->createTokenStream($pattern);
-        $parser = $this->getParser();
-
-        return $parser->parse($stream, $flags, $delimiter, \strlen($pattern));
     }
 }
