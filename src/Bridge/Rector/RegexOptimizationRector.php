@@ -86,7 +86,7 @@ class RegexOptimizationRector extends AbstractRector implements ConfigurableRect
      * As a contributor, if you change the rule's behavior or add new configuration,
      * you must update this definition to reflect those changes.
      *
-     * @return RuleDefinition The definition of the rule.
+     * @return RuleDefinition the definition of the rule
      */
     public function getRuleDefinition(): RuleDefinition
     {
@@ -129,9 +129,7 @@ class RegexOptimizationRector extends AbstractRector implements ConfigurableRect
      * into the rector's target list, making the rule adaptable to different codebases.
      *
      * @param array<string, mixed> $configuration The configuration array from the user's `rector.php` file.
-     *        Expected keys are `EXTRA_FUNCTIONS` and `EXTRA_CONSTANTS`.
-     *
-     * @return void
+     *                                            Expected keys are `EXTRA_FUNCTIONS` and `EXTRA_CONSTANTS`.
      */
     public function configure(array $configuration): void
     {
@@ -156,7 +154,7 @@ class RegexOptimizationRector extends AbstractRector implements ConfigurableRect
      * skip calling the `refactor()` method for all other node types, speeding up the
      * overall analysis process.
      *
-     * @return array<class-string<Node>> The list of node types to process.
+     * @return array<class-string<Node>> the list of node types to process
      */
     public function getNodeTypes(): array
     {
@@ -172,9 +170,9 @@ class RegexOptimizationRector extends AbstractRector implements ConfigurableRect
      * `CompilerNodeVisitor` to generate the new, optimized regex string. If the string
      * has changed, it modifies the node in place.
      *
-     * @param Node $node The AST node being visited (either a `FuncCall` or `ClassConst`).
+     * @param Node $node the AST node being visited (either a `FuncCall` or `ClassConst`)
      *
-     * @return Node|null The modified node if a change was made, or null if no change was needed.
+     * @return Node|null the modified node if a change was made, or null if no change was needed
      */
     public function refactor(Node $node): ?Node
     {

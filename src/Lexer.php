@@ -167,13 +167,13 @@ class Lexer
      * @param string $pattern The raw regular expression pattern to be tokenized. For correct
      *                        operation, this string must be UTF-8 encoded.
      *
-     * @return TokenStream An object containing the full sequence of `Token` objects. This
-     *                     stream is ready to be consumed by the `Parser`.
-     *
      * @throws LexerException Thrown under two conditions:
      *                        1. The input `$pattern` is not a valid UTF-8 string.
      *                        2. A sequence of characters is found that does not match any
-     *                           known token definition, indicating a lexical syntax error.
+     *                        known token definition, indicating a lexical syntax error.
+     *
+     * @return TokenStream An object containing the full sequence of `Token` objects. This
+     *                     stream is ready to be consumed by the `Parser`.
      *
      * @example
      * ```php

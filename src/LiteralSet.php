@@ -27,11 +27,11 @@ readonly class LiteralSet
     /**
      * Creates a new LiteralSet.
      *
-     * @param string[] $prefixes An array of possible literal strings that can appear at the beginning of a match.
-     * @param string[] $suffixes An array of possible literal strings that can appear at the end of a match.
-     * @param bool $complete If true, it means the prefixes and suffixes represent the *entire* possible match.
-     *                       For example, the regex `/cat/` would have a complete set `{"cat"}`, while `/cat\d+/`
-     *                       would have an incomplete set with prefix `{"cat"}`.
+     * @param array<string> $prefixes an array of possible literal strings that can appear at the beginning of a match
+     * @param array<string> $suffixes an array of possible literal strings that can appear at the end of a match
+     * @param bool          $complete If true, it means the prefixes and suffixes represent the *entire* possible match.
+     *                                For example, the regex `/cat/` would have a complete set `{"cat"}`, while `/cat\d+/`
+     *                                would have an incomplete set with prefix `{"cat"}`.
      */
     public function __construct(
         public array $prefixes = [],
@@ -46,7 +46,7 @@ readonly class LiteralSet
      * literal set. It represents a regex component that does not contribute any known
      * literal characters, such as `\d+` or `.*`.
      *
-     * @return self An empty LiteralSet instance.
+     * @return self an empty LiteralSet instance
      */
     public static function empty(): self
     {
@@ -60,9 +60,9 @@ readonly class LiteralSet
      * a `LiteralNode`. It creates a "complete" set, indicating that this part of the
      * regex matches this exact string and nothing else.
      *
-     * @param string $literal The literal string that makes up the entire match.
+     * @param string $literal the literal string that makes up the entire match
      *
-     * @return self A new, complete LiteralSet containing the provided string.
+     * @return self a new, complete LiteralSet containing the provided string
      */
     public static function fromString(string $literal): self
     {
@@ -78,9 +78,9 @@ readonly class LiteralSet
      * `{"a"}` and `{"b"}` results in `{"ab"}`. If the first set is "complete", its prefixes
      * are prepended to the second set's prefixes.
      *
-     * @param self $other The LiteralSet to append to the current one.
+     * @param self $other the LiteralSet to append to the current one
      *
-     * @return self A new LiteralSet representing the combined sequence.
+     * @return self a new LiteralSet representing the combined sequence
      *
      * @example
      * ```php
@@ -140,9 +140,9 @@ readonly class LiteralSet
      * set's prefixes are the union of all branch prefixes, and the same applies to suffixes.
      * The resulting set is only "complete" if *all* branches were themselves complete.
      *
-     * @param self $other The LiteralSet representing the alternate branch.
+     * @param self $other the LiteralSet representing the alternate branch
      *
-     * @return self A new LiteralSet representing the combined alternation.
+     * @return self a new LiteralSet representing the combined alternation
      *
      * @example
      * ```php
@@ -171,7 +171,7 @@ readonly class LiteralSet
      * identified (e.g., from an alternation like `(cat|kitten)`), choosing the longest
      * one for a pre-match `strpos` check can sometimes be a more effective heuristic.
      *
-     * @return string|null The longest prefix string, or null if no prefixes exist.
+     * @return string|null the longest prefix string, or null if no prefixes exist
      */
     public function getLongestPrefix(): ?string
     {
@@ -185,7 +185,7 @@ readonly class LiteralSet
      * that can be performed from the end of a string. It finds the longest guaranteed
      * suffix from all the possibilities identified by the extractor.
      *
-     * @return string|null The longest suffix string, or null if no suffixes exist.
+     * @return string|null the longest suffix string, or null if no suffixes exist
      */
     public function getLongestSuffix(): ?string
     {
@@ -199,7 +199,7 @@ readonly class LiteralSet
      * constant strings (e.g., `\w+` or `[a-z]*`). This check allows the extractor logic
      * to identify when a component offers no literal information to contribute.
      *
-     * @return bool True if both prefixes and suffixes are empty, false otherwise.
+     * @return bool true if both prefixes and suffixes are empty, false otherwise
      */
     public function isVoid(): bool
     {

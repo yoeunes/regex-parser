@@ -27,12 +27,12 @@ readonly class ValidationResult
     /**
      * Creates a new ValidationResult instance.
      *
-     * @param bool $isValid True if the regex pattern is syntactically and semantically valid, false otherwise.
-     * @param string|null $error If validation fails, this contains a human-readable message explaining the issue.
-     *                           It is null for valid patterns.
-     * @param int $complexityScore A numerical score representing the calculated complexity of the regex.
-     *                             Higher scores may indicate a higher risk of ReDoS-like behavior. This is
-     *                             provided even for valid patterns.
+     * @param bool        $isValid         true if the regex pattern is syntactically and semantically valid, false otherwise
+     * @param string|null $error           If validation fails, this contains a human-readable message explaining the issue.
+     *                                     It is null for valid patterns.
+     * @param int         $complexityScore A numerical score representing the calculated complexity of the regex.
+     *                                     Higher scores may indicate a higher risk of ReDoS-like behavior. This is
+     *                                     provided even for valid patterns.
      */
     public function __construct(
         public bool $isValid,

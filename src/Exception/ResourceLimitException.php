@@ -19,7 +19,7 @@ namespace RegexParser\Exception;
  * Purpose: This exception acts as a safeguard to prevent resource exhaustion, which could
  * lead to a Denial of Service (DoS) vulnerability. It is thrown by the `Parser` if the
  * number of AST nodes generated during parsing exceeds a predefined threshold. This is
-* crucial for safely handling complex or maliciously crafted regular expressions that
+ * crucial for safely handling complex or maliciously crafted regular expressions that
  * would otherwise consume excessive memory.
  *
  * @see \RegexParser\Parser

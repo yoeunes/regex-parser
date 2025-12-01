@@ -27,12 +27,12 @@ readonly class Token
     /**
      * Creates a new Token instance.
      *
-     * @param TokenType $type The category of the token, such as a literal, quantifier, or group opener.
-     *                        This is the most important piece of information for the parser.
-     * @param string $value The exact substring from the original pattern that this token represents
-     *                      (e.g., "a", "*", "\d").
-     * @param int $position The zero-based character offset where this token's value begins in the
-     *                      original, full regex pattern. This is crucial for error reporting.
+     * @param TokenType $type     The category of the token, such as a literal, quantifier, or group opener.
+     *                            This is the most important piece of information for the parser.
+     * @param string    $value    The exact substring from the original pattern that this token represents
+     *                            (e.g., "a", "*", "\d").
+     * @param int       $position The zero-based character offset where this token's value begins in the
+     *                            original, full regex pattern. This is crucial for error reporting.
      */
     public function __construct(
         public TokenType $type,
