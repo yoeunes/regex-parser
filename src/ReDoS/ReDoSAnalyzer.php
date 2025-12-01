@@ -17,7 +17,7 @@ use RegexParser\Lexer;
 use RegexParser\NodeVisitor\ReDoSProfileVisitor;
 use RegexParser\Parser;
 use RegexParser\Regex;
-use RegexParser\Stream\TokenStream;
+use RegexParser\TokenStream;
 
 class ReDoSAnalyzer
 {

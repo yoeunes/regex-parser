@@ -16,7 +16,6 @@ namespace RegexParser;
 use RegexParser\Exception\ParserException;
 use RegexParser\Exception\RecursionLimitException;
 use RegexParser\Exception\ResourceLimitException;
-use RegexParser\Stream\TokenStream;
 
 /**
  * The Parser.

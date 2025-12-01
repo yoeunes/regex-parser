@@ -11,10 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Stream;
-
-use RegexParser\Token;
-use RegexParser\TokenType;
+namespace RegexParser;
 
 /**
  * Token stream wrapper around a generator.

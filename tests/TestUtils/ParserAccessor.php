@@ -14,8 +14,8 @@ declare(strict_types=1);
 namespace RegexParser\Tests\TestUtils;
 
 use RegexParser\Parser;
-use RegexParser\Stream\TokenStream;
 use RegexParser\Token;
+use RegexParser\TokenStream;
 use RegexParser\TokenType;
 
 /**

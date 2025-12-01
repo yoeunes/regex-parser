@@ -18,7 +18,6 @@ use RegexParser\Exception\ParserException;
 use RegexParser\Node\RegexNode;
 use RegexParser\ReDoS\ReDoSAnalysis;
 use RegexParser\ReDoS\ReDoSAnalyzer;
-use RegexParser\Stream\TokenStream;
 
 /**
  * Main service for parsing, validating, and manipulating regex patterns.
