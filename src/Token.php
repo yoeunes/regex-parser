@@ -25,14 +25,23 @@ namespace RegexParser;
 readonly class Token
 {
     /**
-     * Creates a new Token instance.
+     * Creates a new, immutable Token instance.
      *
-     * @param TokenType $type     The category of the token, such as a literal, quantifier, or group opener.
-     *                            This is the most important piece of information for the parser.
+     * Purpose: This constructor initializes a token, which is a fundamental, indivisible
+     * unit of a regular expression. The `Lexer` produces a stream of these tokens, and
+     * the `Parser` consumes them to build the Abstract Syntax Tree (AST). As a contributor,
+     * you can think of this as a simple, read-only data structure that carries information
+     * from the lexer to the parser.
+     *
+     * @param TokenType $type     The category of the token (e.g., `T_LITERAL`, `T_QUANTIFIER`). This enum
+     *                            value is the primary piece of information the `Parser` uses to make
+     *                            decisions.
      * @param string    $value    The exact substring from the original pattern that this token represents
-     *                            (e.g., "a", "*", "\d").
-     * @param int       $position The zero-based character offset where this token's value begins in the
-     *                            original, full regex pattern. This is crucial for error reporting.
+     *                            (e.g., "a", "*", "\d"). This preserves the original source for
+     *                            compilation and analysis.
+     * @param int       $position The zero-based byte offset where this token's value begins in the
+     *                            original pattern string. This is crucial for providing accurate
+     *                            error messages.
      */
     public function __construct(
         public TokenType $type,

@@ -13,38 +13,62 @@ declare(strict_types=1);
 
 namespace RegexParser\Bridge\Symfony\Routing;
 
+use RegexParser\Node\NodeInterface;
 use RegexParser\NodeVisitor\LiteralExtractorNodeVisitor;
 use RegexParser\Parser;
+use RegexParser\Regex;
 
 /**
- * Utility for Symfony Routing integration.
- * Helps optimize route matching by extracting literal prefixes from regex patterns.
+ * Dumps a set of routes to a PHP class for faster matching.
  *
- * Usage:
- *   $dumper = new RegexParserMatcherDumper();
- *   $snippet = $dumper->generateOptimizedMatcherCode([
- *       '/blog/posts/\d+' => 'BlogPostAction',
- *       '/api/v\d+/users' => 'ApiUserAction',
- *   ]);
+ * Purpose: This class is a specialized tool for Symfony's Routing component. Its goal is
+ * to optimize route matching by pre-analyzing route patterns. It extracts mandatory literal
+ * prefixes from the regex of each route. The generated PHP code then uses fast `str_starts_with`
+ * checks to quickly discard non-matching routes before running the more expensive `preg_match`.
+ * This is particularly effective in applications with many routes.
  */
 class RegexParserMatcherDumper
 {
     private readonly LiteralExtractorNodeVisitor $literalExtractor;
+    private readonly Regex $regex;
 
-    public function __construct(private readonly ?Parser $parser = new Parser())
+    /**
+     * Creates a new instance of the matcher dumper.
+     *
+     * Purpose: This constructor initializes the dumper with the necessary services for
+     * parsing and analyzing regular expressions. As a contributor, you can see how the
+     * core `Regex` service and the `LiteralExtractorNodeVisitor` are injected to be
+     * used in the dumping process.
+     */
+    public function __construct()
     {
         $this->literalExtractor = new LiteralExtractorNodeVisitor();
+        $this->regex = Regex::create();
     }
 
     /**
-     * Generate optimized PHP code for route matching using literal prefixes.
+     * Generates optimized PHP code for route matching.
      *
-     * This helps Symfony Routing avoid expensive regex matching for routes
-     * that can be quickly eliminated by checking static prefixes first.
+     * Purpose: This is the main public method of the class. It takes a collection of route
+     * patterns, groups them by their literal prefixes, and generates a PHP script snippet.
+     * This snippet contains an optimized matching logic that prioritizes fast string
+     * comparisons over immediate regex evaluation, which can significantly improve
+     * performance for URL matching in a Symfony application.
      *
-     * @param array<string, string> $routePatterns Map of regex pattern => route name
+     * @param array<string, string> $routePatterns A map where the key is the route's full regex
+     *                                             pattern and the value is the route's name or identifier.
      *
-     * @return string Generated PHP code snippet
+     * @return string The generated PHP code snippet, ready to be written to a cache file.
+     *
+     * @example
+     * ```php
+     * $dumper = new RegexParserMatcherDumper();
+     * $code = $dumper->generateOptimizedMatcherCode([
+     *     '#^/blog/(?P<slug>[a-z-]+)$#s' => 'blog_post',
+     *     '#^/contact$#s' => 'contact_page',
+     * ]);
+     * // The generated $code will contain `if (str_starts_with($path, '/blog/'))` logic.
+     * ```
      */
     public function generateOptimizedMatcherCode(array $routePatterns): string
     {
@@ -80,7 +104,7 @@ class RegexParserMatcherDumper
     }
 
     /**
-     * Group routes by their extracted literal prefixes.
+     * Groups routes by their extracted literal prefixes.
      *
      * @param array<string, string> $routePatterns
      *
@@ -92,20 +116,12 @@ class RegexParserMatcherDumper
 
         foreach ($routePatterns as $pattern => $name) {
             try {
-                if (null === $this->parser) {
-                    $prefix = '';
-                } else {
-                    $ast = $this->parser->parse($pattern);
-                    $literals = $ast->accept($this->literalExtractor);
-                    $prefix = reset($literals) ?: '';
-                }
+                $ast = $this->regex->parse($pattern);
+                $literals = $ast->accept($this->literalExtractor);
+                $prefix = $literals->getLongestPrefix() ?? '';
             } catch (\Exception) {
                 // If parsing fails, treat pattern as non-optimizable
                 $prefix = '';
-            }
-
-            if (!isset($grouped[$prefix])) {
-                $grouped[$prefix] = [];
             }
 
             $grouped[$prefix][$pattern] = $name;

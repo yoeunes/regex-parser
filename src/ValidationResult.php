@@ -25,14 +25,21 @@ namespace RegexParser;
 readonly class ValidationResult
 {
     /**
-     * Creates a new ValidationResult instance.
+     * Creates a new, immutable ValidationResult instance.
      *
-     * @param bool        $isValid         true if the regex pattern is syntactically and semantically valid, false otherwise
-     * @param string|null $error           If validation fails, this contains a human-readable message explaining the issue.
-     *                                     It is null for valid patterns.
-     * @param int         $complexityScore A numerical score representing the calculated complexity of the regex.
-     *                                     Higher scores may indicate a higher risk of ReDoS-like behavior. This is
-     *                                     provided even for valid patterns.
+     * Purpose: This constructor initializes the result object that communicates the outcome
+     * of a validation attempt. It's used by the `Regex::validate()` method to package the
+     * results in a clean, type-safe way. As a contributor, you'll see this object created
+     * after a regex is parsed and analyzed for both syntactic correctness and semantic issues.
+     *
+     * @param bool        $isValid         `true` if the regex pattern is syntactically and semantically valid,
+     *                                     `false` otherwise.
+     * @param string|null $error           If validation fails, this contains a human-readable message explaining the
+     *                                     issue (e.g., "Unclosed group"). It is `null` for valid patterns.
+     * @param int         $complexityScore A numerical score representing the calculated complexity of the regex,
+     *                                     derived from the `ComplexityScoreNodeVisitor`. Higher scores may indicate a
+     *                                     higher risk of performance issues or ReDoS-like behavior. This is provided
+     *                                     even for valid patterns.
      */
     public function __construct(
         public bool $isValid,
