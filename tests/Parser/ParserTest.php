@@ -40,23 +40,13 @@ use RegexParser\Regex;
 class ParserTest extends TestCase
 {
     private Parser $parser;
+
     private Regex $regex;
 
     protected function setUp(): void
     {
         $this->parser = new Parser();
         $this->regex = Regex::create();
-    }
-
-    /**
-     * Helper method to parse a regex string using the decoupled Lexer and Parser.
-     */
-    private function parseRegex(string $regex): RegexNode
-    {
-        [$pattern, $flags, $delimiter] = $this->regex->extractPatternAndFlags($regex);
-        $stream = $this->regex->createTokenStream($pattern);
-
-        return $this->parser->parse($stream, $flags, $delimiter, \strlen($pattern));
     }
 
     public function test_parse_returns_regex_node_with_flags(): void
@@ -421,5 +411,16 @@ class ParserTest extends TestCase
     {
         // (?(DEFINE)...)
         $this->parseRegex('/(?(DEFINE)(?<A>a))(?&A)/');
+    }
+
+    /**
+     * Helper method to parse a regex string using the decoupled Lexer and Parser.
+     */
+    private function parseRegex(string $regex): RegexNode
+    {
+        [$pattern, $flags, $delimiter] = $this->regex->extractPatternAndFlags($regex);
+        $stream = $this->regex->createTokenStream($pattern);
+
+        return $this->parser->parse($stream, $flags, $delimiter, \strlen($pattern));
     }
 }

@@ -30,6 +30,7 @@ use RegexParser\TokenType;
 class ParserUtilityTest extends TestCase
 {
     private ParserAccessor $accessor;
+
     private Regex $regex;
 
     protected function setUp(): void

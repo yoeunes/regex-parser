@@ -32,14 +32,6 @@ class AdditionalCoverageBoostTest extends TestCase
     }
 
     /**
-     * Helper method to parse a regex string.
-     */
-    private function parseRegex(string $pattern): RegexNode
-    {
-        return $this->regex->parse($pattern);
-    }
-
-    /**
      * Test unsupported (?P=name) backref syntax - should throw exception
      */
     public function test_unsupported_python_backref_syntax(): void
@@ -451,5 +443,13 @@ class AdditionalCoverageBoostTest extends TestCase
     public function test_unicode_in_char_class(): void
     {
         $this->parseRegex('/[\x41\u{42}]/');
+    }
+
+    /**
+     * Helper method to parse a regex string.
+     */
+    private function parseRegex(string $pattern): RegexNode
+    {
+        return $this->regex->parse($pattern);
     }
 }

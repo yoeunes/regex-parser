@@ -23,6 +23,7 @@ use RegexParser\TokenType;
 class ParserEdgeCasesTest extends TestCase
 {
     private Regex $regex;
+
     private Parser $parser;
 
     protected function setUp(): void

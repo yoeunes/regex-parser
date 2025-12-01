@@ -17,7 +17,6 @@ use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
 use RegexParser\Node\RegexNode;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
-use RegexParser\Stream\TokenStream;
 use RegexParser\NodeVisitor\ComplexityScoreVisitor;
 use RegexParser\NodeVisitor\DumperNodeVisitor;
 use RegexParser\NodeVisitor\ExplainVisitor;
@@ -28,6 +27,7 @@ use RegexParser\NodeVisitor\SampleGeneratorVisitor;
 use RegexParser\NodeVisitor\ValidatorNodeVisitor;
 use RegexParser\ReDoS\ReDoSAnalysis;
 use RegexParser\ReDoS\ReDoSAnalyzer;
+use RegexParser\Stream\TokenStream;
 
 /**
  * Main service for parsing, validating, and manipulating regex patterns.
@@ -231,31 +231,12 @@ readonly class Regex
     }
 
     /**
-     * Internal method to parse a regex string using the decoupled Lexer and Parser.
-     *
-     * @throws LexerException|ParserException
-     */
-    private function parseRegex(string $regex): RegexNode
-    {
-        if (\strlen($regex) > $this->maxPatternLength) {
-            throw new ParserException(\sprintf('Regex pattern exceeds maximum length of %d characters.', $this->maxPatternLength));
-        }
-
-        [$pattern, $flags, $delimiter] = $this->extractPatternAndFlags($regex);
-
-        $stream = $this->createTokenStream($pattern);
-        $parser = $this->getParser();
-
-        return $parser->parse($stream, $flags, $delimiter, \strlen($pattern));
-    }
-
-    /**
      * Extracts pattern, flags, and delimiter from a full regex string.
      * Handles escaped delimiters correctly (e.g., "/abc\/def/i").
      *
-     * @return array{0: string, 1: string, 2: string} [pattern, flags, delimiter]
-     *
      * @throws ParserException
+     *
+     * @return array{0: string, 1: string, 2: string} [pattern, flags, delimiter]
      */
     public function extractPatternAndFlags(string $regex): array
     {
@@ -304,5 +285,24 @@ readonly class Regex
         }
 
         throw new ParserException(\sprintf('No closing delimiter "%s" found.', $closingDelimiter));
+    }
+
+    /**
+     * Internal method to parse a regex string using the decoupled Lexer and Parser.
+     *
+     * @throws LexerException|ParserException
+     */
+    private function parseRegex(string $regex): RegexNode
+    {
+        if (\strlen($regex) > $this->maxPatternLength) {
+            throw new ParserException(\sprintf('Regex pattern exceeds maximum length of %d characters.', $this->maxPatternLength));
+        }
+
+        [$pattern, $flags, $delimiter] = $this->extractPatternAndFlags($regex);
+
+        $stream = $this->createTokenStream($pattern);
+        $parser = $this->getParser();
+
+        return $parser->parse($stream, $flags, $delimiter, \strlen($pattern));
     }
 }
