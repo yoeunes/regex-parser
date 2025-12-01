@@ -43,7 +43,8 @@ class ReflectionCoverageTest extends TestCase
      */
     public function test_lexer_extract_token_value_default_escape(): void
     {
-        $lexer = new Lexer('');
+        $lexer = new Lexer();
+        $lexer->tokenize('');
         $reflection = new \ReflectionClass($lexer);
         $method = $reflection->getMethod('extractTokenValue');
 
@@ -59,7 +60,8 @@ class ReflectionCoverageTest extends TestCase
      */
     public function test_lexer_extract_token_value_global_default(): void
     {
-        $lexer = new Lexer('');
+        $lexer = new Lexer();
+        $lexer->tokenize('');
         $reflection = new \ReflectionClass($lexer);
         $method = $reflection->getMethod('extractTokenValue');
 
@@ -74,7 +76,8 @@ class ReflectionCoverageTest extends TestCase
      */
     public function test_lexer_normalize_unicode_missing_captures(): void
     {
-        $lexer = new Lexer('');
+        $lexer = new Lexer();
+        $lexer->tokenize('');
         $reflection = new \ReflectionClass($lexer);
         $method = $reflection->getMethod('normalizeUnicodeProp');
 

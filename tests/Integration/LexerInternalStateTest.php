@@ -26,11 +26,10 @@ class LexerInternalStateTest extends TestCase
      */
     public function test_lex_comment_mode_unterminated_returns_null(): void
     {
-        $lexer = new Lexer('(?# ... sans fin');
+        $lexer = new Lexer();
         $accessor = new LexerAccessor($lexer);
 
-        // Force comment mode
-        $accessor->callPrivateMethod('reset', ['(?# ... sans fin']);
+        $lexer->tokenize('(?# ... sans fin');
         // Manually advance after (?#
         $accessor->setPosition(3);
 
@@ -50,10 +49,10 @@ class LexerInternalStateTest extends TestCase
      */
     public function test_lex_quote_mode_unterminated_returns_null(): void
     {
-        $lexer = new Lexer('\Q ... sans fin');
+        $lexer = new Lexer();
         $accessor = new LexerAccessor($lexer);
 
-        $accessor->callPrivateMethod('reset', ['\Q ... sans fin']);
+        $lexer->tokenize('\Q ... sans fin');
         $accessor->setPosition(2); // After \Q
 
         $result = $accessor->callPrivateMethod('consumeQuoteMode');

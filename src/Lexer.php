@@ -152,42 +152,6 @@ class Lexer
     private int $charClassStartPosition = 0;
 
     /**
-     * Resets the lexer with a new pattern string.
-     *
-     * @throws LexerException if the input is not valid UTF-8
-     */
-    public function reset(string $pattern): void
-    {
-        if (false === preg_match('//u', $pattern)) {
-            throw new LexerException('Input string is not valid UTF-8.');
-        }
-
-        $this->pattern = $pattern;
-        // Use strlen (bytes) for preg_match cursor logic, as the 'u' modifier handles UTF-8 matching naturally.
-        $this->length = \strlen($this->pattern);
-
-        // Reset state
-        $this->position = 0;
-        $this->inCharClass = false;
-        $this->inQuoteMode = false;
-        $this->inCommentMode = false;
-        $this->charClassStartPosition = 0;
-    }
-
-    /**
-     * Tokenizes the pattern and returns all tokens as an array.
-     * For memory efficiency with large patterns, use tokenize() generator.
-     *
-     * @throws LexerException
-     *
-     * @return array<Token>
-     */
-    public function tokenizeToArray(string $pattern): array
-    {
-        return $this->tokenize($pattern)->getTokens();
-    }
-
-    /**
      * Tokenizes the pattern using a generator for memory efficiency.
      * Yields tokens one at a time instead of building a large array.
      *
@@ -214,6 +178,7 @@ class Lexer
 
         while ($this->position < $this->length) {
             // 1. Handle "Tunnel" Modes (Quote & Comment)
+            // @phpstan-ignore if.alwaysFalse (State changes via createTokenFromMatch on subsequent iterations)
             if ($this->inQuoteMode) {
                 if ($token = $this->consumeQuoteMode()) {
                     $tokens[] = $token; // Keep for context
@@ -222,6 +187,7 @@ class Lexer
                 continue;
             }
 
+            // @phpstan-ignore if.alwaysFalse (State changes via createTokenFromMatch on subsequent iterations)
             if ($this->inCommentMode) {
                 if ($token = $this->consumeCommentMode()) {
                     $tokens[] = $token; // Keep for context
@@ -231,7 +197,9 @@ class Lexer
             }
 
             // 2. Select Context-Aware Regex
+            // @phpstan-ignore ternary.alwaysFalse (State changes via createTokenFromMatch on subsequent iterations)
             $regex = $this->inCharClass ? self::REGEX_INSIDE : self::REGEX_OUTSIDE;
+            // @phpstan-ignore ternary.alwaysFalse (State changes via createTokenFromMatch on subsequent iterations)
             $tokenMap = $this->inCharClass ? self::TOKENS_INSIDE : self::TOKENS_OUTSIDE;
 
             // 3. Execute Matching
@@ -257,10 +225,12 @@ class Lexer
         }
 
         // 5. Post-Processing Validation
+        // @phpstan-ignore if.alwaysFalse (Reachable if pattern has unclosed character class)
         if ($this->inCharClass) {
             throw new LexerException('Unclosed character class "]" at end of input.');
         }
 
+        // @phpstan-ignore if.alwaysFalse (Reachable if pattern has unclosed comment)
         if ($this->inCommentMode) {
             throw new LexerException('Unclosed comment ")" at end of input.');
         }
