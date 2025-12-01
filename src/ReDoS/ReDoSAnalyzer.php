@@ -32,7 +32,13 @@ class ReDoSAnalyzer
 
             return new ReDoSAnalysis(
                 $result['severity'],
-                $this->calculateScore($result['severity']),
+                match ($result['severity']) {
+                    ReDoSSeverity::SAFE => 0,
+                    ReDoSSeverity::LOW => 2,
+                    ReDoSSeverity::MEDIUM => 5,
+                    ReDoSSeverity::HIGH => 8,
+                    ReDoSSeverity::CRITICAL => 10,
+                },
                 $result['vulnerablePattern'],
                 $result['recommendations'],
             );
@@ -40,16 +46,5 @@ class ReDoSAnalyzer
             // Fallback for parsing errors, treat as unknown/safe or rethrow
             return new ReDoSAnalysis(ReDoSSeverity::SAFE, 0, null, ['Error parsing regex: '.$e->getMessage()]);
         }
-    }
-
-    private function calculateScore(ReDoSSeverity $severity): int
-    {
-        return match ($severity) {
-            ReDoSSeverity::SAFE => 0,
-            ReDoSSeverity::LOW => 2,
-            ReDoSSeverity::MEDIUM => 5,
-            ReDoSSeverity::HIGH => 8,
-            ReDoSSeverity::CRITICAL => 10,
-        };
     }
 }
