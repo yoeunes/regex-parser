@@ -57,10 +57,10 @@ class RegexParserExtension extends Extension
          * @var array{
          *     enabled: bool,
          *     max_pattern_length: int,
-         *     profiler: array{
-         *         enabled: bool,
-         *         redos_threshold: int,
+         *     cache: string|null,
+         *     analysis: array{
          *         warning_threshold: int,
+         *         redos_threshold: int,
          *     },
          * } $config
          */
@@ -73,19 +73,13 @@ class RegexParserExtension extends Extension
 
         // Set parameters
         $container->setParameter('regex_parser.max_pattern_length', $config['max_pattern_length']);
-        $container->setParameter('regex_parser.profiler.enabled', $config['profiler']['enabled']);
-        $container->setParameter('regex_parser.profiler.redos_threshold', $config['profiler']['redos_threshold']);
-        $container->setParameter('regex_parser.profiler.warning_threshold', $config['profiler']['warning_threshold']);
+        $container->setParameter('regex_parser.cache', $config['cache']);
+        $container->setParameter('regex_parser.analysis.warning_threshold', $config['analysis']['warning_threshold']);
+        $container->setParameter('regex_parser.analysis.redos_threshold', $config['analysis']['redos_threshold']);
 
         $loader = new PhpFileLoader($container, new FileLocator(__DIR__.'/../Resources/config'));
 
-        // Always load base parser services
         $loader->load('services.php');
-
-        // Load debug services (collector, decorators) only if profiler is enabled
-        if ($config['profiler']['enabled']) {
-            $loader->load('services_debug.php');
-        }
     }
 
     /**
