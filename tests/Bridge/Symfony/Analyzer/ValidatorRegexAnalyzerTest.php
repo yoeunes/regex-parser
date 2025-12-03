@@ -14,7 +14,6 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Bridge\Symfony\Analyzer;
 
 use PHPUnit\Framework\TestCase;
-use RegexParser\Bridge\Symfony\Analyzer\RegexAnalysisIssue;
 use RegexParser\Bridge\Symfony\Analyzer\ValidatorRegexAnalyzer;
 use RegexParser\Regex;
 use Symfony\Component\Validator\Constraint;

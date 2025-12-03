@@ -113,11 +113,12 @@ final readonly class ValidatorRegexAnalyzer
                 continue;
             }
 
-            $result = $this->regex->validate((string) $constraint->pattern);
+            $pattern = (string) $constraint->pattern;
+            $result = $this->regex->validate($pattern);
 
             if (!$result->isValid) {
                 $issues[] = new RegexAnalysisIssue(
-                    \sprintf('Validator "%s" pattern is invalid: %s', $source, $result->error ?? 'unknown error'),
+                    \sprintf('Validator "%s" pattern is invalid: %s (pattern: %s)', $source, $result->error ?? 'unknown error', $this->formatPattern($pattern)),
                     true,
                 );
 
@@ -126,7 +127,7 @@ final readonly class ValidatorRegexAnalyzer
 
             if ($result->complexityScore >= $this->redosThreshold) {
                 $issues[] = new RegexAnalysisIssue(
-                    \sprintf('Validator "%s" pattern may be vulnerable to ReDoS (score: %d).', $source, $result->complexityScore),
+                    \sprintf('Validator "%s" pattern may be vulnerable to ReDoS (score: %d, pattern: %s).', $source, $result->complexityScore, $this->formatPattern($pattern)),
                     true,
                 );
 
@@ -135,12 +136,21 @@ final readonly class ValidatorRegexAnalyzer
 
             if ($result->complexityScore >= $this->warningThreshold) {
                 $issues[] = new RegexAnalysisIssue(
-                    \sprintf('Validator "%s" pattern is complex (score: %d).', $source, $result->complexityScore),
+                    \sprintf('Validator "%s" pattern is complex (score: %d, pattern: %s).', $source, $result->complexityScore, $this->formatPattern($pattern)),
                     false,
                 );
             }
         }
 
         return $issues;
+    }
+
+    private function formatPattern(string $pattern): string
+    {
+        if (\strlen($pattern) <= 80) {
+            return $pattern;
+        }
+
+        return substr($pattern, 0, 77).'...';
     }
 }

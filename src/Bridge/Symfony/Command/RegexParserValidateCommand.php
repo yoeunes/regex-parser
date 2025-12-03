@@ -15,6 +15,7 @@ namespace RegexParser\Bridge\Symfony\Command;
 
 use RegexParser\Bridge\Symfony\Analyzer\RouteRequirementAnalyzer;
 use RegexParser\Bridge\Symfony\Analyzer\ValidatorRegexAnalyzer;
+use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -23,11 +24,15 @@ use Symfony\Component\Routing\RouterInterface;
 use Symfony\Component\Validator\Mapping\Loader\LoaderInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
+#[AsCommand(
+    name: 'regex-parser:check',
+    description: 'Validates regex usage found in the Symfony application.',
+)]
 final class RegexParserValidateCommand extends Command
 {
-    protected static $defaultName = 'regex-parser:check';
+    protected static ?string $defaultName = 'regex-parser:check';
 
-    protected static $defaultDescription = 'Validates regex usage found in the Symfony application.';
+    protected static ?string $defaultDescription = 'Validates regex usage found in the Symfony application.';
 
     public function __construct(
         private readonly RouteRequirementAnalyzer $analyzer,

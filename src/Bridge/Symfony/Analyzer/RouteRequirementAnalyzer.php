@@ -54,12 +54,7 @@ final readonly class RouteRequirementAnalyzer
 
                 if (!$result->isValid) {
                     $issues[] = new RegexAnalysisIssue(
-                        \sprintf(
-                            'Route "%s" requirement "%s" is invalid: %s',
-                            (string) $name,
-                            $parameter,
-                            $result->error ?? 'unknown error',
-                        ),
+                        \sprintf('Route "%s" requirement "%s" is invalid: %s (pattern: %s)', (string) $name, $parameter, $result->error ?? 'unknown error', $this->formatPattern($normalizedPattern)),
                         true,
                     );
 
@@ -68,12 +63,7 @@ final readonly class RouteRequirementAnalyzer
 
                 if ($result->complexityScore >= $this->redosThreshold) {
                     $issues[] = new RegexAnalysisIssue(
-                        \sprintf(
-                            'Route "%s" requirement "%s" may be vulnerable to ReDoS (score: %d).',
-                            (string) $name,
-                            $parameter,
-                            $result->complexityScore,
-                        ),
+                        \sprintf('Route "%s" requirement "%s" may be vulnerable to ReDoS (score: %d, pattern: %s).', (string) $name, $parameter, $result->complexityScore, $this->formatPattern($normalizedPattern)),
                         true,
                     );
 
@@ -82,12 +72,7 @@ final readonly class RouteRequirementAnalyzer
 
                 if ($result->complexityScore >= $this->warningThreshold) {
                     $issues[] = new RegexAnalysisIssue(
-                        \sprintf(
-                            'Route "%s" requirement "%s" is complex (score: %d).',
-                            (string) $name,
-                            $parameter,
-                            $result->complexityScore,
-                        ),
+                        \sprintf('Route "%s" requirement "%s" is complex (score: %d, pattern: %s).', (string) $name, $parameter, $result->complexityScore, $this->formatPattern($normalizedPattern)),
                         false,
                     );
                 }
@@ -109,5 +94,14 @@ final readonly class RouteRequirementAnalyzer
         $body = str_replace($delimiter, '\\'.$delimiter, $pattern);
 
         return $delimiter.'^'.$body.'$'.$delimiter;
+    }
+
+    private function formatPattern(string $pattern): string
+    {
+        if (\strlen($pattern) <= 80) {
+            return $pattern;
+        }
+
+        return substr($pattern, 0, 77).'...';
     }
 }
