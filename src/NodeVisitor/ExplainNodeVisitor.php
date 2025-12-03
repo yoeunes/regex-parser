@@ -77,7 +77,7 @@ class ExplainNodeVisitor implements NodeVisitorInterface
         $patternExplain = $node->pattern->accept($this);
         $flags = $node->flags ? ' (with flags: '.$node->flags.')' : '';
 
-        return \sprintf("Regex matches%s:\n%s", $flags, $patternExplain);
+        return $this->line('Regex matches'.$flags)."\n".$patternExplain;
     }
 
     /**
@@ -101,13 +101,13 @@ class ExplainNodeVisitor implements NodeVisitorInterface
         );
         $this->indentLevel--;
 
-        $indent = $this->indent();
+        $lines = [];
+        foreach ($alts as $index => $alt) {
+            $label = 0 === $index ? 'EITHER: ' : 'OR: ';
+            $lines[] = $this->line($label.$alt);
+        }
 
-        return \sprintf(
-            "EITHER:\n%s%s",
-            $indent,
-            implode(\sprintf("\n%sOR:\n%s", $indent, $indent), $alts),
-        );
+        return implode("\n", $lines);
     }
 
     /**
@@ -125,11 +125,12 @@ class ExplainNodeVisitor implements NodeVisitorInterface
     public function visitSequence(Node\SequenceNode $node): string
     {
         $parts = array_map(fn ($child) => $child->accept($this), $node->children);
-
-        // Filter out empty strings (e.g., from empty nodes)
         $parts = array_filter($parts, fn ($part) => '' !== $part);
 
-        return implode(\sprintf("\n%s", $this->indent()), $parts);
+        return implode(
+            "\n",
+            array_map(fn (string $part) => $this->line($part), $parts),
+        );
     }
 
     /**
@@ -150,21 +151,20 @@ class ExplainNodeVisitor implements NodeVisitorInterface
         $childExplain = $node->child->accept($this);
         $this->indentLevel--;
 
-        $indent = $this->indent();
         $type = match ($node->type) {
-            GroupType::T_GROUP_CAPTURING => 'Start Capturing Group',
-            GroupType::T_GROUP_NON_CAPTURING => 'Start Non-Capturing Group',
-            GroupType::T_GROUP_NAMED => \sprintf("Start Capturing Group (named: '%s')", $node->name),
-            GroupType::T_GROUP_LOOKAHEAD_POSITIVE => 'Start Positive Lookahead',
-            GroupType::T_GROUP_LOOKAHEAD_NEGATIVE => 'Start Negative Lookahead',
-            GroupType::T_GROUP_LOOKBEHIND_POSITIVE => 'Start Positive Lookbehind',
-            GroupType::T_GROUP_LOOKBEHIND_NEGATIVE => 'Start Negative Lookbehind',
-            GroupType::T_GROUP_ATOMIC => 'Start Atomic Group',
-            GroupType::T_GROUP_BRANCH_RESET => 'Start Branch Reset Group',
-            GroupType::T_GROUP_INLINE_FLAGS => \sprintf("Start Group (with flags: '%s')", $node->flags),
+            GroupType::T_GROUP_CAPTURING => 'Capturing group',
+            GroupType::T_GROUP_NON_CAPTURING => 'Non-capturing group',
+            GroupType::T_GROUP_NAMED => \sprintf("Capturing group (named: '%s')", $node->name),
+            GroupType::T_GROUP_LOOKAHEAD_POSITIVE => 'Positive lookahead',
+            GroupType::T_GROUP_LOOKAHEAD_NEGATIVE => 'Negative lookahead',
+            GroupType::T_GROUP_LOOKBEHIND_POSITIVE => 'Positive lookbehind',
+            GroupType::T_GROUP_LOOKBEHIND_NEGATIVE => 'Negative lookbehind',
+            GroupType::T_GROUP_ATOMIC => 'Atomic group (no backtracking)',
+            GroupType::T_GROUP_BRANCH_RESET => 'Branch reset group',
+            GroupType::T_GROUP_INLINE_FLAGS => \sprintf("Inline flags '%s'", $node->flags),
         };
 
-        return \sprintf("%s:\n%s%s\n%sEnd Group", $type, $indent, $childExplain, $this->indent(false));
+        return $this->line($type)."\n".$childExplain."\n".$this->line('End group');
     }
 
     /**
@@ -186,7 +186,7 @@ class ExplainNodeVisitor implements NodeVisitorInterface
 
         // If the child is simple (one line), put it on one line.
         if (!str_contains((string) $childExplain, "\n")) {
-            return \sprintf('%s (%s)', $childExplain, $quantExplain);
+            return $this->line(\sprintf('%s (%s)', $childExplain, $quantExplain));
         }
 
         // If the child is complex, indent it.
@@ -194,13 +194,7 @@ class ExplainNodeVisitor implements NodeVisitorInterface
         $childExplain = $node->node->accept($this);
         $this->indentLevel--;
 
-        return \sprintf(
-            "Start Quantified Group (%s):\n%s%s\n%sEnd Quantified Group",
-            $quantExplain,
-            $this->indent(),
-            $childExplain,
-            $this->indent(false),
-        );
+        return $this->line('Start Quantified Group ('.$quantExplain.')')."\n".$childExplain."\n".$this->line('End Quantified Group');
     }
 
     /**
@@ -216,7 +210,7 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      */
     public function visitLiteral(Node\LiteralNode $node): string
     {
-        return 'Literal: '.$this->explainLiteral($node->value);
+        return $this->explainLiteral($node->value);
     }
 
     /**
@@ -482,13 +476,11 @@ class ExplainNodeVisitor implements NodeVisitorInterface
 
         $this->indentLevel--;
 
-        $indent = $this->indent();
-
         if ('' === $no) {
-            return \sprintf("Conditional: IF (%s) THEN:\n%s%s", $cond, $indent, $yes);
+            return $this->line(\sprintf('Conditional: IF (%s) THEN', $cond))."\n".$yes;
         }
 
-        return \sprintf("Conditional: IF (%s) THEN:\n%s%s\n%sELSE:\n%s%s", $cond, $indent, $yes, $this->indent(false), $indent, $no);
+        return $this->line(\sprintf('Conditional: IF (%s) THEN', $cond))."\n".$yes."\n".$this->line('ELSE:')."\n".$no;
     }
 
     /**
@@ -545,9 +537,7 @@ class ExplainNodeVisitor implements NodeVisitorInterface
         $content = $node->content->accept($this);
         $this->indentLevel--;
 
-        $indent = $this->indent();
-
-        return \sprintf("DEFINE Block (defines subpatterns without matching):\n%s%s\n%sEnd DEFINE Block", $indent, $content, $this->indent(false));
+        return $this->line('DEFINE block (defines subpatterns without matching)')."\n".$content."\n".$this->line('End DEFINE Block');
     }
 
     public function visitLimitMatch(Node\LimitMatchNode $node): string
@@ -591,7 +581,7 @@ class ExplainNodeVisitor implements NodeVisitorInterface
 
     private function indent(bool $withExtra = true): string
     {
-        return str_repeat(' ', $this->indentLevel * 2).($withExtra ? '  ' : '');
+        return str_repeat('  ', $this->indentLevel).($withExtra ? '  ' : '');
     }
 
     private function explainLiteral(string $value): string
@@ -603,5 +593,10 @@ class ExplainNodeVisitor implements NodeVisitorInterface
             "\r" => "'\\r' (carriage return)",
             default => ctype_print($value) ? "'".$value."'" : '(non-printable char)',
         };
+    }
+
+    private function line(string $text): string
+    {
+        return $this->indent(false).'• '.$text;
     }
 }
