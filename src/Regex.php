@@ -36,9 +36,38 @@ readonly class Regex
      */
     public const int DEFAULT_MAX_PATTERN_LENGTH = 100_000;
 
+    private const array DEFAULT_IGNORED_PATTERNS = [
+        '[a-z0-9]+(?:-[a-z0-9]+)*',
+        '^[a-z0-9]+(?:-[a-z0-9]+)*$',
+        '[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*',
+        '^[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$',
+        '[a-z0-9_]+',
+        '^[a-z0-9_]+$',
+        '[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}',
+        '^\d+$',
+        '^\d{4}-\d{2}-\d{2}$',
+        '[0-9a-fA-F]{24}',
+        '[1-9]\d*',
+        '[1-9]\d{3,}',
+        '[A-Za-z0-9]{26}',
+        '[1-9A-HJ-NP-Za-km-z]{21,22}',
+        '[0-9A-F]{8}-[0-9A-F]{4}-[1-5][0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}',
+        '^[0-9A-F]{8}-[0-9A-F]{4}-[1-5][0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}$',
+    ];
+
+    /**
+     * @param list<string> $ignoredPatterns
+     */
+    /**
+     * @param list<string> $ignoredPatterns
+     */
     private function __construct(
         private int $maxPatternLength,
         private CacheInterface $cache,
+        /**
+         * @var list<string>
+         */
+        private array $ignoredPatterns,
     ) {}
 
     /**
@@ -49,18 +78,21 @@ readonly class Regex
      * the library. As a contributor, you can add new options here to configure
      * the behavior of the parsing and analysis process.
      *
-     * @param array{max_pattern_length?: int, cache?: CacheInterface|string|null} $options An associative array of
-     *                                                                                     configuration options.
-     *                                                                                     - `max_pattern_length` (int):
-     *                                                                                     Sets a safeguard limit on the
-     *                                                                                     length of the regex string to
-     *                                                                                     prevent performance issues with
-     *                                                                                     overly long patterns. Defaults to
-     *                                                                                     `self::DEFAULT_MAX_PATTERN_LENGTH`.
-     *                                                                                     - `cache` (string|CacheInterface|null):
-     *                                                                                     Provide a directory path or cache
-     *                                                                                     implementation to enable AST
-     *                                                                                     caching.
+     * @param array{max_pattern_length?: int, cache?: CacheInterface|string|null, ignored_patterns?: list<string>} $options An associative array of
+     *                                                                                                                      configuration options.
+     *                                                                                                                      - `max_pattern_length` (int):
+     *                                                                                                                      Sets a safeguard limit on the
+     *                                                                                                                      length of the regex string to
+     *                                                                                                                      prevent performance issues with
+     *                                                                                                                      overly long patterns. Defaults to
+     *                                                                                                                      `self::DEFAULT_MAX_PATTERN_LENGTH`.
+     *                                                                                                                      - `cache` (string|CacheInterface|null):
+     *                                                                                                                      Provide a directory path or cache
+     *                                                                                                                      implementation to enable AST
+     *                                                                                                                      caching.
+     *                                                                                                                      - `ignored_patterns` (list<string>):
+     *                                                                                                                      Patterns that should be treated as
+     *                                                                                                                      trusted/safe by the ReDoS analyzer.
      *
      * @return self a new, configured instance of the `Regex` service, ready to be used
      *
@@ -77,8 +109,12 @@ readonly class Regex
     {
         $maxPatternLength = $options['max_pattern_length'] ?? self::DEFAULT_MAX_PATTERN_LENGTH;
         $cache = self::normalizeCache($options['cache'] ?? null);
+        $ignoredPatterns = array_values(array_unique([
+            ...self::DEFAULT_IGNORED_PATTERNS,
+            ...($options['ignored_patterns'] ?? []),
+        ]));
 
-        return new self($maxPatternLength, $cache);
+        return new self($maxPatternLength, $cache, $ignoredPatterns);
     }
 
     /**
@@ -382,7 +418,15 @@ readonly class Regex
      */
     public function analyzeReDoS(string $regex): ReDoSAnalysis
     {
-        return new ReDoSAnalyzer()->analyze($regex);
+        return new ReDoSAnalyzer($this, $this->ignoredPatterns)->analyze($regex);
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function getIgnoredPatterns(): array
+    {
+        return array_values($this->ignoredPatterns);
     }
 
     /**

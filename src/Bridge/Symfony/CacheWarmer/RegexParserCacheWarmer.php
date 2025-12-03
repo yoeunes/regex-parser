@@ -15,10 +15,13 @@ namespace RegexParser\Bridge\Symfony\CacheWarmer;
 
 use Psr\Log\LoggerInterface;
 use Psr\Log\LogLevel;
-use RegexParser\Bridge\Symfony\Analyzer\RouteIssue;
+use RegexParser\Bridge\Symfony\Analyzer\AnalysisIssue;
 use RegexParser\Bridge\Symfony\Analyzer\RouteRequirementAnalyzer;
+use RegexParser\Bridge\Symfony\Analyzer\ValidatorRegexAnalyzer;
 use Symfony\Component\HttpKernel\CacheWarmer\CacheWarmerInterface;
 use Symfony\Component\Routing\RouterInterface;
+use Symfony\Component\Validator\Mapping\Loader\LoaderInterface;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 /**
  * Surfaces regex warnings during Symfony cache warmup.
@@ -31,6 +34,9 @@ final readonly class RegexParserCacheWarmer implements CacheWarmerInterface
         private RouteRequirementAnalyzer $analyzer,
         private ?RouterInterface $router = null,
         private ?LoggerInterface $logger = null,
+        private ?ValidatorRegexAnalyzer $validatorAnalyzer = null,
+        private ?ValidatorInterface $validator = null,
+        private ?LoaderInterface $validatorLoader = null,
     ) {}
 
     #[\Override]
@@ -42,11 +48,15 @@ final readonly class RegexParserCacheWarmer implements CacheWarmerInterface
     #[\Override]
     public function warmUp(string $cacheDir, ?string $buildDir = null): array
     {
-        if (null === $this->router) {
-            return [];
+        $issues = [];
+
+        if (null !== $this->router) {
+            $issues = array_merge($issues, $this->analyzer->analyze($this->router->getRouteCollection()));
         }
 
-        $issues = $this->analyzer->analyze($this->router->getRouteCollection());
+        if (null !== $this->validatorAnalyzer) {
+            $issues = array_merge($issues, $this->validatorAnalyzer->analyze($this->validator, $this->validatorLoader));
+        }
 
         foreach ($issues as $issue) {
             $this->log($issue);
@@ -55,7 +65,7 @@ final readonly class RegexParserCacheWarmer implements CacheWarmerInterface
         return [];
     }
 
-    private function log(RouteIssue $issue): void
+    private function log(AnalysisIssue $issue): void
     {
         if (null !== $this->logger) {
             $this->logger->log(

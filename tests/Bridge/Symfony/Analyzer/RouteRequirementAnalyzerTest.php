@@ -50,12 +50,32 @@ final class RouteRequirementAnalyzerTest extends TestCase
         $analyzer = new RouteRequirementAnalyzer(Regex::create(), 0, 1000);
 
         $routes = new RouteCollection();
-        $routes->add('warn', new Route('/warn', [], ['name' => '.+']));
+        $routes->add('warn', new Route('/warn', [], ['name' => '[a-z]+']));
 
         $issues = $analyzer->analyze($routes);
 
         $this->assertCount(1, $issues);
         $this->assertFalse($issues[0]->isError);
         $this->assertStringContainsString('warn', $issues[0]->message);
+    }
+
+    public function test_literal_alternations_are_skipped(): void
+    {
+        $analyzer = new RouteRequirementAnalyzer(Regex::create(), 0, 1000);
+
+        $routes = new RouteCollection();
+        $routes->add('locale', new Route('/{_locale}', [], ['_locale' => 'en|fr|de']));
+
+        $this->assertSame([], $analyzer->analyze($routes));
+    }
+
+    public function test_slug_pattern_is_not_flagged(): void
+    {
+        $analyzer = new RouteRequirementAnalyzer(Regex::create(), 0, 0);
+
+        $routes = new RouteCollection();
+        $routes->add('slug', new Route('/{slug}', [], ['slug' => '^[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$']));
+
+        $this->assertSame([], $analyzer->analyze($routes));
     }
 }

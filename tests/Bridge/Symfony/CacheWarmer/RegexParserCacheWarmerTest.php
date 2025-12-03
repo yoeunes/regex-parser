@@ -16,12 +16,16 @@ namespace RegexParser\Tests\Bridge\Symfony\CacheWarmer;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 use RegexParser\Bridge\Symfony\Analyzer\RouteRequirementAnalyzer;
+use RegexParser\Bridge\Symfony\Analyzer\ValidatorRegexAnalyzer;
 use RegexParser\Bridge\Symfony\CacheWarmer\RegexParserCacheWarmer;
 use RegexParser\Regex;
+use RegexParser\Tests\Bridge\Symfony\Analyzer\FakeLoader;
+use RegexParser\Tests\Bridge\Symfony\Analyzer\FakeValidator;
 use Symfony\Component\Routing\RequestContext;
 use Symfony\Component\Routing\Route;
 use Symfony\Component\Routing\RouteCollection;
 use Symfony\Component\Routing\RouterInterface;
+use Symfony\Component\Validator\Constraints\Regex as SymfonyRegex;
 
 final class RegexParserCacheWarmerTest extends TestCase
 {
@@ -44,6 +48,28 @@ final class RegexParserCacheWarmerTest extends TestCase
 
         $this->assertTrue($warmup->isOptional());
         $this->assertSame([], $warmup->warmUp(sys_get_temp_dir()));
+    }
+
+    public function test_warm_up_logs_validator_issues(): void
+    {
+        $logger = new InMemoryLogger();
+        $validatorAnalyzer = new ValidatorRegexAnalyzer(Regex::create(), 0, 1000);
+        $validator = new FakeValidator([new SymfonyRegex(pattern: '(')]);
+        $loader = new FakeLoader([FakeValidator::class]);
+
+        $warmup = new RegexParserCacheWarmer(
+            new RouteRequirementAnalyzer(Regex::create(), 0, 0),
+            null,
+            $logger,
+            $validatorAnalyzer,
+            $validator,
+            $loader,
+        );
+
+        $warmup->warmUp(sys_get_temp_dir());
+
+        $this->assertNotEmpty($logger->records);
+        $this->assertSame('error', $logger->records[0]['level']);
     }
 }
 

@@ -85,6 +85,11 @@ class Configuration implements ConfigurationInterface
                             ->min(0)
                             ->info('Complexity score above which a pattern is flagged as ReDoS risk.')
                         ->end()
+                        ->arrayNode('ignore_patterns')
+                            ->scalarPrototype()->end()
+                            ->defaultValue([])
+                            ->info('List of regex fragments to treat as safe (e.g. Symfony requirement constants).')
+                        ->end()
                     ->end()
                 ->end()
             ->end();
