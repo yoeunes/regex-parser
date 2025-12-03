@@ -14,13 +14,18 @@ declare(strict_types=1);
 namespace RegexParser\Bridge\PHPStan;
 
 use PhpParser\Node;
+use PhpParser\Node\Expr\Array_;
+use PhpParser\Node\Expr\ArrayItem;
 use PhpParser\Node\Expr\FuncCall;
 use PhpParser\Node\Name;
+use PhpParser\Node\Scalar\String_;
 use PHPStan\Analyser\Scope;
 use PHPStan\Rules\Rule;
+use PHPStan\Rules\RuleError;
 use PHPStan\Rules\RuleErrorBuilder;
 use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
+use RegexParser\Exception\SyntaxErrorException;
 use RegexParser\NodeVisitor\ValidatorNodeVisitor;
 use RegexParser\ReDoS\ReDoSAnalyzer;
 use RegexParser\ReDoS\ReDoSSeverity;
@@ -29,20 +34,19 @@ use RegexParser\Regex;
 /**
  * Validates regex patterns in `preg_*` functions for syntax and ReDoS vulnerabilities.
  *
- * Purpose: This rule integrates the regex-parser library directly into PHPStan's static
- * analysis process. It intercepts calls to `preg_*` functions, extracts the regex pattern
- * string, and performs two critical checks:
- * 1.  **Syntax Validation:** It uses the `Parser` and `ValidatorNodeVisitor` to ensure the
- *     regex is syntactically and semantically correct.
- * 2.  **ReDoS Analysis:** It uses the `ReDoSAnalyzer` to detect patterns that could lead
- *     to catastrophic backtracking and cause a Denial of Service.
- * This provides immediate feedback to developers about potential bugs and security risks
- * in their regular expressions.
- *
  * @implements Rule<FuncCall>
  */
 class PregValidationRule implements Rule
 {
+    // Identifiers for user configuration in phpstan.neon
+    public const IDENTIFIER_SYNTAX_INVALID = 'regex.syntax.invalid';
+    public const IDENTIFIER_SYNTAX_DELIMITER = 'regex.syntax.delimiter';
+    public const IDENTIFIER_SYNTAX_EMPTY = 'regex.syntax.empty';
+    public const IDENTIFIER_REDOS_CRITICAL = 'regex.redos.critical';
+    public const IDENTIFIER_REDOS_HIGH = 'regex.redos.high';
+    public const IDENTIFIER_REDOS_MEDIUM = 'regex.redos.medium';
+    public const IDENTIFIER_REDOS_LOW = 'regex.redos.low';
+
     private const array PREG_FUNCTION_MAP = [
         'preg_match' => 0,
         'preg_match_all' => 0,
@@ -51,35 +55,10 @@ class PregValidationRule implements Rule
         'preg_split' => 0,
         'preg_grep' => 0,
         'preg_filter' => 0,
+        'preg_replace_callback_array' => 0,
     ];
 
-    private const string VALID_DELIMITERS = '/~#%@!();<>';
-
     /**
-     * Map of severity strings to integer levels for comparison.
-     */
-    private const array SEVERITY_LEVELS = [
-        'safe' => 0,
-        'low' => 1,
-        'medium' => 2,
-        'high' => 3,
-        'critical' => 4,
-    ];
-
-    private ?Regex $regex = null;
-
-    private ?ValidatorNodeVisitor $validator = null;
-
-    private ?ReDoSAnalyzer $redosAnalyzer = null;
-
-    /**
-     * Creates a new instance of the PHPStan validation rule.
-     *
-     * Purpose: This constructor initializes the rule with user-defined configuration from
-     * their PHPStan configuration file (e.g., `phpstan.neon`). This allows developers to
-     * customize the rule's behavior, such as enabling or disabling ReDoS checks or setting
-     * the sensitivity threshold for reporting vulnerabilities.
-     *
      * @param bool   $ignoreParseErrors If `true`, the rule will not report syntax errors that seem to be
      *                                  caused by incomplete or partial regex strings. This is useful for
      *                                  avoiding false positives in dynamic code.
@@ -94,33 +73,11 @@ class PregValidationRule implements Rule
         private readonly string $redosThreshold = 'high',
     ) {}
 
-    /**
-     * Specifies which type of PHP-Parser node this rule should visit.
-     *
-     * Purpose: This is a performance optimization for PHPStan. By telling PHPStan that
-     * this rule is only interested in `FuncCall` nodes, PHPStan can skip calling the
-     * `processNode()` method for all other node types, speeding up the analysis.
-     *
-     * @return string the fully qualified class name of the node type to process
-     */
     public function getNodeType(): string
     {
         return FuncCall::class;
     }
 
-    /**
-     * The core validation logic of the rule.
-     *
-     * Purpose: This method is called by PHPStan for each `FuncCall` node found in the
-     * codebase. It checks if the function is a targeted `preg_*` function, extracts the
-     * regex pattern, and then runs the syntax and ReDoS validation checks. It collects
-     * any findings and returns them as an array of `RuleError` objects for PHPStan to display.
-     *
-     * @param Node  $node  the AST node being visited (a `FuncCall` in this case)
-     * @param Scope $scope the current analysis scope, providing type information about nodes
-     *
-     * @return list<\PHPStan\Rules\RuleError> An array of `RuleError` objects. Returns an empty array if no issues are found.
-     */
     public function processNode(Node $node, Scope $scope): array
     {
         \assert($node instanceof FuncCall);
@@ -129,7 +86,6 @@ class PregValidationRule implements Rule
             return [];
         }
 
-        // Optimization: Fast return for non-preg functions
         $functionName = $node->name->toLowerString();
         if (!isset(self::PREG_FUNCTION_MAP[$functionName])) {
             return [];
@@ -139,97 +95,135 @@ class PregValidationRule implements Rule
         $args = $node->getArgs();
 
         if (!isset($args[$patternArgPosition])) {
-            // Malformed call (missing arguments), handled by native PHPStan rules
             return [];
         }
 
         $patternArg = $args[$patternArgPosition]->value;
-        $patternType = $scope->getType($patternArg);
-        $constantStrings = $patternType->getConstantStrings();
 
-        // If we can't determine the string value statically, skip validation
-        if (0 === \count($constantStrings)) {
+        if ('preg_replace_callback_array' === $functionName) {
+            return $this->processPregReplaceCallbackArray($patternArg, $scope, $node->getLine());
+        }
+
+        $errors = [];
+        foreach ($scope->getType($patternArg)->getConstantStrings() as $constantString) {
+            $errors = array_merge($errors, $this->validatePattern($constantString->getValue(), $node->getLine()));
+        }
+
+        return $errors;
+    }
+
+    /**
+     * @return list<RuleError>
+     */
+    private function processPregReplaceCallbackArray(Node $arrayNode, Scope $scope, int $lineNumber): array
+    {
+        if (!$arrayNode instanceof Array_) {
             return [];
         }
 
         $errors = [];
-        foreach ($constantStrings as $constantString) {
-            $pattern = $constantString->getValue();
-
-            if (!$this->looksLikeCompleteRegex($pattern)) {
+        foreach ($arrayNode->items as $item) {
+            if (!$item instanceof ArrayItem || !$item->key instanceof String_) {
                 continue;
             }
 
-            // 1. Syntax Validation
-            try {
-                $ast = $this->getRegex()->parse($pattern);
-                // ValidatorNodeVisitor checks for semantic errors (e.g., duplicate group names)
-                $ast->accept($this->getValidator());
-            } catch (LexerException|ParserException $e) {
-                // Skip validation for likely partial/incomplete patterns if configured
-                if ($this->ignoreParseErrors && $this->isLikelyPartialRegexError($e->getMessage())) {
-                    continue;
-                }
+            $pattern = $item->key->value;
+            $errors = array_merge($errors, $this->validatePattern($pattern, $lineNumber));
+        }
 
-                $errors[] = RuleErrorBuilder::message(\sprintf('Regex syntax error: %s', $e->getMessage()))
-                    ->line($node->getLine())
-                    ->identifier('regex.syntax')
+        return $errors;
+    }
+
+    /**
+     * @return list<RuleError>
+     */
+    private function validatePattern(string $pattern, int $lineNumber): array
+    {
+        if ('' === $pattern) {
+            return [
+                RuleErrorBuilder::message('Regex pattern cannot be empty.')
+                    ->line($lineNumber)
+                    ->identifier(self::IDENTIFIER_SYNTAX_EMPTY)
+                    ->build(),
+            ];
+        }
+
+        $errors = [];
+
+        // 1. Syntax Validation
+        try {
+            $ast = $this->getRegex()->parse($pattern);
+            $ast->accept($this->getValidator());
+        } catch (LexerException|ParserException|SyntaxErrorException $e) {
+            if ($this->ignoreParseErrors && $this->isLikelyPartialRegexError($e->getMessage())) {
+                return [];
+            }
+
+            $errors[] = RuleErrorBuilder::message(\sprintf('Regex syntax error: %s', $e->getMessage()))
+                ->line($lineNumber)
+                ->identifier($this->getIdentifierForSyntaxError($e->getMessage()))
+                ->build();
+
+            return $errors;
+        } catch (\Throwable) {
+            return []; // Fail silently on internal errors
+        }
+
+        // 2. ReDoS Validation
+        if ($this->reportRedos) {
+            $analysis = $this->getRedosAnalyzer()->analyze($pattern);
+
+            if ($this->exceedsThreshold($analysis->severity)) {
+                $identifier = match ($analysis->severity) {
+                    ReDoSSeverity::CRITICAL => self::IDENTIFIER_REDOS_CRITICAL,
+                    ReDoSSeverity::HIGH => self::IDENTIFIER_REDOS_HIGH,
+                    ReDoSSeverity::MEDIUM => self::IDENTIFIER_REDOS_MEDIUM,
+                    default => self::IDENTIFIER_REDOS_LOW,
+                };
+
+                $errors[] = RuleErrorBuilder::message(\sprintf(
+                    'ReDoS vulnerability detected (%s): %s',
+                    strtoupper($analysis->severity->value),
+                    $this->truncatePattern($pattern),
+                ))
+                    ->line($lineNumber)
+                    ->tip(implode("\n", $analysis->recommendations))
+                    ->identifier($identifier)
                     ->build();
-
-                // If syntax is invalid, ReDoS analysis is impossible/irrelevant
-                continue;
-            } catch (\Throwable) {
-                // Fail silently on internal errors to avoid crashing PHPStan
-                continue;
-            }
-
-            // 2. ReDoS Validation
-            if ($this->reportRedos) {
-                $analysis = $this->getRedosAnalyzer()->analyze($pattern);
-
-                if (!$this->exceedsThreshold($analysis->severity)) {
-                    $errors[] = RuleErrorBuilder::message(\sprintf(
-                        'ReDoS vulnerability detected (%s): %s',
-                        strtoupper($analysis->severity->value),
-                        $this->truncatePattern($pattern),
-                    ))
-                        ->line($node->getLine())
-                        ->tip(implode("\n", $analysis->recommendations))
-                        ->identifier('regex.redos')
-                        ->build();
-                }
             }
         }
 
         return $errors;
     }
 
-    private function exceedsThreshold(ReDoSSeverity $severity): bool
+    private function getIdentifierForSyntaxError(string $errorMessage): string
     {
-        $currentLevel = self::SEVERITY_LEVELS[$severity->value] ?? 0;
-        $thresholdLevel = self::SEVERITY_LEVELS[$this->redosThreshold] ?? 3; // Default to 'high'
+        if (str_contains($errorMessage, 'delimiter')) {
+            return self::IDENTIFIER_SYNTAX_DELIMITER;
+        }
 
-        return $currentLevel >= $thresholdLevel;
+        return self::IDENTIFIER_SYNTAX_INVALID;
     }
 
-    /**
-     * Checks if the pattern looks like a complete regex with valid delimiters.
-     */
-    private function looksLikeCompleteRegex(string $pattern): bool
+    private function exceedsThreshold(ReDoSSeverity $severity): bool
     {
-        if (\strlen($pattern) < 2) {
-            return false;
-        }
+        $currentLevel = match ($severity) {
+            ReDoSSeverity::SAFE => 0,
+            ReDoSSeverity::LOW => 1,
+            ReDoSSeverity::MEDIUM => 2,
+            ReDoSSeverity::HIGH => 3,
+            ReDoSSeverity::CRITICAL => 4,
+        };
 
-        $firstChar = $pattern[0];
+        $thresholdLevel = match ($this->redosThreshold) {
+            'low' => 1,
+            'medium' => 2,
+            'high' => 3,
+            'critical' => 4,
+            default => 1,
+        };
 
-        if (!str_contains(self::VALID_DELIMITERS, $firstChar)) {
-            return false;
-        }
-
-        // Simple check: pattern ends with same delimiter or has flags
-        // We trust the Parser to do the heavy lifting validation later
-        return true;
+        return $currentLevel >= $thresholdLevel;
     }
 
     private function isLikelyPartialRegexError(string $errorMessage): bool
@@ -238,11 +232,16 @@ class PregValidationRule implements Rule
             'No closing delimiter',
             'Regex too short',
             'Unknown modifier',
-            'Invalid delimiter',
             'Unexpected end',
         ];
 
-        return array_any($indicators, fn ($indicator) => false !== stripos($errorMessage, (string) $indicator));
+        foreach ($indicators as $indicator) {
+            if (false !== stripos($errorMessage, $indicator)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function truncatePattern(string $pattern, int $length = 50): string
@@ -262,7 +261,6 @@ class PregValidationRule implements Rule
 
     private function getRedosAnalyzer(): ReDoSAnalyzer
     {
-        // Using default compiler instance for analyzer
         return $this->redosAnalyzer ??= new ReDoSAnalyzer();
     }
 }
