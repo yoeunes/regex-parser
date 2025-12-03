@@ -20,8 +20,8 @@ use PhpParser\Node\Expr\FuncCall;
 use PhpParser\Node\Name;
 use PhpParser\Node\Scalar\String_;
 use PHPStan\Analyser\Scope;
+use PHPStan\Rules\IdentifierRuleError;
 use PHPStan\Rules\Rule;
-use PHPStan\Rules\RuleError;
 use PHPStan\Rules\RuleErrorBuilder;
 use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
@@ -57,6 +57,9 @@ class PregValidationRule implements Rule
         'preg_filter' => 0,
         'preg_replace_callback_array' => 0,
     ];
+    private ?Regex $regex = null;
+    private ?ValidatorNodeVisitor $validator = null;
+    private ?ReDoSAnalyzer $redosAnalyzer = null;
 
     /**
      * @param bool   $ignoreParseErrors If `true`, the rule will not report syntax errors that seem to be
@@ -113,7 +116,7 @@ class PregValidationRule implements Rule
     }
 
     /**
-     * @return list<RuleError>
+     * @return list<IdentifierRuleError>
      */
     private function processPregReplaceCallbackArray(Node $arrayNode, Scope $scope, int $lineNumber): array
     {
@@ -135,7 +138,7 @@ class PregValidationRule implements Rule
     }
 
     /**
-     * @return list<RuleError>
+     * @return list<IdentifierRuleError>
      */
     private function validatePattern(string $pattern, int $lineNumber): array
     {
