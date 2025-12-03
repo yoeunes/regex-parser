@@ -34,6 +34,11 @@ class Parser
      */
     private TokenStream $stream;
 
+    /**
+     * Original pattern string for contextual error reporting.
+     */
+    private string $pattern = '';
+
     private bool $J_modifier = false;
 
     /**
@@ -84,6 +89,7 @@ class Parser
     {
         // Set the stream for parsing
         $this->stream = $stream;
+        $this->pattern = $stream->getPattern();
         $this->J_modifier = str_contains($flags, 'J');
         $this->groupNames = [];
         $this->lastTokenWasAlternation = false;
@@ -167,7 +173,7 @@ class Parser
 
             // Validation: Quantifier on empty literal
             if ($node instanceof Node\LiteralNode && '' === $node->value) {
-                throw new ParserException(\sprintf('Quantifier without target at position %d', $token->position));
+                throw $this->parserException(\sprintf('Quantifier without target at position %d', $token->position), $token->position);
             }
 
             // Validation: Quantifier on empty group sequence
@@ -175,7 +181,7 @@ class Parser
                 $child = $node->child;
                 if (($child instanceof Node\LiteralNode && '' === $child->value)
                     || ($child instanceof Node\SequenceNode && empty($child->children))) {
-                    throw new ParserException(\sprintf('Quantifier without target at position %d', $token->position));
+                    throw $this->parserException(\sprintf('Quantifier without target at position %d', $token->position), $token->position);
                 }
             }
 
@@ -188,8 +194,10 @@ class Parser
                     default => '\K',
                 };
 
-                throw new ParserException(
-                    \sprintf('Quantifier "%s" cannot be applied to assertion or verb "%s" at position %d', $token->value, $nodeName, $node->getStartPosition()));
+                throw $this->parserException(
+                    \sprintf('Quantifier "%s" cannot be applied to assertion or verb "%s" at position %d', $token->value, $nodeName, $node->getStartPosition()),
+                    $token->position
+                );
             }
 
             [$quantifier, $type] = $this->parseQuantifierValue($token->value);
@@ -358,14 +366,14 @@ class Parser
 
         // Special case: quantifier without target
         if ($this->check(TokenType::T_QUANTIFIER)) {
-            throw new ParserException(\sprintf('Quantifier without target at position %d', $this->current()->position));
+            throw $this->parserException(\sprintf('Quantifier without target at position %d', $this->current()->position), $this->current()->position);
         }
 
         // @codeCoverageIgnoreStart
         $val = $this->current()->value;
         $type = $this->current()->type->value;
 
-        throw new ParserException(\sprintf('Unexpected token "%s" (%s) at position %d.', $val, $type, $startPos));
+        throw $this->parserException(\sprintf('Unexpected token "%s" (%s) at position %d.', $val, $type, $startPos), $startPos);
         // @codeCoverageIgnoreEnd
     }
 
@@ -386,7 +394,7 @@ class Parser
         } elseif (preg_match('/^[a-zA-Z_][a-zA-Z0-9_]*$/', $value)) {
             $identifier = $value;
         } else {
-            throw new ParserException(\sprintf('Invalid callout argument: %s at position %d', $value, $startPos));
+            throw $this->parserException(\sprintf('Invalid callout argument: %s at position %d', $value, $startPos), $startPos);
         }
 
         return new Node\CalloutNode($identifier, $isStringIdentifier, $startPos, $endPos);
@@ -408,7 +416,7 @@ class Parser
             return new Node\SubroutineNode($m[1], 'g', $startPos, $endPos);
         }
 
-        throw new ParserException(\sprintf('Invalid \g reference syntax: %s at position %d', $value, $token->position));
+        throw $this->parserException(\sprintf('Invalid \\g reference syntax: %s at position %d', $value, $token->position), $token->position);
     }
 
     private function parseComment(): Node\CommentNode
@@ -564,18 +572,22 @@ class Parser
                         break;
                     }
 
-                    throw new ParserException(
-                        \sprintf('Unexpected token in group name at position %d', $this->current()->position));
+                    throw $this->parserException(
+                        \sprintf('Unexpected token in group name at position %d', $this->current()->position),
+                        $this->current()->position
+                    );
                 }
             }
 
             if ('' === $name) {
-                throw new ParserException(\sprintf('Expected group name at position %d', $this->current()->position));
+                throw $this->parserException(\sprintf('Expected group name at position %d', $this->current()->position), $this->current()->position);
             }
 
             if (!$this->checkLiteral($quote)) {
-                throw new ParserException(
-                    \sprintf('Expected closing quote %s at position %d', $quote, $this->current()->position));
+                throw $this->parserException(
+                    \sprintf('Expected closing quote %s at position %d', $quote, $this->current()->position),
+                    $this->current()->position
+                );
             }
             $this->advance();
 
@@ -602,10 +614,10 @@ class Parser
         }
 
         if ($this->matchLiteral('=')) {
-            throw new ParserException('Backreferences (?P=name) are not supported yet.');
+            throw $this->parserException('Backreferences (?P=name) are not supported yet.', $this->current()->position);
         }
 
-        throw new ParserException(\sprintf('Invalid syntax after (?P at position %d', $pPos));
+        throw $this->parserException(\sprintf('Invalid syntax after (?P at position %d', $pPos), $pPos);
     }
 
     private function parseStandardGroup(int $startPos): Node\NodeInterface
@@ -689,7 +701,7 @@ class Parser
             return new Node\GroupNode($expr, Node\GroupType::T_GROUP_INLINE_FLAGS, null, $flags, $startPos, $endToken->position + 1);
         }
 
-        throw new ParserException(\sprintf('Invalid group modifier syntax at position %d', $startPos));
+        throw $this->parserException(\sprintf('Invalid group modifier syntax at position %d', $startPos), $startPos);
     }
 
     private function parseConditional(int $startPos, bool $isModifier): Node\ConditionalNode|Node\DefineNode
@@ -766,7 +778,7 @@ class Parser
             }
         }
 
-        throw new ParserException('Invalid conditional condition at position '.$startPos);
+        throw $this->parserException('Invalid conditional condition at position '.$startPos, $startPos);
     }
 
     private function parseConditionalCondition(): Node\NodeInterface
@@ -853,8 +865,10 @@ class Parser
 
         if (!($condition instanceof Node\BackrefNode || $condition instanceof Node\GroupNode
               || $condition instanceof Node\AssertionNode || $condition instanceof Node\SubroutineNode)) {
-            throw new ParserException(
-                \sprintf('Invalid conditional construct at position %d. Condition must be a group reference, lookaround, or (DEFINE).', $startPos));
+            throw $this->parserException(
+                \sprintf('Invalid conditional construct at position %d. Condition must be a group reference, lookaround, or (DEFINE).', $startPos),
+                $startPos
+            );
         }
 
         return $condition;
@@ -863,7 +877,7 @@ class Parser
     private function checkAndRegisterGroupName(string $name, int $position): void
     {
         if (isset($this->groupNames[$name]) && !$this->J_modifier) {
-            throw new ParserException(\sprintf('Duplicate group name "%s" at position %d.', $name, $position));
+            throw $this->parserException(\sprintf('Duplicate group name "%s" at position %d.', $name, $position), $position);
         }
         $this->groupNames[$name] = true;
     }
@@ -904,20 +918,20 @@ class Parser
                 $name .= $this->current()->value;
                 $this->advance();
             } else {
-                throw new ParserException(\sprintf('Unexpected token "%s" in group name', $this->current()->value));
+                throw $this->parserException(\sprintf('Unexpected token "%s" in group name', $this->current()->value), $this->current()->position);
             }
         }
 
         // If quoted, expect the closing quote
         if (null !== $quote) {
             if (!$this->checkLiteral($quote)) {
-                throw new ParserException(\sprintf('Expected closing quote "%s" for group name at position %d', $quote, $this->current()->position));
+                throw $this->parserException(\sprintf('Expected closing quote "%s" for group name at position %d', $quote, $this->current()->position), $this->current()->position);
             }
             $this->advance();
         }
 
         if ('' === $name) {
-            throw new ParserException(\sprintf('Expected group name at position %d', $nameStartPos));
+            throw $this->parserException(\sprintf('Expected group name at position %d', $nameStartPos), $nameStartPos);
         }
 
         if ($register) {
@@ -984,8 +998,10 @@ class Parser
             $token = $this->previous();
             $startNode = new Node\PosixClassNode($token->value, $startPos, $startPos + mb_strlen($token->value) + 4);
         } else {
-            throw new ParserException(
-                \sprintf('Unexpected token "%s" in character class at position %d.', $this->current()->value, $this->current()->position));
+            throw $this->parserException(
+                \sprintf('Unexpected token "%s" in character class at position %d.', $this->current()->value, $this->current()->position),
+                $this->current()->position
+            );
         }
 
         // Check for Range
@@ -1024,19 +1040,24 @@ class Parser
             if ($this->check(TokenType::T_LITERAL) || $this->check(TokenType::T_LITERAL_ESCAPED)) {
                 $char = $this->current()->value;
                 if (!preg_match('/^[a-zA-Z0-9_]$/', $char)) {
-                    throw new ParserException('Unexpected token in subroutine name: '.$char);
+                    throw $this->parserException('Unexpected token in subroutine name: '.$char, $this->current()->position);
                 }
                 $name .= $char;
                 $this->advance();
             } else {
-                throw new ParserException('Unexpected token in subroutine name: '.$this->current()->value);
+                throw $this->parserException('Unexpected token in subroutine name: '.$this->current()->value, $this->current()->position);
             }
         }
         if ('' === $name) {
-            throw new ParserException('Expected subroutine name at position '.$this->current()->position);
+            throw $this->parserException('Expected subroutine name at position '.$this->current()->position, $this->current()->position);
         }
 
         return $name;
+    }
+
+    private function parserException(string $message, int $position): ParserException
+    {
+        return ParserException::withContext($message, $position, $this->pattern);
     }
 
     private function match(TokenType $type): bool
@@ -1081,7 +1102,7 @@ class Parser
         }
         $at = $this->isAtEnd() ? 'end of input' : 'position '.$this->current()->position;
 
-        throw new ParserException($error.' at '.$at.' (found '.$this->current()->type->value.')');
+        throw $this->parserException($error.' at '.$at.' (found '.$this->current()->type->value.')', $this->current()->position);
     }
 
     private function consumeLiteral(string $value, string $error): Token
@@ -1094,7 +1115,7 @@ class Parser
         }
         $at = $this->isAtEnd() ? 'end of input' : 'position '.$this->current()->position;
 
-        throw new ParserException($error.' at '.$at.' (found '.$this->current()->type->value.' with value '.$this->current()->value.')');
+        throw $this->parserException($error.' at '.$at.' (found '.$this->current()->type->value.' with value '.$this->current()->value.')', $this->current()->position);
     }
 
     private function check(TokenType $type): bool
