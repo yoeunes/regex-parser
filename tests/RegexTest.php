@@ -14,6 +14,9 @@ declare(strict_types=1);
 namespace RegexParser\Tests;
 
 use PHPUnit\Framework\TestCase;
+use RegexParser\Cache\CacheInterface;
+use RegexParser\Cache\FilesystemCache;
+use RegexParser\Cache\RemovableCacheInterface;
 use RegexParser\Regex;
 
 class RegexTest extends TestCase
@@ -54,5 +57,62 @@ class RegexTest extends TestCase
         $regex = Regex::create();
         $sample = $regex->generate('/\d{3}/');
         $this->assertMatchesRegularExpression('/\d{3}/', $sample);
+    }
+
+    public function test_parse_uses_cache_on_second_call(): void
+    {
+        $cacheDir = sys_get_temp_dir().'/regex-parser-cache-'.uniqid('', true);
+        $cache = new class(new FilesystemCache($cacheDir)) implements RemovableCacheInterface {
+            public int $writeCount = 0;
+
+            public int $loadCount = 0;
+
+            public function __construct(private readonly CacheInterface $cache) {}
+
+            public function write(string $key, string $content): void
+            {
+                $this->writeCount++;
+                $this->cache->write($key, $content);
+            }
+
+            public function load(string $key): mixed
+            {
+                $this->loadCount++;
+
+                return $this->cache->load($key);
+            }
+
+            public function generateKey(string $regex): string
+            {
+                return $this->cache->generateKey($regex);
+            }
+
+            public function getTimestamp(string $key): int
+            {
+                return $this->cache->getTimestamp($key);
+            }
+
+            public function clear(?string $regex = null): void
+            {
+                if ($this->cache instanceof RemovableCacheInterface) {
+                    $this->cache->clear($regex);
+                }
+            }
+        };
+
+        try {
+            $regex = Regex::create(['cache' => $cache]);
+            $pattern = '/[a-z]{3}/';
+
+            $firstAst = $regex->parse($pattern);
+            $secondAst = $regex->parse($pattern);
+
+            $this->assertSame(1, $cache->writeCount);
+            $this->assertGreaterThanOrEqual(2, $cache->loadCount);
+            $this->assertEquals($firstAst, $secondAst);
+            $this->assertFileExists($cache->generateKey($pattern));
+        } finally {
+            $cache->clear();
+        }
     }
 }

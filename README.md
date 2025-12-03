@@ -179,6 +179,39 @@ Severity levels: SAFE, LOW, MEDIUM, HIGH, CRITICAL (2^n worst cases).
 
 ---
 
+## ❓ Why?
+
+- Security: parse-first flow catches dangerous backtracking paths before runtime.
+- Static analysis: AST visitors let you lint, rewrite, and document patterns with real structure instead of brittle string checks.
+- ReDoS prevention: complexity scoring and path analysis detect catastrophic cases earlier than `preg_match` failures.
+
+## ✅ Cross-Validation PCRE
+
+1. Parse with `Regex::create()->parse($pattern)` and compile back using the `CompilerNodeVisitor`.
+2. Run `preg_match($compiled, $subject)` and compare against the AST-driven evaluator or visitors to ensure flags, delimiters, and groups match.
+3. Keep failing cases as fixtures to guard against drift between the parser and PHP's PCRE engine.
+
+## 🧪 Fuzzing
+
+- Fuzz the parser with random/edge-case inputs to ensure it never crashes or hangs on malformed patterns.
+- Combine short seeds (lookbehinds, nested quantifiers, named groups) with mutation to surface parser and lexer edge cases.
+- Keep regressions as deterministic tests so production builds stay resilient.
+
+## 🗄️ Caching
+
+Parsing is CPU-heavy; cache ASTs to PHP files for Opcache to warm:
+
+```php
+use RegexParser\Regex;
+
+$regex = Regex::create(['cache' => __DIR__ . '/var/cache/regex']);
+$ast = $regex->parse('/[A-Z][a-z]+/');
+```
+
+Pass a writable directory string to `Regex::create(['cache' => '/path'])` or a custom `CacheInterface` implementation. Use `null` (default) to disable.
+
+---
+
 ## 🔧 Framework Integration (quick setup)
 
 ### Symfony Validator
