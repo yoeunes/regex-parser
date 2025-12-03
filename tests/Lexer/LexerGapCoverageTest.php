@@ -56,6 +56,29 @@ class LexerGapCoverageTest extends TestCase
         self::assertTrue($accessor->getInQuoteMode());
     }
 
+    public function test_consume_quote_mode_returns_literal_and_exits_on_end_marker(): void
+    {
+        $lexer = new Lexer();
+        $accessor = new LexerAccessor($lexer);
+        $pattern = '\Qabc\E';
+
+        $accessor->setPattern($pattern);
+        $accessor->setLength(\strlen($pattern));
+        $accessor->setPosition(2); // start after \Q
+        $accessor->setInQuoteMode(true);
+
+        $literalToken = $accessor->callPrivateMethod('consumeQuoteMode');
+        self::assertNotNull($literalToken);
+        self::assertSame('abc', $literalToken->value);
+        self::assertSame(2, $literalToken->position);
+        self::assertTrue($accessor->getInQuoteMode());
+
+        $endToken = $accessor->callPrivateMethod('consumeQuoteMode');
+        self::assertNotNull($endToken);
+        self::assertSame(TokenType::T_QUOTE_MODE_END, $endToken->type);
+        self::assertFalse($accessor->getInQuoteMode());
+    }
+
     public function test_consume_comment_mode_handles_pcre_error(): void
     {
         $lexer = new Lexer();
@@ -92,6 +115,27 @@ class LexerGapCoverageTest extends TestCase
         self::assertTrue($this->getPrivateBool($lexer, 'inCommentMode'));
     }
 
+    public function test_consume_comment_mode_returns_literal_and_closing_token(): void
+    {
+        $lexer = new Lexer();
+        $accessor = new LexerAccessor($lexer);
+        $pattern = "text)";
+
+        $accessor->setPattern($pattern);
+        $accessor->setLength(\strlen($pattern));
+        $accessor->setPosition(3); // after 'tex'
+        $accessor->setInCommentMode(true);
+
+        $literal = $accessor->callPrivateMethod('consumeCommentMode');
+        self::assertSame('t', $literal->value);
+        self::assertSame(3, $literal->position);
+        self::assertTrue($this->getPrivateBool($lexer, 'inCommentMode'));
+
+        $closing = $accessor->callPrivateMethod('consumeCommentMode');
+        self::assertSame(TokenType::T_GROUP_CLOSE, $closing->type);
+        self::assertFalse($this->getPrivateBool($lexer, 'inCommentMode'));
+    }
+
     public function test_extract_token_value_handles_bell_escape(): void
     {
         $lexer = new Lexer();
@@ -100,6 +144,16 @@ class LexerGapCoverageTest extends TestCase
         $value = $accessor->callPrivateMethod('extractTokenValue', [TokenType::T_LITERAL_ESCAPED, '\\a', []]);
 
         self::assertSame("\x07", $value);
+    }
+
+    public function test_extract_token_value_falls_back_to_default(): void
+    {
+        $lexer = new Lexer();
+        $accessor = new LexerAccessor($lexer);
+
+        $value = $accessor->callPrivateMethod('extractTokenValue', [TokenType::T_LITERAL, 'X', []]);
+
+        self::assertSame('X', $value);
     }
 
     private function getPrivateBool(object $object, string $property): bool
