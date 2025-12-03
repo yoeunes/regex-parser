@@ -1,25 +1,55 @@
 version: 3
 
 tasks:
-    phpcs: tools/php-cs-fixer/vendor/bin/php-cs-fixer fix --diff -v {{.CLI_ARGS}}
+    phpcs:
+        cmd: tools/php-cs-fixer/vendor/bin/php-cs-fixer fix --diff -v {{.CLI_ARGS}}
+        sources:
+            - .php-cs-fixer.dist.php
+            - src/**/*.php
+            - tests/**/*.php
 
-    phplint: tools/phplint/vendor/bin/phplint {{.CLI_ARGS}}
+    phplint:
+        cmd: tools/phplint/vendor/bin/phplint {{.CLI_ARGS}}
+        sources:
+            - .phplint.yml
+            - src/**/*.php
+            - tests/**/*.php
 
-    phpstan: tools/phpstan/vendor/bin/phpstan analyse {{.CLI_ARGS}}
+    phpstan:
+        cmd: tools/phpstan/vendor/bin/phpstan analyse {{.CLI_ARGS}}
+        sources:
+            - phpstan.dist.neon
+            - src/**/*.php
+            - tests/**/*.php
 
-    rector: tools/rector/vendor/bin/rector process {{.CLI_ARGS}}
+    rector:
+        cmd: tools/rector/vendor/bin/rector process {{.CLI_ARGS}}
+        sources:
+            - rector.php
+            - src/**/*.php
+            - tests/**/*.php
 
-    phpunit: vendor/bin/phpunit {{.CLI_ARGS}}
+    phpunit:
+        cmd: vendor/bin/phpunit {{.CLI_ARGS}}
+        sources:
+            - phpunit.dist.xml
+            - src/**/*.php
+            - tests/**/*.php
 
-    phpbench: tools/phpbench/vendor/bin/phpbench run tests/Benchmark --report=default {{.CLI_ARGS}}
+    phpbench:
+        cmd: tools/phpbench/vendor/bin/phpbench run tests/Benchmark --report=default {{.CLI_ARGS}}
+        sources:
+            - phpbench.json
+            - src/**/*.php
+            - tests/Benchmark/**/*.php
 
     lint:
         cmds:
-            - rector
-            - phplint
-            - phpcs
-            - phpunit
-            - phpstan
+            - task: rector
+            - task: phplint
+            - task: phpcs
+            - task: phpunit
+            - task: phpstan
 
     install:
         cmds:
