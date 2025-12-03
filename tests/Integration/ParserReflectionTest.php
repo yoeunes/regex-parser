@@ -46,6 +46,7 @@ class ParserReflectionTest extends TestCase
             [TokenType::T_UNICODE_PROP, '^N', '\p{^N}'], // Negated
             [TokenType::T_POSIX_CLASS, 'alnum', '[[:alnum:]]'],
             [TokenType::T_PCRE_VERB, 'FAIL', '(*FAIL)'],
+            [TokenType::T_CALLOUT, '1', '(?C1)'],
             [TokenType::T_GROUP_MODIFIER_OPEN, '(?', '(?'],
             [TokenType::T_COMMENT_OPEN, '(?#', '(?#'],
             [TokenType::T_QUOTE_MODE_START, '\Q', '\Q'],
@@ -111,6 +112,7 @@ class ParserReflectionTest extends TestCase
             [TokenType::T_COMMENT_OPEN, '', '(?#'],      // Value ignored
             [TokenType::T_QUOTE_MODE_START, '', '\Q'],    // Value ignored
             [TokenType::T_QUOTE_MODE_END, '', '\E'],      // Value ignored
+            [TokenType::T_CALLOUT, '"foo"', '(?C"foo")'],
             [TokenType::T_EOF, '', ''],
         ];
 

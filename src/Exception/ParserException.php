@@ -23,4 +23,19 @@ namespace RegexParser\Exception;
  *
  * @see \RegexParser\Parser
  */
-class ParserException extends \Exception implements RegexParserExceptionInterface {}
+class ParserException extends \Exception implements RegexParserExceptionInterface
+{
+    use VisualContextTrait;
+
+    public function __construct(string $message, ?int $position = null, ?string $pattern = null, ?\Throwable $previous = null)
+    {
+        $this->initializeContext($position, $pattern);
+
+        parent::__construct($message, 0, $previous);
+    }
+
+    public static function withContext(string $message, int $position, string $pattern, ?\Throwable $previous = null): self
+    {
+        return new self($message, $position, $pattern, $previous);
+    }
+}

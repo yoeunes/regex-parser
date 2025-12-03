@@ -98,4 +98,7 @@ enum TokenType: string
 
     /** The \E sequence end. */
     case T_QUOTE_MODE_END = 'quote_mode_end';
+
+    /** A callout (e.g., "(?C1)", "(?C"arg")"). */
+    case T_CALLOUT = 'callout';
 }

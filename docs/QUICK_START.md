@@ -232,15 +232,15 @@ class QuantifierCounter implements NodeVisitorInterface
         return $this->count;
     }
 
-    public function visitQuantifier(QuantifierNode $node): void
+    public function visitQuantifier(Node\QuantifierNode $node): void
     {
         $this->count++;
         $node->node->accept($this);
     }
 
     // Implement other visit methods...
-    public function visitLiteral(LiteralNode $node): void {}
-    public function visitSequence(SequenceNode $node): void
+    public function visitLiteral(Node\LiteralNode $node): void {}
+    public function visitSequence(Node\SequenceNode $node): void
     {
         foreach ($node->children as $child) {
             $child->accept($this);
@@ -273,7 +273,7 @@ use RegexParser\NodeVisitor\CompilerNodeVisitor;
 class OptimizerVisitor extends CompilerNodeVisitor
 {
     // Override methods to transform AST nodes
-    public function visitQuantifier(QuantifierNode $node): string
+    public function visitQuantifier(Node\QuantifierNode $node): string
     {
         // Example: Convert {1} to no quantifier
         if ($node->quantifier === '{1}') {

@@ -4,6 +4,6 @@
     "type": "library",
     "license": "MIT",
     "require-dev": {
-        "rector/rector": "^2.2.8"
+        "rector/rector": "^2.2.11"
     }
 }

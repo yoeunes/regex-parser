@@ -93,6 +93,12 @@ class CompilerNodeVisitorTest extends TestCase
         $this->assertSame($regex, $this->compile($regex));
     }
 
+    public function test_compile_octal_legacy(): void
+    {
+        $regex = '/\077/';
+        $this->assertSame($regex, $this->compile($regex));
+    }
+
     public function test_compile_named_backref(): void
     {
         $regex = '/\k<name>/';

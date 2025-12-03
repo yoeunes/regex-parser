@@ -25,17 +25,17 @@ use RegexParser\Regex;
  */
 class SymfonyCompatibilityTest extends TestCase
 {
-    private Regex $regex;
+    private Regex $regexService;
 
     protected function setUp(): void
     {
-        $this->regex = Regex::create();
+        $this->regexService = Regex::create();
     }
 
     public function test_variable_length_lookbehind_is_valid(): void
     {
         // PHP 7.3+ (PCRE2) supports variable-length lookbehinds
-        $result = $this->regex->validate('/(?<=a{1,5})b/');
+        $result = $this->regexService->validate('/(?<=a{1,5})b/');
 
         $this->assertTrue(
             $result->isValid,
@@ -46,7 +46,7 @@ class SymfonyCompatibilityTest extends TestCase
     public function test_variable_length_negative_lookbehind_is_valid(): void
     {
         // Negative lookbehind with variable length
-        $result = $this->regex->validate('/(?<!a+)b/');
+        $result = $this->regexService->validate('/(?<!a+)b/');
 
         $this->assertTrue(
             $result->isValid,
@@ -57,7 +57,7 @@ class SymfonyCompatibilityTest extends TestCase
     public function test_alternation_with_different_lengths_in_lookbehind_is_valid(): void
     {
         // Alternation with different branch lengths in lookbehind
-        $result = $this->regex->validate('/(?<=foo|barbaz)x/');
+        $result = $this->regexService->validate('/(?<=foo|barbaz)x/');
 
         $this->assertTrue(
             $result->isValid,
@@ -68,7 +68,7 @@ class SymfonyCompatibilityTest extends TestCase
     public function test_star_quantifier_in_lookbehind_is_valid(): void
     {
         // Star quantifier (zero or more) in lookbehind
-        $result = $this->regex->validate('/(?<=a*)b/');
+        $result = $this->regexService->validate('/(?<=a*)b/');
 
         $this->assertTrue(
             $result->isValid,
@@ -79,7 +79,7 @@ class SymfonyCompatibilityTest extends TestCase
     public function test_plus_quantifier_in_lookbehind_is_valid(): void
     {
         // Plus quantifier (one or more) in lookbehind
-        $result = $this->regex->validate('/(?<=a+)b/');
+        $result = $this->regexService->validate('/(?<=a+)b/');
 
         $this->assertTrue(
             $result->isValid,
@@ -90,7 +90,7 @@ class SymfonyCompatibilityTest extends TestCase
     public function test_optional_quantifier_in_lookbehind_is_valid(): void
     {
         // Optional quantifier in lookbehind
-        $result = $this->regex->validate('/(?<=a?)b/');
+        $result = $this->regexService->validate('/(?<=a?)b/');
 
         $this->assertTrue(
             $result->isValid,
@@ -101,7 +101,7 @@ class SymfonyCompatibilityTest extends TestCase
     public function test_script_run_verb_is_valid(): void
     {
         // (*script_run:...) is a modern PCRE verb for Unicode script validation
-        $result = $this->regex->validate('/(*script_run:\d+)/');
+        $result = $this->regexService->validate('/(*script_run:\d+)/');
 
         $this->assertTrue(
             $result->isValid,
@@ -112,7 +112,7 @@ class SymfonyCompatibilityTest extends TestCase
     public function test_atomic_script_run_verb_is_valid(): void
     {
         // (*atomic_script_run:...) is an atomic version of script_run
-        $result = $this->regex->validate('/(*atomic_script_run:\d+)/');
+        $result = $this->regexService->validate('/(*atomic_script_run:\d+)/');
 
         $this->assertTrue(
             $result->isValid,
@@ -135,7 +135,7 @@ class SymfonyCompatibilityTest extends TestCase
         ];
 
         foreach ($patterns as $pattern => $verbName) {
-            $result = $this->regex->validate($pattern);
+            $result = $this->regexService->validate($pattern);
             $this->assertTrue(
                 $result->isValid,
                 "PCRE verb (*{$verbName}) should be valid: {$pattern}",
@@ -191,7 +191,7 @@ class SymfonyCompatibilityTest extends TestCase
     {
         // Pattern similar to those found in Symfony routing
         $pattern = '/^\/(?P<_locale>en|fr|de)\/(?P<slug>[a-z0-9-]+)$/';
-        $result = $this->regex->validate($pattern);
+        $result = $this->regexService->validate($pattern);
 
         $this->assertTrue(
             $result->isValid,
@@ -203,7 +203,7 @@ class SymfonyCompatibilityTest extends TestCase
     {
         // Pattern similar to Symfony's email validation
         $pattern = '/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/';
-        $result = $this->regex->validate($pattern);
+        $result = $this->regexService->validate($pattern);
 
         $this->assertTrue(
             $result->isValid,
@@ -215,7 +215,7 @@ class SymfonyCompatibilityTest extends TestCase
     {
         // Combined lookbehind with Unicode property (common in i18n apps)
         $pattern = '/(?<=\p{L}+)\d+/u';
-        $result = $this->regex->validate($pattern);
+        $result = $this->regexService->validate($pattern);
 
         $this->assertTrue(
             $result->isValid,
@@ -227,7 +227,7 @@ class SymfonyCompatibilityTest extends TestCase
     {
         // Nested groups with variable-length content in lookbehind
         $pattern = '/(?<=(?:foo|bar)+)test/';
-        $result = $this->regex->validate($pattern);
+        $result = $this->regexService->validate($pattern);
 
         $this->assertTrue(
             $result->isValid,
@@ -239,7 +239,7 @@ class SymfonyCompatibilityTest extends TestCase
     {
         // Lookbehind at the very start of pattern
         $pattern = '/(?<=prefix)main/';
-        $result = $this->regex->validate($pattern);
+        $result = $this->regexService->validate($pattern);
 
         $this->assertTrue(
             $result->isValid,
@@ -251,7 +251,7 @@ class SymfonyCompatibilityTest extends TestCase
     {
         // Multiple lookbehinds in the same pattern
         $pattern = '/(?<=a{1,3})b(?<=c+)d/';
-        $result = $this->regex->validate($pattern);
+        $result = $this->regexService->validate($pattern);
 
         $this->assertTrue(
             $result->isValid,

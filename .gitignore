@@ -1,5 +1,6 @@
 /.idea/
 /.cache/
+/.task/
 /vendor/
 
 /.php-cs-fixer.php
@@ -10,3 +11,4 @@
 
 /coverage-report
 /attached_assets
+/build/

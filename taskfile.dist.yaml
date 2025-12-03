@@ -1,40 +1,144 @@
 version: 3
 
 tasks:
-    phpcs: tools/php-cs-fixer/vendor/bin/php-cs-fixer fix --diff -v {{.CLI_ARGS}}
+    phpcs:
+        cmd: tools/php-cs-fixer/vendor/bin/php-cs-fixer fix --diff -v {{.CLI_ARGS}}
+        sources:
+            - .php-cs-fixer.dist.php
+            - src/**/*.php
+            - tests/**/*.php
 
-    phplint: tools/phplint/vendor/bin/phplint {{.CLI_ARGS}}
+    phplint:
+        cmd: tools/phplint/vendor/bin/phplint {{.CLI_ARGS}}
+        sources:
+            - .phplint.yml
+            - src/**/*.php
+            - tests/**/*.php
 
-    phpstan: tools/phpstan/vendor/bin/phpstan analyse {{.CLI_ARGS}}
+    phpstan:
+        cmd: tools/phpstan/vendor/bin/phpstan analyse {{.CLI_ARGS}}
+        sources:
+            - phpstan.dist.neon
+            - src/**/*.php
+            - tests/**/*.php
 
-    rector: tools/rector/vendor/bin/rector process {{.CLI_ARGS}}
+    rector:
+        cmd: tools/rector/vendor/bin/rector process {{.CLI_ARGS}}
+        sources:
+            - rector.php
+            - src/**/*.php
+            - tests/**/*.php
 
-    phpunit: vendor/bin/phpunit {{.CLI_ARGS}}
+    phpunit:
+        cmd: vendor/bin/phpunit {{.CLI_ARGS}}
+        sources:
+            - phpunit.dist.xml
+            - src/**/*.php
+            - tests/**/*.php
 
-    phpbench: tools/phpbench/vendor/bin/phpbench run tests/Benchmark --report=default {{.CLI_ARGS}}
+    phpbench:
+        cmd: tools/phpbench/vendor/bin/phpbench run tests/Benchmark --report=default {{.CLI_ARGS}}
+        sources:
+            - phpbench.json
+            - phpbench.yml
+            - src/**/*.php
+            - tests/Benchmark/**/*.php
+
+    coverage:
+        cmd: vendor/bin/phpunit --coverage-html build/coverage {{.CLI_ARGS}}
+        sources:
+            - phpunit.dist.xml
+            - src/**/*.php
+            - tests/**/*.php
+        generates:
+            - build/coverage
 
     lint:
         cmds:
-            - rector
-            - phplint
-            - phpcs
-            - phpunit
-            - phpstan
+            - task: install
+            - task: rector
+            - task: phpcs
+            - task: phplint
+            - task: phpunit
+            - task: phpstan
 
     install:
         cmds:
+            - composer validate --strict
             - composer install
+
+            - composer validate --strict -d tools/php-cs-fixer
             - composer install -d tools/php-cs-fixer
+
+            - composer validate --strict -d tools/phpbench
             - composer install -d tools/phpbench
+
+            - composer validate --strict -d tools/phplint
             - composer install -d tools/phplint
+
+            - composer validate --strict -d tools/phpstan
             - composer install -d tools/phpstan
+
+            - composer validate --strict -d tools/rector
             - composer install -d tools/rector
+
+            - task: link
+        sources:
+            - ./composer.json
+            - ./composer.lock
+            - ./tools/**/composer.json
+            - ./tools/**/composer.lock
+        generates:
+            - ./vendor/autoload.php
+            - ./tools/**/vendor/autoload.php
 
     update:
         cmds:
             - composer update -W
+            - composer bump
+            - composer outdated --direct
+            - composer audit || true
+
             - composer update -W -d tools/php-cs-fixer
+            - composer bump -d tools/php-cs-fixer
+            - composer outdated --direct -d tools/php-cs-fixer
+            - composer audit -d tools/php-cs-fixer || true
+
             - composer update -W -d tools/phpbench
+            - composer bump -d tools/phpbench
+            - composer outdated --direct -d tools/phpbench
+            - composer audit -d tools/phpbench || true
+
             - composer update -W -d tools/phplint
+            - composer bump -d tools/phplint
+            - composer outdated --direct -d tools/phplint
+            - composer audit -d tools/phplint || true
+
             - composer update -W -d tools/phpstan
+            - composer bump -d tools/phpstan
+            - composer outdated --direct -d tools/phpstan
+            - composer audit -d tools/phpstan || true
+
             - composer update -W -d tools/rector
+            - composer bump -d tools/rector
+            - composer outdated --direct -d tools/rector
+            - composer audit -d tools/rector || true
+
+            - task: link
+
+    link:
+        cmds:
+            - ln -sf ../../tools/php-cs-fixer/vendor/bin/php-cs-fixer ./vendor/bin/php-cs-fixer
+            - ln -sf ../tools/php-cs-fixer/vendor/bin/php-cs-fixer ./bin/php-cs-fixer
+            - ln -sf ../tools/php-cs-fixer/vendor/bin/php-cs-fixer ./bin/phpcs
+
+            - ln -sf ../../tools/phpbench/vendor/bin/phpbench ./vendor/bin/phpbench
+            - ln -sf ../tools/phpbench/vendor/bin/phpbench ./bin/phpbench
+
+            - ln -sf ../../tools/phplint/vendor/bin/phplint ./vendor/bin/phplint
+            - ln -sf ../tools/phplint/vendor/bin/phplint ./bin/phplint
+
+            - ln -sf ../tools/phpstan/vendor/bin/phpstan ./bin/phpstan
+
+            - ln -sf ../../tools/rector/vendor/bin/rector ./vendor/bin/rector
+            - ln -sf ../tools/rector/vendor/bin/rector ./bin/rector

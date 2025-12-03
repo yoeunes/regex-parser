@@ -36,6 +36,7 @@ class Lexer
     private const string REGEX_OUTSIDE = <<<'PCRE'
         /
           (?<T_COMMENT_OPEN>          \(\?\# )
+        | (?<T_CALLOUT>               \(\?C [^)]* \) )
         | (?<T_PCRE_VERB>             \(\* [^)]+ \) ) # Ex: (*FAIL), (*MARK:foo)
         | (?<T_GROUP_MODIFIER_OPEN>   \(\? )
         | (?<T_GROUP_OPEN>            \( )
@@ -93,6 +94,7 @@ class Lexer
      */
     private const array TOKENS_OUTSIDE = [
         'T_COMMENT_OPEN',
+        'T_CALLOUT',
         'T_PCRE_VERB',
         'T_GROUP_MODIFIER_OPEN',
         'T_GROUP_OPEN',
@@ -186,7 +188,7 @@ class Lexer
     public function tokenize(string $pattern): TokenStream
     {
         if (false === preg_match('//u', $pattern)) {
-            throw new LexerException('Input string is not valid UTF-8.');
+            throw LexerException::withContext('Input string is not valid UTF-8.', 0, $pattern);
         }
 
         $this->pattern = $pattern;
@@ -232,13 +234,13 @@ class Lexer
             $result = preg_match($regex, $this->pattern, $matches, \PREG_UNMATCHED_AS_NULL, $this->position);
 
             if (false === $result) {
-                throw new LexerException(\sprintf('PCRE Error during tokenization: %s', preg_last_error_msg()));
+                throw LexerException::withContext(\sprintf('PCRE Error during tokenization: %s', preg_last_error_msg()), $this->position, $this->pattern);
             }
 
             if (0 === $result) {
                 $context = mb_substr($this->pattern, $this->position, 10);
 
-                throw new LexerException(\sprintf('Unable to tokenize pattern at position %d. Context: "%s..."', $this->position, $context));
+                throw LexerException::withContext(\sprintf('Unable to tokenize pattern at position %d. Context: "%s..."', $this->position, $context), $this->position, $this->pattern);
             }
 
             /** @var string $matchedValue */
@@ -253,12 +255,12 @@ class Lexer
         // 5. Post-Processing Validation
         // @phpstan-ignore if.alwaysFalse (Reachable if pattern has unclosed character class)
         if ($this->inCharClass) {
-            throw new LexerException('Unclosed character class "]" at end of input.');
+            throw LexerException::withContext('Unclosed character class "]" at end of input.', $this->position, $this->pattern);
         }
 
         // @phpstan-ignore if.alwaysFalse (Reachable if pattern has unclosed comment)
         if ($this->inCommentMode) {
-            throw new LexerException('Unclosed comment ")" at end of input.');
+            throw LexerException::withContext('Unclosed comment ")" at end of input.', $this->position, $this->pattern);
         }
 
         $tokens[] = new Token(TokenType::T_EOF, '', $this->position);
@@ -279,8 +281,6 @@ class Lexer
         foreach ($tokenMap as $tokenName) {
             if (isset($matches[$tokenName])) {
                 $type = TokenType::from(strtolower(substr($tokenName, 2)));
-
-                // --- State Transition Logic ---
 
                 if (TokenType::T_CHAR_CLASS_OPEN === $type) {
                     $this->inCharClass = true;
@@ -338,7 +338,7 @@ class Lexer
         }
 
         // Should be unreachable
-        throw new LexerException(\sprintf('Lexer internal error: No known token matched at position %d.', $startPos));
+        throw LexerException::withContext(\sprintf('Lexer internal error: No known token matched at position %d.', $startPos), $startPos, $this->pattern);
     }
 
     /**
@@ -443,6 +443,7 @@ class Lexer
                 default => substr($matchedValue, 1),
             },
             TokenType::T_PCRE_VERB => substr($matchedValue, 2, -1),
+            TokenType::T_CALLOUT => substr($matchedValue, 3, -1),
             TokenType::T_ASSERTION,
             TokenType::T_CHAR_TYPE,
             TokenType::T_KEEP => substr($matchedValue, 1),

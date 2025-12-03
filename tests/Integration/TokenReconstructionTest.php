@@ -60,6 +60,7 @@ class TokenReconstructionTest extends TestCase
             TokenType::T_LITERAL_ESCAPED->value => '\.',     // Ajoute \
             TokenType::T_QUOTE_MODE_START->value => '\Q',
             TokenType::T_QUOTE_MODE_END->value => '\E',
+            TokenType::T_CALLOUT->value => '1',
         ];
 
         foreach (TokenType::cases() as $case) {
@@ -73,6 +74,7 @@ class TokenReconstructionTest extends TestCase
                 TokenType::T_POSIX_CLASS => 'alnum',
                 TokenType::T_PCRE_VERB => 'FAIL',
                 TokenType::T_UNICODE_PROP => '{L}', // Pour déclencher le cas simple
+                TokenType::T_CALLOUT => '1',
                 default => $map[$case->value] ?? 'default'
             };
 
@@ -86,6 +88,7 @@ class TokenReconstructionTest extends TestCase
                 TokenType::T_POSIX_CLASS => '[[:alnum:]]',
                 TokenType::T_PCRE_VERB => '(*FAIL)',
                 TokenType::T_UNICODE_PROP => '\p{L}',
+                TokenType::T_CALLOUT => '(?C1)',
                 default => $val
             };
 

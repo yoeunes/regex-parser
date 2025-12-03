@@ -14,22 +14,32 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
-use RegexParser\Lexer;
+use RegexParser\Regex;
 use RegexParser\Tests\TestUtils\LexerAccessor;
 use RegexParser\TokenType;
 
 class LexerMethodTest extends TestCase
 {
+    private Regex $regexService;
+
+    protected function setUp(): void
+    {
+        $this->regexService = Regex::create();
+    }
+
     /**
      * Teste le fallback par défaut de extractTokenValue pour un type inconnu.
+     * This case is normally unreachable as the main Regex filters tokens,
+     * but for 100% coverage we must force it via Reflection.
      */
     public function test_extract_token_value_unknown_type(): void
     {
-        $lexer = new Lexer();
+        $lexer = $this->regexService->getLexer();
         $lexer->tokenize('');
         $accessor = new LexerAccessor($lexer);
 
-        // Type qui n'a pas de logique spécifique -> retourne la valeur brute
+        // Force a token that has no specific extraction logic
+        // (e.g. T_LITERAL goes to the default)
         $val = $accessor->callPrivateMethod('extractTokenValue', [
             TokenType::T_LITERAL, // Cas default
             'TEST_VALUE',
@@ -43,7 +53,7 @@ class LexerMethodTest extends TestCase
      */
     public function test_extract_token_value_backref_fallback(): void
     {
-        $lexer = new Lexer();
+        $lexer = $this->regexService->getLexer();
         $lexer->tokenize('');
         $accessor = new LexerAccessor($lexer);
 
@@ -60,7 +70,7 @@ class LexerMethodTest extends TestCase
      */
     public function test_normalize_unicode_prop_fallback(): void
     {
-        $lexer = new Lexer();
+        $lexer = $this->regexService->getLexer();
         $lexer->tokenize('');
         $accessor = new LexerAccessor($lexer);
 

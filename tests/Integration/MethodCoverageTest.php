@@ -15,7 +15,6 @@ namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
-use RegexParser\Lexer;
 use RegexParser\Regex;
 
 /**
@@ -23,11 +22,11 @@ use RegexParser\Regex;
  */
 class MethodCoverageTest extends TestCase
 {
-    private Regex $regex;
+    private Regex $regexService;
 
     protected function setUp(): void
     {
-        $this->regex = Regex::create();
+        $this->regexService = Regex::create();
     }
 
     /**
@@ -38,7 +37,7 @@ class MethodCoverageTest extends TestCase
     public function test_parser_subroutine_p_syntax(): void
     {
         // (?P>name) syntax - triggers parseSubroutineName
-        $this->regex->parse('/(?<foo>x)(?P>foo)/');
+        $this->regexService->parse('/(?<foo>x)(?P>foo)/');
     }
 
     /**
@@ -49,7 +48,7 @@ class MethodCoverageTest extends TestCase
     public function test_parser_subroutine_ampersand_syntax(): void
     {
         // (?&name) syntax - triggers parseSubroutineName
-        $this->regex->parse('/(?<bar>y)(?&bar)/');
+        $this->regexService->parse('/(?<bar>y)(?&bar)/');
     }
 
     /**
@@ -60,13 +59,13 @@ class MethodCoverageTest extends TestCase
     public function test_parser_get_lexer_multiple_calls(): void
     {
         // First call creates lexer
-        $this->regex->parse('/test/');
+        $this->regexService->parse('/test/');
 
         // Second call should reuse lexer via getLexer
-        $this->regex->parse('/another/');
+        $this->regexService->parse('/another/');
 
         // Third call
-        $this->regex->parse('/pattern/');
+        $this->regexService->parse('/pattern/');
     }
 
     /**
@@ -77,9 +76,9 @@ class MethodCoverageTest extends TestCase
     public function test_parser_is_at_end(): void
     {
         // Simple patterns that cause isAtEnd checks
-        $this->regex->parse('/a/');
-        $this->regex->parse('/ab/');
-        $this->regex->parse('//'); // Empty pattern
+        $this->regexService->parse('/a/');
+        $this->regexService->parse('/ab/');
+        $this->regexService->parse('//'); // Empty pattern
     }
 
     /**
@@ -90,10 +89,10 @@ class MethodCoverageTest extends TestCase
     public function test_lexer_quote_mode(): void
     {
         // \Q...\E quote mode
-        $this->regex->parse('/\Qtest\E/');
-        $this->regex->parse('/\Qhello world\E/');
-        $this->regex->parse('/\Q.*+?{}[]()\E/'); // Special chars in quote mode
-        $this->regex->parse('/\Qunclosed/'); // Quote mode without \E
+        $this->regexService->parse('/\Qtest\E/');
+        $this->regexService->parse('/\Qhello world\E/');
+        $this->regexService->parse('/\Q.*+?{}[]()\E/'); // Special chars in quote mode
+        $this->regexService->parse('/\Qunclosed/'); // Quote mode without \E
     }
 
     /**
@@ -104,11 +103,11 @@ class MethodCoverageTest extends TestCase
     public function test_lexer_comment_mode_detailed(): void
     {
         // (?#...) comment mode
-        $this->regex->parse('/(?#simple comment)/');
-        $this->regex->parse('/(?#comment with spaces and punctuation!)/');
-        $this->regex->parse('/a(?#comment)b/');
-        $this->regex->parse('/(?#first)x(?#second)/');
-        $this->regex->parse('/(?#)/'); // Empty comment
+        $this->regexService->parse('/(?#simple comment)/');
+        $this->regexService->parse('/(?#comment with spaces and punctuation!)/');
+        $this->regexService->parse('/a(?#comment)b/');
+        $this->regexService->parse('/(?#first)x(?#second)/');
+        $this->regexService->parse('/(?#)/'); // Empty comment
     }
 
     /**
@@ -119,58 +118,76 @@ class MethodCoverageTest extends TestCase
     public function test_lexer_extract_token_value_comprehensive(): void
     {
         // T_LITERAL_ESCAPED with special escapes
-        $this->regex->parse('/\t/');  // Tab
-        $this->regex->parse('/\n/');  // Newline
-        $this->regex->parse('/\r/');  // Carriage return
-        $this->regex->parse('/\f/');  // Form feed
-        $this->regex->parse('/\v/');  // Vertical tab
-        $this->regex->parse('/\e/');  // Escape
-        $this->regex->parse('/\./');  // Escaped dot
+        $this->regexService->parse('/\t/');  // Tab
+        $this->regexService->parse('/\n/');  // Newline
+        $this->regexService->parse('/\r/');  // Carriage return
+        $this->regexService->parse('/\f/');  // Form feed
+        $this->regexService->parse('/\v/');  // Vertical tab
+        $this->regexService->parse('/\e/');  // Escape
+        $this->regexService->parse('/\./');  // Escaped dot
 
         // T_PCRE_VERB
-        $this->regex->parse('/(*FAIL)/');
-        $this->regex->parse('/(*ACCEPT)/');
-        $this->regex->parse('/(*COMMIT)/');
+        $this->regexService->parse('/(*FAIL)/');
+        $this->regexService->parse('/(*ACCEPT)/');
+        $this->regexService->parse('/(*COMMIT)/');
 
         // T_ASSERTION
-        $this->regex->parse('/\b/');  // Word boundary
-        $this->regex->parse('/\B/');  // Not word boundary
-        $this->regex->parse('/\A/');  // Start of string
-        $this->regex->parse('/\Z/');  // End of string
-        $this->regex->parse('/\z/');  // Absolute end
+        $this->regexService->parse('/\b/');  // Word boundary
+        $this->regexService->parse('/\B/');  // Not word boundary
+        $this->regexService->parse('/\A/');  // Start of string
+        $this->regexService->parse('/\Z/');  // End of string
+        $this->regexService->parse('/\z/');  // Absolute end
 
         // T_CHAR_TYPE
-        $this->regex->parse('/\d/');  // Digit
-        $this->regex->parse('/\D/');  // Not digit
-        $this->regex->parse('/\w/');  // Word char
-        $this->regex->parse('/\W/');  // Not word char
-        $this->regex->parse('/\s/');  // Whitespace
-        $this->regex->parse('/\S/');  // Not whitespace
+        $this->regexService->parse('/\d/');  // Digit
+        $this->regexService->parse('/\D/');  // Not digit
+        $this->regexService->parse('/\w/');  // Word char
+        $this->regexService->parse('/\W/');  // Not word char
+        $this->regexService->parse('/\s/');  // Whitespace
+        $this->regexService->parse('/\S/');  // Not whitespace
 
         // T_KEEP
-        $this->regex->parse('/\K/');
+        $this->regexService->parse('/\K/');
 
         // T_BACKREF
-        $this->regex->parse('/(a)\1/');
-        $this->regex->parse('/(a)(b)\2/');
+        $this->regexService->parse('/(a)\1/');
+        $this->regexService->parse('/(a)(b)\2/');
 
         // T_OCTAL_LEGACY
-        $this->regex->parse('/\01/');
-        $this->regex->parse('/\77/');
+        $this->regexService->parse('/\01/');
+        $this->regexService->parse('/\77/');
 
         // T_POSIX_CLASS
-        $this->regex->parse('/[[:alnum:]]/');
-        $this->regex->parse('/[[:alpha:]]/');
-        $this->regex->parse('/[[:digit:]]/');
+        $this->regexService->parse('/[[:alnum:]]/');
+        $this->regexService->parse('/[[:alpha:]]/');
+        $this->regexService->parse('/[[:digit:]]/');
     }
 
     /**
-     * Test Lexer directly to ensure __construct, reset, and tokenize are covered
+     * Test Lexer.normalizeUnicodeProp() with Unicode property patterns
+     * This private method handles \p{} and \P{} normalization
      */
-    public function test_lexer_direct_instantiation(): void
+    #[DoesNotPerformAssertions]
+    public function test_lexer_normalize_unicode_prop(): void
     {
-        // Direct Lexer instantiation
-        $tokens = new Lexer()->tokenize('test')->getTokens();
-        $this->assertIsArray($tokens);
+        // \p{L} - regular property
+        $this->regexService->parse('/\p{L}/');
+
+        // \P{L} - negated property (adds ^)
+        $this->regexService->parse('/\P{L}/');
+
+        // \p{^L} - already negated
+        $this->regexService->parse('/\p{^L}/');
+
+        // \P{^L} - double negation (removes ^)
+        $this->regexService->parse('/\P{^L}/');
+
+        // Various Unicode properties
+        $this->regexService->parse('/\p{Ll}/');  // Lowercase letter
+        $this->regexService->parse('/\P{Lu}/');  // Not uppercase letter
+        $this->regexService->parse('/\p{N}/');   // Number
+        $this->regexService->parse('/\P{P}/');   // Not punctuation
+        $this->regexService->parse('/\p{Sc}/');  // Currency symbol
+        $this->regexService->parse('/\P{Sc}/');  // Not currency symbol
     }
 }

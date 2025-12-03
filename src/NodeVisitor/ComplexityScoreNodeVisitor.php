@@ -13,31 +13,8 @@ declare(strict_types=1);
 
 namespace RegexParser\NodeVisitor;
 
-use RegexParser\Node\AlternationNode;
-use RegexParser\Node\AnchorNode;
-use RegexParser\Node\AssertionNode;
-use RegexParser\Node\BackrefNode;
-use RegexParser\Node\CharClassNode;
-use RegexParser\Node\CharTypeNode;
-use RegexParser\Node\CommentNode;
-use RegexParser\Node\ConditionalNode;
-use RegexParser\Node\DefineNode;
-use RegexParser\Node\DotNode;
-use RegexParser\Node\GroupNode;
+use RegexParser\Node;
 use RegexParser\Node\GroupType;
-use RegexParser\Node\KeepNode;
-use RegexParser\Node\LiteralNode;
-use RegexParser\Node\OctalLegacyNode;
-use RegexParser\Node\OctalNode;
-use RegexParser\Node\PcreVerbNode;
-use RegexParser\Node\PosixClassNode;
-use RegexParser\Node\QuantifierNode;
-use RegexParser\Node\RangeNode;
-use RegexParser\Node\RegexNode;
-use RegexParser\Node\SequenceNode;
-use RegexParser\Node\SubroutineNode;
-use RegexParser\Node\UnicodeNode;
-use RegexParser\Node\UnicodePropNode;
 
 /**
  * A visitor that calculates a numeric "complexity score" for the regex.
@@ -85,7 +62,7 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * quantifier depth) and then delegates the scoring to the main pattern node,
      * effectively returning the total complexity score of the regex.
      *
-     * @param RegexNode $node the `RegexNode` representing the entire regular expression
+     * @param Node\RegexNode $node the `RegexNode` representing the entire regular expression
      *
      * @return int the total complexity score of the regex pattern
      *
@@ -96,7 +73,7 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * $score = $regexNode->accept($visitor); // $score will be a numeric value
      * ```
      */
-    public function visitRegex(RegexNode $node): int
+    public function visitRegex(Node\RegexNode $node): int
     {
         // Reset state for this run
         $this->quantifierDepth = 0;
@@ -113,7 +90,7 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * complexity scores of all its alternative branches, reflecting the increased
      * cognitive load and potential for different matching paths.
      *
-     * @param AlternationNode $node the `AlternationNode` representing a choice between patterns
+     * @param Node\AlternationNode $node the `AlternationNode` representing a choice between patterns
      *
      * @return int the complexity score of the alternation node, including its alternatives
      *
@@ -123,7 +100,7 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * $alternationNode->accept($visitor); // Score will be BASE_SCORE + score(a) + score(b) + score(c)
      * ```
      */
-    public function visitAlternation(AlternationNode $node): int
+    public function visitAlternation(Node\AlternationNode $node): int
     {
         // Score is the sum of all alternatives, plus a base score for the alternation itself
         $score = self::BASE_SCORE;
@@ -142,7 +119,7 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * complexity scores of all its child nodes, reflecting the linear accumulation
      * of complexity.
      *
-     * @param SequenceNode $node the `SequenceNode` representing a series of regex components
+     * @param Node\SequenceNode $node the `SequenceNode` representing a series of regex components
      *
      * @return int the total complexity score of the sequence node
      *
@@ -152,7 +129,7 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * $sequenceNode->accept($visitor); // Score will be score(a) + score(b) + score(c)
      * ```
      */
-    public function visitSequence(SequenceNode $node): int
+    public function visitSequence(Node\SequenceNode $node): int
     {
         // Score is the sum of all children
         $score = 0;
@@ -171,7 +148,7 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * itself and a higher score for complex group types like lookarounds, which
      * significantly increase cognitive complexity due to their zero-width assertion behavior.
      *
-     * @param GroupNode $node the `GroupNode` representing a specific grouping construct
+     * @param Node\GroupNode $node the `GroupNode` representing a specific grouping construct
      *
      * @return int the complexity score of the group node, including its child
      *
@@ -184,7 +161,7 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * $groupNode->accept($visitor); // Score will be COMPLEX_CONSTRUCT_SCORE + score(abc)
      * ```
      */
-    public function visitGroup(GroupNode $node): int
+    public function visitGroup(Node\GroupNode $node): int
     {
         $childScore = $node->child->accept($this);
 
@@ -214,7 +191,7 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * increases the penalty for nested unbounded quantifiers, reflecting the increased
      * backtracking complexity.
      *
-     * @param QuantifierNode $node the `QuantifierNode` representing a repetition operator
+     * @param Node\QuantifierNode $node the `QuantifierNode` representing a repetition operator
      *
      * @return int the complexity score of the quantifier node, including its quantified element
      *
@@ -231,7 +208,7 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * // The outer `*` will get UNBOUNDED_QUANTIFIER_SCORE * NESTING_MULTIPLIER + score(inner_quantifier)
      * ```
      */
-    public function visitQuantifier(QuantifierNode $node): int
+    public function visitQuantifier(Node\QuantifierNode $node): int
     {
         $quant = $node->quantifier;
         $isUnbounded = \in_array($quant, ['*', '+'], true) || preg_match('/^\{\d+,\}$/', $quant);
@@ -267,7 +244,7 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * class itself and sums the scores of all its constituent parts (literals, ranges, etc.),
      * reflecting the complexity of the character set definition.
      *
-     * @param CharClassNode $node the `CharClassNode` representing a character class
+     * @param Node\CharClassNode $node the `CharClassNode` representing a character class
      *
      * @return int the complexity score of the character class node
      *
@@ -277,7 +254,7 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * $charClassNode->accept($visitor); // Score will be BASE_SCORE + score(a) + score(z) + score(A) + score(Z) + score(0) + score(9)
      * ```
      */
-    public function visitCharClass(CharClassNode $node): int
+    public function visitCharClass(Node\CharClassNode $node): int
     {
         // Score is the sum of parts inside the class
         $score = self::BASE_SCORE;
@@ -296,7 +273,7 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * reason about and potentially more prone to backtracking issues. Therefore,
      * they are assigned a higher complexity score.
      *
-     * @param BackrefNode $node the `BackrefNode` representing a backreference
+     * @param Node\BackrefNode $node the `BackrefNode` representing a backreference
      *
      * @return int the complexity score for a backreference
      *
@@ -306,7 +283,7 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * $backrefNode->accept($visitor); // Score will be COMPLEX_CONSTRUCT_SCORE
      * ```
      */
-    public function visitBackref(BackrefNode $node): int
+    public function visitBackref(Node\BackrefNode $node): int
     {
         return self::COMPLEX_CONSTRUCT_SCORE;
     }
@@ -320,7 +297,7 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * of its condition, 'yes' branch, and 'no' branch, reflecting the substantial
      * increase in complexity.
      *
-     * @param ConditionalNode $node the `ConditionalNode` representing a conditional sub-pattern
+     * @param Node\ConditionalNode $node the `ConditionalNode` representing a conditional sub-pattern
      *
      * @return int the complexity score of the conditional node
      *
@@ -330,7 +307,7 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * $conditionalNode->accept($visitor); // Score will be (COMPLEX_CONSTRUCT_SCORE * 2) + score(condition) + score(foo) + score(bar)
      * ```
      */
-    public function visitConditional(ConditionalNode $node): int
+    public function visitConditional(Node\ConditionalNode $node): int
     {
         // Conditionals are highly complex
         $score = self::COMPLEX_CONSTRUCT_SCORE * 2;
@@ -349,7 +326,7 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * assigns a very high complexity score to reflect the advanced nature and
      * potential for intricate behavior associated with subroutines.
      *
-     * @param SubroutineNode $node the `SubroutineNode` representing a subroutine call
+     * @param Node\SubroutineNode $node the `SubroutineNode` representing a subroutine call
      *
      * @return int the complexity score for a subroutine node
      *
@@ -359,7 +336,7 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * $subroutineNode->accept($visitor); // Score will be COMPLEX_CONSTRUCT_SCORE * 2
      * ```
      */
-    public function visitSubroutine(SubroutineNode $node): int
+    public function visitSubroutine(Node\SubroutineNode $node): int
     {
         // Subroutines/recursion are highly complex
         return self::COMPLEX_CONSTRUCT_SCORE * 2;
@@ -372,7 +349,7 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * in a regex, matching themselves directly without any special logic or backtracking.
      * They contribute a minimal base score to the overall complexity.
      *
-     * @param LiteralNode $node the `LiteralNode` representing a literal character or string
+     * @param Node\LiteralNode $node the `LiteralNode` representing a literal character or string
      *
      * @return int the base complexity score for a literal
      *
@@ -382,7 +359,7 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * $literalNode->accept($visitor); // Score will be BASE_SCORE
      * ```
      */
-    public function visitLiteral(LiteralNode $node): int
+    public function visitLiteral(Node\LiteralNode $node): int
     {
         return self::BASE_SCORE;
     }
@@ -394,7 +371,7 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * well-defined set of characters. While more abstract than a literal, they are
      * still relatively simple and contribute a minimal base score to complexity.
      *
-     * @param CharTypeNode $node the `CharTypeNode` representing a predefined character type
+     * @param Node\CharTypeNode $node the `CharTypeNode` representing a predefined character type
      *
      * @return int the base complexity score for a character type
      *
@@ -404,7 +381,7 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * $charTypeNode->accept($visitor); // Score will be BASE_SCORE
      * ```
      */
-    public function visitCharType(CharTypeNode $node): int
+    public function visitCharType(Node\CharTypeNode $node): int
     {
         return self::BASE_SCORE;
     }
@@ -415,7 +392,7 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * Purpose: The wildcard dot (`.`) matches almost any single character. While broad,
      * its behavior is straightforward. It contributes a minimal base score to complexity.
      *
-     * @param DotNode $node the `DotNode` representing the wildcard dot character
+     * @param Node\DotNode $node the `DotNode` representing the wildcard dot character
      *
      * @return int the base complexity score for a dot
      *
@@ -425,7 +402,7 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * $dotNode->accept($visitor); // Score will be BASE_SCORE
      * ```
      */
-    public function visitDot(DotNode $node): int
+    public function visitDot(Node\DotNode $node): int
     {
         return self::BASE_SCORE;
     }
@@ -437,7 +414,7 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * without consuming characters. Their behavior is well-defined and they do not
      * introduce significant complexity. They contribute a minimal base score.
      *
-     * @param AnchorNode $node the `AnchorNode` representing a positional anchor
+     * @param Node\AnchorNode $node the `AnchorNode` representing a positional anchor
      *
      * @return int the base complexity score for an anchor
      *
@@ -447,7 +424,7 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * $anchorNode->accept($visitor); // Score will be BASE_SCORE
      * ```
      */
-    public function visitAnchor(AnchorNode $node): int
+    public function visitAnchor(Node\AnchorNode $node): int
     {
         return self::BASE_SCORE;
     }
@@ -459,7 +436,7 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * consuming characters. Similar to anchors, their behavior is specific and
      * they do not add substantial complexity. They contribute a minimal base score.
      *
-     * @param AssertionNode $node the `AssertionNode` representing a zero-width assertion
+     * @param Node\AssertionNode $node the `AssertionNode` representing a zero-width assertion
      *
      * @return int the base complexity score for an assertion
      *
@@ -469,7 +446,7 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * $assertionNode->accept($visitor); // Score will be BASE_SCORE
      * ```
      */
-    public function visitAssertion(AssertionNode $node): int
+    public function visitAssertion(Node\AssertionNode $node): int
     {
         return self::BASE_SCORE;
     }
@@ -481,7 +458,7 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * affects the final matched string, its direct contribution to the pattern's
      * complexity is minimal. It contributes a base score.
      *
-     * @param KeepNode $node the `KeepNode` representing the `\K` assertion
+     * @param Node\KeepNode $node the `KeepNode` representing the `\K` assertion
      *
      * @return int the base complexity score for a keep assertion
      *
@@ -491,7 +468,7 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * $keepNode->accept($visitor); // Score will be BASE_SCORE
      * ```
      */
-    public function visitKeep(KeepNode $node): int
+    public function visitKeep(Node\KeepNode $node): int
     {
         return self::BASE_SCORE;
     }
@@ -504,7 +481,7 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * itself and sums the scores of its start and end literal nodes, reflecting
      * the definition of the range.
      *
-     * @param RangeNode $node the `RangeNode` representing a character range
+     * @param Node\RangeNode $node the `RangeNode` representing a character range
      *
      * @return int the complexity score of the range node
      *
@@ -514,7 +491,7 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * $rangeNode->accept($visitor); // Score will be BASE_SCORE + score(a) + score(z)
      * ```
      */
-    public function visitRange(RangeNode $node): int
+    public function visitRange(Node\RangeNode $node): int
     {
         return self::BASE_SCORE + $node->start->accept($this) + $node->end->accept($this);
     }
@@ -526,7 +503,7 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * specific character. While they might appear complex due to their hexadecimal
      * notation, their matching behavior is straightforward. They contribute a minimal base score.
      *
-     * @param UnicodeNode $node the `UnicodeNode` representing a Unicode character escape
+     * @param Node\UnicodeNode $node the `UnicodeNode` representing a Unicode character escape
      *
      * @return int the base complexity score for a Unicode character
      *
@@ -536,7 +513,7 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * $unicodeNode->accept($visitor); // Score will be BASE_SCORE
      * ```
      */
-    public function visitUnicode(UnicodeNode $node): int
+    public function visitUnicode(Node\UnicodeNode $node): int
     {
         return self::BASE_SCORE;
     }
@@ -548,7 +525,7 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * on their linguistic or script properties. Similar to character types, they
      * represent a defined set and contribute a minimal base score to complexity.
      *
-     * @param UnicodePropNode $node the `UnicodePropNode` representing a Unicode property
+     * @param Node\UnicodePropNode $node the `UnicodePropNode` representing a Unicode property
      *
      * @return int the base complexity score for a Unicode property
      *
@@ -558,7 +535,7 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * $unicodePropNode->accept($visitor); // Score will be BASE_SCORE
      * ```
      */
-    public function visitUnicodeProp(UnicodePropNode $node): int
+    public function visitUnicodeProp(Node\UnicodePropNode $node): int
     {
         return self::BASE_SCORE;
     }
@@ -570,7 +547,7 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * specific character. Their matching behavior is direct, and they contribute a
      * minimal base score to complexity.
      *
-     * @param OctalNode $node the `OctalNode` representing a modern octal escape
+     * @param Node\OctalNode $node the `OctalNode` representing a modern octal escape
      *
      * @return int the base complexity score for an octal character
      *
@@ -580,7 +557,7 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * $octalNode->accept($visitor); // Score will be BASE_SCORE
      * ```
      */
-    public function visitOctal(OctalNode $node): int
+    public function visitOctal(Node\OctalNode $node): int
     {
         return self::BASE_SCORE;
     }
@@ -592,7 +569,7 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * specific character. Despite their older syntax, their matching behavior is
      * direct, and they contribute a minimal base score to complexity.
      *
-     * @param OctalLegacyNode $node the `OctalLegacyNode` representing a legacy octal escape
+     * @param Node\OctalLegacyNode $node the `OctalLegacyNode` representing a legacy octal escape
      *
      * @return int the base complexity score for a legacy octal character
      *
@@ -602,7 +579,7 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * $octalLegacyNode->accept($visitor); // Score will be BASE_SCORE
      * ```
      */
-    public function visitOctalLegacy(OctalLegacyNode $node): int
+    public function visitOctalLegacy(Node\OctalLegacyNode $node): int
     {
         return self::BASE_SCORE;
     }
@@ -614,7 +591,7 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * a predefined set. Similar to other character types, they are well-defined
      * and contribute a minimal base score to complexity.
      *
-     * @param PosixClassNode $node the `PosixClassNode` representing a POSIX character class
+     * @param Node\PosixClassNode $node the `PosixClassNode` representing a POSIX character class
      *
      * @return int the base complexity score for a POSIX class
      *
@@ -624,7 +601,7 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * $posixClassNode->accept($visitor); // Score will be BASE_SCORE
      * ```
      */
-    public function visitPosixClass(PosixClassNode $node): int
+    public function visitPosixClass(Node\PosixClassNode $node): int
     {
         return self::BASE_SCORE;
     }
@@ -636,7 +613,7 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * and do not affect the matching logic. Therefore, they do not contribute to the
      * functional complexity of the pattern and are assigned a score of zero.
      *
-     * @param CommentNode $node the `CommentNode` representing an inline comment
+     * @param Node\CommentNode $node the `CommentNode` representing an inline comment
      *
      * @return int always 0, as comments do not add to functional complexity
      *
@@ -646,7 +623,7 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * $commentNode->accept($visitor); // Score will be 0
      * ```
      */
-    public function visitComment(CommentNode $node): int
+    public function visitComment(Node\CommentNode $node): int
     {
         // Comments do not add to complexity
         return 0;
@@ -660,7 +637,7 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * These are advanced constructs that significantly increase the complexity of
      * understanding and debugging a regex. They are assigned a higher complexity score.
      *
-     * @param PcreVerbNode $node the `PcreVerbNode` representing a PCRE verb
+     * @param Node\PcreVerbNode $node the `PcreVerbNode` representing a PCRE verb
      *
      * @return int the complexity score for a PCRE verb
      *
@@ -670,7 +647,7 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * $pcreVerbNode->accept($visitor); // Score will be COMPLEX_CONSTRUCT_SCORE
      * ```
      */
-    public function visitPcreVerb(PcreVerbNode $node): int
+    public function visitPcreVerb(Node\PcreVerbNode $node): int
     {
         return self::COMPLEX_CONSTRUCT_SCORE;
     }
@@ -684,7 +661,7 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * This method assigns a higher base score for the DEFINE block and sums the
      * scores of its content.
      *
-     * @param DefineNode $node The `DefineNode` representing a `(?(DEFINE)...)` block.
+     * @param Node\DefineNode $node The `DefineNode` representing a `(?(DEFINE)...)` block.
      *
      * @return int the complexity score of the DEFINE block, including its content
      *
@@ -694,9 +671,20 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * $defineNode->accept($visitor); // Score will be COMPLEX_CONSTRUCT_SCORE + score(\d+)
      * ```
      */
-    public function visitDefine(DefineNode $node): int
+    public function visitDefine(Node\DefineNode $node): int
     {
         // DEFINE blocks add complexity from their content
         return self::COMPLEX_CONSTRUCT_SCORE + $node->content->accept($this);
+    }
+
+    public function visitLimitMatch(Node\LimitMatchNode $node): int
+    {
+        return self::COMPLEX_CONSTRUCT_SCORE;
+    }
+
+    public function visitCallout(Node\CalloutNode $node): int
+    {
+        // Callouts introduce external logic and break regex flow, making them complex.
+        return self::COMPLEX_CONSTRUCT_SCORE;
     }
 }

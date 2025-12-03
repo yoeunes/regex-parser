@@ -13,33 +13,9 @@ declare(strict_types=1);
 
 namespace RegexParser\NodeVisitor;
 
-use RegexParser\Node\AlternationNode;
-use RegexParser\Node\AnchorNode;
-use RegexParser\Node\AssertionNode;
-use RegexParser\Node\BackrefNode;
-use RegexParser\Node\CharClassNode;
-use RegexParser\Node\CharTypeNode;
-use RegexParser\Node\CommentNode;
-use RegexParser\Node\ConditionalNode;
-use RegexParser\Node\DefineNode;
-use RegexParser\Node\DotNode;
-use RegexParser\Node\GroupNode;
+use RegexParser\Node;
 use RegexParser\Node\GroupType;
-use RegexParser\Node\KeepNode;
-use RegexParser\Node\LiteralNode;
-use RegexParser\Node\NodeInterface;
-use RegexParser\Node\OctalLegacyNode;
-use RegexParser\Node\OctalNode;
-use RegexParser\Node\PcreVerbNode;
-use RegexParser\Node\PosixClassNode;
-use RegexParser\Node\QuantifierNode;
 use RegexParser\Node\QuantifierType;
-use RegexParser\Node\RangeNode;
-use RegexParser\Node\RegexNode;
-use RegexParser\Node\SequenceNode;
-use RegexParser\Node\SubroutineNode;
-use RegexParser\Node\UnicodeNode;
-use RegexParser\Node\UnicodePropNode;
 
 /**
  * A visitor that explains the AST in an HTML format for rich display.
@@ -89,7 +65,7 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * It wraps the explanation of the main pattern with overall regex context, including any flags,
      * providing a structured and comprehensive overview.
      *
-     * @param RegexNode $node the `RegexNode` representing the entire regular expression
+     * @param Node\RegexNode $node the `RegexNode` representing the entire regular expression
      *
      * @return string an HTML string explaining the regex pattern and its flags
      *
@@ -101,7 +77,7 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * // $html will contain a div with the explanation of "hello" and mention of the 'i' flag.
      * ```
      */
-    public function visitRegex(RegexNode $node): string
+    public function visitRegex(Node\RegexNode $node): string
     {
         $patternExplain = $node->pattern->accept($this);
         $flags = $node->flags ? $this->e(' (with flags: '.$node->flags.')') : '';
@@ -120,7 +96,7 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * It clearly separates each alternative in the HTML output, making it easy to
      * understand that the regex engine will try to match one of the provided options.
      *
-     * @param AlternationNode $node the `AlternationNode` representing a choice between patterns
+     * @param Node\AlternationNode $node the `AlternationNode` representing a choice between patterns
      *
      * @return string an HTML string explaining the alternation, with each alternative listed
      *
@@ -134,10 +110,10 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * // <li><strong>OR:</strong><ul>...explanation of orange...</ul></li>
      * ```
      */
-    public function visitAlternation(AlternationNode $node): string
+    public function visitAlternation(Node\AlternationNode $node): string
     {
         $alts = array_map(
-            fn (NodeInterface $alt) => $alt->accept($this),
+            fn (Node\NodeInterface $alt) => $alt->accept($this),
             $node->alternatives,
         );
 
@@ -154,7 +130,7 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * It concatenates the HTML explanations of all child nodes, preserving their order,
      * to show that these elements must match consecutively.
      *
-     * @param SequenceNode $node the `SequenceNode` representing a series of regex components
+     * @param Node\SequenceNode $node the `SequenceNode` representing a series of regex components
      *
      * @return string an HTML string concatenating the explanations of its child nodes
      *
@@ -168,7 +144,7 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * // <li>Literal: <strong>'o'</strong></li>
      * ```
      */
-    public function visitSequence(SequenceNode $node): string
+    public function visitSequence(Node\SequenceNode $node): string
     {
         $parts = array_map(fn ($child) => $child->accept($this), $node->children);
         $parts = array_filter($parts, fn ($part) => '' !== $part);
@@ -184,7 +160,7 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * the group's purpose and then recursively explains its internal pattern, helping
      * users understand the role of each grouping construct.
      *
-     * @param GroupNode $node the `GroupNode` representing a specific grouping construct
+     * @param Node\GroupNode $node the `GroupNode` representing a specific grouping construct
      *
      * @return string an HTML string explaining the group's type and its child's pattern
      *
@@ -203,7 +179,7 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * // <ul><li>...explanation of test...</li></ul></li>
      * ```
      */
-    public function visitGroup(GroupNode $node): string
+    public function visitGroup(Node\GroupNode $node): string
     {
         $childExplain = $node->child->accept($this);
         $type = match ($node->type) {
@@ -234,7 +210,7 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * (e.g., `*`, `+`, `{1,5}`). It also clarifies the "greediness" type (greedy, lazy, possessive).
      * The explanation is integrated with the quantified element's explanation for clarity.
      *
-     * @param QuantifierNode $node the `QuantifierNode` representing a repetition operator
+     * @param Node\QuantifierNode $node the `QuantifierNode` representing a repetition operator
      *
      * @return string an HTML string explaining the quantifier and its quantified child
      *
@@ -252,15 +228,15 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * // <ul><li>...explanation of foo...</li></ul></li>
      * ```
      */
-    public function visitQuantifier(QuantifierNode $node): string
+    public function visitQuantifier(Node\QuantifierNode $node): string
     {
         $childExplain = $node->node->accept($this);
         $quantExplain = $this->explainQuantifierValue($node->quantifier, $node->type);
 
         // If the child is simple (one line <li>), put it on one line.
-        if (str_starts_with($childExplain, '<li>') && !str_contains(substr($childExplain, 4), '<li>')) {
+        if (str_starts_with((string) $childExplain, '<li>') && !str_contains(substr((string) $childExplain, 4), '<li>')) {
             // Inject the quantifier explanation into the child's <li>
-            return str_replace('<li>', \sprintf('<li>(%s) ', $this->e($quantExplain)), $childExplain);
+            return str_replace('<li>', \sprintf('<li>(%s) ', $this->e($quantExplain)), (string) $childExplain);
         }
 
         // If the child is complex, wrap it
@@ -278,7 +254,7 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * It formats the literal value for display, including handling special characters
      * like newlines (`\n`) for better readability in the HTML output.
      *
-     * @param LiteralNode $node the `LiteralNode` representing a literal character or string
+     * @param Node\LiteralNode $node the `LiteralNode` representing a literal character or string
      *
      * @return string an HTML string explaining the literal value
      *
@@ -291,7 +267,7 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * $literalNode->accept($visitor); // Returns HTML like: <li>Literal: <strong>'\n' (newline)</strong></li>
      * ```
      */
-    public function visitLiteral(LiteralNode $node): string
+    public function visitLiteral(Node\LiteralNode $node): string
     {
         $explanation = $this->explainLiteral($node->value);
 
@@ -309,7 +285,7 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * It provides a human-readable description of what the character type matches, enhancing clarity
      * in the HTML output.
      *
-     * @param CharTypeNode $node the `CharTypeNode` representing a predefined character type
+     * @param Node\CharTypeNode $node the `CharTypeNode` representing a predefined character type
      *
      * @return string an HTML string explaining the character type
      *
@@ -320,7 +296,7 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * // Returns HTML like: <li>Character Type: <strong>\d</strong> (any digit (0-9))</li>
      * ```
      */
-    public function visitCharType(CharTypeNode $node): string
+    public function visitCharType(Node\CharTypeNode $node): string
     {
         $explanation = self::CHAR_TYPE_MAP[$node->value] ?? 'unknown (\\'.$node->value.')';
 
@@ -339,7 +315,7 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * description indicating that it matches "any character" (with caveats depending on flags),
      * which is helpful for understanding its broad matching capability in the HTML output.
      *
-     * @param DotNode $node the `DotNode` representing the wildcard dot character
+     * @param Node\DotNode $node the `DotNode` representing the wildcard dot character
      *
      * @return string an HTML string explaining the wildcard dot
      *
@@ -350,7 +326,7 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * // Returns HTML like: <li>Wildcard: <strong>.</strong> (any character (except newline, unless /s flag is used))</li>
      * ```
      */
-    public function visitDot(DotNode $node): string
+    public function visitDot(Node\DotNode $node): string
     {
         $explanation = 'any character (except newline, unless /s flag is used)';
 
@@ -368,7 +344,7 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * It provides a clear description of what position the anchor asserts, which is crucial for
      * understanding boundary matching in the HTML output.
      *
-     * @param AnchorNode $node the `AnchorNode` representing a positional anchor
+     * @param Node\AnchorNode $node the `AnchorNode` representing a positional anchor
      *
      * @return string an HTML string explaining the anchor
      *
@@ -379,7 +355,7 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * // Returns HTML like: <li>Anchor: <strong>^</strong> (the start of the string (or line, with /m flag))</li>
      * ```
      */
-    public function visitAnchor(AnchorNode $node): string
+    public function visitAnchor(Node\AnchorNode $node): string
     {
         $explanation = self::ANCHOR_MAP[$node->value] ?? $node->value;
 
@@ -398,7 +374,7 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * It displays the assertion value and its meaning, helping users understand conditions that must be met
      * without consuming characters, presented clearly in HTML.
      *
-     * @param AssertionNode $node the `AssertionNode` representing a zero-width assertion
+     * @param Node\AssertionNode $node the `AssertionNode` representing a zero-width assertion
      *
      * @return string an HTML string explaining the assertion
      *
@@ -409,7 +385,7 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * // Returns HTML like: <li>Assertion: <strong>\b</strong> (a word boundary)</li>
      * ```
      */
-    public function visitAssertion(AssertionNode $node): string
+    public function visitAssertion(Node\AssertionNode $node): string
     {
         $explanation = self::ASSERTION_MAP[$node->value] ?? '\\'.$node->value;
 
@@ -428,7 +404,7 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * match start position is reset at this point, which is important for understanding
      * how the final matched string is determined. The explanation is provided in HTML.
      *
-     * @param KeepNode $node the `KeepNode` representing the `\K` assertion
+     * @param Node\KeepNode $node the `KeepNode` representing the `\K` assertion
      *
      * @return string an HTML string explaining the `\K` assertion
      *
@@ -439,7 +415,7 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * // Returns HTML like: <li>Assertion: <strong>\K</strong> (\K (reset match start))</li>
      * ```
      */
-    public function visitKeep(KeepNode $node): string
+    public function visitKeep(Node\KeepNode $node): string
     {
         $explanation = '\K (reset match start)';
 
@@ -457,7 +433,7 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * if the class is negated and lists its constituent parts, providing a clear HTML
      * representation of the characters that are (or are not) matched.
      *
-     * @param CharClassNode $node the `CharClassNode` representing a character class
+     * @param Node\CharClassNode $node the `CharClassNode` representing a character class
      *
      * @return string an HTML string explaining the character class
      *
@@ -472,10 +448,10 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * // Returns HTML like: <li><span title="Character Class: any character NOT in [ '0', '9' ]">Character Class: [ <strong>NOT</strong> '0', '9' ]</span></li>
      * ```
      */
-    public function visitCharClass(CharClassNode $node): string
+    public function visitCharClass(Node\CharClassNode $node): string
     {
         $neg = $node->isNegated ? '<strong>NOT</strong> ' : '';
-        $parts = array_map(fn (NodeInterface $part) => $part->accept($this), $node->parts);
+        $parts = array_map(fn (Node\NodeInterface $part) => $part->accept($this), $node->parts);
 
         // Char class parts are just strings, not <li>
         $parts = array_map(strip_tags(...), $parts);
@@ -497,7 +473,7 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * It processes the start and end characters of the range, providing a clear HTML
      * representation of the inclusive character set.
      *
-     * @param RangeNode $node the `RangeNode` representing a character range
+     * @param Node\RangeNode $node the `RangeNode` representing a character range
      *
      * @return string an HTML string explaining the character range
      *
@@ -507,17 +483,17 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * $rangeNode->accept($visitor); // Returns HTML like: Range: from 'a' to 'z'
      * ```
      */
-    public function visitRange(RangeNode $node): string
+    public function visitRange(Node\RangeNode $node): string
     {
-        $start = ($node->start instanceof LiteralNode)
+        $start = ($node->start instanceof Node\LiteralNode)
             ? $this->explainLiteral($node->start->value)
             : $node->start->accept($this);
 
-        $end = ($node->end instanceof LiteralNode)
+        $end = ($node->end instanceof Node\LiteralNode)
             ? $this->explainLiteral($node->end->value)
             : $node->end->accept($this);
 
-        return \sprintf('Range: from %s to %s', $this->e($start), $this->e($end));
+        return \sprintf('Range: from %s to %s', $this->e((string) $start), $this->e((string) $end));
     }
 
     /**
@@ -527,7 +503,7 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * indicates which group is being referenced (by number or name), which is essential for
      * understanding patterns that match repeated text, presented in HTML.
      *
-     * @param BackrefNode $node the `BackrefNode` representing a backreference
+     * @param Node\BackrefNode $node the `BackrefNode` representing a backreference
      *
      * @return string an HTML string explaining the backreference
      *
@@ -538,7 +514,7 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * // Returns HTML like: <li><span title="matches text from group "1"">Backreference: <strong>\1</strong></span></li>
      * ```
      */
-    public function visitBackref(BackrefNode $node): string
+    public function visitBackref(Node\BackrefNode $node): string
     {
         $explanation = \sprintf('matches text from group "%s"', $node->ref);
 
@@ -556,7 +532,7 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * It displays the code, helping users understand the exact character being matched, especially
      * for non-ASCII characters, presented clearly in HTML.
      *
-     * @param UnicodeNode $node the `UnicodeNode` representing a Unicode character escape
+     * @param Node\UnicodeNode $node the `UnicodeNode` representing a Unicode character escape
      *
      * @return string an HTML string explaining the Unicode character
      *
@@ -567,7 +543,7 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * // Returns HTML like: <li><span title="Unicode: {2603}">Unicode: <strong>{2603}</strong></span></li>
      * ```
      */
-    public function visitUnicode(UnicodeNode $node): string
+    public function visitUnicode(Node\UnicodeNode $node): string
     {
         return \sprintf(
             '<li><span title="Unicode: %s">Unicode: <strong>%s</strong></span></li>',
@@ -583,7 +559,7 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * It displays the property name and whether it's matching or non-matching, allowing users
      * to understand character matching based on Unicode categories, presented in HTML.
      *
-     * @param UnicodePropNode $node the `UnicodePropNode` representing a Unicode property
+     * @param Node\UnicodePropNode $node the `UnicodePropNode` representing a Unicode property
      *
      * @return string an HTML string explaining the Unicode property
      *
@@ -598,7 +574,7 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * // Returns HTML like: <li><span title="any character non-matching "N"">Unicode Property: <strong>\P{N}</strong></span></li>
      * ```
      */
-    public function visitUnicodeProp(UnicodePropNode $node): string
+    public function visitUnicodeProp(Node\UnicodePropNode $node): string
     {
         $type = str_starts_with($node->prop, '^') ? 'non-matching' : 'matching';
         $prop = ltrim($node->prop, '^');
@@ -620,7 +596,7 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * It displays the octal code, helping users understand the exact character being matched,
      * presented clearly in HTML.
      *
-     * @param OctalNode $node the `OctalNode` representing a modern octal escape
+     * @param Node\OctalNode $node the `OctalNode` representing a modern octal escape
      *
      * @return string an HTML string explaining the octal character escape
      *
@@ -631,7 +607,7 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * // Returns HTML like: <li><span title="Octal: 101">Octal: <strong>101</strong></span></li>
      * ```
      */
-    public function visitOctal(OctalNode $node): string
+    public function visitOctal(Node\OctalNode $node): string
     {
         return \sprintf(
             '<li><span title="Octal: %s">Octal: <strong>%s</strong></span></li>',
@@ -647,7 +623,7 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * It displays the octal code, highlighting its legacy nature, and helping users understand
      * the exact character being matched, presented clearly in HTML.
      *
-     * @param OctalLegacyNode $node the `OctalLegacyNode` representing a legacy octal escape
+     * @param Node\OctalLegacyNode $node the `OctalLegacyNode` representing a legacy octal escape
      *
      * @return string an HTML string explaining the legacy octal character escape
      *
@@ -658,7 +634,7 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * // Returns HTML like: <li><span title="Legacy Octal: 012">Legacy Octal: <strong>\012</strong></span></li>
      * ```
      */
-    public function visitOctalLegacy(OctalLegacyNode $node): string
+    public function visitOctalLegacy(Node\OctalLegacyNode $node): string
     {
         return \sprintf(
             '<li><span title="Legacy Octal: %s">Legacy Octal: <strong>\%s</strong></span></li>',
@@ -674,7 +650,7 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * It displays the class name, providing a clear HTML representation of these predefined
      * character sets.
      *
-     * @param PosixClassNode $node the `PosixClassNode` representing a POSIX character class
+     * @param Node\PosixClassNode $node the `PosixClassNode` representing a POSIX character class
      *
      * @return string an HTML string explaining the POSIX character class
      *
@@ -684,7 +660,7 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * $posixClassNode->accept($visitor); // Returns HTML like: POSIX Class: [[:digit:]]
      * ```
      */
-    public function visitPosixClass(PosixClassNode $node): string
+    public function visitPosixClass(Node\PosixClassNode $node): string
     {
         return \sprintf('<li>POSIX Class: [[:%s:]]</li>', $this->e($node->class));
     }
@@ -696,7 +672,7 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * don't affect matching, displaying them helps in understanding the original author's
      * intent and provides context for complex patterns, presented in HTML.
      *
-     * @param CommentNode $node the `CommentNode` representing an inline comment
+     * @param Node\CommentNode $node the `CommentNode` representing an inline comment
      *
      * @return string an HTML string explaining the comment
      *
@@ -707,7 +683,7 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * // Returns HTML like: <li><span title="Comment" style="color: #888; font-style: italic;">Comment: This is a comment</span></li>
      * ```
      */
-    public function visitComment(CommentNode $node): string
+    public function visitComment(Node\CommentNode $node): string
     {
         return \sprintf(
             '<li><span title="Comment" style="color: #888; font-style: italic;">Comment: %s</span></li>',
@@ -722,7 +698,7 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * It clearly separates the condition, the "if true" branch, and the "if false" branch
      * (if present), making complex branching patterns easier to understand in HTML.
      *
-     * @param ConditionalNode $node the `ConditionalNode` representing a conditional sub-pattern
+     * @param Node\ConditionalNode $node the `ConditionalNode` representing a conditional sub-pattern
      *
      * @return string an HTML string explaining the conditional construct
      *
@@ -743,17 +719,17 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * // <ul>...explanation of pattern...</ul></li>
      * ```
      */
-    public function visitConditional(ConditionalNode $node): string
+    public function visitConditional(Node\ConditionalNode $node): string
     {
         $cond = $node->condition->accept($this);
         $yes = $node->yes->accept($this);
 
         // Check if the 'no' branch is an empty literal node
-        $hasElseBranch = !($node->no instanceof LiteralNode && '' === $node->no->value);
+        $hasElseBranch = !($node->no instanceof Node\LiteralNode && '' === $node->no->value);
         $no = $hasElseBranch ? $node->no->accept($this) : '';
 
         // Condition node will be a <li>, just need its text
-        $condText = trim(strip_tags($cond));
+        $condText = trim(strip_tags((string) $cond));
 
         if ('' === $no || '<li></li>' === $no) {
             return \sprintf(
@@ -778,7 +754,7 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * reference (e.g., group number or name) of the pattern being called, helping to
      * understand recursive or reused patterns, presented in HTML.
      *
-     * @param SubroutineNode $node the `SubroutineNode` representing a subroutine call
+     * @param Node\SubroutineNode $node the `SubroutineNode` representing a subroutine call
      *
      * @return string an HTML string explaining the subroutine call
      *
@@ -793,11 +769,10 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * // Returns HTML like: <li><span title="recurses to the entire pattern">Subroutine Call: <strong>(?R)</strong></span></li>
      * ```
      */
-    public function visitSubroutine(SubroutineNode $node): string
+    public function visitSubroutine(Node\SubroutineNode $node): string
     {
         $ref = match ($node->reference) {
-            'R' => 'the entire pattern',
-            '0' => 'the entire pattern',
+            'R', '0' => 'the entire pattern',
             default => 'group '.$this->e($node->reference),
         };
         $explanation = \sprintf('recurses to %s', $ref);
@@ -817,7 +792,7 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * It displays the verb, providing insight into how the regex engine's backtracking
      * behavior is being manipulated, presented in HTML.
      *
-     * @param PcreVerbNode $node the `PcreVerbNode` representing a PCRE verb
+     * @param Node\PcreVerbNode $node the `PcreVerbNode` representing a PCRE verb
      *
      * @return string an HTML string explaining the PCRE verb
      *
@@ -828,7 +803,7 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * // Returns HTML like: <li><span title="PCRE Verb">PCRE Verb: <strong>(*FAIL)</strong></span></li>
      * ```
      */
-    public function visitPcreVerb(PcreVerbNode $node): string
+    public function visitPcreVerb(Node\PcreVerbNode $node): string
     {
         return \sprintf(
             '<li><span title="PCRE Verb">PCRE Verb: <strong>(*%s)</strong></span></li>',
@@ -844,7 +819,7 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * and explains that these patterns are defined without matching, helping to understand
      * the library of patterns available, presented in HTML.
      *
-     * @param DefineNode $node The `DefineNode` representing a `(?(DEFINE)...)` block.
+     * @param Node\DefineNode $node The `DefineNode` representing a `(?(DEFINE)...)` block.
      *
      * @return string an HTML string explaining the DEFINE block and its content
      *
@@ -857,13 +832,36 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * // <ul><li>...explanation of (?<digit>\d)...</li></ul></li>
      * ```
      */
-    public function visitDefine(DefineNode $node): string
+    public function visitDefine(Node\DefineNode $node): string
     {
         $content = $node->content->accept($this);
 
         return \sprintf(
             "<li><strong>DEFINE Block</strong> (defines subpatterns without matching):\n<ul>%s</ul>\n</li>",
             $content,
+        );
+    }
+
+    public function visitLimitMatch(Node\LimitMatchNode $node): string
+    {
+        $explanation = \sprintf('sets the match limit to %d', $node->limit);
+
+        return \sprintf(
+            '<li><span title="%s">PCRE Verb: <strong>(*LIMIT_MATCH=%d)</strong></span></li>',
+            $this->e($explanation),
+            $node->limit,
+        );
+    }
+
+    public function visitCallout(Node\CalloutNode $node): string
+    {
+        $argument = $node->isStringIdentifier ? '"'.$node->identifier.'"' : (string) $node->identifier;
+        $explanation = \sprintf('passes control to user function with argument %s', $argument);
+
+        return \sprintf(
+            '<li><span title="%s">Callout: <strong>(?C%s)</strong></span></li>',
+            $this->e($explanation),
+            $this->e($argument),
         );
     }
 

@@ -21,6 +21,7 @@ parameters:
         - src/Bridge/Rector/*
         - config/rector/*
         - tests/Benchmark/*
+        - tests/Bridge/PHPStan/Fixtures/*
 
     bootstrapFiles:
 #        - tools/rector/vendor/autoload.php
@@ -29,15 +30,3 @@ parameters:
     editorUrl: 'phpstorm://open?file=%%file%%&line=%%line%%'
 
     tmpDir: .cache/phpstan
-
-    ignoreErrors:
-        # ReDoS warnings are false positives for this regex parser library:
-        # - Internal patterns in src/ are carefully designed and bounded
-        # - Test patterns intentionally include various regex constructs for testing
-        -
-            identifier: regex.redos
-            path: src/*
-        -
-            identifier: regex.redos
-            path: tests/*
-

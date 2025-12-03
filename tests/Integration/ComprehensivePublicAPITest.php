@@ -25,11 +25,11 @@ use RegexParser\ValidationResult;
  */
 class ComprehensivePublicAPITest extends TestCase
 {
-    private Regex $regex;
+    private Regex $regexService;
 
     protected function setUp(): void
     {
-        $this->regex = Regex::create();
+        $this->regexService = Regex::create();
     }
 
     public function test_create_returns_regex_instance(): void
@@ -52,128 +52,128 @@ class ComprehensivePublicAPITest extends TestCase
 
     public function test_parse_simple_literal_returns_regex_node(): void
     {
-        $ast = $this->regex->parse('/hello/');
+        $ast = $this->regexService->parse('/hello/');
         $this->assertSame('/', $ast->delimiter);
     }
 
     public function test_parse_preserves_delimiter(): void
     {
-        $ast = $this->regex->parse('/test/');
+        $ast = $this->regexService->parse('/test/');
         $this->assertSame('/', $ast->delimiter);
     }
 
     public function test_parse_preserves_flags(): void
     {
-        $ast = $this->regex->parse('/test/imsx');
+        $ast = $this->regexService->parse('/test/imsx');
         $this->assertSame('imsx', $ast->flags);
     }
 
     public function test_parse_empty_flags(): void
     {
-        $ast = $this->regex->parse('/test/');
+        $ast = $this->regexService->parse('/test/');
         $this->assertSame('', $ast->flags);
     }
 
     public function test_parse_with_alternative_delimiter(): void
     {
-        $ast = $this->regex->parse('#test#i');
+        $ast = $this->regexService->parse('#test#i');
         $this->assertSame('#', $ast->delimiter);
         $this->assertSame('i', $ast->flags);
     }
 
     public function test_parse_capturing_groups(): void
     {
-        $ast = $this->regex->parse('/(foo)(bar)/');
+        $ast = $this->regexService->parse('/(foo)(bar)/');
         $this->assertSame('/', $ast->delimiter);
     }
 
     public function test_parse_named_groups(): void
     {
-        $ast = $this->regex->parse('/(?<name>\w+)/');
+        $ast = $this->regexService->parse('/(?<name>\w+)/');
         $this->assertSame('/', $ast->delimiter);
     }
 
     public function test_parse_non_capturing_groups(): void
     {
-        $ast = $this->regex->parse('/(?:foo|bar)/');
+        $ast = $this->regexService->parse('/(?:foo|bar)/');
         $this->assertSame('/', $ast->delimiter);
     }
 
     public function test_parse_lookahead(): void
     {
-        $ast = $this->regex->parse('/foo(?=bar)/');
+        $ast = $this->regexService->parse('/foo(?=bar)/');
         $this->assertSame('/', $ast->delimiter);
     }
 
     public function test_parse_lookbehind(): void
     {
-        $ast = $this->regex->parse('/(?<=foo)bar/');
+        $ast = $this->regexService->parse('/(?<=foo)bar/');
         $this->assertSame('/', $ast->delimiter);
     }
 
     public function test_parse_branch_reset_groups(): void
     {
-        $ast = $this->regex->parse('/(?|(a)|(b))/');
+        $ast = $this->regexService->parse('/(?|(a)|(b))/');
         $this->assertSame('/', $ast->delimiter);
     }
 
     public function test_parse_quantifiers_greedy(): void
     {
-        $ast = $this->regex->parse('/a+b*c?d{2,5}/');
+        $ast = $this->regexService->parse('/a+b*c?d{2,5}/');
         $this->assertSame('/', $ast->delimiter);
     }
 
     public function test_parse_quantifiers_lazy(): void
     {
-        $ast = $this->regex->parse('/a+?b*?c??d{2,5}?/');
+        $ast = $this->regexService->parse('/a+?b*?c??d{2,5}?/');
         $this->assertSame('/', $ast->delimiter);
     }
 
     public function test_parse_quantifiers_possessive(): void
     {
-        $ast = $this->regex->parse('/a++b*+c?+/');
+        $ast = $this->regexService->parse('/a++b*+c?+/');
         $this->assertSame('/', $ast->delimiter);
     }
 
     public function test_parse_character_classes(): void
     {
-        $ast = $this->regex->parse('/[a-z0-9_]+/');
+        $ast = $this->regexService->parse('/[a-z0-9_]+/');
         $this->assertSame('/', $ast->delimiter);
     }
 
     public function test_parse_anchors(): void
     {
-        $ast = $this->regex->parse('/^start.*end$/');
+        $ast = $this->regexService->parse('/^start.*end$/');
         $this->assertSame('/', $ast->delimiter);
     }
 
     public function test_parse_backreferences(): void
     {
-        $ast = $this->regex->parse('/(foo)\1/');
+        $ast = $this->regexService->parse('/(foo)\1/');
         $this->assertSame('/', $ast->delimiter);
     }
 
     public function test_parse_unicode_properties(): void
     {
-        $ast = $this->regex->parse('/\p{L}+/u');
+        $ast = $this->regexService->parse('/\p{L}+/u');
         $this->assertSame('/', $ast->delimiter);
     }
 
     public function test_parse_throws_exception_for_invalid_pattern(): void
     {
         $this->expectException(ParserException::class);
-        $this->regex->parse('/(?P<invalid>/');
+        $this->regexService->parse('/(?P<invalid>/');
     }
 
     public function test_parse_throws_exception_for_unclosed_group(): void
     {
         $this->expectException(ParserException::class);
-        $this->regex->parse('/(unclosed/');
+        $this->regexService->parse('/(unclosed/');
     }
 
     public function test_validate_simple_pattern_returns_valid_result(): void
     {
-        $result = $this->regex->validate('/hello/');
+        $result = $this->regexService->validate('/hello/');
         $this->assertSame(ValidationResult::class, $result::class);
         $this->assertTrue($result->isValid);
         $this->assertNull($result->error);
@@ -181,14 +181,14 @@ class ComprehensivePublicAPITest extends TestCase
 
     public function test_validate_complex_safe_pattern(): void
     {
-        $result = $this->regex->validate('/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i');
+        $result = $this->regexService->validate('/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i');
         $this->assertTrue($result->isValid);
         $this->assertNull($result->error);
     }
 
     public function test_validate_detects_catastrophic_backtracking(): void
     {
-        $result = $this->regex->validate('/(a+)+b/');
+        $result = $this->regexService->validate('/(a+)+b/');
         $this->assertFalse($result->isValid);
         $this->assertNotNull($result->error);
         $this->assertStringContainsString('catastrophic', strtolower($result->error));
@@ -196,14 +196,14 @@ class ComprehensivePublicAPITest extends TestCase
 
     public function test_validate_detects_nested_quantifiers_redos(): void
     {
-        $result = $this->regex->validate('/(a*)*b/');
+        $result = $this->regexService->validate('/(a*)*b/');
         $this->assertFalse($result->isValid);
         $this->assertNotNull($result->error);
     }
 
     public function test_validate_detects_alternation_redos(): void
     {
-        $result = $this->regex->validate('/(a|a)*/');
+        $result = $this->regexService->validate('/(a|a)*/');
         // Note: Current implementation may not catch all alternation ReDoS cases
         // This is marked as a known limitation
         $this->assertSame(ValidationResult::class, $result::class);
@@ -211,19 +211,19 @@ class ComprehensivePublicAPITest extends TestCase
 
     public function test_validate_safe_bounded_quantifiers(): void
     {
-        $result = $this->regex->validate('/a{1,10}b/');
+        $result = $this->regexService->validate('/a{1,10}b/');
         $this->assertTrue($result->isValid);
     }
 
     public function test_validate_safe_pattern_with_plus(): void
     {
-        $result = $this->regex->validate('/a+b/');
+        $result = $this->regexService->validate('/a+b/');
         $this->assertTrue($result->isValid, 'Pattern /a+b/ should be valid (no nested quantifiers)');
     }
 
     public function test_validate_detects_invalid_backreference(): void
     {
-        $result = $this->regex->validate('/\1(foo)/');
+        $result = $this->regexService->validate('/\1(foo)/');
         $this->assertFalse($result->isValid);
         $this->assertStringContainsString('backreference', strtolower((string) $result->error));
     }
@@ -231,26 +231,26 @@ class ComprehensivePublicAPITest extends TestCase
     public function test_validate_allows_variable_length_lookbehind(): void
     {
         // PCRE2 (PHP 7.3+) supports variable-length lookbehinds
-        $result = $this->regex->validate('/(?<!a*)b/');
+        $result = $this->regexService->validate('/(?<!a*)b/');
         $this->assertTrue($result->isValid, 'Variable-length lookbehind should be valid in PCRE2');
     }
 
     public function test_validate_allows_fixed_length_lookbehind(): void
     {
-        $result = $this->regex->validate('/(?<=abc)def/');
+        $result = $this->regexService->validate('/(?<=abc)def/');
         $this->assertTrue($result->isValid);
     }
 
     public function test_validate_invalid_syntax_returns_error(): void
     {
-        $result = $this->regex->validate('/(?P<invalid>/');
+        $result = $this->regexService->validate('/(?P<invalid>/');
         $this->assertFalse($result->isValid);
         $this->assertNotNull($result->error);
     }
 
     public function test_validate_returns_complexity_score(): void
     {
-        $result = $this->regex->validate('/hello/');
+        $result = $this->regexService->validate('/hello/');
         $this->assertTrue($result->isValid);
         $this->assertIsInt($result->complexityScore);
         $this->assertGreaterThanOrEqual(0, $result->complexityScore);
@@ -258,45 +258,45 @@ class ComprehensivePublicAPITest extends TestCase
 
     public function test_explain_simple_literal(): void
     {
-        $explanation = $this->regex->explain('/hello/');
+        $explanation = $this->regexService->explain('/hello/');
         $this->assertIsString($explanation);
         $this->assertStringContainsString('Literal', $explanation);
     }
 
     public function test_explain_with_flags(): void
     {
-        $explanation = $this->regex->explain('/test/i');
+        $explanation = $this->regexService->explain('/test/i');
         $this->assertStringContainsString('i', $explanation);
     }
 
     public function test_explain_capturing_group(): void
     {
-        $explanation = $this->regex->explain('/(foo)/');
+        $explanation = $this->regexService->explain('/(foo)/');
         $this->assertStringContainsString('Capturing', $explanation);
     }
 
     public function test_explain_named_group(): void
     {
-        $explanation = $this->regex->explain('/(?<name>\w+)/');
+        $explanation = $this->regexService->explain('/(?<name>\w+)/');
         $this->assertStringContainsString('name', $explanation);
     }
 
     public function test_explain_quantifiers(): void
     {
-        $explanation = $this->regex->explain('/a+/');
+        $explanation = $this->regexService->explain('/a+/');
         $this->assertStringContainsString('one or more', strtolower($explanation));
     }
 
     public function test_explain_alternation(): void
     {
-        $explanation = $this->regex->explain('/(foo|bar)/');
+        $explanation = $this->regexService->explain('/(foo|bar)/');
         $this->assertStringContainsString('EITHER', $explanation);
         $this->assertStringContainsString('OR', $explanation);
     }
 
     public function test_explain_complex_pattern(): void
     {
-        $explanation = $this->regex->explain('/^(?<email>[\w.-]+@[\w.-]+\.\w+)$/');
+        $explanation = $this->regexService->explain('/^(?<email>[\w.-]+@[\w.-]+\.\w+)$/');
         $this->assertNotEmpty($explanation);
         $this->assertStringContainsString('email', $explanation);
     }
@@ -304,19 +304,19 @@ class ComprehensivePublicAPITest extends TestCase
     public function test_explain_throws_exception_for_invalid_pattern(): void
     {
         $this->expectException(ParserException::class);
-        $this->regex->explain('/(?P<invalid>/');
+        $this->regexService->explain('/(?P<invalid>/');
     }
 
     public function test_generate_simple_literal(): void
     {
-        $sample = $this->regex->generate('/hello/');
+        $sample = $this->regexService->generate('/hello/');
         $this->assertIsString($sample);
         $this->assertMatchesRegularExpression('/hello/', $sample);
     }
 
     public function test_generate_digit_pattern(): void
     {
-        $sample = $this->regex->generate('/\d{3}/');
+        $sample = $this->regexService->generate('/\d{3}/');
         $this->assertIsString($sample);
         $this->assertMatchesRegularExpression('/\d{3}/', $sample);
         $this->assertSame(3, \strlen($sample));
@@ -324,14 +324,14 @@ class ComprehensivePublicAPITest extends TestCase
 
     public function test_generate_word_pattern(): void
     {
-        $sample = $this->regex->generate('/\w+/');
+        $sample = $this->regexService->generate('/\w+/');
         $this->assertIsString($sample);
         $this->assertMatchesRegularExpression('/\w+/', $sample);
     }
 
     public function test_generate_character_class(): void
     {
-        $sample = $this->regex->generate('/[a-z]{5}/');
+        $sample = $this->regexService->generate('/[a-z]{5}/');
         $this->assertIsString($sample);
         $this->assertMatchesRegularExpression('/[a-z]{5}/', $sample);
         $this->assertSame(5, \strlen($sample));
@@ -339,7 +339,7 @@ class ComprehensivePublicAPITest extends TestCase
 
     public function test_generate_alternation(): void
     {
-        $sample = $this->regex->generate('/(foo|bar)/');
+        $sample = $this->regexService->generate('/(foo|bar)/');
         $this->assertIsString($sample);
         $this->assertMatchesRegularExpression('/(foo|bar)/', $sample);
         $this->assertTrue('foo' === $sample || 'bar' === $sample);
@@ -347,14 +347,14 @@ class ComprehensivePublicAPITest extends TestCase
 
     public function test_generate_with_anchors(): void
     {
-        $sample = $this->regex->generate('/^test$/');
+        $sample = $this->regexService->generate('/^test$/');
         $this->assertIsString($sample);
         $this->assertSame('test', $sample);
     }
 
     public function test_generate_email_like_pattern(): void
     {
-        $sample = $this->regex->generate('/\w+@\w+\.\w+/');
+        $sample = $this->regexService->generate('/\w+@\w+\.\w+/');
         $this->assertIsString($sample);
         $this->assertMatchesRegularExpression('/\w+@\w+\.\w+/', $sample);
     }
@@ -363,7 +363,7 @@ class ComprehensivePublicAPITest extends TestCase
     {
         $samples = [];
         for ($i = 0; $i < 10; $i++) {
-            $samples[] = $this->regex->generate('/[a-z]{10}/');
+            $samples[] = $this->regexService->generate('/[a-z]{10}/');
         }
 
         // At least some samples should be different (randomness check)
@@ -373,7 +373,7 @@ class ComprehensivePublicAPITest extends TestCase
 
     public function test_optimize_returns_valid_pattern(): void
     {
-        $optimized = $this->regex->optimize('/hello/');
+        $optimized = $this->regexService->optimize('/hello/');
         $this->assertIsString($optimized);
         $this->assertStringStartsWith('/', $optimized);
     }
@@ -381,7 +381,7 @@ class ComprehensivePublicAPITest extends TestCase
     public function test_optimize_preserves_behavior_for_simple_pattern(): void
     {
         $original = '/test/';
-        $optimized = $this->regex->optimize($original);
+        $optimized = $this->regexService->optimize($original);
 
         $testString = 'this is a test string';
         $this->assertSame(
@@ -392,7 +392,7 @@ class ComprehensivePublicAPITest extends TestCase
 
     public function test_optimize_character_class(): void
     {
-        $optimized = $this->regex->optimize('/[abc]/');
+        $optimized = $this->regexService->optimize('/[abc]/');
         $this->assertIsString($optimized);
         // Should still match the same strings
         $this->assertMatchesRegularExpression($optimized, 'a');
@@ -402,33 +402,33 @@ class ComprehensivePublicAPITest extends TestCase
 
     public function test_optimize_nested_groups(): void
     {
-        $optimized = $this->regex->optimize('/(?:(?:a))/');
+        $optimized = $this->regexService->optimize('/(?:(?:a))/');
         $this->assertIsString($optimized);
     }
 
     public function test_optimize_throws_exception_for_invalid_pattern(): void
     {
         $this->expectException(ParserException::class);
-        $this->regex->optimize('/(?P<invalid>/');
+        $this->regexService->optimize('/(?P<invalid>/');
     }
 
     public function test_extract_literals_simple_prefix(): void
     {
-        $literals = $this->regex->extractLiterals('/user_\d+/');
+        $literals = $this->regexService->extractLiterals('/user_\d+/');
         $prefix = $literals->getLongestPrefix();
         $this->assertSame('user_', $prefix);
     }
 
     public function test_extract_literals_simple_suffix(): void
     {
-        $literals = $this->regex->extractLiterals('/\d+@example\.com/');
+        $literals = $this->regexService->extractLiterals('/\d+@example\.com/');
         $suffix = $literals->getLongestSuffix();
         $this->assertSame('@example.com', $suffix);
     }
 
     public function test_extract_literals_both_prefix_and_suffix(): void
     {
-        $literals = $this->regex->extractLiterals('/start_\d+_end/');
+        $literals = $this->regexService->extractLiterals('/start_\d+_end/');
         $prefix = $literals->getLongestPrefix();
         $suffix = $literals->getLongestSuffix();
 
@@ -438,7 +438,7 @@ class ComprehensivePublicAPITest extends TestCase
 
     public function test_extract_literals_no_literals_in_pure_quantifier(): void
     {
-        $literals = $this->regex->extractLiterals('/\d+/');
+        $literals = $this->regexService->extractLiterals('/\d+/');
         $prefix = $literals->getLongestPrefix();
         // May return null or empty string when no literals found
         $this->assertTrue('' === $prefix || null === $prefix);
@@ -446,21 +446,21 @@ class ComprehensivePublicAPITest extends TestCase
 
     public function test_extract_literals_full_literal_pattern(): void
     {
-        $literals = $this->regex->extractLiterals('/exactly_this/');
+        $literals = $this->regexService->extractLiterals('/exactly_this/');
         $prefix = $literals->getLongestPrefix();
         $this->assertSame('exactly_this', $prefix);
     }
 
     public function test_extract_literals_complex_pattern(): void
     {
-        $literals = $this->regex->extractLiterals('/error: .+/');
+        $literals = $this->regexService->extractLiterals('/error: .+/');
         $prefix = $literals->getLongestPrefix();
         $this->assertSame('error: ', $prefix);
     }
 
     public function test_analyze_redos_safe_pattern(): void
     {
-        $analysis = $this->regex->analyzeReDoS('/^hello$/');
+        $analysis = $this->regexService->analyzeReDoS('/^hello$/');
         $this->assertSame(ReDoSSeverity::SAFE, $analysis->severity);
         $this->assertTrue($analysis->isSafe());
         $this->assertSame(0, $analysis->score);
@@ -468,7 +468,7 @@ class ComprehensivePublicAPITest extends TestCase
 
     public function test_analyze_redos_critical_nested_quantifiers(): void
     {
-        $analysis = $this->regex->analyzeReDoS('/(a+)+b/');
+        $analysis = $this->regexService->analyzeReDoS('/(a+)+b/');
         $this->assertSame(ReDoSSeverity::CRITICAL, $analysis->severity);
         $this->assertFalse($analysis->isSafe());
         $this->assertSame(10, $analysis->score);
@@ -476,7 +476,7 @@ class ComprehensivePublicAPITest extends TestCase
 
     public function test_analyze_redos_critical_alternation(): void
     {
-        $analysis = $this->regex->analyzeReDoS('/(a|a)*/');
+        $analysis = $this->regexService->analyzeReDoS('/(a|a)*/');
         $this->assertSame(ReDoSSeverity::CRITICAL, $analysis->severity);
         $this->assertFalse($analysis->isSafe());
         $this->assertSame(10, $analysis->score);
@@ -484,7 +484,7 @@ class ComprehensivePublicAPITest extends TestCase
 
     public function test_analyze_redos_low_bounded_quantifiers(): void
     {
-        $analysis = $this->regex->analyzeReDoS('/(a{1,5}){1,5}/');
+        $analysis = $this->regexService->analyzeReDoS('/(a{1,5}){1,5}/');
         // Bounded quantifiers are considered safe in current implementation
         $this->assertContains($analysis->severity, [ReDoSSeverity::SAFE, ReDoSSeverity::LOW]);
         $this->assertGreaterThanOrEqual(0, $analysis->score);
@@ -493,7 +493,7 @@ class ComprehensivePublicAPITest extends TestCase
 
     public function test_analyze_redos_safe_single_quantifier(): void
     {
-        $analysis = $this->regex->analyzeReDoS('/a+b/');
+        $analysis = $this->regexService->analyzeReDoS('/a+b/');
         $this->assertContains(
             $analysis->severity,
             [ReDoSSeverity::SAFE, ReDoSSeverity::MEDIUM],
@@ -503,14 +503,14 @@ class ComprehensivePublicAPITest extends TestCase
 
     public function test_analyze_redos_provides_recommendations(): void
     {
-        $analysis = $this->regex->analyzeReDoS('/(a+)+/');
+        $analysis = $this->regexService->analyzeReDoS('/(a+)+/');
         $this->assertIsArray($analysis->recommendations);
         $this->assertNotEmpty($analysis->recommendations);
     }
 
     public function test_analyze_redos_email_pattern(): void
     {
-        $analysis = $this->regex->analyzeReDoS('/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i');
+        $analysis = $this->regexService->analyzeReDoS('/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i');
         $this->assertContains(
             $analysis->severity,
             [ReDoSSeverity::SAFE, ReDoSSeverity::LOW, ReDoSSeverity::MEDIUM],
@@ -520,7 +520,7 @@ class ComprehensivePublicAPITest extends TestCase
 
     public function test_analyze_redos_safe_character_class(): void
     {
-        $analysis = $this->regex->analyzeReDoS('/[a-z]+/');
+        $analysis = $this->regexService->analyzeReDoS('/[a-z]+/');
         $this->assertContains(
             $analysis->severity,
             [ReDoSSeverity::SAFE, ReDoSSeverity::MEDIUM],
@@ -530,32 +530,32 @@ class ComprehensivePublicAPITest extends TestCase
 
     public function test_dump_returns_ast_representation(): void
     {
-        $dump = $this->regex->dump('/hello/');
+        $dump = $this->regexService->dump('/hello/');
         $this->assertIsString($dump);
         $this->assertNotEmpty($dump);
     }
 
     public function test_parse_empty_alternation(): void
     {
-        $ast = $this->regex->parse('/(|foo)/');
+        $ast = $this->regexService->parse('/(|foo)/');
         $this->assertSame('/', $ast->delimiter);
     }
 
     public function test_parse_atomic_groups(): void
     {
-        $ast = $this->regex->parse('/(?>foo|bar)/');
+        $ast = $this->regexService->parse('/(?>foo|bar)/');
         $this->assertSame('/', $ast->delimiter);
     }
 
     public function test_parse_conditional_pattern(): void
     {
-        $ast = $this->regex->parse('/(?(1)yes|no)/');
+        $ast = $this->regexService->parse('/(?(1)yes|no)/');
         $this->assertSame('/', $ast->delimiter);
     }
 
     public function test_parse_comment(): void
     {
-        $ast = $this->regex->parse('/foo(?#comment)bar/');
+        $ast = $this->regexService->parse('/foo(?#comment)bar/');
         $this->assertSame('/', $ast->delimiter);
     }
 
@@ -568,14 +568,14 @@ class ComprehensivePublicAPITest extends TestCase
         ];
 
         foreach ($patterns as $pattern => $expectedValid) {
-            $result = $this->regex->validate($pattern);
+            $result = $this->regexService->validate($pattern);
             $this->assertSame($expectedValid, $result->isValid, "Pattern $pattern validation mismatch");
         }
     }
 
     public function test_generate_respects_quantifier_bounds(): void
     {
-        $sample = $this->regex->generate('/a{5}/');
+        $sample = $this->regexService->generate('/a{5}/');
         $this->assertSame(5, \strlen($sample));
         $this->assertSame('aaaaa', $sample);
     }
@@ -588,7 +588,7 @@ class ComprehensivePublicAPITest extends TestCase
         ];
 
         $original = '/test/';
-        $optimized = $this->regex->optimize($original);
+        $optimized = $this->regexService->optimize($original);
 
         foreach ($testCases as $type => $input) {
             $originalResult = (bool) preg_match($original, $input);
@@ -604,7 +604,7 @@ class ComprehensivePublicAPITest extends TestCase
 
     public function test_extract_literals_with_groups(): void
     {
-        $literals = $this->regex->extractLiterals('/prefix_(foo|bar)_suffix/');
+        $literals = $this->regexService->extractLiterals('/prefix_(foo|bar)_suffix/');
         $prefix = $literals->getLongestPrefix();
         // Current implementation may vary on how it handles alternations
         $this->assertIsString($prefix ?? '');
@@ -614,7 +614,7 @@ class ComprehensivePublicAPITest extends TestCase
     public function test_analyze_redos_complex_email_pattern(): void
     {
         $pattern = '/^([a-zA-Z0-9._%-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})$/';
-        $analysis = $this->regex->analyzeReDoS($pattern);
+        $analysis = $this->regexService->analyzeReDoS($pattern);
 
         $this->assertContains($analysis->severity, [
             ReDoSSeverity::SAFE,

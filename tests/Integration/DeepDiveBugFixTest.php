@@ -22,10 +22,17 @@ use RegexParser\Regex;
 
 class DeepDiveBugFixTest extends TestCase
 {
+    private Regex $regexService;
+
+    protected function setUp(): void
+    {
+        $this->regexService = Regex::create();
+    }
+
     public function test_quote_mode_in_char_class(): void
     {
         // [\Q-\E] should be parsed as a character class containing a literal hyphen
-        $ast = Regex::create()->parse('/[\Q-\E]/');
+        $ast = $this->regexService->parse('/[\Q-\E]/');
         $charClass = $ast->pattern;
 
         $this->assertInstanceOf(CharClassNode::class, $charClass);
@@ -39,7 +46,7 @@ class DeepDiveBugFixTest extends TestCase
         // \Q[a-z]\E should be parsed as a literal string "[a-z]"
         // And compiled back to "\[a-z\]" (or similar escaping)
         $pattern = '/\Q[a-z]\E/';
-        $ast = Regex::create()->parse($pattern);
+        $ast = $this->regexService->parse($pattern);
 
         $compiler = new CompilerNodeVisitor();
         $compiled = $ast->accept($compiler);
@@ -50,7 +57,7 @@ class DeepDiveBugFixTest extends TestCase
         $this->assertStringContainsString('\]', $compiled);
 
         // Verify round-trip parse
-        $ast2 = Regex::create()->parse($compiled);
+        $ast2 = $this->regexService->parse($compiled);
         // The AST might be a Sequence of Literals or a single Literal depending on optimization.
         // Let's verify it compiles back to a valid regex that matches the literal string "[a-z]".
         $compiled2 = $ast2->accept(new CompilerNodeVisitor());
@@ -64,7 +71,7 @@ class DeepDiveBugFixTest extends TestCase
     public function test_trailing_backslash_check(): void
     {
         // /\\/ is valid (matches literal backslash)
-        $ast = Regex::create()->parse('/\\\\/');
+        $ast = $this->regexService->parse('/\\\\/');
         $this->assertInstanceOf(LiteralNode::class, $ast->pattern);
         $this->assertSame('\\', $ast->pattern->value);
 
@@ -72,6 +79,6 @@ class DeepDiveBugFixTest extends TestCase
         // Note: In PHP string, '/abc\\/' is /abc\/.
         // The parser will fail to find the closing delimiter because it's escaped.
         $this->expectException(ParserException::class);
-        Regex::create()->parse('/abc\\/');
+        $this->regexService->parse('/abc\\/');
     }
 }

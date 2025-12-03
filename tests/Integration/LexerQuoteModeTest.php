@@ -14,16 +14,23 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
-use RegexParser\Lexer;
+use RegexParser\Regex;
 
 class LexerQuoteModeTest extends TestCase
 {
+    private Regex $regexService;
+
+    protected function setUp(): void
+    {
+        $this->regexService = Regex::create();
+    }
+
     /**
      * Teste \Q au milieu sans \E à la fin.
      */
     public function test_quote_mode_mid_string_unterminated(): void
     {
-        $tokens = new Lexer()->tokenize('a\Qbc')->getTokens();
+        $tokens = $this->regexService->getLexer()->tokenize('a\Qbc')->getTokens();
 
         // Now emits: a (LITERAL), \Q (T_QUOTE_MODE_START), bc (LITERAL via quote mode), EOF
         $this->assertCount(4, $tokens);
@@ -38,7 +45,7 @@ class LexerQuoteModeTest extends TestCase
      */
     public function test_quote_mode_empty_content(): void
     {
-        $tokens = new Lexer()->tokenize('a\Q\Eb')->getTokens();
+        $tokens = $this->regexService->getLexer()->tokenize('a\Q\Eb')->getTokens();
 
         // Now emits: a, \Q, \E, b, EOF
         $this->assertCount(5, $tokens);

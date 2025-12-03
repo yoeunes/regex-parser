@@ -20,6 +20,13 @@ use RegexParser\Regex;
 
 class RoundTripTest extends TestCase
 {
+    private Regex $regexService;
+
+    protected function setUp(): void
+    {
+        $this->regexService = Regex::create();
+    }
+
     /**
      * @return \Iterator<(int|string), array{0: string, 1?: string}>
      */
@@ -42,10 +49,9 @@ class RoundTripTest extends TestCase
     #[DataProvider('providePatterns')]
     public function test_parse_and_compile_is_idempotent(string $pattern, ?string $expected = null): void
     {
-        $regex = Regex::create();
         $compiler = new CompilerNodeVisitor();
 
-        $ast = $regex->parse($pattern);
+        $ast = $this->regexService->parse($pattern);
         $compiled = $ast->accept($compiler);
 
         $this->assertSame($expected ?? $pattern, $compiled);
