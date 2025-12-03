@@ -15,8 +15,6 @@ namespace RegexParser\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\Cache\CacheInterface;
-use RegexParser\Cache\FilesystemCache;
-use RegexParser\Exception\ParserException;
 use RegexParser\Regex;
 
 class RegexCacheTest extends TestCase
@@ -24,12 +22,13 @@ class RegexCacheTest extends TestCase
     public function test_normalize_cache_accepts_directory_path(): void
     {
         $dir = sys_get_temp_dir().'/regex-parser-cache-'.uniqid('', true);
+
         try {
             $regex = Regex::create(['cache' => $dir]);
             $regex->parse('/abc/');
 
-            self::assertDirectoryExists($dir);
-            self::assertNotEmpty(glob($dir.'/*'));
+            $this->assertDirectoryExists($dir);
+            $this->assertNotEmpty(glob($dir.'/*'));
         } finally {
             $this->removeDir($dir);
         }
@@ -53,7 +52,7 @@ class RegexCacheTest extends TestCase
 
     public function test_normalize_cache_accepts_cache_interface(): void
     {
-        $cache = new class() implements CacheInterface {
+        $cache = new class implements CacheInterface {
             public bool $writeCalled = false;
 
             public function generateKey(string $regex): string
@@ -80,7 +79,7 @@ class RegexCacheTest extends TestCase
         $regex = Regex::create(['cache' => $cache]);
         $regex->parse('/abc/');
 
-        self::assertTrue($cache->writeCalled);
+        $this->assertTrue($cache->writeCalled);
     }
 
     private function removeDir(string $dir): void
@@ -95,7 +94,7 @@ class RegexCacheTest extends TestCase
         }
 
         foreach ($files as $file) {
-            if (in_array($file, ['.', '..'], true)) {
+            if (\in_array($file, ['.', '..'], true)) {
                 continue;
             }
             $path = $dir.'/'.$file;

@@ -74,10 +74,13 @@ class ExplainNodeVisitor implements NodeVisitorInterface
     public function visitRegex(Node\RegexNode $node): string
     {
         $this->indentLevel = 0;
-        $patternExplain = $node->pattern->accept($this);
         $flags = $node->flags ? ' (with flags: '.$node->flags.')' : '';
+        $header = $this->line('Regex matches'.$flags);
+        $this->indentLevel++;
+        $body = $node->pattern->accept($this);
+        $this->indentLevel = 0;
 
-        return $this->line('Regex matches'.$flags)."\n".$patternExplain;
+        return $header."\n".$body;
     }
 
     /**
@@ -94,18 +97,16 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      */
     public function visitAlternation(Node\AlternationNode $node): string
     {
-        $this->indentLevel++;
-        $alts = array_map(
-            fn (Node\NodeInterface $alt) => $alt->accept($this),
-            $node->alternatives,
-        );
-        $this->indentLevel--;
-
         $lines = [];
-        foreach ($alts as $index => $alt) {
-            $label = 0 === $index ? 'EITHER: ' : 'OR: ';
-            $lines[] = $this->line($label.$alt);
+        $this->indentLevel++;
+        foreach ($node->alternatives as $index => $alt) {
+            $label = 0 === $index ? 'EITHER' : 'OR';
+            $lines[] = $this->line($label);
+            $this->indentLevel++;
+            $lines[] = $alt->accept($this);
+            $this->indentLevel--;
         }
+        $this->indentLevel--;
 
         return implode("\n", $lines);
     }
@@ -127,10 +128,7 @@ class ExplainNodeVisitor implements NodeVisitorInterface
         $parts = array_map(fn ($child) => $child->accept($this), $node->children);
         $parts = array_filter($parts, fn ($part) => '' !== $part);
 
-        return implode(
-            "\n",
-            array_map(fn (string $part) => $this->line($part), $parts),
-        );
+        return implode("\n", $parts);
     }
 
     /**
@@ -164,7 +162,11 @@ class ExplainNodeVisitor implements NodeVisitorInterface
             GroupType::T_GROUP_INLINE_FLAGS => \sprintf("Inline flags '%s'", $node->flags),
         };
 
-        return $this->line($type)."\n".$childExplain."\n".$this->line('End group');
+        return implode("\n", [
+            $this->line($type),
+            $childExplain,
+            $this->line('End group'),
+        ]);
     }
 
     /**
@@ -194,7 +196,11 @@ class ExplainNodeVisitor implements NodeVisitorInterface
         $childExplain = $node->node->accept($this);
         $this->indentLevel--;
 
-        return $this->line('Start Quantified Group ('.$quantExplain.')')."\n".$childExplain."\n".$this->line('End Quantified Group');
+        return implode("\n", [
+            $this->line('Start Quantified Group ('.$quantExplain.')'),
+            $childExplain,
+            $this->line('End Quantified Group'),
+        ]);
     }
 
     /**
@@ -210,7 +216,7 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      */
     public function visitLiteral(Node\LiteralNode $node): string
     {
-        return $this->explainLiteral($node->value);
+        return $this->line($this->explainLiteral($node->value));
     }
 
     /**
@@ -226,7 +232,7 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      */
     public function visitCharType(Node\CharTypeNode $node): string
     {
-        return 'Character Type: '.(self::CHAR_TYPE_MAP[$node->value] ?? 'unknown (\\'.$node->value.')');
+        return $this->line('Character Type: '.(self::CHAR_TYPE_MAP[$node->value] ?? 'unknown (\\'.$node->value.')'));
     }
 
     /**
@@ -242,7 +248,7 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      */
     public function visitDot(Node\DotNode $node): string
     {
-        return 'Wildcard: any character (except newline, unless /s flag is used)';
+        return $this->line('Wildcard: any character (except newline, unless /s flag is used)');
     }
 
     /**
@@ -258,7 +264,7 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      */
     public function visitAnchor(Node\AnchorNode $node): string
     {
-        return 'Anchor: '.(self::ANCHOR_MAP[$node->value] ?? $node->value);
+        return $this->line('Anchor: '.(self::ANCHOR_MAP[$node->value] ?? $node->value));
     }
 
     /**
@@ -274,7 +280,7 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      */
     public function visitAssertion(Node\AssertionNode $node): string
     {
-        return 'Assertion: '.(self::ASSERTION_MAP[$node->value] ?? '\\'.$node->value);
+        return $this->line('Assertion: '.(self::ASSERTION_MAP[$node->value] ?? '\\'.$node->value));
     }
 
     /**
@@ -291,7 +297,7 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      */
     public function visitKeep(Node\KeepNode $node): string
     {
-        return 'Assertion: \K (reset match start)';
+        return $this->line('Assertion: \K (reset match start)');
     }
 
     /**
@@ -310,7 +316,7 @@ class ExplainNodeVisitor implements NodeVisitorInterface
         $neg = $node->isNegated ? 'NOT ' : '';
         $parts = array_map(fn (Node\NodeInterface $part) => $part->accept($this), $node->parts);
 
-        return \sprintf('Character Class: any character %sin [ %s ]', $neg, implode(', ', $parts));
+        return $this->line(\sprintf('Character Class: any character %sin [ %s ]', $neg, implode(', ', $parts)));
     }
 
     /**
@@ -334,7 +340,7 @@ class ExplainNodeVisitor implements NodeVisitorInterface
             ? $this->explainLiteral($node->end->value)
             : $node->end->accept($this); // Fallback
 
-        return \sprintf('Range: from %s to %s', $start, $end);
+        return $this->line(\sprintf('Range: from %s to %s', $start, $end));
     }
 
     /**
@@ -350,7 +356,7 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      */
     public function visitBackref(Node\BackrefNode $node): string
     {
-        return \sprintf('Backreference: matches text from group "%s"', $node->ref);
+        return $this->line(\sprintf('Backreference: matches text from group "%s"', $node->ref));
     }
 
     /**
@@ -366,7 +372,7 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      */
     public function visitUnicode(Node\UnicodeNode $node): string
     {
-        return \sprintf('Unicode: %s', $node->code);
+        return $this->line(\sprintf('Unicode: %s', $node->code));
     }
 
     /**
@@ -385,7 +391,7 @@ class ExplainNodeVisitor implements NodeVisitorInterface
         $type = str_starts_with($node->prop, '^') ? 'non-matching' : 'matching';
         $prop = ltrim($node->prop, '^');
 
-        return \sprintf('Unicode Property: any character %s "%s"', $type, $prop);
+        return $this->line(\sprintf('Unicode Property: any character %s "%s"', $type, $prop));
     }
 
     /**
@@ -401,7 +407,7 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      */
     public function visitOctal(Node\OctalNode $node): string
     {
-        return 'Octal: '.$node->code;
+        return $this->line('Octal: '.$node->code);
     }
 
     /**
@@ -417,7 +423,7 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      */
     public function visitOctalLegacy(Node\OctalLegacyNode $node): string
     {
-        return 'Legacy Octal: \\'.$node->code;
+        return $this->line('Legacy Octal: \\'.$node->code);
     }
 
     /**
@@ -433,7 +439,7 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      */
     public function visitPosixClass(Node\PosixClassNode $node): string
     {
-        return 'POSIX Class: '.$node->class;
+        return $this->line('POSIX Class: '.$node->class);
     }
 
     /**
@@ -449,7 +455,7 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      */
     public function visitComment(Node\CommentNode $node): string
     {
-        return \sprintf("Comment: '%s'", $node->comment);
+        return $this->line(\sprintf("Comment: '%s'", $node->comment));
     }
 
     /**
@@ -477,10 +483,18 @@ class ExplainNodeVisitor implements NodeVisitorInterface
         $this->indentLevel--;
 
         if ('' === $no) {
-            return $this->line(\sprintf('Conditional: IF (%s) THEN', $cond))."\n".$yes;
+            return implode("\n", [
+                $this->line(\sprintf('IF (%s) THEN', $cond)),
+                $yes,
+            ]);
         }
 
-        return $this->line(\sprintf('Conditional: IF (%s) THEN', $cond))."\n".$yes."\n".$this->line('ELSE:')."\n".$no;
+        return implode("\n", [
+            $this->line(\sprintf('IF (%s) THEN', $cond)),
+            $yes,
+            $this->line('ELSE'),
+            $no,
+        ]);
     }
 
     /**
@@ -501,7 +515,7 @@ class ExplainNodeVisitor implements NodeVisitorInterface
             default => 'group '.$node->reference,
         };
 
-        return \sprintf('Subroutine Call: recurses to %s', $ref);
+        return $this->line(\sprintf('Subroutine Call: recurses to %s', $ref));
     }
 
     /**
@@ -517,7 +531,7 @@ class ExplainNodeVisitor implements NodeVisitorInterface
      */
     public function visitPcreVerb(Node\PcreVerbNode $node): string
     {
-        return 'PCRE Verb: (*'.$node->verb.')';
+        return $this->line('PCRE Verb: (*'.$node->verb.')');
     }
 
     /**
@@ -537,12 +551,16 @@ class ExplainNodeVisitor implements NodeVisitorInterface
         $content = $node->content->accept($this);
         $this->indentLevel--;
 
-        return $this->line('DEFINE block (defines subpatterns without matching)')."\n".$content."\n".$this->line('End DEFINE Block');
+        return implode("\n", [
+            $this->line('DEFINE block (defines subpatterns without matching)'),
+            $content,
+            $this->line('End DEFINE Block'),
+        ]);
     }
 
     public function visitLimitMatch(Node\LimitMatchNode $node): string
     {
-        return \sprintf('PCRE Verb: (*LIMIT_MATCH=%d) - sets a match limit for backtracking control', $node->limit);
+        return $this->line(\sprintf('PCRE Verb: (*LIMIT_MATCH=%d) - sets a match limit for backtracking control', $node->limit));
     }
 
     public function visitCallout(Node\CalloutNode $node): string
@@ -551,7 +569,7 @@ class ExplainNodeVisitor implements NodeVisitorInterface
             ? $node->identifier
             : '"'.$node->identifier.'"';
 
-        return \sprintf('Callout: passes control to user function with argument %s', $arg);
+        return $this->line(\sprintf('Callout: passes control to user function with argument %s', $arg));
     }
 
     private function explainQuantifierValue(string $q, string $type): string
@@ -597,6 +615,6 @@ class ExplainNodeVisitor implements NodeVisitorInterface
 
     private function line(string $text): string
     {
-        return $this->indent(false).'• '.$text;
+        return $this->indent(false).$text;
     }
 }
