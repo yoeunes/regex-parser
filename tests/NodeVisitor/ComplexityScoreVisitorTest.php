@@ -80,15 +80,15 @@ class ComplexityScoreVisitorTest extends TestCase
         $regex = Regex::create();
 
         $this->assertStringContainsString(
-            'Start Positive Lookbehind',
+            'Positive lookbehind',
             $regex->parse('/(?<=a)/')->accept(new ExplainNodeVisitor()),
         );
         $this->assertStringContainsString(
-            'Start Atomic Group',
+            'Atomic group (no backtracking)',
             $regex->parse('/(?>a)/')->accept(new ExplainNodeVisitor()),
         );
         $this->assertStringContainsString(
-            "Start Capturing Group (named: 'id')",
+            "Capturing group (named: 'id')",
             $regex->parse('/(?<id>a)/')->accept(new ExplainNodeVisitor()),
         );
     }
@@ -98,10 +98,10 @@ class ComplexityScoreVisitorTest extends TestCase
         $regex = Regex::create();
         $visitor = new ExplainNodeVisitor();
 
-        $this->assertStringContainsString("Literal: ' ' (space)", $regex->parse('/ /')->accept($visitor));
-        $this->assertStringContainsString("Literal: '\\t' (tab)", $regex->parse('/\t/')->accept($visitor));
-        $this->assertStringContainsString("Literal: '\\n' (newline)", $regex->parse('/\n/')->accept($visitor));
-        $this->assertStringContainsString('Literal: (non-printable char)', $regex->parse("/\x01/")->accept($visitor));
+        $this->assertStringContainsString("' ' (space)", $regex->parse('/ /')->accept($visitor));
+        $this->assertStringContainsString("'\\t' (tab)", $regex->parse('/\t/')->accept($visitor));
+        $this->assertStringContainsString("'\\n' (newline)", $regex->parse('/\n/')->accept($visitor));
+        $this->assertStringContainsString('(non-printable char)', $regex->parse("/\x01/")->accept($visitor));
     }
 
     public function test_score_nested_unbounded_quantifiers_redo_penalty(): void

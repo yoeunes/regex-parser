@@ -30,16 +30,16 @@ class TokenStreamTest extends TestCase
 
         $stream = new TokenStream($tokens, 'ab');
 
-        self::assertSame(0, $stream->getPosition());
-        self::assertSame('a', $stream->current()->value);
+        $this->assertSame(0, $stream->getPosition());
+        $this->assertSame('a', $stream->current()->value);
 
         $stream->next();
-        self::assertSame(1, $stream->getPosition());
-        self::assertSame('b', $stream->current()->value);
+        $this->assertSame(1, $stream->getPosition());
+        $this->assertSame('b', $stream->current()->value);
 
         $peek = $stream->peek();
-        self::assertSame(TokenType::T_EOF, $peek->type);
-        self::assertSame(2, $peek->position);
+        $this->assertSame(TokenType::T_EOF, $peek->type);
+        $this->assertSame(2, $peek->position);
     }
 
     public function test_peek_and_rewind(): void
@@ -54,14 +54,14 @@ class TokenStreamTest extends TestCase
         $stream->next(); // consume x
 
         $peekBack = $stream->peek(-1);
-        self::assertSame('x', $peekBack->value);
+        $this->assertSame('x', $peekBack->value);
 
         $stream->next(); // consume y
-        self::assertSame(TokenType::T_EOF, $stream->current()->type);
+        $this->assertSame(TokenType::T_EOF, $stream->current()->type);
 
         $stream->rewind(2);
-        self::assertSame(0, $stream->getPosition());
-        self::assertSame('x', $stream->current()->value);
+        $this->assertSame(0, $stream->getPosition());
+        $this->assertSame('x', $stream->current()->value);
     }
 
     public function test_rewind_throws_on_invalid_count(): void
@@ -106,10 +106,10 @@ class TokenStreamTest extends TestCase
 
         $stream = new TokenStream($tokens, 'abc');
         $stream->setPosition(2);
-        self::assertSame('c', $stream->current()->value);
+        $this->assertSame('c', $stream->current()->value);
 
         $stream->setPosition(1);
-        self::assertSame('b', $stream->current()->value);
+        $this->assertSame('b', $stream->current()->value);
     }
 
     public function test_peek_out_of_bounds_returns_eof(): void
@@ -121,11 +121,11 @@ class TokenStreamTest extends TestCase
         $stream = new TokenStream($tokens, 'a');
 
         $peekFar = $stream->peek(5);
-        self::assertSame(TokenType::T_EOF, $peekFar->type);
-        self::assertSame(5, $peekFar->position);
+        $this->assertSame(TokenType::T_EOF, $peekFar->type);
+        $this->assertSame(5, $peekFar->position);
 
         $peekBack = $stream->peek(-5);
-        self::assertSame(TokenType::T_EOF, $peekBack->type);
+        $this->assertSame(TokenType::T_EOF, $peekBack->type);
     }
 
     public function test_getters_expose_pattern_and_tokens(): void
@@ -136,8 +136,8 @@ class TokenStreamTest extends TestCase
         ];
         $stream = new TokenStream($tokens, 'a');
 
-        self::assertSame('a', $stream->getPattern());
-        self::assertCount(2, $stream->getTokens());
-        self::assertTrue($stream->hasMore());
+        $this->assertSame('a', $stream->getPattern());
+        $this->assertCount(2, $stream->getTokens());
+        $this->assertTrue($stream->hasMore());
     }
 }

@@ -272,6 +272,9 @@ class OptimizerNodeVisitor implements NodeVisitorInterface
             }
         }
 
+        [$optimizedParts, $normalizedChanged] = $this->normalizeCharClassParts($optimizedParts);
+        $hasChanged = $hasChanged || $normalizedChanged;
+
         if ($hasChanged) {
             return new Node\CharClassNode($optimizedParts, $node->isNegated, $node->startPosition, $node->endPosition);
         }
@@ -595,5 +598,120 @@ class OptimizerNodeVisitor implements NodeVisitorInterface
         }
 
         return !\in_array(false, $partsFound, true);
+    }
+
+    /**
+     * @param array<Node\NodeInterface> $parts
+     *
+     * @return array{0: array<Node\NodeInterface>, 1: bool}
+     */
+    private function normalizeCharClassParts(array $parts): array
+    {
+        /** @var array<int, array{start: int, end: int}> $scalarChars */
+        $scalarChars = [];
+        $otherParts = [];
+        $changed = false;
+
+        foreach ($parts as $part) {
+            if ($part instanceof Node\LiteralNode && 1 === mb_strlen($part->value)) {
+                $ord = mb_ord($part->value);
+                if (isset($scalarChars[$ord])) {
+                    $scalarChars[$ord]['start'] = min($scalarChars[$ord]['start'], $part->startPosition);
+                    $scalarChars[$ord]['end'] = max($scalarChars[$ord]['end'], $part->endPosition);
+                    $changed = true;
+                } else {
+                    $scalarChars[$ord] = ['start' => $part->startPosition, 'end' => $part->endPosition];
+                }
+
+                continue;
+            }
+
+            if ($part instanceof Node\RangeNode
+                && $part->start instanceof Node\LiteralNode
+                && $part->end instanceof Node\LiteralNode
+                && 1 === mb_strlen($part->start->value)
+                && 1 === mb_strlen($part->end->value)
+            ) {
+                $startOrd = mb_ord($part->start->value);
+                $endOrd = mb_ord($part->end->value);
+                if ($startOrd > $endOrd) {
+                    [$startOrd, $endOrd] = [$endOrd, $startOrd];
+                }
+                for ($ord = $startOrd; $ord <= $endOrd; $ord++) {
+                    if (isset($scalarChars[$ord])) {
+                        $scalarChars[$ord]['start'] = min($scalarChars[$ord]['start'], $part->startPosition);
+                        $scalarChars[$ord]['end'] = max($scalarChars[$ord]['end'], $part->endPosition);
+                    } else {
+                        $scalarChars[$ord] = ['start' => $part->startPosition, 'end' => $part->endPosition];
+                    }
+                }
+                $changed = true;
+
+                continue;
+            }
+
+            $otherParts[] = $part;
+        }
+
+        if (empty($scalarChars)) {
+            return [$parts, $changed];
+        }
+
+        ksort($scalarChars);
+
+        $normalized = [];
+        $hasRange = false;
+        $rangeStart = 0;
+        $rangeEnd = 0;
+        $rangeStartPos = 0;
+        $rangeEndPos = 0;
+
+        foreach ($scalarChars as $ord => $pos) {
+            $ord = (int) $ord;
+            $posStart = (int) $pos['start'];
+            $posEnd = (int) $pos['end'];
+
+            if (!$hasRange) {
+                $rangeStart = $ord;
+                $rangeEnd = $ord;
+                $rangeStartPos = $posStart;
+                $rangeEndPos = $posEnd;
+                $hasRange = true;
+
+                continue;
+            }
+
+            if ($ord === $rangeEnd + 1) {
+                $rangeEnd = $ord;
+                $rangeEndPos = max($rangeEndPos, $posEnd);
+
+                continue;
+            }
+
+            $normalized[] = $this->buildRangeOrLiteral($rangeStart, $rangeEnd, $rangeStartPos, $rangeEndPos);
+            $rangeStart = $ord;
+            $rangeEnd = $ord;
+            $rangeStartPos = $posStart;
+            $rangeEndPos = $posEnd;
+        }
+
+        $normalized[] = $this->buildRangeOrLiteral($rangeStart, $rangeEnd, $rangeStartPos, $rangeEndPos);
+
+        $finalParts = array_merge($normalized, $otherParts);
+
+        return [$finalParts, $changed || \count($finalParts) !== \count($parts)];
+    }
+
+    private function buildRangeOrLiteral(int $startOrd, int $endOrd, int $startPos, int $endPos): Node\NodeInterface
+    {
+        $startLiteral = new Node\LiteralNode(mb_chr($startOrd), $startPos, $startPos + 1);
+
+        if ($startOrd === $endOrd) {
+            return $startLiteral;
+        }
+
+        $endLiteral = new Node\LiteralNode(mb_chr($endOrd), $endPos, $endPos + 1);
+
+        return new Node\RangeNode($startLiteral, $endLiteral, $startPos, $endPos);
     }
 }

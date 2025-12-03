@@ -135,11 +135,11 @@ class ExhaustiveVisitorTest extends TestCase
 
         // Lookbehind Positive
         $node = new GroupNode(new LiteralNode('a', 0, 0), GroupType::T_GROUP_LOOKBEHIND_POSITIVE);
-        $this->assertStringContainsString('Positive Lookbehind', $node->accept($explainer));
+        $this->assertStringContainsString('Positive lookbehind', $node->accept($explainer));
 
         // Lookbehind Negative
         $node = new GroupNode(new LiteralNode('a', 0, 0), GroupType::T_GROUP_LOOKBEHIND_NEGATIVE);
-        $this->assertStringContainsString('Negative Lookbehind', $node->accept($explainer));
+        $this->assertStringContainsString('Negative lookbehind', $node->accept($explainer));
 
         // Atomic
         $node = new GroupNode(new LiteralNode('a', 0, 0), GroupType::T_GROUP_ATOMIC);

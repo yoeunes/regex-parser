@@ -260,7 +260,8 @@ class ComprehensivePublicAPITest extends TestCase
     {
         $explanation = $this->regexService->explain('/hello/');
         $this->assertIsString($explanation);
-        $this->assertStringContainsString('Literal', $explanation);
+        $this->assertStringContainsString('Regex matches', $explanation);
+        $this->assertStringContainsString("'h'", $explanation);
     }
 
     public function test_explain_with_flags(): void

@@ -36,9 +36,9 @@ class ExplainVisitorTest extends TestCase
         $output = $ast->accept($visitor);
 
         $this->assertStringContainsString('Regex matches (with flags: i)', $output);
-        $this->assertStringContainsString('EITHER:', $output);
+        $this->assertStringContainsString('EITHER', $output);
         $this->assertStringContainsString('Anchor: the start of the string', $output);
-        $this->assertStringContainsString('OR:', $output);
+        $this->assertStringContainsString('OR', $output);
     }
 
     public function test_html_explain_escaping(): void

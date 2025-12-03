@@ -53,14 +53,7 @@ class ExplainNodeVisitorTest extends TestCase
         ], 0, 3);
         $visitor = new ExplainNodeVisitor();
 
-        $expected = <<<'EXPLAIN'
-            EITHER:
-              Literal: 'a'
-              OR:
-              Literal: 'b'
-            EXPLAIN;
-
-        $this->assertSame($expected, $node->accept($visitor));
+        $this->assertSame("  EITHER\n    'a'\n  OR\n    'b'", $node->accept($visitor));
     }
 
     public function test_visit_sequence_node(): void
@@ -71,12 +64,7 @@ class ExplainNodeVisitorTest extends TestCase
         ], 0, 2);
         $visitor = new ExplainNodeVisitor();
 
-        $expected = <<<'EXPLAIN'
-            Literal: 'a'
-              Literal: 'b'
-            EXPLAIN;
-
-        $this->assertSame($expected, $node->accept($visitor));
+        $this->assertSame("'a'\n'b'", $node->accept($visitor));
     }
 
     public function test_visit_group_node(): void
@@ -91,13 +79,7 @@ class ExplainNodeVisitorTest extends TestCase
         );
         $visitor = new ExplainNodeVisitor();
 
-        $expected = <<<'EXPLAIN'
-            Start Capturing Group:
-              Literal: 'a'
-            End Group
-            EXPLAIN;
-
-        $this->assertSame($expected, $node->accept($visitor));
+        $this->assertSame("Capturing group\n  'a'\nEnd group", $node->accept($visitor));
     }
 
     public function test_visit_quantifier_node(): void
@@ -111,7 +93,7 @@ class ExplainNodeVisitorTest extends TestCase
         );
         $visitor = new ExplainNodeVisitor();
 
-        $this->assertSame("Literal: 'a' (zero or more times)", $node->accept($visitor));
+        $this->assertSame("'a' (zero or more times)", $node->accept($visitor));
     }
 
     public function test_visit_char_class_node(): void
@@ -124,7 +106,7 @@ class ExplainNodeVisitorTest extends TestCase
         );
         $visitor = new ExplainNodeVisitor();
 
-        $this->assertSame("Character Class: any character in [ Literal: 'a' ]", $node->accept($visitor));
+        $this->assertSame("Character Class: any character in [ 'a' ]", $node->accept($visitor));
     }
 
     public function test_visit_range_node(): void
@@ -191,14 +173,7 @@ class ExplainNodeVisitorTest extends TestCase
         );
         $visitor = new ExplainNodeVisitor();
 
-        $expected = <<<'EXPLAIN'
-            Conditional: IF (Backreference: matches text from group "1") THEN:
-              Literal: 'a'
-            ELSE:
-              Literal: 'b'
-            EXPLAIN;
-
-        $this->assertSame($expected, $node->accept($visitor));
+        $this->assertSame("IF (  Backreference: matches text from group \"1\") THEN\n  'a'\nELSE\n  'b'", $node->accept($visitor));
     }
 
     public function test_visit_subroutine_node(): void
@@ -226,12 +201,6 @@ class ExplainNodeVisitorTest extends TestCase
         );
         $visitor = new ExplainNodeVisitor();
 
-        $expected = <<<'EXPLAIN'
-            DEFINE Block (defines subpatterns without matching):
-              Literal: 'a'
-            End DEFINE Block
-            EXPLAIN;
-
-        $this->assertSame($expected, $node->accept($visitor));
+        $this->assertSame("DEFINE block (defines subpatterns without matching)\n  'a'\nEnd DEFINE Block", $node->accept($visitor));
     }
 }
