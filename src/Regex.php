@@ -13,6 +13,9 @@ declare(strict_types=1);
 
 namespace RegexParser;
 
+use RegexParser\Cache\CacheInterface;
+use RegexParser\Cache\FilesystemCache;
+use RegexParser\Cache\NullCache;
 use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
 use RegexParser\Node\RegexNode;
@@ -33,17 +36,10 @@ readonly class Regex
      */
     public const int DEFAULT_MAX_PATTERN_LENGTH = 100_000;
 
-    private int $maxPatternLength;
-
-    /**
-     * @param array{
-     *     max_pattern_length?: int,
-     * } $options
-     */
-    private function __construct(array $options = [])
-    {
-        $this->maxPatternLength = $options['max_pattern_length'] ?? self::DEFAULT_MAX_PATTERN_LENGTH;
-    }
+    private function __construct(
+        private int $maxPatternLength,
+        private CacheInterface $cache,
+    ) {}
 
     /**
      * Initializes the main Regex service object.
@@ -53,10 +49,18 @@ readonly class Regex
      * the library. As a contributor, you can add new options here to configure
      * the behavior of the parsing and analysis process.
      *
-     * @param array{max_pattern_length?: int} $options An associative array of configuration options.
-     *                                                 - `max_pattern_length` (int): Sets a safeguard limit on the length of the regex
-     *                                                 string to prevent performance issues with overly long patterns. Defaults to
-     *                                                 `self::DEFAULT_MAX_PATTERN_LENGTH`.
+     * @param array{max_pattern_length?: int, cache?: CacheInterface|string|null} $options An associative array of
+     *                                                                                     configuration options.
+     *                                                                                     - `max_pattern_length` (int):
+     *                                                                                     Sets a safeguard limit on the
+     *                                                                                     length of the regex string to
+     *                                                                                     prevent performance issues with
+     *                                                                                     overly long patterns. Defaults to
+     *                                                                                     `self::DEFAULT_MAX_PATTERN_LENGTH`.
+     *                                                                                     - `cache` (string|CacheInterface|null):
+     *                                                                                     Provide a directory path or cache
+     *                                                                                     implementation to enable AST
+     *                                                                                     caching.
      *
      * @return self a new, configured instance of the `Regex` service, ready to be used
      *
@@ -71,7 +75,10 @@ readonly class Regex
      */
     public static function create(array $options = []): self
     {
-        return new self($options);
+        $maxPatternLength = $options['max_pattern_length'] ?? self::DEFAULT_MAX_PATTERN_LENGTH;
+        $cache = self::normalizeCache($options['cache'] ?? null);
+
+        return new self($maxPatternLength, $cache);
     }
 
     /**
@@ -106,12 +113,27 @@ readonly class Regex
             throw new ParserException(\sprintf('Regex pattern exceeds maximum length of %d characters.', $this->maxPatternLength));
         }
 
+        $cacheKey = $this->cache->generateKey($regex);
+        $cached = $this->cache->load($cacheKey);
+        if ($cached instanceof RegexNode) {
+            return $cached;
+        }
+
         [$pattern, $flags, $delimiter] = $this->extractPatternAndFlags($regex);
 
         $stream = $this->getLexer()->tokenize($pattern);
         $parser = $this->getParser();
 
-        return $parser->parse($stream, $flags, $delimiter, \strlen($pattern));
+        $ast = $parser->parse($stream, $flags, $delimiter, \strlen($pattern));
+
+        if (!$this->cache instanceof NullCache) {
+            try {
+                $this->cache->write($cacheKey, $this->compileCachePayload($ast));
+            } catch (\Throwable) {
+            }
+        }
+
+        return $ast;
     }
 
     /**
@@ -507,5 +529,41 @@ readonly class Regex
         }
 
         throw new ParserException(\sprintf('No closing delimiter "%s" found.', $closingDelimiter));
+    }
+
+    private static function normalizeCache(mixed $cache): CacheInterface
+    {
+        if (null === $cache) {
+            return new NullCache();
+        }
+
+        if (\is_string($cache)) {
+            if ('' === trim($cache)) {
+                throw new \InvalidArgumentException('The "cache" option cannot be an empty string.');
+            }
+
+            return new FilesystemCache($cache);
+        }
+
+        if ($cache instanceof CacheInterface) {
+            return $cache;
+        }
+
+        throw new \InvalidArgumentException('The "cache" option must be null, a cache path, or a CacheInterface implementation.');
+    }
+
+    private function compileCachePayload(RegexNode $ast): string
+    {
+        $serialized = serialize($ast);
+        $exported = var_export($serialized, true);
+
+        return <<<PHP
+            <?php
+
+            declare(strict_types=1);
+
+            return unserialize($exported, ['allowed_classes' => true]);
+
+            PHP;
     }
 }

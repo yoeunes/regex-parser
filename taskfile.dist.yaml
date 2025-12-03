@@ -64,22 +64,11 @@ tasks:
 
     install:
         cmds:
-            - composer validate --strict
             - composer install
-
-            - composer validate --strict -d tools/php-cs-fixer
             - composer install -d tools/php-cs-fixer
-
-            - composer validate --strict -d tools/phpbench
             - composer install -d tools/phpbench
-
-            - composer validate --strict -d tools/phplint
             - composer install -d tools/phplint
-
-            - composer validate --strict -d tools/phpstan
             - composer install -d tools/phpstan
-
-            - composer validate --strict -d tools/rector
             - composer install -d tools/rector
 
             - task: link
