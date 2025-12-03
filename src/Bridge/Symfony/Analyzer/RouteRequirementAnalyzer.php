@@ -44,7 +44,7 @@ final readonly class RouteRequirementAnalyzer
                     continue;
                 }
 
-                $pattern = \trim((string) $requirement);
+                $pattern = trim((string) $requirement);
                 if ('' === $pattern) {
                     continue;
                 }
@@ -62,6 +62,7 @@ final readonly class RouteRequirementAnalyzer
                         ),
                         true,
                     );
+
                     continue;
                 }
 
@@ -75,6 +76,7 @@ final readonly class RouteRequirementAnalyzer
                         ),
                         true,
                     );
+
                     continue;
                 }
 

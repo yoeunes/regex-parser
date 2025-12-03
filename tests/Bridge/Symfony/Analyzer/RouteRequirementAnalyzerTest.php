@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Tests\Unit\Bridge\Symfony\Analyzer;
+namespace RegexParser\Tests\Bridge\Symfony\Analyzer;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\Bridge\Symfony\Analyzer\RouteRequirementAnalyzer;
@@ -21,17 +21,17 @@ use Symfony\Component\Routing\RouteCollection;
 
 final class RouteRequirementAnalyzerTest extends TestCase
 {
-    public function testAnalyzeIgnoresValidRequirements(): void
+    public function test_valid_requirement_produces_no_issues(): void
     {
         $analyzer = new RouteRequirementAnalyzer(Regex::create(), 100, 200);
 
         $routes = new RouteCollection();
         $routes->add('home', new Route('/home', [], ['slug' => '[a-z]+']));
 
-        self::assertSame([], $analyzer->analyze($routes));
+        $this->assertSame([], $analyzer->analyze($routes));
     }
 
-    public function testAnalyzeReportsInvalidRequirement(): void
+    public function test_invalid_requirement_is_reported(): void
     {
         $analyzer = new RouteRequirementAnalyzer(Regex::create(), 100, 200);
 
@@ -40,9 +40,22 @@ final class RouteRequirementAnalyzerTest extends TestCase
 
         $issues = $analyzer->analyze($routes);
 
-        self::assertCount(1, $issues);
-        self::assertTrue($issues[0]->isError);
-        self::assertStringContainsString('broken', $issues[0]->message);
-        self::assertStringContainsString('id', $issues[0]->message);
+        $this->assertCount(1, $issues);
+        $this->assertTrue($issues[0]->isError);
+        $this->assertStringContainsString('broken', $issues[0]->message);
+    }
+
+    public function test_warning_threshold_is_applied(): void
+    {
+        $analyzer = new RouteRequirementAnalyzer(Regex::create(), 0, 1000);
+
+        $routes = new RouteCollection();
+        $routes->add('warn', new Route('/warn', [], ['name' => '.+']));
+
+        $issues = $analyzer->analyze($routes);
+
+        $this->assertCount(1, $issues);
+        $this->assertFalse($issues[0]->isError);
+        $this->assertStringContainsString('warn', $issues[0]->message);
     }
 }

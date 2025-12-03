@@ -56,5 +56,6 @@ return static function (ContainerConfigurator $container): void {
     $services->set('regex_parser.command.validate', RegexParserValidateCommand::class)
         ->arg('$analyzer', service(RouteRequirementAnalyzer::class))
         ->arg('$router', service(RouterInterface::class)->nullOnInvalid())
-        ->tag('console.command');
+        ->tag('console.command')
+        ->public();
 };
