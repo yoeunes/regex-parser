@@ -44,6 +44,15 @@ tasks:
             - src/**/*.php
             - tests/Benchmark/**/*.php
 
+    coverage:
+        cmd: vendor/bin/phpunit --coverage-html build/coverage {{.CLI_ARGS}}
+        sources:
+            - phpunit.dist.xml
+            - src/**/*.php
+            - tests/**/*.php
+        generates:
+            - build/coverage
+
     lint:
         cmds:
             - task: install
