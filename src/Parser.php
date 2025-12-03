@@ -808,7 +808,26 @@ class Parser
         }
 
         if ($this->matchLiteral('R')) {
-            return new Node\SubroutineNode('R', '', $startPos, $this->current()->position);
+            $endPos = $this->previous()->position;
+            $numericPart = '';
+            $sawMinus = false;
+
+            if ($this->checkLiteral('-')) {
+                $sawMinus = true;
+                $this->advance();
+            }
+
+            $digits = $this->consumeWhile(fn (string $c) => ctype_digit($c));
+            if ('' !== $digits) {
+                $numericPart = ($sawMinus ? '-' : '').$digits;
+                $endPos = $this->previous()->position;
+            } elseif ($sawMinus) {
+                $this->stream->rewind(1);
+            }
+
+            $reference = 'R'.$numericPart;
+
+            return new Node\SubroutineNode($reference, '', $startPos, $endPos);
         }
 
         if ($this->matchLiteral('?')) {

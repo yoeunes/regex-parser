@@ -28,6 +28,8 @@ use RegexParser\Node\GroupType;
  */
 class SampleGeneratorNodeVisitor implements NodeVisitorInterface
 {
+    private const int MAX_RECURSION_DEPTH = 2;
+
     private ?int $seed = null;
 
     /**
@@ -39,6 +41,29 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
     private array $captures = [];
 
     private int $groupCounter = 1;
+
+    private int $recursionDepth = 0;
+
+    private ?Node\NodeInterface $rootPattern = null;
+
+    /**
+     * @var array<int, Node\GroupNode>
+     */
+    private array $groupIndexMap = [];
+
+    /**
+     * @var array<string, Node\GroupNode>
+     */
+    private array $namedGroupMap = [];
+
+    /**
+     * @var array<int, int>
+     */
+    private array $groupNumbers = [];
+
+    private int $groupDefinitionCounter = 1;
+
+    private int $totalGroupCount = 0;
 
     /**
      * Constructs a new SampleGeneratorNodeVisitor.
@@ -108,6 +133,14 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
         // Reset state for this run
         $this->captures = [];
         $this->groupCounter = 1;
+        $this->recursionDepth = 0;
+        $this->rootPattern = $node->pattern;
+        $this->groupIndexMap = [];
+        $this->namedGroupMap = [];
+        $this->groupNumbers = [];
+        $this->groupDefinitionCounter = 1;
+        $this->collectGroups($node->pattern);
+        $this->totalGroupCount = $this->groupDefinitionCounter - 1;
 
         // Ensure we are seeded if the user expects it
         if (null !== $this->seed) {
@@ -217,12 +250,16 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
 
         // Store the result if it's a capturing group
         if (GroupType::T_GROUP_CAPTURING === $node->type) {
-            $this->captures[$this->groupCounter++] = $result;
+            $groupIndex = $this->groupNumbers[\spl_object_id($node)] ?? $this->groupCounter++;
+            $this->captures[$groupIndex] = $result;
+            $this->groupCounter = max($this->groupCounter, $groupIndex + 1);
         } elseif (GroupType::T_GROUP_NAMED === $node->type) {
-            $this->captures[$this->groupCounter++] = $result;
+            $groupIndex = $this->groupNumbers[\spl_object_id($node)] ?? $this->groupCounter++;
+            $this->captures[$groupIndex] = $result;
             if ($node->name) {
                 $this->captures[$node->name] = $result;
             }
+            $this->groupCounter = max($this->groupCounter, $groupIndex + 1);
         }
 
         // For non-capturing, etc., just return the child's result
@@ -761,23 +798,30 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
     }
 
     /**
-     * Visits a SubroutineNode. Sample generation for subroutines is not supported.
+     * Visits a SubroutineNode with depth-limited recursion support.
      *
-     * Purpose: Subroutines (e.g., `(?&name)`) allow for recursive or repeated pattern calls.
-     * Generating samples for these constructs can lead to infinite recursion if not handled
-     * carefully, and accurately simulating their behavior requires complex state management.
-     * Therefore, this method explicitly throws an exception to indicate that this advanced
-     * feature is not supported for sample generation.
+     * Purpose: Subroutines (e.g., `(?&name)` or `(?R)`) allow recursive pattern calls.
+     * This implementation resolves the referenced group or whole pattern and generates
+     * a sample up to a configurable maximum recursion depth to avoid infinite expansion.
      *
      * @param Node\SubroutineNode $node the `SubroutineNode` representing a subroutine call
-     *
-     * @throws \LogicException always throws an exception as subroutine sample generation is not supported
      */
     public function visitSubroutine(Node\SubroutineNode $node): string
     {
-        // Recursive generation is a deep computer science problem
-        // (can lead to infinite loops). Safest to throw.
-        throw new \LogicException('Sample generation for subroutines is not supported.');
+        if ($this->recursionDepth >= self::MAX_RECURSION_DEPTH) {
+            return '';
+        }
+
+        $target = $this->resolveSubroutineTarget($node);
+        if (null === $target) {
+            return '';
+        }
+
+        $this->recursionDepth++;
+        $result = $target instanceof Node\GroupNode ? $target->child->accept($this) : $target->accept($this);
+        $this->recursionDepth--;
+
+        return $result;
     }
 
     /**
@@ -931,5 +975,94 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
             return '?'; // Fallback for mt_rand failure
         }
         // @codeCoverageIgnoreEnd
+    }
+
+    private function collectGroups(Node\NodeInterface $node): void
+    {
+        if ($node instanceof Node\GroupNode) {
+            if (\in_array($node->type, [GroupType::T_GROUP_CAPTURING, GroupType::T_GROUP_NAMED], true)) {
+                $index = $this->groupDefinitionCounter++;
+                $this->groupIndexMap[$index] = $node;
+                $this->groupNumbers[\spl_object_id($node)] = $index;
+                if (null !== $node->name) {
+                    $this->namedGroupMap[$node->name] = $node;
+                }
+            }
+
+            $this->collectGroups($node->child);
+
+            return;
+        }
+
+        if ($node instanceof Node\SequenceNode) {
+            foreach ($node->children as $child) {
+                $this->collectGroups($child);
+            }
+
+            return;
+        }
+
+        if ($node instanceof Node\AlternationNode) {
+            foreach ($node->alternatives as $alt) {
+                $this->collectGroups($alt);
+            }
+
+            return;
+        }
+
+        if ($node instanceof Node\QuantifierNode) {
+            $this->collectGroups($node->node);
+
+            return;
+        }
+
+        if ($node instanceof Node\ConditionalNode) {
+            $this->collectGroups($node->condition);
+            $this->collectGroups($node->yes);
+            $this->collectGroups($node->no);
+
+            return;
+        }
+
+        if ($node instanceof Node\DefineNode) {
+            $this->collectGroups($node->content);
+        }
+    }
+
+    private function resolveSubroutineTarget(Node\SubroutineNode $node): ?Node\NodeInterface
+    {
+        $ref = $node->reference;
+
+        if ('R' === $ref || '0' === $ref) {
+            return $this->rootPattern;
+        }
+
+        if (str_starts_with($ref, 'R')) {
+            $ref = substr($ref, 1);
+            if ('' === $ref) {
+                return $this->rootPattern;
+            }
+        }
+
+        if (ctype_digit($ref)) {
+            $index = (int) $ref;
+
+            return $this->groupIndexMap[$index] ?? null;
+        }
+
+        if (str_starts_with($ref, '-') && ctype_digit(substr($ref, 1))) {
+            $resolvedIndex = $this->totalGroupCount + (int) $ref + 1;
+            if ($resolvedIndex >= 1) {
+                return $this->groupIndexMap[$resolvedIndex] ?? null;
+            }
+
+            return null;
+        }
+
+        if (isset($this->namedGroupMap[$ref])) {
+            return $this->namedGroupMap[$ref];
+        }
+
+        return null;
     }
 }

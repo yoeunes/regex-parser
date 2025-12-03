@@ -672,8 +672,22 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
             // Now validate the backreference itself
             $node->condition->accept($this);
         } elseif ($node->condition instanceof Node\SubroutineNode) {
-            // This is (?(R)...) or (?(R1)...)
-            $node->condition->accept($this);
+            $ref = $node->condition->reference;
+            if ('R' === $ref || '0' === $ref) {
+                // Always valid recursion condition to entire pattern.
+            } elseif (preg_match('/^R-?\d+$/', $ref)) {
+                $num = (int) substr($ref, 1);
+                if ($this->groupCount > 0) {
+                    if ($num > 0 && $num > $this->groupCount) {
+                        throw new ParserException(\sprintf('Recursion condition to non-existent group: %d at position %d.', $num, $node->condition->startPosition));
+                    }
+                    if ($num < 0 && abs($num) > $this->groupCount) {
+                        throw new ParserException(\sprintf('Relative recursion condition (%d) at position %d exceeds total group count (%d).', $num, $node->condition->startPosition, $this->groupCount));
+                    }
+                }
+            } else {
+                $node->condition->accept($this);
+            }
         } elseif ($node->condition instanceof Node\GroupNode && \in_array($node->condition->type, [
             GroupType::T_GROUP_LOOKAHEAD_POSITIVE,
             GroupType::T_GROUP_LOOKAHEAD_NEGATIVE,
@@ -712,6 +726,31 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
 
         if ('R' === $ref || '0' === $ref) {
             return; // (?R) or (?0) is always valid.
+        }
+
+        if (str_starts_with($ref, 'R')) {
+            $numPart = substr($ref, 1);
+            if ('' === $numPart) {
+                return;
+            }
+
+            if (ctype_digit($numPart)) {
+                $num = (int) $numPart;
+                if ($num > $this->groupCount) {
+                    throw new ParserException(\sprintf('Subroutine call to non-existent group: %d at position %d.', $num, $node->startPosition));
+                }
+
+                return;
+            }
+
+            if (str_starts_with($numPart, '-') && ctype_digit(substr($numPart, 1))) {
+                $num = (int) $numPart;
+                if (abs($num) > $this->groupCount) {
+                    throw new ParserException(\sprintf('Relative subroutine call (%d) at position %d exceeds total group count (%d).', $num, $node->startPosition, $this->groupCount));
+                }
+
+                return;
+            }
         }
 
         // Numeric reference: (?1), (?-1)

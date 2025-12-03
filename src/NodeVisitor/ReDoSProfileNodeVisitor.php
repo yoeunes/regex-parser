@@ -159,9 +159,11 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
         // Save the current atomic state to restore it later
         $wasAtomic = $this->inAtomicGroup;
 
+        $controlVerbShield = $this->hasTrailingBacktrackingControl($node->node);
+
         // If the quantifier is possessive (*+, ++), its content is implicitly atomic.
         // This means it does not backtrack, preventing ReDoS in nested structures.
-        if (QuantifierType::T_POSSESSIVE === $node->type) {
+        if (QuantifierType::T_POSSESSIVE === $node->type || $controlVerbShield) {
             $this->inAtomicGroup = true;
         }
 
@@ -172,7 +174,7 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
             $result = $node->node->accept($this);
             $this->inAtomicGroup = $wasAtomic; // Restore state is crucial here!
 
-            return $result;
+            return $controlVerbShield ? $this->reduceSeverity($result, ReDoSSeverity::LOW) : $result;
         }
 
         // --- Standard ReDoS logic for non-atomic quantifiers ---
@@ -833,6 +835,42 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
 
         // Fallback for other node types that don't have a simple prefix
         return uniqid();
+    }
+
+    private function hasTrailingBacktrackingControl(Node\NodeInterface $node): bool
+    {
+        $verbNode = $this->extractTrailingVerb($node);
+        if (null === $verbNode) {
+            return false;
+        }
+
+        $verbName = strtoupper(explode(':', $verbNode->verb, 2)[0]);
+
+        return \in_array($verbName, ['COMMIT', 'PRUNE', 'SKIP'], true);
+    }
+
+    private function extractTrailingVerb(Node\NodeInterface $node): ?Node\PcreVerbNode
+    {
+        if ($node instanceof Node\PcreVerbNode) {
+            return $node;
+        }
+
+        if ($node instanceof Node\SequenceNode && !empty($node->children)) {
+            $last = $node->children[\count($node->children) - 1];
+
+            return $this->extractTrailingVerb($last);
+        }
+
+        if ($node instanceof Node\GroupNode) {
+            return $this->extractTrailingVerb($node->child);
+        }
+
+        return null;
+    }
+
+    private function reduceSeverity(ReDoSSeverity $severity, ReDoSSeverity $cap): ReDoSSeverity
+    {
+        return $this->severityGreaterThan($severity, $cap) ? $cap : $severity;
     }
 
     /**
