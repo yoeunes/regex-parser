@@ -24,8 +24,7 @@ parameters:
         - tests/Bridge/PHPStan/Fixtures/*
 
     bootstrapFiles:
-#        - tools/rector/vendor/autoload.php
-        #- tools/phpbench/vendor/autoload.php
+        - tools/phpstan/vendor/autoload.php
 
     editorUrl: 'phpstorm://open?file=%%file%%&line=%%line%%'
 
