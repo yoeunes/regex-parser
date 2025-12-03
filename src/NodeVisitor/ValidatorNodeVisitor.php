@@ -17,6 +17,7 @@ use RegexParser\Exception\ParserException;
 use RegexParser\Node;
 use RegexParser\Node\GroupType;
 use RegexParser\Node\QuantifierType;
+use RegexParser\ReDoS\CharSetAnalyzer;
 
 /**
  * Validates the semantic rules of a parsed regex Abstract Syntax Tree (AST).
@@ -81,6 +82,10 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
      */
     private array $namedGroups = [];
 
+    private ?Node\NodeInterface $previousNode = null;
+
+    private ?Node\NodeInterface $nextNode = null;
+
     /**
      * Whether the (?J) flag is active, allowing duplicate named groups.
      */
@@ -92,6 +97,10 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
      * @var array<string, bool>
      */
     private static array $unicodePropCache = [];
+
+    public function __construct(
+        private readonly CharSetAnalyzer $charSetAnalyzer = new CharSetAnalyzer(),
+    ) {}
 
     /**
      * Validates the root `RegexNode`.
@@ -114,6 +123,8 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
         $this->groupCount = 0;
         $this->namedGroups = [];
         $this->J_modifier = str_contains($node->flags, 'J');
+        $this->previousNode = null;
+        $this->nextNode = null;
 
         $node->pattern->accept($this);
     }
@@ -134,9 +145,17 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
         // Note: PHP 7.3+ (PCRE2) supports variable-length lookbehinds,
         // so we no longer enforce fixed-length or same-length alternation restrictions.
 
+        $previous = $this->previousNode;
+        $next = $this->nextNode;
+
         foreach ($node->alternatives as $alt) {
+            $this->previousNode = null;
+            $this->nextNode = null;
             $alt->accept($this);
         }
+
+        $this->previousNode = $previous;
+        $this->nextNode = $next;
     }
 
     /**
@@ -151,9 +170,20 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
      */
     public function visitSequence(Node\SequenceNode $node): void
     {
-        foreach ($node->children as $child) {
+        $previous = $this->previousNode;
+        $next = $this->nextNode;
+        $total = \count($node->children);
+        $last = null;
+
+        foreach ($node->children as $index => $child) {
+            $this->previousNode = $last;
+            $this->nextNode = $index + 1 < $total ? $node->children[$index + 1] : null;
             $child->accept($this);
+            $last = $child;
         }
+
+        $this->previousNode = $previous;
+        $this->nextNode = $next;
     }
 
     /**
@@ -173,6 +203,8 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
     public function visitGroup(Node\GroupNode $node): void
     {
         $wasInLookbehind = $this->inLookbehind;
+        $previous = $this->previousNode;
+        $next = $this->nextNode;
 
         if (\in_array(
             $node->type,
@@ -201,7 +233,11 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
             }
         }
 
+        $this->previousNode = null;
+        $this->nextNode = null;
         $node->child->accept($this);
+        $this->previousNode = $previous;
+        $this->nextNode = $next;
 
         $this->inLookbehind = $wasInLookbehind; // Restore state
     }
@@ -239,16 +275,22 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
 
         // 2. Check for Catastrophic Backtracking (ReDoS)
         // Only non-possessive unbounded quantifiers can cause ReDoS.
+        $hasBoundarySeparator = false;
+
         if ($isUnbounded && !$isPossessive) {
-            if ($this->quantifierDepth > 0) {
+            $hasBoundarySeparator = $this->hasMutuallyExclusiveBoundary($this->previousNode, $node->node);
+
+            if ($this->quantifierDepth > 0 && !$hasBoundarySeparator) {
                 throw new ParserException(\sprintf('Potential catastrophic backtracking (ReDoS): nested unbounded quantifier "%s" at position %d.', $node->quantifier, $node->startPosition));
             }
-            $this->quantifierDepth++;
+            if (!$hasBoundarySeparator) {
+                $this->quantifierDepth++;
+            }
         }
 
         $node->node->accept($this);
 
-        if ($isUnbounded && !$isPossessive) {
+        if ($isUnbounded && !$isPossessive && !$hasBoundarySeparator) {
             $this->quantifierDepth--;
         }
     }
@@ -833,6 +875,25 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
             // This case should ideally be caught by the Lexer/Parser, but as a safeguard.
             throw new ParserException(\sprintf('Invalid callout identifier type at position %d.', $position));
         }
+    }
+
+    /**
+     * Detects if the trailing set of a previous atom and the leading set of the current atom do not overlap.
+     */
+    private function hasMutuallyExclusiveBoundary(?Node\NodeInterface $previous, Node\NodeInterface $current): bool
+    {
+        if (null === $previous) {
+            return false;
+        }
+
+        $previousTail = $this->charSetAnalyzer->lastChars($previous);
+        $currentHead = $this->charSetAnalyzer->firstChars($current);
+
+        if ($previousTail->isUnknown() || $currentHead->isUnknown()) {
+            return false;
+        }
+
+        return !$previousTail->intersects($currentHead);
     }
 
     /**

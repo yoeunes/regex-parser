@@ -13,9 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Bridge\Symfony\Analyzer;
 
-use RegexParser\Bridge\Symfony\Analyzer\AnalysisIssue;
 use RegexParser\Regex;
-use Symfony\Component\Routing\Requirement\Requirement;
 use Symfony\Component\Routing\RouteCollection;
 
 /**
@@ -26,7 +24,10 @@ use Symfony\Component\Routing\RouteCollection;
 final readonly class RouteRequirementAnalyzer
 {
     private const array PATTERN_DELIMITERS = ['/', '#', '~', '%'];
-    /** @var list<string> */
+
+    /**
+     * @var list<string>
+     */
     private array $ignoredPatterns;
 
     /**
@@ -209,29 +210,6 @@ final readonly class RouteRequirementAnalyzer
      */
     private function buildIgnoredPatterns(array $userIgnored): array
     {
-        $defaults = [
-            Requirement::ASCII_SLUG,
-            Requirement::CATCH_ALL,
-            Requirement::DATE_YMD,
-            Requirement::DIGITS,
-            Requirement::MONGODB_ID,
-            Requirement::POSITIVE_INT,
-            Requirement::UID_BASE32,
-            Requirement::UID_BASE58,
-            Requirement::UID_RFC4122,
-            Requirement::UID_RFC9562,
-            Requirement::ULID,
-            Requirement::UUID,
-            Requirement::UUID_V1,
-            Requirement::UUID_V3,
-            Requirement::UUID_V4,
-            Requirement::UUID_V5,
-            Requirement::UUID_V6,
-            Requirement::UUID_V7,
-            Requirement::UUID_V8,
-            '^'.Requirement::ASCII_SLUG.'$',
-        ];
-
-        return array_values(array_unique([...$defaults, ...$userIgnored]));
+        return array_values(array_unique([...$this->regex->getIgnoredPatterns(), ...$userIgnored]));
     }
 }

@@ -38,6 +38,7 @@ return static function (ContainerConfigurator $container): void {
         ->arg('$options', [
             'max_pattern_length' => param('regex_parser.max_pattern_length'),
             'cache' => param('regex_parser.cache'),
+            'ignored_patterns' => param('regex_parser.analysis.ignore_patterns'),
         ])
         ->public();
 

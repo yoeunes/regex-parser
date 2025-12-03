@@ -19,6 +19,19 @@ use RegexParser\Regex;
 class ReDoSAnalyzer
 {
     /**
+     * @param list<string> $ignoredPatterns
+     */
+    public function __construct(
+        private readonly ?Regex $regex = null,
+        /**
+         * @var list<string>
+         */
+        private array $ignoredPatterns = [],
+    ) {
+        $this->ignoredPatterns = array_values(array_unique($this->ignoredPatterns));
+    }
+
+    /**
      * Analyzes a regex pattern for ReDoS vulnerabilities and returns a detailed report.
      *
      * Purpose: This is the main entry point for the ReDoS detection engine. It orchestrates
@@ -45,8 +58,12 @@ class ReDoSAnalyzer
      */
     public function analyze(string $regex): ReDoSAnalysis
     {
+        if ($this->shouldIgnore($regex)) {
+            return new ReDoSAnalysis(ReDoSSeverity::SAFE, 0, null, []);
+        }
+
         try {
-            $ast = Regex::create()->parse($regex);
+            $ast = ($this->regex ?? Regex::create())->parse($regex);
             $visitor = new ReDoSProfileNodeVisitor();
             $ast->accept($visitor);
 
@@ -68,5 +85,41 @@ class ReDoSAnalyzer
             // Fallback for parsing errors, treat as unknown/safe or rethrow
             return new ReDoSAnalysis(ReDoSSeverity::SAFE, 0, null, ['Error parsing regex: '.$e->getMessage()]);
         }
+    }
+
+    private function shouldIgnore(string $regex): bool
+    {
+        if ([] === $this->ignoredPatterns) {
+            return false;
+        }
+
+        $normalized = $this->normalizePattern($regex);
+
+        return \in_array($normalized, $this->ignoredPatterns, true) || \in_array($regex, $this->ignoredPatterns, true);
+    }
+
+    private function normalizePattern(string $regex): string
+    {
+        $pattern = $regex;
+        $length = \strlen($pattern);
+
+        if ($length >= 2) {
+            $first = $pattern[0];
+            $last = $pattern[$length - 1];
+
+            if ($first === $last && \in_array($first, ['/', '#', '~', '%'], true)) {
+                $pattern = substr($pattern, 1, -1);
+            }
+        }
+
+        if (str_starts_with($pattern, '^')) {
+            $pattern = substr($pattern, 1);
+        }
+
+        if (str_ends_with($pattern, '$')) {
+            $pattern = substr($pattern, 0, -1);
+        }
+
+        return $pattern;
     }
 }

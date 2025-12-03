@@ -14,7 +14,6 @@ declare(strict_types=1);
 namespace RegexParser\Bridge\Symfony\Analyzer;
 
 use RegexParser\Regex;
-use Symfony\Component\Routing\Requirement\Requirement;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\Constraints\Regex as SymfonyRegex;
 use Symfony\Component\Validator\Mapping\ClassMetadataInterface;
@@ -30,8 +29,11 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
  */
 final readonly class ValidatorRegexAnalyzer
 {
-    /** @var list<string> */
+    /**
+     * @var list<string>
+     */
     private array $ignoredPatterns;
+
     /**
      * @param list<string> $ignoredPatterns
      */
@@ -70,7 +72,7 @@ final readonly class ValidatorRegexAnalyzer
                 continue;
             }
 
-            $issues = \array_merge(
+            $issues = array_merge(
                 $issues,
                 $this->analyzeMetadata($metadata, $className),
             );
@@ -96,7 +98,7 @@ final readonly class ValidatorRegexAnalyzer
                         continue;
                     }
 
-                    $issues = \array_merge(
+                    $issues = array_merge(
                         $issues,
                         $this->analyzeConstraints(
                             $propertyMetadata->getConstraints(),
@@ -107,7 +109,7 @@ final readonly class ValidatorRegexAnalyzer
             }
         }
 
-        return \array_merge(
+        return array_merge(
             $issues,
             $this->analyzeConstraints($constraints, $className),
         );
@@ -258,29 +260,6 @@ final readonly class ValidatorRegexAnalyzer
      */
     private function buildIgnoredPatterns(array $userIgnored): array
     {
-        $defaults = [
-            Requirement::ASCII_SLUG,
-            Requirement::CATCH_ALL,
-            Requirement::DATE_YMD,
-            Requirement::DIGITS,
-            Requirement::MONGODB_ID,
-            Requirement::POSITIVE_INT,
-            Requirement::UID_BASE32,
-            Requirement::UID_BASE58,
-            Requirement::UID_RFC4122,
-            Requirement::UID_RFC9562,
-            Requirement::ULID,
-            Requirement::UUID,
-            Requirement::UUID_V1,
-            Requirement::UUID_V3,
-            Requirement::UUID_V4,
-            Requirement::UUID_V5,
-            Requirement::UUID_V6,
-            Requirement::UUID_V7,
-            Requirement::UUID_V8,
-            '^'.Requirement::ASCII_SLUG.'$',
-        ];
-
-        return array_values(array_unique([...$defaults, ...$userIgnored]));
+        return array_values(array_unique([...$this->regex->getIgnoredPatterns(), ...$userIgnored]));
     }
 }

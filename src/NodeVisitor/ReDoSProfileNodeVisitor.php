@@ -16,6 +16,7 @@ namespace RegexParser\NodeVisitor;
 use RegexParser\Node;
 use RegexParser\Node\GroupType;
 use RegexParser\Node\QuantifierType;
+use RegexParser\ReDoS\CharSetAnalyzer;
 use RegexParser\ReDoS\ReDoSSeverity;
 
 /**
@@ -48,6 +49,14 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
     private array $vulnerabilities = [];
 
     private bool $inAtomicGroup = false;
+
+    private ?Node\NodeInterface $previousNode = null;
+
+    private ?Node\NodeInterface $nextNode = null;
+
+    public function __construct(
+        private readonly CharSetAnalyzer $charSetAnalyzer = new CharSetAnalyzer(),
+    ) {}
 
     /**
      * Retrieves the aggregated ReDoS analysis result after visiting the AST.
@@ -127,6 +136,8 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
         $this->totalQuantifierDepth = 0;
         $this->vulnerabilities = [];
         $this->inAtomicGroup = false;
+        $this->previousNode = null;
+        $this->nextNode = null;
 
         return $node->pattern->accept($this);
     }
@@ -158,6 +169,9 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
     {
         // Save the current atomic state to restore it later
         $wasAtomic = $this->inAtomicGroup;
+        $boundarySeparatedPrev = $this->hasMutuallyExclusiveBoundary($this->previousNode, $node->node);
+        $boundarySeparatedNext = $this->hasForwardMutuallyExclusiveBoundary($node->node, $this->nextNode);
+        $boundarySeparated = $boundarySeparatedPrev || $boundarySeparatedNext;
 
         $controlVerbShield = $this->hasTrailingBacktrackingControl($node->node);
 
@@ -186,24 +200,30 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
         $isTargetAtomic = $node->node instanceof Node\GroupNode && GroupType::T_GROUP_ATOMIC === $node->node->type;
 
         $severity = ReDoSSeverity::SAFE;
+        $entersUnbounded = $isUnbounded && !$isTargetAtomic;
+        $isNestedUnbounded = $entersUnbounded && $this->unboundedQuantifierDepth > 0;
 
-        if ($isUnbounded && !$isTargetAtomic) {
+        if ($entersUnbounded) {
             $this->unboundedQuantifierDepth++;
 
-            if ($this->unboundedQuantifierDepth > 1) {
-                $severity = ReDoSSeverity::HIGH;
-                $this->addVulnerability(
-                    ReDoSSeverity::HIGH,
-                    'Nested unbounded quantifiers detected. This allows exponential backtracking. Consider using atomic groups (?>...) or possessive quantifiers (*+, ++).',
-                    $node->quantifier,
-                );
+            if ($isNestedUnbounded) {
+                $severity = $boundarySeparated ? ReDoSSeverity::LOW : ReDoSSeverity::CRITICAL;
+                if (!$boundarySeparated) {
+                    $this->addVulnerability(
+                        ReDoSSeverity::CRITICAL,
+                        'Nested unbounded quantifiers detected. This allows exponential backtracking. Consider using atomic groups (?>...) or possessive quantifiers (*+, ++).',
+                        $node->quantifier,
+                    );
+                }
             } else {
-                $severity = ReDoSSeverity::MEDIUM;
-                $this->addVulnerability(
-                    ReDoSSeverity::MEDIUM,
-                    'Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...).',
-                    $node->quantifier,
-                );
+                $severity = $boundarySeparated ? ReDoSSeverity::LOW : ReDoSSeverity::MEDIUM;
+                if (!$boundarySeparated) {
+                    $this->addVulnerability(
+                        ReDoSSeverity::MEDIUM,
+                        'Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...).',
+                        $node->quantifier,
+                    );
+                }
             }
         } else {
             if ($this->isLargeBounded($node->quantifier)) {
@@ -223,9 +243,15 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
             }
         }
 
+        $childPrevious = $this->previousNode;
+        $childNext = $this->nextNode;
+        $this->previousNode = null;
+        $this->nextNode = null;
         $childSeverity = $node->node->accept($this);
+        $this->previousNode = $childPrevious;
+        $this->nextNode = $childNext;
 
-        if ($isUnbounded && !$isTargetAtomic && ReDoSSeverity::HIGH === $childSeverity) {
+        if ($entersUnbounded && !$boundarySeparated && ReDoSSeverity::HIGH === $childSeverity) {
             $severity = ReDoSSeverity::CRITICAL;
             $this->addVulnerability(
                 ReDoSSeverity::CRITICAL,
@@ -234,7 +260,7 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
             );
         }
 
-        if ($isUnbounded && !$isTargetAtomic) {
+        if ($entersUnbounded) {
             $this->unboundedQuantifierDepth--;
         }
         $this->totalQuantifierDepth--;
@@ -270,6 +296,8 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
     public function visitAlternation(Node\AlternationNode $node): ReDoSSeverity
     {
         $max = ReDoSSeverity::SAFE;
+        $previous = $this->previousNode;
+        $next = $this->nextNode;
 
         if ($this->unboundedQuantifierDepth > 0 && $this->hasOverlappingAlternatives($node)) {
             $this->addVulnerability(
@@ -281,8 +309,13 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
         }
 
         foreach ($node->alternatives as $alt) {
+            $this->previousNode = null;
+            $this->nextNode = null;
             $max = $this->maxSeverity($max, $alt->accept($this));
         }
+
+        $this->previousNode = $previous;
+        $this->nextNode = $next;
 
         return $max;
     }
@@ -309,12 +342,18 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
     public function visitGroup(Node\GroupNode $node): ReDoSSeverity
     {
         $wasAtomic = $this->inAtomicGroup;
+        $previous = $this->previousNode;
+        $next = $this->nextNode;
 
         if (GroupType::T_GROUP_ATOMIC === $node->type) {
             $this->inAtomicGroup = true;
         }
 
+        $this->previousNode = null;
+        $this->nextNode = null;
         $severity = $node->child->accept($this);
+        $this->previousNode = $previous;
+        $this->nextNode = $next;
 
         $this->inAtomicGroup = $wasAtomic;
 
@@ -342,9 +381,19 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
     public function visitSequence(Node\SequenceNode $node): ReDoSSeverity
     {
         $max = ReDoSSeverity::SAFE;
-        foreach ($node->children as $child) {
+        $previous = $this->previousNode;
+        $next = $this->nextNode;
+        $last = null;
+        $total = \count($node->children);
+        foreach ($node->children as $index => $child) {
+            $this->previousNode = $last;
+            $this->nextNode = $index + 1 < $total ? $node->children[$index + 1] : null;
             $max = $this->maxSeverity($max, $child->accept($this));
+            $last = $child;
         }
+
+        $this->previousNode = $previous;
+        $this->nextNode = $next;
 
         return $max;
     }
@@ -866,6 +915,38 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
         }
 
         return null;
+    }
+
+    private function hasMutuallyExclusiveBoundary(?Node\NodeInterface $previous, Node\NodeInterface $current): bool
+    {
+        if (null === $previous) {
+            return false;
+        }
+
+        $previousTail = $this->charSetAnalyzer->lastChars($previous);
+        $currentHead = $this->charSetAnalyzer->firstChars($current);
+
+        if ($previousTail->isUnknown() || $currentHead->isUnknown()) {
+            return false;
+        }
+
+        return !$previousTail->intersects($currentHead);
+    }
+
+    private function hasForwardMutuallyExclusiveBoundary(Node\NodeInterface $current, ?Node\NodeInterface $next): bool
+    {
+        if (null === $next) {
+            return false;
+        }
+
+        $currentTail = $this->charSetAnalyzer->lastChars($current);
+        $nextHead = $this->charSetAnalyzer->firstChars($next);
+
+        if ($currentTail->isUnknown() || $nextHead->isUnknown()) {
+            return false;
+        }
+
+        return !$currentTail->intersects($nextHead);
     }
 
     private function reduceSeverity(ReDoSSeverity $severity, ReDoSSeverity $cap): ReDoSSeverity

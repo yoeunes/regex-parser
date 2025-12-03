@@ -39,6 +39,7 @@ class ReDoSAnalyzerTest extends TestCase
         // SAFE
         yield ['/abc/', ReDoSSeverity::SAFE];
         yield ['/^\d{4}-\d{2}-\d{2}$/', ReDoSSeverity::SAFE];
+        yield ['/^[a-z0-9]+(?:-[a-z0-9]+)*$/', ReDoSSeverity::SAFE];
 
         // LOW (Bounded nested)
         yield ['/(a{1,5}){1,5}/', ReDoSSeverity::LOW];
@@ -66,5 +67,12 @@ class ReDoSAnalyzerTest extends TestCase
         // The visitor detects critical nesting for this specific pattern
         $this->assertSame(ReDoSSeverity::CRITICAL, $analysis->severity);
         $this->assertNotEmpty($analysis->recommendations);
+    }
+
+    public function test_symfony_slug_pattern_is_treated_as_safe(): void
+    {
+        $analysis = $this->analyzer->analyze('/[a-z0-9]+(?:-[a-z0-9]+)*/');
+
+        $this->assertContains($analysis->severity, [ReDoSSeverity::SAFE, ReDoSSeverity::LOW]);
     }
 }
