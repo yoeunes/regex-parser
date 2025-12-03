@@ -250,17 +250,11 @@ class ParserTest extends TestCase
         $this->assertInstanceOf(BackrefNode::class, $pattern->condition);
         $this->assertSame('1', $pattern->condition->ref);
 
-        // The "yes" branch is the alternation "a|b"
-        $this->assertInstanceOf(AlternationNode::class, $pattern->yes);
-        $this->assertCount(2, $pattern->yes->alternatives);
-        $this->assertInstanceOf(LiteralNode::class, $pattern->yes->alternatives[0]);
-        $this->assertSame('a', $pattern->yes->alternatives[0]->value);
-        $this->assertInstanceOf(LiteralNode::class, $pattern->yes->alternatives[1]);
-        $this->assertSame('b', $pattern->yes->alternatives[1]->value);
-
-        // The "no" branch is empty
+        // The "yes" and "no" branches are split properly
+        $this->assertInstanceOf(LiteralNode::class, $pattern->yes);
+        $this->assertSame('a', $pattern->yes->value);
         $this->assertInstanceOf(LiteralNode::class, $pattern->no);
-        $this->assertSame('', $pattern->no->value);
+        $this->assertSame('b', $pattern->no->value);
     }
 
     public function test_throws_on_unmatched_group(): void
@@ -343,6 +337,10 @@ class ParserTest extends TestCase
         $this->assertInstanceOf(ConditionalNode::class, $ast->pattern);
         $this->assertInstanceOf(BackrefNode::class, $ast->pattern->condition);
         $this->assertSame('1', $ast->pattern->condition->ref);
+        $this->assertInstanceOf(LiteralNode::class, $ast->pattern->yes);
+        $this->assertSame('a', $ast->pattern->yes->value);
+        $this->assertInstanceOf(LiteralNode::class, $ast->pattern->no);
+        $this->assertSame('b', $ast->pattern->no->value);
     }
 
     public function test_parse_conditional_with_named_group_ref(): void
@@ -354,6 +352,23 @@ class ParserTest extends TestCase
         $this->assertInstanceOf(ConditionalNode::class, $conditional);
         $this->assertInstanceOf(BackrefNode::class, $conditional->condition);
         $this->assertSame('name', $conditional->condition->ref);
+    }
+
+    public function test_parse_conditional_lookaround_tracks_branch_and_offsets(): void
+    {
+        $pattern = '(?(?=a)b|c)';
+        $ast = $this->parse('/'.$pattern.'/');
+
+        $this->assertInstanceOf(ConditionalNode::class, $ast->pattern);
+        $condition = $ast->pattern->condition;
+        $this->assertInstanceOf(GroupNode::class, $condition);
+        $this->assertSame('(?=', substr($pattern, $condition->getStartPosition(), 3));
+        $this->assertSame('(?=a)', substr($pattern, $condition->getStartPosition(), $condition->getEndPosition() - $condition->getStartPosition()));
+
+        $this->assertInstanceOf(LiteralNode::class, $ast->pattern->yes);
+        $this->assertSame('b', $ast->pattern->yes->value);
+        $this->assertInstanceOf(LiteralNode::class, $ast->pattern->no);
+        $this->assertSame('c', $ast->pattern->no->value);
     }
 
     public function test_python_named_group_syntax(): void

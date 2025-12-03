@@ -39,8 +39,7 @@ class HtmlExplainVisitorCoverageTest extends TestCase
         $this->assertStringContainsString('<strong>THEN:</strong>', $output);
         $this->assertStringContainsString('<span title="Literal: &#039;b&#039;">Literal: <strong>&#039;b&#039;</strong></span>', $output);
         $this->assertStringContainsString('<span title="Literal: &#039;c&#039;">Literal: <strong>&#039;c&#039;</strong></span>', $output);
-        // The parser treats 'b|c' as an alternation in the YES branch, so there's no ELSE branch shown
-        $this->assertStringContainsString('<strong>EITHER:</strong>', $output);
+        $this->assertStringContainsString('<strong>ELSE:</strong>', $output);
     }
 
     public function test_visit_group_types_and_named_group_escaping(): void

@@ -725,26 +725,32 @@ class Parser
             return new Node\DefineNode($yes, $startPos, $endPos);
         }
 
-        // Note: The "no" branch (ELSE) is implicitly handled by parseAlternation returning an AlternationNode.
-        // If the "yes" branch is an alternation (a|b), then "b" is the ELSE branch.
-        // However, if parseAlternation returns a single SequenceNode, then the "no" branch is empty.
+        $no = null;
+        $yesBranch = $yes;
+        if ($yes instanceof Node\AlternationNode && \count($yes->alternatives) > 1) {
+            $yesBranch = $yes->alternatives[0];
+            $noAlternatives = \array_slice($yes->alternatives, 1);
+            if (1 === \count($noAlternatives)) {
+                $no = $noAlternatives[0];
+            } else {
+                $lastAlt = $noAlternatives[\count($noAlternatives) - 1];
+                $no = new Node\AlternationNode(
+                    $noAlternatives,
+                    $noAlternatives[0]->getStartPosition(),
+                    $lastAlt->getEndPosition(),
+                );
+            }
+        }
 
-        // Correct interpretation:
-        // (?(cond)yes|no) -> parseAlternation will return an AlternationNode if '|' exists.
-        // But wait! parseAlternation consumes EVERYTHING until ')' or EOF.
-        // So if we have (?(cond)A|B), 'yes' variable will hold Alternation(A, B).
-        // We need to split it manually?
-        // No, the standard Parser logic (inherited) assigns 'no' to an empty LiteralNode.
-        // If 'yes' is an AlternationNode, the visitor/compiler handles the split.
-        // Let's stick to the original logic to be safe:
-
-        $currentPos = $this->current()->position;
-        $no = new Node\LiteralNode('', $currentPos, $currentPos);
+        if (null === $no) {
+            $currentPos = $this->current()->position;
+            $no = new Node\LiteralNode('', $currentPos, $currentPos);
+        }
 
         $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
         $endPos = $endToken->position + 1;
 
-        return new Node\ConditionalNode($condition, $yes, $no, $startPos, $endPos);
+        return new Node\ConditionalNode($condition, $yesBranch, $no, $startPos, $endPos);
     }
 
     private function parseLookaroundCondition(int $startPos): Node\NodeInterface
@@ -753,13 +759,13 @@ class Parser
             $expr = $this->parseAlternation();
             $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
-            return new Node\GroupNode($expr, Node\GroupType::T_GROUP_LOOKAHEAD_POSITIVE, null, null, $startPos, $endToken->position);
+            return new Node\GroupNode($expr, Node\GroupType::T_GROUP_LOOKAHEAD_POSITIVE, null, null, $startPos, $endToken->position + 1);
         }
         if ($this->matchLiteral('!')) {
             $expr = $this->parseAlternation();
             $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
-            return new Node\GroupNode($expr, Node\GroupType::T_GROUP_LOOKAHEAD_NEGATIVE, null, null, $startPos, $endToken->position);
+            return new Node\GroupNode($expr, Node\GroupType::T_GROUP_LOOKAHEAD_NEGATIVE, null, null, $startPos, $endToken->position + 1);
         }
         if ($this->matchLiteral('<')) {
             // @phpstan-ignore-next-line if.alwaysFalse (false positive: position advanced after matching '<')
@@ -767,14 +773,14 @@ class Parser
                 $expr = $this->parseAlternation();
                 $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
-                return new Node\GroupNode($expr, Node\GroupType::T_GROUP_LOOKBEHIND_POSITIVE, null, null, $startPos, $endToken->position);
+                return new Node\GroupNode($expr, Node\GroupType::T_GROUP_LOOKBEHIND_POSITIVE, null, null, $startPos, $endToken->position + 1);
             }
             // @phpstan-ignore-next-line if.alwaysFalse (false positive: position advanced after matching '<')
             if ($this->matchLiteral('!')) {
                 $expr = $this->parseAlternation();
                 $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
-                return new Node\GroupNode($expr, Node\GroupType::T_GROUP_LOOKBEHIND_NEGATIVE, null, null, $startPos, $endToken->position);
+                return new Node\GroupNode($expr, Node\GroupType::T_GROUP_LOOKBEHIND_NEGATIVE, null, null, $startPos, $endToken->position + 1);
             }
         }
 
