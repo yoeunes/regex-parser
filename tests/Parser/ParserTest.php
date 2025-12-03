@@ -343,6 +343,32 @@ class ParserTest extends TestCase
         $this->assertSame('b', $ast->pattern->no->value);
     }
 
+    public function test_parse_conditional_with_multiple_else_alternatives(): void
+    {
+        $ast = $this->parse('/(?(1)a|b|c)/');
+
+        $this->assertInstanceOf(ConditionalNode::class, $ast->pattern);
+        $this->assertInstanceOf(LiteralNode::class, $ast->pattern->yes);
+        $this->assertSame('a', $ast->pattern->yes->value);
+
+        $this->assertInstanceOf(AlternationNode::class, $ast->pattern->no);
+        $this->assertCount(2, $ast->pattern->no->alternatives);
+        $this->assertSame('b', $ast->pattern->no->alternatives[0]->value);
+        $this->assertSame('c', $ast->pattern->no->alternatives[1]->value);
+    }
+
+    public function test_parse_conditional_without_else_defaults_to_empty_literal(): void
+    {
+        $ast = $this->parse('/(?(1)a)/');
+
+        $this->assertInstanceOf(ConditionalNode::class, $ast->pattern);
+        $this->assertInstanceOf(LiteralNode::class, $ast->pattern->yes);
+        $this->assertSame('a', $ast->pattern->yes->value);
+
+        $this->assertInstanceOf(LiteralNode::class, $ast->pattern->no);
+        $this->assertSame('', $ast->pattern->no->value);
+    }
+
     public function test_parse_conditional_with_named_group_ref(): void
     {
         // (?(<name>)a|b)
@@ -369,6 +395,35 @@ class ParserTest extends TestCase
         $this->assertSame('b', $ast->pattern->yes->value);
         $this->assertInstanceOf(LiteralNode::class, $ast->pattern->no);
         $this->assertSame('c', $ast->pattern->no->value);
+    }
+
+    public function test_parse_conditional_with_recursion_condition_variants(): void
+    {
+        $ast = $this->parse('/(?(R)a|b)/');
+        $this->assertInstanceOf(SubroutineNode::class, $ast->pattern->condition);
+        $this->assertSame('R', $ast->pattern->condition->reference);
+
+        $relative = $this->parse('/(?(R-1)a|b)/');
+        $this->assertInstanceOf(SubroutineNode::class, $relative->pattern->condition);
+        $this->assertSame('R-1', $relative->pattern->condition->reference);
+    }
+
+    public function test_parse_conditional_with_bare_name_condition(): void
+    {
+        $ast = $this->parse('/(?<name>x)(?(name)a|b)/');
+        $this->assertInstanceOf(SequenceNode::class, $ast->pattern);
+        $conditional = $ast->pattern->children[1];
+        $this->assertInstanceOf(ConditionalNode::class, $conditional);
+        $this->assertInstanceOf(BackrefNode::class, $conditional->condition);
+        $this->assertSame('name', $conditional->condition->ref);
+    }
+
+    public function test_parse_python_backreference_is_rejected(): void
+    {
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('Backreferences (?P=name) are not supported yet.');
+
+        $this->parse('/(?P=name)a/');
     }
 
     public function test_python_named_group_syntax(): void
