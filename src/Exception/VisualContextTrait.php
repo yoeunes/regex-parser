@@ -20,11 +20,11 @@ trait VisualContextTrait
 {
     private const int MAX_CONTEXT_WIDTH = 80;
 
-    private readonly ?int $position;
+    private ?int $position = null;
 
-    private readonly ?string $pattern;
+    private ?string $pattern = null;
 
-    private readonly string $visualSnippet;
+    private string $visualSnippet = '';
 
     public function getPosition(): ?int
     {

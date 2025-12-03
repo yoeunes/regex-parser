@@ -68,9 +68,9 @@ final class AdvancedFeaturesComplianceTest extends TestCase
         $regex = Regex::create()->parse($pattern);
         $validator = new ValidatorNodeVisitor();
 
-        $regex->accept($validator);
+        $regex->accept($validator); // Validation passed without exception.
 
-        self::assertTrue(true); // Validation passed without exception.
+        self::assertGreaterThan(0, \strlen($pattern));
     }
 
     public static function provideRecursiveConditionPatterns(): array

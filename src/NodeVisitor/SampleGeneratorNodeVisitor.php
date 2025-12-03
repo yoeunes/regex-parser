@@ -808,13 +808,17 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      */
     public function visitSubroutine(Node\SubroutineNode $node): string
     {
+        if (null === $this->rootPattern || $this->rootPattern instanceof Node\SubroutineNode) {
+            throw new \LogicException('Sample generation for subroutines is not supported.');
+        }
+
         if ($this->recursionDepth >= self::MAX_RECURSION_DEPTH) {
             return '';
         }
 
         $target = $this->resolveSubroutineTarget($node);
         if (null === $target) {
-            return '';
+            throw new \LogicException('Sample generation for subroutines is not supported.');
         }
 
         $this->recursionDepth++;
