@@ -32,7 +32,7 @@ final readonly class RouteRequirementAnalyzer
     ) {}
 
     /**
-     * @return list<RouteIssue>
+     * @return list<RegexAnalysisIssue>
      */
     public function analyze(RouteCollection $routes): array
     {
@@ -53,7 +53,7 @@ final readonly class RouteRequirementAnalyzer
                 $result = $this->regex->validate($normalizedPattern);
 
                 if (!$result->isValid) {
-                    $issues[] = new RouteIssue(
+                    $issues[] = new RegexAnalysisIssue(
                         \sprintf(
                             'Route "%s" requirement "%s" is invalid: %s',
                             (string) $name,
@@ -67,7 +67,7 @@ final readonly class RouteRequirementAnalyzer
                 }
 
                 if ($result->complexityScore >= $this->redosThreshold) {
-                    $issues[] = new RouteIssue(
+                    $issues[] = new RegexAnalysisIssue(
                         \sprintf(
                             'Route "%s" requirement "%s" may be vulnerable to ReDoS (score: %d).',
                             (string) $name,
@@ -81,7 +81,7 @@ final readonly class RouteRequirementAnalyzer
                 }
 
                 if ($result->complexityScore >= $this->warningThreshold) {
-                    $issues[] = new RouteIssue(
+                    $issues[] = new RegexAnalysisIssue(
                         \sprintf(
                             'Route "%s" requirement "%s" is complex (score: %d).',
                             (string) $name,
