@@ -209,6 +209,35 @@ class OptimizerNodeVisitorTest extends TestCase
         $this->assertCount(3, $newAst->pattern->alternatives);
     }
 
+    public function test_char_class_deduplicates_literals_and_merges_ranges(): void
+    {
+        $ast = $this->regex->parse('/[aabbccdd]/');
+        $optimized = $ast->accept($this->optimizer);
+
+        $this->assertInstanceOf(CharClassNode::class, $optimized->pattern);
+        $this->assertCount(1, $optimized->pattern->parts);
+        $this->assertInstanceOf(\RegexParser\Node\RangeNode::class, $optimized->pattern->parts[0]);
+        $this->assertSame('a', $optimized->pattern->parts[0]->start->value);
+        $this->assertSame('d', $optimized->pattern->parts[0]->end->value);
+    }
+
+    public function test_char_class_merges_touching_ranges_and_literals(): void
+    {
+        $ast = $this->regex->parse('/[a-cd-fh]/');
+        $optimized = $ast->accept($this->optimizer);
+
+        $this->assertInstanceOf(CharClassNode::class, $optimized->pattern);
+        $this->assertCount(2, $optimized->pattern->parts);
+
+        $range1 = $optimized->pattern->parts[0];
+        $this->assertSame('a', $range1->start->value);
+        $this->assertSame('f', $range1->end->value);
+
+        $last = $optimized->pattern->parts[1];
+        $this->assertInstanceOf(LiteralNode::class, $last);
+        $this->assertSame('h', $last->value);
+    }
+
     // ... (tests existants: test_merge_adjacent_literals, test_flatten_alternations, test_alternation_to_char_class_optimization, test_digit_optimization, test_remove_useless_non_capturing_group, test_quantifier_optimization, test_optimization_does_not_break_semantics_with_hyphen)
 
     public function test_return_original_node_if_no_change_in_regex_node(): void
