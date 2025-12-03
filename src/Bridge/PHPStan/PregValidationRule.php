@@ -57,8 +57,11 @@ class PregValidationRule implements Rule
         'preg_filter' => 0,
         'preg_replace_callback_array' => 0,
     ];
+
     private ?Regex $regex = null;
+
     private ?ValidatorNodeVisitor $validator = null;
+
     private ?ReDoSAnalyzer $redosAnalyzer = null;
 
     /**
