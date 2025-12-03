@@ -30,7 +30,7 @@ class MyClass
         preg_filter('/a/', 'b', ['bar']);
 
         // Dynamic / un-analyzable
-        $pattern = '/foo'.rand(1, 10);
+        $pattern = '/foo'.random_int(1, 10);
         preg_match($pattern, 'bar'); // Should be ignored
     }
 }
