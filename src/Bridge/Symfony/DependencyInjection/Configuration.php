@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Bridge\Symfony\DependencyInjection;
 
-use RegexParser\Parser;
+use RegexParser\Regex;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
 
@@ -61,27 +61,29 @@ class Configuration implements ConfigurationInterface
         $treeBuilder->getRootNode()
             ->children()
                 ->booleanNode('enabled')
-                    ->defaultTrue()
-                    ->info('Enable or disable the RegexParser bundle entirely.')
+                    ->defaultValue($this->debug)
+                    ->info('Enable or disable the RegexParser bundle entirely. Defaults to dev/test only.')
                 ->end()
                 ->integerNode('max_pattern_length')
-                    ->defaultValue(Parser::DEFAULT_MAX_PATTERN_LENGTH)
+                    ->defaultValue(Regex::DEFAULT_MAX_PATTERN_LENGTH)
                     ->info('The maximum allowed length for a regex pattern string to parse.')
                 ->end()
-                ->arrayNode('profiler')
+                ->scalarNode('cache')
+                    ->defaultNull()
+                    ->info('Directory path for cached AST files. Set to null to disable caching.')
+                ->end()
+                ->arrayNode('analysis')
                     ->addDefaultsIfNotSet()
                     ->children()
-                        ->booleanNode('enabled')
-                            ->defaultValue($this->debug)
-                            ->info('Enable the profiler data collector. Defaults to the value of kernel.debug.')
+                        ->integerNode('warning_threshold')
+                            ->defaultValue(50)
+                            ->min(0)
+                            ->info('Complexity score above which a warning is emitted.')
                         ->end()
                         ->integerNode('redos_threshold')
                             ->defaultValue(100)
-                            ->info('Complexity score threshold above which a pattern is flagged as ReDoS risk.')
-                        ->end()
-                        ->integerNode('warning_threshold')
-                            ->defaultValue(50)
-                            ->info('Complexity score threshold above which a pattern is flagged as warning.')
+                            ->min(0)
+                            ->info('Complexity score above which a pattern is flagged as ReDoS risk.')
                         ->end()
                     ->end()
                 ->end()
