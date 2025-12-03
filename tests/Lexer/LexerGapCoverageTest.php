@@ -16,6 +16,7 @@ namespace RegexParser\Tests\Lexer;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Lexer;
 use RegexParser\Tests\TestUtils\LexerAccessor;
+use RegexParser\Token as RegexToken;
 use RegexParser\TokenType;
 
 class LexerGapCoverageTest extends TestCase
@@ -68,13 +69,13 @@ class LexerGapCoverageTest extends TestCase
         $accessor->setInQuoteMode(true);
 
         $literalToken = $accessor->callPrivateMethod('consumeQuoteMode');
-        $this->assertNotNull($literalToken);
+        $this->assertInstanceOf(RegexToken::class, $literalToken);
         $this->assertSame('abc', $literalToken->value);
         $this->assertSame(2, $literalToken->position);
         $this->assertTrue($accessor->getInQuoteMode());
 
         $endToken = $accessor->callPrivateMethod('consumeQuoteMode');
-        $this->assertNotNull($endToken);
+        $this->assertInstanceOf(RegexToken::class, $endToken);
         $this->assertSame(TokenType::T_QUOTE_MODE_END, $endToken->type);
         $this->assertFalse($accessor->getInQuoteMode());
     }
@@ -127,11 +128,13 @@ class LexerGapCoverageTest extends TestCase
         $accessor->setInCommentMode(true);
 
         $literal = $accessor->callPrivateMethod('consumeCommentMode');
+        $this->assertInstanceOf(RegexToken::class, $literal);
         $this->assertSame('t', $literal->value);
         $this->assertSame(3, $literal->position);
         $this->assertTrue($this->getPrivateBool($lexer, 'inCommentMode'));
 
         $closing = $accessor->callPrivateMethod('consumeCommentMode');
+        $this->assertInstanceOf(RegexToken::class, $closing);
         $this->assertSame(TokenType::T_GROUP_CLOSE, $closing->type);
         $this->assertFalse($this->getPrivateBool($lexer, 'inCommentMode'));
     }

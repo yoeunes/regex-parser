@@ -353,6 +353,8 @@ class ParserTest extends TestCase
 
         $this->assertInstanceOf(AlternationNode::class, $ast->pattern->no);
         $this->assertCount(2, $ast->pattern->no->alternatives);
+        $this->assertInstanceOf(LiteralNode::class, $ast->pattern->no->alternatives[0]);
+        $this->assertInstanceOf(LiteralNode::class, $ast->pattern->no->alternatives[1]);
         $this->assertSame('b', $ast->pattern->no->alternatives[0]->value);
         $this->assertSame('c', $ast->pattern->no->alternatives[1]->value);
     }
@@ -386,26 +388,34 @@ class ParserTest extends TestCase
         $ast = $this->parse('/'.$pattern.'/');
 
         $this->assertInstanceOf(ConditionalNode::class, $ast->pattern);
-        $condition = $ast->pattern->condition;
+        /** @var ConditionalNode $conditional */
+        $conditional = $ast->pattern;
+        $condition = $conditional->condition;
         $this->assertInstanceOf(GroupNode::class, $condition);
         $this->assertSame('(?=', substr($pattern, $condition->getStartPosition(), 3));
         $this->assertSame('(?=a)', substr($pattern, $condition->getStartPosition(), $condition->getEndPosition() - $condition->getStartPosition()));
 
-        $this->assertInstanceOf(LiteralNode::class, $ast->pattern->yes);
-        $this->assertSame('b', $ast->pattern->yes->value);
-        $this->assertInstanceOf(LiteralNode::class, $ast->pattern->no);
-        $this->assertSame('c', $ast->pattern->no->value);
+        $this->assertInstanceOf(LiteralNode::class, $conditional->yes);
+        $this->assertSame('b', $conditional->yes->value);
+        $this->assertInstanceOf(LiteralNode::class, $conditional->no);
+        $this->assertSame('c', $conditional->no->value);
     }
 
     public function test_parse_conditional_with_recursion_condition_variants(): void
     {
         $ast = $this->parse('/(?(R)a|b)/');
-        $this->assertInstanceOf(SubroutineNode::class, $ast->pattern->condition);
-        $this->assertSame('R', $ast->pattern->condition->reference);
+        $this->assertInstanceOf(ConditionalNode::class, $ast->pattern);
+        /** @var ConditionalNode $cond */
+        $cond = $ast->pattern;
+        $this->assertInstanceOf(SubroutineNode::class, $cond->condition);
+        $this->assertSame('R', $cond->condition->reference);
 
         $relative = $this->parse('/(?(R-1)a|b)/');
-        $this->assertInstanceOf(SubroutineNode::class, $relative->pattern->condition);
-        $this->assertSame('R-1', $relative->pattern->condition->reference);
+        $this->assertInstanceOf(ConditionalNode::class, $relative->pattern);
+        /** @var ConditionalNode $relativeCond */
+        $relativeCond = $relative->pattern;
+        $this->assertInstanceOf(SubroutineNode::class, $relativeCond->condition);
+        $this->assertSame('R-1', $relativeCond->condition->reference);
     }
 
     public function test_parse_conditional_with_bare_name_condition(): void

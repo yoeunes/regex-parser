@@ -214,11 +214,17 @@ class OptimizerNodeVisitorTest extends TestCase
         $ast = $this->regex->parse('/[aabbccdd]/');
         $optimized = $ast->accept($this->optimizer);
 
+        $this->assertInstanceOf(RegexNode::class, $optimized);
         $this->assertInstanceOf(CharClassNode::class, $optimized->pattern);
-        $this->assertCount(1, $optimized->pattern->parts);
-        $this->assertInstanceOf(\RegexParser\Node\RangeNode::class, $optimized->pattern->parts[0]);
-        $this->assertSame('a', $optimized->pattern->parts[0]->start->value);
-        $this->assertSame('d', $optimized->pattern->parts[0]->end->value);
+        /** @var CharClassNode $charClass */
+        $charClass = $optimized->pattern;
+        $this->assertCount(1, $charClass->parts);
+        $range = $charClass->parts[0];
+        $this->assertInstanceOf(\RegexParser\Node\RangeNode::class, $range);
+        $this->assertInstanceOf(LiteralNode::class, $range->start);
+        $this->assertInstanceOf(LiteralNode::class, $range->end);
+        $this->assertSame('a', $range->start->value);
+        $this->assertSame('d', $range->end->value);
     }
 
     public function test_char_class_merges_touching_ranges_and_literals(): void
@@ -226,14 +232,20 @@ class OptimizerNodeVisitorTest extends TestCase
         $ast = $this->regex->parse('/[a-cd-fh]/');
         $optimized = $ast->accept($this->optimizer);
 
+        $this->assertInstanceOf(RegexNode::class, $optimized);
         $this->assertInstanceOf(CharClassNode::class, $optimized->pattern);
-        $this->assertCount(2, $optimized->pattern->parts);
+        /** @var CharClassNode $charClass */
+        $charClass = $optimized->pattern;
+        $this->assertCount(2, $charClass->parts);
 
-        $range1 = $optimized->pattern->parts[0];
+        $range1 = $charClass->parts[0];
+        $this->assertInstanceOf(\RegexParser\Node\RangeNode::class, $range1);
+        $this->assertInstanceOf(LiteralNode::class, $range1->start);
+        $this->assertInstanceOf(LiteralNode::class, $range1->end);
         $this->assertSame('a', $range1->start->value);
         $this->assertSame('f', $range1->end->value);
 
-        $last = $optimized->pattern->parts[1];
+        $last = $charClass->parts[1];
         $this->assertInstanceOf(LiteralNode::class, $last);
         $this->assertSame('h', $last->value);
     }
