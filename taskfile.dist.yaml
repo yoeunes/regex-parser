@@ -53,30 +53,30 @@ tasks:
 
     install:
         cmds:
-            - composer validate
+            - composer validate --strict
             - composer install
 
-            - composer validate -d tools/php-cs-fixer
+            - composer validate --strict -d tools/php-cs-fixer
             - composer install -d tools/php-cs-fixer
             - ln -sf ../../tools/php-cs-fixer/vendor/bin/php-cs-fixer ./vendor/bin/php-cs-fixer
             - ln -sf ../tools/php-cs-fixer/vendor/bin/php-cs-fixer ./bin/php-cs-fixer
             - ln -sf ../tools/php-cs-fixer/vendor/bin/php-cs-fixer ./bin/phpcs
 
-            - composer validate -d tools/phpbench
+            - composer validate --strict -d tools/phpbench
             - composer install -d tools/phpbench
             - ln -sf ../../tools/phpbench/vendor/bin/phpbench ./vendor/bin/phpbench
             - ln -sf ../tools/phpbench/vendor/bin/phpbench ./bin/phpbench
 
-            - composer validate -d tools/phplint
+            - composer validate --strict -d tools/phplint
             - composer install -d tools/phplint
             - ln -sf ../../tools/phplint/vendor/bin/phplint ./vendor/bin/phplint
             - ln -sf ../tools/phplint/vendor/bin/phplint ./bin/phplint
 
-            - composer validate -d tools/phpstan
+            - composer validate --strict -d tools/phpstan
             - composer install -d tools/phpstan
             - ln -sf ../tools/phpstan/vendor/bin/phpstan ./bin/phpstan
 
-            - composer validate -d tools/rector
+            - composer validate --strict -d tools/rector
             - composer install -d tools/rector
             - ln -sf ../../tools/rector/vendor/bin/rector ./vendor/bin/rector
             - ln -sf ../tools/rector/vendor/bin/rector ./bin/rector
