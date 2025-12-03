@@ -222,6 +222,13 @@ class ValidatorNodeVisitorTest extends TestCase
         $this->validate('/\o{77777777}/u');
     }
 
+    public function test_throws_on_invalid_octal_legacy_codepoint(): void
+    {
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('Backreference to non-existent group: \777 at position 0.');
+        $this->validate('/\777/');
+    }
+
     public function test_throws_on_negated_posix_word_class(): void
     {
         $this->expectException(ParserException::class);
