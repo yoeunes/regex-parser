@@ -61,6 +61,7 @@ class RegexParserExtension extends Extension
          *     analysis: array{
          *         warning_threshold: int,
          *         redos_threshold: int,
+         *         ignore_patterns: array<int, string>,
          *     },
          * } $config
          */
@@ -76,6 +77,7 @@ class RegexParserExtension extends Extension
         $container->setParameter('regex_parser.cache', $config['cache']);
         $container->setParameter('regex_parser.analysis.warning_threshold', $config['analysis']['warning_threshold']);
         $container->setParameter('regex_parser.analysis.redos_threshold', $config['analysis']['redos_threshold']);
+        $container->setParameter('regex_parser.analysis.ignore_patterns', $config['analysis']['ignore_patterns']);
 
         $loader = new PhpFileLoader($container, new FileLocator(__DIR__.'/../Resources/config'));
 

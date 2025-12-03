@@ -15,7 +15,7 @@ namespace RegexParser\Bridge\Symfony\CacheWarmer;
 
 use Psr\Log\LoggerInterface;
 use Psr\Log\LogLevel;
-use RegexParser\Bridge\Symfony\Analyzer\RegexAnalysisIssue;
+use RegexParser\Bridge\Symfony\Analyzer\AnalysisIssue;
 use RegexParser\Bridge\Symfony\Analyzer\RouteRequirementAnalyzer;
 use RegexParser\Bridge\Symfony\Analyzer\ValidatorRegexAnalyzer;
 use Symfony\Component\HttpKernel\CacheWarmer\CacheWarmerInterface;
@@ -65,7 +65,7 @@ final readonly class RegexParserCacheWarmer implements CacheWarmerInterface
         return [];
     }
 
-    private function log(RegexAnalysisIssue $issue): void
+    private function log(AnalysisIssue $issue): void
     {
         if (null !== $this->logger) {
             $this->logger->log(

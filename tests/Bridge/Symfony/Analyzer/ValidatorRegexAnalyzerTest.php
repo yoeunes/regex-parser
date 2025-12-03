@@ -31,7 +31,7 @@ final class ValidatorRegexAnalyzerTest extends TestCase
     {
         $validator = new FakeValidator([
             new SymfonyRegex(pattern: '('), // invalid
-            new SymfonyRegex(pattern: '/.+/'), // warning (score >= 0)
+            new SymfonyRegex(pattern: '/[a-z]+/'), // warning (score >= 0)
         ]);
 
         $loader = new FakeLoader([FakeEntity::class]);
@@ -43,6 +43,21 @@ final class ValidatorRegexAnalyzerTest extends TestCase
         $this->assertCount(2, $issues);
         $this->assertTrue($issues[0]->isError);
         $this->assertFalse($issues[1]->isError);
+    }
+
+    public function test_literal_alternation_is_ignored_for_warnings(): void
+    {
+        $validator = new FakeValidator([
+            new SymfonyRegex(pattern: '#^en|fr|de$#'),
+        ]);
+
+        $loader = new FakeLoader([FakeEntity::class]);
+
+        $analyzer = new ValidatorRegexAnalyzer(Regex::create(), 0, 1000);
+
+        $issues = $analyzer->analyze($validator, $loader);
+
+        $this->assertSame([], $issues);
     }
 }
 

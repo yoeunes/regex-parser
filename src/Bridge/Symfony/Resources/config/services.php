@@ -48,12 +48,14 @@ return static function (ContainerConfigurator $container): void {
     $services->set(RouteRequirementAnalyzer::class, RouteRequirementAnalyzer::class)
         ->arg('$regex', service('regex_parser.regex'))
         ->arg('$warningThreshold', param('regex_parser.analysis.warning_threshold'))
-        ->arg('$redosThreshold', param('regex_parser.analysis.redos_threshold'));
+        ->arg('$redosThreshold', param('regex_parser.analysis.redos_threshold'))
+        ->arg('$ignoredPatterns', param('regex_parser.analysis.ignore_patterns'));
 
     $services->set(ValidatorRegexAnalyzer::class, ValidatorRegexAnalyzer::class)
         ->arg('$regex', service('regex_parser.regex'))
         ->arg('$warningThreshold', param('regex_parser.analysis.warning_threshold'))
-        ->arg('$redosThreshold', param('regex_parser.analysis.redos_threshold'));
+        ->arg('$redosThreshold', param('regex_parser.analysis.redos_threshold'))
+        ->arg('$ignoredPatterns', param('regex_parser.analysis.ignore_patterns'));
 
     $services->set('regex_parser.cache_warmer', RegexParserCacheWarmer::class)
         ->arg('$analyzer', service(RouteRequirementAnalyzer::class))
