@@ -681,4 +681,10 @@ class ComplexityScoreNodeVisitor implements NodeVisitorInterface
     {
         return self::COMPLEX_CONSTRUCT_SCORE;
     }
+
+    public function visitCallout(Node\CalloutNode $node): int
+    {
+        // Callouts introduce external logic and break regex flow, making them complex.
+        return self::COMPLEX_CONSTRUCT_SCORE;
+    }
 }

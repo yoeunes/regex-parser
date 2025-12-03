@@ -22,6 +22,13 @@ use RegexParser\Regex;
 
 class BugFixTest extends TestCase
 {
+    private Regex $regexService;
+
+    protected function setUp(): void
+    {
+        $this->regexService = Regex::create();
+    }
+
     public function test_parser_handles_hyphen_as_range_end(): void
     {
         // [a--] should be parsed as Range(a, -)
@@ -30,7 +37,7 @@ class BugFixTest extends TestCase
         // The Parser itself doesn't validate ranges, the Validator does.
         // So we expect a RangeNode.
 
-        $ast = Regex::create()->parse('/[a--]/');
+        $ast = $this->regexService->parse('/[a--]/');
         $charClass = $ast->pattern;
 
         $this->assertInstanceOf(CharClassNode::class, $charClass);
@@ -46,7 +53,7 @@ class BugFixTest extends TestCase
     public function test_parser_handles_hyphen_range(): void
     {
         // [---] should be parsed as Range(-, -)
-        $ast = Regex::create()->parse('/[---]/');
+        $ast = $this->regexService->parse('/[---]/');
         $charClass = $ast->pattern;
 
         $this->assertInstanceOf(CharClassNode::class, $charClass);
@@ -62,7 +69,7 @@ class BugFixTest extends TestCase
     public function test_re_do_s_analyzer_detects_dot_overlap(): void
     {
         // (a|.)* should be CRITICAL
-        $analysis = Regex::create()->analyzeReDoS('/(a|.)*/');
+        $analysis = $this->regexService->analyzeReDoS('/(a|.)*/');
         $this->assertSame(ReDoSSeverity::CRITICAL, $analysis->severity);
     }
 
@@ -72,22 +79,18 @@ class BugFixTest extends TestCase
         // CURRENT LIMITATION: The analyzer assumes any two character classes overlap.
         // So this is currently flagged as CRITICAL (False Positive).
         // This is acceptable for v1.0 to ensure safety (no False Negatives).
-        $analysis = Regex::create()->analyzeReDoS('/([a-z]|[0-9])*/');
+        $analysis = $this->regexService->analyzeReDoS('/([a-z]|[0-9])*/');
         $this->assertSame(ReDoSSeverity::CRITICAL, $analysis->severity);
 
         // ([a-z]|[a-f])* -> Critical (overlap)
         // Note: My simple fix assumes ANY two classes overlap.
-        // So ([a-z]|[0-9])* might be flagged as CRITICAL with my current fix.
-        // Let's check if I should refine the fix or accept this limitation.
-        // The current fix: if ('CLASS' === $prefix) ... if ($hasCharClass) return true.
-        // Yes, it assumes any two classes overlap.
         // So ([a-z]|[0-9])* will be CRITICAL.
         // This is a false positive, but better than false negative for now.
         // I will adjust the test expectation to match current implementation behavior
         // or improve the implementation.
         // Given the request to "fix bugs", false positive is acceptable for v1.0 safety.
 
-        $analysis = Regex::create()->analyzeReDoS('/([a-z]|[a-f])*/');
+        $analysis = $this->regexService->analyzeReDoS('/([a-z]|[a-f])*/');
         $this->assertSame(ReDoSSeverity::CRITICAL, $analysis->severity);
     }
 }

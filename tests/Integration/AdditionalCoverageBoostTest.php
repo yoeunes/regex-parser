@@ -24,11 +24,11 @@ use RegexParser\Regex;
  */
 class AdditionalCoverageBoostTest extends TestCase
 {
-    private Regex $regex;
+    private Regex $regexService;
 
     protected function setUp(): void
     {
-        $this->regex = Regex::create();
+        $this->regexService = Regex::create();
     }
 
     /**
@@ -176,7 +176,7 @@ class AdditionalCoverageBoostTest extends TestCase
     {
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('Expected group name');
-        $this->parseRegex("/(?P'')/");
+        $this->regexService->parse("/(?P'')/");
     }
 
     /**
@@ -185,8 +185,8 @@ class AdditionalCoverageBoostTest extends TestCase
     public function test_python_named_group_missing_closing_quote(): void
     {
         $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('Unexpected token in group name');
-        $this->parseRegex("/(?P'name)/");
+        $this->expectExceptionMessage('Expected closing quote');
+        $this->regexService->parse("/(?P'name)/");
     }
 
     /**
@@ -196,8 +196,8 @@ class AdditionalCoverageBoostTest extends TestCase
     public function test_group_name_missing_closing_quote(): void
     {
         $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('Unexpected token in group name');
-        $this->parseRegex("/(?P'test)/");
+        $this->expectExceptionMessage('Expected > after group name');
+        $this->regexService->parse("/(?<name)/");
     }
 
     /**
@@ -207,7 +207,7 @@ class AdditionalCoverageBoostTest extends TestCase
     {
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('Expected subroutine name');
-        $this->parseRegex('/(?P>)/');
+        $this->regexService->parse('/(?P>)/');
     }
 
     /**
@@ -334,7 +334,7 @@ class AdditionalCoverageBoostTest extends TestCase
     {
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('Quantifier "+" cannot be applied to assertion');
-        $this->parseRegex('/\b+/');
+        $this->regexService->parse('/\b+/');
     }
 
     /**
@@ -450,6 +450,6 @@ class AdditionalCoverageBoostTest extends TestCase
      */
     private function parseRegex(string $pattern): RegexNode
     {
-        return $this->regex->parse($pattern);
+        return $this->regexService->parse($pattern);
     }
 }

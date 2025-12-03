@@ -15,11 +15,19 @@ namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\Lexer;
+use RegexParser\Regex;
 use RegexParser\NodeVisitor\SampleGeneratorNodeVisitor;
 use RegexParser\TokenType;
 
 class ReflectionCoverageTest extends TestCase
 {
+    private Regex $regexService;
+
+    protected function setUp(): void
+    {
+        $this->regexService = Regex::create();
+    }
+
     /**
      * Tests the "empty" fallback of getRandomChar in SampleGeneratorVisitor.
      * This case is impossible via the public API as the visitor never passes an empty array.
@@ -43,7 +51,7 @@ class ReflectionCoverageTest extends TestCase
      */
     public function test_lexer_extract_token_value_default_escape(): void
     {
-        $lexer = new Lexer();
+        $lexer = $this->regexService->getLexer();
         $lexer->tokenize('');
         $reflection = new \ReflectionClass($lexer);
         $method = $reflection->getMethod('extractTokenValue');
@@ -60,7 +68,7 @@ class ReflectionCoverageTest extends TestCase
      */
     public function test_lexer_extract_token_value_global_default(): void
     {
-        $lexer = new Lexer();
+        $lexer = $this->regexService->getLexer();
         $lexer->tokenize('');
         $reflection = new \ReflectionClass($lexer);
         $method = $reflection->getMethod('extractTokenValue');
@@ -76,7 +84,7 @@ class ReflectionCoverageTest extends TestCase
      */
     public function test_lexer_normalize_unicode_missing_captures(): void
     {
-        $lexer = new Lexer();
+        $lexer = $this->regexService->getLexer();
         $lexer->tokenize('');
         $reflection = new \ReflectionClass($lexer);
         $method = $reflection->getMethod('normalizeUnicodeProp');

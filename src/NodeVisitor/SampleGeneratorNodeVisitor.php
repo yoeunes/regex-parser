@@ -833,6 +833,12 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
         return '';
     }
 
+    public function visitCallout(Node\CalloutNode $node): string
+    {
+        // Callouts do not match characters, so they generate no sample text.
+        return '';
+    }
+
     /**
      * Parses a quantifier string into its minimum and maximum repetition counts.
      *

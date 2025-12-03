@@ -25,13 +25,19 @@ use RegexParser\Regex;
  */
 class FeaturesUpgradeTest extends TestCase
 {
+    private Regex $regexService;
+
+    protected function setUp(): void
+    {
+        $this->regexService = Regex::create();
+    }
+
     /**
      * Test MermaidVisitor generates valid Mermaid syntax.
      */
     public function test_mermaid_visitor_generates_valid_syntax(): void
     {
-        $regex = Regex::create();
-        $mermaidOutput = $regex->visualize('/abc/');
+        $mermaidOutput = $this->regexService->visualize('/abc/');
 
         // Should start with "graph TD;"
         $this->assertStringStartsWith('graph TD;', $mermaidOutput);
@@ -48,8 +54,7 @@ class FeaturesUpgradeTest extends TestCase
      */
     public function test_mermaid_visitor_simple_pattern(): void
     {
-        $regex = Regex::create();
-        $mermaidOutput = $regex->visualize('/test/');
+        $mermaidOutput = $this->regexService->visualize('/test/');
 
         $this->assertStringStartsWith('graph TD;', $mermaidOutput);
         $this->assertStringContainsString('Regex:', $mermaidOutput);
@@ -61,8 +66,7 @@ class FeaturesUpgradeTest extends TestCase
      */
     public function test_mermaid_visitor_complex_pattern(): void
     {
-        $regex = Regex::create();
-        $mermaidOutput = $regex->visualize('/(abc)+/');
+        $mermaidOutput = $this->regexService->visualize('/(abc)+/');
 
         $this->assertStringStartsWith('graph TD;', $mermaidOutput);
         $this->assertStringContainsString('Group:', $mermaidOutput);
@@ -74,9 +78,7 @@ class FeaturesUpgradeTest extends TestCase
      */
     public function test_regex_visualize_integration(): void
     {
-        $regex = Regex::create();
-
-        $visualization = $regex->visualize('/[a-z]+/');
+        $visualization = $this->regexService->visualize('/[a-z]+/');
 
         $this->assertIsString($visualization);
         $this->assertStringStartsWith('graph TD;', $visualization);
@@ -88,9 +90,7 @@ class FeaturesUpgradeTest extends TestCase
      */
     public function test_regex_visualize_alternation(): void
     {
-        $regex = Regex::create();
-
-        $visualization = $regex->visualize('/(cat|dog|bird)/');
+        $visualization = $this->regexService->visualize('/(cat|dog|bird)/');
 
         $this->assertStringStartsWith('graph TD;', $visualization);
         $this->assertStringContainsString('Alternation', $visualization);
@@ -101,8 +101,6 @@ class FeaturesUpgradeTest extends TestCase
      */
     public function test_mermaid_visitor_comprehensive_node_types(): void
     {
-        $regex = Regex::create();
-
         // Complex pattern with multiple node types
         $patterns = [
             '/^test$/',                     // Anchors
@@ -116,7 +114,7 @@ class FeaturesUpgradeTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $visualization = $regex->visualize($pattern);
+            $visualization = $this->regexService->visualize($pattern);
 
             $this->assertStringStartsWith('graph TD;', $visualization);
             $this->assertStringContainsString('-->', $visualization);

@@ -21,11 +21,11 @@ use RegexParser\Regex;
 
 class PcreFeatureCompletenessTest extends TestCase
 {
-    private Regex $regex;
+    private Regex $regexService;
 
     protected function setUp(): void
     {
-        $this->regex = Regex::create();
+        $this->regexService = Regex::create();
     }
 
     public function test_atomic_groups(): void
@@ -47,7 +47,7 @@ class PcreFeatureCompletenessTest extends TestCase
 
         foreach ($patterns as $pattern) {
             try {
-                $ast = $this->regex->parse($pattern);
+                $ast = $this->regexService->parse($pattern);
                 $hasAtomic = $this->hasGroupType($ast, GroupType::T_GROUP_ATOMIC);
                 $this->assertTrue($hasAtomic, "Pattern should contain atomic group: {$pattern}");
             } catch (ParserException $e) {
@@ -75,7 +75,7 @@ class PcreFeatureCompletenessTest extends TestCase
 
         foreach ($patterns as $pattern) {
             try {
-                $ast = $this->regex->parse($pattern);
+                $ast = $this->regexService->parse($pattern);
                 $hasPossessive = $this->hasQuantifierType($ast, QuantifierType::T_POSSESSIVE);
                 $this->assertTrue($hasPossessive, "Pattern should contain possessive quantifier: {$pattern}");
             } catch (ParserException $e) {
@@ -100,7 +100,7 @@ class PcreFeatureCompletenessTest extends TestCase
 
         foreach ($patterns as $pattern) {
             try {
-                $ast = $this->regex->parse($pattern);
+                $ast = $this->regexService->parse($pattern);
                 $this->assertSame('/', $ast->delimiter, "Conditional pattern should parse: {$pattern}");
             } catch (ParserException $e) {
                 $this->fail("Conditional pattern parsing failed: {$pattern}. Error: {$e->getMessage()}");
@@ -117,7 +117,7 @@ class PcreFeatureCompletenessTest extends TestCase
 
         foreach ($advancedPatterns as $pattern) {
             try {
-                $ast = $this->regex->parse($pattern);
+                $ast = $this->regexService->parse($pattern);
                 $this->assertSame('/', $ast->delimiter, "Advanced conditional pattern should parse: {$pattern}");
             } catch (ParserException $e) {
                 $this->fail("Advanced conditional pattern failed: {$pattern}. Error: {$e->getMessage()}");
@@ -144,7 +144,7 @@ class PcreFeatureCompletenessTest extends TestCase
 
         foreach ($patterns as $pattern) {
             try {
-                $ast = $this->regex->parse($pattern);
+                $ast = $this->regexService->parse($pattern);
                 $hasNamed = $this->hasGroupType($ast, GroupType::T_GROUP_NAMED);
                 $this->assertTrue($hasNamed, "Pattern should contain named group: {$pattern}");
             } catch (ParserException $e) {
@@ -172,7 +172,7 @@ class PcreFeatureCompletenessTest extends TestCase
 
         foreach ($patterns as $pattern) {
             try {
-                $ast = $this->regex->parse($pattern);
+                $ast = $this->regexService->parse($pattern);
                 $this->assertSame('/', $ast->delimiter, "Unicode property pattern should parse: {$pattern}");
             } catch (ParserException $e) {
                 $this->fail("Unicode property pattern should parse: {$pattern}. Error: {$e->getMessage()}");
@@ -197,7 +197,7 @@ class PcreFeatureCompletenessTest extends TestCase
 
         foreach ($patterns as $pattern) {
             try {
-                $ast = $this->regex->parse($pattern);
+                $ast = $this->regexService->parse($pattern);
                 $this->assertSame('/', $ast->delimiter, "Subroutine pattern should parse: {$pattern}");
             } catch (ParserException $e) {
                 $this->fail("Subroutine pattern parsing failed: {$pattern}. Error: {$e->getMessage()}");
@@ -224,7 +224,7 @@ class PcreFeatureCompletenessTest extends TestCase
 
         foreach ($patterns as $pattern) {
             try {
-                $ast = $this->regex->parse($pattern);
+                $ast = $this->regexService->parse($pattern);
                 $this->assertSame('/', $ast->delimiter, "Comment pattern should parse: {$pattern}");
             } catch (ParserException $e) {
                 $this->fail("Comment pattern should parse: {$pattern}. Error: {$e->getMessage()}");
@@ -254,7 +254,7 @@ class PcreFeatureCompletenessTest extends TestCase
 
         foreach ($patterns as $pattern) {
             try {
-                $ast = $this->regex->parse($pattern);
+                $ast = $this->regexService->parse($pattern);
                 $hasLookaround = $this->hasGroupType($ast, GroupType::T_GROUP_LOOKAHEAD_POSITIVE)
                     || $this->hasGroupType($ast, GroupType::T_GROUP_LOOKAHEAD_NEGATIVE)
                     || $this->hasGroupType($ast, GroupType::T_GROUP_LOOKBEHIND_POSITIVE)
@@ -286,7 +286,7 @@ class PcreFeatureCompletenessTest extends TestCase
 
         foreach ($patterns as $pattern) {
             try {
-                $ast = $this->regex->parse($pattern);
+                $ast = $this->regexService->parse($pattern);
                 $this->assertTrue(str_contains($pattern, '/x') || str_contains($pattern, '(?x:'), "Extended mode pattern should parse: {$pattern}");
             } catch (ParserException $e) {
                 $this->fail("Extended mode pattern parsing failed: {$pattern}. Error: {$e->getMessage()}");
@@ -313,7 +313,7 @@ class PcreFeatureCompletenessTest extends TestCase
 
         foreach ($patterns as $pattern) {
             try {
-                $ast = $this->regex->parse($pattern);
+                $ast = $this->regexService->parse($pattern);
                 $this->assertSame('/', $ast->delimiter, "PCRE verb pattern should parse: {$pattern}");
             } catch (ParserException $e) {
                 $this->fail("PCRE verb pattern should parse: {$pattern}. Error: {$e->getMessage()}");

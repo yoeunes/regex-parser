@@ -482,4 +482,17 @@ class CompilerNodeVisitor implements NodeVisitorInterface
     {
         return '(*LIMIT_MATCH='.$node->limit.')';
     }
+
+    public function visitCallout(Node\CalloutNode $node): string
+    {
+        if (\is_int($node->identifier)) {
+            return '(?C'.$node->identifier.')';
+        }
+
+        if (!$node->isStringIdentifier && preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $node->identifier)) {
+            return '(?C'.$node->identifier.')';
+        }
+
+        return '(?C"'.$node->identifier.'")';
+    }
 }

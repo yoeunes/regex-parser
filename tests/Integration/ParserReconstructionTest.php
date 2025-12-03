@@ -19,6 +19,13 @@ use RegexParser\Regex;
 
 class ParserReconstructionTest extends TestCase
 {
+    private Regex $regexService;
+
+    protected function setUp(): void
+    {
+        $this->regexService = Regex::create();
+    }
+
     /**
      * Ce test force le parser à reconstruire chaque type de token possible
      * pour les stocker dans le nœud CommentNode.
@@ -26,8 +33,6 @@ class ParserReconstructionTest extends TestCase
      */
     public function test_parser_reconstructs_all_token_types_in_comment(): void
     {
-        $regexService = Regex::create();
-
         // On met tout ce qui ressemble à des tokens spéciaux DANS un commentaire.
         // Le lexer va les tokeniser, et le parser va devoir les remettre en string.
         // Note: parentheses cannot be used inside (?#...) comments as they end the comment
@@ -56,7 +61,7 @@ class ParserReconstructionTest extends TestCase
             *FAIL           # T_PCRE_VERB
         )/x';
 
-        $ast = $regexService->parse($pattern);
+        $ast = $this->regexService->parse($pattern);
 
         $this->assertInstanceOf(CommentNode::class, $ast->pattern);
         $comment = $ast->pattern->comment;

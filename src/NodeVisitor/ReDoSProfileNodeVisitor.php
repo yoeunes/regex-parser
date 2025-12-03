@@ -689,6 +689,17 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
     }
 
     /**
+     * Visits a CalloutNode and treats it as neutral for ReDoS purposes.
+     *
+     * Callouts delegate to user code without changing the regex's matching language,
+     * so they are considered safe in this static analysis.
+     */
+    public function visitCallout(Node\CalloutNode $node): ReDoSSeverity
+    {
+        return ReDoSSeverity::SAFE;
+    }
+
+    /**
      * Checks if a given quantifier is unbounded (e.g., `*`, `+`, `{n,}`).
      *
      * Purpose: This helper method determines if a quantifier allows for an infinite

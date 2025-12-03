@@ -28,11 +28,11 @@ use RegexParser\Regex;
 
 class RegexTest extends TestCase
 {
-    private Regex $regex;
+    private Regex $regexService;
 
     protected function setUp(): void
     {
-        $this->regex = Regex::create();
+        $this->regexService = Regex::create();
     }
 
     /**
@@ -46,7 +46,7 @@ class RegexTest extends TestCase
         int $expectedEndPosition,
         string $expectedPatternClass
     ): void {
-        $ast = $this->regex->parse($pattern);
+        $ast = $this->regexService->parse($pattern);
 
         $this->assertSame($expectedDelimiter, $ast->delimiter);
         $this->assertSame($expectedFlags, $ast->flags);
@@ -58,14 +58,14 @@ class RegexTest extends TestCase
     #[DataProvider('provideRegexForOptimization')]
     public function test_optimize_method(string $pattern, string $expectedOptimizedPattern): void
     {
-        $optimized = $this->regex->optimize($pattern);
+        $optimized = $this->regexService->optimize($pattern);
         $this->assertSame($expectedOptimizedPattern, $optimized);
     }
 
     #[DataProvider('provideRegexForExplanation')]
     public function test_explain_method(string $pattern, string $expectedExplanation): void
     {
-        $explanation = $this->regex->explain($pattern);
+        $explanation = $this->regexService->explain($pattern);
         $this->assertStringContainsString($expectedExplanation, $explanation);
     }
 
@@ -74,7 +74,7 @@ class RegexTest extends TestCase
     {
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage($exceptionMessage);
-        $this->regex->parse($pattern);
+        $this->regexService->parse($pattern);
     }
 
     #[DataProvider('provideInvalidRegexForLexing')]
@@ -82,7 +82,7 @@ class RegexTest extends TestCase
     {
         $this->expectException(LexerException::class);
         $this->expectExceptionMessage($exceptionMessage);
-        $this->regex->parse($pattern);
+        $this->regexService->parse($pattern);
     }
 
     public static function provideValidRegexForParsing(): \Generator

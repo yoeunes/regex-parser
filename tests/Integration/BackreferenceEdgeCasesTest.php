@@ -19,11 +19,11 @@ use RegexParser\Regex;
 
 class BackreferenceEdgeCasesTest extends TestCase
 {
-    private Regex $regex;
+    private Regex $regexService;
 
     protected function setUp(): void
     {
-        $this->regex = Regex::create();
+        $this->regexService = Regex::create();
     }
 
     public function test_basic_backreference(): void
@@ -238,7 +238,7 @@ class BackreferenceEdgeCasesTest extends TestCase
 
     private function roundTrip(string $pattern): string
     {
-        $ast = $this->regex->parse($pattern);
+        $ast = $this->regexService->parse($pattern);
         $compiler = new CompilerNodeVisitor();
 
         return $ast->accept($compiler);

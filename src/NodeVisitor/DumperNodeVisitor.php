@@ -451,6 +451,7 @@ class DumperNodeVisitor implements NodeVisitorInterface
     /**
      * Dumps a `DefineNode`.
      *
+     * .     *
      * Purpose: This method visualizes a `(?(DEFINE)...)` group, which is used to
      * define subroutines that are not executed in place. It recursively dumps the
      * content of the define block, showing the reusable patterns.
@@ -472,6 +473,13 @@ class DumperNodeVisitor implements NodeVisitorInterface
     public function visitLimitMatch(Node\LimitMatchNode $node): string
     {
         return "LimitMatch(limit: {$node->limit})";
+    }
+
+    public function visitCallout(Node\CalloutNode $node): string
+    {
+        $identifier = \is_string($node->identifier) ? "'{$node->identifier}'" : $node->identifier;
+
+        return "Callout({$identifier})";
     }
 
     private function indent(string $str): string

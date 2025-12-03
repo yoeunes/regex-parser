@@ -516,6 +516,20 @@ class MermaidNodeVisitor implements NodeVisitorInterface
         return $nodeId;
     }
 
+    public function visitCallout(Node\CalloutNode $node): string
+    {
+        $label = match (true) {
+            \is_int($node->identifier) => '(?C'.$node->identifier.')',
+            $node->isStringIdentifier => '(?C"'.$node->identifier.'")',
+            default => '(?C'.$node->identifier.')',
+        };
+
+        $nodeId = $this->nextNodeId();
+        $this->lines[] = \sprintf('    %s["Callout: %s"]', $nodeId, $this->escape($label));
+
+        return $nodeId;
+    }
+
     private function nextNodeId(): string
     {
         return 'node'.($this->nodeCounter++);

@@ -82,6 +82,11 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
     private array $namedGroups = [];
 
     /**
+     * Whether the (?J) flag is active, allowing duplicate named groups.
+     */
+    private bool $J_modifier = false;
+
+    /**
      * Caches the validation result for Unicode properties.
      *
      * @var array<string, bool>
@@ -108,10 +113,7 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
         $this->inLookbehind = false;
         $this->groupCount = 0;
         $this->namedGroups = [];
-
-        // Note: The Parser is responsible for validating the flags themselves
-        // (e.g., no unknown flags). This visitor only cares about *how* flags
-        // (like 'u') might affect semantic validation.
+        $this->J_modifier = str_contains($node->flags, 'J');
 
         $node->pattern->accept($this);
     }
@@ -186,10 +188,16 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
         } elseif (GroupType::T_GROUP_NAMED === $node->type) {
             $this->groupCount++;
             if (null !== $node->name) {
-                if (isset($this->namedGroups[$node->name])) {
+                // Only throw error if (?J) is NOT active
+                if (isset($this->namedGroups[$node->name]) && !$this->J_modifier) {
                     throw new ParserException(\sprintf('Duplicate group name "%s" at position %d.', $node->name, $node->startPosition));
                 }
                 $this->namedGroups[$node->name] = true;
+            }
+        } elseif (GroupType::T_GROUP_INLINE_FLAGS === $node->type && null !== $node->flags) {
+            // Check for inline (?J) flag
+            if (str_contains($node->flags, 'J')) {
+                $this->J_modifier = true;
             }
         }
 
@@ -332,7 +340,7 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
     public function visitKeep(Node\KeepNode $node): void
     {
         if ($this->inLookbehind) {
-            throw new ParserException('\K (keep) is not allowed in lookbehinds at position %d.', $node->startPosition);
+            throw new ParserException(\sprintf('\K (keep) is not allowed in lookbehinds at position %d.', $node->startPosition));
         }
     }
 
@@ -767,6 +775,25 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
     public function visitLimitMatch(Node\LimitMatchNode $node): void
     {
         // No specific validation needed for this node.
+    }
+
+    public function visitCallout(Node\CalloutNode $node): void
+    {
+        $position = $node->startPosition + 4;
+
+        if (\is_int($node->identifier)) {
+            if ($node->identifier < 0 || $node->identifier > 255) {
+                throw new ParserException(\sprintf('Callout identifier must be between 0 and 255, got %d at position %d.', $node->identifier, $position));
+            }
+        } elseif (\is_string($node->identifier)) {
+            // PCRE2 allows any string as an argument, but it's good to ensure it's not empty.
+            if ('' === $node->identifier) {
+                throw new ParserException(\sprintf('Callout string identifier cannot be empty at position %d.', $position));
+            }
+        } else {
+            // This case should ideally be caught by the Lexer/Parser, but as a safeguard.
+            throw new ParserException(\sprintf('Invalid callout identifier type at position %d.', $position));
+        }
     }
 
     /**

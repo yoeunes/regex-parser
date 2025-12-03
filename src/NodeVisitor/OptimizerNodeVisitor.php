@@ -551,6 +551,11 @@ class OptimizerNodeVisitor implements NodeVisitorInterface
         return $node;
     }
 
+    public function visitCallout(Node\CalloutNode $node): Node\NodeInterface
+    {
+        return $node;
+    }
+
     /**
      * @param array<Node\NodeInterface> $alternatives
      */

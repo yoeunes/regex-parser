@@ -981,6 +981,30 @@ class ArrayExplorerNodeVisitor implements NodeVisitorInterface
     }
 
     /**
+     * Visits a CalloutNode and converts it into an array representation.
+     *
+     * Callouts trigger user-defined code without consuming characters, so they are
+     * represented as leaf nodes with their identifier.
+     */
+    public function visitCallout(Node\CalloutNode $node): array
+    {
+        $detail = match (true) {
+            \is_int($node->identifier) => '(?C'.$node->identifier.')',
+            $node->isStringIdentifier => '(?C"'.$node->identifier.'")',
+            default => '(?C'.$node->identifier.')',
+        };
+
+        return [
+            'type' => 'Callout',
+            'label' => 'Callout',
+            'detail' => $detail,
+            'icon' => 'fa-solid fa-plug',
+            'color' => 'text-amber-600',
+            'isLeaf' => true,
+        ];
+    }
+
+    /**
      * Creates a generic array representation for simple leaf nodes.
      *
      * Purpose: This helper method provides a consistent structure for nodes that do not

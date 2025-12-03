@@ -23,15 +23,14 @@ use RegexParser\Regex;
  */
 class PregFunctionCompatibilityTest extends TestCase
 {
-    private Regex $regex;
+    private Regex $regexService;
 
     private CompilerNodeVisitor $compiler;
 
     protected function setUp(): void
     {
-        $this->regex = Regex::create();
+        $this->regexService = Regex::create();
         $this->compiler = new CompilerNodeVisitor();
-        $regex = Regex::create();
     }
 
     public function test_preg_match_simple_literal(): void
@@ -535,7 +534,7 @@ class PregFunctionCompatibilityTest extends TestCase
      */
     private function roundTripPattern(string $pattern): string
     {
-        $ast = $this->regex->parse($pattern);
+        $ast = $this->regexService->parse($pattern);
 
         return $ast->accept($this->compiler);
     }

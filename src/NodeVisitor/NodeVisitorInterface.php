@@ -256,4 +256,13 @@ interface NodeVisitorInterface
      * @return TReturn the result of visiting this node
      */
     public function visitLimitMatch(Node\LimitMatchNode $node);
+
+    /**
+     * Logic to execute when visiting a `CalloutNode`.
+     *
+     * @param Node\CalloutNode $node the node representing a callout (`(?C...)`)
+     *
+     * @return TReturn the result of visiting this node
+     */
+    public function visitCallout(Node\CalloutNode $node);
 }

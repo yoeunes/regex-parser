@@ -853,6 +853,18 @@ class HtmlExplainNodeVisitor implements NodeVisitorInterface
         );
     }
 
+    public function visitCallout(Node\CalloutNode $node): string
+    {
+        $argument = $node->isStringIdentifier ? '"'.$node->identifier.'"' : (string) $node->identifier;
+        $explanation = \sprintf('passes control to user function with argument %s', $argument);
+
+        return \sprintf(
+            '<li><span title="%s">Callout: <strong>(?C%s)</strong></span></li>',
+            $this->e($explanation),
+            $this->e($argument),
+        );
+    }
+
     /**
      * Generates a human-readable description for a quantifier's value and type.
      *

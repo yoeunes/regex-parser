@@ -16,11 +16,19 @@ namespace RegexParser\Tests\Integration;
 use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Lexer;
+use RegexParser\Regex;
 use RegexParser\Tests\TestUtils\LexerAccessor;
 use RegexParser\TokenType;
 
 class LexerInternalCoverageTest extends TestCase
 {
+    private Regex $regexService;
+
+    protected function setUp(): void
+    {
+        $this->regexService = Regex::create();
+    }
+
     /**
      * Tests the "default" case of the switch in extractTokenValue.
      * This case is normally unreachable as the main Regex filters tokens,
@@ -28,7 +36,7 @@ class LexerInternalCoverageTest extends TestCase
      */
     public function test_extract_token_value_fallback(): void
     {
-        $lexer = new Lexer();
+        $lexer = $this->regexService->getLexer();
         $lexer->tokenize('');
         $accessor = new LexerAccessor($lexer);
 
@@ -58,7 +66,7 @@ class LexerInternalCoverageTest extends TestCase
      */
     public function test_normalize_unicode_prop_fallbacks(): void
     {
-        $lexer = new Lexer();
+        $lexer = $this->regexService->getLexer();
         $lexer->tokenize('');
         $accessor = new LexerAccessor($lexer);
 

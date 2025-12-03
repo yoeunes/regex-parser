@@ -555,6 +555,15 @@ class ExplainNodeVisitor implements NodeVisitorInterface
         return \sprintf('PCRE Verb: (*LIMIT_MATCH=%d) - sets a match limit for backtracking control', $node->limit);
     }
 
+    public function visitCallout(Node\CalloutNode $node): string
+    {
+        $arg = \is_int($node->identifier) || !$node->isStringIdentifier
+            ? $node->identifier
+            : '"'.$node->identifier.'"';
+
+        return \sprintf('Callout: passes control to user function with argument %s', $arg);
+    }
+
     private function explainQuantifierValue(string $q, string $type): string
     {
         $desc = match ($q) {

@@ -208,7 +208,7 @@ class LiteralExtractorNodeVisitor implements NodeVisitorInterface
      * // For a quantifier `a+`
      * $quantifierNode->accept($visitor); // Returns a LiteralSet with 'a' as a prefix, but not complete.
      *
-     * // For a quantifier `a*`
+     // For a quantifier `a*`
      * $quantifierNode->accept($visitor); // Returns an empty LiteralSet.
      * ```
      */
@@ -623,6 +623,12 @@ class LiteralExtractorNodeVisitor implements NodeVisitorInterface
 
     public function visitLimitMatch(Node\LimitMatchNode $node): LiteralSet
     {
+        return LiteralSet::fromString('');
+    }
+
+    public function visitCallout(Node\CalloutNode $node): LiteralSet
+    {
+        // Callouts do not match characters, so they don't contribute to literal extraction.
         return LiteralSet::fromString('');
     }
 

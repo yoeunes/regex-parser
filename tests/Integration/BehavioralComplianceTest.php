@@ -24,6 +24,13 @@ use RegexParser\Regex;
  */
 class BehavioralComplianceTest extends TestCase
 {
+    private Regex $regexService;
+
+    protected function setUp(): void
+    {
+        $this->regexService = Regex::create();
+    }
+
     /**
      * Test that round-trip compiled patterns match the same strings as the original.
      *
@@ -202,11 +209,10 @@ class BehavioralComplianceTest extends TestCase
     #[DataProvider('providePatternsWithBehavior')]
     public function test_pattern_behavior_matches_pcre(string $pattern, array $testCases): void
     {
-        $regex = Regex::create();
         $compiler = new CompilerNodeVisitor();
 
         // Parse and recompile the pattern
-        $ast = $regex->parse($pattern);
+        $ast = $this->regexService->parse($pattern);
         $compiled = $ast->accept($compiler);
 
         // Test that both patterns behave identically
@@ -252,10 +258,9 @@ class BehavioralComplianceTest extends TestCase
         $pattern = '/(?<year>\d{4})-(?<month>\d{2})-(?<day>\d{2})/';
         $input = '2025-11-24';
 
-        $regex = Regex::create();
         $compiler = new CompilerNodeVisitor();
 
-        $ast = $regex->parse($pattern);
+        $ast = $this->regexService->parse($pattern);
         $compiled = $ast->accept($compiler);
 
         preg_match($pattern, $input, $originalMatches);
@@ -273,10 +278,9 @@ class BehavioralComplianceTest extends TestCase
         $replacement = '$2 $1';
         $input = 'hello world';
 
-        $regex = Regex::create();
         $compiler = new CompilerNodeVisitor();
 
-        $ast = $regex->parse($pattern);
+        $ast = $this->regexService->parse($pattern);
         $compiled = $ast->accept($compiler);
 
         $originalResult = preg_replace($pattern, $replacement, $input);

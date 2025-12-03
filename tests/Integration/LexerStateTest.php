@@ -18,16 +18,21 @@ use RegexParser\Regex;
 
 class LexerStateTest extends TestCase
 {
+    private Regex $regexService;
+
+    protected function setUp(): void
+    {
+        $this->regexService = Regex::create();
+    }
+
     public function test_parser_reuses_lexer_and_resets(): void
     {
         $this->expectNotToPerformAssertions();
 
-        $regex = Regex::create();
-
         // First parse creates Lexer
-        $regex->parse('/a/');
+        $this->regexService->parse('/a/');
 
         // Second parse reuses Lexer and calls reset()
-        $regex->parse('/b/');
+        $this->regexService->parse('/b/');
     }
 }

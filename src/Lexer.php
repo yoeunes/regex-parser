@@ -36,6 +36,7 @@ class Lexer
     private const string REGEX_OUTSIDE = <<<'PCRE'
         /
           (?<T_COMMENT_OPEN>          \(\?\# )
+        | (?<T_CALLOUT>               \(\?C [^)]* \) )
         | (?<T_PCRE_VERB>             \(\* [^)]+ \) ) # Ex: (*FAIL), (*MARK:foo)
         | (?<T_GROUP_MODIFIER_OPEN>   \(\? )
         | (?<T_GROUP_OPEN>            \( )
@@ -93,6 +94,7 @@ class Lexer
      */
     private const array TOKENS_OUTSIDE = [
         'T_COMMENT_OPEN',
+        'T_CALLOUT',
         'T_PCRE_VERB',
         'T_GROUP_MODIFIER_OPEN',
         'T_GROUP_OPEN',
@@ -441,6 +443,7 @@ class Lexer
                 default => substr($matchedValue, 1),
             },
             TokenType::T_PCRE_VERB => substr($matchedValue, 2, -1),
+            TokenType::T_CALLOUT => substr($matchedValue, 3, -1),
             TokenType::T_ASSERTION,
             TokenType::T_CHAR_TYPE,
             TokenType::T_KEEP => substr($matchedValue, 1),

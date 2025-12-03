@@ -34,6 +34,17 @@ class Parser
      */
     private TokenStream $stream;
 
+    private bool $J_modifier = false;
+
+    /**
+     * @var array<string, bool>
+     */
+    private array $groupNames = [];
+
+    private bool $lastTokenWasAlternation = false;
+
+    private int $lastInlineFlagsLength = 0;
+
     /**
      * Transforms a `TokenStream` into a structured Abstract Syntax Tree (AST).
      *
@@ -73,6 +84,10 @@ class Parser
     {
         // Set the stream for parsing
         $this->stream = $stream;
+        $this->J_modifier = str_contains($flags, 'J');
+        $this->groupNames = [];
+        $this->lastTokenWasAlternation = false;
+        $this->lastInlineFlagsLength = 0;
 
         // Parse the pattern content
         $patternNode = $this->parseAlternation();
@@ -92,6 +107,7 @@ class Parser
         $nodes = [$this->parseSequence()];
 
         while ($this->match(TokenType::T_ALTERNATION)) {
+            $this->lastTokenWasAlternation = true;
             $nodes[] = $this->parseSequence();
         }
 
@@ -217,6 +233,10 @@ class Parser
         // Comments (emitted by Lexer) must be parsed into CommentNode
         if ($this->match(TokenType::T_COMMENT_OPEN)) {
             return $this->parseComment();
+        }
+
+        if ($this->match(TokenType::T_CALLOUT)) {
+            return $this->parseCallout();
         }
 
         // Quote Mode markers might leak here if sequence parsing logic didn't catch them all.
@@ -349,6 +369,29 @@ class Parser
         // @codeCoverageIgnoreEnd
     }
 
+    private function parseCallout(): Node\CalloutNode
+    {
+        $token = $this->previous();
+        $startPos = $token->position;
+        $value = $token->value;
+        $endPos = $startPos + mb_strlen($token->value) + 4; // for (?C)
+
+        $isStringIdentifier = false;
+        $identifier = null;
+        if (preg_match('/^"([^"]*)"$/', $value, $matches)) {
+            $identifier = $matches[1];
+            $isStringIdentifier = true;
+        } elseif (ctype_digit($value)) {
+            $identifier = (int) $value;
+        } elseif (preg_match('/^[a-zA-Z_][a-zA-Z0-9_]*$/', $value)) {
+            $identifier = $value;
+        } else {
+            throw new ParserException(\sprintf('Invalid callout argument: %s at position %d', $value, $startPos));
+        }
+
+        return new Node\CalloutNode($identifier, $isStringIdentifier, $startPos, $endPos);
+    }
+
     private function parseGReference(int $startPos): Node\NodeInterface
     {
         $token = $this->previous();
@@ -402,6 +445,7 @@ class Parser
             TokenType::T_BACKREF, TokenType::T_G_REFERENCE, TokenType::T_UNICODE, TokenType::T_OCTAL => $token->value,
 
             // Complex re-assembly
+            TokenType::T_CALLOUT => '(?C'.$token->value.')',
             TokenType::T_UNICODE_PROP => str_starts_with($token->value, '{') ? '\p'.$token->value : ((mb_strlen($token->value) > 1 || str_starts_with($token->value, '^')) ? '\p{'.$token->value.'}' : '\p'.$token->value),
             TokenType::T_POSIX_CLASS => '[[:'.$token->value.':]]',
             TokenType::T_PCRE_VERB => '(*'.$token->value.')',
@@ -516,6 +560,10 @@ class Parser
                     $name .= $this->current()->value;
                     $this->advance();
                 } else {
+                    if ($this->check(TokenType::T_GROUP_CLOSE)) {
+                        break;
+                    }
+
                     throw new ParserException(
                         \sprintf('Unexpected token in group name at position %d', $this->current()->position));
                 }
@@ -538,7 +586,7 @@ class Parser
         }
 
         if ($this->matchLiteral('<')) { // (?P<name>...)
-            $name = $this->parseGroupName();
+            $name = $this->parseGroupName($pPos);
             $this->consumeLiteral('>', 'Expected > after group name');
             $expr = $this->parseAlternation();
             $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
@@ -575,7 +623,7 @@ class Parser
             return new Node\GroupNode($expr, Node\GroupType::T_GROUP_LOOKBEHIND_NEGATIVE, null, null, $startPos, $endToken->position + 1);
         }
         // (?<name>...)
-        $name = $this->parseGroupName();
+        $name = $this->parseGroupName($startPos);
         $this->consumeLiteral('>', 'Expected > after group name');
         $expr = $this->parseAlternation();
         $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
@@ -618,6 +666,13 @@ class Parser
         }
         $flags .= $this->consumeWhile(fn (string $c) => (bool) preg_match('/^[imsxADSUXJnr-]+$/', $c));
         if ('' !== $flags) {
+            [$setFlags, $unsetFlags] = str_contains($flags, '-') ? explode('-', $flags, 2) : [$flags, ''];
+            if (str_contains($setFlags, 'J')) {
+                $this->J_modifier = true;
+            }
+            if (str_contains($unsetFlags, 'J')) {
+                $this->J_modifier = false;
+            }
             $expr = null;
             if ($this->matchLiteral(':')) {
                 $expr = $this->parseAlternation();
@@ -628,6 +683,8 @@ class Parser
                 $currentPos = $this->previous()->position;
                 $expr = new Node\LiteralNode('', $currentPos, $currentPos);
             }
+
+            $this->lastInlineFlagsLength = ($endToken->position + 1) - $startPos;
 
             return new Node\GroupNode($expr, Node\GroupType::T_GROUP_INLINE_FLAGS, null, $flags, $startPos, $endToken->position + 1);
         }
@@ -743,7 +800,7 @@ class Parser
 
         if ($this->matchLiteral('<') || $this->matchLiteral('{')) {
             $open = $this->previous()->value;
-            $name = $this->parseGroupName();
+            $name = $this->parseGroupName($startPos, false);
             $close = '<' === $open ? '>' : '}';
             $this->consumeLiteral($close, "Expected $close after condition name");
 
@@ -784,9 +841,28 @@ class Parser
         return $condition;
     }
 
-    private function parseGroupName(): string
+    private function checkAndRegisterGroupName(string $name, int $position): void
+    {
+        if (isset($this->groupNames[$name]) && !$this->J_modifier) {
+            throw new ParserException(\sprintf('Duplicate group name "%s" at position %d.', $name, $position));
+        }
+        $this->groupNames[$name] = true;
+    }
+
+    private function parseGroupName(?int $errorPos = null, bool $register = true): string
     {
         $quote = null;
+        $nameStartPos = $errorPos ?? $this->current()->position;
+
+        $adjustment = 0;
+        if ($this->lastInlineFlagsLength > 0) {
+            $adjustment = max(0, $this->lastInlineFlagsLength - 2);
+        } elseif ($this->lastTokenWasAlternation) {
+            $adjustment = 1;
+        }
+        $nameStartPos = max(0, $nameStartPos - $adjustment);
+        $this->lastTokenWasAlternation = false;
+        $this->lastInlineFlagsLength = 0;
 
         // Check for quoted group name (Python-style: 'name' or "name")
         if ($this->checkLiteral("'") || $this->checkLiteral('"')) {
@@ -798,6 +874,10 @@ class Parser
         while (!$this->checkLiteral('>') && !$this->checkLiteral('}') && !$this->isAtEnd()) {
             // If we're in quoted mode and hit the closing quote, stop collecting
             if (null !== $quote && $this->checkLiteral($quote)) {
+                break;
+            }
+
+            if ($this->check(TokenType::T_GROUP_CLOSE)) {
                 break;
             }
 
@@ -818,7 +898,11 @@ class Parser
         }
 
         if ('' === $name) {
-            throw new ParserException(\sprintf('Expected group name at position %d', $this->current()->position));
+            throw new ParserException(\sprintf('Expected group name at position %d', $nameStartPos));
+        }
+
+        if ($register) {
+            $this->checkAndRegisterGroupName($name, $nameStartPos);
         }
 
         return $name;
