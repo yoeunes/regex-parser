@@ -250,11 +250,11 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
 
         // Store the result if it's a capturing group
         if (GroupType::T_GROUP_CAPTURING === $node->type) {
-            $groupIndex = $this->groupNumbers[\spl_object_id($node)] ?? $this->groupCounter++;
+            $groupIndex = $this->groupNumbers[spl_object_id($node)] ?? $this->groupCounter++;
             $this->captures[$groupIndex] = $result;
             $this->groupCounter = max($this->groupCounter, $groupIndex + 1);
         } elseif (GroupType::T_GROUP_NAMED === $node->type) {
-            $groupIndex = $this->groupNumbers[\spl_object_id($node)] ?? $this->groupCounter++;
+            $groupIndex = $this->groupNumbers[spl_object_id($node)] ?? $this->groupCounter++;
             $this->captures[$groupIndex] = $result;
             if ($node->name) {
                 $this->captures[$node->name] = $result;
@@ -987,7 +987,7 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
             if (\in_array($node->type, [GroupType::T_GROUP_CAPTURING, GroupType::T_GROUP_NAMED], true)) {
                 $index = $this->groupDefinitionCounter++;
                 $this->groupIndexMap[$index] = $node;
-                $this->groupNumbers[\spl_object_id($node)] = $index;
+                $this->groupNumbers[spl_object_id($node)] = $index;
                 if (null !== $node->name) {
                     $this->namedGroupMap[$node->name] = $node;
                 }
@@ -1063,10 +1063,6 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
             return null;
         }
 
-        if (isset($this->namedGroupMap[$ref])) {
-            return $this->namedGroupMap[$ref];
-        }
-
-        return null;
+        return $this->namedGroupMap[$ref] ?? null;
     }
 }

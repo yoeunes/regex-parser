@@ -16,10 +16,10 @@ namespace RegexParser\Tests\Integration;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\ParserException;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
+use RegexParser\NodeVisitor\ComplexityScoreNodeVisitor;
 use RegexParser\NodeVisitor\DumperNodeVisitor;
 use RegexParser\NodeVisitor\ExplainNodeVisitor;
 use RegexParser\NodeVisitor\HtmlExplainNodeVisitor;
-use RegexParser\NodeVisitor\ComplexityScoreNodeVisitor;
 use RegexParser\NodeVisitor\OptimizerNodeVisitor;
 use RegexParser\NodeVisitor\SampleGeneratorNodeVisitor;
 use RegexParser\NodeVisitor\ValidatorNodeVisitor;
@@ -36,29 +36,27 @@ final class AdvancedPcreFeaturesTest extends TestCase
         $compiler = new CompilerNodeVisitor();
         $recompiled = $ast->accept($compiler);
 
-        self::assertSame($pattern, $recompiled);
+        $this->assertSame($pattern, $recompiled);
 
         // Verify the identifier in the AST (using Dumper for inspection)
         $dumper = new DumperNodeVisitor();
         $dump = $ast->accept($dumper);
         if (is_numeric($expectedIdentifier)) {
-            self::assertStringContainsString("Callout({$expectedIdentifier})", $dump);
+            $this->assertStringContainsString("Callout({$expectedIdentifier})", $dump);
         } else {
-            self::assertStringContainsString("Callout('{$expectedIdentifier}')", $dump);
+            $this->assertStringContainsString("Callout('{$expectedIdentifier}')", $dump);
         }
     }
 
-    public static function provideCalloutPatterns(): array
+    public static function provideCalloutPatterns(): \Iterator
     {
-        return [
-            'numeric callout' => ['/(?C1)abc/', '1'],
-            'string callout' => ['/(?C"debug_log")abc/', 'debug_log'],
-            'callout with spaces' => ['/(?C"my function")def/', 'my function'],
-            'callout with special chars' => ['/(?C"func_123-abc")xyz/', 'func_123-abc'],
-            'callout with zero' => ['/(?C0)test/', '0'],
-            'callout with max int' => ['/(?C255)foo/', '255'],
-            'named callout' => ['/(?Cfoo)abc/', 'foo'],
-        ];
+        yield 'numeric callout' => ['/(?C1)abc/', '1'];
+        yield 'string callout' => ['/(?C"debug_log")abc/', 'debug_log'];
+        yield 'callout with spaces' => ['/(?C"my function")def/', 'my function'];
+        yield 'callout with special chars' => ['/(?C"func_123-abc")xyz/', 'func_123-abc'];
+        yield 'callout with zero' => ['/(?C0)test/', '0'];
+        yield 'callout with max int' => ['/(?C255)foo/', '255'];
+        yield 'named callout' => ['/(?Cfoo)abc/', 'foo'];
     }
 
     public function test_it_validates_callout_arguments(): void
@@ -97,12 +95,12 @@ final class AdvancedPcreFeaturesTest extends TestCase
         $ast = $regexService->parse('/(?C1)abc/');
         $explainer = new ExplainNodeVisitor();
         $explanation = $ast->accept($explainer);
-        self::assertStringContainsString('Callout: passes control to user function with argument 1', $explanation);
+        $this->assertStringContainsString('Callout: passes control to user function with argument 1', $explanation);
 
         $ast = $regexService->parse('/(?C"my_func")abc/');
         $explainer = new ExplainNodeVisitor();
         $explanation = $ast->accept($explainer);
-        self::assertStringContainsString('Callout: passes control to user function with argument "my_func"', $explanation);
+        $this->assertStringContainsString('Callout: passes control to user function with argument "my_func"', $explanation);
     }
 
     public function test_it_html_explains_callouts_correctly(): void
@@ -111,14 +109,14 @@ final class AdvancedPcreFeaturesTest extends TestCase
         $ast = $regexService->parse('/(?C1)abc/');
         $explainer = new HtmlExplainNodeVisitor();
         $explanation = $ast->accept($explainer);
-        self::assertStringContainsString('Callout: <strong>(?C1)</strong></span></li>', $explanation);
-        self::assertStringContainsString('title="passes control to user function with argument 1"', $explanation);
+        $this->assertStringContainsString('Callout: <strong>(?C1)</strong></span></li>', $explanation);
+        $this->assertStringContainsString('title="passes control to user function with argument 1"', $explanation);
 
         $ast = $regexService->parse('/(?C"my_func")abc/');
         $explainer = new HtmlExplainNodeVisitor();
         $explanation = $ast->accept($explainer);
-        self::assertStringContainsString('Callout: <strong>(?C&quot;my_func&quot;)</strong></span></li>', $explanation);
-        self::assertStringContainsString('title="passes control to user function with argument &quot;my_func&quot;"', $explanation);
+        $this->assertStringContainsString('Callout: <strong>(?C&quot;my_func&quot;)</strong></span></li>', $explanation);
+        $this->assertStringContainsString('title="passes control to user function with argument &quot;my_func&quot;"', $explanation);
     }
 
     public function test_it_optimizes_callouts_correctly(): void
@@ -129,7 +127,7 @@ final class AdvancedPcreFeaturesTest extends TestCase
         $optimizedAst = $ast->accept($optimizer);
         // Callouts are atomic and should not be changed by the optimizer
         $compiler = new CompilerNodeVisitor();
-        self::assertSame('/(?C1)abc/', $optimizedAst->accept($compiler));
+        $this->assertSame('/(?C1)abc/', $optimizedAst->accept($compiler));
     }
 
     public function test_it_generates_sample_for_callouts_correctly(): void
@@ -139,7 +137,7 @@ final class AdvancedPcreFeaturesTest extends TestCase
         $sampleGenerator = new SampleGeneratorNodeVisitor();
         $sample = $ast->accept($sampleGenerator);
         // Callouts do not match characters, so they should not appear in the sample
-        self::assertSame('ab', $sample);
+        $this->assertSame('ab', $sample);
     }
 
     public function test_it_calculates_complexity_score_for_callouts(): void
@@ -149,7 +147,7 @@ final class AdvancedPcreFeaturesTest extends TestCase
         $complexityVisitor = new ComplexityScoreNodeVisitor();
         $score = $ast->accept($complexityVisitor);
         // a (1) + (?C1) (5) + b (1) = 7
-        self::assertSame(7, $score);
+        $this->assertSame(7, $score);
     }
 
     public function test_it_allows_duplicate_group_names_with_j_flag(): void
@@ -162,7 +160,7 @@ final class AdvancedPcreFeaturesTest extends TestCase
         $ast->accept($validator); // Should not throw an exception
 
         $compiler = new CompilerNodeVisitor();
-        self::assertSame($pattern, $ast->accept($compiler));
+        $this->assertSame($pattern, $ast->accept($compiler));
     }
 
     public function test_it_throws_exception_for_duplicate_group_names_without_j_flag(): void
@@ -188,7 +186,7 @@ final class AdvancedPcreFeaturesTest extends TestCase
         $ast->accept($validator); // Should not throw an exception
 
         $compiler = new CompilerNodeVisitor();
-        self::assertSame($pattern, $ast->accept($compiler));
+        $this->assertSame($pattern, $ast->accept($compiler));
     }
 
     public function test_it_respects_j_flag_scope_in_inline_modifiers(): void

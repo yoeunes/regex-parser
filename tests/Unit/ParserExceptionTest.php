@@ -18,37 +18,37 @@ use RegexParser\Exception\ParserException;
 
 class ParserExceptionTest extends TestCase
 {
-    public function testVisualSnippetAtBeginning(): void
+    public function test_visual_snippet_at_beginning(): void
     {
         $exception = ParserException::withContext('Error', 0, 'abc');
 
-        $this->assertSame("Line 1: abc\n".\str_repeat(' ', 8).'^', $exception->getVisualSnippet());
+        $this->assertSame("Line 1: abc\n".str_repeat(' ', 8).'^', $exception->getVisualSnippet());
     }
 
-    public function testVisualSnippetAtEnd(): void
+    public function test_visual_snippet_at_end(): void
     {
         $exception = ParserException::withContext('Error', 3, 'abc');
 
-        $this->assertSame("Line 1: abc\n".\str_repeat(' ', 11).'^', $exception->getVisualSnippet());
+        $this->assertSame("Line 1: abc\n".str_repeat(' ', 11).'^', $exception->getVisualSnippet());
     }
 
-    public function testVisualSnippetInMiddle(): void
+    public function test_visual_snippet_in_middle(): void
     {
         $exception = ParserException::withContext('Error', 4, 'foo(bar)baz');
 
-        $this->assertSame("Line 1: foo(bar)baz\n".\str_repeat(' ', 12).'^', $exception->getVisualSnippet());
+        $this->assertSame("Line 1: foo(bar)baz\n".str_repeat(' ', 12).'^', $exception->getVisualSnippet());
     }
 
-    public function testVisualSnippetInMultilinePattern(): void
+    public function test_visual_snippet_in_multiline_pattern(): void
     {
         $exception = ParserException::withContext('Error', 5, "foo\nbar\nbaz");
 
-        $this->assertSame("Line 2: bar\n".\str_repeat(' ', 9).'^', $exception->getVisualSnippet());
+        $this->assertSame("Line 2: bar\n".str_repeat(' ', 9).'^', $exception->getVisualSnippet());
     }
 
-    public function testVisualSnippetTruncatesLongPatterns(): void
+    public function test_visual_snippet_truncates_long_patterns(): void
     {
-        $pattern = \str_repeat('a', 50).'X'.\str_repeat('b', 50);
+        $pattern = str_repeat('a', 50).'X'.str_repeat('b', 50);
         $exception = ParserException::withContext('Error', 50, $pattern);
 
         $snippet = $exception->getVisualSnippet();

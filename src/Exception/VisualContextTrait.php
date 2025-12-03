@@ -84,7 +84,7 @@ trait VisualContextTrait
             .substr($pattern, $displayStart, $displayEnd - $displayStart)
             .$suffixEllipsis;
 
-        $caretOffset = ($prefixEllipsis === '' ? 0 : 3) + ($caretIndex - $displayStart);
+        $caretOffset = ('' === $prefixEllipsis ? 0 : 3) + ($caretIndex - $displayStart);
         if ($caretOffset < 0) {
             $caretOffset = 0;
         }

@@ -197,7 +197,7 @@ class AdditionalCoverageBoostTest extends TestCase
     {
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('Expected > after group name');
-        $this->regexService->parse("/(?<name)/");
+        $this->regexService->parse('/(?<name)/');
     }
 
     /**

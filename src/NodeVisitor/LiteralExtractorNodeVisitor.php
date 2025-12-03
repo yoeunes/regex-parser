@@ -208,7 +208,7 @@ class LiteralExtractorNodeVisitor implements NodeVisitorInterface
      * // For a quantifier `a+`
      * $quantifierNode->accept($visitor); // Returns a LiteralSet with 'a' as a prefix, but not complete.
      *
-     // For a quantifier `a*`
+     * // For a quantifier `a*`
      * $quantifierNode->accept($visitor); // Returns an empty LiteralSet.
      * ```
      */

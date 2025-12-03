@@ -196,7 +196,7 @@ class Parser
 
                 throw $this->parserException(
                     \sprintf('Quantifier "%s" cannot be applied to assertion or verb "%s" at position %d', $token->value, $nodeName, $node->getStartPosition()),
-                    $token->position
+                    $token->position,
                 );
             }
 
@@ -574,7 +574,7 @@ class Parser
 
                     throw $this->parserException(
                         \sprintf('Unexpected token in group name at position %d', $this->current()->position),
-                        $this->current()->position
+                        $this->current()->position,
                     );
                 }
             }
@@ -586,7 +586,7 @@ class Parser
             if (!$this->checkLiteral($quote)) {
                 throw $this->parserException(
                     \sprintf('Expected closing quote %s at position %d', $quote, $this->current()->position),
-                    $this->current()->position
+                    $this->current()->position,
                 );
             }
             $this->advance();
@@ -867,7 +867,7 @@ class Parser
               || $condition instanceof Node\AssertionNode || $condition instanceof Node\SubroutineNode)) {
             throw $this->parserException(
                 \sprintf('Invalid conditional construct at position %d. Condition must be a group reference, lookaround, or (DEFINE).', $startPos),
-                $startPos
+                $startPos,
             );
         }
 
@@ -1000,7 +1000,7 @@ class Parser
         } else {
             throw $this->parserException(
                 \sprintf('Unexpected token "%s" in character class at position %d.', $this->current()->value, $this->current()->position),
-                $this->current()->position
+                $this->current()->position,
             );
         }
 

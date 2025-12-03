@@ -17,7 +17,6 @@ use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
-use RegexParser\Lexer;
 use RegexParser\NodeVisitor\ExplainNodeVisitor;
 use RegexParser\NodeVisitor\HtmlExplainNodeVisitor;
 use RegexParser\NodeVisitor\OptimizerNodeVisitor;
@@ -31,6 +30,11 @@ use RegexParser\Regex;
 class FullCoverageTest extends TestCase
 {
     private Regex $regexService;
+
+    protected function setUp(): void
+    {
+        $this->regexService = Regex::create();
+    }
 
     public function test_lexer_trailing_backslash(): void
     {
@@ -379,10 +383,5 @@ class FullCoverageTest extends TestCase
 
         $visitor = new ValidatorNodeVisitor();
         $ast->accept($visitor);
-    }
-
-    protected function setUp(): void
-    {
-        $this->regexService = Regex::create();
     }
 }

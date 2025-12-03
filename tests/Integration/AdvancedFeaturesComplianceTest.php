@@ -24,60 +24,54 @@ use RegexParser\Regex;
 final class AdvancedFeaturesComplianceTest extends TestCase
 {
     #[DataProvider('provideRecursionSeeds')]
-    public function testSampleGeneratorHandlesRecursion(int $seed, string $expectedSample): void
+    public function test_sample_generator_handles_recursion(int $seed, string $expectedSample): void
     {
         $regex = Regex::create()->parse('/a(?R)?z/');
         $generator = new SampleGeneratorNodeVisitor();
         $generator->setSeed($seed);
 
-        self::assertSame($expectedSample, $regex->accept($generator));
+        $this->assertSame($expectedSample, $regex->accept($generator));
     }
 
-    public static function provideRecursionSeeds(): array
+    public static function provideRecursionSeeds(): \Iterator
     {
-        return [
-            'single depth' => [2, 'az'],
-            'double depth' => [5, 'aazz'],
-            'triple depth' => [1, 'aaazzz'],
-        ];
+        yield 'single depth' => [2, 'az'];
+        yield 'double depth' => [5, 'aazz'];
+        yield 'triple depth' => [1, 'aaazzz'];
     }
 
     #[DataProvider('provideControlVerbPatterns')]
-    public function testRedosAnalyzerRespectsCommit(string $pattern, ReDoSSeverity $expected): void
+    public function test_redos_analyzer_respects_commit(string $pattern, ReDoSSeverity $expected): void
     {
         $regex = Regex::create()->parse($pattern);
         $visitor = new ReDoSProfileNodeVisitor();
         $regex->accept($visitor);
         $result = $visitor->getResult();
 
-        self::assertSame($expected, $result['severity']);
+        $this->assertSame($expected, $result['severity']);
     }
 
-    public static function provideControlVerbPatterns(): array
+    public static function provideControlVerbPatterns(): \Iterator
     {
-        return [
-            'commit' => ['/(a+(*COMMIT))+/', ReDoSSeverity::SAFE],
-            'prune' => ['/(a+(*PRUNE))+/', ReDoSSeverity::SAFE],
-            'skip' => ['/(a+(*SKIP))+/', ReDoSSeverity::SAFE],
-        ];
+        yield 'commit' => ['/(a+(*COMMIT))+/', ReDoSSeverity::SAFE];
+        yield 'prune' => ['/(a+(*PRUNE))+/', ReDoSSeverity::SAFE];
+        yield 'skip' => ['/(a+(*SKIP))+/', ReDoSSeverity::SAFE];
     }
 
     #[DataProvider('provideRecursiveConditionPatterns')]
-    public function testRecursiveConditionValidation(string $pattern): void
+    public function test_recursive_condition_validation(string $pattern): void
     {
         $regex = Regex::create()->parse($pattern);
         $validator = new ValidatorNodeVisitor();
 
         $regex->accept($validator); // Validation passed without exception.
 
-        self::assertGreaterThan(0, \strlen($pattern));
+        $this->assertGreaterThan(0, \strlen($pattern));
     }
 
-    public static function provideRecursiveConditionPatterns(): array
+    public static function provideRecursiveConditionPatterns(): \Iterator
     {
-        return [
-            'explicit group recursion' => ['/(?(R1)a|b)/'],
-            'root recursion check' => ['/(?(R)a|b)/'],
-        ];
+        yield 'explicit group recursion' => ['/(?(R1)a|b)/'];
+        yield 'root recursion check' => ['/(?(R)a|b)/'];
     }
 }
