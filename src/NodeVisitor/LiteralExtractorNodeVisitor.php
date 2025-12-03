@@ -14,30 +14,7 @@ declare(strict_types=1);
 namespace RegexParser\NodeVisitor;
 
 use RegexParser\LiteralSet;
-use RegexParser\Node\AlternationNode;
-use RegexParser\Node\AnchorNode;
-use RegexParser\Node\AssertionNode;
-use RegexParser\Node\BackrefNode;
-use RegexParser\Node\CharClassNode;
-use RegexParser\Node\CharTypeNode;
-use RegexParser\Node\CommentNode;
-use RegexParser\Node\ConditionalNode;
-use RegexParser\Node\DefineNode;
-use RegexParser\Node\DotNode;
-use RegexParser\Node\GroupNode;
-use RegexParser\Node\KeepNode;
-use RegexParser\Node\LiteralNode;
-use RegexParser\Node\OctalLegacyNode;
-use RegexParser\Node\OctalNode;
-use RegexParser\Node\PcreVerbNode;
-use RegexParser\Node\PosixClassNode;
-use RegexParser\Node\QuantifierNode;
-use RegexParser\Node\RangeNode;
-use RegexParser\Node\RegexNode;
-use RegexParser\Node\SequenceNode;
-use RegexParser\Node\SubroutineNode;
-use RegexParser\Node\UnicodeNode;
-use RegexParser\Node\UnicodePropNode;
+use RegexParser\Node;
 
 /**
  * Extracts literal strings that must appear in any match.
@@ -69,7 +46,7 @@ class LiteralExtractorNodeVisitor implements NodeVisitorInterface
      * which affects how literals are extracted. It then delegates the actual extraction
      * to the main pattern node.
      *
-     * @param RegexNode $node the `RegexNode` representing the entire regular expression
+     * @param Node\RegexNode $node the `RegexNode` representing the entire regular expression
      *
      * @return LiteralSet a `LiteralSet` containing all guaranteed literal prefixes and suffixes
      *                    that must be present in any string matching the regex
@@ -83,7 +60,7 @@ class LiteralExtractorNodeVisitor implements NodeVisitorInterface
      * // $literalSet->suffixes might contain ['world', 'World', 'WORld', ...]
      * ```
      */
-    public function visitRegex(RegexNode $node): LiteralSet
+    public function visitRegex(Node\RegexNode $node): LiteralSet
     {
         $this->caseInsensitive = str_contains($node->flags, 'i');
 
@@ -98,7 +75,7 @@ class LiteralExtractorNodeVisitor implements NodeVisitorInterface
      * can be found, or if the alternatives are too complex, it returns an empty `LiteralSet`.
      * This ensures that only truly guaranteed literals are extracted.
      *
-     * @param AlternationNode $node the `AlternationNode` representing a choice between patterns
+     * @param Node\AlternationNode $node the `AlternationNode` representing a choice between patterns
      *
      * @return LiteralSet a `LiteralSet` representing the common literals across all alternatives
      *
@@ -111,7 +88,7 @@ class LiteralExtractorNodeVisitor implements NodeVisitorInterface
      * $alternationNode->accept($visitor); // Might return a LiteralSet with 'prefix_' as a common prefix.
      * ```
      */
-    public function visitAlternation(AlternationNode $node): LiteralSet
+    public function visitAlternation(Node\AlternationNode $node): LiteralSet
     {
         $result = null;
 
@@ -142,7 +119,7 @@ class LiteralExtractorNodeVisitor implements NodeVisitorInterface
      * to form a longer literal sequence. This is crucial for building up longer guaranteed
      * literal strings from simpler components.
      *
-     * @param SequenceNode $node the `SequenceNode` representing a series of regex components
+     * @param Node\SequenceNode $node the `SequenceNode` representing a series of regex components
      *
      * @return LiteralSet a `LiteralSet` representing the concatenated literals from its children
      *
@@ -152,7 +129,7 @@ class LiteralExtractorNodeVisitor implements NodeVisitorInterface
      * $sequenceNode->accept($visitor); // Might return a LiteralSet with 'foo' as prefix and 'bar' as suffix.
      * ```
      */
-    public function visitSequence(SequenceNode $node): LiteralSet
+    public function visitSequence(Node\SequenceNode $node): LiteralSet
     {
         $result = LiteralSet::fromString(''); // Start with empty complete string
 
@@ -178,7 +155,7 @@ class LiteralExtractorNodeVisitor implements NodeVisitorInterface
      * which can change the case-insensitivity setting for the group's content. The original
      * case-insensitivity state is restored after visiting the group's child.
      *
-     * @param GroupNode $node the `GroupNode` representing a specific grouping construct
+     * @param Node\GroupNode $node the `GroupNode` representing a specific grouping construct
      *
      * @return LiteralSet a `LiteralSet` containing literals extracted from the group's child
      *
@@ -188,7 +165,7 @@ class LiteralExtractorNodeVisitor implements NodeVisitorInterface
      * $groupNode->accept($visitor); // Will extract 'hello', 'Hello', 'HEllo', etc., due to inline 'i' flag.
      * ```
      */
-    public function visitGroup(GroupNode $node): LiteralSet
+    public function visitGroup(Node\GroupNode $node): LiteralSet
     {
         // Handle inline flags if present
         $previousState = $this->caseInsensitive;
@@ -219,7 +196,7 @@ class LiteralExtractorNodeVisitor implements NodeVisitorInterface
      * might follow). For optional quantifiers (`*`, `?`), it cannot guarantee presence,
      * so it returns an empty `LiteralSet`.
      *
-     * @param QuantifierNode $node the `QuantifierNode` representing a repetition operator
+     * @param Node\QuantifierNode $node the `QuantifierNode` representing a repetition operator
      *
      * @return LiteralSet a `LiteralSet` containing literals extracted based on the quantifier's rules
      *
@@ -235,7 +212,7 @@ class LiteralExtractorNodeVisitor implements NodeVisitorInterface
      * $quantifierNode->accept($visitor); // Returns an empty LiteralSet.
      * ```
      */
-    public function visitQuantifier(QuantifierNode $node): LiteralSet
+    public function visitQuantifier(Node\QuantifierNode $node): LiteralSet
     {
         // Case 1: Exact quantifier {n} -> repeat literals n times
         if (preg_match('/^\{(\d+)\}$/', $node->quantifier, $m)) {
@@ -283,7 +260,7 @@ class LiteralExtractorNodeVisitor implements NodeVisitorInterface
      * as a `LiteralSet`. If case-insensitivity is active, it expands the literal
      * to include all possible case variations.
      *
-     * @param LiteralNode $node the `LiteralNode` representing a literal character or string
+     * @param Node\LiteralNode $node the `LiteralNode` representing a literal character or string
      *
      * @return LiteralSet a `LiteralSet` containing the literal value(s)
      *
@@ -296,7 +273,7 @@ class LiteralExtractorNodeVisitor implements NodeVisitorInterface
      * $literalNode->accept($visitor); // Returns a LiteralSet with ['a', 'A'].
      * ```
      */
-    public function visitLiteral(LiteralNode $node): LiteralSet
+    public function visitLiteral(Node\LiteralNode $node): LiteralSet
     {
         if ($this->caseInsensitive) {
             return $this->expandCaseInsensitive($node->value);
@@ -315,7 +292,7 @@ class LiteralExtractorNodeVisitor implements NodeVisitorInterface
      * (e.g., `[^0-9]`, `[a-z]`, or those containing character types) are considered
      * non-literal for simplicity and return an empty `LiteralSet`.
      *
-     * @param CharClassNode $node the `CharClassNode` representing a character class
+     * @param Node\CharClassNode $node the `CharClassNode` representing a character class
      *
      * @return LiteralSet a `LiteralSet` containing literals from the character class, or empty if complex
      *
@@ -328,10 +305,10 @@ class LiteralExtractorNodeVisitor implements NodeVisitorInterface
      * $charClassNode->accept($visitor); // Returns an empty LiteralSet.
      * ```
      */
-    public function visitCharClass(CharClassNode $node): LiteralSet
+    public function visitCharClass(Node\CharClassNode $node): LiteralSet
     {
         // Optimization: Single character class [a] is literal 'a'
-        if (!$node->isNegated && 1 === \count($node->parts) && $node->parts[0] instanceof LiteralNode) {
+        if (!$node->isNegated && 1 === \count($node->parts) && $node->parts[0] instanceof Node\LiteralNode) {
             return $this->visitLiteral($node->parts[0]);
         }
 
@@ -340,7 +317,7 @@ class LiteralExtractorNodeVisitor implements NodeVisitorInterface
         if (!$node->isNegated) {
             $literals = [];
             foreach ($node->parts as $part) {
-                if ($part instanceof LiteralNode) {
+                if ($part instanceof Node\LiteralNode) {
                     if ($this->caseInsensitive) {
                         $expanded = $this->expandCaseInsensitive($part->value);
                         array_push($literals, ...$expanded->prefixes);
@@ -366,11 +343,11 @@ class LiteralExtractorNodeVisitor implements NodeVisitorInterface
      * of characters, not a single fixed literal. Therefore, they cannot contribute
      * to a guaranteed literal string, and this method returns an empty `LiteralSet`.
      *
-     * @param CharTypeNode $node the `CharTypeNode` representing a predefined character type
+     * @param Node\CharTypeNode $node the `CharTypeNode` representing a predefined character type
      *
      * @return LiteralSet an empty `LiteralSet`
      */
-    public function visitCharType(CharTypeNode $node): LiteralSet
+    public function visitCharType(Node\CharTypeNode $node): LiteralSet
     {
         return LiteralSet::empty();
     }
@@ -382,11 +359,11 @@ class LiteralExtractorNodeVisitor implements NodeVisitorInterface
      * Since it can match various characters, it cannot contribute to a guaranteed
      * literal string, and this method returns an empty `LiteralSet`.
      *
-     * @param DotNode $node the `DotNode` representing the wildcard dot character
+     * @param Node\DotNode $node the `DotNode` representing the wildcard dot character
      *
      * @return LiteralSet an empty `LiteralSet`
      */
-    public function visitDot(DotNode $node): LiteralSet
+    public function visitDot(Node\DotNode $node): LiteralSet
     {
         return LiteralSet::empty();
     }
@@ -399,11 +376,11 @@ class LiteralExtractorNodeVisitor implements NodeVisitorInterface
      * representing an empty string allows them to be correctly integrated into literal
      * sequences (e.g., `/^abc/` can still yield 'abc' as a prefix).
      *
-     * @param AnchorNode $node the `AnchorNode` representing a positional anchor
+     * @param Node\AnchorNode $node the `AnchorNode` representing a positional anchor
      *
      * @return LiteralSet a `LiteralSet` representing an empty string
      */
-    public function visitAnchor(AnchorNode $node): LiteralSet
+    public function visitAnchor(Node\AnchorNode $node): LiteralSet
     {
         // Anchors match empty strings, so they are "complete" empty matches
         // This allows /^abc/ to return prefix 'abc'
@@ -418,11 +395,11 @@ class LiteralExtractorNodeVisitor implements NodeVisitorInterface
      * Returning a `LiteralSet` representing an empty string allows them to be correctly
      * integrated into literal sequences.
      *
-     * @param AssertionNode $node the `AssertionNode` representing a zero-width assertion
+     * @param Node\AssertionNode $node the `AssertionNode` representing a zero-width assertion
      *
      * @return LiteralSet a `LiteralSet` representing an empty string
      */
-    public function visitAssertion(AssertionNode $node): LiteralSet
+    public function visitAssertion(Node\AssertionNode $node): LiteralSet
     {
         return LiteralSet::fromString('');
     }
@@ -434,11 +411,11 @@ class LiteralExtractorNodeVisitor implements NodeVisitorInterface
      * consume characters. It effectively matches an empty string. Returning a `LiteralSet`
      * representing an empty string allows it to be correctly integrated into literal sequences.
      *
-     * @param KeepNode $node the `KeepNode` representing the `\K` assertion
+     * @param Node\KeepNode $node the `KeepNode` representing the `\K` assertion
      *
      * @return LiteralSet a `LiteralSet` representing an empty string
      */
-    public function visitKeep(KeepNode $node): LiteralSet
+    public function visitKeep(Node\KeepNode $node): LiteralSet
     {
         return LiteralSet::fromString('');
     }
@@ -450,11 +427,11 @@ class LiteralExtractorNodeVisitor implements NodeVisitorInterface
      * within that range. Since they can match various characters, they cannot contribute
      * to a guaranteed literal string, and this method returns an empty `LiteralSet`.
      *
-     * @param RangeNode $node the `RangeNode` representing a character range
+     * @param Node\RangeNode $node the `RangeNode` representing a character range
      *
      * @return LiteralSet an empty `LiteralSet`
      */
-    public function visitRange(RangeNode $node): LiteralSet
+    public function visitRange(Node\RangeNode $node): LiteralSet
     {
         return LiteralSet::empty();
     }
@@ -466,11 +443,11 @@ class LiteralExtractorNodeVisitor implements NodeVisitorInterface
      * which is dynamic and not a fixed literal. Therefore, they cannot contribute to
      * a guaranteed literal string, and this method returns an empty `LiteralSet`.
      *
-     * @param BackrefNode $node the `BackrefNode` representing a backreference
+     * @param Node\BackrefNode $node the `BackrefNode` representing a backreference
      *
      * @return LiteralSet an empty `LiteralSet`
      */
-    public function visitBackref(BackrefNode $node): LiteralSet
+    public function visitBackref(Node\BackrefNode $node): LiteralSet
     {
         return LiteralSet::empty();
     }
@@ -483,11 +460,11 @@ class LiteralExtractorNodeVisitor implements NodeVisitorInterface
      * for simplicity, as resolving their exact string value might require complex decoding
      * and handling of various Unicode representations. It returns an empty `LiteralSet`.
      *
-     * @param UnicodeNode $node the `UnicodeNode` representing a Unicode character escape
+     * @param Node\UnicodeNode $node the `UnicodeNode` representing a Unicode character escape
      *
      * @return LiteralSet an empty `LiteralSet`
      */
-    public function visitUnicode(UnicodeNode $node): LiteralSet
+    public function visitUnicode(Node\UnicodeNode $node): LiteralSet
     {
         // Could resolve hex, but for now treat as empty set unless we decode it
         // Assuming RegexParser doesn't decode unicode in AST yet (it keeps raw \xHH)
@@ -501,11 +478,11 @@ class LiteralExtractorNodeVisitor implements NodeVisitorInterface
      * based on their property, not a single fixed literal. Therefore, they cannot
      * contribute to a guaranteed literal string, and this method returns an empty `LiteralSet`.
      *
-     * @param UnicodePropNode $node the `UnicodePropNode` representing a Unicode property
+     * @param Node\UnicodePropNode $node the `UnicodePropNode` representing a Unicode property
      *
      * @return LiteralSet an empty `LiteralSet`
      */
-    public function visitUnicodeProp(UnicodePropNode $node): LiteralSet
+    public function visitUnicodeProp(Node\UnicodePropNode $node): LiteralSet
     {
         return LiteralSet::empty();
     }
@@ -518,11 +495,11 @@ class LiteralExtractorNodeVisitor implements NodeVisitorInterface
      * for simplicity, as resolving their exact string value might require decoding.
      * It returns an empty `LiteralSet`.
      *
-     * @param OctalNode $node the `OctalNode` representing a modern octal escape
+     * @param Node\OctalNode $node the `OctalNode` representing a modern octal escape
      *
      * @return LiteralSet an empty `LiteralSet`
      */
-    public function visitOctal(OctalNode $node): LiteralSet
+    public function visitOctal(Node\OctalNode $node): LiteralSet
     {
         return LiteralSet::empty();
     }
@@ -534,11 +511,11 @@ class LiteralExtractorNodeVisitor implements NodeVisitorInterface
      * character. Similar to other character escape nodes, this visitor currently treats
      * them as non-literal for simplicity. It returns an empty `LiteralSet`.
      *
-     * @param OctalLegacyNode $node the `OctalLegacyNode` representing a legacy octal escape
+     * @param Node\OctalLegacyNode $node the `OctalLegacyNode` representing a legacy octal escape
      *
      * @return LiteralSet an empty `LiteralSet`
      */
-    public function visitOctalLegacy(OctalLegacyNode $node): LiteralSet
+    public function visitOctalLegacy(Node\OctalLegacyNode $node): LiteralSet
     {
         return LiteralSet::empty();
     }
@@ -550,11 +527,11 @@ class LiteralExtractorNodeVisitor implements NodeVisitorInterface
      * not a single fixed literal. Therefore, they cannot contribute to a guaranteed
      * literal string, and this method returns an empty `LiteralSet`.
      *
-     * @param PosixClassNode $node the `PosixClassNode` representing a POSIX character class
+     * @param Node\PosixClassNode $node the `PosixClassNode` representing a POSIX character class
      *
      * @return LiteralSet an empty `LiteralSet`
      */
-    public function visitPosixClass(PosixClassNode $node): LiteralSet
+    public function visitPosixClass(Node\PosixClassNode $node): LiteralSet
     {
         return LiteralSet::empty();
     }
@@ -567,11 +544,11 @@ class LiteralExtractorNodeVisitor implements NodeVisitorInterface
      * `LiteralSet` representing an empty string allows them to be correctly integrated
      * into literal sequences.
      *
-     * @param CommentNode $node the `CommentNode` representing an inline comment
+     * @param Node\CommentNode $node the `CommentNode` representing an inline comment
      *
      * @return LiteralSet a `LiteralSet` representing an empty string
      */
-    public function visitComment(CommentNode $node): LiteralSet
+    public function visitComment(Node\CommentNode $node): LiteralSet
     {
         return LiteralSet::fromString('');
     }
@@ -584,11 +561,11 @@ class LiteralExtractorNodeVisitor implements NodeVisitorInterface
      * same literal, no fixed literal can be guaranteed. For simplicity, this visitor
      * treats conditional nodes as non-literal and returns an empty `LiteralSet`.
      *
-     * @param ConditionalNode $node the `ConditionalNode` representing a conditional sub-pattern
+     * @param Node\ConditionalNode $node the `ConditionalNode` representing a conditional sub-pattern
      *
      * @return LiteralSet an empty `LiteralSet`
      */
-    public function visitConditional(ConditionalNode $node): LiteralSet
+    public function visitConditional(Node\ConditionalNode $node): LiteralSet
     {
         return LiteralSet::empty();
     }
@@ -600,11 +577,11 @@ class LiteralExtractorNodeVisitor implements NodeVisitorInterface
      * or recursive. Determining a fixed literal from a subroutine call is complex and
      * beyond the scope of this visitor's simple literal extraction. It returns an empty `LiteralSet`.
      *
-     * @param SubroutineNode $node the `SubroutineNode` representing a subroutine call
+     * @param Node\SubroutineNode $node the `SubroutineNode` representing a subroutine call
      *
      * @return LiteralSet an empty `LiteralSet`
      */
-    public function visitSubroutine(SubroutineNode $node): LiteralSet
+    public function visitSubroutine(Node\SubroutineNode $node): LiteralSet
     {
         return LiteralSet::empty();
     }
@@ -617,11 +594,11 @@ class LiteralExtractorNodeVisitor implements NodeVisitorInterface
      * Returning a `LiteralSet` representing an empty string allows them to be correctly
      * integrated into literal sequences.
      *
-     * @param PcreVerbNode $node the `PcreVerbNode` representing a PCRE verb
+     * @param Node\PcreVerbNode $node the `PcreVerbNode` representing a PCRE verb
      *
      * @return LiteralSet a `LiteralSet` representing an empty string
      */
-    public function visitPcreVerb(PcreVerbNode $node): LiteralSet
+    public function visitPcreVerb(Node\PcreVerbNode $node): LiteralSet
     {
         return LiteralSet::fromString('');
     }
@@ -634,14 +611,19 @@ class LiteralExtractorNodeVisitor implements NodeVisitorInterface
      * itself does not match any text, it cannot contribute to a guaranteed literal string.
      * It returns an empty `LiteralSet`.
      *
-     * @param DefineNode $node The `DefineNode` representing a `(?(DEFINE)...)` block.
+     * @param Node\DefineNode $node The `DefineNode` representing a `(?(DEFINE)...)` block.
      *
      * @return LiteralSet an empty `LiteralSet`
      */
-    public function visitDefine(DefineNode $node): LiteralSet
+    public function visitDefine(Node\DefineNode $node): LiteralSet
     {
         // DEFINE blocks don't produce any literal matches
         return LiteralSet::empty();
+    }
+
+    public function visitLimitMatch(Node\LimitMatchNode $node): LiteralSet
+    {
+        return LiteralSet::fromString('');
     }
 
     /**

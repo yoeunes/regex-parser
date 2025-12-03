@@ -280,8 +280,6 @@ class Lexer
             if (isset($matches[$tokenName])) {
                 $type = TokenType::from(strtolower(substr($tokenName, 2)));
 
-                // --- State Transition Logic ---
-
                 if (TokenType::T_CHAR_CLASS_OPEN === $type) {
                     $this->inCharClass = true;
                     $this->charClassStartPosition = $startPos;

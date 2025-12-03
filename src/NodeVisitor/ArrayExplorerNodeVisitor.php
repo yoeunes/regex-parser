@@ -13,31 +13,8 @@ declare(strict_types=1);
 
 namespace RegexParser\NodeVisitor;
 
-use RegexParser\Node\AlternationNode;
-use RegexParser\Node\AnchorNode;
-use RegexParser\Node\AssertionNode;
-use RegexParser\Node\BackrefNode;
-use RegexParser\Node\CharClassNode;
-use RegexParser\Node\CharTypeNode;
-use RegexParser\Node\CommentNode;
-use RegexParser\Node\ConditionalNode;
-use RegexParser\Node\DefineNode;
-use RegexParser\Node\DotNode;
-use RegexParser\Node\GroupNode;
+use RegexParser\Node;
 use RegexParser\Node\GroupType;
-use RegexParser\Node\KeepNode;
-use RegexParser\Node\LiteralNode;
-use RegexParser\Node\OctalLegacyNode;
-use RegexParser\Node\OctalNode;
-use RegexParser\Node\PcreVerbNode;
-use RegexParser\Node\PosixClassNode;
-use RegexParser\Node\QuantifierNode;
-use RegexParser\Node\RangeNode;
-use RegexParser\Node\RegexNode;
-use RegexParser\Node\SequenceNode;
-use RegexParser\Node\SubroutineNode;
-use RegexParser\Node\UnicodeNode;
-use RegexParser\Node\UnicodePropNode;
 
 /**
  * Transforms the AST into a structured array tree suitable for UI visualization.
@@ -58,7 +35,7 @@ class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * processing its main content. This is useful for displaying the top-level
      * structure of the regex in a UI.
      *
-     * @param RegexNode $node the `RegexNode` representing the entire regular expression
+     * @param Node\RegexNode $node the `RegexNode` representing the entire regular expression
      *
      * @return array<string, mixed> an associative array containing the type, label, detail,
      *                              icon, color, background color, and children (recursively
@@ -77,7 +54,7 @@ class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * // ]
      * ```
      */
-    public function visitRegex(RegexNode $node): array
+    public function visitRegex(Node\RegexNode $node): array
     {
         return [
             'type' => 'Regex',
@@ -98,7 +75,7 @@ class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * It assigns appropriate labels, icons, and colors based on the group's `GroupType`,
      * making it easy to distinguish their purpose in a visual representation.
      *
-     * @param GroupNode $node the `GroupNode` representing a specific grouping construct
+     * @param Node\GroupNode $node the `GroupNode` representing a specific grouping construct
      *
      * @return array<string, mixed> an associative array containing the type, label, icon,
      *                              color, background color, and children (recursively
@@ -118,7 +95,7 @@ class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * // ]
      * ```
      */
-    public function visitGroup(GroupNode $node): array
+    public function visitGroup(Node\GroupNode $node): array
     {
         [$label, $icon, $color, $bg] = match ($node->type) {
             GroupType::T_GROUP_CAPTURING => ['Capturing Group', 'fa-solid fa-brackets-round', 'text-green-600', 'bg-green-50'],
@@ -149,7 +126,7 @@ class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * It extracts the quantifier string (e.g., `*`, `+`, `{1,5}`) and its "greediness" type
      * (greedy, lazy, possessive) to provide a clear description for the UI.
      *
-     * @param QuantifierNode $node the `QuantifierNode` representing a repetition operator
+     * @param Node\QuantifierNode $node the `QuantifierNode` representing a repetition operator
      *
      * @return array<string, mixed> an associative array containing the type, label, detail,
      *                              icon, color, background color, and children (recursively
@@ -169,7 +146,7 @@ class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * // ]
      * ```
      */
-    public function visitQuantifier(QuantifierNode $node): array
+    public function visitQuantifier(Node\QuantifierNode $node): array
     {
         return [
             'type' => 'Quantifier',
@@ -189,7 +166,7 @@ class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * consecutively. It recursively processes all child nodes within the sequence, allowing
      * the UI to display them in their correct order.
      *
-     * @param SequenceNode $node the `SequenceNode` representing a series of regex components
+     * @param Node\SequenceNode $node the `SequenceNode` representing a series of regex components
      *
      * @return array<string, mixed> an associative array containing the type, label, icon,
      *                              color, and children (recursively processed) for UI display
@@ -211,7 +188,7 @@ class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * // ]
      * ```
      */
-    public function visitSequence(SequenceNode $node): array
+    public function visitSequence(Node\SequenceNode $node): array
     {
         return [
             'type' => 'Sequence',
@@ -229,7 +206,7 @@ class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * alternative patterns can match. It recursively processes each alternative, enabling
      * the UI to show branching paths.
      *
-     * @param AlternationNode $node the `AlternationNode` representing a choice between patterns
+     * @param Node\AlternationNode $node the `AlternationNode` representing a choice between patterns
      *
      * @return array<string, mixed> an associative array containing the type, label, icon,
      *                              color, background color, and children (recursively
@@ -251,7 +228,7 @@ class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * // ]
      * ```
      */
-    public function visitAlternation(AlternationNode $node): array
+    public function visitAlternation(Node\AlternationNode $node): array
     {
         return [
             'type' => 'Alternation',
@@ -270,7 +247,7 @@ class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * the literal value for display, including handling special characters like newlines
      * for better readability in the UI.
      *
-     * @param LiteralNode $node the `LiteralNode` representing a literal character or string
+     * @param Node\LiteralNode $node the `LiteralNode` representing a literal character or string
      *
      * @return array<string, mixed> an associative array containing the type, label, detail,
      *                              icon, color, and a `isLeaf` flag for UI display
@@ -289,7 +266,7 @@ class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * // ]
      * ```
      */
-    public function visitLiteral(LiteralNode $node): array
+    public function visitLiteral(Node\LiteralNode $node): array
     {
         return [
             'type' => 'Literal',
@@ -308,7 +285,7 @@ class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * if the class is negated and assigns appropriate labels, icons, and colors to clearly
      * convey its meaning in the UI.
      *
-     * @param CharClassNode $node the `CharClassNode` representing a character class
+     * @param Node\CharClassNode $node the `CharClassNode` representing a character class
      *
      * @return array<string, mixed> an associative array containing the type, label, icon,
      *                              color, background color, and children (recursively
@@ -328,7 +305,7 @@ class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * // ]
      * ```
      */
-    public function visitCharClass(CharClassNode $node): array
+    public function visitCharClass(Node\CharClassNode $node): array
     {
         $label = $node->isNegated ? 'Negative Character Set [^...]' : 'Character Set [...]';
 
@@ -349,7 +326,7 @@ class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * It processes the start and end characters of the range, providing a clear representation
      * of the inclusive character set.
      *
-     * @param RangeNode $node the `RangeNode` representing a character range
+     * @param Node\RangeNode $node the `RangeNode` representing a character range
      *
      * @return array<string, mixed> an associative array containing the type, label, icon,
      *                              color, and children (recursively processed) for UI display
@@ -371,7 +348,7 @@ class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * // ]
      * ```
      */
-    public function visitRange(RangeNode $node): array
+    public function visitRange(Node\RangeNode $node): array
     {
         return [
             'type' => 'Range',
@@ -392,7 +369,7 @@ class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * It provides a human-readable description of what the character type matches, enhancing clarity
      * in the UI.
      *
-     * @param CharTypeNode $node the `CharTypeNode` representing a predefined character type
+     * @param Node\CharTypeNode $node the `CharTypeNode` representing a predefined character type
      *
      * @return array<string, mixed> an associative array containing the type, label, detail,
      *                              icon, color, and a `isLeaf` flag for UI display
@@ -411,7 +388,7 @@ class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * // ]
      * ```
      */
-    public function visitCharType(CharTypeNode $node): array
+    public function visitCharType(Node\CharTypeNode $node): array
     {
         $map = [
             'd' => 'Digit (0-9)', 'D' => 'Not Digit',
@@ -436,7 +413,7 @@ class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * description indicating that it matches "any character" (with caveats depending on flags),
      * which is helpful for understanding its broad matching capability.
      *
-     * @param DotNode $node the `DotNode` representing the wildcard dot character
+     * @param Node\DotNode $node the `DotNode` representing the wildcard dot character
      *
      * @return array<string, mixed> an associative array containing the type, label, detail,
      *                              icon, color, and a `isLeaf` flag for UI display
@@ -455,7 +432,7 @@ class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * // ]
      * ```
      */
-    public function visitDot(DotNode $node): array
+    public function visitDot(Node\DotNode $node): array
     {
         return [
             'type' => 'Dot',
@@ -474,7 +451,7 @@ class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * It provides a clear description of what position the anchor asserts, which is crucial for
      * understanding boundary matching.
      *
-     * @param AnchorNode $node the `AnchorNode` representing a positional anchor
+     * @param Node\AnchorNode $node the `AnchorNode` representing a positional anchor
      *
      * @return array<string, mixed> an associative array containing the type, label, detail,
      *                              icon, color, and a `isLeaf` flag for UI display
@@ -493,7 +470,7 @@ class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * // ]
      * ```
      */
-    public function visitAnchor(AnchorNode $node): array
+    public function visitAnchor(Node\AnchorNode $node): array
     {
         $map = ['^' => 'Start of Line', '$' => 'End of Line', '\A' => 'Start of String', '\z' => 'End of String'];
 
@@ -513,7 +490,7 @@ class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * Purpose: This method visualizes zero-width assertions like `\b` (word boundary) or `\A` (start of subject).
      * It displays the assertion value, helping users understand conditions that must be met without consuming characters.
      *
-     * @param AssertionNode $node the `AssertionNode` representing a zero-width assertion
+     * @param Node\AssertionNode $node the `AssertionNode` representing a zero-width assertion
      *
      * @return array<string, mixed> an associative array containing the type, label, detail,
      *                              icon, color, and a `isLeaf` flag for UI display
@@ -532,7 +509,7 @@ class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * // ]
      * ```
      */
-    public function visitAssertion(AssertionNode $node): array
+    public function visitAssertion(Node\AssertionNode $node): array
     {
         return [
             'type' => 'Assertion',
@@ -551,7 +528,7 @@ class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * indicates which group is being referenced (by number or name), which is essential for
      * understanding patterns that match repeated text.
      *
-     * @param BackrefNode $node the `BackrefNode` representing a backreference
+     * @param Node\BackrefNode $node the `BackrefNode` representing a backreference
      *
      * @return array<string, mixed> an associative array containing the type, label, detail,
      *                              icon, color, and a `isLeaf` flag for UI display
@@ -570,7 +547,7 @@ class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * // ]
      * ```
      */
-    public function visitBackref(BackrefNode $node): array
+    public function visitBackref(Node\BackrefNode $node): array
     {
         return [
             'type' => 'Backref',
@@ -589,7 +566,7 @@ class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * It displays the code, helping users understand the exact character being matched, especially
      * for non-ASCII characters.
      *
-     * @param UnicodeNode $node the `UnicodeNode` representing a Unicode character escape
+     * @param Node\UnicodeNode $node the `UnicodeNode` representing a Unicode character escape
      *
      * @return array<string, mixed> an associative array containing the type, label, detail,
      *                              icon, color, and a `isLeaf` flag for UI display
@@ -608,7 +585,7 @@ class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * // ]
      * ```
      */
-    public function visitUnicode(UnicodeNode $node): array
+    public function visitUnicode(Node\UnicodeNode $node): array
     {
         return [
             'type' => 'Unicode',
@@ -627,7 +604,7 @@ class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * It displays the property name, allowing users to understand character matching based on
      * Unicode categories.
      *
-     * @param UnicodePropNode $node the `UnicodePropNode` representing a Unicode property
+     * @param Node\UnicodePropNode $node the `UnicodePropNode` representing a Unicode property
      *
      * @return array<string, mixed> an associative array containing the type, label, detail,
      *                              icon, color, and a `isLeaf` flag for UI display
@@ -646,7 +623,7 @@ class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * // ]
      * ```
      */
-    public function visitUnicodeProp(UnicodePropNode $node): array
+    public function visitUnicodeProp(Node\UnicodePropNode $node): array
     {
         return [
             'type' => 'UnicodeProp',
@@ -664,7 +641,7 @@ class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * Purpose: This method visualizes modern octal character escapes (e.g., `\o{101}`).
      * It uses a generic leaf representation to display the octal code.
      *
-     * @param OctalNode $node the `OctalNode` representing a modern octal escape
+     * @param Node\OctalNode $node the `OctalNode` representing a modern octal escape
      *
      * @return array<string, mixed> an associative array containing the type, label, detail,
      *                              icon, color, and a `isLeaf` flag for UI display
@@ -683,7 +660,7 @@ class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * // ]
      * ```
      */
-    public function visitOctal(OctalNode $node): array
+    public function visitOctal(Node\OctalNode $node): array
     {
         return $this->genericLeaf('Octal', $node->code);
     }
@@ -695,7 +672,7 @@ class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * It uses a generic leaf representation to display the octal code, highlighting
      * its legacy nature.
      *
-     * @param OctalLegacyNode $node the `OctalLegacyNode` representing a legacy octal escape
+     * @param Node\OctalLegacyNode $node the `OctalLegacyNode` representing a legacy octal escape
      *
      * @return array<string, mixed> an associative array containing the type, label, detail,
      *                              icon, color, and a `isLeaf` flag for UI display
@@ -714,7 +691,7 @@ class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * // ]
      * ```
      */
-    public function visitOctalLegacy(OctalLegacyNode $node): array
+    public function visitOctalLegacy(Node\OctalLegacyNode $node): array
     {
         return $this->genericLeaf('Legacy Octal', $node->code);
     }
@@ -726,7 +703,7 @@ class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * It displays the class name, providing a clear representation of these predefined
      * character sets.
      *
-     * @param PosixClassNode $node the `PosixClassNode` representing a POSIX character class
+     * @param Node\PosixClassNode $node the `PosixClassNode` representing a POSIX character class
      *
      * @return array<string, mixed> an associative array containing the type, label, detail,
      *                              icon, color, and a `isLeaf` flag for UI display
@@ -745,7 +722,7 @@ class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * // ]
      * ```
      */
-    public function visitPosixClass(PosixClassNode $node): array
+    public function visitPosixClass(Node\PosixClassNode $node): array
     {
         return [
             'type' => 'PosixClass',
@@ -764,7 +741,7 @@ class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * don't affect matching, displaying them helps in understanding the original author's
      * intent and provides context for complex patterns.
      *
-     * @param CommentNode $node the `CommentNode` representing an inline comment
+     * @param Node\CommentNode $node the `CommentNode` representing an inline comment
      *
      * @return array<string, mixed> an associative array containing the type, label, detail,
      *                              icon, color, and a `isLeaf` flag for UI display
@@ -783,7 +760,7 @@ class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * // ]
      * ```
      */
-    public function visitComment(CommentNode $node): array
+    public function visitComment(Node\CommentNode $node): array
     {
         return [
             'type' => 'Comment',
@@ -802,7 +779,7 @@ class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * It clearly separates the condition, the "if true" branch, and the "if false" branch,
      * making complex branching patterns easier to understand.
      *
-     * @param ConditionalNode $node the `ConditionalNode` representing a conditional sub-pattern
+     * @param Node\ConditionalNode $node the `ConditionalNode` representing a conditional sub-pattern
      *
      * @return array<string, mixed> an associative array containing the type, label, icon,
      *                              color, background color, and children (recursively
@@ -825,7 +802,7 @@ class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * // ]
      * ```
      */
-    public function visitConditional(ConditionalNode $node): array
+    public function visitConditional(Node\ConditionalNode $node): array
     {
         return [
             'type' => 'Conditional',
@@ -848,7 +825,7 @@ class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * reference (e.g., group number or name) of the pattern being called, helping to
      * understand recursive or reused patterns.
      *
-     * @param SubroutineNode $node the `SubroutineNode` representing a subroutine call
+     * @param Node\SubroutineNode $node the `SubroutineNode` representing a subroutine call
      *
      * @return array<string, mixed> an associative array containing the type, label, detail,
      *                              icon, color, and a `isLeaf` flag for UI display
@@ -867,7 +844,7 @@ class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * // ]
      * ```
      */
-    public function visitSubroutine(SubroutineNode $node): array
+    public function visitSubroutine(Node\SubroutineNode $node): array
     {
         return [
             'type' => 'Subroutine',
@@ -886,7 +863,7 @@ class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * It displays the verb, providing insight into how the regex engine's backtracking
      * behavior is being manipulated.
      *
-     * @param PcreVerbNode $node the `PcreVerbNode` representing a PCRE verb
+     * @param Node\PcreVerbNode $node the `PcreVerbNode` representing a PCRE verb
      *
      * @return array<string, mixed> an associative array containing the type, label, detail,
      *                              icon, color, and a `isLeaf` flag for UI display
@@ -905,7 +882,7 @@ class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * // ]
      * ```
      */
-    public function visitPcreVerb(PcreVerbNode $node): array
+    public function visitPcreVerb(Node\PcreVerbNode $node): array
     {
         return [
             'type' => 'PcreVerb',
@@ -924,7 +901,7 @@ class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * named sub-patterns for later reuse. It processes the content of the define block,
      * helping to understand the library of patterns available.
      *
-     * @param DefineNode $node The `DefineNode` representing a `(?(DEFINE)...)` block.
+     * @param Node\DefineNode $node The `DefineNode` representing a `(?(DEFINE)...)` block.
      *
      * @return array<string, mixed> an associative array containing the type, label, icon,
      *                              color, and children (recursively processed) for UI display
@@ -942,7 +919,7 @@ class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * // ]
      * ```
      */
-    public function visitDefine(DefineNode $node): array
+    public function visitDefine(Node\DefineNode $node): array
     {
         return [
             'type' => 'Define',
@@ -960,7 +937,7 @@ class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * match start position is reset at this point, which is important for understanding
      * how the final matched string is determined.
      *
-     * @param KeepNode $node the `KeepNode` representing the `\K` assertion
+     * @param Node\KeepNode $node the `KeepNode` representing the `\K` assertion
      *
      * @return array<string, mixed> an associative array containing the type, label, detail,
      *                              icon, color, and a `isLeaf` flag for UI display
@@ -979,7 +956,7 @@ class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * // ]
      * ```
      */
-    public function visitKeep(KeepNode $node): array
+    public function visitKeep(Node\KeepNode $node): array
     {
         return [
             'type' => 'Keep',
@@ -987,6 +964,18 @@ class ArrayExplorerNodeVisitor implements NodeVisitorInterface
             'detail' => 'Reset match start',
             'icon' => 'fa-solid fa-scissors',
             'color' => 'text-orange-500',
+            'isLeaf' => true,
+        ];
+    }
+
+    public function visitLimitMatch(Node\LimitMatchNode $node): array
+    {
+        return [
+            'type' => 'LimitMatch',
+            'label' => 'Match Limit',
+            'detail' => '(*LIMIT_MATCH='.$node->limit.')',
+            'icon' => 'fa-solid fa-gauge-high',
+            'color' => 'text-red-500',
             'isLeaf' => true,
         ];
     }

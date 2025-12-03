@@ -13,31 +13,8 @@ declare(strict_types=1);
 
 namespace RegexParser\NodeVisitor;
 
-use RegexParser\Node\AlternationNode;
-use RegexParser\Node\AnchorNode;
-use RegexParser\Node\AssertionNode;
-use RegexParser\Node\BackrefNode;
-use RegexParser\Node\CharClassNode;
-use RegexParser\Node\CharTypeNode;
-use RegexParser\Node\CommentNode;
-use RegexParser\Node\ConditionalNode;
-use RegexParser\Node\DefineNode;
-use RegexParser\Node\DotNode;
-use RegexParser\Node\GroupNode;
+use RegexParser\Node;
 use RegexParser\Node\GroupType;
-use RegexParser\Node\KeepNode;
-use RegexParser\Node\LiteralNode;
-use RegexParser\Node\OctalLegacyNode;
-use RegexParser\Node\OctalNode;
-use RegexParser\Node\PcreVerbNode;
-use RegexParser\Node\PosixClassNode;
-use RegexParser\Node\QuantifierNode;
-use RegexParser\Node\RangeNode;
-use RegexParser\Node\RegexNode;
-use RegexParser\Node\SequenceNode;
-use RegexParser\Node\SubroutineNode;
-use RegexParser\Node\UnicodeNode;
-use RegexParser\Node\UnicodePropNode;
 
 /**
  * A visitor that generates a random sample string that matches the AST.
@@ -115,7 +92,7 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * to ensure a clean generation for each new regex. It then delegates the actual
      * string generation to the root pattern of the regex.
      *
-     * @param RegexNode $node the `RegexNode` representing the entire regular expression
+     * @param Node\RegexNode $node the `RegexNode` representing the entire regular expression
      *
      * @return string a sample string that matches the given regular expression
      *
@@ -126,7 +103,7 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * $sample = $regexNode->accept($visitor); // $sample could be "hello"
      * ```
      */
-    public function visitRegex(RegexNode $node): string
+    public function visitRegex(Node\RegexNode $node): string
     {
         // Reset state for this run
         $this->captures = [];
@@ -150,7 +127,7 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * from it. This ensures that the generated sample adheres to the branching logic
      * of the regex.
      *
-     * @param AlternationNode $node the `AlternationNode` representing a choice between patterns
+     * @param Node\AlternationNode $node the `AlternationNode` representing a choice between patterns
      *
      * @throws \RuntimeException If the alternation node has no alternatives (e.g., `(|)`).
      *
@@ -162,7 +139,7 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * $alternationNode->accept($visitor); // Could return "apple", "banana", or "orange"
      * ```
      */
-    public function visitAlternation(AlternationNode $node): string
+    public function visitAlternation(Node\AlternationNode $node): string
     {
         if (empty($node->alternatives)) {
             return '';
@@ -182,7 +159,7 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * It recursively generates a sample string for each child node in the sequence and
      * then joins them together in order, forming a complete sample for that part of the regex.
      *
-     * @param SequenceNode $node the `SequenceNode` representing a series of regex components
+     * @param Node\SequenceNode $node the `SequenceNode` representing a series of regex components
      *
      * @return string a sample string formed by concatenating the samples of its children
      *
@@ -192,7 +169,7 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * $sequenceNode->accept($visitor); // Returns "foo"
      * ```
      */
-    public function visitSequence(SequenceNode $node): string
+    public function visitSequence(Node\SequenceNode $node): string
     {
         $parts = array_map(fn ($child) => $child->accept($this), $node->children);
 
@@ -207,7 +184,7 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * zero-width assertions, do not generate any text. For capturing and named groups, it
      * stores the generated content so it can be referenced later by backreferences.
      *
-     * @param GroupNode $node the `GroupNode` representing a specific grouping construct
+     * @param Node\GroupNode $node the `GroupNode` representing a specific grouping construct
      *
      * @return string a sample string generated from the group's content, or an empty string
      *                if it's a zero-width assertion
@@ -224,7 +201,7 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * $groupNode->accept($visitor); // Returns "" (empty string)
      * ```
      */
-    public function visitGroup(GroupNode $node): string
+    public function visitGroup(Node\GroupNode $node): string
     {
         // Lookarounds are zero-width assertions and should not generate text
         if (\in_array($node->type, [
@@ -260,7 +237,7 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * quantifier, then randomly selects a number within that range (respecting `maxRepetition`).
      * The child node is then visited that many times, and its generated samples are concatenated.
      *
-     * @param QuantifierNode $node the `QuantifierNode` representing a repetition operator
+     * @param Node\QuantifierNode $node the `QuantifierNode` representing a repetition operator
      *
      * @return string a sample string formed by repeating the quantified element
      *
@@ -273,7 +250,7 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * $quantifierNode->accept($visitor); // Could return "", "b", "bb", or "bbb"
      * ```
      */
-    public function visitQuantifier(QuantifierNode $node): string
+    public function visitQuantifier(Node\QuantifierNode $node): string
     {
         [$min, $max] = $this->parseQuantifierRange($node->quantifier);
 
@@ -301,7 +278,7 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * or string (e.g., `a`, `hello`) is encountered, its exact value is returned
      * as the sample, as it matches itself directly.
      *
-     * @param LiteralNode $node the `LiteralNode` representing a literal character or string
+     * @param Node\LiteralNode $node the `LiteralNode` representing a literal character or string
      *
      * @return string the literal value of the node
      *
@@ -311,7 +288,7 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * $literalNode->accept($visitor); // Returns "x"
      * ```
      */
-    public function visitLiteral(LiteralNode $node): string
+    public function visitLiteral(Node\LiteralNode $node): string
     {
         return $node->value;
     }
@@ -324,7 +301,7 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * random character that satisfies the criteria of the character type, providing
      * a realistic sample.
      *
-     * @param CharTypeNode $node the `CharTypeNode` representing a predefined character type
+     * @param Node\CharTypeNode $node the `CharTypeNode` representing a predefined character type
      *
      * @return string a single character that matches the specified character type
      *
@@ -337,7 +314,7 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * $charTypeNode->accept($visitor); // Could return " ", "\t", "\n", etc.
      * ```
      */
-    public function visitCharType(CharTypeNode $node): string
+    public function visitCharType(Node\CharTypeNode $node): string
     {
         return $this->generateForCharType($node->value);
     }
@@ -349,7 +326,7 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * This method generates a simple, printable ASCII character as a sample,
      * representing the broad matching capability of the dot.
      *
-     * @param DotNode $node the `DotNode` representing the wildcard dot character
+     * @param Node\DotNode $node the `DotNode` representing the wildcard dot character
      *
      * @return string A single, generic character (e.g., 'a', '1', ' ').
      *
@@ -359,7 +336,7 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * $dotNode->accept($visitor); // Could return "a", "1", " ", etc.
      * ```
      */
-    public function visitDot(DotNode $node): string
+    public function visitDot(Node\DotNode $node): string
     {
         // Generate a random, simple, printable ASCII char
         return $this->getRandomChar(['a', 'b', 'c', '1', '2', '3', ' ']);
@@ -373,7 +350,7 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * this method always returns an empty string, as anchors contribute no literal
      * text to the sample.
      *
-     * @param AnchorNode $node the `AnchorNode` representing a positional anchor
+     * @param Node\AnchorNode $node the `AnchorNode` representing a positional anchor
      *
      * @return string an empty string
      *
@@ -383,7 +360,7 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * $anchorNode->accept($visitor); // Returns ""
      * ```
      */
-    public function visitAnchor(AnchorNode $node): string
+    public function visitAnchor(Node\AnchorNode $node): string
     {
         // Anchors do not generate text
         return '';
@@ -397,7 +374,7 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * Consequently, this method always returns an empty string, as assertions do not
      * contribute literal text to the generated sample.
      *
-     * @param AssertionNode $node the `AssertionNode` representing a zero-width assertion
+     * @param Node\AssertionNode $node the `AssertionNode` representing a zero-width assertion
      *
      * @return string an empty string
      *
@@ -407,7 +384,7 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * $assertionNode->accept($visitor); // Returns ""
      * ```
      */
-    public function visitAssertion(AssertionNode $node): string
+    public function visitAssertion(Node\AssertionNode $node): string
     {
         // Assertions do not generate text
         return '';
@@ -420,7 +397,7 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * influences the final matched string, it does not itself consume characters
      * or add literal text to the pattern. Thus, this method returns an empty string.
      *
-     * @param KeepNode $node the `KeepNode` representing the `\K` assertion
+     * @param Node\KeepNode $node the `KeepNode` representing the `\K` assertion
      *
      * @return string an empty string
      *
@@ -430,7 +407,7 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * $keepNode->accept($visitor); // Returns ""
      * ```
      */
-    public function visitKeep(KeepNode $node): string
+    public function visitKeep(Node\KeepNode $node): string
     {
         // \K does not generate text
         return '';
@@ -445,7 +422,7 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * character classes, it returns a safe, generic character as generating a
      * truly random character *not* in the set is complex and context-dependent.
      *
-     * @param CharClassNode $node the `CharClassNode` representing a character class
+     * @param Node\CharClassNode $node the `CharClassNode` representing a character class
      *
      * @throws \RuntimeException If attempting to generate a sample for an empty character class (e.g., `[]`).
      *
@@ -460,7 +437,7 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * $charClassNode->accept($visitor); // Returns "!" (a safe fallback)
      * ```
      */
-    public function visitCharClass(CharClassNode $node): string
+    public function visitCharClass(Node\CharClassNode $node): string
     {
         if ($node->isNegated) {
             // Generating for a negated class is complex.
@@ -489,7 +466,7 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * This method generates a random character whose ASCII (or Unicode) ordinal value falls
      * inclusively between the start and end characters of the range.
      *
-     * @param RangeNode $node the `RangeNode` representing a character range
+     * @param Node\RangeNode $node the `RangeNode` representing a character range
      *
      * @return string a single character within the specified range
      *
@@ -499,9 +476,9 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * $rangeNode->accept($visitor); // Could return "A", "M", "Z", etc.
      * ```
      */
-    public function visitRange(RangeNode $node): string
+    public function visitRange(Node\RangeNode $node): string
     {
-        if (!$node->start instanceof LiteralNode || !$node->end instanceof LiteralNode) {
+        if (!$node->start instanceof Node\LiteralNode || !$node->end instanceof Node\LiteralNode) {
             // Should be caught by Validator, but good to check
             return $node->start->accept($this);
         }
@@ -526,7 +503,7 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * content using the backreference's identifier (numeric or named) and returns it.
      * If the group hasn't captured anything yet or doesn't exist, it returns an empty string.
      *
-     * @param BackrefNode $node the `BackrefNode` representing a backreference
+     * @param Node\BackrefNode $node the `BackrefNode` representing a backreference
      *
      * @return string the captured string from the referenced group, or an empty string
      *                if the group has not captured anything or does not exist
@@ -538,7 +515,7 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * $backrefNode->accept($visitor); // Returns the content of the referenced group
      * ```
      */
-    public function visitBackref(BackrefNode $node): string
+    public function visitBackref(Node\BackrefNode $node): string
     {
         $ref = $node->ref;
 
@@ -575,7 +552,7 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * Unicode character, ensuring that the generated sample correctly represents the
      * specified character.
      *
-     * @param UnicodeNode $node the `UnicodeNode` representing a Unicode character escape
+     * @param Node\UnicodeNode $node the `UnicodeNode` representing a Unicode character escape
      *
      * @return string the Unicode character corresponding to the node's code, or '?' as a fallback
      *
@@ -585,7 +562,7 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * $unicodeNode->accept($visitor); // Returns "☃"
      * ```
      */
-    public function visitUnicode(UnicodeNode $node): string
+    public function visitUnicode(Node\UnicodeNode $node): string
     {
         if (preg_match('/^\\\\x([0-9a-fA-F]{2})$/', $node->code, $m)) {
             return \chr((int) hexdec($m[1]));
@@ -606,7 +583,7 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * Unicode property is extremely complex, this method provides a known-good, representative
      * sample character for common properties.
      *
-     * @param UnicodePropNode $node the `UnicodePropNode` representing a Unicode property
+     * @param Node\UnicodePropNode $node the `UnicodePropNode` representing a Unicode property
      *
      * @return string a single character that is representative of the specified Unicode property
      *
@@ -619,7 +596,7 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * $unicodePropNode->accept($visitor); // Could return "1", "2", "3", etc.
      * ```
      */
-    public function visitUnicodeProp(UnicodePropNode $node): string
+    public function visitUnicodeProp(Node\UnicodePropNode $node): string
     {
         // Too complex to generate a *random* char for a property.
         // Return a known-good sample.
@@ -643,7 +620,7 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * It converts the octal string into its corresponding character, allowing the
      * sample generator to correctly interpret and represent these specific characters.
      *
-     * @param OctalNode $node the `OctalNode` representing a modern octal escape
+     * @param Node\OctalNode $node the `OctalNode` representing a modern octal escape
      *
      * @return string the character represented by the octal code, or '?' as a fallback
      *
@@ -653,7 +630,7 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * $octalNode->accept($visitor); // Returns "A"
      * ```
      */
-    public function visitOctal(OctalNode $node): string
+    public function visitOctal(Node\OctalNode $node): string
     {
         if (preg_match('/^\\\\o\{([0-7]+)\}$/', $node->code, $m)) {
             return mb_chr((int) octdec($m[1]), 'UTF-8');
@@ -669,7 +646,7 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * It converts the octal string into its corresponding character, ensuring compatibility
      * with older regex syntax for character representation.
      *
-     * @param OctalLegacyNode $node the `OctalLegacyNode` representing a legacy octal escape
+     * @param Node\OctalLegacyNode $node the `OctalLegacyNode` representing a legacy octal escape
      *
      * @return string the character represented by the legacy octal code
      *
@@ -679,7 +656,7 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * $octalLegacyNode->accept($visitor); // Returns "\n"
      * ```
      */
-    public function visitOctalLegacy(OctalLegacyNode $node): string
+    public function visitOctalLegacy(Node\OctalLegacyNode $node): string
     {
         return mb_chr((int) octdec($node->code), 'UTF-8');
     }
@@ -691,7 +668,7 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * It provides a representative sample character for each common POSIX class, allowing
      * the sample generator to produce valid characters for these predefined sets.
      *
-     * @param PosixClassNode $node the `PosixClassNode` representing a POSIX character class
+     * @param Node\PosixClassNode $node the `PosixClassNode` representing a POSIX character class
      *
      * @return string a single character that matches the specified POSIX class
      *
@@ -704,7 +681,7 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * $posixClassNode->accept($visitor); // Could return "a", "B", "z", etc.
      * ```
      */
-    public function visitPosixClass(PosixClassNode $node): string
+    public function visitPosixClass(Node\PosixClassNode $node): string
     {
         return match (strtolower($node->class)) {
             'alpha' => $this->getRandomChar(['a', 'b', 'C', 'Z']),
@@ -730,7 +707,7 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * during matching. Similarly, this visitor ignores them during sample generation,
      * as they do not contribute to the actual string that matches the pattern.
      *
-     * @param CommentNode $node the `CommentNode` representing an inline comment
+     * @param Node\CommentNode $node the `CommentNode` representing an inline comment
      *
      * @return string an empty string
      *
@@ -740,7 +717,7 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * $commentNode->accept($visitor); // Returns ""
      * ```
      */
-    public function visitComment(CommentNode $node): string
+    public function visitComment(Node\CommentNode $node): string
     {
         // Comments do not generate text
         return '';
@@ -754,7 +731,7 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * has captured), this method simplifies by randomly choosing to generate a sample
      * from either the "if true" branch or the "if false" branch.
      *
-     * @param ConditionalNode $node the `ConditionalNode` representing a conditional sub-pattern
+     * @param Node\ConditionalNode $node the `ConditionalNode` representing a conditional sub-pattern
      *
      * @return string a sample string generated from either the 'yes' or 'no' branch
      *
@@ -764,7 +741,7 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * $conditionalNode->accept($visitor); // Could return "foo" or "bar"
      * ```
      */
-    public function visitConditional(ConditionalNode $node): string
+    public function visitConditional(Node\ConditionalNode $node): string
     {
         // This is complex. Does the condition (e.g., group 1) exist?
         // We'll randomly choose to satisfy the condition or not.
@@ -792,11 +769,11 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * Therefore, this method explicitly throws an exception to indicate that this advanced
      * feature is not supported for sample generation.
      *
-     * @param SubroutineNode $node the `SubroutineNode` representing a subroutine call
+     * @param Node\SubroutineNode $node the `SubroutineNode` representing a subroutine call
      *
      * @throws \LogicException always throws an exception as subroutine sample generation is not supported
      */
-    public function visitSubroutine(SubroutineNode $node): string
+    public function visitSubroutine(Node\SubroutineNode $node): string
     {
         // Recursive generation is a deep computer science problem
         // (can lead to infinite loops). Safest to throw.
@@ -811,7 +788,7 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * As such, this method returns an empty string, as these verbs do not contribute to the
      * generated sample string.
      *
-     * @param PcreVerbNode $node the `PcreVerbNode` representing a PCRE verb
+     * @param Node\PcreVerbNode $node the `PcreVerbNode` representing a PCRE verb
      *
      * @return string an empty string
      *
@@ -821,7 +798,7 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * $pcreVerbNode->accept($visitor); // Returns ""
      * ```
      */
-    public function visitPcreVerb(PcreVerbNode $node): string
+    public function visitPcreVerb(Node\PcreVerbNode $node): string
     {
         // Verbs do not generate text
         return '';
@@ -835,7 +812,7 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * and is ignored by the regex engine during a normal match attempt. Therefore,
      * this method returns an empty string, as it does not contribute to the sample.
      *
-     * @param DefineNode $node The `DefineNode` representing a `(?(DEFINE)...)` block.
+     * @param Node\DefineNode $node The `DefineNode` representing a `(?(DEFINE)...)` block.
      *
      * @return string an empty string
      *
@@ -845,9 +822,14 @@ class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * $defineNode->accept($visitor); // Returns ""
      * ```
      */
-    public function visitDefine(DefineNode $node): string
+    public function visitDefine(Node\DefineNode $node): string
     {
         // DEFINE blocks do not generate text, they only define subpatterns
+        return '';
+    }
+
+    public function visitLimitMatch(Node\LimitMatchNode $node): string
+    {
         return '';
     }
 

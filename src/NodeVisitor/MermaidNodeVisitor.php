@@ -13,30 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\NodeVisitor;
 
-use RegexParser\Node\AlternationNode;
-use RegexParser\Node\AnchorNode;
-use RegexParser\Node\AssertionNode;
-use RegexParser\Node\BackrefNode;
-use RegexParser\Node\CharClassNode;
-use RegexParser\Node\CharTypeNode;
-use RegexParser\Node\CommentNode;
-use RegexParser\Node\ConditionalNode;
-use RegexParser\Node\DefineNode;
-use RegexParser\Node\DotNode;
-use RegexParser\Node\GroupNode;
-use RegexParser\Node\KeepNode;
-use RegexParser\Node\LiteralNode;
-use RegexParser\Node\OctalLegacyNode;
-use RegexParser\Node\OctalNode;
-use RegexParser\Node\PcreVerbNode;
-use RegexParser\Node\PosixClassNode;
-use RegexParser\Node\QuantifierNode;
-use RegexParser\Node\RangeNode;
-use RegexParser\Node\RegexNode;
-use RegexParser\Node\SequenceNode;
-use RegexParser\Node\SubroutineNode;
-use RegexParser\Node\UnicodeNode;
-use RegexParser\Node\UnicodePropNode;
+use RegexParser\Node;
 
 /**
  * Generates a Mermaid.js flowchart to visualize the regex structure.
@@ -67,11 +44,11 @@ class MermaidNodeVisitor implements NodeVisitorInterface
      * regex (including its flags), and then recursively calls the visitor on the
      * main pattern.
      *
-     * @param RegexNode $node the root node of the AST
+     * @param Node\RegexNode $node the root node of the AST
      *
      * @return string The complete Mermaid.js graph definition.
      */
-    public function visitRegex(RegexNode $node): string
+    public function visitRegex(Node\RegexNode $node): string
     {
         $this->nodeCounter = 0;
         $this->lines = [];
@@ -94,11 +71,11 @@ class MermaidNodeVisitor implements NodeVisitorInterface
      * and then draws arrows from it to each of its alternative branches, clearly
      * visualizing the "either/or" logic.
      *
-     * @param AlternationNode $node the alternation node to visualize
+     * @param Node\AlternationNode $node the alternation node to visualize
      *
      * @return string the unique ID of the generated graph node
      */
-    public function visitAlternation(AlternationNode $node): string
+    public function visitAlternation(Node\AlternationNode $node): string
     {
         $nodeId = $this->nextNodeId();
         $this->lines[] = \sprintf('    %s{"Alternation"}', $nodeId);
@@ -117,11 +94,11 @@ class MermaidNodeVisitor implements NodeVisitorInterface
      * Purpose: This method creates a "Sequence" node and then draws arrows to each
      * of its children in order, visualizing the sequential nature of the components.
      *
-     * @param SequenceNode $node the sequence node to visualize
+     * @param Node\SequenceNode $node the sequence node to visualize
      *
      * @return string the unique ID of the generated graph node
      */
-    public function visitSequence(SequenceNode $node): string
+    public function visitSequence(Node\SequenceNode $node): string
     {
         $nodeId = $this->nextNodeId();
         $this->lines[] = \sprintf('    %s["Sequence"]', $nodeId);
@@ -141,11 +118,11 @@ class MermaidNodeVisitor implements NodeVisitorInterface
      * type (e.g., capturing, lookahead) and name, and then connects it to the
      * subgraph representing the group's contents.
      *
-     * @param GroupNode $node the group node to visualize
+     * @param Node\GroupNode $node the group node to visualize
      *
      * @return string the unique ID of the generated graph node
      */
-    public function visitGroup(GroupNode $node): string
+    public function visitGroup(Node\GroupNode $node): string
     {
         $nodeId = $this->nextNodeId();
         $label = \sprintf('Group: %s', $node->type->value);
@@ -164,11 +141,11 @@ class MermaidNodeVisitor implements NodeVisitorInterface
      * Purpose: This method creates a node representing a quantifier (e.g., `*`, `+`),
      * and connects it to the node that it modifies.
      *
-     * @param QuantifierNode $node the quantifier node to visualize
+     * @param Node\QuantifierNode $node the quantifier node to visualize
      *
      * @return string the unique ID of the generated graph node
      */
-    public function visitQuantifier(QuantifierNode $node): string
+    public function visitQuantifier(Node\QuantifierNode $node): string
     {
         $nodeId = $this->nextNodeId();
         $label = \sprintf('Quantifier: %s', $node->quantifier);
@@ -185,11 +162,11 @@ class MermaidNodeVisitor implements NodeVisitorInterface
      *
      * Purpose: This method creates a simple node representing a literal character or string.
      *
-     * @param LiteralNode $node the literal node to visualize
+     * @param Node\LiteralNode $node the literal node to visualize
      *
      * @return string the unique ID of the generated graph node
      */
-    public function visitLiteral(LiteralNode $node): string
+    public function visitLiteral(Node\LiteralNode $node): string
     {
         $nodeId = $this->nextNodeId();
         $value = '' === $node->value ? '(empty)' : $node->value;
@@ -203,11 +180,11 @@ class MermaidNodeVisitor implements NodeVisitorInterface
      *
      * Purpose: This method creates a node for a character type like `\d` or `\s`.
      *
-     * @param CharTypeNode $node the character type node to visualize
+     * @param Node\CharTypeNode $node the character type node to visualize
      *
      * @return string the unique ID of the generated graph node
      */
-    public function visitCharType(CharTypeNode $node): string
+    public function visitCharType(Node\CharTypeNode $node): string
     {
         $nodeId = $this->nextNodeId();
         $this->lines[] = \sprintf('    %s["CharType: \\%s"]', $nodeId, $this->escape($node->value));
@@ -220,11 +197,11 @@ class MermaidNodeVisitor implements NodeVisitorInterface
      *
      * Purpose: This method creates a node for the "any character" wildcard (`.`).
      *
-     * @param DotNode $node the dot node to visualize
+     * @param Node\DotNode $node the dot node to visualize
      *
      * @return string the unique ID of the generated graph node
      */
-    public function visitDot(DotNode $node): string
+    public function visitDot(Node\DotNode $node): string
     {
         $nodeId = $this->nextNodeId();
         $this->lines[] = \sprintf('    %s["Dot: any char"]', $nodeId);
@@ -237,11 +214,11 @@ class MermaidNodeVisitor implements NodeVisitorInterface
      *
      * Purpose: This method creates a circular node for an anchor like `^` or `$`.
      *
-     * @param AnchorNode $node the anchor node to visualize
+     * @param Node\AnchorNode $node the anchor node to visualize
      *
      * @return string the unique ID of the generated graph node
      */
-    public function visitAnchor(AnchorNode $node): string
+    public function visitAnchor(Node\AnchorNode $node): string
     {
         $nodeId = $this->nextNodeId();
         $this->lines[] = \sprintf('    %s(("Anchor: %s"))', $nodeId, $this->escape($node->value));
@@ -254,11 +231,11 @@ class MermaidNodeVisitor implements NodeVisitorInterface
      *
      * Purpose: This method creates a node for a zero-width assertion like `\b`.
      *
-     * @param AssertionNode $node the assertion node to visualize
+     * @param Node\AssertionNode $node the assertion node to visualize
      *
      * @return string the unique ID of the generated graph node
      */
-    public function visitAssertion(AssertionNode $node): string
+    public function visitAssertion(Node\AssertionNode $node): string
     {
         $nodeId = $this->nextNodeId();
         $this->lines[] = \sprintf('    %s["Assertion: %s"]', $nodeId, $this->escape($node->value));
@@ -271,11 +248,11 @@ class MermaidNodeVisitor implements NodeVisitorInterface
      *
      * Purpose: This method creates a node for the `\K` (keep) assertion.
      *
-     * @param KeepNode $node the keep node to visualize
+     * @param Node\KeepNode $node the keep node to visualize
      *
      * @return string the unique ID of the generated graph node
      */
-    public function visitKeep(KeepNode $node): string
+    public function visitKeep(Node\KeepNode $node): string
     {
         $nodeId = $this->nextNodeId();
         $this->lines[] = \sprintf('    %s["Keep: \\K"]', $nodeId);
@@ -289,11 +266,11 @@ class MermaidNodeVisitor implements NodeVisitorInterface
      * Purpose: This method creates a node for a character class `[...]`, indicating if
      * it is negated, and then connects it to the nodes representing its contents.
      *
-     * @param CharClassNode $node the character class node to visualize
+     * @param Node\CharClassNode $node the character class node to visualize
      *
      * @return string the unique ID of the generated graph node
      */
-    public function visitCharClass(CharClassNode $node): string
+    public function visitCharClass(Node\CharClassNode $node): string
     {
         $nodeId = $this->nextNodeId();
         $label = 'CharClass'.($node->isNegated ? ' [NOT]' : '');
@@ -313,11 +290,11 @@ class MermaidNodeVisitor implements NodeVisitorInterface
      * Purpose: This method creates a "Range" node and connects it to the start and
      * end points of the range (e.g., `a` and `z` in `a-z`).
      *
-     * @param RangeNode $node the range node to visualize
+     * @param Node\RangeNode $node the range node to visualize
      *
      * @return string the unique ID of the generated graph node
      */
-    public function visitRange(RangeNode $node): string
+    public function visitRange(Node\RangeNode $node): string
     {
         $nodeId = $this->nextNodeId();
         $this->lines[] = \sprintf('    %s["Range"]', $nodeId);
@@ -335,11 +312,11 @@ class MermaidNodeVisitor implements NodeVisitorInterface
      *
      * Purpose: This method creates a node for a backreference like `\1`.
      *
-     * @param BackrefNode $node the backreference node to visualize
+     * @param Node\BackrefNode $node the backreference node to visualize
      *
      * @return string the unique ID of the generated graph node
      */
-    public function visitBackref(BackrefNode $node): string
+    public function visitBackref(Node\BackrefNode $node): string
     {
         $nodeId = $this->nextNodeId();
         $this->lines[] = \sprintf('    %s["Backref: %s"]', $nodeId, $this->escape($node->ref));
@@ -352,11 +329,11 @@ class MermaidNodeVisitor implements NodeVisitorInterface
      *
      * Purpose: This method creates a node for a Unicode character escape.
      *
-     * @param UnicodeNode $node the Unicode node to visualize
+     * @param Node\UnicodeNode $node the Unicode node to visualize
      *
      * @return string the unique ID of the generated graph node
      */
-    public function visitUnicode(UnicodeNode $node): string
+    public function visitUnicode(Node\UnicodeNode $node): string
     {
         $nodeId = $this->nextNodeId();
         $this->lines[] = \sprintf('    %s["Unicode: %s"]', $nodeId, $this->escape($node->code));
@@ -369,11 +346,11 @@ class MermaidNodeVisitor implements NodeVisitorInterface
      *
      * Purpose: This method creates a node for a Unicode property escape like `\p{L}`.
      *
-     * @param UnicodePropNode $node the Unicode property node to visualize
+     * @param Node\UnicodePropNode $node the Unicode property node to visualize
      *
      * @return string the unique ID of the generated graph node
      */
-    public function visitUnicodeProp(UnicodePropNode $node): string
+    public function visitUnicodeProp(Node\UnicodePropNode $node): string
     {
         $nodeId = $this->nextNodeId();
         $this->lines[] = \sprintf('    %s["UnicodeProp: %s"]', $nodeId, $this->escape($node->prop));
@@ -386,11 +363,11 @@ class MermaidNodeVisitor implements NodeVisitorInterface
      *
      * Purpose: This method creates a node for a modern octal character escape.
      *
-     * @param OctalNode $node the octal node to visualize
+     * @param Node\OctalNode $node the octal node to visualize
      *
      * @return string the unique ID of the generated graph node
      */
-    public function visitOctal(OctalNode $node): string
+    public function visitOctal(Node\OctalNode $node): string
     {
         $nodeId = $this->nextNodeId();
         $this->lines[] = \sprintf('    %s["Octal: %s"]', $nodeId, $this->escape($node->code));
@@ -403,11 +380,11 @@ class MermaidNodeVisitor implements NodeVisitorInterface
      *
      * Purpose: This method creates a node for a legacy octal character escape.
      *
-     * @param OctalLegacyNode $node the legacy octal node to visualize
+     * @param Node\OctalLegacyNode $node the legacy octal node to visualize
      *
      * @return string the unique ID of the generated graph node
      */
-    public function visitOctalLegacy(OctalLegacyNode $node): string
+    public function visitOctalLegacy(Node\OctalLegacyNode $node): string
     {
         $nodeId = $this->nextNodeId();
         $this->lines[] = \sprintf('    %s["OctalLegacy: %s"]', $nodeId, $this->escape($node->code));
@@ -420,11 +397,11 @@ class MermaidNodeVisitor implements NodeVisitorInterface
      *
      * Purpose: This method creates a node for a POSIX character class like `[:alpha:]`.
      *
-     * @param PosixClassNode $node the POSIX class node to visualize
+     * @param Node\PosixClassNode $node the POSIX class node to visualize
      *
      * @return string the unique ID of the generated graph node
      */
-    public function visitPosixClass(PosixClassNode $node): string
+    public function visitPosixClass(Node\PosixClassNode $node): string
     {
         $nodeId = $this->nextNodeId();
         $this->lines[] = \sprintf('    %s["PosixClass: %s"]', $nodeId, $this->escape($node->class));
@@ -437,11 +414,11 @@ class MermaidNodeVisitor implements NodeVisitorInterface
      *
      * Purpose: This method creates a node representing an inline comment.
      *
-     * @param CommentNode $node the comment node to visualize
+     * @param Node\CommentNode $node the comment node to visualize
      *
      * @return string the unique ID of the generated graph node
      */
-    public function visitComment(CommentNode $node): string
+    public function visitComment(Node\CommentNode $node): string
     {
         $nodeId = $this->nextNodeId();
         $comment = substr($node->comment, 0, 20);
@@ -456,11 +433,11 @@ class MermaidNodeVisitor implements NodeVisitorInterface
      * Purpose: This method creates a diamond-shaped "Conditional" node and connects it
      * to its three branches: the condition, the "yes" pattern, and the "no" pattern.
      *
-     * @param ConditionalNode $node the conditional node to visualize
+     * @param Node\ConditionalNode $node the conditional node to visualize
      *
      * @return string the unique ID of the generated graph node
      */
-    public function visitConditional(ConditionalNode $node): string
+    public function visitConditional(Node\ConditionalNode $node): string
     {
         $nodeId = $this->nextNodeId();
         $this->lines[] = \sprintf('    %s{{"Conditional"}}', $nodeId);
@@ -482,11 +459,11 @@ class MermaidNodeVisitor implements NodeVisitorInterface
      *
      * Purpose: This method creates a node for a subroutine call like `(?R)`.
      *
-     * @param SubroutineNode $node the subroutine node to visualize
+     * @param Node\SubroutineNode $node the subroutine node to visualize
      *
      * @return string the unique ID of the generated graph node
      */
-    public function visitSubroutine(SubroutineNode $node): string
+    public function visitSubroutine(Node\SubroutineNode $node): string
     {
         $nodeId = $this->nextNodeId();
         $this->lines[] = \sprintf('    %s["Subroutine: %s"]', $nodeId, $this->escape($node->reference));
@@ -499,11 +476,11 @@ class MermaidNodeVisitor implements NodeVisitorInterface
      *
      * Purpose: This method creates a node for a PCRE verb like `(*FAIL)`.
      *
-     * @param PcreVerbNode $node the PCRE verb node to visualize
+     * @param Node\PcreVerbNode $node the PCRE verb node to visualize
      *
      * @return string the unique ID of the generated graph node
      */
-    public function visitPcreVerb(PcreVerbNode $node): string
+    public function visitPcreVerb(Node\PcreVerbNode $node): string
     {
         $nodeId = $this->nextNodeId();
         $this->lines[] = \sprintf('    %s["PcreVerb: %s"]', $nodeId, $this->escape($node->verb));
@@ -516,17 +493,25 @@ class MermaidNodeVisitor implements NodeVisitorInterface
      *
      * Purpose: This method creates a node for a `(?(DEFINE)...)` block.
      *
-     * @param DefineNode $node the define node to visualize
+     * @param Node\DefineNode $node the define node to visualize
      *
      * @return string the unique ID of the generated graph node
      */
-    public function visitDefine(DefineNode $node): string
+    public function visitDefine(Node\DefineNode $node): string
     {
         $nodeId = $this->nextNodeId();
         $this->lines[] = \sprintf('    %s["DEFINE Block"]', $nodeId);
 
         $contentId = $node->content->accept($this);
         $this->lines[] = \sprintf('    %s --> %s', $nodeId, $contentId);
+
+        return $nodeId;
+    }
+
+    public function visitLimitMatch(Node\LimitMatchNode $node): string
+    {
+        $nodeId = $this->nextNodeId();
+        $this->lines[] = \sprintf('    %s["LimitMatch: %d"]', $nodeId, $node->limit);
 
         return $nodeId;
     }

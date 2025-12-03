@@ -14,33 +14,9 @@ declare(strict_types=1);
 namespace RegexParser\NodeVisitor;
 
 use RegexParser\Exception\ParserException;
-use RegexParser\Node\AlternationNode;
-use RegexParser\Node\AnchorNode;
-use RegexParser\Node\AssertionNode;
-use RegexParser\Node\BackrefNode;
-use RegexParser\Node\CharClassNode;
-use RegexParser\Node\CharTypeNode;
-use RegexParser\Node\CommentNode;
-use RegexParser\Node\ConditionalNode;
-use RegexParser\Node\DefineNode;
-use RegexParser\Node\DotNode;
-use RegexParser\Node\GroupNode;
+use RegexParser\Node;
 use RegexParser\Node\GroupType;
-use RegexParser\Node\KeepNode;
-use RegexParser\Node\LiteralNode;
-use RegexParser\Node\NodeInterface;
-use RegexParser\Node\OctalLegacyNode;
-use RegexParser\Node\OctalNode;
-use RegexParser\Node\PcreVerbNode;
-use RegexParser\Node\PosixClassNode;
-use RegexParser\Node\QuantifierNode;
 use RegexParser\Node\QuantifierType;
-use RegexParser\Node\RangeNode;
-use RegexParser\Node\RegexNode;
-use RegexParser\Node\SequenceNode;
-use RegexParser\Node\SubroutineNode;
-use RegexParser\Node\UnicodeNode;
-use RegexParser\Node\UnicodePropNode;
 
 /**
  * Validates the semantic rules of a parsed regex Abstract Syntax Tree (AST).
@@ -120,11 +96,11 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
      * recursively triggers validation for the main pattern. This ensures that the
      * entire regex structure adheres to semantic rules.
      *
-     * @param RegexNode $node the root node of the AST
+     * @param Node\RegexNode $node the root node of the AST
      *
      * @throws ParserException if any semantic validation rule is violated within the regex
      */
-    public function visitRegex(RegexNode $node): void
+    public function visitRegex(Node\RegexNode $node): void
     {
         // Reset state for this validation run. This ensures the visitor
         // instance is clean, even if it's reused (though cloning is safer).
@@ -147,11 +123,11 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
      * alternation. It ensures that each possible path in the regex is semantically
      * valid.
      *
-     * @param AlternationNode $node the alternation node to validate
+     * @param Node\AlternationNode $node the alternation node to validate
      *
      * @throws ParserException if any semantic validation rule is violated within an alternative
      */
-    public function visitAlternation(AlternationNode $node): void
+    public function visitAlternation(Node\AlternationNode $node): void
     {
         // Note: PHP 7.3+ (PCRE2) supports variable-length lookbehinds,
         // so we no longer enforce fixed-length or same-length alternation restrictions.
@@ -167,11 +143,11 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
      * Purpose: This method recursively validates each child node within a sequence.
      * It ensures that the ordered components of the regex are individually valid.
      *
-     * @param SequenceNode $node the sequence node to validate
+     * @param Node\SequenceNode $node the sequence node to validate
      *
      * @throws ParserException if any semantic validation rule is violated within a child node
      */
-    public function visitSequence(SequenceNode $node): void
+    public function visitSequence(Node\SequenceNode $node): void
     {
         foreach ($node->children as $child) {
             $child->accept($this);
@@ -187,12 +163,12 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
      * manages the `inLookbehind` state, which is crucial for validating elements
      * that have restrictions inside lookbehinds (e.g., `\K`).
      *
-     * @param GroupNode $node the group node to validate
+     * @param Node\GroupNode $node the group node to validate
      *
      * @throws ParserException if a duplicate named group is found, or if any
      *                         semantic rule is violated within the group's child
      */
-    public function visitGroup(GroupNode $node): void
+    public function visitGroup(Node\GroupNode $node): void
     {
         $wasInLookbehind = $this->inLookbehind;
 
@@ -231,12 +207,12 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
      * It also ensures that quantifiers are not used in contexts where they are
      * disallowed (e.g., `\K` in lookbehinds).
      *
-     * @param QuantifierNode $node the quantifier node to validate
+     * @param Node\QuantifierNode $node the quantifier node to validate
      *
      * @throws ParserException if an invalid quantifier range is found, or if a
      *                         potential ReDoS pattern (nested unbounded quantifier) is detected
      */
-    public function visitQuantifier(QuantifierNode $node): void
+    public function visitQuantifier(Node\QuantifierNode $node): void
     {
         // 1. Validate quantifier range (e.g., {5,2})
         [$min, $max] = $this->parseQuantifierBounds($node->quantifier);
@@ -276,9 +252,9 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
      * the Lexer and Parser already handle (e.g., valid characters). This method serves
      * as a placeholder for future, more complex literal-specific validations if needed.
      *
-     * @param LiteralNode $node the literal node to validate
+     * @param Node\LiteralNode $node the literal node to validate
      */
-    public function visitLiteral(LiteralNode $node): void
+    public function visitLiteral(Node\LiteralNode $node): void
     {
         // No semantic validation needed for literals
     }
@@ -290,9 +266,9 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
      * Lexer/Parser level for syntactic correctness. This method serves as a placeholder
      * for any future semantic checks specific to character types.
      *
-     * @param CharTypeNode $node the character type node to validate
+     * @param Node\CharTypeNode $node the character type node to validate
      */
-    public function visitCharType(CharTypeNode $node): void
+    public function visitCharType(Node\CharTypeNode $node): void
     {
         // No semantic validation needed for char types
     }
@@ -304,9 +280,9 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
      * does not require semantic validation beyond its basic existence. This method
      * serves as a placeholder.
      *
-     * @param DotNode $node the dot node to validate
+     * @param Node\DotNode $node the dot node to validate
      */
-    public function visitDot(DotNode $node): void
+    public function visitDot(Node\DotNode $node): void
     {
         // No semantic validation needed for dot
     }
@@ -317,9 +293,9 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
      * Purpose: Anchor nodes (e.g., `^`, `$`) define positions and are generally
      * semantically valid if syntactically correct. This method serves as a placeholder.
      *
-     * @param AnchorNode $node the anchor node to validate
+     * @param Node\AnchorNode $node the anchor node to validate
      */
-    public function visitAnchor(AnchorNode $node): void
+    public function visitAnchor(Node\AnchorNode $node): void
     {
         // No semantic validation needed for anchors
     }
@@ -331,11 +307,11 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
      * and valid PCRE assertion. While the Lexer/Parser handles basic syntax, this
      * provides an additional layer of semantic correctness.
      *
-     * @param AssertionNode $node the assertion node to validate
+     * @param Node\AssertionNode $node the assertion node to validate
      *
      * @throws ParserException if an invalid or unknown assertion is encountered
      */
-    public function visitAssertion(AssertionNode $node): void
+    public function visitAssertion(Node\AssertionNode $node): void
     {
         if (!isset(self::VALID_ASSERTIONS[$node->value])) {
             // This should be caught by the Lexer/Parser, but validates as a safeguard.
@@ -349,11 +325,11 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
      * Purpose: This method enforces the rule that the `\K` (keep) assertion is not
      * allowed inside lookbehind groups. This is a PCRE-specific semantic restriction.
      *
-     * @param KeepNode $node the keep node to validate
+     * @param Node\KeepNode $node the keep node to validate
      *
      * @throws ParserException if `\K` is found within a lookbehind
      */
-    public function visitKeep(KeepNode $node): void
+    public function visitKeep(Node\KeepNode $node): void
     {
         if ($this->inLookbehind) {
             throw new ParserException('\K (keep) is not allowed in lookbehinds at position %d.', $node->startPosition);
@@ -367,11 +343,11 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
      * This ensures that all components (literals, ranges, POSIX classes, etc.)
      * inside the `[...]` are individually valid.
      *
-     * @param CharClassNode $node the character class node to validate
+     * @param Node\CharClassNode $node the character class node to validate
      *
      * @throws ParserException if any semantic validation rule is violated within a part of the character class
      */
-    public function visitCharClass(CharClassNode $node): void
+    public function visitCharClass(Node\CharClassNode $node): void
     {
         foreach ($node->parts as $part) {
             $part->accept($this);
@@ -386,11 +362,11 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
      * 1. The start and end of the range are single-character nodes.
      * 2. For literal characters, the start character's ordinal value does not exceed the end character's.
      *
-     * @param RangeNode $node the range node to validate
+     * @param Node\RangeNode $node the range node to validate
      *
      * @throws ParserException If the range is invalid (e.g., `z-a`, multi-character range endpoints).
      */
-    public function visitRange(RangeNode $node): void
+    public function visitRange(Node\RangeNode $node): void
     {
         // 1. Validation: Ensure start and end nodes represent a single character.
         // We allow LiteralNode, but also UnicodeNode, OctalNode, etc.
@@ -404,16 +380,16 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
         }
 
         // 2. Validation: Ensure characters are single-byte or single codepoint (for LiteralNodes).
-        if ($node->start instanceof LiteralNode && mb_strlen($node->start->value) > 1) {
+        if ($node->start instanceof Node\LiteralNode && mb_strlen($node->start->value) > 1) {
             throw new ParserException(\sprintf('Invalid range at position %d: start char must be a single character.', $node->startPosition));
         }
-        if ($node->end instanceof LiteralNode && mb_strlen($node->end->value) > 1) {
+        if ($node->end instanceof Node\LiteralNode && mb_strlen($node->end->value) > 1) {
             throw new ParserException(\sprintf('Invalid range at position %d: end char must be a single character.', $node->startPosition));
         }
 
         // 3. Validation: ASCII/Unicode order check.
         // Note: We only strictly compare two LiteralNodes here to avoid complex cross-type decoding logic.
-        if ($node->start instanceof LiteralNode && $node->end instanceof LiteralNode) {
+        if ($node->start instanceof Node\LiteralNode && $node->end instanceof Node\LiteralNode) {
             if (mb_ord($node->start->value) > mb_ord($node->end->value)) {
                 throw new ParserException(\sprintf(
                     'Invalid range "%s-%s" at position %d: start character comes after end character.',
@@ -432,11 +408,11 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
      * to existing capturing groups. It checks both numeric and named backreferences
      * against the `groupCount` and `namedGroups` tracked by the visitor.
      *
-     * @param BackrefNode $node the backreference node to validate
+     * @param Node\BackrefNode $node the backreference node to validate
      *
      * @throws ParserException if the backreference refers to a non-existent group or uses invalid syntax
      */
-    public function visitBackref(BackrefNode $node): void
+    public function visitBackref(Node\BackrefNode $node): void
     {
         $ref = $node->ref;
 
@@ -501,11 +477,11 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
      * (e.g., `\x{2603}`). Specifically, it ensures that the specified Unicode code point
      * is within the valid range (0 to 0x10FFFF).
      *
-     * @param UnicodeNode $node the Unicode node to validate
+     * @param Node\UnicodeNode $node the Unicode node to validate
      *
      * @throws ParserException if the Unicode code point is out of range
      */
-    public function visitUnicode(UnicodeNode $node): void
+    public function visitUnicode(Node\UnicodeNode $node): void
     {
         // The Lexer/Parser combination already ensures these are
         // syntactically valid hex/octal. We validate the *value*.
@@ -529,11 +505,11 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
      * underlying PCRE engine. It uses `preg_match` with error suppression to
      * determine validity, caching results for performance.
      *
-     * @param UnicodePropNode $node the Unicode property node to validate
+     * @param Node\UnicodePropNode $node the Unicode property node to validate
      *
      * @throws ParserException if the Unicode property is invalid or unsupported
      */
-    public function visitUnicodeProp(UnicodePropNode $node): void
+    public function visitUnicodeProp(Node\UnicodePropNode $node): void
     {
         // The only 100% "prod-ready" way to validate a Unicode property
         // is to check it against the PCRE engine being used.
@@ -564,11 +540,11 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
      * the resulting character value does not exceed the single-byte limit (0-255)
      * enforced by PCRE for this syntax.
      *
-     * @param OctalNode $node the octal node to validate
+     * @param Node\OctalNode $node the octal node to validate
      *
      * @throws ParserException if the octal code is invalid or out of range
      */
-    public function visitOctal(OctalNode $node): void
+    public function visitOctal(Node\OctalNode $node): void
     {
         // \o{...}
         if (preg_match('/^\\\\o\{([0-9]+)\}$/', $node->code, $m)) {
@@ -595,12 +571,12 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
      * and checks if the octal code, if interpreted as a character, is within a
      * reasonable range.
      *
-     * @param OctalLegacyNode $node the legacy octal node to validate
+     * @param Node\OctalLegacyNode $node the legacy octal node to validate
      *
      * @throws ParserException if `\0` is used as a backreference or if the octal
      *                         codepoint is out of a valid range
      */
-    public function visitOctalLegacy(OctalLegacyNode $node): void
+    public function visitOctalLegacy(Node\OctalLegacyNode $node): void
     {
         // \0 is treated as an invalid backreference
         if ('0' === $node->code) {
@@ -622,12 +598,12 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
      * is a recognized and valid class. It also enforces specific PCRE rules, such as
      * the non-negatability of the `word` class.
      *
-     * @param PosixClassNode $node the POSIX class node to validate
+     * @param Node\PosixClassNode $node the POSIX class node to validate
      *
      * @throws ParserException if an invalid POSIX class is encountered or if a class
      *                         is negated when it shouldn't be
      */
-    public function visitPosixClass(PosixClassNode $node): void
+    public function visitPosixClass(Node\PosixClassNode $node): void
     {
         $class = strtolower($node->class);
         $isNegated = false;
@@ -653,9 +629,9 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
      * Purpose: Comments (`(?#...)`) are ignored by the regex engine and thus do not
      * require semantic validation. This method serves as a pass-through.
      *
-     * @param CommentNode $node the comment node to validate
+     * @param Node\CommentNode $node the comment node to validate
      */
-    public function visitComment(CommentNode $node): void
+    public function visitComment(Node\CommentNode $node): void
     {
         // Comments are ignored in validation
     }
@@ -668,16 +644,16 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
      * subroutine call, or a lookaround assertion). It then recursively validates
      * the condition, the "yes" pattern, and the "no" pattern.
      *
-     * @param ConditionalNode $node the conditional node to validate
+     * @param Node\ConditionalNode $node the conditional node to validate
      *
      * @throws ParserException if the condition is not a valid type or if any
      *                         semantic rule is violated within the conditional branches
      */
-    public function visitConditional(ConditionalNode $node): void
+    public function visitConditional(Node\ConditionalNode $node): void
     {
         // Check if the condition is a valid *type* of condition first
         // (e.g., a backreference, a subroutine call, or a lookaround)
-        if ($node->condition instanceof BackrefNode) {
+        if ($node->condition instanceof Node\BackrefNode) {
             // This is (?(1)...) or (?(<name>)...) or (?(name)...)
             // For bare names, check if the group exists before calling accept
             $ref = $node->condition->ref;
@@ -687,10 +663,10 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
             }
             // Now validate the backreference itself
             $node->condition->accept($this);
-        } elseif ($node->condition instanceof SubroutineNode) {
+        } elseif ($node->condition instanceof Node\SubroutineNode) {
             // This is (?(R)...) or (?(R1)...)
             $node->condition->accept($this);
-        } elseif ($node->condition instanceof GroupNode && \in_array($node->condition->type, [
+        } elseif ($node->condition instanceof Node\GroupNode && \in_array($node->condition->type, [
             GroupType::T_GROUP_LOOKAHEAD_POSITIVE,
             GroupType::T_GROUP_LOOKAHEAD_NEGATIVE,
             GroupType::T_GROUP_LOOKBEHIND_POSITIVE,
@@ -698,7 +674,7 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
         ], true)) {
             // This is (?(?=...)...) etc. This is valid.
             $node->condition->accept($this);
-        } elseif ($node->condition instanceof AssertionNode && 'DEFINE' === $node->condition->value) {
+        } elseif ($node->condition instanceof Node\AssertionNode && 'DEFINE' === $node->condition->value) {
             // (?(DEFINE)...) This is valid.
             $node->condition->accept($this);
         } else {
@@ -718,11 +694,11 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
      * It checks both numeric and named subroutine references against the `groupCount`
      * and `namedGroups` tracked by the visitor.
      *
-     * @param SubroutineNode $node the subroutine node to validate
+     * @param Node\SubroutineNode $node the subroutine node to validate
      *
      * @throws ParserException if the subroutine refers to a non-existent group
      */
-    public function visitSubroutine(SubroutineNode $node): void
+    public function visitSubroutine(Node\SubroutineNode $node): void
     {
         $ref = $node->reference;
 
@@ -759,11 +735,11 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
      * is a recognized and valid verb. This ensures that only supported PCRE directives
      * are used in the regex.
      *
-     * @param PcreVerbNode $node the PCRE verb node to validate
+     * @param Node\PcreVerbNode $node the PCRE verb node to validate
      *
      * @throws ParserException if an invalid or unsupported PCRE verb is encountered
      */
-    public function visitPcreVerb(PcreVerbNode $node): void
+    public function visitPcreVerb(Node\PcreVerbNode $node): void
     {
         $verbName = explode(':', $node->verb, 2)[0];
 
@@ -779,13 +755,18 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
      * block. This ensures that the patterns defined for later subroutine calls are
      * themselves semantically valid.
      *
-     * @param DefineNode $node the define node to validate
+     * @param Node\DefineNode $node the define node to validate
      *
      * @throws ParserException if any semantic validation rule is violated within the DEFINE block
      */
-    public function visitDefine(DefineNode $node): void
+    public function visitDefine(Node\DefineNode $node): void
     {
         $node->content->accept($this);
+    }
+
+    public function visitLimitMatch(Node\LimitMatchNode $node): void
+    {
+        // No specific validation needed for this node.
     }
 
     /**
@@ -795,16 +776,16 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
      * given node can serve as a valid start or end point for a character range.
      * It ensures that only single-character representations are used for ranges.
      *
-     * @param NodeInterface $node the node to check
+     * @param Node\NodeInterface $node the node to check
      *
      * @return bool true if the node represents a single character, false otherwise
      */
-    private function isSingleCharNode(NodeInterface $node): bool
+    private function isSingleCharNode(Node\NodeInterface $node): bool
     {
-        return $node instanceof LiteralNode
-            || $node instanceof UnicodeNode
-            || $node instanceof OctalNode
-            || $node instanceof OctalLegacyNode;
+        return $node instanceof Node\LiteralNode
+            || $node instanceof Node\UnicodeNode
+            || $node instanceof Node\OctalNode
+            || $node instanceof Node\OctalLegacyNode;
         // CharTypeNode (e.g., \d) is technically invalid in a standard PCRE range start/end,
         // but we exclude it here to remain spec-compliant unless lenient mode is desired.
     }
@@ -843,21 +824,21 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
      * for validating lookbehinds, which traditionally require fixed-length patterns.
      * If a node can match a variable number of characters, it returns `null`.
      *
-     * @param NodeInterface $node the node for which to calculate the length
+     * @param Node\NodeInterface $node the node for which to calculate the length
      *
      * @return int|null the fixed length of the node, or `null` if its length is variable
      */
-    private function calculateFixedLength(NodeInterface $node): ?int
+    private function calculateFixedLength(Node\NodeInterface $node): ?int
     {
         return match (true) {
-            $node instanceof LiteralNode => mb_strlen($node->value),
-            $node instanceof CharTypeNode, $node instanceof DotNode => 1,
-            $node instanceof AnchorNode, $node instanceof AssertionNode => 0,
-            $node instanceof SequenceNode => $this->calculateSequenceLength($node),
-            $node instanceof GroupNode => $this->calculateFixedLength($node->child),
-            $node instanceof QuantifierNode => $this->calculateQuantifierLength($node),
-            $node instanceof CharClassNode => 1,
-            $node instanceof AlternationNode => null, // Handled separately
+            $node instanceof Node\LiteralNode => mb_strlen($node->value),
+            $node instanceof Node\CharTypeNode, $node instanceof Node\DotNode => 1,
+            $node instanceof Node\AnchorNode, $node instanceof Node\AssertionNode => 0,
+            $node instanceof Node\SequenceNode => $this->calculateSequenceLength($node),
+            $node instanceof Node\GroupNode => $this->calculateFixedLength($node->child),
+            $node instanceof Node\QuantifierNode => $this->calculateQuantifierLength($node),
+            $node instanceof Node\CharClassNode => 1,
+            $node instanceof Node\AlternationNode => null, // Handled separately
             default => null, // Unknown or variable
         };
     }
@@ -869,11 +850,11 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
      * sum the fixed lengths of all children within a `SequenceNode`. If any child
      * has a variable length, the entire sequence is considered variable length.
      *
-     * @param SequenceNode $node the sequence node for which to calculate the length
+     * @param Node\SequenceNode $node the sequence node for which to calculate the length
      *
      * @return int|null the fixed length of the sequence, or `null` if its length is variable
      */
-    private function calculateSequenceLength(SequenceNode $node): ?int
+    private function calculateSequenceLength(Node\SequenceNode $node): ?int
     {
         $total = 0;
         foreach ($node->children as $child) {
@@ -895,11 +876,11 @@ class ValidatorNodeVisitor implements NodeVisitorInterface
      * fixed length if its quantifier specifies an exact number of repetitions
      * (e.g., `{3}`) and its child also has a fixed length.
      *
-     * @param QuantifierNode $node the quantifier node for which to calculate the length
+     * @param Node\QuantifierNode $node the quantifier node for which to calculate the length
      *
      * @return int|null the fixed length of the quantified node, or `null` if its length is variable
      */
-    private function calculateQuantifierLength(QuantifierNode $node): ?int
+    private function calculateQuantifierLength(Node\QuantifierNode $node): ?int
     {
         [$min, $max] = $this->parseQuantifierBounds($node->quantifier);
 
