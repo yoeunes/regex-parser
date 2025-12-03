@@ -1,0 +1,143 @@
+<?php
+
+declare(strict_types=1);
+
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+namespace RegexParser\Tests\Unit;
+
+use PHPUnit\Framework\TestCase;
+use RegexParser\Token;
+use RegexParser\TokenStream;
+use RegexParser\TokenType;
+
+class TokenStreamTest extends TestCase
+{
+    public function test_iteration_and_positions(): void
+    {
+        $tokens = [
+            new Token(TokenType::T_LITERAL, 'a', 0),
+            new Token(TokenType::T_LITERAL, 'b', 1),
+            new Token(TokenType::T_EOF, '', 2),
+        ];
+
+        $stream = new TokenStream($tokens, 'ab');
+
+        self::assertSame(0, $stream->getPosition());
+        self::assertSame('a', $stream->current()->value);
+
+        $stream->next();
+        self::assertSame(1, $stream->getPosition());
+        self::assertSame('b', $stream->current()->value);
+
+        $peek = $stream->peek();
+        self::assertSame(TokenType::T_EOF, $peek->type);
+        self::assertSame(2, $peek->position);
+    }
+
+    public function test_peek_and_rewind(): void
+    {
+        $tokens = [
+            new Token(TokenType::T_LITERAL, 'x', 0),
+            new Token(TokenType::T_LITERAL, 'y', 1),
+            new Token(TokenType::T_EOF, '', 2),
+        ];
+
+        $stream = new TokenStream($tokens, 'xy');
+        $stream->next(); // consume x
+
+        $peekBack = $stream->peek(-1);
+        self::assertSame('x', $peekBack->value);
+
+        $stream->next(); // consume y
+        self::assertSame(TokenType::T_EOF, $stream->current()->type);
+
+        $stream->rewind(2);
+        self::assertSame(0, $stream->getPosition());
+        self::assertSame('x', $stream->current()->value);
+    }
+
+    public function test_rewind_throws_on_invalid_count(): void
+    {
+        $tokens = [
+            new Token(TokenType::T_LITERAL, 'a', 0),
+            new Token(TokenType::T_EOF, '', 1),
+        ];
+
+        $stream = new TokenStream($tokens, 'a');
+        $stream->next();
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Cannot rewind 2 tokens, only 1 in history');
+        $stream->rewind(2);
+    }
+
+    public function test_next_and_current_throw_when_exhausted(): void
+    {
+        $tokens = [
+            new Token(TokenType::T_LITERAL, 'a', 0),
+            new Token(TokenType::T_EOF, '', 1),
+        ];
+        $stream = new TokenStream($tokens, 'a');
+
+        $stream->next(); // move to EOF
+        $stream->next(); // consume EOF, buffer exhausted
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Token stream is exhausted');
+        $stream->next();
+    }
+
+    public function test_set_position_forward_and_backward(): void
+    {
+        $tokens = [
+            new Token(TokenType::T_LITERAL, 'a', 0),
+            new Token(TokenType::T_LITERAL, 'b', 1),
+            new Token(TokenType::T_LITERAL, 'c', 2),
+            new Token(TokenType::T_EOF, '', 3),
+        ];
+
+        $stream = new TokenStream($tokens, 'abc');
+        $stream->setPosition(2);
+        self::assertSame('c', $stream->current()->value);
+
+        $stream->setPosition(1);
+        self::assertSame('b', $stream->current()->value);
+    }
+
+    public function test_peek_out_of_bounds_returns_eof(): void
+    {
+        $tokens = [
+            new Token(TokenType::T_LITERAL, 'a', 0),
+            new Token(TokenType::T_EOF, '', 1),
+        ];
+        $stream = new TokenStream($tokens, 'a');
+
+        $peekFar = $stream->peek(5);
+        self::assertSame(TokenType::T_EOF, $peekFar->type);
+        self::assertSame(5, $peekFar->position);
+
+        $peekBack = $stream->peek(-5);
+        self::assertSame(TokenType::T_EOF, $peekBack->type);
+    }
+
+    public function test_getters_expose_pattern_and_tokens(): void
+    {
+        $tokens = [
+            new Token(TokenType::T_LITERAL, 'a', 0),
+            new Token(TokenType::T_EOF, '', 1),
+        ];
+        $stream = new TokenStream($tokens, 'a');
+
+        self::assertSame('a', $stream->getPattern());
+        self::assertCount(2, $stream->getTokens());
+        self::assertTrue($stream->hasMore());
+    }
+}
