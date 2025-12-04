@@ -41,7 +41,7 @@ readonly class ReDoSAnalysis
      *                                       regex pattern that is causing the issue (e.g., `(a+)+`).
      * @param array<string> $recommendations A list of human-readable suggestions for how to mitigate the detected
      *                                       vulnerability (e.g., "Use atomic groups" or "Make quantifiers possessive").
-     * @param string|null   $error           Optional internal error description if analysis could not complete.
+     * @param string|null   $error           optional internal error description if analysis could not complete
      */
     public function __construct(
         public ReDoSSeverity $severity,

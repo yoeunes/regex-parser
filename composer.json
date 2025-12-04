@@ -23,7 +23,9 @@
         "symfony/config": "^8.0",
         "symfony/http-foundation": "^8.0",
         "symfony/routing": "^8.0",
-        "symfony/validator": "^8.0"
+        "symfony/validator": "^8.0",
+        "psr/cache": "^3.0",
+        "psr/simple-cache": "^3.0"
     },
     "autoload": {
         "psr-4": {
@@ -48,6 +50,8 @@
         }
     },
     "suggest": {
+        "psr/cache": "To share AST cache via PSR-6 pools.",
+        "psr/simple-cache": "To share AST cache via PSR-16 caches.",
         "phpstan/phpstan": "To run static analysis and detect invalid regex patterns.",
         "phpstan/extension-installer": "To automatically enable the PHPStan rule for regex validation.",
         "rector/rector": "To automatically refactor and optimize regex patterns."

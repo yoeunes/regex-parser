@@ -210,6 +210,22 @@ $regex = Regex::create(['cache' => __DIR__ . '/var/cache/regex']);
 $ast = $regex->parse('/[A-Z][a-z]+/');
 ```
 
+Or plug your app cache (PSR-6/16) for shared keys:
+
+```php
+use RegexParser\Regex;
+use RegexParser\Cache\PsrCacheAdapter;
+use RegexParser\Cache\PsrSimpleCacheAdapter;
+
+// PSR-6 (CacheItemPoolInterface)
+$cache = new PsrCacheAdapter($yourPool, prefix: 'route_login_');
+$regex = Regex::create(['cache' => $cache]);
+
+// PSR-16 (SimpleCache)
+$cache = new PsrSimpleCacheAdapter($yourSimpleCache, prefix: 'constraint_user_email_');
+$regex = Regex::create(['cache' => $cache]);
+```
+
 Pass a writable directory string to `Regex::create(['cache' => '/path'])` or a custom `CacheInterface` implementation. Use `null` (default) to disable.
 
 ---
