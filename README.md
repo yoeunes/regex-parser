@@ -173,6 +173,8 @@ use RegexParser\Regex;
 $analysis = Regex::create()->analyzeReDoS('/(a+)+b/');
 echo $analysis->severity->value; // critical/high/...
 echo $analysis->score; // 0-10
+$isOkForRoutes = !$analysis->exceedsThreshold(\RegexParser\ReDoS\ReDoSSeverity::HIGH);
+$isOkForUserInput = !$analysis->exceedsThreshold(\RegexParser\ReDoS\ReDoSSeverity::LOW);
 ```
 
 Severity levels: SAFE, LOW, MEDIUM, UNKNOWN, HIGH, CRITICAL (2^n worst cases; UNKNOWN means analysis could not complete safely).

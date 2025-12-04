@@ -169,4 +169,15 @@ class ReDoSEdgeCasesTest extends TestCase
         $this->assertFalse($analysis->isSafe());
         $this->assertNotNull($analysis->error);
     }
+
+    public function test_threshold_allows_contextual_pass_fail(): void
+    {
+        $analysis = $this->regex->analyzeReDoS('/(a+)+/');
+
+        $this->assertTrue($analysis->exceedsThreshold(ReDoSSeverity::HIGH));
+        $this->assertSame(
+            ReDoSSeverity::CRITICAL === $analysis->severity,
+            $analysis->exceedsThreshold(ReDoSSeverity::CRITICAL),
+        );
+    }
 }

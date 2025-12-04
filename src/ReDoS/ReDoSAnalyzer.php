@@ -27,6 +27,7 @@ class ReDoSAnalyzer
          * @var list<string>
          */
         private array $ignoredPatterns = [],
+        private readonly ReDoSSeverity $threshold = ReDoSSeverity::HIGH,
     ) {
         $this->ignoredPatterns = array_values(array_unique($this->ignoredPatterns));
     }
@@ -62,8 +63,10 @@ class ReDoSAnalyzer
      * }
      * ```
      */
-    public function analyze(string $regex): ReDoSAnalysis
+    public function analyze(string $regex, ?ReDoSSeverity $threshold = null): ReDoSAnalysis
     {
+        $threshold ??= $this->threshold;
+
         if ($this->shouldIgnore($regex)) {
             return new ReDoSAnalysis(ReDoSSeverity::SAFE, 0, null, []);
         }
@@ -87,6 +90,7 @@ class ReDoSAnalyzer
                 },
                 $result['vulnerablePattern'],
                 $result['recommendations'],
+                null,
             );
         } catch (\Throwable $e) {
             return new ReDoSAnalysis(

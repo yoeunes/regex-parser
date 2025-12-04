@@ -73,4 +73,21 @@ readonly class ReDoSAnalysis
     {
         return ReDoSSeverity::SAFE === $this->severity || ReDoSSeverity::LOW === $this->severity;
     }
+
+    public function exceedsThreshold(ReDoSSeverity $threshold): bool
+    {
+        return $this->severityScore($this->severity) >= $this->severityScore($threshold);
+    }
+
+    private function severityScore(ReDoSSeverity $severity): int
+    {
+        return match ($severity) {
+            ReDoSSeverity::SAFE => 0,
+            ReDoSSeverity::LOW => 1,
+            ReDoSSeverity::UNKNOWN => 2,
+            ReDoSSeverity::MEDIUM => 3,
+            ReDoSSeverity::HIGH => 4,
+            ReDoSSeverity::CRITICAL => 5,
+        };
+    }
 }

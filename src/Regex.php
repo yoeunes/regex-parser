@@ -21,6 +21,7 @@ use RegexParser\Exception\ParserException;
 use RegexParser\Node\RegexNode;
 use RegexParser\ReDoS\ReDoSAnalysis;
 use RegexParser\ReDoS\ReDoSAnalyzer;
+use RegexParser\ReDoS\ReDoSSeverity;
 
 /**
  * Main service for parsing, validating, and manipulating regex patterns.
@@ -406,9 +407,9 @@ readonly class Regex
      * }
      * ```
      */
-    public function analyzeReDoS(string $regex): ReDoSAnalysis
+    public function analyzeReDoS(string $regex, ?ReDoSSeverity $threshold = null): ReDoSAnalysis
     {
-        return new ReDoSAnalyzer($this, $this->ignoredPatterns)->analyze($regex);
+        return new ReDoSAnalyzer($this, $this->ignoredPatterns)->analyze($regex, $threshold);
     }
 
     /**
