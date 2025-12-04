@@ -54,6 +54,8 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
 
     private ?Node\NodeInterface $nextNode = null;
 
+    private bool $backrefLoopDetected = false;
+
     public function __construct(
         private readonly CharSetAnalyzer $charSetAnalyzer = new CharSetAnalyzer(),
     ) {}
@@ -104,6 +106,10 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
             $recommendations[] = $vuln['message'];
         }
 
+        if ($this->backrefLoopDetected) {
+            $maxSeverity = $this->maxSeverity($maxSeverity, ReDoSSeverity::CRITICAL);
+        }
+
         return [
             'severity' => $maxSeverity,
             'recommendations' => array_unique($recommendations),
@@ -138,6 +144,7 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
         $this->inAtomicGroup = false;
         $this->previousNode = null;
         $this->nextNode = null;
+        $this->backrefLoopDetected = false;
 
         return $node->pattern->accept($this);
     }
@@ -205,6 +212,16 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
 
         if ($entersUnbounded) {
             $this->unboundedQuantifierDepth++;
+
+            if ($this->hasBackrefLoop($node->node)) {
+                $this->backrefLoopDetected = true;
+                $severity = ReDoSSeverity::CRITICAL;
+                $this->addVulnerability(
+                    ReDoSSeverity::CRITICAL,
+                    'Unbounded quantifier combined with backreferences to variable-length captures can cause catastrophic backtracking.',
+                    $node->quantifier,
+                );
+            }
 
             if ($isNestedUnbounded) {
                 $severity = $boundarySeparated ? ReDoSSeverity::LOW : ReDoSSeverity::CRITICAL;
@@ -1002,5 +1019,170 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
     private function maxSeverity(ReDoSSeverity $a, ReDoSSeverity $b): ReDoSSeverity
     {
         return $this->severityGreaterThan($a, $b) ? $a : $b;
+    }
+
+    /**
+     * Detects if a subtree contains a backreference and a variable-length capturing group,
+     * which can lead to catastrophic backtracking when repeated.
+     */
+    private function hasBackrefLoop(Node\NodeInterface $node): bool
+    {
+        $state = $this->analyzeBackrefLoop($node);
+
+        return $state['hasBackref'] && $state['hasVariableCapture'];
+    }
+
+    /**
+     * @return array{hasBackref: bool, hasVariableCapture: bool}
+     */
+    private function analyzeBackrefLoop(Node\NodeInterface $node): array
+    {
+        $hasBackref = $node instanceof Node\BackrefNode;
+        $hasVariableCapture = false;
+
+        if ($node instanceof Node\GroupNode && $this->isCapturingGroup($node)) {
+            [$min, $max] = $this->lengthRange($node->child);
+            if (null === $max || $min !== $max) {
+                $hasVariableCapture = true;
+            }
+        }
+
+        $children = match (true) {
+            $node instanceof Node\SequenceNode => $node->children,
+            $node instanceof Node\AlternationNode => $node->alternatives,
+            $node instanceof Node\QuantifierNode => [$node->node],
+            $node instanceof Node\GroupNode => [$node->child],
+            $node instanceof Node\ConditionalNode => [$node->condition, $node->yes, $node->no],
+            default => [],
+        };
+
+        foreach ($children as $child) {
+            $childState = $this->analyzeBackrefLoop($child);
+            $hasBackref = $hasBackref || $childState['hasBackref'];
+            $hasVariableCapture = $hasVariableCapture || $childState['hasVariableCapture'];
+        }
+
+        return [
+            'hasBackref' => $hasBackref,
+            'hasVariableCapture' => $hasVariableCapture,
+        ];
+    }
+
+    /**
+     * @return array{0:int, 1:int|null}
+     */
+    private function lengthRange(Node\NodeInterface $node): array
+    {
+        if ($node instanceof Node\LiteralNode) {
+            $len = \strlen($node->value);
+
+            return [$len, $len];
+        }
+
+        if ($node instanceof Node\CharTypeNode
+            || $node instanceof Node\DotNode
+            || $node instanceof Node\CharClassNode
+            || $node instanceof Node\RangeNode
+            || $node instanceof Node\UnicodeNode
+            || $node instanceof Node\UnicodePropNode
+            || $node instanceof Node\OctalNode
+            || $node instanceof Node\OctalLegacyNode
+            || $node instanceof Node\PosixClassNode
+        ) {
+            return [1, 1];
+        }
+
+        if ($node instanceof Node\AnchorNode
+            || $node instanceof Node\AssertionNode
+            || $node instanceof Node\KeepNode
+            || $node instanceof Node\PcreVerbNode
+            || $node instanceof Node\CommentNode
+            || $node instanceof Node\CalloutNode
+        ) {
+            return [0, 0];
+        }
+
+        if ($node instanceof Node\SequenceNode) {
+            $min = 0;
+            $max = 0;
+            foreach ($node->children as $child) {
+                [$cMin, $cMax] = $this->lengthRange($child);
+                $min += $cMin;
+                $max = null === $max || null === $cMax ? null : $max + $cMax;
+            }
+
+            return [$min, $max];
+        }
+
+        if ($node instanceof Node\AlternationNode) {
+            $min = null;
+            $max = 0;
+            foreach ($node->alternatives as $child) {
+                [$cMin, $cMax] = $this->lengthRange($child);
+                $min = null === $min ? $cMin : min($min, $cMin);
+                $max = null === $max || null === $cMax ? null : max($max, $cMax);
+            }
+
+            return [$min ?? 0, $max];
+        }
+
+        if ($node instanceof Node\GroupNode) {
+            return $this->lengthRange($node->child);
+        }
+
+        if ($node instanceof Node\QuantifierNode) {
+            [$cMin, $cMax] = $this->lengthRange($node->node);
+            [$qMin, $qMax] = $this->quantifierBounds($node->quantifier);
+
+            $min = $cMin * $qMin;
+            $max = null === $cMax || null === $qMax ? null : $cMax * $qMax;
+
+            return [$min, $max];
+        }
+
+        if ($node instanceof Node\BackrefNode || $node instanceof Node\SubroutineNode) {
+            return [0, null];
+        }
+
+        return [0, null];
+    }
+
+    /**
+     * @return array{0:int, 1:int|null}
+     */
+    private function quantifierBounds(string $quantifier): array
+    {
+        if ('*' === $quantifier) {
+            return [0, null];
+        }
+        if ('+' === $quantifier) {
+            return [1, null];
+        }
+        if ('?' === $quantifier) {
+            return [0, 1];
+        }
+
+        if (preg_match('/^\\{(\\d+),(\\d+)\\}$/', $quantifier, $m)) {
+            return [(int) $m[1], (int) $m[2]];
+        }
+
+        if (preg_match('/^\\{(\\d+),\\}$/', $quantifier, $m)) {
+            return [(int) $m[1], null];
+        }
+
+        if (preg_match('/^\\{(\\d+)\\}$/', $quantifier, $m)) {
+            return [(int) $m[1], (int) $m[1]];
+        }
+
+        return [0, null];
+    }
+
+    private function isCapturingGroup(Node\GroupNode $group): bool
+    {
+        return \in_array($group->type, [
+            GroupType::T_GROUP_CAPTURING,
+            GroupType::T_GROUP_NAMED,
+            GroupType::T_GROUP_BRANCH_RESET,
+        ], true);
     }
 }
