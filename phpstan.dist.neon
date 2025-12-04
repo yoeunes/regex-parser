@@ -10,6 +10,9 @@ parameters:
 
     treatPhpDocTypesAsCertain: false
 
+    regexParser:
+        redosThreshold: critical
+
     paths:
         - bin
         - config

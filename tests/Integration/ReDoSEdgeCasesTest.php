@@ -160,4 +160,13 @@ class ReDoSEdgeCasesTest extends TestCase
         $this->assertContains($analysis->severity, [ReDoSSeverity::HIGH, ReDoSSeverity::CRITICAL],
             'Double nested quantifiers should be flagged');
     }
+
+    public function test_unknown_severity_on_analysis_failure(): void
+    {
+        $analysis = $this->regex->analyzeReDoS('/[a-+/');
+
+        $this->assertSame(ReDoSSeverity::UNKNOWN, $analysis->severity);
+        $this->assertFalse($analysis->isSafe());
+        $this->assertNotNull($analysis->error);
+    }
 }

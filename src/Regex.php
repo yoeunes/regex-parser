@@ -28,6 +28,8 @@ use RegexParser\ReDoS\ReDoSAnalyzer;
  * This class provides a high-level API for common regex operations.
  * It orchestrates the Lexer and Parser to provide convenient string-based
  * parsing while keeping those components decoupled from each other.
+ *
+ * @api
  */
 readonly class Regex
 {

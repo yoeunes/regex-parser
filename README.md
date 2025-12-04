@@ -175,7 +175,9 @@ echo $analysis->severity->value; // critical/high/...
 echo $analysis->score; // 0-10
 ```
 
-Severity levels: SAFE, LOW, MEDIUM, HIGH, CRITICAL (2^n worst cases).
+Severity levels: SAFE, LOW, MEDIUM, UNKNOWN, HIGH, CRITICAL (2^n worst cases; UNKNOWN means analysis could not complete safely).
+
+Limitations: heuristic/static only; quantified alternations with complex character classes may still warn conservatively, and deeply recursive backreference/subroutine patterns can evade detection. Treat `UNKNOWN` as a signal to fail closed.
 
 ---
 

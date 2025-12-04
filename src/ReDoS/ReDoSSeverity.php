@@ -13,6 +13,9 @@ declare(strict_types=1);
 
 namespace RegexParser\ReDoS;
 
+/**
+ * @api
+ */
 enum ReDoSSeverity: string
 {
     /**
@@ -32,6 +35,12 @@ enum ReDoSSeverity: string
      * Potential polynomial time O(n^2).
      */
     case MEDIUM = 'medium';
+
+    /**
+     * Analysis could not determine the risk (parser error, unsupported feature).
+     * Treat as non-safe until confirmed otherwise.
+     */
+    case UNKNOWN = 'unknown';
 
     /**
      * High risk. Nested unbounded quantifiers detected.

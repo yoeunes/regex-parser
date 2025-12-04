@@ -27,7 +27,7 @@ use RegexParser\ReDoS\ReDoSSeverity;
  * vulnerabilities within a given regex pattern. It traverses the Abstract Syntax Tree (AST)
  * and applies a set of heuristics to detect patterns that could lead to exponential or
  * polynomial backtracking, which can be exploited to cause a denial of service.
- * It categorizes risks into different severity levels (SAFE, LOW, MEDIUM, HIGH, CRITICAL)
+ * It categorizes risks into different severity levels (SAFE, LOW, UNKNOWN, MEDIUM, HIGH, CRITICAL)
  * and provides recommendations for mitigation.
  *
  * @implements NodeVisitorInterface<ReDoSSeverity>
@@ -804,7 +804,7 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      * Purpose: This complex helper method detects a common ReDoS pattern where different
      * branches of an alternation can match the same prefix (e.g., `(ab|a)`). When such
      * an alternation is quantified, it can lead to exponential backtracking. It analyzes
-     * the initial characters or types of each alternative to find overlaps.
+     * the initial characters of each alternative using `CharSetAnalyzer` to find overlaps.
      *
      * @param Node\AlternationNode $node the `AlternationNode` to check for overlaps
      *
@@ -812,39 +812,27 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      */
     private function hasOverlappingAlternatives(Node\AlternationNode $node): bool
     {
-        $prefixes = [];
-        $hasDot = false;
-        $hasCharClass = false;
+        $sets = [];
 
         foreach ($node->alternatives as $alt) {
-            $prefix = $this->getPrefixSignature($alt);
+            $set = $this->charSetAnalyzer->firstChars($alt);
 
-            if ('DOT' === $prefix) {
-                if ($hasDot || !empty($prefixes) || $hasCharClass) {
+            if ($set->isUnknown() || $this->startsWithDot($alt)) {
+                if (!empty($sets)) {
                     return true;
                 }
-                $hasDot = true;
+                $sets[] = $set;
 
                 continue;
             }
 
-            if ('CLASS' === $prefix) {
-                if ($hasDot || $hasCharClass || !empty($prefixes)) {
+            foreach ($sets as $existing) {
+                if ($set->intersects($existing)) {
                     return true;
                 }
-                $hasCharClass = true;
-
-                continue;
             }
 
-            if ($hasDot || $hasCharClass) {
-                return true;
-            }
-
-            if ($prefix && isset($prefixes[$prefix])) {
-                return true;
-            }
-            $prefixes[$prefix] = true;
+            $sets[] = $set;
         }
 
         return false;
@@ -855,25 +843,17 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      *
      * Purpose: This helper method is used by `hasOverlappingAlternatives` to quickly
      * determine if two different regex branches start with a potentially overlapping pattern.
-     * It extracts the type and value of the first significant element (literal, char type, dot, char class).
+     * It currently distinguishes only the "match anything" prefix (dot) and delegates detailed character overlap
+     * checks to `CharSetAnalyzer`.
      *
      * @param Node\NodeInterface $node the AST node to get the prefix signature for
      *
-     * @return string A string representing the prefix signature (e.g., 'L:a', 'T:d', 'DOT', 'CLASS').
+     * @return string A string representing the prefix signature (e.g., 'DOT' or empty if not applicable).
      */
     private function getPrefixSignature(Node\NodeInterface $node): string
     {
-        if ($node instanceof Node\LiteralNode) {
-            return 'L:'.$node->value;
-        }
-        if ($node instanceof Node\CharTypeNode) {
-            return 'T:'.$node->value;
-        }
         if ($node instanceof Node\DotNode) {
             return 'DOT';
-        }
-        if ($node instanceof Node\CharClassNode) {
-            return 'CLASS';
         }
         if ($node instanceof Node\SequenceNode && !empty($node->children)) {
             return $this->getPrefixSignature($node->children[0]);
@@ -881,9 +861,16 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
         if ($node instanceof Node\GroupNode) {
             return $this->getPrefixSignature($node->child);
         }
+        if ($node instanceof Node\QuantifierNode) {
+            return $this->getPrefixSignature($node->node);
+        }
 
-        // Fallback for other node types that don't have a simple prefix
-        return uniqid();
+        return '';
+    }
+
+    private function startsWithDot(Node\NodeInterface $node): bool
+    {
+        return 'DOT' === $this->getPrefixSignature($node);
     }
 
     private function hasTrailingBacktrackingControl(Node\NodeInterface $node): bool
@@ -992,9 +979,10 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
         $levels = [
             ReDoSSeverity::SAFE->value => 0,
             ReDoSSeverity::LOW->value => 1,
-            ReDoSSeverity::MEDIUM->value => 2,
-            ReDoSSeverity::HIGH->value => 3,
-            ReDoSSeverity::CRITICAL->value => 4,
+            ReDoSSeverity::UNKNOWN->value => 2,
+            ReDoSSeverity::MEDIUM->value => 3,
+            ReDoSSeverity::HIGH->value => 4,
+            ReDoSSeverity::CRITICAL->value => 5,
         ];
 
         return $levels[$a->value] > $levels[$b->value];
