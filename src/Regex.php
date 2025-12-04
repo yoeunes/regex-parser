@@ -58,9 +58,6 @@ readonly class Regex
     /**
      * @param list<string> $ignoredPatterns
      */
-    /**
-     * @param list<string> $ignoredPatterns
-     */
     private function __construct(
         private int $maxPatternLength,
         private CacheInterface $cache,
@@ -78,21 +75,18 @@ readonly class Regex
      * the library. As a contributor, you can add new options here to configure
      * the behavior of the parsing and analysis process.
      *
-     * @param array{max_pattern_length?: int, cache?: CacheInterface|string|null, ignored_patterns?: list<string>} $options An associative array of
-     *                                                                                                                      configuration options.
-     *                                                                                                                      - `max_pattern_length` (int):
-     *                                                                                                                      Sets a safeguard limit on the
-     *                                                                                                                      length of the regex string to
-     *                                                                                                                      prevent performance issues with
-     *                                                                                                                      overly long patterns. Defaults to
-     *                                                                                                                      `self::DEFAULT_MAX_PATTERN_LENGTH`.
-     *                                                                                                                      - `cache` (string|CacheInterface|null):
-     *                                                                                                                      Provide a directory path or cache
-     *                                                                                                                      implementation to enable AST
-     *                                                                                                                      caching.
-     *                                                                                                                      - `ignored_patterns` (list<string>):
-     *                                                                                                                      Patterns that should be treated as
-     *                                                                                                                      trusted/safe by the ReDoS analyzer.
+     * @param array{
+     *     max_pattern_length?: int,
+     *     cache?: CacheInterface|string|null,
+     *     ignored_patterns?: list<string>,
+     * } $options An associative array of configuration options.
+     *  - `max_pattern_length` (int):
+     *         Sets a safeguard limit on the length of the regex string to prevent performance
+     *         issues with overly long patterns. Defaults to `self::DEFAULT_MAX_PATTERN_LENGTH`.
+     *  - `cache` (string|CacheInterface|null):
+     *         Provide a directory path or cache implementation to enable AST caching.
+     *  - `ignored_patterns` (list<string>):
+     *         Patterns that should be treated as trusted/safe by the ReDoS analyzer.
      *
      * @return self a new, configured instance of the `Regex` service, ready to be used
      *
@@ -149,10 +143,13 @@ readonly class Regex
             throw new ParserException(\sprintf('Regex pattern exceeds maximum length of %d characters.', $this->maxPatternLength));
         }
 
-        $cacheKey = $this->cache->generateKey($regex);
-        $cached = $this->cache->load($cacheKey);
-        if ($cached instanceof RegexNode) {
-            return $cached;
+        $cacheKey = null;
+        if (!$this->cache instanceof NullCache) {
+            $cacheKey = $this->cache->generateKey($regex);
+            $cached = $this->cache->load($cacheKey);
+            if ($cached instanceof RegexNode) {
+                return $cached;
+            }
         }
 
         [$pattern, $flags, $delimiter] = $this->extractPatternAndFlags($regex);
@@ -162,9 +159,9 @@ readonly class Regex
 
         $ast = $parser->parse($stream, $flags, $delimiter, \strlen($pattern));
 
-        if (!$this->cache instanceof NullCache) {
+        if (null !== $cacheKey) {
             try {
-                $this->cache->write($cacheKey, $this->compileCachePayload($ast));
+                $this->cache->write($cacheKey, self::compileCachePayload($ast));
             } catch (\Throwable) {
             }
         }
@@ -596,7 +593,7 @@ readonly class Regex
         throw new \InvalidArgumentException('The "cache" option must be null, a cache path, or a CacheInterface implementation.');
     }
 
-    private function compileCachePayload(RegexNode $ast): string
+    private static function compileCachePayload(RegexNode $ast): string
     {
         $serialized = serialize($ast);
         $exported = var_export($serialized, true);
