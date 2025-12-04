@@ -470,6 +470,18 @@ readonly class Regex
         return new Lexer();
     }
 
+    public function parseTolerant(string $regex): TolerantParseResult
+    {
+        try {
+            return new TolerantParseResult($this->parse($regex));
+        } catch (LexerException|ParserException $e) {
+            [$pattern, $flags, $delimiter, $length] = $this->safeExtractPattern($regex);
+            $ast = $this->buildFallbackAst($pattern, $flags, $delimiter, $length, $e->getPosition());
+
+            return new TolerantParseResult($ast, [$e]);
+        }
+    }
+
     /**
      * A convenience method to tokenize a regex pattern without its delimiters.
      *
@@ -627,5 +639,29 @@ readonly class Regex
             return unserialize($exported, ['allowed_classes' => true]);
 
             PHP;
+    }
+
+    /**
+     * @return array{0: string, 1: string, 2: string, 3: int}
+     */
+    private function safeExtractPattern(string $regex): array
+    {
+        try {
+            [$pattern, $flags, $delimiter] = $this->extractPatternAndFlags($regex);
+            $length = \strlen($pattern);
+
+            return [$pattern, $flags, $delimiter, $length];
+        } catch (ParserException) {
+            return [$regex, '', '/', \strlen($regex)];
+        }
+    }
+
+    private function buildFallbackAst(string $pattern, string $flags, string $delimiter, int $patternLength, ?int $errorPosition): Node\RegexNode
+    {
+        $value = null === $errorPosition ? $pattern : substr($pattern, 0, max(0, $errorPosition));
+        $literal = new Node\LiteralNode($value, 0, \strlen($value));
+        $sequence = new Node\SequenceNode([$literal], 0, $literal->getEndPosition());
+
+        return new Node\RegexNode($sequence, $flags, $delimiter, 0, $patternLength);
     }
 }

@@ -175,6 +175,11 @@ echo $analysis->severity->value; // critical/high/...
 echo $analysis->score; // 0-10
 $isOkForRoutes = !$analysis->exceedsThreshold(\RegexParser\ReDoS\ReDoSSeverity::HIGH);
 $isOkForUserInput = !$analysis->exceedsThreshold(\RegexParser\ReDoS\ReDoSSeverity::LOW);
+
+// IDE-friendly tolerant parsing: returns partial AST + errors list instead of throwing.
+$result = Regex::create()->parseTolerant('/(a+/');
+var_dump($result->hasErrors()); // true
+echo $result->errors[0]->getMessage(); // e.g. "Unclosed group"
 ```
 
 Severity levels: SAFE, LOW, MEDIUM, UNKNOWN, HIGH, CRITICAL (2^n worst cases; UNKNOWN means analysis could not complete safely).
