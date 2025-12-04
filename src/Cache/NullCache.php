@@ -13,24 +13,29 @@ declare(strict_types=1);
 
 namespace RegexParser\Cache;
 
-class NullCache implements RemovableCacheInterface
+readonly class NullCache implements RemovableCacheInterface
 {
+    #[\Override]
     public function generateKey(string $regex): string
     {
         return hash('sha256', $regex);
     }
 
+    #[\Override]
     public function write(string $key, string $content): void {}
 
+    #[\Override]
     public function load(string $key): mixed
     {
         return null;
     }
 
+    #[\Override]
     public function getTimestamp(string $key): int
     {
         return 0;
     }
 
+    #[\Override]
     public function clear(?string $regex = null): void {}
 }

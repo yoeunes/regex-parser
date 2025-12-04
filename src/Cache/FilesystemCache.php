@@ -22,6 +22,7 @@ readonly class FilesystemCache implements RemovableCacheInterface
         $this->directory = rtrim($directory, '\\/');
     }
 
+    #[\Override]
     public function generateKey(string $regex): string
     {
         $hash = hash('sha256', $regex);
@@ -37,6 +38,7 @@ readonly class FilesystemCache implements RemovableCacheInterface
         );
     }
 
+    #[\Override]
     public function write(string $key, string $content): void
     {
         $directory = \dirname($key);
@@ -70,6 +72,7 @@ readonly class FilesystemCache implements RemovableCacheInterface
         }
     }
 
+    #[\Override]
     public function load(string $key): mixed
     {
         if (!is_file($key)) {
@@ -84,11 +87,13 @@ readonly class FilesystemCache implements RemovableCacheInterface
         }
     }
 
+    #[\Override]
     public function getTimestamp(string $key): int
     {
         return is_file($key) ? (int) filemtime($key) : 0;
     }
 
+    #[\Override]
     public function clear(?string $regex = null): void
     {
         if (null !== $regex) {

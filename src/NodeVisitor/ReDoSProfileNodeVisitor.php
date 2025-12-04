@@ -27,7 +27,7 @@ use RegexParser\ReDoS\ReDoSSeverity;
  * vulnerabilities within a given regex pattern. It traverses the Abstract Syntax Tree (AST)
  * and applies a set of heuristics to detect patterns that could lead to exponential or
  * polynomial backtracking, which can be exploited to cause a denial of service.
- * It categorizes risks into different severity levels (SAFE, LOW, MEDIUM, HIGH, CRITICAL)
+ * It categorizes risks into different severity levels (SAFE, LOW, UNKNOWN, MEDIUM, HIGH, CRITICAL)
  * and provides recommendations for mitigation.
  *
  * @implements NodeVisitorInterface<ReDoSSeverity>
@@ -53,6 +53,8 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
     private ?Node\NodeInterface $previousNode = null;
 
     private ?Node\NodeInterface $nextNode = null;
+
+    private bool $backrefLoopDetected = false;
 
     public function __construct(
         private readonly CharSetAnalyzer $charSetAnalyzer = new CharSetAnalyzer(),
@@ -104,6 +106,10 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
             $recommendations[] = $vuln['message'];
         }
 
+        if ($this->backrefLoopDetected) {
+            $maxSeverity = $this->maxSeverity($maxSeverity, ReDoSSeverity::CRITICAL);
+        }
+
         return [
             'severity' => $maxSeverity,
             'recommendations' => array_unique($recommendations),
@@ -138,6 +144,7 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
         $this->inAtomicGroup = false;
         $this->previousNode = null;
         $this->nextNode = null;
+        $this->backrefLoopDetected = false;
 
         return $node->pattern->accept($this);
     }
@@ -205,6 +212,16 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
 
         if ($entersUnbounded) {
             $this->unboundedQuantifierDepth++;
+
+            if ($this->hasBackrefLoop($node->node)) {
+                $this->backrefLoopDetected = true;
+                $severity = ReDoSSeverity::CRITICAL;
+                $this->addVulnerability(
+                    ReDoSSeverity::CRITICAL,
+                    'Unbounded quantifier combined with backreferences to variable-length captures can cause catastrophic backtracking.',
+                    $node->quantifier,
+                );
+            }
 
             if ($isNestedUnbounded) {
                 $severity = $boundarySeparated ? ReDoSSeverity::LOW : ReDoSSeverity::CRITICAL;
@@ -804,7 +821,7 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      * Purpose: This complex helper method detects a common ReDoS pattern where different
      * branches of an alternation can match the same prefix (e.g., `(ab|a)`). When such
      * an alternation is quantified, it can lead to exponential backtracking. It analyzes
-     * the initial characters or types of each alternative to find overlaps.
+     * the initial characters of each alternative using `CharSetAnalyzer` to find overlaps.
      *
      * @param Node\AlternationNode $node the `AlternationNode` to check for overlaps
      *
@@ -812,39 +829,27 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      */
     private function hasOverlappingAlternatives(Node\AlternationNode $node): bool
     {
-        $prefixes = [];
-        $hasDot = false;
-        $hasCharClass = false;
+        $sets = [];
 
         foreach ($node->alternatives as $alt) {
-            $prefix = $this->getPrefixSignature($alt);
+            $set = $this->charSetAnalyzer->firstChars($alt);
 
-            if ('DOT' === $prefix) {
-                if ($hasDot || !empty($prefixes) || $hasCharClass) {
+            if ($set->isUnknown() || $this->startsWithDot($alt)) {
+                if (!empty($sets)) {
                     return true;
                 }
-                $hasDot = true;
+                $sets[] = $set;
 
                 continue;
             }
 
-            if ('CLASS' === $prefix) {
-                if ($hasDot || $hasCharClass || !empty($prefixes)) {
+            foreach ($sets as $existing) {
+                if ($set->intersects($existing)) {
                     return true;
                 }
-                $hasCharClass = true;
-
-                continue;
             }
 
-            if ($hasDot || $hasCharClass) {
-                return true;
-            }
-
-            if ($prefix && isset($prefixes[$prefix])) {
-                return true;
-            }
-            $prefixes[$prefix] = true;
+            $sets[] = $set;
         }
 
         return false;
@@ -855,25 +860,17 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      *
      * Purpose: This helper method is used by `hasOverlappingAlternatives` to quickly
      * determine if two different regex branches start with a potentially overlapping pattern.
-     * It extracts the type and value of the first significant element (literal, char type, dot, char class).
+     * It currently distinguishes only the "match anything" prefix (dot) and delegates detailed character overlap
+     * checks to `CharSetAnalyzer`.
      *
      * @param Node\NodeInterface $node the AST node to get the prefix signature for
      *
-     * @return string A string representing the prefix signature (e.g., 'L:a', 'T:d', 'DOT', 'CLASS').
+     * @return string A string representing the prefix signature (e.g., 'DOT' or empty if not applicable).
      */
     private function getPrefixSignature(Node\NodeInterface $node): string
     {
-        if ($node instanceof Node\LiteralNode) {
-            return 'L:'.$node->value;
-        }
-        if ($node instanceof Node\CharTypeNode) {
-            return 'T:'.$node->value;
-        }
         if ($node instanceof Node\DotNode) {
             return 'DOT';
-        }
-        if ($node instanceof Node\CharClassNode) {
-            return 'CLASS';
         }
         if ($node instanceof Node\SequenceNode && !empty($node->children)) {
             return $this->getPrefixSignature($node->children[0]);
@@ -881,9 +878,16 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
         if ($node instanceof Node\GroupNode) {
             return $this->getPrefixSignature($node->child);
         }
+        if ($node instanceof Node\QuantifierNode) {
+            return $this->getPrefixSignature($node->node);
+        }
 
-        // Fallback for other node types that don't have a simple prefix
-        return uniqid();
+        return '';
+    }
+
+    private function startsWithDot(Node\NodeInterface $node): bool
+    {
+        return 'DOT' === $this->getPrefixSignature($node);
     }
 
     private function hasTrailingBacktrackingControl(Node\NodeInterface $node): bool
@@ -992,9 +996,10 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
         $levels = [
             ReDoSSeverity::SAFE->value => 0,
             ReDoSSeverity::LOW->value => 1,
-            ReDoSSeverity::MEDIUM->value => 2,
-            ReDoSSeverity::HIGH->value => 3,
-            ReDoSSeverity::CRITICAL->value => 4,
+            ReDoSSeverity::UNKNOWN->value => 2,
+            ReDoSSeverity::MEDIUM->value => 3,
+            ReDoSSeverity::HIGH->value => 4,
+            ReDoSSeverity::CRITICAL->value => 5,
         ];
 
         return $levels[$a->value] > $levels[$b->value];
@@ -1014,5 +1019,170 @@ class ReDoSProfileNodeVisitor implements NodeVisitorInterface
     private function maxSeverity(ReDoSSeverity $a, ReDoSSeverity $b): ReDoSSeverity
     {
         return $this->severityGreaterThan($a, $b) ? $a : $b;
+    }
+
+    /**
+     * Detects if a subtree contains a backreference and a variable-length capturing group,
+     * which can lead to catastrophic backtracking when repeated.
+     */
+    private function hasBackrefLoop(Node\NodeInterface $node): bool
+    {
+        $state = $this->analyzeBackrefLoop($node);
+
+        return $state['hasBackref'] && $state['hasVariableCapture'];
+    }
+
+    /**
+     * @return array{hasBackref: bool, hasVariableCapture: bool}
+     */
+    private function analyzeBackrefLoop(Node\NodeInterface $node): array
+    {
+        $hasBackref = $node instanceof Node\BackrefNode;
+        $hasVariableCapture = false;
+
+        if ($node instanceof Node\GroupNode && $this->isCapturingGroup($node)) {
+            [$min, $max] = $this->lengthRange($node->child);
+            if (null === $max || $min !== $max) {
+                $hasVariableCapture = true;
+            }
+        }
+
+        $children = match (true) {
+            $node instanceof Node\SequenceNode => $node->children,
+            $node instanceof Node\AlternationNode => $node->alternatives,
+            $node instanceof Node\QuantifierNode => [$node->node],
+            $node instanceof Node\GroupNode => [$node->child],
+            $node instanceof Node\ConditionalNode => [$node->condition, $node->yes, $node->no],
+            default => [],
+        };
+
+        foreach ($children as $child) {
+            $childState = $this->analyzeBackrefLoop($child);
+            $hasBackref = $hasBackref || $childState['hasBackref'];
+            $hasVariableCapture = $hasVariableCapture || $childState['hasVariableCapture'];
+        }
+
+        return [
+            'hasBackref' => $hasBackref,
+            'hasVariableCapture' => $hasVariableCapture,
+        ];
+    }
+
+    /**
+     * @return array{0:int, 1:int|null}
+     */
+    private function lengthRange(Node\NodeInterface $node): array
+    {
+        if ($node instanceof Node\LiteralNode) {
+            $len = \strlen($node->value);
+
+            return [$len, $len];
+        }
+
+        if ($node instanceof Node\CharTypeNode
+            || $node instanceof Node\DotNode
+            || $node instanceof Node\CharClassNode
+            || $node instanceof Node\RangeNode
+            || $node instanceof Node\UnicodeNode
+            || $node instanceof Node\UnicodePropNode
+            || $node instanceof Node\OctalNode
+            || $node instanceof Node\OctalLegacyNode
+            || $node instanceof Node\PosixClassNode
+        ) {
+            return [1, 1];
+        }
+
+        if ($node instanceof Node\AnchorNode
+            || $node instanceof Node\AssertionNode
+            || $node instanceof Node\KeepNode
+            || $node instanceof Node\PcreVerbNode
+            || $node instanceof Node\CommentNode
+            || $node instanceof Node\CalloutNode
+        ) {
+            return [0, 0];
+        }
+
+        if ($node instanceof Node\SequenceNode) {
+            $min = 0;
+            $max = 0;
+            foreach ($node->children as $child) {
+                [$cMin, $cMax] = $this->lengthRange($child);
+                $min += $cMin;
+                $max = null === $max || null === $cMax ? null : $max + $cMax;
+            }
+
+            return [$min, $max];
+        }
+
+        if ($node instanceof Node\AlternationNode) {
+            $min = null;
+            $max = 0;
+            foreach ($node->alternatives as $child) {
+                [$cMin, $cMax] = $this->lengthRange($child);
+                $min = null === $min ? $cMin : min($min, $cMin);
+                $max = null === $max || null === $cMax ? null : max($max, $cMax);
+            }
+
+            return [$min ?? 0, $max];
+        }
+
+        if ($node instanceof Node\GroupNode) {
+            return $this->lengthRange($node->child);
+        }
+
+        if ($node instanceof Node\QuantifierNode) {
+            [$cMin, $cMax] = $this->lengthRange($node->node);
+            [$qMin, $qMax] = $this->quantifierBounds($node->quantifier);
+
+            $min = $cMin * $qMin;
+            $max = null === $cMax || null === $qMax ? null : $cMax * $qMax;
+
+            return [$min, $max];
+        }
+
+        if ($node instanceof Node\BackrefNode || $node instanceof Node\SubroutineNode) {
+            return [0, null];
+        }
+
+        return [0, null];
+    }
+
+    /**
+     * @return array{0:int, 1:int|null}
+     */
+    private function quantifierBounds(string $quantifier): array
+    {
+        if ('*' === $quantifier) {
+            return [0, null];
+        }
+        if ('+' === $quantifier) {
+            return [1, null];
+        }
+        if ('?' === $quantifier) {
+            return [0, 1];
+        }
+
+        if (preg_match('/^\\{(\\d+),(\\d+)\\}$/', $quantifier, $m)) {
+            return [(int) $m[1], (int) $m[2]];
+        }
+
+        if (preg_match('/^\\{(\\d+),\\}$/', $quantifier, $m)) {
+            return [(int) $m[1], null];
+        }
+
+        if (preg_match('/^\\{(\\d+)\\}$/', $quantifier, $m)) {
+            return [(int) $m[1], (int) $m[1]];
+        }
+
+        return [0, null];
+    }
+
+    private function isCapturingGroup(Node\GroupNode $group): bool
+    {
+        return \in_array($group->type, [
+            GroupType::T_GROUP_CAPTURING,
+            GroupType::T_GROUP_NAMED,
+            GroupType::T_GROUP_BRANCH_RESET,
+        ], true);
     }
 }

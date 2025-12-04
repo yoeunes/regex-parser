@@ -282,53 +282,8 @@ class Lexer
             if (isset($matches[$tokenName])) {
                 $type = TokenType::from(strtolower(substr($tokenName, 2)));
 
-                if (TokenType::T_CHAR_CLASS_OPEN === $type) {
-                    $this->inCharClass = true;
-                    $this->charClassStartPosition = $startPos;
-
-                    return new Token($type, '[', $startPos);
-                }
-
-                if (TokenType::T_CHAR_CLASS_CLOSE === $type) {
-                    // Edge Case: ']' immediately after '[' or '[^' is treated as a literal ']'
-                    $lastToken = end($currentTokens);
-                    $isAtStart = ($startPos === $this->charClassStartPosition + 1)
-                        || ($startPos === $this->charClassStartPosition + 2 && $lastToken && TokenType::T_NEGATION === $lastToken->type);
-
-                    if ($isAtStart) {
-                        return new Token(TokenType::T_LITERAL, ']', $startPos);
-                    }
-                    $this->inCharClass = false;
-
-                    return new Token($type, ']', $startPos);
-                }
-
-                if (TokenType::T_COMMENT_OPEN === $type) {
-                    $this->inCommentMode = true;
-
-                    return new Token($type, '(?#', $startPos);
-                }
-
-                if (TokenType::T_QUOTE_MODE_START === $type) {
-                    $this->inQuoteMode = true;
-
-                    // We emit the token so the Parser knows \Q was here (Full Fidelity)
-                    return new Token($type, '\Q', $startPos);
-                }
-
-                if ($this->inCharClass) {
-                    $lastToken = end($currentTokens);
-                    $isAtStart = ($startPos === $this->charClassStartPosition + 1)
-                        || ($startPos === $this->charClassStartPosition + 2 && $lastToken && TokenType::T_NEGATION === $lastToken->type);
-
-                    // '^' is only T_NEGATION at the very start of the class
-                    if (TokenType::T_LITERAL === $type && '^' === $matchedValue && $isAtStart) {
-                        return new Token(TokenType::T_NEGATION, '^', $startPos);
-                    }
-                    // '-' is only T_RANGE if NOT at the start of the class
-                    if (TokenType::T_LITERAL === $type && '-' === $matchedValue && !$isAtStart) {
-                        return new Token(TokenType::T_RANGE, '-', $startPos);
-                    }
+                if ($token = $this->handleStatefulToken($type, $matchedValue, $startPos, $currentTokens)) {
+                    return $token;
                 }
 
                 $value = $this->extractTokenValue($type, $matchedValue, $matches);
@@ -339,6 +294,77 @@ class Lexer
 
         // Should be unreachable
         throw LexerException::withContext(\sprintf('Lexer internal error: No known token matched at position %d.', $startPos), $startPos, $this->pattern);
+    }
+
+    /**
+     * @param list<Token> $currentTokens
+     */
+    private function handleStatefulToken(TokenType $type, string $matchedValue, int $startPos, array $currentTokens): ?Token
+    {
+        if (TokenType::T_CHAR_CLASS_OPEN === $type) {
+            return $this->handleCharClassOpen($startPos);
+        }
+
+        if (TokenType::T_CHAR_CLASS_CLOSE === $type) {
+            return $this->handleCharClassClose($startPos, $currentTokens);
+        }
+
+        if (TokenType::T_COMMENT_OPEN === $type) {
+            $this->inCommentMode = true;
+
+            return new Token($type, '(?#', $startPos);
+        }
+
+        if (TokenType::T_QUOTE_MODE_START === $type) {
+            $this->inQuoteMode = true;
+
+            return new Token($type, '\Q', $startPos);
+        }
+
+        if ($this->inCharClass && TokenType::T_LITERAL === $type) {
+            if ($this->isAtCharClassStart($startPos, $currentTokens) && '^' === $matchedValue) {
+                return new Token(TokenType::T_NEGATION, '^', $startPos);
+            }
+
+            if (!$this->isAtCharClassStart($startPos, $currentTokens) && '-' === $matchedValue) {
+                return new Token(TokenType::T_RANGE, '-', $startPos);
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param list<Token> $currentTokens
+     */
+    private function handleCharClassClose(int $startPos, array $currentTokens): Token
+    {
+        if ($this->isAtCharClassStart($startPos, $currentTokens)) {
+            return new Token(TokenType::T_LITERAL, ']', $startPos);
+        }
+
+        $this->inCharClass = false;
+
+        return new Token(TokenType::T_CHAR_CLASS_CLOSE, ']', $startPos);
+    }
+
+    private function handleCharClassOpen(int $startPos): Token
+    {
+        $this->inCharClass = true;
+        $this->charClassStartPosition = $startPos;
+
+        return new Token(TokenType::T_CHAR_CLASS_OPEN, '[', $startPos);
+    }
+
+    /**
+     * @param list<Token> $currentTokens
+     */
+    private function isAtCharClassStart(int $startPos, array $currentTokens): bool
+    {
+        $lastToken = end($currentTokens);
+
+        return ($startPos === $this->charClassStartPosition + 1)
+            || ($startPos === $this->charClassStartPosition + 2 && $lastToken && TokenType::T_NEGATION === $lastToken->type);
     }
 
     /**

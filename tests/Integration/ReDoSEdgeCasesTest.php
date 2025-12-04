@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace Yoeunes\RegexParser\Tests\Integration;
+namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\ReDoS\ReDoSSeverity;
@@ -159,5 +159,32 @@ class ReDoSEdgeCasesTest extends TestCase
 
         $this->assertContains($analysis->severity, [ReDoSSeverity::HIGH, ReDoSSeverity::CRITICAL],
             'Double nested quantifiers should be flagged');
+    }
+
+    public function test_backreference_loop_inside_quantifier_is_critical(): void
+    {
+        $analysis = $this->regex->analyzeReDoS('/((a+)\\1)+/');
+
+        $this->assertSame(ReDoSSeverity::CRITICAL, $analysis->severity);
+    }
+
+    public function test_unknown_severity_on_analysis_failure(): void
+    {
+        $analysis = $this->regex->analyzeReDoS('/[a-+/');
+
+        $this->assertSame(ReDoSSeverity::UNKNOWN, $analysis->severity);
+        $this->assertFalse($analysis->isSafe());
+        $this->assertNotNull($analysis->error);
+    }
+
+    public function test_threshold_allows_contextual_pass_fail(): void
+    {
+        $analysis = $this->regex->analyzeReDoS('/(a+)+/');
+
+        $this->assertTrue($analysis->exceedsThreshold(ReDoSSeverity::HIGH));
+        $this->assertSame(
+            ReDoSSeverity::CRITICAL === $analysis->severity,
+            $analysis->exceedsThreshold(ReDoSSeverity::CRITICAL),
+        );
     }
 }

@@ -27,6 +27,7 @@ class ReDoSAnalyzer
          * @var list<string>
          */
         private array $ignoredPatterns = [],
+        private readonly ReDoSSeverity $threshold = ReDoSSeverity::HIGH,
     ) {
         $this->ignoredPatterns = array_values(array_unique($this->ignoredPatterns));
     }
@@ -39,6 +40,12 @@ class ReDoSAnalyzer
      * the `ReDoSProfileNodeVisitor`. The visitor is responsible for identifying dangerous
      * patterns, such as "evil twins" (ambiguous, repeated quantifiers). This method then
      * compiles the visitor's findings into a structured `ReDoSAnalysis` report.
+     *
+     * Notes and limitations:
+     * - Heuristic and conservative: absence of findings is not a proof of safety.
+     * - Known false positives: quantified alternations with complex character classes until overlap checks fully cover them.
+     * - Known blind spots: deeply recursive subroutines or backreference-driven ambiguity can escape static detection.
+     * - Internal errors yield `ReDoSSeverity::UNKNOWN` so callers can fail closed.
      *
      * @param string $regex the full PCRE regex string to be analyzed for vulnerabilities
      *
@@ -56,8 +63,10 @@ class ReDoSAnalyzer
      * }
      * ```
      */
-    public function analyze(string $regex): ReDoSAnalysis
+    public function analyze(string $regex, ?ReDoSSeverity $threshold = null): ReDoSAnalysis
     {
+        $threshold ??= $this->threshold;
+
         if ($this->shouldIgnore($regex)) {
             return new ReDoSAnalysis(ReDoSSeverity::SAFE, 0, null, []);
         }
@@ -77,13 +86,20 @@ class ReDoSAnalyzer
                     ReDoSSeverity::MEDIUM => 5,
                     ReDoSSeverity::HIGH => 8,
                     ReDoSSeverity::CRITICAL => 10,
+                    ReDoSSeverity::UNKNOWN => 5,
                 },
                 $result['vulnerablePattern'],
                 $result['recommendations'],
+                null,
             );
         } catch (\Throwable $e) {
-            // Fallback for parsing errors, treat as unknown/safe or rethrow
-            return new ReDoSAnalysis(ReDoSSeverity::SAFE, 0, null, ['Error parsing regex: '.$e->getMessage()]);
+            return new ReDoSAnalysis(
+                ReDoSSeverity::UNKNOWN,
+                0,
+                null,
+                ['Analysis incomplete: '.$e->getMessage()],
+                $e::class.': '.$e->getMessage(),
+            );
         }
     }
 

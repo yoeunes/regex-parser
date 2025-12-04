@@ -21,6 +21,7 @@ use RegexParser\Exception\ParserException;
 use RegexParser\Node\RegexNode;
 use RegexParser\ReDoS\ReDoSAnalysis;
 use RegexParser\ReDoS\ReDoSAnalyzer;
+use RegexParser\ReDoS\ReDoSSeverity;
 
 /**
  * Main service for parsing, validating, and manipulating regex patterns.
@@ -28,6 +29,8 @@ use RegexParser\ReDoS\ReDoSAnalyzer;
  * This class provides a high-level API for common regex operations.
  * It orchestrates the Lexer and Parser to provide convenient string-based
  * parsing while keeping those components decoupled from each other.
+ *
+ * @api
  */
 readonly class Regex
 {
@@ -58,9 +61,6 @@ readonly class Regex
     /**
      * @param list<string> $ignoredPatterns
      */
-    /**
-     * @param list<string> $ignoredPatterns
-     */
     private function __construct(
         private int $maxPatternLength,
         private CacheInterface $cache,
@@ -78,21 +78,18 @@ readonly class Regex
      * the library. As a contributor, you can add new options here to configure
      * the behavior of the parsing and analysis process.
      *
-     * @param array{max_pattern_length?: int, cache?: CacheInterface|string|null, ignored_patterns?: list<string>} $options An associative array of
-     *                                                                                                                      configuration options.
-     *                                                                                                                      - `max_pattern_length` (int):
-     *                                                                                                                      Sets a safeguard limit on the
-     *                                                                                                                      length of the regex string to
-     *                                                                                                                      prevent performance issues with
-     *                                                                                                                      overly long patterns. Defaults to
-     *                                                                                                                      `self::DEFAULT_MAX_PATTERN_LENGTH`.
-     *                                                                                                                      - `cache` (string|CacheInterface|null):
-     *                                                                                                                      Provide a directory path or cache
-     *                                                                                                                      implementation to enable AST
-     *                                                                                                                      caching.
-     *                                                                                                                      - `ignored_patterns` (list<string>):
-     *                                                                                                                      Patterns that should be treated as
-     *                                                                                                                      trusted/safe by the ReDoS analyzer.
+     * @param array{
+     *     max_pattern_length?: int,
+     *     cache?: CacheInterface|string|null,
+     *     ignored_patterns?: list<string>,
+     * } $options An associative array of configuration options.
+     *  - `max_pattern_length` (int):
+     *         Sets a safeguard limit on the length of the regex string to prevent performance
+     *         issues with overly long patterns. Defaults to `self::DEFAULT_MAX_PATTERN_LENGTH`.
+     *  - `cache` (string|CacheInterface|null):
+     *         Provide a directory path or cache implementation to enable AST caching.
+     *  - `ignored_patterns` (list<string>):
+     *         Patterns that should be treated as trusted/safe by the ReDoS analyzer.
      *
      * @return self a new, configured instance of the `Regex` service, ready to be used
      *
@@ -149,9 +146,8 @@ readonly class Regex
             throw new ParserException(\sprintf('Regex pattern exceeds maximum length of %d characters.', $this->maxPatternLength));
         }
 
-        $cacheKey = $this->cache->generateKey($regex);
-        $cached = $this->cache->load($cacheKey);
-        if ($cached instanceof RegexNode) {
+        [$cached, $cacheKey] = $this->loadFromCache($regex);
+        if (null !== $cached) {
             return $cached;
         }
 
@@ -162,12 +158,7 @@ readonly class Regex
 
         $ast = $parser->parse($stream, $flags, $delimiter, \strlen($pattern));
 
-        if (!$this->cache instanceof NullCache) {
-            try {
-                $this->cache->write($cacheKey, $this->compileCachePayload($ast));
-            } catch (\Throwable) {
-            }
-        }
+        $this->storeInCache($cacheKey, $ast);
 
         return $ast;
     }
@@ -416,9 +407,9 @@ readonly class Regex
      * }
      * ```
      */
-    public function analyzeReDoS(string $regex): ReDoSAnalysis
+    public function analyzeReDoS(string $regex, ?ReDoSSeverity $threshold = null): ReDoSAnalysis
     {
-        return new ReDoSAnalyzer($this, $this->ignoredPatterns)->analyze($regex);
+        return new ReDoSAnalyzer($this, $this->ignoredPatterns)->analyze($regex, $threshold);
     }
 
     /**
@@ -477,6 +468,18 @@ readonly class Regex
     public function getLexer(): Lexer
     {
         return new Lexer();
+    }
+
+    public function parseTolerant(string $regex): TolerantParseResult
+    {
+        try {
+            return new TolerantParseResult($this->parse($regex));
+        } catch (LexerException|ParserException $e) {
+            [$pattern, $flags, $delimiter, $length] = $this->safeExtractPattern($regex);
+            $ast = $this->buildFallbackAst($pattern, $flags, $delimiter, $length, $e->getPosition());
+
+            return new TolerantParseResult($ast, [$e]);
+        }
     }
 
     /**
@@ -596,7 +599,34 @@ readonly class Regex
         throw new \InvalidArgumentException('The "cache" option must be null, a cache path, or a CacheInterface implementation.');
     }
 
-    private function compileCachePayload(RegexNode $ast): string
+    /**
+     * @return array{0: RegexNode|null, 1: string|null}
+     */
+    private function loadFromCache(string $regex): array
+    {
+        if ($this->cache instanceof NullCache) {
+            return [null, null];
+        }
+
+        $cacheKey = $this->cache->generateKey($regex);
+        $cached = $this->cache->load($cacheKey);
+
+        return [$cached instanceof RegexNode ? $cached : null, $cacheKey];
+    }
+
+    private function storeInCache(?string $cacheKey, RegexNode $ast): void
+    {
+        if (null === $cacheKey) {
+            return;
+        }
+
+        try {
+            $this->cache->write($cacheKey, self::compileCachePayload($ast));
+        } catch (\Throwable) {
+        }
+    }
+
+    private static function compileCachePayload(RegexNode $ast): string
     {
         $serialized = serialize($ast);
         $exported = var_export($serialized, true);
@@ -609,5 +639,29 @@ readonly class Regex
             return unserialize($exported, ['allowed_classes' => true]);
 
             PHP;
+    }
+
+    /**
+     * @return array{0: string, 1: string, 2: string, 3: int}
+     */
+    private function safeExtractPattern(string $regex): array
+    {
+        try {
+            [$pattern, $flags, $delimiter] = $this->extractPatternAndFlags($regex);
+            $length = \strlen($pattern);
+
+            return [$pattern, $flags, $delimiter, $length];
+        } catch (ParserException) {
+            return [$regex, '', '/', \strlen($regex)];
+        }
+    }
+
+    private function buildFallbackAst(string $pattern, string $flags, string $delimiter, int $patternLength, ?int $errorPosition): Node\RegexNode
+    {
+        $value = null === $errorPosition ? $pattern : substr($pattern, 0, max(0, $errorPosition));
+        $literal = new Node\LiteralNode($value, 0, \strlen($value));
+        $sequence = new Node\SequenceNode([$literal], 0, $literal->getEndPosition());
+
+        return new Node\RegexNode($sequence, $flags, $delimiter, 0, $patternLength);
     }
 }

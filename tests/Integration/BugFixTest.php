@@ -75,19 +75,13 @@ class BugFixTest extends TestCase
 
     public function test_re_do_s_analyzer_detects_char_class_overlap(): void
     {
-        // ([a-z]|[0-9])* -> Safe (no overlap)
-        // CURRENT LIMITATION: The analyzer assumes any two character classes overlap.
-        // So this is currently flagged as CRITICAL (False Positive).
-        // This is acceptable for v1.0 to ensure safety (no False Negatives).
+        // ([a-z]|[0-9])* -> disjoint branches, should not be critical
         $analysis = $this->regexService->analyzeReDoS('/([a-z]|[0-9])*/');
-        $this->assertSame(ReDoSSeverity::CRITICAL, $analysis->severity);
+        $this->assertNotSame(ReDoSSeverity::CRITICAL, $analysis->severity);
+        $this->assertNotSame(ReDoSSeverity::HIGH, $analysis->severity);
 
         // ([a-z]|[a-f])* -> Critical (overlap)
-        // Note: My simple fix assumes ANY two classes overlap.
-        // So ([a-z]|[0-9])* will be CRITICAL.
-        // This is a false positive, but better than false negative for now.
-        // I will adjust the test expectation to match current implementation behavior
-        // or improve the implementation.
+        // With overlap detection, this should remain critical.
         // Given the request to "fix bugs", false positive is acceptable for v1.0 safety.
 
         $analysis = $this->regexService->analyzeReDoS('/([a-z]|[a-f])*/');

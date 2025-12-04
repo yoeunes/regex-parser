@@ -21,6 +21,8 @@ namespace RegexParser\ReDoS;
  * a severity level, a numerical complexity score, the specific part of the regex that is
  * vulnerable, and actionable recommendations for fixing it. This gives developers clear
  * insights into potential security risks.
+ *
+ * @api
  */
 readonly class ReDoSAnalysis
 {
@@ -32,19 +34,21 @@ readonly class ReDoSAnalysis
      * structured and easily consumable format. As a contributor, you'll see this object
      * created at the end of the analysis process.
      *
-     * @param ReDoSSeverity $severity        The overall severity of the detected vulnerability (e.g., HIGH, MEDIUM, LOW, SAFE).
+     * @param ReDoSSeverity $severity        The overall severity of the detected vulnerability (e.g., HIGH, MEDIUM, LOW, SAFE, UNKNOWN).
      * @param int           $score           A numerical complexity score. Higher values indicate a more complex and
      *                                       potentially dangerous pattern.
      * @param string|null   $vulnerablePart  If a vulnerability is found, this holds the specific substring of the
      *                                       regex pattern that is causing the issue (e.g., `(a+)+`).
      * @param array<string> $recommendations A list of human-readable suggestions for how to mitigate the detected
      *                                       vulnerability (e.g., "Use atomic groups" or "Make quantifiers possessive").
+     * @param string|null   $error           optional internal error description if analysis could not complete
      */
     public function __construct(
         public ReDoSSeverity $severity,
         public int $score,
         public ?string $vulnerablePart = null,
         public array $recommendations = [],
+        public ?string $error = null,
     ) {}
 
     /**
@@ -68,5 +72,22 @@ readonly class ReDoSAnalysis
     public function isSafe(): bool
     {
         return ReDoSSeverity::SAFE === $this->severity || ReDoSSeverity::LOW === $this->severity;
+    }
+
+    public function exceedsThreshold(ReDoSSeverity $threshold): bool
+    {
+        return $this->severityScore($this->severity) >= $this->severityScore($threshold);
+    }
+
+    private function severityScore(ReDoSSeverity $severity): int
+    {
+        return match ($severity) {
+            ReDoSSeverity::SAFE => 0,
+            ReDoSSeverity::LOW => 1,
+            ReDoSSeverity::UNKNOWN => 2,
+            ReDoSSeverity::MEDIUM => 3,
+            ReDoSSeverity::HIGH => 4,
+            ReDoSSeverity::CRITICAL => 5,
+        };
     }
 }

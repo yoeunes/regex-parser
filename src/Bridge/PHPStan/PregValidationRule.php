@@ -216,9 +216,10 @@ class PregValidationRule implements Rule
         $currentLevel = match ($severity) {
             ReDoSSeverity::SAFE => 0,
             ReDoSSeverity::LOW => 1,
-            ReDoSSeverity::MEDIUM => 2,
-            ReDoSSeverity::HIGH => 3,
-            ReDoSSeverity::CRITICAL => 4,
+            ReDoSSeverity::UNKNOWN => 2,
+            ReDoSSeverity::MEDIUM => 3,
+            ReDoSSeverity::HIGH => 4,
+            ReDoSSeverity::CRITICAL => 5,
         };
 
         $thresholdLevel = match ($this->redosThreshold) {
