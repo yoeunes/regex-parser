@@ -143,13 +143,9 @@ readonly class Regex
             throw new ParserException(\sprintf('Regex pattern exceeds maximum length of %d characters.', $this->maxPatternLength));
         }
 
-        $cacheKey = null;
-        if (!$this->cache instanceof NullCache) {
-            $cacheKey = $this->cache->generateKey($regex);
-            $cached = $this->cache->load($cacheKey);
-            if ($cached instanceof RegexNode) {
-                return $cached;
-            }
+        [$cached, $cacheKey] = $this->loadFromCache($regex);
+        if (null !== $cached) {
+            return $cached;
         }
 
         [$pattern, $flags, $delimiter] = $this->extractPatternAndFlags($regex);
@@ -159,12 +155,7 @@ readonly class Regex
 
         $ast = $parser->parse($stream, $flags, $delimiter, \strlen($pattern));
 
-        if (null !== $cacheKey) {
-            try {
-                $this->cache->write($cacheKey, self::compileCachePayload($ast));
-            } catch (\Throwable) {
-            }
-        }
+        $this->storeInCache($cacheKey, $ast);
 
         return $ast;
     }
@@ -591,6 +582,33 @@ readonly class Regex
         }
 
         throw new \InvalidArgumentException('The "cache" option must be null, a cache path, or a CacheInterface implementation.');
+    }
+
+    /**
+     * @return array{0: RegexNode|null, 1: string|null}
+     */
+    private function loadFromCache(string $regex): array
+    {
+        if ($this->cache instanceof NullCache) {
+            return [null, null];
+        }
+
+        $cacheKey = $this->cache->generateKey($regex);
+        $cached = $this->cache->load($cacheKey);
+
+        return [$cached instanceof RegexNode ? $cached : null, $cacheKey];
+    }
+
+    private function storeInCache(?string $cacheKey, RegexNode $ast): void
+    {
+        if (null === $cacheKey) {
+            return;
+        }
+
+        try {
+            $this->cache->write($cacheKey, self::compileCachePayload($ast));
+        } catch (\Throwable) {
+        }
     }
 
     private static function compileCachePayload(RegexNode $ast): string

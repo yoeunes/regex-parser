@@ -171,34 +171,7 @@ class Parser
         if ($this->match(TokenType::T_QUANTIFIER)) {
             $token = $this->previous();
 
-            // Validation: Quantifier on empty literal
-            if ($node instanceof Node\LiteralNode && '' === $node->value) {
-                throw $this->parserException(\sprintf('Quantifier without target at position %d', $token->position), $token->position);
-            }
-
-            // Validation: Quantifier on empty group sequence
-            if ($node instanceof Node\GroupNode) {
-                $child = $node->child;
-                if (($child instanceof Node\LiteralNode && '' === $child->value)
-                    || ($child instanceof Node\SequenceNode && empty($child->children))) {
-                    throw $this->parserException(\sprintf('Quantifier without target at position %d', $token->position), $token->position);
-                }
-            }
-
-            // Validation: Assertions, anchors, and verbs cannot be quantified
-            if ($node instanceof Node\AnchorNode || $node instanceof Node\AssertionNode || $node instanceof Node\PcreVerbNode || $node instanceof Node\KeepNode) {
-                $nodeName = match (true) {
-                    $node instanceof Node\AnchorNode => $node->value,
-                    $node instanceof Node\AssertionNode => '\\'.$node->value,
-                    $node instanceof Node\PcreVerbNode => '(*'.$node->verb.')',
-                    default => '\K',
-                };
-
-                throw $this->parserException(
-                    \sprintf('Quantifier "%s" cannot be applied to assertion or verb "%s" at position %d', $token->value, $nodeName, $node->getStartPosition()),
-                    $token->position,
-                );
-            }
+            $this->assertQuantifierCanApply($node, $token);
 
             [$quantifier, $type] = $this->parseQuantifierValue($token->value);
 
@@ -228,6 +201,39 @@ class Parser
         }
 
         return [$value, Node\QuantifierType::T_GREEDY];
+    }
+
+    private function assertQuantifierCanApply(Node\NodeInterface $node, Token $token): void
+    {
+        if ($node instanceof Node\LiteralNode && '' === $node->value) {
+            throw $this->parserException(\sprintf('Quantifier without target at position %d', $token->position), $token->position);
+        }
+
+        if ($node instanceof Node\GroupNode && $this->isEmptyGroup($node)) {
+            throw $this->parserException(\sprintf('Quantifier without target at position %d', $token->position), $token->position);
+        }
+
+        if ($node instanceof Node\AnchorNode || $node instanceof Node\AssertionNode || $node instanceof Node\PcreVerbNode || $node instanceof Node\KeepNode) {
+            $nodeName = match (true) {
+                $node instanceof Node\AnchorNode => $node->value,
+                $node instanceof Node\AssertionNode => '\\'.$node->value,
+                $node instanceof Node\PcreVerbNode => '(*'.$node->verb.')',
+                default => '\K',
+            };
+
+            throw $this->parserException(
+                \sprintf('Quantifier "%s" cannot be applied to assertion or verb "%s" at position %d', $token->value, $nodeName, $node->getStartPosition()),
+                $token->position,
+            );
+        }
+    }
+
+    private function isEmptyGroup(Node\GroupNode $node): bool
+    {
+        $child = $node->child;
+
+        return ($child instanceof Node\LiteralNode && '' === $child->value)
+            || ($child instanceof Node\SequenceNode && empty($child->children));
     }
 
     /**
