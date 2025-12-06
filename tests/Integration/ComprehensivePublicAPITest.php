@@ -18,7 +18,6 @@ use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\ParserException;
 use RegexParser\ReDoS\ReDoSSeverity;
 use RegexParser\Regex;
-use RegexParser\ValidationResult;
 
 /**
  * Comprehensive test suite for the public API of RegexParser.

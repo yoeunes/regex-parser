@@ -14,7 +14,6 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
 use RegexParser\Regex;
@@ -43,15 +42,15 @@ class ReverseCompilerTest extends TestCase
         // We suppress errors because we want to catch the false return value
         $isValid = @preg_match($recompiled, '');
 
-        if ($isValid === false) {
+        if (false === $isValid) {
             $error = preg_last_error();
             $msg = match ($error) {
-                PREG_INTERNAL_ERROR => 'PREG_INTERNAL_ERROR',
-                PREG_BACKTRACK_LIMIT_ERROR => 'PREG_BACKTRACK_LIMIT_ERROR',
-                PREG_RECURSION_LIMIT_ERROR => 'PREG_RECURSION_LIMIT_ERROR',
-                PREG_BAD_UTF8_ERROR => 'PREG_BAD_UTF8_ERROR',
-                PREG_BAD_UTF8_OFFSET_ERROR => 'PREG_BAD_UTF8_OFFSET_ERROR',
-                PREG_JIT_STACKLIMIT_ERROR => 'PREG_JIT_STACKLIMIT_ERROR',
+                \PREG_INTERNAL_ERROR => 'PREG_INTERNAL_ERROR',
+                \PREG_BACKTRACK_LIMIT_ERROR => 'PREG_BACKTRACK_LIMIT_ERROR',
+                \PREG_RECURSION_LIMIT_ERROR => 'PREG_RECURSION_LIMIT_ERROR',
+                \PREG_BAD_UTF8_ERROR => 'PREG_BAD_UTF8_ERROR',
+                \PREG_BAD_UTF8_OFFSET_ERROR => 'PREG_BAD_UTF8_OFFSET_ERROR',
+                \PREG_JIT_STACKLIMIT_ERROR => 'PREG_JIT_STACKLIMIT_ERROR',
                 default => 'Unknown Error'
             };
             $this->fail("Recompiled regex '$recompiled' from '$originalPattern' is invalid ($msg).");
@@ -63,16 +62,15 @@ class ReverseCompilerTest extends TestCase
             // Some recursive/complex patterns might hit generator limits, so we wrap in try/catch
             $sample = $this->regexService->generate($originalPattern);
 
-            if ($sample !== '') {
-                 $this->assertMatchesRegularExpression(
-                    $recompiled,
-                    $sample,
-                    "Recompiled regex '$recompiled' failed to match sample '$sample' generated from '$originalPattern'"
-                );
-            }
+            $this->assertMatchesRegularExpression(
+                $recompiled,
+                $sample,
+                "Recompiled regex '$recompiled' failed to match sample '$sample' generated from '$originalPattern'",
+            );
         } catch (\Exception $e) {
             // If generation fails (e.g. infinite recursion), we skip the sample match test
             // but the validity test above is still valuable.
+            $this->markTestSkipped('Sample generation failed for pattern '.$originalPattern.': '.$e->getMessage());
         }
     }
 
