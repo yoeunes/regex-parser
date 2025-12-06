@@ -2,20 +2,26 @@
 
 declare(strict_types=1);
 
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace RegexParser\Tests\Unit\Bridge\Symfony\DependencyInjection;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\Bridge\Symfony\Analyzer\RouteRequirementAnalyzer;
 use RegexParser\Bridge\Symfony\Analyzer\ValidatorRegexAnalyzer;
-use RegexParser\Bridge\Symfony\CacheWarmer\RegexParserCacheWarmer;
-use RegexParser\Bridge\Symfony\Command\RegexParserValidateCommand;
 use RegexParser\Bridge\Symfony\DependencyInjection\RegexParserExtension;
-use RegexParser\Regex;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 
 final class RegexParserExtensionTest extends TestCase
 {
-    public function testLoadSetsParametersAndServices(): void
+    public function test_load_sets_parameters_and_services(): void
     {
         $container = new ContainerBuilder();
         $container->setParameter('kernel.debug', false);
@@ -32,20 +38,20 @@ final class RegexParserExtensionTest extends TestCase
             ],
         ]], $container);
 
-        self::assertSame(42, $container->getParameter('regex_parser.max_pattern_length'));
-        self::assertSame('/tmp/cache', $container->getParameter('regex_parser.cache'));
-        self::assertSame(1, $container->getParameter('regex_parser.analysis.warning_threshold'));
-        self::assertSame(2, $container->getParameter('regex_parser.analysis.redos_threshold'));
-        self::assertSame(['foo'], $container->getParameter('regex_parser.analysis.ignore_patterns'));
+        $this->assertSame(42, $container->getParameter('regex_parser.max_pattern_length'));
+        $this->assertSame('/tmp/cache', $container->getParameter('regex_parser.cache'));
+        $this->assertSame(1, $container->getParameter('regex_parser.analysis.warning_threshold'));
+        $this->assertSame(2, $container->getParameter('regex_parser.analysis.redos_threshold'));
+        $this->assertSame(['foo'], $container->getParameter('regex_parser.analysis.ignore_patterns'));
 
-        self::assertTrue($container->hasDefinition('regex_parser.regex'));
-        self::assertTrue($container->hasDefinition(RouteRequirementAnalyzer::class));
-        self::assertTrue($container->hasDefinition(ValidatorRegexAnalyzer::class));
-        self::assertTrue($container->hasDefinition('regex_parser.cache_warmer'));
-        self::assertTrue($container->hasDefinition('regex_parser.command.validate'));
+        $this->assertTrue($container->hasDefinition('regex_parser.regex'));
+        $this->assertTrue($container->hasDefinition(RouteRequirementAnalyzer::class));
+        $this->assertTrue($container->hasDefinition(ValidatorRegexAnalyzer::class));
+        $this->assertTrue($container->hasDefinition('regex_parser.cache_warmer'));
+        $this->assertTrue($container->hasDefinition('regex_parser.command.validate'));
     }
 
-    public function testLoadSkipsWhenDisabled(): void
+    public function test_load_skips_when_disabled(): void
     {
         $container = new ContainerBuilder();
         $container->setParameter('kernel.debug', true);
@@ -53,8 +59,8 @@ final class RegexParserExtensionTest extends TestCase
         $extension = new RegexParserExtension();
         $extension->load([['enabled' => false]], $container);
 
-        self::assertFalse($container->hasParameter('regex_parser.max_pattern_length'));
-        self::assertFalse($container->hasDefinition('regex_parser.regex'));
-        self::assertFalse($container->hasDefinition(RouteRequirementAnalyzer::class));
+        $this->assertFalse($container->hasParameter('regex_parser.max_pattern_length'));
+        $this->assertFalse($container->hasDefinition('regex_parser.regex'));
+        $this->assertFalse($container->hasDefinition(RouteRequirementAnalyzer::class));
     }
 }

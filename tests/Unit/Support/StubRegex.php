@@ -2,6 +2,15 @@
 
 declare(strict_types=1);
 
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace RegexParser\Tests\Unit\Support;
 
 use RegexParser\ValidationResult;
@@ -14,7 +23,7 @@ final class StubRegex
      */
     public function __construct(
         private array $results,
-        private array $ignored = [],
+        private readonly array $ignored = [],
     ) {}
 
     public function validate(string $pattern): ValidationResult

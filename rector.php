@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 use Rector\Config\RectorConfig;
 use Rector\Php73\Rector\FuncCall\RegexDashEscapeRector;
+use Rector\PHPUnit\CodeQuality\Rector\ClassMethod\AddInstanceofAssertForNullableInstanceRector;
 use Rector\PHPUnit\Set\PHPUnitSetList;
 use Rector\Privatization\Rector\Class_\FinalizeTestCaseClassRector;
 use Rector\Set\ValueObject\LevelSetList;
@@ -30,6 +31,9 @@ return static function (RectorConfig $rectorConfig): void {
     $rectorConfig->skip([
         __DIR__.'/src/Lexer.php',
         __DIR__.'/tests/Fixtures/pcre_patterns.php',
+        __DIR__.'/tests/Unit/Bridge/Rector/RegexOptimizationRectorTest.php',
+        __DIR__.'/tests/Unit/Bridge/Symfony/Command/RegexParserValidateCommandTest.php',
+        __DIR__.'/tests/Unit/ValidationResultTest.php',
     ]);
 
     // $rectorConfig->import(__DIR__.'/config/rector/regex-parser.php');
@@ -55,5 +59,6 @@ return static function (RectorConfig $rectorConfig): void {
     $rectorConfig->skip([
         RegexDashEscapeRector::class,
         FinalizeTestCaseClassRector::class,
+        AddInstanceofAssertForNullableInstanceRector::class,
     ]);
 };

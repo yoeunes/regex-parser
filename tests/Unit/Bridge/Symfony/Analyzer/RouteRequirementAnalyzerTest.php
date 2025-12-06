@@ -2,18 +2,26 @@
 
 declare(strict_types=1);
 
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace RegexParser\Tests\Unit\Bridge\Symfony\Analyzer;
 
 use PHPUnit\Framework\TestCase;
-use RegexParser\Bridge\Symfony\Analyzer\RouteRequirementAnalyzer;
 use RegexParser\Bridge\Symfony\Analyzer\AnalysisIssue;
-use RegexParser\Tests\Unit\Support\StubRegex;
+use RegexParser\Bridge\Symfony\Analyzer\RouteRequirementAnalyzer;
 use Symfony\Component\Routing\Route;
 use Symfony\Component\Routing\RouteCollection;
 
 final class RouteRequirementAnalyzerTest extends TestCase
 {
-    public function testAnalyzeReturnsIssuesForInvalidAndComplexPatterns(): void
+    public function test_analyze_returns_issues_for_invalid_and_complex_patterns(): void
     {
         $regex = \RegexParser\Regex::create();
 
@@ -26,8 +34,30 @@ final class RouteRequirementAnalyzerTest extends TestCase
 
         $issues = $analyzer->analyze($routes);
 
-        self::assertCount(2, $issues);
-        self::assertTrue($issues[0] instanceof AnalysisIssue && $issues[0]->isError);
-        self::assertFalse($issues[1]->isError); // warning threshold exceeded
+        $this->assertCount(2, $issues);
+        $this->assertTrue($issues[0] instanceof AnalysisIssue && $issues[0]->isError);
+        $this->assertFalse($issues[1]->isError); // warning threshold exceeded
+    }
+
+    public function test_analyze_ignores_configured_patterns(): void
+    {
+        $regex = \RegexParser\Regex::create();
+        $analyzer = new RouteRequirementAnalyzer($regex, warningThreshold: 10, redosThreshold: 20, ignoredPatterns: ['foo']);
+
+        $routes = new RouteCollection();
+        $routes->add('ignored', new Route('/a', [], ['id' => 'foo']));
+
+        $this->assertSame([], $analyzer->analyze($routes));
+    }
+
+    public function test_analyze_skips_trivially_safe_patterns(): void
+    {
+        $regex = \RegexParser\Regex::create();
+        $analyzer = new RouteRequirementAnalyzer($regex, warningThreshold: 10, redosThreshold: 20);
+
+        $routes = new RouteCollection();
+        $routes->add('safe', new Route('/a', [], ['id' => 'foo|bar']));
+
+        $this->assertSame([], $analyzer->analyze($routes));
     }
 }

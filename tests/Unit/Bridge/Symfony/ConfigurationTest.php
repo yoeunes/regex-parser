@@ -2,6 +2,15 @@
 
 declare(strict_types=1);
 
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace RegexParser\Tests\Unit\Bridge\Symfony;
 
 use PHPUnit\Framework\TestCase;
@@ -11,22 +20,22 @@ use Symfony\Component\Config\Definition\Processor;
 
 final class ConfigurationTest extends TestCase
 {
-    public function testDefaultConfiguration(): void
+    public function test_default_configuration(): void
     {
         $processor = new Processor();
         $configuration = new Configuration(false);
 
         $config = $processor->processConfiguration($configuration, []);
 
-        self::assertFalse($config['enabled']);
-        self::assertSame(Regex::DEFAULT_MAX_PATTERN_LENGTH, $config['max_pattern_length']);
-        self::assertNull($config['cache']);
-        self::assertSame(50, $config['analysis']['warning_threshold']);
-        self::assertSame(100, $config['analysis']['redos_threshold']);
-        self::assertSame([], $config['analysis']['ignore_patterns']);
+        $this->assertFalse($config['enabled']);
+        $this->assertSame(Regex::DEFAULT_MAX_PATTERN_LENGTH, $config['max_pattern_length']);
+        $this->assertNull($config['cache']);
+        $this->assertSame(50, $config['analysis']['warning_threshold']);
+        $this->assertSame(100, $config['analysis']['redos_threshold']);
+        $this->assertSame([], $config['analysis']['ignore_patterns']);
     }
 
-    public function testCustomConfiguration(): void
+    public function test_custom_configuration(): void
     {
         $processor = new Processor();
         $configuration = new Configuration(true);
@@ -42,11 +51,11 @@ final class ConfigurationTest extends TestCase
             ],
         ]]);
 
-        self::assertTrue($config['enabled']);
-        self::assertSame(10, $config['max_pattern_length']);
-        self::assertSame('/tmp/cache', $config['cache']);
-        self::assertSame(['foo', 'bar'], $config['analysis']['ignore_patterns']);
-        self::assertSame(1, $config['analysis']['warning_threshold']);
-        self::assertSame(2, $config['analysis']['redos_threshold']);
+        $this->assertTrue($config['enabled']);
+        $this->assertSame(10, $config['max_pattern_length']);
+        $this->assertSame('/tmp/cache', $config['cache']);
+        $this->assertSame(['foo', 'bar'], $config['analysis']['ignore_patterns']);
+        $this->assertSame(1, $config['analysis']['warning_threshold']);
+        $this->assertSame(2, $config['analysis']['redos_threshold']);
     }
 }

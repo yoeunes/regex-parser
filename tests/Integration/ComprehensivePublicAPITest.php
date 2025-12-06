@@ -190,7 +190,7 @@ final class ComprehensivePublicAPITest extends TestCase
         $result = $this->regexService->validate('/(a+)+b/');
         $this->assertFalse($result->isValid);
         $this->assertNotNull($result->error);
-        $this->assertStringContainsString('catastrophic', strtolower($result->error));
+        $this->assertStringContainsString('catastrophic', strtolower((string) $result->error));
     }
 
     public function test_validate_detects_nested_quantifiers_redos(): void

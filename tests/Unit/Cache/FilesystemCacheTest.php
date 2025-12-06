@@ -2,6 +2,15 @@
 
 declare(strict_types=1);
 
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace RegexParser\Tests\Unit\Cache;
 
 use PHPUnit\Framework\TestCase;
@@ -36,22 +45,22 @@ final class FilesystemCacheTest extends TestCase
         }
     }
 
-    public function testWriteLoadAndClear(): void
+    public function test_write_load_and_clear(): void
     {
         $cache = new FilesystemCache($this->directory, '.php');
 
         $key = $cache->generateKey('/foo/');
-        self::assertStringContainsString($this->directory, $key);
-        self::assertStringEndsWith('.php', $key);
+        $this->assertStringContainsString($this->directory, $key);
+        $this->assertStringEndsWith('.php', $key);
 
         $payload = "<?php return 'cached';";
         $cache->write($key, $payload);
 
-        self::assertIsInt($cache->getTimestamp($key));
-        self::assertSame('cached', $cache->load($key));
+        $this->assertIsInt($cache->getTimestamp($key));
+        $this->assertSame('cached', $cache->load($key));
 
         $cache->clear('/foo/');
-        self::assertFalse(is_file($key));
+        $this->assertFalse(is_file($key));
 
         // Clear without regex should not fail even if directory already empty
         $cache->clear();

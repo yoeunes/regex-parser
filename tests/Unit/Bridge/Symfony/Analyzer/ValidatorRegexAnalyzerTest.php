@@ -2,14 +2,22 @@
 
 declare(strict_types=1);
 
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace RegexParser\Tests\Unit\Bridge\Symfony\Analyzer;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\Bridge\Symfony\Analyzer\AnalysisIssue;
 use RegexParser\Bridge\Symfony\Analyzer\ValidatorRegexAnalyzer;
-use RegexParser\Tests\Unit\Support\StubRegex;
-use Symfony\Component\Validator\ConstraintViolationListInterface;
 use Symfony\Component\Validator\Constraints\Regex as SymfonyRegex;
+use Symfony\Component\Validator\ConstraintViolationListInterface;
 use Symfony\Component\Validator\Context\ExecutionContextInterface;
 use Symfony\Component\Validator\Mapping\ClassMetadata;
 use Symfony\Component\Validator\Mapping\Loader\LoaderInterface;
@@ -18,7 +26,7 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 final class ValidatorRegexAnalyzerTest extends TestCase
 {
-    public function testAnalyzeDetectsInvalidAndComplexConstraints(): void
+    public function test_analyze_detects_invalid_and_complex_constraints(): void
     {
         $regex = \RegexParser\Regex::create();
 
@@ -43,23 +51,49 @@ final class ValidatorRegexAnalyzerTest extends TestCase
         $analyzer = new ValidatorRegexAnalyzer($regex, warningThreshold: 0, redosThreshold: 100000);
         $issues = $analyzer->analyze($validator, $loader);
 
-        self::assertCount(3, $issues);
-        self::assertTrue($issues[0] instanceof AnalysisIssue && $issues[0]->isError);
-        self::assertFalse($issues[1]->isError);
-        self::assertFalse($issues[2]->isError);
+        $this->assertCount(3, $issues);
+        $this->assertTrue($issues[0] instanceof AnalysisIssue && $issues[0]->isError);
+        $this->assertFalse($issues[1]->isError);
+        $this->assertFalse($issues[2]->isError);
     }
 
-    public function testAnalyzeReturnsEmptyWhenValidatorMissing(): void
+    public function test_analyze_returns_empty_when_validator_missing(): void
     {
         $analyzer = new ValidatorRegexAnalyzer(\RegexParser\Regex::create(), 10, 20);
 
-        self::assertSame([], $analyzer->analyze(null, null));
+        $this->assertSame([], $analyzer->analyze(null, null));
+    }
+
+    public function test_analyze_skips_ignored_and_trivial_patterns(): void
+    {
+        $regex = \RegexParser\Regex::create();
+        $analyzer = new ValidatorRegexAnalyzer($regex, warningThreshold: 10, redosThreshold: 20, ignoredPatterns: ['safe']);
+
+        $metadata = new ClassMetadata(DummyValidated::class);
+        $metadata->addPropertyConstraint('value', new SymfonyRegex('/safe/')); // ignored via config
+        $metadata->addPropertyConstraint('value', new SymfonyRegex('/foo|bar/')); // trivial safe
+
+        $validator = new StubValidator(['class' => $metadata]);
+        $loader = new class implements LoaderInterface {
+            public function loadClassMetadata(ClassMetadata $metadata): bool
+            {
+                return true;
+            }
+
+            public function getMappedClasses(): array
+            {
+                return [DummyValidated::class];
+            }
+        };
+
+        $this->assertSame([], $analyzer->analyze($validator, $loader));
     }
 }
 
 final class DummyValidated
 {
     public string $value = '';
+
     public string $other = '';
 }
 

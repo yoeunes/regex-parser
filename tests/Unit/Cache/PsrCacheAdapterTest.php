@@ -2,6 +2,15 @@
 
 declare(strict_types=1);
 
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace RegexParser\Tests\Unit\Cache;
 
 use PHPUnit\Framework\TestCase;
@@ -12,28 +21,28 @@ use RegexParser\Node\RegexNode;
 
 final class PsrCacheAdapterTest extends TestCase
 {
-    public function testGenerateKeyUsesPrefixAndHash(): void
+    public function test_generate_key_uses_prefix_and_hash(): void
     {
         $pool = new InMemoryPool();
         $cache = new PsrCacheAdapter($pool, 'pfx_');
 
         $key = $cache->generateKey('/foo/');
 
-        self::assertStringStartsWith('pfx_', $key);
-        self::assertStringContainsString(hash('sha256', '/foo/'), $key);
+        $this->assertStringStartsWith('pfx_', $key);
+        $this->assertStringContainsString(hash('sha256', '/foo/'), $key);
     }
 
-    public function testCustomKeyFactory(): void
+    public function test_custom_key_factory(): void
     {
         $pool = new InMemoryPool();
         $cache = new PsrCacheAdapter($pool, 'pfx_', static fn (string $regex): string => 'custom_'.$regex);
 
         $key = $cache->generateKey('bar');
 
-        self::assertSame('pfx_custom_bar', $key);
+        $this->assertSame('pfx_custom_bar', $key);
     }
 
-    public function testWriteAndLoadDecodedPayload(): void
+    public function test_write_and_load_decoded_payload(): void
     {
         $pool = new InMemoryPool();
         $cache = new PsrCacheAdapter($pool);
@@ -45,11 +54,11 @@ final class PsrCacheAdapterTest extends TestCase
 
         $loaded = $cache->load($key);
 
-        self::assertInstanceOf(RegexNode::class, $loaded);
-        self::assertInstanceOf(DummyNode::class, $loaded->pattern);
+        $this->assertInstanceOf(RegexNode::class, $loaded);
+        $this->assertInstanceOf(DummyNode::class, $loaded->pattern);
     }
 
-    public function testWriteFallsBackToRawPayloadOnError(): void
+    public function test_write_falls_back_to_raw_payload_on_error(): void
     {
         $pool = new InMemoryPool();
         $cache = new PsrCacheAdapter($pool);
@@ -57,10 +66,10 @@ final class PsrCacheAdapterTest extends TestCase
         $key = $cache->generateKey('broken');
         $cache->write($key, '<?php broken');
 
-        self::assertSame('<?php broken', $cache->load($key));
+        $this->assertSame('<?php broken', $cache->load($key));
     }
 
-    public function testClear(): void
+    public function test_clear(): void
     {
         $pool = new InMemoryPool();
         $cache = new PsrCacheAdapter($pool);
@@ -68,14 +77,14 @@ final class PsrCacheAdapterTest extends TestCase
         $key = $cache->generateKey('foo');
         $raw = "<?php return 'x';";
         $cache->write($key, $raw);
-        self::assertSame($raw, $cache->load($key));
+        $this->assertSame($raw, $cache->load($key));
 
         $cache->clear('foo');
-        self::assertNull($cache->load($key));
+        $this->assertNull($cache->load($key));
 
         $cache->write($key, "<?php return 'y';");
         $cache->clear();
-        self::assertNull($cache->load($key));
+        $this->assertNull($cache->load($key));
     }
 }
 
@@ -99,7 +108,9 @@ final class DummyNode implements \RegexParser\Node\NodeInterface
 
 final class InMemoryPool implements CacheItemPoolInterface
 {
-    /** @var array<string, InMemoryItem> */
+    /**
+     * @var array<string, InMemoryItem>
+     */
     private array $items = [];
 
     public function getItem(string $key): CacheItemInterface
@@ -165,9 +176,10 @@ final class InMemoryPool implements CacheItemPoolInterface
 final class InMemoryItem implements CacheItemInterface
 {
     private bool $hit = false;
+
     private mixed $value = null;
 
-    public function __construct(private string $key) {}
+    public function __construct(private readonly string $key) {}
 
     public function getKey(): string
     {
