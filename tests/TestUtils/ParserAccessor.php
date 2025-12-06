@@ -24,14 +24,14 @@ use RegexParser\TokenType;
  * NOTE: After the TokenStream refactoring, this accessor works differently.
  * The Parser now uses a TokenStream internally instead of a tokens array and position property.
  */
-final class ParserAccessor
+final readonly class ParserAccessor
 {
     /**
      * @var \ReflectionClass<Parser>
      */
-    private readonly \ReflectionClass $reflection;
+    private \ReflectionClass $reflection;
 
-    public function __construct(private readonly Parser $parser)
+    public function __construct(private Parser $parser)
     {
         $this->reflection = new \ReflectionClass($this->parser);
     }
