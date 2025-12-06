@@ -522,7 +522,7 @@ This library is released under the [MIT License](LICENSE).
 <p align="center"> <b>Made with ❤️ by <a href="https://www.linkedin.com/in/younes--ennaji/">Younes ENNAJI</a> </b> </p>
 
 <p align="center">
-   <a href="https://github.com/php-flasher/php-flasher/stargazers">
+   <a href="https://github.com/yoeunes/regex-parser">
       ⭐ Star if you found this useful ⭐
    </a>
 </p>
