@@ -413,6 +413,23 @@ readonly class Regex
     }
 
     /**
+     * Determines if a regex is considered "safe" from ReDoS vulnerabilities.
+     *
+     * A regex is considered safe if the ReDoS analyzer does not detect any
+     * HIGH or CRITICAL severity issues.
+     *
+     * @param string $regex the full PCRE regex string to check
+     *
+     * @return bool true if the regex is considered safe, false otherwise
+     */
+    public function isSafe(string $regex): bool
+    {
+        $analysis = $this->analyzeReDoS($regex);
+
+        return !\in_array($analysis->severity, [ReDoSSeverity::HIGH, ReDoSSeverity::CRITICAL], true);
+    }
+
+    /**
      * @return list<string>
      */
     public function getIgnoredPatterns(): array
