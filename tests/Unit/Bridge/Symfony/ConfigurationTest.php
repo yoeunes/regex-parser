@@ -25,6 +25,18 @@ final class ConfigurationTest extends TestCase
         $processor = new Processor();
         $configuration = new Configuration(false);
 
+        /**
+         * @var array{
+         *     enabled: bool,
+         *     max_pattern_length: int,
+         *     cache: string|null,
+         *     analysis: array{
+         *         warning_threshold: int,
+         *         redos_threshold: int,
+         *         ignore_patterns: array<int, string>
+         *     }
+         * } $config
+         */
         $config = $processor->processConfiguration($configuration, []);
 
         $this->assertFalse($config['enabled']);
@@ -40,6 +52,18 @@ final class ConfigurationTest extends TestCase
         $processor = new Processor();
         $configuration = new Configuration(true);
 
+        /**
+         * @var array{
+         *     enabled: bool,
+         *     max_pattern_length: int,
+         *     cache: string|null,
+         *     analysis: array{
+         *         warning_threshold: int,
+         *         redos_threshold: int,
+         *         ignore_patterns: array<int, string>
+         *     }
+         * } $config
+         */
         $config = $processor->processConfiguration($configuration, [[
             'enabled' => true,
             'max_pattern_length' => 10,
@@ -50,6 +74,19 @@ final class ConfigurationTest extends TestCase
                 'ignore_patterns' => ['foo', 'bar'],
             ],
         ]]);
+
+        /*
+         * @var array{
+         *     enabled: bool,
+         *     max_pattern_length: int,
+         *     cache: string|null,
+         *     analysis: array{
+         *         warning_threshold: int,
+         *         redos_threshold: int,
+         *         ignore_patterns: array<int, string>
+         *     }
+         * } $config
+         */
 
         $this->assertTrue($config['enabled']);
         $this->assertSame(10, $config['max_pattern_length']);

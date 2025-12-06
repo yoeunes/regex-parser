@@ -14,7 +14,6 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Unit\Bridge\Symfony\Analyzer;
 
 use PHPUnit\Framework\TestCase;
-use RegexParser\Bridge\Symfony\Analyzer\AnalysisIssue;
 use RegexParser\Bridge\Symfony\Analyzer\RouteRequirementAnalyzer;
 use Symfony\Component\Routing\Route;
 use Symfony\Component\Routing\RouteCollection;
@@ -35,7 +34,7 @@ final class RouteRequirementAnalyzerTest extends TestCase
         $issues = $analyzer->analyze($routes);
 
         $this->assertCount(2, $issues);
-        $this->assertTrue($issues[0] instanceof AnalysisIssue && $issues[0]->isError);
+        $this->assertTrue($issues[0]->isError);
         $this->assertFalse($issues[1]->isError); // warning threshold exceeded
     }
 

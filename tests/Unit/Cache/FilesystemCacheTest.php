@@ -34,10 +34,19 @@ final class FilesystemCacheTest extends TestCase
             );
 
             foreach ($iterator as $fileInfo) {
+                if (!$fileInfo instanceof \SplFileInfo) {
+                    continue;
+                }
+
+                $path = $fileInfo->getPathname();
+                if (!\is_string($path)) {
+                    continue;
+                }
+
                 if ($fileInfo->isDir()) {
-                    @rmdir($fileInfo->getPathname());
+                    @rmdir($path);
                 } else {
-                    @unlink($fileInfo->getPathname());
+                    @unlink($path);
                 }
             }
 

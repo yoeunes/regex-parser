@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Unit\Bridge\Rector;
 
 use PhpParser\Node\Expr\FuncCall;
+use PhpParser\Node\Scalar\String_;
 use PhpParser\Node\Stmt\ClassConst;
 use PhpParser\ParserFactory;
 use PHPUnit\Framework\TestCase;
@@ -30,15 +31,20 @@ final class RegexOptimizationRectorTest extends TestCase
         $this->initializeDependencies($rector);
 
         $parser = new ParserFactory()->createForNewestSupportedVersion();
-        $stmts = $parser->parse('<?php my_func("/[a-zA-Z0-9_]+/", $s);');
+        $stmts = array_values($parser->parse('<?php my_func("/[a-zA-Z0-9_]+/", $s);') ?? []);
         $funcCall = $this->findNode($stmts, FuncCall::class);
 
-        $this->assertInstanceOf(FuncCall::class, $funcCall);
+        if (!$funcCall instanceof FuncCall) {
+            self::fail('FuncCall not found');
+        }
         $modified = $rector->refactor($funcCall);
 
         $this->assertNotInstanceOf(\PhpParser\Node::class, $modified);
-        $this->assertInstanceOf(\PhpParser\Node\Expr\FuncCall::class, $funcCall);
-        $this->assertSame('/[a-zA-Z0-9_]+/', $funcCall->getArgs()[0]->value->value);
+        $patternArg = $funcCall->getArgs()[0]->value;
+        if (!$patternArg instanceof String_) {
+            self::fail('Pattern argument not string literal');
+        }
+        $this->assertSame('/[a-zA-Z0-9_]+/', $patternArg->value);
     }
 
     public function test_refactors_configured_class_constant(): void
@@ -48,13 +54,16 @@ final class RegexOptimizationRectorTest extends TestCase
         $this->initializeDependencies($rector);
 
         $parser = new ParserFactory()->createForNewestSupportedVersion();
-        $stmts = $parser->parse('<?php class A { public const MY_REGEX = "/[a-zA-Z0-9_]+/"; }');
+        $stmts = array_values($parser->parse('<?php class A { public const MY_REGEX = "/[a-zA-Z0-9_]+/"; }') ?? []);
         $const = $this->findNode($stmts, ClassConst::class);
 
-        $this->assertInstanceOf(ClassConst::class, $const);
+        if (!$const instanceof ClassConst) {
+            self::fail('ClassConst not found');
+        }
         $modified = $rector->refactor($const);
 
         $this->assertNotInstanceOf(\PhpParser\Node::class, $modified);
+        $this->assertInstanceOf(String_::class, $const->consts[0]->value);
         $this->assertSame('/[a-zA-Z0-9_]+/', $const->consts[0]->value->value);
     }
 
@@ -62,6 +71,22 @@ final class RegexOptimizationRectorTest extends TestCase
      * @template T of \PhpParser\Node
      *
      * @param class-string<T> $class
+     *
+     * @return T|null
+     */
+    /**
+     * @template T of \PhpParser\Node
+     *
+     * @param array<int, \PhpParser\Node\Stmt> $stmts
+     * @param class-string<T>                  $class
+     *
+     * @return T|null
+     */
+    /**
+     * @template T of \PhpParser\Node
+     *
+     * @param array<int, \PhpParser\Node\Stmt> $stmts
+     * @param class-string<T>                  $class
      *
      * @return T|null
      */
@@ -80,7 +105,7 @@ final class RegexOptimizationRectorTest extends TestCase
                             return $node;
                         }
                     }
-                } elseif ($child instanceof $class) {
+                } elseif ($child instanceof \PhpParser\Node && $child instanceof $class) {
                     return $child;
                 }
             }

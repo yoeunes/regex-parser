@@ -14,7 +14,6 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Unit\Bridge\Symfony\Analyzer;
 
 use PHPUnit\Framework\TestCase;
-use RegexParser\Bridge\Symfony\Analyzer\AnalysisIssue;
 use RegexParser\Bridge\Symfony\Analyzer\ValidatorRegexAnalyzer;
 use Symfony\Component\Validator\Constraints\Regex as SymfonyRegex;
 use Symfony\Component\Validator\ConstraintViolationListInterface;
@@ -42,6 +41,9 @@ final class ValidatorRegexAnalyzerTest extends TestCase
                 return true;
             }
 
+            /**
+             * @return array<int, class-string<DummyValidated>>
+             */
             public function getMappedClasses(): array
             {
                 return [DummyValidated::class];
@@ -52,7 +54,7 @@ final class ValidatorRegexAnalyzerTest extends TestCase
         $issues = $analyzer->analyze($validator, $loader);
 
         $this->assertCount(3, $issues);
-        $this->assertTrue($issues[0] instanceof AnalysisIssue && $issues[0]->isError);
+        $this->assertTrue($issues[0]->isError);
         $this->assertFalse($issues[1]->isError);
         $this->assertFalse($issues[2]->isError);
     }
@@ -80,6 +82,9 @@ final class ValidatorRegexAnalyzerTest extends TestCase
                 return true;
             }
 
+            /**
+             * @return array<int, class-string<DummyValidated>>
+             */
             public function getMappedClasses(): array
             {
                 return [DummyValidated::class];

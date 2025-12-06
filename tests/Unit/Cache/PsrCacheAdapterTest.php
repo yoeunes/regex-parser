@@ -17,6 +17,7 @@ use PHPUnit\Framework\TestCase;
 use Psr\Cache\CacheItemInterface;
 use Psr\Cache\CacheItemPoolInterface;
 use RegexParser\Cache\PsrCacheAdapter;
+use RegexParser\Node\LiteralNode;
 use RegexParser\Node\RegexNode;
 
 final class PsrCacheAdapterTest extends TestCase
@@ -47,7 +48,7 @@ final class PsrCacheAdapterTest extends TestCase
         $pool = new InMemoryPool();
         $cache = new PsrCacheAdapter($pool);
 
-        $payload = "<?php return new \\RegexParser\\Node\\RegexNode(new \\RegexParser\\Tests\\Unit\\Cache\\DummyNode(), '', '/', 0, 0);";
+        $payload = "<?php return new \\RegexParser\\Node\\RegexNode(new \\RegexParser\\Node\\LiteralNode('', 0, 0), '', '/', 0, 0);";
 
         $key = $cache->generateKey('foo');
         $cache->write($key, $payload);
@@ -55,7 +56,7 @@ final class PsrCacheAdapterTest extends TestCase
         $loaded = $cache->load($key);
 
         $this->assertInstanceOf(RegexNode::class, $loaded);
-        $this->assertInstanceOf(DummyNode::class, $loaded->pattern);
+        $this->assertInstanceOf(LiteralNode::class, $loaded->pattern);
     }
 
     public function test_write_falls_back_to_raw_payload_on_error(): void
@@ -88,24 +89,6 @@ final class PsrCacheAdapterTest extends TestCase
     }
 }
 
-final class DummyNode implements \RegexParser\Node\NodeInterface
-{
-    public function accept(\RegexParser\NodeVisitor\NodeVisitorInterface $visitor): mixed
-    {
-        return null;
-    }
-
-    public function getStartPosition(): int
-    {
-        return 0;
-    }
-
-    public function getEndPosition(): int
-    {
-        return 0;
-    }
-}
-
 final class InMemoryPool implements CacheItemPoolInterface
 {
     /**
@@ -118,10 +101,14 @@ final class InMemoryPool implements CacheItemPoolInterface
         return $this->items[$key] ??= new InMemoryItem($key);
     }
 
+    /**
+     * @return iterable<string, CacheItemInterface>
+     */
     public function getItems(array $keys = []): iterable
     {
         foreach ($keys as $key) {
-            yield $this->getItem($key);
+            $key = (string) $key;
+            yield $key => $this->getItem($key);
         }
     }
 

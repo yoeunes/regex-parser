@@ -64,11 +64,17 @@ final class RegexParserValidateCommandTest extends TestCase
                 return new \Symfony\Component\Routing\RequestContext();
             }
 
+            /**
+             * @param array<string, mixed> $parameters
+             */
             public function generate(string $name, array $parameters = [], int $referenceType = self::ABSOLUTE_PATH): string
             {
                 return '';
             }
 
+            /**
+             * @return array<string, mixed>
+             */
             public function match(string $pathinfo): array
             {
                 return [];
