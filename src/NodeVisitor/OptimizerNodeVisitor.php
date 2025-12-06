@@ -574,7 +574,7 @@ final class OptimizerNodeVisitor implements NodeVisitorInterface
             if (!$alt instanceof Node\LiteralNode) {
                 return false;
             }
-            if (mb_strlen($alt->value) > 1) {
+            if (\strlen($alt->value) > 1) {
                 return false;
             }
             if (isset(self::CHAR_CLASS_META[$alt->value])) {
@@ -615,7 +615,7 @@ final class OptimizerNodeVisitor implements NodeVisitorInterface
         $changed = false;
 
         foreach ($parts as $part) {
-            if ($part instanceof Node\LiteralNode && 1 === mb_strlen($part->value)) {
+            if ($part instanceof Node\LiteralNode && 1 === \strlen($part->value)) {
                 $ord = mb_ord($part->value);
                 if (isset($scalarChars[$ord])) {
                     $scalarChars[$ord]['start'] = min($scalarChars[$ord]['start'], $part->startPosition);
@@ -631,8 +631,8 @@ final class OptimizerNodeVisitor implements NodeVisitorInterface
             if ($part instanceof Node\RangeNode
                 && $part->start instanceof Node\LiteralNode
                 && $part->end instanceof Node\LiteralNode
-                && 1 === mb_strlen($part->start->value)
-                && 1 === mb_strlen($part->end->value)
+                && 1 === \strlen($part->start->value)
+                && 1 === \strlen($part->end->value)
             ) {
                 $startOrd = mb_ord($part->start->value);
                 $endOrd = mb_ord($part->end->value);

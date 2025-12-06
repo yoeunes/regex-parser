@@ -114,7 +114,7 @@ final class TokenReconstructionTest extends TestCase
 
         // Cas 2: Propriété longue (ex: \p{Lu}) -> le parser stocke "Lu" (sans accolades ici pour tester la logique d'ajout)
         // Note: Votre parser semble stocker parfois avec, parfois sans.
-        // Si reconstructTokenValue fait : (mb_strlen($val) > 1) ? '\p{'.$val.'}'
+        // Si reconstructTokenValue fait : (strlen($val) > 1) ? '\p{'.$val.'}'
         $token = new Token(TokenType::T_UNICODE_PROP, 'Lu', 0);
         $this->assertSame('\p{Lu}', $method->invoke($parser, $token));
 

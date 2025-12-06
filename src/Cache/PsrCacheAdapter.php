@@ -90,19 +90,46 @@ final readonly class PsrCacheAdapter implements RemovableCacheInterface
      */
     private function decodePayload(string $content): ?RegexNode
     {
-        $code = ltrim($content);
+        $serialized = $this->extractSerializedString($content);
+        if (null === $serialized) {
+            return null;
+        }
 
+        $value = @unserialize($serialized, ['allowed_classes' => true]);
+
+        return $value instanceof RegexNode ? $value : null;
+    }
+
+    /**
+     * Extracts the serialized AST string from the generated payload without executing it.
+     */
+    private function extractSerializedString(string $content): ?string
+    {
+        $code = ltrim($content);
         if (str_starts_with($code, '<?php')) {
             $code = substr($code, 5);
         }
 
-        try {
-            $result = eval($code);
-
-            return $result instanceof RegexNode ? $result : null;
-        } catch (\Throwable) {
-            // If anything goes wrong we just fall back to storing the raw payload.
+        $offset = stripos($code, 'unserialize(');
+        if (false === $offset) {
             return null;
         }
+
+        $argumentBlock = substr($code, $offset + \strlen('unserialize('));
+        $commaPos = strpos($argumentBlock, ',');
+        if (false === $commaPos) {
+            return null;
+        }
+
+        $argument = trim(substr($argumentBlock, 0, $commaPos));
+        if ('' === $argument) {
+            return null;
+        }
+
+        if (\in_array($argument[0], ["'", '"'], true) && $argument[0] === substr($argument, -1)) {
+            $argument = substr($argument, 1, -1);
+        }
+
+        return stripcslashes($argument);
     }
 }

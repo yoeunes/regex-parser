@@ -430,10 +430,10 @@ final class ValidatorNodeVisitor implements NodeVisitorInterface
         }
 
         // 2. Validation: Ensure characters are single-byte or single codepoint (for LiteralNodes).
-        if ($node->start instanceof Node\LiteralNode && mb_strlen($node->start->value) > 1) {
+        if ($node->start instanceof Node\LiteralNode && \strlen($node->start->value) > 1) {
             throw new ParserException(\sprintf('Invalid range at position %d: start char must be a single character.', $node->startPosition));
         }
-        if ($node->end instanceof Node\LiteralNode && mb_strlen($node->end->value) > 1) {
+        if ($node->end instanceof Node\LiteralNode && \strlen($node->end->value) > 1) {
             throw new ParserException(\sprintf('Invalid range at position %d: end char must be a single character.', $node->startPosition));
         }
 
@@ -564,7 +564,7 @@ final class ValidatorNodeVisitor implements NodeVisitorInterface
         // The only 100% "prod-ready" way to validate a Unicode property
         // is to check it against the PCRE engine being used.
         $prop = $node->prop;
-        $key = (mb_strlen($prop) > 1 || str_starts_with($prop, '^')) ? "p{{$prop}}" : "p{$prop}";
+        $key = (\strlen($prop) > 1 || str_starts_with($prop, '^')) ? "p{{$prop}}" : "p{$prop}";
 
         if (!isset(self::$unicodePropCache[$key])) {
             // We use error suppression as preg_match will warn on an invalid property.

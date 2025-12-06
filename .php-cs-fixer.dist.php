@@ -270,7 +270,7 @@ return (new PhpCsFixer\Config())
         PhpCsFixerCustomFixers\Fixer\NoSuperfluousConcatenationFixer::name() => true,
         PhpCsFixerCustomFixers\Fixer\NoTrailingCommaInSinglelineFixer::name() => true,
         PhpCsFixerCustomFixers\Fixer\NoUselessCommentFixer::name() => true,
-        PhpCsFixerCustomFixers\Fixer\NoUselessDirnameCallFixer::name() => true,
+        // PhpCsFixerCustomFixers\Fixer\NoUselessDirnameCallFixer::name() => true,
         PhpCsFixerCustomFixers\Fixer\NoUselessDoctrineRepositoryCommentFixer::name() => true,
         PhpCsFixerCustomFixers\Fixer\NoUselessParenthesisFixer::name() => true,
         PhpCsFixerCustomFixers\Fixer\NoUselessStrlenFixer::name() => true,

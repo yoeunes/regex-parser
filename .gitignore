@@ -1,14 +1,18 @@
 /.idea/
 /.cache/
 /.task/
+/.junie/
+/.vscode/
+/build/
+/coverage/
 /vendor/
+
+/composer.lock
+/.phpunit.result.cache
+/.php-cs-fixer.cache
+/*.log
+
 
 /.php-cs-fixer.php
 /phpstan.neon
 /phpunit.xml
-
-/composer.lock
-
-/coverage-report
-/attached_assets
-/build/

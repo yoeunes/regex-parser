@@ -17,71 +17,117 @@ use PHPUnit\Framework\TestCase;
 use Psr\Cache\CacheItemInterface;
 use Psr\Cache\CacheItemPoolInterface;
 use RegexParser\Cache\PsrCacheAdapter;
+use RegexParser\Node\LiteralNode;
+use RegexParser\Node\RegexNode;
 
-/**
- * @psalm-suppress MissingDependency
- */
 final class PsrCacheAdapterTest extends TestCase
 {
-    public function test_stores_and_loads_ast_payload(): void
+    public function test_generate_key_uses_prefix_and_hash(): void
     {
         $pool = new InMemoryPool();
-        $adapter = new PsrCacheAdapter($pool, prefix: 'ast_');
+        $cache = new PsrCacheAdapter($pool, 'pfx_');
 
-        $key = $adapter->generateKey('/foo/');
-        $adapter->write($key, 'payload');
+        $key = $cache->generateKey('/foo/');
 
-        $this->assertSame('payload', $adapter->load($key));
+        $this->assertStringStartsWith('pfx_', $key);
+        $this->assertStringContainsString(hash('sha256', '/foo/'), $key);
     }
 
-    public function test_clear_by_regex_removes_entry(): void
+    public function test_custom_key_factory(): void
     {
         $pool = new InMemoryPool();
-        $adapter = new PsrCacheAdapter($pool, prefix: 'ast_');
+        $cache = new PsrCacheAdapter($pool, 'pfx_', static fn (string $regex): string => 'custom_'.$regex);
 
-        $key = $adapter->generateKey('/bar/');
-        $adapter->write($key, 'cached');
+        $key = $cache->generateKey('bar');
 
-        $adapter->clear('/bar/');
+        $this->assertSame('pfx_custom_bar', $key);
+    }
 
-        $this->assertNull($adapter->load($key));
+    public function test_write_and_load_decoded_payload(): void
+    {
+        $pool = new InMemoryPool();
+        $cache = new PsrCacheAdapter($pool);
+
+        $ast = new RegexNode(new LiteralNode('', 0, 0), '', '/', 0, 0);
+        $serialized = serialize($ast);
+        $payload = <<<PHP
+            <?php
+
+            declare(strict_types=1);
+
+            return unserialize({$this->export($serialized)}, ['allowed_classes' => true]);
+            PHP;
+
+        $key = $cache->generateKey('foo');
+        $cache->write($key, $payload);
+
+        $loaded = $cache->load($key);
+
+        $this->assertInstanceOf(RegexNode::class, $loaded);
+        $this->assertInstanceOf(LiteralNode::class, $loaded->pattern);
+    }
+
+    public function test_write_falls_back_to_raw_payload_on_error(): void
+    {
+        $pool = new InMemoryPool();
+        $cache = new PsrCacheAdapter($pool);
+
+        $key = $cache->generateKey('broken');
+        $cache->write($key, '<?php broken');
+
+        $this->assertSame('<?php broken', $cache->load($key));
+    }
+
+    public function test_clear(): void
+    {
+        $pool = new InMemoryPool();
+        $cache = new PsrCacheAdapter($pool);
+
+        $key = $cache->generateKey('foo');
+        $raw = "<?php return 'x';";
+        $cache->write($key, $raw);
+        $this->assertSame($raw, $cache->load($key));
+
+        $cache->clear('foo');
+        $this->assertNull($cache->load($key));
+
+        $cache->write($key, "<?php return 'y';");
+        $cache->clear();
+        $this->assertNull($cache->load($key));
+    }
+
+    private function export(string $value): string
+    {
+        return var_export($value, true);
     }
 }
 
-/**
- * @psalm-suppress MissingDependency
- */
 final class InMemoryPool implements CacheItemPoolInterface
 {
     /**
-     * @var array<string, \Psr\Cache\CacheItemInterface>
+     * @var array<string, InMemoryItem>
      */
     private array $items = [];
 
     public function getItem(string $key): CacheItemInterface
     {
-        if (!isset($this->items[$key])) {
-            $this->items[$key] = new InMemoryItem($key);
-        }
-
-        return $this->items[$key];
+        return $this->items[$key] ??= new InMemoryItem($key);
     }
 
     /**
-     * @param array<string> $keys
-     *
-     * @return iterable<string, \Psr\Cache\CacheItemInterface>
+     * @return iterable<string, CacheItemInterface>
      */
     public function getItems(array $keys = []): iterable
     {
         foreach ($keys as $key) {
+            $key = (string) $key;
             yield $key => $this->getItem($key);
         }
     }
 
     public function hasItem(string $key): bool
     {
-        return isset($this->items[$key]) && $this->items[$key]->isHit();
+        return $this->getItem($key)->isHit();
     }
 
     public function clear(): bool
@@ -98,9 +144,6 @@ final class InMemoryPool implements CacheItemPoolInterface
         return true;
     }
 
-    /**
-     * @param array<string> $keys
-     */
     public function deleteItems(array $keys): bool
     {
         foreach ($keys as $key) {
@@ -112,7 +155,9 @@ final class InMemoryPool implements CacheItemPoolInterface
 
     public function save(CacheItemInterface $item): bool
     {
-        $this->items[$item->getKey()] = $item;
+        if ($item instanceof InMemoryItem) {
+            $this->items[$item->getKey()] = $item;
+        }
 
         return true;
     }
@@ -128,16 +173,13 @@ final class InMemoryPool implements CacheItemPoolInterface
     }
 }
 
-/**
- * @psalm-suppress MissingDependency
- */
 final class InMemoryItem implements CacheItemInterface
 {
-    public function __construct(
-        private readonly string $key,
-        private mixed $value = null,
-        private bool $hit = false
-    ) {}
+    private bool $hit = false;
+
+    private mixed $value = null;
+
+    public function __construct(private readonly string $key) {}
 
     public function getKey(): string
     {
@@ -167,7 +209,7 @@ final class InMemoryItem implements CacheItemInterface
         return $this;
     }
 
-    public function expiresAfter(int|\DateInterval|null $time): static
+    public function expiresAfter(\DateInterval|int|null $time): static
     {
         return $this;
     }
