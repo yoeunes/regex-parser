@@ -173,7 +173,7 @@ final class CompilerNodeVisitor implements NodeVisitorInterface
         }
 
         $result = '';
-        $length = strlen($node->value);
+        $length = \strlen($node->value);
         for ($i = 0; $i < $length; $i++) {
             $char = mb_substr($node->value, $i, 1);
             if ($char === $this->delimiter || isset($meta[$char])) {

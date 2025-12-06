@@ -224,7 +224,8 @@ final class Lexer
                 continue;
             }
 
-            /*$specials = $this->inCharClass ? "[]\\-" : "[](){}*+?|.^$\\";
+            /*
+            * $specials = $this->inCharClass ? "[]\\-" : "[](){}*+?|.^$\\";
             $skip = strcspn($this->pattern, $specials, $this->position);
 
             if ($skip > 0) {
@@ -233,7 +234,8 @@ final class Lexer
                 $tokens[] = new Token(TokenType::T_LITERAL, $value, $this->position);
                 $this->position += $skip;
                 continue;
-            }*/
+            }
+            */
 
             // 2. Select Context-Aware Regex
             // @phpstan-ignore ternary.alwaysFalse (State changes via createTokenFromMatch on subsequent iterations)
@@ -249,7 +251,7 @@ final class Lexer
             }
 
             if (0 === $result) {
-                $context = mb_substr($this->pattern, $this->position, 10);
+                $context = substr($this->pattern, $this->position, 10);
 
                 throw LexerException::withContext(\sprintf('Unable to tokenize pattern at position %d. Context: "%s..."', $this->position, $context), $this->position, $this->pattern);
             }
@@ -491,7 +493,8 @@ final class Lexer
             default => $matchedValue,
         };
     }
-    /*private function extractTokenValue(TokenType $type, string $match, array $matches): string
+    /*
+    * private function extractTokenValue(TokenType $type, string $match, array $matches): string
     {
         return match ($type) {
             TokenType::T_LITERAL_ESCAPED => match ($match) {
@@ -506,8 +509,8 @@ final class Lexer
             TokenType::T_POSIX_CLASS => $matches['v_posix'][0] ?? '',
             default => $match,
         };
-    }*/
-
+    }
+    */
 
     /**
      * Normalizes Unicode property notation to standard PCRE format.

@@ -481,7 +481,7 @@ final readonly class Regex
     {
         $result = $this->validate($regex);
         if (!$result->isValid()) {
-            throw $result->errors[0] ?? new ParserException('Unknown error');
+            throw new ParserException($result->getErrorMessage() ?? 'Invalid regex pattern.');
         }
     }
 
