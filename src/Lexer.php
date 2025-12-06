@@ -237,7 +237,6 @@ final class Lexer
      */
     private function handleTunnelModes(array &$tokens): bool
     {
-        // @phpstan-ignore if.alwaysFalse (State changes via createTokenFromMatch on subsequent iterations)
         if ($this->inQuoteMode) {
             if ($token = $this->consumeQuoteMode()) {
                 $tokens[] = $token; // Keep for context
@@ -246,7 +245,6 @@ final class Lexer
             return true;
         }
 
-        // @phpstan-ignore if.alwaysFalse (State changes via createTokenFromMatch on subsequent iterations)
         if ($this->inCommentMode) {
             if ($token = $this->consumeCommentMode()) {
                 $tokens[] = $token; // Keep for context
@@ -265,9 +263,7 @@ final class Lexer
      */
     private function getCurrentRegexAndTokenMap(): array
     {
-        // @phpstan-ignore ternary.alwaysFalse (State changes via createTokenFromMatch on subsequent iterations)
         $regex = $this->inCharClass ? self::REGEX_INSIDE : self::REGEX_OUTSIDE;
-        // @phpstan-ignore ternary.alwaysFalse (State changes via createTokenFromMatch on subsequent iterations)
         $tokenMap = $this->inCharClass ? self::TOKENS_INSIDE : self::TOKENS_OUTSIDE;
 
         return [$regex, $tokenMap];
@@ -323,7 +319,6 @@ final class Lexer
      */
     private function validateFinalState(): void
     {
-        // @phpstan-ignore if.alwaysFalse (Reachable if pattern has unclosed character class)
         if ($this->inCharClass) {
             throw LexerException::withContext(
                 'Unclosed character class "]" at end of input.',
@@ -332,7 +327,6 @@ final class Lexer
             );
         }
 
-        // @phpstan-ignore if.alwaysFalse (Reachable if pattern has unclosed comment)
         if ($this->inCommentMode) {
             throw LexerException::withContext(
                 'Unclosed comment ")" at end of input.',
