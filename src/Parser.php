@@ -39,15 +39,24 @@ final class Parser
      */
     private string $pattern = '';
 
-    private bool $J_modifier = false;
+    /**
+     * Whether the 'J' modifier is active (allows duplicate group names).
+     */
+    private bool $JModifier = false;
 
     /**
      * @var array<string, bool>
      */
     private array $groupNames = [];
 
+    /**
+     * Tracks if the last consumed token was an alternation.
+     */
     private bool $lastTokenWasAlternation = false;
 
+    /**
+     * Length of the last inline flags processed.
+     */
     private int $lastInlineFlagsLength = 0;
 
     /**
@@ -90,7 +99,7 @@ final class Parser
         // Set the stream for parsing
         $this->stream = $stream;
         $this->pattern = $stream->getPattern();
-        $this->J_modifier = str_contains($flags, 'J');
+        $this->JModifier = str_contains($flags, 'J');
         $this->groupNames = [];
         $this->lastTokenWasAlternation = false;
         $this->lastInlineFlagsLength = 0;
@@ -109,7 +118,7 @@ final class Parser
      */
     private function parseAlternation(): Node\NodeInterface
     {
-        $startPos = $this->current()->position;
+        $startPosition = $this->current()->position;
         $nodes = [$this->parseSequence()];
 
         while ($this->match(TokenType::T_ALTERNATION)) {
@@ -122,9 +131,9 @@ final class Parser
         }
 
         // Calculate end position based on the last node
-        $endPos = end($nodes)->getEndPosition();
+        $endPosition = end($nodes)->getEndPosition();
 
-        return new Node\AlternationNode($nodes, $startPos, $endPos);
+        return new Node\AlternationNode($nodes, $startPosition, $endPosition);
     }
 
     /**
@@ -133,12 +142,9 @@ final class Parser
     private function parseSequence(): Node\NodeInterface
     {
         $nodes = [];
-        $startPos = $this->current()->position;
+        $startPosition = $this->current()->position;
 
-        while (!$this->isAtEnd()
-            && !$this->check(TokenType::T_GROUP_CLOSE)
-            && !$this->check(TokenType::T_ALTERNATION)
-        ) {
+        while (!$this->isAtEnd() && !$this->check(TokenType::T_GROUP_CLOSE) && !$this->check(TokenType::T_ALTERNATION)) {
             // Handle silent tokens (Quote Mode)
             if ($this->match(TokenType::T_QUOTE_MODE_START) || $this->match(TokenType::T_QUOTE_MODE_END)) {
                 continue;
@@ -149,16 +155,16 @@ final class Parser
 
         if (empty($nodes)) {
             // "Empty" node at the current position
-            return new Node\LiteralNode('', $startPos, $startPos);
+            return new Node\LiteralNode('', $startPosition, $startPosition);
         }
 
         if (1 === \count($nodes)) {
             return $nodes[0];
         }
 
-        $endPos = end($nodes)->getEndPosition();
+        $endPosition = end($nodes)->getEndPosition();
 
-        return new Node\SequenceNode($nodes, $startPos, $endPos);
+        return new Node\SequenceNode($nodes, $startPosition, $endPosition);
     }
 
     /**
@@ -175,10 +181,10 @@ final class Parser
 
             [$quantifier, $type] = $this->parseQuantifierValue($token->value);
 
-            $startPos = $node->getStartPosition();
-            $endPos = $token->position + \strlen($token->value);
+            $startPosition = $node->getStartPosition();
+            $endPosition = $token->position + \strlen($token->value);
 
-            return new Node\QuantifierNode($node, $quantifier, $type, $startPos, $endPos);
+            return new Node\QuantifierNode($node, $quantifier, $type, $startPosition, $endPosition);
         }
 
         return $node;
@@ -221,10 +227,7 @@ final class Parser
                 default => '\K',
             };
 
-            throw $this->parserException(
-                \sprintf('Quantifier "%s" cannot be applied to assertion or verb "%s" at position %d', $token->value, $nodeName, $node->getStartPosition()),
-                $token->position,
-            );
+            throw $this->parserException(\sprintf('Quantifier "%s" cannot be applied to assertion or verb "%s" at position %d', $token->value, $nodeName, $node->getStartPosition()), $token->position);
         }
     }
 
@@ -232,8 +235,7 @@ final class Parser
     {
         $child = $node->child;
 
-        return ($child instanceof Node\LiteralNode && '' === $child->value)
-            || ($child instanceof Node\SequenceNode && empty($child->children));
+        return ($child instanceof Node\LiteralNode && '' === $child->value) || ($child instanceof Node\SequenceNode && empty($child->children));
     }
 
     /**
@@ -242,7 +244,7 @@ final class Parser
     private function parseAtom(): Node\NodeInterface
     {
         $token = $this->current();
-        $startPos = $token->position;
+        $startPosition = $token->position;
 
         // Comments (emitted by Lexer) must be parsed into CommentNode
         if ($this->match(TokenType::T_COMMENT_OPEN)) {
@@ -261,73 +263,73 @@ final class Parser
 
         if ($this->match(TokenType::T_LITERAL)) {
             $token = $this->previous();
-            $endPos = $startPos + \strlen($token->value);
+            $endPosition = $startPosition + \strlen($token->value);
 
-            return new Node\LiteralNode($token->value, $startPos, $endPos);
+            return new Node\LiteralNode($token->value, $startPosition, $endPosition);
         }
 
         if ($this->match(TokenType::T_LITERAL_ESCAPED)) {
             $token = $this->previous();
-            $endPos = $startPos + \strlen($token->value) + 1; // +1 for the backslash
+            $endPosition = $startPosition + \strlen($token->value) + 1; // +1 for the backslash
 
-            return new Node\LiteralNode($token->value, $startPos, $endPos);
+            return new Node\LiteralNode($token->value, $startPosition, $endPosition);
         }
 
         if ($this->match(TokenType::T_CHAR_TYPE)) {
             $token = $this->previous();
-            $endPos = $startPos + \strlen($token->value) + 1; // +1 for the backslash
+            $endPosition = $startPosition + \strlen($token->value) + 1; // +1 for the backslash
 
-            return new Node\CharTypeNode($token->value, $startPos, $endPos);
+            return new Node\CharTypeNode($token->value, $startPosition, $endPosition);
         }
 
         if ($this->match(TokenType::T_DOT)) {
-            return new Node\DotNode($startPos, $startPos + 1);
+            return new Node\DotNode($startPosition, $startPosition + 1);
         }
 
         if ($this->match(TokenType::T_ANCHOR)) {
             $token = $this->previous();
-            $endPos = $startPos + \strlen($token->value);
+            $endPosition = $startPosition + \strlen($token->value);
 
-            return new Node\AnchorNode($token->value, $startPos, $endPos);
+            return new Node\AnchorNode($token->value, $startPosition, $endPosition);
         }
 
         if ($this->match(TokenType::T_ASSERTION)) {
             $token = $this->previous();
-            $endPos = $startPos + \strlen($token->value) + 1;
+            $endPosition = $startPosition + \strlen($token->value) + 1;
 
-            return new Node\AssertionNode($token->value, $startPos, $endPos);
+            return new Node\AssertionNode($token->value, $startPosition, $endPosition);
         }
 
         if ($this->match(TokenType::T_BACKREF)) {
             $token = $this->previous();
-            $endPos = $startPos + \strlen($token->value);
+            $endPosition = $startPosition + \strlen($token->value);
 
-            return new Node\BackrefNode($token->value, $startPos, $endPos);
+            return new Node\BackrefNode($token->value, $startPosition, $endPosition);
         }
 
         if ($this->match(TokenType::T_G_REFERENCE)) {
-            return $this->parseGReference($startPos);
+            return $this->parseGReference($startPosition);
         }
 
         if ($this->match(TokenType::T_UNICODE)) {
             $token = $this->previous();
-            $endPos = $startPos + \strlen($token->value);
+            $endPosition = $startPosition + \strlen($token->value);
 
-            return new Node\UnicodeNode($token->value, $startPos, $endPos);
+            return new Node\UnicodeNode($token->value, $startPosition, $endPosition);
         }
 
         if ($this->match(TokenType::T_OCTAL)) {
             $token = $this->previous();
-            $endPos = $startPos + \strlen($token->value);
+            $endPosition = $startPosition + \strlen($token->value);
 
-            return new Node\OctalNode($token->value, $startPos, $endPos);
+            return new Node\OctalNode($token->value, $startPosition, $endPosition);
         }
 
         if ($this->match(TokenType::T_OCTAL_LEGACY)) {
             $token = $this->previous();
-            $endPos = $startPos + \strlen($token->value) + 1;
+            $endPosition = $startPosition + \strlen($token->value) + 1;
 
-            return new Node\OctalLegacyNode($token->value, $startPos, $endPos);
+            return new Node\OctalLegacyNode($token->value, $startPosition, $endPosition);
         }
 
         if ($this->match(TokenType::T_UNICODE_PROP)) {
@@ -337,22 +339,22 @@ final class Parser
             if (\strlen($token->value) > 1 || str_starts_with($token->value, '^')) {
                 $len += 2; // for {}
             }
-            $endPos = $startPos + $len;
+            $endPosition = $startPosition + $len;
 
-            return new Node\UnicodePropNode($token->value, $startPos, $endPos);
+            return new Node\UnicodePropNode($token->value, $startPosition, $endPosition);
         }
 
         if ($this->match(TokenType::T_KEEP)) {
-            return new Node\KeepNode($startPos, $startPos + 2); // \K
+            return new Node\KeepNode($startPosition, $startPosition + 2); // \K
         }
 
         if ($this->match(TokenType::T_GROUP_OPEN)) {
             $startToken = $this->previous();
             $expr = $this->parseAlternation();
             $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
-            $endPos = $endToken->position + 1;
+            $endPosition = $endToken->position + 1;
 
-            return new Node\GroupNode($expr, Node\GroupType::T_GROUP_CAPTURING, null, null, $startToken->position, $endPos);
+            return new Node\GroupNode($expr, Node\GroupType::T_GROUP_CAPTURING, null, null, $startToken->position, $endPosition);
         }
 
         if ($this->match(TokenType::T_GROUP_MODIFIER_OPEN)) {
@@ -365,9 +367,9 @@ final class Parser
 
         if ($this->match(TokenType::T_PCRE_VERB)) {
             $token = $this->previous();
-            $endPos = $startPos + \strlen($token->value) + 3; // +3 for "(*)"
+            $endPosition = $startPosition + \strlen($token->value) + 3; // +3 for "(*)"
 
-            return new Node\PcreVerbNode($token->value, $startPos, $endPos);
+            return new Node\PcreVerbNode($token->value, $startPosition, $endPosition);
         }
 
         // Special case: quantifier without target
@@ -379,16 +381,16 @@ final class Parser
         $val = $this->current()->value;
         $type = $this->current()->type->value;
 
-        throw $this->parserException(\sprintf('Unexpected token "%s" (%s) at position %d.', $val, $type, $startPos), $startPos);
+        throw $this->parserException(\sprintf('Unexpected token "%s" (%s) at position %d.', $val, $type, $startPosition), $startPosition);
         // @codeCoverageIgnoreEnd
     }
 
     private function parseCallout(): Node\CalloutNode
     {
         $token = $this->previous();
-        $startPos = $token->position;
+        $startPosition = $token->position;
         $value = $token->value;
-        $endPos = $startPos + \strlen($token->value) + 4; // for (?C)
+        $endPosition = $startPosition + \strlen($token->value) + 4; // for (?C)
 
         $isStringIdentifier = false;
         $identifier = null;
@@ -400,26 +402,26 @@ final class Parser
         } elseif (preg_match('/^[a-zA-Z_][a-zA-Z0-9_]*$/', $value)) {
             $identifier = $value;
         } else {
-            throw $this->parserException(\sprintf('Invalid callout argument: %s at position %d', $value, $startPos), $startPos);
+            throw $this->parserException(\sprintf('Invalid callout argument: %s at position %d', $value, $startPosition), $startPosition);
         }
 
-        return new Node\CalloutNode($identifier, $isStringIdentifier, $startPos, $endPos);
+        return new Node\CalloutNode($identifier, $isStringIdentifier, $startPosition, $endPosition);
     }
 
-    private function parseGReference(int $startPos): Node\NodeInterface
+    private function parseGReference(int $startPosition): Node\NodeInterface
     {
         $token = $this->previous();
         $value = $token->value;
-        $endPos = $startPos + \strlen($value);
+        $endPosition = $startPosition + \strlen($value);
 
         // \g{N} or \gN (numeric, incl. relative) -> Backreference
         if (preg_match('/^\\\\g\{?([0-9+-]+)\}?$/', $value, $m)) {
-            return new Node\BackrefNode($value, $startPos, $endPos);
+            return new Node\BackrefNode($value, $startPosition, $endPosition);
         }
 
         // \g<name> or \g{name} (non-numeric) -> Subroutine
         if (preg_match('/^\\\\g<(\w+)>$/', $value, $m) || preg_match('/^\\\\g\{(\w+)\}$/', $value, $m)) {
-            return new Node\SubroutineNode($m[1], 'g', $startPos, $endPos);
+            return new Node\SubroutineNode($m[1], 'g', $startPosition, $endPosition);
         }
 
         throw $this->parserException(\sprintf('Invalid \\g reference syntax: %s at position %d', $value, $token->position), $token->position);
@@ -428,7 +430,7 @@ final class Parser
     private function parseComment(): Node\CommentNode
     {
         $startToken = $this->previous(); // (?#
-        $startPos = $startToken->position;
+        $startPosition = $startToken->position;
 
         $comment = '';
         while (!$this->isAtEnd() && !$this->check(TokenType::T_GROUP_CLOSE)) {
@@ -438,9 +440,9 @@ final class Parser
         }
 
         $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected ) to close comment');
-        $endPos = $endToken->position + 1;
+        $endPosition = $endToken->position + 1;
 
-        return new Node\CommentNode($comment, $startPos, $endPos);
+        return new Node\CommentNode($comment, $startPosition, $endPosition);
     }
 
     private function reconstructTokenValue(Token $token): string
@@ -476,17 +478,17 @@ final class Parser
     private function parseGroupModifier(): Node\NodeInterface
     {
         $startToken = $this->previous(); // (?
-        $startPos = $startToken->position;
+        $startPosition = $startToken->position;
 
         // 1. Check for Python-style 'P' groups
         $pPos = $this->current()->position;
         if ($this->matchLiteral('P')) {
-            return $this->parsePythonGroup($startPos, $pPos);
+            return $this->parsePythonGroup($startPosition, $pPos);
         }
 
         // 2. Check for standard lookarounds and named groups
         if ($this->matchLiteral('<')) {
-            return $this->parseStandardGroup($startPos);
+            return $this->parseStandardGroup($startPosition);
         }
 
         // 3. Check for conditional (?(...)
@@ -498,7 +500,7 @@ final class Parser
         }
 
         if (null !== $isConditionalWithModifier) {
-            return $this->parseConditional($startPos, $isConditionalWithModifier);
+            return $this->parseConditional($startPosition, $isConditionalWithModifier);
         }
 
         // 4. Check for Subroutines
@@ -506,20 +508,20 @@ final class Parser
             $name = $this->parseSubroutineName();
             $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected ) to close subroutine call');
 
-            return new Node\SubroutineNode($name, '&', $startPos, $endToken->position + 1);
+            return new Node\SubroutineNode($name, '&', $startPosition, $endToken->position + 1);
         }
 
         if ($this->matchLiteral('R')) { // (?R)
             if ($this->check(TokenType::T_GROUP_CLOSE)) {
                 $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
-                return new Node\SubroutineNode('R', '', $startPos, $endToken->position + 1);
+                return new Node\SubroutineNode('R', '', $startPosition, $endToken->position + 1);
             }
             $this->stream->rewind(1); // Rewind 'R'
         }
 
         // Check for (?1), (?-1), (?0)
-        if ($subroutine = $this->parseNumericSubroutine($startPos)) {
+        if ($subroutine = $this->parseNumericSubroutine($startPosition)) {
             return $subroutine;
         }
 
@@ -528,36 +530,36 @@ final class Parser
             $expr = $this->parseAlternation();
             $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
-            return new Node\GroupNode($expr, Node\GroupType::T_GROUP_NON_CAPTURING, null, null, $startPos, $endToken->position + 1);
+            return new Node\GroupNode($expr, Node\GroupType::T_GROUP_NON_CAPTURING, null, null, $startPosition, $endToken->position + 1);
         }
         if ($this->matchLiteral('=')) {
             $expr = $this->parseAlternation();
             $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
-            return new Node\GroupNode($expr, Node\GroupType::T_GROUP_LOOKAHEAD_POSITIVE, null, null, $startPos, $endToken->position + 1);
+            return new Node\GroupNode($expr, Node\GroupType::T_GROUP_LOOKAHEAD_POSITIVE, null, null, $startPosition, $endToken->position + 1);
         }
         if ($this->matchLiteral('!')) {
             $expr = $this->parseAlternation();
             $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
-            return new Node\GroupNode($expr, Node\GroupType::T_GROUP_LOOKAHEAD_NEGATIVE, null, null, $startPos, $endToken->position + 1);
+            return new Node\GroupNode($expr, Node\GroupType::T_GROUP_LOOKAHEAD_NEGATIVE, null, null, $startPosition, $endToken->position + 1);
         }
         if ($this->matchLiteral('>')) {
             $expr = $this->parseAlternation();
             $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
-            return new Node\GroupNode($expr, Node\GroupType::T_GROUP_ATOMIC, null, null, $startPos, $endToken->position + 1);
+            return new Node\GroupNode($expr, Node\GroupType::T_GROUP_ATOMIC, null, null, $startPosition, $endToken->position + 1);
         }
         if ($this->match(TokenType::T_ALTERNATION)) {
             // Branch reset group (?|...)
             $expr = $this->parseAlternation();
             $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
-            return new Node\GroupNode($expr, Node\GroupType::T_GROUP_BRANCH_RESET, null, null, $startPos, $endToken->position + 1);
+            return new Node\GroupNode($expr, Node\GroupType::T_GROUP_BRANCH_RESET, null, null, $startPosition, $endToken->position + 1);
         }
 
         // 6. Inline flags
-        return $this->parseInlineFlags($startPos);
+        return $this->parseInlineFlags($startPosition);
     }
 
     private function parsePythonGroup(int $startPos, int $pPos): Node\NodeInterface
@@ -578,10 +580,7 @@ final class Parser
                         break;
                     }
 
-                    throw $this->parserException(
-                        \sprintf('Unexpected token in group name at position %d', $this->current()->position),
-                        $this->current()->position,
-                    );
+                    throw $this->parserException(\sprintf('Unexpected token in group name at position %d', $this->current()->position), $this->current()->position);
                 }
             }
 
@@ -590,10 +589,7 @@ final class Parser
             }
 
             if (!$this->checkLiteral($quote)) {
-                throw $this->parserException(
-                    \sprintf('Expected closing quote %s at position %d', $quote, $this->current()->position),
-                    $this->current()->position,
-                );
+                throw $this->parserException(\sprintf('Expected closing quote %s at position %d', $quote, $this->current()->position), $this->current()->position);
             }
             $this->advance();
 
@@ -686,10 +682,10 @@ final class Parser
         if ('' !== $flags) {
             [$setFlags, $unsetFlags] = str_contains($flags, '-') ? explode('-', $flags, 2) : [$flags, ''];
             if (str_contains($setFlags, 'J')) {
-                $this->J_modifier = true;
+                $this->JModifier = true;
             }
             if (str_contains($unsetFlags, 'J')) {
-                $this->J_modifier = false;
+                $this->JModifier = false;
             }
             $expr = null;
             if ($this->matchLiteral(':')) {
@@ -710,7 +706,7 @@ final class Parser
         throw $this->parserException(\sprintf('Invalid group modifier syntax at position %d', $startPos), $startPos);
     }
 
-    private function parseConditional(int $startPos, bool $isModifier): Node\ConditionalNode|Node\DefineNode
+    private function parseConditional(int $startPosition, bool $isModifier): Node\ConditionalNode|Node\DefineNode
     {
         if ($isModifier) {
             // Inline Lookaround condition
@@ -726,9 +722,9 @@ final class Parser
         // Special case: (?(DEFINE)...) creates a DefineNode instead of ConditionalNode
         if ($condition instanceof Node\AssertionNode && 'DEFINE' === $condition->value) {
             $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
-            $endPos = $endToken->position + 1;
+            $endPosition = $endToken->position + 1;
 
-            return new Node\DefineNode($yes, $startPos, $endPos);
+            return new Node\DefineNode($yes, $startPosition, $endPosition);
         }
 
         $no = null;
@@ -740,11 +736,7 @@ final class Parser
                 $no = $noAlternatives[0];
             } else {
                 $lastAlt = $noAlternatives[\count($noAlternatives) - 1];
-                $no = new Node\AlternationNode(
-                    $noAlternatives,
-                    $noAlternatives[0]->getStartPosition(),
-                    $lastAlt->getEndPosition(),
-                );
+                $no = new Node\AlternationNode($noAlternatives, $noAlternatives[0]->getStartPosition(), $lastAlt->getEndPosition());
             }
         }
 
@@ -754,9 +746,9 @@ final class Parser
         }
 
         $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
-        $endPos = $endToken->position + 1;
+        $endPosition = $endToken->position + 1;
 
-        return new Node\ConditionalNode($condition, $yesBranch, $no, $startPos, $endPos);
+        return new Node\ConditionalNode($condition, $yesBranch, $no, $startPosition, $endPosition);
     }
 
     private function parseLookaroundCondition(int $startPos): Node\NodeInterface
@@ -795,7 +787,7 @@ final class Parser
 
     private function parseConditionalCondition(): Node\NodeInterface
     {
-        $startPos = $this->current()->position;
+        $startPosition = $this->current()->position;
 
         // This handles the PCRE feature where (?(DEFINE)...) allows defining subroutines
         // without matching them immediately.
@@ -809,7 +801,7 @@ final class Parser
                 $this->advance();
             }
             if ('DEFINE' === $word && $this->check(TokenType::T_GROUP_CLOSE)) {
-                return new Node\AssertionNode('DEFINE', $startPos, $this->current()->position);
+                return new Node\AssertionNode('DEFINE', $startPosition, $this->current()->position);
             }
             // Not DEFINE, restore position
             $this->stream->setPosition($savedPos);
@@ -819,20 +811,20 @@ final class Parser
             $this->advance();
             $num = (string) ($this->previous()->value.$this->consumeWhile(fn (string $c) => ctype_digit($c)));
 
-            return new Node\BackrefNode($num, $startPos, $this->current()->position);
+            return new Node\BackrefNode($num, $startPosition, $this->current()->position);
         }
 
         if ($this->matchLiteral('<') || $this->matchLiteral('{')) {
             $open = $this->previous()->value;
-            $name = $this->parseGroupName($startPos, false);
+            $name = $this->parseGroupName($startPosition, false);
             $close = '<' === $open ? '>' : '}';
             $this->consumeLiteral($close, "Expected $close after condition name");
 
-            return new Node\BackrefNode($name, $startPos, $this->current()->position);
+            return new Node\BackrefNode($name, $startPosition, $this->current()->position);
         }
 
         if ($this->matchLiteral('R')) {
-            $endPos = $this->previous()->position;
+            $endPosition = $this->previous()->position;
             $numericPart = '';
             $sawMinus = false;
 
@@ -844,19 +836,19 @@ final class Parser
             $digits = $this->consumeWhile(fn (string $c) => ctype_digit($c));
             if ('' !== $digits) {
                 $numericPart = ($sawMinus ? '-' : '').$digits;
-                $endPos = $this->previous()->position;
+                $endPosition = $this->previous()->position;
             } elseif ($sawMinus) {
                 $this->stream->rewind(1);
             }
 
             $reference = 'R'.$numericPart;
 
-            return new Node\SubroutineNode($reference, '', $startPos, $endPos);
+            return new Node\SubroutineNode($reference, '', $startPosition, $endPosition);
         }
 
         if ($this->matchLiteral('?')) {
             // Lookaround condition inside (?(...))
-            return $this->parseLookaroundCondition($startPos);
+            return $this->parseLookaroundCondition($startPosition);
         }
 
         // Bare name check (for conditions like (?(name)...))
@@ -868,19 +860,15 @@ final class Parser
                 $this->advance();
             }
             if ('' !== $name && $this->check(TokenType::T_GROUP_CLOSE)) {
-                return new Node\BackrefNode($name, $startPos, $this->current()->position);
+                return new Node\BackrefNode($name, $startPosition, $this->current()->position);
             }
             $this->stream->setPosition($savedPos);
         }
 
         $condition = $this->parseAtom();
 
-        if (!($condition instanceof Node\BackrefNode || $condition instanceof Node\GroupNode
-              || $condition instanceof Node\AssertionNode || $condition instanceof Node\SubroutineNode)) {
-            throw $this->parserException(
-                \sprintf('Invalid conditional construct at position %d. Condition must be a group reference, lookaround, or (DEFINE).', $startPos),
-                $startPos,
-            );
+        if (!($condition instanceof Node\BackrefNode || $condition instanceof Node\GroupNode || $condition instanceof Node\AssertionNode || $condition instanceof Node\SubroutineNode)) {
+            throw $this->parserException(\sprintf('Invalid conditional construct at position %d. Condition must be a group reference, lookaround, or (DEFINE).', $startPosition), $startPosition);
         }
 
         return $condition;
@@ -888,16 +876,16 @@ final class Parser
 
     private function checkAndRegisterGroupName(string $name, int $position): void
     {
-        if (isset($this->groupNames[$name]) && !$this->J_modifier) {
+        if (isset($this->groupNames[$name]) && !$this->JModifier) {
             throw $this->parserException(\sprintf('Duplicate group name "%s" at position %d.', $name, $position), $position);
         }
         $this->groupNames[$name] = true;
     }
 
-    private function parseGroupName(?int $errorPos = null, bool $register = true): string
+    private function parseGroupName(?int $errorPosition = null, bool $register = true): string
     {
         $quote = null;
-        $nameStartPos = $errorPos ?? $this->current()->position;
+        $nameStartPosition = $errorPosition ?? $this->current()->position;
 
         $adjustment = 0;
         if ($this->lastInlineFlagsLength > 0) {
@@ -905,7 +893,7 @@ final class Parser
         } elseif ($this->lastTokenWasAlternation) {
             $adjustment = 1;
         }
-        $nameStartPos = max(0, $nameStartPos - $adjustment);
+        $nameStartPosition = max(0, $nameStartPosition - $adjustment);
         $this->lastTokenWasAlternation = false;
         $this->lastInlineFlagsLength = 0;
 
@@ -943,11 +931,11 @@ final class Parser
         }
 
         if ('' === $name) {
-            throw $this->parserException(\sprintf('Expected group name at position %d', $nameStartPos), $nameStartPos);
+            throw $this->parserException(\sprintf('Expected group name at position %d', $nameStartPosition), $nameStartPosition);
         }
 
         if ($register) {
-            $this->checkAndRegisterGroupName($name, $nameStartPos);
+            $this->checkAndRegisterGroupName($name, $nameStartPosition);
         }
 
         return $name;
@@ -956,7 +944,7 @@ final class Parser
     private function parseCharClass(): Node\CharClassNode
     {
         $startToken = $this->previous();
-        $startPos = $startToken->position;
+        $startPosition = $startToken->position;
         $isNegated = $this->match(TokenType::T_NEGATION);
         $parts = [];
 
@@ -970,13 +958,13 @@ final class Parser
 
         $endToken = $this->consume(TokenType::T_CHAR_CLASS_CLOSE, 'Expected "]" to close character class');
 
-        return new Node\CharClassNode($parts, $isNegated, $startPos, $endToken->position + 1);
+        return new Node\CharClassNode($parts, $isNegated, $startPosition, $endToken->position + 1);
     }
 
     private function parseCharClassPart(): Node\NodeInterface
     {
         $startToken = $this->current();
-        $startPos = $startToken->position;
+        $startPosition = $startToken->position;
         $startNode = null;
 
         // Simplified matching logic for char class parts
@@ -984,36 +972,33 @@ final class Parser
             $token = $this->previous();
             // Check for range validity
             // +1 if escaped
-            $endPos = $startPos + \strlen($token->value) + (TokenType::T_LITERAL_ESCAPED === $token->type ? 1 : 0);
-            $startNode = new Node\LiteralNode($token->value, $startPos, $endPos);
+            $endPosition = $startPosition + \strlen($token->value) + (TokenType::T_LITERAL_ESCAPED === $token->type ? 1 : 0);
+            $startNode = new Node\LiteralNode($token->value, $startPosition, $endPosition);
         } elseif ($this->match(TokenType::T_CHAR_TYPE)) {
             $token = $this->previous();
-            $startNode = new Node\CharTypeNode($token->value, $startPos, $startPos + \strlen($token->value) + 1);
+            $startNode = new Node\CharTypeNode($token->value, $startPosition, $startPosition + \strlen($token->value) + 1);
         } elseif ($this->match(TokenType::T_UNICODE_PROP)) {
             $token = $this->previous();
             // Basic length calc - Parser logic from original
             $len = 2 + \strlen($token->value) + ((\strlen($token->value) > 1 || str_starts_with($token->value, '^')) ? 2 : 0);
-            $startNode = new Node\UnicodePropNode($token->value, $startPos, $startPos + $len);
+            $startNode = new Node\UnicodePropNode($token->value, $startPosition, $startPosition + $len);
         } elseif ($this->match(TokenType::T_UNICODE)) {
             $token = $this->previous();
-            $startNode = new Node\UnicodeNode($token->value, $startPos, $startPos + \strlen($token->value));
+            $startNode = new Node\UnicodeNode($token->value, $startPosition, $startPosition + \strlen($token->value));
         } elseif ($this->match(TokenType::T_OCTAL)) {
             $token = $this->previous();
-            $startNode = new Node\OctalNode($token->value, $startPos, $startPos + \strlen($token->value));
+            $startNode = new Node\OctalNode($token->value, $startPosition, $startPosition + \strlen($token->value));
         } elseif ($this->match(TokenType::T_OCTAL_LEGACY)) {
             $token = $this->previous();
-            $startNode = new Node\OctalLegacyNode($token->value, $startPos, $startPos + \strlen($token->value) + 1);
+            $startNode = new Node\OctalLegacyNode($token->value, $startPosition, $startPosition + \strlen($token->value) + 1);
         } elseif ($this->match(TokenType::T_RANGE)) {
             // Literal hyphen at start
-            return new Node\LiteralNode($this->previous()->value, $startPos, $startPos + 1);
+            return new Node\LiteralNode($this->previous()->value, $startPosition, $startPosition + 1);
         } elseif ($this->match(TokenType::T_POSIX_CLASS)) {
             $token = $this->previous();
-            $startNode = new Node\PosixClassNode($token->value, $startPos, $startPos + \strlen($token->value) + 4);
+            $startNode = new Node\PosixClassNode($token->value, $startPosition, $startPosition + \strlen($token->value) + 4);
         } else {
-            throw $this->parserException(
-                \sprintf('Unexpected token "%s" in character class at position %d.', $this->current()->value, $this->current()->position),
-                $this->current()->position,
-            );
+            throw $this->parserException(\sprintf('Unexpected token "%s" in character class at position %d.', $this->current()->value, $this->current()->position), $this->current()->position);
         }
 
         // Check for Range
@@ -1039,7 +1024,7 @@ final class Parser
             $endNode = $this->parseCharClassPart();
 
             // Note: Original code handled this inline.
-            return new Node\RangeNode($startNode, $endNode, $startPos, $endNode->getEndPosition());
+            return new Node\RangeNode($startNode, $endNode, $startPosition, $endNode->getEndPosition());
         }
 
         return $startNode;

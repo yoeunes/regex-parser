@@ -212,7 +212,7 @@ if ($pattern instanceof AlternationNode) {
 
 Each node exposes:
 
-* `startPos` / `endPos`: byte offsets in the original pattern
+* `startPosition` / `endPosition`: byte offsets in the original pattern
 * Node‑specific properties (e.g. `QuantifierNode::$min`, `$max`, `$type`)
 
 ---

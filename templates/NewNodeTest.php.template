@@ -15,8 +15,8 @@ class [NodeName]NodeTest extends TestCase
         $node = new [NodeName]Node([EXAMPLE_PARAM_VALUE], 0, 10);
         
         $this->assertEquals([EXPECTED_VALUE], $node->[paramName]);
-        $this->assertEquals(0, $node->startPos);
-        $this->assertEquals(10, $node->endPos);
+        $this->assertEquals(0, $node->getStartPosition());
+        $this->assertEquals(10, $node->getEndPosition());
     }
 
     public function testAcceptVisitor(): void

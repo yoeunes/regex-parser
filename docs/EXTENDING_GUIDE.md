@@ -90,7 +90,7 @@ readonly class CalloutNode extends AbstractNode
 ```
 
 **Key Points**:
-- Extend `AbstractNode` (provides `startPos`, `endPos`)
+- Extend `AbstractNode` (provides `startPosition`, `endPosition`)
 - Use `readonly` properties (immutability)
 - Implement `accept()` method
 - Use strict types: `declare(strict_types=1)`
@@ -265,8 +265,8 @@ class CalloutNodeTest extends TestCase
         $node = new CalloutNode(null, 0, 4);
         
         $this->assertNull($node->number);
-        $this->assertEquals(0, $node->startPos);
-        $this->assertEquals(4, $node->endPos);
+        $this->assertEquals(0, $node->getStartPosition());
+        $this->assertEquals(4, $node->getEndPosition());
     }
 
     public function testCalloutWithNumber(): void
@@ -536,7 +536,7 @@ return null; // Silent failure
 
 ### 3. Parser Position Tracking
 
-**Error**: Incorrect `startPos`/`endPos` values
+**Error**: Incorrect `startPosition`/`endPosition` values
 
 **Fix**: Carefully track `$this->pos` before and after parsing
 
