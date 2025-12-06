@@ -197,7 +197,14 @@ final readonly class Regex
 
             return new ValidationResult(true, null, $score);
         } catch (LexerException|ParserException $e) {
-            return new ValidationResult(false, $e->getMessage());
+            $message = $e->getMessage();
+            $snippet = $e->getVisualSnippet();
+
+            if ('' !== $snippet) {
+                $message .= "\n".$snippet;
+            }
+
+            return new ValidationResult(false, $message);
         }
     }
 
