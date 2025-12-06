@@ -155,7 +155,7 @@ final class Parser
 
         if (empty($nodes)) {
             // "Empty" node at the current position
-            return new Node\LiteralNode('', $startPosition, $startPosition);
+            return $this->createEmptyLiteralNodeAt($startPosition);
         }
 
         if (1 === \count($nodes)) {
@@ -352,9 +352,8 @@ final class Parser
             $startToken = $this->previous();
             $expr = $this->parseAlternation();
             $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
-            $endPosition = $endToken->position + 1;
 
-            return new Node\GroupNode($expr, Node\GroupType::T_GROUP_CAPTURING, null, null, $startToken->position, $endPosition);
+            return $this->createGroupNode($expr, Node\GroupType::T_GROUP_CAPTURING, $startToken->position, $endToken);
         }
 
         if ($this->match(TokenType::T_GROUP_MODIFIER_OPEN)) {
@@ -530,32 +529,36 @@ final class Parser
             $expr = $this->parseAlternation();
             $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
-            return new Node\GroupNode($expr, Node\GroupType::T_GROUP_NON_CAPTURING, null, null, $startPosition, $endToken->position + 1);
+            return $this->createGroupNode($expr, Node\GroupType::T_GROUP_NON_CAPTURING, $startPosition, $endToken);
         }
+
         if ($this->matchLiteral('=')) {
             $expr = $this->parseAlternation();
             $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
-            return new Node\GroupNode($expr, Node\GroupType::T_GROUP_LOOKAHEAD_POSITIVE, null, null, $startPosition, $endToken->position + 1);
+            return $this->createGroupNode($expr, Node\GroupType::T_GROUP_LOOKAHEAD_POSITIVE, $startPosition, $endToken);
         }
+
         if ($this->matchLiteral('!')) {
             $expr = $this->parseAlternation();
             $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
-            return new Node\GroupNode($expr, Node\GroupType::T_GROUP_LOOKAHEAD_NEGATIVE, null, null, $startPosition, $endToken->position + 1);
+            return $this->createGroupNode($expr, Node\GroupType::T_GROUP_LOOKAHEAD_NEGATIVE, $startPosition, $endToken);
         }
+
         if ($this->matchLiteral('>')) {
             $expr = $this->parseAlternation();
             $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
-            return new Node\GroupNode($expr, Node\GroupType::T_GROUP_ATOMIC, null, null, $startPosition, $endToken->position + 1);
+            return $this->createGroupNode($expr, Node\GroupType::T_GROUP_ATOMIC, $startPosition, $endToken);
         }
+
         if ($this->match(TokenType::T_ALTERNATION)) {
             // Branch reset group (?|...)
             $expr = $this->parseAlternation();
             $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
-            return new Node\GroupNode($expr, Node\GroupType::T_GROUP_BRANCH_RESET, null, null, $startPosition, $endToken->position + 1);
+            return $this->createGroupNode($expr, Node\GroupType::T_GROUP_BRANCH_RESET, $startPosition, $endToken);
         }
 
         // 6. Inline flags
@@ -596,7 +599,7 @@ final class Parser
             $expr = $this->parseAlternation();
             $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
-            return new Node\GroupNode($expr, Node\GroupType::T_GROUP_NAMED, $name, null, $startPos, $endToken->position + 1);
+            return $this->createGroupNode($expr, Node\GroupType::T_GROUP_NAMED, $startPos, $endToken, $name);
         }
 
         if ($this->matchLiteral('<')) { // (?P<name>...)
@@ -605,7 +608,7 @@ final class Parser
             $expr = $this->parseAlternation();
             $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
-            return new Node\GroupNode($expr, Node\GroupType::T_GROUP_NAMED, $name, null, $startPos, $endToken->position + 1);
+            return $this->createGroupNode($expr, Node\GroupType::T_GROUP_NAMED, $startPos, $endToken, $name);
         }
 
         if ($this->matchLiteral('>')) { // (?P>name) subroutine
@@ -628,13 +631,13 @@ final class Parser
             $expr = $this->parseAlternation();
             $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
-            return new Node\GroupNode($expr, Node\GroupType::T_GROUP_LOOKBEHIND_POSITIVE, null, null, $startPos, $endToken->position + 1);
+            return $this->createGroupNode($expr, Node\GroupType::T_GROUP_LOOKBEHIND_POSITIVE, $startPos, $endToken);
         }
         if ($this->matchLiteral('!')) { // (?<!...)
             $expr = $this->parseAlternation();
             $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
-            return new Node\GroupNode($expr, Node\GroupType::T_GROUP_LOOKBEHIND_NEGATIVE, null, null, $startPos, $endToken->position + 1);
+            return $this->createGroupNode($expr, Node\GroupType::T_GROUP_LOOKBEHIND_NEGATIVE, $startPos, $endToken);
         }
         // (?<name>...)
         $name = $this->parseGroupName($startPos);
@@ -642,7 +645,7 @@ final class Parser
         $expr = $this->parseAlternation();
         $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
-        return new Node\GroupNode($expr, Node\GroupType::T_GROUP_NAMED, $name, null, $startPos, $endToken->position + 1);
+        return $this->createGroupNode($expr, Node\GroupType::T_GROUP_NAMED, $startPos, $endToken, $name);
     }
 
     private function parseNumericSubroutine(int $startPos): ?Node\SubroutineNode
@@ -669,7 +672,7 @@ final class Parser
         return null;
     }
 
-    private function parseInlineFlags(int $startPos): Node\NodeInterface
+    private function parseInlineFlags(int $startPosition): Node\NodeInterface
     {
         // Support all PCRE2 flags including n (NO_AUTO_CAPTURE), r (unicode restricted), and ^ (unset)
         // Handle ^ (T_ANCHOR) at the start - it means "unset all flags" in PCRE2
@@ -698,12 +701,12 @@ final class Parser
                 $expr = new Node\LiteralNode('', $currentPos, $currentPos);
             }
 
-            $this->lastInlineFlagsLength = ($endToken->position + 1) - $startPos;
+            $this->lastInlineFlagsLength = ($endToken->position + 1) - $startPosition;
 
-            return new Node\GroupNode($expr, Node\GroupType::T_GROUP_INLINE_FLAGS, null, $flags, $startPos, $endToken->position + 1);
+            return $this->createGroupNode($expr, Node\GroupType::T_GROUP_INLINE_FLAGS, $startPosition, $endToken, null, $flags);
         }
 
-        throw $this->parserException(\sprintf('Invalid group modifier syntax at position %d', $startPos), $startPos);
+        throw $this->parserException(\sprintf('Invalid group modifier syntax at position %d', $startPosition), $startPosition);
     }
 
     private function parseConditional(int $startPosition, bool $isModifier): Node\ConditionalNode|Node\DefineNode
@@ -751,19 +754,19 @@ final class Parser
         return new Node\ConditionalNode($condition, $yesBranch, $no, $startPosition, $endPosition);
     }
 
-    private function parseLookaroundCondition(int $startPos): Node\NodeInterface
+    private function parseLookaroundCondition(int $startPosition): Node\NodeInterface
     {
         if ($this->matchLiteral('=')) {
             $expr = $this->parseAlternation();
             $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
-            return new Node\GroupNode($expr, Node\GroupType::T_GROUP_LOOKAHEAD_POSITIVE, null, null, $startPos, $endToken->position + 1);
+            return $this->createGroupNode($expr, Node\GroupType::T_GROUP_LOOKAHEAD_POSITIVE, $startPosition, $endToken);
         }
         if ($this->matchLiteral('!')) {
             $expr = $this->parseAlternation();
             $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
-            return new Node\GroupNode($expr, Node\GroupType::T_GROUP_LOOKAHEAD_NEGATIVE, null, null, $startPos, $endToken->position + 1);
+            return $this->createGroupNode($expr, Node\GroupType::T_GROUP_LOOKAHEAD_NEGATIVE, $startPosition, $endToken);
         }
         if ($this->matchLiteral('<')) {
             // @phpstan-ignore-next-line if.alwaysFalse (false positive: position advanced after matching '<')
@@ -771,18 +774,18 @@ final class Parser
                 $expr = $this->parseAlternation();
                 $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
-                return new Node\GroupNode($expr, Node\GroupType::T_GROUP_LOOKBEHIND_POSITIVE, null, null, $startPos, $endToken->position + 1);
+                return $this->createGroupNode($expr, Node\GroupType::T_GROUP_LOOKBEHIND_POSITIVE, $startPosition, $endToken);
             }
             // @phpstan-ignore-next-line if.alwaysFalse (false positive: position advanced after matching '<')
             if ($this->matchLiteral('!')) {
                 $expr = $this->parseAlternation();
                 $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
-                return new Node\GroupNode($expr, Node\GroupType::T_GROUP_LOOKBEHIND_NEGATIVE, null, null, $startPos, $endToken->position + 1);
+                return $this->createGroupNode($expr, Node\GroupType::T_GROUP_LOOKBEHIND_NEGATIVE, $startPosition, $endToken);
             }
         }
 
-        throw $this->parserException('Invalid conditional condition at position '.$startPos, $startPos);
+        throw $this->parserException('Invalid conditional condition at position '.$startPosition, $startPosition);
     }
 
     private function parseConditionalCondition(): Node\NodeInterface
@@ -1144,6 +1147,22 @@ final class Parser
     private function previous(): Token
     {
         return $this->stream->peek(-1);
+    }
+
+    /**
+     * Creates an empty literal node (epsilon) at a given position.
+     */
+    private function createEmptyLiteralNodeAt(int $position): Node\LiteralNode
+    {
+        return new Node\LiteralNode('', $position, $position);
+    }
+
+    /**
+     * Small factory for group nodes to keep argument ordering and end positions consistent.
+     */
+    private function createGroupNode(Node\NodeInterface $expr, Node\GroupType $type, int $startPosition, Token $endToken, ?string $name = null, ?string $flags = null): Node\GroupNode
+    {
+        return new Node\GroupNode($expr, $type, $name, $flags, $startPosition, $endToken->position + 1);
     }
 
     private function consumeWhile(callable $predicate): string
