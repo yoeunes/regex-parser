@@ -33,7 +33,7 @@ final class Lexer
      * We use Nowdoc syntax (<<<'PCRE') to ensure readability and avoid
      * the "backslash hell" of standard PHP strings.
      */
-    private const string REGEX_OUTSIDE = <<<'PCRE'
+    private const REGEX_OUTSIDE = <<<'PCRE'
         /
           (?<T_COMMENT_OPEN>          \(\?\# )
         | (?<T_CALLOUT>               \(\?C [^)]* \) )
@@ -69,7 +69,7 @@ final class Lexer
     /**
      * Regex to capture tokens INSIDE a character class.
      */
-    private const string REGEX_INSIDE = <<<'PCRE'
+    private const REGEX_INSIDE = <<<'PCRE'
         /
           (?<T_CHAR_CLASS_CLOSE> \] )
         | (?<T_POSIX_CLASS>      \[ \: (?<v_posix> \^? [a-zA-Z]+) \: \] )
@@ -92,7 +92,7 @@ final class Lexer
      * Token priority list for the 'outside' state.
      * Maps regex group names to token types.
      */
-    private const array TOKENS_OUTSIDE = [
+    private const TOKENS_OUTSIDE = [
         'T_COMMENT_OPEN',
         'T_CALLOUT',
         'T_PCRE_VERB',
@@ -122,7 +122,7 @@ final class Lexer
     /**
      * Token priority list for the 'inside' state.
      */
-    private const array TOKENS_INSIDE = [
+    private const TOKENS_INSIDE = [
         'T_CHAR_CLASS_CLOSE',
         'T_POSIX_CLASS',
         'T_CHAR_TYPE',
@@ -149,7 +149,7 @@ final class Lexer
     private bool $inCommentMode = false;
 
     /**
-     * @var int Marks the start of the current character class to handle special placement rules (e.g., ']' at start).
+     * Marks the start of the current character class to handle special placement rules (e.g., ']' at start).
      */
     private int $charClassStartPosition = 0;
 
@@ -206,79 +206,140 @@ final class Lexer
 
         while ($this->position < $this->length) {
             // 1. Handle "Tunnel" Modes (Quote & Comment)
-            // @phpstan-ignore if.alwaysFalse (State changes via createTokenFromMatch on subsequent iterations)
-            if ($this->inQuoteMode) {
-                if ($token = $this->consumeQuoteMode()) {
-                    $tokens[] = $token; // Keep for context
-                }
-
+            if ($this->handleTunnelModes($tokens)) {
                 continue;
             }
-
-            // @phpstan-ignore if.alwaysFalse (State changes via createTokenFromMatch on subsequent iterations)
-            if ($this->inCommentMode) {
-                if ($token = $this->consumeCommentMode()) {
-                    $tokens[] = $token; // Keep for context
-                }
-
-                continue;
-            }
-
-            /*
-            * $specials = $this->inCharClass ? "[]\\-" : "[](){}*+?|.^$\\";
-            $skip = strcspn($this->pattern, $specials, $this->position);
-
-            if ($skip > 0) {
-                // Emit a single literal token for the whole run
-                $value = substr($this->pattern, $this->position, $skip);
-                $tokens[] = new Token(TokenType::T_LITERAL, $value, $this->position);
-                $this->position += $skip;
-                continue;
-            }
-            */
 
             // 2. Select Context-Aware Regex
-            // @phpstan-ignore ternary.alwaysFalse (State changes via createTokenFromMatch on subsequent iterations)
-            $regex = $this->inCharClass ? self::REGEX_INSIDE : self::REGEX_OUTSIDE;
-            // @phpstan-ignore ternary.alwaysFalse (State changes via createTokenFromMatch on subsequent iterations)
-            $tokenMap = $this->inCharClass ? self::TOKENS_INSIDE : self::TOKENS_OUTSIDE;
+            [$regex, $tokenMap] = $this->getCurrentRegexAndTokenMap();
 
             // 3. Execute Matching
-            $result = preg_match($regex, $this->pattern, $matches, \PREG_UNMATCHED_AS_NULL, $this->position);
-
-            if (false === $result) {
-                throw LexerException::withContext(\sprintf('PCRE Error during tokenization: %s', preg_last_error_msg()), $this->position, $this->pattern);
-            }
-
-            if (0 === $result) {
-                $context = substr($this->pattern, $this->position, 10);
-
-                throw LexerException::withContext(\sprintf('Unable to tokenize pattern at position %d. Context: "%s..."', $this->position, $context), $this->position, $this->pattern);
-            }
-
-            /** @var string $matchedValue */
-            $matchedValue = $matches[0];
-            $startPos = $this->position;
-            $this->position += \strlen($matchedValue);
+            [$matchedValue, $startPos, $matches] = $this->performMatch($regex);
 
             // 4. Create Token from Match and yield it
             $tokens[] = $this->createTokenFromMatch($tokenMap, $matches, $matchedValue, $startPos, $tokens);
         }
 
         // 5. Post-Processing Validation
-        // @phpstan-ignore if.alwaysFalse (Reachable if pattern has unclosed character class)
-        if ($this->inCharClass) {
-            throw LexerException::withContext('Unclosed character class "]" at end of input.', $this->position, $this->pattern);
-        }
-
-        // @phpstan-ignore if.alwaysFalse (Reachable if pattern has unclosed comment)
-        if ($this->inCommentMode) {
-            throw LexerException::withContext('Unclosed comment ")" at end of input.', $this->position, $this->pattern);
-        }
+        $this->validateFinalState();
 
         $tokens[] = new Token(TokenType::T_EOF, '', $this->position);
 
         return new TokenStream($tokens, $pattern);
+    }
+
+    /**
+     * Handles quote and comment "tunnel" modes and appends tokens when appropriate.
+     *
+     * @param list<Token> $tokens
+     *
+     * @return bool true if a tunnel mode consumed input and the main loop should continue
+     */
+    private function handleTunnelModes(array &$tokens): bool
+    {
+        // @phpstan-ignore if.alwaysFalse (State changes via createTokenFromMatch on subsequent iterations)
+        if ($this->inQuoteMode) {
+            if ($token = $this->consumeQuoteMode()) {
+                $tokens[] = $token; // Keep for context
+            }
+
+            return true;
+        }
+
+        // @phpstan-ignore if.alwaysFalse (State changes via createTokenFromMatch on subsequent iterations)
+        if ($this->inCommentMode) {
+            if ($token = $this->consumeCommentMode()) {
+                $tokens[] = $token; // Keep for context
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Returns the current regex and token map depending on whether we are in a character class.
+     *
+     * @return array{0: string, 1: array<string>}
+     */
+    private function getCurrentRegexAndTokenMap(): array
+    {
+        // @phpstan-ignore ternary.alwaysFalse (State changes via createTokenFromMatch on subsequent iterations)
+        $regex = $this->inCharClass ? self::REGEX_INSIDE : self::REGEX_OUTSIDE;
+        // @phpstan-ignore ternary.alwaysFalse (State changes via createTokenFromMatch on subsequent iterations)
+        $tokenMap = $this->inCharClass ? self::TOKENS_INSIDE : self::TOKENS_OUTSIDE;
+
+        return [$regex, $tokenMap];
+    }
+
+    /**
+     * Runs preg_match at the current position and returns the match triple.
+     *
+     * @return array{0: string, 1: int, 2: array<int|string, string|null>}
+     */
+    private function performMatch(string $regex): array
+    {
+        $result = preg_match(
+            $regex,
+            $this->pattern,
+            $matches,
+            \PREG_UNMATCHED_AS_NULL,
+            $this->position,
+        );
+
+        if (false === $result) {
+            throw LexerException::withContext(
+                \sprintf('PCRE Error during tokenization: %s', preg_last_error_msg()),
+                $this->position,
+                $this->pattern,
+            );
+        }
+
+        if (0 === $result) {
+            $context = substr($this->pattern, $this->position, 10);
+
+            throw LexerException::withContext(
+                \sprintf(
+                    'Unable to tokenize pattern at position %d. Context: "%s..."',
+                    $this->position,
+                    $context,
+                ),
+                $this->position,
+                $this->pattern,
+            );
+        }
+
+        /** @var string $matchedValue */
+        $matchedValue = $matches[0];
+        $startPos = $this->position;
+        $this->position += \strlen($matchedValue);
+
+        return [$matchedValue, $startPos, $matches];
+    }
+
+    /**
+     * Validates lexer final state after main loop (unclosed char class / comment).
+     */
+    private function validateFinalState(): void
+    {
+        // @phpstan-ignore if.alwaysFalse (Reachable if pattern has unclosed character class)
+        if ($this->inCharClass) {
+            throw LexerException::withContext(
+                'Unclosed character class "]" at end of input.',
+                $this->position,
+                $this->pattern,
+            );
+        }
+
+        // @phpstan-ignore if.alwaysFalse (Reachable if pattern has unclosed comment)
+        if ($this->inCommentMode) {
+            throw LexerException::withContext(
+                'Unclosed comment ")" at end of input.',
+                $this->position,
+                $this->pattern,
+            );
+        }
     }
 
     /**
@@ -289,8 +350,13 @@ final class Lexer
      * @param array<int|string, string|null> $matches
      * @param list<Token>                    $currentTokens
      */
-    private function createTokenFromMatch(array $tokenMap, array $matches, string $matchedValue, int $startPos, array $currentTokens): Token
-    {
+    private function createTokenFromMatch(
+        array $tokenMap,
+        array $matches,
+        string $matchedValue,
+        int $startPos,
+        array $currentTokens
+    ): Token {
         foreach ($tokenMap as $tokenName) {
             if (isset($matches[$tokenName])) {
                 $type = TokenType::from(strtolower(substr($tokenName, 2)));
@@ -306,14 +372,24 @@ final class Lexer
         }
 
         // Should be unreachable
-        throw LexerException::withContext(\sprintf('Lexer internal error: No known token matched at position %d.', $startPos), $startPos, $this->pattern);
+        throw LexerException::withContext(
+            \sprintf('Lexer internal error: No known token matched at position %d.', $startPos),
+            $startPos,
+            $this->pattern,
+        );
     }
 
     /**
+     * Handles tokens that affect or depend on lexer state (char class, quote/comment, etc.).
+     *
      * @param list<Token> $currentTokens
      */
-    private function handleStatefulToken(TokenType $type, string $matchedValue, int $startPos, array $currentTokens): ?Token
-    {
+    private function handleStatefulToken(
+        TokenType $type,
+        string $matchedValue,
+        int $startPos,
+        array $currentTokens
+    ): ?Token {
         if (TokenType::T_CHAR_CLASS_OPEN === $type) {
             return $this->handleCharClassOpen($startPos);
         }
@@ -331,7 +407,7 @@ final class Lexer
         if (TokenType::T_QUOTE_MODE_START === $type) {
             $this->inQuoteMode = true;
 
-            return new Token($type, '\Q', $startPos);
+            return new Token(TokenType::T_QUOTE_MODE_START, '\Q', $startPos);
         }
 
         if ($this->inCharClass && TokenType::T_LITERAL === $type) {
@@ -348,6 +424,8 @@ final class Lexer
     }
 
     /**
+     * Handles a closing ']' depending on its position in the character class.
+     *
      * @param list<Token> $currentTokens
      */
     private function handleCharClassClose(int $startPos, array $currentTokens): Token
@@ -370,6 +448,8 @@ final class Lexer
     }
 
     /**
+     * Determines whether the given position is at the start of a character class.
+     *
      * @param list<Token> $currentTokens
      */
     private function isAtCharClassStart(int $startPos, array $currentTokens): bool
@@ -377,7 +457,9 @@ final class Lexer
         $lastToken = end($currentTokens);
 
         return ($startPos === $this->charClassStartPosition + 1)
-            || ($startPos === $this->charClassStartPosition + 2 && $lastToken && TokenType::T_NEGATION === $lastToken->type);
+            || ($startPos === $this->charClassStartPosition + 2
+                && $lastToken
+                && TokenType::T_NEGATION === $lastToken->type);
     }
 
     /**
@@ -387,7 +469,15 @@ final class Lexer
     private function consumeQuoteMode(): ?Token
     {
         // Search for \E or End of String
-        if (!preg_match('/(.*?)((?:\\\\E)|$)/suA', $this->pattern, $matches, \PREG_UNMATCHED_AS_NULL, $this->position)) {
+        if (
+            !preg_match(
+                '/(.*?)((?:\\\\E)|$)/suA',
+                $this->pattern,
+                $matches,
+                \PREG_UNMATCHED_AS_NULL,
+                $this->position,
+            )
+        ) {
             // Fallback: if parsing fails completely (unlikely), verify strict safety by resetting.
             $this->inQuoteMode = false;
             $this->position = $this->length;
@@ -429,7 +519,15 @@ final class Lexer
     private function consumeCommentMode(): ?Token
     {
         // Search for ) or End of String
-        if (!preg_match('/(.*?)(\)|$)/suA', $this->pattern, $matches, \PREG_UNMATCHED_AS_NULL, $this->position)) {
+        if (
+            !preg_match(
+                '/(.*?)(\)|$)/suA',
+                $this->pattern,
+                $matches,
+                \PREG_UNMATCHED_AS_NULL,
+                $this->position,
+            )
+        ) {
             $this->inCommentMode = false;
             $this->position = $this->length;
 
