@@ -54,7 +54,7 @@ return (new PhpCsFixer\Config())
         'declare_strict_types' => true,
         'doctrine_annotation_indentation' => true,
         'doctrine_annotation_spaces' => true,
-        'final_class' => true,
+        'final_class' => false,
         'random_api_migration' => false,
         'binary_operator_spaces' => [
             'default' => 'single_space',
