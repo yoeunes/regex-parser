@@ -30,6 +30,11 @@ use RegexParser\Exception\ResourceLimitException;
 final class Parser
 {
     /**
+     * Characters that can appear in inline flags.
+     */
+    private const string INLINE_FLAG_CHARS = 'imsxADSUXJnr-';
+
+    /**
      * Token stream (replaces array of tokens for memory efficiency).
      */
     private TokenStream $stream;
@@ -209,6 +214,9 @@ final class Parser
         return [$value, Node\QuantifierType::T_GREEDY];
     }
 
+    /**
+     * Asserts that a quantifier can be applied to the given node.
+     */
     private function assertQuantifierCanApply(Node\NodeInterface $node, Token $token): void
     {
         if ($node instanceof Node\LiteralNode && '' === $node->value) {
@@ -231,6 +239,9 @@ final class Parser
         }
     }
 
+    /**
+     * Checks if a group node is effectively empty (i.e., contains no meaningful content).
+     */
     private function isEmptyGroup(Node\GroupNode $node): bool
     {
         $child = $node->child;
@@ -384,6 +395,9 @@ final class Parser
         // @codeCoverageIgnoreEnd
     }
 
+    /**
+     * parses callouts like (?C1), (?C"name"), (?C"string"), and (?Cname)
+     */
     private function parseCallout(): Node\CalloutNode
     {
         $token = $this->previous();
@@ -407,6 +421,9 @@ final class Parser
         return new Node\CalloutNode($identifier, $isStringIdentifier, $startPosition, $endPosition);
     }
 
+    /**
+     * parses \g references (backreferences and subroutines)
+     */
     private function parseGReference(int $startPosition): Node\NodeInterface
     {
         $token = $this->previous();
@@ -426,6 +443,9 @@ final class Parser
         throw $this->parserException(\sprintf('Invalid \\g reference syntax: %s at position %d', $value, $token->position), $token->position);
     }
 
+    /**
+     * parses comments like (?# this is a comment )
+     */
     private function parseComment(): Node\CommentNode
     {
         $startToken = $this->previous(); // (?#
@@ -444,6 +464,9 @@ final class Parser
         return new Node\CommentNode($comment, $startPosition, $endPosition);
     }
 
+    /**
+     * Reconstructs the original string representation of a token.
+     */
     private function reconstructTokenValue(Token $token): string
     {
         return match ($token->type) {
@@ -474,6 +497,9 @@ final class Parser
         };
     }
 
+    /**
+     * parses group modifiers like (?=...), (?!...), (?<=...), (?<!...), (?P<name>...), (?P'name'...), (?:...), (?(...)), (?&name), (?R), (?1), (?-1), (?0), and inline flags.
+     */
     private function parseGroupModifier(): Node\NodeInterface
     {
         $startToken = $this->previous(); // (?
@@ -565,6 +591,9 @@ final class Parser
         return $this->parseInlineFlags($startPosition);
     }
 
+    /**
+     * Parses Python-style named groups and subroutines like (?P'name'...), (?P"name"...), (?P<name>...), (?P>name), and (?P=name).
+     */
     private function parsePythonGroup(int $startPos, int $pPos): Node\NodeInterface
     {
         // Check for (?P'name'...) or (?P"name"...)
@@ -625,6 +654,9 @@ final class Parser
         throw $this->parserException(\sprintf('Invalid syntax after (?P at position %d', $pPos), $pPos);
     }
 
+    /**
+     * Parses standard groups like (?<=...), (?<!...), and (?<name>...).
+     */
     private function parseStandardGroup(int $startPos): Node\NodeInterface
     {
         if ($this->matchLiteral('=')) { // (?<=...)
@@ -648,13 +680,16 @@ final class Parser
         return $this->createGroupNode($expr, Node\GroupType::T_GROUP_NAMED, $startPos, $endToken, $name);
     }
 
+    /**
+     * Parses numeric subroutine calls like (?1), (?-1), (?0).
+     */
     private function parseNumericSubroutine(int $startPos): ?Node\SubroutineNode
     {
         $num = '';
         if ($this->matchLiteral('-')) {
             $num = '-';
         }
-        if ($this->check(TokenType::T_LITERAL) && ctype_digit($this->current()->value)) {
+        if ($this->isLiteralDigitToken()) {
             $num .= $this->current()->value;
             $this->advance();
             $num .= $this->consumeWhile(fn (string $c) => ctype_digit($c));
@@ -672,6 +707,9 @@ final class Parser
         return null;
     }
 
+    /**
+     * @return Node\NodeInterface Parses inline flags and optional sub-expressions (?(?flags:...)).
+     */
     private function parseInlineFlags(int $startPosition): Node\NodeInterface
     {
         // Support all PCRE2 flags including n (NO_AUTO_CAPTURE), r (unicode restricted), and ^ (unset)
@@ -681,7 +719,7 @@ final class Parser
             $flags = '^';
             $this->advance();
         }
-        $flags .= $this->consumeWhile(fn (string $c) => (bool) preg_match('/^[imsxADSUXJnr-]+$/', $c));
+        $flags .= $this->consumeWhile(static fn (string $c): bool => str_contains(self::INLINE_FLAG_CHARS, $c));
         if ('' !== $flags) {
             [$setFlags, $unsetFlags] = str_contains($flags, '-') ? explode('-', $flags, 2) : [$flags, ''];
             if (str_contains($setFlags, 'J')) {
@@ -697,8 +735,7 @@ final class Parser
             $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
             if (null === $expr) {
-                $currentPos = $this->previous()->position;
-                $expr = new Node\LiteralNode('', $currentPos, $currentPos);
+                $expr = $this->createEmptyLiteralNodeAt($this->previous()->position);
             }
 
             $this->lastInlineFlagsLength = ($endToken->position + 1) - $startPosition;
@@ -709,6 +746,9 @@ final class Parser
         throw $this->parserException(\sprintf('Invalid group modifier syntax at position %d', $startPosition), $startPosition);
     }
 
+    /**
+     * @return Node\ConditionalNode|Node\DefineNode Parses conditional constructs (?(condition)...).
+     */
     private function parseConditional(int $startPosition, bool $isModifier): Node\ConditionalNode|Node\DefineNode
     {
         if ($isModifier) {
@@ -744,8 +784,7 @@ final class Parser
         }
 
         if (null === $no) {
-            $currentPos = $this->current()->position;
-            $no = new Node\LiteralNode('', $currentPos, $currentPos);
+            $no = $this->createEmptyLiteralNodeAt($this->current()->position);
         }
 
         $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
@@ -754,6 +793,9 @@ final class Parser
         return new Node\ConditionalNode($condition, $yesBranch, $no, $startPosition, $endPosition);
     }
 
+    /**
+     * @return Node\NodeInterface Parses lookaround conditions inside conditional constructs (?(?=...)...).
+     */
     private function parseLookaroundCondition(int $startPosition): Node\NodeInterface
     {
         if ($this->matchLiteral('=')) {
@@ -788,6 +830,9 @@ final class Parser
         throw $this->parserException('Invalid conditional condition at position '.$startPosition, $startPosition);
     }
 
+    /**
+     * @return Node\NodeInterface Parses the condition part of a conditional construct (?(condition)...).
+     */
     private function parseConditionalCondition(): Node\NodeInterface
     {
         $startPosition = $this->current()->position;
@@ -799,7 +844,7 @@ final class Parser
         if ($this->check(TokenType::T_LITERAL) && 'D' === $this->current()->value) {
             $savedPos = $this->stream->getPosition();
             $word = '';
-            while ($this->check(TokenType::T_LITERAL) && ctype_alpha($this->current()->value)) {
+            while ($this->isLiteralAlphaToken()) {
                 $word .= $this->current()->value;
                 $this->advance();
             }
@@ -810,7 +855,7 @@ final class Parser
             $this->stream->setPosition($savedPos);
         }
 
-        if ($this->check(TokenType::T_LITERAL) && ctype_digit($this->current()->value)) {
+        if ($this->isLiteralDigitToken()) {
             $this->advance();
             $num = (string) ($this->previous()->value.$this->consumeWhile(fn (string $c) => ctype_digit($c)));
 
@@ -877,6 +922,9 @@ final class Parser
         return $condition;
     }
 
+    /**
+     * @return void Checks for duplicate group names and registers the name.
+     */
     private function checkAndRegisterGroupName(string $name, int $position): void
     {
         if (isset($this->groupNames[$name]) && !$this->JModifier) {
@@ -885,6 +933,9 @@ final class Parser
         $this->groupNames[$name] = true;
     }
 
+    /**
+     * @return string Parses a group name, handling quoted names and validating characters.
+     */
     private function parseGroupName(?int $errorPosition = null, bool $register = true): string
     {
         $quote = null;
@@ -944,6 +995,9 @@ final class Parser
         return $name;
     }
 
+    /**
+     * @return Node\CharClassNode Parses a character class, including its parts and negation.
+     */
     private function parseCharClass(): Node\CharClassNode
     {
         $startToken = $this->previous();
@@ -964,6 +1018,9 @@ final class Parser
         return new Node\CharClassNode($parts, $isNegated, $startPosition, $endToken->position + 1);
     }
 
+    /**
+     * @return Node\NodeInterface Parses a part of a character class, which can be a literal, range, char type, unicode property, etc.
+     */
     private function parseCharClassPart(): Node\NodeInterface
     {
         $startToken = $this->current();
@@ -1013,26 +1070,19 @@ final class Parser
                 return $startNode;
             }
 
-            // For simplicity, we call parseCharClassPart recursively for the end node,
-            // but we need to ensure it returns a simple node, not a range.
-            // In this grammar, ranges don't chain (a-b-c is invalid or literals).
-            // We manually parse the end node to avoid recursion loop.
-
-            $endToken = $this->current();
-            $endNodeStartPos = $endToken->position;
-
-            // Re-using the logic above is tricky without recursion.
-            // Let's assume simple structure: a-z.
-            // We call parseCharClassPart again.
+            // We call parseCharClassPart again for the end node.
+            // The grammar does not support chained ranges (a-b-c), so this is safe.
             $endNode = $this->parseCharClassPart();
 
-            // Note: Original code handled this inline.
             return new Node\RangeNode($startNode, $endNode, $startPosition, $endNode->getEndPosition());
         }
 
         return $startNode;
     }
 
+    /**
+     * @return string Parses a subroutine name consisting of alphanumeric characters and underscores.
+     */
     private function parseSubroutineName(): string
     {
         $name = '';
@@ -1055,11 +1105,17 @@ final class Parser
         return $name;
     }
 
+    /**
+     * @return ParserException Creates a ParserException with context about the pattern being parsed.
+     */
     private function parserException(string $message, int $position): ParserException
     {
         return ParserException::withContext($message, $position, $this->pattern);
     }
 
+    /**
+     * @return bool True if the current token matches the given type.
+     */
     private function match(TokenType $type): bool
     {
         if ($this->check($type)) {
@@ -1071,6 +1127,9 @@ final class Parser
         return false;
     }
 
+    /**
+     * @return bool True if the current token is a T_LITERAL and its value matches the given value.
+     */
     private function matchLiteral(string $value): bool
     {
         if ($this->checkLiteral($value)) {
@@ -1082,6 +1141,9 @@ final class Parser
         return false;
     }
 
+    /**
+     * @return bool True if the current token is a T_LITERAL and its value matches the given value.
+     */
     private function checkLiteral(string $value): bool
     {
         if ($this->isAtEnd()) {
@@ -1092,6 +1154,9 @@ final class Parser
         return TokenType::T_LITERAL === $token->type && $token->value === $value;
     }
 
+    /**
+     * @return Token The consumed token.
+     */
     private function consume(TokenType $type, string $error): Token
     {
         if ($this->check($type)) {
@@ -1105,6 +1170,9 @@ final class Parser
         throw $this->parserException($error.' at '.$at.' (found '.$this->current()->type->value.')', $this->current()->position);
     }
 
+    /**
+     * @return Token The consumed token.
+     */
     private function consumeLiteral(string $value, string $error): Token
     {
         if ($this->checkLiteral($value)) {
@@ -1118,6 +1186,9 @@ final class Parser
         throw $this->parserException($error.' at '.$at.' (found '.$this->current()->type->value.' with value '.$this->current()->value.')', $this->current()->position);
     }
 
+    /**
+     * @return bool True if the current token matches the given type.
+     */
     private function check(TokenType $type): bool
     {
         if ($this->isAtEnd()) {
@@ -1127,6 +1198,9 @@ final class Parser
         return $this->current()->type === $type;
     }
 
+    /**
+     * Advances the parser to the next token in the stream.
+     */
     private function advance(): void
     {
         if (!$this->isAtEnd()) {
@@ -1134,16 +1208,25 @@ final class Parser
         }
     }
 
+    /**
+     * @return bool True if the parser has reached the end of the token stream.
+     */
     private function isAtEnd(): bool
     {
         return TokenType::T_EOF === $this->current()->type;
     }
 
+    /**
+     * @return Token The current token in the stream.
+     */
     private function current(): Token
     {
         return $this->stream->current();
     }
 
+    /**
+     * @return Token The previous token in the stream.
+     */
     private function previous(): Token
     {
         return $this->stream->peek(-1);
@@ -1165,9 +1248,29 @@ final class Parser
         return new Node\GroupNode($expr, $type, $name, $flags, $startPosition, $endToken->position + 1);
     }
 
+    /**
+     * @return bool True if the current token is a T_LITERAL and its value is a digit (0-9).
+     */
+    private function isLiteralDigitToken(): bool
+    {
+        return $this->check(TokenType::T_LITERAL) && ctype_digit($this->current()->value);
+    }
+
+    /**
+     * @return bool True if the current token is a T_LITERAL and its value is an alphabetic character (a-z, A-Z).
+     */
+    private function isLiteralAlphaToken(): bool
+    {
+        return $this->check(TokenType::T_LITERAL) && ctype_alpha($this->current()->value);
+    }
+
+    /**
+     * Consumes tokens while the predicate returns true, concatenating their values.
+     */
     private function consumeWhile(callable $predicate): string
     {
         $value = '';
+
         while (!$this->isAtEnd() && $this->check(TokenType::T_LITERAL) && $predicate($this->current()->value)) {
             $value .= $this->current()->value;
             $this->advance();
