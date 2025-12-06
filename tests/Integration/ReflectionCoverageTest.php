@@ -18,7 +18,7 @@ use RegexParser\NodeVisitor\SampleGeneratorNodeVisitor;
 use RegexParser\Regex;
 use RegexParser\TokenType;
 
-class ReflectionCoverageTest extends TestCase
+final class ReflectionCoverageTest extends TestCase
 {
     private Regex $regexService;
 

@@ -17,7 +17,7 @@ use PHPUnit\Framework\TestCase;
 use RegexParser\Lexer;
 use RegexParser\TokenType;
 
-class QuoteModeTest extends TestCase
+final class QuoteModeTest extends TestCase
 {
     public function test_quote_mode_with_end_delimiter(): void
     {

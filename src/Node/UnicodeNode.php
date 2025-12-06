@@ -22,7 +22,7 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
  * essential for internationalized and robust pattern matching. It handles different syntaxes,
  * including the two-digit form (`\xHH`), the braced form (`\x{...}`), and the `\u{...}` syntax.
  */
-readonly class UnicodeNode extends AbstractNode
+final readonly class UnicodeNode extends AbstractNode
 {
     /**
      * Initializes a Unicode character escape node.

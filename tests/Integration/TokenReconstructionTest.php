@@ -18,7 +18,7 @@ use RegexParser\Parser;
 use RegexParser\Token;
 use RegexParser\TokenType;
 
-class TokenReconstructionTest extends TestCase
+final class TokenReconstructionTest extends TestCase
 {
     /**
      * Ce test couvre 100% du "match" dans Parser::reconstructTokenValue.

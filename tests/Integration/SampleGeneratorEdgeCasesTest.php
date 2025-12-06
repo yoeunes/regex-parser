@@ -16,7 +16,7 @@ namespace RegexParser\Tests\Integration;
 use PHPUnit\Framework\TestCase;
 use RegexParser\NodeVisitor\SampleGeneratorNodeVisitor;
 
-class SampleGeneratorEdgeCasesTest extends TestCase
+final class SampleGeneratorEdgeCasesTest extends TestCase
 {
     /**
      * Teste la méthode privée getRandomChar avec un tableau vide (impossible via l'API publique).

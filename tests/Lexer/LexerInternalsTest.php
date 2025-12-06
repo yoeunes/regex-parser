@@ -22,7 +22,7 @@ use RegexParser\TokenType;
  * White-box tests to force execution of defensive branches
  * (null coalescing, switch default) unreachable via normal parsing.
  */
-class LexerInternalsTest extends TestCase
+final class LexerInternalsTest extends TestCase
 {
     /**
      * Tests the "?? ''" fallback in POSIX class extraction.

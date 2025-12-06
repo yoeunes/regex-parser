@@ -19,7 +19,7 @@ use RegexParser\Parser;
 use RegexParser\Tests\TestUtils\ParserAccessor;
 use RegexParser\TokenType;
 
-class ParserSubroutineFallbackTest extends TestCase
+final class ParserSubroutineFallbackTest extends TestCase
 {
     /**
      * Tests the case where an unexpected token (non-literal) appears in a subroutine name.

@@ -24,7 +24,7 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
  * container that captures the type of group and its contents, allowing visitors to understand
  * and correctly process its specific behavior.
  */
-readonly class GroupNode extends AbstractNode
+final readonly class GroupNode extends AbstractNode
 {
     /**
      * Initializes a group node with its content and semantic type.

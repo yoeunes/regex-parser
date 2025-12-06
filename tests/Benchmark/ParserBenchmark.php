@@ -16,7 +16,7 @@ namespace RegexParser\Tests\Benchmark;
 use PhpBench\Attributes as Bench;
 use RegexParser\Regex;
 
-class ParserBenchmark
+final class ParserBenchmark
 {
     #[Bench\Warmup(2)]
     #[Bench\Iterations(5)]

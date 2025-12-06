@@ -34,7 +34,7 @@ use RegexParser\ReDoS\CharSetAnalyzer;
  *
  * @implements NodeVisitorInterface<void>
  */
-class ValidatorNodeVisitor implements NodeVisitorInterface
+final class ValidatorNodeVisitor implements NodeVisitorInterface
 {
     private const array VALID_ASSERTIONS = [
         'A' => true, 'z' => true, 'Z' => true,

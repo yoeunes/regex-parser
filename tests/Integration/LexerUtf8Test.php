@@ -17,7 +17,7 @@ use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\LexerException;
 use RegexParser\Lexer;
 
-class LexerUtf8Test extends TestCase
+final class LexerUtf8Test extends TestCase
 {
     public function test_lexer_throws_on_invalid_utf8(): void
     {

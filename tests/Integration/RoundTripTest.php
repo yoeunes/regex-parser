@@ -18,7 +18,7 @@ use PHPUnit\Framework\TestCase;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
 use RegexParser\Regex;
 
-class RoundTripTest extends TestCase
+final class RoundTripTest extends TestCase
 {
     private Regex $regexService;
 

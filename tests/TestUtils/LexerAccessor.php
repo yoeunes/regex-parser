@@ -20,7 +20,7 @@ use RegexParser\TokenType;
 /**
  * Accessor class to expose and manipulate private methods/properties of the Lexer for unit testing.
  */
-class LexerAccessor
+final class LexerAccessor
 {
     /**
      * @var \ReflectionClass<Lexer>

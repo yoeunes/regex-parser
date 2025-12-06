@@ -17,7 +17,7 @@ use PHPUnit\Framework\TestCase;
 use RegexParser\NodeVisitor\HtmlExplainNodeVisitor;
 use RegexParser\Regex;
 
-class HtmlExplainVisitorCoverageTest extends TestCase
+final class HtmlExplainVisitorCoverageTest extends TestCase
 {
     private Regex $regex;
 

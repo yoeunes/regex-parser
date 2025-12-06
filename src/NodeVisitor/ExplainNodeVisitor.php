@@ -27,7 +27,7 @@ use RegexParser\Node\GroupType;
  *
  * @implements NodeVisitorInterface<string>
  */
-class ExplainNodeVisitor implements NodeVisitorInterface
+final class ExplainNodeVisitor implements NodeVisitorInterface
 {
     private const array CHAR_TYPE_MAP = [
         'd' => 'any digit (0-9)',

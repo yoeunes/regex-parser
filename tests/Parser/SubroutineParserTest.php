@@ -18,7 +18,7 @@ use RegexParser\Exception\ParserException;
 use RegexParser\Node\SubroutineNode;
 use RegexParser\Regex;
 
-class SubroutineParserTest extends TestCase
+final class SubroutineParserTest extends TestCase
 {
     public function test_parse_recursion(): void
     {

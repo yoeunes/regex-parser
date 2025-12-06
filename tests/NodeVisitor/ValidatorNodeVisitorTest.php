@@ -19,7 +19,7 @@ use RegexParser\Exception\ParserException;
 use RegexParser\NodeVisitor\ValidatorNodeVisitor;
 use RegexParser\Regex;
 
-class ValidatorNodeVisitorTest extends TestCase
+final class ValidatorNodeVisitorTest extends TestCase
 {
     #[DoesNotPerformAssertions]
     public function test_validate_valid(): void

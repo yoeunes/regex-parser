@@ -23,7 +23,7 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
  * providing a more semantic representation than a simple literal. This allows visitors to apply
  * specific logic for these well-known types, such as in sample generation or explanation.
  */
-readonly class CharTypeNode extends AbstractNode
+final readonly class CharTypeNode extends AbstractNode
 {
     /**
      * Initializes a character type node.

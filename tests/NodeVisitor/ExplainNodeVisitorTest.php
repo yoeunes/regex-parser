@@ -35,7 +35,7 @@ use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
 use RegexParser\NodeVisitor\ExplainNodeVisitor;
 
-class ExplainNodeVisitorTest extends TestCase
+final class ExplainNodeVisitorTest extends TestCase
 {
     public function test_visit_octal_legacy_node(): void
     {

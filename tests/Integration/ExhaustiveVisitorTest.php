@@ -28,7 +28,7 @@ use RegexParser\NodeVisitor\CompilerNodeVisitor;
 use RegexParser\NodeVisitor\ExplainNodeVisitor;
 use RegexParser\NodeVisitor\HtmlExplainNodeVisitor;
 
-class ExhaustiveVisitorTest extends TestCase
+final class ExhaustiveVisitorTest extends TestCase
 {
     public function test_compiler_special_literals(): void
     {

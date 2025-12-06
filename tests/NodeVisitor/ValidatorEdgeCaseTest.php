@@ -19,7 +19,7 @@ use RegexParser\Exception\ParserException;
 use RegexParser\NodeVisitor\ValidatorNodeVisitor;
 use RegexParser\Regex;
 
-class ValidatorEdgeCaseTest extends TestCase
+final class ValidatorEdgeCaseTest extends TestCase
 {
     private Regex $regex;
 

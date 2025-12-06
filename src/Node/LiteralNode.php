@@ -23,7 +23,7 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
  * like `\*`. The `OptimizerNodeVisitor` often works by merging adjacent `LiteralNode`
  * instances into a single node for efficiency.
  */
-readonly class LiteralNode extends AbstractNode
+final readonly class LiteralNode extends AbstractNode
 {
     /**
      * Initializes a literal node.

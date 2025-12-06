@@ -16,7 +16,7 @@ namespace RegexParser\Tests\Integration;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Regex;
 
-class LexerFallbackTest extends TestCase
+final class LexerFallbackTest extends TestCase
 {
     private Regex $regexService;
 

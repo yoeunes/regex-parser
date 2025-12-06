@@ -21,7 +21,7 @@ use RegexParser\Node\NodeInterface;
 use RegexParser\NodeVisitor\OptimizerNodeVisitor;
 use RegexParser\NodeVisitor\SampleGeneratorNodeVisitor;
 
-class VisitorsFinalPushTest extends TestCase
+final class VisitorsFinalPushTest extends TestCase
 {
     /**
      * Teste la branche "if ($optimizedPart !== $part)" dans OptimizerNodeVisitor::visitCharClass.

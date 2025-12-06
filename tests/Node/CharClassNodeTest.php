@@ -20,7 +20,7 @@ use RegexParser\Node\LiteralNode;
 use RegexParser\Node\NodeInterface;
 use RegexParser\NodeVisitor\NodeVisitorInterface;
 
-class CharClassNodeTest extends TestCase
+final class CharClassNodeTest extends TestCase
 {
     public function test_constructor_and_getters_positive(): void
     {

@@ -23,7 +23,7 @@ use RegexParser\Regex;
  * These tests verify that the library handles modern PHP PCRE features
  * and is robust against partial regex strings commonly found in static analysis.
  */
-class SymfonyCompatibilityTest extends TestCase
+final class SymfonyCompatibilityTest extends TestCase
 {
     private Regex $regexService;
 

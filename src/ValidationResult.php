@@ -24,7 +24,7 @@ namespace RegexParser;
  *
  * @api
  */
-readonly class ValidationResult
+final readonly class ValidationResult
 {
     /**
      * @param bool        $isValid         indicates whether validation succeeded (`true`) or

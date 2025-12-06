@@ -21,7 +21,7 @@ use RegexParser\NodeVisitor\ExplainNodeVisitor;
 use RegexParser\NodeVisitor\HtmlExplainNodeVisitor;
 use RegexParser\Regex;
 
-class VisitorCoverageTest extends TestCase
+final class VisitorCoverageTest extends TestCase
 {
     private Regex $regex;
 

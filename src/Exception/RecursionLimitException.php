@@ -24,4 +24,4 @@ namespace RegexParser\Exception;
  *
  * @see \RegexParser\Parser
  */
-class RecursionLimitException extends ParserException implements RegexParserExceptionInterface {}
+final class RecursionLimitException extends ParserException implements RegexParserExceptionInterface {}

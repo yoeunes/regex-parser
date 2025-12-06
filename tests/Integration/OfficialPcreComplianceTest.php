@@ -23,7 +23,7 @@ use RegexParser\Regex;
  *
  * @see https://github.com/php/php-src/tree/master/ext/pcre/tests
  */
-class OfficialPcreComplianceTest extends TestCase
+final class OfficialPcreComplianceTest extends TestCase
 {
     #[DataProvider('providePcrePatterns')]
     public function test_pattern_compliance(string $pattern): void

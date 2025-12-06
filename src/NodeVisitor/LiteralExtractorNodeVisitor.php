@@ -29,7 +29,7 @@ use RegexParser\Node;
  *
  * @implements NodeVisitorInterface<LiteralSet>
  */
-class LiteralExtractorNodeVisitor implements NodeVisitorInterface
+final class LiteralExtractorNodeVisitor implements NodeVisitorInterface
 {
     /**
      * Maximum number of literals generated to prevent explosion (e.g. [a-z]{10}).

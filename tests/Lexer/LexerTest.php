@@ -18,7 +18,7 @@ use RegexParser\Exception\LexerException;
 use RegexParser\Lexer;
 use RegexParser\TokenType;
 
-class LexerTest extends TestCase
+final class LexerTest extends TestCase
 {
     public function test_tokenize_simple_literal(): void
     {

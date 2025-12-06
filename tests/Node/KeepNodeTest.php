@@ -17,7 +17,7 @@ use PHPUnit\Framework\TestCase;
 use RegexParser\Node\KeepNode;
 use RegexParser\NodeVisitor\NodeVisitorInterface;
 
-class KeepNodeTest extends TestCase
+final class KeepNodeTest extends TestCase
 {
     public function test_constructor_and_getters(): void
     {

@@ -17,7 +17,7 @@ use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\ParserException;
 use RegexParser\Regex;
 
-class EdgeCaseValidationTest extends TestCase
+final class EdgeCaseValidationTest extends TestCase
 {
     private Regex $regexService;
 

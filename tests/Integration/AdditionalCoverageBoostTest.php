@@ -22,7 +22,7 @@ use RegexParser\Regex;
 /**
  * Additional tests targeting specific uncovered branches in Parser.
  */
-class AdditionalCoverageBoostTest extends TestCase
+final class AdditionalCoverageBoostTest extends TestCase
 {
     private Regex $regexService;
 

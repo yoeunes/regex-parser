@@ -19,7 +19,7 @@ use RegexParser\Lexer;
 use RegexParser\Tests\TestUtils\LexerAccessor;
 use RegexParser\Token;
 
-class LexerErrorTest extends TestCase
+final class LexerErrorTest extends TestCase
 {
     public function test_reset_throws_on_invalid_utf8(): void
     {

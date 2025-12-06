@@ -23,7 +23,7 @@ use RegexParser\Regex;
  * 1. ParserOptions with resource limits
  * 2. MermaidVisitor visualization
  */
-class FeaturesUpgradeTest extends TestCase
+final class FeaturesUpgradeTest extends TestCase
 {
     private Regex $regexService;
 

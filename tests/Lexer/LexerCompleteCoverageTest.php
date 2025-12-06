@@ -24,7 +24,7 @@ use RegexParser\TokenType;
  * - extractTokenValue()
  * - normalizeUnicodeProp()
  */
-class LexerCompleteCoverageTest extends TestCase
+final class LexerCompleteCoverageTest extends TestCase
 {
     public function test_escaped_tab_character(): void
     {

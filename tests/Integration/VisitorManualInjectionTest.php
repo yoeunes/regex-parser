@@ -23,7 +23,7 @@ use RegexParser\NodeVisitor\CompilerNodeVisitor;
 use RegexParser\NodeVisitor\OptimizerNodeVisitor;
 use RegexParser\NodeVisitor\SampleGeneratorNodeVisitor;
 
-class VisitorManualInjectionTest extends TestCase
+final class VisitorManualInjectionTest extends TestCase
 {
     public function test_optimizer_handles_empty_alternation(): void
     {

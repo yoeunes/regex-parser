@@ -20,7 +20,7 @@ use RegexParser\Regex;
 /**
  * Tests to increase HtmlExplainVisitor coverage.
  */
-class HtmlExplainCoverageTest extends TestCase
+final class HtmlExplainCoverageTest extends TestCase
 {
     private Regex $regexService;
 

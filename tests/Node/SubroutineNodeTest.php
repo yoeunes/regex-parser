@@ -18,7 +18,7 @@ use PHPUnit\Framework\TestCase;
 use RegexParser\Node\SubroutineNode;
 use RegexParser\NodeVisitor\NodeVisitorInterface;
 
-class SubroutineNodeTest extends TestCase
+final class SubroutineNodeTest extends TestCase
 {
     /**
      * @return \Iterator<string, array{string, string}>

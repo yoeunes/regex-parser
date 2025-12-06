@@ -23,7 +23,7 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
  * fidelity, such as a pretty-printer or a tool that analyzes and then reconstructs the
  * original pattern. It ensures that no information is lost during the parsing process.
  */
-readonly class CommentNode extends AbstractNode
+final readonly class CommentNode extends AbstractNode
 {
     /**
      * Initializes a comment node.

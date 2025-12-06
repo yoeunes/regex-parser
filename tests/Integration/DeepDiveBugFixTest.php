@@ -20,7 +20,7 @@ use RegexParser\Node\LiteralNode;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
 use RegexParser\Regex;
 
-class DeepDiveBugFixTest extends TestCase
+final class DeepDiveBugFixTest extends TestCase
 {
     private Regex $regexService;
 

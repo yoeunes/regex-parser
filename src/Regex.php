@@ -32,7 +32,7 @@ use RegexParser\ReDoS\ReDoSSeverity;
  *
  * @api
  */
-readonly class Regex
+final readonly class Regex
 {
     /**
      * Default hard limit on the regex string length to prevent excessive processing/memory usage.

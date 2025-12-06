@@ -27,7 +27,7 @@ use Symfony\Component\HttpKernel\Bundle\Bundle;
  * @see \RegexParser\Bridge\Symfony\DependencyInjection\RegexParserExtension
  * @see \RegexParser\Bridge\Symfony\DependencyInjection\Configuration
  */
-class RegexParserBundle extends Bundle
+final class RegexParserBundle extends Bundle
 {
     /**
      * Overrides the default bundle path to correctly locate resources.

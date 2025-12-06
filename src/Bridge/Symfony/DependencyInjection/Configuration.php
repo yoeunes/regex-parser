@@ -28,7 +28,7 @@ use Symfony\Component\Config\Definition\ConfigurationInterface;
  *
  * @see https://symfony.com/doc/current/bundles/configuration.html
  */
-class Configuration implements ConfigurationInterface
+final class Configuration implements ConfigurationInterface
 {
     /**
      * Creates a new instance of the bundle's configuration schema.

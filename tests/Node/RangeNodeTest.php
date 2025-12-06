@@ -19,7 +19,7 @@ use RegexParser\Node\LiteralNode;
 use RegexParser\Node\RangeNode;
 use RegexParser\NodeVisitor\NodeVisitorInterface;
 
-class RangeNodeTest extends TestCase
+final class RangeNodeTest extends TestCase
 {
     public function test_constructor_with_literals(): void
     {

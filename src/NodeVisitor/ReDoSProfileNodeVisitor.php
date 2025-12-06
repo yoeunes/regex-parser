@@ -32,7 +32,7 @@ use RegexParser\ReDoS\ReDoSSeverity;
  *
  * @implements NodeVisitorInterface<ReDoSSeverity>
  */
-class ReDoSProfileNodeVisitor implements NodeVisitorInterface
+final class ReDoSProfileNodeVisitor implements NodeVisitorInterface
 {
     private int $unboundedQuantifierDepth = 0;
 

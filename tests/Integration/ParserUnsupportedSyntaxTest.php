@@ -17,7 +17,7 @@ use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\ParserException;
 use RegexParser\Regex;
 
-class ParserUnsupportedSyntaxTest extends TestCase
+final class ParserUnsupportedSyntaxTest extends TestCase
 {
     /**
      * Teste la syntaxe de backreference nommée (?P=name) qui n'est pas encore supportée.

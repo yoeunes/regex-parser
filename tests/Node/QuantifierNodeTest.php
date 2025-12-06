@@ -20,7 +20,7 @@ use RegexParser\Node\QuantifierNode;
 use RegexParser\Node\QuantifierType;
 use RegexParser\NodeVisitor\NodeVisitorInterface;
 
-class QuantifierNodeTest extends TestCase
+final class QuantifierNodeTest extends TestCase
 {
     /**
      * @return \Iterator<string, array{LiteralNode, string, QuantifierType}>

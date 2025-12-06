@@ -19,7 +19,7 @@ use RegexParser\Tests\TestUtils\LexerAccessor;
 use RegexParser\Token as RegexToken;
 use RegexParser\TokenType;
 
-class LexerGapCoverageTest extends TestCase
+final class LexerGapCoverageTest extends TestCase
 {
     public function test_consume_quote_mode_handles_pcre_error(): void
     {

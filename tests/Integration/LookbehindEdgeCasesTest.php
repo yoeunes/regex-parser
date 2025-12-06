@@ -16,7 +16,7 @@ namespace RegexParser\Tests\Integration;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Regex;
 
-class LookbehindEdgeCasesTest extends TestCase
+final class LookbehindEdgeCasesTest extends TestCase
 {
     private Regex $regexService;
 

@@ -21,7 +21,7 @@ use RegexParser\Regex;
 /**
  * Tests targeting uncovered branches in Parser and Lexer classes.
  */
-class CoverageImprovementTest extends TestCase
+final class CoverageImprovementTest extends TestCase
 {
     private Regex $regex;
 

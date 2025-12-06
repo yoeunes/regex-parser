@@ -23,7 +23,7 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
  * that work correctly with a wide range of scripts and symbols. The node captures the property name
  * and whether it is negated (e.g., `\p` vs `\P`).
  */
-readonly class UnicodePropNode extends AbstractNode
+final readonly class UnicodePropNode extends AbstractNode
 {
     /**
      * Initializes a Unicode property node.

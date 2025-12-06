@@ -27,7 +27,7 @@ use RegexParser\TokenType;
 /**
  * Tests the private utility methods of the Parser class.
  */
-class ParserUtilityTest extends TestCase
+final class ParserUtilityTest extends TestCase
 {
     private ParserAccessor $accessor;
 

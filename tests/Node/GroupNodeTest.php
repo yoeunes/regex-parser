@@ -21,7 +21,7 @@ use RegexParser\Node\LiteralNode;
 use RegexParser\Node\NodeInterface;
 use RegexParser\NodeVisitor\NodeVisitorInterface;
 
-class GroupNodeTest extends TestCase
+final class GroupNodeTest extends TestCase
 {
     /**
      * @return \Iterator<string, array{GroupType, ?string, ?string}>

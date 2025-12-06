@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Cache;
 
-readonly class NullCache implements RemovableCacheInterface
+final readonly class NullCache implements RemovableCacheInterface
 {
     #[\Override]
     public function generateKey(string $regex): string

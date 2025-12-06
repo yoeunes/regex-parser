@@ -36,7 +36,7 @@ use RegexParser\NodeVisitor\OptimizerNodeVisitor;
 use RegexParser\NodeVisitor\SampleGeneratorNodeVisitor;
 use RegexParser\NodeVisitor\ValidatorNodeVisitor;
 
-class VisitorMethodCoverageTest extends TestCase
+final class VisitorMethodCoverageTest extends TestCase
 {
     public function test_optimizer_leaf_nodes_return_same_instance(): void
     {

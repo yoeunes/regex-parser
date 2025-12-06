@@ -28,7 +28,7 @@ use RegexParser\Node\GroupType;
  *
  * @implements NodeVisitorInterface<Node\NodeInterface>
  */
-class OptimizerNodeVisitor implements NodeVisitorInterface
+final class OptimizerNodeVisitor implements NodeVisitorInterface
 {
     private const array CHAR_CLASS_META = [']' => true, '\\' => true, '^' => true, '-' => true];
 

@@ -23,7 +23,7 @@ namespace RegexParser\Exception;
  *
  * @see \RegexParser\Parser
  */
-class ParserException extends \Exception implements RegexParserExceptionInterface
+final class ParserException extends \Exception implements RegexParserExceptionInterface
 {
     use VisualContextTrait;
 

@@ -19,7 +19,7 @@ use RegexParser\Node\NodeInterface;
 use RegexParser\Node\SequenceNode;
 use RegexParser\NodeVisitor\NodeVisitorInterface;
 
-class SequenceNodeTest extends TestCase
+final class SequenceNodeTest extends TestCase
 {
     public function test_constructor_and_getters(): void
     {

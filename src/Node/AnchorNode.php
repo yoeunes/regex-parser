@@ -23,7 +23,7 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
  * matches at the beginning or end of the input, which is a common requirement in validation
  * and routing.
  */
-readonly class AnchorNode extends AbstractNode
+final readonly class AnchorNode extends AbstractNode
 {
     /**
      * Initializes an anchor node.

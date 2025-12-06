@@ -22,7 +22,7 @@ use RegexParser\Regex;
  * Tests that verify parsed patterns behave identically to PHP's PCRE engine.
  * This ensures the library correctly implements PCRE semantics, not just AST structure.
  */
-class BehavioralComplianceTest extends TestCase
+final class BehavioralComplianceTest extends TestCase
 {
     private Regex $regexService;
 

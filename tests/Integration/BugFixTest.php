@@ -20,7 +20,7 @@ use RegexParser\Node\RangeNode;
 use RegexParser\ReDoS\ReDoSSeverity;
 use RegexParser\Regex;
 
-class BugFixTest extends TestCase
+final class BugFixTest extends TestCase
 {
     private Regex $regexService;
 

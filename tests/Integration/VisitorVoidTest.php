@@ -22,7 +22,7 @@ use RegexParser\Node\DotNode;
 use RegexParser\Node\LiteralNode;
 use RegexParser\NodeVisitor\ValidatorNodeVisitor;
 
-class VisitorVoidTest extends TestCase
+final class VisitorVoidTest extends TestCase
 {
     /**
      * Couvre les méthodes vides du ValidatorNodeVisitor (visitLiteral, visitDot, etc.)

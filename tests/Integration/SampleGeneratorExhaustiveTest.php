@@ -18,7 +18,7 @@ use RegexParser\Node\CharTypeNode;
 use RegexParser\Node\PosixClassNode;
 use RegexParser\NodeVisitor\SampleGeneratorNodeVisitor;
 
-class SampleGeneratorExhaustiveTest extends TestCase
+final class SampleGeneratorExhaustiveTest extends TestCase
 {
     private SampleGeneratorNodeVisitor $generator;
 

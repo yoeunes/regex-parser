@@ -49,7 +49,7 @@ use RegexParser\NodeVisitor\OptimizerNodeVisitor;
 use RegexParser\NodeVisitor\SampleGeneratorNodeVisitor;
 use RegexParser\NodeVisitor\ValidatorNodeVisitor;
 
-class VisitorExhaustiveTest extends TestCase
+final class VisitorExhaustiveTest extends TestCase
 {
     #[DoesNotPerformAssertions]
     public function test_all_visitors_visit_all_nodes(): void

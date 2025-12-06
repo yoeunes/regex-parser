@@ -21,7 +21,7 @@ use RegexParser\Regex;
  * Tests compatibility between parsed/compiled patterns and PHP's native preg_* functions.
  * Ensures that patterns processed through the parser behave identically to the originals.
  */
-class PregFunctionCompatibilityTest extends TestCase
+final class PregFunctionCompatibilityTest extends TestCase
 {
     private Regex $regexService;
 

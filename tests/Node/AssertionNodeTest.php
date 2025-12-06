@@ -18,7 +18,7 @@ use PHPUnit\Framework\TestCase;
 use RegexParser\Node\AssertionNode;
 use RegexParser\NodeVisitor\NodeVisitorInterface;
 
-class AssertionNodeTest extends TestCase
+final class AssertionNodeTest extends TestCase
 {
     public static function data_provider_assertions(): \Iterator
     {

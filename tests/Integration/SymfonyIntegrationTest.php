@@ -21,7 +21,7 @@ use RegexParser\Regex;
  * Demonstrates how the library can be integrated into Symfony applications
  * for validation, form handling, and routing constraints.
  */
-class SymfonyIntegrationTest extends TestCase
+final class SymfonyIntegrationTest extends TestCase
 {
     private Regex $regex;
 

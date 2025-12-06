@@ -28,7 +28,7 @@ use RegexParser\Node\GroupType;
  *
  * @implements NodeVisitorInterface<string>
  */
-class CompilerNodeVisitor implements NodeVisitorInterface
+final class CompilerNodeVisitor implements NodeVisitorInterface
 {
     // PCRE meta-characters that must be escaped *outside* a character class.
     private const array META_CHARACTERS = [

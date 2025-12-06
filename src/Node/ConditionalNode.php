@@ -23,7 +23,7 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
  * is met, the regex engine attempts to match the `yes-pattern`. Otherwise, it attempts to match the
  * `no-pattern` if one is provided. This allows for creating highly adaptive and context-aware patterns.
  */
-readonly class ConditionalNode extends AbstractNode
+final readonly class ConditionalNode extends AbstractNode
 {
     /**
      * Initializes a conditional node.

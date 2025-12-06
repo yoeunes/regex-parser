@@ -21,7 +21,7 @@ use RegexParser\Node\QuantifierType;
 use RegexParser\Node\SequenceNode;
 use RegexParser\Regex;
 
-class AdvancedParserTest extends TestCase
+final class AdvancedParserTest extends TestCase
 {
     public function test_parse_named_group(): void
     {

@@ -36,7 +36,7 @@ use RegexParser\Regex;
  *
  * @implements Rule<FuncCall>
  */
-class PregValidationRule implements Rule
+final class PregValidationRule implements Rule
 {
     // Identifiers for user configuration in phpstan.neon
     public const IDENTIFIER_SYNTAX_INVALID = 'regex.syntax.invalid';

@@ -18,7 +18,7 @@ use PHPUnit\Framework\TestCase;
 use RegexParser\Node\PcreVerbNode;
 use RegexParser\NodeVisitor\NodeVisitorInterface;
 
-class PcreVerbNodeTest extends TestCase
+final class PcreVerbNodeTest extends TestCase
 {
     /**
      * @return \Iterator<string, array{string, int, int}>

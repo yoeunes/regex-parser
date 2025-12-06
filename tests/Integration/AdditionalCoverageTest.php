@@ -23,7 +23,7 @@ use RegexParser\Regex;
 /**
  * Additional tests to reach 100% coverage for various classes.
  */
-class AdditionalCoverageTest extends TestCase
+final class AdditionalCoverageTest extends TestCase
 {
     // Test Lexer with various edge cases
     public function test_lexer_unicode_prop_normalization(): void

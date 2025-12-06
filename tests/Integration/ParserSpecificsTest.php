@@ -17,7 +17,7 @@ use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\ParserException;
 use RegexParser\Regex;
 
-class ParserSpecificsTest extends TestCase
+final class ParserSpecificsTest extends TestCase
 {
     public function test_subroutine_name_unexpected_token(): void
     {

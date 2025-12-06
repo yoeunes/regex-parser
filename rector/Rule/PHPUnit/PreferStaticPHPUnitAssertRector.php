@@ -25,7 +25,7 @@ use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
 /**
  * Converts PHPUnit assertions from $this->assert*() and static::assert*() to explicit Assert::assert*() static calls.
  */
-class PreferStaticPHPUnitAssertRector extends AbstractRector
+final class PreferStaticPHPUnitAssertRector extends AbstractRector
 {
     public function __construct(private AssertMethodAnalyzer $assertMethodAnalyzer) {}
 

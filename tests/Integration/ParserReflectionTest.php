@@ -18,7 +18,7 @@ use RegexParser\Parser;
 use RegexParser\Token;
 use RegexParser\TokenType;
 
-class ParserReflectionTest extends TestCase
+final class ParserReflectionTest extends TestCase
 {
     /**
      * This test covers 100% of the private Parser::reconstructTokenValue method

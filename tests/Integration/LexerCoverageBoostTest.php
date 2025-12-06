@@ -22,7 +22,7 @@ use RegexParser\TokenType;
  * Tests to improve code coverage for the Lexer class.
  * Specifically targeting uncovered methods: consumeQuoteMode, extractTokenValue, and normalizeUnicodeProp.
  */
-class LexerCoverageBoostTest extends TestCase
+final class LexerCoverageBoostTest extends TestCase
 {
     private Regex $regexService;
 

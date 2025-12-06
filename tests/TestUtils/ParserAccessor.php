@@ -24,7 +24,7 @@ use RegexParser\TokenType;
  * NOTE: After the TokenStream refactoring, this accessor works differently.
  * The Parser now uses a TokenStream internally instead of a tokens array and position property.
  */
-class ParserAccessor
+final class ParserAccessor
 {
     /**
      * @var \ReflectionClass<Parser>

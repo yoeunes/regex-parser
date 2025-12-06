@@ -17,7 +17,7 @@ use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\ParserException;
 use RegexParser\Regex;
 
-class ParserEdgeCaseTest extends TestCase
+final class ParserEdgeCaseTest extends TestCase
 {
     private Regex $regex;
 

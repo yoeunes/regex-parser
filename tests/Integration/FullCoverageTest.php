@@ -27,7 +27,7 @@ use RegexParser\Regex;
 /**
  * Tests to achieve 100% code coverage.
  */
-class FullCoverageTest extends TestCase
+final class FullCoverageTest extends TestCase
 {
     private Regex $regexService;
 

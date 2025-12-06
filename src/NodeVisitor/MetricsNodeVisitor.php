@@ -20,7 +20,7 @@ use RegexParser\Node;
  *
  * @implements NodeVisitorInterface<array{counts: array<string, int>, total: int, maxDepth: int}>
  */
-class MetricsNodeVisitor implements NodeVisitorInterface
+final class MetricsNodeVisitor implements NodeVisitorInterface
 {
     /**
      * @var array<string, int>

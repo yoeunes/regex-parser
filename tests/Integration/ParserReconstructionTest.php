@@ -17,7 +17,7 @@ use PHPUnit\Framework\TestCase;
 use RegexParser\Node\CommentNode;
 use RegexParser\Regex;
 
-class ParserReconstructionTest extends TestCase
+final class ParserReconstructionTest extends TestCase
 {
     private Regex $regexService;
 

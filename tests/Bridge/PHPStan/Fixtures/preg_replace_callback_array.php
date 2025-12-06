@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\Bridge\PHPStan\Fixtures;
 
-class PregReplaceCallbackArray
+final class PregReplaceCallbackArray
 {
     public function a(): void
     {

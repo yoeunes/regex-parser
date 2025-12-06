@@ -23,7 +23,7 @@ use RegexParser\ValidationResult;
  * Comprehensive test suite for the public API of RegexParser.
  * Tests all public methods of the Regex class with extensive coverage.
  */
-class ComprehensivePublicAPITest extends TestCase
+final class ComprehensivePublicAPITest extends TestCase
 {
     private Regex $regexService;
 

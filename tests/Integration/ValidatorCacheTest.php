@@ -17,7 +17,7 @@ use PHPUnit\Framework\TestCase;
 use RegexParser\NodeVisitor\ValidatorNodeVisitor;
 use RegexParser\Regex;
 
-class ValidatorCacheTest extends TestCase
+final class ValidatorCacheTest extends TestCase
 {
     public function test_unicode_property_cache_hit(): void
     {

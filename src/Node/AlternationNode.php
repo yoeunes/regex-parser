@@ -24,7 +24,7 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
  * and a `LiteralNode` for "dog". It's a fundamental building block for creating flexible
  * and complex matching logic.
  */
-readonly class AlternationNode extends AbstractNode
+final readonly class AlternationNode extends AbstractNode
 {
     /**
      * Initializes an alternation node with its possible sub-patterns.

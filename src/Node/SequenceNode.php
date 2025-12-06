@@ -23,7 +23,7 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
  * children: a `QuantifierNode` for `a+` and a `LiteralNode` for `b`. It is a fundamental
  * structural node that forms the backbone of most patterns.
  */
-readonly class SequenceNode extends AbstractNode
+final readonly class SequenceNode extends AbstractNode
 {
     /**
      * Initializes a sequence node.

@@ -23,7 +23,7 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
  * such as its delimiters and flags (e.g., `i`, `m`, `s`). All visitors start their
  * traversal from this node.
  */
-readonly class RegexNode extends AbstractNode
+final readonly class RegexNode extends AbstractNode
 {
     /**
      * Initializes the root node of the regex AST.

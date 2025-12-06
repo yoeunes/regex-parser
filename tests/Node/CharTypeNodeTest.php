@@ -18,7 +18,7 @@ use PHPUnit\Framework\TestCase;
 use RegexParser\Node\CharTypeNode;
 use RegexParser\NodeVisitor\NodeVisitorInterface;
 
-class CharTypeNodeTest extends TestCase
+final class CharTypeNodeTest extends TestCase
 {
     public static function data_provider_char_types(): \Iterator
     {

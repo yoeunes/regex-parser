@@ -18,7 +18,7 @@ use PHPUnit\Framework\TestCase;
 use RegexParser\Node\PosixClassNode;
 use RegexParser\NodeVisitor\NodeVisitorInterface;
 
-class PosixClassNodeTest extends TestCase
+final class PosixClassNodeTest extends TestCase
 {
     /**
      * @return \Iterator<string, array{string, int, int}>

@@ -25,7 +25,7 @@ use RegexParser\NodeVisitor\SampleGeneratorNodeVisitor;
 use RegexParser\NodeVisitor\ValidatorNodeVisitor;
 use RegexParser\Regex;
 
-class VisitorFallbackTest extends TestCase
+final class VisitorFallbackTest extends TestCase
 {
     public function test_sample_generator_backref_not_found(): void
     {

@@ -36,7 +36,7 @@ use RegexParser\Node\SubroutineNode;
 use RegexParser\Node\UnicodePropNode;
 use RegexParser\Regex;
 
-class ParserTest extends TestCase
+final class ParserTest extends TestCase
 {
     private Regex $regex;
 

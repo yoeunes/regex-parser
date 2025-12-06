@@ -20,7 +20,7 @@ use RegexParser\Regex;
 use RegexParser\Tests\TestUtils\ParserAccessor;
 use RegexParser\TokenType;
 
-class ParserInternalsTest extends TestCase
+final class ParserInternalsTest extends TestCase
 {
     public function test_extract_pattern_throws_on_preg_replace_error(): void
     {
