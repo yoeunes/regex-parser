@@ -923,7 +923,7 @@ final class Parser
     }
 
     /**
-     * @return void Checks for duplicate group names and registers the name.
+     * @return void checks for duplicate group names and registers the name
      */
     private function checkAndRegisterGroupName(string $name, int $position): void
     {
@@ -934,7 +934,7 @@ final class Parser
     }
 
     /**
-     * @return string Parses a group name, handling quoted names and validating characters.
+     * @return string parses a group name, handling quoted names and validating characters
      */
     private function parseGroupName(?int $errorPosition = null, bool $register = true): string
     {
@@ -996,7 +996,7 @@ final class Parser
     }
 
     /**
-     * @return Node\CharClassNode Parses a character class, including its parts and negation.
+     * @return Node\CharClassNode parses a character class, including its parts and negation
      */
     private function parseCharClass(): Node\CharClassNode
     {
@@ -1019,7 +1019,7 @@ final class Parser
     }
 
     /**
-     * @return Node\NodeInterface Parses a part of a character class, which can be a literal, range, char type, unicode property, etc.
+     * @return Node\NodeInterface parses a part of a character class, which can be a literal, range, char type, unicode property, etc
      */
     private function parseCharClassPart(): Node\NodeInterface
     {
@@ -1081,7 +1081,7 @@ final class Parser
     }
 
     /**
-     * @return string Parses a subroutine name consisting of alphanumeric characters and underscores.
+     * @return string parses a subroutine name consisting of alphanumeric characters and underscores
      */
     private function parseSubroutineName(): string
     {
@@ -1106,7 +1106,7 @@ final class Parser
     }
 
     /**
-     * @return ParserException Creates a ParserException with context about the pattern being parsed.
+     * @return ParserException creates a ParserException with context about the pattern being parsed
      */
     private function parserException(string $message, int $position): ParserException
     {
@@ -1114,7 +1114,7 @@ final class Parser
     }
 
     /**
-     * @return bool True if the current token matches the given type.
+     * @return bool true if the current token matches the given type
      */
     private function match(TokenType $type): bool
     {
@@ -1128,7 +1128,7 @@ final class Parser
     }
 
     /**
-     * @return bool True if the current token is a T_LITERAL and its value matches the given value.
+     * @return bool true if the current token is a T_LITERAL and its value matches the given value
      */
     private function matchLiteral(string $value): bool
     {
@@ -1142,7 +1142,7 @@ final class Parser
     }
 
     /**
-     * @return bool True if the current token is a T_LITERAL and its value matches the given value.
+     * @return bool true if the current token is a T_LITERAL and its value matches the given value
      */
     private function checkLiteral(string $value): bool
     {
@@ -1155,7 +1155,7 @@ final class Parser
     }
 
     /**
-     * @return Token The consumed token.
+     * @return Token the consumed token
      */
     private function consume(TokenType $type, string $error): Token
     {
@@ -1171,7 +1171,7 @@ final class Parser
     }
 
     /**
-     * @return Token The consumed token.
+     * @return Token the consumed token
      */
     private function consumeLiteral(string $value, string $error): Token
     {
@@ -1187,7 +1187,7 @@ final class Parser
     }
 
     /**
-     * @return bool True if the current token matches the given type.
+     * @return bool true if the current token matches the given type
      */
     private function check(TokenType $type): bool
     {
@@ -1209,7 +1209,7 @@ final class Parser
     }
 
     /**
-     * @return bool True if the parser has reached the end of the token stream.
+     * @return bool true if the parser has reached the end of the token stream
      */
     private function isAtEnd(): bool
     {
@@ -1217,7 +1217,7 @@ final class Parser
     }
 
     /**
-     * @return Token The current token in the stream.
+     * @return Token the current token in the stream
      */
     private function current(): Token
     {
@@ -1225,7 +1225,7 @@ final class Parser
     }
 
     /**
-     * @return Token The previous token in the stream.
+     * @return Token the previous token in the stream
      */
     private function previous(): Token
     {
@@ -1249,7 +1249,7 @@ final class Parser
     }
 
     /**
-     * @return bool True if the current token is a T_LITERAL and its value is a digit (0-9).
+     * @return bool true if the current token is a T_LITERAL and its value is a digit (0-9)
      */
     private function isLiteralDigitToken(): bool
     {
@@ -1257,7 +1257,7 @@ final class Parser
     }
 
     /**
-     * @return bool True if the current token is a T_LITERAL and its value is an alphabetic character (a-z, A-Z).
+     * @return bool true if the current token is a T_LITERAL and its value is an alphabetic character (a-z, A-Z)
      */
     private function isLiteralAlphaToken(): bool
     {
