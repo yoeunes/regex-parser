@@ -33,6 +33,7 @@ return static function (RectorConfig $rectorConfig): void {
         __DIR__.'/tests/Fixtures/pcre_patterns.php',
         __DIR__.'/tests/Unit/Bridge/Rector/RegexOptimizationRectorTest.php',
         __DIR__.'/tests/Unit/Bridge/Symfony/Command/RegexParserValidateCommandTest.php',
+        __DIR__.'/tests/Unit/Bridge/Symfony/RegexParserBundleTest.php',
         __DIR__.'/tests/Unit/ValidationResultTest.php',
     ]);
 
