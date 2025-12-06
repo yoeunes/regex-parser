@@ -260,6 +260,6 @@ final readonly class ValidatorRegexAnalyzer
      */
     private function buildIgnoredPatterns(array $userIgnored): array
     {
-        return array_values(array_unique([...$this->regex->getIgnoredPatterns(), ...$userIgnored]));
+        return array_values(array_unique([...$this->regex->getRedosIgnoredPatterns(), ...$userIgnored]));
     }
 }

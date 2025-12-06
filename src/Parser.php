@@ -176,7 +176,7 @@ final class Parser
             [$quantifier, $type] = $this->parseQuantifierValue($token->value);
 
             $startPos = $node->getStartPosition();
-            $endPos = $token->position + mb_strlen($token->value);
+            $endPos = $token->position + strlen($token->value);
 
             return new Node\QuantifierNode($node, $quantifier, $type, $startPos, $endPos);
         }
@@ -261,21 +261,21 @@ final class Parser
 
         if ($this->match(TokenType::T_LITERAL)) {
             $token = $this->previous();
-            $endPos = $startPos + mb_strlen($token->value);
+            $endPos = $startPos + strlen($token->value);
 
             return new Node\LiteralNode($token->value, $startPos, $endPos);
         }
 
         if ($this->match(TokenType::T_LITERAL_ESCAPED)) {
             $token = $this->previous();
-            $endPos = $startPos + mb_strlen($token->value) + 1; // +1 for the backslash
+            $endPos = $startPos + strlen($token->value) + 1; // +1 for the backslash
 
             return new Node\LiteralNode($token->value, $startPos, $endPos);
         }
 
         if ($this->match(TokenType::T_CHAR_TYPE)) {
             $token = $this->previous();
-            $endPos = $startPos + mb_strlen($token->value) + 1; // +1 for the backslash
+            $endPos = $startPos + strlen($token->value) + 1; // +1 for the backslash
 
             return new Node\CharTypeNode($token->value, $startPos, $endPos);
         }
@@ -286,21 +286,21 @@ final class Parser
 
         if ($this->match(TokenType::T_ANCHOR)) {
             $token = $this->previous();
-            $endPos = $startPos + mb_strlen($token->value);
+            $endPos = $startPos + strlen($token->value);
 
             return new Node\AnchorNode($token->value, $startPos, $endPos);
         }
 
         if ($this->match(TokenType::T_ASSERTION)) {
             $token = $this->previous();
-            $endPos = $startPos + mb_strlen($token->value) + 1;
+            $endPos = $startPos + strlen($token->value) + 1;
 
             return new Node\AssertionNode($token->value, $startPos, $endPos);
         }
 
         if ($this->match(TokenType::T_BACKREF)) {
             $token = $this->previous();
-            $endPos = $startPos + mb_strlen($token->value);
+            $endPos = $startPos + strlen($token->value);
 
             return new Node\BackrefNode($token->value, $startPos, $endPos);
         }
@@ -311,21 +311,21 @@ final class Parser
 
         if ($this->match(TokenType::T_UNICODE)) {
             $token = $this->previous();
-            $endPos = $startPos + mb_strlen($token->value);
+            $endPos = $startPos + strlen($token->value);
 
             return new Node\UnicodeNode($token->value, $startPos, $endPos);
         }
 
         if ($this->match(TokenType::T_OCTAL)) {
             $token = $this->previous();
-            $endPos = $startPos + mb_strlen($token->value);
+            $endPos = $startPos + strlen($token->value);
 
             return new Node\OctalNode($token->value, $startPos, $endPos);
         }
 
         if ($this->match(TokenType::T_OCTAL_LEGACY)) {
             $token = $this->previous();
-            $endPos = $startPos + mb_strlen($token->value) + 1;
+            $endPos = $startPos + strlen($token->value) + 1;
 
             return new Node\OctalLegacyNode($token->value, $startPos, $endPos);
         }
@@ -333,8 +333,8 @@ final class Parser
         if ($this->match(TokenType::T_UNICODE_PROP)) {
             $token = $this->previous();
             // Calculate end pos based on original syntax (\p{L} vs \pL)
-            $len = 2 + mb_strlen($token->value); // \p or \P + value
-            if (mb_strlen($token->value) > 1 || str_starts_with($token->value, '^')) {
+            $len = 2 + strlen($token->value); // \p or \P + value
+            if (strlen($token->value) > 1 || str_starts_with($token->value, '^')) {
                 $len += 2; // for {}
             }
             $endPos = $startPos + $len;
@@ -365,7 +365,7 @@ final class Parser
 
         if ($this->match(TokenType::T_PCRE_VERB)) {
             $token = $this->previous();
-            $endPos = $startPos + mb_strlen($token->value) + 3; // +3 for "(*)"
+            $endPos = $startPos + strlen($token->value) + 3; // +3 for "(*)"
 
             return new Node\PcreVerbNode($token->value, $startPos, $endPos);
         }
@@ -388,7 +388,7 @@ final class Parser
         $token = $this->previous();
         $startPos = $token->position;
         $value = $token->value;
-        $endPos = $startPos + mb_strlen($token->value) + 4; // for (?C)
+        $endPos = $startPos + strlen($token->value) + 4; // for (?C)
 
         $isStringIdentifier = false;
         $identifier = null;
@@ -410,7 +410,7 @@ final class Parser
     {
         $token = $this->previous();
         $value = $token->value;
-        $endPos = $startPos + mb_strlen($value);
+        $endPos = $startPos + strlen($value);
 
         // \g{N} or \gN (numeric, incl. relative) -> Backreference
         if (preg_match('/^\\\\g\{?([0-9+-]+)\}?$/', $value, $m)) {
@@ -460,7 +460,7 @@ final class Parser
 
             // Complex re-assembly
             TokenType::T_CALLOUT => '(?C'.$token->value.')',
-            TokenType::T_UNICODE_PROP => str_starts_with($token->value, '{') ? '\p'.$token->value : ((mb_strlen($token->value) > 1 || str_starts_with($token->value, '^')) ? '\p{'.$token->value.'}' : '\p'.$token->value),
+            TokenType::T_UNICODE_PROP => str_starts_with($token->value, '{') ? '\p'.$token->value : ((strlen($token->value) > 1 || str_starts_with($token->value, '^')) ? '\p{'.$token->value.'}' : '\p'.$token->value),
             TokenType::T_POSIX_CLASS => '[[:'.$token->value.':]]',
             TokenType::T_PCRE_VERB => '(*'.$token->value.')',
             TokenType::T_GROUP_MODIFIER_OPEN => '(?',
@@ -665,7 +665,7 @@ final class Parser
 
                 return new Node\SubroutineNode($num, '', $startPos, $endToken->position + 1);
             }
-            $this->stream->rewind(mb_strlen($num));
+            $this->stream->rewind(strlen($num));
         } elseif ('-' === $num) {
             $this->stream->rewind(1);
         }
@@ -984,31 +984,31 @@ final class Parser
             $token = $this->previous();
             // Check for range validity
             // +1 if escaped
-            $endPos = $startPos + mb_strlen($token->value) + (TokenType::T_LITERAL_ESCAPED === $token->type ? 1 : 0);
+            $endPos = $startPos + strlen($token->value) + (TokenType::T_LITERAL_ESCAPED === $token->type ? 1 : 0);
             $startNode = new Node\LiteralNode($token->value, $startPos, $endPos);
         } elseif ($this->match(TokenType::T_CHAR_TYPE)) {
             $token = $this->previous();
-            $startNode = new Node\CharTypeNode($token->value, $startPos, $startPos + mb_strlen($token->value) + 1);
+            $startNode = new Node\CharTypeNode($token->value, $startPos, $startPos + strlen($token->value) + 1);
         } elseif ($this->match(TokenType::T_UNICODE_PROP)) {
             $token = $this->previous();
             // Basic length calc - Parser logic from original
-            $len = 2 + mb_strlen($token->value) + ((mb_strlen($token->value) > 1 || str_starts_with($token->value, '^')) ? 2 : 0);
+            $len = 2 + strlen($token->value) + ((strlen($token->value) > 1 || str_starts_with($token->value, '^')) ? 2 : 0);
             $startNode = new Node\UnicodePropNode($token->value, $startPos, $startPos + $len);
         } elseif ($this->match(TokenType::T_UNICODE)) {
             $token = $this->previous();
-            $startNode = new Node\UnicodeNode($token->value, $startPos, $startPos + mb_strlen($token->value));
+            $startNode = new Node\UnicodeNode($token->value, $startPos, $startPos + strlen($token->value));
         } elseif ($this->match(TokenType::T_OCTAL)) {
             $token = $this->previous();
-            $startNode = new Node\OctalNode($token->value, $startPos, $startPos + mb_strlen($token->value));
+            $startNode = new Node\OctalNode($token->value, $startPos, $startPos + strlen($token->value));
         } elseif ($this->match(TokenType::T_OCTAL_LEGACY)) {
             $token = $this->previous();
-            $startNode = new Node\OctalLegacyNode($token->value, $startPos, $startPos + mb_strlen($token->value) + 1);
+            $startNode = new Node\OctalLegacyNode($token->value, $startPos, $startPos + strlen($token->value) + 1);
         } elseif ($this->match(TokenType::T_RANGE)) {
             // Literal hyphen at start
             return new Node\LiteralNode($this->previous()->value, $startPos, $startPos + 1);
         } elseif ($this->match(TokenType::T_POSIX_CLASS)) {
             $token = $this->previous();
-            $startNode = new Node\PosixClassNode($token->value, $startPos, $startPos + mb_strlen($token->value) + 4);
+            $startNode = new Node\PosixClassNode($token->value, $startPos, $startPos + strlen($token->value) + 4);
         } else {
             throw $this->parserException(
                 \sprintf('Unexpected token "%s" in character class at position %d.', $this->current()->value, $this->current()->position),

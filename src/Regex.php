@@ -39,7 +39,7 @@ final readonly class Regex
      */
     public const int DEFAULT_MAX_PATTERN_LENGTH = 100_000;
 
-    private const array DEFAULT_IGNORED_PATTERNS = [
+    private const array DEFAULT_REDOS_IGNORED_PATTERNS = [
         '[a-z0-9]+(?:-[a-z0-9]+)*',
         '^[a-z0-9]+(?:-[a-z0-9]+)*$',
         '[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*',
@@ -59,7 +59,7 @@ final readonly class Regex
     ];
 
     /**
-     * @param list<string> $ignoredPatterns
+     * @param list<string> $redosIgnoredPatterns
      */
     private function __construct(
         private int $maxPatternLength,
@@ -67,7 +67,7 @@ final readonly class Regex
         /**
          * @var list<string>
          */
-        private array $ignoredPatterns,
+        private array $redosIgnoredPatterns,
     ) {}
 
     /**
@@ -81,14 +81,14 @@ final readonly class Regex
      * @param array{
      *     max_pattern_length?: int,
      *     cache?: CacheInterface|string|null,
-     *     ignored_patterns?: list<string>,
+     *     redos_ignored_patterns?: list<string>,
      * } $options An associative array of configuration options.
      *  - `max_pattern_length` (int):
      *         Sets a safeguard limit on the length of the regex string to prevent performance
      *         issues with overly long patterns. Defaults to `self::DEFAULT_MAX_PATTERN_LENGTH`.
      *  - `cache` (string|CacheInterface|null):
      *         Provide a directory path or cache implementation to enable AST caching.
-     *  - `ignored_patterns` (list<string>):
+     *  - `redos_ignored_patterns` (list<string>):
      *         Patterns that should be treated as trusted/safe by the ReDoS analyzer.
      *
      * @return self a new, configured instance of the `Regex` service, ready to be used
@@ -106,12 +106,12 @@ final readonly class Regex
     {
         $maxPatternLength = $options['max_pattern_length'] ?? self::DEFAULT_MAX_PATTERN_LENGTH;
         $cache = self::normalizeCache($options['cache'] ?? null);
-        $ignoredPatterns = array_values(array_unique([
-            ...self::DEFAULT_IGNORED_PATTERNS,
-            ...($options['ignored_patterns'] ?? []),
+        $redosIgnoredPatterns = array_values(array_unique([
+            ...self::DEFAULT_REDOS_IGNORED_PATTERNS,
+            ...($options['redos_ignored_patterns'] ?? []),
         ]));
 
-        return new self($maxPatternLength, $cache, $ignoredPatterns);
+        return new self($maxPatternLength, $cache, $redosIgnoredPatterns);
     }
 
     /**
@@ -409,7 +409,7 @@ final readonly class Regex
      */
     public function analyzeReDoS(string $regex, ?ReDoSSeverity $threshold = null): ReDoSAnalysis
     {
-        return new ReDoSAnalyzer($this, $this->ignoredPatterns)->analyze($regex, $threshold);
+        return new ReDoSAnalyzer($this, $this->redosIgnoredPatterns)->analyze($regex, $threshold);
     }
 
     /**
@@ -430,11 +430,92 @@ final readonly class Regex
     }
 
     /**
+     * A convenience method to quickly check if a regex is valid.
+     *
+     * Purpose: This method wraps the `validate()` function to provide a simple
+     * boolean result indicating whether the regex is valid or not. It's useful
+     * for quick checks where you don't need the full validation details.
+     *
+     * @param string $regex the full PCRE regex string to check
+     *
+     * @return bool true if the regex is valid, false otherwise
+     *
+     * @example
+     * ```php
+     * $regexService = Regex::create();
+     * if ($regexService->isValid('/[a-z]+/')) {
+     *     echo "The regex is valid!";
+     * } else {
+     *     echo "The regex is invalid.";
+     * }
+     * ```
+     */
+    public function isValid(string $regex): bool
+    {
+        return $this->validate($regex)->isValid();
+    }
+
+    /**
+     * Asserts that a regex is valid, throwing an exception if not.
+     *
+     * Purpose: This method is similar to `isValid()`, but instead of returning a boolean,
+     * it throws a `ParserException` if the regex is invalid. This is useful in scenarios
+     * where you want to enforce regex validity and handle errors through exceptions.
+     *
+     * @param string $regex the full PCRE regex string to check
+     *
+     * @throws ParserException if the regex is invalid
+     *
+     * @example
+     * ```php
+     * $regexService = Regex::create();
+     * try {
+     *     $regexService->assertValid('/[a-z]+/');
+     *     echo "The regex is valid!";
+     * } catch (ParserException $e) {
+     *     echo "Invalid regex: " . $e->getMessage();
+     * }
+     * ```
+     */
+    public function assertValid(string $regex): void
+    {
+        $result = $this->validate($regex);
+        if (!$result->isValid()) {
+            throw $result->errors[0] ?? new ParserException('Unknown error');
+        }
+    }
+
+    /**
+     * Preloads the cache with parsed ASTs for a list of regex patterns.
+     *
+     * Purpose: This method allows you to "warm up" the internal cache by pre-parsing
+     * a set of regex patterns. This is particularly useful in scenarios where you know
+     * in advance which patterns will be used frequently, allowing you to avoid the
+     * parsing overhead during actual usage.
+     *
+     * @param iterable<string> $regexes an iterable collection of full PCRE regex strings
+     *
+     * @example
+     * ```php
+     * $regexService = Regex::create();
+     * $patterns = ['/a+/', '/(b|c){2,}/', '/^\d{4}-\d{2}-\d{2}$/'];
+     * $regexService->warm($patterns);
+     * ```
+     */
+    public function warm(iterable $regexes): void
+    {
+        foreach ($regexes as $regex) {
+            $this->parse($regex); // hits cache
+            $this->analyzeReDoS($regex);
+        }
+    }
+
+    /**
      * @return list<string>
      */
-    public function getIgnoredPatterns(): array
+    public function getRedosIgnoredPatterns(): array
     {
-        return array_values($this->ignoredPatterns);
+        return array_values($this->redosIgnoredPatterns);
     }
 
     /**

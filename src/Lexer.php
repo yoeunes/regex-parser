@@ -224,6 +224,17 @@ final class Lexer
                 continue;
             }
 
+            /*$specials = $this->inCharClass ? "[]\\-" : "[](){}*+?|.^$\\";
+            $skip = strcspn($this->pattern, $specials, $this->position);
+
+            if ($skip > 0) {
+                // Emit a single literal token for the whole run
+                $value = substr($this->pattern, $this->position, $skip);
+                $tokens[] = new Token(TokenType::T_LITERAL, $value, $this->position);
+                $this->position += $skip;
+                continue;
+            }*/
+
             // 2. Select Context-Aware Regex
             // @phpstan-ignore ternary.alwaysFalse (State changes via createTokenFromMatch on subsequent iterations)
             $regex = $this->inCharClass ? self::REGEX_INSIDE : self::REGEX_OUTSIDE;
@@ -480,6 +491,23 @@ final class Lexer
             default => $matchedValue,
         };
     }
+    /*private function extractTokenValue(TokenType $type, string $match, array $matches): string
+    {
+        return match ($type) {
+            TokenType::T_LITERAL_ESCAPED => match ($match) {
+                '\t' => "\t",
+                '\n' => "\n",
+                '\r' => "\r",
+                '\f' => "\f",
+                '\e' => "\x07", // bell
+                default => substr($match, 1),
+            },
+            TokenType::T_UNICODE_PROP => $this->normalizeUnicodeProp($match),
+            TokenType::T_POSIX_CLASS => $matches['v_posix'][0] ?? '',
+            default => $match,
+        };
+    }*/
+
 
     /**
      * Normalizes Unicode property notation to standard PCRE format.
