@@ -50,7 +50,7 @@ final class LexerCommentTest extends TestCase
         $this->expectException(LexerException::class);
         $this->expectExceptionMessage('Unclosed comment ")" at end of input');
 
-        $this->regexService->getLexer()->tokenize('/(?#oups')->getTokens();
+        $this->regexService->getLexer()->tokenize('/(?#oups');
     }
 
     /**

@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
 use RegexParser\Regex;
@@ -22,7 +23,7 @@ use RegexParser\Regex;
  * Tests that the compiler correctly reconstructs the parsed AST back into a regex string
  * that is semantically equivalent to the input.
  */
-final class ReverseCompilerTest extends TestCase
+class ReverseCompilerTest extends TestCase
 {
     private Regex $regexService;
 
@@ -39,31 +40,40 @@ final class ReverseCompilerTest extends TestCase
         $recompiled = $ast->accept($compiler);
 
         // 1. The recompiled regex must be valid
-        $this->assertNotFalse(
-            @preg_match($recompiled, ''),
-            "Recompiled regex '$recompiled' from '$originalPattern' is invalid.",
-        );
+        // We suppress errors because we want to catch the false return value
+        $isValid = @preg_match($recompiled, '');
+
+        if ($isValid === false) {
+            $error = preg_last_error();
+            $msg = match ($error) {
+                PREG_INTERNAL_ERROR => 'PREG_INTERNAL_ERROR',
+                PREG_BACKTRACK_LIMIT_ERROR => 'PREG_BACKTRACK_LIMIT_ERROR',
+                PREG_RECURSION_LIMIT_ERROR => 'PREG_RECURSION_LIMIT_ERROR',
+                PREG_BAD_UTF8_ERROR => 'PREG_BAD_UTF8_ERROR',
+                PREG_BAD_UTF8_OFFSET_ERROR => 'PREG_BAD_UTF8_OFFSET_ERROR',
+                PREG_JIT_STACKLIMIT_ERROR => 'PREG_JIT_STACKLIMIT_ERROR',
+                default => 'Unknown Error'
+            };
+            $this->fail("Recompiled regex '$recompiled' from '$originalPattern' is invalid ($msg).");
+        }
 
         // 2. Generate a matching sample from the original
         // This proves that the recompiled regex matches what the original matched.
         try {
+            // Some recursive/complex patterns might hit generator limits, so we wrap in try/catch
             $sample = $this->regexService->generate($originalPattern);
 
-            if ('' !== $sample) {
-                $this->assertMatchesRegularExpression(
+            if ($sample !== '') {
+                 $this->assertMatchesRegularExpression(
                     $recompiled,
                     $sample,
-                    "Recompiled regex '$recompiled' failed to match sample '$sample' generated from '$originalPattern'",
+                    "Recompiled regex '$recompiled' failed to match sample '$sample' generated from '$originalPattern'"
                 );
             }
-        } catch (\Exception) {
-            // Some patterns (like assertions) don't generate samples easily, skip sample test
+        } catch (\Exception $e) {
+            // If generation fails (e.g. infinite recursion), we skip the sample match test
+            // but the validity test above is still valuable.
         }
-
-        // 3. If the optimizer is skipped, simple patterns should match exactly or be very close
-        // (ignoring insignificant differences handled by the compiler like escape chars)
-        // Note: We don't assert strict string equality because the compiler might normalize things
-        // e.g. \p{L} vs \pL, or escaping / inside / delimiters.
     }
 
     public static function providePatterns(): \Iterator
@@ -95,10 +105,10 @@ final class ReverseCompilerTest extends TestCase
         yield ['/\p{L}+/u'];
         yield ['/\o{101}/'];
 
-        // Conditionals and Subroutines
-        yield ['/(?(1)yes|no)/'];
-        yield ['/(?R)/'];
-        yield ['/(?&name)/'];
+        // Conditionals and Subroutines (FIXED: Added context so they are valid PCRE)
+        yield ['/(a)(?(1)yes|no)/'];         // Defined group 1
+        yield ['/a(?R)?/'];                  // Optional recursion to avoid infinite loop on empty match
+        yield ['/(?<name>a)(?&name)/'];      // Defined named group
 
         // Complex Real world
         yield ['/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/'];

@@ -201,7 +201,7 @@ final class LexerTest extends TestCase
     {
         $this->expectException(LexerException::class);
         $this->expectExceptionMessage('Unable to tokenize');
-        new Lexer()->tokenize('foo\\')->getTokens();
+        new Lexer()->tokenize('foo\\');
     }
 
     /**
@@ -268,7 +268,7 @@ final class LexerTest extends TestCase
     {
         $this->expectException(LexerException::class);
         $this->expectExceptionMessage('Unclosed character class "]" at end of input.');
-        new Lexer()->tokenize('[a')->getTokens();
+        new Lexer()->tokenize('[a');
     }
 
     public function test_tokenize_quote_mode(): void
