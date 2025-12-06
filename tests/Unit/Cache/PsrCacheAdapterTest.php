@@ -48,7 +48,15 @@ final class PsrCacheAdapterTest extends TestCase
         $pool = new InMemoryPool();
         $cache = new PsrCacheAdapter($pool);
 
-        $payload = "<?php return new \\RegexParser\\Node\\RegexNode(new \\RegexParser\\Node\\LiteralNode('', 0, 0), '', '/', 0, 0);";
+        $ast = new RegexNode(new LiteralNode('', 0, 0), '', '/', 0, 0);
+        $serialized = serialize($ast);
+        $payload = <<<PHP
+            <?php
+
+            declare(strict_types=1);
+
+            return unserialize({$this->export($serialized)}, ['allowed_classes' => true]);
+            PHP;
 
         $key = $cache->generateKey('foo');
         $cache->write($key, $payload);
@@ -86,6 +94,11 @@ final class PsrCacheAdapterTest extends TestCase
         $cache->write($key, "<?php return 'y';");
         $cache->clear();
         $this->assertNull($cache->load($key));
+    }
+
+    private function export(string $value): string
+    {
+        return var_export($value, true);
     }
 }
 
