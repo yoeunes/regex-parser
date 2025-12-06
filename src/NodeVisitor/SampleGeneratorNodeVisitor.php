@@ -26,7 +26,7 @@ use RegexParser\Node\GroupType;
  *
  * @implements NodeVisitorInterface<string>
  */
-class SampleGeneratorNodeVisitor implements NodeVisitorInterface
+final class SampleGeneratorNodeVisitor implements NodeVisitorInterface
 {
     private const int MAX_RECURSION_DEPTH = 2;
 

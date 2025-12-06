@@ -30,7 +30,7 @@ use RegexParser\Regex;
  * - SampleGeneratorVisitor
  * - ValidatorNodeVisitor
  */
-class Complete100PercentCoverageTest extends TestCase
+final class Complete100PercentCoverageTest extends TestCase
 {
     private Regex $regex;
 

@@ -20,7 +20,7 @@ use RegexParser\Regex;
 use RegexParser\Tests\TestUtils\ParserAccessor;
 use RegexParser\TokenType;
 
-class ParserEdgeCasesTest extends TestCase
+final class ParserEdgeCasesTest extends TestCase
 {
     private Regex $regex;
 

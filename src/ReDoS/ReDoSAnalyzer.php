@@ -16,7 +16,7 @@ namespace RegexParser\ReDoS;
 use RegexParser\NodeVisitor\ReDoSProfileNodeVisitor;
 use RegexParser\Regex;
 
-class ReDoSAnalyzer
+final class ReDoSAnalyzer
 {
     /**
      * @param list<string> $ignoredPatterns

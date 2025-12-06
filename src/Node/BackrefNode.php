@@ -23,7 +23,7 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
  * symmetry, such as matching opening and closing HTML tags. The backreference can be identified
  * by number (relative or absolute) or by name.
  */
-readonly class BackrefNode extends AbstractNode
+final readonly class BackrefNode extends AbstractNode
 {
     /**
      * Initializes a backreference node.

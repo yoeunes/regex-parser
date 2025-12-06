@@ -24,7 +24,7 @@ use RegexParser\Node\GroupType;
  *
  * @implements NodeVisitorInterface<array<string, mixed>>
  */
-class ArrayExplorerNodeVisitor implements NodeVisitorInterface
+final class ArrayExplorerNodeVisitor implements NodeVisitorInterface
 {
     /**
      * Visits a RegexNode and converts it into an array representation.

@@ -36,16 +36,16 @@ use RegexParser\Regex;
  *
  * @implements Rule<FuncCall>
  */
-class PregValidationRule implements Rule
+final class PregValidationRule implements Rule
 {
     // Identifiers for user configuration in phpstan.neon
-    public const IDENTIFIER_SYNTAX_INVALID = 'regex.syntax.invalid';
-    public const IDENTIFIER_SYNTAX_DELIMITER = 'regex.syntax.delimiter';
-    public const IDENTIFIER_SYNTAX_EMPTY = 'regex.syntax.empty';
-    public const IDENTIFIER_REDOS_CRITICAL = 'regex.redos.critical';
-    public const IDENTIFIER_REDOS_HIGH = 'regex.redos.high';
-    public const IDENTIFIER_REDOS_MEDIUM = 'regex.redos.medium';
-    public const IDENTIFIER_REDOS_LOW = 'regex.redos.low';
+    public const string IDENTIFIER_SYNTAX_INVALID = 'regex.syntax.invalid';
+    public const string IDENTIFIER_SYNTAX_DELIMITER = 'regex.syntax.delimiter';
+    public const string IDENTIFIER_SYNTAX_EMPTY = 'regex.syntax.empty';
+    public const string IDENTIFIER_REDOS_CRITICAL = 'regex.redos.critical';
+    public const string IDENTIFIER_REDOS_HIGH = 'regex.redos.high';
+    public const string IDENTIFIER_REDOS_MEDIUM = 'regex.redos.medium';
+    public const string IDENTIFIER_REDOS_LOW = 'regex.redos.low';
 
     private const array PREG_FUNCTION_MAP = [
         'preg_match' => 0,

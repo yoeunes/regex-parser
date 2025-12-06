@@ -23,4 +23,4 @@ namespace RegexParser\Exception;
  *
  * @see \RegexParser\Parser
  */
-class SyntaxErrorException extends ParserException implements RegexParserExceptionInterface {}
+final class SyntaxErrorException extends ParserException implements RegexParserExceptionInterface {}

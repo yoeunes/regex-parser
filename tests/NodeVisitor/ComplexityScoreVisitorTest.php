@@ -19,7 +19,7 @@ use RegexParser\NodeVisitor\ComplexityScoreNodeVisitor;
 use RegexParser\NodeVisitor\ExplainNodeVisitor;
 use RegexParser\Regex;
 
-class ComplexityScoreVisitorTest extends TestCase
+final class ComplexityScoreVisitorTest extends TestCase
 {
     private Regex $regex;
 

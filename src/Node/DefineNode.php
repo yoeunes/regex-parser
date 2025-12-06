@@ -24,7 +24,7 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
  * useful for organizing complex regexes and reusing common components, similar to functions
  * in a programming language.
  */
-readonly class DefineNode extends AbstractNode
+final readonly class DefineNode extends AbstractNode
 {
     /**
      * Initializes a `(?(DEFINE)...)` node.

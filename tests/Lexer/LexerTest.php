@@ -18,7 +18,7 @@ use RegexParser\Exception\LexerException;
 use RegexParser\Lexer;
 use RegexParser\TokenType;
 
-class LexerTest extends TestCase
+final class LexerTest extends TestCase
 {
     public function test_tokenize_simple_literal(): void
     {
@@ -201,7 +201,7 @@ class LexerTest extends TestCase
     {
         $this->expectException(LexerException::class);
         $this->expectExceptionMessage('Unable to tokenize');
-        new Lexer()->tokenize('foo\\')->getTokens();
+        new Lexer()->tokenize('foo\\');
     }
 
     /**
@@ -268,7 +268,7 @@ class LexerTest extends TestCase
     {
         $this->expectException(LexerException::class);
         $this->expectExceptionMessage('Unclosed character class "]" at end of input.');
-        new Lexer()->tokenize('[a')->getTokens();
+        new Lexer()->tokenize('[a');
     }
 
     public function test_tokenize_quote_mode(): void

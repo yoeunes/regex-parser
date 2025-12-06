@@ -32,7 +32,7 @@ use RegexParser\ReDoS\ReDoSSeverity;
  *
  * @api
  */
-readonly class Regex
+final readonly class Regex
 {
     /**
      * Default hard limit on the regex string length to prevent excessive processing/memory usage.
@@ -410,6 +410,23 @@ readonly class Regex
     public function analyzeReDoS(string $regex, ?ReDoSSeverity $threshold = null): ReDoSAnalysis
     {
         return new ReDoSAnalyzer($this, $this->ignoredPatterns)->analyze($regex, $threshold);
+    }
+
+    /**
+     * Determines if a regex is considered "safe" from ReDoS vulnerabilities.
+     *
+     * A regex is considered safe if the ReDoS analyzer does not detect any
+     * HIGH or CRITICAL severity issues.
+     *
+     * @param string $regex the full PCRE regex string to check
+     *
+     * @return bool true if the regex is considered safe, false otherwise
+     */
+    public function isSafe(string $regex): bool
+    {
+        $analysis = $this->analyzeReDoS($regex);
+
+        return !\in_array($analysis->severity, [ReDoSSeverity::HIGH, ReDoSSeverity::CRITICAL], true);
     }
 
     /**

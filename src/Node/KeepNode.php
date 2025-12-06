@@ -23,7 +23,7 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
  * used as a more efficient alternative to lookbehinds for discarding a prefix. For example, in
  * `foo\Kbar`, the engine matches "foobar", but only "bar" is returned as the result.
  */
-readonly class KeepNode extends AbstractNode
+final readonly class KeepNode extends AbstractNode
 {
     /**
      * Implements the visitor pattern for traversing the AST.

@@ -19,7 +19,7 @@ use RegexParser\Node\GroupType;
 use RegexParser\Node\QuantifierType;
 use RegexParser\Regex;
 
-class PcreFeatureCompletenessTest extends TestCase
+final class PcreFeatureCompletenessTest extends TestCase
 {
     private Regex $regexService;
 

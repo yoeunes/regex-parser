@@ -22,7 +22,7 @@ namespace RegexParser;
  * we can perform a fast `strpos` check before running the full, expensive regex engine.
  * It tracks prefixes, suffixes, and whether the set of literals represents the entire match.
  */
-readonly class LiteralSet
+final readonly class LiteralSet
 {
     /**
      * Creates a new, immutable LiteralSet instance.

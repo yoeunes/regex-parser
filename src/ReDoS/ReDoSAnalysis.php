@@ -24,7 +24,7 @@ namespace RegexParser\ReDoS;
  *
  * @api
  */
-readonly class ReDoSAnalysis
+final readonly class ReDoSAnalysis
 {
     /**
      * Creates a new, immutable ReDoS analysis report.

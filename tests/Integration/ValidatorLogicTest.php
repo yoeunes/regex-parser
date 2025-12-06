@@ -21,7 +21,7 @@ use RegexParser\Node\QuantifierNode;
 use RegexParser\Node\QuantifierType;
 use RegexParser\NodeVisitor\ValidatorNodeVisitor;
 
-class ValidatorLogicTest extends TestCase
+final class ValidatorLogicTest extends TestCase
 {
     public function test_octal_invalid_digits(): void
     {

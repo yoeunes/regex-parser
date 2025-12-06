@@ -18,7 +18,7 @@ use RegexParser\LiteralSet;
 use RegexParser\NodeVisitor\LiteralExtractorNodeVisitor;
 use RegexParser\Regex;
 
-class LiteralExtractorVisitorTest extends TestCase
+final class LiteralExtractorVisitorTest extends TestCase
 {
     private Regex $regex;
 

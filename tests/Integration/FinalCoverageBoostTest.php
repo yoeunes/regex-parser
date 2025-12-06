@@ -23,7 +23,7 @@ use RegexParser\Regex;
 /**
  * Final coverage boost tests targeting specific uncovered edge cases.
  */
-class FinalCoverageBoostTest extends TestCase
+final class FinalCoverageBoostTest extends TestCase
 {
     private Regex $regexService;
 

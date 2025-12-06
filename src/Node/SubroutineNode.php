@@ -23,7 +23,7 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
  * (e.g., nested parentheses) or for reusing a complex pattern defined in a capturing group or a
  * `(?(DEFINE)...)` block. This node captures the reference to the pattern being called.
  */
-readonly class SubroutineNode extends AbstractNode
+final readonly class SubroutineNode extends AbstractNode
 {
     /**
      * Initializes a subroutine call node.

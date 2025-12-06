@@ -28,7 +28,7 @@ use RegexParser\Regex;
 #[Iterations(5)]
 #[Revs(1000)]
 #[BeforeMethods('setUp')]
-class ParserBench
+final class ParserBench
 {
     private Regex $regex;
 

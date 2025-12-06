@@ -22,7 +22,7 @@ use RegexParser\Regex;
  * Tests to improve code coverage for the Parser class.
  * Specifically targeting uncovered parsing branches and edge cases.
  */
-class ParserCoverageBoostTest extends TestCase
+final class ParserCoverageBoostTest extends TestCase
 {
     private Regex $regexService;
 

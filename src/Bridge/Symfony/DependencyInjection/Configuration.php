@@ -28,7 +28,7 @@ use Symfony\Component\Config\Definition\ConfigurationInterface;
  *
  * @see https://symfony.com/doc/current/bundles/configuration.html
  */
-class Configuration implements ConfigurationInterface
+final readonly class Configuration implements ConfigurationInterface
 {
     /**
      * Creates a new instance of the bundle's configuration schema.
@@ -41,7 +41,7 @@ class Configuration implements ConfigurationInterface
      * @param bool $debug The value of the `kernel.debug` parameter.
      */
     public function __construct(
-        private readonly bool $debug = false,
+        private bool $debug = false,
     ) {}
 
     /**

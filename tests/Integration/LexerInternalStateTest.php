@@ -18,7 +18,7 @@ use RegexParser\Regex;
 use RegexParser\Tests\TestUtils\LexerAccessor;
 use RegexParser\Token;
 
-class LexerInternalStateTest extends TestCase
+final class LexerInternalStateTest extends TestCase
 {
     private Regex $regexService;
 

@@ -30,7 +30,7 @@ use RegexParser\Node\GroupType;
  *
  * @implements NodeVisitorInterface<int>
  */
-class ComplexityScoreNodeVisitor implements NodeVisitorInterface
+final class ComplexityScoreNodeVisitor implements NodeVisitorInterface
 {
     /**
      * Base score for a node.

@@ -19,7 +19,7 @@ use RegexParser\Cache\FilesystemCache;
 use RegexParser\Cache\RemovableCacheInterface;
 use RegexParser\Regex;
 
-class RegexTest extends TestCase
+final class RegexTest extends TestCase
 {
     public function test_create_and_parse(): void
     {

@@ -18,7 +18,7 @@ use RegexParser\Token;
 use RegexParser\TokenStream;
 use RegexParser\TokenType;
 
-class TokenStreamTest extends TestCase
+final class TokenStreamTest extends TestCase
 {
     public function test_iteration_and_positions(): void
     {

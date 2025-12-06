@@ -30,7 +30,7 @@ use Symfony\Component\HttpKernel\DependencyInjection\Extension;
  * 4. Conditionally loading debug-only services (like the Web Profiler collector)
  *    based on the application's environment and configuration.
  */
-class RegexParserExtension extends Extension
+final class RegexParserExtension extends Extension
 {
     /**
      * Loads the bundle's services and processes its configuration.

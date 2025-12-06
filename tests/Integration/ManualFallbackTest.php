@@ -19,7 +19,7 @@ use RegexParser\Node\SubroutineNode;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
 use RegexParser\NodeVisitor\SampleGeneratorNodeVisitor;
 
-class ManualFallbackTest extends TestCase
+final class ManualFallbackTest extends TestCase
 {
     /**
      * Teste le fallback du SampleGenerator pour un type de caractère inconnu.

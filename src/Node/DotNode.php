@@ -24,7 +24,7 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
  * visitors to handle this special behavior correctly during analysis, compilation, or sample
  * generation.
  */
-readonly class DotNode extends AbstractNode
+final readonly class DotNode extends AbstractNode
 {
     /**
      * Initializes a dot node.

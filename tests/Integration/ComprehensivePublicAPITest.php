@@ -13,17 +13,17 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\Integration;
 
+use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\ParserException;
 use RegexParser\ReDoS\ReDoSSeverity;
 use RegexParser\Regex;
-use RegexParser\ValidationResult;
 
 /**
  * Comprehensive test suite for the public API of RegexParser.
  * Tests all public methods of the Regex class with extensive coverage.
  */
-class ComprehensivePublicAPITest extends TestCase
+final class ComprehensivePublicAPITest extends TestCase
 {
     private Regex $regexService;
 
@@ -32,22 +32,22 @@ class ComprehensivePublicAPITest extends TestCase
         $this->regexService = Regex::create();
     }
 
+    #[DoesNotPerformAssertions]
     public function test_create_returns_regex_instance(): void
     {
-        $regex = Regex::create();
-        $this->assertSame(Regex::class, $regex::class);
+        Regex::create();
     }
 
+    #[DoesNotPerformAssertions]
     public function test_create_with_options_accepts_max_pattern_length(): void
     {
-        $regex = Regex::create(['max_pattern_length' => 1000]);
-        $this->assertSame(Regex::class, $regex::class);
+        Regex::create(['max_pattern_length' => 1000]);
     }
 
+    #[DoesNotPerformAssertions]
     public function test_create_without_options_works(): void
     {
-        $regex = Regex::create([]);
-        $this->assertSame(Regex::class, $regex::class);
+        Regex::create([]);
     }
 
     public function test_parse_simple_literal_returns_regex_node(): void
@@ -174,7 +174,6 @@ class ComprehensivePublicAPITest extends TestCase
     public function test_validate_simple_pattern_returns_valid_result(): void
     {
         $result = $this->regexService->validate('/hello/');
-        $this->assertSame(ValidationResult::class, $result::class);
         $this->assertTrue($result->isValid);
         $this->assertNull($result->error);
     }
@@ -201,12 +200,12 @@ class ComprehensivePublicAPITest extends TestCase
         $this->assertNotNull($result->error);
     }
 
+    #[DoesNotPerformAssertions]
     public function test_validate_detects_alternation_redos(): void
     {
-        $result = $this->regexService->validate('/(a|a)*/');
+        $this->regexService->validate('/(a|a)*/');
         // Note: Current implementation may not catch all alternation ReDoS cases
         // This is marked as a known limitation
-        $this->assertSame(ValidationResult::class, $result::class);
     }
 
     public function test_validate_safe_bounded_quantifiers(): void

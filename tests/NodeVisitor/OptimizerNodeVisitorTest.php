@@ -24,7 +24,7 @@ use RegexParser\Node\SequenceNode;
 use RegexParser\NodeVisitor\OptimizerNodeVisitor;
 use RegexParser\Regex;
 
-class OptimizerNodeVisitorTest extends TestCase
+final class OptimizerNodeVisitorTest extends TestCase
 {
     private Regex $regex;
 

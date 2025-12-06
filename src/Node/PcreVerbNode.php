@@ -24,7 +24,7 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
  * prevents the engine from backtracking past the commit point. This node captures these directives
  * so that they can be correctly handled by compilers or analysis tools.
  */
-readonly class PcreVerbNode extends AbstractNode
+final readonly class PcreVerbNode extends AbstractNode
 {
     /**
      * Initializes a PCRE verb node.

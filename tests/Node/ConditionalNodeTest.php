@@ -20,7 +20,7 @@ use RegexParser\Node\LiteralNode;
 use RegexParser\Node\NodeInterface;
 use RegexParser\NodeVisitor\NodeVisitorInterface;
 
-class ConditionalNodeTest extends TestCase
+final class ConditionalNodeTest extends TestCase
 {
     public function test_constructor_and_getters(): void
     {

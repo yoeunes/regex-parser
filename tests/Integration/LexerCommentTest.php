@@ -18,7 +18,7 @@ use RegexParser\Exception\LexerException;
 use RegexParser\Regex;
 use RegexParser\TokenType;
 
-class LexerCommentTest extends TestCase
+final class LexerCommentTest extends TestCase
 {
     private Regex $regexService;
 
@@ -50,7 +50,7 @@ class LexerCommentTest extends TestCase
         $this->expectException(LexerException::class);
         $this->expectExceptionMessage('Unclosed comment ")" at end of input');
 
-        $this->regexService->getLexer()->tokenize('/(?#oups')->getTokens();
+        $this->regexService->getLexer()->tokenize('/(?#oups');
     }
 
     /**

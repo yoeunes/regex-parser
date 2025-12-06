@@ -19,7 +19,7 @@ use RegexParser\Node\OctalNode;
 use RegexParser\Node\UnicodeNode;
 use RegexParser\NodeVisitor\ValidatorNodeVisitor;
 
-class ValidatorImpossibleTest extends TestCase
+final class ValidatorImpossibleTest extends TestCase
 {
     public function test_unicode_out_of_bounds_manual(): void
     {

@@ -18,7 +18,7 @@ use PHPUnit\Framework\TestCase;
 use RegexParser\Node\BackrefNode;
 use RegexParser\NodeVisitor\NodeVisitorInterface;
 
-class BackrefNodeTest extends TestCase
+final class BackrefNodeTest extends TestCase
 {
     public static function data_provider_backrefs(): \Iterator
     {

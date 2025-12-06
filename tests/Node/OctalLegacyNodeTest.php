@@ -18,7 +18,7 @@ use PHPUnit\Framework\TestCase;
 use RegexParser\Node\OctalLegacyNode;
 use RegexParser\NodeVisitor\NodeVisitorInterface;
 
-class OctalLegacyNodeTest extends TestCase
+final class OctalLegacyNodeTest extends TestCase
 {
     /**
      * @return \Iterator<string, array{string, int, int}>

@@ -23,7 +23,7 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
  * (`[:digit:]`), and ranges (`a-z`). It can also be negated (`[^...]`) to match any character
  * *not* in the set. This is one of the most powerful and common components of regular expressions.
  */
-readonly class CharClassNode extends AbstractNode
+final readonly class CharClassNode extends AbstractNode
 {
     /**
      * Initializes a character class node.

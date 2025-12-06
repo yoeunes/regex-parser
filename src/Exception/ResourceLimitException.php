@@ -24,4 +24,4 @@ namespace RegexParser\Exception;
  *
  * @see \RegexParser\Parser
  */
-class ResourceLimitException extends ParserException implements RegexParserExceptionInterface {}
+final class ResourceLimitException extends ParserException implements RegexParserExceptionInterface {}

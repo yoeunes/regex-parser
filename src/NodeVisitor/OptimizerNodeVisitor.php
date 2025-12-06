@@ -28,7 +28,7 @@ use RegexParser\Node\GroupType;
  *
  * @implements NodeVisitorInterface<Node\NodeInterface>
  */
-class OptimizerNodeVisitor implements NodeVisitorInterface
+final class OptimizerNodeVisitor implements NodeVisitorInterface
 {
     private const array CHAR_CLASS_META = [']' => true, '\\' => true, '^' => true, '-' => true];
 
@@ -187,18 +187,20 @@ class OptimizerNodeVisitor implements NodeVisitorInterface
     {
         $optimizedChild = $node->child->accept($this);
 
+        // Enhanced Group Unwrapping: (?:x) -> x
+        // If the group is non-capturing and contains a single atomic node, remove the group.
         if (
             GroupType::T_GROUP_NON_CAPTURING === $node->type
-            && ($optimizedChild instanceof Node\LiteralNode
+            && (
+                $optimizedChild instanceof Node\LiteralNode
                 || $optimizedChild instanceof Node\CharTypeNode
-                || $optimizedChild instanceof Node\DotNode)
-        ) {
-            return $optimizedChild;
-        }
-
-        if (
-            GroupType::T_GROUP_NON_CAPTURING === $node->type
-            && $optimizedChild instanceof Node\CharClassNode
+                || $optimizedChild instanceof Node\DotNode
+                || $optimizedChild instanceof Node\CharClassNode
+                || $optimizedChild instanceof Node\AnchorNode
+                || $optimizedChild instanceof Node\AssertionNode
+                || $optimizedChild instanceof Node\UnicodeNode
+                || $optimizedChild instanceof Node\UnicodePropNode
+            )
         ) {
             return $optimizedChild;
         }

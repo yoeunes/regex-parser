@@ -17,7 +17,7 @@ use PHPUnit\Framework\TestCase;
 use RegexParser\ReDoS\ReDoSSeverity;
 use RegexParser\Regex;
 
-class ReDoSEdgeCasesTest extends TestCase
+final class ReDoSEdgeCasesTest extends TestCase
 {
     private Regex $regex;
 

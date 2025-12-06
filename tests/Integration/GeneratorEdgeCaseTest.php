@@ -17,7 +17,7 @@ use PHPUnit\Framework\TestCase;
 use RegexParser\Node\CharTypeNode;
 use RegexParser\NodeVisitor\SampleGeneratorNodeVisitor;
 
-class GeneratorEdgeCaseTest extends TestCase
+final class GeneratorEdgeCaseTest extends TestCase
 {
     /**
      * Teste le cas par défaut pour un type de caractère inconnu.

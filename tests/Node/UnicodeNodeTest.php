@@ -18,7 +18,7 @@ use PHPUnit\Framework\TestCase;
 use RegexParser\Node\UnicodeNode;
 use RegexParser\NodeVisitor\NodeVisitorInterface;
 
-class UnicodeNodeTest extends TestCase
+final class UnicodeNodeTest extends TestCase
 {
     /**
      * @return \Iterator<string, array{string, int, int}>

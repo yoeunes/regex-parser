@@ -20,7 +20,7 @@ use RegexParser\Node\NodeInterface;
 use RegexParser\Node\RegexNode;
 use RegexParser\NodeVisitor\NodeVisitorInterface;
 
-class RegexNodeTest extends TestCase
+final class RegexNodeTest extends TestCase
 {
     /**
      * @return \Iterator<string, array{string, string}>

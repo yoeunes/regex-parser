@@ -21,7 +21,7 @@ use RegexParser\Exception\ParserException;
  *
  * @api
  */
-readonly class TolerantParseResult
+final readonly class TolerantParseResult
 {
     /**
      * @param list<ParserException|LexerException> $errors

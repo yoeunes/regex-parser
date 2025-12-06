@@ -17,7 +17,7 @@ use PHPUnit\Framework\TestCase;
 use RegexParser\Lexer;
 use RegexParser\TokenType;
 
-class LexerEdgeCasesTest extends TestCase
+final class LexerEdgeCasesTest extends TestCase
 {
     public function test_escaped_special_chars(): void
     {

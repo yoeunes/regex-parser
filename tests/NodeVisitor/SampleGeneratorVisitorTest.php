@@ -18,7 +18,7 @@ use PHPUnit\Framework\TestCase;
 use RegexParser\NodeVisitor\SampleGeneratorNodeVisitor;
 use RegexParser\Regex;
 
-class SampleGeneratorVisitorTest extends TestCase
+final class SampleGeneratorVisitorTest extends TestCase
 {
     private Regex $regex;
 

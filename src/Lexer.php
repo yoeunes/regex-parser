@@ -25,7 +25,7 @@ use RegexParser\Exception\LexerException;
  * It preserves all tokens, including comments and quote mode markers, allowing
  * for a full reconstruction of the original pattern (Concrete Syntax Tree).
  */
-class Lexer
+final class Lexer
 {
     /**
      * Regex to capture all possible tokens OUTSIDE of a character class.

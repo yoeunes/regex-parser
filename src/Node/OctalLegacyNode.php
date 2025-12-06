@@ -23,7 +23,7 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
  * regex should prefer the brace syntax `\o{...}` (see `OctalNode`). This node exists to correctly
  * parse and represent this legacy syntax, allowing tools to identify and potentially warn about its use.
  */
-readonly class OctalLegacyNode extends AbstractNode
+final readonly class OctalLegacyNode extends AbstractNode
 {
     /**
      * Initializes a legacy octal escape node.

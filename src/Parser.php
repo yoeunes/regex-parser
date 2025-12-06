@@ -27,7 +27,7 @@ use RegexParser\Exception\ResourceLimitException;
  * Use the Regex class for convenient string-based parsing that handles
  * delimiter extraction, tokenization, and parsing automatically.
  */
-class Parser
+final class Parser
 {
     /**
      * Token stream (replaces array of tokens for memory efficiency).

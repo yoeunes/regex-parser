@@ -16,7 +16,7 @@ namespace RegexParser\Tests\Unit;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\ParserException;
 
-class ParserExceptionTest extends TestCase
+final class ParserExceptionTest extends TestCase
 {
     public function test_visual_snippet_at_beginning(): void
     {

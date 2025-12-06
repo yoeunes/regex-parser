@@ -23,7 +23,7 @@ namespace RegexParser;
  * enables the recursive descent parsing strategy by allowing the parser to make decisions
  * based on the current and upcoming tokens.
  */
-class TokenStream
+final class TokenStream
 {
     /**
      * Buffer for lookahead tokens.

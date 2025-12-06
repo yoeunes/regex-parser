@@ -26,7 +26,7 @@ use RegexParser\Node;
  *
  * @implements NodeVisitorInterface<string>
  */
-class DumperNodeVisitor implements NodeVisitorInterface
+final class DumperNodeVisitor implements NodeVisitorInterface
 {
     private int $indent = 0;
 

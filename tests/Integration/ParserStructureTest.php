@@ -17,7 +17,7 @@ use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\ParserException;
 use RegexParser\Regex;
 
-class ParserStructureTest extends TestCase
+final class ParserStructureTest extends TestCase
 {
     /**
      * Teste la limite de longueur du pattern.

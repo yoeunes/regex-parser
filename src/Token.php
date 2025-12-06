@@ -22,7 +22,7 @@ namespace RegexParser;
  * `Token` objects, which the `Parser` then assembles into a meaningful structure (the AST).
  * This object is immutable to ensure data integrity throughout the parsing process.
  */
-readonly class Token
+final readonly class Token
 {
     /**
      * Creates a new, immutable Token instance.

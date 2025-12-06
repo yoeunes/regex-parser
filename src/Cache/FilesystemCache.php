@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Cache;
 
-readonly class FilesystemCache implements RemovableCacheInterface
+final readonly class FilesystemCache implements RemovableCacheInterface
 {
     private string $directory;
 

@@ -19,7 +19,7 @@ use RegexParser\Node\RegexNode;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
 use RegexParser\NodeVisitor\OptimizerNodeVisitor;
 
-class VisitorManualCoverageTest extends TestCase
+final class VisitorManualCoverageTest extends TestCase
 {
     /**
      * Teste la compilation avec un délimiteur inhabituel '('.

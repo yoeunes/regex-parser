@@ -16,7 +16,7 @@ namespace RegexParser\Tests\Integration;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Regex;
 
-class LexerQuoteModeTest extends TestCase
+final class LexerQuoteModeTest extends TestCase
 {
     private Regex $regexService;
 

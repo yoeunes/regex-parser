@@ -20,7 +20,7 @@ use RegexParser\Regex;
 /**
  * Tests specifically targeting uncovered methods to achieve 100% method coverage.
  */
-class MethodCoverageTest extends TestCase
+final class MethodCoverageTest extends TestCase
 {
     private Regex $regexService;
 

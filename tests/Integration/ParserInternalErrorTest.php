@@ -17,7 +17,7 @@ use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\ParserException;
 use RegexParser\Regex;
 
-class ParserInternalErrorTest extends TestCase
+final class ParserInternalErrorTest extends TestCase
 {
     /**
      * Teste le cas improbable où le délimiteur n'est pas trouvé dans extractPatternAndFlags

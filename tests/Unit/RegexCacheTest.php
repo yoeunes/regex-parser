@@ -17,7 +17,7 @@ use PHPUnit\Framework\TestCase;
 use RegexParser\Cache\CacheInterface;
 use RegexParser\Regex;
 
-class RegexCacheTest extends TestCase
+final class RegexCacheTest extends TestCase
 {
     public function test_normalize_cache_accepts_directory_path(): void
     {

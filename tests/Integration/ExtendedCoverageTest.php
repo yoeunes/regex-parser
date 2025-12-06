@@ -24,7 +24,7 @@ use RegexParser\Regex;
 /**
  * Extended coverage tests for edge cases and rarely-used code paths.
  */
-class ExtendedCoverageTest extends TestCase
+final class ExtendedCoverageTest extends TestCase
 {
     private Regex $regexService;
 

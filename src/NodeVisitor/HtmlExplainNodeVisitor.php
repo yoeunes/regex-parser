@@ -28,7 +28,7 @@ use RegexParser\Node\QuantifierType;
  *
  * @implements NodeVisitorInterface<string>
  */
-class HtmlExplainNodeVisitor implements NodeVisitorInterface
+final class HtmlExplainNodeVisitor implements NodeVisitorInterface
 {
     private const array CHAR_TYPE_MAP = [
         'd' => 'any digit (0-9)',

@@ -17,7 +17,7 @@ use PHPUnit\Framework\TestCase;
 use RegexParser\NodeVisitor\DumperNodeVisitor;
 use RegexParser\Regex;
 
-class DumperNodeVisitorTest extends TestCase
+final class DumperNodeVisitorTest extends TestCase
 {
     public function test_dump_simple(): void
     {

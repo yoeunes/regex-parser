@@ -19,7 +19,7 @@ use RegexParser\Regex;
 use RegexParser\Tests\TestUtils\LexerAccessor;
 use RegexParser\TokenType;
 
-class LexerInternalCoverageTest extends TestCase
+final class LexerInternalCoverageTest extends TestCase
 {
     private Regex $regexService;
 

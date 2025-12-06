@@ -18,7 +18,7 @@ use PHPUnit\Framework\TestCase;
 use RegexParser\Node\LiteralNode;
 use RegexParser\NodeVisitor\NodeVisitorInterface;
 
-class LiteralNodeTest extends TestCase
+final class LiteralNodeTest extends TestCase
 {
     public static function data_provider_literals(): \Iterator
     {

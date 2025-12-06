@@ -24,7 +24,7 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
  * (start of subject), `\Z` (end of subject or before final newline), and `\z` (absolute end of subject).
  * They are powerful tools for creating precise and efficient patterns.
  */
-readonly class AssertionNode extends AbstractNode
+final readonly class AssertionNode extends AbstractNode
 {
     /**
      * Initializes an assertion node.

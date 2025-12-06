@@ -17,7 +17,7 @@ use PHPUnit\Framework\TestCase;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
 use RegexParser\Regex;
 
-class CompilerNodeVisitorTest extends TestCase
+final class CompilerNodeVisitorTest extends TestCase
 {
     public function test_compile_simple(): void
     {

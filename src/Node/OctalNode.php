@@ -22,7 +22,7 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
  * octal code. Unlike the legacy `\0...` syntax, the `\o{...}` form clearly distinguishes itself
  * from backreferences and is the recommended way to write octal escapes in PCRE.
  */
-readonly class OctalNode extends AbstractNode
+final readonly class OctalNode extends AbstractNode
 {
     /**
      * Initializes a modern octal escape node.

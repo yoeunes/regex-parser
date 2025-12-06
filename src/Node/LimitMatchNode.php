@@ -21,7 +21,7 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
  * This verb imposes a limit on the number of internal matches that can occur.
  * It's a safeguard against catastrophic backtracking on certain patterns.
  */
-readonly class LimitMatchNode extends AbstractNode
+final readonly class LimitMatchNode extends AbstractNode
 {
     public function __construct(
         public int $limit,

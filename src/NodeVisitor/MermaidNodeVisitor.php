@@ -27,7 +27,7 @@ use RegexParser\Node;
  *
  * @implements NodeVisitorInterface<string>
  */
-class MermaidNodeVisitor implements NodeVisitorInterface
+final class MermaidNodeVisitor implements NodeVisitorInterface
 {
     private int $nodeCounter = 0;
 

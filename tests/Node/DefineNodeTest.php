@@ -23,7 +23,7 @@ use RegexParser\Node\SequenceNode;
 use RegexParser\NodeVisitor\NodeVisitorInterface;
 use RegexParser\Regex;
 
-class DefineNodeTest extends TestCase
+final class DefineNodeTest extends TestCase
 {
     public static function data_provider_define_patterns(): \Iterator
     {

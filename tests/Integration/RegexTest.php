@@ -26,7 +26,7 @@ use RegexParser\Node\QuantifierNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\Regex;
 
-class RegexTest extends TestCase
+final class RegexTest extends TestCase
 {
     private Regex $regexService;
 

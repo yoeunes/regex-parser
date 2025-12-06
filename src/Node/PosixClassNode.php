@@ -23,7 +23,7 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
  * portable alternative to some escaped character types. This node captures the name of the POSIX
  * class (e.g., "alpha") and whether it is negated (e.g., `[:^digit:]`).
  */
-readonly class PosixClassNode extends AbstractNode
+final readonly class PosixClassNode extends AbstractNode
 {
     /**
      * Initializes a POSIX character class node.

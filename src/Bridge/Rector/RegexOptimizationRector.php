@@ -31,7 +31,7 @@ use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
  * This rule parses the regex string, applies AST optimizations (like flattening groups
  * or merging character classes), and recompiles it back to a cleaner string.
  */
-class RegexOptimizationRector extends AbstractRector implements ConfigurableRectorInterface
+final class RegexOptimizationRector extends AbstractRector implements ConfigurableRectorInterface
 {
     public const string EXTRA_FUNCTIONS = 'extra_functions';
 

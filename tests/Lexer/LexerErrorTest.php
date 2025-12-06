@@ -19,7 +19,7 @@ use RegexParser\Lexer;
 use RegexParser\Tests\TestUtils\LexerAccessor;
 use RegexParser\Token;
 
-class LexerErrorTest extends TestCase
+final class LexerErrorTest extends TestCase
 {
     public function test_reset_throws_on_invalid_utf8(): void
     {
@@ -38,7 +38,7 @@ class LexerErrorTest extends TestCase
         $this->expectException(LexerException::class);
         $this->expectExceptionMessage('Unclosed character class "]" at end of input.');
 
-        new Lexer()->tokenize('[a-z')->getTokens();
+        new Lexer()->tokenize('[a-z');
     }
 
     public function test_lex_quote_mode_emits_literal_and_exits(): void

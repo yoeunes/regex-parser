@@ -22,7 +22,7 @@ use RegexParser\Node\UnicodeNode;
 use RegexParser\NodeVisitor\OptimizerNodeVisitor;
 use RegexParser\NodeVisitor\SampleGeneratorNodeVisitor;
 
-class ManualNodeInjectionTest extends TestCase
+final class ManualNodeInjectionTest extends TestCase
 {
     public function test_sample_generator_fallbacks(): void
     {

@@ -16,7 +16,7 @@ namespace RegexParser\Tests\Integration;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Regex;
 
-class LexerFallbackTest extends TestCase
+final class LexerFallbackTest extends TestCase
 {
     private Regex $regexService;
 
@@ -45,7 +45,7 @@ class LexerFallbackTest extends TestCase
     public function test_lex_comment_mode_unterminated_internal(): void
     {
         try {
-            $this->regexService->getLexer()->tokenize('(?#start')->getTokens(); // No )
+            $this->regexService->getLexer()->tokenize('(?#start'); // No )
         } catch (\Exception $e) {
             // We expect an exception, but we mainly want the code to be executed
             $this->assertStringContainsString('Unclosed comment', $e->getMessage());

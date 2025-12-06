@@ -18,7 +18,7 @@ use RegexParser\NodeVisitor\ExplainNodeVisitor;
 use RegexParser\NodeVisitor\HtmlExplainNodeVisitor;
 use RegexParser\Regex;
 
-class ExplainVisitorTest extends TestCase
+final class ExplainVisitorTest extends TestCase
 {
     private Regex $regex;
 

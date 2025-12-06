@@ -17,7 +17,7 @@ use PHPUnit\Framework\TestCase;
 use RegexParser\Node\AnchorNode;
 use RegexParser\NodeVisitor\NodeVisitorInterface;
 
-class AnchorNodeTest extends TestCase
+final class AnchorNodeTest extends TestCase
 {
     public function test_constructor_and_getters(): void
     {

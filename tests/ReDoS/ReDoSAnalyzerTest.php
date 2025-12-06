@@ -18,7 +18,7 @@ use PHPUnit\Framework\TestCase;
 use RegexParser\ReDoS\ReDoSAnalyzer;
 use RegexParser\ReDoS\ReDoSSeverity;
 
-class ReDoSAnalyzerTest extends TestCase
+final class ReDoSAnalyzerTest extends TestCase
 {
     private ReDoSAnalyzer $analyzer;
 

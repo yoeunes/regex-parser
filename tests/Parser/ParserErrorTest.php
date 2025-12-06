@@ -17,7 +17,7 @@ use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\ParserException;
 use RegexParser\Regex;
 
-class ParserErrorTest extends TestCase
+final class ParserErrorTest extends TestCase
 {
     public function test_throws_on_too_short_regex(): void
     {

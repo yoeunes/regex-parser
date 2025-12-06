@@ -24,7 +24,7 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
  * fundamental concept in regex, and this node is crucial for analyzing potential performance
  * issues (like ReDoS) and for correctly compiling the pattern.
  */
-readonly class QuantifierNode extends AbstractNode
+final readonly class QuantifierNode extends AbstractNode
 {
     /**
      * Initializes a quantifier node.

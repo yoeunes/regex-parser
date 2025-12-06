@@ -22,7 +22,7 @@ use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
 use RegexParser\NodeVisitor\ValidatorNodeVisitor;
 
-class ValidatorSuccessTest extends TestCase
+final class ValidatorSuccessTest extends TestCase
 {
     private ValidatorNodeVisitor $validator;
 

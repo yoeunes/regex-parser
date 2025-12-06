@@ -17,7 +17,7 @@ use PHPUnit\Framework\TestCase;
 use RegexParser\Node\CommentNode;
 use RegexParser\NodeVisitor\NodeVisitorInterface;
 
-class CommentNodeTest extends TestCase
+final class CommentNodeTest extends TestCase
 {
     public function test_constructor_and_getters(): void
     {

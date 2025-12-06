@@ -20,7 +20,7 @@ use RegexParser\Bridge\PHPStan\PregValidationRule;
 /**
  * @extends RuleTestCase<PregValidationRule>
  */
-class PregValidationRuleTest extends RuleTestCase
+final class PregValidationRuleTest extends RuleTestCase
 {
     public function test_rule(): void
     {

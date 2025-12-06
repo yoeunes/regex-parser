@@ -23,7 +23,7 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
  * to specify large sets of characters. The `Parser` creates this node when it finds a hyphen
  * between two valid range endpoints inside a character class.
  */
-readonly class RangeNode extends AbstractNode
+final readonly class RangeNode extends AbstractNode
 {
     /**
      * Initializes a range node.
