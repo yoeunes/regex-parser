@@ -103,7 +103,7 @@ class ReverseCompilerTest extends TestCase
         yield ['/\p{L}+/u'];
         yield ['/\o{101}/'];
 
-        // Conditionals and Subroutines (FIXED: Added context so they are valid PCRE)
+        // Conditionals and Subroutines
         yield ['/(a)(?(1)yes|no)/'];         // Defined group 1
         yield ['/a(?R)?/'];                  // Optional recursion to avoid infinite loop on empty match
         yield ['/(?<name>a)(?&name)/'];      // Defined named group
