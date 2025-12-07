@@ -428,13 +428,14 @@ final readonly class Regex
      *
      * @param string $regex The regex pattern to highlight
      *
-     * @return string The highlighted string with ANSI codes
-     *
      * @throws ParserException If the regex cannot be parsed
+     *
+     * @return string The highlighted string with ANSI codes
      */
     public function highlightCli(string $regex): string
     {
         $ast = $this->parse($regex);
+
         return $ast->accept(new NodeVisitor\ConsoleHighlighterVisitor());
     }
 
@@ -443,14 +444,37 @@ final readonly class Regex
      *
      * @param string $regex The regex pattern to highlight
      *
-     * @return string The highlighted HTML string
-     *
      * @throws ParserException If the regex cannot be parsed
+     *
+     * @return string The highlighted HTML string
      */
     public function highlightHtml(string $regex): string
     {
         $ast = $this->parse($regex);
+
         return (string) $ast->accept(new NodeVisitor\HtmlHighlighterVisitor());
+    }
+
+    /**
+     * Highlights a regex pattern for output, automatically detecting the context (CLI or HTML).
+     *
+     * This method works like Symfony's VarDumper dump() method, detecting whether the output
+     * is for a terminal (CLI) or web (HTML) and formatting accordingly.
+     *
+     * @param string $regex The regex pattern to highlight
+     *
+     * @throws ParserException If the regex cannot be parsed
+     *
+     * @return string The highlighted string (with ANSI codes for CLI, HTML spans for web)
+     */
+    public function highlight(string $regex): string
+    {
+        if ($this->isCli()) {
+            return $this->highlightCli($regex);
+        }
+
+        return $this->highlightHtml($regex);
+
     }
 
     /**
@@ -784,6 +808,11 @@ final readonly class Regex
         }
 
         throw new ParserException(\sprintf('No closing delimiter "%s" found.', $closingDelimiter));
+    }
+
+    private function isCli(): bool
+    {
+        return \PHP_SAPI === 'cli';
     }
 
     /**
