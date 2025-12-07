@@ -403,9 +403,9 @@ final readonly class Regex
      *
      * @param string $regex The regex pattern to modernize (e.g., '/[0-9]+/')
      *
-     * @return string The modernized regex pattern (e.g., '/\d+/')
-     *
      * @throws ParserException If the regex cannot be parsed
+     *
+     * @return string The modernized regex pattern (e.g., '/\d+/')
      *
      * @example
      * ```php
@@ -419,6 +419,7 @@ final readonly class Regex
         $ast = $this->parse($regex);
         /** @var \RegexParser\Node\NodeInterface $modernizedAst */
         $modernizedAst = $ast->accept(new NodeVisitor\ModernizerNodeVisitor());
+
         return $modernizedAst->accept(new NodeVisitor\CompilerNodeVisitor());
     }
 

@@ -48,7 +48,7 @@ final class ModernizerNodeVisitorTest extends TestCase
         $result = $literal->accept($this->visitor);
 
         $this->assertInstanceOf(LiteralNode::class, $result);
-        /** @var LiteralNode $result */
+        /* @var LiteralNode $result */
         $this->assertSame('@', $result->value);
     }
 
@@ -59,7 +59,7 @@ final class ModernizerNodeVisitorTest extends TestCase
         $result = $backref->accept($this->visitor);
 
         $this->assertInstanceOf(BackrefNode::class, $result);
-        /** @var BackrefNode $result */
+        /* @var BackrefNode $result */
         $this->assertSame('\g{1}', $result->ref);
     }
 
