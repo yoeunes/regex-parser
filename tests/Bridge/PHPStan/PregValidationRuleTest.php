@@ -24,7 +24,7 @@ final class PregValidationRuleTest extends RuleTestCase
 {
     public function test_rule(): void
     {
-        $this->analyse([__DIR__.'/Fixtures/fixture.php'], [
+        $this->analyse([__DIR__.'/Fixtures/MyClass.php'], [
             [
                 'Regex syntax error: No closing delimiter "/" found.',
                 21,
@@ -87,7 +87,7 @@ final class PregValidationRuleTest extends RuleTestCase
 
     public function test_preg_replace_callback_array(): void
     {
-        $this->analyse([__DIR__.'/Fixtures/preg_replace_callback_array.php'], [
+        $this->analyse([__DIR__.'/Fixtures/PregReplaceCallbackArray.php'], [
             [
                 'Regex syntax error: No closing delimiter "/" found.',
                 20,
