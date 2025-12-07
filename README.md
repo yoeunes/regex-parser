@@ -1,9 +1,9 @@
 <p align="center">
-    <img src="art/banner.svg" alt="Regex Parser Logo" width="100%">
+    <img src="art/banner.svg" alt="RegexParser" width="100%">
 </p>
 
 <p align="center">
-    <em>Design. Parse. Trust every regex.</em>
+    <strong>Treat Regular Expressions as Code.</strong>
 </p>
 
 <p align="center">
@@ -17,15 +17,21 @@
     <a href="https://packagist.org/packages/yoeunes/regex-parser"><img src="https://img.shields.io/packagist/php-v/yoeunes/regex-parser.svg" alt="Supported PHP Version Badge"></a>
 </p>
 
-**A full PCRE regex parser, analyzer & optimizer for PHP.**
+---
 
-- ✅ Parses **PCRE** patterns (subroutines, conditionals, recursion, verbs…)
-- ✅ Builds a rich **AST** that you can analyze and transform
-- ✅ Detects **ReDoS** (Regular Expression Denial of Service) risks
-- ✅ Generates **human explanations**, **HTML docs**, and **sample strings**
-- ✅ Integrates with **Symfony**, **PHPStan**, and **Rector**
+**RegexParser transforms opaque PCRE strings into a structured Abstract Syntax Tree.**
 
-> Think of it as `nikic/php-parser` — but for regexes.
+It brings static analysis, security auditing, and automated refactoring to PHP's most powerful yet misunderstood tool. Stop treating regexes as magic strings; start treating them as logic.
+
+### Core Capabilities
+
+* **Deep Parsing** — Full support for advanced PCRE2 syntax including subroutines, conditionals, and recursion.
+* **Security Auditing** — Detects Catastrophic Backtracking (ReDoS) risks and vulnerabilities at analysis time.
+* **Documentation** — Automatically generates human-readable explanations, HTML visualizations, and valid sample strings.
+* **Transformation** — Manipulate the AST to optimize or refactor patterns programmatically.
+* **Integration** — First-class support for Symfony, PHPStan, and Rector workflows.
+
+> *"Think of it as `nikic/php-parser` — but for regexes."*
 
 ---
 
