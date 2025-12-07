@@ -17,66 +17,76 @@ require __DIR__.'/../vendor/autoload.php';
 use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
 use RegexParser\Regex;
-use Symfony\Component\Console\Application;
-use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Input\InputArgument;
-use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Input\InputOption;
-use Symfony\Component\Console\Output\OutputInterface;
 
-$app = new Application('Regex Parser', '1.0.0');
+function showHelp(): void
+{
+    echo "Regex Parser CLI Tool\n\n";
+    echo "Usage: regex <command> [options] <pattern>\n\n";
+    echo "Commands:\n";
+    echo "  parse <pattern> [--validate]    Parse and recompile a regex pattern\n";
+    echo "  analyze <pattern>               Analyze a regex (parse, validate, ReDoS, explain)\n";
+    echo "  highlight <pattern> [--format=auto|cli|html]  Highlight regex for display\n";
+    echo "  validate <pattern>              Validate a regex pattern\n";
+    echo "  help                            Show this help\n\n";
+    echo "Examples:\n";
+    echo "  regex parse '/a+/'\n";
+    echo "  regex analyze '/a+/'\n";
+    echo "  regex highlight '/a+/' --format=cli\n";
+    echo "  regex validate '/a+/'\n";
+}
 
-$app->addCommand((new class extends Command {
-    protected function configure(): void
-    {
-        $this
-            ->setName('parse')
-            ->setDescription('Parse a regex pattern and show the recompiled version')
-            ->addArgument('pattern', InputArgument::REQUIRED, 'The regex pattern to parse')
-            ->addOption('validate', null, InputOption::VALUE_NONE, 'Also validate the pattern');
-    }
+if ($argc < 2) {
+    showHelp();
+    exit(1);
+}
 
-    protected function execute(InputInterface $input, OutputInterface $output): int
-    {
-        $pattern = $input->getArgument('pattern');
+$command = $argv[1];
+
+switch ($command) {
+    case 'help':
+    case '--help':
+    case '-h':
+        showHelp();
+        exit(0);
+
+    case 'parse':
+        if ($argc < 3) {
+            echo "Error: Missing pattern\n";
+            echo "Usage: regex parse <pattern> [--validate]\n";
+            exit(1);
+        }
+        $pattern = $argv[2];
+        $validate = in_array('--validate', $argv, true);
         $regex = Regex::create();
 
         try {
             $ast = $regex->parse($pattern);
             $compiled = $ast->accept(new RegexParser\NodeVisitor\CompilerNodeVisitor());
 
-            $output->writeln("Parsed successfully!");
-            $output->writeln("Original:   {$pattern}");
-            $output->writeln("Recompiled: {$compiled}");
+            echo "Parsed successfully!\n";
+            echo "Original:   {$pattern}\n";
+            echo "Recompiled: {$compiled}\n";
 
-            if ($input->getOption('validate')) {
+            if ($validate) {
                 $validation = $regex->validate($pattern);
-                $output->writeln("Validation: " . ($validation->isValid ? 'OK' : 'INVALID'));
+                echo "Validation: " . ($validation->isValid ? 'OK' : 'INVALID') . "\n";
                 if (!$validation->isValid && $validation->error) {
-                    $output->writeln("Error: {$validation->error}");
+                    echo "Error: {$validation->error}\n";
                 }
             }
-
-            return Command::SUCCESS;
         } catch (LexerException|ParserException $e) {
-            $output->writeln("<error>Error: {$e->getMessage()}</error>");
-            return Command::FAILURE;
+            echo "Error: {$e->getMessage()}\n";
+            exit(1);
         }
-    }
-}));
+        break;
 
-$app->addCommand((new class extends Command {
-    protected function configure(): void
-    {
-        $this
-            ->setName('analyze')
-            ->setDescription('Analyze a regex pattern (parse, validate, ReDoS, explain)')
-            ->addArgument('pattern', InputArgument::REQUIRED, 'The regex pattern to analyze');
-    }
-
-    protected function execute(InputInterface $input, OutputInterface $output): int
-    {
-        $pattern = $input->getArgument('pattern');
+    case 'analyze':
+        if ($argc < 3) {
+            echo "Error: Missing pattern\n";
+            echo "Usage: regex analyze <pattern>\n";
+            exit(1);
+        }
+        $pattern = $argv[2];
         $regex = Regex::create();
 
         try {
@@ -85,43 +95,38 @@ $app->addCommand((new class extends Command {
             $analysis = $regex->analyzeReDoS($pattern);
             $explain = $regex->explain($pattern);
 
-            $output->writeln("Pattern: {$pattern}");
-            $output->writeln("Parse: OK");
-            $output->writeln("Validation: " . ($validation->isValid ? 'OK' : 'INVALID'));
+            echo "Pattern: {$pattern}\n";
+            echo "Parse: OK\n";
+            echo "Validation: " . ($validation->isValid ? 'OK' : 'INVALID') . "\n";
             if (!$validation->isValid && $validation->error) {
-                $output->writeln("Error: {$validation->error}");
+                echo "Error: {$validation->error}\n";
             }
-            $output->writeln("ReDoS severity: {$analysis->severity->value}");
-            $output->writeln("ReDoS score: {$analysis->score}");
+            echo "ReDoS severity: {$analysis->severity->value}\n";
+            echo "ReDoS score: {$analysis->score}\n";
             if ($analysis->error) {
-                $output->writeln("ReDoS error: {$analysis->error}");
+                echo "ReDoS error: {$analysis->error}\n";
             }
-            $output->writeln("");
-            $output->writeln("Explanation:");
-            $output->writeln($explain);
-
-            return Command::SUCCESS;
+            echo "\nExplanation:\n";
+            echo $explain . "\n";
         } catch (LexerException|ParserException $e) {
-            $output->writeln("<error>Error: {$e->getMessage()}</error>");
-            return Command::FAILURE;
+            echo "Error: {$e->getMessage()}\n";
+            exit(1);
         }
-    }
-}));
+        break;
 
-$app->addCommand((new class extends Command {
-    protected function configure(): void
-    {
-        $this
-            ->setName('highlight')
-            ->setDescription('Highlight a regex pattern for display')
-            ->addArgument('pattern', InputArgument::REQUIRED, 'The regex pattern to highlight')
-            ->addOption('format', null, InputOption::VALUE_OPTIONAL, 'Output format: auto, cli, html', 'auto');
-    }
-
-    protected function execute(InputInterface $input, OutputInterface $output): int
-    {
-        $pattern = $input->getArgument('pattern');
-        $format = $input->getOption('format');
+    case 'highlight':
+        if ($argc < 3) {
+            echo "Error: Missing pattern\n";
+            echo "Usage: regex highlight <pattern> [--format=auto|cli|html]\n";
+            exit(1);
+        }
+        $pattern = $argv[2];
+        $format = 'auto';
+        foreach ($argv as $arg) {
+            if (str_starts_with($arg, '--format=')) {
+                $format = substr($arg, 9);
+            }
+        }
         $regex = Regex::create();
 
         try {
@@ -133,39 +138,32 @@ $app->addCommand((new class extends Command {
                 $highlighted = $regex->highlight($pattern);
             }
 
-            $output->writeln($highlighted);
-
-            return Command::SUCCESS;
+            echo $highlighted . "\n";
         } catch (LexerException|ParserException $e) {
-            $output->writeln("<error>Error: {$e->getMessage()}</error>");
-            return Command::FAILURE;
+            echo "Error: {$e->getMessage()}\n";
+            exit(1);
         }
-    }
-}));
+        break;
 
-$app->addCommand((new class extends Command {
-    protected function configure(): void
-    {
-        $this
-            ->setName('validate')
-            ->setDescription('Validate a regex pattern')
-            ->addArgument('pattern', InputArgument::REQUIRED, 'The regex pattern to validate');
-    }
-
-    protected function execute(InputInterface $input, OutputInterface $output): int
-    {
-        $pattern = $input->getArgument('pattern');
+    case 'validate':
+        if ($argc < 3) {
+            echo "Error: Missing pattern\n";
+            echo "Usage: regex validate <pattern>\n";
+            exit(1);
+        }
+        $pattern = $argv[2];
         $regex = Regex::create();
 
         $validation = $regex->validate($pattern);
-        $output->writeln($validation->isValid ? 'OK' : 'INVALID');
+        echo ($validation->isValid ? 'OK' : 'INVALID') . "\n";
         if (!$validation->isValid && $validation->error) {
-            $output->writeln("Error: {$validation->error}");
-            return Command::FAILURE;
+            echo "Error: {$validation->error}\n";
+            exit(1);
         }
+        break;
 
-        return Command::SUCCESS;
-    }
-}));
-
-$app->run();
+    default:
+        echo "Unknown command: {$command}\n\n";
+        showHelp();
+        exit(1);
+}
