@@ -1,6 +1,14 @@
 # RegexParser
 
 <p align="center">
+    <img src="art/regex-parser-logo.svg" alt="Regex Parser Logo" width="400">
+</p>
+
+<p align="center">
+    <em>Parse • Analyze • Optimize Regular Expressions</em>
+</p>
+
+<p align="center">
     <a href="https://github.com/yoeunes/regex-parser/actions"><img src="https://img.shields.io/github/actions/workflow/status/yoeunes/regex-parser/ci.yml" alt="CI Status"></a>
     <a href="https://www.linkedin.com/in/younes--ennaji"><img src="https://img.shields.io/badge/author-@yoeunes-blue.svg" alt="Author Badge"></a>
     <a href="https://github.com/yoeunes/regex-parser"><img src="https://img.shields.io/badge/source-yoeunes/regex--parser-blue.svg" alt="Source Code Badge"></a>
