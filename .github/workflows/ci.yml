@@ -31,6 +31,13 @@ jobs:
       - name: 📦 Install Dependencies
         run: composer install --no-interaction --no-progress --prefer-dist
 
+      - name: 🛠️ Install Tools
+        run: |
+          composer install -d tools/phpstan --no-interaction --no-progress
+          composer install -d tools/rector --no-interaction --no-progress
+          composer install -d tools/php-cs-fixer --no-interaction --no-progress
+          composer install -d tools/phplint --no-interaction --no-progress
+
       - name: 🔎 PHPLint (Syntax Check)
         run: ./bin/phplint
 
@@ -68,6 +75,13 @@ jobs:
       - name: 📦 Install Dependencies
         run: composer install --no-interaction --no-progress --prefer-dist
 
+      - name: 🛠️ Install Tools
+        run: |
+          cd tools/phpstan && composer install --no-interaction --no-progress
+          cd ../rector && composer install --no-interaction --no-progress
+          cd ../php-cs-fixer && composer install --no-interaction --no-progress
+          cd ../phplint && composer install --no-interaction --no-progress
+
       - name: 🧪 Run Unit Tests
         run: ./vendor/bin/phpunit tests/Unit/ --colors=always
 
@@ -100,6 +114,13 @@ jobs:
 
       - name: 📦 Install Dependencies
         run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: 🛠️ Install Tools
+        run: |
+          cd tools/phpstan && composer install --no-interaction --no-progress
+          cd ../rector && composer install --no-interaction --no-progress
+          cd ../php-cs-fixer && composer install --no-interaction --no-progress
+          cd ../phplint && composer install --no-interaction --no-progress
 
       - name: 🔍 Run Library Validation
         run: php tests/validate_library.php

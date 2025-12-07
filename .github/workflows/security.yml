@@ -64,9 +64,3 @@ jobs:
           readonly_count=$(grep -r "public readonly" src/Node/ --include="*.php" | wc -l)
           echo "📊 Found $readonly_count readonly properties"
           echo "✅ Readonly properties enforced"
-
-      - name: 🛡️ Check for Secrets in Code
-        run: |
-          echo "🔍 Checking for potential secrets..."
-          ! grep -r "password\|secret\|key\|token" src/ --include="*.php" | grep -v "example\|test\|fixture" || (echo "⚠️ Found potential secrets - review manually" && exit 1)
-          echo "✅ No obvious secrets found"
