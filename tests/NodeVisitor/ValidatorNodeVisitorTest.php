@@ -174,7 +174,7 @@ final class ValidatorNodeVisitorTest extends TestCase
     public function test_throws_on_backref_to_group_zero(): void
     {
         $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('Backreference \0 is not valid');
+        $this->expectExceptionMessage('Octal escape \0 is not allowed');
         $this->validate('/\0/');
     }
 
@@ -225,8 +225,21 @@ final class ValidatorNodeVisitorTest extends TestCase
     public function test_throws_on_invalid_octal_legacy_codepoint(): void
     {
         $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('Backreference to non-existent group: \777 at position 0.');
-        $this->validate('/\777/');
+        $this->expectExceptionMessage('Backreference to non-existent group: \999 at position 0.');
+        $this->validate('/\999/');
+    }
+
+    public function test_throws_on_octal_zero_escape(): void
+    {
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('Octal escape \0 is not allowed');
+        $this->validate('/\0/');
+    }
+
+    public function test_valid_backreference_with_capturing_group(): void
+    {
+        // This should not throw an exception
+        $this->validate('/(a)\1/');
     }
 
     public function test_throws_on_negated_posix_word_class(): void

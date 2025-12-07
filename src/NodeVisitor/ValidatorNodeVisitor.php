@@ -652,9 +652,9 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitOctalLegacy(Node\OctalLegacyNode $node): void
     {
-        // \0 is treated as an invalid backreference
+        // \0 is not allowed as it represents the NULL character
         if ('0' === $node->code) {
-            throw new ParserException('Backreference \0 is not valid');
+            throw new ParserException('Octal escape \0 is not allowed');
         }
 
         // Check if all digits are valid octal
