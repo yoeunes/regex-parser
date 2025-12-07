@@ -77,13 +77,6 @@ final class PregValidationRule implements Rule
         private readonly bool $ignoreParseErrors = true,
         private readonly bool $reportRedos = true,
         private readonly string $redosThreshold = 'high',
-        /** @phpstan-ignore property.onlyWritten */
-        private readonly int $maxRegexLength = 10000,
-        /** @phpstan-ignore property.onlyWritten */
-        private readonly bool $experimentalFeatures = false,
-        /** @phpstan-ignore property.onlyWritten */
-        /** @var array<string> */
-        private readonly array $customMessages = [],
     ) {}
 
     public function getNodeType(): string
