@@ -1,16 +1,51 @@
 # Contributing to RegexParser
 
-Thank you for your interest in contributing to RegexParser! This document provides guidelines and instructions for contributing to the project.
+🎉 **Thank you for your interest in contributing to RegexParser!**
+
+This document provides comprehensive guidelines and instructions for contributing to the project. Whether you're fixing bugs, adding features, improving documentation, or helping with testing, your contributions are valuable and appreciated.
+
+## 🚀 Quick Start
+
+Want to contribute quickly? Here's the fast track:
+
+```bash
+# 1. Fork & clone
+git clone https://github.com/YOUR-USERNAME/regex-parser.git
+cd regex-parser
+
+# 2. Set up environment
+composer install
+
+# 3. Run tests
+vendor/bin/phpunit
+
+# 4. Make your changes
+# 5. Submit a PR!
+```
+
+For detailed setup instructions, see [Getting Started](#getting-started).
+
+## 📋 Code of Conduct
+
+This project follows the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md):
+
+- **Be respectful** - Treat all contributors with respect and kindness
+- **Be constructive** - Provide helpful, actionable feedback
+- **Be collaborative** - Work together toward common goals
+- **Be patient** - Remember that everyone is learning and mistakes happen
 
 ## Table of Contents
 
-- [Code of Conduct](#code-of-conduct)
-- [Getting Started](#getting-started)
-- [Development Workflow](#development-workflow)
-- [Coding Standards](#coding-standards)
-- [Testing Requirements](#testing-requirements)
-- [Submitting Changes](#submitting-changes)
-- [Project Structure](#project-structure)
+- [🚀 Quick Start](#quick-start)
+- [📋 Code of Conduct](#code-of-conduct)
+- [🏁 Getting Started](#getting-started)
+- [🔄 Development Workflow](#development-workflow)
+- [💻 Coding Standards](#coding-standards)
+- [🧪 Testing Requirements](#testing-requirements)
+- [📤 Submitting Changes](#submitting-changes)
+- [🏗️ Project Structure](#project-structure)
+- [🎯 Areas for Contribution](#areas-for-contribution)
+- [❓ Questions & Support](#questions--support)
 
 ## Code of Conduct
 
@@ -21,162 +56,187 @@ This project follows standard open-source community guidelines:
 - **Be collaborative** - Work together toward common goals
 - **Be patient** - Remember that everyone is learning
 
-## Getting Started
+## 🏁 Getting Started
 
 ### Prerequisites
 
-- PHP 8.4 or higher
-- Composer
-- Git
-- ext-mbstring extension
+- **PHP 8.4 or higher** (required for modern features)
+- **Composer** (dependency management)
+- **Git** (version control)
+- **ext-mbstring** (multibyte string support)
 
 ### Setting Up Your Development Environment
 
-1. **Fork the repository** on GitHub
+#### 1. Fork & Clone
+```bash
+# Fork the repository on GitHub, then:
+git clone https://github.com/YOUR-USERNAME/regex-parser.git
+cd regex-parser
+git remote add upstream https://github.com/yoeunes/regex-parser.git
+```
 
-2. **Clone your fork:**
-   ```bash
-   git clone https://github.com/YOUR-USERNAME/regex-parser.git
-   cd regex-parser
-   ```
+#### 2. Install Dependencies
+```bash
+composer install
+```
 
-3. **Add the upstream repository:**
-   ```bash
-   git remote add upstream https://github.com/yoeunes/regex-parser.git
-   ```
+#### 3. Install Development Tools
+```bash
+# Install all quality assurance tools automatically
+composer run install-tools
 
-4. **Install dependencies:**
-   ```bash
-   composer install
-   ```
+# Or install individually if needed
+composer run install-phpstan
+composer run install-rector
+composer run install-php-cs-fixer
+composer run install-phplint
+composer run install-phpbench
+```
 
-5. **Install development tools:**
-   ```bash
-   # PHPStan
-   cd tools/phpstan && composer install && cd ../..
-   
-   # Rector
-   cd tools/rector && composer install && cd ../..
-   
-   # PHP-CS-Fixer
-   cd tools/php-cs-fixer && composer install && cd ../..
-   
-   # PHPLint
-   cd tools/phplint && composer install && cd ../..
-   
-   # PHPBench
-   cd tools/phpbench && composer install && cd ../..
-   ```
+#### 4. Verify Setup
+```bash
+# Run the complete test suite
+composer run test
 
-6. **Run tests to verify setup:**
-   ```bash
-   vendor/bin/phpunit
-   ```
+# Try the CLI tool
+php bin/regex --help
 
-## Development Workflow
+# Or run the full automated setup (install + tools + test)
+composer run setup
+```
+
+#### 5. Optional: Set Up IDE
+For the best development experience:
+- Install PHPStan plugin for your IDE
+- Configure Rector rules
+- Set up PHP-CS-Fixer integration
+
+## 🔄 Development Workflow
 
 ### Creating a Feature Branch
 
 ```bash
-# Update your local main branch
+# Sync with upstream
 git checkout main
 git pull upstream main
 
-# Create a feature branch
+# Create feature branch
 git checkout -b feature/your-feature-name
+# or for bug fixes:
+git checkout -b fix/issue-description
 ```
 
 ### Making Changes
 
-1. **Write code** following the coding standards (see below)
-2. **Write tests** for your changes
-3. **Run tests** to ensure nothing breaks
-4. **Update documentation** if needed
+1. **Follow coding standards** (see below)
+2. **Write tests first** (TDD approach recommended)
+3. **Keep commits focused** on single changes
+4. **Update documentation** as needed
 
-### Running Quality Checks
+### Quality Assurance Pipeline
 
-Before submitting your changes, run these quality checks:
+Run all quality checks with a single command:
 
 ```bash
-# Run all tests
+# Run complete QA pipeline (tests + static analysis + code quality + style + syntax)
+composer run qa
+
+# Or run individual checks:
+composer run qa:test          # Run tests
+composer run qa:phpstan       # Static analysis
+composer run qa:rector        # Code quality
+composer run qa:php-cs-fixer  # Code style
+composer run qa:phplint       # Syntax check
+```
+
+### Manual Quality Checks (if needed)
+
+```bash
+# 🧪 Run tests
 vendor/bin/phpunit
 
-# Run PHPStan (static analysis)
-cd tools/phpstan
-php vendor/bin/phpstan analyze --memory-limit=512M
-cd ../..
+# 🔍 Static analysis
+cd tools/phpstan && php vendor/bin/phpstan analyse && cd ../..
 
-# Run Rector (code quality)
-cd tools/rector
-php vendor/bin/rector process --dry-run
-cd ../..
+# 🛠️ Code quality
+cd tools/rector && php vendor/bin/rector process --dry-run && cd ../..
 
-# Run PHP-CS-Fixer (code style)
-cd tools/php-cs-fixer
-php vendor/bin/php-cs-fixer fix --dry-run --diff
-cd ../..
+# 💅 Code style
+cd tools/php-cs-fixer && php vendor/bin/php-cs-fixer fix --dry-run --diff && cd ../..
 
-# Run PHPLint (syntax check)
-cd tools/phplint
-php vendor/bin/phplint
-cd ../..
+# ✅ Syntax check
+cd tools/phplint && php vendor/bin/phplint && cd ../..
 ```
 
-### Auto-fixing Code Style
+### Auto-fixing Issues
+
+Apply all automatic fixes with a single command:
 
 ```bash
-cd tools/php-cs-fixer
-php vendor/bin/php-cs-fixer fix
-cd ../..
+# Fix code style and apply Rector transformations
+composer run fix
+
+# Or run individually:
+composer run fix:php-cs-fixer  # Fix code style
+composer run fix:rector        # Apply Rector fixes
 ```
 
-## Coding Standards
+### Manual Auto-fixing (if needed)
+
+```bash
+# Fix code style automatically
+cd tools/php-cs-fixer && php vendor/bin/php-cs-fixer fix && cd ../..
+
+# Apply Rector fixes
+cd tools/rector && php vendor/bin/rector process && cd ../..
+```
+
+## 💻 Coding Standards
+
+This project follows **strict PHP coding standards** to ensure code quality, maintainability, and consistency.
 
 ### PHP Standards
 
-This project follows strict PHP coding standards:
-
-#### 1. Strict Types
+#### 1. 🔒 Strict Types
 
 **ALL** PHP files must declare strict types:
 
 ```php
 <?php
-
 declare(strict_types=1);
 
 namespace RegexParser\YourNamespace;
 ```
 
-#### 2. Type Declarations
+#### 2. 📝 Type Declarations
 
-- **All parameters** must have type declarations
-- **All return types** must be declared
-- **All class properties** must have types
-- Avoid `mixed` type unless absolutely necessary
+- ✅ **All parameters** must have type declarations
+- ✅ **All return types** must be declared
+- ✅ **All class properties** must have types
+- ❌ Avoid `mixed` type unless absolutely necessary
 
 ```php
 // ✅ Good
 public function parse(string $regex): RegexNode
 {
-    // ...
+    // Implementation
 }
 
 private string $pattern;
 
-// ❌ Bad
-public function parse($regex)  // Missing types
+// ❌ Bad - Missing types
+public function parse($regex)
 {
-    // ...
+    // Implementation
 }
 
-private $pattern;  // No type
+private $pattern; // No type declaration
 ```
 
-#### 3. Immutability
+#### 3. 🔒 Immutability
 
 - Use `readonly` classes and properties where possible
-- AST nodes should be immutable
+- AST nodes should be **immutable** by design
 
 ```php
 // ✅ Good
@@ -189,29 +249,29 @@ readonly class LiteralNode implements NodeInterface
     ) {}
 }
 
-// ❌ Bad
+// ❌ Bad - Mutable properties
 class LiteralNode implements NodeInterface
 {
-    public string $value;  // Mutable property
+    public string $value; // Can be changed
 }
 ```
 
-#### 4. Naming Conventions
+#### 4. 🏷️ Naming Conventions
 
-- **Classes:** `PascalCase`
-- **Methods/Functions:** `camelCase`
-- **Constants:** `SCREAMING_SNAKE_CASE`
-- **Variables:** `camelCase`
+- **Classes:** `PascalCase` (e.g., `RegexParser`)
+- **Methods/Functions:** `camelCase` (e.g., `parseRegex`)
+- **Constants:** `SCREAMING_SNAKE_CASE` (e.g., `MAX_DEPTH`)
+- **Variables:** `camelCase` (e.g., `$parsedResult`)
 - **Interfaces:** End with `Interface` (e.g., `NodeVisitorInterface`)
 
-#### 5. Visitor Pattern
+#### 5. 🎯 Visitor Pattern Implementation
 
-When adding new AST nodes:
+When adding new AST nodes, follow this **exact process**:
 
-1. Create the node class implementing `NodeInterface`
-2. Add `accept(NodeVisitorInterface $visitor)` method
-3. Update **ALL** existing visitors with the new visit method
-4. Add tests for the new node
+1. **Create the node class** implementing `NodeInterface`
+2. **Add the `accept()` method** with proper return type
+3. **Update ALL existing visitors** with the new visit method
+4. **Add comprehensive tests** for the new node
 
 ```php
 readonly class YourNewNode implements NodeInterface
@@ -222,28 +282,28 @@ readonly class YourNewNode implements NodeInterface
     }
 }
 
-// Update ALL visitors:
+// Update ALL visitor interfaces and implementations:
 interface NodeVisitorInterface
 {
     public function visitYourNew(YourNewNode $node): mixed;
 }
 ```
 
-## Testing Requirements
+## 🧪 Testing Requirements
 
-### Test Coverage
+**All contributions MUST include tests.** No exceptions. Quality code requires quality tests.
 
-All contributions must include tests:
+### Test Coverage Requirements
 
-- **New features:** Write comprehensive unit tests
-- **Bug fixes:** Write a test that reproduces the bug, then fix it
-- **Behavioral changes:** Add behavioral compliance tests
+- ✅ **New features:** Comprehensive unit tests + integration tests
+- ✅ **Bug fixes:** Test that reproduces the bug, then verify the fix
+- ✅ **Behavioral changes:** Behavioral compliance tests against PHP's PCRE
+- ✅ **Performance changes:** Benchmark tests to measure impact
 
-### Test Structure
+### Test Structure & Best Practices
 
 ```php
 <?php
-
 declare(strict_types=1);
 
 namespace RegexParser\Tests\Unit;
@@ -255,149 +315,184 @@ class YourClassTest extends TestCase
 {
     public function test_descriptive_name_of_what_youre_testing(): void
     {
-        // Arrange
-        $input = '...';
-        
-        // Act
-        $result = YourClass::method($input);
-        
-        // Assert
-        $this->assertSame($expected, $result);
+        // Given: Clear setup
+        $input = 'test input';
+
+        // When: Action being tested
+        $result = YourClass::process($input);
+
+        // Then: Assertions
+        $this->assertSame('expected output', $result);
     }
 }
 ```
 
-### Types of Tests
+### Test Organization
 
-1. **Unit Tests** (`tests/Unit/`) - Test individual components in isolation
-2. **Integration Tests** (`tests/Integration/`) - Test component interactions
-3. **Behavioral Tests** (`tests/Integration/BehavioralComplianceTest.php`) - Test against PHP's PCRE engine
+| Test Type             | Location                                         | Purpose                                 |
+|-----------------------|--------------------------------------------------|-----------------------------------------|
+| **Unit Tests**        | `tests/Unit/`                                    | Test individual components in isolation |
+| **Integration Tests** | `tests/Integration/`                             | Test component interactions             |
+| **Behavioral Tests**  | `tests/Integration/BehavioralComplianceTest.php` | Verify PCRE compliance                  |
 
-### Running Specific Tests
+### Running Tests
 
 ```bash
-# Run all tests
+# Run complete test suite
 vendor/bin/phpunit
 
-# Run unit tests only
-vendor/bin/phpunit tests/Unit
+# Run specific test types
+vendor/bin/phpunit tests/Unit          # Unit tests only
+vendor/bin/phpunit tests/Integration  # Integration tests only
 
-# Run a specific test file
+# Run specific files/methods
 vendor/bin/phpunit tests/Unit/Parser/ParserTest.php
-
-# Run a specific test method
 vendor/bin/phpunit --filter test_parse_simple_literal
+
+# Run with coverage
+vendor/bin/phpunit --coverage-html=coverage/
 ```
 
-### Behavioral Compliance Tests
+### Behavioral Compliance Testing
 
-When adding PCRE features, add behavioral tests to ensure your implementation matches PHP's PCRE engine:
+For PCRE features, ensure your implementation matches PHP's engine exactly:
 
 ```php
-public static function providePatterns(): \Iterator
-{
-    yield 'your feature' => [
-        'pattern' => '/your_pattern/',
-        'testCases' => [
-            'match_this' => true,
-            'not_this' => false,
-        ],
-    ];
-}
-
-#[DataProvider('providePatterns')]
-public function test_pattern_behavior_matches_pcre(string $pattern, array $testCases): void
+#[DataProvider('providePcrePatterns')]
+public function test_behavior_matches_php_pcre(string $pattern, array $testCases): void
 {
     $parser = new Parser();
     $compiler = new CompilerNodeVisitor();
-    
+
     $ast = $parser->parse($pattern);
-    $compiled = $ast->accept($compiler);
-    
-    foreach ($testCases as $input => $shouldMatch) {
-        $input = (string) $input; // Ensure string type
-        $originalMatch = (bool) preg_match($pattern, $input);
-        $compiledMatch = (bool) preg_match($compiled, $input);
-        
-        $this->assertEquals($originalMatch, $compiledMatch);
-        $this->assertEquals($shouldMatch, $originalMatch);
+    $compiledPattern = $ast->accept($compiler);
+
+    foreach ($testCases as $input => $expectedMatch) {
+        $phpResult = preg_match($pattern, $input);
+        $ourResult = preg_match($compiledPattern, $input);
+
+        $this->assertSame($phpResult, $ourResult,
+            "Pattern '$pattern' behavior mismatch on input '$input'");
+        $this->assertSame($expectedMatch, $phpResult,
+            "Expected match result for '$input' doesn't match PHP PCRE");
     }
+}
+
+public static function providePcrePatterns(): iterable
+{
+    yield 'basic literals' => [
+        '/hello/',
+        ['hello' => true, 'world' => false]
+    ];
 }
 ```
 
-## Submitting Changes
+## 📤 Submitting Changes
 
-### Commit Messages
+### Commit Message Guidelines
 
-Write clear, descriptive commit messages:
+Write clear, descriptive commit messages following conventional commits:
 
 ```bash
-# Good commit messages:
-git commit -m "Fix: Backreference compilation now escapes numeric refs"
-git commit -m "Feature: Add support for branch reset groups (?|...)"
-git commit -m "Test: Add behavioral compliance tests for lookarounds"
-git commit -m "Docs: Update README with Symfony integration example"
+# ✅ Good examples:
+git commit -m "fix: backreference compilation now escapes numeric refs"
+git commit -m "feat: add support for branch reset groups (?|...)"
+git commit -m "test: add behavioral compliance tests for lookarounds"
+git commit -m "docs: update README with Symfony integration example"
+git commit -m "refactor: simplify parser state management"
 
-# Bad commit messages:
+# ❌ Bad examples:
 git commit -m "fix bug"
 git commit -m "updates"
 git commit -m "WIP"
+git commit -m "Fixed stuff"
 ```
 
-**Format:**
-- Start with type: `Fix:`, `Feature:`, `Test:`, `Docs:`, `Refactor:`, `Perf:`
-- Be concise but descriptive
-- Use present tense ("Add feature" not "Added feature")
+**Format Structure:**
+```
+type(scope): description
+
+[optional body]
+
+[optional footer]
+```
+
+**Types:**
+- `fix:` - Bug fixes
+- `feat:` - New features
+- `test:` - Testing related changes
+- `docs:` - Documentation updates
+- `refactor:` - Code restructuring
+- `perf:` - Performance improvements
+- `chore:` - Maintenance tasks
 
 ### Pull Request Process
 
-1. **Update your branch:**
-   ```bash
-   git checkout main
-   git pull upstream main
-   git checkout your-feature-branch
-   git rebase main
-   ```
+#### 1. Prepare Your Branch
+```bash
+# Sync with upstream
+git checkout main
+git pull upstream main
 
-2. **Push your changes:**
-   ```bash
-   git push origin your-feature-branch
-   ```
+# Rebase your feature branch
+git checkout your-feature-branch
+git rebase main
 
-3. **Create a Pull Request** on GitHub
+# Force push if needed
+git push --force-with-lease origin your-feature-branch
+```
 
-4. **PR Description Template:**
-   ```markdown
-   ## Description
-   Brief description of what this PR does
-   
-   ## Type of Change
-   - [ ] Bug fix
-   - [ ] New feature
-   - [ ] Breaking change
-   - [ ] Documentation update
-   
-   ## Changes Made
-   - Specific change 1
-   - Specific change 2
-   
-   ## Testing
-   - [ ] All existing tests pass
-   - [ ] New tests added
-   - [ ] Behavioral compliance tests updated (if applicable)
-   
-   ## Checklist
-   - [ ] Code follows project style guidelines
-   - [ ] Self-review completed
-   - [ ] Comments added for complex code
-   - [ ] Documentation updated
-   - [ ] No new warnings
-   ```
+#### 2. Create Pull Request
+- Go to GitHub and create a PR from your branch
+- Use the PR template below
 
-5. **Address Review Feedback**
-   - Respond to comments
-   - Make requested changes
-   - Push updates to your branch
+#### 3. PR Description Template
+```markdown
+## 🎯 Description
+Brief description of what this PR accomplishes
+
+## 📋 Type of Change
+- [ ] 🐛 Bug fix (non-breaking change)
+- [ ] ✨ New feature (non-breaking change)
+- [ ] 💥 Breaking change
+- [ ] 📚 Documentation update
+- [ ] 🔧 Refactoring
+- [ ] 🧪 Testing improvements
+
+## 🔧 Changes Made
+- Specific change 1
+- Specific change 2
+- Technical details...
+
+## 🧪 Testing
+- [x] All existing tests pass
+- [x] New tests added for new functionality
+- [ ] Behavioral compliance tests updated
+- [ ] Manual testing completed
+
+## ✅ Checklist
+- [x] Code follows project style guidelines
+- [x] Self-review completed
+- [x] Comments added for complex logic
+- [x] Documentation updated
+- [x] No new PHPStan/Rector warnings
+- [x] Commit messages follow guidelines
+
+## 🔗 Related Issues
+Closes #123, Fixes #456
+```
+
+#### 4. Address Review Feedback
+- **Respond promptly** to reviewer comments
+- **Make requested changes** or explain why changes aren't needed
+- **Push updates** to the same branch
+- **Request re-review** when ready
+
+#### 5. Merge Process
+Once approved:
+- Maintainers will merge using "Squash and merge"
+- Delete the feature branch after merging
+- PR will be closed automatically
 
 ## Project Structure
 
@@ -435,54 +530,80 @@ regex-parser/
 └── rector.php               # Rector configuration
 ```
 
-## Areas Needing Contribution
+## 🎯 Areas for Contribution
 
-### High Priority
+### 🔥 High Priority
 
-1. **Integration Testing**
-   - End-to-end tests for PHPStan integration
-   - End-to-end tests for Rector integration
-   - Symfony bundle integration tests
+#### 1. Integration Testing
+- End-to-end tests for PHPStan regex validation rules
+- End-to-end tests for Rector regex refactoring rules
+- Symfony bundle integration and compatibility tests
 
-2. **PCRE Feature Coverage**
-   - Script runs `(*sr:...)`
-   - Additional PCRE verbs
-   - Edge cases in existing features
+#### 2. PCRE Feature Coverage
+- Script runs `(*sr:...)` and other script-related features
+- Additional PCRE verbs (`(*ACCEPT)`, `(*FAIL)`, etc.)
+- Edge cases and complex regex patterns
+- Unicode property support expansion
 
-3. **Documentation**
-   - More usage examples
-   - Video tutorials
-   - Blog posts / articles
+#### 3. Documentation & Examples
+- Comprehensive usage examples for all features
+- Video tutorials for getting started
+- Blog posts and case studies
+- API documentation improvements
 
-### Medium Priority
+### 🟡 Medium Priority
 
-1. **Performance Optimization**
-   - Parser optimization
-   - Visitor optimization
-   - Benchmark suite expansion
+#### 1. Performance Optimization
+- Parser algorithm optimizations
+- Visitor pattern performance improvements
+- Memory usage optimization for large regexes
+- Benchmark suite expansion and automation
 
-2. **Developer Experience**
-   - Better error messages
-   - IDE autocompletion support
-   - Debugging tools
+#### 2. Developer Experience
+- Enhanced error messages with suggestions
+- IDE autocompletion support and type hints
+- Debugging tools for AST inspection
+- Interactive regex builder/tester
 
-### Low Priority
+### 🟢 Low Priority
 
-1. **Platform Support**
-   - Docker development environment
-   - GitHub Actions CI/CD
-   - Automated releases
+#### 1. Platform Support
+- Docker development environment
+- GitHub Actions CI/CD pipeline
+- Automated releases and versioning
+- Multi-platform testing (Windows, macOS, Linux)
 
-## Questions?
+#### 2. Ecosystem Integration
+- Laravel package wrapper
+- VS Code extension for regex highlighting
+- Web-based regex tester integration
+- Third-party tool integrations
 
-- **General questions:** Open a [GitHub Discussion](https://github.com/yoeunes/regex-parser/discussions)
-- **Bug reports:** Open a [GitHub Issue](https://github.com/yoeunes/regex-parser/issues)
-- **Security issues:** Email maintainers directly (see README)
+## ❓ Questions & Support
 
-## License
+### Getting Help
+- **📖 Documentation:** Check the [README](README.md) first
+- **💬 General Questions:** [GitHub Discussions](https://github.com/yoeunes/regex-parser/discussions)
+- **🐛 Bug Reports:** [GitHub Issues](https://github.com/yoeunes/regex-parser/issues)
+- **🔒 Security Issues:** Email maintainers directly (see README)
 
-By contributing to RegexParser, you agree that your contributions will be licensed under the MIT License.
+### Community Resources
+- **📧 Email:** younes.ennaji.pro@gmail.com
+- **🐙 GitHub:** [yoeunes/regex-parser](https://github.com/yoeunes/regex-parser)
+- **💼 LinkedIn:** [Younes ENNAJI](https://www.linkedin.com/in/younes--ennaji/)
+
+## 📄 License
+
+By contributing to RegexParser, you agree that your contributions will be licensed under the **MIT License**.
 
 ---
 
-Thank you for contributing to RegexParser! 🎉
+## 🎉 Recognition
+
+Contributors will be:
+- Listed in the project's CONTRIBUTORS file
+- Mentioned in release notes
+- Recognized in the README
+- Invited to join the project maintainer team for significant contributions
+
+**Thank you for contributing to RegexParser and helping make regex parsing better for everyone!** 🚀✨
