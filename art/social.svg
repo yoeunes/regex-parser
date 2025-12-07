@@ -19,49 +19,49 @@
     <rect width="1280" height="640" fill="url(#gridPattern)"/>
 
     <g transform="translate(640 320)">
-        <!-- Centered layout: mark width 150, gap 60, text block 620 so combined group is perfectly centered -->
-        <g transform="translate(-415 0)">
-            <g transform="translate(0 12) rotate(-8)">
+        <!-- Centered layout: mark width ~170, gap 90, text block 760 so combined width ~1020 -->
+        <g transform="translate(-510 0)">
+            <g transform="translate(0 14) rotate(-8)">
                 <text x="0" y="0"
                       font-family="'JetBrains Mono', Consolas, monospace"
                       font-weight="bold"
-                      font-size="90"
+                      font-size="110"
                       text-anchor="start"
                       dominant-baseline="middle"
                       fill="#f472b6">{</text>
-                <text x="55" y="0"
+                <text x="65" y="0"
                       font-family="'JetBrains Mono', Consolas, monospace"
                       font-weight="bold"
-                      font-size="90"
+                      font-size="110"
                       text-anchor="start"
                       dominant-baseline="middle"
                       fill="#38bdf8">/</text>
-                <text x="110" y="8"
+                <text x="130" y="10"
                       font-family="'JetBrains Mono', Consolas, monospace"
                       font-weight="bold"
-                      font-size="90"
+                      font-size="110"
                       text-anchor="start"
                       dominant-baseline="middle"
                       fill="#fbbf24">*</text>
             </g>
 
-            <g transform="translate(210 0)">
+            <g transform="translate(260 0)">
                 <text x="0" y="0"
                       font-family="'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
                       font-weight="900"
-                      font-size="100"
+                      font-size="120"
                       letter-spacing="-3"
                       text-anchor="start"
                       dominant-baseline="middle"
                       fill="url(#textGrad)"
                       style="text-shadow: 0 4px 12px rgba(0,0,0,0.5);">
                     <tspan>Regex</tspan>
-                    <tspan dx="18"
+                    <tspan dx="24"
                            font-weight="700"
                            fill="#94a3b8">Parser</tspan>
                 </text>
 
-                <rect x="4" y="38" width="620" height="4" rx="2" fill="#38bdf8" opacity="0.4"/>
+                <rect x="6" y="48" width="760" height="4" rx="2" fill="#38bdf8" opacity="0.4"/>
             </g>
         </g>
     </g>
