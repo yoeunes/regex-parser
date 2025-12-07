@@ -450,7 +450,7 @@ final readonly class Regex
     public function highlightHtml(string $regex): string
     {
         $ast = $this->parse($regex);
-        return $ast->accept(new NodeVisitor\HtmlHighlighterVisitor());
+        return (string) $ast->accept(new NodeVisitor\HtmlHighlighterVisitor());
     }
 
     /**

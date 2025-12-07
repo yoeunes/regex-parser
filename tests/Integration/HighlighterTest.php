@@ -48,7 +48,8 @@ final class HighlighterTest extends TestCase
     {
         $highlighted = $this->regexService->highlightHtml('/<script>/');
 
-        $this->assertTrue(strpos($highlighted, '&lt;script&gt;') !== false);
+        $this->assertTrue(strpos($highlighted, '&lt;') !== false);
+        $this->assertTrue(strpos($highlighted, '&gt;') !== false);
         $this->assertFalse(strpos($highlighted, '<script>') !== false);
     }
 

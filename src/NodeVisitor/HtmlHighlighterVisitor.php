@@ -17,6 +17,8 @@ use RegexParser\Node;
 
 /**
  * Highlights regex syntax for HTML output using span tags with classes.
+ *
+ * @extends AbstractNodeVisitor<string>
  */
 final class HtmlHighlighterVisitor extends AbstractNodeVisitor
 {
@@ -134,7 +136,7 @@ final class HtmlHighlighterVisitor extends AbstractNodeVisitor
 
     public function visitUnicode(Node\UnicodeNode $node): string
     {
-        return '<span class="' . self::CLASSES['type'] . '">\\x' . $node->value . '</span>';
+        return '<span class="' . self::CLASSES['type'] . '">\\x' . $node->code . '</span>';
     }
 
     public function visitUnicodeNamed(Node\UnicodeNamedNode $node): string
@@ -153,17 +155,17 @@ final class HtmlHighlighterVisitor extends AbstractNodeVisitor
 
     public function visitOctal(Node\OctalNode $node): string
     {
-        return '<span class="' . self::CLASSES['type'] . '">\\o{' . $node->value . '}</span>';
+        return '<span class="' . self::CLASSES['type'] . '">\\o{' . $node->code . '}</span>';
     }
 
     public function visitOctalLegacy(Node\OctalLegacyNode $node): string
     {
-        return '<span class="' . self::CLASSES['type'] . '">\\' . $node->value . '</span>';
+        return '<span class="' . self::CLASSES['type'] . '">\\' . $node->code . '</span>';
     }
 
     public function visitPosixClass(Node\PosixClassNode $node): string
     {
-        return '<span class="' . self::CLASSES['type'] . '">[:' . htmlspecialchars($node->name) . ':]</span>';
+        return '<span class="' . self::CLASSES['type'] . '">[:' . htmlspecialchars($node->class) . ':]</span>';
     }
 
     public function visitComment(Node\CommentNode $node): string
@@ -175,13 +177,8 @@ final class HtmlHighlighterVisitor extends AbstractNodeVisitor
     {
         $condition = $node->condition->accept($this);
         $yes = $node->yes->accept($this);
-        if ($node->no !== null) {
-            $no = $node->no->accept($this);
-            $noPart = '<span class="' . self::CLASSES['meta'] . '">|</span>' . $no;
-        } else {
-            $no = '';
-            $noPart = '';
-        }
+        $no = $node->no->accept($this);
+        $noPart = $no ? '<span class="' . self::CLASSES['meta'] . '">|</span>' . $no : '';
         return '<span class="' . self::CLASSES['meta'] . '">(?(' . '</span>' . $condition . '<span class="' . self::CLASSES['meta'] . '">)</span>' . $yes . $noPart . '<span class="' . self::CLASSES['meta'] . '">)</span>';
     }
 
@@ -197,7 +194,7 @@ final class HtmlHighlighterVisitor extends AbstractNodeVisitor
 
     public function visitDefine(Node\DefineNode $node): string
     {
-        $inner = $node->pattern->accept($this);
+        $inner = $node->content->accept($this);
         return '<span class="' . self::CLASSES['meta'] . '">(?(DEFINE)</span>' . $inner . '<span class="' . self::CLASSES['meta'] . '>)</span>';
     }
 
@@ -208,7 +205,8 @@ final class HtmlHighlighterVisitor extends AbstractNodeVisitor
 
     public function visitCallout(Node\CalloutNode $node): string
     {
-        return '<span class="' . self::CLASSES['meta'] . '">(?C' . htmlspecialchars($node->content) . ')</span>';
+        $content = $node->isStringIdentifier ? '"' . htmlspecialchars((string)$node->identifier) . '"' : (string)$node->identifier;
+        return '<span class="' . self::CLASSES['meta'] . '">(?C' . $content . ')</span>';
     }
 
     public function visitScriptRun(Node\ScriptRunNode $node): string

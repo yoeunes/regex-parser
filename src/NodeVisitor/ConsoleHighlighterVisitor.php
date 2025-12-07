@@ -138,7 +138,7 @@ final class ConsoleHighlighterVisitor extends AbstractNodeVisitor
 
     public function visitUnicode(Node\UnicodeNode $node): string
     {
-        return self::COLORS['type'] . '\\x' . $node->value . self::RESET;
+        return self::COLORS['type'] . '\\x' . $node->code . self::RESET;
     }
 
     public function visitUnicodeNamed(Node\UnicodeNamedNode $node): string
@@ -157,17 +157,17 @@ final class ConsoleHighlighterVisitor extends AbstractNodeVisitor
 
     public function visitOctal(Node\OctalNode $node): string
     {
-        return self::COLORS['type'] . '\\o{' . $node->value . '}' . self::RESET;
+        return self::COLORS['type'] . '\\o{' . $node->code . '}' . self::RESET;
     }
 
     public function visitOctalLegacy(Node\OctalLegacyNode $node): string
     {
-        return self::COLORS['type'] . '\\' . $node->value . self::RESET;
+        return self::COLORS['type'] . '\\' . $node->code . self::RESET;
     }
 
     public function visitPosixClass(Node\PosixClassNode $node): string
     {
-        return self::COLORS['type'] . '[:' . $node->name . ':]' . self::RESET;
+        return self::COLORS['type'] . '[:' . $node->class . ':]' . self::RESET;
     }
 
     public function visitComment(Node\CommentNode $node): string
@@ -179,7 +179,7 @@ final class ConsoleHighlighterVisitor extends AbstractNodeVisitor
     {
         $condition = $node->condition->accept($this);
         $yes = $node->yes->accept($this);
-        $no = $node->no ? $node->no->accept($this) : '';
+        $no = $node->no->accept($this);
         $noPart = $no ? self::COLORS['meta'] . '|' . self::RESET . $no : '';
         return self::COLORS['meta'] . '(?(' . self::RESET . $condition . self::COLORS['meta'] . ')' . self::RESET . $yes . $noPart . self::COLORS['meta'] . ')' . self::RESET;
     }
@@ -196,7 +196,7 @@ final class ConsoleHighlighterVisitor extends AbstractNodeVisitor
 
     public function visitDefine(Node\DefineNode $node): string
     {
-        $inner = $node->pattern->accept($this);
+        $inner = $node->content->accept($this);
         return self::COLORS['meta'] . '(?(DEFINE)' . self::RESET . $inner . self::COLORS['meta'] . ')' . self::RESET;
     }
 
@@ -207,7 +207,8 @@ final class ConsoleHighlighterVisitor extends AbstractNodeVisitor
 
     public function visitCallout(Node\CalloutNode $node): string
     {
-        return self::COLORS['meta'] . '(?C' . $node->content . ')' . self::RESET;
+        $content = $node->isStringIdentifier ? '"' . (string)$node->identifier . '"' : (string)$node->identifier;
+        return self::COLORS['meta'] . '(?C' . $content . ')' . self::RESET;
     }
 
     public function visitScriptRun(Node\ScriptRunNode $node): string
