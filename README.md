@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-    <em>Parse • Analyze • Optimize Regular Expressions</em>
+    <em>Design. Parse. Trust every regex.</em>
 </p>
 
 <p align="center">
