@@ -1,5 +1,3 @@
-# RegexParser
-
 <p align="center">
     <img src="art/regex-parser-logo.svg" alt="Regex Parser Logo" width="400">
 </p>
