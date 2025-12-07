@@ -303,11 +303,32 @@ final readonly class Regex
      * @throws ResourceLimitException if the pattern length exceeds the configured limit
      *
      * @return array{0: int, 1: int|null} an array containing the minimum and maximum lengths
-     *               (null indicates no upper bound, i.e., infinite)
+     *                                    (null indicates no upper bound, i.e., infinite)
      */
     public function getLengthRange(string $regex)
     {
         return $this->parse($regex)->accept(new NodeVisitor\LengthRangeNodeVisitor());
+    }
+
+    /**
+     * Generates test cases (matching and non-matching strings) for the regex.
+     *
+     * Purpose: This method parses the regex and uses the `TestCaseGeneratorNodeVisitor` to generate
+     * sample strings that should match the pattern and strings that should not. This is useful
+     * for testing regex implementations, validating patterns in unit tests, and ensuring correctness
+     * in frameworks like Laravel or Symfony.
+     *
+     * @param string $regex the full PCRE regex string to analyze
+     *
+     * @throws LexerException         if the lexer encounters an invalid sequence of characters
+     * @throws ParserException        if the parser encounters a syntax error
+     * @throws ResourceLimitException if the pattern length exceeds the configured limit
+     *
+     * @return array{matching: array<string>, non_matching: array<string>} an array with matching and non-matching test strings
+     */
+    public function generateTestCases(string $regex)
+    {
+        return $this->parse($regex)->accept(new NodeVisitor\TestCaseGeneratorNodeVisitor());
     }
 
     /**
