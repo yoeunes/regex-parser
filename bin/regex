@@ -18,29 +18,106 @@ use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
 use RegexParser\Regex;
 
-function showHelp(): void
+// ANSI color codes
+const RESET = "\033[0m";
+const RED = "\033[31m";
+const GREEN = "\033[32m";
+const YELLOW = "\033[33m";
+const BLUE = "\033[34m";
+const MAGENTA = "\033[35m";
+const CYAN = "\033[36m";
+const WHITE = "\033[37m";
+const BOLD = "\033[1m";
+
+$options = getopt('q', ['quiet', 'silent', 'ansi', 'no-ansi', 'help']);
+$quiet = isset($options['q']) || isset($options['quiet']) || isset($options['silent']);
+$ansi = !isset($options['no-ansi']) && (isset($options['ansi']) || (function_exists('posix_isatty') && posix_isatty(STDOUT)));
+
+function color(string $text, string $color): string
 {
-    echo "Regex Parser CLI Tool\n\n";
-    echo "Usage: regex <command> [options] <pattern>\n\n";
-    echo "Commands:\n";
-    echo "  parse <pattern> [--validate]    Parse and recompile a regex pattern\n";
-    echo "  analyze <pattern>               Analyze a regex (parse, validate, ReDoS, explain)\n";
-    echo "  highlight <pattern> [--format=auto|cli|html]  Highlight regex for display\n";
-    echo "  validate <pattern>              Validate a regex pattern\n";
-    echo "  help                            Show this help\n\n";
-    echo "Examples:\n";
-    echo "  regex parse '/a+/'\n";
-    echo "  regex analyze '/a+/'\n";
-    echo "  regex highlight '/a+/' --format=cli\n";
-    echo "  regex validate '/a+/'\n";
+    global $ansi;
+    return $ansi ? $color . $text . RESET : $text;
 }
 
-if ($argc < 2) {
+function success(string $text): string
+{
+    return color($text, GREEN);
+}
+
+function error(string $text): string
+{
+    return color($text, RED);
+}
+
+function warning(string $text): string
+{
+    return color($text, YELLOW);
+}
+
+function info(string $text): string
+{
+    return color($text, BLUE);
+}
+
+function bold(string $text): string
+{
+    return color($text, BOLD);
+}
+
+function output(string $text): void
+{
+    global $quiet;
+    if (!$quiet) {
+        echo $text;
+    }
+}
+
+function showHelp(): void
+{
+    output(bold("Regex Parser CLI Tool") . "\n\n");
+    output("Usage: regex <command> [options] <pattern>\n\n");
+    output(bold("Commands:\n"));
+    output("  " . info("parse") . " <pattern> [--validate]    Parse and recompile a regex pattern\n");
+    output("  " . info("analyze") . " <pattern>               Analyze a regex (parse, validate, ReDoS, explain)\n");
+    output("  " . info("highlight") . " <pattern> [--format=auto|cli|html]  Highlight regex for display\n");
+    output("  " . info("validate") . " <pattern>              Validate a regex pattern\n");
+    output("  " . info("help") . "                            Show this help\n\n");
+    output(bold("Global Options:\n"));
+    output("  --ansi          Force ANSI output\n");
+    output("  --no-ansi       Disable ANSI output\n");
+    output("  -q, --quiet     Suppress output\n");
+    output("  --silent        Same as --quiet\n");
+    output("  --help          Show this help\n\n");
+    output(bold("Examples:\n"));
+    output("  regex parse '/a+/'\n");
+    output("  regex analyze '/a+/'\n");
+    output("  regex highlight '/a+/' --format=cli\n");
+    output("  regex validate '/a+/'\n");
+    output("  regex '/a+/'  # Shortcut for highlight\n");
+}
+
+// Remove processed options from argv
+$argv = array_values(array_filter($argv, fn($arg) => !str_starts_with($arg, '-')));
+
+if (isset($options['help'])) {
+    showHelp();
+    exit(0);
+}
+
+if (count($argv) < 2) {
     showHelp();
     exit(1);
 }
 
 $command = $argv[1];
+
+// Shortcut: if command looks like a regex pattern, assume highlight
+if (str_starts_with($command, '/')) {
+    $pattern = $command;
+    $command = 'highlight';
+} else {
+    $pattern = $argv[2] ?? '';
+}
 
 switch ($command) {
     case 'help':
@@ -50,12 +127,11 @@ switch ($command) {
         exit(0);
 
     case 'parse':
-        if ($argc < 3) {
-            echo "Error: Missing pattern\n";
-            echo "Usage: regex parse <pattern> [--validate]\n";
+        if (empty($pattern)) {
+            output(error("Error: Missing pattern\n"));
+            output("Usage: regex parse <pattern> [--validate]\n");
             exit(1);
         }
-        $pattern = $argv[2];
         $validate = in_array('--validate', $argv, true);
         $regex = Regex::create();
 
@@ -63,30 +139,29 @@ switch ($command) {
             $ast = $regex->parse($pattern);
             $compiled = $ast->accept(new RegexParser\NodeVisitor\CompilerNodeVisitor());
 
-            echo "Parsed successfully!\n";
-            echo "Original:   {$pattern}\n";
-            echo "Recompiled: {$compiled}\n";
+            output(success("✓ Parsed successfully!\n"));
+            output("Original:   {$pattern}\n");
+            output("Recompiled: {$compiled}\n");
 
             if ($validate) {
                 $validation = $regex->validate($pattern);
-                echo "Validation: " . ($validation->isValid ? 'OK' : 'INVALID') . "\n";
+                output("Validation: " . ($validation->isValid ? success('OK') : error('INVALID')) . "\n");
                 if (!$validation->isValid && $validation->error) {
-                    echo "Error: {$validation->error}\n";
+                    output(error("Error: {$validation->error}\n"));
                 }
             }
         } catch (LexerException|ParserException $e) {
-            echo "Error: {$e->getMessage()}\n";
+            output(error("✗ Error: {$e->getMessage()}\n"));
             exit(1);
         }
         break;
 
     case 'analyze':
-        if ($argc < 3) {
-            echo "Error: Missing pattern\n";
-            echo "Usage: regex analyze <pattern>\n";
+        if (empty($pattern)) {
+            output(error("Error: Missing pattern\n"));
+            output("Usage: regex analyze <pattern>\n");
             exit(1);
         }
-        $pattern = $argv[2];
         $regex = Regex::create();
 
         try {
@@ -95,32 +170,31 @@ switch ($command) {
             $analysis = $regex->analyzeReDoS($pattern);
             $explain = $regex->explain($pattern);
 
-            echo "Pattern: {$pattern}\n";
-            echo "Parse: OK\n";
-            echo "Validation: " . ($validation->isValid ? 'OK' : 'INVALID') . "\n";
+            output(bold("Pattern: ") . "{$pattern}\n");
+            output("Parse: " . success("OK") . "\n");
+            output("Validation: " . ($validation->isValid ? success('OK') : error('INVALID')) . "\n");
             if (!$validation->isValid && $validation->error) {
-                echo "Error: {$validation->error}\n";
+                output(error("Error: {$validation->error}\n"));
             }
-            echo "ReDoS severity: {$analysis->severity->value}\n";
-            echo "ReDoS score: {$analysis->score}\n";
+            output("ReDoS severity: " . warning($analysis->severity->value) . "\n");
+            output("ReDoS score: {$analysis->score}\n");
             if ($analysis->error) {
-                echo "ReDoS error: {$analysis->error}\n";
+                output(error("ReDoS error: {$analysis->error}\n"));
             }
-            echo "\nExplanation:\n";
-            echo $explain . "\n";
+            output("\n" . bold("Explanation:") . "\n");
+            output($explain . "\n");
         } catch (LexerException|ParserException $e) {
-            echo "Error: {$e->getMessage()}\n";
+            output(error("✗ Error: {$e->getMessage()}\n"));
             exit(1);
         }
         break;
 
     case 'highlight':
-        if ($argc < 3) {
-            echo "Error: Missing pattern\n";
-            echo "Usage: regex highlight <pattern> [--format=auto|cli|html]\n";
+        if (empty($pattern)) {
+            output(error("Error: Missing pattern\n"));
+            output("Usage: regex highlight <pattern> [--format=auto|cli|html]\n");
             exit(1);
         }
-        $pattern = $argv[2];
         $format = 'auto';
         foreach ($argv as $arg) {
             if (str_starts_with($arg, '--format=')) {
@@ -138,32 +212,32 @@ switch ($command) {
                 $highlighted = $regex->highlight($pattern);
             }
 
-            echo $highlighted . "\n";
+            output($highlighted . "\n");
         } catch (LexerException|ParserException $e) {
-            echo "Error: {$e->getMessage()}\n";
+            output(error("✗ Error: {$e->getMessage()}\n"));
             exit(1);
         }
         break;
 
     case 'validate':
-        if ($argc < 3) {
-            echo "Error: Missing pattern\n";
-            echo "Usage: regex validate <pattern>\n";
+        if (empty($pattern)) {
+            output(error("Error: Missing pattern\n"));
+            output("Usage: regex validate <pattern>\n");
             exit(1);
         }
-        $pattern = $argv[2];
         $regex = Regex::create();
 
         $validation = $regex->validate($pattern);
-        echo ($validation->isValid ? 'OK' : 'INVALID') . "\n";
+        output($validation->isValid ? success('✓ OK') : error('✗ INVALID'));
+        output("\n");
         if (!$validation->isValid && $validation->error) {
-            echo "Error: {$validation->error}\n";
+            output(error("Error: {$validation->error}\n"));
             exit(1);
         }
         break;
 
     default:
-        echo "Unknown command: {$command}\n\n";
+        output(error("Unknown command: {$command}\n\n"));
         showHelp();
         exit(1);
 }
