@@ -18,7 +18,7 @@
     <rect width="1000" height="200" fill="url(#bgGrad)"/>
     <rect width="1000" height="200" fill="url(#gridPattern)"/>
 
-    <g transform="translate(140, 100)">
+    <g transform="translate(190, 100)">
 
         <g transform="translate(0, 10) rotate(-8)">
             <text x="-70" y="25"
