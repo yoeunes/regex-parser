@@ -74,26 +74,35 @@ function output(string $text): void
 
 function showHelp(): void
 {
-    output(bold("Regex Parser CLI Tool") . "\n\n");
-    output("Usage: regex <command> [options] <pattern>\n\n");
-    output(bold("Commands:\n"));
-    output("  " . info("parse") . " <pattern> [--validate]    Parse and recompile a regex pattern\n");
-    output("  " . info("analyze") . " <pattern>               Analyze a regex (parse, validate, ReDoS, explain)\n");
-    output("  " . info("highlight") . " <pattern> [--format=auto|cli|html]  Highlight regex for display\n");
-    output("  " . info("validate") . " <pattern>              Validate a regex pattern\n");
-    output("  " . info("help") . "                            Show this help\n\n");
-    output(bold("Global Options:\n"));
-    output("  --ansi          Force ANSI output\n");
-    output("  --no-ansi       Disable ANSI output\n");
-    output("  -q, --quiet     Suppress output\n");
-    output("  --silent        Same as --quiet\n");
-    output("  --help          Show this help\n\n");
-    output(bold("Examples:\n"));
-    output("  regex parse '/a+/'\n");
-    output("  regex analyze '/a+/'\n");
-    output("  regex highlight '/a+/' --format=cli\n");
-    output("  regex validate '/a+/'\n");
-    output("  regex '/a+/'  # Shortcut for highlight\n");
+    output(color("Regex Parser", CYAN) . "\n");
+    output(color(str_repeat("=", 12), CYAN) . "\n\n");
+
+    output(color("Description:", MAGENTA) . "\n");
+    output("  " . bold("A beautiful CLI tool for regex parsing, validation, and analysis") . "\n\n");
+
+    output(color("Usage:", MAGENTA) . "\n");
+    output("  regex " . color("<command>", YELLOW) . " " . color("[options]", CYAN) . " " . color("<pattern>", GREEN) . "\n\n");
+
+    output(color("Commands:", MAGENTA) . "\n");
+    output("  " . info("parse") . "     Parse and recompile a regex pattern\n");
+    output("  " . info("analyze") . "   Analyze a regex (parse, validate, ReDoS, explain)\n");
+    output("  " . info("highlight") . " Highlight regex for display\n");
+    output("  " . info("validate") . "  Validate a regex pattern\n");
+    output("  " . info("help") . "      Display this help message\n\n");
+
+    output(color("Global Options:", MAGENTA) . "\n");
+    output("  " . color("--ansi", CYAN) . "          Force ANSI output\n");
+    output("  " . color("--no-ansi", CYAN) . "       Disable ANSI output\n");
+    output("  " . color("-q, --quiet", CYAN) . "     Suppress output\n");
+    output("  " . color("--silent", CYAN) . "        Same as --quiet\n");
+    output("  " . color("--help", CYAN) . "          Display this help message\n\n");
+
+    output(color("Examples:", MAGENTA) . "\n");
+    output("  " . color("regex", BLUE) . " " . color("'/a+'", GREEN) . "                           # Quick highlight\n");
+    output("  " . color("regex", BLUE) . " " . color("parse", YELLOW) . " " . color("'/a+'", GREEN) . " " . color("--validate", CYAN) . "          # Parse with validation\n");
+    output("  " . color("regex", BLUE) . " " . color("analyze", YELLOW) . " " . color("'/a+'", GREEN) . "                   # Full analysis\n");
+    output("  " . color("regex", BLUE) . " " . color("highlight", YELLOW) . " " . color("'/a+'", GREEN) . " " . color("--format=html", CYAN) . "   # HTML highlight\n");
+    output("  " . color("regex", BLUE) . " " . color("validate", YELLOW) . " " . color("'/a+'", GREEN) . "                  # Quick validation\n");
 }
 
 // Remove processed options from argv
