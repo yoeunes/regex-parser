@@ -288,7 +288,8 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
         $label = 'CharClass'.($node->isNegated ? ' [NOT]' : '');
         $this->lines[] = \sprintf('    %s["%s"]', $nodeId, $label);
 
-        foreach ($node->parts as $child) {
+        $parts = $node->expression instanceof Node\AlternationNode ? $node->expression->alternatives : [$node->expression];
+        foreach ($parts as $child) {
             $childId = $child->accept($this);
             $this->lines[] = \sprintf('    %s --> %s', $nodeId, $childId);
         }

@@ -93,7 +93,8 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
 
         if ($this->canAlternationBeCharClass($optimizedAlts)) {
             /* @var list<Node\LiteralNode> $optimizedAlts */
-            return new Node\CharClassNode($optimizedAlts, false, $node->startPosition, $node->endPosition);
+            $expression = new Node\AlternationNode($optimizedAlts, $node->startPosition, $node->endPosition);
+            return new Node\CharClassNode($expression, false, $node->startPosition, $node->endPosition);
         }
 
         if (!$hasChanged) {
@@ -254,9 +255,10 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
     public function visitCharClass(Node\CharClassNode $node): Node\NodeInterface
     {
         $isUnicode = str_contains($this->flags, 'u');
+        $parts = $node->expression instanceof Node\AlternationNode ? $node->expression->alternatives : [$node->expression];
 
-        if (!$isUnicode && !$node->isNegated && 1 === \count($node->parts)) {
-            $part = $node->parts[0];
+        if (!$isUnicode && !$node->isNegated && 1 === \count($parts)) {
+            $part = $parts[0];
             if ($part instanceof Node\RangeNode && $part->start instanceof Node\LiteralNode && $part->end instanceof Node\LiteralNode) {
                 if ('0' === $part->start->value && '9' === $part->end->value) {
                     return new Node\CharTypeNode('d', $node->startPosition, $node->endPosition);
@@ -264,15 +266,15 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
             }
         }
 
-        if (!$isUnicode && !$node->isNegated && 4 === \count($node->parts)) {
-            if ($this->isFullWordClass($node)) {
+        if (!$isUnicode && !$node->isNegated && 4 === \count($parts)) {
+            if ($this->isFullWordClass($parts)) {
                 return new Node\CharTypeNode('w', $node->startPosition, $node->endPosition);
             }
         }
 
         $optimizedParts = [];
         $hasChanged = false;
-        foreach ($node->parts as $part) {
+        foreach ($parts as $part) {
             $optimizedPart = $part->accept($this);
             $optimizedParts[] = $optimizedPart;
             if ($optimizedPart !== $part) {
@@ -284,7 +286,12 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         $hasChanged = $hasChanged || $normalizedChanged;
 
         if ($hasChanged) {
-            return new Node\CharClassNode($optimizedParts, $node->isNegated, $node->startPosition, $node->endPosition);
+            if (1 === \count($optimizedParts)) {
+                $expression = $optimizedParts[0];
+            } else {
+                $expression = new Node\AlternationNode($optimizedParts, $node->startPosition, $node->endPosition);
+            }
+            return new Node\CharClassNode($expression, $node->isNegated, $node->startPosition, $node->endPosition);
         }
 
         return $node;
@@ -617,10 +624,13 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         return true;
     }
 
-    private function isFullWordClass(Node\CharClassNode $node): bool
+    /**
+     * @param array<\RegexParser\Node\NodeInterface> $parts
+     */
+    private function isFullWordClass(array $parts): bool
     {
         $partsFound = ['a-z' => false, 'A-Z' => false, '0-9' => false, '_' => false];
-        foreach ($node->parts as $part) {
+        foreach ($parts as $part) {
             if ($part instanceof Node\RangeNode && $part->start instanceof Node\LiteralNode && $part->end instanceof Node\LiteralNode) {
                 $range = $part->start->value.'-'.$part->end->value;
                 if (isset($partsFound[$range])) {

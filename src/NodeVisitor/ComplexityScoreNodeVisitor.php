@@ -264,7 +264,8 @@ final class ComplexityScoreNodeVisitor extends AbstractNodeVisitor
     {
         // Score is the sum of parts inside the class
         $score = self::BASE_SCORE;
-        foreach ($node->parts as $part) {
+        $parts = $node->expression instanceof Node\AlternationNode ? $node->expression->alternatives : [$node->expression];
+        foreach ($parts as $part) {
             $score += $part->accept($this);
         }
 

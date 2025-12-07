@@ -269,7 +269,8 @@ final class DumperNodeVisitor extends AbstractNodeVisitor
         $neg = $node->isNegated ? '^' : '';
         $str = "CharClass({$neg})\n";
         $this->indent += 2;
-        foreach ($node->parts as $part) {
+        $parts = $node->expression instanceof Node\AlternationNode ? $node->expression->alternatives : [$node->expression];
+        foreach ($parts as $part) {
             $str .= $this->indent($part->accept($this))."\n";
         }
         $this->indent -= 2;
@@ -332,6 +333,31 @@ final class DumperNodeVisitor extends AbstractNodeVisitor
     public function visitUnicodeNamed(Node\UnicodeNamedNode $node): string
     {
         return "UnicodeNamed({$node->name})";
+    }
+
+    #[\Override]
+    public function visitClassOperation(Node\ClassOperationNode $node): string
+    {
+        $op = $node->type === Node\ClassOperationType::INTERSECTION ? '&&' : '--';
+        return "ClassOperation({$op}, " . $node->left->accept($this) . ", " . $node->right->accept($this) . ")";
+    }
+
+    #[\Override]
+    public function visitControlChar(Node\ControlCharNode $node): string
+    {
+        return "ControlChar({$node->char})";
+    }
+
+    #[\Override]
+    public function visitScriptRun(Node\ScriptRunNode $node): string
+    {
+        return "ScriptRun({$node->script})";
+    }
+
+    #[\Override]
+    public function visitVersionCondition(Node\VersionConditionNode $node): string
+    {
+        return "VersionCondition({$node->operator}, {$node->version})";
     }
 
     /**

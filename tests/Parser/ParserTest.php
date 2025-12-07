@@ -71,22 +71,23 @@ final class ParserTest extends TestCase
 
         $this->assertInstanceOf(CharClassNode::class, $pattern);
         $this->assertFalse($pattern->isNegated);
-        $this->assertCount(3, $pattern->parts);
+        $this->assertInstanceOf(AlternationNode::class, $pattern->expression);
+        $this->assertCount(3, $pattern->expression->alternatives);
 
         // 1. RangeNode
-        $this->assertInstanceOf(RangeNode::class, $pattern->parts[0]);
-        $this->assertInstanceOf(LiteralNode::class, $pattern->parts[0]->start);
-        $this->assertSame('a', $pattern->parts[0]->start->value);
-        $this->assertInstanceOf(LiteralNode::class, $pattern->parts[0]->end);
-        $this->assertSame('z', $pattern->parts[0]->end->value);
+        $this->assertInstanceOf(RangeNode::class, $pattern->expression->alternatives[0]);
+        $this->assertInstanceOf(LiteralNode::class, $pattern->expression->alternatives[0]->start);
+        $this->assertSame('a', $pattern->expression->alternatives[0]->start->value);
+        $this->assertInstanceOf(LiteralNode::class, $pattern->expression->alternatives[0]->end);
+        $this->assertSame('z', $pattern->expression->alternatives[0]->end->value);
 
         // 2. CharTypeNode
-        $this->assertInstanceOf(CharTypeNode::class, $pattern->parts[1]);
-        $this->assertSame('d', $pattern->parts[1]->value);
+        $this->assertInstanceOf(CharTypeNode::class, $pattern->expression->alternatives[1]);
+        $this->assertSame('d', $pattern->expression->alternatives[1]->value);
 
         // 3. LiteralNode
-        $this->assertInstanceOf(LiteralNode::class, $pattern->parts[2]);
-        $this->assertSame('-', $pattern->parts[2]->value);
+        $this->assertInstanceOf(LiteralNode::class, $pattern->expression->alternatives[2]);
+        $this->assertSame('-', $pattern->expression->alternatives[2]->value);
     }
 
     public function test_parse_negated_char_class(): void
@@ -96,8 +97,7 @@ final class ParserTest extends TestCase
 
         $this->assertInstanceOf(CharClassNode::class, $pattern);
         $this->assertTrue($pattern->isNegated);
-        $this->assertCount(1, $pattern->parts);
-        $this->assertInstanceOf(RangeNode::class, $pattern->parts[0]);
+        $this->assertInstanceOf(RangeNode::class, $pattern->expression);
     }
 
     public function test_parse_group_with_quantifier(): void
@@ -516,8 +516,7 @@ final class ParserTest extends TestCase
         $ast = $this->parse('/[z-a]/');
 
         $this->assertInstanceOf(CharClassNode::class, $ast->pattern);
-        $this->assertNotEmpty($ast->pattern->parts);
-        $this->assertInstanceOf(RangeNode::class, $ast->pattern->parts[0]);
+        $this->assertInstanceOf(RangeNode::class, $ast->pattern->expression);
     }
 
     #[DoesNotPerformAssertions]

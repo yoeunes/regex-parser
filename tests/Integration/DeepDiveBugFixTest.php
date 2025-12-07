@@ -36,9 +36,8 @@ final class DeepDiveBugFixTest extends TestCase
         $charClass = $ast->pattern;
 
         $this->assertInstanceOf(CharClassNode::class, $charClass);
-        $this->assertCount(1, $charClass->parts);
-        $this->assertInstanceOf(LiteralNode::class, $charClass->parts[0]);
-        $this->assertSame('-', $charClass->parts[0]->value);
+        $this->assertInstanceOf(LiteralNode::class, $charClass->expression);
+        $this->assertSame('-', $charClass->expression->value);
     }
 
     public function test_compiler_escapes_multi_char_literals(): void

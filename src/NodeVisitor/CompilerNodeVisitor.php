@@ -79,7 +79,8 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitAlternation(Node\AlternationNode $node): string
     {
-        return implode('|', array_map(fn ($alt) => $alt->accept($this), $node->alternatives));
+        $separator = $this->inCharClass ? '' : '|';
+        return implode($separator, array_map(fn ($alt) => $alt->accept($this), $node->alternatives));
     }
 
     /**
@@ -282,8 +283,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     public function visitCharClass(Node\CharClassNode $node): string
     {
         $this->inCharClass = true;
-        $parts = implode('', array_map(fn ($part) => $part->accept($this), $node->parts));
-        $result = '['.($node->isNegated ? '^' : '').$parts.']';
+        $result = '['.($node->isNegated ? '^' : '').$node->expression->accept($this).']';
         $this->inCharClass = false;
 
         return $result;
@@ -343,6 +343,30 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     public function visitUnicodeNamed(Node\UnicodeNamedNode $node): string
     {
         return '\\N{'.$node->name.'}';
+    }
+
+    #[\Override]
+    public function visitClassOperation(Node\ClassOperationNode $node): string
+    {
+        return $node->left->accept($this) . ($node->type === Node\ClassOperationType::INTERSECTION ? '&&' : '--') . $node->right->accept($this);
+    }
+
+    #[\Override]
+    public function visitControlChar(Node\ControlCharNode $node): string
+    {
+        return '\\c' . $node->char;
+    }
+
+    #[\Override]
+    public function visitScriptRun(Node\ScriptRunNode $node): string
+    {
+        return '(*script_run:' . $node->script . ')';
+    }
+
+    #[\Override]
+    public function visitVersionCondition(Node\VersionConditionNode $node): string
+    {
+        return '(?(VERSION' . $node->operator . $node->version . ')';
     }
 
     /**

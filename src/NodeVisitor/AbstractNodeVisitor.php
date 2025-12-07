@@ -104,6 +104,26 @@ abstract class AbstractNodeVisitor implements NodeVisitorInterface
         return $this->defaultReturn();
     }
 
+    public function visitClassOperation(Node\ClassOperationNode $node)
+    {
+        return $this->defaultReturn();
+    }
+
+    public function visitControlChar(Node\ControlCharNode $node)
+    {
+        return $this->defaultReturn();
+    }
+
+    public function visitScriptRun(Node\ScriptRunNode $node)
+    {
+        return $this->defaultReturn();
+    }
+
+    public function visitVersionCondition(Node\VersionConditionNode $node)
+    {
+        return $this->defaultReturn();
+    }
+
     public function visitUnicodeProp(Node\UnicodePropNode $node)
     {
         return $this->defaultReturn();

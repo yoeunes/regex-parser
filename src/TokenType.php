@@ -104,4 +104,13 @@ enum TokenType: string
 
     /** A named Unicode character (e.g., \N{name}). */
     case T_UNICODE_NAMED = 'unicode_named';
+
+    /** Control character escape (e.g., \cM). */
+    case T_CONTROL_CHAR = 'control_char';
+
+    /** Character class intersection operator (&&). */
+    case T_CLASS_INTERSECTION = 'class_intersection';
+
+    /** Character class subtraction operator (--). */
+    case T_CLASS_SUBTRACTION = 'class_subtraction';
 }

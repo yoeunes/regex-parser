@@ -411,7 +411,8 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitCharClass(Node\CharClassNode $node): void
     {
-        foreach ($node->parts as $part) {
+        $parts = $node->expression instanceof Node\AlternationNode ? $node->expression->alternatives : [$node->expression];
+        foreach ($parts as $part) {
             $part->accept($this);
         }
     }

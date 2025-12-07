@@ -236,6 +236,7 @@ final class ValidatorNodeVisitorTest extends TestCase
         $this->validate('/\0/');
     }
 
+    #[DoesNotPerformAssertions]
     public function test_valid_backreference_with_capturing_group(): void
     {
         // This should not throw an exception

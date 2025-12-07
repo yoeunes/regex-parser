@@ -89,6 +89,9 @@ final class TokenReconstructionTest extends TestCase
                 TokenType::T_PCRE_VERB => '(*FAIL)',
                 TokenType::T_UNICODE_PROP => '\p{L}',
                 TokenType::T_UNICODE_NAMED => '\N{default}',
+                TokenType::T_CONTROL_CHAR => '\c'.$val,
+                TokenType::T_CLASS_INTERSECTION => '&&',
+                TokenType::T_CLASS_SUBTRACTION => '--',
                 TokenType::T_CALLOUT => '(?C1)',
                 default => $val
             };

@@ -60,7 +60,8 @@ final class CharSetAnalyzer
         if ($node instanceof Node\CharClassNode) {
             $set = CharSet::empty();
 
-            foreach ($node->parts as $part) {
+            $parts = $node->expression instanceof Node\AlternationNode ? $node->expression->alternatives : [$node->expression];
+            foreach ($parts as $part) {
                 $candidate = $this->walk($part, $fromStart);
                 $set = $set->union($candidate);
             }

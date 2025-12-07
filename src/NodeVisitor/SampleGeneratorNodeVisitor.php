@@ -497,15 +497,16 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
             return '!'; // e.g., a "safe" punctuation mark
         }
 
-        if (empty($node->parts)) {
+        $parts = $node->expression instanceof Node\AlternationNode ? $node->expression->alternatives : [$node->expression];
+        if (empty($parts)) {
             // e.g., [] which can never match
             throw new \RuntimeException('Cannot generate sample for empty character class');
         }
 
         // Pick one of the parts at random
-        $randomKey = mt_rand(0, \count($node->parts) - 1);
+        $randomKey = mt_rand(0, \count($parts) - 1);
 
-        return $node->parts[$randomKey]->accept($this);
+        return $parts[$randomKey]->accept($this);
     }
 
     /**

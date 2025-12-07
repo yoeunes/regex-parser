@@ -177,6 +177,42 @@ interface NodeVisitorInterface
     public function visitUnicodeNamed(Node\UnicodeNamedNode $node);
 
     /**
+     * Logic to execute when visiting a `ClassOperationNode`.
+     *
+     * @param Node\ClassOperationNode $node the node representing a character class operation (`&&` or `--`)
+     *
+     * @return TReturn the result of visiting this node
+     */
+    public function visitClassOperation(Node\ClassOperationNode $node);
+
+    /**
+     * Logic to execute when visiting a `ControlCharNode`.
+     *
+     * @param Node\ControlCharNode $node the node representing a control character escape (`\cM`)
+     *
+     * @return TReturn the result of visiting this node
+     */
+    public function visitControlChar(Node\ControlCharNode $node);
+
+    /**
+     * Logic to execute when visiting a `ScriptRunNode`.
+     *
+     * @param Node\ScriptRunNode $node the node representing a script run verb (`(*script_run:...)`)
+     *
+     * @return TReturn the result of visiting this node
+     */
+    public function visitScriptRun(Node\ScriptRunNode $node);
+
+    /**
+     * Logic to execute when visiting a `VersionConditionNode`.
+     *
+     * @param Node\VersionConditionNode $node the node representing a version condition (`(?(VERSION>=10.0)...)`)
+     *
+     * @return TReturn the result of visiting this node
+     */
+    public function visitVersionCondition(Node\VersionConditionNode $node);
+
+    /**
      * Logic to execute when visiting a `UnicodePropNode`.
      *
      * @param Node\UnicodePropNode $node the node representing a Unicode property escape (`\p{L}`)

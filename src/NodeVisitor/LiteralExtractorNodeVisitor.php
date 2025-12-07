@@ -314,16 +314,17 @@ final class LiteralExtractorNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitCharClass(Node\CharClassNode $node): LiteralSet
     {
+        $parts = $node->expression instanceof Node\AlternationNode ? $node->expression->alternatives : [$node->expression];
         // Optimization: Single character class [a] is literal 'a'
-        if (!$node->isNegated && 1 === \count($node->parts) && $node->parts[0] instanceof Node\LiteralNode) {
-            return $this->visitLiteral($node->parts[0]);
+        if (!$node->isNegated && 1 === \count($parts) && $parts[0] instanceof Node\LiteralNode) {
+            return $this->visitLiteral($parts[0]);
         }
 
         // [abc] is effectively an alternation a|b|c
         // We only handle simple literals inside char classes for now to avoid complexity
         if (!$node->isNegated) {
             $literals = [];
-            foreach ($node->parts as $part) {
+            foreach ($parts as $part) {
                 if ($part instanceof Node\LiteralNode) {
                     if ($this->caseInsensitive) {
                         $expanded = $this->expandCaseInsensitive($part->value);

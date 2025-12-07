@@ -50,7 +50,7 @@ final class VisitorManualInjectionTest extends TestCase
     {
         // Une classe vide [] est normalement une erreur de parsing,
         // mais si on la construit manuellement :
-        $node = new CharClassNode([], false, 0, 0);
+        $node = new CharClassNode(new AlternationNode([], 0, 0), false, 0, 0);
         $generator = new SampleGeneratorNodeVisitor();
 
         $this->expectException(\RuntimeException::class); // Ou le comportement attendu

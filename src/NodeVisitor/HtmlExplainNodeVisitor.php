@@ -463,10 +463,11 @@ final class HtmlExplainNodeVisitor extends AbstractNodeVisitor
     public function visitCharClass(Node\CharClassNode $node): string
     {
         $neg = $node->isNegated ? '<strong>NOT</strong> ' : '';
-        $parts = array_map(fn (Node\NodeInterface $part) => $part->accept($this), $node->parts);
+        $expressionParts = $node->expression instanceof Node\AlternationNode ? $node->expression->alternatives : [$node->expression];
+        $explainedParts = array_map(fn (Node\NodeInterface $part) => $part->accept($this), $expressionParts);
 
         // Char class parts are just strings, not <li>
-        $parts = array_map(strip_tags(...), $parts);
+        $parts = array_map(strip_tags(...), $explainedParts);
 
         $explanation = \sprintf('any character %sin [ %s ]', $neg, implode(', ', $parts));
 

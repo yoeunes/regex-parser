@@ -58,6 +58,7 @@ final class Lexer
         | (?<T_UNICODE>               \\ x (?: [0-9a-fA-F]{2} | \{[0-9a-fA-F]+\} ) | \\ u\{[0-9a-fA-F]+\} )
         | (?<T_UNICODE_PROP>          \\ [pP] (?: \{ (?<v1_prop> \^? [a-zA-Z0-9_]+) \} | (?<v2_prop> [a-zA-Z]) ) )
         | (?<T_UNICODE_NAMED>         \\ N\{[a-zA-Z0-9_ ]+\} )
+        | (?<T_CONTROL_CHAR>          \\ c [A-Z] )
         | (?<T_QUOTE_MODE_START>      \\ Q )
         | (?<T_QUOTE_MODE_END>        \\ E )
         | (?<T_LITERAL_ESCAPED>       \\ . ) # Any other escaped char (e.g. \., \*)
@@ -83,7 +84,11 @@ final class Lexer
         | (?<T_UNICODE_PROP>     \\ [pP] (?: \{ (?<v1_prop> \^? [a-zA-Z0-9_]+) \} | (?<v2_prop> [a-zA-Z]) ) )
         | (?<T_QUOTE_MODE_START> \\ Q )
         | (?<T_LITERAL_ESCAPED>  \\ . ) # Includes escaped ], -, ^
-        
+
+        # Character class operators
+        | (?<T_CLASS_INTERSECTION> && )
+        | (?<T_CLASS_SUBTRACTION>  -- )
+
         # Must be last: Match any single character that wasn't matched above.
         | (?<T_LITERAL>          [^\\\\] )
         /xsuA
@@ -115,6 +120,7 @@ final class Lexer
         'T_UNICODE',
         'T_UNICODE_PROP',
         'T_UNICODE_NAMED',
+        'T_CONTROL_CHAR',
         'T_QUOTE_MODE_START',
         'T_QUOTE_MODE_END',
         'T_LITERAL_ESCAPED',
@@ -135,6 +141,8 @@ final class Lexer
         'T_UNICODE_NAMED',
         'T_QUOTE_MODE_START',
         'T_LITERAL_ESCAPED',
+        'T_CLASS_INTERSECTION',
+        'T_CLASS_SUBTRACTION',
         'T_LITERAL',
     ];
 
@@ -586,6 +594,9 @@ final class Lexer
             TokenType::T_POSIX_CLASS => $matches['v_posix'] ?? '',
             TokenType::T_UNICODE_PROP => $this->normalizeUnicodeProp($matchedValue, $matches),
             TokenType::T_UNICODE_NAMED => substr($matchedValue, 3, -1), // remove \N{ and }
+            TokenType::T_CONTROL_CHAR => substr($matchedValue, 2), // remove \c
+            TokenType::T_CLASS_INTERSECTION => '&&',
+            TokenType::T_CLASS_SUBTRACTION => '--',
             default => $matchedValue,
         };
     }
