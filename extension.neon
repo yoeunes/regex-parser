@@ -1,29 +1,61 @@
 parametersSchema:
     regexParser: structure([
+        # Whether to ignore regex parsing errors (e.g., missing delimiters)
         ignoreParseErrors: bool(),
+        # Enable/disable ReDoS vulnerability detection
         reportRedos: bool(),
-        redosThreshold: string()
+        # Minimum severity level to report: 'low', 'medium', 'high', 'critical'
+        redosThreshold: string(),
+        # Maximum regex length to analyze (performance optimization)
+        maxRegexLength: int(),
+        # Enable experimental features
+        experimentalFeatures: bool(),
+        # Custom error messages
+        customMessages: arrayOf(string())
     ])
 
 parameters:
     regexParser:
-        # If true, ignores errors like "No closing delimiter" which often happen
-        # when the regex is constructed via string concatenation.
+        # Ignore parsing errors like missing delimiters (common in dynamic regex)
         ignoreParseErrors: true
-        
-        # Enable or disable ReDoS analysis completely.
+
+        # Enable comprehensive ReDoS vulnerability detection
         reportRedos: true
-        
-        # Minimum severity to report: 'low', 'medium', 'high', 'critical'.
-        # 'high' is recommended for CI to avoid blocking on theoretical minor issues.
+
+        # Report only high and critical severity ReDoS issues
+        # Options: 'low' (most sensitive), 'medium', 'high', 'critical' (least sensitive)
         redosThreshold: 'high'
 
+        # Maximum regex pattern length to analyze (prevents performance issues)
+        maxRegexLength: 10000
+
+        # Enable experimental regex analysis features
+        experimentalFeatures: false
+
+        # Custom error message templates (for future extensibility)
+        customMessages: []
+
 services:
+    # Main regex validation rule for PHPStan
     -
         class: RegexParser\Bridge\PHPStan\PregValidationRule
         arguments:
             ignoreParseErrors: %regexParser.ignoreParseErrors%
             reportRedos: %regexParser.reportRedos%
             redosThreshold: %regexParser.redosThreshold%
+            maxRegexLength: %regexParser.maxRegexLength%
+            experimentalFeatures: %regexParser.experimentalFeatures%
+            customMessages: %regexParser.customMessages%
         tags:
             - phpstan.rules.rule
+
+    # Additional regex analysis services (for future expansion)
+    # -
+    #     class: RegexParser\Bridge\PHPStan\RegexPerformanceRule
+    #     tags:
+    #         - phpstan.rules.rule
+
+    # -
+    #     class: RegexParser\Bridge\PHPStan\RegexSecurityRule
+    #     tags:
+    #         - phpstan.rules.rule

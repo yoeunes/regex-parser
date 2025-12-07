@@ -95,7 +95,7 @@
             "@qa:phplint"
         ],
         "qa:test": "vendor/bin/phpunit",
-        "qa:phpstan": "cd tools/phpstan && php vendor/bin/phpstan analyse",
+        "qa:phpstan": "tools/phpstan/vendor/bin/phpstan analyse --configuration=phpstan.dist.neon",
         "qa:rector": "cd tools/rector && php vendor/bin/rector process --dry-run",
         "qa:php-cs-fixer": "cd tools/php-cs-fixer && php vendor/bin/php-cs-fixer fix --dry-run --diff",
         "qa:phplint": "cd tools/phplint && php vendor/bin/phplint",

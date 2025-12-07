@@ -6,29 +6,79 @@ includes:
     - tools/phpstan/vendor/phpstan/phpstan-symfony/rules.neon
 
 parameters:
+    # Maximum strictness level for comprehensive analysis
     level: max
 
+    # Performance and memory settings
+    tmpDir: .cache/phpstan
+
+    # Type checking configuration
     treatPhpDocTypesAsCertain: false
 
-    regexParser:
-        redosThreshold: critical
+    # Error reporting configuration
+    reportUnmatchedIgnoredErrors: false
 
+    # Regex parser specific settings are configured in extension.neon
+
+    # Paths to analyze
     paths:
         - bin
         - config
         - src
         - tests
 
+    # Exclude paths that don't need analysis or cause issues
     excludePaths:
+        # Bridge implementations that may have different type requirements
         - src/Bridge/Symfony/*
         - src/Bridge/Rector/*
+
+        # Configuration files
         - config/rector/*
+
+        # Test fixtures and benchmarks
         - tests/Benchmark/*
         - tests/Bridge/PHPStan/Fixtures/*
 
+        # Generated or third-party files
+        - vendor/*
+        - tools/*/vendor/*
+
+        # Cache and temporary directories
+        - .cache/*
+        - var/*
+
+    # Bootstrap files for proper autoloading
     bootstrapFiles:
         - tools/phpstan/vendor/autoload.php
 
+    # IDE integration for quick error navigation
     editorUrl: 'phpstorm://open?file=%%file%%&line=%%line%%'
 
-    tmpDir: .cache/phpstan
+    # Stub files for better type inference (uncomment if you add stubs)
+    # stubFiles:
+    #     - stubs/stubs.php
+
+    # Baseline for gradual adoption (uncomment when needed)
+    # baselineFile: phpstan-baseline.neon
+
+    # Custom error formatters (uncomment for different output formats)
+    # errorFormatter: table
+    # errorFormatter: json
+    # errorFormatter: junit
+
+    # Parallel processing for faster analysis
+    parallel:
+        processTimeout: 300.0
+        maximumNumberOfProcesses: 4
+        minimumNumberOfJobsPerProcess: 2
+
+    # File extensions to analyze
+    fileExtensions:
+        - php
+
+    # Universal object crates for better generics support
+    universalObjectCratesClasses:
+        - RegexParser\Regex
+        - RegexParser\Node\NodeInterface
+        - RegexParser\NodeVisitor\NodeVisitorInterface

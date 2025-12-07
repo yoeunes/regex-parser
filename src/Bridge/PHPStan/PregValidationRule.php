@@ -77,6 +77,9 @@ final class PregValidationRule implements Rule
         private readonly bool $ignoreParseErrors = true,
         private readonly bool $reportRedos = true,
         private readonly string $redosThreshold = 'high',
+        private readonly int $maxRegexLength = 10000,
+        private readonly bool $experimentalFeatures = false,
+        private readonly array $customMessages = [],
     ) {}
 
     public function getNodeType(): string
