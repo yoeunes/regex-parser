@@ -1360,7 +1360,7 @@ final class Parser
         $left = $this->parseCharClassAlternation();
 
         while ($this->check(TokenType::T_CLASS_INTERSECTION) || $this->check(TokenType::T_CLASS_SUBTRACTION)) {
-            $type = $this->current()->type === TokenType::T_CLASS_INTERSECTION ? Node\ClassOperationType::INTERSECTION : Node\ClassOperationType::SUBTRACTION;
+            $type = TokenType::T_CLASS_INTERSECTION === $this->current()->type ? Node\ClassOperationType::INTERSECTION : Node\ClassOperationType::SUBTRACTION;
             $this->advance();
             $right = $this->parseCharClassAlternation();
             $left = new Node\ClassOperationNode($type, $left, $right, $left->getStartPosition(), $right->getEndPosition());
@@ -1402,6 +1402,7 @@ final class Parser
 
         $start = $parts[0]->getStartPosition();
         $end = $parts[\count($parts) - 1]->getEndPosition();
+
         return new Node\AlternationNode($parts, $start, $end);
     }
 

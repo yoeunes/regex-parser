@@ -26,9 +26,9 @@ final readonly class ScriptRunNode extends AbstractNode
     /**
      * Initializes a script run node.
      *
-     * @param string $script The script name (e.g., 'Latin').
-     * @param int    $startPosition The start position.
-     * @param int    $endPosition The end position.
+     * @param string $script        The script name (e.g., 'Latin').
+     * @param int    $startPosition the start position
+     * @param int    $endPosition   the end position
      */
     public function __construct(
         public string $script,

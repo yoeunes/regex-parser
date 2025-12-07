@@ -27,6 +27,12 @@ use RegexParser\Node;
  * As a contributor, if you add a new AST node, you MUST add a corresponding `visit...()`
  * method to this interface and implement it in all existing visitor classes.
  *
+ * @warning Users should NOT implement this interface directly. New methods may be added
+ *          to this interface in minor versions (e.g., 1.x) to support new regex features,
+ *          which would break any direct implementations. Instead, extend
+ *          `RegexParser\NodeVisitor\AbstractNodeVisitor`, which provides default
+ *          implementations and insulates you from such changes.
+ *
  * @template-covariant TReturn The return type of the visitor's methods (e.g., `string`
  *                             for `CompilerNodeVisitor`, `void` for `ValidatorNodeVisitor`).
  */

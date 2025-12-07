@@ -400,7 +400,8 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitClassOperation(Node\ClassOperationNode $node): string
     {
-        $op = $node->type === Node\ClassOperationType::INTERSECTION ? 'intersection' : 'subtraction';
+        $op = Node\ClassOperationType::INTERSECTION === $node->type ? 'intersection' : 'subtraction';
+
         return $this->line(\sprintf('Class %s between %s and %s', $op, $node->left->accept($this), $node->right->accept($this)));
     }
 

@@ -519,6 +519,18 @@ If you maintain custom visitors, plan to adjust them when new nodes appear. Brea
 
 ---
 
+## Known Limitations
+
+While this library supports a comprehensive set of PCRE2 features, some highly specific or experimental features may not be fully supported yet. For example:
+
+- Certain Perl-specific verbs not yet standardized in PCRE2.
+- Advanced Unicode features beyond basic properties and escapes.
+- Experimental or platform-specific extensions.
+
+If you encounter an unsupported feature, please [open an issue](https://github.com/yoeunes/regex-parser/issues) with a test case.
+
+---
+
 ## Contributing
 
 Contributions are welcome! Areas where help is especially useful:

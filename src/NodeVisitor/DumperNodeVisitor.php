@@ -338,8 +338,9 @@ final class DumperNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitClassOperation(Node\ClassOperationNode $node): string
     {
-        $op = $node->type === Node\ClassOperationType::INTERSECTION ? '&&' : '--';
-        return "ClassOperation({$op}, " . $node->left->accept($this) . ", " . $node->right->accept($this) . ")";
+        $op = Node\ClassOperationType::INTERSECTION === $node->type ? '&&' : '--';
+
+        return "ClassOperation({$op}, ".$node->left->accept($this).', '.$node->right->accept($this).')';
     }
 
     #[\Override]

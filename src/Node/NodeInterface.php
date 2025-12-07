@@ -46,6 +46,11 @@ interface NodeInterface
      * for error reporting (pinpointing exact locations of issues), highlighting, and
      * reconstructing the original pattern.
      *
+     * Note: This returns a byte offset, not a character offset. When working with UTF-8
+     * strings containing multibyte characters, be cautious when using functions like
+     * `substr()` with these offsets, as they are byte-based (consistent with PHP's `preg_*`
+     * functions' offset behavior).
+     *
      * @return int the zero-based starting byte offset
      */
     public function getStartPosition(): int;
@@ -58,6 +63,11 @@ interface NodeInterface
      * it points to the byte *after* the last character of the node's syntax. This allows
      * for easy calculation of the node's length (`getEndPosition() - getStartPosition()`).
      * It's vital for accurate source mapping and reconstruction.
+     *
+     * Note: This returns a byte offset, not a character offset. When working with UTF-8
+     * strings containing multibyte characters, be cautious when using functions like
+     * `substr()` with these offsets, as they are byte-based (consistent with PHP's `preg_*`
+     * functions' offset behavior).
      *
      * @return int the zero-based ending byte offset (exclusive)
      */

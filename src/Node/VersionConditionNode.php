@@ -26,10 +26,10 @@ final readonly class VersionConditionNode extends AbstractNode
     /**
      * Initializes a version condition node.
      *
-     * @param string $operator The comparison operator (e.g., '>=').
-     * @param string $version The version string (e.g., '10.0').
-     * @param int    $startPosition The start position.
-     * @param int    $endPosition The end position.
+     * @param string $operator      The comparison operator (e.g., '>=').
+     * @param string $version       The version string (e.g., '10.0').
+     * @param int    $startPosition the start position
+     * @param int    $endPosition   the end position
      */
     public function __construct(
         public string $operator,

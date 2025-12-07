@@ -26,11 +26,11 @@ final readonly class ClassOperationNode extends AbstractNode
     /**
      * Initializes a class operation node.
      *
-     * @param ClassOperationType $type The operation type (intersection or subtraction).
-     * @param NodeInterface      $left The left operand.
-     * @param NodeInterface      $right The right operand.
-     * @param int                $startPosition The start position.
-     * @param int                $endPosition The end position.
+     * @param ClassOperationType $type          the operation type (intersection or subtraction)
+     * @param NodeInterface      $left          the left operand
+     * @param NodeInterface      $right         the right operand
+     * @param int                $startPosition the start position
+     * @param int                $endPosition   the end position
      */
     public function __construct(
         public ClassOperationType $type,

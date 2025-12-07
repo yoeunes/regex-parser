@@ -94,6 +94,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         if ($this->canAlternationBeCharClass($optimizedAlts)) {
             /* @var list<Node\LiteralNode> $optimizedAlts */
             $expression = new Node\AlternationNode($optimizedAlts, $node->startPosition, $node->endPosition);
+
             return new Node\CharClassNode($expression, false, $node->startPosition, $node->endPosition);
         }
 
@@ -291,6 +292,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
             } else {
                 $expression = new Node\AlternationNode($optimizedParts, $node->startPosition, $node->endPosition);
             }
+
             return new Node\CharClassNode($expression, $node->isNegated, $node->startPosition, $node->endPosition);
         }
 
