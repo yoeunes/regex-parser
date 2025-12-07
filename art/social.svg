@@ -1,0 +1,63 @@
+<svg viewBox="0 0 1280 640" width="1280" height="640" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#1e293b"/>
+            <stop offset="100%" stop-color="#0f172a"/>
+        </linearGradient>
+
+        <linearGradient id="textGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#ffffff"/>
+            <stop offset="100%" stop-color="#cbd5e1"/>
+        </linearGradient>
+
+        <pattern id="gridPattern" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="white" stroke-width="1" stroke-opacity="0.03"/>
+        </pattern>
+    </defs>
+
+    <rect width="1280" height="640" fill="url(#bgGrad)"/>
+    <rect width="1280" height="640" fill="url(#gridPattern)"/>
+
+    <g transform="translate(-115,192) scale(1.28)">
+
+        <g transform="translate(190, 100)">
+
+            <g transform="translate(0, 10) rotate(-8)">
+                <text x="-70" y="25"
+                      font-family="'JetBrains Mono', Consolas, monospace"
+                      font-weight="bold"
+                      font-size="90"
+                      fill="#f472b6">{</text>
+                <text x="-15" y="25"
+                      font-family="'JetBrains Mono', Consolas, monospace"
+                      font-weight="bold"
+                      font-size="90"
+                      fill="#38bdf8">/</text>
+                <text x="35" y="32"
+                      font-family="'JetBrains Mono', Consolas, monospace"
+                      font-weight="bold"
+                      font-size="90"
+                      fill="#fbbf24">*</text>
+            </g>
+
+            <g transform="translate(100, 0)">
+                <text x="0" y="20"
+                      font-family="'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+                      font-weight="900"
+                      font-size="100"
+                      letter-spacing="-3"
+                      fill="url(#textGrad)"
+                      style="text-shadow: 0 4px 12px rgba(0,0,0,0.5);">Regex</text>
+
+                <text x="305" y="20"
+                      font-family="'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+                      font-weight="700"
+                      font-size="100"
+                      letter-spacing="-3"
+                      fill="#94a3b8">Parser</text>
+
+                <rect x="5" y="35" width="590" height="4" rx="2" fill="#38bdf8" opacity="0.4"/>
+            </g>
+        </g>
+    </g>
+</svg>
