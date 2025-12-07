@@ -1,5 +1,5 @@
 <p align="center">
-    <img src="art/regex-parser-logo.svg" alt="Regex Parser Logo" width="100%">
+    <img src="art/banner.svg" alt="Regex Parser Logo" width="100%">
 </p>
 
 <p align="center">
