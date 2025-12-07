@@ -48,6 +48,11 @@ final class Parser
     private string $pattern = '';
 
     /**
+     * Regex flags (e.g., 'imsx').
+     */
+    private string $flags = '';
+
+    /**
      * Whether the 'J' modifier is active (allows duplicate group names).
      */
     private bool $JModifier = false;
@@ -109,6 +114,7 @@ final class Parser
         // Set the stream for parsing
         $this->stream = $stream;
         $this->pattern = $stream->getPattern();
+        $this->flags = $flags;
         $this->JModifier = str_contains($flags, 'J');
         $this->groupNames = [];
         $this->lastTokenWasAlternation = false;
@@ -173,6 +179,39 @@ final class Parser
                 || $this->match(TokenType::T_QUOTE_MODE_END)
             ) {
                 continue;
+            }
+
+            // Handle extended mode (x flag): skip whitespace and comments
+            if (str_contains($this->flags, 'x')) {
+                $skipped = false;
+                while (!$this->isAtEnd() && !$this->check(TokenType::T_GROUP_CLOSE) && !$this->check(TokenType::T_ALTERNATION)) {
+                    $token = $this->current();
+                    if (TokenType::T_LITERAL === $token->type) {
+                        if (ctype_space($token->value)) {
+                            $this->advance();
+                            $skipped = true;
+
+                            continue;
+                        }
+                        if ('#' === $token->value) {
+                            $this->advance(); // consume #
+                            while (!$this->isAtEnd() && "\n" !== $this->current()->value) {
+                                $this->advance();
+                            }
+                            if (!$this->isAtEnd() && "\n" === $this->current()->value) {
+                                $this->advance();
+                            }
+                            $skipped = true;
+
+                            continue;
+                        }
+                    }
+
+                    break;
+                }
+                if ($skipped) {
+                    continue;
+                }
             }
 
             $nodes[] = $this->parseQuantifiedAtom();
