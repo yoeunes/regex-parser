@@ -425,7 +425,7 @@ final class LengthRangeNodeVisitor extends AbstractNodeVisitor
             '*' => [0, null],
             '+' => [1, null],
             '?' => [0, 1],
-            default => preg_match('/^\{(\d+)(?:,(\d*))?\}$/', $q, $m) ?
+            default => preg_match('/^\{(\d++)(?:,(\d*+))?\}$/', $q, $m) ?
                 (isset($m[2]) ? ('' === $m[2] ?
                     [(int) $m[1], null] :
                     [(int) $m[1], (int) $m[2]]

@@ -546,7 +546,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
             return '(?C'.$node->identifier.')';
         }
 
-        if (!$node->isStringIdentifier && preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $node->identifier)) {
+        if (!$node->isStringIdentifier && preg_match('/^[A-Za-z_][A-Za-z0-9_]*+$/', $node->identifier)) {
             return '(?C'.$node->identifier.')';
         }
 

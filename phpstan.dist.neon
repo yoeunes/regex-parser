@@ -7,11 +7,8 @@ includes:
 
 parameters:
     level: max
-
+    tmpDir: .cache/phpstan
     treatPhpDocTypesAsCertain: false
-
-    regexParser:
-        redosThreshold: critical
 
     paths:
         - bin
@@ -25,10 +22,16 @@ parameters:
         - config/rector/*
         - tests/Benchmark/*
         - tests/Bridge/PHPStan/Fixtures/*
+        - tests/extract_pcre_tests.php
+        - tests/validate_library.php
+        - tests/Integration/BehavioralComplianceTest.php
+        - tests/Integration/PregFunctionCompatibilityTest.php
+        - vendor/*
+        - tools/*/vendor/*
+        - .cache/*
+        - var/*
 
     bootstrapFiles:
         - tools/phpstan/vendor/autoload.php
 
     editorUrl: 'phpstorm://open?file=%%file%%&line=%%line%%'
-
-    tmpDir: .cache/phpstan

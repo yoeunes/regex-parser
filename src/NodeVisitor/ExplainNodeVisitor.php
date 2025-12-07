@@ -637,7 +637,7 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
             '*' => 'zero or more times',
             '+' => 'one or more times',
             '?' => 'zero or one time',
-            default => preg_match('/^\{(\d+)(?:,(\d*))?\}$/', $q, $m) ?
+            default => preg_match('/^\{(\d++)(?:,(\d*+))?\}$/', $q, $m) ?
                 (isset($m[2]) ? ('' === $m[2] ?
                     \sprintf('at least %d times', $m[1]) :
                     \sprintf('between %d and %d times', $m[1], $m[2])

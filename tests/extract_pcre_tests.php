@@ -18,8 +18,8 @@ declare(strict_types=1);
  * This script extracts test cases from PHP's official PCRE .phpt test files
  * and generates a comprehensive fixture file for the regex-parser project.
  */
-$testsDir = __DIR__.'/yoeunes/tests';
-$outputFile = __DIR__.'/tests/Fixtures/php_pcre_comprehensive.php';
+$testsDir = __DIR__.'/../yoeunes/tests';
+$outputFile = __DIR__.'/Fixtures/php_pcre_comprehensive.php';
 
 // Get all .phpt files
 $phptFiles = glob($testsDir.'/*.phpt');
@@ -152,7 +152,7 @@ function extractPregCalls(string $phpCode): array
         $patternDouble = '/'.preg_quote($func, '/').'\s*\(\s*"((?:[^"]|\\\\")*)"\s*,\s*([^,\)]+)(?:\s*,\s*([^,\)]+))?(?:\s*,\s*([^,\)]+))?(?:\s*,\s*([^,\)]+))?\s*\)/s';
 
         // Process single-quoted patterns (minimal escape processing)
-        if (preg_match_all($patternSingle, $phpCode, $matches, \PREG_SET_ORDER)) {
+        if (preg_match_all($patternSingle, (string) $phpCode, $matches, \PREG_SET_ORDER)) {
             foreach ($matches as $match) {
                 $patternStr = $match[1];
                 $subject = trim($match[2]);
@@ -192,13 +192,13 @@ function extractPregCalls(string $phpCode): array
         }
 
         // Process double-quoted patterns (full escape processing)
-        if (preg_match_all($patternDouble, $phpCode, $matches, \PREG_SET_ORDER)) {
+        if (preg_match_all($patternDouble, (string) $phpCode, $matches, \PREG_SET_ORDER)) {
             foreach ($matches as $match) {
                 $patternStr = $match[1];
                 $subject = trim($match[2]);
 
                 // Skip patterns with variable interpolation
-                if (false !== strpos($patternStr, '$') || false !== strpos($patternStr, '{')) {
+                if (str_contains($patternStr, '$') || str_contains($patternStr, '{')) {
                     continue;
                 }
 
@@ -281,7 +281,7 @@ function resolveFlags(string $flagsStr): int
     ];
 
     foreach ($flagMap as $name => $value) {
-        if (false !== strpos($flagsStr, $name)) {
+        if (str_contains($flagsStr, $name)) {
             $flags |= $value;
         }
     }
@@ -308,7 +308,7 @@ function isValidPattern(string $pattern): bool
         $result = @preg_match($pattern, '');
 
         return false !== $result;
-    } catch (\Throwable $e) {
+    } catch (\Throwable) {
         return false;
     }
 }
@@ -328,7 +328,7 @@ function executeAndCapture(array $call): ?array
         switch ($func) {
             case 'preg_match':
                 $matches = [];
-                $return = @preg_match($pattern, $subject, $matches, $flags, $offset);
+                $return = @preg_match($pattern, (string) $subject, $matches, $flags, $offset);
                 if (false === $return) {
                     return null;
                 }
@@ -340,7 +340,7 @@ function executeAndCapture(array $call): ?array
 
             case 'preg_match_all':
                 $matches = [];
-                $return = @preg_match_all($pattern, $subject, $matches, $flags, $offset);
+                $return = @preg_match_all($pattern, (string) $subject, $matches, $flags, $offset);
                 if (false === $return) {
                     return null;
                 }
@@ -351,7 +351,7 @@ function executeAndCapture(array $call): ?array
                 ];
 
             case 'preg_split':
-                $result = @preg_split($pattern, $subject, -1, $flags);
+                $result = @preg_split($pattern, (string) $subject, -1, $flags);
                 if (false === $result) {
                     return null;
                 }
@@ -372,7 +372,7 @@ function executeAndCapture(array $call): ?array
             default:
                 return null;
         }
-    } catch (\Throwable $e) {
+    } catch (\Throwable) {
         return null;
     }
 }
@@ -563,13 +563,7 @@ function exportArrayShort(array $arr, int $indent = 0, bool $inline = false): st
  */
 function hasNestedArrays(array $arr): bool
 {
-    foreach ($arr as $value) {
-        if (\is_array($value)) {
-            return true;
-        }
-    }
-
-    return false;
+    return array_any($arr, fn ($value) => \is_array($value));
 }
 
 /**

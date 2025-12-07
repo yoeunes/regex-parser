@@ -1,5 +1,16 @@
 # RegexParser
 
+<p align="center">
+    <a href="https://github.com/yoeunes/regex-parser/actions"><img src="https://img.shields.io/github/actions/workflow/status/yoeunes/regex-parser/ci.yml" alt="CI Status"></a>
+    <a href="https://www.linkedin.com/in/younes--ennaji"><img src="https://img.shields.io/badge/author-@yoeunes-blue.svg" alt="Author Badge"></a>
+    <a href="https://github.com/yoeunes/regex-parser"><img src="https://img.shields.io/badge/source-yoeunes/regex--parser-blue.svg" alt="Source Code Badge"></a>
+    <a href="https://github.com/yoeunes/regex-parser/releases"><img src="https://img.shields.io/github/tag/yoeunes/regex-parser.svg" alt="GitHub Release Badge"></a>
+    <a href="https://github.com/yoeunes/regex-parser/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-brightgreen.svg" alt="License Badge"></a>
+    <a href="https://packagist.org/packages/yoeunes/regex-parser"><img src="https://img.shields.io/packagist/dt/yoeunes/regex-parser.svg" alt="Packagist Downloads Badge"></a>
+    <a href="https://github.com/yoeunes/regex-parser"><img src="https://img.shields.io/github/stars/yoeunes/regex-parser.svg" alt="GitHub Stars Badge"></a>
+    <a href="https://packagist.org/packages/yoeunes/regex-parser"><img src="https://img.shields.io/packagist/php-v/yoeunes/regex-parser.svg" alt="Supported PHP Version Badge"></a>
+</p>
+
 **A full PCRE regex parser, analyzer & optimizer for PHP.**
 
 - ✅ Parses **PCRE** patterns (subroutines, conditionals, recursion, verbs…)

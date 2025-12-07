@@ -1,31 +1,47 @@
-# Normalize line endings
+# Git Attributes Configuration
+# https://git-scm.com/docs/gitattributes
+
+# Normalize line endings to LF for all text files
 * text=auto eol=lf
 
-# Ignore dev files in Composer export
-/.github              export-ignore
-/.idea                export-ignore
-/.vscode              export-ignore
-/.cache               export-ignore
-/.editorconfig        export-ignore
-/.gitattributes       export-ignore
-/.gitignore           export-ignore
-/.php-cs-fixer.php    export-ignore
-/.php-cs-fixer.cache  export-ignore
-/phpbench.yml         export-ignore
-/phpbench.json        export-ignore
-/phpstan.neon         export-ignore
-/phpstan.dist.neon    export-ignore
-/rector.php           export-ignore
-/phpunit.xml          export-ignore
-/phpunit.xml.dist     export-ignore
-/validate_library.php export-ignore
+# Binary files
+*.pdf binary
 
-# Directories to ignore
-/bin                  export-ignore
-/config               export-ignore
-/examples             export-ignore
-/docs                 export-ignore
-/tests                export-ignore
-/tools                export-ignore
-/.docker              export-ignore
-/docker               export-ignore
+# Export-ignore patterns (for composer archive)
+# Development and CI/CD files
+/.github                export-ignore
+/.idea                  export-ignore
+/.vscode                export-ignore
+/.cache                 export-ignore
+
+# Configuration files
+/.editorconfig          export-ignore
+/.gitattributes         export-ignore
+/.gitignore             export-ignore
+/.php-cs-fixer.dist.php export-ignore
+/.php-cs-fixer.cache    export-ignore
+/.phplint.yml           export-ignore
+/.php-version           export-ignore
+/.gitmessage            export-ignore
+
+# Development tools and configs
+/phpbench.yml           export-ignore
+/phpbench.json          export-ignore
+/phpstan.neon           export-ignore
+/phpstan.dist.neon      export-ignore
+/rector.php             export-ignore
+/phpunit.xml            export-ignore
+/phpunit.xml.dist       export-ignore
+/extension.neon         export-ignore
+
+# Directories not needed in distribution
+/bin                    export-ignore
+/config                 export-ignore
+/docs                   export-ignore
+/examples               export-ignore
+/templates              export-ignore
+/tests                  export-ignore
+/tools                  export-ignore
+
+# PHP files
+*.php text eol=lf diff=php

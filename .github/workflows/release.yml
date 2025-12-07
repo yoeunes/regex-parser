@@ -1,0 +1,71 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+
+      - name: Setup PHP 8.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, intl, pcre, tokenizer, xml
+          tools: composer:v2
+
+      - name: Install Dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist --no-dev
+
+      - name: Run Tests
+        run: ./vendor/bin/phpunit --colors=always
+
+      - name: Run PHPStan
+        run: ./bin/phpstan analyse
+
+      - name: Generate Changelog
+        id: changelog
+        run: |
+          # Extract version from tag
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+          # Generate basic changelog from commits since last tag
+          echo "## Changes" > changelog.md
+          git log --oneline --pretty=format="- %s" $(git describe --tags --abbrev=0 HEAD^)..HEAD >> changelog.md
+          echo "" >> changelog.md
+          echo "Full changelog: https://github.com/${{ github.repository }}/compare/$(git describe --tags --abbrev=0 HEAD^)..$VERSION" >> changelog.md
+
+      - name: Create Archive
+        run: |
+          mkdir -p build
+          composer archive --format=zip --file=regex-parser-${{ steps.changelog.outputs.version }}
+          mv regex-parser-${{ steps.changelog.outputs.version }}.zip build/
+
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ steps.changelog.outputs.version }}
+          body_path: changelog.md
+          draft: false
+          prerelease: false
+
+      - name: Upload Release Assets
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: build/regex-parser-${{ steps.changelog.outputs.version }}.zip
+          asset_name: regex-parser-${{ steps.changelog.outputs.version }}.zip
+          asset_content_type: application/zip

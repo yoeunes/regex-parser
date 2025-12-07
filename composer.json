@@ -69,6 +69,45 @@
     "bin": [
         "bin/regex"
     ],
+    "scripts": {
+        "setup": [
+            "@composer install",
+            "@install-tools",
+            "@test"
+        ],
+        "install-tools": [
+            "@install-phpstan",
+            "@install-rector",
+            "@install-php-cs-fixer",
+            "@install-phplint",
+            "@install-phpbench"
+        ],
+        "install-phpstan": "cd tools/phpstan && composer install --no-interaction",
+        "install-rector": "cd tools/rector && composer install --no-interaction",
+        "install-php-cs-fixer": "cd tools/php-cs-fixer && composer install --no-interaction",
+        "install-phplint": "cd tools/phplint && composer install --no-interaction",
+        "install-phpbench": "cd tools/phpbench && composer install --no-interaction",
+        "qa": [
+            "@qa:test",
+            "@qa:phpstan",
+            "@qa:rector",
+            "@qa:php-cs-fixer",
+            "@qa:phplint"
+        ],
+        "qa:test": "vendor/bin/phpunit",
+        "qa:phpstan": "tools/phpstan/vendor/bin/phpstan analyse --configuration=phpstan.dist.neon",
+        "qa:rector": "cd tools/rector && php vendor/bin/rector process --dry-run",
+        "qa:php-cs-fixer": "cd tools/php-cs-fixer && php vendor/bin/php-cs-fixer fix --dry-run --diff",
+        "qa:phplint": "cd tools/phplint && php vendor/bin/phplint",
+        "fix": [
+            "@fix:php-cs-fixer",
+            "@fix:rector"
+        ],
+        "fix:php-cs-fixer": "cd tools/php-cs-fixer && php vendor/bin/php-cs-fixer fix",
+        "fix:rector": "cd tools/rector && php vendor/bin/rector process",
+        "test": "@qa:test",
+        "bench": "cd tools/phpbench && php vendor/bin/phpbench run"
+    },
     "config": {
         "optimize-autoloader": true,
         "preferred-install": "dist",

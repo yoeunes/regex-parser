@@ -1,0 +1,7 @@
+# Commit Message Template
+# Format: type(scope): description
+#
+# Types: feat, fix, docs, style, refactor, perf, test, build, ci, chore
+#
+# Example: feat(parser): add support for possessive quantifiers
+# Please write a short, imperative tense description of the change.

@@ -1,24 +1,27 @@
 parametersSchema:
     regexParser: structure([
+        # Whether to ignore regex parsing errors (e.g., missing delimiters)
         ignoreParseErrors: bool(),
+        # Enable/disable ReDoS vulnerability detection
         reportRedos: bool(),
+        # Minimum severity level to report: 'low', 'medium', 'high', 'critical'
         redosThreshold: string()
     ])
 
 parameters:
     regexParser:
-        # If true, ignores errors like "No closing delimiter" which often happen
-        # when the regex is constructed via string concatenation.
+        # Ignore parsing errors like missing delimiters (common in dynamic regex)
         ignoreParseErrors: true
-        
-        # Enable or disable ReDoS analysis completely.
+
+        # Enable comprehensive ReDoS vulnerability detection
         reportRedos: true
-        
-        # Minimum severity to report: 'low', 'medium', 'high', 'critical'.
-        # 'high' is recommended for CI to avoid blocking on theoretical minor issues.
+
+        # Report only high and critical severity ReDoS issues
+        # Options: 'low' (most sensitive), 'medium', 'high', 'critical' (least sensitive)
         redosThreshold: 'high'
 
 services:
+    # Main regex validation rule for PHPStan
     -
         class: RegexParser\Bridge\PHPStan\PregValidationRule
         arguments:

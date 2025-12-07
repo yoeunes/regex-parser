@@ -216,7 +216,7 @@ final class ComplexityScoreNodeVisitor extends AbstractNodeVisitor
     public function visitQuantifier(Node\QuantifierNode $node): int
     {
         $quant = $node->quantifier;
-        $isUnbounded = \in_array($quant, ['*', '+'], true) || preg_match('/^\{\d+,\}$/', $quant);
+        $isUnbounded = \in_array($quant, ['*', '+'], true) || preg_match('/^\{\d++,\}$/', $quant);
         $score = 0;
 
         if ($isUnbounded) {

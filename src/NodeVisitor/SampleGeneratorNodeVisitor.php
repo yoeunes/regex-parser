@@ -580,7 +580,7 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
         }
 
         // Check numeric reference with \
-        if (preg_match('/^\\\\(\d+)$/', $ref, $matches)) {
+        if (preg_match('/^\\\\(\d++)$/', $ref, $matches)) {
             $key = (int) $matches[1];
             if (isset($this->captures[$key])) {
                 return $this->captures[$key];
@@ -594,7 +594,7 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
 
         // Handle named \k<name> or \k{name} backrefs
         // $ref is guaranteed to be a string here.
-        if (preg_match('/^\\\\k<(\w+)>$/', $ref, $m) || preg_match('/^\\\\k\{(\w+)\}$/', $ref, $m)) {
+        if (preg_match('/^\\\\k<(\w++)>$/', $ref, $m) || preg_match('/^\\\\k\{(\w++)\}$/', $ref, $m)) {
             return $this->captures[$m[1]] ?? '';
         }
 
@@ -628,7 +628,7 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
         if (preg_match('/^\\\\x([0-9a-fA-F]{2})$/', $node->code, $m)) {
             return \chr((int) hexdec($m[1]));
         }
-        if (preg_match('/^\\\\u\{([0-9a-fA-F]+)\}$/', $node->code, $m)) {
+        if (preg_match('/^\\\\u\{([0-9a-fA-F]++)\}$/', $node->code, $m)) {
             return mb_chr((int) hexdec($m[1]), 'UTF-8');
         }
 
@@ -702,7 +702,7 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitOctal(Node\OctalNode $node): string
     {
-        if (preg_match('/^\\\\o\{([0-7]+)\}$/', $node->code, $m)) {
+        if (preg_match('/^\\\\o\{([0-7]++)\}$/', $node->code, $m)) {
             return mb_chr((int) octdec($m[1]), 'UTF-8');
         }
 
@@ -946,7 +946,7 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
             '*' => [0, $this->maxRepetition],
             '+' => [1, $this->maxRepetition],
             '?' => [0, 1],
-            default => preg_match('/^\{(\d+)(?:,(\d*))?\}$/', $q, $m) ?
+            default => preg_match('/^\{(\d++)(?:,(\d*+))?\}$/', $q, $m) ?
                 (isset($m[2]) ? ('' === $m[2] ?
                     [(int) $m[1], (int) $m[1] + $this->maxRepetition] : // {n,}
                     [(int) $m[1], (int) $m[2]] // {n,m}

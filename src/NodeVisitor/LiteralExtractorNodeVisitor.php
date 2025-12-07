@@ -220,7 +220,7 @@ final class LiteralExtractorNodeVisitor extends AbstractNodeVisitor
     public function visitQuantifier(Node\QuantifierNode $node): LiteralSet
     {
         // Case 1: Exact quantifier {n} -> repeat literals n times
-        if (preg_match('/^\{(\d+)\}$/', $node->quantifier, $m)) {
+        if (preg_match('/^\{(\d++)\}$/', $node->quantifier, $m)) {
             $count = (int) $m[1];
             if (0 === $count) {
                 return LiteralSet::fromString(''); // Matches empty string
@@ -243,7 +243,7 @@ final class LiteralExtractorNodeVisitor extends AbstractNodeVisitor
 
         // Case 2: + or {n,} (At least 1)
         // We can extract the literal from the node, but it's not complete anymore because of the tail
-        if ('+' === $node->quantifier || preg_match('/^\{(\d+),/', $node->quantifier)) {
+        if ('+' === $node->quantifier || preg_match('/^\{(\d++),/', $node->quantifier)) {
             /** @var LiteralSet $childSet */
             $childSet = $node->node->accept($this);
 

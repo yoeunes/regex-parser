@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-require __DIR__.'/vendor/autoload.php';
+require __DIR__.'/../vendor/autoload.php';
 
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
 use RegexParser\Regex;

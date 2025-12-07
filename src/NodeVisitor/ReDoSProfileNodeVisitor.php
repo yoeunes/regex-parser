@@ -818,7 +818,7 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
 
         if (str_contains($quantifier, ',')) {
             // Check for {n,} (unbounded upper limit)
-            return !preg_match('/,\d+\}$/', $quantifier);
+            return !preg_match('/,\d++\}$/', $quantifier);
         }
 
         return false;
@@ -838,7 +838,7 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
      */
     private function isLargeBounded(string $quantifier): bool
     {
-        if (preg_match('/\{(\d+)(?:,(\d+))?\}/', $quantifier, $m)) {
+        if (preg_match('/\{(\d++)(?:,(\d++))?\}/', $quantifier, $m)) {
             $max = isset($m[2]) ? (int) $m[2] : (int) $m[1];
 
             return $max > 1000;
@@ -1194,15 +1194,15 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
             return [0, 1];
         }
 
-        if (preg_match('/^\\{(\\d+),(\\d+)\\}$/', $quantifier, $m)) {
+        if (preg_match('/^\\{(\\d++),(\\d++)\\}$/', $quantifier, $m)) {
             return [(int) $m[1], (int) $m[2]];
         }
 
-        if (preg_match('/^\\{(\\d+),\\}$/', $quantifier, $m)) {
+        if (preg_match('/^\\{(\\d++),\\}$/', $quantifier, $m)) {
             return [(int) $m[1], null];
         }
 
-        if (preg_match('/^\\{(\\d+)\\}$/', $quantifier, $m)) {
+        if (preg_match('/^\\{(\\d++)\\}$/', $quantifier, $m)) {
             return [(int) $m[1], (int) $m[1]];
         }
 

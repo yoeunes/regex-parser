@@ -1,18 +1,29 @@
+# Dependencies
+/vendor/
+/composer.lock
+
+# IDEs
 /.idea/
+/.vscode/
+
+# Cache & Temporary Files
 /.cache/
 /.task/
 /.junie/
-/.vscode/
-/build/
-/coverage/
-/vendor/
-
-/composer.lock
 /.phpunit.result.cache
 /.php-cs-fixer.cache
-/*.log
 
+# Build & Distribution
+/build/
+/coverage/
 
-/.php-cs-fixer.php
-/phpstan.neon
+# Logs
+*.log
+
+# OS Generated Files
+.DS_Store
+
+# Local Configuration Overrides
 /phpunit.xml
+/phpstan.neon
+/.php-cs-fixer.php
