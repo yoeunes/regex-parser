@@ -15,8 +15,8 @@
         </pattern>
     </defs>
 
-    <rect width="800" height="200" fill="url(#bgGrad)"/>
-    <rect width="800" height="200" fill="url(#gridPattern)"/>
+    <rect width="1000" height="200" fill="url(#bgGrad)"/>
+    <rect width="1000" height="200" fill="url(#gridPattern)"/>
 
     <g transform="translate(140, 100)">
 
