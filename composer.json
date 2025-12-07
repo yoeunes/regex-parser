@@ -10,13 +10,13 @@
         }
     ],
     "require": {
-        "php": ">=8.4"
+        "php": ">=8.4",
+        "symfony/console": "^8.0"
     },
     "require-dev": {
         "phpunit/phpunit": "^12.5.1",
         "phpstan/phpstan": "^2.1.33",
         "phpstan/phpstan-phpunit": "^2.0.10",
-        "symfony/console": "^8.0",
         "symfony/http-kernel": "^8.0",
         "symfony/dependency-injection": "^8.0",
         "symfony/config": "^8.0",
@@ -37,6 +37,9 @@
             "RegexParser\\Tests\\": "tests/"
         }
     },
+    "bin": [
+        "bin/regex"
+    ],
     "extra": {
         "phpstan": {
             "includes": [

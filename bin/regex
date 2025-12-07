@@ -1,0 +1,171 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+require __DIR__.'/../vendor/autoload.php';
+
+use RegexParser\Exception\LexerException;
+use RegexParser\Exception\ParserException;
+use RegexParser\Regex;
+use Symfony\Component\Console\Application;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputArgument;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
+use Symfony\Component\Console\Output\OutputInterface;
+
+$app = new Application('Regex Parser', '1.0.0');
+
+$app->addCommand((new class extends Command {
+    protected function configure(): void
+    {
+        $this
+            ->setName('parse')
+            ->setDescription('Parse a regex pattern and show the recompiled version')
+            ->addArgument('pattern', InputArgument::REQUIRED, 'The regex pattern to parse')
+            ->addOption('validate', null, InputOption::VALUE_NONE, 'Also validate the pattern');
+    }
+
+    protected function execute(InputInterface $input, OutputInterface $output): int
+    {
+        $pattern = $input->getArgument('pattern');
+        $regex = Regex::create();
+
+        try {
+            $ast = $regex->parse($pattern);
+            $compiled = $ast->accept(new RegexParser\NodeVisitor\CompilerNodeVisitor());
+
+            $output->writeln("Parsed successfully!");
+            $output->writeln("Original:   {$pattern}");
+            $output->writeln("Recompiled: {$compiled}");
+
+            if ($input->getOption('validate')) {
+                $validation = $regex->validate($pattern);
+                $output->writeln("Validation: " . ($validation->isValid ? 'OK' : 'INVALID'));
+                if (!$validation->isValid && $validation->error) {
+                    $output->writeln("Error: {$validation->error}");
+                }
+            }
+
+            return Command::SUCCESS;
+        } catch (LexerException|ParserException $e) {
+            $output->writeln("<error>Error: {$e->getMessage()}</error>");
+            return Command::FAILURE;
+        }
+    }
+}));
+
+$app->addCommand((new class extends Command {
+    protected function configure(): void
+    {
+        $this
+            ->setName('analyze')
+            ->setDescription('Analyze a regex pattern (parse, validate, ReDoS, explain)')
+            ->addArgument('pattern', InputArgument::REQUIRED, 'The regex pattern to analyze');
+    }
+
+    protected function execute(InputInterface $input, OutputInterface $output): int
+    {
+        $pattern = $input->getArgument('pattern');
+        $regex = Regex::create();
+
+        try {
+            $ast = $regex->parse($pattern);
+            $validation = $regex->validate($pattern);
+            $analysis = $regex->analyzeReDoS($pattern);
+            $explain = $regex->explain($pattern);
+
+            $output->writeln("Pattern: {$pattern}");
+            $output->writeln("Parse: OK");
+            $output->writeln("Validation: " . ($validation->isValid ? 'OK' : 'INVALID'));
+            if (!$validation->isValid && $validation->error) {
+                $output->writeln("Error: {$validation->error}");
+            }
+            $output->writeln("ReDoS severity: {$analysis->severity->value}");
+            $output->writeln("ReDoS score: {$analysis->score}");
+            if ($analysis->error) {
+                $output->writeln("ReDoS error: {$analysis->error}");
+            }
+            $output->writeln("");
+            $output->writeln("Explanation:");
+            $output->writeln($explain);
+
+            return Command::SUCCESS;
+        } catch (LexerException|ParserException $e) {
+            $output->writeln("<error>Error: {$e->getMessage()}</error>");
+            return Command::FAILURE;
+        }
+    }
+}));
+
+$app->addCommand((new class extends Command {
+    protected function configure(): void
+    {
+        $this
+            ->setName('highlight')
+            ->setDescription('Highlight a regex pattern for display')
+            ->addArgument('pattern', InputArgument::REQUIRED, 'The regex pattern to highlight')
+            ->addOption('format', null, InputOption::VALUE_OPTIONAL, 'Output format: auto, cli, html', 'auto');
+    }
+
+    protected function execute(InputInterface $input, OutputInterface $output): int
+    {
+        $pattern = $input->getArgument('pattern');
+        $format = $input->getOption('format');
+        $regex = Regex::create();
+
+        try {
+            if ($format === 'html') {
+                $highlighted = $regex->highlightHtml($pattern);
+            } elseif ($format === 'cli') {
+                $highlighted = $regex->highlightCli($pattern);
+            } else {
+                $highlighted = $regex->highlight($pattern);
+            }
+
+            $output->writeln($highlighted);
+
+            return Command::SUCCESS;
+        } catch (LexerException|ParserException $e) {
+            $output->writeln("<error>Error: {$e->getMessage()}</error>");
+            return Command::FAILURE;
+        }
+    }
+}));
+
+$app->addCommand((new class extends Command {
+    protected function configure(): void
+    {
+        $this
+            ->setName('validate')
+            ->setDescription('Validate a regex pattern')
+            ->addArgument('pattern', InputArgument::REQUIRED, 'The regex pattern to validate');
+    }
+
+    protected function execute(InputInterface $input, OutputInterface $output): int
+    {
+        $pattern = $input->getArgument('pattern');
+        $regex = Regex::create();
+
+        $validation = $regex->validate($pattern);
+        $output->writeln($validation->isValid ? 'OK' : 'INVALID');
+        if (!$validation->isValid && $validation->error) {
+            $output->writeln("Error: {$validation->error}");
+            return Command::FAILURE;
+        }
+
+        return Command::SUCCESS;
+    }
+}));
+
+$app->run();
