@@ -18,8 +18,8 @@ declare(strict_types=1);
  * This script extracts test cases from PHP's official PCRE .phpt test files
  * and generates a comprehensive fixture file for the regex-parser project.
  */
-$testsDir = __DIR__.'/yoeunes/tests';
-$outputFile = __DIR__.'/tests/Fixtures/php_pcre_comprehensive.php';
+$testsDir = __DIR__.'/../yoeunes/tests';
+$outputFile = __DIR__.'/Fixtures/php_pcre_comprehensive.php';
 
 // Get all .phpt files
 $phptFiles = glob($testsDir.'/*.phpt');
