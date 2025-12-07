@@ -114,6 +114,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
      *
      * @throws ParserException if any semantic validation rule is violated within the regex
      */
+    #[\Override]
     public function visitRegex(Node\RegexNode $node): void
     {
         // Reset state for this validation run. This ensures the visitor
@@ -140,6 +141,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
      *
      * @throws ParserException if any semantic validation rule is violated within an alternative
      */
+    #[\Override]
     public function visitAlternation(Node\AlternationNode $node): void
     {
         // Note: PHP 7.3+ (PCRE2) supports variable-length lookbehinds,
@@ -168,6 +170,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
      *
      * @throws ParserException if any semantic validation rule is violated within a child node
      */
+    #[\Override]
     public function visitSequence(Node\SequenceNode $node): void
     {
         $previous = $this->previousNode;
@@ -200,6 +203,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
      * @throws ParserException if a duplicate named group is found, or if any
      *                         semantic rule is violated within the group's child
      */
+    #[\Override]
     public function visitGroup(Node\GroupNode $node): void
     {
         $wasInLookbehind = $this->inLookbehind;
@@ -256,6 +260,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
      * @throws ParserException if an invalid quantifier range is found, or if a
      *                         potential ReDoS pattern (nested unbounded quantifier) is detected
      */
+    #[\Override]
     public function visitQuantifier(Node\QuantifierNode $node): void
     {
         // 1. Validate quantifier range (e.g., {5,2})
@@ -304,6 +309,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
      *
      * @param Node\LiteralNode $node the literal node to validate
      */
+    #[\Override]
     public function visitLiteral(Node\LiteralNode $node): void
     {
         // No semantic validation needed for literals
@@ -318,6 +324,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
      *
      * @param Node\CharTypeNode $node the character type node to validate
      */
+    #[\Override]
     public function visitCharType(Node\CharTypeNode $node): void
     {
         // No semantic validation needed for char types
@@ -332,6 +339,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
      *
      * @param Node\DotNode $node the dot node to validate
      */
+    #[\Override]
     public function visitDot(Node\DotNode $node): void
     {
         // No semantic validation needed for dot
@@ -345,6 +353,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
      *
      * @param Node\AnchorNode $node the anchor node to validate
      */
+    #[\Override]
     public function visitAnchor(Node\AnchorNode $node): void
     {
         // No semantic validation needed for anchors
@@ -361,6 +370,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
      *
      * @throws ParserException if an invalid or unknown assertion is encountered
      */
+    #[\Override]
     public function visitAssertion(Node\AssertionNode $node): void
     {
         if (!isset(self::VALID_ASSERTIONS[$node->value])) {
@@ -379,6 +389,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
      *
      * @throws ParserException if `\K` is found within a lookbehind
      */
+    #[\Override]
     public function visitKeep(Node\KeepNode $node): void
     {
         if ($this->inLookbehind) {
@@ -397,6 +408,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
      *
      * @throws ParserException if any semantic validation rule is violated within a part of the character class
      */
+    #[\Override]
     public function visitCharClass(Node\CharClassNode $node): void
     {
         foreach ($node->parts as $part) {
@@ -416,6 +428,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
      *
      * @throws ParserException If the range is invalid (e.g., `z-a`, multi-character range endpoints).
      */
+    #[\Override]
     public function visitRange(Node\RangeNode $node): void
     {
         // 1. Validation: Ensure start and end nodes represent a single character.
@@ -462,6 +475,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
      *
      * @throws ParserException if the backreference refers to a non-existent group or uses invalid syntax
      */
+    #[\Override]
     public function visitBackref(Node\BackrefNode $node): void
     {
         $ref = $node->ref;
@@ -531,6 +545,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
      *
      * @throws ParserException if the Unicode code point is out of range
      */
+    #[\Override]
     public function visitUnicode(Node\UnicodeNode $node): void
     {
         // The Lexer/Parser combination already ensures these are
@@ -559,6 +574,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
      *
      * @throws ParserException if the Unicode property is invalid or unsupported
      */
+    #[\Override]
     public function visitUnicodeProp(Node\UnicodePropNode $node): void
     {
         // The only 100% "prod-ready" way to validate a Unicode property
@@ -594,6 +610,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
      *
      * @throws ParserException if the octal code is invalid or out of range
      */
+    #[\Override]
     public function visitOctal(Node\OctalNode $node): void
     {
         // \o{...}
@@ -626,6 +643,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
      * @throws ParserException if `\0` is used as a backreference or if the octal
      *                         codepoint is out of a valid range
      */
+    #[\Override]
     public function visitOctalLegacy(Node\OctalLegacyNode $node): void
     {
         // \0 is treated as an invalid backreference
@@ -653,6 +671,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
      * @throws ParserException if an invalid POSIX class is encountered or if a class
      *                         is negated when it shouldn't be
      */
+    #[\Override]
     public function visitPosixClass(Node\PosixClassNode $node): void
     {
         $class = strtolower($node->class);
@@ -681,6 +700,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
      *
      * @param Node\CommentNode $node the comment node to validate
      */
+    #[\Override]
     public function visitComment(Node\CommentNode $node): void
     {
         // Comments are ignored in validation
@@ -699,6 +719,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
      * @throws ParserException if the condition is not a valid type or if any
      *                         semantic rule is violated within the conditional branches
      */
+    #[\Override]
     public function visitConditional(Node\ConditionalNode $node): void
     {
         // Check if the condition is a valid *type* of condition first
@@ -762,6 +783,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
      *
      * @throws ParserException if the subroutine refers to a non-existent group
      */
+    #[\Override]
     public function visitSubroutine(Node\SubroutineNode $node): void
     {
         $ref = $node->reference;
@@ -828,6 +850,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
      *
      * @throws ParserException if an invalid or unsupported PCRE verb is encountered
      */
+    #[\Override]
     public function visitPcreVerb(Node\PcreVerbNode $node): void
     {
         $verbName = explode(':', $node->verb, 2)[0];
@@ -848,16 +871,19 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
      *
      * @throws ParserException if any semantic validation rule is violated within the DEFINE block
      */
+    #[\Override]
     public function visitDefine(Node\DefineNode $node): void
     {
         $node->content->accept($this);
     }
 
+    #[\Override]
     public function visitLimitMatch(Node\LimitMatchNode $node): void
     {
         // No specific validation needed for this node.
     }
 
+    #[\Override]
     public function visitCallout(Node\CalloutNode $node): void
     {
         $position = $node->startPosition + 4;

@@ -48,6 +48,7 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
      *
      * @return string The complete Mermaid.js graph definition.
      */
+    #[\Override]
     public function visitRegex(Node\RegexNode $node): string
     {
         $this->nodeCounter = 0;
@@ -75,6 +76,7 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
      *
      * @return string the unique ID of the generated graph node
      */
+    #[\Override]
     public function visitAlternation(Node\AlternationNode $node): string
     {
         $nodeId = $this->nextNodeId();
@@ -98,6 +100,7 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
      *
      * @return string the unique ID of the generated graph node
      */
+    #[\Override]
     public function visitSequence(Node\SequenceNode $node): string
     {
         $nodeId = $this->nextNodeId();
@@ -122,6 +125,7 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
      *
      * @return string the unique ID of the generated graph node
      */
+    #[\Override]
     public function visitGroup(Node\GroupNode $node): string
     {
         $nodeId = $this->nextNodeId();
@@ -145,6 +149,7 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
      *
      * @return string the unique ID of the generated graph node
      */
+    #[\Override]
     public function visitQuantifier(Node\QuantifierNode $node): string
     {
         $nodeId = $this->nextNodeId();
@@ -166,6 +171,7 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
      *
      * @return string the unique ID of the generated graph node
      */
+    #[\Override]
     public function visitLiteral(Node\LiteralNode $node): string
     {
         $nodeId = $this->nextNodeId();
@@ -184,6 +190,7 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
      *
      * @return string the unique ID of the generated graph node
      */
+    #[\Override]
     public function visitCharType(Node\CharTypeNode $node): string
     {
         $nodeId = $this->nextNodeId();
@@ -201,6 +208,7 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
      *
      * @return string the unique ID of the generated graph node
      */
+    #[\Override]
     public function visitDot(Node\DotNode $node): string
     {
         $nodeId = $this->nextNodeId();
@@ -218,6 +226,7 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
      *
      * @return string the unique ID of the generated graph node
      */
+    #[\Override]
     public function visitAnchor(Node\AnchorNode $node): string
     {
         $nodeId = $this->nextNodeId();
@@ -235,6 +244,7 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
      *
      * @return string the unique ID of the generated graph node
      */
+    #[\Override]
     public function visitAssertion(Node\AssertionNode $node): string
     {
         $nodeId = $this->nextNodeId();
@@ -252,6 +262,7 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
      *
      * @return string the unique ID of the generated graph node
      */
+    #[\Override]
     public function visitKeep(Node\KeepNode $node): string
     {
         $nodeId = $this->nextNodeId();
@@ -270,6 +281,7 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
      *
      * @return string the unique ID of the generated graph node
      */
+    #[\Override]
     public function visitCharClass(Node\CharClassNode $node): string
     {
         $nodeId = $this->nextNodeId();
@@ -294,6 +306,7 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
      *
      * @return string the unique ID of the generated graph node
      */
+    #[\Override]
     public function visitRange(Node\RangeNode $node): string
     {
         $nodeId = $this->nextNodeId();
@@ -316,6 +329,7 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
      *
      * @return string the unique ID of the generated graph node
      */
+    #[\Override]
     public function visitBackref(Node\BackrefNode $node): string
     {
         $nodeId = $this->nextNodeId();
@@ -333,6 +347,7 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
      *
      * @return string the unique ID of the generated graph node
      */
+    #[\Override]
     public function visitUnicode(Node\UnicodeNode $node): string
     {
         $nodeId = $this->nextNodeId();
@@ -350,6 +365,7 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
      *
      * @return string the unique ID of the generated graph node
      */
+    #[\Override]
     public function visitUnicodeProp(Node\UnicodePropNode $node): string
     {
         $nodeId = $this->nextNodeId();
@@ -367,6 +383,7 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
      *
      * @return string the unique ID of the generated graph node
      */
+    #[\Override]
     public function visitOctal(Node\OctalNode $node): string
     {
         $nodeId = $this->nextNodeId();
@@ -384,6 +401,7 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
      *
      * @return string the unique ID of the generated graph node
      */
+    #[\Override]
     public function visitOctalLegacy(Node\OctalLegacyNode $node): string
     {
         $nodeId = $this->nextNodeId();
@@ -401,6 +419,7 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
      *
      * @return string the unique ID of the generated graph node
      */
+    #[\Override]
     public function visitPosixClass(Node\PosixClassNode $node): string
     {
         $nodeId = $this->nextNodeId();
@@ -418,6 +437,7 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
      *
      * @return string the unique ID of the generated graph node
      */
+    #[\Override]
     public function visitComment(Node\CommentNode $node): string
     {
         $nodeId = $this->nextNodeId();
@@ -437,6 +457,7 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
      *
      * @return string the unique ID of the generated graph node
      */
+    #[\Override]
     public function visitConditional(Node\ConditionalNode $node): string
     {
         $nodeId = $this->nextNodeId();
@@ -463,6 +484,7 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
      *
      * @return string the unique ID of the generated graph node
      */
+    #[\Override]
     public function visitSubroutine(Node\SubroutineNode $node): string
     {
         $nodeId = $this->nextNodeId();
@@ -480,6 +502,7 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
      *
      * @return string the unique ID of the generated graph node
      */
+    #[\Override]
     public function visitPcreVerb(Node\PcreVerbNode $node): string
     {
         $nodeId = $this->nextNodeId();
@@ -497,6 +520,7 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
      *
      * @return string the unique ID of the generated graph node
      */
+    #[\Override]
     public function visitDefine(Node\DefineNode $node): string
     {
         $nodeId = $this->nextNodeId();
@@ -508,6 +532,7 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
         return $nodeId;
     }
 
+    #[\Override]
     public function visitLimitMatch(Node\LimitMatchNode $node): string
     {
         $nodeId = $this->nextNodeId();
@@ -516,6 +541,7 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
         return $nodeId;
     }
 
+    #[\Override]
     public function visitCallout(Node\CalloutNode $node): string
     {
         $label = match (true) {

@@ -56,6 +56,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
      *
      * @return string the complete, recompiled PCRE regex string
      */
+    #[\Override]
     public function visitRegex(Node\RegexNode $node): string
     {
         $this->delimiter = $node->delimiter;
@@ -75,6 +76,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
      *
      * @return string the recompiled alternation string
      */
+    #[\Override]
     public function visitAlternation(Node\AlternationNode $node): string
     {
         return implode('|', array_map(fn ($alt) => $alt->accept($this), $node->alternatives));
@@ -90,6 +92,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
      *
      * @return string the recompiled sequence string
      */
+    #[\Override]
     public function visitSequence(Node\SequenceNode $node): string
     {
         return implode('', array_map(fn ($child) => $child->accept($this), $node->children));
@@ -106,6 +109,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
      *
      * @return string the recompiled group string
      */
+    #[\Override]
     public function visitGroup(Node\GroupNode $node): string
     {
         $child = $node->child->accept($this);
@@ -136,6 +140,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
      *
      * @return string the recompiled quantified expression
      */
+    #[\Override]
     public function visitQuantifier(Node\QuantifierNode $node): string
     {
         $nodeCompiled = $node->node->accept($this);
@@ -164,6 +169,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
      *
      * @return string the escaped literal string
      */
+    #[\Override]
     public function visitLiteral(Node\LiteralNode $node): string
     {
         $meta = $this->inCharClass ? self::CHAR_CLASS_META : self::META_CHARACTERS;
@@ -195,6 +201,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
      *
      * @return string the recompiled character type
      */
+    #[\Override]
     public function visitCharType(Node\CharTypeNode $node): string
     {
         return '\\'.$node->value;
@@ -209,6 +216,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
      *
      * @return string The `.` character.
      */
+    #[\Override]
     public function visitDot(Node\DotNode $node): string
     {
         return '.';
@@ -223,6 +231,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
      *
      * @return string the anchor character
      */
+    #[\Override]
     public function visitAnchor(Node\AnchorNode $node): string
     {
         return $node->value;
@@ -237,6 +246,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
      *
      * @return string the recompiled assertion
      */
+    #[\Override]
     public function visitAssertion(Node\AssertionNode $node): string
     {
         return '\\'.$node->value;
@@ -251,6 +261,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
      *
      * @return string the `\K` sequence
      */
+    #[\Override]
     public function visitKeep(Node\KeepNode $node): string
     {
         return '\K';
@@ -267,6 +278,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
      *
      * @return string the recompiled character class
      */
+    #[\Override]
     public function visitCharClass(Node\CharClassNode $node): string
     {
         $this->inCharClass = true;
@@ -287,6 +299,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
      *
      * @return string the recompiled range string
      */
+    #[\Override]
     public function visitRange(Node\RangeNode $node): string
     {
         return $node->start->accept($this).'-'.$node->end->accept($this);
@@ -301,6 +314,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
      *
      * @return string the recompiled backreference
      */
+    #[\Override]
     public function visitBackref(Node\BackrefNode $node): string
     {
         if (ctype_digit($node->ref)) {
@@ -319,6 +333,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
      *
      * @return string the recompiled Unicode escape
      */
+    #[\Override]
     public function visitUnicode(Node\UnicodeNode $node): string
     {
         return $node->code;
@@ -334,6 +349,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
      *
      * @return string the recompiled Unicode property escape
      */
+    #[\Override]
     public function visitUnicodeProp(Node\UnicodePropNode $node): string
     {
         if (str_starts_with($node->prop, '^')) {
@@ -356,6 +372,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
      *
      * @return string the recompiled octal escape
      */
+    #[\Override]
     public function visitOctal(Node\OctalNode $node): string
     {
         return $node->code;
@@ -370,6 +387,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
      *
      * @return string the recompiled legacy octal escape
      */
+    #[\Override]
     public function visitOctalLegacy(Node\OctalLegacyNode $node): string
     {
         return '\\'.$node->code;
@@ -384,6 +402,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
      *
      * @return string the recompiled POSIX class
      */
+    #[\Override]
     public function visitPosixClass(Node\PosixClassNode $node): string
     {
         return '[[:'.$node->class.':]]';
@@ -398,6 +417,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
      *
      * @return string the recompiled comment
      */
+    #[\Override]
     public function visitComment(Node\CommentNode $node): string
     {
         return '(?#'.$node->comment.')';
@@ -413,6 +433,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
      *
      * @return string the recompiled conditional subpattern
      */
+    #[\Override]
     public function visitConditional(Node\ConditionalNode $node): string
     {
         if ($node->condition instanceof Node\BackrefNode) {
@@ -440,6 +461,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
      *
      * @return string the recompiled subroutine call
      */
+    #[\Override]
     public function visitSubroutine(Node\SubroutineNode $node): string
     {
         return match ($node->syntax) {
@@ -459,6 +481,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
      *
      * @return string the recompiled PCRE verb
      */
+    #[\Override]
     public function visitPcreVerb(Node\PcreVerbNode $node): string
     {
         return '(*'.$node->verb.')';
@@ -473,16 +496,19 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
      *
      * @return string the recompiled DEFINE block
      */
+    #[\Override]
     public function visitDefine(Node\DefineNode $node): string
     {
         return '(?(DEFINE)'.$node->content->accept($this).')';
     }
 
+    #[\Override]
     public function visitLimitMatch(Node\LimitMatchNode $node): string
     {
         return '(*LIMIT_MATCH='.$node->limit.')';
     }
 
+    #[\Override]
     public function visitCallout(Node\CalloutNode $node): string
     {
         if (\is_int($node->identifier)) {

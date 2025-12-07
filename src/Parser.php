@@ -131,6 +131,7 @@ final class Parser
     {
         $this->guardRecursionDepth($this->current()->position);
         $this->recursionDepth++;
+
         try {
             $startPosition = $this->current()->position;
             $nodes = [$this->parseSequence()];

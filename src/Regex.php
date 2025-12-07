@@ -92,6 +92,7 @@ final readonly class Regex
      *         Patterns that should be treated as trusted/safe by the ReDoS analyzer.
      *
      * @throws Exception\InvalidRegexOptionException when unknown or invalid options are provided
+     *
      * @return self a new, configured instance of the `Regex` service, ready to be used
      *
      * @example
@@ -127,8 +128,8 @@ final readonly class Regex
      *
      * @param string $regex the full PCRE regex string, including delimiters and flags
      *
-     * @throws LexerException  if the lexer encounters an invalid sequence of characters
-     * @throws ParserException if the parser encounters a syntax error
+     * @throws LexerException         if the lexer encounters an invalid sequence of characters
+     * @throws ParserException        if the parser encounters a syntax error
      * @throws ResourceLimitException if the pattern length exceeds the configured limit
      *
      * @return RegexNode The root node of the generated Abstract Syntax Tree. This object
@@ -571,7 +572,7 @@ final readonly class Regex
     /**
      * Parses a bare pattern by wrapping delimiters and flags.
      *
-     * @throws ParserException if the delimiter is invalid or the pattern is not well-formed
+     * @throws ParserException        if the delimiter is invalid or the pattern is not well-formed
      * @throws LexerException
      * @throws ResourceLimitException
      */

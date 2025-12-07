@@ -20,19 +20,19 @@ use RegexParser\Regex;
 
 final class RegexOptionsTest extends TestCase
 {
-    public function testCreateWithUnknownOptionThrows(): void
+    public function test_create_with_unknown_option_throws(): void
     {
         $this->expectException(InvalidRegexOptionException::class);
         Regex::create(['unknown_option' => true]);
     }
 
-    public function testCreateWithValidOptions(): void
+    public function test_create_with_valid_options(): void
     {
         $regex = Regex::create([
             'max_pattern_length' => 50_000,
             'cache' => new NullCache(),
             'redos_ignored_patterns' => ['/safe/'],
         ]);
-        $this->assertSame(50_000, (new \ReflectionProperty($regex, 'maxPatternLength'))->getValue($regex));
+        $this->assertSame(50_000, new \ReflectionProperty($regex, 'maxPatternLength')->getValue($regex));
     }
 }

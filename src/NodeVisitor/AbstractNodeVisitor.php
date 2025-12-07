@@ -19,6 +19,7 @@ use RegexParser\Node;
  * Base visitor that returns a default value for every node.
  *
  * @template TReturn
+ *
  * @implements NodeVisitorInterface<TReturn>
  */
 abstract class AbstractNodeVisitor implements NodeVisitorInterface
