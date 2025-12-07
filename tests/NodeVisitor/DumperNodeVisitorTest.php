@@ -118,7 +118,7 @@ final class DumperNodeVisitorTest extends TestCase
         // Test visitBackref
         $ast = $regex->parse('/(a)\1/');
         $dump = $ast->accept($dumper);
-        $this->assertStringContainsString('Backref(\\1)', $dump);
+        $this->assertStringContainsString('Backref(\\\\1)', $dump);
 
         // Test visitUnicode
         $ast = $regex->parse('/\x41\u{1F600}/');

@@ -113,7 +113,8 @@ final class MetricsNodeVisitor extends AbstractNodeVisitor
     public function visitCharClass(Node\CharClassNode $node): array
     {
         return $this->record($node, function () use ($node): void {
-            $this->visitChildren($node->parts);
+            $parts = $node->expression instanceof Node\AlternationNode ? $node->expression->alternatives : [$node->expression];
+            $this->visitChildren($parts);
         });
     }
 
@@ -134,6 +135,12 @@ final class MetricsNodeVisitor extends AbstractNodeVisitor
 
     #[\Override]
     public function visitUnicode(Node\UnicodeNode $node): array
+    {
+        return $this->record($node);
+    }
+
+    #[\Override]
+    public function visitUnicodeNamed(Node\UnicodeNamedNode $node): array
     {
         return $this->record($node);
     }

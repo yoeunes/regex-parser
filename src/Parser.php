@@ -48,6 +48,11 @@ final class Parser
     private string $pattern = '';
 
     /**
+     * Regex flags (e.g., 'imsx').
+     */
+    private string $flags = '';
+
+    /**
      * Whether the 'J' modifier is active (allows duplicate group names).
      */
     private bool $JModifier = false;
@@ -109,6 +114,7 @@ final class Parser
         // Set the stream for parsing
         $this->stream = $stream;
         $this->pattern = $stream->getPattern();
+        $this->flags = $flags;
         $this->JModifier = str_contains($flags, 'J');
         $this->groupNames = [];
         $this->lastTokenWasAlternation = false;
@@ -173,6 +179,39 @@ final class Parser
                 || $this->match(TokenType::T_QUOTE_MODE_END)
             ) {
                 continue;
+            }
+
+            // Handle extended mode (x flag): skip whitespace and comments
+            if (str_contains($this->flags, 'x')) {
+                $skipped = false;
+                while (!$this->isAtEnd() && !$this->check(TokenType::T_GROUP_CLOSE) && !$this->check(TokenType::T_ALTERNATION)) {
+                    $token = $this->current();
+                    if (TokenType::T_LITERAL === $token->type) {
+                        if (ctype_space($token->value)) {
+                            $this->advance();
+                            $skipped = true;
+
+                            continue;
+                        }
+                        if ('#' === $token->value) {
+                            $this->advance(); // consume #
+                            while (!$this->isAtEnd() && "\n" !== $this->current()->value) {
+                                $this->advance();
+                            }
+                            if (!$this->isAtEnd() && "\n" === $this->current()->value) {
+                                $this->advance();
+                            }
+                            $skipped = true;
+
+                            continue;
+                        }
+                    }
+
+                    break;
+                }
+                if ($skipped) {
+                    continue;
+                }
             }
 
             $nodes[] = $this->parseQuantifiedAtom();
@@ -410,6 +449,20 @@ final class Parser
             return new Node\UnicodeNode($token->value, $startPosition, $endPosition);
         }
 
+        if ($this->match(TokenType::T_UNICODE_NAMED)) {
+            $token = $this->previous();
+            $endPosition = $startPosition + \strlen($token->value) + 3; // +3 for \N{
+
+            return new Node\UnicodeNamedNode($token->value, $startPosition, $endPosition);
+        }
+
+        if ($this->match(TokenType::T_CONTROL_CHAR)) {
+            $token = $this->previous();
+            $endPosition = $startPosition + 3; // \cM
+
+            return new Node\ControlCharNode($token->value, $startPosition, $endPosition);
+        }
+
         if ($this->match(TokenType::T_OCTAL)) {
             $token = $this->previous();
             $endPosition = $startPosition + \strlen($token->value);
@@ -601,7 +654,8 @@ final class Parser
             // Types that kept their \
             TokenType::T_BACKREF,
             TokenType::T_G_REFERENCE,
-            TokenType::T_UNICODE,
+            TokenType::T_UNICODE => $token->value,
+            TokenType::T_UNICODE_NAMED => '\\N{'.$token->value.'}',
             TokenType::T_OCTAL => $token->value,
 
             // Complex re-assembly
@@ -617,6 +671,9 @@ final class Parser
             TokenType::T_COMMENT_OPEN => '(?#',
             TokenType::T_QUOTE_MODE_START => '\Q',
             TokenType::T_QUOTE_MODE_END => '\E',
+            TokenType::T_CONTROL_CHAR => '\\c'.$token->value,
+            TokenType::T_CLASS_INTERSECTION => '&&',
+            TokenType::T_CLASS_SUBTRACTION => '--',
 
             // Should not be encountered here
             TokenType::T_EOF => '',
@@ -1288,10 +1345,41 @@ final class Parser
         $startToken = $this->previous();
         $startPosition = $startToken->position;
         $isNegated = $this->match(TokenType::T_NEGATION);
+        $parts = $this->parseClassExpression();
+
+        $endToken = $this->consume(TokenType::T_CHAR_CLASS_CLOSE, 'Expected "]" to close character class');
+
+        return new Node\CharClassNode($parts, $isNegated, $startPosition, $endToken->position + 1);
+    }
+
+    /**
+     * Parses a character class expression with intersection (&&) and subtraction (--) operations.
+     */
+    private function parseClassExpression(): Node\NodeInterface
+    {
+        $left = $this->parseCharClassAlternation();
+
+        while ($this->check(TokenType::T_CLASS_INTERSECTION) || $this->check(TokenType::T_CLASS_SUBTRACTION)) {
+            $type = TokenType::T_CLASS_INTERSECTION === $this->current()->type ? Node\ClassOperationType::INTERSECTION : Node\ClassOperationType::SUBTRACTION;
+            $this->advance();
+            $right = $this->parseCharClassAlternation();
+            $left = new Node\ClassOperationNode($type, $left, $right, $left->getStartPosition(), $right->getEndPosition());
+        }
+
+        return $left;
+    }
+
+    /**
+     * Parses the alternation of character class parts (without operations).
+     */
+    private function parseCharClassAlternation(): Node\NodeInterface
+    {
         $parts = [];
 
         while (
             !$this->check(TokenType::T_CHAR_CLASS_CLOSE)
+            && !$this->check(TokenType::T_CLASS_INTERSECTION)
+            && !$this->check(TokenType::T_CLASS_SUBTRACTION)
             && !$this->isAtEnd()
         ) {
             // Silent tokens inside char class
@@ -1304,9 +1392,18 @@ final class Parser
             $parts[] = $this->parseCharClassPart();
         }
 
-        $endToken = $this->consume(TokenType::T_CHAR_CLASS_CLOSE, 'Expected "]" to close character class');
+        if (empty($parts)) {
+            return $this->createEmptyLiteralNodeAt($this->current()->position);
+        }
 
-        return new Node\CharClassNode($parts, $isNegated, $startPosition, $endToken->position + 1);
+        if (1 === \count($parts)) {
+            return $parts[0];
+        }
+
+        $start = $parts[0]->getStartPosition();
+        $end = $parts[\count($parts) - 1]->getEndPosition();
+
+        return new Node\AlternationNode($parts, $start, $end);
     }
 
     /**

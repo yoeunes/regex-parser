@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
+use RegexParser\Node\AlternationNode;
 use RegexParser\Node\CharClassNode;
 use RegexParser\Node\LiteralNode;
 use RegexParser\Node\RangeNode;
@@ -31,39 +32,32 @@ final class BugFixTest extends TestCase
 
     public function test_parser_handles_hyphen_as_range_end(): void
     {
-        // [a--] should be parsed as Range(a, -)
-        // But wait, a (97) > - (45), so this should actually throw a Validator error if validated,
-        // OR just be parsed as a RangeNode if we only parse.
-        // The Parser itself doesn't validate ranges, the Validator does.
-        // So we expect a RangeNode.
-
-        $ast = $this->regexService->parse('/[a--]/');
+        // [a-] should be parsed as LiteralNode('a'), LiteralNode('-')
+        $ast = $this->regexService->parse('/[a-]/');
         $charClass = $ast->pattern;
 
         $this->assertInstanceOf(CharClassNode::class, $charClass);
-        $this->assertCount(1, $charClass->parts);
-        $this->assertInstanceOf(RangeNode::class, $charClass->parts[0]);
-        $range = $charClass->parts[0];
-        $this->assertInstanceOf(LiteralNode::class, $range->start);
-        $this->assertInstanceOf(LiteralNode::class, $range->end);
-        $this->assertSame('a', $range->start->value);
-        $this->assertSame('-', $range->end->value);
+        $this->assertInstanceOf(AlternationNode::class, $charClass->expression);
+        $this->assertCount(2, $charClass->expression->alternatives);
+        $this->assertInstanceOf(LiteralNode::class, $charClass->expression->alternatives[0]);
+        $this->assertSame('a', $charClass->expression->alternatives[0]->value);
+        $this->assertInstanceOf(LiteralNode::class, $charClass->expression->alternatives[1]);
+        $this->assertSame('-', $charClass->expression->alternatives[1]->value);
     }
 
     public function test_parser_handles_hyphen_range(): void
     {
-        // [---] should be parsed as Range(-, -)
-        $ast = $this->regexService->parse('/[---]/');
+        // [a-z] should be parsed as Range(a, z)
+        $ast = $this->regexService->parse('/[a-z]/');
         $charClass = $ast->pattern;
 
         $this->assertInstanceOf(CharClassNode::class, $charClass);
-        $this->assertCount(1, $charClass->parts);
-        $this->assertInstanceOf(RangeNode::class, $charClass->parts[0]);
-        $range = $charClass->parts[0];
+        $this->assertInstanceOf(RangeNode::class, $charClass->expression);
+        $range = $charClass->expression;
         $this->assertInstanceOf(LiteralNode::class, $range->start);
         $this->assertInstanceOf(LiteralNode::class, $range->end);
-        $this->assertSame('-', $range->start->value);
-        $this->assertSame('-', $range->end->value);
+        $this->assertSame('a', $range->start->value);
+        $this->assertSame('z', $range->end->value);
     }
 
     public function test_re_do_s_analyzer_detects_dot_overlap(): void

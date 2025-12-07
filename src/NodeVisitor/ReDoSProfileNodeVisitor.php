@@ -590,6 +590,12 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
         return ReDoSSeverity::SAFE;
     }
 
+    #[\Override]
+    public function visitUnicodeNamed(Node\UnicodeNamedNode $node): ReDoSSeverity
+    {
+        return ReDoSSeverity::SAFE;
+    }
+
     /**
      * Visits a UnicodePropNode. Unicode properties are inherently safe from ReDoS.
      *

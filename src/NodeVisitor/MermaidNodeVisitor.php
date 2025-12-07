@@ -288,7 +288,8 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
         $label = 'CharClass'.($node->isNegated ? ' [NOT]' : '');
         $this->lines[] = \sprintf('    %s["%s"]', $nodeId, $label);
 
-        foreach ($node->parts as $child) {
+        $parts = $node->expression instanceof Node\AlternationNode ? $node->expression->alternatives : [$node->expression];
+        foreach ($parts as $child) {
             $childId = $child->accept($this);
             $this->lines[] = \sprintf('    %s --> %s', $nodeId, $childId);
         }
@@ -352,6 +353,15 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
     {
         $nodeId = $this->nextNodeId();
         $this->lines[] = \sprintf('    %s["Unicode: %s"]', $nodeId, $this->escape($node->code));
+
+        return $nodeId;
+    }
+
+    #[\Override]
+    public function visitUnicodeNamed(Node\UnicodeNamedNode $node): string
+    {
+        $nodeId = $this->nextNodeId();
+        $this->lines[] = \sprintf('    %s["Unicode named: %s"]', $nodeId, $this->escape($node->name));
 
         return $nodeId;
     }

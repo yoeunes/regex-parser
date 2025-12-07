@@ -202,4 +202,42 @@ final class AdvancedPcreFeaturesTest extends TestCase
         $validator = new ValidatorNodeVisitor();
         $ast->accept($validator);
     }
+
+    public function test_extended_mode_ignores_whitespace_and_comments(): void
+    {
+        $regexService = Regex::create();
+
+        // Test whitespace ignored
+        $ast = $regexService->parse('/a b c/x');
+        $dumper = new DumperNodeVisitor();
+        $dump = $ast->accept($dumper);
+        $this->assertStringContainsString('Sequence', $dump);
+        $this->assertStringContainsString("Literal('a')", $dump);
+        $this->assertStringContainsString("Literal('b')", $dump);
+        $this->assertStringContainsString("Literal('c')", $dump);
+        // Should not contain whitespace nodes
+
+        // Test comments ignored
+        $ast = $regexService->parse("/a#comment\nb/x");
+        $dump = $ast->accept($dumper);
+        $this->assertStringContainsString('Sequence', $dump);
+        $this->assertStringContainsString("Literal('a')", $dump);
+        $this->assertStringContainsString("Literal('b')", $dump);
+        // Should not contain comment text
+
+        // Test compilation
+        $compiler = new CompilerNodeVisitor();
+        $recompiled = $ast->accept($compiler);
+        $this->assertSame('/ab/x', $recompiled);
+    }
+
+    public function test_inline_modifier_validation_throws_on_unknown_flags(): void
+    {
+        $regexService = Regex::create();
+
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('Invalid group modifier syntax');
+
+        $regexService->parse('/(?z)a/');
+    }
 }

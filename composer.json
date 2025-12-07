@@ -1,31 +1,60 @@
 {
     "name": "yoeunes/regex-parser",
-    "description": "A PCRE regex parser with lexer, AST, and validation",
-    "type": "symfony-bundle",
+    "description": "A powerful PCRE regex parser with lexer, AST builder, validation, ReDoS analysis, and syntax highlighting. Zero dependencies, blazing fast, and production-ready.",
+    "keywords": [
+        "regex",
+        "parser",
+        "pcre",
+        "lexer",
+        "ast",
+        "validation",
+        "redos",
+        "security",
+        "syntax-highlighting",
+        "php",
+        "cli"
+    ],
+    "homepage": "https://github.com/yoeunes/regex-parser",
+    "type": "library",
     "license": "MIT",
+    "support": {
+        "issues": "https://github.com/yoeunes/regex-parser/issues",
+        "source": "https://github.com/yoeunes/regex-parser",
+        "docs": "https://github.com/yoeunes/regex-parser#readme"
+    },
+    "funding": [
+        {
+            "type": "github",
+            "url": "https://github.com/sponsors/yoeunes"
+        }
+    ],
     "authors": [
         {
             "name": "Younes ENNAJI",
-            "email": "younes.ennaji.pro@gmail.com"
+            "email": "younes.ennaji.pro@gmail.com",
+            "homepage": "https://www.linkedin.com/in/younes--ennaji/",
+            "role": "Developer"
         }
     ],
+    "minimum-stability": "dev",
+    "prefer-stable": true,
     "require": {
         "php": ">=8.4"
     },
     "require-dev": {
-        "phpunit/phpunit": "^12.5.1",
         "phpstan/phpstan": "^2.1.33",
         "phpstan/phpstan-phpunit": "^2.0.10",
-        "symfony/console": "^8.0",
-        "symfony/http-kernel": "^8.0",
-        "symfony/dependency-injection": "^8.0",
-        "symfony/config": "^8.0",
-        "symfony/http-foundation": "^8.0",
-        "symfony/routing": "^8.0",
-        "symfony/validator": "^8.0",
+        "phpunit/phpunit": "^12.5.1",
         "psr/cache": "^3.0",
         "psr/simple-cache": "^3.0",
-        "rector/rector": "^2.2.11"
+        "rector/rector": "^2.2.11",
+        "symfony/config": "^8.0",
+        "symfony/console": "^8.0",
+        "symfony/dependency-injection": "^8.0",
+        "symfony/http-foundation": "^8.0",
+        "symfony/http-kernel": "^8.0",
+        "symfony/routing": "^8.0",
+        "symfony/validator": "^8.0"
     },
     "autoload": {
         "psr-4": {
@@ -36,6 +65,14 @@
         "psr-4": {
             "RegexParser\\Tests\\": "tests/"
         }
+    },
+    "bin": [
+        "bin/regex"
+    ],
+    "config": {
+        "optimize-autoloader": true,
+        "preferred-install": "dist",
+        "sort-packages": true
     },
     "extra": {
         "phpstan": {

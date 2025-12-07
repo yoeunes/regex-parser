@@ -264,7 +264,8 @@ final class ComplexityScoreNodeVisitor extends AbstractNodeVisitor
     {
         // Score is the sum of parts inside the class
         $score = self::BASE_SCORE;
-        foreach ($node->parts as $part) {
+        $parts = $node->expression instanceof Node\AlternationNode ? $node->expression->alternatives : [$node->expression];
+        foreach ($parts as $part) {
             $score += $part->accept($this);
         }
 
@@ -531,6 +532,12 @@ final class ComplexityScoreNodeVisitor extends AbstractNodeVisitor
      */
     #[\Override]
     public function visitUnicode(Node\UnicodeNode $node): int
+    {
+        return self::BASE_SCORE;
+    }
+
+    #[\Override]
+    public function visitUnicodeNamed(Node\UnicodeNamedNode $node): int
     {
         return self::BASE_SCORE;
     }

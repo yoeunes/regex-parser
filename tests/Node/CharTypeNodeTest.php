@@ -27,6 +27,8 @@ final class CharTypeNodeTest extends TestCase
         yield 'whitespace' => ['s', 6, 8];
         yield 'not_word' => ['W', 9, 11];
         yield 'horizontal_whitespace' => ['h', 12, 14];
+        yield 'extended_grapheme_cluster' => ['X', 15, 17];
+        yield 'single_byte' => ['C', 18, 20];
     }
 
     #[DataProvider('data_provider_char_types')]

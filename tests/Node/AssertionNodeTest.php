@@ -30,6 +30,8 @@ final class AssertionNodeTest extends TestCase
         // Assertions de mot
         yield 'word_boundary' => ['b', 1, 3];
         yield 'non_word_boundary' => ['B', 1, 3];
+        yield 'grapheme_boundary' => ['b{g}', 1, 5];
+        yield 'non_grapheme_boundary' => ['B{g}', 1, 5];
     }
 
     #[DataProvider('data_provider_assertions')]

@@ -39,7 +39,7 @@ final class VisitorsFinalPushTest extends TestCase
             ->willReturn(new LiteralNode('changed', 0, 0));
 
         // On l'injecte dans une CharClassNode
-        $node = new CharClassNode([$mockPart], false, 0, 0);
+        $node = new CharClassNode($mockPart, false, 0, 0);
 
         // On visite
         $result = $node->accept($optimizer);
@@ -47,8 +47,8 @@ final class VisitorsFinalPushTest extends TestCase
         // Le résultat doit être une nouvelle CharClassNode (pas la même instance)
         $this->assertNotSame($node, $result);
         $this->assertInstanceOf(CharClassNode::class, $result);
-        $this->assertInstanceOf(LiteralNode::class, $result->parts[0]);
-        $this->assertSame('changed', $result->parts[0]->value);
+        $this->assertInstanceOf(LiteralNode::class, $result->expression);
+        $this->assertSame('changed', $result->expression->value);
     }
 
     /**

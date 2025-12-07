@@ -326,9 +326,10 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
     public function visitCharClass(Node\CharClassNode $node): string
     {
         $neg = $node->isNegated ? 'NOT ' : '';
-        $parts = array_map(fn (Node\NodeInterface $part) => $part->accept($this), $node->parts);
+        $parts = $node->expression instanceof Node\AlternationNode ? $node->expression->alternatives : [$node->expression];
+        $explainedParts = array_map(fn (Node\NodeInterface $part) => $part->accept($this), $parts);
 
-        return $this->line(\sprintf('Character Class: any character %sin [ %s ]', $neg, implode(', ', $parts)));
+        return $this->line(\sprintf('Character Class: any character %sin [ %s ]', $neg, implode(', ', $explainedParts)));
     }
 
     /**
@@ -388,6 +389,38 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
     public function visitUnicode(Node\UnicodeNode $node): string
     {
         return $this->line(\sprintf('Unicode: %s', $node->code));
+    }
+
+    #[\Override]
+    public function visitUnicodeNamed(Node\UnicodeNamedNode $node): string
+    {
+        return $this->line(\sprintf('Unicode named character: %s', $node->name));
+    }
+
+    #[\Override]
+    public function visitClassOperation(Node\ClassOperationNode $node): string
+    {
+        $op = Node\ClassOperationType::INTERSECTION === $node->type ? 'intersection' : 'subtraction';
+
+        return $this->line(\sprintf('Class %s between %s and %s', $op, $node->left->accept($this), $node->right->accept($this)));
+    }
+
+    #[\Override]
+    public function visitControlChar(Node\ControlCharNode $node): string
+    {
+        return $this->line(\sprintf('Control character: \\c%s', $node->char));
+    }
+
+    #[\Override]
+    public function visitScriptRun(Node\ScriptRunNode $node): string
+    {
+        return $this->line(\sprintf('Script run assertion for script: %s', $node->script));
+    }
+
+    #[\Override]
+    public function visitVersionCondition(Node\VersionConditionNode $node): string
+    {
+        return $this->line(\sprintf('Version condition: %s %s', $node->operator, $node->version));
     }
 
     /**

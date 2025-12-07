@@ -83,7 +83,7 @@ final class VisitorFallbackTest extends TestCase
             ->method('accept')
             ->willReturn(new LiteralNode('changed', 0, 0)); // Return different instance
 
-        $node = new CharClassNode([$mockPart], false, 0, 0);
+        $node = new CharClassNode($mockPart, false, 0, 0);
         $optimizer = new OptimizerNodeVisitor();
 
         $result = $node->accept($optimizer);
@@ -91,7 +91,7 @@ final class VisitorFallbackTest extends TestCase
         // Assert that we got a NEW CharClassNode (meaning $hasChanged was true)
         $this->assertNotSame($node, $result);
         $this->assertInstanceOf(CharClassNode::class, $result);
-        $this->assertInstanceOf(LiteralNode::class, $result->parts[0]);
-        $this->assertSame('changed', $result->parts[0]->value);
+        $this->assertInstanceOf(LiteralNode::class, $result->expression);
+        $this->assertSame('changed', $result->expression->value);
     }
 }

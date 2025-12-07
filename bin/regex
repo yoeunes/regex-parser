@@ -1,0 +1,252 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+require __DIR__.'/../vendor/autoload.php';
+
+use RegexParser\Exception\LexerException;
+use RegexParser\Exception\ParserException;
+use RegexParser\Regex;
+
+// ANSI color codes
+const RESET = "\033[0m";
+const RED = "\033[31m";
+const GREEN = "\033[32m";
+const YELLOW = "\033[33m";
+const BLUE = "\033[34m";
+const MAGENTA = "\033[35m";
+const CYAN = "\033[36m";
+const WHITE = "\033[37m";
+const BOLD = "\033[1m";
+
+$options = getopt('q', ['quiet', 'silent', 'ansi', 'no-ansi', 'help']);
+$quiet = isset($options['q']) || isset($options['quiet']) || isset($options['silent']);
+$ansi = !isset($options['no-ansi']) && (isset($options['ansi']) || (function_exists('posix_isatty') && posix_isatty(STDOUT)));
+
+function color(string $text, string $color): string
+{
+    global $ansi;
+    return $ansi ? $color . $text . RESET : $text;
+}
+
+function success(string $text): string
+{
+    return color($text, GREEN);
+}
+
+function error(string $text): string
+{
+    return color($text, RED);
+}
+
+function warning(string $text): string
+{
+    return color($text, YELLOW);
+}
+
+function info(string $text): string
+{
+    return color($text, BLUE);
+}
+
+function bold(string $text): string
+{
+    return color($text, BOLD);
+}
+
+function output(string $text): void
+{
+    global $quiet;
+    if (!$quiet) {
+        echo $text;
+    }
+}
+
+function showHelp(): void
+{
+    output(color("Regex Parser", CYAN) . "\n");
+    output(color(str_repeat("=", 12), CYAN) . "\n\n");
+
+    output(color("Description:", MAGENTA) . "\n");
+    output("  " . bold("A beautiful CLI tool for regex parsing, validation, and analysis") . "\n\n");
+
+    output(color("Usage:", MAGENTA) . "\n");
+    output("  regex " . color("<command>", YELLOW) . " " . color("[options]", CYAN) . " " . color("<pattern>", GREEN) . "\n\n");
+
+    output(color("Commands:", MAGENTA) . "\n");
+    output("  " . info("parse") . "     Parse and recompile a regex pattern\n");
+    output("  " . info("analyze") . "   Analyze a regex (parse, validate, ReDoS, explain)\n");
+    output("  " . info("highlight") . " Highlight regex for display\n");
+    output("  " . info("validate") . "  Validate a regex pattern\n");
+    output("  " . info("help") . "      Display this help message\n\n");
+
+    output(color("Global Options:", MAGENTA) . "\n");
+    output("  " . color("--ansi", CYAN) . "          Force ANSI output\n");
+    output("  " . color("--no-ansi", CYAN) . "       Disable ANSI output\n");
+    output("  " . color("-q, --quiet", CYAN) . "     Suppress output\n");
+    output("  " . color("--silent", CYAN) . "        Same as --quiet\n");
+    output("  " . color("--help", CYAN) . "          Display this help message\n\n");
+
+    output(color("Examples:", MAGENTA) . "\n");
+    output("  " . color("regex", BLUE) . " " . color("'/a+'", GREEN) . "                           # Quick highlight\n");
+    output("  " . color("regex", BLUE) . " " . color("parse", YELLOW) . " " . color("'/a+'", GREEN) . " " . color("--validate", CYAN) . "          # Parse with validation\n");
+    output("  " . color("regex", BLUE) . " " . color("analyze", YELLOW) . " " . color("'/a+'", GREEN) . "                   # Full analysis\n");
+    output("  " . color("regex", BLUE) . " " . color("highlight", YELLOW) . " " . color("'/a+'", GREEN) . " " . color("--format=html", CYAN) . "   # HTML highlight\n");
+    output("  " . color("regex", BLUE) . " " . color("validate", YELLOW) . " " . color("'/a+'", GREEN) . "                  # Quick validation\n");
+}
+
+// Remove processed options from argv
+$argv = array_values(array_filter($argv, fn($arg) => !str_starts_with($arg, '-')));
+
+if (isset($options['help'])) {
+    showHelp();
+    exit(0);
+}
+
+if (count($argv) < 2) {
+    showHelp();
+    exit(1);
+}
+
+$command = $argv[1];
+
+// Shortcut: if command looks like a regex pattern, assume highlight
+if (str_starts_with($command, '/')) {
+    $pattern = $command;
+    $command = 'highlight';
+} else {
+    $pattern = $argv[2] ?? '';
+}
+
+switch ($command) {
+    case 'help':
+    case '--help':
+    case '-h':
+        showHelp();
+        exit(0);
+
+    case 'parse':
+        if (empty($pattern)) {
+            output(error("Error: Missing pattern\n"));
+            output("Usage: regex parse <pattern> [--validate]\n");
+            exit(1);
+        }
+        $validate = in_array('--validate', $argv, true);
+        $regex = Regex::create();
+
+        try {
+            $ast = $regex->parse($pattern);
+            $compiled = $ast->accept(new RegexParser\NodeVisitor\CompilerNodeVisitor());
+
+            output(success("✓ Parsed successfully!\n"));
+            output("Original:   {$pattern}\n");
+            output("Recompiled: {$compiled}\n");
+
+            if ($validate) {
+                $validation = $regex->validate($pattern);
+                output("Validation: " . ($validation->isValid ? success('OK') : error('INVALID')) . "\n");
+                if (!$validation->isValid && $validation->error) {
+                    output(error("Error: {$validation->error}\n"));
+                }
+            }
+        } catch (LexerException|ParserException $e) {
+            output(error("✗ Error: {$e->getMessage()}\n"));
+            exit(1);
+        }
+        break;
+
+    case 'analyze':
+        if (empty($pattern)) {
+            output(error("Error: Missing pattern\n"));
+            output("Usage: regex analyze <pattern>\n");
+            exit(1);
+        }
+        $regex = Regex::create();
+
+        try {
+            $ast = $regex->parse($pattern);
+            $validation = $regex->validate($pattern);
+            $analysis = $regex->analyzeReDoS($pattern);
+            $explain = $regex->explain($pattern);
+
+            output(bold("Pattern: ") . "{$pattern}\n");
+            output("Parse: " . success("OK") . "\n");
+            output("Validation: " . ($validation->isValid ? success('OK') : error('INVALID')) . "\n");
+            if (!$validation->isValid && $validation->error) {
+                output(error("Error: {$validation->error}\n"));
+            }
+            output("ReDoS severity: " . warning($analysis->severity->value) . "\n");
+            output("ReDoS score: {$analysis->score}\n");
+            if ($analysis->error) {
+                output(error("ReDoS error: {$analysis->error}\n"));
+            }
+            output("\n" . bold("Explanation:") . "\n");
+            output($explain . "\n");
+        } catch (LexerException|ParserException $e) {
+            output(error("✗ Error: {$e->getMessage()}\n"));
+            exit(1);
+        }
+        break;
+
+    case 'highlight':
+        if (empty($pattern)) {
+            output(error("Error: Missing pattern\n"));
+            output("Usage: regex highlight <pattern> [--format=auto|cli|html]\n");
+            exit(1);
+        }
+        $format = 'auto';
+        foreach ($argv as $arg) {
+            if (str_starts_with($arg, '--format=')) {
+                $format = substr($arg, 9);
+            }
+        }
+        $regex = Regex::create();
+
+        try {
+            if ($format === 'html') {
+                $highlighted = $regex->highlightHtml($pattern);
+            } elseif ($format === 'cli') {
+                $highlighted = $regex->highlightCli($pattern);
+            } else {
+                $highlighted = $regex->highlight($pattern);
+            }
+
+            output($highlighted . "\n");
+        } catch (LexerException|ParserException $e) {
+            output(error("✗ Error: {$e->getMessage()}\n"));
+            exit(1);
+        }
+        break;
+
+    case 'validate':
+        if (empty($pattern)) {
+            output(error("Error: Missing pattern\n"));
+            output("Usage: regex validate <pattern>\n");
+            exit(1);
+        }
+        $regex = Regex::create();
+
+        $validation = $regex->validate($pattern);
+        output($validation->isValid ? success('✓ OK') : error('✗ INVALID'));
+        output("\n");
+        if (!$validation->isValid && $validation->error) {
+            output(error("Error: {$validation->error}\n"));
+            exit(1);
+        }
+        break;
+
+    default:
+        output(error("Unknown command: {$command}\n\n"));
+        showHelp();
+        exit(1);
+}

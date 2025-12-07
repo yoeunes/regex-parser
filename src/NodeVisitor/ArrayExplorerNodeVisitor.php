@@ -315,6 +315,7 @@ final class ArrayExplorerNodeVisitor extends AbstractNodeVisitor
     public function visitCharClass(Node\CharClassNode $node): array
     {
         $label = $node->isNegated ? 'Negative Character Set [^...]' : 'Character Set [...]';
+        $parts = $node->expression instanceof Node\AlternationNode ? $node->expression->alternatives : [$node->expression];
 
         return [
             'type' => 'CharClass',
@@ -322,7 +323,7 @@ final class ArrayExplorerNodeVisitor extends AbstractNodeVisitor
             'icon' => 'fa-solid fa-border-all',
             'color' => $node->isNegated ? 'text-red-600' : 'text-teal-600',
             'bg' => $node->isNegated ? 'bg-red-50' : 'bg-teal-50',
-            'children' => array_map(fn ($child) => $child->accept($this), $node->parts),
+            'children' => array_map(fn ($child) => $child->accept($this), $parts),
         ];
     }
 
@@ -605,6 +606,19 @@ final class ArrayExplorerNodeVisitor extends AbstractNodeVisitor
             'type' => 'Unicode',
             'label' => 'Unicode Character',
             'detail' => $node->code,
+            'icon' => 'fa-solid fa-language',
+            'color' => 'text-violet-600',
+            'isLeaf' => true,
+        ];
+    }
+
+    #[\Override]
+    public function visitUnicodeNamed(Node\UnicodeNamedNode $node): array
+    {
+        return [
+            'type' => 'UnicodeNamed',
+            'label' => 'Unicode Named Character',
+            'detail' => $node->name,
             'icon' => 'fa-solid fa-language',
             'color' => 'text-violet-600',
             'isLeaf' => true,

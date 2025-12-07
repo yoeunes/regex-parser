@@ -48,15 +48,17 @@ final class Lexer
         | (?<T_ANCHOR>                \^ | \$ )
         
         # Escaped sequences (must precede T_LITERAL)
-        | (?<T_ASSERTION>             \\ [AzZGbB] )
+        | (?<T_ASSERTION>             \\ (?: b\{g\} | B\{g\} | [AzZGbB] ) )
         | (?<T_KEEP>                  \\ K )
-        | (?<T_CHAR_TYPE>             \\ [dswDSWhvR] )
+        | (?<T_CHAR_TYPE>             \\ [dswDSWhvRCX] )
         | (?<T_G_REFERENCE>           \\ g (?: \{[a-zA-Z0-9_+-]+\} | <[a-zA-Z0-9_]+> | [0-9+-]+ )? )
         | (?<T_BACKREF>               \\ (?: k(?:<[a-zA-Z0-9_]+> | \{[a-zA-Z0-9_]+\}) | (?<v_backref_num> [1-9]\d*) ) )
-        | (?<T_OCTAL_LEGACY>          \\ 0[0-7]{0,2} )
+        | (?<T_OCTAL_LEGACY>          \\ [0-7]{1,3} )
         | (?<T_OCTAL>                 \\ o\{[0-7]+\} )
         | (?<T_UNICODE>               \\ x (?: [0-9a-fA-F]{2} | \{[0-9a-fA-F]+\} ) | \\ u\{[0-9a-fA-F]+\} )
         | (?<T_UNICODE_PROP>          \\ [pP] (?: \{ (?<v1_prop> \^? [a-zA-Z0-9_]+) \} | (?<v2_prop> [a-zA-Z]) ) )
+        | (?<T_UNICODE_NAMED>         \\ N\{[a-zA-Z0-9_ ]+\} )
+        | (?<T_CONTROL_CHAR>          \\ c [A-Z] )
         | (?<T_QUOTE_MODE_START>      \\ Q )
         | (?<T_QUOTE_MODE_END>        \\ E )
         | (?<T_LITERAL_ESCAPED>       \\ . ) # Any other escaped char (e.g. \., \*)
@@ -82,7 +84,11 @@ final class Lexer
         | (?<T_UNICODE_PROP>     \\ [pP] (?: \{ (?<v1_prop> \^? [a-zA-Z0-9_]+) \} | (?<v2_prop> [a-zA-Z]) ) )
         | (?<T_QUOTE_MODE_START> \\ Q )
         | (?<T_LITERAL_ESCAPED>  \\ . ) # Includes escaped ], -, ^
-        
+
+        # Character class operators
+        | (?<T_CLASS_INTERSECTION> && )
+        | (?<T_CLASS_SUBTRACTION>  -- )
+
         # Must be last: Match any single character that wasn't matched above.
         | (?<T_LITERAL>          [^\\\\] )
         /xsuA
@@ -113,6 +119,8 @@ final class Lexer
         'T_OCTAL',
         'T_UNICODE',
         'T_UNICODE_PROP',
+        'T_UNICODE_NAMED',
+        'T_CONTROL_CHAR',
         'T_QUOTE_MODE_START',
         'T_QUOTE_MODE_END',
         'T_LITERAL_ESCAPED',
@@ -130,8 +138,11 @@ final class Lexer
         'T_OCTAL',
         'T_UNICODE',
         'T_UNICODE_PROP',
+        'T_UNICODE_NAMED',
         'T_QUOTE_MODE_START',
         'T_LITERAL_ESCAPED',
+        'T_CLASS_INTERSECTION',
+        'T_CLASS_SUBTRACTION',
         'T_LITERAL',
     ];
 
@@ -578,10 +589,14 @@ final class Lexer
             TokenType::T_ASSERTION,
             TokenType::T_CHAR_TYPE,
             TokenType::T_KEEP => substr($matchedValue, 1),
-            TokenType::T_BACKREF => $matches['v_backref_num'] ?? $matchedValue,
+            TokenType::T_BACKREF => $matchedValue,
             TokenType::T_OCTAL_LEGACY => substr($matchedValue, 1),
             TokenType::T_POSIX_CLASS => $matches['v_posix'] ?? '',
             TokenType::T_UNICODE_PROP => $this->normalizeUnicodeProp($matchedValue, $matches),
+            TokenType::T_UNICODE_NAMED => substr($matchedValue, 3, -1), // remove \N{ and }
+            TokenType::T_CONTROL_CHAR => substr($matchedValue, 2), // remove \c
+            TokenType::T_CLASS_INTERSECTION => '&&',
+            TokenType::T_CLASS_SUBTRACTION => '--',
             default => $matchedValue,
         };
     }

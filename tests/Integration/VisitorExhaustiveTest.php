@@ -74,7 +74,7 @@ final class VisitorExhaustiveTest extends TestCase
             new AnchorNode('^', 0, 0),
             new AssertionNode('b', 0, 0),
             new BackrefNode('1', 0, 0),
-            new CharClassNode([], false, 0, 0),
+            new CharClassNode(new LiteralNode('', 0, 0), false, 0, 0),
             new CharTypeNode('d', 0, 0),
             new CommentNode('comment', 0, 0),
             new ConditionalNode(new BackrefNode('1', 0, 0), new LiteralNode('a', 0, 0), new LiteralNode('b', 0, 0), 0, 0),

@@ -394,6 +394,90 @@ final readonly class Regex
     }
 
     /**
+     * Modernizes a legacy or messy regular expression into a clean, concise PCRE2-compliant pattern.
+     *
+     * This method applies safe transformations to improve readability without changing behavior:
+     * - Converts character class ranges to shorthands (\d, \w, \s)
+     * - Removes unnecessary escaping
+     * - Modernizes backreference syntax
+     *
+     * @param string $regex The regex pattern to modernize (e.g., '/[0-9]+/')
+     *
+     * @throws ParserException If the regex cannot be parsed
+     *
+     * @return string The modernized regex pattern (e.g., '/\d+/')
+     *
+     * @example
+     * ```php
+     * $regexService = Regex::create();
+     * $modern = $regexService->modernize('/[0-9]+\-[a-z]+/');
+     * echo $modern; // Outputs: /\d+-[a-z]+/
+     * ```
+     */
+    public function modernize(string $regex): string
+    {
+        $ast = $this->parse($regex);
+        /** @var \RegexParser\Node\NodeInterface $modernizedAst */
+        $modernizedAst = $ast->accept(new NodeVisitor\ModernizerNodeVisitor());
+
+        return $modernizedAst->accept(new NodeVisitor\CompilerNodeVisitor());
+    }
+
+    /**
+     * Highlights a regex pattern for console output using ANSI escape codes.
+     *
+     * @param string $regex The regex pattern to highlight
+     *
+     * @throws ParserException If the regex cannot be parsed
+     *
+     * @return string The highlighted string with ANSI codes
+     */
+    public function highlightCli(string $regex): string
+    {
+        $ast = $this->parse($regex);
+
+        return $ast->accept(new NodeVisitor\ConsoleHighlighterVisitor());
+    }
+
+    /**
+     * Highlights a regex pattern for HTML output using span tags.
+     *
+     * @param string $regex The regex pattern to highlight
+     *
+     * @throws ParserException If the regex cannot be parsed
+     *
+     * @return string The highlighted HTML string
+     */
+    public function highlightHtml(string $regex): string
+    {
+        $ast = $this->parse($regex);
+
+        return (string) $ast->accept(new NodeVisitor\HtmlHighlighterVisitor());
+    }
+
+    /**
+     * Highlights a regex pattern for output, automatically detecting the context (CLI or HTML).
+     *
+     * This method works like Symfony's VarDumper dump() method, detecting whether the output
+     * is for a terminal (CLI) or web (HTML) and formatting accordingly.
+     *
+     * @param string $regex The regex pattern to highlight
+     *
+     * @throws ParserException If the regex cannot be parsed
+     *
+     * @return string The highlighted string (with ANSI codes for CLI, HTML spans for web)
+     */
+    public function highlight(string $regex): string
+    {
+        if ($this->isCli()) {
+            return $this->highlightCli($regex);
+        }
+
+        return $this->highlightHtml($regex);
+
+    }
+
+    /**
      * Finds all non-optional, non-alternating literal strings within a regex.
      *
      * Purpose: This method identifies sequences of characters that *must* exist in any
@@ -724,6 +808,11 @@ final readonly class Regex
         }
 
         throw new ParserException(\sprintf('No closing delimiter "%s" found.', $closingDelimiter));
+    }
+
+    private function isCli(): bool
+    {
+        return \PHP_SAPI === 'cli';
     }
 
     /**

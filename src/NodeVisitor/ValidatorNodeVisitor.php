@@ -411,7 +411,8 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitCharClass(Node\CharClassNode $node): void
     {
-        foreach ($node->parts as $part) {
+        $parts = $node->expression instanceof Node\AlternationNode ? $node->expression->alternatives : [$node->expression];
+        foreach ($parts as $part) {
             $part->accept($this);
         }
     }
@@ -480,9 +481,9 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     {
         $ref = $node->ref;
 
-        if (ctype_digit($ref)) {
+        if (preg_match('/^\\\\(\d+)$/', $ref, $matches)) {
             // Numeric backref: \1, \2, etc.
-            $num = (int) $ref;
+            $num = (int) $matches[1];
             if (0 === $num) {
                 throw new ParserException('Backreference \0 is not valid');
             }
@@ -560,6 +561,12 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         if ($code > 0x10FFFF) {
             throw new ParserException(\sprintf('Invalid Unicode codepoint "%s" (out of range) at position %d.', $node->code, $node->startPosition));
         }
+    }
+
+    #[\Override]
+    public function visitUnicodeNamed(Node\UnicodeNamedNode $node): void
+    {
+        // TODO: Validate that the Unicode name is valid. For now, assume it's correct.
     }
 
     /**
@@ -646,9 +653,14 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitOctalLegacy(Node\OctalLegacyNode $node): void
     {
-        // \0 is treated as an invalid backreference
+        // \0 is not allowed as it represents the NULL character
         if ('0' === $node->code) {
-            throw new ParserException('Backreference \0 is not valid');
+            throw new ParserException('Octal escape \0 is not allowed');
+        }
+
+        // Check if all digits are valid octal
+        if (!preg_match('/^[0-7]+$/', $node->code)) {
+            throw new ParserException(\sprintf('Invalid octal codepoint "\%s" at position %d.', $node->code, $node->startPosition));
         }
 
         // \0...

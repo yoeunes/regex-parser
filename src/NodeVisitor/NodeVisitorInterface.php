@@ -27,6 +27,12 @@ use RegexParser\Node;
  * As a contributor, if you add a new AST node, you MUST add a corresponding `visit...()`
  * method to this interface and implement it in all existing visitor classes.
  *
+ * @warning Users should NOT implement this interface directly. New methods may be added
+ *          to this interface in minor versions (e.g., 1.x) to support new regex features,
+ *          which would break any direct implementations. Instead, extend
+ *          `RegexParser\NodeVisitor\AbstractNodeVisitor`, which provides default
+ *          implementations and insulates you from such changes.
+ *
  * @template-covariant TReturn The return type of the visitor's methods (e.g., `string`
  *                             for `CompilerNodeVisitor`, `void` for `ValidatorNodeVisitor`).
  */
@@ -166,6 +172,51 @@ interface NodeVisitorInterface
      * @return TReturn the result of visiting this node
      */
     public function visitUnicode(Node\UnicodeNode $node);
+
+    /**
+     * Logic to execute when visiting a `UnicodeNamedNode`.
+     *
+     * @param Node\UnicodeNamedNode $node the node representing a named Unicode character escape (`\N{name}`)
+     *
+     * @return TReturn the result of visiting this node
+     */
+    public function visitUnicodeNamed(Node\UnicodeNamedNode $node);
+
+    /**
+     * Logic to execute when visiting a `ClassOperationNode`.
+     *
+     * @param Node\ClassOperationNode $node the node representing a character class operation (`&&` or `--`)
+     *
+     * @return TReturn the result of visiting this node
+     */
+    public function visitClassOperation(Node\ClassOperationNode $node);
+
+    /**
+     * Logic to execute when visiting a `ControlCharNode`.
+     *
+     * @param Node\ControlCharNode $node the node representing a control character escape (`\cM`)
+     *
+     * @return TReturn the result of visiting this node
+     */
+    public function visitControlChar(Node\ControlCharNode $node);
+
+    /**
+     * Logic to execute when visiting a `ScriptRunNode`.
+     *
+     * @param Node\ScriptRunNode $node the node representing a script run verb (`(*script_run:...)`)
+     *
+     * @return TReturn the result of visiting this node
+     */
+    public function visitScriptRun(Node\ScriptRunNode $node);
+
+    /**
+     * Logic to execute when visiting a `VersionConditionNode`.
+     *
+     * @param Node\VersionConditionNode $node the node representing a version condition (`(?(VERSION>=10.0)...)`)
+     *
+     * @return TReturn the result of visiting this node
+     */
+    public function visitVersionCondition(Node\VersionConditionNode $node);
 
     /**
      * Logic to execute when visiting a `UnicodePropNode`.

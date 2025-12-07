@@ -19,6 +19,7 @@ use RegexParser\Node\CharClassNode;
 use RegexParser\Node\CharTypeNode;
 use RegexParser\Node\LiteralNode;
 use RegexParser\Node\QuantifierNode;
+use RegexParser\Node\RangeNode;
 use RegexParser\Node\RegexNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\NodeVisitor\OptimizerNodeVisitor;
@@ -87,7 +88,8 @@ final class OptimizerNodeVisitorTest extends TestCase
 
         $this->assertInstanceOf(RegexNode::class, $newAst);
         $this->assertInstanceOf(CharClassNode::class, $newAst->pattern);
-        $this->assertCount(3, $newAst->pattern->parts);
+        $this->assertInstanceOf(AlternationNode::class, $newAst->pattern->expression);
+        $this->assertCount(3, $newAst->pattern->expression->alternatives);
     }
 
     public function test_digit_optimization(): void
@@ -218,9 +220,8 @@ final class OptimizerNodeVisitorTest extends TestCase
         $this->assertInstanceOf(CharClassNode::class, $optimized->pattern);
         /** @var CharClassNode $charClass */
         $charClass = $optimized->pattern;
-        $this->assertCount(1, $charClass->parts);
-        $range = $charClass->parts[0];
-        $this->assertInstanceOf(\RegexParser\Node\RangeNode::class, $range);
+        $this->assertInstanceOf(RangeNode::class, $charClass->expression);
+        $range = $charClass->expression;
         $this->assertInstanceOf(LiteralNode::class, $range->start);
         $this->assertInstanceOf(LiteralNode::class, $range->end);
         $this->assertSame('a', $range->start->value);
@@ -236,16 +237,17 @@ final class OptimizerNodeVisitorTest extends TestCase
         $this->assertInstanceOf(CharClassNode::class, $optimized->pattern);
         /** @var CharClassNode $charClass */
         $charClass = $optimized->pattern;
-        $this->assertCount(2, $charClass->parts);
+        $this->assertInstanceOf(AlternationNode::class, $charClass->expression);
+        $this->assertCount(2, $charClass->expression->alternatives);
 
-        $range1 = $charClass->parts[0];
+        $range1 = $charClass->expression->alternatives[0];
         $this->assertInstanceOf(\RegexParser\Node\RangeNode::class, $range1);
         $this->assertInstanceOf(LiteralNode::class, $range1->start);
         $this->assertInstanceOf(LiteralNode::class, $range1->end);
         $this->assertSame('a', $range1->start->value);
         $this->assertSame('f', $range1->end->value);
 
-        $last = $charClass->parts[1];
+        $last = $charClass->expression->alternatives[1];
         $this->assertInstanceOf(LiteralNode::class, $last);
         $this->assertSame('h', $last->value);
     }

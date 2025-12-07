@@ -41,7 +41,7 @@ final class ValidatorEdgeCaseTest extends TestCase
     public function test_invalid_backreference_zero(): void
     {
         $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('\0 is not valid');
+        $this->expectExceptionMessage('Octal escape \0 is not allowed');
         $this->validate('/\0/');
     }
 

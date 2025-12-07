@@ -266,14 +266,15 @@ final class TestCaseGeneratorNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitCharClass(Node\CharClassNode $node): array
     {
-        if (empty($node->parts)) {
+        $parts = $node->expression instanceof Node\AlternationNode ? $node->expression->alternatives : [$node->expression];
+        if (empty($parts)) {
             return [
                 'matching' => [],
                 'non_matching' => ['a'],
             ];
         }
 
-        $sample = $node->parts[0]->accept($this)['matching'][0] ?? 'a';
+        $sample = $parts[0]->accept($this)['matching'][0] ?? 'a';
         $matching = [$sample];
         $nonMatching = $node->isNegated ? [] : ['!'];
 
@@ -323,6 +324,15 @@ final class TestCaseGeneratorNodeVisitor extends AbstractNodeVisitor
 
     #[\Override]
     public function visitUnicode(Node\UnicodeNode $node): array
+    {
+        return [
+            'matching' => ['a'],
+            'non_matching' => ['!'],
+        ];
+    }
+
+    #[\Override]
+    public function visitUnicodeNamed(Node\UnicodeNamedNode $node): array
     {
         return [
             'matching' => ['a'],

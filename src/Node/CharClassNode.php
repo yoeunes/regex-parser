@@ -31,16 +31,16 @@ final readonly class CharClassNode extends AbstractNode
      * Purpose: This constructor creates a node representing a `[...]` construct. The `Parser`
      * builds this node and populates it with the various components found between the brackets.
      *
-     * @param array<NodeInterface> $parts         An array of nodes representing the contents of the character class.
-     *                                            This can include `LiteralNode`, `CharTypeNode`, `RangeNode`,
-     *                                            `PosixClassNode`, etc.
-     * @param bool                 $isNegated     `true` if the class is negated (starts with `^`), meaning it matches
-     *                                            any character *not* in the set. `false` otherwise.
-     * @param int                  $startPosition the zero-based byte offset where the opening `[` appears
-     * @param int                  $endPosition   the zero-based byte offset immediately after the closing `]`
+     * @param NodeInterface $expression    The expression representing the contents of the character class.
+     *                                     This can be `LiteralNode`, `CharTypeNode`, `RangeNode`,
+     *                                     `PosixClassNode`, `AlternationNode`, or `ClassOperationNode` for extended operations.
+     * @param bool          $isNegated     `true` if the class is negated (starts with `^`), meaning it matches
+     *                                     any character *not* in the set. `false` otherwise.
+     * @param int           $startPosition the zero-based byte offset where the opening `[` appears
+     * @param int           $endPosition   the zero-based byte offset immediately after the closing `]`
      */
     public function __construct(
-        public array $parts,
+        public NodeInterface $expression,
         public bool $isNegated,
         int $startPosition,
         int $endPosition

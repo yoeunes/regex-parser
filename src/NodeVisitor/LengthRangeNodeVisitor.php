@@ -261,6 +261,12 @@ final class LengthRangeNodeVisitor extends AbstractNodeVisitor
         return [1, 1];
     }
 
+    #[\Override]
+    public function visitUnicodeNamed(Node\UnicodeNamedNode $node): array
+    {
+        return [1, 1];
+    }
+
     /**
      * Visits a UnicodePropNode and returns [1, 1].
      *

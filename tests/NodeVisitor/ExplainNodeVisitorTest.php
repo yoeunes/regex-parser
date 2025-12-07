@@ -99,7 +99,7 @@ final class ExplainNodeVisitorTest extends TestCase
     public function test_visit_char_class_node(): void
     {
         $node = new CharClassNode(
-            [new LiteralNode('a', 1, 2)],
+            new AlternationNode([new LiteralNode('a', 1, 2)], 0, 3),
             false,
             0,
             3,
