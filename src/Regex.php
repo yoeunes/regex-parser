@@ -394,6 +394,35 @@ final readonly class Regex
     }
 
     /**
+     * Modernizes a legacy or messy regular expression into a clean, concise PCRE2-compliant pattern.
+     *
+     * This method applies safe transformations to improve readability without changing behavior:
+     * - Converts character class ranges to shorthands (\d, \w, \s)
+     * - Removes unnecessary escaping
+     * - Modernizes backreference syntax
+     *
+     * @param string $regex The regex pattern to modernize (e.g., '/[0-9]+/')
+     *
+     * @return string The modernized regex pattern (e.g., '/\d+/')
+     *
+     * @throws ParserException If the regex cannot be parsed
+     *
+     * @example
+     * ```php
+     * $regexService = Regex::create();
+     * $modern = $regexService->modernize('/[0-9]+\-[a-z]+/');
+     * echo $modern; // Outputs: /\d+-[a-z]+/
+     * ```
+     */
+    public function modernize(string $regex): string
+    {
+        $ast = $this->parse($regex);
+        /** @var \RegexParser\Node\NodeInterface $modernizedAst */
+        $modernizedAst = $ast->accept(new NodeVisitor\ModernizerNodeVisitor());
+        return $modernizedAst->accept(new NodeVisitor\CompilerNodeVisitor());
+    }
+
+    /**
      * Finds all non-optional, non-alternating literal strings within a regex.
      *
      * Purpose: This method identifies sequences of characters that *must* exist in any

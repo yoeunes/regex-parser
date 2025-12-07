@@ -23,8 +23,9 @@
 - [Advanced Usage](#advanced-usage)
   - [Parsing bare patterns vs PCRE strings](#parsing-bare-patterns-vs-pcre-strings)
   - [Working with the AST](#working-with-the-ast)
-  - [Writing a custom AST visitor](#writing-a-custom-ast-visitor)
-  - [Optimizing and recompiling patterns](#optimizing-and-recompiling-patterns)
+   - [Writing a custom AST visitor](#writing-a-custom-ast-visitor)
+   - [Optimizing and recompiling patterns](#optimizing-and-recompiling-patterns)
+   - [Auto-Modernize Legacy Patterns](#auto-modernize-legacy-patterns)
 - [ReDoS Analysis](#redos-analysis)
   - [What is ReDoS?](#what-is-redos)
   - [How RegexParser detects it](#how-regexparser-detects-it)
@@ -318,6 +319,29 @@ echo $optimizedPattern; // e.g. '/(a)/'
 ```
 
 This makes it easy to implement automated refactorings (via Rector) or style rules for regexes.
+
+---
+
+## ✨ Auto-Modernize Legacy Patterns
+
+Clean up messy or legacy regexes automatically:
+
+```php
+use RegexParser\Regex;
+
+$regex = Regex::create();
+$modern = $regex->modernize('/[0-9]+\-[a-z]+\@(?:gmail)\.com/');
+
+echo $modern; // Outputs: /\d+-[a-z]+@gmail\.com/
+```
+
+**What it does:**
+- Converts `[0-9]` → `\d`, `[a-zA-Z0-9_]` → `\w`, `[\t\n\r\f\v]` → `\s`
+- Removes unnecessary escaping (e.g., `\@` → `@`)
+- Modernizes backrefs (`\1` → `\g{1}`)
+- Preserves exact behavior — no functional changes
+
+Perfect for refactoring legacy codebases or cleaning up generated patterns.
 
 ---
 
