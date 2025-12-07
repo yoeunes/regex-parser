@@ -25,9 +25,9 @@ use RegexParser\Node\GroupType;
  * meaningful, user-facing output. Each `visit` method is responsible for
  * generating the English explanation for a specific regex component.
  *
- * @implements NodeVisitorInterface<string>
+ * @extends AbstractNodeVisitor<string>
  */
-final class ExplainNodeVisitor implements NodeVisitorInterface
+final class ExplainNodeVisitor extends AbstractNodeVisitor
 {
     private const array CHAR_TYPE_MAP = [
         'd' => 'any digit (0-9)',

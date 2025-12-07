@@ -68,10 +68,7 @@ $result = $regex->validate('/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i');
 if ($result->isValid()) {
     echo "OK ✅\n";
 } else {
-    echo "Invalid regex:\n";
-    foreach ($result->errors as $error) {
-        echo '- '.$error->getMessage()."\n";
-    }
+    echo "Invalid regex: ".$result->getErrorMessage()."\n";
 }
 ```
 
@@ -138,14 +135,14 @@ $pattern  = '/^(a+)+$/'; // classic catastrophic backtracking example
 $analysis = $regex->analyzeReDoS($pattern);
 
 echo "Severity: ".$analysis->severity->name.PHP_EOL;
+echo "Score: ".$analysis->score.PHP_EOL;
 
-foreach ($analysis->vulnerabilities as $vuln) {
-    echo sprintf(
-        "- [%s] %s (at position %d)\n",
-        $vuln->severity->name,
-        $vuln->message,
-        $vuln->position
-    );
+if (!$analysis->isSafe()) {
+    echo "Hotspot: ".($analysis->vulnerablePart ?? 'unknown').PHP_EOL;
+
+    foreach ($analysis->recommendations as $recommendation) {
+        echo "- ".$recommendation.PHP_EOL;
+    }
 }
 
 // Quick boolean check (for CI, input validation, etc.)
@@ -158,6 +155,18 @@ Under the hood it inspects quantifiers, nested groups, backreferences and charac
 
 ---
 
+## Configuration / Options
+
+`Regex::create()` accepts a small, validated option array (or a `RegexOptions` value object via `RegexOptions::fromArray()`):
+
+- `max_pattern_length` (int, default: `Regex::DEFAULT_MAX_PATTERN_LENGTH`).
+- `cache` (`null` | path string | `RegexParser\Cache\CacheInterface`).
+- `redos_ignored_patterns` (list of strings to skip in ReDoS analysis).
+
+Unknown or invalid keys throw `RegexParser\Exception\InvalidRegexOptionException`.
+
+---
+
 ## Advanced Usage
 
 ### Parsing bare patterns vs PCRE strings
@@ -166,6 +175,12 @@ Most high‑level methods (`parse`, `validate`, `analyzeReDoS`) expect a **full 
 
 ```php
 $ast = $regex->parse('/pattern/ims');
+```
+
+If you only have the body, `parsePattern()` will wrap delimiters/flags for you:
+
+```php
+$ast = $regex->parsePattern('a|b', '#', 'i');
 ```
 
 If you already have just the pattern body, you can go lower‑level:
@@ -225,26 +240,28 @@ For experts: the “right” way to analyse patterns is to implement your own vi
 namespace App\Regex;
 
 use RegexParser\Node\LiteralNode;
-use RegexParser\Node\NodeInterface;
-use RegexParser\NodeVisitor\NodeVisitorInterface;
+use RegexParser\Node\QuantifierNode;
+use RegexParser\Node\RegexNode;
+use RegexParser\Node\SequenceNode;
+use RegexParser\NodeVisitor\AbstractNodeVisitor;
 
 /**
- * @implements NodeVisitorInterface<int>
+ * @extends AbstractNodeVisitor<int>
  */
-final class LiteralCountVisitor implements NodeVisitorInterface
+final class LiteralCountVisitor extends AbstractNodeVisitor
 {
-    public function visitRegexNode(\RegexParser\Node\RegexNode $node): int
+    public function visitRegex(RegexNode $node): int
     {
         return $node->pattern->accept($this);
     }
 
-    public function visitLiteralNode(LiteralNode $node): int
+    public function visitLiteral(LiteralNode $node): int
     {
         return 1;
     }
 
     // Aggregate over sequences and groups:
-    public function visitSequenceNode(\RegexParser\Node\SequenceNode $node): int
+    public function visitSequence(SequenceNode $node): int
     {
         $sum = 0;
         foreach ($node->children as $child) {
@@ -255,12 +272,10 @@ final class LiteralCountVisitor implements NodeVisitorInterface
     }
 
     // For nodes you don't care about, just recurse or return 0
-    public function visitQuantifierNode(\RegexParser\Node\QuantifierNode $node): int
+    public function visitQuantifier(QuantifierNode $node): int
     {
         return $node->node->accept($this);
     }
-
-    // ... implement the remaining methods (or extend an AbstractVisitor)
 }
 ```
 
@@ -350,6 +365,8 @@ From lowest to highest:
 * `MEDIUM` — potentially problematic in edge cases.
 * `HIGH` — clear ReDoS risk; avoid on untrusted input.
 * `CRITICAL` — classic catastrophic patterns (nested `+`/`*` etc.).
+
+`analyzeReDoS()` returns a `ReDoSAnalysis` with the severity, score, vulnerable substring (if any), and recommendations. `isSafe()` simply calls `analyzeReDoS()` and returns `true` only for severities considered safe/low (or below the optional threshold you pass in).
 
 You choose what to tolerate:
 
@@ -445,6 +462,7 @@ final readonly class Regex
     public static function create(array $options = []): self;
 
     public function parse(string $regex): Node\RegexNode;
+    public function parsePattern(string $pattern, string $delimiter = '/', string $flags = ''): Node\RegexNode;
 
     public function parseTolerant(string $regex): TolerantParseResult;
 
@@ -460,7 +478,7 @@ final readonly class Regex
 
     public function analyzeReDoS(string $regex): ReDoS\ReDoSAnalysis;
 
-    public function isSafe(string $regex, ReDoS\ReDoSSeverity $threshold): bool;
+    public function isSafe(string $regex, ?ReDoS\ReDoSSeverity $threshold = null): bool;
 
     public function getLexer(): Lexer;
     public function getParser(): Parser;
@@ -471,25 +489,33 @@ Return types like `ValidationResult`, `LiteralSet`, `ReDoSAnalysis` are small, w
 
 ---
 
+## Exceptions
+
+- `Regex::create()` throws `InvalidRegexOptionException` for unknown/invalid options.
+- `parse()` / `parsePattern()` can throw `LexerException`, `SyntaxErrorException` (syntax/structure), `RecursionLimitException` (too deep), and `ResourceLimitException` (pattern too long).
+- `parseTolerant()` wraps those errors into `TolerantParseResult` instead of throwing.
+- `validate()` converts parser/lexer errors into a `ValidationResult` (no exception on invalid input).
+- `analyzeReDoS()` / `isSafe()` share the same parsing exceptions as `parse()`; `isSafe()` is a boolean wrapper around `analyzeReDoS()`.
+
+Generic runtime errors (e.g., wrong argument types) are not part of the stable API surface.
+
+---
+
 ## Versioning & BC Policy
 
 RegexParser follows **Semantic Versioning**:
 
-* **1.0.0** — Initial stable release.
-* **1.x** — No breaking changes to:
+* **Stable for 1.x** (API surface we commit to keep compatible):
+  * Public methods and signatures on `Regex`.
+  * Value objects: `ValidationResult`, `TolerantParseResult`, `LiteralSet`, `ReDoS\ReDoSAnalysis`.
+  * Main exception interfaces/classes: `RegexParserExceptionInterface`, parser/lexer exceptions, `InvalidRegexOptionException`.
+  * Supported option keys for `Regex::create()` / `RegexOptions`.
 
-  * public methods of `Regex`,
-  * AST node constructors & properties,
-  * `NodeVisitorInterface`,
-  * ReDoS public API.
+* **Best-effort, may evolve within 1.x**:
+  * AST node classes and `NodeVisitorInterface` (new node types/visit methods can be added).
+  * Built-in visitors and analysis heuristics.
 
-We reserve the right to:
-
-* Add new methods (with sensible defaults).
-* Add new node types in minor versions (without changing existing ones).
-* Improve analysis heuristics and error messages.
-
-Breaking changes will be released as **2.0**.
+If you maintain custom visitors, plan to adjust them when new nodes appear. Breaking changes beyond this policy land in **2.0.0**.
 
 ---
 

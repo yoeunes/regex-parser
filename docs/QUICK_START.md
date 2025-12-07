@@ -17,10 +17,10 @@ composer require yoeunes/regex-parser
 Convert a regex string into an Abstract Syntax Tree (AST).
 
 ```php
-use RegexParser\Parser;
+use RegexParser\Regex;
 
-$parser = new Parser();
-$ast = $parser->parse('/\d{3}-\d{4}/');
+$regex = Regex::create();
+$ast = $regex->parse('/\d{3}-\d{4}/');
 
 // $ast is a RegexNode containing the full AST
 var_dump($ast);
@@ -40,10 +40,10 @@ use RegexParser\Regex;
 $regex = Regex::create();
 $result = $regex->validate('/(?<year>\d{4})-(?<month>\d{2})/');
 
-if ($result->isValid) {
-    echo "Pattern is valid!";
+if ($result->isValid()) {
+    echo "Pattern is valid! Complexity: ".$result->getComplexityScore();
 } else {
-    echo "Errors: " . implode(', ', $result->errors);
+    echo "Error: ".$result->getErrorMessage();
 }
 ```
 
@@ -61,11 +61,11 @@ if ($result->isValid) {
 Regenerate a PCRE pattern from an AST.
 
 ```php
-use RegexParser\Parser;
+use RegexParser\Regex;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
 
-$parser = new Parser();
-$ast = $parser->parse('/test/i');
+$regex = Regex::create();
+$ast = $regex->parse('/test/i');
 
 $compiler = new CompilerNodeVisitor();
 $pattern = $ast->accept($compiler);
@@ -109,16 +109,21 @@ Identify Regular Expression Denial of Service risks.
 
 ```php
 use RegexParser\Regex;
+use RegexParser\ReDoS\ReDoSSeverity;
 
 $regex = Regex::create();
 
 // Dangerous pattern
-$result = $regex->validate('/(a+)+b/');
-echo "ReDoS Risk: " . $result->redosLevel; // "CRITICAL"
+$analysis = $regex->analyzeReDoS('/(a+)+b/');
+echo "ReDoS Severity: " . $analysis->severity->value; // "critical"
 
 // Safe pattern
-$result = $regex->validate('/a+b/');
-echo "ReDoS Risk: " . $result->redosLevel; // "NONE"
+$analysis = $regex->analyzeReDoS('/a+b/');
+echo "ReDoS Severity: " . $analysis->severity->value; // "safe"
+
+if (!$regex->isSafe('/(a+)+b/', ReDoSSeverity::HIGH)) {
+    echo "Block untrusted input for this pattern.";
+}
 ```
 
 **Detected Patterns**:
@@ -136,17 +141,9 @@ Create strings that match your pattern (for testing).
 use RegexParser\Regex;
 
 $regex = Regex::create();
-$samples = $regex->generateSamples('/\d{3}-[A-Z]{2}/');
+$sample = $regex->generate('/\d{3}-[A-Z]{2}/');
 
-print_r($samples);
-/*
-Output:
-[
-    "123-AB",
-    "456-XY",
-    "789-PQ"
-]
-*/
+echo $sample;
 ```
 
 **Use Case**: Test data generation, pattern validation
@@ -182,11 +179,11 @@ Output:
 Verify if a pattern uses specific PCRE features.
 
 ```php
-use RegexParser\Parser;
+use RegexParser\Regex;
 use RegexParser\Node\GroupType;
 
-$parser = new Parser();
-$ast = $parser->parse('/(?=test)foo/');
+$regex = Regex::create();
+$ast = $regex->parse('/(?=test)foo/');
 
 // Check for lookahead
 $hasLookahead = containsGroupType($ast, GroupType::T_GROUP_LOOKAHEAD_POSITIVE);
@@ -219,11 +216,11 @@ function containsGroupType($node, GroupType $type): bool
 Create your own AST visitor for custom analysis.
 
 ```php
-use RegexParser\Parser;
-use RegexParser\NodeVisitor\NodeVisitorInterface;
-use RegexParser\Node\*;
+use RegexParser\Node;
+use RegexParser\NodeVisitor\AbstractNodeVisitor;
+use RegexParser\Regex;
 
-class QuantifierCounter implements NodeVisitorInterface
+class QuantifierCounter extends AbstractNodeVisitor
 {
     private int $count = 0;
 
@@ -232,25 +229,29 @@ class QuantifierCounter implements NodeVisitorInterface
         return $this->count;
     }
 
+    public function visitRegex(Node\RegexNode $node): void
+    {
+        $node->pattern->accept($this);
+    }
+
     public function visitQuantifier(Node\QuantifierNode $node): void
     {
         $this->count++;
         $node->node->accept($this);
     }
 
-    // Implement other visit methods...
     public function visitLiteral(Node\LiteralNode $node): void {}
+
     public function visitSequence(Node\SequenceNode $node): void
     {
         foreach ($node->children as $child) {
             $child->accept($this);
         }
     }
-    // ... (implement all required methods)
 }
 
-$parser = new Parser();
-$ast = $parser->parse('/a+b*c?/');
+$regex = Regex::create();
+$ast = $regex->parse('/a+b*c?/');
 
 $counter = new QuantifierCounter();
 $ast->accept($counter);
@@ -267,7 +268,7 @@ echo "Quantifiers: " . $counter->getCount(); // "3"
 Transform patterns for consistency or performance.
 
 ```php
-use RegexParser\Parser;
+use RegexParser\Regex;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
 
 class OptimizerVisitor extends CompilerNodeVisitor
@@ -284,8 +285,8 @@ class OptimizerVisitor extends CompilerNodeVisitor
     }
 }
 
-$parser = new Parser();
-$ast = $parser->parse('/a{1}b{1}/');
+$regex = Regex::create();
+$ast = $regex->parse('/a{1}b{1}/');
 
 $optimizer = new OptimizerVisitor();
 $optimized = $ast->accept($optimizer);
@@ -336,8 +337,8 @@ $result = $regex->validate($pattern);
 ### Working with Named Groups
 
 ```php
-$parser = new Parser();
-$ast = $parser->parse('/(?<first>\w+)\s+(?<last>\w+)/');
+$regex = Regex::create();
+$ast = $regex->parse('/(?<first>\w+)\s+(?<last>\w+)/');
 
 // AST contains named group information
 // Use CompilerNodeVisitor to regenerate pattern
@@ -377,13 +378,13 @@ $result = $regex->validate($pattern);
 ## Error Handling
 
 ```php
-use RegexParser\Parser;
+use RegexParser\Regex;
 use RegexParser\Exception\ParserException;
 
-$parser = new Parser();
+$regex = Regex::create();
 
 try {
-    $ast = $parser->parse('/invalid[/'); // Unclosed character class
+    $ast = $regex->parse('/invalid[/'); // Unclosed character class
 } catch (ParserException $e) {
     echo "Parse error: " . $e->getMessage();
     echo " at position: " . $e->getPosition(); // If available
@@ -404,9 +405,9 @@ try {
 
 ## Next Steps
 
-- **Read API Documentation**: `src/Regex/RegexAPI.md`
+- **Read API Documentation**: `README.md` (API Overview, Options, Exceptions)
 - **Extend the Library**: `docs/EXTENDING_GUIDE.md`
-- **See All Features**: `PCRE_FEATURES_MATRIX.md`
+- **See More Examples**: this quick start guide
 - **Understand Nodes**: `src/Node/README.md`
 - **Run Tests**: `./vendor/bin/phpunit`
 

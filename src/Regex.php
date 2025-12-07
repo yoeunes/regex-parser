@@ -14,10 +14,10 @@ declare(strict_types=1);
 namespace RegexParser;
 
 use RegexParser\Cache\CacheInterface;
-use RegexParser\Cache\FilesystemCache;
 use RegexParser\Cache\NullCache;
 use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
+use RegexParser\Exception\ResourceLimitException;
 use RegexParser\Node\RegexNode;
 use RegexParser\ReDoS\ReDoSAnalysis;
 use RegexParser\ReDoS\ReDoSAnalyzer;
@@ -91,6 +91,7 @@ final readonly class Regex
      *  - `redos_ignored_patterns` (list<string>):
      *         Patterns that should be treated as trusted/safe by the ReDoS analyzer.
      *
+     * @throws Exception\InvalidRegexOptionException when unknown or invalid options are provided
      * @return self a new, configured instance of the `Regex` service, ready to be used
      *
      * @example
@@ -104,14 +105,14 @@ final readonly class Regex
      */
     public static function create(array $options = []): self
     {
-        $maxPatternLength = $options['max_pattern_length'] ?? self::DEFAULT_MAX_PATTERN_LENGTH;
-        $cache = self::normalizeCache($options['cache'] ?? null);
+        $parsedOptions = RegexOptions::fromArray($options);
+
         $redosIgnoredPatterns = array_values(array_unique([
             ...self::DEFAULT_REDOS_IGNORED_PATTERNS,
-            ...($options['redos_ignored_patterns'] ?? []),
+            ...$parsedOptions->redosIgnoredPatterns,
         ]));
 
-        return new self($maxPatternLength, $cache, $redosIgnoredPatterns);
+        return new self($parsedOptions->maxPatternLength, $parsedOptions->cache, $redosIgnoredPatterns);
     }
 
     /**
@@ -127,8 +128,8 @@ final readonly class Regex
      * @param string $regex the full PCRE regex string, including delimiters and flags
      *
      * @throws LexerException  if the lexer encounters an invalid sequence of characters
-     * @throws ParserException if the parser encounters a syntax error or if the pattern
-     *                         exceeds the configured `max_pattern_length`
+     * @throws ParserException if the parser encounters a syntax error
+     * @throws ResourceLimitException if the pattern length exceeds the configured limit
      *
      * @return RegexNode The root node of the generated Abstract Syntax Tree. This object
      *                   and its children represent the complete structure of the regex.
@@ -142,25 +143,9 @@ final readonly class Regex
      */
     public function parse(string $regex): RegexNode
     {
-        if (\strlen($regex) > $this->maxPatternLength) {
-            throw new ParserException(\sprintf('Regex pattern exceeds maximum length of %d characters.', $this->maxPatternLength));
-        }
+        $ast = $this->doParse($regex, false);
 
-        [$cached, $cacheKey] = $this->loadFromCache($regex);
-        if (null !== $cached) {
-            return $cached;
-        }
-
-        [$pattern, $flags, $delimiter] = $this->extractPatternAndFlags($regex);
-
-        $stream = $this->getLexer()->tokenize($pattern);
-        $parser = $this->getParser();
-
-        $ast = $parser->parse($stream, $flags, $delimiter, \strlen($pattern));
-
-        $this->storeInCache($cacheKey, $ast);
-
-        return $ast;
+        return $ast instanceof RegexNode ? $ast : $ast->ast;
     }
 
     /**
@@ -238,6 +223,11 @@ final readonly class Regex
     public function explain(string $regex): string
     {
         return $this->parse($regex)->accept(new NodeVisitor\ExplainNodeVisitor());
+    }
+
+    public function htmlExplain(string $regex): string
+    {
+        return $this->parse($regex)->accept(new NodeVisitor\HtmlExplainNodeVisitor());
     }
 
     /**
@@ -420,20 +410,16 @@ final readonly class Regex
     }
 
     /**
-     * Determines if a regex is considered "safe" from ReDoS vulnerabilities.
+     * Convenience wrapper around `analyzeReDoS()` that returns a boolean.
      *
-     * A regex is considered safe if the ReDoS analyzer does not detect any
-     * HIGH or CRITICAL severity issues.
-     *
-     * @param string $regex the full PCRE regex string to check
-     *
-     * @return bool true if the regex is considered safe, false otherwise
+     * By default this returns true only for SAFE/LOW severities. When a threshold
+     * is provided, any severity at or above that level is treated as unsafe.
      */
-    public function isSafe(string $regex): bool
+    public function isSafe(string $regex, ?ReDoSSeverity $threshold = null): bool
     {
-        $analysis = $this->analyzeReDoS($regex);
+        $analysis = $this->analyzeReDoS($regex, $threshold);
 
-        return !\in_array($analysis->severity, [ReDoSSeverity::HIGH, ReDoSSeverity::CRITICAL], true);
+        return null === $threshold ? $analysis->isSafe() : !$analysis->exceedsThreshold($threshold);
     }
 
     /**
@@ -577,14 +563,27 @@ final readonly class Regex
 
     public function parseTolerant(string $regex): TolerantParseResult
     {
-        try {
-            return new TolerantParseResult($this->parse($regex));
-        } catch (LexerException|ParserException $e) {
-            [$pattern, $flags, $delimiter, $length] = $this->safeExtractPattern($regex);
-            $ast = $this->buildFallbackAst($pattern, $flags, $delimiter, $length, $e->getPosition());
+        $result = $this->doParse($regex, true);
 
-            return new TolerantParseResult($ast, [$e]);
+        return $result instanceof TolerantParseResult ? $result : new TolerantParseResult($result);
+    }
+
+    /**
+     * Parses a bare pattern by wrapping delimiters and flags.
+     *
+     * @throws ParserException if the delimiter is invalid or the pattern is not well-formed
+     * @throws LexerException
+     * @throws ResourceLimitException
+     */
+    public function parsePattern(string $pattern, string $delimiter = '/', string $flags = ''): RegexNode
+    {
+        if (1 !== \strlen($delimiter) || ctype_alnum($delimiter)) {
+            throw new ParserException('Delimiter must be a single non-alphanumeric character.');
         }
+
+        $regex = $delimiter.$pattern.$delimiter.$flags;
+
+        return $this->parse($regex);
     }
 
     /**
@@ -683,27 +682,6 @@ final readonly class Regex
         throw new ParserException(\sprintf('No closing delimiter "%s" found.', $closingDelimiter));
     }
 
-    private static function normalizeCache(mixed $cache): CacheInterface
-    {
-        if (null === $cache) {
-            return new NullCache();
-        }
-
-        if (\is_string($cache)) {
-            if ('' === trim($cache)) {
-                throw new \InvalidArgumentException('The "cache" option cannot be an empty string.');
-            }
-
-            return new FilesystemCache($cache);
-        }
-
-        if ($cache instanceof CacheInterface) {
-            return $cache;
-        }
-
-        throw new \InvalidArgumentException('The "cache" option must be null, a cache path, or a CacheInterface implementation.');
-    }
-
     /**
      * @return array{0: RegexNode|null, 1: string|null}
      */
@@ -768,5 +746,50 @@ final readonly class Regex
         $sequence = new Node\SequenceNode([$literal], 0, $literal->getEndPosition());
 
         return new Node\RegexNode($sequence, $flags, $delimiter, 0, $patternLength);
+    }
+
+    private function doParse(string $regex, bool $tolerant): RegexNode|TolerantParseResult
+    {
+        try {
+            $ast = $this->performParse($regex);
+
+            return $tolerant ? new TolerantParseResult($ast) : $ast;
+        } catch (LexerException|ParserException $e) {
+            if (!$tolerant) {
+                throw $e;
+            }
+
+            [$pattern, $flags, $delimiter, $length] = $this->safeExtractPattern($regex);
+            $ast = $this->buildFallbackAst($pattern, $flags, $delimiter, $length, $e->getPosition());
+
+            return new TolerantParseResult($ast, [$e]);
+        }
+    }
+
+    private function performParse(string $regex): RegexNode
+    {
+        if (\strlen($regex) > $this->maxPatternLength) {
+            throw ResourceLimitException::withContext(
+                \sprintf('Regex pattern exceeds maximum length of %d characters.', $this->maxPatternLength),
+                $this->maxPatternLength,
+                $regex,
+            );
+        }
+
+        [$cached, $cacheKey] = $this->loadFromCache($regex);
+        if (null !== $cached) {
+            return $cached;
+        }
+
+        [$pattern, $flags, $delimiter] = $this->extractPatternAndFlags($regex);
+
+        $stream = $this->getLexer()->tokenize($pattern);
+        $parser = $this->getParser();
+
+        $ast = $parser->parse($stream, $flags, $delimiter, \strlen($pattern));
+
+        $this->storeInCache($cacheKey, $ast);
+
+        return $ast;
     }
 }

@@ -32,9 +32,9 @@ use RegexParser\ReDoS\CharSetAnalyzer;
  * - Invalid character ranges (e.g., [z-a]).
  * - Invalid Unicode properties or POSIX classes.
  *
- * @implements NodeVisitorInterface<void>
+ * @extends AbstractNodeVisitor<void>
  */
-final class ValidatorNodeVisitor implements NodeVisitorInterface
+final class ValidatorNodeVisitor extends AbstractNodeVisitor
 {
     private const array VALID_ASSERTIONS = [
         'A' => true, 'z' => true, 'Z' => true,

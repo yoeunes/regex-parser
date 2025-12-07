@@ -27,9 +27,9 @@ use RegexParser\Node;
  * This can significantly speed up initial matching attempts by using simple string
  * search functions before engaging the full regex engine.
  *
- * @implements NodeVisitorInterface<LiteralSet>
+ * @extends AbstractNodeVisitor<LiteralSet>
  */
-final class LiteralExtractorNodeVisitor implements NodeVisitorInterface
+final class LiteralExtractorNodeVisitor extends AbstractNodeVisitor
 {
     /**
      * Maximum number of literals generated to prevent explosion (e.g. [a-z]{10}).

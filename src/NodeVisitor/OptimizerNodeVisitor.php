@@ -26,9 +26,9 @@ use RegexParser\Node\GroupType;
  * Each `visit` method can return a new, modified node, effectively rewriting
  * parts of the tree.
  *
- * @implements NodeVisitorInterface<Node\NodeInterface>
+ * @extends AbstractNodeVisitor<Node\NodeInterface>
  */
-final class OptimizerNodeVisitor implements NodeVisitorInterface
+final class OptimizerNodeVisitor extends AbstractNodeVisitor
 {
     private const array CHAR_CLASS_META = [']' => true, '\\' => true, '^' => true, '-' => true];
 

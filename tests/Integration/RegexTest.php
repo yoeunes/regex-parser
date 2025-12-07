@@ -85,6 +85,20 @@ final class RegexTest extends TestCase
         $this->regexService->parse($pattern);
     }
 
+    public function test_parse_pattern_wraps_delimiters_and_flags(): void
+    {
+        $fromFull = $this->regexService->parse('/foo/i');
+        $fromPattern = $this->regexService->parsePattern('foo', '/', 'i');
+
+        $this->assertEquals($fromFull, $fromPattern);
+    }
+
+    public function test_parse_pattern_rejects_invalid_delimiter(): void
+    {
+        $this->expectException(ParserException::class);
+        $this->regexService->parsePattern('foo', 'ab');
+    }
+
     public static function provideValidRegexForParsing(): \Generator
     {
         yield 'simple literal' => ['/abc/', '/', '', 3, SequenceNode::class];

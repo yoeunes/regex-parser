@@ -25,9 +25,9 @@ use RegexParser\Node;
  * output. Each `visit` method is responsible for creating the correct Mermaid.js syntax
  * for a specific AST node.
  *
- * @implements NodeVisitorInterface<string>
+ * @extends AbstractNodeVisitor<string>
  */
-final class MermaidNodeVisitor implements NodeVisitorInterface
+final class MermaidNodeVisitor extends AbstractNodeVisitor
 {
     private int $nodeCounter = 0;
 

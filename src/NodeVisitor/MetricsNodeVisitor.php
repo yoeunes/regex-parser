@@ -18,9 +18,9 @@ use RegexParser\Node;
 /**
  * Collects structural metrics about an AST (node counts and depth).
  *
- * @implements NodeVisitorInterface<array{counts: array<string, int>, total: int, maxDepth: int}>
+ * @extends AbstractNodeVisitor<array{counts: array<string, int>, total: int, maxDepth: int}>
  */
-final class MetricsNodeVisitor implements NodeVisitorInterface
+final class MetricsNodeVisitor extends AbstractNodeVisitor
 {
     /**
      * @var array<string, int>

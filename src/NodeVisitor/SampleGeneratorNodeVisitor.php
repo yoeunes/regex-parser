@@ -24,9 +24,9 @@ use RegexParser\Node\GroupType;
  * It's invaluable for testing, demonstrating regex behavior, and providing examples
  * of valid input for a given regex.
  *
- * @implements NodeVisitorInterface<string>
+ * @extends AbstractNodeVisitor<string>
  */
-final class SampleGeneratorNodeVisitor implements NodeVisitorInterface
+final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
 {
     private const int MAX_RECURSION_DEPTH = 2;
 

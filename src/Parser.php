@@ -16,6 +16,7 @@ namespace RegexParser;
 use RegexParser\Exception\ParserException;
 use RegexParser\Exception\RecursionLimitException;
 use RegexParser\Exception\ResourceLimitException;
+use RegexParser\Exception\SyntaxErrorException;
 
 /**
  * The Parser.
@@ -33,6 +34,8 @@ final class Parser
      * Characters that can appear in inline flags.
      */
     private const string INLINE_FLAG_CHARS = 'imsxADSUXJnr-';
+
+    private const int MAX_RECURSION_DEPTH = 1024;
 
     /**
      * Token stream (replaces array of tokens for memory efficiency).
@@ -63,6 +66,8 @@ final class Parser
      * Length of the last inline flags processed.
      */
     private int $lastInlineFlagsLength = 0;
+
+    private int $recursionDepth = 0;
 
     /**
      * Transforms a `TokenStream` into a structured Abstract Syntax Tree (AST).
@@ -108,6 +113,7 @@ final class Parser
         $this->groupNames = [];
         $this->lastTokenWasAlternation = false;
         $this->lastInlineFlagsLength = 0;
+        $this->recursionDepth = 0;
 
         // Parse the pattern content
         $patternNode = $this->parseAlternation();
@@ -123,22 +129,28 @@ final class Parser
      */
     private function parseAlternation(): Node\NodeInterface
     {
-        $startPosition = $this->current()->position;
-        $nodes = [$this->parseSequence()];
+        $this->guardRecursionDepth($this->current()->position);
+        $this->recursionDepth++;
+        try {
+            $startPosition = $this->current()->position;
+            $nodes = [$this->parseSequence()];
 
-        while ($this->match(TokenType::T_ALTERNATION)) {
-            $this->lastTokenWasAlternation = true;
-            $nodes[] = $this->parseSequence();
+            while ($this->match(TokenType::T_ALTERNATION)) {
+                $this->lastTokenWasAlternation = true;
+                $nodes[] = $this->parseSequence();
+            }
+
+            if (1 === \count($nodes)) {
+                return $nodes[0];
+            }
+
+            // Calculate end position based on the last node
+            $endPosition = end($nodes)->getEndPosition();
+
+            return new Node\AlternationNode($nodes, $startPosition, $endPosition);
+        } finally {
+            $this->recursionDepth--;
         }
-
-        if (1 === \count($nodes)) {
-            return $nodes[0];
-        }
-
-        // Calculate end position based on the last node
-        $endPosition = end($nodes)->getEndPosition();
-
-        return new Node\AlternationNode($nodes, $startPosition, $endPosition);
     }
 
     /**
@@ -1429,7 +1441,18 @@ final class Parser
      */
     private function parserException(string $message, int $position): ParserException
     {
-        return ParserException::withContext($message, $position, $this->pattern);
+        return SyntaxErrorException::withContext($message, $position, $this->pattern);
+    }
+
+    private function guardRecursionDepth(int $position): void
+    {
+        if ($this->recursionDepth >= self::MAX_RECURSION_DEPTH) {
+            throw RecursionLimitException::withContext(
+                \sprintf('Recursion limit of %d exceeded', self::MAX_RECURSION_DEPTH),
+                $position,
+                $this->pattern,
+            );
+        }
     }
 
     /**

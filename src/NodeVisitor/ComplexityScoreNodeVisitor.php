@@ -28,9 +28,9 @@ use RegexParser\Node\GroupType;
  * maintain, or optimize regex. This is useful for code quality analysis and identifying
  * patterns that might be prone to errors or performance issues.
  *
- * @implements NodeVisitorInterface<int>
+ * @extends AbstractNodeVisitor<int>
  */
-final class ComplexityScoreNodeVisitor implements NodeVisitorInterface
+final class ComplexityScoreNodeVisitor extends AbstractNodeVisitor
 {
     /**
      * Base score for a node.

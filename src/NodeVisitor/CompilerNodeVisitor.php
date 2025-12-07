@@ -26,9 +26,9 @@ use RegexParser\Node\GroupType;
  * serialize each node back to its string representation, including handling context-sensitive
  * escaping (e.g., inside and outside of character classes).
  *
- * @implements NodeVisitorInterface<string>
+ * @extends AbstractNodeVisitor<string>
  */
-final class CompilerNodeVisitor implements NodeVisitorInterface
+final class CompilerNodeVisitor extends AbstractNodeVisitor
 {
     // PCRE meta-characters that must be escaped *outside* a character class.
     private const array META_CHARACTERS = [

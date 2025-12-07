@@ -24,9 +24,9 @@ use RegexParser\Node;
  * essential for verifying that a regex is parsed correctly or for understanding how a
  * new node type fits into the overall structure.
  *
- * @implements NodeVisitorInterface<string>
+ * @extends AbstractNodeVisitor<string>
  */
-final class DumperNodeVisitor implements NodeVisitorInterface
+final class DumperNodeVisitor extends AbstractNodeVisitor
 {
     private int $indent = 0;
 

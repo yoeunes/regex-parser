@@ -26,9 +26,9 @@ use RegexParser\Node\QuantifierType;
  * easier to understand for developers and non-technical users alike. It breaks down
  * the regex into its logical parts and describes what each part matches.
  *
- * @implements NodeVisitorInterface<string>
+ * @extends AbstractNodeVisitor<string>
  */
-final class HtmlExplainNodeVisitor implements NodeVisitorInterface
+final class HtmlExplainNodeVisitor extends AbstractNodeVisitor
 {
     private const array CHAR_TYPE_MAP = [
         'd' => 'any digit (0-9)',

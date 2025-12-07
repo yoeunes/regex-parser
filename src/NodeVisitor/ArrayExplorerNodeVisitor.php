@@ -22,9 +22,9 @@ use RegexParser\Node\GroupType;
  * This visitor acts as a Serializer, converting the Domain Model (AST)
  * into a View Model (Array) for the frontend.
  *
- * @implements NodeVisitorInterface<array<string, mixed>>
+ * @extends AbstractNodeVisitor<array<string, mixed>>
  */
-final class ArrayExplorerNodeVisitor implements NodeVisitorInterface
+final class ArrayExplorerNodeVisitor extends AbstractNodeVisitor
 {
     /**
      * Visits a RegexNode and converts it into an array representation.

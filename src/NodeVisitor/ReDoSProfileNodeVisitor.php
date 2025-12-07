@@ -30,9 +30,9 @@ use RegexParser\ReDoS\ReDoSSeverity;
  * It categorizes risks into different severity levels (SAFE, LOW, UNKNOWN, MEDIUM, HIGH, CRITICAL)
  * and provides recommendations for mitigation.
  *
- * @implements NodeVisitorInterface<ReDoSSeverity>
+ * @extends AbstractNodeVisitor<ReDoSSeverity>
  */
-final class ReDoSProfileNodeVisitor implements NodeVisitorInterface
+final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
 {
     private int $unboundedQuantifierDepth = 0;
 

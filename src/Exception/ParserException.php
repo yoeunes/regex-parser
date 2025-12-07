@@ -22,6 +22,8 @@ namespace RegexParser\Exception;
  * of those tokens is invalid (e.g., a quantifier with no target, an unclosed group).
  *
  * @see \RegexParser\Parser
+ *
+ * @phpstan-consistent-constructor
  */
 class ParserException extends \Exception implements RegexParserExceptionInterface
 {
@@ -34,8 +36,8 @@ class ParserException extends \Exception implements RegexParserExceptionInterfac
         parent::__construct($message, 0, $previous);
     }
 
-    public static function withContext(string $message, int $position, string $pattern, ?\Throwable $previous = null): self
+    public static function withContext(string $message, int $position, string $pattern, ?\Throwable $previous = null): static
     {
-        return new self($message, $position, $pattern, $previous);
+        return new static($message, $position, $pattern, $previous);
     }
 }
