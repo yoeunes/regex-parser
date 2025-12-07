@@ -424,6 +424,36 @@ final readonly class Regex
     }
 
     /**
+     * Highlights a regex pattern for console output using ANSI escape codes.
+     *
+     * @param string $regex The regex pattern to highlight
+     *
+     * @return string The highlighted string with ANSI codes
+     *
+     * @throws ParserException If the regex cannot be parsed
+     */
+    public function highlightCli(string $regex): string
+    {
+        $ast = $this->parse($regex);
+        return $ast->accept(new NodeVisitor\ConsoleHighlighterVisitor());
+    }
+
+    /**
+     * Highlights a regex pattern for HTML output using span tags.
+     *
+     * @param string $regex The regex pattern to highlight
+     *
+     * @return string The highlighted HTML string
+     *
+     * @throws ParserException If the regex cannot be parsed
+     */
+    public function highlightHtml(string $regex): string
+    {
+        $ast = $this->parse($regex);
+        return $ast->accept(new NodeVisitor\HtmlHighlighterVisitor());
+    }
+
+    /**
      * Finds all non-optional, non-alternating literal strings within a regex.
      *
      * Purpose: This method identifies sequences of characters that *must* exist in any

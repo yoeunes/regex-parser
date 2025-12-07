@@ -26,6 +26,7 @@
    - [Writing a custom AST visitor](#writing-a-custom-ast-visitor)
    - [Optimizing and recompiling patterns](#optimizing-and-recompiling-patterns)
    - [Auto-Modernize Legacy Patterns](#auto-modernize-legacy-patterns)
+   - [Syntax Highlighting](#syntax-highlighting)
 - [ReDoS Analysis](#redos-analysis)
   - [What is ReDoS?](#what-is-redos)
   - [How RegexParser detects it](#how-regexparser-detects-it)
@@ -342,6 +343,35 @@ echo $modern; // Outputs: /\d+-[a-z]+@gmail\.com/
 - Preserves exact behavior — no functional changes
 
 Perfect for refactoring legacy codebases or cleaning up generated patterns.
+
+---
+
+## 🎨 Syntax Highlighting
+
+Make complex regexes readable with automatic syntax highlighting:
+
+```php
+use RegexParser\Regex;
+
+$regex = Regex::create();
+
+// For console output
+echo $regex->highlightCli('/^[0-9]+(\w+)$/');
+// Outputs: ^[0-9]+(\w+)$ with ANSI colors
+
+// For web display
+echo $regex->highlightHtml('/^[0-9]+(\w+)$/');
+// Outputs: <span class="regex-anchor">^</span>[<span class="regex-type">\d</span>]+(<span class="regex-type">\w</span>+)$
+```
+
+**Color Scheme:**
+- **Meta-characters** (`(`, `)`, `|`, `[`, `]`): Blue - Structure
+- **Quantifiers** (`*`, `+`, `?`, `{...}`): Yellow - Repetition
+- **Escapes/Types** (`\d`, `\w`, `\n`): Green - Special chars
+- **Anchors/Assertions** (`^`, `$`, `\b`): Magenta - Boundaries
+- **Literals**: Default - Plain text
+
+HTML output uses `<span class="regex-*">` classes for easy styling.
 
 ---
 
