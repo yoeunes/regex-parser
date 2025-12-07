@@ -390,6 +390,12 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
         return $this->line(\sprintf('Unicode: %s', $node->code));
     }
 
+    #[\Override]
+    public function visitUnicodeNamed(Node\UnicodeNamedNode $node): string
+    {
+        return $this->line(\sprintf('Unicode named character: %s', $node->name));
+    }
+
     /**
      * Explains a `UnicodePropNode`.
      *

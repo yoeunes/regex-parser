@@ -331,6 +331,15 @@ final class TestCaseGeneratorNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
+    public function visitUnicodeNamed(Node\UnicodeNamedNode $node): array
+    {
+        return [
+            'matching' => ['a'],
+            'non_matching' => ['!'],
+        ];
+    }
+
+    #[\Override]
     public function visitUnicodeProp(Node\UnicodePropNode $node): array
     {
         return [

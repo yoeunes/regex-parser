@@ -356,6 +356,15 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
         return $nodeId;
     }
 
+    #[\Override]
+    public function visitUnicodeNamed(Node\UnicodeNamedNode $node): string
+    {
+        $nodeId = $this->nextNodeId();
+        $this->lines[] = \sprintf('    %s["Unicode named: %s"]', $nodeId, $this->escape($node->name));
+
+        return $nodeId;
+    }
+
     /**
      * Generates the graph node for a `UnicodePropNode`.
      *

@@ -168,6 +168,15 @@ interface NodeVisitorInterface
     public function visitUnicode(Node\UnicodeNode $node);
 
     /**
+     * Logic to execute when visiting a `UnicodeNamedNode`.
+     *
+     * @param Node\UnicodeNamedNode $node the node representing a named Unicode character escape (`\N{name}`)
+     *
+     * @return TReturn the result of visiting this node
+     */
+    public function visitUnicodeNamed(Node\UnicodeNamedNode $node);
+
+    /**
      * Logic to execute when visiting a `UnicodePropNode`.
      *
      * @param Node\UnicodePropNode $node the node representing a Unicode property escape (`\p{L}`)

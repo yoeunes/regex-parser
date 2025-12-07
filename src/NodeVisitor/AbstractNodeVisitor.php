@@ -99,6 +99,11 @@ abstract class AbstractNodeVisitor implements NodeVisitorInterface
         return $this->defaultReturn();
     }
 
+    public function visitUnicodeNamed(Node\UnicodeNamedNode $node)
+    {
+        return $this->defaultReturn();
+    }
+
     public function visitUnicodeProp(Node\UnicodePropNode $node)
     {
         return $this->defaultReturn();

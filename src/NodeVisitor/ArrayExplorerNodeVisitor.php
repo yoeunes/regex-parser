@@ -611,6 +611,19 @@ final class ArrayExplorerNodeVisitor extends AbstractNodeVisitor
         ];
     }
 
+    #[\Override]
+    public function visitUnicodeNamed(Node\UnicodeNamedNode $node): array
+    {
+        return [
+            'type' => 'UnicodeNamed',
+            'label' => 'Unicode Named Character',
+            'detail' => $node->name,
+            'icon' => 'fa-solid fa-language',
+            'color' => 'text-violet-600',
+            'isLeaf' => true,
+        ];
+    }
+
     /**
      * Visits a UnicodePropNode and converts it into an array representation.
      *

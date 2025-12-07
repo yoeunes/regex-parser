@@ -339,6 +339,12 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
         return $node->code;
     }
 
+    #[\Override]
+    public function visitUnicodeNamed(Node\UnicodeNamedNode $node): string
+    {
+        return '\\N{'.$node->name.'}';
+    }
+
     /**
      * Compiles a `UnicodePropNode`.
      *

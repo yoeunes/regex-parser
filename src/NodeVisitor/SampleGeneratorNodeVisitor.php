@@ -578,6 +578,14 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
             }
         }
 
+        // Check numeric reference with \
+        if (preg_match('/^\\\\(\d+)$/', $ref, $matches)) {
+            $key = (int) $matches[1];
+            if (isset($this->captures[$key])) {
+                return $this->captures[$key];
+            }
+        }
+
         // Check string/named reference (e.g. for (?&name) conditionals)
         if (isset($this->captures[$ref])) {
             return $this->captures[$ref];
@@ -624,6 +632,13 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
         }
 
         // Fallback for unknown unicode
+        return '?';
+    }
+
+    #[\Override]
+    public function visitUnicodeNamed(Node\UnicodeNamedNode $node): string
+    {
+        // TODO: Implement proper Unicode name to character conversion
         return '?';
     }
 

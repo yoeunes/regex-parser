@@ -328,6 +328,12 @@ final class DumperNodeVisitor extends AbstractNodeVisitor
         return "Unicode({$node->code})";
     }
 
+    #[\Override]
+    public function visitUnicodeNamed(Node\UnicodeNamedNode $node): string
+    {
+        return "UnicodeNamed({$node->name})";
+    }
+
     /**
      * Dumps a `UnicodePropNode`.
      *

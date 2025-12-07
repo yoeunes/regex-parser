@@ -101,4 +101,7 @@ enum TokenType: string
 
     /** A callout (e.g., "(?C1)", "(?C"arg")"). */
     case T_CALLOUT = 'callout';
+
+    /** A named Unicode character (e.g., \N{name}). */
+    case T_UNICODE_NAMED = 'unicode_named';
 }

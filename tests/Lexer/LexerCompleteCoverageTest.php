@@ -266,11 +266,11 @@ final class LexerCompleteCoverageTest extends TestCase
     public function test_backref_with_number_extraction(): void
     {
         $patterns = [
-            '\1' => '1',
-            '\2' => '2',
-            '\9' => '9',
-            '\10' => '10',
-            '\99' => '99',
+            '\1' => '\1',
+            '\2' => '\2',
+            '\9' => '\9',
+            '\10' => '\10',
+            '\99' => '\99',
         ];
 
         foreach ($patterns as $pattern => $expectedValue) {

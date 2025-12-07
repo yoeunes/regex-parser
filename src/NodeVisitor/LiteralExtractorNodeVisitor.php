@@ -486,6 +486,12 @@ final class LiteralExtractorNodeVisitor extends AbstractNodeVisitor
         return LiteralSet::empty();
     }
 
+    #[\Override]
+    public function visitUnicodeNamed(Node\UnicodeNamedNode $node): LiteralSet
+    {
+        return LiteralSet::empty();
+    }
+
     /**
      * Visits a UnicodePropNode. Unicode properties do not yield fixed literals.
      *

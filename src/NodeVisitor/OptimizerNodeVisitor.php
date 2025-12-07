@@ -451,6 +451,12 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         return $node;
     }
 
+    #[\Override]
+    public function visitUnicodeNamed(Node\UnicodeNamedNode $node): Node\NodeInterface
+    {
+        return $node;
+    }
+
     /**
      * Visits a `UnicodePropNode`.
      *

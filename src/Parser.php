@@ -410,6 +410,13 @@ final class Parser
             return new Node\UnicodeNode($token->value, $startPosition, $endPosition);
         }
 
+        if ($this->match(TokenType::T_UNICODE_NAMED)) {
+            $token = $this->previous();
+            $endPosition = $startPosition + \strlen($token->value) + 3; // +3 for \N{
+
+            return new Node\UnicodeNamedNode($token->value, $startPosition, $endPosition);
+        }
+
         if ($this->match(TokenType::T_OCTAL)) {
             $token = $this->previous();
             $endPosition = $startPosition + \strlen($token->value);
@@ -601,7 +608,8 @@ final class Parser
             // Types that kept their \
             TokenType::T_BACKREF,
             TokenType::T_G_REFERENCE,
-            TokenType::T_UNICODE,
+            TokenType::T_UNICODE => $token->value,
+            TokenType::T_UNICODE_NAMED => '\\N{'.$token->value.'}',
             TokenType::T_OCTAL => $token->value,
 
             // Complex re-assembly

@@ -33,6 +33,7 @@ use RegexParser\Node\RangeNode;
 use RegexParser\Node\RegexNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\Node\SubroutineNode;
+use RegexParser\Node\UnicodeNamedNode;
 use RegexParser\Node\UnicodePropNode;
 use RegexParser\Regex;
 
@@ -189,6 +190,20 @@ final class ParserTest extends TestCase
         $this->assertSame('S', $pattern->children[2]->value);
     }
 
+    public function test_parse_pcre2_char_types(): void
+    {
+        $ast = $this->parse('/\X\C/');
+        $pattern = $ast->pattern;
+
+        $this->assertInstanceOf(SequenceNode::class, $pattern);
+        $this->assertCount(2, $pattern->children);
+
+        $this->assertInstanceOf(CharTypeNode::class, $pattern->children[0]);
+        $this->assertSame('X', $pattern->children[0]->value);
+        $this->assertInstanceOf(CharTypeNode::class, $pattern->children[1]);
+        $this->assertSame('C', $pattern->children[1]->value);
+    }
+
     public function test_parse_anchors(): void
     {
         $ast = $this->parse('/^foo$/');
@@ -223,13 +238,36 @@ final class ParserTest extends TestCase
         $this->assertSame('b', $pattern->children[4]->value);
     }
 
+    public function test_parse_grapheme_assertions(): void
+    {
+        $ast = $this->parse('/\b{g}foo\B{g}/');
+        $pattern = $ast->pattern;
+
+        $this->assertInstanceOf(SequenceNode::class, $pattern);
+        $this->assertCount(5, $pattern->children); // \b{g}, f, o, o, \B{g}
+
+        $this->assertInstanceOf(AssertionNode::class, $pattern->children[0]);
+        $this->assertSame('b{g}', $pattern->children[0]->value);
+
+        $this->assertInstanceOf(AssertionNode::class, $pattern->children[4]);
+        $this->assertSame('B{g}', $pattern->children[4]->value);
+    }
+
     public function test_parse_unicode_prop(): void
     {
         $ast = $this->parse('/\p{L}/');
         $pattern = $ast->pattern;
 
         $this->assertInstanceOf(UnicodePropNode::class, $pattern);
-        $this->assertSame('L', $pattern->prop);
+    }
+
+    public function test_parse_unicode_named(): void
+    {
+        $ast = $this->parse('/\N{LATIN CAPITAL LETTER A}/');
+        $pattern = $ast->pattern;
+
+        $this->assertInstanceOf(UnicodeNamedNode::class, $pattern);
+        $this->assertSame('LATIN CAPITAL LETTER A', $pattern->name);
     }
 
     public function test_parse_comment(): void

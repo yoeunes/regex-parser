@@ -567,6 +567,16 @@ final class HtmlExplainNodeVisitor extends AbstractNodeVisitor
         );
     }
 
+    #[\Override]
+    public function visitUnicodeNamed(Node\UnicodeNamedNode $node): string
+    {
+        return \sprintf(
+            '<li><span title="Unicode named: %s">Unicode named: <strong>%s</strong></span></li>',
+            $this->e($node->name),
+            $this->e($node->name),
+        );
+    }
+
     /**
      * Visits a UnicodePropNode and generates an HTML explanation for the Unicode property.
      *

@@ -535,6 +535,12 @@ final class ComplexityScoreNodeVisitor extends AbstractNodeVisitor
         return self::BASE_SCORE;
     }
 
+    #[\Override]
+    public function visitUnicodeNamed(Node\UnicodeNamedNode $node): int
+    {
+        return self::BASE_SCORE;
+    }
+
     /**
      * Visits a UnicodePropNode and calculates its complexity score.
      *
