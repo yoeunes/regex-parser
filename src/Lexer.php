@@ -474,9 +474,10 @@ final class Lexer
     private function consumeQuoteMode(): ?Token
     {
         // Search for \E or End of String
+        // phpcs:ignore Generic.Files.LineLength.TooLong
         if (
-            !preg_match(
-                '/(.*?)((?:\\\\E)|$)/suA',
+            !preg_match( // @phpstan-ignore regex.redos.medium
+                '/(.*?)((\\\\E|$))/suA',
                 $this->pattern,
                 $matches,
                 \PREG_UNMATCHED_AS_NULL,
@@ -525,8 +526,8 @@ final class Lexer
     {
         // Search for ) or End of String
         if (
-            !preg_match(
-                '/(.*?)(\)|$)/suA',
+            !preg_match( // @phpstan-ignore regex.redos.medium
+                '/([^)]*)(\)|$)/suA',
                 $this->pattern,
                 $matches,
                 \PREG_UNMATCHED_AS_NULL,

@@ -481,7 +481,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     {
         $ref = $node->ref;
 
-        if (preg_match('/^\\\\(\d+)$/', $ref, $matches)) {
+        if (preg_match('/^\\\\(\d++)$/', $ref, $matches)) {
             // Numeric backref: \1, \2, etc.
             $num = (int) $matches[1];
             if (0 === $num) {
@@ -495,7 +495,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         }
 
         // Named backref: \k<name> or \k'name' or \k{name}
-        if (preg_match('/^\\\\k[<{\'](?<name>\w+)[>}\']$/', $ref, $matches)) {
+        if (preg_match('/^\\\\k[<{\'](?<name>\w++)[>}\']$/', $ref, $matches)) {
             $name = $matches['name'];
             if (!isset($this->namedGroups[$name])) {
                 throw new ParserException(\sprintf('Backreference to non-existent named group: "%s"', $name));
@@ -505,7 +505,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         }
 
         // Bare name (used in conditionals like (?(name)...))
-        if (preg_match('/^\w+$/', $ref)) {
+        if (preg_match('/^\w++$/', $ref)) {
             if (!isset($this->namedGroups[$ref])) {
                 throw new ParserException(\sprintf('Backreference to non-existent named group: "%s"', $ref));
             }
@@ -514,7 +514,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         }
 
         // \g backref: \g{N}, \gN, \g{-N}
-        if (preg_match('/^\\\\g\{?(?<num>[0-9+-]+)\}?$/', $ref, $matches)) {
+        if (preg_match('/^\\\\g\{?(?<num>[0-9+-]++)\}?$/', $ref, $matches)) {
             $numStr = $matches['num'];
             if ('0' === $numStr || '+0' === $numStr || '-0' === $numStr) {
                 return; // \g{0} is a valid reference to the entire pattern.
@@ -554,7 +554,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         $code = -1;
         if (preg_match('/^\\\\x([0-9a-fA-F]{2})$/', $node->code, $m)) {
             $code = (int) hexdec($m[1]);
-        } elseif (preg_match('/^\\\\u\{([0-9a-fA-F]+)\}$/', $node->code, $m)) {
+        } elseif (preg_match('/^\\\\u\{([0-9a-fA-F]++)\}$/', $node->code, $m)) {
             $code = (int) hexdec($m[1]);
         }
 
@@ -621,11 +621,11 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     public function visitOctal(Node\OctalNode $node): void
     {
         // \o{...}
-        if (preg_match('/^\\\\o\{([0-9]+)\}$/', $node->code, $m)) {
+        if (preg_match('/^\\\\o\{([0-9]++)\}$/', $node->code, $m)) {
             $octalStr = $m[1];
 
             // Check if all digits are valid octal (0-7)
-            if (!preg_match('/^[0-7]+$/', $octalStr)) {
+            if (!preg_match('/^[0-7]++$/', $octalStr)) {
                 throw new ParserException(\sprintf('Invalid octal codepoint "%s" at position %d.', $node->code, $node->startPosition));
             }
 
@@ -659,7 +659,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         }
 
         // Check if all digits are valid octal
-        if (!preg_match('/^[0-7]+$/', $node->code)) {
+        if (!preg_match('/^[0-7]++$/', $node->code)) {
             throw new ParserException(\sprintf('Invalid octal codepoint "\%s" at position %d.', $node->code, $node->startPosition));
         }
 
@@ -740,7 +740,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
             // This is (?(1)...) or (?(<name>)...) or (?(name)...)
             // For bare names, check if the group exists before calling accept
             $ref = $node->condition->ref;
-            if (preg_match('/^\w+$/', $ref) && !isset($this->namedGroups[$ref])) {
+            if (preg_match('/^\w++$/', $ref) && !isset($this->namedGroups[$ref])) {
                 // Bare name that doesn't exist - this is an invalid conditional
                 throw new ParserException(\sprintf('Invalid conditional construct at position %d. Condition must be a group reference, lookaround, or (DEFINE).', $node->condition->getStartPosition()));
             }
@@ -750,7 +750,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
             $ref = $node->condition->reference;
             if ('R' === $ref || '0' === $ref) {
                 // Always valid recursion condition to entire pattern.
-            } elseif (preg_match('/^R-?\d+$/', $ref)) {
+            } elseif (preg_match('/^R-?\d++$/', $ref)) {
                 $num = (int) substr($ref, 1);
                 if ($this->groupCount > 0) {
                     if ($num > 0 && $num > $this->groupCount) {
@@ -972,7 +972,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
             '*' => [0, -1],
             '+' => [1, -1],
             '?' => [0, 1],
-            default => preg_match('/^\{(\d+)(?:,(\d*))?\}$/', $q, $m) ?
+            default => preg_match('/^\{(\d++)(?:,(\d*+))?\}$/', $q, $m) ?
                 (isset($m[2]) ?
                     ('' === $m[2] ? [(int) $m[1], -1] : [(int) $m[1], (int) $m[2]]) : // {n,} or {n,m}
                     [(int) $m[1], (int) $m[1]] // {n}

@@ -155,7 +155,7 @@ final class CharSetAnalyzer
             return 1;
         }
 
-        if (preg_match('/\{(\d+)(?:,(\d+)?)?\}/', $quantifier, $matches)) {
+        if (preg_match('/\{(\d++)(?:,(\d++)?)?\}/', $quantifier, $matches)) {
             return (int) $matches[1];
         }
 

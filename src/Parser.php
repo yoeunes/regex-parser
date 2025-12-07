@@ -556,12 +556,12 @@ final class Parser
 
         $isStringIdentifier = false;
         $identifier = null;
-        if (preg_match('/^"([^"]*)"$/', $value, $matches)) {
+        if (preg_match('/^"([^"]*+)"$/', $value, $matches)) {
             $identifier = $matches[1];
             $isStringIdentifier = true;
         } elseif (ctype_digit($value)) {
             $identifier = (int) $value;
-        } elseif (preg_match('/^[a-zA-Z_][a-zA-Z0-9_]*$/', $value)) {
+        } elseif (preg_match('/^[a-zA-Z_][a-zA-Z0-9_]*+$/', $value)) {
             $identifier = $value;
         } else {
             throw $this->parserException(
@@ -583,14 +583,14 @@ final class Parser
         $endPosition = $startPosition + \strlen($value);
 
         // \g{N} or \gN (numeric, incl. relative) -> Backreference
-        if (preg_match('/^\\\\g\{?([0-9+-]+)\}?$/', $value, $m)) {
+        if (preg_match('/^\\\\g\{?([0-9+-]++)\}?$/', $value, $m)) {
             return new Node\BackrefNode($value, $startPosition, $endPosition);
         }
 
         // \g<name> or \g{name} (non-numeric) -> Subroutine
         if (
-            preg_match('/^\\\\g<(\w+)>$/', $value, $m)
-            || preg_match('/^\\\\g\{(\w+)\}$/', $value, $m)
+            preg_match('/^\\\\g<(\w++)>$/', $value, $m)
+            || preg_match('/^\\\\g\{(\w++)\}$/', $value, $m)
         ) {
             return new Node\SubroutineNode($m[1], 'g', $startPosition, $endPosition);
         }

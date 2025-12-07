@@ -795,7 +795,7 @@ final readonly class Regex
 
                     // Validate flags (only allow standard PCRE flags)
                     // n = NO_AUTO_CAPTURE, r = PCRE2_EXTRA_CASELESS_RESTRICT (unicode restricted)
-                    if (!preg_match('/^[imsxADSUXJunr]*$/', $flags)) {
+                    if (!preg_match('/^[imsxADSUXJunr]*+$/', $flags)) {
                         // Find the invalid flag for a better error message
                         $invalid = preg_replace('/[imsxADSUXJunr]/', '', $flags);
 
