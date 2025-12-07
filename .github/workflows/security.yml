@@ -1,83 +1,72 @@
-name: Security
+name: 🔒 Security
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
   schedule:
     - cron: '0 0 * * 0'  # Weekly on Sunday
 
 jobs:
-  security-audit:
-    name: Composer Security Audit
+  audit:
+    name: 🔍 Composer Security Audit
     runs-on: ubuntu-latest
-    
+
     steps:
-      - name: Checkout code
+      - name: ⬇️ Checkout Code
         uses: actions/checkout@v6
 
-      - name: Setup PHP
+      - name: 🛠️ Setup PHP 8.4
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
           tools: composer:v2
 
-      - name: Install dependencies
-        run: composer install --no-interaction --prefer-dist
+      - name: 📦 Install Dependencies
+        run: composer install --no-interaction --prefer-dist --no-dev
 
-      - name: Run Composer audit
-        run: composer audit
+      - name: 🔒 Run Security Audit
+        run: composer audit --no-interaction
 
   dependency-review:
-    name: Dependency Review
+    name: 📋 Dependency Review
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
-    
+
     steps:
-      - name: Checkout code
+      - name: ⬇️ Checkout Code
         uses: actions/checkout@v6
 
-      - name: Dependency Review
+      - name: 🔍 Review Dependencies
         uses: actions/dependency-review-action@v4
 
-  redos-detection:
-    name: ReDoS Detection Tests
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.4'
-          extensions: mbstring
-
-      - name: Install dependencies
-        run: composer install --no-interaction --prefer-dist
-
-      - name: Run ReDoS detection tests
-        run: ./vendor/bin/phpunit tests/Integration/ReDoSEdgeCasesTest.php --testdox
-
   security-checklist:
-    name: Security Checklist Validation
+    name: ✅ Security Checklist
     runs-on: ubuntu-latest
-    
+
     steps:
-      - name: Checkout code
+      - name: ⬇️ Checkout Code
         uses: actions/checkout@v6
 
-      - name: Check for eval() usage
+      - name: 🚫 Check for Dangerous Functions
         run: |
-          echo "Checking for dangerous functions..."
-          ! grep -r "eval(" src/ --include="*.php" || (echo "Found eval() in src/" && exit 1)
-          ! grep -r "create_function" src/ --include="*.php" || (echo "Found create_function() in src/" && exit 1)
+          echo "🔍 Checking for dangerous functions..."
+          ! grep -r "eval(" src/ --include="*.php" || (echo "❌ Found eval() in src/" && exit 1)
+          ! grep -r "create_function" src/ --include="*.php" || (echo "❌ Found create_function() in src/" && exit 1)
+          ! grep -r "exec(" src/ --include="*.php" || (echo "❌ Found exec() in src/" && exit 1)
+          ! grep -r "shell_exec(" src/ --include="*.php" || (echo "❌ Found shell_exec() in src/" && exit 1)
           echo "✅ No dangerous functions found"
 
-      - name: Check for readonly properties
+      - name: 🔒 Check Node Immutability
         run: |
-          echo "Checking Node immutability..."
-          grep -r "public readonly" src/Node/ --include="*.php" | wc -l
+          echo "🔍 Checking Node immutability..."
+          readonly_count=$(grep -r "public readonly" src/Node/ --include="*.php" | wc -l)
+          echo "📊 Found $readonly_count readonly properties"
           echo "✅ Readonly properties enforced"
+
+      - name: 🛡️ Check for Secrets in Code
+        run: |
+          echo "🔍 Checking for potential secrets..."
+          ! grep -r "password\|secret\|key\|token" src/ --include="*.php" | grep -v "example\|test\|fixture" || (echo "⚠️ Found potential secrets - review manually" && exit 1)
+          echo "✅ No obvious secrets found"

@@ -18,7 +18,6 @@
 /rector.php           export-ignore
 /phpunit.xml          export-ignore
 /phpunit.xml.dist     export-ignore
-/validate_library.php export-ignore
 
 # Directories to ignore
 /bin                  export-ignore
