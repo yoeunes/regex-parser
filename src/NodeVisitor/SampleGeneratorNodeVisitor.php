@@ -24,9 +24,9 @@ use RegexParser\Node\GroupType;
  * It's invaluable for testing, demonstrating regex behavior, and providing examples
  * of valid input for a given regex.
  *
- * @implements NodeVisitorInterface<string>
+ * @extends AbstractNodeVisitor<string>
  */
-final class SampleGeneratorNodeVisitor implements NodeVisitorInterface
+final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
 {
     private const int MAX_RECURSION_DEPTH = 2;
 
@@ -128,6 +128,7 @@ final class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * $sample = $regexNode->accept($visitor); // $sample could be "hello"
      * ```
      */
+    #[\Override]
     public function visitRegex(Node\RegexNode $node): string
     {
         // Reset state for this run
@@ -172,6 +173,7 @@ final class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * $alternationNode->accept($visitor); // Could return "apple", "banana", or "orange"
      * ```
      */
+    #[\Override]
     public function visitAlternation(Node\AlternationNode $node): string
     {
         if (empty($node->alternatives)) {
@@ -202,6 +204,7 @@ final class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * $sequenceNode->accept($visitor); // Returns "foo"
      * ```
      */
+    #[\Override]
     public function visitSequence(Node\SequenceNode $node): string
     {
         $parts = array_map(fn ($child) => $child->accept($this), $node->children);
@@ -234,6 +237,7 @@ final class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * $groupNode->accept($visitor); // Returns "" (empty string)
      * ```
      */
+    #[\Override]
     public function visitGroup(Node\GroupNode $node): string
     {
         // Lookarounds are zero-width assertions and should not generate text
@@ -287,6 +291,7 @@ final class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * $quantifierNode->accept($visitor); // Could return "", "b", "bb", or "bbb"
      * ```
      */
+    #[\Override]
     public function visitQuantifier(Node\QuantifierNode $node): string
     {
         [$min, $max] = $this->parseQuantifierRange($node->quantifier);
@@ -325,6 +330,7 @@ final class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * $literalNode->accept($visitor); // Returns "x"
      * ```
      */
+    #[\Override]
     public function visitLiteral(Node\LiteralNode $node): string
     {
         return $node->value;
@@ -351,6 +357,7 @@ final class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * $charTypeNode->accept($visitor); // Could return " ", "\t", "\n", etc.
      * ```
      */
+    #[\Override]
     public function visitCharType(Node\CharTypeNode $node): string
     {
         return $this->generateForCharType($node->value);
@@ -373,6 +380,7 @@ final class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * $dotNode->accept($visitor); // Could return "a", "1", " ", etc.
      * ```
      */
+    #[\Override]
     public function visitDot(Node\DotNode $node): string
     {
         // Generate a random, simple, printable ASCII char
@@ -397,6 +405,7 @@ final class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * $anchorNode->accept($visitor); // Returns ""
      * ```
      */
+    #[\Override]
     public function visitAnchor(Node\AnchorNode $node): string
     {
         // Anchors do not generate text
@@ -421,6 +430,7 @@ final class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * $assertionNode->accept($visitor); // Returns ""
      * ```
      */
+    #[\Override]
     public function visitAssertion(Node\AssertionNode $node): string
     {
         // Assertions do not generate text
@@ -444,6 +454,7 @@ final class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * $keepNode->accept($visitor); // Returns ""
      * ```
      */
+    #[\Override]
     public function visitKeep(Node\KeepNode $node): string
     {
         // \K does not generate text
@@ -474,6 +485,7 @@ final class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * $charClassNode->accept($visitor); // Returns "!" (a safe fallback)
      * ```
      */
+    #[\Override]
     public function visitCharClass(Node\CharClassNode $node): string
     {
         if ($node->isNegated) {
@@ -513,6 +525,7 @@ final class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * $rangeNode->accept($visitor); // Could return "A", "M", "Z", etc.
      * ```
      */
+    #[\Override]
     public function visitRange(Node\RangeNode $node): string
     {
         if (!$node->start instanceof Node\LiteralNode || !$node->end instanceof Node\LiteralNode) {
@@ -552,6 +565,7 @@ final class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * $backrefNode->accept($visitor); // Returns the content of the referenced group
      * ```
      */
+    #[\Override]
     public function visitBackref(Node\BackrefNode $node): string
     {
         $ref = $node->ref;
@@ -599,6 +613,7 @@ final class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * $unicodeNode->accept($visitor); // Returns "☃"
      * ```
      */
+    #[\Override]
     public function visitUnicode(Node\UnicodeNode $node): string
     {
         if (preg_match('/^\\\\x([0-9a-fA-F]{2})$/', $node->code, $m)) {
@@ -633,6 +648,7 @@ final class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * $unicodePropNode->accept($visitor); // Could return "1", "2", "3", etc.
      * ```
      */
+    #[\Override]
     public function visitUnicodeProp(Node\UnicodePropNode $node): string
     {
         // Too complex to generate a *random* char for a property.
@@ -667,6 +683,7 @@ final class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * $octalNode->accept($visitor); // Returns "A"
      * ```
      */
+    #[\Override]
     public function visitOctal(Node\OctalNode $node): string
     {
         if (preg_match('/^\\\\o\{([0-7]+)\}$/', $node->code, $m)) {
@@ -693,6 +710,7 @@ final class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * $octalLegacyNode->accept($visitor); // Returns "\n"
      * ```
      */
+    #[\Override]
     public function visitOctalLegacy(Node\OctalLegacyNode $node): string
     {
         return mb_chr((int) octdec($node->code), 'UTF-8');
@@ -718,6 +736,7 @@ final class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * $posixClassNode->accept($visitor); // Could return "a", "B", "z", etc.
      * ```
      */
+    #[\Override]
     public function visitPosixClass(Node\PosixClassNode $node): string
     {
         return match (strtolower($node->class)) {
@@ -754,6 +773,7 @@ final class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * $commentNode->accept($visitor); // Returns ""
      * ```
      */
+    #[\Override]
     public function visitComment(Node\CommentNode $node): string
     {
         // Comments do not generate text
@@ -778,6 +798,7 @@ final class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * $conditionalNode->accept($visitor); // Could return "foo" or "bar"
      * ```
      */
+    #[\Override]
     public function visitConditional(Node\ConditionalNode $node): string
     {
         // This is complex. Does the condition (e.g., group 1) exist?
@@ -806,6 +827,7 @@ final class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      *
      * @param Node\SubroutineNode $node the `SubroutineNode` representing a subroutine call
      */
+    #[\Override]
     public function visitSubroutine(Node\SubroutineNode $node): string
     {
         if (null === $this->rootPattern || $this->rootPattern instanceof Node\SubroutineNode) {
@@ -846,6 +868,7 @@ final class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * $pcreVerbNode->accept($visitor); // Returns ""
      * ```
      */
+    #[\Override]
     public function visitPcreVerb(Node\PcreVerbNode $node): string
     {
         // Verbs do not generate text
@@ -870,17 +893,20 @@ final class SampleGeneratorNodeVisitor implements NodeVisitorInterface
      * $defineNode->accept($visitor); // Returns ""
      * ```
      */
+    #[\Override]
     public function visitDefine(Node\DefineNode $node): string
     {
         // DEFINE blocks do not generate text, they only define subpatterns
         return '';
     }
 
+    #[\Override]
     public function visitLimitMatch(Node\LimitMatchNode $node): string
     {
         return '';
     }
 
+    #[\Override]
     public function visitCallout(Node\CalloutNode $node): string
     {
         // Callouts do not match characters, so they generate no sample text.

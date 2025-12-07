@@ -22,9 +22,9 @@ use RegexParser\Node\GroupType;
  * This visitor acts as a Serializer, converting the Domain Model (AST)
  * into a View Model (Array) for the frontend.
  *
- * @implements NodeVisitorInterface<array<string, mixed>>
+ * @extends AbstractNodeVisitor<array<string, mixed>>
  */
-final class ArrayExplorerNodeVisitor implements NodeVisitorInterface
+final class ArrayExplorerNodeVisitor extends AbstractNodeVisitor
 {
     /**
      * Visits a RegexNode and converts it into an array representation.
@@ -54,6 +54,7 @@ final class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * // ]
      * ```
      */
+    #[\Override]
     public function visitRegex(Node\RegexNode $node): array
     {
         return [
@@ -95,6 +96,7 @@ final class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * // ]
      * ```
      */
+    #[\Override]
     public function visitGroup(Node\GroupNode $node): array
     {
         [$label, $icon, $color, $bg] = match ($node->type) {
@@ -146,6 +148,7 @@ final class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * // ]
      * ```
      */
+    #[\Override]
     public function visitQuantifier(Node\QuantifierNode $node): array
     {
         return [
@@ -188,6 +191,7 @@ final class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * // ]
      * ```
      */
+    #[\Override]
     public function visitSequence(Node\SequenceNode $node): array
     {
         return [
@@ -228,6 +232,7 @@ final class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * // ]
      * ```
      */
+    #[\Override]
     public function visitAlternation(Node\AlternationNode $node): array
     {
         return [
@@ -266,6 +271,7 @@ final class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * // ]
      * ```
      */
+    #[\Override]
     public function visitLiteral(Node\LiteralNode $node): array
     {
         return [
@@ -305,6 +311,7 @@ final class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * // ]
      * ```
      */
+    #[\Override]
     public function visitCharClass(Node\CharClassNode $node): array
     {
         $label = $node->isNegated ? 'Negative Character Set [^...]' : 'Character Set [...]';
@@ -348,6 +355,7 @@ final class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * // ]
      * ```
      */
+    #[\Override]
     public function visitRange(Node\RangeNode $node): array
     {
         return [
@@ -388,6 +396,7 @@ final class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * // ]
      * ```
      */
+    #[\Override]
     public function visitCharType(Node\CharTypeNode $node): array
     {
         $map = [
@@ -432,6 +441,7 @@ final class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * // ]
      * ```
      */
+    #[\Override]
     public function visitDot(Node\DotNode $node): array
     {
         return [
@@ -470,6 +480,7 @@ final class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * // ]
      * ```
      */
+    #[\Override]
     public function visitAnchor(Node\AnchorNode $node): array
     {
         $map = ['^' => 'Start of Line', '$' => 'End of Line', '\A' => 'Start of String', '\z' => 'End of String'];
@@ -509,6 +520,7 @@ final class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * // ]
      * ```
      */
+    #[\Override]
     public function visitAssertion(Node\AssertionNode $node): array
     {
         return [
@@ -547,6 +559,7 @@ final class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * // ]
      * ```
      */
+    #[\Override]
     public function visitBackref(Node\BackrefNode $node): array
     {
         return [
@@ -585,6 +598,7 @@ final class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * // ]
      * ```
      */
+    #[\Override]
     public function visitUnicode(Node\UnicodeNode $node): array
     {
         return [
@@ -623,6 +637,7 @@ final class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * // ]
      * ```
      */
+    #[\Override]
     public function visitUnicodeProp(Node\UnicodePropNode $node): array
     {
         return [
@@ -660,6 +675,7 @@ final class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * // ]
      * ```
      */
+    #[\Override]
     public function visitOctal(Node\OctalNode $node): array
     {
         return $this->genericLeaf('Octal', $node->code);
@@ -691,6 +707,7 @@ final class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * // ]
      * ```
      */
+    #[\Override]
     public function visitOctalLegacy(Node\OctalLegacyNode $node): array
     {
         return $this->genericLeaf('Legacy Octal', $node->code);
@@ -722,6 +739,7 @@ final class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * // ]
      * ```
      */
+    #[\Override]
     public function visitPosixClass(Node\PosixClassNode $node): array
     {
         return [
@@ -760,6 +778,7 @@ final class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * // ]
      * ```
      */
+    #[\Override]
     public function visitComment(Node\CommentNode $node): array
     {
         return [
@@ -802,6 +821,7 @@ final class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * // ]
      * ```
      */
+    #[\Override]
     public function visitConditional(Node\ConditionalNode $node): array
     {
         return [
@@ -844,6 +864,7 @@ final class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * // ]
      * ```
      */
+    #[\Override]
     public function visitSubroutine(Node\SubroutineNode $node): array
     {
         return [
@@ -882,6 +903,7 @@ final class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * // ]
      * ```
      */
+    #[\Override]
     public function visitPcreVerb(Node\PcreVerbNode $node): array
     {
         return [
@@ -919,6 +941,7 @@ final class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * // ]
      * ```
      */
+    #[\Override]
     public function visitDefine(Node\DefineNode $node): array
     {
         return [
@@ -956,6 +979,7 @@ final class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * // ]
      * ```
      */
+    #[\Override]
     public function visitKeep(Node\KeepNode $node): array
     {
         return [
@@ -968,6 +992,7 @@ final class ArrayExplorerNodeVisitor implements NodeVisitorInterface
         ];
     }
 
+    #[\Override]
     public function visitLimitMatch(Node\LimitMatchNode $node): array
     {
         return [
@@ -986,6 +1011,7 @@ final class ArrayExplorerNodeVisitor implements NodeVisitorInterface
      * Callouts trigger user-defined code without consuming characters, so they are
      * represented as leaf nodes with their identifier.
      */
+    #[\Override]
     public function visitCallout(Node\CalloutNode $node): array
     {
         $detail = match (true) {

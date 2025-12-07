@@ -26,9 +26,9 @@ use RegexParser\Node\GroupType;
  * Each `visit` method can return a new, modified node, effectively rewriting
  * parts of the tree.
  *
- * @implements NodeVisitorInterface<Node\NodeInterface>
+ * @extends AbstractNodeVisitor<Node\NodeInterface>
  */
-final class OptimizerNodeVisitor implements NodeVisitorInterface
+final class OptimizerNodeVisitor extends AbstractNodeVisitor
 {
     private const array CHAR_CLASS_META = [']' => true, '\\' => true, '^' => true, '-' => true];
 
@@ -45,6 +45,7 @@ final class OptimizerNodeVisitor implements NodeVisitorInterface
      *
      * @return Node\NodeInterface the new, optimized root node
      */
+    #[\Override]
     public function visitRegex(Node\RegexNode $node): Node\NodeInterface
     {
         $this->flags = $node->flags;
@@ -69,6 +70,7 @@ final class OptimizerNodeVisitor implements NodeVisitorInterface
      *
      * @return Node\NodeInterface the new, optimized node (which could be an `AlternationNode` or `CharClassNode`)
      */
+    #[\Override]
     public function visitAlternation(Node\AlternationNode $node): Node\NodeInterface
     {
         $optimizedAlts = [];
@@ -115,6 +117,7 @@ final class OptimizerNodeVisitor implements NodeVisitorInterface
      *
      * @return Node\NodeInterface the new, optimized node (which could be a `SequenceNode` or a single child node)
      */
+    #[\Override]
     public function visitSequence(Node\SequenceNode $node): Node\NodeInterface
     {
         $optimizedChildren = [];
@@ -183,6 +186,7 @@ final class OptimizerNodeVisitor implements NodeVisitorInterface
      *
      * @return Node\NodeInterface the new, optimized node (which might be the unwrapped child node)
      */
+    #[\Override]
     public function visitGroup(Node\GroupNode $node): Node\NodeInterface
     {
         $optimizedChild = $node->child->accept($this);
@@ -223,6 +227,7 @@ final class OptimizerNodeVisitor implements NodeVisitorInterface
      *
      * @return Node\NodeInterface the new, optimized quantifier node
      */
+    #[\Override]
     public function visitQuantifier(Node\QuantifierNode $node): Node\NodeInterface
     {
         $optimizedNode = $node->node->accept($this);
@@ -245,6 +250,7 @@ final class OptimizerNodeVisitor implements NodeVisitorInterface
      *
      * @return Node\NodeInterface the new, optimized node (which could be a `CharTypeNode`)
      */
+    #[\Override]
     public function visitCharClass(Node\CharClassNode $node): Node\NodeInterface
     {
         $isUnicode = str_contains($this->flags, 'u');
@@ -294,6 +300,7 @@ final class OptimizerNodeVisitor implements NodeVisitorInterface
      *
      * @return Node\NodeInterface the unchanged node
      */
+    #[\Override]
     public function visitRange(Node\RangeNode $node): Node\NodeInterface
     {
         return $node;
@@ -309,6 +316,7 @@ final class OptimizerNodeVisitor implements NodeVisitorInterface
      *
      * @return Node\NodeInterface the new, optimized conditional node
      */
+    #[\Override]
     public function visitConditional(Node\ConditionalNode $node): Node\NodeInterface
     {
         $optimizedCond = $node->condition->accept($this);
@@ -332,6 +340,7 @@ final class OptimizerNodeVisitor implements NodeVisitorInterface
      *
      * @return Node\NodeInterface the unchanged node
      */
+    #[\Override]
     public function visitLiteral(Node\LiteralNode $node): Node\NodeInterface
     {
         return $node;
@@ -346,6 +355,7 @@ final class OptimizerNodeVisitor implements NodeVisitorInterface
      *
      * @return Node\NodeInterface the unchanged node
      */
+    #[\Override]
     public function visitCharType(Node\CharTypeNode $node): Node\NodeInterface
     {
         return $node;
@@ -360,6 +370,7 @@ final class OptimizerNodeVisitor implements NodeVisitorInterface
      *
      * @return Node\NodeInterface the unchanged node
      */
+    #[\Override]
     public function visitDot(Node\DotNode $node): Node\NodeInterface
     {
         return $node;
@@ -374,6 +385,7 @@ final class OptimizerNodeVisitor implements NodeVisitorInterface
      *
      * @return Node\NodeInterface the unchanged node
      */
+    #[\Override]
     public function visitAnchor(Node\AnchorNode $node): Node\NodeInterface
     {
         return $node;
@@ -388,6 +400,7 @@ final class OptimizerNodeVisitor implements NodeVisitorInterface
      *
      * @return Node\NodeInterface the unchanged node
      */
+    #[\Override]
     public function visitAssertion(Node\AssertionNode $node): Node\NodeInterface
     {
         return $node;
@@ -402,6 +415,7 @@ final class OptimizerNodeVisitor implements NodeVisitorInterface
      *
      * @return Node\NodeInterface the unchanged node
      */
+    #[\Override]
     public function visitKeep(Node\KeepNode $node): Node\NodeInterface
     {
         return $node;
@@ -416,6 +430,7 @@ final class OptimizerNodeVisitor implements NodeVisitorInterface
      *
      * @return Node\NodeInterface the unchanged node
      */
+    #[\Override]
     public function visitBackref(Node\BackrefNode $node): Node\NodeInterface
     {
         return $node;
@@ -430,6 +445,7 @@ final class OptimizerNodeVisitor implements NodeVisitorInterface
      *
      * @return Node\NodeInterface the unchanged node
      */
+    #[\Override]
     public function visitUnicode(Node\UnicodeNode $node): Node\NodeInterface
     {
         return $node;
@@ -444,6 +460,7 @@ final class OptimizerNodeVisitor implements NodeVisitorInterface
      *
      * @return Node\NodeInterface the unchanged node
      */
+    #[\Override]
     public function visitUnicodeProp(Node\UnicodePropNode $node): Node\NodeInterface
     {
         return $node;
@@ -458,6 +475,7 @@ final class OptimizerNodeVisitor implements NodeVisitorInterface
      *
      * @return Node\NodeInterface the unchanged node
      */
+    #[\Override]
     public function visitOctal(Node\OctalNode $node): Node\NodeInterface
     {
         return $node;
@@ -472,6 +490,7 @@ final class OptimizerNodeVisitor implements NodeVisitorInterface
      *
      * @return Node\NodeInterface the unchanged node
      */
+    #[\Override]
     public function visitOctalLegacy(Node\OctalLegacyNode $node): Node\NodeInterface
     {
         return $node;
@@ -486,6 +505,7 @@ final class OptimizerNodeVisitor implements NodeVisitorInterface
      *
      * @return Node\NodeInterface the unchanged node
      */
+    #[\Override]
     public function visitPosixClass(Node\PosixClassNode $node): Node\NodeInterface
     {
         return $node;
@@ -500,6 +520,7 @@ final class OptimizerNodeVisitor implements NodeVisitorInterface
      *
      * @return Node\NodeInterface the unchanged node
      */
+    #[\Override]
     public function visitComment(Node\CommentNode $node): Node\NodeInterface
     {
         return $node;
@@ -514,6 +535,7 @@ final class OptimizerNodeVisitor implements NodeVisitorInterface
      *
      * @return Node\NodeInterface the unchanged node
      */
+    #[\Override]
     public function visitSubroutine(Node\SubroutineNode $node): Node\NodeInterface
     {
         return $node;
@@ -528,6 +550,7 @@ final class OptimizerNodeVisitor implements NodeVisitorInterface
      *
      * @return Node\NodeInterface the unchanged node
      */
+    #[\Override]
     public function visitPcreVerb(Node\PcreVerbNode $node): Node\NodeInterface
     {
         return $node;
@@ -542,6 +565,7 @@ final class OptimizerNodeVisitor implements NodeVisitorInterface
      *
      * @return Node\NodeInterface the new, optimized define node
      */
+    #[\Override]
     public function visitDefine(Node\DefineNode $node): Node\NodeInterface
     {
         return new Node\DefineNode(
@@ -551,11 +575,13 @@ final class OptimizerNodeVisitor implements NodeVisitorInterface
         );
     }
 
+    #[\Override]
     public function visitLimitMatch(Node\LimitMatchNode $node): Node\NodeInterface
     {
         return $node;
     }
 
+    #[\Override]
     public function visitCallout(Node\CalloutNode $node): Node\NodeInterface
     {
         return $node;

@@ -30,9 +30,9 @@ use RegexParser\ReDoS\ReDoSSeverity;
  * It categorizes risks into different severity levels (SAFE, LOW, UNKNOWN, MEDIUM, HIGH, CRITICAL)
  * and provides recommendations for mitigation.
  *
- * @implements NodeVisitorInterface<ReDoSSeverity>
+ * @extends AbstractNodeVisitor<ReDoSSeverity>
  */
-final class ReDoSProfileNodeVisitor implements NodeVisitorInterface
+final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
 {
     private int $unboundedQuantifierDepth = 0;
 
@@ -136,6 +136,7 @@ final class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      * $severity = $regexNode->accept($visitor); // $severity would be ReDoSSeverity::CRITICAL
      * ```
      */
+    #[\Override]
     public function visitRegex(Node\RegexNode $node): ReDoSSeverity
     {
         $this->unboundedQuantifierDepth = 0;
@@ -172,6 +173,7 @@ final class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      * $quantifierNode->accept($visitor); // Will add a LOW vulnerability and return ReDoSSeverity::LOW
      * ```
      */
+    #[\Override]
     public function visitQuantifier(Node\QuantifierNode $node): ReDoSSeverity
     {
         // Save the current atomic state to restore it later
@@ -310,6 +312,7 @@ final class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      * $alternationNode->accept($visitor); // Will add a CRITICAL vulnerability and return ReDoSSeverity::CRITICAL
      * ```
      */
+    #[\Override]
     public function visitAlternation(Node\AlternationNode $node): ReDoSSeverity
     {
         $max = ReDoSSeverity::SAFE;
@@ -356,6 +359,7 @@ final class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      * $groupNode->accept($visitor); // Will set `inAtomicGroup` to true, preventing ReDoS detection inside.
      * ```
      */
+    #[\Override]
     public function visitGroup(Node\GroupNode $node): ReDoSSeverity
     {
         $wasAtomic = $this->inAtomicGroup;
@@ -395,6 +399,7 @@ final class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      * $sequenceNode->accept($visitor); // Will return the max severity found in 'a', '(b+)*', and 'c'.
      * ```
      */
+    #[\Override]
     public function visitSequence(Node\SequenceNode $node): ReDoSSeverity
     {
         $max = ReDoSSeverity::SAFE;
@@ -426,6 +431,7 @@ final class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      *
      * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
      */
+    #[\Override]
     public function visitLiteral(Node\LiteralNode $node): ReDoSSeverity
     {
         return ReDoSSeverity::SAFE;
@@ -442,6 +448,7 @@ final class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      *
      * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
      */
+    #[\Override]
     public function visitCharType(Node\CharTypeNode $node): ReDoSSeverity
     {
         return ReDoSSeverity::SAFE;
@@ -458,6 +465,7 @@ final class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      *
      * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
      */
+    #[\Override]
     public function visitDot(Node\DotNode $node): ReDoSSeverity
     {
         return ReDoSSeverity::SAFE;
@@ -474,6 +482,7 @@ final class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      *
      * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
      */
+    #[\Override]
     public function visitAnchor(Node\AnchorNode $node): ReDoSSeverity
     {
         return ReDoSSeverity::SAFE;
@@ -490,6 +499,7 @@ final class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      *
      * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
      */
+    #[\Override]
     public function visitAssertion(Node\AssertionNode $node): ReDoSSeverity
     {
         return ReDoSSeverity::SAFE;
@@ -506,6 +516,7 @@ final class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      *
      * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
      */
+    #[\Override]
     public function visitKeep(Node\KeepNode $node): ReDoSSeverity
     {
         return ReDoSSeverity::SAFE;
@@ -522,6 +533,7 @@ final class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      *
      * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
      */
+    #[\Override]
     public function visitCharClass(Node\CharClassNode $node): ReDoSSeverity
     {
         return ReDoSSeverity::SAFE;
@@ -538,6 +550,7 @@ final class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      *
      * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
      */
+    #[\Override]
     public function visitRange(Node\RangeNode $node): ReDoSSeverity
     {
         return ReDoSSeverity::SAFE;
@@ -554,6 +567,7 @@ final class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      *
      * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
      */
+    #[\Override]
     public function visitBackref(Node\BackrefNode $node): ReDoSSeverity
     {
         return ReDoSSeverity::SAFE;
@@ -570,6 +584,7 @@ final class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      *
      * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
      */
+    #[\Override]
     public function visitUnicode(Node\UnicodeNode $node): ReDoSSeverity
     {
         return ReDoSSeverity::SAFE;
@@ -586,6 +601,7 @@ final class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      *
      * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
      */
+    #[\Override]
     public function visitUnicodeProp(Node\UnicodePropNode $node): ReDoSSeverity
     {
         return ReDoSSeverity::SAFE;
@@ -602,6 +618,7 @@ final class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      *
      * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
      */
+    #[\Override]
     public function visitOctal(Node\OctalNode $node): ReDoSSeverity
     {
         return ReDoSSeverity::SAFE;
@@ -618,6 +635,7 @@ final class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      *
      * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
      */
+    #[\Override]
     public function visitOctalLegacy(Node\OctalLegacyNode $node): ReDoSSeverity
     {
         return ReDoSSeverity::SAFE;
@@ -634,6 +652,7 @@ final class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      *
      * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
      */
+    #[\Override]
     public function visitPosixClass(Node\PosixClassNode $node): ReDoSSeverity
     {
         return ReDoSSeverity::SAFE;
@@ -650,6 +669,7 @@ final class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      *
      * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
      */
+    #[\Override]
     public function visitComment(Node\CommentNode $node): ReDoSSeverity
     {
         return ReDoSSeverity::SAFE;
@@ -666,6 +686,7 @@ final class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      *
      * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
      */
+    #[\Override]
     public function visitPcreVerb(Node\PcreVerbNode $node): ReDoSSeverity
     {
         return ReDoSSeverity::SAFE;
@@ -689,6 +710,7 @@ final class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      * $conditionalNode->accept($visitor); // Will return the max severity of 'a*' and 'b*'.
      * ```
      */
+    #[\Override]
     public function visitConditional(Node\ConditionalNode $node): ReDoSSeverity
     {
         return $this->maxSeverity(
@@ -715,6 +737,7 @@ final class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      * $subroutineNode->accept($visitor); // Will return ReDoSSeverity::MEDIUM
      * ```
      */
+    #[\Override]
     public function visitSubroutine(Node\SubroutineNode $node): ReDoSSeverity
     {
         $this->addVulnerability(
@@ -745,12 +768,14 @@ final class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      * $defineNode->accept($visitor); // Will analyze `\d+` for ReDoS.
      * ```
      */
+    #[\Override]
     public function visitDefine(Node\DefineNode $node): ReDoSSeverity
     {
         // Analyze the content of the DEFINE block for ReDoS vulnerabilities
         return $node->content->accept($this);
     }
 
+    #[\Override]
     public function visitLimitMatch(Node\LimitMatchNode $node): ReDoSSeverity
     {
         return ReDoSSeverity::SAFE;
@@ -762,6 +787,7 @@ final class ReDoSProfileNodeVisitor implements NodeVisitorInterface
      * Callouts delegate to user code without changing the regex's matching language,
      * so they are considered safe in this static analysis.
      */
+    #[\Override]
     public function visitCallout(Node\CalloutNode $node): ReDoSSeverity
     {
         return ReDoSSeverity::SAFE;

@@ -26,9 +26,9 @@ use RegexParser\Node\QuantifierType;
  * easier to understand for developers and non-technical users alike. It breaks down
  * the regex into its logical parts and describes what each part matches.
  *
- * @implements NodeVisitorInterface<string>
+ * @extends AbstractNodeVisitor<string>
  */
-final class HtmlExplainNodeVisitor implements NodeVisitorInterface
+final class HtmlExplainNodeVisitor extends AbstractNodeVisitor
 {
     private const array CHAR_TYPE_MAP = [
         'd' => 'any digit (0-9)',
@@ -77,6 +77,7 @@ final class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * // $html will contain a div with the explanation of "hello" and mention of the 'i' flag.
      * ```
      */
+    #[\Override]
     public function visitRegex(Node\RegexNode $node): string
     {
         $patternExplain = $node->pattern->accept($this);
@@ -110,6 +111,7 @@ final class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * // <li><strong>OR:</strong><ul>...explanation of orange...</ul></li>
      * ```
      */
+    #[\Override]
     public function visitAlternation(Node\AlternationNode $node): string
     {
         $alts = array_map(
@@ -144,6 +146,7 @@ final class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * // <li>Literal: <strong>'o'</strong></li>
      * ```
      */
+    #[\Override]
     public function visitSequence(Node\SequenceNode $node): string
     {
         $parts = array_map(fn ($child) => $child->accept($this), $node->children);
@@ -179,6 +182,7 @@ final class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * // <ul><li>...explanation of test...</li></ul></li>
      * ```
      */
+    #[\Override]
     public function visitGroup(Node\GroupNode $node): string
     {
         $childExplain = $node->child->accept($this);
@@ -228,6 +232,7 @@ final class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * // <ul><li>...explanation of foo...</li></ul></li>
      * ```
      */
+    #[\Override]
     public function visitQuantifier(Node\QuantifierNode $node): string
     {
         $childExplain = $node->node->accept($this);
@@ -267,6 +272,7 @@ final class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * $literalNode->accept($visitor); // Returns HTML like: <li>Literal: <strong>'\n' (newline)</strong></li>
      * ```
      */
+    #[\Override]
     public function visitLiteral(Node\LiteralNode $node): string
     {
         $explanation = $this->explainLiteral($node->value);
@@ -296,6 +302,7 @@ final class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * // Returns HTML like: <li>Character Type: <strong>\d</strong> (any digit (0-9))</li>
      * ```
      */
+    #[\Override]
     public function visitCharType(Node\CharTypeNode $node): string
     {
         $explanation = self::CHAR_TYPE_MAP[$node->value] ?? 'unknown (\\'.$node->value.')';
@@ -326,6 +333,7 @@ final class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * // Returns HTML like: <li>Wildcard: <strong>.</strong> (any character (except newline, unless /s flag is used))</li>
      * ```
      */
+    #[\Override]
     public function visitDot(Node\DotNode $node): string
     {
         $explanation = 'any character (except newline, unless /s flag is used)';
@@ -355,6 +363,7 @@ final class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * // Returns HTML like: <li>Anchor: <strong>^</strong> (the start of the string (or line, with /m flag))</li>
      * ```
      */
+    #[\Override]
     public function visitAnchor(Node\AnchorNode $node): string
     {
         $explanation = self::ANCHOR_MAP[$node->value] ?? $node->value;
@@ -385,6 +394,7 @@ final class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * // Returns HTML like: <li>Assertion: <strong>\b</strong> (a word boundary)</li>
      * ```
      */
+    #[\Override]
     public function visitAssertion(Node\AssertionNode $node): string
     {
         $explanation = self::ASSERTION_MAP[$node->value] ?? '\\'.$node->value;
@@ -415,6 +425,7 @@ final class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * // Returns HTML like: <li>Assertion: <strong>\K</strong> (\K (reset match start))</li>
      * ```
      */
+    #[\Override]
     public function visitKeep(Node\KeepNode $node): string
     {
         $explanation = '\K (reset match start)';
@@ -448,6 +459,7 @@ final class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * // Returns HTML like: <li><span title="Character Class: any character NOT in [ '0', '9' ]">Character Class: [ <strong>NOT</strong> '0', '9' ]</span></li>
      * ```
      */
+    #[\Override]
     public function visitCharClass(Node\CharClassNode $node): string
     {
         $neg = $node->isNegated ? '<strong>NOT</strong> ' : '';
@@ -483,6 +495,7 @@ final class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * $rangeNode->accept($visitor); // Returns HTML like: Range: from 'a' to 'z'
      * ```
      */
+    #[\Override]
     public function visitRange(Node\RangeNode $node): string
     {
         $start = ($node->start instanceof Node\LiteralNode)
@@ -514,6 +527,7 @@ final class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * // Returns HTML like: <li><span title="matches text from group "1"">Backreference: <strong>\1</strong></span></li>
      * ```
      */
+    #[\Override]
     public function visitBackref(Node\BackrefNode $node): string
     {
         $explanation = \sprintf('matches text from group "%s"', $node->ref);
@@ -543,6 +557,7 @@ final class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * // Returns HTML like: <li><span title="Unicode: {2603}">Unicode: <strong>{2603}</strong></span></li>
      * ```
      */
+    #[\Override]
     public function visitUnicode(Node\UnicodeNode $node): string
     {
         return \sprintf(
@@ -574,6 +589,7 @@ final class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * // Returns HTML like: <li><span title="any character non-matching "N"">Unicode Property: <strong>\P{N}</strong></span></li>
      * ```
      */
+    #[\Override]
     public function visitUnicodeProp(Node\UnicodePropNode $node): string
     {
         $type = str_starts_with($node->prop, '^') ? 'non-matching' : 'matching';
@@ -607,6 +623,7 @@ final class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * // Returns HTML like: <li><span title="Octal: 101">Octal: <strong>101</strong></span></li>
      * ```
      */
+    #[\Override]
     public function visitOctal(Node\OctalNode $node): string
     {
         return \sprintf(
@@ -634,6 +651,7 @@ final class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * // Returns HTML like: <li><span title="Legacy Octal: 012">Legacy Octal: <strong>\012</strong></span></li>
      * ```
      */
+    #[\Override]
     public function visitOctalLegacy(Node\OctalLegacyNode $node): string
     {
         return \sprintf(
@@ -660,6 +678,7 @@ final class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * $posixClassNode->accept($visitor); // Returns HTML like: POSIX Class: [[:digit:]]
      * ```
      */
+    #[\Override]
     public function visitPosixClass(Node\PosixClassNode $node): string
     {
         return \sprintf('<li>POSIX Class: [[:%s:]]</li>', $this->e($node->class));
@@ -683,6 +702,7 @@ final class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * // Returns HTML like: <li><span title="Comment" style="color: #888; font-style: italic;">Comment: This is a comment</span></li>
      * ```
      */
+    #[\Override]
     public function visitComment(Node\CommentNode $node): string
     {
         return \sprintf(
@@ -719,6 +739,7 @@ final class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * // <ul>...explanation of pattern...</ul></li>
      * ```
      */
+    #[\Override]
     public function visitConditional(Node\ConditionalNode $node): string
     {
         $cond = $node->condition->accept($this);
@@ -769,6 +790,7 @@ final class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * // Returns HTML like: <li><span title="recurses to the entire pattern">Subroutine Call: <strong>(?R)</strong></span></li>
      * ```
      */
+    #[\Override]
     public function visitSubroutine(Node\SubroutineNode $node): string
     {
         $ref = match ($node->reference) {
@@ -803,6 +825,7 @@ final class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * // Returns HTML like: <li><span title="PCRE Verb">PCRE Verb: <strong>(*FAIL)</strong></span></li>
      * ```
      */
+    #[\Override]
     public function visitPcreVerb(Node\PcreVerbNode $node): string
     {
         return \sprintf(
@@ -832,6 +855,7 @@ final class HtmlExplainNodeVisitor implements NodeVisitorInterface
      * // <ul><li>...explanation of (?<digit>\d)...</li></ul></li>
      * ```
      */
+    #[\Override]
     public function visitDefine(Node\DefineNode $node): string
     {
         $content = $node->content->accept($this);
@@ -842,6 +866,7 @@ final class HtmlExplainNodeVisitor implements NodeVisitorInterface
         );
     }
 
+    #[\Override]
     public function visitLimitMatch(Node\LimitMatchNode $node): string
     {
         $explanation = \sprintf('sets the match limit to %d', $node->limit);
@@ -853,6 +878,7 @@ final class HtmlExplainNodeVisitor implements NodeVisitorInterface
         );
     }
 
+    #[\Override]
     public function visitCallout(Node\CalloutNode $node): string
     {
         $argument = $node->isStringIdentifier ? '"'.$node->identifier.'"' : (string) $node->identifier;

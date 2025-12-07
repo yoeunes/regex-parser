@@ -28,9 +28,9 @@ use RegexParser\Node\GroupType;
  * maintain, or optimize regex. This is useful for code quality analysis and identifying
  * patterns that might be prone to errors or performance issues.
  *
- * @implements NodeVisitorInterface<int>
+ * @extends AbstractNodeVisitor<int>
  */
-final class ComplexityScoreNodeVisitor implements NodeVisitorInterface
+final class ComplexityScoreNodeVisitor extends AbstractNodeVisitor
 {
     /**
      * Base score for a node.
@@ -73,6 +73,7 @@ final class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * $score = $regexNode->accept($visitor); // $score will be a numeric value
      * ```
      */
+    #[\Override]
     public function visitRegex(Node\RegexNode $node): int
     {
         // Reset state for this run
@@ -100,6 +101,7 @@ final class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * $alternationNode->accept($visitor); // Score will be BASE_SCORE + score(a) + score(b) + score(c)
      * ```
      */
+    #[\Override]
     public function visitAlternation(Node\AlternationNode $node): int
     {
         // Score is the sum of all alternatives, plus a base score for the alternation itself
@@ -129,6 +131,7 @@ final class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * $sequenceNode->accept($visitor); // Score will be score(a) + score(b) + score(c)
      * ```
      */
+    #[\Override]
     public function visitSequence(Node\SequenceNode $node): int
     {
         // Score is the sum of all children
@@ -161,6 +164,7 @@ final class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * $groupNode->accept($visitor); // Score will be COMPLEX_CONSTRUCT_SCORE + score(abc)
      * ```
      */
+    #[\Override]
     public function visitGroup(Node\GroupNode $node): int
     {
         $childScore = $node->child->accept($this);
@@ -208,6 +212,7 @@ final class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * // The outer `*` will get UNBOUNDED_QUANTIFIER_SCORE * NESTING_MULTIPLIER + score(inner_quantifier)
      * ```
      */
+    #[\Override]
     public function visitQuantifier(Node\QuantifierNode $node): int
     {
         $quant = $node->quantifier;
@@ -254,6 +259,7 @@ final class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * $charClassNode->accept($visitor); // Score will be BASE_SCORE + score(a) + score(z) + score(A) + score(Z) + score(0) + score(9)
      * ```
      */
+    #[\Override]
     public function visitCharClass(Node\CharClassNode $node): int
     {
         // Score is the sum of parts inside the class
@@ -283,6 +289,7 @@ final class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * $backrefNode->accept($visitor); // Score will be COMPLEX_CONSTRUCT_SCORE
      * ```
      */
+    #[\Override]
     public function visitBackref(Node\BackrefNode $node): int
     {
         return self::COMPLEX_CONSTRUCT_SCORE;
@@ -307,6 +314,7 @@ final class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * $conditionalNode->accept($visitor); // Score will be (COMPLEX_CONSTRUCT_SCORE * 2) + score(condition) + score(foo) + score(bar)
      * ```
      */
+    #[\Override]
     public function visitConditional(Node\ConditionalNode $node): int
     {
         // Conditionals are highly complex
@@ -336,6 +344,7 @@ final class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * $subroutineNode->accept($visitor); // Score will be COMPLEX_CONSTRUCT_SCORE * 2
      * ```
      */
+    #[\Override]
     public function visitSubroutine(Node\SubroutineNode $node): int
     {
         // Subroutines/recursion are highly complex
@@ -359,6 +368,7 @@ final class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * $literalNode->accept($visitor); // Score will be BASE_SCORE
      * ```
      */
+    #[\Override]
     public function visitLiteral(Node\LiteralNode $node): int
     {
         return self::BASE_SCORE;
@@ -381,6 +391,7 @@ final class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * $charTypeNode->accept($visitor); // Score will be BASE_SCORE
      * ```
      */
+    #[\Override]
     public function visitCharType(Node\CharTypeNode $node): int
     {
         return self::BASE_SCORE;
@@ -402,6 +413,7 @@ final class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * $dotNode->accept($visitor); // Score will be BASE_SCORE
      * ```
      */
+    #[\Override]
     public function visitDot(Node\DotNode $node): int
     {
         return self::BASE_SCORE;
@@ -424,6 +436,7 @@ final class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * $anchorNode->accept($visitor); // Score will be BASE_SCORE
      * ```
      */
+    #[\Override]
     public function visitAnchor(Node\AnchorNode $node): int
     {
         return self::BASE_SCORE;
@@ -446,6 +459,7 @@ final class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * $assertionNode->accept($visitor); // Score will be BASE_SCORE
      * ```
      */
+    #[\Override]
     public function visitAssertion(Node\AssertionNode $node): int
     {
         return self::BASE_SCORE;
@@ -468,6 +482,7 @@ final class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * $keepNode->accept($visitor); // Score will be BASE_SCORE
      * ```
      */
+    #[\Override]
     public function visitKeep(Node\KeepNode $node): int
     {
         return self::BASE_SCORE;
@@ -491,6 +506,7 @@ final class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * $rangeNode->accept($visitor); // Score will be BASE_SCORE + score(a) + score(z)
      * ```
      */
+    #[\Override]
     public function visitRange(Node\RangeNode $node): int
     {
         return self::BASE_SCORE + $node->start->accept($this) + $node->end->accept($this);
@@ -513,6 +529,7 @@ final class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * $unicodeNode->accept($visitor); // Score will be BASE_SCORE
      * ```
      */
+    #[\Override]
     public function visitUnicode(Node\UnicodeNode $node): int
     {
         return self::BASE_SCORE;
@@ -535,6 +552,7 @@ final class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * $unicodePropNode->accept($visitor); // Score will be BASE_SCORE
      * ```
      */
+    #[\Override]
     public function visitUnicodeProp(Node\UnicodePropNode $node): int
     {
         return self::BASE_SCORE;
@@ -557,6 +575,7 @@ final class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * $octalNode->accept($visitor); // Score will be BASE_SCORE
      * ```
      */
+    #[\Override]
     public function visitOctal(Node\OctalNode $node): int
     {
         return self::BASE_SCORE;
@@ -579,6 +598,7 @@ final class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * $octalLegacyNode->accept($visitor); // Score will be BASE_SCORE
      * ```
      */
+    #[\Override]
     public function visitOctalLegacy(Node\OctalLegacyNode $node): int
     {
         return self::BASE_SCORE;
@@ -601,6 +621,7 @@ final class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * $posixClassNode->accept($visitor); // Score will be BASE_SCORE
      * ```
      */
+    #[\Override]
     public function visitPosixClass(Node\PosixClassNode $node): int
     {
         return self::BASE_SCORE;
@@ -623,6 +644,7 @@ final class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * $commentNode->accept($visitor); // Score will be 0
      * ```
      */
+    #[\Override]
     public function visitComment(Node\CommentNode $node): int
     {
         // Comments do not add to complexity
@@ -647,6 +669,7 @@ final class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * $pcreVerbNode->accept($visitor); // Score will be COMPLEX_CONSTRUCT_SCORE
      * ```
      */
+    #[\Override]
     public function visitPcreVerb(Node\PcreVerbNode $node): int
     {
         return self::COMPLEX_CONSTRUCT_SCORE;
@@ -671,17 +694,20 @@ final class ComplexityScoreNodeVisitor implements NodeVisitorInterface
      * $defineNode->accept($visitor); // Score will be COMPLEX_CONSTRUCT_SCORE + score(\d+)
      * ```
      */
+    #[\Override]
     public function visitDefine(Node\DefineNode $node): int
     {
         // DEFINE blocks add complexity from their content
         return self::COMPLEX_CONSTRUCT_SCORE + $node->content->accept($this);
     }
 
+    #[\Override]
     public function visitLimitMatch(Node\LimitMatchNode $node): int
     {
         return self::COMPLEX_CONSTRUCT_SCORE;
     }
 
+    #[\Override]
     public function visitCallout(Node\CalloutNode $node): int
     {
         // Callouts introduce external logic and break regex flow, making them complex.
