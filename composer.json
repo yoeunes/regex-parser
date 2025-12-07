@@ -1,13 +1,33 @@
 {
     "name": "yoeunes/regex-parser",
-    "description": "A PCRE regex parser with lexer, AST, and validation",
-    "keywords": ["regex", "pcre", "parser", "lexer", "ast", "validation", "symfony"],
+    "description": "A powerful PCRE regex parser with lexer, AST builder, validation, ReDoS analysis, and syntax highlighting. Zero dependencies, blazing fast, and production-ready.",
+    "keywords": [
+        "regex",
+        "parser",
+        "pcre",
+        "lexer",
+        "ast",
+        "validation",
+        "redos",
+        "security",
+        "syntax-highlighting",
+        "php",
+        "cli"
+    ],
+    "homepage": "https://github.com/yoeunes/regex-parser",
     "type": "library",
     "license": "MIT",
     "support": {
         "issues": "https://github.com/yoeunes/regex-parser/issues",
-        "source": "https://github.com/yoeunes/regex-parser"
+        "source": "https://github.com/yoeunes/regex-parser",
+        "docs": "https://github.com/yoeunes/regex-parser#readme"
     },
+    "funding": [
+        {
+            "type": "github",
+            "url": "https://github.com/sponsors/yoeunes"
+        }
+    ],
     "authors": [
         {
             "name": "Younes ENNAJI",
