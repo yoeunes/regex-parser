@@ -1,4 +1,4 @@
-name: 🔒 Security
+name: Security
 
 on:
   push:
@@ -10,57 +10,57 @@ on:
 
 jobs:
   audit:
-    name: 🔍 Composer Security Audit
+    name: Composer Security Audit
     runs-on: ubuntu-latest
 
     steps:
-      - name: ⬇️ Checkout Code
+      - name: Checkout Code
         uses: actions/checkout@v6
 
-      - name: 🛠️ Setup PHP 8.4
+      - name: Setup PHP 8.4
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
           tools: composer:v2
 
-      - name: 📦 Install Dependencies
+      - name: Install Dependencies
         run: composer install --no-interaction --prefer-dist --no-dev
 
-      - name: 🔒 Run Security Audit
+      - name: Run Security Audit
         run: composer audit --no-interaction
 
   dependency-review:
-    name: 📋 Dependency Review
+    name: Dependency Review
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
 
     steps:
-      - name: ⬇️ Checkout Code
+      - name: Checkout Code
         uses: actions/checkout@v6
 
-      - name: 🔍 Review Dependencies
+      - name: Review Dependencies
         uses: actions/dependency-review-action@v4
 
   security-checklist:
-    name: ✅ Security Checklist
+    name: Security Checklist
     runs-on: ubuntu-latest
 
     steps:
-      - name: ⬇️ Checkout Code
+      - name: Checkout Code
         uses: actions/checkout@v6
 
-      - name: 🚫 Check for Dangerous Functions
+      - name: Check for Dangerous Functions
         run: |
-          echo "🔍 Checking for dangerous functions..."
-          ! grep -r "eval(" src/ --include="*.php" || (echo "❌ Found eval() in src/" && exit 1)
-          ! grep -r "create_function" src/ --include="*.php" || (echo "❌ Found create_function() in src/" && exit 1)
-          ! grep -r "exec(" src/ --include="*.php" || (echo "❌ Found exec() in src/" && exit 1)
-          ! grep -r "shell_exec(" src/ --include="*.php" || (echo "❌ Found shell_exec() in src/" && exit 1)
-          echo "✅ No dangerous functions found"
+          echo "Checking for dangerous functions..."
+          ! grep -r "eval(" src/ --include="*.php" || (echo "Found eval() in src/" && exit 1)
+          ! grep -r "create_function" src/ --include="*.php" || (echo "Found create_function() in src/" && exit 1)
+          ! grep -r "exec(" src/ --include="*.php" || (echo "Found exec() in src/" && exit 1)
+          ! grep -r "shell_exec(" src/ --include="*.php" || (echo "Found shell_exec() in src/" && exit 1)
+          echo "No dangerous functions found"
 
-      - name: 🔒 Check Node Immutability
+      - name: Check Node Immutability
         run: |
-          echo "🔍 Checking Node immutability..."
+          echo "Checking Node immutability..."
           readonly_count=$(grep -r "public readonly" src/Node/ --include="*.php" | wc -l)
-          echo "📊 Found $readonly_count readonly properties"
-          echo "✅ Readonly properties enforced"
+          echo "Found $readonly_count readonly properties"
+          echo "Readonly properties enforced"

@@ -4,5 +4,4 @@
 # Types: feat, fix, docs, style, refactor, perf, test, build, ci, chore
 #
 # Example: feat(parser): add support for possessive quantifiers
-#
-# Body: Explain what and why
+# Please write a short, imperative tense description of the change.

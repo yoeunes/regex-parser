@@ -1,4 +1,4 @@
-name: 🚀 CI
+name: CI
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
 
 jobs:
   quality:
-    name: 🧹 Code Quality (PHP ${{ matrix.php-version }})
+    name: Code Quality (PHP ${{ matrix.php-version }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -16,10 +16,10 @@ jobs:
         php-version: ['8.4']
 
     steps:
-      - name: ⬇️ Checkout Code
+      - name: Checkout Code
         uses: actions/checkout@v6
 
-      - name: 🛠️ Setup PHP ${{ matrix.php-version }}
+      - name: Setup PHP ${{ matrix.php-version }}
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-version }}
@@ -28,30 +28,30 @@ jobs:
           tools: composer:v2
           coverage: xdebug
 
-      - name: 📦 Install Dependencies
+      - name: Install Dependencies
         run: composer install --no-interaction --no-progress --prefer-dist
 
-      - name: 🛠️ Install Tools
+      - name: Install Tools
         run: |
           composer install -d tools/phpstan --no-interaction --no-progress
           composer install -d tools/rector --no-interaction --no-progress
           composer install -d tools/php-cs-fixer --no-interaction --no-progress
           composer install -d tools/phplint --no-interaction --no-progress
 
-      - name: 🔎 PHPLint (Syntax Check)
+      - name: PHPLint (Syntax Check)
         run: ./bin/phplint
 
-      - name: 🔨 Rector (Code Optimization)
+      - name: Rector (Code Optimization)
         run: ./bin/rector process --dry-run --ansi
 
-      - name: 🧼 PHP-CS-Fixer (Code Style)
+      - name: PHP-CS-Fixer (Code Style)
         run: ./bin/php-cs-fixer fix --dry-run --diff
 
-      - name: 🔬 PHPStan (Static Analysis)
+      - name: PHPStan (Static Analysis)
         run: ./bin/phpstan analyse
 
   test:
-    name: 🧪 Tests (PHP ${{ matrix.php-version }}, ${{ matrix.os }})
+    name: Tests (PHP ${{ matrix.php-version }}, ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -60,10 +60,10 @@ jobs:
         php-version: ['8.4']
 
     steps:
-      - name: ⬇️ Checkout Code
+      - name: Checkout Code
         uses: actions/checkout@v6
 
-      - name: 🛠️ Setup PHP ${{ matrix.php-version }}
+      - name: Setup PHP ${{ matrix.php-version }}
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-version }}
@@ -72,61 +72,61 @@ jobs:
           tools: composer:v2
           coverage: xdebug
 
-      - name: 📦 Install Dependencies
+      - name: Install Dependencies
         run: composer install --no-interaction --no-progress --prefer-dist
 
-      - name: 🛠️ Install Tools
+      - name: Install Tools
         run: |
           cd tools/phpstan && composer install --no-interaction --no-progress
           cd ../rector && composer install --no-interaction --no-progress
           cd ../php-cs-fixer && composer install --no-interaction --no-progress
           cd ../phplint && composer install --no-interaction --no-progress
 
-      - name: 🧪 Run Unit Tests
+      - name: Run Unit Tests
         run: ./vendor/bin/phpunit tests/Unit/ --colors=always
 
-      - name: 🔗 Run Integration Tests
+      - name: Run Integration Tests
         run: ./vendor/bin/phpunit tests/Integration/ --colors=always
 
-      - name: 📊 Generate Coverage Report
+      - name: Generate Coverage Report
         run: ./vendor/bin/phpunit --coverage-text --coverage-clover=coverage.xml
 
-      - name: 📤 Upload Coverage to Codecov
+      - name: Upload Coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
           files: ./coverage.xml
           fail_ci_if_error: false
 
   validation:
-    name: ✅ Validation & Feature Completeness
+    name: Validation & Feature Completeness
     runs-on: ubuntu-latest
 
     steps:
-      - name: ⬇️ Checkout Code
+      - name: Checkout Code
         uses: actions/checkout@v6
 
-      - name: 🛠️ Setup PHP 8.4
+      - name: Setup PHP 8.4
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
           extensions: mbstring, intl, pcre, tokenizer, xml
           tools: composer:v2
 
-      - name: 📦 Install Dependencies
+      - name: Install Dependencies
         run: composer install --no-interaction --no-progress --prefer-dist
 
-      - name: 🛠️ Install Tools
+      - name: Install Tools
         run: |
           cd tools/phpstan && composer install --no-interaction --no-progress
           cd ../rector && composer install --no-interaction --no-progress
           cd ../php-cs-fixer && composer install --no-interaction --no-progress
           cd ../phplint && composer install --no-interaction --no-progress
 
-      - name: 🔍 Run Library Validation
+      - name: Run Library Validation
         run: php tests/validate_library.php
 
-      - name: 🎯 Run PCRE Feature Completeness Tests
+      - name: Run PCRE Feature Completeness Tests
         run: ./vendor/bin/phpunit tests/Integration/PcreFeatureCompletenessTest.php --testdox
 
-      - name: 🛡️ Run ReDoS Detection Tests
+      - name: Run ReDoS Detection Tests
         run: ./vendor/bin/phpunit tests/Integration/ReDoSEdgeCasesTest.php --testdox
