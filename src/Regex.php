@@ -279,13 +279,35 @@ final readonly class Regex
      * ```php
      * $regexService = Regex::create();
      * // The optimizer can merge consecutive literals.
-     * $optimized = $regexService->optimize('/a-b-c/i');
+     * $optimized = $regexService->optimize("/a-b-c/i");
      * echo $optimized; // Outputs '/abc/i'
      * ```
      */
     public function optimize(string $regex): string
     {
         return $this->parse($regex)->accept(new NodeVisitor\OptimizerNodeVisitor())->accept(new NodeVisitor\CompilerNodeVisitor());
+    }
+
+    /**
+     * Calculates the minimum and maximum possible lengths of strings that match the regex.
+     *
+     * Purpose: This method parses the regex and uses the `LengthRangeNodeVisitor` to compute
+     * the range of string lengths that could potentially match the pattern. This is useful
+     * for input validation, where you might want to reject strings that are too short or too long
+     * to possibly match, or for optimizing storage and processing based on expected string sizes.
+     *
+     * @param string $regex the full PCRE regex string to analyze
+     *
+     * @throws LexerException         if the lexer encounters an invalid sequence of characters
+     * @throws ParserException        if the parser encounters a syntax error
+     * @throws ResourceLimitException if the pattern length exceeds the configured limit
+     *
+     * @return array{0: int, 1: int|null} an array containing the minimum and maximum lengths
+     *               (null indicates no upper bound, i.e., infinite)
+     */
+    public function getLengthRange(string $regex)
+    {
+        return $this->parse($regex)->accept(new NodeVisitor\LengthRangeNodeVisitor());
     }
 
     /**

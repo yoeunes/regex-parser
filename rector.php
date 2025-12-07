@@ -35,6 +35,7 @@ return static function (RectorConfig $rectorConfig): void {
         __DIR__.'/tests/Unit/Bridge/Symfony/Command/RegexParserValidateCommandTest.php',
         __DIR__.'/tests/Unit/Bridge/Symfony/RegexParserBundleTest.php',
         __DIR__.'/tests/Unit/ValidationResultTest.php',
+        __DIR__.'/tests/NodeVisitor/LengthRangeNodeVisitorTest.php',
     ]);
 
     // $rectorConfig->import(__DIR__.'/config/rector/regex-parser.php');
