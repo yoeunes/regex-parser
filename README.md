@@ -24,7 +24,6 @@
 - ✅ Detects **ReDoS** (Regular Expression Denial of Service) risks
 - ✅ Generates **human explanations**, **HTML docs**, and **sample strings**
 - ✅ Integrates with **Symfony**, **PHPStan**, and **Rector**
-- ✅ 100% test coverage (unit, integration, benchmarks)
 
 > Think of it as `nikic/php-parser` — but for regexes.
 
