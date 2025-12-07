@@ -1,94 +1,60 @@
-<svg fill="none" viewBox="0 0 800 200" width="800" height="200" xmlns="http://www.w3.org/2000/svg">
-    <foreignObject width="100%" height="100%">
-        <div xmlns="http://www.w3.org/1999/xhtml">
-            <style>
-                @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@700&family=Inter:wght@800&display=swap');
+<svg viewBox="0 0 800 200" width="800" height="200" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#1e293b"/>
+            <stop offset="100%" stop-color="#0f172a"/>
+        </linearGradient>
 
-                .container {
-                    width: 100%;
-                    height: 100%;
-                    background: radial-gradient(circle at top right, #1e293b, #0f172a);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    overflow: hidden;
-                    position: relative;
-                }
+        <linearGradient id="textGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#ffffff"/>
+            <stop offset="100%" stop-color="#cbd5e1"/>
+        </linearGradient>
 
-                /* Decorative background grid */
-                .grid {
-                    position: absolute;
-                    top: 0; left: 0; right: 0; bottom: 0;
-                    background-image:
-                        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-                        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
-                    background-size: 40px 40px;
-                    z-index: 0;
-                }
+        <pattern id="gridPattern" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="white" stroke-width="1" stroke-opacity="0.03"/>
+        </pattern>
+    </defs>
 
-                .content-wrapper {
-                    z-index: 1;
-                    display: flex;
-                    align-items: center;
-                    gap: 30px;
-                }
+    <rect width="800" height="200" fill="url(#bgGrad)"/>
+    <rect width="800" height="200" fill="url(#gridPattern)"/>
 
-                .symbols {
-                    font-family: 'JetBrains Mono', monospace;
-                    font-weight: 700;
-                    font-size: 85px;
-                    line-height: 1;
-                    opacity: 0.9;
-                    text-shadow: 0 0 25px rgba(56, 189, 248, 0.2);
-                    transform: rotate(-8deg);
-                }
-                .sym-brace { color: #f472b6; } /* Pink */
-                .sym-slash { color: #38bdf8; } /* Blue */
-                .sym-star  { color: #fbbf24; } /* Yellow */
+    <g transform="translate(140, 100)">
 
-                .text-group {
-                    display: flex;
-                    flex-direction: column;
-                    line-height: 0.85;
-                }
+        <g transform="translate(0, 10) rotate(-8)">
+            <text x="-70" y="25"
+                  font-family="'JetBrains Mono', Consolas, monospace"
+                  font-weight="bold"
+                  font-size="90"
+                  fill="#f472b6">{</text>
+            <text x="-15" y="25"
+                  font-family="'JetBrains Mono', Consolas, monospace"
+                  font-weight="bold"
+                  font-size="90"
+                  fill="#38bdf8">/</text>
+            <text x="35" y="32"
+                  font-family="'JetBrains Mono', Consolas, monospace"
+                  font-weight="bold"
+                  font-size="90"
+                  fill="#fbbf24">*</text>
+        </g>
 
-                .title {
-                    font-family: 'Inter', system-ui, -apple-system, sans-serif;
-                    font-size: 90px;
-                    font-weight: 800;
-                    letter-spacing: -2px;
-                    color: #f8fafc;
-                    /* Subtle gradient on text */
-                    background: linear-gradient(135deg, #ffffff 30%, #94a3b8 100%);
-                    -webkit-background-clip: text;
-                    -webkit-text-fill-color: transparent;
-                    filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5));
-                }
+        <g transform="translate(100, 0)">
+            <text x="0" y="20"
+                  font-family="'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+                  font-weight="900"
+                  font-size="100"
+                  letter-spacing="-3"
+                  fill="url(#textGrad)"
+                  style="text-shadow: 0 4px 12px rgba(0,0,0,0.5);">Regex</text>
 
-                .subtitle {
-                    font-family: 'Inter', system-ui, -apple-system, sans-serif;
-                    font-size: 26px;
-                    font-weight: 700;
-                    color: #64748b;
-                    letter-spacing: 0.35em; /* Wide tracking */
-                    text-transform: uppercase;
-                    text-align: right;
-                    margin-top: 8px;
-                    margin-right: 6px;
-                }
-            </style>
-            <div class="container">
-                <div class="grid"></div>
-                <div class="content-wrapper">
-                    <div class="symbols">
-                        <span class="sym-brace">{</span><span class="sym-slash">/</span><span class="sym-star">*</span>
-                    </div>
-                    <div class="text-group">
-                        <div class="title">Regex</div>
-                        <div class="subtitle">Parser</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </foreignObject>
+            <text x="305" y="20"
+                  font-family="'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+                  font-weight="700"
+                  font-size="100"
+                  letter-spacing="-3"
+                  fill="#94a3b8">Parser</text>
+
+            <rect x="5" y="35" width="590" height="4" rx="2" fill="#38bdf8" opacity="0.4"/>
+        </g>
+    </g>
 </svg>

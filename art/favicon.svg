@@ -1,11 +1,9 @@
-<svg fill="none" viewBox="0 0 128 128" width="128" height="128" xmlns="http://www.w3.org/2000/svg">
+<svg viewBox="0 0 128 128" width="128" height="128" xmlns="http://www.w3.org/2000/svg">
     <rect width="128" height="128" rx="28" fill="#0f172a" />
-    <text x="50%" y="54%"
-          dominant-baseline="middle"
-          text-anchor="middle"
-          font-family="Consolas, 'Courier New', monospace"
-          font-weight="bold"
-          font-size="52">
-        <tspan fill="#f472b6">{</tspan><tspan fill="#38bdf8">/</tspan><tspan fill="#fbbf24">*</tspan>
-    </text>
+
+    <g font-family="'JetBrains Mono', Consolas, monospace" font-weight="bold" font-size="52" text-anchor="middle">
+        <text x="38" y="82" fill="#f472b6">{</text>
+        <text x="64" y="82" fill="#38bdf8">/</text>
+        <text x="90" y="86" fill="#fbbf24">*</text>
+    </g>
 </svg>
