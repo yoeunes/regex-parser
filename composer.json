@@ -69,6 +69,45 @@
     "bin": [
         "bin/regex"
     ],
+    "archive": {
+        "exclude": [
+            ".github",
+            ".idea",
+            ".vscode",
+            ".cache",
+            "art",
+            "bin",
+            "config",
+            "docs",
+            "examples",
+            "public",
+            "rector",
+            "templates",
+            "tests",
+            "tools",
+            ".editorconfig",
+            ".gitattributes",
+            ".gitignore",
+            ".gitmessage",
+            ".php-cs-fixer.dist.php",
+            ".php-cs-fixer.cache",
+            ".phplint.yml",
+            ".php-version",
+            "phpbench.yml",
+            "phpbench.json",
+            "phpstan.neon",
+            "phpstan.dist.neon",
+            "rector.php",
+            "phpunit.xml",
+            "phpunit.xml.dist",
+            "extension.neon",
+            "taskfile.dist.yaml",
+            "CODE_OF_CONDUCT.md",
+            "CONTRIBUTING.md",
+            "SECURITY.md",
+            "TODO.md"
+        ]
+    },
     "scripts": {
         "setup": [
             "@composer install",
