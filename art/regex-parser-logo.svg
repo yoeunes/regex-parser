@@ -1,61 +1,104 @@
-<svg width="400" height="120" viewBox="0 0 400 120" xmlns="http://www.w3.org/2000/svg">
+<svg width="500" height="140" viewBox="0 0 500 140" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <!-- Gradient for the main text -->
-    <linearGradient id="textGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" style="stop-color:#2563eb;stop-opacity:1" />
-      <stop offset="50%" style="stop-color:#7c3aed;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#dc2626;stop-opacity:1" />
+    <!-- Gradients for professional look -->
+    <linearGradient id="primaryGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#1e40af;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#60a5fa;stop-opacity:1" />
     </linearGradient>
 
-    <!-- Gradient for the parser icon -->
-    <linearGradient id="iconGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#1d4ed8;stop-opacity:1" />
+    <linearGradient id="accentGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#059669;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#10b981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#34d399;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="textGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#1f2937;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#374151;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#4b5563;stop-opacity:1" />
     </linearGradient>
 
     <!-- Shadow filter -->
     <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="2" dy="2" stdDeviation="2" flood-color="#00000020"/>
+      <feDropShadow dx="3" dy="3" stdDeviation="3" flood-color="#00000015"/>
+    </filter>
+
+    <!-- Glow effect -->
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
     </filter>
   </defs>
 
-  <!-- Background circle for the icon -->
-  <circle cx="60" cy="60" r="45" fill="url(#iconGradient)" filter="url(#shadow)"/>
+  <!-- Background pattern -->
+  <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+    <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#f3f4f6" stroke-width="1"/>
+  </pattern>
+  <rect width="500" height="140" fill="url(#grid)" />
 
-  <!-- Regex slash delimiters -->
-  <path d="M45 35 L45 85 M75 35 L75 85" stroke="white" stroke-width="3" stroke-linecap="round"/>
-
-  <!-- AST Tree representation -->
-  <g transform="translate(60,60)">
-    <!-- Root node -->
-    <circle cx="0" cy="-15" r="4" fill="white"/>
-    <!-- Left branch -->
-    <line x1="0" y1="-15" x2="-8" y2="-5" stroke="white" stroke-width="2"/>
-    <circle cx="-8" cy="-5" r="3" fill="white"/>
-    <!-- Right branch -->
-    <line x1="0" y1="-15" x2="8" y2="-5" stroke="white" stroke-width="2"/>
-    <circle cx="8" cy="-5" r="3" fill="white"/>
-    <!-- Left sub-branch -->
-    <line x1="-8" y1="-5" x2="-12" y2="5" stroke="white" stroke-width="1.5"/>
-    <circle cx="-12" cy="5" r="2.5" fill="white"/>
-    <!-- Right sub-branch -->
-    <line x1="8" y1="-5" x2="12" y2="5" stroke="white" stroke-width="1.5"/>
-    <circle cx="12" cy="5" r="2.5" fill="white"/>
+  <!-- Main regex symbol - forward slashes -->
+  <g transform="translate(50,70)">
+    <!-- Left slash -->
+    <path d="M-15,-25 L-15,25" stroke="url(#primaryGradient)" stroke-width="4" stroke-linecap="round"/>
+    <!-- Right slash -->
+    <path d="M35,-25 L35,25" stroke="url(#primaryGradient)" stroke-width="4" stroke-linecap="round"/>
+    <!-- Pattern text inside slashes -->
+    <text x="10" y="5" font-family="Monaco, 'Courier New', monospace" font-size="16" font-weight="bold" fill="url(#accentGradient)" text-anchor="middle">a-zA-Z</text>
   </g>
 
-  <!-- Main text -->
-  <text x="120" y="45" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="url(#textGradient)">
+  <!-- AST Tree representation -->
+  <g transform="translate(120,70)">
+    <!-- Root node (parser) -->
+    <circle cx="0" cy="-20" r="8" fill="url(#primaryGradient)" filter="url(#shadow)"/>
+    <text x="0" y="-16" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="white" text-anchor="middle">P</text>
+
+    <!-- Left branch (Lexer) -->
+    <line x1="0" y1="-12" x2="-15" y2="0" stroke="url(#accentGradient)" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="-15" cy="0" r="6" fill="url(#accentGradient)"/>
+    <text x="-15" y="4" font-family="Arial, sans-serif" font-size="8" font-weight="bold" fill="white" text-anchor="middle">L</text>
+
+    <!-- Right branch (Validator) -->
+    <line x1="0" y1="-12" x2="15" y2="0" stroke="url(#accentGradient)" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="15" cy="0" r="6" fill="url(#accentGradient)"/>
+    <text x="15" y="4" font-family="Arial, sans-serif" font-size="8" font-weight="bold" fill="white" text-anchor="middle">V</text>
+
+    <!-- Sub-nodes representing AST -->
+    <circle cx="-25" cy="15" r="4" fill="#6b7280"/>
+    <circle cx="-5" cy="15" r="4" fill="#6b7280"/>
+    <circle cx="5" cy="15" r="4" fill="#6b7280"/>
+    <circle cx="25" cy="15" r="4" fill="#6b7280"/>
+
+    <!-- Connection lines -->
+    <line x1="-15" y1="6" x2="-25" y2="11" stroke="#9ca3af" stroke-width="2"/>
+    <line x1="-15" y1="6" x2="-5" y2="11" stroke="#9ca3af" stroke-width="2"/>
+    <line x1="15" y1="6" x2="5" y2="11" stroke="#9ca3af" stroke-width="2"/>
+    <line x1="15" y1="6" x2="25" y2="11" stroke="#9ca3af" stroke-width="2"/>
+  </g>
+
+  <!-- Main title -->
+  <text x="220" y="50" font-family="Arial, sans-serif" font-size="36" font-weight="bold" fill="url(#textGradient)">
     Regex Parser
   </text>
 
-  <!-- Subtitle -->
-  <text x="120" y="75" font-family="Arial, sans-serif" font-size="14" fill="#6b7280" font-weight="500">
+  <!-- Subtitle with regex flags -->
+  <text x="220" y="85" font-family="Arial, sans-serif" font-size="16" fill="#6b7280" font-weight="500">
     Parse • Analyze • Optimize
   </text>
 
-  <!-- Decorative elements -->
-  <circle cx="320" cy="30" r="3" fill="#e5e7eb"/>
-  <circle cx="340" cy="50" r="2" fill="#e5e7eb"/>
-  <circle cx="360" cy="35" r="2.5" fill="#e5e7eb"/>
-  <circle cx="335" cy="70" r="1.5" fill="#e5e7eb"/>
+  <!-- Regex flags indicator -->
+  <g transform="translate(420,70)">
+    <rect x="-25" y="-15" width="50" height="30" rx="15" fill="#f3f4f6" stroke="#d1d5db" stroke-width="1"/>
+    <text x="0" y="5" font-family="Monaco, 'Courier New', monospace" font-size="12" font-weight="bold" fill="#374151" text-anchor="middle">igm</text>
+  </g>
+
+  <!-- Decorative code-like elements -->
+  <g transform="translate(450,30)" opacity="0.3">
+    <circle cx="0" cy="0" r="2" fill="#3b82f6"/>
+    <circle cx="10" cy="0" r="2" fill="#10b981"/>
+    <circle cx="20" cy="0" r="2" fill="#f59e0b"/>
+  </g>
 </svg>
