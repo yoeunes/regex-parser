@@ -2,13 +2,28 @@
     <defs>
         <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stop-color="#1e293b"/>
+            <stop offset="50%" stop-color="#334155"/>
             <stop offset="100%" stop-color="#0f172a"/>
         </linearGradient>
 
         <linearGradient id="textGrad" x1="0%" y1="0%" x2="0%" y2="100%">
             <stop offset="0%" stop-color="#ffffff"/>
+            <stop offset="50%" stop-color="#e2e8f0"/>
             <stop offset="100%" stop-color="#cbd5e1"/>
         </linearGradient>
+
+        <linearGradient id="phpGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#777bb4"/>
+            <stop offset="100%" stop-color="#8892bf"/>
+        </linearGradient>
+
+        <filter id="glow">
+            <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+            <feMerge>
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+        </filter>
 
         <pattern id="gridPattern" width="40" height="40" patternUnits="userSpaceOnUse">
             <path d="M 40 0 L 0 0 0 40" fill="none" stroke="white" stroke-width="1" stroke-opacity="0.03"/>
@@ -18,32 +33,84 @@
     <rect width="1000" height="200" fill="url(#bgGrad)"/>
     <rect width="1000" height="200" fill="url(#gridPattern)"/>
 
+    <!-- PHP Tag -->
+    <g transform="translate(10, 20)">
+        <text font-family="'JetBrains Mono', monospace" font-size="18" fill="url(#phpGrad)" opacity="0.8">&lt;?php</text>
+    </g>
+
+    <!-- Regex Patterns -->
+    <g transform="translate(10, 45) rotate(-6)" opacity="0.08">
+        <text font-family="'JetBrains Mono', monospace" font-size="24" fill="#cbd5e1">
+            /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/
+        </text>
+    </g>
+
+    <g transform="translate(680, 170) rotate(4)" opacity="0.1">
+        <text font-family="'JetBrains Mono', monospace" font-size="28" fill="#cbd5e1">
+            /&lt;([a-z]+)([^&lt;]+)*(?:&gt;(.*)&lt;\/\1&gt;|\s+\/&gt;)/
+        </text>
+    </g>
+
+    <g transform="translate(10, 180) rotate(8)" opacity="0.05">
+        <text font-family="'JetBrains Mono', monospace" font-size="18" fill="#cbd5e1">
+            /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}/
+        </text>
+    </g>
+
+    <g transform="translate(750, 40) rotate(-3)" opacity="0.09">
+        <text font-family="'JetBrains Mono', monospace" font-size="22" fill="#cbd5e1">
+            /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/
+        </text>
+    </g>
+
+    <g transform="translate(150, 25) rotate(12)" opacity="0.04">
+        <text font-family="'JetBrains Mono', monospace" font-size="16" fill="#cbd5e1">
+            /^#?([a-f0-9]{6}|[a-f0-9]{3})$/
+        </text>
+    </g>
+
+    <!-- PHP Function Regex -->
+    <g transform="translate(400, 150) rotate(-10)" opacity="0.06">
+        <text font-family="'JetBrains Mono', monospace" font-size="20" fill="#cbd5e1">
+            /^function\s+[a-zA-Z_]\w*\s*\(/
+        </text>
+    </g>
+
+    <!-- Main Text -->
     <g transform="translate(20, 100)">
-
-        <g opacity="0.08" font-family="'JetBrains Mono', Consolas, monospace" font-weight="bold" font-size="32" fill="#cbd5e1">
-            <text x="-120" y="-50">/\w+\.\w{2,}/</text>
-            <text x="520" y="-30">/(foo|bar)+$/</text>
-            <text x="280" y="90">/^[A-Z]{2}\d{3}$/</text>
-            <text x="40" y="120">/\bhttps?:\/\/\S+/</text>
-        </g>
-
         <g transform="translate(180, 0)">
             <text x="0" y="20"
-                  font-family="'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+                  font-family="'JetBrains Sans', 'Inter', sans-serif"
                   font-weight="900"
                   font-size="100"
                   letter-spacing="-3"
                   fill="url(#textGrad)"
+                  filter="url(#glow)"
                   style="text-shadow: 0 4px 12px rgba(0,0,0,0.5);">Regex</text>
 
             <text x="320" y="20"
-                  font-family="'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+                  font-family="'JetBrains Sans', 'Inter', sans-serif"
                   font-weight="700"
                   font-size="100"
                   letter-spacing="-3"
-                  fill="#94a3b8">Parser</text>
+                  fill="#94a3b8"
+                  filter="url(#glow)">Parser</text>
 
-            <rect x="5" y="35" width="590" height="4" rx="2" fill="#38bdf8" opacity="0.4"/>
+            <rect x="5" y="35" width="590" height="4" rx="2" fill="#38bdf8" opacity="0.6"/>
+            <rect x="5" y="35" width="590" height="2" rx="1" fill="#06b6d4" opacity="0.8"/>
         </g>
+    </g>
+
+    <!-- Decorative Elements -->
+    <g transform="translate(50, 50)">
+        <circle cx="0" cy="0" r="3" fill="#38bdf8" opacity="0.3"/>
+        <circle cx="20" cy="10" r="2" fill="#06b6d4" opacity="0.4"/>
+        <circle cx="40" cy="5" r="4" fill="#38bdf8" opacity="0.2"/>
+    </g>
+
+    <g transform="translate(900, 150)">
+        <circle cx="0" cy="0" r="2" fill="#06b6d4" opacity="0.5"/>
+        <circle cx="-15" cy="8" r="3" fill="#38bdf8" opacity="0.3"/>
+        <circle cx="-30" cy="3" r="2" fill="#06b6d4" opacity="0.4"/>
     </g>
 </svg>
