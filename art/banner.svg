@@ -17,8 +17,8 @@
             <stop offset="100%" stop-color="#8892bf"/>
         </linearGradient>
 
-        <filter id="glow">
-            <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+        <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
             <feMerge>
                 <feMergeNode in="coloredBlur"/>
                 <feMergeNode in="SourceGraphic"/>
@@ -33,54 +33,50 @@
     <rect width="1000" height="200" fill="url(#bgGrad)"/>
     <rect width="1000" height="200" fill="url(#gridPattern)"/>
 
-    <!-- PHP Tag -->
-    <g transform="translate(10, 20)">
-        <text font-family="'JetBrains Mono', monospace" font-size="18" fill="url(#phpGrad)" opacity="0.8">&lt;?php</text>
+    <g transform="translate(20, 30)">
+        <text font-family="'JetBrains Mono', Consolas, monospace" font-size="18" fill="url(#phpGrad)" opacity="0.9" font-weight="bold">&lt;?php</text>
     </g>
 
-    <!-- Regex Patterns -->
     <g transform="translate(10, 45) rotate(-6)" opacity="0.08">
-        <text font-family="'JetBrains Mono', monospace" font-size="24" fill="#cbd5e1">
+        <text font-family="'JetBrains Mono', Consolas, monospace" font-size="24" fill="#cbd5e1">
             /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/
         </text>
     </g>
 
     <g transform="translate(680, 170) rotate(4)" opacity="0.1">
-        <text font-family="'JetBrains Mono', monospace" font-size="28" fill="#cbd5e1">
+        <text font-family="'JetBrains Mono', Consolas, monospace" font-size="28" fill="#cbd5e1">
             /&lt;([a-z]+)([^&lt;]+)*(?:&gt;(.*)&lt;\/\1&gt;|\s+\/&gt;)/
         </text>
     </g>
 
     <g transform="translate(10, 180) rotate(8)" opacity="0.05">
-        <text font-family="'JetBrains Mono', monospace" font-size="18" fill="#cbd5e1">
+        <text font-family="'JetBrains Mono', Consolas, monospace" font-size="18" fill="#cbd5e1">
             /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}/
         </text>
     </g>
 
     <g transform="translate(750, 40) rotate(-3)" opacity="0.09">
-        <text font-family="'JetBrains Mono', monospace" font-size="22" fill="#cbd5e1">
+        <text font-family="'JetBrains Mono', Consolas, monospace" font-size="22" fill="#cbd5e1">
             /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/
         </text>
     </g>
 
     <g transform="translate(150, 25) rotate(12)" opacity="0.04">
-        <text font-family="'JetBrains Mono', monospace" font-size="16" fill="#cbd5e1">
+        <text font-family="'JetBrains Mono', Consolas, monospace" font-size="16" fill="#cbd5e1">
             /^#?([a-f0-9]{6}|[a-f0-9]{3})$/
         </text>
     </g>
 
-    <!-- PHP Function Regex -->
     <g transform="translate(400, 150) rotate(-10)" opacity="0.06">
-        <text font-family="'JetBrains Mono', monospace" font-size="20" fill="#cbd5e1">
+        <text font-family="'JetBrains Mono', Consolas, monospace" font-size="20" fill="#cbd5e1">
             /^function\s+[a-zA-Z_]\w*\s*\(/
         </text>
     </g>
 
-    <!-- Main Text -->
     <g transform="translate(20, 100)">
         <g transform="translate(180, 0)">
             <text x="0" y="20"
-                  font-family="'JetBrains Sans', 'Inter', sans-serif"
+                  font-family="'JetBrains Sans', 'Inter', system-ui, -apple-system, sans-serif"
                   font-weight="900"
                   font-size="100"
                   letter-spacing="-3"
@@ -89,7 +85,7 @@
                   style="text-shadow: 0 4px 12px rgba(0,0,0,0.5);">Regex</text>
 
             <text x="320" y="20"
-                  font-family="'JetBrains Sans', 'Inter', sans-serif"
+                  font-family="'JetBrains Sans', 'Inter', system-ui, -apple-system, sans-serif"
                   font-weight="700"
                   font-size="100"
                   letter-spacing="-3"
@@ -101,7 +97,6 @@
         </g>
     </g>
 
-    <!-- Decorative Elements -->
     <g transform="translate(50, 50)">
         <circle cx="0" cy="0" r="3" fill="#38bdf8" opacity="0.3"/>
         <circle cx="20" cy="10" r="2" fill="#06b6d4" opacity="0.4"/>
