@@ -60,6 +60,7 @@ It brings static analysis, security auditing, and automated refactoring to PHP's
 - [Performance & Caching](#performance--caching)
 - [API Overview](#api-overview)
 - [Versioning & BC Policy](#versioning--bc-policy)
+- [Support the Project](#support-the-project)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -69,7 +70,7 @@ It brings static analysis, security auditing, and automated refactoring to PHP's
 
 ```bash
 composer require yoeunes/regex-parser
-````
+```
 
 Requires **PHP 8.4+**.
 
@@ -349,8 +350,7 @@ echo $optimizedPattern; // e.g. '/(a)/'
 This makes it easy to implement automated refactorings (via Rector) or style rules for regexes.
 
 ---
-
-## ✨ Auto-Modernize Legacy Patterns
+## Auto-Modernize Legacy Patterns
 
 Clean up messy or legacy regexes automatically:
 
@@ -372,8 +372,7 @@ echo $modern; // Outputs: /\d+-[a-z]+@gmail\.com/
 Perfect for refactoring legacy codebases or cleaning up generated patterns.
 
 ---
-
-## 🎨 Syntax Highlighting
+## Syntax Highlighting
 
 Make complex regexes readable with automatic syntax highlighting:
 
@@ -612,6 +611,18 @@ If you encounter an unsupported feature, please [open an issue](https://github.c
 
 ---
 
+## Support the Project
+
+If RegexParser saves you time, you can help keep it moving:
+
+- Star the repository on GitHub
+- Share it with your team or community
+- Report issues or suggest features
+- Contribute code or documentation
+- Sponsor the work or hire me for consulting 🤝
+
+---
+
 ## Contributing
 
 Contributions are welcome! Areas where help is especially useful:
@@ -639,9 +650,3 @@ This library is released under the [MIT License](LICENSE).
 ---
 
 <p align="center"> <b>Made with ❤️ by <a href="https://www.linkedin.com/in/younes--ennaji/">Younes ENNAJI</a> </b> </p>
-
-<p align="center">
-   <a href="https://github.com/yoeunes/regex-parser">
-      ⭐ Star if you found this useful ⭐
-   </a>
-</p>
