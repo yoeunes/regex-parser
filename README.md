@@ -158,7 +158,7 @@ $regex = Regex::create();
 $pattern  = '/^(a+)+$/'; // classic catastrophic backtracking example
 $analysis = $regex->analyzeReDoS($pattern);
 
-echo "Severity: ".$analysis->severity->name.PHP_EOL;
+echo "Severity: ".$analysis->severity->value.PHP_EOL;
 echo "Score: ".$analysis->score.PHP_EOL;
 
 if (!$analysis->isSafe()) {
@@ -274,6 +274,11 @@ use RegexParser\NodeVisitor\AbstractNodeVisitor;
  */
 final class LiteralCountVisitor extends AbstractNodeVisitor
 {
+    protected function defaultReturn(): int
+    {
+        return 0;
+    }
+
     public function visitRegex(RegexNode $node): int
     {
         return $node->pattern->accept($this);
