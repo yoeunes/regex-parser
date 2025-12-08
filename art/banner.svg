@@ -20,7 +20,7 @@
 
     <g transform="translate(190, 100)">
 
-        <g transform="translate(0, 10) rotate(-8)">
+        <g transform="translate(0, 0) rotate(-8)">
             <text x="-70" y="25"
                   font-family="'JetBrains Mono', Consolas, monospace"
                   font-weight="bold"
