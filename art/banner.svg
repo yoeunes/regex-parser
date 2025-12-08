@@ -18,7 +18,7 @@
     <rect width="1000" height="200" fill="url(#bgGrad)"/>
     <rect width="1000" height="200" fill="url(#gridPattern)"/>
 
-    <g transform="translate(190, 100)">
+    <g transform="translate(20, 100)">
 
         <g opacity="0.08" font-family="'JetBrains Mono', Consolas, monospace" font-weight="bold" font-size="32" fill="#cbd5e1">
             <text x="-120" y="-50">/\w+\.\w{2,}/</text>
@@ -27,31 +27,7 @@
             <text x="40" y="120">/\bhttps?:\/\/\S+/</text>
         </g>
 
-        <g transform="translate(-60, 0) rotate(-8)">
-            <rect x="-120" y="-25" width="260" height="100" rx="24" fill="#0b1221" stroke="#38bdf8" stroke-width="3" opacity="0.9"/>
-            <rect x="-120" y="-25" width="260" height="100" rx="24" fill="#0b1221" opacity="0.6"/>
-
-            <text x="10" y="35"
-                  font-family="'JetBrains Mono', Consolas, monospace"
-                  font-weight="bold"
-                  font-size="56"
-                  text-anchor="middle"
-                  fill="#38bdf8">/</text>
-            <text x="10" y="35"
-                  dx="24"
-                  font-family="'JetBrains Mono', Consolas, monospace"
-                  font-weight="bold"
-                  font-size="56"
-                  fill="#fbbf24">[a-z]</text>
-            <text x="10" y="35"
-                  dx="152"
-                  font-family="'JetBrains Mono', Consolas, monospace"
-                  font-weight="bold"
-                  font-size="56"
-                  fill="#f472b6">+?/</text>
-        </g>
-
-        <g transform="translate(100, 0)">
+        <g transform="translate(180, 0)">
             <text x="0" y="20"
                   font-family="'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
                   font-weight="900"
@@ -60,7 +36,7 @@
                   fill="url(#textGrad)"
                   style="text-shadow: 0 4px 12px rgba(0,0,0,0.5);">Regex</text>
 
-            <text x="305" y="20"
+            <text x="320" y="20"
                   font-family="'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
                   font-weight="700"
                   font-size="100"
