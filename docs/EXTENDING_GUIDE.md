@@ -391,23 +391,9 @@ public function testCallouts(): void
 
 ### Step 6: Update Documentation
 
-#### 6.1 Update Node README
+#### 6.1 Update Node Documentation
 
-**Location**: `src/Node/README.md`
-
-Add to Quick Reference table and create section:
-
-```markdown
-### CalloutNode
-Represents regex engine callouts for debugging.
-
-**Types**: Simple `(?C)`, Numbered `(?C99)`
-
-\```php
-// Pattern: (?C42)
-new CalloutNode(number: 42, ...)
-\```
-```
+Add documentation for the new node type in relevant places (e.g., inline comments, examples).
 
 ---
 
@@ -427,9 +413,6 @@ See the sections above for a complete worked example of adding `(?C)` and `(?C99
 9. `tests/Unit/Node/CalloutNodeTest.php` - NEW
 10. `tests/Integration/CalloutTest.php` - NEW
 11. `tests/Integration/PcreFeatureCompletenessTest.php` - Add test method
-12. `PCRE_FEATURES_MATRIX.md` - Document support
-13. `src/Node/README.md` - Add documentation
-14. `NODES_AUDIT_REPORT.md` - Add to inventory
 
 ---
 
@@ -570,9 +553,6 @@ return null; // Silent failure
 - [ ] Create unit tests
 - [ ] Create integration tests
 - [ ] Add to feature completeness test
-- [ ] Update `PCRE_FEATURES_MATRIX.md`
-- [ ] Update `src/Node/README.md`
-- [ ] Update `NODES_AUDIT_REPORT.md`
 - [ ] Run all tests
 - [ ] Run static analysis
 - [ ] Fix code style
