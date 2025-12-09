@@ -20,9 +20,18 @@ use RegexParser\Node;
  */
 final class LinterNodeVisitor extends AbstractNodeVisitor
 {
-    /** @var list<string> */
+    /**
+     * @var list<string>
+     */
     private array $warnings = [];
+
     private string $flags = '';
+
+    private bool $hasCaseSensitiveChars = false;
+
+    private bool $hasDots = false;
+
+    private bool $hasAnchors = false;
 
     /**
      * @return list<string>
@@ -47,31 +56,13 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         return $node;
     }
 
-    private function checkUselessFlags(): void
-    {
-        if (str_contains($this->flags, 'i') && !$this->hasCaseSensitiveChars) {
-            $this->warnings[] = "Flag 'i' is useless: the pattern contains no case-sensitive characters.";
-        }
-
-        if (str_contains($this->flags, 's') && !$this->hasDots) {
-            $this->warnings[] = "Flag 's' is useless: the pattern contains no dots.";
-        }
-
-        if (str_contains($this->flags, 'm') && !$this->hasAnchors) {
-            $this->warnings[] = "Flag 'm' is useless: the pattern contains no anchors.";
-        }
-    }
-
-    private bool $hasCaseSensitiveChars = false;
-    private bool $hasDots = false;
-    private bool $hasAnchors = false;
-
     #[\Override]
     public function visitLiteral(Node\LiteralNode $node): Node\NodeInterface
     {
         if (preg_match('/[a-zA-Z]/', $node->value) > 0) {
             $this->hasCaseSensitiveChars = true;
         }
+
         return $node;
     }
 
@@ -89,41 +80,25 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         } elseif ($this->charClassPartHasLetters($expression)) {
             $this->hasCaseSensitiveChars = true;
         }
+
         return $node;
-    }
-
-    private function charClassPartHasLetters(Node\NodeInterface $node): bool
-    {
-        if ($node instanceof Node\LiteralNode && preg_match('/[a-zA-Z]/', $node->value) > 0) {
-            return true;
-        }
-        if ($node instanceof Node\RangeNode) {
-            return $this->rangeHasLetters($node);
-        }
-        // Other types like CharTypeNode might have letters, but for simplicity, assume not
-        return false;
-    }
-
-    private function rangeHasLetters(Node\RangeNode $node): bool
-    {
-        $start = $node->start instanceof Node\LiteralNode ? $node->start->value : '';
-        $end = $node->end instanceof Node\LiteralNode ? $node->end->value : '';
-        return preg_match('/[a-zA-Z]/', $start . $end) > 0;
     }
 
     #[\Override]
     public function visitDot(Node\DotNode $node): Node\NodeInterface
     {
         $this->hasDots = true;
+
         return $node;
     }
 
     #[\Override]
     public function visitAnchor(Node\AnchorNode $node): Node\NodeInterface
     {
-        if ($node->value === '^' || $node->value === '$') {
+        if ('^' === $node->value || '$' === $node->value) {
             $this->hasAnchors = true;
         }
+
         return $node;
     }
 
@@ -134,6 +109,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         foreach ($node->alternatives as $alt) {
             $alt->accept($this);
         }
+
         return $node;
     }
 
@@ -143,6 +119,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         foreach ($node->children as $child) {
             $child->accept($this);
         }
+
         return $node;
     }
 
@@ -150,6 +127,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     public function visitGroup(Node\GroupNode $node): Node\NodeInterface
     {
         $node->child->accept($this);
+
         return $node;
     }
 
@@ -157,7 +135,44 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     public function visitQuantifier(Node\QuantifierNode $node): Node\NodeInterface
     {
         $node->node->accept($this);
+
         return $node;
+    }
+
+    private function checkUselessFlags(): void
+    {
+        if (str_contains($this->flags, 'i') && !$this->hasCaseSensitiveChars) {
+            $this->warnings[] = "Flag 'i' is useless: the pattern contains no case-sensitive characters.";
+        }
+
+        if (str_contains($this->flags, 's') && !$this->hasDots) {
+            $this->warnings[] = "Flag 's' is useless: the pattern contains no dots.";
+        }
+
+        if (str_contains($this->flags, 'm') && !$this->hasAnchors) {
+            $this->warnings[] = "Flag 'm' is useless: the pattern contains no anchors.";
+        }
+    }
+
+    private function charClassPartHasLetters(Node\NodeInterface $node): bool
+    {
+        if ($node instanceof Node\LiteralNode && preg_match('/[a-zA-Z]/', $node->value) > 0) {
+            return true;
+        }
+        if ($node instanceof Node\RangeNode) {
+            return $this->rangeHasLetters($node);
+        }
+
+        // Other types like CharTypeNode might have letters, but for simplicity, assume not
+        return false;
+    }
+
+    private function rangeHasLetters(Node\RangeNode $node): bool
+    {
+        $start = $node->start instanceof Node\LiteralNode ? $node->start->value : '';
+        $end = $node->end instanceof Node\LiteralNode ? $node->end->value : '';
+
+        return preg_match('/[a-zA-Z]/', $start.$end) > 0;
     }
 
     // Add other visit methods as needed, default to no-op

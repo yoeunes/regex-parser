@@ -33,7 +33,8 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
     private const CHAR_CLASS_META = [']' => true, '\\' => true, '^' => true, '-' => true];
 
     private string $flags = '';
-    private \RegexParser\ReDoS\CharSetAnalyzer $charSetAnalyzer;
+
+    private readonly \RegexParser\ReDoS\CharSetAnalyzer $charSetAnalyzer;
 
     public function __construct()
     {
@@ -179,7 +180,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
             $current = $optimizedChildren[$i];
             $next = $optimizedChildren[$i + 1];
 
-            if ($current instanceof Node\QuantifierNode && $current->type === Node\QuantifierType::T_GREEDY) {
+            if ($current instanceof Node\QuantifierNode && Node\QuantifierType::T_GREEDY === $current->type) {
                 if ($this->areCharSetsDisjoint($current->node, $next)) {
                     $optimizedChildren[$i] = new Node\QuantifierNode(
                         $current->node,
@@ -765,14 +766,14 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
                 continue;
             }
 
-        $normalized = array_merge($normalized, $this->buildRangeOrLiteral($rangeStart, $rangeEnd, $rangeStartPos, $rangeEndPos));
+            $normalized = array_merge($normalized, $this->buildRangeOrLiteral($rangeStart, $rangeEnd, $rangeStartPos, $rangeEndPos));
             $rangeStart = $ord;
             $rangeEnd = $ord;
             $rangeStartPos = $posStart;
             $rangeEndPos = $posEnd;
         }
 
-            $normalized = array_merge($normalized, $this->buildRangeOrLiteral($rangeStart, $rangeEnd, $rangeStartPos, $rangeEndPos));
+        $normalized = array_merge($normalized, $this->buildRangeOrLiteral($rangeStart, $rangeEnd, $rangeStartPos, $rangeEndPos));
 
         $finalParts = array_merge($normalized, $otherParts);
 
@@ -795,6 +796,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         if ($coverage < 3) {
             // For 2 characters, return them as separate literals
             $endLiteral = new Node\LiteralNode(mb_chr($endOrd), $endPos, $endPos + 1);
+
             return [$startLiteral, $endLiteral];
         }
 
@@ -808,6 +810,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         try {
             $set1 = $this->charSetAnalyzer->lastChars($node1);
             $set2 = $this->charSetAnalyzer->firstChars($node2);
+
             return !$set1->intersects($set2);
         } catch (\Throwable) {
             return false; // If analysis fails, don't optimize
@@ -816,6 +819,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
 
     /**
      * @param list<Node\NodeInterface> $alts
+     *
      * @return list<Node\NodeInterface>
      */
     private function factorizeAlternation(array $alts): array
@@ -862,22 +866,23 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
             }
         }
 
-        $nonNullSuffixes = \array_filter($suffixes, fn($s) => $s !== null);
+        $nonNullSuffixes = array_filter($suffixes, fn ($s) => null !== $s);
         if (empty($nonNullSuffixes)) {
             // All are just the prefix
             return [$this->stringToNode($prefix, $withPrefix[0]->startPosition, $withPrefix[0]->startPosition + \strlen($prefix))];
         }
 
-        $newAlt = \count($nonNullSuffixes) === 1 ? $nonNullSuffixes[0] : new Node\AlternationNode($nonNullSuffixes, $nonNullSuffixes[0]->startPosition, end($nonNullSuffixes)->endPosition);
+        $newAlt = 1 === \count($nonNullSuffixes) ? $nonNullSuffixes[0] : new Node\AlternationNode($nonNullSuffixes, $nonNullSuffixes[0]->startPosition, end($nonNullSuffixes)->endPosition);
         $group = new Node\GroupNode($newAlt, Node\GroupType::T_GROUP_NON_CAPTURING);
         $prefixNode = $this->stringToNode($prefix, $withPrefix[0]->startPosition, $withPrefix[0]->startPosition + \strlen($prefix));
         $factored = new Node\SequenceNode([$prefixNode, $group], $withPrefix[0]->startPosition, $withPrefix[0]->endPosition);
 
         if (empty($withoutPrefix)) {
             return [$factored];
-        } else {
-            return \array_merge([$factored], $withoutPrefix);
         }
+
+        return array_merge([$factored], $withoutPrefix);
+
     }
 
     private function nodeToString(Node\NodeInterface $node): string
@@ -895,20 +900,23 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
                     return ''; // Can't handle
                 }
             }
+
             return $str;
         }
+
         return '';
     }
 
     private function stringToNode(string $str, int $start, int $end): Node\NodeInterface
     {
-        if (\strlen($str) === 1) {
+        if (1 === \strlen($str)) {
             return new Node\LiteralNode($str, $start, $end);
         }
         $children = [];
         for ($i = 0; $i < \strlen($str); $i++) {
             $children[] = new Node\LiteralNode($str[$i], $start + $i, $start + $i + 1);
         }
+
         return new Node\SequenceNode($children, $start, $end);
     }
 
@@ -919,13 +927,14 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         }
         $prefix = $strings[0];
         foreach ($strings as $str) {
-            while (!str_starts_with($str, $prefix)) {
-                $prefix = substr($prefix, 0, -1);
+            while (!str_starts_with((string) $str, (string) $prefix)) {
+                $prefix = substr((string) $prefix, 0, -1);
                 if (empty($prefix)) {
                     return '';
                 }
             }
         }
+
         return $prefix;
     }
 }

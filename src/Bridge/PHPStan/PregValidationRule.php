@@ -230,7 +230,7 @@ final class PregValidationRule implements Rule
             $linter = new \RegexParser\NodeVisitor\LinterNodeVisitor();
             $ast->accept($linter);
             foreach ($linter->getWarnings() as $warning) {
-                $errors[] = RuleErrorBuilder::message('Tip: ' . $warning)
+                $errors[] = RuleErrorBuilder::message('Tip: '.$warning)
                     ->line($lineNumber)
                     ->identifier('regex.linter')
                     ->build();
