@@ -118,6 +118,9 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitSequence(Node\SequenceNode $node): Node\NodeInterface
     {
+        // Check for anchor conflicts
+        $this->checkAnchorConflicts($node);
+
         foreach ($node->children as $child) {
             $child->accept($this);
         }
@@ -175,6 +178,102 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         $end = $node->end instanceof Node\LiteralNode ? $node->end->value : '';
 
         return preg_match('/[a-zA-Z]/', $start.$end) > 0;
+    }
+
+    private function checkAnchorConflicts(Node\SequenceNode $node): void
+    {
+        $children = $node->children;
+        $count = \count($children);
+
+        for ($i = 0; $i < $count; $i++) {
+            $child = $children[$i];
+
+            if ($child instanceof Node\AnchorNode && '^' === $child->value) {
+                // Check if there are consuming nodes before ^
+                for ($j = 0; $j < $i; $j++) {
+                    if ($this->isConsuming($children[$j])) {
+                        $this->warnings[] = "Start anchor '^' appears after consuming characters, making it impossible to match.";
+
+                        break;
+                    }
+                }
+            }
+
+            if ($child instanceof Node\AnchorNode && '$' === $child->value) {
+                // Check if there are consuming nodes after $
+                for ($j = $i + 1; $j < $count; $j++) {
+                    if ($this->isConsuming($children[$j])) {
+                        $this->warnings[] = "End anchor '$' appears before consuming characters, making it impossible to match.";
+
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    private function isConsuming(Node\NodeInterface $node): bool
+    {
+        if ($node instanceof Node\LiteralNode) {
+            return true;
+        }
+        if ($node instanceof Node\CharClassNode) {
+            return true;
+        }
+        if ($node instanceof Node\CharTypeNode) {
+            return true;
+        }
+        if ($node instanceof Node\DotNode) {
+            return true;
+        }
+        if ($node instanceof Node\UnicodeNode) {
+            return true;
+        }
+        if ($node instanceof Node\UnicodePropNode) {
+            return true;
+        }
+        if ($node instanceof Node\PosixClassNode) {
+            return true;
+        }
+        if ($node instanceof Node\OctalNode) {
+            return true;
+        }
+        if ($node instanceof Node\OctalLegacyNode) {
+            return true;
+        }
+        if ($node instanceof Node\QuantifierNode) {
+            return $this->isConsuming($node->node);
+        }
+        if ($node instanceof Node\GroupNode) {
+            // Lookarounds don't consume
+            return !(\RegexParser\Node\GroupType::T_GROUP_LOOKAHEAD_POSITIVE === $node->type
+                || \RegexParser\Node\GroupType::T_GROUP_LOOKAHEAD_NEGATIVE === $node->type
+                || \RegexParser\Node\GroupType::T_GROUP_LOOKBEHIND_POSITIVE === $node->type
+                || \RegexParser\Node\GroupType::T_GROUP_LOOKBEHIND_NEGATIVE === $node->type);
+        }
+        if ($node instanceof Node\AlternationNode) {
+            // If any alternative consumes, consider it consuming
+            foreach ($node->alternatives as $alt) {
+                if ($this->isConsuming($alt)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+        if ($node instanceof Node\SequenceNode) {
+            // If any child consumes, consider it consuming
+            foreach ($node->children as $child) {
+                if ($this->isConsuming($child)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        // Anchors, assertions, etc. don't consume
+        return false;
     }
 
     // Add other visit methods as needed, default to no-op

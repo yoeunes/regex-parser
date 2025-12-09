@@ -1,5 +1,5 @@
 <p align="center">
-    <img src="art/banner.svg" alt="RegexParser" width="100%">
+    <img src="art/banner.svg?v=1" alt="RegexParser" width="100%">
 </p>
 
 <p align="center">

@@ -78,4 +78,35 @@ final class LinterNodeVisitorTest extends TestCase
 
         $this->assertNotContains("Flag 'm' is useless: the pattern contains no anchors.", $warnings);
     }
+
+    public function test_start_anchor_conflict(): void
+    {
+        $regex = Regex::create()->parse('/foo^bar/');
+        $linter = new LinterNodeVisitor();
+        $regex->accept($linter);
+        $warnings = $linter->getWarnings();
+
+        $this->assertContains("Start anchor '^' appears after consuming characters, making it impossible to match.", $warnings);
+    }
+
+    public function test_end_anchor_conflict(): void
+    {
+        $regex = Regex::create()->parse('/$foo/');
+        $linter = new LinterNodeVisitor();
+        $regex->accept($linter);
+        $warnings = $linter->getWarnings();
+
+        $this->assertContains("End anchor '$' appears before consuming characters, making it impossible to match.", $warnings);
+    }
+
+    public function test_no_anchor_conflict_at_boundaries(): void
+    {
+        $regex = Regex::create()->parse('/^foo$/');
+        $linter = new LinterNodeVisitor();
+        $regex->accept($linter);
+        $warnings = $linter->getWarnings();
+
+        $this->assertNotContains("Start anchor '^' appears after consuming characters", $warnings);
+        $this->assertNotContains("End anchor '$' appears before consuming characters", $warnings);
+    }
 }
