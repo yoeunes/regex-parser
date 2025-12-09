@@ -33,6 +33,12 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
     private const CHAR_CLASS_META = [']' => true, '\\' => true, '^' => true, '-' => true];
 
     private string $flags = '';
+    private \RegexParser\ReDoS\CharSetAnalyzer $charSetAnalyzer;
+
+    public function __construct()
+    {
+        $this->charSetAnalyzer = new \RegexParser\ReDoS\CharSetAnalyzer();
+    }
 
     /**
      * Optimizes the root `RegexNode`.
@@ -166,6 +172,25 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
             }
 
             $optimizedChildren[] = $optimizedChild;
+        }
+
+        // Auto-possessivization
+        for ($i = 0; $i < \count($optimizedChildren) - 1; $i++) {
+            $current = $optimizedChildren[$i];
+            $next = $optimizedChildren[$i + 1];
+
+            if ($current instanceof Node\QuantifierNode && $current->type === Node\QuantifierType::T_GREEDY) {
+                if ($this->areCharSetsDisjoint($current->node, $next)) {
+                    $optimizedChildren[$i] = new Node\QuantifierNode(
+                        $current->node,
+                        $current->quantifier,
+                        Node\QuantifierType::T_POSSESSIVE,
+                        $current->startPosition,
+                        $current->endPosition,
+                    );
+                    $hasChanged = true;
+                }
+            }
         }
 
         if (!$hasChanged) {
@@ -776,6 +801,17 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         $endLiteral = new Node\LiteralNode(mb_chr($endOrd), $endPos, $endPos + 1);
 
         return [new Node\RangeNode($startLiteral, $endLiteral, $startPos, $endPos)];
+    }
+
+    private function areCharSetsDisjoint(Node\NodeInterface $node1, Node\NodeInterface $node2): bool
+    {
+        try {
+            $set1 = $this->charSetAnalyzer->lastChars($node1);
+            $set2 = $this->charSetAnalyzer->firstChars($node2);
+            return !$set1->intersects($set2);
+        } catch (\Throwable) {
+            return false; // If analysis fails, don't optimize
+        }
     }
 
     /**

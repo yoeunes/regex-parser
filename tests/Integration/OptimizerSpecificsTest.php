@@ -65,4 +65,16 @@ final class OptimizerSpecificsTest extends TestCase
         // This might not fully factorize with simple implementation, but at least no crash
         $this->assertIsString($regex);
     }
+
+    public function test_safe_possessivization(): void
+    {
+        $regex = Regex::create()->optimize('/\d+a/');
+        $this->assertSame('/\d++a/', $regex);
+    }
+
+    public function test_unsafe_possessivization(): void
+    {
+        $regex = Regex::create()->optimize('/\d+1/');
+        $this->assertSame('/\d+1/', $regex); // No change, as \d can match 1
+    }
 }
