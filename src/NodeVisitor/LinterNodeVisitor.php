@@ -246,10 +246,10 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         }
         if ($node instanceof Node\GroupNode) {
             // Lookarounds don't consume
-            return !($node->type === \RegexParser\Node\GroupType::T_GROUP_LOOKAHEAD_POSITIVE
-                || $node->type === \RegexParser\Node\GroupType::T_GROUP_LOOKAHEAD_NEGATIVE
-                || $node->type === \RegexParser\Node\GroupType::T_GROUP_LOOKBEHIND_POSITIVE
-                || $node->type === \RegexParser\Node\GroupType::T_GROUP_LOOKBEHIND_NEGATIVE);
+            return !(\RegexParser\Node\GroupType::T_GROUP_LOOKAHEAD_POSITIVE === $node->type
+                || \RegexParser\Node\GroupType::T_GROUP_LOOKAHEAD_NEGATIVE === $node->type
+                || \RegexParser\Node\GroupType::T_GROUP_LOOKBEHIND_POSITIVE === $node->type
+                || \RegexParser\Node\GroupType::T_GROUP_LOOKBEHIND_NEGATIVE === $node->type);
         }
         if ($node instanceof Node\AlternationNode) {
             // If any alternative consumes, consider it consuming
