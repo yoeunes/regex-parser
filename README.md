@@ -72,7 +72,7 @@ It brings static analysis, security auditing, and automated refactoring to PHP's
 composer require yoeunes/regex-parser
 ```
 
-Requires **PHP 8.4+**.
+Requires **PHP 8.2+**.
 
 ---
 
