@@ -2,5 +2,5 @@
 # Use a short, capitalized, imperative description (<= 72 chars, no trailing period).
 # Examples:
 # Add verbose flag for regex parsing
-# Fix PHP 8.4 CI cache key
+# Fix PHP 8.2 CI cache key
 Short imperative description

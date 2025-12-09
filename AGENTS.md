@@ -24,7 +24,7 @@
 
 ### PHP Standards
 - PSR-12 + Symfony coding standards
-- PHP 8.4 minimum, bleeding edge features enabled
+- PHP 8.2 minimum, bleeding edge features enabled
 - Strict types declaration required (`declare(strict_types=1)`)
 - Short array syntax (`[]` instead of `array()`)
 - Single quotes for strings

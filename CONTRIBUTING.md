@@ -60,7 +60,7 @@ This project follows standard open-source community guidelines:
 
 ### Prerequisites
 
-- **PHP 8.4 or higher** (required for modern features)
+- **PHP 8.2 or higher** (required for modern features)
 - **Composer** (dependency management)
 - **Git** (version control)
 - **ext-mbstring** (multibyte string support)
