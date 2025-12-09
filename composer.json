@@ -73,6 +73,13 @@
     "archive": {
         "exclude": [
             ".github",
+            "bin/dump-wasm.php",
+            "bin/php-cs-fixer",
+            "bin/phpbench",
+            "bin/phpcs",
+            "bin/phplint",
+            "bin/phpstan",
+            "bin/rector",
             "rector",
             "templates",
             "tests",
@@ -90,6 +97,7 @@
             "rector.php",
             "phpunit.dist.xml",
             "taskfile.dist.yaml",
+            "AGENTS.md",
             "CODE_OF_CONDUCT.md",
             "CONTRIBUTING.md",
             "SECURITY.md",
