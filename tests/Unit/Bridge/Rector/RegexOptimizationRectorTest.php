@@ -30,7 +30,7 @@ final class RegexOptimizationRectorTest extends TestCase
         $rector->configure([RegexOptimizationRector::EXTRA_FUNCTIONS => ['my_func']]);
         $this->initializeDependencies($rector);
 
-        $parser = new ParserFactory()->createForNewestSupportedVersion();
+        $parser = (new ParserFactory())->createForNewestSupportedVersion();
         $stmts = array_values($parser->parse('<?php my_func("/[a-zA-Z0-9_]+/", $s);') ?? []);
         $funcCall = $this->findNode($stmts, FuncCall::class);
 
@@ -53,7 +53,7 @@ final class RegexOptimizationRectorTest extends TestCase
         $rector->configure([RegexOptimizationRector::EXTRA_CONSTANTS => ['MY_REGEX']]);
         $this->initializeDependencies($rector);
 
-        $parser = new ParserFactory()->createForNewestSupportedVersion();
+        $parser = (new ParserFactory())->createForNewestSupportedVersion();
         $stmts = array_values($parser->parse('<?php class A { public const MY_REGEX = "/[a-zA-Z0-9_]+/"; }') ?? []);
         $const = $this->findNode($stmts, ClassConst::class);
 
@@ -121,7 +121,7 @@ final class RegexOptimizationRectorTest extends TestCase
         }
 
         try {
-            $resolver = new \ReflectionClass(NodeNameResolver::class)->newInstanceWithoutConstructor();
+            $resolver = (new \ReflectionClass(NodeNameResolver::class))->newInstanceWithoutConstructor();
         } catch (\Throwable) {
             $this->markTestSkipped('Unable to create NodeNameResolver stub.');
 
