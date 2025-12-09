@@ -84,32 +84,26 @@ tasks:
     update:
         cmds:
             - composer update -W
-            - composer bump
             - composer outdated --direct
             - composer audit || true
 
             - composer update -W -d tools/php-cs-fixer
-            - composer bump -d tools/php-cs-fixer
             - composer outdated --direct -d tools/php-cs-fixer
             - composer audit -d tools/php-cs-fixer || true
 
             - composer update -W -d tools/phpbench
-            - composer bump -d tools/phpbench
             - composer outdated --direct -d tools/phpbench
             - composer audit -d tools/phpbench || true
 
             - composer update -W -d tools/phplint
-            - composer bump -d tools/phplint
             - composer outdated --direct -d tools/phplint
             - composer audit -d tools/phplint || true
 
             - composer update -W -d tools/phpstan
-            - composer bump -d tools/phpstan
             - composer outdated --direct -d tools/phpstan
             - composer audit -d tools/phpstan || true
 
             - composer update -W -d tools/rector
-            - composer bump -d tools/rector
             - composer outdated --direct -d tools/rector
             - composer audit -d tools/rector || true
 
