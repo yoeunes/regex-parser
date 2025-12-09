@@ -20,9 +20,9 @@ use RegexParser\Node;
  */
 final class ConsoleHighlighterVisitor extends HighlighterVisitor
 {
-    private const string RESET = "\033[0m";
+    private const RESET = "\033[0m";
 
-    private const array COLORS = [
+    private const COLORS = [
         'meta' => "\033[1;34m",      // Bold Blue
         'quantifier' => "\033[1;33m", // Bold Yellow
         'type' => "\033[0;32m",      // Green

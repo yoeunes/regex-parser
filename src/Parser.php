@@ -33,9 +33,9 @@ final class Parser
     /**
      * Characters that can appear in inline flags.
      */
-    private const string INLINE_FLAG_CHARS = 'imsxADSUXJnr-';
+    private const INLINE_FLAG_CHARS = 'imsxADSUXJnr-';
 
-    private const int MAX_RECURSION_DEPTH = 1024;
+    private const MAX_RECURSION_DEPTH = 1024;
 
     /**
      * Token stream (replaces array of tokens for memory efficiency).

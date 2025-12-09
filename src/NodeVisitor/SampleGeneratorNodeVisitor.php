@@ -28,7 +28,7 @@ use RegexParser\Node\GroupType;
  */
 final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
 {
-    private const int MAX_RECURSION_DEPTH = 2;
+    private const MAX_RECURSION_DEPTH = 2;
 
     private ?int $seed = null;
 
