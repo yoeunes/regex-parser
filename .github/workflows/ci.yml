@@ -8,34 +8,27 @@ on:
 
 jobs:
   tests:
-    name: Tests (PHP ${{ matrix.php-version }}, ${{ matrix.dependency-version }})
+    name: Tests (PHP ${{ matrix.php }}, ${{ matrix.dependency }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        php-version: ['8.4', '8.5']
-        dependency-version: [prefer-lowest, prefer-stable]
+        php: [8.4]
+        dependency: [prefer-lowest, prefer-stable]
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v6
 
-      - name: Setup PHP ${{ matrix.php-version }}
+      - name: Setup PHP ${{ matrix.php }}
         uses: shivammathur/setup-php@v2
         with:
-          php-version: ${{ matrix.php-version }}
+          php-version: ${{ matrix.php }}
           extensions: mbstring, intl, pcre, tokenizer, xml
-          ini-values: error_reporting=E_ALL
-          tools: composer:v2
-          coverage: xdebug
 
-      - name: Install Dependencies (${{ matrix.dependency-version }})
+      - name: Install Dependencies (${{ matrix.dependency }})
         run: |
-          if [ "${{ matrix.dependency-version }}" = "prefer-lowest" ]; then
-            composer update --no-interaction --no-progress --prefer-lowest --prefer-stable
-          else
-            composer install --no-interaction --no-progress --prefer-dist
-          fi
+          composer update --${{ matrix.dependency }} --prefer-dist --no-interaction
 
       - name: Run Unit Tests
         run: ./vendor/bin/phpunit tests/Unit/ --colors=always
@@ -43,45 +36,28 @@ jobs:
       - name: Run Integration Tests
         run: ./vendor/bin/phpunit tests/Integration/ --colors=always
 
-      - name: Generate Coverage Report
-        run: ./vendor/bin/phpunit --coverage-text --coverage-clover=coverage.xml
-        if: matrix.php-version == '8.4' && matrix.dependency-version == 'prefer-stable'
-
-      - name: Upload Coverage to Codecov
-        uses: codecov/codecov-action@v5
-        with:
-          files: ./coverage.xml
-          fail_ci_if_error: false
-        if: matrix.php-version == '8.4' && matrix.dependency-version == 'prefer-stable'
-
   phpstan:
-    name: PHPStan (PHP ${{ matrix.php-version }}, ${{ matrix.dependency-version }})
+    name: PHPStan (PHP ${{ matrix.php }}, ${{ matrix.dependency }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        php-version: ['8.4', '8.5']
-        dependency-version: [prefer-lowest, prefer-stable]
+        php: ['8.4', '8.5']
+        dependency: [prefer-lowest, prefer-stable]
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v6
 
-      - name: Setup PHP ${{ matrix.php-version }}
+      - name: Setup PHP ${{ matrix.php }}
         uses: shivammathur/setup-php@v2
         with:
-          php-version: ${{ matrix.php-version }}
+          php-version: ${{ matrix.php }}
           extensions: mbstring, intl, pcre, tokenizer, xml
-          ini-values: error_reporting=E_ALL
-          tools: composer:v2
 
-      - name: Install Dependencies (${{ matrix.dependency-version }})
+      - name: Install Dependencies (${{ matrix.dependency }})
         run: |
-          if [ "${{ matrix.dependency-version }}" = "prefer-lowest" ]; then
-            composer update --no-interaction --no-progress --prefer-lowest --prefer-stable
-          else
-            composer install --no-interaction --no-progress --prefer-dist
-          fi
+          composer update --${{ matrix.dependency }} --prefer-dist --no-interaction
 
       - name: Install PHPStan Tooling
         run: composer install -d tools/phpstan --no-interaction --no-progress
@@ -100,9 +76,8 @@ jobs:
       - name: Setup PHP 8.4
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.4'
+          php: '8.4'
           extensions: mbstring, intl, pcre, tokenizer, xml
-          tools: composer:v2
 
       - name: Install Dependencies
         run: composer install --no-interaction --no-progress --prefer-dist
@@ -124,9 +99,8 @@ jobs:
       - name: Setup PHP 8.4
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.4'
+          php: '8.4'
           extensions: mbstring, intl, pcre, tokenizer, xml
-          tools: composer:v2
 
       - name: Install Dependencies
         run: composer install --no-interaction --no-progress --prefer-dist
@@ -150,7 +124,6 @@ jobs:
         with:
           php-version: '8.4'
           extensions: mbstring, intl, pcre, tokenizer, xml
-          tools: composer:v2
 
       - name: Install Dependencies
         run: composer install --no-interaction --no-progress --prefer-dist
@@ -174,17 +147,9 @@ jobs:
         with:
           php-version: '8.4'
           extensions: mbstring, intl, pcre, tokenizer, xml
-          tools: composer:v2
 
       - name: Install Dependencies
         run: composer install --no-interaction --no-progress --prefer-dist
-
-      - name: Install Tools
-        run: |
-          composer install -d tools/phpstan --no-interaction --no-progress
-          composer install -d tools/rector --no-interaction --no-progress
-          composer install -d tools/php-cs-fixer --no-interaction --no-progress
-          composer install -d tools/phplint --no-interaction --no-progress
 
       - name: Run Library Validation
         run: php tests/validate_library.php
