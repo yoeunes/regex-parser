@@ -15,6 +15,7 @@ namespace RegexParser\NodeVisitor;
 
 use RegexParser\Node;
 use RegexParser\Node\GroupType;
+use RegexParser\ReDoS\CharSetAnalyzer;
 
 /**
  * Transforms the AST to apply optimizations, returning a new, simplified AST.
@@ -34,11 +35,11 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
 
     private string $flags = '';
 
-    private readonly \RegexParser\ReDoS\CharSetAnalyzer $charSetAnalyzer;
+    private readonly CharSetAnalyzer $charSetAnalyzer;
 
     public function __construct()
     {
-        $this->charSetAnalyzer = new \RegexParser\ReDoS\CharSetAnalyzer();
+        $this->charSetAnalyzer = new CharSetAnalyzer();
     }
 
     /**
@@ -857,12 +858,14 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
 
         // Create suffixes
         $suffixes = [];
+        /**
+         * @var \RegexParser\Node\AbstractNode $alt
+         */
         foreach ($withPrefix as $alt) {
             $suffixStr = substr($this->nodeToString($alt), \strlen($prefix));
             if (empty($suffixStr)) {
                 $suffixes[] = null;
             } else {
-                /* @var \RegexParser\Node\AbstractNode $alt */
                 $suffixes[] = $this->stringToNode($suffixStr, $alt->startPosition + \strlen($prefix), $alt->endPosition);
             }
         }
