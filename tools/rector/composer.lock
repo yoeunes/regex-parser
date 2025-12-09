@@ -62,16 +62,16 @@
         },
         {
             "name": "rector/rector",
-            "version": "2.2.12",
+            "version": "2.2.13",
             "source": {
                 "type": "git",
                 "url": "https://github.com/rectorphp/rector.git",
-                "reference": "894fcd51d6f9a9c8f37fd906e24e2026dcbdcc86"
+                "reference": "4674fb4989168f009016849a0078349a532c42b8"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/rectorphp/rector/zipball/894fcd51d6f9a9c8f37fd906e24e2026dcbdcc86",
-                "reference": "894fcd51d6f9a9c8f37fd906e24e2026dcbdcc86",
+                "url": "https://api.github.com/repos/rectorphp/rector/zipball/4674fb4989168f009016849a0078349a532c42b8",
+                "reference": "4674fb4989168f009016849a0078349a532c42b8",
                 "shasum": ""
             },
             "require": {
@@ -110,7 +110,7 @@
             ],
             "support": {
                 "issues": "https://github.com/rectorphp/rector/issues",
-                "source": "https://github.com/rectorphp/rector/tree/2.2.12"
+                "source": "https://github.com/rectorphp/rector/tree/2.2.13"
             },
             "funding": [
                 {
@@ -118,7 +118,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2025-12-08T23:51:40+00:00"
+            "time": "2025-12-09T07:45:59+00:00"
         }
     ],
     "aliases": [],
