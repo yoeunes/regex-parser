@@ -7,13 +7,14 @@ on:
     branches: [main]
 
 jobs:
-  quality:
-    name: Code Quality (PHP ${{ matrix.php-version }})
+  tests:
+    name: Tests (PHP ${{ matrix.php-version }}, ${{ matrix.dependency-version }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        php-version: ['8.4']
+        php-version: ['8.1', '8.2', '8.3', '8.4']
+        dependency-version: [prefer-lowest, prefer-stable]
 
     steps:
       - name: Checkout Code
@@ -28,59 +29,13 @@ jobs:
           tools: composer:v2
           coverage: xdebug
 
-      - name: Install Dependencies
-        run: composer install --no-interaction --no-progress --prefer-dist
-
-      - name: Install Tools
+      - name: Install Dependencies (${{ matrix.dependency-version }})
         run: |
-          composer install -d tools/phpstan --no-interaction --no-progress
-          composer install -d tools/rector --no-interaction --no-progress
-          composer install -d tools/php-cs-fixer --no-interaction --no-progress
-          composer install -d tools/phplint --no-interaction --no-progress
-
-      - name: PHPLint (Syntax Check)
-        run: ./bin/phplint
-
-      - name: Rector (Code Optimization)
-        run: ./bin/rector process --dry-run --ansi
-
-      - name: PHP-CS-Fixer (Code Style)
-        run: ./bin/php-cs-fixer fix --dry-run --diff
-
-      - name: PHPStan (Static Analysis)
-        run: ./bin/phpstan analyse
-
-  test:
-    name: Tests (PHP ${{ matrix.php-version }}, ${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest]
-        php-version: ['8.4']
-
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v6
-
-      - name: Setup PHP ${{ matrix.php-version }}
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ matrix.php-version }}
-          extensions: mbstring, intl, pcre, tokenizer, xml
-          ini-values: error_reporting=E_ALL
-          tools: composer:v2
-          coverage: xdebug
-
-      - name: Install Dependencies
-        run: composer install --no-interaction --no-progress --prefer-dist
-
-      - name: Install Tools
-        run: |
-          cd tools/phpstan && composer install --no-interaction --no-progress
-          cd ../rector && composer install --no-interaction --no-progress
-          cd ../php-cs-fixer && composer install --no-interaction --no-progress
-          cd ../phplint && composer install --no-interaction --no-progress
+          if [ "${{ matrix.dependency-version }}" = "prefer-lowest" ]; then
+            composer update --no-interaction --no-progress --prefer-lowest --prefer-stable
+          else
+            composer install --no-interaction --no-progress --prefer-dist
+          fi
 
       - name: Run Unit Tests
         run: ./vendor/bin/phpunit tests/Unit/ --colors=always
@@ -90,12 +45,121 @@ jobs:
 
       - name: Generate Coverage Report
         run: ./vendor/bin/phpunit --coverage-text --coverage-clover=coverage.xml
+        if: matrix.php-version == '8.4' && matrix.dependency-version == 'prefer-stable'
 
       - name: Upload Coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
           files: ./coverage.xml
           fail_ci_if_error: false
+        if: matrix.php-version == '8.4' && matrix.dependency-version == 'prefer-stable'
+
+  phpstan:
+    name: PHPStan (PHP ${{ matrix.php-version }}, ${{ matrix.dependency-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php-version: ['8.1', '8.2', '8.3', '8.4']
+        dependency-version: [prefer-lowest, prefer-stable]
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+
+      - name: Setup PHP ${{ matrix.php-version }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: mbstring, intl, pcre, tokenizer, xml
+          ini-values: error_reporting=E_ALL
+          tools: composer:v2
+
+      - name: Install Dependencies (${{ matrix.dependency-version }})
+        run: |
+          if [ "${{ matrix.dependency-version }}" = "prefer-lowest" ]; then
+            composer update --no-interaction --no-progress --prefer-lowest --prefer-stable
+          else
+            composer install --no-interaction --no-progress --prefer-dist
+          fi
+
+      - name: Install PHPStan Tooling
+        run: composer install -d tools/phpstan --no-interaction --no-progress
+
+      - name: Run PHPStan
+        run: ./bin/phpstan analyse
+
+  phpcs:
+    name: PHPCS
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+
+      - name: Setup PHP 8.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, intl, pcre, tokenizer, xml
+          tools: composer:v2
+
+      - name: Install Dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Install PHP-CS-Fixer Tooling
+        run: composer install -d tools/php-cs-fixer --no-interaction --no-progress
+
+      - name: Run PHP-CS-Fixer
+        run: ./bin/php-cs-fixer fix --dry-run --diff
+
+  rector:
+    name: Rector
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+
+      - name: Setup PHP 8.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, intl, pcre, tokenizer, xml
+          tools: composer:v2
+
+      - name: Install Dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Install Rector Tooling
+        run: composer install -d tools/rector --no-interaction --no-progress
+
+      - name: Run Rector
+        run: ./bin/rector process --dry-run --ansi
+
+  phplint:
+    name: PHPLint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+
+      - name: Setup PHP 8.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, intl, pcre, tokenizer, xml
+          tools: composer:v2
+
+      - name: Install Dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Install PHPLint Tooling
+        run: composer install -d tools/phplint --no-interaction --no-progress
+
+      - name: Run PHPLint
+        run: ./bin/phplint
 
   validation:
     name: Validation & Feature Completeness
@@ -117,10 +181,10 @@ jobs:
 
       - name: Install Tools
         run: |
-          cd tools/phpstan && composer install --no-interaction --no-progress
-          cd ../rector && composer install --no-interaction --no-progress
-          cd ../php-cs-fixer && composer install --no-interaction --no-progress
-          cd ../phplint && composer install --no-interaction --no-progress
+          composer install -d tools/phpstan --no-interaction --no-progress
+          composer install -d tools/rector --no-interaction --no-progress
+          composer install -d tools/php-cs-fixer --no-interaction --no-progress
+          composer install -d tools/phplint --no-interaction --no-progress
 
       - name: Run Library Validation
         run: php tests/validate_library.php
