@@ -862,7 +862,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
             if (empty($suffixStr)) {
                 $suffixes[] = null;
             } else {
-                /** @var \RegexParser\Node\AbstractNode $alt */
+                /* @var \RegexParser\Node\AbstractNode $alt */
                 $suffixes[] = $this->stringToNode($suffixStr, $alt->startPosition + \strlen($prefix), $alt->endPosition);
             }
         }
