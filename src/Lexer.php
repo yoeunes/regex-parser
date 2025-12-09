@@ -476,7 +476,7 @@ final class Lexer
         // Search for \E or End of String
         // phpcs:ignore Generic.Files.LineLength.TooLong
         if (
-            !preg_match( // @phpstan-ignore regex.redos.medium
+            !preg_match(
                 '/(.*?)((\\\\E|$))/suA',
                 $this->pattern,
                 $matches,
@@ -526,7 +526,7 @@ final class Lexer
     {
         // Search for ) or End of String
         if (
-            !preg_match( // @phpstan-ignore regex.redos.medium
+            !preg_match(
                 '/([^)]*)(\)|$)/suA',
                 $this->pattern,
                 $matches,

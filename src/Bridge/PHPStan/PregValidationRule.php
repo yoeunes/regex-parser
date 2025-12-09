@@ -224,9 +224,9 @@ final class PregValidationRule implements Rule
 
         $thresholdLevel = match ($this->redosThreshold) {
             'low' => 1,
-            'medium' => 2,
-            'high' => 3,
-            'critical' => 4,
+            'medium' => 3,
+            'high' => 4,
+            'critical' => 5,
             default => 1,
         };
 
