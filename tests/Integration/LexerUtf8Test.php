@@ -27,6 +27,6 @@ final class LexerUtf8Test extends TestCase
         $this->expectException(LexerException::class);
         $this->expectExceptionMessage('Input string is not valid UTF-8');
 
-        new Lexer()->tokenize($invalidUtf8);
+        (new Lexer())->tokenize($invalidUtf8);
     }
 }

@@ -33,6 +33,6 @@ final class RegexOptionsTest extends TestCase
             'cache' => new NullCache(),
             'redos_ignored_patterns' => ['/safe/'],
         ]);
-        $this->assertSame(50_000, new \ReflectionProperty($regex, 'maxPatternLength')->getValue($regex));
+        $this->assertSame(50_000, (new \ReflectionProperty($regex, 'maxPatternLength'))->getValue($regex));
     }
 }

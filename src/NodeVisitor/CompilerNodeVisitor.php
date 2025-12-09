@@ -31,14 +31,14 @@ use RegexParser\Node\GroupType;
 final class CompilerNodeVisitor extends AbstractNodeVisitor
 {
     // PCRE meta-characters that must be escaped *outside* a character class.
-    private const array META_CHARACTERS = [
+    private const META_CHARACTERS = [
         '\\' => true, '.' => true, '^' => true, '$' => true,
         '[' => true, ']' => true, '(' => true, ')' => true,
         '*' => true, '+' => true, '?' => true, '{' => true, '}' => true,
     ];
 
     // Meta-characters that must be escaped *inside* a character class.
-    private const array CHAR_CLASS_META = [
+    private const CHAR_CLASS_META = [
         '\\' => true, ']' => true, '-' => true, '^' => true,
     ];
 

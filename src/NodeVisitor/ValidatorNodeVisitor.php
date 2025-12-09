@@ -36,12 +36,12 @@ use RegexParser\ReDoS\CharSetAnalyzer;
  */
 final class ValidatorNodeVisitor extends AbstractNodeVisitor
 {
-    private const array VALID_ASSERTIONS = [
+    private const VALID_ASSERTIONS = [
         'A' => true, 'z' => true, 'Z' => true,
         'G' => true, 'b' => true, 'B' => true,
     ];
 
-    private const array VALID_PCRE_VERBS = [
+    private const VALID_PCRE_VERBS = [
         'FAIL' => true, 'ACCEPT' => true, 'COMMIT' => true,
         'PRUNE' => true, 'SKIP' => true, 'THEN' => true,
         'DEFINE' => true, 'MARK' => true,
@@ -52,7 +52,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         'script_run' => true, 'atomic_script_run' => true,
     ];
 
-    private const array VALID_POSIX_CLASSES = [
+    private const VALID_POSIX_CLASSES = [
         'alnum' => true, 'alpha' => true, 'ascii' => true,
         'blank' => true, 'cntrl' => true, 'digit' => true,
         'graph' => true, 'lower' => true, 'print' => true,

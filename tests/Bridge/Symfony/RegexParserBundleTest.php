@@ -22,6 +22,7 @@ use RegexParser\Cache\FilesystemCache;
 use RegexParser\Regex;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\Routing\RequestContext;
 use Symfony\Component\Routing\Route;
 use Symfony\Component\Routing\RouteCollection;
@@ -56,7 +57,11 @@ final class RegexParserBundleTest extends TestCase
         $routes = new RouteCollection();
         $routes->add('broken', new Route('/broken', [], ['slug' => '(']));
 
-        $logger = new InMemoryLogger();
+        $loggedRecords = [];
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->method('log')->willReturnCallback(function ($level, $message, $context = []) use (&$loggedRecords): void {
+            $loggedRecords[] = ['level' => (string) $level, 'message' => (string) $message];
+        });
 
         $container = $this->createContainer([
             'enabled' => true,
@@ -64,10 +69,17 @@ final class RegexParserBundleTest extends TestCase
                 'warning_threshold' => 1,
                 'redos_threshold' => 1,
             ],
+        ], false);
+
+        $container->set('logger', $logger);
+        $container->loadFromExtension('regex_parser', [
+            'enabled' => true,
+            'analysis' => [
+                'warning_threshold' => 1,
+                'redos_threshold' => 1,
+            ],
         ]);
 
-        $container->register(LoggerInterface::class, InMemoryLogger::class)->setPublic(true);
-        $container->setAlias('logger', LoggerInterface::class)->setPublic(true);
         $container->register('router', RouteCollectionRouter::class)
             ->setArguments([$routes])
             ->setPublic(true);
@@ -79,6 +91,7 @@ final class RegexParserBundleTest extends TestCase
             {
                 if ($container->hasDefinition('regex_parser.cache_warmer')) {
                     $container->getDefinition('regex_parser.cache_warmer')->setPublic(true);
+                    $container->getDefinition('regex_parser.cache_warmer')->replaceArgument('$logger', new Reference('logger'));
                 }
             }
         });
@@ -86,13 +99,11 @@ final class RegexParserBundleTest extends TestCase
 
         /** @var RegexParserCacheWarmer $warmer */
         $warmer = $container->get('regex_parser.cache_warmer');
-        /** @var InMemoryLogger $loggerService */
-        $loggerService = $container->get(LoggerInterface::class);
         $warmer->warmUp(sys_get_temp_dir());
 
-        $this->assertNotEmpty($loggerService->records);
-        $this->assertSame('error', $loggerService->records[0]['level']);
-        $this->assertStringContainsString('broken', $loggerService->records[0]['message']);
+        $this->assertNotEmpty($loggedRecords);
+        $this->assertSame('error', $loggedRecords[0]['level']);
+        $this->assertStringContainsString('broken', $loggedRecords[0]['message']);
     }
 
     public function test_command_is_registered_as_console_service(): void
@@ -121,100 +132,19 @@ final class RegexParserBundleTest extends TestCase
     /**
      * @param array<string, mixed> $config
      */
-    private function createContainer(array $config): ContainerBuilder
+    private function createContainer(array $config, bool $loadExtension = true): ContainerBuilder
     {
         $container = new ContainerBuilder();
         $container->setParameter('kernel.debug', true);
 
         $extension = new RegexParserExtension();
         $container->registerExtension($extension);
-        $container->loadFromExtension($extension->getAlias(), $config);
+
+        if ($loadExtension) {
+            $container->loadFromExtension($extension->getAlias(), $config);
+        }
 
         return $container;
-    }
-}
-
-final class InMemoryLogger implements LoggerInterface
-{
-    /**
-     * @var array<int, array{level: string, message: string}>
-     */
-    public array $records = [];
-
-    /**
-     * @param array<string, mixed> $context
-     */
-    public function emergency(\Stringable|string $message, array $context = []): void
-    {
-        $this->log('emergency', $message, $context);
-    }
-
-    /**
-     * @param array<string, mixed> $context
-     */
-    public function alert(\Stringable|string $message, array $context = []): void
-    {
-        $this->log('alert', $message, $context);
-    }
-
-    /**
-     * @param array<string, mixed> $context
-     */
-    public function critical(\Stringable|string $message, array $context = []): void
-    {
-        $this->log('critical', $message, $context);
-    }
-
-    /**
-     * @param array<string, mixed> $context
-     */
-    public function error(\Stringable|string $message, array $context = []): void
-    {
-        $this->log('error', $message, $context);
-    }
-
-    /**
-     * @param array<string, mixed> $context
-     */
-    public function warning(\Stringable|string $message, array $context = []): void
-    {
-        $this->log('warning', $message, $context);
-    }
-
-    /**
-     * @param array<string, mixed> $context
-     */
-    public function notice(\Stringable|string $message, array $context = []): void
-    {
-        $this->log('notice', $message, $context);
-    }
-
-    /**
-     * @param array<string, mixed> $context
-     */
-    public function info(\Stringable|string $message, array $context = []): void
-    {
-        $this->log('info', $message, $context);
-    }
-
-    /**
-     * @param array<string, mixed> $context
-     */
-    public function debug(\Stringable|string $message, array $context = []): void
-    {
-        $this->log('debug', $message, $context);
-    }
-
-    /**
-     * @param array<string, mixed> $context
-     */
-    public function log($level, \Stringable|string $message, array $context = []): void
-    {
-        $levelString = \is_scalar($level) || $level instanceof \Stringable ? (string) $level : get_debug_type($level);
-        $this->records[] = [
-            'level' => $levelString,
-            'message' => (string) $message,
-        ];
     }
 }
 

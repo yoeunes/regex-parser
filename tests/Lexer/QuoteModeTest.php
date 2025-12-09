@@ -22,7 +22,7 @@ final class QuoteModeTest extends TestCase
     public function test_quote_mode_with_end_delimiter(): void
     {
         // \Q ... \E
-        $tokens = new Lexer()->tokenize('\Q*+?\E')->getTokens();
+        $tokens = (new Lexer())->tokenize('\Q*+?\E')->getTokens();
 
         // Now emits T_QUOTE_MODE_START, T_LITERAL, T_QUOTE_MODE_END, T_EOF
         $this->assertCount(4, $tokens);
@@ -37,7 +37,7 @@ final class QuoteModeTest extends TestCase
     public function test_quote_mode_until_end_of_string(): void
     {
         // \Q ... (no \E)
-        $tokens = new Lexer()->tokenize('\Q*+?')->getTokens();
+        $tokens = (new Lexer())->tokenize('\Q*+?')->getTokens();
 
         // Now emits T_QUOTE_MODE_START, T_LITERAL, T_EOF (no T_QUOTE_MODE_END since no \E)
         $this->assertCount(3, $tokens);
@@ -50,7 +50,7 @@ final class QuoteModeTest extends TestCase
     public function test_empty_quote_mode(): void
     {
         // \Q\E
-        $tokens = new Lexer()->tokenize('a\Q\Eb')->getTokens();
+        $tokens = (new Lexer())->tokenize('a\Q\Eb')->getTokens();
 
         // Now emits: T_LITERAL('a'), T_QUOTE_MODE_START, T_QUOTE_MODE_END, T_LITERAL('b'), T_EOF
         $this->assertSame(TokenType::T_LITERAL, $tokens[0]->type);

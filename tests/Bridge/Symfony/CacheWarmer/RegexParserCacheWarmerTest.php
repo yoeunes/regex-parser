@@ -19,26 +19,35 @@ use RegexParser\Bridge\Symfony\Analyzer\RouteRequirementAnalyzer;
 use RegexParser\Bridge\Symfony\Analyzer\ValidatorRegexAnalyzer;
 use RegexParser\Bridge\Symfony\CacheWarmer\RegexParserCacheWarmer;
 use RegexParser\Regex;
-use RegexParser\Tests\Bridge\Symfony\Analyzer\FakeLoader;
-use RegexParser\Tests\Bridge\Symfony\Analyzer\FakeValidator;
 use Symfony\Component\Routing\RequestContext;
 use Symfony\Component\Routing\Route;
 use Symfony\Component\Routing\RouteCollection;
 use Symfony\Component\Routing\RouterInterface;
+use Symfony\Component\Validator\Constraint;
+use Symfony\Component\Validator\Constraints\GroupSequence;
 use Symfony\Component\Validator\Constraints\Regex as SymfonyRegex;
+use Symfony\Component\Validator\ConstraintViolationList;
+use Symfony\Component\Validator\Mapping\ClassMetadata;
+use Symfony\Component\Validator\Mapping\Loader\LoaderInterface;
+use Symfony\Component\Validator\Validator\ContextualValidatorInterface;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 final class RegexParserCacheWarmerTest extends TestCase
 {
     public function test_warm_up_logs_issues(): void
     {
-        $logger = new InMemoryLogger();
+        $loggedRecords = [];
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->method('log')->willReturnCallback(function ($level, $message, $context = []) use (&$loggedRecords): void {
+            $loggedRecords[] = ['level' => (string) $level, 'message' => (string) $message];
+        });
         $analyzer = new RouteRequirementAnalyzer(Regex::create(), 0, 0);
         $warmup = new RegexParserCacheWarmer($analyzer, new RouteCollectionRouterWithIssue(), $logger);
 
         $warmup->warmUp(sys_get_temp_dir());
 
-        $this->assertNotEmpty($logger->records);
-        $this->assertSame('error', $logger->records[0]['level']);
+        $this->assertNotEmpty($loggedRecords);
+        $this->assertSame('error', $loggedRecords[0]['level']);
     }
 
     public function test_warm_up_is_optional(): void
@@ -52,7 +61,11 @@ final class RegexParserCacheWarmerTest extends TestCase
 
     public function test_warm_up_logs_validator_issues(): void
     {
-        $logger = new InMemoryLogger();
+        $loggedRecords = [];
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->method('log')->willReturnCallback(function ($level, $message, $context = []) use (&$loggedRecords): void {
+            $loggedRecords[] = ['level' => (string) $level, 'message' => (string) $message];
+        });
         $validatorAnalyzer = new ValidatorRegexAnalyzer(Regex::create(), 0, 1000);
         $validator = new FakeValidator([new SymfonyRegex(pattern: '(')]);
         $loader = new FakeLoader([FakeValidator::class]);
@@ -68,8 +81,8 @@ final class RegexParserCacheWarmerTest extends TestCase
 
         $warmup->warmUp(sys_get_temp_dir());
 
-        $this->assertNotEmpty($logger->records);
-        $this->assertSame('error', $logger->records[0]['level']);
+        $this->assertNotEmpty($loggedRecords);
+        $this->assertSame('error', $loggedRecords[0]['level']);
     }
 }
 
@@ -107,86 +120,79 @@ final class RouteCollectionRouterWithIssue implements RouterInterface
     }
 }
 
-final class InMemoryLogger implements LoggerInterface
+final class FakeEntity
+{
+    public string $name = '';
+}
+
+final readonly class FakeLoader implements LoaderInterface
 {
     /**
-     * @var array<int, array{level: string, message: string}>
+     * @param list<string> $classes
      */
-    public array $records = [];
+    public function __construct(private array $classes) {}
 
-    /**
-     * @param array<string, mixed> $context
-     */
-    public function emergency(\Stringable|string $message, array $context = []): void
+    public function loadClassMetadata(\Symfony\Component\Validator\Mapping\ClassMetadata $metadata): bool
     {
-        $this->log('emergency', $message, $context);
+        return false;
     }
 
     /**
-     * @param array<string, mixed> $context
+     * @return list<string>
      */
-    public function alert(\Stringable|string $message, array $context = []): void
+    public function getMappedClasses(): array
     {
-        $this->log('alert', $message, $context);
+        return $this->classes;
     }
+}
+
+final readonly class FakeValidator implements ValidatorInterface
+{
+    private ClassMetadata $metadata;
 
     /**
-     * @param array<string, mixed> $context
+     * @param list<SymfonyRegex> $constraints
      */
-    public function critical(\Stringable|string $message, array $context = []): void
+    public function __construct(array $constraints)
     {
-        $this->log('critical', $message, $context);
+        $this->metadata = new ClassMetadata(FakeEntity::class);
+        foreach ($constraints as $constraint) {
+            $this->metadata->addPropertyConstraint('name', $constraint);
+        }
     }
 
-    /**
-     * @param array<string, mixed> $context
-     */
-    public function error(\Stringable|string $message, array $context = []): void
+    public function getMetadataFor(mixed $value): ClassMetadata
     {
-        $this->log('error', $message, $context);
+        return $this->metadata;
     }
 
-    /**
-     * @param array<string, mixed> $context
-     */
-    public function warning(\Stringable|string $message, array $context = []): void
+    public function hasMetadataFor(mixed $value): bool
     {
-        $this->log('warning', $message, $context);
+        return true;
     }
 
-    /**
-     * @param array<string, mixed> $context
-     */
-    public function notice(\Stringable|string $message, array $context = []): void
+    public function validate(mixed $value, Constraint|array|null $constraints = null, GroupSequence|array|string|null $groups = null): ConstraintViolationList
     {
-        $this->log('notice', $message, $context);
+        return new ConstraintViolationList();
     }
 
-    /**
-     * @param array<string, mixed> $context
-     */
-    public function info(\Stringable|string $message, array $context = []): void
+    public function validateProperty(object $object, string $propertyName, GroupSequence|array|string|null $groups = null): ConstraintViolationList
     {
-        $this->log('info', $message, $context);
+        return new ConstraintViolationList();
     }
 
-    /**
-     * @param array<string, mixed> $context
-     */
-    public function debug(\Stringable|string $message, array $context = []): void
+    public function validatePropertyValue(object|string $objectOrClass, string $propertyName, mixed $value, GroupSequence|array|string|null $groups = null): ConstraintViolationList
     {
-        $this->log('debug', $message, $context);
+        return new ConstraintViolationList();
     }
 
-    /**
-     * @param array<string, mixed> $context
-     */
-    public function log($level, \Stringable|string $message, array $context = []): void
+    public function startContext(): ContextualValidatorInterface
     {
-        $levelString = \is_scalar($level) || $level instanceof \Stringable ? (string) $level : get_debug_type($level);
-        $this->records[] = [
-            'level' => $levelString,
-            'message' => (string) $message,
-        ];
+        throw new \BadMethodCallException('Not implemented.');
+    }
+
+    public function inContext(\Symfony\Component\Validator\Context\ExecutionContextInterface $context): ContextualValidatorInterface
+    {
+        throw new \BadMethodCallException('Not implemented.');
     }
 }

@@ -20,7 +20,7 @@ use RegexParser\Node;
  */
 final class HtmlHighlighterVisitor extends HighlighterVisitor
 {
-    private const array CLASSES = [
+    private const CLASSES = [
         'meta' => 'regex-meta',
         'quantifier' => 'regex-quantifier',
         'type' => 'regex-type',

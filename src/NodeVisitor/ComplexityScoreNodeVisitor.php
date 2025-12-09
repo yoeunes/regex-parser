@@ -35,19 +35,19 @@ final class ComplexityScoreNodeVisitor extends AbstractNodeVisitor
     /**
      * Base score for a node.
      */
-    private const int BASE_SCORE = 1;
+    private const BASE_SCORE = 1;
     /**
      * Score multiplier for unbounded quantifiers (*, +, {n,}).
      */
-    private const int UNBOUNDED_QUANTIFIER_SCORE = 10;
+    private const UNBOUNDED_QUANTIFIER_SCORE = 10;
     /**
      * Score for complex constructs like lookarounds or backreferences.
      */
-    private const int COMPLEX_CONSTRUCT_SCORE = 5;
+    private const COMPLEX_CONSTRUCT_SCORE = 5;
     /**
      * Exponential multiplier for nested quantifiers.
      */
-    private const int NESTING_MULTIPLIER = 2;
+    private const NESTING_MULTIPLIER = 2;
 
     /**
      * Tracks the depth of nested quantifiers.

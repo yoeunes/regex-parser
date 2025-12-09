@@ -30,7 +30,7 @@ use RegexParser\Node\GroupType;
  */
 final class OptimizerNodeVisitor extends AbstractNodeVisitor
 {
-    private const array CHAR_CLASS_META = [']' => true, '\\' => true, '^' => true, '-' => true];
+    private const CHAR_CLASS_META = [']' => true, '\\' => true, '^' => true, '-' => true];
 
     private string $flags = '';
 
