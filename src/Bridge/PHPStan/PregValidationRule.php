@@ -241,9 +241,8 @@ final class PregValidationRule implements Rule
             'Unknown modifier',
             'Unexpected end',
         ];
-        $found = array_any($indicators, fn ($indicator) => false !== stripos($errorMessage, (string) $indicator));
 
-        return $found;
+        return array_any($indicators, fn ($indicator) => false !== stripos($errorMessage, (string) $indicator));
     }
 
     private function truncatePattern(string $pattern, int $length = 50): string

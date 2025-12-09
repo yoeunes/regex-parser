@@ -18,7 +18,7 @@ namespace RegexParser\Exception;
  */
 trait VisualContextTrait
 {
-    private const MAX_CONTEXT_WIDTH = 80;
+    private const int MAX_CONTEXT_WIDTH = 80;
 
     private ?int $position = null;
 

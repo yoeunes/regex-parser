@@ -29,7 +29,7 @@ use Symfony\Component\Routing\RouterInterface;
 
 final class RegexParserBundleTest extends TestCase
 {
-    public function test_regex_service_registered_with_filesystem_cache(): null
+    public function test_regex_service_registered_with_filesystem_cache(): void
     {
         $cacheDir = sys_get_temp_dir().'/regex_parser_'.uniqid();
         $container = $this->createContainer([
@@ -51,7 +51,7 @@ final class RegexParserBundleTest extends TestCase
         $cache->clear();
     }
 
-    public function test_cache_warmer_logs_route_issues(): null
+    public function test_cache_warmer_logs_route_issues(): void
     {
         $routes = new RouteCollection();
         $routes->add('broken', new Route('/broken', [], ['slug' => '(']));
@@ -75,7 +75,7 @@ final class RegexParserBundleTest extends TestCase
             ->setArguments([$routes])
             ->setPublic(true);
         $container->addCompilerPass(new class implements CompilerPassInterface {
-            public function process(ContainerBuilder $container): null
+            public function process(ContainerBuilder $container): void
             {
                 if ($container->hasDefinition('regex_parser.cache_warmer')) {
                     $container->getDefinition('regex_parser.cache_warmer')->setPublic(true);
@@ -95,7 +95,7 @@ final class RegexParserBundleTest extends TestCase
         $this->assertStringContainsString('broken', $loggerService->records[0]['message']);
     }
 
-    public function test_command_is_registered_as_console_service(): null
+    public function test_command_is_registered_as_console_service(): void
     {
         $container = $this->createContainer(['enabled' => true]);
         $container->compile();
@@ -110,7 +110,7 @@ final class RegexParserBundleTest extends TestCase
         $this->assertSame('regex-parser:check', $command->getName());
     }
 
-    public function test_bundle_can_be_disabled(): null
+    public function test_bundle_can_be_disabled(): void
     {
         $container = $this->createContainer(['enabled' => false]);
         $container->compile();
@@ -144,47 +144,39 @@ final class InMemoryLogger implements LoggerInterface
     /**
      * @param array<string, mixed> $context
      */
-    public function emergency(mixed $message, array $context = []): null
+    public function emergency(\Stringable|string $message, array $context = []): void
     {
         $this->log('emergency', $message, $context);
-
-        return null;
     }
 
     /**
      * @param array<string, mixed> $context
      */
-    public function alert(mixed $message, array $context = []): null
+    public function alert(\Stringable|string $message, array $context = []): void
     {
         $this->log('alert', $message, $context);
-
-        return null;
     }
 
     /**
      * @param array<string, mixed> $context
      */
-    public function critical(mixed $message, array $context = []): null
+    public function critical(\Stringable|string $message, array $context = []): void
     {
         $this->log('critical', $message, $context);
-
-        return null;
     }
 
     /**
      * @param array<string, mixed> $context
      */
-    public function error(mixed $message, array $context = []): null
+    public function error(\Stringable|string $message, array $context = []): void
     {
         $this->log('error', $message, $context);
-
-        return null;
     }
 
     /**
      * @param array<string, mixed> $context
      */
-    public function warning(mixed $message, array $context = []): null
+    public function warning(\Stringable|string $message, array $context = []): void
     {
         $this->log('warning', $message, $context);
     }
@@ -192,7 +184,7 @@ final class InMemoryLogger implements LoggerInterface
     /**
      * @param array<string, mixed> $context
      */
-    public function notice(mixed $message, array $context = []): null
+    public function notice(\Stringable|string $message, array $context = []): void
     {
         $this->log('notice', $message, $context);
     }
@@ -200,7 +192,7 @@ final class InMemoryLogger implements LoggerInterface
     /**
      * @param array<string, mixed> $context
      */
-    public function info(mixed $message, array $context = []): null
+    public function info(\Stringable|string $message, array $context = []): void
     {
         $this->log('info', $message, $context);
     }
@@ -208,7 +200,7 @@ final class InMemoryLogger implements LoggerInterface
     /**
      * @param array<string, mixed> $context
      */
-    public function debug(mixed $message, array $context = []): null
+    public function debug(\Stringable|string $message, array $context = []): void
     {
         $this->log('debug', $message, $context);
     }
@@ -216,13 +208,12 @@ final class InMemoryLogger implements LoggerInterface
     /**
      * @param array<string, mixed> $context
      */
-    public function log($level, mixed $message, array $context = []): null
+    public function log($level, \Stringable|string $message, array $context = []): void
     {
         $levelString = \is_scalar($level) || $level instanceof \Stringable ? (string) $level : get_debug_type($level);
-        $messageString = \is_scalar($message) || $message instanceof \Stringable ? (string) $message : get_debug_type($message);
         $this->records[] = [
             'level' => $levelString,
-            'message' => $messageString,
+            'message' => (string) $message,
         ];
     }
 }
@@ -231,7 +222,7 @@ final readonly class RouteCollectionRouter implements RouterInterface
 {
     public function __construct(private RouteCollection $routes) {}
 
-    public function setContext(RequestContext $context): null {}
+    public function setContext(RequestContext $context): void {}
 
     public function getContext(): RequestContext
     {
