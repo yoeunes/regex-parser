@@ -15,7 +15,6 @@ namespace RegexParser\NodeVisitor;
 
 use RegexParser\Node;
 use RegexParser\Node\GroupType;
-use RegexParser\NodeVisitor\CompilerNodeVisitor;
 use RegexParser\ReDoS\CharSetAnalyzer;
 
 /**
@@ -195,7 +194,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
                 $char = $matches[1];
                 $count = \strlen($child->value);
                 $baseNode = new Node\LiteralNode($char, $child->startPosition, $child->endPosition);
-                $optimizedChildren[$i] = new Node\QuantifierNode($baseNode, '{' . $count . '}', Node\QuantifierType::T_GREEDY, $child->startPosition, $child->endPosition);
+                $optimizedChildren[$i] = new Node\QuantifierNode($baseNode, '{'.$count.'}', Node\QuantifierType::T_GREEDY, $child->startPosition, $child->endPosition);
                 $hasChanged = true;
             }
         }
@@ -866,7 +865,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
             if ($child instanceof Node\QuantifierNode) {
                 $baseNode = $child->node;
                 $parsedCount = $this->parseQuantifierCount($child->quantifier);
-                if ($parsedCount === null) {
+                if (null === $parsedCount) {
                     // Variable quantifier, don't merge
                     if (null !== $currentNode) {
                         $compacted[] = $this->createQuantifiedNode($currentNode, $currentCount);
@@ -874,6 +873,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
                         $currentCount = 0;
                     }
                     $compacted[] = $child;
+
                     continue;
                 }
                 $count = $parsedCount;
@@ -1082,6 +1082,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
     private function nodeToString(Node\NodeInterface $node): string
     {
         $compiler = new CompilerNodeVisitor();
+
         return $node->accept($compiler);
     }
 
