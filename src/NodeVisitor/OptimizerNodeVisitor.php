@@ -99,6 +99,12 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
             }
         }
 
+        $deduplicatedAlts = $this->deduplicateAlternation($optimizedAlts);
+        if (\count($deduplicatedAlts) !== \count($optimizedAlts)) {
+            $hasChanged = true;
+            $optimizedAlts = $deduplicatedAlts;
+        }
+
         if ($this->canAlternationBeCharClass($optimizedAlts)) {
             /* @var list<Node\LiteralNode> $optimizedAlts */
             $expression = new Node\AlternationNode($optimizedAlts, $node->startPosition, $node->endPosition);
@@ -108,6 +114,12 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
 
         if (!$hasChanged) {
             return $node;
+        }
+
+        $deduplicatedAlts = $this->deduplicateAlternation($optimizedAlts);
+        if (\count($deduplicatedAlts) !== \count($optimizedAlts)) {
+            $hasChanged = true;
+            $optimizedAlts = $deduplicatedAlts;
         }
 
         $factoredAlts = $this->factorizeAlternation($optimizedAlts);
@@ -174,6 +186,15 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
             }
 
             $optimizedChildren[] = $optimizedChild;
+        }
+
+        // Sequence compaction
+        $originalCount = \count($optimizedChildren);
+        /** @var list<Node\NodeInterface> $optimizedChildren */
+        $optimizedChildren = array_values($optimizedChildren);
+        $optimizedChildren = $this->compactSequence($optimizedChildren);
+        if (\count($optimizedChildren) !== $originalCount) {
+            $hasChanged = true;
         }
 
         // Auto-possessivization
@@ -268,7 +289,12 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         $optimizedNode = $node->node->accept($this);
 
         if ($optimizedNode !== $node->node) {
-            return new Node\QuantifierNode($optimizedNode, $node->quantifier, $node->type, $node->startPosition, $node->endPosition);
+            $node = new Node\QuantifierNode($optimizedNode, $node->quantifier, $node->type, $node->startPosition, $node->endPosition);
+        }
+
+        $normalized = $this->normalizeQuantifier($node);
+        if ($normalized !== $node) {
+            return $normalized;
         }
 
         return $node;
@@ -806,6 +832,90 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         return [new Node\RangeNode($startLiteral, $endLiteral, $startPos, $endPos)];
     }
 
+    /**
+     * @param list<Node\NodeInterface> $children
+     *
+     * @return list<Node\NodeInterface>
+     */
+    private function compactSequence(array $children): array
+    {
+        if (empty($children)) {
+            return $children;
+        }
+
+        $compacted = [];
+        $currentNode = null;
+        $currentCount = 0;
+
+        foreach ($children as $child) {
+            $baseNode = $child;
+            $count = 1;
+
+            if ($child instanceof Node\QuantifierNode) {
+                $baseNode = $child->node;
+                $count = $this->parseQuantifierCount($child->quantifier);
+            }
+
+            if (null === $currentNode || !$this->areNodesEqual($currentNode, $baseNode)) {
+                if (null !== $currentNode) {
+                    $compacted[] = $this->createQuantifiedNode($currentNode, $currentCount);
+                }
+                $currentNode = $baseNode;
+                $currentCount = $count;
+            } else {
+                $currentCount += $count;
+            }
+        }
+
+        if (null !== $currentNode) {
+            $compacted[] = $this->createQuantifiedNode($currentNode, $currentCount);
+        }
+
+        return $compacted;
+    }
+
+    private function parseQuantifierCount(string $quantifier): int
+    {
+        if (preg_match('/^\{(\d+)(?:,(\d*))?\}$/', $quantifier, $matches)) {
+            $min = (int) $matches[1];
+            $max = isset($matches[2]) ? ('' === $matches[2] ? \PHP_INT_MAX : (int) $matches[2]) : $min;
+            if ($min === $max) {
+                return $min;
+            }
+
+            // For ranges, don't merge
+            return 1;
+        }
+
+        // For * + ?, count as 1
+        return 1;
+    }
+
+    private function areNodesEqual(Node\NodeInterface $a, Node\NodeInterface $b): bool
+    {
+        // Simple equality: same type and same string representation
+        if ($a::class !== $b::class) {
+            return false;
+        }
+
+        return $this->nodeToString($a) === $this->nodeToString($b);
+    }
+
+    private function createQuantifiedNode(Node\NodeInterface $node, int $count): Node\NodeInterface
+    {
+        if (1 === $count) {
+            return $node;
+        }
+
+        return new Node\QuantifierNode(
+            $node,
+            '{'.$count.'}',
+            Node\QuantifierType::T_GREEDY,
+            $node->getStartPosition(),
+            $node->getEndPosition(),
+        );
+    }
+
     private function areCharSetsDisjoint(Node\NodeInterface $node1, Node\NodeInterface $node2): bool
     {
         try {
@@ -816,6 +926,54 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         } catch (\Throwable) {
             return false; // If analysis fails, don't optimize
         }
+    }
+
+    private function normalizeQuantifier(Node\QuantifierNode $node): Node\NodeInterface
+    {
+        $quantifier = $node->quantifier;
+
+        if ('{0,}' === $quantifier) {
+            return new Node\QuantifierNode($node->node, '*', $node->type, $node->startPosition, $node->endPosition);
+        }
+
+        if ('{1,}' === $quantifier) {
+            return new Node\QuantifierNode($node->node, '+', $node->type, $node->startPosition, $node->endPosition);
+        }
+
+        if ('{0,1}' === $quantifier) {
+            return new Node\QuantifierNode($node->node, '?', $node->type, $node->startPosition, $node->endPosition);
+        }
+
+        if ('{1}' === $quantifier || '{1,1}' === $quantifier) {
+            return $node->node;
+        }
+
+        if ('{0}' === $quantifier || '{0,0}' === $quantifier) {
+            return new Node\LiteralNode('', $node->startPosition, $node->endPosition);
+        }
+
+        return $node;
+    }
+
+    /**
+     * @param list<Node\NodeInterface> $alts
+     *
+     * @return list<Node\NodeInterface>
+     */
+    private function deduplicateAlternation(array $alts): array
+    {
+        $seen = [];
+        $unique = [];
+
+        foreach ($alts as $alt) {
+            $key = $this->nodeToString($alt);
+            if (!isset($seen[$key])) {
+                $seen[$key] = true;
+                $unique[] = $alt;
+            }
+        }
+
+        return $unique;
     }
 
     /**

@@ -43,6 +43,11 @@ final class PregValidationRuleOptimizationTest extends RuleTestCase
                 'Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...).',
             ],
             [
+                'Regex pattern can be optimized: "/a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a..."',
+                24,
+                'Consider using: /a{60}+b/',
+            ],
+            [
                 'ReDoS vulnerability detected (MEDIUM): /[0-9]+/',
                 28,
                 'Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...).',
