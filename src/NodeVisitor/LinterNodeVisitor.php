@@ -183,7 +183,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     private function checkAnchorConflicts(Node\SequenceNode $node): void
     {
         $children = $node->children;
-        $count = count($children);
+        $count = \count($children);
 
         for ($i = 0; $i < $count; $i++) {
             $child = $children[$i];
@@ -193,6 +193,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
                 for ($j = 0; $j < $i; $j++) {
                     if ($this->isConsuming($children[$j])) {
                         $this->warnings[] = "Start anchor '^' appears after consuming characters, making it impossible to match.";
+
                         break;
                     }
                 }
@@ -203,6 +204,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
                 for ($j = $i + 1; $j < $count; $j++) {
                     if ($this->isConsuming($children[$j])) {
                         $this->warnings[] = "End anchor '$' appears before consuming characters, making it impossible to match.";
+
                         break;
                     }
                 }
@@ -244,12 +246,10 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         }
         if ($node instanceof Node\GroupNode) {
             // Lookarounds don't consume
-            return !in_array($node->type, [
-                GroupType::T_GROUP_LOOKAHEAD_POSITIVE,
-                GroupType::T_GROUP_LOOKAHEAD_NEGATIVE,
-                GroupType::T_GROUP_LOOKBEHIND_POSITIVE,
-                GroupType::T_GROUP_LOOKBEHIND_NEGATIVE,
-            ], true);
+            return !($node->type === \RegexParser\Node\GroupType::T_GROUP_LOOKAHEAD_POSITIVE
+                || $node->type === \RegexParser\Node\GroupType::T_GROUP_LOOKAHEAD_NEGATIVE
+                || $node->type === \RegexParser\Node\GroupType::T_GROUP_LOOKBEHIND_POSITIVE
+                || $node->type === \RegexParser\Node\GroupType::T_GROUP_LOOKBEHIND_NEGATIVE);
         }
         if ($node instanceof Node\AlternationNode) {
             // If any alternative consumes, consider it consuming
@@ -258,6 +258,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
                     return true;
                 }
             }
+
             return false;
         }
         if ($node instanceof Node\SequenceNode) {
@@ -267,6 +268,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
                     return true;
                 }
             }
+
             return false;
         }
 
