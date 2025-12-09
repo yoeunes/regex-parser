@@ -212,10 +212,12 @@ final class PregValidationRule implements Rule
             try {
                 $optimized = $this->getRegex()->optimize($pattern);
                 if ($optimized !== $pattern) {
-                    $errors[] = RuleErrorBuilder::message('Regex pattern can be optimized (syntax simplification).')
+                    $shortPattern = $this->truncatePattern($pattern);
+
+                    $errors[] = RuleErrorBuilder::message(\sprintf('Regex pattern can be optimized: "%s"', $shortPattern))
                         ->line($lineNumber)
                         ->identifier(self::IDENTIFIER_OPTIMIZATION)
-                        ->tip(\sprintf("Consider using:\n%s", $optimized))
+                        ->tip(\sprintf('Consider using: %s', $optimized))
                         ->build();
                 }
             } catch (\Throwable) {
