@@ -165,7 +165,8 @@ final class PregValidationRule implements Rule
                 return [];
             }
 
-            $errors[] = RuleErrorBuilder::message(\sprintf('Regex syntax error: %s', $e->getMessage()))
+            $shortPattern = $this->truncatePattern($pattern);
+            $errors[] = RuleErrorBuilder::message(\sprintf('Regex syntax error: %s (Pattern: "%s")', $e->getMessage(), $shortPattern))
                 ->line($lineNumber)
                 ->identifier($this->getIdentifierForSyntaxError($e->getMessage()))
                 ->build();

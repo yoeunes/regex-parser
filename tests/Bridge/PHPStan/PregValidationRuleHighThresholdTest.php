@@ -26,56 +26,56 @@ final class PregValidationRuleHighThresholdTest extends RuleTestCase
     {
         $this->analyse([__DIR__.'/Fixtures/MyClass.php'], [
             [
-                'Regex syntax error: No closing delimiter "/" found.',
+                'Regex syntax error: No closing delimiter "/" found. (Pattern: "/foo")',
                 21,
             ],
             [
-                'Regex syntax error: Invalid quantifier range "{2,1}": min > max at position 0.',
+                'Regex syntax error: Invalid quantifier range "{2,1}": min > max at position 0. (Pattern: "/a{2,1}/")',
                 22,
             ],
             [
-                'Regex syntax error: Potential catastrophic backtracking (ReDoS): nested unbounded quantifier "+" at position 1.',
+                'Regex syntax error: Potential catastrophic backtracking (ReDoS): nested unbounded quantifier "+" at position 1. (Pattern: "/(a+)+$/")',
                 23,
             ],
             // Note: MEDIUM ReDoS on line 24 is filtered out by 'high' threshold
             [
-                'Regex syntax error: No closing delimiter "/" found.',
+                'Regex syntax error: No closing delimiter "/" found. (Pattern: "/foo1")',
                 34,
             ],
             [
-                'Regex syntax error: No closing delimiter "/" found.',
+                'Regex syntax error: No closing delimiter "/" found. (Pattern: "/foo2")',
                 34,
             ],
             [
-                'Regex syntax error: No closing delimiter "/" found.',
+                'Regex syntax error: No closing delimiter "/" found. (Pattern: "/foo3")',
                 34,
             ],
             [
-                'Regex syntax error: No closing delimiter "/" found.',
+                'Regex syntax error: No closing delimiter "/" found. (Pattern: "/foo4")',
                 34,
             ],
             [
-                'Regex syntax error: No closing delimiter "/" found.',
+                'Regex syntax error: No closing delimiter "/" found. (Pattern: "/foo5")',
                 34,
             ],
             [
-                'Regex syntax error: No closing delimiter "/" found.',
+                'Regex syntax error: No closing delimiter "/" found. (Pattern: "/foo6")',
                 34,
             ],
             [
-                'Regex syntax error: No closing delimiter "/" found.',
+                'Regex syntax error: No closing delimiter "/" found. (Pattern: "/foo7")',
                 34,
             ],
             [
-                'Regex syntax error: No closing delimiter "/" found.',
+                'Regex syntax error: No closing delimiter "/" found. (Pattern: "/foo8")',
                 34,
             ],
             [
-                'Regex syntax error: No closing delimiter "/" found.',
+                'Regex syntax error: No closing delimiter "/" found. (Pattern: "/foo9")',
                 34,
             ],
             [
-                'Regex syntax error: No closing delimiter "/" found.',
+                'Regex syntax error: No closing delimiter "/" found. (Pattern: "/foo10")',
                 34,
             ],
         ]);
