@@ -1152,7 +1152,7 @@ final class Parser
                 $this->advance();
             }
             if ('DEFINE' === $word && $this->check(TokenType::T_GROUP_CLOSE)) {
-                return (new Node\AssertionNode('DEFINE', $startPosition, $this->current())->position);
+                return new Node\AssertionNode('DEFINE', $startPosition, $this->current()->position);
             }
             // Not DEFINE, restore position
             $this->stream->setPosition($savedPos);
@@ -1164,7 +1164,7 @@ final class Parser
                 static fn (string $c): bool => ctype_digit($c),
             ));
 
-            return (new Node\BackrefNode($num, $startPosition, $this->current())->position);
+            return new Node\BackrefNode($num, $startPosition, $this->current()->position);
         }
 
         if ($this->matchLiteral('<') || $this->matchLiteral('{')) {
@@ -1173,7 +1173,7 @@ final class Parser
             $close = '<' === $open ? '>' : '}';
             $this->consumeLiteral($close, "Expected $close after condition name");
 
-            return (new Node\BackrefNode($name, $startPosition, $this->current())->position);
+            return new Node\BackrefNode($name, $startPosition, $this->current()->position);
         }
 
         if ($this->matchLiteral('R')) {
@@ -1217,7 +1217,7 @@ final class Parser
                 $this->advance();
             }
             if ('' !== $name && $this->check(TokenType::T_GROUP_CLOSE)) {
-                return (new Node\BackrefNode($name, $startPosition, $this->current())->position);
+                return new Node\BackrefNode($name, $startPosition, $this->current()->position);
             }
             $this->stream->setPosition($savedPos);
         }
@@ -1459,7 +1459,7 @@ final class Parser
             );
         } elseif ($this->match(TokenType::T_RANGE)) {
             // Literal hyphen at start
-            return (new Node\LiteralNode($this->previous())->value, $startPosition, $startPosition + 1);
+            return new Node\LiteralNode($this->previous()->value, $startPosition, $startPosition + 1);
         } elseif ($this->match(TokenType::T_POSIX_CLASS)) {
             $token = $this->previous();
             $startNode = new Node\PosixClassNode(
