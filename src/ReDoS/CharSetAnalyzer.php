@@ -46,6 +46,10 @@ final class CharSetAnalyzer
             return CharSet::full();
         }
 
+        if ($node instanceof Node\QuantifierNode) {
+            return $this->walk($node->node, $fromStart);
+        }
+
         if ($node instanceof Node\RangeNode) {
             $start = $this->literalCodepoint($node->start);
             $end = $this->literalCodepoint($node->end);
@@ -67,10 +71,6 @@ final class CharSetAnalyzer
             }
 
             return $node->isNegated ? $set->complement() : $set;
-        }
-
-        if ($node instanceof Node\QuantifierNode) {
-            return $this->walk($node->node, $fromStart);
         }
 
         if ($node instanceof Node\GroupNode) {

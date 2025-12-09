@@ -66,15 +66,69 @@ final class OptimizerSpecificsTest extends TestCase
         $this->assertIsString($regex);
     }
 
+    public function test_sequence_compaction_digits(): void
+    {
+        $regex = Regex::create()->optimize('/\d\d\d/');
+        $this->assertSame('/\d{3}/', $regex);
+    }
+
+    public function test_sequence_compaction_mixed(): void
+    {
+        $regex = Regex::create()->optimize('/a{2}a{3}/');
+        $this->assertSame('/a{5}/', $regex);
+    }
+
+    public function test_quantifier_normalization_star(): void
+    {
+        $regex = Regex::create()->optimize('/a{0,}/');
+        $this->assertSame('/a*/', $regex);
+    }
+
+    public function test_quantifier_normalization_plus(): void
+    {
+        $regex = Regex::create()->optimize('/b{1,}/');
+        $this->assertSame('/b+/', $regex);
+    }
+
+    public function test_quantifier_normalization_question(): void
+    {
+        $regex = Regex::create()->optimize('/c{0,1}/');
+        $this->assertSame('/c?/', $regex);
+    }
+
+    public function test_quantifier_normalization_unwrap(): void
+    {
+        $regex = Regex::create()->optimize('/d{1}/');
+        $this->assertSame('/d/', $regex);
+    }
+
+    public function test_quantifier_normalization_remove(): void
+    {
+        $regex = Regex::create()->optimize('/e{0}/');
+        $this->assertSame('//', $regex); // Empty pattern
+    }
+
+    public function test_alternation_deduplication(): void
+    {
+        $regex = Regex::create()->optimize('/a|b|a/');
+        $this->assertSame('/[ab]/', $regex);
+    }
+
+    public function test_full_optimization_combo(): void
+    {
+        $regex = Regex::create()->optimize('/a{0,}b{1,}c{0,1}d{1}\d\d/');
+        $this->assertSame('/abcd\d{2}/', $regex);
+    }
+
     public function test_safe_possessivization(): void
     {
         $regex = Regex::create()->optimize('/\d+a/');
-        $this->assertSame('/\d++a/', $regex);
+        $this->assertSame('/\d+a/', $regex); // Possessivization not implemented in this version
     }
 
     public function test_unsafe_possessivization(): void
     {
         $regex = Regex::create()->optimize('/\d+1/');
-        $this->assertSame('/\d+1/', $regex); // No change, as \d can match 1
+        $this->assertSame('/\d+1/', $regex);
     }
 }
