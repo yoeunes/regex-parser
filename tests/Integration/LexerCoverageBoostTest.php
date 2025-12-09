@@ -40,7 +40,14 @@ final class LexerCoverageBoostTest extends TestCase
 
         // Should have: T_QUOTE_MODE_START, T_LITERAL, T_QUOTE_MODE_END, T_EOF
         $this->assertGreaterThan(0, \count($tokens));
-        $hasLiteral = array_any($tokens, fn ($token) => TokenType::T_LITERAL === $token->type && str_contains((string) $token->value, 'hello'));
+        $hasLiteral = false;
+        foreach ($tokens as $token) {
+            if (TokenType::T_LITERAL === $token->type && str_contains((string) $token->value, 'hello')) {
+                $hasLiteral = true;
+
+                break;
+            }
+        }
         $this->assertTrue($hasLiteral, 'Should tokenize quoted text');
     }
 

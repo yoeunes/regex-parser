@@ -56,17 +56,17 @@ final class ValidatorSuccessTest extends TestCase
         $this->expectNotToPerformAssertions();
 
         // Valid Unicode
-        new UnicodeNode('\x41', 0, 0)->accept($this->validator);
-        new UnicodeNode('\u{00E9}', 0, 0)->accept($this->validator);
+        (new UnicodeNode('\x41', 0, 0))->accept($this->validator);
+        (new UnicodeNode('\u{00E9}', 0, 0))->accept($this->validator);
 
         // Valid Octal
-        new OctalNode('\o{77}', 0, 0)->accept($this->validator);
+        (new OctalNode('\o{77}', 0, 0))->accept($this->validator);
 
         // Valid Legacy Octal
-        new OctalLegacyNode('012', 0, 0)->accept($this->validator);
+        (new OctalLegacyNode('012', 0, 0))->accept($this->validator);
 
         // Valid Unicode Prop (cached)
-        new UnicodePropNode('L', 0, 0)->accept($this->validator);
+        (new UnicodePropNode('L', 0, 0))->accept($this->validator);
     }
 
     public function test_valid_subroutines_pass(): void
@@ -74,7 +74,7 @@ final class ValidatorSuccessTest extends TestCase
         $this->expectNotToPerformAssertions();
 
         // (?R) and (?0) are always valid
-        new SubroutineNode('R', '', 0, 0)->accept($this->validator);
-        new SubroutineNode('0', '', 0, 0)->accept($this->validator);
+        (new SubroutineNode('R', '', 0, 0))->accept($this->validator);
+        (new SubroutineNode('0', '', 0, 0))->accept($this->validator);
     }
 }

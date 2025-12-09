@@ -41,7 +41,7 @@ return static function (RectorConfig $rectorConfig): void {
 
     // $rectorConfig->import(__DIR__.'/config/rector/regex-parser.php');
 
-    $rectorConfig->phpVersion(PhpVersion::PHP_84);
+    $rectorConfig->phpVersion(PhpVersion::PHP_82);
     // $rectorConfig->importNames();
     $rectorConfig->importShortClasses();
     $rectorConfig->removeUnusedImports();
@@ -51,8 +51,8 @@ return static function (RectorConfig $rectorConfig): void {
     $rectorConfig->editorUrl('phpstorm://open?file=%file%&line=%line%');
 
     $rectorConfig->sets([
-        LevelSetList::UP_TO_PHP_84,
-        SetList::PHP_84,
+        LevelSetList::UP_TO_PHP_82,
+        SetList::PHP_82,
 
         PHPUnitSetList::PHPUNIT_120,
         PHPUnitSetList::ANNOTATIONS_TO_ATTRIBUTES,

@@ -23,7 +23,7 @@ use Symfony\Component\Routing\RouteCollection;
  */
 final readonly class RouteRequirementAnalyzer
 {
-    private const array PATTERN_DELIMITERS = ['/', '#', '~', '%'];
+    private const PATTERN_DELIMITERS = ['/', '#', '~', '%'];
 
     /**
      * @var list<string>
