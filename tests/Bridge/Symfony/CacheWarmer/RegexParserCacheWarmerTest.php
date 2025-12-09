@@ -14,7 +14,6 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Bridge\Symfony\CacheWarmer;
 
 use PHPUnit\Framework\TestCase;
-use Psr\Log\AbstractLogger;
 use Psr\Log\LoggerInterface;
 use RegexParser\Bridge\Symfony\Analyzer\RouteRequirementAnalyzer;
 use RegexParser\Bridge\Symfony\Analyzer\ValidatorRegexAnalyzer;
