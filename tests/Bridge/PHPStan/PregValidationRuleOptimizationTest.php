@@ -50,7 +50,7 @@ final class PregValidationRuleOptimizationTest extends RuleTestCase
             [
                 'Regex pattern can be optimized (syntax simplification).',
                 28,
-                "Consider using:\n" . '/\d+/',
+                "Consider using:\n/\d+/",
             ],
             [
                 'Regex syntax error: No closing delimiter "/" found. (Pattern: "/foo1")',
