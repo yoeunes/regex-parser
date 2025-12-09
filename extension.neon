@@ -5,7 +5,9 @@ parametersSchema:
         # Enable/disable ReDoS vulnerability detection
         reportRedos: bool(),
         # Minimum severity level to report: 'low', 'medium', 'high', 'critical'
-        redosThreshold: string()
+        redosThreshold: string(),
+        # Enable/disable regex optimization suggestions
+        suggestOptimizations: bool()
     ])
 
 parameters:
@@ -20,6 +22,9 @@ parameters:
         # Options: 'low' (most sensitive), 'medium', 'high', 'critical' (least sensitive)
         redosThreshold: 'high'
 
+        # Enable regex optimization suggestions
+        suggestOptimizations: false
+
 services:
     # Main regex validation rule for PHPStan
     -
@@ -28,5 +33,6 @@ services:
             ignoreParseErrors: %regexParser.ignoreParseErrors%
             reportRedos: %regexParser.reportRedos%
             redosThreshold: %regexParser.redosThreshold%
+            suggestOptimizations: %regexParser.suggestOptimizations%
         tags:
             - phpstan.rules.rule

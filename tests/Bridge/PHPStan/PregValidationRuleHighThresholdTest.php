@@ -40,43 +40,43 @@ final class PregValidationRuleHighThresholdTest extends RuleTestCase
             // Note: MEDIUM ReDoS on line 24 is filtered out by 'high' threshold
             [
                 'Regex syntax error: No closing delimiter "/" found. (Pattern: "/foo1")',
-                34,
+                35,
             ],
             [
                 'Regex syntax error: No closing delimiter "/" found. (Pattern: "/foo2")',
-                34,
+                35,
             ],
             [
                 'Regex syntax error: No closing delimiter "/" found. (Pattern: "/foo3")',
-                34,
+                35,
             ],
             [
                 'Regex syntax error: No closing delimiter "/" found. (Pattern: "/foo4")',
-                34,
+                35,
             ],
             [
                 'Regex syntax error: No closing delimiter "/" found. (Pattern: "/foo5")',
-                34,
+                35,
             ],
             [
                 'Regex syntax error: No closing delimiter "/" found. (Pattern: "/foo6")',
-                34,
+                35,
             ],
             [
                 'Regex syntax error: No closing delimiter "/" found. (Pattern: "/foo7")',
-                34,
+                35,
             ],
             [
                 'Regex syntax error: No closing delimiter "/" found. (Pattern: "/foo8")',
-                34,
+                35,
             ],
             [
                 'Regex syntax error: No closing delimiter "/" found. (Pattern: "/foo9")',
-                34,
+                35,
             ],
             [
                 'Regex syntax error: No closing delimiter "/" found. (Pattern: "/foo10")',
-                34,
+                35,
             ],
         ]);
     }
@@ -87,6 +87,7 @@ final class PregValidationRuleHighThresholdTest extends RuleTestCase
             ignoreParseErrors: false,
             reportRedos: true,
             redosThreshold: 'high',
+            suggestOptimizations: false,
         );
     }
 }

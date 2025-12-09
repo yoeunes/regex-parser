@@ -25,6 +25,7 @@ final class MyClass
 
         // Valid
         preg_match('/a/i', 'bar');
+        preg_match('/[0-9]+/', 'bar'); // Line 14: Optimization suggestion -> regex.optimization
         preg_split('/a/', 'bar');
         preg_grep('/a/', ['bar']);
         preg_filter('/a/', 'b', ['bar']);

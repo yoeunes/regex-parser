@@ -46,6 +46,7 @@ final class PregValidationRule implements Rule
     public const IDENTIFIER_REDOS_HIGH = 'regex.redos.high';
     public const IDENTIFIER_REDOS_MEDIUM = 'regex.redos.medium';
     public const IDENTIFIER_REDOS_LOW = 'regex.redos.low';
+    public const IDENTIFIER_OPTIMIZATION = 'regex.optimization';
 
     private const PREG_FUNCTION_MAP = [
         'preg_match' => 0,
@@ -77,6 +78,7 @@ final class PregValidationRule implements Rule
         private readonly bool $ignoreParseErrors = true,
         private readonly bool $reportRedos = true,
         private readonly string $redosThreshold = 'high',
+        private readonly bool $suggestOptimizations = false,
     ) {}
 
     public function getNodeType(): string
@@ -196,6 +198,18 @@ final class PregValidationRule implements Rule
                     ->line($lineNumber)
                     ->tip(implode("\n", $analysis->recommendations))
                     ->identifier($identifier)
+                    ->build();
+            }
+        }
+
+        // 3. Optimization suggestions
+        if ($this->suggestOptimizations) {
+            $optimized = $this->getRegex()->optimize($pattern);
+            if ($optimized !== $pattern) {
+                $errors[] = RuleErrorBuilder::message('Regex pattern can be optimized.')
+                    ->line($lineNumber)
+                    ->tip('Consider using: ' . $optimized)
+                    ->identifier(self::IDENTIFIER_OPTIMIZATION)
                     ->build();
             }
         }

@@ -43,44 +43,49 @@ final class PregValidationRuleMediumThresholdTest extends RuleTestCase
                 'Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...).',
             ],
             [
+                'ReDoS vulnerability detected (MEDIUM): /[0-9]+/',
+                28,
+                'Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...).',
+            ],
+            [
                 'Regex syntax error: No closing delimiter "/" found. (Pattern: "/foo1")',
-                34,
+                35,
             ],
             [
                 'Regex syntax error: No closing delimiter "/" found. (Pattern: "/foo2")',
-                34,
+                35,
             ],
             [
                 'Regex syntax error: No closing delimiter "/" found. (Pattern: "/foo3")',
-                34,
+                35,
             ],
             [
                 'Regex syntax error: No closing delimiter "/" found. (Pattern: "/foo4")',
-                34,
+                35,
             ],
             [
                 'Regex syntax error: No closing delimiter "/" found. (Pattern: "/foo5")',
-                34,
+                35,
             ],
             [
                 'Regex syntax error: No closing delimiter "/" found. (Pattern: "/foo6")',
-                34,
+                35,
             ],
             [
                 'Regex syntax error: No closing delimiter "/" found. (Pattern: "/foo7")',
-                34,
+                35,
             ],
             [
                 'Regex syntax error: No closing delimiter "/" found. (Pattern: "/foo8")',
-                34,
+                35,
             ],
             [
                 'Regex syntax error: No closing delimiter "/" found. (Pattern: "/foo9")',
-                34,
+                35,
             ],
             [
                 'Regex syntax error: No closing delimiter "/" found. (Pattern: "/foo10")',
-                34,
+                35,
             ],
         ]);
     }
@@ -91,6 +96,7 @@ final class PregValidationRuleMediumThresholdTest extends RuleTestCase
             ignoreParseErrors: false,
             reportRedos: true,
             redosThreshold: 'medium',
+            suggestOptimizations: false,
         );
     }
 }

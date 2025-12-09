@@ -20,7 +20,7 @@ use RegexParser\Bridge\PHPStan\PregValidationRule;
 /**
  * @extends RuleTestCase<PregValidationRule>
  */
-final class PregValidationRuleTest extends RuleTestCase
+final class PregValidationRuleOptimizationTest extends RuleTestCase
 {
     public function test_rule(): void
     {
@@ -46,6 +46,11 @@ final class PregValidationRuleTest extends RuleTestCase
                 'ReDoS vulnerability detected (MEDIUM): /[0-9]+/',
                 28,
                 'Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...).',
+            ],
+            [
+                'Regex pattern can be optimized.',
+                28,
+                'Consider using: /\d+/',
             ],
             [
                 'Regex syntax error: No closing delimiter "/" found. (Pattern: "/foo1")',
@@ -90,27 +95,13 @@ final class PregValidationRuleTest extends RuleTestCase
         ]);
     }
 
-    public function test_preg_replace_callback_array(): void
-    {
-        $this->analyse([__DIR__.'/Fixtures/PregReplaceCallbackArray.php'], [
-            [
-                'Regex syntax error: No closing delimiter "/" found. (Pattern: "/foo")',
-                20,
-            ],
-            [
-                'Regex syntax error: Potential catastrophic backtracking (ReDoS): nested unbounded quantifier "+" at position 1. (Pattern: "/(a+)+$/")',
-                20,
-            ],
-        ]);
-    }
-
     protected function getRule(): Rule
     {
         return new PregValidationRule(
-            ignoreParseErrors: false, // Report all errors for testing
+            ignoreParseErrors: false,
             reportRedos: true,
-            redosThreshold: 'low', // Report all ReDoS issues for testing
-            suggestOptimizations: false,
+            redosThreshold: 'low',
+            suggestOptimizations: true,
         );
     }
 }
