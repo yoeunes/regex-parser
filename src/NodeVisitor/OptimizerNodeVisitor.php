@@ -862,6 +862,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
             if (empty($suffixStr)) {
                 $suffixes[] = null;
             } else {
+                /** @var \RegexParser\Node\AbstractNode $alt */
                 $suffixes[] = $this->stringToNode($suffixStr, $alt->startPosition + \strlen($prefix), $alt->endPosition);
             }
         }
@@ -869,13 +870,22 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         $nonNullSuffixes = array_filter($suffixes, fn ($s) => null !== $s);
         if (empty($nonNullSuffixes)) {
             // All are just the prefix
-            return [$this->stringToNode($prefix, $withPrefix[0]->startPosition, $withPrefix[0]->startPosition + \strlen($prefix))];
+            /** @var \RegexParser\Node\AbstractNode $firstAlt */
+            $firstAlt = $withPrefix[0];
+
+            return [$this->stringToNode($prefix, $firstAlt->startPosition, $firstAlt->startPosition + \strlen($prefix))];
         }
 
-        $newAlt = 1 === \count($nonNullSuffixes) ? $nonNullSuffixes[0] : new Node\AlternationNode($nonNullSuffixes, $nonNullSuffixes[0]->startPosition, end($nonNullSuffixes)->endPosition);
+        /** @var \RegexParser\Node\AbstractNode $firstSuffix */
+        $firstSuffix = $nonNullSuffixes[0];
+        /** @var \RegexParser\Node\AbstractNode $lastSuffix */
+        $lastSuffix = end($nonNullSuffixes);
+        $newAlt = 1 === \count($nonNullSuffixes) ? $nonNullSuffixes[0] : new Node\AlternationNode($nonNullSuffixes, $firstSuffix->startPosition, $lastSuffix->endPosition);
         $group = new Node\GroupNode($newAlt, Node\GroupType::T_GROUP_NON_CAPTURING);
-        $prefixNode = $this->stringToNode($prefix, $withPrefix[0]->startPosition, $withPrefix[0]->startPosition + \strlen($prefix));
-        $factored = new Node\SequenceNode([$prefixNode, $group], $withPrefix[0]->startPosition, $withPrefix[0]->endPosition);
+        /** @var \RegexParser\Node\AbstractNode $firstAlt */
+        $firstAlt = $withPrefix[0];
+        $prefixNode = $this->stringToNode($prefix, $firstAlt->startPosition, $firstAlt->startPosition + \strlen($prefix));
+        $factored = new Node\SequenceNode([$prefixNode, $group], $firstAlt->startPosition, $firstAlt->endPosition);
 
         if (empty($withoutPrefix)) {
             return [$factored];
@@ -920,6 +930,9 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         return new Node\SequenceNode($children, $start, $end);
     }
 
+    /**
+     * @param array<string> $strings
+     */
     private function findCommonPrefix(array $strings): string
     {
         if (empty($strings)) {

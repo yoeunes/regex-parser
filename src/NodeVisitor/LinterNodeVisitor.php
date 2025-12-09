@@ -17,6 +17,8 @@ use RegexParser\Node;
 
 /**
  * Lints regex patterns for semantic issues like useless flags.
+ *
+ * @extends AbstractNodeVisitor<Node\NodeInterface>
  */
 final class LinterNodeVisitor extends AbstractNodeVisitor
 {
