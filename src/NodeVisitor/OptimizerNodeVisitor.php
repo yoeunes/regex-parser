@@ -734,30 +734,41 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
                 continue;
             }
 
-            $normalized[] = $this->buildRangeOrLiteral($rangeStart, $rangeEnd, $rangeStartPos, $rangeEndPos);
+        $normalized = array_merge($normalized, $this->buildRangeOrLiteral($rangeStart, $rangeEnd, $rangeStartPos, $rangeEndPos));
             $rangeStart = $ord;
             $rangeEnd = $ord;
             $rangeStartPos = $posStart;
             $rangeEndPos = $posEnd;
         }
 
-        $normalized[] = $this->buildRangeOrLiteral($rangeStart, $rangeEnd, $rangeStartPos, $rangeEndPos);
+            $normalized = array_merge($normalized, $this->buildRangeOrLiteral($rangeStart, $rangeEnd, $rangeStartPos, $rangeEndPos));
 
         $finalParts = array_merge($normalized, $otherParts);
 
         return [$finalParts, $changed || \count($finalParts) !== \count($parts)];
     }
 
-    private function buildRangeOrLiteral(int $startOrd, int $endOrd, int $startPos, int $endPos): Node\NodeInterface
+    /**
+     * @return array<Node\NodeInterface>
+     */
+    private function buildRangeOrLiteral(int $startOrd, int $endOrd, int $startPos, int $endPos): array
     {
         $startLiteral = new Node\LiteralNode(mb_chr($startOrd), $startPos, $startPos + 1);
 
         if ($startOrd === $endOrd) {
-            return $startLiteral;
+            return [$startLiteral];
+        }
+
+        // Only create a range if it covers 3 or more characters to save space
+        $coverage = $endOrd - $startOrd + 1;
+        if ($coverage < 3) {
+            // For 2 characters, return them as separate literals
+            $endLiteral = new Node\LiteralNode(mb_chr($endOrd), $endPos, $endPos + 1);
+            return [$startLiteral, $endLiteral];
         }
 
         $endLiteral = new Node\LiteralNode(mb_chr($endOrd), $endPos, $endPos + 1);
 
-        return new Node\RangeNode($startLiteral, $endLiteral, $startPos, $endPos);
+        return [new Node\RangeNode($startLiteral, $endLiteral, $startPos, $endPos)];
     }
 }

@@ -211,7 +211,7 @@ final class PregValidationRule implements Rule
         if ($this->suggestOptimizations) {
             try {
                 $optimized = $this->getRegex()->optimize($pattern);
-                if ($optimized !== $pattern) {
+                if ($optimized !== $pattern && \strlen($optimized) < \strlen($pattern)) {
                     $shortPattern = $this->truncatePattern($pattern);
 
                     $errors[] = RuleErrorBuilder::message(\sprintf('Regex pattern can be optimized: "%s"', $shortPattern))
