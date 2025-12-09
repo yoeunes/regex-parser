@@ -4,16 +4,9 @@
 # Normalize line endings to LF for all text files
 * text=auto eol=lf
 
-# Binary files
-*.pdf binary
-
 # Export-ignore patterns (for composer archive)
 # Development and CI/CD files
 /.github                export-ignore
-/.idea                  export-ignore
-/.vscode                export-ignore
-/.cache                 export-ignore
-/.task                  export-ignore
 
 # Configuration files
 /.editorconfig          export-ignore
@@ -28,11 +21,9 @@
 # Development tools and configs
 /phpbench.yml           export-ignore
 /phpbench.json          export-ignore
-/phpstan.neon           export-ignore
 /phpstan.dist.neon      export-ignore
 /rector.php             export-ignore
-/phpunit.xml            export-ignore
-/phpunit.xml.dist       export-ignore
+/phpunit.dist.xml       export-ignore
 /taskfile.dist.yaml     export-ignore
 
 # Development documentation
@@ -42,12 +33,10 @@
 /TODO.md                export-ignore
 
 # Directories not needed in distribution
-/examples               export-ignore
 /rector                 export-ignore
 /templates              export-ignore
 /tests                  export-ignore
 /tools                  export-ignore
-/coverage               export-ignore
 
 # PHP files
 *.php text eol=lf diff=php
