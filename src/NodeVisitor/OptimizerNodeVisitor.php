@@ -15,6 +15,7 @@ namespace RegexParser\NodeVisitor;
 
 use RegexParser\Node;
 use RegexParser\Node\GroupType;
+use RegexParser\ReDoS\CharSetAnalyzer;
 
 /**
  * Transforms the AST to apply optimizations, returning a new, simplified AST.
@@ -33,6 +34,13 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
     private const CHAR_CLASS_META = [']' => true, '\\' => true, '^' => true, '-' => true];
 
     private string $flags = '';
+
+    private readonly CharSetAnalyzer $charSetAnalyzer;
+
+    public function __construct()
+    {
+        $this->charSetAnalyzer = new CharSetAnalyzer();
+    }
 
     /**
      * Optimizes the root `RegexNode`.
@@ -102,6 +110,12 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
             return $node;
         }
 
+        $factoredAlts = $this->factorizeAlternation($optimizedAlts);
+
+        if ($factoredAlts !== $optimizedAlts) {
+            return new Node\AlternationNode($factoredAlts, $node->startPosition, $node->endPosition);
+        }
+
         return new Node\AlternationNode($optimizedAlts, $node->startPosition, $node->endPosition);
     }
 
@@ -160,6 +174,25 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
             }
 
             $optimizedChildren[] = $optimizedChild;
+        }
+
+        // Auto-possessivization
+        for ($i = 0; $i < \count($optimizedChildren) - 1; $i++) {
+            $current = $optimizedChildren[$i];
+            $next = $optimizedChildren[$i + 1];
+
+            if ($current instanceof Node\QuantifierNode && Node\QuantifierType::T_GREEDY === $current->type) {
+                if ($this->areCharSetsDisjoint($current->node, $next)) {
+                    $optimizedChildren[$i] = new Node\QuantifierNode(
+                        $current->node,
+                        $current->quantifier,
+                        Node\QuantifierType::T_POSSESSIVE,
+                        $current->startPosition,
+                        $current->endPosition,
+                    );
+                    $hasChanged = true;
+                }
+            }
         }
 
         if (!$hasChanged) {
@@ -734,14 +767,14 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
                 continue;
             }
 
-        $normalized = array_merge($normalized, $this->buildRangeOrLiteral($rangeStart, $rangeEnd, $rangeStartPos, $rangeEndPos));
+            $normalized = array_merge($normalized, $this->buildRangeOrLiteral($rangeStart, $rangeEnd, $rangeStartPos, $rangeEndPos));
             $rangeStart = $ord;
             $rangeEnd = $ord;
             $rangeStartPos = $posStart;
             $rangeEndPos = $posEnd;
         }
 
-            $normalized = array_merge($normalized, $this->buildRangeOrLiteral($rangeStart, $rangeEnd, $rangeStartPos, $rangeEndPos));
+        $normalized = array_merge($normalized, $this->buildRangeOrLiteral($rangeStart, $rangeEnd, $rangeStartPos, $rangeEndPos));
 
         $finalParts = array_merge($normalized, $otherParts);
 
@@ -764,11 +797,160 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         if ($coverage < 3) {
             // For 2 characters, return them as separate literals
             $endLiteral = new Node\LiteralNode(mb_chr($endOrd), $endPos, $endPos + 1);
+
             return [$startLiteral, $endLiteral];
         }
 
         $endLiteral = new Node\LiteralNode(mb_chr($endOrd), $endPos, $endPos + 1);
 
         return [new Node\RangeNode($startLiteral, $endLiteral, $startPos, $endPos)];
+    }
+
+    private function areCharSetsDisjoint(Node\NodeInterface $node1, Node\NodeInterface $node2): bool
+    {
+        try {
+            $set1 = $this->charSetAnalyzer->lastChars($node1);
+            $set2 = $this->charSetAnalyzer->firstChars($node2);
+
+            return !$set1->intersects($set2);
+        } catch (\Throwable) {
+            return false; // If analysis fails, don't optimize
+        }
+    }
+
+    /**
+     * @param list<Node\NodeInterface> $alts
+     *
+     * @return list<Node\NodeInterface>
+     */
+    private function factorizeAlternation(array $alts): array
+    {
+        if (\count($alts) < 2) {
+            return $alts;
+        }
+
+        // Get string representations
+        $strings = [];
+        foreach ($alts as $alt) {
+            $strings[] = $this->nodeToString($alt);
+        }
+
+        // Find common prefix
+        $prefix = $this->findCommonPrefix($strings);
+        if (empty($prefix)) {
+            return $alts;
+        }
+
+        // Split into with prefix and without
+        $withPrefix = [];
+        $withoutPrefix = [];
+        foreach ($alts as $i => $alt) {
+            if (str_starts_with($strings[$i], $prefix)) {
+                $withPrefix[] = $alt;
+            } else {
+                $withoutPrefix[] = $alt;
+            }
+        }
+
+        if (\count($withPrefix) < 2) {
+            return $alts;
+        }
+
+        // Create suffixes
+        $suffixes = [];
+        /**
+         * @var \RegexParser\Node\AbstractNode $alt
+         */
+        foreach ($withPrefix as $alt) {
+            $suffixStr = substr($this->nodeToString($alt), \strlen($prefix));
+            if (empty($suffixStr)) {
+                $suffixes[] = null;
+            } else {
+                $suffixes[] = $this->stringToNode($suffixStr, $alt->startPosition + \strlen($prefix), $alt->endPosition);
+            }
+        }
+
+        $nonNullSuffixes = array_filter($suffixes, fn ($s) => null !== $s);
+        if (empty($nonNullSuffixes)) {
+            // All are just the prefix
+            /** @var \RegexParser\Node\AbstractNode $firstAlt */
+            $firstAlt = $withPrefix[0];
+
+            return [$this->stringToNode($prefix, $firstAlt->startPosition, $firstAlt->startPosition + \strlen($prefix))];
+        }
+
+        /** @var \RegexParser\Node\AbstractNode $firstSuffix */
+        $firstSuffix = $nonNullSuffixes[0];
+        /** @var \RegexParser\Node\AbstractNode $lastSuffix */
+        $lastSuffix = end($nonNullSuffixes);
+        $newAlt = 1 === \count($nonNullSuffixes) ? $nonNullSuffixes[0] : new Node\AlternationNode($nonNullSuffixes, $firstSuffix->startPosition, $lastSuffix->endPosition);
+        $group = new Node\GroupNode($newAlt, Node\GroupType::T_GROUP_NON_CAPTURING);
+        /** @var \RegexParser\Node\AbstractNode $firstAlt */
+        $firstAlt = $withPrefix[0];
+        $prefixNode = $this->stringToNode($prefix, $firstAlt->startPosition, $firstAlt->startPosition + \strlen($prefix));
+        $factored = new Node\SequenceNode([$prefixNode, $group], $firstAlt->startPosition, $firstAlt->endPosition);
+
+        if (empty($withoutPrefix)) {
+            return [$factored];
+        }
+
+        return array_merge([$factored], $withoutPrefix);
+
+    }
+
+    private function nodeToString(Node\NodeInterface $node): string
+    {
+        // Simple string representation, assuming Literal or Sequence of Literals
+        if ($node instanceof Node\LiteralNode) {
+            return $node->value;
+        }
+        if ($node instanceof Node\SequenceNode) {
+            $str = '';
+            foreach ($node->children as $child) {
+                if ($child instanceof Node\LiteralNode) {
+                    $str .= $child->value;
+                } else {
+                    return ''; // Can't handle
+                }
+            }
+
+            return $str;
+        }
+
+        return '';
+    }
+
+    private function stringToNode(string $str, int $start, int $end): Node\NodeInterface
+    {
+        if (1 === \strlen($str)) {
+            return new Node\LiteralNode($str, $start, $end);
+        }
+        $children = [];
+        for ($i = 0; $i < \strlen($str); $i++) {
+            $children[] = new Node\LiteralNode($str[$i], $start + $i, $start + $i + 1);
+        }
+
+        return new Node\SequenceNode($children, $start, $end);
+    }
+
+    /**
+     * @param array<string> $strings
+     */
+    private function findCommonPrefix(array $strings): string
+    {
+        if (empty($strings)) {
+            return '';
+        }
+        $prefix = $strings[0];
+        foreach ($strings as $str) {
+            while (!str_starts_with((string) $str, (string) $prefix)) {
+                $prefix = substr((string) $prefix, 0, -1);
+                if (empty($prefix)) {
+                    return '';
+                }
+            }
+        }
+
+        return $prefix;
     }
 }

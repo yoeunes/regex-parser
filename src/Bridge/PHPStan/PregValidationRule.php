@@ -161,9 +161,9 @@ final class PregValidationRule implements Rule
         // 1. Syntax Validation (Blocking)
         try {
             // Only parsing is blocking because subsequent steps require a valid AST
-            $this->getRegex()->parse($pattern);
+            $ast = $this->getRegex()->parse($pattern);
             // Semantic validation is also run here to catch structural issues early
-            $this->getRegex()->parse($pattern)->accept($this->getValidator());
+            $ast->accept($this->getValidator());
         } catch (LexerException|ParserException|SyntaxErrorException $e) {
             if ($this->ignoreParseErrors && $this->isLikelyPartialRegexError($e->getMessage())) {
                 return [];
@@ -223,6 +223,20 @@ final class PregValidationRule implements Rule
             } catch (\Throwable) {
                 // Optimization failures should not crash the analysis
             }
+        }
+
+        // 4. Linter warnings (Non-Blocking)
+        try {
+            $linter = new \RegexParser\NodeVisitor\LinterNodeVisitor();
+            $ast->accept($linter);
+            foreach ($linter->getWarnings() as $warning) {
+                $errors[] = RuleErrorBuilder::message('Tip: '.$warning)
+                    ->line($lineNumber)
+                    ->identifier('regex.linter')
+                    ->build();
+            }
+        } catch (\Throwable) {
+            // Linter failures should not crash the analysis
         }
 
         return $errors;

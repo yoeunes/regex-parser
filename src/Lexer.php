@@ -527,7 +527,7 @@ final class Lexer
         // Search for ) or End of String
         if (
             !preg_match(
-                '/([^)]*)(\)|$)/suA',
+                '/([^)]*)(\)|$)/uA',
                 $this->pattern,
                 $matches,
                 \PREG_UNMATCHED_AS_NULL,

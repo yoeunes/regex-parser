@@ -4,7 +4,7 @@
 | New feature?  | yes/no   
 | BC Break?     | yes/no   
 | Deprecations? | yes/no   
-| Fixed tickets | Fix #... 
+| Fixed tickets | -
 | License       | MIT      
 
 <!-- Brief description of the changes -->
