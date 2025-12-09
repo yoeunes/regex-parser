@@ -563,14 +563,7 @@ function exportArrayShort(array $arr, int $indent = 0, bool $inline = false): st
  */
 function hasNestedArrays(array $arr): bool
 {
-    $found = false;
-    foreach ($arr as $value) {
-        if (\is_array($value)) {
-            $found = true;
-
-            break;
-        }
-    }
+    $found = array_any($arr, fn ($value) => \is_array($value));
 
     return $found;
 }

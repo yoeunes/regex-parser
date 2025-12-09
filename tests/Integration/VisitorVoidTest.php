@@ -34,10 +34,10 @@ final class VisitorVoidTest extends TestCase
         $validator = new ValidatorNodeVisitor();
 
         // On appelle manuellement accept() pour être sûr que la méthode visit* est déclenchée
-        (new LiteralNode('a', 0, 0))->accept($validator);
-        (new DotNode(0, 0))->accept($validator);
-        (new AnchorNode('^', 0, 0))->accept($validator);
-        (new CharTypeNode('d', 0, 0))->accept($validator);
-        (new CommentNode('comment', 0, 0))->accept($validator);
+        new LiteralNode('a', 0, 0)->accept($validator);
+        new DotNode(0, 0)->accept($validator);
+        new AnchorNode('^', 0, 0)->accept($validator);
+        new CharTypeNode('d', 0, 0)->accept($validator);
+        new CommentNode('comment', 0, 0)->accept($validator);
     }
 }

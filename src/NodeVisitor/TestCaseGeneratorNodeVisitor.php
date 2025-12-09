@@ -27,7 +27,7 @@ use RegexParser\Node;
  */
 final class TestCaseGeneratorNodeVisitor extends AbstractNodeVisitor
 {
-    private const MAX_SAMPLES = 3;
+    private const int MAX_SAMPLES = 3;
 
     /**
      * Visits a RegexNode and generates test cases for its pattern.

@@ -38,7 +38,7 @@ final class LexerErrorTest extends TestCase
         $this->expectException(LexerException::class);
         $this->expectExceptionMessage('Unclosed character class "]" at end of input.');
 
-        (new Lexer())->tokenize('[a-z');
+        new Lexer()->tokenize('[a-z');
     }
 
     public function test_lex_quote_mode_emits_literal_and_exits(): void

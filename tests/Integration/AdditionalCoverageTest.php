@@ -28,15 +28,15 @@ final class AdditionalCoverageTest extends TestCase
     // Test Lexer with various edge cases
     public function test_lexer_unicode_prop_normalization(): void
     {
-        $tokens = (new Lexer())->tokenize('/\p{L}/')->getTokens();
+        $tokens = new Lexer()->tokenize('/\p{L}/')->getTokens();
         $this->assertNotEmpty($tokens);
 
         // Test negated property
-        $tokens = (new Lexer())->tokenize('/\P{L}/')->getTokens();
+        $tokens = new Lexer()->tokenize('/\P{L}/')->getTokens();
         $this->assertNotEmpty($tokens);
 
         // Test double negation
-        $tokens = (new Lexer())->tokenize('/\P{^L}/')->getTokens();
+        $tokens = new Lexer()->tokenize('/\P{^L}/')->getTokens();
         $this->assertNotEmpty($tokens);
     }
 
@@ -45,7 +45,7 @@ final class AdditionalCoverageTest extends TestCase
         // Test all escaped literals
         $patterns = ['\t', '\n', '\r', '\f', '\v', '\e', '\.', '\[', '\]'];
         foreach ($patterns as $pattern) {
-            $tokens = (new Lexer())->tokenize('/'.$pattern.'/')->getTokens();
+            $tokens = new Lexer()->tokenize('/'.$pattern.'/')->getTokens();
             $this->assertNotEmpty($tokens);
         }
     }
@@ -53,37 +53,37 @@ final class AdditionalCoverageTest extends TestCase
     public function test_lexer_quote_mode_without_end(): void
     {
         // Quote mode without \E
-        $tokens = (new Lexer())->tokenize('/\Qabc/')->getTokens();
+        $tokens = new Lexer()->tokenize('/\Qabc/')->getTokens();
         $this->assertNotEmpty($tokens);
     }
 
     public function test_lexer_quote_mode_with_end(): void
     {
         // Quote mode with \E
-        $tokens = (new Lexer())->tokenize('/\Qabc\Edef/')->getTokens();
+        $tokens = new Lexer()->tokenize('/\Qabc\Edef/')->getTokens();
         $this->assertNotEmpty($tokens);
     }
 
     public function test_lexer_backref_variations(): void
     {
         // Test \g{-1}
-        $tokens = (new Lexer())->tokenize('/(a)\g{-1}/')->getTokens();
+        $tokens = new Lexer()->tokenize('/(a)\g{-1}/')->getTokens();
         $this->assertNotEmpty($tokens);
 
         // Test \g{1}
-        $tokens = (new Lexer())->tokenize('/(a)\g{1}/')->getTokens();
+        $tokens = new Lexer()->tokenize('/(a)\g{1}/')->getTokens();
         $this->assertNotEmpty($tokens);
     }
 
     public function test_lexer_octal_legacy(): void
     {
-        $tokens = (new Lexer())->tokenize('/\01/')->getTokens();
+        $tokens = new Lexer()->tokenize('/\01/')->getTokens();
         $this->assertNotEmpty($tokens);
     }
 
     public function test_lexer_posix_class(): void
     {
-        $tokens = (new Lexer())->tokenize('/[[:alpha:]]/')->getTokens();
+        $tokens = new Lexer()->tokenize('/[[:alpha:]]/')->getTokens();
         $this->assertNotEmpty($tokens);
     }
 

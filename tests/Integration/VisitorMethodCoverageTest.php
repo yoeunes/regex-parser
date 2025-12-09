@@ -108,11 +108,11 @@ final class VisitorMethodCoverageTest extends TestCase
         }
 
         // Zero score
-        $this->assertSame(0, (new CommentNode('', 0, 0))->accept($scorer));
+        $this->assertSame(0, new CommentNode('', 0, 0)->accept($scorer));
 
         // Complex score (5)
-        $this->assertSame(5, (new BackrefNode('1', 0, 0))->accept($scorer));
-        $this->assertSame(5, (new PcreVerbNode('FAIL', 0, 0))->accept($scorer));
+        $this->assertSame(5, new BackrefNode('1', 0, 0)->accept($scorer));
+        $this->assertSame(5, new PcreVerbNode('FAIL', 0, 0)->accept($scorer));
     }
 
     public function test_validator_leaf_nodes_valid(): void

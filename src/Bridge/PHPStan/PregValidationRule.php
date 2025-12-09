@@ -39,15 +39,15 @@ use RegexParser\Regex;
 final class PregValidationRule implements Rule
 {
     // Identifiers for user configuration in phpstan.neon
-    public const IDENTIFIER_SYNTAX_INVALID = 'regex.syntax.invalid';
-    public const IDENTIFIER_SYNTAX_DELIMITER = 'regex.syntax.delimiter';
-    public const IDENTIFIER_SYNTAX_EMPTY = 'regex.syntax.empty';
-    public const IDENTIFIER_REDOS_CRITICAL = 'regex.redos.critical';
-    public const IDENTIFIER_REDOS_HIGH = 'regex.redos.high';
-    public const IDENTIFIER_REDOS_MEDIUM = 'regex.redos.medium';
-    public const IDENTIFIER_REDOS_LOW = 'regex.redos.low';
+    public const string IDENTIFIER_SYNTAX_INVALID = 'regex.syntax.invalid';
+    public const string IDENTIFIER_SYNTAX_DELIMITER = 'regex.syntax.delimiter';
+    public const string IDENTIFIER_SYNTAX_EMPTY = 'regex.syntax.empty';
+    public const string IDENTIFIER_REDOS_CRITICAL = 'regex.redos.critical';
+    public const string IDENTIFIER_REDOS_HIGH = 'regex.redos.high';
+    public const string IDENTIFIER_REDOS_MEDIUM = 'regex.redos.medium';
+    public const string IDENTIFIER_REDOS_LOW = 'regex.redos.low';
 
-    private const PREG_FUNCTION_MAP = [
+    private const array PREG_FUNCTION_MAP = [
         'preg_match' => 0,
         'preg_match_all' => 0,
         'preg_replace' => 0,
@@ -241,14 +241,7 @@ final class PregValidationRule implements Rule
             'Unknown modifier',
             'Unexpected end',
         ];
-        $found = false;
-        foreach ($indicators as $indicator) {
-            if (false !== stripos($errorMessage, (string) $indicator)) {
-                $found = true;
-
-                break;
-            }
-        }
+        $found = array_any($indicators, fn($indicator) => false !== stripos($errorMessage, (string) $indicator));
 
         return $found;
     }

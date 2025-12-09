@@ -34,7 +34,7 @@ final class LiteralExtractorNodeVisitor extends AbstractNodeVisitor
     /**
      * Maximum number of literals generated to prevent explosion (e.g. [a-z]{10}).
      */
-    private const MAX_LITERALS_COUNT = 128;
+    private const int MAX_LITERALS_COUNT = 128;
 
     private bool $caseInsensitive = false;
 

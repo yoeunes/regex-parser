@@ -20,7 +20,7 @@ namespace RegexParser\ReDoS;
  */
 final readonly class CharSet
 {
-    private const ASCII_MAX = 0x7F;
+    private const int ASCII_MAX = 0x7F;
 
     /**
      * @param array<array{0:int, 1:int}> $ranges inclusive ranges of byte values

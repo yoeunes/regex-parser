@@ -37,9 +37,9 @@ final readonly class Regex
     /**
      * Default hard limit on the regex string length to prevent excessive processing/memory usage.
      */
-    public const DEFAULT_MAX_PATTERN_LENGTH = 100_000;
+    public const int DEFAULT_MAX_PATTERN_LENGTH = 100_000;
 
-    private const DEFAULT_REDOS_IGNORED_PATTERNS = [
+    private const array DEFAULT_REDOS_IGNORED_PATTERNS = [
         '[a-z0-9]+(?:-[a-z0-9]+)*',
         '^[a-z0-9]+(?:-[a-z0-9]+)*$',
         '[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*',
@@ -534,7 +534,7 @@ final readonly class Regex
      */
     public function analyzeReDoS(string $regex, ?ReDoSSeverity $threshold = null): ReDoSAnalysis
     {
-        return (new ReDoSAnalyzer($this, $this->redosIgnoredPatterns))->analyze($regex, $threshold);
+        return new ReDoSAnalyzer($this, $this->redosIgnoredPatterns)->analyze($regex, $threshold);
     }
 
     /**
