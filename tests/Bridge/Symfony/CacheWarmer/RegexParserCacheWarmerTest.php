@@ -120,6 +120,7 @@ final class InMemoryLogger implements LoggerInterface
     public function emergency(string|\Stringable $message, array $context = []): null
     {
         $this->log('emergency', $message, $context);
+
         return null;
     }
 
@@ -129,6 +130,7 @@ final class InMemoryLogger implements LoggerInterface
     public function alert(string|\Stringable $message, array $context = []): null
     {
         $this->log('alert', $message, $context);
+
         return null;
     }
 
@@ -138,6 +140,7 @@ final class InMemoryLogger implements LoggerInterface
     public function critical(string|\Stringable $message, array $context = []): null
     {
         $this->log('critical', $message, $context);
+
         return null;
     }
 

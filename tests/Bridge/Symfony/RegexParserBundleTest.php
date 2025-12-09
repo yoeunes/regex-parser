@@ -147,6 +147,7 @@ final class InMemoryLogger implements LoggerInterface
     public function emergency(mixed $message, array $context = []): null
     {
         $this->log('emergency', $message, $context);
+
         return null;
     }
 
@@ -156,6 +157,7 @@ final class InMemoryLogger implements LoggerInterface
     public function alert(mixed $message, array $context = []): null
     {
         $this->log('alert', $message, $context);
+
         return null;
     }
 
@@ -165,6 +167,7 @@ final class InMemoryLogger implements LoggerInterface
     public function critical(mixed $message, array $context = []): null
     {
         $this->log('critical', $message, $context);
+
         return null;
     }
 
@@ -174,6 +177,7 @@ final class InMemoryLogger implements LoggerInterface
     public function error(mixed $message, array $context = []): null
     {
         $this->log('error', $message, $context);
+
         return null;
     }
 

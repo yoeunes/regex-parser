@@ -241,7 +241,7 @@ final class PregValidationRule implements Rule
             'Unknown modifier',
             'Unexpected end',
         ];
-        $found = array_any($indicators, fn($indicator) => false !== stripos($errorMessage, (string) $indicator));
+        $found = array_any($indicators, fn ($indicator) => false !== stripos($errorMessage, (string) $indicator));
 
         return $found;
     }
