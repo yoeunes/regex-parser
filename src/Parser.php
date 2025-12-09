@@ -1487,9 +1487,66 @@ final class Parser
                 return $startNode;
             }
 
-            // We call parseCharClassPart again for the end node.
-            // The grammar does not support chained ranges (a-b-c), so this is safe.
-            $endNode = $this->parseCharClassPart();
+            // Parse end node without allowing nested ranges
+            $endToken = $this->current();
+            $endPosition = $endToken->position;
+            $endNode = null;
+
+            if ($this->match(TokenType::T_LITERAL) || $this->match(TokenType::T_LITERAL_ESCAPED)) {
+                $token = $this->previous();
+                $endPosition = $endPosition + \strlen($token->value)
+                    + (TokenType::T_LITERAL_ESCAPED === $token->type ? 1 : 0);
+                $endNode = new Node\LiteralNode($token->value, $endPosition - \strlen($token->value), $endPosition);
+            } elseif ($this->match(TokenType::T_CHAR_TYPE)) {
+                $token = $this->previous();
+                $endNode = new Node\CharTypeNode(
+                    $token->value,
+                    $endPosition,
+                    $endPosition + \strlen($token->value) + 1,
+                );
+            } elseif ($this->match(TokenType::T_UNICODE_PROP)) {
+                $token = $this->previous();
+                $len = 2 + \strlen($token->value)
+                    + ((\strlen($token->value) > 1 || str_starts_with($token->value, '^')) ? 2 : 0);
+                $endNode = new Node\UnicodePropNode($token->value, $endPosition, $endPosition + $len);
+            } elseif ($this->match(TokenType::T_UNICODE)) {
+                $token = $this->previous();
+                $endNode = new Node\UnicodeNode(
+                    $token->value,
+                    $endPosition,
+                    $endPosition + \strlen($token->value),
+                );
+            } elseif ($this->match(TokenType::T_OCTAL)) {
+                $token = $this->previous();
+                $endNode = new Node\OctalNode(
+                    $token->value,
+                    $endPosition,
+                    $endPosition + \strlen($token->value),
+                );
+            } elseif ($this->match(TokenType::T_OCTAL_LEGACY)) {
+                $token = $this->previous();
+                $endNode = new Node\OctalLegacyNode(
+                    $token->value,
+                    $endPosition,
+                    $endPosition + \strlen($token->value) + 1,
+                );
+            } elseif ($this->match(TokenType::T_POSIX_CLASS)) {
+                $token = $this->previous();
+                $endNode = new Node\PosixClassNode(
+                    $token->value,
+                    $endPosition,
+                    $endPosition + \strlen($token->value) + 4,
+                );
+            } else {
+                throw $this->parserException(
+                    \sprintf(
+                        'Unexpected token "%s" in character class range at position %d.',
+                        $this->current()->value,
+                        $this->current()->position,
+                    ),
+                    $this->current()->position,
+                );
+            }
 
             return new Node\RangeNode($startNode, $endNode, $startPosition, $endNode->getEndPosition());
         }
