@@ -36,6 +36,8 @@ final class ParserRangeEdgeCaseTest extends TestCase
         $this->assertCount(3, $parts);
 
         $this->assertInstanceOf(RangeNode::class, $parts[0]);
+        $this->assertInstanceOf(LiteralNode::class, $parts[0]->start);
+        $this->assertInstanceOf(LiteralNode::class, $parts[0]->end);
         $this->assertEquals('a', $parts[0]->start->value);
         $this->assertEquals('z', $parts[0]->end->value);
 
@@ -43,6 +45,8 @@ final class ParserRangeEdgeCaseTest extends TestCase
         $this->assertEquals('-', $parts[1]->value);
 
         $this->assertInstanceOf(RangeNode::class, $parts[2]);
+        $this->assertInstanceOf(LiteralNode::class, $parts[2]->start);
+        $this->assertInstanceOf(LiteralNode::class, $parts[2]->end);
         $this->assertEquals('0', $parts[2]->start->value);
         $this->assertEquals('9', $parts[2]->end->value);
     }
@@ -61,6 +65,8 @@ final class ParserRangeEdgeCaseTest extends TestCase
         $this->assertCount(2, $parts);
 
         $this->assertInstanceOf(RangeNode::class, $parts[0]);
+        $this->assertInstanceOf(LiteralNode::class, $parts[0]->start);
+        $this->assertInstanceOf(LiteralNode::class, $parts[0]->end);
         $this->assertEquals('a', $parts[0]->start->value);
         $this->assertEquals('z', $parts[0]->end->value);
 
@@ -85,6 +91,8 @@ final class ParserRangeEdgeCaseTest extends TestCase
         $this->assertEquals('-', $parts[0]->value);
 
         $this->assertInstanceOf(RangeNode::class, $parts[1]);
+        $this->assertInstanceOf(LiteralNode::class, $parts[1]->start);
+        $this->assertInstanceOf(LiteralNode::class, $parts[1]->end);
         $this->assertEquals('a', $parts[1]->start->value);
         $this->assertEquals('z', $parts[1]->end->value);
     }
