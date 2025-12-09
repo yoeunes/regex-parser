@@ -102,6 +102,12 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
             return $node;
         }
 
+        $factoredAlts = $this->factorizeAlternation($optimizedAlts);
+
+        if ($factoredAlts !== $optimizedAlts) {
+            return new Node\AlternationNode($factoredAlts, $node->startPosition, $node->endPosition);
+        }
+
         return new Node\AlternationNode($optimizedAlts, $node->startPosition, $node->endPosition);
     }
 
@@ -770,5 +776,120 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         $endLiteral = new Node\LiteralNode(mb_chr($endOrd), $endPos, $endPos + 1);
 
         return [new Node\RangeNode($startLiteral, $endLiteral, $startPos, $endPos)];
+    }
+
+    /**
+     * @param list<Node\NodeInterface> $alts
+     * @return list<Node\NodeInterface>
+     */
+    private function factorizeAlternation(array $alts): array
+    {
+        if (\count($alts) < 2) {
+            return $alts;
+        }
+
+        // Get string representations
+        $strings = [];
+        foreach ($alts as $alt) {
+            $strings[] = $this->nodeToString($alt);
+        }
+
+        // Find common prefix
+        $prefix = $this->findCommonPrefix($strings);
+        if (empty($prefix)) {
+            return $alts;
+        }
+
+        // Split into with prefix and without
+        $withPrefix = [];
+        $withoutPrefix = [];
+        foreach ($alts as $i => $alt) {
+            if (str_starts_with($strings[$i], $prefix)) {
+                $withPrefix[] = $alt;
+            } else {
+                $withoutPrefix[] = $alt;
+            }
+        }
+
+        if (\count($withPrefix) < 2) {
+            return $alts;
+        }
+
+        // Create suffixes
+        $suffixes = [];
+        foreach ($withPrefix as $alt) {
+            $suffixStr = substr($this->nodeToString($alt), \strlen($prefix));
+            if (empty($suffixStr)) {
+                $suffixes[] = null;
+            } else {
+                $suffixes[] = $this->stringToNode($suffixStr, $alt->startPosition + \strlen($prefix), $alt->endPosition);
+            }
+        }
+
+        $nonNullSuffixes = \array_filter($suffixes, fn($s) => $s !== null);
+        if (empty($nonNullSuffixes)) {
+            // All are just the prefix
+            return [$this->stringToNode($prefix, $withPrefix[0]->startPosition, $withPrefix[0]->startPosition + \strlen($prefix))];
+        }
+
+        $newAlt = \count($nonNullSuffixes) === 1 ? $nonNullSuffixes[0] : new Node\AlternationNode($nonNullSuffixes, $nonNullSuffixes[0]->startPosition, end($nonNullSuffixes)->endPosition);
+        $group = new Node\GroupNode($newAlt, Node\GroupType::T_GROUP_NON_CAPTURING);
+        $prefixNode = $this->stringToNode($prefix, $withPrefix[0]->startPosition, $withPrefix[0]->startPosition + \strlen($prefix));
+        $factored = new Node\SequenceNode([$prefixNode, $group], $withPrefix[0]->startPosition, $withPrefix[0]->endPosition);
+
+        if (empty($withoutPrefix)) {
+            return [$factored];
+        } else {
+            return \array_merge([$factored], $withoutPrefix);
+        }
+    }
+
+    private function nodeToString(Node\NodeInterface $node): string
+    {
+        // Simple string representation, assuming Literal or Sequence of Literals
+        if ($node instanceof Node\LiteralNode) {
+            return $node->value;
+        }
+        if ($node instanceof Node\SequenceNode) {
+            $str = '';
+            foreach ($node->children as $child) {
+                if ($child instanceof Node\LiteralNode) {
+                    $str .= $child->value;
+                } else {
+                    return ''; // Can't handle
+                }
+            }
+            return $str;
+        }
+        return '';
+    }
+
+    private function stringToNode(string $str, int $start, int $end): Node\NodeInterface
+    {
+        if (\strlen($str) === 1) {
+            return new Node\LiteralNode($str, $start, $end);
+        }
+        $children = [];
+        for ($i = 0; $i < \strlen($str); $i++) {
+            $children[] = new Node\LiteralNode($str[$i], $start + $i, $start + $i + 1);
+        }
+        return new Node\SequenceNode($children, $start, $end);
+    }
+
+    private function findCommonPrefix(array $strings): string
+    {
+        if (empty($strings)) {
+            return '';
+        }
+        $prefix = $strings[0];
+        foreach ($strings as $str) {
+            while (!str_starts_with($str, $prefix)) {
+                $prefix = substr($prefix, 0, -1);
+                if (empty($prefix)) {
+                    return '';
+                }
+            }
+        }
+        return $prefix;
     }
 }

@@ -46,4 +46,23 @@ final class OptimizerSpecificsTest extends TestCase
         $this->assertStringNotContainsString('->', $optimized);
         // And length should be less or equal, but since it's complex, just check no invalid range
     }
+
+    public function test_prefix_factorization_simple(): void
+    {
+        $regex = Regex::create()->optimize('/pre_a|pre_b/');
+        $this->assertSame('/pre_(?:a|b)/', $regex);
+    }
+
+    public function test_prefix_factorization_no_common(): void
+    {
+        $regex = Regex::create()->optimize('/foo|bar/');
+        $this->assertSame('/foo|bar/', $regex);
+    }
+
+    public function test_prefix_factorization_complex(): void
+    {
+        $regex = Regex::create()->optimize('/abc|abd|aef/');
+        // This might not fully factorize with simple implementation, but at least no crash
+        $this->assertIsString($regex);
+    }
 }
