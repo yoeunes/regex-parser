@@ -48,9 +48,9 @@ final class PregValidationRuleOptimizationTest extends RuleTestCase
                 'Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...).',
             ],
             [
-                'Regex pattern can be optimized.',
+                'Regex pattern can be optimized (syntax simplification).',
                 28,
-                'Consider using: /\d+/',
+                "Consider using:\n" . '/\d+/',
             ],
             [
                 'Regex syntax error: No closing delimiter "/" found. (Pattern: "/foo1")',

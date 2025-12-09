@@ -204,13 +204,17 @@ final class PregValidationRule implements Rule
 
         // 3. Optimization suggestions
         if ($this->suggestOptimizations) {
-            $optimized = $this->getRegex()->optimize($pattern);
-            if ($optimized !== $pattern) {
-                $errors[] = RuleErrorBuilder::message('Regex pattern can be optimized.')
-                    ->line($lineNumber)
-                    ->tip('Consider using: ' . $optimized)
-                    ->identifier(self::IDENTIFIER_OPTIMIZATION)
-                    ->build();
+            try {
+                $optimized = $this->getRegex()->optimize($pattern);
+                if ($optimized !== $pattern) {
+                    $errors[] = RuleErrorBuilder::message('Regex pattern can be optimized (syntax simplification).')
+                        ->line($lineNumber)
+                        ->identifier(self::IDENTIFIER_OPTIMIZATION)
+                        ->tip(\sprintf("Consider using:\n%s", $optimized))
+                        ->build();
+                }
+            } catch (\Throwable) {
+                // Optimization failures should not crash the analysis
             }
         }
 
