@@ -15,6 +15,7 @@ namespace RegexParser\Tests\Bridge\Symfony\CacheWarmer;
 
 use PHPUnit\Framework\TestCase;
 use Psr\Log\AbstractLogger;
+use Psr\Log\LoggerInterface;
 use RegexParser\Bridge\Symfony\Analyzer\RouteRequirementAnalyzer;
 use RegexParser\Bridge\Symfony\Analyzer\ValidatorRegexAnalyzer;
 use RegexParser\Bridge\Symfony\CacheWarmer\RegexParserCacheWarmer;
@@ -107,12 +108,92 @@ final class RouteCollectionRouterWithIssue implements RouterInterface
     }
 }
 
-final class InMemoryLogger extends AbstractLogger
+final class InMemoryLogger implements LoggerInterface
 {
     /**
      * @var array<int, array{level: string, message: string}>
      */
     public array $records = [];
+
+    /**
+     * @param array<string, mixed> $context
+     */
+    public function emergency(mixed $message, array $context = []): null
+    {
+        $this->log('emergency', $message, $context);
+
+        return null;
+    }
+
+    /**
+     * @param array<string, mixed> $context
+     */
+    public function alert(mixed $message, array $context = []): null
+    {
+        $this->log('alert', $message, $context);
+
+        return null;
+    }
+
+    /**
+     * @param array<string, mixed> $context
+     */
+    public function critical(mixed $message, array $context = []): null
+    {
+        $this->log('critical', $message, $context);
+
+        return null;
+    }
+
+    /**
+     * @param array<string, mixed> $context
+     */
+    public function error(mixed $message, array $context = []): null
+    {
+        $this->log('error', $message, $context);
+
+        return null;
+    }
+
+    /**
+     * @param array<string, mixed> $context
+     */
+    public function warning(mixed $message, array $context = []): null
+    {
+        $this->log('warning', $message, $context);
+
+        return null;
+    }
+
+    /**
+     * @param array<string, mixed> $context
+     */
+    public function notice(mixed $message, array $context = []): null
+    {
+        $this->log('notice', $message, $context);
+
+        return null;
+    }
+
+    /**
+     * @param array<string, mixed> $context
+     */
+    public function info(mixed $message, array $context = []): null
+    {
+        $this->log('info', $message, $context);
+
+        return null;
+    }
+
+    /**
+     * @param array<string, mixed> $context
+     */
+    public function debug(mixed $message, array $context = []): null
+    {
+        $this->log('debug', $message, $context);
+
+        return null;
+    }
 
     /**
      * @param array<string, mixed> $context
