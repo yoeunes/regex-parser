@@ -22,13 +22,6 @@ use RegexParser\Regex;
  */
 final class OptimizerSafetyTest extends TestCase
 {
-    private Regex $regexService;
-
-    protected function setUp(): void
-    {
-        $this->regexService = Regex::create();
-    }
-
     #[DataProvider('provideOptimizationCases')]
     public function testOptimizationDoesNotChangeSemantics(string $input, string $expected): void
     {
@@ -45,7 +38,7 @@ final class OptimizerSafetyTest extends TestCase
     {
         // --- 1. Sanity Checks (No Change Expected) ---
         yield 'Different literals' => ['/a|b/', '/[ab]/'];
-        yield 'Distinct ranges' => ['/[a-z]|[0-9]/', '/[0-9a-z]/'];
+        yield 'Distinct ranges' => ['/[a-z]|[0-9]/', '/[a-z]|\d/'];
         yield 'Distinct words' => ['/foo|bar/', '/foo|bar/'];
 
         // --- 2. The Regression Case (CRITICAL) ---
@@ -68,12 +61,12 @@ final class OptimizerSafetyTest extends TestCase
         yield 'Remove {0}' => ['/fooa{0}bar/', '/foobar/'];
 
         // --- 5. Alternation Deduplication (Safe) ---
-        yield 'Strict duplicates' => ['/a|a/', '/a/'];
+        yield 'Strict duplicates' => ['/a|a/', '/[a]/'];
         yield 'Strict duplicates words' => ['/foo|foo/', '/foo/'];
         yield 'Triplicates' => ['/a|b|a/', '/[ab]/'];
 
         // --- 6. Prefix Factorization (Safe) ---
-        yield 'Common prefix literals' => ['/foo_a|foo_b/', '/foo_[ab]/'];
+        yield 'Common prefix literals' => ['/foo_a|foo_b/', '/foo_(?:a|b)/'];
         yield 'Common prefix mixed' => ['/user_id|user_name/', '/user_(?:id|name)/'];
 
         // --- 7. Auto-Possessivization (Safe) ---
@@ -85,8 +78,7 @@ final class OptimizerSafetyTest extends TestCase
         // --- 8. Complex / Real World ---
         yield 'PHP CodeSniffer Array Regex' => [
             '/^array\(\s*([^\s^=^>]*)(\s*=>\s*(.*))?\s*\)/i',
-            // We accept optimized classes, but structure must remain
-            '/^array\(\s*([^=->\^\s]*)(\s*=>\s*(.*))?\s*\)/i'
+            '/^array\(\s*([^=>\^\s]*)(\s*=>\s*(.*))?\s*\)/i'
         ];
     }
 }

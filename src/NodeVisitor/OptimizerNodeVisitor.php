@@ -15,6 +15,7 @@ namespace RegexParser\NodeVisitor;
 
 use RegexParser\Node;
 use RegexParser\Node\GroupType;
+use RegexParser\NodeVisitor\CompilerNodeVisitor;
 use RegexParser\ReDoS\CharSetAnalyzer;
 
 /**
@@ -188,6 +189,17 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
             $optimizedChildren[] = $optimizedChild;
         }
 
+        // Compact repeated literal sequences
+        foreach ($optimizedChildren as $i => $child) {
+            if ($child instanceof Node\LiteralNode && preg_match('/^(.)\1+$/', $child->value, $matches)) {
+                $char = $matches[1];
+                $count = \strlen($child->value);
+                $baseNode = new Node\LiteralNode($char, $child->startPosition, $child->endPosition);
+                $optimizedChildren[$i] = new Node\QuantifierNode($baseNode, '{' . $count . '}', Node\QuantifierType::T_GREEDY, $child->startPosition, $child->endPosition);
+                $hasChanged = true;
+            }
+        }
+
         // Sequence compaction
         $originalCount = \count($optimizedChildren);
         /** @var list<Node\NodeInterface> $optimizedChildren */
@@ -197,12 +209,12 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
             $hasChanged = true;
         }
 
-        // Auto-possessivization
+        // Auto-possessivization (only for + to be conservative)
         for ($i = 0; $i < \count($optimizedChildren) - 1; $i++) {
             $current = $optimizedChildren[$i];
             $next = $optimizedChildren[$i + 1];
 
-            if ($current instanceof Node\QuantifierNode && Node\QuantifierType::T_GREEDY === $current->type) {
+            if ($current instanceof Node\QuantifierNode && Node\QuantifierType::T_GREEDY === $current->type && '+' === $current->quantifier) {
                 if ($this->areCharSetsDisjoint($current->node, $next)) {
                     $optimizedChildren[$i] = new Node\QuantifierNode(
                         $current->node,
@@ -853,7 +865,18 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
 
             if ($child instanceof Node\QuantifierNode) {
                 $baseNode = $child->node;
-                $count = $this->parseQuantifierCount($child->quantifier);
+                $parsedCount = $this->parseQuantifierCount($child->quantifier);
+                if ($parsedCount === null) {
+                    // Variable quantifier, don't merge
+                    if (null !== $currentNode) {
+                        $compacted[] = $this->createQuantifiedNode($currentNode, $currentCount);
+                        $currentNode = null;
+                        $currentCount = 0;
+                    }
+                    $compacted[] = $child;
+                    continue;
+                }
+                $count = $parsedCount;
             }
 
             if (null === $currentNode || !$this->areNodesEqual($currentNode, $baseNode)) {
@@ -874,7 +897,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         return $compacted;
     }
 
-    private function parseQuantifierCount(string $quantifier): int
+    private function parseQuantifierCount(string $quantifier): ?int
     {
         if (preg_match('/^\{(\d+)(?:,(\d*))?\}$/', $quantifier, $matches)) {
             $min = (int) $matches[1];
@@ -884,11 +907,11 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
             }
 
             // For ranges, don't merge
-            return 1;
+            return null;
         }
 
-        // For * + ?, count as 1
-        return 1;
+        // For * + ?, don't merge
+        return null;
     }
 
     private function areNodesEqual(Node\NodeInterface $a, Node\NodeInterface $b): bool
@@ -995,7 +1018,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
 
         // Find common prefix
         $prefix = $this->findCommonPrefix($strings);
-        if (empty($prefix)) {
+        if (empty($prefix) || str_starts_with($prefix, '[')) {
             return $alts;
         }
 
@@ -1058,24 +1081,8 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
 
     private function nodeToString(Node\NodeInterface $node): string
     {
-        // Simple string representation, assuming Literal or Sequence of Literals
-        if ($node instanceof Node\LiteralNode) {
-            return $node->value;
-        }
-        if ($node instanceof Node\SequenceNode) {
-            $str = '';
-            foreach ($node->children as $child) {
-                if ($child instanceof Node\LiteralNode) {
-                    $str .= $child->value;
-                } else {
-                    return ''; // Can't handle
-                }
-            }
-
-            return $str;
-        }
-
-        return '';
+        $compiler = new CompilerNodeVisitor();
+        return $node->accept($compiler);
     }
 
     private function stringToNode(string $str, int $start, int $end): Node\NodeInterface
