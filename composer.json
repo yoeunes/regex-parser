@@ -46,6 +46,7 @@
         "phpstan/phpstan-phpunit": "^2.0",
         "phpunit/phpunit": "^11.5|^12.5",
         "psr/cache": "^3.0",
+        "psr/log": "^3.0",
         "psr/simple-cache": "^3.0",
         "rector/rector": "^2.2",
         "symfony/config": "^8.0",

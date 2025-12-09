@@ -26,6 +26,7 @@ parameters:
         - tests/validate_library.php
         - tests/Integration/BehavioralComplianceTest.php
         - tests/Integration/PregFunctionCompatibilityTest.php
+        - tests/Bridge/Symfony/CacheWarmer/RegexParserCacheWarmerTest.php
         - vendor/*
         - tools/*/vendor/*
         - .cache/*
