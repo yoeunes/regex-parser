@@ -179,7 +179,6 @@ final class InMemoryLogger implements LoggerInterface
     }
 
     /**
-     * @param mixed $level
      * @param array<string, mixed> $context
      */
     public function log($level, string|\Stringable $message, array $context = []): void
