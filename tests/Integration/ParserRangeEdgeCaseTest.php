@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
+use RegexParser\Node\AlternationNode;
 use RegexParser\Node\CharClassNode;
 use RegexParser\Node\LiteralNode;
 use RegexParser\Node\RangeNode;
@@ -24,11 +25,14 @@ final class ParserRangeEdgeCaseTest extends TestCase
     public function test_parse_chained_hyphen_a_z_0_9(): void
     {
         $regex = Regex::create()->parse('/[a-z-0-9]/');
-        $charClass = $regex->pattern; // The pattern is the CharClassNode
+        $charClass = $regex->pattern;
 
         $this->assertInstanceOf(CharClassNode::class, $charClass);
 
-        $parts = $charClass->getParts();
+        $alternation = $charClass->expression;
+        $this->assertInstanceOf(AlternationNode::class, $alternation);
+
+        $parts = $alternation->alternatives;
         $this->assertCount(3, $parts);
 
         $this->assertInstanceOf(RangeNode::class, $parts[0]);
@@ -46,11 +50,14 @@ final class ParserRangeEdgeCaseTest extends TestCase
     public function test_parse_trailing_hyphen_a_z(): void
     {
         $regex = Regex::create()->parse('/[a-z-]/');
-        $charClass = $regex->getRoot()->getChildren()[0];
+        $charClass = $regex->pattern;
 
         $this->assertInstanceOf(CharClassNode::class, $charClass);
 
-        $parts = $charClass->getParts();
+        $alternation = $charClass->expression;
+        $this->assertInstanceOf(AlternationNode::class, $alternation);
+
+        $parts = $alternation->alternatives;
         $this->assertCount(2, $parts);
 
         $this->assertInstanceOf(RangeNode::class, $parts[0]);
@@ -64,11 +71,14 @@ final class ParserRangeEdgeCaseTest extends TestCase
     public function test_parse_leading_hyphen_a_z(): void
     {
         $regex = Regex::create()->parse('/[-a-z]/');
-        $charClass = $regex->getRoot()->getChildren()[0];
+        $charClass = $regex->pattern;
 
         $this->assertInstanceOf(CharClassNode::class, $charClass);
 
-        $parts = $charClass->getParts();
+        $alternation = $charClass->expression;
+        $this->assertInstanceOf(AlternationNode::class, $alternation);
+
+        $parts = $alternation->alternatives;
         $this->assertCount(2, $parts);
 
         $this->assertInstanceOf(LiteralNode::class, $parts[0]);

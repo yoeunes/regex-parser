@@ -99,12 +99,149 @@ final class PregValidationRuleTest extends RuleTestCase
         ]);
     }
 
+    public function test_threshold_high_filters_medium_redos(): void
+    {
+        $this->analyse([__DIR__.'/Fixtures/MyClass.php'], [
+            [
+                'Regex syntax error: No closing delimiter "/" found.',
+                21,
+            ],
+            [
+                'Regex syntax error: Invalid quantifier range "{2,1}": min > max at position 0.',
+                22,
+            ],
+            [
+                'Regex syntax error: Potential catastrophic backtracking (ReDoS): nested unbounded quantifier "+" at position 1.',
+                23,
+            ],
+            // Note: MEDIUM ReDoS on line 24 is filtered out by 'high' threshold
+            [
+                'Regex syntax error: No closing delimiter "/" found.',
+                34,
+            ],
+            [
+                'Regex syntax error: No closing delimiter "/" found.',
+                34,
+            ],
+            [
+                'Regex syntax error: No closing delimiter "/" found.',
+                34,
+            ],
+            [
+                'Regex syntax error: No closing delimiter "/" found.',
+                34,
+            ],
+            [
+                'Regex syntax error: No closing delimiter "/" found.',
+                34,
+            ],
+            [
+                'Regex syntax error: No closing delimiter "/" found.',
+                34,
+            ],
+            [
+                'Regex syntax error: No closing delimiter "/" found.',
+                34,
+            ],
+            [
+                'Regex syntax error: No closing delimiter "/" found.',
+                34,
+            ],
+            [
+                'Regex syntax error: No closing delimiter "/" found.',
+                34,
+            ],
+            [
+                'Regex syntax error: No closing delimiter "/" found.',
+                34,
+            ],
+        ]);
+    }
+
+    public function test_threshold_medium_includes_medium_redos(): void
+    {
+        $this->analyse([__DIR__.'/Fixtures/MyClass.php'], [
+            [
+                'Regex syntax error: No closing delimiter "/" found.',
+                21,
+            ],
+            [
+                'Regex syntax error: Invalid quantifier range "{2,1}": min > max at position 0.',
+                22,
+            ],
+            [
+                'Regex syntax error: Potential catastrophic backtracking (ReDoS): nested unbounded quantifier "+" at position 1.',
+                23,
+            ],
+            [
+                'ReDoS vulnerability detected (MEDIUM): /a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a...',
+                24,
+                'Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...).',
+            ],
+            [
+                'Regex syntax error: No closing delimiter "/" found.',
+                34,
+            ],
+            [
+                'Regex syntax error: No closing delimiter "/" found.',
+                34,
+            ],
+            [
+                'Regex syntax error: No closing delimiter "/" found.',
+                34,
+            ],
+            [
+                'Regex syntax error: No closing delimiter "/" found.',
+                34,
+            ],
+            [
+                'Regex syntax error: No closing delimiter "/" found.',
+                34,
+            ],
+            [
+                'Regex syntax error: No closing delimiter "/" found.',
+                34,
+            ],
+            [
+                'Regex syntax error: No closing delimiter "/" found.',
+                34,
+            ],
+            [
+                'Regex syntax error: No closing delimiter "/" found.',
+                34,
+            ],
+            [
+                'Regex syntax error: No closing delimiter "/" found.',
+                34,
+            ],
+            [
+                'Regex syntax error: No closing delimiter "/" found.',
+                34,
+            ],
+        ]);
+    }
+
     protected function getRule(): Rule
     {
+        $threshold = match (true) {
+            str_contains($this->getName(), 'threshold_high') => 'high',
+            str_contains($this->getName(), 'threshold_medium') => 'medium',
+            default => 'low',
+        };
+
         return new PregValidationRule(
             ignoreParseErrors: false, // Report all errors for testing
             reportRedos: true,
-            redosThreshold: 'low', // Report all ReDoS issues for testing
+            redosThreshold: $threshold,
+        );
+    }
+
+    protected function getRuleForThreshold(string $threshold): Rule
+    {
+        return new PregValidationRule(
+            ignoreParseErrors: false,
+            reportRedos: true,
+            redosThreshold: $threshold,
         );
     }
 }
