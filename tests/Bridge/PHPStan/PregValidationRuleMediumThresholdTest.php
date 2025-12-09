@@ -20,7 +20,7 @@ use RegexParser\Bridge\PHPStan\PregValidationRule;
 /**
  * @extends RuleTestCase<PregValidationRule>
  */
-final class PregValidationRuleTest extends RuleTestCase
+final class PregValidationRuleMediumThresholdTest extends RuleTestCase
 {
     public function test_rule(): void
     {
@@ -85,26 +85,12 @@ final class PregValidationRuleTest extends RuleTestCase
         ]);
     }
 
-    public function test_preg_replace_callback_array(): void
-    {
-        $this->analyse([__DIR__.'/Fixtures/PregReplaceCallbackArray.php'], [
-            [
-                'Regex syntax error: No closing delimiter "/" found.',
-                20,
-            ],
-            [
-                'Regex syntax error: Potential catastrophic backtracking (ReDoS): nested unbounded quantifier "+" at position 1.',
-                20,
-            ],
-        ]);
-    }
-
     protected function getRule(): Rule
     {
         return new PregValidationRule(
-            ignoreParseErrors: false, // Report all errors for testing
+            ignoreParseErrors: false,
             reportRedos: true,
-            redosThreshold: 'low', // Report all ReDoS issues for testing
+            redosThreshold: 'medium',
         );
     }
 }

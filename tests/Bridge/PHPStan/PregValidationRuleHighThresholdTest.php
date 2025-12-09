@@ -20,7 +20,7 @@ use RegexParser\Bridge\PHPStan\PregValidationRule;
 /**
  * @extends RuleTestCase<PregValidationRule>
  */
-final class PregValidationRuleTest extends RuleTestCase
+final class PregValidationRuleHighThresholdTest extends RuleTestCase
 {
     public function test_rule(): void
     {
@@ -37,11 +37,7 @@ final class PregValidationRuleTest extends RuleTestCase
                 'Regex syntax error: Potential catastrophic backtracking (ReDoS): nested unbounded quantifier "+" at position 1.',
                 23,
             ],
-            [
-                'ReDoS vulnerability detected (MEDIUM): /a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a...',
-                24,
-                'Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...).',
-            ],
+            // Note: MEDIUM ReDoS on line 24 is filtered out by 'high' threshold
             [
                 'Regex syntax error: No closing delimiter "/" found.',
                 34,
@@ -81,20 +77,6 @@ final class PregValidationRuleTest extends RuleTestCase
             [
                 'Regex syntax error: No closing delimiter "/" found.',
                 34,
-            ],
-        ]);
-    }
-
-    public function test_preg_replace_callback_array(): void
-    {
-        $this->analyse([__DIR__.'/Fixtures/PregReplaceCallbackArray.php'], [
-            [
-                'Regex syntax error: No closing delimiter "/" found.',
-                20,
-            ],
-            [
-                'Regex syntax error: Potential catastrophic backtracking (ReDoS): nested unbounded quantifier "+" at position 1.',
-                20,
             ],
         ]);
     }
@@ -102,9 +84,9 @@ final class PregValidationRuleTest extends RuleTestCase
     protected function getRule(): Rule
     {
         return new PregValidationRule(
-            ignoreParseErrors: false, // Report all errors for testing
+            ignoreParseErrors: false,
             reportRedos: true,
-            redosThreshold: 'low', // Report all ReDoS issues for testing
+            redosThreshold: 'high',
         );
     }
 }
