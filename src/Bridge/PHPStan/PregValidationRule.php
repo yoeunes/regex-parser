@@ -158,7 +158,7 @@ final class PregValidationRule implements Rule
 
         $errors = [];
 
-        // 1. Syntax Validation
+        // 1. Syntax Validation (Blocking)
         try {
             $ast = $this->getRegex()->parse($pattern);
             $ast->accept($this->getValidator());
@@ -174,35 +174,37 @@ final class PregValidationRule implements Rule
                 ->build();
 
             return $errors;
-        } catch (\Throwable) {
-            return []; // Fail silently on internal errors
         }
 
-        // 2. ReDoS Validation
+        // 2. ReDoS Validation (Non-Blocking)
         if ($this->reportRedos) {
-            $analysis = $this->getRedosAnalyzer()->analyze($pattern);
+            try {
+                $analysis = $this->getRedosAnalyzer()->analyze($pattern);
 
-            if ($this->exceedsThreshold($analysis->severity)) {
-                $identifier = match ($analysis->severity) {
-                    ReDoSSeverity::CRITICAL => self::IDENTIFIER_REDOS_CRITICAL,
-                    ReDoSSeverity::HIGH => self::IDENTIFIER_REDOS_HIGH,
-                    ReDoSSeverity::MEDIUM => self::IDENTIFIER_REDOS_MEDIUM,
-                    default => self::IDENTIFIER_REDOS_LOW,
-                };
+                if ($this->exceedsThreshold($analysis->severity)) {
+                    $identifier = match ($analysis->severity) {
+                        ReDoSSeverity::CRITICAL => self::IDENTIFIER_REDOS_CRITICAL,
+                        ReDoSSeverity::HIGH => self::IDENTIFIER_REDOS_HIGH,
+                        ReDoSSeverity::MEDIUM => self::IDENTIFIER_REDOS_MEDIUM,
+                        default => self::IDENTIFIER_REDOS_LOW,
+                    };
 
-                $errors[] = RuleErrorBuilder::message(\sprintf(
-                    'ReDoS vulnerability detected (%s): %s',
-                    strtoupper($analysis->severity->value),
-                    $this->truncatePattern($pattern),
-                ))
-                    ->line($lineNumber)
-                    ->tip(implode("\n", $analysis->recommendations))
-                    ->identifier($identifier)
-                    ->build();
+                    $errors[] = RuleErrorBuilder::message(\sprintf(
+                        'ReDoS vulnerability detected (%s): %s',
+                        strtoupper($analysis->severity->value),
+                        $this->truncatePattern($pattern),
+                    ))
+                        ->line($lineNumber)
+                        ->tip(implode("\n", $analysis->recommendations))
+                        ->identifier($identifier)
+                        ->build();
+                }
+            } catch (\Throwable) {
+                // ReDoS analysis failures should not crash the analysis
             }
         }
 
-        // 3. Optimization suggestions
+        // 3. Optimization suggestions (Non-Blocking)
         if ($this->suggestOptimizations) {
             try {
                 $optimized = $this->getRegex()->optimize($pattern);
