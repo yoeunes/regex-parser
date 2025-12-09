@@ -33,7 +33,6 @@
 /rector.php             export-ignore
 /phpunit.xml            export-ignore
 /phpunit.xml.dist       export-ignore
-/extension.neon         export-ignore
 /taskfile.dist.yaml     export-ignore
 
 # Development documentation
@@ -43,12 +42,7 @@
 /TODO.md                export-ignore
 
 # Directories not needed in distribution
-art/                    export-ignore
-/bin                    export-ignore
-/config                 export-ignore
-/docs                   export-ignore
 /examples               export-ignore
-/public                 export-ignore
 /rector                 export-ignore
 /templates              export-ignore
 /tests                  export-ignore
