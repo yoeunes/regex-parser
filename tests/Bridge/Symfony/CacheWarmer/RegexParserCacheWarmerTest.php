@@ -117,7 +117,7 @@ final class InMemoryLogger implements LoggerInterface
     /**
      * @param array<string, mixed> $context
      */
-    public function emergency(\Stringable|string $message, array $context = []): void
+    public function emergency(mixed $message, array $context = []): void
     {
         $this->log('emergency', $message, $context);
     }
@@ -125,7 +125,7 @@ final class InMemoryLogger implements LoggerInterface
     /**
      * @param array<string, mixed> $context
      */
-    public function alert(\Stringable|string $message, array $context = []): void
+    public function alert(mixed $message, array $context = []): void
     {
         $this->log('alert', $message, $context);
     }
@@ -133,7 +133,7 @@ final class InMemoryLogger implements LoggerInterface
     /**
      * @param array<string, mixed> $context
      */
-    public function critical(\Stringable|string $message, array $context = []): void
+    public function critical(mixed $message, array $context = []): void
     {
         $this->log('critical', $message, $context);
     }
@@ -141,7 +141,7 @@ final class InMemoryLogger implements LoggerInterface
     /**
      * @param array<string, mixed> $context
      */
-    public function error(\Stringable|string $message, array $context = []): void
+    public function error(mixed $message, array $context = []): void
     {
         $this->log('error', $message, $context);
     }
@@ -149,7 +149,7 @@ final class InMemoryLogger implements LoggerInterface
     /**
      * @param array<string, mixed> $context
      */
-    public function warning(\Stringable|string $message, array $context = []): void
+    public function warning(mixed $message, array $context = []): void
     {
         $this->log('warning', $message, $context);
     }
@@ -157,7 +157,7 @@ final class InMemoryLogger implements LoggerInterface
     /**
      * @param array<string, mixed> $context
      */
-    public function notice(\Stringable|string $message, array $context = []): void
+    public function notice(mixed $message, array $context = []): void
     {
         $this->log('notice', $message, $context);
     }
@@ -165,7 +165,7 @@ final class InMemoryLogger implements LoggerInterface
     /**
      * @param array<string, mixed> $context
      */
-    public function info(\Stringable|string $message, array $context = []): void
+    public function info(mixed $message, array $context = []): void
     {
         $this->log('info', $message, $context);
     }
@@ -173,7 +173,7 @@ final class InMemoryLogger implements LoggerInterface
     /**
      * @param array<string, mixed> $context
      */
-    public function debug(\Stringable|string $message, array $context = []): void
+    public function debug(mixed $message, array $context = []): void
     {
         $this->log('debug', $message, $context);
     }
@@ -181,12 +181,13 @@ final class InMemoryLogger implements LoggerInterface
     /**
      * @param array<string, mixed> $context
      */
-    public function log($level, \Stringable|string $message, array $context = []): void
+    public function log($level, mixed $message, array $context = []): void
     {
         $levelString = \is_scalar($level) || $level instanceof \Stringable ? (string) $level : get_debug_type($level);
+        $messageString = \is_scalar($message) || $message instanceof \Stringable ? (string) $message : get_debug_type($message);
         $this->records[] = [
             'level' => $levelString,
-            'message' => (string) $message,
+            'message' => $messageString,
         ];
     }
 }
