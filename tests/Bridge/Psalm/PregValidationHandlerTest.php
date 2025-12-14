@@ -33,7 +33,7 @@ final class PregValidationHandlerTest extends TestCase
             escapeshellarg($this->getFixtureFile()),
         );
 
-        \exec($command.' 2>&1', $outputLines, $exitCode);
+        exec($command.' 2>&1', $outputLines, $exitCode);
         $output = trim(implode("\n", $outputLines));
 
         self::assertNotSame('', $output, 'Psalm output is empty');
@@ -57,7 +57,7 @@ final class PregValidationHandlerTest extends TestCase
 
     private function getPsalmBinary(): string
     {
-        return dirname(__DIR__, 3).'/tools/psalm/vendor/bin/psalm';
+        return \dirname(__DIR__, 3).'/tools/psalm/vendor/bin/psalm';
     }
 
     private function getPsalmConfig(): string
