@@ -71,7 +71,7 @@ final class RouteRequirementAnalyzerTest extends TestCase
 
     public function test_slug_pattern_is_not_flagged(): void
     {
-        $analyzer = new RouteRequirementAnalyzer(Regex::create(), 0, 0);
+        $analyzer = new RouteRequirementAnalyzer(Regex::create(), 0, 0, ['[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*']);
 
         $routes = new RouteCollection();
         $routes->add('slug', new Route('/{slug}', [], ['slug' => '^[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$']));
