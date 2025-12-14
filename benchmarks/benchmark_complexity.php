@@ -2,10 +2,19 @@
 
 declare(strict_types=1);
 
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 require_once __DIR__.'/../vendor/autoload.php';
 
-use RegexParser\Regex;
 use RegexParser\NodeVisitor\ComplexityScoreNodeVisitor;
+use RegexParser\Regex;
 
 echo "Benchmarking ComplexityScoreNodeVisitor performance improvements...\n\n";
 
@@ -25,7 +34,7 @@ $iterations = 1000;
 
 foreach ($testPatterns as $name => $pattern) {
     echo "=== Testing {$name} pattern ===\n";
-    echo "Pattern: " . substr($pattern, 0, 60) . (strlen($pattern) > 60 ? '...' : '') . "\n";
+    echo 'Pattern: '.substr($pattern, 0, 60).(\strlen($pattern) > 60 ? '...' : '')."\n";
 
     // Benchmark parsing + complexity scoring
     $start = microtime(true);
@@ -37,9 +46,9 @@ foreach ($testPatterns as $name => $pattern) {
     }
     $scoreTime = microtime(true) - $start;
 
-    echo sprintf("Parse + Score (%d iterations): %.4f seconds\n", $iterations, $scoreTime);
-    echo sprintf("Average time per operation: %.6f seconds\n", $scoreTime / $iterations);
-    echo sprintf("Complexity score: %d\n", $score);
+    echo \sprintf("Parse + Score (%d iterations): %.4f seconds\n", $iterations, $scoreTime);
+    echo \sprintf("Average time per operation: %.6f seconds\n", $scoreTime / $iterations);
+    echo \sprintf("Complexity score: %d\n", $score);
     echo "\n";
 }
 
@@ -62,8 +71,8 @@ for ($i = 0; $i < 100; $i++) {
 }
 $cacheTime = microtime(true) - $start;
 
-echo sprintf("Repeated quantifier patterns (1,000 operations): %.4f seconds\n", $cacheTime);
-echo sprintf("Average time per operation: %.6f seconds\n", $cacheTime / 1000);
+echo \sprintf("Repeated quantifier patterns (1,000 operations): %.4f seconds\n", $cacheTime);
+echo \sprintf("Average time per operation: %.6f seconds\n", $cacheTime / 1000);
 
 // Test ReDoS detection performance
 echo "\n=== ReDoS Detection Performance ===\n";
@@ -86,7 +95,7 @@ for ($i = 0; $i < 100; $i++) {
 }
 $redosTime = microtime(true) - $start;
 
-echo sprintf("ReDoS pattern analysis (400 operations): %.4f seconds\n", $redosTime);
-echo sprintf("Average time per analysis: %.6f seconds\n", $redosTime / 400);
+echo \sprintf("ReDoS pattern analysis (400 operations): %.4f seconds\n", $redosTime);
+echo \sprintf("Average time per analysis: %.6f seconds\n", $redosTime / 400);
 
-echo "\nMemory usage: " . memory_get_peak_usage(true) / 1024 / 1024 . " MB\n";
+echo "\nMemory usage: ".memory_get_peak_usage(true) / 1024 / 1024 ." MB\n";

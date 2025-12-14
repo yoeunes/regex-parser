@@ -46,6 +46,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
 
     // Minimal state tracking
     private bool $inCharClass = false;
+
     private string $delimiter = '/';
 
     #[\Override]
@@ -54,25 +55,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
         $this->delimiter = $node->delimiter;
         $closingDelimiter = $this->getClosingDelimiter($node->delimiter);
 
-        return $node->delimiter . $node->pattern->accept($this) . $closingDelimiter . $node->flags;
-    }
-
-    /**
-     * Intelligent delimiter mapping with caching.
-     */
-    private function getClosingDelimiter(string $delimiter): string
-    {
-        if (!isset(self::$delimiterCache[$delimiter])) {
-            self::$delimiterCache[$delimiter] = match ($delimiter) {
-                '(' => ')',
-                '[' => ']',
-                '{' => '}',
-                '<' => '>',
-                default => $delimiter,
-            };
-        }
-
-        return self::$delimiterCache[$delimiter];
+        return $node->delimiter.$node->pattern->accept($this).$closingDelimiter.$node->flags;
     }
 
     #[\Override]
@@ -88,7 +71,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
         $result = $alternatives[0]->accept($this);
 
         for ($i = 1, $count = \count($alternatives); $i < $count; $i++) {
-            $result .= $separator . $alternatives[$i]->accept($this);
+            $result .= $separator.$alternatives[$i]->accept($this);
         }
 
         return $result;
@@ -169,45 +152,6 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
         return $this->escapeString($value);
     }
 
-    /**
-     * High-performance string escaping with minimal allocations.
-     */
-    private function escapeString(string $value): string
-    {
-        $meta = $this->inCharClass ? self::CHAR_CLASS_META : self::META_CHARACTERS;
-        $needsEscape = false;
-
-        // Fast pre-scan to check if escaping is needed
-        $len = \strlen($value);
-        for ($i = 0; $i < $len; $i++) {
-            $char = $value[$i];
-            if ($char === $this->delimiter || isset($meta[$char])) {
-                $needsEscape = true;
-                break;
-            }
-        }
-
-        // Fast path: no escaping needed
-        if (!$needsEscape) {
-            return $value;
-        }
-
-        // Optimized escaping with single pass
-        $result = '';
-        for ($i = 0; $i < $len; $i++) {
-            $char = $value[$i];
-            if ($char === $this->delimiter || isset($meta[$char])) {
-                $result .= '\\' . $char;
-            } else {
-                $result .= $char;
-            }
-        }
-
-        return $result;
-    }
-
-
-
     #[\Override]
     public function visitDot(Node\DotNode $node): string
     {
@@ -220,18 +164,16 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
         return $node->value;
     }
 
-
-
     #[\Override]
     public function visitAssertion(Node\AssertionNode $node): string
     {
-        return '\\' . $node->value;
+        return '\\'.$node->value;
     }
 
     #[\Override]
     public function visitCharType(Node\CharTypeNode $node): string
     {
-        return '\\' . $node->value;
+        return '\\'.$node->value;
     }
 
     #[\Override]
@@ -248,7 +190,8 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
 
         try {
             $negation = $node->isNegated ? '^' : '';
-            return '[' . $negation . $node->expression->accept($this) . ']';
+
+            return '['.$negation.$node->expression->accept($this).']';
         } finally {
             $this->inCharClass = $wasInCharClass;
         }
@@ -403,5 +346,61 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
         }
 
         return '(?C"'.$node->identifier.'")';
+    }
+
+    /**
+     * Intelligent delimiter mapping with caching.
+     */
+    private function getClosingDelimiter(string $delimiter): string
+    {
+        if (!isset(self::$delimiterCache[$delimiter])) {
+            self::$delimiterCache[$delimiter] = match ($delimiter) {
+                '(' => ')',
+                '[' => ']',
+                '{' => '}',
+                '<' => '>',
+                default => $delimiter,
+            };
+        }
+
+        return self::$delimiterCache[$delimiter];
+    }
+
+    /**
+     * High-performance string escaping with minimal allocations.
+     */
+    private function escapeString(string $value): string
+    {
+        $meta = $this->inCharClass ? self::CHAR_CLASS_META : self::META_CHARACTERS;
+        $needsEscape = false;
+
+        // Fast pre-scan to check if escaping is needed
+        $len = \strlen($value);
+        for ($i = 0; $i < $len; $i++) {
+            $char = $value[$i];
+            if ($char === $this->delimiter || isset($meta[$char])) {
+                $needsEscape = true;
+
+                break;
+            }
+        }
+
+        // Fast path: no escaping needed
+        if (!$needsEscape) {
+            return $value;
+        }
+
+        // Optimized escaping with single pass
+        $result = '';
+        for ($i = 0; $i < $len; $i++) {
+            $char = $value[$i];
+            if ($char === $this->delimiter || isset($meta[$char])) {
+                $result .= '\\'.$char;
+            } else {
+                $result .= $char;
+            }
+        }
+
+        return $result;
     }
 }

@@ -2,10 +2,19 @@
 
 declare(strict_types=1);
 
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 require_once __DIR__.'/../vendor/autoload.php';
 
-use RegexParser\Regex;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
+use RegexParser\Regex;
 
 echo "Benchmarking CompilerNodeVisitor performance improvements...\n\n";
 
@@ -22,7 +31,7 @@ $iterations = 1000;
 
 foreach ($testPatterns as $name => $pattern) {
     echo "=== Testing {$name} pattern ===\n";
-    echo "Pattern: " . substr($pattern, 0, 60) . (strlen($pattern) > 60 ? '...' : '') . "\n";
+    echo 'Pattern: '.substr($pattern, 0, 60).(\strlen($pattern) > 60 ? '...' : '')."\n";
 
     // Benchmark parsing + compilation
     $start = microtime(true);
@@ -33,9 +42,9 @@ foreach ($testPatterns as $name => $pattern) {
     }
     $compileTime = microtime(true) - $start;
 
-    echo sprintf("Parse + Compile (%d iterations): %.4f seconds\n", $iterations, $compileTime);
-    echo sprintf("Average time per operation: %.6f seconds\n", $compileTime / $iterations);
-    echo sprintf("Round-trip check: %s\n", $compiled === $pattern ? 'PASS' : 'FAIL');
+    echo \sprintf("Parse + Compile (%d iterations): %.4f seconds\n", $iterations, $compileTime);
+    echo \sprintf("Average time per operation: %.6f seconds\n", $compileTime / $iterations);
+    echo \sprintf("Round-trip check: %s\n", $compiled === $pattern ? 'PASS' : 'FAIL');
     echo "\n";
 }
 
@@ -52,8 +61,8 @@ for ($i = 0; $i < 10000; $i++) {
 }
 $compilationTime = microtime(true) - $start;
 
-echo sprintf("Compilation only (10,000 iterations): %.4f seconds\n", $compilationTime);
-echo sprintf("Average time per compilation: %.6f seconds\n", $compilationTime / 10000);
+echo \sprintf("Compilation only (10,000 iterations): %.4f seconds\n", $compilationTime);
+echo \sprintf("Average time per compilation: %.6f seconds\n", $compilationTime / 10000);
 
 // Test delimiter caching
 echo "\n=== Delimiter Caching Test ===\n";
@@ -71,7 +80,7 @@ for ($i = 0; $i < 1000; $i++) {
 }
 $delimiterTime = microtime(true) - $start;
 
-echo sprintf("Delimiter mapping (16,000 operations): %.4f seconds\n", $delimiterTime);
-echo sprintf("Average time per delimiter operation: %.6f seconds\n", $delimiterTime / 16000);
+echo \sprintf("Delimiter mapping (16,000 operations): %.4f seconds\n", $delimiterTime);
+echo \sprintf("Average time per delimiter operation: %.6f seconds\n", $delimiterTime / 16000);
 
-echo "\nMemory usage: " . memory_get_peak_usage(true) / 1024 / 1024 . " MB\n";
+echo "\nMemory usage: ".memory_get_peak_usage(true) / 1024 / 1024 ." MB\n";

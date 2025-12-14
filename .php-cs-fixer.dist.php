@@ -3,32 +3,38 @@
 declare(strict_types=1);
 
 /*
- * This file is part of the RegexParser package.
+ * PHP-CS-Fixer Configuration for RegexParser
+ *
+ * This configuration provides the highest quality code formatting for modern PHP libraries,
+ * focusing on readability, consistency, performance, and modern PHP best practices.
  *
  * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
  */
 
 $header = <<<'EOF'
-    This file is part of the RegexParser package.
-     
-    (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
-     
-    For the full copyright and license information, please view the LICENSE
-    file that was distributed with this source code.
-    EOF;
+This file is part of the RegexParser package.
+
+(c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+
+For the full copyright and license information, please view the LICENSE
+file that was distributed with this source code.
+EOF;
 
 $finder = (new PhpCsFixer\Finder())
-    ->in(__DIR__)
-    ->exclude([
-        '.cache/',
-        'tools/',
-        'vendor/',
+    ->in([
+        __DIR__.'/src',
+        __DIR__.'/tests',
+        __DIR__.'/tools',
+        __DIR__.'/public',
+        __DIR__.'/rector',
+        __DIR__.'/benchmarks',
     ])
-    ->ignoreDotFiles(false)
-    ->ignoreVCS(false);
+    ->exclude([
+        'tools/*/vendor/',
+    ])
+    ->name('*.php')
+    ->ignoreDotFiles(true)
+    ->ignoreVCS(true);
 
 return (new PhpCsFixer\Config())
     ->registerCustomFixers(new PhpCsFixerCustomFixers\Fixers())

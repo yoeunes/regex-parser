@@ -41,26 +41,6 @@ final class ComplexityScoreNodeVisitor extends AbstractNodeVisitor
     // Minimal state tracking
     private int $quantifierDepth = 0;
 
-    /**
-     * High-performance cached unbounded quantifier detection.
-     */
-    private function isUnboundedQuantifier(string $quant): bool
-    {
-        // Return cached result if available
-        if (isset(self::$unboundedQuantifierCache[$quant])) {
-            return self::$unboundedQuantifierCache[$quant];
-        }
-
-        // Fast array lookup for common cases
-        if (\in_array($quant, ['*', '+'], true)) {
-            return self::$unboundedQuantifierCache[$quant] = true;
-        }
-
-        // Regex check for {n,} pattern
-        $isUnbounded = preg_match('/^\{\d++,\}$/', $quant) === 1;
-        return self::$unboundedQuantifierCache[$quant] = $isUnbounded;
-    }
-
     #[\Override]
     public function visitRegex(Node\RegexNode $node): int
     {
@@ -79,6 +59,7 @@ final class ComplexityScoreNodeVisitor extends AbstractNodeVisitor
         foreach ($node->alternatives as $alt) {
             $score += $alt->accept($this);
         }
+
         return $score;
     }
 
@@ -90,6 +71,7 @@ final class ComplexityScoreNodeVisitor extends AbstractNodeVisitor
         foreach ($node->children as $child) {
             $score += $child->accept($this);
         }
+
         return $score;
     }
 
@@ -288,5 +270,26 @@ final class ComplexityScoreNodeVisitor extends AbstractNodeVisitor
     {
         // Callouts introduce external logic and break regex flow, making them complex.
         return self::COMPLEX_CONSTRUCT_SCORE;
+    }
+
+    /**
+     * High-performance cached unbounded quantifier detection.
+     */
+    private function isUnboundedQuantifier(string $quant): bool
+    {
+        // Return cached result if available
+        if (isset(self::$unboundedQuantifierCache[$quant])) {
+            return self::$unboundedQuantifierCache[$quant];
+        }
+
+        // Fast array lookup for common cases
+        if (\in_array($quant, ['*', '+'], true)) {
+            return self::$unboundedQuantifierCache[$quant] = true;
+        }
+
+        // Regex check for {n,} pattern
+        $isUnbounded = 1 === preg_match('/^\{\d++,\}$/', $quant);
+
+        return self::$unboundedQuantifierCache[$quant] = $isUnbounded;
     }
 }
