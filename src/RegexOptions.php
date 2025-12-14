@@ -23,12 +23,18 @@ use RegexParser\Exception\InvalidRegexOptionException;
  */
 final readonly class RegexOptions
 {
+    /**
+     * @param array<string> $redosIgnoredPatterns
+     */
     public function __construct(
         public int $maxPatternLength,
         public CacheInterface $cache,
         public array $redosIgnoredPatterns = [],
     ) {}
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public static function fromArray(array $options): self
     {
         $allowedKeys = ['max_pattern_length', 'cache', 'redos_ignored_patterns'];
@@ -58,10 +64,13 @@ final readonly class RegexOptions
             }
         }
 
+        /** @var array<string> $normalized */
+        $normalized = array_values(array_unique($redosIgnoredPatterns));
+
         return new self(
             $maxPatternLength,
             self::normalizeCache($options['cache'] ?? null),
-            array_values(array_unique($redosIgnoredPatterns)),
+            $normalized,
         );
     }
 

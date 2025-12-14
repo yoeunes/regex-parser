@@ -27,12 +27,18 @@ final readonly class Regex
 {
     public const DEFAULT_MAX_PATTERN_LENGTH = 100_000;
 
+    /**
+     * @param array<string> $redosIgnoredPatterns
+     */
     private function __construct(
         private int $maxPatternLength,
         private CacheInterface $cache,
         private array $redosIgnoredPatterns,
     ) {}
 
+    /**
+     * @param array<string, mixed> $options
+     */
     public static function create(array $options = []): self
     {
         $parsedOptions = RegexOptions::fromArray($options);
@@ -90,11 +96,17 @@ final readonly class Regex
         return $this->transformAndCompile($regex, new NodeVisitor\OptimizerNodeVisitor());
     }
 
+    /**
+     * @return array{0: int, 1: int|null}
+     */
     public function getLengthRange(string $regex)
     {
         return $this->parse($regex)->accept(new NodeVisitor\LengthRangeNodeVisitor());
     }
 
+    /**
+     * @return array{matching: array<string>, non_matching: array<string>}
+     */
     public function generateTestCases(string $regex)
     {
         return $this->parse($regex)->accept(new NodeVisitor\TestCaseGeneratorNodeVisitor());
@@ -137,7 +149,7 @@ final readonly class Regex
 
     public function analyzeReDoS(string $regex, ?ReDoSSeverity $threshold = null): ReDoSAnalysis
     {
-        return (new ReDoSAnalyzer($this, $this->redosIgnoredPatterns))->analyze($regex, $threshold);
+        return (new ReDoSAnalyzer($this, array_values($this->redosIgnoredPatterns)))->analyze($regex, $threshold);
     }
 
     public function isSafe(string $regex, ?ReDoSSeverity $threshold = null): bool
@@ -160,14 +172,20 @@ final readonly class Regex
         }
     }
 
+    /**
+     * @param iterable<string> $regexes
+     */
     public function warm(iterable $regexes): void
     {
         foreach ($regexes as $regex) {
-            $this->parse($regex); // hits cache
-            $this->analyzeReDoS($regex);
+            $this->parse((string) $regex); // hits cache
+            $this->analyzeReDoS((string) $regex);
         }
     }
 
+    /**
+     * @return array<string>
+     */
     public function getRedosIgnoredPatterns(): array
     {
         return array_values($this->redosIgnoredPatterns);
@@ -206,6 +224,9 @@ final readonly class Regex
         return $this->getLexer()->tokenize($pattern);
     }
 
+    /**
+     * @return array{0: string, 1: string, 2: string}
+     */
     public function extractPatternAndFlags(string $regex): array
     {
         $len = \strlen($regex);
@@ -255,6 +276,9 @@ final readonly class Regex
         throw new ParserException(\sprintf('No closing delimiter "%s" found.', $closingDelimiter));
     }
 
+    /**
+     * @param NodeVisitor\NodeVisitorInterface<Node\NodeInterface> $transformer
+     */
     private function transformAndCompile(string $regex, NodeVisitor\NodeVisitorInterface $transformer): string
     {
         $ast = $this->parse($regex);
@@ -269,6 +293,9 @@ final readonly class Regex
         return \PHP_SAPI === 'cli';
     }
 
+    /**
+     * @return array{0: \RegexParser\Node\RegexNode|null, 1: string|null}
+     */
     private function loadFromCache(string $regex): array
     {
         if ($this->cache instanceof NullCache) {
@@ -308,10 +335,16 @@ final readonly class Regex
             PHP;
     }
 
+    /**
+     * @return array{0: string, 1: string, 2: string, 3: int}
+     */
     private function safeExtractPattern(string $regex): array
     {
         try {
             [$pattern, $flags, $delimiter] = $this->extractPatternAndFlags($regex);
+            $pattern = (string) $pattern;
+            $flags = (string) $flags;
+            $delimiter = (string) $delimiter;
             $length = \strlen((string) $pattern);
 
             return [$pattern, $flags, $delimiter, $length];
@@ -367,9 +400,9 @@ final readonly class Regex
         $stream = $this->getLexer()->tokenize($pattern);
         $parser = $this->getParser();
 
-        $ast = $parser->parse($stream, $flags, $delimiter, \strlen((string) $pattern));
+        $ast = $parser->parse($stream, $flags, $delimiter, \strlen($pattern));
 
-        $this->storeInCache($cacheKey, $ast);
+        $this->storeInCache((string) $cacheKey, $ast);
 
         return $ast;
     }
