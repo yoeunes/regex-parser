@@ -72,14 +72,17 @@ final class PregValidationHandlerTest extends TestCase
 
     private function extractJson(string $output): ?string
     {
-        $start = strpos($output, '[');
-        $objectStart = strpos($output, '{');
-
-        if (false === $start || (false !== $objectStart && $objectStart < $start)) {
-            $start = $objectStart;
+        $start = strrpos($output, "\n[");
+        if (false !== $start) {
+            return substr($output, $start + 1);
         }
 
-        return false === $start ? null : substr($output, $start);
+        $objectStart = strrpos($output, "\n{");
+        if (false !== $objectStart) {
+            return substr($output, $objectStart + 1);
+        }
+
+        return null;
     }
 
     /**
