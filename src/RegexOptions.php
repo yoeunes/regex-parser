@@ -162,6 +162,7 @@ final readonly class RegexOptions
         // Efficient deduplication and normalization
         /** @var array<string> $result */
         $result = array_values(array_unique($patterns));
+
         return $result;
     }
 }

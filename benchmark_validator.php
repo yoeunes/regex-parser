@@ -2,6 +2,15 @@
 
 declare(strict_types=1);
 
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 require_once __DIR__.'/vendor/autoload.php';
 
 use RegexParser\Regex;
@@ -23,7 +32,7 @@ $iterations = 100;
 
 foreach ($testPatterns as $name => $pattern) {
     echo "=== Testing {$name} pattern ===\n";
-    echo "Pattern: " . substr($pattern, 0, 60) . (strlen($pattern) > 60 ? '...' : '') . "\n";
+    echo 'Pattern: '.substr($pattern, 0, 60).(\strlen($pattern) > 60 ? '...' : '')."\n";
 
     // Benchmark parsing + validation
     $start = microtime(true);
@@ -34,8 +43,8 @@ foreach ($testPatterns as $name => $pattern) {
     }
     $parseTime = microtime(true) - $start;
 
-    echo sprintf("Parse + Validate (%d iterations): %.4f seconds\n", $iterations, $parseTime);
-    echo sprintf("Average time per operation: %.6f seconds\n", $parseTime / $iterations);
+    echo \sprintf("Parse + Validate (%d iterations): %.4f seconds\n", $iterations, $parseTime);
+    echo \sprintf("Average time per operation: %.6f seconds\n", $parseTime / $iterations);
     echo "\n";
 }
 
@@ -51,8 +60,8 @@ for ($i = 0; $i < 1000; $i++) {
 }
 $parseTime = microtime(true) - $start;
 
-echo sprintf("Pattern with many quantifiers (1,000 iterations): %.4f seconds\n", $parseTime);
-echo sprintf("Average time per parse: %.6f seconds\n", $parseTime / 1000);
+echo \sprintf("Pattern with many quantifiers (1,000 iterations): %.4f seconds\n", $parseTime);
+echo \sprintf("Average time per parse: %.6f seconds\n", $parseTime / 1000);
 
 // Test Unicode property caching
 echo "\n=== Unicode Property Caching Test ===\n";
@@ -73,7 +82,7 @@ for ($i = 0; $i < 100; $i++) {
 }
 $unicodeTime = microtime(true) - $start;
 
-echo sprintf("Unicode property validation (400 operations): %.4f seconds\n", $unicodeTime);
-echo sprintf("Average time per validation: %.6f seconds\n", $unicodeTime / 400);
+echo \sprintf("Unicode property validation (400 operations): %.4f seconds\n", $unicodeTime);
+echo \sprintf("Average time per validation: %.6f seconds\n", $unicodeTime / 400);
 
-echo "\nMemory usage: " . memory_get_peak_usage(true) / 1024 / 1024 . " MB\n";
+echo "\nMemory usage: ".memory_get_peak_usage(true) / 1024 / 1024 ." MB\n";
