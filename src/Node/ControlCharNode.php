@@ -18,7 +18,7 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
 /**
  * Represents a control character escape sequence (e.g., \cM).
  *
- * Purpose: This node represents control character escapes in PCRE2,
+ * This node represents control character escapes in PCRE2,
  * where \c followed by a letter produces the corresponding control character.
  */
 final readonly class ControlCharNode extends AbstractNode

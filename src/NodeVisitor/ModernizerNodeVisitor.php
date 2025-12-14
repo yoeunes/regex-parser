@@ -18,13 +18,6 @@ use RegexParser\Node;
 /**
  * Modernizes legacy or messy regular expressions into clean, concise PCRE2-compliant patterns.
  *
- * This visitor applies safe transformations to improve readability and conciseness without
- * changing the regex's behavior:
- * - Converts character class ranges to shorthands (\d, \w, \s)
- * - Removes unnecessary escaping
- * - Unwraps redundant non-capturing groups
- * - Modernizes backreference syntax
- *
  * @extends AbstractNodeVisitor<\RegexParser\Node\NodeInterface>
  */
 final class ModernizerNodeVisitor extends AbstractNodeVisitor

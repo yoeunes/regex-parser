@@ -20,27 +20,10 @@ use Symfony\Component\HttpKernel\DependencyInjection\Extension;
 
 /**
  * Loads and manages configuration for the RegexParser bundle.
- *
- * Purpose: This class is the main entry point for the bundle's integration with
- * Symfony's Dependency Injection (DI) container. Its `load` method is called by
- * the Symfony kernel during the container build process. It is responsible for:
- * 1. Processing the user-defined configuration from `config/packages/regex_parser.yaml`.
- * 2. Loading the necessary service definitions from the `Resources/config` directory.
- * 3. Setting parameters in the DI container based on the processed configuration.
- * 4. Conditionally loading debug-only services (like the Web Profiler collector)
- *    based on the application's environment and configuration.
  */
 final class RegexParserExtension extends Extension
 {
     /**
-     * Loads the bundle's services and processes its configuration.
-     *
-     * Purpose: This method orchestrates the entire setup of the bundle within the
-     * Symfony DI container. It reads the bundle's configuration, sets container
-     * parameters, and loads the appropriate service definition files. As a contributor,
-     * this is where you would manage the registration of new services or handle new
-     * configuration options.
-     *
      * @param array<array<string, mixed>> $configs   an array of configuration values from the application's config files
      * @param ContainerBuilder            $container the DI container builder instance
      *
@@ -85,12 +68,6 @@ final class RegexParserExtension extends Extension
     }
 
     /**
-     * Returns the alias of the extension.
-     *
-     * Purpose: This alias is used as the root key for the bundle's configuration
-     * in YAML files (e.g., `regex_parser:`). It provides a unique namespace for the
-     * bundle's settings.
-     *
      * @return string the configuration alias
      */
     #[\Override]

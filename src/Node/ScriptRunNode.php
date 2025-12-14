@@ -18,7 +18,7 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
 /**
  * Represents a script run verb (e.g., (*script_run:Latin), (*sr:Latin)).
  *
- * Purpose: This node represents PCRE2 script run assertions that ensure
+ * This node represents PCRE2 script run assertions that ensure
  * all characters in the subject string belong to the same script.
  */
 final readonly class ScriptRunNode extends AbstractNode

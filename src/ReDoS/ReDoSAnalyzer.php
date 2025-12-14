@@ -32,37 +32,6 @@ final class ReDoSAnalyzer
         $this->ignoredPatterns = array_values(array_unique($this->ignoredPatterns));
     }
 
-    /**
-     * Analyzes a regex pattern for ReDoS vulnerabilities and returns a detailed report.
-     *
-     * Purpose: This is the main entry point for the ReDoS detection engine. It orchestrates
-     * the analysis by first parsing the regex into an AST and then walking that tree with
-     * the `ReDoSProfileNodeVisitor`. The visitor is responsible for identifying dangerous
-     * patterns, such as "evil twins" (ambiguous, repeated quantifiers). This method then
-     * compiles the visitor's findings into a structured `ReDoSAnalysis` report.
-     *
-     * Notes and limitations:
-     * - Heuristic and conservative: absence of findings is not a proof of safety.
-     * - Known false positives: quantified alternations with complex character classes until overlap checks fully cover them.
-     * - Known blind spots: deeply recursive subroutines or backreference-driven ambiguity can escape static detection.
-     * - Internal errors yield `ReDoSSeverity::UNKNOWN` so callers can fail closed.
-     *
-     * @param string $regex the full PCRE regex string to be analyzed for vulnerabilities
-     *
-     * @return ReDoSAnalysis a comprehensive report object containing the severity of any
-     *                       detected issues, a complexity score, the problematic part of
-     *                       the pattern, and suggestions for how to fix it
-     *
-     * @example
-     * ```php
-     * $analyzer = new ReDoSAnalyzer();
-     * $report = $analyzer->analyze('/(a|a)+/'); // This is a vulnerable pattern
-     *
-     * if ($report->severity === ReDoSSeverity::HIGH) {
-     *     echo "High severity ReDoS vulnerability found in: " . $report->vulnerablePart;
-     * }
-     * ```
-     */
     public function analyze(string $regex, ?ReDoSSeverity $threshold = null): ReDoSAnalysis
     {
         $threshold ??= $this->threshold;

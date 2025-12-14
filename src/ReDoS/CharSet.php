@@ -15,8 +15,6 @@ namespace RegexParser\ReDoS;
 
 /**
  * Lightweight character set representation with basic set operations.
- *
- * Used by the ReDoS analyzer to reason about overlap between adjacent atoms.
  */
 final readonly class CharSet
 {

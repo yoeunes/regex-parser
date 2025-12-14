@@ -16,11 +16,6 @@ namespace RegexParser\Exception;
 /**
  * Represents a specific type of parsing error related to invalid syntax.
  *
- * Purpose: This exception is a specialization of `ParserException`. While `ParserException`
- * is general, this class can be used to signify errors that are explicitly about the
- * grammatical structure of the regex, such as a misplaced token or an invalid sequence.
- * It helps in distinguishing between general parsing failures and concrete syntax violations.
- *
  * @see \RegexParser\Parser
  */
 final class SyntaxErrorException extends ParserException implements RegexParserExceptionInterface {}

@@ -16,29 +16,10 @@ namespace RegexParser\Node;
 use RegexParser\NodeVisitor\NodeVisitorInterface;
 
 /**
- * Represents a character class in a regular expression, such as `[a-z]` or `[^0-9]`.
- *
- * Purpose: This node defines a set of characters that can be matched at a single position in the
- * input string. It can contain individual literal characters, character types (`\d`), POSIX classes
- * (`[:digit:]`), and ranges (`a-z`). It can also be negated (`[^...]`) to match any character
- * *not* in the set. This is one of the most powerful and common components of regular expressions.
+ * Represents a character class in a regular expression.
  */
 final readonly class CharClassNode extends AbstractNode
 {
-    /**
-     * Initializes a character class node.
-     *
-     * Purpose: This constructor creates a node representing a `[...]` construct. The `Parser`
-     * builds this node and populates it with the various components found between the brackets.
-     *
-     * @param NodeInterface $expression    The expression representing the contents of the character class.
-     *                                     This can be `LiteralNode`, `CharTypeNode`, `RangeNode`,
-     *                                     `PosixClassNode`, `AlternationNode`, or `ClassOperationNode` for extended operations.
-     * @param bool          $isNegated     `true` if the class is negated (starts with `^`), meaning it matches
-     *                                     any character *not* in the set. `false` otherwise.
-     * @param int           $startPosition the zero-based byte offset where the opening `[` appears
-     * @param int           $endPosition   the zero-based byte offset immediately after the closing `]`
-     */
     public function __construct(
         public NodeInterface $expression,
         public bool $isNegated,
@@ -49,18 +30,11 @@ final readonly class CharClassNode extends AbstractNode
     }
 
     /**
-     * Implements the visitor pattern for traversing the AST.
+     * @template T
      *
-     * Purpose: This method is the entry point for any `NodeVisitorInterface` that needs to
-     * process this `CharClassNode`. It allows for operations like compilation, validation,
-     * or explanation to be performed without adding logic to the node itself. The method
-     * simply dispatches the call to the appropriate `visitCharClass` method on the visitor.
+     * @param NodeVisitorInterface<T> $visitor
      *
-     * @template T The return type of the visitor's methods.
-     *
-     * @param NodeVisitorInterface<T> $visitor the visitor object that is traversing the tree
-     *
-     * @return T the result of the visitor's processing for this node
+     * @return T
      */
     public function accept(NodeVisitorInterface $visitor)
     {

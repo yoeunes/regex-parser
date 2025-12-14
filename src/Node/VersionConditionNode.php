@@ -18,7 +18,7 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
 /**
  * Represents a version condition in conditional groups (e.g., (?(VERSION>=10.0)...)).
  *
- * Purpose: This node represents PCRE2 version conditions that allow
+ * This node represents PCRE2 version conditions that allow
  * conditional matching based on the PCRE library version.
  */
 final readonly class VersionConditionNode extends AbstractNode

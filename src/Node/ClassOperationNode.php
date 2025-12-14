@@ -18,7 +18,7 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
 /**
  * Represents a character class operation (intersection && or subtraction --).
  *
- * Purpose: This node handles extended character class operations in PCRE2,
+ * This node handles extended character class operations in PCRE2,
  * allowing complex class combinations like [a&&b] or [a--b].
  */
 final readonly class ClassOperationNode extends AbstractNode
