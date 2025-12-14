@@ -15,41 +15,32 @@ namespace RegexParser;
 
 use RegexParser\Exception\ParserException;
 use RegexParser\Exception\RecursionLimitException;
-use RegexParser\Exception\ResourceLimitException;
 use RegexParser\Exception\SyntaxErrorException;
-
 
 final class Parser
 {
-    
     private const INLINE_FLAG_CHARS = 'imsxADSUXJnr-';
 
     private const MAX_RECURSION_DEPTH = 1024;
 
-    
     private TokenStream $stream;
 
-    
     private string $pattern = '';
 
-    
     private string $flags = '';
-
 
     private bool $JModifier = false;
 
-    
-    /** @var array<string, bool> */
+    /**
+     * @var array<string, bool>
+     */
     private array $groupNames = [];
 
-    
     private bool $lastTokenWasAlternation = false;
 
-    
     private int $lastInlineFlagsLength = 0;
 
     private int $recursionDepth = 0;
-
 
     public function parse(TokenStream $stream, string $flags = '', string $delimiter = '/', int $patternLength = 0): Node\RegexNode
     {
@@ -68,7 +59,6 @@ final class Parser
         return new Node\RegexNode($patternNode, $flags, $delimiter, 0, $patternLength);
     }
 
-    
     private function parseAlternation(): Node\NodeInterface
     {
         $this->guardRecursionDepth($this->current()->position);
@@ -83,18 +73,18 @@ final class Parser
                 $nodes[] = $this->parseSequence();
             }
 
-            if (1 === count($nodes)) {
+            if (1 === \count($nodes)) {
                 return $nodes[0];
             }
 
             $endPosition = end($nodes)->getEndPosition();
+
             return new Node\AlternationNode($nodes, $startPosition, $endPosition);
         } finally {
             $this->recursionDepth--;
         }
     }
 
-    
     private function parseSequence(): Node\NodeInterface
     {
         $nodes = [];
@@ -116,11 +106,12 @@ final class Parser
             return $this->createEmptyLiteralNodeAt($startPosition);
         }
 
-        if (1 === count($nodes)) {
+        if (1 === \count($nodes)) {
             return $nodes[0];
         }
 
         $endPosition = end($nodes)->getEndPosition();
+
         return new Node\SequenceNode($nodes, $startPosition, $endPosition);
     }
 
@@ -140,6 +131,7 @@ final class Parser
             if (ctype_space($token->value)) {
                 $this->advance();
                 $skipped = true;
+
                 continue;
             }
 
@@ -152,6 +144,7 @@ final class Parser
                     $this->advance();
                 }
                 $skipped = true;
+
                 continue;
             }
 
@@ -161,7 +154,6 @@ final class Parser
         return $skipped;
     }
 
-    
     private function parseQuantifiedAtom(): Node\NodeInterface
     {
         $node = $this->parseAtom();
@@ -182,38 +174,39 @@ final class Parser
         return $node;
     }
 
-    
-    /** @return array{0: string, 1: Node\QuantifierType} */
+    /**
+     * @return array{0: string, 1: Node\QuantifierType}
+     */
     private function parseQuantifierValue(string $value): array
     {
         $lastChar = substr($value, -1);
         $baseValue = substr($value, 0, -1);
 
-        if ('?' === $lastChar && strlen($value) > 1) {
+        if ('?' === $lastChar && \strlen($value) > 1) {
             return [$baseValue, Node\QuantifierType::T_LAZY];
         }
 
-        if ('+' === $lastChar && strlen($value) > 1) {
+        if ('+' === $lastChar && \strlen($value) > 1) {
             return [$baseValue, Node\QuantifierType::T_POSSESSIVE];
         }
 
         return [$value, Node\QuantifierType::T_GREEDY];
     }
 
-    
     private function assertQuantifierCanApply(Node\NodeInterface $node, Token $token): void
     {
         if ($this->isEmptyNode($node)) {
             throw $this->parserException(
-                sprintf('Quantifier without target at position %d', $token->position),
+                \sprintf('Quantifier without target at position %d', $token->position),
                 $token->position,
             );
         }
 
         if ($this->isAssertionNode($node)) {
             $nodeName = $this->getAssertionNodeName($node);
+
             throw $this->parserException(
-                sprintf('Quantifier "%s" cannot be applied to assertion or verb "%s" at position %d',
+                \sprintf('Quantifier "%s" cannot be applied to assertion or verb "%s" at position %d',
                     $token->value, $nodeName, $node->getStartPosition()),
                 $token->position,
             );
@@ -245,7 +238,6 @@ final class Parser
         };
     }
 
-    
     private function isEmptyGroup(Node\GroupNode $node): bool
     {
         $child = $node->child;
@@ -254,7 +246,6 @@ final class Parser
             || ($child instanceof Node\SequenceNode && empty($child->children));
     }
 
-    
     private function parseAtom(): Node\NodeInterface
     {
         $token = $this->current();
@@ -286,7 +277,7 @@ final class Parser
 
         if ($this->check(TokenType::T_QUANTIFIER)) {
             throw $this->parserException(
-                sprintf('Quantifier without target at position %d', $this->current()->position),
+                \sprintf('Quantifier without target at position %d', $this->current()->position),
                 $this->current()->position,
             );
         }
@@ -295,12 +286,11 @@ final class Parser
         $type = $this->current()->type->value;
 
         throw $this->parserException(
-            sprintf('Unexpected token "%s" (%s) at position %d.', $val, $type, $startPosition),
+            \sprintf('Unexpected token "%s" (%s) at position %d.', $val, $type, $startPosition),
             $startPosition,
         );
     }
 
-    
     private function parseSimpleAtom(int $startPosition): ?Node\NodeInterface
     {
         if ($this->match(TokenType::T_LITERAL)) {
@@ -407,10 +397,10 @@ final class Parser
         return null;
     }
 
-/**
- * Transforms a stream of Tokens into an Abstract Syntax Tree (AST).
- * Implements a Recursive Descent Parser based on PCRE grammar.
- */
+    /**
+     * Transforms a stream of Tokens into an Abstract Syntax Tree (AST).
+     * Implements a Recursive Descent Parser based on PCRE grammar.
+     */
     private function parseGroupOrCharClassAtom(int $startPosition): ?Node\NodeInterface
     {
         if ($this->match(TokenType::T_GROUP_OPEN)) {
@@ -436,7 +426,6 @@ final class Parser
 
         return null;
     }
-
 
     private function parseVerbAtom(int $startPosition): ?Node\NodeInterface
     {

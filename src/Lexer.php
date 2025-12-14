@@ -83,11 +83,17 @@ final class Lexer
     ];
 
     private string $pattern;
+
     private int $position = 0;
+
     private int $length = 0;
+
     private bool $inCharClass = false;
+
     private bool $inQuoteMode = false;
+
     private bool $inCommentMode = false;
+
     private int $charClassStartPosition = 0;
 
     public function tokenize(string $pattern): TokenStream
@@ -97,7 +103,7 @@ final class Lexer
         }
 
         $this->pattern = $pattern;
-        $this->length = strlen($this->pattern);
+        $this->length = \strlen($this->pattern);
         $this->resetState();
 
         /** @var array<Token> $tokens */
@@ -128,13 +134,16 @@ final class Lexer
         $this->charClassStartPosition = 0;
     }
 
-    /** @param array<Token> $tokens */
+    /**
+     * @param array<Token> $tokens
+     */
     private function handleTunnelModes(array &$tokens): bool
     {
         if ($this->inQuoteMode) {
             if ($token = $this->consumeQuoteMode()) {
                 $tokens[] = $token;
             }
+
             return true;
         }
 
@@ -142,13 +151,16 @@ final class Lexer
             if ($token = $this->consumeCommentMode()) {
                 $tokens[] = $token;
             }
+
             return true;
         }
 
         return false;
     }
 
-    /** @return array{0: string, 1: array<string>} */
+    /**
+     * @return array{0: string, 1: array<string>}
+     */
     private function getCurrentContext(): array
     {
         if ($this->inCharClass) {
@@ -158,14 +170,16 @@ final class Lexer
         return [self::REGEX_OUTSIDE, self::TOKENS_OUTSIDE];
     }
 
-    /** @return array{0: string, 1: int, 2: array<int|string, string|null>} */
+    /**
+     * @return array{0: string, 1: int, 2: array<int|string, string|null>}
+     */
     private function matchAtPosition(string $regex): array
     {
-        $result = preg_match($regex, $this->pattern, $matches, PREG_UNMATCHED_AS_NULL, $this->position);
+        $result = preg_match($regex, $this->pattern, $matches, \PREG_UNMATCHED_AS_NULL, $this->position);
 
         if (false === $result) {
             throw LexerException::withContext(
-                sprintf('PCRE Error during tokenization: %s', preg_last_error_msg()),
+                \sprintf('PCRE Error during tokenization: %s', preg_last_error_msg()),
                 $this->position,
                 $this->pattern,
             );
@@ -173,8 +187,9 @@ final class Lexer
 
         if (0 === $result) {
             $context = substr($this->pattern, $this->position, 10);
+
             throw LexerException::withContext(
-                sprintf('Unable to tokenize pattern at position %d. Context: "%s..."', $this->position, $context),
+                \sprintf('Unable to tokenize pattern at position %d. Context: "%s..."', $this->position, $context),
                 $this->position,
                 $this->pattern,
             );
@@ -182,15 +197,15 @@ final class Lexer
 
         $matchedValue = (string) $matches[0];
         $startPos = $this->position;
-        $this->position += strlen($matchedValue);
+        $this->position += \strlen($matchedValue);
 
         return [$matchedValue, $startPos, $matches];
     }
 
     /**
-     * @param array<string> $tokenMap
+     * @param array<string>                  $tokenMap
      * @param array<int|string, string|null> $matches
-     * @param array<Token> $currentTokens
+     * @param array<Token>                   $currentTokens
      */
     private function createToken(
         array $tokenMap,
@@ -198,8 +213,7 @@ final class Lexer
         string $matchedValue,
         int $startPos,
         array $currentTokens
-    ): Token
-    {
+    ): Token {
         foreach ($tokenMap as $tokenName) {
             /** @var string $tokenName */
             if (!isset($matches[$tokenName])) {
@@ -212,26 +226,27 @@ final class Lexer
                 return $token;
             }
 
-            /** @var array<int|string, string|null> $matches */
             $value = $this->extractTokenValue($type, $matchedValue, $matches);
+
             return new Token($type, $value, $startPos);
         }
 
         throw LexerException::withContext(
-            sprintf('Lexer internal error: No known token matched at position %d.', $startPos),
+            \sprintf('Lexer internal error: No known token matched at position %d.', $startPos),
             $startPos,
             $this->pattern,
         );
     }
 
-    /** @param array<Token> $currentTokens */
+    /**
+     * @param array<Token> $currentTokens
+     */
     private function handleStatefulToken(
         TokenType $type,
         string $matchedValue,
         int $startPos,
         array $currentTokens
-    ): ?Token
-    {
+    ): ?Token {
         return match ($type) {
             TokenType::T_CHAR_CLASS_OPEN => $this->openCharClass($startPos),
             TokenType::T_CHAR_CLASS_CLOSE => $this->closeCharClass($startPos, $currentTokens),
@@ -245,10 +260,13 @@ final class Lexer
     {
         $this->inCharClass = true;
         $this->charClassStartPosition = $startPos;
+
         return new Token(TokenType::T_CHAR_CLASS_OPEN, '[', $startPos);
     }
 
-    /** @param array<Token> $currentTokens */
+    /**
+     * @param array<Token> $currentTokens
+     */
     private function closeCharClass(int $startPos, array $currentTokens): Token
     {
         if ($this->isAtCharClassStart($startPos, $currentTokens)) {
@@ -256,29 +274,33 @@ final class Lexer
         }
 
         $this->inCharClass = false;
+
         return new Token(TokenType::T_CHAR_CLASS_CLOSE, ']', $startPos);
     }
 
     private function openComment(int $startPos): Token
     {
         $this->inCommentMode = true;
+
         return new Token(TokenType::T_COMMENT_OPEN, '(?#', $startPos);
     }
 
     private function openQuoteMode(int $startPos): Token
     {
         $this->inQuoteMode = true;
+
         return new Token(TokenType::T_QUOTE_MODE_START, '\Q', $startPos);
     }
 
-    /** @param array<Token> $currentTokens */
+    /**
+     * @param array<Token> $currentTokens
+     */
     private function handleContextualLiteral(
         TokenType $type,
         string $matchedValue,
         int $startPos,
         array $currentTokens
-    ): ?Token
-    {
+    ): ?Token {
         if (!$this->inCharClass || TokenType::T_LITERAL !== $type) {
             return null;
         }
@@ -294,7 +316,9 @@ final class Lexer
         return null;
     }
 
-    /** @param array<Token> $currentTokens */
+    /**
+     * @param array<Token> $currentTokens
+     */
     private function isAtCharClassStart(int $startPos, array $currentTokens): bool
     {
         $lastToken = end($currentTokens);
@@ -307,9 +331,10 @@ final class Lexer
 
     private function consumeQuoteMode(): ?Token
     {
-        if (!preg_match('/(.*?)((\\\\E|$))/suA', $this->pattern, $matches, PREG_UNMATCHED_AS_NULL, $this->position)) {
+        if (!preg_match('/(.*?)((\\\\E|$))/suA', $this->pattern, $matches, \PREG_UNMATCHED_AS_NULL, $this->position)) {
             $this->inQuoteMode = false;
             $this->position = $this->length;
+
             return null;
         }
 
@@ -318,7 +343,8 @@ final class Lexer
         $startPos = $this->position;
 
         if ('' !== $literalText) {
-            $this->position += strlen($literalText);
+            $this->position += \strlen($literalText);
+
             return new Token(TokenType::T_LITERAL, $literalText, $startPos);
         }
 
@@ -326,18 +352,21 @@ final class Lexer
             $this->inQuoteMode = false;
             $token = new Token(TokenType::T_QUOTE_MODE_END, '\E', $this->position);
             $this->position += 2;
+
             return $token;
         }
 
         $this->position = $this->length;
+
         return null;
     }
 
     private function consumeCommentMode(): ?Token
     {
-        if (!preg_match('/([^)]*)(\)|$)/uA', $this->pattern, $matches, PREG_UNMATCHED_AS_NULL, $this->position)) {
+        if (!preg_match('/([^)]*)(\)|$)/uA', $this->pattern, $matches, \PREG_UNMATCHED_AS_NULL, $this->position)) {
             $this->inCommentMode = false;
             $this->position = $this->length;
+
             return null;
         }
 
@@ -346,7 +375,8 @@ final class Lexer
         $startPos = $this->position;
 
         if ('' !== $commentText) {
-            $this->position += strlen($commentText);
+            $this->position += \strlen($commentText);
+
             return new Token(TokenType::T_LITERAL, $commentText, $startPos);
         }
 
@@ -354,14 +384,18 @@ final class Lexer
             $this->inCommentMode = false;
             $token = new Token(TokenType::T_GROUP_CLOSE, ')', $this->position);
             $this->position++;
+
             return $token;
         }
 
         $this->position = $this->length;
+
         return null;
     }
 
-    /** @param array<int|string, string|null> $matches */
+    /**
+     * @param array<int|string, string|null> $matches
+     */
     private function extractTokenValue(TokenType $type, string $matchedValue, array $matches): string
     {
         return match ($type) {
@@ -384,7 +418,9 @@ final class Lexer
         };
     }
 
-    /** @param array<int|string, string|null> $matches */
+    /**
+     * @param array<int|string, string|null> $matches
+     */
     private function normalizeUnicodeProp(string $matchedValue, array $matches): string
     {
         $prop = (string) ($matches['v1_prop'] ?? $matches['v2_prop'] ?? '');
