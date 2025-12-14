@@ -19,26 +19,18 @@ use RegexParser\Cache\NullCache;
 use RegexParser\Exception\InvalidRegexOptionException;
 
 /**
- * Immutable value object that encapsulates configuration for `Regex::create()`.
+ * Immutable configuration for Regex::create().
  */
 final readonly class RegexOptions
 {
-    /**
-     * @param list<string> $redosIgnoredPatterns
-     */
+
     public function __construct(
         public int $maxPatternLength,
         public CacheInterface $cache,
         public array $redosIgnoredPatterns = [],
     ) {}
 
-    /**
-     * @param array{
-     *     max_pattern_length?: int,
-     *     cache?: CacheInterface|string|null,
-     *     redos_ignored_patterns?: list<string>,
-     * } $options
-     */
+    /** @param array $options */
     public static function fromArray(array $options): self
     {
         $allowedKeys = ['max_pattern_length', 'cache', 'redos_ignored_patterns'];
