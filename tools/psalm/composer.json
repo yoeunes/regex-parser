@@ -1,0 +1,14 @@
+{
+    "name": "regex-parser/psalm-tool",
+    "description": "Psalm static analysis tool for RegexParser",
+    "type": "library",
+    "license": "MIT",
+    "require-dev": {
+        "vimeo/psalm": "^5.26"
+    },
+    "config": {
+        "platform": {
+            "php": "8.2.0"
+        }
+    }
+}

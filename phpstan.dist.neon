@@ -19,9 +19,11 @@ parameters:
     excludePaths:
         - src/Bridge/Symfony/*
         - src/Bridge/Rector/*
+        - src/Bridge/Psalm/*
         - config/rector/*
         - tests/Benchmark/*
         - tests/Bridge/PHPStan/Fixtures/*
+        - tests/Bridge/Psalm/*
         - tests/extract_pcre_tests.php
         - tests/validate_library.php
         - tests/Integration/BehavioralComplianceTest.php

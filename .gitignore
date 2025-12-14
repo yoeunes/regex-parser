@@ -1,5 +1,6 @@
 # Dependencies
 /vendor/
+/tools/**/vendor/
 /composer.lock
 
 # IDEs
