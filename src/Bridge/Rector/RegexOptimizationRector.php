@@ -26,10 +26,7 @@ use Symplify\RuleDocGenerator\ValueObject\CodeSample\ConfiguredCodeSample;
 use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
 
 /**
- * Optimizes PCRE regex patterns found in function calls and class constants.
- *
- * This rule parses the regex string, applies AST optimizations (like flattening groups
- * or merging character classes), and recompiles it back to a cleaner string.
+ * Optimizes PCRE regex patterns in function calls and class constants.
  */
 final class RegexOptimizationRector extends AbstractRector implements ConfigurableRectorInterface
 {
@@ -69,7 +66,6 @@ final class RegexOptimizationRector extends AbstractRector implements Configurab
     public function __construct(
         private readonly OptimizerNodeVisitor $optimizerVisitor,
     ) {
-        // Initialize defaults
         foreach (self::DEFAULT_FUNCTIONS as $func) {
             $this->targetFunctions[$func] = true;
         }
@@ -79,14 +75,7 @@ final class RegexOptimizationRector extends AbstractRector implements Configurab
     }
 
     /**
-     * Provides the definition of the rule for documentation generation.
-     *
-     * Purpose: This method is used by Rector's documentation generator to create a
-     * clear explanation of what the rule does, including before-and-after code samples.
-     * As a contributor, if you change the rule's behavior or add new configuration,
-     * you must update this definition to reflect those changes.
-     *
-     * @return RuleDefinition the definition of the rule
+     * @return RuleDefinition
      */
     public function getRuleDefinition(): RuleDefinition
     {
@@ -121,15 +110,7 @@ final class RegexOptimizationRector extends AbstractRector implements Configurab
     }
 
     /**
-     * Configures the rector with user-defined settings.
-     *
-     * Purpose: This method allows users of the Rector rule to extend its functionality.
-     * By default, the rule targets standard `preg_*` functions and common constant names.
-     * This method merges user-provided lists of additional function and constant names
-     * into the rector's target list, making the rule adaptable to different codebases.
-     *
-     * @param array<string, mixed> $configuration The configuration array from the user's `rector.php` file.
-     *                                            Expected keys are `EXTRA_FUNCTIONS` and `EXTRA_CONSTANTS`.
+     * @param array<string, mixed> $configuration
      */
     public function configure(array $configuration): void
     {
@@ -147,14 +128,7 @@ final class RegexOptimizationRector extends AbstractRector implements Configurab
     }
 
     /**
-     * Specifies which types of PHP-Parser nodes this rector should visit.
-     *
-     * Purpose: This is a performance optimization for Rector. By telling Rector that
-     * this rule is only interested in `FuncCall` and `ClassConst` nodes, Rector can
-     * skip calling the `refactor()` method for all other node types, speeding up the
-     * overall analysis process.
-     *
-     * @return array<class-string<Node>> the list of node types to process
+     * @return array<class-string<Node>>
      */
     public function getNodeTypes(): array
     {
@@ -162,17 +136,8 @@ final class RegexOptimizationRector extends AbstractRector implements Configurab
     }
 
     /**
-     * The core transformation logic of the rector.
-     *
-     * Purpose: This method is called by Rector for each node matching the types defined
-     * in `getNodeTypes()`. It identifies the string containing the regex pattern,
-     * parses it, runs the `OptimizerNodeVisitor` to simplify the AST, and then uses the
-     * `CompilerNodeVisitor` to generate the new, optimized regex string. If the string
-     * has changed, it modifies the node in place.
-     *
-     * @param Node $node the AST node being visited (either a `FuncCall` or `ClassConst`)
-     *
-     * @return Node|null the modified node if a change was made, or null if no change was needed
+     * @param Node $node
+     * @return Node|null
      */
     public function refactor(Node $node): ?Node
     {
@@ -184,7 +149,6 @@ final class RegexOptimizationRector extends AbstractRector implements Configurab
 
         $originalPattern = $stringNode->value;
 
-        // Quick check: if it doesn't look like a regex, skip to save performance
         if (\strlen($originalPattern) < 2) {
             return null;
         }
@@ -193,24 +157,18 @@ final class RegexOptimizationRector extends AbstractRector implements Configurab
             $parser = $this->getParser();
             $ast = $parser->parse($originalPattern);
 
-            // 1. Optimization Phase (AST -> AST)
-            // We clone the visitor to ensure a fresh state for each run
             $optimizer = clone $this->optimizerVisitor;
             $optimizedAst = $ast->accept($optimizer);
 
-            // 2. Compilation Phase (AST -> String)
             $compiler = $this->getCompiler();
             $newPattern = $optimizedAst->accept($compiler);
 
-            // Only modify the AST if the optimization resulted in a change
             if ($newPattern !== $originalPattern) {
                 $stringNode->value = $newPattern;
 
                 return $node;
             }
         } catch (\Throwable) {
-            // Silently ignore invalid regexes or parsing errors.
-            // Rector's job is to refactor valid code, not to act as a linter.
         }
 
         return null;
@@ -240,8 +198,6 @@ final class RegexOptimizationRector extends AbstractRector implements Configurab
             return null;
         }
 
-        // In standard preg_ functions, the pattern is always the first argument (index 0)
-        // If custom functions use a different index, we might need more advanced config later.
         $args = $node->getArgs();
         if (!isset($args[0])) {
             return null;
@@ -254,7 +210,6 @@ final class RegexOptimizationRector extends AbstractRector implements Configurab
 
     private function resolveClassConstantValue(ClassConst $node): ?String_
     {
-        // Check if any of the constant names match our target list
         foreach ($node->consts as $const) {
             if (isset($this->targetConstants[$const->name->toString()])) {
                 return $const->value instanceof String_ ? $const->value : null;
@@ -266,13 +221,11 @@ final class RegexOptimizationRector extends AbstractRector implements Configurab
 
     private function getParser(): Parser
     {
-        // Lazy initialization
         return $this->parser ??= new Parser();
     }
 
     private function getCompiler(): CompilerNodeVisitor
     {
-        // Lazy initialization
         return $this->compiler ??= new CompilerNodeVisitor();
     }
 }
