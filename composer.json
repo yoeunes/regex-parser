@@ -124,6 +124,7 @@
         "psr/simple-cache": "To share AST cache via PSR-16 caches.",
         "phpstan/phpstan": "To run static analysis and detect invalid regex patterns.",
         "phpstan/extension-installer": "To automatically enable the PHPStan rule for regex validation.",
+        "vimeo/psalm": "To run static analysis and detect invalid regex patterns with Psalm.",
         "rector/rector": "To automatically refactor and optimize regex patterns."
     }
 }
