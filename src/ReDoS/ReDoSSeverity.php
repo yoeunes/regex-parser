@@ -20,37 +20,31 @@ enum ReDoSSeverity: string
 {
     /**
      * No significant ReDoS risk detected.
-     * Pattern uses bounded quantifiers or no recursion.
      */
     case SAFE = 'safe';
 
     /**
-     * Low risk. Nested quantifiers exist but are strictly bounded (e.g., (a{1,5}){1,5}).
-     * Linear to polynomial complexity with low constants.
+     * Low risk.
      */
     case LOW = 'low';
 
     /**
-     * Medium risk. Single unbounded quantifiers or very large bounded repetitions.
-     * Potential polynomial time O(n^2).
+     * Medium risk.
      */
     case MEDIUM = 'medium';
 
     /**
-     * Analysis could not determine the risk (parser error, unsupported feature).
-     * Treat as non-safe until confirmed otherwise.
+     * Analysis could not determine the risk.
      */
     case UNKNOWN = 'unknown';
 
     /**
-     * High risk. Nested unbounded quantifiers detected.
-     * Potential exponential time O(2^n).
+     * High risk.
      */
     case HIGH = 'high';
 
     /**
-     * Critical risk. Definite catastrophic backtracking detected.
-     * Patterns like (a*)* or overlapping alternations inside loops.
+     * Critical risk.
      */
     case CRITICAL = 'critical';
 }
