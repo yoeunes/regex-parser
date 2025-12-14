@@ -20,13 +20,6 @@ use RegexParser\ReDoS\CharSetAnalyzer;
 /**
  * Transforms the AST to apply optimizations, returning a new, simplified AST.
  *
- * Purpose: This visitor is the engine behind `Regex::optimize()`. It traverses the
- * AST and applies a series of rules to simplify the regex without changing its
- * meaning. This can lead to more readable and sometimes more performant patterns.
- * For contributors, this class is a great example of AST-to-AST transformation.
- * Each `visit` method can return a new, modified node, effectively rewriting
- * parts of the tree.
- *
  * @extends AbstractNodeVisitor<Node\NodeInterface>
  */
 final class OptimizerNodeVisitor extends AbstractNodeVisitor
@@ -42,17 +35,6 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         $this->charSetAnalyzer = new CharSetAnalyzer();
     }
 
-    /**
-     * Optimizes the root `RegexNode`.
-     *
-     * Purpose: This is the entry point for the optimization. It stores the regex
-     * flags for context-aware optimizations (like unicode-dependent rules) and then
-     * recursively optimizes the main pattern.
-     *
-     * @param Node\RegexNode $node the root node of the AST
-     *
-     * @return Node\NodeInterface the new, optimized root node
-     */
     #[\Override]
     public function visitRegex(Node\RegexNode $node): Node\NodeInterface
     {
@@ -66,18 +48,6 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         return new Node\RegexNode($optimizedPattern, $node->flags, $node->delimiter, $node->startPosition, $node->endPosition);
     }
 
-    /**
-     * Optimizes an `AlternationNode`.
-     *
-     * Purpose: This method applies two key optimizations:
-     * 1.  **Flattening:** It merges nested alternations (e.g., `a|(b|c)` becomes `a|b|c`).
-     * 2.  **Character Class Conversion:** It converts simple alternations of single
-     *     characters into a more efficient character class (e.g., `a|b|c` becomes `[abc]`).
-     *
-     * @param Node\AlternationNode $node the alternation node to optimize
-     *
-     * @return Node\NodeInterface the new, optimized node (which could be an `AlternationNode` or `CharClassNode`)
-     */
     #[\Override]
     public function visitAlternation(Node\AlternationNode $node): Node\NodeInterface
     {
@@ -131,20 +101,6 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         return new Node\AlternationNode($optimizedAlts, $node->startPosition, $node->endPosition);
     }
 
-    /**
-     * Optimizes a `SequenceNode`.
-     *
-     * Purpose: This method applies several optimizations to sequences:
-     * 1.  **Literal Merging:** It combines adjacent `LiteralNode`s into a single node
-     *     (e.g., the sequence `('a', 'b')` becomes `('ab')`).
-     * 2.  **Flattening:** It merges nested sequences into the parent sequence.
-     * 3.  **Empty Node Removal:** It removes empty `LiteralNode`s that might result
-     *     from other optimizations (like an empty group).
-     *
-     * @param Node\SequenceNode $node the sequence node to optimize
-     *
-     * @return Node\NodeInterface the new, optimized node (which could be a `SequenceNode` or a single child node)
-     */
     #[\Override]
     public function visitSequence(Node\SequenceNode $node): Node\NodeInterface
     {
@@ -242,17 +198,6 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         return new Node\SequenceNode($optimizedChildren, $node->startPosition, $node->endPosition);
     }
 
-    /**
-     * Optimizes a `GroupNode`.
-     *
-     * Purpose: This method simplifies groups where possible. Its main optimization is
-     * to "unwrap" redundant non-capturing groups. For example, `(?:a)` is simplified
-     * to just `a`, and `(?:[a-z])` becomes `[a-z]`, as the group serves no purpose.
-     *
-     * @param Node\GroupNode $node the group node to optimize
-     *
-     * @return Node\NodeInterface the new, optimized node (which might be the unwrapped child node)
-     */
     #[\Override]
     public function visitGroup(Node\GroupNode $node): Node\NodeInterface
     {
@@ -283,17 +228,6 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         return $node;
     }
 
-    /**
-     * Optimizes a `QuantifierNode`.
-     *
-     * Purpose: This method recursively optimizes the node that the quantifier applies
-     * to. Future optimizations could be added here, such as merging adjacent identical
-     * quantifiers (e.g., `a?a?` -> `a{0,2}`) or simplifying nested quantifiers (e.g., `(a*)*` -> `a*`).
-     *
-     * @param Node\QuantifierNode $node the quantifier node to optimize
-     *
-     * @return Node\NodeInterface the new, optimized quantifier node
-     */
     #[\Override]
     public function visitQuantifier(Node\QuantifierNode $node): Node\NodeInterface
     {
@@ -311,17 +245,6 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         return $node;
     }
 
-    /**
-     * Optimizes a `CharClassNode`.
-     *
-     * Purpose: This method simplifies character classes. For example, it can convert
-     * a class containing a full digit range `[0-9]` into the more concise and efficient
-     * `\d` token. It can also perform the same optimization for `\w`.
-     *
-     * @param Node\CharClassNode $node the character class node to optimize
-     *
-     * @return Node\NodeInterface the new, optimized node (which could be a `CharTypeNode`)
-     */
     #[\Override]
     public function visitCharClass(Node\CharClassNode $node): Node\NodeInterface
     {
@@ -369,32 +292,12 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         return $node;
     }
 
-    /**
-     * Visits a `RangeNode`.
-     *
-     * Purpose: Ranges are considered atomic and are not changed by the optimizer.
-     * This method simply returns the node as is.
-     *
-     * @param Node\RangeNode $node the range node
-     *
-     * @return Node\NodeInterface the unchanged node
-     */
     #[\Override]
     public function visitRange(Node\RangeNode $node): Node\NodeInterface
     {
         return $node;
     }
 
-    /**
-     * Optimizes a `ConditionalNode`.
-     *
-     * Purpose: This method recursively optimizes the three branches of a conditional
-     * node: the condition, the "yes" pattern, and the "no" pattern.
-     *
-     * @param Node\ConditionalNode $node the conditional node to optimize
-     *
-     * @return Node\NodeInterface the new, optimized conditional node
-     */
     #[\Override]
     public function visitConditional(Node\ConditionalNode $node): Node\NodeInterface
     {
@@ -410,14 +313,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
     }
 
     /**
-     * Visits a `LiteralNode`.
-     *
-     * Purpose: Literals are atomic and cannot be optimized further by this visitor.
-     * The merging of adjacent literals is handled by the `visitSequence` method.
-     *
-     * @param Node\LiteralNode $node the literal node
-     *
-     * @return Node\NodeInterface the unchanged node
+     * @param Node\DefineNode $node
      */
     #[\Override]
     public function visitLiteral(Node\LiteralNode $node): Node\NodeInterface

@@ -19,13 +19,6 @@ use RegexParser\Node\GroupType;
 /**
  * Recompiles the Abstract Syntax Tree (AST) back into a regular expression string.
  *
- * Purpose: This visitor is the counterpart to the `Parser`. It traverses a (potentially
- * modified) AST and reconstructs the original PCRE string. This is crucial for features
- * like `Regex::optimize()`, where the AST is simplified and then needs to be converted
- * back into a string. For contributors, this class demonstrates how to correctly
- * serialize each node back to its string representation, including handling context-sensitive
- * escaping (e.g., inside and outside of character classes).
- *
  * @extends AbstractNodeVisitor<string>
  */
 final class CompilerNodeVisitor extends AbstractNodeVisitor
@@ -46,16 +39,6 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
 
     private string $delimiter = '/';
 
-    /**
-     * Compiles the root `RegexNode`.
-     *
-     * Purpose: This is the entry point for the compilation. It reconstructs the full
-     * PCRE string by wrapping the compiled pattern with its original delimiters and flags.
-     *
-     * @param Node\RegexNode $node the root node of the AST
-     *
-     * @return string the complete, recompiled PCRE regex string
-     */
     #[\Override]
     public function visitRegex(Node\RegexNode $node): string
     {
@@ -66,16 +49,6 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
         return $node->delimiter.$node->pattern->accept($this).$closingDelimiter.$node->flags;
     }
 
-    /**
-     * Compiles an `AlternationNode`.
-     *
-     * Purpose: This method reconstructs an alternation by compiling each of its
-     * branches and joining them with the `|` character.
-     *
-     * @param Node\AlternationNode $node the alternation node to compile
-     *
-     * @return string the recompiled alternation string
-     */
     #[\Override]
     public function visitAlternation(Node\AlternationNode $node): string
     {
@@ -84,33 +57,12 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
         return implode($separator, array_map(fn ($alt) => $alt->accept($this), $node->alternatives));
     }
 
-    /**
-     * Compiles a `SequenceNode`.
-     *
-     * Purpose: This method reconstructs a sequence by simply concatenating the
-     * compiled output of each of its child nodes in order.
-     *
-     * @param Node\SequenceNode $node the sequence node to compile
-     *
-     * @return string the recompiled sequence string
-     */
     #[\Override]
     public function visitSequence(Node\SequenceNode $node): string
     {
         return implode('', array_map(fn ($child) => $child->accept($this), $node->children));
     }
 
-    /**
-     * Compiles a `GroupNode`.
-     *
-     * Purpose: This method reconstructs the syntax for all group types (e.g., `(...)`,
-     * `(?:...)`, `(?<name>...)`) by wrapping the compiled child expression with the
-     * correct opening and closing syntax.
-     *
-     * @param Node\GroupNode $node the group node to compile
-     *
-     * @return string the recompiled group string
-     */
     #[\Override]
     public function visitGroup(Node\GroupNode $node): string
     {
@@ -131,17 +83,6 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
         };
     }
 
-    /**
-     * Compiles a `QuantifierNode`.
-     *
-     * Purpose: This method reconstructs a quantifier by appending the quantifier
-     * token (e.g., `*`, `+?`, `{2,5}+`) to the compiled child node. It also correctly
-     * wraps the child in a non-capturing group if necessary to avoid ambiguity.
-     *
-     * @param Node\QuantifierNode $node the quantifier node to compile
-     *
-     * @return string the recompiled quantified expression
-     */
     #[\Override]
     public function visitQuantifier(Node\QuantifierNode $node): string
     {
@@ -160,17 +101,6 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
         return $nodeCompiled.$node->quantifier.$suffix;
     }
 
-    /**
-     * Compiles a `LiteralNode`.
-     *
-     * Purpose: This method reconstructs a literal string, carefully escaping any
-     * characters that have a special meaning in the current context (e.g., escaping `[`
-     * outside a character class, but escaping `-` inside one).
-     *
-     * @param Node\LiteralNode $node the literal node to compile
-     *
-     * @return string the escaped literal string
-     */
     #[\Override]
     public function visitLiteral(Node\LiteralNode $node): string
     {
@@ -194,92 +124,36 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
         return $result;
     }
 
-    /**
-     * Compiles a `CharTypeNode`.
-     *
-     * Purpose: This method reconstructs a character type escape sequence like `\d` or `\s`.
-     *
-     * @param Node\CharTypeNode $node the character type node to compile
-     *
-     * @return string the recompiled character type
-     */
     #[\Override]
     public function visitCharType(Node\CharTypeNode $node): string
     {
         return '\\'.$node->value;
     }
 
-    /**
-     * Compiles a `DotNode`.
-     *
-     * Purpose: This method reconstructs the `.` wildcard character.
-     *
-     * @param Node\DotNode $node the dot node to compile
-     *
-     * @return string The `.` character.
-     */
     #[\Override]
     public function visitDot(Node\DotNode $node): string
     {
         return '.';
     }
 
-    /**
-     * Compiles an `AnchorNode`.
-     *
-     * Purpose: This method reconstructs an anchor like `^` or `$`.
-     *
-     * @param Node\AnchorNode $node the anchor node to compile
-     *
-     * @return string the anchor character
-     */
     #[\Override]
     public function visitAnchor(Node\AnchorNode $node): string
     {
         return $node->value;
     }
 
-    /**
-     * Compiles an `AssertionNode`.
-     *
-     * Purpose: This method reconstructs a zero-width assertion like `\b` or `\A`.
-     *
-     * @param Node\AssertionNode $node the assertion node to compile
-     *
-     * @return string the recompiled assertion
-     */
     #[\Override]
     public function visitAssertion(Node\AssertionNode $node): string
     {
         return '\\'.$node->value;
     }
 
-    /**
-     * Compiles a `KeepNode`.
-     *
-     * Purpose: This method reconstructs the `\K` escape sequence.
-     *
-     * @param Node\KeepNode $node the keep node to compile
-     *
-     * @return string the `\K` sequence
-     */
     #[\Override]
     public function visitKeep(Node\KeepNode $node): string
     {
         return '\K';
     }
 
-    /**
-     * Compiles a `CharClassNode`.
-     *
-     * Purpose: This method reconstructs a character class `[...]`. It sets a flag to
-     * ensure child nodes are escaped correctly for this context, adds the negation
-     * character `^` if needed, and wraps the compiled parts in brackets.
-     *
-     * @param Node\CharClassNode $node the character class node to compile
-     *
-     * @return string the recompiled character class
-     */
     #[\Override]
     public function visitCharClass(Node\CharClassNode $node): string
     {
@@ -290,31 +164,12 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
         return $result;
     }
 
-    /**
-     * Compiles a `RangeNode`.
-     *
-     * Purpose: This method reconstructs a range within a character class by compiling
-     * the start and end nodes and joining them with a hyphen.
-     *
-     * @param Node\RangeNode $node the range node to compile
-     *
-     * @return string the recompiled range string
-     */
     #[\Override]
     public function visitRange(Node\RangeNode $node): string
     {
         return $node->start->accept($this).'-'.$node->end->accept($this);
     }
 
-    /**
-     * Compiles a `BackrefNode`.
-     *
-     * Purpose: This method reconstructs a backreference like `\1` or `\k<name>`.
-     *
-     * @param Node\BackrefNode $node the backreference node to compile
-     *
-     * @return string the recompiled backreference
-     */
     #[\Override]
     public function visitBackref(Node\BackrefNode $node): string
     {
@@ -325,15 +180,6 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
         return $node->ref;
     }
 
-    /**
-     * Compiles a `UnicodeNode`.
-     *
-     * Purpose: This method reconstructs a Unicode character escape like `\xHH`.
-     *
-     * @param Node\UnicodeNode $node the Unicode node to compile
-     *
-     * @return string the recompiled Unicode escape
-     */
     #[\Override]
     public function visitUnicode(Node\UnicodeNode $node): string
     {
@@ -370,16 +216,6 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
         return '(?(VERSION'.$node->operator.$node->version.')';
     }
 
-    /**
-     * Compiles a `UnicodePropNode`.
-     *
-     * Purpose: This method reconstructs a Unicode property escape, correctly choosing
-     * between the short form `\pL` and the full form `\p{Letter}`.
-     *
-     * @param Node\UnicodePropNode $node the Unicode property node to compile
-     *
-     * @return string the recompiled Unicode property escape
-     */
     #[\Override]
     public function visitUnicodeProp(Node\UnicodePropNode $node): string
     {
@@ -394,76 +230,30 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
         return '\p'.$node->prop;
     }
 
-    /**
-     * Compiles an `OctalNode`.
-     *
-     * Purpose: This method reconstructs a modern octal escape `\o{...}`.
-     *
-     * @param Node\OctalNode $node the octal node to compile
-     *
-     * @return string the recompiled octal escape
-     */
     #[\Override]
     public function visitOctal(Node\OctalNode $node): string
     {
         return $node->code;
     }
 
-    /**
-     * Compiles an `OctalLegacyNode`.
-     *
-     * Purpose: This method reconstructs a legacy octal escape like `\077`.
-     *
-     * @param Node\OctalLegacyNode $node the legacy octal node to compile
-     *
-     * @return string the recompiled legacy octal escape
-     */
     #[\Override]
     public function visitOctalLegacy(Node\OctalLegacyNode $node): string
     {
         return '\\'.$node->code;
     }
 
-    /**
-     * Compiles a `PosixClassNode`.
-     *
-     * Purpose: This method reconstructs a POSIX character class like `[[:alpha:]]`.
-     *
-     * @param Node\PosixClassNode $node the POSIX class node to compile
-     *
-     * @return string the recompiled POSIX class
-     */
     #[\Override]
     public function visitPosixClass(Node\PosixClassNode $node): string
     {
         return '[[:'.$node->class.':]]';
     }
 
-    /**
-     * Compiles a `CommentNode`.
-     *
-     * Purpose: This method reconstructs an inline comment `(?#...)`.
-     *
-     * @param Node\CommentNode $node the comment node to compile
-     *
-     * @return string the recompiled comment
-     */
     #[\Override]
     public function visitComment(Node\CommentNode $node): string
     {
         return '(?#'.$node->comment.')';
     }
 
-    /**
-     * Compiles a `ConditionalNode`.
-     *
-     * Purpose: This method reconstructs a conditional subpattern `(?(cond)yes|no)`,
-     * correctly handling the syntax for the condition and the two branches.
-     *
-     * @param Node\ConditionalNode $node the conditional node to compile
-     *
-     * @return string the recompiled conditional subpattern
-     */
     #[\Override]
     public function visitConditional(Node\ConditionalNode $node): string
     {
@@ -482,16 +272,6 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
         return '(?('.$cond.')'.$yes.'|'.$no.')';
     }
 
-    /**
-     * Compiles a `SubroutineNode`.
-     *
-     * Purpose: This method reconstructs a subroutine call, choosing the correct
-     * syntax (e.g., `(?R)`, `(?&name)`, `(?P>name)`) based on the node's properties.
-     *
-     * @param Node\SubroutineNode $node the subroutine node to compile
-     *
-     * @return string the recompiled subroutine call
-     */
     #[\Override]
     public function visitSubroutine(Node\SubroutineNode $node): string
     {
@@ -503,30 +283,12 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
         };
     }
 
-    /**
-     * Compiles a `PcreVerbNode`.
-     *
-     * Purpose: This method reconstructs a PCRE verb like `(*FAIL)`.
-     *
-     * @param Node\PcreVerbNode $node the PCRE verb node to compile
-     *
-     * @return string the recompiled PCRE verb
-     */
     #[\Override]
     public function visitPcreVerb(Node\PcreVerbNode $node): string
     {
         return '(*'.$node->verb.')';
     }
 
-    /**
-     * Compiles a `DefineNode`.
-     *
-     * Purpose: This method reconstructs a `(?(DEFINE)...)` block.
-     *
-     * @param Node\DefineNode $node the define node to compile
-     *
-     * @return string the recompiled DEFINE block
-     */
     #[\Override]
     public function visitDefine(Node\DefineNode $node): string
     {
