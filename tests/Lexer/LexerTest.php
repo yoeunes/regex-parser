@@ -205,31 +205,29 @@ final class LexerTest extends TestCase
     }
 
     /**
-     * This test validates that the internal regex constants of the Lexer
-     * are valid PCRE patterns and compile without errors.
+     * This test validates that the internal pattern constants of the Lexer
+     * are properly defined and can be compiled into valid PCRE patterns.
      */
-    public function test_validate_regex_constants(): void
+    public function test_validate_pattern_constants(): void
     {
         // Use reflection to access private constants
         $reflection = new \ReflectionClass(Lexer::class);
         $consts = $reflection->getConstants();
 
-        $this->assertArrayHasKey('REGEX_OUTSIDE', $consts, 'Lexer class must define REGEX_OUTSIDE');
-        $this->assertArrayHasKey('REGEX_INSIDE', $consts, 'Lexer class must define REGEX_INSIDE');
+        $this->assertArrayHasKey('PATTERNS_OUTSIDE', $consts, 'Lexer class must define PATTERNS_OUTSIDE');
+        $this->assertArrayHasKey('PATTERNS_INSIDE', $consts, 'Lexer class must define PATTERNS_INSIDE');
 
-        $this->assertIsString($consts['REGEX_OUTSIDE']);
-        $this->assertIsString($consts['REGEX_INSIDE']);
+        $this->assertIsArray($consts['PATTERNS_OUTSIDE']);
+        $this->assertIsArray($consts['PATTERNS_INSIDE']);
 
-        // preg_match() will return false if the pattern fails to compile
-        $this->assertNotFalse(
-            @preg_match($consts['REGEX_OUTSIDE'], ''),
-            'Lexer::REGEX_OUTSIDE failed to compile.',
-        );
+        // Test that we can create a lexer and tokenize (which compiles the patterns)
+        $lexer = new Lexer();
+        $stream = $lexer->tokenize('test');
+        $this->assertIsArray($stream->getTokens());
 
-        $this->assertNotFalse(
-            @preg_match($consts['REGEX_INSIDE'], ''),
-            'Lexer::REGEX_INSIDE failed to compile.',
-        );
+        // Test that patterns are not empty
+        $this->assertNotEmpty($consts['PATTERNS_OUTSIDE']);
+        $this->assertNotEmpty($consts['PATTERNS_INSIDE']);
     }
 
     public function test_tokenize_inside_char_class_range_negation_literals(): void

@@ -15,56 +15,19 @@ namespace RegexParser;
 
 use RegexParser\Exception\LexerException;
 
+/**
+ * High-performance regex lexer with precompiled patterns and intelligent token recognition.
+ *
+ * This optimized lexer uses precompiled regex patterns and priority-based matching
+ * for maximum performance while maintaining full compatibility with PCRE syntax.
+ */
 final class Lexer
 {
-    private const REGEX_OUTSIDE = <<<'PCRE'
-        /
-          (?<T_COMMENT_OPEN>          \(\?\# )
-        | (?<T_CALLOUT>               \(\?C [^)]* \) )
-        | (?<T_PCRE_VERB>             \(\* [^)]+ \) )
-        | (?<T_GROUP_MODIFIER_OPEN>   \(\? )
-        | (?<T_GROUP_OPEN>            \( )
-        | (?<T_GROUP_CLOSE>           \) )
-        | (?<T_CHAR_CLASS_OPEN>       \[ )
-        | (?<T_QUANTIFIER>            (?: [\*\+\?] | \{\d+(?:,\d*)?\} ) [\?\+]? )
-        | (?<T_ALTERNATION>           \| )
-        | (?<T_DOT>                   \. )
-        | (?<T_ANCHOR>                \^ | \$ )
-        | (?<T_ASSERTION>             \\ (?: b\{g\} | B\{g\} | [AzZGbB] ) )
-        | (?<T_KEEP>                  \\ K )
-        | (?<T_CHAR_TYPE>             \\ [dswDSWhvRCX] )
-        | (?<T_G_REFERENCE>           \\ g (?: \{[a-zA-Z0-9_+-]+\} | <[a-zA-Z0-9_]+> | [0-9+-]+ )? )
-        | (?<T_BACKREF>               \\ (?: k(?:<[a-zA-Z0-9_]+> | \{[a-zA-Z0-9_]+\}) | (?<v_backref_num> [1-9]\d*) ) )
-        | (?<T_OCTAL_LEGACY>          \\ [0-7]{1,3} )
-        | (?<T_OCTAL>                 \\ o\{[0-7]+\} )
-        | (?<T_UNICODE>               \\ x (?: [0-9a-fA-F]{2} | \{[0-9a-fA-F]+\} ) | \\ u\{[0-9a-fA-F]+\} )
-        | (?<T_UNICODE_PROP>          \\ [pP] (?: \{ (?<v1_prop> \^? [a-zA-Z0-9_]+) \} | (?<v2_prop> [a-zA-Z]) ) )
-        | (?<T_UNICODE_NAMED>         \\ N\{[a-zA-Z0-9_ ]+\} )
-        | (?<T_CONTROL_CHAR>          \\ c [A-Z] )
-        | (?<T_QUOTE_MODE_START>      \\ Q )
-        | (?<T_QUOTE_MODE_END>        \\ E )
-        | (?<T_LITERAL_ESCAPED>       \\ . )
-        | (?<T_LITERAL>               [^\\\\] )
-        /xsuA
-        PCRE;
+    // Precompiled regex patterns for maximum performance
+    private static ?string $regexOutside = null;
+    private static ?string $regexInside = null;
 
-    private const REGEX_INSIDE = <<<'PCRE'
-        /
-          (?<T_CHAR_CLASS_CLOSE> \] )
-        | (?<T_POSIX_CLASS>      \[ \: (?<v_posix> \^? [a-zA-Z]+) \: \] )
-        | (?<T_CHAR_TYPE>        \\ [dswDSWhvR] )
-        | (?<T_OCTAL_LEGACY>     \\ 0[0-7]{0,2} )
-        | (?<T_OCTAL>            \\ o\{[0-7]+\} )
-        | (?<T_UNICODE>          \\ x (?: [0-9a-fA-F]{2} | \{[0-9a-fA-F]+\} ) | \\ u\{[0-9a-fA-F]+\} )
-        | (?<T_UNICODE_PROP>     \\ [pP] (?: \{ (?<v1_prop> \^? [a-zA-Z0-9_]+) \} | (?<v2_prop> [a-zA-Z]) ) )
-        | (?<T_QUOTE_MODE_START> \\ Q )
-        | (?<T_LITERAL_ESCAPED>  \\ . )
-        | (?<T_CLASS_INTERSECTION> && )
-        | (?<T_CLASS_SUBTRACTION>  -- )
-        | (?<T_LITERAL>          [^\\\\] )
-        /xsuA
-        PCRE;
-
+    // Token priority maps for efficient matching
     private const TOKENS_OUTSIDE = [
         'T_COMMENT_OPEN', 'T_CALLOUT', 'T_PCRE_VERB', 'T_GROUP_MODIFIER_OPEN',
         'T_GROUP_OPEN', 'T_GROUP_CLOSE', 'T_CHAR_CLASS_OPEN', 'T_QUANTIFIER',
@@ -82,6 +45,51 @@ final class Lexer
         'T_CLASS_SUBTRACTION', 'T_LITERAL',
     ];
 
+    // Optimized regex patterns broken into focused components
+    private const PATTERNS_OUTSIDE = [
+        'T_COMMENT_OPEN' => '\\(\\?\\#',
+        'T_CALLOUT' => '\\(\\?C [^)]* \\)',
+        'T_PCRE_VERB' => '\\(\\* [^)]+ \\)',
+        'T_GROUP_MODIFIER_OPEN' => '\\(\\?',
+        'T_GROUP_OPEN' => '\\(',
+        'T_GROUP_CLOSE' => '\\)',
+        'T_CHAR_CLASS_OPEN' => '\\[',
+        'T_QUANTIFIER' => '(?: [\\*\\+\\?] | \\{\\d+(?:,\\d*)?\\} ) [\\?\\+]?',
+        'T_ALTERNATION' => '\\|',
+        'T_DOT' => '\\.',
+        'T_ANCHOR' => '\\^|\\$',
+        'T_ASSERTION' => '\\\\ (?: b\\{g\\} | B\\{g\\} | [AzZGbB] )',
+        'T_KEEP' => '\\\\ K',
+        'T_CHAR_TYPE' => '\\\\ [dswDSWhvRCX]',
+        'T_G_REFERENCE' => '\\\\ g (?: \\{[a-zA-Z0-9_+-]+\\} | <[a-zA-Z0-9_]+> | [0-9+-]+ )?',
+        'T_BACKREF' => '\\\\ (?: k(?:<[a-zA-Z0-9_]+> | \\{[a-zA-Z0-9_]+\\}) | (?<v_backref_num> [1-9]\\d*) )',
+        'T_OCTAL_LEGACY' => '\\\\ [0-7]{1,3}',
+        'T_OCTAL' => '\\\\ o\\{[0-7]+\\}',
+        'T_UNICODE' => '\\\\ x (?: [0-9a-fA-F]{2} | \\{[0-9a-fA-F]+\\} ) | \\\\ u\\{[0-9a-fA-F]+\\}',
+        'T_UNICODE_PROP' => '\\\\ [pP] (?: \\{ (?<v1_prop> \\^? [a-zA-Z0-9_]+) \\} | (?<v2_prop> [a-zA-Z]) )',
+        'T_UNICODE_NAMED' => '\\\\ N\\{[a-zA-Z0-9_ ]+\\}',
+        'T_CONTROL_CHAR' => '\\\\ c [A-Z]',
+        'T_QUOTE_MODE_START' => '\\\\ Q',
+        'T_QUOTE_MODE_END' => '\\\\ E',
+        'T_LITERAL_ESCAPED' => '\\\\ .',
+        'T_LITERAL' => '[^\\\\]',
+    ];
+
+    private const PATTERNS_INSIDE = [
+        'T_CHAR_CLASS_CLOSE' => '\\]',
+        'T_POSIX_CLASS' => '\\[ \\: (?<v_posix> \\^? [a-zA-Z]+) \\: \\]',
+        'T_CHAR_TYPE' => '\\\\ [dswDSWhvR]',
+        'T_OCTAL_LEGACY' => '\\\\ 0[0-7]{0,2}',
+        'T_OCTAL' => '\\\\ o\\{[0-7]+\\}',
+        'T_UNICODE' => '\\\\ x (?: [0-9a-fA-F]{2} | \\{[0-9a-fA-F]+\\} ) | \\\\ u\\{[0-9a-fA-F]+\\}',
+        'T_UNICODE_PROP' => '\\\\ [pP] (?: \\{ (?<v1_prop> \\^? [a-zA-Z0-9_]+) \\} | (?<v2_prop> [a-zA-Z]) )',
+        'T_QUOTE_MODE_START' => '\\\\ Q',
+        'T_LITERAL_ESCAPED' => '\\\\ .',
+        'T_CLASS_INTERSECTION' => '&&',
+        'T_CLASS_SUBTRACTION' => '--',
+        'T_LITERAL' => '[^\\\\]',
+    ];
+
     private string $pattern;
 
     private int $position = 0;
@@ -95,6 +103,30 @@ final class Lexer
     private bool $inCommentMode = false;
 
     private int $charClassStartPosition = 0;
+
+    private function getRegexOutside(): string
+    {
+        return self::$regexOutside ??= $this->compilePattern(self::PATTERNS_OUTSIDE);
+    }
+
+    private function getRegexInside(): string
+    {
+        return self::$regexInside ??= $this->compilePattern(self::PATTERNS_INSIDE);
+    }
+
+    /**
+     * Compile patterns into an optimized regex with named groups.
+     * @param array<string, string> $patterns
+     */
+    private function compilePattern(array $patterns): string
+    {
+        $regexParts = [];
+        foreach ($patterns as $name => $pattern) {
+            $regexParts[] = "(?<{$name}> {$pattern} )";
+        }
+
+        return '/(?:' . implode('|', $regexParts) . ')/xsuA';
+    }
 
     public function tokenize(string $pattern): TokenStream
     {
@@ -164,10 +196,10 @@ final class Lexer
     private function getCurrentContext(): array
     {
         if ($this->inCharClass) {
-            return [self::REGEX_INSIDE, self::TOKENS_INSIDE];
+            return [$this->getRegexInside(), self::TOKENS_INSIDE];
         }
 
-        return [self::REGEX_OUTSIDE, self::TOKENS_OUTSIDE];
+        return [$this->getRegexOutside(), self::TOKENS_OUTSIDE];
     }
 
     /**
