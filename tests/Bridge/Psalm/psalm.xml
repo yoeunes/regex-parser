@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<psalm
+    errorLevel="1"
+    resolveFromConfigFile="true"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/vimeo/psalm/5.x/config.xsd"
+>
+    <projectFiles>
+        <directory name="tests/Bridge/Psalm/Fixtures" />
+    </projectFiles>
+
+    <plugins>
+        <pluginClass class="RegexParser\Bridge\Psalm\Plugin">
+            <ignoreParseErrors>false</ignoreParseErrors>
+            <reportRedos>true</reportRedos>
+            <redosThreshold>low</redosThreshold>
+            <suggestOptimizations>false</suggestOptimizations>
+        </pluginClass>
+    </plugins>
+</psalm>
