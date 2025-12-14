@@ -13,15 +13,11 @@ declare(strict_types=1);
 
 namespace RegexParser;
 
-use RegexParser\Exception\LexerException;
-use RegexParser\Exception\ParserException;
-
 /**
  * Outcome of a tolerant parse attempt.
  */
 final readonly class TolerantParseResult
 {
-
     public function __construct(
         public \RegexParser\Node\RegexNode $ast,
         public array $errors = [],

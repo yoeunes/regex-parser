@@ -18,11 +18,6 @@ namespace RegexParser;
  */
 final readonly class ValidationResult
 {
-    /**
-     * @param bool $isValid
-     * @param string|null $error
-     * @param int $complexityScore
-     */
     public function __construct(
         public bool $isValid,
         public ?string $error = null,

@@ -16,22 +16,10 @@ namespace RegexParser\Node;
 use RegexParser\NodeVisitor\NodeVisitorInterface;
 
 /**
- * Represents a named Unicode character, such as `\N{LATIN CAPITAL LETTER A}`.
- *
- * Purpose: This node allows for the specification of Unicode characters by their official names,
- * which is useful for readability and precision in regex patterns. It handles the `\N{...}` syntax.
+ * Represents a named Unicode character.
  */
 final readonly class UnicodeNamedNode extends AbstractNode
 {
-    /**
-     * Initializes a named Unicode character escape node.
-     *
-     * Purpose: This constructor creates a node for a character specified by its Unicode name.
-     *
-     * @param string $name          The Unicode name of the character (e.g., "LATIN CAPITAL LETTER A").
-     * @param int    $startPosition The zero-based byte offset where the Unicode escape sequence begins (e.g., at `\N`).
-     * @param int    $endPosition   the zero-based byte offset immediately after the sequence
-     */
     public function __construct(
         public string $name,
         int $startPosition,
@@ -41,18 +29,11 @@ final readonly class UnicodeNamedNode extends AbstractNode
     }
 
     /**
-     * Implements the visitor pattern for traversing the AST.
+     * @template T
      *
-     * Purpose: This method is the entry point for any `NodeVisitorInterface` that needs to
-     * process this `UnicodeNamedNode`. It allows for operations like compilation, validation,
-     * or explanation to be performed without adding logic to the node itself. The method
-     * simply dispatches the call to the appropriate `visitUnicodeNamed` method on the visitor.
+     * @param NodeVisitorInterface<T> $visitor
      *
-     * @template T The return type of the visitor's methods.
-     *
-     * @param NodeVisitorInterface<T> $visitor the visitor object that is traversing the tree
-     *
-     * @return T the result of the visitor's processing for this node
+     * @return T
      */
     public function accept(NodeVisitorInterface $visitor)
     {

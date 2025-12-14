@@ -16,28 +16,16 @@ namespace RegexParser\Node;
 use RegexParser\NodeVisitor\NodeVisitorInterface;
 
 /**
- * Represents the `\K` "keep" assertion in a regular expression.
- *
- * Purpose: The `\K` assertion is a powerful feature that resets the beginning of the reported match.
- * Any characters matched before the `\K` are "kept" out of the final match result. This is often
- * used as a more efficient alternative to lookbehinds for discarding a prefix. For example, in
- * `foo\Kbar`, the engine matches "foobar", but only "bar" is returned as the result.
+ * Represents the \K keep assertion.
  */
 final readonly class KeepNode extends AbstractNode
 {
     /**
-     * Implements the visitor pattern for traversing the AST.
+     * @template T
      *
-     * Purpose: This method is the entry point for any `NodeVisitorInterface` that needs to
-     * process this `KeepNode`. It allows for operations like compilation, validation,
-     * or explanation to be performed without adding logic to the node itself. The method
-     * simply dispatches the call to the appropriate `visitKeep` method on the visitor.
+     * @param NodeVisitorInterface<T> $visitor
      *
-     * @template T The return type of the visitor's methods.
-     *
-     * @param NodeVisitorInterface<T> $visitor the visitor object that is traversing the tree
-     *
-     * @return T the result of the visitor's processing for this node
+     * @return T
      */
     public function accept(NodeVisitorInterface $visitor)
     {
