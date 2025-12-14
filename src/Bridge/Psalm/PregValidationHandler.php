@@ -110,10 +110,18 @@ final class PregValidationHandler implements AfterFunctionCallAnalysisInterface
         $type = $typeProvider->getType($patternNode);
 
         if (null === $type) {
+            if ($patternNode instanceof String_) {
+                self::validatePattern($patternNode->value, $event, $patternNode);
+            }
+
             return;
         }
 
         $literalStrings = self::getLiteralStrings($type);
+
+        if ([] === $literalStrings && $patternNode instanceof String_) {
+            $literalStrings[] = $patternNode->value;
+        }
 
         foreach ($literalStrings as $literalString) {
             self::validatePattern($literalString, $event, $patternNode);
