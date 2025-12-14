@@ -75,7 +75,7 @@ final class TokenStreamTest extends TestCase
         $stream->next();
 
         $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('Cannot rewind 2 tokens, only 1 in history');
+        $this->expectExceptionMessage('Cannot rewind 2 tokens, would go before start of stream');
         $stream->rewind(2);
     }
 

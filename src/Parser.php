@@ -267,7 +267,7 @@ final class Parser
             return $node;
         }
 
-        if (null !== $node = $this->parseGroupOrCharClassAtom($startPosition)) {
+        if (null !== $node = $this->parseGroupOrCharClassAtom()) {
             return $node;
         }
 
@@ -401,7 +401,7 @@ final class Parser
      * Transforms a stream of Tokens into an Abstract Syntax Tree (AST).
      * Implements a Recursive Descent Parser based on PCRE grammar.
      */
-    private function parseGroupOrCharClassAtom(int $startPosition): ?Node\NodeInterface
+    private function parseGroupOrCharClassAtom(): ?Node\NodeInterface
     {
         if ($this->match(TokenType::T_GROUP_OPEN)) {
             $startToken = $this->previous();
@@ -1611,7 +1611,7 @@ final class Parser
      */
     private function isAtEnd(): bool
     {
-        return TokenType::T_EOF === $this->current()->type;
+        return $this->stream->isAtEnd();
     }
 
     /**
@@ -1623,11 +1623,20 @@ final class Parser
     }
 
     /**
-     * @return Token the previous token in the stream
+     * @return Token the previous token in the stream (requires position > 0)
      */
     private function previous(): Token
     {
-        return $this->stream->peek(-1);
+        if ($this->stream->getPosition() === 0) {
+            return new Token(TokenType::T_EOF, '', 0);
+        }
+
+        $savedPos = $this->stream->getPosition();
+        $this->stream->setPosition($savedPos - 1);
+        $token = $this->stream->current();
+        $this->stream->setPosition($savedPos);
+
+        return $token;
     }
 
     /**
