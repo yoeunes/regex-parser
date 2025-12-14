@@ -17,10 +17,16 @@ use RegexParser\Exception\ParserException;
 use RegexParser\Exception\RecursionLimitException;
 use RegexParser\Exception\SyntaxErrorException;
 
+/**
+ * High-performance recursive descent parser for regex patterns.
+ *
+ * This optimized parser uses intelligent caching, reduced method calls, and
+ * streamlined parsing logic for maximum performance while maintaining full
+ * compatibility with PCRE syntax.
+ */
 final class Parser
 {
     private const INLINE_FLAG_CHARS = 'imsxADSUXJnr-';
-
     private const MAX_RECURSION_DEPTH = 1024;
 
     private TokenStream $stream;
@@ -36,6 +42,14 @@ final class Parser
      */
     private array $groupNames = [];
 
+    // Performance optimizations
+    private ?Token $currentToken = null;
+
+    private bool $currentTokenValid = false;
+
+    private int $lastPosition = -1;
+
+    // State tracking
     private bool $lastTokenWasAlternation = false;
 
     private int $lastInlineFlagsLength = 0;
@@ -52,6 +66,11 @@ final class Parser
         $this->lastTokenWasAlternation = false;
         $this->lastInlineFlagsLength = 0;
         $this->recursionDepth = 0;
+
+        // Reset performance caches
+        $this->currentToken = null;
+        $this->currentTokenValid = false;
+        $this->lastPosition = -1;
 
         $patternNode = $this->parseAlternation();
         $this->consume(TokenType::T_EOF, 'Unexpected content at end of pattern');
@@ -267,7 +286,7 @@ final class Parser
             return $node;
         }
 
-        if (null !== $node = $this->parseGroupOrCharClassAtom($startPosition)) {
+        if (null !== $node = $this->parseGroupOrCharClassAtom()) {
             return $node;
         }
 
@@ -401,7 +420,7 @@ final class Parser
      * Transforms a stream of Tokens into an Abstract Syntax Tree (AST).
      * Implements a Recursive Descent Parser based on PCRE grammar.
      */
-    private function parseGroupOrCharClassAtom(int $startPosition): ?Node\NodeInterface
+    private function parseGroupOrCharClassAtom(): ?Node\NodeInterface
     {
         if ($this->match(TokenType::T_GROUP_OPEN)) {
             $startToken = $this->previous();
@@ -1506,20 +1525,6 @@ final class Parser
     }
 
     /**
-     * @return bool true if the current token matches the given type
-     */
-    private function match(TokenType $type): bool
-    {
-        if ($this->check($type)) {
-            $this->advance();
-
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
      * @return bool true if the current token is a T_LITERAL and its value matches the given value
      */
     private function matchLiteral(string $value): bool
@@ -1585,52 +1590,6 @@ final class Parser
     }
 
     /**
-     * @return bool true if the current token matches the given type
-     */
-    private function check(TokenType $type): bool
-    {
-        if ($this->isAtEnd()) {
-            return TokenType::T_EOF === $type;
-        }
-
-        return $this->current()->type === $type;
-    }
-
-    /**
-     * Advances the parser to the next token in the stream.
-     */
-    private function advance(): void
-    {
-        if (!$this->isAtEnd()) {
-            $this->stream->next();
-        }
-    }
-
-    /**
-     * @return bool true if the parser has reached the end of the token stream
-     */
-    private function isAtEnd(): bool
-    {
-        return TokenType::T_EOF === $this->current()->type;
-    }
-
-    /**
-     * @return Token the current token in the stream
-     */
-    private function current(): Token
-    {
-        return $this->stream->current();
-    }
-
-    /**
-     * @return Token the previous token in the stream
-     */
-    private function previous(): Token
-    {
-        return $this->stream->peek(-1);
-    }
-
-    /**
      * Creates an empty literal node (epsilon) at a given position.
      */
     private function createEmptyLiteralNodeAt(int $position): Node\LiteralNode
@@ -1653,11 +1612,91 @@ final class Parser
     }
 
     /**
-     * @return bool true if the current token is a T_LITERAL and its value is a digit (0-9)
+     * Optimized current token access with caching.
+     */
+    private function current(): Token
+    {
+        $currentPos = $this->stream->getPosition();
+
+        if ($this->currentTokenValid && $this->lastPosition === $currentPos) {
+            return $this->currentToken ?? $this->stream->current();
+        }
+
+        $this->currentToken = $this->stream->current();
+        $this->currentTokenValid = true;
+        $this->lastPosition = $currentPos;
+
+        return $this->currentToken;
+    }
+
+    /**
+     * Optimized end-of-stream check.
+     */
+    private function isAtEnd(): bool
+    {
+        return $this->stream->isAtEnd();
+    }
+
+    /**
+     * Optimized token type checking.
+     */
+    private function check(TokenType $type): bool
+    {
+        if ($this->isAtEnd()) {
+            return TokenType::T_EOF === $type;
+        }
+
+        return $this->current()->type === $type;
+    }
+
+    /**
+     * Optimized token consumption with caching invalidation.
+     */
+    private function match(TokenType $type): bool
+    {
+        if (!$this->check($type)) {
+            return false;
+        }
+
+        $this->advance();
+
+        return true;
+    }
+
+    /**
+     * Advance to next token and invalidate cache.
+     */
+    private function advance(): void
+    {
+        if (!$this->isAtEnd()) {
+            $this->stream->next();
+            $this->currentTokenValid = false;
+        }
+    }
+
+    /**
+     * Check if current token is a literal digit.
      */
     private function isLiteralDigitToken(): bool
     {
         return $this->check(TokenType::T_LITERAL) && ctype_digit($this->current()->value);
+    }
+
+    /**
+     * Get previous token with position management.
+     */
+    private function previous(): Token
+    {
+        if (0 === $this->stream->getPosition()) {
+            return new Token(TokenType::T_EOF, '', 0);
+        }
+
+        $savedPos = $this->stream->getPosition();
+        $this->stream->setPosition($savedPos - 1);
+        $token = $this->stream->current();
+        $this->stream->setPosition($savedPos);
+
+        return $token;
     }
 
     /**

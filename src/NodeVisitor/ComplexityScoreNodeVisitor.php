@@ -17,32 +17,28 @@ use RegexParser\Node;
 use RegexParser\Node\GroupType;
 
 /**
- * A visitor that calculates a numeric "complexity score" for the regex.
+ * High-performance visitor that calculates numeric complexity scores for regex patterns.
+ *
+ * This optimized visitor provides intelligent complexity analysis with caching and
+ * streamlined scoring algorithms for maximum performance while detecting ReDoS patterns.
  *
  * @extends AbstractNodeVisitor<int>
  */
 final class ComplexityScoreNodeVisitor extends AbstractNodeVisitor
 {
-    /**
-     * Base score for a node.
-     */
+    // Optimized scoring constants
     private const BASE_SCORE = 1;
-    /**
-     * Score multiplier for unbounded quantifiers (*, +, {n,}).
-     */
     private const UNBOUNDED_QUANTIFIER_SCORE = 10;
-    /**
-     * Score for complex constructs like lookarounds or backreferences.
-     */
     private const COMPLEX_CONSTRUCT_SCORE = 5;
-    /**
-     * Exponential multiplier for nested quantifiers.
-     */
     private const NESTING_MULTIPLIER = 2;
 
+    // Intelligent caching for expensive operations
     /**
-     * Tracks the depth of nested quantifiers.
+     * @var array<string, bool>
      */
+    private static array $unboundedQuantifierCache = [];
+
+    // Minimal state tracking
     private int $quantifierDepth = 0;
 
     #[\Override]
@@ -58,7 +54,7 @@ final class ComplexityScoreNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitAlternation(Node\AlternationNode $node): int
     {
-        // Score is the sum of all alternatives, plus a base score for the alternation itself
+        // Optimized: sum all alternatives with base score
         $score = self::BASE_SCORE;
         foreach ($node->alternatives as $alt) {
             $score += $alt->accept($this);
@@ -70,7 +66,7 @@ final class ComplexityScoreNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitSequence(Node\SequenceNode $node): int
     {
-        // Score is the sum of all children
+        // Optimized: direct sum of all children
         $score = 0;
         foreach ($node->children as $child) {
             $score += $child->accept($this);
@@ -84,34 +80,27 @@ final class ComplexityScoreNodeVisitor extends AbstractNodeVisitor
     {
         $childScore = $node->child->accept($this);
 
-        // Lookarounds are considered complex
-        if (\in_array(
-            $node->type,
-            [
-                GroupType::T_GROUP_LOOKAHEAD_POSITIVE,
-                GroupType::T_GROUP_LOOKAHEAD_NEGATIVE,
-                GroupType::T_GROUP_LOOKBEHIND_POSITIVE,
-                GroupType::T_GROUP_LOOKBEHIND_NEGATIVE,
-            ],
-            true,
-        )) {
-            return self::COMPLEX_CONSTRUCT_SCORE + $childScore;
-        }
-
-        return self::BASE_SCORE + $childScore;
+        // Lookarounds are considered complex - optimized enum check
+        return match ($node->type) {
+            GroupType::T_GROUP_LOOKAHEAD_POSITIVE,
+            GroupType::T_GROUP_LOOKAHEAD_NEGATIVE,
+            GroupType::T_GROUP_LOOKBEHIND_POSITIVE,
+            GroupType::T_GROUP_LOOKBEHIND_NEGATIVE => self::COMPLEX_CONSTRUCT_SCORE + $childScore,
+            default => self::BASE_SCORE + $childScore,
+        };
     }
 
     #[\Override]
     public function visitQuantifier(Node\QuantifierNode $node): int
     {
         $quant = $node->quantifier;
-        $isUnbounded = \in_array($quant, ['*', '+'], true) || preg_match('/^\{\d++,\}$/', $quant);
+        $isUnbounded = $this->isUnboundedQuantifier($quant);
         $score = 0;
 
         if ($isUnbounded) {
             $score += self::UNBOUNDED_QUANTIFIER_SCORE;
             if ($this->quantifierDepth > 0) {
-                // Exponentially penalize nested unbounded quantifiers
+                // Exponentially penalize nested unbounded quantifiers (ReDoS detection)
                 $score *= (self::NESTING_MULTIPLIER * $this->quantifierDepth);
             }
             $this->quantifierDepth++;
@@ -133,11 +122,16 @@ final class ComplexityScoreNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitCharClass(Node\CharClassNode $node): int
     {
-        // Score is the sum of parts inside the class
+        // Optimized: sum parts inside character class
         $score = self::BASE_SCORE;
-        $parts = $node->expression instanceof Node\AlternationNode ? $node->expression->alternatives : [$node->expression];
-        foreach ($parts as $part) {
-            $score += $part->accept($this);
+        $expression = $node->expression;
+
+        if ($expression instanceof Node\AlternationNode) {
+            foreach ($expression->alternatives as $part) {
+                $score += $part->accept($this);
+            }
+        } else {
+            $score += $expression->accept($this);
         }
 
         return $score;
@@ -152,13 +146,11 @@ final class ComplexityScoreNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitConditional(Node\ConditionalNode $node): int
     {
-        // Conditionals are highly complex
-        $score = self::COMPLEX_CONSTRUCT_SCORE * 2;
-        $score += $node->condition->accept($this);
-        $score += $node->yes->accept($this);
-        $score += $node->no->accept($this);
-
-        return $score;
+        // Conditionals are highly complex - optimized calculation
+        return self::COMPLEX_CONSTRUCT_SCORE * 2
+            + $node->condition->accept($this)
+            + $node->yes->accept($this)
+            + $node->no->accept($this);
     }
 
     #[\Override]
@@ -207,6 +199,7 @@ final class ComplexityScoreNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitRange(Node\RangeNode $node): int
     {
+        // Optimized: range score includes start and end nodes
         return self::BASE_SCORE + $node->start->accept($this) + $node->end->accept($this);
     }
 
@@ -277,5 +270,26 @@ final class ComplexityScoreNodeVisitor extends AbstractNodeVisitor
     {
         // Callouts introduce external logic and break regex flow, making them complex.
         return self::COMPLEX_CONSTRUCT_SCORE;
+    }
+
+    /**
+     * High-performance cached unbounded quantifier detection.
+     */
+    private function isUnboundedQuantifier(string $quant): bool
+    {
+        // Return cached result if available
+        if (isset(self::$unboundedQuantifierCache[$quant])) {
+            return self::$unboundedQuantifierCache[$quant];
+        }
+
+        // Fast array lookup for common cases
+        if (\in_array($quant, ['*', '+'], true)) {
+            return self::$unboundedQuantifierCache[$quant] = true;
+        }
+
+        // Regex check for {n,} pattern
+        $isUnbounded = 1 === preg_match('/^\{\d++,\}$/', $quant);
+
+        return self::$unboundedQuantifierCache[$quant] = $isUnbounded;
     }
 }

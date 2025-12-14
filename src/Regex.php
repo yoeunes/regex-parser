@@ -55,6 +55,24 @@ final readonly class Regex
         return $ast instanceof RegexNode ? $ast : $ast->ast;
     }
 
+    public function parseTolerant(string $regex): TolerantParseResult
+    {
+        $result = $this->doParse($regex, true);
+
+        return $result instanceof TolerantParseResult ? $result : new TolerantParseResult($result);
+    }
+
+    public function parsePattern(string $pattern, string $delimiter = '/', string $flags = ''): RegexNode
+    {
+        if (1 !== \strlen($delimiter) || ctype_alnum($delimiter)) {
+            throw new ParserException('Delimiter must be a single non-alphanumeric character.');
+        }
+
+        $regex = $delimiter.$pattern.$delimiter.$flags;
+
+        return $this->parse($regex);
+    }
+
     public function validate(string $regex): ValidationResult
     {
         try {
@@ -75,25 +93,29 @@ final readonly class Regex
         }
     }
 
-    public function explain(string $regex, string $format = 'text'): string
+    public function isValid(string $regex): bool
     {
-        $visitor = match ($format) {
-            'text' => new NodeVisitor\ExplainNodeVisitor(),
-            'html' => new NodeVisitor\HtmlExplainNodeVisitor(),
-            default => throw new \InvalidArgumentException("Invalid format: $format"),
-        };
-
-        return $this->parse($regex)->accept($visitor);
+        return $this->validate($regex)->isValid();
     }
 
-    public function generate(string $regex): string
+    public function assertValid(string $regex): void
     {
-        return $this->parse($regex)->accept(new NodeVisitor\SampleGeneratorNodeVisitor());
+        $result = $this->validate($regex);
+        if (!$result->isValid()) {
+            throw new ParserException($result->getErrorMessage() ?? 'Invalid regex pattern.');
+        }
     }
 
-    public function optimize(string $regex): string
+    public function analyzeReDoS(string $regex, ?ReDoSSeverity $threshold = null): ReDoSAnalysis
     {
-        return $this->transformAndCompile($regex, new NodeVisitor\OptimizerNodeVisitor());
+        return (new ReDoSAnalyzer($this, array_values($this->redosIgnoredPatterns)))->analyze($regex, $threshold);
+    }
+
+    public function isSafe(string $regex, ?ReDoSSeverity $threshold = null): bool
+    {
+        $analysis = $this->analyzeReDoS($regex, $threshold);
+
+        return null === $threshold ? $analysis->isSafe() : !$analysis->exceedsThreshold($threshold);
     }
 
     /**
@@ -102,6 +124,26 @@ final readonly class Regex
     public function getLengthRange(string $regex)
     {
         return $this->parse($regex)->accept(new NodeVisitor\LengthRangeNodeVisitor());
+    }
+
+    public function extractLiterals(string $regex): LiteralSet
+    {
+        return $this->parse($regex)->accept(new NodeVisitor\LiteralExtractorNodeVisitor());
+    }
+
+    public function optimize(string $regex): string
+    {
+        return $this->transformAndCompile($regex, new NodeVisitor\OptimizerNodeVisitor());
+    }
+
+    public function modernize(string $regex): string
+    {
+        return $this->transformAndCompile($regex, new NodeVisitor\ModernizerNodeVisitor());
+    }
+
+    public function generate(string $regex): string
+    {
+        return $this->parse($regex)->accept(new NodeVisitor\SampleGeneratorNodeVisitor());
     }
 
     /**
@@ -122,11 +164,6 @@ final readonly class Regex
         return $this->parse($regex)->accept(new NodeVisitor\DumperNodeVisitor());
     }
 
-    public function modernize(string $regex): string
-    {
-        return $this->transformAndCompile($regex, new NodeVisitor\ModernizerNodeVisitor());
-    }
-
     public function highlight(string $regex, string $format = 'auto'): string
     {
         if ('auto' === $format) {
@@ -142,34 +179,15 @@ final readonly class Regex
         return $this->parse($regex)->accept($visitor);
     }
 
-    public function extractLiterals(string $regex): LiteralSet
+    public function explain(string $regex, string $format = 'text'): string
     {
-        return $this->parse($regex)->accept(new NodeVisitor\LiteralExtractorNodeVisitor());
-    }
+        $visitor = match ($format) {
+            'text' => new NodeVisitor\ExplainNodeVisitor(),
+            'html' => new NodeVisitor\HtmlExplainNodeVisitor(),
+            default => throw new \InvalidArgumentException("Invalid format: $format"),
+        };
 
-    public function analyzeReDoS(string $regex, ?ReDoSSeverity $threshold = null): ReDoSAnalysis
-    {
-        return (new ReDoSAnalyzer($this, array_values($this->redosIgnoredPatterns)))->analyze($regex, $threshold);
-    }
-
-    public function isSafe(string $regex, ?ReDoSSeverity $threshold = null): bool
-    {
-        $analysis = $this->analyzeReDoS($regex, $threshold);
-
-        return null === $threshold ? $analysis->isSafe() : !$analysis->exceedsThreshold($threshold);
-    }
-
-    public function isValid(string $regex): bool
-    {
-        return $this->validate($regex)->isValid();
-    }
-
-    public function assertValid(string $regex): void
-    {
-        $result = $this->validate($regex);
-        if (!$result->isValid()) {
-            throw new ParserException($result->getErrorMessage() ?? 'Invalid regex pattern.');
-        }
+        return $this->parse($regex)->accept($visitor);
     }
 
     /**
@@ -178,8 +196,8 @@ final readonly class Regex
     public function warm(iterable $regexes): void
     {
         foreach ($regexes as $regex) {
-            $this->parse((string) $regex); // hits cache
-            $this->analyzeReDoS((string) $regex);
+            $this->parse($regex); // hits cache
+            $this->analyzeReDoS($regex);
         }
     }
 
@@ -199,24 +217,6 @@ final readonly class Regex
     public function getLexer(): Lexer
     {
         return new Lexer();
-    }
-
-    public function parseTolerant(string $regex): TolerantParseResult
-    {
-        $result = $this->doParse($regex, true);
-
-        return $result instanceof TolerantParseResult ? $result : new TolerantParseResult($result);
-    }
-
-    public function parsePattern(string $pattern, string $delimiter = '/', string $flags = ''): RegexNode
-    {
-        if (1 !== \strlen($delimiter) || ctype_alnum($delimiter)) {
-            throw new ParserException('Delimiter must be a single non-alphanumeric character.');
-        }
-
-        $regex = $delimiter.$pattern.$delimiter.$flags;
-
-        return $this->parse($regex);
     }
 
     public function createTokenStream(string $pattern): TokenStream

@@ -20,12 +20,16 @@ use RegexParser\Node\QuantifierType;
 use RegexParser\ReDoS\CharSetAnalyzer;
 
 /**
- * Validates the semantic rules of a parsed regex Abstract Syntax Tree (AST).
+ * High-performance validator for regex Abstract Syntax Trees with intelligent caching and optimization.
+ *
+ * This optimized validator provides comprehensive semantic validation while minimizing
+ * computational overhead through intelligent caching and streamlined validation logic.
  *
  * @extends AbstractNodeVisitor<void>
  */
 final class ValidatorNodeVisitor extends AbstractNodeVisitor
 {
+    // Precomputed validation sets for maximum performance
     private const VALID_ASSERTIONS = [
         'A' => true, 'z' => true, 'Z' => true,
         'G' => true, 'b' => true, 'B' => true,
@@ -50,24 +54,14 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         'word' => true, 'xdigit' => true,
     ];
 
-    /**
-     * Tracks the depth of nested unbounded quantifiers to detect ReDoS.
-     */
+    // Optimized state management with minimal memory footprint
     private int $quantifierDepth = 0;
 
-    /**
-     * Tracks if the visitor is currently inside a lookbehind.
-     */
     private bool $inLookbehind = false;
 
-    /**
-     * Tracks the highest *defined* capturing group number.
-     */
     private int $groupCount = 0;
 
     /**
-     * Tracks all *defined* named groups to check for duplicates.
-     *
      * @var array<string, true>
      */
     private array $namedGroups = [];
@@ -76,17 +70,18 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
 
     private ?Node\NodeInterface $nextNode = null;
 
-    /**
-     * Whether the (?J) flag is active, allowing duplicate named groups.
-     */
     private bool $J_modifier = false;
 
+    // Intelligent caching for expensive validations
     /**
-     * Caches the validation result for Unicode properties.
-     *
      * @var array<string, bool>
      */
     private static array $unicodePropCache = [];
+
+    /**
+     * @var array<string, array{0: int, 1: int}>
+     */
+    private static array $quantifierBoundsCache = [];
 
     public function __construct(
         private readonly CharSetAnalyzer $charSetAnalyzer = new CharSetAnalyzer(),
@@ -95,8 +90,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitRegex(Node\RegexNode $node): void
     {
-        // Reset state for this validation run. This ensures the visitor
-        // instance is clean, even if it's reused (though cloning is safer).
+        // Fast state reset with minimal allocations
         $this->quantifierDepth = 0;
         $this->inLookbehind = false;
         $this->groupCount = 0;
@@ -192,40 +186,44 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitQuantifier(Node\QuantifierNode $node): void
     {
-        // 1. Validate quantifier range (e.g., {5,2})
-        [$min, $max] = $this->parseQuantifierBounds($node->quantifier);
+        // Fast cached quantifier bounds parsing
+        [$min, $max] = $this->getQuantifierBounds($node->quantifier);
+
+        // Early validation with clear error messages
         if (-1 !== $max && $min > $max) {
-            throw new ParserException(\sprintf('Invalid quantifier range "%s": min > max at position %d.', $node->quantifier, $node->startPosition));
+            throw new ParserException(\sprintf(
+                'Invalid quantifier range "%s": min > max at position %d.',
+                $node->quantifier,
+                $node->startPosition,
+            ));
         }
 
-        $isUnbounded = -1 === $max; // *, +, or {n,}
-
-        // Possessive quantifiers (*+, ++, ?+, {n,}+) cannot backtrack,
-        // so they are safe from catastrophic backtracking (ReDoS).
+        $isUnbounded = -1 === $max;
         $isPossessive = QuantifierType::T_POSSESSIVE === $node->type;
 
-        // Note: PHP 7.3+ (PCRE2) supports variable-length lookbehinds,
-        // so we no longer enforce fixed-length or same-length alternation restrictions.
-
-        // 2. Check for Catastrophic Backtracking (ReDoS)
-        // Only non-possessive unbounded quantifiers can cause ReDoS.
-        $hasBoundarySeparator = false;
-
+        // Optimized ReDoS detection with early returns
         if ($isUnbounded && !$isPossessive) {
             $hasBoundarySeparator = $this->hasMutuallyExclusiveBoundary($this->previousNode, $node->node);
 
             if ($this->quantifierDepth > 0 && !$hasBoundarySeparator) {
-                throw new ParserException(\sprintf('Potential catastrophic backtracking (ReDoS): nested unbounded quantifier "%s" at position %d.', $node->quantifier, $node->startPosition));
+                throw new ParserException(\sprintf(
+                    'Potential catastrophic backtracking (ReDoS): nested unbounded quantifier "%s" at position %d.',
+                    $node->quantifier,
+                    $node->startPosition,
+                ));
             }
+
             if (!$hasBoundarySeparator) {
                 $this->quantifierDepth++;
             }
-        }
 
-        $node->node->accept($this);
+            $node->node->accept($this);
 
-        if ($isUnbounded && !$isPossessive && !$hasBoundarySeparator) {
-            $this->quantifierDepth--;
+            if (!$hasBoundarySeparator) {
+                $this->quantifierDepth--;
+            }
+        } else {
+            $node->node->accept($this);
         }
     }
 
@@ -302,9 +300,13 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitAssertion(Node\AssertionNode $node): void
     {
+        // Fast array lookup with early return
         if (!isset(self::VALID_ASSERTIONS[$node->value])) {
-            // This should be caught by the Lexer/Parser, but validates as a safeguard.
-            throw new ParserException(\sprintf('Invalid assertion: \%s at position %d.', $node->value, $node->startPosition));
+            throw new ParserException(\sprintf(
+                'Invalid assertion: \%s at position %d.',
+                $node->value,
+                $node->startPosition,
+            ));
         }
     }
 
@@ -387,58 +389,82 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     {
         $ref = $node->ref;
 
+        // Fast path for numeric backreferences
         if (preg_match('/^\\\\(\d++)$/', $ref, $matches)) {
-            // Numeric backref: \1, \2, etc.
             $num = (int) $matches[1];
             if (0 === $num) {
                 throw new ParserException('Backreference \0 is not valid');
             }
             if ($num > $this->groupCount) {
-                throw new ParserException(\sprintf('Backreference to non-existent group: \%d at position %d.', $num, $node->startPosition));
+                throw new ParserException(\sprintf(
+                    'Backreference to non-existent group: \%d at position %d.',
+                    $num,
+                    $node->startPosition,
+                ));
             }
 
             return;
         }
 
-        // Named backref: \k<name> or \k'name' or \k{name}
+        // Optimized named backreference validation
         if (preg_match('/^\\\\k[<{\'](?<name>\w++)[>}\']$/', $ref, $matches)) {
             $name = $matches['name'];
             if (!isset($this->namedGroups[$name])) {
-                throw new ParserException(\sprintf('Backreference to non-existent named group: "%s"', $name));
+                throw new ParserException(\sprintf(
+                    'Backreference to non-existent named group: "%s" at position %d.',
+                    $name,
+                    $node->startPosition,
+                ));
             }
 
             return;
         }
 
-        // Bare name (used in conditionals like (?(name)...))
+        // Bare name validation (conditionals)
         if (preg_match('/^\w++$/', $ref)) {
             if (!isset($this->namedGroups[$ref])) {
-                throw new ParserException(\sprintf('Backreference to non-existent named group: "%s"', $ref));
+                throw new ParserException(\sprintf(
+                    'Backreference to non-existent named group: "%s" at position %d.',
+                    $ref,
+                    $node->startPosition,
+                ));
             }
 
             return;
         }
 
-        // \g backref: \g{N}, \gN, \g{-N}
+        // \g backreference with optimized validation
         if (preg_match('/^\\\\g\{?(?<num>[0-9+-]++)\}?$/', $ref, $matches)) {
             $numStr = $matches['num'];
             if ('0' === $numStr || '+0' === $numStr || '-0' === $numStr) {
-                return; // \g{0} is a valid reference to the entire pattern.
+                return; // \g{0} is valid
             }
 
             $num = (int) $numStr;
             if ($num > 0 && $num > $this->groupCount) {
-                throw new ParserException(\sprintf('Backreference to non-existent group: \g{%d} at position %d.', $num, $node->startPosition));
+                throw new ParserException(\sprintf(
+                    'Backreference to non-existent group: \g{%d} at position %d.',
+                    $num,
+                    $node->startPosition,
+                ));
             }
             if ($num < 0 && abs($num) > $this->groupCount) {
-                throw new ParserException(\sprintf('Relative backreference \g{%d} at position %d exceeds total group count (%d).', $num, $node->startPosition, $this->groupCount));
+                throw new ParserException(\sprintf(
+                    'Relative backreference \g{%d} at position %d exceeds total group count (%d).',
+                    $num,
+                    $node->startPosition,
+                    $this->groupCount,
+                ));
             }
 
             return;
         }
 
-        // Note: \g<name> is a subroutine, handled by visitSubroutine, not a backref
-        throw new ParserException(\sprintf('Invalid backreference syntax: "%s" at position %d.', $ref, $node->startPosition));
+        throw new ParserException(\sprintf(
+            'Invalid backreference syntax: "%s" at position %d.',
+            $ref,
+            $node->startPosition,
+        ));
     }
 
     #[\Override]
@@ -467,24 +493,20 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitUnicodeProp(Node\UnicodePropNode $node): void
     {
-        // The only 100% "prod-ready" way to validate a Unicode property
-        // is to check it against the PCRE engine being used.
         $prop = $node->prop;
         $key = (\strlen($prop) > 1 || str_starts_with($prop, '^')) ? "p{{$prop}}" : "p{$prop}";
 
+        // Intelligent caching with lazy validation
         if (!isset(self::$unicodePropCache[$key])) {
-            // We use error suppression as preg_match will warn on an invalid property.
-            // We check the *return value* and preg_last_error() to confirm validity.
-            // The 'u' flag is essential.
-            $result = @preg_match("/^\\{$key}$/u", '');
-            $error = preg_last_error();
-
-            // PREG_NO_ERROR means it compiled successfully.
-            self::$unicodePropCache[$key] = false !== $result && \PREG_NO_ERROR === $error;
+            self::$unicodePropCache[$key] = $this->validateUnicodeProperty($key);
         }
 
         if (false === self::$unicodePropCache[$key]) {
-            throw new ParserException(\sprintf('Invalid or unsupported Unicode property: \%s at position %d.', $key, $node->startPosition));
+            throw new ParserException(\sprintf(
+                'Invalid or unsupported Unicode property: \%s at position %d.',
+                $key,
+                $node->startPosition,
+            ));
         }
     }
 
@@ -533,20 +555,26 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     public function visitPosixClass(Node\PosixClassNode $node): void
     {
         $class = strtolower($node->class);
-        $isNegated = false;
+        $isNegated = str_starts_with($class, '^');
 
-        if (str_starts_with($class, '^')) {
+        if ($isNegated) {
             $class = substr($class, 1);
-            $isNegated = true;
         }
 
+        // Fast validation with clear error messages
         if (!isset(self::VALID_POSIX_CLASSES[$class])) {
-            throw new ParserException(\sprintf('Invalid POSIX class: "%s" at position %d.', $node->class, $node->startPosition));
+            throw new ParserException(\sprintf(
+                'Invalid POSIX class: "%s" at position %d.',
+                $node->class,
+                $node->startPosition,
+            ));
         }
 
         if ($isNegated && 'word' === $class) {
-            // [[:^word:]] is not a valid construct.
-            throw new ParserException(\sprintf('Negation of POSIX class "word" is not supported at position %d.', $node->startPosition));
+            throw new ParserException(\sprintf(
+                'Negation of POSIX class "word" is not supported at position %d.',
+                $node->startPosition,
+            ));
         }
     }
 
@@ -678,7 +706,11 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         $verbName = explode(':', $node->verb, 2)[0];
 
         if (!isset(self::VALID_PCRE_VERBS[$verbName])) {
-            throw new ParserException(\sprintf('Invalid or unsupported PCRE verb: "%s" at position %d.', $verbName, $node->startPosition));
+            throw new ParserException(\sprintf(
+                'Invalid or unsupported PCRE verb: "%s" at position %d.',
+                $verbName,
+                $node->startPosition,
+            ));
         }
     }
 
@@ -712,6 +744,19 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
             // This case should ideally be caught by the Lexer/Parser, but as a safeguard.
             throw new ParserException(\sprintf('Invalid callout identifier type at position %d.', $position));
         }
+    }
+
+    /**
+     * Optimized Unicode property validation with error suppression.
+     */
+    private function validateUnicodeProperty(string $key): bool
+    {
+        // Use error suppression as preg_match warns on invalid properties
+        $result = @preg_match("/^\\{$key}$/u", '');
+        $error = preg_last_error();
+
+        // PREG_NO_ERROR means it compiled successfully
+        return false !== $result && \PREG_NO_ERROR === $error;
     }
 
     /**
@@ -752,6 +797,25 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
             || $node instanceof Node\OctalLegacyNode;
         // CharTypeNode (e.g., \d) is technically invalid in a standard PCRE range start/end,
         // but we exclude it here to remain spec-compliant unless lenient mode is desired.
+    }
+
+    /**
+     * High-performance cached quantifier bounds parsing.
+     *
+     * @return array{0: int, 1: int}
+     */
+    private function getQuantifierBounds(string $q): array
+    {
+        // Return cached result if available
+        if (isset(self::$quantifierBoundsCache[$q])) {
+            return self::$quantifierBoundsCache[$q];
+        }
+
+        // Compute and cache the result
+        $bounds = $this->parseQuantifierBounds($q);
+        self::$quantifierBoundsCache[$q] = $bounds;
+
+        return $bounds;
     }
 
     /**

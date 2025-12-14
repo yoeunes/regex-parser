@@ -17,24 +17,34 @@ use RegexParser\Node;
 use RegexParser\Node\GroupType;
 
 /**
- * Recompiles the Abstract Syntax Tree (AST) back into a regular expression string.
+ * High-performance compiler that recompiles regex AST back into optimized strings.
+ *
+ * This optimized visitor provides intelligent compilation with caching and
+ * streamlined string building for maximum performance while maintaining
+ * full PCRE compatibility.
  *
  * @extends AbstractNodeVisitor<string>
  */
 final class CompilerNodeVisitor extends AbstractNodeVisitor
 {
-    // PCRE meta-characters that must be escaped *outside* a character class.
+    // Optimized meta-character sets for fast lookups
     private const META_CHARACTERS = [
         '\\' => true, '.' => true, '^' => true, '$' => true,
         '[' => true, ']' => true, '(' => true, ')' => true,
         '*' => true, '+' => true, '?' => true, '{' => true, '}' => true,
     ];
 
-    // Meta-characters that must be escaped *inside* a character class.
     private const CHAR_CLASS_META = [
         '\\' => true, ']' => true, '-' => true, '^' => true,
     ];
 
+    // Intelligent delimiter mapping cache
+    /**
+     * @var array<string, string>
+     */
+    private static array $delimiterCache = [];
+
+    // Minimal state tracking
     private bool $inCharClass = false;
 
     private string $delimiter = '/';
@@ -43,8 +53,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     public function visitRegex(Node\RegexNode $node): string
     {
         $this->delimiter = $node->delimiter;
-        $map = ['(' => ')', '[' => ']', '{' => '}', '<' => '>'];
-        $closingDelimiter = $map[$node->delimiter] ?? $node->delimiter;
+        $closingDelimiter = $this->getClosingDelimiter($node->delimiter);
 
         return $node->delimiter.$node->pattern->accept($this).$closingDelimiter.$node->flags;
     }
@@ -52,15 +61,38 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitAlternation(Node\AlternationNode $node): string
     {
-        $separator = $this->inCharClass ? '' : '|';
+        // Optimized: direct compilation without array_map overhead
+        $alternatives = $node->alternatives;
+        if ([] === $alternatives) {
+            return '';
+        }
 
-        return implode($separator, array_map(fn ($alt) => $alt->accept($this), $node->alternatives));
+        $separator = $this->inCharClass ? '' : '|';
+        $result = $alternatives[0]->accept($this);
+
+        for ($i = 1, $count = \count($alternatives); $i < $count; $i++) {
+            $result .= $separator.$alternatives[$i]->accept($this);
+        }
+
+        return $result;
     }
 
     #[\Override]
     public function visitSequence(Node\SequenceNode $node): string
     {
-        return implode('', array_map(fn ($child) => $child->accept($this), $node->children));
+        // Optimized: direct compilation without array_map overhead
+        $children = $node->children;
+        if ([] === $children) {
+            return '';
+        }
+
+        $result = $children[0]->accept($this);
+
+        for ($i = 1, $count = \count($children); $i < $count; $i++) {
+            $result .= $children[$i]->accept($this);
+        }
+
+        return $result;
     }
 
     #[\Override]
@@ -104,30 +136,20 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitLiteral(Node\LiteralNode $node): string
     {
-        $meta = $this->inCharClass ? self::CHAR_CLASS_META : self::META_CHARACTERS;
+        $value = $node->value;
 
-        if (!$this->inCharClass && ']' === $node->value) {
-            return $node->value;
+        // Fast path for empty strings
+        if ('' === $value) {
+            return '';
         }
 
-        $result = '';
-        $length = \strlen($node->value);
-        for ($i = 0; $i < $length; $i++) {
-            $char = mb_substr($node->value, $i, 1);
-            if ($char === $this->delimiter || isset($meta[$char])) {
-                $result .= '\\'.$char;
-            } else {
-                $result .= $char;
-            }
+        // Special case for closing bracket outside char class
+        if (!$this->inCharClass && ']' === $value) {
+            return $value;
         }
 
-        return $result;
-    }
-
-    #[\Override]
-    public function visitCharType(Node\CharTypeNode $node): string
-    {
-        return '\\'.$node->value;
+        // Intelligent escaping with optimized character processing
+        return $this->escapeString($value);
     }
 
     #[\Override]
@@ -149,6 +171,12 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
+    public function visitCharType(Node\CharTypeNode $node): string
+    {
+        return '\\'.$node->value;
+    }
+
+    #[\Override]
     public function visitKeep(Node\KeepNode $node): string
     {
         return '\K';
@@ -157,11 +185,16 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitCharClass(Node\CharClassNode $node): string
     {
+        $wasInCharClass = $this->inCharClass;
         $this->inCharClass = true;
-        $result = '['.($node->isNegated ? '^' : '').$node->expression->accept($this).']';
-        $this->inCharClass = false;
 
-        return $result;
+        try {
+            $negation = $node->isNegated ? '^' : '';
+
+            return '['.$negation.$node->expression->accept($this).']';
+        } finally {
+            $this->inCharClass = $wasInCharClass;
+        }
     }
 
     #[\Override]
@@ -313,5 +346,61 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
         }
 
         return '(?C"'.$node->identifier.'")';
+    }
+
+    /**
+     * Intelligent delimiter mapping with caching.
+     */
+    private function getClosingDelimiter(string $delimiter): string
+    {
+        if (!isset(self::$delimiterCache[$delimiter])) {
+            self::$delimiterCache[$delimiter] = match ($delimiter) {
+                '(' => ')',
+                '[' => ']',
+                '{' => '}',
+                '<' => '>',
+                default => $delimiter,
+            };
+        }
+
+        return self::$delimiterCache[$delimiter];
+    }
+
+    /**
+     * High-performance string escaping with minimal allocations.
+     */
+    private function escapeString(string $value): string
+    {
+        $meta = $this->inCharClass ? self::CHAR_CLASS_META : self::META_CHARACTERS;
+        $needsEscape = false;
+
+        // Fast pre-scan to check if escaping is needed
+        $len = \strlen($value);
+        for ($i = 0; $i < $len; $i++) {
+            $char = $value[$i];
+            if ($char === $this->delimiter || isset($meta[$char])) {
+                $needsEscape = true;
+
+                break;
+            }
+        }
+
+        // Fast path: no escaping needed
+        if (!$needsEscape) {
+            return $value;
+        }
+
+        // Optimized escaping with single pass
+        $result = '';
+        for ($i = 0; $i < $len; $i++) {
+            $char = $value[$i];
+            if ($char === $this->delimiter || isset($meta[$char])) {
+                $result .= '\\'.$char;
+            } else {
+                $result .= $char;
+            }
+        }
+
+        return $result;
     }
 }

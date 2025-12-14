@@ -14,31 +14,25 @@ declare(strict_types=1);
 namespace RegexParser;
 
 /**
- * Consumable stream of tokens with lookahead and rewind capabilities.
+ * High-performance token stream with direct indexing and intelligent caching.
+ *
+ * This implementation eliminates O(n) array operations and provides constant-time
+ * access to tokens through direct array indexing with minimal memory overhead.
  */
 final class TokenStream
 {
-    /**
-     * @var array<int, Token>
-     */
-    private array $buffer = [];
-
-    /**
-     * @var array<int, Token>
-     */
-    private array $history = [];
-
     private int $position = 0;
 
-    private bool $exhausted = false;
+    private int $maxPosition = 0;
 
     /**
      * @param array<Token> $tokens
      */
-    public function __construct(private readonly array $tokens, private readonly string $pattern)
-    {
-        // Pre-fill buffer with first token
-        $this->fillBuffer(1);
+    public function __construct(
+        private readonly array $tokens,
+        private readonly string $pattern
+    ) {
+        $this->maxPosition = \count($this->tokens) - 1;
     }
 
     /**
@@ -46,11 +40,11 @@ final class TokenStream
      */
     public function current(): Token
     {
-        if (!isset($this->buffer[0])) {
+        if ($this->position > $this->maxPosition) {
             throw new \RuntimeException('Token stream is exhausted');
         }
 
-        return $this->buffer[0];
+        return $this->tokens[$this->position];
     }
 
     /**
@@ -58,18 +52,11 @@ final class TokenStream
      */
     public function next(): void
     {
-        if (empty($this->buffer)) {
+        if ($this->position > $this->maxPosition) {
             throw new \RuntimeException('Token stream is exhausted');
         }
 
-        $consumed = array_shift($this->buffer);
-        $this->history[] = $consumed;
         $this->position++;
-        $this->fillBuffer(1);
-
-        if (\count($this->history) > 100) {
-            array_shift($this->history);
-        }
     }
 
     /**
@@ -81,56 +68,48 @@ final class TokenStream
             return;
         }
 
-        if ($count > \count($this->history)) {
+        $newPosition = $this->position - $count;
+        if ($newPosition < 0) {
             throw new \RuntimeException(\sprintf(
-                'Cannot rewind %d tokens, only %d in history',
+                'Cannot rewind %d tokens, would go before start of stream',
                 $count,
-                \count($this->history),
             ));
         }
 
-        for ($i = 0; $i < $count; $i++) {
-            $token = array_pop($this->history);
-            if (null !== $token) {
-                array_unshift($this->buffer, $token);
-                $this->position--;
-            }
-        }
+        $this->position = $newPosition;
     }
 
     public function setPosition(int $position): void
     {
-        $diff = $this->position - $position;
-        if ($diff > 0) {
-            $this->rewind($diff);
-        } elseif ($diff < 0) {
-            // Move forward
-            for ($i = 0; $i < -$diff; $i++) {
-                $this->next();
-            }
+        if ($position < 0 || $position > $this->maxPosition + 1) {
+            throw new \RuntimeException(\sprintf(
+                'Position %d is out of bounds [0, %d]',
+                $position,
+                $this->maxPosition + 1,
+            ));
         }
+
+        $this->position = $position;
     }
 
     public function peek(int $offset = 1): Token
     {
-        if ($offset < 0) {
-            // Look back into history
-            $historyIndex = \count($this->history) + $offset;
-            if ($historyIndex >= 0 && isset($this->history[$historyIndex])) {
-                return $this->history[$historyIndex];
-            }
+        $targetPos = $this->position + $offset;
 
+        if ($targetPos < 0) {
             return new Token(TokenType::T_EOF, '', 0);
         }
 
-        $this->fillBuffer($offset + 1);
+        if ($targetPos > $this->maxPosition) {
+            return new Token(TokenType::T_EOF, '', $targetPos);
+        }
 
-        return $this->buffer[$offset] ?? new Token(TokenType::T_EOF, '', $this->position + $offset);
+        return $this->tokens[$targetPos];
     }
 
     public function hasMore(): bool
     {
-        return !empty($this->buffer);
+        return $this->position <= $this->maxPosition;
     }
 
     public function getPosition(): int
@@ -151,21 +130,12 @@ final class TokenStream
         return $this->tokens;
     }
 
-    private function fillBuffer(int $minSize): void
+    /**
+     * Returns true if current token is EOF
+     */
+    public function isAtEnd(): bool
     {
-        if ($this->exhausted || \count($this->buffer) >= $minSize) {
-            return;
-        }
-
-        while (\count($this->buffer) < $minSize) {
-            $nextIndex = $this->position + \count($this->buffer);
-            if (isset($this->tokens[$nextIndex])) {
-                $this->buffer[] = $this->tokens[$nextIndex];
-            } else {
-                $this->exhausted = true;
-
-                break;
-            }
-        }
+        return $this->position > $this->maxPosition
+               || TokenType::T_EOF === $this->tokens[$this->position]->type;
     }
 }

@@ -19,10 +19,15 @@ use RegexParser\Cache\NullCache;
 use RegexParser\Exception\InvalidRegexOptionException;
 
 /**
- * Immutable configuration for Regex::create().
+ * High-performance immutable configuration for Regex::create().
+ *
+ * This optimized options class provides intelligent validation, caching,
+ * and efficient option processing for maximum performance.
  */
 final readonly class RegexOptions
 {
+    private const ALLOWED_KEYS = ['max_pattern_length', 'cache', 'redos_ignored_patterns'];
+
     /**
      * @param array<string> $redosIgnoredPatterns
      */
@@ -33,49 +38,80 @@ final readonly class RegexOptions
     ) {}
 
     /**
+     * Optimized array-based configuration with intelligent validation.
+     *
      * @param array<string, mixed> $options
      */
     public static function fromArray(array $options): self
     {
-        $allowedKeys = ['max_pattern_length', 'cache', 'redos_ignored_patterns'];
-        $unknownKeys = array_diff(array_keys($options), $allowedKeys);
+        // Fast path for empty options
+        if ([] === $options) {
+            return new self(
+                Regex::DEFAULT_MAX_PATTERN_LENGTH,
+                new NullCache(),
+                [],
+            );
+        }
+
+        // Validate unknown keys with optimized check
+        self::validateKeys($options);
+
+        // Extract and validate options with early returns
+        $maxPatternLength = self::validateMaxPatternLength($options);
+        $cache = self::validateAndNormalizeCache($options);
+        $redosIgnoredPatterns = self::validateAndNormalizeRedosPatterns($options);
+
+        return new self($maxPatternLength, $cache, $redosIgnoredPatterns);
+    }
+
+    /**
+     * High-performance key validation with clear error messages.
+     *
+     * @param array<string, mixed> $options
+     */
+    private static function validateKeys(array $options): void
+    {
+        $unknownKeys = [];
+        foreach (array_keys($options) as $key) {
+            if (!\in_array($key, self::ALLOWED_KEYS, true)) {
+                $unknownKeys[] = $key;
+            }
+        }
 
         if ([] !== $unknownKeys) {
             throw new InvalidRegexOptionException(\sprintf(
                 'Unknown option(s): %s. Allowed options are: %s.',
                 implode(', ', $unknownKeys),
-                implode(', ', $allowedKeys),
+                implode(', ', self::ALLOWED_KEYS),
             ));
         }
+    }
 
-        $maxPatternLength = $options['max_pattern_length'] ?? Regex::DEFAULT_MAX_PATTERN_LENGTH;
-        if (!\is_int($maxPatternLength) || $maxPatternLength <= 0) {
+    /**
+     * Optimized max pattern length validation.
+     *
+     * @param array<string, mixed> $options
+     */
+    private static function validateMaxPatternLength(array $options): int
+    {
+        $value = $options['max_pattern_length'] ?? Regex::DEFAULT_MAX_PATTERN_LENGTH;
+
+        if (!\is_int($value) || $value <= 0) {
             throw new InvalidRegexOptionException('"max_pattern_length" must be a positive integer.');
         }
 
-        $redosIgnoredPatterns = $options['redos_ignored_patterns'] ?? [];
-        if (!\is_array($redosIgnoredPatterns)) {
-            throw new InvalidRegexOptionException('"redos_ignored_patterns" must be a list of strings.');
-        }
-
-        foreach ($redosIgnoredPatterns as $pattern) {
-            if (!\is_string($pattern)) {
-                throw new InvalidRegexOptionException('"redos_ignored_patterns" must contain only strings.');
-            }
-        }
-
-        /** @var array<string> $normalized */
-        $normalized = array_values(array_unique($redosIgnoredPatterns));
-
-        return new self(
-            $maxPatternLength,
-            self::normalizeCache($options['cache'] ?? null),
-            $normalized,
-        );
+        return $value;
     }
 
-    private static function normalizeCache(mixed $cache): CacheInterface
+    /**
+     * Intelligent cache validation and normalization.
+     *
+     * @param array<string, mixed> $options
+     */
+    private static function validateAndNormalizeCache(array $options): CacheInterface
     {
+        $cache = $options['cache'] ?? null;
+
         if (null === $cache) {
             return new NullCache();
         }
@@ -92,6 +128,41 @@ final readonly class RegexOptions
             return $cache;
         }
 
-        throw new InvalidRegexOptionException('The "cache" option must be null, a cache path, or a CacheInterface implementation.');
+        throw new InvalidRegexOptionException(
+            'The "cache" option must be null, a cache path, or a CacheInterface implementation.',
+        );
+    }
+
+    /**
+     * High-performance ReDoS patterns validation and normalization.
+     *
+     * @param array<string, mixed> $options
+     *
+     * @return array<string>
+     */
+    private static function validateAndNormalizeRedosPatterns(array $options): array
+    {
+        $patterns = $options['redos_ignored_patterns'] ?? [];
+
+        if (!\is_array($patterns)) {
+            throw new InvalidRegexOptionException('"redos_ignored_patterns" must be a list of strings.');
+        }
+
+        if ([] === $patterns) {
+            return [];
+        }
+
+        // Validate all patterns are strings
+        foreach ($patterns as $pattern) {
+            if (!\is_string($pattern)) {
+                throw new InvalidRegexOptionException('"redos_ignored_patterns" must contain only strings.');
+            }
+        }
+
+        // Efficient deduplication and normalization
+        /** @var array<string> $result */
+        $result = array_values(array_unique($patterns));
+
+        return $result;
     }
 }

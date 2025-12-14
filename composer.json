@@ -1,19 +1,7 @@
 {
     "name": "yoeunes/regex-parser",
     "description": "A powerful PCRE regex parser with lexer, AST builder, validation, ReDoS analysis, and syntax highlighting. Zero dependencies, blazing fast, and production-ready.",
-    "keywords": [
-        "regex",
-        "parser",
-        "pcre",
-        "lexer",
-        "ast",
-        "validation",
-        "redos",
-        "security",
-        "syntax-highlighting",
-        "php",
-        "cli"
-    ],
+    "keywords": ["regex", "parser", "pcre", "lexer", "ast", "validation", "redos", "security", "syntax-highlighting", "php", "cli"],
     "homepage": "https://github.com/yoeunes/regex-parser",
     "type": "library",
     "license": "MIT",
@@ -81,7 +69,6 @@
             "bin/phpstan",
             "bin/rector",
             "rector",
-            "templates",
             "tests",
             "tools",
             ".editorconfig",
@@ -105,43 +92,12 @@
         ]
     },
     "scripts": {
-        "setup": [
-            "@composer install",
-            "@install-tools",
-            "@test"
-        ],
-        "install-tools": [
-            "@install-phpstan",
-            "@install-rector",
-            "@install-php-cs-fixer",
-            "@install-phplint",
-            "@install-phpbench"
-        ],
-        "install-phpstan": "cd tools/phpstan && composer install --no-interaction",
-        "install-rector": "cd tools/rector && composer install --no-interaction",
-        "install-php-cs-fixer": "cd tools/php-cs-fixer && composer install --no-interaction",
-        "install-phplint": "cd tools/phplint && composer install --no-interaction",
-        "install-phpbench": "cd tools/phpbench && composer install --no-interaction",
-        "qa": [
-            "@qa:test",
-            "@qa:phpstan",
-            "@qa:rector",
-            "@qa:php-cs-fixer",
-            "@qa:phplint"
-        ],
-        "qa:test": "vendor/bin/phpunit",
-        "qa:phpstan": "tools/phpstan/vendor/bin/phpstan analyse --configuration=phpstan.dist.neon",
-        "qa:rector": "cd tools/rector && php vendor/bin/rector process --dry-run",
-        "qa:php-cs-fixer": "cd tools/php-cs-fixer && php vendor/bin/php-cs-fixer fix --dry-run --diff",
-        "qa:phplint": "cd tools/phplint && php vendor/bin/phplint",
-        "fix": [
-            "@fix:php-cs-fixer",
-            "@fix:rector"
-        ],
-        "fix:php-cs-fixer": "cd tools/php-cs-fixer && php vendor/bin/php-cs-fixer fix",
-        "fix:rector": "cd tools/rector && php vendor/bin/rector process",
-        "test": "@qa:test",
-        "bench": "cd tools/phpbench && php vendor/bin/phpbench run"
+        "phpunit": "vendor/bin/phpunit",
+        "phpstan": "tools/phpstan/vendor/bin/phpstan analyse",
+        "rector": "tools/rector/vendor/bin/rector process",
+        "phpcs": "tools/php-cs-fixer/vendor/bin/php-cs-fixer fix",
+        "phplint": "tools/phplint/vendor/bin/phplint",
+        "bench": "tools/phpbench/vendor/bin/phpbench run"
     },
     "config": {
         "optimize-autoloader": true,
@@ -149,6 +105,9 @@
         "sort-packages": true
     },
     "extra": {
+        "branch-alias": {
+            "dev-main": "1.x-dev"
+        },
         "phpstan": {
             "includes": [
                 "extension.neon"
