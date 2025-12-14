@@ -15,18 +15,17 @@ namespace RegexParser\Bridge\Psalm;
 
 use Psalm\Plugin\PluginEntryPointInterface;
 use Psalm\Plugin\RegistrationInterface;
-use SimpleXMLElement;
 
 final class Plugin implements PluginEntryPointInterface
 {
-    public function __invoke(RegistrationInterface $registration, ?SimpleXMLElement $config = null): void
+    public function __invoke(RegistrationInterface $registration, ?\SimpleXMLElement $config = null): void
     {
         PregValidationHandler::configure($this->createConfiguration($config));
 
         $registration->registerHooksFromClass(PregValidationHandler::class);
     }
 
-    private function createConfiguration(?SimpleXMLElement $config): PluginConfiguration
+    private function createConfiguration(?\SimpleXMLElement $config): PluginConfiguration
     {
         return new PluginConfiguration(
             ignoreParseErrors: $this->getBoolean($config, 'ignoreParseErrors', true),
@@ -36,7 +35,7 @@ final class Plugin implements PluginEntryPointInterface
         );
     }
 
-    private function getBoolean(?SimpleXMLElement $config, string $key, bool $default): bool
+    private function getBoolean(?\SimpleXMLElement $config, string $key, bool $default): bool
     {
         if (null === $config || !isset($config->{$key})) {
             return $default;
@@ -44,10 +43,10 @@ final class Plugin implements PluginEntryPointInterface
 
         $value = filter_var((string) $config->{$key}, \FILTER_VALIDATE_BOOLEAN, \FILTER_NULL_ON_FAILURE);
 
-        return null === $value ? $default : $value;
+        return $value ?? $default;
     }
 
-    private function getString(?SimpleXMLElement $config, string $key, string $default): string
+    private function getString(?\SimpleXMLElement $config, string $key, string $default): string
     {
         if (null === $config || !isset($config->{$key})) {
             return $default;
@@ -55,6 +54,6 @@ final class Plugin implements PluginEntryPointInterface
 
         $value = strtolower(trim((string) $config->{$key}));
 
-        return in_array($value, ['low', 'medium', 'high', 'critical'], true) ? $value : $default;
+        return \in_array($value, ['low', 'medium', 'high', 'critical'], true) ? $value : $default;
     }
 }

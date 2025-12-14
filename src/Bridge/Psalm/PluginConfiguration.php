@@ -13,12 +13,12 @@ declare(strict_types=1);
 
 namespace RegexParser\Bridge\Psalm;
 
-final class PluginConfiguration
+final readonly class PluginConfiguration
 {
     public function __construct(
-        public readonly bool $ignoreParseErrors = true,
-        public readonly bool $reportRedos = true,
-        public readonly string $redosThreshold = 'high',
-        public readonly bool $suggestOptimizations = false,
+        public bool $ignoreParseErrors = true,
+        public bool $reportRedos = true,
+        public string $redosThreshold = 'high',
+        public bool $suggestOptimizations = false,
     ) {}
 }

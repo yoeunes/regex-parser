@@ -40,9 +40,6 @@ use RegexParser\Regex;
 
 final class PregValidationHandler implements AfterFunctionCallAnalysisInterface
 {
-    /**
-     * @var array<string, int>
-     */
     private const PREG_FUNCTION_MAP = [
         'preg_match' => 0,
         'preg_match_all' => 0,

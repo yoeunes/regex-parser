@@ -15,6 +15,4 @@ namespace RegexParser\Bridge\Psalm\Issue;
 
 use Psalm\Issue\PluginIssue;
 
-final class RegexRedosIssue extends PluginIssue
-{
-}
+final class RegexRedosIssue extends PluginIssue {}
