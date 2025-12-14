@@ -49,7 +49,6 @@ final readonly class Regex
     private function __construct(
         private int $maxPatternLength,
         private CacheInterface $cache,
-
         private array $redosIgnoredPatterns,
     ) {}
 
@@ -92,14 +91,15 @@ final readonly class Regex
         }
     }
 
-    public function explain(string $regex): string
+    public function explain(string $regex, string $format = 'text'): string
     {
-        return $this->parse($regex)->accept(new NodeVisitor\ExplainNodeVisitor());
-    }
+        $visitor = match ($format) {
+            'text' => new NodeVisitor\ExplainNodeVisitor(),
+            'html' => new NodeVisitor\HtmlExplainNodeVisitor(),
+            default => throw new \InvalidArgumentException("Invalid format: $format"),
+        };
 
-    public function htmlExplain(string $regex): string
-    {
-        return $this->parse($regex)->accept(new NodeVisitor\HtmlExplainNodeVisitor());
+        return $this->parse($regex)->accept($visitor);
     }
 
     public function generate(string $regex): string
@@ -109,7 +109,7 @@ final readonly class Regex
 
     public function optimize(string $regex): string
     {
-        return $this->parse($regex)->accept(new NodeVisitor\OptimizerNodeVisitor())->accept(new NodeVisitor\CompilerNodeVisitor());
+        return $this->transformAndCompile($regex, new NodeVisitor\OptimizerNodeVisitor());
     }
 
     public function getLengthRange(string $regex)
@@ -134,35 +134,22 @@ final readonly class Regex
 
     public function modernize(string $regex): string
     {
-        $ast = $this->parse($regex);
-        /** @var \RegexParser\Node\NodeInterface $modernizedAst */
-        $modernizedAst = $ast->accept(new NodeVisitor\ModernizerNodeVisitor());
-
-        return $modernizedAst->accept(new NodeVisitor\CompilerNodeVisitor());
+        return $this->transformAndCompile($regex, new NodeVisitor\ModernizerNodeVisitor());
     }
 
-    public function highlightCli(string $regex): string
+    public function highlight(string $regex, string $format = 'auto'): string
     {
-        $ast = $this->parse($regex);
-
-        return $ast->accept(new NodeVisitor\ConsoleHighlighterVisitor());
-    }
-
-    public function highlightHtml(string $regex): string
-    {
-        $ast = $this->parse($regex);
-
-        return (string) $ast->accept(new NodeVisitor\HtmlHighlighterVisitor());
-    }
-
-    public function highlight(string $regex): string
-    {
-        if ($this->isCli()) {
-            return $this->highlightCli($regex);
+        if ('auto' === $format) {
+            $format = $this->isCli() ? 'cli' : 'html';
         }
 
-        return $this->highlightHtml($regex);
+        $visitor = match ($format) {
+            'cli' => new NodeVisitor\ConsoleHighlighterVisitor(),
+            'html' => new NodeVisitor\HtmlHighlighterVisitor(),
+            default => throw new \InvalidArgumentException("Invalid format: $format"),
+        };
 
+        return $this->parse($regex)->accept($visitor);
     }
 
     public function extractLiterals(string $regex): LiteralSet
@@ -288,6 +275,15 @@ final readonly class Regex
         }
 
         throw new ParserException(\sprintf('No closing delimiter "%s" found.', $closingDelimiter));
+    }
+
+    private function transformAndCompile(string $regex, NodeVisitor\NodeVisitorInterface $transformer): string
+    {
+        $ast = $this->parse($regex);
+        /** @var Node\NodeInterface $transformed */
+        $transformed = $ast->accept($transformer);
+
+        return $transformed->accept(new NodeVisitor\CompilerNodeVisitor());
     }
 
     private function isCli(): bool

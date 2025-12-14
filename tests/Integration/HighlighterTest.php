@@ -27,7 +27,7 @@ final class HighlighterTest extends TestCase
 
     public function test_highlight_cli_contains_ansi_codes(): void
     {
-        $highlighted = $this->regexService->highlightCli('/a+/');
+        $highlighted = $this->regexService->highlight('/a+/', 'cli');
 
         $this->assertStringContainsString('a', $highlighted);
         $this->assertStringContainsString("\033[", $highlighted); // ANSI escape code
@@ -36,7 +36,7 @@ final class HighlighterTest extends TestCase
 
     public function test_highlight_html_contains_span_tags(): void
     {
-        $highlighted = $this->regexService->highlightHtml('/a+/');
+        $highlighted = $this->regexService->highlight('/a+/', 'html');
 
         $this->assertStringContainsString('<span', $highlighted);
         $this->assertStringContainsString('</span>', $highlighted);
@@ -46,7 +46,7 @@ final class HighlighterTest extends TestCase
 
     public function test_highlight_html_escapes_special_chars(): void
     {
-        $highlighted = $this->regexService->highlightHtml('/<script>/');
+        $highlighted = $this->regexService->highlight('/<script>/', 'html');
 
         $this->assertStringContainsString('&lt;', $highlighted);
         $this->assertStringContainsString('&gt;', $highlighted);
@@ -55,7 +55,7 @@ final class HighlighterTest extends TestCase
 
     public function test_highlight_cli_complex_pattern(): void
     {
-        $highlighted = $this->regexService->highlightCli('/^[0-9]+(\w+)$/');
+        $highlighted = $this->regexService->highlight('/^[0-9]+(\w+)$/', 'cli');
 
         $this->assertStringContainsString("\033[1;34m", $highlighted); // Meta chars
         $this->assertStringContainsString("\033[1;33m", $highlighted); // Quantifiers
@@ -64,7 +64,7 @@ final class HighlighterTest extends TestCase
 
     public function test_highlight_html_complex_pattern(): void
     {
-        $highlighted = $this->regexService->highlightHtml('/^[0-9]+(\w+)$/');
+        $highlighted = $this->regexService->highlight('/^[0-9]+(\w+)$/', 'html');
 
         $this->assertStringContainsString('regex-meta', $highlighted);
         $this->assertStringContainsString('regex-quantifier', $highlighted);
