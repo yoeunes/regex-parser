@@ -21,12 +21,14 @@ namespace RegexParser;
  */
 final readonly class LiteralSet
 {
-    /**
-     * @param array<string> $prefixes
-     * @param array<string> $suffixes
-     */
     public function __construct(
+        /**
+         * @var array<string>
+         */
         public array $prefixes = [],
+        /**
+         * @var array<string>
+         */
         public array $suffixes = [],
         public bool $complete = false,
     ) {}
@@ -99,6 +101,12 @@ final readonly class LiteralSet
         return empty($this->prefixes) && empty($this->suffixes);
     }
 
+    /**
+     * @param array<string> $left
+     * @param array<string> $right
+     *
+     * @return array<string>
+     */
     private function crossProduct(array $left, array $right): array
     {
         $result = [];
@@ -111,11 +119,19 @@ final readonly class LiteralSet
         return $result;
     }
 
+    /**
+     * @param array<string> $items
+     *
+     * @return array<string>
+     */
     private function deduplicate(array $items): array
     {
         return array_values(array_unique($items));
     }
 
+    /**
+     * @param array<string> $candidates
+     */
     private function getLongestString(array $candidates): ?string
     {
         if (empty($candidates)) {
@@ -124,7 +140,7 @@ final readonly class LiteralSet
 
         $longest = '';
         foreach ($candidates as $s) {
-            if (\strlen((string) $s) > \strlen((string) $longest)) {
+            if (\strlen($s) > \strlen($longest)) {
                 $longest = $s;
             }
         }

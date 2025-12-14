@@ -47,7 +47,6 @@ final class RegexCacheTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('The "cache" option must be null, a cache path, or a CacheInterface implementation.');
 
-        /* @phpstan-ignore-next-line intentional invalid type to assert exception */
         Regex::create(['cache' => new \stdClass()]);
     }
 

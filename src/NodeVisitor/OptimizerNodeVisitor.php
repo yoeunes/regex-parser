@@ -312,9 +312,6 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         return $node;
     }
 
-    /**
-     * @param Node\DefineNode $node
-     */
     #[\Override]
     public function visitLiteral(Node\LiteralNode $node): Node\NodeInterface
     {
