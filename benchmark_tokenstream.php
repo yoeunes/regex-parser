@@ -2,6 +2,15 @@
 
 declare(strict_types=1);
 
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 require_once __DIR__.'/vendor/autoload.php';
 
 use RegexParser\Token;
@@ -18,7 +27,7 @@ for ($i = 0; $i < 10000; $i++) {
 $tokens[] = new Token(TokenType::T_EOF, '', 10000);
 
 echo "Benchmarking TokenStream performance...\n";
-echo "Token count: " . count($tokens) . "\n\n";
+echo 'Token count: '.\count($tokens)."\n\n";
 
 $iterations = 1000;
 
@@ -32,7 +41,7 @@ for ($i = 0; $i < $iterations; $i++) {
 }
 $forwardTime = microtime(true) - $start;
 
-echo sprintf("Forward iteration (%d iterations): %.4f seconds\n", $iterations, $forwardTime);
+echo \sprintf("Forward iteration (%d iterations): %.4f seconds\n", $iterations, $forwardTime);
 
 // Benchmark peek operations
 $start = microtime(true);
@@ -49,7 +58,7 @@ for ($i = 0; $i < $iterations; $i++) {
 }
 $peekTime = microtime(true) - $start;
 
-echo sprintf("Peek operations (%d operations): %.4f seconds\n", $peekOperations, $peekTime);
+echo \sprintf("Peek operations (%d operations): %.4f seconds\n", $peekOperations, $peekTime);
 
 // Benchmark rewind operations
 $start = microtime(true);
@@ -67,6 +76,6 @@ for ($i = 0; $i < $iterations; $i++) {
 }
 $rewindTime = microtime(true) - $start;
 
-echo sprintf("Rewind operations (%d operations): %.4f seconds\n", $rewindOperations, $rewindTime);
+echo \sprintf("Rewind operations (%d operations): %.4f seconds\n", $rewindOperations, $rewindTime);
 
-echo "\nMemory usage: " . memory_get_peak_usage(true) / 1024 / 1024 . " MB\n";
+echo "\nMemory usage: ".memory_get_peak_usage(true) / 1024 / 1024 ." MB\n";

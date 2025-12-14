@@ -23,10 +23,6 @@ use RegexParser\Exception\LexerException;
  */
 final class Lexer
 {
-    // Precompiled regex patterns for maximum performance
-    private static ?string $regexOutside = null;
-    private static ?string $regexInside = null;
-
     // Token priority maps for efficient matching
     private const TOKENS_OUTSIDE = [
         'T_COMMENT_OPEN', 'T_CALLOUT', 'T_PCRE_VERB', 'T_GROUP_MODIFIER_OPEN',
@@ -90,6 +86,11 @@ final class Lexer
         'T_LITERAL' => '[^\\\\]',
     ];
 
+    // Precompiled regex patterns for maximum performance
+    private static ?string $regexOutside = null;
+
+    private static ?string $regexInside = null;
+
     private string $pattern;
 
     private int $position = 0;
@@ -103,30 +104,6 @@ final class Lexer
     private bool $inCommentMode = false;
 
     private int $charClassStartPosition = 0;
-
-    private function getRegexOutside(): string
-    {
-        return self::$regexOutside ??= $this->compilePattern(self::PATTERNS_OUTSIDE);
-    }
-
-    private function getRegexInside(): string
-    {
-        return self::$regexInside ??= $this->compilePattern(self::PATTERNS_INSIDE);
-    }
-
-    /**
-     * Compile patterns into an optimized regex with named groups.
-     * @param array<string, string> $patterns
-     */
-    private function compilePattern(array $patterns): string
-    {
-        $regexParts = [];
-        foreach ($patterns as $name => $pattern) {
-            $regexParts[] = "(?<{$name}> {$pattern} )";
-        }
-
-        return '/(?:' . implode('|', $regexParts) . ')/xsuA';
-    }
 
     public function tokenize(string $pattern): TokenStream
     {
@@ -155,6 +132,31 @@ final class Lexer
         $tokens[] = new Token(TokenType::T_EOF, '', $this->position);
 
         return new TokenStream($tokens, $pattern);
+    }
+
+    private function getRegexOutside(): string
+    {
+        return self::$regexOutside ??= $this->compilePattern(self::PATTERNS_OUTSIDE);
+    }
+
+    private function getRegexInside(): string
+    {
+        return self::$regexInside ??= $this->compilePattern(self::PATTERNS_INSIDE);
+    }
+
+    /**
+     * Compile patterns into an optimized regex with named groups.
+     *
+     * @param array<string, string> $patterns
+     */
+    private function compilePattern(array $patterns): string
+    {
+        $regexParts = [];
+        foreach ($patterns as $name => $pattern) {
+            $regexParts[] = "(?<{$name}> {$pattern} )";
+        }
+
+        return '/(?:'.implode('|', $regexParts).')/xsuA';
     }
 
     private function resetState(): void

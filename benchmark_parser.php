@@ -2,6 +2,15 @@
 
 declare(strict_types=1);
 
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 require_once __DIR__.'/vendor/autoload.php';
 
 use RegexParser\Regex;
@@ -20,7 +29,7 @@ $iterations = 100;
 
 foreach ($testPatterns as $name => $pattern) {
     echo "=== Testing {$name} pattern ===\n";
-    echo "Pattern: " . substr($pattern, 0, 60) . (strlen($pattern) > 60 ? '...' : '') . "\n";
+    echo 'Pattern: '.substr($pattern, 0, 60).(\strlen($pattern) > 60 ? '...' : '')."\n";
 
     // Benchmark parsing
     $start = microtime(true);
@@ -28,13 +37,13 @@ foreach ($testPatterns as $name => $pattern) {
         $regex = Regex::create();
         $ast = $regex->parse($pattern);
         // Just count the pattern length as a simple metric
-        $patternLength = strlen($pattern);
+        $patternLength = \strlen($pattern);
     }
     $parseTime = microtime(true) - $start;
 
-    echo sprintf("Parsing (%d iterations): %.4f seconds\n", $iterations, $parseTime);
-    echo sprintf("Pattern length: %d characters\n", $patternLength);
-    echo sprintf("Average time per parse: %.6f seconds\n", $parseTime / $iterations);
+    echo \sprintf("Parsing (%d iterations): %.4f seconds\n", $iterations, $parseTime);
+    echo \sprintf("Pattern length: %d characters\n", $patternLength);
+    echo \sprintf("Average time per parse: %.6f seconds\n", $parseTime / $iterations);
     echo "\n";
 }
 
@@ -51,7 +60,7 @@ for ($i = 0; $i < 1000; $i++) {
 }
 $parseTime = microtime(true) - $start;
 
-echo sprintf("Complex parsing (1,000 iterations): %.4f seconds\n", $parseTime);
-echo sprintf("Average time per parse: %.6f seconds\n", $parseTime / 1000);
+echo \sprintf("Complex parsing (1,000 iterations): %.4f seconds\n", $parseTime);
+echo \sprintf("Average time per parse: %.6f seconds\n", $parseTime / 1000);
 
-echo "\nMemory usage: " . memory_get_peak_usage(true) / 1024 / 1024 . " MB\n";
+echo "\nMemory usage: ".memory_get_peak_usage(true) / 1024 / 1024 ." MB\n";

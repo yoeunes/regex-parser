@@ -24,11 +24,15 @@ final readonly class LiteralSet
     private const MAX_SET_SIZE = 100; // Prevent memory explosion
     private const MAX_STRING_LENGTH = 1000; // Prevent extremely long literals
 
-    /** @var array<string> */
+    /**
+     * @var array<string>
+     */
     public array $prefixes;
-    /** @var array<string> */
+
+    /**
+     * @var array<string>
+     */
     public array $suffixes;
-    public bool $complete;
 
     /**
      * @param array<string> $prefixes
@@ -37,7 +41,7 @@ final readonly class LiteralSet
     public function __construct(
         array $prefixes = [],
         array $suffixes = [],
-        bool $complete = false,
+        public bool $complete = false,
     ) {
         // Enforce size limits to prevent performance degradation
         $this->prefixes = \count($prefixes) > self::MAX_SET_SIZE
@@ -47,8 +51,6 @@ final readonly class LiteralSet
         $this->suffixes = \count($suffixes) > self::MAX_SET_SIZE
             ? \array_slice($suffixes, 0, self::MAX_SET_SIZE)
             : $suffixes;
-
-        $this->complete = $complete;
     }
 
     public static function empty(): self
@@ -84,7 +86,7 @@ final readonly class LiteralSet
         return new self(
             $this->deduplicate($newPrefixes),
             $this->deduplicate($newSuffixes),
-            $newComplete
+            $newComplete,
         );
     }
 
@@ -102,7 +104,7 @@ final readonly class LiteralSet
         return new self(
             $this->deduplicate($newPrefixes),
             $this->deduplicate($newSuffixes),
-            $newComplete
+            $newComplete,
         );
     }
 
@@ -123,8 +125,10 @@ final readonly class LiteralSet
 
     /**
      * Optimized cross product with size limits and early termination.
+     *
      * @param array<string> $left
      * @param array<string> $right
+     *
      * @return array<string>
      */
     private function crossProduct(array $left, array $right): array
@@ -134,7 +138,7 @@ final readonly class LiteralSet
 
         foreach ($left as $l) {
             foreach ($right as $r) {
-                $combined = $l . $r;
+                $combined = $l.$r;
 
                 // Skip if result would be too long
                 if (\strlen($combined) > self::MAX_STRING_LENGTH) {
@@ -155,7 +159,9 @@ final readonly class LiteralSet
 
     /**
      * Memory-efficient deduplication with size limits.
+     *
      * @param array<string> $items
+     *
      * @return array<string>
      */
     private function deduplicate(array $items): array
@@ -176,6 +182,7 @@ final readonly class LiteralSet
 
     /**
      * Optimized longest string computation with early termination.
+     *
      * @param array<string> $candidates
      */
     /**
@@ -199,6 +206,6 @@ final readonly class LiteralSet
         }
 
         // Handle edge case where longest is empty string but empty isn't in candidates
-        return $maxLength === 0 && !\in_array('', $candidates, true) ? null : $longest;
+        return 0 === $maxLength && !\in_array('', $candidates, true) ? null : $longest;
     }
 }

@@ -16,7 +16,6 @@ namespace RegexParser;
 use RegexParser\Exception\ParserException;
 use RegexParser\Exception\RecursionLimitException;
 use RegexParser\Exception\SyntaxErrorException;
-use RegexParser\Token;
 
 /**
  * High-performance recursive descent parser for regex patterns.
@@ -31,8 +30,11 @@ final class Parser
     private const MAX_RECURSION_DEPTH = 1024;
 
     private TokenStream $stream;
+
     private string $pattern = '';
+
     private string $flags = '';
+
     private bool $JModifier = false;
 
     /**
@@ -42,12 +44,16 @@ final class Parser
 
     // Performance optimizations
     private ?Token $currentToken = null;
+
     private bool $currentTokenValid = false;
+
     private int $lastPosition = -1;
 
     // State tracking
     private bool $lastTokenWasAlternation = false;
+
     private int $lastInlineFlagsLength = 0;
+
     private int $recursionDepth = 0;
 
     public function parse(TokenStream $stream, string $flags = '', string $delimiter = '/', int $patternLength = 0): Node\RegexNode
@@ -1518,8 +1524,6 @@ final class Parser
         }
     }
 
-
-
     /**
      * @return bool true if the current token is a T_LITERAL and its value matches the given value
      */
@@ -1584,8 +1588,6 @@ final class Parser
             $this->current()->position,
         );
     }
-
-
 
     /**
      * Creates an empty literal node (epsilon) at a given position.
@@ -1657,6 +1659,7 @@ final class Parser
         }
 
         $this->advance();
+
         return true;
     }
 
@@ -1684,7 +1687,7 @@ final class Parser
      */
     private function previous(): Token
     {
-        if ($this->stream->getPosition() === 0) {
+        if (0 === $this->stream->getPosition()) {
             return new Token(TokenType::T_EOF, '', 0);
         }
 
@@ -1695,8 +1698,6 @@ final class Parser
 
         return $token;
     }
-
-
 
     /**
      * @return bool true if the current token is a T_LITERAL and its value is an alphabetic character (a-z, A-Z)

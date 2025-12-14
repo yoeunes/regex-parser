@@ -22,6 +22,7 @@ namespace RegexParser;
 final class TokenStream
 {
     private int $position = 0;
+
     private int $maxPosition = 0;
 
     /**
@@ -134,7 +135,7 @@ final class TokenStream
      */
     public function isAtEnd(): bool
     {
-        return $this->position > $this->maxPosition ||
-               $this->tokens[$this->position]->type === TokenType::T_EOF;
+        return $this->position > $this->maxPosition
+               || TokenType::T_EOF === $this->tokens[$this->position]->type;
     }
 }

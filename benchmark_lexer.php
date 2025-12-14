@@ -2,6 +2,15 @@
 
 declare(strict_types=1);
 
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 require_once __DIR__.'/vendor/autoload.php';
 
 use RegexParser\Lexer;
@@ -20,7 +29,7 @@ $iterations = 100;
 
 foreach ($testPatterns as $name => $pattern) {
     echo "=== Testing {$name} pattern ===\n";
-    echo "Pattern: " . substr($pattern, 0, 60) . (strlen($pattern) > 60 ? '...' : '') . "\n";
+    echo 'Pattern: '.substr($pattern, 0, 60).(\strlen($pattern) > 60 ? '...' : '')."\n";
 
     // Benchmark tokenization
     $start = microtime(true);
@@ -28,13 +37,13 @@ foreach ($testPatterns as $name => $pattern) {
         $lexer = new Lexer();
         $stream = $lexer->tokenize($pattern);
         $tokens = $stream->getTokens();
-        $count = count($tokens);
+        $count = \count($tokens);
     }
     $tokenizeTime = microtime(true) - $start;
 
-    echo sprintf("Tokenization (%d iterations): %.4f seconds\n", $iterations, $tokenizeTime);
-    echo sprintf("Average tokens per pattern: %d\n", $count);
-    echo sprintf("Average time per tokenization: %.6f seconds\n", $tokenizeTime / $iterations);
+    echo \sprintf("Tokenization (%d iterations): %.4f seconds\n", $iterations, $tokenizeTime);
+    echo \sprintf("Average tokens per pattern: %d\n", $count);
+    echo \sprintf("Average time per tokenization: %.6f seconds\n", $tokenizeTime / $iterations);
     echo "\n";
 }
 
@@ -51,8 +60,8 @@ $lexer2 = new Lexer();
 $stream2 = $lexer2->tokenize('test');
 $cachedTime = microtime(true) - $start;
 
-echo sprintf("First compilation: %.6f seconds\n", $firstTime);
-echo sprintf("Cached compilation: %.6f seconds\n", $cachedTime);
-echo sprintf("Speedup: %.2fx\n", $firstTime / $cachedTime);
+echo \sprintf("First compilation: %.6f seconds\n", $firstTime);
+echo \sprintf("Cached compilation: %.6f seconds\n", $cachedTime);
+echo \sprintf("Speedup: %.2fx\n", $firstTime / $cachedTime);
 
-echo "\nMemory usage: " . memory_get_peak_usage(true) / 1024 / 1024 . " MB\n";
+echo "\nMemory usage: ".memory_get_peak_usage(true) / 1024 / 1024 ." MB\n";
