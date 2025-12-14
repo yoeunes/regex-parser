@@ -42,7 +42,6 @@
 
 # Directories not needed in distribution
 /rector                 export-ignore
-/templates              export-ignore
 /tests                  export-ignore
 /tools                  export-ignore
 

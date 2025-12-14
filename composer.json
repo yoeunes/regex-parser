@@ -81,7 +81,6 @@
             "bin/phpstan",
             "bin/rector",
             "rector",
-            "templates",
             "tests",
             "tools",
             ".editorconfig",
