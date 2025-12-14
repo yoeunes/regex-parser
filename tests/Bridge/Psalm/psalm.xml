@@ -6,7 +6,7 @@
     xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/vimeo/psalm/5.x/config.xsd"
 >
     <projectFiles>
-        <directory name="tests/Bridge/Psalm/Fixtures" />
+        <directory name="./Fixtures" />
     </projectFiles>
 
     <plugins>

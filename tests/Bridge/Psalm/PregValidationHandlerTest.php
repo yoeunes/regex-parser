@@ -38,7 +38,10 @@ final class PregValidationHandlerTest extends TestCase
 
         self::assertNotSame('', $output, 'Psalm output is empty');
 
-        $issues = json_decode($output, true);
+        $json = $this->extractJson($output);
+        self::assertNotNull($json, 'Psalm did not return JSON output.');
+
+        $issues = json_decode($json, true);
         self::assertIsArray($issues, 'Psalm JSON output expected');
 
         $types = array_column($issues, 'type');
@@ -65,6 +68,18 @@ final class PregValidationHandlerTest extends TestCase
     private function getFixtureFile(): string
     {
         return __DIR__.'/Fixtures/PregFunctions.php';
+    }
+
+    private function extractJson(string $output): ?string
+    {
+        $start = strpos($output, '[');
+        $objectStart = strpos($output, '{');
+
+        if (false === $start || (false !== $objectStart && $objectStart < $start)) {
+            $start = $objectStart;
+        }
+
+        return false === $start ? null : substr($output, $start);
     }
 
     /**

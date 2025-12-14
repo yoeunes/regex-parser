@@ -15,13 +15,18 @@ namespace RegexParser\Tests\Bridge\Psalm\Fixtures;
 
 final class PregFunctions
 {
+    /**
+     * @psalm-suppress UnusedFunctionCall
+     * @psalm-suppress MixedArgumentTypeCoercion
+     * @psalm-suppress MissingClosureReturnType
+     */
     public function run(): void
     {
-        preg_match('/foo', 'bar');
-        preg_match('/(a+)+$/', 'bar');
-        preg_match('/[0-9]+/', 'bar');
+        \preg_match('/foo', 'bar');
+        \preg_match('/(a+)+$/', 'bar');
+        \preg_match('/[0-9]+/', 'bar');
 
-        preg_replace_callback_array([
+        \preg_replace_callback_array([
             '/foo' => static fn (array $matches) => $matches[0],
             '/bar/' => static fn (array $matches) => $matches[0],
         ], 'bar');
