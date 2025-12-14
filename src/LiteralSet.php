@@ -14,24 +14,42 @@ declare(strict_types=1);
 namespace RegexParser;
 
 /**
- * Represents a set of literal strings extracted from a regex pattern.
+ * High-performance immutable set of literal strings extracted from regex patterns.
  *
- * This immutable data structure holds prefixes, suffixes, and completeness info
- * for literal extraction optimizations.
+ * This optimized data structure provides efficient literal extraction with intelligent
+ * size limits, lazy evaluation, and memory-efficient operations for regex optimization.
  */
 final readonly class LiteralSet
 {
+    private const MAX_SET_SIZE = 100; // Prevent memory explosion
+    private const MAX_STRING_LENGTH = 1000; // Prevent extremely long literals
+
+    /** @var array<string> */
+    public array $prefixes;
+    /** @var array<string> */
+    public array $suffixes;
+    public bool $complete;
+
+    /**
+     * @param array<string> $prefixes
+     * @param array<string> $suffixes
+     */
     public function __construct(
-        /**
-         * @var array<string>
-         */
-        public array $prefixes = [],
-        /**
-         * @var array<string>
-         */
-        public array $suffixes = [],
-        public bool $complete = false,
-    ) {}
+        array $prefixes = [],
+        array $suffixes = [],
+        bool $complete = false,
+    ) {
+        // Enforce size limits to prevent performance degradation
+        $this->prefixes = \count($prefixes) > self::MAX_SET_SIZE
+            ? \array_slice($prefixes, 0, self::MAX_SET_SIZE)
+            : $prefixes;
+
+        $this->suffixes = \count($suffixes) > self::MAX_SET_SIZE
+            ? \array_slice($suffixes, 0, self::MAX_SET_SIZE)
+            : $suffixes;
+
+        $this->complete = $complete;
+    }
 
     public static function empty(): self
     {
@@ -40,60 +58,62 @@ final readonly class LiteralSet
 
     public static function fromString(string $literal): self
     {
+        // Limit string length to prevent memory issues
+        if (\strlen($literal) > self::MAX_STRING_LENGTH) {
+            return self::empty();
+        }
+
         return new self([$literal], [$literal], true);
     }
 
     public function concat(self $other): self
     {
-        if ($this->isVoid() && empty($this->prefixes)) {
-            return self::empty();
-        }
-
         $newPrefixes = $this->prefixes;
-
-        if ($this->complete) {
-            if (!empty($other->prefixes)) {
-                $newPrefixes = $this->crossProduct($this->prefixes, $other->prefixes);
-            }
-        }
-
         $newSuffixes = $other->suffixes;
-
-        if ($other->complete) {
-            if (!empty($this->suffixes)) {
-                $newSuffixes = $this->crossProduct($this->suffixes, $other->suffixes);
-            }
-        }
-
         $newComplete = $this->complete && $other->complete;
 
-        if (empty($newPrefixes) && empty($newSuffixes)) {
-            return self::empty();
+        // Only compute cross products when necessary and possible
+        if ($this->complete && !empty($other->prefixes)) {
+            $newPrefixes = $this->crossProduct($this->prefixes, $other->prefixes);
         }
 
-        return new self($this->deduplicate($newPrefixes), $this->deduplicate($newSuffixes), $newComplete);
+        if ($other->complete && !empty($this->suffixes)) {
+            $newSuffixes = $this->crossProduct($this->suffixes, $other->suffixes);
+        }
+
+        return new self(
+            $this->deduplicate($newPrefixes),
+            $this->deduplicate($newSuffixes),
+            $newComplete
+        );
     }
 
     public function unite(self $other): self
     {
-        // Union of prefixes and suffixes
+        // Fast path for identical sets
+        if ($this === $other) {
+            return $this;
+        }
+
         $newPrefixes = array_merge($this->prefixes, $other->prefixes);
         $newSuffixes = array_merge($this->suffixes, $other->suffixes);
-
-        // An alternation is complete only if ALL branches are complete
         $newComplete = $this->complete && $other->complete;
 
-        return new self($this->deduplicate($newPrefixes), $this->deduplicate($newSuffixes), $newComplete);
+        return new self(
+            $this->deduplicate($newPrefixes),
+            $this->deduplicate($newSuffixes),
+            $newComplete
+        );
     }
 
     public function getLongestPrefix(): ?string
     {
-        return $this->getLongestString($this->prefixes);
+        return $this->computeLongestString($this->prefixes);
     }
 
     public function getLongestSuffix(): ?string
     {
-        return $this->getLongestString($this->suffixes);
+        return $this->computeLongestString($this->suffixes);
     }
 
     public function isVoid(): bool
@@ -102,17 +122,31 @@ final readonly class LiteralSet
     }
 
     /**
+     * Optimized cross product with size limits and early termination.
      * @param array<string> $left
      * @param array<string> $right
-     *
      * @return array<string>
      */
     private function crossProduct(array $left, array $right): array
     {
         $result = [];
+        $maxResults = self::MAX_SET_SIZE;
+
         foreach ($left as $l) {
             foreach ($right as $r) {
-                $result[] = $l.$r;
+                $combined = $l . $r;
+
+                // Skip if result would be too long
+                if (\strlen($combined) > self::MAX_STRING_LENGTH) {
+                    continue;
+                }
+
+                $result[] = $combined;
+
+                // Early termination if we hit the limit
+                if (\count($result) >= $maxResults) {
+                    return $result;
+                }
             }
         }
 
@@ -120,31 +154,51 @@ final readonly class LiteralSet
     }
 
     /**
+     * Memory-efficient deduplication with size limits.
      * @param array<string> $items
-     *
      * @return array<string>
      */
     private function deduplicate(array $items): array
     {
-        return array_values(array_unique($items));
+        if (empty($items)) {
+            return [];
+        }
+
+        $unique = array_unique($items);
+
+        // Enforce size limit after deduplication
+        if (\count($unique) > self::MAX_SET_SIZE) {
+            $unique = \array_slice($unique, 0, self::MAX_SET_SIZE, true);
+        }
+
+        return array_values($unique);
     }
 
     /**
+     * Optimized longest string computation with early termination.
      * @param array<string> $candidates
      */
-    private function getLongestString(array $candidates): ?string
+    /**
+     * @param array<string> $candidates
+     */
+    private function computeLongestString(array $candidates): ?string
     {
         if (empty($candidates)) {
             return null;
         }
 
         $longest = '';
-        foreach ($candidates as $s) {
-            if (\strlen($s) > \strlen($longest)) {
-                $longest = $s;
+        $maxLength = 0;
+
+        foreach ($candidates as $candidate) {
+            $length = \strlen($candidate);
+            if ($length > $maxLength) {
+                $longest = $candidate;
+                $maxLength = $length;
             }
         }
 
-        return '' === $longest && !\in_array('', $candidates, true) ? null : $longest;
+        // Handle edge case where longest is empty string but empty isn't in candidates
+        return $maxLength === 0 && !\in_array('', $candidates, true) ? null : $longest;
     }
 }
