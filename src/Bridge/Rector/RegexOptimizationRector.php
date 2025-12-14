@@ -74,9 +74,6 @@ final class RegexOptimizationRector extends AbstractRector implements Configurab
         }
     }
 
-    /**
-     * @return RuleDefinition
-     */
     public function getRuleDefinition(): RuleDefinition
     {
         return new RuleDefinition(
@@ -135,10 +132,6 @@ final class RegexOptimizationRector extends AbstractRector implements Configurab
         return [FuncCall::class, ClassConst::class];
     }
 
-    /**
-     * @param Node $node
-     * @return Node|null
-     */
     public function refactor(Node $node): ?Node
     {
         $stringNode = $this->resolveRegexStringNode($node);
