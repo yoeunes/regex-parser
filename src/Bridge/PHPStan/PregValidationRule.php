@@ -38,7 +38,6 @@ use RegexParser\Regex;
  */
 final class PregValidationRule implements Rule
 {
-    // Identifiers for user configuration in phpstan.neon
     public const IDENTIFIER_SYNTAX_INVALID = 'regex.syntax.invalid';
     public const IDENTIFIER_SYNTAX_DELIMITER = 'regex.syntax.delimiter';
     public const IDENTIFIER_SYNTAX_EMPTY = 'regex.syntax.empty';
@@ -66,13 +65,9 @@ final class PregValidationRule implements Rule
     private ?ReDoSAnalyzer $redosAnalyzer = null;
 
     /**
-     * @param bool   $ignoreParseErrors If `true`, the rule will not report syntax errors that seem to be
-     *                                  caused by incomplete or partial regex strings. This is useful for
-     *                                  avoiding false positives in dynamic code.
-     * @param bool   $reportRedos       if `true`, the rule will perform and report ReDoS vulnerability analysis
-     * @param string $redosThreshold    The minimum ReDoS severity level to report. Can be one of 'low',
-     *                                  'medium', 'high', or 'critical'. For example, if set to 'high',
-     *                                  only high and critical severity issues will be reported.
+     * @param bool   $ignoreParseErrors Ignore parse errors for partial regex strings
+     * @param bool   $reportRedos       Report ReDoS vulnerability analysis
+     * @param string $redosThreshold    Minimum ReDoS severity level to report
      */
     public function __construct(
         private readonly bool $ignoreParseErrors = true,
@@ -158,11 +153,8 @@ final class PregValidationRule implements Rule
 
         $errors = [];
 
-        // 1. Syntax Validation (Blocking)
         try {
-            // Only parsing is blocking because subsequent steps require a valid AST
             $ast = $this->getRegex()->parse($pattern);
-            // Semantic validation is also run here to catch structural issues early
             $ast->accept($this->getValidator());
         } catch (LexerException|ParserException|SyntaxErrorException $e) {
             if ($this->ignoreParseErrors && $this->isLikelyPartialRegexError($e->getMessage())) {
@@ -175,11 +167,9 @@ final class PregValidationRule implements Rule
                 ->identifier($this->getIdentifierForSyntaxError($e->getMessage()))
                 ->build();
 
-            // Return immediately as we cannot analyze an invalid regex
             return $errors;
         }
 
-        // 2. ReDoS Validation (Non-Blocking)
         if ($this->reportRedos) {
             try {
                 $analysis = $this->getRedosAnalyzer()->analyze($pattern);
@@ -203,11 +193,9 @@ final class PregValidationRule implements Rule
                         ->build();
                 }
             } catch (\Throwable) {
-                // ReDoS analysis failures should not crash the analysis
             }
         }
 
-        // 3. Optimization suggestions (Non-Blocking)
         if ($this->suggestOptimizations) {
             try {
                 $optimized = $this->getRegex()->optimize($pattern);
@@ -221,11 +209,9 @@ final class PregValidationRule implements Rule
                         ->build();
                 }
             } catch (\Throwable) {
-                // Optimization failures should not crash the analysis
             }
         }
 
-        // 4. Linter warnings (Non-Blocking)
         try {
             $linter = new \RegexParser\NodeVisitor\LinterNodeVisitor();
             $ast->accept($linter);
@@ -236,7 +222,6 @@ final class PregValidationRule implements Rule
                     ->build();
             }
         } catch (\Throwable) {
-            // Linter failures should not crash the analysis
         }
 
         return $errors;
