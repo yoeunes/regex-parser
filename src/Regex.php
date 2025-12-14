@@ -27,25 +27,6 @@ final readonly class Regex
 {
     public const DEFAULT_MAX_PATTERN_LENGTH = 100_000;
 
-    private const DEFAULT_REDOS_IGNORED_PATTERNS = [
-        '[a-z0-9]+(?:-[a-z0-9]+)*',
-        '^[a-z0-9]+(?:-[a-z0-9]+)*$',
-        '[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*',
-        '^[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$',
-        '[a-z0-9_]+',
-        '^[a-z0-9_]+$',
-        '[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}',
-        '^\d+$',
-        '^\d{4}-\d{2}-\d{2}$',
-        '[0-9a-fA-F]{24}',
-        '[1-9]\d*',
-        '[1-9]\d{3,}',
-        '[A-Za-z0-9]{26}',
-        '[1-9A-HJ-NP-Za-km-z]{21,22}',
-        '[0-9A-F]{8}-[0-9A-F]{4}-[1-5][0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}',
-        '^[0-9A-F]{8}-[0-9A-F]{4}-[1-5][0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}$',
-    ];
-
     private function __construct(
         private int $maxPatternLength,
         private CacheInterface $cache,
@@ -56,10 +37,7 @@ final readonly class Regex
     {
         $parsedOptions = RegexOptions::fromArray($options);
 
-        $redosIgnoredPatterns = array_values(array_unique([
-            ...self::DEFAULT_REDOS_IGNORED_PATTERNS,
-            ...$parsedOptions->redosIgnoredPatterns,
-        ]));
+        $redosIgnoredPatterns = $parsedOptions->redosIgnoredPatterns;
 
         return new self($parsedOptions->maxPatternLength, $parsedOptions->cache, $redosIgnoredPatterns);
     }
