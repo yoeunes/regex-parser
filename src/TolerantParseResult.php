@@ -17,15 +17,11 @@ use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
 
 /**
- * Represents the outcome of a tolerant parse attempt.
- *
- * @api
+ * Outcome of a tolerant parse attempt.
  */
 final readonly class TolerantParseResult
 {
-    /**
-     * @param list<ParserException|LexerException> $errors
-     */
+
     public function __construct(
         public \RegexParser\Node\RegexNode $ast,
         public array $errors = [],
