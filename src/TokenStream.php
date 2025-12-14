@@ -14,53 +14,26 @@ declare(strict_types=1);
 namespace RegexParser;
 
 /**
- * Provides a consumable stream of tokens with lookahead and rewind capabilities.
- *
- * Purpose: This class is a crucial abstraction layer between the `Lexer` and the `Parser`.
- * It wraps the raw array of tokens and provides a stateful, iterable interface. The `Parser`
- * uses this stream to consume tokens one by one (`next()`), look at upcoming tokens without
- * consuming them (`peek()`), and even go back to a previous state (`rewind()`). This
- * enables the recursive descent parsing strategy by allowing the parser to make decisions
- * based on the current and upcoming tokens.
+ * Consumable stream of tokens with lookahead and rewind capabilities.
  */
 final class TokenStream
 {
     /**
-     * Buffer for lookahead tokens.
-     *
      * @var array<int, Token>
      */
     private array $buffer = [];
 
     /**
-     * History of consumed tokens for rewinding.
-     *
      * @var array<int, Token>
      */
     private array $history = [];
 
-    /**
-     * Current position in the stream.
-     */
     private int $position = 0;
 
-    /**
-     * Track if generator is exhausted.
-     */
     private bool $exhausted = false;
 
     /**
-     * Initializes the token stream, which provides a consumable interface over the token array.
-     *
-     * Purpose: This constructor sets up the stream that the `Parser` will consume. It takes the
-     * flat array of tokens from the `Lexer` and prepares it for stateful, sequential access.
-     * By wrapping the array, this class allows the parser to look ahead, consume, and even
-     * rewind tokens, which is essential for implementing the recursive descent parsing logic.
-     *
-     * @param array<Token> $tokens  the raw, ordered array of `Token` objects produced by the `Lexer`
-     * @param string       $pattern The original regex pattern string. This is stored for context and
-     *                              is useful for error reporting, allowing messages to reference the
-     *                              source text.
+     * @param array<Token> $tokens
      */
     public function __construct(private readonly array $tokens, private readonly string $pattern)
     {
@@ -69,15 +42,7 @@ final class TokenStream
     }
 
     /**
-     * Retrieves the token at the current position of the stream.
-     *
-     * Purpose: This is the primary method for accessing the token that the parser
-     * needs to evaluate now. It does not advance the stream pointer. Calling it
-     * multiple times in a row will return the same token.
-     *
-     * @throws \RuntimeException if the stream has been fully consumed
-     *
-     * @return Token the token at the current cursor position
+     * @throws \RuntimeException
      */
     public function current(): Token
     {
@@ -89,13 +54,7 @@ final class TokenStream
     }
 
     /**
-     * Consumes the current token and advances the stream to the next one.
-     *
-     * Purpose: This method moves the stream's cursor forward by one position. It's the
-     * core action of "consuming" a token after the parser has processed it. The consumed
-     * token is temporarily stored in a history buffer to enable the `rewind()` feature.
-     *
-     * @throws \RuntimeException if the stream is already at the end
+     * @throws \RuntimeException
      */
     public function next(): void
     {
@@ -108,24 +67,13 @@ final class TokenStream
         $this->position++;
         $this->fillBuffer(1);
 
-        // Keep history limited to avoid memory issues
         if (\count($this->history) > 100) {
             array_shift($this->history);
         }
     }
 
     /**
-     * Moves the stream cursor back by a specified number of positions.
-     *
-     * Purpose: This method allows the parser to "un-consume" tokens. It's essential for
-     * implementing backtracking in the recursive descent parser. When a parsing function
-     * speculatively consumes tokens but then fails to find a valid grammar rule, it can
-     * call `rewind()` to restore the stream to its previous state before trying an
-     * alternative parsing path.
-     *
-     * @param int $count The number of tokens to rewind. Must be a positive integer.
-     *
-     * @throws \RuntimeException if trying to rewind more tokens than are available in the history buffer
+     * @throws \RuntimeException
      */
     public function rewind(int $count = 1): void
     {
@@ -150,17 +98,6 @@ final class TokenStream
         }
     }
 
-    /**
-     * Jumps the stream to an absolute token position.
-     *
-     * Purpose: This provides a more direct way to control the stream's cursor, often
-     * used for "save/restore" patterns in the parser. A parser might get the current
-     * position, attempt a complex parsing path, and if it fails, restore the exact
-     * original position to try another path. It's a more robust alternative to
-     * manually tracking how much to `rewind()`.
-     *
-     * @param int $position the absolute token index to move to
-     */
     public function setPosition(int $position): void
     {
         $diff = $this->position - $position;
@@ -174,21 +111,6 @@ final class TokenStream
         }
     }
 
-    /**
-     * Looks at a token ahead of or behind the current position without moving the cursor.
-     *
-     * Purpose: This is the essential "lookahead" (or "lookbehind") function for the parser.
-     * It allows a parsing function to check the type of upcoming (or previous) tokens to
-     * decide which grammar rule to apply, without consuming the tokens. For example, it can
-     * check if a `(` is followed by `?` to distinguish a capturing group from a modified one.
-     *
-     * @param int $offset The relative position to look at. `1` means the next token, `2` is the
-     *                    one after that, and `-1` is the previously consumed token.
-     *
-     * @return Token The token at the specified offset. If the offset is out of bounds (beyond
-     *               the end of the stream or before the beginning of the history), a special
-     *               `T_EOF` token is returned.
-     */
     public function peek(int $offset = 1): Token
     {
         if ($offset < 0) {
@@ -206,67 +128,29 @@ final class TokenStream
         return $this->buffer[$offset] ?? new Token(TokenType::T_EOF, '', $this->position + $offset);
     }
 
-    /**
-     * Verifies if the stream has any tokens left to be consumed.
-     *
-     * Purpose: This provides a safe way for the parser to check if it has reached the
-     * end of the input. It's typically used in loops to ensure the parser doesn't try
-     * to read past the final `T_EOF` token.
-     *
-     * @return bool true if there are more tokens available in the buffer, false otherwise
-     */
     public function hasMore(): bool
     {
         return !empty($this->buffer);
     }
 
-    /**
-     * Retrieves the current absolute position (index) of the stream's cursor.
-     *
-     * Purpose: This is used in conjunction with `setPosition()` to save and restore the
-     * parser's state. A parsing function can store the result of `getPosition()` before
-     * attempting a speculative parse, and then use `setPosition()` to return to that
-     * exact spot if the speculation fails.
-     *
-     * @return int the zero-based index of the current token in the stream
-     */
     public function getPosition(): int
     {
         return $this->position;
     }
 
-    /**
-     * Retrieves the original, raw pattern string that this stream is based on.
-     *
-     * Purpose: While the stream primarily deals with tokens, having access to the
-     * original string is useful for error reporting and context. It allows error
-     * messages to include snippets of the original pattern, making debugging easier.
-     *
-     * @return string the original regex pattern
-     */
     public function getPattern(): string
     {
         return $this->pattern;
     }
 
     /**
-     * Retrieves the complete, original array of all tokens.
-     *
-     * Purpose: This method is primarily for debugging and testing. It provides direct
-     * access to the underlying token array, allowing a developer to inspect the entire
-     * output of the `Lexer` at once. In normal operation, the parser should consume
-     * tokens via `current()` and `next()`.
-     *
-     * @return array<Token> the full array of tokens
+     * @return array<Token>
      */
     public function getTokens(): array
     {
         return $this->tokens;
     }
 
-    /**
-     * Fill the buffer with tokens from the generator.
-     */
     private function fillBuffer(int $minSize): void
     {
         if ($this->exhausted || \count($this->buffer) >= $minSize) {
