@@ -23,14 +23,12 @@ use RegexParser\Exception\InvalidRegexOptionException;
  */
 final readonly class RegexOptions
 {
-
     public function __construct(
         public int $maxPatternLength,
         public CacheInterface $cache,
         public array $redosIgnoredPatterns = [],
     ) {}
 
-    /** @param array $options */
     public static function fromArray(array $options): self
     {
         $allowedKeys = ['max_pattern_length', 'cache', 'redos_ignored_patterns'];

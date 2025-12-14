@@ -24,7 +24,6 @@ final readonly class LiteralSet
     /**
      * @param array<string> $prefixes
      * @param array<string> $suffixes
-     * @param bool $complete
      */
     public function __construct(
         public array $prefixes = [],
@@ -32,21 +31,16 @@ final readonly class LiteralSet
         public bool $complete = false,
     ) {}
 
-    /** @return self */
     public static function empty(): self
     {
         return new self([], [], false);
     }
 
-    /** @param string $literal
-     *  @return self */
     public static function fromString(string $literal): self
     {
         return new self([$literal], [$literal], true);
     }
 
-    /** @param self $other
-     *  @return self */
     public function concat(self $other): self
     {
         if ($this->isVoid() && empty($this->prefixes)) {
@@ -78,8 +72,6 @@ final readonly class LiteralSet
         return new self($this->deduplicate($newPrefixes), $this->deduplicate($newSuffixes), $newComplete);
     }
 
-    /** @param self $other
-     *  @return self */
     public function unite(self $other): self
     {
         // Union of prefixes and suffixes
@@ -92,19 +84,16 @@ final readonly class LiteralSet
         return new self($this->deduplicate($newPrefixes), $this->deduplicate($newSuffixes), $newComplete);
     }
 
-    /** @return string|null */
     public function getLongestPrefix(): ?string
     {
         return $this->getLongestString($this->prefixes);
     }
 
-    /** @return string|null */
     public function getLongestSuffix(): ?string
     {
         return $this->getLongestString($this->suffixes);
     }
 
-    /** @return bool */
     public function isVoid(): bool
     {
         return empty($this->prefixes) && empty($this->suffixes);
@@ -135,7 +124,7 @@ final readonly class LiteralSet
 
         $longest = '';
         foreach ($candidates as $s) {
-            if (\strlen($s) > \strlen($longest)) {
+            if (\strlen((string) $s) > \strlen((string) $longest)) {
                 $longest = $s;
             }
         }
