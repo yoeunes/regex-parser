@@ -33,39 +33,39 @@ final class PregValidationRuleOptimizationSafetyTest extends TestCase
         );
     }
 
-    public function testRejectsEffectivelyEmptyPatterns(): void
+    public function test_rejects_effectively_empty_patterns(): void
     {
         $this->assertFalse($this->rule->isOptimizationSafe('/abc/', '##'));
         $this->assertFalse($this->rule->isOptimizationSafe('/abc/i', '//i'));
         $this->assertFalse($this->rule->isOptimizationSafe('#test#', '##'));
     }
 
-    public function testRejectsBrokenAnchors(): void
+    public function test_rejects_broken_anchors(): void
     {
         $this->assertFalse($this->rule->isOptimizationSafe('/abc$/', '$/'));
         $this->assertFalse($this->rule->isOptimizationSafe('/^abc/', '/^/'));
     }
 
-    public function testRejectsPatternsRemovingNewlines(): void
+    public function test_rejects_patterns_removing_newlines(): void
     {
         $this->assertFalse($this->rule->isOptimizationSafe('/\r?\n/', '/\r?/'));
         $this->assertFalse($this->rule->isOptimizationSafe('/-- (.+)\n/', '/-- (.+) /'));
     }
 
-    public function testRejectsDrasticLengthReduction(): void
+    public function test_rejects_drastic_length_reduction(): void
     {
         $this->assertFalse($this->rule->isOptimizationSafe('/abcd/', '/a/'));
         $this->assertFalse($this->rule->isOptimizationSafe('#longpattern#', '#x#'));
     }
 
-    public function testAcceptsValidOptimizations(): void
+    public function test_accepts_valid_optimizations(): void
     {
         $this->assertTrue($this->rule->isOptimizationSafe('/[0-9]+/', '/\d+/'));
         $this->assertTrue($this->rule->isOptimizationSafe('/abc/', '/abc/')); // Same
         $this->assertTrue($this->rule->isOptimizationSafe('/a+/', '/a+/')); // Not shorter
     }
 
-    public function testAcceptsShortPatternsIfOriginalIsShort(): void
+    public function test_accepts_short_patterns_if_original_is_short(): void
     {
         $this->assertTrue($this->rule->isOptimizationSafe('/ab/', '/a/'));
     }

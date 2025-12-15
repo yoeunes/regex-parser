@@ -115,6 +115,60 @@ final class PregValidationRule implements Rule
         return $errors;
     }
 
+    public function isOptimizationSafe(string $original, string $optimized): bool
+    {
+        // Extract delimiter, pattern part, and flags for optimized
+        $delimiter = $optimized[0] ?? '';
+        if ('' === $delimiter) {
+            return false; // Invalid
+        }
+
+        $lastDelimiterPos = strrpos($optimized, $delimiter);
+        if (false === $lastDelimiterPos || 0 === $lastDelimiterPos) {
+            return false; // No closing delimiter or empty
+        }
+
+        $patternPart = substr($optimized, 1, $lastDelimiterPos - 1);
+        $flags = substr($optimized, $lastDelimiterPos + 1);
+
+        // Extract original pattern part
+        $originalDelimiter = $original[0] ?? '';
+        $originalPatternPart = '';
+        if ('' !== $originalDelimiter) {
+            $originalLastPos = strrpos($original, $originalDelimiter);
+            if (false !== $originalLastPos) {
+                $originalPatternPart = substr($original, 1, $originalLastPos - 1);
+            }
+        }
+
+        // 1. Effectively empty: Only delimiters and flags, no pattern
+        if ('' === $patternPart) {
+            return false;
+        }
+
+        // 2. Broken anchors
+        if (str_starts_with($patternPart, '$')) {
+            return false; // $ at start
+        }
+        if (str_ends_with($patternPart, '^')) {
+            return false; // ^ at end
+        }
+
+        // 3. If original contains \n but optimized does not, likely broken
+        if (str_contains($originalPatternPart, '\n') && !str_contains($patternPart, '\n')) {
+            return false;
+        }
+
+        // 4. Drastic length reduction: If pattern part < 3 chars, check original
+        if (\strlen($patternPart) < 3) {
+            if (\strlen($originalPatternPart) >= 3) {
+                return false; // Original was longer, optimized too short
+            }
+        }
+
+        return true;
+    }
+
     /**
      * @return list<IdentifierRuleError>
      */
@@ -294,60 +348,6 @@ final class PregValidationRule implements Rule
     private function truncatePattern(string $pattern, int $length = 50): string
     {
         return \strlen($pattern) > $length ? substr($pattern, 0, $length).'...' : $pattern;
-    }
-
-    public function isOptimizationSafe(string $original, string $optimized): bool
-    {
-        // Extract delimiter, pattern part, and flags for optimized
-        $delimiter = $optimized[0] ?? '';
-        if ('' === $delimiter) {
-            return false; // Invalid
-        }
-
-        $lastDelimiterPos = strrpos($optimized, $delimiter);
-        if (false === $lastDelimiterPos || $lastDelimiterPos === 0) {
-            return false; // No closing delimiter or empty
-        }
-
-        $patternPart = substr($optimized, 1, $lastDelimiterPos - 1);
-        $flags = substr($optimized, $lastDelimiterPos + 1);
-
-        // Extract original pattern part
-        $originalDelimiter = $original[0] ?? '';
-        $originalPatternPart = '';
-        if ('' !== $originalDelimiter) {
-            $originalLastPos = strrpos($original, $originalDelimiter);
-            if (false !== $originalLastPos) {
-                $originalPatternPart = substr($original, 1, $originalLastPos - 1);
-            }
-        }
-
-        // 1. Effectively empty: Only delimiters and flags, no pattern
-        if ('' === $patternPart) {
-            return false;
-        }
-
-        // 2. Broken anchors
-        if (str_starts_with($patternPart, '$')) {
-            return false; // $ at start
-        }
-        if (str_ends_with($patternPart, '^')) {
-            return false; // ^ at end
-        }
-
-        // 3. If original contains \n but optimized does not, likely broken
-        if (str_contains($originalPatternPart, '\n') && !str_contains($patternPart, '\n')) {
-            return false;
-        }
-
-        // 4. Drastic length reduction: If pattern part < 3 chars, check original
-        if (\strlen($patternPart) < 3) {
-            if (\strlen($originalPatternPart) >= 3) {
-                return false; // Original was longer, optimized too short
-            }
-        }
-
-        return true;
     }
 
     private function getRegex(): Regex
