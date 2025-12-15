@@ -296,7 +296,7 @@ final class PregValidationRule implements Rule
         return \strlen($pattern) > $length ? substr($pattern, 0, $length).'...' : $pattern;
     }
 
-    private function isOptimizationSafe(string $original, string $optimized): bool
+    public function isOptimizationSafe(string $original, string $optimized): bool
     {
         // Extract delimiter, pattern part, and flags for optimized
         $delimiter = $optimized[0] ?? '';
