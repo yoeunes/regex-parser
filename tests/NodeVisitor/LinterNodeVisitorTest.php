@@ -109,4 +109,34 @@ final class LinterNodeVisitorTest extends TestCase
         $this->assertNotContains("Start anchor '^' appears after consuming characters", $warnings);
         $this->assertNotContains("End anchor '$' appears before consuming characters", $warnings);
     }
+
+    public function test_start_anchor_multiline_valid(): void
+    {
+        $regex = Regex::create()->parse('/^header\n^body/m');
+        $linter = new LinterNodeVisitor();
+        $regex->accept($linter);
+        $warnings = $linter->getWarnings();
+
+        $this->assertNotContains("Start anchor '^' appears after consuming characters", $warnings);
+    }
+
+    public function test_start_anchor_false_positive(): void
+    {
+        $regex = Regex::create()->parse('/foo^bar/');
+        $linter = new LinterNodeVisitor();
+        $regex->accept($linter);
+        $warnings = $linter->getWarnings();
+
+        $this->assertContains("Start anchor '^' appears after consuming characters, making it impossible to match.", $warnings);
+    }
+
+    public function test_start_anchor_no_multiline_flag(): void
+    {
+        $regex = Regex::create()->parse('/foo\n^bar/');
+        $linter = new LinterNodeVisitor();
+        $regex->accept($linter);
+        $warnings = $linter->getWarnings();
+
+        $this->assertContains("Start anchor '^' appears after consuming characters, making it impossible to match.", $warnings);
+    }
 }
