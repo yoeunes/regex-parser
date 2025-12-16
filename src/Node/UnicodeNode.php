@@ -15,26 +15,20 @@ namespace RegexParser\Node;
 
 use RegexParser\NodeVisitor\NodeVisitorInterface;
 
-/**
- * Represents a Unicode character by code point.
- */
-final readonly class UnicodeNode extends AbstractNode
+readonly class UnicodeNode extends AbstractNode
 {
+    /**
+     * @param int $startPos The 0-based start offset
+     * @param int $endPos   The 0-based end offset (exclusive)
+     */
     public function __construct(
-        public string $code,
-        int $startPosition,
-        int $endPosition
+        public readonly string $code,
+        int $startPos,
+        int $endPos,
     ) {
-        parent::__construct($startPosition, $endPosition);
+        parent::__construct($startPos, $endPos);
     }
 
-    /**
-     * @template T
-     *
-     * @param NodeVisitorInterface<T> $visitor
-     *
-     * @return T
-     */
     public function accept(NodeVisitorInterface $visitor)
     {
         return $visitor->visitUnicode($this);

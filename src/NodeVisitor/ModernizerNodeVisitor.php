@@ -190,31 +190,13 @@ final class ModernizerNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitUnicode(Node\UnicodeNode $node): Node\NodeInterface
-    {
-        return $node;
-    }
-
-    #[\Override]
-    public function visitUnicodeNamed(Node\UnicodeNamedNode $node): Node\NodeInterface
-    {
-        return $node;
-    }
-
-    #[\Override]
     public function visitUnicodeProp(Node\UnicodePropNode $node): Node\NodeInterface
     {
         return $node;
     }
 
     #[\Override]
-    public function visitOctal(Node\OctalNode $node): Node\NodeInterface
-    {
-        return $node;
-    }
-
-    #[\Override]
-    public function visitOctalLegacy(Node\OctalLegacyNode $node): Node\NodeInterface
+    public function visitCharLiteral(Node\CharLiteralNode $node): Node\NodeInterface
     {
         return $node;
     }

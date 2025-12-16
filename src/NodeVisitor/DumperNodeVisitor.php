@@ -330,9 +330,16 @@ final class DumperNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitUnicodeNamed(Node\UnicodeNamedNode $node): string
+    public function visitCharLiteral(Node\CharLiteralNode $node): string
     {
-        return "UnicodeNamed({$node->name})";
+        $type = match ($node->type) {
+            Node\CharLiteralType::OCTAL => 'Octal',
+            Node\CharLiteralType::OCTAL_LEGACY => 'OctalLegacy',
+            Node\CharLiteralType::UNICODE => 'Unicode',
+            Node\CharLiteralType::UNICODE_NAMED => 'UnicodeNamed',
+        };
+
+        return "{$type}({$node->originalRepresentation})";
     }
 
     #[\Override]
@@ -376,40 +383,6 @@ final class DumperNodeVisitor extends AbstractNodeVisitor
     public function visitUnicodeProp(Node\UnicodePropNode $node): string
     {
         return "UnicodeProp(\\p{{$node->prop}})";
-    }
-
-    /**
-     * Dumps an `OctalNode`.
-     *
-     * Purpose: This method visualizes a modern octal character escape, like `\o{...}`.
-     * It shows the octal code of the character, which is a way to specify characters
-     * by their numerical value.
-     *
-     * @param Node\OctalNode $node the octal node to dump
-     *
-     * @return string the string representation of the octal character
-     */
-    #[\Override]
-    public function visitOctal(Node\OctalNode $node): string
-    {
-        return "Octal({$node->code})";
-    }
-
-    /**
-     * Dumps an `OctalLegacyNode`.
-     *
-     * Purpose: This method visualizes a legacy octal character escape, like `\077`.
-     * It shows the octal code, highlighting the older syntax which can sometimes be
-     * ambiguous with backreferences.
-     *
-     * @param Node\OctalLegacyNode $node the legacy octal node to dump
-     *
-     * @return string the string representation of the legacy octal character
-     */
-    #[\Override]
-    public function visitOctalLegacy(Node\OctalLegacyNode $node): string
-    {
-        return "OctalLegacy(\\{$node->code})";
     }
 
     /**

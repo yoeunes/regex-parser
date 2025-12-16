@@ -15,10 +15,9 @@ namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\Node\BackrefNode;
-use RegexParser\Node\OctalLegacyNode;
-use RegexParser\Node\OctalNode;
+use RegexParser\Node\CharLiteralNode;
+use RegexParser\Node\CharLiteralType;
 use RegexParser\Node\SubroutineNode;
-use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
 use RegexParser\NodeVisitor\ValidatorNodeVisitor;
 
@@ -56,14 +55,14 @@ final class ValidatorSuccessTest extends TestCase
         $this->expectNotToPerformAssertions();
 
         // Valid Unicode
-        (new UnicodeNode('\x41', 0, 0))->accept($this->validator);
-        (new UnicodeNode('\u{00E9}', 0, 0))->accept($this->validator);
+        (new CharLiteralNode('\x41', 0x41, CharLiteralType::UNICODE, 0, 0))->accept($this->validator);
+        (new CharLiteralNode('\u{00E9}', 0xE9, CharLiteralType::UNICODE, 0, 0))->accept($this->validator);
 
         // Valid Octal
-        (new OctalNode('\o{77}', 0, 0))->accept($this->validator);
+        (new CharLiteralNode('\o{77}', 0o77, CharLiteralType::OCTAL, 0, 0))->accept($this->validator);
 
         // Valid Legacy Octal
-        (new OctalLegacyNode('012', 0, 0))->accept($this->validator);
+        (new CharLiteralNode('012', 0o12, CharLiteralType::OCTAL_LEGACY, 0, 0))->accept($this->validator);
 
         // Valid Unicode Prop (cached)
         (new UnicodePropNode('L', 0, 0))->accept($this->validator);

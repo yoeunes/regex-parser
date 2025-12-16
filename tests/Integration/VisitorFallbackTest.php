@@ -16,10 +16,10 @@ namespace RegexParser\Tests\Integration;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Node\BackrefNode;
 use RegexParser\Node\CharClassNode;
+use RegexParser\Node\CharLiteralNode;
+use RegexParser\Node\CharLiteralType;
 use RegexParser\Node\LiteralNode;
 use RegexParser\Node\NodeInterface;
-use RegexParser\Node\OctalNode;
-use RegexParser\Node\UnicodeNode;
 use RegexParser\NodeVisitor\OptimizerNodeVisitor;
 use RegexParser\NodeVisitor\SampleGeneratorNodeVisitor;
 use RegexParser\NodeVisitor\ValidatorNodeVisitor;
@@ -41,8 +41,8 @@ final class VisitorFallbackTest extends TestCase
 
     public function test_sample_generator_bad_unicode_node(): void
     {
-        // Inject a UnicodeNode with a value that doesn't match the regex pattern expected
-        $node = new UnicodeNode('BAD', 0, 0);
+        // Inject a CharLiteralNode with a bad value
+        $node = new CharLiteralNode('BAD', -1, CharLiteralType::UNICODE, 0, 0);
         $generator = new SampleGeneratorNodeVisitor();
 
         // Should hit the '?' fallback
@@ -51,8 +51,8 @@ final class VisitorFallbackTest extends TestCase
 
     public function test_sample_generator_bad_octal_node(): void
     {
-        // Inject OctalNode with bad value
-        $node = new OctalNode('BAD', 0, 0);
+        // Inject CharLiteralNode with bad value
+        $node = new CharLiteralNode('BAD', -1, CharLiteralType::OCTAL, 0, 0);
         $generator = new SampleGeneratorNodeVisitor();
 
         // Should hit the '?' fallback

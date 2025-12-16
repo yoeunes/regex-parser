@@ -374,29 +374,6 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
         return $this->line(\sprintf('Backreference: matches text from group "%s"', $node->ref));
     }
 
-    /**
-     * Explains a `UnicodeNode`.
-     *
-     * Purpose: This method describes a Unicode character escape sequence (e.g., `\x{2603}`).
-     * It clarifies that a specific Unicode character is being matched, which is important
-     * for patterns dealing with international character sets.
-     *
-     * @param Node\UnicodeNode $node the Unicode node to explain
-     *
-     * @return string a description of the Unicode character
-     */
-    #[\Override]
-    public function visitUnicode(Node\UnicodeNode $node): string
-    {
-        return $this->line(\sprintf('Unicode: %s', $node->code));
-    }
-
-    #[\Override]
-    public function visitUnicodeNamed(Node\UnicodeNamedNode $node): string
-    {
-        return $this->line(\sprintf('Unicode named character: %s', $node->name));
-    }
-
     #[\Override]
     public function visitClassOperation(Node\ClassOperationNode $node): string
     {
@@ -443,38 +420,15 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
         return $this->line(\sprintf('Unicode Property: any character %s "%s"', $type, $prop));
     }
 
-    /**
-     * Explains an `OctalNode`.
-     *
-     * Purpose: This method describes a modern octal character escape (`\o{...}`).
-     * It clarifies that a character is being matched by its octal code, which is
-     * a way to specify characters by their numerical value.
-     *
-     * @param Node\OctalNode $node the octal node to explain
-     *
-     * @return string a description of the octal character
-     */
     #[\Override]
-    public function visitOctal(Node\OctalNode $node): string
+    public function visitCharLiteral(Node\CharLiteralNode $node): string
     {
-        return $this->line('Octal: '.$node->code);
-    }
-
-    /**
-     * Explains an `OctalLegacyNode`.
-     *
-     * Purpose: This method describes a legacy octal character escape (e.g., `\077`).
-     * It highlights the older syntax, which can sometimes be ambiguous with backreferences,
-     * and clarifies that a character is being matched by its octal code.
-     *
-     * @param Node\OctalLegacyNode $node the legacy octal node to explain
-     *
-     * @return string a description of the legacy octal character
-     */
-    #[\Override]
-    public function visitOctalLegacy(Node\OctalLegacyNode $node): string
-    {
-        return $this->line('Legacy Octal: \\'.$node->code);
+        return match ($node->type) {
+            Node\CharLiteralType::UNICODE => $this->line('Unicode: '.$node->originalRepresentation),
+            Node\CharLiteralType::UNICODE_NAMED => $this->line('Unicode named character: '.$this->extractCharLiteralDetail($node)),
+            Node\CharLiteralType::OCTAL => $this->line('Octal: '.$node->originalRepresentation),
+            Node\CharLiteralType::OCTAL_LEGACY => $this->line('Legacy Octal: \\'.$node->originalRepresentation),
+        };
     }
 
     /**
@@ -670,6 +624,17 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
             "\r" => "'\\r' (carriage return)",
             default => ctype_print($value) ? "'".$value."'" : '(non-printable char)',
         };
+    }
+
+    private function extractCharLiteralDetail(Node\CharLiteralNode $node): string
+    {
+        if (Node\CharLiteralType::UNICODE_NAMED === $node->type) {
+            if (preg_match('/^\\\\N\\{(.+)}$/', $node->originalRepresentation, $matches)) {
+                return $matches[1];
+            }
+        }
+
+        return $node->originalRepresentation;
     }
 
     private function line(string $text): string

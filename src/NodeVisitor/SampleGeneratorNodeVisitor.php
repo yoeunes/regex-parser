@@ -329,24 +329,17 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitUnicode(Node\UnicodeNode $node): string
+    public function visitCharLiteral(Node\CharLiteralNode $node): string
     {
-        if (preg_match('/^\\\\x([0-9a-fA-F]{2})$/', $node->code, $m)) {
-            return \chr((int) hexdec($m[1]));
-        }
-        if (preg_match('/^\\\\u\{([0-9a-fA-F]++)\}$/', $node->code, $m)) {
-            return mb_chr((int) hexdec($m[1]), 'UTF-8');
+        if ($node->codePoint < 0 || $node->codePoint > 0x10FFFF) {
+            return '?';
         }
 
-        // Fallback for unknown unicode
-        return '?';
-    }
-
-    #[\Override]
-    public function visitUnicodeNamed(Node\UnicodeNamedNode $node): string
-    {
-        // TODO: Implement proper Unicode name to character conversion
-        return '?';
+        try {
+            return mb_chr($node->codePoint, 'UTF-8');
+        } catch (\Throwable) {
+            return '?';
+        }
     }
 
     #[\Override]
@@ -365,22 +358,6 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
         }
 
         return $this->getRandomChar(['a', '1', '.']); // Generic fallback
-    }
-
-    #[\Override]
-    public function visitOctal(Node\OctalNode $node): string
-    {
-        if (preg_match('/^\\\\o\{([0-7]++)\}$/', $node->code, $m)) {
-            return mb_chr((int) octdec($m[1]), 'UTF-8');
-        }
-
-        return '?';
-    }
-
-    #[\Override]
-    public function visitOctalLegacy(Node\OctalLegacyNode $node): string
-    {
-        return mb_chr((int) octdec($node->code), 'UTF-8');
     }
 
     #[\Override]

@@ -452,12 +452,6 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
         return ReDoSSeverity::SAFE;
     }
 
-    #[\Override]
-    public function visitUnicodeNamed(Node\UnicodeNamedNode $node): ReDoSSeverity
-    {
-        return ReDoSSeverity::SAFE;
-    }
-
     /**
      * Visits a UnicodePropNode. Unicode properties are inherently safe from ReDoS.
      *
@@ -471,40 +465,6 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
      */
     #[\Override]
     public function visitUnicodeProp(Node\UnicodePropNode $node): ReDoSSeverity
-    {
-        return ReDoSSeverity::SAFE;
-    }
-
-    /**
-     * Visits an OctalNode. Octal character escapes are inherently safe from ReDoS.
-     *
-     * Purpose: Octal character escapes (e.g., `\o{101}`) represent a single, specific
-     * character and do not introduce backtracking or repetition issues.
-     * This method always returns `ReDoSSeverity::SAFE`.
-     *
-     * @param Node\OctalNode $node the `OctalNode` representing a modern octal escape
-     *
-     * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
-     */
-    #[\Override]
-    public function visitOctal(Node\OctalNode $node): ReDoSSeverity
-    {
-        return ReDoSSeverity::SAFE;
-    }
-
-    /**
-     * Visits an OctalLegacyNode. Legacy octal character escapes are inherently safe from ReDoS.
-     *
-     * Purpose: Legacy octal character escapes (e.g., `\012`) represent a single, specific
-     * character and do not introduce backtracking or repetition issues.
-     * This method always returns `ReDoSSeverity::SAFE`.
-     *
-     * @param Node\OctalLegacyNode $node the `OctalLegacyNode` representing a legacy octal escape
-     *
-     * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
-     */
-    #[\Override]
-    public function visitOctalLegacy(Node\OctalLegacyNode $node): ReDoSSeverity
     {
         return ReDoSSeverity::SAFE;
     }
@@ -924,8 +884,7 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
             || $node instanceof Node\RangeNode
             || $node instanceof Node\UnicodeNode
             || $node instanceof Node\UnicodePropNode
-            || $node instanceof Node\OctalNode
-            || $node instanceof Node\OctalLegacyNode
+            || $node instanceof Node\CharLiteralNode
             || $node instanceof Node\PosixClassNode
         ) {
             return [1, 1];

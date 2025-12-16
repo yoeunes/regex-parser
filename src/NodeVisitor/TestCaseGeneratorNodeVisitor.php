@@ -332,38 +332,11 @@ final class TestCaseGeneratorNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitUnicodeNamed(Node\UnicodeNamedNode $node): array
-    {
-        return [
-            'matching' => ['a'],
-            'non_matching' => ['!'],
-        ];
-    }
-
-    #[\Override]
     public function visitUnicodeProp(Node\UnicodePropNode $node): array
     {
         return [
             'matching' => ['a'],
             'non_matching' => ['1'],
-        ];
-    }
-
-    #[\Override]
-    public function visitOctal(Node\OctalNode $node): array
-    {
-        return [
-            'matching' => ['A'],
-            'non_matching' => ['!'],
-        ];
-    }
-
-    #[\Override]
-    public function visitOctalLegacy(Node\OctalLegacyNode $node): array
-    {
-        return [
-            'matching' => ['A'],
-            'non_matching' => ['!'],
         ];
     }
 

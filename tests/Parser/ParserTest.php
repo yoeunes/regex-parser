@@ -21,6 +21,8 @@ use RegexParser\Node\AnchorNode;
 use RegexParser\Node\AssertionNode;
 use RegexParser\Node\BackrefNode;
 use RegexParser\Node\CharClassNode;
+use RegexParser\Node\CharLiteralNode;
+use RegexParser\Node\CharLiteralType;
 use RegexParser\Node\CharTypeNode;
 use RegexParser\Node\CommentNode;
 use RegexParser\Node\ConditionalNode;
@@ -33,7 +35,6 @@ use RegexParser\Node\RangeNode;
 use RegexParser\Node\RegexNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\Node\SubroutineNode;
-use RegexParser\Node\UnicodeNamedNode;
 use RegexParser\Node\UnicodePropNode;
 use RegexParser\Regex;
 
@@ -266,8 +267,10 @@ final class ParserTest extends TestCase
         $ast = $this->parse('/\N{LATIN CAPITAL LETTER A}/');
         $pattern = $ast->pattern;
 
-        $this->assertInstanceOf(UnicodeNamedNode::class, $pattern);
-        $this->assertSame('LATIN CAPITAL LETTER A', $pattern->name);
+        $this->assertInstanceOf(CharLiteralNode::class, $pattern);
+        $this->assertSame(CharLiteralType::UNICODE_NAMED, $pattern->type);
+        $this->assertSame('\N{LATIN CAPITAL LETTER A}', $pattern->originalRepresentation);
+        $this->assertSame(65, $pattern->codePoint);
     }
 
     public function test_parse_comment(): void

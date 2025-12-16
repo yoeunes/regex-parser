@@ -468,32 +468,6 @@ final class LiteralExtractorNodeVisitor extends AbstractNodeVisitor
     }
 
     /**
-     * Visits a UnicodeNode. Unicode character escapes do not yield fixed literals in this context.
-     *
-     * Purpose: Unicode character escapes (e.g., `\x{2603}`) represent a single, specific
-     * character. While they are fixed, this visitor currently treats them as non-literal
-     * for simplicity, as resolving their exact string value might require complex decoding
-     * and handling of various Unicode representations. It returns an empty `LiteralSet`.
-     *
-     * @param Node\UnicodeNode $node the `UnicodeNode` representing a Unicode character escape
-     *
-     * @return LiteralSet an empty `LiteralSet`
-     */
-    #[\Override]
-    public function visitUnicode(Node\UnicodeNode $node): LiteralSet
-    {
-        // Could resolve hex, but for now treat as empty set unless we decode it
-        // Assuming RegexParser doesn't decode unicode in AST yet (it keeps raw \xHH)
-        return LiteralSet::empty();
-    }
-
-    #[\Override]
-    public function visitUnicodeNamed(Node\UnicodeNamedNode $node): LiteralSet
-    {
-        return LiteralSet::empty();
-    }
-
-    /**
      * Visits a UnicodePropNode. Unicode properties do not yield fixed literals.
      *
      * Purpose: Unicode character properties (e.g., `\p{L}`) match a class of characters
@@ -510,37 +484,8 @@ final class LiteralExtractorNodeVisitor extends AbstractNodeVisitor
         return LiteralSet::empty();
     }
 
-    /**
-     * Visits an OctalNode. Octal character escapes do not yield fixed literals in this context.
-     *
-     * Purpose: Modern octal character escapes (e.g., `\o{101}`) represent a single, specific
-     * character. Similar to Unicode nodes, this visitor currently treats them as non-literal
-     * for simplicity, as resolving their exact string value might require decoding.
-     * It returns an empty `LiteralSet`.
-     *
-     * @param Node\OctalNode $node the `OctalNode` representing a modern octal escape
-     *
-     * @return LiteralSet an empty `LiteralSet`
-     */
     #[\Override]
-    public function visitOctal(Node\OctalNode $node): LiteralSet
-    {
-        return LiteralSet::empty();
-    }
-
-    /**
-     * Visits an OctalLegacyNode. Legacy octal character escapes do not yield fixed literals in this context.
-     *
-     * Purpose: Legacy octal character escapes (e.g., `\012`) represent a single, specific
-     * character. Similar to other character escape nodes, this visitor currently treats
-     * them as non-literal for simplicity. It returns an empty `LiteralSet`.
-     *
-     * @param Node\OctalLegacyNode $node the `OctalLegacyNode` representing a legacy octal escape
-     *
-     * @return LiteralSet an empty `LiteralSet`
-     */
-    #[\Override]
-    public function visitOctalLegacy(Node\OctalLegacyNode $node): LiteralSet
+    public function visitCharLiteral(Node\CharLiteralNode $node): LiteralSet
     {
         return LiteralSet::empty();
     }

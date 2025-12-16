@@ -568,16 +568,6 @@ final class HtmlExplainNodeVisitor extends AbstractNodeVisitor
         );
     }
 
-    #[\Override]
-    public function visitUnicodeNamed(Node\UnicodeNamedNode $node): string
-    {
-        return \sprintf(
-            '<li><span title="Unicode named: %s">Unicode named: <strong>%s</strong></span></li>',
-            $this->e($node->name),
-            $this->e($node->name),
-        );
-    }
-
     /**
      * Visits a UnicodePropNode and generates an HTML explanation for the Unicode property.
      *
@@ -613,62 +603,6 @@ final class HtmlExplainNodeVisitor extends AbstractNodeVisitor
             $this->e($explanation),
             $prefix,
             $this->e($prop),
-        );
-    }
-
-    /**
-     * Visits an OctalNode and generates an HTML explanation for the octal character escape.
-     *
-     * Purpose: This method explains modern octal character escapes (e.g., `\o{101}`).
-     * It displays the octal code, helping users understand the exact character being matched,
-     * presented clearly in HTML.
-     *
-     * @param Node\OctalNode $node the `OctalNode` representing a modern octal escape
-     *
-     * @return string an HTML string explaining the octal character escape
-     *
-     * @example
-     * ```php
-     * // For an octal escape `\o{101}`
-     * $octalNode->accept($visitor);
-     * // Returns HTML like: <li><span title="Octal: 101">Octal: <strong>101</strong></span></li>
-     * ```
-     */
-    #[\Override]
-    public function visitOctal(Node\OctalNode $node): string
-    {
-        return \sprintf(
-            '<li><span title="Octal: %s">Octal: <strong>%s</strong></span></li>',
-            $this->e($node->code),
-            $this->e($node->code),
-        );
-    }
-
-    /**
-     * Visits an OctalLegacyNode and generates an HTML explanation for the legacy octal character escape.
-     *
-     * Purpose: This method explains legacy octal character escapes (e.g., `\012`).
-     * It displays the octal code, highlighting its legacy nature, and helping users understand
-     * the exact character being matched, presented clearly in HTML.
-     *
-     * @param Node\OctalLegacyNode $node the `OctalLegacyNode` representing a legacy octal escape
-     *
-     * @return string an HTML string explaining the legacy octal character escape
-     *
-     * @example
-     * ```php
-     * // For a legacy octal escape `\012`
-     * $octalLegacyNode->accept($visitor);
-     * // Returns HTML like: <li><span title="Legacy Octal: 012">Legacy Octal: <strong>\012</strong></span></li>
-     * ```
-     */
-    #[\Override]
-    public function visitOctalLegacy(Node\OctalLegacyNode $node): string
-    {
-        return \sprintf(
-            '<li><span title="Legacy Octal: %s">Legacy Octal: <strong>\%s</strong></span></li>',
-            $this->e($node->code),
-            $this->e($node->code),
         );
     }
 
@@ -899,6 +833,24 @@ final class HtmlExplainNodeVisitor extends AbstractNodeVisitor
             '<li><span title="%s">Callout: <strong>(?C%s)</strong></span></li>',
             $this->e($explanation),
             $this->e($argument),
+        );
+    }
+
+    #[\Override]
+    public function visitCharLiteral(Node\CharLiteralNode $node): string
+    {
+        $title = match ($node->type) {
+            Node\CharLiteralType::UNICODE => 'Unicode character escape',
+            Node\CharLiteralType::UNICODE_NAMED => 'Unicode named character',
+            Node\CharLiteralType::OCTAL => 'Octal character escape',
+            Node\CharLiteralType::OCTAL_LEGACY => 'Legacy octal character escape',
+        };
+
+        return \sprintf(
+            '<li><span title="%s">%s: <strong>%s</strong></span></li>',
+            $this->e($title),
+            htmlspecialchars($node->type->label()),
+            $this->e($node->originalRepresentation),
         );
     }
 

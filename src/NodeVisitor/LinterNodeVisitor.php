@@ -226,19 +226,13 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         if ($node instanceof Node\DotNode) {
             return true;
         }
-        if ($node instanceof Node\UnicodeNode) {
+        if ($node instanceof Node\CharLiteralNode) {
             return true;
         }
         if ($node instanceof Node\UnicodePropNode) {
             return true;
         }
         if ($node instanceof Node\PosixClassNode) {
-            return true;
-        }
-        if ($node instanceof Node\OctalNode) {
-            return true;
-        }
-        if ($node instanceof Node\OctalLegacyNode) {
             return true;
         }
         if ($node instanceof Node\QuantifierNode) {

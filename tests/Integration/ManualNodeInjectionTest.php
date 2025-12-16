@@ -15,10 +15,10 @@ namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\Node\AlternationNode;
+use RegexParser\Node\CharLiteralNode;
+use RegexParser\Node\CharLiteralType;
 use RegexParser\Node\CharTypeNode;
 use RegexParser\Node\LiteralNode;
-use RegexParser\Node\OctalNode;
-use RegexParser\Node\UnicodeNode;
 use RegexParser\NodeVisitor\OptimizerNodeVisitor;
 use RegexParser\NodeVisitor\SampleGeneratorNodeVisitor;
 
@@ -33,13 +33,13 @@ final class ManualNodeInjectionTest extends TestCase
         $node = new CharTypeNode('?', 0, 0);
         $this->assertSame('?', $node->accept($generator));
 
-        // 2. UnicodeNode with invalid format
-        // Parser ensures format \xHH or \u{...}. We force garbage to hit the fallback.
-        $node = new UnicodeNode('invalid', 0, 0);
+        // 2. CharLiteralNode with invalid format
+        // Parser ensures format. We force garbage to hit the fallback.
+        $node = new CharLiteralNode('invalid', -1, CharLiteralType::UNICODE, 0, 0);
         $this->assertSame('?', $node->accept($generator));
 
-        // 3. OctalNode with invalid format
-        $node = new OctalNode('invalid', 0, 0);
+        // 3. CharLiteralNode with invalid format
+        $node = new CharLiteralNode('invalid', -1, CharLiteralType::OCTAL, 0, 0);
         $this->assertSame('?', $node->accept($generator));
 
         // 4. Alternation with no alternatives (Parser prevents this usually)

@@ -357,15 +357,6 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
         return $nodeId;
     }
 
-    #[\Override]
-    public function visitUnicodeNamed(Node\UnicodeNamedNode $node): string
-    {
-        $nodeId = $this->nextNodeId();
-        $this->lines[] = \sprintf('    %s["Unicode named: %s"]', $nodeId, $this->escape($node->name));
-
-        return $nodeId;
-    }
-
     /**
      * Generates the graph node for a `UnicodePropNode`.
      *
@@ -380,42 +371,6 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
     {
         $nodeId = $this->nextNodeId();
         $this->lines[] = \sprintf('    %s["UnicodeProp: %s"]', $nodeId, $this->escape($node->prop));
-
-        return $nodeId;
-    }
-
-    /**
-     * Generates the graph node for an `OctalNode`.
-     *
-     * Purpose: This method creates a node for a modern octal character escape.
-     *
-     * @param Node\OctalNode $node the octal node to visualize
-     *
-     * @return string the unique ID of the generated graph node
-     */
-    #[\Override]
-    public function visitOctal(Node\OctalNode $node): string
-    {
-        $nodeId = $this->nextNodeId();
-        $this->lines[] = \sprintf('    %s["Octal: %s"]', $nodeId, $this->escape($node->code));
-
-        return $nodeId;
-    }
-
-    /**
-     * Generates the graph node for an `OctalLegacyNode`.
-     *
-     * Purpose: This method creates a node for a legacy octal character escape.
-     *
-     * @param Node\OctalLegacyNode $node the legacy octal node to visualize
-     *
-     * @return string the unique ID of the generated graph node
-     */
-    #[\Override]
-    public function visitOctalLegacy(Node\OctalLegacyNode $node): string
-    {
-        $nodeId = $this->nextNodeId();
-        $this->lines[] = \sprintf('    %s["OctalLegacy: %s"]', $nodeId, $this->escape($node->code));
 
         return $nodeId;
     }
