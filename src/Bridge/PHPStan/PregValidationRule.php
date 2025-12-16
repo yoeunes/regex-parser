@@ -58,6 +58,26 @@ final class PregValidationRule implements Rule
         'preg_replace_callback_array' => 0,
     ];
 
+    private const DOC_BASE_URL = 'https://github.com/yoeunes/regex-parser/blob/master/docs/reference.md';
+
+    private const DOC_LINKS = [
+        // Flags - Use PHP.net where possible, or precise concept pages
+        'Flag \'s\' is useless' => self::DOC_BASE_URL.'#useless-flag-s-dotall',
+        'Flag \'m\' is useless' => self::DOC_BASE_URL.'#useless-flag-m-multiline',
+        'Flag \'i\' is useless' => self::DOC_BASE_URL.'#useless-flag-i-caseless',
+
+        // Security & Concepts - The authority on explaining regex mechanics
+        'catastrophic backtracking' => self::DOC_BASE_URL.'#catastrophic-backtracking',
+
+        // Advanced Syntax - Internal documentation
+        'possessive quantifiers' => self::DOC_BASE_URL.'#possessive-quantifiers',
+        'atomic groups' => self::DOC_BASE_URL.'#atomic-groups',
+
+        // Assertions
+        'lookahead' => self::DOC_BASE_URL.'#assertions',
+        'lookbehind' => self::DOC_BASE_URL.'#assertions',
+    ];
+
     private ?Regex $regex = null;
 
     private ?ValidatorNodeVisitor $validator = null;
@@ -129,7 +149,6 @@ final class PregValidationRule implements Rule
         }
 
         $patternPart = substr($optimized, 1, $lastDelimiterPos - 1);
-        $flags = substr($optimized, $lastDelimiterPos + 1);
 
         // Extract original pattern part
         $originalDelimiter = $original[0] ?? '';
@@ -141,29 +160,20 @@ final class PregValidationRule implements Rule
             }
         }
 
-        // 1. Effectively empty: Only delimiters and flags, no pattern
+        // Return false if optimized pattern is empty
         if ('' === $patternPart) {
             return false;
         }
 
-        // 2. Broken anchors
-        if (str_starts_with($patternPart, '$')) {
-            return false; // $ at start
-        }
-        if (str_ends_with($patternPart, '^')) {
-            return false; // ^ at end
-        }
-
-        // 3. If original contains \n but optimized does not, likely broken
-        if (str_contains($originalPatternPart, '\n') && !str_contains($patternPart, '\n')) {
+        // Return false if optimized pattern is too short (< 2 chars)
+        if (\strlen($patternPart) < 2) {
             return false;
         }
 
-        // 4. Drastic length reduction: If pattern part < 3 chars, check original
-        if (\strlen($patternPart) < 3) {
-            if (\strlen($originalPatternPart) >= 3) {
-                return false; // Original was longer, optimized too short
-            }
+        // Return false if optimized removes newlines that were present in original (unless escaped)
+        // Simplified: check if original contains \n and optimized does not
+        if (str_contains($originalPatternPart, '\n') && !str_contains($patternPart, '\n')) {
+            return false;
         }
 
         return true;
@@ -242,7 +252,7 @@ final class PregValidationRule implements Rule
                         $this->truncatePattern($pattern),
                     ))
                         ->line($lineNumber)
-                        ->tip(implode("\n", $analysis->recommendations))
+                        ->tip($this->getTipForReDoS($analysis->recommendations))
                         ->identifier($identifier)
                         ->build();
                 }
@@ -283,10 +293,14 @@ final class PregValidationRule implements Rule
             $linter = new \RegexParser\NodeVisitor\LinterNodeVisitor();
             $ast->accept($linter);
             foreach ($linter->getWarnings() as $warning) {
-                $errors[] = RuleErrorBuilder::message('Tip: '.$warning)
+                $tip = $this->getTipForWarning($warning);
+                $builder = RuleErrorBuilder::message($warning)
                     ->line($lineNumber)
-                    ->identifier('regex.linter')
-                    ->build();
+                    ->identifier('regex.linter');
+                if (null !== $tip) {
+                    $builder = $builder->tip($tip);
+                }
+                $errors[] = $builder->build();
             }
         } catch (\Throwable) {
         }
@@ -363,5 +377,40 @@ final class PregValidationRule implements Rule
     private function getRedosAnalyzer(): ReDoSAnalyzer
     {
         return $this->redosAnalyzer ??= new ReDoSAnalyzer();
+    }
+
+    private function getTipForWarning(string $warning): ?string
+    {
+        foreach (self::DOC_LINKS as $key => $url) {
+            if (str_contains($warning, $key)) {
+                return 'Read more: '.$url;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param array<string> $recommendations
+     */
+    private function getTipForReDoS(array $recommendations): string
+    {
+        $tip = implode("\n", $recommendations);
+
+        // Append links for relevant recommendations
+        $additionalLinks = [];
+        if (str_contains($tip, 'possessive quantifiers') || str_contains($tip, 'possessive')) {
+            $additionalLinks[] = 'Read more about possessive quantifiers: '.self::DOC_LINKS['possessive quantifiers'];
+        }
+        if (str_contains($tip, 'atomic groups')) {
+            $additionalLinks[] = 'Read more about atomic groups: '.self::DOC_LINKS['atomic groups'];
+        }
+
+        // Always append catastrophic backtracking link for ReDoS
+        $additionalLinks[] = 'Read more about catastrophic backtracking: '.self::DOC_LINKS['catastrophic backtracking'];
+
+        $tip .= "\n\n".implode("\n", $additionalLinks);
+
+        return $tip;
     }
 }

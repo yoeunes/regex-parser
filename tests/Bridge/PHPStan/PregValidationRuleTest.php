@@ -40,12 +40,12 @@ final class PregValidationRuleTest extends RuleTestCase
             [
                 'ReDoS vulnerability detected (MEDIUM): /a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a...',
                 24,
-                'Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...).',
+                "Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...).\n\nRead more about possessive quantifiers: https://github.com/yoeunes/regex-parser/blob/master/docs/reference.md#possessive-quantifiers\nRead more about atomic groups: https://github.com/yoeunes/regex-parser/blob/master/docs/reference.md#atomic-groups\nRead more about catastrophic backtracking: https://github.com/yoeunes/regex-parser/blob/master/docs/reference.md#catastrophic-backtracking",
             ],
             [
                 'ReDoS vulnerability detected (MEDIUM): /[0-9]+/',
                 28,
-                'Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...).',
+                "Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...).\n\nRead more about possessive quantifiers: https://github.com/yoeunes/regex-parser/blob/master/docs/reference.md#possessive-quantifiers\nRead more about atomic groups: https://github.com/yoeunes/regex-parser/blob/master/docs/reference.md#atomic-groups\nRead more about catastrophic backtracking: https://github.com/yoeunes/regex-parser/blob/master/docs/reference.md#catastrophic-backtracking",
             ],
             [
                 'Regex syntax error: No closing delimiter "/" found. (Pattern: "/foo1")',
@@ -100,6 +100,28 @@ final class PregValidationRuleTest extends RuleTestCase
             [
                 'Regex syntax error: Potential catastrophic backtracking (ReDoS): nested unbounded quantifier "+" at position 1. (Pattern: "/(a+)+$/")',
                 20,
+            ],
+        ]);
+    }
+
+    public function test_useless_flag_linter(): void
+    {
+        $this->analyse([__DIR__.'/Fixtures/UselessFlagFixture.php'], [
+            [
+                'Flag \'s\' is useless: the pattern contains no dots.',
+                20,
+                'Read more: https://github.com/yoeunes/regex-parser/blob/master/docs/reference.md#useless-flag-s-dotall',
+            ],
+        ]);
+    }
+
+    public function test_redos_with_links(): void
+    {
+        $this->analyse([__DIR__.'/Fixtures/ReDoSFixture.php'], [
+            [
+                'ReDoS vulnerability detected (MEDIUM): /[0-9]+/',
+                20,
+                "Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...).\n\nRead more about possessive quantifiers: https://github.com/yoeunes/regex-parser/blob/master/docs/reference.md#possessive-quantifiers\nRead more about atomic groups: https://github.com/yoeunes/regex-parser/blob/master/docs/reference.md#atomic-groups\nRead more about catastrophic backtracking: https://github.com/yoeunes/regex-parser/blob/master/docs/reference.md#catastrophic-backtracking",
             ],
         ]);
     }
