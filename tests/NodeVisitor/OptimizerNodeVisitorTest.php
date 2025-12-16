@@ -421,6 +421,28 @@ final class OptimizerNodeVisitorTest extends TestCase
         $this->assertInstanceOf(CharClassNode::class, $optimized->pattern);
     }
 
+    public function test_digit_optimization_unicode_flag(): void
+    {
+        // [0-9] with u flag should NOT optimize to \d, remain as CharClass
+        $ast = $this->regex->parse('/[0-9]/u');
+        $optimized = $ast->accept($this->optimizer);
+
+        $this->assertInstanceOf(RegexNode::class, $optimized);
+        $this->assertInstanceOf(CharClassNode::class, $optimized->pattern);
+    }
+
+    public function test_digit_optimization_unicode_flag_complex(): void
+    {
+        // [0-9]+ with u flag should remain as is, not optimize [0-9] to \d
+        $ast = $this->regex->parse('/[0-9]+/u');
+        $optimized = $ast->accept($this->optimizer);
+
+        $this->assertInstanceOf(RegexNode::class, $optimized);
+        $this->assertInstanceOf(QuantifierNode::class, $optimized->pattern);
+        // The quantifier should have a CharClassNode as node
+        $this->assertInstanceOf(CharClassNode::class, $optimized->pattern->node);
+    }
+
     public function test_alternation_flattening(): void
     {
         // Logic: (a|b)|c -> a|b|c
