@@ -15,7 +15,8 @@ namespace RegexParser\Tests\Node;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use RegexParser\Node\UnicodeNamedNode;
+use RegexParser\Node\CharLiteralNode;
+use RegexParser\Node\CharLiteralType;
 use RegexParser\NodeVisitor\NodeVisitorInterface;
 
 final class UnicodeNamedNodeTest extends TestCase
@@ -25,27 +26,29 @@ final class UnicodeNamedNodeTest extends TestCase
      */
     public static function data_provider_unicode_named(): \Iterator
     {
-        yield 'latin_capital_a' => ['LATIN CAPITAL LETTER A', 0, 25];
-        yield 'snowman' => ['SNOWMAN', 0, 12];
+        yield 'latin_capital_a' => ['\\N{LATIN CAPITAL LETTER A}', 65, 0, 25];
+        yield 'snowman' => ['\\N{SNOWMAN}', 9731, 0, 12];
     }
 
     #[DataProvider('data_provider_unicode_named')]
-    public function test_constructor_and_getters(string $name, int $start, int $end): void
+    public function test_constructor_and_getters(string $original, int $codePoint, int $start, int $end): void
     {
-        $node = new UnicodeNamedNode($name, $start, $end);
+        $node = new CharLiteralNode($original, $codePoint, CharLiteralType::UNICODE_NAMED, $start, $end);
 
-        $this->assertSame($name, $node->name);
+        $this->assertSame($original, $node->originalRepresentation);
+        $this->assertSame($codePoint, $node->codePoint);
+        $this->assertSame(CharLiteralType::UNICODE_NAMED, $node->type);
         $this->assertSame($start, $node->getStartPosition());
         $this->assertSame($end, $node->getEndPosition());
     }
 
-    public function test_accept_visitor_calls_visit_unicode_named(): void
+    public function test_accept_visitor_calls_visit_char_literal(): void
     {
-        $node = new UnicodeNamedNode('LATIN CAPITAL LETTER A', 0, 25);
+        $node = new CharLiteralNode('\\N{LATIN CAPITAL LETTER A}', 65, CharLiteralType::UNICODE_NAMED, 0, 25);
         $visitor = $this->createMock(NodeVisitorInterface::class);
 
         $visitor->expects($this->once())
-            ->method('visitUnicodeNamed')
+            ->method('visitCharLiteral')
             ->with($this->identicalTo($node))
             ->willReturn('visited');
 

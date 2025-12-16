@@ -204,31 +204,13 @@ final class ComplexityScoreNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitUnicode(Node\UnicodeNode $node): int
-    {
-        return self::BASE_SCORE;
-    }
-
-    #[\Override]
-    public function visitUnicodeNamed(Node\UnicodeNamedNode $node): int
-    {
-        return self::BASE_SCORE;
-    }
-
-    #[\Override]
     public function visitUnicodeProp(Node\UnicodePropNode $node): int
     {
         return self::BASE_SCORE;
     }
 
     #[\Override]
-    public function visitOctal(Node\OctalNode $node): int
-    {
-        return self::BASE_SCORE;
-    }
-
-    #[\Override]
-    public function visitOctalLegacy(Node\OctalLegacyNode $node): int
+    public function visitCharLiteral(Node\CharLiteralNode $node): int
     {
         return self::BASE_SCORE;
     }

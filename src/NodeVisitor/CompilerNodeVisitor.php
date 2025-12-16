@@ -214,15 +214,9 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitUnicode(Node\UnicodeNode $node): string
+    public function visitCharLiteral(Node\CharLiteralNode $node): string
     {
-        return $node->code;
-    }
-
-    #[\Override]
-    public function visitUnicodeNamed(Node\UnicodeNamedNode $node): string
-    {
-        return '\\N{'.$node->name.'}';
+        return $node->originalRepresentation;
     }
 
     #[\Override]
@@ -261,18 +255,6 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
         }
 
         return '\p'.$node->prop;
-    }
-
-    #[\Override]
-    public function visitOctal(Node\OctalNode $node): string
-    {
-        return $node->code;
-    }
-
-    #[\Override]
-    public function visitOctalLegacy(Node\OctalLegacyNode $node): string
-    {
-        return '\\'.$node->code;
     }
 
     #[\Override]

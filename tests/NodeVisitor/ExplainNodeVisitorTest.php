@@ -17,13 +17,14 @@ use PHPUnit\Framework\TestCase;
 use RegexParser\Node\AlternationNode;
 use RegexParser\Node\BackrefNode;
 use RegexParser\Node\CharClassNode;
+use RegexParser\Node\CharLiteralNode;
+use RegexParser\Node\CharLiteralType;
 use RegexParser\Node\CommentNode;
 use RegexParser\Node\ConditionalNode;
 use RegexParser\Node\DefineNode;
 use RegexParser\Node\GroupNode;
 use RegexParser\Node\GroupType;
 use RegexParser\Node\LiteralNode;
-use RegexParser\Node\OctalLegacyNode;
 use RegexParser\Node\PcreVerbNode;
 use RegexParser\Node\PosixClassNode;
 use RegexParser\Node\QuantifierNode;
@@ -31,7 +32,6 @@ use RegexParser\Node\QuantifierType;
 use RegexParser\Node\RangeNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\Node\SubroutineNode;
-use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
 use RegexParser\NodeVisitor\ExplainNodeVisitor;
 
@@ -39,10 +39,10 @@ final class ExplainNodeVisitorTest extends TestCase
 {
     public function test_visit_octal_legacy_node(): void
     {
-        $node = new OctalLegacyNode('077', 0, 3);
+        $node = new CharLiteralNode('077', 0o77, CharLiteralType::OCTAL_LEGACY, 0, 3);
         $visitor = new ExplainNodeVisitor();
 
-        $this->assertSame('Legacy Octal: \077', $node->accept($visitor));
+        $this->assertSame('Legacy Octal: \\077', $node->accept($visitor));
     }
 
     public function test_visit_alternation_node(): void
@@ -132,7 +132,7 @@ final class ExplainNodeVisitorTest extends TestCase
 
     public function test_visit_unicode_node(): void
     {
-        $node = new UnicodeNode('\x{2603}', 0, 7);
+        $node = new CharLiteralNode('\x{2603}', 0x2603, CharLiteralType::UNICODE, 0, 7);
         $visitor = new ExplainNodeVisitor();
 
         $this->assertSame('Unicode: \x{2603}', $node->accept($visitor));

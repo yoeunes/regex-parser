@@ -261,12 +261,6 @@ final class LengthRangeNodeVisitor extends AbstractNodeVisitor
         return [1, 1];
     }
 
-    #[\Override]
-    public function visitUnicodeNamed(Node\UnicodeNamedNode $node): array
-    {
-        return [1, 1];
-    }
-
     /**
      * Visits a UnicodePropNode and returns [1, 1].
      *
@@ -276,32 +270,6 @@ final class LengthRangeNodeVisitor extends AbstractNodeVisitor
      */
     #[\Override]
     public function visitUnicodeProp(Node\UnicodePropNode $node): array
-    {
-        return [1, 1];
-    }
-
-    /**
-     * Visits an OctalNode and returns [1, 1].
-     *
-     * @param Node\OctalNode $node the `OctalNode` representing an octal escape
-     *
-     * @return array{0: int, 1: int|null} always [1, 1]
-     */
-    #[\Override]
-    public function visitOctal(Node\OctalNode $node): array
-    {
-        return [1, 1];
-    }
-
-    /**
-     * Visits an OctalLegacyNode and returns [1, 1].
-     *
-     * @param Node\OctalLegacyNode $node the `OctalLegacyNode` representing a legacy octal escape
-     *
-     * @return array{0: int, 1: int|null} always [1, 1]
-     */
-    #[\Override]
-    public function visitOctalLegacy(Node\OctalLegacyNode $node): array
     {
         return [1, 1];
     }

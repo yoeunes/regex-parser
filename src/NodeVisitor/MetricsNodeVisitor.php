@@ -140,25 +140,7 @@ final class MetricsNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitUnicodeNamed(Node\UnicodeNamedNode $node): array
-    {
-        return $this->record($node);
-    }
-
-    #[\Override]
     public function visitUnicodeProp(Node\UnicodePropNode $node): array
-    {
-        return $this->record($node);
-    }
-
-    #[\Override]
-    public function visitOctal(Node\OctalNode $node): array
-    {
-        return $this->record($node);
-    }
-
-    #[\Override]
-    public function visitOctalLegacy(Node\OctalLegacyNode $node): array
     {
         return $this->record($node);
     }

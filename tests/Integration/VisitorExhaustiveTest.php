@@ -20,6 +20,8 @@ use RegexParser\Node\AnchorNode;
 use RegexParser\Node\AssertionNode;
 use RegexParser\Node\BackrefNode;
 use RegexParser\Node\CharClassNode;
+use RegexParser\Node\CharLiteralNode;
+use RegexParser\Node\CharLiteralType;
 use RegexParser\Node\CharTypeNode;
 use RegexParser\Node\CommentNode;
 use RegexParser\Node\ConditionalNode;
@@ -28,8 +30,6 @@ use RegexParser\Node\GroupNode;
 use RegexParser\Node\GroupType;
 use RegexParser\Node\KeepNode;
 use RegexParser\Node\LiteralNode;
-use RegexParser\Node\OctalLegacyNode;
-use RegexParser\Node\OctalNode;
 use RegexParser\Node\PcreVerbNode;
 use RegexParser\Node\PosixClassNode;
 use RegexParser\Node\QuantifierNode;
@@ -38,7 +38,6 @@ use RegexParser\Node\RangeNode;
 use RegexParser\Node\RegexNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\Node\SubroutineNode;
-use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
 use RegexParser\NodeVisitor\ComplexityScoreNodeVisitor;
@@ -82,8 +81,8 @@ final class VisitorExhaustiveTest extends TestCase
             new GroupNode(new LiteralNode('a', 0, 0), GroupType::T_GROUP_CAPTURING, null, null, 0, 0),
             new KeepNode(0, 0),
             new LiteralNode('a', 0, 0),
-            new OctalLegacyNode('01', 0, 0),
-            new OctalNode('\o{123}', 0, 0),
+            new CharLiteralNode('01', 0o1, CharLiteralType::OCTAL_LEGACY, 0, 0),
+            new CharLiteralNode('\o{123}', 0o123, CharLiteralType::OCTAL, 0, 0),
             new PcreVerbNode('FAIL', 0, 0),
             new PosixClassNode('alnum', 0, 0),
             new QuantifierNode(new LiteralNode('a', 0, 0), '*', QuantifierType::T_GREEDY, 0, 0),
@@ -91,7 +90,7 @@ final class VisitorExhaustiveTest extends TestCase
             new RegexNode(new LiteralNode('a', 0, 0), 'i', '/', 0, 0),
             new SequenceNode([], 0, 0),
             new SubroutineNode('1', '', 0, 0),
-            new UnicodeNode('\x41', 0, 0),
+            new CharLiteralNode('\x41', 0x41, CharLiteralType::UNICODE, 0, 0),
             new UnicodePropNode('L', 0, 0),
         ];
 
@@ -99,7 +98,7 @@ final class VisitorExhaustiveTest extends TestCase
             foreach ($nodes as $node) {
                 // Cas spécifiques à ignorer pour le Validator qui a besoin de contexte (groupes existants)
                 if ($visitor instanceof ValidatorNodeVisitor) {
-                    if ($node instanceof BackrefNode || $node instanceof SubroutineNode || $node instanceof OctalLegacyNode) {
+                    if ($node instanceof BackrefNode || $node instanceof SubroutineNode || ($node instanceof CharLiteralNode && CharLiteralType::OCTAL_LEGACY === $node->type)) {
                         continue;
                     }
                 }

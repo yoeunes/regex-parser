@@ -363,17 +363,15 @@ final class Parser
         }
 
         if ($this->match(TokenType::T_UNICODE)) {
-            $token = $this->previous();
-            $endPosition = $startPosition + \strlen($token->value);
-
-            return new Node\UnicodeNode($token->value, $startPosition, $endPosition);
+            return $this->createCharLiteralNodeFromToken($this->previous(), TokenType::T_UNICODE, $startPosition);
         }
 
         if ($this->match(TokenType::T_UNICODE_NAMED)) {
-            $token = $this->previous();
-            $endPosition = $startPosition + \strlen($token->value) + 3; // +3 for \N{
-
-            return new Node\UnicodeNamedNode($token->value, $startPosition, $endPosition);
+            return $this->createCharLiteralNodeFromToken(
+                $this->previous(),
+                TokenType::T_UNICODE_NAMED,
+                $startPosition,
+            );
         }
 
         if ($this->match(TokenType::T_CONTROL_CHAR)) {
@@ -384,17 +382,15 @@ final class Parser
         }
 
         if ($this->match(TokenType::T_OCTAL)) {
-            $token = $this->previous();
-            $endPosition = $startPosition + \strlen($token->value);
-
-            return new Node\OctalNode($token->value, $startPosition, $endPosition);
+            return $this->createCharLiteralNodeFromToken($this->previous(), TokenType::T_OCTAL, $startPosition);
         }
 
         if ($this->match(TokenType::T_OCTAL_LEGACY)) {
-            $token = $this->previous();
-            $endPosition = $startPosition + \strlen($token->value) + 1;
-
-            return new Node\OctalLegacyNode($token->value, $startPosition, $endPosition);
+            return $this->createCharLiteralNodeFromToken(
+                $this->previous(),
+                TokenType::T_OCTAL_LEGACY,
+                $startPosition,
+            );
         }
 
         if ($this->match(TokenType::T_UNICODE_PROP)) {
@@ -592,6 +588,78 @@ final class Parser
             // Should not be encountered here
             TokenType::T_EOF => '',
         };
+    }
+
+    private function createCharLiteralNodeFromToken(Token $token, TokenType $type, int $startPosition): Node\CharLiteralNode
+    {
+        [$representation, $charType] = match ($type) {
+            TokenType::T_UNICODE => [$token->value, Node\CharLiteralType::UNICODE],
+            TokenType::T_UNICODE_NAMED => ['\\N{'.$token->value.'}', Node\CharLiteralType::UNICODE_NAMED],
+            TokenType::T_OCTAL => [$token->value, Node\CharLiteralType::OCTAL],
+            TokenType::T_OCTAL_LEGACY => ['\\'.$token->value, Node\CharLiteralType::OCTAL_LEGACY],
+            default => throw new \InvalidArgumentException('Unsupported character literal token type.'),
+        };
+
+        return new Node\CharLiteralNode(
+            $representation,
+            $this->parseCharLiteralCodePoint($representation, $charType),
+            $charType,
+            $startPosition,
+            $startPosition + \strlen($representation),
+        );
+    }
+
+    private function parseCharLiteralCodePoint(string $representation, Node\CharLiteralType $type): int
+    {
+        return match ($type) {
+            Node\CharLiteralType::UNICODE => $this->parseUnicodeCodePoint($representation),
+            Node\CharLiteralType::UNICODE_NAMED => $this->parseNamedUnicodeCodePoint($representation),
+            Node\CharLiteralType::OCTAL,
+            Node\CharLiteralType::OCTAL_LEGACY => $this->parseOctalCodePoint($representation),
+        };
+    }
+
+    private function parseUnicodeCodePoint(string $representation): int
+    {
+        if (preg_match('/^\\\\x([0-9a-fA-F]{2})$/', $representation, $matches)) {
+            return (int) hexdec($matches[1]);
+        }
+
+        if (preg_match('/^\\\\[xu]\\{([0-9a-fA-F]++)\\}$/', $representation, $matches)) {
+            return (int) hexdec($matches[1]);
+        }
+
+        return -1;
+    }
+
+    private function parseNamedUnicodeCodePoint(string $representation): int
+    {
+        if (!preg_match('/^\\\\N\\{(.+)}$/', $representation, $matches)) {
+            return -1;
+        }
+
+        $name = $matches[1];
+        if (class_exists(\IntlChar::class)) {
+            $char = \IntlChar::charFromName($name);
+            if (null !== $char) {
+                return (int) \IntlChar::ord($char);
+            }
+        }
+
+        return -1;
+    }
+
+    private function parseOctalCodePoint(string $representation): int
+    {
+        if (preg_match('/^\\\\o\\{([0-7]++)\\}$/', $representation, $matches)) {
+            return (int) octdec($matches[1]);
+        }
+
+        if (preg_match('/^\\\\([0-7]{1,3})$/', $representation, $matches)) {
+            return (int) octdec($matches[1]);
+        }
+
+        return -1;
     }
 
     /**
@@ -1351,25 +1419,22 @@ final class Parser
                 + ((\strlen($token->value) > 1 || str_starts_with($token->value, '^')) ? 2 : 0);
             $startNode = new Node\UnicodePropNode($token->value, $startPosition, $startPosition + $len);
         } elseif ($this->match(TokenType::T_UNICODE)) {
-            $token = $this->previous();
-            $startNode = new Node\UnicodeNode(
-                $token->value,
+            $startNode = $this->createCharLiteralNodeFromToken(
+                $this->previous(),
+                TokenType::T_UNICODE,
                 $startPosition,
-                $startPosition + \strlen($token->value),
             );
         } elseif ($this->match(TokenType::T_OCTAL)) {
-            $token = $this->previous();
-            $startNode = new Node\OctalNode(
-                $token->value,
+            $startNode = $this->createCharLiteralNodeFromToken(
+                $this->previous(),
+                TokenType::T_OCTAL,
                 $startPosition,
-                $startPosition + \strlen($token->value),
             );
         } elseif ($this->match(TokenType::T_OCTAL_LEGACY)) {
-            $token = $this->previous();
-            $startNode = new Node\OctalLegacyNode(
-                $token->value,
+            $startNode = $this->createCharLiteralNodeFromToken(
+                $this->previous(),
+                TokenType::T_OCTAL_LEGACY,
                 $startPosition,
-                $startPosition + \strlen($token->value) + 1,
             );
         } elseif ($this->match(TokenType::T_RANGE)) {
             // Literal hyphen at start
@@ -1424,25 +1489,22 @@ final class Parser
                     + ((\strlen($token->value) > 1 || str_starts_with($token->value, '^')) ? 2 : 0);
                 $endNode = new Node\UnicodePropNode($token->value, $endPosition, $endPosition + $len);
             } elseif ($this->match(TokenType::T_UNICODE)) {
-                $token = $this->previous();
-                $endNode = new Node\UnicodeNode(
-                    $token->value,
+                $endNode = $this->createCharLiteralNodeFromToken(
+                    $this->previous(),
+                    TokenType::T_UNICODE,
                     $endPosition,
-                    $endPosition + \strlen($token->value),
                 );
             } elseif ($this->match(TokenType::T_OCTAL)) {
-                $token = $this->previous();
-                $endNode = new Node\OctalNode(
-                    $token->value,
+                $endNode = $this->createCharLiteralNodeFromToken(
+                    $this->previous(),
+                    TokenType::T_OCTAL,
                     $endPosition,
-                    $endPosition + \strlen($token->value),
                 );
             } elseif ($this->match(TokenType::T_OCTAL_LEGACY)) {
-                $token = $this->previous();
-                $endNode = new Node\OctalLegacyNode(
-                    $token->value,
+                $endNode = $this->createCharLiteralNodeFromToken(
+                    $this->previous(),
+                    TokenType::T_OCTAL_LEGACY,
                     $endPosition,
-                    $endPosition + \strlen($token->value) + 1,
                 );
             } elseif ($this->match(TokenType::T_POSIX_CLASS)) {
                 $token = $this->previous();

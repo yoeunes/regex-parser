@@ -209,12 +209,12 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
             GroupType::T_GROUP_NON_CAPTURING === $node->type
             && (
                 $optimizedChild instanceof Node\LiteralNode
+                || $optimizedChild instanceof Node\CharLiteralNode
                 || $optimizedChild instanceof Node\CharTypeNode
                 || $optimizedChild instanceof Node\DotNode
                 || $optimizedChild instanceof Node\CharClassNode
                 || $optimizedChild instanceof Node\AnchorNode
                 || $optimizedChild instanceof Node\AssertionNode
-                || $optimizedChild instanceof Node\UnicodeNode
                 || $optimizedChild instanceof Node\UnicodePropNode
             )
         ) {
@@ -409,27 +409,6 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
     }
 
     /**
-     * Visits a `UnicodeNode`.
-     *
-     * Purpose: Unicode character escapes are atomic and cannot be optimized.
-     *
-     * @param Node\UnicodeNode $node the Unicode node
-     *
-     * @return Node\NodeInterface the unchanged node
-     */
-    #[\Override]
-    public function visitUnicode(Node\UnicodeNode $node): Node\NodeInterface
-    {
-        return $node;
-    }
-
-    #[\Override]
-    public function visitUnicodeNamed(Node\UnicodeNamedNode $node): Node\NodeInterface
-    {
-        return $node;
-    }
-
-    /**
      * Visits a `UnicodePropNode`.
      *
      * Purpose: Unicode property escapes are atomic and cannot be optimized.
@@ -444,32 +423,8 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         return $node;
     }
 
-    /**
-     * Visits an `OctalNode`.
-     *
-     * Purpose: Octal character escapes are atomic and cannot be optimized.
-     *
-     * @param Node\OctalNode $node the octal node
-     *
-     * @return Node\NodeInterface the unchanged node
-     */
     #[\Override]
-    public function visitOctal(Node\OctalNode $node): Node\NodeInterface
-    {
-        return $node;
-    }
-
-    /**
-     * Visits an `OctalLegacyNode`.
-     *
-     * Purpose: Legacy octal escapes are atomic and cannot be optimized.
-     *
-     * @param Node\OctalLegacyNode $node the legacy octal node
-     *
-     * @return Node\NodeInterface the unchanged node
-     */
-    #[\Override]
-    public function visitOctalLegacy(Node\OctalLegacyNode $node): Node\NodeInterface
+    public function visitCharLiteral(Node\CharLiteralNode $node): Node\NodeInterface
     {
         return $node;
     }

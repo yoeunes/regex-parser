@@ -54,7 +54,17 @@ abstract class AbstractNodeVisitor implements NodeVisitorInterface
         return $this->defaultReturn();
     }
 
+    public function visitCharLiteral(Node\CharLiteralNode $node)
+    {
+        return $this->defaultReturn();
+    }
+
     public function visitCharType(Node\CharTypeNode $node)
+    {
+        return $this->defaultReturn();
+    }
+
+    public function visitUnicode(Node\UnicodeNode $node)
     {
         return $this->defaultReturn();
     }
@@ -94,16 +104,6 @@ abstract class AbstractNodeVisitor implements NodeVisitorInterface
         return $this->defaultReturn();
     }
 
-    public function visitUnicode(Node\UnicodeNode $node)
-    {
-        return $this->defaultReturn();
-    }
-
-    public function visitUnicodeNamed(Node\UnicodeNamedNode $node)
-    {
-        return $this->defaultReturn();
-    }
-
     public function visitClassOperation(Node\ClassOperationNode $node)
     {
         return $this->defaultReturn();
@@ -125,16 +125,6 @@ abstract class AbstractNodeVisitor implements NodeVisitorInterface
     }
 
     public function visitUnicodeProp(Node\UnicodePropNode $node)
-    {
-        return $this->defaultReturn();
-    }
-
-    public function visitOctal(Node\OctalNode $node)
-    {
-        return $this->defaultReturn();
-    }
-
-    public function visitOctalLegacy(Node\OctalLegacyNode $node)
     {
         return $this->defaultReturn();
     }

@@ -273,19 +273,6 @@ final class ArrayExplorerNodeVisitor extends AbstractNodeVisitor
         ];
     }
 
-    #[\Override]
-    public function visitUnicodeNamed(Node\UnicodeNamedNode $node): array
-    {
-        return [
-            'type' => 'UnicodeNamed',
-            'label' => 'Unicode Named Character',
-            'detail' => $node->name,
-            'icon' => 'fa-solid fa-language',
-            'color' => 'text-violet-600',
-            'isLeaf' => true,
-        ];
-    }
-
     /**
      * @return array<string, mixed>
      */
@@ -300,24 +287,6 @@ final class ArrayExplorerNodeVisitor extends AbstractNodeVisitor
             'color' => 'text-violet-600',
             'isLeaf' => true,
         ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    #[\Override]
-    public function visitOctal(Node\OctalNode $node): array
-    {
-        return $this->genericLeaf('Octal', $node->code);
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    #[\Override]
-    public function visitOctalLegacy(Node\OctalLegacyNode $node): array
-    {
-        return $this->genericLeaf('Legacy Octal', $node->code);
     }
 
     /**
@@ -463,21 +432,6 @@ final class ArrayExplorerNodeVisitor extends AbstractNodeVisitor
             'detail' => $detail,
             'icon' => 'fa-solid fa-plug',
             'color' => 'text-amber-600',
-            'isLeaf' => true,
-        ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function genericLeaf(string $label, string $detail): array
-    {
-        return [
-            'type' => 'Generic',
-            'label' => $label,
-            'detail' => $detail,
-            'icon' => 'fa-solid fa-cube',
-            'color' => 'text-gray-500',
             'isLeaf' => true,
         ];
     }

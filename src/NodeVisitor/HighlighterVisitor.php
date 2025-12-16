@@ -131,12 +131,6 @@ abstract class HighlighterVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitUnicodeNamed(Node\UnicodeNamedNode $node): string
-    {
-        return $this->wrap('\\N{'.$this->escape($node->name).'}', 'type');
-    }
-
-    #[\Override]
     public function visitUnicodeProp(Node\UnicodePropNode $node): string
     {
         $prop = $node->prop;
@@ -145,18 +139,6 @@ abstract class HighlighterVisitor extends AbstractNodeVisitor
         }
 
         return $this->wrap('\\p'.$this->escape($prop), 'type');
-    }
-
-    #[\Override]
-    public function visitOctal(Node\OctalNode $node): string
-    {
-        return $this->wrap('\\o{'.$node->code.'}', 'type');
-    }
-
-    #[\Override]
-    public function visitOctalLegacy(Node\OctalLegacyNode $node): string
-    {
-        return $this->wrap('\\'.$node->code, 'type');
     }
 
     #[\Override]

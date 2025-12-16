@@ -56,7 +56,17 @@ interface NodeVisitorInterface
     /**
      * @return TReturn
      */
+    public function visitCharLiteral(Node\CharLiteralNode $node);
+
+    /**
+     * @return TReturn
+     */
     public function visitCharType(Node\CharTypeNode $node);
+
+    /**
+     * @return TReturn
+     */
+    public function visitUnicode(Node\UnicodeNode $node);
 
     /**
      * @return TReturn
@@ -96,16 +106,6 @@ interface NodeVisitorInterface
     /**
      * @return TReturn
      */
-    public function visitUnicode(Node\UnicodeNode $node);
-
-    /**
-     * @return TReturn
-     */
-    public function visitUnicodeNamed(Node\UnicodeNamedNode $node);
-
-    /**
-     * @return TReturn
-     */
     public function visitClassOperation(Node\ClassOperationNode $node);
 
     /**
@@ -127,16 +127,6 @@ interface NodeVisitorInterface
      * @return TReturn
      */
     public function visitUnicodeProp(Node\UnicodePropNode $node);
-
-    /**
-     * @return TReturn
-     */
-    public function visitOctal(Node\OctalNode $node);
-
-    /**
-     * @return TReturn
-     */
-    public function visitOctalLegacy(Node\OctalLegacyNode $node);
 
     /**
      * @return TReturn

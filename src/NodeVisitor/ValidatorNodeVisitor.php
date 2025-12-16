@@ -352,7 +352,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     public function visitRange(Node\RangeNode $node): void
     {
         // 1. Validation: Ensure start and end nodes represent a single character.
-        // We allow LiteralNode, but also UnicodeNode, OctalNode, etc.
+        // We allow LiteralNode, but also CharLiteralNode, UnicodeNode, etc.
         if (!$this->isSingleCharNode($node->start) || !$this->isSingleCharNode($node->end)) {
             throw new ParserException(\sprintf(
                 'Invalid range at position %d: ranges must be between literal characters or single escape sequences. Found %s and %s.',
@@ -485,9 +485,16 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitUnicodeNamed(Node\UnicodeNamedNode $node): void
+    public function visitCharLiteral(Node\CharLiteralNode $node): void
     {
-        // TODO: Validate that the Unicode name is valid. For now, assume it's correct.
+        // The Lexer/Parser combination already ensures these are
+        // syntactically valid. We validate the *value*.
+        match ($node->type) {
+            Node\CharLiteralType::UNICODE => $this->validateUnicode($node),
+            Node\CharLiteralType::OCTAL => $this->validateOctal($node),
+            Node\CharLiteralType::OCTAL_LEGACY => $this->validateOctalLegacy($node),
+            Node\CharLiteralType::UNICODE_NAMED => $this->validateUnicodeNamed($node),
+        };
     }
 
     #[\Override]
@@ -507,47 +514,6 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
                 $key,
                 $node->startPosition,
             ));
-        }
-    }
-
-    #[\Override]
-    public function visitOctal(Node\OctalNode $node): void
-    {
-        // \o{...}
-        if (preg_match('/^\\\\o\{([0-9]++)\}$/', $node->code, $m)) {
-            $octalStr = $m[1];
-
-            // Check if all digits are valid octal (0-7)
-            if (!preg_match('/^[0-7]++$/', $octalStr)) {
-                throw new ParserException(\sprintf('Invalid octal codepoint "%s" at position %d.', $node->code, $node->startPosition));
-            }
-
-            // PCRE limits \o{} to single-byte values (0-255)
-            $code = (int) octdec($octalStr);
-            if ($code > 0xFF) {
-                throw new ParserException(\sprintf('Invalid octal codepoint "%s" at position %d.', $node->code, $node->startPosition));
-            }
-        }
-    }
-
-    #[\Override]
-    public function visitOctalLegacy(Node\OctalLegacyNode $node): void
-    {
-        // \0 is not allowed as it represents the NULL character
-        if ('0' === $node->code) {
-            throw new ParserException('Octal escape \0 is not allowed');
-        }
-
-        // Check if all digits are valid octal
-        if (!preg_match('/^[0-7]++$/', $node->code)) {
-            throw new ParserException(\sprintf('Invalid octal codepoint "\%s" at position %d.', $node->code, $node->startPosition));
-        }
-
-        // \0...
-        $code = (int) octdec($node->code);
-        if ($code > 0x10FFFF) {
-            // This is unlikely as \077 is max, but good to check.
-            throw new ParserException(\sprintf('Invalid legacy octal codepoint "\%s" (out of range) at position %d.', $node->code, $node->startPosition));
         }
     }
 
@@ -746,6 +712,39 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         }
     }
 
+    private function validateUnicode(Node\CharLiteralNode $node): void
+    {
+        if ($node->codePoint > 0x10FFFF) {
+            throw new ParserException(\sprintf('Invalid Unicode codepoint "%s" (out of range) at position %d.', $node->originalRepresentation, $node->startPosition));
+        }
+    }
+
+    private function validateOctal(Node\CharLiteralNode $node): void
+    {
+        // PCRE limits \o{} to single-byte values (0-255)
+        if ($node->codePoint > 0xFF) {
+            throw new ParserException(\sprintf('Invalid octal codepoint "%s" at position %d.', $node->originalRepresentation, $node->startPosition));
+        }
+    }
+
+    private function validateOctalLegacy(Node\CharLiteralNode $node): void
+    {
+        // \0 is not allowed as it represents the NULL character
+        if (0 === $node->codePoint) {
+            throw new ParserException('Octal escape \0 is not allowed');
+        }
+
+        // Legacy octal is also limited to 0-255 in practice
+        if ($node->codePoint > 0xFF) {
+            throw new ParserException(\sprintf('Invalid legacy octal codepoint "%s" (out of range) at position %d.', $node->originalRepresentation, $node->startPosition));
+        }
+    }
+
+    private function validateUnicodeNamed(Node\CharLiteralNode $node): void
+    {
+        // TODO: Validate that the Unicode name is valid. For now, assume it's correct.
+    }
+
     /**
      * Optimized Unicode property validation with error suppression.
      */
@@ -792,9 +791,8 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     private function isSingleCharNode(Node\NodeInterface $node): bool
     {
         return $node instanceof Node\LiteralNode
-            || $node instanceof Node\UnicodeNode
-            || $node instanceof Node\OctalNode
-            || $node instanceof Node\OctalLegacyNode;
+            || $node instanceof Node\CharLiteralNode
+            || $node instanceof Node\UnicodeNode;
         // CharTypeNode (e.g., \d) is technically invalid in a standard PCRE range start/end,
         // but we exclude it here to remain spec-compliant unless lenient mode is desired.
     }

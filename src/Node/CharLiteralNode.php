@@ -16,12 +16,14 @@ namespace RegexParser\Node;
 use RegexParser\NodeVisitor\NodeVisitorInterface;
 
 /**
- * Represents a legacy octal character escape.
+ * Represents a single character literal expressed via escape syntax (unicode or octal).
  */
-final readonly class OctalLegacyNode extends AbstractNode
+final readonly class CharLiteralNode extends AbstractNode
 {
     public function __construct(
-        public string $code,
+        public string $originalRepresentation,
+        public int $codePoint,
+        public CharLiteralType $type,
         int $startPosition,
         int $endPosition
     ) {
@@ -37,6 +39,6 @@ final readonly class OctalLegacyNode extends AbstractNode
      */
     public function accept(NodeVisitorInterface $visitor)
     {
-        return $visitor->visitOctalLegacy($this);
+        return $visitor->visitCharLiteral($this);
     }
 }

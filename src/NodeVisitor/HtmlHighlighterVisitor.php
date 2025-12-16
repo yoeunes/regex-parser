@@ -116,12 +116,6 @@ final class HtmlHighlighterVisitor extends HighlighterVisitor
     }
 
     #[\Override]
-    public function visitUnicodeNamed(Node\UnicodeNamedNode $node): string
-    {
-        return '<span class="'.self::CLASSES['type'].'">\\N{'.htmlspecialchars($node->name).'}</span>';
-    }
-
-    #[\Override]
     public function visitUnicodeProp(Node\UnicodePropNode $node): string
     {
         $prop = $node->prop;
@@ -130,18 +124,6 @@ final class HtmlHighlighterVisitor extends HighlighterVisitor
         }
 
         return '<span class="'.self::CLASSES['type'].'">\\p'.htmlspecialchars($prop).'</span>';
-    }
-
-    #[\Override]
-    public function visitOctal(Node\OctalNode $node): string
-    {
-        return '<span class="'.self::CLASSES['type'].'">\\o{'.$node->code.'}</span>';
-    }
-
-    #[\Override]
-    public function visitOctalLegacy(Node\OctalLegacyNode $node): string
-    {
-        return '<span class="'.self::CLASSES['type'].'">\\'.$node->code.'</span>';
     }
 
     #[\Override]

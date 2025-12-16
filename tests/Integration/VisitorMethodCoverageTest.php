@@ -17,17 +17,16 @@ use PHPUnit\Framework\TestCase;
 use RegexParser\Node\AnchorNode;
 use RegexParser\Node\AssertionNode;
 use RegexParser\Node\BackrefNode;
+use RegexParser\Node\CharLiteralNode;
+use RegexParser\Node\CharLiteralType;
 use RegexParser\Node\CharTypeNode;
 use RegexParser\Node\CommentNode;
 use RegexParser\Node\DotNode;
 use RegexParser\Node\KeepNode;
 use RegexParser\Node\LiteralNode;
-use RegexParser\Node\OctalLegacyNode;
-use RegexParser\Node\OctalNode;
 use RegexParser\Node\PcreVerbNode;
 use RegexParser\Node\PosixClassNode;
 use RegexParser\Node\SubroutineNode;
-use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
 use RegexParser\NodeVisitor\ComplexityScoreNodeVisitor;
 use RegexParser\NodeVisitor\ExplainNodeVisitor;
@@ -50,10 +49,10 @@ final class VisitorMethodCoverageTest extends TestCase
             new AssertionNode('b', 0, 0),
             new KeepNode(0, 0),
             new BackrefNode('1', 0, 0),
-            new UnicodeNode('\x00', 0, 0),
+            new CharLiteralNode('\x00', 0, CharLiteralType::UNICODE, 0, 0),
             new UnicodePropNode('L', 0, 0),
-            new OctalNode('\o{10}', 0, 0),
-            new OctalLegacyNode('10', 0, 0),
+            new CharLiteralNode('\o{10}', 0o10, CharLiteralType::OCTAL, 0, 0),
+            new CharLiteralNode('10', 0o10, CharLiteralType::OCTAL_LEGACY, 0, 0),
             new PosixClassNode('alnum', 0, 0),
             new CommentNode('foo', 0, 0),
             new SubroutineNode('1', '', 0, 0),
@@ -96,10 +95,10 @@ final class VisitorMethodCoverageTest extends TestCase
             new AnchorNode('^', 0, 0),
             new AssertionNode('b', 0, 0),
             new KeepNode(0, 0),
-            new UnicodeNode('x', 0, 0),
+            new CharLiteralNode('x', 0, CharLiteralType::UNICODE, 0, 0),
             new UnicodePropNode('L', 0, 0),
-            new OctalNode('1', 0, 0),
-            new OctalLegacyNode('1', 0, 0),
+            new CharLiteralNode('1', 1, CharLiteralType::OCTAL, 0, 0),
+            new CharLiteralNode('1', 1, CharLiteralType::OCTAL_LEGACY, 0, 0),
             new PosixClassNode('digit', 0, 0),
         ];
 
@@ -150,12 +149,12 @@ final class VisitorMethodCoverageTest extends TestCase
             new DotNode(0, 0),
             new KeepNode(0, 0),
             new LiteralNode('a', 0, 0),
-            new OctalLegacyNode('0', 0, 0),
-            new OctalNode('123', 0, 0),
+            new CharLiteralNode('0', 0, CharLiteralType::OCTAL_LEGACY, 0, 0),
+            new CharLiteralNode('123', 0o123, CharLiteralType::OCTAL, 0, 0),
             new PcreVerbNode('FAIL', 0, 0),
             new PosixClassNode('alnum', 0, 0),
             new SubroutineNode('1', '', 0, 0),
-            new UnicodeNode('FFFF', 0, 0),
+            new CharLiteralNode('FFFF', 0xFFFF, CharLiteralType::UNICODE, 0, 0),
             new UnicodePropNode('L', 0, 0),
         ];
 
@@ -180,8 +179,8 @@ final class VisitorMethodCoverageTest extends TestCase
                     continue;
                 }
 
-                // ValidatorNodeVisitor treats OctalLegacyNode('0') as invalid backreference \0
-                if ($visitor instanceof ValidatorNodeVisitor && $node instanceof OctalLegacyNode) {
+                // ValidatorNodeVisitor treats CharLiteralNode with OCTAL_LEGACY '0' as invalid backreference \0
+                if ($visitor instanceof ValidatorNodeVisitor && $node instanceof CharLiteralNode && CharLiteralType::OCTAL_LEGACY === $node->type && 0 === $node->codePoint) {
                     continue;
                 }
 
