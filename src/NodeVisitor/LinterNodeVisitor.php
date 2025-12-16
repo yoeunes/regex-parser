@@ -192,7 +192,9 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
                 // Check if there are consuming nodes before ^
                 for ($j = 0; $j < $i; $j++) {
                     if ($this->isConsuming($children[$j])) {
-                        $this->warnings[] = "Start anchor '^' appears after consuming characters, making it impossible to match.";
+                        if (!str_contains($this->flags, 'm')) {
+                            $this->warnings[] = "Start anchor '^' appears after consuming characters, making it impossible to match.";
+                        }
 
                         break;
                     }
