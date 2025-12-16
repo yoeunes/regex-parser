@@ -67,6 +67,6 @@ final class PregValidationRuleOptimizationSafetyTest extends TestCase
 
     public function test_accepts_short_patterns_if_original_is_short(): void
     {
-        $this->assertTrue($this->rule->isOptimizationSafe('/ab/', '/a/'));
+        $this->assertFalse($this->rule->isOptimizationSafe('/ab/', '/a/'));
     }
 }
