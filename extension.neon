@@ -7,7 +7,12 @@ parametersSchema:
         # Minimum severity level to report: 'low', 'medium', 'high', 'critical'
         redosThreshold: string(),
         # Enable/disable regex optimization suggestions
-        suggestOptimizations: bool()
+        suggestOptimizations: bool(),
+        # Configuration for specific optimizations
+        optimizationConfig: structure([
+            digits: bool(),
+            word: bool()
+        ])
     ])
 
 parameters:
@@ -25,6 +30,11 @@ parameters:
         # Enable regex optimization suggestions
         suggestOptimizations: false
 
+        # Configuration for specific optimizations (both default to true for BC)
+        optimizationConfig:
+            digits: true
+            word: true
+
 services:
     # Main regex validation rule for PHPStan
     -
@@ -34,5 +44,6 @@ services:
             reportRedos: %regexParser.reportRedos%
             redosThreshold: %regexParser.redosThreshold%
             suggestOptimizations: %regexParser.suggestOptimizations%
+            optimizationConfig: %regexParser.optimizationConfig%
         tags:
             - phpstan.rules.rule
