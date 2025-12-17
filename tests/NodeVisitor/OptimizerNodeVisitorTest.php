@@ -502,4 +502,35 @@ final class OptimizerNodeVisitorTest extends TestCase
         // Inner group stays because in quantified context
         yield 'Nested Sequence' => ['/(?:(?:abc))?/', '/(?:(?:abc))?/'];
     }
+
+    public function test_optimizations_can_be_disabled(): void
+    {
+        $regex = Regex::create();
+        $compiler = new CompilerNodeVisitor();
+
+        // Test disabling digits optimization
+        $ast = $regex->parse('/[0-9]/');
+        $optimizerDisabled = new OptimizerNodeVisitor(optimizeDigits: false);
+        $optimizedDisabled = $ast->accept($optimizerDisabled);
+        $resultDisabled = $optimizedDisabled->accept($compiler);
+        $this->assertSame('/[0-9]/', $resultDisabled, 'Digits optimization should be disabled');
+
+        $optimizerEnabled = new OptimizerNodeVisitor(optimizeDigits: true);
+        $optimizedEnabled = $ast->accept($optimizerEnabled);
+        $resultEnabled = $optimizedEnabled->accept($compiler);
+        $this->assertSame('/\d/', $resultEnabled, 'Digits optimization should work when enabled');
+
+        // Test disabling word optimization
+        $ast2 = $regex->parse('/[a-zA-Z0-9_]/');
+        $optimizerWordDisabled = new OptimizerNodeVisitor(optimizeWord: false);
+        $optimizedWordDisabled = $ast2->accept($optimizerWordDisabled);
+        $resultWordDisabled = $optimizedWordDisabled->accept($compiler);
+        $this->assertNotSame('/\w/', $resultWordDisabled, 'Word optimization should be disabled');
+        $this->assertStringStartsWith('/[', $resultWordDisabled, 'Should remain as char class');
+
+        $optimizerWordEnabled = new OptimizerNodeVisitor(optimizeWord: true);
+        $optimizedWordEnabled = $ast2->accept($optimizerWordEnabled);
+        $resultWordEnabled = $optimizedWordEnabled->accept($compiler);
+        $this->assertSame('/\w/', $resultWordEnabled, 'Word optimization should work when enabled');
+    }
 }

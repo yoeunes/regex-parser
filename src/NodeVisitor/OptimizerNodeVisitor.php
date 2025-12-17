@@ -32,8 +32,10 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
 
     private bool $isInsideQuantifier = false;
 
-    public function __construct()
-    {
+    public function __construct(
+        private readonly bool $optimizeDigits = true,
+        private readonly bool $optimizeWord = true
+    ) {
         $this->charSetAnalyzer = new CharSetAnalyzer();
     }
 
@@ -258,7 +260,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         $isUnicode = str_contains($this->flags, 'u');
         $parts = $node->expression instanceof Node\AlternationNode ? $node->expression->alternatives : [$node->expression];
 
-        if (!$isUnicode && !$node->isNegated && 1 === \count($parts)) {
+        if ($this->optimizeDigits && !$isUnicode && !$node->isNegated && 1 === \count($parts)) {
             $part = $parts[0];
             if ($part instanceof Node\RangeNode && $part->start instanceof Node\LiteralNode && $part->end instanceof Node\LiteralNode) {
                 if ('0' === $part->start->value && '9' === $part->end->value) {
@@ -267,7 +269,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
             }
         }
 
-        if (!$isUnicode && !$node->isNegated && 4 === \count($parts)) {
+        if ($this->optimizeWord && !$isUnicode && !$node->isNegated && 4 === \count($parts)) {
             if ($this->isFullWordClass($parts)) {
                 return new Node\CharTypeNode('w', $node->startPosition, $node->endPosition);
             }

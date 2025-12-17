@@ -487,7 +487,7 @@ services:
   * Validate regex syntax at analysis time.
   * Optionally report ReDoS risks as PHPStan errors or warnings.
 
-Configuration is done via the provided `extension.neon`, with options such as:
+ Configuration is done via the provided `extension.neon`, with options such as:
 
 ```neon
 parameters:
@@ -495,7 +495,20 @@ parameters:
         ignoreParseErrors: true
         reportRedos: true
         redosThreshold: 'high'
+        suggestOptimizations: false
+        optimizationConfig:
+            digits: true
+            word: true
 ```
+
+* Options mirror the PHPStan bridge:
+
+  * `ignoreParseErrors` — skip likely partial regex strings (default: `true`).
+  * `reportRedos` — emit ReDoS issues (default: `true`).
+  * `redosThreshold` — minimum severity to report (`low`, `medium`, `high`, `critical`; default: `high`).
+  * `suggestOptimizations` — surface shorter equivalent patterns when found (default: `false`).
+  * `optimizationConfig.digits` — enable `[0-9]` → `\d` optimization suggestions (default: `true`).
+  * `optimizationConfig.word` — enable `[a-zA-Z0-9_]` → `\w` optimization suggestions (default: `true`).
 
 ### Psalm
 
