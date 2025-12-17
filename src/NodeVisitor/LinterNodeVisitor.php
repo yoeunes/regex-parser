@@ -13,7 +13,9 @@ declare(strict_types=1);
 
 namespace RegexParser\NodeVisitor;
 
+use RegexParser\LintIssue;
 use RegexParser\Node;
+use RegexParser\Node\GroupType;
 
 /**
  * Lints regex patterns for semantic issues like useless flags.
@@ -23,9 +25,9 @@ use RegexParser\Node;
 final class LinterNodeVisitor extends AbstractNodeVisitor
 {
     /**
-     * @var list<string>
+     * @var list<LintIssue>
      */
-    private array $warnings = [];
+    private array $issues = [];
 
     private string $flags = '';
 
@@ -40,14 +42,28 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
      */
     public function getWarnings(): array
     {
-        return $this->warnings;
+        return array_map(
+            static fn (LintIssue $issue): string => $issue->message,
+            $this->issues,
+        );
+    }
+
+    /**
+     * @return list<LintIssue>
+     */
+    public function getIssues(): array
+    {
+        return $this->issues;
     }
 
     #[\Override]
     public function visitRegex(Node\RegexNode $node): Node\NodeInterface
     {
         $this->flags = $node->flags;
-        $this->warnings = [];
+        $this->issues = [];
+        $this->hasCaseSensitiveChars = false;
+        $this->hasDots = false;
+        $this->hasAnchors = false;
 
         // Visit the pattern
         $node->pattern->accept($this);
@@ -83,6 +99,8 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
             $this->hasCaseSensitiveChars = true;
         }
 
+        $this->lintRedundantCharClass($node);
+
         return $node;
     }
 
@@ -108,6 +126,8 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitAlternation(Node\AlternationNode $node): Node\NodeInterface
     {
+        $this->lintAlternation($node);
+
         foreach ($node->alternatives as $alt) {
             $alt->accept($this);
         }
@@ -131,6 +151,18 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitGroup(Node\GroupNode $node): Node\NodeInterface
     {
+        if (GroupType::T_GROUP_INLINE_FLAGS === $node->type && null !== $node->flags) {
+            $this->lintInlineFlags($node);
+        }
+
+        if (GroupType::T_GROUP_NON_CAPTURING === $node->type && $this->isRedundantGroup($node->child)) {
+            $this->addIssue(
+                'regex.lint.group.redundant',
+                'Redundant non-capturing group; it can be removed without changing behavior.',
+                $node->startPosition,
+            );
+        }
+
         $node->child->accept($this);
 
         return $node;
@@ -139,7 +171,69 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitQuantifier(Node\QuantifierNode $node): Node\NodeInterface
     {
+        if ($this->isVariableQuantifier($node->quantifier)) {
+            $nested = $this->findNestedQuantifier($node->node);
+            if (null !== $nested && $this->isVariableQuantifier($nested->quantifier)) {
+                $this->addIssue(
+                    'regex.lint.quantifier.nested',
+                    'Nested quantifiers can cause catastrophic backtracking.',
+                    $node->startPosition,
+                    'Consider using atomic groups (?>...) or possessive quantifiers.',
+                );
+            }
+
+            if ($this->isUnboundedQuantifier($node->quantifier) && $this->containsDotStar($node->node)) {
+                $this->addIssue(
+                    'regex.lint.dotstar.nested',
+                    'An unbounded quantifier wraps a dot-star, which can cause severe backtracking.',
+                    $node->startPosition,
+                    'Refactor with atomic groups or a more specific character class.',
+                );
+            }
+        }
+
         $node->node->accept($this);
+
+        return $node;
+    }
+
+    #[\Override]
+    public function visitUnicode(Node\UnicodeNode $node): Node\NodeInterface
+    {
+        $code = null;
+        if (preg_match('/^\\\\x([0-9a-fA-F]{2})$/', $node->code, $m)) {
+            $code = (int) hexdec($m[1]);
+        } elseif (preg_match('/^\\\\u\{([0-9a-fA-F]++)\}$/', $node->code, $m)) {
+            $code = (int) hexdec($m[1]);
+        }
+
+        if (null !== $code && $code > 0x10FFFF) {
+            $this->addIssue(
+                'regex.lint.escape.suspicious',
+                \sprintf('Suspicious Unicode escape "%s" (out of range).', $node->code),
+                $node->startPosition,
+            );
+        }
+
+        return $node;
+    }
+
+    #[\Override]
+    public function visitCharLiteral(Node\CharLiteralNode $node): Node\NodeInterface
+    {
+        if (Node\CharLiteralType::UNICODE_NAMED === $node->type && class_exists(\IntlChar::class)) {
+            $name = $node->originalRepresentation;
+            if (preg_match('/^\\\\N\\{(.+)}$/', $name, $matches)) {
+                $char = \IntlChar::charFromName($matches[1]);
+                if (null === $char) {
+                    $this->addIssue(
+                        'regex.lint.escape.suspicious',
+                        \sprintf('Unknown Unicode character name "%s".', $matches[1]),
+                        $node->startPosition,
+                    );
+                }
+            }
+        }
 
         return $node;
     }
@@ -147,15 +241,24 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     private function checkUselessFlags(): void
     {
         if (str_contains($this->flags, 'i') && !$this->hasCaseSensitiveChars) {
-            $this->warnings[] = "Flag 'i' is useless: the pattern contains no case-sensitive characters.";
+            $this->addIssue(
+                'regex.lint.flag.useless_i',
+                "Flag 'i' is useless: the pattern contains no case-sensitive characters.",
+            );
         }
 
         if (str_contains($this->flags, 's') && !$this->hasDots) {
-            $this->warnings[] = "Flag 's' is useless: the pattern contains no dots.";
+            $this->addIssue(
+                'regex.lint.flag.useless_s',
+                "Flag 's' is useless: the pattern contains no dots.",
+            );
         }
 
         if (str_contains($this->flags, 'm') && !$this->hasAnchors) {
-            $this->warnings[] = "Flag 'm' is useless: the pattern contains no anchors.";
+            $this->addIssue(
+                'regex.lint.flag.useless_m',
+                "Flag 'm' is useless: the pattern contains no anchors.",
+            );
         }
     }
 
@@ -193,7 +296,11 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
                 for ($j = 0; $j < $i; $j++) {
                     if ($this->isConsuming($children[$j])) {
                         if (!str_contains($this->flags, 'm')) {
-                            $this->warnings[] = "Start anchor '^' appears after consuming characters, making it impossible to match.";
+                            $this->addIssue(
+                                'regex.lint.anchor.impossible_start',
+                                "Start anchor '^' appears after consuming characters, making it impossible to match.",
+                                $child->startPosition,
+                            );
                         }
 
                         break;
@@ -205,7 +312,11 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
                 // Check if there are consuming nodes after $
                 for ($j = $i + 1; $j < $count; $j++) {
                     if ($this->isConsuming($children[$j])) {
-                        $this->warnings[] = "End anchor '$' appears before consuming characters, making it impossible to match.";
+                        $this->addIssue(
+                            'regex.lint.anchor.impossible_end',
+                            "End anchor '$' appears before consuming characters, making it impossible to match.",
+                            $child->startPosition,
+                        );
 
                         break;
                     }
@@ -270,6 +381,386 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
 
         // Anchors, assertions, etc. don't consume
         return false;
+    }
+
+    private function addIssue(string $id, string $message, ?int $offset = null, ?string $hint = null): void
+    {
+        $this->issues[] = new LintIssue($id, $message, $offset, $hint);
+    }
+
+    private function lintAlternation(Node\AlternationNode $node): void
+    {
+        $literals = [];
+        foreach ($node->alternatives as $alt) {
+            $literal = $this->extractLiteralSequence($alt);
+            if (null === $literal) {
+                continue;
+            }
+
+            $literals[] = $literal;
+        }
+
+        if ([] === $literals) {
+            return;
+        }
+
+        $counts = array_count_values($literals);
+        foreach ($counts as $literal => $count) {
+            if ($count > 1) {
+                $this->addIssue(
+                    'regex.lint.alternation.duplicate',
+                    \sprintf('Duplicate alternation branch "%s".', $literal),
+                    $node->startPosition,
+                );
+                break;
+            }
+        }
+
+        $unique = array_values(array_unique($literals));
+        $total = \count($unique);
+        for ($i = 0; $i < $total; $i++) {
+            for ($j = $i + 1; $j < $total; $j++) {
+                $a = $unique[$i];
+                $b = $unique[$j];
+                if ('' === $a || '' === $b) {
+                    continue;
+                }
+
+                if (str_starts_with($a, $b) || str_starts_with($b, $a)) {
+                    $this->addIssue(
+                        'regex.lint.alternation.overlap',
+                        \sprintf('Alternation branches "%s" and "%s" overlap.', $a, $b),
+                        $node->startPosition,
+                        'Consider ordering longer alternatives first or using atomic groups.',
+                    );
+
+                    return;
+                }
+            }
+        }
+    }
+
+    private function extractLiteralSequence(Node\NodeInterface $node): ?string
+    {
+        if ($node instanceof Node\LiteralNode) {
+            return $node->value;
+        }
+
+        if ($node instanceof Node\GroupNode) {
+            return $this->extractLiteralSequence($node->child);
+        }
+
+        if ($node instanceof Node\SequenceNode) {
+            $value = '';
+            foreach ($node->children as $child) {
+                $literal = $this->extractLiteralSequence($child);
+                if (null === $literal) {
+                    return null;
+                }
+                $value .= $literal;
+            }
+
+            return $value;
+        }
+
+        return null;
+    }
+
+    private function lintRedundantCharClass(Node\CharClassNode $node): void
+    {
+        $parts = $this->collectCharClassParts($node->expression);
+        if (null === $parts) {
+            return;
+        }
+
+        $ranges = [];
+        $literals = [];
+        $redundant = false;
+
+        foreach ($parts as $part) {
+            if ($part instanceof Node\LiteralNode && 1 === \strlen($part->value)) {
+                $ord = ord($part->value);
+                if (isset($literals[$ord]) || $this->isOrdCoveredByRanges($ord, $ranges)) {
+                    $redundant = true;
+                }
+                $literals[$ord] = true;
+
+                continue;
+            }
+
+            if ($part instanceof Node\RangeNode && $part->start instanceof Node\LiteralNode && $part->end instanceof Node\LiteralNode) {
+                if (1 !== \strlen($part->start->value) || 1 !== \strlen($part->end->value)) {
+                    continue;
+                }
+
+                $start = ord($part->start->value);
+                $end = ord($part->end->value);
+                if ($start > $end) {
+                    continue;
+                }
+
+                if ($this->rangeOverlaps($start, $end, $ranges)) {
+                    $redundant = true;
+                }
+
+                foreach ($literals as $ord => $seen) {
+                    if ($ord >= $start && $ord <= $end) {
+                        $redundant = true;
+                        unset($literals[$ord]);
+                    }
+                }
+
+                $ranges[] = [$start, $end];
+            }
+        }
+
+        if ($redundant) {
+            $this->addIssue(
+                'regex.lint.charclass.redundant',
+                'Redundant elements detected in character class.',
+                $node->startPosition,
+            );
+        }
+    }
+
+    /**
+     * @return list<Node\NodeInterface>|null
+     */
+    private function collectCharClassParts(Node\NodeInterface $node): ?array
+    {
+        if ($node instanceof Node\ClassOperationNode) {
+            return null;
+        }
+
+        if ($node instanceof Node\AlternationNode) {
+            return $node->alternatives;
+        }
+
+        if ($node instanceof Node\SequenceNode) {
+            return $node->children;
+        }
+
+        return [$node];
+    }
+
+    /**
+     * @param list<array{0: int, 1: int}> $ranges
+     */
+    private function rangeOverlaps(int $start, int $end, array $ranges): bool
+    {
+        foreach ($ranges as [$rStart, $rEnd]) {
+            if ($start <= $rEnd && $end >= $rStart) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param list<array{0: int, 1: int}> $ranges
+     */
+    private function isOrdCoveredByRanges(int $ord, array $ranges): bool
+    {
+        foreach ($ranges as [$rStart, $rEnd]) {
+            if ($ord >= $rStart && $ord <= $rEnd) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function lintInlineFlags(Node\GroupNode $node): void
+    {
+        $flags = (string) $node->flags;
+        if ('' === $flags) {
+            return;
+        }
+
+        $resetAll = str_starts_with($flags, '^');
+        if ($resetAll) {
+            $flags = substr($flags, 1);
+        }
+
+        [$set, $unset] = str_contains($flags, '-')
+            ? explode('-', $flags, 2)
+            : [$flags, ''];
+
+        $baseFlags = $resetAll ? '' : $this->flags;
+
+        foreach (str_split($set) as $flag) {
+            if ('' === $flag) {
+                continue;
+            }
+            if (str_contains($baseFlags, $flag)) {
+                $this->addIssue(
+                    'regex.lint.flag.redundant',
+                    \sprintf("Inline flag '%s' is redundant; it is already set globally.", $flag),
+                    $node->startPosition,
+                );
+            }
+        }
+
+        foreach (str_split($unset) as $flag) {
+            if ('' === $flag) {
+                continue;
+            }
+
+            if (!str_contains($baseFlags, $flag)) {
+                $this->addIssue(
+                    'regex.lint.flag.redundant',
+                    \sprintf("Inline flag '-%s' is redundant; the flag is not set globally.", $flag),
+                    $node->startPosition,
+                );
+            } else {
+                $this->addIssue(
+                    'regex.lint.flag.override',
+                    \sprintf("Inline flag '-%s' overrides a global modifier.", $flag),
+                    $node->startPosition,
+                    'Consider removing the global flag or limiting it to specific groups.',
+                );
+            }
+        }
+    }
+
+    private function isRedundantGroup(Node\NodeInterface $node): bool
+    {
+        if ($node instanceof Node\SequenceNode) {
+            if (1 !== \count($node->children)) {
+                return false;
+            }
+
+            return $this->isRedundantGroup($node->children[0]);
+        }
+
+        if ($node instanceof Node\AlternationNode || $node instanceof Node\QuantifierNode) {
+            return false;
+        }
+
+        return $node instanceof Node\LiteralNode
+            || $node instanceof Node\CharTypeNode
+            || $node instanceof Node\CharClassNode
+            || $node instanceof Node\CharLiteralNode
+            || $node instanceof Node\UnicodeNode
+            || $node instanceof Node\DotNode
+            || $node instanceof Node\AnchorNode
+            || $node instanceof Node\AssertionNode
+            || $node instanceof Node\KeepNode
+            || $node instanceof Node\UnicodePropNode
+            || $node instanceof Node\PosixClassNode
+            || $node instanceof Node\ControlCharNode
+            || $node instanceof Node\CommentNode
+            || $node instanceof Node\CalloutNode
+            || $node instanceof Node\ScriptRunNode;
+    }
+
+    private function isVariableQuantifier(string $quantifier): bool
+    {
+        [$min, $max] = $this->parseQuantifierRange($quantifier);
+
+        return null === $max || $min !== $max;
+    }
+
+    private function isUnboundedQuantifier(string $quantifier): bool
+    {
+        [, $max] = $this->parseQuantifierRange($quantifier);
+
+        return null === $max;
+    }
+
+    private function findNestedQuantifier(Node\NodeInterface $node): ?Node\QuantifierNode
+    {
+        if ($node instanceof Node\QuantifierNode) {
+            return $node;
+        }
+
+        if ($node instanceof Node\GroupNode) {
+            return $this->findNestedQuantifier($node->child);
+        }
+
+        if ($node instanceof Node\SequenceNode) {
+            foreach ($node->children as $child) {
+                $nested = $this->findNestedQuantifier($child);
+                if (null !== $nested) {
+                    return $nested;
+                }
+            }
+        }
+
+        if ($node instanceof Node\AlternationNode) {
+            foreach ($node->alternatives as $alt) {
+                $nested = $this->findNestedQuantifier($alt);
+                if (null !== $nested) {
+                    return $nested;
+                }
+            }
+        }
+
+        if ($node instanceof Node\ConditionalNode) {
+            return $this->findNestedQuantifier($node->yes) ?? $this->findNestedQuantifier($node->no);
+        }
+
+        if ($node instanceof Node\DefineNode) {
+            return $this->findNestedQuantifier($node->content);
+        }
+
+        return null;
+    }
+
+    private function containsDotStar(Node\NodeInterface $node): bool
+    {
+        if ($node instanceof Node\QuantifierNode && $node->node instanceof Node\DotNode) {
+            return $this->isUnboundedQuantifier($node->quantifier);
+        }
+
+        if ($node instanceof Node\GroupNode) {
+            return $this->containsDotStar($node->child);
+        }
+
+        if ($node instanceof Node\SequenceNode) {
+            foreach ($node->children as $child) {
+                if ($this->containsDotStar($child)) {
+                    return true;
+                }
+            }
+        }
+
+        if ($node instanceof Node\AlternationNode) {
+            foreach ($node->alternatives as $alt) {
+                if ($this->containsDotStar($alt)) {
+                    return true;
+                }
+            }
+        }
+
+        if ($node instanceof Node\ConditionalNode) {
+            return $this->containsDotStar($node->yes) || $this->containsDotStar($node->no);
+        }
+
+        if ($node instanceof Node\DefineNode) {
+            return $this->containsDotStar($node->content);
+        }
+
+        return false;
+    }
+
+    /**
+     * @return array{0: int, 1: int|null}
+     */
+    private function parseQuantifierRange(string $quantifier): array
+    {
+        return match ($quantifier) {
+            '*' => [0, null],
+            '+' => [1, null],
+            '?' => [0, 1],
+            default => preg_match('/^\{(\d++)(?:,(\d*+))?\}$/', $quantifier, $m) ?
+                (isset($m[2]) ?
+                    ('' === $m[2] ? [(int) $m[1], null] : [(int) $m[1], (int) $m[2]]) :
+                    [(int) $m[1], (int) $m[1]]
+                ) :
+                [1, 1],
+        };
     }
 
     // Add other visit methods as needed, default to no-op

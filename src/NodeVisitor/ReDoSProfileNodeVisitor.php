@@ -17,6 +17,8 @@ use RegexParser\Node;
 use RegexParser\Node\GroupType;
 use RegexParser\Node\QuantifierType;
 use RegexParser\ReDoS\CharSetAnalyzer;
+use RegexParser\ReDoS\ReDoSConfidence;
+use RegexParser\ReDoS\ReDoSFinding;
 use RegexParser\ReDoS\ReDoSSeverity;
 
 /**
@@ -36,7 +38,7 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
     /**
      * Stores all detected ReDoS vulnerabilities during the AST traversal.
      *
-     * @var array<array{severity: ReDoSSeverity, message: string, pattern: string}>
+     * @var list<ReDoSFinding>
      */
     private array $vulnerabilities = [];
 
@@ -53,20 +55,36 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
     ) {}
 
     /**
-     * @return array{severity: ReDoSSeverity, recommendations: array<string>, vulnerablePattern: ?string}
+     * @return array{
+     *     severity: ReDoSSeverity,
+     *     recommendations: array<string>,
+     *     vulnerablePattern: ?string,
+     *     trigger: ?string,
+     *     confidence: ?ReDoSConfidence,
+     *     falsePositiveRisk: ?string,
+     *     findings: array<ReDoSFinding>
+     * }
      */
     public function getResult(): array
     {
         $maxSeverity = ReDoSSeverity::SAFE;
         $recommendations = [];
         $pattern = null;
+        $trigger = null;
+        $confidence = null;
+        $falsePositiveRisk = null;
 
         foreach ($this->vulnerabilities as $vuln) {
-            if ($this->severityGreaterThan($vuln['severity'], $maxSeverity)) {
-                $maxSeverity = $vuln['severity'];
-                $pattern = $vuln['pattern'];
+            if ($this->severityGreaterThan($vuln->severity, $maxSeverity)) {
+                $maxSeverity = $vuln->severity;
+                $pattern = $vuln->pattern;
+                $trigger = $vuln->trigger;
+                $confidence = $vuln->confidence;
+                $falsePositiveRisk = $vuln->falsePositiveRisk;
             }
-            $recommendations[] = $vuln['message'];
+            $recommendations[] = null !== $vuln->suggestedRewrite
+                ? $vuln->message.' Suggested: '.$vuln->suggestedRewrite
+                : $vuln->message;
         }
 
         if ($this->backrefLoopDetected) {
@@ -77,6 +95,10 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
             'severity' => $maxSeverity,
             'recommendations' => array_unique($recommendations),
             'vulnerablePattern' => $pattern,
+            'trigger' => $trigger,
+            'confidence' => $confidence,
+            'falsePositiveRisk' => $falsePositiveRisk,
+            'findings' => $this->vulnerabilities,
         ];
     }
 
@@ -142,7 +164,10 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
                 $this->addVulnerability(
                     ReDoSSeverity::CRITICAL,
                     'Unbounded quantifier combined with backreferences to variable-length captures can cause catastrophic backtracking.',
-                    $node->quantifier,
+                    $node,
+                    'Use atomic groups (?>...) or possessive quantifiers around the quantified token.',
+                    ReDoSConfidence::HIGH,
+                    'Low false-positive risk; nested backtracking with backreferences is a known hotspot.',
                 );
             }
 
@@ -152,7 +177,10 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
                     $this->addVulnerability(
                         ReDoSSeverity::CRITICAL,
                         'Nested unbounded quantifiers detected. This allows exponential backtracking. Consider using atomic groups (?>...) or possessive quantifiers (*+, ++).',
-                        $node->quantifier,
+                        $node,
+                        'Replace inner quantifiers with possessive variants or wrap them in (?>...).',
+                        ReDoSConfidence::HIGH,
+                        'Low false-positive risk; nested unbounded quantifiers are a classic ReDoS pattern.',
                     );
                 }
             } else {
@@ -161,7 +189,10 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
                     $this->addVulnerability(
                         ReDoSSeverity::MEDIUM,
                         'Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...).',
-                        $node->quantifier,
+                        $node,
+                        'Consider using possessive quantifiers or atomic groups to limit backtracking.',
+                        ReDoSConfidence::MEDIUM,
+                        'Medium false-positive risk; depends on input distribution and surrounding tokens.',
                     );
                 }
             }
@@ -171,14 +202,20 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
                 $this->addVulnerability(
                     ReDoSSeverity::LOW,
                     'Large bounded quantifier detected (>1000). May cause slow matching. Consider reducing the upper bound.',
-                    $node->quantifier,
+                    $node,
+                    'Reduce the upper bound or pre-validate input length.',
+                    ReDoSConfidence::LOW,
+                    'High false-positive risk; bounded quantifiers may still be safe in context.',
                 );
             } elseif ($this->totalQuantifierDepth > 1) {
                 $severity = ReDoSSeverity::LOW;
                 $this->addVulnerability(
                     ReDoSSeverity::LOW,
                     'Nested bounded quantifiers detected. May cause polynomial backtracking. Consider simplifying the pattern or using atomic groups (?>...).',
-                    $node->quantifier,
+                    $node,
+                    'Flatten nested quantifiers or introduce atomic groups.',
+                    ReDoSConfidence::LOW,
+                    'Medium false-positive risk; bounded quantifiers are often acceptable.',
                 );
             }
         }
@@ -196,7 +233,10 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
             $this->addVulnerability(
                 ReDoSSeverity::CRITICAL,
                 'Critical nesting of quantifiers detected (Star Height > 1). This is a classic ReDoS vulnerability. Refactor the pattern to avoid nested unbounded quantifiers over the same subpattern.',
-                $node->quantifier,
+                $node,
+                'Use atomic groups or restructure the repetition to be deterministic.',
+                ReDoSConfidence::HIGH,
+                'Low false-positive risk; star-height > 1 patterns are highly suspect.',
             );
         }
 
@@ -222,7 +262,10 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
             $this->addVulnerability(
                 ReDoSSeverity::CRITICAL,
                 'Overlapping alternation branches inside a quantifier. e.g. (a|a)* or (ab|a)*. This can lead to catastrophic backtracking.',
-                '|',
+                $node,
+                'Make alternatives mutually exclusive or order longer alternatives first.',
+                ReDoSConfidence::HIGH,
+                'Low false-positive risk; overlapping alternations are a known backtracking trigger.',
             );
             $max = ReDoSSeverity::CRITICAL;
         }
@@ -535,7 +578,10 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
         $this->addVulnerability(
             ReDoSSeverity::MEDIUM,
             'Subroutines can lead to complex backtracking and potential ReDoS if not used carefully, especially with recursion. Review the referenced pattern.',
-            '(?&'.$node->reference.')',
+            $node,
+            'Avoid excessive recursion or add atomic groups around recursive parts.',
+            ReDoSConfidence::MEDIUM,
+            'Medium false-positive risk; recursion depth and input shape matter.',
         );
 
         return ReDoSSeverity::MEDIUM;
@@ -759,22 +805,43 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
 
     /**
      * Adds a detected ReDoS vulnerability to the internal list.
-     *
-     * Purpose: This private helper method standardizes the way vulnerabilities are recorded.
-     * It stores the severity, a descriptive message, and the specific pattern fragment
-     * that triggered the detection, which is then used by `getResult()` to compile the final report.
-     *
-     * @param ReDoSSeverity $severity the severity level of the detected vulnerability
-     * @param string        $message  a descriptive message explaining the vulnerability
-     * @param string        $pattern  the regex pattern fragment that caused the vulnerability
      */
-    private function addVulnerability(ReDoSSeverity $severity, string $message, string $pattern): void
+    private function addVulnerability(
+        ReDoSSeverity $severity,
+        string $message,
+        Node\NodeInterface $triggerNode,
+        ?string $suggestedRewrite = null,
+        ReDoSConfidence $confidence = ReDoSConfidence::MEDIUM,
+        ?string $falsePositiveRisk = null,
+    ): void {
+        $pattern = $this->compileNode($triggerNode);
+        $trigger = $this->describeTrigger($triggerNode);
+
+        $this->vulnerabilities[] = new ReDoSFinding(
+            $severity,
+            $message,
+            $pattern,
+            $trigger,
+            $suggestedRewrite,
+            $confidence,
+            $falsePositiveRisk,
+        );
+    }
+
+    private function compileNode(Node\NodeInterface $node): string
     {
-        $this->vulnerabilities[] = [
-            'severity' => $severity,
-            'message' => $message,
-            'pattern' => $pattern,
-        ];
+        return $node->accept(new CompilerNodeVisitor());
+    }
+
+    private function describeTrigger(Node\NodeInterface $node): string
+    {
+        return match (true) {
+            $node instanceof Node\QuantifierNode => 'quantifier '.$node->quantifier,
+            $node instanceof Node\AlternationNode => 'alternation',
+            $node instanceof Node\GroupNode => 'group',
+            $node instanceof Node\SubroutineNode => 'subroutine',
+            default => $node::class,
+        };
     }
 
     /**

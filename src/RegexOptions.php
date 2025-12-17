@@ -26,13 +26,14 @@ use RegexParser\Exception\InvalidRegexOptionException;
  */
 final readonly class RegexOptions
 {
-    private const ALLOWED_KEYS = ['max_pattern_length', 'cache', 'redos_ignored_patterns'];
+    private const ALLOWED_KEYS = ['max_pattern_length', 'max_lookbehind_length', 'cache', 'redos_ignored_patterns'];
 
     /**
      * @param array<string> $redosIgnoredPatterns
      */
     public function __construct(
         public int $maxPatternLength,
+        public int $maxLookbehindLength,
         public CacheInterface $cache,
         public array $redosIgnoredPatterns = [],
     ) {}
@@ -48,6 +49,7 @@ final readonly class RegexOptions
         if ([] === $options) {
             return new self(
                 Regex::DEFAULT_MAX_PATTERN_LENGTH,
+                Regex::DEFAULT_MAX_LOOKBEHIND_LENGTH,
                 new NullCache(),
                 [],
             );
@@ -58,10 +60,11 @@ final readonly class RegexOptions
 
         // Extract and validate options with early returns
         $maxPatternLength = self::validateMaxPatternLength($options);
+        $maxLookbehindLength = self::validateMaxLookbehindLength($options);
         $cache = self::validateAndNormalizeCache($options);
         $redosIgnoredPatterns = self::validateAndNormalizeRedosPatterns($options);
 
-        return new self($maxPatternLength, $cache, $redosIgnoredPatterns);
+        return new self($maxPatternLength, $maxLookbehindLength, $cache, $redosIgnoredPatterns);
     }
 
     /**
@@ -98,6 +101,20 @@ final readonly class RegexOptions
 
         if (!\is_int($value) || $value <= 0) {
             throw new InvalidRegexOptionException('"max_pattern_length" must be a positive integer.');
+        }
+
+        return $value;
+    }
+
+    /**
+     * @param array<string, mixed> $options
+     */
+    private static function validateMaxLookbehindLength(array $options): int
+    {
+        $value = $options['max_lookbehind_length'] ?? Regex::DEFAULT_MAX_LOOKBEHIND_LENGTH;
+
+        if (!\is_int($value) || $value < 0) {
+            throw new InvalidRegexOptionException('"max_lookbehind_length" must be a non-negative integer.');
         }
 
         return $value;

@@ -26,7 +26,7 @@ final class OptimizerSafetyTest extends TestCase
     public function test_optimization_does_not_change_semantics(string $input, string $expected): void
     {
         $regexService = Regex::create();
-        $optimized = $regexService->optimize($input);
+        $optimized = $regexService->optimize($input)->optimized;
 
         $this->assertSame($expected, $optimized);
     }

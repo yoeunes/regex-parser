@@ -83,18 +83,16 @@ final class LookbehindEdgeCasesTest extends TestCase
 
     public function test_variable_length_star_quantifier_is_valid(): void
     {
-        // PCRE2 (PHP 7.3+) supports variable-length lookbehinds
         $result = $this->regexService->validate('/(?<=a*)b/');
 
-        $this->assertTrue($result->isValid, 'Variable-length star quantifier should be valid in PCRE2');
+        $this->assertFalse($result->isValid, 'Unbounded lookbehind should be rejected.');
     }
 
     public function test_variable_length_plus_quantifier_is_valid(): void
     {
-        // PCRE2 (PHP 7.3+) supports variable-length lookbehinds
         $result = $this->regexService->validate('/(?<=a+)b/');
 
-        $this->assertTrue($result->isValid, 'Variable-length plus quantifier should be valid in PCRE2');
+        $this->assertFalse($result->isValid, 'Unbounded lookbehind should be rejected.');
     }
 
     public function test_variable_length_optional_quantifier_is_valid(): void
@@ -107,26 +105,23 @@ final class LookbehindEdgeCasesTest extends TestCase
 
     public function test_variable_length_unbounded_range_is_valid(): void
     {
-        // PCRE2 (PHP 7.3+) supports variable-length lookbehinds
         $result = $this->regexService->validate('/(?<=a{1,})b/');
 
-        $this->assertTrue($result->isValid, 'Variable-length unbounded range should be valid in PCRE2');
+        $this->assertFalse($result->isValid, 'Unbounded lookbehind should be rejected.');
     }
 
     public function test_variable_length_char_class_star_is_valid(): void
     {
-        // PCRE2 (PHP 7.3+) supports variable-length lookbehinds
         $result = $this->regexService->validate('/(?<=[a-z]*)test/');
 
-        $this->assertTrue($result->isValid, 'Variable-length char class star should be valid in PCRE2');
+        $this->assertFalse($result->isValid, 'Unbounded lookbehind should be rejected.');
     }
 
     public function test_variable_length_digit_plus_is_valid(): void
     {
-        // PCRE2 (PHP 7.3+) supports variable-length lookbehinds
         $result = $this->regexService->validate('/(?<=\d+)end/');
 
-        $this->assertTrue($result->isValid, 'Variable-length digit plus should be valid in PCRE2');
+        $this->assertFalse($result->isValid, 'Unbounded lookbehind should be rejected.');
     }
 
     public function test_variable_length_alternation_is_valid(): void
@@ -139,26 +134,23 @@ final class LookbehindEdgeCasesTest extends TestCase
 
     public function test_variable_length_group_star_is_valid(): void
     {
-        // PCRE2 (PHP 7.3+) supports variable-length lookbehinds
         $result = $this->regexService->validate('/(?<=(test)*)/');
 
-        $this->assertTrue($result->isValid, 'Variable-length group star should be valid in PCRE2');
+        $this->assertFalse($result->isValid, 'Unbounded lookbehind should be rejected.');
     }
 
     public function test_mixed_fixed_and_variable_length_is_valid(): void
     {
-        // PCRE2 (PHP 7.3+) supports variable-length lookbehinds
         $result = $this->regexService->validate('/(?<=\d{3}a+)/');
 
-        $this->assertTrue($result->isValid, 'Mixed fixed and variable length should be valid in PCRE2');
+        $this->assertFalse($result->isValid, 'Unbounded lookbehind should be rejected.');
     }
 
     public function test_literal_repeat_plus_variable_is_valid(): void
     {
-        // PCRE2 (PHP 7.3+) supports variable-length lookbehinds
         $result = $this->regexService->validate('/(?<=[a]{3}b*)/');
 
-        $this->assertTrue($result->isValid, 'Literal repeat plus variable should be valid in PCRE2');
+        $this->assertFalse($result->isValid, 'Unbounded lookbehind should be rejected.');
     }
 
     public function test_optional_group_is_valid(): void
@@ -179,10 +171,9 @@ final class LookbehindEdgeCasesTest extends TestCase
 
     public function test_negative_variable_lookbehind_is_valid(): void
     {
-        // PCRE2 (PHP 7.3+) supports variable-length lookbehinds
         $result = $this->regexService->validate('/(?<!a+)/');
 
-        $this->assertTrue($result->isValid, 'Negative variable lookbehind should be valid in PCRE2');
+        $this->assertFalse($result->isValid, 'Unbounded lookbehind should be rejected.');
     }
 
     public function test_fixed_length_exactly_three_chars(): void

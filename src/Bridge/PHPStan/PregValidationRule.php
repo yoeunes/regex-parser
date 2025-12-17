@@ -303,11 +303,11 @@ final class PregValidationRule implements Rule
         try {
             $linter = new \RegexParser\NodeVisitor\LinterNodeVisitor();
             $ast->accept($linter);
-            foreach ($linter->getWarnings() as $warning) {
-                $tip = $this->getTipForWarning($warning);
-                $builder = RuleErrorBuilder::message($warning)
+            foreach ($linter->getIssues() as $issue) {
+                $builder = RuleErrorBuilder::message($issue->message)
                     ->line($lineNumber)
-                    ->identifier('regex.linter');
+                    ->identifier($issue->id);
+                $tip = $issue->hint;
                 if (null !== $tip) {
                     $builder = $builder->tip($tip);
                 }
@@ -388,17 +388,6 @@ final class PregValidationRule implements Rule
     private function getRedosAnalyzer(): ReDoSAnalyzer
     {
         return $this->redosAnalyzer ??= new ReDoSAnalyzer();
-    }
-
-    private function getTipForWarning(string $warning): ?string
-    {
-        foreach (self::DOC_LINKS as $key => $url) {
-            if (str_contains($warning, $key)) {
-                return 'Read more: '.$url;
-            }
-        }
-
-        return null;
     }
 
     /**

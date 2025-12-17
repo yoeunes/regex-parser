@@ -221,18 +221,24 @@ final class ComprehensivePublicAPITest extends TestCase
         $this->assertTrue($result->isValid, 'Pattern /a+b/ should be valid (no nested quantifiers)');
     }
 
-    public function test_validate_detects_invalid_backreference(): void
+    public function test_validate_allows_forward_backreference(): void
     {
         $result = $this->regexService->validate('/\1(foo)/');
+        $this->assertTrue($result->isValid);
+    }
+
+    public function test_validate_rejects_missing_backreference(): void
+    {
+        $result = $this->regexService->validate('/\2(foo)/');
         $this->assertFalse($result->isValid);
         $this->assertStringContainsString('backreference', strtolower((string) $result->error));
     }
 
-    public function test_validate_allows_variable_length_lookbehind(): void
+    public function test_validate_rejects_unbounded_lookbehind(): void
     {
-        // PCRE2 (PHP 7.3+) supports variable-length lookbehinds
         $result = $this->regexService->validate('/(?<!a*)b/');
-        $this->assertTrue($result->isValid, 'Variable-length lookbehind should be valid in PCRE2');
+        $this->assertFalse($result->isValid);
+        $this->assertStringContainsString('lookbehind', strtolower((string) $result->error));
     }
 
     public function test_validate_allows_fixed_length_lookbehind(): void
@@ -374,7 +380,7 @@ final class ComprehensivePublicAPITest extends TestCase
 
     public function test_optimize_returns_valid_pattern(): void
     {
-        $optimized = $this->regexService->optimize('/hello/');
+        $optimized = $this->regexService->optimize('/hello/')->optimized;
         $this->assertIsString($optimized);
         $this->assertStringStartsWith('/', $optimized);
     }
@@ -382,7 +388,7 @@ final class ComprehensivePublicAPITest extends TestCase
     public function test_optimize_preserves_behavior_for_simple_pattern(): void
     {
         $original = '/test/';
-        $optimized = $this->regexService->optimize($original);
+        $optimized = $this->regexService->optimize($original)->optimized;
 
         $testString = 'this is a test string';
         $this->assertSame(
@@ -393,7 +399,7 @@ final class ComprehensivePublicAPITest extends TestCase
 
     public function test_optimize_character_class(): void
     {
-        $optimized = $this->regexService->optimize('/[abc]/');
+        $optimized = $this->regexService->optimize('/[abc]/')->optimized;
         $this->assertIsString($optimized);
         // Should still match the same strings
         $this->assertMatchesRegularExpression($optimized, 'a');
@@ -403,7 +409,7 @@ final class ComprehensivePublicAPITest extends TestCase
 
     public function test_optimize_nested_groups(): void
     {
-        $optimized = $this->regexService->optimize('/(?:(?:a))/');
+        $optimized = $this->regexService->optimize('/(?:(?:a))/')->optimized;
         $this->assertIsString($optimized);
     }
 
@@ -416,22 +422,22 @@ final class ComprehensivePublicAPITest extends TestCase
     public function test_extract_literals_simple_prefix(): void
     {
         $literals = $this->regexService->extractLiterals('/user_\d+/');
-        $prefix = $literals->getLongestPrefix();
+        $prefix = $literals->literalSet->getLongestPrefix();
         $this->assertSame('user_', $prefix);
     }
 
     public function test_extract_literals_simple_suffix(): void
     {
         $literals = $this->regexService->extractLiterals('/\d+@example\.com/');
-        $suffix = $literals->getLongestSuffix();
+        $suffix = $literals->literalSet->getLongestSuffix();
         $this->assertSame('@example.com', $suffix);
     }
 
     public function test_extract_literals_both_prefix_and_suffix(): void
     {
         $literals = $this->regexService->extractLiterals('/start_\d+_end/');
-        $prefix = $literals->getLongestPrefix();
-        $suffix = $literals->getLongestSuffix();
+        $prefix = $literals->literalSet->getLongestPrefix();
+        $suffix = $literals->literalSet->getLongestSuffix();
 
         $this->assertSame('start_', $prefix);
         $this->assertSame('_end', $suffix);
@@ -440,7 +446,7 @@ final class ComprehensivePublicAPITest extends TestCase
     public function test_extract_literals_no_literals_in_pure_quantifier(): void
     {
         $literals = $this->regexService->extractLiterals('/\d+/');
-        $prefix = $literals->getLongestPrefix();
+        $prefix = $literals->literalSet->getLongestPrefix();
         // May return null or empty string when no literals found
         $this->assertTrue('' === $prefix || null === $prefix);
     }
@@ -448,14 +454,14 @@ final class ComprehensivePublicAPITest extends TestCase
     public function test_extract_literals_full_literal_pattern(): void
     {
         $literals = $this->regexService->extractLiterals('/exactly_this/');
-        $prefix = $literals->getLongestPrefix();
+        $prefix = $literals->literalSet->getLongestPrefix();
         $this->assertSame('exactly_this', $prefix);
     }
 
     public function test_extract_literals_complex_pattern(): void
     {
         $literals = $this->regexService->extractLiterals('/error: .+/');
-        $prefix = $literals->getLongestPrefix();
+        $prefix = $literals->literalSet->getLongestPrefix();
         $this->assertSame('error: ', $prefix);
     }
 
@@ -589,7 +595,7 @@ final class ComprehensivePublicAPITest extends TestCase
         ];
 
         $original = '/test/';
-        $optimized = $this->regexService->optimize($original);
+        $optimized = $this->regexService->optimize($original)->optimized;
 
         foreach ($testCases as $type => $input) {
             $originalResult = (bool) preg_match($original, $input);
@@ -606,7 +612,7 @@ final class ComprehensivePublicAPITest extends TestCase
     public function test_extract_literals_with_groups(): void
     {
         $literals = $this->regexService->extractLiterals('/prefix_(foo|bar)_suffix/');
-        $prefix = $literals->getLongestPrefix();
+        $prefix = $literals->literalSet->getLongestPrefix();
         // Current implementation may vary on how it handles alternations
         $this->assertIsString($prefix ?? '');
         $this->assertStringContainsString('prefix', (string) $prefix);

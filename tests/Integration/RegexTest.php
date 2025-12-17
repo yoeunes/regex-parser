@@ -58,7 +58,7 @@ final class RegexTest extends TestCase
     #[DataProvider('provideRegexForOptimization')]
     public function test_optimize_method(string $pattern, string $expectedOptimizedPattern): void
     {
-        $optimized = $this->regexService->optimize($pattern);
+        $optimized = $this->regexService->optimize($pattern)->optimized;
         $this->assertSame($expectedOptimizedPattern, $optimized);
     }
 

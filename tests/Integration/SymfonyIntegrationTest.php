@@ -36,7 +36,7 @@ final class SymfonyIntegrationTest extends TestCase
         // Simulates a Symfony constraint validator checking a regex pattern
         $patterns = [
             '/^[a-z0-9_-]{3,16}$/' => true,  // Valid username pattern
-            '/(?<!a*)b/' => true,             // Valid: PCRE2 supports variable-length lookbehinds
+            '/(?<!a*)b/' => false,            // Invalid: lookbehind must have a bounded max length
             '/(a+)+/' => true,                // Valid: syntactically correct, ReDoS is separate concern
         ];
 
@@ -241,7 +241,7 @@ final class SymfonyIntegrationTest extends TestCase
         // Symfony apps can optimize database queries using literal extraction
         $pattern = '/^ERROR: /';
         $literals = $this->regex->extractLiterals($pattern);
-        $prefix = $literals->getLongestPrefix();
+        $prefix = $literals->literalSet->getLongestPrefix();
 
         $this->assertSame('ERROR: ', $prefix);
 

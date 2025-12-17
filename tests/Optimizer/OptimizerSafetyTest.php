@@ -34,7 +34,7 @@ final class OptimizerSafetyTest extends TestCase
     public function test_no_flag_optimizes(): void
     {
         $regex = Regex::create();
-        $optimized = $regex->optimize('/[0-9]/');
+        $optimized = $regex->optimize('/[0-9]/')->optimized;
 
         $this->assertSame('/\d/', $optimized);
     }
@@ -42,7 +42,7 @@ final class OptimizerSafetyTest extends TestCase
     public function test_case_insensitive_optimizes(): void
     {
         $regex = Regex::create();
-        $optimized = $regex->optimize('/[0-9]/i');
+        $optimized = $regex->optimize('/[0-9]/i')->optimized;
 
         $this->assertSame('/\d/i', $optimized);
     }
@@ -50,7 +50,7 @@ final class OptimizerSafetyTest extends TestCase
     public function test_unicode_flag_no_optimize(): void
     {
         $regex = Regex::create();
-        $optimized = $regex->optimize('/[0-9]/u');
+        $optimized = $regex->optimize('/[0-9]/u')->optimized;
 
         $this->assertSame('/[0-9]/u', $optimized);
     }
@@ -58,7 +58,7 @@ final class OptimizerSafetyTest extends TestCase
     public function test_unicode_flag_complex_no_optimize(): void
     {
         $regex = Regex::create();
-        $optimized = $regex->optimize('/[0-9]+/u');
+        $optimized = $regex->optimize('/[0-9]+/u')->optimized;
 
         $this->assertSame('/[0-9]+/u', $optimized);
     }

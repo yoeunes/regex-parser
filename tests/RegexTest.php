@@ -49,7 +49,7 @@ final class RegexTest extends TestCase
         $optimized = $regex->optimize('/[0-9]/');
 
         // Note: the CompilerNodeVisitor adds the \ before d
-        $this->assertSame('/\d/', $optimized);
+        $this->assertSame('/\d/', $optimized->optimized);
     }
 
     public function test_generate(): void

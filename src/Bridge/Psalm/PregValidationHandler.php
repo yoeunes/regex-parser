@@ -187,7 +187,8 @@ final class PregValidationHandler implements AfterFunctionCallAnalysisInterface
 
         if ($configuration->suggestOptimizations) {
             try {
-                $optimized = self::getRegex()->optimize($pattern);
+                $optimization = self::getRegex()->optimize($pattern);
+                $optimized = $optimization->optimized;
                 if ($optimized !== $pattern && \strlen($optimized) < \strlen($pattern)) {
                     $message = \sprintf(
                         'Regex pattern can be optimized: "%s" (Try: %s)',
@@ -207,9 +208,13 @@ final class PregValidationHandler implements AfterFunctionCallAnalysisInterface
         try {
             $linter = new LinterNodeVisitor();
             $ast->accept($linter);
-            foreach ($linter->getWarnings() as $warning) {
+            foreach ($linter->getIssues() as $issue) {
+                $message = \sprintf('[%s] %s', $issue->id, $issue->message);
+                if (null !== $issue->hint) {
+                    $message .= ' | '.$issue->hint;
+                }
                 self::reportIssue(
-                    new RegexLinterIssue('Tip: '.$warning, new CodeLocation($event->getStatementsSource(), $patternNode)),
+                    new RegexLinterIssue('Tip: '.$message, new CodeLocation($event->getStatementsSource(), $patternNode)),
                     $event,
                 );
             }

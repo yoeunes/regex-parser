@@ -30,9 +30,11 @@ final class RegexOptionsTest extends TestCase
     {
         $regex = Regex::create([
             'max_pattern_length' => 50_000,
+            'max_lookbehind_length' => 512,
             'cache' => new NullCache(),
             'redos_ignored_patterns' => ['/safe/'],
         ]);
         $this->assertSame(50_000, (new \ReflectionProperty($regex, 'maxPatternLength'))->getValue($regex));
+        $this->assertSame(512, (new \ReflectionProperty($regex, 'maxLookbehindLength'))->getValue($regex));
     }
 }

@@ -55,7 +55,7 @@ final class ValidatorEdgeCaseTest extends TestCase
     public function test_invalid_relative_backref(): void
     {
         $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('exceeds total group count');
+        $this->expectExceptionMessage('relative reference');
         $this->validate('/(a)\g{-5}/');
     }
 
@@ -66,11 +66,10 @@ final class ValidatorEdgeCaseTest extends TestCase
         $this->validate('/(a)\k<foo>/');
     }
 
-    #[DoesNotPerformAssertions]
     public function test_variable_quantifier_in_lookbehind(): void
     {
-        // PCRE2 (PHP 7.3+) supports variable-length lookbehinds
-        // This should NOT throw an exception
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('Lookbehind is unbounded');
         $this->validate('/(?<=a*)/');
     }
 

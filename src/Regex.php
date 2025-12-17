@@ -26,12 +26,14 @@ use RegexParser\ReDoS\ReDoSSeverity;
 final readonly class Regex
 {
     public const DEFAULT_MAX_PATTERN_LENGTH = 100_000;
+    public const DEFAULT_MAX_LOOKBEHIND_LENGTH = 255;
 
     /**
      * @param array<string> $redosIgnoredPatterns
      */
     private function __construct(
         private int $maxPatternLength,
+        private int $maxLookbehindLength,
         private CacheInterface $cache,
         private array $redosIgnoredPatterns,
     ) {}
@@ -45,7 +47,12 @@ final readonly class Regex
 
         $redosIgnoredPatterns = $parsedOptions->redosIgnoredPatterns;
 
-        return new self($parsedOptions->maxPatternLength, $parsedOptions->cache, $redosIgnoredPatterns);
+        return new self(
+            $parsedOptions->maxPatternLength,
+            $parsedOptions->maxLookbehindLength,
+            $parsedOptions->cache,
+            $redosIgnoredPatterns,
+        );
     }
 
     public function parse(string $regex): RegexNode
@@ -76,20 +83,72 @@ final readonly class Regex
     public function validate(string $regex): ValidationResult
     {
         try {
+            $pattern = null;
+            try {
+                [$pattern] = $this->extractPatternAndFlags($regex);
+            } catch (ParserException) {
+            }
+
             $ast = $this->parse($regex);
-            $ast->accept(new NodeVisitor\ValidatorNodeVisitor());
+            $ast->accept(new NodeVisitor\ValidatorNodeVisitor($this->maxLookbehindLength, $pattern));
             $score = $ast->accept(new NodeVisitor\ComplexityScoreNodeVisitor());
+
+            $this->validatePcreRuntime($regex, $pattern);
 
             return new ValidationResult(true, null, $score);
         } catch (LexerException|ParserException $e) {
             $message = $e->getMessage();
             $snippet = $e->getVisualSnippet();
+            $hint = null;
+            $code = null;
+            $category = ValidationErrorCategory::SYNTAX;
+
+            if ($e instanceof Exception\SemanticErrorException) {
+                $category = ValidationErrorCategory::SEMANTIC;
+                $hint = $e->getHint();
+                $code = $e->getErrorCode();
+            }
+
+            if ($e instanceof Exception\PcreRuntimeException) {
+                $category = ValidationErrorCategory::PCRE_RUNTIME;
+                $code = $e->getErrorCode();
+            }
 
             if ('' !== $snippet) {
                 $message .= "\n".$snippet;
             }
 
-            return new ValidationResult(false, $message);
+            return new ValidationResult(
+                false,
+                $message,
+                0,
+                $category,
+                $e->getPosition(),
+                '' !== $snippet ? $snippet : null,
+                $hint,
+                $code,
+            );
+        }
+    }
+
+    private function validatePcreRuntime(string $regex, ?string $pattern): void
+    {
+        $errorMessage = null;
+        $handler = static function (int $severity, string $message) use (&$errorMessage): bool {
+            $errorMessage = $message;
+
+            return true;
+        };
+
+        set_error_handler($handler);
+        $result = @preg_match($regex, '');
+        restore_error_handler();
+
+        if (false === $result) {
+            $message = $errorMessage ?? preg_last_error_msg();
+            $message = '' !== $message ? $message : 'PCRE runtime error.';
+
+            throw new Exception\PcreRuntimeException($message, 'regex.pcre.runtime', null, $pattern);
         }
     }
 
@@ -126,14 +185,39 @@ final readonly class Regex
         return $this->parse($regex)->accept(new NodeVisitor\LengthRangeNodeVisitor());
     }
 
-    public function extractLiterals(string $regex): LiteralSet
+    public function extractLiterals(string $regex): LiteralExtractionResult
     {
-        return $this->parse($regex)->accept(new NodeVisitor\LiteralExtractorNodeVisitor());
+        $literalSet = $this->parse($regex)->accept(new NodeVisitor\LiteralExtractorNodeVisitor());
+        $literals = array_values(array_unique(array_merge($literalSet->prefixes, $literalSet->suffixes)));
+        $patterns = [];
+
+        foreach ($literalSet->prefixes as $prefix) {
+            if ('' !== $prefix) {
+                $patterns[] = '^'.preg_quote($prefix, '/');
+            }
+        }
+
+        foreach ($literalSet->suffixes as $suffix) {
+            if ('' !== $suffix) {
+                $patterns[] = preg_quote($suffix, '/').'$';
+            }
+        }
+
+        $patterns = array_values(array_unique($patterns));
+
+        $confidence = $literalSet->complete && !$literalSet->isVoid()
+            ? 'high'
+            : (!$literalSet->isVoid() ? 'medium' : 'low');
+
+        return new LiteralExtractionResult($literals, $patterns, $confidence, $literalSet);
     }
 
-    public function optimize(string $regex): string
+    public function optimize(string $regex): OptimizationResult
     {
-        return $this->transformAndCompile($regex, new NodeVisitor\OptimizerNodeVisitor());
+        $optimized = $this->transformAndCompile($regex, new NodeVisitor\OptimizerNodeVisitor());
+        $changes = $optimized === $regex ? [] : ['Optimized pattern.'];
+
+        return new OptimizationResult($regex, $optimized, $changes);
     }
 
     public function modernize(string $regex): string
@@ -149,14 +233,22 @@ final readonly class Regex
     /**
      * @return array{matching: array<string>, non_matching: array<string>}
      */
-    public function generateTestCases(string $regex)
+    public function generateTestCases(string $regex): TestCaseGenerationResult
     {
-        return $this->parse($regex)->accept(new NodeVisitor\TestCaseGeneratorNodeVisitor());
+        $cases = $this->parse($regex)->accept(new NodeVisitor\TestCaseGeneratorNodeVisitor());
+
+        return new TestCaseGenerationResult(
+            $cases['matching'],
+            $cases['non_matching'],
+            ['Generated samples are heuristic; validate with real inputs.'],
+        );
     }
 
-    public function visualize(string $regex): string
+    public function visualize(string $regex): VisualizationResult
     {
-        return $this->parse($regex)->accept(new NodeVisitor\MermaidNodeVisitor());
+        $mermaid = $this->parse($regex)->accept(new NodeVisitor\MermaidNodeVisitor());
+
+        return new VisualizationResult($mermaid);
     }
 
     public function dump(string $regex): string

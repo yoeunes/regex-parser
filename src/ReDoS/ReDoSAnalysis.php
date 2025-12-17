@@ -22,14 +22,29 @@ final readonly class ReDoSAnalysis
 {
     /**
      * @param array<string> $recommendations
+     * @param array<ReDoSFinding> $findings
      */
+    public ?string $vulnerableSubpattern;
+
     public function __construct(
         public ReDoSSeverity $severity,
         public int $score,
         public ?string $vulnerablePart = null,
         public array $recommendations = [],
         public ?string $error = null,
-    ) {}
+        ?string $vulnerableSubpattern = null,
+        public ?string $trigger = null,
+        public ?ReDoSConfidence $confidence = null,
+        public ?string $falsePositiveRisk = null,
+        public array $findings = [],
+    ) {
+        $this->vulnerableSubpattern = $vulnerableSubpattern ?? $vulnerablePart;
+    }
+
+    public function getVulnerableSubpattern(): ?string
+    {
+        return $this->vulnerableSubpattern ?? $this->vulnerablePart;
+    }
 
     public function isSafe(): bool
     {

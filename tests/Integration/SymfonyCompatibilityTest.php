@@ -48,10 +48,7 @@ final class SymfonyCompatibilityTest extends TestCase
         // Negative lookbehind with variable length
         $result = $this->regexService->validate('/(?<!a+)b/');
 
-        $this->assertTrue(
-            $result->isValid,
-            'Variable-length negative lookbehind (?<!a+) should be valid in PCRE2',
-        );
+        $this->assertFalse($result->isValid, 'Unbounded lookbehind should be rejected.');
     }
 
     public function test_alternation_with_different_lengths_in_lookbehind_is_valid(): void
@@ -70,10 +67,7 @@ final class SymfonyCompatibilityTest extends TestCase
         // Star quantifier (zero or more) in lookbehind
         $result = $this->regexService->validate('/(?<=a*)b/');
 
-        $this->assertTrue(
-            $result->isValid,
-            'Star quantifier in lookbehind (?<=a*) should be valid in PCRE2',
-        );
+        $this->assertFalse($result->isValid, 'Unbounded lookbehind should be rejected.');
     }
 
     public function test_plus_quantifier_in_lookbehind_is_valid(): void
@@ -81,10 +75,7 @@ final class SymfonyCompatibilityTest extends TestCase
         // Plus quantifier (one or more) in lookbehind
         $result = $this->regexService->validate('/(?<=a+)b/');
 
-        $this->assertTrue(
-            $result->isValid,
-            'Plus quantifier in lookbehind (?<=a+) should be valid in PCRE2',
-        );
+        $this->assertFalse($result->isValid, 'Unbounded lookbehind should be rejected.');
     }
 
     public function test_optional_quantifier_in_lookbehind_is_valid(): void

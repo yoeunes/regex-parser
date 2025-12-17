@@ -13,9 +13,12 @@ declare(strict_types=1);
 
 namespace RegexParser\NodeVisitor;
 
-use RegexParser\Exception\ParserException;
+use RegexParser\Exception\SemanticErrorException;
+use RegexParser\GroupNumbering;
+use RegexParser\GroupNumberingCollector;
 use RegexParser\Node;
 use RegexParser\Node\GroupType;
+use RegexParser\Regex;
 
 /**
  * High-performance validator for regex Abstract Syntax Trees with intelligent caching and optimization.
@@ -41,6 +44,9 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         'CR' => true, 'LF' => true, 'CRLF' => true,
         'BSR_ANYCRLF' => true, 'BSR_UNICODE' => true,
         'NO_AUTO_POSSESS' => true,
+        'LIMIT_MATCH' => true, 'LIMIT_RECURSION' => true,
+        'LIMIT_DEPTH' => true, 'LIMIT_HEAP' => true,
+        'LIMIT_LOOKBEHIND' => true,
         'script_run' => true, 'atomic_script_run' => true,
     ];
 
@@ -56,18 +62,22 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
 
     private bool $inLookbehind = false;
 
-    private int $groupCount = 0;
+    private GroupNumbering $groupNumbering;
 
     /**
-     * @var array<string, true>
+     * @var list<int>
      */
-    private array $namedGroups = [];
+    private array $captureSequence = [];
+
+    private int $captureIndex = 0;
+
+    private int $lookbehindLimit = 0;
 
     private ?Node\NodeInterface $previousNode = null;
 
     private ?Node\NodeInterface $nextNode = null;
 
-    private bool $J_modifier = false;
+    private ?string $pattern = null;
 
     // Intelligent caching for expensive validations
     /**
@@ -80,16 +90,22 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
      */
     private static array $quantifierBoundsCache = [];
 
-    public function __construct() {}
+    public function __construct(
+        private readonly int $maxLookbehindLength = Regex::DEFAULT_MAX_LOOKBEHIND_LENGTH,
+        ?string $pattern = null,
+    ) {
+        $this->pattern = $pattern;
+    }
 
     #[\Override]
     public function visitRegex(Node\RegexNode $node): void
     {
         // Fast state reset with minimal allocations
         $this->inLookbehind = false;
-        $this->groupCount = 0;
-        $this->namedGroups = [];
-        $this->J_modifier = str_contains($node->flags, 'J');
+        $this->groupNumbering = (new GroupNumberingCollector())->collect($node);
+        $this->captureSequence = $this->groupNumbering->captureSequence;
+        $this->captureIndex = 0;
+        $this->lookbehindLimit = $this->extractLookbehindLimit($node->pattern) ?? $this->maxLookbehindLength;
         $this->previousNode = null;
         $this->nextNode = null;
 
@@ -137,6 +153,8 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitGroup(Node\GroupNode $node): void
     {
+        $this->ensureGroupNumberingInitialized();
+
         $wasInLookbehind = $this->inLookbehind;
         $previous = $this->previousNode;
         $next = $this->nextNode;
@@ -147,25 +165,11 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
             true,
         )) {
             $this->inLookbehind = true;
+            $this->validateLookbehindLength($node);
         }
 
-        // Track defined capturing groups
-        if (GroupType::T_GROUP_CAPTURING === $node->type) {
-            $this->groupCount++;
-        } elseif (GroupType::T_GROUP_NAMED === $node->type) {
-            $this->groupCount++;
-            if (null !== $node->name) {
-                // Only throw error if (?J) is NOT active
-                if (isset($this->namedGroups[$node->name]) && !$this->J_modifier) {
-                    throw new ParserException(\sprintf('Duplicate group name "%s" at position %d.', $node->name, $node->startPosition));
-                }
-                $this->namedGroups[$node->name] = true;
-            }
-        } elseif (GroupType::T_GROUP_INLINE_FLAGS === $node->type && null !== $node->flags) {
-            // Check for inline (?J) flag
-            if (str_contains($node->flags, 'J')) {
-                $this->J_modifier = true;
-            }
+        if (GroupType::T_GROUP_CAPTURING === $node->type || GroupType::T_GROUP_NAMED === $node->type) {
+            $this->captureIndex++;
         }
 
         $this->previousNode = null;
@@ -185,11 +189,11 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
 
         // Early validation with clear error messages
         if (-1 !== $max && $min > $max) {
-            throw new ParserException(\sprintf(
-                'Invalid quantifier range "%s": min > max at position %d.',
-                $node->quantifier,
+            $this->raiseSemanticError(
+                \sprintf('Invalid quantifier range "%s": min > max.', $node->quantifier),
                 $node->startPosition,
-            ));
+                'regex.quantifier.invalid_range',
+            );
         }
 
         $node->node->accept($this);
@@ -270,11 +274,11 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     {
         // Fast array lookup with early return
         if (!isset(self::VALID_ASSERTIONS[$node->value])) {
-            throw new ParserException(\sprintf(
-                'Invalid assertion: \%s at position %d.',
-                $node->value,
+            $this->raiseSemanticError(
+                \sprintf('Invalid assertion: \\%s.', $node->value),
                 $node->startPosition,
-            ));
+                'regex.assertion.invalid',
+            );
         }
     }
 
@@ -292,7 +296,11 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     public function visitKeep(Node\KeepNode $node): void
     {
         if ($this->inLookbehind) {
-            throw new ParserException(\sprintf('\K (keep) is not allowed in lookbehinds at position %d.', $node->startPosition));
+            $this->raiseSemanticError(
+                '\K (keep) is not allowed in lookbehinds.',
+                $node->startPosition,
+                'regex.lookbehind.keep_not_allowed',
+            );
         }
     }
 
@@ -322,32 +330,42 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         // 1. Validation: Ensure start and end nodes represent a single character.
         // We allow LiteralNode, but also CharLiteralNode, UnicodeNode, etc.
         if (!$this->isSingleCharNode($node->start) || !$this->isSingleCharNode($node->end)) {
-            throw new ParserException(\sprintf(
-                'Invalid range at position %d: ranges must be between literal characters or single escape sequences. Found %s and %s.',
+            $this->raiseSemanticError(
+                \sprintf(
+                    'Invalid range: ranges must be between literal characters or single escape sequences. Found %s and %s.',
+                    $node->start::class,
+                    $node->end::class,
+                ),
                 $node->startPosition,
-                $node->start::class,
-                $node->end::class,
-            ));
+                'regex.range.invalid_bounds',
+            );
         }
 
         // 2. Validation: Ensure characters are single-byte or single codepoint (for LiteralNodes).
         if ($node->start instanceof Node\LiteralNode && \strlen($node->start->value) > 1) {
-            throw new ParserException(\sprintf('Invalid range at position %d: start char must be a single character.', $node->startPosition));
+            $this->raiseSemanticError(
+                'Invalid range: start char must be a single character.',
+                $node->startPosition,
+                'regex.range.invalid_start',
+            );
         }
         if ($node->end instanceof Node\LiteralNode && \strlen($node->end->value) > 1) {
-            throw new ParserException(\sprintf('Invalid range at position %d: end char must be a single character.', $node->startPosition));
+            $this->raiseSemanticError(
+                'Invalid range: end char must be a single character.',
+                $node->startPosition,
+                'regex.range.invalid_end',
+            );
         }
 
         // 3. Validation: ASCII/Unicode order check.
         // Note: We only strictly compare two LiteralNodes here to avoid complex cross-type decoding logic.
         if ($node->start instanceof Node\LiteralNode && $node->end instanceof Node\LiteralNode) {
             if (mb_ord($node->start->value) > mb_ord($node->end->value)) {
-                throw new ParserException(\sprintf(
-                    'Invalid range "%s-%s" at position %d: start character comes after end character.',
-                    $node->start->value,
-                    $node->end->value,
+                $this->raiseSemanticError(
+                    \sprintf('Invalid range "%s-%s": start character comes after end character.', $node->start->value, $node->end->value),
                     $node->startPosition,
-                ));
+                    'regex.range.reversed',
+                );
             }
         }
     }
@@ -355,20 +373,27 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitBackref(Node\BackrefNode $node): void
     {
+        $this->ensureGroupNumberingInitialized();
+
         $ref = $node->ref;
 
         // Fast path for numeric backreferences
         if (preg_match('/^\\\\(\d++)$/', $ref, $matches)) {
             $num = (int) $matches[1];
             if (0 === $num) {
-                throw new ParserException('Backreference \0 is not valid');
-            }
-            if ($num > $this->groupCount) {
-                throw new ParserException(\sprintf(
-                    'Backreference to non-existent group: \%d at position %d.',
-                    $num,
+                $this->raiseSemanticError(
+                    'Backreference \\0 is not valid.',
                     $node->startPosition,
-                ));
+                    'regex.backref.zero',
+                    'Use \\g<0> for recursion to the whole pattern, or remove the reference.',
+                );
+            }
+            if ($num > $this->groupNumbering->maxGroupNumber) {
+                $this->raiseSemanticError(
+                    \sprintf('Backreference to non-existent group: \\%d.', $num),
+                    $node->startPosition,
+                    'regex.backref.missing_group',
+                );
             }
 
             return;
@@ -377,12 +402,12 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         // Optimized named backreference validation
         if (preg_match('/^\\\\k[<{\'](?<name>\w++)[>}\']$/', $ref, $matches)) {
             $name = $matches['name'];
-            if (!isset($this->namedGroups[$name])) {
-                throw new ParserException(\sprintf(
-                    'Backreference to non-existent named group: "%s" at position %d.',
-                    $name,
+            if (!$this->groupNumbering->hasNamedGroup($name)) {
+                $this->raiseSemanticError(
+                    \sprintf('Backreference to non-existent named group: "%s".', $name),
                     $node->startPosition,
-                ));
+                    'regex.backref.missing_named_group',
+                );
             }
 
             return;
@@ -390,12 +415,12 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
 
         // Bare name validation (conditionals)
         if (preg_match('/^\w++$/', $ref)) {
-            if (!isset($this->namedGroups[$ref])) {
-                throw new ParserException(\sprintf(
-                    'Backreference to non-existent named group: "%s" at position %d.',
-                    $ref,
+            if (!$this->groupNumbering->hasNamedGroup($ref)) {
+                $this->raiseSemanticError(
+                    \sprintf('Backreference to non-existent named group: "%s".', $ref),
                     $node->startPosition,
-                ));
+                    'regex.backref.missing_named_group',
+                );
             }
 
             return;
@@ -405,34 +430,38 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         if (preg_match('/^\\\\g\{?(?<num>[0-9+-]++)\}?$/', $ref, $matches)) {
             $numStr = $matches['num'];
             if ('0' === $numStr || '+0' === $numStr || '-0' === $numStr) {
-                return; // \g{0} is valid
+                $this->raiseSemanticError(
+                    'Backreference \\g{0} is not valid.',
+                    $node->startPosition,
+                    'regex.backref.zero',
+                    'Use \\g<0> for recursion to the whole pattern.',
+                );
+            }
+
+            if (str_starts_with($numStr, '+') || str_starts_with($numStr, '-')) {
+                $offset = (int) $numStr;
+                $this->assertRelativeReferenceExists($offset, $node->startPosition, 'regex.backref.relative', 'Backreference');
+
+                return;
             }
 
             $num = (int) $numStr;
-            if ($num > 0 && $num > $this->groupCount) {
-                throw new ParserException(\sprintf(
-                    'Backreference to non-existent group: \g{%d} at position %d.',
-                    $num,
+            if ($num > $this->groupNumbering->maxGroupNumber) {
+                $this->raiseSemanticError(
+                    \sprintf('Backreference to non-existent group: \\g{%d}.', $num),
                     $node->startPosition,
-                ));
-            }
-            if ($num < 0 && abs($num) > $this->groupCount) {
-                throw new ParserException(\sprintf(
-                    'Relative backreference \g{%d} at position %d exceeds total group count (%d).',
-                    $num,
-                    $node->startPosition,
-                    $this->groupCount,
-                ));
+                    'regex.backref.missing_group',
+                );
             }
 
             return;
         }
 
-        throw new ParserException(\sprintf(
-            'Invalid backreference syntax: "%s" at position %d.',
-            $ref,
+        $this->raiseSemanticError(
+            \sprintf('Invalid backreference syntax: "%s".', $ref),
             $node->startPosition,
-        ));
+            'regex.backref.invalid_syntax',
+        );
     }
 
     #[\Override]
@@ -448,7 +477,11 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         }
 
         if ($code > 0x10FFFF) {
-            throw new ParserException(\sprintf('Invalid Unicode codepoint "%s" (out of range) at position %d.', $node->code, $node->startPosition));
+            $this->raiseSemanticError(
+                \sprintf('Invalid Unicode codepoint "%s" (out of range).', $node->code),
+                $node->startPosition,
+                'regex.unicode.out_of_range',
+            );
         }
     }
 
@@ -477,11 +510,11 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         }
 
         if (false === self::$unicodePropCache[$key]) {
-            throw new ParserException(\sprintf(
-                'Invalid or unsupported Unicode property: \%s at position %d.',
-                $key,
+            $this->raiseSemanticError(
+                \sprintf('Invalid or unsupported Unicode property: \\%s.', $key),
                 $node->startPosition,
-            ));
+                'regex.unicode.property_invalid',
+            );
         }
     }
 
@@ -497,18 +530,19 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
 
         // Fast validation with clear error messages
         if (!isset(self::VALID_POSIX_CLASSES[$class])) {
-            throw new ParserException(\sprintf(
-                'Invalid POSIX class: "%s" at position %d.',
-                $node->class,
+            $this->raiseSemanticError(
+                \sprintf('Invalid POSIX class: "%s".', $node->class),
                 $node->startPosition,
-            ));
+                'regex.posix.invalid',
+            );
         }
 
         if ($isNegated && 'word' === $class) {
-            throw new ParserException(\sprintf(
-                'Negation of POSIX class "word" is not supported at position %d.',
+            $this->raiseSemanticError(
+                'Negation of POSIX class "word" is not supported.',
                 $node->startPosition,
-            ));
+                'regex.posix.word_negation',
+            );
         }
     }
 
@@ -529,15 +563,21 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitConditional(Node\ConditionalNode $node): void
     {
+        $this->ensureGroupNumberingInitialized();
+
         // Check if the condition is a valid *type* of condition first
         // (e.g., a backreference, a subroutine call, or a lookaround)
         if ($node->condition instanceof Node\BackrefNode) {
             // This is (?(1)...) or (?(<name>)...) or (?(name)...)
             // For bare names, check if the group exists before calling accept
             $ref = $node->condition->ref;
-            if (preg_match('/^\w++$/', $ref) && !isset($this->namedGroups[$ref])) {
+            if (preg_match('/^\w++$/', $ref) && !$this->groupNumbering->hasNamedGroup($ref)) {
                 // Bare name that doesn't exist - this is an invalid conditional
-                throw new ParserException(\sprintf('Invalid conditional construct at position %d. Condition must be a group reference, lookaround, or (DEFINE).', $node->condition->getStartPosition()));
+                $this->raiseSemanticError(
+                    'Invalid conditional construct. Condition must be a group reference, lookaround, or (DEFINE).',
+                    $node->condition->getStartPosition(),
+                    'regex.conditional.invalid',
+                );
             }
             // Now validate the backreference itself
             $node->condition->accept($this);
@@ -547,14 +587,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
                 // Always valid recursion condition to entire pattern.
             } elseif (preg_match('/^R-?\d++$/', $ref)) {
                 $num = (int) substr($ref, 1);
-                if ($this->groupCount > 0) {
-                    if ($num > 0 && $num > $this->groupCount) {
-                        throw new ParserException(\sprintf('Recursion condition to non-existent group: %d at position %d.', $num, $node->condition->startPosition));
-                    }
-                    if ($num < 0 && abs($num) > $this->groupCount) {
-                        throw new ParserException(\sprintf('Relative recursion condition (%d) at position %d exceeds total group count (%d).', $num, $node->condition->startPosition, $this->groupCount));
-                    }
-                }
+                $this->assertSubroutineReferenceExists($num, $node->condition->startPosition, 'regex.subroutine.recursion', 'Recursion condition');
             } else {
                 $node->condition->accept($this);
             }
@@ -571,7 +604,11 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
             $node->condition->accept($this);
         } else {
             // Any other atom is not a valid condition
-            throw new ParserException(\sprintf('Invalid conditional construct at position %d. Condition must be a group reference, lookaround, or (DEFINE).', $node->condition->getStartPosition()));
+            $this->raiseSemanticError(
+                'Invalid conditional construct. Condition must be a group reference, lookaround, or (DEFINE).',
+                $node->condition->getStartPosition(),
+                'regex.conditional.invalid',
+            );
         }
 
         $node->yes->accept($this);
@@ -581,6 +618,8 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitSubroutine(Node\SubroutineNode $node): void
     {
+        $this->ensureGroupNumberingInitialized();
+
         $ref = $node->reference;
 
         if ('R' === $ref || '0' === $ref) {
@@ -595,18 +634,14 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
 
             if (ctype_digit($numPart)) {
                 $num = (int) $numPart;
-                if ($num > $this->groupCount) {
-                    throw new ParserException(\sprintf('Subroutine call to non-existent group: %d at position %d.', $num, $node->startPosition));
-                }
+                $this->assertAbsoluteReferenceExists($num, $node->startPosition, 'regex.subroutine.recursion', 'Recursion condition');
 
                 return;
             }
 
             if (str_starts_with($numPart, '-') && ctype_digit(substr($numPart, 1))) {
                 $num = (int) $numPart;
-                if (abs($num) > $this->groupCount) {
-                    throw new ParserException(\sprintf('Relative subroutine call (%d) at position %d exceeds total group count (%d).', $num, $node->startPosition, $this->groupCount));
-                }
+                $this->assertRelativeReferenceExists($num, $node->startPosition, 'regex.subroutine.recursion', 'Recursion condition');
 
                 return;
             }
@@ -618,33 +653,39 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
             if (0 === $num) {
                 return; // (?0) is an alias for (?R)
             }
-            if ($num > 0 && $num > $this->groupCount) {
-                throw new ParserException(\sprintf('Subroutine call to non-existent group: %d at position %d.', $num, $node->startPosition));
-            }
-            if ($num < 0 && abs($num) > $this->groupCount) {
-                throw new ParserException(\sprintf('Relative subroutine call (%d) at position %d exceeds total group count (%d).', $num, $node->startPosition, $this->groupCount));
+            if ($num > 0) {
+                $this->assertAbsoluteReferenceExists($num, $node->startPosition, 'regex.subroutine.missing_group', 'Subroutine call');
+            } else {
+                $this->assertRelativeReferenceExists($num, $node->startPosition, 'regex.subroutine.relative_missing', 'Subroutine call');
             }
 
             return;
         }
 
         // Named reference: (?&name), (?P>name), \g<name>
-        if (!isset($this->namedGroups[$ref])) {
-            throw new ParserException(\sprintf('Subroutine call to non-existent named group: "%s" at position %d.', $ref, $node->startPosition));
+        if (!$this->groupNumbering->hasNamedGroup($ref)) {
+            $this->raiseSemanticError(
+                \sprintf('Subroutine call to non-existent named group: "%s".', $ref),
+                $node->startPosition,
+                'regex.subroutine.missing_named_group',
+            );
         }
     }
 
     #[\Override]
     public function visitPcreVerb(Node\PcreVerbNode $node): void
     {
-        $verbName = explode(':', $node->verb, 2)[0];
+        $verbName = preg_split('/[:=]/', $node->verb, 2)[0] ?? $node->verb;
+        if ('LIMIT_LOOKBEHIND' === $verbName && preg_match('/^LIMIT_LOOKBEHIND=(\d++)$/', $node->verb, $matches)) {
+            $this->lookbehindLimit = (int) $matches[1];
+        }
 
         if (!isset(self::VALID_PCRE_VERBS[$verbName])) {
-            throw new ParserException(\sprintf(
-                'Invalid or unsupported PCRE verb: "%s" at position %d.',
-                $verbName,
+            $this->raiseSemanticError(
+                \sprintf('Invalid or unsupported PCRE verb: "%s".', $verbName),
                 $node->startPosition,
-            ));
+                'regex.verb.invalid',
+            );
         }
     }
 
@@ -667,16 +708,28 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
 
         if (\is_int($node->identifier)) {
             if ($node->identifier < 0 || $node->identifier > 255) {
-                throw new ParserException(\sprintf('Callout identifier must be between 0 and 255, got %d at position %d.', $node->identifier, $position));
+                $this->raiseSemanticError(
+                    \sprintf('Callout identifier must be between 0 and 255, got %d.', $node->identifier),
+                    $position,
+                    'regex.callout.out_of_range',
+                );
             }
         } elseif (\is_string($node->identifier)) {
             // PCRE2 allows any string as an argument, but it's good to ensure it's not empty.
             if ('' === $node->identifier) {
-                throw new ParserException(\sprintf('Callout string identifier cannot be empty at position %d.', $position));
+                $this->raiseSemanticError(
+                    'Callout string identifier cannot be empty.',
+                    $position,
+                    'regex.callout.empty_identifier',
+                );
             }
         } else {
             // This case should ideally be caught by the Lexer/Parser, but as a safeguard.
-            throw new ParserException(\sprintf('Invalid callout identifier type at position %d.', $position));
+            $this->raiseSemanticError(
+                'Invalid callout identifier type.',
+                $position,
+                'regex.callout.invalid_type',
+            );
         }
     }
 
@@ -693,7 +746,11 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         }
 
         if ($codePoint > 0x10FFFF) {
-            throw new ParserException(\sprintf('Invalid Unicode codepoint "%s" (out of range) at position %d.', $node->originalRepresentation, $node->startPosition));
+            $this->raiseSemanticError(
+                \sprintf('Invalid Unicode codepoint "%s" (out of range).', $node->originalRepresentation),
+                $node->startPosition,
+                'regex.unicode.out_of_range',
+            );
         }
     }
 
@@ -701,7 +758,11 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     {
         // PCRE limits \o{} to single-byte values (0-255)
         if ($node->codePoint > 0xFF) {
-            throw new ParserException(\sprintf('Invalid octal codepoint "%s" at position %d.', $node->originalRepresentation, $node->startPosition));
+            $this->raiseSemanticError(
+                \sprintf('Invalid octal codepoint "%s".', $node->originalRepresentation),
+                $node->startPosition,
+                'regex.octal.out_of_range',
+            );
         }
     }
 
@@ -709,7 +770,11 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     {
         // Legacy octal is limited to 0-255 in practice (including \0 for null byte)
         if ($node->codePoint > 0xFF) {
-            throw new ParserException(\sprintf('Invalid legacy octal codepoint "%s" (out of range) at position %d.', $node->originalRepresentation, $node->startPosition));
+            $this->raiseSemanticError(
+                \sprintf('Invalid legacy octal codepoint "%s" (out of range).', $node->originalRepresentation),
+                $node->startPosition,
+                'regex.octal.out_of_range',
+            );
         }
     }
 
@@ -875,5 +940,219 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         }
 
         return $min * $childLength;
+    }
+
+    private function extractLookbehindLimit(Node\NodeInterface $node): ?int
+    {
+        if ($node instanceof Node\PcreVerbNode && preg_match('/^LIMIT_LOOKBEHIND=(\d++)$/', $node->verb, $matches)) {
+            return (int) $matches[1];
+        }
+
+        if ($node instanceof Node\GroupNode) {
+            return $this->extractLookbehindLimit($node->child);
+        }
+
+        if ($node instanceof Node\AlternationNode) {
+            foreach ($node->alternatives as $alt) {
+                $limit = $this->extractLookbehindLimit($alt);
+                if (null !== $limit) {
+                    return $limit;
+                }
+            }
+        }
+
+        if ($node instanceof Node\SequenceNode) {
+            foreach ($node->children as $child) {
+                $limit = $this->extractLookbehindLimit($child);
+                if (null !== $limit) {
+                    return $limit;
+                }
+            }
+        }
+
+        if ($node instanceof Node\QuantifierNode) {
+            return $this->extractLookbehindLimit($node->node);
+        }
+
+        if ($node instanceof Node\ConditionalNode) {
+            return $this->extractLookbehindLimit($node->condition)
+                ?? $this->extractLookbehindLimit($node->yes)
+                ?? $this->extractLookbehindLimit($node->no);
+        }
+
+        if ($node instanceof Node\DefineNode) {
+            return $this->extractLookbehindLimit($node->content);
+        }
+
+        if ($node instanceof Node\CharClassNode) {
+            return $this->extractLookbehindLimit($node->expression);
+        }
+
+        if ($node instanceof Node\ClassOperationNode) {
+            return $this->extractLookbehindLimit($node->left) ?? $this->extractLookbehindLimit($node->right);
+        }
+
+        if ($node instanceof Node\RangeNode) {
+            return $this->extractLookbehindLimit($node->start) ?? $this->extractLookbehindLimit($node->end);
+        }
+
+        return null;
+    }
+
+    private function validateLookbehindLength(Node\GroupNode $node): void
+    {
+        $lengthRange = $node->child->accept(new LengthRangeNodeVisitor());
+        [$min, $max] = $lengthRange;
+
+        if (null === $max) {
+            $culprit = $this->findUnboundedLookbehindNode($node->child);
+            $position = $culprit?->getStartPosition() ?? $node->startPosition;
+            $detail = $culprit instanceof Node\QuantifierNode ? $culprit->quantifier : null;
+            $hint = null !== $detail
+                ? \sprintf('Use a bounded quantifier instead of "%s".', $detail)
+                : 'Ensure the lookbehind has a bounded maximum length.';
+
+            $this->raiseSemanticError(
+                'Lookbehind is unbounded. PCRE requires a bounded maximum length.',
+                $position,
+                'regex.lookbehind.unbounded',
+                $hint,
+            );
+        }
+
+        if ($max > $this->lookbehindLimit) {
+            $this->raiseSemanticError(
+                \sprintf('Lookbehind exceeds the maximum length of %d (max=%d).', $this->lookbehindLimit, $max),
+                $node->startPosition,
+                'regex.lookbehind.too_long',
+                \sprintf('Reduce lookbehind length or use (*LIMIT_LOOKBEHIND=%d).', $max),
+            );
+        }
+    }
+
+    private function findUnboundedLookbehindNode(Node\NodeInterface $node): ?Node\NodeInterface
+    {
+        if ($node instanceof Node\BackrefNode || $node instanceof Node\SubroutineNode) {
+            return $node;
+        }
+
+        if ($node instanceof Node\QuantifierNode) {
+            [, $max] = $this->getQuantifierBounds($node->quantifier);
+            if (-1 === $max) {
+                return $node;
+            }
+
+            return $this->findUnboundedLookbehindNode($node->node);
+        }
+
+        if ($node instanceof Node\GroupNode) {
+            return $this->findUnboundedLookbehindNode($node->child);
+        }
+
+        if ($node instanceof Node\AlternationNode) {
+            foreach ($node->alternatives as $alt) {
+                $culprit = $this->findUnboundedLookbehindNode($alt);
+                if (null !== $culprit) {
+                    return $culprit;
+                }
+            }
+        }
+
+        if ($node instanceof Node\SequenceNode) {
+            foreach ($node->children as $child) {
+                $culprit = $this->findUnboundedLookbehindNode($child);
+                if (null !== $culprit) {
+                    return $culprit;
+                }
+            }
+        }
+
+        if ($node instanceof Node\ConditionalNode) {
+            return $this->findUnboundedLookbehindNode($node->condition)
+                ?? $this->findUnboundedLookbehindNode($node->yes)
+                ?? $this->findUnboundedLookbehindNode($node->no);
+        }
+
+        if ($node instanceof Node\DefineNode) {
+            return $this->findUnboundedLookbehindNode($node->content);
+        }
+
+        if ($node instanceof Node\CharClassNode) {
+            return $this->findUnboundedLookbehindNode($node->expression);
+        }
+
+        if ($node instanceof Node\ClassOperationNode) {
+            return $this->findUnboundedLookbehindNode($node->left) ?? $this->findUnboundedLookbehindNode($node->right);
+        }
+
+        if ($node instanceof Node\RangeNode) {
+            return $this->findUnboundedLookbehindNode($node->start) ?? $this->findUnboundedLookbehindNode($node->end);
+        }
+
+        return null;
+    }
+
+    private function assertAbsoluteReferenceExists(int $num, int $position, string $code, string $context): void
+    {
+        if ($num <= 0 || $num > $this->groupNumbering->maxGroupNumber) {
+            $this->raiseSemanticError(
+                \sprintf('%s to non-existent group: %d.', $context, $num),
+                $position,
+                $code,
+            );
+        }
+    }
+
+    private function assertRelativeReferenceExists(int $offset, int $position, string $code, string $context): void
+    {
+        if (0 === $offset) {
+            $this->raiseSemanticError(
+                \sprintf('%s relative reference cannot be zero.', $context),
+                $position,
+                $code,
+            );
+        }
+
+        $index = $offset > 0 ? $this->captureIndex + $offset - 1 : $this->captureIndex + $offset;
+        if ($index < 0 || $index >= \count($this->captureSequence)) {
+            $this->raiseSemanticError(
+                \sprintf('%s relative reference %d is outside the range of available capture groups.', $context, $offset),
+                $position,
+                $code,
+                'Check group numbering or remove the relative reference.',
+            );
+        }
+    }
+
+    private function assertSubroutineReferenceExists(int $num, int $position, string $code, string $context): void
+    {
+        if ($num > 0) {
+            $this->assertAbsoluteReferenceExists($num, $position, $code, $context);
+
+            return;
+        }
+
+        $this->assertRelativeReferenceExists($num, $position, $code, $context);
+    }
+
+    private function raiseSemanticError(string $message, int $position, string $code, ?string $hint = null): void
+    {
+        throw new SemanticErrorException(
+            $message,
+            $code,
+            $hint,
+            $position,
+            $this->pattern,
+        );
+    }
+
+    private function ensureGroupNumberingInitialized(): void
+    {
+        if (!isset($this->groupNumbering)) {
+            $this->groupNumbering = new GroupNumbering(0, [], []);
+            $this->captureSequence = [];
+            $this->captureIndex = 0;
+            $this->lookbehindLimit = $this->maxLookbehindLength;
+        }
     }
 }

@@ -37,7 +37,7 @@ final class FeaturesUpgradeTest extends TestCase
      */
     public function test_mermaid_visitor_generates_valid_syntax(): void
     {
-        $mermaidOutput = $this->regexService->visualize('/abc/');
+        $mermaidOutput = $this->regexService->visualize('/abc/')->mermaid;
 
         // Should start with "graph TD;"
         $this->assertStringStartsWith('graph TD;', $mermaidOutput);
@@ -54,7 +54,7 @@ final class FeaturesUpgradeTest extends TestCase
      */
     public function test_mermaid_visitor_simple_pattern(): void
     {
-        $mermaidOutput = $this->regexService->visualize('/test/');
+        $mermaidOutput = $this->regexService->visualize('/test/')->mermaid;
 
         $this->assertStringStartsWith('graph TD;', $mermaidOutput);
         $this->assertStringContainsString('Regex:', $mermaidOutput);
@@ -66,7 +66,7 @@ final class FeaturesUpgradeTest extends TestCase
      */
     public function test_mermaid_visitor_complex_pattern(): void
     {
-        $mermaidOutput = $this->regexService->visualize('/(abc)+/');
+        $mermaidOutput = $this->regexService->visualize('/(abc)+/')->mermaid;
 
         $this->assertStringStartsWith('graph TD;', $mermaidOutput);
         $this->assertStringContainsString('Group:', $mermaidOutput);
@@ -78,7 +78,7 @@ final class FeaturesUpgradeTest extends TestCase
      */
     public function test_regex_visualize_integration(): void
     {
-        $visualization = $this->regexService->visualize('/[a-z]+/');
+        $visualization = $this->regexService->visualize('/[a-z]+/')->mermaid;
 
         $this->assertIsString($visualization);
         $this->assertStringStartsWith('graph TD;', $visualization);
@@ -90,7 +90,7 @@ final class FeaturesUpgradeTest extends TestCase
      */
     public function test_regex_visualize_alternation(): void
     {
-        $visualization = $this->regexService->visualize('/(cat|dog|bird)/');
+        $visualization = $this->regexService->visualize('/(cat|dog|bird)/')->mermaid;
 
         $this->assertStringStartsWith('graph TD;', $visualization);
         $this->assertStringContainsString('Alternation', $visualization);
@@ -114,7 +114,7 @@ final class FeaturesUpgradeTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $visualization = $this->regexService->visualize($pattern);
+            $visualization = $this->regexService->visualize($pattern)->mermaid;
 
             $this->assertStringStartsWith('graph TD;', $visualization);
             $this->assertStringContainsString('-->', $visualization);

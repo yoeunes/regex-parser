@@ -15,9 +15,15 @@ namespace RegexParser\ReDoS;
 
 use RegexParser\NodeVisitor\ReDoSProfileNodeVisitor;
 use RegexParser\Regex;
+use RegexParser\ReDoS\ReDoSConfidence;
 
 final class ReDoSAnalyzer
 {
+    /**
+     * @var list<string>
+     */
+    private array $ignoredPatternsNormalized = [];
+
     /**
      * @param list<string> $ignoredPatterns
      */
@@ -30,6 +36,7 @@ final class ReDoSAnalyzer
         private readonly ReDoSSeverity $threshold = ReDoSSeverity::HIGH,
     ) {
         $this->ignoredPatterns = array_values(array_unique($this->ignoredPatterns));
+        $this->ignoredPatternsNormalized = $this->normalizeIgnoredPatterns($this->ignoredPatterns);
     }
 
     public function analyze(string $regex, ?ReDoSSeverity $threshold = null): ReDoSAnalysis
@@ -37,7 +44,18 @@ final class ReDoSAnalyzer
         $threshold ??= $this->threshold;
 
         if ($this->shouldIgnore($regex)) {
-            return new ReDoSAnalysis(ReDoSSeverity::SAFE, 0, null, []);
+            return new ReDoSAnalysis(
+                ReDoSSeverity::SAFE,
+                0,
+                null,
+                [],
+                null,
+                null,
+                null,
+                ReDoSConfidence::LOW,
+                null,
+                [],
+            );
         }
 
         try {
@@ -60,6 +78,11 @@ final class ReDoSAnalyzer
                 $result['vulnerablePattern'],
                 $result['recommendations'],
                 null,
+                $result['vulnerablePattern'],
+                $result['trigger'],
+                $result['confidence'],
+                $result['falsePositiveRisk'],
+                $result['findings'],
             );
         } catch (\Throwable $e) {
             return new ReDoSAnalysis(
@@ -68,6 +91,11 @@ final class ReDoSAnalyzer
                 null,
                 ['Analysis incomplete: '.$e->getMessage()],
                 $e::class.': '.$e->getMessage(),
+                null,
+                null,
+                ReDoSConfidence::LOW,
+                null,
+                [],
             );
         }
     }
@@ -80,31 +108,34 @@ final class ReDoSAnalyzer
 
         $normalized = $this->normalizePattern($regex);
 
-        return \in_array($normalized, $this->ignoredPatterns, true) || \in_array($regex, $this->ignoredPatterns, true);
+        return \in_array($normalized, $this->ignoredPatternsNormalized, true)
+            || \in_array($normalized, $this->ignoredPatterns, true)
+            || \in_array($regex, $this->ignoredPatterns, true);
     }
 
     private function normalizePattern(string $regex): string
     {
-        $pattern = $regex;
-        $length = \strlen($pattern);
+        try {
+            [$pattern] = ($this->regex ?? Regex::create())->extractPatternAndFlags($regex);
 
-        if ($length >= 2) {
-            $first = $pattern[0];
-            $last = $pattern[$length - 1];
+            return $pattern;
+        } catch (\Throwable) {
+            return $regex;
+        }
+    }
 
-            if ($first === $last && \in_array($first, ['/', '#', '~', '%'], true)) {
-                $pattern = substr($pattern, 1, -1);
-            }
+    /**
+     * @param list<string> $patterns
+     *
+     * @return list<string>
+     */
+    private function normalizeIgnoredPatterns(array $patterns): array
+    {
+        $normalized = [];
+        foreach ($patterns as $pattern) {
+            $normalized[] = $this->normalizePattern($pattern);
         }
 
-        if (str_starts_with($pattern, '^')) {
-            $pattern = substr($pattern, 1);
-        }
-
-        if (str_ends_with($pattern, '$')) {
-            $pattern = substr($pattern, 0, -1);
-        }
-
-        return $pattern;
+        return array_values(array_unique($normalized));
     }
 }

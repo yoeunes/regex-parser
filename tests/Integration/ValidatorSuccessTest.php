@@ -14,12 +14,12 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
-use RegexParser\Node\BackrefNode;
 use RegexParser\Node\CharLiteralNode;
 use RegexParser\Node\CharLiteralType;
 use RegexParser\Node\SubroutineNode;
 use RegexParser\Node\UnicodePropNode;
 use RegexParser\NodeVisitor\ValidatorNodeVisitor;
+use RegexParser\Regex;
 
 final class ValidatorSuccessTest extends TestCase
 {
@@ -34,20 +34,8 @@ final class ValidatorSuccessTest extends TestCase
     {
         $this->expectNotToPerformAssertions();
 
-        // Need to simulate group count context, but Validator tracks it internally via visitGroup.
-        // Since we are manually constructing nodes, we can't easily update the internal groupCount
-        // without visiting a GroupNode first.
-
-        // Strategy: Accept a GroupNode to increment counter, then accept Backref.
-        // However, we can test the "Named" backref logic if we mock the name registration or
-        // rely on the fact that numeric 0 is invalid logic etc.
-
-        // Let's rely on the fact that visitBackref returns early if valid.
-        // The easiest way is actually via Parser because it sets up the context.
-
-        // 1. Valid \g{0} (entire match)
-        $node = new BackrefNode('\g{0}', 0, 0);
-        $node->accept($this->validator);
+        $regex = Regex::create()->parse('/(a)\1/');
+        $regex->accept($this->validator);
     }
 
     public function test_valid_unicode_and_octal_pass(): void
