@@ -555,4 +555,29 @@ final class OptimizerNodeVisitorTest extends TestCase
         $resultLoose = $optimizedLoose->accept($compiler);
         $this->assertSame('/[0-:]/', $resultLoose, 'Loose ranges should merge digits and symbols');
     }
+
+    public function test_optimizer_does_not_fill_gaps(): void
+    {
+        $regex = Regex::create();
+        $compiler = new CompilerNodeVisitor();
+
+        // Test that gaps are not filled: [!#] should not become [!-\#]
+        $ast = $regex->parse('/[!#]/');
+        $optimizer = new OptimizerNodeVisitor();
+        $optimized = $ast->accept($optimizer);
+        $result = $optimized->accept($compiler);
+        $this->assertSame('/[!#]/', $result, 'Should not create ranges that fill gaps');
+
+        // Test valid contiguous range is preserved
+        $ast2 = $regex->parse('/[A-C]/');
+        $optimized2 = $ast2->accept($optimizer);
+        $result2 = $optimized2->accept($compiler);
+        $this->assertSame('/[A-C]/', $result2, 'Valid contiguous ranges should be preserved');
+
+        // Test non-contiguous characters remain separate
+        $ast3 = $regex->parse('/[ABD]/');
+        $optimized3 = $ast3->accept($optimizer);
+        $result3 = $optimized3->accept($compiler);
+        $this->assertSame('/[ABD]/', $result3, 'Non-contiguous characters should not be merged into ranges');
+    }
 }
