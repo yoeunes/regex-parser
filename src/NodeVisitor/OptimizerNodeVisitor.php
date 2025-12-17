@@ -543,7 +543,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
             if (!$alt instanceof Node\LiteralNode) {
                 return false;
             }
-            if (\strlen($alt->value) > 1) {
+            if (\strlen($alt->value) !== 1) {  // Also excludes empty strings
                 return false;
             }
             if (isset(self::CHAR_CLASS_META[$alt->value])) {
