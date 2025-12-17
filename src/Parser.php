@@ -177,6 +177,8 @@ final class Parser
     {
         $node = $this->parseAtom();
 
+        $this->skipExtendedModeContent();
+
         if ($this->match(TokenType::T_QUANTIFIER)) {
             $token = $this->previous();
 
