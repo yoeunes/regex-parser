@@ -537,34 +537,28 @@ final class ParserTest extends TestCase
 
         // If we reach here without a "Quantifier without target" exception, the test passes.
         // The AST should be successfully parsed with extended mode flags.
-        $this->assertTrue(str_contains($ast->flags, 'x'));
+        $this->assertStringContainsString('x', $ast->flags);
     }
 
-    public static function extendedModeProvider(): array
+    public static function extendedModeProvider(): \Iterator
     {
-        return [
-            // Case 1: Simple newline between atom and quantifier
-            'Newline separation' => ['/a
-            ?/x'],
-
-            // Case 2: Spaces and comments between atom and quantifier
-            'Comments separation' => ['/a  # comment
-            +/x'],
-
-            // Case 3: Complex Group with newline before quantifier (Symfony AssetMapper Case)
-            'Group with newline' => ['/(?:abc)
-            ?/x'],
-
-            // Case 4: Character class with newline
-            'Char class newline' => ['/[a-z]
-            {2,}/x'],
-
-            // Case 5: The actual Symfony AssetMapper Pattern fragment causing the crash
-            'Symfony AssetMapper Fragment' => ['/
+        // Case 1: Simple newline between atom and quantifier
+        yield 'Newline separation' => ['/a
+            ?/x'];
+        // Case 2: Spaces and comments between atom and quantifier
+        yield 'Comments separation' => ['/a  # comment
+            +/x'];
+        // Case 3: Complex Group with newline before quantifier (Symfony AssetMapper Case)
+        yield 'Group with newline' => ['/(?:abc)
+            ?/x'];
+        // Case 4: Character class with newline
+        yield 'Char class newline' => ['/[a-z]
+            {2,}/x'];
+        // Case 5: The actual Symfony AssetMapper Pattern fragment causing the crash
+        yield 'Symfony AssetMapper Fragment' => ['/
                 \s*[\'"`](\.\/[^\'"`\n]++|(\.\.\/)*+[^\'"`\n]++)[\'"`]\s*[;\)]
                 ?
-            /mxu'],
-        ];
+            /mxu'];
     }
 
     /**
