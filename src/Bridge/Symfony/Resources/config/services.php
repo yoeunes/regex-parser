@@ -17,6 +17,9 @@ use Psr\Log\LoggerInterface;
 use RegexParser\Bridge\Symfony\Analyzer\RouteRequirementAnalyzer;
 use RegexParser\Bridge\Symfony\Analyzer\ValidatorRegexAnalyzer;
 use RegexParser\Bridge\Symfony\CacheWarmer\RegexParserCacheWarmer;
+use RegexParser\Bridge\Symfony\Command\RegexAnalyzeRedosCommand;
+use RegexParser\Bridge\Symfony\Command\RegexLintCommand;
+use RegexParser\Bridge\Symfony\Command\RegexOptimizeCommand;
 use RegexParser\Bridge\Symfony\Command\RegexParserValidateCommand;
 use RegexParser\Regex;
 use Symfony\Component\Routing\RouterInterface;
@@ -37,8 +40,9 @@ return static function (ContainerConfigurator $container): void {
         ->factory([Regex::class, 'create'])
         ->arg('$options', [
             'max_pattern_length' => param('regex_parser.max_pattern_length'),
-            'cache' => param('regex_parser.cache'),
-            'redos_ignored_patterns' => param('regex_parser.analysis.ignore_patterns'),
+            'max_lookbehind_length' => param('regex_parser.max_lookbehind_length'),
+            'cache' => service('regex_parser.cache'),
+            'redos_ignored_patterns' => param('regex_parser.redos.ignored_patterns'),
         ])
         ->public();
 
@@ -49,14 +53,14 @@ return static function (ContainerConfigurator $container): void {
     $services->set(RouteRequirementAnalyzer::class, RouteRequirementAnalyzer::class)
         ->arg('$regex', service('regex_parser.regex'))
         ->arg('$warningThreshold', param('regex_parser.analysis.warning_threshold'))
-        ->arg('$redosThreshold', param('regex_parser.analysis.redos_threshold'))
-        ->arg('$ignoredPatterns', param('regex_parser.analysis.ignore_patterns'));
+        ->arg('$redosThreshold', param('regex_parser.redos.threshold'))
+        ->arg('$ignoredPatterns', param('regex_parser.redos.ignored_patterns'));
 
     $services->set(ValidatorRegexAnalyzer::class, ValidatorRegexAnalyzer::class)
         ->arg('$regex', service('regex_parser.regex'))
         ->arg('$warningThreshold', param('regex_parser.analysis.warning_threshold'))
-        ->arg('$redosThreshold', param('regex_parser.analysis.redos_threshold'))
-        ->arg('$ignoredPatterns', param('regex_parser.analysis.ignore_patterns'));
+        ->arg('$redosThreshold', param('regex_parser.redos.threshold'))
+        ->arg('$ignoredPatterns', param('regex_parser.redos.ignored_patterns'));
 
     $services->set('regex_parser.cache_warmer', RegexParserCacheWarmer::class)
         ->arg('$analyzer', service(RouteRequirementAnalyzer::class))
@@ -73,6 +77,22 @@ return static function (ContainerConfigurator $container): void {
         ->arg('$validatorAnalyzer', service(ValidatorRegexAnalyzer::class))
         ->arg('$validator', service(ValidatorInterface::class)->nullOnInvalid())
         ->arg('$validatorLoader', service(LoaderInterface::class)->nullOnInvalid())
+        ->tag('console.command')
+        ->public();
+
+    $services->set('regex_parser.command.lint', RegexLintCommand::class)
+        ->arg('$regex', service('regex_parser.regex'))
+        ->tag('console.command')
+        ->public();
+
+    $services->set('regex_parser.command.analyze_redos', RegexAnalyzeRedosCommand::class)
+        ->arg('$regex', service('regex_parser.regex'))
+        ->arg('$defaultThreshold', param('regex_parser.redos.threshold'))
+        ->tag('console.command')
+        ->public();
+
+    $services->set('regex_parser.command.optimize', RegexOptimizeCommand::class)
+        ->arg('$regex', service('regex_parser.regex'))
         ->tag('console.command')
         ->public();
 };

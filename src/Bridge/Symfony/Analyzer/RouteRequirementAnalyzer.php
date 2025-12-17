@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace RegexParser\Bridge\Symfony\Analyzer;
 
 use RegexParser\Regex;
+use RegexParser\ReDoS\ReDoSSeverity;
 use Symfony\Component\Routing\RouteCollection;
 
 /**
@@ -24,6 +25,8 @@ use Symfony\Component\Routing\RouteCollection;
 final readonly class RouteRequirementAnalyzer
 {
     private const PATTERN_DELIMITERS = ['/', '#', '~', '%'];
+
+    private ReDoSSeverity $redosSeverityThreshold;
 
     /**
      * @var list<string>
@@ -36,9 +39,10 @@ final readonly class RouteRequirementAnalyzer
     public function __construct(
         private Regex $regex,
         private int $warningThreshold,
-        private int $redosThreshold,
+        string $redosThreshold = ReDoSSeverity::HIGH->value,
         array $ignoredPatterns = [],
     ) {
+        $this->redosSeverityThreshold = ReDoSSeverity::tryFrom(strtolower($redosThreshold)) ?? ReDoSSeverity::HIGH;
         $this->ignoredPatterns = $this->buildIgnoredPatterns($ignoredPatterns);
     }
 
@@ -89,9 +93,16 @@ final readonly class RouteRequirementAnalyzer
                     continue;
                 }
 
-                if ($result->complexityScore >= $this->redosThreshold) {
+                $redos = $this->regex->analyzeReDoS($normalizedPattern);
+                if ($redos->exceedsThreshold($this->redosSeverityThreshold)) {
                     $issues[] = new AnalysisIssue(
-                        \sprintf('Route "%s" requirement "%s" may be vulnerable to ReDoS (score: %d, pattern: %s).', (string) $name, $parameter, $result->complexityScore, $this->formatPattern($normalizedPattern)),
+                        \sprintf(
+                            'Route "%s" requirement "%s" may be vulnerable to ReDoS (severity: %s, pattern: %s).',
+                            (string) $name,
+                            $parameter,
+                            strtoupper($redos->severity->value),
+                            $this->formatPattern($normalizedPattern),
+                        ),
                         true,
                     );
 

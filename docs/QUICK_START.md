@@ -160,7 +160,7 @@ use RegexParser\Regex;
 $regex = Regex::create();
 $literals = $regex->extractLiterals('/prefix-\d+-suffix/');
 
-print_r($literals);
+print_r($literals->literals);
 /*
 Output:
 [
@@ -168,6 +168,9 @@ Output:
     "-suffix"
 ]
 */
+
+echo $literals->literalSet->getLongestPrefix(); // "prefix-"
+echo $literals->literalSet->getLongestSuffix(); // "-suffix"
 ```
 
 **Use Case**: Search optimization, string matching preprocessing

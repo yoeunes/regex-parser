@@ -465,7 +465,8 @@ if (!$regex->isSafe($pattern, ReDoSSeverity::HIGH)) {
 
 * Symfony bridge provides:
 
-  * A **console command** to scan your app’s config for dangerous regexes.
+  * A **console command** to scan your app’s config for dangerous regexes (`regex-parser:check`).
+  * File-based commands for constant `preg_*` patterns (`regex:lint`, `regex:analyze-redos`, `regex:optimize`).
   * A **cache warmer** to pre‑parse and pre‑analyze patterns on deploy.
   * Easy service wiring for `Regex` in your DI container.
 
@@ -476,7 +477,7 @@ services:
   RegexParser\Regex:
     factory: ['RegexParser\Regex', 'create']
     arguments:
-      - { cache: '%kernel.cache_dir%/regex', max_pattern_length: 100000 }
+      - { cache: '%kernel.cache_dir%/regex', max_pattern_length: 100000, max_lookbehind_length: 255 }
 ```
 
 ### PHPStan
@@ -563,6 +564,7 @@ use RegexParser\Regex;
 $regex = Regex::create([
     'cache' => '/path/to/cache/dir',         // or a PSR cache instance
     'max_pattern_length' => 100_000,
+    'max_lookbehind_length' => 255,
     'redos_ignored_patterns' => [
         '/^([0-9]{4}-[0-9]{2}-[0-9]{2})$/', // known safe patterns
     ],
@@ -588,16 +590,32 @@ final readonly class Regex
     public function parseTolerant(string $regex): TolerantParseResult;
 
     public function validate(string $regex): ValidationResult;
+    public function isValid(string $regex): bool;
+    public function assertValid(string $regex): void;
 
     public function dump(string $regex): string;
 
-    public function explain(string $regex): string;
+    public function explain(string $regex, string $format = 'text'): string;
 
     public function htmlExplain(string $regex): string;
 
-    public function extractLiterals(string $regex): LiteralSet;
+    public function highlight(string $regex, string $format = 'auto'): string;
+    public function highlightCli(string $regex): string;
+    public function highlightHtml(string $regex): string;
 
-    public function analyzeReDoS(string $regex): ReDoS\ReDoSAnalysis;
+    public function optimize(string $regex): OptimizationResult;
+    public function modernize(string $regex): string;
+
+    public function generate(string $regex): string;
+    public function generateTestCases(string $regex): TestCaseGenerationResult;
+
+    public function visualize(string $regex): VisualizationResult;
+
+    public function getLengthRange(string $regex): array;
+
+    public function extractLiterals(string $regex): LiteralExtractionResult;
+
+    public function analyzeReDoS(string $regex, ?ReDoS\ReDoSSeverity $threshold = null): ReDoS\ReDoSAnalysis;
 
     public function isSafe(string $regex, ?ReDoS\ReDoSSeverity $threshold = null): bool;
 
@@ -606,7 +624,7 @@ final readonly class Regex
 }
 ```
 
-Return types like `ValidationResult`, `LiteralSet`, `ReDoSAnalysis` are small, well‑typed value objects.
+Return types like `ValidationResult`, `OptimizationResult`, `LiteralExtractionResult`, `TestCaseGenerationResult`, `VisualizationResult`, and `ReDoS\ReDoSAnalysis` are small, well‑typed value objects.
 
 ---
 
@@ -628,7 +646,7 @@ RegexParser follows **Semantic Versioning**:
 
 * **Stable for 1.x** (API surface we commit to keep compatible):
   * Public methods and signatures on `Regex`.
-  * Value objects: `ValidationResult`, `TolerantParseResult`, `LiteralSet`, `ReDoS\ReDoSAnalysis`.
+  * Value objects: `ValidationResult`, `TolerantParseResult`, `OptimizationResult`, `LiteralExtractionResult`, `LiteralSet`, `TestCaseGenerationResult`, `VisualizationResult`, `ReDoS\ReDoSAnalysis`.
   * Main exception interfaces/classes: `RegexParserExceptionInterface`, parser/lexer exceptions, `InvalidRegexOptionException`.
   * Supported option keys for `Regex::create()` / `RegexOptions`.
 

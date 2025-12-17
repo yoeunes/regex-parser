@@ -117,12 +117,16 @@ if ('' !== $regex) {
 
             case 'literals':
                 $literals = $parser->extractLiterals($regex);
+                $literalSet = $literals->literalSet;
                 $response['result'] = [
                     'type' => 'literals',
-                    'prefixes' => $literals->prefixes,
-                    'suffixes' => $literals->suffixes,
-                    'longestPrefix' => $literals->getLongestPrefix(),
-                    'longestSuffix' => $literals->getLongestSuffix(),
+                    'literals' => $literals->literals,
+                    'patterns' => $literals->patterns,
+                    'confidence' => $literals->confidence,
+                    'prefixes' => $literalSet->prefixes,
+                    'suffixes' => $literalSet->suffixes,
+                    'longestPrefix' => $literalSet->getLongestPrefix(),
+                    'longestSuffix' => $literalSet->getLongestSuffix(),
                 ];
 
                 break;

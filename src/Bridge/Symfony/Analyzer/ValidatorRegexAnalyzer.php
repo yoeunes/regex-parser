@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace RegexParser\Bridge\Symfony\Analyzer;
 
 use RegexParser\Regex;
+use RegexParser\ReDoS\ReDoSSeverity;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\Constraints\Regex as SymfonyRegex;
 use Symfony\Component\Validator\Mapping\ClassMetadataInterface;
@@ -29,6 +30,8 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
  */
 final readonly class ValidatorRegexAnalyzer
 {
+    private ReDoSSeverity $redosSeverityThreshold;
+
     /**
      * @var list<string>
      */
@@ -40,9 +43,10 @@ final readonly class ValidatorRegexAnalyzer
     public function __construct(
         private Regex $regex,
         private int $warningThreshold,
-        private int $redosThreshold,
+        string $redosThreshold = ReDoSSeverity::HIGH->value,
         array $ignoredPatterns = [],
     ) {
+        $this->redosSeverityThreshold = ReDoSSeverity::tryFrom(strtolower($redosThreshold)) ?? ReDoSSeverity::HIGH;
         $this->ignoredPatterns = $this->buildIgnoredPatterns($ignoredPatterns);
     }
 
@@ -158,9 +162,15 @@ final readonly class ValidatorRegexAnalyzer
                 continue;
             }
 
-            if ($result->complexityScore >= $this->redosThreshold) {
+            $redos = $this->regex->analyzeReDoS($pattern);
+            if ($redos->exceedsThreshold($this->redosSeverityThreshold)) {
                 $issues[] = new AnalysisIssue(
-                    \sprintf('Validator "%s" pattern may be vulnerable to ReDoS (score: %d, pattern: %s).', $source, $result->complexityScore, $this->formatPattern($pattern)),
+                    \sprintf(
+                        'Validator "%s" pattern may be vulnerable to ReDoS (severity: %s, pattern: %s).',
+                        $source,
+                        strtoupper($redos->severity->value),
+                        $this->formatPattern($pattern),
+                    ),
                     true,
                 );
 

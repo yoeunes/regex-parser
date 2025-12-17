@@ -13,9 +13,14 @@ declare(strict_types=1);
 
 namespace RegexParser\Bridge\Symfony\DependencyInjection;
 
+use RegexParser\Cache\FilesystemCache;
+use RegexParser\Cache\NullCache;
+use RegexParser\Cache\PsrCacheAdapter;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
+use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\HttpKernel\DependencyInjection\Extension;
 
 /**
@@ -40,7 +45,14 @@ final class RegexParserExtension extends Extension
          * @var array{
          *     enabled: bool,
          *     max_pattern_length: int,
+         *     max_lookbehind_length: int,
          *     cache: string|null,
+         *     cache_pool: string|null,
+         *     cache_prefix: string,
+         *     redos: array{
+         *         threshold: string,
+         *         ignored_patterns: array<int, string>,
+         *     },
          *     analysis: array{
          *         warning_threshold: int,
          *         redos_threshold: int,
@@ -55,12 +67,24 @@ final class RegexParserExtension extends Extension
             return;
         }
 
+        $ignoredPatterns = array_values(array_unique([
+            ...$config['analysis']['ignore_patterns'],
+            ...$config['redos']['ignored_patterns'],
+        ]));
+
         // Set parameters
         $container->setParameter('regex_parser.max_pattern_length', $config['max_pattern_length']);
+        $container->setParameter('regex_parser.max_lookbehind_length', $config['max_lookbehind_length']);
         $container->setParameter('regex_parser.cache', $config['cache']);
+        $container->setParameter('regex_parser.cache_pool', $config['cache_pool']);
+        $container->setParameter('regex_parser.cache_prefix', $config['cache_prefix']);
+        $container->setParameter('regex_parser.redos.threshold', $config['redos']['threshold']);
+        $container->setParameter('regex_parser.redos.ignored_patterns', $ignoredPatterns);
         $container->setParameter('regex_parser.analysis.warning_threshold', $config['analysis']['warning_threshold']);
         $container->setParameter('regex_parser.analysis.redos_threshold', $config['analysis']['redos_threshold']);
-        $container->setParameter('regex_parser.analysis.ignore_patterns', $config['analysis']['ignore_patterns']);
+        $container->setParameter('regex_parser.analysis.ignore_patterns', $ignoredPatterns);
+
+        $container->setDefinition('regex_parser.cache', $this->buildCacheDefinition($config));
 
         $loader = new PhpFileLoader($container, new FileLocator(__DIR__.'/../Resources/config'));
 
@@ -74,5 +98,30 @@ final class RegexParserExtension extends Extension
     public function getAlias(): string
     {
         return 'regex_parser';
+    }
+
+    /**
+     * @param array{
+     *     cache: string|null,
+     *     cache_pool: string|null,
+     *     cache_prefix: string,
+     * } $config
+     */
+    private function buildCacheDefinition(array $config): Definition
+    {
+        if (null !== $config['cache_pool'] && '' !== $config['cache_pool']) {
+            return (new Definition(PsrCacheAdapter::class))
+                ->setArguments([
+                    new Reference((string) $config['cache_pool']),
+                    (string) $config['cache_prefix'],
+                ]);
+        }
+
+        if (null !== $config['cache'] && '' !== $config['cache']) {
+            return (new Definition(FilesystemCache::class))
+                ->setArguments([(string) $config['cache']]);
+        }
+
+        return new Definition(NullCache::class);
     }
 }
