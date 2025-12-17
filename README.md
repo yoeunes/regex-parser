@@ -36,12 +36,6 @@ It brings static analysis, security auditing, and automated refactoring to PHP's
 
 ---
 
-## Online Playground (WASM)
-
-Try RegexParser Studio in your browser (PCRE2 via PHP-WASM):
-
-- https://yoeunes.github.io/regex-parser/
-
 ## Table of Contents
 
 - [Installation](#installation)
