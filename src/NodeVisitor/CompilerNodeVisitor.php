@@ -31,7 +31,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     private const META_CHARACTERS = [
         '\\' => true, '.' => true, '^' => true, '$' => true,
         '[' => true, ']' => true, '(' => true, ')' => true,
-        '*' => true, '+' => true, '?' => true, '{' => true, '}' => true,
+        '|' => true, '*' => true, '+' => true, '?' => true, '{' => true, '}' => true,
     ];
 
     private const CHAR_CLASS_META = [

@@ -138,6 +138,15 @@ final class CompilerNodeVisitorTest extends TestCase
         $this->assertSame('/[\t\n\r\x07]/', $this->compile('/[\t\n\r\x07]/'));
     }
 
+    public function test_optimizer_preserves_escaped_pipe(): void
+    {
+        // Test that escaped pipe is preserved outside char class
+        $this->assertSame('/foo\|bar/', $this->compile('/foo\|bar/'));
+
+        // Test that pipe in char class is handled correctly (not special there)
+        $this->assertSame('/[|]/', $this->compile('/[|]/'));
+    }
+
     private function compile(string $pattern): string
     {
         $regex = Regex::create();
