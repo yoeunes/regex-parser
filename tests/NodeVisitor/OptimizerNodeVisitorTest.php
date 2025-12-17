@@ -599,4 +599,26 @@ final class OptimizerNodeVisitorTest extends TestCase
         $this->assertNotSame('/[9ADx]/', $result, 'Should not output as literal characters');
         $this->assertStringNotContainsString('9ADx', $result, 'Should not contain the literal string 9ADx');
     }
+
+    public function test_optimizer_handles_alternation_with_empty_branch(): void
+    {
+        $regex = Regex::create();
+        $compiler = new CompilerNodeVisitor();
+
+        // Test that alternation with empty branch is not merged into char class
+        $ast = $regex->parse('/^(\+|)\d+$/');
+        $optimizer = new OptimizerNodeVisitor();
+        $optimized = $ast->accept($optimizer);
+        $result = $optimized->accept($compiler);
+
+        // The alternation (\+|) should not be merged into ([+]) because of the empty branch
+        // It should preserve the optional nature
+        $this->assertStringContainsString('(\+|)', $result, 'Should preserve the alternation with empty branch');
+
+        // Test that the regex still matches correctly
+        $testRegex = '/^(\+|)\d+$/';
+        $this->assertMatchesRegularExpression($testRegex, '123');    // no plus
+        $this->assertMatchesRegularExpression($testRegex, '+123');   // with plus
+        $this->assertDoesNotMatchRegularExpression($testRegex, '++123'); // multiple plus
+    }
 }

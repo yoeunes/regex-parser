@@ -115,4 +115,21 @@ final class RegexTest extends TestCase
             $cache->clear();
         }
     }
+
+    public function test_parse_ignores_leading_whitespace(): void
+    {
+        $regex = Regex::create();
+
+        // Test that leading whitespace is ignored before delimiter detection
+        $patternWithWhitespace = "\n    /^[a-z]+$/";
+        $ast = $regex->parse($patternWithWhitespace);
+
+        // Should successfully parse and recognize '/' as delimiter
+        $this->assertSame('/', $ast->delimiter);
+
+        // The pattern should be equivalent to the trimmed version
+        $trimmedPattern = ltrim($patternWithWhitespace);
+        $astTrimmed = $regex->parse($trimmedPattern);
+        $this->assertEquals($ast, $astTrimmed);
+    }
 }

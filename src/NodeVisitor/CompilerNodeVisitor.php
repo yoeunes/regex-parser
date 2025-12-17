@@ -31,7 +31,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     private const META_CHARACTERS = [
         '\\' => true, '.' => true, '^' => true, '$' => true,
         '[' => true, ']' => true, '(' => true, ')' => true,
-        '*' => true, '+' => true, '?' => true, '{' => true, '}' => true,
+        '|' => true, '*' => true, '+' => true, '?' => true, '{' => true, '}' => true,
     ];
 
     private const CHAR_CLASS_META = [
@@ -216,7 +216,30 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitCharLiteral(Node\CharLiteralNode $node): string
     {
-        return $node->originalRepresentation;
+        $rep = $node->originalRepresentation;
+
+        // If it's already an escape sequence, return as is
+        if (str_starts_with($rep, '\\')) {
+            return $rep;
+        }
+
+        // If it's a single character, check if it needs escaping
+        if (1 === \strlen($rep)) {
+            $ord = \ord($rep);
+            if ($ord < 32 || 127 === $ord) {
+                // Escape control characters
+                return match ($ord) {
+                    9 => '\\t',
+                    10 => '\\n',
+                    13 => '\\r',
+                    12 => '\\f',
+                    27 => '\\e',
+                    default => '\\x'.strtoupper(str_pad(dechex($ord), 2, '0', \STR_PAD_LEFT)),
+                };
+            }
+        }
+
+        return $rep;
     }
 
     #[\Override]
@@ -360,7 +383,8 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
         $len = \strlen($value);
         for ($i = 0; $i < $len; $i++) {
             $char = $value[$i];
-            if ($char === $this->delimiter || isset($meta[$char])) {
+            $ord = \ord($char);
+            if ($char === $this->delimiter || isset($meta[$char]) || $ord < 32 || 127 === $ord) {
                 $needsEscape = true;
 
                 break;
@@ -378,6 +402,16 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
             $char = $value[$i];
             if ($char === $this->delimiter || isset($meta[$char])) {
                 $result .= '\\'.$char;
+            } elseif (\ord($char) < 32 || 127 === \ord($char)) {
+                // Escape control characters
+                $result .= match (\ord($char)) {
+                    9 => '\\t',
+                    10 => '\\n',
+                    13 => '\\r',
+                    12 => '\\f',
+                    27 => '\\e',
+                    default => '\\x'.strtoupper(str_pad(dechex(\ord($char)), 2, '0', \STR_PAD_LEFT)),
+                };
             } else {
                 $result .= $char;
             }
