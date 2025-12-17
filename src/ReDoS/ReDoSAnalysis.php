@@ -20,12 +20,12 @@ namespace RegexParser\ReDoS;
  */
 final readonly class ReDoSAnalysis
 {
-    /**
-     * @param array<string>       $recommendations
-     * @param array<ReDoSFinding> $findings
-     */
     public ?string $vulnerableSubpattern;
 
+    /**
+     * @param list<string>       $recommendations
+     * @param list<ReDoSFinding> $findings
+     */
     public function __construct(
         public ReDoSSeverity $severity,
         public int $score,

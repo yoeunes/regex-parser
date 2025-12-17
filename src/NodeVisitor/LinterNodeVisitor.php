@@ -172,14 +172,16 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     public function visitQuantifier(Node\QuantifierNode $node): Node\NodeInterface
     {
         if ($this->isVariableQuantifier($node->quantifier)) {
-            $nested = $this->findNestedQuantifier($node->node);
-            if (null !== $nested && $this->isVariableQuantifier($nested->quantifier)) {
-                $this->addIssue(
-                    'regex.lint.quantifier.nested',
-                    'Nested quantifiers can cause catastrophic backtracking.',
-                    $node->startPosition,
-                    'Consider using atomic groups (?>...) or possessive quantifiers.',
-                );
+            if ($this->isRepeatableQuantifier($node->quantifier)) {
+                $nested = $this->findNestedQuantifier($node->node);
+                if (null !== $nested && $this->isVariableQuantifier($nested->quantifier)) {
+                    $this->addIssue(
+                        'regex.lint.quantifier.nested',
+                        'Nested quantifiers can cause catastrophic backtracking.',
+                        $node->startPosition,
+                        'Consider using atomic groups (?>...) or possessive quantifiers.',
+                    );
+                }
             }
 
             if ($this->isUnboundedQuantifier($node->quantifier) && $this->containsDotStar($node->node)) {
@@ -550,11 +552,11 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         }
 
         if ($node instanceof Node\AlternationNode) {
-            return $node->alternatives;
+            return array_values($node->alternatives);
         }
 
         if ($node instanceof Node\SequenceNode) {
-            return $node->children;
+            return array_values($node->children);
         }
 
         return [$node];
@@ -677,6 +679,13 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         [$min, $max] = $this->parseQuantifierRange($quantifier);
 
         return null === $max || $min !== $max;
+    }
+
+    private function isRepeatableQuantifier(string $quantifier): bool
+    {
+        [, $max] = $this->parseQuantifierRange($quantifier);
+
+        return null === $max || $max > 1;
     }
 
     private function isUnboundedQuantifier(string $quantifier): bool

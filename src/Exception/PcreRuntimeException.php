@@ -20,10 +20,10 @@ final class PcreRuntimeException extends ParserException implements RegexParserE
 {
     public function __construct(
         string $message,
-        private readonly ?string $errorCode = null,
         ?int $position = null,
         ?string $pattern = null,
         ?\Throwable $previous = null,
+        private readonly ?string $errorCode = null,
     ) {
         parent::__construct($message, $position, $pattern, $previous);
     }

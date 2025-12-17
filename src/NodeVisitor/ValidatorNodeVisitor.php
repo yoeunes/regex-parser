@@ -260,7 +260,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
      *
      * @param Node\AssertionNode $node the assertion node to validate
      *
-     * @throws ParserException if an invalid or unknown assertion is encountered
+     * @throws SemanticErrorException if an invalid or unknown assertion is encountered
      */
     #[\Override]
     public function visitAssertion(Node\AssertionNode $node): void
@@ -283,7 +283,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
      *
      * @param Node\KeepNode $node the keep node to validate
      *
-     * @throws ParserException if `\K` is found within a lookbehind
+     * @throws SemanticErrorException if `\K` is found within a lookbehind
      */
     #[\Override]
     public function visitKeep(Node\KeepNode $node): void
@@ -306,7 +306,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
      *
      * @param Node\CharClassNode $node the character class node to validate
      *
-     * @throws ParserException if any semantic validation rule is violated within a part of the character class
+     * @throws SemanticErrorException if any semantic validation rule is violated within a part of the character class
      */
     #[\Override]
     public function visitCharClass(Node\CharClassNode $node): void
@@ -1132,10 +1132,11 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     {
         throw new SemanticErrorException(
             $message,
-            $code,
-            $hint,
             $position,
             $this->pattern,
+            null,
+            $code,
+            $hint,
         );
     }
 

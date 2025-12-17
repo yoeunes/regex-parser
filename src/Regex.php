@@ -154,19 +154,21 @@ final readonly class Regex
             if (ValidationErrorCategory::SEMANTIC === $result->getErrorCategory()) {
                 throw new Exception\SemanticErrorException(
                     $message,
-                    $result->getErrorCode() ?? 'regex.semantic',
-                    $result->getHint(),
                     $offset,
                     $pattern,
+                    null,
+                    $result->getErrorCode() ?? 'regex.semantic',
+                    $result->getHint(),
                 );
             }
 
             if (ValidationErrorCategory::PCRE_RUNTIME === $result->getErrorCategory()) {
                 throw new Exception\PcreRuntimeException(
                     $message,
-                    $result->getErrorCode(),
                     $offset,
                     $pattern,
+                    null,
+                    $result->getErrorCode(),
                 );
             }
 
@@ -239,16 +241,13 @@ final readonly class Regex
         return $this->parse($regex)->accept(new NodeVisitor\SampleGeneratorNodeVisitor());
     }
 
-    /**
-     * @return array{matching: array<string>, non_matching: array<string>}
-     */
     public function generateTestCases(string $regex): TestCaseGenerationResult
     {
         $cases = $this->parse($regex)->accept(new NodeVisitor\TestCaseGeneratorNodeVisitor());
 
         return new TestCaseGenerationResult(
-            $cases['matching'],
-            $cases['non_matching'],
+            array_values($cases['matching']),
+            array_values($cases['non_matching']),
             ['Generated samples are heuristic; validate with real inputs.'],
         );
     }
@@ -412,7 +411,7 @@ final readonly class Regex
             $message = $errorMessage ?? preg_last_error_msg();
             $message = '' !== $message ? $message : 'PCRE runtime error.';
 
-            throw new Exception\PcreRuntimeException($message, 'regex.pcre.runtime', null, $pattern);
+            throw new Exception\PcreRuntimeException($message, null, $pattern, null, 'regex.pcre.runtime');
         }
     }
 

@@ -75,13 +75,13 @@ final class ReDoSAnalyzer
                     ReDoSSeverity::UNKNOWN => 5,
                 },
                 $result['vulnerablePattern'],
-                $result['recommendations'],
+                array_values($result['recommendations']),
                 null,
                 $result['vulnerablePattern'],
                 $result['trigger'],
                 $result['confidence'],
                 $result['falsePositiveRisk'],
-                $result['findings'],
+                array_values($result['findings']),
             );
         } catch (\Throwable $e) {
             return new ReDoSAnalysis(

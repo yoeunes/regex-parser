@@ -20,11 +20,11 @@ final class SemanticErrorException extends ParserException implements RegexParse
 {
     public function __construct(
         string $message,
-        private readonly string $errorCode,
-        private readonly ?string $hint = null,
         ?int $position = null,
         ?string $pattern = null,
         ?\Throwable $previous = null,
+        private readonly string $errorCode = 'regex.semantic',
+        private readonly ?string $hint = null,
     ) {
         parent::__construct($message, $position, $pattern, $previous);
     }
