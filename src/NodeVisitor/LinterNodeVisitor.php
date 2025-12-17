@@ -221,6 +221,22 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitCharLiteral(Node\CharLiteralNode $node): Node\NodeInterface
     {
+        if (Node\CharLiteralType::UNICODE === $node->type && $node->codePoint > 0x10FFFF) {
+            $this->addIssue(
+                'regex.lint.escape.suspicious',
+                \sprintf('Suspicious Unicode escape "%s" (out of range).', $node->originalRepresentation),
+                $node->startPosition,
+            );
+        }
+
+        if (\in_array($node->type, [Node\CharLiteralType::OCTAL, Node\CharLiteralType::OCTAL_LEGACY], true) && $node->codePoint > 0xFF) {
+            $this->addIssue(
+                'regex.lint.escape.suspicious',
+                \sprintf('Suspicious octal escape "%s" (out of range).', $node->originalRepresentation),
+                $node->startPosition,
+            );
+        }
+
         if (Node\CharLiteralType::UNICODE_NAMED === $node->type && class_exists(\IntlChar::class)) {
             $name = $node->originalRepresentation;
             if (preg_match('/^\\\\N\\{(.+)}$/', $name, $matches)) {

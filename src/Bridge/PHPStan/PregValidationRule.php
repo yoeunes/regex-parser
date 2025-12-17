@@ -78,6 +78,23 @@ final class PregValidationRule implements Rule
         'lookbehind' => self::DOC_BASE_URL.'#assertions',
     ];
 
+    private const LINT_DOC_LINKS = [
+        'regex.lint.flag.useless_s' => self::DOC_BASE_URL.'#useless-flag-s-dotall',
+        'regex.lint.flag.useless_m' => self::DOC_BASE_URL.'#useless-flag-m-multiline',
+        'regex.lint.flag.useless_i' => self::DOC_BASE_URL.'#useless-flag-i-caseless',
+        'regex.lint.anchor.impossible_start' => self::DOC_BASE_URL.'#anchor-conflicts',
+        'regex.lint.anchor.impossible_end' => self::DOC_BASE_URL.'#anchor-conflicts',
+        'regex.lint.quantifier.nested' => self::DOC_BASE_URL.'#nested-quantifiers',
+        'regex.lint.dotstar.nested' => self::DOC_BASE_URL.'#dot-star-in-quantifier',
+        'regex.lint.group.redundant' => self::DOC_BASE_URL.'#redundant-non-capturing-group',
+        'regex.lint.alternation.duplicate' => self::DOC_BASE_URL.'#duplicate-alternation-branches',
+        'regex.lint.alternation.overlap' => self::DOC_BASE_URL.'#overlapping-alternation-branches',
+        'regex.lint.charclass.redundant' => self::DOC_BASE_URL.'#redundant-character-class-elements',
+        'regex.lint.escape.suspicious' => self::DOC_BASE_URL.'#suspicious-escapes',
+        'regex.lint.flag.redundant' => self::DOC_BASE_URL.'#inline-flag-redundant',
+        'regex.lint.flag.override' => self::DOC_BASE_URL.'#inline-flag-override',
+    ];
+
     private ?Regex $regex = null;
 
     private ?ValidatorNodeVisitor $validator = null;
@@ -307,9 +324,15 @@ final class PregValidationRule implements Rule
                 $builder = RuleErrorBuilder::message($issue->message)
                     ->line($lineNumber)
                     ->identifier($issue->id);
-                $tip = $issue->hint;
-                if (null !== $tip) {
-                    $builder = $builder->tip($tip);
+                $tipParts = [];
+                if (null !== $issue->hint) {
+                    $tipParts[] = $issue->hint;
+                }
+                if (isset(self::LINT_DOC_LINKS[$issue->id])) {
+                    $tipParts[] = 'Read more: '.self::LINT_DOC_LINKS[$issue->id];
+                }
+                if ([] !== $tipParts) {
+                    $builder = $builder->tip(implode("\n", $tipParts));
                 }
                 $errors[] = $builder->build();
             }
