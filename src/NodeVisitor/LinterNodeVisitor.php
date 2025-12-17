@@ -258,21 +258,21 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     {
         if (str_contains($this->flags, 'i') && !$this->hasCaseSensitiveChars) {
             $this->addIssue(
-                'regex.lint.flag.useless_i',
+                'regex.lint.flag.useless.i',
                 "Flag 'i' is useless: the pattern contains no case-sensitive characters.",
             );
         }
 
         if (str_contains($this->flags, 's') && !$this->hasDots) {
             $this->addIssue(
-                'regex.lint.flag.useless_s',
+                'regex.lint.flag.useless.s',
                 "Flag 's' is useless: the pattern contains no dots.",
             );
         }
 
         if (str_contains($this->flags, 'm') && !$this->hasAnchors) {
             $this->addIssue(
-                'regex.lint.flag.useless_m',
+                'regex.lint.flag.useless.m',
                 "Flag 'm' is useless: the pattern contains no anchors.",
             );
         }
@@ -313,7 +313,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
                     if ($this->isConsuming($children[$j])) {
                         if (!str_contains($this->flags, 'm')) {
                             $this->addIssue(
-                                'regex.lint.anchor.impossible_start',
+                                'regex.lint.anchor.impossible.start',
                                 "Start anchor '^' appears after consuming characters, making it impossible to match.",
                                 $child->startPosition,
                             );
@@ -329,7 +329,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
                 for ($j = $i + 1; $j < $count; $j++) {
                     if ($this->isConsuming($children[$j])) {
                         $this->addIssue(
-                            'regex.lint.anchor.impossible_end',
+                            'regex.lint.anchor.impossible.end',
                             "End anchor '$' appears before consuming characters, making it impossible to match.",
                             $child->startPosition,
                         );

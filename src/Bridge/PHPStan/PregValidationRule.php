@@ -79,11 +79,11 @@ final class PregValidationRule implements Rule
     ];
 
     private const LINT_DOC_LINKS = [
-        'regex.lint.flag.useless_s' => self::DOC_BASE_URL.'#useless-flag-s-dotall',
-        'regex.lint.flag.useless_m' => self::DOC_BASE_URL.'#useless-flag-m-multiline',
-        'regex.lint.flag.useless_i' => self::DOC_BASE_URL.'#useless-flag-i-caseless',
-        'regex.lint.anchor.impossible_start' => self::DOC_BASE_URL.'#anchor-conflicts',
-        'regex.lint.anchor.impossible_end' => self::DOC_BASE_URL.'#anchor-conflicts',
+        'regex.lint.flag.useless.s' => self::DOC_BASE_URL.'#useless-flag-s-dotall',
+        'regex.lint.flag.useless.m' => self::DOC_BASE_URL.'#useless-flag-m-multiline',
+        'regex.lint.flag.useless.i' => self::DOC_BASE_URL.'#useless-flag-i-caseless',
+        'regex.lint.anchor.impossible.start' => self::DOC_BASE_URL.'#anchor-conflicts',
+        'regex.lint.anchor.impossible.end' => self::DOC_BASE_URL.'#anchor-conflicts',
         'regex.lint.quantifier.nested' => self::DOC_BASE_URL.'#nested-quantifiers',
         'regex.lint.dotstar.nested' => self::DOC_BASE_URL.'#dot-star-in-quantifier',
         'regex.lint.group.redundant' => self::DOC_BASE_URL.'#redundant-non-capturing-group',

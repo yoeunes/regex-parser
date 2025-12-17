@@ -30,7 +30,7 @@ This reference documents RegexParser diagnostics, not the full PCRE2 spec. If yo
 ## Flags
 
 ### Useless Flag 's' (DOTALL)
-**Identifier:** `regex.lint.flag.useless_s`
+**Identifier:** `regex.lint.flag.useless.s`
 
 **When it triggers:** the pattern sets the `s` (DotAll) modifier but contains no dot tokens (`.`). DotAll only changes how the dot behaves, so without a dot it has no effect.
 
@@ -51,7 +51,7 @@ preg_match('/^user_id:\\d+$/', $input);
 ---
 
 ### Useless Flag 'm' (Multiline)
-**Identifier:** `regex.lint.flag.useless_m`
+**Identifier:** `regex.lint.flag.useless.m`
 
 **When it triggers:** the pattern sets the `m` (multiline) modifier but contains no start/end anchors (`^` or `$`). Multiline mode only changes how those anchors behave.
 
@@ -72,7 +72,7 @@ preg_match('/search_term/', $text);
 ---
 
 ### Useless Flag 'i' (Caseless)
-**Identifier:** `regex.lint.flag.useless_i`
+**Identifier:** `regex.lint.flag.useless.i`
 
 **When it triggers:** the pattern sets the `i` (case-insensitive) modifier but the regex contains no case-sensitive characters (only digits, symbols, or whitespace).
 
@@ -95,7 +95,7 @@ preg_match('/^\\d{4}-\\d{2}-\\d{2}$/', $date);
 ## Anchors
 
 ### Anchor Conflicts
-**Identifier:** `regex.lint.anchor.impossible_start`, `regex.lint.anchor.impossible_end`
+**Identifier:** `regex.lint.anchor.impossible.start`, `regex.lint.anchor.impossible.end`
 
 **When it triggers:**
 

@@ -84,4 +84,10 @@ final class LinterRulesTest extends TestCase
         $issues = $this->lint('/\x{110000}/');
         $this->assertContains('regex.lint.escape.suspicious', $issues);
     }
+
+    public function test_useless_flag_s_warning(): void
+    {
+        $issues = $this->lint('/no_dot/s');
+        $this->assertContains('regex.lint.flag.useless.s', $issues);
+    }
 }
