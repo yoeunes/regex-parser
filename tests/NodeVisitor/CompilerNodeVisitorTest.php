@@ -132,6 +132,12 @@ final class CompilerNodeVisitorTest extends TestCase
         $this->assertSame('/(?P>name)/', $this->compile('/(?P>name)/'));
     }
 
+    public function test_compiler_escapes_control_characters(): void
+    {
+        // Test that control characters are properly escaped in output
+        $this->assertSame('/[\t\n\r\x07]/', $this->compile('/[\t\n\r\x07]/'));
+    }
+
     private function compile(string $pattern): string
     {
         $regex = Regex::create();
