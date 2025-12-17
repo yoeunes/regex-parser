@@ -23,7 +23,7 @@ final class RouteRequirementAnalyzerTest extends TestCase
 {
     public function test_valid_requirement_produces_no_issues(): void
     {
-        $analyzer = new RouteRequirementAnalyzer(Regex::create(), 100, 200);
+        $analyzer = new RouteRequirementAnalyzer(Regex::create(), 100, 'high');
 
         $routes = new RouteCollection();
         $routes->add('home', new Route('/home', [], ['slug' => '[a-z]+']));
@@ -33,7 +33,7 @@ final class RouteRequirementAnalyzerTest extends TestCase
 
     public function test_invalid_requirement_is_reported(): void
     {
-        $analyzer = new RouteRequirementAnalyzer(Regex::create(), 100, 200);
+        $analyzer = new RouteRequirementAnalyzer(Regex::create(), 100, 'high');
 
         $routes = new RouteCollection();
         $routes->add('broken', new Route('/broken', [], ['id' => '(']));
@@ -47,7 +47,7 @@ final class RouteRequirementAnalyzerTest extends TestCase
 
     public function test_warning_threshold_is_applied(): void
     {
-        $analyzer = new RouteRequirementAnalyzer(Regex::create(), 0, 1000);
+        $analyzer = new RouteRequirementAnalyzer(Regex::create(), 0, 'high');
 
         $routes = new RouteCollection();
         $routes->add('warn', new Route('/warn', [], ['name' => '[a-z]+']));
@@ -61,7 +61,7 @@ final class RouteRequirementAnalyzerTest extends TestCase
 
     public function test_literal_alternations_are_skipped(): void
     {
-        $analyzer = new RouteRequirementAnalyzer(Regex::create(), 0, 1000);
+        $analyzer = new RouteRequirementAnalyzer(Regex::create(), 0, 'high');
 
         $routes = new RouteCollection();
         $routes->add('locale', new Route('/{_locale}', [], ['_locale' => 'en|fr|de']));
@@ -71,7 +71,7 @@ final class RouteRequirementAnalyzerTest extends TestCase
 
     public function test_slug_pattern_is_not_flagged(): void
     {
-        $analyzer = new RouteRequirementAnalyzer(Regex::create(), 0, 0, ['[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*']);
+        $analyzer = new RouteRequirementAnalyzer(Regex::create(), 0, 'high', ['[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*']);
 
         $routes = new RouteCollection();
         $routes->add('slug', new Route('/{slug}', [], ['slug' => '^[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$']));

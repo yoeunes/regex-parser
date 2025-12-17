@@ -36,7 +36,7 @@ final class ValidatorRegexAnalyzerTest extends TestCase
 
         $loader = new FakeLoader([FakeEntity::class]);
 
-        $analyzer = new ValidatorRegexAnalyzer(Regex::create(), 0, 1000);
+        $analyzer = new ValidatorRegexAnalyzer(Regex::create(), 0, 'high');
 
         $issues = $analyzer->analyze($validator, $loader);
 
@@ -53,7 +53,7 @@ final class ValidatorRegexAnalyzerTest extends TestCase
 
         $loader = new FakeLoader([FakeEntity::class]);
 
-        $analyzer = new ValidatorRegexAnalyzer(Regex::create(), 0, 1000);
+        $analyzer = new ValidatorRegexAnalyzer(Regex::create(), 0, 'high');
 
         $issues = $analyzer->analyze($validator, $loader);
 

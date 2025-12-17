@@ -74,7 +74,7 @@ final class AdvancedPcreFeaturesTest extends TestCase
 
         // Invalid numeric callout (too high)
         $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('Callout identifier must be between 0 and 255, got 256 at position 4.');
+        $this->expectExceptionMessage('Callout identifier must be between 0 and 255, got 256.');
         $ast = $regexService->parse('/(?C256)abc/');
         $ast->accept($validator);
     }
@@ -82,7 +82,7 @@ final class AdvancedPcreFeaturesTest extends TestCase
     public function test_it_throws_exception_for_empty_string_callout_identifier(): void
     {
         $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('Callout string identifier cannot be empty at position 4.');
+        $this->expectExceptionMessage('Callout string identifier cannot be empty.');
         $regexService = Regex::create();
         $ast = $regexService->parse('/(?C"")abc/');
         $validator = new ValidatorNodeVisitor();

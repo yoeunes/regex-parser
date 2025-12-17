@@ -24,7 +24,7 @@ final class RouteRequirementAnalyzerTest extends TestCase
     {
         $regex = \RegexParser\Regex::create();
 
-        $analyzer = new RouteRequirementAnalyzer($regex, warningThreshold: 0, redosThreshold: 100000, ignoredPatterns: ['skip']);
+        $analyzer = new RouteRequirementAnalyzer($regex, warningThreshold: 0, redosThreshold: 'high', ignoredPatterns: ['skip']);
 
         $routes = new RouteCollection();
         $routes->add('ignored_route', new Route('/a', [], ['id' => 'skip'])); // ignored by pattern
@@ -41,7 +41,7 @@ final class RouteRequirementAnalyzerTest extends TestCase
     public function test_analyze_ignores_configured_patterns(): void
     {
         $regex = \RegexParser\Regex::create();
-        $analyzer = new RouteRequirementAnalyzer($regex, warningThreshold: 10, redosThreshold: 20, ignoredPatterns: ['foo']);
+        $analyzer = new RouteRequirementAnalyzer($regex, warningThreshold: 10, redosThreshold: 'high', ignoredPatterns: ['foo']);
 
         $routes = new RouteCollection();
         $routes->add('ignored', new Route('/a', [], ['id' => 'foo']));
@@ -52,7 +52,7 @@ final class RouteRequirementAnalyzerTest extends TestCase
     public function test_analyze_skips_trivially_safe_patterns(): void
     {
         $regex = \RegexParser\Regex::create();
-        $analyzer = new RouteRequirementAnalyzer($regex, warningThreshold: 10, redosThreshold: 20);
+        $analyzer = new RouteRequirementAnalyzer($regex, warningThreshold: 10, redosThreshold: 'high');
 
         $routes = new RouteCollection();
         $routes->add('safe', new Route('/a', [], ['id' => 'foo|bar']));

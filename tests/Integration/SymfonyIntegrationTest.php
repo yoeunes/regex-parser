@@ -347,7 +347,7 @@ final class SymfonyIntegrationTest extends TestCase
         $invalidPatterns = [
             '/(?P<invalid/' => 'should mention unclosed or invalid',
             '/(unclosed/' => 'should mention unclosed group',
-            '/\1(foo)/' => 'should mention backreference',
+            '/\2(foo)/' => 'should mention backreference',
         ];
 
         foreach ($invalidPatterns as $pattern => $expected) {

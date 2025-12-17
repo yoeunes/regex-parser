@@ -208,10 +208,7 @@ final class SymfonyCompatibilityTest extends TestCase
         $pattern = '/(?<=\p{L}+)\d+/u';
         $result = $this->regexService->validate($pattern);
 
-        $this->assertTrue(
-            $result->isValid,
-            'Lookbehind with Unicode property should be valid',
-        );
+        $this->assertFalse($result->isValid, 'Unbounded lookbehind should be rejected.');
     }
 
     public function test_nested_lookbehind_with_variable_length(): void
@@ -220,10 +217,7 @@ final class SymfonyCompatibilityTest extends TestCase
         $pattern = '/(?<=(?:foo|bar)+)test/';
         $result = $this->regexService->validate($pattern);
 
-        $this->assertTrue(
-            $result->isValid,
-            'Nested groups with variable-length in lookbehind should be valid',
-        );
+        $this->assertFalse($result->isValid, 'Unbounded lookbehind should be rejected.');
     }
 
     public function test_lookbehind_at_pattern_start(): void
@@ -244,9 +238,6 @@ final class SymfonyCompatibilityTest extends TestCase
         $pattern = '/(?<=a{1,3})b(?<=c+)d/';
         $result = $this->regexService->validate($pattern);
 
-        $this->assertTrue(
-            $result->isValid,
-            'Multiple lookbehinds with different lengths should be valid',
-        );
+        $this->assertFalse($result->isValid, 'Unbounded lookbehind should be rejected.');
     }
 }

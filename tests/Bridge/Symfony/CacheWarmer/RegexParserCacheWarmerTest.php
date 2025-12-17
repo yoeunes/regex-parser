@@ -41,7 +41,7 @@ final class RegexParserCacheWarmerTest extends TestCase
         $logger->method('log')->willReturnCallback(function ($level, $message, $context = []) use (&$loggedRecords): void {
             $loggedRecords[] = ['level' => (string) $level, 'message' => (string) $message];
         });
-        $analyzer = new RouteRequirementAnalyzer(Regex::create(), 0, 0);
+        $analyzer = new RouteRequirementAnalyzer(Regex::create(), 0, 'high');
         $warmup = new RegexParserCacheWarmer($analyzer, new RouteCollectionRouterWithIssue(), $logger);
 
         $warmup->warmUp(sys_get_temp_dir());
@@ -52,7 +52,7 @@ final class RegexParserCacheWarmerTest extends TestCase
 
     public function test_warm_up_is_optional(): void
     {
-        $analyzer = new RouteRequirementAnalyzer(Regex::create(), 0, 0);
+        $analyzer = new RouteRequirementAnalyzer(Regex::create(), 0, 'high');
         $warmup = new RegexParserCacheWarmer($analyzer, null, null);
 
         $this->assertTrue($warmup->isOptional());
@@ -66,12 +66,12 @@ final class RegexParserCacheWarmerTest extends TestCase
         $logger->method('log')->willReturnCallback(function ($level, $message, $context = []) use (&$loggedRecords): void {
             $loggedRecords[] = ['level' => (string) $level, 'message' => (string) $message];
         });
-        $validatorAnalyzer = new ValidatorRegexAnalyzer(Regex::create(), 0, 1000);
+        $validatorAnalyzer = new ValidatorRegexAnalyzer(Regex::create(), 0, 'high');
         $validator = new FakeValidator([new SymfonyRegex(pattern: '(')]);
         $loader = new FakeLoader([FakeValidator::class]);
 
         $warmup = new RegexParserCacheWarmer(
-            new RouteRequirementAnalyzer(Regex::create(), 0, 0),
+            new RouteRequirementAnalyzer(Regex::create(), 0, 'high'),
             null,
             $logger,
             $validatorAnalyzer,

@@ -71,7 +71,7 @@ final class AdvancedFeaturesComplianceTest extends TestCase
 
     public static function provideRecursiveConditionPatterns(): \Iterator
     {
-        yield 'explicit group recursion' => ['/(?(R1)a|b)/'];
+        yield 'explicit group recursion' => ['/((a))(?(R1)a|b)/'];
         yield 'root recursion check' => ['/(?(R)a|b)/'];
     }
 }

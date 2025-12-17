@@ -27,7 +27,7 @@ final class RegexParserValidateCommandTest extends TestCase
     public function test_command_succeeds_with_warnings_when_services_missing(): void
     {
         $command = new RegexParserValidateCommand(
-            new RouteRequirementAnalyzer(Regex::create(), 10, 20),
+            new RouteRequirementAnalyzer(Regex::create(), 10, 'high'),
             router: null,
             validatorAnalyzer: null,
             validator: null,
@@ -47,7 +47,7 @@ final class RegexParserValidateCommandTest extends TestCase
     {
         $regex = Regex::create();
 
-        $routeAnalyzer = new RouteRequirementAnalyzer($regex, 0, 1);
+        $routeAnalyzer = new RouteRequirementAnalyzer($regex, 0, 'high');
         $router = new class implements RouterInterface {
             public function getRouteCollection(): RouteCollection
             {
