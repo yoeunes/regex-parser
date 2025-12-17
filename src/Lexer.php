@@ -61,7 +61,7 @@ final class Lexer
         'T_BACKREF' => '\\\\ (?: k(?:<[a-zA-Z0-9_]+> | \\{[a-zA-Z0-9_]+\\}) | (?<v_backref_num> [1-9]\\d*) )',
         'T_OCTAL_LEGACY' => '\\\\ [0-7]{1,3}',
         'T_OCTAL' => '\\\\ o\\{[0-7]+\\}',
-        'T_UNICODE' => '\\\\ x (?: [0-9a-fA-F]{2} | \\{[0-9a-fA-F]+\\} ) | \\\\ u\\{[0-9a-fA-F]+\\}',
+        'T_UNICODE' => '\\\\ x [0-9a-fA-F]{1,2} | \\\\ u\\{[0-9a-fA-F]+\\} | \\\\ x\\{[0-9a-fA-F]+\\}',
         'T_UNICODE_PROP' => '\\\\ [pP] (?: \\{ (?<v1_prop> \\^? [a-zA-Z0-9_]+) \\} | (?<v2_prop> [a-zA-Z]) )',
         'T_UNICODE_NAMED' => '\\\\ N\\{[a-zA-Z0-9_ ]+\\}',
         'T_CONTROL_CHAR' => '\\\\ c [A-Z]',
@@ -77,7 +77,7 @@ final class Lexer
         'T_CHAR_TYPE' => '\\\\ [dswDSWhvR]',
         'T_OCTAL_LEGACY' => '\\\\ 0[0-7]{0,2}',
         'T_OCTAL' => '\\\\ o\\{[0-7]+\\}',
-        'T_UNICODE' => '\\\\ x (?: [0-9a-fA-F]{2} | \\{[0-9a-fA-F]+\\} ) | \\\\ u\\{[0-9a-fA-F]+\\}',
+        'T_UNICODE' => '\\\\ x [0-9a-fA-F]{1,2} | \\\\ u\\{[0-9a-fA-F]+\\} | \\\\ x\\{[0-9a-fA-F]+\\}',
         'T_UNICODE_PROP' => '\\\\ [pP] (?: \\{ (?<v1_prop> \\^? [a-zA-Z0-9_]+) \\} | (?<v2_prop> [a-zA-Z]) )',
         'T_QUOTE_MODE_START' => '\\\\ Q',
         'T_LITERAL_ESCAPED' => '\\\\ .',
@@ -443,6 +443,7 @@ final class Lexer
             TokenType::T_BACKREF => $matchedValue,
             TokenType::T_OCTAL_LEGACY => substr($matchedValue, 1),
             TokenType::T_POSIX_CLASS => $matches['v_posix'] ?? '',
+            TokenType::T_UNICODE => $this->parseUnicodeEscape($matchedValue),
             TokenType::T_UNICODE_PROP => $this->normalizeUnicodeProp($matchedValue, $matches),
             TokenType::T_UNICODE_NAMED => substr($matchedValue, 3, -1),
             TokenType::T_CONTROL_CHAR => substr($matchedValue, 2),
@@ -450,6 +451,22 @@ final class Lexer
             TokenType::T_CLASS_SUBTRACTION => '--',
             default => $matchedValue,
         };
+    }
+
+    private function parseUnicodeEscape(string $escape): string
+    {
+        if (preg_match('/^\\\\x([0-9a-fA-F]{1,2})$/', $escape, $m)) {
+            return \chr((int) hexdec($m[1]));
+        }
+        if (preg_match('/^\\\\x\\{([0-9a-fA-F]+)\\}$/', $escape, $m)) {
+            return \chr((int) hexdec($m[1]));
+        }
+        if (preg_match('/^\\\\u\\{([0-9a-fA-F]+)\\}$/', $escape, $m)) {
+            return \chr((int) hexdec($m[1]));
+        }
+
+        // fallback
+        return $escape;
     }
 
     /**
