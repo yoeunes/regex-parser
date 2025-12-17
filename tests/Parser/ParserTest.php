@@ -529,6 +529,38 @@ final class ParserTest extends TestCase
         $this->parse('/(?(DEFINE)(?<A>a))(?&A)/');
     }
 
+    #[\PHPUnit\Framework\Attributes\DataProvider('extendedModeProvider')]
+    public function test_parser_handles_extended_mode_whitespace(string $pattern): void
+    {
+        $regex = Regex::create();
+        $ast = $regex->parse($pattern);
+
+        // If we reach here without a "Quantifier without target" exception, the test passes.
+        // The AST should be successfully parsed with extended mode flags.
+        $this->assertStringContainsString('x', $ast->flags);
+    }
+
+    public static function extendedModeProvider(): \Iterator
+    {
+        // Case 1: Simple newline between atom and quantifier
+        yield 'Newline separation' => ['/a
+            ?/x'];
+        // Case 2: Spaces and comments between atom and quantifier
+        yield 'Comments separation' => ['/a  # comment
+            +/x'];
+        // Case 3: Complex Group with newline before quantifier (Symfony AssetMapper Case)
+        yield 'Group with newline' => ['/(?:abc)
+            ?/x'];
+        // Case 4: Character class with newline
+        yield 'Char class newline' => ['/[a-z]
+            {2,}/x'];
+        // Case 5: The actual Symfony AssetMapper Pattern fragment causing the crash
+        yield 'Symfony AssetMapper Fragment' => ['/
+                \s*[\'"`](\.\/[^\'"`\n]++|(\.\.\/)*+[^\'"`\n]++)[\'"`]\s*[;\)]
+                ?
+            /mxu'];
+    }
+
     /**
      * Helper method to parse a regex string using the decoupled Lexer and Parser.
      */
