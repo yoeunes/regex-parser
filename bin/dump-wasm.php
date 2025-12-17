@@ -64,6 +64,11 @@ $autoloader = <<<'PHP'
             require $file;
         }
     });
+
+    // Alias the main Regex class to global namespace for compatibility
+    if (!class_exists('Regex')) {
+        class_alias('RegexParser\\Regex', 'Regex');
+    }
     PHP;
 
 $files['autoload.php'] = $autoloader;

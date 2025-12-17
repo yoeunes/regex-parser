@@ -11,12 +11,17 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-use RegexParser\Exception\ParserException;
-use RegexParser\Exception\PcreRuntimeException;
-use RegexParser\Exception\SemanticErrorException;
-use RegexParser\NodeVisitor\ArrayExplorerVisitor;
-use RegexParser\NodeVisitor\LinterNodeVisitor;
-use RegexParser\Regex;
+// The library is already loaded into WASM filesystem by wasm-client.js
+// Using minimal imports since classes are available in global scope
+
+if (file_exists('/var/www/autoload.php')) {
+    require '/var/www/autoload.php';
+} else {
+    require __DIR__ . '/../vendor/autoload.php';
+    if (!class_exists('Regex')) {
+        class_alias('RegexParser\\Regex', 'Regex');
+    }
+}
 
 error_reporting(\E_ALL);
 ini_set('display_errors', '0');
@@ -31,13 +36,6 @@ ob_start();
 $startedAt = microtime(true);
 
 try {
-    $autoloaderPath = '/var/www/autoload.php';
-    if (!file_exists($autoloaderPath)) {
-        throw new \RuntimeException('Library not loaded: /var/www/autoload.php not found.');
-    }
-
-    require_once $autoloaderPath;
-
     $rawInput = (string) @file_get_contents('php://stdin');
     if ('' === trim($rawInput)) {
         $rawInput = isset($jsonInput) && \is_string($jsonInput) ? $jsonInput : '{}';
@@ -49,7 +47,9 @@ try {
     $action = (string) ($input['action'] ?? 'analyze');
     $regex = (string) ($input['regex'] ?? '');
 
-    $parser = Regex::create();
+    // All RegexParser classes are already available in the WASM filesystem
+    // and have been loaded by wasm-client.js during initialization
+    $parser = \Regex::create();
 
     $result = match ($action) {
         'meta' => [
@@ -105,7 +105,8 @@ try {
 
 echo json_encode($response, \JSON_UNESCAPED_SLASHES | \JSON_UNESCAPED_UNICODE);
 
-function validateAction(Regex $parser, string $regex): array
+// Include all function definitions that were in the original file
+function validateAction($parser, $regex): array
 {
     $validation = $parser->validate($regex);
 
@@ -122,10 +123,10 @@ function validateAction(Regex $parser, string $regex): array
     ];
 }
 
-function lintAction(Regex $parser, string $regex): array
+function lintAction($parser, $regex): array
 {
     $ast = $parser->parse($regex);
-    $linter = new LinterNodeVisitor();
+    $linter = new \RegexParser\NodeVisitor\LinterNodeVisitor();
     $ast->accept($linter);
 
     return [
@@ -142,10 +143,10 @@ function lintAction(Regex $parser, string $regex): array
     ];
 }
 
-function parseAction(Regex $parser, string $regex): array
+function parseAction($parser, $regex): array
 {
     $ast = $parser->parse($regex);
-    $explorer = new ArrayExplorerVisitor();
+    $explorer = new \RegexParser\NodeVisitor\ArrayExplorerVisitor();
 
     return [
         'regex' => $regex,
@@ -154,7 +155,7 @@ function parseAction(Regex $parser, string $regex): array
     ];
 }
 
-function dumpAction(Regex $parser, string $regex): array
+function dumpAction($parser, $regex): array
 {
     return [
         'regex' => $regex,
@@ -162,7 +163,7 @@ function dumpAction(Regex $parser, string $regex): array
     ];
 }
 
-function explainAction(Regex $parser, string $regex): array
+function explainAction($parser, $regex): array
 {
     return [
         'regex' => $regex,
@@ -170,7 +171,7 @@ function explainAction(Regex $parser, string $regex): array
     ];
 }
 
-function visualizeAction(Regex $parser, string $regex): array
+function visualizeAction($parser, $regex): array
 {
     $visualization = $parser->visualize($regex);
 
@@ -180,7 +181,7 @@ function visualizeAction(Regex $parser, string $regex): array
     ];
 }
 
-function optimizeAction(Regex $parser, string $regex): array
+function optimizeAction($parser, $regex): array
 {
     $optimization = $parser->optimize($regex);
 
@@ -192,7 +193,7 @@ function optimizeAction(Regex $parser, string $regex): array
     ];
 }
 
-function modernizeAction(Regex $parser, string $regex): array
+function modernizeAction($parser, $regex): array
 {
     return [
         'regex' => $regex,
@@ -200,7 +201,7 @@ function modernizeAction(Regex $parser, string $regex): array
     ];
 }
 
-function redosAction(Regex $parser, string $regex): array
+function redosAction($parser, $regex): array
 {
     $analysis = $parser->analyzeReDoS($regex);
 
@@ -229,7 +230,7 @@ function redosAction(Regex $parser, string $regex): array
     ];
 }
 
-function literalsAction(Regex $parser, string $regex): array
+function literalsAction($parser, $regex): array
 {
     $literals = $parser->extractLiterals($regex);
     $literalSet = $literals->literalSet;
@@ -246,7 +247,7 @@ function literalsAction(Regex $parser, string $regex): array
     ];
 }
 
-function generateAction(Regex $parser, string $regex): array
+function generateAction($parser, $regex): array
 {
     return [
         'regex' => $regex,
@@ -254,7 +255,7 @@ function generateAction(Regex $parser, string $regex): array
     ];
 }
 
-function testCasesAction(Regex $parser, string $regex): array
+function testCasesAction($parser, $regex): array
 {
     $cases = $parser->generateTestCases($regex);
 
@@ -318,7 +319,7 @@ function matchAction(string $regex, string $subject, int $matchLimit): array
     ];
 }
 
-function analyzeAction(Regex $parser, string $regex, string $subject): array
+function analyzeAction($parser, string $regex, string $subject): array
 {
     return [
         'regex' => $regex,
@@ -366,19 +367,19 @@ function errorToArray(\Throwable $e): array
     $offset = null;
     $caret = null;
 
-    if ($e instanceof ParserException) {
+    if ($e instanceof \RegexParser\Exception\ParserException) {
         $offset = $e->getPosition();
         $caret = $e->getVisualSnippet() !== '' ? $e->getVisualSnippet() : null;
         $category = 'syntax';
     }
 
-    if ($e instanceof SemanticErrorException) {
+    if ($e instanceof \RegexParser\Exception\SemanticErrorException) {
         $category = 'semantic';
         $hint = $e->getHint();
         $code = $e->getErrorCode();
     }
 
-    if ($e instanceof PcreRuntimeException) {
+    if ($e instanceof \RegexParser\Exception\PcreRuntimeException) {
         $category = 'pcre-runtime';
         $code = $e->getErrorCode();
     }
@@ -393,3 +394,5 @@ function errorToArray(\Throwable $e): array
         'code' => $code,
     ];
 }
+
+
