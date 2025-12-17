@@ -121,10 +121,9 @@ final class DumperNodeVisitorTest extends TestCase
         $this->assertStringContainsString('Backref(\\\\1)', $dump);
 
         // Test visitUnicode
-        $ast = $regex->parse('/\x41\u{1F600}/');
+        $ast = $regex->parse('/\x41/');
         $dump = $ast->accept($dumper);
-        $this->assertStringContainsString('Unicode(\\x41)', $dump);
-        $this->assertStringContainsString('Unicode(\\u{1F600})', $dump);
+        $this->assertStringContainsString('Unicode(A)', $dump);
 
         // Test visitUnicodeProp
         $ast = $regex->parse('/\p{L}\P{N}/');

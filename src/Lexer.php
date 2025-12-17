@@ -456,16 +456,13 @@ final class Lexer
     private function parseUnicodeEscape(string $escape): string
     {
         if (preg_match('/^\\\\x([0-9a-fA-F]{1,2})$/', $escape, $m)) {
-            return \chr((int) hexdec($m[1]));
-        }
-        if (preg_match('/^\\\\x\\{([0-9a-fA-F]+)\\}$/', $escape, $m)) {
-            return \chr((int) hexdec($m[1]));
-        }
-        if (preg_match('/^\\\\u\\{([0-9a-fA-F]+)\\}$/', $escape, $m)) {
-            return \chr((int) hexdec($m[1]));
+            $code = (int) hexdec($m[1]);
+            if ($code <= 0xFF) {
+                return \chr($code);
+            }
         }
 
-        // fallback
+        // For other cases, keep as string
         return $escape;
     }
 
