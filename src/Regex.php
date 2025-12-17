@@ -229,6 +229,9 @@ final readonly class Regex
      */
     public function extractPatternAndFlags(string $regex): array
     {
+        // Trim leading whitespace to match PHP's PCRE behavior
+        $regex = ltrim($regex);
+
         $len = \strlen($regex);
         if ($len < 2) {
             throw new ParserException('Regex is too short. It must include delimiters.');
