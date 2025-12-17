@@ -11,7 +11,8 @@ parametersSchema:
         # Configuration for specific optimizations
         optimizationConfig: structure([
             digits: bool(),
-            word: bool()
+            word: bool(),
+            strictRanges: bool()
         ])
     ])
 
@@ -34,6 +35,7 @@ parameters:
         optimizationConfig:
             digits: true
             word: true
+            strictRanges: true
 
 services:
     # Main regex validation rule for PHPStan

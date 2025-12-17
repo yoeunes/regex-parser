@@ -85,17 +85,17 @@ final class PregValidationRule implements Rule
     private ?ReDoSAnalyzer $redosAnalyzer = null;
 
     /**
-     * @param bool                            $ignoreParseErrors  Ignore parse errors for partial regex strings
-     * @param bool                            $reportRedos        Report ReDoS vulnerability analysis
-     * @param string                          $redosThreshold     Minimum ReDoS severity level to report
-     * @param array{digits: bool, word: bool} $optimizationConfig
+     * @param bool                                                $ignoreParseErrors  Ignore parse errors for partial regex strings
+     * @param bool                                                $reportRedos        Report ReDoS vulnerability analysis
+     * @param string                                              $redosThreshold     Minimum ReDoS severity level to report
+     * @param array{digits: bool, word: bool, strictRanges: bool} $optimizationConfig
      */
     public function __construct(
         private readonly bool $ignoreParseErrors = true,
         private readonly bool $reportRedos = true,
         private readonly string $redosThreshold = 'high',
         private readonly bool $suggestOptimizations = false,
-        private readonly array $optimizationConfig = ['digits' => true, 'word' => true],
+        private readonly array $optimizationConfig = ['digits' => true, 'word' => true, 'strictRanges' => true],
     ) {}
 
     public function getNodeType(): string
@@ -268,6 +268,7 @@ final class PregValidationRule implements Rule
                 $optimizer = new \RegexParser\NodeVisitor\OptimizerNodeVisitor(
                     optimizeDigits: (bool) ($this->optimizationConfig['digits'] ?? true),
                     optimizeWord: (bool) ($this->optimizationConfig['word'] ?? true),
+                    strictRanges: (bool) ($this->optimizationConfig['strictRanges'] ?? true),
                 );
                 $optimizedAst = $ast->accept($optimizer);
                 // Use compiler to get string back

@@ -34,7 +34,8 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
 
     public function __construct(
         private readonly bool $optimizeDigits = true,
-        private readonly bool $optimizeWord = true
+        private readonly bool $optimizeWord = true,
+        private readonly bool $strictRanges = true
     ) {
         $this->charSetAnalyzer = new CharSetAnalyzer();
     }
@@ -574,6 +575,28 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
     }
 
     /**
+     * Classify a character by its ASCII category for range merging.
+     *
+     * @param int $ord the ASCII ordinal of the character
+     *
+     * @return int category: 0=other, 1=digits, 2=uppercase, 3=lowercase
+     */
+    private function getCharCategory(int $ord): int
+    {
+        if ($ord >= 48 && $ord <= 57) { // 0-9
+            return 1;
+        }
+        if ($ord >= 65 && $ord <= 90) { // A-Z
+            return 2;
+        }
+        if ($ord >= 97 && $ord <= 122) { // a-z
+            return 3;
+        }
+
+        return 0; // other
+    }
+
+    /**
      * @param array<Node\NodeInterface> $parts
      *
      * @return array{0: array<Node\NodeInterface>, 1: bool}
@@ -654,7 +677,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
                 continue;
             }
 
-            if ($ord === $rangeEnd + 1) {
+            if ($ord === $rangeEnd + 1 && (!$this->strictRanges || $this->getCharCategory($ord) === $this->getCharCategory($rangeEnd))) {
                 $rangeEnd = $ord;
                 $rangeEndPos = max($rangeEndPos, $posEnd);
 
