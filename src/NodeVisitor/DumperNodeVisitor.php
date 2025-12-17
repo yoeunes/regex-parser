@@ -339,6 +339,7 @@ final class DumperNodeVisitor extends AbstractNodeVisitor
             Node\CharLiteralType::UNICODE_NAMED => 'UnicodeNamed',
         };
 
+        // For display, use original representation to show the escape
         return "{$type}({$node->originalRepresentation})";
     }
 

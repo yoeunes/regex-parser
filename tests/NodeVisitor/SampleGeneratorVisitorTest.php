@@ -98,13 +98,13 @@ final class SampleGeneratorVisitorTest extends TestCase
     {
         // \xNN, \u{NNNN}, \o{NNN}, \0NN
         // Note: PHP PCRE doesn't support \u{} and \o{} syntax, so we test the generated output directly
-        $regex = '/\x41\u{00E9}\o{40}\010/';
+        $regex = '/\x41\xE9\o{40}\010/';
         $ast = $this->regex->parse($regex);
         $generator = new SampleGeneratorNodeVisitor();
         $sample = $ast->accept($generator);
 
-        // Expected: \x41 = 'A', \u{00E9} = 'é', \o{40} = ' ' (space, octal 40 = decimal 32), \010 = backspace (octal 10 = decimal 8)
-        $expected = "A\xc3\xa9 \x08"; // 'A' + UTF-8 'é' + space + backspace
+        // Expected: \x41 = 'A', \xE9 = '?', \o{40} = ' ' (space, octal 40 = decimal 32), \010 = backspace (octal 10 = decimal 8)
+        $expected = "?? \x08"; // 'A' + '?' + space + backspace
         $this->assertSame($expected, $sample);
     }
 

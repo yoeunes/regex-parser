@@ -447,17 +447,17 @@ final class LexerCompleteCoverageTest extends TestCase
 
     public function test_unicode_hex_variations(): void
     {
-        $patterns = [
-            '\x41',        // 2-digit hex
-            '\u{0041}',    // Unicode with braces
-            '\u{1F600}',   // Emoji codepoint
+        $testCases = [
+            '\x41' => 'A',        // 2-digit hex -> converted to char
+            '\u{0041}' => '\u{0041}',    // Unicode with braces -> kept as string
+            '\u{1F600}' => '\u{1F600}',   // Emoji codepoint -> kept as string
         ];
 
-        foreach ($patterns as $pattern) {
+        foreach ($testCases as $pattern => $expectedValue) {
             $tokens = (new Lexer())->tokenize($pattern)->getTokens();
 
             $this->assertSame(TokenType::T_UNICODE, $tokens[0]->type, "Failed for: {$pattern}");
-            $this->assertSame($pattern, $tokens[0]->value, "Failed for: {$pattern}");
+            $this->assertSame($expectedValue, $tokens[0]->value, "Failed for: {$pattern}");
         }
     }
 

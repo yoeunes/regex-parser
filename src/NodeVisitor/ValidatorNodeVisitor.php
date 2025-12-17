@@ -682,7 +682,17 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
 
     private function validateUnicode(Node\CharLiteralNode $node): void
     {
-        if ($node->codePoint > 0x10FFFF) {
+        // Parse codePoint from the escape string
+        $rep = $node->originalRepresentation;
+        if (preg_match('/^\\\\x([0-9a-fA-F]{1,2})$/', $rep, $m)) {
+            $codePoint = (int) hexdec($m[1]);
+        } elseif (preg_match('/^\\\\(x|u)\\{([0-9a-fA-F]+)\\}$/', $rep, $m)) {
+            $codePoint = (int) hexdec($m[2]);
+        } else {
+            return; // Invalid format, skip
+        }
+
+        if ($codePoint > 0x10FFFF) {
             throw new ParserException(\sprintf('Invalid Unicode codepoint "%s" (out of range) at position %d.', $node->originalRepresentation, $node->startPosition));
         }
     }
