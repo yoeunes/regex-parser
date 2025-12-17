@@ -19,6 +19,7 @@
 /.gitmessage            export-ignore
 
 # Development tools and configs
+/bin/dump-wasm.php      export-ignore
 /bin/php-cs-fixer       export-ignore
 /bin/phpbench           export-ignore
 /bin/phpcs              export-ignore

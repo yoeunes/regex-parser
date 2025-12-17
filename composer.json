@@ -61,6 +61,7 @@
     "archive": {
         "exclude": [
             ".github",
+            "bin/dump-wasm.php",
             "bin/php-cs-fixer",
             "bin/phpbench",
             "bin/phpcs",

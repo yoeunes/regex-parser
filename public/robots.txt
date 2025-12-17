@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://yoeunes.github.io/regex-parser/sitemap.xml
