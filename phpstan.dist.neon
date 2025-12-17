@@ -7,7 +7,9 @@ includes:
 
 parameters:
     level: max
+
     tmpDir: .cache/phpstan
+
     treatPhpDocTypesAsCertain: false
 
     paths:
