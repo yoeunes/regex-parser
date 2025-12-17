@@ -32,12 +32,5 @@ parameters:
         - tests/Integration/PregFunctionCompatibilityTest.php
         - tests/Bridge/Symfony/RegexParserBundleTest.php
         - tests/Bridge/Symfony/CacheWarmer/RegexParserCacheWarmerTest.php
-        - vendor/*
-        - tools/*/vendor/*
-        - .cache/*
-        - var/*
-
-    bootstrapFiles:
-        - tools/phpstan/vendor/autoload.php
 
     editorUrl: 'phpstorm://open?file=%%file%%&line=%%line%%'
