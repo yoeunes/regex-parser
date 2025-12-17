@@ -729,12 +729,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
 
     private function validateOctalLegacy(Node\CharLiteralNode $node): void
     {
-        // \0 is not allowed as it represents the NULL character
-        if (0 === $node->codePoint) {
-            throw new ParserException('Octal escape \0 is not allowed');
-        }
-
-        // Legacy octal is also limited to 0-255 in practice
+        // Legacy octal is limited to 0-255 in practice (including \0 for null byte)
         if ($node->codePoint > 0xFF) {
             throw new ParserException(\sprintf('Invalid legacy octal codepoint "%s" (out of range) at position %d.', $node->originalRepresentation, $node->startPosition));
         }

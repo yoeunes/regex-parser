@@ -171,10 +171,10 @@ final class ValidatorNodeVisitorTest extends TestCase
         $this->validate('/[\d-z]/');
     }
 
-    public function test_throws_on_backref_to_group_zero(): void
+    #[\PHPUnit\Framework\Attributes\DoesNotPerformAssertions]
+    public function test_allows_octal_zero_escape_in_validator(): void
     {
-        $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('Octal escape \0 is not allowed');
+        // \0 is now allowed as it represents the null byte
         $this->validate('/\0/');
     }
 
@@ -229,10 +229,10 @@ final class ValidatorNodeVisitorTest extends TestCase
         $this->validate('/\999/');
     }
 
-    public function test_throws_on_octal_zero_escape(): void
+    #[\PHPUnit\Framework\Attributes\DoesNotPerformAssertions]
+    public function test_allows_octal_zero_escape(): void
     {
-        $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('Octal escape \0 is not allowed');
+        // \0 is now allowed as it represents the null byte
         $this->validate('/\0/');
     }
 

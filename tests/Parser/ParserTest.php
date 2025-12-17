@@ -561,6 +561,21 @@ final class ParserTest extends TestCase
             /mxu'];
     }
 
+    public function test_parser_handles_null_byte_escape(): void
+    {
+        // Case 1: Null byte in a group
+        $result = $this->regex->validate('/(\0)/');
+        $this->assertTrue($result->isValid());
+
+        // Case 2: Null byte in a character class (The Symfony case)
+        $result2 = $this->regex->validate('/[^\0]/');
+        $this->assertTrue($result2->isValid());
+
+        // Case 3: Null byte followed by non-digit
+        $result3 = $this->regex->validate('/\0a/');
+        $this->assertTrue($result3->isValid());
+    }
+
     /**
      * Helper method to parse a regex string using the decoupled Lexer and Parser.
      */
