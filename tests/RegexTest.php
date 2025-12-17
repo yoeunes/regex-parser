@@ -125,7 +125,6 @@ final class RegexTest extends TestCase
         $ast = $regex->parse($patternWithWhitespace);
 
         // Should successfully parse and recognize '/' as delimiter
-        $this->assertInstanceOf(\RegexParser\Node\RegexNode::class, $ast);
         $this->assertSame('/', $ast->delimiter);
 
         // The pattern should be equivalent to the trimmed version
