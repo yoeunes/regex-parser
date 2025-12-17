@@ -533,4 +533,26 @@ final class OptimizerNodeVisitorTest extends TestCase
         $resultWordEnabled = $optimizedWordEnabled->accept($compiler);
         $this->assertSame('/\w/', $resultWordEnabled, 'Word optimization should work when enabled');
     }
+
+    public function test_strict_ranges_option(): void
+    {
+        $regex = Regex::create();
+        $compiler = new CompilerNodeVisitor();
+
+        // Test strict ranges (default): prevent merging different categories
+        $ast = $regex->parse('/[0-9:]/');
+        $optimizerStrict = new OptimizerNodeVisitor(strictRanges: true);
+        $optimizedStrict = $ast->accept($optimizerStrict);
+        $resultStrict = $optimizedStrict->accept($compiler);
+        // Should remain [0-9:] or equivalent, not [0-: ]
+        $this->assertStringStartsWith('/[', $resultStrict);
+        $this->assertStringEndsWith(']/', $resultStrict);
+        $this->assertNotSame('/[0-:]/', $resultStrict, 'Strict ranges should not merge digits and symbols');
+
+        // Test loose ranges: allow merging different categories
+        $optimizerLoose = new OptimizerNodeVisitor(strictRanges: false);
+        $optimizedLoose = $ast->accept($optimizerLoose);
+        $resultLoose = $optimizedLoose->accept($compiler);
+        $this->assertSame('/[0-:]/', $resultLoose, 'Loose ranges should merge digits and symbols');
+    }
 }

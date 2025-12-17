@@ -499,6 +499,7 @@ parameters:
         optimizationConfig:
             digits: true
             word: true
+            strictRanges: true
 ```
 
 * Options mirror the PHPStan bridge:
@@ -509,6 +510,7 @@ parameters:
   * `suggestOptimizations` — surface shorter equivalent patterns when found (default: `false`).
   * `optimizationConfig.digits` — enable `[0-9]` → `\d` optimization suggestions (default: `true`).
   * `optimizationConfig.word` — enable `[a-zA-Z0-9_]` → `\w` optimization suggestions (default: `true`).
+  * `optimizationConfig.strictRanges` — prevent merging characters from different categories (digits, letters, symbols) into single ranges for better readability (default: `true`).
 
 ### Psalm
 
