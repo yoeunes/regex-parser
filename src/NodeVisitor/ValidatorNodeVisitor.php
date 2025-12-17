@@ -16,8 +16,6 @@ namespace RegexParser\NodeVisitor;
 use RegexParser\Exception\ParserException;
 use RegexParser\Node;
 use RegexParser\Node\GroupType;
-use RegexParser\Node\QuantifierType;
-use RegexParser\ReDoS\CharSetAnalyzer;
 
 /**
  * High-performance validator for regex Abstract Syntax Trees with intelligent caching and optimization.
@@ -55,7 +53,6 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     ];
 
     // Optimized state management with minimal memory footprint
-    private int $quantifierDepth = 0;
 
     private bool $inLookbehind = false;
 
@@ -83,15 +80,12 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
      */
     private static array $quantifierBoundsCache = [];
 
-    public function __construct(
-        private readonly CharSetAnalyzer $charSetAnalyzer = new CharSetAnalyzer(),
-    ) {}
+    public function __construct() {}
 
     #[\Override]
     public function visitRegex(Node\RegexNode $node): void
     {
         // Fast state reset with minimal allocations
-        $this->quantifierDepth = 0;
         $this->inLookbehind = false;
         $this->groupCount = 0;
         $this->namedGroups = [];
@@ -198,33 +192,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
             ));
         }
 
-        $isUnbounded = -1 === $max;
-        $isPossessive = QuantifierType::T_POSSESSIVE === $node->type;
-
-        // Optimized ReDoS detection with early returns
-        if ($isUnbounded && !$isPossessive) {
-            $hasBoundarySeparator = $this->hasMutuallyExclusiveBoundary($this->previousNode, $node->node);
-
-            if ($this->quantifierDepth > 0 && !$hasBoundarySeparator) {
-                throw new ParserException(\sprintf(
-                    'Potential catastrophic backtracking (ReDoS): nested unbounded quantifier "%s" at position %d.',
-                    $node->quantifier,
-                    $node->startPosition,
-                ));
-            }
-
-            if (!$hasBoundarySeparator) {
-                $this->quantifierDepth++;
-            }
-
-            $node->node->accept($this);
-
-            if (!$hasBoundarySeparator) {
-                $this->quantifierDepth--;
-            }
-        } else {
-            $node->node->accept($this);
-        }
+        $node->node->accept($this);
     }
 
     /**
@@ -751,25 +719,6 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
 
         // PREG_NO_ERROR means it compiled successfully
         return false !== $result && \PREG_NO_ERROR === $error;
-    }
-
-    /**
-     * Detects if the trailing set of a previous atom and the leading set of the current atom do not overlap.
-     */
-    private function hasMutuallyExclusiveBoundary(?Node\NodeInterface $previous, Node\NodeInterface $current): bool
-    {
-        if (null === $previous) {
-            return false;
-        }
-
-        $previousTail = $this->charSetAnalyzer->lastChars($previous);
-        $currentHead = $this->charSetAnalyzer->firstChars($current);
-
-        if ($previousTail->isUnknown() || $currentHead->isUnknown()) {
-            return false;
-        }
-
-        return !$previousTail->intersects($currentHead);
     }
 
     /**
