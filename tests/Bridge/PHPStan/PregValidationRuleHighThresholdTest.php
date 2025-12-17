@@ -43,6 +43,11 @@ final class PregValidationRuleHighThresholdTest extends RuleTestCase
                 'Read more about catastrophic backtracking: https://github.com/yoeunes/regex-parser/blob/master/docs/reference.md#catastrophic-backtracking',
                 23,
             ],
+            [
+                'Nested quantifiers can cause catastrophic backtracking.',
+                23,
+                "Consider using atomic groups (?>...) or possessive quantifiers.\nRead more: https://github.com/yoeunes/regex-parser/blob/master/docs/reference.md#nested-quantifiers",
+            ],
             // Note: MEDIUM ReDoS on line 24 is filtered out by 'high' threshold
             [
                 'Regex syntax error: No closing delimiter "/" found. (Pattern: "/foo1")',

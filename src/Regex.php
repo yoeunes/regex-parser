@@ -161,7 +161,36 @@ final readonly class Regex
     {
         $result = $this->validate($regex);
         if (!$result->isValid()) {
-            throw new ParserException($result->getErrorMessage() ?? 'Invalid regex pattern.');
+            $message = $result->getErrorMessage() ?? 'Invalid regex pattern.';
+            $offset = $result->getErrorOffset();
+            $pattern = null;
+
+            try {
+                [$pattern] = $this->extractPatternAndFlags($regex);
+            } catch (ParserException) {
+                $pattern = null;
+            }
+
+            if (ValidationErrorCategory::SEMANTIC === $result->getErrorCategory()) {
+                throw new Exception\SemanticErrorException(
+                    $message,
+                    $result->getErrorCode() ?? 'regex.semantic',
+                    $result->getHint(),
+                    $offset,
+                    $pattern,
+                );
+            }
+
+            if (ValidationErrorCategory::PCRE_RUNTIME === $result->getErrorCategory()) {
+                throw new Exception\PcreRuntimeException(
+                    $message,
+                    $result->getErrorCode(),
+                    $offset,
+                    $pattern,
+                );
+            }
+
+            throw new ParserException($message, $offset, $pattern);
         }
     }
 
