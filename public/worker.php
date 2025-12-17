@@ -11,206 +11,385 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-// Ensure we are in the WASM environment
+use RegexParser\Exception\ParserException;
+use RegexParser\Exception\PcreRuntimeException;
+use RegexParser\Exception\SemanticErrorException;
+use RegexParser\NodeVisitor\ArrayExplorerVisitor;
+use RegexParser\NodeVisitor\LinterNodeVisitor;
+use RegexParser\Regex;
+
+error_reporting(\E_ALL);
+ini_set('display_errors', '0');
+ini_set('html_errors', '0');
+
+// Ensure STDERR exists (php-wasm may not define it).
 if (!\defined('STDERR')) {
     \define('STDERR', fopen('php://stderr', 'w'));
 }
 
-// 1. Bootstrap the environment
-// The autoloader is injected into /var/www/autoload.php by the JS frontend
-$autoloaderPath = '/var/www/autoload.php';
-
-if (!file_exists($autoloaderPath)) {
-    echo json_encode([
-        'error' => 'Library not loaded. The autoloader was not found in the WASM filesystem.',
-    ]);
-    exit(1);
-}
-
-require_once $autoloaderPath;
-
-use RegexParser\Exception\LexerException;
-use RegexParser\Exception\ParserException;
-use RegexParser\NodeVisitor\ArrayExplorerVisitor;
-use RegexParser\Regex;
-
-// 2. Parse Input
-// In the PHP-WASM environment, we inject the input as a variable $jsonInput
-// to avoid issues with php://stdin stream blocking in some runtimes.
-$rawInput = $jsonInput ?? '{}';
+ob_start();
+$startedAt = microtime(true);
 
 try {
+    $autoloaderPath = '/var/www/autoload.php';
+    if (!file_exists($autoloaderPath)) {
+        throw new \RuntimeException('Library not loaded: /var/www/autoload.php not found.');
+    }
+
+    require_once $autoloaderPath;
+
+    $rawInput = (string) @file_get_contents('php://stdin');
+    if ('' === trim($rawInput)) {
+        $rawInput = isset($jsonInput) && \is_string($jsonInput) ? $jsonInput : '{}';
+    }
+
+    /** @var array<string, mixed> $input */
     $input = json_decode($rawInput, true, 512, \JSON_THROW_ON_ERROR);
-} catch (JsonException $e) {
-    echo json_encode(['error' => 'Invalid JSON input: '.$e->getMessage()]);
-    exit(1);
-}
 
-$regex = $input['regex'] ?? '';
-$action = $input['action'] ?? 'parse';
-$response = ['error' => null, 'result' => null];
+    $action = (string) ($input['action'] ?? 'analyze');
+    $regex = (string) ($input['regex'] ?? '');
 
-// 3. Process Request
-if ('' !== $regex) {
-    try {
-        $parser = Regex::create();
+    $parser = Regex::create();
 
-        switch ($action) {
-            case 'parse':
-                $ast = $parser->parse($regex);
-                $explorer = new ArrayExplorerVisitor();
-                $treeData = $ast->accept($explorer);
+    $result = match ($action) {
+        'meta' => [
+            'phpVersion' => \PHP_VERSION,
+            'pcreVersion' => \defined('PCRE_VERSION') ? (string) \PCRE_VERSION : null,
+            'engine' => 'php-wasm',
+        ],
+        'analyze' => analyzeAction(
+            $parser,
+            $regex,
+            (string) ($input['subject'] ?? ''),
+        ),
+        'validate' => validateAction($parser, $regex),
+        'lint' => lintAction($parser, $regex),
+        'parse' => parseAction($parser, $regex),
+        'dump' => dumpAction($parser, $regex),
+        'explain' => explainAction($parser, $regex),
+        'visualize' => visualizeAction($parser, $regex),
+        'optimize' => optimizeAction($parser, $regex),
+        'modernize' => modernizeAction($parser, $regex),
+        'redos' => redosAction($parser, $regex),
+        'literals' => literalsAction($parser, $regex),
+        'generate' => generateAction($parser, $regex),
+        'testcases' => testCasesAction($parser, $regex),
+        'match' => matchAction($regex, (string) ($input['subject'] ?? ''), (int) ($input['matchLimit'] ?? 1000)),
+        default => throw new \InvalidArgumentException(\sprintf('Unknown action "%s".', $action)),
+    };
 
-                // Server-Side Rendering (SSR) of the AST Tree
-                // We render HTML here to keep the frontend JS lightweight and logic-free.
-                ob_start();
-                renderTree($treeData);
-                $htmlTree = ob_get_clean();
-
-                $response['result'] = [
-                    'type' => 'parse',
-                    'html_tree' => $htmlTree,
-                    'raw' => $parser->dump($regex),
-                    'flags' => $ast->flags,
-                ];
-
-                break;
-
-            case 'validate':
-                $res = $parser->validate($regex);
-                $response['result'] = [
-                    'type' => 'validate',
-                    'isValid' => $res->isValid,
-                    'error' => $res->error,
-                    'score' => $res->complexityScore,
-                ];
-
-                break;
-
-            case 'explain':
-                $response['result'] = [
-                    'type' => 'explain',
-                    'explanation' => $parser->explain($regex),
-                ];
-
-                break;
-
-            case 'generate':
-                $response['result'] = [
-                    'type' => 'generate',
-                    'sample' => $parser->generate($regex),
-                ];
-
-                break;
-
-            case 'redos':
-                $analysis = $parser->analyzeReDoS($regex);
-                $response['result'] = [
-                    'type' => 'redos',
-                    'severity' => $analysis->severity->value,
-                    'score' => $analysis->score,
-                    'isSafe' => $analysis->isSafe(),
-                    'recommendations' => $analysis->recommendations,
-                ];
-
-                break;
-
-            case 'literals':
-                $literals = $parser->extractLiterals($regex);
-                $literalSet = $literals->literalSet;
-                $response['result'] = [
-                    'type' => 'literals',
-                    'literals' => $literals->literals,
-                    'patterns' => $literals->patterns,
-                    'confidence' => $literals->confidence,
-                    'prefixes' => $literalSet->prefixes,
-                    'suffixes' => $literalSet->suffixes,
-                    'longestPrefix' => $literalSet->getLongestPrefix(),
-                    'longestSuffix' => $literalSet->getLongestSuffix(),
-                ];
-
-                break;
-
-            default:
-                throw new \InvalidArgumentException(\sprintf('Unknown action "%s".', $action));
-        }
-    } catch (ParserException|LexerException|\Throwable $e) {
-        $response['error'] = $e->getMessage();
+    $response = [
+        'ok' => true,
+        'result' => $result,
+        'error' => null,
+        'meta' => [
+            'action' => $action,
+            'durationMs' => (int) round((microtime(true) - $startedAt) * 1000),
+        ],
+    ];
+} catch (\Throwable $e) {
+    $response = [
+        'ok' => false,
+        'result' => null,
+        'error' => errorToArray($e),
+        'meta' => [
+            'durationMs' => (int) round((microtime(true) - $startedAt) * 1000),
+        ],
+    ];
+} finally {
+    $strayOutput = trim(ob_get_clean() ?: '');
+    if ('' !== $strayOutput) {
+        $response['meta']['strayOutput'] = $strayOutput;
     }
 }
 
-// 4. Output JSON Response
-echo json_encode($response);
+echo json_encode($response, \JSON_UNESCAPED_SLASHES | \JSON_UNESCAPED_UNICODE);
+
+function validateAction(Regex $parser, string $regex): array
+{
+    $validation = $parser->validate($regex);
+
+    return [
+        'regex' => $regex,
+        'isValid' => $validation->isValid,
+        'complexityScore' => $validation->complexityScore,
+        'error' => $validation->error,
+        'category' => $validation->getErrorCategory()?->value,
+        'offset' => $validation->getErrorOffset(),
+        'caret' => $validation->getCaretSnippet(),
+        'hint' => $validation->getHint(),
+        'code' => $validation->getErrorCode(),
+    ];
+}
+
+function lintAction(Regex $parser, string $regex): array
+{
+    $ast = $parser->parse($regex);
+    $linter = new LinterNodeVisitor();
+    $ast->accept($linter);
+
+    return [
+        'regex' => $regex,
+        'issues' => array_map(
+            static fn (\RegexParser\LintIssue $issue): array => [
+                'id' => $issue->id,
+                'message' => $issue->message,
+                'offset' => $issue->offset,
+                'hint' => $issue->hint,
+            ],
+            $linter->getIssues(),
+        ),
+    ];
+}
+
+function parseAction(Regex $parser, string $regex): array
+{
+    $ast = $parser->parse($regex);
+    $explorer = new ArrayExplorerVisitor();
+
+    return [
+        'regex' => $regex,
+        'flags' => $ast->flags,
+        'tree' => $ast->accept($explorer),
+    ];
+}
+
+function dumpAction(Regex $parser, string $regex): array
+{
+    return [
+        'regex' => $regex,
+        'dump' => $parser->dump($regex),
+    ];
+}
+
+function explainAction(Regex $parser, string $regex): array
+{
+    return [
+        'regex' => $regex,
+        'explanation' => $parser->explain($regex),
+    ];
+}
+
+function visualizeAction(Regex $parser, string $regex): array
+{
+    $visualization = $parser->visualize($regex);
+
+    return [
+        'regex' => $regex,
+        'mermaid' => $visualization->mermaid,
+    ];
+}
+
+function optimizeAction(Regex $parser, string $regex): array
+{
+    $optimization = $parser->optimize($regex);
+
+    return [
+        'regex' => $regex,
+        'optimized' => $optimization->optimized,
+        'changes' => $optimization->changes,
+        'isChanged' => $optimization->isChanged(),
+    ];
+}
+
+function modernizeAction(Regex $parser, string $regex): array
+{
+    return [
+        'regex' => $regex,
+        'modernized' => $parser->modernize($regex),
+    ];
+}
+
+function redosAction(Regex $parser, string $regex): array
+{
+    $analysis = $parser->analyzeReDoS($regex);
+
+    return [
+        'regex' => $regex,
+        'severity' => $analysis->severity->value,
+        'score' => $analysis->score,
+        'isSafe' => $analysis->isSafe(),
+        'vulnerableSubpattern' => $analysis->getVulnerableSubpattern(),
+        'trigger' => $analysis->trigger,
+        'confidence' => $analysis->confidence?->value,
+        'falsePositiveRisk' => $analysis->falsePositiveRisk,
+        'recommendations' => $analysis->recommendations,
+        'findings' => array_map(
+            static fn (\RegexParser\ReDoS\ReDoSFinding $finding): array => [
+                'severity' => $finding->severity->value,
+                'message' => $finding->message,
+                'pattern' => $finding->pattern,
+                'trigger' => $finding->trigger,
+                'suggestedRewrite' => $finding->suggestedRewrite,
+                'confidence' => $finding->confidence->value,
+                'falsePositiveRisk' => $finding->falsePositiveRisk,
+            ],
+            $analysis->findings,
+        ),
+    ];
+}
+
+function literalsAction(Regex $parser, string $regex): array
+{
+    $literals = $parser->extractLiterals($regex);
+    $literalSet = $literals->literalSet;
+
+    return [
+        'regex' => $regex,
+        'confidence' => $literals->confidence,
+        'literals' => $literals->literals,
+        'patterns' => $literals->patterns,
+        'prefixes' => $literalSet->prefixes,
+        'suffixes' => $literalSet->suffixes,
+        'longestPrefix' => $literalSet->getLongestPrefix(),
+        'longestSuffix' => $literalSet->getLongestSuffix(),
+    ];
+}
+
+function generateAction(Regex $parser, string $regex): array
+{
+    return [
+        'regex' => $regex,
+        'sample' => $parser->generate($regex),
+    ];
+}
+
+function testCasesAction(Regex $parser, string $regex): array
+{
+    $cases = $parser->generateTestCases($regex);
+
+    return [
+        'regex' => $regex,
+        'matching' => $cases->matching,
+        'nonMatching' => $cases->nonMatching,
+        'notes' => $cases->notes,
+    ];
+}
+
+function matchAction(string $regex, string $subject, int $matchLimit): array
+{
+    if ($matchLimit < 1) {
+        $matchLimit = 1;
+    }
+
+    if (\strlen($subject) > 250_000) {
+        throw new \RuntimeException('Subject is too large (max 250k).');
+    }
+
+    $matches = [];
+    $ok = @preg_match_all($regex, $subject, $matches, \PREG_SET_ORDER | \PREG_OFFSET_CAPTURE);
+    if (false === $ok) {
+        $msg = preg_last_error_msg();
+        throw new \RuntimeException('PCRE error: '.($msg !== '' ? $msg : 'Unknown error.'));
+    }
+
+    $normalized = [];
+    foreach ($matches as $matchIndex => $match) {
+        if ($matchIndex >= $matchLimit) {
+            break;
+        }
+
+        $groups = [];
+        foreach ($match as $key => $value) {
+            if (!\is_array($value) || 2 !== \count($value)) {
+                continue;
+            }
+
+            [$text, $offset] = $value;
+            $groups[] = [
+                'key' => $key,
+                'text' => $text,
+                'offset' => $offset,
+                'length' => \is_string($text) ? \strlen($text) : null,
+            ];
+        }
+
+        $normalized[] = [
+            'index' => $matchIndex,
+            'groups' => $groups,
+        ];
+    }
+
+    return [
+        'regex' => $regex,
+        'subject' => $subject,
+        'matchCount' => \count($matches),
+        'matches' => $normalized,
+    ];
+}
+
+function analyzeAction(Regex $parser, string $regex, string $subject): array
+{
+    return [
+        'regex' => $regex,
+        'subject' => $subject,
+        'match' => safeAction(static fn (): array => matchAction($regex, $subject, 1000)),
+        'validate' => safeAction(static fn (): array => validateAction($parser, $regex)),
+        'lint' => safeAction(static fn (): array => lintAction($parser, $regex)),
+        'redos' => safeAction(static fn (): array => redosAction($parser, $regex)),
+        'optimize' => safeAction(static fn (): array => optimizeAction($parser, $regex)),
+        'literals' => safeAction(static fn (): array => literalsAction($parser, $regex)),
+        'visualize' => safeAction(static fn (): array => visualizeAction($parser, $regex)),
+    ];
+}
 
 /**
- * Recursive View Helper to render the AST Tree as HTML.
+ * @param callable(): array<string, mixed> $callable
  *
- * @param array<string, mixed> $node
+ * @return array{ok: bool, result: array<string, mixed>|null, error: array<string, mixed>|null}
  */
-function renderTree(array $node, int $depth = 0): void
+function safeAction(callable $callable): array
 {
-    /** @var array<array<string, mixed>> $children */
-    $children = $node['children'] ?? [];
-    $hasChildren = !empty($children);
+    try {
+        return [
+            'ok' => true,
+            'result' => $callable(),
+            'error' => null,
+        ];
+    } catch (\Throwable $e) {
+        return [
+            'ok' => false,
+            'result' => null,
+            'error' => errorToArray($e),
+        ];
+    }
+}
 
-    // Style mapping for node types
-    $colors = [
-        'text-indigo-600' => 'text-indigo-600 bg-indigo-50',
-        'text-green-600' => 'text-emerald-600 bg-emerald-50',
-        'text-emerald-600' => 'text-teal-600 bg-teal-50',
-        'text-blue-500' => 'text-blue-600 bg-blue-50',
-        'text-blue-600' => 'text-blue-600 bg-blue-50',
-        'text-orange-600' => 'text-amber-600 bg-amber-50',
-        'text-purple-600' => 'text-purple-600 bg-purple-50',
-        'text-red-600' => 'text-rose-600 bg-rose-50',
-        'text-slate-700' => 'text-slate-600 bg-slate-100',
+/**
+ * @return array{message: string, type: string, category: string, offset: int|null, caret: string|null, hint: string|null, code: string|null}
+ */
+function errorToArray(\Throwable $e): array
+{
+    $category = 'runtime';
+    $hint = null;
+    $code = null;
+    $offset = null;
+    $caret = null;
+
+    if ($e instanceof ParserException) {
+        $offset = $e->getPosition();
+        $caret = $e->getVisualSnippet() !== '' ? $e->getVisualSnippet() : null;
+        $category = 'syntax';
+    }
+
+    if ($e instanceof SemanticErrorException) {
+        $category = 'semantic';
+        $hint = $e->getHint();
+        $code = $e->getErrorCode();
+    }
+
+    if ($e instanceof PcreRuntimeException) {
+        $category = 'pcre-runtime';
+        $code = $e->getErrorCode();
+    }
+
+    return [
+        'message' => $e->getMessage(),
+        'type' => $e::class,
+        'category' => $category,
+        'offset' => $offset,
+        'caret' => $caret,
+        'hint' => $hint,
+        'code' => $code,
     ];
-
-    $styleClass = $colors[$node['color'] ?? ''] ?? 'text-slate-500 bg-slate-50';
-    $icon = $node['icon'] ?? 'fa-solid fa-circle';
-    $label = htmlspecialchars((string) ($node['label'] ?? 'Node'));
-
-    echo '<div class="relative">';
-
-    // Hierarchy line indentation
-    if ($depth > 0) {
-        echo '<div class="absolute left-0 top-0 bottom-0 w-px bg-slate-200 -ml-3"></div>';
-    }
-
-    if ($hasChildren) {
-        echo '<details open class="group">';
-        echo '<summary class="list-none cursor-pointer flex items-center gap-2 py-1 px-1.5 rounded hover:bg-slate-50 transition-colors select-none -ml-1.5">';
-        echo '<span class="w-4 h-4 flex items-center justify-center text-slate-400 group-open:rotate-90 transition-transform duration-150"><i class="fa-solid fa-caret-right text-xs"></i></span>';
-    } else {
-        echo '<div class="flex items-center gap-2 py-1 px-1.5 rounded hover:bg-slate-50 -ml-1.5">';
-        echo '<span class="w-4 h-4"></span>';
-    }
-
-    // Node Icon
-    echo \sprintf('<div class="w-5 h-5 rounded flex items-center justify-center shrink-0 %s text-[10px] border border-black/5"><i class="%s"></i></div>', $styleClass, $icon);
-
-    // Node Label & Detail
-    echo '<div class="flex items-baseline gap-2 overflow-hidden">';
-    echo \sprintf('<span class="text-xs font-semibold text-slate-700 truncate">%s</span>', $label);
-
-    if (!empty($node['detail'])) {
-        $detail = htmlspecialchars((string) $node['detail']);
-        echo \sprintf('<code class="text-[10px] font-mono text-slate-500 bg-white px-1 border border-slate-200 rounded truncate max-w-[200px]">%s</code>', $detail);
-    }
-    echo '</div>';
-
-    if ($hasChildren) {
-        echo '</summary>';
-        echo '<div class="pl-4 ml-1.5 border-l border-slate-200/50">';
-        foreach ($children as $child) {
-            if (\is_array($child)) {
-                renderTree($child, $depth + 1);
-            }
-        }
-        echo '</div>';
-        echo '</details>';
-    } else {
-        echo '</div>';
-    }
-    echo '</div>';
 }

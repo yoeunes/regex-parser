@@ -10,6 +10,7 @@
     <a href="https://github.com/yoeunes/regex-parser/actions"><img src="https://img.shields.io/github/actions/workflow/status/yoeunes/regex-parser/ci.yml" alt="CI Status"></a>
     <a href="https://www.linkedin.com/in/younes--ennaji"><img src="https://img.shields.io/badge/author-@yoeunes-blue.svg" alt="Author Badge"></a>
     <a href="https://github.com/yoeunes/regex-parser"><img src="https://img.shields.io/badge/source-yoeunes/regex--parser-blue.svg" alt="Source Code Badge"></a>
+    <a href="https://yoeunes.github.io/regex-parser/"><img src="https://img.shields.io/badge/try-online-indigo" alt="Try Online Badge"></a>
     <a href="https://github.com/yoeunes/regex-parser/releases"><img src="https://img.shields.io/github/tag/yoeunes/regex-parser.svg" alt="GitHub Release Badge"></a>
     <a href="https://github.com/yoeunes/regex-parser/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-brightgreen.svg" alt="License Badge"></a>
     <a href="https://packagist.org/packages/yoeunes/regex-parser"><img src="https://img.shields.io/packagist/dt/yoeunes/regex-parser.svg" alt="Packagist Downloads Badge"></a>
@@ -34,6 +35,12 @@ It brings static analysis, security auditing, and automated refactoring to PHP's
 > *"Think of it as `nikic/php-parser` — but for regexes."*
 
 ---
+
+## Online Playground (WASM)
+
+Try RegexParser Studio in your browser (PCRE2 via PHP-WASM):
+
+- https://yoeunes.github.io/regex-parser/
 
 ## Table of Contents
 
