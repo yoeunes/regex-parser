@@ -498,13 +498,11 @@ Once approved:
 
 ```
 regex-parser/
-├── bin/                      # CLI tools
-│   └── regex-parser         # Command-line interface
-├── config/                   # Configuration files
+├── bin/                     # CLI tools
+│   └── regex                # Command-line interface
+├── config/                  # Configuration files
 │   └── rector/              # Rector rules
-├── public/                   # Web demo
-│   └── index.php            # Interactive web interface
-├── src/                      # Source code
+├── src/                     # Source code
 │   ├── Builder/             # Fluent regex builder
 │   ├── Exception/           # Custom exceptions
 │   ├── Lexer/               # Tokenization
@@ -512,10 +510,10 @@ regex-parser/
 │   ├── NodeVisitor/         # Visitor implementations
 │   ├── Parser.php           # Main parser
 │   └── Regex.php            # Façade class
-├── tests/                    # Test suite
+├── tests/                   # Test suite
 │   ├── Unit/                # Unit tests
 │   └── Integration/         # Integration tests
-├── tools/                    # Development tools (isolated)
+├── tools/                   # Development tools (isolated)
 │   ├── phpstan/             # Static analysis
 │   ├── rector/              # Code quality
 │   ├── php-cs-fixer/        # Code style
