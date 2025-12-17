@@ -30,6 +30,8 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
 
     private readonly CharSetAnalyzer $charSetAnalyzer;
 
+    private bool $isInsideQuantifier = false;
+
     public function __construct()
     {
         $this->charSetAnalyzer = new CharSetAnalyzer();
@@ -205,8 +207,11 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
 
         // Enhanced Group Unwrapping: (?:x) -> x
         // If the group is non-capturing and contains a single atomic node, remove the group.
+        // But do not unwrap if we are inside a quantifier and the original child was a sequence or alternation,
+        // as unwrapping changes semantics when the group has a quantifier.
         if (
             GroupType::T_GROUP_NON_CAPTURING === $node->type
+            && !($this->isInsideQuantifier && ($node->child instanceof Node\SequenceNode || $node->child instanceof Node\AlternationNode))
             && (
                 $optimizedChild instanceof Node\LiteralNode
                 || $optimizedChild instanceof Node\CharLiteralNode
@@ -231,7 +236,9 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitQuantifier(Node\QuantifierNode $node): Node\NodeInterface
     {
+        $this->isInsideQuantifier = true;
         $optimizedNode = $node->node->accept($this);
+        $this->isInsideQuantifier = false;
 
         if ($optimizedNode !== $node->node) {
             $node = new Node\QuantifierNode($optimizedNode, $node->quantifier, $node->type, $node->startPosition, $node->endPosition);

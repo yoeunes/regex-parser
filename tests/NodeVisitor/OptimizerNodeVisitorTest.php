@@ -22,6 +22,7 @@ use RegexParser\Node\QuantifierNode;
 use RegexParser\Node\RangeNode;
 use RegexParser\Node\RegexNode;
 use RegexParser\Node\SequenceNode;
+use RegexParser\NodeVisitor\CompilerNodeVisitor;
 use RegexParser\NodeVisitor\OptimizerNodeVisitor;
 use RegexParser\Regex;
 
@@ -463,5 +464,42 @@ final class OptimizerNodeVisitorTest extends TestCase
         $this->assertInstanceOf(RegexNode::class, $optimized);
         $this->assertInstanceOf(AlternationNode::class, $optimized->pattern);
         $this->assertCount(2, $optimized->pattern->alternatives);
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('optimizationProvider')]
+    public function test_optimizations_with_safety_checks(string $input, string $expected): void
+    {
+        $ast = $this->regex->parse($input);
+        $optimized = $ast->accept($this->optimizer);
+
+        // We compare the string representation to verify semantic equivalence
+        // Note: The AST structure checks are implicit via the string output
+        $compiler = new CompilerNodeVisitor();
+        $this->assertSame($expected, $optimized->accept($compiler));
+    }
+
+    public static function optimizationProvider(): \Iterator
+    {
+        // --- CASE 1: The Matomo Bug (Sequence + Quantifier) ---
+        // Unwrapping here changes semantics: (a then b)? vs a then (b?)
+        yield 'Matomo Case' => ['/(?:, )?/', '/(?:, )?/'];
+        yield 'Sequence with Quantifier' => ['/(?:abc)?/', '/(?:abc)?/'];
+        // --- CASE 2: Valid Optimization (Sequence NO Quantifier) ---
+        // Unwrapping here is SAFE and DESIRED
+        yield 'Sequence No Quantifier' => ['/(?:abc)/', '/abc/'];
+        yield 'Sequence No Quantifier 2' => ['/(?:, )/', '/, /'];
+        // --- CASE 3: Alternation ---
+        // Unwrapping safe if no quantifier, but optimizer turns to char class
+        yield 'Alternation No Quantifier' => ['/(?:a|b)/', '/[ab]/'];
+        // Unwrapping UNSAFE if quantifier
+        yield 'Alternation With Quantifier' => ['/(?:a|b)+/', '/(?:[ab])+/'];
+        // --- CASE 4: Atomic Nodes (Always Safe) ---
+        // Single char/class can always be unwrapped, even with quantifier
+        yield 'Atomic Char With Quantifier' => ['/(?:a)?/', '/a?/'];
+        yield 'Atomic Class With Quantifier' => ['/(?:[a-z])*/', '/[a-z]*/'];
+        yield 'Atomic Dot With Quantifier' => ['/(?:.)+/', '/.+/'];
+        // --- CASE 5: Nested Groups ---
+        // Inner group stays because in quantified context
+        yield 'Nested Sequence' => ['/(?:(?:abc))?/', '/(?:(?:abc))?/'];
     }
 }
