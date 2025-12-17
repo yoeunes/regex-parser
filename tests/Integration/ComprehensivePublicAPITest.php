@@ -185,19 +185,20 @@ final class ComprehensivePublicAPITest extends TestCase
         $this->assertNull($result->error);
     }
 
-    public function test_validate_detects_catastrophic_backtracking(): void
+    public function test_validate_allows_syntactically_valid_patterns(): void
     {
+        // (a+)+b is syntactically valid, ReDoS detection is separate
         $result = $this->regexService->validate('/(a+)+b/');
-        $this->assertFalse($result->isValid);
-        $this->assertNotNull($result->error);
-        $this->assertStringContainsString('catastrophic', strtolower((string) $result->error));
+        $this->assertTrue($result->isValid);
+        $this->assertNull($result->error);
     }
 
-    public function test_validate_detects_nested_quantifiers_redos(): void
+    public function test_validate_allows_syntactically_valid_nested_quantifiers(): void
     {
+        // (a*)*b is syntactically valid, ReDoS detection is separate
         $result = $this->regexService->validate('/(a*)*b/');
-        $this->assertFalse($result->isValid);
-        $this->assertNotNull($result->error);
+        $this->assertTrue($result->isValid);
+        $this->assertNull($result->error);
     }
 
     #[DoesNotPerformAssertions]
@@ -563,7 +564,7 @@ final class ComprehensivePublicAPITest extends TestCase
     {
         $patterns = [
             '/^test$/' => true,
-            '/(a+)+/' => false,
+            '/(a+)+/' => true, // Syntactically valid, ReDoS is separate
             '/[a-z]+/' => true,
         ];
 

@@ -41,10 +41,11 @@ final class ValidatorNodeVisitorTest extends TestCase
         $this->validate('/foo/imz');
     }
 
-    public function test_throws_on_nested_quantifiers(): void
+    #[\PHPUnit\Framework\Attributes\DoesNotPerformAssertions]
+    public function test_allows_nested_quantifiers(): void
     {
-        $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('Potential catastrophic backtracking (ReDoS): nested unbounded quantifier "+" at position 1.');
+        // Nested quantifiers like /(a+)*b/ are syntactically valid in PCRE
+        // ReDoS detection should be separate from syntax validation
         $this->validate('/(a+)*b/');
     }
 
@@ -234,6 +235,14 @@ final class ValidatorNodeVisitorTest extends TestCase
     {
         // \0 is now allowed as it represents the null byte
         $this->validate('/\0/');
+    }
+
+    #[\PHPUnit\Framework\Attributes\DoesNotPerformAssertions]
+    public function test_validator_allows_nested_quantifiers(): void
+    {
+        // Nested quantifiers like /(a+)+/ are syntactically valid in PCRE
+        // ReDoS detection should be separate from syntax validation
+        $this->validate('/(a+)+/');
     }
 
     #[DoesNotPerformAssertions]

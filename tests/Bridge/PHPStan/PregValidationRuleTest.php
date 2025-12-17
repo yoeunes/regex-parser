@@ -34,7 +34,13 @@ final class PregValidationRuleTest extends RuleTestCase
                 22,
             ],
             [
-                'Regex syntax error: Potential catastrophic backtracking (ReDoS): nested unbounded quantifier "+" at position 1. (Pattern: "/(a+)+$/")',
+                "ReDoS vulnerability detected (CRITICAL): /(a+)+\$/\n".
+                "    💡 Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...).\n".
+                "Nested unbounded quantifiers detected. This allows exponential backtracking. Consider using atomic groups (?>...) or possessive quantifiers (*+, ++).\n".
+                "\n".
+                "Read more about possessive quantifiers: https://github.com/yoeunes/regex-parser/blob/master/docs/reference.md#possessive-quantifiers\n".
+                "Read more about atomic groups: https://github.com/yoeunes/regex-parser/blob/master/docs/reference.md#atomic-groups\n".
+                'Read more about catastrophic backtracking: https://github.com/yoeunes/regex-parser/blob/master/docs/reference.md#catastrophic-backtracking',
                 23,
             ],
             [
@@ -98,7 +104,13 @@ final class PregValidationRuleTest extends RuleTestCase
                 20,
             ],
             [
-                'Regex syntax error: Potential catastrophic backtracking (ReDoS): nested unbounded quantifier "+" at position 1. (Pattern: "/(a+)+$/")',
+                "ReDoS vulnerability detected (CRITICAL): /(a+)+\$/\n".
+                "    💡 Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...).\n".
+                "Nested unbounded quantifiers detected. This allows exponential backtracking. Consider using atomic groups (?>...) or possessive quantifiers (*+, ++).\n".
+                "\n".
+                "Read more about possessive quantifiers: https://github.com/yoeunes/regex-parser/blob/master/docs/reference.md#possessive-quantifiers\n".
+                "Read more about atomic groups: https://github.com/yoeunes/regex-parser/blob/master/docs/reference.md#atomic-groups\n".
+                'Read more about catastrophic backtracking: https://github.com/yoeunes/regex-parser/blob/master/docs/reference.md#catastrophic-backtracking',
                 20,
             ],
         ]);
