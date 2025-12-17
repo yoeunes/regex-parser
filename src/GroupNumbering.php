@@ -19,7 +19,7 @@ namespace RegexParser;
 final readonly class GroupNumbering
 {
     /**
-     * @param list<int>              $captureSequence
+     * @param list<int>                $captureSequence
      * @param array<string, list<int>> $namedGroups
      */
     public function __construct(

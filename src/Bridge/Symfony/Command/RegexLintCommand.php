@@ -119,4 +119,3 @@ final class RegexLintCommand extends Command
         return ($hasErrors || ($failOnWarnings && $hasWarnings)) ? Command::FAILURE : Command::SUCCESS;
     }
 }
-

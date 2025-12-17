@@ -27,4 +27,3 @@ final readonly class RegexPatternOccurrence
         public string $source,
     ) {}
 }
-

@@ -130,4 +130,3 @@ final class RegexOptimizeCommand extends Command
         return ($hasErrors || ($failOnSuggestions && $hasSuggestions)) ? Command::FAILURE : Command::SUCCESS;
     }
 }
-

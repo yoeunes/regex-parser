@@ -13,8 +13,8 @@ declare(strict_types=1);
 
 namespace RegexParser\Bridge\Symfony\Analyzer;
 
-use RegexParser\Regex;
 use RegexParser\ReDoS\ReDoSSeverity;
+use RegexParser\Regex;
 use Symfony\Component\Routing\RouteCollection;
 
 /**

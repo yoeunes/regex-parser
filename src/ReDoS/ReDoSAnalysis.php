@@ -21,7 +21,7 @@ namespace RegexParser\ReDoS;
 final readonly class ReDoSAnalysis
 {
     /**
-     * @param array<string> $recommendations
+     * @param array<string>       $recommendations
      * @param array<ReDoSFinding> $findings
      */
     public ?string $vulnerableSubpattern;

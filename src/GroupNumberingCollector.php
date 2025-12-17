@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace RegexParser;
 
-use RegexParser\Node;
 use RegexParser\Node\GroupType;
 
 /**

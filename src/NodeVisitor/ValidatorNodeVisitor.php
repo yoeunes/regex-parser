@@ -77,8 +77,6 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
 
     private ?Node\NodeInterface $nextNode = null;
 
-    private ?string $pattern = null;
-
     // Intelligent caching for expensive validations
     /**
      * @var array<string, bool>
@@ -90,12 +88,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
      */
     private static array $quantifierBoundsCache = [];
 
-    public function __construct(
-        private readonly int $maxLookbehindLength = Regex::DEFAULT_MAX_LOOKBEHIND_LENGTH,
-        ?string $pattern = null,
-    ) {
-        $this->pattern = $pattern;
-    }
+    public function __construct(private readonly int $maxLookbehindLength = Regex::DEFAULT_MAX_LOOKBEHIND_LENGTH, private readonly ?string $pattern = null) {}
 
     #[\Override]
     public function visitRegex(Node\RegexNode $node): void
@@ -1135,7 +1128,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         $this->assertRelativeReferenceExists($num, $position, $code, $context);
     }
 
-    private function raiseSemanticError(string $message, int $position, string $code, ?string $hint = null): void
+    private function raiseSemanticError(string $message, int $position, string $code, ?string $hint = null): never
     {
         throw new SemanticErrorException(
             $message,

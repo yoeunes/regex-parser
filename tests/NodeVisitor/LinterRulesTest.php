@@ -19,18 +19,6 @@ use RegexParser\Regex;
 
 final class LinterRulesTest extends TestCase
 {
-    /**
-     * @return list<string>
-     */
-    private function lint(string $pattern): array
-    {
-        $regex = Regex::create()->parse($pattern);
-        $linter = new LinterNodeVisitor();
-        $regex->accept($linter);
-
-        return array_map(static fn ($issue) => $issue->id, $linter->getIssues());
-    }
-
     public function test_nested_quantifier_warning(): void
     {
         $issues = $this->lint('/(a+)+/');
@@ -89,5 +77,17 @@ final class LinterRulesTest extends TestCase
     {
         $issues = $this->lint('/no_dot/s');
         $this->assertContains('regex.lint.flag.useless.s', $issues);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function lint(string $pattern): array
+    {
+        $regex = Regex::create()->parse($pattern);
+        $linter = new LinterNodeVisitor();
+        $regex->accept($linter);
+
+        return array_map(static fn ($issue) => $issue->id, $linter->getIssues());
     }
 }

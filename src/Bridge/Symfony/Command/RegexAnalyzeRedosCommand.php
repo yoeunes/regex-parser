@@ -131,4 +131,3 @@ final class RegexAnalyzeRedosCommand extends Command
         return Command::FAILURE;
     }
 }
-

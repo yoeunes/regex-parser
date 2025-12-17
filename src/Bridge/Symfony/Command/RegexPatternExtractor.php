@@ -23,18 +23,12 @@ namespace RegexParser\Bridge\Symfony\Command;
  */
 final class RegexPatternExtractor
 {
-    /**
-     * @var array<int, true>
-     */
     private const IGNORABLE_TOKENS = [
         \T_WHITESPACE => true,
         \T_COMMENT => true,
         \T_DOC_COMMENT => true,
     ];
 
-    /**
-     * @var array<string, true>
-     */
     private const PREG_FUNCTIONS = [
         'preg_match' => true,
         'preg_match_all' => true,
@@ -348,7 +342,7 @@ final class RegexPatternExtractor
         }
 
         $quote = $literal[0];
-        if (($quote !== "'" && $quote !== '"') || $quote !== $literal[$len - 1]) {
+        if (("'" !== $quote && '"' !== $quote) || $quote !== $literal[$len - 1]) {
             return null;
         }
 
@@ -361,4 +355,3 @@ final class RegexPatternExtractor
         return stripcslashes($content);
     }
 }
-

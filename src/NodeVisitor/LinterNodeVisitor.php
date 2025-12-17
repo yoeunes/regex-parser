@@ -428,6 +428,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
                     \sprintf('Duplicate alternation branch "%s".', $literal),
                     $node->startPosition,
                 );
+
                 break;
             }
         }
@@ -495,7 +496,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
 
         foreach ($parts as $part) {
             if ($part instanceof Node\LiteralNode && 1 === \strlen($part->value)) {
-                $ord = ord($part->value);
+                $ord = \ord($part->value);
                 if (isset($literals[$ord]) || $this->isOrdCoveredByRanges($ord, $ranges)) {
                     $redundant = true;
                 }
@@ -509,8 +510,8 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
                     continue;
                 }
 
-                $start = ord($part->start->value);
-                $end = ord($part->end->value);
+                $start = \ord($part->start->value);
+                $end = \ord($part->end->value);
                 if ($start > $end) {
                     continue;
                 }

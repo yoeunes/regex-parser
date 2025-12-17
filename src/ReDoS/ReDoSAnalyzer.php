@@ -15,7 +15,6 @@ namespace RegexParser\ReDoS;
 
 use RegexParser\NodeVisitor\ReDoSProfileNodeVisitor;
 use RegexParser\Regex;
-use RegexParser\ReDoS\ReDoSConfidence;
 
 final class ReDoSAnalyzer
 {

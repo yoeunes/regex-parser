@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\NodeVisitor;
 
-use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\ParserException;
 use RegexParser\NodeVisitor\ValidatorNodeVisitor;

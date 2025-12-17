@@ -84,6 +84,7 @@ final readonly class Regex
     {
         try {
             $pattern = null;
+
             try {
                 [$pattern] = $this->extractPatternAndFlags($regex);
             } catch (ParserException) {
@@ -128,27 +129,6 @@ final readonly class Regex
                 $hint,
                 $code,
             );
-        }
-    }
-
-    private function validatePcreRuntime(string $regex, ?string $pattern): void
-    {
-        $errorMessage = null;
-        $handler = static function (int $severity, string $message) use (&$errorMessage): bool {
-            $errorMessage = $message;
-
-            return true;
-        };
-
-        set_error_handler($handler);
-        $result = @preg_match($regex, '');
-        restore_error_handler();
-
-        if (false === $result) {
-            $message = $errorMessage ?? preg_last_error_msg();
-            $message = '' !== $message ? $message : 'PCRE runtime error.';
-
-            throw new Exception\PcreRuntimeException($message, 'regex.pcre.runtime', null, $pattern);
         }
     }
 
@@ -413,6 +393,27 @@ final readonly class Regex
         }
 
         throw new ParserException(\sprintf('No closing delimiter "%s" found.', $closingDelimiter));
+    }
+
+    private function validatePcreRuntime(string $regex, ?string $pattern): void
+    {
+        $errorMessage = null;
+        $handler = static function (int $severity, string $message) use (&$errorMessage): bool {
+            $errorMessage = $message;
+
+            return true;
+        };
+
+        set_error_handler($handler);
+        $result = @preg_match($regex, '');
+        restore_error_handler();
+
+        if (false === $result) {
+            $message = $errorMessage ?? preg_last_error_msg();
+            $message = '' !== $message ? $message : 'PCRE runtime error.';
+
+            throw new Exception\PcreRuntimeException($message, 'regex.pcre.runtime', null, $pattern);
+        }
     }
 
     /**
