@@ -135,8 +135,8 @@ final class VisitorMethodCoverageTest extends TestCase
     }
 
     /**
-     * Ce test force l'appel de chaque méthode visit*() pour chaque visiteur
-     * avec des nœuds feuilles simples.
+     * This test forces the call of each visit*() method for each visitor
+     * with simple leaf nodes.
      */
     public function test_all_visitors_handle_all_leaf_nodes(): void
     {
@@ -169,7 +169,7 @@ final class VisitorMethodCoverageTest extends TestCase
 
         foreach ($visitors as $visitor) {
             foreach ($nodes as $node) {
-                // SampleGenerator ne supporte pas les subroutines
+                // SampleGenerator does not support subroutines
                 if ($visitor instanceof SampleGeneratorNodeVisitor && $node instanceof SubroutineNode) {
                     continue;
                 }
@@ -192,10 +192,10 @@ final class VisitorMethodCoverageTest extends TestCase
                 $result = $node->accept($visitor);
 
                 if ($visitor instanceof ValidatorNodeVisitor) {
-                    // Le validateur retourne void (null)
+                    // The validator returns void (null)
                     $this->assertNull($result);
                 } else {
-                    // Les autres doivent retourner quelque chose (string, int, Node)
+                    // The others must return something (string, int, Node)
                     $this->assertNotNull($result, \sprintf('Visitor %s returned null for node %s', $visitor::class, $node::class));
                 }
             }

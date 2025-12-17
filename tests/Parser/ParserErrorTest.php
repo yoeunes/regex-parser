@@ -61,7 +61,7 @@ final class ParserErrorTest extends TestCase
         $this->expectExceptionMessage('No closing delimiter "/" found.');
 
         $regex = $this->createRegex();
-        // Le parser voit ceci comme "/foo\/flags", sans délimiteur de fin non échappé.
+        // The parser sees this as "/foo\/flags", without an unescaped ending delimiter.
         $regex->parse('/foo\/');
     }
 

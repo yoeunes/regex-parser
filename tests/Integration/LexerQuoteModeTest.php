@@ -26,7 +26,7 @@ final class LexerQuoteModeTest extends TestCase
     }
 
     /**
-     * Teste \Q au milieu sans \E à la fin.
+     * Tests \Q in the middle without \E at the end.
      */
     public function test_quote_mode_mid_string_unterminated(): void
     {
@@ -40,8 +40,8 @@ final class LexerQuoteModeTest extends TestCase
     }
 
     /**
-     * Teste \Q...\E où ... est vide.
-     * Cela peut retourner null dans consumeQuoteMode et doit être géré.
+     * Tests \Q...\E where ... is empty.
+     * This can return null in consumeQuoteMode and must be handled.
      */
     public function test_quote_mode_empty_content(): void
     {

@@ -22,14 +22,14 @@ final class LiteralNodeTest extends TestCase
 {
     public static function data_provider_literals(): \Iterator
     {
-        // Littéraux simples
+        // Simple literals
         yield 'simple_char' => ['a', 0, 1];
         yield 'number' => ['1', 5, 6];
-        // Métacaractères échappés (la valeur stockée est le caractère lui-même)
+        // Escaped metacharacters (the stored value is the character itself)
         yield 'escaped_star' => ['*', 2, 4];
-        // stocké comme '*', la position couvre '\*'
+        // stored as '*', the position covers '\*'
         yield 'escaped_backslash' => ['\\', 10, 12];
-        // stocké comme '\', la position couvre '\\\\' dans la regex source
+        // stored as '\', the position covers '\\\\' in the regex source
         yield 'long_string' => ['http', 0, 4];
     }
 

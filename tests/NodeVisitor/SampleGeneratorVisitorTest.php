@@ -221,8 +221,8 @@ final class SampleGeneratorVisitorTest extends TestCase
 
     public function test_generate_negated_char_class_fallback(): void
     {
-        // Ton code retourne '!' pour les classes niées complexes.
-        // On s'assure que cette ligne est exécutée.
+        // Your code returns '!' for complex negated classes.
+        // We ensure this line is executed.
         $regex = \RegexParser\Regex::create();
         $ast = $regex->parse('/[^abc]/');
         $generator = new \RegexParser\NodeVisitor\SampleGeneratorNodeVisitor();
@@ -233,7 +233,7 @@ final class SampleGeneratorVisitorTest extends TestCase
 
     public function test_generate_fallback_char_types(): void
     {
-        // Tester les types moins courants pour être sûr de passer dans tous les 'case' du switch
+        // Test less common types to ensure we go through all 'case' statements in the switch
         $types = ['\h', '\H', '\v', '\V', '\R'];
         foreach ($types as $t) {
             $regex = Regex::create();

@@ -24,15 +24,15 @@ use RegexParser\NodeVisitor\SampleGeneratorNodeVisitor;
 final class VisitorsFinalPushTest extends TestCase
 {
     /**
-     * Teste la branche "if ($optimizedPart !== $part)" dans OptimizerNodeVisitor::visitCharClass.
-     * Normalement, les enfants d'une classe de caractères ne changent pas.
-     * On utilise un Mock pour forcer un changement.
+     * Tests the branch "if ($optimizedPart !== $part)" in OptimizerNodeVisitor::visitCharClass.
+     * Normally, the children of a character class don't change.
+     * We use a Mock to force a change.
      */
     public function test_optimizer_detects_change_in_char_class_parts(): void
     {
         $optimizer = new OptimizerNodeVisitor();
 
-        // On crée un Mock de nœud qui retourne une NOUVELLE instance quand on le visite
+        // We create a Mock of a node that returns a NEW instance when visited
         $mockPart = $this->createMock(NodeInterface::class);
         $mockPart->expects($this->once())
             ->method('accept')
@@ -44,7 +44,7 @@ final class VisitorsFinalPushTest extends TestCase
         // On visite
         $result = $node->accept($optimizer);
 
-        // Le résultat doit être une nouvelle CharClassNode (pas la même instance)
+        // The result must be a new CharClassNode (not the same instance)
         $this->assertNotSame($node, $result);
         $this->assertInstanceOf(CharClassNode::class, $result);
         $this->assertInstanceOf(LiteralNode::class, $result->expression);
@@ -58,12 +58,12 @@ final class VisitorsFinalPushTest extends TestCase
     public function test_sample_generator_unknown_char_type(): void
     {
         $generator = new SampleGeneratorNodeVisitor();
-        // 'Z' n'est pas un type standard connu du générateur
+        // 'Z' is not a standard type known to the generator
         $node = new CharTypeNode('Z', 0, 0);
 
         $result = $node->accept($generator);
 
-        // Doit retourner '?' (le default)
+        // Must return '?' (the default)
         $this->assertSame('?', $result);
     }
 }

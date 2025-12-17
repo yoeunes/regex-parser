@@ -28,7 +28,7 @@ final class LexerMethodTest extends TestCase
     }
 
     /**
-     * Teste le fallback par défaut de extractTokenValue pour un type inconnu.
+     * Tests the default fallback of extractTokenValue for an unknown type.
      * This case is normally unreachable as the main Regex filters tokens,
      * but for 100% coverage we must force it via Reflection.
      */
@@ -49,7 +49,7 @@ final class LexerMethodTest extends TestCase
     }
 
     /**
-     * Teste le fallback de T_BACKREF si la clé 'v_backref_num' est absente du tableau de matches.
+     * Tests the fallback of T_BACKREF if the 'v_backref_num' key is missing from the matches array.
      */
     public function test_extract_token_value_backref_fallback(): void
     {
@@ -60,13 +60,13 @@ final class LexerMethodTest extends TestCase
         $val = $accessor->callPrivateMethod('extractTokenValue', [
             TokenType::T_BACKREF,
             '\99',
-            [] // Tableau vide -> force le ?? null
+            []         // Empty array -> force the ?? null
         ]);
         $this->assertSame('\99', $val);
     }
 
     /**
-     * Teste le fallback de normalizeUnicodeProp si les clés de capture sont absentes.
+     * Tests the fallback of normalizeUnicodeProp if the capture keys are missing.
      */
     public function test_normalize_unicode_prop_fallback(): void
     {
@@ -76,8 +76,8 @@ final class LexerMethodTest extends TestCase
 
         $val = $accessor->callPrivateMethod('normalizeUnicodeProp', [
             '\p{L}',
-            [] // Tableau vide -> force le ?? ''
+            []         // Empty array -> force the ?? ''
         ]);
-        $this->assertSame('', $val); // Retourne la propriété vide
+        $this->assertSame('', $val); // Returns the empty property
     }
 }

@@ -22,22 +22,22 @@ use RegexParser\NodeVisitor\SampleGeneratorNodeVisitor;
 final class ManualFallbackTest extends TestCase
 {
     /**
-     * Teste le fallback du SampleGenerator pour un type de caractère inconnu.
-     * Impossible via le parser car il rejette les types inconnus.
+     * Tests the SampleGenerator fallback for an unknown character type.
+     * Impossible via the parser because it rejects unknown types.
      */
     public function test_sample_generator_unknown_char_type(): void
     {
-        // On injecte un nœud avec un type invalide 'z'
+        // We inject a node with an invalid type 'z'
         $node = new CharTypeNode('z', 0, 0);
         $generator = new SampleGeneratorNodeVisitor();
 
-        // Doit retourner '?' (le default du switch)
+        // Must return '?' (the default of the switch)
         $this->assertSame('?', $node->accept($generator));
     }
 
     /**
-     * Teste le fallback du Compiler pour une syntaxe de subroutine inconnue.
-     * Le parser normalise les syntaxes, donc on injecte un nœud manuel.
+     * Tests the Compiler fallback for an unknown subroutine syntax.
+     * The parser normalizes the syntaxes, so we inject a manual node.
      */
     public function test_compiler_subroutine_default_syntax(): void
     {
@@ -45,13 +45,13 @@ final class ManualFallbackTest extends TestCase
         $node = new SubroutineNode('1', 'UNKNOWN_SYNTAX', 0, 0);
         $compiler = new CompilerNodeVisitor();
 
-        // Le default retourne '(?reference)'
+        // The default returns '(?reference)'
         $this->assertSame('(?1)', $node->accept($compiler));
     }
 
     /**
-     * Teste le fallback de la méthode privée parseQuantifierRange dans SampleGeneratorVisitor
-     * via Reflection, pour un quantifieur inconnu.
+     * Tests the fallback of the private parseQuantifierRange method in SampleGeneratorVisitor
+     * via Reflection, for an unknown quantifier.
      */
     public function test_sample_generator_parse_quantifier_fallback(): void
     {
@@ -59,10 +59,10 @@ final class ManualFallbackTest extends TestCase
         $reflection = new \ReflectionClass($generator);
         $method = $reflection->getMethod('parseQuantifierRange');
 
-        // Appel avec un quantifieur invalide qui ne matche aucun cas
+        // Call with an invalid quantifier that doesn't match any case
         $result = $method->invoke($generator, 'INVALID');
 
-        // Le default retourne [0, 0] (via @codeCoverageIgnore, mais testons-le quand même)
+        // The default returns [0, 0] (via @codeCoverageIgnore, but let's test it anyway)
         $this->assertSame([0, 0], $result);
     }
 }

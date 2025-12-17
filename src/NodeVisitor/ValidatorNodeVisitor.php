@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\NodeVisitor;
 
+use RegexParser\Exception\ParserException;
 use RegexParser\Exception\SemanticErrorException;
 use RegexParser\GroupNumbering;
 use RegexParser\GroupNumberingCollector;
@@ -773,7 +774,17 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
 
     private function validateUnicodeNamed(Node\CharLiteralNode $node): void
     {
-        // TODO: Validate that the Unicode name is valid. For now, assume it's correct.
+        // Extract the Unicode name from the representation
+        if (!preg_match('/^\\\\N\\{(.+)}$/', $node->originalRepresentation, $matches)) {
+            throw new ParserException("Invalid Unicode named character format: {$node->originalRepresentation}", $node->getStartPosition());
+        }
+
+        $name = $matches[1];
+
+        // If the codePoint is -1, the name could not be resolved
+        if ($node->codePoint === -1) {
+            throw new ParserException("Invalid Unicode character name: {$name}", $node->getStartPosition());
+        }
     }
 
     /**

@@ -31,15 +31,15 @@ final class VisitorManualInjectionTest extends TestCase
         $node = new AlternationNode([], 0, 0);
         $optimizer = new OptimizerNodeVisitor();
 
-        // Devrait retourner le nœud tel quel ou ne pas crasher
+        // Should return the node as is or not crash
         $result = $node->accept($optimizer);
         $this->assertSame($node, $result); // ou assertion selon ta logique
     }
 
     public function test_compiler_handles_literal_bracket_outside_char_class(): void
     {
-        // Le parser gère ']' comme littéral s'il n'y a pas de '[' ouvert,
-        // mais testons explicitement que le compilateur ne l'échappe pas inutilement
+        // The parser handles ']' as a literal if there's no open '[',
+        // but let's explicitly test that the compiler doesn't escape it unnecessarily
         $node = new LiteralNode(']', 0, 0);
         $compiler = new CompilerNodeVisitor();
 
@@ -48,8 +48,8 @@ final class VisitorManualInjectionTest extends TestCase
 
     public function test_sample_generator_fallback_on_empty_char_class(): void
     {
-        // Une classe vide [] est normalement une erreur de parsing,
-        // mais si on la construit manuellement :
+        // An empty class [] is normally a parsing error,
+        // but if we construct it manually:
         $node = new CharClassNode(new AlternationNode([], 0, 0), false, 0, 0);
         $generator = new SampleGeneratorNodeVisitor();
 
@@ -59,7 +59,7 @@ final class VisitorManualInjectionTest extends TestCase
 
     public function test_compiler_quantifier_on_alternation_adds_non_capturing_group(): void
     {
-        // (a|b)* -> le compilateur doit ajouter (?:...) autour de a|b
+        // (a|b)* -> the compiler must add (?:...) around a|b
         $alt = new AlternationNode([
             new LiteralNode('a', 0, 0),
             new LiteralNode('b', 0, 0)
@@ -68,7 +68,7 @@ final class VisitorManualInjectionTest extends TestCase
         $quantifier = new QuantifierNode($alt, '*', QuantifierType::T_GREEDY, 0, 0);
         $compiler = new CompilerNodeVisitor();
 
-        // Doit produire (?:a|b)*
+        // Must produce (?:a|b)*
         $this->assertSame('(?:a|b)*', $quantifier->accept($compiler));
     }
 }

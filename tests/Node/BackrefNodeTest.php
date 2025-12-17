@@ -22,10 +22,10 @@ final class BackrefNodeTest extends TestCase
 {
     public static function data_provider_backrefs(): \Iterator
     {
-        // Références numériques (format \1, \2...)
+        // Numeric references (format \1, \2...)
         yield 'numeric_ref' => ['1', 5, 7];
         yield 'two_digit_ref' => ['10', 8, 11];
-        // Références nommées (stockées brutes sans \k)
+        // Named references (stored raw without \k)
         yield 'named_k_lt_gt_ref' => ['k<name>', 1, 9];
         yield 'named_k_brace_ref' => ['k{name}', 1, 9];
     }

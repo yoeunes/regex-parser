@@ -146,18 +146,18 @@ final class OptimizerNodeVisitorTest extends TestCase
     public function test_merge_adjacent_literals_and_sequences(): void
     {
         // Pattern: /a(b)(c)(d(e)f)/
-        // Devrait être optimisé en: /a b c d e f/ (LiteralNode)
+        // Should be optimized to: /a b c d e f/ (LiteralNode)
 
         $regex = Regex::create();
         $ast = $regex->parse('/abc/');
         $optimizer = new OptimizerNodeVisitor();
 
-        // Simuler un AST plus complexe pour tester la fusion de LiteralNode adjacents
+        // Simulate a more complex AST to test the merging of adjacent LiteralNodes
         $rawAst = new RegexNode(
             new SequenceNode([
                 new LiteralNode('a', 0, 1),
                 new LiteralNode('b', 1, 2),
-                new SequenceNode([ // Séquence imbriquée
+                new SequenceNode([ // Nested sequence
                     new LiteralNode('c', 2, 3),
                     new LiteralNode('d', 3, 4),
                 ], 2, 4),
@@ -179,11 +179,11 @@ final class OptimizerNodeVisitorTest extends TestCase
 
     public function test_remove_empty_literal_from_sequence(): void
     {
-        // Séquence contenant un nœud vide (qui pourrait venir d'un groupe vide)
+        // Sequence containing an empty node (which could come from an empty group)
         $rawAst = new RegexNode(
             new SequenceNode([
                 new LiteralNode('x', 0, 1),
-                new LiteralNode('', 1, 1), // Nœud vide à supprimer
+                new LiteralNode('', 1, 1), // Empty node to remove
                 new LiteralNode('y', 1, 2),
             ], 0, 2),
             '', '/', 0, 2,
@@ -199,14 +199,14 @@ final class OptimizerNodeVisitorTest extends TestCase
 
     public function test_alternation_to_char_class_with_hyphen_as_literal(): void
     {
-        // a|-|z ne devrait PAS devenir [a-z] car le '-' est un littéral, pas une partie d'un range.
+        // a|-|z should NOT become [a-z] because the '-' is a literal, not part of a range.
         $regex = Regex::create();
         $ast = $regex->parse('/a|-|z/');
         $optimizer = new OptimizerNodeVisitor();
 
         $newAst = $ast->accept($optimizer);
 
-        // Le résultat devrait rester une AlternationNode si l'optimisation en CharClass échoue
+        // The result should remain an AlternationNode if optimization to CharClass fails
         $this->assertInstanceOf(RegexNode::class, $newAst);
         $this->assertInstanceOf(AlternationNode::class, $newAst->pattern);
         $this->assertCount(3, $newAst->pattern->alternatives);
@@ -273,9 +273,9 @@ final class OptimizerNodeVisitorTest extends TestCase
 
     public function test_char_class_word_optimization_unicode_flag_present(): void
     {
-        // [a-zA-Z0-9_] -> \w, mais PAS si le flag 'u' est présent
+        // [a-zA-Z0-9_] -> \w, but NOT if the 'u' flag is present
         $regex = Regex::create();
-        $ast = $regex->parse('/[a-zA-Z0-9_]+/u'); // flag 'u' est présent
+        $ast = $regex->parse('/[a-zA-Z0-9_]+/u'); // 'u' flag is present
         $optimizer = new OptimizerNodeVisitor();
 
         $optimizedAst = $ast->accept($optimizer);

@@ -43,7 +43,7 @@ final class ParserUtilityTest extends TestCase
     public function test_extract_pattern_handles_escaped_delimiter_in_flags(): void
     {
         // Regex: /abc\/def/i
-        // Le slash au milieu est échappé et ne doit pas être considéré comme le délimiteur de fin.
+        // The slash in the middle is escaped and must not be considered as the ending delimiter.
         // extractPatternAndFlags is now on Regex class
         [$pattern, $flags, $delimiter] = $this->regex->extractPatternAndFlags('/abc\/def/i');
 
@@ -74,14 +74,14 @@ final class ParserUtilityTest extends TestCase
 
     public function test_parse_group_name_throws_on_missing_name(): void
     {
-        // Simuler un état où nous avons consommé '(?<' mais pas le nom
-        $this->accessor->setTokens(['>', 'a', ')']); // Tentative de fermer immédiatement
+        // Simulate a state where we have consumed '(?<' but not the name
+        $this->accessor->setTokens(['>', 'a', ')']); // Attempt to close immediately
         $this->accessor->setPosition(0);
 
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('Expected group name at position');
 
-        // La méthode attend que le délimiteur d'ouverture soit déjà consommé
+        // The method expects that the opening delimiter has already been consumed
         $this->accessor->callPrivateMethod('parseGroupName');
     }
 
@@ -101,7 +101,7 @@ final class ParserUtilityTest extends TestCase
         $name = $this->accessor->callPrivateMethod('parseGroupName');
         $this->assertSame('test_name', $name);
 
-        // Vérifie que l'accolade fermante (ou >) est toujours là pour la consommation
+        // Verifies that the closing brace (or >) is still there for consumption
         $this->assertSame('>', $this->accessor->current()->value);
     }
 
@@ -129,8 +129,8 @@ final class ParserUtilityTest extends TestCase
     public function test_throws_on_quantifier_without_target(): void
     {
         // Le parser appelle parseQuantifiedAtom. Si le premier atom est absent,
-        // et le token suivant est T_QUANTIFIER, il lève l'erreur.
-        // Simuler: Token T_QUANTIFIER au début.
+        // and the next token is T_QUANTIFIER, it raises the error.
+        // Simulate: Token T_QUANTIFIER at the beginning.
         $tokens = [
             $this->accessor->createToken(TokenType::T_QUANTIFIER, '*', 0),
         ];
@@ -171,7 +171,7 @@ final class ParserUtilityTest extends TestCase
         $this->accessor->setTokens($tokens);
         $this->accessor->setPosition(0); // Position 0 -> Token 'i'
 
-        // Le jeton '(?-' est géré par la logique du parser en amont.
+        // The token '(?-' is handled by the upstream parser logic.
         // Ici, on teste l'extraction des flags 'im' sans ':'.
         $node = $this->accessor->callPrivateMethod('parseGroupModifier');
 
@@ -184,11 +184,11 @@ final class ParserUtilityTest extends TestCase
 
     public function test_parse_group_modifier_throws_on_invalid_python_syntax(): void
     {
-        // Simuler (?P[invalid]) - parseGroupModifier est appelé après avoir consommé (?
+        // Simulate (?P[invalid]) - parseGroupModifier is called after consuming (?
         // Position 0 = '/', 1 = '(', 2 = '?', 3 = 'P', 4 = '['
         $tokens = [
-            $this->accessor->createToken(TokenType::T_LITERAL, 'P', 2), // P à la position 2
-            $this->accessor->createToken(TokenType::T_LITERAL, '[', 3), // [ à la position 3
+            $this->accessor->createToken(TokenType::T_LITERAL, 'P', 2), // P at position 2
+            $this->accessor->createToken(TokenType::T_LITERAL, '[', 3), // [ at position 3
             $this->accessor->createToken(TokenType::T_GROUP_CLOSE, ')', 4),
             $this->accessor->createToken(TokenType::T_EOF, '', 5),
         ];
@@ -236,7 +236,7 @@ final class ParserUtilityTest extends TestCase
         $this->accessor->setTokens($tokens);
         $this->accessor->setPosition(0);
 
-        // Simuler l'état où le parser a consommé '(?('
+        // Simulate the state where the parser has consumed '(?('
         $condition = $this->accessor->callPrivateMethod('parseConditionalCondition');
 
         $this->assertInstanceOf(AssertionNode::class, $condition);
@@ -245,7 +245,7 @@ final class ParserUtilityTest extends TestCase
 
     public function test_parse_conditional_invalid_atom_throws(): void
     {
-        // Simuler (?(.)...) où T_DOT n'est pas une condition valide (devrait être Backref ou Group)
+        // Simulate (?(.)...) where T_DOT is not a valid condition (should be Backref or Group)
         $tokens = [
             $this->accessor->createToken(TokenType::T_DOT, '.', 2), // Jeton T_DOT
             $this->accessor->createToken(TokenType::T_GROUP_CLOSE, ')', 3),

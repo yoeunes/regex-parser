@@ -36,7 +36,7 @@ final class RangeNodeTest extends TestCase
 
     public function test_constructor_with_char_types(): void
     {
-        // Un range entre CharTypeNode est sémantiquement invalide mais syntaxiquement possible dans l'AST avant validation.
+        // A range between CharTypeNode is semantically invalid but syntactically possible in the AST before validation.
         $start = new CharTypeNode('d', 1, 3);
         $end = new CharTypeNode('w', 5, 7);
 

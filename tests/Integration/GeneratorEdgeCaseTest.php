@@ -20,24 +20,24 @@ use RegexParser\NodeVisitor\SampleGeneratorNodeVisitor;
 final class GeneratorEdgeCaseTest extends TestCase
 {
     /**
-     * Teste le cas par défaut pour un type de caractère inconnu.
-     * Le parser bloque cela normalement, donc on injecte le nœud manuellement.
+     * Tests the default case for an unknown character type.
+     * The parser blocks this normally, so we inject the node manually.
      */
     public function test_generate_unknown_char_type(): void
     {
         $generator = new SampleGeneratorNodeVisitor();
-        // 'Z' n'existe pas comme type de caractère standard
+        // 'Z' does not exist as a standard character type
         $node = new CharTypeNode('Z', 0, 0);
 
         $result = $node->accept($generator);
 
-        // Le default du match est '?'
+        // The default of the match is '?'
         $this->assertSame('?', $result);
     }
 
     /**
-     * Teste le parseQuantifierRange avec une chaîne qui ne matche rien.
-     * (Code défensif via Reflection)
+     * Tests parseQuantifierRange with a string that matches nothing.
+     * (Defensive code via Reflection)
      */
     public function test_parse_quantifier_range_fallback(): void
     {
@@ -45,10 +45,10 @@ final class GeneratorEdgeCaseTest extends TestCase
         $reflection = new \ReflectionClass($generator);
         $method = $reflection->getMethod('parseQuantifierRange');
 
-        // Valeur invalide qui ne matche ni *, +, ? ni {n,m}
+        // Invalid value that doesn't match *, +, ? nor {n,m}
         $result = $method->invoke($generator, 'INVALID');
 
-        // Le default retourne [0, 0]
+        // The default returns [0, 0]
         $this->assertSame([0, 0], $result);
     }
 }
