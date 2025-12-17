@@ -2,7 +2,6 @@
 /vendor/
 /tools/**/vendor/
 /composer.lock
-/node_modules/
 
 # IDEs
 /.idea/
