@@ -410,22 +410,20 @@ final class TokenBasedExtractionStrategy implements ExtractionStrategyInterface
                     if (null === $firstLine) {
                         $firstLine = $token[2];
                     }
+                } elseif (isset(self::IGNORABLE_TOKENS[$token[0]])) {
+                    // Skip ignorable tokens (whitespace, comments)
                 } else {
-                    // Not a constant string, stop
+                    // Not a constant string or ignorable, stop
                     break;
                 }
             } elseif ('.' === $token) {
-                // Concatenation operator
+                // Concatenation operator - continue
             } else {
                 // Other token, stop
                 break;
             }
 
-            $next = $this->nextMeaningfulTokenIndex($tokens, $index + 1);
-            if (null === $next) {
-                break;
-            }
-            $index = $next;
+            $index++;
         }
 
         if (\count($parts) < 2 || null === $firstLine) {
