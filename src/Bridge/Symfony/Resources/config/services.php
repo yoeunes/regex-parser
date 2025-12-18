@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
+use RegexParser\Bridge\Symfony\Analyzer\RouteRequirementAnalyzer;
+use RegexParser\Bridge\Symfony\Analyzer\ValidatorRegexAnalyzer;
 use RegexParser\Bridge\Symfony\Command\RegexLintCommand;
 use RegexParser\Bridge\Symfony\Extractor\RegexPatternExtractor;
 use RegexParser\Bridge\Symfony\Service\RegexAnalysisService;
@@ -53,10 +55,24 @@ return static function (ContainerConfigurator $container): void {
         ->arg('$extractor', service('regex_parser.extractor')->nullOnInvalid());
 
     $services->set('regex_parser.command.lint', RegexLintCommand::class)
-        ->arg('$regexAnalysis', service('regex_parser.service.regex_analysis'))
+        ->arg('$analysis', service('regex_parser.service.regex_analysis'))
         ->arg('$editorUrl', param('regex_parser.editor_format'))
-        ->arg('$defaultPaths', param('regex_parser.paths'))
-        ->arg('$excludePaths', param('regex_parser.exclude_paths'))
+        ->arg('$paths', param('regex_parser.paths'))
+        ->arg('$exclude', param('regex_parser.exclude_paths'))
+        ->arg('$minSavings', 1)
         ->tag('console.command')
         ->public();
+
+    // Analyzer services
+    $services->set(RouteRequirementAnalyzer::class)
+        ->args([
+            '$regex' => service('regex_parser.regex'),
+        ])
+        ->tag('regex_parser.analyzer');
+
+    $services->set(ValidatorRegexAnalyzer::class)
+        ->args([
+            '$regex' => service('regex_parser.regex'),
+        ])
+        ->tag('regex_parser.analyzer');
 };

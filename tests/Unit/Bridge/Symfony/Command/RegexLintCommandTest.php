@@ -45,7 +45,7 @@ final class RegexLintCommandTest extends TestCase
 
         $definition = $command->getDefinition();
 
-        $this->assertTrue($definition->hasOption('analyze-redos'));
+        $this->assertFalse($definition->hasOption('analyze-redos'));
         $this->assertFalse($definition->hasOption('optimize'));
         $this->assertFalse($definition->hasOption('min-savings'));
     }
@@ -53,10 +53,10 @@ final class RegexLintCommandTest extends TestCase
     private function createCommand(array $defaultPaths, array $excludePaths): RegexLintCommand
     {
         return new RegexLintCommand(
-            regexAnalysis: new RegexAnalysisService(Regex::create()),
+            analysis: new RegexAnalysisService(Regex::create()),
             editorUrl: null,
-            defaultPaths: $defaultPaths,
-            excludePaths: $excludePaths,
+            paths: $defaultPaths,
+            exclude: $excludePaths,
         );
     }
 }

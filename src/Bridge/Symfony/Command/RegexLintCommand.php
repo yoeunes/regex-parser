@@ -28,20 +28,20 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 )]
 final class RegexLintCommand extends Command
 {
-    private readonly RelativePathHelper $relativePathHelper;
+    private readonly RelativePathHelper $pathHelper;
 
     private readonly LinkFormatter $linkFormatter;
 
     public function __construct(
-        private RegexAnalysisService $regexAnalysis,
+        private RegexAnalysisService $analysis,
         ?string $editorUrl = null,
-        private array $defaultPaths = ['src'],
-        private array $excludePaths = ['vendor'],
-        private int $minOptimizationSavings = 1,
+        private array $paths = ['src'],
+        private array $exclude = ['vendor'],
+        private int $minSavings = 1,
     ) {
-        $workingDirectory = getcwd() ?: null;
-        $this->relativePathHelper = new RelativePathHelper($workingDirectory);
-        $this->linkFormatter = new LinkFormatter($editorUrl, $this->relativePathHelper);
+        $workDir = getcwd() ?: null;
+        $this->pathHelper = new RelativePathHelper($workDir);
+        $this->linkFormatter = new LinkFormatter($editorUrl, $this->pathHelper);
         parent::__construct();
     }
 
@@ -50,38 +50,91 @@ final class RegexLintCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
 
-        $io->writeln('');
-        $io->writeln('  <fg=white;options=bold>REGEX PARSER</> <fg=cyan>Linting & Optimization</>');
-        $io->writeln('');
-
-        $io->write('  <fg=cyan>🔍  Scanning files...</>');
-        $patterns = $this->regexAnalysis->scan($this->defaultPaths, $this->excludePaths);
-        $io->writeln(' <fg=green;options=bold>Done.</>');
-        $io->writeln('');
-
-        if ([] === $patterns) {
-            $io->block('No constant preg_* patterns found.', 'INFO', 'fg=black;bg=blue', ' ', true);
-
+        $this->showHeader($io);
+        
+        $patterns = $this->scanFiles($io);
+        
+        if (empty($patterns)) {
+            $this->showNoPatternsMessage($io);
             return Command::SUCCESS;
         }
 
-        $stats = ['errors' => 0, 'warnings' => 0, 'optimizations' => 0];
-
-        $issues = [];
-        if (!empty($patterns)) {
-            $progressBar = $io->createProgressBar(\count($patterns));
-            $progressBar->setEmptyBarCharacter('░');
-            $progressBar->setProgressCharacter('');
-            $progressBar->setBarCharacter('▓');
-            $progressBar->setFormat('  <fg=blue>%bar%</> <fg=cyan>%percent:3s%%</>');
-            $progressBar->start();
-
-            $issues = $this->regexAnalysis->lint($patterns, static fn () => $progressBar->advance());
-
-            $progressBar->finish();
-            $io->writeln(['', '']);
+        $stats = $this->initializeStats();
+        
+        $issues = $this->analyzePatterns($io, $patterns);
+        $stats = $this->updateStatsWithIssues($stats, $issues);
+        
+        if (!empty($issues)) {
+            $this->outputLintIssues($io, $issues);
         }
 
+        $optimizations = $this->getOptimizations($patterns);
+        $stats = $this->updateStatsWithOptimizations($stats, $optimizations);
+
+        if (!empty($optimizations)) {
+            $this->outputOptimizationSuggestions($io, $optimizations);
+        }
+
+        return $this->determineExitCode($io, $stats);
+    }
+
+    private function showHeader(SymfonyStyle $io): void
+    {
+        $io->writeln('');
+        $io->writeln('  <fg=white;options=bold>REGEX PARSER</> <fg=cyan>Linting & Optimization</>');
+        $io->writeln('');
+    }
+
+    private function scanFiles(SymfonyStyle $io): array
+    {
+        $io->write('  <fg=cyan>🔍  Scanning files...</>');
+        $patterns = $this->analysis->scan($this->paths, $this->exclude);
+        $io->writeln(' <fg=green;options=bold>Done.</>');
+        $io->writeln('');
+        
+        return $patterns;
+    }
+
+    private function showNoPatternsMessage(SymfonyStyle $io): void
+    {
+        $io->block('No constant preg_* patterns found.', 'INFO', 'fg=black;bg=blue', ' ', true);
+    }
+
+    private function initializeStats(): array
+    {
+        return ['errors' => 0, 'warnings' => 0, 'optimizations' => 0];
+    }
+
+    private function analyzePatterns(SymfonyStyle $io, array $patterns): array
+    {
+        if (empty($patterns)) {
+            return [];
+        }
+
+        $bar = $this->createProgressBar($io, count($patterns));
+        $bar->start();
+
+        $issues = $this->analysis->lint($patterns, static fn () => $bar->advance());
+
+        $bar->finish();
+        $io->writeln(['', '']);
+
+        return $issues;
+    }
+
+    private function createProgressBar(SymfonyStyle $io, int $total): \Symfony\Component\Console\Helper\ProgressBar
+    {
+        $bar = $io->createProgressBar($total);
+        $bar->setEmptyBarCharacter('░');
+        $bar->setProgressCharacter('');
+        $bar->setBarCharacter('▓');
+        $bar->setFormat('  <fg=blue>%bar%</> <fg=cyan>%percent:3s%%</>');
+        
+        return $bar;
+    }
+
+    private function updateStatsWithIssues(array $stats, array $issues): array
+    {
         foreach ($issues as $issue) {
             if ('error' === $issue['type']) {
                 $stats['errors']++;
@@ -89,23 +142,30 @@ final class RegexLintCommand extends Command
                 $stats['warnings']++;
             }
         }
+        
+        return $stats;
+    }
 
-        if (!empty($issues)) {
-            $this->outputLintIssues($io, $issues);
+    private function getOptimizations(array $patterns): array
+    {
+        if (empty($patterns)) {
+            return [];
         }
 
-        $optimizations = [];
-        if (!empty($patterns)) {
-            $optimizations = $this->regexAnalysis->suggestOptimizations($patterns, $this->minOptimizationSavings);
-            if (!empty($optimizations)) {
-                $stats['optimizations'] += \count($optimizations);
-            }
-        }
+        return $this->analysis->suggestOptimizations($patterns, $this->minSavings);
+    }
 
+    private function updateStatsWithOptimizations(array $stats, array $optimizations): array
+    {
         if (!empty($optimizations)) {
-            $this->outputOptimizationSuggestions($io, $optimizations);
+            $stats['optimizations'] += count($optimizations);
         }
+        
+        return $stats;
+    }
 
+    private function determineExitCode(SymfonyStyle $io, array $stats): int
+    {
         if (0 === $stats['errors']) {
             if (0 === $stats['warnings'] && 0 === $stats['optimizations']) {
                 $io->block('No issues found. Your regex patterns are clean.', 'PASS', 'fg=black;bg=green', ' ', true);
@@ -130,40 +190,77 @@ final class RegexLintCommand extends Command
         $io->writeln('  <fg=white;options=bold>Issues Found</>');
         $io->newLine();
 
-        $issuesByFile = [];
-        foreach ($issues as $issue) {
-            $issuesByFile[$issue['file']][] = $issue;
+        $grouped = $this->groupIssuesByFile($issues);
+
+        foreach ($grouped as $file => $fileIssues) {
+            $this->showFileHeader($io, $file);
+            $this->displayFileIssues($io, $file, $fileIssues);
         }
+    }
 
-        foreach ($issuesByFile as $file => $fileIssues) {
-            $relFile = $this->linkFormatter->getRelativePath($file);
-            $io->writeln("  <fg=gray>in</> <fg=cyan;options=bold>{$relFile}</>");
+    private function groupIssuesByFile(array $issues): array
+    {
+        $grouped = [];
+        foreach ($issues as $issue) {
+            $grouped[$issue['file']][] = $issue;
+        }
+        
+        return $grouped;
+    }
 
-            foreach ($fileIssues as $issue) {
-                $isError = 'error' === $issue['type'];
-                $color = $isError ? 'red' : 'yellow';
-                $letter = $isError ? 'E' : 'W';
-                $line = $issue['line'];
-                $lineLabel = str_pad((string) $line, 4);
-                $penLink = $this->linkFormatter->format($file, $line, '✏️', 1, '✏️');
+    private function showFileHeader(SymfonyStyle $io, string $file): void
+    {
+        $relPath = $this->linkFormatter->getRelativePath($file);
+        $io->writeln("  <fg=gray>in</> <fg=cyan;options=bold>{$relPath}</>");
+    }
 
-                $messageRaw = (string) $issue['message'];
-                $cleanMessage = $this->cleanMessageIndentation($messageRaw);
+    private function displayFileIssues(SymfonyStyle $io, string $file, array $fileIssues): void
+    {
+        foreach ($fileIssues as $issue) {
+            $this->displaySingleIssue($io, $file, $issue);
+        }
+        $io->writeln('');
+    }
 
-                $lines = explode("\n", $cleanMessage);
-                $firstLine = array_shift($lines);
+    private function displaySingleIssue(SymfonyStyle $io, string $file, array $issue): void
+    {
+        $isError = 'error' === $issue['type'];
+        $color = $isError ? 'red' : 'yellow';
+        $letter = $isError ? 'E' : 'W';
+        $line = $issue['line'];
+        $lineNum = str_pad((string) $line, 4);
+        $link = $this->linkFormatter->format($file, $line, '✏️', 1, '✏️');
 
-                $io->writeln(\sprintf('  <fg=%s;options=bold>%s</>  <fg=white;options=bold>%s</>  %s  %s', $color, $letter, $lineLabel, $penLink, $firstLine));
+        $msg = $this->formatIssueMessage($issue['message']);
+        list($firstLine, $restLines) = $this->splitMessage($msg);
 
-                foreach ($lines as $msgLine) {
-                    $io->writeln('              '.$msgLine);
-                }
+        $io->writeln(\sprintf('  <fg=%s;options=bold>%s</>  <fg=white;options=bold>%s</>  %s  %s', $color, $letter, $lineNum, $link, $firstLine));
 
-                if (isset($issue['hint']) && $issue['hint']) {
-                    $io->writeln("         <fg=cyan>💡</> <fg=cyan>{$issue['hint']}</>");
-                }
-            }
-            $io->writeln('');
+        $this->displayMessageLines($io, $restLines);
+
+        if (!empty($issue['hint'])) {
+            $io->writeln("         <fg=cyan>💡</> <fg=cyan>{$issue['hint']}</>");
+        }
+    }
+
+    private function formatIssueMessage(string $message): string
+    {
+        $raw = (string) $message;
+        return $this->cleanMessageIndentation($raw);
+    }
+
+    private function splitMessage(string $message): array
+    {
+        $lines = explode("\n", $message);
+        $first = array_shift($lines);
+        
+        return [$first, $lines];
+    }
+
+    private function displayMessageLines(SymfonyStyle $io, array $lines): void
+    {
+        foreach ($lines as $line) {
+            $io->writeln('              '.$line);
         }
     }
 
@@ -173,20 +270,34 @@ final class RegexLintCommand extends Command
         $io->newLine();
 
         foreach ($suggestions as $item) {
-            $relFile = $this->linkFormatter->getRelativePath($item['file']);
-            $line = $item['line'];
-            $lineLabel = str_pad((string) $line, 4);
-            $penLink = $this->linkFormatter->format($item['file'], $line, '✏️', 1, '✏️');
-
-            $io->writeln(\sprintf('  <fg=green;options=bold>O</>  <fg=white;options=bold>%s</>  %s  <fg=green>Saved %d chars</> <fg=gray>in</> <fg=cyan;options=bold>%s</>', $lineLabel, $penLink, $item['savings'], $relFile));
-
-            $original = $this->regexAnalysis->highlight($item['optimization']->original);
-            $optimized = $this->regexAnalysis->highlight($item['optimization']->optimized);
-
-            $io->writeln(\sprintf('         <fg=red>-</> %s', $original));
-            $io->writeln(\sprintf('         <fg=green>+</> %s', $optimized));
-            $io->writeln('');
+            $this->displayOptimizationItem($io, $item);
         }
+    }
+
+    private function displayOptimizationItem(SymfonyStyle $io, array $item): void
+    {
+        $this->showOptimizationHeader($io, $item);
+        $this->showOptimizationDiff($io, $item);
+        $io->writeln('');
+    }
+
+    private function showOptimizationHeader(SymfonyStyle $io, array $item): void
+    {
+        $relPath = $this->linkFormatter->getRelativePath($item['file']);
+        $line = $item['line'];
+        $lineNum = str_pad((string) $line, 4);
+        $link = $this->linkFormatter->format($item['file'], $line, '✏️', 1, '✏️');
+
+        $io->writeln(\sprintf('  <fg=green;options=bold>O</>  <fg=white;options=bold>%s</>  %s  <fg=green>Saved %d chars</> <fg=gray>in</> <fg=cyan;options=bold>%s</>', $lineNum, $link, $item['savings'], $relPath));
+    }
+
+    private function showOptimizationDiff(SymfonyStyle $io, array $item): void
+    {
+        $original = $this->analysis->highlight($item['optimization']->original);
+        $optimized = $this->analysis->highlight($item['optimization']->optimized);
+
+        $io->writeln(\sprintf('         <fg=red>-</> %s', $original));
+        $io->writeln(\sprintf('         <fg=green>+</> %s', $optimized));
     }
 
     private function cleanMessageIndentation(string $message): string
