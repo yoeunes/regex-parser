@@ -96,15 +96,6 @@ final class RegexLintCommand extends Command
         );
         $patterns = $extractor->extract($paths, $this->excludePaths);
 
-        $this->renderHero(
-            $io,
-            $paths,
-            \count($patterns),
-            $analyzeRedos,
-            $optimize,
-            $validateSymfony,
-        );
-
         if ([] === $patterns && !$validateSymfony) {
             $io->success('No constant preg_* patterns found.');
 
@@ -254,22 +245,6 @@ final class RegexLintCommand extends Command
             $this->outputValidationIssues($io, $validationIssues);
         }
 
-        $lintErrorCount = \count(array_filter($lintIssues, fn (array $issue) => 'error' === $issue['type']));
-        $lintWarningCount = \count(array_filter($lintIssues, fn (array $issue) => 'warning' === $issue['type']));
-        $redosCount = \count($redosIssues);
-        $optimizationCount = \count($optimizationSuggestions);
-        $validationErrorCount = \count(array_filter($validationIssues, fn ($issue) => $issue->isError));
-        $validationWarningCount = \count($validationIssues) - $validationErrorCount;
-
-        $this->renderSummary($io, [
-            'lintErrors' => $lintErrorCount,
-            'lintWarnings' => $lintWarningCount,
-            'redos' => $redosCount,
-            'optimizations' => $optimizationCount,
-            'validationErrors' => $validationErrorCount,
-            'validationWarnings' => $validationWarningCount,
-        ]);
-
         $allHasErrors = $hasErrors || !empty(array_filter($validationIssues, fn ($i) => $i->isError));
         $allHasWarnings = $hasWarnings || !empty(array_filter($validationIssues, fn ($i) => !$i->isError));
 
@@ -311,20 +286,8 @@ final class RegexLintCommand extends Command
             $io->writeln('  <fg=cyan>├'.$divider.'</>');
 
             foreach ($fileIssues as $issue) {
-                $io->writeln($this->formatLintLine($issue, $editorUrlTemplate));
-
-                if ('warning' === $issue['type'] && isset($issue['issueId'])) {
-                    $io->writeln('  <fg=cyan>│</>   🪪  '.$issue['issueId']);
-                }
-
-                if (isset($issue['hint']) && null !== $issue['hint']) {
-                    $hints = explode("\n", $issue['hint']);
-                    foreach ($hints as $hint) {
-                        $hint = trim($hint);
-                        if ('' !== $hint) {
-                            $io->writeln('  <fg=cyan>│</>   💡  '.$hint);
-                        }
-                    }
+                foreach ($this->formatLintLines($issue, $editorUrlTemplate) as $line) {
+                    $io->writeln($line);
                 }
             }
 
@@ -394,13 +357,17 @@ final class RegexLintCommand extends Command
         $io->writeln('');
     }
 
-    private function makeClickable(?string $editorUrlTemplate, string $file, int $line, string $text): string
+    private function makeClickable(?string $editorUrlTemplate, string $file, int $line, string $text, int $column = 1): string
     {
         if (!$editorUrlTemplate) {
             return $text;
         }
 
-        $editorUrl = str_replace(['%%file%%', '%%line%%'], [$file, $line], $editorUrlTemplate);
+        $editorUrl = str_replace(
+            ['%%file%%', '%%line%%', '%%column%%'],
+            [$file, $line, $column],
+            $editorUrlTemplate,
+        );
 
         return "\033]8;;".$editorUrl."\033\\".$text."\033]8;;\033\\";
     }
@@ -417,35 +384,6 @@ final class RegexLintCommand extends Command
         }
 
         return $path;
-    }
-
-    private function renderHero(
-        SymfonyStyle $io,
-        array $paths,
-        int $patternCount,
-        bool $analyzeRedos,
-        bool $optimize,
-        bool $validateSymfony,
-    ): void {
-        $io->newLine();
-        $io->writeln('<fg=cyan;options=bold>╔══════════════════════════════════════════════════════════════╗</>');
-        $io->writeln('<fg=cyan;options=bold>║  ⚡ Regex Lint • Pattern Intelligence • ReDoS Radar           ║</>');
-        $io->writeln('<fg=cyan;options=bold>╚══════════════════════════════════════════════════════════════╝</>');
-
-        $displayPaths = [];
-        foreach ($paths as $path) {
-            $displayPaths[] = '<fg=white>'.$this->getRelativePath($path).'</>';
-        }
-
-        $io->writeln('  <fg=gray>paths</>: '.(!empty($displayPaths) ? implode(' <fg=gray>·</> ', $displayPaths) : '<fg=gray>—</>'));
-        $io->writeln('  <fg=gray>analyses</>: '.implode(' ', [
-            $this->formatToggle('lint', true, 'cyan'),
-            $this->formatToggle('redos', $analyzeRedos, 'red'),
-            $this->formatToggle('optimize', $optimize, 'green'),
-            $this->formatToggle('symfony', $validateSymfony, 'blue'),
-        ]));
-        $io->writeln('  <fg=gray>patterns</>: '.$this->badge((string) $patternCount, 0 === $patternCount ? 'gray' : 'cyan'));
-        $io->newLine();
     }
 
     private function renderSectionTitle(SymfonyStyle $io, string $title, string $emoji, string $color): void
