@@ -16,8 +16,6 @@ namespace RegexParser\Bridge\Symfony\Command;
 use RegexParser\Bridge\Symfony\Console\LinkFormatter;
 use RegexParser\Bridge\Symfony\Console\RelativePathHelper;
 use RegexParser\Bridge\Symfony\Service\RegexAnalysisService;
-use RegexParser\Bridge\Symfony\Service\RouteValidationService;
-use RegexParser\Bridge\Symfony\Service\ValidatorValidationService;
 use RegexParser\ReDoS\ReDoSSeverity;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -42,12 +40,10 @@ final class RegexLintCommand extends Command
 
     public function __construct(
         private readonly RegexAnalysisService $regexAnalysis,
-        private readonly ?RouteValidationService $routeValidation = null,
-        private readonly ?ValidatorValidationService $validatorValidation = null,
         private readonly ?string $editorFormat = null,
         private readonly array $defaultPaths = ['src'],
         private readonly array $excludePaths = ['vendor'],
-        private readonly string $defaultRedosThreshold = 'high',
+        private readonly int $minOptimizationSavings = 1,
     ) {
         $workingDirectory = getcwd() ?: null;
         $this->relativePathHelper = new RelativePathHelper($workingDirectory);
@@ -64,46 +60,7 @@ final class RegexLintCommand extends Command
                 InputArgument::IS_ARRAY,
                 'Files/directories to scan (defaults to current directory).',
             )
-            ->addOption(
-                'fail-on-warnings',
-                null,
-                InputOption::VALUE_NONE,
-                'Exit with a non-zero code when warnings are found.',
-            )
-            ->addOption('analyze-redos', null, InputOption::VALUE_NONE, 'Analyze patterns for ReDoS risk.')
-            ->addOption(
-                'redos-threshold',
-                null,
-                InputOption::VALUE_REQUIRED,
-                'Minimum ReDoS severity to report (safe|low|medium|high|critical).',
-                $this->defaultRedosThreshold,
-            )
-            ->addOption('optimize', null, InputOption::VALUE_NONE, 'Suggest safe optimizations for patterns.')
-            ->addOption(
-                'min-savings',
-                null,
-                InputOption::VALUE_REQUIRED,
-                'Minimum character savings to report for optimizations.',
-                1,
-            )
-            ->addOption(
-                'validate-symfony',
-                null,
-                InputOption::VALUE_NONE,
-                'Validate regex usage in Symfony routes and validators.',
-            )
-            ->addOption(
-                'fail-on-suggestions',
-                null,
-                InputOption::VALUE_NONE,
-                'Exit with a non-zero code when optimization suggestions are found.',
-            )
-            ->addOption(
-                'all',
-                null,
-                InputOption::VALUE_NONE,
-                'Run all analyses (lint, ReDoS, optimization, and Symfony validation).',
-            );
+            ->addOption('analyze-redos', null, InputOption::VALUE_NONE, 'Analyze patterns for ReDoS risk.');
     }
 
     #[\Override]
@@ -121,17 +78,14 @@ final class RegexLintCommand extends Command
             $paths = $this->defaultPaths;
         }
 
-        $runAll = (bool) $input->getOption('all');
-        $analyzeRedos = $runAll || (bool) $input->getOption('analyze-redos');
-        $optimize = $runAll || (bool) $input->getOption('optimize');
-        $validateSymfony = $runAll || (bool) $input->getOption('validate-symfony');
+        $analyzeRedos = (bool) $input->getOption('analyze-redos');
 
         $io->write('  <fg=cyan>🔍  Scanning files...</>');
         $patterns = $this->regexAnalysis->scan($paths, $this->excludePaths);
         $io->writeln(' <fg=green;options=bold>Done.</>');
         $io->writeln('');
 
-        if ([] === $patterns && !$validateSymfony) {
+        if ([] === $patterns) {
             $io->block('No constant preg_* patterns found.', 'INFO', 'fg=black;bg=blue', ' ', true);
 
             return Command::SUCCESS;
@@ -139,7 +93,6 @@ final class RegexLintCommand extends Command
 
         $hasErrors = false;
         $hasWarnings = false;
-        $hasSuggestions = false;
         $stats = ['errors' => 0, 'warnings' => 0, 'optimizations' => 0, 'redos' => 0];
 
         // 1. Basic Linting
@@ -175,14 +128,10 @@ final class RegexLintCommand extends Command
             $this->outputLintIssues($io, $lintIssues);
         }
 
-        // 2. ReDoS Analysis
+        // 2. ReDoS Analysis (opt-in)
         $redosIssues = [];
         if ($analyzeRedos && !empty($patterns)) {
-            $redosThreshold = (string) $input->getOption('redos-threshold');
-            $severityThreshold = ReDoSSeverity::tryFrom(strtolower($redosThreshold)) ?? ReDoSSeverity::HIGH;
-
-            $redosIssues = $this->regexAnalysis->analyzeRedos($patterns, $severityThreshold);
-            $hasErrors = $hasErrors || !empty($redosIssues);
+            $redosIssues = $this->regexAnalysis->analyzeRedos($patterns, ReDoSSeverity::HIGH);
             $stats['redos'] += \count($redosIssues);
         }
 
@@ -190,17 +139,11 @@ final class RegexLintCommand extends Command
             $this->outputRedosIssues($io, $redosIssues);
         }
 
-        // 3. Optimizations
+        // 3. Optimizations (always on)
         $optimizationSuggestions = [];
-        if ($optimize && !empty($patterns)) {
-            $minSavings = (int) $input->getOption('min-savings');
-            if ($minSavings < 0) {
-                $minSavings = 0;
-            }
-
-            $optimizationSuggestions = $this->regexAnalysis->suggestOptimizations($patterns, $minSavings);
+        if (!empty($patterns)) {
+            $optimizationSuggestions = $this->regexAnalysis->suggestOptimizations($patterns, $this->minOptimizationSavings);
             if (!empty($optimizationSuggestions)) {
-                $hasSuggestions = true;
                 $stats['optimizations'] += \count($optimizationSuggestions);
             }
         }
@@ -209,72 +152,36 @@ final class RegexLintCommand extends Command
             $this->outputOptimizationSuggestions($io, $optimizationSuggestions);
         }
 
-        // 4. Symfony Validation
-        $validationIssues = [];
-        if ($validateSymfony) {
-            if ($this->routeValidation?->isSupported()) {
-                $validationIssues = array_merge(
-                    $validationIssues,
-                    $this->routeValidation->analyze(),
-                );
-            } else {
-                $io->writeln('  <fg=yellow>No router service was found; skipping Symfony route validation.</>');
-            }
-
-            if ($this->validatorValidation?->isSupported()) {
-                $validationIssues = array_merge(
-                    $validationIssues,
-                    $this->validatorValidation->analyze(),
-                );
-            } else {
-                $io->writeln('  <fg=yellow>No validator service was found; skipping Symfony validator checks.</>');
-            }
-        }
-
-        if (!empty($validationIssues)) {
-            $this->outputValidationIssues($io, $validationIssues);
-        }
-
         // Final Status
-        $allHasErrors = $hasErrors || !empty(array_filter($validationIssues, fn ($i) => $i->isError));
-        $allHasWarnings = $hasWarnings || !empty(array_filter($validationIssues, fn ($i) => !$i->isError));
-
-        if (!$allHasErrors && !$allHasWarnings && !$hasSuggestions) {
-            $io->block('No issues found. Your regex patterns are clean.', 'PASS', 'fg=black;bg=green', ' ', true);
+        if (0 === $stats['errors']) {
+            if (0 === $stats['warnings'] && 0 === $stats['optimizations'] && 0 === $stats['redos']) {
+                $io->block('No issues found. Your regex patterns are clean.', 'PASS', 'fg=black;bg=green', ' ', true);
+            } else {
+                $io->newLine();
+                $io->writeln(
+                    \sprintf(
+                        '  <bg=blue;fg=white;options=bold> INFO </><fg=white;options=bold> %d warnings</><fg=gray>, %d optimizations, %d redos findings.</>',
+                        $stats['warnings'],
+                        $stats['optimizations'],
+                        $stats['redos'],
+                    ),
+                );
+                $io->newLine();
+            }
 
             return Command::SUCCESS;
-        }
-
-        $failOnWarnings = (bool) $input->getOption('fail-on-warnings');
-        $failOnSuggestions = (bool) $input->getOption('fail-on-suggestions');
-        $failed = $allHasErrors || ($failOnWarnings && $allHasWarnings) || ($failOnSuggestions && $hasSuggestions);
-
-        if ($failed) {
-            $io->newLine();
-            $io->writeln(
-                \sprintf(
-                    '  <bg=red;fg=white;options=bold> FAIL </><fg=red;options=bold> %d errors</><fg=gray>, %d warnings, %d suggestions.</>',
-                    $stats['errors'] + $stats['redos'],
-                    $stats['warnings'],
-                    $stats['optimizations'],
-                ),
-            );
-            $io->newLine();
-
-            return Command::FAILURE;
         }
 
         $io->newLine();
         $io->writeln(
             \sprintf(
-                '  <bg=yellow;fg=black;options=bold> WARN </><fg=yellow;options=bold> %d warnings</><fg=gray>, %d suggestions.</>',
-                $stats['warnings'],
-                $stats['optimizations'],
+                '  <bg=red;fg=white;options=bold> FAIL </><fg=red;options=bold> %d invalid regex patterns</>',
+                $stats['errors'],
             ),
         );
         $io->newLine();
 
-        return Command::SUCCESS;
+        return Command::FAILURE;
     }
 
     private function outputLintIssues(SymfonyStyle $io, array $issues): void
@@ -333,7 +240,7 @@ final class RegexLintCommand extends Command
 
     private function outputRedosIssues(SymfonyStyle $io, array $issues): void
     {
-        $io->writeln('  <fg=red;options=bold>ReDoS Vulnerabilities</>');
+        $io->writeln('  <fg=red;options=bold>ReDoS Findings</>');
         $io->newLine();
 
         foreach ($issues as $issue) {
