@@ -403,47 +403,51 @@ final class RegexLintCommand extends Command
         return \sprintf('<fg=%s;options=bold>[%s]</>', $color, strtoupper($label));
     }
 
-    private function formatToggle(string $label, bool $enabled, string $color): string
+    /**
+     * Format a lint issue into multiple pretty lines, preserving multi-line messages.
+     */
+    private function formatLintLines(array $issue, ?string $editorUrlTemplate): array
     {
-        return $enabled ? $this->badge($label, $color) : '<fg=gray;options=bold>['.$label.']</>';
-    }
-
-    private function formatLintLine(array $issue, ?string $editorUrlTemplate): string
-    {
+        $lines = [];
         $lineNo = str_pad((string) $issue['line'], 4, ' ', STR_PAD_LEFT);
         $color = 'error' === $issue['type'] ? 'red' : 'yellow';
         $badge = $this->badge($issue['type'], $color);
-        $message = $issue['message'];
-        $link = $this->makeClickable($editorUrlTemplate, $issue['file'], $issue['line'], '↗');
+        $fileRef = $this->getRelativePath($issue['file']).':'.$issue['line'];
+        $openLink = $this->makeClickable($editorUrlTemplate, $issue['file'], $issue['line'], '[open]');
+        $messageLines = explode("\n", (string) $issue['message']);
+        $firstMessage = array_shift($messageLines) ?? '';
 
-        return \sprintf(
-            '  <fg=cyan>│</> <fg=gray>#%s</> %s %s <fg=white>%s</>',
+        $lines[] = \sprintf(
+            '  <fg=cyan>│</> <fg=gray>#%s</> %s %s <fg=gray>%s</> <fg=white>%s</>',
             $lineNo,
             $badge,
-            $link,
-            $message,
+            $openLink,
+            $fileRef,
+            rtrim($firstMessage),
         );
-    }
 
-    private function renderSummary(SymfonyStyle $io, array $counters): void
-    {
-        $io->newLine();
-        $this->renderSectionTitle($io, 'Mission Summary', '🏁', 'green');
-
-        $rows = [
-            ['Lint errors', $counters['lintErrors'], 'red'],
-            ['Lint warnings', $counters['lintWarnings'], 'yellow'],
-            ['ReDoS risks', $counters['redos'], 'red'],
-            ['Optimizer rewrites', $counters['optimizations'], 'green'],
-            ['Validation errors', $counters['validationErrors'], 'red'],
-            ['Validation warnings', $counters['validationWarnings'], 'yellow'],
-        ];
-
-        foreach ($rows as [$label, $count, $color]) {
-            $badge = 0 === $count ? $this->badge('ok', 'green') : $this->badge((string) $count, $color);
-            $io->writeln(\sprintf('  %s <fg=white>%s</>', $badge, $label));
+        foreach ($messageLines as $messageLine) {
+            $messageLine = rtrim($messageLine, "\r\n");
+            if ('' === $messageLine) {
+                continue;
+            }
+            $lines[] = '  <fg=cyan>│</>       '.$messageLine;
         }
 
-        $io->newLine();
+        if ('warning' === $issue['type'] && isset($issue['issueId'])) {
+            $lines[] = '  <fg=cyan>│</>   🪪  '.$issue['issueId'];
+        }
+
+        if (isset($issue['hint']) && null !== $issue['hint']) {
+            $hints = explode("\n", $issue['hint']);
+            foreach ($hints as $hint) {
+                $hint = rtrim($hint, "\r\n");
+                if ('' !== trim($hint)) {
+                    $lines[] = '  <fg=cyan>│</>   💡  '.trim($hint);
+                }
+            }
+        }
+
+        return $lines;
     }
 }
