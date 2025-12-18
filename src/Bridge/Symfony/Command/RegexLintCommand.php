@@ -246,15 +246,42 @@ final class RegexLintCommand extends Command
     {
         $results = [];
         foreach ($issues as $index => $issue) {
+            $pattern = $issue->pattern;
+            $message = $issue->message;
+            $id = $issue->id;
+
+            $file = $category;
+            $location = null;
+
+            if ($id && str_contains($id, ' (Route: ')) {
+                [$filePart, $routePart] = explode(' (Route: ', $id, 2);
+                $file = $filePart;
+                $location = 'Route: ' . rtrim($routePart, ')');
+            } elseif ($id) {
+                $location = $id;
+            }
+
+            // Fallback parsing if not provided
+            if (null === $pattern && preg_match('/pattern: ([^)]+)/', $message, $matches)) {
+                $pattern = trim($matches[1], '#');
+                $message = preg_replace('/ \(pattern: [^)]+\)/', '', $message);
+            }
+
+            if (null === $location && preg_match('/Route "([^"]+)"/', $message, $matches)) {
+                $location = 'Route: ' . $matches[1];
+                $message = preg_replace('/Route "[^"]+" /', '', $message);
+            }
+
             $results[] = [
-                'file' => $category,
+                'file' => $file,
                 'line' => $index + 1, // Use index as line for uniqueness
-                'pattern' => null, // No specific pattern
+                'pattern' => $pattern,
+                'location' => $location,
                 'issues' => [
                     [
                         'type' => $issue->isError ? 'error' : 'warning',
-                        'message' => $issue->message,
-                        'file' => $category,
+                        'message' => $message,
+                        'file' => $file,
                         'line' => $index + 1,
                     ],
                 ],
@@ -467,6 +494,11 @@ final class RegexLintCommand extends Command
                 // If highlighting fails (e.g., invalid regex), show raw pattern with warning
                 $io->writeln(\sprintf('  <fg=gray>Pattern:</> <fg=red>%s</> <fg=gray>(invalid)</>', OutputFormatter::escape($pattern)));
             }
+        }
+
+        // Show location if available (for Router/Validator issues)
+        if (!empty($result['location'])) {
+            $io->writeln(\sprintf('  <fg=gray>Location:</> <fg=white>%s</>', $result['location']));
         }
 
         // Display issues

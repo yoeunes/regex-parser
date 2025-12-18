@@ -54,6 +54,8 @@ final readonly class RouteRequirementAnalyzer
         $issues = [];
 
         foreach ($routes as $name => $route) {
+            $file = $this->getRouteFile($route);
+
             foreach ($route->getRequirements() as $parameter => $requirement) {
                 if (!\is_scalar($requirement)) {
                     continue;
@@ -76,9 +78,16 @@ final readonly class RouteRequirementAnalyzer
 
                 $result = $this->regex->validate($normalizedPattern);
 
+                $id = $file ? $file . ' (Route: ' . $name . ')' : 'Route: ' . $name;
+
                 if ($isTrivial) {
                     if (!$result->isValid) {
-                        $issues[] = new AnalysisIssue(\sprintf('Route "%s" requirement "%s" is invalid: %s (pattern: %s)', (string) $name, $parameter, $result->error ?? 'unknown error', $this->formatPattern($normalizedPattern)), true);
+                        $issues[] = new AnalysisIssue(
+                            \sprintf('requirement "%s" is invalid: %s', $parameter, $result->error ?? 'unknown error'),
+                            true,
+                            $pattern,
+                            $id,
+                        );
                     }
 
                     continue;
@@ -86,8 +95,10 @@ final readonly class RouteRequirementAnalyzer
 
                 if (!$result->isValid) {
                     $issues[] = new AnalysisIssue(
-                        \sprintf('Route "%s" requirement "%s" is invalid: %s (pattern: %s)', (string) $name, $parameter, $result->error ?? 'unknown error', $this->formatPattern($normalizedPattern)),
+                        \sprintf('requirement "%s" is invalid: %s', $parameter, $result->error ?? 'unknown error'),
                         true,
+                        $pattern,
+                        $id,
                     );
 
                     continue;
@@ -97,13 +108,13 @@ final readonly class RouteRequirementAnalyzer
                 if ($redos->exceedsThreshold($this->redosSeverityThreshold)) {
                     $issues[] = new AnalysisIssue(
                         \sprintf(
-                            'Route "%s" requirement "%s" may be vulnerable to ReDoS (severity: %s, pattern: %s).',
-                            (string) $name,
+                            'requirement "%s" may be vulnerable to ReDoS (severity: %s).',
                             $parameter,
                             strtoupper($redos->severity->value),
-                            $this->formatPattern($normalizedPattern),
                         ),
                         true,
+                        $pattern,
+                        $id,
                     );
 
                     continue;
@@ -111,8 +122,10 @@ final readonly class RouteRequirementAnalyzer
 
                 if ($result->complexityScore >= $this->warningThreshold) {
                     $issues[] = new AnalysisIssue(
-                        \sprintf('Route "%s" requirement "%s" is complex (score: %d, pattern: %s).', (string) $name, $parameter, $result->complexityScore, $this->formatPattern($normalizedPattern)),
+                        \sprintf('requirement "%s" is complex (score: %d).', $parameter, $result->complexityScore),
                         false,
+                        $pattern,
+                        $id,
                     );
                 }
             }
@@ -212,6 +225,28 @@ final readonly class RouteRequirementAnalyzer
         }
 
         return 1 === preg_match('#^[A-Za-z0-9._-]+(?:\|[A-Za-z0-9._-]+)+$#', $body);
+    }
+
+    private function getRouteFile(\Symfony\Component\Routing\Route $route): ?string
+    {
+        $controller = $route->getDefault('_controller');
+        if (!\is_string($controller)) {
+            return null;
+        }
+
+        // Handle controller as class::method
+        if (str_contains($controller, '::')) {
+            [$class] = explode('::', $controller, 2);
+        } else {
+            $class = $controller;
+        }
+
+        if (!class_exists($class)) {
+            return null;
+        }
+
+        $reflection = new \ReflectionClass($class);
+        return $reflection->getFileName();
     }
 
     /**

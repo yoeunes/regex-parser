@@ -21,5 +21,7 @@ final readonly class AnalysisIssue
     public function __construct(
         public string $message,
         public bool $isError,
+        public ?string $pattern = null,
+        public ?string $id = null,
     ) {}
 }
