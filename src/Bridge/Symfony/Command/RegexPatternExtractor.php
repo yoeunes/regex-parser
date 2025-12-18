@@ -94,7 +94,14 @@ final class RegexPatternExtractor
                     continue;
                 }
 
-                yield $file->getPathname();
+                $filePath = $file->getPathname();
+                
+                // Skip vendor directory
+                if (str_contains($filePath, '/vendor/') || str_contains($filePath, DIRECTORY_SEPARATOR . 'vendor' . DIRECTORY_SEPARATOR)) {
+                    continue;
+                }
+
+                yield $filePath;
             }
         }
     }

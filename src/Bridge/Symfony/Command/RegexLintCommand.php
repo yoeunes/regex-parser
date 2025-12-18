@@ -35,6 +35,7 @@ final class RegexLintCommand extends Command
 
     public function __construct(
         private readonly Regex $regex,
+        private readonly ?string $editorUrl = null,
     ) {
         parent::__construct();
     }
@@ -50,13 +51,14 @@ final class RegexLintCommand extends Command
     #[\Override]
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $io = new SymfonyStyle($input, $output);
 
         /** @var list<string> $paths */
         $paths = $input->getArgument('paths');
         if ([] === $paths) {
             $paths = ['.'];
         }
+
+        $editorUrlTemplate = $this->editorUrl;
 
         $extractor = new RegexPatternExtractor();
         $patterns = $extractor->extract($paths);
@@ -69,17 +71,18 @@ final class RegexLintCommand extends Command
 
         $hasErrors = false;
         $hasWarnings = false;
+        $issues = [];
 
         foreach ($patterns as $occurrence) {
             $validation = $this->regex->validate($occurrence->pattern);
             if (!$validation->isValid) {
                 $hasErrors = true;
-                $io->writeln(\sprintf(
-                    '<error>[error]</error> %s:%d %s',
-                    $occurrence->file,
-                    $occurrence->line,
-                    $validation->error ?? 'Invalid regex.',
-                ));
+                $issues[] = [
+                    'type' => 'error',
+                    'file' => $occurrence->file,
+                    'line' => $occurrence->line,
+                    'message' => $validation->error ?? 'Invalid regex.',
+                ];
 
                 continue;
             }
@@ -90,18 +93,25 @@ final class RegexLintCommand extends Command
 
             foreach ($linter->getIssues() as $issue) {
                 $hasWarnings = true;
-                $io->writeln(\sprintf(
-                    '<comment>[warn]</comment> %s:%d [%s] %s',
-                    $occurrence->file,
-                    $occurrence->line,
-                    $issue->id,
-                    $issue->message,
-                ));
-
-                if (null !== $issue->hint) {
-                    $io->writeln('  '.$issue->hint);
-                }
+                $issues[] = [
+                    'type' => 'warning',
+                    'file' => $occurrence->file,
+                    'line' => $occurrence->line,
+                    'issueId' => $issue->id,
+                    'message' => $issue->message,
+                    'hint' => $issue->hint,
+                ];
             }
+        }
+
+        // Output issues with improved formatting
+        foreach ($issues as $issue) {
+            $this->outputIssue($output, $issue, $editorUrlTemplate);
+        }
+        
+        // Add final newline for better spacing
+        if (!empty($issues)) {
+            $output->writeln('');
         }
 
         if (!$hasErrors && !$hasWarnings) {
@@ -118,4 +128,57 @@ final class RegexLintCommand extends Command
 
         return ($hasErrors || ($failOnWarnings && $hasWarnings)) ? Command::FAILURE : Command::SUCCESS;
     }
+
+    /**
+     * @param array{type: string, file: string, line: int, message: string, issueId?: string, hint?: string|null} $issue
+     */
+    private function outputIssue(OutputInterface $output, array $issue, ?string $editorUrlTemplate): void
+    {
+        $relativeFile = $this->getRelativePath($issue['file']);
+        
+        // Create clickable link if editor URL template is provided
+        $fileOutput = $relativeFile;
+        if ($editorUrlTemplate) {
+            $editorUrl = str_replace(['%%file%%', '%%line%%'], [$issue['file'], $issue['line']], $editorUrlTemplate);
+            $fileOutput = "\033]8;;" . $editorUrl . "\033\\" . $relativeFile . "\033]8;;\033\\";
+        }
+
+        // Calculate separator length based on file path (without ANSI codes)
+        $displayLength = strlen($relativeFile) + 4;
+        $separator = str_repeat('-', $displayLength);
+
+        // PHPStan-style output using raw write for clickable links
+        $output->writeln('');
+        $output->writeln(' ------ ' . $separator);
+        $output->write(\sprintf('  Line   %s', $fileOutput) . "\n");
+        $output->writeln(' ------ ' . $separator);
+        $output->writeln(\sprintf('  %d     %s', $issue['line'], $issue['message']));
+        
+        if ('warning' === $issue['type'] && isset($issue['issueId'])) {
+            $output->writeln(\sprintf('         🪪  %s', $issue['issueId']));
+        }
+        
+        if (isset($issue['hint']) && null !== $issue['hint']) {
+            $output->writeln('         💡  ' . $issue['hint']);
+        }
+        
+        $output->writeln(\sprintf('         ✏️  %s:%d', $relativeFile, $issue['line']));
+        $output->writeln(' ------ ' . $separator);
+    }
+
+    private function getRelativePath(string $path): string
+    {
+        $cwd = getcwd();
+        if (false === $cwd) {
+            return $path;
+        }
+
+        if (str_starts_with($path, $cwd)) {
+            return ltrim(substr($path, strlen($cwd)), '/\\');
+        }
+
+        return $path;
+    }
+
+    
 }

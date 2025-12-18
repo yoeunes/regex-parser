@@ -25,12 +25,12 @@ use Symfony\Component\Validator\Mapping\Loader\LoaderInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 #[AsCommand(
-    name: 'regex-parser:check',
+    name: 'regex:check',
     description: 'Validates regex usage found in the Symfony application.',
 )]
 final class RegexParserValidateCommand extends Command
 {
-    protected static ?string $defaultName = 'regex-parser:check';
+    protected static ?string $defaultName = 'regex:check';
 
     protected static ?string $defaultDescription = 'Validates regex usage found in the Symfony application.';
 

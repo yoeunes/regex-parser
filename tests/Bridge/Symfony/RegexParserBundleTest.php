@@ -118,7 +118,7 @@ final class RegexParserBundleTest extends TestCase
 
         /** @var RegexParserValidateCommand $command */
         $command = $container->get('regex_parser.command.validate');
-        $this->assertSame('regex-parser:check', $command->getName());
+        $this->assertSame('regex:check', $command->getName());
     }
 
     public function test_bundle_can_be_disabled(): void

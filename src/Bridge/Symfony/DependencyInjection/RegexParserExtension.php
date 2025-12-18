@@ -58,6 +58,7 @@ final class RegexParserExtension extends Extension
          *         redos_threshold: int,
          *         ignore_patterns: array<int, string>,
          *     },
+         *     editor_url: string|null,
          * } $config
          */
         $config = $this->processConfiguration($configuration, $configs);
@@ -72,6 +73,26 @@ final class RegexParserExtension extends Extension
             ...$config['redos']['ignored_patterns'],
         ]));
 
+        // Resolve editor URL with fallbacks
+        $editorUrl = $config['editor_url'];
+        
+        // Fallback to framework.ide if regex_parser.editor_url is not set
+        if (null === $editorUrl && $container->hasParameter('framework.ide')) {
+            $ide = $container->getParameter('framework.ide');
+            if (null !== $ide && '' !== $ide) {
+                // Convert Symfony format (%%f%%, %%l%%) to our format (%%file%%, %%line%%)
+                $editorUrl = str_replace(['%%f%%', '%%l%%'], ['%%file%%', '%%line%%'], $ide);
+            }
+        }
+        
+        // Fallback to PHPStan editorUrl if still not set
+        if (null === $editorUrl) {
+            $phpstanEditorUrl = $this->findPhpstanEditorUrl();
+            if (null !== $phpstanEditorUrl) {
+                $editorUrl = $phpstanEditorUrl;
+            }
+        }
+
         // Set parameters
         $container->setParameter('regex_parser.max_pattern_length', $config['max_pattern_length']);
         $container->setParameter('regex_parser.max_lookbehind_length', $config['max_lookbehind_length']);
@@ -83,6 +104,7 @@ final class RegexParserExtension extends Extension
         $container->setParameter('regex_parser.analysis.warning_threshold', $config['analysis']['warning_threshold']);
         $container->setParameter('regex_parser.analysis.redos_threshold', $config['analysis']['redos_threshold']);
         $container->setParameter('regex_parser.analysis.ignore_patterns', $ignoredPatterns);
+        $container->setParameter('regex_parser.editor_url', $editorUrl);
 
         $container->setDefinition('regex_parser.cache', $this->buildCacheDefinition($config));
 
@@ -123,5 +145,53 @@ final class RegexParserExtension extends Extension
         }
 
         return new Definition(NullCache::class);
+    }
+
+    /**
+     * Try to find editor URL from PHPStan configuration files.
+     */
+    private function findPhpstanEditorUrl(): ?string
+    {
+        $possibleConfigs = [
+            'phpstan.neon',
+            'phpstan.dist.neon', 
+            'phpstan.neon.dist'
+        ];
+
+        $cwd = getcwd();
+        if (false === $cwd) {
+            return null;
+        }
+
+        foreach ($possibleConfigs as $config) {
+            $configPath = $cwd . '/' . $config;
+            if (file_exists($configPath)) {
+                $content = file_get_contents($configPath);
+                if (false !== $content) {
+                    // Simple NEON parsing (basic key-value pairs)
+                    $lines = explode("\n", $content);
+                    $currentSection = null;
+                    
+                    foreach ($lines as $line) {
+                        $line = trim($line);
+                        if ('' === $line || str_starts_with($line, '#')) {
+                            continue;
+                        }
+                        
+                        if (str_ends_with($line, ':')) {
+                            $currentSection = substr($line, 0, -1);
+                            continue;
+                        }
+                        
+                        if ('parameters' === $currentSection && str_contains($line, 'editorUrl:')) {
+                            [, $value] = explode(':', $line, 2);
+                            return trim($value, ' "\'');
+                        }
+                    }
+                }
+            }
+        }
+
+        return null;
     }
 }

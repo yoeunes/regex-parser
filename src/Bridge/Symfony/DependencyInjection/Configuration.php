@@ -105,6 +105,10 @@ final readonly class Configuration implements ConfigurationInterface
                         ->end()
                     ->end()
                 ->end()
+                ->scalarNode('editor_url')
+                    ->defaultNull()
+                    ->info('Editor URL template for clickable links (e.g., phpstorm://open?file=%%file%%&line=%%line%%). Falls back to framework.ide, then phpstan editorUrl.')
+                ->end()
             ->end();
 
         return $treeBuilder;
