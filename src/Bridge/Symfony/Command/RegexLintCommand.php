@@ -117,6 +117,7 @@ final class RegexLintCommand extends Command
                         'type' => 'error',
                         'file' => $occurrence->file,
                         'line' => $occurrence->line,
+                        'column' => 1,
                         'message' => $validation->error ?? 'Invalid regex.',
                     ];
 
@@ -133,6 +134,7 @@ final class RegexLintCommand extends Command
                         'type' => 'warning',
                         'file' => $occurrence->file,
                         'line' => $occurrence->line,
+                        'column' => 1,
                         'issueId' => $issue->id,
                         'message' => $issue->message,
                         'hint' => $issue->hint,
@@ -275,15 +277,12 @@ final class RegexLintCommand extends Command
         $this->renderSectionTitle($io, 'Lint Review', '🧪', 'cyan');
 
         foreach ($issuesByFile as $file => $fileIssues) {
-            $divider = str_repeat('─', 66);
-            $io->writeln('  <fg=cyan>┌'.$divider.'</>');
             $io->writeln(\sprintf(
-                '  <fg=cyan>│</> <options=bold>%s</> <fg=gray>(%d %s)</>',
+                '• <options=bold>%s</> <fg=gray>(%d %s)</>',
                 $file,
                 \count($fileIssues),
                 1 === \count($fileIssues) ? 'issue' : 'issues',
             ));
-            $io->writeln('  <fg=cyan>├'.$divider.'</>');
 
             foreach ($fileIssues as $issue) {
                 foreach ($this->formatLintLines($issue, $editorUrlTemplate) as $line) {
@@ -291,7 +290,6 @@ final class RegexLintCommand extends Command
                 }
             }
 
-            $io->writeln('  <fg=cyan>└'.$divider.'</>');
             $io->writeln('');
         }
     }
@@ -300,31 +298,31 @@ final class RegexLintCommand extends Command
     {
         $this->renderSectionTitle($io, 'ReDoS Radar', '🔥', 'red');
         foreach ($issues as $issue) {
-            $summary = \sprintf(
-                '<fg=gray>#%4d</> %s %s <fg=gray>|</> severity=<fg=white;options=bold>%s</> score=<fg=white;options=bold>%d</>',
-                $issue['line'],
+            $jumpText = $this->getRelativePath($issue['file']).':'.$issue['line'].':1';
+            $jumpLink = $this->makeClickable($this->editorUrl, $issue['file'], $issue['line'], $jumpText, 1);
+            $severity = strtoupper((string) $issue['analysis']->severity->value);
+            $io->writeln(\sprintf(
+                '• %s %s severity=<fg=white;options=bold>%s</> score=<fg=white;options=bold>%d</>',
                 $this->badge('redos', 'red'),
-                $this->makeClickable($this->editorUrl, $issue['file'], $issue['line'], $this->getRelativePath($issue['file'])),
-                strtoupper((string) $issue['analysis']->severity->value),
+                $jumpLink,
+                $severity,
                 $issue['analysis']->score,
-            );
-
-            $io->writeln('  '.$summary);
+            ));
 
             if (null !== $issue['analysis']->trigger) {
-                $io->writeln('     • Trigger: '.$issue['analysis']->trigger);
+                $io->writeln('    ↳ Trigger: '.$issue['analysis']->trigger);
             }
 
             if (null !== $issue['analysis']->confidence) {
-                $io->writeln('     • Confidence: '.$issue['analysis']->confidence->value);
+                $io->writeln('    ↳ Confidence: '.$issue['analysis']->confidence->value);
             }
 
             if (null !== $issue['analysis']->falsePositiveRisk) {
-                $io->writeln('     • False positive risk: '.$issue['analysis']->falsePositiveRisk);
+                $io->writeln('    ↳ False positive risk: '.$issue['analysis']->falsePositiveRisk);
             }
 
             foreach ($issue['analysis']->recommendations as $recommendation) {
-                $io->writeln('     • '.$recommendation);
+                $io->writeln('    ↳ '.$recommendation);
             }
         }
         $io->writeln('');
@@ -334,15 +332,16 @@ final class RegexLintCommand extends Command
     {
         $this->renderSectionTitle($io, 'Optimizer', '🚀', 'green');
         foreach ($suggestions as $suggestion) {
+            $jumpText = $this->getRelativePath($suggestion['file']).':'.$suggestion['line'].':1';
+            $jumpLink = $this->makeClickable($this->editorUrl, $suggestion['file'], $suggestion['line'], $jumpText, 1);
             $io->writeln(\sprintf(
-                '  %s <fg=gray>#%d</> %s saved=<fg=green;options=bold>%d</>',
+                '• %s %s saved=<fg=green;options=bold>%d</>',
                 $this->badge('suggest', 'green'),
-                $suggestion['line'],
-                $this->makeClickable($this->editorUrl, $suggestion['file'], $suggestion['line'], $this->getRelativePath($suggestion['file'])),
+                $jumpLink,
                 $suggestion['savings'],
             ));
-            $io->writeln('     <fg=gray>–</> '.$suggestion['optimization']->original);
-            $io->writeln('     <fg=green>+</> '.$suggestion['optimization']->optimized);
+            $io->writeln('    ↳ <fg=gray>from</> '.$suggestion['optimization']->original);
+            $io->writeln('    ↳ <fg=green>to</>   '.$suggestion['optimization']->optimized);
         }
         $io->writeln('');
     }
@@ -352,7 +351,7 @@ final class RegexLintCommand extends Command
         $this->renderSectionTitle($io, 'Symfony Validation', '🛡️', 'blue');
         foreach ($issues as $issue) {
             $badge = $issue->isError ? $this->badge('error', 'red') : $this->badge('warn', 'yellow');
-            $io->writeln(\sprintf('  %s %s', $badge, $issue->message));
+            $io->writeln(\sprintf('• %s %s', $badge, $issue->message));
         }
         $io->writeln('');
     }
@@ -388,14 +387,13 @@ final class RegexLintCommand extends Command
 
     private function renderSectionTitle(SymfonyStyle $io, string $title, string $emoji, string $color): void
     {
-        $divider = max(0, 54 - \strlen($title));
         $io->writeln(\sprintf(
-            '<fg=%s;options=bold>%s %s</> <fg=gray>%s</>',
+            '<fg=%s;options=bold>%s %s</>',
             $color,
             $emoji,
             $title,
-            str_repeat('─', $divider),
         ));
+        $io->writeln('<fg=gray>'.str_repeat('-', 56).'</>');
     }
 
     private function badge(string $label, string $color): string
@@ -409,20 +407,18 @@ final class RegexLintCommand extends Command
     private function formatLintLines(array $issue, ?string $editorUrlTemplate): array
     {
         $lines = [];
-        $lineNo = str_pad((string) $issue['line'], 4, ' ', STR_PAD_LEFT);
         $color = 'error' === $issue['type'] ? 'red' : 'yellow';
         $badge = $this->badge($issue['type'], $color);
-        $fileRef = $this->getRelativePath($issue['file']).':'.$issue['line'];
-        $openLink = $this->makeClickable($editorUrlTemplate, $issue['file'], $issue['line'], '[open]');
+        $column = $issue['column'] ?? 1;
+        $fileRef = $this->getRelativePath($issue['file']).':'.$issue['line'].':'.$column;
+        $jumpLink = $this->makeClickable($editorUrlTemplate, $issue['file'], $issue['line'], $fileRef, $column);
         $messageLines = explode("\n", (string) $issue['message']);
         $firstMessage = array_shift($messageLines) ?? '';
 
         $lines[] = \sprintf(
-            '  <fg=cyan>│</> <fg=gray>#%s</> %s %s <fg=gray>%s</> <fg=white>%s</>',
-            $lineNo,
+            '    ◦ %s %s <fg=white>%s</>',
             $badge,
-            $openLink,
-            $fileRef,
+            $jumpLink,
             rtrim($firstMessage),
         );
 
@@ -431,11 +427,11 @@ final class RegexLintCommand extends Command
             if ('' === $messageLine) {
                 continue;
             }
-            $lines[] = '  <fg=cyan>│</>       '.$messageLine;
+            $lines[] = '      ↳ '.$messageLine;
         }
 
         if ('warning' === $issue['type'] && isset($issue['issueId'])) {
-            $lines[] = '  <fg=cyan>│</>   🪪  '.$issue['issueId'];
+            $lines[] = '      🪪  '.$issue['issueId'];
         }
 
         if (isset($issue['hint']) && null !== $issue['hint']) {
@@ -443,7 +439,7 @@ final class RegexLintCommand extends Command
             foreach ($hints as $hint) {
                 $hint = rtrim($hint, "\r\n");
                 if ('' !== trim($hint)) {
-                    $lines[] = '  <fg=cyan>│</>   💡  '.trim($hint);
+                    $lines[] = '      💡  '.trim($hint);
                 }
             }
         }

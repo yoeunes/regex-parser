@@ -31,6 +31,16 @@ use Symfony\Component\HttpKernel\DependencyInjection\Extension;
  */
 final class RegexParserExtension extends Extension
 {
+    private const EDITOR_URL_PRESETS = [
+        'code' => 'vscode://file/%%file%%:%%line%%:%%column%%',
+        'vscode' => 'vscode://file/%%file%%:%%line%%:%%column%%',
+        'phpstorm' => 'phpstorm://open?file=%%file%%&line=%%line%%&column=%%column%%',
+        'storm' => 'phpstorm://open?file=%%file%%&line=%%line%%&column=%%column%%',
+        'idea' => 'phpstorm://open?file=%%file%%&line=%%line%%&column=%%column%%',
+        'sublime' => 'subl://open?url=file://%%file%%&line=%%line%%&column=%%column%%',
+        'subl' => 'subl://open?url=file://%%file%%&line=%%line%%&column=%%column%%',
+    ];
+
     /**
      * @param array<array<string, mixed>> $configs   an array of configuration values from the application's config files
      * @param ContainerBuilder            $container the DI container builder instance
@@ -61,6 +71,7 @@ final class RegexParserExtension extends Extension
          *     },
          *     paths: array<int, string>,
          *     exclude_paths: array<int, string>,
+         *     editor: string|null,
          *     editor_url: string|null,
          * } $config
          */
@@ -73,6 +84,10 @@ final class RegexParserExtension extends Extension
 
         // Resolve editor URL with fallbacks
         $editorUrl = $config['editor_url'];
+
+        if (null === $editorUrl && null !== $config['editor']) {
+            $editorUrl = self::EDITOR_URL_PRESETS[$config['editor']] ?? null;
+        }
 
         // Fallback to framework.ide if regex_parser.editor_url is not set
         if (null === $editorUrl && $container->hasParameter('framework.ide')) {
