@@ -15,6 +15,8 @@ namespace RegexParser\Bridge\Symfony\Command;
 
 use RegexParser\Bridge\Symfony\Analyzer\RouteRequirementAnalyzer;
 use RegexParser\Bridge\Symfony\Analyzer\ValidatorRegexAnalyzer;
+use RegexParser\Bridge\Symfony\Console\LinkFormatter;
+use RegexParser\Bridge\Symfony\Console\RelativePathHelper;
 use RegexParser\Bridge\Symfony\Extractor\RegexPatternExtractor;
 use RegexParser\Bridge\Symfony\Extractor\TokenBasedExtractionStrategy;
 use RegexParser\NodeVisitor\LinterNodeVisitor;
@@ -27,7 +29,6 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
-use Symfony\Component\ErrorHandler\ErrorRenderer\FileLinkFormatter;
 use Symfony\Component\Routing\RouterInterface;
 use Symfony\Component\Validator\Mapping\Loader\LoaderInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
@@ -42,7 +43,8 @@ final class RegexLintCommand extends Command
 
     protected static ?string $defaultDescription = 'Lints, validates, optimizes, and analyzes ReDoS risk for constant preg_* patterns found in PHP files.';
 
-    private ?FileLinkFormatter $formatter = null;
+    private readonly RelativePathHelper $relativePathHelper;
+    private readonly LinkFormatter $linkFormatter;
 
     public function __construct(
         private readonly Regex $regex,
@@ -57,6 +59,9 @@ final class RegexLintCommand extends Command
         private readonly string $defaultRedosThreshold = 'high',
         private readonly ?RegexPatternExtractor $extractor = null,
     ) {
+        $workingDirectory = getcwd() ?: null;
+        $this->relativePathHelper = new RelativePathHelper($workingDirectory);
+        $this->linkFormatter = new LinkFormatter($this->editorFormat, $this->relativePathHelper);
         parent::__construct();
     }
 
@@ -131,8 +136,6 @@ final class RegexLintCommand extends Command
         $optimize = $runAll || (bool) $input->getOption('optimize');
         $validateSymfony = $runAll || (bool) $input->getOption('validate-symfony');
 
-        $editorUrlTemplate = $this->editorFormat;
-
         $extractor = $this->extractor ?? new RegexPatternExtractor(
             new TokenBasedExtractionStrategy(),
         );
@@ -206,7 +209,7 @@ final class RegexLintCommand extends Command
         }
 
         if (!empty($lintIssues)) {
-            $this->outputLintIssues($io, $lintIssues, $editorUrlTemplate);
+            $this->outputLintIssues($io, $lintIssues);
         }
 
         // 2. ReDoS Analysis
@@ -237,7 +240,7 @@ final class RegexLintCommand extends Command
         }
 
         if (!empty($redosIssues)) {
-            $this->outputRedosIssues($io, $redosIssues, $editorUrlTemplate);
+            $this->outputRedosIssues($io, $redosIssues);
         }
 
         // 3. Optimizations
@@ -281,7 +284,7 @@ final class RegexLintCommand extends Command
         }
 
         if (!empty($optimizationSuggestions)) {
-            $this->outputOptimizationSuggestions($io, $optimizationSuggestions, $editorUrlTemplate);
+            $this->outputOptimizationSuggestions($io, $optimizationSuggestions);
         }
 
         // 4. Symfony Validation
@@ -292,6 +295,8 @@ final class RegexLintCommand extends Command
                     $validationIssues,
                     $this->routeAnalyzer->analyze($this->router->getRouteCollection()),
                 );
+            } else {
+                $io->writeln('  <fg=yellow>No router service was found; skipping Symfony route validation.</>');
             }
 
             if (null !== $this->validatorAnalyzer && null !== $this->validator && null !== $this->validatorLoader) {
@@ -299,6 +304,8 @@ final class RegexLintCommand extends Command
                     $validationIssues,
                     $this->validatorAnalyzer->analyze($this->validator, $this->validatorLoader),
                 );
+            } else {
+                $io->writeln('  <fg=yellow>No validator service was found; skipping Symfony validator checks.</>');
             }
         }
 
@@ -348,7 +355,7 @@ final class RegexLintCommand extends Command
         return Command::SUCCESS;
     }
 
-    private function outputLintIssues(SymfonyStyle $io, array $issues, ?string $editorUrlTemplate): void
+    private function outputLintIssues(SymfonyStyle $io, array $issues): void
     {
         $io->writeln('  <fg=white;options=bold>Issues Found</>');
         $io->newLine();
@@ -359,7 +366,7 @@ final class RegexLintCommand extends Command
         }
 
         foreach ($issuesByFile as $file => $fileIssues) {
-            $relFile = $this->getRelativePath($file);
+            $relFile = $this->linkFormatter->getRelativePath($file);
             // File path: Cyan and Bold
             $io->writeln("  <fg=gray>in</> <fg=cyan;options=bold>{$relFile}</>");
 
@@ -368,7 +375,7 @@ final class RegexLintCommand extends Command
                 $color = $isError ? 'red' : 'yellow';
                 $letter = $isError ? 'E' : 'W';
                 $line = $issue['line'];
-                $clickableLine = $this->makeClickable($editorUrlTemplate, $file, $line, str_pad((string) $line, 4));
+                $clickableLine = $this->linkFormatter->format($file, $line, str_pad((string) $line, 4));
 
                 // Process message to remove "Line 1:" and align
                 $messageRaw = (string) $issue['message'];
@@ -400,16 +407,16 @@ final class RegexLintCommand extends Command
         }
     }
 
-    private function outputRedosIssues(SymfonyStyle $io, array $issues, ?string $editorUrlTemplate): void
+    private function outputRedosIssues(SymfonyStyle $io, array $issues): void
     {
         $io->writeln('  <fg=red;options=bold>ReDoS Vulnerabilities</>');
         $io->newLine();
 
         foreach ($issues as $issue) {
-            $relFile = $this->getRelativePath($issue['file']);
+            $relFile = $this->linkFormatter->getRelativePath($issue['file']);
             $line = $issue['line'];
             $severity = strtoupper($issue['analysis']->severity->value);
-            $clickableLine = $this->makeClickable($editorUrlTemplate, $issue['file'], $line, str_pad((string) $line, 4));
+            $clickableLine = $this->linkFormatter->format($issue['file'], $line, str_pad((string) $line, 4));
 
             $io->writeln(
                 \sprintf(
@@ -435,15 +442,14 @@ final class RegexLintCommand extends Command
     private function outputOptimizationSuggestions(
         SymfonyStyle $io,
         array $suggestions,
-        ?string $editorUrlTemplate
     ): void {
         $io->writeln('  <fg=green;options=bold>Optimizations</>');
         $io->newLine();
 
         foreach ($suggestions as $item) {
-            $relFile = $this->getRelativePath($item['file']);
+            $relFile = $this->linkFormatter->getRelativePath($item['file']);
             $line = $item['line'];
-            $clickableLine = $this->makeClickable($editorUrlTemplate, $item['file'], $line, str_pad((string) $line, 4));
+            $clickableLine = $this->linkFormatter->format($item['file'], $line, str_pad((string) $line, 4));
 
             $io->writeln(
                 \sprintf(
@@ -491,69 +497,5 @@ final class RegexLintCommand extends Command
             fn ($matches) => str_repeat(' ', \strlen($matches[0])),
             $message,
         );
-    }
-
-    private function makeClickable(
-        ?string $editorUrlTemplate,
-        string $file,
-        int $line,
-        string $text,
-        int $column = 1
-    ): string {
-        if ($editorUrlTemplate) {
-            if (!$this->formatter) {
-                $this->formatter = new FileLinkFormatter($editorUrlTemplate);
-            }
-
-            $link = $this->formatter->format($file, $line);
-            if ($link && $this->supportsHyperlinks()) {
-                // Use OSC 8 hyperlink escape sequence
-                return "\033]8;;{$link}\033\\{$text}\033]8;;\033\\";
-            }
-
-            // Fallback: show the file path with line number if hyperlink not supported
-            $relFile = $this->getRelativePath($file);
-
-            return "{$relFile}:{$line}";
-        }
-
-        return $text;
-    }
-
-    private function supportsHyperlinks(): bool
-    {
-        // Use Symfony's approach: most modern terminals handle OSC 8 hyperlinks gracefully
-        // (they simply ignore unknown escape sequences), so we only exclude known problematic terminals
-        // instead of trying to whitelist all supporting terminals.
-        //
-        // This matches the approach used by Symfony's CliDumper for file links.
-
-        // JetBrains-JediTerm (old JetBrains terminal emulator) doesn't handle OSC 8 well
-        if ('JetBrains-JediTerm' === getenv('TERMINAL_EMULATOR')) {
-            return false;
-        }
-
-        // Old Konsole versions don't handle OSC 8 well
-        $konsoleVersion = getenv('KONSOLE_VERSION');
-        if ($konsoleVersion && (int) $konsoleVersion <= 201100) {
-            return false;
-        }
-
-        // Running inside IntelliJ/PHPStorm IDE terminal may not handle OSC 8 well
-        if (isset($_SERVER['IDEA_INITIAL_DIRECTORY'])) {
-            return false;
-        }
-
-        return true;
-    }
-
-    private function getRelativePath(string $path): string
-    {
-        $cwd = getcwd();
-        if (false === $cwd || !str_starts_with($path, $cwd)) {
-            return $path;
-        }
-
-        return ltrim(substr($path, \strlen($cwd)), '/\\');
     }
 }
