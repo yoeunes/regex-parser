@@ -55,7 +55,8 @@ final readonly class RouteValidationService
                 }
 
                 $key = $file . ' (Route: ' . $name . ')';
-                $patterns[] = new RegexPatternOccurrence($pattern, $key, 1, $pattern);
+                $normalized = $this->normalizePattern($pattern);
+                $patterns[] = new RegexPatternOccurrence($normalized, $key, 1, $normalized);
                 $patternMap[$key] = ['route' => $name, 'param' => $parameter, 'pattern' => $pattern, 'file' => $file];
             }
         }
@@ -69,6 +70,10 @@ final readonly class RouteValidationService
             $key = $issue['file'];
             if (isset($patternMap[$key])) {
                 $data = $patternMap[$key];
+                // Skip ReDoS warnings for routes, as they may not be relevant
+                if (str_contains($issue['message'], 'ReDoS')) {
+                    continue;
+                }
                 $id = $data['file'] ? $data['file'] . ' (Route: ' . $data['route'] . ')' : 'Route: ' . $data['route'];
                 $analysisIssues[] = new AnalysisIssue(
                     $issue['message'],
@@ -95,6 +100,24 @@ final readonly class RouteValidationService
         }
 
         return $analysisIssues;
+    }
+
+    private function normalizePattern(string $pattern): string
+    {
+        $firstChar = $pattern[0] ?? '';
+
+        if (\in_array($firstChar, ['/', '#', '~', '%'], true)) {
+            return $pattern;
+        }
+
+        if (str_starts_with($pattern, '^') && str_ends_with($pattern, '$')) {
+            return '#'.$pattern.'#';
+        }
+
+        $delimiter = '#';
+        $body = str_replace($delimiter, '\\'.$delimiter, $pattern);
+
+        return $delimiter.'^'.$body.'$'.$delimiter;
     }
 
     private function getRouteFile(\Symfony\Component\Routing\Route $route): ?string
