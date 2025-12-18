@@ -77,6 +77,10 @@ final class RegexLintCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
 
+        $io->writeln('');
+        $io->writeln('  <fg=white;options=bold>REGEX PARSER</> <fg=gray>Linting & Analysis</>');
+        $io->writeln('');
+
         /** @var list<string> $paths */
         $paths = $input->getArgument('paths');
         if ([] === $paths) {
@@ -91,13 +95,16 @@ final class RegexLintCommand extends Command
         $editorUrlTemplate = $this->editorUrl;
 
         $extractor = $this->extractor ?? new RegexPatternExtractor(
-            // Fallback to token-based if no injector is available
             new TokenBasedExtractionStrategy(),
         );
+
+        $io->write('  <fg=gray>🔍  Scanning files...</>');
         $patterns = $extractor->extract($paths, $this->excludePaths);
+        $io->writeln(' <fg=green;options=bold>Done.</>');
+        $io->writeln('');
 
         if ([] === $patterns && !$validateSymfony) {
-            $io->success('No constant preg_* patterns found.');
+            $io->block('No constant preg_* patterns found.', 'INFO', 'fg=black;bg=blue', ' ', true);
 
             return Command::SUCCESS;
         }
@@ -105,19 +112,23 @@ final class RegexLintCommand extends Command
         $hasErrors = false;
         $hasWarnings = false;
         $hasSuggestions = false;
+        $stats = ['errors' => 0, 'warnings' => 0, 'optimizations' => 0, 'redos' => 0];
 
-        // Basic linting (always runs by default)
+        // 1. Basic Linting
         $lintIssues = [];
         if (!empty($patterns)) {
-            $io->writeln('');
             $progressBar = $io->createProgressBar(count($patterns));
-            $progressBar->setFormat(' %current%/%max% [%bar%] %percent:3s%% %elapsed:6s%/%estimated:-6s% %memory:6s%');
+            $progressBar->setEmptyBarCharacter('░');
+            $progressBar->setProgressCharacter('');
+            $progressBar->setBarCharacter('▓');
+            $progressBar->setFormat('  <fg=blue>%bar%</> <fg=gray>%percent:3s%%</>');
             $progressBar->start();
 
             foreach ($patterns as $occurrence) {
                 $validation = $this->regex->validate($occurrence->pattern);
                 if (!$validation->isValid) {
                     $hasErrors = true;
+                    $stats['errors']++;
                     $lintIssues[] = [
                         'type' => 'error',
                         'file' => $occurrence->file,
@@ -125,7 +136,6 @@ final class RegexLintCommand extends Command
                         'column' => 1,
                         'message' => $validation->error ?? 'Invalid regex.',
                     ];
-
                     $progressBar->advance();
                     continue;
                 }
@@ -136,6 +146,7 @@ final class RegexLintCommand extends Command
 
                 foreach ($linter->getIssues() as $issue) {
                     $hasWarnings = true;
+                    $stats['warnings']++;
                     $lintIssues[] = [
                         'type' => 'warning',
                         'file' => $occurrence->file,
@@ -151,16 +162,14 @@ final class RegexLintCommand extends Command
             }
 
             $progressBar->finish();
-            $io->writeln('');
-            $io->writeln('');
+            $io->writeln(['', '']);
         }
 
-        // Output linting issues
         if (!empty($lintIssues)) {
             $this->outputLintIssues($io, $lintIssues, $editorUrlTemplate);
         }
 
-        // ReDoS analysis
+        // 2. ReDoS Analysis
         $redosIssues = [];
         if ($analyzeRedos && !empty($patterns)) {
             $redosThreshold = (string) $input->getOption('redos-threshold');
@@ -169,7 +178,7 @@ final class RegexLintCommand extends Command
             foreach ($patterns as $occurrence) {
                 $validation = $this->regex->validate($occurrence->pattern);
                 if (!$validation->isValid) {
-                    continue; // Already reported in linting
+                    continue;
                 }
 
                 $analysis = $this->regex->analyzeReDoS($occurrence->pattern);
@@ -178,6 +187,7 @@ final class RegexLintCommand extends Command
                 }
 
                 $hasErrors = true;
+                $stats['redos']++;
                 $redosIssues[] = [
                     'file' => $occurrence->file,
                     'line' => $occurrence->line,
@@ -186,12 +196,11 @@ final class RegexLintCommand extends Command
             }
         }
 
-        // Output ReDoS issues
         if (!empty($redosIssues)) {
-            $this->outputRedosIssues($io, $redosIssues);
+            $this->outputRedosIssues($io, $redosIssues, $editorUrlTemplate);
         }
 
-        // Optimization suggestions
+        // 3. Optimizations
         $optimizationSuggestions = [];
         if ($optimize && !empty($patterns)) {
             $minSavings = (int) $input->getOption('min-savings');
@@ -202,15 +211,12 @@ final class RegexLintCommand extends Command
             foreach ($patterns as $occurrence) {
                 $validation = $this->regex->validate($occurrence->pattern);
                 if (!$validation->isValid) {
-                    continue; // Already reported in linting
+                    continue;
                 }
 
                 try {
                     $optimization = $this->regex->optimize($occurrence->pattern);
-                } catch (\Throwable $e) {
-                    $hasErrors = true;
-                    $io->writeln(\sprintf('<error>[error]</error> %s:%d %s', $occurrence->file, $occurrence->line, $e->getMessage()));
-
+                } catch (\Throwable) {
                     continue;
                 }
 
@@ -224,6 +230,7 @@ final class RegexLintCommand extends Command
                 }
 
                 $hasSuggestions = true;
+                $stats['optimizations']++;
                 $optimizationSuggestions[] = [
                     'file' => $occurrence->file,
                     'line' => $occurrence->line,
@@ -233,179 +240,164 @@ final class RegexLintCommand extends Command
             }
         }
 
-        // Output optimization suggestions
         if (!empty($optimizationSuggestions)) {
-            $this->outputOptimizationSuggestions($io, $optimizationSuggestions);
+            $this->outputOptimizationSuggestions($io, $optimizationSuggestions, $editorUrlTemplate);
         }
 
-        // Symfony validation
+        // 4. Symfony Validation
         $validationIssues = [];
         if ($validateSymfony) {
             if (null !== $this->routeAnalyzer && null !== $this->router) {
                 $validationIssues = array_merge($validationIssues, $this->routeAnalyzer->analyze($this->router->getRouteCollection()));
-            } else {
-                $io->warning('No router service was found; skipping route regex checks.');
             }
 
             if (null !== $this->validatorAnalyzer && null !== $this->validator && null !== $this->validatorLoader) {
                 $validationIssues = array_merge($validationIssues, $this->validatorAnalyzer->analyze($this->validator, $this->validatorLoader));
-            } else {
-                $io->warning('No validator service was found; skipping validator regex checks.');
             }
         }
 
-        // Output validation issues
         if (!empty($validationIssues)) {
             $this->outputValidationIssues($io, $validationIssues);
         }
 
+        // Final Status
         $allHasErrors = $hasErrors || !empty(array_filter($validationIssues, fn ($i) => $i->isError));
         $allHasWarnings = $hasWarnings || !empty(array_filter($validationIssues, fn ($i) => !$i->isError));
 
         if (!$allHasErrors && !$allHasWarnings && !$hasSuggestions) {
-            $io->success('No regex issues detected.');
+            $io->block('No issues found. Your regex patterns are clean.', 'PASS', 'fg=black;bg=green', ' ', true);
 
             return Command::SUCCESS;
         }
 
-        if (!$allHasErrors && ($allHasWarnings || $hasSuggestions)) {
-            $io->success('Regex analysis completed with warnings or suggestions only.');
-        }
-
         $failOnWarnings = (bool) $input->getOption('fail-on-warnings');
         $failOnSuggestions = (bool) $input->getOption('fail-on-suggestions');
+        $failed = $allHasErrors || ($failOnWarnings && $allHasWarnings) || ($failOnSuggestions && $hasSuggestions);
 
-        return ($allHasErrors || ($failOnWarnings && $allHasWarnings) || ($failOnSuggestions && $hasSuggestions)) ? Command::FAILURE : Command::SUCCESS;
+        if ($failed) {
+            $io->newLine();
+            $io->writeln(\sprintf(
+                '  <bg=red;fg=white;options=bold> FAIL </><fg=red;options=bold> %d errors</><fg=gray>, %d warnings, %d suggestions.</>',
+                $stats['errors'] + $stats['redos'],
+                $stats['warnings'],
+                $stats['optimizations']
+            ));
+            $io->newLine();
+
+            return Command::FAILURE;
+        }
+
+        $io->newLine();
+        $io->writeln(\sprintf(
+            '  <bg=yellow;fg=black;options=bold> WARN </><fg=yellow;options=bold> %d warnings</><fg=gray>, %d suggestions.</>',
+            $stats['warnings'],
+            $stats['optimizations']
+        ));
+        $io->newLine();
+
+        return Command::SUCCESS;
     }
 
     private function outputLintIssues(SymfonyStyle $io, array $issues, ?string $editorUrlTemplate): void
     {
+        $io->writeln('  <fg=white;options=bold>Issues Found</>');
+
         $issuesByFile = [];
         foreach ($issues as $issue) {
-            $relativeFile = $this->getRelativePath($issue['file']);
-            $issuesByFile[$relativeFile][] = $issue;
+            $issuesByFile[$issue['file']][] = $issue;
         }
 
         foreach ($issuesByFile as $file => $fileIssues) {
-            $io->writeln(\sprintf('<options=bold>%s</> <fg=gray>(%d %s)</>', $file, \count($fileIssues), 1 === \count($fileIssues) ? 'issue' : 'issues'));
+            $relFile = $this->getRelativePath($file);
+            $io->writeln("  <fg=gray>in</> <fg=white>{$relFile}</>");
 
-            $errors = array_filter($fileIssues, fn ($i) => 'error' === $i['type']);
-            $warnings = array_filter($fileIssues, fn ($i) => 'warning' === $i['type']);
+            foreach ($fileIssues as $issue) {
+                $color = 'error' === $issue['type'] ? 'red' : 'yellow';
+                $icon = 'error' === $issue['type'] ? '⨯' : '⚠';
+                $line = $issue['line'];
+                $link = $this->makeClickable($editorUrlTemplate, $file, $line, "{$line}");
 
-            if (!empty($errors)) {
-                $io->writeln(\sprintf('  <fg=red>Errors (%d):</>', \count($errors)));
-                foreach ($errors as $issue) {
-                    $this->outputIssue($io, $issue, $editorUrlTemplate);
+                $io->writeln(\sprintf(
+                    '  <fg=%s>%s</>  <fg=%s>%s</>  <fg=gray>%s</>',
+                    $color,
+                    $icon,
+                    $color,
+                    $issue['message'],
+                    "line {$link}"
+                ));
+
+                if (isset($issue['hint']) && $issue['hint']) {
+                    $io->writeln("     <fg=gray>💡 {$issue['hint']}</>");
                 }
             }
-
-            if (!empty($warnings)) {
-                if (!empty($errors)) {
-                    $io->writeln('');
-                }
-                $io->writeln(\sprintf('  <fg=yellow>Warnings (%d):</>', \count($warnings)));
-                foreach ($warnings as $issue) {
-                    $this->outputIssue($io, $issue, $editorUrlTemplate);
-                }
-            }
-
             $io->writeln('');
         }
     }
 
-    private function outputIssue(SymfonyStyle $io, array $issue, ?string $editorUrlTemplate): void
+    private function outputRedosIssues(SymfonyStyle $io, array $issues, ?string $editorUrlTemplate): void
     {
-        $color = 'error' === $issue['type'] ? 'red' : 'yellow';
-        $badge = $this->badge($issue['type'], $color);
-        $column = $issue['column'] ?? 1;
-        $jumpLabel = 'at line '.$issue['line'];
-        $jumpLink = $this->makeClickable($editorUrlTemplate, $issue['file'], $issue['line'], $jumpLabel, $column);
-        $cleanMessage = preg_replace('/^Line \d+:\s*/m', '        ', (string) $issue['message']);
-        $messageLines = explode("\n", $cleanMessage);
-        $firstMessage = array_shift($messageLines) ?? '';
+        $io->writeln('  <fg=red;options=bold>ReDoS Vulnerabilities</>');
 
-        $io->writeln(\sprintf('    %s %s %s', $badge, $jumpLink, $firstMessage));
-
-        foreach ($messageLines as $messageLine) {
-            $messageLine = rtrim($messageLine);
-            if ('' !== $messageLine) {
-                $io->writeln('      ' . $messageLine);
-            }
-        }
-
-        if (isset($issue['issueId']) && '' !== $issue['issueId']) {
-            $io->writeln(\sprintf('      🪪  %s', $issue['issueId']));
-        }
-
-        if (isset($issue['hint']) && null !== $issue['hint']) {
-            $hints = explode("\n", $issue['hint']);
-            foreach ($hints as $hint) {
-                $hint = trim($hint);
-                if ('' !== $hint) {
-                    $io->writeln(\sprintf('      💡  %s', $hint));
-                }
-            }
-        }
-    }
-
-    private function outputRedosIssues(SymfonyStyle $io, array $issues): void
-    {
-        $this->renderSectionTitle($io, 'ReDoS Radar', '🔥', 'red');
         foreach ($issues as $issue) {
-            $jumpText = $this->getRelativePath($issue['file']).':'.$issue['line'].':1';
-            $jumpLink = $this->makeClickable($this->editorUrl, $issue['file'], $issue['line'], $jumpText, 1);
-            $severity = strtoupper((string) $issue['analysis']->severity->value);
+            $relFile = $this->getRelativePath($issue['file']);
+            $line = $issue['line'];
+            $link = $this->makeClickable($editorUrlTemplate, $issue['file'], $line, "{$relFile}:{$line}");
+            $severity = strtoupper($issue['analysis']->severity->value);
+
             $io->writeln(\sprintf(
-                '• %s %s severity=<fg=white;options=bold>%s</> score=<fg=white;options=bold>%d</>',
-                $this->badge('redos', 'red'),
-                $jumpLink,
+                '  <fg=red>🔥  %s</> <fg=gray>in</> <fg=white;href=%s>%s</>',
                 $severity,
-                $issue['analysis']->score,
+                $link,
+                $link
             ));
 
-            if (null !== $issue['analysis']->trigger) {
-                $io->writeln('    Trigger: '.$issue['analysis']->trigger);
+            if ($issue['analysis']->trigger) {
+                $io->writeln(\sprintf('     <fg=gray>Trigger:</> <fg=red>%s</>', $issue['analysis']->trigger));
             }
 
-            if (null !== $issue['analysis']->confidence) {
-                $io->writeln('    Confidence: '.$issue['analysis']->confidence->value);
+            foreach ($issue['analysis']->recommendations as $rec) {
+                $io->writeln("     <fg=gray>👉 {$rec}</>");
             }
-
-            if (null !== $issue['analysis']->falsePositiveRisk) {
-                $io->writeln('    False positive risk: '.$issue['analysis']->falsePositiveRisk);
-            }
-
-            foreach ($issue['analysis']->recommendations as $recommendation) {
-                $io->writeln('    '.$recommendation);
-            }
+            $io->writeln('');
         }
-        $io->writeln('');
     }
 
-    private function outputOptimizationSuggestions(SymfonyStyle $io, array $suggestions): void
+    private function outputOptimizationSuggestions(SymfonyStyle $io, array $suggestions, ?string $editorUrlTemplate): void
     {
-        $this->renderSectionTitle($io, 'Optimizer', '🚀', 'green');
-        foreach ($suggestions as $suggestion) {
-            $jumpText = $this->getRelativePath($suggestion['file']).':'.$suggestion['line'].':1';
-            $jumpLink = $this->makeClickable($this->editorUrl, $suggestion['file'], $suggestion['line'], $jumpText, 1);
+        $io->writeln('  <fg=green;options=bold>Optimizations</>');
+
+        foreach ($suggestions as $item) {
+            $relFile = $this->getRelativePath($item['file']);
+            $line = $item['line'];
+            $link = $this->makeClickable($editorUrlTemplate, $item['file'], $line, "{$relFile}:{$line}");
+
             $io->writeln(\sprintf(
-                '• %s %s saved=<fg=green;options=bold>%d</>',
-                $this->badge('suggest', 'green'),
-                $jumpLink,
-                $suggestion['savings'],
+                '  <fg=green>✨  Saved %d chars</> <fg=gray>in</> <fg=white;href=%s>%s</>',
+                $item['savings'],
+                $link,
+                $link
             ));
-            $io->writeln('    <fg=gray>from</> '.$suggestion['optimization']->original);
-            $io->writeln('    <fg=green>to</>   '.$suggestion['optimization']->optimized);
+
+            $io->writeln(\sprintf('     <fg=red>- %s</>', $item['optimization']->original));
+            $io->writeln(\sprintf('     <fg=green>+ %s</>', $item['optimization']->optimized));
+            $io->writeln('');
         }
-        $io->writeln('');
     }
 
     private function outputValidationIssues(SymfonyStyle $io, array $issues): void
     {
-        $this->renderSectionTitle($io, 'Symfony Validation', '🛡️', 'blue');
+        $io->writeln('  <fg=blue;options=bold>Symfony Validation</>');
+
         foreach ($issues as $issue) {
-            $badge = $issue->isError ? $this->badge('error', 'red') : $this->badge('warn', 'yellow');
-            $io->writeln(\sprintf('• %s %s', $badge, $issue->message));
+            $icon = $issue->isError ? '⨯' : '⚠';
+            $color = $issue->isError ? 'red' : 'yellow';
+
+            $io->writeln(\sprintf(
+                '  <fg=%s>%s</>  %s',
+                $color,
+                $icon,
+                $issue->message
+            ));
         }
         $io->writeln('');
     }
@@ -416,44 +408,22 @@ final class RegexLintCommand extends Command
             return $text;
         }
 
-        $editorUrl = str_replace(
+        $url = str_replace(
             ['%%file%%', '%%line%%', '%%column%%'],
             [$file, $line, $column],
             $editorUrlTemplate,
         );
 
-        return "\033]8;;".$editorUrl."\033\\".$text."\033]8;;\033\\";
+        return "\033]8;;{$url}\033\\{$text}\033]8;;\033\\";
     }
 
     private function getRelativePath(string $path): string
     {
         $cwd = getcwd();
-        if (false === $cwd) {
+        if (false === $cwd || !str_starts_with($path, $cwd)) {
             return $path;
         }
 
-        if (str_starts_with($path, $cwd)) {
-            return ltrim(substr($path, \strlen($cwd)), '/\\');
-        }
-
-        return $path;
+        return ltrim(substr($path, \strlen($cwd)), '/\\');
     }
-
-    private function renderSectionTitle(SymfonyStyle $io, string $title, string $emoji, string $color): void
-    {
-        $io->writeln(\sprintf(
-            '<fg=%s;options=bold>%s %s</>',
-            $color,
-            $emoji,
-            $title,
-        ));
-        $io->writeln('<fg=gray>'.str_repeat('-', 56).'</>');
-    }
-
-    private function badge(string $label, string $color): string
-    {
-        return \sprintf('<fg=%s;options=bold>[%s]</>', $color, strtoupper($label));
-    }
-
-
 }
