@@ -35,6 +35,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
         protected function configure(): void
         {
             $this->addOption('fail-on-warnings', null, InputOption::VALUE_NONE, 'Fail the command if warnings are found.');
+        $this->addOption('fix', null, InputOption::VALUE_NONE, 'Automatically apply optimizations to files.');
         }
     private readonly RelativePathHelper $pathHelper;
 
@@ -59,6 +60,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
         $io = new SymfonyStyle($input, $output);
 
         $failOnWarnings = $input->getOption('fail-on-warnings');
+        $fix = $input->getOption('fix');
 
         $patterns = $this->scanFiles($io);
 
@@ -74,7 +76,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
         $allResults = $this->analyzePatternsIntegrated($io, $patterns);
 
         if (!empty($allResults)) {
-            $this->outputIntegratedResults($io, $allResults);
+            $this->outputIntegratedResults($io, $allResults, $fix);
             $stats = $this->updateStatsFromResults($stats, $allResults);
         }
 
@@ -240,7 +242,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
         return Command::FAILURE;
     }
 
-    private function outputIntegratedResults(SymfonyStyle $io, array $results): void
+    private function outputIntegratedResults(SymfonyStyle $io, array $results, bool $fix): void
     {
         if (empty($results)) {
             return;
@@ -300,7 +302,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 
         // Display optimizations
         foreach ($result['optimizations'] as $opt) {
-            $this->displayOptimization($io, $opt, $lineNum, $link);
+                $this->displayOptimization($io, $opt, $lineNum, $link, $fix);
         }
 
         // Add subtle spacing after this pattern result
@@ -354,15 +356,24 @@ use Symfony\Component\Console\Style\SymfonyStyle;
         }
     }
 
-    private function displayOptimization(SymfonyStyle $io, array $opt, string $lineNum, string $link): void
+    private function displayOptimization(SymfonyStyle $io, array $opt, string $lineNum, string $link, bool $fix): void
     {
-        $io->writeln(\sprintf('  <fg=green;options=bold>0</>  <fg=white;options=bold>%s</>  %s  <fg=green>%d chars saved</>', $lineNum, $link, $opt['savings']));
+        if ($fix) {
+            $content = file_get_contents($opt['file']);
+            $lines = explode("\n", $content);
+            $lines[$opt['line'] - 1] = str_replace($opt['optimization']->original, $opt['optimization']->optimized, $lines[$opt['line'] - 1]);
+            file_put_contents($opt['file'], implode("\n", $lines));
 
-        $original = $this->analysis->highlight(OutputFormatter::escape($opt['optimization']->original));
-        $optimized = $this->analysis->highlight(OutputFormatter::escape($opt['optimization']->optimized));
+            $io->writeln(\sprintf('  <fg=green;options=bold>0</>  <fg=white;options=bold>%s</>  %s  <fg=green>✅ Fixed</>', $lineNum, $link));
+        } else {
+            $io->writeln(\sprintf('  <fg=green;options=bold>0</>  <fg=white;options=bold>%s</>  %s  <fg=green>%d chars saved</>', $lineNum, $link, $opt['savings']));
 
-        $io->writeln(\sprintf('         <fg=red>─</> %s', $original));
-        $io->writeln(\sprintf('         <fg=green>✨</> %s', $optimized));
+            $original = $this->analysis->highlight(OutputFormatter::escape($opt['optimization']->original));
+            $optimized = $this->analysis->highlight(OutputFormatter::escape($opt['optimization']->optimized));
+
+            $io->writeln(\sprintf('         <fg=red>─</> %s', $original));
+            $io->writeln(\sprintf('         <fg=green>✨</> %s', $optimized));
+        }
     }
 
     private function formatIssueMessage(string $message): string
