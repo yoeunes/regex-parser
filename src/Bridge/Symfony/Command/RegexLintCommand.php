@@ -363,7 +363,7 @@ final class RegexLintCommand extends Command
                 $color = $isError ? 'red' : 'yellow';
                 $letter = $isError ? 'E' : 'W';
                 $line = $issue['line'];
-                $pen = $this->makeClickable($editorUrlTemplate, $file, $line, '✏️');
+                $clickableLine = $this->makeClickable($editorUrlTemplate, $file, $line, str_pad((string)$line, 4));
 
                 // Process message to remove "Line 1:" and align
                 $messageRaw = (string)$issue['message'];
@@ -375,11 +375,10 @@ final class RegexLintCommand extends Command
                 // Line number: White and Bold
                 $io->writeln(
                     \sprintf(
-                        '  <fg=%s;options=bold>%s</>  <fg=white;options=bold>%s</> %s  %s',
+                        '  <fg=%s;options=bold>%s</>  <fg=white;options=bold>%s</>  %s',
                         $color,
                         $letter,
-                        str_pad((string)$line, 4),
-                        $pen,
+                        $clickableLine,
                         $firstLine
                     )
                 );
@@ -405,13 +404,12 @@ final class RegexLintCommand extends Command
             $relFile = $this->getRelativePath($issue['file']);
             $line = $issue['line'];
             $severity = strtoupper($issue['analysis']->severity->value);
-            $pen = $this->makeClickable($editorUrlTemplate, $issue['file'], $line, '✏️');
+            $clickableLine = $this->makeClickable($editorUrlTemplate, $issue['file'], $line, str_pad((string)$line, 4));
 
             $io->writeln(
                 \sprintf(
-                    '  <fg=red;options=bold>R</>  <fg=white;options=bold>%s</> %s  <fg=red>%s severity</> <fg=gray>in</> <fg=cyan;options=bold>%s</>',
-                    str_pad((string)$line, 4),
-                    $pen,
+                    '  <fg=red;options=bold>R</>  <fg=white;options=bold>%s</>  <fg=red>%s severity</> <fg=gray>in</> <fg=cyan;options=bold>%s</>',
+                    $clickableLine,
                     $severity,
                     $relFile
                 )
@@ -440,13 +438,12 @@ final class RegexLintCommand extends Command
         foreach ($suggestions as $item) {
             $relFile = $this->getRelativePath($item['file']);
             $line = $item['line'];
-            $pen = $this->makeClickable($editorUrlTemplate, $item['file'], $line, '✏️');
+            $clickableLine = $this->makeClickable($editorUrlTemplate, $item['file'], $line, str_pad((string)$line, 4));
 
             $io->writeln(
                 \sprintf(
-                    '  <fg=green;options=bold>O</>  <fg=white;options=bold>%s</> %s  <fg=green>Saved %d chars</> <fg=gray>in</> <fg=cyan;options=bold>%s</>',
-                    str_pad((string)$line, 4),
-                    $pen,
+                    '  <fg=green;options=bold>O</>  <fg=white;options=bold>%s</>  <fg=green>Saved %d chars</> <fg=gray>in</> <fg=cyan;options=bold>%s</>',
+                    $clickableLine,
                     $item['savings'],
                     $relFile
                 )
@@ -498,17 +495,8 @@ final class RegexLintCommand extends Command
         string $text,
         int $column = 1
     ): string {
-        if (!$editorUrlTemplate) {
-            return $text;
-        }
-
-        $url = str_replace(
-            ['%%file%%', '%%line%%', '%%column%%'],
-            [$file, $line, $column],
-            $editorUrlTemplate,
-        );
-
-        return "\033]8;;{$url}\033\\{$text}\033]8;;\033\\";
+        // Hyperlinks are causing display issues in some terminals, so disabled for now
+        return $text;
     }
 
     private function getRelativePath(string $path): string
