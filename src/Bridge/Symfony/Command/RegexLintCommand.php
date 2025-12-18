@@ -92,7 +92,7 @@ final class RegexLintCommand extends Command
 
         $extractor = $this->extractor ?? new RegexPatternExtractor(
             // Fallback to token-based if no injector is available
-            new TokenBasedExtractionStrategy()
+            new TokenBasedExtractionStrategy(),
         );
         $patterns = $extractor->extract($paths, $this->excludePaths);
 

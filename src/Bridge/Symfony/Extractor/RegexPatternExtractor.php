@@ -21,25 +21,23 @@ namespace RegexParser\Bridge\Symfony\Extractor;
  *
  * @internal
  */
-final class RegexPatternExtractor
+final readonly class RegexPatternExtractor
 {
-    public function __construct(private ExtractorInterface $extractor)
-    {
-    }
+    public function __construct(private ExtractorInterface $extractor) {}
 
     /**
      * Extract regex patterns from the given paths.
      *
-     * @param list<string> $paths Paths to scan for PHP files
+     * @param list<string>      $paths        Paths to scan for PHP files
      * @param list<string>|null $excludePaths Optional paths to exclude (falls back to ['vendor'])
      *
      * @return list<RegexPatternOccurrence>
      */
     public function extract(array $paths, ?array $excludePaths = null): array
     {
-        $excludePaths = $excludePaths ?? ['vendor'];
+        $excludePaths ??= ['vendor'];
         $phpFiles = $this->collectPhpFiles($paths, $excludePaths);
-        
+
         return $this->extractor->extract($phpFiles);
     }
 
@@ -59,6 +57,7 @@ final class RegexPatternExtractor
 
             if (is_file($path) && str_ends_with($path, '.php')) {
                 $files[] = $path;
+
                 continue;
             }
 
@@ -87,6 +86,7 @@ final class RegexPatternExtractor
                     }
                     if (str_contains($filePath, \DIRECTORY_SEPARATOR.$excludePath.\DIRECTORY_SEPARATOR) || str_starts_with($filePath, $excludePath.\DIRECTORY_SEPARATOR)) {
                         $excluded = true;
+
                         break;
                     }
                 }

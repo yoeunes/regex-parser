@@ -13,6 +13,15 @@ declare(strict_types=1);
 
 namespace RegexParser\Bridge\Symfony\Extractor;
 
+use PhpParser\Node;
+use PhpParser\Node\Arg;
+use PhpParser\Node\Expr;
+use PhpParser\Node\Expr\BinaryOp\Concat;
+use PhpParser\Node\Expr\ConstFetch;
+use PhpParser\Node\Expr\FuncCall;
+use PhpParser\Node\Name;
+use PhpParser\Node\Scalar\String_;
+
 /**
  * PHPStan-based regex pattern extraction strategy.
  *
@@ -97,22 +106,22 @@ final readonly class PhpStanExtractionStrategy implements ExtractorInterface
     /**
      * @return list<RegexPatternOccurrence>
      */
-    private function extractFromNode(\PhpParser\Node $node, string $file): array
+    private function extractFromNode(Node $node, string $file): array
     {
         $occurrences = [];
 
-        if ($node instanceof \PhpParser\Node\Expr\FuncCall) {
+        if ($node instanceof FuncCall) {
             $occurrences = [...$occurrences, ...$this->extractFromFuncCall($node, $file)];
         }
 
         // Recursively check child nodes
         foreach ($node->getSubNodeNames() as $subNodeName) {
             $subNode = $node->{$subNodeName};
-            if ($subNode instanceof \PhpParser\Node) {
+            if ($subNode instanceof Node) {
                 $occurrences = [...$occurrences, ...$this->extractFromNode($subNode, $file)];
             } elseif (\is_array($subNode)) {
                 foreach ($subNode as $item) {
-                    if ($item instanceof \PhpParser\Node) {
+                    if ($item instanceof Node) {
                         $occurrences = [...$occurrences, ...$this->extractFromNode($item, $file)];
                     }
                 }
@@ -125,9 +134,9 @@ final readonly class PhpStanExtractionStrategy implements ExtractorInterface
     /**
      * @return list<RegexPatternOccurrence>
      */
-    private function extractFromFuncCall(\PhpParser\Node\Expr\FuncCall $funcCall, string $file): array
+    private function extractFromFuncCall(FuncCall $funcCall, string $file): array
     {
-        if (!$funcCall->name instanceof \PhpParser\Node\Name) {
+        if (!$funcCall->name instanceof Name) {
             return [];
         }
 
@@ -163,15 +172,15 @@ final readonly class PhpStanExtractionStrategy implements ExtractorInterface
     /**
      * @return list<RegexPatternOccurrence>
      */
-    private function extractPatternFromArg(\PhpParser\Node\Arg $arg, string $file, string $functionName): array
+    private function extractPatternFromArg(Arg $arg, string $file, string $functionName): array
     {
         $value = $arg->value;
 
-        if ($value instanceof \PhpParser\Node\Expr\ConstFetch && 'null' === $value->name->toString()) {
+        if ($value instanceof ConstFetch && 'null' === $value->name->toString()) {
             return [];
         }
 
-        if ($value instanceof \PhpParser\Node\Scalar\String_) {
+        if ($value instanceof String_) {
             $pattern = $value->value;
             if ('' === $pattern) {
                 return [];
@@ -186,7 +195,7 @@ final readonly class PhpStanExtractionStrategy implements ExtractorInterface
         }
 
         // Handle concatenation of strings
-        if ($value instanceof \PhpParser\Node\Expr\BinaryOp\Concat) {
+        if ($value instanceof Concat) {
             $result = $this->extractFromConcat($value, $file, $functionName);
 
             return $result ? [$result] : [];
@@ -195,7 +204,7 @@ final readonly class PhpStanExtractionStrategy implements ExtractorInterface
         return [];
     }
 
-    private function extractFromConcat(\PhpParser\Node\Expr\BinaryOp\Concat $concat, string $file, string $functionName): ?RegexPatternOccurrence
+    private function extractFromConcat(Concat $concat, string $file, string $functionName): ?RegexPatternOccurrence
     {
         $left = $this->extractStringValue($concat->left);
         $right = $this->extractStringValue($concat->right);
@@ -217,13 +226,13 @@ final readonly class PhpStanExtractionStrategy implements ExtractorInterface
         );
     }
 
-    private function extractStringValue(\PhpParser\Node\Expr $expr): ?string
+    private function extractStringValue(Expr $expr): ?string
     {
-        if ($expr instanceof \PhpParser\Node\Scalar\String_) {
+        if ($expr instanceof String_) {
             return $expr->value;
         }
 
-        if ($expr instanceof \PhpParser\Node\Expr\BinaryOp\Concat) {
+        if ($expr instanceof Concat) {
             $left = $this->extractStringValue($expr->left);
             $right = $this->extractStringValue($expr->right);
 

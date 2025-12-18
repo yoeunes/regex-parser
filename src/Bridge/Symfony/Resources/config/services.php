@@ -16,7 +16,6 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 use RegexParser\Bridge\Symfony\Analyzer\RouteRequirementAnalyzer;
 use RegexParser\Bridge\Symfony\Analyzer\ValidatorRegexAnalyzer;
 use RegexParser\Bridge\Symfony\Command\RegexLintCommand;
-
 use RegexParser\Bridge\Symfony\Extractor\RegexPatternExtractor;
 use RegexParser\Regex;
 use Symfony\Component\Routing\RouterInterface;

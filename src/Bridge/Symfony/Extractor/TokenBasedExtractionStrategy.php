@@ -101,7 +101,7 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
      */
     private function extractFromNextTokens(int $line, string $file): array
     {
-        $tokens = \token_get_all(\file_get_contents($file), \TOKEN_PARSE);
+        $tokens = token_get_all(file_get_contents($file), \TOKEN_PARSE);
         $totalTokens = \count($tokens);
 
         for ($i = 0; $i < $totalTokens; $i++) {
@@ -164,7 +164,7 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
     private function extractPatternFromToken(array $token, string $file, string $functionName): array
     {
         if (\T_CONSTANT_ENCAPSED_STRING === $token[0]) {
-            $pattern = \stripcslashes(\substr($token[1], 1, -1));
+            $pattern = stripcslashes(substr($token[1], 1, -1));
 
             if ('' === $pattern) {
                 return [];
@@ -181,7 +181,7 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
         // Handle concatenation of strings
         if (\T_STRING === $token[0] && isset(self::PREG_FUNCTIONS[$token[1]])) {
             $patternToken = $this->findNextNonIgnorableToken(
-                \token_get_all(\file_get_contents($file), \TOKEN_PARSE),
+                token_get_all(file_get_contents($file), \TOKEN_PARSE),
                 $token[2],
             );
 

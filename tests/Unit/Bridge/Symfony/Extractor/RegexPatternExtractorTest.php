@@ -84,18 +84,16 @@ final class RegexPatternExtractorTest extends TestCase
         $mockExtractor = $this->createMock(ExtractorInterface::class);
         $mockExtractor->expects($this->once())
             ->method('extract')
-            ->with($this->callback(function ($files) {
-                return is_array($files) && count($files) === 1 && str_ends_with($files[0], 'test.php');
-            }))
+            ->with($this->callback(fn ($files) => \is_array($files) && 1 === \count($files) && str_ends_with($files[0], 'test.php')))
             ->willReturn([]);
 
         $extractor = new RegexPatternExtractor($mockExtractor);
 
         // Create a temporary structure to test file discovery
         $tempDir = sys_get_temp_dir().'/regex_test_'.uniqid();
-        mkdir($tempDir, 0777, true);
-        mkdir($tempDir.'/vendor', 0777, true); // Default excluded
-        
+        mkdir($tempDir, 0o777, true);
+        mkdir($tempDir.'/vendor', 0o777, true); // Default excluded
+
         // Create test files
         file_put_contents($tempDir.'/test.php', '<?php preg_match("/test/", $str);');
         file_put_contents($tempDir.'/vendor/ignored.php', '<?php preg_match("/test/", $str);');
@@ -104,7 +102,7 @@ final class RegexPatternExtractorTest extends TestCase
         $result = $extractor->extract([$tempDir]); // Should use default exclude ['vendor']
 
         $this->assertIsArray($result);
-        
+
         // Cleanup
         $this->removeDirectory($tempDir);
     }
@@ -116,9 +114,9 @@ final class RegexPatternExtractorTest extends TestCase
             ->method('extract')
             ->with($this->callback(function ($files) {
                 // Should include test.php but not custom_exclude/ignored.php
-                return is_array($files) 
-                    && in_array('test.php', array_map('basename', $files))
-                    && !in_array('ignored.php', array_map('basename', $files));
+                return \is_array($files)
+                    && \in_array('test.php', array_map('basename', $files), true)
+                    && !\in_array('ignored.php', array_map('basename', $files), true);
             }))
             ->willReturn([]);
 
@@ -126,9 +124,9 @@ final class RegexPatternExtractorTest extends TestCase
 
         // Create a temporary structure to test file discovery
         $tempDir = sys_get_temp_dir().'/regex_test_'.uniqid();
-        mkdir($tempDir, 0777, true);
-        mkdir($tempDir.'/custom_exclude', 0777, true);
-        
+        mkdir($tempDir, 0o777, true);
+        mkdir($tempDir.'/custom_exclude', 0o777, true);
+
         // Create test files
         file_put_contents($tempDir.'/test.php', '<?php preg_match("/test/", $str);');
         file_put_contents($tempDir.'/custom_exclude/ignored.php', '<?php preg_match("/test/", $str);');
@@ -136,7 +134,7 @@ final class RegexPatternExtractorTest extends TestCase
         $result = $extractor->extract([$tempDir], ['custom_exclude']); // Custom exclude should work
 
         $this->assertIsArray($result);
-        
+
         // Cleanup
         $this->removeDirectory($tempDir);
     }

@@ -174,10 +174,8 @@ final class RegexParserExtension extends Extension
      */
     private function isPhpStanAvailable(): bool
     {
-        return class_exists('PHPStan\\Analyser\\Analyser')
-            && class_exists('PHPStan\\Parser\\Parser')
-            && class_exists('PHPStan\\PhpDoc\\TypeNodeResolver');
+        return class_exists(\PHPStan\Analyser\Analyser::class)
+            && class_exists(\PHPStan\Parser\Parser::class)
+            && class_exists(\PHPStan\PhpDoc\TypeNodeResolver::class);
     }
-
-
 }
