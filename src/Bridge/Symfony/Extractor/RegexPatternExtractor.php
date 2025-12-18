@@ -23,33 +23,33 @@ namespace RegexParser\Bridge\Symfony\Extractor;
  */
 final class RegexPatternExtractor
 {
-    /**
-     * @param list<string> $excludePaths
-     */
-    public function __construct(
-        private ExtractorInterface $extractor,
-        private array $excludePaths = ['vendor'],
-    ) {
+    public function __construct(private ExtractorInterface $extractor)
+    {
     }
 
     /**
-     * @param list<string> $paths
+     * Extract regex patterns from the given paths.
+     *
+     * @param list<string> $paths Paths to scan for PHP files
+     * @param list<string>|null $excludePaths Optional paths to exclude (falls back to ['vendor'])
      *
      * @return list<RegexPatternOccurrence>
      */
-    public function extract(array $paths): array
+    public function extract(array $paths, ?array $excludePaths = null): array
     {
-        $phpFiles = $this->collectPhpFiles($paths);
+        $excludePaths = $excludePaths ?? ['vendor'];
+        $phpFiles = $this->collectPhpFiles($paths, $excludePaths);
         
         return $this->extractor->extract($phpFiles);
     }
 
     /**
      * @param list<string> $paths
+     * @param list<string> $excludePaths
      *
      * @return list<string>
      */
-    private function collectPhpFiles(array $paths): array
+    private function collectPhpFiles(array $paths, array $excludePaths): array
     {
         $files = [];
         foreach ($paths as $path) {
@@ -80,7 +80,7 @@ final class RegexPatternExtractor
 
                 // Skip excluded directories
                 $excluded = false;
-                foreach ($this->excludePaths as $excludePath) {
+                foreach ($excludePaths as $excludePath) {
                     $excludePath = trim($excludePath, '/\\');
                     if ('' === $excludePath) {
                         continue;

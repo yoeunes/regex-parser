@@ -92,9 +92,9 @@ final class RegexLintCommand extends Command
 
         $extractor = $this->extractor ?? new RegexPatternExtractor(
             // Fallback to token-based if no injector is available
-            new TokenBasedExtractionStrategy($this->excludePaths)
+            new TokenBasedExtractionStrategy()
         );
-        $patterns = $extractor->extract($paths);
+        $patterns = $extractor->extract($paths, $this->excludePaths);
 
         if ([] === $patterns && !$validateSymfony) {
             $io->success('No constant preg_* patterns found.');

@@ -26,18 +26,42 @@ final class RegexPatternExtractorTest extends TestCase
         $mockExtractor = $this->createMock(ExtractorInterface::class);
         $mockExtractor->method('extract')->willReturn(['pattern1', 'pattern2']);
 
-        $extractor = new RegexPatternExtractor($mockExtractor, ['vendor']);
+        $extractor = new RegexPatternExtractor($mockExtractor);
 
         $result = $extractor->extract(['test.php']);
 
         $this->assertSame(['pattern1', 'pattern2'], $result);
     }
 
+    public function test_uses_default_exclude_paths_when_not_provided(): void
+    {
+        $mockExtractor = $this->createMock(ExtractorInterface::class);
+        $mockExtractor->method('extract')->willReturn([]);
+
+        $extractor = new RegexPatternExtractor($mockExtractor);
+
+        $result = $extractor->extract(['test.php']);
+
+        $this->assertSame([], $result);
+    }
+
+    public function test_uses_custom_exclude_paths_when_provided(): void
+    {
+        $mockExtractor = $this->createMock(ExtractorInterface::class);
+        $mockExtractor->method('extract')->willReturn([]);
+
+        $extractor = new RegexPatternExtractor($mockExtractor);
+
+        $result = $extractor->extract(['test.php'], ['custom_exclude']);
+
+        $this->assertSame([], $result);
+    }
+
     public function test_works_with_phpstan_extractor(): void
     {
         $phpstanExtractor = new PhpStanExtractionStrategy();
 
-        $extractor = new RegexPatternExtractor($phpstanExtractor, ['vendor']);
+        $extractor = new RegexPatternExtractor($phpstanExtractor);
 
         $result = $extractor->extract(['nonexistent']);
 
@@ -48,14 +72,14 @@ final class RegexPatternExtractorTest extends TestCase
     {
         $tokenExtractor = new TokenBasedExtractionStrategy();
 
-        $extractor = new RegexPatternExtractor($tokenExtractor, ['vendor']);
+        $extractor = new RegexPatternExtractor($tokenExtractor);
 
         $result = $extractor->extract(['nonexistent']);
 
         $this->assertIsArray($result);
     }
 
-    public function test_collects_and_filters_php_files(): void
+    public function test_collects_and_filters_php_files_with_default_excludes(): void
     {
         $mockExtractor = $this->createMock(ExtractorInterface::class);
         $mockExtractor->expects($this->once())
@@ -65,19 +89,51 @@ final class RegexPatternExtractorTest extends TestCase
             }))
             ->willReturn([]);
 
-        $extractor = new RegexPatternExtractor($mockExtractor, ['excluded']);
+        $extractor = new RegexPatternExtractor($mockExtractor);
 
         // Create a temporary structure to test file discovery
         $tempDir = sys_get_temp_dir().'/regex_test_'.uniqid();
         mkdir($tempDir, 0777, true);
-        mkdir($tempDir.'/excluded', 0777, true);
+        mkdir($tempDir.'/vendor', 0777, true); // Default excluded
         
         // Create test files
         file_put_contents($tempDir.'/test.php', '<?php preg_match("/test/", $str);');
-        file_put_contents($tempDir.'/excluded/ignored.php', '<?php preg_match("/test/", $str);');
+        file_put_contents($tempDir.'/vendor/ignored.php', '<?php preg_match("/test/", $str);');
         file_put_contents($tempDir.'/notphp.txt', 'not a php file');
 
-        $result = $extractor->extract([$tempDir]);
+        $result = $extractor->extract([$tempDir]); // Should use default exclude ['vendor']
+
+        $this->assertIsArray($result);
+        
+        // Cleanup
+        $this->removeDirectory($tempDir);
+    }
+
+    public function test_collects_and_filters_php_files_with_custom_excludes(): void
+    {
+        $mockExtractor = $this->createMock(ExtractorInterface::class);
+        $mockExtractor->expects($this->once())
+            ->method('extract')
+            ->with($this->callback(function ($files) {
+                // Should include test.php but not custom_exclude/ignored.php
+                return is_array($files) 
+                    && in_array('test.php', array_map('basename', $files))
+                    && !in_array('ignored.php', array_map('basename', $files));
+            }))
+            ->willReturn([]);
+
+        $extractor = new RegexPatternExtractor($mockExtractor);
+
+        // Create a temporary structure to test file discovery
+        $tempDir = sys_get_temp_dir().'/regex_test_'.uniqid();
+        mkdir($tempDir, 0777, true);
+        mkdir($tempDir.'/custom_exclude', 0777, true);
+        
+        // Create test files
+        file_put_contents($tempDir.'/test.php', '<?php preg_match("/test/", $str);');
+        file_put_contents($tempDir.'/custom_exclude/ignored.php', '<?php preg_match("/test/", $str);');
+
+        $result = $extractor->extract([$tempDir], ['custom_exclude']); // Custom exclude should work
 
         $this->assertIsArray($result);
         
