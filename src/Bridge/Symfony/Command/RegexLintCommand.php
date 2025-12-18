@@ -113,7 +113,7 @@ final class RegexLintCommand extends Command
         $io = new SymfonyStyle($input, $output);
 
         $io->writeln('');
-        $io->writeln('  <fg=white;options=bold>REGEX PARSER</> <fg=gray>Linting & Analysis</>');
+        $io->writeln('  <fg=white;options=bold>REGEX PARSER</> <fg=cyan>Linting & Analysis</>');
         $io->writeln('');
 
         /** @var list<string> $paths */
@@ -133,7 +133,7 @@ final class RegexLintCommand extends Command
             new TokenBasedExtractionStrategy(),
         );
 
-        $io->write('  <fg=gray>🔍  Scanning files...</>');
+        $io->write('  <fg=cyan>🔍  Scanning files...</>');
         $patterns = $extractor->extract($paths, $this->excludePaths);
         $io->writeln(' <fg=green;options=bold>Done.</>');
         $io->writeln('');
@@ -156,7 +156,7 @@ final class RegexLintCommand extends Command
             $progressBar->setEmptyBarCharacter('░');
             $progressBar->setProgressCharacter('');
             $progressBar->setBarCharacter('▓');
-            $progressBar->setFormat('  <fg=blue>%bar%</> <fg=gray>%percent:3s%%</>');
+            $progressBar->setFormat('  <fg=blue>%bar%</> <fg=cyan>%percent:3s%%</>');
             $progressBar->start();
 
             foreach ($patterns as $occurrence) {
@@ -298,7 +298,7 @@ final class RegexLintCommand extends Command
         }
 
         if (!empty($validationIssues)) {
-            $this->outputValidationIssues($io, $validationIssues, $editorUrlTemplate);
+            $this->outputValidationIssues($io, $validationIssues);
         }
 
         // Final Status
@@ -355,7 +355,7 @@ final class RegexLintCommand extends Command
 
         foreach ($issuesByFile as $file => $fileIssues) {
             $relFile = $this->getRelativePath($file);
-            $io->writeln("  <fg=gray>in</> <fg=white>{$relFile}</>");
+            $io->writeln("  <fg=cyan>in</> <fg=white>{$relFile}</>");
 
             foreach ($fileIssues as $issue) {
                 $isError = 'error' === $issue['type'];
@@ -368,13 +368,12 @@ final class RegexLintCommand extends Command
                 $messageRaw = (string)$issue['message'];
                 $cleanMessage = $this->cleanMessageIndentation($messageRaw);
 
-                // Split multiple lines to align indentation properly
                 $lines = explode("\n", $cleanMessage);
                 $firstLine = array_shift($lines);
 
                 $io->writeln(
                     \sprintf(
-                        '  <fg=%s;options=bold>%s</>  <fg=gray>%s</> %s  %s',
+                        '  <fg=%s;options=bold>%s</>  <fg=cyan>%s</> %s  %s',
                         $color,
                         $letter,
                         str_pad((string)$line, 4),
@@ -384,12 +383,11 @@ final class RegexLintCommand extends Command
                 );
 
                 foreach ($lines as $msgLine) {
-                    // Indent subsequent lines of the message
                     $io->writeln('              '.$msgLine);
                 }
 
                 if (isset($issue['hint']) && $issue['hint']) {
-                    $io->writeln("         <fg=white>💡 {$issue['hint']}</>");
+                    $io->writeln("         <fg=cyan>💡</> <fg=cyan>{$issue['hint']}</>");
                 }
             }
             $io->writeln('');
@@ -409,7 +407,7 @@ final class RegexLintCommand extends Command
 
             $io->writeln(
                 \sprintf(
-                    '  <fg=red;options=bold>R</>  <fg=gray>%s</> %s  <fg=red>%s severity</> <fg=gray>in %s</>',
+                    '  <fg=red;options=bold>R</>  <fg=cyan>%s</> %s  <fg=red>%s severity</> <fg=cyan>in %s</>',
                     str_pad((string)$line, 4),
                     $pen,
                     $severity,
@@ -418,11 +416,12 @@ final class RegexLintCommand extends Command
             );
 
             if ($issue['analysis']->trigger) {
-                $io->writeln(\sprintf('         <fg=white>Trigger: %s</>', $issue['analysis']->trigger));
+                $trigger = $this->regex->highlightCli($issue['analysis']->trigger);
+                $io->writeln(\sprintf('         <fg=cyan>Trigger:</> %s', $trigger));
             }
 
             foreach ($issue['analysis']->recommendations as $rec) {
-                $io->writeln("         <fg=white>👉 {$rec}</>");
+                $io->writeln("         <fg=cyan>👉</> <fg=cyan>{$rec}</>");
             }
             $io->writeln('');
         }
@@ -443,7 +442,7 @@ final class RegexLintCommand extends Command
 
             $io->writeln(
                 \sprintf(
-                    '  <fg=green;options=bold>O</>  <fg=gray>%s</> %s  <fg=green>Saved %d chars</> <fg=gray>in %s</>',
+                    '  <fg=green;options=bold>O</>  <fg=cyan>%s</> %s  <fg=green>Saved %d chars</> <fg=cyan>in %s</>',
                     str_pad((string)$line, 4),
                     $pen,
                     $item['savings'],
@@ -451,13 +450,16 @@ final class RegexLintCommand extends Command
                 )
             );
 
-            $io->writeln(\sprintf('         <fg=red>- %s</>', $item['optimization']->original));
-            $io->writeln(\sprintf('         <fg=green>+ %s</>', $item['optimization']->optimized));
+            $original = $this->regex->highlightCli($item['optimization']->original);
+            $optimized = $this->regex->highlightCli($item['optimization']->optimized);
+
+            $io->writeln(\sprintf('         <fg=red>-</> %s', $original));
+            $io->writeln(\sprintf('         <fg=green>+</> %s', $optimized));
             $io->writeln('');
         }
     }
 
-    private function outputValidationIssues(SymfonyStyle $io, array $issues, ?string $editorUrlTemplate): void
+    private function outputValidationIssues(SymfonyStyle $io, array $issues): void
     {
         $io->writeln('  <fg=blue;options=bold>Symfony Validation</>');
         $io->newLine();
@@ -483,8 +485,6 @@ final class RegexLintCommand extends Command
      */
     private function cleanMessageIndentation(string $message): string
     {
-        // Replace "Line 1:" (or any number) with equivalent spaces
-        // Pattern: Start of line, "Line", space, digits, colon, space/s?
         return preg_replace_callback(
             '/^Line \d+:/m',
             fn($matches) => str_repeat(' ', \strlen($matches[0])),
