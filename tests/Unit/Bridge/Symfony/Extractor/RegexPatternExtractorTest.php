@@ -84,7 +84,7 @@ final class RegexPatternExtractorTest extends TestCase
         $mockExtractor = $this->createMock(ExtractorInterface::class);
         $mockExtractor->expects($this->once())
             ->method('extract')
-            ->with($this->callback(fn ($files) => \is_array($files) && 1 === \count($files) && str_ends_with($files[0], 'test.php')))
+            ->with($this->callback(fn ($files) => \is_array($files) && 1 === \count($files) && \is_string($files[0]) && str_ends_with($files[0], 'test.php')))
             ->willReturn([]);
 
         $extractor = new RegexPatternExtractor($mockExtractor);

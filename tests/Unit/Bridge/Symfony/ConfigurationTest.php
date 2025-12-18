@@ -27,9 +27,9 @@ final class ConfigurationTest extends TestCase
 
         /**
          * @var array{
-         *     enabled: bool,
          *     max_pattern_length: int,
          *     cache: string|null,
+         *     extractor_service: string|null,
          *     analysis: array{
          *         warning_threshold: int,
          *         redos_threshold: int,
@@ -54,9 +54,9 @@ final class ConfigurationTest extends TestCase
 
         /**
          * @var array{
-         *     enabled: bool,
          *     max_pattern_length: int,
          *     cache: string|null,
+         *     extractor_service: string|null,
          *     analysis: array{
          *         warning_threshold: int,
          *         redos_threshold: int,
@@ -77,9 +77,9 @@ final class ConfigurationTest extends TestCase
 
         /*
          * @var array{
-         *     enabled: bool,
          *     max_pattern_length: int,
          *     cache: string|null,
+         *     extractor_service: string|null,
          *     analysis: array{
          *         warning_threshold: int,
          *         redos_threshold: int,
