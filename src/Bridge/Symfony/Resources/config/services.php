@@ -78,6 +78,7 @@ return static function (ContainerConfigurator $container): void {
         ->arg('$router', service(RouterInterface::class)->nullOnInvalid())
         ->arg('$validator', service(ValidatorInterface::class)->nullOnInvalid())
         ->arg('$validatorLoader', service(LoaderInterface::class)->nullOnInvalid())
+        ->arg('$defaultRedosThreshold', param('regex_parser.redos.threshold'))
         ->tag('console.command')
         ->public();
 };

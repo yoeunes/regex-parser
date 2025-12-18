@@ -466,7 +466,7 @@ if (!$regex->isSafe($pattern, ReDoSSeverity::HIGH)) {
 * Symfony bridge provides:
 
   * A **console command** to scan your app’s config for dangerous regexes (`regex-parser:check`).
-  * File-based commands for constant `preg_*` patterns (`regex:lint`, `regex:analyze-redos`, `regex:optimize`).
+  * A unified console command (`regex:lint`) that can lint, analyze ReDoS risk, suggest optimizations, and validate Symfony regex patterns with options like `--analyze-redos`, `--optimize`, and `--validate-symfony`, or use `--all` to run everything.
   * A **cache warmer** to pre‑parse and pre‑analyze patterns on deploy.
   * Easy service wiring for `Regex` in your DI container.
 

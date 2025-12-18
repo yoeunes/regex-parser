@@ -16,6 +16,7 @@ namespace RegexParser\Bridge\Symfony\Command;
 use RegexParser\Bridge\Symfony\Analyzer\RouteRequirementAnalyzer;
 use RegexParser\Bridge\Symfony\Analyzer\ValidatorRegexAnalyzer;
 use RegexParser\NodeVisitor\LinterNodeVisitor;
+use RegexParser\ReDoS\ReDoSSeverity;
 use RegexParser\Regex;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -30,13 +31,13 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 #[AsCommand(
     name: 'regex:lint',
-    description: 'Lints constant preg_* patterns found in PHP files.',
+    description: 'Lints, validates, optimizes, and analyzes ReDoS risk for constant preg_* patterns found in PHP files.',
 )]
 final class RegexLintCommand extends Command
 {
     protected static ?string $defaultName = 'regex:lint';
 
-    protected static ?string $defaultDescription = 'Lints constant preg_* patterns found in PHP files.';
+    protected static ?string $defaultDescription = 'Lints, validates, optimizes, and analyzes ReDoS risk for constant preg_* patterns found in PHP files.';
 
     public function __construct(
         private readonly Regex $regex,
@@ -48,6 +49,7 @@ final class RegexLintCommand extends Command
         private readonly ?RouterInterface $router = null,
         private readonly ?ValidatorInterface $validator = null,
         private readonly ?LoaderInterface $validatorLoader = null,
+        private readonly string $defaultRedosThreshold = 'high',
     ) {
         parent::__construct();
     }
@@ -57,7 +59,14 @@ final class RegexLintCommand extends Command
     {
         $this
             ->addArgument('paths', InputArgument::IS_ARRAY, 'Files/directories to scan (defaults to current directory).')
-            ->addOption('fail-on-warnings', null, InputOption::VALUE_NONE, 'Exit with a non-zero code when warnings are found.');
+            ->addOption('fail-on-warnings', null, InputOption::VALUE_NONE, 'Exit with a non-zero code when warnings are found.')
+            ->addOption('analyze-redos', null, InputOption::VALUE_NONE, 'Analyze patterns for ReDoS risk.')
+            ->addOption('redos-threshold', null, InputOption::VALUE_REQUIRED, 'Minimum ReDoS severity to report (safe|low|medium|high|critical).', $this->defaultRedosThreshold)
+            ->addOption('optimize', null, InputOption::VALUE_NONE, 'Suggest safe optimizations for patterns.')
+            ->addOption('min-savings', null, InputOption::VALUE_REQUIRED, 'Minimum character savings to report for optimizations.', 1)
+            ->addOption('validate-symfony', null, InputOption::VALUE_NONE, 'Validate regex usage in Symfony routes and validators.')
+            ->addOption('fail-on-suggestions', null, InputOption::VALUE_NONE, 'Exit with a non-zero code when optimization suggestions are found.')
+            ->addOption('all', null, InputOption::VALUE_NONE, 'Run all analyses (lint, ReDoS, optimization, and Symfony validation).');
     }
 
     #[\Override]
@@ -71,12 +80,17 @@ final class RegexLintCommand extends Command
             $paths = $this->defaultPaths;
         }
 
+        $runAll = (bool) $input->getOption('all');
+        $analyzeRedos = $runAll || (bool) $input->getOption('analyze-redos');
+        $optimize = $runAll || (bool) $input->getOption('optimize');
+        $validateSymfony = $runAll || (bool) $input->getOption('validate-symfony');
+
         $editorUrlTemplate = $this->editorUrl;
 
         $extractor = new RegexPatternExtractor($this->excludePaths);
         $patterns = $extractor->extract($paths);
 
-        if ([] === $patterns) {
+        if ([] === $patterns && !$validateSymfony) {
             $io->success('No constant preg_* patterns found.');
 
             return Command::SUCCESS;
@@ -84,40 +98,166 @@ final class RegexLintCommand extends Command
 
         $hasErrors = false;
         $hasWarnings = false;
-        $issues = [];
+        $hasSuggestions = false;
 
-        foreach ($patterns as $occurrence) {
-            $validation = $this->regex->validate($occurrence->pattern);
-            if (!$validation->isValid) {
-                $hasErrors = true;
-                $issues[] = [
-                    'type' => 'error',
-                    'file' => $occurrence->file,
-                    'line' => $occurrence->line,
-                    'message' => $validation->error ?? 'Invalid regex.',
-                ];
+        // Basic linting (always runs by default)
+        $lintIssues = [];
+        if (!empty($patterns)) {
+            foreach ($patterns as $occurrence) {
+                $validation = $this->regex->validate($occurrence->pattern);
+                if (!$validation->isValid) {
+                    $hasErrors = true;
+                    $lintIssues[] = [
+                        'type' => 'error',
+                        'file' => $occurrence->file,
+                        'line' => $occurrence->line,
+                        'message' => $validation->error ?? 'Invalid regex.',
+                    ];
 
-                continue;
-            }
+                    continue;
+                }
 
-            $ast = $this->regex->parse($occurrence->pattern);
-            $linter = new LinterNodeVisitor();
-            $ast->accept($linter);
+                $ast = $this->regex->parse($occurrence->pattern);
+                $linter = new LinterNodeVisitor();
+                $ast->accept($linter);
 
-            foreach ($linter->getIssues() as $issue) {
-                $hasWarnings = true;
-                $issues[] = [
-                    'type' => 'warning',
-                    'file' => $occurrence->file,
-                    'line' => $occurrence->line,
-                    'issueId' => $issue->id,
-                    'message' => $issue->message,
-                    'hint' => $issue->hint,
-                ];
+                foreach ($linter->getIssues() as $issue) {
+                    $hasWarnings = true;
+                    $lintIssues[] = [
+                        'type' => 'warning',
+                        'file' => $occurrence->file,
+                        'line' => $occurrence->line,
+                        'issueId' => $issue->id,
+                        'message' => $issue->message,
+                        'hint' => $issue->hint,
+                    ];
+                }
             }
         }
 
         // Output linting issues
+        if (!empty($lintIssues)) {
+            $this->outputLintIssues($io, $lintIssues, $editorUrlTemplate);
+        }
+
+        // ReDoS analysis
+        $redosIssues = [];
+        if ($analyzeRedos && !empty($patterns)) {
+            $redosThreshold = (string) $input->getOption('redos-threshold');
+            $severityThreshold = ReDoSSeverity::tryFrom(strtolower($redosThreshold)) ?? ReDoSSeverity::HIGH;
+
+            foreach ($patterns as $occurrence) {
+                $validation = $this->regex->validate($occurrence->pattern);
+                if (!$validation->isValid) {
+                    continue; // Already reported in linting
+                }
+
+                $analysis = $this->regex->analyzeReDoS($occurrence->pattern);
+                if (!$analysis->exceedsThreshold($severityThreshold)) {
+                    continue;
+                }
+
+                $hasErrors = true;
+                $redosIssues[] = [
+                    'file' => $occurrence->file,
+                    'line' => $occurrence->line,
+                    'analysis' => $analysis,
+                ];
+            }
+        }
+
+        // Output ReDoS issues
+        if (!empty($redosIssues)) {
+            $this->outputRedosIssues($io, $redosIssues);
+        }
+
+        // Optimization suggestions
+        $optimizationSuggestions = [];
+        if ($optimize && !empty($patterns)) {
+            $minSavings = (int) $input->getOption('min-savings');
+            if ($minSavings < 0) {
+                $minSavings = 0;
+            }
+
+            foreach ($patterns as $occurrence) {
+                $validation = $this->regex->validate($occurrence->pattern);
+                if (!$validation->isValid) {
+                    continue; // Already reported in linting
+                }
+
+                try {
+                    $optimization = $this->regex->optimize($occurrence->pattern);
+                } catch (\Throwable $e) {
+                    $hasErrors = true;
+                    $io->writeln(\sprintf('<error>[error]</error> %s:%d %s', $occurrence->file, $occurrence->line, $e->getMessage()));
+                    continue;
+                }
+
+                if (!$optimization->isChanged()) {
+                    continue;
+                }
+
+                $savings = \strlen($optimization->original) - \strlen($optimization->optimized);
+                if ($savings < $minSavings) {
+                    continue;
+                }
+
+                $hasSuggestions = true;
+                $optimizationSuggestions[] = [
+                    'file' => $occurrence->file,
+                    'line' => $occurrence->line,
+                    'optimization' => $optimization,
+                    'savings' => $savings,
+                ];
+            }
+        }
+
+        // Output optimization suggestions
+        if (!empty($optimizationSuggestions)) {
+            $this->outputOptimizationSuggestions($io, $optimizationSuggestions);
+        }
+
+        // Symfony validation
+        $validationIssues = [];
+        if ($validateSymfony) {
+            if (null !== $this->routeAnalyzer && null !== $this->router) {
+                $validationIssues = array_merge($validationIssues, $this->routeAnalyzer->analyze($this->router->getRouteCollection()));
+            } else {
+                $io->warning('No router service was found; skipping route regex checks.');
+            }
+
+            if (null !== $this->validatorAnalyzer && null !== $this->validator && null !== $this->validatorLoader) {
+                $validationIssues = array_merge($validationIssues, $this->validatorAnalyzer->analyze($this->validator, $this->validatorLoader));
+            } else {
+                $io->warning('No validator service was found; skipping validator regex checks.');
+            }
+        }
+
+        // Output validation issues
+        if (!empty($validationIssues)) {
+            $this->outputValidationIssues($io, $validationIssues);
+        }
+
+        $allHasErrors = $hasErrors || !empty(array_filter($validationIssues, fn($i) => $i->isError));
+        $allHasWarnings = $hasWarnings || !empty(array_filter($validationIssues, fn($i) => !$i->isError));
+
+        if (!$allHasErrors && !$allHasWarnings && !$hasSuggestions) {
+            $io->success('No regex issues detected.');
+            return Command::SUCCESS;
+        }
+
+        if (!$allHasErrors && ($allHasWarnings || $hasSuggestions)) {
+            $io->success('Regex analysis completed with warnings or suggestions only.');
+        }
+
+        $failOnWarnings = (bool) $input->getOption('fail-on-warnings');
+        $failOnSuggestions = (bool) $input->getOption('fail-on-suggestions');
+
+        return ($allHasErrors || ($failOnWarnings && $allHasWarnings) || ($failOnSuggestions && $hasSuggestions)) ? Command::FAILURE : Command::SUCCESS;
+    }
+
+    private function outputLintIssues(SymfonyStyle $io, array $issues, ?string $editorUrlTemplate): void
+    {
         $issuesByFile = [];
         foreach ($issues as $issue) {
             $relativeFile = $this->getRelativePath($issue['file']);
@@ -146,40 +286,64 @@ final class RegexLintCommand extends Command
             }
             $io->writeln('');
         }
+    }
 
-        // Run validation
-        $validationIssues = [];
-        if (null !== $this->routeAnalyzer && null !== $this->router) {
-            $validationIssues = array_merge($validationIssues, $this->routeAnalyzer->analyze($this->router->getRouteCollection()));
-        }
-        if (null !== $this->validatorAnalyzer && null !== $this->validator && null !== $this->validatorLoader) {
-            $validationIssues = array_merge($validationIssues, $this->validatorAnalyzer->analyze($this->validator, $this->validatorLoader));
-        }
+    private function outputRedosIssues(SymfonyStyle $io, array $issues): void
+    {
+        $io->writeln('<comment>ReDoS Analysis</comment>');
+        foreach ($issues as $issue) {
+            $summary = \sprintf(
+                '%s:%d severity=%s score=%d',
+                $issue['file'],
+                $issue['line'],
+                strtoupper($issue['analysis']->severity->value),
+                $issue['analysis']->score,
+            );
 
-        // Output validation issues
-        if (!empty($validationIssues)) {
-            $io->writeln('<comment>Validation</comment>');
-            foreach ($validationIssues as $issue) {
-                $io->writeln(\sprintf('  [validation] %s', $issue->message));
+            $io->writeln('<error>[redos]</error> '.$summary);
+
+            if (null !== $issue['analysis']->trigger) {
+                $io->writeln('  Trigger: '.$issue['analysis']->trigger);
             }
-            $io->writeln('');
+
+            if (null !== $issue['analysis']->confidence) {
+                $io->writeln('  Confidence: '.$issue['analysis']->confidence->value);
+            }
+
+            if (null !== $issue['analysis']->falsePositiveRisk) {
+                $io->writeln('  False positive risk: '.$issue['analysis']->falsePositiveRisk);
+            }
+
+            foreach ($issue['analysis']->recommendations as $recommendation) {
+                $io->writeln('  - '.$recommendation);
+            }
         }
+        $io->writeln('');
+    }
 
-        $allHasErrors = $hasErrors || !empty(array_filter($validationIssues, fn($i) => $i->isError));
-        $allHasWarnings = $hasWarnings || !empty(array_filter($validationIssues, fn($i) => !$i->isError));
-
-        if (!$allHasErrors && !$allHasWarnings) {
-            $io->success('No regex issues detected.');
-            return Command::SUCCESS;
+    private function outputOptimizationSuggestions(SymfonyStyle $io, array $suggestions): void
+    {
+        $io->writeln('<comment>Optimization Suggestions</comment>');
+        foreach ($suggestions as $suggestion) {
+            $io->writeln(\sprintf(
+                '<comment>[suggest]</comment> %s:%d saved=%d',
+                $suggestion['file'],
+                $suggestion['line'],
+                $suggestion['savings'],
+            ));
+            $io->writeln('  - '.$suggestion['optimization']->original);
+            $io->writeln('  + '.$suggestion['optimization']->optimized);
         }
+        $io->writeln('');
+    }
 
-        if (!$allHasErrors && $allHasWarnings) {
-            $io->success('Regex analysis completed with warnings only.');
+    private function outputValidationIssues(SymfonyStyle $io, array $issues): void
+    {
+        $io->writeln('<comment>Symfony Validation</comment>');
+        foreach ($issues as $issue) {
+            $io->writeln(\sprintf('  [validation] %s', $issue->message));
         }
-
-        $failOnWarnings = (bool) $input->getOption('fail-on-warnings');
-
-        return ($allHasErrors || ($failOnWarnings && $allHasWarnings)) ? Command::FAILURE : Command::SUCCESS;
+        $io->writeln('');
     }
 
     private function makeClickable(?string $editorUrlTemplate, string $file, int $line, string $text): string
@@ -192,8 +356,6 @@ final class RegexLintCommand extends Command
 
         return "\033]8;;" . $editorUrl . "\033\\" . $text . "\033]8;;\033\\";
     }
-
-
 
     private function getRelativePath(string $path): string
     {

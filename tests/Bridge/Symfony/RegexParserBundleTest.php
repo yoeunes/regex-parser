@@ -16,7 +16,7 @@ namespace RegexParser\Tests\Bridge\Symfony;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 use RegexParser\Bridge\Symfony\CacheWarmer\RegexParserCacheWarmer;
-use RegexParser\Bridge\Symfony\Command\RegexParserValidateCommand;
+use RegexParser\Bridge\Symfony\Command\RegexLintCommand;
 use RegexParser\Bridge\Symfony\DependencyInjection\RegexParserExtension;
 use RegexParser\Cache\FilesystemCache;
 use RegexParser\Regex;
@@ -111,14 +111,14 @@ final class RegexParserBundleTest extends TestCase
         $container = $this->createContainer(['enabled' => true]);
         $container->compile();
 
-        $this->assertTrue($container->hasDefinition('regex_parser.command.validate'));
-        $definition = $container->getDefinition('regex_parser.command.validate');
-        $this->assertSame(RegexParserValidateCommand::class, $definition->getClass());
+        $this->assertTrue($container->hasDefinition('regex_parser.command.lint'));
+        $definition = $container->getDefinition('regex_parser.command.lint');
+        $this->assertSame(RegexLintCommand::class, $definition->getClass());
         $this->assertArrayHasKey('console.command', $definition->getTags());
 
-        /** @var RegexParserValidateCommand $command */
-        $command = $container->get('regex_parser.command.validate');
-        $this->assertSame('regex:check', $command->getName());
+        /** @var RegexLintCommand $command */
+        $command = $container->get('regex_parser.command.lint');
+        $this->assertSame('regex:lint', $command->getName());
     }
 
     public function test_bundle_can_be_disabled(): void
