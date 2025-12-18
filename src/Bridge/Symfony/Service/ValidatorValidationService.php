@@ -26,8 +26,7 @@ final class ValidatorValidationService
         private readonly ?ValidatorRegexAnalyzer $analyzer = null,
         private readonly ?ValidatorInterface $validator = null,
         private readonly ?LoaderInterface $validatorLoader = null,
-    ) {
-    }
+    ) {}
 
     public function isSupported(): bool
     {

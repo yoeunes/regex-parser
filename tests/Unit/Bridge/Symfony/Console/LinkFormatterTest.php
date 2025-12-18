@@ -19,7 +19,9 @@ use RegexParser\Bridge\Symfony\Console\RelativePathHelper;
 
 final class LinkFormatterTest extends TestCase
 {
-    /** @var array<string, ?string> */
+    /**
+     * @var array<string, ?string>
+     */
     private array $envBackup;
 
     protected function setUp(): void

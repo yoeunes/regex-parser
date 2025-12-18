@@ -17,9 +17,6 @@ use Symfony\Component\Console\Formatter\OutputFormatter;
 
 final class LinkFormatter
 {
-    /**
-     * @var array<string, string>
-     */
     private const IDE_LINK_FORMATS = [
         'textmate' => 'txmt://open?url=file://%f&line=%l',
         'macvim' => 'mvim://open?url=file://%f&line=%l',
@@ -58,7 +55,7 @@ final class LinkFormatter
             return $this->relativePathHelper->getRelativePath($file).':'.$line;
         }
 
-        return sprintf('<href=%s>%s</>', OutputFormatter::escape($url), $label);
+        return \sprintf('<href=%s>%s</>', OutputFormatter::escape($url), $label);
     }
 
     public function getRelativePath(string $file): string

@@ -24,8 +24,7 @@ final class RouteValidationService
     public function __construct(
         private readonly ?RouteRequirementAnalyzer $analyzer = null,
         private readonly ?RouterInterface $router = null,
-    ) {
-    }
+    ) {}
 
     public function isSupported(): bool
     {

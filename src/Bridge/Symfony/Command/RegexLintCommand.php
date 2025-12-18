@@ -16,26 +16,24 @@ namespace RegexParser\Bridge\Symfony\Command;
 use RegexParser\Bridge\Symfony\Console\LinkFormatter;
 use RegexParser\Bridge\Symfony\Console\RelativePathHelper;
 use RegexParser\Bridge\Symfony\Service\RegexAnalysisService;
-use RegexParser\ReDoS\ReDoSSeverity;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 #[AsCommand(
     name: 'regex:lint',
-    description: 'Lints, validates, optimizes, and analyzes ReDoS risk for constant preg_* patterns found in PHP files.',
+    description: 'Lints, validates, and optimizes constant preg_* patterns found in PHP files.',
 )]
 final class RegexLintCommand extends Command
 {
     protected static ?string $defaultName = 'regex:lint';
 
-    protected static ?string $defaultDescription = 'Lints, validates, optimizes, and analyzes ReDoS risk for constant preg_* patterns found in PHP files.';
+    protected static ?string $defaultDescription = 'Lints, validates, and optimizes constant preg_* patterns found in PHP files.';
 
     private readonly RelativePathHelper $relativePathHelper;
+
     private readonly LinkFormatter $linkFormatter;
 
     public function __construct(
@@ -52,36 +50,16 @@ final class RegexLintCommand extends Command
     }
 
     #[\Override]
-    protected function configure(): void
-    {
-        $this
-            ->addArgument(
-                'paths',
-                InputArgument::IS_ARRAY,
-                'Files/directories to scan (defaults to current directory).',
-            )
-            ->addOption('analyze-redos', null, InputOption::VALUE_NONE, 'Analyze patterns for ReDoS risk.');
-    }
-
-    #[\Override]
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
 
         $io->writeln('');
-        $io->writeln('  <fg=white;options=bold>REGEX PARSER</> <fg=cyan>Linting & Analysis</>');
+        $io->writeln('  <fg=white;options=bold>REGEX PARSER</> <fg=cyan>Linting & Optimization</>');
         $io->writeln('');
 
-        /** @var list<string> $paths */
-        $paths = $input->getArgument('paths');
-        if ([] === $paths) {
-            $paths = $this->defaultPaths;
-        }
-
-        $analyzeRedos = (bool) $input->getOption('analyze-redos');
-
         $io->write('  <fg=cyan>🔍  Scanning files...</>');
-        $patterns = $this->regexAnalysis->scan($paths, $this->excludePaths);
+        $patterns = $this->regexAnalysis->scan($this->defaultPaths, $this->excludePaths);
         $io->writeln(' <fg=green;options=bold>Done.</>');
         $io->writeln('');
 
@@ -91,9 +69,7 @@ final class RegexLintCommand extends Command
             return Command::SUCCESS;
         }
 
-        $hasErrors = false;
-        $hasWarnings = false;
-        $stats = ['errors' => 0, 'warnings' => 0, 'optimizations' => 0, 'redos' => 0];
+        $stats = ['errors' => 0, 'warnings' => 0, 'optimizations' => 0];
 
         // 1. Basic Linting
         $lintIssues = [];
@@ -116,27 +92,14 @@ final class RegexLintCommand extends Command
 
         foreach ($lintIssues as $issue) {
             if ('error' === $issue['type']) {
-                $hasErrors = true;
                 $stats['errors']++;
             } else {
-                $hasWarnings = true;
                 $stats['warnings']++;
             }
         }
 
         if (!empty($lintIssues)) {
             $this->outputLintIssues($io, $lintIssues);
-        }
-
-        // 2. ReDoS Analysis (opt-in)
-        $redosIssues = [];
-        if ($analyzeRedos && !empty($patterns)) {
-            $redosIssues = $this->regexAnalysis->analyzeRedos($patterns, ReDoSSeverity::HIGH);
-            $stats['redos'] += \count($redosIssues);
-        }
-
-        if (!empty($redosIssues)) {
-            $this->outputRedosIssues($io, $redosIssues);
         }
 
         // 3. Optimizations (always on)
@@ -154,16 +117,15 @@ final class RegexLintCommand extends Command
 
         // Final Status
         if (0 === $stats['errors']) {
-            if (0 === $stats['warnings'] && 0 === $stats['optimizations'] && 0 === $stats['redos']) {
+            if (0 === $stats['warnings'] && 0 === $stats['optimizations']) {
                 $io->block('No issues found. Your regex patterns are clean.', 'PASS', 'fg=black;bg=green', ' ', true);
             } else {
                 $io->newLine();
                 $io->writeln(
                     \sprintf(
-                        '  <bg=blue;fg=white;options=bold> INFO </><fg=white;options=bold> %d warnings</><fg=gray>, %d optimizations, %d redos findings.</>',
+                        '  <bg=blue;fg=white;options=bold> INFO </><fg=white;options=bold> %d warnings</><fg=gray>, %d optimizations.</>',
                         $stats['warnings'],
                         $stats['optimizations'],
-                        $stats['redos'],
                     ),
                 );
                 $io->newLine();
@@ -238,44 +200,8 @@ final class RegexLintCommand extends Command
         }
     }
 
-    private function outputRedosIssues(SymfonyStyle $io, array $issues): void
+    private function outputOptimizationSuggestions(SymfonyStyle $io, array $suggestions): void
     {
-        $io->writeln('  <fg=red;options=bold>ReDoS Findings</>');
-        $io->newLine();
-
-        foreach ($issues as $issue) {
-            $relFile = $this->linkFormatter->getRelativePath($issue['file']);
-            $line = $issue['line'];
-            $severity = strtoupper($issue['analysis']->severity->value);
-            $lineLabel = str_pad((string) $line, 4);
-            $penLink = $this->linkFormatter->format($issue['file'], $line, '✏️', 1, '✏️');
-
-            $io->writeln(
-                \sprintf(
-                    '  <fg=red;options=bold>R</>  <fg=white;options=bold>%s</>  %s  <fg=red>%s severity</> <fg=gray>in</> <fg=cyan;options=bold>%s</>',
-                    $lineLabel,
-                    $penLink,
-                    $severity,
-                    $relFile,
-                ),
-            );
-
-            if ($issue['analysis']->trigger) {
-                $trigger = $this->regexAnalysis->highlight($issue['analysis']->trigger);
-                $io->writeln(\sprintf('         <fg=cyan>Trigger:</> %s', $trigger));
-            }
-
-            foreach ($issue['analysis']->recommendations as $rec) {
-                $io->writeln("         <fg=cyan>👉</> <fg=cyan>{$rec}</>");
-            }
-            $io->writeln('');
-        }
-    }
-
-    private function outputOptimizationSuggestions(
-        SymfonyStyle $io,
-        array $suggestions,
-    ): void {
         $io->writeln('  <fg=green;options=bold>Optimizations</>');
         $io->newLine();
 

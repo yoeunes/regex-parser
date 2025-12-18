@@ -27,8 +27,7 @@ final class RegexAnalysisService
     public function __construct(
         private readonly Regex $regex,
         private readonly ?RegexPatternExtractor $extractor = null,
-    ) {
-    }
+    ) {}
 
     /**
      * @param list<string> $paths
@@ -45,6 +44,7 @@ final class RegexAnalysisService
 
     /**
      * @param array<int, object> $patterns
+     *
      * @return array<int, array{
      *     type: string,
      *     file: string,
@@ -103,6 +103,7 @@ final class RegexAnalysisService
 
     /**
      * @param array<int, object> $patterns
+     *
      * @return array<int, array{file: string, line: int, analysis: object}>
      */
     public function analyzeRedos(array $patterns, ReDoSSeverity $threshold): array
@@ -132,6 +133,7 @@ final class RegexAnalysisService
 
     /**
      * @param array<int, object> $patterns
+     *
      * @return array<int, array{
      *     file: string,
      *     line: int,
