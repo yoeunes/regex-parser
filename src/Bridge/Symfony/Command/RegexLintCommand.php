@@ -245,6 +245,13 @@ final class RegexLintCommand extends Command
         $lineNum = str_pad((string) $line, 4);
         $link = $this->linkFormatter->format($file, $line, '✏️', 1, '✏️');
 
+        // Show the regex pattern if we have it
+        $pattern = $this->extractPatternForResult($result);
+        if ($pattern !== null) {
+            $highlighted = $this->analysis->highlight($pattern);
+            $io->writeln(\sprintf('  <fg=gray>Pattern:</> %s', $highlighted));
+        }
+
         // Display issues
         foreach ($result['issues'] as $issue) {
             $this->displaySingleIssue($io, $issue, $lineNum, $link);
@@ -254,6 +261,35 @@ final class RegexLintCommand extends Command
         foreach ($result['optimizations'] as $opt) {
             $this->displayOptimization($io, $opt, $lineNum, $link);
         }
+    }
+
+    private function extractPatternForResult(array $result): ?string
+    {
+        // First try to get pattern from result itself
+        if (!empty($result['pattern'])) {
+            return $result['pattern'];
+        }
+
+        // Try to get pattern from first issue
+        if (!empty($result['issues'])) {
+            $firstIssue = $result['issues'][0];
+            if (isset($firstIssue['pattern']) && !empty($firstIssue['pattern'])) {
+                return $firstIssue['pattern'];
+            }
+            if (isset($firstIssue['regex']) && !empty($firstIssue['regex'])) {
+                return $firstIssue['regex'];
+            }
+        }
+
+        // Try to get original pattern from first optimization
+        if (!empty($result['optimizations'])) {
+            $firstOpt = $result['optimizations'][0];
+            if (isset($firstOpt['optimization']->original)) {
+                return $firstOpt['optimization']->original;
+            }
+        }
+
+        return null;
     }
 
     private function displaySingleIssue(SymfonyStyle $io, array $issue, string $lineNum, string $link): void
