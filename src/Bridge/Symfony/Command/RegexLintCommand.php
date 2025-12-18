@@ -301,6 +301,7 @@ final class RegexLintCommand extends Command
     private function outputLintIssues(SymfonyStyle $io, array $issues, ?string $editorUrlTemplate): void
     {
         $io->writeln('  <fg=white;options=bold>Issues Found</>');
+        $io->newLine();
 
         $issuesByFile = [];
         foreach ($issues as $issue) {
@@ -313,15 +314,14 @@ final class RegexLintCommand extends Command
 
             foreach ($fileIssues as $issue) {
                 $color = 'error' === $issue['type'] ? 'red' : 'yellow';
-                $icon = 'error' === $issue['type'] ? '⨯' : '⚠';
+                $icon = 'error' === $issue['type'] ? '🚨' : '⚠️ ';
                 $line = $issue['line'];
                 $link = $this->makeClickable($editorUrlTemplate, $file, $line, "{$line}");
 
                 $io->writeln(\sprintf(
-                    '  <fg=%s>%s</>  <fg=%s>%s</>  <fg=gray>%s</>',
+                    '  <fg=%s>%s  %s</>  <fg=gray>%s</>',
                     $color,
                     $icon,
-                    $color,
                     $issue['message'],
                     "line {$link}"
                 ));
@@ -337,6 +337,7 @@ final class RegexLintCommand extends Command
     private function outputRedosIssues(SymfonyStyle $io, array $issues, ?string $editorUrlTemplate): void
     {
         $io->writeln('  <fg=red;options=bold>ReDoS Vulnerabilities</>');
+        $io->newLine();
 
         foreach ($issues as $issue) {
             $relFile = $this->getRelativePath($issue['file']);
@@ -345,9 +346,8 @@ final class RegexLintCommand extends Command
             $severity = strtoupper($issue['analysis']->severity->value);
 
             $io->writeln(\sprintf(
-                '  <fg=red>🔥  %s</> <fg=gray>in</> <fg=white;href=%s>%s</>',
+                '  <fg=red>🔥  %s</> <fg=gray>in</> <fg=white>%s</>',
                 $severity,
-                $link,
                 $link
             ));
 
@@ -365,6 +365,7 @@ final class RegexLintCommand extends Command
     private function outputOptimizationSuggestions(SymfonyStyle $io, array $suggestions, ?string $editorUrlTemplate): void
     {
         $io->writeln('  <fg=green;options=bold>Optimizations</>');
+        $io->newLine();
 
         foreach ($suggestions as $item) {
             $relFile = $this->getRelativePath($item['file']);
@@ -372,9 +373,8 @@ final class RegexLintCommand extends Command
             $link = $this->makeClickable($editorUrlTemplate, $item['file'], $line, "{$relFile}:{$line}");
 
             $io->writeln(\sprintf(
-                '  <fg=green>✨  Saved %d chars</> <fg=gray>in</> <fg=white;href=%s>%s</>',
+                '  <fg=green>✨  Saved %d chars</> <fg=gray>in</> <fg=white>%s</>',
                 $item['savings'],
-                $link,
                 $link
             ));
 
@@ -387,13 +387,14 @@ final class RegexLintCommand extends Command
     private function outputValidationIssues(SymfonyStyle $io, array $issues): void
     {
         $io->writeln('  <fg=blue;options=bold>Symfony Validation</>');
+        $io->newLine();
 
         foreach ($issues as $issue) {
-            $icon = $issue->isError ? '⨯' : '⚠';
+            $icon = $issue->isError ? '🚨' : '⚠️ ';
             $color = $issue->isError ? 'red' : 'yellow';
 
             $io->writeln(\sprintf(
-                '  <fg=%s>%s</>  %s',
+                '  <fg=%s>%s  %s</>',
                 $color,
                 $icon,
                 $issue->message
