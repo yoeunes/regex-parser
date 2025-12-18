@@ -109,6 +109,11 @@ final class RegexLintCommand extends Command
         // Basic linting (always runs by default)
         $lintIssues = [];
         if (!empty($patterns)) {
+            $io->writeln('');
+            $progressBar = $io->createProgressBar(count($patterns));
+            $progressBar->setFormat(' %current%/%max% [%bar%] %percent:3s%% %elapsed:6s%/%estimated:-6s% %memory:6s%');
+            $progressBar->start();
+
             foreach ($patterns as $occurrence) {
                 $validation = $this->regex->validate($occurrence->pattern);
                 if (!$validation->isValid) {
@@ -121,6 +126,7 @@ final class RegexLintCommand extends Command
                         'message' => $validation->error ?? 'Invalid regex.',
                     ];
 
+                    $progressBar->advance();
                     continue;
                 }
 
@@ -140,7 +146,13 @@ final class RegexLintCommand extends Command
                         'hint' => $issue->hint,
                     ];
                 }
+
+                $progressBar->advance();
             }
+
+            $progressBar->finish();
+            $io->writeln('');
+            $io->writeln('');
         }
 
         // Output linting issues
@@ -247,35 +259,6 @@ final class RegexLintCommand extends Command
             $this->outputValidationIssues($io, $validationIssues);
         }
 
-        // Summary
-        $totalLintErrors = count(array_filter($lintIssues, fn ($i) => 'error' === $i['type']));
-        $totalLintWarnings = count(array_filter($lintIssues, fn ($i) => 'warning' === $i['type']));
-        $totalRedos = count($redosIssues);
-        $totalOptimizations = count($optimizationSuggestions);
-        $totalValidationErrors = count(array_filter($validationIssues, fn ($i) => $i->isError));
-        $totalValidationWarnings = count(array_filter($validationIssues, fn ($i) => !$i->isError));
-
-        $hasAnyIssues = $totalLintErrors + $totalLintWarnings + $totalRedos + $totalOptimizations + $totalValidationErrors + $totalValidationWarnings > 0;
-        if ($hasAnyIssues) {
-            $summaryParts = [];
-            if ($totalLintErrors > 0) {
-                $summaryParts[] = \sprintf('<fg=red>%d errors</>', $totalLintErrors);
-            }
-            if ($totalLintWarnings > 0) {
-                $summaryParts[] = \sprintf('<fg=yellow>%d warnings</>', $totalLintWarnings);
-            }
-            if ($totalRedos > 0) {
-                $summaryParts[] = \sprintf('<fg=red>%d ReDoS risks</>', $totalRedos);
-            }
-            if ($totalOptimizations > 0) {
-                $summaryParts[] = \sprintf('<fg=green>%d optimizations</>', $totalOptimizations);
-            }
-            if ($totalValidationErrors + $totalValidationWarnings > 0) {
-                $summaryParts[] = \sprintf('<fg=blue>%d validation issues</>', $totalValidationErrors + $totalValidationWarnings);
-            }
-            $io->info('Summary: ' . implode(', ', $summaryParts));
-        }
-
         $allHasErrors = $hasErrors || !empty(array_filter($validationIssues, fn ($i) => $i->isError));
         $allHasWarnings = $hasWarnings || !empty(array_filter($validationIssues, fn ($i) => !$i->isError));
 
@@ -302,8 +285,6 @@ final class RegexLintCommand extends Command
             $relativeFile = $this->getRelativePath($issue['file']);
             $issuesByFile[$relativeFile][] = $issue;
         }
-
-        $this->renderSectionTitle($io, 'Lint Issues', '🔍', 'cyan');
 
         foreach ($issuesByFile as $file => $fileIssues) {
             $io->writeln(\sprintf('<options=bold>%s</> <fg=gray>(%d %s)</>', $file, \count($fileIssues), 1 === \count($fileIssues) ? 'issue' : 'issues'));
