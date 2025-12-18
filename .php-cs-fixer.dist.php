@@ -28,7 +28,8 @@ $finder = (new PhpCsFixer\Finder())
         __DIR__.'/benchmarks',
     ])
     ->exclude([
-        'tools/*/vendor/',
+        __DIR__.'/tools/*/vendor',
+        __DIR__.'/tests/Fixtures',
     ])
     ->name('*.php')
     ->ignoreDotFiles(true)
