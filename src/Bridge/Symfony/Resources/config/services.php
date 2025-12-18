@@ -16,6 +16,10 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 use RegexParser\Bridge\Symfony\Analyzer\RouteRequirementAnalyzer;
 use RegexParser\Bridge\Symfony\Analyzer\ValidatorRegexAnalyzer;
 use RegexParser\Bridge\Symfony\Command\RegexLintCommand;
+use RegexParser\Bridge\Symfony\Extractor\ExtractionStrategyInterface;
+use RegexParser\Bridge\Symfony\Extractor\PhpStanExtractionStrategy;
+use RegexParser\Bridge\Symfony\Extractor\RegexPatternExtractor;
+use RegexParser\Bridge\Symfony\Extractor\TokenBasedExtractionStrategy;
 use RegexParser\Regex;
 use Symfony\Component\Routing\RouterInterface;
 use Symfony\Component\Validator\Mapping\Loader\LoaderInterface;
@@ -57,6 +61,12 @@ return static function (ContainerConfigurator $container): void {
         ->arg('$redosThreshold', param('regex_parser.redos.threshold'))
         ->arg('$ignoredPatterns', param('regex_parser.redos.ignored_patterns'));
 
+    // Configure extractor with optional custom strategy
+    $services->set('regex_parser.extractor', RegexPatternExtractor::class)
+        ->args([
+            '$customStrategy' => service(ExtractionStrategyInterface::class)->nullOnInvalid(),
+        ]);
+
     $services->set('regex_parser.command.lint', RegexLintCommand::class)
         ->arg('$regex', service('regex_parser.regex'))
         ->arg('$editorUrl', param('regex_parser.editor_url'))
@@ -68,6 +78,7 @@ return static function (ContainerConfigurator $container): void {
         ->arg('$validator', service(ValidatorInterface::class)->nullOnInvalid())
         ->arg('$validatorLoader', service(LoaderInterface::class)->nullOnInvalid())
         ->arg('$defaultRedosThreshold', param('regex_parser.redos.threshold'))
+        ->arg('$extractor', service('regex_parser.extractor')->nullOnInvalid())
         ->tag('console.command')
         ->public();
 };

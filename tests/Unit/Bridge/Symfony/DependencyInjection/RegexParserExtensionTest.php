@@ -17,6 +17,7 @@ use PHPUnit\Framework\TestCase;
 use RegexParser\Bridge\Symfony\Analyzer\RouteRequirementAnalyzer;
 use RegexParser\Bridge\Symfony\Analyzer\ValidatorRegexAnalyzer;
 use RegexParser\Bridge\Symfony\DependencyInjection\RegexParserExtension;
+use RegexParser\Bridge\Symfony\Extractor\ExtractionStrategyInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 
 final class RegexParserExtensionTest extends TestCase
@@ -46,7 +47,21 @@ final class RegexParserExtensionTest extends TestCase
         $this->assertTrue($container->hasDefinition('regex_parser.regex'));
         $this->assertTrue($container->hasDefinition(RouteRequirementAnalyzer::class));
         $this->assertTrue($container->hasDefinition(ValidatorRegexAnalyzer::class));
-
+        $this->assertTrue($container->hasDefinition('regex_parser.extractor'));
         $this->assertTrue($container->hasDefinition('regex_parser.command.lint'));
+    }
+
+    public function test_load_sets_custom_extractor_alias(): void
+    {
+        $container = new ContainerBuilder();
+        $container->setParameter('kernel.debug', false);
+
+        $extension = new RegexParserExtension();
+        $extension->load([[
+            'extractor_service' => 'my_custom_extractor',
+        ]], $container);
+
+        $this->assertTrue($container->hasAlias(ExtractionStrategyInterface::class));
+        $this->assertSame('my_custom_extractor', (string) $container->getAlias(ExtractionStrategyInterface::class));
     }
 }

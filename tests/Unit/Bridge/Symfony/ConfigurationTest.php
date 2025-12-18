@@ -41,6 +41,7 @@ final class ConfigurationTest extends TestCase
 
         $this->assertSame(Regex::DEFAULT_MAX_PATTERN_LENGTH, $config['max_pattern_length']);
         $this->assertNull($config['cache']);
+        $this->assertNull($config['extractor_service']);
         $this->assertSame(50, $config['analysis']['warning_threshold']);
         $this->assertSame(100, $config['analysis']['redos_threshold']);
         $this->assertSame([], $config['analysis']['ignore_patterns']);
@@ -66,6 +67,7 @@ final class ConfigurationTest extends TestCase
         $config = $processor->processConfiguration($configuration, [[
             'max_pattern_length' => 10,
             'cache' => '/tmp/cache',
+            'extractor_service' => 'my_custom_extractor',
             'analysis' => [
                 'warning_threshold' => 1,
                 'redos_threshold' => 2,
@@ -88,6 +90,7 @@ final class ConfigurationTest extends TestCase
 
         $this->assertSame(10, $config['max_pattern_length']);
         $this->assertSame('/tmp/cache', $config['cache']);
+        $this->assertSame('my_custom_extractor', $config['extractor_service']);
         $this->assertSame(['foo', 'bar'], $config['analysis']['ignore_patterns']);
         $this->assertSame(1, $config['analysis']['warning_threshold']);
         $this->assertSame(2, $config['analysis']['redos_threshold']);

@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Bridge\Symfony\DependencyInjection;
 
+use RegexParser\Bridge\Symfony\Extractor\ExtractionStrategyInterface;
 use RegexParser\Cache\FilesystemCache;
 use RegexParser\Cache\NullCache;
 use RegexParser\Cache\PsrCacheAdapter;
@@ -46,6 +47,7 @@ final class RegexParserExtension extends Extension
          *     cache: string|null,
          *     cache_pool: string|null,
          *     cache_prefix: string,
+         *     extractor_service: string|null,
          *     redos: array{
          *         threshold: string,
          *         ignored_patterns: array<int, string>,
@@ -85,6 +87,7 @@ final class RegexParserExtension extends Extension
         $container->setParameter('regex_parser.cache', $config['cache']);
         $container->setParameter('regex_parser.cache_pool', $config['cache_pool']);
         $container->setParameter('regex_parser.cache_prefix', $config['cache_prefix']);
+        $container->setParameter('regex_parser.extractor_service', $config['extractor_service']);
         $container->setParameter('regex_parser.redos.threshold', $config['redos']['threshold']);
         $container->setParameter('regex_parser.redos.ignored_patterns', $ignoredPatterns);
         $container->setParameter('regex_parser.analysis.warning_threshold', $config['analysis']['warning_threshold']);
@@ -95,6 +98,11 @@ final class RegexParserExtension extends Extension
         $container->setParameter('regex_parser.editor_url', $editorUrl);
 
         $container->setDefinition('regex_parser.cache', $this->buildCacheDefinition($config));
+
+        // Configure custom extractor service if provided
+        if (null !== $config['extractor_service'] && '' !== $config['extractor_service']) {
+            $container->setAlias(ExtractionStrategyInterface::class, $config['extractor_service']);
+        }
 
         $loader = new PhpFileLoader($container, new FileLocator(__DIR__.'/../Resources/config'));
 

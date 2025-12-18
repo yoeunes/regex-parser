@@ -51,6 +51,7 @@ final class RegexLintCommand extends Command
         private readonly ?ValidatorInterface $validator = null,
         private readonly ?LoaderInterface $validatorLoader = null,
         private readonly string $defaultRedosThreshold = 'high',
+        private readonly ?RegexPatternExtractor $extractor = null,
     ) {
         parent::__construct();
     }
@@ -88,7 +89,7 @@ final class RegexLintCommand extends Command
 
         $editorUrlTemplate = $this->editorUrl;
 
-        $extractor = new RegexPatternExtractor($this->excludePaths);
+        $extractor = $this->extractor ?? new RegexPatternExtractor();
         $patterns = $extractor->extract($paths);
 
         if ([] === $patterns && !$validateSymfony) {

@@ -13,6 +13,9 @@ declare(strict_types=1);
 
 namespace RegexParser\Bridge\Symfony\Extractor;
 
+use RegexParser\Bridge\Symfony\Extractor\PhpStanExtractionStrategy;
+use RegexParser\Bridge\Symfony\Extractor\TokenBasedExtractionStrategy;
+
 /**
  * Extracts constant regex patterns from PHP source files using best available strategy.
  *
@@ -31,9 +34,14 @@ final class RegexPatternExtractor
     /**
      * @param list<ExtractionStrategyInterface> $strategies
      */
-    public function __construct(array $strategies = [])
+    public function __construct(array $strategies = [], private ?ExtractionStrategyInterface $customStrategy = null)
     {
-        $this->strategies = empty($strategies) ? $this->createDefaultStrategies() : $strategies;
+        if ($this->customStrategy) {
+            // If custom strategy is provided, use it with highest priority
+            $this->strategies = [$this->customStrategy, ...$strategies];
+        } else {
+            $this->strategies = empty($strategies) ? $this->createDefaultStrategies() : $strategies;
+        }
 
         // Sort strategies by priority (highest first)
         usort($this->strategies, static fn (ExtractionStrategyInterface $a, ExtractionStrategyInterface $b) => $b->getPriority() <=> $a->getPriority(),
