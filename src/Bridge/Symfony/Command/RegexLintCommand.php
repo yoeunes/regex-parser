@@ -289,41 +289,62 @@ final class RegexLintCommand extends Command
         foreach ($issuesByFile as $file => $fileIssues) {
             $io->writeln(\sprintf('<options=bold>%s</> <fg=gray>(%d %s)</>', $file, \count($fileIssues), 1 === \count($fileIssues) ? 'issue' : 'issues'));
 
-            foreach ($fileIssues as $issue) {
-                $color = 'error' === $issue['type'] ? 'red' : 'yellow';
-                $badge = $this->badge($issue['type'], $color);
-                $column = $issue['column'] ?? 1;
-                $jumpLabel = 'line '.$issue['line'].':'.$column;
-                $jumpLink = $this->makeClickable($editorUrlTemplate, $issue['file'], $issue['line'], $jumpLabel, $column);
-                $cleanMessage = preg_replace('/^Line \d+:\s*/m', '        ', (string) $issue['message']);
-                $messageLines = explode("\n", $cleanMessage);
-                $firstMessage = array_shift($messageLines) ?? '';
+            $errors = array_filter($fileIssues, fn ($i) => 'error' === $i['type']);
+            $warnings = array_filter($fileIssues, fn ($i) => 'warning' === $i['type']);
 
-                $io->writeln(\sprintf('  %s %s %s', $badge, $jumpLink, $firstMessage));
-
-                foreach ($messageLines as $messageLine) {
-                    $messageLine = rtrim($messageLine);
-                    if ('' !== $messageLine) {
-                        $io->writeln('    ' . $messageLine);
-                    }
+            if (!empty($errors)) {
+                $io->writeln(\sprintf('  <fg=red>Errors (%d):</>', \count($errors)));
+                foreach ($errors as $issue) {
+                    $this->outputIssue($io, $issue, $editorUrlTemplate);
                 }
+            }
 
-                if (isset($issue['issueId']) && '' !== $issue['issueId']) {
-                    $io->writeln(\sprintf('    🪪  %s', $issue['issueId']));
+            if (!empty($warnings)) {
+                if (!empty($errors)) {
+                    $io->writeln('');
                 }
-
-                if (isset($issue['hint']) && null !== $issue['hint']) {
-                    $hints = explode("\n", $issue['hint']);
-                    foreach ($hints as $hint) {
-                        $hint = trim($hint);
-                        if ('' !== $hint) {
-                            $io->writeln(\sprintf('    💡  %s', $hint));
-                        }
-                    }
+                $io->writeln(\sprintf('  <fg=yellow>Warnings (%d):</>', \count($warnings)));
+                foreach ($warnings as $issue) {
+                    $this->outputIssue($io, $issue, $editorUrlTemplate);
                 }
             }
 
             $io->writeln('');
+        }
+    }
+
+    private function outputIssue(SymfonyStyle $io, array $issue, ?string $editorUrlTemplate): void
+    {
+        $color = 'error' === $issue['type'] ? 'red' : 'yellow';
+        $badge = $this->badge($issue['type'], $color);
+        $column = $issue['column'] ?? 1;
+        $jumpLabel = 'at line '.$issue['line'];
+        $jumpLink = $this->makeClickable($editorUrlTemplate, $issue['file'], $issue['line'], $jumpLabel, $column);
+        $cleanMessage = preg_replace('/^Line \d+:\s*/m', '        ', (string) $issue['message']);
+        $messageLines = explode("\n", $cleanMessage);
+        $firstMessage = array_shift($messageLines) ?? '';
+
+        $io->writeln(\sprintf('    %s %s %s', $badge, $jumpLink, $firstMessage));
+
+        foreach ($messageLines as $messageLine) {
+            $messageLine = rtrim($messageLine);
+            if ('' !== $messageLine) {
+                $io->writeln('      ' . $messageLine);
+            }
+        }
+
+        if (isset($issue['issueId']) && '' !== $issue['issueId']) {
+            $io->writeln(\sprintf('      🪪  %s', $issue['issueId']));
+        }
+
+        if (isset($issue['hint']) && null !== $issue['hint']) {
+            $hints = explode("\n", $issue['hint']);
+            foreach ($hints as $hint) {
+                $hint = trim($hint);
+                if ('' !== $hint) {
+                    $io->writeln(\sprintf('      💡  %s', $hint));
+                }
+            }
         }
     }
 
