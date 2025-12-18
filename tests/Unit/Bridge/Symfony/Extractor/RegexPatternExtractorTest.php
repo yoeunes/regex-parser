@@ -113,10 +113,9 @@ final class RegexPatternExtractorTest extends TestCase
         $mockExtractor->expects($this->once())
             ->method('extract')
             ->with($this->callback(function (array $files) {
-                return is_array($files) 
-                    && isset($files[0]) 
-                    && in_array('test.php', array_map(strval(...), $files)) 
-                    && !in_array('ignored.php', array_map(strval(...), $files));
+                return isset($files[0]) 
+                    && in_array('test.php', array_map(fn($file): string => (string) $file, $files), true) 
+                    && !in_array('ignored.php', array_map(fn($file): string => (string) $file, $files), true);
             }))
             ->willReturn([]);
 
