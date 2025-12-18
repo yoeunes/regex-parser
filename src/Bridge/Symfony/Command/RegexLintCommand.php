@@ -524,7 +524,6 @@ final class RegexLintCommand extends Command
     {
         // Check if terminal supports hyperlinks via environment variables
         $termProgram = getenv('TERM_PROGRAM');
-        $term = getenv('TERM');
 
         // Known terminals that support OSC 8 hyperlinks
         $supportedTerminals = [
@@ -540,13 +539,8 @@ final class RegexLintCommand extends Command
             'mintty',
         ];
 
-        // Check TERM_PROGRAM first (most reliable)
+        // Check TERM_PROGRAM only (most reliable way to detect hyperlink support)
         if ($termProgram && \in_array($termProgram, $supportedTerminals, true)) {
-            return true;
-        }
-
-        // Check for some common TERM values that might support hyperlinks
-        if ($term && (str_contains($term, 'xterm') || str_contains($term, 'screen'))) {
             return true;
         }
 
