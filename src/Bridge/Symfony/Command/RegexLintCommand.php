@@ -25,18 +25,12 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
-    #[AsCommand(
-        name: 'regex:lint',
-        description: 'Lints, validates, and optimizes constant preg_* patterns found in PHP files.',
-    )]
-    final class RegexLintCommand extends Command
-    {
-        #[\Override]
-        protected function configure(): void
-        {
-            $this->addOption('fail-on-warnings', null, InputOption::VALUE_NONE, 'Fail the command if warnings are found.');
-        $this->addOption('fix', null, InputOption::VALUE_NONE, 'Automatically apply optimizations to files.');
-        }
+#[AsCommand(
+    name: 'regex:lint',
+    description: 'Lints, validates, and optimizes constant preg_* patterns found in PHP files.',
+)]
+final class RegexLintCommand extends Command
+{
     private readonly RelativePathHelper $pathHelper;
 
     private readonly LinkFormatter $linkFormatter;
@@ -52,6 +46,13 @@ use Symfony\Component\Console\Style\SymfonyStyle;
         $this->pathHelper = new RelativePathHelper($workDir);
         $this->linkFormatter = new LinkFormatter($editorUrl, $this->pathHelper);
         parent::__construct();
+    }
+
+    #[\Override]
+    protected function configure(): void
+    {
+        $this->addOption('fail-on-warnings', null, InputOption::VALUE_NONE, 'Fail the command if warnings are found.');
+        $this->addOption('fix', null, InputOption::VALUE_NONE, 'Automatically apply optimizations to files.');
     }
 
     #[\Override]
@@ -218,7 +219,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
             if ($failOnWarnings && $stats['warnings'] > 0) {
                 $io->newLine();
                 $io->writeln(
-                    \sprintf('  <bg=red;fg=white;options=bold> FAIL </><fg=red;options=bold> %d warnings found and --fail-on-warnings is enabled</>', $stats['warnings'])
+                    \sprintf('  <bg=red;fg=white;options=bold> FAIL </><fg=red;options=bold> %d warnings found and --fail-on-warnings is enabled</>', $stats['warnings']),
                 );
                 $io->newLine();
                 $this->showFooter($io);
@@ -311,7 +312,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 
         // Display optimizations
         foreach ($result['optimizations'] as $opt) {
-                $this->displayOptimization($io, $opt, $lineNum, $link, $fix);
+            $this->displayOptimization($io, $opt, $lineNum, $link, $fix);
         }
 
         // Add subtle spacing after this pattern result
