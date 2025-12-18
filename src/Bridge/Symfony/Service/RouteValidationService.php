@@ -70,29 +70,14 @@ final readonly class RouteValidationService
             $key = $issue['file'];
             if (isset($patternMap[$key])) {
                 $data = $patternMap[$key];
-                // Skip ReDoS warnings for routes, as they may not be relevant
-                if (str_contains($issue['message'], 'ReDoS')) {
+                // Skip ReDoS and nested quantifiers warnings for routes, as they may not be relevant
+                if (str_contains($issue['message'], 'ReDoS') || str_contains($issue['message'], 'Nested quantifiers')) {
                     continue;
                 }
                 $id = $data['file'] ? $data['file'] . ' (Route: ' . $data['route'] . ')' : 'Route: ' . $data['route'];
                 $analysisIssues[] = new AnalysisIssue(
                     $issue['message'],
                     $issue['type'] === 'error',
-                    $data['pattern'],
-                    $id
-                );
-            }
-        }
-
-        // Optionally add optimizations as warnings
-        foreach ($optimizations as $opt) {
-            $key = $opt['file'];
-            if (isset($patternMap[$key])) {
-                $data = $patternMap[$key];
-                $id = $data['file'] ? $data['file'] . ' (Route: ' . $data['route'] . ')' : 'Route: ' . $data['route'];
-                $analysisIssues[] = new \RegexParser\Bridge\Symfony\Analyzer\AnalysisIssue(
-                    \sprintf('Optimization available: %d chars saved', $opt['savings']),
-                    false,
                     $data['pattern'],
                     $id
                 );
