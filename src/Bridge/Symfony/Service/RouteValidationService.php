@@ -19,11 +19,11 @@ use Symfony\Component\Routing\RouterInterface;
 /**
  * Validates regex usage in Symfony routes.
  */
-final class RouteValidationService
+final readonly class RouteValidationService
 {
     public function __construct(
-        private readonly ?RouteRequirementAnalyzer $analyzer = null,
-        private readonly ?RouterInterface $router = null,
+        private ?RouteRequirementAnalyzer $analyzer = null,
+        private ?RouterInterface $router = null,
     ) {}
 
     public function isSupported(): bool

@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Bridge\Symfony\Console;
 
-final class RelativePathHelper
+final readonly class RelativePathHelper
 {
     private ?string $basePath;
 

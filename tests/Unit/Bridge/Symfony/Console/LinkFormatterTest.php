@@ -55,7 +55,7 @@ final class LinkFormatterTest extends TestCase
 
         $result = $formatter->format('/app/src/File.php', 10, '  10');
 
-        self::assertSame('  10', $result);
+        $this->assertSame('  10', $result);
     }
 
     public function test_it_formats_href_when_terminal_supports_links(): void
@@ -64,7 +64,7 @@ final class LinkFormatterTest extends TestCase
 
         $result = $formatter->format('/app/src/File.php', 10, '  10');
 
-        self::assertSame('<href=vscode://file//app/src/File.php:10>  10</>', $result);
+        $this->assertSame('<href=vscode://file//app/src/File.php:10>  10</>', $result);
     }
 
     public function test_it_falls_back_to_plain_path_when_terminal_is_unsupported(): void
@@ -75,7 +75,7 @@ final class LinkFormatterTest extends TestCase
 
         $result = $formatter->format('/app/src/File.php', 10, '  10');
 
-        self::assertSame('src/File.php:10', $result);
+        $this->assertSame('src/File.php:10', $result);
     }
 
     public function test_it_supports_editor_aliases(): void
@@ -84,15 +84,15 @@ final class LinkFormatterTest extends TestCase
 
         $result = $formatter->format('/app/index.php', 5, '   5');
 
-        self::assertSame('<href=phpstorm://open?file=/app/index.php&line=5>   5</>', $result);
+        $this->assertSame('<href=phpstorm://open?file=/app/index.php&line=5>   5</>', $result);
     }
 
     public function test_relative_path_helper_handles_base_path(): void
     {
         $helper = new RelativePathHelper('/var/www/project');
 
-        self::assertSame('src/Example.php', $helper->getRelativePath('/var/www/project/src/Example.php'));
-        self::assertSame('/tmp/Example.php', $helper->getRelativePath('/tmp/Example.php'));
+        $this->assertSame('src/Example.php', $helper->getRelativePath('/var/www/project/src/Example.php'));
+        $this->assertSame('/tmp/Example.php', $helper->getRelativePath('/tmp/Example.php'));
     }
 
     private function getEnvValue(string $name): ?string

@@ -15,7 +15,7 @@ namespace RegexParser\Bridge\Symfony\Console;
 
 use Symfony\Component\Console\Formatter\OutputFormatter;
 
-final class LinkFormatter
+final readonly class LinkFormatter
 {
     private const IDE_LINK_FORMATS = [
         'textmate' => 'txmt://open?url=file://%f&line=%l',

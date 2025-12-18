@@ -22,11 +22,11 @@ use RegexParser\Regex;
 /**
  * Handles regex-related analysis and transformations.
  */
-final class RegexAnalysisService
+final readonly class RegexAnalysisService
 {
     public function __construct(
-        private readonly Regex $regex,
-        private readonly ?RegexPatternExtractor $extractor = null,
+        private Regex $regex,
+        private ?RegexPatternExtractor $extractor = null,
     ) {}
 
     /**

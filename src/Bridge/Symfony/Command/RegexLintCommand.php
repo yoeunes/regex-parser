@@ -33,11 +33,11 @@ final class RegexLintCommand extends Command
     private readonly LinkFormatter $linkFormatter;
 
     public function __construct(
-        private RegexAnalysisService $analysis,
+        private readonly RegexAnalysisService $analysis,
         ?string $editorUrl = null,
-        private array $paths = ['src'],
-        private array $exclude = ['vendor'],
-        private int $minSavings = 1,
+        private readonly array $paths = ['src'],
+        private readonly array $exclude = ['vendor'],
+        private readonly int $minSavings = 1,
     ) {
         $workDir = getcwd() ?: null;
         $this->pathHelper = new RelativePathHelper($workDir);
@@ -51,18 +51,19 @@ final class RegexLintCommand extends Command
         $io = new SymfonyStyle($input, $output);
 
         $this->showHeader($io);
-        
+
         $patterns = $this->scanFiles($io);
-        
+
         if (empty($patterns)) {
             $this->showNoPatternsMessage($io);
+
             return Command::SUCCESS;
         }
 
         $stats = $this->initializeStats();
-        
+
         $allResults = $this->analyzePatternsIntegrated($io, $patterns);
-        
+
         if (!empty($allResults)) {
             $this->outputIntegratedResults($io, $allResults);
             $stats = $this->updateStatsFromResults($stats, $allResults);
@@ -84,7 +85,7 @@ final class RegexLintCommand extends Command
         $patterns = $this->analysis->scan($this->paths, $this->exclude);
         $io->writeln(' <fg=green;options=bold>Done.</>');
         $io->writeln('');
-        
+
         return $patterns;
     }
 
@@ -104,7 +105,7 @@ final class RegexLintCommand extends Command
             return [];
         }
 
-        $bar = $this->createProgressBar($io, count($patterns));
+        $bar = $this->createProgressBar($io, \count($patterns));
         $bar->start();
 
         $issues = $this->analysis->lint($patterns, static fn () => $bar->advance());
@@ -119,17 +120,17 @@ final class RegexLintCommand extends Command
     private function combineResults(array $issues, array $optimizations, array $originalPatterns): array
     {
         $results = [];
-        
+
         // Create a lookup map for patterns by file and line
         $patternMap = [];
         foreach ($originalPatterns as $pattern) {
-            $key = $pattern->file . ':' . $pattern->line;
+            $key = $pattern->file.':'.$pattern->line;
             $patternMap[$key] = $pattern->pattern;
         }
-        
+
         // Group issues by file and line
         foreach ($issues as $issue) {
-            $key = $issue['file'] . ':' . $issue['line'];
+            $key = $issue['file'].':'.$issue['line'];
             if (!isset($results[$key])) {
                 $results[$key] = [
                     'file' => $issue['file'],
@@ -141,10 +142,10 @@ final class RegexLintCommand extends Command
             }
             $results[$key]['issues'][] = $issue;
         }
-        
+
         // Group optimizations by file and line
         foreach ($optimizations as $opt) {
-            $key = $opt['file'] . ':' . $opt['line'];
+            $key = $opt['file'].':'.$opt['line'];
             if (!isset($results[$key])) {
                 $results[$key] = [
                     'file' => $opt['file'],
@@ -155,13 +156,13 @@ final class RegexLintCommand extends Command
                 ];
             }
             $results[$key]['optimizations'][] = $opt;
-            
+
             // Ensure we have pattern from optimization if no issue pattern found
-            if ($results[$key]['pattern'] === null && !empty($opt['optimization']->original)) {
+            if (null === $results[$key]['pattern'] && !empty($opt['optimization']->original)) {
                 $results[$key]['pattern'] = $opt['optimization']->original;
             }
         }
-        
+
         return array_values($results);
     }
 
@@ -172,7 +173,7 @@ final class RegexLintCommand extends Command
         $bar->setProgressCharacter('');
         $bar->setBarCharacter('▓');
         $bar->setFormat('  <fg=blue>%bar%</> <fg=cyan>%percent:3s%%</>');
-        
+
         return $bar;
     }
 
@@ -186,9 +187,9 @@ final class RegexLintCommand extends Command
                     $stats['warnings']++;
                 }
             }
-            $stats['optimizations'] += count($result['optimizations']);
+            $stats['optimizations'] += \count($result['optimizations']);
         }
-        
+
         return $stats;
     }
 
@@ -230,11 +231,11 @@ final class RegexLintCommand extends Command
 
         foreach ($byFile as $file => $fileResults) {
             $this->showFileHeader($io, $file);
-            
+
             foreach ($fileResults as $result) {
                 $this->displayPatternResult($io, $result);
             }
-            
+
             $io->writeln('');
         }
     }
@@ -254,7 +255,7 @@ final class RegexLintCommand extends Command
 
         // Show regex pattern if we have it
         $pattern = $this->extractPatternForResult($result);
-        if ($pattern !== null) {
+        if (null !== $pattern) {
             try {
                 $highlighted = $this->analysis->highlight($pattern);
                 $io->writeln(\sprintf('  <fg=gray>Pattern:</> %s', $highlighted));
@@ -314,7 +315,7 @@ final class RegexLintCommand extends Command
         $letter = $isError ? 'E' : 'W';
 
         $msg = $this->formatIssueMessage($issue['message']);
-        list($firstLine, $restLines) = $this->splitMessage($msg);
+        [$firstLine, $restLines] = $this->splitMessage($msg);
 
         $io->writeln(\sprintf('  <fg=%s;options=bold>%s</>  <fg=white;options=bold>%s</>  %s  %s', $color, $letter, $lineNum, $link, $firstLine));
 
@@ -339,6 +340,7 @@ final class RegexLintCommand extends Command
     private function formatIssueMessage(string $message): string
     {
         $raw = (string) $message;
+
         return $this->cleanMessageIndentation($raw);
     }
 
@@ -346,7 +348,7 @@ final class RegexLintCommand extends Command
     {
         $lines = explode("\n", $message);
         $first = array_shift($lines);
-        
+
         return [$first, $lines];
     }
 
@@ -356,8 +358,6 @@ final class RegexLintCommand extends Command
             $io->writeln('              '.$line);
         }
     }
-
-
 
     private function cleanMessageIndentation(string $message): string
     {

@@ -20,12 +20,12 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 /**
  * Validates regex usage in Symfony validators.
  */
-final class ValidatorValidationService
+final readonly class ValidatorValidationService
 {
     public function __construct(
-        private readonly ?ValidatorRegexAnalyzer $analyzer = null,
-        private readonly ?ValidatorInterface $validator = null,
-        private readonly ?LoaderInterface $validatorLoader = null,
+        private ?ValidatorRegexAnalyzer $analyzer = null,
+        private ?ValidatorInterface $validator = null,
+        private ?LoaderInterface $validatorLoader = null,
     ) {}
 
     public function isSupported(): bool
