@@ -252,13 +252,13 @@ final class RegexLintCommand extends Command
         $lineNum = str_pad((string) $line, 4);
         $link = $this->linkFormatter->format($file, $line, '✏️', 1, '✏️');
 
-        // Show the regex pattern if we have it
+        // Show regex pattern if we have it
         $pattern = $this->extractPatternForResult($result);
         if ($pattern !== null) {
             try {
                 $highlighted = $this->analysis->highlight($pattern);
                 $io->writeln(\sprintf('  <fg=gray>Pattern:</> %s', $highlighted));
-            } catch (\Exception $e) {
+            } catch (\Exception) {
                 // If highlighting fails (e.g., invalid regex), show raw pattern
                 $io->writeln(\sprintf('  <fg=gray>Pattern:</> %s', $pattern));
             }
@@ -273,6 +273,9 @@ final class RegexLintCommand extends Command
         foreach ($result['optimizations'] as $opt) {
             $this->displayOptimization($io, $opt, $lineNum, $link);
         }
+
+        // Add spacing after this pattern result if there are more patterns in this file
+        $io->writeln('');
     }
 
     private function extractPatternForResult(array $result): ?string
