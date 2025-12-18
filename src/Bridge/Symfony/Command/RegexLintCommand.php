@@ -355,7 +355,8 @@ final class RegexLintCommand extends Command
 
         foreach ($issuesByFile as $file => $fileIssues) {
             $relFile = $this->getRelativePath($file);
-            $io->writeln("  <fg=cyan>in</> <fg=white>{$relFile}</>");
+            // File path: Cyan and Bold
+            $io->writeln("  <fg=gray>in</> <fg=cyan;options=bold>{$relFile}</>");
 
             foreach ($fileIssues as $issue) {
                 $isError = 'error' === $issue['type'];
@@ -371,9 +372,10 @@ final class RegexLintCommand extends Command
                 $lines = explode("\n", $cleanMessage);
                 $firstLine = array_shift($lines);
 
+                // Line number: White and Bold
                 $io->writeln(
                     \sprintf(
-                        '  <fg=%s;options=bold>%s</>  <fg=cyan>%s</> %s  %s',
+                        '  <fg=%s;options=bold>%s</>  <fg=white;options=bold>%s</> %s  %s',
                         $color,
                         $letter,
                         str_pad((string)$line, 4),
@@ -407,7 +409,7 @@ final class RegexLintCommand extends Command
 
             $io->writeln(
                 \sprintf(
-                    '  <fg=red;options=bold>R</>  <fg=cyan>%s</> %s  <fg=red>%s severity</> <fg=cyan>in %s</>',
+                    '  <fg=red;options=bold>R</>  <fg=white;options=bold>%s</> %s  <fg=red>%s severity</> <fg=gray>in</> <fg=cyan;options=bold>%s</>',
                     str_pad((string)$line, 4),
                     $pen,
                     $severity,
@@ -442,7 +444,7 @@ final class RegexLintCommand extends Command
 
             $io->writeln(
                 \sprintf(
-                    '  <fg=green;options=bold>O</>  <fg=cyan>%s</> %s  <fg=green>Saved %d chars</> <fg=cyan>in %s</>',
+                    '  <fg=green;options=bold>O</>  <fg=white;options=bold>%s</> %s  <fg=green>Saved %d chars</> <fg=gray>in</> <fg=cyan;options=bold>%s</>',
                     str_pad((string)$line, 4),
                     $pen,
                     $item['savings'],
@@ -480,9 +482,6 @@ final class RegexLintCommand extends Command
         $io->writeln('');
     }
 
-    /**
-     * Cleans up "Line X:" prefixes to align error context beautifully.
-     */
     private function cleanMessageIndentation(string $message): string
     {
         return preg_replace_callback(
