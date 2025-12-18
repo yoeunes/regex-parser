@@ -112,11 +112,11 @@ final class RegexPatternExtractorTest extends TestCase
         $mockExtractor = $this->createMock(ExtractorInterface::class);
         $mockExtractor->expects($this->once())
             ->method('extract')
-            ->with($this->callback(function ($files) {
-                // Should include test.php but not custom_exclude/ignored.php
-                return \is_array($files)
-                    && \in_array('test.php', array_map('basename', $files), true)
-                    && !\in_array('ignored.php', array_map('basename', $files), true);
+            ->with($this->callback(function (array $files) {
+                return is_array($files) 
+                    && isset($files[0]) 
+                    && in_array('test.php', array_map(strval(...), $files)) 
+                    && !in_array('ignored.php', array_map(strval(...), $files));
             }))
             ->willReturn([]);
 

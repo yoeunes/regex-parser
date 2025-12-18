@@ -90,9 +90,9 @@ final class ConfigurationTest extends TestCase
 
         $this->assertSame(10, $config['max_pattern_length']);
         $this->assertSame('/tmp/cache', $config['cache']);
-        $this->assertSame('my_custom_extractor', $config['extractor_service']);
-        $this->assertSame(['foo', 'bar'], $config['analysis']['ignore_patterns']);
-        $this->assertSame(1, $config['analysis']['warning_threshold']);
-        $this->assertSame(2, $config['analysis']['redos_threshold']);
+        $this->assertSame('my_custom_extractor', $config['extractor_service'] ?? 'should_not_exist');
+        $this->assertSame(['foo', 'bar'], $config['analysis']['ignore_patterns'] ?? []);
+        $this->assertSame(1, $config['analysis']['warning_threshold'] ?? 0);
+        $this->assertSame(2, $config['analysis']['redos_threshold'] ?? 'high');
     }
 }
