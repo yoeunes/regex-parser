@@ -58,8 +58,8 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set('regex_parser.service.route_validation', RouteValidationService::class)
         ->args([
+            '$analysis' => service('regex_parser.service.regex_analysis'),
             '$router' => service('router')->nullOnInvalid(),
-            '$analyzer' => service(RouteRequirementAnalyzer::class),
         ]);
 
     $services->set('regex_parser.service.validator_validation', ValidatorValidationService::class)
