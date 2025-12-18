@@ -150,6 +150,15 @@ use Symfony\Component\Console\Style\SymfonyStyle;
                     'optimizations' => [],
                 ];
             }
+
+            // Check for ignore comment on the previous line
+            $content = file_get_contents($issue['file']);
+            $lines = explode("\n", $content);
+            $prevLineIndex = $issue['line'] - 2; // 0-based index for previous line
+            if ($prevLineIndex >= 0 && isset($lines[$prevLineIndex]) && str_contains($lines[$prevLineIndex], '// @regex-lint-ignore')) {
+                continue; // Skip this issue
+            }
+
             $results[$key]['issues'][] = $issue;
         }
 
@@ -262,7 +271,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
             $this->showFileHeader($io, $file);
 
             foreach ($fileResults as $result) {
-                $this->displayPatternResult($io, $result);
+                $this->displayPatternResult($io, $result, $fix);
             }
 
             $io->writeln('');
@@ -276,7 +285,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
         $io->writeln('  <fg=gray>───</>');
     }
 
-    private function displayPatternResult(SymfonyStyle $io, array $result): void
+    private function displayPatternResult(SymfonyStyle $io, array $result, bool $fix): void
     {
         $file = $result['file'];
         $line = $result['line'];
