@@ -29,6 +29,7 @@ return static function (RectorConfig $rectorConfig): void {
     ]);
 
     $rectorConfig->skip([
+        __DIR__.'/tests/Fixtures',
         __DIR__.'/src/Lexer.php',
         __DIR__.'/tests/Fixtures/pcre_patterns.php',
         __DIR__.'/tests/Unit/Bridge/Rector/RegexOptimizationRectorTest.php',
