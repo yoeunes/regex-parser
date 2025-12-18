@@ -54,7 +54,7 @@ final class RegexLintCommandTest extends TestCase
     {
         return new RegexLintCommand(
             regexAnalysis: new RegexAnalysisService(Regex::create()),
-            editorFormat: null,
+            editorUrl: null,
             defaultPaths: $defaultPaths,
             excludePaths: $excludePaths,
         );

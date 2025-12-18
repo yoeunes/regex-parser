@@ -29,10 +29,8 @@ final class LinkFormatter
 
     private bool $supportsHyperlinks;
 
-    public function __construct(
-        private readonly ?string $editorUrlTemplate,
-        private readonly RelativePathHelper $relativePathHelper,
-    ) {
+    public function __construct(private ?string $editorUrlTemplate, private RelativePathHelper $relativePathHelper)
+    {
         $this->supportsHyperlinks = $this->detectHyperlinkSupport();
     }
 

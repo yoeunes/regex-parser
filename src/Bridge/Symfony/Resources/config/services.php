@@ -54,7 +54,7 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set('regex_parser.command.lint', RegexLintCommand::class)
         ->arg('$regexAnalysis', service('regex_parser.service.regex_analysis'))
-        ->arg('$editorFormat', param('regex_parser.editor_format'))
+        ->arg('$editorUrl', param('regex_parser.editor_format'))
         ->arg('$defaultPaths', param('regex_parser.paths'))
         ->arg('$excludePaths', param('regex_parser.exclude_paths'))
         ->tag('console.command')
