@@ -24,7 +24,7 @@ final class RegexLintCommandTest extends TestCase
     {
         $command = new RegexLintCommand(
             regex: Regex::create(),
-            editorUrl: null,
+            editorFormat: null,
             defaultPaths: ['nonexistent'],
             excludePaths: [],
             routeAnalyzer: null,
@@ -46,7 +46,7 @@ final class RegexLintCommandTest extends TestCase
     {
         $command = new RegexLintCommand(
             regex: Regex::create(),
-            editorUrl: null,
+            editorFormat: null,
             defaultPaths: [],
             excludePaths: [],
             routeAnalyzer: null,
@@ -64,7 +64,7 @@ final class RegexLintCommandTest extends TestCase
     {
         $command = new RegexLintCommand(
             regex: Regex::create(),
-            editorUrl: null,
+            editorFormat: null,
             defaultPaths: [],
             excludePaths: [],
             routeAnalyzer: null,
@@ -96,7 +96,7 @@ final class RegexLintCommandTest extends TestCase
     {
         $command = new RegexLintCommand(
             regex: Regex::create(),
-            editorUrl: null,
+            editorFormat: null,
             defaultPaths: ['nonexistent'],
             excludePaths: [],
             routeAnalyzer: null,
