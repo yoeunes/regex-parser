@@ -30,7 +30,7 @@ It brings static analysis, security auditing, and automated refactoring to PHP's
 * **Security Auditing** — Detects Catastrophic Backtracking (ReDoS) risks and vulnerabilities at analysis time.
 * **Documentation** — Automatically generates human-readable explanations, HTML visualizations, and valid sample strings.
 * **Transformation** — Manipulate the AST to optimize or refactor patterns programmatically.
-* **Integration** — First-class support for Symfony, PHPStan, Psalm, and Rector workflows.
+* **Integration** — First-class support for Symfony and PHPStan workflows.
 
 > *"Think of it as `nikic/php-parser` — but for regexes."*
 
@@ -57,8 +57,7 @@ It brings static analysis, security auditing, and automated refactoring to PHP's
 - [Framework & Tooling Integration](#framework--tooling-integration)
   - [Symfony](#symfony)
   - [PHPStan](#phpstan)
-  - [Psalm](#psalm)
-  - [Rector](#rector)
+
 - [Performance & Caching](#performance--caching)
 - [API Overview](#api-overview)
 - [Versioning & BC Policy](#versioning--bc-policy)
@@ -514,38 +513,7 @@ parameters:
   * `optimizationConfig.word` — enable `[a-zA-Z0-9_]` → `\w` optimization suggestions (default: `true`).
   * `optimizationConfig.strictRanges` — prevent merging characters from different categories (digits, letters, symbols) into single ranges for better readability (default: `true`).
 
-### Psalm
 
-* Psalm plugin uses the same RegexParser validation and ReDoS checks for `preg_*` calls (including `preg_replace_callback_array` keys).
-* Register the plugin in `psalm.xml`:
-
-```xml
-<psalm>
-  <plugins>
-    <pluginClass class="RegexParser\Bridge\Psalm\Plugin">
-      <ignoreParseErrors>true</ignoreParseErrors>
-      <reportRedos>true</reportRedos>
-      <redosThreshold>high</redosThreshold>
-      <suggestOptimizations>false</suggestOptimizations>
-    </pluginClass>
-  </plugins>
-</psalm>
-```
-
-* Options mirror the PHPStan bridge:
-
-  * `ignoreParseErrors` — skip likely partial regex strings (default: `true`).
-  * `reportRedos` — emit ReDoS issues (default: `true`).
-  * `redosThreshold` — minimum severity to report (`low`, `medium`, `high`, `critical`; default: `high`).
-  * `suggestOptimizations` — surface shorter equivalent patterns when found (default: `false`).
-
-### Rector
-
-* Rector rules can use RegexParser to:
-
-  * Replace dangerous patterns with safer equivalents.
-  * Normalize regex style across a codebase.
-  * Add inline comments explaining complex patterns.
 
 ---
 

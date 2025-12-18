@@ -22,7 +22,6 @@ parameters:
         - src/Bridge/Symfony/*
         - src/Bridge/Rector/*
         - src/Bridge/Psalm/*
-        - config/rector/*
         - tests/Benchmark/*
         - tests/Bridge/PHPStan/Fixtures/*
         - tests/Bridge/Psalm/*
