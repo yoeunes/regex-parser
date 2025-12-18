@@ -11,17 +11,19 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Bridge\Symfony\Command;
+namespace RegexParser\Bridge\Symfony\Extractor\Strategy;
+
+use RegexParser\Bridge\Symfony\Extractor\RegexPatternOccurrence;
 
 /**
- * Extracts constant regex patterns from PHP source files.
+ * Fallback strategy using token-based regex pattern extraction.
  *
  * This scanner is intentionally conservative: it only reports patterns that are
  * PHP constant strings passed directly to `preg_*` calls.
  *
  * @internal
  */
-final class RegexPatternExtractor
+final class TokenBasedExtractionStrategy implements ExtractionStrategyInterface
 {
     /**
      * @param list<string> $excludePaths
@@ -29,6 +31,7 @@ final class RegexPatternExtractor
     public function __construct(
         private readonly array $excludePaths = ['vendor'],
     ) {}
+
     private const IGNORABLE_TOKENS = [
         \T_WHITESPACE => true,
         \T_COMMENT => true,
@@ -46,11 +49,6 @@ final class RegexPatternExtractor
         'preg_replace_callback_array' => true,
     ];
 
-    /**
-     * @param list<string> $paths
-     *
-     * @return list<RegexPatternOccurrence>
-     */
     public function extract(array $paths): array
     {
         $occurrences = [];
@@ -60,6 +58,16 @@ final class RegexPatternExtractor
         }
 
         return $occurrences;
+    }
+
+    public function isAvailable(): bool
+    {
+        return true; // Token-based approach is always available
+    }
+
+    public function getPriority(): int
+    {
+        return 1; // Lowest priority, used as fallback
     }
 
     /**
@@ -175,7 +183,7 @@ final class RegexPatternExtractor
                 continue;
             }
 
-            $result = $this->extractPatternFromTokens($tokens, $argStart, $file);
+            $result = $this->extractPatternFromTokens($tokens, $argStart);
             if (null === $result) {
                 continue;
             }
@@ -358,7 +366,7 @@ final class RegexPatternExtractor
      *
      * @return array{pattern: string, line: int}|null
      */
-    private function extractPatternFromTokens(array $tokens, int $startIndex, string $file): ?array
+    private function extractPatternFromTokens(array $tokens, int $startIndex): ?array
     {
         $token = $tokens[$startIndex] ?? null;
         if (null === $token) {
@@ -426,8 +434,6 @@ final class RegexPatternExtractor
 
         return ['pattern' => implode('', $parts), 'line' => $firstLine];
     }
-
-
 
     private function decodeConstantString(string $literal): ?string
     {

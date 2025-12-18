@@ -15,6 +15,7 @@ namespace RegexParser\Bridge\Symfony\Command;
 
 use RegexParser\Bridge\Symfony\Analyzer\RouteRequirementAnalyzer;
 use RegexParser\Bridge\Symfony\Analyzer\ValidatorRegexAnalyzer;
+use RegexParser\Bridge\Symfony\Extractor\RegexPatternExtractor;
 use RegexParser\NodeVisitor\LinterNodeVisitor;
 use RegexParser\ReDoS\ReDoSSeverity;
 use RegexParser\Regex;
