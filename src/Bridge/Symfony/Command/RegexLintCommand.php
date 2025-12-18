@@ -314,12 +314,21 @@ final class RegexLintCommand extends Command
                 $column = $issue['column'] ?? 1;
                 $jumpLabel = 'line '.$issue['line'].':'.$column;
                 $jumpLink = $this->makeClickable($editorUrlTemplate, $issue['file'], $issue['line'], $jumpLabel, $column);
-                $message = (string) $issue['message'];
+                $cleanMessage = preg_replace('/^Line \d+:\s*/m', '        ', (string) $issue['message']);
+                $messageLines = explode("\n", $cleanMessage);
+                $firstMessage = array_shift($messageLines) ?? '';
 
-                $io->writeln(\sprintf('  %s %s %s', $badge, $jumpLink, $message));
+                $io->writeln(\sprintf('  %s %s %s', $badge, $jumpLink, $firstMessage));
+
+                foreach ($messageLines as $messageLine) {
+                    $messageLine = rtrim($messageLine);
+                    if ('' !== $messageLine) {
+                        $io->writeln('    ' . $messageLine);
+                    }
+                }
 
                 if (isset($issue['issueId']) && '' !== $issue['issueId']) {
-                    $io->writeln(\sprintf('    <fg=cyan>ID:</> %s', $issue['issueId']));
+                    $io->writeln(\sprintf('    🪪  %s', $issue['issueId']));
                 }
 
                 if (isset($issue['hint']) && null !== $issue['hint']) {
@@ -327,7 +336,7 @@ final class RegexLintCommand extends Command
                     foreach ($hints as $hint) {
                         $hint = trim($hint);
                         if ('' !== $hint) {
-                            $io->writeln(\sprintf('    <fg=green>Hint:</> %s', $hint));
+                            $io->writeln(\sprintf('    💡  %s', $hint));
                         }
                     }
                 }
