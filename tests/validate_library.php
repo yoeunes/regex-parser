@@ -213,4 +213,4 @@ echo "• No systematic cross-validation against PHP's PCRE engine\n";
 echo "• Tests check AST structure, not actual regex behavior\n";
 echo "• Coverage of advanced PCRE features is unclear\n";
 echo "• No proof that optimizations preserve semantics\n";
-echo "• Integration tools (PHPStan/Rector) rely on unverified parser\n";
+echo "• Integration tools (PHPStan) rely on unverified parser\n";
