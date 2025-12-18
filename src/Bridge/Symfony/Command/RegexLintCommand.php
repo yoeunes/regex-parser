@@ -13,15 +13,12 @@ declare(strict_types=1);
 
 namespace RegexParser\Bridge\Symfony\Command;
 
-use RegexParser\Bridge\Symfony\Analyzer\RouteRequirementAnalyzer;
-use RegexParser\Bridge\Symfony\Analyzer\ValidatorRegexAnalyzer;
 use RegexParser\Bridge\Symfony\Console\LinkFormatter;
 use RegexParser\Bridge\Symfony\Console\RelativePathHelper;
-use RegexParser\Bridge\Symfony\Extractor\RegexPatternExtractor;
-use RegexParser\Bridge\Symfony\Extractor\TokenBasedExtractionStrategy;
-use RegexParser\NodeVisitor\LinterNodeVisitor;
+use RegexParser\Bridge\Symfony\Service\RegexAnalysisService;
+use RegexParser\Bridge\Symfony\Service\RouteValidationService;
+use RegexParser\Bridge\Symfony\Service\ValidatorValidationService;
 use RegexParser\ReDoS\ReDoSSeverity;
-use RegexParser\Regex;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -29,9 +26,6 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
-use Symfony\Component\Routing\RouterInterface;
-use Symfony\Component\Validator\Mapping\Loader\LoaderInterface;
-use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 #[AsCommand(
     name: 'regex:lint',
@@ -47,17 +41,13 @@ final class RegexLintCommand extends Command
     private readonly LinkFormatter $linkFormatter;
 
     public function __construct(
-        private readonly Regex $regex,
+        private readonly RegexAnalysisService $regexAnalysis,
+        private readonly ?RouteValidationService $routeValidation = null,
+        private readonly ?ValidatorValidationService $validatorValidation = null,
         private readonly ?string $editorFormat = null,
         private readonly array $defaultPaths = ['src'],
         private readonly array $excludePaths = ['vendor'],
-        private readonly ?RouteRequirementAnalyzer $routeAnalyzer = null,
-        private readonly ?ValidatorRegexAnalyzer $validatorAnalyzer = null,
-        private readonly ?RouterInterface $router = null,
-        private readonly ?ValidatorInterface $validator = null,
-        private readonly ?LoaderInterface $validatorLoader = null,
         private readonly string $defaultRedosThreshold = 'high',
-        private readonly ?RegexPatternExtractor $extractor = null,
     ) {
         $workingDirectory = getcwd() ?: null;
         $this->relativePathHelper = new RelativePathHelper($workingDirectory);
@@ -136,12 +126,8 @@ final class RegexLintCommand extends Command
         $optimize = $runAll || (bool) $input->getOption('optimize');
         $validateSymfony = $runAll || (bool) $input->getOption('validate-symfony');
 
-        $extractor = $this->extractor ?? new RegexPatternExtractor(
-            new TokenBasedExtractionStrategy(),
-        );
-
         $io->write('  <fg=cyan>🔍  Scanning files...</>');
-        $patterns = $extractor->extract($paths, $this->excludePaths);
+        $patterns = $this->regexAnalysis->scan($paths, $this->excludePaths);
         $io->writeln(' <fg=green;options=bold>Done.</>');
         $io->writeln('');
 
@@ -166,46 +152,23 @@ final class RegexLintCommand extends Command
             $progressBar->setFormat('  <fg=blue>%bar%</> <fg=cyan>%percent:3s%%</>');
             $progressBar->start();
 
-            foreach ($patterns as $occurrence) {
-                $validation = $this->regex->validate($occurrence->pattern);
-                if (!$validation->isValid) {
-                    $hasErrors = true;
-                    $stats['errors']++;
-                    $lintIssues[] = [
-                        'type' => 'error',
-                        'file' => $occurrence->file,
-                        'line' => $occurrence->line,
-                        'column' => 1,
-                        'message' => $validation->error ?? 'Invalid regex.',
-                    ];
-                    $progressBar->advance();
-
-                    continue;
-                }
-
-                $ast = $this->regex->parse($occurrence->pattern);
-                $linter = new LinterNodeVisitor();
-                $ast->accept($linter);
-
-                foreach ($linter->getIssues() as $issue) {
-                    $hasWarnings = true;
-                    $stats['warnings']++;
-                    $lintIssues[] = [
-                        'type' => 'warning',
-                        'file' => $occurrence->file,
-                        'line' => $occurrence->line,
-                        'column' => 1,
-                        'issueId' => $issue->id,
-                        'message' => $issue->message,
-                        'hint' => $issue->hint,
-                    ];
-                }
-
-                $progressBar->advance();
-            }
+            $lintIssues = $this->regexAnalysis->lint(
+                $patterns,
+                static fn () => $progressBar->advance(),
+            );
 
             $progressBar->finish();
             $io->writeln(['', '']);
+        }
+
+        foreach ($lintIssues as $issue) {
+            if ('error' === $issue['type']) {
+                $hasErrors = true;
+                $stats['errors']++;
+            } else {
+                $hasWarnings = true;
+                $stats['warnings']++;
+            }
         }
 
         if (!empty($lintIssues)) {
@@ -218,25 +181,9 @@ final class RegexLintCommand extends Command
             $redosThreshold = (string) $input->getOption('redos-threshold');
             $severityThreshold = ReDoSSeverity::tryFrom(strtolower($redosThreshold)) ?? ReDoSSeverity::HIGH;
 
-            foreach ($patterns as $occurrence) {
-                $validation = $this->regex->validate($occurrence->pattern);
-                if (!$validation->isValid) {
-                    continue;
-                }
-
-                $analysis = $this->regex->analyzeReDoS($occurrence->pattern);
-                if (!$analysis->exceedsThreshold($severityThreshold)) {
-                    continue;
-                }
-
-                $hasErrors = true;
-                $stats['redos']++;
-                $redosIssues[] = [
-                    'file' => $occurrence->file,
-                    'line' => $occurrence->line,
-                    'analysis' => $analysis,
-                ];
-            }
+            $redosIssues = $this->regexAnalysis->analyzeRedos($patterns, $severityThreshold);
+            $hasErrors = $hasErrors || !empty($redosIssues);
+            $stats['redos'] += \count($redosIssues);
         }
 
         if (!empty($redosIssues)) {
@@ -251,35 +198,10 @@ final class RegexLintCommand extends Command
                 $minSavings = 0;
             }
 
-            foreach ($patterns as $occurrence) {
-                $validation = $this->regex->validate($occurrence->pattern);
-                if (!$validation->isValid) {
-                    continue;
-                }
-
-                try {
-                    $optimization = $this->regex->optimize($occurrence->pattern);
-                } catch (\Throwable) {
-                    continue;
-                }
-
-                if (!$optimization->isChanged()) {
-                    continue;
-                }
-
-                $savings = \strlen($optimization->original) - \strlen($optimization->optimized);
-                if ($savings < $minSavings) {
-                    continue;
-                }
-
+            $optimizationSuggestions = $this->regexAnalysis->suggestOptimizations($patterns, $minSavings);
+            if (!empty($optimizationSuggestions)) {
                 $hasSuggestions = true;
-                $stats['optimizations']++;
-                $optimizationSuggestions[] = [
-                    'file' => $occurrence->file,
-                    'line' => $occurrence->line,
-                    'optimization' => $optimization,
-                    'savings' => $savings,
-                ];
+                $stats['optimizations'] += \count($optimizationSuggestions);
             }
         }
 
@@ -290,19 +212,19 @@ final class RegexLintCommand extends Command
         // 4. Symfony Validation
         $validationIssues = [];
         if ($validateSymfony) {
-            if (null !== $this->routeAnalyzer && null !== $this->router) {
+            if ($this->routeValidation?->isSupported()) {
                 $validationIssues = array_merge(
                     $validationIssues,
-                    $this->routeAnalyzer->analyze($this->router->getRouteCollection()),
+                    $this->routeValidation->analyze(),
                 );
             } else {
                 $io->writeln('  <fg=yellow>No router service was found; skipping Symfony route validation.</>');
             }
 
-            if (null !== $this->validatorAnalyzer && null !== $this->validator && null !== $this->validatorLoader) {
+            if ($this->validatorValidation?->isSupported()) {
                 $validationIssues = array_merge(
                     $validationIssues,
-                    $this->validatorAnalyzer->analyze($this->validator, $this->validatorLoader),
+                    $this->validatorValidation->analyze(),
                 );
             } else {
                 $io->writeln('  <fg=yellow>No validator service was found; skipping Symfony validator checks.</>');
@@ -375,7 +297,8 @@ final class RegexLintCommand extends Command
                 $color = $isError ? 'red' : 'yellow';
                 $letter = $isError ? 'E' : 'W';
                 $line = $issue['line'];
-                $clickableLine = $this->linkFormatter->format($file, $line, str_pad((string) $line, 4));
+                $lineLabel = str_pad((string) $line, 4);
+                $penLink = $this->linkFormatter->format($file, $line, '✏️', 1, '✏️');
 
                 // Process message to remove "Line 1:" and align
                 $messageRaw = (string) $issue['message'];
@@ -387,10 +310,11 @@ final class RegexLintCommand extends Command
                 // Line number: White and Bold
                 $io->writeln(
                     \sprintf(
-                        '  <fg=%s;options=bold>%s</>  <fg=white;options=bold>%s</>  %s',
+                        '  <fg=%s;options=bold>%s</>  <fg=white;options=bold>%s</>  %s  %s',
                         $color,
                         $letter,
-                        $clickableLine,
+                        $lineLabel,
+                        $penLink,
                         $firstLine,
                     ),
                 );
@@ -416,19 +340,21 @@ final class RegexLintCommand extends Command
             $relFile = $this->linkFormatter->getRelativePath($issue['file']);
             $line = $issue['line'];
             $severity = strtoupper($issue['analysis']->severity->value);
-            $clickableLine = $this->linkFormatter->format($issue['file'], $line, str_pad((string) $line, 4));
+            $lineLabel = str_pad((string) $line, 4);
+            $penLink = $this->linkFormatter->format($issue['file'], $line, '✏️', 1, '✏️');
 
             $io->writeln(
                 \sprintf(
-                    '  <fg=red;options=bold>R</>  <fg=white;options=bold>%s</>  <fg=red>%s severity</> <fg=gray>in</> <fg=cyan;options=bold>%s</>',
-                    $clickableLine,
+                    '  <fg=red;options=bold>R</>  <fg=white;options=bold>%s</>  %s  <fg=red>%s severity</> <fg=gray>in</> <fg=cyan;options=bold>%s</>',
+                    $lineLabel,
+                    $penLink,
                     $severity,
                     $relFile,
                 ),
             );
 
             if ($issue['analysis']->trigger) {
-                $trigger = $this->regex->highlightCli($issue['analysis']->trigger);
+                $trigger = $this->regexAnalysis->highlight($issue['analysis']->trigger);
                 $io->writeln(\sprintf('         <fg=cyan>Trigger:</> %s', $trigger));
             }
 
@@ -449,19 +375,21 @@ final class RegexLintCommand extends Command
         foreach ($suggestions as $item) {
             $relFile = $this->linkFormatter->getRelativePath($item['file']);
             $line = $item['line'];
-            $clickableLine = $this->linkFormatter->format($item['file'], $line, str_pad((string) $line, 4));
+            $lineLabel = str_pad((string) $line, 4);
+            $penLink = $this->linkFormatter->format($item['file'], $line, '✏️', 1, '✏️');
 
             $io->writeln(
                 \sprintf(
-                    '  <fg=green;options=bold>O</>  <fg=white;options=bold>%s</>  <fg=green>Saved %d chars</> <fg=gray>in</> <fg=cyan;options=bold>%s</>',
-                    $clickableLine,
+                    '  <fg=green;options=bold>O</>  <fg=white;options=bold>%s</>  %s  <fg=green>Saved %d chars</> <fg=gray>in</> <fg=cyan;options=bold>%s</>',
+                    $lineLabel,
+                    $penLink,
                     $item['savings'],
                     $relFile,
                 ),
             );
 
-            $original = $this->regex->highlightCli($item['optimization']->original);
-            $optimized = $this->regex->highlightCli($item['optimization']->optimized);
+            $original = $this->regexAnalysis->highlight($item['optimization']->original);
+            $optimized = $this->regexAnalysis->highlight($item['optimization']->optimized);
 
             $io->writeln(\sprintf('         <fg=red>-</> %s', $original));
             $io->writeln(\sprintf('         <fg=green>+</> %s', $optimized));

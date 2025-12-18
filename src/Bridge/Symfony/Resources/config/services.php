@@ -17,6 +17,9 @@ use RegexParser\Bridge\Symfony\Analyzer\RouteRequirementAnalyzer;
 use RegexParser\Bridge\Symfony\Analyzer\ValidatorRegexAnalyzer;
 use RegexParser\Bridge\Symfony\Command\RegexLintCommand;
 use RegexParser\Bridge\Symfony\Extractor\RegexPatternExtractor;
+use RegexParser\Bridge\Symfony\Service\RegexAnalysisService;
+use RegexParser\Bridge\Symfony\Service\RouteValidationService;
+use RegexParser\Bridge\Symfony\Service\ValidatorValidationService;
 use RegexParser\Regex;
 use Symfony\Component\Routing\RouterInterface;
 use Symfony\Component\Validator\Mapping\Loader\LoaderInterface;
@@ -64,18 +67,27 @@ return static function (ContainerConfigurator $container): void {
             '$extractor' => service('regex_parser.extractor.instance')->nullOnInvalid(),
         ]);
 
-    $services->set('regex_parser.command.lint', RegexLintCommand::class)
+    $services->set('regex_parser.service.regex_analysis', RegexAnalysisService::class)
         ->arg('$regex', service('regex_parser.regex'))
+        ->arg('$extractor', service('regex_parser.extractor')->nullOnInvalid());
+
+    $services->set('regex_parser.service.route_validation', RouteValidationService::class)
+        ->arg('$analyzer', service(RouteRequirementAnalyzer::class))
+        ->arg('$router', service(RouterInterface::class)->nullOnInvalid());
+
+    $services->set('regex_parser.service.validator_validation', ValidatorValidationService::class)
+        ->arg('$analyzer', service(ValidatorRegexAnalyzer::class))
+        ->arg('$validator', service(ValidatorInterface::class)->nullOnInvalid())
+        ->arg('$validatorLoader', service(LoaderInterface::class)->nullOnInvalid());
+
+    $services->set('regex_parser.command.lint', RegexLintCommand::class)
+        ->arg('$regexAnalysis', service('regex_parser.service.regex_analysis'))
+        ->arg('$routeValidation', service('regex_parser.service.route_validation')->nullOnInvalid())
+        ->arg('$validatorValidation', service('regex_parser.service.validator_validation')->nullOnInvalid())
         ->arg('$editorFormat', param('regex_parser.editor_format'))
         ->arg('$defaultPaths', param('regex_parser.paths'))
         ->arg('$excludePaths', param('regex_parser.exclude_paths'))
-        ->arg('$routeAnalyzer', service(RouteRequirementAnalyzer::class))
-        ->arg('$validatorAnalyzer', service(ValidatorRegexAnalyzer::class))
-        ->arg('$router', service(RouterInterface::class)->nullOnInvalid())
-        ->arg('$validator', service(ValidatorInterface::class)->nullOnInvalid())
-        ->arg('$validatorLoader', service(LoaderInterface::class)->nullOnInvalid())
         ->arg('$defaultRedosThreshold', param('regex_parser.redos.threshold'))
-        ->arg('$extractor', service('regex_parser.extractor')->nullOnInvalid())
         ->tag('console.command')
         ->public();
 };

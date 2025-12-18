@@ -39,7 +39,7 @@ final class LinkFormatter
         $this->supportsHyperlinks = $this->detectHyperlinkSupport();
     }
 
-    public function format(string $file, ?int $line, string $label, int $column = 1): string
+    public function format(string $file, ?int $line, string $label, int $column = 1, ?string $fallbackLabel = null): string
     {
         if (null === $line) {
             return $label;
@@ -51,6 +51,10 @@ final class LinkFormatter
         }
 
         if (!$this->supportsHyperlinks) {
+            if (null !== $fallbackLabel) {
+                return $fallbackLabel;
+            }
+
             return $this->relativePathHelper->getRelativePath($file).':'.$line;
         }
 
