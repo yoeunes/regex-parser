@@ -102,8 +102,6 @@ final class TokenBasedExtractionStrategyTest extends TestCase
         rmdir($tempDir);
     }
 
-
-
     public function test_respects_exclude_paths(): void
     {
         $strategy = new TokenBasedExtractionStrategy();
@@ -112,7 +110,7 @@ final class TokenBasedExtractionStrategyTest extends TestCase
         // This responsibility moved to RegexPatternExtractor
         $tempDir = sys_get_temp_dir().'/test_'.uniqid();
         mkdir($tempDir);
-        
+
         file_put_contents($tempDir.'/file.php', '<?php preg_match("/test/", $subject);');
 
         $result = $strategy->extract([$tempDir.'/file.php']);
@@ -128,7 +126,7 @@ final class TokenBasedExtractionStrategyTest extends TestCase
     public function test_handles_array_syntax_in_callback_array(): void
     {
         $strategy = new TokenBasedExtractionStrategy();
-        
+
         $tempDir = sys_get_temp_dir().'/test_'.uniqid();
         mkdir($tempDir);
         $tempFile = $tempDir.'/test.php';
