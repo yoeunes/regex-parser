@@ -66,7 +66,7 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set('regex_parser.command.lint', RegexLintCommand::class)
         ->arg('$regex', service('regex_parser.regex'))
-        ->arg('$editorUrl', param('regex_parser.editor_url'))
+        ->arg('$editorFormat', param('regex_parser.editor_format'))
         ->arg('$defaultPaths', param('regex_parser.paths'))
         ->arg('$excludePaths', param('regex_parser.exclude_paths'))
         ->arg('$routeAnalyzer', service(RouteRequirementAnalyzer::class))

@@ -27,6 +27,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Symfony\Component\ErrorHandler\ErrorRenderer\FileLinkFormatter;
 use Symfony\Component\Routing\RouterInterface;
 use Symfony\Component\Validator\Mapping\Loader\LoaderInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
@@ -38,11 +39,14 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 final class RegexLintCommand extends Command
 {
     protected static ?string $defaultName = 'regex:lint';
+
     protected static ?string $defaultDescription = 'Lints, validates, optimizes, and analyzes ReDoS risk for constant preg_* patterns found in PHP files.';
+
+    private ?FileLinkFormatter $formatter = null;
 
     public function __construct(
         private readonly Regex $regex,
-        private readonly ?string $editorUrl = null,
+        private readonly ?string $editorFormat = null,
         private readonly array $defaultPaths = ['src'],
         private readonly array $excludePaths = ['vendor'],
         private readonly ?RouteRequirementAnalyzer $routeAnalyzer = null,
@@ -63,13 +67,13 @@ final class RegexLintCommand extends Command
             ->addArgument(
                 'paths',
                 InputArgument::IS_ARRAY,
-                'Files/directories to scan (defaults to current directory).'
+                'Files/directories to scan (defaults to current directory).',
             )
             ->addOption(
                 'fail-on-warnings',
                 null,
                 InputOption::VALUE_NONE,
-                'Exit with a non-zero code when warnings are found.'
+                'Exit with a non-zero code when warnings are found.',
             )
             ->addOption('analyze-redos', null, InputOption::VALUE_NONE, 'Analyze patterns for ReDoS risk.')
             ->addOption(
@@ -77,7 +81,7 @@ final class RegexLintCommand extends Command
                 null,
                 InputOption::VALUE_REQUIRED,
                 'Minimum ReDoS severity to report (safe|low|medium|high|critical).',
-                $this->defaultRedosThreshold
+                $this->defaultRedosThreshold,
             )
             ->addOption('optimize', null, InputOption::VALUE_NONE, 'Suggest safe optimizations for patterns.')
             ->addOption(
@@ -85,25 +89,25 @@ final class RegexLintCommand extends Command
                 null,
                 InputOption::VALUE_REQUIRED,
                 'Minimum character savings to report for optimizations.',
-                1
+                1,
             )
             ->addOption(
                 'validate-symfony',
                 null,
                 InputOption::VALUE_NONE,
-                'Validate regex usage in Symfony routes and validators.'
+                'Validate regex usage in Symfony routes and validators.',
             )
             ->addOption(
                 'fail-on-suggestions',
                 null,
                 InputOption::VALUE_NONE,
-                'Exit with a non-zero code when optimization suggestions are found.'
+                'Exit with a non-zero code when optimization suggestions are found.',
             )
             ->addOption(
                 'all',
                 null,
                 InputOption::VALUE_NONE,
-                'Run all analyses (lint, ReDoS, optimization, and Symfony validation).'
+                'Run all analyses (lint, ReDoS, optimization, and Symfony validation).',
             );
     }
 
@@ -122,12 +126,12 @@ final class RegexLintCommand extends Command
             $paths = $this->defaultPaths;
         }
 
-        $runAll = (bool)$input->getOption('all');
-        $analyzeRedos = $runAll || (bool)$input->getOption('analyze-redos');
-        $optimize = $runAll || (bool)$input->getOption('optimize');
-        $validateSymfony = $runAll || (bool)$input->getOption('validate-symfony');
+        $runAll = (bool) $input->getOption('all');
+        $analyzeRedos = $runAll || (bool) $input->getOption('analyze-redos');
+        $optimize = $runAll || (bool) $input->getOption('optimize');
+        $validateSymfony = $runAll || (bool) $input->getOption('validate-symfony');
 
-        $editorUrlTemplate = $this->editorUrl;
+        $editorUrlTemplate = $this->editorFormat;
 
         $extractor = $this->extractor ?? new RegexPatternExtractor(
             new TokenBasedExtractionStrategy(),
@@ -152,7 +156,7 @@ final class RegexLintCommand extends Command
         // 1. Basic Linting
         $lintIssues = [];
         if (!empty($patterns)) {
-            $progressBar = $io->createProgressBar(count($patterns));
+            $progressBar = $io->createProgressBar(\count($patterns));
             $progressBar->setEmptyBarCharacter('░');
             $progressBar->setProgressCharacter('');
             $progressBar->setBarCharacter('▓');
@@ -165,13 +169,14 @@ final class RegexLintCommand extends Command
                     $hasErrors = true;
                     $stats['errors']++;
                     $lintIssues[] = [
-                        'type'    => 'error',
-                        'file'    => $occurrence->file,
-                        'line'    => $occurrence->line,
-                        'column'  => 1,
+                        'type' => 'error',
+                        'file' => $occurrence->file,
+                        'line' => $occurrence->line,
+                        'column' => 1,
                         'message' => $validation->error ?? 'Invalid regex.',
                     ];
                     $progressBar->advance();
+
                     continue;
                 }
 
@@ -183,13 +188,13 @@ final class RegexLintCommand extends Command
                     $hasWarnings = true;
                     $stats['warnings']++;
                     $lintIssues[] = [
-                        'type'    => 'warning',
-                        'file'    => $occurrence->file,
-                        'line'    => $occurrence->line,
-                        'column'  => 1,
+                        'type' => 'warning',
+                        'file' => $occurrence->file,
+                        'line' => $occurrence->line,
+                        'column' => 1,
                         'issueId' => $issue->id,
                         'message' => $issue->message,
-                        'hint'    => $issue->hint,
+                        'hint' => $issue->hint,
                     ];
                 }
 
@@ -207,7 +212,7 @@ final class RegexLintCommand extends Command
         // 2. ReDoS Analysis
         $redosIssues = [];
         if ($analyzeRedos && !empty($patterns)) {
-            $redosThreshold = (string)$input->getOption('redos-threshold');
+            $redosThreshold = (string) $input->getOption('redos-threshold');
             $severityThreshold = ReDoSSeverity::tryFrom(strtolower($redosThreshold)) ?? ReDoSSeverity::HIGH;
 
             foreach ($patterns as $occurrence) {
@@ -224,8 +229,8 @@ final class RegexLintCommand extends Command
                 $hasErrors = true;
                 $stats['redos']++;
                 $redosIssues[] = [
-                    'file'     => $occurrence->file,
-                    'line'     => $occurrence->line,
+                    'file' => $occurrence->file,
+                    'line' => $occurrence->line,
                     'analysis' => $analysis,
                 ];
             }
@@ -238,7 +243,7 @@ final class RegexLintCommand extends Command
         // 3. Optimizations
         $optimizationSuggestions = [];
         if ($optimize && !empty($patterns)) {
-            $minSavings = (int)$input->getOption('min-savings');
+            $minSavings = (int) $input->getOption('min-savings');
             if ($minSavings < 0) {
                 $minSavings = 0;
             }
@@ -267,10 +272,10 @@ final class RegexLintCommand extends Command
                 $hasSuggestions = true;
                 $stats['optimizations']++;
                 $optimizationSuggestions[] = [
-                    'file'         => $occurrence->file,
-                    'line'         => $occurrence->line,
+                    'file' => $occurrence->file,
+                    'line' => $occurrence->line,
                     'optimization' => $optimization,
-                    'savings'      => $savings,
+                    'savings' => $savings,
                 ];
             }
         }
@@ -285,14 +290,14 @@ final class RegexLintCommand extends Command
             if (null !== $this->routeAnalyzer && null !== $this->router) {
                 $validationIssues = array_merge(
                     $validationIssues,
-                    $this->routeAnalyzer->analyze($this->router->getRouteCollection())
+                    $this->routeAnalyzer->analyze($this->router->getRouteCollection()),
                 );
             }
 
             if (null !== $this->validatorAnalyzer && null !== $this->validator && null !== $this->validatorLoader) {
                 $validationIssues = array_merge(
                     $validationIssues,
-                    $this->validatorAnalyzer->analyze($this->validator, $this->validatorLoader)
+                    $this->validatorAnalyzer->analyze($this->validator, $this->validatorLoader),
                 );
             }
         }
@@ -302,8 +307,8 @@ final class RegexLintCommand extends Command
         }
 
         // Final Status
-        $allHasErrors = $hasErrors || !empty(array_filter($validationIssues, fn($i) => $i->isError));
-        $allHasWarnings = $hasWarnings || !empty(array_filter($validationIssues, fn($i) => !$i->isError));
+        $allHasErrors = $hasErrors || !empty(array_filter($validationIssues, fn ($i) => $i->isError));
+        $allHasWarnings = $hasWarnings || !empty(array_filter($validationIssues, fn ($i) => !$i->isError));
 
         if (!$allHasErrors && !$allHasWarnings && !$hasSuggestions) {
             $io->block('No issues found. Your regex patterns are clean.', 'PASS', 'fg=black;bg=green', ' ', true);
@@ -311,8 +316,8 @@ final class RegexLintCommand extends Command
             return Command::SUCCESS;
         }
 
-        $failOnWarnings = (bool)$input->getOption('fail-on-warnings');
-        $failOnSuggestions = (bool)$input->getOption('fail-on-suggestions');
+        $failOnWarnings = (bool) $input->getOption('fail-on-warnings');
+        $failOnSuggestions = (bool) $input->getOption('fail-on-suggestions');
         $failed = $allHasErrors || ($failOnWarnings && $allHasWarnings) || ($failOnSuggestions && $hasSuggestions);
 
         if ($failed) {
@@ -322,8 +327,8 @@ final class RegexLintCommand extends Command
                     '  <bg=red;fg=white;options=bold> FAIL </><fg=red;options=bold> %d errors</><fg=gray>, %d warnings, %d suggestions.</>',
                     $stats['errors'] + $stats['redos'],
                     $stats['warnings'],
-                    $stats['optimizations']
-                )
+                    $stats['optimizations'],
+                ),
             );
             $io->newLine();
 
@@ -335,8 +340,8 @@ final class RegexLintCommand extends Command
             \sprintf(
                 '  <bg=yellow;fg=black;options=bold> WARN </><fg=yellow;options=bold> %d warnings</><fg=gray>, %d suggestions.</>',
                 $stats['warnings'],
-                $stats['optimizations']
-            )
+                $stats['optimizations'],
+            ),
         );
         $io->newLine();
 
@@ -363,10 +368,10 @@ final class RegexLintCommand extends Command
                 $color = $isError ? 'red' : 'yellow';
                 $letter = $isError ? 'E' : 'W';
                 $line = $issue['line'];
-                $clickableLine = $this->makeClickable($editorUrlTemplate, $file, $line, str_pad((string)$line, 4));
+                $clickableLine = $this->makeClickable($editorUrlTemplate, $file, $line, str_pad((string) $line, 4));
 
                 // Process message to remove "Line 1:" and align
-                $messageRaw = (string)$issue['message'];
+                $messageRaw = (string) $issue['message'];
                 $cleanMessage = $this->cleanMessageIndentation($messageRaw);
 
                 $lines = explode("\n", $cleanMessage);
@@ -379,8 +384,8 @@ final class RegexLintCommand extends Command
                         $color,
                         $letter,
                         $clickableLine,
-                        $firstLine
-                    )
+                        $firstLine,
+                    ),
                 );
 
                 foreach ($lines as $msgLine) {
@@ -404,15 +409,15 @@ final class RegexLintCommand extends Command
             $relFile = $this->getRelativePath($issue['file']);
             $line = $issue['line'];
             $severity = strtoupper($issue['analysis']->severity->value);
-            $clickableLine = $this->makeClickable($editorUrlTemplate, $issue['file'], $line, str_pad((string)$line, 4));
+            $clickableLine = $this->makeClickable($editorUrlTemplate, $issue['file'], $line, str_pad((string) $line, 4));
 
             $io->writeln(
                 \sprintf(
                     '  <fg=red;options=bold>R</>  <fg=white;options=bold>%s</>  <fg=red>%s severity</> <fg=gray>in</> <fg=cyan;options=bold>%s</>',
                     $clickableLine,
                     $severity,
-                    $relFile
-                )
+                    $relFile,
+                ),
             );
 
             if ($issue['analysis']->trigger) {
@@ -438,15 +443,15 @@ final class RegexLintCommand extends Command
         foreach ($suggestions as $item) {
             $relFile = $this->getRelativePath($item['file']);
             $line = $item['line'];
-            $clickableLine = $this->makeClickable($editorUrlTemplate, $item['file'], $line, str_pad((string)$line, 4));
+            $clickableLine = $this->makeClickable($editorUrlTemplate, $item['file'], $line, str_pad((string) $line, 4));
 
             $io->writeln(
                 \sprintf(
                     '  <fg=green;options=bold>O</>  <fg=white;options=bold>%s</>  <fg=green>Saved %d chars</> <fg=gray>in</> <fg=cyan;options=bold>%s</>',
                     $clickableLine,
                     $item['savings'],
-                    $relFile
-                )
+                    $relFile,
+                ),
             );
 
             $original = $this->regex->highlightCli($item['optimization']->original);
@@ -472,8 +477,8 @@ final class RegexLintCommand extends Command
                     '  <fg=%s;options=bold>%s</>  %s',
                     $color,
                     $letter,
-                    $issue->message
-                )
+                    $issue->message,
+                ),
             );
         }
         $io->writeln('');
@@ -483,8 +488,8 @@ final class RegexLintCommand extends Command
     {
         return preg_replace_callback(
             '/^Line \d+:/m',
-            fn($matches) => str_repeat(' ', \strlen($matches[0])),
-            $message
+            fn ($matches) => str_repeat(' ', \strlen($matches[0])),
+            $message,
         );
     }
 
@@ -495,8 +500,57 @@ final class RegexLintCommand extends Command
         string $text,
         int $column = 1
     ): string {
-        // Hyperlinks are causing display issues in some terminals, so disabled for now
+        if ($editorUrlTemplate) {
+            if (!$this->formatter) {
+                $this->formatter = new FileLinkFormatter($editorUrlTemplate);
+            }
+
+            $link = $this->formatter->format($file, $line);
+            if ($link && $this->supportsHyperlinks()) {
+                // Use OSC 8 hyperlink escape sequence
+                return "\033]8;;{$link}\033\\{$text}\033]8;;\033\\";
+            }
+
+            // Fallback: show the file path with line number if hyperlink not supported
+            $relFile = $this->getRelativePath($file);
+
+            return "{$relFile}:{$line}";
+        }
+
         return $text;
+    }
+
+    private function supportsHyperlinks(): bool
+    {
+        // Check if terminal supports hyperlinks via environment variables
+        $termProgram = getenv('TERM_PROGRAM');
+        $term = getenv('TERM');
+
+        // Known terminals that support OSC 8 hyperlinks
+        $supportedTerminals = [
+            'iTerm.app',
+            'Apple_Terminal',
+            'vscode',
+            'Hyper',
+            'WindowsTerminal',
+            'Alacritty',
+            'Tabby',
+            'rio',
+            'WezTerm',
+            'mintty',
+        ];
+
+        // Check TERM_PROGRAM first (most reliable)
+        if ($termProgram && \in_array($termProgram, $supportedTerminals, true)) {
+            return true;
+        }
+
+        // Check for some common TERM values that might support hyperlinks
+        if ($term && (str_contains($term, 'xterm') || str_contains($term, 'screen'))) {
+            return true;
+        }
+
+        return false;
     }
 
     private function getRelativePath(string $path): string

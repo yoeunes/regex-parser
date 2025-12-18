@@ -31,14 +31,23 @@ use Symfony\Component\HttpKernel\DependencyInjection\Extension;
  */
 final class RegexParserExtension extends Extension
 {
-    private const EDITOR_URL_PRESETS = [
-        'code' => 'vscode://file/%%file%%:%%line%%:%%column%%',
-        'vscode' => 'vscode://file/%%file%%:%%line%%:%%column%%',
-        'phpstorm' => 'phpstorm://open?file=%%file%%&line=%%line%%&column=%%column%%',
-        'storm' => 'phpstorm://open?file=%%file%%&line=%%line%%&column=%%column%%',
-        'idea' => 'phpstorm://open?file=%%file%%&line=%%line%%&column=%%column%%',
-        'sublime' => 'subl://open?url=file://%%file%%&line=%%line%%&column=%%column%%',
-        'subl' => 'subl://open?url=file://%%file%%&line=%%line%%&column=%%column%%',
+    private const IDE_LINK_FORMATS = [
+        'atom' => 'atom://core/open/file?filename=%f&line=%l',
+        'code' => 'vscode://file/%f:%l',
+        'emacs' => 'emacs://open?url=file://%f&line=%l',
+        'espresso' => 'espresso://open?filepath=%f&lines=%l',
+        'idea' => 'idea://open?file=%f&line=%l',
+        'macvim' => 'mvim://open?url=file://%f&line=%l',
+        'netbeans' => 'netbeans://open/?f=%f:%l',
+        'phpstorm' => 'phpstorm://open?file=%f&line=%l',
+        'storm' => 'phpstorm://open?file=%f&line=%l',
+        'sublime' => 'subl://open?url=file://%f&line=%l',
+        'subl' => 'subl://open?url=file://%f&line=%l',
+        'textmate' => 'txmt://open?url=file://%f&line=%l',
+        'vim' => 'vim://open?url=file://%f&line=%l',
+        'vscode' => 'vscode://file/%f:%l',
+        'vscode-insiders' => 'vscode-insiders://file/%f:%l',
+        'xdebug' => 'xdebug://debug?file=%f&line=%l',
     ];
 
     /**
@@ -71,7 +80,7 @@ final class RegexParserExtension extends Extension
          *     },
          *     paths: array<int, string>,
          *     exclude_paths: array<int, string>,
-         *     editor: string|null,
+         *     ide: string|null,
          *     editor_url: string|null,
          * } $config
          */
@@ -82,21 +91,7 @@ final class RegexParserExtension extends Extension
             ...$config['redos']['ignored_patterns'],
         ]));
 
-        // Resolve editor URL with fallbacks
-        $editorUrl = $config['editor_url'];
-
-        if (null === $editorUrl && null !== $config['editor']) {
-            $editorUrl = self::EDITOR_URL_PRESETS[$config['editor']] ?? null;
-        }
-
-        // Fallback to framework.ide if regex_parser.editor_url is not set
-        if (null === $editorUrl && $container->hasParameter('framework.ide')) {
-            $ide = $container->getParameter('framework.ide');
-            if (null !== $ide && '' !== $ide) {
-                // Convert Symfony format (%%f%%, %%l%%) to our format (%%file%%, %%line%%)
-                $editorUrl = str_replace(['%%f%%', '%%l%%'], ['%%file%%', '%%line%%'], $ide);
-            }
-        }
+        $editorFormat = $this->resolveEditorFormat($config, $container);
 
         // Set parameters
         $container->setParameter('regex_parser.max_pattern_length', $config['max_pattern_length']);
@@ -112,7 +107,7 @@ final class RegexParserExtension extends Extension
         $container->setParameter('regex_parser.analysis.ignore_patterns', $ignoredPatterns);
         $container->setParameter('regex_parser.paths', $config['paths']);
         $container->setParameter('regex_parser.exclude_paths', $config['exclude_paths']);
-        $container->setParameter('regex_parser.editor_url', $editorUrl);
+        $container->setParameter('regex_parser.editor_format', $editorFormat);
 
         $container->setDefinition('regex_parser.cache', $this->buildCacheDefinition($config));
 
@@ -182,6 +177,30 @@ final class RegexParserExtension extends Extension
 
         // Fallback to token-based extractor
         return new Definition(TokenBasedExtractionStrategy::class);
+    }
+
+    /**
+     * Resolve the editor format from config and container parameters.
+     *
+     * @param array{
+     *     ide: string|null,
+     *     editor_url: string|null,
+     * } $config
+     */
+    private function resolveEditorFormat(array $config, ContainerBuilder $container): ?string
+    {
+        $editorFormat = $config['editor_url'];
+
+        if (null === $editorFormat && null !== $config['ide'] && '' !== $config['ide']) {
+            $editorFormat = $config['ide'];
+        }
+
+        // Fallback to framework.ide if regex_parser.editor_url is not set
+        if (null === $editorFormat && $container->hasParameter('framework.ide')) {
+            $editorFormat = $container->getParameter('framework.ide');
+        }
+
+        return $editorFormat;
     }
 
     /**
