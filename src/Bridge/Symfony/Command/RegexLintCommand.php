@@ -274,8 +274,6 @@ final class RegexLintCommand extends Command
             $issuesByFile[$relativeFile][] = $issue;
         }
 
-        $this->renderSectionTitle($io, 'Lint Review', '🧪', 'cyan');
-
         foreach ($issuesByFile as $file => $fileIssues) {
             $io->writeln(\sprintf(
                 '• <options=bold>%s</> <fg=gray>(%d %s)</>',
@@ -310,19 +308,19 @@ final class RegexLintCommand extends Command
             ));
 
             if (null !== $issue['analysis']->trigger) {
-                $io->writeln('    ↳ Trigger: '.$issue['analysis']->trigger);
+                $io->writeln('    Trigger: '.$issue['analysis']->trigger);
             }
 
             if (null !== $issue['analysis']->confidence) {
-                $io->writeln('    ↳ Confidence: '.$issue['analysis']->confidence->value);
+                $io->writeln('    Confidence: '.$issue['analysis']->confidence->value);
             }
 
             if (null !== $issue['analysis']->falsePositiveRisk) {
-                $io->writeln('    ↳ False positive risk: '.$issue['analysis']->falsePositiveRisk);
+                $io->writeln('    False positive risk: '.$issue['analysis']->falsePositiveRisk);
             }
 
             foreach ($issue['analysis']->recommendations as $recommendation) {
-                $io->writeln('    ↳ '.$recommendation);
+                $io->writeln('    '.$recommendation);
             }
         }
         $io->writeln('');
@@ -340,8 +338,8 @@ final class RegexLintCommand extends Command
                 $jumpLink,
                 $suggestion['savings'],
             ));
-            $io->writeln('    ↳ <fg=gray>from</> '.$suggestion['optimization']->original);
-            $io->writeln('    ↳ <fg=green>to</>   '.$suggestion['optimization']->optimized);
+            $io->writeln('    <fg=gray>from</> '.$suggestion['optimization']->original);
+            $io->writeln('    <fg=green>to</>   '.$suggestion['optimization']->optimized);
         }
         $io->writeln('');
     }
@@ -410,8 +408,8 @@ final class RegexLintCommand extends Command
         $color = 'error' === $issue['type'] ? 'red' : 'yellow';
         $badge = $this->badge($issue['type'], $color);
         $column = $issue['column'] ?? 1;
-        $fileRef = $this->getRelativePath($issue['file']).':'.$issue['line'].':'.$column;
-        $jumpLink = $this->makeClickable($editorUrlTemplate, $issue['file'], $issue['line'], $fileRef, $column);
+        $jumpLabel = 'line '.$issue['line'].':'.$column;
+        $jumpLink = $this->makeClickable($editorUrlTemplate, $issue['file'], $issue['line'], $jumpLabel, $column);
         $messageLines = explode("\n", (string) $issue['message']);
         $firstMessage = array_shift($messageLines) ?? '';
 
@@ -427,7 +425,7 @@ final class RegexLintCommand extends Command
             if ('' === $messageLine) {
                 continue;
             }
-            $lines[] = '      ↳ '.$messageLine;
+            $lines[] = '      '.$messageLine;
         }
 
         if ('warning' === $issue['type'] && isset($issue['issueId'])) {
