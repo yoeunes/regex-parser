@@ -175,17 +175,12 @@ final class RegexPatternExtractor
                 continue;
             }
 
-            $argToken = $tokens[$argStart];
-            if (!\is_array($argToken) || \T_CONSTANT_ENCAPSED_STRING !== $argToken[0]) {
+            $result = $this->extractPatternFromTokens($tokens, $argStart, $file);
+            if (null === $result) {
                 continue;
             }
 
-            $pattern = $this->decodeConstantString($argToken[1]);
-            if (null === $pattern || '' === $pattern) {
-                continue;
-            }
-
-            $occurrences[] = new RegexPatternOccurrence($pattern, $file, (int) $argToken[2], $source);
+            $occurrences[] = new RegexPatternOccurrence($result['pattern'], $file, $result['line'], $source);
         }
 
         return $occurrences;
@@ -357,6 +352,82 @@ final class RegexPatternExtractor
 
         return null;
     }
+
+    /**
+     * @param array<int, array{0: int, 1: string, 2: int}|string> $tokens
+     *
+     * @return array{pattern: string, line: int}|null
+     */
+    private function extractPatternFromTokens(array $tokens, int $startIndex, string $file): ?array
+    {
+        $token = $tokens[$startIndex] ?? null;
+        if (null === $token) {
+            return null;
+        }
+
+        if (\is_array($token) && \T_CONSTANT_ENCAPSED_STRING === $token[0]) {
+            $pattern = $this->decodeConstantString($token[1]);
+            if (null === $pattern || '' === $pattern) {
+                return null;
+            }
+            return ['pattern' => $pattern, 'line' => $token[2]];
+        }
+
+        // Try to extract from concatenation of constant strings
+        return $this->extractConcatenatedPattern($tokens, $startIndex);
+    }
+
+    /**
+     * @param array<int, array{0: int, 1: string, 2: int}|string> $tokens
+     *
+     * @return array{pattern: string, line: int}|null
+     */
+    private function extractConcatenatedPattern(array $tokens, int $startIndex): ?array
+    {
+        $parts = [];
+        $index = $startIndex;
+        $count = \count($tokens);
+        $firstLine = null;
+
+        while ($index < $count) {
+            $token = $tokens[$index];
+
+            if (\is_array($token)) {
+                if (\T_CONSTANT_ENCAPSED_STRING === $token[0]) {
+                    $part = $this->decodeConstantString($token[1]);
+                    if (null === $part) {
+                        return null;
+                    }
+                    $parts[] = $part;
+                    if (null === $firstLine) {
+                        $firstLine = $token[2];
+                    }
+                } else {
+                    // Not a constant string, stop
+                    break;
+                }
+            } elseif ('.' === $token) {
+                // Concatenation operator
+            } else {
+                // Other token, stop
+                break;
+            }
+
+            $next = $this->nextMeaningfulTokenIndex($tokens, $index + 1);
+            if (null === $next) {
+                break;
+            }
+            $index = $next;
+        }
+
+        if (\count($parts) < 2 || null === $firstLine) {
+            return null;
+        }
+
+        return ['pattern' => implode('', $parts), 'line' => $firstLine];
+    }
+
+
 
     private function decodeConstantString(string $literal): ?string
     {
