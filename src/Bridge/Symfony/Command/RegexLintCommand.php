@@ -522,29 +522,29 @@ final class RegexLintCommand extends Command
 
     private function supportsHyperlinks(): bool
     {
-        // Check if terminal supports hyperlinks via environment variables
-        $termProgram = getenv('TERM_PROGRAM');
+        // Use Symfony's approach: most modern terminals handle OSC 8 hyperlinks gracefully
+        // (they simply ignore unknown escape sequences), so we only exclude known problematic terminals
+        // instead of trying to whitelist all supporting terminals.
+        //
+        // This matches the approach used by Symfony's CliDumper for file links.
 
-        // Known terminals that support OSC 8 hyperlinks
-        $supportedTerminals = [
-            'iTerm.app',
-            'Apple_Terminal',
-            'vscode',
-            'Hyper',
-            'WindowsTerminal',
-            'Alacritty',
-            'Tabby',
-            'rio',
-            'WezTerm',
-            'mintty',
-        ];
-
-        // Check TERM_PROGRAM only (most reliable way to detect hyperlink support)
-        if ($termProgram && \in_array($termProgram, $supportedTerminals, true)) {
-            return true;
+        // JetBrains-JediTerm (old JetBrains terminal emulator) doesn't handle OSC 8 well
+        if ('JetBrains-JediTerm' === getenv('TERMINAL_EMULATOR')) {
+            return false;
         }
 
-        return false;
+        // Old Konsole versions don't handle OSC 8 well
+        $konsoleVersion = getenv('KONSOLE_VERSION');
+        if ($konsoleVersion && (int) $konsoleVersion <= 201100) {
+            return false;
+        }
+
+        // Running inside IntelliJ/PHPStorm IDE terminal may not handle OSC 8 well
+        if (isset($_SERVER['IDEA_INITIAL_DIRECTORY'])) {
+            return false;
+        }
+
+        return true;
     }
 
     private function getRelativePath(string $path): string
