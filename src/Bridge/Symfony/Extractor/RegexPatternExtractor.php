@@ -13,10 +13,6 @@ declare(strict_types=1);
 
 namespace RegexParser\Bridge\Symfony\Extractor;
 
-use RegexParser\Bridge\Symfony\Extractor\Strategy\ExtractionStrategyInterface;
-use RegexParser\Bridge\Symfony\Extractor\Strategy\PhpStanExtractionStrategy;
-use RegexParser\Bridge\Symfony\Extractor\Strategy\TokenBasedExtractionStrategy;
-
 /**
  * Extracts constant regex patterns from PHP source files using best available strategy.
  *

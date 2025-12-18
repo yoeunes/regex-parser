@@ -14,10 +14,10 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Unit\Bridge\Symfony\Extractor;
 
 use PHPUnit\Framework\TestCase;
+use RegexParser\Bridge\Symfony\Extractor\ExtractionStrategyInterface;
+use RegexParser\Bridge\Symfony\Extractor\PhpStanExtractionStrategy;
 use RegexParser\Bridge\Symfony\Extractor\RegexPatternExtractor;
-use RegexParser\Bridge\Symfony\Extractor\Strategy\ExtractionStrategyInterface;
-use RegexParser\Bridge\Symfony\Extractor\Strategy\PhpStanExtractionStrategy;
-use RegexParser\Bridge\Symfony\Extractor\Strategy\TokenBasedExtractionStrategy;
+use RegexParser\Bridge\Symfony\Extractor\TokenBasedExtractionStrategy;
 
 final class RegexPatternExtractorTest extends TestCase
 {

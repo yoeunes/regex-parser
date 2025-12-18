@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Unit\Bridge\Symfony\Extractor\Strategy;
 
 use PHPUnit\Framework\TestCase;
-use RegexParser\Bridge\Symfony\Extractor\Strategy\TokenBasedExtractionStrategy;
+use RegexParser\Bridge\Symfony\Extractor\TokenBasedExtractionStrategy;
 
 final class TokenBasedExtractionStrategyTest extends TestCase
 {
@@ -46,7 +46,7 @@ final class TokenBasedExtractionStrategyTest extends TestCase
         $tempDir = sys_get_temp_dir().'/test_'.uniqid();
         mkdir($tempDir);
         $tempFile = $tempDir.'/test.php';
-        file_put_contents($tempFile, '<?php 
+        file_put_contents($tempFile, '<?php
             preg_match("/test/", $subject);
             preg_replace("/old/", "new", $text);
             preg_split("/\\\\s+/", $text);
@@ -88,7 +88,7 @@ final class TokenBasedExtractionStrategyTest extends TestCase
         $tempDir = sys_get_temp_dir().'/test_'.uniqid();
         mkdir($tempDir);
         $tempFile = $tempDir.'/test.php';
-        file_put_contents($tempFile, '<?php 
+        file_put_contents($tempFile, '<?php
             $pattern = "/test/";
             preg_match($pattern, $subject);
         ');
@@ -108,7 +108,7 @@ final class TokenBasedExtractionStrategyTest extends TestCase
         $tempDir = sys_get_temp_dir().'/test_'.uniqid();
         mkdir($tempDir);
         $tempFile = $tempDir.'/test.php';
-        file_put_contents($tempFile, '<?php 
+        file_put_contents($tempFile, '<?php
             $obj->preg_match("/test/", $subject);
             MyClass::preg_match("/test/", $subject);
         ');
@@ -151,7 +151,7 @@ final class TokenBasedExtractionStrategyTest extends TestCase
         $tempDir = sys_get_temp_dir().'/test_'.uniqid();
         mkdir($tempDir);
         $tempFile = $tempDir.'/test.php';
-        file_put_contents($tempFile, '<?php 
+        file_put_contents($tempFile, '<?php
             preg_replace_callback_array([
                 "/pattern1/" => "callback1",
                 "/pattern2/" => "callback2",

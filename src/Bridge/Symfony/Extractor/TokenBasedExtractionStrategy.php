@@ -11,9 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Bridge\Symfony\Extractor\Strategy;
-
-use RegexParser\Bridge\Symfony\Extractor\RegexPatternOccurrence;
+namespace RegexParser\Bridge\Symfony\Extractor;
 
 /**
  * Fallback strategy using token-based regex pattern extraction.
