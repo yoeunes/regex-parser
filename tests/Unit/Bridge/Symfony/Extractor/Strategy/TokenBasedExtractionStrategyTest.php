@@ -49,7 +49,7 @@ final class TokenBasedExtractionStrategyTest extends TestCase
         file_put_contents($tempFile, '<?php 
             preg_match("/test/", $subject);
             preg_replace("/old/", "new", $text);
-            preg_split("/\s+/", $text);
+            preg_split("/\\\\s+/", $text);
         ');
         
         $result = $strategy->extract([$tempFile]);

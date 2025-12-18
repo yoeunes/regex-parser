@@ -378,6 +378,13 @@ final class TokenBasedExtractionStrategy implements ExtractionStrategyInterface
             if (null === $pattern || '' === $pattern) {
                 return null;
             }
+            
+            // Check if next meaningful token is concatenation - if so, extract full pattern
+            $nextIndex = $this->nextMeaningfulTokenIndex($tokens, $startIndex + 1);
+            if ($nextIndex !== null && isset($tokens[$nextIndex]) && '.' === $tokens[$nextIndex]) {
+                return $this->extractConcatenatedPattern($tokens, $startIndex);
+            }
+            
             return ['pattern' => $pattern, 'line' => $token[2]];
         }
 
