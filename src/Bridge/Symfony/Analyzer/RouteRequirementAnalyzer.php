@@ -78,7 +78,7 @@ final readonly class RouteRequirementAnalyzer
 
                 $result = $this->regex->validate($normalizedPattern);
 
-                $id = $file ? $file . ' (Route: ' . $name . ')' : 'Route: ' . $name;
+                $id = $file ? $file.' (Route: '.$name.')' : 'Route: '.$name;
 
                 if ($isTrivial) {
                     if (!$result->isValid) {
@@ -246,6 +246,7 @@ final readonly class RouteRequirementAnalyzer
         }
 
         $reflection = new \ReflectionClass($class);
+
         return $reflection->getFileName();
     }
 

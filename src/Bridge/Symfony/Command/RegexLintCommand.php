@@ -176,11 +176,13 @@ final class RegexLintCommand extends Command
                     'original' => $opt['optimization']->original,
                     'optimized' => $opt['optimization']->optimized,
                 ];
+
                 return $opt;
             }, $result['optimizations']);
+
             return $result;
         }, $results);
-        $output->write(json_encode($sanitized, JSON_PRETTY_PRINT));
+        $output->write(json_encode($sanitized, \JSON_PRETTY_PRINT));
     }
 
     private function determineJsonExitCode(array $results, bool $failOnWarnings): int
@@ -202,6 +204,7 @@ final class RegexLintCommand extends Command
         if ($failOnWarnings && $warnings > 0) {
             return Command::FAILURE;
         }
+
         return Command::SUCCESS;
     }
 
@@ -253,23 +256,23 @@ final class RegexLintCommand extends Command
             $file = $category;
             $location = null;
 
-            if ($id && str_contains($id, ' (Route: ')) {
-                [$filePart, $routePart] = explode(' (Route: ', $id, 2);
+            if ($id && str_contains((string) $id, ' (Route: ')) {
+                [$filePart, $routePart] = explode(' (Route: ', (string) $id, 2);
                 $file = $filePart;
-                $location = 'Route: ' . rtrim($routePart, ')');
+                $location = 'Route: '.rtrim($routePart, ')');
             } elseif ($id) {
                 $location = $id;
             }
 
             // Fallback parsing if not provided
-            if (null === $pattern && preg_match('/pattern: ([^)]+)/', $message, $matches)) {
+            if (null === $pattern && preg_match('/pattern: ([^)]+)/', (string) $message, $matches)) {
                 $pattern = trim($matches[1], '#');
-                $message = preg_replace('/ \(pattern: [^)]+\)/', '', $message);
+                $message = preg_replace('/ \(pattern: [^)]+\)/', '', (string) $message);
             }
 
-            if (null === $location && preg_match('/Route "([^"]+)"/', $message, $matches)) {
-                $location = 'Route: ' . $matches[1];
-                $message = preg_replace('/Route "[^"]+" /', '', $message);
+            if (null === $location && preg_match('/Route "([^"]+)"/', (string) $message, $matches)) {
+                $location = 'Route: '.$matches[1];
+                $message = preg_replace('/Route "[^"]+" /', '', (string) $message);
             }
 
             $results[] = [
@@ -288,6 +291,7 @@ final class RegexLintCommand extends Command
                 'optimizations' => [],
             ];
         }
+
         return $results;
     }
 

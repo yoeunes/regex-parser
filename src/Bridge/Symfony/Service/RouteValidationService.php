@@ -15,6 +15,7 @@ namespace RegexParser\Bridge\Symfony\Service;
 
 use RegexParser\Bridge\Symfony\Analyzer\AnalysisIssue;
 use RegexParser\Bridge\Symfony\Extractor\RegexPatternOccurrence;
+use Symfony\Component\Routing\Route;
 use Symfony\Component\Routing\RouterInterface;
 
 /**
@@ -54,7 +55,7 @@ final readonly class RouteValidationService
                     continue;
                 }
 
-                $key = $file . ' (Route: ' . $name . ')';
+                $key = $file.' (Route: '.$name.')';
                 $normalized = $this->normalizePattern($pattern);
                 $patterns[] = new RegexPatternOccurrence($normalized, $key, 1, $normalized);
                 $patternMap[$key] = ['route' => $name, 'param' => $parameter, 'pattern' => $pattern, 'file' => $file];
@@ -74,12 +75,12 @@ final readonly class RouteValidationService
                 if (str_contains($issue['message'], 'ReDoS') || str_contains($issue['message'], 'Nested quantifiers')) {
                     continue;
                 }
-                $id = $data['file'] ? $data['file'] . ' (Route: ' . $data['route'] . ')' : 'Route: ' . $data['route'];
+                $id = $data['file'] ? $data['file'].' (Route: '.$data['route'].')' : 'Route: '.$data['route'];
                 $analysisIssues[] = new AnalysisIssue(
                     $issue['message'],
-                    $issue['type'] === 'error',
+                    'error' === $issue['type'],
                     $data['pattern'],
-                    $id
+                    $id,
                 );
             }
         }
@@ -105,7 +106,7 @@ final readonly class RouteValidationService
         return $delimiter.'^'.$body.'$'.$delimiter;
     }
 
-    private function getRouteFile(\Symfony\Component\Routing\Route $route): ?string
+    private function getRouteFile(Route $route): ?string
     {
         $controller = $route->getDefault('_controller');
         if (!\is_string($controller)) {
@@ -124,6 +125,7 @@ final readonly class RouteValidationService
         }
 
         $reflection = new \ReflectionClass($class);
+
         return $reflection->getFileName();
     }
 }
