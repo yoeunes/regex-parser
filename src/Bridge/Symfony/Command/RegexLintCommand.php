@@ -273,11 +273,11 @@ final class RegexLintCommand extends Command
         }
 
         foreach ($issuesByFile as $file => $fileIssues) {
-            $io->section($file);
+            $io->writeln('<comment>'.$file.'</comment>');
             foreach ($fileIssues as $issue) {
                 $clickableIcon = $this->makeClickable($editorUrlTemplate, $issue['file'], $issue['line'], '✏️');
-                $tag = 'error' === $issue['type'] ? '<error>[error]</error>' : '<comment>[lint]</comment>';
-                $messageColor = 'error' === $issue['type'] ? '<error>%s</error>' : '<comment>%s</comment>';
+                $tag = 'error' === $issue['type'] ? '<fg=red>[error]</fg=red>' : '<comment>[lint]</comment>';
+                $messageColor = 'error' === $issue['type'] ? '<fg=red>%s</fg=red>' : '<comment>%s</comment>';
                 $io->writeln(\sprintf('  <info>%d</info> %s %s '. $messageColor, $issue['line'], $clickableIcon, $tag, $issue['message']));
 
                 if ('warning' === $issue['type'] && isset($issue['issueId'])) {
@@ -294,6 +294,7 @@ final class RegexLintCommand extends Command
                     }
                 }
             }
+            $io->writeln('');
         }
     }
 
