@@ -51,6 +51,7 @@ final class RegexLintCommand extends Command
     #[\Override]
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        $io = new SymfonyStyle($input, $output);
 
         /** @var list<string> $paths */
         $paths = $input->getArgument('paths');
@@ -104,14 +105,34 @@ final class RegexLintCommand extends Command
             }
         }
 
-        // Output issues with improved formatting
+        // Simple grouped output with hints
+        $issuesByFile = [];
         foreach ($issues as $issue) {
-            $this->outputIssue($output, $issue, $editorUrlTemplate);
+            $relativeFile = $this->getRelativePath($issue['file']);
+            $issuesByFile[$relativeFile][] = $issue;
         }
-        
-        // Add final newline for better spacing
-        if (!empty($issues)) {
-            $output->writeln('');
+
+        foreach ($issuesByFile as $file => $fileIssues) {
+            $io->writeln('<comment>' . $file . '</comment>');
+            foreach ($fileIssues as $issue) {
+                $clickableIcon = $this->makeClickable($editorUrlTemplate, $issue['file'], $issue['line'], '✏️');
+                $io->writeln(\sprintf('  <info>%d</info>: %s %s', $issue['line'], $issue['message'], $clickableIcon));
+
+                if ('warning' === $issue['type'] && isset($issue['issueId'])) {
+                    $io->writeln(\sprintf('         🪪  %s', $issue['issueId']));
+                }
+
+                if (isset($issue['hint']) && null !== $issue['hint']) {
+                    $hints = explode("\n", $issue['hint']);
+                    foreach ($hints as $hint) {
+                        $hint = trim($hint);
+                        if ('' !== $hint) {
+                            $io->writeln('         💡  ' . $hint);
+                        }
+                    }
+                }
+            }
+            $io->writeln('');
         }
 
         if (!$hasErrors && !$hasWarnings) {
@@ -129,42 +150,18 @@ final class RegexLintCommand extends Command
         return ($hasErrors || ($failOnWarnings && $hasWarnings)) ? Command::FAILURE : Command::SUCCESS;
     }
 
-    /**
-     * @param array{type: string, file: string, line: int, message: string, issueId?: string, hint?: string|null} $issue
-     */
-    private function outputIssue(OutputInterface $output, array $issue, ?string $editorUrlTemplate): void
+    private function makeClickable(?string $editorUrlTemplate, string $file, int $line, string $text): string
     {
-        $relativeFile = $this->getRelativePath($issue['file']);
-        
-        // Create clickable link if editor URL template is provided
-        $fileOutput = $relativeFile;
-        if ($editorUrlTemplate) {
-            $editorUrl = str_replace(['%%file%%', '%%line%%'], [$issue['file'], $issue['line']], $editorUrlTemplate);
-            $fileOutput = "\033]8;;" . $editorUrl . "\033\\" . $relativeFile . "\033]8;;\033\\";
+        if (!$editorUrlTemplate) {
+            return $text;
         }
 
-        // Calculate separator length based on file path (without ANSI codes)
-        $displayLength = strlen($relativeFile) + 4;
-        $separator = str_repeat('-', $displayLength);
+        $editorUrl = str_replace(['%%file%%', '%%line%%'], [$file, $line], $editorUrlTemplate);
 
-        // PHPStan-style output using raw write for clickable links
-        $output->writeln('');
-        $output->writeln(' ------ ' . $separator);
-        $output->write(\sprintf('  Line   %s', $fileOutput) . "\n");
-        $output->writeln(' ------ ' . $separator);
-        $output->writeln(\sprintf('  %d     %s', $issue['line'], $issue['message']));
-        
-        if ('warning' === $issue['type'] && isset($issue['issueId'])) {
-            $output->writeln(\sprintf('         🪪  %s', $issue['issueId']));
-        }
-        
-        if (isset($issue['hint']) && null !== $issue['hint']) {
-            $output->writeln('         💡  ' . $issue['hint']);
-        }
-        
-        $output->writeln(\sprintf('         ✏️  %s:%d', $relativeFile, $issue['line']));
-        $output->writeln(' ------ ' . $separator);
+        return "\033]8;;" . $editorUrl . "\033\\" . $text . "\033]8;;\033\\";
     }
+
+
 
     private function getRelativePath(string $path): string
     {
@@ -179,6 +176,4 @@ final class RegexLintCommand extends Command
 
         return $path;
     }
-
-    
 }
