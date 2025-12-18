@@ -69,6 +69,9 @@ final class RegexLintCommand extends Command
             $issues = $this->analysis->lint($patterns);
             $optimizations = $this->analysis->suggestOptimizations($patterns, $this->minSavings);
             $results = $this->combineResults($issues, $optimizations, $patterns);
+            if ($fix) {
+                $this->applyFixes($results);
+            }
             $this->outputJsonResults($results, $output);
 
             return $this->determineJsonExitCode($results, $failOnWarnings);
@@ -89,6 +92,10 @@ final class RegexLintCommand extends Command
         $stats = $this->initializeStats();
 
         $allResults = $this->analyzePatternsIntegrated($io, $patterns);
+
+        if ($fix) {
+            $this->applyFixes($allResults);
+        }
 
         if (!empty($allResults)) {
             $this->outputIntegratedResults($io, $allResults, $fix);
@@ -136,7 +143,17 @@ final class RegexLintCommand extends Command
 
     private function outputJsonResults(array $results, OutputInterface $output): void
     {
-        $output->write(json_encode($results, \JSON_PRETTY_PRINT));
+        $sanitized = array_map(function ($result) {
+            $result['optimizations'] = array_map(function ($opt) {
+                $opt['optimization'] = [
+                    'original' => $opt['optimization']->original,
+                    'optimized' => $opt['optimization']->optimized,
+                ];
+                return $opt;
+            }, $result['optimizations']);
+            return $result;
+        }, $results);
+        $output->write(json_encode($sanitized, JSON_PRETTY_PRINT));
     }
 
     private function determineJsonExitCode(array $results, bool $failOnWarnings): int
@@ -158,8 +175,44 @@ final class RegexLintCommand extends Command
         if ($failOnWarnings && $warnings > 0) {
             return Command::FAILURE;
         }
-
         return Command::SUCCESS;
+    }
+
+    private function applyFixes(array $results): int
+    {
+        $fixesByFile = [];
+        foreach ($results as $result) {
+            foreach ($result['optimizations'] as $opt) {
+                $file = $opt['file'];
+                $line = $opt['line'];
+                $original = $opt['optimization']->original;
+                $optimized = $opt['optimization']->optimized;
+                if (!isset($fixesByFile[$file])) {
+                    $fixesByFile[$file] = [];
+                }
+                $fixesByFile[$file][] = [
+                    'line' => $line,
+                    'original' => $original,
+                    'optimized' => $optimized,
+                ];
+            }
+        }
+
+        $fixedFiles = 0;
+        foreach ($fixesByFile as $file => $fixes) {
+            $content = file_get_contents($file);
+            $lines = explode("\n", $content);
+            foreach ($fixes as $fix) {
+                $lineIndex = $fix['line'] - 1;
+                if (isset($lines[$lineIndex])) {
+                    $lines[$lineIndex] = str_replace($fix['original'], $fix['optimized'], $lines[$lineIndex]);
+                }
+            }
+            file_put_contents($file, implode("\n", $lines));
+            $fixedFiles++;
+        }
+
+        return $fixedFiles;
     }
 
     private function initializeStats(): array
@@ -431,11 +484,6 @@ final class RegexLintCommand extends Command
     private function displayOptimization(SymfonyStyle $io, array $opt, string $lineNum, string $link, bool $fix): void
     {
         if ($fix) {
-            $content = file_get_contents($opt['file']);
-            $lines = explode("\n", $content);
-            $lines[$opt['line'] - 1] = str_replace($opt['optimization']->original, $opt['optimization']->optimized, $lines[$opt['line'] - 1]);
-            file_put_contents($opt['file'], implode("\n", $lines));
-
             $io->writeln(\sprintf('  <fg=green;options=bold>0</>  <fg=white;options=bold>%s</>  %s  <fg=green>✅ Fixed</>', $lineNum, $link));
         } else {
             $io->writeln(\sprintf('  <fg=green;options=bold>0</>  <fg=white;options=bold>%s</>  %s  <fg=green>%d chars saved</>', $lineNum, $link, $opt['savings']));
