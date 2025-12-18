@@ -247,6 +247,35 @@ final class RegexLintCommand extends Command
             $this->outputValidationIssues($io, $validationIssues);
         }
 
+        // Summary
+        $totalLintErrors = count(array_filter($lintIssues, fn ($i) => 'error' === $i['type']));
+        $totalLintWarnings = count(array_filter($lintIssues, fn ($i) => 'warning' === $i['type']));
+        $totalRedos = count($redosIssues);
+        $totalOptimizations = count($optimizationSuggestions);
+        $totalValidationErrors = count(array_filter($validationIssues, fn ($i) => $i->isError));
+        $totalValidationWarnings = count(array_filter($validationIssues, fn ($i) => !$i->isError));
+
+        $hasAnyIssues = $totalLintErrors + $totalLintWarnings + $totalRedos + $totalOptimizations + $totalValidationErrors + $totalValidationWarnings > 0;
+        if ($hasAnyIssues) {
+            $summaryParts = [];
+            if ($totalLintErrors > 0) {
+                $summaryParts[] = \sprintf('<fg=red>%d errors</>', $totalLintErrors);
+            }
+            if ($totalLintWarnings > 0) {
+                $summaryParts[] = \sprintf('<fg=yellow>%d warnings</>', $totalLintWarnings);
+            }
+            if ($totalRedos > 0) {
+                $summaryParts[] = \sprintf('<fg=red>%d ReDoS risks</>', $totalRedos);
+            }
+            if ($totalOptimizations > 0) {
+                $summaryParts[] = \sprintf('<fg=green>%d optimizations</>', $totalOptimizations);
+            }
+            if ($totalValidationErrors + $totalValidationWarnings > 0) {
+                $summaryParts[] = \sprintf('<fg=blue>%d validation issues</>', $totalValidationErrors + $totalValidationWarnings);
+            }
+            $io->info('Summary: ' . implode(', ', $summaryParts));
+        }
+
         $allHasErrors = $hasErrors || !empty(array_filter($validationIssues, fn ($i) => $i->isError));
         $allHasWarnings = $hasWarnings || !empty(array_filter($validationIssues, fn ($i) => !$i->isError));
 
@@ -274,17 +303,33 @@ final class RegexLintCommand extends Command
             $issuesByFile[$relativeFile][] = $issue;
         }
 
+        $this->renderSectionTitle($io, 'Lint Issues', '🔍', 'cyan');
+
         foreach ($issuesByFile as $file => $fileIssues) {
-            $io->writeln(\sprintf(
-                '• <options=bold>%s</> <fg=gray>(%d %s)</>',
-                $file,
-                \count($fileIssues),
-                1 === \count($fileIssues) ? 'issue' : 'issues',
-            ));
+            $io->writeln(\sprintf('<options=bold>%s</> <fg=gray>(%d %s)</>', $file, \count($fileIssues), 1 === \count($fileIssues) ? 'issue' : 'issues'));
 
             foreach ($fileIssues as $issue) {
-                foreach ($this->formatLintLines($issue, $editorUrlTemplate) as $line) {
-                    $io->writeln($line);
+                $color = 'error' === $issue['type'] ? 'red' : 'yellow';
+                $badge = $this->badge($issue['type'], $color);
+                $column = $issue['column'] ?? 1;
+                $jumpLabel = 'line '.$issue['line'].':'.$column;
+                $jumpLink = $this->makeClickable($editorUrlTemplate, $issue['file'], $issue['line'], $jumpLabel, $column);
+                $message = (string) $issue['message'];
+
+                $io->writeln(\sprintf('  %s %s %s', $badge, $jumpLink, $message));
+
+                if (isset($issue['issueId']) && '' !== $issue['issueId']) {
+                    $io->writeln(\sprintf('    <fg=cyan>ID:</> %s', $issue['issueId']));
+                }
+
+                if (isset($issue['hint']) && null !== $issue['hint']) {
+                    $hints = explode("\n", $issue['hint']);
+                    foreach ($hints as $hint) {
+                        $hint = trim($hint);
+                        if ('' !== $hint) {
+                            $io->writeln(\sprintf('    <fg=green>Hint:</> %s', $hint));
+                        }
+                    }
                 }
             }
 
@@ -399,49 +444,5 @@ final class RegexLintCommand extends Command
         return \sprintf('<fg=%s;options=bold>[%s]</>', $color, strtoupper($label));
     }
 
-    /**
-     * Format a lint issue into multiple pretty lines, preserving multi-line messages.
-     */
-    private function formatLintLines(array $issue, ?string $editorUrlTemplate): array
-    {
-        $lines = [];
-        $color = 'error' === $issue['type'] ? 'red' : 'yellow';
-        $badge = $this->badge($issue['type'], $color);
-        $column = $issue['column'] ?? 1;
-        $jumpLabel = 'line '.$issue['line'].':'.$column;
-        $jumpLink = $this->makeClickable($editorUrlTemplate, $issue['file'], $issue['line'], $jumpLabel, $column);
-        $messageLines = explode("\n", (string) $issue['message']);
-        $firstMessage = array_shift($messageLines) ?? '';
 
-        $lines[] = \sprintf(
-            '    ◦ %s %s <fg=white>%s</>',
-            $badge,
-            $jumpLink,
-            rtrim($firstMessage),
-        );
-
-        foreach ($messageLines as $messageLine) {
-            $messageLine = rtrim($messageLine, "\r\n");
-            if ('' === $messageLine) {
-                continue;
-            }
-            $lines[] = '      '.$messageLine;
-        }
-
-        if ('warning' === $issue['type'] && isset($issue['issueId'])) {
-            $lines[] = '      🪪  '.$issue['issueId'];
-        }
-
-        if (isset($issue['hint']) && null !== $issue['hint']) {
-            $hints = explode("\n", $issue['hint']);
-            foreach ($hints as $hint) {
-                $hint = rtrim($hint, "\r\n");
-                if ('' !== trim($hint)) {
-                    $lines[] = '      💡  '.trim($hint);
-                }
-            }
-        }
-
-        return $lines;
-    }
 }
