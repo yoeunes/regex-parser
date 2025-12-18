@@ -17,10 +17,7 @@ use Psr\Log\LoggerInterface;
 use RegexParser\Bridge\Symfony\Analyzer\RouteRequirementAnalyzer;
 use RegexParser\Bridge\Symfony\Analyzer\ValidatorRegexAnalyzer;
 use RegexParser\Bridge\Symfony\CacheWarmer\RegexParserCacheWarmer;
-use RegexParser\Bridge\Symfony\Command\RegexAnalyzeRedosCommand;
 use RegexParser\Bridge\Symfony\Command\RegexLintCommand;
-use RegexParser\Bridge\Symfony\Command\RegexOptimizeCommand;
-use RegexParser\Bridge\Symfony\Command\RegexParserValidateCommand;
 use RegexParser\Regex;
 use Symfony\Component\Routing\RouterInterface;
 use Symfony\Component\Validator\Mapping\Loader\LoaderInterface;
@@ -71,31 +68,16 @@ return static function (ContainerConfigurator $container): void {
         ->arg('$validatorLoader', service(LoaderInterface::class)->nullOnInvalid())
         ->tag('kernel.cache_warmer');
 
-    $services->set('regex_parser.command.validate', RegexParserValidateCommand::class)
-        ->arg('$analyzer', service(RouteRequirementAnalyzer::class))
-        ->arg('$router', service(RouterInterface::class)->nullOnInvalid())
-        ->arg('$validatorAnalyzer', service(ValidatorRegexAnalyzer::class))
-        ->arg('$validator', service(ValidatorInterface::class)->nullOnInvalid())
-        ->arg('$validatorLoader', service(LoaderInterface::class)->nullOnInvalid())
-        ->tag('console.command')
-        ->public();
-
     $services->set('regex_parser.command.lint', RegexLintCommand::class)
         ->arg('$regex', service('regex_parser.regex'))
         ->arg('$editorUrl', param('regex_parser.editor_url'))
         ->arg('$defaultPaths', param('regex_parser.paths'))
         ->arg('$excludePaths', param('regex_parser.exclude_paths'))
-        ->tag('console.command')
-        ->public();
-
-    $services->set('regex_parser.command.analyze_redos', RegexAnalyzeRedosCommand::class)
-        ->arg('$regex', service('regex_parser.regex'))
-        ->arg('$defaultThreshold', param('regex_parser.redos.threshold'))
-        ->tag('console.command')
-        ->public();
-
-    $services->set('regex_parser.command.optimize', RegexOptimizeCommand::class)
-        ->arg('$regex', service('regex_parser.regex'))
+        ->arg('$routeAnalyzer', service(RouteRequirementAnalyzer::class))
+        ->arg('$validatorAnalyzer', service(ValidatorRegexAnalyzer::class))
+        ->arg('$router', service(RouterInterface::class)->nullOnInvalid())
+        ->arg('$validator', service(ValidatorInterface::class)->nullOnInvalid())
+        ->arg('$validatorLoader', service(LoaderInterface::class)->nullOnInvalid())
         ->tag('console.command')
         ->public();
 };

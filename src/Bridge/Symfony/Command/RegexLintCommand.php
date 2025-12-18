@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace RegexParser\Bridge\Symfony\Command;
 
+use RegexParser\Bridge\Symfony\Analyzer\RouteRequirementAnalyzer;
+use RegexParser\Bridge\Symfony\Analyzer\ValidatorRegexAnalyzer;
 use RegexParser\NodeVisitor\LinterNodeVisitor;
 use RegexParser\Regex;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -22,6 +24,9 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Symfony\Component\Routing\RouterInterface;
+use Symfony\Component\Validator\Mapping\Loader\LoaderInterface;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 #[AsCommand(
     name: 'regex:lint',
@@ -38,6 +43,11 @@ final class RegexLintCommand extends Command
         private readonly ?string $editorUrl = null,
         private readonly array $defaultPaths = ['src'],
         private readonly array $excludePaths = ['vendor'],
+        private readonly ?RouteRequirementAnalyzer $routeAnalyzer = null,
+        private readonly ?ValidatorRegexAnalyzer $validatorAnalyzer = null,
+        private readonly ?RouterInterface $router = null,
+        private readonly ?ValidatorInterface $validator = null,
+        private readonly ?LoaderInterface $validatorLoader = null,
     ) {
         parent::__construct();
     }
@@ -107,7 +117,7 @@ final class RegexLintCommand extends Command
             }
         }
 
-        // Simple grouped output with hints
+        // Output linting issues
         $issuesByFile = [];
         foreach ($issues as $issue) {
             $relativeFile = $this->getRelativePath($issue['file']);
@@ -118,7 +128,7 @@ final class RegexLintCommand extends Command
             $io->writeln('<comment>' . $file . '</comment>');
             foreach ($fileIssues as $issue) {
                 $clickableIcon = $this->makeClickable($editorUrlTemplate, $issue['file'], $issue['line'], '✏️');
-                $io->writeln(\sprintf('  <info>%d</info>: %s %s', $issue['line'], $issue['message'], $clickableIcon));
+                $io->writeln(\sprintf('  <info>%d</info>: [lint] %s %s', $issue['line'], $issue['message'], $clickableIcon));
 
                 if ('warning' === $issue['type'] && isset($issue['issueId'])) {
                     $io->writeln(\sprintf('         🪪  %s', $issue['issueId']));
@@ -137,19 +147,39 @@ final class RegexLintCommand extends Command
             $io->writeln('');
         }
 
-        if (!$hasErrors && !$hasWarnings) {
-            $io->success('No lint issues detected.');
+        // Run validation
+        $validationIssues = [];
+        if (null !== $this->routeAnalyzer && null !== $this->router) {
+            $validationIssues = array_merge($validationIssues, $this->routeAnalyzer->analyze($this->router->getRouteCollection()));
+        }
+        if (null !== $this->validatorAnalyzer && null !== $this->validator && null !== $this->validatorLoader) {
+            $validationIssues = array_merge($validationIssues, $this->validatorAnalyzer->analyze($this->validator, $this->validatorLoader));
+        }
 
+        // Output validation issues
+        if (!empty($validationIssues)) {
+            $io->writeln('<comment>Validation</comment>');
+            foreach ($validationIssues as $issue) {
+                $io->writeln(\sprintf('  [validation] %s', $issue->message));
+            }
+            $io->writeln('');
+        }
+
+        $allHasErrors = $hasErrors || !empty(array_filter($validationIssues, fn($i) => $i->isError));
+        $allHasWarnings = $hasWarnings || !empty(array_filter($validationIssues, fn($i) => !$i->isError));
+
+        if (!$allHasErrors && !$allHasWarnings) {
+            $io->success('No regex issues detected.');
             return Command::SUCCESS;
         }
 
-        if (!$hasErrors && $hasWarnings) {
-            $io->success('Regex lint completed with warnings only.');
+        if (!$allHasErrors && $allHasWarnings) {
+            $io->success('Regex analysis completed with warnings only.');
         }
 
         $failOnWarnings = (bool) $input->getOption('fail-on-warnings');
 
-        return ($hasErrors || ($failOnWarnings && $hasWarnings)) ? Command::FAILURE : Command::SUCCESS;
+        return ($allHasErrors || ($failOnWarnings && $allHasWarnings)) ? Command::FAILURE : Command::SUCCESS;
     }
 
     private function makeClickable(?string $editorUrlTemplate, string $file, int $line, string $text): string
