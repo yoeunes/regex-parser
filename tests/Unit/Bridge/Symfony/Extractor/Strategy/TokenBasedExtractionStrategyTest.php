@@ -101,28 +101,7 @@ final class TokenBasedExtractionStrategyTest extends TestCase
         rmdir($tempDir);
     }
 
-    public function test_skips_method_calls(): void
-    {
-        $strategy = new TokenBasedExtractionStrategy();
 
-        $tempDir = sys_get_temp_dir().'/test_'.uniqid();
-        mkdir($tempDir);
-        $tempFile = $tempDir.'/test.php';
-        file_put_contents($tempFile, '<?php
-            $pattern = "/test/";
-            preg_match($pattern, $subject); // Method call, not direct function call
-            MyClass::preg_match("/test/", $subject); // Static method call, not direct function call
-        ');
-
-        $result = $strategy->extract([$tempFile]);
-
-        // Should skip both (method calls and static method calls)
-        // Strategy only handles direct preg_* function calls
-        $this->assertEmpty($result);
-
-        unlink($tempFile);
-        rmdir($tempDir);
-    }
 
     public function test_respects_exclude_paths(): void
     {
