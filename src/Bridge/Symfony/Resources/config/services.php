@@ -16,7 +16,7 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 use Psr\Log\LoggerInterface;
 use RegexParser\Bridge\Symfony\Analyzer\RouteRequirementAnalyzer;
 use RegexParser\Bridge\Symfony\Analyzer\ValidatorRegexAnalyzer;
-use RegexParser\Bridge\Symfony\CacheWarmer\RegexParserCacheWarmer;
+
 use RegexParser\Bridge\Symfony\Command\RegexLintCommand;
 use RegexParser\Regex;
 use Symfony\Component\Routing\RouterInterface;
@@ -59,14 +59,7 @@ return static function (ContainerConfigurator $container): void {
         ->arg('$redosThreshold', param('regex_parser.redos.threshold'))
         ->arg('$ignoredPatterns', param('regex_parser.redos.ignored_patterns'));
 
-    $services->set('regex_parser.cache_warmer', RegexParserCacheWarmer::class)
-        ->arg('$analyzer', service(RouteRequirementAnalyzer::class))
-        ->arg('$router', service(RouterInterface::class)->nullOnInvalid())
-        ->arg('$logger', service(LoggerInterface::class)->nullOnInvalid())
-        ->arg('$validatorAnalyzer', service(ValidatorRegexAnalyzer::class))
-        ->arg('$validator', service(ValidatorInterface::class)->nullOnInvalid())
-        ->arg('$validatorLoader', service(LoaderInterface::class)->nullOnInvalid())
-        ->tag('kernel.cache_warmer');
+
 
     $services->set('regex_parser.command.lint', RegexLintCommand::class)
         ->arg('$regex', service('regex_parser.regex'))

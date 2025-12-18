@@ -15,7 +15,7 @@ namespace RegexParser\Tests\Bridge\Symfony;
 
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
-use RegexParser\Bridge\Symfony\CacheWarmer\RegexParserCacheWarmer;
+
 use RegexParser\Bridge\Symfony\Command\RegexLintCommand;
 use RegexParser\Bridge\Symfony\DependencyInjection\RegexParserExtension;
 use RegexParser\Cache\FilesystemCache;
@@ -52,59 +52,7 @@ final class RegexParserBundleTest extends TestCase
         $cache->clear();
     }
 
-    public function test_cache_warmer_logs_route_issues(): void
-    {
-        $routes = new RouteCollection();
-        $routes->add('broken', new Route('/broken', [], ['slug' => '(']));
 
-        $loggedRecords = [];
-        $logger = $this->createMock(LoggerInterface::class);
-        $logger->method('log')->willReturnCallback(function ($level, $message, $context = []) use (&$loggedRecords): void {
-            $loggedRecords[] = ['level' => (string) $level, 'message' => (string) $message];
-        });
-
-        $container = $this->createContainer([
-            'enabled' => true,
-            'analysis' => [
-                'warning_threshold' => 1,
-                'redos_threshold' => 1,
-            ],
-        ], false);
-
-        $container->set('logger', $logger);
-        $container->loadFromExtension('regex_parser', [
-            'enabled' => true,
-            'analysis' => [
-                'warning_threshold' => 1,
-                'redos_threshold' => 1,
-            ],
-        ]);
-
-        $container->register('router', RouteCollectionRouter::class)
-            ->setArguments([$routes])
-            ->setPublic(true);
-        $container->register(RouterInterface::class, RouteCollectionRouter::class)
-            ->setArguments([$routes])
-            ->setPublic(true);
-        $container->addCompilerPass(new class implements CompilerPassInterface {
-            public function process(ContainerBuilder $container): void
-            {
-                if ($container->hasDefinition('regex_parser.cache_warmer')) {
-                    $container->getDefinition('regex_parser.cache_warmer')->setPublic(true);
-                    $container->getDefinition('regex_parser.cache_warmer')->replaceArgument('$logger', new Reference('logger'));
-                }
-            }
-        });
-        $container->compile();
-
-        /** @var RegexParserCacheWarmer $warmer */
-        $warmer = $container->get('regex_parser.cache_warmer');
-        $warmer->warmUp(sys_get_temp_dir());
-
-        $this->assertNotEmpty($loggedRecords);
-        $this->assertSame('error', $loggedRecords[0]['level']);
-        $this->assertStringContainsString('broken', $loggedRecords[0]['message']);
-    }
 
     public function test_command_is_registered_as_console_service(): void
     {
