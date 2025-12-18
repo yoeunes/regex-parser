@@ -412,6 +412,8 @@ final class TokenBasedExtractionStrategy implements ExtractionStrategyInterface
                     }
                 } elseif (isset(self::IGNORABLE_TOKENS[$token[0]])) {
                     // Skip ignorable tokens (whitespace, comments)
+                } elseif (isset(self::IGNORABLE_TOKENS[$token[0]])) {
+                    // Skip ignorable tokens (whitespace, comments)
                 } else {
                     // Not a constant string or ignorable, stop
                     break;
