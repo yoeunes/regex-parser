@@ -276,11 +276,8 @@ final class RegexLintCommand extends Command
             $io->writeln('<comment>'.$file.'</comment>');
             foreach ($fileIssues as $issue) {
                 $clickableIcon = $this->makeClickable($editorUrlTemplate, $issue['file'], $issue['line'], '✏️');
-                $tag = 'error' === $issue['type'] ? '<fg=red>[error]</fg=red>' : '<comment>[lint]</comment>';
-                $paddedTag = 'error' === $issue['type'] ? \str_pad('[error]', 8) : \str_pad('[lint]', 8);
-                $coloredTag = 'error' === $issue['type'] ? '<fg=red>'.$paddedTag.'</fg=red>' : '<comment>'.$paddedTag.'</comment>';
                 $messageColor = 'error' === $issue['type'] ? '<fg=red>%s</fg=red>' : '<comment>%s</comment>';
-                $io->writeln(\sprintf('  <info>%4d</info> %s %s '. $messageColor, $issue['line'], $clickableIcon, $coloredTag, $issue['message']));
+                $io->writeln(\sprintf('  <info>%4d</info> %s '. $messageColor, $issue['line'], $clickableIcon, $issue['message']));
 
                 if ('warning' === $issue['type'] && isset($issue['issueId'])) {
                     $io->writeln(\sprintf('    🪪  %s', $issue['issueId']));
