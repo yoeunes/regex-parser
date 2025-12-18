@@ -29,9 +29,9 @@ final class RegexPatternExtractorTest extends TestCase
         $mockStrategy->method('extract')->willReturn([]);
 
         $extractor = new RegexPatternExtractor([$mockStrategy]);
-        
+
         $result = $extractor->extract(['nonexistent']);
-        
+
         $this->assertIsArray($result);
     }
 
@@ -48,7 +48,7 @@ final class RegexPatternExtractorTest extends TestCase
         $highPriorityStrategy->method('extract')->willReturn([]);
 
         $extractor = new RegexPatternExtractor([$lowPriorityStrategy, $highPriorityStrategy]);
-        
+
         $extractor->extract(['nonexistent']);
     }
 
@@ -65,16 +65,16 @@ final class RegexPatternExtractorTest extends TestCase
         $availableStrategy->method('extract')->willReturn([]);
 
         $extractor = new RegexPatternExtractor([$unavailableStrategy, $availableStrategy]);
-        
+
         $result = $extractor->extract(['nonexistent']);
-        
+
         $this->assertIsArray($result);
     }
 
     public function test_token_based_strategy_is_always_available(): void
     {
         $strategy = new TokenBasedExtractionStrategy();
-        
+
         $this->assertTrue($strategy->isAvailable());
         $this->assertSame(1, $strategy->getPriority());
     }
@@ -82,18 +82,18 @@ final class RegexPatternExtractorTest extends TestCase
     public function test_phpstan_strategy_checks_availability(): void
     {
         $strategy = new PhpStanExtractionStrategy();
-        
+
         // Should not throw exception, just return boolean
         $isAvailable = $strategy->isAvailable();
         $this->assertIsBool($isAvailable);
-        
+
         $this->assertSame(10, $strategy->getPriority());
     }
 
     public function test_creates_default_strategies_when_none_provided(): void
     {
         $extractor = new RegexPatternExtractor();
-        
+
         // Should work without exceptions
         $result = $extractor->extract(['nonexistent']);
         $this->assertIsArray($result);

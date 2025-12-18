@@ -23,13 +23,13 @@ use RegexParser\Bridge\Symfony\Extractor\RegexPatternOccurrence;
  *
  * @internal
  */
-final class PhpStanExtractionStrategy implements ExtractionStrategyInterface
+final readonly class PhpStanExtractionStrategy implements ExtractionStrategyInterface
 {
     /**
      * @param list<string> $excludePaths
      */
     public function __construct(
-        private readonly array $excludePaths = ['vendor'],
+        private array $excludePaths = ['vendor'],
     ) {}
 
     public function extract(array $paths): array
@@ -43,9 +43,9 @@ final class PhpStanExtractionStrategy implements ExtractionStrategyInterface
 
     public function isAvailable(): bool
     {
-        return class_exists('PHPStan\\Analyser\\Analyser') 
-            && class_exists('PHPStan\\Parser\\Parser')
-            && class_exists('PHPStan\\PhpDoc\\TypeNodeResolver');
+        return class_exists(\PHPStan\Analyser\Analyser::class)
+            && class_exists(\PHPStan\Parser\Parser::class)
+            && class_exists(\PHPStan\PhpDoc\TypeNodeResolver::class);
     }
 
     public function getPriority(): int
@@ -55,6 +55,7 @@ final class PhpStanExtractionStrategy implements ExtractionStrategyInterface
 
     /**
      * @param list<string> $paths
+     *
      * @return list<RegexPatternOccurrence>
      */
     private function extractWithPhpStan(array $paths): array
@@ -66,7 +67,7 @@ final class PhpStanExtractionStrategy implements ExtractionStrategyInterface
             }
 
             return $this->analyzeFilesWithPhpStan($phpFiles);
-        } catch (\Throwable $e) {
+        } catch (\Throwable) {
             // If PHPStan analysis fails, return empty array to fallback gracefully
             return [];
         }
@@ -74,6 +75,7 @@ final class PhpStanExtractionStrategy implements ExtractionStrategyInterface
 
     /**
      * @param list<string> $paths
+     *
      * @return list<string>
      */
     private function collectPhpFiles(array $paths): array
@@ -86,6 +88,7 @@ final class PhpStanExtractionStrategy implements ExtractionStrategyInterface
 
             if (is_file($path) && str_ends_with($path, '.php')) {
                 $files[] = $path;
+
                 continue;
             }
 
@@ -112,12 +115,13 @@ final class PhpStanExtractionStrategy implements ExtractionStrategyInterface
                     if ('' === $excludePath) {
                         continue;
                     }
-                    if (str_contains($filePath, DIRECTORY_SEPARATOR . $excludePath . DIRECTORY_SEPARATOR) || str_starts_with($filePath, $excludePath . DIRECTORY_SEPARATOR)) {
+                    if (str_contains($filePath, \DIRECTORY_SEPARATOR.$excludePath.\DIRECTORY_SEPARATOR) || str_starts_with($filePath, $excludePath.\DIRECTORY_SEPARATOR)) {
                         $excluded = true;
+
                         break;
                     }
                 }
-                
+
                 if (!$excluded) {
                     $files[] = $filePath;
                 }
@@ -129,12 +133,13 @@ final class PhpStanExtractionStrategy implements ExtractionStrategyInterface
 
     /**
      * @param list<string> $files
+     *
      * @return list<RegexPatternOccurrence>
      */
     private function analyzeFilesWithPhpStan(array $files): array
     {
         $occurrences = [];
-        
+
         foreach ($files as $file) {
             $fileOccurrences = $this->analyzeFileWithPhpStan($file);
             $occurrences = [...$occurrences, ...$fileOccurrences];
@@ -163,20 +168,21 @@ final class PhpStanExtractionStrategy implements ExtractionStrategyInterface
             $tokens = $lexer->tokenize($content);
 
             return $this->extractFromTokens($tokens, $file);
-        } catch (\Throwable $e) {
+        } catch (\Throwable) {
             // If analysis fails for this file, return empty results
             return [];
         }
     }
 
     /**
-     * @param \PhpParser\Node[] $tokens
+     * @param array<\PhpParser\Node> $tokens
+     *
      * @return list<RegexPatternOccurrence>
      */
     private function extractFromTokens(array $tokens, string $file): array
     {
         $occurrences = [];
-        
+
         foreach ($tokens as $node) {
             $nodeOccurrences = $this->extractFromNode($node, $file);
             $occurrences = [...$occurrences, ...$nodeOccurrences];
@@ -201,7 +207,7 @@ final class PhpStanExtractionStrategy implements ExtractionStrategyInterface
             $subNode = $node->{$subNodeName};
             if ($subNode instanceof \PhpParser\Node) {
                 $occurrences = [...$occurrences, ...$this->extractFromNode($subNode, $file)];
-            } elseif (is_array($subNode)) {
+            } elseif (\is_array($subNode)) {
                 foreach ($subNode as $item) {
                     if ($item instanceof \PhpParser\Node) {
                         $occurrences = [...$occurrences, ...$this->extractFromNode($item, $file)];
@@ -233,14 +239,15 @@ final class PhpStanExtractionStrategy implements ExtractionStrategyInterface
         }
 
         $firstArg = $args[0];
+
         return $this->extractPatternFromArg($firstArg, $file, $functionName);
     }
 
     private function isPregFunction(string $functionName): bool
     {
-        return in_array($functionName, [
+        return \in_array($functionName, [
             'preg_match',
-            'preg_match_all', 
+            'preg_match_all',
             'preg_replace',
             'preg_replace_callback',
             'preg_split',
@@ -257,7 +264,7 @@ final class PhpStanExtractionStrategy implements ExtractionStrategyInterface
     {
         $value = $arg->value;
 
-        if ($value instanceof \PhpParser\Node\Expr\ConstFetch && $value->name->toString() === 'null') {
+        if ($value instanceof \PhpParser\Node\Expr\ConstFetch && 'null' === $value->name->toString()) {
             return [];
         }
 
@@ -271,13 +278,14 @@ final class PhpStanExtractionStrategy implements ExtractionStrategyInterface
                 $pattern,
                 $file,
                 $value->getStartLine(),
-                $functionName . '()'
+                $functionName.'()',
             )];
         }
 
         // Handle concatenation of strings
         if ($value instanceof \PhpParser\Node\Expr\BinaryOp\Concat) {
             $result = $this->extractFromConcat($value, $file, $functionName);
+
             return $result ? [$result] : [];
         }
 
@@ -293,7 +301,7 @@ final class PhpStanExtractionStrategy implements ExtractionStrategyInterface
             return null;
         }
 
-        $pattern = $left . $right;
+        $pattern = $left.$right;
         if ('' === $pattern) {
             return null;
         }
@@ -302,7 +310,7 @@ final class PhpStanExtractionStrategy implements ExtractionStrategyInterface
             $pattern,
             $file,
             $concat->getStartLine(),
-            $functionName . '()'
+            $functionName.'()',
         );
     }
 
@@ -315,12 +323,12 @@ final class PhpStanExtractionStrategy implements ExtractionStrategyInterface
         if ($expr instanceof \PhpParser\Node\Expr\BinaryOp\Concat) {
             $left = $this->extractStringValue($expr->left);
             $right = $this->extractStringValue($expr->right);
-            
+
             if (null === $left || null === $right) {
                 return null;
             }
-            
-            return $left . $right;
+
+            return $left.$right;
         }
 
         return null;

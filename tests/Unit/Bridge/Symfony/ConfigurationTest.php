@@ -39,7 +39,6 @@ final class ConfigurationTest extends TestCase
          */
         $config = $processor->processConfiguration($configuration, []);
 
-
         $this->assertSame(Regex::DEFAULT_MAX_PATTERN_LENGTH, $config['max_pattern_length']);
         $this->assertNull($config['cache']);
         $this->assertSame(50, $config['analysis']['warning_threshold']);
@@ -86,7 +85,6 @@ final class ConfigurationTest extends TestCase
          *     }
          * } $config
          */
-
 
         $this->assertSame(10, $config['max_pattern_length']);
         $this->assertSame('/tmp/cache', $config['cache']);

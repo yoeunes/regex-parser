@@ -49,6 +49,4 @@ final class RegexParserExtensionTest extends TestCase
 
         $this->assertTrue($container->hasDefinition('regex_parser.command.lint'));
     }
-
-
 }

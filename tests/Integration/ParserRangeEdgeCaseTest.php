@@ -38,11 +38,11 @@ final class ParserRangeEdgeCaseTest extends TestCase
         $this->assertInstanceOf(RangeNode::class, $parts[0]);
         $this->assertInstanceOf(LiteralNode::class, $parts[0]->start);
         $this->assertInstanceOf(LiteralNode::class, $parts[0]->end);
-        $this->assertEquals('a', $parts[0]->start->value);
-        $this->assertEquals('z', $parts[0]->end->value);
+        $this->assertSame('a', $parts[0]->start->value);
+        $this->assertSame('z', $parts[0]->end->value);
 
         $this->assertInstanceOf(LiteralNode::class, $parts[1]);
-        $this->assertEquals('-', $parts[1]->value);
+        $this->assertSame('-', $parts[1]->value);
 
         $this->assertInstanceOf(RangeNode::class, $parts[2]);
         $this->assertInstanceOf(LiteralNode::class, $parts[2]->start);
@@ -67,11 +67,11 @@ final class ParserRangeEdgeCaseTest extends TestCase
         $this->assertInstanceOf(RangeNode::class, $parts[0]);
         $this->assertInstanceOf(LiteralNode::class, $parts[0]->start);
         $this->assertInstanceOf(LiteralNode::class, $parts[0]->end);
-        $this->assertEquals('a', $parts[0]->start->value);
-        $this->assertEquals('z', $parts[0]->end->value);
+        $this->assertSame('a', $parts[0]->start->value);
+        $this->assertSame('z', $parts[0]->end->value);
 
         $this->assertInstanceOf(LiteralNode::class, $parts[1]);
-        $this->assertEquals('-', $parts[1]->value);
+        $this->assertSame('-', $parts[1]->value);
     }
 
     public function test_parse_leading_hyphen_a_z(): void
@@ -88,12 +88,12 @@ final class ParserRangeEdgeCaseTest extends TestCase
         $this->assertCount(2, $parts);
 
         $this->assertInstanceOf(LiteralNode::class, $parts[0]);
-        $this->assertEquals('-', $parts[0]->value);
+        $this->assertSame('-', $parts[0]->value);
 
         $this->assertInstanceOf(RangeNode::class, $parts[1]);
         $this->assertInstanceOf(LiteralNode::class, $parts[1]->start);
         $this->assertInstanceOf(LiteralNode::class, $parts[1]->end);
-        $this->assertEquals('a', $parts[1]->start->value);
-        $this->assertEquals('z', $parts[1]->end->value);
+        $this->assertSame('a', $parts[1]->start->value);
+        $this->assertSame('z', $parts[1]->end->value);
     }
 }

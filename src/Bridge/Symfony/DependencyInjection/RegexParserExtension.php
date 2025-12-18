@@ -42,24 +42,24 @@ final class RegexParserExtension extends Extension
         /**
          * @var array{
          *     max_pattern_length: int,
-          *     max_lookbehind_length: int,
-          *     cache: string|null,
-          *     cache_pool: string|null,
-          *     cache_prefix: string,
-          *     redos: array{
-          *         threshold: string,
-          *         ignored_patterns: array<int, string>,
-          *     },
-          *     analysis: array{
-          *         warning_threshold: int,
-          *         redos_threshold: int,
-          *         ignore_patterns: array<int, string>,
-          *     },
-          *     paths: array<int, string>,
-          *     exclude_paths: array<int, string>,
-          *     editor_url: string|null,
-          * } $config
-          */
+         *     max_lookbehind_length: int,
+         *     cache: string|null,
+         *     cache_pool: string|null,
+         *     cache_prefix: string,
+         *     redos: array{
+         *         threshold: string,
+         *         ignored_patterns: array<int, string>,
+         *     },
+         *     analysis: array{
+         *         warning_threshold: int,
+         *         redos_threshold: int,
+         *         ignore_patterns: array<int, string>,
+         *     },
+         *     paths: array<int, string>,
+         *     exclude_paths: array<int, string>,
+         *     editor_url: string|null,
+         * } $config
+         */
         $config = $this->processConfiguration($configuration, $configs);
 
         $ignoredPatterns = array_values(array_unique([
@@ -69,7 +69,7 @@ final class RegexParserExtension extends Extension
 
         // Resolve editor URL with fallbacks
         $editorUrl = $config['editor_url'];
-        
+
         // Fallback to framework.ide if regex_parser.editor_url is not set
         if (null === $editorUrl && $container->hasParameter('framework.ide')) {
             $ide = $container->getParameter('framework.ide');
@@ -134,6 +134,4 @@ final class RegexParserExtension extends Extension
 
         return new Definition(NullCache::class);
     }
-
-
 }

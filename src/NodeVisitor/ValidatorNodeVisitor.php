@@ -782,7 +782,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         $name = $matches[1];
 
         // If the codePoint is -1, the name could not be resolved
-        if ($node->codePoint === -1) {
+        if (-1 === $node->codePoint) {
             throw new ParserException("Invalid Unicode character name: {$name}", $node->getStartPosition());
         }
     }

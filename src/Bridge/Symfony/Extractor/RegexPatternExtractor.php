@@ -27,18 +27,20 @@ use RegexParser\Bridge\Symfony\Extractor\Strategy\TokenBasedExtractionStrategy;
  */
 final class RegexPatternExtractor
 {
-    /** @var list<ExtractionStrategyInterface> */
+    /**
+     * @var list<ExtractionStrategyInterface>
+     */
     private array $strategies;
 
     /**
      * @param list<ExtractionStrategyInterface> $strategies
      */
-    public function __construct(array $strategies = []) {
+    public function __construct(array $strategies = [])
+    {
         $this->strategies = empty($strategies) ? $this->createDefaultStrategies() : $strategies;
 
         // Sort strategies by priority (highest first)
-        usort($this->strategies, static fn (ExtractionStrategyInterface $a, ExtractionStrategyInterface $b) => 
-            $b->getPriority() <=> $a->getPriority()
+        usort($this->strategies, static fn (ExtractionStrategyInterface $a, ExtractionStrategyInterface $b) => $b->getPriority() <=> $a->getPriority(),
         );
     }
 

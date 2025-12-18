@@ -38,8 +38,8 @@ final class RegexLintCommandTest extends TestCase
         $tester = new CommandTester($command);
         $status = $tester->execute([]);
 
-        self::assertSame(0, $status);
-        self::assertStringContainsString('No constant preg_* patterns found', $tester->getDisplay());
+        $this->assertSame(0, $status);
+        $this->assertStringContainsString('No constant preg_* patterns found', $tester->getDisplay());
     }
 
     public function test_command_has_correct_name(): void
@@ -57,7 +57,7 @@ final class RegexLintCommandTest extends TestCase
             defaultRedosThreshold: 'high',
         );
 
-        self::assertSame('regex:lint', $command->getName());
+        $this->assertSame('regex:lint', $command->getName());
     }
 
     public function test_command_has_all_expected_options(): void
@@ -76,20 +76,20 @@ final class RegexLintCommandTest extends TestCase
         );
 
         $definition = $command->getDefinition();
-        
+
         // Test basic options exist
-        self::assertTrue($definition->hasOption('fail-on-warnings'));
-        self::assertTrue($definition->hasOption('analyze-redos'));
-        self::assertTrue($definition->hasOption('redos-threshold'));
-        self::assertTrue($definition->hasOption('optimize'));
-        self::assertTrue($definition->hasOption('min-savings'));
-        self::assertTrue($definition->hasOption('validate-symfony'));
-        self::assertTrue($definition->hasOption('fail-on-suggestions'));
-        self::assertTrue($definition->hasOption('all'));
-        
+        $this->assertTrue($definition->hasOption('fail-on-warnings'));
+        $this->assertTrue($definition->hasOption('analyze-redos'));
+        $this->assertTrue($definition->hasOption('redos-threshold'));
+        $this->assertTrue($definition->hasOption('optimize'));
+        $this->assertTrue($definition->hasOption('min-savings'));
+        $this->assertTrue($definition->hasOption('validate-symfony'));
+        $this->assertTrue($definition->hasOption('fail-on-suggestions'));
+        $this->assertTrue($definition->hasOption('all'));
+
         // Test default values
-        self::assertSame('high', $definition->getOption('redos-threshold')->getDefault());
-        self::assertSame(1, $definition->getOption('min-savings')->getDefault());
+        $this->assertSame('high', $definition->getOption('redos-threshold')->getDefault());
+        $this->assertSame(1, $definition->getOption('min-savings')->getDefault());
     }
 
     public function test_command_with_validate_symfony_missing_services(): void
@@ -110,8 +110,8 @@ final class RegexLintCommandTest extends TestCase
         $tester = new CommandTester($command);
         $status = $tester->execute(['--validate-symfony' => true]);
 
-        self::assertSame(0, $status);
-        self::assertStringContainsString('No router service was found', $tester->getDisplay());
-        self::assertStringContainsString('No validator service was found', $tester->getDisplay());
+        $this->assertSame(0, $status);
+        $this->assertStringContainsString('No router service was found', $tester->getDisplay());
+        $this->assertStringContainsString('No validator service was found', $tester->getDisplay());
     }
 }

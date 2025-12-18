@@ -191,6 +191,7 @@ final class RegexLintCommand extends Command
                 } catch (\Throwable $e) {
                     $hasErrors = true;
                     $io->writeln(\sprintf('<error>[error]</error> %s:%d %s', $occurrence->file, $occurrence->line, $e->getMessage()));
+
                     continue;
                 }
 
@@ -239,11 +240,12 @@ final class RegexLintCommand extends Command
             $this->outputValidationIssues($io, $validationIssues);
         }
 
-        $allHasErrors = $hasErrors || !empty(array_filter($validationIssues, fn($i) => $i->isError));
-        $allHasWarnings = $hasWarnings || !empty(array_filter($validationIssues, fn($i) => !$i->isError));
+        $allHasErrors = $hasErrors || !empty(array_filter($validationIssues, fn ($i) => $i->isError));
+        $allHasWarnings = $hasWarnings || !empty(array_filter($validationIssues, fn ($i) => !$i->isError));
 
         if (!$allHasErrors && !$allHasWarnings && !$hasSuggestions) {
             $io->success('No regex issues detected.');
+
             return Command::SUCCESS;
         }
 
@@ -266,7 +268,7 @@ final class RegexLintCommand extends Command
         }
 
         foreach ($issuesByFile as $file => $fileIssues) {
-            $io->writeln('<comment>' . $file . '</comment>');
+            $io->writeln('<comment>'.$file.'</comment>');
             foreach ($fileIssues as $issue) {
                 $clickableIcon = $this->makeClickable($editorUrlTemplate, $issue['file'], $issue['line'], '✏️');
                 $io->writeln(\sprintf('  <info>%d</info>: [lint] %s %s', $issue['line'], $issue['message'], $clickableIcon));
@@ -280,7 +282,7 @@ final class RegexLintCommand extends Command
                     foreach ($hints as $hint) {
                         $hint = trim($hint);
                         if ('' !== $hint) {
-                            $io->writeln('         💡  ' . $hint);
+                            $io->writeln('         💡  '.$hint);
                         }
                     }
                 }
@@ -297,7 +299,7 @@ final class RegexLintCommand extends Command
                 '%s:%d severity=%s score=%d',
                 $issue['file'],
                 $issue['line'],
-                strtoupper($issue['analysis']->severity->value),
+                strtoupper((string) $issue['analysis']->severity->value),
                 $issue['analysis']->score,
             );
 
@@ -355,7 +357,7 @@ final class RegexLintCommand extends Command
 
         $editorUrl = str_replace(['%%file%%', '%%line%%'], [$file, $line], $editorUrlTemplate);
 
-        return "\033]8;;" . $editorUrl . "\033\\" . $text . "\033]8;;\033\\";
+        return "\033]8;;".$editorUrl."\033\\".$text."\033]8;;\033\\";
     }
 
     private function getRelativePath(string $path): string
@@ -366,7 +368,7 @@ final class RegexLintCommand extends Command
         }
 
         if (str_starts_with($path, $cwd)) {
-            return ltrim(substr($path, strlen($cwd)), '/\\');
+            return ltrim(substr($path, \strlen($cwd)), '/\\');
         }
 
         return $path;

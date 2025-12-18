@@ -13,10 +13,8 @@ declare(strict_types=1);
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
-use Psr\Log\LoggerInterface;
 use RegexParser\Bridge\Symfony\Analyzer\RouteRequirementAnalyzer;
 use RegexParser\Bridge\Symfony\Analyzer\ValidatorRegexAnalyzer;
-
 use RegexParser\Bridge\Symfony\Command\RegexLintCommand;
 use RegexParser\Regex;
 use Symfony\Component\Routing\RouterInterface;
@@ -58,8 +56,6 @@ return static function (ContainerConfigurator $container): void {
         ->arg('$warningThreshold', param('regex_parser.analysis.warning_threshold'))
         ->arg('$redosThreshold', param('regex_parser.redos.threshold'))
         ->arg('$ignoredPatterns', param('regex_parser.redos.ignored_patterns'));
-
-
 
     $services->set('regex_parser.command.lint', RegexLintCommand::class)
         ->arg('$regex', service('regex_parser.regex'))

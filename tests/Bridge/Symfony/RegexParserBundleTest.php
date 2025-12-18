@@ -14,17 +14,12 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Bridge\Symfony;
 
 use PHPUnit\Framework\TestCase;
-use Psr\Log\LoggerInterface;
-
 use RegexParser\Bridge\Symfony\Command\RegexLintCommand;
 use RegexParser\Bridge\Symfony\DependencyInjection\RegexParserExtension;
 use RegexParser\Cache\FilesystemCache;
 use RegexParser\Regex;
-use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
-use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\Routing\RequestContext;
-use Symfony\Component\Routing\Route;
 use Symfony\Component\Routing\RouteCollection;
 use Symfony\Component\Routing\RouterInterface;
 
@@ -51,8 +46,6 @@ final class RegexParserBundleTest extends TestCase
         $cache->clear();
     }
 
-
-
     public function test_command_is_registered_as_console_service(): void
     {
         $container = $this->createContainer([]);
@@ -67,8 +60,6 @@ final class RegexParserBundleTest extends TestCase
         $command = $container->get('regex_parser.command.lint');
         $this->assertSame('regex:lint', $command->getName());
     }
-
-
 
     /**
      * @param array<string, mixed> $config

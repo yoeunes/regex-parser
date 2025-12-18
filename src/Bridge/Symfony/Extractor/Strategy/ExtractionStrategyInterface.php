@@ -26,6 +26,7 @@ interface ExtractionStrategyInterface
      * Extract regex patterns from the given paths.
      *
      * @param list<string> $paths
+     *
      * @return list<RegexPatternOccurrence>
      */
     public function extract(array $paths): array;

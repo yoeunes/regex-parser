@@ -23,15 +23,8 @@ use RegexParser\Bridge\Symfony\Extractor\RegexPatternOccurrence;
  *
  * @internal
  */
-final class TokenBasedExtractionStrategy implements ExtractionStrategyInterface
+final readonly class TokenBasedExtractionStrategy implements ExtractionStrategyInterface
 {
-    /**
-     * @param list<string> $excludePaths
-     */
-    public function __construct(
-        private readonly array $excludePaths = ['vendor'],
-    ) {}
-
     private const IGNORABLE_TOKENS = [
         \T_WHITESPACE => true,
         \T_COMMENT => true,
@@ -48,6 +41,13 @@ final class TokenBasedExtractionStrategy implements ExtractionStrategyInterface
         'preg_filter' => true,
         'preg_replace_callback_array' => true,
     ];
+
+    /**
+     * @param list<string> $excludePaths
+     */
+    public function __construct(
+        private array $excludePaths = ['vendor'],
+    ) {}
 
     public function extract(array $paths): array
     {
@@ -108,23 +108,24 @@ final class TokenBasedExtractionStrategy implements ExtractionStrategyInterface
                     continue;
                 }
 
-                 $filePath = $file->getPathname();
+                $filePath = $file->getPathname();
 
-                 // Skip excluded directories
-                 $excluded = false;
-                 foreach ($this->excludePaths as $excludePath) {
-                     $excludePath = trim($excludePath, '/\\');
-                     if ('' === $excludePath) {
-                         continue;
-                     }
-                     if (str_contains($filePath, DIRECTORY_SEPARATOR . $excludePath . DIRECTORY_SEPARATOR) || str_starts_with($filePath, $excludePath . DIRECTORY_SEPARATOR)) {
-                         $excluded = true;
-                         break;
-                     }
-                 }
-                 if ($excluded) {
-                     continue;
-                 }
+                // Skip excluded directories
+                $excluded = false;
+                foreach ($this->excludePaths as $excludePath) {
+                    $excludePath = trim($excludePath, '/\\');
+                    if ('' === $excludePath) {
+                        continue;
+                    }
+                    if (str_contains($filePath, \DIRECTORY_SEPARATOR.$excludePath.\DIRECTORY_SEPARATOR) || str_starts_with($filePath, $excludePath.\DIRECTORY_SEPARATOR)) {
+                        $excluded = true;
+
+                        break;
+                    }
+                }
+                if ($excluded) {
+                    continue;
+                }
 
                 yield $filePath;
             }
@@ -378,13 +379,13 @@ final class TokenBasedExtractionStrategy implements ExtractionStrategyInterface
             if (null === $pattern || '' === $pattern) {
                 return null;
             }
-            
+
             // Check if next meaningful token is concatenation - if so, extract full pattern
             $nextIndex = $this->nextMeaningfulTokenIndex($tokens, $startIndex + 1);
-            if ($nextIndex !== null && isset($tokens[$nextIndex]) && '.' === $tokens[$nextIndex]) {
+            if (null !== $nextIndex && isset($tokens[$nextIndex]) && '.' === $tokens[$nextIndex]) {
                 return $this->extractConcatenatedPattern($tokens, $startIndex);
             }
-            
+
             return ['pattern' => $pattern, 'line' => $token[2]];
         }
 

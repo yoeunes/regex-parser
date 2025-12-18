@@ -25,7 +25,6 @@ $finder = (new PhpCsFixer\Finder())
         __DIR__.'/src',
         __DIR__.'/tests',
         __DIR__.'/tools',
-        __DIR__.'/public',
         __DIR__.'/benchmarks',
     ])
     ->exclude([
