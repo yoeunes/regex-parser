@@ -18,6 +18,7 @@ use RegexParser\Bridge\Symfony\Console\RelativePathHelper;
 use RegexParser\Bridge\Symfony\Service\RegexAnalysisService;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
@@ -76,14 +77,15 @@ final class RegexLintCommand extends Command
     {
         $io->writeln('');
         $io->writeln('  <fg=white;options=bold>REGEX PARSER</> <fg=cyan>Linting & Optimization</>');
+        $io->writeln('  <fg=gray>─────────────────────────────</>');
         $io->writeln('');
     }
 
     private function scanFiles(SymfonyStyle $io): array
     {
-        $io->write('  <fg=cyan>🔍  Scanning files...</>');
+        $io->write('  <fg=cyan>🔍 Scanning files...</>');
         $patterns = $this->analysis->scan($this->paths, $this->exclude);
-        $io->writeln(' <fg=green;options=bold>Done.</>');
+        $io->writeln(' <fg=green;options=bold>✓</>');
         $io->writeln('');
 
         return $patterns;
@@ -166,13 +168,13 @@ final class RegexLintCommand extends Command
         return array_values($results);
     }
 
-    private function createProgressBar(SymfonyStyle $io, int $total): \Symfony\Component\Console\Helper\ProgressBar
+    private function createProgressBar(SymfonyStyle $io, int $total): ProgressBar
     {
         $bar = $io->createProgressBar($total);
         $bar->setEmptyBarCharacter('░');
-        $bar->setProgressCharacter('');
-        $bar->setBarCharacter('▓');
-        $bar->setFormat('  <fg=blue>%bar%</> <fg=cyan>%percent:3s%%</>');
+        $bar->setProgressCharacter('█');
+        $bar->setBarCharacter('█');
+        $bar->setFormat('  <fg=blue>%bar%</> <fg=cyan>%percent:3s%%</> <fg=gray>%remaining:6s%</>');
 
         return $bar;
     }
@@ -197,10 +199,12 @@ final class RegexLintCommand extends Command
     {
         if (0 === $stats['errors']) {
             if (0 === $stats['warnings'] && 0 === $stats['optimizations']) {
-                $io->block('No issues found. Your regex patterns are clean.', 'PASS', 'fg=black;bg=green', ' ', true);
+                $io->writeln('');
+                $io->block('No issues found. Your regex patterns are clean!', null, 'fg=black;bg=green', ' ', true);
             } else {
                 $io->newLine();
-                $io->writeln(\sprintf('  <bg=blue;fg=white;options=bold> INFO </><fg=white;options=bold> %d warnings</><fg=gray>, %d optimizations.</>', $stats['warnings'], $stats['optimizations']));
+                $io->writeln(
+                    \sprintf('  <bg=blue;fg=white;options=bold> ℹ </><fg=white;options=bold> %d warnings</><fg=gray>, %d optimizations available.</>', $stats['warnings'], $stats['optimizations']));
                 $io->newLine();
             }
 
@@ -208,7 +212,8 @@ final class RegexLintCommand extends Command
         }
 
         $io->newLine();
-        $io->writeln(\sprintf('  <bg=red;fg=white;options=bold> FAIL </><fg=red;options=bold> %d invalid regex patterns</>', $stats['errors']));
+        $io->writeln(
+            \sprintf('  <bg=red;fg=white;options=bold> FAIL </><fg=red;options=bold> %d invalid regex patterns found</>', $stats['errors']));
         $io->newLine();
 
         return Command::FAILURE;
@@ -221,6 +226,7 @@ final class RegexLintCommand extends Command
         }
 
         $io->writeln('  <fg=white;options=bold>Issues Found</>');
+        $io->writeln('  <fg=gray>────────────────</>');
         $io->newLine();
 
         // Group results by file for better organization
@@ -244,6 +250,7 @@ final class RegexLintCommand extends Command
     {
         $relPath = $this->linkFormatter->getRelativePath($file);
         $io->writeln("  <fg=gray>in</> <fg=cyan;options=bold>{$relPath}</>");
+        $io->writeln('  <fg=gray>───</>');
     }
 
     private function displayPatternResult(SymfonyStyle $io, array $result): void
@@ -258,10 +265,10 @@ final class RegexLintCommand extends Command
         if (null !== $pattern) {
             try {
                 $highlighted = $this->analysis->highlight($pattern);
-                $io->writeln(\sprintf('  <fg=gray>Pattern:</> %s', $highlighted));
+                $io->writeln(\sprintf('  <fg=gray>Pattern:</> <fg=white>%s</>', $highlighted));
             } catch (\Exception) {
-                // If highlighting fails (e.g., invalid regex), show raw pattern
-                $io->writeln(\sprintf('  <fg=gray>Pattern:</> %s', $pattern));
+                // If highlighting fails (e.g., invalid regex), show raw pattern with warning
+                $io->writeln(\sprintf('  <fg=gray>Pattern:</> <fg=red>%s</> <fg=gray>(invalid)</>', $pattern));
             }
         }
 
@@ -275,7 +282,7 @@ final class RegexLintCommand extends Command
             $this->displayOptimization($io, $opt, $lineNum, $link);
         }
 
-        // Add spacing after this pattern result if there are more patterns in this file
+        // Add subtle spacing after this pattern result
         $io->writeln('');
     }
 
@@ -322,19 +329,19 @@ final class RegexLintCommand extends Command
         $this->displayMessageLines($io, $restLines);
 
         if (!empty($issue['hint'])) {
-            $io->writeln("         <fg=cyan>💡</> <fg=cyan>{$issue['hint']}</>");
+            $io->writeln("         <fg=cyan>💡</> <fg=gray>{$issue['hint']}</>");
         }
     }
 
     private function displayOptimization(SymfonyStyle $io, array $opt, string $lineNum, string $link): void
     {
-        $io->writeln(\sprintf('  <fg=green;options=bold>O</>  <fg=white;options=bold>%s</>  %s  <fg=green>Saved %d chars</>', $lineNum, $link, $opt['savings']));
+        $io->writeln(\sprintf('  <fg=green;options=bold>0</>  <fg=white;options=bold>%s</>  %s  <fg=green>%d chars saved</>', $lineNum, $link, $opt['savings']));
 
         $original = $this->analysis->highlight($opt['optimization']->original);
         $optimized = $this->analysis->highlight($opt['optimization']->optimized);
 
-        $io->writeln(\sprintf('         <fg=red>-</> %s', $original));
-        $io->writeln(\sprintf('         <fg=green>+</> %s', $optimized));
+        $io->writeln(\sprintf('         <fg=red>─</> %s', $original));
+        $io->writeln(\sprintf('         <fg=green>✨</> %s', $optimized));
     }
 
     private function formatIssueMessage(string $message): string
@@ -355,7 +362,7 @@ final class RegexLintCommand extends Command
     private function displayMessageLines(SymfonyStyle $io, array $lines): void
     {
         foreach ($lines as $line) {
-            $io->writeln('              '.$line);
+            $io->writeln('         <fg=gray>│</> <fg=white>'.$line.'</>');
         }
     }
 
