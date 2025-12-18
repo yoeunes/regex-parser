@@ -31,6 +31,7 @@ $finder = (new PhpCsFixer\Finder())
         __DIR__.'/tools/*/vendor',
         __DIR__.'/tests/Fixtures',
     ])
+    ->notPath('tests/Fixtures/**/*.php')
     ->name('*.php')
     ->ignoreDotFiles(true)
     ->ignoreVCS(true);
@@ -38,7 +39,6 @@ $finder = (new PhpCsFixer\Finder())
 return (new PhpCsFixer\Config())
     ->registerCustomFixers(new PhpCsFixerCustomFixers\Fixers())
     ->setRiskyAllowed(true)
-    ->setParallelConfig(PhpCsFixer\Runner\Parallel\ParallelConfigFactory::detect())
     ->setRules([
         '@PHP8x2Migration' => true,
         '@PHP8x2Migration:risky' => true,
