@@ -113,12 +113,19 @@ final class RegexLintCommand extends Command
         $bar->finish();
         $io->writeln(['', '']);
 
-        return $this->combineResults($issues, $optimizations);
+        return $this->combineResults($issues, $optimizations, $patterns);
     }
 
-    private function combineResults(array $issues, array $optimizations): array
+    private function combineResults(array $issues, array $optimizations, array $originalPatterns): array
     {
         $results = [];
+        
+        // Create a lookup map for patterns by file and line
+        $patternMap = [];
+        foreach ($originalPatterns as $pattern) {
+            $key = $pattern->file . ':' . $pattern->line;
+            $patternMap[$key] = $pattern->pattern;
+        }
         
         // Group issues by file and line
         foreach ($issues as $issue) {
@@ -127,7 +134,7 @@ final class RegexLintCommand extends Command
                 $results[$key] = [
                     'file' => $issue['file'],
                     'line' => $issue['line'],
-                    'pattern' => $issue['pattern'] ?? $issue['regex'] ?? null,
+                    'pattern' => $patternMap[$key] ?? null,
                     'issues' => [],
                     'optimizations' => [],
                 ];
@@ -142,14 +149,14 @@ final class RegexLintCommand extends Command
                 $results[$key] = [
                     'file' => $opt['file'],
                     'line' => $opt['line'],
-                    'pattern' => null,
+                    'pattern' => $patternMap[$key] ?? null,
                     'issues' => [],
                     'optimizations' => [],
                 ];
             }
             $results[$key]['optimizations'][] = $opt;
             
-            // If optimization doesn't have pattern but issue does, use that
+            // Ensure we have pattern from optimization if no issue pattern found
             if ($results[$key]['pattern'] === null && !empty($opt['optimization']->original)) {
                 $results[$key]['pattern'] = $opt['optimization']->original;
             }
@@ -248,8 +255,13 @@ final class RegexLintCommand extends Command
         // Show the regex pattern if we have it
         $pattern = $this->extractPatternForResult($result);
         if ($pattern !== null) {
-            $highlighted = $this->analysis->highlight($pattern);
-            $io->writeln(\sprintf('  <fg=gray>Pattern:</> %s', $highlighted));
+            try {
+                $highlighted = $this->analysis->highlight($pattern);
+                $io->writeln(\sprintf('  <fg=gray>Pattern:</> %s', $highlighted));
+            } catch (\Exception $e) {
+                // If highlighting fails (e.g., invalid regex), show raw pattern
+                $io->writeln(\sprintf('  <fg=gray>Pattern:</> %s', $pattern));
+            }
         }
 
         // Display issues
