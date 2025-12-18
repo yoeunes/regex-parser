@@ -423,7 +423,7 @@ final class TokenBasedExtractionStrategy implements ExtractionStrategyInterface
                 break;
             }
 
-            $index++;
+            $index = $this->nextMeaningfulTokenIndex($tokens, $index + 1) ?? $count;
         }
 
         if (\count($parts) < 2 || null === $firstLine) {
