@@ -141,8 +141,7 @@ final class TokenBasedExtractionStrategyTest extends TestCase
         $result = $strategy->extract([$tempFile]);
 
         // Token-based extraction has limitations with complex array syntax
-        // It may not extract all patterns from nested structures
-        // So we test that it finds at least one pattern
+        // Test that it finds at least one pattern
         $this->assertNotEmpty($result);
 
         unlink($tempFile);
