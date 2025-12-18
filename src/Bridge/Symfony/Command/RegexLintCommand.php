@@ -25,12 +25,17 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
-#[AsCommand(
-    name: 'regex:lint',
-    description: 'Lints, validates, and optimizes constant preg_* patterns found in PHP files.',
-)]
-final class RegexLintCommand extends Command
-{
+    #[AsCommand(
+        name: 'regex:lint',
+        description: 'Lints, validates, and optimizes constant preg_* patterns found in PHP files.',
+    )]
+    final class RegexLintCommand extends Command
+    {
+        #[\Override]
+        protected function configure(): void
+        {
+            $this->addOption('fail-on-warnings', null, InputOption::VALUE_NONE, 'Fail the command if warnings are found.');
+        }
     private readonly RelativePathHelper $pathHelper;
 
     private readonly LinkFormatter $linkFormatter;
@@ -53,6 +58,8 @@ final class RegexLintCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
 
+        $failOnWarnings = $input->getOption('fail-on-warnings');
+
         $patterns = $this->scanFiles($io);
 
         if (empty($patterns)) {
@@ -71,7 +78,7 @@ final class RegexLintCommand extends Command
             $stats = $this->updateStatsFromResults($stats, $allResults);
         }
 
-        return $this->determineExitCode($io, $stats);
+        return $this->determineExitCode($io, $stats, $failOnWarnings);
     }
 
     private function scanFiles(SymfonyStyle $io): array
@@ -194,9 +201,20 @@ final class RegexLintCommand extends Command
         return $stats;
     }
 
-    private function determineExitCode(SymfonyStyle $io, array $stats): int
+    private function determineExitCode(SymfonyStyle $io, array $stats, bool $failOnWarnings): int
     {
         if (0 === $stats['errors']) {
+            if ($failOnWarnings && $stats['warnings'] > 0) {
+                $io->newLine();
+                $io->writeln(
+                    \sprintf('  <bg=red;fg=white;options=bold> FAIL </><fg=red;options=bold> %d warnings found and --fail-on-warnings is enabled</>', $stats['warnings'])
+                );
+                $io->newLine();
+                $this->showFooter($io);
+
+                return Command::FAILURE;
+            }
+
             if (0 === $stats['warnings'] && 0 === $stats['optimizations']) {
                 $io->writeln('');
                 $io->block('No issues found. Your regex patterns are clean!', null, 'fg=black;bg=green', ' ', true);
