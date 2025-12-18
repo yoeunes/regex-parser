@@ -18,8 +18,10 @@ use RegexParser\Bridge\Symfony\Console\RelativePathHelper;
 use RegexParser\Bridge\Symfony\Service\RegexAnalysisService;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Formatter\OutputFormatter;
 use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
@@ -265,11 +267,11 @@ final class RegexLintCommand extends Command
         $pattern = $this->extractPatternForResult($result);
         if (null !== $pattern) {
             try {
-                $highlighted = $this->analysis->highlight($pattern);
+                $highlighted = $this->analysis->highlight(OutputFormatter::escape($pattern));
                 $io->writeln(\sprintf('  <fg=gray>Pattern:</> <fg=white>%s</>', $highlighted));
             } catch (\Exception) {
                 // If highlighting fails (e.g., invalid regex), show raw pattern with warning
-                $io->writeln(\sprintf('  <fg=gray>Pattern:</> <fg=red>%s</> <fg=gray>(invalid)</>', $pattern));
+                $io->writeln(\sprintf('  <fg=gray>Pattern:</> <fg=red>%s</> <fg=gray>(invalid)</>', OutputFormatter::escape($pattern)));
             }
         }
 
@@ -338,8 +340,8 @@ final class RegexLintCommand extends Command
     {
         $io->writeln(\sprintf('  <fg=green;options=bold>0</>  <fg=white;options=bold>%s</>  %s  <fg=green>%d chars saved</>', $lineNum, $link, $opt['savings']));
 
-        $original = $this->analysis->highlight($opt['optimization']->original);
-        $optimized = $this->analysis->highlight($opt['optimization']->optimized);
+        $original = $this->analysis->highlight(OutputFormatter::escape($opt['optimization']->original));
+        $optimized = $this->analysis->highlight(OutputFormatter::escape($opt['optimization']->optimized));
 
         $io->writeln(\sprintf('         <fg=red>─</> %s', $original));
         $io->writeln(\sprintf('         <fg=green>✨</> %s', $optimized));
