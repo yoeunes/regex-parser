@@ -21,7 +21,7 @@ namespace RegexParser\Bridge\Symfony\Extractor;
  *
  * @internal
  */
-final readonly class PhpStanExtractionStrategy implements ExtractionStrategyInterface
+final readonly class PhpStanExtractionStrategy implements ExtractorInterface
 {
     /**
      * @param list<string> $excludePaths
@@ -32,23 +32,7 @@ final readonly class PhpStanExtractionStrategy implements ExtractionStrategyInte
 
     public function extract(array $paths): array
     {
-        if (!$this->isAvailable()) {
-            return [];
-        }
-
         return $this->extractWithPhpStan($paths);
-    }
-
-    public function isAvailable(): bool
-    {
-        return class_exists(\PHPStan\Analyser\Analyser::class)
-            && class_exists(\PHPStan\Parser\Parser::class)
-            && class_exists(\PHPStan\PhpDoc\TypeNodeResolver::class);
-    }
-
-    public function getPriority(): int
-    {
-        return 10; // High priority, preferred when available
     }
 
     /**

@@ -17,7 +17,7 @@ use PHPUnit\Framework\TestCase;
 use RegexParser\Bridge\Symfony\Analyzer\RouteRequirementAnalyzer;
 use RegexParser\Bridge\Symfony\Analyzer\ValidatorRegexAnalyzer;
 use RegexParser\Bridge\Symfony\DependencyInjection\RegexParserExtension;
-use RegexParser\Bridge\Symfony\Extractor\ExtractionStrategyInterface;
+use RegexParser\Bridge\Symfony\Extractor\ExtractorInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 
 final class RegexParserExtensionTest extends TestCase
@@ -61,7 +61,7 @@ final class RegexParserExtensionTest extends TestCase
             'extractor_service' => 'my_custom_extractor',
         ]], $container);
 
-        $this->assertTrue($container->hasAlias(ExtractionStrategyInterface::class));
-        $this->assertSame('my_custom_extractor', (string) $container->getAlias(ExtractionStrategyInterface::class));
+        $this->assertTrue($container->hasAlias(ExtractorInterface::class));
+        $this->assertSame('my_custom_extractor', (string) $container->getAlias(ExtractorInterface::class));
     }
 }

@@ -21,7 +21,7 @@ namespace RegexParser\Bridge\Symfony\Extractor;
  *
  * @internal
  */
-final readonly class TokenBasedExtractionStrategy implements ExtractionStrategyInterface
+final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
 {
     private const IGNORABLE_TOKENS = [
         \T_WHITESPACE => true,
@@ -58,15 +58,7 @@ final readonly class TokenBasedExtractionStrategy implements ExtractionStrategyI
         return $occurrences;
     }
 
-    public function isAvailable(): bool
-    {
-        return true; // Token-based approach is always available
-    }
 
-    public function getPriority(): int
-    {
-        return 1; // Lowest priority, used as fallback
-    }
 
     /**
      * @param list<string> $paths

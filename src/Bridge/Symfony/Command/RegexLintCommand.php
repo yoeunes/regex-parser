@@ -16,6 +16,7 @@ namespace RegexParser\Bridge\Symfony\Command;
 use RegexParser\Bridge\Symfony\Analyzer\RouteRequirementAnalyzer;
 use RegexParser\Bridge\Symfony\Analyzer\ValidatorRegexAnalyzer;
 use RegexParser\Bridge\Symfony\Extractor\RegexPatternExtractor;
+use RegexParser\Bridge\Symfony\Extractor\TokenBasedExtractionStrategy;
 use RegexParser\NodeVisitor\LinterNodeVisitor;
 use RegexParser\ReDoS\ReDoSSeverity;
 use RegexParser\Regex;
@@ -89,7 +90,10 @@ final class RegexLintCommand extends Command
 
         $editorUrlTemplate = $this->editorUrl;
 
-        $extractor = $this->extractor ?? new RegexPatternExtractor();
+        $extractor = $this->extractor ?? new RegexPatternExtractor(
+            // Fallback to token-based if no injector is available
+            new TokenBasedExtractionStrategy($this->excludePaths)
+        );
         $patterns = $extractor->extract($paths);
 
         if ([] === $patterns && !$validateSymfony) {

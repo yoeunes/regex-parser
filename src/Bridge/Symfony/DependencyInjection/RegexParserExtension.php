@@ -13,7 +13,9 @@ declare(strict_types=1);
 
 namespace RegexParser\Bridge\Symfony\DependencyInjection;
 
-use RegexParser\Bridge\Symfony\Extractor\ExtractionStrategyInterface;
+use RegexParser\Bridge\Symfony\Extractor\ExtractorInterface;
+use RegexParser\Bridge\Symfony\Extractor\PhpStanExtractionStrategy;
+use RegexParser\Bridge\Symfony\Extractor\TokenBasedExtractionStrategy;
 use RegexParser\Cache\FilesystemCache;
 use RegexParser\Cache\NullCache;
 use RegexParser\Cache\PsrCacheAdapter;
@@ -101,7 +103,11 @@ final class RegexParserExtension extends Extension
 
         // Configure custom extractor service if provided
         if (null !== $config['extractor_service'] && '' !== $config['extractor_service']) {
-            $container->setAlias(ExtractionStrategyInterface::class, $config['extractor_service']);
+            $container->setAlias(ExtractorInterface::class, $config['extractor_service']);
+        } else {
+            // Determine and register the appropriate extractor
+            $extractorDefinition = $this->createExtractorDefinition($config, $container);
+            $container->setDefinition('regex_parser.extractor.instance', $extractorDefinition);
         }
 
         $loader = new PhpFileLoader($container, new FileLocator(__DIR__.'/../Resources/config'));
@@ -142,4 +148,38 @@ final class RegexParserExtension extends Extension
 
         return new Definition(NullCache::class);
     }
+
+    /**
+     * Create the appropriate extractor definition based on configuration and availability.
+     */
+    private function createExtractorDefinition(array $config, ContainerBuilder $container): Definition
+    {
+        // If user provided custom extractor service, create alias
+        if (null !== $config['extractor_service'] && '' !== $config['extractor_service']) {
+            return (new Definition(ExtractorInterface::class))
+                ->setFactory([new Reference($config['extractor_service']), '...']);
+        }
+
+        // Check if PHPStan is available and prefer it
+        if ($this->isPhpStanAvailable()) {
+            return (new Definition(PhpStanExtractionStrategy::class))
+                ->setArguments([$config['exclude_paths']]);
+        }
+
+        // Fallback to token-based extractor
+        return (new Definition(TokenBasedExtractionStrategy::class))
+            ->setArguments([$config['exclude_paths']]);
+    }
+
+    /**
+     * Check if PHPStan classes are available.
+     */
+    private function isPhpStanAvailable(): bool
+    {
+        return class_exists('PHPStan\\Analyser\\Analyser')
+            && class_exists('PHPStan\\Parser\\Parser')
+            && class_exists('PHPStan\\PhpDoc\\TypeNodeResolver');
+    }
+
+
 }

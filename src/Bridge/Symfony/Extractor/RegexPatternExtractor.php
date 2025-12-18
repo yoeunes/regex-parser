@@ -13,39 +13,15 @@ declare(strict_types=1);
 
 namespace RegexParser\Bridge\Symfony\Extractor;
 
-use RegexParser\Bridge\Symfony\Extractor\PhpStanExtractionStrategy;
-use RegexParser\Bridge\Symfony\Extractor\TokenBasedExtractionStrategy;
-
 /**
- * Extracts constant regex patterns from PHP source files using best available strategy.
- *
- * This class uses a strategy pattern to choose between PHPStan-based extraction
- * (when available) and a token-based fallback approach.
+ * Extracts regex patterns from PHP source files using the configured extractor.
  *
  * @internal
  */
 final class RegexPatternExtractor
 {
-    /**
-     * @var list<ExtractionStrategyInterface>
-     */
-    private array $strategies;
-
-    /**
-     * @param list<ExtractionStrategyInterface> $strategies
-     */
-    public function __construct(array $strategies = [], private ?ExtractionStrategyInterface $customStrategy = null)
+    public function __construct(private ExtractorInterface $extractor)
     {
-        if ($this->customStrategy) {
-            // If custom strategy is provided, use it with highest priority
-            $this->strategies = [$this->customStrategy, ...$strategies];
-        } else {
-            $this->strategies = empty($strategies) ? $this->createDefaultStrategies() : $strategies;
-        }
-
-        // Sort strategies by priority (highest first)
-        usort($this->strategies, static fn (ExtractionStrategyInterface $a, ExtractionStrategyInterface $b) => $b->getPriority() <=> $a->getPriority(),
-        );
     }
 
     /**
@@ -55,24 +31,6 @@ final class RegexPatternExtractor
      */
     public function extract(array $paths): array
     {
-        foreach ($this->strategies as $strategy) {
-            if ($strategy->isAvailable()) {
-                return $strategy->extract($paths);
-            }
-        }
-
-        // This should never happen as TokenBasedExtractionStrategy is always available
-        throw new \RuntimeException('No extraction strategy is available');
-    }
-
-    /**
-     * @return list<ExtractionStrategyInterface>
-     */
-    private function createDefaultStrategies(): array
-    {
-        return [
-            new PhpStanExtractionStrategy(),
-            new TokenBasedExtractionStrategy(),
-        ];
+        return $this->extractor->extract($paths);
     }
 }

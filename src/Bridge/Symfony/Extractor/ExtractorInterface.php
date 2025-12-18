@@ -14,11 +14,11 @@ declare(strict_types=1);
 namespace RegexParser\Bridge\Symfony\Extractor;
 
 /**
- * Strategy interface for different regex pattern extraction approaches.
+ * Interface for regex pattern extraction implementations.
  *
  * @internal
  */
-interface ExtractionStrategyInterface
+interface ExtractorInterface
 {
     /**
      * Extract regex patterns from the given paths.
@@ -28,14 +28,4 @@ interface ExtractionStrategyInterface
      * @return list<RegexPatternOccurrence>
      */
     public function extract(array $paths): array;
-
-    /**
-     * Check if this strategy is available for use.
-     */
-    public function isAvailable(): bool;
-
-    /**
-     * Get the priority of this strategy (higher = preferred).
-     */
-    public function getPriority(): int;
 }
