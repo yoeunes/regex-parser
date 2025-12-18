@@ -87,8 +87,8 @@ final class RegexPatternExtractorTest extends TestCase
         $fixtureDir = __DIR__.'/../../../../Fixtures/Extractor/DefaultExclude';
 
         // Debug: check if directory exists and is readable
-        $this->assertTrue(is_dir($fixtureDir), "Fixture directory should exist: {$fixtureDir}");
-        
+        $this->assertDirectoryExists($fixtureDir, "Fixture directory should exist: {$fixtureDir}");
+
         $result = $extractor->extract([$fixtureDir]); // Should use default exclude ['vendor']
 
         // Should find exactly one pattern from test.php, not from vendor/ignored.php
@@ -111,6 +111,4 @@ final class RegexPatternExtractorTest extends TestCase
         $this->assertSame('/test/', $result[0]->pattern);
         $this->assertStringContainsString('test.php', $result[0]->file);
     }
-
-
 }
