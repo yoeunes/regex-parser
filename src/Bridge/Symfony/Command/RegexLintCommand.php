@@ -65,11 +65,12 @@ final class RegexLintCommand extends Command
 
         $patterns = $this->analysis->scan($this->paths, $this->exclude);
 
-        if ($format === 'json') {
+        if ('json' === $format) {
             $issues = $this->analysis->lint($patterns);
             $optimizations = $this->analysis->suggestOptimizations($patterns, $this->minSavings);
             $results = $this->combineResults($issues, $optimizations, $patterns);
             $this->outputJsonResults($results, $output);
+
             return $this->determineJsonExitCode($results, $failOnWarnings);
         }
 
@@ -135,7 +136,7 @@ final class RegexLintCommand extends Command
 
     private function outputJsonResults(array $results, OutputInterface $output): void
     {
-        $output->write(json_encode($results, JSON_PRETTY_PRINT));
+        $output->write(json_encode($results, \JSON_PRETTY_PRINT));
     }
 
     private function determineJsonExitCode(array $results, bool $failOnWarnings): int
@@ -157,6 +158,7 @@ final class RegexLintCommand extends Command
         if ($failOnWarnings && $warnings > 0) {
             return Command::FAILURE;
         }
+
         return Command::SUCCESS;
     }
 
