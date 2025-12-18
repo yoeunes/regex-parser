@@ -83,6 +83,8 @@ return static function (ContainerConfigurator $container): void {
     $services->set('regex_parser.command.lint', RegexLintCommand::class)
         ->arg('$regex', service('regex_parser.regex'))
         ->arg('$editorUrl', param('regex_parser.editor_url'))
+        ->arg('$defaultPaths', param('regex_parser.paths'))
+        ->arg('$excludePaths', param('regex_parser.exclude_paths'))
         ->tag('console.command')
         ->public();
 

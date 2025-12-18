@@ -36,6 +36,8 @@ final class RegexLintCommand extends Command
     public function __construct(
         private readonly Regex $regex,
         private readonly ?string $editorUrl = null,
+        private readonly array $defaultPaths = ['src'],
+        private readonly array $excludePaths = ['vendor'],
     ) {
         parent::__construct();
     }
@@ -56,12 +58,12 @@ final class RegexLintCommand extends Command
         /** @var list<string> $paths */
         $paths = $input->getArgument('paths');
         if ([] === $paths) {
-            $paths = ['.'];
+            $paths = $this->defaultPaths;
         }
 
         $editorUrlTemplate = $this->editorUrl;
 
-        $extractor = new RegexPatternExtractor();
+        $extractor = new RegexPatternExtractor($this->excludePaths);
         $patterns = $extractor->extract($paths);
 
         if ([] === $patterns) {

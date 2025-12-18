@@ -23,6 +23,12 @@ namespace RegexParser\Bridge\Symfony\Command;
  */
 final class RegexPatternExtractor
 {
+    /**
+     * @param list<string> $excludePaths
+     */
+    public function __construct(
+        private readonly array $excludePaths = ['vendor'],
+    ) {}
     private const IGNORABLE_TOKENS = [
         \T_WHITESPACE => true,
         \T_COMMENT => true,
@@ -94,12 +100,23 @@ final class RegexPatternExtractor
                     continue;
                 }
 
-                $filePath = $file->getPathname();
-                
-                // Skip vendor directory
-                if (str_contains($filePath, '/vendor/') || str_contains($filePath, DIRECTORY_SEPARATOR . 'vendor' . DIRECTORY_SEPARATOR)) {
-                    continue;
-                }
+                 $filePath = $file->getPathname();
+
+                 // Skip excluded directories
+                 $excluded = false;
+                 foreach ($this->excludePaths as $excludePath) {
+                     $excludePath = trim($excludePath, '/\\');
+                     if ('' === $excludePath) {
+                         continue;
+                     }
+                     if (str_contains($filePath, DIRECTORY_SEPARATOR . $excludePath . DIRECTORY_SEPARATOR) || str_starts_with($filePath, $excludePath . DIRECTORY_SEPARATOR)) {
+                         $excluded = true;
+                         break;
+                     }
+                 }
+                 if ($excluded) {
+                     continue;
+                 }
 
                 yield $filePath;
             }
