@@ -53,17 +53,30 @@ final class RegexLintCommand extends Command
     {
         $this->addOption('fail-on-warnings', null, InputOption::VALUE_NONE, 'Fail the command if warnings are found.');
         $this->addOption('fix', null, InputOption::VALUE_NONE, 'Automatically apply optimizations to files.');
+        $this->addOption('format', null, InputOption::VALUE_REQUIRED, 'Output format (console, json)', 'console');
     }
 
     #[\Override]
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $io = new SymfonyStyle($input, $output);
-
+        $format = $input->getOption('format');
         $failOnWarnings = $input->getOption('fail-on-warnings');
         $fix = $input->getOption('fix');
 
-        $patterns = $this->scanFiles($io);
+        $patterns = $this->analysis->scan($this->paths, $this->exclude);
+
+        if ($format === 'json') {
+            $issues = $this->analysis->lint($patterns);
+            $optimizations = $this->analysis->suggestOptimizations($patterns, $this->minSavings);
+            $results = $this->combineResults($issues, $optimizations, $patterns);
+            $this->outputJsonResults($results, $output);
+            return $this->determineJsonExitCode($results, $failOnWarnings);
+        }
+
+        $io = new SymfonyStyle($input, $output);
+
+        $this->showHeader($io);
+        $this->showScanMessage($io, $patterns);
 
         if (empty($patterns)) {
             $this->showNoPatternsMessage($io);
@@ -99,10 +112,52 @@ final class RegexLintCommand extends Command
         $io->block('No constant preg_* patterns found.', 'INFO', 'fg=black;bg=blue', ' ', true);
     }
 
+    private function showHeader(SymfonyStyle $io): void
+    {
+        $io->writeln('');
+        $io->writeln('  <fg=white;options=bold>REGEX PARSER</> <fg=cyan>Linting & Optimization</>');
+        $io->writeln('  <fg=gray>─────────────────────────────</>');
+        $io->writeln('');
+    }
+
     private function showFooter(SymfonyStyle $io): void
     {
         $io->writeln('  <fg=cyan>https://github.com/yoeunes/regex-parser</> ⭐ Give it a star! by Younes ENNAJI');
         $io->writeln('');
+    }
+
+    private function showScanMessage(SymfonyStyle $io, array $patterns): void
+    {
+        $io->write('  <fg=cyan>🔍 Scanning files...</>');
+        $io->writeln(' <fg=green;options=bold>✓</>');
+        $io->writeln('');
+    }
+
+    private function outputJsonResults(array $results, OutputInterface $output): void
+    {
+        $output->write(json_encode($results, JSON_PRETTY_PRINT));
+    }
+
+    private function determineJsonExitCode(array $results, bool $failOnWarnings): int
+    {
+        $errors = 0;
+        $warnings = 0;
+        foreach ($results as $result) {
+            foreach ($result['issues'] as $issue) {
+                if ('error' === $issue['type']) {
+                    $errors++;
+                } else {
+                    $warnings++;
+                }
+            }
+        }
+        if ($errors > 0) {
+            return Command::FAILURE;
+        }
+        if ($failOnWarnings && $warnings > 0) {
+            return Command::FAILURE;
+        }
+        return Command::SUCCESS;
     }
 
     private function initializeStats(): array
@@ -139,6 +194,9 @@ final class RegexLintCommand extends Command
             $patternMap[$key] = $pattern->pattern;
         }
 
+        // Cache file contents to avoid multiple reads
+        $fileCache = [];
+
         // Group issues by file and line
         foreach ($issues as $issue) {
             $key = $issue['file'].':'.$issue['line'];
@@ -153,8 +211,10 @@ final class RegexLintCommand extends Command
             }
 
             // Check for ignore comment on the previous line
-            $content = file_get_contents($issue['file']);
-            $lines = explode("\n", $content);
+            if (!isset($fileCache[$issue['file']])) {
+                $fileCache[$issue['file']] = file_get_contents($issue['file']);
+            }
+            $lines = explode("\n", $fileCache[$issue['file']]);
             $prevLineIndex = $issue['line'] - 2; // 0-based index for previous line
             if ($prevLineIndex >= 0 && isset($lines[$prevLineIndex]) && str_contains($lines[$prevLineIndex], '// @regex-lint-ignore')) {
                 continue; // Skip this issue
