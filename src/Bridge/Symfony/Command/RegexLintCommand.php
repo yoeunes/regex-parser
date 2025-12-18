@@ -51,12 +51,11 @@ final class RegexLintCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
 
-        $this->showHeader($io);
-
         $patterns = $this->scanFiles($io);
 
         if (empty($patterns)) {
             $this->showNoPatternsMessage($io);
+            $this->showFooter($io);
 
             return Command::SUCCESS;
         }
@@ -73,14 +72,6 @@ final class RegexLintCommand extends Command
         return $this->determineExitCode($io, $stats);
     }
 
-    private function showHeader(SymfonyStyle $io): void
-    {
-        $io->writeln('');
-        $io->writeln('  <fg=white;options=bold>REGEX PARSER</> <fg=cyan>Linting & Optimization</>');
-        $io->writeln('  <fg=gray>─────────────────────────────</>');
-        $io->writeln('');
-    }
-
     private function scanFiles(SymfonyStyle $io): array
     {
         $io->write('  <fg=cyan>🔍 Scanning files...</>');
@@ -94,6 +85,12 @@ final class RegexLintCommand extends Command
     private function showNoPatternsMessage(SymfonyStyle $io): void
     {
         $io->block('No constant preg_* patterns found.', 'INFO', 'fg=black;bg=blue', ' ', true);
+    }
+
+    private function showFooter(SymfonyStyle $io): void
+    {
+        $io->writeln('  <fg=cyan>https://github.com/yoeunes/regex-parser</> ⭐ Give it a star! by Younes ENNAJI');
+        $io->writeln('');
     }
 
     private function initializeStats(): array
@@ -208,6 +205,8 @@ final class RegexLintCommand extends Command
                 $io->newLine();
             }
 
+            $this->showFooter($io);
+
             return Command::SUCCESS;
         }
 
@@ -215,6 +214,8 @@ final class RegexLintCommand extends Command
         $io->writeln(
             \sprintf('  <bg=red;fg=white;options=bold> FAIL </><fg=red;options=bold> %d invalid regex patterns found</>', $stats['errors']));
         $io->newLine();
+
+        $this->showFooter($io);
 
         return Command::FAILURE;
     }
