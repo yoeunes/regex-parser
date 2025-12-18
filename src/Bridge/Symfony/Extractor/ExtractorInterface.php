@@ -21,11 +21,11 @@ namespace RegexParser\Bridge\Symfony\Extractor;
 interface ExtractorInterface
 {
     /**
-     * Extract regex patterns from the given paths.
+     * Extract regex patterns from the given PHP files.
      *
-     * @param list<string> $paths
+     * @param list<string> $files List of PHP file paths to analyze
      *
      * @return list<RegexPatternOccurrence>
      */
-    public function extract(array $paths): array;
+    public function extract(array $files): array;
 }

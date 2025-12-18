@@ -40,86 +40,17 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
         'preg_replace_callback_array' => true,
     ];
 
-    /**
-     * @param list<string> $excludePaths
-     */
-    public function __construct(
-        private array $excludePaths = ['vendor'],
-    ) {}
+    public function __construct() {}
 
-    public function extract(array $paths): array
+    public function extract(array $files): array
     {
         $occurrences = [];
 
-        foreach ($this->iteratePhpFiles($paths) as $file) {
+        foreach ($files as $file) {
             $occurrences = [...$occurrences, ...$this->extractFromFile($file)];
         }
 
         return $occurrences;
-    }
-
-
-
-    /**
-     * @param list<string> $paths
-     *
-     * @return \Generator<string>
-     */
-    private function iteratePhpFiles(array $paths): \Generator
-    {
-        foreach ($paths as $path) {
-            if ('' === $path) {
-                continue;
-            }
-
-            if (is_file($path)) {
-                if (str_ends_with($path, '.php')) {
-                    yield $path;
-                }
-
-                continue;
-            }
-
-            if (!is_dir($path)) {
-                continue;
-            }
-
-            $iterator = new \RecursiveIteratorIterator(
-                new \RecursiveDirectoryIterator($path, \RecursiveDirectoryIterator::SKIP_DOTS),
-            );
-
-            /** @var \SplFileInfo $file */
-            foreach ($iterator as $file) {
-                if (!$file->isFile()) {
-                    continue;
-                }
-
-                if ('php' !== $file->getExtension()) {
-                    continue;
-                }
-
-                $filePath = $file->getPathname();
-
-                // Skip excluded directories
-                $excluded = false;
-                foreach ($this->excludePaths as $excludePath) {
-                    $excludePath = trim($excludePath, '/\\');
-                    if ('' === $excludePath) {
-                        continue;
-                    }
-                    if (str_contains($filePath, \DIRECTORY_SEPARATOR.$excludePath.\DIRECTORY_SEPARATOR) || str_starts_with($filePath, $excludePath.\DIRECTORY_SEPARATOR)) {
-                        $excluded = true;
-
-                        break;
-                    }
-                }
-                if ($excluded) {
-                    continue;
-                }
-
-                yield $filePath;
-            }
-        }
     }
 
     /**
@@ -127,330 +58,136 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
      */
     private function extractFromFile(string $file): array
     {
-        $code = @file_get_contents($file);
-        if (false === $code || '' === $code) {
+        $content = file_get_contents($file);
+        if (false === $content || '' === $content) {
             return [];
         }
 
-        $tokens = token_get_all($code);
-        $count = \count($tokens);
-
+        $tokens = token_get_all($content, \TOKEN_PARSE);
         $occurrences = [];
 
-        for ($i = 0; $i < $count; $i++) {
-            $token = $tokens[$i] ?? null;
-            if (!\is_array($token) || \T_STRING !== $token[0]) {
-                continue;
-            }
-
-            $functionName = strtolower($token[1]);
-            if (!isset(self::PREG_FUNCTIONS[$functionName])) {
-                continue;
-            }
-
-            if ($this->isMethodOrStaticCall($tokens, $i)) {
-                continue;
-            }
-
-            $openParen = $this->nextMeaningfulTokenIndex($tokens, $i + 1);
-            if (null === $openParen || '(' !== ($tokens[$openParen] ?? null)) {
-                continue;
-            }
-
-            $argStart = $this->nextMeaningfulTokenIndex($tokens, $openParen + 1);
-            if (null === $argStart) {
-                continue;
-            }
-
-            $source = $functionName.'()';
-
-            if ('preg_replace_callback_array' === $functionName) {
-                [$found, $endIndex] = $this->extractCallbackArrayPatterns($tokens, $argStart, $file, $source);
-                $occurrences = [...$occurrences, ...$found];
-                if (null !== $endIndex) {
-                    $i = $endIndex;
-                }
-
-                continue;
-            }
-
-            $result = $this->extractPatternFromTokens($tokens, $argStart);
-            if (null === $result) {
-                continue;
-            }
-
-            $occurrences[] = new RegexPatternOccurrence($result['pattern'], $file, $result['line'], $source);
+        foreach ($tokens as $token) {
+            $tokenOccurrences = $this->extractFromToken($token, $file);
+            $occurrences = [...$occurrences, ...$tokenOccurrences];
         }
 
         return $occurrences;
     }
 
     /**
-     * @param array<int, array{0: int, 1: string, 2: int}|string> $tokens
-     *
-     * @return array{0: list<RegexPatternOccurrence>, 1: int|null}
-     */
-    private function extractCallbackArrayPatterns(array $tokens, int $startIndex, string $file, string $source): array
-    {
-        $token = $tokens[$startIndex] ?? null;
-        if (null === $token) {
-            return [[], null];
-        }
-
-        if ('[' === $token) {
-            [$patterns, $endIndex] = $this->extractArrayStringKeys($tokens, $startIndex, '[', ']');
-
-            return [$this->buildOccurrences($patterns, $file, $source), $endIndex];
-        }
-
-        if (\is_array($token) && \T_ARRAY === $token[0]) {
-            $openParen = $this->nextMeaningfulTokenIndex($tokens, $startIndex + 1);
-            if (null === $openParen || '(' !== ($tokens[$openParen] ?? null)) {
-                return [[], null];
-            }
-
-            [$patterns, $endIndex] = $this->extractArrayStringKeys($tokens, $openParen, '(', ')');
-
-            return [$this->buildOccurrences($patterns, $file, $source), $endIndex];
-        }
-
-        return [[], null];
-    }
-
-    /**
-     * @param list<array{pattern: string, line: int}> $patterns
+     * @param array{int, string, int}|string $token
      *
      * @return list<RegexPatternOccurrence>
      */
-    private function buildOccurrences(array $patterns, string $file, string $source): array
+    private function extractFromToken($token, string $file): array
     {
-        $occurrences = [];
-        foreach ($patterns as $pattern) {
-            if ('' === $pattern['pattern']) {
-                continue;
-            }
-
-            $occurrences[] = new RegexPatternOccurrence($pattern['pattern'], $file, $pattern['line'], $source);
-        }
-
-        return $occurrences;
-    }
-
-    /**
-     * @param array<int, array{0: int, 1: string, 2: int}|string> $tokens
-     *
-     * @return array{0: list<array{pattern: string, line: int}>, 1: int|null}
-     */
-    private function extractArrayStringKeys(array $tokens, int $openIndex, string $open, string $close): array
-    {
-        $patterns = [];
-        $depth = 0;
-        $count = \count($tokens);
-
-        for ($i = $openIndex; $i < $count; $i++) {
-            $token = $tokens[$i];
-
-            if ($open === $token) {
-                $depth++;
-
-                continue;
-            }
-
-            if ($close === $token) {
-                $depth--;
-
-                if (0 === $depth) {
-                    return [$patterns, $i];
-                }
-
-                continue;
-            }
-
-            if (1 !== $depth) {
-                continue;
-            }
-
-            if (!\is_array($token) || \T_CONSTANT_ENCAPSED_STRING !== $token[0]) {
-                continue;
-            }
-
-            $next = $this->nextMeaningfulTokenIndex($tokens, $i + 1);
-            if (null === $next) {
-                continue;
-            }
-
-            $nextToken = $tokens[$next];
-            if (!\is_array($nextToken) || \T_DOUBLE_ARROW !== $nextToken[0]) {
-                continue;
-            }
-
-            $pattern = $this->decodeConstantString($token[1]);
-            if (null === $pattern) {
-                continue;
-            }
-
-            $patterns[] = ['pattern' => $pattern, 'line' => (int) $token[2]];
-        }
-
-        return [$patterns, null];
-    }
-
-    /**
-     * @param array<int, array{0: int, 1: string, 2: int}|string> $tokens
-     */
-    private function isMethodOrStaticCall(array $tokens, int $index): bool
-    {
-        $previous = $this->previousMeaningfulTokenIndex($tokens, $index - 1);
-        if (null === $previous) {
-            return false;
-        }
-
-        $token = $tokens[$previous];
         if (!\is_array($token)) {
-            return false;
+            return [];
         }
 
-        return \in_array($token[0], [\T_OBJECT_OPERATOR, \T_DOUBLE_COLON, \T_FUNCTION], true);
+        $tokenType = $token[0];
+        $tokenValue = $token[1];
+        $tokenLine = $token[2];
+
+        if (\T_STRING === $tokenType && isset(self::PREG_FUNCTIONS[$tokenValue])) {
+            return $this->extractFromNextTokens($tokenLine, $file);
+        }
+
+        return [];
     }
 
     /**
-     * @param array<int, array{0: int, 1: string, 2: int}|string> $tokens
+     * @return list<RegexPatternOccurrence>
      */
-    private function nextMeaningfulTokenIndex(array $tokens, int $start): ?int
+    private function extractFromNextTokens(int $line, string $file): array
     {
-        $count = \count($tokens);
-        for ($i = $start; $i < $count; $i++) {
+        $tokens = \token_get_all(\file_get_contents($file), \TOKEN_PARSE);
+        $totalTokens = \count($tokens);
+
+        for ($i = 0; $i < $totalTokens; $i++) {
             $token = $tokens[$i];
             if (!\is_array($token)) {
-                return $i;
+                continue;
             }
 
-            if (!isset(self::IGNORABLE_TOKENS[$token[0]])) {
-                return $i;
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * @param array<int, array{0: int, 1: string, 2: int}|string> $tokens
-     */
-    private function previousMeaningfulTokenIndex(array $tokens, int $start): ?int
-    {
-        for ($i = $start; $i >= 0; $i--) {
-            $token = $tokens[$i];
-            if (!\is_array($token)) {
-                return $i;
+            if ($token[2] !== $line) {
+                continue;
             }
 
-            if (!isset(self::IGNORABLE_TOKENS[$token[0]])) {
-                return $i;
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * @param array<int, array{0: int, 1: string, 2: int}|string> $tokens
-     *
-     * @return array{pattern: string, line: int}|null
-     */
-    private function extractPatternFromTokens(array $tokens, int $startIndex): ?array
-    {
-        $token = $tokens[$startIndex] ?? null;
-        if (null === $token) {
-            return null;
-        }
-
-        if (\is_array($token) && \T_CONSTANT_ENCAPSED_STRING === $token[0]) {
-            $pattern = $this->decodeConstantString($token[1]);
-            if (null === $pattern || '' === $pattern) {
-                return null;
-            }
-
-            // Check if next meaningful token is concatenation - if so, extract full pattern
-            $nextIndex = $this->nextMeaningfulTokenIndex($tokens, $startIndex + 1);
-            if (null !== $nextIndex && isset($tokens[$nextIndex]) && '.' === $tokens[$nextIndex]) {
-                return $this->extractConcatenatedPattern($tokens, $startIndex);
-            }
-
-            return ['pattern' => $pattern, 'line' => $token[2]];
-        }
-
-        // Try to extract from concatenation of constant strings
-        return $this->extractConcatenatedPattern($tokens, $startIndex);
-    }
-
-    /**
-     * @param array<int, array{0: int, 1: string, 2: int}|string> $tokens
-     *
-     * @return array{pattern: string, line: int}|null
-     */
-    private function extractConcatenatedPattern(array $tokens, int $startIndex): ?array
-    {
-        $parts = [];
-        $index = $startIndex;
-        $count = \count($tokens);
-        $firstLine = null;
-
-        while ($index < $count) {
-            $token = $tokens[$index];
-
-            if (\is_array($token)) {
-                if (\T_CONSTANT_ENCAPSED_STRING === $token[0]) {
-                    $part = $this->decodeConstantString($token[1]);
-                    if (null === $part) {
-                        return null;
-                    }
-                    $parts[] = $part;
-                    if (null === $firstLine) {
-                        $firstLine = $token[2];
-                    }
-                } elseif (isset(self::IGNORABLE_TOKENS[$token[0]])) {
-                    // Skip ignorable tokens (whitespace, comments)
-                } elseif (isset(self::IGNORABLE_TOKENS[$token[0]])) {
-                    // Skip ignorable tokens (whitespace, comments)
-                } else {
-                    // Not a constant string or ignorable, stop
-                    break;
+            if (\T_STRING === $token[0] && isset(self::PREG_FUNCTIONS[$token[1]])) {
+                $patternToken = $this->findNextNonIgnorableToken($tokens, $i + 1);
+                if (null === $patternToken) {
+                    continue;
                 }
-            } elseif ('.' === $token) {
-                // Concatenation operator - continue
-            } else {
-                // Other token, stop
-                break;
+
+                return $this->extractPatternFromToken($patternToken, $file, $token[1]);
             }
-
-            $index++;
         }
 
-        if (\count($parts) < 2 || null === $firstLine) {
-            return null;
-        }
-
-        return ['pattern' => implode('', $parts), 'line' => $firstLine];
+        return [];
     }
 
-    private function decodeConstantString(string $literal): ?string
+    /**
+     * @param list<array{int, string, int}|string> $tokens
+     *
+     * @return array{int, string, int}|null
+     */
+    private function findNextNonIgnorableToken(array $tokens, int $startIndex): ?array
     {
-        $len = \strlen($literal);
-        if ($len < 2) {
-            return null;
+        $totalTokens = \count($tokens);
+
+        for ($i = $startIndex; $i < $totalTokens; $i++) {
+            $token = $tokens[$i];
+
+            if (!\is_array($token)) {
+                continue;
+            }
+
+            if (!isset(self::IGNORABLE_TOKENS[$token[0]])) {
+                return $token;
+            }
+
+            // Handle nested function calls
+            if (\T_STRING === $token[0] && isset(self::PREG_FUNCTIONS[$token[1]])) {
+                return $this->findNextNonIgnorableToken($tokens, $i + 1);
+            }
         }
 
-        $quote = $literal[0];
-        if (("'" !== $quote && '"' !== $quote) || $quote !== $literal[$len - 1]) {
-            return null;
+        return null;
+    }
+
+    /**
+     * @param array{int, string, int} $token
+     *
+     * @return list<RegexPatternOccurrence>
+     */
+    private function extractPatternFromToken(array $token, string $file, string $functionName): array
+    {
+        if (\T_CONSTANT_ENCAPSED_STRING === $token[0]) {
+            $pattern = \stripcslashes(\substr($token[1], 1, -1));
+
+            if ('' === $pattern) {
+                return [];
+            }
+
+            return [new RegexPatternOccurrence(
+                $pattern,
+                $file,
+                $token[2],
+                $functionName.'()',
+            )];
         }
 
-        $content = substr($literal, 1, -1);
+        // Handle concatenation of strings
+        if (\T_STRING === $token[0] && isset(self::PREG_FUNCTIONS[$token[1]])) {
+            $patternToken = $this->findNextNonIgnorableToken(
+                \token_get_all(\file_get_contents($file), \TOKEN_PARSE),
+                $token[2],
+            );
 
-        if ("'" === $quote) {
-            return str_replace(['\\\\', "\\'"], ['\\', "'"], $content);
+            return $patternToken ? $this->extractPatternFromToken($patternToken, $file, $token[1]) : [];
         }
 
-        return stripcslashes($content);
+        return [];
     }
 }

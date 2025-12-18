@@ -63,6 +63,7 @@ return static function (ContainerConfigurator $container): void {
     $services->set('regex_parser.extractor', RegexPatternExtractor::class)
         ->args([
             '$extractor' => service('regex_parser.extractor.instance')->nullOnInvalid(),
+            '$excludePaths' => param('regex_parser.exclude_paths'),
         ]);
 
     $services->set('regex_parser.command.lint', RegexLintCommand::class)

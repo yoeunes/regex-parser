@@ -162,13 +162,11 @@ final class RegexParserExtension extends Extension
 
         // Check if PHPStan is available and prefer it
         if ($this->isPhpStanAvailable()) {
-            return (new Definition(PhpStanExtractionStrategy::class))
-                ->setArguments([$config['exclude_paths']]);
+            return new Definition(PhpStanExtractionStrategy::class);
         }
 
         // Fallback to token-based extractor
-        return (new Definition(TokenBasedExtractionStrategy::class))
-            ->setArguments([$config['exclude_paths']]);
+        return new Definition(TokenBasedExtractionStrategy::class);
     }
 
     /**

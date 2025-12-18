@@ -23,94 +23,15 @@ namespace RegexParser\Bridge\Symfony\Extractor;
  */
 final readonly class PhpStanExtractionStrategy implements ExtractorInterface
 {
-    /**
-     * @param list<string> $excludePaths
-     */
-    public function __construct(
-        private array $excludePaths = ['vendor'],
-    ) {}
+    public function __construct() {}
 
-    public function extract(array $paths): array
+    public function extract(array $files): array
     {
-        return $this->extractWithPhpStan($paths);
-    }
-
-    /**
-     * @param list<string> $paths
-     *
-     * @return list<RegexPatternOccurrence>
-     */
-    private function extractWithPhpStan(array $paths): array
-    {
-        try {
-            $phpFiles = $this->collectPhpFiles($paths);
-            if (empty($phpFiles)) {
-                return [];
-            }
-
-            return $this->analyzeFilesWithPhpStan($phpFiles);
-        } catch (\Throwable) {
-            // If PHPStan analysis fails, return empty array to fallback gracefully
+        if (empty($files)) {
             return [];
         }
-    }
 
-    /**
-     * @param list<string> $paths
-     *
-     * @return list<string>
-     */
-    private function collectPhpFiles(array $paths): array
-    {
-        $files = [];
-        foreach ($paths as $path) {
-            if ('' === $path) {
-                continue;
-            }
-
-            if (is_file($path) && str_ends_with($path, '.php')) {
-                $files[] = $path;
-
-                continue;
-            }
-
-            if (!is_dir($path)) {
-                continue;
-            }
-
-            $iterator = new \RecursiveIteratorIterator(
-                new \RecursiveDirectoryIterator($path, \RecursiveDirectoryIterator::SKIP_DOTS),
-            );
-
-            /** @var \SplFileInfo $file */
-            foreach ($iterator as $file) {
-                if (!$file->isFile() || 'php' !== $file->getExtension()) {
-                    continue;
-                }
-
-                $filePath = $file->getPathname();
-
-                // Skip excluded directories
-                $excluded = false;
-                foreach ($this->excludePaths as $excludePath) {
-                    $excludePath = trim($excludePath, '/\\');
-                    if ('' === $excludePath) {
-                        continue;
-                    }
-                    if (str_contains($filePath, \DIRECTORY_SEPARATOR.$excludePath.\DIRECTORY_SEPARATOR) || str_starts_with($filePath, $excludePath.\DIRECTORY_SEPARATOR)) {
-                        $excluded = true;
-
-                        break;
-                    }
-                }
-
-                if (!$excluded) {
-                    $files[] = $filePath;
-                }
-            }
-        }
-
-        return $files;
+        return $this->analyzeFilesWithPhpStan($files);
     }
 
     /**
