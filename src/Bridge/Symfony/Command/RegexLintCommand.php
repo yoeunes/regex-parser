@@ -16,6 +16,8 @@ namespace RegexParser\Bridge\Symfony\Command;
 use RegexParser\Bridge\Symfony\Console\LinkFormatter;
 use RegexParser\Bridge\Symfony\Console\RelativePathHelper;
 use RegexParser\Bridge\Symfony\Service\RegexAnalysisService;
+use RegexParser\Bridge\Symfony\Service\RouteValidationService;
+use RegexParser\Bridge\Symfony\Service\ValidatorValidationService;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Formatter\OutputFormatter;
@@ -37,6 +39,8 @@ final class RegexLintCommand extends Command
 
     public function __construct(
         private readonly RegexAnalysisService $analysis,
+        private readonly ?RouteValidationService $routeValidation = null,
+        private readonly ?ValidatorValidationService $validatorValidation = null,
         ?string $editorUrl = null,
         private readonly array $paths = ['src'],
         private readonly array $exclude = ['vendor'],
@@ -69,6 +73,18 @@ final class RegexLintCommand extends Command
             $issues = $this->analysis->lint($patterns);
             $optimizations = $this->analysis->suggestOptimizations($patterns, $this->minSavings);
             $results = $this->combineResults($issues, $optimizations, $patterns);
+
+            $additionalResults = [];
+            if ($this->routeValidation) {
+                $routeIssues = $this->routeValidation->analyze();
+                $additionalResults = array_merge($additionalResults, $this->convertAnalysisIssuesToResults($routeIssues, 'Symfony Router'));
+            }
+            if ($this->validatorValidation) {
+                $validatorIssues = $this->validatorValidation->analyze();
+                $additionalResults = array_merge($additionalResults, $this->convertAnalysisIssuesToResults($validatorIssues, 'Symfony Validator'));
+            }
+            $results = array_merge($results, $additionalResults);
+
             if ($fix) {
                 $this->applyFixes($results);
             }
@@ -92,6 +108,17 @@ final class RegexLintCommand extends Command
         $stats = $this->initializeStats();
 
         $allResults = $this->analyzePatternsIntegrated($io, $patterns);
+
+        $additionalResults = [];
+        if ($this->routeValidation) {
+            $routeIssues = $this->routeValidation->analyze();
+            $additionalResults = array_merge($additionalResults, $this->convertAnalysisIssuesToResults($routeIssues, 'Symfony Router'));
+        }
+        if ($this->validatorValidation) {
+            $validatorIssues = $this->validatorValidation->analyze();
+            $additionalResults = array_merge($additionalResults, $this->convertAnalysisIssuesToResults($validatorIssues, 'Symfony Validator'));
+        }
+        $allResults = array_merge($allResults, $additionalResults);
 
         if ($fix) {
             $this->applyFixes($allResults);
@@ -213,6 +240,28 @@ final class RegexLintCommand extends Command
         }
 
         return $fixedFiles;
+    }
+
+    private function convertAnalysisIssuesToResults(array $issues, string $category): array
+    {
+        $results = [];
+        foreach ($issues as $index => $issue) {
+            $results[] = [
+                'file' => $category,
+                'line' => $index + 1, // Use index as line for uniqueness
+                'pattern' => null, // No specific pattern
+                'issues' => [
+                    [
+                        'type' => $issue->isError ? 'error' : 'warning',
+                        'message' => $issue->message,
+                        'file' => $category,
+                        'line' => $index + 1,
+                    ],
+                ],
+                'optimizations' => [],
+            ];
+        }
+        return $results;
     }
 
     private function initializeStats(): array

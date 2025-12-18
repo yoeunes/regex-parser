@@ -18,6 +18,8 @@ use RegexParser\Bridge\Symfony\Analyzer\ValidatorRegexAnalyzer;
 use RegexParser\Bridge\Symfony\Command\RegexLintCommand;
 use RegexParser\Bridge\Symfony\Extractor\RegexPatternExtractor;
 use RegexParser\Bridge\Symfony\Service\RegexAnalysisService;
+use RegexParser\Bridge\Symfony\Service\RouteValidationService;
+use RegexParser\Bridge\Symfony\Service\ValidatorValidationService;
 use RegexParser\Regex;
 
 /*
@@ -54,8 +56,22 @@ return static function (ContainerConfigurator $container): void {
         ->arg('$regex', service('regex_parser.regex'))
         ->arg('$extractor', service('regex_parser.extractor')->nullOnInvalid());
 
+    $services->set('regex_parser.service.route_validation', RouteValidationService::class)
+        ->args([
+            '$router' => service('router')->nullOnInvalid(),
+            '$analyzer' => service(RouteRequirementAnalyzer::class),
+        ]);
+
+    $services->set('regex_parser.service.validator_validation', ValidatorValidationService::class)
+        ->args([
+            '$validator' => service('validator')->nullOnInvalid(),
+            '$analyzer' => service(ValidatorRegexAnalyzer::class),
+        ]);
+
     $services->set('regex_parser.command.lint', RegexLintCommand::class)
         ->arg('$analysis', service('regex_parser.service.regex_analysis'))
+        ->arg('$routeValidation', service('regex_parser.service.route_validation')->nullOnInvalid())
+        ->arg('$validatorValidation', service('regex_parser.service.validator_validation')->nullOnInvalid())
         ->arg('$editorUrl', param('regex_parser.editor_format'))
         ->arg('$paths', param('regex_parser.paths'))
         ->arg('$exclude', param('regex_parser.exclude_paths'))
@@ -67,12 +83,18 @@ return static function (ContainerConfigurator $container): void {
     $services->set(RouteRequirementAnalyzer::class)
         ->args([
             '$regex' => service('regex_parser.regex'),
+            '$warningThreshold' => 1,
+            '$redosThreshold' => 'high',
+            '$ignoredPatterns' => [],
         ])
         ->tag('regex_parser.analyzer');
 
     $services->set(ValidatorRegexAnalyzer::class)
         ->args([
             '$regex' => service('regex_parser.regex'),
+            '$warningThreshold' => 1,
+            '$redosThreshold' => 'high',
+            '$ignoredPatterns' => [],
         ])
         ->tag('regex_parser.analyzer');
 };
