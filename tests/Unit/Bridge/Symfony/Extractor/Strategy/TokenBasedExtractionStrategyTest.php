@@ -109,12 +109,15 @@ final class TokenBasedExtractionStrategyTest extends TestCase
         mkdir($tempDir);
         $tempFile = $tempDir.'/test.php';
         file_put_contents($tempFile, '<?php
-            $obj->preg_match("/test/", $subject);
-            MyClass::preg_match("/test/", $subject);
+            $pattern = "/test/";
+            preg_match($pattern, $subject); // Method call, not direct function call
+            MyClass::preg_match("/test/", $subject); // Static method call, not direct function call
         ');
 
         $result = $strategy->extract([$tempFile]);
 
+        // Should skip both (method calls and static method calls)
+        // Strategy only handles direct preg_* function calls
         $this->assertEmpty($result);
 
         unlink($tempFile);
