@@ -23,7 +23,7 @@ final class ConfigurationTest extends TestCase
     public function test_default_configuration(): void
     {
         $processor = new Processor();
-        $configuration = new Configuration(false);
+        $configuration = new Configuration();
 
         /**
          * @var array{
@@ -39,7 +39,7 @@ final class ConfigurationTest extends TestCase
          */
         $config = $processor->processConfiguration($configuration, []);
 
-        $this->assertFalse($config['enabled']);
+
         $this->assertSame(Regex::DEFAULT_MAX_PATTERN_LENGTH, $config['max_pattern_length']);
         $this->assertNull($config['cache']);
         $this->assertSame(50, $config['analysis']['warning_threshold']);
@@ -50,7 +50,7 @@ final class ConfigurationTest extends TestCase
     public function test_custom_configuration(): void
     {
         $processor = new Processor();
-        $configuration = new Configuration(true);
+        $configuration = new Configuration();
 
         /**
          * @var array{
@@ -65,7 +65,6 @@ final class ConfigurationTest extends TestCase
          * } $config
          */
         $config = $processor->processConfiguration($configuration, [[
-            'enabled' => true,
             'max_pattern_length' => 10,
             'cache' => '/tmp/cache',
             'analysis' => [
@@ -88,7 +87,7 @@ final class ConfigurationTest extends TestCase
          * } $config
          */
 
-        $this->assertTrue($config['enabled']);
+
         $this->assertSame(10, $config['max_pattern_length']);
         $this->assertSame('/tmp/cache', $config['cache']);
         $this->assertSame(['foo', 'bar'], $config['analysis']['ignore_patterns']);

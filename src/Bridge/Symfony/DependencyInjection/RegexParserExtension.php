@@ -37,14 +37,11 @@ final class RegexParserExtension extends Extension
     #[\Override]
     public function load(array $configs, ContainerBuilder $container): void
     {
-        // Pass kernel.debug to Configuration for default values
-        $debug = (bool) $container->getParameter('kernel.debug');
-        $configuration = new Configuration($debug);
+        $configuration = new Configuration();
 
-         /**
-          * @var array{
-          *     enabled: bool,
-          *     max_pattern_length: int,
+        /**
+         * @var array{
+         *     max_pattern_length: int,
           *     max_lookbehind_length: int,
           *     cache: string|null,
           *     cache_pool: string|null,
@@ -64,11 +61,6 @@ final class RegexParserExtension extends Extension
           * } $config
           */
         $config = $this->processConfiguration($configuration, $configs);
-
-        // If the bundle is disabled entirely, do nothing
-        if (!$config['enabled']) {
-            return;
-        }
 
         $ignoredPatterns = array_values(array_unique([
             ...$config['analysis']['ignore_patterns'],

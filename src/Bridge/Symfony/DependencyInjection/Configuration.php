@@ -23,13 +23,6 @@ use Symfony\Component\Config\Definition\ConfigurationInterface;
 final readonly class Configuration implements ConfigurationInterface
 {
     /**
-     * @param bool $debug The value of the `kernel.debug` parameter.
-     */
-    public function __construct(
-        private bool $debug = false,
-    ) {}
-
-    /**
      * @return TreeBuilder the tree builder instance
      */
     public function getConfigTreeBuilder(): TreeBuilder
@@ -38,10 +31,6 @@ final readonly class Configuration implements ConfigurationInterface
 
         $treeBuilder->getRootNode()
             ->children()
-                ->booleanNode('enabled')
-                    ->defaultValue($this->debug)
-                    ->info('Enable or disable the RegexParser bundle entirely. Defaults to dev/test only.')
-                ->end()
                 ->integerNode('max_pattern_length')
                     ->defaultValue(Regex::DEFAULT_MAX_PATTERN_LENGTH)
                     ->info('The maximum allowed length for a regex pattern string to parse.')

@@ -34,7 +34,6 @@ final class RegexParserBundleTest extends TestCase
     {
         $cacheDir = sys_get_temp_dir().'/regex_parser_'.uniqid();
         $container = $this->createContainer([
-            'enabled' => true,
             'max_pattern_length' => 5000,
             'cache' => $cacheDir,
         ]);
@@ -56,7 +55,7 @@ final class RegexParserBundleTest extends TestCase
 
     public function test_command_is_registered_as_console_service(): void
     {
-        $container = $this->createContainer(['enabled' => true]);
+        $container = $this->createContainer([]);
         $container->compile();
 
         $this->assertTrue($container->hasDefinition('regex_parser.command.lint'));
@@ -69,13 +68,7 @@ final class RegexParserBundleTest extends TestCase
         $this->assertSame('regex:lint', $command->getName());
     }
 
-    public function test_bundle_can_be_disabled(): void
-    {
-        $container = $this->createContainer(['enabled' => false]);
-        $container->compile();
 
-        $this->assertFalse($container->has('regex_parser.regex'));
-    }
 
     /**
      * @param array<string, mixed> $config

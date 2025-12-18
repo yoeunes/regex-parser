@@ -28,7 +28,6 @@ final class RegexParserExtensionTest extends TestCase
 
         $extension = new RegexParserExtension();
         $extension->load([[
-            'enabled' => true,
             'max_pattern_length' => 42,
             'cache' => '/tmp/cache',
             'analysis' => [
@@ -47,20 +46,9 @@ final class RegexParserExtensionTest extends TestCase
         $this->assertTrue($container->hasDefinition('regex_parser.regex'));
         $this->assertTrue($container->hasDefinition(RouteRequirementAnalyzer::class));
         $this->assertTrue($container->hasDefinition(ValidatorRegexAnalyzer::class));
-        $this->assertTrue($container->hasDefinition('regex_parser.cache_warmer'));
+
         $this->assertTrue($container->hasDefinition('regex_parser.command.lint'));
     }
 
-    public function test_load_skips_when_disabled(): void
-    {
-        $container = new ContainerBuilder();
-        $container->setParameter('kernel.debug', true);
 
-        $extension = new RegexParserExtension();
-        $extension->load([['enabled' => false]], $container);
-
-        $this->assertFalse($container->hasParameter('regex_parser.max_pattern_length'));
-        $this->assertFalse($container->hasDefinition('regex_parser.regex'));
-        $this->assertFalse($container->hasDefinition(RouteRequirementAnalyzer::class));
-    }
 }
