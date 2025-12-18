@@ -25,6 +25,7 @@ parameters:
         - tests/Benchmark/*
         - tests/Bridge/PHPStan/Fixtures/*
         - tests/Bridge/Psalm/*
+        - tests/Fixtures/Extractor/*
         - tests/extract_pcre_tests.php
         - tests/validate_library.php
         - tests/Integration/BehavioralComplianceTest.php

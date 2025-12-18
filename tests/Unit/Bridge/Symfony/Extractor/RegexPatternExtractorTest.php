@@ -81,77 +81,36 @@ final class RegexPatternExtractorTest extends TestCase
 
     public function test_collects_and_filters_php_files_with_default_excludes(): void
     {
-        $mockExtractor = $this->createMock(ExtractorInterface::class);
-        $mockExtractor->expects($this->once())
-            ->method('extract')
-            ->with($this->callback(fn ($files) => \is_array($files) && 1 === \count($files) && \is_string($files[0]) && str_ends_with($files[0], 'test.php')))
-            ->willReturn([]);
+        // Use a real extractor to test actual file discovery behavior
+        $extractor = new RegexPatternExtractor(new TokenBasedExtractionStrategy());
 
-        $extractor = new RegexPatternExtractor($mockExtractor);
+        $fixtureDir = __DIR__.'/../../../../Fixtures/Extractor/DefaultExclude';
 
-        // Create a temporary structure to test file discovery
-        $tempDir = sys_get_temp_dir().'/regex_test_'.uniqid();
-        mkdir($tempDir, 0o777, true);
-        mkdir($tempDir.'/vendor', 0o777, true); // Default excluded
+        // Debug: check if directory exists and is readable
+        $this->assertTrue(is_dir($fixtureDir), "Fixture directory should exist: {$fixtureDir}");
+        
+        $result = $extractor->extract([$fixtureDir]); // Should use default exclude ['vendor']
 
-        // Create test files
-        file_put_contents($tempDir.'/test.php', '<?php preg_match("/test/", $str);');
-        file_put_contents($tempDir.'/vendor/ignored.php', '<?php preg_match("/test/", $str);');
-        file_put_contents($tempDir.'/notphp.txt', 'not a php file');
-
-        $result = $extractor->extract([$tempDir]); // Should use default exclude ['vendor']
-
-        $this->assertIsArray($result);
-
-        // Cleanup
-        $this->removeDirectory($tempDir);
+        // Should find exactly one pattern from test.php, not from vendor/ignored.php
+        $this->assertCount(1, $result);
+        $this->assertSame('/test/', $result[0]->pattern);
+        $this->assertStringContainsString('test.php', $result[0]->file);
     }
 
     public function test_collects_and_filters_php_files_with_custom_excludes(): void
     {
-        $mockExtractor = $this->createMock(ExtractorInterface::class);
-        $mockExtractor->expects($this->once())
-            ->method('extract')
-            ->with($this->callback(function (array $files) {
-                $fileStrings = array_map(fn ($file): string => \is_string($file) ? $file : (\is_scalar($file) ? (string) $file : ''), $files);
-                $basenames = array_map('basename', $fileStrings);
+        // Use a real extractor to test actual file discovery behavior
+        $extractor = new RegexPatternExtractor(new TokenBasedExtractionStrategy());
 
-                return isset($files[0])
-                    && \in_array('test.php', $basenames, true)
-                    && !\in_array('ignored.php', $basenames, true);
-            }))
-            ->willReturn([]);
+        $fixtureDir = __DIR__.'/../../../../Fixtures/Extractor/CustomExclude';
 
-        $extractor = new RegexPatternExtractor($mockExtractor);
+        $result = $extractor->extract([$fixtureDir], ['custom_exclude']); // Custom exclude should work
 
-        // Create a temporary structure to test file discovery
-        $tempDir = sys_get_temp_dir().'/regex_test_'.uniqid();
-        mkdir($tempDir, 0o777, true);
-        mkdir($tempDir.'/custom_exclude', 0o777, true);
-
-        // Create test files
-        file_put_contents($tempDir.'/test.php', '<?php preg_match("/test/", $str);');
-        file_put_contents($tempDir.'/custom_exclude/ignored.php', '<?php preg_match("/test/", $str);');
-
-        $result = $extractor->extract([$tempDir], ['custom_exclude']); // Custom exclude should work
-
-        $this->assertIsArray($result);
-
-        // Cleanup
-        $this->removeDirectory($tempDir);
+        // Should find exactly one pattern from test.php, not from custom_exclude/ignored.php
+        $this->assertCount(1, $result);
+        $this->assertSame('/test/', $result[0]->pattern);
+        $this->assertStringContainsString('test.php', $result[0]->file);
     }
 
-    private function removeDirectory(string $dir): void
-    {
-        if (!is_dir($dir)) {
-            return;
-        }
 
-        $files = array_diff(scandir($dir), ['.', '..']);
-        foreach ($files as $file) {
-            $path = $dir.'/'.$file;
-            is_dir($path) ? $this->removeDirectory($path) : unlink($path);
-        }
-        rmdir($dir);
-    }
 }
