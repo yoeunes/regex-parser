@@ -48,7 +48,7 @@ final class RegexParserExtensionTest extends TestCase
         $this->assertTrue($container->hasDefinition(RouteRequirementAnalyzer::class));
         $this->assertTrue($container->hasDefinition(ValidatorRegexAnalyzer::class));
         $this->assertTrue($container->hasDefinition('regex_parser.cache_warmer'));
-        $this->assertTrue($container->hasDefinition('regex_parser.command.validate'));
+        $this->assertTrue($container->hasDefinition('regex_parser.command.lint'));
     }
 
     public function test_load_skips_when_disabled(): void
