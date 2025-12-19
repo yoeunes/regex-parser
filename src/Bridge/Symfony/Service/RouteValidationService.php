@@ -33,9 +33,12 @@ final readonly class RouteValidationService
         return null !== $this->router;
     }
 
+    /**
+     * @return AnalysisIssue[]
+     */
     public function analyze(): array
     {
-        if (!$this->isSupported()) {
+        if (!$this->isSupported() || null === $this->router) {
             return [];
         }
 
@@ -126,6 +129,8 @@ final readonly class RouteValidationService
 
         $reflection = new \ReflectionClass($class);
 
-        return $reflection->getFileName();
+        $filename = $reflection->getFileName();
+        
+        return false === $filename ? null : $filename;
     }
 }
