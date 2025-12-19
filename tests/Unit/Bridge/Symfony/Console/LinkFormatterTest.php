@@ -87,6 +87,15 @@ final class LinkFormatterTest extends TestCase
         $this->assertSame('<href=phpstorm://open?file=/app/index.php&line=5>   5</>', $result);
     }
 
+    public function test_it_resolves_relative_paths_using_base_path(): void
+    {
+        $formatter = new LinkFormatter('vscode://file/%f:%l', new RelativePathHelper('/app'));
+
+        $result = $formatter->format('src/File.php', 10, '  10');
+
+        $this->assertSame('<href=vscode://file//app/src/File.php:10>  10</>', $result);
+    }
+
     public function test_relative_path_helper_handles_base_path(): void
     {
         $helper = new RelativePathHelper('/var/www/project');

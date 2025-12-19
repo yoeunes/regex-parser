@@ -67,17 +67,88 @@ final readonly class LinkFormatter
             return null;
         }
 
+        $resolvedFile = $this->resolveFilePath($file);
+        if (null === $resolvedFile) {
+            return null;
+        }
+
         $template = self::IDE_LINK_FORMATS[$this->editorUrlTemplate] ?? $this->editorUrlTemplate;
+        $relativeFile = $this->relativePathHelper->getRelativePath($resolvedFile);
+        $encodedFile = $this->encodePath($resolvedFile);
+        $encodedRelativeFile = $this->encodePath($relativeFile);
 
         return strtr($template, [
-            '%f' => $file,
-            '%file%' => $file,
+            '%f' => $encodedFile,
+            '%file%' => $encodedFile,
             '%l' => (string) $line,
             '%line%' => (string) $line,
             '%c' => (string) $column,
             '%column%' => (string) $column,
-            '%relFile%' => $this->relativePathHelper->getRelativePath($file),
+            '%relFile%' => $encodedRelativeFile,
         ]);
+    }
+
+    private function resolveFilePath(string $file): ?string
+    {
+        $normalized = $this->normalizePath($file);
+
+        if (!$this->looksLikePath($normalized)) {
+            return null;
+        }
+
+        if ($this->isAbsolutePath($normalized)) {
+            return $normalized;
+        }
+
+        $basePath = $this->relativePathHelper->getBasePath();
+        if (null === $basePath || '' === $basePath) {
+            return $normalized;
+        }
+
+        $basePath = rtrim($this->normalizePath($basePath), '/');
+
+        return $basePath.'/'.ltrim($normalized, '/');
+    }
+
+    private function looksLikePath(string $path): bool
+    {
+        if ('' === $path) {
+            return false;
+        }
+
+        if (preg_match('/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//', $path)) {
+            return true;
+        }
+
+        if (str_contains($path, '/')) {
+            return true;
+        }
+
+        return (bool) preg_match('/\.[A-Za-z0-9]+$/', $path);
+    }
+
+    private function isAbsolutePath(string $path): bool
+    {
+        if ('' === $path) {
+            return false;
+        }
+
+        return str_starts_with($path, '/')
+            || str_starts_with($path, '//')
+            || (bool) preg_match('/^[A-Za-z]:\//', $path)
+            || (bool) preg_match('/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//', $path);
+    }
+
+    private function normalizePath(string $path): string
+    {
+        return str_replace('\\', '/', $path);
+    }
+
+    private function encodePath(string $path): string
+    {
+        $encoded = rawurlencode($path);
+
+        return str_replace(['%2F', '%3A'], ['/', ':'], $encoded);
     }
 
     private function detectHyperlinkSupport(): bool

@@ -41,6 +41,11 @@ final readonly class RelativePathHelper
         return $normalizedPath;
     }
 
+    public function getBasePath(): ?string
+    {
+        return $this->basePath ?? $this->detectBasePath();
+    }
+
     private function detectBasePath(): ?string
     {
         $cwd = getcwd();

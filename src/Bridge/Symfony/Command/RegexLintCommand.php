@@ -65,9 +65,11 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 )]
 final class RegexLintCommand extends Command
 {
-    private readonly RelativePathHelper $pathHelper;
+    private RelativePathHelper $pathHelper;
 
-    private readonly LinkFormatter $linkFormatter;
+    private LinkFormatter $linkFormatter;
+
+    private readonly ?string $editorUrl;
 
     /**
      * @var list<string>
@@ -92,6 +94,7 @@ final class RegexLintCommand extends Command
     ) {
         $this->defaultPaths = $this->normalizeStringList($defaultPaths);
         $this->defaultExcludePaths = $this->normalizeStringList($defaultExcludePaths);
+        $this->editorUrl = $editorUrl;
 
         if ([] === $this->defaultPaths) {
             $this->defaultPaths = ['src'];
@@ -101,6 +104,7 @@ final class RegexLintCommand extends Command
             $this->defaultExcludePaths = ['vendor'];
         }
 
+        // Initialize with temporary path helper, will be updated in execute()
         $this->pathHelper = new RelativePathHelper(getcwd() ?: null);
         $this->linkFormatter = new LinkFormatter($editorUrl, $this->pathHelper);
         parent::__construct();
@@ -143,6 +147,11 @@ final class RegexLintCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
+
+        // Update the working directory at execution time to handle Symfony commands properly
+        $workingDir = getcwd() ?: null;
+        $this->pathHelper = new RelativePathHelper($workingDir);
+        $this->linkFormatter = new LinkFormatter($this->editorUrl, $this->pathHelper);
 
         $paths = $this->normalizeStringList($input->getArgument('paths'));
         $exclude = $this->normalizeStringList($input->getOption('exclude'));
@@ -275,12 +284,15 @@ final class RegexLintCommand extends Command
         $line = $result['line'];
         $file = $result['file'];
 
+        // Create clickable pen emoji
+        $penLabel = $this->getPenLabel($io);
+        $penLink = $this->linkFormatter->format($file, $line, $penLabel, 1, '✏️');
+
         if (null !== $pattern && '' !== $pattern) {
             $highlighted = $this->safelyHighlightPattern($pattern);
-            $io->writeln(\sprintf('  <fg=gray>%d:</> %s', $line, $highlighted));
+            $io->writeln(\sprintf('  <fg=gray>%d:</> %s %s', $line, $penLink, $highlighted));
         } else {
-            $link = $this->linkFormatter->format($file, $line, 'line '.$line, 1, (string) $line);
-            $io->writeln(\sprintf('  <fg=gray>%s:</>', $link));
+            $io->writeln(\sprintf('  <fg=gray>%s:</> %s', 'line '.$line, $penLink));
         }
     }
 
@@ -291,6 +303,16 @@ final class RegexLintCommand extends Command
         } catch (\Exception) {
             return OutputFormatter::escape($pattern);
         }
+    }
+
+    private function getPenLabel(SymfonyStyle $io): string
+    {
+        if (!$io->isDecorated()) {
+            return '✏️';
+        }
+
+        // Use SGR 24 to avoid hyperlink underline in terminals that honor it.
+        return "\033[24m✏️\033[24m";
     }
 
     /**
