@@ -32,16 +32,15 @@ final class OptimizerNodeVisitorCharClassMergingTest extends TestCase
 
     public function test_basic_adjacent_char_class_merging(): void
     {
-        // Test that [a-z]|[0-9] becomes [a-z0-9], which then gets optimized to [a-z]|\d
-        // This shows our merging is working correctly
+        // Test that [a-z]|[0-9] becomes [a-z0-9]
+        // Digit optimization doesn't apply after merging because there are multiple parts
         $ast = $this->regex->parse('/[a-z]|[0-9]/');
 
         $optimized = $ast->accept($this->optimizer);
         $compiler = new CompilerNodeVisitor();
         $result = $optimized->accept($compiler);
 
-        // The digit optimization converts [0-9] to \d after merging
-        $this->assertSame('/[a-z]|\d/', $result);
+        $this->assertSame('/[a-z0-9]/', $result);
     }
 
     public function test_multiple_adjacent_char_class_merging(): void
@@ -53,8 +52,7 @@ final class OptimizerNodeVisitorCharClassMergingTest extends TestCase
         $compiler = new CompilerNodeVisitor();
         $result = $optimized->accept($compiler);
 
-        // After merging, digit optimization converts [0-9] to \d
-        $this->assertSame('/[a-zA-Z]|\d/', $result);
+        $this->assertSame('/[a-zA-Z0-9]/', $result);
     }
 
     public function test_no_merging_with_negated_classes(): void
@@ -108,26 +106,26 @@ final class OptimizerNodeVisitorCharClassMergingTest extends TestCase
 
     public function test_merging_with_literals_and_ranges(): void
     {
-        // Test that [a]|[0-9] becomes [a]|\d (due to digit optimization)
+        // Test that [a]|[0-9] becomes [a0-9]
         $ast = $this->regex->parse('/[a]|[0-9]/');
 
         $optimized = $ast->accept($this->optimizer);
         $compiler = new CompilerNodeVisitor();
         $result = $optimized->accept($compiler);
 
-        $this->assertSame('/[a]|\d/', $result);
+        $this->assertSame('/[a0-9]/', $result);
     }
 
     public function test_no_merging_with_quantifier(): void
     {
-        // Test that [a-z]|[0-9]+ gets [0-9] optimized to \d with quantifier
+        // Test that [a-z]|[0-9]+ - no merging because [0-9]+ has a quantifier
         $ast = $this->regex->parse('/[a-z]|[0-9]+/');
 
         $optimized = $ast->accept($this->optimizer);
         $compiler = new CompilerNodeVisitor();
         $result = $optimized->accept($compiler);
 
-        // The quantifier should apply to the optimized \d
+        // The digit optimization should apply to the standalone [0-9]+
         $this->assertSame('/[a-z]|\d+/', $result);
     }
 
