@@ -568,8 +568,7 @@ final readonly class Regex
     public function htmlExplain(string $regex): string;
 
     public function highlight(string $regex, string $format = 'auto'): string;
-    public function highlightCli(string $regex): string;
-    public function highlightHtml(string $regex): string;
+
 
     public function optimize(string $regex): OptimizationResult;
     public function modernize(string $regex): string;
