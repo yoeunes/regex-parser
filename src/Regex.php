@@ -94,8 +94,6 @@ final readonly class Regex
             $ast->accept(new NodeVisitor\ValidatorNodeVisitor($this->maxLookbehindLength, $pattern));
             $score = $ast->accept(new NodeVisitor\ComplexityScoreNodeVisitor());
 
-            $this->validatePcreRuntime($regex, $pattern);
-
             return new ValidationResult(true, null, $score);
         } catch (LexerException|ParserException $e) {
             $message = $e->getMessage();
@@ -107,11 +105,6 @@ final readonly class Regex
             if ($e instanceof Exception\SemanticErrorException) {
                 $category = ValidationErrorCategory::SEMANTIC;
                 $hint = $e->getHint();
-                $code = $e->getErrorCode();
-            }
-
-            if ($e instanceof Exception\PcreRuntimeException) {
-                $category = ValidationErrorCategory::PCRE_RUNTIME;
                 $code = $e->getErrorCode();
             }
 
@@ -159,16 +152,6 @@ final readonly class Regex
                     null,
                     $result->getErrorCode() ?? 'regex.semantic',
                     $result->getHint(),
-                );
-            }
-
-            if (ValidationErrorCategory::PCRE_RUNTIME === $result->getErrorCategory()) {
-                throw new Exception\PcreRuntimeException(
-                    $message,
-                    $offset,
-                    $pattern,
-                    null,
-                    $result->getErrorCode(),
                 );
             }
 
@@ -267,7 +250,7 @@ final readonly class Regex
     public function highlight(string $regex, string $format = 'auto'): string
     {
         if ('auto' === $format) {
-            $format = $this->isCli() ? 'cli' : 'html';
+            $format = \PHP_SAPI === 'cli' ? 'cli' : 'html';
         }
 
         $visitor = match ($format) {
@@ -394,27 +377,6 @@ final readonly class Regex
         throw new ParserException(\sprintf('No closing delimiter "%s" found.', $closingDelimiter));
     }
 
-    private function validatePcreRuntime(string $regex, ?string $pattern): void
-    {
-        $errorMessage = null;
-        $handler = static function (int $severity, string $message) use (&$errorMessage): bool {
-            $errorMessage = $message;
-
-            return true;
-        };
-
-        set_error_handler($handler);
-        $result = @preg_match($regex, '');
-        restore_error_handler();
-
-        if (false === $result) {
-            $message = $errorMessage ?? preg_last_error_msg();
-            $message = '' !== $message ? $message : 'PCRE runtime error.';
-
-            throw new Exception\PcreRuntimeException($message, null, $pattern, null, 'regex.pcre.runtime');
-        }
-    }
-
     /**
      * @param NodeVisitor\NodeVisitorInterface<Node\NodeInterface> $transformer
      */
@@ -425,11 +387,6 @@ final readonly class Regex
         $transformed = $ast->accept($transformer);
 
         return $transformed->accept(new NodeVisitor\CompilerNodeVisitor());
-    }
-
-    private function isCli(): bool
-    {
-        return \PHP_SAPI === 'cli';
     }
 
     /**
