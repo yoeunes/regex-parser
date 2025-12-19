@@ -262,8 +262,6 @@ final readonly class Regex
         return $this->parse($regex)->accept($visitor);
     }
 
-
-
     public function explain(string $regex, string $format = 'text'): string
     {
         $visitor = match ($format) {
