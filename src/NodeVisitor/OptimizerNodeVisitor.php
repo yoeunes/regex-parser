@@ -1098,7 +1098,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
     private function canConvertCharTypeToCharClass(Node\CharTypeNode $node): bool
     {
         // For now, only handle \d (digits) which can be converted to [0-9]
-        return 'd' === $node->type;
+        return 'd' === $node->value;
     }
 
     /**
@@ -1109,7 +1109,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         $startPos = $node->startPosition;
         $endPos = $node->endPosition;
 
-        return match ($node->type) {
+        return match ($node->value) {
             'd' => new Node\CharClassNode(
                 new Node\RangeNode(
                     new Node\LiteralNode('0', $startPos, $startPos + 1),
@@ -1121,7 +1121,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
                 $startPos,
                 $endPos
             ),
-            default => throw new \InvalidArgumentException("Unsupported char type: {$node->type}"),
+            default => throw new \InvalidArgumentException("Unsupported char type: {$node->value}"),
         };
     }
 
