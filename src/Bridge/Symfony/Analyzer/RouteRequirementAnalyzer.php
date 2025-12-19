@@ -200,14 +200,7 @@ final readonly class RouteRequirementAnalyzer
         return $pattern;
     }
 
-    private function formatPattern(string $pattern): string
-    {
-        if (\strlen($pattern) <= 80) {
-            return $pattern;
-        }
 
-        return substr($pattern, 0, 77).'...';
-    }
 
     private function isIgnored(string $body): bool
     {
@@ -224,7 +217,7 @@ final readonly class RouteRequirementAnalyzer
             return false;
         }
 
-        return 1 === preg_match('#^[A-Za-z0-9._-]+(?:\|[A-Za-z0-9._-]+)+$#', $body);
+        return 1 === preg_match('#^[A-Za-z0-9._-]++(?:\|[A-Za-z0-9._-]++)++$#', $body);
     }
 
     private function getRouteFile(\Symfony\Component\Routing\Route $route): ?string

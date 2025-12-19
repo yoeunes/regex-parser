@@ -18,12 +18,8 @@ parameters:
         - tests
 
     excludePaths:
-        - src/Bridge/Symfony/*
-        - src/Bridge/Rector/*
-        - src/Bridge/Psalm/*
         - tests/Benchmark/*
         - tests/Bridge/PHPStan/Fixtures/*
-        - tests/Bridge/Psalm/*
         - tests/Fixtures/Extractor/*
         - tests/extract_pcre_tests.php
         - tests/validate_library.php
