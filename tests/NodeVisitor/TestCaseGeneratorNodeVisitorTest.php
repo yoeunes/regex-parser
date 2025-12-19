@@ -31,8 +31,8 @@ final class TestCaseGeneratorNodeVisitorTest extends TestCase
         $ast = Regex::create()->parse('/abc/');
         $cases = $ast->accept($this->visitor);
 
-        self::assertContains('abc', $cases['matching']);
-        self::assertNotEmpty($cases['non_matching']);
+        $this->assertContains('abc', $cases['matching']);
+        $this->assertNotEmpty($cases['non_matching']);
     }
 
     public function test_quantifier(): void
@@ -40,9 +40,9 @@ final class TestCaseGeneratorNodeVisitorTest extends TestCase
         $ast = Regex::create()->parse('/a+/');
         $cases = $ast->accept($this->visitor);
 
-        self::assertContains('a', $cases['matching']);
-        self::assertContains('aa', $cases['matching']);
-        self::assertContains('', $cases['non_matching']); // Too few
+        $this->assertContains('a', $cases['matching']);
+        $this->assertContains('aa', $cases['matching']);
+        $this->assertContains('', $cases['non_matching']); // Too few
     }
 
     public function test_alternation(): void
@@ -50,8 +50,8 @@ final class TestCaseGeneratorNodeVisitorTest extends TestCase
         $ast = Regex::create()->parse('/(a|b)/');
         $cases = $ast->accept($this->visitor);
 
-        self::assertContains('a', $cases['matching']);
-        self::assertNotEmpty($cases['non_matching']);
+        $this->assertContains('a', $cases['matching']);
+        $this->assertNotEmpty($cases['non_matching']);
     }
 
     public function test_char_class(): void
@@ -59,8 +59,8 @@ final class TestCaseGeneratorNodeVisitorTest extends TestCase
         $ast = Regex::create()->parse('/[abc]/');
         $cases = $ast->accept($this->visitor);
 
-        self::assertNotEmpty($cases['matching']);
-        self::assertContains('!', $cases['non_matching']);
+        $this->assertNotEmpty($cases['matching']);
+        $this->assertContains('!', $cases['non_matching']);
     }
 
     public function test_dot(): void
@@ -68,7 +68,7 @@ final class TestCaseGeneratorNodeVisitorTest extends TestCase
         $ast = Regex::create()->parse('/./');
         $cases = $ast->accept($this->visitor);
 
-        self::assertContains('a', $cases['matching']);
-        self::assertContains("\n", $cases['non_matching']);
+        $this->assertContains('a', $cases['matching']);
+        $this->assertContains("\n", $cases['non_matching']);
     }
 }

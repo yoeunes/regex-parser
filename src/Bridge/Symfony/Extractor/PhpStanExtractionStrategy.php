@@ -72,7 +72,7 @@ final readonly class PhpStanExtractionStrategy implements ExtractorInterface
                 return [];
             }
 
-            $parserFactoryClass = 'PhpParser\\ParserFactory';
+            $parserFactoryClass = \PhpParser\ParserFactory::class;
             if (!class_exists($parserFactoryClass)) {
                 return [];
             }

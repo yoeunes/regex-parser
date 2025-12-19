@@ -1,5 +1,5 @@
 <?php
 
-preg_match("/test/", $subject);
-preg_replace("/old/", "new", $text);
-preg_split("/\\s+/", $text);
+preg_match("/test/", (string) $subject);
+preg_replace("/old/", "new", (string) $text);
+preg_split("/\\s+/", (string) $text);

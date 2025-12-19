@@ -22,6 +22,6 @@ final class RegexParserBundleTest extends TestCase
     {
         $bundle = new RegexParserBundle();
 
-        self::assertSame(\dirname(__DIR__, 4).'/src/Bridge/Symfony', $bundle->getPath());
+        $this->assertSame(\dirname(__DIR__, 4).'/src/Bridge/Symfony', $bundle->getPath());
     }
 }

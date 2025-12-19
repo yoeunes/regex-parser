@@ -1,3 +1,3 @@
 <?php
 
-preg_match("/test" . "suffix", $subject);
+preg_match("/test" . "suffix", (string) $subject);

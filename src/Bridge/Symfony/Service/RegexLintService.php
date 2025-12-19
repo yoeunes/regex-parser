@@ -124,8 +124,8 @@ final readonly class RegexLintService
             $source = $issue['source'] ?? '';
 
             if (str_starts_with($source, 'route:')) {
-                return !str_contains($issue['message'], 'ReDoS')
-                    && !str_contains($issue['message'], 'Nested quantifiers');
+                return !str_contains((string) $issue['message'], 'ReDoS')
+                    && !str_contains((string) $issue['message'], 'Nested quantifiers');
             }
 
             if ($validatorEnabled && str_starts_with($source, 'validator:') && 'error' === $issue['type']) {

@@ -1,3 +1,3 @@
 <?php
 
-preg_match("/test/", $subject);
+preg_match("/test/", (string) $subject);

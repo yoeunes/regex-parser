@@ -1,4 +1,5 @@
 includes:
+    - phpstan-baseline.neon
     - extension.neon
     - tools/phpstan/vendor/phpstan/phpstan/conf/bleedingEdge.neon
     - tools/phpstan/vendor/phpstan/phpstan-phpunit/extension.neon

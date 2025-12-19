@@ -1,3 +1,3 @@
 <?php
 
-preg_match("/test/", $str);
+preg_match("/test/", (string) $str);

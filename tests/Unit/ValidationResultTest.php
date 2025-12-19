@@ -22,12 +22,12 @@ final class ValidationResultTest extends TestCase
     {
         $result = new ValidationResult(false, 'error', 123);
 
-        self::assertFalse($result->isValid);
-        self::assertSame('error', $result->error);
-        self::assertSame(123, $result->complexityScore);
+        $this->assertFalse($result->isValid);
+        $this->assertSame('error', $result->error);
+        $this->assertSame(123, $result->complexityScore);
 
-        self::assertFalse($result->isValid());
-        self::assertSame('error', $result->getErrorMessage());
-        self::assertSame(123, $result->getComplexityScore());
+        $this->assertFalse($result->isValid());
+        $this->assertSame('error', $result->getErrorMessage());
+        $this->assertSame(123, $result->getComplexityScore());
     }
 }
