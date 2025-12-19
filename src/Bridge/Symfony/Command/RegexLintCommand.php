@@ -492,8 +492,8 @@ EOF
             $message = preg_replace('/ \(pattern: [^)]+\)/', '', $message);
         }
 
-        if (!$location && preg_match('/Route "([^"]+)"/', $message, $matches)) {
-            $message = preg_replace('/Route "[^"]+" /', '', $message);
+        if (!$location && preg_match('/Route "([^"]+)"/', (string) $message, $matches)) {
+            $message = preg_replace('/Route "[^"]+" /', '', (string) $message);
         }
 
         return [$pattern, $message];
