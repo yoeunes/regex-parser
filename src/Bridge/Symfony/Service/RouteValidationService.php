@@ -34,7 +34,7 @@ final readonly class RouteValidationService
     }
 
     /**
-     * @return AnalysisIssue[]
+     * @return array<AnalysisIssue>
      */
     public function analyze(): array
     {
@@ -130,7 +130,7 @@ final readonly class RouteValidationService
         $reflection = new \ReflectionClass($class);
 
         $filename = $reflection->getFileName();
-        
+
         return false === $filename ? null : $filename;
     }
 }

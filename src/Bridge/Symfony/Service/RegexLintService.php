@@ -170,9 +170,10 @@ final readonly class RegexLintService
     }
 
     /**
+     * @param list<RegexPatternOccurrence> $originalPatterns
+     *
      * @phpstan-param list<LintIssue> $issues
      * @phpstan-param list<OptimizationEntry> $optimizations
-     * @param list<RegexPatternOccurrence> $originalPatterns
      *
      * @phpstan-return list<LintResult>
      */
@@ -382,7 +383,7 @@ final readonly class RegexLintService
     }
 
     /**
-     * @param LintStats $stats
+     * @param LintStats        $stats
      * @param list<LintResult> $results
      *
      * @return LintStats

@@ -20,8 +20,8 @@ use PhpParser\Node\Expr\BinaryOp\Concat;
 use PhpParser\Node\Expr\ConstFetch;
 use PhpParser\Node\Expr\FuncCall;
 use PhpParser\Node\Name;
-use PhpParser\ParserFactory;
 use PhpParser\Node\Scalar\String_;
+use PhpParser\ParserFactory;
 
 /**
  * PHPStan-based regex pattern extraction strategy.

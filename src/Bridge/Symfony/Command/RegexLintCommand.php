@@ -120,7 +120,7 @@ final class RegexLintCommand extends Command
         $paths = $this->normalizeStringList($input->getArgument('paths'));
         $exclude = $this->normalizeStringList($input->getOption('exclude'));
         $minSavingsValue = $input->getOption('min-savings');
-        $minSavings = \is_numeric($minSavingsValue) ? (int) $minSavingsValue : 1;
+        $minSavings = is_numeric($minSavingsValue) ? (int) $minSavingsValue : 1;
         $skipRoutes = (bool) $input->getOption('no-routes');
         $skipValidators = (bool) $input->getOption('no-validators');
 

@@ -52,12 +52,16 @@ final readonly class RegexLintReport
 {
     /**
      * @param list<LintResult> $results
-     * @param LintStats $stats
+     * @param LintStats        $stats
      */
     public function __construct(
-        /** @var list<LintResult> */
+        /**
+         * @var list<LintResult>
+         */
         public array $results,
-        /** @var LintStats */
+        /**
+         * @var LintStats
+         */
         public array $stats,
     ) {}
 }

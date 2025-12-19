@@ -24,7 +24,7 @@ use RegexParser\Regex;
  *
  * These services are always loaded when the bundle is enabled.
  */
-/** @internal */
+/* @internal */
 return static function (ContainerConfigurator $container): void {
     $services = $container->services()
         ->defaults()

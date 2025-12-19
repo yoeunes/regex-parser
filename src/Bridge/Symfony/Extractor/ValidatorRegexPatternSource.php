@@ -55,7 +55,7 @@ final readonly class ValidatorRegexPatternSource implements RegexPatternSourceIn
             try {
                 if (method_exists($this->validatorLoader, 'getMappedClasses')) {
                     $mappedClasses = $this->validatorLoader->getMappedClasses();
-                    if (is_array($mappedClasses)) {
+                    if (\is_array($mappedClasses)) {
                         $classes = $mappedClasses;
                     }
                 }
@@ -154,7 +154,7 @@ final readonly class ValidatorRegexPatternSource implements RegexPatternSourceIn
         $reflection = new \ReflectionClass($className);
 
         $filename = $reflection->getFileName();
-        
+
         return false === $filename ? null : $filename;
     }
 }

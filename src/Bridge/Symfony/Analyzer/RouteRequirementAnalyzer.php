@@ -200,8 +200,6 @@ final readonly class RouteRequirementAnalyzer
         return $pattern;
     }
 
-
-
     private function isIgnored(string $body): bool
     {
         if ('' === $body) {
