@@ -624,10 +624,10 @@ final class OptimizerNodeVisitorTest extends TestCase
 
     public function test_basic_adjacent_char_class_merging(): void
     {
-        // Test that [a-z]|[0-9] becomes [a-z0-9]
+        // Test that [a-z]|[0-9] becomes [a-z0-9] when digit optimization is disabled
         $regex = Regex::create();
         $ast = $regex->parse('/[a-z]|[0-9]/');
-        $optimizer = new OptimizerNodeVisitor();
+        $optimizer = new OptimizerNodeVisitor(optimizeDigits: false);
         
         $optimized = $ast->accept($optimizer);
         $compiler = new CompilerNodeVisitor();
