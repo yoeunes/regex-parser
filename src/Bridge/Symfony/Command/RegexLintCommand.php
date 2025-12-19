@@ -100,7 +100,7 @@ final class RegexLintCommand extends Command
     {
         $io->writeln('');
         $io->writeln('  <fg=white;options=bold>REGEX PARSER</> <fg=cyan>Linting & Optimization</>');
-        $io->writeln('  <fg=gray>─────────────────────────────</>');
+        $io->writeln('  <fg=gray>—</>');
         $io->writeln('');
     }
 
@@ -326,7 +326,7 @@ final class RegexLintCommand extends Command
         }
 
         $io->writeln('  <fg=white;options=bold>Issues Found</>');
-        $io->writeln('  <fg=gray>────────────────</>');
+        $io->writeln('  <fg=gray>—</>');
         $io->newLine();
 
         // Group results by file for better organization
