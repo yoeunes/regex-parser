@@ -38,7 +38,7 @@ final class OptimizerSafetyTest extends TestCase
     {
         // --- 1. Sanity Checks (No Change Expected) ---
         yield 'Different literals' => ['/a|b/', '/[ab]/'];
-        yield 'Distinct ranges' => ['/[a-z]|[0-9]/', '/[a-z]|\d/'];
+        yield 'Distinct ranges' => ['/[a-z]|[0-9]/', '/[a-z0-9]/'];
         yield 'Distinct words' => ['/foo|bar/', '/foo|bar/'];
 
         // --- 2. The Regression Case (CRITICAL) ---
