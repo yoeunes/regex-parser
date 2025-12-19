@@ -59,7 +59,7 @@ final class RegexLintCommand extends Command
         $io = new SymfonyStyle($input, $output);
 
         $this->showHeader($io);
-        $this->showScanMessage($io, $patterns);
+        $this->showScanMessage($io);
 
         if (empty($patterns)) {
             $this->showNoPatternsMessage($io);
@@ -101,6 +101,13 @@ final class RegexLintCommand extends Command
         $io->writeln('');
         $io->writeln('  <fg=white;options=bold>REGEX PARSER</> <fg=cyan>Linting & Optimization</>');
         $io->writeln('  <fg=gray>─────────────────────────────</>');
+        $io->writeln('');
+    }
+
+    private function showScanMessage(SymfonyStyle $io): void
+    {
+        $io->write('  <fg=cyan>🔍 Scanning files...</>');
+        $io->writeln(' <fg=green;options=bold>✓</>');
         $io->writeln('');
     }
 
