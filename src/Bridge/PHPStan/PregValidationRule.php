@@ -122,7 +122,9 @@ final class PregValidationRule implements Rule
 
     public function processNode(Node $node, Scope $scope): array
     {
-        \assert($node instanceof FuncCall);
+        if (!$node instanceof FuncCall) {
+            return [];
+        }
 
         if (!$node->name instanceof Name) {
             return [];
@@ -283,9 +285,9 @@ final class PregValidationRule implements Rule
             try {
                 $ast = $this->getRegex()->parse($pattern);
                 $optimizer = new \RegexParser\NodeVisitor\OptimizerNodeVisitor(
-                    optimizeDigits: (bool) ($this->optimizationConfig['digits'] ?? true),
-                    optimizeWord: (bool) ($this->optimizationConfig['word'] ?? true),
-                    strictRanges: (bool) ($this->optimizationConfig['strictRanges'] ?? true),
+                    optimizeDigits: (bool) $this->optimizationConfig['digits'],
+                    optimizeWord: (bool) $this->optimizationConfig['word'],
+                    strictRanges: (bool) $this->optimizationConfig['strictRanges'],
                 );
                 $optimizedAst = $ast->accept($optimizer);
                 // Use compiler to get string back

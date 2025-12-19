@@ -141,16 +141,25 @@ final class RegexLintCommand extends Command
         $io->newLine();
     }
 
+    /**
+     * @return array{errors: int, warnings: int, optimizations: int}
+     */
     private function createStats(): array
     {
         return ['errors' => 0, 'warnings' => 0, 'optimizations' => 0];
     }
 
+    /**
+     * @param array<array<string, mixed>> $results
+     */
     private function displayResults(SymfonyStyle $io, array $results): void
     {
         $this->outputIntegratedResults($io, $results);
     }
 
+    /**
+     * @param array<array<string, mixed>> $results
+     */
     private function outputIntegratedResults(SymfonyStyle $io, array $results): void
     {
         if (empty($results)) {
@@ -181,6 +190,9 @@ final class RegexLintCommand extends Command
         $io->writeln(\sprintf('  <fg=white;bg=gray;options=bold> %s </>', $relPath));
     }
 
+    /**
+     * @param array<string, mixed> $result
+     */
     private function renderResultCard(SymfonyStyle $io, array $result): void
     {
         $this->displayPatternContext($io, $result);
@@ -279,6 +291,9 @@ final class RegexLintCommand extends Command
         $this->showFooter($io);
     }
 
+    /**
+     * @param array{errors: int, warnings: int, optimizations: int} $stats
+     */
     private function showSummaryMessage(SymfonyStyle $io, array $stats): void
     {
         $errors = $stats['errors'];

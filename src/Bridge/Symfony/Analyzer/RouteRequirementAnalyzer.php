@@ -247,7 +247,9 @@ final readonly class RouteRequirementAnalyzer
 
         $reflection = new \ReflectionClass($class);
 
-        return $reflection->getFileName();
+        $fileName = $reflection->getFileName();
+        
+        return $fileName !== false ? $fileName : null;
     }
 
     /**
