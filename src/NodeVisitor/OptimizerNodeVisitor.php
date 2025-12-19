@@ -74,6 +74,13 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
             }
         }
 
+        // Try to merge adjacent character class nodes
+        $mergedAlts = $this->mergeAdjacentCharClasses($optimizedAlts);
+        if ($mergedAlts !== $optimizedAlts) {
+            $hasChanged = true;
+            $optimizedAlts = $mergedAlts;
+        }
+
         $deduplicatedAlts = $this->deduplicateAlternation($optimizedAlts);
         if (\count($deduplicatedAlts) !== \count($optimizedAlts)) {
             $hasChanged = true;
@@ -998,5 +1005,84 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         }
 
         return $prefix;
+    }
+
+    /**
+     * Merges adjacent character class nodes in an alternation.
+     * For example: [a-z]|[0-9] becomes [a-z0-9]
+     *
+     * @param list<Node\NodeInterface> $alternatives
+     *
+     * @return list<Node\NodeInterface>
+     */
+    private function mergeAdjacentCharClasses(array $alternatives): array
+    {
+        if (\count($alternatives) < 2) {
+            return $alternatives;
+        }
+
+        $merged = [];
+        $i = 0;
+
+        while ($i < \count($alternatives)) {
+            $current = $alternatives[$i];
+
+            // Check if current is a character class
+            if (!$current instanceof Node\CharClassNode || $current->isNegated) {
+                $merged[] = $current;
+                $i++;
+                continue;
+            }
+
+            // Look ahead to find adjacent character classes
+            $charClassesToMerge = [$current];
+            $j = $i + 1;
+
+            while ($j < \count($alternatives)) {
+                $next = $alternatives[$j];
+                if ($next instanceof Node\CharClassNode && !$next->isNegated) {
+                    $charClassesToMerge[] = $next;
+                    $j++;
+                } else {
+                    break;
+                }
+            }
+
+            // If we found multiple adjacent character classes, merge them
+            if (\count($charClassesToMerge) > 1) {
+                $merged[] = $this->mergeCharClasses($charClassesToMerge);
+                $i = $j;
+            } else {
+                $merged[] = $current;
+                $i++;
+            }
+        }
+
+        return $merged;
+    }
+
+    /**
+     * Merges multiple character class nodes into a single character class.
+     *
+     * @param list<Node\CharClassNode> $charClasses
+     */
+    private function mergeCharClasses(array $charClasses): Node\CharClassNode
+    {
+        $allParts = [];
+        $startPos = $charClasses[0]->startPosition;
+        $endPos = $charClasses[\count($charClasses) - 1]->endPosition;
+
+        foreach ($charClasses as $charClass) {
+            if ($charClass->expression instanceof Node\AlternationNode) {
+                $allParts = array_merge($allParts, $charClass->expression->alternatives);
+            } else {
+                $allParts[] = $charClass->expression;
+            }
+        }
+
+        // Create a new alternation with all parts
+        $mergedExpression = new Node\AlternationNode($allParts, $startPos, $endPos);
+
+        return new Node\CharClassNode($mergedExpression, false, $startPos, $endPos);
     }
 }

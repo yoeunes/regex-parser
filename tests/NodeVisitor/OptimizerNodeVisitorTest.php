@@ -621,4 +621,32 @@ final class OptimizerNodeVisitorTest extends TestCase
         $this->assertMatchesRegularExpression($testRegex, '+123');   // with plus
         $this->assertDoesNotMatchRegularExpression($testRegex, '++123'); // multiple plus
     }
+
+    public function test_basic_adjacent_char_class_merging(): void
+    {
+        // Test that [a-z]|[0-9] becomes [a-z0-9]
+        $regex = Regex::create();
+        $ast = $regex->parse('/[a-z]|[0-9]/');
+        $optimizer = new OptimizerNodeVisitor();
+        
+        $optimized = $ast->accept($optimizer);
+        $compiler = new CompilerNodeVisitor();
+        $result = $optimized->accept($compiler);
+        
+        $this->assertSame('/[a-z0-9]/', $result);
+    }
+
+    public function test_no_merging_with_negated_classes(): void
+    {
+        // Test that [a-z]|[^0-9] remains unchanged (negated class prevents merging)
+        $regex = Regex::create();
+        $ast = $regex->parse('/[a-z]|[^0-9]/');
+        $optimizer = new OptimizerNodeVisitor();
+        
+        $optimized = $ast->accept($optimizer);
+        $compiler = new CompilerNodeVisitor();
+        $result = $optimized->accept($compiler);
+        
+        $this->assertSame('/[a-z]|[^0-9]/', $result);
+    }
 }

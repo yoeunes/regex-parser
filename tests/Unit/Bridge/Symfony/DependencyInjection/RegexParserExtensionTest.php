@@ -28,7 +28,9 @@ final class RegexParserExtensionTest extends TestCase
         $extension = new RegexParserExtension();
         $extension->load([[
             'max_pattern_length' => 42,
-            'cache' => '/tmp/cache',
+            'cache' => [
+                'directory' => '/tmp/cache',
+            ],
             'analysis' => [
                 'warning_threshold' => 1,
                 'redos_threshold' => 2,
@@ -37,7 +39,8 @@ final class RegexParserExtensionTest extends TestCase
         ]], $container);
 
         $this->assertSame(42, $container->getParameter('regex_parser.max_pattern_length'));
-        $this->assertSame('/tmp/cache', $container->getParameter('regex_parser.cache'));
+        $cacheConfig = $container->getParameter('regex_parser.cache');
+        $this->assertSame('/tmp/cache', $cacheConfig['directory']);
         $this->assertSame(1, $container->getParameter('regex_parser.analysis.warning_threshold'));
         $this->assertSame(2, $container->getParameter('regex_parser.analysis.redos_threshold'));
         $this->assertSame(['foo'], $container->getParameter('regex_parser.analysis.ignore_patterns'));
