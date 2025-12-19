@@ -45,7 +45,7 @@ final readonly class ValidatorValidationService implements RegexLintIssueProvide
 
     public function analyze(): array
     {
-        if (!$this->isSupported()) {
+        if (!$this->isSupported() || null === $this->analyzer) {
             return [];
         }
 
