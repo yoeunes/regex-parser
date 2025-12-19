@@ -29,7 +29,7 @@ final class RegexLintCommandTest extends TestCase
         $status = $tester->execute([]);
 
         $this->assertSame(0, $status);
-        $this->assertStringContainsString('No constant preg_* patterns found', $tester->getDisplay());
+        $this->assertStringContainsString('No regex patterns found', $tester->getDisplay());
     }
 
     public function test_command_has_correct_name(): void
