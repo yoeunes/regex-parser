@@ -83,7 +83,7 @@ final readonly class RouteRequirementAnalyzer
                 if ($isTrivial) {
                     if (!$result->isValid) {
                         $issues[] = new AnalysisIssue(
-                            \sprintf('requirement "%s" is invalid: %s', $parameter, $result->error ?? 'unknown error'),
+                            \sprintf('requirement "%s" in route "%s" is invalid: %s', $parameter, $name, $result->error ?? 'unknown error'),
                             true,
                             $pattern,
                             $id,
@@ -95,7 +95,7 @@ final readonly class RouteRequirementAnalyzer
 
                 if (!$result->isValid) {
                     $issues[] = new AnalysisIssue(
-                        \sprintf('requirement "%s" is invalid: %s', $parameter, $result->error ?? 'unknown error'),
+                        \sprintf('requirement "%s" in route "%s" is invalid: %s', $parameter, $name, $result->error ?? 'unknown error'),
                         true,
                         $pattern,
                         $id,
@@ -122,7 +122,7 @@ final readonly class RouteRequirementAnalyzer
 
                 if ($result->complexityScore >= $this->warningThreshold) {
                     $issues[] = new AnalysisIssue(
-                        \sprintf('requirement "%s" is complex (score: %d).', $parameter, $result->complexityScore),
+                        \sprintf('requirement "%s" in route "%s" is complex (score: %d).', $parameter, $name, $result->complexityScore),
                         false,
                         $pattern,
                         $id,

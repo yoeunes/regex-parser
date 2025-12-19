@@ -20,7 +20,7 @@ use RegexParser\Bridge\Symfony\Console\RelativePathHelper;
 final class LinkFormatterTest extends TestCase
 {
     /**
-     * @var array<string, ?string>
+     * @var array<string, string|null>
      */
     private array $envBackup;
 
@@ -29,7 +29,7 @@ final class LinkFormatterTest extends TestCase
         $this->envBackup = [
             'TERMINAL_EMULATOR' => $this->getEnvValue('TERMINAL_EMULATOR'),
             'KONSOLE_VERSION' => $this->getEnvValue('KONSOLE_VERSION'),
-            'IDEA_INITIAL_DIRECTORY' => $_SERVER['IDEA_INITIAL_DIRECTORY'] ?? null,
+            'IDEA_INITIAL_DIRECTORY' => isset($_SERVER['IDEA_INITIAL_DIRECTORY']) && \is_string($_SERVER['IDEA_INITIAL_DIRECTORY']) ? $_SERVER['IDEA_INITIAL_DIRECTORY'] : null,
         ];
 
         $this->clearEnv('TERMINAL_EMULATOR');

@@ -50,7 +50,11 @@ final class RegexLintCommandTest extends TestCase
         $this->assertFalse($definition->hasOption('min-savings'));
     }
 
-    private function createCommand(array $defaultPaths, array $excludePaths): RegexLintCommand
+    /**
+     * @param array<string> $defaultPaths
+     * @param array<string> $excludePaths
+     */
+    private function createCommand(array $defaultPaths = [], array $excludePaths = []): RegexLintCommand
     {
         return new RegexLintCommand(
             analysis: new RegexAnalysisService(Regex::create()),
