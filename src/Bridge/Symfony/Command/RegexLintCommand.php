@@ -69,8 +69,6 @@ final class RegexLintCommand extends Command
 
     private LinkFormatter $linkFormatter;
 
-    private readonly ?string $editorUrl;
-
     /**
      * @var list<string>
      */
@@ -90,11 +88,10 @@ final class RegexLintCommand extends Command
         private readonly RegexAnalysisService $analysis,
         array $defaultPaths = ['src'],
         array $defaultExcludePaths = ['vendor'],
-        ?string $editorUrl = null,
+        private readonly ?string $editorUrl = null,
     ) {
         $this->defaultPaths = $this->normalizeStringList($defaultPaths);
         $this->defaultExcludePaths = $this->normalizeStringList($defaultExcludePaths);
-        $this->editorUrl = $editorUrl;
 
         if ([] === $this->defaultPaths) {
             $this->defaultPaths = ['src'];
@@ -106,7 +103,7 @@ final class RegexLintCommand extends Command
 
         // Initialize with temporary path helper, will be updated in execute()
         $this->pathHelper = new RelativePathHelper(getcwd() ?: null);
-        $this->linkFormatter = new LinkFormatter($editorUrl, $this->pathHelper);
+        $this->linkFormatter = new LinkFormatter($this->editorUrl, $this->pathHelper);
         parent::__construct();
     }
 
