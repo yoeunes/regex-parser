@@ -174,7 +174,7 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
                 $pattern,
                 $file,
                 $token[2],
-                'php:'.$functionName.'()',
+                $functionName.'()',
             )];
         }
 
