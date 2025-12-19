@@ -1067,30 +1067,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         return $merged;
     }
 
-    /**
-     * Merges multiple character class nodes into a single character class.
-     *
-     * @param list<Node\CharClassNode> $charClasses
-     */
-    private function mergeCharClasses(array $charClasses): Node\CharClassNode
-    {
-        $allParts = [];
-        $startPos = $charClasses[0]->startPosition;
-        $endPos = $charClasses[\count($charClasses) - 1]->endPosition;
 
-        foreach ($charClasses as $charClass) {
-            if ($charClass->expression instanceof Node\AlternationNode) {
-                $allParts = array_merge($allParts, $charClass->expression->alternatives);
-            } else {
-                $allParts[] = $charClass->expression;
-            }
-        }
-
-        // Create a new alternation with all parts
-        $mergedExpression = new Node\AlternationNode($allParts, $startPos, $endPos);
-
-        return new Node\CharClassNode($mergedExpression, false, $startPos, $endPos);
-    }
 
     /**
      * Checks if a CharTypeNode can be converted to a CharClassNode.
@@ -1133,8 +1110,8 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
     private function mergeCharClassesAndCharTypes(array $nodes): Node\CharClassNode
     {
         $allParts = [];
-        $startPos = $nodes[0]->startPosition;
-        $endPos = $nodes[\count($nodes) - 1]->endPosition;
+        $startPos = $nodes[0]->getStartPosition();
+        $endPos = $nodes[\count($nodes) - 1]->getEndPosition();
 
         foreach ($nodes as $node) {
             if ($node instanceof Node\CharClassNode) {

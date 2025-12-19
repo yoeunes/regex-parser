@@ -40,9 +40,10 @@ final class ConfigurationTest extends TestCase
         $config = $processor->processConfiguration($configuration, []);
 
         $this->assertSame(Regex::DEFAULT_MAX_PATTERN_LENGTH, $config['max_pattern_length']);
-        $this->assertNull($config['cache']['pool']);
-        $this->assertNull($config['cache']['directory']);
-        $this->assertSame('regex_', $config['cache']['prefix']);
+        $cacheConfig = $config['cache'];
+        $this->assertNull($cacheConfig['pool']);
+        $this->assertNull($cacheConfig['directory']);
+        $this->assertSame('regex_', $cacheConfig['prefix']);
         $this->assertNull($config['extractor_service']);
         $this->assertSame(50, $config['analysis']['warning_threshold']);
         $this->assertSame(100, $config['analysis']['redos_threshold']);

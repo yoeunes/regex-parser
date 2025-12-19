@@ -39,7 +39,7 @@ final class RegexParserExtensionTest extends TestCase
         ]], $container);
 
         $this->assertSame(42, $container->getParameter('regex_parser.max_pattern_length'));
-        $cacheConfig = $container->getParameter('regex_parser.cache');
+        $cacheConfig = (array) $container->getParameter('regex_parser.cache');
         $this->assertSame('/tmp/cache', $cacheConfig['directory']);
         $this->assertSame(1, $container->getParameter('regex_parser.analysis.warning_threshold'));
         $this->assertSame(2, $container->getParameter('regex_parser.analysis.redos_threshold'));
