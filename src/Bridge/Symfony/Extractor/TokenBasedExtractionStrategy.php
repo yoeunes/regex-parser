@@ -101,7 +101,11 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
      */
     private function extractFromNextTokens(int $line, string $file): array
     {
-        $tokens = token_get_all(file_get_contents($file), \TOKEN_PARSE);
+        $content = file_get_contents($file);
+        if (false === $content) {
+            return [];
+        }
+        $tokens = token_get_all($content, \TOKEN_PARSE);
         $totalTokens = \count($tokens);
 
         for ($i = 0; $i < $totalTokens; $i++) {
@@ -143,12 +147,14 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
                 continue;
             }
 
-            if (!isset(self::IGNORABLE_TOKENS[$token[0]])) {
+            $tokenType = $token[0];
+            /** @var int $tokenType */
+            if (!isset(self::IGNORABLE_TOKENS[$tokenType])) {
                 return $token;
             }
 
             // Handle nested function calls
-            if (\T_STRING === $token[0] && isset(self::PREG_FUNCTIONS[$token[1]])) {
+            if (\T_STRING === $tokenType && isset(self::PREG_FUNCTIONS[$token[1]])) {
                 return $this->findNextNonIgnorableToken($tokens, $i + 1);
             }
         }
@@ -180,8 +186,12 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
 
         // Handle concatenation of strings
         if (\T_STRING === $token[0] && isset(self::PREG_FUNCTIONS[$token[1]])) {
+            $content = file_get_contents($file);
+            if (false === $content) {
+                return [];
+            }
             $patternToken = $this->findNextNonIgnorableToken(
-                token_get_all(file_get_contents($file), \TOKEN_PARSE),
+                token_get_all($content, \TOKEN_PARSE),
                 $token[2],
             );
 
