@@ -17,11 +17,42 @@ use RegexParser\Bridge\Symfony\Analyzer\AnalysisIssue;
 use RegexParser\Bridge\Symfony\Extractor\RegexPatternOccurrence;
 use RegexParser\Bridge\Symfony\Extractor\RegexPatternSourceCollection;
 use RegexParser\Bridge\Symfony\Extractor\RegexPatternSourceContext;
+use RegexParser\OptimizationResult;
 
 /**
  * Aggregates pattern sources and produces lint results.
  *
  * @internal
+ *
+ * @phpstan-type LintIssue array{
+ *     type: string,
+ *     message: string,
+ *     file: string,
+ *     line: int,
+ *     column?: int,
+ *     issueId?: string,
+ *     hint?: string|null,
+ *     source?: string,
+ *     pattern?: string,
+ *     regex?: string
+ * }
+ * @phpstan-type OptimizationEntry array{
+ *     file: string,
+ *     line: int,
+ *     optimization: OptimizationResult,
+ *     savings: int,
+ *     source?: string
+ * }
+ * @phpstan-type LintResult array{
+ *     file: string,
+ *     line: int,
+ *     source?: string|null,
+ *     pattern: string|null,
+ *     location?: string|null,
+ *     issues: list<LintIssue>,
+ *     optimizations: list<OptimizationEntry>
+ * }
+ * @phpstan-type LintStats array{errors: int, warnings: int, optimizations: int}
  */
 final readonly class RegexLintService
 {
@@ -72,7 +103,7 @@ final readonly class RegexLintService
     }
 
     /**
-     * @return array{errors: int, warnings: int, optimizations: int}
+     * @return LintStats
      */
     private function createStats(): array
     {
@@ -80,27 +111,21 @@ final readonly class RegexLintService
     }
 
     /**
-     * @param array<int, array{
-     *     type: string,
-     *     file: string,
-     *     line: int,
-     *     column: int,
-     *     message: string,
-     *     issueId?: string,
-     *     hint?: string|null,
-     *     source?: string
-     * }> $issues
+     * @phpstan-param list<LintIssue> $issues
+     * @phpstan-param array<string, bool> $enabledProviders
+     *
+     * @phpstan-return list<LintIssue>
      */
     private function filterLintIssues(array $issues, array $enabledProviders): array
     {
         $validatorEnabled = $enabledProviders['validators'] ?? false;
 
         return array_values(array_filter($issues, static function (array $issue) use ($validatorEnabled): bool {
-            $source = (string) ($issue['source'] ?? '');
+            $source = $issue['source'] ?? '';
 
             if (str_starts_with($source, 'route:')) {
-                return !str_contains((string) $issue['message'], 'ReDoS')
-                    && !str_contains((string) $issue['message'], 'Nested quantifiers');
+                return !str_contains($issue['message'], 'ReDoS')
+                    && !str_contains($issue['message'], 'Nested quantifiers');
             }
 
             if ($validatorEnabled && str_starts_with($source, 'validator:') && 'error' === $issue['type']) {
@@ -112,21 +137,13 @@ final readonly class RegexLintService
     }
 
     /**
-     * @return array{
-     *     0: array<int, array{
-     *         file: string,
-     *         line: int,
-     *         source?: string|null,
-     *         pattern: string|null,
-     *         issues: array<int, array{type: string, message: string, file: string, line: int, hint?: string|null, source?: string}>,
-     *         optimizations: array<int, array{file: string, line: int, optimization: object, savings: int, source?: string}>
-     *     }>,
-     *     1: array<string, bool>
-     * }
+     * @return array{0: list<LintResult>, 1: array<string, bool>}
      */
     private function collectAdditionalResultsAndEnabledProviders(RegexLintRequest $request): array
     {
+        /** @var list<LintResult> $results */
         $results = [];
+        /** @var array<string, bool> $enabledProviders */
         $enabledProviders = [];
 
         foreach ($this->issueProviders as $provider) {
@@ -153,37 +170,16 @@ final readonly class RegexLintService
     }
 
     /**
-     * @param array<int, array{
-     *     type: string,
-     *     file: string,
-     *     line: int,
-     *     column: int,
-     *     message: string,
-     *     issueId?: string,
-     *     hint?: string|null,
-     *     source?: string
-     * }> $issues
-     * @param array<int, array{
-     *     file: string,
-     *     line: int,
-     *     optimization: object,
-     *     savings: int,
-     *     source?: string
-     * }> $optimizations
+     * @phpstan-param list<LintIssue> $issues
+     * @phpstan-param list<OptimizationEntry> $optimizations
      * @param list<RegexPatternOccurrence> $originalPatterns
      *
-     * @return array<int, array{
-     *     file: string,
-     *     line: int,
-     *     source?: string|null,
-     *     pattern: string|null,
-     *     issues: array<int, array{type: string, message: string, file: string, line: int, hint?: string|null, source?: string}>,
-     *     optimizations: array<int, array{file: string, line: int, optimization: object, savings: int, source?: string}>
-     * }>
+     * @phpstan-return list<LintResult>
      */
     private function combineResults(array $issues, array $optimizations, array $originalPatterns): array
     {
         $patternMap = $this->createPatternMap($originalPatterns);
+        /** @var array<string, LintResult> $results */
         $results = [];
 
         $this->addIssuesToResults($issues, $patternMap, $results);
@@ -194,12 +190,14 @@ final readonly class RegexLintService
 
     /**
      * @param list<RegexPatternOccurrence> $originalPatterns
+     *
+     * @return array<string, string>
      */
     private function createPatternMap(array $originalPatterns): array
     {
         $map = [];
         foreach ($originalPatterns as $pattern) {
-            $key = $this->createPatternKey($pattern->file, $pattern->line, $pattern->source ?? null);
+            $key = $this->createPatternKey($pattern->file, $pattern->line, $pattern->source);
             $map[$key] = $pattern->displayPattern ?? $pattern->pattern;
         }
 
@@ -211,6 +209,11 @@ final readonly class RegexLintService
         return $file.':'.$line.':'.($source ?? '');
     }
 
+    /**
+     * @phpstan-param list<LintIssue> $issues
+     * @phpstan-param array<string, string> $patternMap
+     * @phpstan-param array<string, LintResult> $results
+     */
     private function addIssuesToResults(array $issues, array $patternMap, array &$results): void
     {
         foreach ($issues as $issue) {
@@ -229,6 +232,11 @@ final readonly class RegexLintService
         }
     }
 
+    /**
+     * @phpstan-param list<OptimizationEntry> $optimizations
+     * @phpstan-param array<string, string> $patternMap
+     * @phpstan-param array<string, LintResult> $results
+     */
     private function addOptimizationsToResults(array $optimizations, array $patternMap, array &$results): void
     {
         foreach ($optimizations as $opt) {
@@ -244,19 +252,22 @@ final readonly class RegexLintService
         }
     }
 
+    /**
+     * @phpstan-param LintIssue $issue
+     */
     private function shouldIgnoreIssue(array $issue): bool
     {
-        $source = (string) ($issue['source'] ?? '');
+        $source = $issue['source'] ?? '';
         if (str_starts_with($source, 'route:') || str_starts_with($source, 'validator:')) {
             return false;
         }
 
-        $file = $issue['file'] ?? null;
-        if (!\is_string($file) || '' === $file || !is_file($file)) {
+        $file = $issue['file'];
+        if ('' === $file || !is_file($file)) {
             return false;
         }
 
-        $line = (int) ($issue['line'] ?? 0);
+        $line = $issue['line'];
         if ($line < 2) {
             return false;
         }
@@ -273,6 +284,11 @@ final readonly class RegexLintService
             && str_contains($lines[$prevLineIndex], '// @regex-lint-ignore');
     }
 
+    /**
+     * @param array{file: string, line: int, source?: string|null} $item
+     *
+     * @return LintResult
+     */
     private function createResultStructure(array $item, ?string $pattern): array
     {
         return [
@@ -287,16 +303,21 @@ final readonly class RegexLintService
 
     /**
      * @param list<AnalysisIssue> $issues
+     *
+     * @return list<LintResult>
      */
     private function convertAnalysisIssuesToResults(array $issues, string $category): array
     {
-        return array_map(
+        return array_values(array_map(
             fn ($issue, $index) => $this->convertAnalysisIssueToResult($issue, $index, $category),
             $issues,
             array_keys($issues),
-        );
+        ));
     }
 
+    /**
+     * @return LintResult
+     */
     private function convertAnalysisIssueToResult(AnalysisIssue $issue, int $index, string $category): array
     {
         [$file, $location] = $this->extractFileAndLocation($issue->id ?? null, $category);
@@ -319,6 +340,9 @@ final readonly class RegexLintService
         ];
     }
 
+    /**
+     * @return array{0: string, 1: string|null}
+     */
     private function extractFileAndLocation(?string $id, string $category): array
     {
         if (!$id) {
@@ -334,25 +358,46 @@ final readonly class RegexLintService
         return [$category, $id];
     }
 
+    /**
+     * @return array{0: string|null, 1: string}
+     */
     private function extractPatternAndMessage(?string $pattern, string $message, ?string $location): array
     {
         if (!$pattern && preg_match('/pattern: ([^)]+)/', $message, $matches)) {
             $pattern = trim($matches[1], '#');
-            $message = preg_replace('/ \(pattern: [^)]+\)/', '', $message);
+            $updatedMessage = preg_replace('/ \(pattern: [^)]+\)/', '', $message);
+            if (null !== $updatedMessage) {
+                $message = $updatedMessage;
+            }
         }
 
         if (!$location && preg_match('/Route "([^"]+)"/', (string) $message, $matches)) {
-            $message = preg_replace('/Route "[^"]+" /', '', (string) $message);
+            $updatedMessage = preg_replace('/Route "[^"]+" /', '', (string) $message);
+            if (null !== $updatedMessage) {
+                $message = $updatedMessage;
+            }
         }
 
         return [$pattern, $message];
     }
 
+    /**
+     * @param LintStats $stats
+     * @param list<LintResult> $results
+     *
+     * @return LintStats
+     */
     private function updateStatsFromResults(array $stats, array $results): array
     {
         foreach ($results as $result) {
-            $stats['errors'] += \count(array_filter($result['issues'], fn ($issue) => 'error' === $issue['type']));
-            $stats['warnings'] += \count(array_filter($result['issues'], fn ($issue) => 'warning' === $issue['type']));
+            foreach ($result['issues'] as $issue) {
+                if ('error' === $issue['type']) {
+                    $stats['errors']++;
+                } elseif ('warning' === $issue['type']) {
+                    $stats['warnings']++;
+                }
+            }
+
             $stats['optimizations'] += \count($result['optimizations']);
         }
 

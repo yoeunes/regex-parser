@@ -54,7 +54,6 @@ final readonly class ValidatorRegexPatternSource implements RegexPatternSourceIn
         if (null !== $this->validatorLoader) {
             try {
                 if (method_exists($this->validatorLoader, 'getMappedClasses')) {
-                    // @phpstan-ignore method.notFound
                     $mappedClasses = $this->validatorLoader->getMappedClasses();
                     if (is_array($mappedClasses)) {
                         $classes = $mappedClasses;
@@ -106,8 +105,7 @@ final readonly class ValidatorRegexPatternSource implements RegexPatternSourceIn
                         continue;
                     }
 
-                    // @phpstan-ignore method.notFound
-                    $propertyName = method_exists($propertyMetadata, 'getPropertyName') ? $propertyMetadata->getPropertyName() : 'unknown';
+                    $propertyName = $propertyMetadata->getPropertyName();
                     $patterns = [...$patterns, ...$this->extractFromConstraints(
                         $propertyMetadata->getConstraints(),
                         \sprintf('%s::$%s', $className, $propertyName),

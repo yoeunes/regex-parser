@@ -22,34 +22,17 @@ use RegexParser\Cache\PsrCacheAdapter;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;
+use Symfony\Component\DependencyInjection\Extension\Extension;
 use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
 use Symfony\Component\DependencyInjection\Reference;
-use Symfony\Component\HttpKernel\DependencyInjection\Extension;
 
 /**
  * Loads and manages configuration for the RegexParser bundle.
+ *
+ * @internal
  */
 final class RegexParserExtension extends Extension
 {
-    private const IDE_LINK_FORMATS = [
-        'atom' => 'atom://core/open/file?filename=%f&line=%l',
-        'code' => 'vscode://file/%f:%l',
-        'emacs' => 'emacs://open?url=file://%f&line=%l',
-        'espresso' => 'espresso://open?filepath=%f&lines=%l',
-        'idea' => 'idea://open?file=%f&line=%l',
-        'macvim' => 'mvim://open?url=file://%f&line=%l',
-        'netbeans' => 'netbeans://open/?f=%f:%l',
-        'phpstorm' => 'phpstorm://open?file=%f&line=%l',
-        'storm' => 'phpstorm://open?file=%f&line=%l',
-        'sublime' => 'subl://open?url=file://%f&line=%l',
-        'subl' => 'subl://open?url=file://%f&line=%l',
-        'textmate' => 'txmt://open?url=file://%f&line=%l',
-        'vim' => 'vim://open?url=file://%f&line=%l',
-        'vscode' => 'vscode://file/%f:%l',
-        'vscode-insiders' => 'vscode-insiders://file/%f:%l',
-        'xdebug' => 'xdebug://debug?file=%f&line=%l',
-    ];
-
     /**
      * @param array<array<string, mixed>> $configs   an array of configuration values from the application's config files
      * @param ContainerBuilder            $container the DI container builder instance
@@ -161,13 +144,16 @@ final class RegexParserExtension extends Extension
 
     /**
      * Create the appropriate extractor definition based on configuration and availability.
+     *
+     * @param array{extractor_service: string|null} $config
      */
     private function createExtractorDefinition(array $config, ContainerBuilder $container): Definition
     {
         // If user provided custom extractor service, create alias
-        if (null !== $config['extractor_service'] && '' !== $config['extractor_service']) {
+        $extractorService = $config['extractor_service'] ?? null;
+        if (\is_string($extractorService) && '' !== $extractorService) {
             return (new Definition(ExtractorInterface::class))
-                ->setFactory([new Reference($config['extractor_service']), '...']);
+                ->setFactory([new Reference($extractorService), '...']);
         }
 
         // Check if PHPStan is available and prefer it
@@ -191,16 +177,19 @@ final class RegexParserExtension extends Extension
     {
         $editorFormat = $config['editor_url'];
 
-        if (null === $editorFormat && null !== $config['ide'] && '' !== $config['ide']) {
+        if ((null === $editorFormat || '' === $editorFormat) && null !== $config['ide'] && '' !== $config['ide']) {
             $editorFormat = $config['ide'];
         }
 
         // Fallback to framework.ide if regex_parser.editor_url is not set
-        if (null === $editorFormat && $container->hasParameter('framework.ide')) {
-            $editorFormat = $container->getParameter('framework.ide');
+        if ((null === $editorFormat || '' === $editorFormat) && $container->hasParameter('framework.ide')) {
+            $frameworkIde = $container->getParameter('framework.ide');
+            if (\is_string($frameworkIde) && '' !== $frameworkIde) {
+                $editorFormat = $frameworkIde;
+            }
         }
 
-        return $editorFormat;
+        return \is_string($editorFormat) && '' !== $editorFormat ? $editorFormat : null;
     }
 
     /**
@@ -208,8 +197,8 @@ final class RegexParserExtension extends Extension
      */
     private function isPhpStanAvailable(): bool
     {
-        return class_exists(\PHPStan\Analyser\Analyser::class)
-            && class_exists(\PHPStan\Parser\Parser::class)
-            && class_exists(\PHPStan\PhpDoc\TypeNodeResolver::class);
+        return class_exists('PHPStan\\Analyser\\Analyser')
+            && class_exists('PHPStan\\Parser\\Parser')
+            && class_exists('PHPStan\\PhpDoc\\TypeNodeResolver');
     }
 }

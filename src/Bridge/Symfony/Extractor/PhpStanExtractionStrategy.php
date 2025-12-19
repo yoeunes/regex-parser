@@ -20,6 +20,7 @@ use PhpParser\Node\Expr\BinaryOp\Concat;
 use PhpParser\Node\Expr\ConstFetch;
 use PhpParser\Node\Expr\FuncCall;
 use PhpParser\Node\Name;
+use PhpParser\ParserFactory;
 use PhpParser\Node\Scalar\String_;
 
 /**
@@ -71,15 +72,19 @@ final readonly class PhpStanExtractionStrategy implements ExtractorInterface
                 return [];
             }
 
-            // Use PHPStan's lexer to get tokens (much more reliable than token_get_all)
-            $lexerClass = 'PHPStan\\Parser\\Lexer';
-            if (!class_exists($lexerClass)) {
+            $parserFactoryClass = 'PhpParser\\ParserFactory';
+            if (!class_exists($parserFactoryClass)) {
                 return [];
             }
-            $lexer = new $lexerClass();
-            $tokens = $lexer->tokenize($content);
+            $parserFactory = new ParserFactory();
+            $parser = $parserFactory->createForHostVersion();
 
-            return $this->extractFromTokens($tokens, $file);
+            $ast = $parser->parse($content);
+            if (!\is_array($ast)) {
+                return [];
+            }
+
+            return $this->extractFromTokens($ast, $file);
         } catch (\Throwable) {
             // If analysis fails for this file, return empty results
             return [];

@@ -39,14 +39,15 @@ final readonly class RouteRegexPatternSource implements RegexPatternSourceInterf
 
     public function extract(RegexPatternSourceContext $context): array
     {
-        if (!$this->isSupported()) {
+        if (null === $this->router) {
             return [];
         }
 
+        $router = $this->router;
         $patterns = [];
         $line = 1;
 
-        foreach ($this->router->getRouteCollection() as $name => $route) {
+        foreach ($router->getRouteCollection() as $name => $route) {
             $file = $this->getRouteFile($route) ?? 'Symfony Router';
 
             foreach ($route->getRequirements() as $parameter => $requirement) {
@@ -110,6 +111,8 @@ final readonly class RouteRegexPatternSource implements RegexPatternSourceInterf
 
         $reflection = new \ReflectionClass($class);
 
-        return $reflection->getFileName();
+        $fileName = $reflection->getFileName();
+
+        return false !== $fileName ? $fileName : null;
     }
 }

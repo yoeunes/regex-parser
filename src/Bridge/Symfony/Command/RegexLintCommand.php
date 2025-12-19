@@ -18,6 +18,7 @@ use RegexParser\Bridge\Symfony\Console\RelativePathHelper;
 use RegexParser\Bridge\Symfony\Service\RegexAnalysisService;
 use RegexParser\Bridge\Symfony\Service\RegexLintRequest;
 use RegexParser\Bridge\Symfony\Service\RegexLintService;
+use RegexParser\OptimizationResult;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Formatter\OutputFormatter;
@@ -27,6 +28,37 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
+/**
+ * @phpstan-type LintIssue array{
+ *     type: string,
+ *     message: string,
+ *     file: string,
+ *     line: int,
+ *     column?: int,
+ *     issueId?: string,
+ *     hint?: string|null,
+ *     source?: string,
+ *     pattern?: string,
+ *     regex?: string
+ * }
+ * @phpstan-type OptimizationEntry array{
+ *     file: string,
+ *     line: int,
+ *     optimization: OptimizationResult,
+ *     savings: int,
+ *     source?: string
+ * }
+ * @phpstan-type LintResult array{
+ *     file: string,
+ *     line: int,
+ *     source?: string|null,
+ *     pattern: string|null,
+ *     location?: string|null,
+ *     issues: list<LintIssue>,
+ *     optimizations: list<OptimizationEntry>
+ * }
+ * @phpstan-type LintStats array{errors: int, warnings: int, optimizations: int}
+ */
 #[AsCommand(
     name: 'regex:lint',
     description: 'Lints, validates, and optimizes regex patterns in your PHP code.',
@@ -85,11 +117,12 @@ final class RegexLintCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
 
-        $paths = $input->getArgument('paths');
-        $exclude = $input->getOption('exclude');
-        $minSavings = (int) $input->getOption('min-savings');
-        $skipRoutes = $input->getOption('no-routes');
-        $skipValidators = $input->getOption('no-validators');
+        $paths = $this->normalizeStringList($input->getArgument('paths'));
+        $exclude = $this->normalizeStringList($input->getOption('exclude'));
+        $minSavingsValue = $input->getOption('min-savings');
+        $minSavings = \is_numeric($minSavingsValue) ? (int) $minSavingsValue : 1;
+        $skipRoutes = (bool) $input->getOption('no-routes');
+        $skipValidators = (bool) $input->getOption('no-validators');
 
         $this->showBanner($io);
 
@@ -101,7 +134,7 @@ final class RegexLintCommand extends Command
                 disabledSources: array_values(array_filter([
                     $skipRoutes ? 'routes' : null,
                     $skipValidators ? 'validators' : null,
-                ])),
+                ], static fn (?string $source): bool => null !== $source)),
             );
             $patterns = $this->lint->collectPatterns($request);
         } catch (\Throwable $e) {
@@ -142,7 +175,7 @@ final class RegexLintCommand extends Command
     }
 
     /**
-     * @return array{errors: int, warnings: int, optimizations: int}
+     * @phpstan-return LintStats
      */
     private function createStats(): array
     {
@@ -150,7 +183,7 @@ final class RegexLintCommand extends Command
     }
 
     /**
-     * @param array<array<string, mixed>> $results
+     * @phpstan-param list<LintResult> $results
      */
     private function displayResults(SymfonyStyle $io, array $results): void
     {
@@ -158,7 +191,7 @@ final class RegexLintCommand extends Command
     }
 
     /**
-     * @param array<array<string, mixed>> $results
+     * @phpstan-param list<LintResult> $results
      */
     private function outputIntegratedResults(SymfonyStyle $io, array $results): void
     {
@@ -174,6 +207,11 @@ final class RegexLintCommand extends Command
         }
     }
 
+    /**
+     * @phpstan-param list<LintResult> $results
+     *
+     * @phpstan-return array<string, list<LintResult>>
+     */
     private function groupResultsByFile(array $results): array
     {
         $grouped = [];
@@ -191,7 +229,7 @@ final class RegexLintCommand extends Command
     }
 
     /**
-     * @param array<string, mixed> $result
+     * @phpstan-param LintResult $result
      */
     private function renderResultCard(SymfonyStyle $io, array $result): void
     {
@@ -201,13 +239,16 @@ final class RegexLintCommand extends Command
         $io->newLine();
     }
 
+    /**
+     * @phpstan-param LintResult $result
+     */
     private function displayPatternContext(SymfonyStyle $io, array $result): void
     {
         $pattern = $this->extractPatternForResult($result);
         $line = $result['line'];
         $file = $result['file'];
 
-        if ($pattern) {
+        if (null !== $pattern && '' !== $pattern) {
             $highlighted = $this->safelyHighlightPattern($pattern);
             $io->writeln(\sprintf('  <fg=gray>%d:</> %s', $line, $highlighted));
         } else {
@@ -225,14 +266,18 @@ final class RegexLintCommand extends Command
         }
     }
 
+    /**
+     * @phpstan-param list<LintIssue> $issues
+     */
     private function displayIssues(SymfonyStyle $io, array $issues): void
     {
         foreach ($issues as $issue) {
             $badge = $this->getIssueBadge($issue['type']);
             $this->displaySingleIssue($io, $badge, $issue['message']);
 
-            if (!empty($issue['hint'])) {
-                $io->writeln(\sprintf('         <fg=gray>↳ %s</>', $issue['hint']));
+            $hint = $issue['hint'] ?? null;
+            if (null !== $hint && '' !== $hint) {
+                $io->writeln(\sprintf('         <fg=gray>↳ %s</>', $hint));
             }
         }
     }
@@ -246,6 +291,9 @@ final class RegexLintCommand extends Command
         };
     }
 
+    /**
+     * @phpstan-param list<OptimizationEntry> $optimizations
+     */
     private function displayOptimizations(SymfonyStyle $io, array $optimizations): void
     {
         foreach ($optimizations as $opt) {
@@ -276,6 +324,9 @@ final class RegexLintCommand extends Command
         }
     }
 
+    /**
+     * @phpstan-param LintStats $stats
+     */
     private function renderSummary(SymfonyStyle $io, array $stats, bool $isEmpty = false): void
     {
         $io->newLine();
@@ -292,7 +343,7 @@ final class RegexLintCommand extends Command
     }
 
     /**
-     * @param array{errors: int, warnings: int, optimizations: int} $stats
+     * @phpstan-param LintStats $stats
      */
     private function showSummaryMessage(SymfonyStyle $io, array $stats): void
     {
@@ -325,43 +376,48 @@ final class RegexLintCommand extends Command
         $io->newLine();
     }
 
+    /**
+     * @phpstan-param LintResult $result
+     */
     private function extractPatternForResult(array $result): ?string
     {
-        if (!empty($result['pattern'])) {
-            return $result['pattern'];
+        $pattern = $result['pattern'] ?? null;
+        if (\is_string($pattern) && '' !== $pattern) {
+            return $pattern;
         }
 
         if (!empty($result['issues'])) {
             $firstIssue = $result['issues'][0];
-            if (!empty($firstIssue['pattern'])) {
-                return $firstIssue['pattern'];
-            }
-            if (!empty($firstIssue['regex'])) {
-                return $firstIssue['regex'];
+            $issuePattern = $firstIssue['pattern'] ?? $firstIssue['regex'] ?? null;
+            if (\is_string($issuePattern) && '' !== $issuePattern) {
+                return $issuePattern;
             }
         }
 
         if (!empty($result['optimizations'])) {
             $firstOpt = $result['optimizations'][0];
-            if (isset($firstOpt['optimization']->original)) {
-                return $firstOpt['optimization']->original;
+            $optimization = $firstOpt['optimization'] ?? null;
+            if ($optimization instanceof OptimizationResult) {
+                return $optimization->original;
             }
         }
 
         return null;
     }
 
+    /**
+     * @phpstan-param LintResult $result
+     */
     private function getSeverityScore(array $result): int
     {
-        $issueScore = array_reduce(
-            $result['issues'],
-            fn ($carry, $issue) => $carry + match ($issue['type']) {
+        $issueScore = 0;
+        foreach ($result['issues'] as $issue) {
+            $issueScore += match ($issue['type']) {
                 'error' => 100,
                 'warning' => 10,
                 default => 0,
-            },
-            0,
-        );
+            };
+        }
 
         return $issueScore + \count($result['optimizations']);
     }
@@ -372,6 +428,18 @@ final class RegexLintCommand extends Command
             '/^Line \d+:/m',
             fn ($matches) => str_repeat(' ', \strlen($matches[0])),
             $message,
-        );
+        ) ?? $message;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function normalizeStringList(mixed $value): array
+    {
+        if (!\is_array($value)) {
+            return [];
+        }
+
+        return array_values(array_filter($value, static fn ($item): bool => \is_string($item) && '' !== $item));
     }
 }

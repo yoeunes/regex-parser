@@ -149,13 +149,13 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
 
             $tokenType = $token[0];
             /** @var int $tokenType */
-            if (!isset(self::IGNORABLE_TOKENS[$tokenType])) {
-                return $token;
-            }
-
-            // Handle nested function calls
+            // Skip nested preg_* calls so we still reach the argument token.
             if (\T_STRING === $tokenType && isset(self::PREG_FUNCTIONS[$token[1]])) {
                 return $this->findNextNonIgnorableToken($tokens, $i + 1);
+            }
+
+            if (!isset(self::IGNORABLE_TOKENS[$tokenType])) {
+                return $token;
             }
         }
 

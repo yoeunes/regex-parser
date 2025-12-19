@@ -14,8 +14,11 @@ declare(strict_types=1);
 namespace RegexParser\Bridge\Symfony\Service;
 
 use RegexParser\Bridge\Symfony\Extractor\RegexPatternExtractor;
+use RegexParser\Bridge\Symfony\Extractor\RegexPatternOccurrence;
 use RegexParser\Bridge\Symfony\Extractor\TokenBasedExtractionStrategy;
 use RegexParser\NodeVisitor\LinterNodeVisitor;
+use RegexParser\OptimizationResult;
+use RegexParser\ReDoS\ReDoSAnalysis;
 use RegexParser\ReDoS\ReDoSSeverity;
 use RegexParser\Regex;
 
@@ -32,6 +35,8 @@ final readonly class RegexAnalysisService
     /**
      * @param list<string> $paths
      * @param list<string> $excludePaths
+     *
+     * @return list<RegexPatternOccurrence>
      */
     public function scan(array $paths, array $excludePaths): array
     {
@@ -43,9 +48,9 @@ final readonly class RegexAnalysisService
     }
 
     /**
-     * @param array<int, object> $patterns
+     * @param list<RegexPatternOccurrence> $patterns
      *
-     * @return array<int, array{
+     * @return list<array{
      *     type: string,
      *     file: string,
      *     line: int,
@@ -62,7 +67,7 @@ final readonly class RegexAnalysisService
 
         foreach ($patterns as $occurrence) {
             $validation = $this->regex->validate($occurrence->pattern);
-            $source = $occurrence->source ?? '';
+            $source = $occurrence->source;
             if (!$validation->isValid) {
                 $issues[] = [
                     'type' => 'error',
@@ -106,9 +111,9 @@ final readonly class RegexAnalysisService
     }
 
     /**
-     * @param array<int, object> $patterns
+     * @param list<RegexPatternOccurrence> $patterns
      *
-     * @return array<int, array{file: string, line: int, analysis: object}>
+     * @return list<array{file: string, line: int, analysis: ReDoSAnalysis}>
      */
     public function analyzeRedos(array $patterns, ReDoSSeverity $threshold): array
     {
@@ -136,12 +141,12 @@ final readonly class RegexAnalysisService
     }
 
     /**
-     * @param array<int, object> $patterns
+     * @param list<RegexPatternOccurrence> $patterns
      *
-     * @return array<int, array{
+     * @return list<array{
      *     file: string,
      *     line: int,
-     *     optimization: object,
+     *     optimization: OptimizationResult,
      *     savings: int,
      *     source?: string
      * }>
@@ -152,7 +157,7 @@ final readonly class RegexAnalysisService
 
         foreach ($patterns as $occurrence) {
             $validation = $this->regex->validate($occurrence->pattern);
-            $source = $occurrence->source ?? '';
+            $source = $occurrence->source;
             if (!$validation->isValid) {
                 continue;
             }

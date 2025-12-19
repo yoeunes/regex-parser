@@ -217,7 +217,18 @@ final readonly class RouteRequirementAnalyzer
             return false;
         }
 
-        return 1 === preg_match('#^[A-Za-z0-9._-]++(?:\|[A-Za-z0-9._-]++)++$#', $body);
+        $parts = explode('|', $body);
+        if (\count($parts) < 2) {
+            return false;
+        }
+
+        foreach ($parts as $part) {
+            if (!preg_match('#^[A-Za-z0-9._-]+$#', $part)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private function getRouteFile(\Symfony\Component\Routing\Route $route): ?string
