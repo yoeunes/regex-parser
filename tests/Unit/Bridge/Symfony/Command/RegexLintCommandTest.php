@@ -50,7 +50,7 @@ final class RegexLintCommandTest extends TestCase
         $this->assertTrue($definition->hasOption('min-savings'));
         $this->assertTrue($definition->hasOption('no-routes'));
         $this->assertTrue($definition->hasOption('no-validators'));
-        
+
         $this->assertFalse($definition->hasOption('analyze-redos'));
         $this->assertFalse($definition->hasOption('optimize'));
     }

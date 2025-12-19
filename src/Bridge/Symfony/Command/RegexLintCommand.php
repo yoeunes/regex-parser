@@ -34,6 +34,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 final class RegexLintCommand extends Command
 {
     private readonly RelativePathHelper $pathHelper;
+
     private readonly LinkFormatter $linkFormatter;
 
     public function __construct(
@@ -56,27 +57,27 @@ final class RegexLintCommand extends Command
             ->addOption('no-routes', null, InputOption::VALUE_NONE, 'Skip route validation')
             ->addOption('no-validators', null, InputOption::VALUE_NONE, 'Skip validator validation')
             ->setHelp(<<<'EOF'
-The <info>%command.name%</info> command scans your PHP code for regex patterns and provides:
+                The <info>%command.name%</info> command scans your PHP code for regex patterns and provides:
 
-* Validation of regex syntax
-* Performance and security warnings  
-* Optimization suggestions
-* Integration with Symfony routes and validators
+                * Validation of regex syntax
+                * Performance and security warnings  
+                * Optimization suggestions
+                * Integration with Symfony routes and validators
 
-<info>php %command.full_name%</info>
+                <info>php %command.full_name%</info>
 
-Analyze specific directories:
-<info>php %command.full_name% src/ lib/</info>
+                Analyze specific directories:
+                <info>php %command.full_name% src/ lib/</info>
 
-Exclude directories:
-<info>php %command.full_name% --exclude=tests --exclude=vendor</info>
+                Exclude directories:
+                <info>php %command.full_name% --exclude=tests --exclude=vendor</info>
 
-Show only significant optimizations:
-<info>php %command.full_name% --min-savings=10</info>
+                Show only significant optimizations:
+                <info>php %command.full_name% --min-savings=10</info>
 
-Skip specific validations:
-<info>php %command.full_name% --no-routes --no-validators</info>
-EOF
+                Skip specific validations:
+                <info>php %command.full_name% --no-routes --no-validators</info>
+                EOF
             );
     }
 
@@ -84,7 +85,7 @@ EOF
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
-        
+
         $paths = $input->getArgument('paths');
         $exclude = $input->getOption('exclude');
         $minSavings = (int) $input->getOption('min-savings');
@@ -97,11 +98,13 @@ EOF
             $patterns = $this->analysis->scan($paths, $exclude);
         } catch (\Throwable $e) {
             $io->error("Failed to scan files: {$e->getMessage()}");
+
             return Command::FAILURE;
         }
 
         if (empty($patterns)) {
             $this->renderSummary($io, $this->createStats(), isEmpty: true);
+
             return Command::SUCCESS;
         }
 
@@ -146,11 +149,11 @@ EOF
             return [];
         }
 
-        $io->progressStart(count($patterns));
-        
+        $io->progressStart(\count($patterns));
+
         $issues = $this->analysis->lint($patterns, fn () => $io->progressAdvance());
         $optimizations = $this->analysis->suggestOptimizations($patterns, $minSavings);
-        
+
         $io->progressFinish();
 
         return $this->combineResults($issues, $optimizations, $patterns);
@@ -163,6 +166,7 @@ EOF
         }
 
         $issues = $this->routeValidation->analyze();
+
         return $this->convertAnalysisIssuesToResults($issues, 'Symfony Router');
     }
 
@@ -173,6 +177,7 @@ EOF
         }
 
         $issues = $this->validatorValidation->analyze();
+
         return $this->convertAnalysisIssuesToResults($issues, 'Symfony Validator');
     }
 
@@ -206,6 +211,7 @@ EOF
         foreach ($results as $result) {
             $grouped[$result['file']][] = $result;
         }
+
         return $grouped;
     }
 
@@ -231,10 +237,10 @@ EOF
 
         if ($pattern) {
             $highlighted = $this->safelyHighlightPattern($pattern);
-            $io->writeln(sprintf('  <fg=gray>%d:</> %s', $line, $highlighted));
+            $io->writeln(\sprintf('  <fg=gray>%d:</> %s', $line, $highlighted));
         } else {
             $link = $this->linkFormatter->format($file, $line, 'line '.$line, 1, (string) $line);
-            $io->writeln(sprintf('  <fg=gray>%s:</>', $link));
+            $io->writeln(\sprintf('  <fg=gray>%s:</>', $link));
         }
     }
 
@@ -254,7 +260,7 @@ EOF
             $this->displaySingleIssue($io, $badge, $issue['message']);
 
             if (!empty($issue['hint'])) {
-                $io->writeln(sprintf('         <fg=gray>↳ %s</>', $issue['hint']));
+                $io->writeln(\sprintf('         <fg=gray>↳ %s</>', $issue['hint']));
             }
         }
     }
@@ -276,8 +282,8 @@ EOF
             $original = $this->safelyHighlightPattern($opt['optimization']->original);
             $optimized = $this->safelyHighlightPattern($opt['optimization']->optimized);
 
-            $io->writeln(sprintf('         <fg=red>- %s</>', $original));
-            $io->writeln(sprintf('         <fg=green>+ %s</>', $optimized));
+            $io->writeln(\sprintf('         <fg=red>- %s</>', $original));
+            $io->writeln(\sprintf('         <fg=green>+ %s</>', $optimized));
         }
     }
 
@@ -305,6 +311,7 @@ EOF
         if ($isEmpty) {
             $io->writeln('  <bg=green;fg=white;options=bold> PASS </> <fg=gray>No regex patterns found.</>');
             $this->showFooter($io);
+
             return;
         }
 
@@ -319,17 +326,17 @@ EOF
         $optimizations = $stats['optimizations'];
 
         $message = match (true) {
-            $errors > 0 => sprintf(
+            $errors > 0 => \sprintf(
                 '  <bg=red;fg=white;options=bold> FAIL </> <fg=red;options=bold>%d invalid patterns</><fg=gray>, %d warnings, %d optimizations.</>',
-                $errors, $warnings, $optimizations
+                $errors, $warnings, $optimizations,
             ),
-            $warnings > 0 => sprintf(
+            $warnings > 0 => \sprintf(
                 '  <bg=yellow;fg=black;options=bold> PASS </> <fg=yellow;options=bold>%d warnings found</><fg=gray>, %d optimizations available.</>',
-                $warnings, $optimizations
+                $warnings, $optimizations,
             ),
-            default => sprintf(
+            default => \sprintf(
                 '  <bg=green;fg=white;options=bold> PASS </> <fg=green;options=bold>No issues found</><fg=gray>, %d optimizations available.</>',
-                $optimizations
+                $optimizations,
             ),
         };
 
@@ -361,6 +368,7 @@ EOF
             $key = $pattern->file.':'.$pattern->line;
             $map[$key] = $pattern->pattern;
         }
+
         return $map;
     }
 
@@ -382,7 +390,7 @@ EOF
         foreach ($optimizations as $opt) {
             $key = $opt['file'].':'.$opt['line'];
             $pattern = $patternMap[$key] ?? $opt['optimization']->original ?? null;
-            
+
             $results[$key] ??= $this->createResultStructure($opt, $pattern);
             $results[$key]['optimizations'][] = $opt;
         }
@@ -397,9 +405,9 @@ EOF
 
         $lines = explode("\n", $content);
         $prevLineIndex = $issue['line'] - 2;
-        
-        return $prevLineIndex >= 0 
-            && isset($lines[$prevLineIndex]) 
+
+        return $prevLineIndex >= 0
+            && isset($lines[$prevLineIndex])
             && str_contains($lines[$prevLineIndex], '// @regex-lint-ignore');
     }
 
@@ -445,7 +453,7 @@ EOF
         return array_map(
             fn ($issue, $index) => $this->convertAnalysisIssueToResult($issue, $index, $category),
             $issues,
-            array_keys($issues)
+            array_keys($issues),
         );
     }
 
@@ -479,6 +487,7 @@ EOF
 
         if (str_contains($id, ' (Route: ')) {
             [$file, $route] = explode(' (Route: ', $id, 2);
+
             return [$file, 'Route: '.rtrim($route, ')')];
         }
 
@@ -502,9 +511,9 @@ EOF
     private function updateStatsFromResults(array $stats, array $results): array
     {
         foreach ($results as $result) {
-            $stats['errors'] += count(array_filter($result['issues'], fn ($issue) => 'error' === $issue['type']));
-            $stats['warnings'] += count(array_filter($result['issues'], fn ($issue) => 'warning' === $issue['type']));
-            $stats['optimizations'] += count($result['optimizations']);
+            $stats['errors'] += \count(array_filter($result['issues'], fn ($issue) => 'error' === $issue['type']));
+            $stats['warnings'] += \count(array_filter($result['issues'], fn ($issue) => 'warning' === $issue['type']));
+            $stats['optimizations'] += \count($result['optimizations']);
         }
 
         return $stats;
@@ -519,18 +528,18 @@ EOF
                 'warning' => 10,
                 default => 0,
             },
-            0
+            0,
         );
 
-        return $issueScore + count($result['optimizations']);
+        return $issueScore + \count($result['optimizations']);
     }
 
     private function stripMessageLine(string $message): string
     {
         return preg_replace_callback(
             '/^Line \d+:/m',
-            fn ($matches) => str_repeat(' ', strlen($matches[0])),
-            $message
+            fn ($matches) => str_repeat(' ', \strlen($matches[0])),
+            $message,
         );
     }
 }
