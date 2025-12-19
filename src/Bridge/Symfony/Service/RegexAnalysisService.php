@@ -52,7 +52,8 @@ final readonly class RegexAnalysisService
      *     column: int,
      *     message: string,
      *     issueId?: string,
-     *     hint?: string|null
+     *     hint?: string|null,
+     *     source?: string
      * }>
      */
     public function lint(array $patterns, ?callable $progress = null): array
@@ -61,6 +62,7 @@ final readonly class RegexAnalysisService
 
         foreach ($patterns as $occurrence) {
             $validation = $this->regex->validate($occurrence->pattern);
+            $source = $occurrence->source ?? '';
             if (!$validation->isValid) {
                 $issues[] = [
                     'type' => 'error',
@@ -68,6 +70,7 @@ final readonly class RegexAnalysisService
                     'line' => $occurrence->line,
                     'column' => 1,
                     'message' => $validation->error ?? 'Invalid regex.',
+                    'source' => $source,
                 ];
 
                 if ($progress) {
@@ -90,6 +93,7 @@ final readonly class RegexAnalysisService
                     'issueId' => $issue->id,
                     'message' => $issue->message,
                     'hint' => $issue->hint,
+                    'source' => $source,
                 ];
             }
 
@@ -138,7 +142,8 @@ final readonly class RegexAnalysisService
      *     file: string,
      *     line: int,
      *     optimization: object,
-     *     savings: int
+     *     savings: int,
+     *     source?: string
      * }>
      */
     public function suggestOptimizations(array $patterns, int $minSavings): array
@@ -147,6 +152,7 @@ final readonly class RegexAnalysisService
 
         foreach ($patterns as $occurrence) {
             $validation = $this->regex->validate($occurrence->pattern);
+            $source = $occurrence->source ?? '';
             if (!$validation->isValid) {
                 continue;
             }
@@ -171,6 +177,7 @@ final readonly class RegexAnalysisService
                 'line' => $occurrence->line,
                 'optimization' => $optimization,
                 'savings' => $savings,
+                'source' => $source,
             ];
         }
 

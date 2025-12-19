@@ -16,8 +16,8 @@ namespace RegexParser\Bridge\Symfony\Command;
 use RegexParser\Bridge\Symfony\Console\LinkFormatter;
 use RegexParser\Bridge\Symfony\Console\RelativePathHelper;
 use RegexParser\Bridge\Symfony\Service\RegexAnalysisService;
-use RegexParser\Bridge\Symfony\Service\RouteValidationService;
-use RegexParser\Bridge\Symfony\Service\ValidatorValidationService;
+use RegexParser\Bridge\Symfony\Service\RegexLintRequest;
+use RegexParser\Bridge\Symfony\Service\RegexLintService;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Formatter\OutputFormatter;
@@ -38,9 +38,8 @@ final class RegexLintCommand extends Command
     private readonly LinkFormatter $linkFormatter;
 
     public function __construct(
+        private readonly RegexLintService $lint,
         private readonly RegexAnalysisService $analysis,
-        private readonly ?RouteValidationService $routeValidation = null,
-        private readonly ?ValidatorValidationService $validatorValidation = null,
         ?string $editorUrl = null,
     ) {
         $this->pathHelper = new RelativePathHelper(getcwd() ?: null);
@@ -95,9 +94,18 @@ final class RegexLintCommand extends Command
         $this->showBanner($io);
 
         try {
-            $patterns = $this->analysis->scan($paths, $exclude);
+            $request = new RegexLintRequest(
+                paths: $paths,
+                excludePaths: $exclude,
+                minSavings: $minSavings,
+                disabledSources: array_values(array_filter([
+                    $skipRoutes ? 'routes' : null,
+                    $skipValidators ? 'validators' : null,
+                ])),
+            );
+            $patterns = $this->lint->collectPatterns($request);
         } catch (\Throwable $e) {
-            $io->error("Failed to scan files: {$e->getMessage()}");
+            $io->error("Failed to collect patterns: {$e->getMessage()}");
 
             return Command::FAILURE;
         }
@@ -108,21 +116,16 @@ final class RegexLintCommand extends Command
             return Command::SUCCESS;
         }
 
-        $stats = $this->createStats();
-        $allResults = $this->analyzePatterns($patterns, $io, $minSavings);
+        $io->progressStart(\count($patterns));
+        $report = $this->lint->analyze($patterns, $request, fn () => $io->progressAdvance());
+        $io->progressFinish();
 
-        if (!$skipRoutes && $this->routeValidation) {
-            $allResults = [...$allResults, ...$this->analyzeRoutes()];
-        }
-
-        if (!$skipValidators && $this->validatorValidation) {
-            $allResults = [...$allResults, ...$this->analyzeValidators()];
-        }
+        $stats = $report->stats;
+        $allResults = $report->results;
 
         if (!empty($allResults)) {
             usort($allResults, fn ($a, $b) => $this->getSeverityScore($b) <=> $this->getSeverityScore($a));
             $this->displayResults($io, $allResults);
-            $stats = $this->calculateStats($stats, $allResults);
         }
 
         $exitCode = $stats['errors'] > 0 ? Command::FAILURE : Command::SUCCESS;
@@ -143,52 +146,9 @@ final class RegexLintCommand extends Command
         return ['errors' => 0, 'warnings' => 0, 'optimizations' => 0];
     }
 
-    private function analyzePatterns(array $patterns, SymfonyStyle $io, int $minSavings): array
-    {
-        if (empty($patterns)) {
-            return [];
-        }
-
-        $io->progressStart(\count($patterns));
-
-        $issues = $this->analysis->lint($patterns, fn () => $io->progressAdvance());
-        $optimizations = $this->analysis->suggestOptimizations($patterns, $minSavings);
-
-        $io->progressFinish();
-
-        return $this->combineResults($issues, $optimizations, $patterns);
-    }
-
-    private function analyzeRoutes(): array
-    {
-        if (!$this->routeValidation) {
-            return [];
-        }
-
-        $issues = $this->routeValidation->analyze();
-
-        return $this->convertAnalysisIssuesToResults($issues, 'Symfony Router');
-    }
-
-    private function analyzeValidators(): array
-    {
-        if (!$this->validatorValidation) {
-            return [];
-        }
-
-        $issues = $this->validatorValidation->analyze();
-
-        return $this->convertAnalysisIssuesToResults($issues, 'Symfony Validator');
-    }
-
     private function displayResults(SymfonyStyle $io, array $results): void
     {
         $this->outputIntegratedResults($io, $results);
-    }
-
-    private function calculateStats(array $stats, array $results): array
-    {
-        return $this->updateStatsFromResults($stats, $results);
     }
 
     private function outputIntegratedResults(SymfonyStyle $io, array $results): void
@@ -350,78 +310,6 @@ final class RegexLintCommand extends Command
         $io->newLine();
     }
 
-    private function combineResults(array $issues, array $optimizations, array $originalPatterns): array
-    {
-        $patternMap = $this->createPatternMap($originalPatterns);
-        $results = [];
-
-        $this->addIssuesToResults($issues, $patternMap, $results);
-        $this->addOptimizationsToResults($optimizations, $patternMap, $results);
-
-        return array_values($results);
-    }
-
-    private function createPatternMap(array $originalPatterns): array
-    {
-        $map = [];
-        foreach ($originalPatterns as $pattern) {
-            $key = $pattern->file.':'.$pattern->line;
-            $map[$key] = $pattern->pattern;
-        }
-
-        return $map;
-    }
-
-    private function addIssuesToResults(array $issues, array $patternMap, array &$results): void
-    {
-        foreach ($issues as $issue) {
-            if ($this->shouldIgnoreIssue($issue)) {
-                continue;
-            }
-
-            $key = $issue['file'].':'.$issue['line'];
-            $results[$key] ??= $this->createResultStructure($issue, $patternMap[$key] ?? null);
-            $results[$key]['issues'][] = $issue;
-        }
-    }
-
-    private function addOptimizationsToResults(array $optimizations, array $patternMap, array &$results): void
-    {
-        foreach ($optimizations as $opt) {
-            $key = $opt['file'].':'.$opt['line'];
-            $pattern = $patternMap[$key] ?? $opt['optimization']->original ?? null;
-
-            $results[$key] ??= $this->createResultStructure($opt, $pattern);
-            $results[$key]['optimizations'][] = $opt;
-        }
-    }
-
-    private function shouldIgnoreIssue(array $issue): bool
-    {
-        $content = @file_get_contents($issue['file']);
-        if (false === $content) {
-            return false;
-        }
-
-        $lines = explode("\n", $content);
-        $prevLineIndex = $issue['line'] - 2;
-
-        return $prevLineIndex >= 0
-            && isset($lines[$prevLineIndex])
-            && str_contains($lines[$prevLineIndex], '// @regex-lint-ignore');
-    }
-
-    private function createResultStructure(array $item, ?string $pattern): array
-    {
-        return [
-            'file' => $item['file'],
-            'line' => $item['line'],
-            'pattern' => $pattern,
-            'issues' => [],
-            'optimizations' => [],
-        ];
-    }
-
     private function extractPatternForResult(array $result): ?string
     {
         if (!empty($result['pattern'])) {
@@ -446,77 +334,6 @@ final class RegexLintCommand extends Command
         }
 
         return null;
-    }
-
-    private function convertAnalysisIssuesToResults(array $issues, string $category): array
-    {
-        return array_map(
-            fn ($issue, $index) => $this->convertAnalysisIssueToResult($issue, $index, $category),
-            $issues,
-            array_keys($issues),
-        );
-    }
-
-    private function convertAnalysisIssueToResult($issue, int $index, string $category): array
-    {
-        [$file, $location] = $this->extractFileAndLocation($issue->id ?? null, $category);
-        [$pattern, $message] = $this->extractPatternAndMessage($issue->pattern, $issue->message, $location);
-
-        return [
-            'file' => $file,
-            'line' => $index + 1,
-            'pattern' => $pattern,
-            'location' => $location,
-            'issues' => [
-                [
-                    'type' => $issue->isError ? 'error' : 'warning',
-                    'message' => $message,
-                    'file' => $file,
-                    'line' => $index + 1,
-                ],
-            ],
-            'optimizations' => [],
-        ];
-    }
-
-    private function extractFileAndLocation(?string $id, string $category): array
-    {
-        if (!$id) {
-            return [$category, null];
-        }
-
-        if (str_contains($id, ' (Route: ')) {
-            [$file, $route] = explode(' (Route: ', $id, 2);
-
-            return [$file, 'Route: '.rtrim($route, ')')];
-        }
-
-        return [$category, $id];
-    }
-
-    private function extractPatternAndMessage(?string $pattern, string $message, ?string $location): array
-    {
-        if (!$pattern && preg_match('/pattern: ([^)]+)/', $message, $matches)) {
-            $pattern = trim($matches[1], '#');
-            $message = preg_replace('/ \(pattern: [^)]+\)/', '', $message);
-        }
-
-        if (!$location && preg_match('/Route "([^"]+)"/', (string) $message, $matches)) {
-            $message = preg_replace('/Route "[^"]+" /', '', (string) $message);
-        }
-
-        return [$pattern, $message];
-    }
-
-    private function updateStatsFromResults(array $stats, array $results): array
-    {
-        foreach ($results as $result) {
-            $stats['errors'] += \count(array_filter($result['issues'], fn ($issue) => 'error' === $issue['type']));
-            $stats['warnings'] += \count(array_filter($result['issues'], fn ($issue) => 'warning' === $issue['type']));
-            $stats['optimizations'] += \count($result['optimizations']);
-        }
-
-        return $stats;
     }
 
     private function getSeverityScore(array $result): int

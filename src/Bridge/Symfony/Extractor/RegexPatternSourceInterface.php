@@ -14,17 +14,18 @@ declare(strict_types=1);
 namespace RegexParser\Bridge\Symfony\Extractor;
 
 /**
- * Represents a regex pattern occurrence found in source code.
+ * Provides regex pattern occurrences from a specific source.
  *
  * @internal
  */
-final readonly class RegexPatternOccurrence
+interface RegexPatternSourceInterface
 {
-    public function __construct(
-        public string $pattern,
-        public string $file,
-        public int $line,
-        public string $source,
-        public ?string $displayPattern = null,
-    ) {}
+    public function getName(): string;
+
+    public function isSupported(): bool;
+
+    /**
+     * @return list<RegexPatternOccurrence>
+     */
+    public function extract(RegexPatternSourceContext $context): array;
 }

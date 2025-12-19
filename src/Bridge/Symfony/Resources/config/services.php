@@ -17,7 +17,12 @@ use RegexParser\Bridge\Symfony\Analyzer\RouteRequirementAnalyzer;
 use RegexParser\Bridge\Symfony\Analyzer\ValidatorRegexAnalyzer;
 use RegexParser\Bridge\Symfony\Command\RegexLintCommand;
 use RegexParser\Bridge\Symfony\Extractor\RegexPatternExtractor;
+use RegexParser\Bridge\Symfony\Extractor\RegexPatternSourceCollection;
+use RegexParser\Bridge\Symfony\Extractor\PhpRegexPatternSource;
+use RegexParser\Bridge\Symfony\Extractor\RouteRegexPatternSource;
+use RegexParser\Bridge\Symfony\Extractor\ValidatorRegexPatternSource;
 use RegexParser\Bridge\Symfony\Service\RegexAnalysisService;
+use RegexParser\Bridge\Symfony\Service\RegexLintService;
 use RegexParser\Bridge\Symfony\Service\RouteValidationService;
 use RegexParser\Bridge\Symfony\Service\ValidatorValidationService;
 use RegexParser\Regex;
@@ -56,6 +61,37 @@ return static function (ContainerConfigurator $container): void {
         ->arg('$regex', service('regex_parser.regex'))
         ->arg('$extractor', service('regex_parser.extractor')->nullOnInvalid());
 
+    $services->set('regex_parser.pattern_sources', RegexPatternSourceCollection::class)
+        ->args([
+            '$sources' => tagged_iterator('regex_parser.pattern_source'),
+        ]);
+
+    $services->set(PhpRegexPatternSource::class)
+        ->args([
+            '$extractor' => service('regex_parser.extractor'),
+        ])
+        ->tag('regex_parser.pattern_source');
+
+    $services->set(RouteRegexPatternSource::class)
+        ->args([
+            '$router' => service('router')->nullOnInvalid(),
+        ])
+        ->tag('regex_parser.pattern_source');
+
+    $services->set(ValidatorRegexPatternSource::class)
+        ->args([
+            '$validator' => service('validator')->nullOnInvalid(),
+            '$validatorLoader' => service('validator.mapping.loader')->nullOnInvalid(),
+        ])
+        ->tag('regex_parser.pattern_source');
+
+    $services->set('regex_parser.service.regex_lint', RegexLintService::class)
+        ->args([
+            '$analysis' => service('regex_parser.service.regex_analysis'),
+            '$sources' => service('regex_parser.pattern_sources'),
+            '$issueProviders' => tagged_iterator('regex_parser.lint_issue_provider'),
+        ]);
+
     $services->set('regex_parser.service.route_validation', RouteValidationService::class)
         ->args([
             '$analysis' => service('regex_parser.service.regex_analysis'),
@@ -65,13 +101,14 @@ return static function (ContainerConfigurator $container): void {
     $services->set('regex_parser.service.validator_validation', ValidatorValidationService::class)
         ->args([
             '$validator' => service('validator')->nullOnInvalid(),
+            '$validatorLoader' => service('validator.mapping.loader')->nullOnInvalid(),
             '$analyzer' => service(ValidatorRegexAnalyzer::class),
-        ]);
+        ])
+        ->tag('regex_parser.lint_issue_provider');
 
     $services->set('regex_parser.command.lint', RegexLintCommand::class)
+        ->arg('$lint', service('regex_parser.service.regex_lint'))
         ->arg('$analysis', service('regex_parser.service.regex_analysis'))
-        ->arg('$routeValidation', service('regex_parser.service.route_validation')->nullOnInvalid())
-        ->arg('$validatorValidation', service('regex_parser.service.validator_validation')->nullOnInvalid())
         ->arg('$editorUrl', param('regex_parser.editor_format'))
         ->tag('console.command')
         ->public();

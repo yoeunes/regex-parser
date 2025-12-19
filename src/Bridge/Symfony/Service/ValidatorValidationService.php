@@ -20,7 +20,7 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 /**
  * Validates regex usage in Symfony validators.
  */
-final readonly class ValidatorValidationService
+final readonly class ValidatorValidationService implements RegexLintIssueProviderInterface
 {
     public function __construct(
         private ?ValidatorRegexAnalyzer $analyzer = null,
@@ -31,6 +31,16 @@ final readonly class ValidatorValidationService
     public function isSupported(): bool
     {
         return null !== $this->analyzer && null !== $this->validator && null !== $this->validatorLoader;
+    }
+
+    public function getName(): string
+    {
+        return 'validators';
+    }
+
+    public function getLabel(): string
+    {
+        return 'Symfony Validator';
     }
 
     public function analyze(): array

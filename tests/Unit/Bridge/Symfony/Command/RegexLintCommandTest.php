@@ -15,7 +15,9 @@ namespace RegexParser\Tests\Unit\Bridge\Symfony\Command;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\Bridge\Symfony\Command\RegexLintCommand;
+use RegexParser\Bridge\Symfony\Extractor\RegexPatternSourceCollection;
 use RegexParser\Bridge\Symfony\Service\RegexAnalysisService;
+use RegexParser\Bridge\Symfony\Service\RegexLintService;
 use RegexParser\Regex;
 use Symfony\Component\Console\Tester\CommandTester;
 
@@ -57,8 +59,16 @@ final class RegexLintCommandTest extends TestCase
 
     private function createCommand(): RegexLintCommand
     {
+        $analysis = new RegexAnalysisService(Regex::create());
+        $lint = new RegexLintService(
+            $analysis,
+            new RegexPatternSourceCollection([]),
+            [],
+        );
+
         return new RegexLintCommand(
-            analysis: new RegexAnalysisService(Regex::create()),
+            lint: $lint,
+            analysis: $analysis,
             editorUrl: null,
         );
     }

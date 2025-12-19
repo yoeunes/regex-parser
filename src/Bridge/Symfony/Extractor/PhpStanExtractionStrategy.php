@@ -190,7 +190,7 @@ final readonly class PhpStanExtractionStrategy implements ExtractorInterface
                 $pattern,
                 $file,
                 $value->getStartLine(),
-                $functionName.'()',
+                'php:'.$functionName.'()',
             )];
         }
 
@@ -222,7 +222,7 @@ final readonly class PhpStanExtractionStrategy implements ExtractorInterface
             $pattern,
             $file,
             $concat->getStartLine(),
-            $functionName.'()',
+            'php:'.$functionName.'()',
         );
     }
 
