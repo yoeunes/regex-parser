@@ -63,11 +63,10 @@ final class RegexParserExtension extends Extension
           *         redos_threshold: int,
           *         ignore_patterns: array<int, string>,
           *     },
-          *     paths: array<int, string>,
-          *     exclude_paths: array<int, string>,
-          *     ide: string|null,
-          *     editor_url: string|null,
-          * } $config
+         *     paths: array<int, string>,
+         *     exclude_paths: array<int, string>,
+         *     ide: string|null,
+         * } $config
           */
         $config = $this->processConfiguration($configuration, $configs);
 
@@ -174,18 +173,13 @@ final class RegexParserExtension extends Extension
      *
      * @param array{
      *     ide: string|null,
-     *     editor_url: string|null,
      * } $config
      */
     private function resolveEditorFormat(array $config, ContainerBuilder $container): ?string
     {
-        $editorFormat = $config['editor_url'];
+        $editorFormat = $config['ide'];
 
-        if ((null === $editorFormat || '' === $editorFormat) && null !== $config['ide'] && '' !== $config['ide']) {
-            $editorFormat = $config['ide'];
-        }
-
-        // Fallback to framework.ide if regex_parser.editor_url is not set
+        // Fallback to framework.ide if regex_parser.ide is not set
         if ((null === $editorFormat || '' === $editorFormat) && $container->hasParameter('framework.ide')) {
             $frameworkIde = $container->getParameter('framework.ide');
             if (\is_string($frameworkIde) && '' !== $frameworkIde) {

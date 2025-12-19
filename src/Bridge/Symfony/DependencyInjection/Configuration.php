@@ -114,14 +114,10 @@ final readonly class Configuration implements ConfigurationInterface
                  ->defaultValue(['vendor'])
                  ->info('Directories to exclude from scanning. Defaults to vendor/ for Symfony applications.')
                  ->end()
-                  ->scalarNode('ide')
-                      ->defaultValue('%env(default::SYMFONY_IDE)%')
-                      ->info('IDE shorthand (vscode, phpstorm, etc.) or custom URL template for clickable links. Falls back to framework.ide.')
-                  ->end()
-                  ->scalarNode('editor_url')
-                      ->defaultNull()
-                      ->info('Custom editor URL template, overrides ide setting (e.g., phpstorm://open?file=%%file%%&line=%%line%%&column=%%column%%).')
-                  ->end()
+                   ->scalarNode('ide')
+                       ->defaultValue('%env(default::SYMFONY_IDE)%')
+                       ->info('IDE shorthand (vscode, phpstorm, etc.) or custom URL template for clickable links (e.g., phpstorm://open?file=%%file%%&line=%%line%%&column=%%column%%). Falls back to framework.ide.')
+                   ->end()
             ->end();
 
         return $treeBuilder;

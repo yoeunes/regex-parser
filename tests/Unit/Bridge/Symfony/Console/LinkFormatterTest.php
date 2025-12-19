@@ -49,7 +49,7 @@ final class LinkFormatterTest extends TestCase
         }
     }
 
-    public function test_it_returns_plain_label_when_editor_url_missing(): void
+    public function test_it_returns_plain_label_when_ide_missing(): void
     {
         $formatter = new LinkFormatter(null, new RelativePathHelper('/app'));
 
