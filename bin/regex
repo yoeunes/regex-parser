@@ -213,13 +213,7 @@ switch ($command) {
         $regex = Regex::create();
 
         try {
-            if ($format === 'html') {
-                $highlighted = $regex->highlightHtml($pattern);
-            } elseif ($format === 'cli') {
-                $highlighted = $regex->highlightCli($pattern);
-            } else {
-                $highlighted = $regex->highlight($pattern);
-            }
+            $highlighted = $regex->highlight($pattern, $format);
 
             output($highlighted . "\n");
         } catch (LexerException|ParserException $e) {

@@ -382,11 +382,11 @@ use RegexParser\Regex;
 $regex = Regex::create();
 
 // For console output
-echo $regex->highlightCli('/^[0-9]+(\w+)$/');
+echo $regex->highlight('/^[0-9]+(\w+)$/', 'cli');
 // Outputs: ^[0-9]+(\w+)$ with ANSI colors
 
 // For web display
-echo $regex->highlightHtml('/^[0-9]+(\w+)$/');
+echo $regex->highlight('/^[0-9]+(\w+)$/', 'html');
 // Outputs: <span class="regex-anchor">^</span>[<span class="regex-type">\d</span>]+(<span class="regex-type">\w</span>+)$
 ```
 

@@ -250,7 +250,7 @@ final readonly class RegexAnalysisService
 
     public function highlight(string $pattern): string
     {
-        return $this->regex->highlightCli($pattern);
+        return $this->regex->highlight($pattern, 'cli');
     }
 
     private function shouldSkipRiskAnalysis(RegexPatternOccurrence $occurrence): bool

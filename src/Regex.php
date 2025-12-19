@@ -262,15 +262,7 @@ final readonly class Regex
         return $this->parse($regex)->accept($visitor);
     }
 
-    public function highlightCli(string $regex): string
-    {
-        return $this->highlight($regex, 'cli');
-    }
 
-    public function highlightHtml(string $regex): string
-    {
-        return $this->highlight($regex, 'html');
-    }
 
     public function explain(string $regex, string $format = 'text'): string
     {
