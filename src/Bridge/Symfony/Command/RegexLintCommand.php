@@ -62,7 +62,7 @@ final class RegexLintCommand extends Command
         $patterns = $this->analysis->scan($this->paths, $this->exclude);
 
         if (empty($patterns)) {
-            $this->renderSummary($io, []);
+            $this->renderSummary($io, ['errors' => 0, 'warnings' => 0, 'optimizations' => 0], true);
 
             return Command::SUCCESS;
         }
@@ -119,21 +119,21 @@ final class RegexLintCommand extends Command
         }
 
         foreach ($byFile as $file => $fileResults) {
-            $this->showFileHeader($io, $file);
+            $this->renderFileHeader($io, $file);
 
             foreach ($fileResults as $result) {
-                $this->displayPatternResult($io, $result);
+                $this->renderResultCard($io, $result);
             }
         }
     }
 
-    private function showFileHeader(SymfonyStyle $io, string $file): void
+    private function renderFileHeader(SymfonyStyle $io, string $file): void
     {
         $relPath = $this->linkFormatter->getRelativePath($file);
         $io->writeln(\sprintf('  <fg=white;bg=gray;options=bold> %s </>', $relPath));
     }
 
-    private function displayPatternResult(SymfonyStyle $io, array $result): void
+    private function renderResultCard(SymfonyStyle $io, array $result): void
     {
         $file = $result['file'];
         $line = $result['line'];
@@ -171,10 +171,7 @@ final class RegexLintCommand extends Command
 
         // Display Optimizations
         foreach ($result['optimizations'] as $opt) {
-            $io->writeln(\sprintf(
-                '    <bg=blue;fg=white;options=bold> FIX </> <fg=white>Optimization available</> <fg=gray>(saved %d chars)</>',
-                $opt['savings'],
-            ));
+            $io->writeln('    <bg=blue;fg=white;options=bold> FIX </> <fg=blue;options=bold>Optimization available</>');
 
             $original = $this->analysis->highlight(OutputFormatter::escape($opt['optimization']->original));
             $optimized = $this->analysis->highlight(OutputFormatter::escape($opt['optimization']->optimized));
@@ -193,56 +190,39 @@ final class RegexLintCommand extends Command
         $firstLine = array_shift($lines);
 
         // Print the primary error message on the same line as the badge
-        $io->writeln(\sprintf('    %s <fg=white>%s</>', $badge, $this->cleanMessageIndentation($firstLine)));
+        $io->writeln(\sprintf('    %s <fg=white>%s</>', $badge, $firstLine));
 
         // Print subsequent lines (like regex pointers ^) with indentation preserved
         if (!empty($lines)) {
             foreach ($lines as $index => $line) {
-                $io->writeln(\sprintf('         <fg=gray>%s %s</>', 0 === $index ? '↳' : ' ', $this->cleanMessageIndentation($line)));
+                $io->writeln(\sprintf('         <fg=gray>%s %s</>', 0 === $index ? '↳' : ' ', $this->stripMessageLine($line)));
             }
         }
     }
 
-    private function renderSummary(SymfonyStyle $io, array $stats): void
+    private function renderSummary(SymfonyStyle $io, array $stats, bool $isEmpty = false): void
     {
-        $errors = $stats['errors'] ?? 0;
-        $warnings = $stats['warnings'] ?? 0;
-        $optimizations = $stats['optimizations'] ?? 0;
+        $errors = $stats['errors'];
+        $warnings = $stats['warnings'];
+        $optimizations = $stats['optimizations'];
 
         $io->newLine();
 
-        if (0 === $errors && 0 === $warnings && 0 === $optimizations) {
-            $io->block(
-                messages: ['PASS', 'No regex issues found.'],
-                type: 'OK',
-                style: 'fg=black;bg=green',
-                padding: true,
-            );
+        if ($isEmpty) {
+            $io->writeln('  <bg=green;fg=white;options=bold> PASS </> <fg=gray>No regex patterns found.</>');
 
             return;
         }
 
         if ($errors > 0) {
-            $io->block(
-                messages: [
-                    'FAIL',
-                    \sprintf('%d patterns invalid, %d warnings, %d optimizations.', $errors, $warnings, $optimizations),
-                ],
-                type: 'ERROR',
-                style: 'fg=white;bg=red',
-                padding: true,
-            );
+            $io->writeln(\sprintf('  <bg=red;fg=white;options=bold> FAIL </> <fg=red;options=bold>%d invalid patterns</><fg=gray>, %d warnings, %d optimizations.</>', $errors, $warnings, $optimizations));
+        } elseif ($warnings > 0) {
+            $io->writeln(\sprintf('  <bg=yellow;fg=black;options=bold> PASS </> <fg=yellow;options=bold>%d warnings found</><fg=gray>, %d optimizations available.</>', $warnings, $optimizations));
         } else {
-            $io->block(
-                messages: [
-                    'DONE',
-                    \sprintf('%d warnings found, %d optimizations available.', $warnings, $optimizations),
-                ],
-                style: 'fg=black;bg=yellow',
-                padding: true,
-            );
+            $io->writeln(\sprintf('  <bg=green;fg=white;options=bold> PASS </> <fg=green;options=bold>No issues found</><fg=gray>, %d optimizations available.</>', $optimizations));
         }
 
+        $io->newLine();
         $io->writeln('  <fg=gray>Star the repo: https://github.com/yoeunes/regex-parser</>');
         $io->newLine();
     }
@@ -415,7 +395,7 @@ final class RegexLintCommand extends Command
         return $score + \count($result['optimizations']);
     }
 
-    private function cleanMessageIndentation(string $message): string
+    private function stripMessageLine(string $message): string
     {
         return preg_replace_callback('/^Line \d+:/m', fn ($matches) => str_repeat(' ', \strlen($matches[0])), $message);
     }
