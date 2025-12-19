@@ -28,20 +28,6 @@ final class ConfigurationTest extends TestCase
         /**
          * @var array{
          *     max_pattern_length: int,
-         *     cache: string|null,
-         *     extractor_service: string|null,
-         *     analysis: array{
-         *         warning_threshold: int,
-         *         redos_threshold: int,
-         *         ignore_patterns: array<int, string>
-         *     }
-         * } $config
-         */
-        $config = $processor->processConfiguration($configuration, []);
-
-        /**
-         * @var array{
-         *     max_pattern_length: int,
          *     cache: array{
          *         pool: string|null,
          *         directory: string|null,
@@ -56,11 +42,11 @@ final class ConfigurationTest extends TestCase
          * } $config
          */
         $config = $processor->processConfiguration($configuration, []);
-        /** @var array{pool: string|null, directory: string|null, prefix: string} $cacheConfig */
-        $cacheConfig = $config['cache'];
-        $this->assertNull($cacheConfig['pool']);
-        $this->assertNull($cacheConfig['directory']);
-        $this->assertSame('regex_', $cacheConfig['prefix']);
+
+        $this->assertSame(Regex::DEFAULT_MAX_PATTERN_LENGTH, $config['max_pattern_length']);
+        $this->assertNull($config['cache']['pool']);
+        $this->assertNull($config['cache']['directory']);
+        $this->assertSame('regex_', $config['cache']['prefix']);
         $this->assertNull($config['extractor_service']);
         $this->assertSame(50, $config['analysis']['warning_threshold']);
         $this->assertSame(100, $config['analysis']['redos_threshold']);
@@ -75,7 +61,11 @@ final class ConfigurationTest extends TestCase
         /**
          * @var array{
          *     max_pattern_length: int,
-         *     cache: string|null,
+         *     cache: array{
+         *         pool: string|null,
+         *         directory: string|null,
+         *         prefix: string,
+         *     },
          *     extractor_service: string|null,
          *     analysis: array{
          *         warning_threshold: int,

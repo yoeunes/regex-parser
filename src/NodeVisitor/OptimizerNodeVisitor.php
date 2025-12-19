@@ -1030,10 +1030,11 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
             // Check if current is a character class or a char type that can be converted
             $isCharClass = $current instanceof Node\CharClassNode && !$current->isNegated;
             $isCharType = $current instanceof Node\CharTypeNode && $this->canConvertCharTypeToCharClass($current);
-            
+
             if (!$isCharClass && !$isCharType) {
                 $merged[] = $current;
                 $i++;
+
                 continue;
             }
 
@@ -1045,7 +1046,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
                 $next = $alternatives[$j];
                 $isNextCharClass = $next instanceof Node\CharClassNode && !$next->isNegated;
                 $isNextCharType = $next instanceof Node\CharTypeNode && $this->canConvertCharTypeToCharClass($next);
-                
+
                 if ($isNextCharClass || $isNextCharType) {
                     $nodesToMerge[] = $next;
                     $j++;
@@ -1066,8 +1067,6 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
 
         return $merged;
     }
-
-
 
     /**
      * Checks if a CharTypeNode can be converted to a CharClassNode.
@@ -1092,11 +1091,11 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
                     new Node\LiteralNode('0', $startPos, $startPos + 1),
                     new Node\LiteralNode('9', $startPos + 1, $startPos + 2),
                     $startPos,
-                    $startPos + 2
+                    $startPos + 2,
                 ),
                 false,
                 $startPos,
-                $endPos
+                $endPos,
             ),
             default => throw new \InvalidArgumentException("Unsupported char type: {$node->value}"),
         };

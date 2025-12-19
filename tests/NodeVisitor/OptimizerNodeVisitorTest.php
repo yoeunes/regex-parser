@@ -628,11 +628,11 @@ final class OptimizerNodeVisitorTest extends TestCase
         $regex = Regex::create();
         $ast = $regex->parse('/[a-z]|[0-9]/');
         $optimizer = new OptimizerNodeVisitor(optimizeDigits: false);
-        
+
         $optimized = $ast->accept($optimizer);
         $compiler = new CompilerNodeVisitor();
         $result = $optimized->accept($compiler);
-        
+
         $this->assertSame('/[a-z0-9]/', $result);
     }
 
@@ -642,11 +642,11 @@ final class OptimizerNodeVisitorTest extends TestCase
         $regex = Regex::create();
         $ast = $regex->parse('/[a-z]|[^0-9]/');
         $optimizer = new OptimizerNodeVisitor();
-        
+
         $optimized = $ast->accept($optimizer);
         $compiler = new CompilerNodeVisitor();
         $result = $optimized->accept($compiler);
-        
+
         $this->assertSame('/[a-z]|[^0-9]/', $result);
     }
 }
