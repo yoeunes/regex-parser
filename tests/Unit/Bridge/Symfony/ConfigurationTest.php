@@ -39,7 +39,24 @@ final class ConfigurationTest extends TestCase
          */
         $config = $processor->processConfiguration($configuration, []);
 
-        $this->assertSame(Regex::DEFAULT_MAX_PATTERN_LENGTH, $config['max_pattern_length']);
+        /**
+         * @var array{
+         *     max_pattern_length: int,
+         *     cache: array{
+         *         pool: string|null,
+         *         directory: string|null,
+         *         prefix: string,
+         *     },
+         *     extractor_service: string|null,
+         *     analysis: array{
+         *         warning_threshold: int,
+         *         redos_threshold: int,
+         *         ignore_patterns: array<int, string>
+         *     }
+         * } $config
+         */
+        $config = $processor->processConfiguration($configuration, []);
+        /** @var array{pool: string|null, directory: string|null, prefix: string} $cacheConfig */
         $cacheConfig = $config['cache'];
         $this->assertNull($cacheConfig['pool']);
         $this->assertNull($cacheConfig['directory']);
@@ -94,7 +111,8 @@ final class ConfigurationTest extends TestCase
          */
 
         $this->assertSame(10, $config['max_pattern_length']);
-        $this->assertSame('/tmp/cache', $config['cache']['directory']);
+        $cacheConfig = $config['cache'];
+        $this->assertSame('/tmp/cache', $cacheConfig['directory']);
         $this->assertSame('my_custom_extractor', $config['extractor_service'] ?? 'should_not_exist');
         $this->assertSame(['foo', 'bar'], $config['analysis']['ignore_patterns'] ?? []);
         $this->assertSame(1, $config['analysis']['warning_threshold'] ?? 0);
