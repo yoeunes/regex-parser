@@ -171,7 +171,8 @@ if (!$analysis->isSafe()) {
 }
 
 // Quick boolean check (for CI, input validation, etc.)
-if (!$regex->isSafe($pattern, ReDoSSeverity::HIGH)) {
+$analysis = $regex->analyzeReDoS($pattern, ReDoSSeverity::HIGH);
+if (!$analysis->isSafe()) {
     throw new \RuntimeException('Regex is not safe enough for untrusted input.');
 }
 ```
@@ -451,7 +452,8 @@ From lowest to highest:
 You choose what to tolerate:
 
 ```php
-if (!$regex->isSafe($pattern, ReDoSSeverity::HIGH)) {
+$analysis = $regex->analyzeReDoS($pattern, ReDoSSeverity::HIGH);
+if (!$analysis->isSafe()) {
     // block, warn, or open a ticket
 }
 ```
@@ -553,28 +555,24 @@ final readonly class Regex
     public static function create(array $options = []): self;
 
     public function parse(string $regex): Node\RegexNode;
+    
     public function parsePattern(string $pattern, string $delimiter = '/', string $flags = ''): Node\RegexNode;
 
     public function parseTolerant(string $regex): TolerantParseResult;
 
     public function validate(string $regex): ValidationResult;
-    public function isValid(string $regex): bool;
-    public function assertValid(string $regex): void;
-
+    
     public function dump(string $regex): string;
 
     public function explain(string $regex, string $format = 'text'): string;
 
-
-
     public function highlight(string $regex, string $format = 'auto'): string;
 
-
     public function optimize(string $regex): OptimizationResult;
+
     public function modernize(string $regex): string;
 
     public function generate(string $regex): string;
-
 
     public function visualize(string $regex): VisualizationResult;
 
@@ -587,6 +585,7 @@ final readonly class Regex
     public function isSafe(string $regex, ?ReDoS\ReDoSSeverity $threshold = null): bool;
 
     public function getLexer(): Lexer;
+
     public function getParser(): Parser;
 }
 ```

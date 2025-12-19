@@ -125,50 +125,9 @@ final readonly class Regex
         }
     }
 
-    public function isValid(string $regex): bool
-    {
-        return $this->validate($regex)->isValid();
-    }
-
-    public function assertValid(string $regex): void
-    {
-        $result = $this->validate($regex);
-        if (!$result->isValid()) {
-            $message = $result->getErrorMessage() ?? 'Invalid regex pattern.';
-            $offset = $result->getErrorOffset();
-            $pattern = null;
-
-            try {
-                [$pattern] = $this->extractPatternAndFlags($regex);
-            } catch (ParserException) {
-                $pattern = null;
-            }
-
-            if (ValidationErrorCategory::SEMANTIC === $result->getErrorCategory()) {
-                throw new Exception\SemanticErrorException(
-                    $message,
-                    $offset,
-                    $pattern,
-                    null,
-                    $result->getErrorCode() ?? 'regex.semantic',
-                    $result->getHint(),
-                );
-            }
-
-            throw new ParserException($message, $offset, $pattern);
-        }
-    }
-
     public function analyzeReDoS(string $regex, ?ReDoSSeverity $threshold = null): ReDoSAnalysis
     {
         return (new ReDoSAnalyzer($this, array_values($this->redosIgnoredPatterns)))->analyze($regex, $threshold);
-    }
-
-    public function isSafe(string $regex, ?ReDoSSeverity $threshold = null): bool
-    {
-        $analysis = $this->analyzeReDoS($regex, $threshold);
-
-        return null === $threshold ? $analysis->isSafe() : !$analysis->exceedsThreshold($threshold);
     }
 
     /**
