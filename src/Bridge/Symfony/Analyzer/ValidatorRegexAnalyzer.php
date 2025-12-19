@@ -13,15 +13,10 @@ declare(strict_types=1);
 
 namespace RegexParser\Bridge\Symfony\Analyzer;
 
+use RegexParser\Bridge\Symfony\Validator\ValidatorPattern;
+use RegexParser\Bridge\Symfony\Validator\ValidatorPatternProvider;
 use RegexParser\ReDoS\ReDoSSeverity;
 use RegexParser\Regex;
-use Symfony\Component\Validator\Constraint;
-use Symfony\Component\Validator\Constraints\Regex as SymfonyRegex;
-use Symfony\Component\Validator\Mapping\ClassMetadataInterface;
-use Symfony\Component\Validator\Mapping\Loader\LoaderInterface;
-use Symfony\Component\Validator\Mapping\MetadataInterface;
-use Symfony\Component\Validator\Mapping\PropertyMetadataInterface;
-use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 /**
  * Analyses Symfony Validator metadata for Regex constraints.
@@ -42,6 +37,8 @@ final readonly class ValidatorRegexAnalyzer
      */
     public function __construct(
         private Regex $regex,
+        private RegexPatternInspector $patternInspector,
+        private ValidatorPatternProvider $patternProvider,
         private int $warningThreshold,
         string $redosThreshold = ReDoSSeverity::HIGH->value,
         array $ignoredPatterns = [],
@@ -53,197 +50,111 @@ final readonly class ValidatorRegexAnalyzer
     /**
      * @return list<AnalysisIssue>
      */
-    public function analyze(?ValidatorInterface $validator, ?LoaderInterface $loader): array
+    public function analyze(): array
     {
-        if (null === $validator) {
+        if (!$this->patternProvider->isSupported()) {
             return [];
         }
 
-        $classes = [];
-        if (null !== $loader && method_exists($loader, 'getMappedClasses')) {
-            /** @var array<string> $classes */
-            $classes = $loader->getMappedClasses();
+        $issues = [];
+        foreach ($this->patternProvider->collect() as $pattern) {
+            $issues = [...$issues, ...$this->analyzePattern($pattern)];
         }
 
+        return $issues;
+    }
+
+    public function isSupported(): bool
+    {
+        return $this->patternProvider->isSupported();
+    }
+
+    /**
+     * @return list<AnalysisIssue>
+     */
+    private function analyzePattern(ValidatorPattern $pattern): array
+    {
         $issues = [];
-        foreach ($classes as $className) {
-            if (!\is_string($className) || '' === $className) {
-                continue;
+        $rawPattern = $pattern->pattern;
+        $fragment = $this->patternInspector->extractFragment($rawPattern);
+        $body = $this->patternInspector->trimPatternBody($rawPattern);
+
+        if ($this->isIgnored($fragment) || $this->isIgnored($body)) {
+            return [];
+        }
+
+        $isTrivial = $this->patternInspector->isTriviallySafe($fragment)
+            || $this->patternInspector->isTriviallySafe($body);
+
+        $result = $this->regex->validate($rawPattern);
+        $id = $this->buildIssueId($pattern);
+
+        if ($isTrivial) {
+            if (!$result->isValid) {
+                $issues[] = new AnalysisIssue(
+                    \sprintf(
+                        'Validator "%s" pattern is invalid: %s (pattern: %s)',
+                        $pattern->source,
+                        $result->error ?? 'unknown error',
+                        $this->patternInspector->formatPattern($rawPattern),
+                    ),
+                    true,
+                    $rawPattern,
+                    $id,
+                );
             }
 
-            try {
-                $metadata = $validator->getMetadataFor($className);
-            } catch (\Throwable) {
-                continue;
-            }
+            return $issues;
+        }
 
-            $issues = array_merge(
-                $issues,
-                $this->analyzeMetadata($metadata, $className),
+        if (!$result->isValid) {
+            $issues[] = new AnalysisIssue(
+                \sprintf(
+                    'Validator "%s" pattern is invalid: %s (pattern: %s)',
+                    $pattern->source,
+                    $result->error ?? 'unknown error',
+                    $this->patternInspector->formatPattern($rawPattern),
+                ),
+                true,
+                $rawPattern,
+                $id,
+            );
+
+            return $issues;
+        }
+
+        $redos = $this->regex->analyzeReDoS($rawPattern);
+        if ($redos->exceedsThreshold($this->redosSeverityThreshold)) {
+            $issues[] = new AnalysisIssue(
+                \sprintf(
+                    'Validator "%s" pattern may be vulnerable to ReDoS (severity: %s, pattern: %s).',
+                    $pattern->source,
+                    strtoupper($redos->severity->value),
+                    $this->patternInspector->formatPattern($rawPattern),
+                ),
+                true,
+                $rawPattern,
+                $id,
+            );
+
+            return $issues;
+        }
+
+        if ($result->complexityScore >= $this->warningThreshold) {
+            $issues[] = new AnalysisIssue(
+                \sprintf(
+                    'Validator "%s" pattern is complex (score: %d, pattern: %s).',
+                    $pattern->source,
+                    $result->complexityScore,
+                    $this->patternInspector->formatPattern($rawPattern),
+                ),
+                false,
+                $rawPattern,
+                $id,
             );
         }
 
         return $issues;
-    }
-
-    /**
-     * @return list<AnalysisIssue>
-     */
-    private function analyzeMetadata(MetadataInterface $metadata, string $className): array
-    {
-        $issues = [];
-        $constraints = [];
-
-        if ($metadata instanceof ClassMetadataInterface) {
-            $constraints = $metadata->getConstraints();
-
-            foreach ($metadata->getConstrainedProperties() as $propertyName) {
-                foreach ($metadata->getPropertyMetadata($propertyName) as $propertyMetadata) {
-                    if (!$propertyMetadata instanceof PropertyMetadataInterface) {
-                        continue;
-                    }
-
-                    $issues = array_merge(
-                        $issues,
-                        $this->analyzeConstraints(
-                            $propertyMetadata->getConstraints(),
-                            \sprintf('%s::$%s', $className, $propertyName),
-                        ),
-                    );
-                }
-            }
-        }
-
-        return array_merge(
-            $issues,
-            $this->analyzeConstraints($constraints, $className),
-        );
-    }
-
-    /**
-     * @param array<Constraint> $constraints
-     *
-     * @return list<AnalysisIssue>
-     */
-    private function analyzeConstraints(array $constraints, string $source): array
-    {
-        $issues = [];
-
-        foreach ($constraints as $constraint) {
-            if (!$constraint instanceof SymfonyRegex || null === $constraint->pattern || '' === $constraint->pattern) {
-                continue;
-            }
-
-            $pattern = (string) $constraint->pattern;
-            $fragment = $this->extractFragment($pattern);
-            $body = $this->trimPatternBody($pattern);
-
-            if ($this->isIgnored($fragment) || $this->isIgnored($body)) {
-                continue;
-            }
-
-            $isTrivial = $this->isTriviallySafe($fragment) || $this->isTriviallySafe($body);
-
-            $result = $this->regex->validate($pattern);
-
-            if ($isTrivial) {
-                if (!$result->isValid) {
-                    $issues[] = new AnalysisIssue(\sprintf('Validator "%s" pattern is invalid: %s (pattern: %s)', $source, $result->error ?? 'unknown error', $this->formatPattern($pattern)), true);
-                }
-
-                continue;
-            }
-
-            if (!$result->isValid) {
-                $issues[] = new AnalysisIssue(
-                    \sprintf('Validator "%s" pattern is invalid: %s (pattern: %s)', $source, $result->error ?? 'unknown error', $this->formatPattern($pattern)),
-                    true,
-                );
-
-                continue;
-            }
-
-            $redos = $this->regex->analyzeReDoS($pattern);
-            if ($redos->exceedsThreshold($this->redosSeverityThreshold)) {
-                $issues[] = new AnalysisIssue(
-                    \sprintf(
-                        'Validator "%s" pattern may be vulnerable to ReDoS (severity: %s, pattern: %s).',
-                        $source,
-                        strtoupper($redos->severity->value),
-                        $this->formatPattern($pattern),
-                    ),
-                    true,
-                );
-
-                continue;
-            }
-
-            if ($result->complexityScore >= $this->warningThreshold) {
-                $issues[] = new AnalysisIssue(
-                    \sprintf('Validator "%s" pattern is complex (score: %d, pattern: %s).', $source, $result->complexityScore, $this->formatPattern($pattern)),
-                    false,
-                );
-            }
-        }
-
-        return $issues;
-    }
-
-    private function formatPattern(string $pattern): string
-    {
-        if (\strlen($pattern) <= 80) {
-            return $pattern;
-        }
-
-        return substr($pattern, 0, 77).'...';
-    }
-
-    private function trimPatternBody(string $pattern): string
-    {
-        if ('' === $pattern) {
-            return '';
-        }
-
-        $first = $pattern[0];
-        $last = $pattern[-1];
-
-        if ($first === $last) {
-            $pattern = substr($pattern, 1, -1);
-        }
-
-        if (str_starts_with($pattern, '^')) {
-            $pattern = substr($pattern, 1);
-        }
-
-        if (str_ends_with($pattern, '$')) {
-            $pattern = substr($pattern, 0, -1);
-        }
-
-        return $pattern;
-    }
-
-    private function extractFragment(string $pattern): string
-    {
-        if ('' === $pattern) {
-            return '';
-        }
-
-        $first = $pattern[0];
-        $last = $pattern[-1];
-
-        if ($first === $last && \in_array($first, ['/', '#', '~', '%'], true)) {
-            $pattern = substr($pattern, 1, -1);
-        }
-
-        if (str_starts_with($pattern, '^')) {
-            $pattern = substr($pattern, 1);
-        }
-
-        if (str_ends_with($pattern, '$')) {
-            $pattern = substr($pattern, 0, -1);
-        }
-
-        return $pattern;
     }
 
     private function isIgnored(string $body): bool
@@ -255,26 +166,6 @@ final readonly class ValidatorRegexAnalyzer
         return \in_array($body, $this->ignoredPatterns, true);
     }
 
-    private function isTriviallySafe(string $body): bool
-    {
-        if ('' === $body) {
-            return false;
-        }
-
-        $parts = explode('|', $body);
-        if (\count($parts) < 2) {
-            return false;
-        }
-
-        foreach ($parts as $part) {
-            if (!preg_match('#^[A-Za-z0-9._-]+$#', $part)) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
     /**
      * @param list<string> $userIgnored
      *
@@ -283,5 +174,15 @@ final readonly class ValidatorRegexAnalyzer
     private function buildIgnoredPatterns(array $userIgnored): array
     {
         return array_values(array_unique([...$this->regex->getRedosIgnoredPatterns(), ...$userIgnored]));
+    }
+
+    private function buildIssueId(ValidatorPattern $pattern): ?string
+    {
+        $file = $pattern->file;
+        if (null === $file || '' === $file) {
+            return 'Validator: '.$pattern->source;
+        }
+
+        return $file.' (Validator: '.$pattern->source.')';
     }
 }

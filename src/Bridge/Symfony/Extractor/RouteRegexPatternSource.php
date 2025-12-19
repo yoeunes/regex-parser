@@ -13,7 +13,8 @@ declare(strict_types=1);
 
 namespace RegexParser\Bridge\Symfony\Extractor;
 
-use Symfony\Component\Routing\Route;
+use RegexParser\Bridge\Symfony\Routing\RouteControllerFileResolver;
+use RegexParser\Bridge\Symfony\Routing\RouteRequirementNormalizer;
 use Symfony\Component\Routing\RouterInterface;
 
 /**
@@ -23,9 +24,11 @@ use Symfony\Component\Routing\RouterInterface;
  */
 final readonly class RouteRegexPatternSource implements RegexPatternSourceInterface
 {
-    private const PATTERN_DELIMITERS = ['/', '#', '~', '%'];
-
-    public function __construct(private ?RouterInterface $router = null) {}
+    public function __construct(
+        private RouteRequirementNormalizer $patternNormalizer,
+        private RouteControllerFileResolver $fileResolver,
+        private ?RouterInterface $router = null,
+    ) {}
 
     public function getName(): string
     {
@@ -48,7 +51,7 @@ final readonly class RouteRegexPatternSource implements RegexPatternSourceInterf
         $line = 1;
 
         foreach ($router->getRouteCollection() as $name => $route) {
-            $file = $this->getRouteFile($route) ?? 'Symfony Router';
+            $file = $this->fileResolver->resolve($route) ?? 'Symfony Router';
 
             foreach ($route->getRequirements() as $parameter => $requirement) {
                 if (!\is_scalar($requirement)) {
@@ -60,7 +63,7 @@ final readonly class RouteRegexPatternSource implements RegexPatternSourceInterf
                     continue;
                 }
 
-                $normalized = $this->normalizePattern($pattern);
+                $normalized = $this->patternNormalizer->normalize($pattern);
                 $patterns[] = new RegexPatternOccurrence(
                     $normalized,
                     $file,
@@ -72,47 +75,5 @@ final readonly class RouteRegexPatternSource implements RegexPatternSourceInterf
         }
 
         return $patterns;
-    }
-
-    private function normalizePattern(string $pattern): string
-    {
-        $firstChar = $pattern[0] ?? '';
-
-        if (\in_array($firstChar, self::PATTERN_DELIMITERS, true)) {
-            return $pattern;
-        }
-
-        if (str_starts_with($pattern, '^') && str_ends_with($pattern, '$')) {
-            return '#'.$pattern.'#';
-        }
-
-        $delimiter = '#';
-        $body = str_replace($delimiter, '\\'.$delimiter, $pattern);
-
-        return $delimiter.'^'.$body.'$'.$delimiter;
-    }
-
-    private function getRouteFile(Route $route): ?string
-    {
-        $controller = $route->getDefault('_controller');
-        if (!\is_string($controller)) {
-            return null;
-        }
-
-        if (str_contains($controller, '::')) {
-            [$class] = explode('::', $controller, 2);
-        } else {
-            $class = $controller;
-        }
-
-        if (!class_exists($class)) {
-            return null;
-        }
-
-        $reflection = new \ReflectionClass($class);
-
-        $fileName = $reflection->getFileName();
-
-        return false !== $fileName ? $fileName : null;
     }
 }

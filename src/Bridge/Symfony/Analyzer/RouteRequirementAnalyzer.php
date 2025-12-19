@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace RegexParser\Bridge\Symfony\Analyzer;
 
+use RegexParser\Bridge\Symfony\Routing\RouteControllerFileResolver;
+use RegexParser\Bridge\Symfony\Routing\RouteRequirementNormalizer;
 use RegexParser\ReDoS\ReDoSSeverity;
 use RegexParser\Regex;
 use Symfony\Component\Routing\RouteCollection;
@@ -24,8 +26,6 @@ use Symfony\Component\Routing\RouteCollection;
  */
 final readonly class RouteRequirementAnalyzer
 {
-    private const PATTERN_DELIMITERS = ['/', '#', '~', '%'];
-
     private ReDoSSeverity $redosSeverityThreshold;
 
     /**
@@ -38,6 +38,9 @@ final readonly class RouteRequirementAnalyzer
      */
     public function __construct(
         private Regex $regex,
+        private RegexPatternInspector $patternInspector,
+        private RouteRequirementNormalizer $patternNormalizer,
+        private RouteControllerFileResolver $routeFileResolver,
         private int $warningThreshold,
         string $redosThreshold = ReDoSSeverity::HIGH->value,
         array $ignoredPatterns = [],
@@ -54,7 +57,7 @@ final readonly class RouteRequirementAnalyzer
         $issues = [];
 
         foreach ($routes as $name => $route) {
-            $file = $this->getRouteFile($route);
+            $file = $this->routeFileResolver->resolve($route);
 
             foreach ($route->getRequirements() as $parameter => $requirement) {
                 if (!\is_scalar($requirement)) {
@@ -66,15 +69,16 @@ final readonly class RouteRequirementAnalyzer
                     continue;
                 }
 
-                $fragment = $this->extractFragment($pattern);
-                $normalizedPattern = $this->normalizePattern($pattern);
-                $body = $this->trimPatternBody($normalizedPattern);
+                $fragment = $this->patternInspector->extractFragment($pattern);
+                $normalizedPattern = $this->patternNormalizer->normalize($pattern);
+                $body = $this->patternInspector->trimPatternBody($normalizedPattern);
 
                 if ($this->isIgnored($fragment) || $this->isIgnored($body)) {
                     continue;
                 }
 
-                $isTrivial = $this->isTriviallySafe($fragment) || $this->isTriviallySafe($body);
+                $isTrivial = $this->patternInspector->isTriviallySafe($fragment)
+                    || $this->patternInspector->isTriviallySafe($body);
 
                 $result = $this->regex->validate($normalizedPattern);
 
@@ -134,72 +138,6 @@ final readonly class RouteRequirementAnalyzer
         return $issues;
     }
 
-    private function normalizePattern(string $pattern): string
-    {
-        $firstChar = $pattern[0] ?? '';
-
-        if (\in_array($firstChar, self::PATTERN_DELIMITERS, true)) {
-            return $pattern;
-        }
-
-        if (str_starts_with($pattern, '^') && str_ends_with($pattern, '$')) {
-            return '#'.$pattern.'#';
-        }
-
-        $delimiter = '#';
-        $body = str_replace($delimiter, '\\'.$delimiter, $pattern);
-
-        return $delimiter.'^'.$body.'$'.$delimiter;
-    }
-
-    private function trimPatternBody(string $pattern): string
-    {
-        if ('' === $pattern) {
-            return '';
-        }
-
-        $first = $pattern[0];
-        $last = $pattern[-1];
-
-        if ($first === $last) {
-            $pattern = substr($pattern, 1, -1);
-        }
-
-        if (str_starts_with($pattern, '^')) {
-            $pattern = substr($pattern, 1);
-        }
-
-        if (str_ends_with($pattern, '$')) {
-            $pattern = substr($pattern, 0, -1);
-        }
-
-        return $pattern;
-    }
-
-    private function extractFragment(string $pattern): string
-    {
-        if ('' === $pattern) {
-            return '';
-        }
-
-        $first = $pattern[0];
-        $last = $pattern[-1];
-
-        if ($first === $last && \in_array($first, self::PATTERN_DELIMITERS, true)) {
-            $pattern = substr($pattern, 1, -1);
-        }
-
-        if (str_starts_with($pattern, '^')) {
-            $pattern = substr($pattern, 1);
-        }
-
-        if (str_ends_with($pattern, '$')) {
-            $pattern = substr($pattern, 0, -1);
-        }
-
-        return $pattern;
-    }
-
     private function isIgnored(string $body): bool
     {
         if ('' === $body) {
@@ -207,51 +145,6 @@ final readonly class RouteRequirementAnalyzer
         }
 
         return \in_array($body, $this->ignoredPatterns, true);
-    }
-
-    private function isTriviallySafe(string $body): bool
-    {
-        if ('' === $body) {
-            return false;
-        }
-
-        $parts = explode('|', $body);
-        if (\count($parts) < 2) {
-            return false;
-        }
-
-        foreach ($parts as $part) {
-            if (!preg_match('#^[A-Za-z0-9._-]+$#', $part)) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private function getRouteFile(\Symfony\Component\Routing\Route $route): ?string
-    {
-        $controller = $route->getDefault('_controller');
-        if (!\is_string($controller)) {
-            return null;
-        }
-
-        // Handle controller as class::method
-        if (str_contains($controller, '::')) {
-            [$class] = explode('::', $controller, 2);
-        } else {
-            $class = $controller;
-        }
-
-        if (!class_exists($class)) {
-            return null;
-        }
-
-        $reflection = new \ReflectionClass($class);
-
-        $fileName = $reflection->getFileName();
-
-        return false !== $fileName ? $fileName : null;
     }
 
     /**

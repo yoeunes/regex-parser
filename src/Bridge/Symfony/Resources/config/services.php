@@ -15,8 +15,9 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use RegexParser\Bridge\Symfony\Command\RegexLintCommand;
 use RegexParser\Bridge\Symfony\Service\RegexAnalysisService;
-use RegexParser\Bridge\Symfony\Service\RouteValidationService;
-use RegexParser\Bridge\Symfony\Service\ValidatorValidationService;
+use RegexParser\Bridge\Symfony\Service\RouteRequirementIssueProvider;
+use RegexParser\Bridge\Symfony\Service\ValidatorRegexIssueProvider;
+use RegexParser\Bridge\Symfony\Validator\ValidatorPatternProvider;
 use RegexParser\Regex;
 
 /*
@@ -67,14 +68,15 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set(\RegexParser\Bridge\Symfony\Extractor\RouteRegexPatternSource::class)
         ->args([
+            '$patternNormalizer' => service(\RegexParser\Bridge\Symfony\Routing\RouteRequirementNormalizer::class),
+            '$fileResolver' => service(\RegexParser\Bridge\Symfony\Routing\RouteControllerFileResolver::class),
             '$router' => service('router')->nullOnInvalid(),
         ])
         ->tag('regex_parser.pattern_source');
 
     $services->set(\RegexParser\Bridge\Symfony\Extractor\ValidatorRegexPatternSource::class)
         ->args([
-            '$validator' => service('validator')->nullOnInvalid(),
-            '$validatorLoader' => service('validator.mapping.loader')->nullOnInvalid(),
+            '$patternProvider' => service(ValidatorPatternProvider::class),
         ])
         ->tag('regex_parser.pattern_source');
 
@@ -85,16 +87,15 @@ return static function (ContainerConfigurator $container): void {
             '$issueProviders' => tagged_iterator('regex_parser.lint_issue_provider'),
         ]);
 
-    $services->set('regex_parser.service.route_validation', RouteValidationService::class)
+    $services->set('regex_parser.service.route_validation', RouteRequirementIssueProvider::class)
         ->args([
-            '$analysis' => service('regex_parser.service.regex_analysis'),
+            '$analyzer' => service(\RegexParser\Bridge\Symfony\Analyzer\RouteRequirementAnalyzer::class),
             '$router' => service('router')->nullOnInvalid(),
-        ]);
+        ])
+        ->tag('regex_parser.lint_issue_provider');
 
-    $services->set('regex_parser.service.validator_validation', ValidatorValidationService::class)
+    $services->set('regex_parser.service.validator_validation', ValidatorRegexIssueProvider::class)
         ->args([
-            '$validator' => service('validator')->nullOnInvalid(),
-            '$validatorLoader' => service('validator.mapping.loader')->nullOnInvalid(),
             '$analyzer' => service(\RegexParser\Bridge\Symfony\Analyzer\ValidatorRegexAnalyzer::class),
         ])
         ->tag('regex_parser.lint_issue_provider');
@@ -102,26 +103,45 @@ return static function (ContainerConfigurator $container): void {
     $services->set('regex_parser.command.lint', RegexLintCommand::class)
         ->arg('$lint', service('regex_parser.service.regex_lint'))
         ->arg('$analysis', service('regex_parser.service.regex_analysis'))
+        ->arg('$defaultPaths', param('regex_parser.paths'))
+        ->arg('$defaultExcludePaths', param('regex_parser.exclude_paths'))
         ->arg('$editorUrl', param('regex_parser.editor_format'))
         ->tag('console.command')
         ->public();
 
     // Analyzer services
+    $services->set(\RegexParser\Bridge\Symfony\Analyzer\RegexPatternInspector::class);
+
+    $services->set(\RegexParser\Bridge\Symfony\Routing\RouteRequirementNormalizer::class);
+
+    $services->set(\RegexParser\Bridge\Symfony\Routing\RouteControllerFileResolver::class);
+
+    $services->set(ValidatorPatternProvider::class)
+        ->args([
+            '$validator' => service('validator')->nullOnInvalid(),
+            '$validatorLoader' => service('validator.mapping.loader')->nullOnInvalid(),
+        ]);
+
     $services->set(\RegexParser\Bridge\Symfony\Analyzer\RouteRequirementAnalyzer::class)
         ->args([
             '$regex' => service('regex_parser.regex'),
-            '$warningThreshold' => 1,
-            '$redosThreshold' => 'high',
-            '$ignoredPatterns' => [],
+            '$patternInspector' => service(\RegexParser\Bridge\Symfony\Analyzer\RegexPatternInspector::class),
+            '$patternNormalizer' => service(\RegexParser\Bridge\Symfony\Routing\RouteRequirementNormalizer::class),
+            '$routeFileResolver' => service(\RegexParser\Bridge\Symfony\Routing\RouteControllerFileResolver::class),
+            '$warningThreshold' => param('regex_parser.analysis.warning_threshold'),
+            '$redosThreshold' => param('regex_parser.redos.threshold'),
+            '$ignoredPatterns' => param('regex_parser.analysis.ignore_patterns'),
         ])
         ->tag('regex_parser.analyzer');
 
     $services->set(\RegexParser\Bridge\Symfony\Analyzer\ValidatorRegexAnalyzer::class)
         ->args([
             '$regex' => service('regex_parser.regex'),
-            '$warningThreshold' => 1,
-            '$redosThreshold' => 'high',
-            '$ignoredPatterns' => [],
+            '$patternInspector' => service(\RegexParser\Bridge\Symfony\Analyzer\RegexPatternInspector::class),
+            '$patternProvider' => service(ValidatorPatternProvider::class),
+            '$warningThreshold' => param('regex_parser.analysis.warning_threshold'),
+            '$redosThreshold' => param('regex_parser.redos.threshold'),
+            '$ignoredPatterns' => param('regex_parser.analysis.ignore_patterns'),
         ])
         ->tag('regex_parser.analyzer');
 };

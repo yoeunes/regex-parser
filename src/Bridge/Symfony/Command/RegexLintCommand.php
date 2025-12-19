@@ -69,11 +69,34 @@ final class RegexLintCommand extends Command
 
     private readonly LinkFormatter $linkFormatter;
 
+    /**
+     * @var list<string>
+     */
+    private array $defaultPaths;
+
+    /**
+     * @var list<string>
+     */
+    private array $defaultExcludePaths;
+
     public function __construct(
         private readonly RegexLintService $lint,
         private readonly RegexAnalysisService $analysis,
+        array $defaultPaths = ['src'],
+        array $defaultExcludePaths = ['vendor'],
         ?string $editorUrl = null,
     ) {
+        $this->defaultPaths = $this->normalizeStringList($defaultPaths);
+        $this->defaultExcludePaths = $this->normalizeStringList($defaultExcludePaths);
+
+        if ([] === $this->defaultPaths) {
+            $this->defaultPaths = ['src'];
+        }
+
+        if ([] === $this->defaultExcludePaths) {
+            $this->defaultExcludePaths = ['vendor'];
+        }
+
         $this->pathHelper = new RelativePathHelper(getcwd() ?: null);
         $this->linkFormatter = new LinkFormatter($editorUrl, $this->pathHelper);
         parent::__construct();
@@ -82,8 +105,8 @@ final class RegexLintCommand extends Command
     protected function configure(): void
     {
         $this
-            ->addArgument('paths', InputArgument::IS_ARRAY | InputArgument::OPTIONAL, 'The paths to analyze', ['src'])
-            ->addOption('exclude', null, InputOption::VALUE_IS_ARRAY | InputOption::VALUE_OPTIONAL, 'Paths to exclude', ['vendor'])
+            ->addArgument('paths', InputArgument::IS_ARRAY | InputArgument::OPTIONAL, 'The paths to analyze', $this->defaultPaths)
+            ->addOption('exclude', null, InputOption::VALUE_IS_ARRAY | InputOption::VALUE_OPTIONAL, 'Paths to exclude', $this->defaultExcludePaths)
             ->addOption('min-savings', null, InputOption::VALUE_OPTIONAL, 'Minimum optimization savings in characters', 1)
             ->addOption('no-routes', null, InputOption::VALUE_NONE, 'Skip route validation')
             ->addOption('no-validators', null, InputOption::VALUE_NONE, 'Skip validator validation')

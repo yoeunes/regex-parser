@@ -14,23 +14,17 @@ declare(strict_types=1);
 namespace RegexParser\Bridge\Symfony\Service;
 
 use RegexParser\Bridge\Symfony\Analyzer\ValidatorRegexAnalyzer;
-use Symfony\Component\Validator\Mapping\Loader\LoaderInterface;
-use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 /**
  * Validates regex usage in Symfony validators.
  */
-final readonly class ValidatorValidationService implements RegexLintIssueProviderInterface
+final readonly class ValidatorRegexIssueProvider implements RegexLintIssueProviderInterface
 {
-    public function __construct(
-        private ?ValidatorRegexAnalyzer $analyzer = null,
-        private ?ValidatorInterface $validator = null,
-        private ?LoaderInterface $validatorLoader = null,
-    ) {}
+    public function __construct(private ?ValidatorRegexAnalyzer $analyzer = null) {}
 
     public function isSupported(): bool
     {
-        return null !== $this->analyzer && null !== $this->validator && null !== $this->validatorLoader;
+        return null !== $this->analyzer && $this->analyzer->isSupported();
     }
 
     public function getName(): string
@@ -49,6 +43,6 @@ final readonly class ValidatorValidationService implements RegexLintIssueProvide
             return [];
         }
 
-        return $this->analyzer->analyze($this->validator, $this->validatorLoader);
+        return $this->analyzer->analyze();
     }
 }

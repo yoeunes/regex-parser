@@ -56,6 +56,11 @@ use RegexParser\OptimizationResult;
  */
 final readonly class RegexLintService
 {
+    private const ROUTE_IGNORED_ISSUE_IDS = [
+        'regex.lint.quantifier.nested' => true,
+        'regex.lint.dotstar.nested' => true,
+    ];
+
     /**
      * @param iterable<RegexLintIssueProviderInterface> $issueProviders
      */
@@ -119,13 +124,22 @@ final readonly class RegexLintService
     private function filterLintIssues(array $issues, array $enabledProviders): array
     {
         $validatorEnabled = $enabledProviders['validators'] ?? false;
+        $routesEnabled = $enabledProviders['routes'] ?? false;
 
-        return array_values(array_filter($issues, static function (array $issue) use ($validatorEnabled): bool {
+        return array_values(array_filter($issues, static function (array $issue) use ($validatorEnabled, $routesEnabled): bool {
             $source = $issue['source'] ?? '';
 
             if (str_starts_with($source, 'route:')) {
-                return !str_contains((string) $issue['message'], 'ReDoS')
-                    && !str_contains((string) $issue['message'], 'Nested quantifiers');
+                if ($routesEnabled && 'error' === $issue['type']) {
+                    return false;
+                }
+
+                $issueId = $issue['issueId'] ?? null;
+                if (\is_string($issueId) && isset(self::ROUTE_IGNORED_ISSUE_IDS[$issueId])) {
+                    return false;
+                }
+
+                return true;
             }
 
             if ($validatorEnabled && str_starts_with($source, 'validator:') && 'error' === $issue['type']) {
@@ -354,6 +368,12 @@ final readonly class RegexLintService
             [$file, $route] = explode(' (Route: ', $id, 2);
 
             return [$file, 'Route: '.rtrim($route, ')')];
+        }
+
+        if (str_contains($id, ' (Validator: ')) {
+            [$file, $validator] = explode(' (Validator: ', $id, 2);
+
+            return [$file, 'Validator: '.rtrim($validator, ')')];
         }
 
         return [$category, $id];

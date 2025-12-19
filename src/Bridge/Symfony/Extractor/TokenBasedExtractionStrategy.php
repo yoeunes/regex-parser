@@ -65,47 +65,6 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
 
         $tokens = token_get_all($content, \TOKEN_PARSE);
         $occurrences = [];
-
-        foreach ($tokens as $token) {
-            $tokenOccurrences = $this->extractFromToken($token, $file);
-            $occurrences = [...$occurrences, ...$tokenOccurrences];
-        }
-
-        return $occurrences;
-    }
-
-    /**
-     * @param array{int, string, int}|string $token
-     *
-     * @return list<RegexPatternOccurrence>
-     */
-    private function extractFromToken($token, string $file): array
-    {
-        if (!\is_array($token)) {
-            return [];
-        }
-
-        $tokenType = $token[0];
-        $tokenValue = $token[1];
-        $tokenLine = $token[2];
-
-        if (\T_STRING === $tokenType && isset(self::PREG_FUNCTIONS[$tokenValue])) {
-            return $this->extractFromNextTokens($tokenLine, $file);
-        }
-
-        return [];
-    }
-
-    /**
-     * @return list<RegexPatternOccurrence>
-     */
-    private function extractFromNextTokens(int $line, string $file): array
-    {
-        $content = file_get_contents($file);
-        if (false === $content) {
-            return [];
-        }
-        $tokens = token_get_all($content, \TOKEN_PARSE);
         $totalTokens = \count($tokens);
 
         for ($i = 0; $i < $totalTokens; $i++) {
@@ -114,21 +73,19 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
                 continue;
             }
 
-            if ($token[2] !== $line) {
+            if (\T_STRING !== $token[0] || !isset(self::PREG_FUNCTIONS[$token[1]])) {
                 continue;
             }
 
-            if (\T_STRING === $token[0] && isset(self::PREG_FUNCTIONS[$token[1]])) {
-                $patternToken = $this->findNextNonIgnorableToken($tokens, $i + 1);
-                if (null === $patternToken) {
-                    continue;
-                }
-
-                return $this->extractPatternFromToken($patternToken, $file, $token[1]);
+            $patternToken = $this->findNextNonIgnorableToken($tokens, $i + 1);
+            if (null === $patternToken) {
+                continue;
             }
+
+            $occurrences = [...$occurrences, ...$this->extractPatternFromToken($patternToken, $file, $token[1])];
         }
 
-        return [];
+        return $occurrences;
     }
 
     /**
@@ -148,12 +105,6 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
             }
 
             $tokenType = $token[0];
-            /** @var int $tokenType */
-            // Skip nested preg_* calls so we still reach the argument token.
-            if (\T_STRING === $tokenType && isset(self::PREG_FUNCTIONS[$token[1]])) {
-                return $this->findNextNonIgnorableToken($tokens, $i + 1);
-            }
-
             if (!isset(self::IGNORABLE_TOKENS[$tokenType])) {
                 return $token;
             }
@@ -182,20 +133,6 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
                 $token[2],
                 $functionName.'()',
             )];
-        }
-
-        // Handle concatenation of strings
-        if (\T_STRING === $token[0] && isset(self::PREG_FUNCTIONS[$token[1]])) {
-            $content = file_get_contents($file);
-            if (false === $content) {
-                return [];
-            }
-            $patternToken = $this->findNextNonIgnorableToken(
-                token_get_all($content, \TOKEN_PARSE),
-                $token[2],
-            );
-
-            return $patternToken ? $this->extractPatternFromToken($patternToken, $file, $token[1]) : [];
         }
 
         return [];
