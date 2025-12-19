@@ -61,6 +61,7 @@ final readonly class ValidatorRegexAnalyzer
 
         $classes = [];
         if (null !== $loader && method_exists($loader, 'getMappedClasses')) {
+            /** @var array<string> $classes */
             $classes = $loader->getMappedClasses();
         }
 
@@ -106,7 +107,7 @@ final readonly class ValidatorRegexAnalyzer
                         $issues,
                         $this->analyzeConstraints(
                             $propertyMetadata->getConstraints(),
-                            \sprintf('%s::$%s', $className, $propertyMetadata->getName()),
+                            \sprintf('%s::$%s', $className, $propertyName),
                         ),
                     );
                 }
@@ -260,7 +261,18 @@ final readonly class ValidatorRegexAnalyzer
             return false;
         }
 
-        return 1 === preg_match('#^[A-Za-z0-9._-]+(?:\|[A-Za-z0-9._-]+)+$#', $body);
+        $parts = explode('|', $body);
+        if (\count($parts) < 2) {
+            return false;
+        }
+
+        foreach ($parts as $part) {
+            if (!preg_match('#^[A-Za-z0-9._-]+$#', $part)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
