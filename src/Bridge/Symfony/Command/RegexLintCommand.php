@@ -93,13 +93,13 @@ final class RegexLintCommand extends Command
 
     private function showNoPatternsMessage(SymfonyStyle $io): void
     {
-        $io->block('No constant preg_* patterns found.', 'INFO', 'fg=black;bg=blue', ' ', true);
+        $io->writeln('  <fg=blue;options=bold>INFO</> <fg=gray>No constant regex patterns found to analyze.</>');
     }
 
     private function showHeader(SymfonyStyle $io): void
     {
         $io->writeln('');
-        $io->writeln('  <fg=white;options=bold>REGEX PARSER</> <fg=cyan>Linting & Optimization</>');
+        $io->writeln('  <fg=white;options=bold>Regex Parser</> <fg=cyan>Linting & Optimization</>');
         $io->writeln('  <fg=gray>—</>');
         $io->writeln('');
     }
@@ -310,8 +310,7 @@ final class RegexLintCommand extends Command
         }
 
         $io->newLine();
-        $io->writeln(
-            \sprintf('  <bg=red;fg=white;options=bold> FAIL </><fg=red;options=bold> %d invalid regex patterns found</>', $stats['errors']));
+        $io->writeln(\sprintf('  <bg=red;fg=white;options=bold> FAIL </><fg=red;options=bold> %d invalid regex patterns found</>', $stats['errors']));
         $io->newLine();
 
         $this->showFooter($io);
@@ -325,7 +324,7 @@ final class RegexLintCommand extends Command
             return;
         }
 
-        $io->writeln('  <fg=white;options=bold>Issues Found</>');
+        $io->writeln('  <fg=white;options=bold>Analysis in progress...</>');
         $io->writeln('  <fg=gray>—</>');
         $io->newLine();
 
@@ -349,8 +348,7 @@ final class RegexLintCommand extends Command
     private function showFileHeader(SymfonyStyle $io, string $file): void
     {
         $relPath = $this->linkFormatter->getRelativePath($file);
-        $io->writeln("  <fg=gray>in</> <fg=cyan;options=bold>{$relPath}</>");
-        $io->writeln('  <fg=gray>───</>');
+        $io->writeln("  <fg=white;bg=gray;options=bold>  {$relPath}  </>");
     }
 
     private function displayPatternResult(SymfonyStyle $io, array $result): void
@@ -365,10 +363,10 @@ final class RegexLintCommand extends Command
         if (null !== $pattern) {
             try {
                 $highlighted = $this->analysis->highlight(OutputFormatter::escape($pattern));
-                $io->writeln(\sprintf('  <fg=gray>Pattern:</> <fg=white>%s</>', $highlighted));
+                $io->writeln(\sprintf('   <fg=blue;options=bold>➜</>  %s', $highlighted));
             } catch (\Exception) {
                 // If highlighting fails (e.g., invalid regex), show raw pattern with warning
-                $io->writeln(\sprintf('  <fg=gray>Pattern:</> <fg=red>%s</> <fg=gray>(invalid)</>', OutputFormatter::escape($pattern)));
+                $io->writeln(\sprintf('   <fg=red;options=bold>➜</>  %s  <fg=gray;bg=red;options=bold> INVALID </>', OutputFormatter::escape($pattern)));
             }
         }
 
@@ -401,10 +399,10 @@ final class RegexLintCommand extends Command
         // Try to get pattern from first issue
         if (!empty($result['issues'])) {
             $firstIssue = $result['issues'][0];
-            if (isset($firstIssue['pattern']) && !empty($firstIssue['pattern'])) {
+            if (!empty($firstIssue['pattern'])) {
                 return $firstIssue['pattern'];
             }
-            if (isset($firstIssue['regex']) && !empty($firstIssue['regex'])) {
+            if (!empty($firstIssue['regex'])) {
                 return $firstIssue['regex'];
             }
         }
@@ -429,24 +427,24 @@ final class RegexLintCommand extends Command
         $msg = $this->formatIssueMessage($issue['message']);
         [$firstLine, $restLines] = $this->splitMessage($msg);
 
-        $io->writeln(\sprintf('  <fg=%s;options=bold>%s</>  <fg=white;options=bold>%s</>  %s  %s', $color, $letter, $lineNum, $link, $firstLine));
+        $io->writeln(\sprintf('   <fg=%s;options=bold>%s</>  <fg=white;options=bold>%s</>  %s  %s', $color, $letter, $lineNum, $link, $firstLine));
 
         $this->displayMessageLines($io, $restLines);
 
         if (!empty($issue['hint'])) {
-            $io->writeln("         <fg=cyan>💡</> <fg=gray>{$issue['hint']}</>");
+            $io->writeln("            <fg=cyan>💡</>  <fg=gray>{$issue['hint']}</>");
         }
     }
 
     private function displayOptimization(SymfonyStyle $io, array $opt, string $lineNum, string $link): void
     {
-        $io->writeln(\sprintf('  <fg=green;options=bold>0</>  <fg=white;options=bold>%s</>  %s  <fg=green>%d chars saved</>', $lineNum, $link, $opt['savings']));
+        $io->writeln(\sprintf('   <fg=green;options=bold>0</>  <fg=white;options=bold>%s</>  %s  <fg=green>%d chars saved</>', $lineNum, $link, $opt['savings']));
 
         $original = $this->analysis->highlight(OutputFormatter::escape($opt['optimization']->original));
         $optimized = $this->analysis->highlight(OutputFormatter::escape($opt['optimization']->optimized));
 
-        $io->writeln(\sprintf('         <fg=red>─</> %s', $original));
-        $io->writeln(\sprintf('         <fg=green>✨</> %s', $optimized));
+        $io->writeln(\sprintf('             <fg=red>─</> %s', $original));
+        $io->writeln(\sprintf('             <fg=green>+</> %s', $optimized));
     }
 
     private function formatIssueMessage(string $message): string
