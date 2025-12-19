@@ -114,13 +114,12 @@ final class RegexLintCommand extends Command
     private function showFooter(SymfonyStyle $io): void
     {
         $io->newLine();
-
-        $io->writeln('  <fg=gray>──────────────────────────────────────────</>');
+        $io->writeln('  <fg=gray>—</>');
         $io->newLine();
 
         $io->writeln([
-            '  <fg=white;options=bold>Regex Parser</>  <fg=gray>is an open-source project by</> <fg=white;options=bold>Younes ENNAJI</>',
-            '  <fg=gray>If you like it, please rate it on GitHub</>  <fg=yellow>⭐</>',
+            '  <fg=blue;options=bold>Regex Parser</>  <fg=gray>is an open-source project by</> <fg=white;options=bold>Younes ENNAJI</>',
+            '  <fg=gray>Find this useful?</> <fg=yellow;options=bold>Star the repo! ⭐</>',
             '',
             '  <fg=blue;options=bold>https://github.com/yoeunes/regex-parser</>',
         ]);
