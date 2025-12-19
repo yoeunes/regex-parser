@@ -79,6 +79,10 @@ final class RegexLintCommand extends Command
      */
     private array $defaultExcludePaths;
 
+    /**
+     * @param list<string> $defaultPaths
+     * @param list<string> $defaultExcludePaths
+     */
     public function __construct(
         private readonly RegexLintService $lint,
         private readonly RegexAnalysisService $analysis,

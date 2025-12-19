@@ -14,7 +14,9 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Bridge\Symfony\Analyzer;
 
 use PHPUnit\Framework\TestCase;
+use RegexParser\Bridge\Symfony\Analyzer\RegexPatternInspector;
 use RegexParser\Bridge\Symfony\Analyzer\ValidatorRegexAnalyzer;
+use RegexParser\Bridge\Symfony\Validator\ValidatorPatternProvider;
 use RegexParser\Regex;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\Constraints\GroupSequence;
@@ -36,9 +38,15 @@ final class ValidatorRegexAnalyzerTest extends TestCase
 
         $loader = new FakeLoader([FakeEntity::class]);
 
-        $analyzer = new ValidatorRegexAnalyzer(Regex::create(), 0, 'high');
+        $analyzer = new ValidatorRegexAnalyzer(
+            Regex::create(),
+            new RegexPatternInspector(),
+            new ValidatorPatternProvider($validator, $loader),
+            0,
+            'high',
+        );
 
-        $issues = $analyzer->analyze($validator, $loader);
+        $issues = $analyzer->analyze();
 
         $this->assertCount(2, $issues);
         $this->assertTrue($issues[0]->isError);
@@ -53,9 +61,15 @@ final class ValidatorRegexAnalyzerTest extends TestCase
 
         $loader = new FakeLoader([FakeEntity::class]);
 
-        $analyzer = new ValidatorRegexAnalyzer(Regex::create(), 0, 'high');
+        $analyzer = new ValidatorRegexAnalyzer(
+            Regex::create(),
+            new RegexPatternInspector(),
+            new ValidatorPatternProvider($validator, $loader),
+            0,
+            'high',
+        );
 
-        $issues = $analyzer->analyze($validator, $loader);
+        $issues = $analyzer->analyze();
 
         $this->assertSame([], $issues);
     }

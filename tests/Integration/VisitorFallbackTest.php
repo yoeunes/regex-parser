@@ -78,7 +78,7 @@ final class VisitorFallbackTest extends TestCase
         // But currently, parts (Literals/Ranges) are never optimized, so this block is dead code.
         // We force it by mocking a NodeInterface that returns a DIFFERENT instance when visited.
 
-        $mockPart = $this->createMock(NodeInterface::class);
+        $mockPart = $this->createStub(NodeInterface::class);
         $mockPart
             ->method('accept')
             ->willReturn(new LiteralNode('changed', 0, 0)); // Return different instance

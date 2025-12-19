@@ -87,7 +87,14 @@ final readonly class ValidatorPatternProvider
 
             $mappedClasses = $this->validatorLoader->getMappedClasses();
 
-            return \is_array($mappedClasses) ? $mappedClasses : [];
+            if (!\is_array($mappedClasses)) {
+                return [];
+            }
+
+            return array_values(array_filter(
+                $mappedClasses,
+                static fn (mixed $className): bool => \is_string($className) && '' !== $className,
+            ));
         } catch (\Throwable) {
             return [];
         }

@@ -52,7 +52,7 @@ final class CharClassNodeTest extends TestCase
 
     public function test_accept_visitor_calls_visit_char_class(): void
     {
-        $part1 = $this->createMock(NodeInterface::class);
+        $part1 = $this->createStub(NodeInterface::class);
         $node = new CharClassNode($part1, false, 0, 5);
         $visitor = $this->createMock(NodeVisitorInterface::class);
 

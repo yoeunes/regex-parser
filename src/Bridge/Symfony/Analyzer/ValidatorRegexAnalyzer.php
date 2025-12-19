@@ -176,7 +176,7 @@ final readonly class ValidatorRegexAnalyzer
         return array_values(array_unique([...$this->regex->getRedosIgnoredPatterns(), ...$userIgnored]));
     }
 
-    private function buildIssueId(ValidatorPattern $pattern): ?string
+    private function buildIssueId(ValidatorPattern $pattern): string
     {
         $file = $pattern->file;
         if (null === $file || '' === $file) {

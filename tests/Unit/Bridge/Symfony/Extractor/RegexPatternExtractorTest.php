@@ -23,7 +23,7 @@ final class RegexPatternExtractorTest extends TestCase
 {
     public function test_delegates_to_injected_extractor(): void
     {
-        $mockExtractor = $this->createMock(ExtractorInterface::class);
+        $mockExtractor = $this->createStub(ExtractorInterface::class);
         $mockExtractor->method('extract')->willReturn(['pattern1', 'pattern2']);
 
         $extractor = new RegexPatternExtractor($mockExtractor);
@@ -35,7 +35,7 @@ final class RegexPatternExtractorTest extends TestCase
 
     public function test_uses_default_exclude_paths_when_not_provided(): void
     {
-        $mockExtractor = $this->createMock(ExtractorInterface::class);
+        $mockExtractor = $this->createStub(ExtractorInterface::class);
         $mockExtractor->method('extract')->willReturn([]);
 
         $extractor = new RegexPatternExtractor($mockExtractor);
@@ -47,7 +47,7 @@ final class RegexPatternExtractorTest extends TestCase
 
     public function test_uses_custom_exclude_paths_when_provided(): void
     {
-        $mockExtractor = $this->createMock(ExtractorInterface::class);
+        $mockExtractor = $this->createStub(ExtractorInterface::class);
         $mockExtractor->method('extract')->willReturn([]);
 
         $extractor = new RegexPatternExtractor($mockExtractor);

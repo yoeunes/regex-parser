@@ -45,7 +45,7 @@ final class SequenceNodeTest extends TestCase
 
     public function test_accept_visitor_calls_visit_sequence(): void
     {
-        $child = $this->createMock(NodeInterface::class);
+        $child = $this->createStub(NodeInterface::class);
         $node = new SequenceNode([$child], 0, 1);
         $visitor = $this->createMock(NodeVisitorInterface::class);
 

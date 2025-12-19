@@ -89,7 +89,7 @@ final class TokenBasedExtractionStrategyTest extends TestCase
     {
         $strategy = new TokenBasedExtractionStrategy();
 
-        $fixtureFile = __DIR__.'/../../../../Fixtures/Extractor/callback_array.php';
+        $fixtureFile = __DIR__.'/../../../../../Fixtures/Extractor/callback_array.php';
 
         $result = $strategy->extract([$fixtureFile]);
 

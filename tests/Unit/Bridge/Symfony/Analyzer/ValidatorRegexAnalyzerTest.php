@@ -14,7 +14,9 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Unit\Bridge\Symfony\Analyzer;
 
 use PHPUnit\Framework\TestCase;
+use RegexParser\Bridge\Symfony\Analyzer\RegexPatternInspector;
 use RegexParser\Bridge\Symfony\Analyzer\ValidatorRegexAnalyzer;
+use RegexParser\Bridge\Symfony\Validator\ValidatorPatternProvider;
 use Symfony\Component\Validator\Constraints\Regex as SymfonyRegex;
 use Symfony\Component\Validator\ConstraintViolationListInterface;
 use Symfony\Component\Validator\Context\ExecutionContextInterface;
@@ -50,8 +52,14 @@ final class ValidatorRegexAnalyzerTest extends TestCase
             }
         };
 
-        $analyzer = new ValidatorRegexAnalyzer($regex, warningThreshold: 0, redosThreshold: 'high');
-        $issues = $analyzer->analyze($validator, $loader);
+        $analyzer = new ValidatorRegexAnalyzer(
+            $regex,
+            new RegexPatternInspector(),
+            new ValidatorPatternProvider($validator, $loader),
+            warningThreshold: 0,
+            redosThreshold: 'high',
+        );
+        $issues = $analyzer->analyze();
 
         $this->assertCount(3, $issues);
         $this->assertTrue($issues[0]->isError);
@@ -61,16 +69,20 @@ final class ValidatorRegexAnalyzerTest extends TestCase
 
     public function test_analyze_returns_empty_when_validator_missing(): void
     {
-        $analyzer = new ValidatorRegexAnalyzer(\RegexParser\Regex::create(), 10, 'high');
+        $analyzer = new ValidatorRegexAnalyzer(
+            \RegexParser\Regex::create(),
+            new RegexPatternInspector(),
+            new ValidatorPatternProvider(null, null),
+            10,
+            'high',
+        );
 
-        $this->assertSame([], $analyzer->analyze(null, null));
+        $this->assertSame([], $analyzer->analyze());
     }
 
     public function test_analyze_skips_ignored_and_trivial_patterns(): void
     {
         $regex = \RegexParser\Regex::create();
-        $analyzer = new ValidatorRegexAnalyzer($regex, warningThreshold: 10, redosThreshold: 'high', ignoredPatterns: ['safe']);
-
         $metadata = new ClassMetadata(DummyValidated::class);
         $metadata->addPropertyConstraint('value', new SymfonyRegex('/safe/')); // ignored via config
         $metadata->addPropertyConstraint('value', new SymfonyRegex('/foo|bar/')); // trivial safe
@@ -91,7 +103,16 @@ final class ValidatorRegexAnalyzerTest extends TestCase
             }
         };
 
-        $this->assertSame([], $analyzer->analyze($validator, $loader));
+        $analyzer = new ValidatorRegexAnalyzer(
+            $regex,
+            new RegexPatternInspector(),
+            new ValidatorPatternProvider($validator, $loader),
+            warningThreshold: 10,
+            redosThreshold: 'high',
+            ignoredPatterns: ['safe'],
+        );
+
+        $this->assertSame([], $analyzer->analyze());
     }
 }
 

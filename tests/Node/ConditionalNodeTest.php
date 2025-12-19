@@ -50,9 +50,9 @@ final class ConditionalNodeTest extends TestCase
 
     public function test_accept_visitor_calls_visit_conditional(): void
     {
-        $condition = $this->createMock(NodeInterface::class);
-        $yes = $this->createMock(NodeInterface::class);
-        $no = $this->createMock(NodeInterface::class);
+        $condition = $this->createStub(NodeInterface::class);
+        $yes = $this->createStub(NodeInterface::class);
+        $no = $this->createStub(NodeInterface::class);
 
         $node = new ConditionalNode($condition, $yes, $no, 0, 10);
         $visitor = $this->createMock(NodeVisitorInterface::class);

@@ -14,7 +14,10 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Unit\Bridge\Symfony\Analyzer;
 
 use PHPUnit\Framework\TestCase;
+use RegexParser\Bridge\Symfony\Analyzer\RegexPatternInspector;
 use RegexParser\Bridge\Symfony\Analyzer\RouteRequirementAnalyzer;
+use RegexParser\Bridge\Symfony\Routing\RouteControllerFileResolver;
+use RegexParser\Bridge\Symfony\Routing\RouteRequirementNormalizer;
 use Symfony\Component\Routing\Route;
 use Symfony\Component\Routing\RouteCollection;
 
@@ -24,7 +27,7 @@ final class RouteRequirementAnalyzerTest extends TestCase
     {
         $regex = \RegexParser\Regex::create();
 
-        $analyzer = new RouteRequirementAnalyzer($regex, warningThreshold: 0, redosThreshold: 'high', ignoredPatterns: ['skip']);
+        $analyzer = $this->createAnalyzer($regex, warningThreshold: 0, redosThreshold: 'high', ignoredPatterns: ['skip']);
 
         $routes = new RouteCollection();
         $routes->add('ignored_route', new Route('/a', [], ['id' => 'skip'])); // ignored by pattern
@@ -41,7 +44,7 @@ final class RouteRequirementAnalyzerTest extends TestCase
     public function test_analyze_ignores_configured_patterns(): void
     {
         $regex = \RegexParser\Regex::create();
-        $analyzer = new RouteRequirementAnalyzer($regex, warningThreshold: 10, redosThreshold: 'high', ignoredPatterns: ['foo']);
+        $analyzer = $this->createAnalyzer($regex, warningThreshold: 10, redosThreshold: 'high', ignoredPatterns: ['foo']);
 
         $routes = new RouteCollection();
         $routes->add('ignored', new Route('/a', [], ['id' => 'foo']));
@@ -52,11 +55,31 @@ final class RouteRequirementAnalyzerTest extends TestCase
     public function test_analyze_skips_trivially_safe_patterns(): void
     {
         $regex = \RegexParser\Regex::create();
-        $analyzer = new RouteRequirementAnalyzer($regex, warningThreshold: 10, redosThreshold: 'high');
+        $analyzer = $this->createAnalyzer($regex, warningThreshold: 10, redosThreshold: 'high');
 
         $routes = new RouteCollection();
         $routes->add('safe', new Route('/a', [], ['id' => 'foo|bar']));
 
         $this->assertSame([], $analyzer->analyze($routes));
+    }
+
+    /**
+     * @param list<string> $ignoredPatterns
+     */
+    private function createAnalyzer(
+        \RegexParser\Regex $regex,
+        int $warningThreshold,
+        string $redosThreshold,
+        array $ignoredPatterns = [],
+    ): RouteRequirementAnalyzer {
+        return new RouteRequirementAnalyzer(
+            $regex,
+            new RegexPatternInspector(),
+            new RouteRequirementNormalizer(),
+            new RouteControllerFileResolver(),
+            $warningThreshold,
+            $redosThreshold,
+            $ignoredPatterns,
+        );
     }
 }
