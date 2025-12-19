@@ -62,13 +62,13 @@ final class RegexLintCommand extends Command
         $patterns = $this->analysis->scan($this->paths, $this->exclude);
 
         if (empty($patterns)) {
-            $this->renderSummary($io, [], 0, 0, 0);
+            $this->renderSummary($io, []);
 
             return Command::SUCCESS;
         }
 
         $stats = $this->initializeStats();
-        $allResults = $this->analyzePatternsIntegrated($io, $patterns);
+        $allResults = $this->analyzePatternsIntegrated($patterns);
 
         $additionalResults = [];
         if ($this->routeValidation) {
@@ -95,7 +95,7 @@ final class RegexLintCommand extends Command
         return $exitCode;
     }
 
-    private function analyzePatternsIntegrated(SymfonyStyle $io, array $patterns): array
+    private function analyzePatternsIntegrated(array $patterns): array
     {
         if (empty($patterns)) {
             return [];
@@ -130,7 +130,7 @@ final class RegexLintCommand extends Command
     private function showFileHeader(SymfonyStyle $io, string $file): void
     {
         $relPath = $this->linkFormatter->getRelativePath($file);
-        $io->writeln(\sprintf('  <fg=white;options=bold>%s</>', $relPath));
+        $io->writeln(\sprintf('  <fg=white;bg=gray;options=bold> %s </>', $relPath));
     }
 
     private function displayPatternResult(SymfonyStyle $io, array $result): void
@@ -197,14 +197,13 @@ final class RegexLintCommand extends Command
 
         // Print subsequent lines (like regex pointers ^) with indentation preserved
         if (!empty($lines)) {
-            foreach ($lines as $line) {
-                // We add 9 spaces to align with the text start after the badge (badge is approx 6 chars + spaces)
-                $io->writeln('         '.$line);
+            foreach ($lines as $index => $line) {
+                $io->writeln(\sprintf('         <fg=gray>%s %s</>', 0 === $index ? '↳' : ' ', $this->cleanMessageIndentation($line)));
             }
         }
     }
 
-    private function renderSummary(SymfonyStyle $io, array $stats, int $errors = 0, int $warnings = 0, int $optimizations = 0): void
+    private function renderSummary(SymfonyStyle $io, array $stats): void
     {
         $errors = $stats['errors'] ?? 0;
         $warnings = $stats['warnings'] ?? 0;
