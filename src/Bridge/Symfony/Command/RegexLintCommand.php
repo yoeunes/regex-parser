@@ -23,7 +23,6 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Formatter\OutputFormatter;
 use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
@@ -53,45 +52,9 @@ final class RegexLintCommand extends Command
     }
 
     #[\Override]
-    protected function configure(): void
-    {
-        $this->addOption('fail-on-warnings', null, InputOption::VALUE_NONE, 'Fail the command if warnings are found.');
-        $this->addOption('fix', null, InputOption::VALUE_NONE, 'Automatically apply optimizations to files.');
-        $this->addOption('format', null, InputOption::VALUE_REQUIRED, 'Output format (console, json)', 'console');
-    }
-
-    #[\Override]
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $format = $input->getOption('format');
-        $failOnWarnings = $input->getOption('fail-on-warnings');
-        $fix = $input->getOption('fix');
-
         $patterns = $this->analysis->scan($this->paths, $this->exclude);
-
-        if ('json' === $format) {
-            $issues = $this->analysis->lint($patterns);
-            $optimizations = $this->analysis->suggestOptimizations($patterns, $this->minSavings);
-            $results = $this->combineResults($issues, $optimizations, $patterns);
-
-            $additionalResults = [];
-            if ($this->routeValidation) {
-                $routeIssues = $this->routeValidation->analyze();
-                $additionalResults = array_merge($additionalResults, $this->convertAnalysisIssuesToResults($routeIssues, 'Symfony Router'));
-            }
-            if ($this->validatorValidation) {
-                $validatorIssues = $this->validatorValidation->analyze();
-                $additionalResults = array_merge($additionalResults, $this->convertAnalysisIssuesToResults($validatorIssues, 'Symfony Validator'));
-            }
-            $results = array_merge($results, $additionalResults);
-
-            if ($fix) {
-                $this->applyFixes($results);
-            }
-            $this->outputJsonResults($results, $output);
-
-            return $this->determineJsonExitCode($results, $failOnWarnings);
-        }
 
         $io = new SymfonyStyle($input, $output);
 
@@ -120,26 +83,12 @@ final class RegexLintCommand extends Command
         }
         $allResults = array_merge($allResults, $additionalResults);
 
-        if ($fix) {
-            $this->applyFixes($allResults);
-        }
-
         if (!empty($allResults)) {
-            $this->outputIntegratedResults($io, $allResults, $fix);
+            $this->outputIntegratedResults($io, $allResults);
             $stats = $this->updateStatsFromResults($stats, $allResults);
         }
 
-        return $this->determineExitCode($io, $stats, $failOnWarnings);
-    }
-
-    private function scanFiles(SymfonyStyle $io): array
-    {
-        $io->write('  <fg=cyan>🔍 Scanning files...</>');
-        $patterns = $this->analysis->scan($this->paths, $this->exclude);
-        $io->writeln(' <fg=green;options=bold>✓</>');
-        $io->writeln('');
-
-        return $patterns;
+        return $this->determineExitCode($io, $stats);
     }
 
     private function showNoPatternsMessage(SymfonyStyle $io): void
@@ -159,90 +108,6 @@ final class RegexLintCommand extends Command
     {
         $io->writeln('  <fg=cyan>https://github.com/yoeunes/regex-parser</> ⭐ Give it a star! by Younes ENNAJI');
         $io->writeln('');
-    }
-
-    private function showScanMessage(SymfonyStyle $io, array $patterns): void
-    {
-        $io->write('  <fg=cyan>🔍 Scanning files...</>');
-        $io->writeln(' <fg=green;options=bold>✓</>');
-        $io->writeln('');
-    }
-
-    private function outputJsonResults(array $results, OutputInterface $output): void
-    {
-        $sanitized = array_map(function ($result) {
-            $result['optimizations'] = array_map(function ($opt) {
-                $opt['optimization'] = [
-                    'original' => $opt['optimization']->original,
-                    'optimized' => $opt['optimization']->optimized,
-                ];
-
-                return $opt;
-            }, $result['optimizations']);
-
-            return $result;
-        }, $results);
-        $output->write(json_encode($sanitized, \JSON_PRETTY_PRINT));
-    }
-
-    private function determineJsonExitCode(array $results, bool $failOnWarnings): int
-    {
-        $errors = 0;
-        $warnings = 0;
-        foreach ($results as $result) {
-            foreach ($result['issues'] as $issue) {
-                if ('error' === $issue['type']) {
-                    $errors++;
-                } else {
-                    $warnings++;
-                }
-            }
-        }
-        if ($errors > 0) {
-            return Command::FAILURE;
-        }
-        if ($failOnWarnings && $warnings > 0) {
-            return Command::FAILURE;
-        }
-
-        return Command::SUCCESS;
-    }
-
-    private function applyFixes(array $results): int
-    {
-        $fixesByFile = [];
-        foreach ($results as $result) {
-            foreach ($result['optimizations'] as $opt) {
-                $file = $opt['file'];
-                $line = $opt['line'];
-                $original = $opt['optimization']->original;
-                $optimized = $opt['optimization']->optimized;
-                if (!isset($fixesByFile[$file])) {
-                    $fixesByFile[$file] = [];
-                }
-                $fixesByFile[$file][] = [
-                    'line' => $line,
-                    'original' => $original,
-                    'optimized' => $optimized,
-                ];
-            }
-        }
-
-        $fixedFiles = 0;
-        foreach ($fixesByFile as $file => $fixes) {
-            $content = file_get_contents($file);
-            $lines = explode("\n", $content);
-            foreach ($fixes as $fix) {
-                $lineIndex = $fix['line'] - 1;
-                if (isset($lines[$lineIndex])) {
-                    $lines[$lineIndex] = str_replace($fix['original'], $fix['optimized'], $lines[$lineIndex]);
-                }
-            }
-            file_put_contents($file, implode("\n", $lines));
-            $fixedFiles++;
-        }
-
-        return $fixedFiles;
     }
 
     private function convertAnalysisIssuesToResults(array $issues, string $category): array
@@ -408,19 +273,9 @@ final class RegexLintCommand extends Command
         return $stats;
     }
 
-    private function determineExitCode(SymfonyStyle $io, array $stats, bool $failOnWarnings): int
+    private function determineExitCode(SymfonyStyle $io, array $stats): int
     {
         if (0 === $stats['errors']) {
-            if ($failOnWarnings && $stats['warnings'] > 0) {
-                $io->newLine();
-                $io->writeln(
-                    \sprintf('  <bg=red;fg=white;options=bold> FAIL </><fg=red;options=bold> %d warnings found and --fail-on-warnings is enabled</>', $stats['warnings']),
-                );
-                $io->newLine();
-                $this->showFooter($io);
-
-                return Command::FAILURE;
-            }
 
             if (0 === $stats['warnings'] && 0 === $stats['optimizations']) {
                 $io->writeln('');
@@ -447,7 +302,7 @@ final class RegexLintCommand extends Command
         return Command::FAILURE;
     }
 
-    private function outputIntegratedResults(SymfonyStyle $io, array $results, bool $fix): void
+    private function outputIntegratedResults(SymfonyStyle $io, array $results): void
     {
         if (empty($results)) {
             return;
@@ -467,7 +322,7 @@ final class RegexLintCommand extends Command
             $this->showFileHeader($io, $file);
 
             foreach ($fileResults as $result) {
-                $this->displayPatternResult($io, $result, $fix);
+                $this->displayPatternResult($io, $result);
             }
 
             $io->writeln('');
@@ -481,7 +336,7 @@ final class RegexLintCommand extends Command
         $io->writeln('  <fg=gray>───</>');
     }
 
-    private function displayPatternResult(SymfonyStyle $io, array $result, bool $fix): void
+    private function displayPatternResult(SymfonyStyle $io, array $result): void
     {
         $file = $result['file'];
         $line = $result['line'];
@@ -512,7 +367,7 @@ final class RegexLintCommand extends Command
 
         // Display optimizations
         foreach ($result['optimizations'] as $opt) {
-            $this->displayOptimization($io, $opt, $lineNum, $link, $fix);
+            $this->displayOptimization($io, $opt, $lineNum, $link);
         }
 
         // Add subtle spacing after this pattern result
@@ -566,19 +421,15 @@ final class RegexLintCommand extends Command
         }
     }
 
-    private function displayOptimization(SymfonyStyle $io, array $opt, string $lineNum, string $link, bool $fix): void
+    private function displayOptimization(SymfonyStyle $io, array $opt, string $lineNum, string $link): void
     {
-        if ($fix) {
-            $io->writeln(\sprintf('  <fg=green;options=bold>0</>  <fg=white;options=bold>%s</>  %s  <fg=green>✅ Fixed</>', $lineNum, $link));
-        } else {
-            $io->writeln(\sprintf('  <fg=green;options=bold>0</>  <fg=white;options=bold>%s</>  %s  <fg=green>%d chars saved</>', $lineNum, $link, $opt['savings']));
+        $io->writeln(\sprintf('  <fg=green;options=bold>0</>  <fg=white;options=bold>%s</>  %s  <fg=green>%d chars saved</>', $lineNum, $link, $opt['savings']));
 
-            $original = $this->analysis->highlight(OutputFormatter::escape($opt['optimization']->original));
-            $optimized = $this->analysis->highlight(OutputFormatter::escape($opt['optimization']->optimized));
+        $original = $this->analysis->highlight(OutputFormatter::escape($opt['optimization']->original));
+        $optimized = $this->analysis->highlight(OutputFormatter::escape($opt['optimization']->optimized));
 
-            $io->writeln(\sprintf('         <fg=red>─</> %s', $original));
-            $io->writeln(\sprintf('         <fg=green>✨</> %s', $optimized));
-        }
+        $io->writeln(\sprintf('         <fg=red>─</> %s', $original));
+        $io->writeln(\sprintf('         <fg=green>✨</> %s', $optimized));
     }
 
     private function formatIssueMessage(string $message): string
