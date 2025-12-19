@@ -21,7 +21,6 @@ use RegexParser\Bridge\Symfony\Service\ValidatorValidationService;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Formatter\OutputFormatter;
-use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
@@ -54,22 +53,21 @@ final class RegexLintCommand extends Command
     #[\Override]
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $patterns = $this->analysis->scan($this->paths, $this->exclude);
-
         $io = new SymfonyStyle($input, $output);
 
-        $this->showHeader($io);
-        $this->showScanMessage($io);
+        $io->newLine();
+        $io->writeln('  <fg=white;options=bold>Regex Parser</> <fg=gray>linting...</>');
+        $io->newLine();
+
+        $patterns = $this->analysis->scan($this->paths, $this->exclude);
 
         if (empty($patterns)) {
-            $this->showNoPatternsMessage($io);
-            $this->showFooter($io);
+            $this->renderSummary($io, [], 0, 0, 0);
 
             return Command::SUCCESS;
         }
 
         $stats = $this->initializeStats();
-
         $allResults = $this->analyzePatternsIntegrated($io, $patterns);
 
         $additionalResults = [];
@@ -81,50 +79,256 @@ final class RegexLintCommand extends Command
             $validatorIssues = $this->validatorValidation->analyze();
             $additionalResults = array_merge($additionalResults, $this->convertAnalysisIssuesToResults($validatorIssues, 'Symfony Validator'));
         }
+
         $allResults = array_merge($allResults, $additionalResults);
 
         if (!empty($allResults)) {
+            usort($allResults, fn ($a, $b) => $this->getSeverityScore($b) <=> $this->getSeverityScore($a));
+
             $this->outputIntegratedResults($io, $allResults);
             $stats = $this->updateStatsFromResults($stats, $allResults);
         }
 
-        return $this->determineExitCode($io, $stats);
+        $exitCode = $stats['errors'] > 0 ? Command::FAILURE : Command::SUCCESS;
+        $this->renderSummary($io, $stats);
+
+        return $exitCode;
     }
 
-    private function showNoPatternsMessage(SymfonyStyle $io): void
+    private function analyzePatternsIntegrated(SymfonyStyle $io, array $patterns): array
     {
-        $io->writeln('  <fg=blue;options=bold>INFO</> <fg=gray>No constant regex patterns found to analyze.</>');
+        if (empty($patterns)) {
+            return [];
+        }
+
+        $issues = $this->analysis->lint($patterns);
+        $optimizations = $this->analysis->suggestOptimizations($patterns, $this->minSavings);
+
+        return $this->combineResults($issues, $optimizations, $patterns);
     }
 
-    private function showHeader(SymfonyStyle $io): void
+    private function outputIntegratedResults(SymfonyStyle $io, array $results): void
     {
-        $io->writeln('');
-        $io->writeln('  <fg=white;options=bold>Regex Parser</> <fg=cyan>Linting & Optimization</>');
-        $io->writeln('  <fg=gray>—</>');
-        $io->writeln('');
+        if (empty($results)) {
+            return;
+        }
+
+        $byFile = [];
+        foreach ($results as $result) {
+            $byFile[$result['file']][] = $result;
+        }
+
+        foreach ($byFile as $file => $fileResults) {
+            $this->showFileHeader($io, $file);
+
+            foreach ($fileResults as $result) {
+                $this->displayPatternResult($io, $result);
+            }
+        }
     }
 
-    private function showScanMessage(SymfonyStyle $io): void
+    private function showFileHeader(SymfonyStyle $io, string $file): void
     {
-        $io->write('  <fg=cyan>🔍 Scanning files...</>');
-        $io->writeln(' <fg=green;options=bold>✓</>');
-        $io->writeln('');
+        $relPath = $this->linkFormatter->getRelativePath($file);
+        $io->writeln(\sprintf('  <fg=white;options=bold>%s</>', $relPath));
     }
 
-    private function showFooter(SymfonyStyle $io): void
+    private function displayPatternResult(SymfonyStyle $io, array $result): void
     {
+        $file = $result['file'];
+        $line = $result['line'];
+
+        $pattern = $this->extractPatternForResult($result);
+
+        // Always display the regex context first so the user knows what failed
+        if (null !== $pattern) {
+            try {
+                $highlighted = $this->analysis->highlight(OutputFormatter::escape($pattern));
+                $io->writeln(\sprintf('  <fg=gray>%d:</> %s', $line, $highlighted));
+            } catch (\Exception) {
+                // If highlighting fails, show raw pattern
+                $io->writeln(\sprintf('  <fg=gray>%d:</> %s', $line, OutputFormatter::escape($pattern)));
+            }
+        } else {
+            // Fallback if no pattern found (e.g. general file error)
+            $link = $this->linkFormatter->format($file, $line, 'line '.$line, 1, (string) $line);
+            $io->writeln(\sprintf('  <fg=gray>%s:</>', $link));
+        }
+
+        // Display Issues
+        foreach ($result['issues'] as $issue) {
+            $isError = 'error' === $issue['type'];
+            $badge = $isError
+                ? '<bg=red;fg=white;options=bold> FAIL </>'
+                : '<bg=yellow;fg=black;options=bold> WARN </>';
+
+            $this->displaySingleIssue($io, $badge, $issue['message']);
+
+            if (!empty($issue['hint'])) {
+                $io->writeln(\sprintf('         <fg=gray>↳ %s</>', $issue['hint']));
+            }
+        }
+
+        // Display Optimizations
+        foreach ($result['optimizations'] as $opt) {
+            $io->writeln(\sprintf(
+                '    <bg=blue;fg=white;options=bold> FIX </> <fg=white>Optimization available</> <fg=gray>(saved %d chars)</>',
+                $opt['savings'],
+            ));
+
+            $original = $this->analysis->highlight(OutputFormatter::escape($opt['optimization']->original));
+            $optimized = $this->analysis->highlight(OutputFormatter::escape($opt['optimization']->optimized));
+
+            $io->writeln(\sprintf('         <fg=red>- %s</>', $original));
+            $io->writeln(\sprintf('         <fg=green>+ %s</>', $optimized));
+        }
+
         $io->newLine();
-        $io->writeln('  <fg=gray>—</>');
+    }
+
+    private function displaySingleIssue(SymfonyStyle $io, string $badge, string $message): void
+    {
+        // Split message by newline to handle carets/pointers correctly
+        $lines = explode("\n", $message);
+        $firstLine = array_shift($lines);
+
+        // Print the primary error message on the same line as the badge
+        $io->writeln(\sprintf('    %s <fg=white>%s</>', $badge, $this->cleanMessageIndentation($firstLine)));
+
+        // Print subsequent lines (like regex pointers ^) with indentation preserved
+        if (!empty($lines)) {
+            foreach ($lines as $line) {
+                // We add 9 spaces to align with the text start after the badge (badge is approx 6 chars + spaces)
+                $io->writeln('         '.$line);
+            }
+        }
+    }
+
+    private function renderSummary(SymfonyStyle $io, array $stats, int $errors = 0, int $warnings = 0, int $optimizations = 0): void
+    {
+        $errors = $stats['errors'] ?? 0;
+        $warnings = $stats['warnings'] ?? 0;
+        $optimizations = $stats['optimizations'] ?? 0;
+
         $io->newLine();
 
-        $io->writeln([
-            '  <fg=blue;options=bold>Regex Parser</>  <fg=gray>is an open-source project by</> <fg=white;options=bold>Younes ENNAJI</>',
-            '  <fg=gray>Find this useful?</> <fg=yellow;options=bold>Star the repo! ⭐</>',
-            '',
-            '  <fg=blue;options=bold>https://github.com/yoeunes/regex-parser</>',
-        ]);
+        if (0 === $errors && 0 === $warnings && 0 === $optimizations) {
+            $io->block(
+                messages: ['PASS', 'No regex issues found.'],
+                type: 'OK',
+                style: 'fg=black;bg=green',
+                padding: true,
+            );
 
+            return;
+        }
+
+        if ($errors > 0) {
+            $io->block(
+                messages: [
+                    'FAIL',
+                    \sprintf('%d patterns invalid, %d warnings, %d optimizations.', $errors, $warnings, $optimizations),
+                ],
+                type: 'ERROR',
+                style: 'fg=white;bg=red',
+                padding: true,
+            );
+        } else {
+            $io->block(
+                messages: [
+                    'DONE',
+                    \sprintf('%d warnings found, %d optimizations available.', $warnings, $optimizations),
+                ],
+                style: 'fg=black;bg=yellow',
+                padding: true,
+            );
+        }
+
+        $io->writeln('  <fg=gray>Star the repo: https://github.com/yoeunes/regex-parser</>');
         $io->newLine();
+    }
+
+    private function combineResults(array $issues, array $optimizations, array $originalPatterns): array
+    {
+        $results = [];
+
+        $patternMap = [];
+        foreach ($originalPatterns as $pattern) {
+            $key = $pattern->file.':'.$pattern->line;
+            $patternMap[$key] = $pattern->pattern;
+        }
+
+        $fileCache = [];
+
+        foreach ($issues as $issue) {
+            $key = $issue['file'].':'.$issue['line'];
+            if (!isset($results[$key])) {
+                $results[$key] = [
+                    'file' => $issue['file'],
+                    'line' => $issue['line'],
+                    'pattern' => $patternMap[$key] ?? null,
+                    'issues' => [],
+                    'optimizations' => [],
+                ];
+            }
+
+            if (!isset($fileCache[$issue['file']])) {
+                $fileCache[$issue['file']] = @file_get_contents($issue['file']) ?: '';
+            }
+            $lines = explode("\n", $fileCache[$issue['file']]);
+            $prevLineIndex = $issue['line'] - 2;
+            if ($prevLineIndex >= 0 && isset($lines[$prevLineIndex]) && str_contains($lines[$prevLineIndex], '// @regex-lint-ignore')) {
+                continue;
+            }
+
+            $results[$key]['issues'][] = $issue;
+        }
+
+        foreach ($optimizations as $opt) {
+            $key = $opt['file'].':'.$opt['line'];
+            if (!isset($results[$key])) {
+                $results[$key] = [
+                    'file' => $opt['file'],
+                    'line' => $opt['line'],
+                    'pattern' => $patternMap[$key] ?? null,
+                    'issues' => [],
+                    'optimizations' => [],
+                ];
+            }
+            $results[$key]['optimizations'][] = $opt;
+
+            if (null === $results[$key]['pattern'] && !empty($opt['optimization']->original)) {
+                $results[$key]['pattern'] = $opt['optimization']->original;
+            }
+        }
+
+        return array_values($results);
+    }
+
+    private function extractPatternForResult(array $result): ?string
+    {
+        if (!empty($result['pattern'])) {
+            return $result['pattern'];
+        }
+
+        if (!empty($result['issues'])) {
+            $firstIssue = $result['issues'][0];
+            if (!empty($firstIssue['pattern'])) {
+                return $firstIssue['pattern'];
+            }
+            if (!empty($firstIssue['regex'])) {
+                return $firstIssue['regex'];
+            }
+        }
+
+        if (!empty($result['optimizations'])) {
+            $firstOpt = $result['optimizations'][0];
+            if (isset($firstOpt['optimization']->original)) {
+                return $firstOpt['optimization']->original;
+            }
+        }
+
+        return null;
     }
 
     private function convertAnalysisIssuesToResults(array $issues, string $category): array
@@ -146,7 +350,6 @@ final class RegexLintCommand extends Command
                 $location = $id;
             }
 
-            // Fallback parsing if not provided
             if (null === $pattern && preg_match('/pattern: ([^)]+)/', (string) $message, $matches)) {
                 $pattern = trim($matches[1], '#');
                 $message = preg_replace('/ \(pattern: [^)]+\)/', '', (string) $message);
@@ -159,7 +362,7 @@ final class RegexLintCommand extends Command
 
             $results[] = [
                 'file' => $file,
-                'line' => $index + 1, // Use index as line for uniqueness
+                'line' => $index + 1,
                 'pattern' => $pattern,
                 'location' => $location,
                 'issues' => [
@@ -175,103 +378,6 @@ final class RegexLintCommand extends Command
         }
 
         return $results;
-    }
-
-    private function initializeStats(): array
-    {
-        return ['errors' => 0, 'warnings' => 0, 'optimizations' => 0];
-    }
-
-    private function analyzePatternsIntegrated(SymfonyStyle $io, array $patterns): array
-    {
-        if (empty($patterns)) {
-            return [];
-        }
-
-        $bar = $this->createProgressBar($io, \count($patterns));
-        $bar->start();
-
-        $issues = $this->analysis->lint($patterns, static fn () => $bar->advance());
-        $optimizations = $this->analysis->suggestOptimizations($patterns, $this->minSavings);
-
-        $bar->finish();
-        $io->writeln(['', '']);
-
-        return $this->combineResults($issues, $optimizations, $patterns);
-    }
-
-    private function combineResults(array $issues, array $optimizations, array $originalPatterns): array
-    {
-        $results = [];
-
-        // Create a lookup map for patterns by file and line
-        $patternMap = [];
-        foreach ($originalPatterns as $pattern) {
-            $key = $pattern->file.':'.$pattern->line;
-            $patternMap[$key] = $pattern->pattern;
-        }
-
-        // Cache file contents to avoid multiple reads
-        $fileCache = [];
-
-        // Group issues by file and line
-        foreach ($issues as $issue) {
-            $key = $issue['file'].':'.$issue['line'];
-            if (!isset($results[$key])) {
-                $results[$key] = [
-                    'file' => $issue['file'],
-                    'line' => $issue['line'],
-                    'pattern' => $patternMap[$key] ?? null,
-                    'issues' => [],
-                    'optimizations' => [],
-                ];
-            }
-
-            // Check for ignore comment on the previous line
-            if (!isset($fileCache[$issue['file']])) {
-                $fileCache[$issue['file']] = file_get_contents($issue['file']);
-            }
-            $lines = explode("\n", $fileCache[$issue['file']]);
-            $prevLineIndex = $issue['line'] - 2; // 0-based index for previous line
-            if ($prevLineIndex >= 0 && isset($lines[$prevLineIndex]) && str_contains($lines[$prevLineIndex], '// @regex-lint-ignore')) {
-                continue; // Skip this issue
-            }
-
-            $results[$key]['issues'][] = $issue;
-        }
-
-        // Group optimizations by file and line
-        foreach ($optimizations as $opt) {
-            $key = $opt['file'].':'.$opt['line'];
-            if (!isset($results[$key])) {
-                $results[$key] = [
-                    'file' => $opt['file'],
-                    'line' => $opt['line'],
-                    'pattern' => $patternMap[$key] ?? null,
-                    'issues' => [],
-                    'optimizations' => [],
-                ];
-            }
-            $results[$key]['optimizations'][] = $opt;
-
-            // Ensure we have pattern from optimization if no issue pattern found
-            if (null === $results[$key]['pattern'] && !empty($opt['optimization']->original)) {
-                $results[$key]['pattern'] = $opt['optimization']->original;
-            }
-        }
-
-        return array_values($results);
-    }
-
-    private function createProgressBar(SymfonyStyle $io, int $total): ProgressBar
-    {
-        $bar = $io->createProgressBar($total);
-        $bar->setEmptyBarCharacter('░');
-        $bar->setProgressCharacter('█');
-        $bar->setBarCharacter('█');
-        $bar->setFormat('  <fg=blue>%bar%</> <fg=cyan>%percent:3s%%</> <fg=gray>%remaining:6s%</>');
-
-        return $bar;
     }
 
     private function updateStatsFromResults(array $stats, array $results): array
@@ -290,183 +396,24 @@ final class RegexLintCommand extends Command
         return $stats;
     }
 
-    private function determineExitCode(SymfonyStyle $io, array $stats): int
+    private function initializeStats(): array
     {
-        if (0 === $stats['errors']) {
-
-            if (0 === $stats['warnings'] && 0 === $stats['optimizations']) {
-                $io->writeln('');
-                $io->block('No issues found. Your regex patterns are clean!', null, 'fg=black;bg=green', ' ', true);
-            } else {
-                $io->newLine();
-                $io->writeln(
-                    \sprintf('  <bg=blue;fg=white;options=bold> ℹ </><fg=white;options=bold> %d warnings</><fg=gray>, %d optimizations available.</>', $stats['warnings'], $stats['optimizations']));
-                $io->newLine();
-            }
-
-            $this->showFooter($io);
-
-            return Command::SUCCESS;
-        }
-
-        $io->newLine();
-        $io->writeln(\sprintf('  <bg=red;fg=white;options=bold> FAIL </><fg=red;options=bold> %d invalid regex patterns found</>', $stats['errors']));
-        $io->newLine();
-
-        $this->showFooter($io);
-
-        return Command::FAILURE;
+        return ['errors' => 0, 'warnings' => 0, 'optimizations' => 0];
     }
 
-    private function outputIntegratedResults(SymfonyStyle $io, array $results): void
+    private function getSeverityScore(array $result): int
     {
-        if (empty($results)) {
-            return;
-        }
-
-        $io->writeln('  <fg=white;options=bold>Analysis in progress...</>');
-        $io->writeln('  <fg=gray>—</>');
-        $io->newLine();
-
-        // Group results by file for better organization
-        $byFile = [];
-        foreach ($results as $result) {
-            $byFile[$result['file']][] = $result;
-        }
-
-        foreach ($byFile as $file => $fileResults) {
-            $this->showFileHeader($io, $file);
-
-            foreach ($fileResults as $result) {
-                $this->displayPatternResult($io, $result);
-            }
-
-            $io->writeln('');
-        }
-    }
-
-    private function showFileHeader(SymfonyStyle $io, string $file): void
-    {
-        $relPath = $this->linkFormatter->getRelativePath($file);
-        $io->writeln("  <fg=white;bg=gray;options=bold>  {$relPath}  </>");
-    }
-
-    private function displayPatternResult(SymfonyStyle $io, array $result): void
-    {
-        $file = $result['file'];
-        $line = $result['line'];
-        $lineNum = str_pad((string) $line, 4);
-        $link = $this->linkFormatter->format($file, $line, '✏️', 1, '✏️');
-
-        // Show regex pattern if we have it
-        $pattern = $this->extractPatternForResult($result);
-        if (null !== $pattern) {
-            try {
-                $highlighted = $this->analysis->highlight(OutputFormatter::escape($pattern));
-                $io->writeln(\sprintf('   <fg=blue;options=bold>➜</>  %s', $highlighted));
-            } catch (\Exception) {
-                // If highlighting fails (e.g., invalid regex), show raw pattern with warning
-                $io->writeln(\sprintf('   <fg=red;options=bold>➜</>  %s  <fg=gray;bg=red;options=bold> INVALID </>', OutputFormatter::escape($pattern)));
-            }
-        }
-
-        // Show location if available (for Router/Validator issues)
-        if (!empty($result['location'])) {
-            $io->writeln(\sprintf('  <fg=gray>Location:</> <fg=white>%s</>', $result['location']));
-        }
-
-        // Display issues
+        $score = 0;
         foreach ($result['issues'] as $issue) {
-            $this->displaySingleIssue($io, $issue, $lineNum, $link);
-        }
-
-        // Display optimizations
-        foreach ($result['optimizations'] as $opt) {
-            $this->displayOptimization($io, $opt, $lineNum, $link);
-        }
-
-        // Add subtle spacing after this pattern result
-        $io->writeln('');
-    }
-
-    private function extractPatternForResult(array $result): ?string
-    {
-        // First try to get pattern from result itself
-        if (!empty($result['pattern'])) {
-            return $result['pattern'];
-        }
-
-        // Try to get pattern from first issue
-        if (!empty($result['issues'])) {
-            $firstIssue = $result['issues'][0];
-            if (!empty($firstIssue['pattern'])) {
-                return $firstIssue['pattern'];
+            if ('error' === $issue['type']) {
+                $score += 100;
             }
-            if (!empty($firstIssue['regex'])) {
-                return $firstIssue['regex'];
+            if ('warning' === $issue['type']) {
+                $score += 10;
             }
         }
 
-        // Try to get original pattern from first optimization
-        if (!empty($result['optimizations'])) {
-            $firstOpt = $result['optimizations'][0];
-            if (isset($firstOpt['optimization']->original)) {
-                return $firstOpt['optimization']->original;
-            }
-        }
-
-        return null;
-    }
-
-    private function displaySingleIssue(SymfonyStyle $io, array $issue, string $lineNum, string $link): void
-    {
-        $isError = 'error' === $issue['type'];
-        $color = $isError ? 'red' : 'yellow';
-        $letter = $isError ? 'E' : 'W';
-
-        $msg = $this->formatIssueMessage($issue['message']);
-        [$firstLine, $restLines] = $this->splitMessage($msg);
-
-        $io->writeln(\sprintf('   <fg=%s;options=bold>%s</>  <fg=white;options=bold>%s</>  %s  %s', $color, $letter, $lineNum, $link, $firstLine));
-
-        $this->displayMessageLines($io, $restLines);
-
-        if (!empty($issue['hint'])) {
-            $io->writeln("            <fg=cyan>💡</>  <fg=gray>{$issue['hint']}</>");
-        }
-    }
-
-    private function displayOptimization(SymfonyStyle $io, array $opt, string $lineNum, string $link): void
-    {
-        $io->writeln(\sprintf('   <fg=green;options=bold>0</>  <fg=white;options=bold>%s</>  %s  <fg=green>%d chars saved</>', $lineNum, $link, $opt['savings']));
-
-        $original = $this->analysis->highlight(OutputFormatter::escape($opt['optimization']->original));
-        $optimized = $this->analysis->highlight(OutputFormatter::escape($opt['optimization']->optimized));
-
-        $io->writeln(\sprintf('             <fg=red>─</> %s', $original));
-        $io->writeln(\sprintf('             <fg=green>+</> %s', $optimized));
-    }
-
-    private function formatIssueMessage(string $message): string
-    {
-        $raw = (string) $message;
-
-        return $this->cleanMessageIndentation($raw);
-    }
-
-    private function splitMessage(string $message): array
-    {
-        $lines = explode("\n", $message);
-        $first = array_shift($lines);
-
-        return [$first, $lines];
-    }
-
-    private function displayMessageLines(SymfonyStyle $io, array $lines): void
-    {
-        foreach ($lines as $line) {
-            $io->writeln('         <fg=gray>│</> <fg=white>'.$line.'</>');
-        }
+        return $score + \count($result['optimizations']);
     }
 
     private function cleanMessageIndentation(string $message): string
