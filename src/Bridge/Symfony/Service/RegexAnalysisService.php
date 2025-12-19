@@ -27,10 +27,34 @@ use RegexParser\Regex;
  */
 final readonly class RegexAnalysisService
 {
+    private const PATTERN_DELIMITERS = ['/', '#', '~', '%'];
+    private const ISSUE_ID_COMPLEXITY = 'regex.lint.complexity';
+    private const ISSUE_ID_REDOS = 'regex.lint.redos';
+    private const RISK_LINT_ISSUE_IDS = [
+        'regex.lint.quantifier.nested' => true,
+        'regex.lint.dotstar.nested' => true,
+    ];
+
+    private ReDoSSeverity $redosSeverityThreshold;
+
+    /**
+     * @var list<string>
+     */
+    private array $ignoredPatterns;
+
+    /**
+     * @param list<string> $ignoredPatterns
+     */
     public function __construct(
         private Regex $regex,
         private ?RegexPatternExtractor $extractor = null,
-    ) {}
+        private int $warningThreshold = 50,
+        string $redosThreshold = ReDoSSeverity::HIGH->value,
+        array $ignoredPatterns = [],
+    ) {
+        $this->redosSeverityThreshold = ReDoSSeverity::tryFrom(strtolower($redosThreshold)) ?? ReDoSSeverity::HIGH;
+        $this->ignoredPatterns = $this->buildIgnoredPatterns($ignoredPatterns);
+    }
 
     /**
      * @param list<string> $paths
@@ -88,8 +112,13 @@ final readonly class RegexAnalysisService
             $ast = $this->regex->parse($occurrence->pattern);
             $linter = new LinterNodeVisitor();
             $ast->accept($linter);
+            $skipRiskAnalysis = $this->shouldSkipRiskAnalysis($occurrence);
 
             foreach ($linter->getIssues() as $issue) {
+                if ($skipRiskAnalysis && isset(self::RISK_LINT_ISSUE_IDS[$issue->id])) {
+                    continue;
+                }
+
                 $issues[] = [
                     'type' => 'warning',
                     'file' => $occurrence->file,
@@ -100,6 +129,36 @@ final readonly class RegexAnalysisService
                     'hint' => $issue->hint,
                     'source' => $source,
                 ];
+            }
+
+            if (!$skipRiskAnalysis) {
+                if ($validation->complexityScore >= $this->warningThreshold) {
+                    $issues[] = [
+                        'type' => 'warning',
+                        'file' => $occurrence->file,
+                        'line' => $occurrence->line,
+                        'column' => 1,
+                        'issueId' => self::ISSUE_ID_COMPLEXITY,
+                        'message' => \sprintf('Pattern is complex (score: %d).', $validation->complexityScore),
+                        'source' => $source,
+                    ];
+                }
+
+                $redos = $this->regex->analyzeReDoS($occurrence->pattern, $this->redosSeverityThreshold);
+                if ($redos->exceedsThreshold($this->redosSeverityThreshold)) {
+                    $issues[] = [
+                        'type' => 'error',
+                        'file' => $occurrence->file,
+                        'line' => $occurrence->line,
+                        'column' => 1,
+                        'issueId' => self::ISSUE_ID_REDOS,
+                        'message' => \sprintf(
+                            'Pattern may be vulnerable to ReDoS (severity: %s).',
+                            strtoupper($redos->severity->value),
+                        ),
+                        'source' => $source,
+                    ];
+                }
             }
 
             if ($progress) {
@@ -192,5 +251,104 @@ final readonly class RegexAnalysisService
     public function highlight(string $pattern): string
     {
         return $this->regex->highlightCli($pattern);
+    }
+
+    private function shouldSkipRiskAnalysis(RegexPatternOccurrence $occurrence): bool
+    {
+        $rawPattern = $occurrence->displayPattern ?? $occurrence->pattern;
+        $fragment = $this->extractFragment($rawPattern);
+        $body = $this->trimPatternBody($occurrence->pattern);
+
+        return $this->isIgnored($fragment)
+            || $this->isIgnored($body)
+            || $this->isTriviallySafe($fragment)
+            || $this->isTriviallySafe($body);
+    }
+
+    private function extractFragment(string $pattern): string
+    {
+        if ('' === $pattern) {
+            return '';
+        }
+
+        $first = $pattern[0];
+        $last = $pattern[-1];
+
+        if ($first === $last && \in_array($first, self::PATTERN_DELIMITERS, true)) {
+            $pattern = substr($pattern, 1, -1);
+        }
+
+        if (str_starts_with($pattern, '^')) {
+            $pattern = substr($pattern, 1);
+        }
+
+        if (str_ends_with($pattern, '$')) {
+            $pattern = substr($pattern, 0, -1);
+        }
+
+        return $pattern;
+    }
+
+    private function trimPatternBody(string $pattern): string
+    {
+        if ('' === $pattern) {
+            return '';
+        }
+
+        $first = $pattern[0];
+        $last = $pattern[-1];
+
+        if ($first === $last) {
+            $pattern = substr($pattern, 1, -1);
+        }
+
+        if (str_starts_with($pattern, '^')) {
+            $pattern = substr($pattern, 1);
+        }
+
+        if (str_ends_with($pattern, '$')) {
+            $pattern = substr($pattern, 0, -1);
+        }
+
+        return $pattern;
+    }
+
+    private function isIgnored(string $body): bool
+    {
+        if ('' === $body) {
+            return false;
+        }
+
+        return \in_array($body, $this->ignoredPatterns, true);
+    }
+
+    private function isTriviallySafe(string $body): bool
+    {
+        if ('' === $body) {
+            return false;
+        }
+
+        $parts = explode('|', $body);
+        if (\count($parts) < 2) {
+            return false;
+        }
+
+        foreach ($parts as $part) {
+            if (!preg_match('#^[A-Za-z0-9._-]+$#', $part)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * @param list<string> $userIgnored
+     *
+     * @return list<string>
+     */
+    private function buildIgnoredPatterns(array $userIgnored): array
+    {
+        return array_values(array_unique([...$this->regex->getRedosIgnoredPatterns(), ...$userIgnored]));
     }
 }

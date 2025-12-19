@@ -63,7 +63,6 @@ final class RegexLintCommandTest extends TestCase
         $lint = new RegexLintService(
             $analysis,
             new RegexPatternSourceCollection([]),
-            [],
         );
 
         return new RegexLintCommand(

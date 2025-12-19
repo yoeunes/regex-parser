@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace RegexParser\Bridge\Symfony\Service;
 
-use RegexParser\Bridge\Symfony\Analyzer\AnalysisIssue;
 use RegexParser\Bridge\Symfony\Extractor\RegexPatternOccurrence;
 use RegexParser\Bridge\Symfony\Extractor\RegexPatternSourceCollection;
 use RegexParser\Bridge\Symfony\Extractor\RegexPatternSourceContext;
@@ -61,13 +60,9 @@ final readonly class RegexLintService
         'regex.lint.dotstar.nested' => true,
     ];
 
-    /**
-     * @param iterable<RegexLintIssueProviderInterface> $issueProviders
-     */
     public function __construct(
         private RegexAnalysisService $analysis,
         private RegexPatternSourceCollection $sources,
-        private iterable $issueProviders = [],
     ) {}
 
     /**
@@ -89,18 +84,12 @@ final readonly class RegexLintService
      */
     public function analyze(array $patterns, RegexLintRequest $request, ?callable $progress = null): RegexLintReport
     {
-        [$extraResults, $enabledProviders] = $this->collectAdditionalResultsAndEnabledProviders($request);
-
         $issues = $this->analysis->lint($patterns, $progress);
-        $issues = $this->filterLintIssues($issues, $enabledProviders);
+        $issues = $this->filterLintIssues($issues);
 
         $optimizations = $this->analysis->suggestOptimizations($patterns, $request->minSavings);
 
         $results = $this->combineResults($issues, $optimizations, $patterns);
-
-        if (!empty($extraResults)) {
-            $results = [...$results, ...$extraResults];
-        }
 
         $stats = $this->updateStatsFromResults($this->createStats(), $results);
 
@@ -117,70 +106,22 @@ final readonly class RegexLintService
 
     /**
      * @phpstan-param list<LintIssue> $issues
-     * @phpstan-param array<string, bool> $enabledProviders
-     *
      * @phpstan-return list<LintIssue>
      */
-    private function filterLintIssues(array $issues, array $enabledProviders): array
+    private function filterLintIssues(array $issues): array
     {
-        $validatorEnabled = $enabledProviders['validators'] ?? false;
-        $routesEnabled = $enabledProviders['routes'] ?? false;
-
-        return array_values(array_filter($issues, static function (array $issue) use ($validatorEnabled, $routesEnabled): bool {
+        return array_values(array_filter($issues, static function (array $issue): bool {
             $source = $issue['source'] ?? '';
 
             if (str_starts_with($source, 'route:')) {
-                if ($routesEnabled && 'error' === $issue['type']) {
-                    return false;
-                }
-
                 $issueId = $issue['issueId'] ?? null;
                 if (\is_string($issueId) && isset(self::ROUTE_IGNORED_ISSUE_IDS[$issueId])) {
                     return false;
                 }
-
-                return true;
-            }
-
-            if ($validatorEnabled && str_starts_with($source, 'validator:') && 'error' === $issue['type']) {
-                return false;
             }
 
             return true;
         }));
-    }
-
-    /**
-     * @return array{0: list<LintResult>, 1: array<string, bool>}
-     */
-    private function collectAdditionalResultsAndEnabledProviders(RegexLintRequest $request): array
-    {
-        /** @var list<LintResult> $results */
-        $results = [];
-        /** @var array<string, bool> $enabledProviders */
-        $enabledProviders = [];
-
-        foreach ($this->issueProviders as $provider) {
-            if (!$provider instanceof RegexLintIssueProviderInterface) {
-                continue;
-            }
-
-            if (!$request->isSourceEnabled($provider->getName())) {
-                continue;
-            }
-
-            if (!$provider->isSupported()) {
-                continue;
-            }
-
-            $enabledProviders[$provider->getName()] = true;
-            $results = [...$results, ...$this->convertAnalysisIssuesToResults(
-                $provider->analyze(),
-                $provider->getLabel(),
-            )];
-        }
-
-        return [$results, $enabledProviders];
     }
 
     /**
@@ -316,91 +257,6 @@ final readonly class RegexLintService
         ];
     }
 
-    /**
-     * @param list<AnalysisIssue> $issues
-     *
-     * @return list<LintResult>
-     */
-    private function convertAnalysisIssuesToResults(array $issues, string $category): array
-    {
-        return array_values(array_map(
-            fn ($issue, $index) => $this->convertAnalysisIssueToResult($issue, $index, $category),
-            $issues,
-            array_keys($issues),
-        ));
-    }
-
-    /**
-     * @return LintResult
-     */
-    private function convertAnalysisIssueToResult(AnalysisIssue $issue, int $index, string $category): array
-    {
-        [$file, $location] = $this->extractFileAndLocation($issue->id ?? null, $category);
-        [$pattern, $message] = $this->extractPatternAndMessage($issue->pattern, $issue->message, $location);
-
-        return [
-            'file' => $file,
-            'line' => $index + 1,
-            'pattern' => $pattern,
-            'location' => $location,
-            'issues' => [
-                [
-                    'type' => $issue->isError ? 'error' : 'warning',
-                    'message' => $message,
-                    'file' => $file,
-                    'line' => $index + 1,
-                ],
-            ],
-            'optimizations' => [],
-        ];
-    }
-
-    /**
-     * @return array{0: string, 1: string|null}
-     */
-    private function extractFileAndLocation(?string $id, string $category): array
-    {
-        if (!$id) {
-            return [$category, null];
-        }
-
-        if (str_contains($id, ' (Route: ')) {
-            [$file, $route] = explode(' (Route: ', $id, 2);
-
-            return [$file, 'Route: '.rtrim($route, ')')];
-        }
-
-        if (str_contains($id, ' (Validator: ')) {
-            [$file, $validator] = explode(' (Validator: ', $id, 2);
-
-            return [$file, 'Validator: '.rtrim($validator, ')')];
-        }
-
-        return [$category, $id];
-    }
-
-    /**
-     * @return array{0: string|null, 1: string}
-     */
-    private function extractPatternAndMessage(?string $pattern, string $message, ?string $location): array
-    {
-        if (!$pattern && preg_match('/pattern: ([^)]+)/', $message, $matches)) {
-            $pattern = trim($matches[1], '#');
-            $updatedMessage = preg_replace('/ \(pattern: [^)]+\)/', '', $message);
-            if (null !== $updatedMessage) {
-                $message = $updatedMessage;
-            }
-        }
-
-        if (!$location && preg_match('/Route "([^"]+)"/', (string) $message, $matches)) {
-            $updatedMessage = preg_replace('/Route "[^"]+" /', '', (string) $message);
-            if (null !== $updatedMessage) {
-                $message = $updatedMessage;
-            }
-        }
-
-        return [$pattern, $message];
-    }
 
     /**
      * @param LintStats        $stats

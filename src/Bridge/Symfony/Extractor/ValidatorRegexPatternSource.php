@@ -13,7 +13,13 @@ declare(strict_types=1);
 
 namespace RegexParser\Bridge\Symfony\Extractor;
 
-use RegexParser\Bridge\Symfony\Validator\ValidatorPatternProvider;
+use Symfony\Component\Validator\Constraint;
+use Symfony\Component\Validator\Constraints\Regex as SymfonyRegex;
+use Symfony\Component\Validator\Mapping\ClassMetadataInterface;
+use Symfony\Component\Validator\Mapping\Loader\LoaderInterface;
+use Symfony\Component\Validator\Mapping\MetadataInterface;
+use Symfony\Component\Validator\Mapping\PropertyMetadataInterface;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 /**
  * Extracts regex patterns from Symfony Validator metadata.
@@ -22,7 +28,10 @@ use RegexParser\Bridge\Symfony\Validator\ValidatorPatternProvider;
  */
 final readonly class ValidatorRegexPatternSource implements RegexPatternSourceInterface
 {
-    public function __construct(private ValidatorPatternProvider $patternProvider) {}
+    public function __construct(
+        private ?ValidatorInterface $validator = null,
+        private ?LoaderInterface $validatorLoader = null,
+    ) {}
 
     public function getName(): string
     {
@@ -31,28 +40,133 @@ final readonly class ValidatorRegexPatternSource implements RegexPatternSourceIn
 
     public function isSupported(): bool
     {
-        return $this->patternProvider->isSupported();
+        return null !== $this->validator && null !== $this->validatorLoader;
     }
 
     public function extract(RegexPatternSourceContext $context): array
     {
-        if (!$this->patternProvider->isSupported()) {
+        if (!$this->isSupported()) {
             return [];
         }
 
         $patterns = [];
         $line = 1;
 
-        foreach ($this->patternProvider->collect() as $pattern) {
-            $file = $pattern->file ?? 'Symfony Validator';
+        foreach ($this->getMappedClasses() as $className) {
+            if (!\is_string($className) || '' === $className) {
+                continue;
+            }
+
+            try {
+                if (null === $this->validator) {
+                    continue;
+                }
+                $metadata = $this->validator->getMetadataFor($className);
+            } catch (\Throwable) {
+                continue;
+            }
+
+            $file = $this->getClassFile($className) ?? 'Symfony Validator';
+            $patterns = [...$patterns, ...$this->extractFromMetadata($metadata, $className, $file, $line)];
+        }
+
+        return $patterns;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function getMappedClasses(): array
+    {
+        if (null === $this->validatorLoader) {
+            return [];
+        }
+
+        try {
+            if (!method_exists($this->validatorLoader, 'getMappedClasses')) {
+                return [];
+            }
+
+            $mappedClasses = $this->validatorLoader->getMappedClasses();
+            if (!\is_array($mappedClasses)) {
+                return [];
+            }
+
+            return array_values(array_filter(
+                $mappedClasses,
+                static fn (mixed $className): bool => \is_string($className) && '' !== $className,
+            ));
+        } catch (\Throwable) {
+            return [];
+        }
+    }
+
+    /**
+     * @return list<RegexPatternOccurrence>
+     */
+    private function extractFromMetadata(MetadataInterface $metadata, string $className, string $file, int &$line): array
+    {
+        $patterns = [];
+        $constraints = [];
+
+        if ($metadata instanceof ClassMetadataInterface) {
+            $constraints = $metadata->getConstraints();
+
+            foreach ($metadata->getConstrainedProperties() as $propertyName) {
+                foreach ($metadata->getPropertyMetadata($propertyName) as $propertyMetadata) {
+                    if (!$propertyMetadata instanceof PropertyMetadataInterface) {
+                        continue;
+                    }
+
+                    $propertyName = $propertyMetadata->getPropertyName();
+                    $patterns = [...$patterns, ...$this->extractFromConstraints(
+                        $propertyMetadata->getConstraints(),
+                        \sprintf('%s::$%s', $className, $propertyName),
+                        $file,
+                        $line,
+                    )];
+                }
+            }
+        }
+
+        return [...$patterns, ...$this->extractFromConstraints($constraints, $className, $file, $line)];
+    }
+
+    /**
+     * @param array<Constraint> $constraints
+     *
+     * @return list<RegexPatternOccurrence>
+     */
+    private function extractFromConstraints(array $constraints, string $source, string $file, int &$line): array
+    {
+        $patterns = [];
+
+        foreach ($constraints as $constraint) {
+            if (!$constraint instanceof SymfonyRegex || null === $constraint->pattern || '' === $constraint->pattern) {
+                continue;
+            }
+
+            $pattern = (string) $constraint->pattern;
             $patterns[] = new RegexPatternOccurrence(
-                $pattern->pattern,
+                $pattern,
                 $file,
                 $line++,
-                'validator:'.$pattern->source,
+                'validator:'.$source,
             );
         }
 
         return $patterns;
+    }
+
+    private function getClassFile(string $className): ?string
+    {
+        if (!class_exists($className)) {
+            return null;
+        }
+
+        $reflection = new \ReflectionClass($className);
+        $filename = $reflection->getFileName();
+
+        return false === $filename ? null : $filename;
     }
 }

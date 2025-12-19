@@ -7,24 +7,6 @@ parameters:
 			path: src/Bridge/Symfony/DependencyInjection/RegexParserExtension.php
 
 		-
-			rawMessage: Access to constant on internal class RegexParser\Bridge\Symfony\Analyzer\RouteRequirementAnalyzer.
-			identifier: classConstant.internalClass
-			count: 2
-			path: src/Bridge/Symfony/Resources/config/services.php
-
-		-
-			rawMessage: Access to constant on internal class RegexParser\Bridge\Symfony\Analyzer\ValidatorRegexAnalyzer.
-			identifier: classConstant.internalClass
-			count: 2
-			path: src/Bridge/Symfony/Resources/config/services.php
-
-		-
-			rawMessage: Access to constant on internal class RegexParser\Bridge\Symfony\Analyzer\RegexPatternInspector.
-			identifier: classConstant.internalClass
-			count: 3
-			path: src/Bridge/Symfony/Resources/config/services.php
-
-		-
 			rawMessage: Access to constant on internal class RegexParser\Bridge\Symfony\Extractor\PhpRegexPatternSource.
 			identifier: classConstant.internalClass
 			count: 1
@@ -57,23 +39,17 @@ parameters:
 		-
 			rawMessage: Access to constant on internal class RegexParser\Bridge\Symfony\Routing\RouteRequirementNormalizer.
 			identifier: classConstant.internalClass
-			count: 3
+			count: 2
 			path: src/Bridge/Symfony/Resources/config/services.php
 
 		-
 			rawMessage: Access to constant on internal class RegexParser\Bridge\Symfony\Routing\RouteControllerFileResolver.
 			identifier: classConstant.internalClass
-			count: 3
+			count: 2
 			path: src/Bridge/Symfony/Resources/config/services.php
 
 		-
 			rawMessage: Access to constant on internal class RegexParser\Bridge\Symfony\Service\RegexLintService.
 			identifier: classConstant.internalClass
 			count: 1
-			path: src/Bridge/Symfony/Resources/config/services.php
-
-		-
-			rawMessage: Access to constant on internal class RegexParser\Bridge\Symfony\Validator\ValidatorPatternProvider.
-			identifier: classConstant.internalClass
-			count: 3
 			path: src/Bridge/Symfony/Resources/config/services.php

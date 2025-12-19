@@ -14,8 +14,6 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Unit\Bridge\Symfony\DependencyInjection;
 
 use PHPUnit\Framework\TestCase;
-use RegexParser\Bridge\Symfony\Analyzer\RouteRequirementAnalyzer;
-use RegexParser\Bridge\Symfony\Analyzer\ValidatorRegexAnalyzer;
 use RegexParser\Bridge\Symfony\DependencyInjection\RegexParserExtension;
 use RegexParser\Bridge\Symfony\Extractor\ExtractorInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -45,8 +43,6 @@ final class RegexParserExtensionTest extends TestCase
         $this->assertSame(['foo'], $container->getParameter('regex_parser.analysis.ignore_patterns'));
 
         $this->assertTrue($container->hasDefinition('regex_parser.regex'));
-        $this->assertTrue($container->hasDefinition(RouteRequirementAnalyzer::class));
-        $this->assertTrue($container->hasDefinition(ValidatorRegexAnalyzer::class));
         $this->assertTrue($container->hasDefinition('regex_parser.extractor'));
         $this->assertTrue($container->hasDefinition('regex_parser.command.lint'));
     }
