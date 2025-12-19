@@ -106,6 +106,7 @@ final readonly class RegexLintService
 
     /**
      * @phpstan-param list<LintIssue> $issues
+     *
      * @phpstan-return list<LintIssue>
      */
     private function filterLintIssues(array $issues): array
@@ -256,7 +257,6 @@ final readonly class RegexLintService
             'optimizations' => [],
         ];
     }
-
 
     /**
      * @param LintStats        $stats
