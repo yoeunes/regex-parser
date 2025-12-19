@@ -1027,30 +1027,36 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         while ($i < \count($alternatives)) {
             $current = $alternatives[$i];
 
-            // Check if current is a character class
-            if (!$current instanceof Node\CharClassNode || $current->isNegated) {
+            // Check if current is a character class or a char type that can be converted
+            $isCharClass = $current instanceof Node\CharClassNode && !$current->isNegated;
+            $isCharType = $current instanceof Node\CharTypeNode && $this->canConvertCharTypeToCharClass($current);
+            
+            if (!$isCharClass && !$isCharType) {
                 $merged[] = $current;
                 $i++;
                 continue;
             }
 
-            // Look ahead to find adjacent character classes
-            $charClassesToMerge = [$current];
+            // Look ahead to find adjacent character classes or char types
+            $nodesToMerge = [$current];
             $j = $i + 1;
 
             while ($j < \count($alternatives)) {
                 $next = $alternatives[$j];
-                if ($next instanceof Node\CharClassNode && !$next->isNegated) {
-                    $charClassesToMerge[] = $next;
+                $isNextCharClass = $next instanceof Node\CharClassNode && !$next->isNegated;
+                $isNextCharType = $next instanceof Node\CharTypeNode && $this->canConvertCharTypeToCharClass($next);
+                
+                if ($isNextCharClass || $isNextCharType) {
+                    $nodesToMerge[] = $next;
                     $j++;
                 } else {
                     break;
                 }
             }
 
-            // If we found multiple adjacent character classes, merge them
-            if (\count($charClassesToMerge) > 1) {
-                $merged[] = $this->mergeCharClasses($charClassesToMerge);
+            // If we found multiple adjacent character classes/char types, merge them
+            if (\count($nodesToMerge) > 1) {
+                $merged[] = $this->mergeCharClassesAndCharTypes($nodesToMerge);
                 $i = $j;
             } else {
                 $merged[] = $current;
@@ -1077,6 +1083,74 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
                 $allParts = array_merge($allParts, $charClass->expression->alternatives);
             } else {
                 $allParts[] = $charClass->expression;
+            }
+        }
+
+        // Create a new alternation with all parts
+        $mergedExpression = new Node\AlternationNode($allParts, $startPos, $endPos);
+
+        return new Node\CharClassNode($mergedExpression, false, $startPos, $endPos);
+    }
+
+    /**
+     * Checks if a CharTypeNode can be converted to a CharClassNode.
+     */
+    private function canConvertCharTypeToCharClass(Node\CharTypeNode $node): bool
+    {
+        // For now, only handle \d (digits) which can be converted to [0-9]
+        return 'd' === $node->type;
+    }
+
+    /**
+     * Converts a CharTypeNode to an equivalent CharClassNode.
+     */
+    private function convertCharTypeToCharClass(Node\CharTypeNode $node): Node\CharClassNode
+    {
+        $startPos = $node->startPosition;
+        $endPos = $node->endPosition;
+
+        return match ($node->type) {
+            'd' => new Node\CharClassNode(
+                new Node\RangeNode(
+                    new Node\LiteralNode('0', $startPos, $startPos + 1),
+                    new Node\LiteralNode('9', $startPos + 1, $startPos + 2),
+                    $startPos,
+                    $startPos + 2
+                ),
+                false,
+                $startPos,
+                $endPos
+            ),
+            default => throw new \InvalidArgumentException("Unsupported char type: {$node->type}"),
+        };
+    }
+
+    /**
+     * Merges character classes and char types into a single character class.
+     *
+     * @param list<Node\NodeInterface> $nodes
+     */
+    private function mergeCharClassesAndCharTypes(array $nodes): Node\CharClassNode
+    {
+        $allParts = [];
+        $startPos = $nodes[0]->startPosition;
+        $endPos = $nodes[\count($nodes) - 1]->endPosition;
+
+        foreach ($nodes as $node) {
+            if ($node instanceof Node\CharClassNode) {
+                if ($node->expression instanceof Node\AlternationNode) {
+                    $allParts = array_merge($allParts, $node->expression->alternatives);
+                } else {
+                    $allParts[] = $node->expression;
+                }
+            } elseif ($node instanceof Node\CharTypeNode) {
+                // Convert char type to equivalent char class parts
+                $charClass = $this->convertCharTypeToCharClass($node);
+                if ($charClass->expression instanceof Node\AlternationNode) {
+                    $allParts = array_merge($allParts, $charClass->expression->alternatives);
+                } else {
+                    $allParts[] = $charClass->expression;
+                }
             }
         }
 
