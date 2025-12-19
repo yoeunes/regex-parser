@@ -224,17 +224,6 @@ final readonly class Regex
         return $this->parse($regex)->accept(new NodeVisitor\SampleGeneratorNodeVisitor());
     }
 
-    public function generateTestCases(string $regex): TestCaseGenerationResult
-    {
-        $cases = $this->parse($regex)->accept(new NodeVisitor\TestCaseGeneratorNodeVisitor());
-
-        return new TestCaseGenerationResult(
-            array_values($cases['matching']),
-            array_values($cases['non_matching']),
-            ['Generated samples are heuristic; validate with real inputs.'],
-        );
-    }
-
     public function visualize(string $regex): VisualizationResult
     {
         $mermaid = $this->parse($regex)->accept(new NodeVisitor\MermaidNodeVisitor());
@@ -273,22 +262,6 @@ final readonly class Regex
         return $this->parse($regex)->accept($visitor);
     }
 
-    public function htmlExplain(string $regex): string
-    {
-        return $this->explain($regex, 'html');
-    }
-
-    /**
-     * @param iterable<string> $regexes
-     */
-    public function warm(iterable $regexes): void
-    {
-        foreach ($regexes as $regex) {
-            $this->parse($regex); // hits cache
-            $this->analyzeReDoS($regex);
-        }
-    }
-
     /**
      * @return array<string>
      */
@@ -305,11 +278,6 @@ final readonly class Regex
     public function getLexer(): Lexer
     {
         return new Lexer();
-    }
-
-    public function createTokenStream(string $pattern): TokenStream
-    {
-        return $this->getLexer()->tokenize($pattern);
     }
 
     /**

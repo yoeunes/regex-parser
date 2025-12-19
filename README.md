@@ -141,7 +141,7 @@ End of string
 You can also generate **HTML** explanations for documentation or debug UIs:
 
 ```php
-$html = $regex->htmlExplain('/(foo|bar)+\d{2,4}/');
+$html = $regex->explain('/(foo|bar)+\d{2,4}/', 'html');
 ```
 
 ---
@@ -466,7 +466,7 @@ if (!$regex->isSafe($pattern, ReDoSSeverity::HIGH)) {
 
   * A **console command** to scan your app’s config for dangerous regexes (`regex-parser:check`).
   * A unified console command (`regex:lint`) that can lint, analyze ReDoS risk, suggest optimizations, and validate Symfony regex patterns with options like `--analyze-redos`, `--optimize`, and `--validate-symfony`, or use `--all` to run everything.
-  * A **cache warmer** to pre‑parse and pre‑analyze patterns on deploy.
+   * Ability to **pre‑parse** and pre‑analyze patterns on deploy.
   * Easy service wiring for `Regex` in your DI container.
 
 Example (pseudo‑code):
@@ -539,7 +539,7 @@ $regex = Regex::create([
 ]);
 ```
 
-For Symfony, a cache warmer can parse and analyze all known patterns at deploy time so runtime costs are minimal.
+For Symfony, you can pre‑parse and analyze all known patterns at deploy time so runtime costs are minimal.
 
 ---
 
@@ -565,7 +565,7 @@ final readonly class Regex
 
     public function explain(string $regex, string $format = 'text'): string;
 
-    public function htmlExplain(string $regex): string;
+
 
     public function highlight(string $regex, string $format = 'auto'): string;
 
@@ -574,7 +574,7 @@ final readonly class Regex
     public function modernize(string $regex): string;
 
     public function generate(string $regex): string;
-    public function generateTestCases(string $regex): TestCaseGenerationResult;
+
 
     public function visualize(string $regex): VisualizationResult;
 
