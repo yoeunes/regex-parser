@@ -73,9 +73,6 @@ return static function (ContainerConfigurator $container): void {
         ->arg('$routeValidation', service('regex_parser.service.route_validation')->nullOnInvalid())
         ->arg('$validatorValidation', service('regex_parser.service.validator_validation')->nullOnInvalid())
         ->arg('$editorUrl', param('regex_parser.editor_format'))
-        ->arg('$paths', param('regex_parser.paths'))
-        ->arg('$exclude', param('regex_parser.exclude_paths'))
-        ->arg('$minSavings', 1)
         ->tag('console.command')
         ->public();
 

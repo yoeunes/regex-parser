@@ -23,10 +23,10 @@ final class RegexLintCommandTest extends TestCase
 {
     public function test_command_succeeds_by_default_with_no_patterns(): void
     {
-        $command = $this->createCommand(defaultPaths: ['nonexistent'], excludePaths: []);
+        $command = $this->createCommand();
 
         $tester = new CommandTester($command);
-        $status = $tester->execute([]);
+        $status = $tester->execute(['paths' => ['nonexistent']]);
 
         $this->assertSame(0, $status);
         $this->assertStringContainsString('No regex patterns found', $tester->getDisplay());
@@ -34,33 +34,32 @@ final class RegexLintCommandTest extends TestCase
 
     public function test_command_has_correct_name(): void
     {
-        $command = $this->createCommand(defaultPaths: [], excludePaths: []);
+        $command = $this->createCommand();
 
         $this->assertSame('regex:lint', $command->getName());
     }
 
     public function test_command_has_all_expected_options(): void
     {
-        $command = $this->createCommand(defaultPaths: [], excludePaths: []);
+        $command = $this->createCommand();
 
         $definition = $command->getDefinition();
 
+        $this->assertTrue($definition->hasArgument('paths'));
+        $this->assertTrue($definition->hasOption('exclude'));
+        $this->assertTrue($definition->hasOption('min-savings'));
+        $this->assertTrue($definition->hasOption('no-routes'));
+        $this->assertTrue($definition->hasOption('no-validators'));
+        
         $this->assertFalse($definition->hasOption('analyze-redos'));
         $this->assertFalse($definition->hasOption('optimize'));
-        $this->assertFalse($definition->hasOption('min-savings'));
     }
 
-    /**
-     * @param array<string> $defaultPaths
-     * @param array<string> $excludePaths
-     */
-    private function createCommand(array $defaultPaths = [], array $excludePaths = []): RegexLintCommand
+    private function createCommand(): RegexLintCommand
     {
         return new RegexLintCommand(
             analysis: new RegexAnalysisService(Regex::create()),
             editorUrl: null,
-            paths: $defaultPaths,
-            exclude: $excludePaths,
         );
     }
 }
