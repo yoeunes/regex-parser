@@ -44,29 +44,31 @@ final class RegexParserExtension extends Extension
     {
         $configuration = new Configuration();
 
-        /**
-         * @var array{
-         *     max_pattern_length: int,
-         *     max_lookbehind_length: int,
-         *     cache: string|null,
-         *     cache_pool: string|null,
-         *     cache_prefix: string,
-         *     extractor_service: string|null,
-         *     redos: array{
-         *         threshold: string,
-         *         ignored_patterns: array<int, string>,
-         *     },
-         *     analysis: array{
-         *         warning_threshold: int,
-         *         redos_threshold: int,
-         *         ignore_patterns: array<int, string>,
-         *     },
-         *     paths: array<int, string>,
-         *     exclude_paths: array<int, string>,
-         *     ide: string|null,
-         *     editor_url: string|null,
-         * } $config
-         */
+         /**
+          * @var array{
+          *     max_pattern_length: int,
+          *     max_lookbehind_length: int,
+          *     cache: array{
+          *         pool: string|null,
+          *         directory: string|null,
+          *         prefix: string,
+          *     },
+          *     extractor_service: string|null,
+          *     redos: array{
+          *         threshold: string,
+          *         ignored_patterns: array<int, string>,
+          *     },
+          *     analysis: array{
+          *         warning_threshold: int,
+          *         redos_threshold: int,
+          *         ignore_patterns: array<int, string>,
+          *     },
+          *     paths: array<int, string>,
+          *     exclude_paths: array<int, string>,
+          *     ide: string|null,
+          *     editor_url: string|null,
+          * } $config
+          */
         $config = $this->processConfiguration($configuration, $configs);
 
         $ignoredPatterns = array_values(array_unique([
@@ -80,8 +82,6 @@ final class RegexParserExtension extends Extension
         $container->setParameter('regex_parser.max_pattern_length', $config['max_pattern_length']);
         $container->setParameter('regex_parser.max_lookbehind_length', $config['max_lookbehind_length']);
         $container->setParameter('regex_parser.cache', $config['cache']);
-        $container->setParameter('regex_parser.cache_pool', $config['cache_pool']);
-        $container->setParameter('regex_parser.cache_prefix', $config['cache_prefix']);
         $container->setParameter('regex_parser.extractor_service', $config['extractor_service']);
         $container->setParameter('regex_parser.redos.threshold', $config['redos']['threshold']);
         $container->setParameter('regex_parser.redos.ignored_patterns', $ignoredPatterns);
@@ -119,24 +119,28 @@ final class RegexParserExtension extends Extension
 
     /**
      * @param array{
-     *     cache: string|null,
-     *     cache_pool: string|null,
-     *     cache_prefix: string,
+     *     cache: array{
+     *         pool: string|null,
+     *         directory: string|null,
+     *         prefix: string,
+     *     },
      * } $config
      */
     private function buildCacheDefinition(array $config): Definition
     {
-        if (null !== $config['cache_pool'] && '' !== $config['cache_pool']) {
+        $cacheConfig = $config['cache'];
+        
+        if (null !== $cacheConfig['pool'] && '' !== $cacheConfig['pool']) {
             return (new Definition(PsrCacheAdapter::class))
                 ->setArguments([
-                    new Reference((string) $config['cache_pool']),
-                    (string) $config['cache_prefix'],
+                    new Reference((string) $cacheConfig['pool']),
+                    (string) $cacheConfig['prefix'],
                 ]);
         }
 
-        if (null !== $config['cache'] && '' !== $config['cache']) {
+        if (null !== $cacheConfig['directory'] && '' !== $cacheConfig['directory']) {
             return (new Definition(FilesystemCache::class))
-                ->setArguments([(string) $config['cache']]);
+                ->setArguments([(string) $cacheConfig['directory']]);
         }
 
         return new Definition(NullCache::class);
@@ -197,8 +201,8 @@ final class RegexParserExtension extends Extension
      */
     private function isPhpStanAvailable(): bool
     {
-        return class_exists(\PHPStan\Analyser\Analyser::class)
-            && class_exists(\PHPStan\Parser\Parser::class)
-            && class_exists(\PHPStan\PhpDoc\TypeNodeResolver::class);
+        return class_exists('PHPStan\Analyser\Analyser')
+            && class_exists('PHPStan\Parser\Parser')
+            && class_exists('PHPStan\PhpDoc\TypeNodeResolver');
     }
 }

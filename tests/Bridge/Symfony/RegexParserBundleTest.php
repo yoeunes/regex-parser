@@ -30,7 +30,9 @@ final class RegexParserBundleTest extends TestCase
         $cacheDir = sys_get_temp_dir().'/regex_parser_'.uniqid();
         $container = $this->createContainer([
             'max_pattern_length' => 5000,
-            'cache' => $cacheDir,
+            'cache' => [
+                'directory' => $cacheDir,
+            ],
         ]);
         $container->compile();
 
