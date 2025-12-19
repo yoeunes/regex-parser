@@ -49,9 +49,20 @@ final readonly class ValidatorRegexPatternSource implements RegexPatternSourceIn
             return [];
         }
 
+        /** @var array<int, string> $classes */
         $classes = [];
-        if (null !== $this->validatorLoader && method_exists($this->validatorLoader, 'getMappedClasses')) {
-            $classes = $this->validatorLoader->getMappedClasses();
+        if (null !== $this->validatorLoader) {
+            try {
+                if (method_exists($this->validatorLoader, 'getMappedClasses')) {
+                    // @phpstan-ignore method.notFound
+                    $mappedClasses = $this->validatorLoader->getMappedClasses();
+                    if (is_array($mappedClasses)) {
+                        $classes = $mappedClasses;
+                    }
+                }
+            } catch (\Throwable) {
+                // Method not available or failed, continue with empty classes
+            }
         }
 
         $patterns = [];
@@ -63,6 +74,9 @@ final readonly class ValidatorRegexPatternSource implements RegexPatternSourceIn
             }
 
             try {
+                if (null === $this->validator) {
+                    continue;
+                }
                 $metadata = $this->validator->getMetadataFor($className);
             } catch (\Throwable) {
                 continue;
@@ -92,9 +106,11 @@ final readonly class ValidatorRegexPatternSource implements RegexPatternSourceIn
                         continue;
                     }
 
+                    // @phpstan-ignore method.notFound
+                    $propertyName = method_exists($propertyMetadata, 'getPropertyName') ? $propertyMetadata->getPropertyName() : 'unknown';
                     $patterns = [...$patterns, ...$this->extractFromConstraints(
                         $propertyMetadata->getConstraints(),
-                        \sprintf('%s::$%s', $className, $propertyMetadata->getName()),
+                        \sprintf('%s::$%s', $className, $propertyName),
                         $file,
                         $line,
                     )];
@@ -139,6 +155,8 @@ final readonly class ValidatorRegexPatternSource implements RegexPatternSourceIn
 
         $reflection = new \ReflectionClass($className);
 
-        return $reflection->getFileName();
+        $filename = $reflection->getFileName();
+        
+        return false === $filename ? null : $filename;
     }
 }
