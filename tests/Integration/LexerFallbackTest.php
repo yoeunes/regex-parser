@@ -18,7 +18,6 @@ use RegexParser\Lexer;
 
 final class LexerFallbackTest extends TestCase
 {
-
     /**
      * Covers the case where consumeQuoteMode reaches the end of the string without finding \E.
      */

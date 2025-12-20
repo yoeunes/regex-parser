@@ -20,10 +20,6 @@ use RegexParser\Exception\ParserException;
  */
 final class PatternParser
 {
-    private function __construct()
-    {
-    }
-
     /**
      * @return array{0: string, 1: string, 2: string}
      */

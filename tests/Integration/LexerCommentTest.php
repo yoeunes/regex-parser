@@ -20,7 +20,6 @@ use RegexParser\TokenType;
 
 final class LexerCommentTest extends TestCase
 {
-
     /**
      * Tests an empty comment (?#)
      */

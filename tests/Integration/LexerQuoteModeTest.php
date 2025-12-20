@@ -18,7 +18,6 @@ use RegexParser\Lexer;
 
 final class LexerQuoteModeTest extends TestCase
 {
-
     /**
      * Tests \Q in the middle without \E at the end.
      */

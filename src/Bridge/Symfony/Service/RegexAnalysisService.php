@@ -357,5 +357,4 @@ final readonly class RegexAnalysisService
     {
         return array_values(array_unique([...$redosIgnored, ...$userIgnored]));
     }
-
 }

@@ -25,7 +25,6 @@ use RegexParser\TokenType;
  */
 final class LexerCoverageBoostTest extends TestCase
 {
-
     /**
      * Test \Q...\E quote mode - ensures consumeQuoteMode() is called.
      */
