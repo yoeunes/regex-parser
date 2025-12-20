@@ -112,7 +112,6 @@ final readonly class Regex
     {
         try {
             $extractedPattern = $this->extractPatternSafely($regex);
-            /** @var RegexNode $ast */
             $ast = $this->parse($regex, false);
 
             $this->validateAst($ast, $extractedPattern);
@@ -148,7 +147,6 @@ final readonly class Regex
      */
     public function literals(string $regex): LiteralExtractionResult
     {
-        /** @var RegexNode $ast */
         $ast = $this->parse($regex, false);
 
         $literalSet = $ast->accept(new NodeVisitor\LiteralExtractorNodeVisitor());
@@ -184,7 +182,6 @@ final readonly class Regex
      */
     public function generate(string $regex): string
     {
-        /** @var RegexNode $ast */
         $ast = $this->parse($regex, false);
 
         return $ast->accept(new NodeVisitor\SampleGeneratorNodeVisitor());
@@ -201,7 +198,6 @@ final readonly class Regex
     public function explain(string $regex, string $format = 'text'): string
     {
         $explanationVisitor = $this->createExplanationVisitor($format);
-        /** @var RegexNode $ast */
         $ast = $this->parse($regex, false);
 
         /** @var string $result */
@@ -220,7 +216,6 @@ final readonly class Regex
      */
     private function compile(string $regex, NodeVisitor\NodeVisitorInterface $transformer): string
     {
-        /** @var RegexNode $ast */
         $ast = $this->parse($regex, false);
 
         /** @var Node\NodeInterface $transformedAst */
