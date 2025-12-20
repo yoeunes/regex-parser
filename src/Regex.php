@@ -198,12 +198,10 @@ final readonly class Regex
     public function explain(string $regex, string $format = 'text'): string
     {
         $explanationVisitor = $this->createExplanationVisitor($format);
+
         $ast = $this->parse($regex, false);
 
-        /** @var string $result */
-        $result = $ast->accept($explanationVisitor);
-
-        return $result;
+        return $ast->accept($explanationVisitor);
     }
 
     /**
@@ -474,9 +472,9 @@ final readonly class Regex
      *
      * @param string $format The desired output format
      *
-     * @return NodeVisitor\NodeVisitorInterface<mixed> The explanation visitor
+     * @return NodeVisitor\ExplainNodeVisitor|NodeVisitor\HtmlExplainNodeVisitor The explanation visitor
      */
-    private function createExplanationVisitor(string $format): NodeVisitor\NodeVisitorInterface
+    private function createExplanationVisitor(string $format): NodeVisitor\ExplainNodeVisitor|NodeVisitor\HtmlExplainNodeVisitor
     {
         return match ($format) {
             'text' => new NodeVisitor\ExplainNodeVisitor(),
