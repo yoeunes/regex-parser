@@ -63,8 +63,11 @@ final class PatternParser
                     if (!preg_match('/^[imsxADSUXJunr]*+$/', $flags)) {
                         // Find the invalid flag for a better error message
                         $invalid = preg_replace('/[imsxADSUXJunr]/', '', $flags);
+                        
+                        // Format each invalid flag individually with quotes
+                        $formattedFlags = implode(', ', array_map(fn($flag) => sprintf('"%s"', $flag), str_split($invalid ?? $flags)));
 
-                        throw new ParserException(\sprintf('Unknown regex flag(s) found: "%s"', $invalid ?? $flags));
+                        throw new ParserException(\sprintf('Unknown regex flag(s) found: %s', $formattedFlags));
                     }
 
                     return [$pattern, $flags, $delimiter];

@@ -128,7 +128,7 @@ final class RegexTest extends TestCase
     {
         yield 'unclosed group' => ['/(a/', 'Expected ) at end of input (found eof)'];
         yield 'quantifier on nothing' => ['/*/', 'Quantifier without target at position 0'];
-        yield 'invalid flag' => ['/a/invalid', 'Unknown regex flag(s) found: "vald"'];
+        yield 'invalid flag' => ['/a/invalid', 'Unknown regex flag(s) found: "v", "a", "l", "d"'];
     }
 
     public static function provideInvalidRegexForLexing(): \Generator
