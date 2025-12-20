@@ -87,7 +87,7 @@ final readonly class Regex
     public function parse(string $regex, bool $tolerant = false): RegexNode|TolerantParseResult
     {
         try {
-            $ast = $this->performParse($regex);
+            $ast = $this->doParse($regex);
 
             return $tolerant ? new TolerantParseResult($ast) : $ast;
         } catch (LexerException|ParserException $parseException) {
@@ -540,7 +540,7 @@ final readonly class Regex
      *
      * @return RegexNode The parsed AST
      */
-    private function performParse(string $regex): RegexNode
+    private function doParse(string $regex): RegexNode
     {
         $this->validateResourceLimits($regex);
 
