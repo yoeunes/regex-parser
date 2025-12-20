@@ -19,17 +19,30 @@ use RegexParser\Cache\NullCache;
 use RegexParser\Exception\InvalidRegexOptionException;
 
 /**
- * High-performance immutable configuration for Regex::create().
- *
- * This optimized options class provides intelligent validation, caching,
- * and efficient option processing for maximum performance.
+ * Configuration options for Regex parser.
+ * 
+ * Provides a simple, validated way to configure regex parsing behavior
+ * including limits, caching, and ReDoS pattern exclusions.
  */
 final readonly class RegexOptions
 {
-    private const ALLOWED_KEYS = ['max_pattern_length', 'max_lookbehind_length', 'cache', 'redos_ignored_patterns'];
+    /**
+     * Allowed option keys for configuration.
+     */
+    private const VALID_OPTIONS = [
+        'max_pattern_length',
+        'max_lookbehind_length', 
+        'cache',
+        'redos_ignored_patterns',
+    ];
 
     /**
-     * @param array<string> $redosIgnoredPatterns
+     * Create new configuration options.
+     * 
+     * @param int $maxPatternLength Maximum allowed regex pattern length
+     * @param int $maxLookbehindLength Maximum allowed lookbehind length
+     * @param CacheInterface $cache Cache implementation to use
+     * @param array<string> $redosIgnoredPatterns Patterns to ignore in ReDoS analysis
      */
     public function __construct(
         public int $maxPatternLength,
@@ -39,147 +52,188 @@ final readonly class RegexOptions
     ) {}
 
     /**
-     * Optimized array-based configuration with intelligent validation.
-     *
-     * @param array<string, mixed> $options
+     * Create configuration from array of options.
+     * 
+     * @param array<string, mixed> $options Configuration options
+     * @return self New configuration instance
      */
     public static function fromArray(array $options): self
     {
-        // Fast path for empty options
         if ([] === $options) {
-            return new self(
-                Regex::DEFAULT_MAX_PATTERN_LENGTH,
-                Regex::DEFAULT_MAX_LOOKBEHIND_LENGTH,
-                new NullCache(),
-                [],
-            );
+            return self::createDefault();
         }
 
-        // Validate unknown keys with optimized check
-        self::validateKeys($options);
+        self::validateOptionKeys($options);
 
-        // Extract and validate options with early returns
-        $maxPatternLength = self::validateMaxPatternLength($options);
-        $maxLookbehindLength = self::validateMaxLookbehindLength($options);
-        $cache = self::validateAndNormalizeCache($options);
-        $redosIgnoredPatterns = self::validateAndNormalizeRedosPatterns($options);
+        $maxLength = self::getPatternLength($options);
+        $lookbehindLength = self::getLookbehindLength($options);
+        $cache = self::createCache($options);
+        $patterns = self::getIgnoredPatterns($options);
 
-        return new self($maxPatternLength, $maxLookbehindLength, $cache, $redosIgnoredPatterns);
+        return new self($maxLength, $lookbehindLength, $cache, $patterns);
     }
 
     /**
-     * High-performance key validation with clear error messages.
-     *
-     * @param array<string, mixed> $options
+     * Create default configuration with no custom options.
+     * 
+     * @return self Default configuration instance
      */
-    private static function validateKeys(array $options): void
+    private static function createDefault(): self
     {
-        $unknownKeys = [];
-        foreach (array_keys($options) as $key) {
-            if (!\in_array($key, self::ALLOWED_KEYS, true)) {
-                $unknownKeys[] = $key;
-            }
-        }
+        return new self(
+            Regex::DEFAULT_MAX_PATTERN_LENGTH,
+            Regex::DEFAULT_MAX_LOOKBEHIND_LENGTH,
+            new NullCache(),
+            [],
+        );
+    }
 
-        if ([] !== $unknownKeys) {
-            throw new InvalidRegexOptionException(\sprintf(
+    /**
+     * Validate that all provided option keys are supported.
+     * 
+     * @param array<string, mixed> $options Options to validate
+     */
+    private static function validateOptionKeys(array $options): void
+    {
+        $invalidKeys = array_diff(
+            array_keys($options),
+            self::VALID_OPTIONS,
+        );
+
+        if ([] !== $invalidKeys) {
+            throw new InvalidRegexOptionException(sprintf(
                 'Unknown option(s): %s. Allowed options are: %s.',
-                implode(', ', $unknownKeys),
-                implode(', ', self::ALLOWED_KEYS),
+                implode(', ', $invalidKeys),
+                implode(', ', self::VALID_OPTIONS),
             ));
         }
     }
 
     /**
-     * Optimized max pattern length validation.
-     *
-     * @param array<string, mixed> $options
+     * Get maximum pattern length from options.
+     * 
+     * @param array<string, mixed> $options Configuration options
+     * @return int Maximum pattern length
      */
-    private static function validateMaxPatternLength(array $options): int
+    private static function getPatternLength(array $options): int
     {
-        $value = $options['max_pattern_length'] ?? Regex::DEFAULT_MAX_PATTERN_LENGTH;
+        $length = $options['max_pattern_length'] ?? Regex::DEFAULT_MAX_PATTERN_LENGTH;
 
-        if (!\is_int($value) || $value <= 0) {
-            throw new InvalidRegexOptionException('"max_pattern_length" must be a positive integer.');
+        if (!is_int($length) || $length <= 0) {
+            throw new InvalidRegexOptionException(
+                '"max_pattern_length" must be a positive integer.'
+            );
         }
 
-        return $value;
+        return $length;
     }
 
     /**
-     * @param array<string, mixed> $options
+     * Get maximum lookbehind length from options.
+     * 
+     * @param array<string, mixed> $options Configuration options
+     * @return int Maximum lookbehind length
      */
-    private static function validateMaxLookbehindLength(array $options): int
+    private static function getLookbehindLength(array $options): int
     {
-        $value = $options['max_lookbehind_length'] ?? Regex::DEFAULT_MAX_LOOKBEHIND_LENGTH;
+        $length = $options['max_lookbehind_length'] ?? Regex::DEFAULT_MAX_LOOKBEHIND_LENGTH;
 
-        if (!\is_int($value) || $value < 0) {
-            throw new InvalidRegexOptionException('"max_lookbehind_length" must be a non-negative integer.');
+        if (!is_int($length) || $length < 0) {
+            throw new InvalidRegexOptionException(
+                '"max_lookbehind_length" must be a non-negative integer.'
+            );
         }
 
-        return $value;
+        return $length;
     }
 
     /**
-     * Intelligent cache validation and normalization.
-     *
-     * @param array<string, mixed> $options
+     * Create cache instance from options.
+     * 
+     * @param array<string, mixed> $options Configuration options
+     * @return CacheInterface Cache implementation
      */
-    private static function validateAndNormalizeCache(array $options): CacheInterface
+    private static function createCache(array $options): CacheInterface
     {
-        $cache = $options['cache'] ?? null;
+        $cacheOption = $options['cache'] ?? null;
 
-        if (null === $cache) {
+        if (null === $cacheOption) {
             return new NullCache();
         }
 
-        if (\is_string($cache)) {
-            if ('' === trim($cache)) {
-                throw new InvalidRegexOptionException('The "cache" option cannot be an empty string.');
-            }
-
-            return new FilesystemCache($cache);
+        if (is_string($cacheOption)) {
+            return self::createFilesystemCache($cacheOption);
         }
 
-        if ($cache instanceof CacheInterface) {
-            return $cache;
+        if ($cacheOption instanceof CacheInterface) {
+            return $cacheOption;
         }
 
         throw new InvalidRegexOptionException(
-            'The "cache" option must be null, a cache path, or a CacheInterface implementation.',
+            'The "cache" option must be null, a cache path, or a CacheInterface implementation.'
         );
     }
 
     /**
-     * High-performance ReDoS patterns validation and normalization.
-     *
-     * @param array<string, mixed> $options
-     *
-     * @return array<string>
+     * Create filesystem cache from path.
+     * 
+     * @param string $path Cache directory path
+     * @return FilesystemCache Filesystem cache instance
      */
-    private static function validateAndNormalizeRedosPatterns(array $options): array
+    private static function createFilesystemCache(string $path): FilesystemCache
+    {
+        $trimmedPath = trim($path);
+
+        if ('' === $trimmedPath) {
+            throw new InvalidRegexOptionException(
+                'The "cache" option cannot be an empty string.'
+            );
+        }
+
+        return new FilesystemCache($trimmedPath);
+    }
+
+    /**
+     * Get ignored ReDoS patterns from options.
+     * 
+     * @param array<string, mixed> $options Configuration options
+     * @return array<string> List of ignored patterns
+     */
+    private static function getIgnoredPatterns(array $options): array
     {
         $patterns = $options['redos_ignored_patterns'] ?? [];
 
-        if (!\is_array($patterns)) {
-            throw new InvalidRegexOptionException('"redos_ignored_patterns" must be a list of strings.');
+        if (!is_array($patterns)) {
+            throw new InvalidRegexOptionException(
+                '"redos_ignored_patterns" must be a list of strings.'
+            );
         }
 
         if ([] === $patterns) {
             return [];
         }
 
-        // Validate all patterns are strings
-        foreach ($patterns as $pattern) {
-            if (!\is_string($pattern)) {
-                throw new InvalidRegexOptionException('"redos_ignored_patterns" must contain only strings.');
-            }
-        }
+        self::validatePatternStrings($patterns);
 
-        // Efficient deduplication and normalization
         /** @var array<string> $result */
         $result = array_values(array_unique($patterns));
 
         return $result;
+    }
+
+    /**
+     * Validate that all patterns are strings.
+     * 
+     * @param array<mixed> $patterns Patterns to validate
+     */
+    private static function validatePatternStrings(array $patterns): void
+    {
+        foreach ($patterns as $pattern) {
+            if (!is_string($pattern)) {
+                throw new InvalidRegexOptionException(
+                    '"redos_ignored_patterns" must contain only strings.'
+                );
+            }
+        }
     }
 }
