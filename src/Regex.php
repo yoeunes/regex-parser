@@ -27,7 +27,7 @@ use RegexParser\ReDoS\ReDoSSeverity;
 /**
  * Main entry point for the RegexParser library.
  *
- * Provides a fluent API for parsing, validating, optimizing, and analyzing
+ * Provides an API for parsing, validating, optimizing, and analyzing
  * regular expressions with comprehensive error handling and caching support.
  */
 final readonly class Regex
