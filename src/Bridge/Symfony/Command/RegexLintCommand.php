@@ -229,12 +229,9 @@ final class RegexLintCommand extends Command
             $io->progressFinish();
         }
 
-        $stats = $report->stats;
-        $allResults = $report->results;
-
-        if (!empty($allResults)) {
-            usort($allResults, fn ($a, $b) => $this->getSeverityScore($b) <=> $this->getSeverityScore($a));
-        }
+        $allResults = $this->filterVendorResults($report->results, $exclude);
+        $allResults = $this->sortResultsByFileAndLine($allResults);
+        $stats = $this->updateStatsFromResults($this->createStats(), $allResults);
 
         if ('json' === $format) {
             $output->writeln(json_encode([
@@ -272,39 +269,20 @@ final class RegexLintCommand extends Command
      */
     private function displayResults(SymfonyStyle $io, array $results): void
     {
-        $this->outputIntegratedResults($io, $results);
-    }
-
-    /**
-     * @phpstan-param list<LintResult> $results
-     */
-    private function outputIntegratedResults(SymfonyStyle $io, array $results): void
-    {
         if (empty($results)) {
             return;
         }
 
-        $groupedByFile = $this->groupResultsByFile($results);
-
-        foreach ($groupedByFile as $file => $fileResults) {
-            $this->renderFileHeader($io, $file);
-            array_walk($fileResults, fn ($result) => $this->renderResultCard($io, $result));
-        }
-    }
-
-    /**
-     * @phpstan-param list<LintResult> $results
-     *
-     * @phpstan-return array<string, list<LintResult>>
-     */
-    private function groupResultsByFile(array $results): array
-    {
-        $grouped = [];
+        $currentFile = null;
         foreach ($results as $result) {
-            $grouped[$result['file']][] = $result;
-        }
+            $file = $result['file'];
+            if ($file !== $currentFile) {
+                $currentFile = $file;
+                $this->renderFileHeader($io, $file);
+            }
 
-        return $grouped;
+            $this->renderResultCard($io, $result);
+        }
     }
 
     private function renderFileHeader(SymfonyStyle $io, string $file): void
@@ -504,20 +482,26 @@ final class RegexLintCommand extends Command
     }
 
     /**
-     * @phpstan-param LintResult $result
+     * @phpstan-param LintStats        $stats
+     * @phpstan-param list<LintResult> $results
+     *
+     * @phpstan-return LintStats
      */
-    private function getSeverityScore(array $result): int
+    private function updateStatsFromResults(array $stats, array $results): array
     {
-        $issueScore = 0;
-        foreach ($result['issues'] as $issue) {
-            $issueScore += match ($issue['type']) {
-                'error' => 100,
-                'warning' => 10,
-                default => 0,
-            };
+        foreach ($results as $result) {
+            foreach ($result['issues'] as $issue) {
+                if ('error' === $issue['type']) {
+                    $stats['errors']++;
+                } elseif ('warning' === $issue['type']) {
+                    $stats['warnings']++;
+                }
+            }
+
+            $stats['optimizations'] += \count($result['optimizations']);
         }
 
-        return $issueScore + \count($result['optimizations']);
+        return $stats;
     }
 
     private function stripMessageLine(string $message): string
@@ -539,5 +523,85 @@ final class RegexLintCommand extends Command
         }
 
         return array_values(array_filter($value, static fn ($item): bool => \is_string($item) && '' !== $item));
+    }
+
+    /**
+     * @phpstan-param list<LintResult> $results
+     *
+     * @phpstan-return list<LintResult>
+     */
+    private function filterVendorResults(array $results, array $excludePaths): array
+    {
+        if (!$this->shouldExcludeVendor($excludePaths)) {
+            return $results;
+        }
+
+        return array_values(array_filter(
+            $results,
+            fn (array $result): bool => !$this->isVendorPath($result['file'] ?? ''),
+        ));
+    }
+
+    /**
+     * @phpstan-param list<LintResult> $results
+     *
+     * @phpstan-return list<LintResult>
+     */
+    private function sortResultsByFileAndLine(array $results): array
+    {
+        usort($results, static function (array $a, array $b): int {
+            $fileCompare = strcmp((string) $a['file'], (string) $b['file']);
+            if (0 !== $fileCompare) {
+                return $fileCompare;
+            }
+
+            return ($a['line'] ?? 0) <=> ($b['line'] ?? 0);
+        });
+
+        return $results;
+    }
+
+    /**
+     * @param list<string> $excludePaths
+     */
+    private function shouldExcludeVendor(array $excludePaths): bool
+    {
+        foreach ($excludePaths as $path) {
+            $normalized = trim(str_replace('\\', '/', $path), '/');
+            if ('' === $normalized) {
+                continue;
+            }
+
+            if ('vendor' === $normalized) {
+                return true;
+            }
+
+            if (str_contains($normalized, '/vendor/')) {
+                return true;
+            }
+
+            if (str_starts_with($normalized, 'vendor/')) {
+                return true;
+            }
+
+            if (str_ends_with($normalized, '/vendor')) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function isVendorPath(string $file): bool
+    {
+        if ('' === $file) {
+            return false;
+        }
+
+        $normalized = ltrim(str_replace('\\', '/', $file), './');
+
+        return str_starts_with($normalized, 'vendor/')
+            || str_starts_with($normalized, '/vendor/')
+            || str_contains($normalized, '/vendor/');
     }
 }
