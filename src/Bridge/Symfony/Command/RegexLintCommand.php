@@ -28,6 +28,9 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
+use function json_encode;
+use const JSON_THROW_ON_ERROR;
+
 /**
  * @phpstan-type LintIssue array{
  *     type: string,
@@ -117,6 +120,7 @@ final class RegexLintCommand extends Command
             ->addOption('min-savings', null, InputOption::VALUE_OPTIONAL, 'Minimum optimization savings in characters', 1)
             ->addOption('no-routes', null, InputOption::VALUE_NONE, 'Skip route validation')
             ->addOption('no-validators', null, InputOption::VALUE_NONE, 'Skip validator validation')
+            ->addOption('format', null, InputOption::VALUE_OPTIONAL, 'Output format (console or json)', 'console')
             ->setHelp(<<<'EOF'
                 The <info>%command.name%</info> command scans your PHP code for regex patterns and provides:
 
@@ -138,6 +142,9 @@ final class RegexLintCommand extends Command
 
                 Skip specific validations:
                 <info>php %command.full_name% --no-routes --no-validators</info>
+
+                Output format for CI/CD:
+                <info>php %command.full_name% --format=json</info>
                 EOF
             );
     }
@@ -158,8 +165,18 @@ final class RegexLintCommand extends Command
         $minSavings = is_numeric($minSavingsValue) ? (int) $minSavingsValue : 1;
         $skipRoutes = (bool) $input->getOption('no-routes');
         $skipValidators = (bool) $input->getOption('no-validators');
+        $format = $input->getOption('format') ?? 'console';
 
-        $this->showBanner($io);
+        if (!in_array($format, ['console', 'json'], true)) {
+            $io->error("Invalid format '{$format}'. Supported formats: console, json");
+
+            return Command::FAILURE;
+        }
+
+        // Only show banner and progress for console format
+        if ($format === 'console') {
+            $this->showBanner($io);
+        }
 
         try {
             $request = new RegexLintRequest(
@@ -173,33 +190,68 @@ final class RegexLintCommand extends Command
             );
             $patterns = $this->lint->collectPatterns($request);
         } catch (\Throwable $e) {
+            if ($format === 'json') {
+                $output->writeln(json_encode([
+                    'error' => "Failed to collect patterns: {$e->getMessage()}",
+                ], JSON_THROW_ON_ERROR));
+
+                return Command::FAILURE;
+            }
+
             $io->error("Failed to collect patterns: {$e->getMessage()}");
 
             return Command::FAILURE;
         }
 
         if (empty($patterns)) {
+            if ($format === 'json') {
+                $output->writeln(json_encode([
+                    'stats' => $this->createStats(),
+                    'results' => [],
+                ], JSON_THROW_ON_ERROR));
+
+                return Command::SUCCESS;
+            }
+
             $this->renderSummary($io, $this->createStats(), isEmpty: true);
 
             return Command::SUCCESS;
         }
 
-        $io->progressStart(\count($patterns));
-        $report = $this->lint->analyze($patterns, $request, fn () => $io->progressAdvance());
-        $io->progressFinish();
+        if ($format === 'console') {
+            $io->progressStart(\count($patterns));
+            $progressCallback = fn () => $io->progressAdvance();
+        } else {
+            $progressCallback = null;
+        }
+
+        $report = $this->lint->analyze($patterns, $request, $progressCallback);
+
+        if ($format === 'console') {
+            $io->progressFinish();
+        }
 
         $stats = $report->stats;
         $allResults = $report->results;
 
         if (!empty($allResults)) {
             usort($allResults, fn ($a, $b) => $this->getSeverityScore($b) <=> $this->getSeverityScore($a));
-            $this->displayResults($io, $allResults);
         }
 
-        $exitCode = $stats['errors'] > 0 ? Command::FAILURE : Command::SUCCESS;
-        $this->renderSummary($io, $stats);
+        if ($format === 'json') {
+            $output->writeln(json_encode([
+                'stats' => $stats,
+                'results' => $allResults,
+            ], JSON_THROW_ON_ERROR));
+        } else {
+            if (!empty($allResults)) {
+                $this->displayResults($io, $allResults);
+            }
 
-        return $exitCode;
+            $this->renderSummary($io, $stats);
+        }
+
+        return $stats['errors'] > 0 ? Command::FAILURE : Command::SUCCESS;
     }
 
     private function showBanner(SymfonyStyle $io): void
