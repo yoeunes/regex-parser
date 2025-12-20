@@ -23,11 +23,9 @@ use PHPStan\Analyser\Scope;
 use PHPStan\Rules\IdentifierRuleError;
 use PHPStan\Rules\Rule;
 use PHPStan\Rules\RuleErrorBuilder;
-use RegexParser\Exception\LexerException;
-use RegexParser\Exception\ParserException;
-use RegexParser\Exception\SyntaxErrorException;
-use RegexParser\NodeVisitor\ValidatorNodeVisitor;
-use RegexParser\ReDoS\ReDoSAnalyzer;
+use RegexParser\Lint\RegexAnalysisService;
+use RegexParser\Lint\RegexPatternOccurrence;
+use RegexParser\ReDoS\ReDoSAnalysis;
 use RegexParser\ReDoS\ReDoSSeverity;
 use RegexParser\Regex;
 
@@ -46,6 +44,9 @@ final class PregValidationRule implements Rule
     public const IDENTIFIER_REDOS_MEDIUM = 'regex.redos.medium';
     public const IDENTIFIER_REDOS_LOW = 'regex.redos.low';
     public const IDENTIFIER_OPTIMIZATION = 'regex.optimization';
+
+    private const ISSUE_ID_REDOS = 'regex.lint.redos';
+    private const ISSUE_ID_COMPLEXITY = 'regex.lint.complexity';
 
     private const PREG_FUNCTION_MAP = [
         'preg_match' => 0,
@@ -95,11 +96,7 @@ final class PregValidationRule implements Rule
         'regex.lint.flag.override' => self::DOC_BASE_URL.'#inline-flag-override',
     ];
 
-    private ?Regex $regex = null;
-
-    private ?ValidatorNodeVisitor $validator = null;
-
-    private ?ReDoSAnalyzer $redosAnalyzer = null;
+    private ?RegexAnalysisService $analysis = null;
 
     /**
      * @param bool                                                $ignoreParseErrors  Ignore parse errors for partial regex strings
@@ -145,65 +142,24 @@ final class PregValidationRule implements Rule
         $patternArg = $args[$patternArgPosition]->value;
 
         if ('preg_replace_callback_array' === $functionName) {
-            return $this->processPregReplaceCallbackArray($patternArg, $scope, $node->getLine());
+            return $this->processPregReplaceCallbackArray($patternArg, $scope, $node->getLine(), $functionName);
         }
 
         $errors = [];
         foreach ($scope->getType($patternArg)->getConstantStrings() as $constantString) {
-            $errors = array_merge($errors, $this->validatePattern($constantString->getValue(), $node->getLine()));
+            $errors = array_merge(
+                $errors,
+                $this->validatePattern($constantString->getValue(), $node->getLine(), $scope, $functionName),
+            );
         }
 
         return $errors;
     }
 
-    public function isOptimizationSafe(string $original, string $optimized): bool
-    {
-        // Extract delimiter, pattern part, and flags for optimized
-        $delimiter = $optimized[0] ?? '';
-        if ('' === $delimiter) {
-            return false; // Invalid
-        }
-
-        $lastDelimiterPos = strrpos($optimized, $delimiter);
-        if (false === $lastDelimiterPos || 0 === $lastDelimiterPos) {
-            return false; // No closing delimiter or empty
-        }
-
-        $patternPart = substr($optimized, 1, $lastDelimiterPos - 1);
-
-        // Extract original pattern part
-        $originalDelimiter = $original[0] ?? '';
-        $originalPatternPart = '';
-        if ('' !== $originalDelimiter) {
-            $originalLastPos = strrpos($original, $originalDelimiter);
-            if (false !== $originalLastPos) {
-                $originalPatternPart = substr($original, 1, $originalLastPos - 1);
-            }
-        }
-
-        // Return false if optimized pattern is empty
-        if ('' === $patternPart) {
-            return false;
-        }
-
-        // Return false if optimized pattern is too short (< 2 chars)
-        if (\strlen($patternPart) < 2) {
-            return false;
-        }
-
-        // Return false if optimized removes newlines that were present in original (unless escaped)
-        // Simplified: check if original contains \n and optimized does not
-        if (str_contains($originalPatternPart, '\n') && !str_contains($patternPart, '\n')) {
-            return false;
-        }
-
-        return true;
-    }
-
     /**
      * @return list<IdentifierRuleError>
      */
-    private function processPregReplaceCallbackArray(Node $arrayNode, Scope $scope, int $lineNumber): array
+    private function processPregReplaceCallbackArray(Node $arrayNode, Scope $scope, int $lineNumber, string $functionName): array
     {
         if (!$arrayNode instanceof Array_) {
             return [];
@@ -216,7 +172,10 @@ final class PregValidationRule implements Rule
             }
 
             $pattern = $item->key->value;
-            $errors = array_merge($errors, $this->validatePattern($pattern, $lineNumber));
+            $errors = array_merge(
+                $errors,
+                $this->validatePattern($pattern, $lineNumber, $scope, $functionName),
+            );
         }
 
         return $errors;
@@ -225,7 +184,7 @@ final class PregValidationRule implements Rule
     /**
      * @return list<IdentifierRuleError>
      */
-    private function validatePattern(string $pattern, int $lineNumber): array
+    private function validatePattern(string $pattern, int $lineNumber, Scope $scope, string $functionName): array
     {
         if ('' === $pattern) {
             return [
@@ -237,108 +196,111 @@ final class PregValidationRule implements Rule
         }
 
         $errors = [];
+        $occurrence = new RegexPatternOccurrence(
+            $pattern,
+            $scope->getFile(),
+            $lineNumber,
+            $this->formatSource($functionName),
+        );
+        $issues = $this->getAnalysisService()->lint([$occurrence]);
 
-        try {
-            $ast = $this->getRegex()->parse($pattern);
-            $ast->accept($this->getValidator());
-        } catch (LexerException|ParserException|SyntaxErrorException $e) {
-            if ($this->ignoreParseErrors && $this->isLikelyPartialRegexError($e->getMessage())) {
-                return [];
+        foreach ($issues as $issue) {
+            if (null === ($issue['issueId'] ?? null)) {
+                $shortPattern = $this->truncatePattern($pattern);
+                $message = $this->firstLine((string) ($issue['message'] ?? 'Invalid regex.'));
+                $errors[] = RuleErrorBuilder::message(\sprintf('Regex syntax error: %s (Pattern: "%s")', $message, $shortPattern))
+                    ->line($lineNumber)
+                    ->identifier($this->getIdentifierForSyntaxError($message))
+                    ->build();
+
+                return $errors;
             }
-
-            $shortPattern = $this->truncatePattern($pattern);
-            $errors[] = RuleErrorBuilder::message(\sprintf('Regex syntax error: %s (Pattern: "%s")', $e->getMessage(), $shortPattern))
-                ->line($lineNumber)
-                ->identifier($this->getIdentifierForSyntaxError($e->getMessage()))
-                ->build();
-
-            return $errors;
         }
 
-        if ($this->reportRedos) {
-            try {
-                $analysis = $this->getRedosAnalyzer()->analyze($pattern);
-
-                if ($this->exceedsThreshold($analysis->severity)) {
-                    $identifier = match ($analysis->severity) {
-                        ReDoSSeverity::CRITICAL => self::IDENTIFIER_REDOS_CRITICAL,
-                        ReDoSSeverity::HIGH => self::IDENTIFIER_REDOS_HIGH,
-                        ReDoSSeverity::MEDIUM => self::IDENTIFIER_REDOS_MEDIUM,
-                        default => self::IDENTIFIER_REDOS_LOW,
-                    };
-
-                    $errors[] = RuleErrorBuilder::message(\sprintf(
-                        'ReDoS vulnerability detected (%s): %s',
-                        strtoupper($analysis->severity->value),
-                        $this->truncatePattern($pattern),
-                    ))
-                        ->line($lineNumber)
-                        ->tip($this->getTipForReDoS($analysis->recommendations))
-                        ->identifier($identifier)
-                        ->build();
-                }
-            } catch (\Throwable) {
+        $redosIssues = [];
+        $lintIssues = [];
+        foreach ($issues as $issue) {
+            $issueId = $issue['issueId'] ?? null;
+            if (self::ISSUE_ID_COMPLEXITY === $issueId) {
+                continue;
             }
+
+            if (self::ISSUE_ID_REDOS === $issueId) {
+                $redosIssues[] = $issue;
+
+                continue;
+            }
+
+            $lintIssues[] = $issue;
+        }
+
+        foreach ($redosIssues as $issue) {
+            if (!$this->reportRedos) {
+                continue;
+            }
+
+            $analysis = $issue['analysis'] ?? null;
+            if (!$analysis instanceof ReDoSAnalysis) {
+                continue;
+            }
+
+            $identifier = match ($analysis->severity) {
+                ReDoSSeverity::CRITICAL => self::IDENTIFIER_REDOS_CRITICAL,
+                ReDoSSeverity::HIGH => self::IDENTIFIER_REDOS_HIGH,
+                ReDoSSeverity::MEDIUM => self::IDENTIFIER_REDOS_MEDIUM,
+                default => self::IDENTIFIER_REDOS_LOW,
+            };
+
+            $errors[] = RuleErrorBuilder::message(\sprintf(
+                'ReDoS vulnerability detected (%s): %s',
+                strtoupper($analysis->severity->value),
+                $this->truncatePattern($pattern),
+            ))
+                ->line($lineNumber)
+                ->tip($this->getTipForReDoS($analysis->recommendations))
+                ->identifier($identifier)
+                ->build();
         }
 
         if ($this->suggestOptimizations) {
-            try {
-                $ast = $this->getRegex()->parse($pattern);
-                $optimizer = new \RegexParser\NodeVisitor\OptimizerNodeVisitor(
-                    optimizeDigits: (bool) $this->optimizationConfig['digits'],
-                    optimizeWord: (bool) $this->optimizationConfig['word'],
-                    strictRanges: (bool) $this->optimizationConfig['strictRanges'],
-                );
-                $optimizedAst = $ast->accept($optimizer);
-                // Use compiler to get string back
-                $compiler = new \RegexParser\NodeVisitor\CompilerNodeVisitor();
-                $optimized = $optimizedAst->accept($compiler);
-                if ($optimized !== $pattern && \strlen($optimized) < \strlen($pattern)) {
-                    // Safeguard: Validate that the optimized pattern is still valid
-                    try {
-                        $optimizedAst = $this->getRegex()->parse($optimized);
-                        $optimizedAst->accept($this->getValidator());
-                        // Additional heuristic checks
-                        if (!$this->isOptimizationSafe($pattern, $optimized)) {
-                            // Optimized pattern is unsafe, do not suggest it
-                        } else {
-                            // If we reach here, the optimized pattern is valid and safe
-                            $shortPattern = $this->truncatePattern($pattern);
+            $optimizations = $this->getAnalysisService()->suggestOptimizations(
+                [$occurrence],
+                1,
+                $this->optimizationConfig,
+            );
 
-                            $errors[] = RuleErrorBuilder::message(\sprintf('Regex pattern can be optimized: "%s"', $shortPattern))
-                                ->line($lineNumber)
-                                ->identifier(self::IDENTIFIER_OPTIMIZATION)
-                                ->tip(\sprintf('Consider using: %s', $optimized))
-                                ->build();
-                        }
-                    } catch (LexerException|ParserException|SyntaxErrorException) {
-                        // Optimized pattern is invalid, do not suggest it
-                    }
-                }
-            } catch (\Throwable) {
+            foreach ($optimizations as $optimizationEntry) {
+                $optimization = $optimizationEntry['optimization'];
+                $shortPattern = $this->truncatePattern($pattern);
+                $errors[] = RuleErrorBuilder::message(\sprintf('Regex pattern can be optimized: "%s"', $shortPattern))
+                    ->line($lineNumber)
+                    ->identifier(self::IDENTIFIER_OPTIMIZATION)
+                    ->tip(\sprintf('Consider using: %s', $optimization->optimized))
+                    ->build();
             }
         }
 
-        try {
-            $linter = new \RegexParser\NodeVisitor\LinterNodeVisitor();
-            $ast->accept($linter);
-            foreach ($linter->getIssues() as $issue) {
-                $builder = RuleErrorBuilder::message($issue->message)
-                    ->line($lineNumber)
-                    ->identifier($issue->id);
-                $tipParts = [];
-                if (null !== $issue->hint) {
-                    $tipParts[] = $issue->hint;
-                }
-                if (isset(self::LINT_DOC_LINKS[$issue->id])) {
-                    $tipParts[] = 'Read more: '.self::LINT_DOC_LINKS[$issue->id];
-                }
-                if ([] !== $tipParts) {
-                    $builder = $builder->tip(implode("\n", $tipParts));
-                }
-                $errors[] = $builder->build();
+        foreach ($lintIssues as $issue) {
+            $issueId = $issue['issueId'] ?? null;
+            if (!\is_string($issueId) || '' === $issueId) {
+                continue;
             }
-        } catch (\Throwable) {
+
+            $builder = RuleErrorBuilder::message((string) $issue['message'])
+                ->line($lineNumber)
+                ->identifier($issueId);
+            $tipParts = [];
+            $hint = $issue['hint'] ?? null;
+            if (null !== $hint && '' !== $hint) {
+                $tipParts[] = $hint;
+            }
+            if (isset(self::LINT_DOC_LINKS[$issueId])) {
+                $tipParts[] = 'Read more: '.self::LINT_DOC_LINKS[$issueId];
+            }
+            if ([] !== $tipParts) {
+                $builder = $builder->tip(implode("\n", $tipParts));
+            }
+            $errors[] = $builder->build();
         }
 
         return $errors;
@@ -353,66 +315,31 @@ final class PregValidationRule implements Rule
         return self::IDENTIFIER_SYNTAX_INVALID;
     }
 
-    private function exceedsThreshold(ReDoSSeverity $severity): bool
-    {
-        $currentLevel = match ($severity) {
-            ReDoSSeverity::SAFE => 0,
-            ReDoSSeverity::LOW => 1,
-            ReDoSSeverity::UNKNOWN => 2,
-            ReDoSSeverity::MEDIUM => 3,
-            ReDoSSeverity::HIGH => 4,
-            ReDoSSeverity::CRITICAL => 5,
-        };
-
-        $thresholdLevel = match ($this->redosThreshold) {
-            'low' => 1,
-            'medium' => 3,
-            'high' => 4,
-            'critical' => 5,
-            default => 1,
-        };
-
-        return $currentLevel >= $thresholdLevel;
-    }
-
-    private function isLikelyPartialRegexError(string $errorMessage): bool
-    {
-        $indicators = [
-            'No closing delimiter',
-            'Regex too short',
-            'Unknown modifier',
-            'Unexpected end',
-        ];
-        $found = false;
-        foreach ($indicators as $indicator) {
-            if (false !== stripos($errorMessage, (string) $indicator)) {
-                $found = true;
-
-                break;
-            }
-        }
-
-        return $found;
-    }
-
     private function truncatePattern(string $pattern, int $length = 50): string
     {
         return \strlen($pattern) > $length ? substr($pattern, 0, $length).'...' : $pattern;
     }
 
-    private function getRegex(): Regex
+    private function firstLine(string $message): string
     {
-        return $this->regex ??= Regex::create();
+        $lines = explode("\n", $message);
+
+        return $lines[0] ?? $message;
     }
 
-    private function getValidator(): ValidatorNodeVisitor
+    private function formatSource(string $functionName): string
     {
-        return $this->validator ??= new ValidatorNodeVisitor();
+        return 'php:'.$functionName.'()';
     }
 
-    private function getRedosAnalyzer(): ReDoSAnalyzer
+    private function getAnalysisService(): RegexAnalysisService
     {
-        return $this->redosAnalyzer ??= new ReDoSAnalyzer();
+        return $this->analysis ??= new RegexAnalysisService(
+            Regex::create(),
+            null,
+            redosThreshold: $this->redosThreshold,
+            ignoreParseErrors: $this->ignoreParseErrors,
+        );
     }
 
     /**

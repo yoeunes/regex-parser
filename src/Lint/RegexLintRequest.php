@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Bridge\Symfony\Service;
+namespace RegexParser\Lint;
 
 /**
  * Input parameters for a lint run.

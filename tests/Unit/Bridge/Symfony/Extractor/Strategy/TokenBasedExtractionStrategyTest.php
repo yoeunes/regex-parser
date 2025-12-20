@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Unit\Bridge\Symfony\Extractor\Strategy;
 
 use PHPUnit\Framework\TestCase;
-use RegexParser\Bridge\Symfony\Extractor\TokenBasedExtractionStrategy;
+use RegexParser\Lint\TokenBasedExtractionStrategy;
 
 final class TokenBasedExtractionStrategyTest extends TestCase
 {

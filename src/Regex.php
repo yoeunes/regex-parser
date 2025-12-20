@@ -161,13 +161,19 @@ final readonly class Regex
     /**
      * Optimize a regular expression for better performance.
      *
-     * @param string $regex The regular expression to optimize
+     * @param string                                        $regex   The regular expression to optimize
+     * @param array{digits?: bool, word?: bool, strictRanges?: bool} $options Optimization options
      *
      * @return OptimizationResult Optimization results with changes applied
      */
-    public function optimize(string $regex): OptimizationResult
+    public function optimize(string $regex, array $options = []): OptimizationResult
     {
-        $optimizedPattern = $this->compile($regex, new NodeVisitor\OptimizerNodeVisitor());
+        $optimizer = new NodeVisitor\OptimizerNodeVisitor(
+            optimizeDigits: (bool) ($options['digits'] ?? true),
+            optimizeWord: (bool) ($options['word'] ?? true),
+            strictRanges: (bool) ($options['strictRanges'] ?? true),
+        );
+        $optimizedPattern = $this->compile($regex, $optimizer);
         $appliedChanges = $optimizedPattern === $regex ? [] : ['Optimized pattern.'];
 
         return new OptimizationResult($regex, $optimizedPattern, $appliedChanges);

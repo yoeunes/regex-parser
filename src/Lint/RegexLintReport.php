@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Bridge\Symfony\Service;
+namespace RegexParser\Lint;
 
 /**
  * Output from a lint run.
@@ -28,7 +28,9 @@ namespace RegexParser\Bridge\Symfony\Service;
  *     hint?: string|null,
  *     source?: string,
  *     pattern?: string,
- *     regex?: string
+ *     regex?: string,
+ *     analysis?: \RegexParser\ReDoS\ReDoSAnalysis,
+ *     validation?: \RegexParser\ValidationResult
  * }
  * @phpstan-type OptimizationEntry array{
  *     file: string,

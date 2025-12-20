@@ -13,9 +13,9 @@ declare(strict_types=1);
 
 namespace RegexParser\Bridge\Symfony\DependencyInjection;
 
-use RegexParser\Bridge\Symfony\Extractor\ExtractorInterface;
-use RegexParser\Bridge\Symfony\Extractor\PhpStanExtractionStrategy;
-use RegexParser\Bridge\Symfony\Extractor\TokenBasedExtractionStrategy;
+use RegexParser\Lint\ExtractorInterface;
+use RegexParser\Lint\PhpStanExtractionStrategy;
+use RegexParser\Lint\TokenBasedExtractionStrategy;
 use RegexParser\Cache\FilesystemCache;
 use RegexParser\Cache\NullCache;
 use RegexParser\Cache\PsrCacheAdapter;

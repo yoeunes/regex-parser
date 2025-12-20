@@ -15,7 +15,7 @@ namespace RegexParser\Tests\Unit\Bridge\Symfony\DependencyInjection;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\Bridge\Symfony\DependencyInjection\RegexParserExtension;
-use RegexParser\Bridge\Symfony\Extractor\ExtractorInterface;
+use RegexParser\Lint\ExtractorInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 
 final class RegexParserExtensionTest extends TestCase

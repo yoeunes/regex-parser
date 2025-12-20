@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Bridge\Symfony\Extractor;
+namespace RegexParser\Lint;
 
 use PhpParser\Node;
 use PhpParser\Node\Arg;

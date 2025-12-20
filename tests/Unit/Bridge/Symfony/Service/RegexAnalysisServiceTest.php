@@ -14,8 +14,8 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Unit\Bridge\Symfony\Service;
 
 use PHPUnit\Framework\TestCase;
-use RegexParser\Bridge\Symfony\Extractor\RegexPatternOccurrence;
-use RegexParser\Bridge\Symfony\Service\RegexAnalysisService;
+use RegexParser\Lint\RegexPatternOccurrence;
+use RegexParser\Lint\RegexAnalysisService;
 use RegexParser\Regex;
 
 final class RegexAnalysisServiceTest extends TestCase

@@ -15,9 +15,9 @@ namespace RegexParser\Bridge\Symfony\Command;
 
 use RegexParser\Bridge\Symfony\Console\LinkFormatter;
 use RegexParser\Bridge\Symfony\Console\RelativePathHelper;
-use RegexParser\Bridge\Symfony\Service\RegexAnalysisService;
-use RegexParser\Bridge\Symfony\Service\RegexLintRequest;
-use RegexParser\Bridge\Symfony\Service\RegexLintService;
+use RegexParser\Lint\RegexAnalysisService;
+use RegexParser\Lint\RegexLintRequest;
+use RegexParser\Lint\RegexLintService;
 use RegexParser\OptimizationResult;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -39,7 +39,9 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  *     hint?: string|null,
  *     source?: string,
  *     pattern?: string,
- *     regex?: string
+ *     regex?: string,
+ *     analysis?: \RegexParser\ReDoS\ReDoSAnalysis,
+ *     validation?: \RegexParser\ValidationResult
  * }
  * @phpstan-type OptimizationEntry array{
  *     file: string,

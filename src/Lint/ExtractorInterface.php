@@ -11,21 +11,21 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Bridge\Symfony\Extractor;
+namespace RegexParser\Lint;
 
 /**
- * Provides regex pattern occurrences from a specific source.
+ * Interface for regex pattern extraction implementations.
  *
  * @internal
  */
-interface RegexPatternSourceInterface
+interface ExtractorInterface
 {
-    public function getName(): string;
-
-    public function isSupported(): bool;
-
     /**
+     * Extract regex patterns from the given PHP files.
+     *
+     * @param list<string> $files List of PHP file paths to analyze
+     *
      * @return list<RegexPatternOccurrence>
      */
-    public function extract(RegexPatternSourceContext $context): array;
+    public function extract(array $files): array;
 }

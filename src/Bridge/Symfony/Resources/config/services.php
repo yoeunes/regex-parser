@@ -14,8 +14,8 @@ declare(strict_types=1);
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use RegexParser\Bridge\Symfony\Command\RegexLintCommand;
-use RegexParser\Bridge\Symfony\Service\RegexAnalysisService;
-use RegexParser\Bridge\Symfony\Service\RegexLintService;
+use RegexParser\Lint\RegexAnalysisService;
+use RegexParser\Lint\RegexLintService;
 use RegexParser\Regex;
 
 /*
@@ -44,7 +44,7 @@ return static function (ContainerConfigurator $container): void {
         ->public();
 
     // Configure extractor with the determined implementation
-    $services->set('regex_parser.extractor', \RegexParser\Bridge\Symfony\Extractor\RegexPatternExtractor::class)
+    $services->set('regex_parser.extractor', \RegexParser\Lint\RegexPatternExtractor::class)
         ->args([
             '$extractor' => service('regex_parser.extractor.instance')->nullOnInvalid(),
         ]);
@@ -57,12 +57,12 @@ return static function (ContainerConfigurator $container): void {
         ->arg('$ignoredPatterns', param('regex_parser.analysis.ignore_patterns'))
         ->arg('$redosIgnoredPatterns', param('regex_parser.redos.ignored_patterns'));
 
-    $services->set('regex_parser.pattern_sources', \RegexParser\Bridge\Symfony\Extractor\RegexPatternSourceCollection::class)
+    $services->set('regex_parser.pattern_sources', \RegexParser\Lint\RegexPatternSourceCollection::class)
         ->args([
             '$sources' => tagged_iterator('regex_parser.pattern_source'),
         ]);
 
-    $services->set(\RegexParser\Bridge\Symfony\Extractor\PhpRegexPatternSource::class)
+    $services->set(\RegexParser\Lint\PhpRegexPatternSource::class)
         ->args([
             '$extractor' => service('regex_parser.extractor'),
         ])

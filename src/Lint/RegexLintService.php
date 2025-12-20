@@ -11,11 +11,11 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Bridge\Symfony\Service;
+namespace RegexParser\Lint;
 
-use RegexParser\Bridge\Symfony\Extractor\RegexPatternOccurrence;
-use RegexParser\Bridge\Symfony\Extractor\RegexPatternSourceCollection;
-use RegexParser\Bridge\Symfony\Extractor\RegexPatternSourceContext;
+use RegexParser\Lint\RegexPatternOccurrence;
+use RegexParser\Lint\RegexPatternSourceCollection;
+use RegexParser\Lint\RegexPatternSourceContext;
 use RegexParser\OptimizationResult;
 
 /**
@@ -33,7 +33,9 @@ use RegexParser\OptimizationResult;
  *     hint?: string|null,
  *     source?: string,
  *     pattern?: string,
- *     regex?: string
+ *     regex?: string,
+ *     analysis?: \RegexParser\ReDoS\ReDoSAnalysis,
+ *     validation?: \RegexParser\ValidationResult
  * }
  * @phpstan-type OptimizationEntry array{
  *     file: string,

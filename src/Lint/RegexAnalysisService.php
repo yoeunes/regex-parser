@@ -11,11 +11,11 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Bridge\Symfony\Service;
+namespace RegexParser\Lint;
 
-use RegexParser\Bridge\Symfony\Extractor\RegexPatternExtractor;
-use RegexParser\Bridge\Symfony\Extractor\RegexPatternOccurrence;
-use RegexParser\Bridge\Symfony\Extractor\TokenBasedExtractionStrategy;
+use RegexParser\Lint\RegexPatternExtractor;
+use RegexParser\Lint\RegexPatternOccurrence;
+use RegexParser\Lint\TokenBasedExtractionStrategy;
 use RegexParser\NodeVisitor\ConsoleHighlighterVisitor;
 use RegexParser\NodeVisitor\LinterNodeVisitor;
 use RegexParser\OptimizationResult;
@@ -54,6 +54,7 @@ final readonly class RegexAnalysisService
         string $redosThreshold = ReDoSSeverity::HIGH->value,
         array $ignoredPatterns = [],
         array $redosIgnoredPatterns = [],
+        private bool $ignoreParseErrors = false,
     ) {
         $this->redosSeverityThreshold = ReDoSSeverity::tryFrom(strtolower($redosThreshold)) ?? ReDoSSeverity::HIGH;
         $this->ignoredPatterns = $this->buildIgnoredPatterns($ignoredPatterns, $redosIgnoredPatterns);
@@ -85,7 +86,9 @@ final readonly class RegexAnalysisService
      *     message: string,
      *     issueId?: string,
      *     hint?: string|null,
-     *     source?: string
+     *     source?: string,
+     *     analysis?: ReDoSAnalysis,
+     *     validation?: \RegexParser\ValidationResult
      * }>
      */
     public function lint(array $patterns, ?callable $progress = null): array
@@ -96,13 +99,23 @@ final readonly class RegexAnalysisService
             $validation = $this->regex->validate($occurrence->pattern);
             $source = $occurrence->source;
             if (!$validation->isValid) {
+                $message = $validation->error ?? 'Invalid regex.';
+                if ($this->ignoreParseErrors && $this->isLikelyPartialRegexError($message)) {
+                    if ($progress) {
+                        $progress();
+                    }
+
+                    continue;
+                }
+
                 $issues[] = [
                     'type' => 'error',
                     'file' => $occurrence->file,
                     'line' => $occurrence->line,
                     'column' => 1,
-                    'message' => $validation->error ?? 'Invalid regex.',
+                    'message' => $message,
                     'source' => $source,
+                    'validation' => $validation,
                 ];
 
                 if ($progress) {
@@ -160,6 +173,7 @@ final readonly class RegexAnalysisService
                             strtoupper($redos->severity->value),
                         ),
                         'source' => $source,
+                        'analysis' => $redos,
                     ];
                 }
             }
@@ -213,7 +227,10 @@ final readonly class RegexAnalysisService
      *     source?: string
      * }>
      */
-    public function suggestOptimizations(array $patterns, int $minSavings): array
+    /**
+     * @param array{digits?: bool, word?: bool, strictRanges?: bool} $optimizationConfig
+     */
+    public function suggestOptimizations(array $patterns, int $minSavings, array $optimizationConfig = []): array
     {
         $suggestions = [];
 
@@ -225,7 +242,7 @@ final readonly class RegexAnalysisService
             }
 
             try {
-                $optimization = $this->regex->optimize($occurrence->pattern);
+                $optimization = $this->regex->optimize($occurrence->pattern, $optimizationConfig);
             } catch (\Throwable) {
                 continue;
             }
@@ -356,5 +373,23 @@ final readonly class RegexAnalysisService
     private function buildIgnoredPatterns(array $userIgnored, array $redosIgnored): array
     {
         return array_values(array_unique([...$redosIgnored, ...$userIgnored]));
+    }
+
+    private function isLikelyPartialRegexError(string $errorMessage): bool
+    {
+        $indicators = [
+            'No closing delimiter',
+            'Regex too short',
+            'Unknown modifier',
+            'Unexpected end',
+        ];
+
+        foreach ($indicators as $indicator) {
+            if (false !== stripos($errorMessage, (string) $indicator)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

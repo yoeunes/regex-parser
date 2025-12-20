@@ -13,6 +13,9 @@ declare(strict_types=1);
 
 namespace RegexParser\Bridge\Symfony\Extractor;
 
+use RegexParser\Lint\RegexPatternOccurrence;
+use RegexParser\Lint\RegexPatternSourceContext;
+use RegexParser\Lint\RegexPatternSourceInterface;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\Constraints\Regex as SymfonyRegex;
 use Symfony\Component\Validator\Mapping\ClassMetadataInterface;
