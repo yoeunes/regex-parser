@@ -15,6 +15,7 @@ namespace RegexParser\Lint;
 
 use RegexParser\NodeVisitor\ConsoleHighlighterVisitor;
 use RegexParser\NodeVisitor\LinterNodeVisitor;
+use RegexParser\OptimizationResult;
 use RegexParser\ReDoS\ReDoSAnalysis;
 use RegexParser\ReDoS\ReDoSSeverity;
 use RegexParser\Regex;
@@ -213,7 +214,8 @@ final readonly class RegexAnalysisService
     }
 
     /**
-     * @param list<RegexPatternOccurrence> $patterns
+     * @param list<RegexPatternOccurrence>                           $patterns
+     * @param array{digits?: bool, word?: bool, strictRanges?: bool} $optimizationConfig
      *
      * @return list<array{
      *     file: string,
@@ -222,9 +224,6 @@ final readonly class RegexAnalysisService
      *     savings: int,
      *     source?: string
      * }>
-     */
-    /**
-     * @param array{digits?: bool, word?: bool, strictRanges?: bool} $optimizationConfig
      */
     public function suggestOptimizations(array $patterns, int $minSavings, array $optimizationConfig = []): array
     {

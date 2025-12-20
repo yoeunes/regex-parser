@@ -7,19 +7,19 @@ parameters:
 			path: src/Bridge/Symfony/DependencyInjection/RegexParserExtension.php
 
 		-
-			rawMessage: Access to constant on internal class RegexParser\Bridge\Symfony\Extractor\PhpRegexPatternSource.
+			rawMessage: Access to constant on internal class RegexParser\Lint\PhpRegexPatternSource.
 			identifier: classConstant.internalClass
 			count: 1
 			path: src/Bridge/Symfony/Resources/config/services.php
 
 		-
-			rawMessage: Access to constant on internal class RegexParser\Bridge\Symfony\Extractor\RegexPatternExtractor.
+			rawMessage: Access to constant on internal class RegexParser\Lint\RegexPatternExtractor.
 			identifier: classConstant.internalClass
 			count: 1
 			path: src/Bridge/Symfony/Resources/config/services.php
 
 		-
-			rawMessage: Access to constant on internal class RegexParser\Bridge\Symfony\Extractor\RegexPatternSourceCollection.
+			rawMessage: Access to constant on internal class RegexParser\Lint\RegexPatternSourceCollection.
 			identifier: classConstant.internalClass
 			count: 1
 			path: src/Bridge/Symfony/Resources/config/services.php
@@ -49,7 +49,7 @@ parameters:
 			path: src/Bridge/Symfony/Resources/config/services.php
 
 		-
-			rawMessage: Access to constant on internal class RegexParser\Bridge\Symfony\Service\RegexLintService.
+			rawMessage: Access to constant on internal class RegexParser\Lint\RegexLintService.
 			identifier: classConstant.internalClass
 			count: 1
 			path: src/Bridge/Symfony/Resources/config/services.php

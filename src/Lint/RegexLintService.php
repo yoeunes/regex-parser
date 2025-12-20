@@ -86,7 +86,8 @@ final readonly class RegexLintService
         $issues = $this->analysis->lint($patterns, $progress);
         $issues = $this->filterLintIssues($issues);
 
-        $optimizations = $this->analysis->suggestOptimizations($patterns, $request->minSavings);
+        /** @var list<array{file: string, line: int, optimization: OptimizationResult, savings: int, source?: string}> $optimizations */
+        $optimizations = array_values($this->analysis->suggestOptimizations($patterns, $request->minSavings));
 
         $results = $this->combineResults($issues, $optimizations, $patterns);
 

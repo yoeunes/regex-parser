@@ -156,6 +156,44 @@ final class PregValidationRule implements Rule
         return $errors;
     }
 
+    public function isOptimizationSafe(string $original, string $optimized): bool
+    {
+        $delimiter = $optimized[0] ?? '';
+        if ('' === $delimiter) {
+            return false;
+        }
+
+        $lastDelimiterPos = strrpos($optimized, $delimiter);
+        if (false === $lastDelimiterPos || 0 === $lastDelimiterPos) {
+            return false;
+        }
+
+        $patternPart = substr($optimized, 1, $lastDelimiterPos - 1);
+
+        $originalDelimiter = $original[0] ?? '';
+        $originalPatternPart = '';
+        if ('' !== $originalDelimiter) {
+            $originalLastPos = strrpos($original, $originalDelimiter);
+            if (false !== $originalLastPos) {
+                $originalPatternPart = substr($original, 1, $originalLastPos - 1);
+            }
+        }
+
+        if ('' === $patternPart) {
+            return false;
+        }
+
+        if (\strlen($patternPart) < 2) {
+            return false;
+        }
+
+        if (str_contains($originalPatternPart, '\n') && !str_contains($patternPart, '\n')) {
+            return false;
+        }
+
+        return true;
+    }
+
     /**
      * @return list<IdentifierRuleError>
      */
@@ -263,6 +301,7 @@ final class PregValidationRule implements Rule
         }
 
         if ($this->suggestOptimizations) {
+            /** @var list<array{file: string, line: int, optimization: \RegexParser\OptimizationResult, savings: int, source?: string}> $optimizations */
             $optimizations = $this->getAnalysisService()->suggestOptimizations(
                 [$occurrence],
                 1,
@@ -270,7 +309,11 @@ final class PregValidationRule implements Rule
             );
 
             foreach ($optimizations as $optimizationEntry) {
+                /** @var \RegexParser\OptimizationResult $optimization */
                 $optimization = $optimizationEntry['optimization'];
+                if (!$this->isOptimizationSafe($pattern, $optimization->optimized)) {
+                    continue;
+                }
                 $shortPattern = $this->truncatePattern($pattern);
                 $errors[] = RuleErrorBuilder::message(\sprintf('Regex pattern can be optimized: "%s"', $shortPattern))
                     ->line($lineNumber)
