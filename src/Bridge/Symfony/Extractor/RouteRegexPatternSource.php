@@ -66,6 +66,7 @@ final readonly class RouteRegexPatternSource implements RegexPatternSourceInterf
             $routeLocation = $yamlIndex[$name] ?? null;
             $file = $routeLocation['file'] ?? $defaultYamlFile ?? 'Symfony routes';
             $routeLine = $routeLocation['line'] ?? null;
+            $requirementLines = $routeLocation['requirements'] ?? [];
             $location = null === $routeLine ? $this->formatRouteLocation($name, $route, $hasYamlResources) : null;
 
             foreach ($route->getRequirements() as $parameter => $requirement) {
@@ -82,7 +83,7 @@ final readonly class RouteRegexPatternSource implements RegexPatternSourceInterf
                 $patterns[] = new RegexPatternOccurrence(
                     $normalized,
                     $file,
-                    $routeLine ?? $lineCounter--,
+                    $requirementLines[$parameter] ?? $routeLine ?? $lineCounter--,
                     'route:'.$name.':'.$parameter,
                     $pattern,
                     $location,
@@ -125,16 +126,20 @@ final readonly class RouteRegexPatternSource implements RegexPatternSourceInterf
      * @param list<string>        $yamlFiles
      * @param array<string, bool> $routeNames
      *
-     * @return array<string, array{file: string, line: int}>
+     * @return array<string, array{file: string, line: int, requirements: array<string, int>}>
      */
     private function buildYamlRouteIndex(array $yamlFiles, array $routeNames): array
     {
         $index = [];
 
         foreach ($yamlFiles as $path) {
-            $routes = $this->extractYamlRouteNames($path, $routeNames);
+            $routes = $this->extractYamlRouteMetadata($path, $routeNames);
             foreach ($routes as $name => $line) {
-                $index[$name] ??= ['file' => $path, 'line' => $line];
+                $index[$name] ??= [
+                    'file' => $path,
+                    'line' => $line['line'],
+                    'requirements' => $line['requirements'],
+                ];
             }
         }
 
@@ -144,9 +149,9 @@ final readonly class RouteRegexPatternSource implements RegexPatternSourceInterf
     /**
      * @param array<string, bool> $routeNames
      *
-     * @return array<string, int>
+     * @return array<string, array{line: int, requirements: array<string, int>}>
      */
-    private function extractYamlRouteNames(string $path, array $routeNames): array
+    private function extractYamlRouteMetadata(string $path, array $routeNames): array
     {
         $lines = @file($path, \FILE_IGNORE_NEW_LINES);
         if (false === $lines) {
@@ -156,6 +161,10 @@ final readonly class RouteRegexPatternSource implements RegexPatternSourceInterf
         $routes = [];
         $whenIndent = null;
         $whenRouteIndent = null;
+        $currentRoute = null;
+        $routeIndent = null;
+        $requirementsIndent = null;
+        $requirementsEntryIndent = null;
 
         foreach ($lines as $index => $line) {
             $trimmed = ltrim($line);
@@ -164,23 +173,52 @@ final readonly class RouteRegexPatternSource implements RegexPatternSourceInterf
             }
 
             $indent = \strlen($line) - \strlen($trimmed);
+            $key = $this->extractKeyFromLine($line);
+
             if (null !== $whenIndent && $indent <= $whenIndent) {
                 $whenIndent = null;
                 $whenRouteIndent = null;
             }
 
-            if (!preg_match('/^(\s*)(?:\'([^\']+)\'|"([^"]+)"|([A-Za-z0-9_.-]+))\s*:(?:\s*#.*)?$/', $line, $matches)) {
-                continue;
+            if (null !== $currentRoute && $indent <= $routeIndent) {
+                $currentRoute = null;
+                $routeIndent = null;
+                $requirementsIndent = null;
+                $requirementsEntryIndent = null;
             }
 
-            $name = $matches[2] ?: $matches[3] ?: $matches[4];
-            if ('' === $name) {
-                continue;
+            if (null !== $currentRoute) {
+                if (null !== $requirementsIndent && $indent <= $requirementsIndent) {
+                    $requirementsIndent = null;
+                    $requirementsEntryIndent = null;
+                }
+
+                if (null === $requirementsIndent && 'requirements' === $key && $indent > $routeIndent) {
+                    $requirementsIndent = $indent;
+                    $requirementsEntryIndent = null;
+                    continue;
+                }
+
+                if (null !== $requirementsIndent && $indent > $requirementsIndent) {
+                    if (null === $requirementsEntryIndent) {
+                        $requirementsEntryIndent = $indent;
+                    }
+
+                    if ($indent === $requirementsEntryIndent && null !== $key) {
+                        $routes[$currentRoute]['requirements'][$key] ??= $index + 1;
+                    }
+
+                    continue;
+                }
             }
 
-            if (0 === $indent && str_starts_with($name, 'when@')) {
+            if (null !== $key && 0 === $indent && str_starts_with($key, 'when@')) {
                 $whenIndent = $indent;
                 $whenRouteIndent = null;
+                continue;
+            }
+
+            if (null === $key || !isset($routeNames[$key])) {
                 continue;
             }
 
@@ -196,14 +234,24 @@ final readonly class RouteRegexPatternSource implements RegexPatternSourceInterf
                 continue;
             }
 
-            if (!isset($routeNames[$name])) {
-                continue;
-            }
-
-            $routes[$name] ??= $index + 1;
+            $currentRoute = $key;
+            $routeIndent = $indent;
+            $requirementsIndent = null;
+            $requirementsEntryIndent = null;
+            $routes[$key]['line'] ??= $index + 1;
+            $routes[$key]['requirements'] ??= [];
         }
 
         return $routes;
+    }
+
+    private function extractKeyFromLine(string $line): ?string
+    {
+        if (!preg_match('/^\s*(?:\'([^\']+)\'|"([^"]+)"|([A-Za-z0-9_.-]+))\s*:/', $line, $matches)) {
+            return null;
+        }
+
+        return $matches[1] ?: $matches[2] ?: $matches[3];
     }
 
     private function formatRouteLocation(string $name, Route $route, bool $hasYamlResources): ?string
