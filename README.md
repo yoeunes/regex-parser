@@ -203,10 +203,10 @@ Most high‑level methods (`parse`, `validate`, `analyzeReDoS`) expect a **full 
 $ast = $regex->parse('/pattern/ims');
 ```
 
-If you only have the body, `parsePattern()` will wrap delimiters/flags for you:
+If you only have the pattern body, you can construct the full regex string manually:
 
 ```php
-$ast = $regex->parsePattern('a|b', '#', 'i');
+$ast = $regex->parse('#a|b#i');
 ```
 
 If you already have just the pattern body, you can go lower‑level:
@@ -556,7 +556,7 @@ final readonly class Regex
 
     public function parse(string $regex): Node\RegexNode;
     
-    public function parsePattern(string $pattern, string $delimiter = '/', string $flags = ''): Node\RegexNode;
+    
 
     public function parseTolerant(string $regex): TolerantParseResult;
 
@@ -597,7 +597,7 @@ Return types like `ValidationResult`, `OptimizationResult`, `LiteralExtractionRe
 ## Exceptions
 
 - `Regex::create()` throws `InvalidRegexOptionException` for unknown/invalid options.
-- `parse()` / `parsePattern()` can throw `LexerException`, `SyntaxErrorException` (syntax/structure), `RecursionLimitException` (too deep), and `ResourceLimitException` (pattern too long).
+- `parse()` can throw `LexerException`, `SyntaxErrorException` (syntax/structure), `RecursionLimitException` (too deep), and `ResourceLimitException` (pattern too long).
 - `parseTolerant()` wraps those errors into `TolerantParseResult` instead of throwing.
 - `validate()` converts parser/lexer errors into a `ValidationResult` (no exception on invalid input).
 - `analyzeReDoS()` / `isSafe()` share the same parsing exceptions as `parse()`; `isSafe()` is a boolean wrapper around `analyzeReDoS()`.

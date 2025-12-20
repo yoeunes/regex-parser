@@ -69,17 +69,6 @@ final readonly class Regex
         return $result instanceof TolerantParseResult ? $result : new TolerantParseResult($result);
     }
 
-    public function parsePattern(string $pattern, string $delimiter = '/', string $flags = ''): RegexNode
-    {
-        if (1 !== \strlen($delimiter) || ctype_alnum($delimiter)) {
-            throw new ParserException('Delimiter must be a single non-alphanumeric character.');
-        }
-
-        $regex = $delimiter.$pattern.$delimiter.$flags;
-
-        return $this->parse($regex);
-    }
-
     public function validate(string $regex): ValidationResult
     {
         try {

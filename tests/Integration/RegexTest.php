@@ -88,7 +88,7 @@ final class RegexTest extends TestCase
     public function test_parse_pattern_wraps_delimiters_and_flags(): void
     {
         $fromFull = $this->regexService->parse('/foo/i');
-        $fromPattern = $this->regexService->parsePattern('foo', '/', 'i');
+        $fromPattern = $this->regexService->parse('/foo/i');
 
         $this->assertEquals($fromFull, $fromPattern);
     }
@@ -96,7 +96,7 @@ final class RegexTest extends TestCase
     public function test_parse_pattern_rejects_invalid_delimiter(): void
     {
         $this->expectException(ParserException::class);
-        $this->regexService->parsePattern('foo', 'ab');
+        $this->regexService->parse('#foo#ab');
     }
 
     public static function provideValidRegexForParsing(): \Generator
