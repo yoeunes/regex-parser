@@ -66,11 +66,11 @@ final class RegexLintCommandTest extends TestCase
         $status = $tester->execute(['paths' => ['nonexistent'], '--format' => 'json']);
 
         $this->assertSame(0, $status);
-        
+
         $output = $tester->getDisplay();
         $this->assertStringNotContainsString('No regex patterns found', $output);
         $this->assertStringNotContainsString('Regex Parser', $output);
-        
+
         // Should be valid JSON
         $data = json_decode($output, true);
         $this->assertIsArray($data);

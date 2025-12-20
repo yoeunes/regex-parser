@@ -28,9 +28,6 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
-use function json_encode;
-use const JSON_THROW_ON_ERROR;
-
 /**
  * @phpstan-type LintIssue array{
  *     type: string,
@@ -165,16 +162,17 @@ final class RegexLintCommand extends Command
         $minSavings = is_numeric($minSavingsValue) ? (int) $minSavingsValue : 1;
         $skipRoutes = (bool) $input->getOption('no-routes');
         $skipValidators = (bool) $input->getOption('no-validators');
-        $format = $input->getOption('format') ?? 'console';
+        $formatOption = $input->getOption('format');
+        $format = \is_string($formatOption) ? $formatOption : 'console';
 
-        if (!in_array($format, ['console', 'json'], true)) {
-            $io->error("Invalid format '{$format}'. Supported formats: console, json");
+        if (!\in_array($format, ['console', 'json'], true)) {
+            $io->error('Invalid format \''.$format.'\'. Supported formats: console, json');
 
             return Command::FAILURE;
         }
 
         // Only show banner and progress for console format
-        if ($format === 'console') {
+        if ('console' === $format) {
             $this->showBanner($io);
         }
 
@@ -190,10 +188,10 @@ final class RegexLintCommand extends Command
             );
             $patterns = $this->lint->collectPatterns($request);
         } catch (\Throwable $e) {
-            if ($format === 'json') {
+            if ('json' === $format) {
                 $output->writeln(json_encode([
                     'error' => "Failed to collect patterns: {$e->getMessage()}",
-                ], JSON_THROW_ON_ERROR));
+                ], \JSON_THROW_ON_ERROR));
 
                 return Command::FAILURE;
             }
@@ -204,11 +202,11 @@ final class RegexLintCommand extends Command
         }
 
         if (empty($patterns)) {
-            if ($format === 'json') {
+            if ('json' === $format) {
                 $output->writeln(json_encode([
                     'stats' => $this->createStats(),
                     'results' => [],
-                ], JSON_THROW_ON_ERROR));
+                ], \JSON_THROW_ON_ERROR));
 
                 return Command::SUCCESS;
             }
@@ -218,7 +216,7 @@ final class RegexLintCommand extends Command
             return Command::SUCCESS;
         }
 
-        if ($format === 'console') {
+        if ('console' === $format) {
             $io->progressStart(\count($patterns));
             $progressCallback = fn () => $io->progressAdvance();
         } else {
@@ -227,7 +225,7 @@ final class RegexLintCommand extends Command
 
         $report = $this->lint->analyze($patterns, $request, $progressCallback);
 
-        if ($format === 'console') {
+        if ('console' === $format) {
             $io->progressFinish();
         }
 
@@ -238,11 +236,11 @@ final class RegexLintCommand extends Command
             usort($allResults, fn ($a, $b) => $this->getSeverityScore($b) <=> $this->getSeverityScore($a));
         }
 
-        if ($format === 'json') {
+        if ('json' === $format) {
             $output->writeln(json_encode([
                 'stats' => $stats,
                 'results' => $allResults,
-            ], JSON_THROW_ON_ERROR));
+            ], \JSON_THROW_ON_ERROR));
         } else {
             if (!empty($allResults)) {
                 $this->displayResults($io, $allResults);
