@@ -13,11 +13,11 @@ declare(strict_types=1);
 
 namespace RegexParser\Bridge\Symfony\Extractor;
 
+use RegexParser\Bridge\Symfony\Routing\RouteControllerFileResolver;
+use RegexParser\Bridge\Symfony\Routing\RouteRequirementNormalizer;
 use RegexParser\Lint\RegexPatternOccurrence;
 use RegexParser\Lint\RegexPatternSourceContext;
 use RegexParser\Lint\RegexPatternSourceInterface;
-use RegexParser\Bridge\Symfony\Routing\RouteControllerFileResolver;
-use RegexParser\Bridge\Symfony\Routing\RouteRequirementNormalizer;
 use Symfony\Component\Routing\RouterInterface;
 
 /**

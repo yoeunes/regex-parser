@@ -13,12 +13,12 @@ declare(strict_types=1);
 
 namespace RegexParser\Bridge\Symfony\DependencyInjection;
 
-use RegexParser\Lint\ExtractorInterface;
-use RegexParser\Lint\PhpStanExtractionStrategy;
-use RegexParser\Lint\TokenBasedExtractionStrategy;
 use RegexParser\Cache\FilesystemCache;
 use RegexParser\Cache\NullCache;
 use RegexParser\Cache\PsrCacheAdapter;
+use RegexParser\Lint\ExtractorInterface;
+use RegexParser\Lint\PhpStanExtractionStrategy;
+use RegexParser\Lint\TokenBasedExtractionStrategy;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;

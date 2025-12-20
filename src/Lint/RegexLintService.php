@@ -13,9 +13,6 @@ declare(strict_types=1);
 
 namespace RegexParser\Lint;
 
-use RegexParser\Lint\RegexPatternOccurrence;
-use RegexParser\Lint\RegexPatternSourceCollection;
-use RegexParser\Lint\RegexPatternSourceContext;
 use RegexParser\OptimizationResult;
 
 /**

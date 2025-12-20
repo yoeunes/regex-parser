@@ -161,7 +161,7 @@ final readonly class Regex
     /**
      * Optimize a regular expression for better performance.
      *
-     * @param string                                        $regex   The regular expression to optimize
+     * @param string                                                 $regex   The regular expression to optimize
      * @param array{digits?: bool, word?: bool, strictRanges?: bool} $options Optimization options
      *
      * @return OptimizationResult Optimization results with changes applied

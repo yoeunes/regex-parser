@@ -13,12 +13,8 @@ declare(strict_types=1);
 
 namespace RegexParser\Lint;
 
-use RegexParser\Lint\RegexPatternExtractor;
-use RegexParser\Lint\RegexPatternOccurrence;
-use RegexParser\Lint\TokenBasedExtractionStrategy;
 use RegexParser\NodeVisitor\ConsoleHighlighterVisitor;
 use RegexParser\NodeVisitor\LinterNodeVisitor;
-use RegexParser\OptimizationResult;
 use RegexParser\ReDoS\ReDoSAnalysis;
 use RegexParser\ReDoS\ReDoSSeverity;
 use RegexParser\Regex;
