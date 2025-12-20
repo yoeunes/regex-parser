@@ -216,10 +216,9 @@ final readonly class Regex
     {
         $ast = $this->parse($regex, false);
 
-        /** @var Node\NodeInterface $transformedAst */
-        $transformedAst = $ast->accept($transformer);
+        $transformed = $ast->accept($transformer);
 
-        return $transformedAst->accept(new NodeVisitor\CompilerNodeVisitor());
+        return $transformed->accept(new NodeVisitor\CompilerNodeVisitor());
     }
 
     /**
