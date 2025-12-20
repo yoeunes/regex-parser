@@ -16,6 +16,7 @@ namespace RegexParser\Tests\Integration;
 use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\ParserException;
+use RegexParser\NodeVisitor\DumperNodeVisitor;
 use RegexParser\ReDoS\ReDoSSeverity;
 use RegexParser\Regex;
 
@@ -421,21 +422,21 @@ final class ComprehensivePublicAPITest extends TestCase
 
     public function test_extract_literals_simple_prefix(): void
     {
-        $literals = $this->regexService->extractLiterals('/user_\d+/');
+        $literals = $this->regexService->literals('/user_\d+/');
         $prefix = $literals->literalSet->getLongestPrefix();
         $this->assertSame('user_', $prefix);
     }
 
     public function test_extract_literals_simple_suffix(): void
     {
-        $literals = $this->regexService->extractLiterals('/\d+@example\.com/');
+        $literals = $this->regexService->literals('/\d+@example\.com/');
         $suffix = $literals->literalSet->getLongestSuffix();
         $this->assertSame('@example.com', $suffix);
     }
 
     public function test_extract_literals_both_prefix_and_suffix(): void
     {
-        $literals = $this->regexService->extractLiterals('/start_\d+_end/');
+        $literals = $this->regexService->literals('/start_\d+_end/');
         $prefix = $literals->literalSet->getLongestPrefix();
         $suffix = $literals->literalSet->getLongestSuffix();
 
@@ -445,7 +446,7 @@ final class ComprehensivePublicAPITest extends TestCase
 
     public function test_extract_literals_no_literals_in_pure_quantifier(): void
     {
-        $literals = $this->regexService->extractLiterals('/\d+/');
+        $literals = $this->regexService->literals('/\d+/');
         $prefix = $literals->literalSet->getLongestPrefix();
         // May return null or empty string when no literals found
         $this->assertTrue('' === $prefix || null === $prefix);
@@ -453,21 +454,21 @@ final class ComprehensivePublicAPITest extends TestCase
 
     public function test_extract_literals_full_literal_pattern(): void
     {
-        $literals = $this->regexService->extractLiterals('/exactly_this/');
+        $literals = $this->regexService->literals('/exactly_this/');
         $prefix = $literals->literalSet->getLongestPrefix();
         $this->assertSame('exactly_this', $prefix);
     }
 
     public function test_extract_literals_complex_pattern(): void
     {
-        $literals = $this->regexService->extractLiterals('/error: .+/');
+        $literals = $this->regexService->literals('/error: .+/');
         $prefix = $literals->literalSet->getLongestPrefix();
         $this->assertSame('error: ', $prefix);
     }
 
     public function test_analyze_redos_safe_pattern(): void
     {
-        $analysis = $this->regexService->analyzeReDoS('/^hello$/');
+        $analysis = $this->regexService->redos('/^hello$/');
         $this->assertSame(ReDoSSeverity::SAFE, $analysis->severity);
         $this->assertTrue($analysis->isSafe());
         $this->assertSame(0, $analysis->score);
@@ -475,7 +476,7 @@ final class ComprehensivePublicAPITest extends TestCase
 
     public function test_analyze_redos_critical_nested_quantifiers(): void
     {
-        $analysis = $this->regexService->analyzeReDoS('/(a+)+b/');
+        $analysis = $this->regexService->redos('/(a+)+b/');
         $this->assertSame(ReDoSSeverity::CRITICAL, $analysis->severity);
         $this->assertFalse($analysis->isSafe());
         $this->assertSame(10, $analysis->score);
@@ -483,7 +484,7 @@ final class ComprehensivePublicAPITest extends TestCase
 
     public function test_analyze_redos_critical_alternation(): void
     {
-        $analysis = $this->regexService->analyzeReDoS('/(a|a)*/');
+        $analysis = $this->regexService->redos('/(a|a)*/');
         $this->assertSame(ReDoSSeverity::CRITICAL, $analysis->severity);
         $this->assertFalse($analysis->isSafe());
         $this->assertSame(10, $analysis->score);
@@ -491,7 +492,7 @@ final class ComprehensivePublicAPITest extends TestCase
 
     public function test_analyze_redos_low_bounded_quantifiers(): void
     {
-        $analysis = $this->regexService->analyzeReDoS('/(a{1,5}){1,5}/');
+        $analysis = $this->regexService->redos('/(a{1,5}){1,5}/');
         // Bounded quantifiers are considered safe in current implementation
         $this->assertContains($analysis->severity, [ReDoSSeverity::SAFE, ReDoSSeverity::LOW]);
         $this->assertGreaterThanOrEqual(0, $analysis->score);
@@ -500,7 +501,7 @@ final class ComprehensivePublicAPITest extends TestCase
 
     public function test_analyze_redos_safe_single_quantifier(): void
     {
-        $analysis = $this->regexService->analyzeReDoS('/a+b/');
+        $analysis = $this->regexService->redos('/a+b/');
         $this->assertContains(
             $analysis->severity,
             [ReDoSSeverity::SAFE, ReDoSSeverity::MEDIUM],
@@ -510,14 +511,14 @@ final class ComprehensivePublicAPITest extends TestCase
 
     public function test_analyze_redos_provides_recommendations(): void
     {
-        $analysis = $this->regexService->analyzeReDoS('/(a+)+/');
+        $analysis = $this->regexService->redos('/(a+)+/');
         $this->assertIsArray($analysis->recommendations);
         $this->assertNotEmpty($analysis->recommendations);
     }
 
     public function test_analyze_redos_email_pattern(): void
     {
-        $analysis = $this->regexService->analyzeReDoS('/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i');
+        $analysis = $this->regexService->redos('/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i');
         $this->assertContains(
             $analysis->severity,
             [ReDoSSeverity::SAFE, ReDoSSeverity::LOW, ReDoSSeverity::MEDIUM],
@@ -527,7 +528,7 @@ final class ComprehensivePublicAPITest extends TestCase
 
     public function test_analyze_redos_safe_character_class(): void
     {
-        $analysis = $this->regexService->analyzeReDoS('/[a-z]+/');
+        $analysis = $this->regexService->redos('/[a-z]+/');
         $this->assertContains(
             $analysis->severity,
             [ReDoSSeverity::SAFE, ReDoSSeverity::MEDIUM],
@@ -537,7 +538,7 @@ final class ComprehensivePublicAPITest extends TestCase
 
     public function test_dump_returns_ast_representation(): void
     {
-        $dump = $this->regexService->dump('/hello/');
+        $dump = $this->regexService->parse('/hello/')->accept(new DumperNodeVisitor());
         $this->assertIsString($dump);
         $this->assertNotEmpty($dump);
     }
@@ -611,7 +612,7 @@ final class ComprehensivePublicAPITest extends TestCase
 
     public function test_extract_literals_with_groups(): void
     {
-        $literals = $this->regexService->extractLiterals('/prefix_(foo|bar)_suffix/');
+        $literals = $this->regexService->literals('/prefix_(foo|bar)_suffix/');
         $prefix = $literals->literalSet->getLongestPrefix();
         // Current implementation may vary on how it handles alternations
         $this->assertIsString($prefix ?? '');
@@ -621,7 +622,7 @@ final class ComprehensivePublicAPITest extends TestCase
     public function test_analyze_redos_complex_email_pattern(): void
     {
         $pattern = '/^([a-zA-Z0-9._%-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})$/';
-        $analysis = $this->regexService->analyzeReDoS($pattern);
+        $analysis = $this->regexService->redos($pattern);
 
         $this->assertContains($analysis->severity, [
             ReDoSSeverity::SAFE,

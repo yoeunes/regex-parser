@@ -30,7 +30,7 @@ final class TolerantParserTest extends TestCase
 
     public function test_returns_partial_ast_and_errors(): void
     {
-        $result = $this->regex->parseTolerant('/(a+/');
+        $result = $this->regex->parse('/(a+/', true);
 
         $this->assertTrue($result->hasErrors());
         $this->assertInstanceOf(ParserException::class, $result->errors[0]);
@@ -41,7 +41,7 @@ final class TolerantParserTest extends TestCase
 
     public function test_successful_parse_has_no_errors(): void
     {
-        $result = $this->regex->parseTolerant('/abc/');
+        $result = $this->regex->parse('/abc/', true);
 
         $this->assertFalse($result->hasErrors());
     }

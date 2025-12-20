@@ -114,14 +114,15 @@ use RegexParser\ReDoS\ReDoSSeverity;
 $regex = Regex::create();
 
 // Dangerous pattern
-$analysis = $regex->analyzeReDoS('/(a+)+b/');
+$analysis = $regex->redos('/(a+)+b/');
 echo "ReDoS Severity: " . $analysis->severity->value; // "critical"
 
 // Safe pattern
-$analysis = $regex->analyzeReDoS('/a+b/');
+$analysis = $regex->redos('/a+b/');
 echo "ReDoS Severity: " . $analysis->severity->value; // "safe"
 
-if (!$regex->isSafe('/(a+)+b/', ReDoSSeverity::HIGH)) {
+$analysis = $regex->redos('/(a+)+b/', ReDoSSeverity::HIGH);
+if ($analysis->exceedsThreshold(ReDoSSeverity::HIGH)) {
     echo "Block untrusted input for this pattern.";
 }
 ```
@@ -158,7 +159,7 @@ Find fixed strings in patterns (for optimization).
 use RegexParser\Regex;
 
 $regex = Regex::create();
-$literals = $regex->extractLiterals('/prefix-\d+-suffix/');
+$literals = $regex->literals('/prefix-\d+-suffix/');
 
 print_r($literals->literals);
 /*

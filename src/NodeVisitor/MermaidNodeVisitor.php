@@ -20,7 +20,7 @@ use RegexParser\Node;
  *
  * Purpose: This visitor is a powerful debugging and documentation tool that translates
  * the AST into a visual flowchart using Mermaid.js syntax. It's the engine behind the
- * `Regex::visualize()` method. For contributors, this class is an excellent example of
+ * `Regex::parse()` + MermaidNodeVisitor usage. For contributors, this class is an excellent example of
  * how to perform a complex transformation on the AST to produce a structured, text-based
  * output. Each `visit` method is responsible for creating the correct Mermaid.js syntax
  * for a specific AST node.

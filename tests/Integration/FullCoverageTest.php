@@ -17,6 +17,7 @@ use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
+use RegexParser\Lexer;
 use RegexParser\NodeVisitor\ExplainNodeVisitor;
 use RegexParser\NodeVisitor\HtmlExplainNodeVisitor;
 use RegexParser\NodeVisitor\OptimizerNodeVisitor;
@@ -41,7 +42,7 @@ final class FullCoverageTest extends TestCase
         $this->expectException(LexerException::class);
         $this->expectExceptionMessage('Unable to tokenize');
 
-        $this->regexService->getLexer()->tokenize('abc\\');
+        (new Lexer())->tokenize('abc\\');
     }
 
     public function test_lexer_unclosed_character_class(): void
@@ -49,7 +50,7 @@ final class FullCoverageTest extends TestCase
         $this->expectException(LexerException::class);
         $this->expectExceptionMessage('Unclosed character class');
 
-        $this->regexService->getLexer()->tokenize('[abc');
+        (new Lexer())->tokenize('[abc');
     }
 
     public function test_lexer_unclosed_comment(): void
@@ -57,14 +58,14 @@ final class FullCoverageTest extends TestCase
         $this->expectException(LexerException::class);
         $this->expectExceptionMessage('Unclosed comment');
 
-        $this->regexService->getLexer()->tokenize('(?#comment without closing');
+        (new Lexer())->tokenize('(?#comment without closing');
     }
 
     public function test_lexer_comment_at_end_of_string(): void
     {
         // Test comment mode that reaches end of string
         try {
-            $this->regexService->getLexer()->tokenize('abc(?#test');
+            (new Lexer())->tokenize('abc(?#test');
             $this->fail('Expected LexerException');
         } catch (LexerException $e) {
             $this->assertStringContainsString('Unclosed comment', $e->getMessage());

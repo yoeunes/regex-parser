@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
+use RegexParser\Lexer;
 use RegexParser\NodeVisitor\ExplainNodeVisitor;
 use RegexParser\NodeVisitor\HtmlExplainNodeVisitor;
 use RegexParser\NodeVisitor\OptimizerNodeVisitor;
@@ -469,49 +470,49 @@ final class ExtendedCoverageTest extends TestCase
 
     public function test_lexer_all_escape_sequences_in_char_class(): void
     {
-        $tokens = $this->regexService->getLexer()->tokenize('[\\t\\n\\r\\f\\v\\e\\d\\s\\w]')->getTokens();
+        $tokens = (new Lexer())->tokenize('[\\t\\n\\r\\f\\v\\e\\d\\s\\w]')->getTokens();
         $this->assertNotEmpty($tokens);
     }
 
     public function test_lexer_unicode_props_in_char_class(): void
     {
-        $tokens = $this->regexService->getLexer()->tokenize('[\\p{L}\\P{L}]')->getTokens();
+        $tokens = (new Lexer())->tokenize('[\\p{L}\\P{L}]')->getTokens();
         $this->assertNotEmpty($tokens);
     }
 
     public function test_lexer_posix_in_char_class(): void
     {
-        $tokens = $this->regexService->getLexer()->tokenize('[[:alpha:][:digit:]]')->getTokens();
+        $tokens = (new Lexer())->tokenize('[[:alpha:][:digit:]]')->getTokens();
         $this->assertNotEmpty($tokens);
     }
 
     public function test_lexer_backref_variations(): void
     {
-        $tokens = $this->regexService->getLexer()->tokenize('\\1\\k<name>\\k{name}')->getTokens();
+        $tokens = (new Lexer())->tokenize('\\1\\k<name>\\k{name}')->getTokens();
         $this->assertNotEmpty($tokens);
     }
 
     public function test_lexer_g_reference_all_forms(): void
     {
-        $tokens = $this->regexService->getLexer()->tokenize('\\g1\\g{1}\\g<name>\\g-1\\g+1')->getTokens();
+        $tokens = (new Lexer())->tokenize('\\g1\\g{1}\\g<name>\\g-1\\g+1')->getTokens();
         $this->assertNotEmpty($tokens);
     }
 
     public function test_lexer_pcre_verbs(): void
     {
-        $tokens = $this->regexService->getLexer()->tokenize('(*ACCEPT)(*FAIL)(*MARK:name)')->getTokens();
+        $tokens = (new Lexer())->tokenize('(*ACCEPT)(*FAIL)(*MARK:name)')->getTokens();
         $this->assertNotEmpty($tokens);
     }
 
     public function test_lexer_quote_mode_with_backslash(): void
     {
-        $tokens = $this->regexService->getLexer()->tokenize('\\Q\\\\E')->getTokens();
+        $tokens = (new Lexer())->tokenize('\\Q\\\\E')->getTokens();
         $this->assertNotEmpty($tokens);
     }
 
     public function test_lexer_quote_mode_with_metacharacters(): void
     {
-        $tokens = $this->regexService->getLexer()->tokenize('\\Q.*+?^$[](){}|\\E')->getTokens();
+        $tokens = (new Lexer())->tokenize('\\Q.*+?^$[](){}|\\E')->getTokens();
         $this->assertNotEmpty($tokens);
     }
 }

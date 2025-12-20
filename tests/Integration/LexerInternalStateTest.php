@@ -14,26 +14,19 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
-use RegexParser\Regex;
+use RegexParser\Lexer;
 use RegexParser\Tests\TestUtils\LexerAccessor;
 use RegexParser\Token;
 
 final class LexerInternalStateTest extends TestCase
 {
-    private Regex $regexService;
-
-    protected function setUp(): void
-    {
-        $this->regexService = Regex::create();
-    }
-
     /**
      * Covers the end of consumeCommentMode when the closing parenthesis is missing.
      * Normally tokenize() throws an exception afterwards, but we want to cover the internal "return null".
      */
     public function test_lex_comment_mode_unterminated_returns_null(): void
     {
-        $lexer = $this->regexService->getLexer();
+        $lexer = new Lexer();
         $accessor = new LexerAccessor($lexer);
 
         // Set up internal state directly without calling tokenize() to avoid post-processing exception
@@ -59,7 +52,7 @@ final class LexerInternalStateTest extends TestCase
      */
     public function test_lex_quote_mode_unterminated_returns_null(): void
     {
-        $lexer = $this->regexService->getLexer();
+        $lexer = new Lexer();
         $accessor = new LexerAccessor($lexer);
 
         $lexer->tokenize('\Q ... sans fin');

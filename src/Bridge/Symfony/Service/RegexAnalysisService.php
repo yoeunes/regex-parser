@@ -16,6 +16,7 @@ namespace RegexParser\Bridge\Symfony\Service;
 use RegexParser\Bridge\Symfony\Extractor\RegexPatternExtractor;
 use RegexParser\Bridge\Symfony\Extractor\RegexPatternOccurrence;
 use RegexParser\Bridge\Symfony\Extractor\TokenBasedExtractionStrategy;
+use RegexParser\NodeVisitor\ConsoleHighlighterVisitor;
 use RegexParser\NodeVisitor\LinterNodeVisitor;
 use RegexParser\OptimizationResult;
 use RegexParser\ReDoS\ReDoSAnalysis;
@@ -44,6 +45,7 @@ final readonly class RegexAnalysisService
 
     /**
      * @param list<string> $ignoredPatterns
+     * @param list<string> $redosIgnoredPatterns
      */
     public function __construct(
         private Regex $regex,
@@ -51,9 +53,10 @@ final readonly class RegexAnalysisService
         private int $warningThreshold = 50,
         string $redosThreshold = ReDoSSeverity::HIGH->value,
         array $ignoredPatterns = [],
+        array $redosIgnoredPatterns = [],
     ) {
         $this->redosSeverityThreshold = ReDoSSeverity::tryFrom(strtolower($redosThreshold)) ?? ReDoSSeverity::HIGH;
-        $this->ignoredPatterns = $this->buildIgnoredPatterns($ignoredPatterns);
+        $this->ignoredPatterns = $this->buildIgnoredPatterns($ignoredPatterns, $redosIgnoredPatterns);
     }
 
     /**
@@ -144,7 +147,7 @@ final readonly class RegexAnalysisService
                     ];
                 }
 
-                $redos = $this->regex->analyzeReDoS($occurrence->pattern, $this->redosSeverityThreshold);
+                $redos = $this->regex->redos($occurrence->pattern, $this->redosSeverityThreshold);
                 if ($redos->exceedsThreshold($this->redosSeverityThreshold)) {
                     $issues[] = [
                         'type' => 'error',
@@ -184,7 +187,7 @@ final readonly class RegexAnalysisService
                 continue;
             }
 
-            $analysis = $this->regex->analyzeReDoS($occurrence->pattern);
+            $analysis = $this->regex->redos($occurrence->pattern);
             if (!$analysis->exceedsThreshold($threshold)) {
                 continue;
             }
@@ -250,7 +253,9 @@ final readonly class RegexAnalysisService
 
     public function highlight(string $pattern): string
     {
-        return $this->regex->highlight($pattern, 'cli');
+        $ast = $this->regex->parse($pattern);
+
+        return $ast->accept(new ConsoleHighlighterVisitor());
     }
 
     private function shouldSkipRiskAnalysis(RegexPatternOccurrence $occurrence): bool
@@ -344,11 +349,13 @@ final readonly class RegexAnalysisService
 
     /**
      * @param list<string> $userIgnored
+     * @param list<string> $redosIgnored
      *
      * @return list<string>
      */
-    private function buildIgnoredPatterns(array $userIgnored): array
+    private function buildIgnoredPatterns(array $userIgnored, array $redosIgnored): array
     {
-        return array_values(array_unique([...$this->regex->getRedosIgnoredPatterns(), ...$userIgnored]));
+        return array_values(array_unique([...$redosIgnored, ...$userIgnored]));
     }
+
 }

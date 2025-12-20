@@ -18,6 +18,7 @@ use RegexParser\Cache\NullCache;
 use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
 use RegexParser\Exception\ResourceLimitException;
+use RegexParser\Internal\PatternParser;
 use RegexParser\Node\RegexNode;
 use RegexParser\ReDoS\ReDoSAnalysis;
 use RegexParser\ReDoS\ReDoSAnalyzer;
@@ -55,18 +56,12 @@ final readonly class Regex
         );
     }
 
-    public function parse(string $regex): RegexNode
+    /**
+     * @return ($tolerant is true ? TolerantParseResult : RegexNode)
+     */
+    public function parse(string $regex, bool $tolerant = false): RegexNode|TolerantParseResult
     {
-        $ast = $this->doParse($regex, false);
-
-        return $ast instanceof RegexNode ? $ast : $ast->ast;
-    }
-
-    public function parseTolerant(string $regex): TolerantParseResult
-    {
-        $result = $this->doParse($regex, true);
-
-        return $result instanceof TolerantParseResult ? $result : new TolerantParseResult($result);
+        return $this->doParse($regex, $tolerant);
     }
 
     public function validate(string $regex): ValidationResult
@@ -75,7 +70,7 @@ final readonly class Regex
             $pattern = null;
 
             try {
-                [$pattern] = $this->extractPatternAndFlags($regex);
+                [$pattern] = PatternParser::extractPatternAndFlags($regex);
             } catch (ParserException) {
             }
 
@@ -114,12 +109,12 @@ final readonly class Regex
         }
     }
 
-    public function analyzeReDoS(string $regex, ?ReDoSSeverity $threshold = null): ReDoSAnalysis
+    public function redos(string $regex, ?ReDoSSeverity $threshold = null): ReDoSAnalysis
     {
         return (new ReDoSAnalyzer($this, array_values($this->redosIgnoredPatterns)))->analyze($regex, $threshold);
     }
 
-    public function extractLiterals(string $regex): LiteralExtractionResult
+    public function literals(string $regex): LiteralExtractionResult
     {
         $literalSet = $this->parse($regex)->accept(new NodeVisitor\LiteralExtractorNodeVisitor());
         $literals = array_values(array_unique(array_merge($literalSet->prefixes, $literalSet->suffixes)));
@@ -154,41 +149,9 @@ final readonly class Regex
         return new OptimizationResult($regex, $optimized, $changes);
     }
 
-    public function modernize(string $regex): string
-    {
-        return $this->transformAndCompile($regex, new NodeVisitor\ModernizerNodeVisitor());
-    }
-
     public function generate(string $regex): string
     {
         return $this->parse($regex)->accept(new NodeVisitor\SampleGeneratorNodeVisitor());
-    }
-
-    public function visualize(string $regex): VisualizationResult
-    {
-        $mermaid = $this->parse($regex)->accept(new NodeVisitor\MermaidNodeVisitor());
-
-        return new VisualizationResult($mermaid);
-    }
-
-    public function dump(string $regex): string
-    {
-        return $this->parse($regex)->accept(new NodeVisitor\DumperNodeVisitor());
-    }
-
-    public function highlight(string $regex, string $format = 'auto'): string
-    {
-        if ('auto' === $format) {
-            $format = \PHP_SAPI === 'cli' ? 'cli' : 'html';
-        }
-
-        $visitor = match ($format) {
-            'cli' => new NodeVisitor\ConsoleHighlighterVisitor(),
-            'html' => new NodeVisitor\HtmlHighlighterVisitor(),
-            default => throw new \InvalidArgumentException("Invalid format: $format"),
-        };
-
-        return $this->parse($regex)->accept($visitor);
     }
 
     public function explain(string $regex, string $format = 'text'): string
@@ -200,79 +163,6 @@ final readonly class Regex
         };
 
         return $this->parse($regex)->accept($visitor);
-    }
-
-    /**
-     * @return array<string>
-     */
-    public function getRedosIgnoredPatterns(): array
-    {
-        return array_values($this->redosIgnoredPatterns);
-    }
-
-    public function getParser(): Parser
-    {
-        return new Parser();
-    }
-
-    public function getLexer(): Lexer
-    {
-        return new Lexer();
-    }
-
-    /**
-     * @return array{0: string, 1: string, 2: string}
-     */
-    public function extractPatternAndFlags(string $regex): array
-    {
-        // Trim leading whitespace to match PHP's PCRE behavior
-        $regex = ltrim($regex);
-
-        $len = \strlen($regex);
-        if ($len < 2) {
-            throw new ParserException('Regex is too short. It must include delimiters.');
-        }
-
-        $delimiter = $regex[0];
-        // Handle bracket delimiters style: (pattern), [pattern], {pattern}, <pattern>
-        $closingDelimiter = match ($delimiter) {
-            '(' => ')',
-            '[' => ']',
-            '{' => '}',
-            '<' => '>',
-            default => $delimiter,
-        };
-
-        // Find the last occurrence of the closing delimiter that is NOT escaped
-        // We scan from the end to optimize for flags
-        for ($i = $len - 1; $i > 0; $i--) {
-            if ($regex[$i] === $closingDelimiter) {
-                // Check if escaped (count odd number of backslashes before it)
-                $escapes = 0;
-                for ($j = $i - 1; $j > 0 && '\\' === $regex[$j]; $j--) {
-                    $escapes++;
-                }
-
-                if (0 === $escapes % 2) {
-                    // Found the end delimiter
-                    $pattern = substr($regex, 1, $i - 1);
-                    $flags = substr($regex, $i + 1);
-
-                    // Validate flags (only allow standard PCRE flags)
-                    // n = NO_AUTO_CAPTURE, r = PCRE2_EXTRA_CASELESS_RESTRICT (unicode restricted)
-                    if (!preg_match('/^[imsxADSUXJunr]*+$/', $flags)) {
-                        // Find the invalid flag for a better error message
-                        $invalid = preg_replace('/[imsxADSUXJunr]/', '', $flags);
-
-                        throw new ParserException(\sprintf('Unknown regex flag(s) found: "%s"', $invalid ?? $flags));
-                    }
-
-                    return [$pattern, $flags, $delimiter];
-                }
-            }
-        }
-
-        throw new ParserException(\sprintf('No closing delimiter "%s" found.', $closingDelimiter));
     }
 
     /**
@@ -335,7 +225,7 @@ final readonly class Regex
     private function safeExtractPattern(string $regex): array
     {
         try {
-            [$pattern, $flags, $delimiter] = $this->extractPatternAndFlags($regex);
+            [$pattern, $flags, $delimiter] = PatternParser::extractPatternAndFlags($regex);
             $pattern = (string) $pattern;
             $flags = (string) $flags;
             $delimiter = (string) $delimiter;
@@ -389,10 +279,10 @@ final readonly class Regex
             return $cached;
         }
 
-        [$pattern, $flags, $delimiter] = $this->extractPatternAndFlags($regex);
+        [$pattern, $flags, $delimiter] = PatternParser::extractPatternAndFlags($regex);
 
-        $stream = $this->getLexer()->tokenize($pattern);
-        $parser = $this->getParser();
+        $stream = (new Lexer())->tokenize($pattern);
+        $parser = new Parser();
 
         $ast = $parser->parse($stream, $flags, $delimiter, \strlen($pattern));
 

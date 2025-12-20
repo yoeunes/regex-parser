@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\ReDoS;
 
+use RegexParser\Internal\PatternParser;
 use RegexParser\NodeVisitor\ReDoSProfileNodeVisitor;
 use RegexParser\Regex;
 
@@ -115,7 +116,7 @@ final class ReDoSAnalyzer
     private function normalizePattern(string $regex): string
     {
         try {
-            [$pattern] = ($this->regex ?? Regex::create())->extractPatternAndFlags($regex);
+            [$pattern] = PatternParser::extractPatternAndFlags($regex);
 
             return $pattern;
         } catch (\Throwable) {

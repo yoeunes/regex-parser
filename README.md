@@ -97,10 +97,10 @@ if ($result->isValid()) {
 }
 ```
 
-There’s also a tolerant parser:
+There’s also a tolerant parse mode:
 
 ```php
-$tolerant = $regex->parseTolerant('/(unclosed(');
+$tolerant = $regex->parse('/(unclosed(', true);
 
 if ($tolerant->hasErrors()) {
     foreach ($tolerant->errors as $error) {
@@ -157,7 +157,7 @@ use RegexParser\ReDoS\ReDoSSeverity;
 $regex = Regex::create();
 
 $pattern  = '/^(a+)+$/'; // classic catastrophic backtracking example
-$analysis = $regex->analyzeReDoS($pattern);
+$analysis = $regex->redos($pattern);
 
 echo "Severity: ".$analysis->severity->value.PHP_EOL;
 echo "Score: ".$analysis->score.PHP_EOL;
@@ -171,7 +171,7 @@ if (!$analysis->isSafe()) {
 }
 
 // Quick boolean check (for CI, input validation, etc.)
-$analysis = $regex->analyzeReDoS($pattern, ReDoSSeverity::HIGH);
+$analysis = $regex->redos($pattern, ReDoSSeverity::HIGH);
 if (!$analysis->isSafe()) {
     throw new \RuntimeException('Regex is not safe enough for untrusted input.');
 }
@@ -197,7 +197,7 @@ Unknown or invalid keys throw `RegexParser\Exception\InvalidRegexOptionException
 
 ### Parsing bare patterns vs PCRE strings
 
-Most high‑level methods (`parse`, `validate`, `analyzeReDoS`) expect a **full PCRE string**:
+Most high‑level methods (`parse`, `validate`, `redos`) expect a **full PCRE string**:
 
 ```php
 $ast = $regex->parse('/pattern/ims');
@@ -357,9 +357,14 @@ Clean up messy or legacy regexes automatically:
 
 ```php
 use RegexParser\Regex;
+use RegexParser\NodeVisitor\CompilerNodeVisitor;
+use RegexParser\NodeVisitor\ModernizerNodeVisitor;
 
 $regex = Regex::create();
-$modern = $regex->modernize('/[0-9]+\-[a-z]+\@(?:gmail)\.com/');
+$ast = $regex->parse('/[0-9]+\-[a-z]+\@(?:gmail)\.com/');
+
+$modernizedAst = $ast->accept(new ModernizerNodeVisitor());
+$modern = $modernizedAst->accept(new CompilerNodeVisitor());
 
 echo $modern; // Outputs: /\d+-[a-z]+@gmail\.com/
 ```
@@ -379,15 +384,18 @@ Make complex regexes readable with automatic syntax highlighting:
 
 ```php
 use RegexParser\Regex;
+use RegexParser\NodeVisitor\ConsoleHighlighterVisitor;
+use RegexParser\NodeVisitor\HtmlHighlighterVisitor;
 
 $regex = Regex::create();
+$ast = $regex->parse('/^[0-9]+(\w+)$/');
 
 // For console output
-echo $regex->highlight('/^[0-9]+(\w+)$/', 'cli');
+echo $ast->accept(new ConsoleHighlighterVisitor());
 // Outputs: ^[0-9]+(\w+)$ with ANSI colors
 
 // For web display
-echo $regex->highlight('/^[0-9]+(\w+)$/', 'html');
+echo $ast->accept(new HtmlHighlighterVisitor());
 // Outputs: <span class="regex-anchor">^</span>[<span class="regex-type">\d</span>]+(<span class="regex-type">\w</span>+)$
 ```
 
@@ -447,12 +455,12 @@ From lowest to highest:
 * `HIGH` — clear ReDoS risk; avoid on untrusted input.
 * `CRITICAL` — classic catastrophic patterns (nested `+`/`*` etc.).
 
-`analyzeReDoS()` returns a `ReDoSAnalysis` with the severity, score, vulnerable substring (if any), and recommendations. `isSafe()` simply calls `analyzeReDoS()` and returns `true` only for severities considered safe/low (or below the optional threshold you pass in).
+`redos()` returns a `ReDoSAnalysis` with the severity, score, vulnerable substring (if any), and recommendations. `ReDoSAnalysis::isSafe()` returns `true` only for severities considered safe/low, and `exceedsThreshold()` lets you gate on a specific threshold.
 
 You choose what to tolerate:
 
 ```php
-$analysis = $regex->analyzeReDoS($pattern, ReDoSSeverity::HIGH);
+$analysis = $regex->redos($pattern, ReDoSSeverity::HIGH);
 if (!$analysis->isSafe()) {
     // block, warn, or open a ticket
 }
@@ -554,43 +562,23 @@ final readonly class Regex
 {
     public static function create(array $options = []): self;
 
-    public function parse(string $regex): Node\RegexNode;
-    
-    
-
-    public function parseTolerant(string $regex): TolerantParseResult;
+    public function parse(string $regex, bool $tolerant = false): Node\RegexNode|TolerantParseResult;
 
     public function validate(string $regex): ValidationResult;
-    
-    public function dump(string $regex): string;
-
-    public function explain(string $regex, string $format = 'text'): string;
-
-    public function highlight(string $regex, string $format = 'auto'): string;
 
     public function optimize(string $regex): OptimizationResult;
 
-    public function modernize(string $regex): string;
+    public function explain(string $regex, string $format = 'text'): string;
 
     public function generate(string $regex): string;
 
-    public function visualize(string $regex): VisualizationResult;
+    public function literals(string $regex): LiteralExtractionResult;
 
-
-
-    public function extractLiterals(string $regex): LiteralExtractionResult;
-
-    public function analyzeReDoS(string $regex, ?ReDoS\ReDoSSeverity $threshold = null): ReDoS\ReDoSAnalysis;
-
-    public function isSafe(string $regex, ?ReDoS\ReDoSSeverity $threshold = null): bool;
-
-    public function getLexer(): Lexer;
-
-    public function getParser(): Parser;
+    public function redos(string $regex, ?ReDoS\ReDoSSeverity $threshold = null): ReDoS\ReDoSAnalysis;
 }
 ```
 
-Return types like `ValidationResult`, `OptimizationResult`, `LiteralExtractionResult`, `TestCaseGenerationResult`, `VisualizationResult`, and `ReDoS\ReDoSAnalysis` are small, well‑typed value objects.
+Return types like `ValidationResult`, `TolerantParseResult`, `OptimizationResult`, `LiteralExtractionResult`, and `ReDoS\ReDoSAnalysis` are small, well‑typed value objects.
 
 ---
 
@@ -598,9 +586,9 @@ Return types like `ValidationResult`, `OptimizationResult`, `LiteralExtractionRe
 
 - `Regex::create()` throws `InvalidRegexOptionException` for unknown/invalid options.
 - `parse()` can throw `LexerException`, `SyntaxErrorException` (syntax/structure), `RecursionLimitException` (too deep), and `ResourceLimitException` (pattern too long).
-- `parseTolerant()` wraps those errors into `TolerantParseResult` instead of throwing.
+- `parse(..., true)` wraps those errors into `TolerantParseResult` instead of throwing.
 - `validate()` converts parser/lexer errors into a `ValidationResult` (no exception on invalid input).
-- `analyzeReDoS()` / `isSafe()` share the same parsing exceptions as `parse()`; `isSafe()` is a boolean wrapper around `analyzeReDoS()`.
+- `redos()` shares the same parsing exceptions as `parse()`.
 
 Generic runtime errors (e.g., wrong argument types) are not part of the stable API surface.
 
@@ -612,7 +600,7 @@ RegexParser follows **Semantic Versioning**:
 
 * **Stable for 1.x** (API surface we commit to keep compatible):
   * Public methods and signatures on `Regex`.
-  * Value objects: `ValidationResult`, `TolerantParseResult`, `OptimizationResult`, `LiteralExtractionResult`, `LiteralSet`, `TestCaseGenerationResult`, `VisualizationResult`, `ReDoS\ReDoSAnalysis`.
+  * Value objects: `ValidationResult`, `TolerantParseResult`, `OptimizationResult`, `LiteralExtractionResult`, `LiteralSet`, `ReDoS\ReDoSAnalysis`.
   * Main exception interfaces/classes: `RegexParserExceptionInterface`, parser/lexer exceptions, `InvalidRegexOptionException`.
   * Supported option keys for `Regex::create()` / `RegexOptions`.
 

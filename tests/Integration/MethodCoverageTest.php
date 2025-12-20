@@ -52,16 +52,15 @@ final class MethodCoverageTest extends TestCase
     }
 
     /**
-     * Test Parser.getLexer() by calling parse which internally uses getLexer
-     * Multiple calls ensure the lexer reuse path is tested
+     * Exercise repeated parse calls to cover parser/lexer setup paths.
      */
     #[DoesNotPerformAssertions]
     public function test_parser_get_lexer_multiple_calls(): void
     {
-        // First call creates lexer
+        // First call
         $this->regexService->parse('/test/');
 
-        // Second call should reuse lexer via getLexer
+        // Second call
         $this->regexService->parse('/another/');
 
         // Third call

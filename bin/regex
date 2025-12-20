@@ -16,6 +16,8 @@ require __DIR__.'/../vendor/autoload.php';
 
 use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
+use RegexParser\NodeVisitor\ConsoleHighlighterVisitor;
+use RegexParser\NodeVisitor\HtmlHighlighterVisitor;
 use RegexParser\Regex;
 
 // ANSI color codes
@@ -176,7 +178,7 @@ switch ($command) {
         try {
             $ast = $regex->parse($pattern);
             $validation = $regex->validate($pattern);
-            $analysis = $regex->analyzeReDoS($pattern);
+            $analysis = $regex->redos($pattern);
             $explain = $regex->explain($pattern);
 
             output(bold("Pattern: ") . "{$pattern}\n");
@@ -213,7 +215,18 @@ switch ($command) {
         $regex = Regex::create();
 
         try {
-            $highlighted = $regex->highlight($pattern, $format);
+            if ('auto' === $format) {
+                $format = \PHP_SAPI === 'cli' ? 'cli' : 'html';
+            }
+
+            $visitor = match ($format) {
+                'cli' => new ConsoleHighlighterVisitor(),
+                'html' => new HtmlHighlighterVisitor(),
+                default => throw new \InvalidArgumentException("Invalid format: $format"),
+            };
+
+            $ast = $regex->parse($pattern);
+            $highlighted = $ast->accept($visitor);
 
             output($highlighted . "\n");
         } catch (LexerException|ParserException $e) {

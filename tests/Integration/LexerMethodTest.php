@@ -14,19 +14,12 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
-use RegexParser\Regex;
+use RegexParser\Lexer;
 use RegexParser\Tests\TestUtils\LexerAccessor;
 use RegexParser\TokenType;
 
 final class LexerMethodTest extends TestCase
 {
-    private Regex $regexService;
-
-    protected function setUp(): void
-    {
-        $this->regexService = Regex::create();
-    }
-
     /**
      * Tests the default fallback of extractTokenValue for an unknown type.
      * This case is normally unreachable as the main Regex filters tokens,
@@ -34,7 +27,7 @@ final class LexerMethodTest extends TestCase
      */
     public function test_extract_token_value_unknown_type(): void
     {
-        $lexer = $this->regexService->getLexer();
+        $lexer = new Lexer();
         $lexer->tokenize('');
         $accessor = new LexerAccessor($lexer);
 
@@ -53,7 +46,7 @@ final class LexerMethodTest extends TestCase
      */
     public function test_extract_token_value_backref_fallback(): void
     {
-        $lexer = $this->regexService->getLexer();
+        $lexer = new Lexer();
         $lexer->tokenize('');
         $accessor = new LexerAccessor($lexer);
 
@@ -70,7 +63,7 @@ final class LexerMethodTest extends TestCase
      */
     public function test_normalize_unicode_prop_fallback(): void
     {
-        $lexer = $this->regexService->getLexer();
+        $lexer = new Lexer();
         $lexer->tokenize('');
         $accessor = new LexerAccessor($lexer);
 

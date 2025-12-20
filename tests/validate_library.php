@@ -64,7 +64,7 @@ $redosPatterns = [
 
 foreach ($redosPatterns as $pattern => $shouldDetect) {
     try {
-        $analysis = Regex::create()->analyzeReDoS($pattern);
+        $analysis = Regex::create()->redos($pattern);
         $detected = !$analysis->isSafe();
         if ($detected === $shouldDetect) {
             echo "✓ Pattern: $pattern → ReDoS detection: ".($detected ? 'YES' : 'NO')." (correct)\n";

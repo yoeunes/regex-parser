@@ -54,7 +54,8 @@ return static function (ContainerConfigurator $container): void {
         ->arg('$extractor', service('regex_parser.extractor')->nullOnInvalid())
         ->arg('$warningThreshold', param('regex_parser.analysis.warning_threshold'))
         ->arg('$redosThreshold', param('regex_parser.redos.threshold'))
-        ->arg('$ignoredPatterns', param('regex_parser.analysis.ignore_patterns'));
+        ->arg('$ignoredPatterns', param('regex_parser.analysis.ignore_patterns'))
+        ->arg('$redosIgnoredPatterns', param('regex_parser.redos.ignored_patterns'));
 
     $services->set('regex_parser.pattern_sources', \RegexParser\Bridge\Symfony\Extractor\RegexPatternSourceCollection::class)
         ->args([

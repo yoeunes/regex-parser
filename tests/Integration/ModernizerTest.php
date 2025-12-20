@@ -14,6 +14,8 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
+use RegexParser\NodeVisitor\CompilerNodeVisitor;
+use RegexParser\NodeVisitor\ModernizerNodeVisitor;
 use RegexParser\Regex;
 
 final class ModernizerTest extends TestCase
@@ -28,7 +30,7 @@ final class ModernizerTest extends TestCase
     public function test_modernizes_digit_range(): void
     {
         $original = '/[0-9]+/';
-        $modernized = $this->regexService->modernize($original);
+        $modernized = $this->modernize($original);
 
         $this->assertSame('/\d+/', $modernized);
         $this->assertMatchesOriginalBehavior($original, $modernized);
@@ -37,7 +39,7 @@ final class ModernizerTest extends TestCase
     public function test_removes_unnecessary_escaping(): void
     {
         $original = '/\@name\:/';
-        $modernized = $this->regexService->modernize($original);
+        $modernized = $this->modernize($original);
 
         $this->assertSame('/@name:/', $modernized);
         $this->assertMatchesOriginalBehavior($original, $modernized);
@@ -46,7 +48,7 @@ final class ModernizerTest extends TestCase
     public function test_modernizes_backref(): void
     {
         $original = '/(a)\1/';
-        $modernized = $this->regexService->modernize($original);
+        $modernized = $this->modernize($original);
 
         $this->assertSame('/(a)\1/', $modernized);
         $this->assertMatchesOriginalBehavior($original, $modernized);
@@ -55,7 +57,7 @@ final class ModernizerTest extends TestCase
     public function test_complex_modernization(): void
     {
         $original = '/^[0-9]+\-[a-z]+\@(?:gmail)\.com$/';
-        $modernized = $this->regexService->modernize($original);
+        $modernized = $this->modernize($original);
 
         // Expected: ^\d+-[a-z]+@gmail\.com$
         $this->assertSame('/^\d+-[a-z]+@gmail\.com$/', $modernized);
@@ -72,5 +74,13 @@ final class ModernizerTest extends TestCase
             $modernizedMatches = preg_match($modernized, $test) > 0;
             $this->assertSame($originalMatches, $modernizedMatches, "Mismatch for test string: $test");
         }
+    }
+
+    private function modernize(string $pattern): string
+    {
+        $ast = $this->regexService->parse($pattern);
+        $modernized = $ast->accept(new ModernizerNodeVisitor());
+
+        return $modernized->accept(new CompilerNodeVisitor());
     }
 }
