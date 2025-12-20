@@ -13,11 +13,13 @@ declare(strict_types=1);
 
 namespace RegexParser\Bridge\Symfony\Extractor;
 
-use RegexParser\Bridge\Symfony\Routing\RouteControllerFileResolver;
 use RegexParser\Bridge\Symfony\Routing\RouteRequirementNormalizer;
 use RegexParser\Lint\RegexPatternOccurrence;
 use RegexParser\Lint\RegexPatternSourceContext;
 use RegexParser\Lint\RegexPatternSourceInterface;
+use Symfony\Component\Config\Resource\FileResource;
+use Symfony\Component\Routing\Route;
+use Symfony\Component\Routing\RouteCollection;
 use Symfony\Component\Routing\RouterInterface;
 
 /**
@@ -29,7 +31,6 @@ final readonly class RouteRegexPatternSource implements RegexPatternSourceInterf
 {
     public function __construct(
         private RouteRequirementNormalizer $patternNormalizer,
-        private RouteControllerFileResolver $fileResolver,
         private ?RouterInterface $router = null,
     ) {}
 
@@ -50,11 +51,22 @@ final readonly class RouteRegexPatternSource implements RegexPatternSourceInterf
         }
 
         $router = $this->router;
+        $collection = $router->getRouteCollection();
         $patterns = [];
-        $line = 1;
+        $routeNames = array_keys($collection->all());
+        /** @var array<string, bool> $routeNameLookup */
+        $routeNameLookup = array_fill_keys($routeNames, true);
+        $yamlFiles = $this->collectYamlResources($collection);
+        $yamlIndex = $this->buildYamlRouteIndex($yamlFiles, $routeNameLookup);
+        $defaultYamlFile = 1 === \count($yamlFiles) ? $yamlFiles[0] : null;
+        $lineCounter = -1;
+        $hasYamlResources = [] !== $yamlFiles;
 
-        foreach ($router->getRouteCollection() as $name => $route) {
-            $file = $this->fileResolver->resolve($route) ?? 'Symfony Router';
+        foreach ($collection as $name => $route) {
+            $routeLocation = $yamlIndex[$name] ?? null;
+            $file = $routeLocation['file'] ?? $defaultYamlFile ?? 'Symfony routes';
+            $routeLine = $routeLocation['line'] ?? null;
+            $location = null === $routeLine ? $this->formatRouteLocation($name, $route, $hasYamlResources) : null;
 
             foreach ($route->getRequirements() as $parameter => $requirement) {
                 if (!\is_scalar($requirement)) {
@@ -70,13 +82,138 @@ final readonly class RouteRegexPatternSource implements RegexPatternSourceInterf
                 $patterns[] = new RegexPatternOccurrence(
                     $normalized,
                     $file,
-                    $line++,
+                    $routeLine ?? $lineCounter--,
                     'route:'.$name.':'.$parameter,
                     $pattern,
+                    $location,
                 );
             }
         }
 
         return $patterns;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function collectYamlResources(RouteCollection $collection): array
+    {
+        $files = [];
+
+        foreach ($collection->getResources() as $resource) {
+            if (!$resource instanceof FileResource) {
+                continue;
+            }
+
+            $path = $resource->getResource();
+            if ('' === $path) {
+                continue;
+            }
+
+            $extension = strtolower(pathinfo($path, \PATHINFO_EXTENSION));
+            if (!\in_array($extension, ['yml', 'yaml'], true)) {
+                continue;
+            }
+
+            $files[$path] = true;
+        }
+
+        return array_keys($files);
+    }
+
+    /**
+     * @param list<string>        $yamlFiles
+     * @param array<string, bool> $routeNames
+     *
+     * @return array<string, array{file: string, line: int}>
+     */
+    private function buildYamlRouteIndex(array $yamlFiles, array $routeNames): array
+    {
+        $index = [];
+
+        foreach ($yamlFiles as $path) {
+            $routes = $this->extractYamlRouteNames($path, $routeNames);
+            foreach ($routes as $name => $line) {
+                $index[$name] ??= ['file' => $path, 'line' => $line];
+            }
+        }
+
+        return $index;
+    }
+
+    /**
+     * @param array<string, bool> $routeNames
+     *
+     * @return array<string, int>
+     */
+    private function extractYamlRouteNames(string $path, array $routeNames): array
+    {
+        $lines = @file($path, \FILE_IGNORE_NEW_LINES);
+        if (false === $lines) {
+            return [];
+        }
+
+        $routes = [];
+        $whenIndent = null;
+        $whenRouteIndent = null;
+
+        foreach ($lines as $index => $line) {
+            $trimmed = ltrim($line);
+            if ('' === $trimmed || str_starts_with($trimmed, '#')) {
+                continue;
+            }
+
+            $indent = \strlen($line) - \strlen($trimmed);
+            if (null !== $whenIndent && $indent <= $whenIndent) {
+                $whenIndent = null;
+                $whenRouteIndent = null;
+            }
+
+            if (!preg_match('/^(\s*)(?:\'([^\']+)\'|"([^"]+)"|([A-Za-z0-9_.-]+))\s*:(?:\s*#.*)?$/', $line, $matches)) {
+                continue;
+            }
+
+            $name = $matches[2] ?: $matches[3] ?: $matches[4];
+            if ('' === $name) {
+                continue;
+            }
+
+            if (0 === $indent && str_starts_with($name, 'when@')) {
+                $whenIndent = $indent;
+                $whenRouteIndent = null;
+                continue;
+            }
+
+            if (null !== $whenIndent) {
+                if (null === $whenRouteIndent) {
+                    $whenRouteIndent = $indent;
+                }
+
+                if ($indent !== $whenRouteIndent) {
+                    continue;
+                }
+            } elseif (0 !== $indent) {
+                continue;
+            }
+
+            if (!isset($routeNames[$name])) {
+                continue;
+            }
+
+            $routes[$name] ??= $index + 1;
+        }
+
+        return $routes;
+    }
+
+    private function formatRouteLocation(string $name, Route $route, bool $hasYamlResources): ?string
+    {
+        $controller = $route->getDefault('_controller');
+        $sourceLabel = $hasYamlResources ? 'YAML config' : 'routing config';
+        if (!\is_string($controller) || '' === $controller) {
+            return \sprintf('Route "%s" (%s)', $name, $sourceLabel);
+        }
+
+        return \sprintf('Route "%s" (%s, controller: %s)', $name, $sourceLabel, $controller);
     }
 }

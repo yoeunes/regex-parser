@@ -26,5 +26,6 @@ final readonly class RegexPatternOccurrence
         public int $line,
         public string $source,
         public ?string $displayPattern = null,
+        public ?string $location = null,
     ) {}
 }

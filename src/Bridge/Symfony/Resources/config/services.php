@@ -71,7 +71,6 @@ return static function (ContainerConfigurator $container): void {
     $services->set(\RegexParser\Bridge\Symfony\Extractor\RouteRegexPatternSource::class)
         ->args([
             '$patternNormalizer' => service(\RegexParser\Bridge\Symfony\Routing\RouteRequirementNormalizer::class),
-            '$fileResolver' => service(\RegexParser\Bridge\Symfony\Routing\RouteControllerFileResolver::class),
             '$router' => service('router')->nullOnInvalid(),
         ])
         ->tag('regex_parser.pattern_source');

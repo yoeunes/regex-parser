@@ -229,9 +229,8 @@ final class RegexLintCommand extends Command
             $io->progressFinish();
         }
 
-        $allResults = $this->filterVendorResults($report->results, $exclude);
-        $allResults = $this->sortResultsByFileAndLine($allResults);
-        $stats = $this->updateStatsFromResults($this->createStats(), $allResults);
+        $allResults = $this->sortResultsByFileAndLine($report->results);
+        $stats = $report->stats;
 
         if ('json' === $format) {
             $output->writeln(json_encode([
@@ -310,16 +309,33 @@ final class RegexLintCommand extends Command
         $pattern = $this->extractPatternForResult($result);
         $line = $result['line'];
         $file = $result['file'];
+        $location = $result['location'] ?? null;
 
-        // Create clickable pen emoji
-        $penLabel = $this->getPenLabel($io);
-        $penLink = $this->linkFormatter->format($file, $line, $penLabel, 1, '✏️');
+        $hasLocation = \is_string($location) && '' !== $location;
+        $showLine = $line > 0 && !$hasLocation;
 
-        if (null !== $pattern && '' !== $pattern) {
-            $highlighted = $this->safelyHighlightPattern($pattern);
-            $io->writeln(\sprintf('  <fg=gray>%d:</> %s %s', $line, $penLink, $highlighted));
+        if ($showLine) {
+            // Create clickable pen emoji
+            $penLabel = $this->getPenLabel($io);
+            $penLink = $this->linkFormatter->format($file, $line, $penLabel, 1, '✏️');
+
+            if (null !== $pattern && '' !== $pattern) {
+                $highlighted = $this->safelyHighlightPattern($pattern);
+                $io->writeln(\sprintf('  <fg=gray>%d:</> %s %s', $line, $penLink, $highlighted));
+            } else {
+                $io->writeln(\sprintf('  <fg=gray>%s:</> %s', 'line '.$line, $penLink));
+            }
         } else {
-            $io->writeln(\sprintf('  <fg=gray>%s:</> %s', 'line '.$line, $penLink));
+            if (null !== $pattern && '' !== $pattern) {
+                $highlighted = $this->safelyHighlightPattern($pattern);
+                $io->writeln(\sprintf('  %s', $highlighted));
+            } else {
+                $io->writeln('  <fg=gray>(pattern unavailable)</>');
+            }
+
+            if ($hasLocation) {
+                $io->writeln(\sprintf('     <fg=gray>↳ %s</>', OutputFormatter::escape($location)));
+            }
         }
     }
 
@@ -481,29 +497,6 @@ final class RegexLintCommand extends Command
         return null;
     }
 
-    /**
-     * @phpstan-param LintStats        $stats
-     * @phpstan-param list<LintResult> $results
-     *
-     * @phpstan-return LintStats
-     */
-    private function updateStatsFromResults(array $stats, array $results): array
-    {
-        foreach ($results as $result) {
-            foreach ($result['issues'] as $issue) {
-                if ('error' === $issue['type']) {
-                    $stats['errors']++;
-                } elseif ('warning' === $issue['type']) {
-                    $stats['warnings']++;
-                }
-            }
-
-            $stats['optimizations'] += \count($result['optimizations']);
-        }
-
-        return $stats;
-    }
-
     private function stripMessageLine(string $message): string
     {
         return preg_replace_callback(
@@ -530,23 +523,6 @@ final class RegexLintCommand extends Command
      *
      * @phpstan-return list<LintResult>
      */
-    private function filterVendorResults(array $results, array $excludePaths): array
-    {
-        if (!$this->shouldExcludeVendor($excludePaths)) {
-            return $results;
-        }
-
-        return array_values(array_filter(
-            $results,
-            fn (array $result): bool => !$this->isVendorPath($result['file'] ?? ''),
-        ));
-    }
-
-    /**
-     * @phpstan-param list<LintResult> $results
-     *
-     * @phpstan-return list<LintResult>
-     */
     private function sortResultsByFileAndLine(array $results): array
     {
         usort($results, static function (array $a, array $b): int {
@@ -561,47 +537,4 @@ final class RegexLintCommand extends Command
         return $results;
     }
 
-    /**
-     * @param list<string> $excludePaths
-     */
-    private function shouldExcludeVendor(array $excludePaths): bool
-    {
-        foreach ($excludePaths as $path) {
-            $normalized = trim(str_replace('\\', '/', $path), '/');
-            if ('' === $normalized) {
-                continue;
-            }
-
-            if ('vendor' === $normalized) {
-                return true;
-            }
-
-            if (str_contains($normalized, '/vendor/')) {
-                return true;
-            }
-
-            if (str_starts_with($normalized, 'vendor/')) {
-                return true;
-            }
-
-            if (str_ends_with($normalized, '/vendor')) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private function isVendorPath(string $file): bool
-    {
-        if ('' === $file) {
-            return false;
-        }
-
-        $normalized = ltrim(str_replace('\\', '/', $file), './');
-
-        return str_starts_with($normalized, 'vendor/')
-            || str_starts_with($normalized, '/vendor/')
-            || str_contains($normalized, '/vendor/');
-    }
 }

@@ -172,14 +172,17 @@ final readonly class RegexLintService
     /**
      * @param list<RegexPatternOccurrence> $originalPatterns
      *
-     * @return array<string, string>
+     * @return array<string, array{pattern: string, location: string|null}>
      */
     private function createPatternMap(array $originalPatterns): array
     {
         $map = [];
         foreach ($originalPatterns as $pattern) {
             $key = $this->createPatternKey($pattern->file, $pattern->line, $pattern->source);
-            $map[$key] = $pattern->displayPattern ?? $pattern->pattern;
+            $map[$key] = [
+                'pattern' => $pattern->displayPattern ?? $pattern->pattern,
+                'location' => $pattern->location,
+            ];
         }
 
         return $map;
@@ -192,7 +195,7 @@ final readonly class RegexLintService
 
     /**
      * @phpstan-param list<LintIssue> $issues
-     * @phpstan-param array<string, string> $patternMap
+     * @phpstan-param array<string, array{pattern: string, location: string|null}> $patternMap
      * @phpstan-param array<string, LintResult> $results
      */
     private function addIssuesToResults(array $issues, array $patternMap, array &$results): void
@@ -208,14 +211,21 @@ final readonly class RegexLintService
                 $issue['source'] ?? null,
             );
 
-            $results[$key] ??= $this->createResultStructure($issue, $patternMap[$key] ?? null);
+            $patternData = $patternMap[$key] ?? null;
+            $pattern = \is_array($patternData) ? $patternData['pattern'] : null;
+            $location = \is_array($patternData) ? $patternData['location'] : null;
+            $results[$key] ??= $this->createResultStructure(
+                $issue,
+                $pattern,
+                $location,
+            );
             $results[$key]['issues'][] = $issue;
         }
     }
 
     /**
      * @phpstan-param list<OptimizationEntry> $optimizations
-     * @phpstan-param array<string, string> $patternMap
+     * @phpstan-param array<string, array{pattern: string, location: string|null}> $patternMap
      * @phpstan-param array<string, LintResult> $results
      */
     private function addOptimizationsToResults(array $optimizations, array $patternMap, array &$results): void
@@ -226,9 +236,16 @@ final readonly class RegexLintService
                 $opt['line'],
                 $opt['source'] ?? null,
             );
-            $pattern = $patternMap[$key] ?? $opt['optimization']->original ?? null;
+            $patternData = $patternMap[$key] ?? null;
+            $pattern = \is_array($patternData) ? $patternData['pattern'] : null;
+            $pattern ??= $opt['optimization']->original ?? null;
+            $location = \is_array($patternData) ? $patternData['location'] : null;
 
-            $results[$key] ??= $this->createResultStructure($opt, $pattern);
+            $results[$key] ??= $this->createResultStructure(
+                $opt,
+                $pattern,
+                $location,
+            );
             $results[$key]['optimizations'][] = $opt;
         }
     }
@@ -270,13 +287,14 @@ final readonly class RegexLintService
      *
      * @return LintResult
      */
-    private function createResultStructure(array $item, ?string $pattern): array
+    private function createResultStructure(array $item, ?string $pattern, ?string $location = null): array
     {
         return [
             'file' => $item['file'],
             'line' => $item['line'],
             'source' => $item['source'] ?? null,
             'pattern' => $pattern,
+            'location' => $location,
             'issues' => [],
             'optimizations' => [],
         ];
