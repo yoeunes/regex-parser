@@ -61,7 +61,20 @@ final readonly class Regex
      */
     public function parse(string $regex, bool $tolerant = false): RegexNode|TolerantParseResult
     {
-        return $this->doParse($regex, $tolerant);
+        try {
+            $ast = $this->performParse($regex);
+
+            return $tolerant ? new TolerantParseResult($ast) : $ast;
+        } catch (LexerException|ParserException $e) {
+            if (!$tolerant) {
+                throw $e;
+            }
+
+            [$pattern, $flags, $delimiter, $length] = $this->safeExtractPattern($regex);
+            $ast = $this->buildFallbackAst($pattern, $flags, $delimiter, $length, $e->getPosition());
+
+            return new TolerantParseResult($ast, [$e]);
+        }
     }
 
     public function validate(string $regex): ValidationResult
@@ -143,7 +156,7 @@ final readonly class Regex
 
     public function optimize(string $regex): OptimizationResult
     {
-        $optimized = $this->transformAndCompile($regex, new NodeVisitor\OptimizerNodeVisitor());
+        $optimized = $this->compile($regex, new NodeVisitor\OptimizerNodeVisitor());
         $changes = $optimized === $regex ? [] : ['Optimized pattern.'];
 
         return new OptimizationResult($regex, $optimized, $changes);
@@ -168,7 +181,7 @@ final readonly class Regex
     /**
      * @param NodeVisitor\NodeVisitorInterface<Node\NodeInterface> $transformer
      */
-    private function transformAndCompile(string $regex, NodeVisitor\NodeVisitorInterface $transformer): string
+    private function compile(string $regex, NodeVisitor\NodeVisitorInterface $transformer): string
     {
         $ast = $this->parse($regex);
         /** @var Node\NodeInterface $transformed */
@@ -244,24 +257,6 @@ final readonly class Regex
         $sequence = new Node\SequenceNode([$literal], 0, $literal->getEndPosition());
 
         return new Node\RegexNode($sequence, $flags, $delimiter, 0, $patternLength);
-    }
-
-    private function doParse(string $regex, bool $tolerant): RegexNode|TolerantParseResult
-    {
-        try {
-            $ast = $this->performParse($regex);
-
-            return $tolerant ? new TolerantParseResult($ast) : $ast;
-        } catch (LexerException|ParserException $e) {
-            if (!$tolerant) {
-                throw $e;
-            }
-
-            [$pattern, $flags, $delimiter, $length] = $this->safeExtractPattern($regex);
-            $ast = $this->buildFallbackAst($pattern, $flags, $delimiter, $length, $e->getPosition());
-
-            return new TolerantParseResult($ast, [$e]);
-        }
     }
 
     private function performParse(string $regex): RegexNode
