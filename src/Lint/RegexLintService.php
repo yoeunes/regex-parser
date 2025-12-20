@@ -85,6 +85,7 @@ final readonly class RegexLintService
     {
         $issues = $this->analysis->lint($patterns, $progress);
         $issues = $this->filterLintIssues($issues);
+        $issues = $this->deduplicateIssues($issues);
 
         /** @var list<array{file: string, line: int, optimization: OptimizationResult, savings: int, source?: string}> $optimizations */
         $optimizations = array_values($this->analysis->suggestOptimizations($patterns, $request->minSavings));
@@ -123,6 +124,29 @@ final readonly class RegexLintService
 
             return true;
         }));
+    }
+
+    /**
+     * @phpstan-param list<LintIssue> $issues
+     *
+     * @phpstan-return list<LintIssue>
+     */
+    private function deduplicateIssues(array $issues): array
+    {
+        $seen = [];
+        $unique = [];
+
+        foreach ($issues as $issue) {
+            $key = ($issue['file'] ?? '').':'.($issue['line'] ?? 0).':'.($issue['message'] ?? '');
+            if (isset($seen[$key])) {
+                continue;
+            }
+
+            $seen[$key] = true;
+            $unique[] = $issue;
+        }
+
+        return $unique;
     }
 
     /**

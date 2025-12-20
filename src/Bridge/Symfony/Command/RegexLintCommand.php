@@ -345,7 +345,7 @@ final class RegexLintCommand extends Command
     private function displayOptimizations(SymfonyStyle $io, array $optimizations): void
     {
         foreach ($optimizations as $opt) {
-            $io->writeln('    <bg=blue;fg=white;options=bold> FIX </> <fg=blue;options=bold>Optimization available</>');
+            $io->writeln('    <bg=cyan;fg=white;options=bold> TIP </> <fg=cyan;options=bold>Optimization available</>');
 
             $original = $this->safelyHighlightPattern($opt['optimization']->original);
             $optimized = $this->safelyHighlightPattern($opt['optimization']->optimized);

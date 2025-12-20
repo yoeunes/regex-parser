@@ -45,6 +45,7 @@ const BG_RED = "\033[41m";
 const BG_GREEN = "\033[42m";
 const BG_YELLOW = "\033[43m";
 const BG_BLUE = "\033[44m";
+const BG_CYAN = "\033[46m";
 const BG_GRAY = "\033[100m";
 
 function color(string $text, string $color): string
@@ -344,7 +345,7 @@ function displayIssues(array $issues): void
 function displayOptimizations(RegexAnalysisService $analysis, array $optimizations): void
 {
     foreach ($optimizations as $opt) {
-        output(sprintf('    %s %s' ."\n", badge('FIX', WHITE, BG_BLUE), color('Optimization available', BLUE.BOLD)));
+        output(sprintf('    %s %s' ."\n", badge('TIP', WHITE, BG_CYAN), color('Optimization available', CYAN.BOLD)));
 
         $original = safelyHighlightPattern($analysis, $opt['optimization']->original);
         $optimized = safelyHighlightPattern($analysis, $opt['optimization']->optimized);
