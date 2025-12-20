@@ -130,14 +130,6 @@ final readonly class Regex
         return (new ReDoSAnalyzer($this, array_values($this->redosIgnoredPatterns)))->analyze($regex, $threshold);
     }
 
-    /**
-     * @return array{0: int, 1: int|null}
-     */
-    public function getLengthRange(string $regex)
-    {
-        return $this->parse($regex)->accept(new NodeVisitor\LengthRangeNodeVisitor());
-    }
-
     public function extractLiterals(string $regex): LiteralExtractionResult
     {
         $literalSet = $this->parse($regex)->accept(new NodeVisitor\LiteralExtractorNodeVisitor());

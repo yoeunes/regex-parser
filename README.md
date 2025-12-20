@@ -576,7 +576,7 @@ final readonly class Regex
 
     public function visualize(string $regex): VisualizationResult;
 
-    public function getLengthRange(string $regex): array;
+
 
     public function extractLiterals(string $regex): LiteralExtractionResult;
 
