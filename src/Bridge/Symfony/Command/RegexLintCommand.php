@@ -531,10 +531,9 @@ final class RegexLintCommand extends Command
                 return $fileCompare;
             }
 
-            return ($a['line'] ?? 0) <=> ($b['line'] ?? 0);
+            return $a['line'] <=> $b['line'];
         });
 
         return $results;
     }
-
 }

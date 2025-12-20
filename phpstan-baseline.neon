@@ -45,7 +45,7 @@ parameters:
 		-
 			rawMessage: Access to constant on internal class RegexParser\Bridge\Symfony\Routing\RouteControllerFileResolver.
 			identifier: classConstant.internalClass
-			count: 2
+			count: 1
 			path: src/Bridge/Symfony/Resources/config/services.php
 
 		-

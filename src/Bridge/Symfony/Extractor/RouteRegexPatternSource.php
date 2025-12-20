@@ -196,6 +196,7 @@ final readonly class RouteRegexPatternSource implements RegexPatternSourceInterf
                 if (null === $requirementsIndent && 'requirements' === $key && $indent > $routeIndent) {
                     $requirementsIndent = $indent;
                     $requirementsEntryIndent = null;
+
                     continue;
                 }
 
@@ -205,7 +206,10 @@ final readonly class RouteRegexPatternSource implements RegexPatternSourceInterf
                     }
 
                     if ($indent === $requirementsEntryIndent && null !== $key) {
-                        $routes[$currentRoute]['requirements'][$key] ??= $index + 1;
+                        /** @var array<string, int> $requirements */
+                        $requirements = $routes[$currentRoute]['requirements'] ?? [];
+                        $requirements[$key] = $index + 1;
+                        $routes[$currentRoute]['requirements'] = $requirements;
                     }
 
                     continue;
@@ -215,6 +219,7 @@ final readonly class RouteRegexPatternSource implements RegexPatternSourceInterf
             if (null !== $key && 0 === $indent && str_starts_with($key, 'when@')) {
                 $whenIndent = $indent;
                 $whenRouteIndent = null;
+
                 continue;
             }
 
@@ -238,11 +243,28 @@ final readonly class RouteRegexPatternSource implements RegexPatternSourceInterf
             $routeIndent = $indent;
             $requirementsIndent = null;
             $requirementsEntryIndent = null;
-            $routes[$key]['line'] ??= $index + 1;
-            $routes[$key]['requirements'] ??= [];
+            if (!isset($routes[$key])) {
+                $routes[$key] = [];
+            }
+            $routes[$key]['line'] = $index + 1;
+            if (!isset($routes[$key]['requirements'])) {
+                $routes[$key]['requirements'] = [];
+            }
         }
 
-        return $routes;
+        // Ensure proper structure for each route
+        $result = [];
+        foreach ($routes as $routeName => $routeData) {
+            $line = \is_int($routeData['line'] ?? null) ? $routeData['line'] : 0;
+            $requirements = \is_array($routeData['requirements'] ?? null) ? $routeData['requirements'] : [];
+
+            $result[$routeName] = [
+                'line' => $line,
+                'requirements' => $requirements,
+            ];
+        }
+
+        return $result;
     }
 
     private function extractKeyFromLine(string $line): ?string
@@ -251,10 +273,17 @@ final readonly class RouteRegexPatternSource implements RegexPatternSourceInterf
             return null;
         }
 
-        return $matches[1] ?: $matches[2] ?: $matches[3];
+        if ('' !== $matches[1]) {
+            return $matches[1];
+        }
+        if ('' !== $matches[2]) {
+            return $matches[2];
+        }
+
+        return $matches[3] ?? null;
     }
 
-    private function formatRouteLocation(string $name, Route $route, bool $hasYamlResources): ?string
+    private function formatRouteLocation(string $name, Route $route, bool $hasYamlResources): string
     {
         $controller = $route->getDefault('_controller');
         $sourceLabel = $hasYamlResources ? 'YAML config' : 'routing config';
