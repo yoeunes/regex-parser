@@ -26,6 +26,9 @@ use RegexParser\Lint\RegexPatternSourceCollection;
 use RegexParser\Lint\TokenBasedExtractionStrategy;
 use RegexParser\NodeVisitor\ConsoleHighlighterVisitor;
 use RegexParser\NodeVisitor\HtmlHighlighterVisitor;
+use RegexParser\Output\OutputConfiguration;
+use RegexParser\Output\FormatterRegistry;
+use RegexParser\Output\ConsoleFormatter;
 use RegexParser\OptimizationResult;
 use RegexParser\Regex;
 
@@ -133,7 +136,10 @@ function showHelp(): void
 
     output(color('Lint Options:', MAGENTA)."\n");
     output('  '.color('--exclude', CYAN).' <path>     Paths to exclude (repeatable)'."\n");
-    output('  '.color('--min-savings', CYAN).' <n>   Minimum optimization savings'."\n\n");
+    output('  '.color('--min-savings', CYAN).' <n>   Minimum optimization savings'."\n");
+    output('  '.color('--format', CYAN).' <format>   Output format (console, json)'."\n");
+    output('  '.color('-v, --verbose', CYAN).'         Show detailed output'."\n");
+    output('  '.color('--debug', CYAN).'              Show debug information'."\n\n");
 
     output(color('Examples:', MAGENTA)."\n");
     output('  '.color('regex', BLUE).' '.color("'/a+'", GREEN).'                           # Quick highlight'."\n");
@@ -141,6 +147,8 @@ function showHelp(): void
     output('  '.color('regex', BLUE).' '.color('analyze', YELLOW).' '.color("'/a+'", GREEN).'                   # Full analysis'."\n");
     output('  '.color('regex', BLUE).' '.color('highlight', YELLOW).' '.color("'/a+'", GREEN).' '.color('--format=html', CYAN).'   # HTML highlight'."\n");
     output('  '.color('regex', BLUE).' '.color('lint', YELLOW).' '.color('src/', GREEN).' '.color('--exclude=vendor', CYAN).'       # Lint a codebase'."\n");
+    output('  '.color('regex', BLUE).' '.color('lint', YELLOW).' '.color('--format=json', CYAN).' '.color('src/', GREEN).'           # JSON output'."\n");
+    output('  '.color('regex', BLUE).' '.color('lint', YELLOW).' '.color('--verbose', CYAN).' '.color('src/', GREEN).'              # Verbose output'."\n");
 }
 
 function extractGlobalOptions(array $args): array
@@ -393,10 +401,9 @@ function showFooter(): void
     output('  '.dim('Star the repo: https://github.com/yoeunes/regex-parser') ."\n\n");
 }
 
-function renderLintBanner(): void
+function renderLintBanner(): string
 {
-    output("\n");
-    output('  '.color('Regex Parser', WHITE.BOLD).' '.dim('linting...') ."\n\n");
+    return "\n  ".color('Regex Parser', WHITE.BOLD).' '.dim('linting...') ."\n\n";
 }
 
 function createExtractor(): RegexPatternExtractor
@@ -413,6 +420,9 @@ function parseLintArgs(array $args): array
     $paths = [];
     $exclude = [];
     $minSavings = 1;
+    $verbosity = OutputConfiguration::VERBOSITY_NORMAL;
+    $format = 'console';
+    $quiet = false;
 
     for ($i = 0; $i < count($args); $i++) {
         $arg = $args[$i];
@@ -421,9 +431,39 @@ function parseLintArgs(array $args): array
             return ['help' => true];
         }
 
+        if ('--quiet' === $arg || '-q' === $arg) {
+            $quiet = true;
+            $verbosity = OutputConfiguration::VERBOSITY_QUIET;
+            continue;
+        }
+
+        if ('--verbose' === $arg || '-v' === $arg) {
+            $verbosity = OutputConfiguration::VERBOSITY_VERBOSE;
+            continue;
+        }
+
+        if ('--debug' === $arg) {
+            $verbosity = OutputConfiguration::VERBOSITY_DEBUG;
+            continue;
+        }
+
+        if (str_starts_with($arg, '--format=')) {
+            $format = substr($arg, strlen('--format='));
+            continue;
+        }
+
+        if ('--format' === $arg) {
+            $value = $args[$i + 1] ?? '';
+            if ('' === $value || str_starts_with($value, '-')) {
+                return ['error' => 'Missing value for --format.'];
+            }
+            $format = $value;
+            $i++;
+            continue;
+        }
+
         if (str_starts_with($arg, '--exclude=')) {
             $exclude[] = substr($arg, strlen('--exclude='));
-
             continue;
         }
 
@@ -434,13 +474,11 @@ function parseLintArgs(array $args): array
             }
             $exclude[] = $value;
             $i++;
-
             continue;
         }
 
         if (str_starts_with($arg, '--min-savings=')) {
             $minSavings = (int) substr($arg, strlen('--min-savings='));
-
             continue;
         }
 
@@ -451,7 +489,6 @@ function parseLintArgs(array $args): array
             }
             $minSavings = (int) $value;
             $i++;
-
             continue;
         }
 
@@ -466,6 +503,9 @@ function parseLintArgs(array $args): array
         'paths' => $paths,
         'exclude' => $exclude,
         'minSavings' => $minSavings,
+        'verbosity' => $verbosity,
+        'format' => $format,
+        'quiet' => $quiet,
     ];
 }
 
@@ -633,19 +673,45 @@ switch ($command) {
         }
         if (isset($parsed['error'])) {
             output(error('Error: '.$parsed['error']."\n"));
-            output("Usage: regex lint [paths...] [--exclude <path>] [--min-savings <n>]\n");
+            output("Usage: regex lint [paths...] [--exclude <path>] [--min-savings <n>] [--format console|json] [--verbose|--debug|--quiet]\n");
             exit(1);
         }
 
         $paths = $parsed['paths'] ?? [];
         $exclude = $parsed['exclude'] ?? [];
         $minSavings = (int) ($parsed['minSavings'] ?? 1);
+        $verbosity = $parsed['verbosity'] ?? OutputConfiguration::VERBOSITY_NORMAL;
+        $format = $parsed['format'] ?? 'console';
+        $quiet = $parsed['quiet'] ?? false;
 
         if ([] === $paths) {
             $paths = ['src'];
         }
         if ([] === $exclude) {
             $exclude = ['vendor'];
+        }
+
+        // Create output configuration
+        $config = match ($verbosity) {
+            OutputConfiguration::VERBOSITY_QUIET => OutputConfiguration::quiet(),
+            OutputConfiguration::VERBOSITY_VERBOSE => OutputConfiguration::verbose(),
+            OutputConfiguration::VERBOSITY_DEBUG => OutputConfiguration::debug(),
+            default => new OutputConfiguration(ansi: $ansi),
+        };
+
+        // Get formatter
+        $formatterRegistry = new FormatterRegistry();
+        if (!$formatterRegistry->has($format)) {
+            output(error(sprintf('Unknown format: %s. Available formats: %s', $format, implode(', ', $formatterRegistry->getNames())) . "\n"));
+            exit(1);
+        }
+        $formatter = $formatterRegistry->get($format);
+
+        // Update console formatter with analysis service for highlighting
+        if ($formatter instanceof ConsoleFormatter) {
+            $analysis = new RegexAnalysisService(Regex::create());
+            $formatter = new ConsoleFormatter($analysis, $config);
+            $formatterRegistry->register($formatter);
         }
 
         $analysis = new RegexAnalysisService(Regex::create());
@@ -655,7 +721,7 @@ switch ($command) {
         ]);
         $lint = new RegexLintService($analysis, $sources);
 
-        renderLintBanner();
+        
 
         try {
             $request = new RegexLintRequest(
@@ -670,31 +736,20 @@ switch ($command) {
         }
 
         if ([] === $patterns) {
-            renderSummary(['errors' => 0, 'warnings' => 0, 'optimizations' => 0], true);
+            $emptyReport = new \RegexParser\Lint\RegexLintReport([], ['errors' => 0, 'warnings' => 0, 'optimizations' => 0]);
+            echo $formatter->format($emptyReport);
             exit(0);
         }
 
         $report = $lint->analyze($patterns, $request);
-        $results = $report->results;
-        $stats = $report->stats;
 
-        if ([] !== $results) {
-            usort($results, fn ($a, $b) => severityScore($b) <=> severityScore($a));
-            $grouped = groupResultsByFile($results);
-            foreach ($grouped as $file => $fileResults) {
-                renderFileHeader($file);
-                foreach ($fileResults as $result) {
-                    displayPatternContext($analysis, $result);
-                    displayIssues($result['issues'] ?? []);
-                    displayOptimizations($analysis, $result['optimizations'] ?? []);
-                    output("\n");
-                }
-            }
+        // Output using formatter
+        if ($format === 'console' && $verbosity !== OutputConfiguration::VERBOSITY_QUIET) {
+            echo renderLintBanner();
         }
+        echo $formatter->format($report);
 
-        renderSummary($stats);
-
-        exit($stats['errors'] > 0 ? 1 : 0);
+        exit($report->stats['errors'] > 0 ? 1 : 0);
 
     default:
         output(error("Unknown command: {$command}\n\n"));
