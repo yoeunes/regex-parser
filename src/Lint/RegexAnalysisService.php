@@ -19,6 +19,9 @@ use RegexParser\OptimizationResult;
 use RegexParser\ReDoS\ReDoSAnalysis;
 use RegexParser\ReDoS\ReDoSSeverity;
 use RegexParser\Regex;
+use RegexParser\ValidationResult;
+
+use function count;
 
 /**
  * Handles regex-related analysis and transformations.
@@ -375,7 +378,7 @@ final readonly class RegexAnalysisService
         return array_values(array_unique([...$redosIgnored, ...$userIgnored]));
     }
 
-    private function getTipForValidationError(string $message, string $pattern, \RegexParser\ValidationResult $validation): ?string
+    private function getTipForValidationError(string $message, string $pattern, ValidationResult $validation): ?string
     {
         // Try to provide intelligent, pattern-specific tips
         $intelligentTip = $this->generateIntelligentTip($message, $pattern, $validation);
@@ -387,7 +390,7 @@ final readonly class RegexAnalysisService
         return $this->getGenericTipForValidationError($message);
     }
 
-    private function generateIntelligentTip(string $message, string $pattern, \RegexParser\ValidationResult $validation): ?string
+    private function generateIntelligentTip(string $message, string $pattern, ValidationResult $validation): ?string
     {
         if (str_contains($message, 'No closing delimiter')) {
             return $this->suggestDelimiterFix($pattern);
@@ -435,7 +438,7 @@ final readonly class RegexAnalysisService
         return "Add the missing closing delimiter: $suggested";
     }
 
-    private function suggestCharacterClassFix(string $pattern, \RegexParser\ValidationResult $validation): ?string
+    private function suggestCharacterClassFix(string $pattern, ValidationResult $validation): ?string
     {
         // For patterns like /[a-z/ we need to add ] before the final delimiter
         if (str_contains($pattern, '[') && !str_contains($pattern, ']')) {
@@ -451,7 +454,7 @@ final readonly class RegexAnalysisService
         return null;
     }
 
-    private function suggestQuantifierRangeFix(string $pattern, \RegexParser\ValidationResult $validation): ?string
+    private function suggestQuantifierRangeFix(string $pattern, ValidationResult $validation): ?string
     {
         // Look for quantifier ranges in the pattern
         if (preg_match('/\{(\d+),(\d+)\}/', $pattern, $matches, \PREG_OFFSET_CAPTURE)) {
@@ -470,7 +473,7 @@ final readonly class RegexAnalysisService
         return null;
     }
 
-    private function suggestBackreferenceFix(string $pattern, \RegexParser\ValidationResult $validation): ?string
+    private function suggestBackreferenceFix(string $pattern, ValidationResult $validation): ?string
     {
         // Find all backreferences in the pattern
         if (preg_match_all('/\\\\(\d+)/', $pattern, $matches, \PREG_OFFSET_CAPTURE)) {
@@ -488,7 +491,7 @@ final readonly class RegexAnalysisService
         return null;
     }
 
-    private function suggestLookbehindFix(string $pattern, \RegexParser\ValidationResult $validation): ?string
+    private function suggestLookbehindFix(string $pattern, ValidationResult $validation): ?string
     {
         $offset = $validation->offset ?? 0;
 
@@ -547,7 +550,7 @@ final readonly class RegexAnalysisService
         return null;
     }
 
-    private function getReDoSHint(\RegexParser\ReDoS\ReDoSAnalysis $analysis, string $pattern): string
+    private function getReDoSHint(ReDoSAnalysis $analysis, string $pattern): string
     {
         $hints = [];
 
@@ -577,7 +580,7 @@ final readonly class RegexAnalysisService
     /**
      * @return list<string>
      */
-    private function suggestReDoSFixes(string $pattern, \RegexParser\ReDoS\ReDoSAnalysis $analysis): array
+    private function suggestReDoSFixes(string $pattern, ReDoSAnalysis $analysis): array
     {
         $hints = [];
 
