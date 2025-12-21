@@ -371,6 +371,8 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
 
         $ref = $node->ref;
 
+        $suggestions = $this->getNameSuggestions($ref);
+
         // Fast path for numeric backreferences
         if (preg_match('/^\\\\(\d++)$/', $ref, $matches)) {
             $num = (int) $matches[1];
@@ -397,8 +399,9 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         if (preg_match('/^\\\\k[<{\'](?<name>\w++)[>}\']$/', $ref, $matches)) {
             $name = $matches['name'];
             if (!$this->groupNumbering->hasNamedGroup($name)) {
+                $suggestions = $this->getNameSuggestions($name);
                 $this->raiseSemanticError(
-                    \sprintf('Backreference to non-existent named group: "%s".', $name),
+                    \sprintf('Backreference to non-existent named group: "%s".', $name).$suggestions,
                     $node->startPosition,
                     'regex.backref.missing_named_group',
                 );
@@ -410,8 +413,9 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         // Bare name validation (conditionals)
         if (preg_match('/^\w++$/', $ref)) {
             if (!$this->groupNumbering->hasNamedGroup($ref)) {
+                $suggestions = $this->getNameSuggestions($ref);
                 $this->raiseSemanticError(
-                    \sprintf('Backreference to non-existent named group: "%s".', $ref),
+                    \sprintf('Backreference to non-existent named group: "%s".', $ref).$suggestions,
                     $node->startPosition,
                     'regex.backref.missing_named_group',
                 );
@@ -737,6 +741,22 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
                 'regex.callout.invalid_type',
             );
         }
+    }
+
+    private function getNameSuggestions(string $name): string
+    {
+        $available = array_keys($this->groupNumbering->namedGroups);
+        $suggestions = [];
+        foreach ($available as $avail) {
+            if (levenshtein($name, $avail) <= 2) {
+                $suggestions[] = $avail;
+            }
+        }
+        if (!empty($suggestions)) {
+            return ' Did you mean: '.implode(', ', $suggestions).'?';
+        }
+
+        return '';
     }
 
     private function validateUnicode(Node\CharLiteralNode $node): void

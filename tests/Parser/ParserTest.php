@@ -370,6 +370,24 @@ final class ParserTest extends TestCase
         $this->assertTrue($result->isValid());
     }
 
+    public function test_validate_unknown_named_group_suggestions(): void
+    {
+        $result = $this->regex->validate('/(?<name>.) \k<nam>/');
+
+        $this->assertFalse($result->isValid());
+        $this->assertNotNull($result->error);
+        $this->assertStringContainsString('Did you mean: name?', $result->error);
+    }
+
+    public function test_validate_lookbehind_unbounded(): void
+    {
+        $result = $this->regex->validate('/(?<=a*)b/');
+
+        $this->assertFalse($result->isValid());
+        $this->assertNotNull($result->error);
+        $this->assertStringContainsString('Lookbehind is unbounded', $result->error);
+    }
+
     public function test_parse_named_group_with_single_quote(): void
     {
         $ast = $this->parse("/(?P'name'a)/");

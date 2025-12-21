@@ -117,6 +117,12 @@ final readonly class Regex
             $this->validateAst($ast, $extractedPattern);
             $complexityScore = $this->calculateComplexity($ast);
 
+            // Runtime compilation check - commented out as semantic validation covers most cases
+            // $runtimeError = $this->checkRuntimeCompilation($extractedPattern);
+            // if (null !== $runtimeError) {
+            //     return new ValidationResult(false, $runtimeError, $complexityScore);
+            // }
+
             return new ValidationResult(true, null, $complexityScore);
         } catch (LexerException|ParserException $parseException) {
             return $this->buildValidationFailure($parseException);
@@ -208,6 +214,34 @@ final readonly class Regex
         $ast = $this->parse($regex, false);
 
         return $ast->accept($explanationVisitor);
+    }
+
+    /**
+     * Checks runtime compilation by attempting to use the pattern with preg_match and capturing warnings.
+     */
+    private function checkRuntimeCompilation(string $pattern): ?string
+    {
+        $errors = [];
+        $oldHandler = set_error_handler(function (int $errno, string $errstr) use (&$errors) {
+            if (\E_WARNING === $errno || \E_NOTICE === $errno) {
+                $errors[] = $errstr;
+            }
+
+            return true; // Suppress the error
+        });
+
+        try {
+            // Try to match against an empty string to trigger compilation
+            preg_match($pattern, '');
+        } finally {
+            restore_error_handler();
+        }
+
+        if (!empty($errors)) {
+            return 'Runtime compilation warning: '.implode('; ', $errors);
+        }
+
+        return null;
     }
 
     /**
