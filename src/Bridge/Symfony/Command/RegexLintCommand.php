@@ -810,7 +810,7 @@ final class RegexLintCommand extends Command
     {
         foreach ($issues as $issue) {
             $badge = $this->getIssueBadge($issue['type']);
-            $tip = $issue['tip'] ?? ($issue['problem']->tip ?? null);
+            $tip = $issue['tip'] ?? (isset($issue['problem']) && $issue['problem'] instanceof \RegexParser\RegexProblem ? $issue['problem']->tip : null);
             $this->displaySingleIssue($io, $badge, $issue['message'], $tip);
 
             $hint = $issue['hint'] ?? null;
