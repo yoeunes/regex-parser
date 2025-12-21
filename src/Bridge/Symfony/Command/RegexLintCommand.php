@@ -148,7 +148,7 @@ final class RegexLintCommand extends Command
                 The <info>%command.name%</info> command scans your PHP code for regex patterns and provides:
 
                 * Validation of regex syntax
-                * Performance and security warnings  
+                * Performance and security warnings
                 * Optimization suggestions
                 * Integration with Symfony routes and validators
 
@@ -871,7 +871,7 @@ final class RegexLintCommand extends Command
 
         // Print the tip in a styled box if present
         if (null !== $tip && '' !== $tip) {
-            $io->writeln('         <bg=blue;fg=white;options=bold> 💡 Tip </> <fg=blue>'.trim($tip).'</>');
+            $io->writeln('    <bg=cyan;fg=white;options=bold> TIP  </> <fg=cyan;options=bold>'.trim($tip).'</>');
         }
     }
 
