@@ -33,6 +33,12 @@ use RegexParser\ReDoS\ReDoSSeverity;
 final readonly class Regex
 {
     /**
+     * Cache version for AST serialization.
+     * Bump this when AST structure changes.
+     */
+    public const CACHE_VERSION = 1;
+
+    /**
      * Default maximum allowed regex pattern length.
      */
     public const DEFAULT_MAX_PATTERN_LENGTH = 100_000;
@@ -288,6 +294,47 @@ final readonly class Regex
     }
 
     /**
+     * Get the list of allowed classes for unserialization.
+     *
+     * @return list<class-string>
+     */
+    private static function getAllowedClasses(): array
+    {
+        return [
+            // Node classes
+            Node\RegexNode::class,
+            Node\AlternationNode::class,
+            Node\AnchorNode::class,
+            Node\AssertionNode::class,
+            Node\BackrefNode::class,
+            Node\CalloutNode::class,
+            Node\CharClassNode::class,
+            Node\CharLiteralNode::class,
+            Node\CharTypeNode::class,
+            Node\ClassOperationNode::class,
+            Node\CommentNode::class,
+            Node\ConditionalNode::class,
+            Node\ControlCharNode::class,
+            Node\DefineNode::class,
+            Node\DotNode::class,
+            Node\GroupNode::class,
+            Node\KeepNode::class,
+            Node\LimitMatchNode::class,
+            Node\LiteralNode::class,
+            Node\PcreVerbNode::class,
+            Node\PosixClassNode::class,
+            Node\QuantifierNode::class,
+            Node\RangeNode::class,
+            Node\ScriptRunNode::class,
+            Node\SequenceNode::class,
+            Node\SubroutineNode::class,
+            Node\UnicodeNode::class,
+            Node\UnicodePropNode::class,
+            Node\VersionConditionNode::class,
+        ];
+    }
+
+    /**
      * Checks runtime compilation by attempting to use the pattern with preg_match and capturing warnings.
      */
 
@@ -357,13 +404,18 @@ final readonly class Regex
     {
         $serializedAst = serialize($ast);
         $exportedAst = var_export($serializedAst, true);
+        $version = self::CACHE_VERSION;
 
         return <<<PHP
             <?php
 
             declare(strict_types=1);
 
-            return unserialize($exportedAst, ['allowed_classes' => true]);
+            if (Regex::CACHE_VERSION !== $version) {
+                return null;
+            }
+
+            return unserialize($exportedAst, ['allowed_classes' => Regex::getAllowedClasses()]);
 
             PHP;
     }

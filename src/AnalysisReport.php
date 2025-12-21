@@ -22,7 +22,7 @@ final readonly class AnalysisReport
 {
     /**
      * @param list<string> $errors
-     * @param list<mixed> $lintIssues
+     * @param list<mixed>  $lintIssues
      */
     public function __construct(
         public bool $isValid,
