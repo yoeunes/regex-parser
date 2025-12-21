@@ -428,7 +428,7 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
     public function visitCharLiteral(Node\CharLiteralNode $node): string
     {
         return match ($node->type) {
-            Node\CharLiteralType::UNICODE => $this->line('Unicode: '.$node->originalRepresentation),
+            Node\CharLiteralType::UNICODE => $this->line('Unicode: '.$this->formatUnicodeChar($node)),
             Node\CharLiteralType::UNICODE_NAMED => $this->line('Unicode named character: '.$this->extractCharLiteralDetail($node)),
             Node\CharLiteralType::OCTAL => $this->line('Octal: '.$node->originalRepresentation),
             Node\CharLiteralType::OCTAL_LEGACY => $this->line('Legacy Octal: \\'.$node->originalRepresentation),
