@@ -18,26 +18,25 @@ if (version_compare('8.2.0', PHP_VERSION, '>')) {
     die(1);
 }
 
-$possibleFiles = [
+$autoloadPath = null;
+$autoloadPaths = [
     __DIR__.'/../../autoload.php',
     __DIR__.'/../vendor/autoload.php',
     __DIR__.'/vendor/autoload.php',
 ];
 
-$file = null;
-
-foreach ($possibleFiles as $possibleFile) {
-    if (file_exists($possibleFile)) {
-        $file = $possibleFile;
+foreach ($autoloadPaths as $path) {
+    if (file_exists($path)) {
+        $autoloadPath = $path;
         break;
     }
 }
 
-if (null === $file) {
+if (null === $autoloadPath) {
     throw new \RuntimeException('Unable to locate autoload.php file.');
 }
 
-require_once $file;
+require_once $autoloadPath;
 
 use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
