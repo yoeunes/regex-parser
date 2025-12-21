@@ -1,0 +1,368 @@
+<?php
+
+declare(strict_types=1);
+
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+namespace RegexParser\Tests\Lint;
+
+use PHPUnit\Framework\TestCase;
+use RegexParser\Lint\RegexPatternExtractor;
+use RegexParser\Lint\TokenBasedExtractionStrategy;
+
+/**
+ * Regression tests for the linter to ensure false positives are avoided
+ * and string escaping is handled correctly.
+ */
+final class RegressionTest extends TestCase
+{
+    private RegexPatternExtractor $extractor;
+
+    protected function setUp(): void
+    {
+        $this->extractor = new RegexPatternExtractor(new TokenBasedExtractionStrategy());
+    }
+
+    /**
+     * Test that Unicode hex sequences like \x{2000} are preserved correctly.
+     * This was causing "Invalid range" errors because the backslash was being eaten.
+     */
+    public function test_unicode_hex_sequences_in_double_quoted_strings(): void
+    {
+        $phpCode = <<<'PHP'
+<?php
+preg_match("/[\x{2000}-\x{2FFF}]/u", $subject);
+PHP;
+
+        $occurrences = $this->extractFromCode($phpCode);
+
+        $this->assertCount(1, $occurrences);
+        $this->assertSame("/[\x{2000}-\x{2FFF}]/u", $occurrences[0]->pattern);
+    }
+
+    /**
+     * Test that Unicode hex sequences work in single-quoted strings too.
+     */
+    public function test_unicode_hex_sequences_in_single_quoted_strings(): void
+    {
+        $phpCode = <<<'PHP'
+<?php
+preg_match('/[\x{2000}-\x{2FFF}]/u', $subject);
+PHP;
+
+        $occurrences = $this->extractFromCode($phpCode);
+
+        $this->assertCount(1, $occurrences);
+        $this->assertSame('/[\x{2000}-\x{2FFF}]/u', $occurrences[0]->pattern);
+    }
+
+    /**
+     * Test that standard PHP escape sequences in double-quoted strings are handled.
+     */
+    public function test_standard_escape_sequences_in_double_quoted_strings(): void
+    {
+        $phpCode = <<<'PHP'
+<?php
+preg_match("/hello\nworld/", $subject);
+PHP;
+
+        $occurrences = $this->extractFromCode($phpCode);
+
+        $this->assertCount(1, $occurrences);
+        // The \n should be converted to an actual newline character
+        $this->assertSame("/hello\nworld/", $occurrences[0]->pattern);
+    }
+
+    /**
+     * Test that escape sequences in single-quoted strings are NOT interpreted
+     * (except for \\ and \').
+     */
+    public function test_escape_sequences_in_single_quoted_strings(): void
+    {
+        $phpCode = <<<'PHP'
+<?php
+preg_match('/hello\nworld/', $subject);
+PHP;
+
+        $occurrences = $this->extractFromCode($phpCode);
+
+        $this->assertCount(1, $occurrences);
+        // The \n should remain as literal \n (backslash + n)
+        $this->assertSame('/hello\nworld/', $occurrences[0]->pattern);
+    }
+
+    /**
+     * Test complex escaping with multiple backslashes.
+     * In PHP: '\\\\' = two backslashes, "\\\\" = two backslashes
+     */
+    public function test_complex_backslash_escaping_single_quoted(): void
+    {
+        $phpCode = <<<'PHP'
+<?php
+preg_match('/\\\\/', $subject);
+PHP;
+
+        $occurrences = $this->extractFromCode($phpCode);
+
+        $this->assertCount(1, $occurrences);
+        // Single-quoted '\\\\' becomes \\ (two backslashes become one each)
+        $this->assertSame('/\\\\/', $occurrences[0]->pattern);
+    }
+
+    /**
+     * Test complex escaping with multiple backslashes in double-quoted strings.
+     */
+    public function test_complex_backslash_escaping_double_quoted(): void
+    {
+        $phpCode = <<<'PHP'
+<?php
+preg_match("/\\\\/", $subject);
+PHP;
+
+        $occurrences = $this->extractFromCode($phpCode);
+
+        $this->assertCount(1, $occurrences);
+        // Double-quoted "\\\\" becomes \\ (two backslashes become one each)
+        $this->assertSame("/\\\\/", $occurrences[0]->pattern);
+    }
+
+    /**
+     * Test that URLs starting with / are NOT flagged as regexes.
+     * This was causing "Quantifier without target" errors.
+     */
+    public function test_url_query_strings_are_not_flagged(): void
+    {
+        $phpCode = <<<'PHP'
+<?php
+preg_match('/?entryPoint=main&action=test', $subject);
+PHP;
+
+        $occurrences = $this->extractFromCode($phpCode);
+
+        // Should not be extracted as a regex pattern
+        $this->assertCount(0, $occurrences);
+    }
+
+    /**
+     * Test that HTTP URLs are not flagged as regexes.
+     */
+    public function test_http_urls_are_not_flagged(): void
+    {
+        $phpCode = <<<'PHP'
+<?php
+preg_match('/http://example.com/path/', $subject);
+PHP;
+
+        $occurrences = $this->extractFromCode($phpCode);
+
+        // Should not be extracted as a regex pattern (looks like URL)
+        $this->assertCount(0, $occurrences);
+    }
+
+    /**
+     * Test that file paths with multiple segments are not flagged as regexes.
+     */
+    public function test_file_paths_are_not_flagged(): void
+    {
+        $phpCode = <<<'PHP'
+<?php
+preg_match('/path/to/some/file/', $subject);
+PHP;
+
+        $occurrences = $this->extractFromCode($phpCode);
+
+        // Should not be extracted as a regex pattern (looks like file path)
+        $this->assertCount(0, $occurrences);
+    }
+
+    /**
+     * Test that valid regexes ARE still detected.
+     */
+    public function test_valid_regex_is_detected(): void
+    {
+        $phpCode = <<<'PHP'
+<?php
+preg_match('/^[a-z]+$/i', $subject);
+PHP;
+
+        $occurrences = $this->extractFromCode($phpCode);
+
+        $this->assertCount(1, $occurrences);
+        $this->assertSame('/^[a-z]+$/i', $occurrences[0]->pattern);
+    }
+
+    /**
+     * Test that regexes with escaped delimiters are handled correctly.
+     */
+    public function test_regex_with_escaped_delimiter(): void
+    {
+        $phpCode = <<<'PHP'
+<?php
+preg_match('/https?:\/\/[^\/]+/', $subject);
+PHP;
+
+        $occurrences = $this->extractFromCode($phpCode);
+
+        $this->assertCount(1, $occurrences);
+        $this->assertSame('/https?:\/\/[^\/]+/', $occurrences[0]->pattern);
+    }
+
+    /**
+     * Test that regexes with alternative delimiters work.
+     */
+    public function test_regex_with_alternative_delimiter(): void
+    {
+        $phpCode = <<<'PHP'
+<?php
+preg_match('#^/path/to/.*$#', $subject);
+PHP;
+
+        $occurrences = $this->extractFromCode($phpCode);
+
+        $this->assertCount(1, $occurrences);
+        $this->assertSame('#^/path/to/.*$#', $occurrences[0]->pattern);
+    }
+
+    /**
+     * Test that regexes with tilde delimiter work.
+     */
+    public function test_regex_with_tilde_delimiter(): void
+    {
+        $phpCode = <<<'PHP'
+<?php
+preg_match('~[a-z]+~i', $subject);
+PHP;
+
+        $occurrences = $this->extractFromCode($phpCode);
+
+        $this->assertCount(1, $occurrences);
+        $this->assertSame('~[a-z]+~i', $occurrences[0]->pattern);
+    }
+
+    /**
+     * Test hex escape sequences in double-quoted strings.
+     * \x41 should become 'A' (ASCII 65).
+     */
+    public function test_hex_escape_in_double_quoted_string(): void
+    {
+        $phpCode = <<<'PHP'
+<?php
+preg_match("/\x41+/", $subject);
+PHP;
+
+        $occurrences = $this->extractFromCode($phpCode);
+
+        $this->assertCount(1, $occurrences);
+        // \x41 should be converted to 'A'
+        $this->assertSame('/A+/', $occurrences[0]->pattern);
+    }
+
+    /**
+     * Test octal escape sequences in double-quoted strings.
+     * \101 should become 'A' (ASCII 65).
+     */
+    public function test_octal_escape_in_double_quoted_string(): void
+    {
+        $phpCode = <<<'PHP'
+<?php
+preg_match("/\101+/", $subject);
+PHP;
+
+        $occurrences = $this->extractFromCode($phpCode);
+
+        $this->assertCount(1, $occurrences);
+        // \101 (octal) should be converted to 'A'
+        $this->assertSame('/A+/', $occurrences[0]->pattern);
+    }
+
+    /**
+     * Test PHP 7+ Unicode escape sequences.
+     * \u{0041} should become 'A'.
+     */
+    public function test_php7_unicode_escape_in_double_quoted_string(): void
+    {
+        $phpCode = <<<'PHP'
+<?php
+preg_match("/\u{0041}+/", $subject);
+PHP;
+
+        $occurrences = $this->extractFromCode($phpCode);
+
+        $this->assertCount(1, $occurrences);
+        // \u{0041} should be converted to 'A'
+        $this->assertSame('/A+/', $occurrences[0]->pattern);
+    }
+
+    /**
+     * Test that dollar sign escaping works in double-quoted strings.
+     */
+    public function test_dollar_sign_escape_in_double_quoted_string(): void
+    {
+        $phpCode = <<<'PHP'
+<?php
+preg_match("/\$var/", $subject);
+PHP;
+
+        $occurrences = $this->extractFromCode($phpCode);
+
+        $this->assertCount(1, $occurrences);
+        // \$ should become literal $
+        $this->assertSame('/$var/', $occurrences[0]->pattern);
+    }
+
+    /**
+     * Test that preg_match_all is also detected.
+     */
+    public function test_preg_match_all_is_detected(): void
+    {
+        $phpCode = <<<'PHP'
+<?php
+preg_match_all('/\d+/', $subject, $matches);
+PHP;
+
+        $occurrences = $this->extractFromCode($phpCode);
+
+        $this->assertCount(1, $occurrences);
+        $this->assertSame('/\d+/', $occurrences[0]->pattern);
+    }
+
+    /**
+     * Test that preg_replace is also detected.
+     */
+    public function test_preg_replace_is_detected(): void
+    {
+        $phpCode = <<<'PHP'
+<?php
+preg_replace('/\s+/', ' ', $subject);
+PHP;
+
+        $occurrences = $this->extractFromCode($phpCode);
+
+        $this->assertCount(1, $occurrences);
+        $this->assertSame('/\s+/', $occurrences[0]->pattern);
+    }
+
+    /**
+     * Helper method to extract patterns from PHP code string.
+     *
+     * @return list<\RegexParser\Lint\RegexPatternOccurrence>
+     */
+    private function extractFromCode(string $phpCode): array
+    {
+        $tempFile = tempnam(sys_get_temp_dir(), 'regex_test_');
+        file_put_contents($tempFile, $phpCode);
+
+        try {
+            return $this->extractor->extract([$tempFile]);
+        } finally {
+            unlink($tempFile);
+        }
+    }
+}
