@@ -132,14 +132,13 @@ class ConsoleFormatter extends AbstractOutputFormatter
         $showLine = $line > 0 && !$hasLocation;
 
         if ($showLine) {
-            $penLabel = $this->getPenLabel();
             if (null !== $pattern && '' !== $pattern) {
                 $highlighted = $this->safelyHighlightPattern($pattern);
 
-                return \sprintf('  %s %s %s'.\PHP_EOL, $this->dim($line.':'), $penLabel, $highlighted);
+                return \sprintf('  %s %s'.\PHP_EOL, $this->dim($line.':'), $highlighted);
             }
 
-            return \sprintf('  %s %s'.\PHP_EOL, $this->dim('line '.$line.':'), $penLabel);
+            return \sprintf('  %s'.\PHP_EOL, $this->dim('line '.$line.':'));
         }
 
         if (null !== $pattern && '' !== $pattern) {

@@ -372,9 +372,24 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
             return $this->extractFromCallbackArray($tokens, $file, $sourceName);
         }
 
-        $patternInfo = $this->parseConstantStringExpression($tokens);
+        $patternInfo = $this->parseRegexExpression($tokens);
         if (null === $patternInfo) {
-            return [];
+            // Fallback to regular string parsing
+            $patternInfo = $this->parseConstantStringExpression($tokens);
+            if (null === $patternInfo) {
+                return [];
+            }
+
+            if ('' === $patternInfo['pattern']) {
+                return [];
+            }
+
+            return [new RegexPatternOccurrence(
+                $patternInfo['pattern'],
+                $file,
+                $patternInfo['line'],
+                $sourceName.'()',
+            )];
         }
 
         if ('' === $patternInfo['pattern']) {
@@ -486,6 +501,41 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
         }
 
         return $occurrences;
+    }
+
+    /**
+     * Parse a regex expression, handling patterns with flags.
+     *
+     * @param list<array{int, string, int}|string> $tokens
+     *
+     * @return array{pattern: string, line: int}|null
+     */
+    private function parseRegexExpression(array $tokens): ?array
+    {
+        $result = $this->parseConstantStringExpression($tokens);
+        if (null === $result) {
+            return null;
+        }
+
+        $pattern = $result['pattern'];
+        
+        // Check if this looks like a regex with flags (e.g., "/pattern/m" or "{pattern}u")
+        if (preg_match('/^([\'"{\/\#~%])(.*?)([\'"{\/\#~%])([a-zA-Z]*)$/', $pattern, $matches)) {
+            $delimiter = $matches[1];
+            $regexBody = $matches[2];
+            $flags = $matches[3];
+            
+            // Reconstruct the pattern with flags preserved
+            $fullPattern = $delimiter . $regexBody . $delimiter . $flags;
+            
+            return [
+                'pattern' => $fullPattern,
+                'line' => $result['line'],
+            ];
+        }
+        
+        // Not a regex with flags, return as-is
+        return $result;
     }
 
     /**
