@@ -19,6 +19,17 @@ use RegexParser\Severity;
 
 /**
  * Checkstyle XML output formatter.
+ *
+ * @phpstan-import-type LintResult from \RegexParser\Lint\RegexLintReport
+ *
+ * @phpstan-type FlattenedProblem array{
+ *     file: string,
+ *     line: int,
+ *     source?: string|null,
+ *     pattern?: string|null,
+ *     location?: string|null,
+ *     problem: RegexProblem
+ * }
  */
 final class CheckstyleFormatter extends AbstractOutputFormatter
 {
@@ -81,9 +92,9 @@ final class CheckstyleFormatter extends AbstractOutputFormatter
     }
 
     /**
-     * @param array<array<string, mixed>> $results
+     * @phpstan-param list<LintResult> $results
      *
-     * @return array<array<string, mixed>>
+     * @phpstan-return list<FlattenedProblem>
      */
     private function flattenProblems(array $results): array
     {
@@ -134,7 +145,7 @@ final class CheckstyleFormatter extends AbstractOutputFormatter
     }
 
     /**
-     * @param array<string, mixed> $context
+     * @phpstan-param FlattenedProblem $context
      */
     private function formatProblemMessage(RegexProblem $problem, array $context): string
     {

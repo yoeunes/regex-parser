@@ -24,46 +24,17 @@ use Symfony\Component\Console\Formatter\OutputFormatter;
  * Symfony-specific console output formatter.
  *
  * Renders the classic Nuno-style layout with Symfony console tags.
+ *
+ * @phpstan-import-type LintIssue from \RegexParser\Lint\RegexLintReport
+ * @phpstan-import-type OptimizationEntry from \RegexParser\Lint\RegexLintReport
+ * @phpstan-import-type LintResult from \RegexParser\Lint\RegexLintReport
+ * @phpstan-import-type LintStats from \RegexParser\Lint\RegexLintReport
  */
 final readonly class SymfonyConsoleFormatter implements OutputFormatterInterface
 {
     private const PEN_LABEL = "\u{270F}\u{FE0F}";
     private const ARROW_LABEL = "\u{21B3}";
 
-    /**
-     * @phpstan-type LintIssue array{
-     *     type: string,
-     *     message: string,
-     *     file: string,
-     *     line: int,
-     *     column?: int,
-     *     position?: int,
-     *     issueId?: string,
-     *     hint?: string|null,
-     *     source?: string,
-     *     pattern?: string,
-     *     regex?: string,
-     *     analysis?: \RegexParser\ReDoS\ReDoSAnalysis,
-     *     validation?: \RegexParser\ValidationResult
-     * }
-     * @phpstan-type OptimizationEntry array{
-     *     file: string,
-     *     line: int,
-     *     optimization: OptimizationResult,
-     *     savings: int,
-     *     source?: string
-     * }
-     * @phpstan-type LintResult array{
-     *     file: string,
-     *     line: int,
-     *     source?: string|null,
-     *     pattern: string|null,
-     *     location?: string|null,
-     *     issues: list<LintIssue>,
-     *     optimizations: list<OptimizationEntry>
-     * }
-     * @phpstan-type LintStats array{errors: int, warnings: int, optimizations: int}
-     */
     public function __construct(
         private RegexAnalysisService $analysis,
         private LinkFormatter $linkFormatter,
@@ -97,7 +68,7 @@ final readonly class SymfonyConsoleFormatter implements OutputFormatterInterface
         $currentFile = null;
 
         foreach ($results as $result) {
-            $file = $result['file'];
+            $file = (string) $result['file'];
             if ($file !== $currentFile) {
                 $currentFile = $file;
                 $output .= $this->renderFileHeader($file);
@@ -124,10 +95,15 @@ final readonly class SymfonyConsoleFormatter implements OutputFormatterInterface
      */
     private function renderResultCard(array $result): string
     {
+        /** @var list<LintIssue> $issues */
+        $issues = $result['issues'] ?? [];
+        /** @var list<OptimizationEntry> $optimizations */
+        $optimizations = $result['optimizations'] ?? [];
+
         $output = '';
         $output .= $this->displayPatternContext($result);
-        $output .= $this->displayIssues($result['issues'] ?? []);
-        $output .= $this->displayOptimizations($result['optimizations'] ?? []);
+        $output .= $this->displayIssues($issues);
+        $output .= $this->displayOptimizations($optimizations);
         $output .= \PHP_EOL;
 
         return $output;
@@ -139,8 +115,8 @@ final readonly class SymfonyConsoleFormatter implements OutputFormatterInterface
     private function displayPatternContext(array $result): string
     {
         $pattern = $this->extractPatternForResult($result);
-        $line = $result['line'];
-        $file = $result['file'];
+        $line = (int) $result['line'];
+        $file = (string) $result['file'];
         $location = $result['location'] ?? null;
 
         $hasLocation = \is_string($location) && '' !== $location;
@@ -300,9 +276,9 @@ final readonly class SymfonyConsoleFormatter implements OutputFormatterInterface
      */
     private function showSummaryMessage(array $stats): string
     {
-        $errors = $stats['errors'];
-        $warnings = $stats['warnings'];
-        $optimizations = $stats['optimizations'];
+        $errors = (int) $stats['errors'];
+        $warnings = (int) $stats['warnings'];
+        $optimizations = (int) $stats['optimizations'];
 
         $message = match (true) {
             $errors > 0 => \sprintf(

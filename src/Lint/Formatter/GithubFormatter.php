@@ -19,6 +19,17 @@ use RegexParser\Severity;
 
 /**
  * GitHub Actions output formatter.
+ *
+ * @phpstan-import-type LintResult from \RegexParser\Lint\RegexLintReport
+ *
+ * @phpstan-type FlattenedProblem array{
+ *     file: string,
+ *     line: int,
+ *     source?: string|null,
+ *     pattern?: string|null,
+ *     location?: string|null,
+ *     problem: RegexProblem
+ * }
  */
 final class GithubFormatter extends AbstractOutputFormatter
 {
@@ -39,9 +50,9 @@ final class GithubFormatter extends AbstractOutputFormatter
     }
 
     /**
-     * @param array<array<string, mixed>> $results
+     * @phpstan-param list<LintResult> $results
      *
-     * @return array<array<string, mixed>>
+     * @phpstan-return list<FlattenedProblem>
      */
     private function flattenProblems(array $results): array
     {
@@ -68,7 +79,7 @@ final class GithubFormatter extends AbstractOutputFormatter
     }
 
     /**
-     * @param array<string, mixed> $entry
+     * @phpstan-param FlattenedProblem $entry
      */
     private function formatGithubAnnotation(array $entry): string
     {
@@ -76,8 +87,8 @@ final class GithubFormatter extends AbstractOutputFormatter
         \assert($problem instanceof RegexProblem);
 
         $level = $this->mapAnnotationLevel($problem->severity);
-        $file = (string) ($entry['file'] ?? '');
-        $line = (int) ($entry['line'] ?? 1);
+        $file = $entry['file'];
+        $line = $entry['line'];
         $column = $problem->position ?? 1;
         $title = $this->formatProblemTitle($problem);
         $message = $this->formatProblemMessage($problem, $entry);
@@ -119,7 +130,7 @@ final class GithubFormatter extends AbstractOutputFormatter
     }
 
     /**
-     * @param array<string, mixed> $context
+     * @phpstan-param FlattenedProblem $context
      */
     private function formatProblemMessage(RegexProblem $problem, array $context): string
     {
