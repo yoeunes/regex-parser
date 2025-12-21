@@ -27,6 +27,7 @@ final readonly class RegexProblem
         public ?string $snippet = null,
         public ?string $suggestion = null,
         public ?string $docsAnchor = null,
+        public ?string $tip = null,
     ) {}
 
     /**
@@ -38,7 +39,8 @@ final readonly class RegexProblem
      *     position: ?int,
      *     snippet: ?string,
      *     suggestion: ?string,
-     *     docsAnchor: ?string
+     *     docsAnchor: ?string,
+     *     tip: ?string
      * }
      */
     public function toArray(): array
@@ -52,6 +54,7 @@ final readonly class RegexProblem
             'snippet' => $this->snippet,
             'suggestion' => $this->suggestion,
             'docsAnchor' => $this->docsAnchor,
+            'tip' => $this->tip,
         ];
     }
 }

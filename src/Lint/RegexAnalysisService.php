@@ -115,6 +115,7 @@ final readonly class RegexAnalysisService
                     'message' => $message,
                     'source' => $source,
                     'validation' => $validation,
+                    'tip' => $this->getTipForValidationError($message),
                 ];
 
                 if ($progress) {
@@ -371,6 +372,15 @@ final readonly class RegexAnalysisService
     private function buildIgnoredPatterns(array $userIgnored, array $redosIgnored): array
     {
         return array_values(array_unique([...$redosIgnored, ...$userIgnored]));
+    }
+
+    private function getTipForValidationError(string $message): ?string
+    {
+        if (str_contains($message, 'No closing delimiter')) {
+            return 'Escape "/" inside the pattern (\/) or use a different delimiter, e.g. #pattern#.';
+        }
+
+        return null;
     }
 
     private function isLikelyPartialRegexError(string $errorMessage): bool

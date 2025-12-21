@@ -810,7 +810,8 @@ final class RegexLintCommand extends Command
     {
         foreach ($issues as $issue) {
             $badge = $this->getIssueBadge($issue['type']);
-            $this->displaySingleIssue($io, $badge, $issue['message']);
+            $tip = $issue['tip'] ?? ($issue['problem']->tip ?? null);
+            $this->displaySingleIssue($io, $badge, $issue['message'], $tip);
 
             $hint = $issue['hint'] ?? null;
             if (null !== $hint && '' !== $hint) {
@@ -822,9 +823,9 @@ final class RegexLintCommand extends Command
     private function getIssueBadge(string $type): string
     {
         return match ($type) {
-            'error' => '<bg=red;fg=white;options=bold> ❌ FAIL </>',
-            'warning' => '<bg=yellow;fg=black;options=bold> ⚠️  WARN </>',
-            default => '<bg=gray;fg=white;options=bold> ℹ️  INFO </>',
+            'error' => '<bg=red;fg=white;options=bold> FAIL </>',
+            'warning' => '<bg=yellow;fg=black;options=bold> WARN </>',
+            default => '<bg=gray;fg=white;options=bold> INFO </>',
         };
     }
 
@@ -834,30 +835,20 @@ final class RegexLintCommand extends Command
     private function displayOptimizations(SymfonyStyle $io, array $optimizations): void
     {
         foreach ($optimizations as $opt) {
-            $io->writeln('    <bg=cyan;fg=white;options=bold> 🚀 TIP </> <fg=cyan;options=bold>Optimization available</>');
+            $io->writeln('    <bg=cyan;fg=white;options=bold> TIP </> <fg=cyan;options=bold>Optimization available</>');
 
             $original = $this->safelyHighlightPattern($opt['optimization']->original);
             $optimized = $this->safelyHighlightPattern($opt['optimization']->optimized);
 
-            $io->writeln(\sprintf('         <fg=red>➖ %s</>', $original));
-            $io->writeln(\sprintf('         <fg=green>➕ %s</>', $optimized));
+            $io->writeln(\sprintf('         <fg=red>- %s</>', $original));
+            $io->writeln(\sprintf('         <fg=green>+ %s</>', $optimized));
         }
     }
 
-    private function displaySingleIssue(SymfonyStyle $io, string $badge, string $message): void
+    private function displaySingleIssue(SymfonyStyle $io, string $badge, string $message, ?string $tip = null): void
     {
-        // Check if message contains a tip
-        $tipPos = strpos($message, 'Tip:');
-        if (false !== $tipPos) {
-            $mainMessage = substr($message, 0, $tipPos);
-            $tipMessage = substr($message, $tipPos + 5); // Skip "Tip:"
-        } else {
-            $mainMessage = $message;
-            $tipMessage = null;
-        }
-
-        // Split main message by newline to handle carets/pointers correctly
-        $lines = explode("\n", $mainMessage);
+        // Split message by newline to handle carets/pointers correctly
+        $lines = explode("\n", $message);
         $firstLine = array_shift($lines);
 
         // Print the primary error message on the same line as the badge
@@ -871,8 +862,8 @@ final class RegexLintCommand extends Command
         }
 
         // Print the tip in a styled box if present
-        if (null !== $tipMessage) {
-            $io->writeln('         <bg=blue;fg=white;options=bold> 💡 Tip </> <fg=blue>'.trim($tipMessage).'</>');
+        if (null !== $tip && '' !== $tip) {
+            $io->writeln('         <bg=blue;fg=white;options=bold> 💡 Tip </> <fg=blue>'.trim($tip).'</>');
         }
     }
 
