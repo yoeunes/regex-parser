@@ -617,6 +617,9 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
 
     private function explainLiteral(string $value): string
     {
+        $ord = ord($value);
+        error_log("explainLiteral called: ord=$ord, char=[$value]");
+        
         return match ($value) {
             ' ' => "' ' (space)",
             "\t" => "'\\t' (tab)",
