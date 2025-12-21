@@ -12,27 +12,49 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-// Find the correct autoload.php file
-$possibleAutoloadPaths = [
-    __DIR__.'/../vendor/autoload.php',  // When running from source
-    __DIR__.'/../../../autoload.php',  // When installed via composer
-    dirname(__DIR__, 3).'/autoload.php', // Fallback for deeper installations
-];
+// Check PHP version requirement
+if (version_compare('8.2.0', PHP_VERSION, '>')) {
+    fwrite(
+        STDERR,
+        sprintf(
+            'This version of RegexParser requires PHP >= 8.2.0.' . PHP_EOL .
+            'You are using PHP %s (%s).' . PHP_EOL,
+            PHP_VERSION,
+            PHP_BINARY
+        )
+    );
 
-$autoload = null;
-foreach ($possibleAutoloadPaths as $path) {
-    if (file_exists($path)) {
-        $autoload = $path;
-        break;
+    die(1);
+}
+
+// Load dependencies using the same approach as PHPUnit/PHP-CS-Fixer
+(static function (): void {
+    $possibleFiles = [
+        __DIR__.'/../../autoload.php',  // When installed as a dependency
+        __DIR__.'/../vendor/autoload.php',  // When running from source
+        __DIR__.'/vendor/autoload.php',     // Phar/stub
+    ];
+
+    foreach ($possibleFiles as $file) {
+        if (file_exists($file)) {
+            define('REGEX_PARSER_COMPOSER_INSTALL', $file);
+            break;
+        }
     }
-}
 
-if ($autoload === null) {
-    fwrite(STDERR, "Error: Could not find autoload.php. Please run 'composer install'.\n");
-    exit(1);
-}
+    if (!defined('REGEX_PARSER_COMPOSER_INSTALL')) {
+        fwrite(
+            STDERR,
+            'You need to set up the project dependencies using Composer:' . PHP_EOL . PHP_EOL .
+            '    composer install' . PHP_EOL . PHP_EOL .
+            'You can learn all about Composer on https://getcomposer.org/.' . PHP_EOL
+        );
 
-require $autoload;
+        die(1);
+    }
+})();
+
+require REGEX_PARSER_COMPOSER_INSTALL;
 
 use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
