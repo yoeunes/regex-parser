@@ -513,6 +513,18 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
+    public function visitControlChar(Node\ControlCharNode $node): void
+    {
+        if ($node->codePoint < 0 || $node->codePoint > 0xFF) {
+            $this->raiseSemanticError(
+                \sprintf('Invalid control character "\\c%s".', $node->char),
+                $node->startPosition,
+                'regex.control_char.invalid',
+            );
+        }
+    }
+
+    #[\Override]
     public function visitPosixClass(Node\PosixClassNode $node): void
     {
         $class = strtolower($node->class);
@@ -815,7 +827,8 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     {
         return $node instanceof Node\LiteralNode
             || $node instanceof Node\CharLiteralNode
-            || $node instanceof Node\UnicodeNode;
+            || $node instanceof Node\UnicodeNode
+            || $node instanceof Node\ControlCharNode;
         // CharTypeNode (e.g., \d) is technically invalid in a standard PCRE range start/end,
         // but we exclude it here to remain spec-compliant unless lenient mode is desired.
     }

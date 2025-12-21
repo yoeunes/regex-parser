@@ -41,7 +41,7 @@ final class ParserInternalsTest extends TestCase
     {
         // Forces the loop to finish without finding the delimiter
         $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('No closing delimiter "/" found');
+        $this->expectExceptionMessage('No closing delimiter "/" found. You opened with "/"; expected closing "/". Tip: escape "/" inside the pattern (\\/) or use a different delimiter, e.g. #abc#.');
         PatternParser::extractPatternAndFlags('/abc');
     }
 

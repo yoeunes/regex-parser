@@ -54,7 +54,7 @@ final class ParserStructureTest extends TestCase
         $regex = Regex::create();
 
         $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('No closing delimiter "/" found');
+        $this->expectExceptionMessage('No closing delimiter "/" found. You opened with "/"; expected closing "/". Tip: escape "/" inside the pattern (\\/) or use a different delimiter, e.g. #abc#.');
 
         $regex->parse('/abc'); // Pas de slash final
     }
@@ -67,7 +67,7 @@ final class ParserStructureTest extends TestCase
         $regex = Regex::create();
 
         $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('No closing delimiter "/" found');
+        $this->expectExceptionMessage('No closing delimiter "/" found. You opened with "/"; expected closing "/". Tip: escape "/" inside the pattern (\\/) or use a different delimiter, e.g. #abc\\/#.');
 
         // Ici le dernier slash est échappé, donc ce n'est pas un délimiteur valide
         $regex->parse('/abc\/');

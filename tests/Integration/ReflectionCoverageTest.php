@@ -81,8 +81,8 @@ final class ReflectionCoverageTest extends TestCase
         $reflection = new \ReflectionClass($lexer);
         $method = $reflection->getMethod('normalizeUnicodeProp');
 
-        // No v1_prop or v2_prop in the matches array
-        $result = $method->invoke($lexer, '\p{L}', []);
+        // Empty property to hit the fallback path
+        $result = $method->invoke($lexer, '\p{}');
 
         $this->assertSame('', $result);
     }

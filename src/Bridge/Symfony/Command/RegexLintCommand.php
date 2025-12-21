@@ -19,6 +19,8 @@ use RegexParser\Lint\RegexAnalysisService;
 use RegexParser\Lint\RegexLintRequest;
 use RegexParser\Lint\RegexLintService;
 use RegexParser\OptimizationResult;
+use RegexParser\RegexProblem;
+use RegexParser\Severity;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Formatter\OutputFormatter;
@@ -35,6 +37,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  *     file: string,
  *     line: int,
  *     column?: int,
+ *     position?: int,
  *     issueId?: string,
  *     hint?: string|null,
  *     source?: string,
@@ -57,9 +60,30 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  *     pattern: string|null,
  *     location?: string|null,
  *     issues: list<LintIssue>,
- *     optimizations: list<OptimizationEntry>
+ *     optimizations: list<OptimizationEntry>,
+ *     problems: list<\RegexParser\RegexProblem>
  * }
  * @phpstan-type LintStats array{errors: int, warnings: int, optimizations: int}
+ * @phpstan-type JsonProblem array{
+ *     type: string,
+ *     severity: string,
+ *     message: string,
+ *     code: ?string,
+ *     position: ?int,
+ *     snippet: ?string,
+ *     suggestion: ?string,
+ *     docsAnchor: ?string
+ * }
+ * @phpstan-type JsonLintResult array{
+ *     file: string,
+ *     line: int,
+ *     source?: string|null,
+ *     pattern: string|null,
+ *     location?: string|null,
+ *     issues: list<LintIssue>,
+ *     optimizations: list<OptimizationEntry>,
+ *     problems: list<JsonProblem>
+ * }
  */
 #[AsCommand(
     name: 'regex:lint',
@@ -67,6 +91,8 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 )]
 final class RegexLintCommand extends Command
 {
+    private const SUPPORTED_FORMATS = ['console', 'json', 'github', 'checkstyle', 'junit'];
+
     private RelativePathHelper $pathHelper;
 
     private LinkFormatter $linkFormatter;
@@ -117,7 +143,7 @@ final class RegexLintCommand extends Command
             ->addOption('min-savings', null, InputOption::VALUE_OPTIONAL, 'Minimum optimization savings in characters', 1)
             ->addOption('no-routes', null, InputOption::VALUE_NONE, 'Skip route validation')
             ->addOption('no-validators', null, InputOption::VALUE_NONE, 'Skip validator validation')
-            ->addOption('format', null, InputOption::VALUE_OPTIONAL, 'Output format (console or json)', 'console')
+            ->addOption('format', null, InputOption::VALUE_OPTIONAL, 'Output format (console, json, github, checkstyle, junit)', 'console')
             ->setHelp(<<<'EOF'
                 The <info>%command.name%</info> command scans your PHP code for regex patterns and provides:
 
@@ -142,6 +168,9 @@ final class RegexLintCommand extends Command
 
                 Output format for CI/CD:
                 <info>php %command.full_name% --format=json</info>
+                <info>php %command.full_name% --format=github</info>
+                <info>php %command.full_name% --format=checkstyle</info>
+                <info>php %command.full_name% --format=junit</info>
                 EOF
             );
     }
@@ -163,10 +192,14 @@ final class RegexLintCommand extends Command
         $skipRoutes = (bool) $input->getOption('no-routes');
         $skipValidators = (bool) $input->getOption('no-validators');
         $formatOption = $input->getOption('format');
-        $format = \is_string($formatOption) ? $formatOption : 'console';
+        $format = \is_string($formatOption) ? strtolower($formatOption) : 'console';
 
-        if (!\in_array($format, ['console', 'json'], true)) {
-            $io->error('Invalid format \''.$format.'\'. Supported formats: console, json');
+        if (!\in_array($format, self::SUPPORTED_FORMATS, true)) {
+            $io->error(\sprintf(
+                "Invalid format '%s'. Supported formats: %s",
+                $format,
+                implode(', ', self::SUPPORTED_FORMATS),
+            ));
 
             return Command::FAILURE;
         }
@@ -188,32 +221,11 @@ final class RegexLintCommand extends Command
             );
             $patterns = $this->lint->collectPatterns($request);
         } catch (\Throwable $e) {
-            if ('json' === $format) {
-                $output->writeln(json_encode([
-                    'error' => "Failed to collect patterns: {$e->getMessage()}",
-                ], \JSON_THROW_ON_ERROR));
-
-                return Command::FAILURE;
-            }
-
-            $io->error("Failed to collect patterns: {$e->getMessage()}");
-
-            return Command::FAILURE;
+            return $this->renderCollectionFailure($format, $output, $io, $e->getMessage());
         }
 
         if (empty($patterns)) {
-            if ('json' === $format) {
-                $output->writeln(json_encode([
-                    'stats' => $this->createStats(),
-                    'results' => [],
-                ], \JSON_THROW_ON_ERROR));
-
-                return Command::SUCCESS;
-            }
-
-            $this->renderSummary($io, $this->createStats(), isEmpty: true);
-
-            return Command::SUCCESS;
+            return $this->renderEmptyResults($format, $output, $io);
         }
 
         if ('console' === $format) {
@@ -232,17 +244,26 @@ final class RegexLintCommand extends Command
         $allResults = $this->sortResultsByFileAndLine($report->results);
         $stats = $report->stats;
 
-        if ('json' === $format) {
-            $output->writeln(json_encode([
-                'stats' => $stats,
-                'results' => $allResults,
-            ], \JSON_THROW_ON_ERROR));
-        } else {
-            if (!empty($allResults)) {
-                $this->displayResults($io, $allResults);
-            }
+        switch ($format) {
+            case 'json':
+                $this->renderJsonOutput($output, $stats, $allResults);
+                break;
+            case 'github':
+                $this->renderGithubOutput($output, $allResults);
+                break;
+            case 'checkstyle':
+                $this->renderCheckstyleOutput($output, $allResults);
+                break;
+            case 'junit':
+                $this->renderJunitOutput($output, $allResults);
+                break;
+            default:
+                if (!empty($allResults)) {
+                    $this->displayResults($io, $allResults);
+                }
 
-            $this->renderSummary($io, $stats);
+                $this->renderSummary($io, $stats);
+                break;
         }
 
         return $stats['errors'] > 0 ? Command::FAILURE : Command::SUCCESS;
@@ -261,6 +282,431 @@ final class RegexLintCommand extends Command
     private function createStats(): array
     {
         return ['errors' => 0, 'warnings' => 0, 'optimizations' => 0];
+    }
+
+    private function renderCollectionFailure(
+        string $format,
+        OutputInterface $output,
+        SymfonyStyle $io,
+        string $errorMessage,
+    ): int {
+        $message = "Failed to collect patterns: {$errorMessage}";
+
+        switch ($format) {
+            case 'json':
+                $output->writeln(json_encode([
+                    'error' => $message,
+                ], \JSON_THROW_ON_ERROR));
+                break;
+            case 'github':
+                $output->writeln($this->formatGithubMessage('error', $message));
+                break;
+            case 'checkstyle':
+                $output->writeln($this->renderCheckstyleError($message));
+                break;
+            case 'junit':
+                $output->writeln($this->renderJunitError($message));
+                break;
+            default:
+                $io->error($message);
+                break;
+        }
+
+        return Command::FAILURE;
+    }
+
+    private function renderEmptyResults(string $format, OutputInterface $output, SymfonyStyle $io): int
+    {
+        $stats = $this->createStats();
+
+        switch ($format) {
+            case 'json':
+                $this->renderJsonOutput($output, $stats, []);
+                break;
+            case 'checkstyle':
+                $this->renderCheckstyleOutput($output, []);
+                break;
+            case 'junit':
+                $this->renderJunitOutput($output, []);
+                break;
+            case 'github':
+                break;
+            default:
+                $this->renderSummary($io, $stats, isEmpty: true);
+                break;
+        }
+
+        return Command::SUCCESS;
+    }
+
+    /**
+     * @phpstan-param LintStats $stats
+     * @phpstan-param list<LintResult> $results
+     */
+    private function renderJsonOutput(OutputInterface $output, array $stats, array $results): void
+    {
+        $output->writeln(json_encode([
+            'stats' => $stats,
+            'results' => $this->normalizeResultsForJson($results),
+        ], \JSON_THROW_ON_ERROR));
+    }
+
+    /**
+     * @phpstan-param list<LintResult> $results
+     */
+    private function renderGithubOutput(OutputInterface $output, array $results): void
+    {
+        foreach ($this->flattenProblems($results) as $entry) {
+            $output->writeln($this->formatGithubAnnotation($entry));
+        }
+    }
+
+    /**
+     * @phpstan-param list<LintResult> $results
+     */
+    private function renderCheckstyleOutput(OutputInterface $output, array $results): void
+    {
+        $entries = $this->flattenProblems($results);
+        $byFile = [];
+
+        foreach ($entries as $entry) {
+            $file = $this->normalizeFile($entry['file']);
+            $byFile[$file][] = $entry;
+        }
+
+        $lines = ['<?xml version="1.0" encoding="UTF-8"?>', '<checkstyle version="4.3">'];
+        foreach ($byFile as $file => $fileEntries) {
+            $lines[] = \sprintf('  <file name="%s">', $this->escapeXml($file));
+            foreach ($fileEntries as $entry) {
+                $problem = $entry['problem'];
+                $line = $this->normalizeLine($entry['line']);
+                $column = $this->normalizeColumn($problem->position);
+                $severity = $this->mapCheckstyleSeverity($problem->severity);
+                $message = $this->formatProblemMessage($problem, $entry);
+                $source = $this->formatCheckstyleSource($problem);
+                $lines[] = \sprintf(
+                    '    <error line="%d" column="%d" severity="%s" message="%s" source="%s"/>',
+                    $line,
+                    $column,
+                    $this->escapeXml($severity),
+                    $this->escapeXml($message),
+                    $this->escapeXml($source),
+                );
+            }
+            $lines[] = '  </file>';
+        }
+
+        $lines[] = '</checkstyle>';
+        $output->writeln(implode("\n", $lines));
+    }
+
+    /**
+     * @phpstan-param list<LintResult> $results
+     */
+    private function renderJunitOutput(OutputInterface $output, array $results): void
+    {
+        $entries = $this->flattenProblems($results);
+        $tests = \count($entries);
+        $failures = 0;
+        $errors = 0;
+
+        foreach ($entries as $entry) {
+            $severity = $entry['problem']->severity;
+            if (Severity::Critical === $severity) {
+                $errors++;
+            } elseif (Severity::Error === $severity) {
+                $failures++;
+            }
+        }
+
+        $lines = [
+            '<?xml version="1.0" encoding="UTF-8"?>',
+            \sprintf(
+                '<testsuite name="regex-parser" tests="%d" failures="%d" errors="%d" skipped="0">',
+                $tests,
+                $failures,
+                $errors,
+            ),
+        ];
+
+        foreach ($entries as $entry) {
+            $problem = $entry['problem'];
+            $name = $this->formatProblemTitle($problem);
+            $file = $this->normalizeFile($entry['file']);
+            $line = $this->normalizeLine($entry['line']);
+            $message = $this->formatProblemMessage($problem, $entry);
+            $lines[] = \sprintf(
+                '  <testcase name="%s" classname="%s:%d">',
+                $this->escapeXml($name),
+                $this->escapeXml($file),
+                $line,
+            );
+
+            if (Severity::Critical === $problem->severity) {
+                $lines[] = \sprintf(
+                    '    <error message="%s">%s</error>',
+                    $this->escapeXml($problem->message),
+                    $this->escapeXml($message),
+                );
+            } elseif (Severity::Error === $problem->severity) {
+                $lines[] = \sprintf(
+                    '    <failure message="%s">%s</failure>',
+                    $this->escapeXml($problem->message),
+                    $this->escapeXml($message),
+                );
+            } else {
+                $lines[] = \sprintf(
+                    '    <system-out>%s</system-out>',
+                    $this->escapeXml($message),
+                );
+            }
+
+            $lines[] = '  </testcase>';
+        }
+
+        $lines[] = '</testsuite>';
+        $output->writeln(implode("\n", $lines));
+    }
+
+    /**
+     * @phpstan-param list<LintResult> $results
+     *
+     * @phpstan-return list<JsonLintResult>
+     */
+    private function normalizeResultsForJson(array $results): array
+    {
+        $normalized = [];
+
+        foreach ($results as $result) {
+            $problems = [];
+            foreach ($result['problems'] as $problem) {
+                if ($problem instanceof RegexProblem) {
+                    $problems[] = $problem->toArray();
+                }
+            }
+
+            $result['problems'] = $problems;
+            $normalized[] = $result;
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * @phpstan-param list<LintResult> $results
+     *
+     * @phpstan-return list<array{
+     *     file: string,
+     *     line: int,
+     *     source?: string|null,
+     *     pattern?: string|null,
+     *     location?: string|null,
+     *     problem: RegexProblem
+     * }>
+     */
+    private function flattenProblems(array $results): array
+    {
+        $flattened = [];
+
+        foreach ($results as $result) {
+            foreach ($result['problems'] as $problem) {
+                if (!$problem instanceof RegexProblem) {
+                    continue;
+                }
+
+                $flattened[] = [
+                    'file' => $result['file'],
+                    'line' => $result['line'],
+                    'source' => $result['source'] ?? null,
+                    'pattern' => $result['pattern'] ?? null,
+                    'location' => $result['location'] ?? null,
+                    'problem' => $problem,
+                ];
+            }
+        }
+
+        return $flattened;
+    }
+
+    /**
+     * @param array{location?: string|null, ...} $context
+     */
+    private function formatProblemMessage(RegexProblem $problem, array $context): string
+    {
+        $parts = [$problem->message];
+        $location = $context['location'] ?? null;
+
+        if (\is_string($location) && '' !== $location) {
+            $parts[] = 'Location: '.$location;
+        }
+
+        if (null !== $problem->snippet && '' !== $problem->snippet) {
+            $parts[] = $problem->snippet;
+        }
+
+        if (null !== $problem->suggestion && '' !== $problem->suggestion) {
+            $parts[] = 'Suggestion: '.$problem->suggestion;
+        }
+
+        return implode("\n", $parts);
+    }
+
+    private function formatProblemTitle(RegexProblem $problem): string
+    {
+        $title = ucfirst($problem->type->value);
+        if (null !== $problem->code && '' !== $problem->code) {
+            $title .= ' '.$problem->code;
+        }
+
+        return $title;
+    }
+
+    /**
+     * @param array{
+     *     file: string,
+     *     line: int,
+     *     source?: string|null,
+     *     pattern?: string|null,
+     *     location?: string|null,
+     *     problem: RegexProblem
+     * } $entry
+     */
+    private function formatGithubAnnotation(array $entry): string
+    {
+        $problem = $entry['problem'];
+        $level = $this->mapAnnotationLevel($problem->severity);
+        $file = $this->pathHelper->getRelativePath($entry['file']);
+        $line = $this->normalizeLine($entry['line']);
+        $column = $this->normalizeColumn($problem->position);
+        $title = $this->formatProblemTitle($problem);
+        $message = $this->formatProblemMessage($problem, $entry);
+
+        $properties = [];
+        if ('' !== $file) {
+            $properties[] = 'file='.$this->escapeGithubProperty($file);
+            $properties[] = 'line='.$line;
+            $properties[] = 'col='.$column;
+        }
+
+        if ('' !== $title) {
+            $properties[] = 'title='.$this->escapeGithubProperty($title);
+        }
+
+        $suffix = [] === $properties ? '' : ' '.implode(',', $properties);
+
+        return \sprintf('::%s%s::%s', $level, $suffix, $this->escapeGithubData($message));
+    }
+
+    private function formatGithubMessage(string $level, string $message): string
+    {
+        return \sprintf('::%s::%s', $level, $this->escapeGithubData($message));
+    }
+
+    private function renderCheckstyleError(string $message): string
+    {
+        $lines = [
+            '<?xml version="1.0" encoding="UTF-8"?>',
+            '<checkstyle version="4.3">',
+            '  <file name="regex-parser">',
+            \sprintf(
+                '    <error line="1" column="1" severity="error" message="%s" source="regex-parser"/>',
+                $this->escapeXml($message),
+            ),
+            '  </file>',
+            '</checkstyle>',
+        ];
+
+        return implode("\n", $lines);
+    }
+
+    private function renderJunitError(string $message): string
+    {
+        $lines = [
+            '<?xml version="1.0" encoding="UTF-8"?>',
+            '<testsuite name="regex-parser" tests="1" failures="1" errors="0" skipped="0">',
+            '  <testcase name="pattern-collection">',
+            \sprintf(
+                '    <failure message="%s">%s</failure>',
+                $this->escapeXml($message),
+                $this->escapeXml($message),
+            ),
+            '  </testcase>',
+            '</testsuite>',
+        ];
+
+        return implode("\n", $lines);
+    }
+
+    private function normalizeFile(string $file): string
+    {
+        $relative = $this->pathHelper->getRelativePath($file);
+
+        return '' === $relative ? 'unknown' : $relative;
+    }
+
+    private function normalizeLine(int $line): int
+    {
+        return $line > 0 ? $line : 1;
+    }
+
+    private function normalizeColumn(?int $position): int
+    {
+        if (null !== $position && $position >= 0) {
+            return $position + 1;
+        }
+
+        return 1;
+    }
+
+    private function mapAnnotationLevel(Severity $severity): string
+    {
+        return match ($severity) {
+            Severity::Critical, Severity::Error => 'error',
+            Severity::Warning => 'warning',
+            Severity::Info => 'notice',
+        };
+    }
+
+    private function mapCheckstyleSeverity(Severity $severity): string
+    {
+        return match ($severity) {
+            Severity::Critical, Severity::Error => 'error',
+            Severity::Warning => 'warning',
+            Severity::Info => 'info',
+        };
+    }
+
+    private function formatCheckstyleSource(RegexProblem $problem): string
+    {
+        $source = 'regex-parser.'.$problem->type->value;
+        if (null !== $problem->code && '' !== $problem->code) {
+            $source .= '.'.$problem->code;
+        }
+
+        return $source;
+    }
+
+    private function escapeGithubData(string $value): string
+    {
+        return str_replace(
+            ['%', "\r", "\n"],
+            ['%25', '%0D', '%0A'],
+            $value,
+        );
+    }
+
+    private function escapeGithubProperty(string $value): string
+    {
+        return str_replace(
+            ['%', "\r", "\n", ':', ','],
+            ['%25', '%0D', '%0A', '%3A', '%2C'],
+            $value,
+        );
+    }
+
+    private function escapeXml(string $value): string
+    {
+        return htmlspecialchars($value, \ENT_QUOTES | \ENT_XML1);
     }
 
     /**

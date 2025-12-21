@@ -34,6 +34,14 @@ final class PatternParser
         }
 
         $delimiter = $regex[0];
+        if (!self::isValidDelimiter($delimiter)) {
+            $suggested = self::suggestPattern($regex);
+            throw new ParserException(\sprintf(
+                'Invalid delimiter "%s". Delimiters must not be alphanumeric, backslash, or whitespace. Try %s.',
+                $delimiter,
+                $suggested,
+            ));
+        }
         // Handle bracket delimiters style: (pattern), [pattern], {pattern}, <pattern>
         $closingDelimiter = match ($delimiter) {
             '(' => ')',
@@ -75,6 +83,36 @@ final class PatternParser
             }
         }
 
-        throw new ParserException(\sprintf('No closing delimiter "%s" found.', $closingDelimiter));
+        $pattern = substr($regex, 1);
+        $suggested = self::suggestPattern($pattern, $delimiter);
+
+        throw new ParserException(\sprintf(
+            'No closing delimiter "%s" found. You opened with "%s"; expected closing "%s". Tip: escape "%s" inside the pattern (\\%s) or use a different delimiter, e.g. %s.',
+            $closingDelimiter,
+            $delimiter,
+            $closingDelimiter,
+            $closingDelimiter,
+            $closingDelimiter,
+            $suggested,
+        ));
+    }
+
+    private static function isValidDelimiter(string $delimiter): bool
+    {
+        return 1 === \strlen($delimiter)
+            && !ctype_alnum($delimiter)
+            && !ctype_space($delimiter)
+            && '\\' !== $delimiter;
+    }
+
+    private static function suggestPattern(string $pattern, ?string $avoidDelimiter = null): string
+    {
+        $delimiter = str_contains($pattern, '#') && !str_contains($pattern, '~') ? '~' : '#';
+        if (null !== $avoidDelimiter && $delimiter === $avoidDelimiter) {
+            $delimiter = '#' === $delimiter ? '~' : '#';
+        }
+        $escaped = str_replace($delimiter, '\\'.$delimiter, $pattern);
+
+        return $delimiter.$escaped.$delimiter;
     }
 }

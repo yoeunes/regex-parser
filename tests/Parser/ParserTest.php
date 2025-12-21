@@ -308,7 +308,7 @@ final class ParserTest extends TestCase
     public function test_throws_on_missing_closing_delimiter(): void
     {
         $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('No closing delimiter "/" found.');
+        $this->expectExceptionMessage('No closing delimiter "/" found. You opened with "/"; expected closing "/". Tip: escape "/" inside the pattern (\\/) or use a different delimiter, e.g. #foo#.');
         $this->parse('/foo');
     }
 
@@ -471,10 +471,14 @@ final class ParserTest extends TestCase
 
     public function test_parse_python_backreference_is_rejected(): void
     {
-        $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('Backreferences (?P=name) are not supported yet.');
+        $ast = $this->parse('/(?P<name>a)(?P=name)/');
+        $this->assertInstanceOf(SequenceNode::class, $ast->pattern);
+        $this->assertInstanceOf(GroupNode::class, $ast->pattern->children[0]);
+        $this->assertSame('name', $ast->pattern->children[0]->name);
 
-        $this->parse('/(?P=name)a/');
+        $backref = $ast->pattern->children[1];
+        $this->assertInstanceOf(BackrefNode::class, $backref);
+        $this->assertSame('\k<name>', $backref->ref);
     }
 
     public function test_python_named_group_syntax(): void
@@ -495,11 +499,18 @@ final class ParserTest extends TestCase
         $this->assertSame('baz', $ast->pattern->name);
     }
 
+    public function test_pcre_named_group_single_quotes(): void
+    {
+        $ast = $this->parse("/(?'alias'a)/");
+        $this->assertInstanceOf(GroupNode::class, $ast->pattern);
+        $this->assertSame('alias', $ast->pattern->name);
+    }
+
     public function test_python_named_group_invalid_syntax(): void
     {
         $this->expectException(ParserException::class);
-        // Missing name quotes or brackets
-        $this->parse('/(?P=foo)/'); // Backref syntax, not currently supported in parser logic for groups
+        // Missing group name
+        $this->parse('/(?P<)/');
     }
 
     public function test_max_pattern_length(): void

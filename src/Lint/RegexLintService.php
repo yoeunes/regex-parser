@@ -14,6 +14,13 @@ declare(strict_types=1);
 namespace RegexParser\Lint;
 
 use RegexParser\OptimizationResult;
+use RegexParser\ProblemType;
+use RegexParser\RegexProblem;
+use RegexParser\ReDoS\ReDoSAnalysis;
+use RegexParser\ReDoS\ReDoSSeverity;
+use RegexParser\Severity;
+use RegexParser\ValidationErrorCategory;
+use RegexParser\ValidationResult;
 
 /**
  * Aggregates pattern sources and produces lint results.
@@ -26,6 +33,7 @@ use RegexParser\OptimizationResult;
  *     file: string,
  *     line: int,
  *     column?: int,
+ *     position?: int,
  *     issueId?: string,
  *     hint?: string|null,
  *     source?: string,
@@ -48,7 +56,8 @@ use RegexParser\OptimizationResult;
  *     pattern: string|null,
  *     location?: string|null,
  *     issues: list<LintIssue>,
- *     optimizations: list<OptimizationEntry>
+ *     optimizations: list<OptimizationEntry>,
+ *     problems: list<\RegexParser\RegexProblem>
  * }
  * @phpstan-type LintStats array{errors: int, warnings: int, optimizations: int}
  */
@@ -220,6 +229,7 @@ final readonly class RegexLintService
                 $location,
             );
             $results[$key]['issues'][] = $issue;
+            $results[$key]['problems'][] = $this->createProblemFromIssue($issue);
         }
     }
 
@@ -247,6 +257,7 @@ final readonly class RegexLintService
                 $location,
             );
             $results[$key]['optimizations'][] = $opt;
+            $results[$key]['problems'][] = $this->createProblemFromOptimization($opt);
         }
     }
 
@@ -297,7 +308,111 @@ final readonly class RegexLintService
             'location' => $location,
             'issues' => [],
             'optimizations' => [],
+            'problems' => [],
         ];
+    }
+
+    /**
+     * @phpstan-param LintIssue $issue
+     */
+    private function createProblemFromIssue(array $issue): RegexProblem
+    {
+        $validation = $issue['validation'] ?? null;
+        if ($validation instanceof ValidationResult) {
+            $message = $issue['message'] ?? ($validation->error ?? 'Invalid regex.');
+            $message = $this->stripSnippetFromMessage($message, $validation->caretSnippet);
+            $type = ValidationErrorCategory::SEMANTIC === $validation->category ? ProblemType::Semantic : ProblemType::Syntax;
+
+            return new RegexProblem(
+                $type,
+                Severity::Error,
+                $message,
+                $validation->errorCode,
+                $validation->offset,
+                $validation->caretSnippet,
+                $validation->hint,
+            );
+        }
+
+        $analysis = $issue['analysis'] ?? null;
+        if ($analysis instanceof ReDoSAnalysis) {
+            $suggestion = $analysis->recommendations[0] ?? null;
+
+            return new RegexProblem(
+                ProblemType::Security,
+                $this->mapRedosSeverity($analysis->severity),
+                $issue['message'],
+                $issue['issueId'] ?? null,
+                null,
+                null,
+                $suggestion,
+            );
+        }
+
+        $position = isset($issue['position']) && \is_int($issue['position']) ? $issue['position'] : null;
+
+        return new RegexProblem(
+            ProblemType::Lint,
+            $this->mapIssueSeverity($issue['type'] ?? 'info'),
+            $issue['message'],
+            $issue['issueId'] ?? null,
+            $position,
+            null,
+            $issue['hint'] ?? null,
+        );
+    }
+
+    /**
+     * @phpstan-param OptimizationEntry $optimization
+     */
+    private function createProblemFromOptimization(array $optimization): RegexProblem
+    {
+        $message = \sprintf('Optimization available (saves %d chars).', $optimization['savings']);
+        $suggestion = $optimization['optimization']->optimized ?? null;
+
+        return new RegexProblem(
+            ProblemType::Optimization,
+            Severity::Info,
+            $message,
+            'regex.optimization',
+            null,
+            null,
+            $suggestion,
+        );
+    }
+
+    private function mapIssueSeverity(string $type): Severity
+    {
+        return match ($type) {
+            'error' => Severity::Error,
+            'warning' => Severity::Warning,
+            default => Severity::Info,
+        };
+    }
+
+    private function mapRedosSeverity(ReDoSSeverity $severity): Severity
+    {
+        return match ($severity) {
+            ReDoSSeverity::CRITICAL => Severity::Critical,
+            ReDoSSeverity::HIGH => Severity::Error,
+            ReDoSSeverity::MEDIUM => Severity::Warning,
+            ReDoSSeverity::UNKNOWN => Severity::Warning,
+            ReDoSSeverity::LOW, ReDoSSeverity::SAFE => Severity::Info,
+        };
+    }
+
+    private function stripSnippetFromMessage(string $message, ?string $snippet): string
+    {
+        if (null === $snippet || '' === $snippet) {
+            return $message;
+        }
+
+        $withPrefix = "\n".$snippet;
+        if (str_contains($message, $withPrefix)) {
+            return str_replace($withPrefix, '', $message);
+        }
+
+        return $message;
     }
 
     /**

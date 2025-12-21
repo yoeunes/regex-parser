@@ -22,7 +22,7 @@ final class ParserErrorTest extends TestCase
     public function test_throws_on_too_short_regex(): void
     {
         $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('No closing delimiter "/" found.');
+        $this->expectExceptionMessage('No closing delimiter "/" found. You opened with "/"; expected closing "/". Tip: escape "/" inside the pattern (\\/) or use a different delimiter, e.g. #a#.');
 
         $regex = $this->createRegex();
         $regex->parse('/a');
@@ -31,7 +31,7 @@ final class ParserErrorTest extends TestCase
     public function test_throws_on_missing_closing_delimiter_non_standard(): void
     {
         $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('No closing delimiter "#" found.');
+        $this->expectExceptionMessage('No closing delimiter "#" found. You opened with "#"; expected closing "#". Tip: escape "#" inside the pattern (\\#) or use a different delimiter, e.g. ~foo~.');
 
         $regex = $this->createRegex();
         $regex->parse('#foo');
@@ -40,7 +40,7 @@ final class ParserErrorTest extends TestCase
     public function test_throws_on_missing_closing_delimiter_brace(): void
     {
         $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('No closing delimiter "}" found.');
+        $this->expectExceptionMessage('No closing delimiter "}" found. You opened with "{"; expected closing "}". Tip: escape "}" inside the pattern (\\}) or use a different delimiter, e.g. #foo#.');
 
         $regex = $this->createRegex();
         $regex->parse('{foo');
@@ -58,7 +58,7 @@ final class ParserErrorTest extends TestCase
     public function test_throws_on_escaped_delimiter_as_last_char(): void
     {
         $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('No closing delimiter "/" found.');
+        $this->expectExceptionMessage('No closing delimiter "/" found. You opened with "/"; expected closing "/". Tip: escape "/" inside the pattern (\\/) or use a different delimiter, e.g. #foo\\/#.');
 
         $regex = $this->createRegex();
         // The parser sees this as "/foo\/flags", without an unescaped ending delimiter.
@@ -101,13 +101,13 @@ final class ParserErrorTest extends TestCase
         $regex->parse('/(?P)/');
     }
 
-    public function test_throws_on_unsupported_python_backref(): void
+    public function test_throws_on_python_backref_without_name(): void
     {
         $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('Backreferences (?P=name) are not supported yet.');
+        $this->expectExceptionMessage('Expected group name');
 
         $regex = $this->createRegex();
-        $regex->parse('/(?P=name)/');
+        $regex->parse('/(?P=)/');
     }
 
     public function test_throws_on_invalid_token_in_group_name(): void

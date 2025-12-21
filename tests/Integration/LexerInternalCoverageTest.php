@@ -62,10 +62,9 @@ final class LexerInternalCoverageTest extends TestCase
         $lexer->tokenize('');
         $accessor = new LexerAccessor($lexer);
 
-        // Case where v1_prop and v2_prop are absent
+        // Case where property is empty
         $val = $accessor->callPrivateMethod('normalizeUnicodeProp', [
-            '\p{L}',
-            [] // Empty matches
+            '\p{}',
         ]);
         $this->assertSame('', $val);
     }

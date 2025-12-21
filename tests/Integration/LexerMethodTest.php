@@ -68,8 +68,7 @@ final class LexerMethodTest extends TestCase
         $accessor = new LexerAccessor($lexer);
 
         $val = $accessor->callPrivateMethod('normalizeUnicodeProp', [
-            '\p{L}',
-            []         // Empty array -> force the ?? ''
+            '\p{}',
         ]);
         $this->assertSame('', $val); // Returns the empty property
     }

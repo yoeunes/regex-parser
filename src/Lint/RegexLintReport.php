@@ -24,6 +24,7 @@ namespace RegexParser\Lint;
  *     file: string,
  *     line: int,
  *     column?: int,
+ *     position?: int,
  *     issueId?: string,
  *     hint?: string|null,
  *     source?: string,
@@ -46,7 +47,8 @@ namespace RegexParser\Lint;
  *     pattern: string|null,
  *     location?: string|null,
  *     issues: list<LintIssue>,
- *     optimizations: list<OptimizationEntry>
+ *     optimizations: list<OptimizationEntry>,
+ *     problems: list<\RegexParser\RegexProblem>
  * }
  * @phpstan-type LintStats array{errors: int, warnings: int, optimizations: int}
  */

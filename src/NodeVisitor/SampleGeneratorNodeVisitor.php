@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace RegexParser\NodeVisitor;
 
+use Random\Engine\Mt19937;
+use Random\Randomizer;
 use RegexParser\Node;
 use RegexParser\Node\GroupType;
 
@@ -26,6 +28,8 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
     private const MAX_RECURSION_DEPTH = 2;
 
     private ?int $seed = null;
+
+    private Randomizer $randomizer;
 
     /**
      * Stores generated text from capturing groups.
@@ -72,10 +76,13 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
      *                           should repeat its preceding element. This prevents
      *                           excessively long or infinite samples.
      */
-    public function __construct(private readonly int $maxRepetition = 3) {}
+    public function __construct(private readonly int $maxRepetition = 3)
+    {
+        $this->resetRandomizer();
+    }
 
     /**
-     * Seeds the Mersenne Twister random number generator.
+     * Seeds the local random number generator.
      *
      * Purpose: This method allows for deterministic sample generation. By setting a specific
      * seed, you can ensure that the `SampleGeneratorNodeVisitor` will produce the exact same
@@ -87,21 +94,21 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
     public function setSeed(int $seed): void
     {
         $this->seed = $seed;
-        mt_srand($seed);
+        $this->resetRandomizer($seed);
     }
 
     /**
      * Resets the random number generator to its default, unseeded state.
      *
-     * Purpose: This method reverts the random number generator to its default behavior,
-     * where it is seeded with a truly random value (or based on the system time).
-     * This is useful when you want to generate different, non-reproducible samples
-     * after having previously set a specific seed.
+     * Purpose: This method reverts the local RNG to its default behavior,
+     * where it is seeded with a random value. This is useful when you want to
+     * generate different, non-reproducible samples after having previously set
+     * a specific seed.
      */
     public function resetSeed(): void
     {
         $this->seed = null;
-        mt_srand();
+        $this->resetRandomizer();
     }
 
     #[\Override]
@@ -121,7 +128,7 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
 
         // Ensure we are seeded if the user expects it
         if (null !== $this->seed) {
-            mt_srand($this->seed);
+            $this->resetRandomizer($this->seed);
         }
 
         // Note: Flags (like /i) are ignored, as we generate the sample
@@ -137,7 +144,7 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
         }
 
         // Pick one of the alternatives at random
-        $randomKey = mt_rand(0, \count($node->alternatives) - 1);
+        $randomKey = $this->randomInt(0, \count($node->alternatives) - 1);
         $chosenAlt = $node->alternatives[$randomKey];
 
         return $chosenAlt->accept($this);
@@ -190,13 +197,9 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
         [$min, $max] = $this->parseQuantifierRange($node->quantifier);
 
         // Pick a random number of repetitions
-        try {
-            // $min and $max are guaranteed to be in the correct order
-            // by parseQuantifierRange()
-            $repeats = ($min === $max) ? $min : mt_rand($min, $max);
-        } catch (\Throwable) {
-            $repeats = $min; // Fallback
-        }
+        // $min and $max are guaranteed to be in the correct order
+        // by parseQuantifierRange()
+        $repeats = ($min === $max) ? $min : $this->randomInt($min, $max);
 
         $parts = [];
         for ($i = 0; $i < $repeats; $i++) {
@@ -265,7 +268,7 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
         }
 
         // Pick one of the parts at random
-        $randomKey = mt_rand(0, \count($parts) - 1);
+        $randomKey = $this->randomInt(0, \count($parts) - 1);
 
         return $parts[$randomKey]->accept($this);
     }
@@ -283,7 +286,7 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
             $ord1 = \ord($node->start->value);
             $ord2 = \ord($node->end->value);
 
-            return \chr(mt_rand($ord1, $ord2));
+            return \chr($this->randomInt($ord1, $ord2));
         } catch (\Throwable) {
             // Fallback if ord() fails
             return $node->start->value;
@@ -326,6 +329,16 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
         // (or doesn't exist). In a real engine, this fails the match.
         // For generation, we must return empty string.
         return '';
+    }
+
+    #[\Override]
+    public function visitControlChar(Node\ControlCharNode $node): string
+    {
+        if ($node->codePoint < 0 || $node->codePoint > 0xFF) {
+            return '?';
+        }
+
+        return \chr($node->codePoint);
     }
 
     #[\Override]
@@ -392,11 +405,7 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
     {
         // This is complex. Does the condition (e.g., group 1) exist?
         // We'll randomly choose to satisfy the condition or not.
-        try {
-            $choice = mt_rand(0, 1);
-        } catch (\Throwable) {
-            $choice = 0; // Fallback
-        }
+        $choice = $this->randomInt(0, 1);
 
         if (1 === $choice) {
             // Simulate "YES" path
@@ -496,6 +505,22 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
     }
 
     /**
+     * Generates a random integer using the local RNG.
+     */
+    private function randomInt(int $min, int $max): int
+    {
+        if ($max < $min) {
+            $max = $min;
+        }
+
+        try {
+            return $this->randomizer->getInt($min, $max);
+        } catch (\Throwable) {
+            return $min;
+        }
+    }
+
+    /**
      * Selects a random character from a given array of characters.
      *
      * Purpose: This utility method provides a simple way to pick one character
@@ -511,7 +536,7 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
         if (empty($chars)) {
             return '?'; // Safe fallback
         }
-        $key = mt_rand(0, \count($chars) - 1);
+        $key = $this->randomInt(0, \count($chars) - 1);
 
         return $chars[$key];
     }
@@ -531,7 +556,7 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
     {
         try {
             return match ($type) {
-                'd' => (string) mt_rand(0, 9),
+                'd' => (string) $this->randomInt(0, 9),
                 'D' => $this->getRandomChar(['a', ' ', '!']), // Not a digit
                 's' => $this->getRandomChar([' ', "\t", "\n"]),
                 'S' => $this->getRandomChar(['a', '1', '!']), // Not whitespace
@@ -546,7 +571,7 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
             };
             // @codeCoverageIgnoreStart
         } catch (\Throwable) {
-            return '?'; // Fallback for mt_rand failure
+            return '?'; // Fallback for random generation failure
         }
         // @codeCoverageIgnoreEnd
     }
@@ -634,5 +659,11 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
         }
 
         return $this->namedGroupMap[$ref] ?? null;
+    }
+
+    private function resetRandomizer(?int $seed = null): void
+    {
+        $engine = null === $seed ? new Mt19937() : new Mt19937($seed);
+        $this->randomizer = new Randomizer($engine);
     }
 }

@@ -49,10 +49,9 @@ final class LexerInternalsTest extends TestCase
     {
         $accessor = new LexerAccessor(new Lexer());
 
-        // Simulates an incomplete match to force the `?? ''`
+        // Empty property to force the fallback path
         $result = $accessor->callPrivateMethod('normalizeUnicodeProp', [
-            '\p{L}',
-            [] // No v1_prop or v2_prop keys
+            '\p{}',
         ]);
 
         $this->assertSame('', $result);
