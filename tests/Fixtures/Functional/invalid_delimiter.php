@@ -1,8 +1,8 @@
 <?php
-// Strings starting with '?' are likely URL query strings, NOT regex patterns - should NOT be detected
+// These are intentionally invalid or URL-like patterns passed to preg_match.
 preg_match("?entryPoint=", $str);
 preg_match('?foo=bar&baz=qux', $str);
 
-// Single character patterns should NOT be detected (no closing delimiter)
+// Single character patterns with missing delimiters.
 preg_match("^", $str);
 preg_match("[", $str);

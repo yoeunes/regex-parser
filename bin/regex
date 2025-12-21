@@ -523,7 +523,9 @@ function renderLintBanner(): string
 
 function createExtractor(): RegexPatternExtractor
 {
-    if (class_exists(\PhpParser\ParserFactory::class)) {
+    $parserFactoryClass = \PhpParser\ParserFactory::class;
+
+    if (class_exists($parserFactoryClass)) {
         return new RegexPatternExtractor(new PhpStanExtractionStrategy());
     }
 

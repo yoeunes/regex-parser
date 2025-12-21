@@ -47,7 +47,7 @@ final class TokenBasedExtractionStrategyTest extends TestCase
         $this->assertSame('/\s+/', $result[2]->pattern);
     }
 
-    public function test_skips_concatenated_pattern(): void
+    public function test_extracts_concatenated_constant_pattern(): void
     {
         $strategy = new TokenBasedExtractionStrategy();
 
@@ -55,8 +55,8 @@ final class TokenBasedExtractionStrategyTest extends TestCase
 
         $result = $strategy->extract([$fixtureFile]);
 
-        // Concatenated patterns should be skipped - they cannot be validated statically
-        $this->assertEmpty($result);
+        $this->assertCount(1, $result);
+        $this->assertSame('/testsuffix', $result[0]->pattern);
     }
 
     public function test_skips_non_constant_patterns(): void
@@ -92,8 +92,8 @@ final class TokenBasedExtractionStrategyTest extends TestCase
 
         $result = $strategy->extract([$fixtureFile]);
 
-        // Token-based extraction has limitations with complex array syntax
-        // Test that it handles gracefully (may find 0 or more patterns)
-        $this->assertIsArray($result);
+        $this->assertCount(2, $result);
+        $this->assertSame('/pattern1/', $result[0]->pattern);
+        $this->assertSame('/pattern2/', $result[1]->pattern);
     }
 }

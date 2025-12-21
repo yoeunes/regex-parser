@@ -134,10 +134,9 @@ PHP;
     }
 
     /**
-     * Test that URLs starting with / are NOT flagged as regexes.
-     * This was causing "Quantifier without target" errors.
+     * Test that URL-like strings passed to preg_* are still extracted.
      */
-    public function test_url_query_strings_are_not_flagged(): void
+    public function test_url_query_strings_are_extracted(): void
     {
         $phpCode = <<<'PHP'
 <?php
@@ -146,14 +145,14 @@ PHP;
 
         $occurrences = $this->extractFromCode($phpCode);
 
-        // Should not be extracted as a regex pattern
-        $this->assertCount(0, $occurrences);
+        $this->assertCount(1, $occurrences);
+        $this->assertSame('/?entryPoint=main&action=test', $occurrences[0]->pattern);
     }
 
     /**
-     * Test that HTTP URLs are not flagged as regexes.
+     * Test that HTTP URLs passed to preg_* are still extracted.
      */
-    public function test_http_urls_are_not_flagged(): void
+    public function test_http_urls_are_extracted(): void
     {
         $phpCode = <<<'PHP'
 <?php
@@ -162,14 +161,14 @@ PHP;
 
         $occurrences = $this->extractFromCode($phpCode);
 
-        // Should not be extracted as a regex pattern (looks like URL)
-        $this->assertCount(0, $occurrences);
+        $this->assertCount(1, $occurrences);
+        $this->assertSame('/http://example.com/path/', $occurrences[0]->pattern);
     }
 
     /**
-     * Test that file paths with multiple segments are not flagged as regexes.
+     * Test that file-path-like strings passed to preg_* are still extracted.
      */
-    public function test_file_paths_are_not_flagged(): void
+    public function test_file_paths_are_extracted(): void
     {
         $phpCode = <<<'PHP'
 <?php
@@ -178,8 +177,8 @@ PHP;
 
         $occurrences = $this->extractFromCode($phpCode);
 
-        // Should not be extracted as a regex pattern (looks like file path)
-        $this->assertCount(0, $occurrences);
+        $this->assertCount(1, $occurrences);
+        $this->assertSame('/path/to/some/file/', $occurrences[0]->pattern);
     }
 
     /**

@@ -194,17 +194,19 @@ final class PatternExtractorTest extends TestCase
     }
 
     /**
-     * Test that strings with invalid delimiters are NOT detected.
-     * Strings starting with '?' are likely URL query strings.
-     * Single characters without closing delimiters are fragments.
+     * Test that strings passed to preg_* are extracted even if invalid.
      */
-    public function test_invalid_delimiters_are_ignored(): void
+    public function test_invalid_delimiters_are_extracted(): void
     {
         $fixtureFile = __DIR__.'/../Fixtures/Functional/invalid_delimiter.php';
 
         $result = $this->extractor->extract([$fixtureFile]);
 
-        $this->assertEmpty($result, 'Strings with invalid delimiters should not be detected as regex patterns');
+        $this->assertCount(4, $result);
+        $this->assertSame('?entryPoint=', $result[0]->pattern);
+        $this->assertSame('?foo=bar&baz=qux', $result[1]->pattern);
+        $this->assertSame('^', $result[2]->pattern);
+        $this->assertSame('[', $result[3]->pattern);
     }
 
     /**

@@ -14,10 +14,10 @@ declare(strict_types=1);
 namespace RegexParser\Lint;
 
 /**
- * Fallback strategy using token-based regex pattern extraction.
+ * Token-based extraction strategy mirroring PHPStan's preg_* handling.
  *
- * This scanner is intentionally conservative: it only reports patterns that are
- * PHP constant strings passed directly to `preg_*` calls.
+ * This relies on a small token state machine to track argument positions
+ * and only extracts patterns from constant string expressions.
  *
  * @internal
  */
@@ -29,28 +29,52 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
         \T_DOC_COMMENT => true,
     ];
 
-    private const PREG_FUNCTIONS = [
-        'preg_match' => true,
-        'preg_match_all' => true,
-        'preg_replace' => true,
-        'preg_replace_callback' => true,
-        'preg_split' => true,
-        'preg_grep' => true,
-        'preg_filter' => true,
-        'preg_replace_callback_array' => true,
+    private const PREG_ARGUMENT_MAP = [
+        'preg_match' => 0,
+        'preg_match_all' => 0,
+        'preg_replace' => 0,
+        'preg_replace_callback' => 0,
+        'preg_split' => 0,
+        'preg_grep' => 0,
+        'preg_filter' => 0,
+        'preg_replace_callback_array' => 0,
     ];
 
     /**
-     * @var array<string, true>
+     * @var array<string, int>
      */
-    private array $customFunctions;
+    private array $customFunctionMap;
+
+    /**
+     * @var array<string, int>
+     */
+    private array $customStaticFunctionMap;
 
     /**
      * @param list<string> $customFunctions Additional functions/static methods to check (e.g., 'MyClass::customRegexCheck')
      */
     public function __construct(array $customFunctions = [])
     {
-        $this->customFunctions = array_fill_keys($customFunctions, true);
+        $customFunctionMap = [];
+        $customStaticFunctionMap = [];
+
+        foreach ($customFunctions as $customFunction) {
+            if (!\is_string($customFunction) || '' === $customFunction) {
+                continue;
+            }
+
+            $normalized = strtolower($customFunction);
+            if (str_contains($normalized, '::')) {
+                $customStaticFunctionMap[$normalized] = 0;
+
+                continue;
+            }
+
+            $customFunctionMap[$normalized] = 0;
+        }
+
+        $this->customFunctionMap = $customFunctionMap;
+        $this->customStaticFunctionMap = $customStaticFunctionMap;
     }
 
     public function extract(array $files): array
@@ -74,7 +98,6 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
             return [];
         }
 
-        // Handle non-UTF8 / binary data
         $content = $this->ensureValidUtf8($content);
         if (null === $content) {
             return [];
@@ -90,172 +113,432 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
                 continue;
             }
 
-            $functionMatch = $this->matchFunctionCall($tokens, $i, $totalTokens);
-            if (null === $functionMatch) {
+            $match = $this->matchFunctionCall($tokens, $i, $totalTokens);
+            if (null === $match) {
                 continue;
             }
 
-            [$functionName, $nextIndex] = $functionMatch;
+            [$sourceName, $openParenIndex, $targetArgIndex, $isCallbackArray] = $match;
 
-            $patternTokenResult = $this->findPatternToken($tokens, $nextIndex, $totalTokens);
-            if (null === $patternTokenResult) {
-                continue;
-            }
-
-            [$patternToken, $patternIndex] = $patternTokenResult;
-
-            // Skip concatenated patterns - they cannot be validated statically
-            if ($this->isFollowedByConcatenation($tokens, $patternIndex, $totalTokens)) {
-                continue;
-            }
-
-            $occurrences = [...$occurrences, ...$this->extractPatternFromToken($patternToken, $file, $functionName)];
+            $occurrences = [
+                ...$occurrences,
+                ...$this->extractFromCall(
+                    $tokens,
+                    $openParenIndex + 1,
+                    $totalTokens,
+                    $targetArgIndex,
+                    $sourceName,
+                    $file,
+                    $isCallbackArray,
+                ),
+            ];
         }
 
         return $occurrences;
     }
 
     /**
-     * Match a function call (regular function or static method).
-     *
      * @param list<array{int, string, int}|string> $tokens
      *
-     * @return array{string, int}|null Function name and next token index, or null if no match
+     * @return array{string, int, int, bool}|null
      */
     private function matchFunctionCall(array $tokens, int $index, int $totalTokens): ?array
     {
-        $token = $tokens[$index];
-        if (!\is_array($token) || \T_STRING !== $token[0]) {
+        $name = $this->readNameToken($tokens[$index]);
+        if (null === $name) {
             return null;
         }
 
-        $functionName = $token[1];
+        $nextIndex = $this->nextSignificantTokenIndex($tokens, $index + 1, $totalTokens);
+        if (null !== $nextIndex && $this->isDoubleColonToken($tokens[$nextIndex])) {
+            return $this->matchCustomStaticMethod($tokens, $index, $nextIndex, $totalTokens);
+        }
 
-        // Check for static method call (ClassName::methodName)
-        $staticMethodName = $this->tryMatchStaticMethod($tokens, $index, $totalTokens);
-        if (null !== $staticMethodName) {
-            if (isset($this->customFunctions[$staticMethodName])) {
-                return [$staticMethodName, $index + 3]; // Skip ClassName, ::, methodName
+        $prevIndex = $this->previousSignificantTokenIndex($tokens, $index - 1);
+        if (null !== $prevIndex) {
+            $prevToken = $tokens[$prevIndex];
+            if ($this->isDefinitionToken($prevToken) || $this->isObjectOrStaticOperator($prevToken)) {
+                return null;
             }
+        }
 
+        if ($this->isNamespacedFunctionName($tokens, $index)) {
             return null;
         }
 
-        // Check for regular function call
-        if (isset(self::PREG_FUNCTIONS[$functionName]) || isset($this->customFunctions[$functionName])) {
-            return [$functionName, $index + 1];
+        if (null === $nextIndex || '(' !== $tokens[$nextIndex]) {
+            return null;
+        }
+
+        $trimmedName = ltrim($name, '\\');
+        if (str_contains($trimmedName, '\\')) {
+            return null;
+        }
+
+        $lookupName = strtolower($trimmedName);
+
+        if (isset(self::PREG_ARGUMENT_MAP[$lookupName])) {
+            return [
+                $trimmedName,
+                $nextIndex,
+                self::PREG_ARGUMENT_MAP[$lookupName],
+                'preg_replace_callback_array' === $lookupName,
+            ];
+        }
+
+        if (isset($this->customFunctionMap[$lookupName])) {
+            return [
+                $trimmedName,
+                $nextIndex,
+                $this->customFunctionMap[$lookupName],
+                false,
+            ];
         }
 
         return null;
     }
 
     /**
-     * Try to match a static method call pattern (ClassName::methodName).
-     *
      * @param list<array{int, string, int}|string> $tokens
+     *
+     * @return array{string, int, int, bool}|null
      */
-    private function tryMatchStaticMethod(array $tokens, int $index, int $totalTokens): ?string
+    private function matchCustomStaticMethod(array $tokens, int $classIndex, int $doubleColonIndex, int $totalTokens): ?array
     {
-        // Look ahead for :: and method name
-        if ($index + 2 >= $totalTokens) {
+        $methodIndex = $this->nextSignificantTokenIndex($tokens, $doubleColonIndex + 1, $totalTokens);
+        if (null === $methodIndex) {
             return null;
         }
 
-        $doubleColon = $tokens[$index + 1];
-        if (!\is_array($doubleColon) || \T_DOUBLE_COLON !== $doubleColon[0]) {
-            return null;
-        }
-
-        $methodToken = $tokens[$index + 2];
+        $methodToken = $tokens[$methodIndex];
         if (!\is_array($methodToken) || \T_STRING !== $methodToken[0]) {
             return null;
         }
 
-        $className = $tokens[$index][1];
+        $openParenIndex = $this->nextSignificantTokenIndex($tokens, $methodIndex + 1, $totalTokens);
+        if (null === $openParenIndex || '(' !== $tokens[$openParenIndex]) {
+            return null;
+        }
+
+        $className = $this->readNameToken($tokens[$classIndex]);
+        if (null === $className) {
+            return null;
+        }
+
+        $className = ltrim($className, '\\');
         $methodName = $methodToken[1];
+        $fullName = $className.'::'.$methodName;
+        $lookupName = strtolower($fullName);
 
-        return $className.'::'.$methodName;
-    }
-
-    /**
-     * Find the pattern token after the opening parenthesis.
-     *
-     * @param list<array{int, string, int}|string> $tokens
-     *
-     * @return array{array{int, string, int}, int}|null Pattern token and its index, or null if not found
-     */
-    private function findPatternToken(array $tokens, int $startIndex, int $totalTokens): ?array
-    {
-        for ($i = $startIndex; $i < $totalTokens; $i++) {
-            $token = $tokens[$i];
-
-            // Skip non-array tokens (like '(' and ',')
-            if (!\is_array($token)) {
-                continue;
-            }
-
-            // Skip ignorable tokens
-            if (isset(self::IGNORABLE_TOKENS[$token[0]])) {
-                continue;
-            }
-
-            // Found a non-ignorable array token
-            return [$token, $i];
+        if (!isset($this->customStaticFunctionMap[$lookupName])) {
+            return null;
         }
 
-        return null;
+        return [
+            $fullName,
+            $openParenIndex,
+            $this->customStaticFunctionMap[$lookupName],
+            false,
+        ];
     }
 
     /**
-     * Check if a token is followed by a concatenation operator.
-     *
      * @param list<array{int, string, int}|string> $tokens
-     */
-    private function isFollowedByConcatenation(array $tokens, int $tokenIndex, int $totalTokens): bool
-    {
-        for ($i = $tokenIndex + 1; $i < $totalTokens; $i++) {
-            $token = $tokens[$i];
-
-            // Skip whitespace and comments
-            if (\is_array($token) && isset(self::IGNORABLE_TOKENS[$token[0]])) {
-                continue;
-            }
-
-            // Check for concatenation operator
-            return '.' === $token;
-        }
-
-        return false;
-    }
-
-    /**
-     * @param array{int, string, int} $token
      *
      * @return list<RegexPatternOccurrence>
      */
-    private function extractPatternFromToken(array $token, string $file, string $functionName): array
-    {
-        if (\T_CONSTANT_ENCAPSED_STRING === $token[0]) {
-            $pattern = $this->decodeStringToken($token[1]);
+    private function extractFromCall(
+        array $tokens,
+        int $startIndex,
+        int $totalTokens,
+        int $targetArgIndex,
+        string $sourceName,
+        string $file,
+        bool $isCallbackArray,
+    ): array {
+        $argIndex = 0;
+        $parenDepth = 0;
+        $bracketDepth = 0;
+        $braceDepth = 0;
+        $argTokens = [];
+        $collecting = $argIndex === $targetArgIndex;
 
-            if ('' === $pattern) {
-                return [];
+        for ($i = $startIndex; $i < $totalTokens; $i++) {
+            $token = $tokens[$i];
+
+            if ('(' === $token) {
+                $parenDepth++;
+                if ($collecting) {
+                    $argTokens[] = $token;
+                }
+
+                continue;
             }
 
-            // Validate that the pattern looks like a valid PCRE regex
-            if (!$this->isValidPcrePattern($pattern)) {
-                return [];
+            if (')' === $token) {
+                if (0 === $parenDepth && 0 === $bracketDepth && 0 === $braceDepth) {
+                    if ($collecting) {
+                        return $this->extractFromArgumentTokens($argTokens, $file, $sourceName, $isCallbackArray);
+                    }
+
+                    return [];
+                }
+
+                if ($parenDepth > 0) {
+                    $parenDepth--;
+                }
+
+                if ($collecting) {
+                    $argTokens[] = $token;
+                }
+
+                continue;
             }
 
-            return [new RegexPatternOccurrence(
-                $pattern,
-                $file,
-                $token[2],
-                $functionName.'()',
-            )];
+            if ('[' === $token) {
+                $bracketDepth++;
+                if ($collecting) {
+                    $argTokens[] = $token;
+                }
+
+                continue;
+            }
+
+            if (']' === $token) {
+                if ($bracketDepth > 0) {
+                    $bracketDepth--;
+                }
+
+                if ($collecting) {
+                    $argTokens[] = $token;
+                }
+
+                continue;
+            }
+
+            if ('{' === $token) {
+                $braceDepth++;
+                if ($collecting) {
+                    $argTokens[] = $token;
+                }
+
+                continue;
+            }
+
+            if ('}' === $token) {
+                if ($braceDepth > 0) {
+                    $braceDepth--;
+                }
+
+                if ($collecting) {
+                    $argTokens[] = $token;
+                }
+
+                continue;
+            }
+
+            if (',' === $token && 0 === $parenDepth && 0 === $bracketDepth && 0 === $braceDepth) {
+                if ($collecting) {
+                    return $this->extractFromArgumentTokens($argTokens, $file, $sourceName, $isCallbackArray);
+                }
+
+                $argIndex++;
+                $collecting = $argIndex === $targetArgIndex;
+                $argTokens = [];
+
+                continue;
+            }
+
+            if ($collecting) {
+                $argTokens[] = $token;
+            }
+        }
+
+        if ($collecting) {
+            return $this->extractFromArgumentTokens($argTokens, $file, $sourceName, $isCallbackArray);
         }
 
         return [];
+    }
+
+    /**
+     * @param list<array{int, string, int}|string> $tokens
+     *
+     * @return list<RegexPatternOccurrence>
+     */
+    private function extractFromArgumentTokens(array $tokens, string $file, string $sourceName, bool $isCallbackArray): array
+    {
+        if ($isCallbackArray) {
+            return $this->extractFromCallbackArray($tokens, $file, $sourceName);
+        }
+
+        $patternInfo = $this->parseConstantStringExpression($tokens);
+        if (null === $patternInfo) {
+            return [];
+        }
+
+        if ('' === $patternInfo['pattern']) {
+            return [];
+        }
+
+        return [new RegexPatternOccurrence(
+            $patternInfo['pattern'],
+            $file,
+            $patternInfo['line'],
+            $sourceName.'()',
+        )];
+    }
+
+    /**
+     * @param list<array{int, string, int}|string> $tokens
+     *
+     * @return list<RegexPatternOccurrence>
+     */
+    private function extractFromCallbackArray(array $tokens, string $file, string $sourceName): array
+    {
+        $tokens = $this->stripOuterParentheses($tokens);
+        $startIndex = $this->findArrayStartIndex($tokens);
+        if (null === $startIndex) {
+            return [];
+        }
+
+        $occurrences = [];
+        $totalTokens = \count($tokens);
+        $stack = [$this->closingTokenFor($tokens[$startIndex])];
+        $collectingKey = true;
+        $keyTokens = [];
+
+        for ($i = $startIndex + 1; $i < $totalTokens; $i++) {
+            $token = $tokens[$i];
+
+            if ($this->isIgnorableToken($token)) {
+                if ($collectingKey) {
+                    $keyTokens[] = $token;
+                }
+
+                continue;
+            }
+
+            if (\is_array($token) && \T_ARRAY === $token[0]) {
+                $nextIndex = $this->nextSignificantTokenIndex($tokens, $i + 1, $totalTokens);
+                if (null !== $nextIndex && '(' === $tokens[$nextIndex]) {
+                    $stack[] = ')';
+                    if ($collectingKey) {
+                        $keyTokens[] = '(';
+                    }
+                    $i = $nextIndex;
+
+                    continue;
+                }
+            }
+
+            if ('(' === $token || '[' === $token || '{' === $token) {
+                $stack[] = $this->closingTokenFor($token);
+                if ($collectingKey) {
+                    $keyTokens[] = $token;
+                }
+
+                continue;
+            }
+
+            if ($this->isClosingToken($token, end($stack))) {
+                array_pop($stack);
+                if (empty($stack)) {
+                    break;
+                }
+
+                if ($collectingKey) {
+                    $keyTokens[] = $token;
+                }
+
+                continue;
+            }
+
+            $atTopLevel = 1 === \count($stack);
+
+            if ($atTopLevel && ',' === $token) {
+                $collectingKey = true;
+                $keyTokens = [];
+
+                continue;
+            }
+
+            if ($atTopLevel && $this->isDoubleArrowToken($token)) {
+                $patternInfo = $this->parseConstantStringExpression($keyTokens);
+                if (null !== $patternInfo && '' !== $patternInfo['pattern']) {
+                    $occurrences[] = new RegexPatternOccurrence(
+                        $patternInfo['pattern'],
+                        $file,
+                        $patternInfo['line'],
+                        $sourceName.'()',
+                    );
+                }
+
+                $collectingKey = false;
+                $keyTokens = [];
+
+                continue;
+            }
+
+            if ($collectingKey) {
+                $keyTokens[] = $token;
+            }
+        }
+
+        return $occurrences;
+    }
+
+    /**
+     * @param list<array{int, string, int}|string> $tokens
+     *
+     * @return array{pattern: string, line: int}|null
+     */
+    private function parseConstantStringExpression(array $tokens): ?array
+    {
+        $parts = [];
+        $firstLine = null;
+        $expectString = true;
+
+        foreach ($tokens as $token) {
+            if ($this->isIgnorableToken($token)) {
+                continue;
+            }
+
+            if ('(' === $token || ')' === $token) {
+                continue;
+            }
+
+            if ($expectString) {
+                if (\is_array($token) && \T_CONSTANT_ENCAPSED_STRING === $token[0]) {
+                    $parts[] = $this->decodeStringToken($token[1]);
+                    if (null === $firstLine) {
+                        $firstLine = $token[2];
+                    }
+                    $expectString = false;
+
+                    continue;
+                }
+
+                return null;
+            }
+
+            if ('.' === $token) {
+                $expectString = true;
+
+                continue;
+            }
+
+            return null;
+        }
+
+        if ($expectString || null === $firstLine) {
+            return null;
+        }
+
+        return [
+            'pattern' => implode('', $parts),
+            'line' => $firstLine,
+        ];
     }
 
     private function decodeStringToken(string $token): string
@@ -268,34 +551,16 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
         $body = substr($token, 1, -1);
 
         if ("'" === $quote) {
-            // Single-quoted strings: only \\ and \' are escape sequences
             return str_replace(["\\\\", "\\'"], ["\\", "'"], $body);
         }
 
         if ('"' === $quote) {
-            // Double-quoted strings: handle PHP escape sequences properly
-            // We cannot use stripcslashes() because it doesn't handle \x{XXXX} correctly
             return $this->decodeDoubleQuotedString($body);
         }
 
         return $body;
     }
 
-    /**
-     * Decode a double-quoted PHP string body, handling all PHP escape sequences.
-     *
-     * PHP escape sequences in double-quoted strings:
-     * - \n, \r, \t, \v, \e, \f - control characters
-     * - \\ - literal backslash
-     * - \$ - literal dollar sign
-     * - \" - literal double quote
-     * - \[0-7]{1,3} - octal character code
-     * - \x[0-9A-Fa-f]{1,2} - hex character code (1-2 digits)
-     * - \u{XXXX} - Unicode codepoint (PHP 7+)
-     *
-     * IMPORTANT: \x{XXXX} is NOT a PHP escape sequence, it's a PCRE Unicode escape.
-     * We must preserve it as-is so the regex parser can interpret it correctly.
-     */
     private function decodeDoubleQuotedString(string $body): string
     {
         $result = '';
@@ -312,9 +577,7 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
                 continue;
             }
 
-            // We have a backslash - check what follows
             if ($i + 1 >= $length) {
-                // Trailing backslash - keep as-is
                 $result .= $char;
                 $i++;
 
@@ -323,7 +586,6 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
 
             $nextChar = $body[$i + 1];
 
-            // Handle standard escape sequences
             switch ($nextChar) {
                 case 'n':
                     $result .= "\n";
@@ -371,14 +633,12 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
 
                     break;
                 case 'x':
-                    // Hex escape: \xHH or \x{HHHH} (PCRE Unicode - preserve as-is)
                     $hexResult = $this->parseHexEscape($body, $i, $length);
                     $result .= $hexResult['value'];
                     $i = $hexResult['newIndex'];
 
                     break;
                 case 'u':
-                    // PHP 7+ Unicode escape: \u{XXXX}
                     $unicodeResult = $this->parseUnicodeEscape($body, $i, $length);
                     $result .= $unicodeResult['value'];
                     $i = $unicodeResult['newIndex'];
@@ -392,14 +652,12 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
                 case '5':
                 case '6':
                 case '7':
-                    // Octal escape: \0 through \777
                     $octalResult = $this->parseOctalEscape($body, $i, $length);
                     $result .= $octalResult['value'];
                     $i = $octalResult['newIndex'];
 
                     break;
                 default:
-                    // Unknown escape sequence - keep backslash and character as-is
                     $result .= '\\'.$nextChar;
                     $i += 2;
 
@@ -411,36 +669,27 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
     }
 
     /**
-     * Parse a hex escape sequence starting at position $i.
-     *
      * @return array{value: string, newIndex: int}
      */
     private function parseHexEscape(string $body, int $i, int $length): array
     {
-        // $i points to the backslash, $i+1 is 'x'
         $startPos = $i + 2;
 
         if ($startPos >= $length) {
-            // Just \x at end - keep as-is
             return ['value' => '\\x', 'newIndex' => $startPos];
         }
 
-        // Check for \x{...} - this is PCRE Unicode syntax, NOT PHP syntax
-        // We must preserve it as-is for the regex parser
         if ('{' === $body[$startPos]) {
-            // Find the closing brace
             $closeBrace = strpos($body, '}', $startPos);
             if (false !== $closeBrace) {
-                // Preserve the entire \x{...} sequence as-is
                 $sequence = substr($body, $i, $closeBrace - $i + 1);
 
                 return ['value' => $sequence, 'newIndex' => $closeBrace + 1];
             }
-            // No closing brace - keep as-is
+
             return ['value' => '\\x{', 'newIndex' => $startPos + 1];
         }
 
-        // Standard PHP hex escape: \xHH (1-2 hex digits)
         $hexDigits = '';
         $pos = $startPos;
         while ($pos < $length && $pos < $startPos + 2 && ctype_xdigit($body[$pos])) {
@@ -449,85 +698,64 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
         }
 
         if ('' === $hexDigits) {
-            // No hex digits after \x - keep as-is
             return ['value' => '\\x', 'newIndex' => $startPos];
         }
 
-        // Convert hex to character
         $charCode = hexdec($hexDigits);
 
         return ['value' => \chr($charCode), 'newIndex' => $pos];
     }
 
     /**
-     * Parse a PHP 7+ Unicode escape sequence: \u{XXXX}.
-     *
      * @return array{value: string, newIndex: int}
      */
     private function parseUnicodeEscape(string $body, int $i, int $length): array
     {
-        // $i points to the backslash, $i+1 is 'u'
         $startPos = $i + 2;
 
         if ($startPos >= $length || '{' !== $body[$startPos]) {
-            // Not a valid \u{...} sequence - keep as-is
             return ['value' => '\\u', 'newIndex' => $startPos];
         }
 
-        // Find the closing brace
         $closeBrace = strpos($body, '}', $startPos);
         if (false === $closeBrace) {
-            // No closing brace - keep as-is
             return ['value' => '\\u{', 'newIndex' => $startPos + 1];
         }
 
         $hexPart = substr($body, $startPos + 1, $closeBrace - $startPos - 1);
 
-        // Validate hex digits
         if ('' === $hexPart || !ctype_xdigit($hexPart)) {
-            // Invalid hex - keep as-is
             return ['value' => substr($body, $i, $closeBrace - $i + 1), 'newIndex' => $closeBrace + 1];
         }
 
-        // Convert Unicode codepoint to UTF-8
         $codepoint = hexdec($hexPart);
 
         return ['value' => $this->codepointToUtf8($codepoint), 'newIndex' => $closeBrace + 1];
     }
 
     /**
-     * Parse an octal escape sequence: \0 through \777.
-     *
      * @return array{value: string, newIndex: int}
      */
     private function parseOctalEscape(string $body, int $i, int $length): array
     {
-        // $i points to the backslash
         $startPos = $i + 1;
         $octalDigits = '';
         $pos = $startPos;
 
-        // Read up to 3 octal digits
         while ($pos < $length && $pos < $startPos + 3 && $body[$pos] >= '0' && $body[$pos] <= '7') {
             $octalDigits .= $body[$pos];
             $pos++;
         }
 
         if ('' === $octalDigits) {
-            // No octal digits - keep backslash
             return ['value' => '\\', 'newIndex' => $startPos];
         }
 
-        // Convert octal to character
         $charCode = octdec($octalDigits);
 
-        // Octal values > 255 are truncated to 8 bits in PHP
         return ['value' => \chr($charCode & 0xFF), 'newIndex' => $pos];
     }
 
-    /**
-     * Convert a Unicode codepoint to a UTF-8 string.
-     */
     private function codepointToUtf8(int $codepoint): string
     {
         if ($codepoint < 0x80) {
@@ -544,139 +772,113 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
     }
 
     /**
-     * Check if a pattern looks like a valid PCRE regex.
-     *
-     * This performs basic structural validation:
-     * - Must be at least 2 characters long
-     * - Must start with a valid delimiter (non-alphanumeric, not backslash)
-     * - Must not look like a URL or file path
-     * - Must have a matching closing delimiter (not escaped)
+     * @param list<array{int, string, int}|string> $tokens
      */
-    private function isValidPcrePattern(string $pattern): bool
+    private function isNamespacedFunctionName(array $tokens, int $index): bool
     {
-        // Must be at least 2 characters (delimiter + delimiter)
-        if (\strlen($pattern) < 2) {
+        $token = $tokens[$index];
+        if (!\is_array($token) || \T_STRING !== $token[0]) {
             return false;
         }
 
-        $firstChar = $pattern[0];
-
-        // Skip strings starting with '?' - likely URL query strings
-        if ('?' === $firstChar) {
+        $prevIndex = $this->previousSignificantTokenIndex($tokens, $index - 1);
+        if (null === $prevIndex) {
             return false;
         }
 
-        // Delimiter must be non-alphanumeric and not backslash
-        if (ctype_alnum($firstChar) || '\\' === $firstChar) {
+        $prevToken = $tokens[$prevIndex];
+        if (!\is_array($prevToken) || \T_NS_SEPARATOR !== $prevToken[0]) {
             return false;
         }
 
-        // Skip URL-like patterns
-        if ($this->looksLikeUrl($pattern)) {
+        $prevPrevIndex = $this->previousSignificantTokenIndex($tokens, $prevIndex - 1);
+        if (null === $prevPrevIndex) {
             return false;
         }
 
-        // Find the expected closing delimiter
-        $closingDelimiter = $this->getClosingDelimiter($firstChar);
+        $prevPrevToken = $tokens[$prevPrevIndex];
 
-        // Find the actual closing delimiter position (accounting for escapes)
-        $closingDelimiterPos = $this->findClosingDelimiter($pattern, $firstChar, $closingDelimiter);
-        if (null === $closingDelimiterPos || 0 === $closingDelimiterPos) {
-            return false;
-        }
-
-        // Verify that everything after the closing delimiter is valid modifiers
-        $afterDelimiter = substr($pattern, $closingDelimiterPos + 1);
-        if ('' !== $afterDelimiter && !preg_match('/^[imsxADSUXJu]*$/', $afterDelimiter)) {
-            return false;
-        }
-
-        return true;
+        return \is_array($prevPrevToken) && $this->isNameToken($prevPrevToken);
     }
 
-    /**
-     * Check if a string looks like a URL or file path rather than a regex.
-     */
-    private function looksLikeUrl(string $pattern): bool
+    private function isNameToken(array $token): bool
     {
-        // Check for common URL schemes (case-insensitive check after delimiter)
-        $withoutDelimiter = substr($pattern, 1);
+        $id = $token[0];
 
-        // URLs starting with http://, https://, ftp://, file://
-        if (preg_match('/^https?:\/\//i', $withoutDelimiter)) {
-            return true;
-        }
-        if (preg_match('/^(ftp|file|mailto|tel|data):[\/@]/i', $withoutDelimiter)) {
+        if (\T_STRING === $id) {
             return true;
         }
 
-        // Check for path-like patterns that are unlikely to be regexes
-        // e.g., /path/to/file, /api/v1/users
-        if ('/' === $pattern[0]) {
-            // If it starts with / and contains typical URL/path characters without regex metacharacters
-            // Look for patterns like /?param=value or /path/to/something
-            if (preg_match('/^\/\?[a-zA-Z]/', $pattern)) {
-                // Starts with /? followed by a letter - likely URL query string
-                return true;
-            }
+        if (\defined('T_NAME_QUALIFIED') && \T_NAME_QUALIFIED === $id) {
+            return true;
+        }
 
-            // Check if it looks like a simple path without regex metacharacters
-            // Paths typically have: letters, numbers, /, -, _, .
-            // Regexes typically have: ^, $, *, +, ?, [, ], (, ), {, }, |, \
-            $body = substr($pattern, 1);
+        if (\defined('T_NAME_FULLY_QUALIFIED') && \T_NAME_FULLY_QUALIFIED === $id) {
+            return true;
+        }
 
-            // Find potential closing delimiter
-            $lastSlash = strrpos($body, '/');
-            if (false !== $lastSlash) {
-                $pathPart = substr($body, 0, $lastSlash);
-                // If the path part has no regex metacharacters, it's likely a URL
-                if ('' !== $pathPart && !preg_match('/[\^\$\*\+\?\[\]\(\)\{\}\|\\\\]/', $pathPart)) {
-                    // Additional check: if it contains multiple path segments, likely a URL
-                    if (substr_count($pathPart, '/') >= 2) {
-                        return true;
-                    }
-                }
-            }
+        if (\defined('T_NAME_RELATIVE') && \T_NAME_RELATIVE === $id) {
+            return true;
         }
 
         return false;
     }
 
-    /**
-     * Find the position of the closing delimiter, accounting for escaped delimiters.
-     */
-    private function findClosingDelimiter(string $pattern, string $openingDelimiter, string $closingDelimiter): ?int
+    private function readNameToken(array|string $token): ?string
     {
-        $length = \strlen($pattern);
-        $depth = 0;
-        $isPaired = $openingDelimiter !== $closingDelimiter;
+        if (!\is_array($token)) {
+            return null;
+        }
 
-        for ($i = 1; $i < $length; $i++) {
-            $char = $pattern[$i];
+        $id = $token[0];
+        if (\T_STRING === $id) {
+            return $token[1];
+        }
 
-            // Check for escape sequences
-            if ('\\' === $char && $i + 1 < $length) {
-                // Skip the escaped character
-                $i++;
+        if (\defined('T_NAME_QUALIFIED') && \T_NAME_QUALIFIED === $id) {
+            return $token[1];
+        }
 
-                continue;
-            }
+        if (\defined('T_NAME_FULLY_QUALIFIED') && \T_NAME_FULLY_QUALIFIED === $id) {
+            return $token[1];
+        }
 
-            // Handle paired delimiters (brackets)
-            if ($isPaired) {
-                if ($char === $openingDelimiter) {
-                    $depth++;
-                } elseif ($char === $closingDelimiter) {
-                    if (0 === $depth) {
-                        return $i;
-                    }
-                    $depth--;
-                }
-            } else {
-                // Same opening and closing delimiter
-                if ($char === $closingDelimiter) {
-                    return $i;
-                }
+        if (\defined('T_NAME_RELATIVE') && \T_NAME_RELATIVE === $id) {
+            return $token[1];
+        }
+
+        return null;
+    }
+
+    private function isDoubleColonToken(array|string $token): bool
+    {
+        return \is_array($token) && \T_DOUBLE_COLON === $token[0];
+    }
+
+    private function isDefinitionToken(array|string $token): bool
+    {
+        return \is_array($token) && \in_array($token[0], [\T_FUNCTION, \T_FN, \T_NEW], true);
+    }
+
+    private function isObjectOrStaticOperator(array|string $token): bool
+    {
+        return \is_array($token)
+            && \in_array($token[0], [\T_DOUBLE_COLON, \T_OBJECT_OPERATOR], true);
+    }
+
+    private function isIgnorableToken(array|string $token): bool
+    {
+        return \is_array($token) && isset(self::IGNORABLE_TOKENS[$token[0]]);
+    }
+
+    /**
+     * @param list<array{int, string, int}|string> $tokens
+     */
+    private function nextSignificantTokenIndex(array $tokens, int $startIndex, int $totalTokens): ?int
+    {
+        for ($i = $startIndex; $i < $totalTokens; $i++) {
+            if (!$this->isIgnorableToken($tokens[$i])) {
+                return $i;
             }
         }
 
@@ -684,17 +886,123 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
     }
 
     /**
-     * Get the closing delimiter for a given opening delimiter.
+     * @param list<array{int, string, int}|string> $tokens
      */
-    private function getClosingDelimiter(string $openingDelimiter): string
+    private function previousSignificantTokenIndex(array $tokens, int $startIndex): ?int
     {
-        return match ($openingDelimiter) {
-            '(' => ')',
-            '[' => ']',
-            '{' => '}',
-            '<' => '>',
-            default => $openingDelimiter,
-        };
+        for ($i = $startIndex; $i >= 0; $i--) {
+            if (!$this->isIgnorableToken($tokens[$i])) {
+                return $i;
+            }
+        }
+
+        return null;
+    }
+
+    private function isDoubleArrowToken(array|string $token): bool
+    {
+        return \is_array($token) && \T_DOUBLE_ARROW === $token[0];
+    }
+
+    private function closingTokenFor(array|string $token): string
+    {
+        if ('(' === $token) {
+            return ')';
+        }
+        if ('[' === $token) {
+            return ']';
+        }
+        if ('{' === $token) {
+            return '}';
+        }
+
+        return ')';
+    }
+
+    private function isClosingToken(array|string $token, ?string $expected): bool
+    {
+        if (null === $expected) {
+            return false;
+        }
+
+        return \is_string($token) && $token === $expected;
+    }
+
+    /**
+     * @param list<array{int, string, int}|string> $tokens
+     *
+     * @return list<array{int, string, int}|string>
+     */
+    private function stripOuterParentheses(array $tokens): array
+    {
+        $totalTokens = \count($tokens);
+        if (0 === $totalTokens) {
+            return $tokens;
+        }
+
+        while (true) {
+            $startIndex = $this->nextSignificantTokenIndex($tokens, 0, $totalTokens);
+            $endIndex = $this->previousSignificantTokenIndex($tokens, $totalTokens - 1);
+
+            if (null === $startIndex || null === $endIndex) {
+                break;
+            }
+
+            if ('(' !== $tokens[$startIndex] || ')' !== $tokens[$endIndex]) {
+                break;
+            }
+
+            $depth = 0;
+            $wrapsAll = true;
+            for ($i = $startIndex; $i <= $endIndex; $i++) {
+                $token = $tokens[$i];
+                if ('(' === $token) {
+                    $depth++;
+                } elseif (')' === $token) {
+                    $depth--;
+                    if (0 === $depth && $i < $endIndex) {
+                        $wrapsAll = false;
+
+                        break;
+                    }
+                }
+            }
+
+            if (!$wrapsAll || 0 !== $depth) {
+                break;
+            }
+
+            $tokens = \array_slice($tokens, $startIndex + 1, $endIndex - $startIndex - 1);
+            $totalTokens = \count($tokens);
+        }
+
+        return $tokens;
+    }
+
+    /**
+     * @param list<array{int, string, int}|string> $tokens
+     */
+    private function findArrayStartIndex(array $tokens): ?int
+    {
+        $totalTokens = \count($tokens);
+        $startIndex = $this->nextSignificantTokenIndex($tokens, 0, $totalTokens);
+        if (null === $startIndex) {
+            return null;
+        }
+
+        $token = $tokens[$startIndex];
+        if ('[' === $token) {
+            return $startIndex;
+        }
+
+        if (\is_array($token) && \T_ARRAY === $token[0]) {
+            $openParenIndex = $this->nextSignificantTokenIndex($tokens, $startIndex + 1, $totalTokens);
+            if (null !== $openParenIndex && '(' === $tokens[$openParenIndex]) {
+                return $openParenIndex;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -703,9 +1011,7 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
      */
     private function ensureValidUtf8(string $content): ?string
     {
-        // Check if already valid UTF-8
         if (mb_check_encoding($content, 'UTF-8')) {
-            // Check for binary control characters (null bytes indicate binary data)
             if (str_contains($content, "\x00")) {
                 return null;
             }
@@ -713,10 +1019,8 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
             return $content;
         }
 
-        // Try to convert from ISO-8859-1
         $converted = mb_convert_encoding($content, 'UTF-8', 'ISO-8859-1');
         if (\is_string($converted) && mb_check_encoding($converted, 'UTF-8')) {
-            // Check for binary control characters after conversion
             if (str_contains($converted, "\x00")) {
                 return null;
             }
@@ -724,7 +1028,6 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
             return $converted;
         }
 
-        // Cannot convert, skip this file
         return null;
     }
 }
