@@ -161,6 +161,33 @@ final class RegexLintCommand extends Command
             $this->showBanner($io);
         }
 
+        $collectionProgress = null;
+        if ('console' === $format && OutputInterface::VERBOSITY_QUIET !== $output->getVerbosity()) {
+            $io->writeln('  <fg=gray>Scanning files...</>');
+            $collectionStarted = false;
+            $lastCount = 0;
+            $collectionProgress = function (int $current, int $total) use ($io, &$collectionStarted, &$lastCount): void {
+                if ($total <= 0) {
+                    return;
+                }
+
+                if (!$collectionStarted) {
+                    $io->progressStart($total);
+                    $collectionStarted = true;
+                }
+
+                $advance = $current - $lastCount;
+                if ($advance > 0) {
+                    $io->progressAdvance($advance);
+                    $lastCount = $current;
+                }
+
+                if ($current >= $total) {
+                    $io->progressFinish();
+                }
+            };
+        }
+
         try {
             $request = new RegexLintRequest(
                 paths: $paths,
@@ -171,7 +198,7 @@ final class RegexLintCommand extends Command
                     $skipValidators ? 'validators' : null,
                 ], static fn (?string $source): bool => null !== $source)),
             );
-            $patterns = $this->lint->collectPatterns($request);
+            $patterns = $this->lint->collectPatterns($request, $collectionProgress);
         } catch (\Throwable $e) {
             return $this->renderCollectionFailure($format, $output, $io, $e->getMessage());
         }

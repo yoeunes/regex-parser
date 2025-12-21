@@ -836,13 +836,40 @@ switch ($command) {
             echo renderLintBanner();
         }
 
+        $collectionProgress = null;
+        if ('console' === $format && $config->shouldShowProgress()) {
+            output('  '.dim('Scanning files...')."\n");
+            $collectionStarted = false;
+            $lastCount = 0;
+            $collectionProgress = static function (int $current, int $total) use (&$collectionStarted, &$lastCount): void {
+                if ($total <= 0) {
+                    return;
+                }
+
+                if (!$collectionStarted) {
+                    progressStart($total);
+                    $collectionStarted = true;
+                }
+
+                $advance = $current - $lastCount;
+                if ($advance > 0) {
+                    progressAdvance($advance);
+                    $lastCount = $current;
+                }
+
+                if ($collectionStarted && $current >= $total) {
+                    progressFinish();
+                }
+            };
+        }
+
         try {
             $request = new RegexLintRequest(
                 paths: $paths,
                 excludePaths: $exclude,
                 minSavings: $minSavings,
             );
-            $patterns = $lint->collectPatterns($request);
+            $patterns = $lint->collectPatterns($request, $collectionProgress);
         } catch (Throwable $e) {
             output(error("Failed to collect patterns: {$e->getMessage()}\n"));
             exit(1);
@@ -860,7 +887,7 @@ switch ($command) {
         }
 
         $progressCallback = null;
-        if ('console' === $format && OutputConfiguration::VERBOSITY_QUIET !== $verbosity) {
+        if ('console' === $format && $config->shouldShowProgress()) {
             progressStart(\count($patterns));
             $progressCallback = static fn () => progressAdvance();
         }

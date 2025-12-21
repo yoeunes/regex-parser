@@ -35,7 +35,13 @@ final class CharSetAnalyzer
     private function walk(Node\NodeInterface $node, bool $fromStart): CharSet
     {
         if ($node instanceof Node\LiteralNode) {
-            return CharSet::fromChar($fromStart ? $node->value[0] : $node->value[\strlen($node->value) - 1]);
+            if ('' === $node->value) {
+                return CharSet::empty();
+            }
+
+            $char = $fromStart ? $node->value[0] : $node->value[\strlen($node->value) - 1];
+
+            return CharSet::fromChar($char);
         }
 
         if ($node instanceof Node\CharTypeNode) {
@@ -137,7 +143,15 @@ final class CharSetAnalyzer
 
     private function literalCodepoint(Node\NodeInterface $node): ?int
     {
-        return $node instanceof Node\LiteralNode ? \ord($node->value[0]) : null;
+        if (!$node instanceof Node\LiteralNode) {
+            return null;
+        }
+
+        if ('' === $node->value) {
+            return null;
+        }
+
+        return \ord($node->value[0]);
     }
 
     private function isOptional(Node\QuantifierNode $node): bool
@@ -164,6 +178,10 @@ final class CharSetAnalyzer
 
     private function isOptionalNode(Node\NodeInterface $node, bool $fromStart): bool
     {
+        if ($node instanceof Node\LiteralNode) {
+            return '' === $node->value;
+        }
+
         if ($node instanceof Node\QuantifierNode) {
             return $this->isOptional($node);
         }

@@ -30,15 +30,36 @@ final readonly class RegexPatternExtractor
      *
      * @param list<string>      $paths        Paths to scan for PHP files
      * @param list<string>|null $excludePaths Optional paths to exclude (falls back to ['vendor'])
+     * @param callable(int, int): void|null $progress Reports collection progress as (current, total)
      *
      * @return list<RegexPatternOccurrence>
      */
-    public function extract(array $paths, ?array $excludePaths = null): array
+    public function extract(array $paths, ?array $excludePaths = null, ?callable $progress = null): array
     {
         $excludePaths ??= ['vendor'];
         $phpFiles = $this->collectPhpFiles($paths, $excludePaths);
 
-        return $this->extractor->extract($phpFiles);
+        if (null === $progress) {
+            return $this->extractor->extract($phpFiles);
+        }
+
+        $total = \count($phpFiles);
+        $progress(0, $total);
+
+        if (0 === $total) {
+            return [];
+        }
+
+        $occurrences = [];
+        $current = 0;
+
+        foreach ($phpFiles as $file) {
+            $occurrences = [...$occurrences, ...$this->extractor->extract([$file])];
+            $current++;
+            $progress($current, $total);
+        }
+
+        return $occurrences;
     }
 
     /**

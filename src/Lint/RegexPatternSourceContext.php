@@ -21,15 +21,24 @@ namespace RegexParser\Lint;
 final readonly class RegexPatternSourceContext
 {
     /**
+     * @var callable(int, int): void|null
+     */
+    public mixed $progress;
+
+    /**
      * @param list<string> $paths
      * @param list<string> $excludePaths
      * @param list<string> $disabledSources
+     * @param callable(int, int): void|null $progress
      */
     public function __construct(
         public array $paths,
         public array $excludePaths,
         private array $disabledSources = [],
-    ) {}
+        ?callable $progress = null,
+    ) {
+        $this->progress = $progress;
+    }
 
     public function isSourceEnabled(string $name): bool
     {

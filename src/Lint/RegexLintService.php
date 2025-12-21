@@ -74,14 +74,17 @@ final readonly class RegexLintService
     ) {}
 
     /**
+     * @param callable(int, int): void|null $progress
+     *
      * @return list<RegexPatternOccurrence>
      */
-    public function collectPatterns(RegexLintRequest $request): array
+    public function collectPatterns(RegexLintRequest $request, ?callable $progress = null): array
     {
         $context = new RegexPatternSourceContext(
             $request->paths,
             $request->excludePaths,
             $request->getDisabledSources(),
+            $progress,
         );
 
         return $this->sources->collect($context);
