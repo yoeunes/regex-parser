@@ -22,7 +22,6 @@ use RegexParser\Lint\RegexLintReport;
 use RegexParser\Lint\RegexLintRequest;
 use RegexParser\Lint\RegexLintService;
 use RegexParser\OptimizationResult;
-use RegexParser\Severity;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -193,7 +192,10 @@ final class RegexLintCommand extends Command
         $formatOption = $input->getOption('format');
         $format = \is_string($formatOption) ? strtolower($formatOption) : 'console';
 
-        $this->formatterRegistry->override('console', new SymfonyConsoleFormatter($this->analysis));
+        $this->formatterRegistry->override(
+            'console',
+            new SymfonyConsoleFormatter($this->analysis, $this->linkFormatter, $output->isDecorated()),
+        );
 
         if (!$this->formatterRegistry->has($format)) {
             $io->error(\sprintf(
@@ -241,6 +243,11 @@ final class RegexLintCommand extends Command
             $io->progressFinish();
         }
 
+        $report = new RegexLintReport(
+            $this->sortResultsByFileAndLine($report->results),
+            $report->stats,
+        );
+
         $stats = $report->stats;
 
         $formatter = $this->formatterRegistry->get($format);
@@ -276,12 +283,32 @@ final class RegexLintCommand extends Command
 
     private function renderEmptyResults(string $format, OutputInterface $output, SymfonyStyle $io): int
     {
+        if ('console' === $format) {
+            $this->renderEmptySummary($io);
+
+            return Command::SUCCESS;
+        }
+
         $emptyReport = new RegexLintReport([], ['errors' => 0, 'warnings' => 0, 'optimizations' => 0]);
 
         $formatter = $this->formatterRegistry->get($format);
         $output->writeln($formatter->format($emptyReport));
 
         return Command::SUCCESS;
+    }
+
+    private function renderEmptySummary(SymfonyStyle $io): void
+    {
+        $io->newLine();
+        $io->writeln('  <bg=green;fg=white;options=bold> PASS </> <fg=gray>No regex patterns found.</>');
+        $this->showFooter($io);
+    }
+
+    private function showFooter(SymfonyStyle $io): void
+    {
+        $io->newLine();
+        $io->writeln('  <fg=gray>Star the repo: https://github.com/yoeunes/regex-parser</>');
+        $io->newLine();
     }
 
     /**
@@ -294,5 +321,24 @@ final class RegexLintCommand extends Command
         }
 
         return array_values(array_filter($value, static fn ($item): bool => \is_string($item) && '' !== $item));
+    }
+
+    /**
+     * @phpstan-param list<LintResult> $results
+     *
+     * @phpstan-return list<LintResult>
+     */
+    private function sortResultsByFileAndLine(array $results): array
+    {
+        usort($results, static function (array $a, array $b): int {
+            $fileCompare = strcmp((string) $a['file'], (string) $b['file']);
+            if (0 !== $fileCompare) {
+                return $fileCompare;
+            }
+
+            return ($a['line'] ?? 0) <=> ($b['line'] ?? 0);
+        });
+
+        return $results;
     }
 }

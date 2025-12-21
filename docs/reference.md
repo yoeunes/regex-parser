@@ -349,45 +349,51 @@ When using `--format=json` with the lint command, output follows this schema:
 
 ```json
 {
-  "files": [
+  "stats": {
+    "errors": 1,
+    "warnings": 0,
+    "optimizations": 1
+  },
+  "results": [
     {
       "file": "src/Example.php",
+      "line": 15,
+      "pattern": "/(a)\\2/",
+      "location": null,
       "issues": [
         {
           "type": "error",
           "message": "Backreference to non-existent group: \\2",
           "line": 15,
           "column": 20,
-          "pattern": "/(a)\\2/",
-          "code": "regex.backref.missing_group"
+          "issueId": "regex.backref.missing_group"
         }
       ],
       "optimizations": [
         {
-          "pattern": "/[0-9]+/",
+          "file": "src/Example.php",
+          "line": 15,
           "optimization": {
             "original": "/[0-9]+/",
             "optimized": "/\\d+/"
-          }
+          },
+          "savings": 2
         }
       ]
     }
-  ],
-  "summary": {
-    "errors": 1,
-    "warnings": 0,
-    "optimizations": 1
-  }
+  ]
 }
 ```
 
-- `files[].issues[]`: Array of diagnostic issues.
+- `stats`: Totals for the entire run (`errors`, `warnings`, `optimizations`).
+- `results[]`: One entry per pattern occurrence (file + line).
+- `results[].issues[]`: Array of diagnostic issues.
   - `type`: "error" | "warning"
   - `message`: Human-readable description
   - `line`, `column`: Position in source file
-  - `pattern`: The regex pattern that triggered the issue
-  - `code`: Diagnostic identifier
-- `files[].optimizations[]`: Suggested optimizations.
-  - `pattern`: Original pattern
+  - `issueId`: Diagnostic identifier (when available)
+- `results[].optimizations[]`: Suggested optimizations.
   - `optimization`: Object with `original` and `optimized` strings
-- `summary`: Totals for the entire run.
+  - `savings`: Character savings count
+
+Additional fields may be present for detailed analysis (e.g., validation or ReDoS metadata).
