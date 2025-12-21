@@ -635,7 +635,9 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
         
         // Handle control characters and extended ASCII as hex codes
         if (($ord < 32) || (127 === $ord) || ($ord >= 128 && $ord <= 255)) {
-            return "'\\x".strtoupper(str_pad(dechex($ord), 2, '0', STR_PAD_LEFT))."'";
+            $result = "'\\x".strtoupper(str_pad(dechex($ord), 2, '0', STR_PAD_LEFT))."'";
+            error_log("formatCharLiteral: ord=$ord, result=$result"); // Debug
+            return $result;
         }
         
         // Printable characters
