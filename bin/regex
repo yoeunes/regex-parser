@@ -12,7 +12,27 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-require __DIR__.'/../vendor/autoload.php';
+// Find the correct autoload.php file
+$possibleAutoloadPaths = [
+    __DIR__.'/../vendor/autoload.php',  // When running from source
+    __DIR__.'/../../../autoload.php',  // When installed via composer
+    dirname(__DIR__, 3).'/autoload.php', // Fallback for deeper installations
+];
+
+$autoload = null;
+foreach ($possibleAutoloadPaths as $path) {
+    if (file_exists($path)) {
+        $autoload = $path;
+        break;
+    }
+}
+
+if ($autoload === null) {
+    fwrite(STDERR, "Error: Could not find autoload.php. Please run 'composer install'.\n");
+    exit(1);
+}
+
+require $autoload;
 
 use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
