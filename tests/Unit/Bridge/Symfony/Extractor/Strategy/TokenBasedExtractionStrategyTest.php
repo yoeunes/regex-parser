@@ -47,7 +47,7 @@ final class TokenBasedExtractionStrategyTest extends TestCase
         $this->assertSame('/\s+/', $result[2]->pattern);
     }
 
-    public function test_extracts_simple_concatenated_pattern(): void
+    public function test_skips_concatenated_pattern(): void
     {
         $strategy = new TokenBasedExtractionStrategy();
 
@@ -55,9 +55,8 @@ final class TokenBasedExtractionStrategyTest extends TestCase
 
         $result = $strategy->extract([$fixtureFile]);
 
-        // Basic concatenation should work
-        $this->assertCount(1, $result);
-        $this->assertStringContainsString('test', $result[0]->pattern);
+        // Concatenated patterns should be skipped - they cannot be validated statically
+        $this->assertEmpty($result);
     }
 
     public function test_skips_non_constant_patterns(): void

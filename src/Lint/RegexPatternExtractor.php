@@ -23,6 +23,16 @@ namespace RegexParser\Lint;
  */
 final readonly class RegexPatternExtractor
 {
+    /**
+     * Template file suffixes to exclude by default.
+     * These files often contain template syntax that can be confused with regex quantifiers.
+     */
+    private const TEMPLATE_SUFFIXES = [
+        '.tpl.php',
+        '.blade.php',
+        '.twig.php',
+    ];
+
     public function __construct(private ExtractorInterface $extractor) {}
 
     /**
@@ -76,7 +86,7 @@ final readonly class RegexPatternExtractor
                 continue;
             }
 
-            if (is_file($path) && str_ends_with($path, '.php')) {
+            if (is_file($path) && str_ends_with($path, '.php') && !$this->isTemplateFile($path)) {
                 $files[] = $path;
 
                 continue;
@@ -97,6 +107,11 @@ final readonly class RegexPatternExtractor
                 }
 
                 $filePath = $file->getPathname();
+
+                // Skip template files by default
+                if ($this->isTemplateFile($filePath)) {
+                    continue;
+                }
 
                 // Skip excluded directories
                 $excluded = false;
@@ -119,5 +134,19 @@ final readonly class RegexPatternExtractor
         }
 
         return $files;
+    }
+
+    /**
+     * Check if a file is a template file that should be excluded.
+     */
+    private function isTemplateFile(string $filePath): bool
+    {
+        foreach (self::TEMPLATE_SUFFIXES as $suffix) {
+            if (str_ends_with($filePath, $suffix)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
