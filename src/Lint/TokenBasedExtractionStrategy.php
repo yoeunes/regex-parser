@@ -63,7 +63,7 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
                 continue;
             }
 
-            $normalized = strtolower($customFunction);
+            $normalized = strtolower(ltrim($customFunction, '\\'));
             if (str_contains($normalized, '::')) {
                 $customStaticFunctionMap[$normalized] = 0;
 
@@ -862,8 +862,16 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
 
     private function isObjectOrStaticOperator(array|string $token): bool
     {
-        return \is_array($token)
-            && \in_array($token[0], [\T_DOUBLE_COLON, \T_OBJECT_OPERATOR], true);
+        if (!\is_array($token)) {
+            return false;
+        }
+
+        $operators = [\T_DOUBLE_COLON, \T_OBJECT_OPERATOR];
+        if (\defined('T_NULLSAFE_OBJECT_OPERATOR')) {
+            $operators[] = \T_NULLSAFE_OBJECT_OPERATOR;
+        }
+
+        return \in_array($token[0], $operators, true);
     }
 
     private function isIgnorableToken(array|string $token): bool
