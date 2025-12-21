@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Output;
+namespace RegexParser\Lint\Formatter;
 
 use RegexParser\Lint\RegexAnalysisService;
 use RegexParser\Lint\RegexLintReport;
@@ -19,7 +19,7 @@ use RegexParser\Lint\RegexLintReport;
 /**
  * Console output formatter with ANSI colors and verbosity levels.
  */
-final class ConsoleFormatter extends AbstractOutputFormatter
+class ConsoleFormatter extends AbstractOutputFormatter
 {
     // ANSI color codes
     private const RESET = "\033[0m";
@@ -44,11 +44,6 @@ final class ConsoleFormatter extends AbstractOutputFormatter
         OutputConfiguration $config = new OutputConfiguration(),
     ) {
         parent::__construct($config);
-    }
-
-    public function getName(): string
-    {
-        return 'console';
     }
 
     public function format(RegexLintReport $report): string

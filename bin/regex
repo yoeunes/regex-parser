@@ -26,9 +26,9 @@ use RegexParser\Lint\RegexPatternSourceCollection;
 use RegexParser\Lint\TokenBasedExtractionStrategy;
 use RegexParser\NodeVisitor\ConsoleHighlighterVisitor;
 use RegexParser\NodeVisitor\HtmlHighlighterVisitor;
-use RegexParser\Output\OutputConfiguration;
-use RegexParser\Output\FormatterRegistry;
-use RegexParser\Output\ConsoleFormatter;
+use RegexParser\Lint\Formatter\OutputConfiguration;
+use RegexParser\Lint\Formatter\FormatterRegistry;
+use RegexParser\Lint\Formatter\ConsoleFormatter;
 use RegexParser\OptimizationResult;
 use RegexParser\Regex;
 

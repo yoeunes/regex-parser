@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use RegexParser\Bridge\Symfony\Command\RegexLintCommand;
+use RegexParser\Lint\Formatter\FormatterRegistry;
 use RegexParser\Lint\RegexAnalysisService;
 use RegexParser\Lint\RegexLintService;
 use RegexParser\Regex;
@@ -89,9 +90,12 @@ return static function (ContainerConfigurator $container): void {
             '$sources' => service('regex_parser.pattern_sources'),
         ]);
 
+    $services->set('regex_parser.formatter_registry', FormatterRegistry::class);
+
     $services->set('regex_parser.command.lint', RegexLintCommand::class)
         ->arg('$lint', service('regex_parser.service.regex_lint'))
         ->arg('$analysis', service('regex_parser.service.regex_analysis'))
+        ->arg('$formatterRegistry', service('regex_parser.formatter_registry'))
         ->arg('$defaultPaths', param('regex_parser.paths'))
         ->arg('$defaultExcludePaths', param('regex_parser.exclude_paths'))
         ->arg('$editorUrl', param('regex_parser.editor_format'))

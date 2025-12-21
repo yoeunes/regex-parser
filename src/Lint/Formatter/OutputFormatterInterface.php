@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Output;
+namespace RegexParser\Lint\Formatter;
 
 use RegexParser\Lint\RegexLintReport;
 
@@ -26,12 +26,7 @@ interface OutputFormatterInterface
     public function format(RegexLintReport $report): string;
 
     /**
-     * Get the name of this formatter.
+     * Format an error message.
      */
-    public function getName(): string;
-
-    /**
-     * Check if this formatter supports the given format.
-     */
-    public function supports(string $format): bool;
+    public function formatError(string $message): string;
 }

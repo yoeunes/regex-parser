@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Output;
+namespace RegexParser\Lint\Formatter;
 
 /**
  * Registry for managing output formatters.
@@ -25,15 +25,19 @@ final class FormatterRegistry
 
     public function __construct()
     {
-        $this->registerDefaultFormatters();
+        $this->register('console', new ConsoleFormatter());
+        $this->register('json', new JsonFormatter());
+        $this->register('github', new GithubFormatter());
+        $this->register('checkstyle', new CheckstyleFormatter());
+        $this->register('junit', new JunitFormatter());
     }
 
     /**
-     * Register a formatter.
+     * Register a formatter with a specific name.
      */
-    public function register(OutputFormatterInterface $formatter): void
+    public function register(string $name, OutputFormatterInterface $formatter): void
     {
-        $this->formatters[$formatter->getName()] = $formatter;
+        $this->formatters[$name] = $formatter;
     }
 
     /**
@@ -68,13 +72,10 @@ final class FormatterRegistry
     }
 
     /**
-     * Register default formatters.
+     * Override a formatter with a specific name.
      */
-    private function registerDefaultFormatters(): void
+    public function override(string $name, OutputFormatterInterface $formatter): void
     {
-        // Console formatter will be created with analysis service for highlighting
-        // Json formatter uses the default config
-        $this->register(new ConsoleFormatter());
-        $this->register(new JsonFormatter());
+        $this->formatters[$name] = $formatter;
     }
 }

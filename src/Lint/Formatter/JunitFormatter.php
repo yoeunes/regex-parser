@@ -1,0 +1,196 @@
+<?php
+
+declare(strict_types=1);
+
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+namespace RegexParser\Lint\Formatter;
+
+use RegexParser\Lint\RegexLintReport;
+use RegexParser\RegexProblem;
+use RegexParser\Severity;
+
+/**
+ * JUnit XML output formatter.
+ */
+final class JunitFormatter extends AbstractOutputFormatter
+{
+    public function format(RegexLintReport $report): string
+    {
+        $entries = $this->flattenProblems($report->results);
+        $tests = \count($entries);
+        $failures = 0;
+        $errors = 0;
+
+        foreach ($entries as $entry) {
+            $problem = $entry['problem'];
+            \assert($problem instanceof RegexProblem);
+
+            if (Severity::Critical === $problem->severity) {
+                $errors++;
+            } elseif (Severity::Error === $problem->severity) {
+                $failures++;
+            }
+        }
+
+        $lines = [
+            '<?xml version="1.0" encoding="UTF-8"?>',
+            \sprintf(
+                '<testsuite name="regex-parser" tests="%d" failures="%d" errors="%d" skipped="0">',
+                $tests,
+                $failures,
+                $errors,
+            ),
+        ];
+
+        foreach ($entries as $entry) {
+            $problem = $entry['problem'];
+            \assert($problem instanceof RegexProblem);
+
+            $name = $this->formatProblemTitle($problem);
+            $file = $this->normalizeFile((string) $entry['file']);
+            $line = $this->normalizeLine((int) $entry['line']);
+            $column = $this->normalizeColumn($problem->position);
+            $message = $this->formatProblemMessage($problem, $entry);
+
+            $lines[] = \sprintf(
+                '  <testcase name="%s" classname="%s:%d">',
+                $this->escapeXml($name),
+                $this->escapeXml($file),
+                $line,
+            );
+
+            if (Severity::Critical === $problem->severity) {
+                $lines[] = \sprintf(
+                    '    <error message="%s">%s</error>',
+                    $this->escapeXml($problem->message),
+                    $this->escapeXml($message),
+                );
+            } elseif (Severity::Error === $problem->severity) {
+                $lines[] = \sprintf(
+                    '    <failure message="%s">%s</failure>',
+                    $this->escapeXml($problem->message),
+                    $this->escapeXml($message),
+                );
+            } else {
+                $lines[] = \sprintf(
+                    '    <system-out>%s</system-out>',
+                    $this->escapeXml($message),
+                );
+            }
+
+            $lines[] = '  </testcase>';
+        }
+
+        $lines[] = '</testsuite>';
+
+        return implode("\n", $lines);
+    }
+
+    public function formatError(string $message): string
+    {
+        $lines = [
+            '<?xml version="1.0" encoding="UTF-8"?>',
+            '<testsuite name="regex-parser" tests="1" failures="1" errors="0" skipped="0">',
+            '  <testcase name="pattern-collection">',
+            \sprintf(
+                '    <failure message="%s">%s</failure>',
+                $this->escapeXml($message),
+                $this->escapeXml($message),
+            ),
+            '  </testcase>',
+            '</testsuite>',
+        ];
+
+        return implode("\n", $lines);
+    }
+
+    /**
+     * @param array<array<string, mixed>> $results
+     *
+     * @return array<array<string, mixed>>
+     */
+    private function flattenProblems(array $results): array
+    {
+        $flattened = [];
+
+        foreach ($results as $result) {
+            foreach ((array) ($result['problems'] ?? []) as $problem) {
+                if (!$problem instanceof RegexProblem) {
+                    continue;
+                }
+
+                $flattened[] = [
+                    'file' => $result['file'],
+                    'line' => $result['line'],
+                    'source' => $result['source'] ?? null,
+                    'pattern' => $result['pattern'] ?? null,
+                    'location' => $result['location'] ?? null,
+                    'problem' => $problem,
+                ];
+            }
+        }
+
+        return $flattened;
+    }
+
+    private function formatProblemTitle(RegexProblem $problem): string
+    {
+        $title = ucfirst($problem->type->value);
+        if (null !== $problem->code && '' !== $problem->code) {
+            $title .= ' ('.$problem->code.')';
+        }
+
+        return $title;
+    }
+
+    private function normalizeFile(string $file): string
+    {
+        return str_replace('\\', '/', $file);
+    }
+
+    private function normalizeLine(int $line): int
+    {
+        return max(1, $line);
+    }
+
+    private function normalizeColumn(?int $position): int
+    {
+        return $position ?? 1;
+    }
+
+    /**
+     * @param array<string, mixed> $context
+     */
+    private function formatProblemMessage(RegexProblem $problem, array $context): string
+    {
+        $parts = [$problem->message];
+        $location = $context['location'] ?? null;
+
+        if (\is_string($location) && '' !== $location) {
+            $parts[] = 'Location: '.$location;
+        }
+
+        if (null !== $problem->snippet && '' !== $problem->snippet) {
+            $parts[] = $problem->snippet;
+        }
+
+        if (null !== $problem->suggestion && '' !== $problem->suggestion) {
+            $parts[] = 'Suggestion: '.$problem->suggestion;
+        }
+
+        return implode("\n", $parts);
+    }
+
+    private function escapeXml(string $value): string
+    {
+        return htmlspecialchars($value, \ENT_XML1 | \ENT_QUOTES);
+    }
+}

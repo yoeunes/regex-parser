@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Output;
+namespace RegexParser\Lint\Formatter;
 
 use RegexParser\Lint\RegexLintReport;
 
@@ -22,20 +22,18 @@ abstract class AbstractOutputFormatter implements OutputFormatterInterface
 {
     public function __construct(protected OutputConfiguration $config = new OutputConfiguration()) {}
 
-    public function supports(string $format): bool
-    {
-        return $format === $this->getName();
-    }
-
-    /**
-     * Get the name of this formatter.
-     */
-    abstract public function getName(): string;
-
     /**
      * Format and output the lint report.
      */
     abstract public function format(RegexLintReport $report): string;
+
+    /**
+     * Format an error message.
+     */
+    public function formatError(string $message): string
+    {
+        return $message;
+    }
 
     /**
      * Get the severity badge for an issue.

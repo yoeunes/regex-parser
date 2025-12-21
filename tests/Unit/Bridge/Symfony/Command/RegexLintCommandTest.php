@@ -106,6 +106,7 @@ final class RegexLintCommandTest extends TestCase
         return new RegexLintCommand(
             lint: $lint,
             analysis: $analysis,
+            formatterRegistry: new \RegexParser\Lint\Formatter\FormatterRegistry(),
             editorUrl: null,
         );
     }

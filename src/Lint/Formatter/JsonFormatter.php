@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Output;
+namespace RegexParser\Lint\Formatter;
 
 use RegexParser\Lint\RegexLintReport;
 
@@ -24,11 +24,6 @@ final class JsonFormatter extends AbstractOutputFormatter
      * @var array<array<string, mixed>>
      */
     private array $results = [];
-
-    public function getName(): string
-    {
-        return 'json';
-    }
 
     public function format(RegexLintReport $report): string
     {
@@ -77,6 +72,13 @@ final class JsonFormatter extends AbstractOutputFormatter
         if (false === $json) {
             throw new \RuntimeException('Failed to encode JSON');
         }
+
+        return $json;
+    }
+
+    public function formatError(string $message): string
+    {
+        $json = json_encode(['error' => $message], \JSON_THROW_ON_ERROR);
 
         return $json;
     }
