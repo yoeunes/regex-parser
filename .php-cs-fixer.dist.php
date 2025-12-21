@@ -22,6 +22,7 @@ EOF;
 
 $finder = (new PhpCsFixer\Finder())
     ->in([
+        __DIR__.'/bin',
         __DIR__.'/src',
         __DIR__.'/tests',
         __DIR__.'/benchmarks',
