@@ -944,7 +944,8 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
             }
         }
 
-        $nonNullSuffixes = array_filter($suffixes, fn ($s) => null !== $s);
+        /** @var list<Node\NodeInterface> $nonNullSuffixes */
+        $nonNullSuffixes = array_values(array_filter($suffixes, static fn ($suffix): bool => null !== $suffix));
         if (empty($nonNullSuffixes)) {
             // All are just the prefix
             /** @var \RegexParser\Node\AbstractNode $firstAlt */
@@ -956,8 +957,10 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         /** @var \RegexParser\Node\AbstractNode $firstSuffix */
         $firstSuffix = $nonNullSuffixes[0];
         /** @var \RegexParser\Node\AbstractNode $lastSuffix */
-        $lastSuffix = end($nonNullSuffixes);
-        $newAlt = 1 === \count($nonNullSuffixes) ? $nonNullSuffixes[0] : new Node\AlternationNode($nonNullSuffixes, $firstSuffix->startPosition, $lastSuffix->endPosition);
+        $lastSuffix = $nonNullSuffixes[\count($nonNullSuffixes) - 1];
+        $newAlt = 1 === \count($nonNullSuffixes)
+            ? $firstSuffix
+            : new Node\AlternationNode($nonNullSuffixes, $firstSuffix->startPosition, $lastSuffix->endPosition);
         $group = new Node\GroupNode($newAlt, Node\GroupType::T_GROUP_NON_CAPTURING);
         /** @var \RegexParser\Node\AbstractNode $firstAlt */
         $firstAlt = $withPrefix[0];

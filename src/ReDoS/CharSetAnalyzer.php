@@ -35,11 +35,12 @@ final class CharSetAnalyzer
     private function walk(Node\NodeInterface $node, bool $fromStart): CharSet
     {
         if ($node instanceof Node\LiteralNode) {
-            if ('' === $node->value) {
+            $length = \strlen($node->value);
+            if (0 === $length) {
                 return CharSet::empty();
             }
 
-            $char = $fromStart ? $node->value[0] : $node->value[\strlen($node->value) - 1];
+            $char = $fromStart ? $node->value[0] : $node->value[$length - 1];
 
             return CharSet::fromChar($char);
         }

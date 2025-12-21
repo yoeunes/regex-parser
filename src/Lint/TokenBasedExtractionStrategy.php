@@ -121,7 +121,7 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
     private function extractPatternFromToken(array $token, string $file, string $functionName): array
     {
         if (\T_CONSTANT_ENCAPSED_STRING === $token[0]) {
-            $pattern = stripcslashes(substr($token[1], 1, -1));
+            $pattern = $this->decodeStringToken($token[1]);
 
             if ('' === $pattern) {
                 return [];
@@ -136,5 +136,25 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
         }
 
         return [];
+    }
+
+    private function decodeStringToken(string $token): string
+    {
+        if (\strlen($token) < 2) {
+            return '';
+        }
+
+        $quote = $token[0];
+        $body = substr($token, 1, -1);
+
+        if ("'" === $quote) {
+            return str_replace(["\\\\", "\\'"], ["\\", "'"], $body);
+        }
+
+        if ('"' === $quote) {
+            return stripcslashes($body);
+        }
+
+        return $body;
     }
 }
