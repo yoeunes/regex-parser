@@ -697,6 +697,14 @@ final class ParserTest extends TestCase
         $this->assertInstanceOf(Regex::class, $regex);
     }
 
+    public function test_exception_with_visual_context(): void
+    {
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('Duplicate group name "a" at position 8.');
+
+        $this->regex->parse('/(?<a>.) (?<a>.)/');
+    }
+
     /**
      * Helper method to parse a regex string using the decoupled Lexer and Parser.
      */

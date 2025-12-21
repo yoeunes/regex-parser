@@ -29,6 +29,7 @@ It brings static analysis, security auditing, and automated refactoring to PHP's
 * **Security Auditing** — Detects Catastrophic Backtracking (ReDoS) risks and vulnerabilities at analysis time.
 * **Documentation** — Automatically generates human-readable explanations, HTML visualizations, and valid sample strings.
 * **Transformation** — Manipulate the AST to optimize or refactor patterns programmatically.
+* **PCRE Compliance** — Validated against official PCRE test corpus for enterprise reliability.
 
 ### Choose Your Feature
 
