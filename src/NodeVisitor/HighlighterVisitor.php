@@ -127,6 +127,19 @@ abstract class HighlighterVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitUnicode(Node\UnicodeNode $node): string
     {
+        // For non-printable characters (control chars and extended ASCII), 
+        // convert back to hex representation to avoid display issues
+        if (strlen($node->code) === 1) {
+            $charCode = ord($node->code);
+            // Control characters (0x00-0x1F, 0x7F) and extended ASCII (0x80-0xFF)
+            if (($charCode >= 0x00 && $charCode <= 0x1F) || 
+                $charCode === 0x7F || 
+                ($charCode >= 0x80 && $charCode <= 0xFF)) {
+                return $this->wrap('\\x'.strtoupper(str_pad(dechex($charCode), 2, '0', STR_PAD_LEFT)), 'type');
+            }
+        }
+        
+        // For regular Unicode escape sequences, use the original format
         return $this->wrap('\\x'.$node->code, 'type');
     }
 
