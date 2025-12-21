@@ -115,7 +115,7 @@ final readonly class RegexAnalysisService
                     'message' => $message,
                     'source' => $source,
                     'validation' => $validation,
-                     'tip' => $this->getTipForValidationError($message, $occurrence->pattern, $validation),
+                    'tip' => $this->getTipForValidationError($message, $occurrence->pattern, $validation),
                 ];
 
                 if ($progress) {
@@ -161,23 +161,23 @@ final readonly class RegexAnalysisService
                     ];
                 }
 
-                 $redos = $this->regex->redos($occurrence->pattern, $this->redosSeverityThreshold);
-                 if ($redos->exceedsThreshold($this->redosSeverityThreshold)) {
-                     $issues[] = [
-                         'type' => 'error',
-                         'file' => $occurrence->file,
-                         'line' => $occurrence->line,
-                         'column' => 1,
-                         'issueId' => self::ISSUE_ID_REDOS,
-                         'message' => \sprintf(
-                             'Pattern may be vulnerable to ReDoS (severity: %s).',
-                             strtoupper($redos->severity->value),
-                         ),
-                         'hint' => $this->getReDoSHint($redos, $occurrence->pattern),
-                         'source' => $source,
-                         'analysis' => $redos,
-                     ];
-                 }
+                $redos = $this->regex->redos($occurrence->pattern, $this->redosSeverityThreshold);
+                if ($redos->exceedsThreshold($this->redosSeverityThreshold)) {
+                    $issues[] = [
+                        'type' => 'error',
+                        'file' => $occurrence->file,
+                        'line' => $occurrence->line,
+                        'column' => 1,
+                        'issueId' => self::ISSUE_ID_REDOS,
+                        'message' => \sprintf(
+                            'Pattern may be vulnerable to ReDoS (severity: %s).',
+                            strtoupper($redos->severity->value),
+                        ),
+                        'hint' => $this->getReDoSHint($redos, $occurrence->pattern),
+                        'source' => $source,
+                        'analysis' => $redos,
+                    ];
+                }
             }
 
             if ($progress) {
@@ -425,11 +425,13 @@ final readonly class RegexAnalysisService
         // Check if delimiter appears in content
         if (str_contains($content, $delimiter)) {
             $escaped = preg_quote($delimiter, '/');
+
             return "Your pattern contains the delimiter '$delimiter' inside. Either escape it as \\$delimiter or use a different delimiter like #pattern#.";
         }
 
         // Missing closing delimiter
-        $suggested = $pattern . $delimiter;
+        $suggested = $pattern.$delimiter;
+
         return "Add the missing closing delimiter: $suggested";
     }
 
@@ -439,8 +441,9 @@ final readonly class RegexAnalysisService
         if (str_contains($pattern, '[') && !str_contains($pattern, ']')) {
             // Find the last delimiter
             $lastDelimiterPos = strrpos($pattern, '/');
-            if ($lastDelimiterPos !== false) {
+            if (false !== $lastDelimiterPos) {
                 $suggested = substr_replace($pattern, ']', $lastDelimiterPos, 0);
+
                 return "Add missing closing bracket: $suggested";
             }
         }
@@ -451,14 +454,15 @@ final readonly class RegexAnalysisService
     private function suggestQuantifierRangeFix(string $pattern, \RegexParser\ValidationResult $validation): ?string
     {
         // Look for quantifier ranges in the pattern
-        if (preg_match('/\{(\d+),(\d+)\}/', $pattern, $matches, PREG_OFFSET_CAPTURE)) {
+        if (preg_match('/\{(\d+),(\d+)\}/', $pattern, $matches, \PREG_OFFSET_CAPTURE)) {
             $min = (int) $matches[1][0];
             $max = (int) $matches[2][0];
             $offset = $matches[0][1];
 
             if ($min > $max) {
-                $fixed = '{' . $max . ',' . $min . '}';
+                $fixed = '{'.$max.','.$min.'}';
                 $suggested = str_replace($matches[0][0], $fixed, $pattern);
+
                 return "Swap min and max values: $suggested";
             }
         }
@@ -469,7 +473,7 @@ final readonly class RegexAnalysisService
     private function suggestBackreferenceFix(string $pattern, \RegexParser\ValidationResult $validation): ?string
     {
         // Find all backreferences in the pattern
-        if (preg_match_all('/\\\\(\d+)/', $pattern, $matches, PREG_OFFSET_CAPTURE)) {
+        if (preg_match_all('/\\\\(\d+)/', $pattern, $matches, \PREG_OFFSET_CAPTURE)) {
             // Count opening parentheses (capturing groups)
             $openCount = substr_count($pattern, '(');
 
