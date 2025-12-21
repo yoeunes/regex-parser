@@ -277,7 +277,7 @@ final class RegexLintCommand extends Command
     private function showBanner(SymfonyStyle $io): void
     {
         $io->newLine();
-        $io->writeln('  <fg=white;options=bold>Regex Parser</> <fg=gray>linting...</>');
+        $io->writeln('  <fg=white;options=bold>🔍 Regex Parser</> <fg=gray>linting...</>');
         $io->newLine();
     }
 
@@ -732,7 +732,7 @@ final class RegexLintCommand extends Command
     private function renderFileHeader(SymfonyStyle $io, string $file): void
     {
         $relPath = $this->linkFormatter->getRelativePath($file);
-        $io->writeln(\sprintf('  <fg=white;bg=gray;options=bold> %s </>', $relPath));
+        $io->writeln(\sprintf('  <fg=white;bg=gray;options=bold> 📁 %s </>', $relPath));
     }
 
     /**
@@ -822,9 +822,9 @@ final class RegexLintCommand extends Command
     private function getIssueBadge(string $type): string
     {
         return match ($type) {
-            'error' => '<bg=red;fg=white;options=bold> FAIL </>',
-            'warning' => '<bg=yellow;fg=black;options=bold> WARN </>',
-            default => '<bg=gray;fg=white;options=bold> INFO </>',
+            'error' => '<bg=red;fg=white;options=bold> ❌ FAIL </>',
+            'warning' => '<bg=yellow;fg=black;options=bold> ⚠️  WARN </>',
+            default => '<bg=gray;fg=white;options=bold> ℹ️  INFO </>',
         };
     }
 
@@ -834,30 +834,45 @@ final class RegexLintCommand extends Command
     private function displayOptimizations(SymfonyStyle $io, array $optimizations): void
     {
         foreach ($optimizations as $opt) {
-            $io->writeln('    <bg=cyan;fg=white;options=bold> TIP </> <fg=cyan;options=bold>Optimization available</>');
+            $io->writeln('    <bg=cyan;fg=white;options=bold> 🚀 TIP </> <fg=cyan;options=bold>Optimization available</>');
 
             $original = $this->safelyHighlightPattern($opt['optimization']->original);
             $optimized = $this->safelyHighlightPattern($opt['optimization']->optimized);
 
-            $io->writeln(\sprintf('         <fg=red>- %s</>', $original));
-            $io->writeln(\sprintf('         <fg=green>+ %s</>', $optimized));
+            $io->writeln(\sprintf('         <fg=red>➖ %s</>', $original));
+            $io->writeln(\sprintf('         <fg=green>➕ %s</>', $optimized));
         }
     }
 
     private function displaySingleIssue(SymfonyStyle $io, string $badge, string $message): void
     {
-        // Split message by newline to handle carets/pointers correctly
-        $lines = explode("\n", $message);
+        // Check if message contains a tip
+        $tipPos = strpos($message, 'Tip:');
+        if (false !== $tipPos) {
+            $mainMessage = substr($message, 0, $tipPos);
+            $tipMessage = substr($message, $tipPos + 5); // Skip "Tip:"
+        } else {
+            $mainMessage = $message;
+            $tipMessage = null;
+        }
+
+        // Split main message by newline to handle carets/pointers correctly
+        $lines = explode("\n", $mainMessage);
         $firstLine = array_shift($lines);
 
         // Print the primary error message on the same line as the badge
-        $io->writeln(\sprintf('    %s <fg=white>%s</>', $badge, $firstLine));
+        $io->writeln(\sprintf('    %s <fg=white>%s</>', $badge, trim($firstLine)));
 
         // Print subsequent lines (like regex pointers ^) with indentation preserved
         if (!empty($lines)) {
             foreach ($lines as $index => $line) {
                 $io->writeln(\sprintf('         <fg=gray>%s %s</>', 0 === $index ? '↳' : ' ', $this->stripMessageLine($line)));
             }
+        }
+
+        // Print the tip in a styled box if present
+        if (null !== $tipMessage) {
+            $io->writeln('         <bg=blue;fg=white;options=bold> 💡 Tip </> <fg=blue>'.trim($tipMessage).'</>');
         }
     }
 
@@ -869,7 +884,7 @@ final class RegexLintCommand extends Command
         $io->newLine();
 
         if ($isEmpty) {
-            $io->writeln('  <bg=green;fg=white;options=bold> PASS </> <fg=gray>No regex patterns found.</>');
+            $io->writeln('  <bg=green;fg=white;options=bold> ✅ PASS </> <fg=gray>No regex patterns found.</>');
             $this->showFooter($io);
 
             return;
@@ -890,15 +905,15 @@ final class RegexLintCommand extends Command
 
         $message = match (true) {
             $errors > 0 => \sprintf(
-                '  <bg=red;fg=white;options=bold> FAIL </> <fg=red;options=bold>%d invalid patterns</><fg=gray>, %d warnings, %d optimizations.</>',
+                '  <bg=red;fg=white;options=bold> ❌ FAIL </> <fg=red;options=bold>%d invalid patterns</><fg=gray>, %d warnings, %d optimizations.</>',
                 $errors, $warnings, $optimizations,
             ),
             $warnings > 0 => \sprintf(
-                '  <bg=yellow;fg=black;options=bold> PASS </> <fg=yellow;options=bold>%d warnings found</><fg=gray>, %d optimizations available.</>',
+                '  <bg=yellow;fg=black;options=bold> ⚠️  PASS </> <fg=yellow;options=bold>%d warnings found</><fg=gray>, %d optimizations available.</>',
                 $warnings, $optimizations,
             ),
             default => \sprintf(
-                '  <bg=green;fg=white;options=bold> PASS </> <fg=green;options=bold>No issues found</><fg=gray>, %d optimizations available.</>',
+                '  <bg=green;fg=white;options=bold> ✅ PASS </> <fg=green;options=bold>No issues found</><fg=gray>, %d optimizations available.</>',
                 $optimizations,
             ),
         };
