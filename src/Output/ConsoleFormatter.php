@@ -21,7 +21,7 @@ use RegexParser\Lint\RegexAnalysisService;
  */
 final class ConsoleFormatter extends AbstractOutputFormatter
 {
-// ANSI color codes
+    // ANSI color codes
     private const RESET = "\033[0m";
     private const RED = "\033[31m";
     private const GREEN = "\033[32m";
@@ -96,6 +96,11 @@ final class ConsoleFormatter extends AbstractOutputFormatter
             $report->stats['optimizations']);
     }
 
+    /**
+     * Format file header.
+     *
+     * @param string $file
+     */
     private function formatFileHeader(string $file): string
     {
         return sprintf('  %s%s%s' . PHP_EOL,
@@ -105,11 +110,16 @@ final class ConsoleFormatter extends AbstractOutputFormatter
         );
     }
 
+    /**
+     * Format pattern context information.
+     *
+     * @param array<string, mixed> $result
+     */
     private function formatPatternContext(array $result): string
     {
-        $line = $result['line'] ?? 0;
-        $pattern = $result['pattern'] ?? '';
-        $location = $result['location'] ?? '';
+        $line = (int) ($result['line'] ?? 0);
+        $pattern = (string) ($result['pattern'] ?? '');
+        $location = (string) ($result['location'] ?? '');
 
         $output = sprintf('%3d: %s%s' . PHP_EOL,
             $line,
@@ -124,15 +134,21 @@ final class ConsoleFormatter extends AbstractOutputFormatter
         return $output;
     }
 
+    /**
+     * Format issues for a result.
+     *
+     * @param array<array<string, mixed>> $issues
+     */
     private function formatIssues(array $issues): string
     {
         $output = '';
 
         foreach ($issues as $issue) {
-            $badge = $this->issueBadge($issue['type']);
+            $badge = $this->issueBadge((string) $issue['type']);
+            $cleanMessage = $this->cleanErrorMessage((string) $issue['message']);
             $output .= sprintf('     %s %s' . PHP_EOL,
                 $badge,
-                $this->color($issue['message'], $this->getSeverityColor($issue['type']) . self::BOLD)
+                $this->color($cleanMessage, $this->getSeverityColor((string) $issue['type']) . self::BOLD)
             );
 
             $hint = $this->formatIssueHint($issue);
@@ -147,21 +163,11 @@ final class ConsoleFormatter extends AbstractOutputFormatter
         return $output;
     }
 
-    private function formatIssueHint(array $issue): string
-    {
-        $hint = $issue['hint'] ?? null;
-        if (!is_string($hint) || '' === $hint) {
-            return '';
-        }
-
-        // Special handling for ReDoS hints
-        if (($issue['issueId'] ?? '') === 'regex.lint.redos') {
-            return $this->formatReDoSHint($hint);
-        }
-
-        return $this->formatHint($hint);
-    }
-
+    /**
+     * Format optimizations for a result.
+     *
+     * @param array<array<string, mixed>> $optimizations
+     */
     private function formatOptimizations(array $optimizations): string
     {
         if (!$this->config->shouldShowOptimizations() || empty($optimizations)) {
@@ -177,8 +183,8 @@ final class ConsoleFormatter extends AbstractOutputFormatter
             );
 
             if ($this->analysisService) {
-                $original = $this->safelyHighlightPattern($opt['optimization']->original);
-                $optimized = $this->safelyHighlightPattern($opt['optimization']->optimized);
+                $original = $this->safelyHighlightPattern((string) $opt['optimization']->original);
+                $optimized = $this->safelyHighlightPattern((string) $opt['optimization']->optimized);
 
                 $output .= sprintf('         %s%s' . PHP_EOL,
                     $this->color('- ', self::RED),
@@ -194,6 +200,11 @@ final class ConsoleFormatter extends AbstractOutputFormatter
         return $output;
     }
 
+    /**
+     * Format summary statistics.
+     *
+     * @param array<string, int> $stats
+     */
     private function formatSummary(array $stats): string
     {
         $output = PHP_EOL;
@@ -225,12 +236,15 @@ final class ConsoleFormatter extends AbstractOutputFormatter
         return $output;
     }
 
+    /**
+     * Format footer.
+     */
     private function formatFooter(): string
     {
         $output = PHP_EOL;
 
         if ($this->config->ansi) {
-            $output .= $this->dim('  Star the repo: https://github.com/yoeunes/regex-parser') . PHP_EOL;
+            $output .= $this->dim('  Star this repo: https://github.com/yoeunes/regex-parser') . PHP_EOL;
         }
 
         $output .= PHP_EOL;
@@ -238,15 +252,29 @@ final class ConsoleFormatter extends AbstractOutputFormatter
         return $output;
     }
 
+    /**
+     * Highlight a regex pattern.
+     *
+     * @param string $pattern
+     */
     private function highlightPattern(string $pattern): string
     {
         if (!$this->analysisService || !$this->config->ansi) {
             return $pattern;
         }
 
-        return $this->safelyHighlightPattern($pattern);
+        try {
+            return $this->analysisService->highlight($pattern);
+        } catch (\Throwable) {
+            return $pattern;
+        }
     }
 
+    /**
+     * Safely highlight a regex pattern.
+     *
+     * @param string $pattern
+     */
     private function safelyHighlightPattern(string $pattern): string
     {
         if (!$this->analysisService) {
@@ -260,6 +288,83 @@ final class ConsoleFormatter extends AbstractOutputFormatter
         }
     }
 
+    /**
+     * Get badge for issue type.
+     *
+     * @param string $type
+     */
+    private function issueBadge(string $type): string
+    {
+        return match ($type) {
+            'error' => $this->badge('FAIL', self::WHITE, self::BG_RED),
+            'warning' => $this->badge('WARN', self::BLACK, self::BG_YELLOW),
+            'info' => $this->badge('INFO', self::WHITE, self::BG_BLUE),
+            default => $this->badge('NOTE', self::BLACK, self::BG_GRAY),
+        };
+    }
+
+    /**
+     * Clean up validation error messages for normal mode.
+     *
+     * @param string $message
+     */
+    private function cleanErrorMessage(string $message): string
+    {
+        // For normal mode, extract just the core error without tips
+        if ($this->config->verbosity === OutputConfiguration::VERBOSITY_NORMAL) {
+            // Extract the main error before the period
+            $parts = explode('.', $message, 2);
+            $mainError = $parts[0] . '.';
+            
+            // Clean up common patterns
+            $cleanups = [
+                'No closing delimiter "/" found. You opened with "/"' => 'No closing delimiter "/" found.',
+                'No closing delimiter "/" found' => 'No closing delimiter "/" found.',
+                'Unclosed character class "]"' => 'Unclosed character class.',
+                'Invalid quantifier range' => 'Invalid quantifier range.',
+                'Backreference to non-existent group' => 'Backreference to non-existent group.',
+                'Lookbehind is unbounded' => 'Unbounded lookbehind.',
+                'Unknown regex flag' => 'Unknown regex flag(s) found.',
+                'Invalid conditional construct' => 'Invalid conditional construct.',
+            ];
+
+            foreach ($cleanups as $verbose => $clean) {
+                $mainError = str_replace($verbose, $clean, $mainError);
+            }
+
+            return $mainError;
+        }
+
+        return $message;
+    }
+
+    /**
+     * Format issue hint.
+     *
+     * @param array<string, mixed> $issue
+     */
+    private function formatIssueHint(array $issue): string
+    {
+        $hint = $issue['hint'] ?? null;
+        if (!is_string($hint) || '' === $hint) {
+            return '';
+        }
+
+        // Special handling for ReDoS hints
+        if (($issue['issueId'] ?? '') === 'regex.lint.redos') {
+            return $this->formatReDoSHint($hint);
+        }
+
+        return $this->formatHint($hint);
+    }
+
+    /**
+     * Create a badge with colors.
+     *
+     * @param string $text
+     * @param string $fg
+     * @param string $bg
+     */
     private function badge(string $text, string $fg, string $bg): string
     {
         if (!$this->config->ansi) {
@@ -269,6 +374,12 @@ final class ConsoleFormatter extends AbstractOutputFormatter
         return $this->color(' '.$text.' ', $bg . $fg . self::BOLD);
     }
 
+    /**
+     * Apply color to text.
+     *
+     * @param string $text
+     * @param string $color
+     */
     private function color(string $text, string $color): string
     {
         if (!$this->config->ansi) {
@@ -278,18 +389,13 @@ final class ConsoleFormatter extends AbstractOutputFormatter
         return $color . $text . self::RESET;
     }
 
+    /**
+     * Apply dim color to text.
+     *
+     * @param string $text
+     */
     private function dim(string $text): string
     {
         return $this->color($text, self::GRAY);
-    }
-
-    private function issueBadge(string $type): string
-    {
-        return match ($type) {
-            'error' => $this->badge('FAIL', self::WHITE, self::BG_RED),
-            'warning' => $this->badge('WARN', self::BLACK, self::BG_YELLOW),
-            'info' => $this->badge('INFO', self::WHITE, self::BG_BLUE),
-            default => $this->badge('NOTE', self::BLACK, self::BG_GRAY),
-        };
     }
 }

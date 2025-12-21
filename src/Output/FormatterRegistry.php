@@ -42,7 +42,7 @@ final class FormatterRegistry
     public function get(string $name): OutputFormatterInterface
     {
         if (!isset($this->formatters[$name])) {
-            throw new \InvalidArgumentException(sprintf('Formatter "%s" not found. Available formatters: %s', 
+            throw new \InvalidArgumentException(\sprintf('Formatter "%s" not found. Available formatters: %s',
                 $name, implode(', ', array_keys($this->formatters))));
         }
 
@@ -60,7 +60,7 @@ final class FormatterRegistry
     /**
      * Get all registered formatter names.
      *
-     * @return string[]
+     * @return array<string>
      */
     public function getNames(): array
     {
@@ -72,6 +72,8 @@ final class FormatterRegistry
      */
     private function registerDefaultFormatters(): void
     {
+        // Console formatter will be created with analysis service for highlighting
+        // Json formatter uses the default config
         $this->register(new ConsoleFormatter());
         $this->register(new JsonFormatter());
     }

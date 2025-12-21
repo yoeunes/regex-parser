@@ -79,7 +79,7 @@ final class OutputConfiguration
      */
     public function shouldShowHints(): bool
     {
-        return $this->showHints && in_array($this->verbosity, [
+        return $this->showHints && \in_array($this->verbosity, [
             self::VERBOSITY_NORMAL,
             self::VERBOSITY_VERBOSE,
             self::VERBOSITY_DEBUG,
@@ -91,7 +91,7 @@ final class OutputConfiguration
      */
     public function shouldShowDetailedReDoS(): bool
     {
-        return in_array($this->verbosity, [
+        return \in_array($this->verbosity, [
             self::VERBOSITY_VERBOSE,
             self::VERBOSITY_DEBUG,
         ], true);
@@ -102,7 +102,7 @@ final class OutputConfiguration
      */
     public function shouldShowOptimizations(): bool
     {
-        return $this->showOptimizations && in_array($this->verbosity, [
+        return $this->showOptimizations && \in_array($this->verbosity, [
             self::VERBOSITY_NORMAL,
             self::VERBOSITY_VERBOSE,
             self::VERBOSITY_DEBUG,
@@ -114,6 +114,6 @@ final class OutputConfiguration
      */
     public function shouldShowProgress(): bool
     {
-        return $this->showProgress && $this->verbosity !== self::VERBOSITY_QUIET;
+        return $this->showProgress && self::VERBOSITY_QUIET !== $this->verbosity;
     }
 }

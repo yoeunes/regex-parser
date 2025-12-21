@@ -13,21 +13,37 @@ declare(strict_types=1);
 
 namespace RegexParser\Output;
 
-
+use RegexParser\Lint\RegexLintReport;
 
 /**
  * Base class for output formatters.
  */
-abstract class AbstractOutputFormatter implements OutputFormatterInterface
+abstract class AbstractOutputFormatter
 {
-    public function __construct(
-        protected OutputConfiguration $config = new OutputConfiguration(),
-    ) {}
+    /**
+     * @var OutputConfiguration
+     */
+    protected OutputConfiguration $config;
+
+    public function __construct(OutputConfiguration $config = new OutputConfiguration())
+    {
+        $this->config = $config;
+    }
 
     public function supports(string $format): bool
     {
         return $format === $this->getName();
     }
+
+    /**
+     * Get the name of this formatter.
+     */
+    abstract public function getName(): string;
+
+    /**
+     * Format and output the lint report.
+     */
+    abstract public function format(RegexLintReport $report): string;
 
     /**
      * Get the severity badge for an issue.

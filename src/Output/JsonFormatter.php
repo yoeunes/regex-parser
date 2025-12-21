@@ -20,6 +20,11 @@ use RegexParser\Lint\RegexLintReport;
  */
 final class JsonFormatter extends AbstractOutputFormatter
 {
+    /**
+     * @var array<string, mixed>
+     */
+    private array $results = [];
+
     public function getName(): string
     {
         return 'json';
@@ -27,13 +32,9 @@ final class JsonFormatter extends AbstractOutputFormatter
 
     public function format(RegexLintReport $report): string
     {
+        $this->results = $report->results;
         $data = [
-            'summary' => [
-                'errors' => $report->stats['errors'],
-                'warnings' => $report->stats['warnings'],
-                'optimizations' => $report->stats['optimizations'],
-                'total_patterns' => count($report->results),
-            ],
+            'summary' => $this->formatSummary($report->stats),
             'results' => [],
         ];
 
@@ -47,8 +48,8 @@ final class JsonFormatter extends AbstractOutputFormatter
 
             foreach ($results as $result) {
                 $patternData = [
-                    'line' => $result['line'] ?? 0,
-                    'pattern' => $result['pattern'] ?? '',
+                    'line' => (int) ($result['line'] ?? 0),
+                    'pattern' => (string) ($result['pattern'] ?? ''),
                     'location' => $result['location'] ?? null,
                 ];
 
@@ -73,23 +74,45 @@ final class JsonFormatter extends AbstractOutputFormatter
         return json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
     }
 
+    /**
+     * Format the main JSON structure.
+     *
+     * @param array<string, int> $stats
+     */
+    private function formatSummary(array $stats): array
+    {
+        return [
+            'summary' => [
+                'errors' => $stats['errors'],
+                'warnings' => $stats['warnings'],
+                'optimizations' => $stats['optimizations'],
+                'total_patterns' => count($this->results),
+            ],
+        ];
+    }
+
+    /**
+     * Format issues for JSON output.
+     *
+     * @param array<string, mixed> $issue
+     */
     private function formatIssue(array $issue): array
     {
         $formatted = [
-            'type' => $issue['type'],
-            'message' => $issue['message'],
-            'line' => $issue['line'] ?? 0,
+            'type' => (string) $issue['type'],
+            'message' => (string) $issue['message'],
+            'line' => (int) ($issue['line'] ?? 0),
             'column' => $issue['column'] ?? null,
             'position' => $issue['position'] ?? null,
         ];
 
         if (isset($issue['issueId'])) {
-            $formatted['issue_id'] = $issue['issueId'];
+            $formatted['issue_id'] = (string) $issue['issueId'];
         }
 
         // Include hints based on verbosity level
         $hint = $issue['hint'] ?? null;
-        if (is_string($hint) && $hint !== '') {
+        if (\is_string($hint) && '' !== $hint) {
             if (($issue['issueId'] ?? '') === 'regex.lint.redos') {
                 $formatted['hint'] = $this->formatReDoSHint($hint);
             } else {
@@ -97,38 +120,26 @@ final class JsonFormatter extends AbstractOutputFormatter
             }
         }
 
-        // Include analysis data for ReDoS issues in verbose mode
-        if ($this->config->shouldShowDetailedReDoS() && isset($issue['analysis'])) {
-            $formatted['redos_analysis'] = [
-                'severity' => $issue['analysis']->severity->value,
-                'vulnerable_subpattern' => $issue['analysis']->vulnerableSubpattern,
-                'recommendations' => $issue['analysis']->recommendations,
-            ];
-        }
-
-        // Include validation data for parsing errors in verbose mode
-        if ($this->config->shouldShowDetailedReDoS() && isset($issue['validation'])) {
-            $formatted['validation'] = [
-                'error' => $issue['validation']->error,
-                'offset' => $issue['validation']->offset,
-            ];
-        }
-
         return $formatted;
     }
 
+    /**
+     * Format optimization for JSON output.
+     *
+     * @param array<string, mixed> $optimization
+     */
     private function formatOptimization(array $optimization): array
     {
         $opt = $optimization['optimization'];
 
         $formatted = [
-            'original' => $opt->original,
-            'optimized' => $opt->optimized,
-            'savings' => $optimization['savings'] ?? 0,
+            'original' => (string) $opt->original,
+            'optimized' => (string) $opt->optimized,
+            'savings' => (int) ($optimization['savings'] ?? 0),
         ];
 
         if (isset($opt->description)) {
-            $formatted['description'] = $opt->description;
+            $formatted['description'] = (string) $opt->description;
         }
 
         return $formatted;

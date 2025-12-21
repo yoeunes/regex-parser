@@ -699,19 +699,20 @@ switch ($command) {
             default => new OutputConfiguration(ansi: $ansi),
         };
 
-        // Get formatter
+// Get formatter
         $formatterRegistry = new FormatterRegistry();
         if (!$formatterRegistry->has($format)) {
             output(error(sprintf('Unknown format: %s. Available formats: %s', $format, implode(', ', $formatterRegistry->getNames())) . "\n"));
             exit(1);
         }
         $formatter = $formatterRegistry->get($format);
+        $formatter = $formatterRegistry->get($format);
 
-        // Update console formatter with analysis service for highlighting
-        if ($formatter instanceof ConsoleFormatter) {
+// Update console formatter with analysis service for highlighting
+// Update console formatter with analysis service for highlighting
+        if ($format === 'console') {
             $analysis = new RegexAnalysisService(Regex::create());
             $formatter = new ConsoleFormatter($analysis, $config);
-            $formatterRegistry->register($formatter);
         }
 
         $analysis = new RegexAnalysisService(Regex::create());
