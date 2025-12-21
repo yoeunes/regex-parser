@@ -20,6 +20,7 @@ if (version_compare('8.2.0', \PHP_VERSION, '>')) {
 
 $autoloadPath = null;
 $autoloadPaths = [
+    __DIR__.'/../../../../vendor/autoload.php',
     __DIR__.'/../../autoload.php',
     __DIR__.'/../vendor/autoload.php',
     __DIR__.'/vendor/autoload.php',
