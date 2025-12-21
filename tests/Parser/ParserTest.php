@@ -36,6 +36,7 @@ use RegexParser\Node\RegexNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\Node\SubroutineNode;
 use RegexParser\Node\UnicodePropNode;
+use RegexParser\OptimizationResult;
 use RegexParser\Regex;
 
 final class ParserTest extends TestCase
@@ -637,6 +638,15 @@ final class ParserTest extends TestCase
         // Case 3: Null byte followed by non-digit
         $result3 = $this->regex->validate('/\0a/');
         $this->assertTrue($result3->isValid());
+    }
+
+    public function test_optimize_with_mode(): void
+    {
+        $result = $this->regex->optimize('/a+/', ['mode' => 'safe']);
+        $this->assertInstanceOf(OptimizationResult::class, $result);
+
+        $result2 = $this->regex->optimize('/a+/', ['mode' => 'aggressive']);
+        $this->assertInstanceOf(OptimizationResult::class, $result2);
     }
 
     /**
