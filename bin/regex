@@ -813,7 +813,7 @@ switch ($command) {
         $quiet = $parsed['quiet'] ?? false;
 
         if ([] === $paths) {
-            $paths = ['src'];
+            $paths = ['.'];
         }
         if ([] === $exclude) {
             $exclude = ['vendor'];

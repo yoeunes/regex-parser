@@ -63,7 +63,7 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
             return [];
         }
 
-        $tokens = token_get_all($content, \TOKEN_PARSE);
+        $tokens = token_get_all($content);
         $occurrences = [];
         $totalTokens = \count($tokens);
 
