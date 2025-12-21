@@ -115,7 +115,7 @@ final readonly class RegexAnalysisService
                     'message' => $message,
                     'source' => $source,
                     'validation' => $validation,
-                    'tip' => $this->getTipForValidationError($message),
+                     'tip' => $this->getTipForValidationError($message, $occurrence->pattern, $validation),
                 ];
 
                 if ($progress) {
@@ -173,7 +173,7 @@ final readonly class RegexAnalysisService
                              'Pattern may be vulnerable to ReDoS (severity: %s).',
                              strtoupper($redos->severity->value),
                          ),
-                         'hint' => $this->getReDoSHint($redos),
+                         'hint' => $this->getReDoSHint($redos, $occurrence->pattern),
                          'source' => $source,
                          'analysis' => $redos,
                      ];
@@ -375,7 +375,142 @@ final readonly class RegexAnalysisService
         return array_values(array_unique([...$redosIgnored, ...$userIgnored]));
     }
 
-    private function getTipForValidationError(string $message): ?string
+    private function getTipForValidationError(string $message, string $pattern, \RegexParser\ValidationResult $validation): ?string
+    {
+        // Try to provide intelligent, pattern-specific tips
+        $intelligentTip = $this->generateIntelligentTip($message, $pattern, $validation);
+        if (null !== $intelligentTip) {
+            return $intelligentTip;
+        }
+
+        // Fallback to generic tips
+        return $this->getGenericTipForValidationError($message);
+    }
+
+    private function generateIntelligentTip(string $message, string $pattern, \RegexParser\ValidationResult $validation): ?string
+    {
+        if (str_contains($message, 'No closing delimiter')) {
+            return $this->suggestDelimiterFix($pattern);
+        }
+
+        if (str_contains($message, 'Unclosed character class')) {
+            return $this->suggestCharacterClassFix($pattern, $validation);
+        }
+
+        if (str_contains($message, 'Invalid quantifier range')) {
+            return $this->suggestQuantifierRangeFix($pattern, $validation);
+        }
+
+        if (str_contains($message, 'Backreference to non-existent group')) {
+            return $this->suggestBackreferenceFix($pattern, $validation);
+        }
+
+        if (str_contains($message, 'Lookbehind is unbounded')) {
+            return $this->suggestLookbehindFix($pattern, $validation);
+        }
+
+        return null;
+    }
+
+    private function suggestDelimiterFix(string $pattern): string
+    {
+        // Find the delimiter used
+        if (!preg_match('/^([#~\-%@!])(.*)$/', $pattern, $matches)) {
+            $matches = ['', '/', $pattern];
+        }
+
+        $delimiter = $matches[1];
+        $content = $matches[2];
+
+        // Check if delimiter appears in content
+        if (str_contains($content, $delimiter)) {
+            $escaped = preg_quote($delimiter, '/');
+            return "Your pattern contains the delimiter '$delimiter' inside. Either escape it as \\$delimiter or use a different delimiter like #pattern#.";
+        }
+
+        // Missing closing delimiter
+        $suggested = $pattern . $delimiter;
+        return "Add the missing closing delimiter: $suggested";
+    }
+
+    private function suggestCharacterClassFix(string $pattern, \RegexParser\ValidationResult $validation): ?string
+    {
+        // For patterns like /[a-z/ we need to add ] before the final delimiter
+        if (str_contains($pattern, '[') && !str_contains($pattern, ']')) {
+            // Find the last delimiter
+            $lastDelimiterPos = strrpos($pattern, '/');
+            if ($lastDelimiterPos !== false) {
+                $suggested = substr_replace($pattern, ']', $lastDelimiterPos, 0);
+                return "Add missing closing bracket: $suggested";
+            }
+        }
+
+        return null;
+    }
+
+    private function suggestQuantifierRangeFix(string $pattern, \RegexParser\ValidationResult $validation): ?string
+    {
+        // Look for quantifier ranges in the pattern
+        if (preg_match('/\{(\d+),(\d+)\}/', $pattern, $matches, PREG_OFFSET_CAPTURE)) {
+            $min = (int) $matches[1][0];
+            $max = (int) $matches[2][0];
+            $offset = $matches[0][1];
+
+            if ($min > $max) {
+                $fixed = '{' . $max . ',' . $min . '}';
+                $suggested = str_replace($matches[0][0], $fixed, $pattern);
+                return "Swap min and max values: $suggested";
+            }
+        }
+
+        return null;
+    }
+
+    private function suggestBackreferenceFix(string $pattern, \RegexParser\ValidationResult $validation): ?string
+    {
+        // Find all backreferences in the pattern
+        if (preg_match_all('/\\\\(\d+)/', $pattern, $matches, PREG_OFFSET_CAPTURE)) {
+            // Count opening parentheses (capturing groups)
+            $openCount = substr_count($pattern, '(');
+
+            foreach ($matches[1] as $match) {
+                $refNum = (int) $match[0];
+                if ($refNum > $openCount) {
+                    return "Backreference \\$refNum refers to group $refNum, but only $openCount capturing groups exist in the pattern. Valid backreferences are \\1 through \\$openCount.";
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private function suggestLookbehindFix(string $pattern, \RegexParser\ValidationResult $validation): ?string
+    {
+        $offset = $validation->offset ?? 0;
+
+        // Find the lookbehind content
+        $before = substr($pattern, 0, $offset);
+        $lookbehindStart = strrpos($before, '(?<=');
+
+        if (false === $lookbehindStart) {
+            $lookbehindStart = strrpos($before, '(?<!');
+        }
+
+        if (false === $lookbehindStart) {
+            return null;
+        }
+
+        $lookbehindContent = substr($pattern, $lookbehindStart, $offset - $lookbehindStart);
+
+        // Check for unbounded quantifiers in lookbehind
+        if (preg_match('/[+*][?]?/', $lookbehindContent)) {
+            return "Replace unbounded quantifiers in lookbehind with fixed-length alternatives. For example, change (?<=\w*) to (?<=\w{0,10}) with an appropriate maximum length.";
+        }
+
+        return null;
+    }
+
+    private function getGenericTipForValidationError(string $message): ?string
     {
         if (str_contains($message, 'No closing delimiter')) {
             return 'Escape "/" inside the pattern (\/) or use a different delimiter, e.g. #pattern#.';
@@ -408,7 +543,7 @@ final readonly class RegexAnalysisService
         return null;
     }
 
-    private function getReDoSHint(\RegexParser\ReDoS\ReDoSAnalysis $analysis): string
+    private function getReDoSHint(\RegexParser\ReDoS\ReDoSAnalysis $analysis, string $pattern): string
     {
         $hints = [];
 
@@ -420,6 +555,12 @@ final readonly class RegexAnalysisService
             $hints[] = \sprintf('The vulnerable part is: %s', $analysis->vulnerableSubpattern);
         }
 
+        // Try to suggest specific fixes based on the pattern
+        $patternHints = $this->suggestReDoSFixes($pattern, $analysis);
+        if (!empty($patternHints)) {
+            $hints = array_merge($hints, $patternHints);
+        }
+
         if (empty($hints)) {
             $hints[] = 'ReDoS occurs when regex engines spend excessive time backtracking. Use possessive quantifiers (+ instead of *) or atomic groups (?>...) to prevent it.';
         }
@@ -427,6 +568,35 @@ final readonly class RegexAnalysisService
         $hints[] = 'Test with malicious inputs like repeated strings followed by a non-matching character.';
 
         return implode(' ', $hints);
+    }
+
+    private function suggestReDoSFixes(string $pattern, \RegexParser\ReDoS\ReDoSAnalysis $analysis): array
+    {
+        $hints = [];
+
+        // Look for common vulnerable patterns and suggest fixes
+        if (preg_match('/(\([^)]*\)\+)|\(\([^)]*\+\)\)/', $pattern)) {
+            $hints[] = 'Replace nested quantifiers like (a+)+ with atomic groups: (?>a+) or possessive quantifiers: a++';
+        }
+
+        if (str_contains($pattern, '.*') && str_contains($pattern, '+')) {
+            $hints[] = 'Consider using possessive quantifiers .*+ instead of .* to prevent backtracking.';
+        }
+
+        if (preg_match('/\([^)]*\*\)/', $pattern)) {
+            $hints[] = 'Replace * with *+ (possessive) in groups to prevent backtracking: (?>...)';
+        }
+
+        // If we have a vulnerable subpattern, try to suggest a specific fix
+        if (null !== $analysis->vulnerableSubpattern) {
+            $vulnerable = $analysis->vulnerableSubpattern;
+            if (preg_match('/(\w+)\+(\)\+)/', $vulnerable, $matches)) {
+                $char = $matches[1];
+                $hints[] = "Replace ($char+)+ with atomic group: (?>$char+) or possessive: $char++";
+            }
+        }
+
+        return $hints;
     }
 
     private function isLikelyPartialRegexError(string $errorMessage): bool
