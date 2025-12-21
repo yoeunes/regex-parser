@@ -76,6 +76,9 @@ const BG_YELLOW = "\033[43m";
 const BG_BLUE = "\033[44m";
 const BG_CYAN = "\033[46m";
 const BG_GRAY = "\033[100m";
+const PROGRESS_BAR_WIDTH = 28;
+const PROGRESS_BAR_FULL = "▓";
+const PROGRESS_BAR_EMPTY = "░";
 
 function color(string $text, string $color): string
 {
@@ -131,6 +134,76 @@ function output(string $text): void
 
     if (!$quiet) {
         echo $text;
+    }
+}
+
+function progressStart(int $total): void
+{
+    global $progressTotal, $progressCurrent, $progressActive, $ansi, $quiet;
+
+    if ($total <= 0 || $quiet) {
+        $progressActive = false;
+
+        return;
+    }
+
+    $progressTotal = $total;
+    $progressCurrent = 0;
+    $progressActive = $ansi;
+
+    if (!$progressActive) {
+        return;
+    }
+
+    renderProgress();
+}
+
+function progressAdvance(int $step = 1): void
+{
+    global $progressTotal, $progressCurrent, $progressActive;
+
+    if (!$progressActive) {
+        return;
+    }
+
+    $progressCurrent = min($progressTotal, $progressCurrent + $step);
+    renderProgress();
+}
+
+function progressFinish(): void
+{
+    global $progressTotal, $progressCurrent, $progressActive;
+
+    if (!$progressActive) {
+        return;
+    }
+
+    $progressCurrent = $progressTotal;
+    renderProgress(true);
+    $progressActive = false;
+}
+
+function renderProgress(bool $finish = false): void
+{
+    global $progressTotal, $progressCurrent;
+
+    $total = max(1, (int) $progressTotal);
+    $current = min((int) $progressCurrent, $total);
+    $ratio = $current / $total;
+    $filled = (int) floor($ratio * PROGRESS_BAR_WIDTH);
+
+    $bar = str_repeat(PROGRESS_BAR_FULL, $filled).str_repeat(PROGRESS_BAR_EMPTY, PROGRESS_BAR_WIDTH - $filled);
+    $percent = (int) round($ratio * 100);
+    $line = \sprintf(' %d/%d [%s] %3d%%', $current, $total, $bar, $percent);
+
+    output("\r".$line);
+
+    if ($finish) {
+        output("\n\n");
+    }
+
+    if (\function_exists('fflush')) {
+        fflush(\STDOUT);
     }
 }
 
@@ -745,9 +818,7 @@ switch ($command) {
             exit(1);
         }
         $formatter = $formatterRegistry->get($format);
-        $formatter = $formatterRegistry->get($format);
 
-        // Update console formatter with analysis service for highlighting
         // Update console formatter with analysis service for highlighting
         if ('console' === $format) {
             $analysis = new RegexAnalysisService(Regex::create());
@@ -760,6 +831,10 @@ switch ($command) {
             new PhpRegexPatternSource($extractor),
         ]);
         $lint = new RegexLintService($analysis, $sources);
+
+        if ('console' === $format && OutputConfiguration::VERBOSITY_QUIET !== $verbosity) {
+            echo renderLintBanner();
+        }
 
         try {
             $request = new RegexLintRequest(
@@ -774,10 +849,6 @@ switch ($command) {
         }
 
         if ([] === $patterns) {
-            if ($format === 'console' && $verbosity !== OutputConfiguration::VERBOSITY_QUIET) {
-                echo renderLintBanner();
-            }
-
             if ($format === 'console') {
                 renderSummary(['errors' => 0, 'warnings' => 0, 'optimizations' => 0], true);
                 exit(0);
@@ -788,12 +859,19 @@ switch ($command) {
             exit(0);
         }
 
-        $report = $lint->analyze($patterns, $request);
+        $progressCallback = null;
+        if ('console' === $format && OutputConfiguration::VERBOSITY_QUIET !== $verbosity) {
+            progressStart(\count($patterns));
+            $progressCallback = static fn () => progressAdvance();
+        }
+
+        $report = $lint->analyze($patterns, $request, $progressCallback);
+
+        if (null !== $progressCallback) {
+            progressFinish();
+        }
 
         // Output using formatter
-        if ('console' === $format && OutputConfiguration::VERBOSITY_QUIET !== $verbosity) {
-            echo renderLintBanner();
-        }
         echo $formatter->format($report);
 
         exit($report->stats['errors'] > 0 ? 1 : 0);
