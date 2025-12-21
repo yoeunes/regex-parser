@@ -137,9 +137,23 @@ function output(string $text): void
     }
 }
 
+function formatElapsed(int $seconds): string
+{
+    $seconds = max(0, $seconds);
+    $hours = intdiv($seconds, 3600);
+    $minutes = intdiv($seconds % 3600, 60);
+    $secs = $seconds % 60;
+
+    if ($hours > 0) {
+        return \sprintf('%02d:%02d:%02d', $hours, $minutes, $secs);
+    }
+
+    return \sprintf('%02d:%02d', $minutes, $secs);
+}
+
 function progressStart(int $total): void
 {
-    global $progressTotal, $progressCurrent, $progressActive, $ansi, $quiet;
+    global $progressTotal, $progressCurrent, $progressActive, $progressStartedAt, $ansi, $quiet;
 
     if ($total <= 0 || $quiet) {
         $progressActive = false;
@@ -150,6 +164,7 @@ function progressStart(int $total): void
     $progressTotal = $total;
     $progressCurrent = 0;
     $progressActive = $ansi;
+    $progressStartedAt = \time();
 
     if (!$progressActive) {
         return;
@@ -185,7 +200,7 @@ function progressFinish(): void
 
 function renderProgress(bool $finish = false): void
 {
-    global $progressTotal, $progressCurrent;
+    global $progressTotal, $progressCurrent, $progressStartedAt;
 
     $total = max(1, (int) $progressTotal);
     $current = min((int) $progressCurrent, $total);
@@ -194,7 +209,8 @@ function renderProgress(bool $finish = false): void
 
     $bar = str_repeat(PROGRESS_BAR_FULL, $filled).str_repeat(PROGRESS_BAR_EMPTY, PROGRESS_BAR_WIDTH - $filled);
     $percent = (int) round($ratio * 100);
-    $line = \sprintf(' %d/%d [%s] %3d%%', $current, $total, $bar, $percent);
+    $elapsed = formatElapsed((int) (\time() - (int) $progressStartedAt));
+    $line = \sprintf(' %d/%d [%s] %3d%% %8s', $current, $total, $bar, $percent, $elapsed);
 
     output("\r".$line);
 
@@ -838,7 +854,7 @@ switch ($command) {
 
         $collectionProgress = null;
         if ('console' === $format && $config->shouldShowProgress()) {
-            output('  '.dim('Scanning files...')."\n");
+            output('  '.dim('Scanning files...')."\n\n");
             $collectionStarted = false;
             $lastCount = 0;
             $collectionProgress = static function (int $current, int $total) use (&$collectionStarted, &$lastCount): void {
@@ -888,6 +904,7 @@ switch ($command) {
 
         $progressCallback = null;
         if ('console' === $format && $config->shouldShowProgress()) {
+            output('  '.dim('Analyzing patterns...')."\n\n");
             progressStart(\count($patterns));
             $progressCallback = static fn () => progressAdvance();
         }

@@ -23,6 +23,7 @@ use RegexParser\Lint\RegexLintRequest;
 use RegexParser\Lint\RegexLintService;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -162,28 +163,34 @@ final class RegexLintCommand extends Command
         }
 
         $collectionProgress = null;
-        if ('console' === $format && OutputInterface::VERBOSITY_QUIET !== $output->getVerbosity()) {
+        $showProgress = 'console' === $format && OutputInterface::VERBOSITY_QUIET !== $output->getVerbosity();
+        if ($showProgress) {
             $io->writeln('  <fg=gray>Scanning files...</>');
-            $collectionStarted = false;
+            $io->newLine();
+            $collectionBar = null;
+            $collectionFinished = false;
             $lastCount = 0;
-            $collectionProgress = function (int $current, int $total) use ($io, &$collectionStarted, &$lastCount): void {
-                if ($total <= 0) {
+            $collectionProgress = function (int $current, int $total) use ($io, &$collectionBar, &$collectionFinished, &$lastCount): void {
+                if ($collectionFinished || $total <= 0) {
                     return;
                 }
 
-                if (!$collectionStarted) {
-                    $io->progressStart($total);
-                    $collectionStarted = true;
+                if (null === $collectionBar) {
+                    $collectionBar = $io->createProgressBar($total);
+                    $collectionBar->setFormat(ProgressBar::FORMAT_VERBOSE);
+                    $collectionBar->start();
                 }
 
                 $advance = $current - $lastCount;
                 if ($advance > 0) {
-                    $io->progressAdvance($advance);
+                    $collectionBar->advance($advance);
                     $lastCount = $current;
                 }
 
                 if ($current >= $total) {
-                    $io->progressFinish();
+                    $collectionBar->finish();
+                    $io->newLine(2);
+                    $collectionFinished = true;
                 }
             };
         }
@@ -207,17 +214,23 @@ final class RegexLintCommand extends Command
             return $this->renderEmptyResults($format, $output, $io);
         }
 
-        if ('console' === $format) {
-            $io->progressStart(\count($patterns));
-            $progressCallback = fn () => $io->progressAdvance();
+        $analysisBar = null;
+        if ($showProgress) {
+            $io->writeln('  <fg=gray>Analyzing patterns...</>');
+            $io->newLine();
+            $analysisBar = $io->createProgressBar(\count($patterns));
+            $analysisBar->setFormat(ProgressBar::FORMAT_VERBOSE);
+            $analysisBar->start();
+            $progressCallback = static fn () => $analysisBar->advance();
         } else {
             $progressCallback = null;
         }
 
         $report = $this->lint->analyze($patterns, $request, $progressCallback);
 
-        if ('console' === $format) {
-            $io->progressFinish();
+        if (null !== $analysisBar) {
+            $analysisBar->finish();
+            $io->newLine(2);
         }
 
         $report = new RegexLintReport(

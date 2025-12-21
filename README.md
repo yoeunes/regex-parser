@@ -173,6 +173,30 @@ composer require yoeunes/regex-parser
 
 Requires **PHP 8.2+**.
 
+### Global CLI (PHAR)
+
+Install a standalone `regex` binary anywhere on your PATH:
+
+```bash
+curl -Ls https://github.com/yoeunes/regex-parser/releases/latest/download/regex.phar -o ~/.local/bin/regex && chmod +x ~/.local/bin/regex
+```
+
+Or with `wget`:
+
+```bash
+wget -O ~/.local/bin/regex https://github.com/yoeunes/regex-parser/releases/latest/download/regex.phar && chmod +x ~/.local/bin/regex
+```
+
+Make sure `~/.local/bin` is on your PATH (or use `/usr/local/bin`).
+
+Build the phar locally:
+
+```bash
+bin/build
+```
+
+The build requires `box` and `phar.readonly=0`.
+
 ---
 
 ## Quick Start

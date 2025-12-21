@@ -1,0 +1,20 @@
+{
+  "main": "bin/regex",
+  "output": "bin/regex.phar",
+  "chmod": "0755",
+  "compression": "GZ",
+  "directories": [
+    "src",
+    "vendor"
+  ],
+  "files": [
+    "composer.json",
+    "LICENSE"
+  ],
+  "finder": [
+    {
+      "name": "regex",
+      "in": "bin"
+    }
+  ]
+}
