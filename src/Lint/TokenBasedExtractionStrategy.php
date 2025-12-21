@@ -268,14 +268,279 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
         $body = substr($token, 1, -1);
 
         if ("'" === $quote) {
+            // Single-quoted strings: only \\ and \' are escape sequences
             return str_replace(["\\\\", "\\'"], ["\\", "'"], $body);
         }
 
         if ('"' === $quote) {
-            return stripcslashes($body);
+            // Double-quoted strings: handle PHP escape sequences properly
+            // We cannot use stripcslashes() because it doesn't handle \x{XXXX} correctly
+            return $this->decodeDoubleQuotedString($body);
         }
 
         return $body;
+    }
+
+    /**
+     * Decode a double-quoted PHP string body, handling all PHP escape sequences.
+     *
+     * PHP escape sequences in double-quoted strings:
+     * - \n, \r, \t, \v, \e, \f - control characters
+     * - \\ - literal backslash
+     * - \$ - literal dollar sign
+     * - \" - literal double quote
+     * - \[0-7]{1,3} - octal character code
+     * - \x[0-9A-Fa-f]{1,2} - hex character code (1-2 digits)
+     * - \u{XXXX} - Unicode codepoint (PHP 7+)
+     *
+     * IMPORTANT: \x{XXXX} is NOT a PHP escape sequence, it's a PCRE Unicode escape.
+     * We must preserve it as-is so the regex parser can interpret it correctly.
+     */
+    private function decodeDoubleQuotedString(string $body): string
+    {
+        $result = '';
+        $length = \strlen($body);
+        $i = 0;
+
+        while ($i < $length) {
+            $char = $body[$i];
+
+            if ('\\' !== $char) {
+                $result .= $char;
+                $i++;
+
+                continue;
+            }
+
+            // We have a backslash - check what follows
+            if ($i + 1 >= $length) {
+                // Trailing backslash - keep as-is
+                $result .= $char;
+                $i++;
+
+                continue;
+            }
+
+            $nextChar = $body[$i + 1];
+
+            // Handle standard escape sequences
+            switch ($nextChar) {
+                case 'n':
+                    $result .= "\n";
+                    $i += 2;
+
+                    break;
+                case 'r':
+                    $result .= "\r";
+                    $i += 2;
+
+                    break;
+                case 't':
+                    $result .= "\t";
+                    $i += 2;
+
+                    break;
+                case 'v':
+                    $result .= "\v";
+                    $i += 2;
+
+                    break;
+                case 'e':
+                    $result .= "\e";
+                    $i += 2;
+
+                    break;
+                case 'f':
+                    $result .= "\f";
+                    $i += 2;
+
+                    break;
+                case '\\':
+                    $result .= '\\';
+                    $i += 2;
+
+                    break;
+                case '$':
+                    $result .= '$';
+                    $i += 2;
+
+                    break;
+                case '"':
+                    $result .= '"';
+                    $i += 2;
+
+                    break;
+                case 'x':
+                    // Hex escape: \xHH or \x{HHHH} (PCRE Unicode - preserve as-is)
+                    $hexResult = $this->parseHexEscape($body, $i, $length);
+                    $result .= $hexResult['value'];
+                    $i = $hexResult['newIndex'];
+
+                    break;
+                case 'u':
+                    // PHP 7+ Unicode escape: \u{XXXX}
+                    $unicodeResult = $this->parseUnicodeEscape($body, $i, $length);
+                    $result .= $unicodeResult['value'];
+                    $i = $unicodeResult['newIndex'];
+
+                    break;
+                case '0':
+                case '1':
+                case '2':
+                case '3':
+                case '4':
+                case '5':
+                case '6':
+                case '7':
+                    // Octal escape: \0 through \777
+                    $octalResult = $this->parseOctalEscape($body, $i, $length);
+                    $result .= $octalResult['value'];
+                    $i = $octalResult['newIndex'];
+
+                    break;
+                default:
+                    // Unknown escape sequence - keep backslash and character as-is
+                    $result .= '\\'.$nextChar;
+                    $i += 2;
+
+                    break;
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Parse a hex escape sequence starting at position $i.
+     *
+     * @return array{value: string, newIndex: int}
+     */
+    private function parseHexEscape(string $body, int $i, int $length): array
+    {
+        // $i points to the backslash, $i+1 is 'x'
+        $startPos = $i + 2;
+
+        if ($startPos >= $length) {
+            // Just \x at end - keep as-is
+            return ['value' => '\\x', 'newIndex' => $startPos];
+        }
+
+        // Check for \x{...} - this is PCRE Unicode syntax, NOT PHP syntax
+        // We must preserve it as-is for the regex parser
+        if ('{' === $body[$startPos]) {
+            // Find the closing brace
+            $closeBrace = strpos($body, '}', $startPos);
+            if (false !== $closeBrace) {
+                // Preserve the entire \x{...} sequence as-is
+                $sequence = substr($body, $i, $closeBrace - $i + 1);
+
+                return ['value' => $sequence, 'newIndex' => $closeBrace + 1];
+            }
+            // No closing brace - keep as-is
+            return ['value' => '\\x{', 'newIndex' => $startPos + 1];
+        }
+
+        // Standard PHP hex escape: \xHH (1-2 hex digits)
+        $hexDigits = '';
+        $pos = $startPos;
+        while ($pos < $length && $pos < $startPos + 2 && ctype_xdigit($body[$pos])) {
+            $hexDigits .= $body[$pos];
+            $pos++;
+        }
+
+        if ('' === $hexDigits) {
+            // No hex digits after \x - keep as-is
+            return ['value' => '\\x', 'newIndex' => $startPos];
+        }
+
+        // Convert hex to character
+        $charCode = hexdec($hexDigits);
+
+        return ['value' => \chr($charCode), 'newIndex' => $pos];
+    }
+
+    /**
+     * Parse a PHP 7+ Unicode escape sequence: \u{XXXX}.
+     *
+     * @return array{value: string, newIndex: int}
+     */
+    private function parseUnicodeEscape(string $body, int $i, int $length): array
+    {
+        // $i points to the backslash, $i+1 is 'u'
+        $startPos = $i + 2;
+
+        if ($startPos >= $length || '{' !== $body[$startPos]) {
+            // Not a valid \u{...} sequence - keep as-is
+            return ['value' => '\\u', 'newIndex' => $startPos];
+        }
+
+        // Find the closing brace
+        $closeBrace = strpos($body, '}', $startPos);
+        if (false === $closeBrace) {
+            // No closing brace - keep as-is
+            return ['value' => '\\u{', 'newIndex' => $startPos + 1];
+        }
+
+        $hexPart = substr($body, $startPos + 1, $closeBrace - $startPos - 1);
+
+        // Validate hex digits
+        if ('' === $hexPart || !ctype_xdigit($hexPart)) {
+            // Invalid hex - keep as-is
+            return ['value' => substr($body, $i, $closeBrace - $i + 1), 'newIndex' => $closeBrace + 1];
+        }
+
+        // Convert Unicode codepoint to UTF-8
+        $codepoint = hexdec($hexPart);
+
+        return ['value' => $this->codepointToUtf8($codepoint), 'newIndex' => $closeBrace + 1];
+    }
+
+    /**
+     * Parse an octal escape sequence: \0 through \777.
+     *
+     * @return array{value: string, newIndex: int}
+     */
+    private function parseOctalEscape(string $body, int $i, int $length): array
+    {
+        // $i points to the backslash
+        $startPos = $i + 1;
+        $octalDigits = '';
+        $pos = $startPos;
+
+        // Read up to 3 octal digits
+        while ($pos < $length && $pos < $startPos + 3 && $body[$pos] >= '0' && $body[$pos] <= '7') {
+            $octalDigits .= $body[$pos];
+            $pos++;
+        }
+
+        if ('' === $octalDigits) {
+            // No octal digits - keep backslash
+            return ['value' => '\\', 'newIndex' => $startPos];
+        }
+
+        // Convert octal to character
+        $charCode = octdec($octalDigits);
+
+        // Octal values > 255 are truncated to 8 bits in PHP
+        return ['value' => \chr($charCode & 0xFF), 'newIndex' => $pos];
+    }
+
+    /**
+     * Convert a Unicode codepoint to a UTF-8 string.
+     */
+    private function codepointToUtf8(int $codepoint): string
+    {
+        if ($codepoint < 0x80) {
+            return \chr($codepoint);
+        }
+        if ($codepoint < 0x800) {
+            return \chr(0xC0 | ($codepoint >> 6)).\chr(0x80 | ($codepoint & 0x3F));
+        }
+        if ($codepoint < 0x10000) {
+            return \chr(0xE0 | ($codepoint >> 12)).\chr(0x80 | (($codepoint >> 6) & 0x3F)).\chr(0x80 | ($codepoint & 0x3F));
+        }
+
+        return \chr(0xF0 | ($codepoint >> 18)).\chr(0x80 | (($codepoint >> 12) & 0x3F)).\chr(0x80 | (($codepoint >> 6) & 0x3F)).\chr(0x80 | ($codepoint & 0x3F));
     }
 
     /**
@@ -284,8 +549,8 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
      * This performs basic structural validation:
      * - Must be at least 2 characters long
      * - Must start with a valid delimiter (non-alphanumeric, not backslash)
-     * - Must not start with '?' (likely URL query string)
-     * - Must have a matching closing delimiter
+     * - Must not look like a URL or file path
+     * - Must have a matching closing delimiter (not escaped)
      */
     private function isValidPcrePattern(string $pattern): bool
     {
@@ -306,23 +571,116 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
             return false;
         }
 
+        // Skip URL-like patterns
+        if ($this->looksLikeUrl($pattern)) {
+            return false;
+        }
+
         // Find the expected closing delimiter
         $closingDelimiter = $this->getClosingDelimiter($firstChar);
 
-        // Check if the pattern has a matching closing delimiter
-        // The closing delimiter should be at the end, possibly followed by modifiers
-        $lastDelimiterPos = strrpos($pattern, $closingDelimiter);
-        if (false === $lastDelimiterPos || 0 === $lastDelimiterPos) {
+        // Find the actual closing delimiter position (accounting for escapes)
+        $closingDelimiterPos = $this->findClosingDelimiter($pattern, $firstChar, $closingDelimiter);
+        if (null === $closingDelimiterPos || 0 === $closingDelimiterPos) {
             return false;
         }
 
         // Verify that everything after the closing delimiter is valid modifiers
-        $afterDelimiter = substr($pattern, $lastDelimiterPos + 1);
+        $afterDelimiter = substr($pattern, $closingDelimiterPos + 1);
         if ('' !== $afterDelimiter && !preg_match('/^[imsxADSUXJu]*$/', $afterDelimiter)) {
             return false;
         }
 
         return true;
+    }
+
+    /**
+     * Check if a string looks like a URL or file path rather than a regex.
+     */
+    private function looksLikeUrl(string $pattern): bool
+    {
+        // Check for common URL schemes (case-insensitive check after delimiter)
+        $withoutDelimiter = substr($pattern, 1);
+
+        // URLs starting with http://, https://, ftp://, file://
+        if (preg_match('/^https?:\/\//i', $withoutDelimiter)) {
+            return true;
+        }
+        if (preg_match('/^(ftp|file|mailto|tel|data):[\/@]/i', $withoutDelimiter)) {
+            return true;
+        }
+
+        // Check for path-like patterns that are unlikely to be regexes
+        // e.g., /path/to/file, /api/v1/users
+        if ('/' === $pattern[0]) {
+            // If it starts with / and contains typical URL/path characters without regex metacharacters
+            // Look for patterns like /?param=value or /path/to/something
+            if (preg_match('/^\/\?[a-zA-Z]/', $pattern)) {
+                // Starts with /? followed by a letter - likely URL query string
+                return true;
+            }
+
+            // Check if it looks like a simple path without regex metacharacters
+            // Paths typically have: letters, numbers, /, -, _, .
+            // Regexes typically have: ^, $, *, +, ?, [, ], (, ), {, }, |, \
+            $body = substr($pattern, 1);
+
+            // Find potential closing delimiter
+            $lastSlash = strrpos($body, '/');
+            if (false !== $lastSlash) {
+                $pathPart = substr($body, 0, $lastSlash);
+                // If the path part has no regex metacharacters, it's likely a URL
+                if ('' !== $pathPart && !preg_match('/[\^\$\*\+\?\[\]\(\)\{\}\|\\\\]/', $pathPart)) {
+                    // Additional check: if it contains multiple path segments, likely a URL
+                    if (substr_count($pathPart, '/') >= 2) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Find the position of the closing delimiter, accounting for escaped delimiters.
+     */
+    private function findClosingDelimiter(string $pattern, string $openingDelimiter, string $closingDelimiter): ?int
+    {
+        $length = \strlen($pattern);
+        $depth = 0;
+        $isPaired = $openingDelimiter !== $closingDelimiter;
+
+        for ($i = 1; $i < $length; $i++) {
+            $char = $pattern[$i];
+
+            // Check for escape sequences
+            if ('\\' === $char && $i + 1 < $length) {
+                // Skip the escaped character
+                $i++;
+
+                continue;
+            }
+
+            // Handle paired delimiters (brackets)
+            if ($isPaired) {
+                if ($char === $openingDelimiter) {
+                    $depth++;
+                } elseif ($char === $closingDelimiter) {
+                    if (0 === $depth) {
+                        return $i;
+                    }
+                    $depth--;
+                }
+            } else {
+                // Same opening and closing delimiter
+                if ($char === $closingDelimiter) {
+                    return $i;
+                }
+            }
+        }
+
+        return null;
     }
 
     /**
