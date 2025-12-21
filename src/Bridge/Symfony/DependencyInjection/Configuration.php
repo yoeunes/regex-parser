@@ -23,7 +23,7 @@ use Symfony\Component\Config\Definition\ConfigurationInterface;
 final readonly class Configuration implements ConfigurationInterface
 {
     /**
-     * @return TreeBuilder the tree builder instance
+     * @return TreeBuilder<'array'> the tree builder instance
      */
     public function getConfigTreeBuilder(): TreeBuilder
     {
