@@ -100,13 +100,6 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
             return $charClass;
         }
 
-        // Optimize alternation order for better performance (literals and simple patterns first)
-        $orderedAlts = $this->optimizeAlternationOrder($optimizedAlts);
-        if ($orderedAlts !== $optimizedAlts) {
-            $hasChanged = true;
-            $optimizedAlts = $orderedAlts;
-        }
-
         if (!$hasChanged) {
             return $node;
         }
@@ -1149,46 +1142,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         return new Node\CharClassNode($mergedExpression, false, $startPos, $endPos);
     }
 
-    /**
-     * Optimizes alternation order for better performance by putting simpler patterns first.
-     *
-     * @param list<Node\NodeInterface> $alternatives
-     *
-     * @return list<Node\NodeInterface>
-     */
-    private function optimizeAlternationOrder(array $alternatives): array
-    {
-        if (\count($alternatives) <= 1) {
-            return $alternatives;
-        }
 
-        // Sort by complexity: literals first, then simple char classes, then complex patterns
-        usort($alternatives, function (Node\NodeInterface $a, Node\NodeInterface $b): int {
-            $scoreA = $this->getAlternationComplexityScore($a);
-            $scoreB = $this->getAlternationComplexityScore($b);
-
-            return $scoreA <=> $scoreB;
-        });
-
-        return $alternatives;
-    }
-
-    /**
-     * Gets a complexity score for alternation ordering (lower = simpler = should come first).
-     */
-    private function getAlternationComplexityScore(Node\NodeInterface $node): int
-    {
-        return match (true) {
-            $node instanceof Node\LiteralNode => 1,
-            $node instanceof Node\CharLiteralNode => 2,
-            $node instanceof Node\CharTypeNode => 3,
-            $node instanceof Node\CharClassNode => 4,
-            $node instanceof Node\AnchorNode => 5,
-            $node instanceof Node\AssertionNode => 6,
-            $node instanceof Node\DotNode => 7,
-            default => 10, // Groups, quantifiers, sequences, etc.
-        };
-    }
 
     /**
      * Tries to convert an alternation to a character class if it's beneficial.
@@ -1245,7 +1199,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
                     new Node\RangeNode($startLiteral, $endLiteral, $startPos, $endPos),
                     false,
                     $startPos,
-                    $endPos
+                    $endPos,
                 );
             }
         }
