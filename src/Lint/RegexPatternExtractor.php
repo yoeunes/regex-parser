@@ -38,9 +38,9 @@ final readonly class RegexPatternExtractor
     /**
      * Extract regex patterns from the given paths.
      *
-     * @param list<string>      $paths        Paths to scan for PHP files
-     * @param list<string>|null $excludePaths Optional paths to exclude (falls back to ['vendor'])
-     * @param callable(int, int): void|null $progress Reports collection progress as (current, total)
+     * @param list<string>                  $paths        Paths to scan for PHP files
+     * @param list<string>|null             $excludePaths Optional paths to exclude (falls back to ['vendor'])
+     * @param callable(int, int): void|null $progress     Reports collection progress as (current, total)
      *
      * @return list<RegexPatternOccurrence>
      */

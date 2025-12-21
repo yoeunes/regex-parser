@@ -551,7 +551,7 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
         $body = substr($token, 1, -1);
 
         if ("'" === $quote) {
-            return str_replace(["\\\\", "\\'"], ["\\", "'"], $body);
+            return str_replace(['\\\\', "\\'"], ['\\', "'"], $body);
         }
 
         if ('"' === $quote) {

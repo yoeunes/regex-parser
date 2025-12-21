@@ -57,6 +57,7 @@ use RegexParser\NodeVisitor\ConsoleHighlighterVisitor;
 use RegexParser\NodeVisitor\HtmlHighlighterVisitor;
 use RegexParser\OptimizationResult;
 use RegexParser\Regex;
+use RegexParser\Internal\PatternParser;
 
 // ANSI color codes
 const RESET = "\033[0m";
@@ -420,13 +421,18 @@ function displayPatternContext(RegexAnalysisService $analysis, array $result): v
 {
     $pattern = extractPatternForResult($result);
     $line = $result['line'];
-    $penLabel = '✏️';
 
     if (null !== $pattern && '' !== $pattern) {
-        $highlighted = safelyHighlightPattern($analysis, $pattern);
-        output(\sprintf("  %s %s %s\n", dim($line.':'), $penLabel, $highlighted));
+        try {
+            [$inner, $flags, $delimiter] = PatternParser::extractPatternAndFlags($pattern);
+            $highlighted_inner = safelyHighlightPattern($analysis, $pattern);
+            $full_highlighted = $delimiter . $highlighted_inner . $delimiter . $flags;
+        } catch (Throwable) {
+            $full_highlighted = safelyHighlightPattern($analysis, $pattern);
+        }
+        output(\sprintf("  %s %s\n", dim($line.':'), $full_highlighted));
     } else {
-        output(\sprintf("  %s %s\n", dim('line '.$line.':'), $penLabel));
+        output(\sprintf("  %s\n", dim('line '.$line.':')));
     }
 }
 

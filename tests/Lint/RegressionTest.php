@@ -37,9 +37,9 @@ final class RegressionTest extends TestCase
     public function test_unicode_hex_sequences_in_double_quoted_strings(): void
     {
         $phpCode = <<<'PHP'
-<?php
-preg_match("/[\x{2000}-\x{2FFF}]/u", $subject);
-PHP;
+            <?php
+            preg_match("/[\x{2000}-\x{2FFF}]/u", $subject);
+            PHP;
 
         $occurrences = $this->extractFromCode($phpCode);
 
@@ -53,9 +53,9 @@ PHP;
     public function test_unicode_hex_sequences_in_single_quoted_strings(): void
     {
         $phpCode = <<<'PHP'
-<?php
-preg_match('/[\x{2000}-\x{2FFF}]/u', $subject);
-PHP;
+            <?php
+            preg_match('/[\x{2000}-\x{2FFF}]/u', $subject);
+            PHP;
 
         $occurrences = $this->extractFromCode($phpCode);
 
@@ -69,9 +69,9 @@ PHP;
     public function test_standard_escape_sequences_in_double_quoted_strings(): void
     {
         $phpCode = <<<'PHP'
-<?php
-preg_match("/hello\nworld/", $subject);
-PHP;
+            <?php
+            preg_match("/hello\nworld/", $subject);
+            PHP;
 
         $occurrences = $this->extractFromCode($phpCode);
 
@@ -87,9 +87,9 @@ PHP;
     public function test_escape_sequences_in_single_quoted_strings(): void
     {
         $phpCode = <<<'PHP'
-<?php
-preg_match('/hello\nworld/', $subject);
-PHP;
+            <?php
+            preg_match('/hello\nworld/', $subject);
+            PHP;
 
         $occurrences = $this->extractFromCode($phpCode);
 
@@ -105,9 +105,9 @@ PHP;
     public function test_complex_backslash_escaping_single_quoted(): void
     {
         $phpCode = <<<'PHP'
-<?php
-preg_match('/\\\\/', $subject);
-PHP;
+            <?php
+            preg_match('/\\\\/', $subject);
+            PHP;
 
         $occurrences = $this->extractFromCode($phpCode);
 
@@ -122,15 +122,15 @@ PHP;
     public function test_complex_backslash_escaping_double_quoted(): void
     {
         $phpCode = <<<'PHP'
-<?php
-preg_match("/\\\\/", $subject);
-PHP;
+            <?php
+            preg_match("/\\\\/", $subject);
+            PHP;
 
         $occurrences = $this->extractFromCode($phpCode);
 
         $this->assertCount(1, $occurrences);
         // Double-quoted "\\\\" becomes \\ (two backslashes become one each)
-        $this->assertSame("/\\\\/", $occurrences[0]->pattern);
+        $this->assertSame('/\\\\/', $occurrences[0]->pattern);
     }
 
     /**
@@ -139,9 +139,9 @@ PHP;
     public function test_url_query_strings_are_extracted(): void
     {
         $phpCode = <<<'PHP'
-<?php
-preg_match('/?entryPoint=main&action=test', $subject);
-PHP;
+            <?php
+            preg_match('/?entryPoint=main&action=test', $subject);
+            PHP;
 
         $occurrences = $this->extractFromCode($phpCode);
 
@@ -155,9 +155,9 @@ PHP;
     public function test_http_urls_are_extracted(): void
     {
         $phpCode = <<<'PHP'
-<?php
-preg_match('/http://example.com/path/', $subject);
-PHP;
+            <?php
+            preg_match('/http://example.com/path/', $subject);
+            PHP;
 
         $occurrences = $this->extractFromCode($phpCode);
 
@@ -171,9 +171,9 @@ PHP;
     public function test_file_paths_are_extracted(): void
     {
         $phpCode = <<<'PHP'
-<?php
-preg_match('/path/to/some/file/', $subject);
-PHP;
+            <?php
+            preg_match('/path/to/some/file/', $subject);
+            PHP;
 
         $occurrences = $this->extractFromCode($phpCode);
 
@@ -187,9 +187,9 @@ PHP;
     public function test_valid_regex_is_detected(): void
     {
         $phpCode = <<<'PHP'
-<?php
-preg_match('/^[a-z]+$/i', $subject);
-PHP;
+            <?php
+            preg_match('/^[a-z]+$/i', $subject);
+            PHP;
 
         $occurrences = $this->extractFromCode($phpCode);
 
@@ -203,9 +203,9 @@ PHP;
     public function test_regex_with_escaped_delimiter(): void
     {
         $phpCode = <<<'PHP'
-<?php
-preg_match('/https?:\/\/[^\/]+/', $subject);
-PHP;
+            <?php
+            preg_match('/https?:\/\/[^\/]+/', $subject);
+            PHP;
 
         $occurrences = $this->extractFromCode($phpCode);
 
@@ -219,9 +219,9 @@ PHP;
     public function test_regex_with_alternative_delimiter(): void
     {
         $phpCode = <<<'PHP'
-<?php
-preg_match('#^/path/to/.*$#', $subject);
-PHP;
+            <?php
+            preg_match('#^/path/to/.*$#', $subject);
+            PHP;
 
         $occurrences = $this->extractFromCode($phpCode);
 
@@ -235,9 +235,9 @@ PHP;
     public function test_regex_with_tilde_delimiter(): void
     {
         $phpCode = <<<'PHP'
-<?php
-preg_match('~[a-z]+~i', $subject);
-PHP;
+            <?php
+            preg_match('~[a-z]+~i', $subject);
+            PHP;
 
         $occurrences = $this->extractFromCode($phpCode);
 
@@ -252,9 +252,9 @@ PHP;
     public function test_hex_escape_in_double_quoted_string(): void
     {
         $phpCode = <<<'PHP'
-<?php
-preg_match("/\x41+/", $subject);
-PHP;
+            <?php
+            preg_match("/\x41+/", $subject);
+            PHP;
 
         $occurrences = $this->extractFromCode($phpCode);
 
@@ -270,9 +270,9 @@ PHP;
     public function test_octal_escape_in_double_quoted_string(): void
     {
         $phpCode = <<<'PHP'
-<?php
-preg_match("/\101+/", $subject);
-PHP;
+            <?php
+            preg_match("/\101+/", $subject);
+            PHP;
 
         $occurrences = $this->extractFromCode($phpCode);
 
@@ -288,9 +288,9 @@ PHP;
     public function test_php7_unicode_escape_in_double_quoted_string(): void
     {
         $phpCode = <<<'PHP'
-<?php
-preg_match("/\u{0041}+/", $subject);
-PHP;
+            <?php
+            preg_match("/\u{0041}+/", $subject);
+            PHP;
 
         $occurrences = $this->extractFromCode($phpCode);
 
@@ -305,9 +305,9 @@ PHP;
     public function test_dollar_sign_escape_in_double_quoted_string(): void
     {
         $phpCode = <<<'PHP'
-<?php
-preg_match("/\$var/", $subject);
-PHP;
+            <?php
+            preg_match("/\$var/", $subject);
+            PHP;
 
         $occurrences = $this->extractFromCode($phpCode);
 
@@ -322,9 +322,9 @@ PHP;
     public function test_preg_match_all_is_detected(): void
     {
         $phpCode = <<<'PHP'
-<?php
-preg_match_all('/\d+/', $subject, $matches);
-PHP;
+            <?php
+            preg_match_all('/\d+/', $subject, $matches);
+            PHP;
 
         $occurrences = $this->extractFromCode($phpCode);
 
@@ -338,9 +338,9 @@ PHP;
     public function test_preg_replace_is_detected(): void
     {
         $phpCode = <<<'PHP'
-<?php
-preg_replace('/\s+/', ' ', $subject);
-PHP;
+            <?php
+            preg_replace('/\s+/', ' ', $subject);
+            PHP;
 
         $occurrences = $this->extractFromCode($phpCode);
 
