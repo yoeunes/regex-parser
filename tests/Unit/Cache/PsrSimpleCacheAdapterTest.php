@@ -17,9 +17,6 @@ use PHPUnit\Framework\TestCase;
 use Psr\SimpleCache\CacheInterface;
 use RegexParser\Cache\PsrSimpleCacheAdapter;
 
-/**
- * @psalm-suppress MissingDependency
- */
 final class PsrSimpleCacheAdapterTest extends TestCase
 {
     public function test_stores_and_loads_ast_payload(): void
@@ -46,9 +43,6 @@ final class PsrSimpleCacheAdapterTest extends TestCase
     }
 }
 
-/**
- * @psalm-suppress MissingDependency
- */
 final class InMemorySimpleCache implements CacheInterface
 {
     /**
