@@ -847,6 +847,14 @@ final class RegexLintCommand extends Command
 
     private function displaySingleIssue(SymfonyStyle $io, string $badge, string $message, ?string $tip = null): void
     {
+        // If tip is provided separately, remove it from the message
+        if (null !== $tip && '' !== $tip) {
+            $tipPos = strpos($message, 'Tip:');
+            if (false !== $tipPos) {
+                $message = substr($message, 0, $tipPos);
+            }
+        }
+
         // Split message by newline to handle carets/pointers correctly
         $lines = explode("\n", $message);
         $firstLine = array_shift($lines);
