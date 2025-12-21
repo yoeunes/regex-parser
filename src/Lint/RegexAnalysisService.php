@@ -574,6 +574,9 @@ final readonly class RegexAnalysisService
         return implode(' ', $hints);
     }
 
+    /**
+     * @return list<string>
+     */
     private function suggestReDoSFixes(string $pattern, \RegexParser\ReDoS\ReDoSAnalysis $analysis): array
     {
         $hints = [];

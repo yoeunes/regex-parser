@@ -1142,8 +1142,6 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         return new Node\CharClassNode($mergedExpression, false, $startPos, $endPos);
     }
 
-
-
     /**
      * Tries to convert an alternation to a character class if it's beneficial.
      * Only converts when it's clearly safe (no special char class metacharacters).
