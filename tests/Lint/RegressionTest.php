@@ -356,13 +356,16 @@ PHP;
      */
     private function extractFromCode(string $phpCode): array
     {
+        // Create temp file with .php extension (required by RegexPatternExtractor)
         $tempFile = tempnam(sys_get_temp_dir(), 'regex_test_');
-        file_put_contents($tempFile, $phpCode);
+        $phpFile = $tempFile.'.php';
+        rename($tempFile, $phpFile);
+        file_put_contents($phpFile, $phpCode);
 
         try {
-            return $this->extractor->extract([$tempFile]);
+            return $this->extractor->extract([$phpFile]);
         } finally {
-            unlink($tempFile);
+            unlink($phpFile);
         }
     }
 }
