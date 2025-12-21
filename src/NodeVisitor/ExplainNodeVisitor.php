@@ -622,8 +622,24 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
             "\t" => "'\\t' (tab)",
             "\n" => "'\\n' (newline)",
             "\r" => "'\\r' (carriage return)",
-            default => ctype_print($value) ? "'".$value."'" : '(non-printable char)',
+            default => $this->formatCharLiteral($value),
         };
+    }
+
+    /**
+     * Format character literal for explanation, handling non-printable and extended ASCII characters.
+     */
+    private function formatCharLiteral(string $value): string
+    {
+        $ord = ord($value);
+        
+        // Handle control characters and extended ASCII as hex codes
+        if (($ord < 32) || (127 === $ord) || ($ord >= 128 && $ord <= 255)) {
+            return "'\\x".strtoupper(str_pad(dechex($ord), 2, '0', STR_PAD_LEFT))."'";
+        }
+        
+        // Printable characters
+        return "'".$value."'";
     }
 
     private function extractCharLiteralDetail(Node\CharLiteralNode $node): string
