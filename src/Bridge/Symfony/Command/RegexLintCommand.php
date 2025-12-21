@@ -21,7 +21,6 @@ use RegexParser\Lint\RegexAnalysisService;
 use RegexParser\Lint\RegexLintReport;
 use RegexParser\Lint\RegexLintRequest;
 use RegexParser\Lint\RegexLintService;
-use RegexParser\OptimizationResult;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -31,59 +30,10 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
- * @phpstan-type LintIssue array{
- *     type: string,
- *     message: string,
- *     file: string,
- *     line: int,
- *     column?: int,
- *     position?: int,
- *     issueId?: string,
- *     hint?: string|null,
- *     source?: string,
- *     pattern?: string,
- *     regex?: string,
- *     analysis?: \RegexParser\ReDoS\ReDoSAnalysis,
- *     validation?: \RegexParser\ValidationResult
- * }
- * @phpstan-type OptimizationEntry array{
- *     file: string,
- *     line: int,
- *     optimization: OptimizationResult,
- *     savings: int,
- *     source?: string
- * }
- * @phpstan-type LintResult array{
- *     file: string,
- *     line: int,
- *     source?: string|null,
- *     pattern: string|null,
- *     location?: string|null,
- *     issues: list<LintIssue>,
- *     optimizations: list<OptimizationEntry>,
- *     problems: list<\RegexParser\RegexProblem>
- * }
- * @phpstan-type LintStats array{errors: int, warnings: int, optimizations: int}
- * @phpstan-type JsonProblem array{
- *     type: string,
- *     severity: string,
- *     message: string,
- *     code: ?string,
- *     position: ?int,
- *     snippet: ?string,
- *     suggestion: ?string,
- *     docsAnchor: ?string
- * }
- * @phpstan-type JsonLintResult array{
- *     file: string,
- *     line: int,
- *     source?: string|null,
- *     pattern: string|null,
- *     location?: string|null,
- *     issues: list<LintIssue>,
- *     optimizations: list<OptimizationEntry>,
- *     problems: list<JsonProblem>
- * }
+ * Lint regex patterns in PHP source code.
+ *
+ * @phpstan-import-type LintResult from \RegexParser\Lint\RegexLintReport
+ * @phpstan-import-type LintStats from \RegexParser\Lint\RegexLintReport
  */
 #[AsCommand(
     name: 'regex:lint',
