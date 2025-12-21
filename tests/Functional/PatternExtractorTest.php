@@ -179,4 +179,43 @@ final class PatternExtractorTest extends TestCase
         $this->assertCount(1, $result);
         $this->assertSame('/^valid-regex$/', $result[0]->pattern);
     }
+
+    /**
+     * Test that preg_quote arguments are NOT detected as regex patterns.
+     * preg_quote takes a raw string, not a regex pattern.
+     */
+    public function test_preg_quote_is_ignored(): void
+    {
+        $fixtureFile = __DIR__.'/../Fixtures/Functional/preg_quote_call.php';
+
+        $result = $this->extractor->extract([$fixtureFile]);
+
+        $this->assertEmpty($result, 'preg_quote arguments should not be detected as regex patterns');
+    }
+
+    /**
+     * Test that strings with invalid delimiters are NOT detected.
+     * Strings starting with '?' are likely URL query strings.
+     * Single characters without closing delimiters are fragments.
+     */
+    public function test_invalid_delimiters_are_ignored(): void
+    {
+        $fixtureFile = __DIR__.'/../Fixtures/Functional/invalid_delimiter.php';
+
+        $result = $this->extractor->extract([$fixtureFile]);
+
+        $this->assertEmpty($result, 'Strings with invalid delimiters should not be detected as regex patterns');
+    }
+
+    /**
+     * Test that files with binary content (null bytes) are skipped.
+     */
+    public function test_binary_content_is_ignored(): void
+    {
+        $fixtureFile = __DIR__.'/../Fixtures/Functional/binary_content.php';
+
+        $result = $this->extractor->extract([$fixtureFile]);
+
+        $this->assertEmpty($result, 'Files with binary content should be skipped entirely');
+    }
 }

@@ -74,6 +74,12 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
             return [];
         }
 
+        // Handle non-UTF8 / binary data
+        $content = $this->ensureValidUtf8($content);
+        if (null === $content) {
+            return [];
+        }
+
         $tokens = token_get_all($content);
         $occurrences = [];
         $totalTokens = \count($tokens);
@@ -236,6 +242,11 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
                 return [];
             }
 
+            // Validate that the pattern looks like a valid PCRE regex
+            if (!$this->isValidPcrePattern($pattern)) {
+                return [];
+            }
+
             return [new RegexPatternOccurrence(
                 $pattern,
                 $file,
@@ -265,5 +276,97 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
         }
 
         return $body;
+    }
+
+    /**
+     * Check if a pattern looks like a valid PCRE regex.
+     *
+     * This performs basic structural validation:
+     * - Must be at least 2 characters long
+     * - Must start with a valid delimiter (non-alphanumeric, not backslash)
+     * - Must not start with '?' (likely URL query string)
+     * - Must have a matching closing delimiter
+     */
+    private function isValidPcrePattern(string $pattern): bool
+    {
+        // Must be at least 2 characters (delimiter + delimiter)
+        if (\strlen($pattern) < 2) {
+            return false;
+        }
+
+        $firstChar = $pattern[0];
+
+        // Skip strings starting with '?' - likely URL query strings
+        if ('?' === $firstChar) {
+            return false;
+        }
+
+        // Delimiter must be non-alphanumeric and not backslash
+        if (ctype_alnum($firstChar) || '\\' === $firstChar) {
+            return false;
+        }
+
+        // Find the expected closing delimiter
+        $closingDelimiter = $this->getClosingDelimiter($firstChar);
+
+        // Check if the pattern has a matching closing delimiter
+        // The closing delimiter should be at the end, possibly followed by modifiers
+        $lastDelimiterPos = strrpos($pattern, $closingDelimiter);
+        if (false === $lastDelimiterPos || 0 === $lastDelimiterPos) {
+            return false;
+        }
+
+        // Verify that everything after the closing delimiter is valid modifiers
+        $afterDelimiter = substr($pattern, $lastDelimiterPos + 1);
+        if ('' !== $afterDelimiter && !preg_match('/^[imsxADSUXJu]*$/', $afterDelimiter)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Get the closing delimiter for a given opening delimiter.
+     */
+    private function getClosingDelimiter(string $openingDelimiter): string
+    {
+        return match ($openingDelimiter) {
+            '(' => ')',
+            '[' => ']',
+            '{' => '}',
+            '<' => '>',
+            default => $openingDelimiter,
+        };
+    }
+
+    /**
+     * Ensure the content is valid UTF-8, attempting conversion if needed.
+     * Returns null if the content is binary or cannot be converted.
+     */
+    private function ensureValidUtf8(string $content): ?string
+    {
+        // Check if already valid UTF-8
+        if (mb_check_encoding($content, 'UTF-8')) {
+            // Check for binary control characters (null bytes indicate binary data)
+            if (str_contains($content, "\x00")) {
+                return null;
+            }
+
+            return $content;
+        }
+
+        // Try to convert from ISO-8859-1
+        $converted = mb_convert_encoding($content, 'UTF-8', 'ISO-8859-1');
+        if (\is_string($converted) && mb_check_encoding($converted, 'UTF-8')) {
+            // Check for binary control characters after conversion
+            if (str_contains($converted, "\x00")) {
+                return null;
+            }
+
+            return $converted;
+        }
+
+        // Cannot convert, skip this file
+        return null;
     }
 }
