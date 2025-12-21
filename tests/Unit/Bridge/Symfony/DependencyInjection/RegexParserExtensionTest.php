@@ -14,9 +14,8 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Unit\Bridge\Symfony\DependencyInjection;
 
 use PHPUnit\Framework\TestCase;
-use RegexParser\Bridge\Symfony\Analyzer\RouteRequirementAnalyzer;
-use RegexParser\Bridge\Symfony\Analyzer\ValidatorRegexAnalyzer;
 use RegexParser\Bridge\Symfony\DependencyInjection\RegexParserExtension;
+use RegexParser\Lint\ExtractorInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 
 final class RegexParserExtensionTest extends TestCase
@@ -28,9 +27,10 @@ final class RegexParserExtensionTest extends TestCase
 
         $extension = new RegexParserExtension();
         $extension->load([[
-            'enabled' => true,
             'max_pattern_length' => 42,
-            'cache' => '/tmp/cache',
+            'cache' => [
+                'directory' => '/tmp/cache',
+            ],
             'analysis' => [
                 'warning_threshold' => 1,
                 'redos_threshold' => 2,
@@ -39,28 +39,28 @@ final class RegexParserExtensionTest extends TestCase
         ]], $container);
 
         $this->assertSame(42, $container->getParameter('regex_parser.max_pattern_length'));
-        $this->assertSame('/tmp/cache', $container->getParameter('regex_parser.cache'));
+        $cacheConfig = (array) $container->getParameter('regex_parser.cache');
+        $this->assertSame('/tmp/cache', $cacheConfig['directory']);
         $this->assertSame(1, $container->getParameter('regex_parser.analysis.warning_threshold'));
         $this->assertSame(2, $container->getParameter('regex_parser.analysis.redos_threshold'));
         $this->assertSame(['foo'], $container->getParameter('regex_parser.analysis.ignore_patterns'));
 
         $this->assertTrue($container->hasDefinition('regex_parser.regex'));
-        $this->assertTrue($container->hasDefinition(RouteRequirementAnalyzer::class));
-        $this->assertTrue($container->hasDefinition(ValidatorRegexAnalyzer::class));
-        $this->assertTrue($container->hasDefinition('regex_parser.cache_warmer'));
-        $this->assertTrue($container->hasDefinition('regex_parser.command.validate'));
+        $this->assertTrue($container->hasDefinition('regex_parser.extractor'));
+        $this->assertTrue($container->hasDefinition('regex_parser.command.lint'));
     }
 
-    public function test_load_skips_when_disabled(): void
+    public function test_load_sets_custom_extractor_alias(): void
     {
         $container = new ContainerBuilder();
-        $container->setParameter('kernel.debug', true);
+        $container->setParameter('kernel.debug', false);
 
         $extension = new RegexParserExtension();
-        $extension->load([['enabled' => false]], $container);
+        $extension->load([[
+            'extractor_service' => 'my_custom_extractor',
+        ]], $container);
 
-        $this->assertFalse($container->hasParameter('regex_parser.max_pattern_length'));
-        $this->assertFalse($container->hasDefinition('regex_parser.regex'));
-        $this->assertFalse($container->hasDefinition(RouteRequirementAnalyzer::class));
+        $this->assertTrue($container->hasAlias(ExtractorInterface::class));
+        $this->assertSame('my_custom_extractor', (string) $container->getAlias(ExtractorInterface::class));
     }
 }

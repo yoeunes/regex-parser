@@ -66,7 +66,7 @@ final class GroupNodeTest extends TestCase
 
     public function test_accept_visitor_calls_visit_group(): void
     {
-        $child = $this->createMock(NodeInterface::class);
+        $child = $this->createStub(NodeInterface::class);
         $node = new GroupNode($child, GroupType::T_GROUP_CAPTURING, null, null, 0, 5);
         $visitor = $this->createMock(NodeVisitorInterface::class);
 

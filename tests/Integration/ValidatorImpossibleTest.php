@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
-use RegexParser\Exception\ParserException;
+use RegexParser\Exception\SemanticErrorException;
 use RegexParser\Node\CharLiteralNode;
 use RegexParser\Node\CharLiteralType;
 use RegexParser\NodeVisitor\ValidatorNodeVisitor;
@@ -29,7 +29,7 @@ final class ValidatorImpossibleTest extends TestCase
         // We pass the raw string that matches the regex check inside Validator
         $node = new CharLiteralNode('\u{110000}', 0x110000, CharLiteralType::UNICODE, 0, 0);
 
-        $this->expectException(ParserException::class);
+        $this->expectException(SemanticErrorException::class);
         $this->expectExceptionMessage('out of range');
         $node->accept($validator);
     }
@@ -41,7 +41,7 @@ final class ValidatorImpossibleTest extends TestCase
         // \o{4000000} (Too large)
         $node = new CharLiteralNode('\o{4000000}', 0x4000000, CharLiteralType::OCTAL, 0, 0);
 
-        $this->expectException(ParserException::class);
+        $this->expectException(SemanticErrorException::class);
         $this->expectExceptionMessage('Invalid octal codepoint');
         $node->accept($validator);
     }
@@ -53,7 +53,7 @@ final class ValidatorImpossibleTest extends TestCase
         // \o{9} (Invalid octal digit, but since parser validates, use large value)
         $node = new CharLiteralNode('\o{9}', 0x100, CharLiteralType::OCTAL, 0, 0);
 
-        $this->expectException(ParserException::class);
+        $this->expectException(SemanticErrorException::class);
         $this->expectExceptionMessage('Invalid octal codepoint');
         $node->accept($validator);
     }

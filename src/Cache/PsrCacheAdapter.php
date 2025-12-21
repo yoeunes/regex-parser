@@ -95,7 +95,38 @@ final readonly class PsrCacheAdapter implements RemovableCacheInterface
             return null;
         }
 
-        $value = @unserialize($serialized, ['allowed_classes' => true]);
+        $allowedClasses = [
+            \RegexParser\Node\RegexNode::class,
+            \RegexParser\Node\AlternationNode::class,
+            \RegexParser\Node\AnchorNode::class,
+            \RegexParser\Node\AssertionNode::class,
+            \RegexParser\Node\BackrefNode::class,
+            \RegexParser\Node\CalloutNode::class,
+            \RegexParser\Node\CharClassNode::class,
+            \RegexParser\Node\CharLiteralNode::class,
+            \RegexParser\Node\CharTypeNode::class,
+            \RegexParser\Node\ClassOperationNode::class,
+            \RegexParser\Node\CommentNode::class,
+            \RegexParser\Node\ConditionalNode::class,
+            \RegexParser\Node\ControlCharNode::class,
+            \RegexParser\Node\DefineNode::class,
+            \RegexParser\Node\DotNode::class,
+            \RegexParser\Node\GroupNode::class,
+            \RegexParser\Node\KeepNode::class,
+            \RegexParser\Node\LimitMatchNode::class,
+            \RegexParser\Node\LiteralNode::class,
+            \RegexParser\Node\PcreVerbNode::class,
+            \RegexParser\Node\PosixClassNode::class,
+            \RegexParser\Node\QuantifierNode::class,
+            \RegexParser\Node\RangeNode::class,
+            \RegexParser\Node\ScriptRunNode::class,
+            \RegexParser\Node\SequenceNode::class,
+            \RegexParser\Node\SubroutineNode::class,
+            \RegexParser\Node\UnicodeNode::class,
+            \RegexParser\Node\UnicodePropNode::class,
+            \RegexParser\Node\VersionConditionNode::class,
+        ];
+        $value = @unserialize($serialized, ['allowed_classes' => $allowedClasses]);
 
         return $value instanceof RegexNode ? $value : null;
     }

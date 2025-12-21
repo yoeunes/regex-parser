@@ -595,16 +595,15 @@ final class CoverageImprovementTest extends TestCase
     }
 
     /**
-     * Test Parser.getLexer() by parsing multiple patterns with same Parser instance
-     * This ensures the private getLexer() method reuses the Lexer instance
+     * Test repeated parse calls to cover lexer setup/reset paths.
      */
     #[DoesNotPerformAssertions]
     public function test_parser_get_lexer_reuse(): void
     {
-        // First parse - creates new Lexer
+        // First parse
         $this->regex->parse('/abc/');
 
-        // Second parse - should reuse Lexer via getLexer()
+        // Second parse
         $this->regex->parse('/def/');
 
         // Third parse - ensures reset works correctly

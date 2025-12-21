@@ -80,7 +80,6 @@ final readonly class FilesystemCache implements RemovableCacheInterface
         }
 
         try {
-            /* @psalm-suppress UnresolvableInclude */
             return include $key;
         } catch (\Throwable) {
             return null;

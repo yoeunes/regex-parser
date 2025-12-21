@@ -36,8 +36,8 @@ final class AlternationNodeTest extends TestCase
 
     public function test_accept_visitor_calls_visit_alternation(): void
     {
-        $alt1 = $this->createMock(NodeInterface::class);
-        $alt2 = $this->createMock(NodeInterface::class);
+        $alt1 = $this->createStub(NodeInterface::class);
+        $alt2 = $this->createStub(NodeInterface::class);
 
         $node = new AlternationNode([$alt1, $alt2], 0, 10);
         $visitor = $this->createMock(NodeVisitorInterface::class);

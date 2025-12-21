@@ -15,12 +15,12 @@ namespace RegexParser\Tests\Parser;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\ParserException;
+use RegexParser\Internal\PatternParser;
 use RegexParser\Node\AssertionNode;
 use RegexParser\Node\GroupNode;
 use RegexParser\Node\GroupType;
 use RegexParser\Node\LiteralNode;
 use RegexParser\Parser;
-use RegexParser\Regex;
 use RegexParser\Tests\TestUtils\ParserAccessor;
 use RegexParser\TokenType;
 
@@ -31,21 +31,17 @@ final class ParserUtilityTest extends TestCase
 {
     private ParserAccessor $accessor;
 
-    private Regex $regex;
-
     protected function setUp(): void
     {
         $parser = new Parser();
         $this->accessor = new ParserAccessor($parser);
-        $this->regex = Regex::create();
     }
 
     public function test_extract_pattern_handles_escaped_delimiter_in_flags(): void
     {
         // Regex: /abc\/def/i
         // The slash in the middle is escaped and must not be considered as the ending delimiter.
-        // extractPatternAndFlags is now on Regex class
-        [$pattern, $flags, $delimiter] = $this->regex->extractPatternAndFlags('/abc\/def/i');
+        [$pattern, $flags, $delimiter] = PatternParser::extractPatternAndFlags('/abc\/def/i');
 
         $this->assertSame('/', $delimiter);
         $this->assertSame('i', $flags);
@@ -55,8 +51,7 @@ final class ParserUtilityTest extends TestCase
     public function test_extract_pattern_handles_alternating_delimiters(): void
     {
         // Regex: (abc)i
-        // extractPatternAndFlags is now on Regex class
-        [$pattern, $flags, $delimiter] = $this->regex->extractPatternAndFlags('(abc)i');
+        [$pattern, $flags, $delimiter] = PatternParser::extractPatternAndFlags('(abc)i');
 
         $this->assertSame('(', $delimiter);
         $this->assertSame('i', $flags);
@@ -68,8 +63,58 @@ final class ParserUtilityTest extends TestCase
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('Unknown regex flag(s) found: "!"');
 
-        // extractPatternAndFlags is now on Regex class
-        $this->regex->extractPatternAndFlags('/abc/i!');
+        PatternParser::extractPatternAndFlags('/abc/i!');
+    }
+
+    public function test_extract_pattern_handles_leading_whitespace_with_paired_delimiter(): void
+    {
+        // Edge case: Leading whitespace + paired delimiter
+        [$pattern, $flags, $delimiter] = PatternParser::extractPatternAndFlags('  {foo}i');
+
+        $this->assertSame('{', $delimiter);
+        $this->assertSame('i', $flags);
+        $this->assertSame('foo', $pattern);
+    }
+
+    public function test_extract_pattern_handles_escaped_delimiter_near_end(): void
+    {
+        // Edge case: Escaped delimiter near the end: "/a\/b/i" should parse pattern "a\/b"
+        [$pattern, $flags, $delimiter] = PatternParser::extractPatternAndFlags('/a\/b/i');
+
+        $this->assertSame('/', $delimiter);
+        $this->assertSame('i', $flags);
+        $this->assertSame('a\\/b', $pattern);
+    }
+
+    public function test_extract_pattern_simple(): void
+    {
+        [$pattern, $flags, $delimiter] = PatternParser::extractPatternAndFlags('/foo/');
+
+        $this->assertSame('/', $delimiter);
+        $this->assertSame('', $flags);
+        $this->assertSame('foo', $pattern);
+    }
+
+    public function test_extract_pattern_handles_lots_of_backslashes_before_delimiter(): void
+    {
+        // Edge case: Lots of backslashes before delimiter: "/foo\\\\//" (even number, not escaped)
+        [$pattern, $flags, $delimiter] = PatternParser::extractPatternAndFlags('/foo\\\\//');
+
+        $this->assertSame('/', $delimiter);
+        $this->assertSame('', $flags);
+        $this->assertSame('foo\\\\/', $pattern);
+    }
+
+    public function test_extract_pattern_handles_very_long_patterns(): void
+    {
+        // Edge case: Very long patterns near max_pattern_length
+        $longPattern = str_repeat('a', 1000);
+        $regex = '/'.$longPattern.'/i';
+        [$pattern, $flags, $delimiter] = PatternParser::extractPatternAndFlags($regex);
+
+        $this->assertSame('/', $delimiter);
+        $this->assertSame('i', $flags);
+        $this->assertSame($longPattern, $pattern);
     }
 
     public function test_parse_group_name_throws_on_missing_name(): void

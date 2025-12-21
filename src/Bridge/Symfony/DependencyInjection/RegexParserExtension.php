@@ -16,15 +16,20 @@ namespace RegexParser\Bridge\Symfony\DependencyInjection;
 use RegexParser\Cache\FilesystemCache;
 use RegexParser\Cache\NullCache;
 use RegexParser\Cache\PsrCacheAdapter;
+use RegexParser\Lint\ExtractorInterface;
+use RegexParser\Lint\PhpStanExtractionStrategy;
+use RegexParser\Lint\TokenBasedExtractionStrategy;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;
+use Symfony\Component\DependencyInjection\Extension\Extension;
 use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
 use Symfony\Component\DependencyInjection\Reference;
-use Symfony\Component\HttpKernel\DependencyInjection\Extension;
 
 /**
  * Loads and manages configuration for the RegexParser bundle.
+ *
+ * @internal
  */
 final class RegexParserExtension extends Extension
 {
@@ -37,18 +42,19 @@ final class RegexParserExtension extends Extension
     #[\Override]
     public function load(array $configs, ContainerBuilder $container): void
     {
-        // Pass kernel.debug to Configuration for default values
-        $debug = (bool) $container->getParameter('kernel.debug');
-        $configuration = new Configuration($debug);
+        $configuration = new Configuration();
 
         /**
          * @var array{
-         *     enabled: bool,
          *     max_pattern_length: int,
          *     max_lookbehind_length: int,
-         *     cache: string|null,
-         *     cache_pool: string|null,
-         *     cache_prefix: string,
+         *     runtime_pcre_validation: bool,
+         *     cache: array{
+         *         pool: string|null,
+         *         directory: string|null,
+         *         prefix: string,
+         *     },
+         *     extractor_service: string|null,
          *     redos: array{
          *         threshold: string,
          *         ignored_patterns: array<int, string>,
@@ -58,33 +64,45 @@ final class RegexParserExtension extends Extension
          *         redos_threshold: int,
          *         ignore_patterns: array<int, string>,
          *     },
+         *     paths: array<int, string>,
+         *     exclude_paths: array<int, string>,
+         *     ide: string|null,
          * } $config
          */
         $config = $this->processConfiguration($configuration, $configs);
-
-        // If the bundle is disabled entirely, do nothing
-        if (!$config['enabled']) {
-            return;
-        }
 
         $ignoredPatterns = array_values(array_unique([
             ...$config['analysis']['ignore_patterns'],
             ...$config['redos']['ignored_patterns'],
         ]));
 
+        $editorFormat = $this->resolveEditorFormat($config, $container);
+
         // Set parameters
         $container->setParameter('regex_parser.max_pattern_length', $config['max_pattern_length']);
         $container->setParameter('regex_parser.max_lookbehind_length', $config['max_lookbehind_length']);
+        $container->setParameter('regex_parser.runtime_pcre_validation', $config['runtime_pcre_validation']);
         $container->setParameter('regex_parser.cache', $config['cache']);
-        $container->setParameter('regex_parser.cache_pool', $config['cache_pool']);
-        $container->setParameter('regex_parser.cache_prefix', $config['cache_prefix']);
+        $container->setParameter('regex_parser.extractor_service', $config['extractor_service']);
         $container->setParameter('regex_parser.redos.threshold', $config['redos']['threshold']);
         $container->setParameter('regex_parser.redos.ignored_patterns', $ignoredPatterns);
         $container->setParameter('regex_parser.analysis.warning_threshold', $config['analysis']['warning_threshold']);
         $container->setParameter('regex_parser.analysis.redos_threshold', $config['analysis']['redos_threshold']);
         $container->setParameter('regex_parser.analysis.ignore_patterns', $ignoredPatterns);
+        $container->setParameter('regex_parser.paths', $config['paths']);
+        $container->setParameter('regex_parser.exclude_paths', $config['exclude_paths']);
+        $container->setParameter('regex_parser.editor_format', $editorFormat);
 
         $container->setDefinition('regex_parser.cache', $this->buildCacheDefinition($config));
+
+        // Configure custom extractor service if provided
+        if (null !== $config['extractor_service'] && '' !== $config['extractor_service']) {
+            $container->setAlias(ExtractorInterface::class, $config['extractor_service']);
+        } else {
+            // Determine and register the appropriate extractor
+            $extractorDefinition = $this->createExtractorDefinition($config, $container);
+            $container->setDefinition('regex_parser.extractor.instance', $extractorDefinition);
+        }
 
         $loader = new PhpFileLoader($container, new FileLocator(__DIR__.'/../Resources/config'));
 
@@ -102,26 +120,85 @@ final class RegexParserExtension extends Extension
 
     /**
      * @param array{
-     *     cache: string|null,
-     *     cache_pool: string|null,
-     *     cache_prefix: string,
+     *     cache: array{
+     *         pool: string|null,
+     *         directory: string|null,
+     *         prefix: string,
+     *     },
      * } $config
      */
     private function buildCacheDefinition(array $config): Definition
     {
-        if (null !== $config['cache_pool'] && '' !== $config['cache_pool']) {
+        $cacheConfig = $config['cache'];
+
+        if (null !== $cacheConfig['pool'] && '' !== $cacheConfig['pool']) {
             return (new Definition(PsrCacheAdapter::class))
                 ->setArguments([
-                    new Reference((string) $config['cache_pool']),
-                    (string) $config['cache_prefix'],
+                    new Reference((string) $cacheConfig['pool']),
+                    (string) $cacheConfig['prefix'],
                 ]);
         }
 
-        if (null !== $config['cache'] && '' !== $config['cache']) {
+        if (null !== $cacheConfig['directory'] && '' !== $cacheConfig['directory']) {
             return (new Definition(FilesystemCache::class))
-                ->setArguments([(string) $config['cache']]);
+                ->setArguments([(string) $cacheConfig['directory']]);
         }
 
         return new Definition(NullCache::class);
+    }
+
+    /**
+     * Create the appropriate extractor definition based on configuration and availability.
+     *
+     * @param array{extractor_service: string|null} $config
+     */
+    private function createExtractorDefinition(array $config, ContainerBuilder $container): Definition
+    {
+        // If user provided custom extractor service, create alias
+        $extractorService = $config['extractor_service'] ?? null;
+        if (\is_string($extractorService) && '' !== $extractorService) {
+            return (new Definition(ExtractorInterface::class))
+                ->setFactory([new Reference($extractorService), '...']);
+        }
+
+        // Check if PHPStan is available and prefer it
+        if ($this->isPhpStanAvailable()) {
+            return new Definition(PhpStanExtractionStrategy::class);
+        }
+
+        // Fallback to token-based extractor
+        return new Definition(TokenBasedExtractionStrategy::class);
+    }
+
+    /**
+     * Resolve the editor format from config and container parameters.
+     *
+     * @param array{
+     *     ide: string|null,
+     * } $config
+     */
+    private function resolveEditorFormat(array $config, ContainerBuilder $container): ?string
+    {
+        $editorFormat = $config['ide'];
+
+        // Fallback to framework.ide if regex_parser.ide is not set
+        if ((null === $editorFormat || '' === $editorFormat) && $container->hasParameter('framework.ide')) {
+            $frameworkIde = $container->getParameter('framework.ide');
+            if (\is_string($frameworkIde) && '' !== $frameworkIde) {
+                $editorFormat = $frameworkIde;
+            }
+        }
+
+        return \is_string($editorFormat) && '' !== $editorFormat ? $editorFormat : null;
+    }
+
+    /**
+     * Check if PHPStan classes are available.
+     */
+    private function isPhpStanAvailable(): bool
+    {
+        return class_exists(\PHPStan\Analyser\Analyser::class)
+            && class_exists(\PHPStan\Parser\Parser::class)
+            && class_exists(\PHPStan\PhpDoc\TypeNodeResolver::class);
     }
 }

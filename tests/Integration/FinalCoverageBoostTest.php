@@ -318,7 +318,7 @@ final class FinalCoverageBoostTest extends TestCase
         $explanation = $this->regexService->explain($pattern);
         $this->assertNotEmpty($explanation);
 
-        $dump = $this->regexService->dump($pattern);
+        $dump = $this->regexService->parse($pattern)->accept(new DumperNodeVisitor());
         $this->assertNotEmpty($dump);
 
         $optimized = $this->regexService->optimize($pattern)->optimized;

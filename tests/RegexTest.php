@@ -18,6 +18,7 @@ use RegexParser\Cache\CacheInterface;
 use RegexParser\Cache\FilesystemCache;
 use RegexParser\Cache\RemovableCacheInterface;
 use RegexParser\Regex;
+use RegexParser\ValidationErrorCategory;
 
 final class RegexTest extends TestCase
 {
@@ -40,6 +41,28 @@ final class RegexTest extends TestCase
         $invalid = $regex->validate('/(abc/'); // Unclosed parenthesis
         $this->assertFalse($invalid->isValid);
         $this->assertNotNull($invalid->error);
+    }
+
+    public function test_runtime_validation_disabled_by_default(): void
+    {
+        $regex = Regex::create();
+
+        $result = $regex->validate('/(?<123>abc)/');
+
+        $this->assertTrue($result->isValid);
+    }
+
+    public function test_runtime_validation_can_be_enabled(): void
+    {
+        $regex = Regex::create(['runtime_pcre_validation' => true]);
+
+        $result = $regex->validate('/(?<123>abc)/');
+
+        $this->assertFalse($result->isValid);
+        $this->assertSame(ValidationErrorCategory::PCRE_RUNTIME, $result->category);
+        $this->assertSame('regex.pcre.runtime', $result->errorCode);
+        $this->assertStringContainsString('PCRE runtime error', (string) $result->error);
+        $this->assertSame(4, $result->offset);
     }
 
     public function test_optimize(): void

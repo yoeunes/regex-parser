@@ -15,7 +15,7 @@ namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\ParserException;
-use RegexParser\Regex;
+use RegexParser\Internal\PatternParser;
 
 final class ParserInternalErrorTest extends TestCase
 {
@@ -25,14 +25,10 @@ final class ParserInternalErrorTest extends TestCase
      */
     public function test_extract_pattern_no_delimiter(): void
     {
-        $regex = Regex::create();
-        $reflection = new \ReflectionClass($regex);
-        $method = $reflection->getMethod('extractPatternAndFlags');
-
         $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('No closing delimiter');
+        $this->expectExceptionMessage('No closing delimiter "/" found. You opened with "/"; expected closing "/". Tip: escape "/" inside the pattern (\\/) or use a different delimiter, e.g. #abcdef#.');
 
         // On passe une chaîne longue mais sans délimiteur de fin valide
-        $method->invoke($regex, '/abcdef');
+        PatternParser::extractPatternAndFlags('/abcdef');
     }
 }

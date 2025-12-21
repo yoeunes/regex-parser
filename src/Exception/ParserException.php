@@ -20,7 +20,7 @@ namespace RegexParser\Exception;
  *
  * @phpstan-consistent-constructor
  */
-class ParserException extends \Exception implements RegexParserExceptionInterface
+class ParserException extends RegexException implements RegexParserExceptionInterface
 {
     use VisualContextTrait;
 
@@ -28,7 +28,7 @@ class ParserException extends \Exception implements RegexParserExceptionInterfac
     {
         $this->initializeContext($position, $pattern);
 
-        parent::__construct($message, 0, $previous);
+        parent::__construct($message, $position, $this->getVisualSnippet(), 'parser.error', $previous);
     }
 
     public static function withContext(string $message, int $position, string $pattern, ?\Throwable $previous = null): static

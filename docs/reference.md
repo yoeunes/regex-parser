@@ -1,12 +1,14 @@
 # Regex Parser Rule Reference
 
-Regex Parser ships with a PHPStan rule (`RegexParser\Bridge\PHPStan\PregValidationRule`) that validates `preg_*` patterns for syntax issues, ReDoS risk, and common footguns. This page explains every diagnostic and links to authoritative references so you understand both the warning and how to fix it.
+Regex Parser ships with a PHPStan rule (`RegexParser\\Bridge\\PHPStan\\PregValidationRule`) that validates `preg_*` patterns for syntax issues, ReDoS risk, and common performance or readability footguns. This page explains each diagnostic in plain language and links to authoritative references so you understand both the warning and how to fix it.
+
+If you are new to PCRE-style regular expressions in PHP, you can treat this document as a guided tour of the most common mistakes the rule can detect.
 
 ## How to read this page
 - **Identifier:** matches the PHPStan rule identifier.
 - **When it triggers:** the concrete condition used by the rule.
-- **Fix it:** minimal change that removes the warning while keeping intent clear.
-- **Proof:** links to PHP.net, the PCRE2 manual, or security guidance that describe the underlying rule.
+- **Fix it:** minimal change that removes the warning while keeping the intent of the pattern clear.
+- **Read more:** links to PHP.net, the PCRE2 manual, or security guidance that describe the underlying rule in depth.
 
 ---
 
@@ -16,7 +18,7 @@ RegexParser targets **PHP’s PCRE2 engine** (`preg_*`). Validation is layered:
 
 - **Parse**: lexer + parser build a PCRE-aware AST.
 - **Semantic validation**: checks common PCRE rules (group references, branch reset numbering, lookbehind boundedness, Unicode ranges, …).
-- **PCRE runtime validation**: `Regex::validate()` also compiles the pattern via `preg_match($regex, '')` and reports failures as `pcre-runtime`.
+- **PCRE runtime validation**: optional compile check via `preg_match($regex, '')` (enable with `runtime_pcre_validation`) and report failures as `pcre-runtime`.
 
 Key behaviors that may surprise users coming from “single-pass” validators:
 
@@ -44,7 +46,7 @@ preg_match('/^user_id:\\d+$/s', $input);
 preg_match('/^user_id:\\d+$/', $input);
 ```
 
-**Proof**
+**Read more**
 - [PHP: Pattern Modifiers (`s` / DOTALL)](https://www.php.net/manual/en/reference.pcre.pattern.modifiers.php)
 - [PCRE2: Pattern Reference (inline modifiers such as `(?s)`)](https://www.pcre.org/current/doc/html/pcre2pattern.html)
 
@@ -65,7 +67,7 @@ preg_match('/search_term/m', $text);
 preg_match('/search_term/', $text);
 ```
 
-**Proof**
+**Read more**
 - [PHP: Pattern Modifiers (`m` / MULTILINE)](https://www.php.net/manual/en/reference.pcre.pattern.modifiers.php)
 - [Regular-Expressions.info: Anchors](https://www.regular-expressions.info/anchors.html)
 
@@ -86,7 +88,7 @@ preg_match('/^\\d{4}-\\d{2}-\\d{2}$/i', $date);
 preg_match('/^\\d{4}-\\d{2}-\\d{2}$/', $date);
 ```
 
-**Proof**
+**Read more**
 - [PHP: Pattern Modifiers (`i` / CASELESS)](https://www.php.net/manual/en/reference.pcre.pattern.modifiers.php)
 - [PCRE2: Case Sensitivity and Inline Modifiers](https://www.pcre.org/current/doc/html/pcre2pattern.html)
 
@@ -104,7 +106,7 @@ preg_match('/^\\d{4}-\\d{2}-\\d{2}$/', $date);
 
 **Fix it:** move anchors to the correct position, or enable multiline mode intentionally.
 
-**Proof**
+**Read more**
 - [PHP: Anchors `^` and `$`](https://www.php.net/manual/en/regexp.reference.anchors.php)
 
 ---
@@ -118,7 +120,7 @@ preg_match('/^\\d{4}-\\d{2}-\\d{2}$/', $date);
 
 **Fix it:** refactor to be deterministic, or use atomic groups / possessive quantifiers.
 
-**Proof**
+**Read more**
 - [OWASP: ReDoS](https://owasp.org/www-community/attacks/Regular_expression_Denial_of_Service_-_ReDoS)
 - [PHP: Atomic groups `(?>...)`](https://www.php.net/manual/en/regexp.reference.onlyonce.php)
 
@@ -131,7 +133,7 @@ preg_match('/^\\d{4}-\\d{2}-\\d{2}$/', $date);
 
 **Fix it:** make it atomic/possessive or replace `.*` with a more specific class.
 
-**Proof**
+**Read more**
 - [PCRE2: Performance considerations](https://www.pcre.org/current/doc/html/pcre2perform.html)
 
 ---
@@ -165,7 +167,7 @@ preg_match('/^\\d{4}-\\d{2}-\\d{2}$/', $date);
 
 **Fix it:** order longer branches first or make the alternation atomic.
 
-**Proof**
+**Read more**
 - [OWASP: ReDoS](https://owasp.org/www-community/attacks/Regular_expression_Denial_of_Service_-_ReDoS)
 
 ---
@@ -190,7 +192,7 @@ preg_match('/^\\d{4}-\\d{2}-\\d{2}$/', $date);
 
 **Fix it:** correct the codepoint or use a valid escape for your target engine.
 
-**Proof**
+**Read more**
 - [PHP: Character escapes](https://www.php.net/manual/en/regexp.reference.escape.php)
 
 ---
@@ -209,7 +211,7 @@ preg_match('/^\\d{4}-\\d{2}-\\d{2}$/', $date);
 ### Inline Flag Override
 **Identifier:** `regex.lint.flag.override`
 
-**When it triggers:** an inline flag explicitly unsets a global modifier (e.g. `/(? -i:foo)/i`).
+**When it triggers:** an inline flag explicitly unsets a global modifier (e.g. `/(?-i:foo)/i`).
 
 **Fix it:** consider scoping the global modifier instead, or document why the override is needed.
 
@@ -235,7 +237,7 @@ preg_match('/(?>a+)+$/', $input);
 preg_match('/(a++)+$/', $input);
 ```
 
-**Proof**
+**Read more**
 - [OWASP: Regular Expression Denial of Service](https://owasp.org/www-community/attacks/Regular_expression_Denial_of_Service_-_ReDoS)
 - [PCRE2: Performance Considerations](https://www.pcre.org/current/doc/html/pcre2perform.html)
 - [PHP: Backtracking Control and Limits](https://www.php.net/manual/en/regexp.reference.backtrack-control.php)
@@ -259,7 +261,7 @@ preg_match('/".*"/', $input);
 preg_match('/".*+"/', $input);
 ```
 
-**Proof**
+**Read more**
 - [PHP: Repetition and Quantifiers](https://www.php.net/manual/en/regexp.reference.repetition.php)
 - [PCRE2: Possessive Quantifiers](https://www.pcre.org/current/doc/html/pcre2pattern.html#SEC11)
 
@@ -280,7 +282,7 @@ preg_match('/(a+)+!/', $input);
 preg_match('/(?>a+)+!/', $input);
 ```
 
-**Proof**
+**Read more**
 - [PHP: Atomic Grouping `(?>...)`](https://www.php.net/manual/en/regexp.reference.onlyonce.php)
 - [PCRE2: Atomic Groups](https://www.pcre.org/current/doc/html/pcre2pattern.html#SEC12)
 
@@ -301,6 +303,97 @@ preg_match('/^[A-Z]{2}(?=\\d$)/', $input);
 preg_match('/(?<=ID-)\\d+/', $input);
 ```
 
-**Proof**
+**Read more**
 - [PHP: Assertions (Lookahead/Lookbehind)](https://www.php.net/manual/en/regexp.reference.assertions.php)
 - [PCRE2: Lookaround Assertions](https://www.pcre.org/current/doc/html/pcre2pattern.html#SEC23)
+
+---
+
+## Compatibility & Limitations
+
+### Supported PHP Versions
+- PHP 8.2 and above (uses readonly classes and enum features).
+
+### Target Engine
+- **PCRE2** via PHP's `preg_*` functions.
+- Notes on differences from PCRE1 or other engines:
+  - Full Unicode support with `\p{...}` and `\P{...}`.
+  - `\g{0}` recursion supported; `\g<0>` preferred for clarity.
+  - Branch reset groups `(?|...)` fully implemented with correct capture numbering.
+
+### Known Not-Supported Constructs
+- None by v1.0; aims for full PCRE2 compliance.
+- If you encounter a pattern that PHP accepts but RegexParser rejects, please report it.
+
+---
+
+## Diagnostics Catalog
+
+| Error Code | Message Template | Meaning | Fix Example |
+|------------|------------------|---------|-------------|
+| `regex.backref.missing_group` | Backreference to non-existent group: "{ref}" | A backreference points to a group number or name that doesn't exist. | Change `\2` to `\1` if only one group exists. |
+| `regex.backref.missing_named_group` | Backreference to non-existent named group: "{name}" | Named backreference refers to a group not defined in the pattern. | Ensure `(?<name>...)` precedes `\k<name>`. |
+| `regex.backref.zero` | Backreference \0 is not valid. | `\0` is not a valid backreference in PCRE. | Use `\g<0>` for whole-pattern recursion. |
+| `regex.group.duplicate_name` | Duplicate group name "{name}" at position {pos}. | Named groups must have unique names unless J flag is set. | Use different names or add `(?J)` for duplicate names. |
+| `regex.quantifier.invalid_range` | Invalid quantifier range "{quant}": min > max. | Quantifier minimum exceeds maximum. | Fix `{3,2}` to `{2,3}`. |
+| `regex.syntax.delimiter` | Invalid delimiter "{delim}". | Delimiter not allowed. | Use `/pattern/` instead of `!pattern!` if `!` is invalid. |
+| `regex.semantic` | Various semantic errors. | Pattern violates PCRE rules (e.g., unbounded lookbehind). | Add bounds to lookbehind or use assertions. |
+
+---
+
+## Output Formats
+
+### JSON Format for CI/IDE Integration
+
+When using `--format=json` with the lint command, output follows this schema:
+
+```json
+{
+  "stats": {
+    "errors": 1,
+    "warnings": 0,
+    "optimizations": 1
+  },
+  "results": [
+    {
+      "file": "src/Example.php",
+      "line": 15,
+      "pattern": "/(a)\\2/",
+      "location": null,
+      "issues": [
+        {
+          "type": "error",
+          "message": "Backreference to non-existent group: \\2",
+          "line": 15,
+          "column": 20,
+          "issueId": "regex.backref.missing_group"
+        }
+      ],
+      "optimizations": [
+        {
+          "file": "src/Example.php",
+          "line": 15,
+          "optimization": {
+            "original": "/[0-9]+/",
+            "optimized": "/\\d+/"
+          },
+          "savings": 2
+        }
+      ]
+    }
+  ]
+}
+```
+
+- `stats`: Totals for the entire run (`errors`, `warnings`, `optimizations`).
+- `results[]`: One entry per pattern occurrence (file + line).
+- `results[].issues[]`: Array of diagnostic issues.
+  - `type`: "error" | "warning"
+  - `message`: Human-readable description
+  - `line`, `column`: Position in source file
+  - `issueId`: Diagnostic identifier (when available)
+- `results[].optimizations[]`: Suggested optimizations.
+  - `optimization`: Object with `original` and `optimized` strings
+  - `savings`: Character savings count
+
+Additional fields may be present for detailed analysis (e.g., validation or ReDoS metadata).

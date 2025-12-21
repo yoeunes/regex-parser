@@ -15,6 +15,7 @@ namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
+use RegexParser\NodeVisitor\DumperNodeVisitor;
 use RegexParser\Regex;
 
 /**
@@ -228,7 +229,7 @@ final class SymfonyIntegrationTest extends TestCase
     {
         // Symfony security teams can use detailed ReDoS analysis
         $pattern = '/(a+)+b/';
-        $analysis = $this->regex->analyzeReDoS($pattern);
+        $analysis = $this->regex->redos($pattern);
 
         $this->assertFalse($analysis->isSafe());
         $this->assertIsArray($analysis->recommendations);
@@ -240,7 +241,7 @@ final class SymfonyIntegrationTest extends TestCase
     {
         // Symfony apps can optimize database queries using literal extraction
         $pattern = '/^ERROR: /';
-        $literals = $this->regex->extractLiterals($pattern);
+        $literals = $this->regex->literals($pattern);
         $prefix = $literals->literalSet->getLongestPrefix();
 
         $this->assertSame('ERROR: ', $prefix);
@@ -362,7 +363,7 @@ final class SymfonyIntegrationTest extends TestCase
     {
         // Developers can dump AST for debugging in Symfony profiler
         $pattern = '/^test$/';
-        $dump = $this->regex->dump($pattern);
+        $dump = $this->regex->parse($pattern)->accept(new DumperNodeVisitor());
 
         $this->assertIsString($dump);
         $this->assertNotEmpty($dump);
@@ -385,9 +386,9 @@ final class SymfonyIntegrationTest extends TestCase
         $this->regex->explain($pattern);
 
         // 4. Check security (ReDoS)
-        $this->regex->analyzeReDoS($pattern);
+        $this->regex->redos($pattern);
 
         // 5. Extract literals (optimization)
-        $this->regex->extractLiterals($pattern);
+        $this->regex->literals($pattern);
     }
 }

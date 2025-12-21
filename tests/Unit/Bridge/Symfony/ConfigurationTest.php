@@ -23,13 +23,17 @@ final class ConfigurationTest extends TestCase
     public function test_default_configuration(): void
     {
         $processor = new Processor();
-        $configuration = new Configuration(false);
+        $configuration = new Configuration();
 
         /**
          * @var array{
-         *     enabled: bool,
          *     max_pattern_length: int,
-         *     cache: string|null,
+         *     cache: array{
+         *         pool: string|null,
+         *         directory: string|null,
+         *         prefix: string,
+         *     },
+         *     extractor_service: string|null,
          *     analysis: array{
          *         warning_threshold: int,
          *         redos_threshold: int,
@@ -39,9 +43,11 @@ final class ConfigurationTest extends TestCase
          */
         $config = $processor->processConfiguration($configuration, []);
 
-        $this->assertFalse($config['enabled']);
         $this->assertSame(Regex::DEFAULT_MAX_PATTERN_LENGTH, $config['max_pattern_length']);
-        $this->assertNull($config['cache']);
+        $this->assertNull($config['cache']['pool']);
+        $this->assertNull($config['cache']['directory']);
+        $this->assertSame('regex_', $config['cache']['prefix']);
+        $this->assertNull($config['extractor_service']);
         $this->assertSame(50, $config['analysis']['warning_threshold']);
         $this->assertSame(100, $config['analysis']['redos_threshold']);
         $this->assertSame([], $config['analysis']['ignore_patterns']);
@@ -50,13 +56,17 @@ final class ConfigurationTest extends TestCase
     public function test_custom_configuration(): void
     {
         $processor = new Processor();
-        $configuration = new Configuration(true);
+        $configuration = new Configuration();
 
         /**
          * @var array{
-         *     enabled: bool,
          *     max_pattern_length: int,
-         *     cache: string|null,
+         *     cache: array{
+         *         pool: string|null,
+         *         directory: string|null,
+         *         prefix: string,
+         *     },
+         *     extractor_service: string|null,
          *     analysis: array{
          *         warning_threshold: int,
          *         redos_threshold: int,
@@ -65,9 +75,11 @@ final class ConfigurationTest extends TestCase
          * } $config
          */
         $config = $processor->processConfiguration($configuration, [[
-            'enabled' => true,
             'max_pattern_length' => 10,
-            'cache' => '/tmp/cache',
+            'cache' => [
+                'directory' => '/tmp/cache',
+            ],
+            'extractor_service' => 'my_custom_extractor',
             'analysis' => [
                 'warning_threshold' => 1,
                 'redos_threshold' => 2,
@@ -77,9 +89,9 @@ final class ConfigurationTest extends TestCase
 
         /*
          * @var array{
-         *     enabled: bool,
          *     max_pattern_length: int,
          *     cache: string|null,
+         *     extractor_service: string|null,
          *     analysis: array{
          *         warning_threshold: int,
          *         redos_threshold: int,
@@ -88,11 +100,12 @@ final class ConfigurationTest extends TestCase
          * } $config
          */
 
-        $this->assertTrue($config['enabled']);
         $this->assertSame(10, $config['max_pattern_length']);
-        $this->assertSame('/tmp/cache', $config['cache']);
-        $this->assertSame(['foo', 'bar'], $config['analysis']['ignore_patterns']);
-        $this->assertSame(1, $config['analysis']['warning_threshold']);
-        $this->assertSame(2, $config['analysis']['redos_threshold']);
+        $cacheConfig = $config['cache'];
+        $this->assertSame('/tmp/cache', $cacheConfig['directory']);
+        $this->assertSame('my_custom_extractor', $config['extractor_service'] ?? 'should_not_exist');
+        $this->assertSame(['foo', 'bar'], $config['analysis']['ignore_patterns'] ?? []);
+        $this->assertSame(1, $config['analysis']['warning_threshold'] ?? 0);
+        $this->assertSame(2, $config['analysis']['redos_threshold'] ?? 'high');
     }
 }

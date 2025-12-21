@@ -32,13 +32,15 @@ final class AdditionalCoverageBoostTest extends TestCase
     }
 
     /**
-     * Test unsupported (?P=name) backref syntax - should throw exception
+     * Test supported (?P=name) backref syntax
      */
     public function test_unsupported_python_backref_syntax(): void
     {
-        $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('Backreferences (?P=name) are not supported yet');
-        $this->parseRegex('/(?<foo>a)(?P=foo)/');
+        $ast = $this->parseRegex('/(?<foo>a)(?P=foo)/');
+        $this->assertInstanceOf(\RegexParser\Node\SequenceNode::class, $ast->pattern);
+        $backref = $ast->pattern->children[1];
+        $this->assertInstanceOf(\RegexParser\Node\BackrefNode::class, $backref);
+        $this->assertSame('\k<foo>', $backref->ref);
     }
 
     /**

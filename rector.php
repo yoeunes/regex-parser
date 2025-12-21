@@ -24,20 +24,7 @@ return static function (RectorConfig $rectorConfig): void {
     $rectorConfig->paths([
         __DIR__.'/src',
         __DIR__.'/tests',
-        __DIR__.'/config',
         __DIR__.'/bin',
-    ]);
-
-    $rectorConfig->skip([
-        __DIR__.'/src/Lexer.php',
-        __DIR__.'/tests/Fixtures/pcre_patterns.php',
-        __DIR__.'/tests/Unit/Bridge/Rector/RegexOptimizationRectorTest.php',
-        __DIR__.'/tests/Unit/Bridge/Symfony/Command/RegexParserValidateCommandTest.php',
-        __DIR__.'/tests/Unit/Bridge/Symfony/RegexParserBundleTest.php',
-        __DIR__.'/tests/Unit/ValidationResultTest.php',
-        __DIR__.'/tests/NodeVisitor/LengthRangeNodeVisitorTest.php',
-        __DIR__.'/tests/NodeVisitor/TestCaseGeneratorNodeVisitorTest.php',
-        __DIR__.'/tests/Bridge/Psalm/PregValidationHandlerTest.php',
     ]);
 
     // $rectorConfig->import(__DIR__.'/config/rector/regex-parser.php');

@@ -15,24 +15,17 @@ namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\LexerException;
-use RegexParser\Regex;
+use RegexParser\Lexer;
 use RegexParser\TokenType;
 
 final class LexerCommentTest extends TestCase
 {
-    private Regex $regexService;
-
-    protected function setUp(): void
-    {
-        $this->regexService = Regex::create();
-    }
-
     /**
      * Tests an empty comment (?#)
      */
     public function test_lexer_empty_comment(): void
     {
-        $tokens = $this->regexService->getLexer()->tokenize('/(?#)/')->getTokens();
+        $tokens = (new Lexer())->tokenize('/(?#)/')->getTokens();
 
         // Must contain: /, (?#, ), /, EOF
         $this->assertCount(5, $tokens);
@@ -50,7 +43,7 @@ final class LexerCommentTest extends TestCase
         $this->expectException(LexerException::class);
         $this->expectExceptionMessage('Unclosed comment ")" at end of input');
 
-        $this->regexService->getLexer()->tokenize('/(?#oups');
+        (new Lexer())->tokenize('/(?#oups');
     }
 
     /**
@@ -58,7 +51,7 @@ final class LexerCommentTest extends TestCase
      */
     public function test_lexer_comment_content(): void
     {
-        $tokens = $this->regexService->getLexer()->tokenize('/(?# hello world )/')->getTokens();
+        $tokens = (new Lexer())->tokenize('/(?# hello world )/')->getTokens();
 
         // Token 0: /
         // Token 1: (?#

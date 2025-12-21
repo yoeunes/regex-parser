@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
+use RegexParser\Exception\SemanticErrorException;
 use RegexParser\Node\BackrefNode;
 use RegexParser\Node\CharClassNode;
 use RegexParser\Node\CharLiteralNode;
@@ -66,7 +67,7 @@ final class VisitorFallbackTest extends TestCase
         $node = new BackrefNode('BAD-REF', 0, 0);
         $validator = new ValidatorNodeVisitor();
 
-        $this->expectException(\RegexParser\Exception\ParserException::class);
+        $this->expectException(SemanticErrorException::class);
         $this->expectExceptionMessage('Invalid backreference syntax');
 
         $node->accept($validator);
@@ -78,7 +79,7 @@ final class VisitorFallbackTest extends TestCase
         // But currently, parts (Literals/Ranges) are never optimized, so this block is dead code.
         // We force it by mocking a NodeInterface that returns a DIFFERENT instance when visited.
 
-        $mockPart = $this->createMock(NodeInterface::class);
+        $mockPart = $this->createStub(NodeInterface::class);
         $mockPart
             ->method('accept')
             ->willReturn(new LiteralNode('changed', 0, 0)); // Return different instance

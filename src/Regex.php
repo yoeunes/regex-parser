@@ -18,422 +18,511 @@ use RegexParser\Cache\NullCache;
 use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
 use RegexParser\Exception\ResourceLimitException;
+use RegexParser\Internal\PatternParser;
 use RegexParser\Node\RegexNode;
 use RegexParser\ReDoS\ReDoSAnalysis;
 use RegexParser\ReDoS\ReDoSAnalyzer;
 use RegexParser\ReDoS\ReDoSSeverity;
 
+/**
+ * Main entry point for the RegexParser library.
+ *
+ * Provides an API for parsing, validating, optimizing, and analyzing
+ * regular expressions with comprehensive error handling and caching support.
+ */
 final readonly class Regex
 {
+    /**
+     * Cache version for AST serialization.
+     * Bump this when AST structure changes.
+     */
+    public const CACHE_VERSION = 2;
+
+    /**
+     * Default maximum allowed regex pattern length.
+     */
     public const DEFAULT_MAX_PATTERN_LENGTH = 100_000;
+
+    /**
+     * Default maximum allowed lookbehind length.
+     */
     public const DEFAULT_MAX_LOOKBEHIND_LENGTH = 255;
 
     /**
-     * @param array<string> $redosIgnoredPatterns
+     * Create a new Regex instance with the specified configuration.
+     *
+     * @param int            $maxPatternLength     Maximum allowed pattern length
+     * @param int            $maxLookbehindLength  Maximum allowed lookbehind length
+     * @param CacheInterface $cache                Cache implementation for parsed patterns
+     * @param array<string>  $redosIgnoredPatterns Patterns to ignore in ReDoS analysis
      */
     private function __construct(
         private int $maxPatternLength,
         private int $maxLookbehindLength,
         private CacheInterface $cache,
         private array $redosIgnoredPatterns,
+        private bool $runtimePcreValidation,
     ) {}
 
     /**
-     * @param array<string, mixed> $options
+     * Create a new Regex instance with optional configuration.
+     *
+     * Instances are not memoized; use Regex::new() for the same behavior.
+     *
+     * @param array<string, mixed> $options Configuration options
+     *
+     * @return self New Regex instance
      */
     public static function create(array $options = []): self
     {
-        $parsedOptions = RegexOptions::fromArray($options);
-
-        $redosIgnoredPatterns = $parsedOptions->redosIgnoredPatterns;
+        $configuration = RegexOptions::fromArray($options);
 
         return new self(
-            $parsedOptions->maxPatternLength,
-            $parsedOptions->maxLookbehindLength,
-            $parsedOptions->cache,
-            $redosIgnoredPatterns,
+            $configuration->maxPatternLength,
+            $configuration->maxLookbehindLength,
+            $configuration->cache,
+            $configuration->redosIgnoredPatterns,
+            $configuration->runtimePcreValidation,
         );
     }
 
-    public function parse(string $regex): RegexNode
+    /**
+     * Parse a regular expression pattern with separate flags and delimiter.
+     *
+     * @param string $pattern   The regex pattern body
+     * @param string $flags     The regex flags
+     * @param string $delimiter The regex delimiter
+     *
+     * @return RegexNode Parsed AST
+     */
+    public function parsePattern(string $pattern, string $flags = '', string $delimiter = '/'): RegexNode
     {
-        $ast = $this->doParse($regex, false);
-
-        return $ast instanceof RegexNode ? $ast : $ast->ast;
-    }
-
-    public function parseTolerant(string $regex): TolerantParseResult
-    {
-        $result = $this->doParse($regex, true);
-
-        return $result instanceof TolerantParseResult ? $result : new TolerantParseResult($result);
-    }
-
-    public function parsePattern(string $pattern, string $delimiter = '/', string $flags = ''): RegexNode
-    {
-        if (1 !== \strlen($delimiter) || ctype_alnum($delimiter)) {
-            throw new ParserException('Delimiter must be a single non-alphanumeric character.');
-        }
-
         $regex = $delimiter.$pattern.$delimiter.$flags;
 
-        return $this->parse($regex);
+        return $this->parse($regex, false);
     }
 
+    /**
+     * Perform comprehensive analysis of a regex pattern.
+     *
+     * @param string $regex The regular expression to analyze
+     *
+     * @return AnalysisReport Complete analysis report
+     */
+    public function analyze(string $regex): AnalysisReport
+    {
+        $errors = [];
+        $isValid = true;
+
+        $validation = $this->validate($regex);
+        if (!$validation->isValid) {
+            $isValid = false;
+            if (null !== $validation->error && '' !== $validation->error) {
+                $errors[] = $validation->error;
+            }
+        }
+
+        $lintIssues = [];
+        $highlighted = '';
+        $explain = '';
+        $optimizations = new OptimizationResult($regex, $regex, []);
+
+        $redos = $this->redos($regex);
+
+        if ($isValid) {
+            try {
+                $ast = $this->parse($regex, false);
+                $linter = new NodeVisitor\LinterNodeVisitor();
+                $ast->accept($linter);
+                $lintIssues = $linter->getIssues();
+            } catch (\Throwable $e) {
+                $errors[] = $e->getMessage();
+                $isValid = false;
+            }
+
+            try {
+                $optimizations = $this->optimize($regex);
+            } catch (\Throwable $e) {
+                $errors[] = $e->getMessage();
+                $isValid = false;
+            }
+
+            try {
+                $explain = $this->explain($regex);
+            } catch (\Throwable $e) {
+                $errors[] = $e->getMessage();
+                $isValid = false;
+            }
+
+            try {
+                $highlighted = $this->highlight($regex);
+            } catch (\Throwable $e) {
+                $errors[] = $e->getMessage();
+                $isValid = false;
+            }
+        }
+
+        return new AnalysisReport(
+            $isValid,
+            $errors,
+            $lintIssues,
+            $redos,
+            $optimizations,
+            $explain,
+            $highlighted,
+        );
+    }
+
+    /**
+     * Create a new Regex instance without memoization.
+     *
+     * @param array<string, mixed> $options Configuration options
+     *
+     * @return self New Regex instance
+     */
+    public static function new(array $options = []): self
+    {
+        return self::create($options);
+    }
+
+    /**
+     * Parse a regular expression into an Abstract Syntax Tree (AST).
+     *
+     * @param string $regex    The regular expression to parse
+     * @param bool   $tolerant Whether to return a tolerant result on parse errors
+     *
+     * @return ($tolerant is true ? TolerantParseResult : RegexNode) Parsed AST or tolerant result
+     */
+    public function parse(string $regex, bool $tolerant = false): RegexNode|TolerantParseResult
+    {
+        try {
+            $ast = $this->doParse($regex);
+
+            return $tolerant ? new TolerantParseResult($ast) : $ast;
+        } catch (LexerException|ParserException $parseException) {
+            if (!$tolerant) {
+                throw $parseException;
+            }
+
+            $fallbackAst = $this->buildFallbackAstFromException($parseException, $regex);
+
+            return new TolerantParseResult($fallbackAst, [$parseException]);
+        }
+    }
+
+    /**
+     * Validate a regular expression and return detailed validation results.
+     *
+     * @param string $regex The regular expression to validate
+     *
+     * @return ValidationResult Detailed validation result
+     */
     public function validate(string $regex): ValidationResult
     {
         try {
-            $pattern = null;
+            $extractedPattern = $this->extractPatternSafely($regex);
+            $ast = $this->parse($regex, false);
 
-            try {
-                [$pattern] = $this->extractPatternAndFlags($regex);
-            } catch (ParserException) {
+            $this->validateAst($ast, $extractedPattern);
+            $complexityScore = $this->calculateComplexity($ast);
+
+            if ($this->runtimePcreValidation) {
+                $runtimeResult = $this->checkRuntimeCompilation($regex, $extractedPattern, $complexityScore);
+                if (null !== $runtimeResult) {
+                    return $runtimeResult;
+                }
             }
 
-            $ast = $this->parse($regex);
-            $ast->accept(new NodeVisitor\ValidatorNodeVisitor($this->maxLookbehindLength, $pattern));
-            $score = $ast->accept(new NodeVisitor\ComplexityScoreNodeVisitor());
-
-            $this->validatePcreRuntime($regex, $pattern);
-
-            return new ValidationResult(true, null, $score);
-        } catch (LexerException|ParserException $e) {
-            $message = $e->getMessage();
-            $snippet = $e->getVisualSnippet();
-            $hint = null;
-            $code = null;
-            $category = ValidationErrorCategory::SYNTAX;
-
-            if ($e instanceof Exception\SemanticErrorException) {
-                $category = ValidationErrorCategory::SEMANTIC;
-                $hint = $e->getHint();
-                $code = $e->getErrorCode();
-            }
-
-            if ($e instanceof Exception\PcreRuntimeException) {
-                $category = ValidationErrorCategory::PCRE_RUNTIME;
-                $code = $e->getErrorCode();
-            }
-
-            if ('' !== $snippet) {
-                $message .= "\n".$snippet;
-            }
-
-            return new ValidationResult(
-                false,
-                $message,
-                0,
-                $category,
-                $e->getPosition(),
-                '' !== $snippet ? $snippet : null,
-                $hint,
-                $code,
-            );
+            return new ValidationResult(true, null, $complexityScore);
+        } catch (\Throwable $e) {
+            return $this->buildValidationFailure($e);
         }
-    }
-
-    public function isValid(string $regex): bool
-    {
-        return $this->validate($regex)->isValid();
-    }
-
-    public function assertValid(string $regex): void
-    {
-        $result = $this->validate($regex);
-        if (!$result->isValid()) {
-            $message = $result->getErrorMessage() ?? 'Invalid regex pattern.';
-            $offset = $result->getErrorOffset();
-            $pattern = null;
-
-            try {
-                [$pattern] = $this->extractPatternAndFlags($regex);
-            } catch (ParserException) {
-                $pattern = null;
-            }
-
-            if (ValidationErrorCategory::SEMANTIC === $result->getErrorCategory()) {
-                throw new Exception\SemanticErrorException(
-                    $message,
-                    $offset,
-                    $pattern,
-                    null,
-                    $result->getErrorCode() ?? 'regex.semantic',
-                    $result->getHint(),
-                );
-            }
-
-            if (ValidationErrorCategory::PCRE_RUNTIME === $result->getErrorCategory()) {
-                throw new Exception\PcreRuntimeException(
-                    $message,
-                    $offset,
-                    $pattern,
-                    null,
-                    $result->getErrorCode(),
-                );
-            }
-
-            throw new ParserException($message, $offset, $pattern);
-        }
-    }
-
-    public function analyzeReDoS(string $regex, ?ReDoSSeverity $threshold = null): ReDoSAnalysis
-    {
-        return (new ReDoSAnalyzer($this, array_values($this->redosIgnoredPatterns)))->analyze($regex, $threshold);
-    }
-
-    public function isSafe(string $regex, ?ReDoSSeverity $threshold = null): bool
-    {
-        $analysis = $this->analyzeReDoS($regex, $threshold);
-
-        return null === $threshold ? $analysis->isSafe() : !$analysis->exceedsThreshold($threshold);
     }
 
     /**
-     * @return array{0: int, 1: int|null}
+     * Analyze a regular expression for potential ReDoS (Regular Expression Denial of Service) vulnerabilities.
+     *
+     * @param string             $regex     The regular expression to analyze
+     * @param ReDoSSeverity|null $threshold Minimum severity level to report
+     *
+     * @return ReDoSAnalysis Detailed ReDoS analysis results
      */
-    public function getLengthRange(string $regex)
+    public function redos(string $regex, ?ReDoSSeverity $threshold = null): ReDoSAnalysis
     {
-        return $this->parse($regex)->accept(new NodeVisitor\LengthRangeNodeVisitor());
+        $analyzer = new ReDoSAnalyzer($this, array_values($this->redosIgnoredPatterns));
+
+        return $analyzer->analyze($regex, $threshold);
     }
 
-    public function extractLiterals(string $regex): LiteralExtractionResult
+    /**
+     * Extract literal strings from a regular expression pattern.
+     *
+     * @param string $regex The regular expression to analyze
+     *
+     * @return LiteralExtractionResult Extracted literals and search patterns
+     */
+    public function literals(string $regex): LiteralExtractionResult
     {
-        $literalSet = $this->parse($regex)->accept(new NodeVisitor\LiteralExtractorNodeVisitor());
-        $literals = array_values(array_unique(array_merge($literalSet->prefixes, $literalSet->suffixes)));
-        $patterns = [];
+        $ast = $this->parse($regex, false);
 
-        foreach ($literalSet->prefixes as $prefix) {
-            if ('' !== $prefix) {
-                $patterns[] = '^'.preg_quote($prefix, '/');
-            }
-        }
+        $literalSet = $ast->accept(new NodeVisitor\LiteralExtractorNodeVisitor());
 
-        foreach ($literalSet->suffixes as $suffix) {
-            if ('' !== $suffix) {
-                $patterns[] = preg_quote($suffix, '/').'$';
-            }
-        }
+        $uniqueLiterals = $this->extractUniqueLiterals($literalSet);
+        $searchPatterns = $this->buildSearchPatterns($literalSet);
+        $confidenceLevel = $this->determineConfidenceLevel($literalSet);
 
-        $patterns = array_values(array_unique($patterns));
-
-        $confidence = $literalSet->complete && !$literalSet->isVoid()
-            ? 'high'
-            : (!$literalSet->isVoid() ? 'medium' : 'low');
-
-        return new LiteralExtractionResult($literals, $patterns, $confidence, $literalSet);
+        return new LiteralExtractionResult($uniqueLiterals, $searchPatterns, $confidenceLevel, $literalSet);
     }
 
-    public function optimize(string $regex): OptimizationResult
+    /**
+     * Optimize a regular expression for better performance.
+     *
+     * @param string                                                 $regex   The regular expression to optimize
+     * @param array{digits?: bool, word?: bool, strictRanges?: bool} $options Optimization options
+     *
+     * @return OptimizationResult Optimization results with changes applied
+     */
+    public function optimize(string $regex, array $options = []): OptimizationResult
     {
-        $optimized = $this->transformAndCompile($regex, new NodeVisitor\OptimizerNodeVisitor());
-        $changes = $optimized === $regex ? [] : ['Optimized pattern.'];
+        $optimizer = new NodeVisitor\OptimizerNodeVisitor(
+            optimizeDigits: (bool) ($options['digits'] ?? true),
+            optimizeWord: (bool) ($options['word'] ?? true),
+            strictRanges: (bool) ($options['strictRanges'] ?? true),
+        );
+        $optimizedPattern = $this->compile($regex, $optimizer);
+        $appliedChanges = $optimizedPattern === $regex ? [] : ['Optimized pattern.'];
 
-        return new OptimizationResult($regex, $optimized, $changes);
+        return new OptimizationResult($regex, $optimizedPattern, $appliedChanges);
     }
 
-    public function modernize(string $regex): string
-    {
-        return $this->transformAndCompile($regex, new NodeVisitor\ModernizerNodeVisitor());
-    }
-
+    /**
+     * Generate a sample string that matches the regular expression.
+     *
+     * @param string $regex The regular expression to generate a sample for
+     *
+     * @return string Generated sample string
+     */
     public function generate(string $regex): string
     {
-        return $this->parse($regex)->accept(new NodeVisitor\SampleGeneratorNodeVisitor());
+        $ast = $this->parse($regex, false);
+
+        return $ast->accept(new NodeVisitor\SampleGeneratorNodeVisitor());
     }
 
-    public function generateTestCases(string $regex): TestCaseGenerationResult
+    /**
+     * Generate a human-readable explanation of the regular expression.
+     *
+     * @param string $regex  The regular expression to explain
+     * @param string $format Output format ('text' or 'html')
+     *
+     * @return string Formatted explanation
+     */
+    public function explain(string $regex, string $format = 'text'): string
     {
-        $cases = $this->parse($regex)->accept(new NodeVisitor\TestCaseGeneratorNodeVisitor());
+        $explanationVisitor = $this->createExplanationVisitor($format);
 
-        return new TestCaseGenerationResult(
-            array_values($cases['matching']),
-            array_values($cases['non_matching']),
-            ['Generated samples are heuristic; validate with real inputs.'],
+        $ast = $this->parse($regex, false);
+
+        return $ast->accept($explanationVisitor);
+    }
+
+    /**
+     * Highlight a regex for console or HTML output.
+     *
+     * @param string $regex  The regular expression to highlight
+     * @param string $format Output format ('console' or 'html')
+     */
+    public function highlight(string $regex, string $format = 'console'): string
+    {
+        $ast = $this->parse($regex, false);
+
+        $visitor = 'html' === $format
+            ? new NodeVisitor\HtmlHighlighterVisitor()
+            : new NodeVisitor\ConsoleHighlighterVisitor();
+
+        return $ast->accept($visitor);
+    }
+
+    /**
+     * Get the list of allowed classes for unserialization.
+     *
+     * @return list<class-string>
+     */
+    private static function getAllowedClasses(): array
+    {
+        return [
+            // Node classes
+            Node\RegexNode::class,
+            Node\AlternationNode::class,
+            Node\AnchorNode::class,
+            Node\AssertionNode::class,
+            Node\BackrefNode::class,
+            Node\CalloutNode::class,
+            Node\CharClassNode::class,
+            Node\CharLiteralNode::class,
+            Node\CharTypeNode::class,
+            Node\ClassOperationNode::class,
+            Node\CommentNode::class,
+            Node\ConditionalNode::class,
+            Node\ControlCharNode::class,
+            Node\DefineNode::class,
+            Node\DotNode::class,
+            Node\GroupNode::class,
+            Node\KeepNode::class,
+            Node\LimitMatchNode::class,
+            Node\LiteralNode::class,
+            Node\PcreVerbNode::class,
+            Node\PosixClassNode::class,
+            Node\QuantifierNode::class,
+            Node\RangeNode::class,
+            Node\ScriptRunNode::class,
+            Node\SequenceNode::class,
+            Node\SubroutineNode::class,
+            Node\UnicodeNode::class,
+            Node\UnicodePropNode::class,
+            Node\VersionConditionNode::class,
+        ];
+    }
+
+    /**
+     * Checks runtime compilation by attempting to use the pattern with preg_match and capturing warnings.
+     */
+    private function checkRuntimeCompilation(
+        string $regex,
+        ?string $pattern,
+        int $complexityScore,
+    ): ?ValidationResult {
+        $warning = null;
+
+        set_error_handler(static function (int $errno, string $errstr) use (&$warning): bool {
+            if (\E_WARNING === $errno) {
+                $warning = $errstr;
+            }
+
+            return true;
+        });
+
+        try {
+            $result = preg_match($regex, '');
+        } finally {
+            restore_error_handler();
+        }
+
+        if (false !== $result && null === $warning) {
+            return null;
+        }
+
+        $message = $this->normalizeRuntimeErrorMessage($warning ?? preg_last_error_msg());
+        if ('' === $message || 'No error' === $message) {
+            $message = 'PCRE runtime error.';
+        }
+
+        $offset = $this->extractOffsetFromMessage($message);
+        $snippet = $this->buildVisualSnippet($pattern, $offset);
+        $fullMessage = 'PCRE runtime error: '.$message;
+        if ('' !== $snippet) {
+            $fullMessage .= "\n".$snippet;
+        }
+
+        return new ValidationResult(
+            false,
+            $fullMessage,
+            $complexityScore,
+            ValidationErrorCategory::PCRE_RUNTIME,
+            $offset,
+            '' !== $snippet ? $snippet : null,
+            null,
+            'regex.pcre.runtime',
         );
     }
 
-    public function visualize(string $regex): VisualizationResult
+    private function normalizeRuntimeErrorMessage(string $message): string
     {
-        $mermaid = $this->parse($regex)->accept(new NodeVisitor\MermaidNodeVisitor());
+        $normalized = preg_replace('/^preg_[a-z_]+\\(\\):\\s*/i', '', $message) ?? $message;
 
-        return new VisualizationResult($mermaid);
+        return trim($normalized);
     }
 
-    public function dump(string $regex): string
+    private function extractOffsetFromMessage(string $message): ?int
     {
-        return $this->parse($regex)->accept(new NodeVisitor\DumperNodeVisitor());
-    }
-
-    public function highlight(string $regex, string $format = 'auto'): string
-    {
-        if ('auto' === $format) {
-            $format = $this->isCli() ? 'cli' : 'html';
+        if (preg_match('/\\b(?:at offset|offset)\\s+(\\d+)/i', $message, $matches)) {
+            return (int) $matches[1];
         }
 
-        $visitor = match ($format) {
-            'cli' => new NodeVisitor\ConsoleHighlighterVisitor(),
-            'html' => new NodeVisitor\HtmlHighlighterVisitor(),
-            default => throw new \InvalidArgumentException("Invalid format: $format"),
-        };
-
-        return $this->parse($regex)->accept($visitor);
+        return null;
     }
 
-    public function highlightCli(string $regex): string
+    private function buildVisualSnippet(?string $pattern, ?int $position): string
     {
-        return $this->highlight($regex, 'cli');
-    }
-
-    public function highlightHtml(string $regex): string
-    {
-        return $this->highlight($regex, 'html');
-    }
-
-    public function explain(string $regex, string $format = 'text'): string
-    {
-        $visitor = match ($format) {
-            'text' => new NodeVisitor\ExplainNodeVisitor(),
-            'html' => new NodeVisitor\HtmlExplainNodeVisitor(),
-            default => throw new \InvalidArgumentException("Invalid format: $format"),
-        };
-
-        return $this->parse($regex)->accept($visitor);
-    }
-
-    public function htmlExplain(string $regex): string
-    {
-        return $this->explain($regex, 'html');
-    }
-
-    /**
-     * @param iterable<string> $regexes
-     */
-    public function warm(iterable $regexes): void
-    {
-        foreach ($regexes as $regex) {
-            $this->parse($regex); // hits cache
-            $this->analyzeReDoS($regex);
-        }
-    }
-
-    /**
-     * @return array<string>
-     */
-    public function getRedosIgnoredPatterns(): array
-    {
-        return array_values($this->redosIgnoredPatterns);
-    }
-
-    public function getParser(): Parser
-    {
-        return new Parser();
-    }
-
-    public function getLexer(): Lexer
-    {
-        return new Lexer();
-    }
-
-    public function createTokenStream(string $pattern): TokenStream
-    {
-        return $this->getLexer()->tokenize($pattern);
-    }
-
-    /**
-     * @return array{0: string, 1: string, 2: string}
-     */
-    public function extractPatternAndFlags(string $regex): array
-    {
-        // Trim leading whitespace to match PHP's PCRE behavior
-        $regex = ltrim($regex);
-
-        $len = \strlen($regex);
-        if ($len < 2) {
-            throw new ParserException('Regex is too short. It must include delimiters.');
+        if (null === $pattern || null === $position || $position < 0) {
+            return '';
         }
 
-        $delimiter = $regex[0];
-        // Handle bracket delimiters style: (pattern), [pattern], {pattern}, <pattern>
-        $closingDelimiter = match ($delimiter) {
-            '(' => ')',
-            '[' => ']',
-            '{' => '}',
-            '<' => '>',
-            default => $delimiter,
-        };
+        $length = \strlen($pattern);
+        $caretIndex = $position > $length ? $length : $position;
 
-        // Find the last occurrence of the closing delimiter that is NOT escaped
-        // We scan from the end to optimize for flags
-        for ($i = $len - 1; $i > 0; $i--) {
-            if ($regex[$i] === $closingDelimiter) {
-                // Check if escaped (count odd number of backslashes before it)
-                $escapes = 0;
-                for ($j = $i - 1; $j > 0 && '\\' === $regex[$j]; $j--) {
-                    $escapes++;
-                }
+        $lineStart = strrpos($pattern, "\n", $caretIndex - $length);
+        $lineStart = false === $lineStart ? 0 : $lineStart + 1;
+        $lineEnd = strpos($pattern, "\n", $caretIndex);
+        $lineEnd = false === $lineEnd ? $length : $lineEnd;
 
-                if (0 === $escapes % 2) {
-                    // Found the end delimiter
-                    $pattern = substr($regex, 1, $i - 1);
-                    $flags = substr($regex, $i + 1);
+        $lineNumber = substr_count($pattern, "\n", 0, $lineStart) + 1;
 
-                    // Validate flags (only allow standard PCRE flags)
-                    // n = NO_AUTO_CAPTURE, r = PCRE2_EXTRA_CASELESS_RESTRICT (unicode restricted)
-                    if (!preg_match('/^[imsxADSUXJunr]*+$/', $flags)) {
-                        // Find the invalid flag for a better error message
-                        $invalid = preg_replace('/[imsxADSUXJunr]/', '', $flags);
+        $displayStart = $lineStart;
+        $displayEnd = $lineEnd;
 
-                        throw new ParserException(\sprintf('Unknown regex flag(s) found: "%s"', $invalid ?? $flags));
-                    }
+        $maxContextWidth = 80;
+        if (($displayEnd - $displayStart) > $maxContextWidth) {
+            $half = intdiv($maxContextWidth, 2);
+            $displayStart = max($lineStart, $caretIndex - $half);
+            $displayEnd = min($lineEnd, $displayStart + $maxContextWidth);
 
-                    return [$pattern, $flags, $delimiter];
-                }
+            if (($displayEnd - $displayStart) > $maxContextWidth) {
+                $displayStart = $displayEnd - $maxContextWidth;
             }
         }
 
-        throw new ParserException(\sprintf('No closing delimiter "%s" found.', $closingDelimiter));
-    }
+        $prefixEllipsis = $displayStart > $lineStart ? '...' : '';
+        $suffixEllipsis = $displayEnd < $lineEnd ? '...' : '';
 
-    private function validatePcreRuntime(string $regex, ?string $pattern): void
-    {
-        $errorMessage = null;
-        $handler = static function (int $severity, string $message) use (&$errorMessage): bool {
-            $errorMessage = $message;
+        $excerpt = $prefixEllipsis
+            .substr($pattern, $displayStart, $displayEnd - $displayStart)
+            .$suffixEllipsis;
 
-            return true;
-        };
-
-        set_error_handler($handler);
-        $result = @preg_match($regex, '');
-        restore_error_handler();
-
-        if (false === $result) {
-            $message = $errorMessage ?? preg_last_error_msg();
-            $message = '' !== $message ? $message : 'PCRE runtime error.';
-
-            throw new Exception\PcreRuntimeException($message, null, $pattern, null, 'regex.pcre.runtime');
+        $caretOffset = ('' === $prefixEllipsis ? 0 : 3) + ($caretIndex - $displayStart);
+        if ($caretOffset < 0) {
+            $caretOffset = 0;
         }
+
+        $lineLabel = 'Line '.$lineNumber.': ';
+
+        return $lineLabel.$excerpt."\n"
+            .str_repeat(' ', \strlen($lineLabel) + $caretOffset).'^';
     }
 
     /**
-     * @param NodeVisitor\NodeVisitorInterface<Node\NodeInterface> $transformer
+     * Compile a regex by applying a transformation and compiling back to string.
+     *
+     * @param string                                               $regex       The regular expression to compile
+     * @param NodeVisitor\NodeVisitorInterface<Node\NodeInterface> $transformer The transformation to apply
+     *
+     * @return string Compiled regex string
      */
-    private function transformAndCompile(string $regex, NodeVisitor\NodeVisitorInterface $transformer): string
+    private function compile(string $regex, NodeVisitor\NodeVisitorInterface $transformer): string
     {
-        $ast = $this->parse($regex);
-        /** @var Node\NodeInterface $transformed */
+        $ast = $this->parse($regex, false);
+
         $transformed = $ast->accept($transformer);
 
         return $transformed->accept(new NodeVisitor\CompilerNodeVisitor());
     }
 
-    private function isCli(): bool
-    {
-        return \PHP_SAPI === 'cli';
-    }
-
     /**
-     * @return array{0: \RegexParser\Node\RegexNode|null, 1: string|null}
+     * Attempt to load a parsed regex from cache.
+     *
+     * @param string $regex The regex pattern to look up
+     *
+     * @return array{0: RegexNode|null, 1: string|null} Cached AST and cache key
      */
     private function loadFromCache(string $regex): array
     {
@@ -442,11 +531,17 @@ final readonly class Regex
         }
 
         $cacheKey = $this->cache->generateKey($regex);
-        $cached = $this->cache->load($cacheKey);
+        $cachedResult = $this->cache->load($cacheKey);
 
-        return [$cached instanceof RegexNode ? $cached : null, $cacheKey];
+        return [$cachedResult instanceof RegexNode ? $cachedResult : null, $cacheKey];
     }
 
+    /**
+     * Store a parsed regex AST in cache.
+     *
+     * @param string|null $cacheKey The cache key to store under
+     * @param RegexNode   $ast      The AST to cache
+     */
     private function storeInCache(?string $cacheKey, RegexNode $ast): void
     {
         if (null === $cacheKey) {
@@ -454,72 +549,334 @@ final readonly class Regex
         }
 
         try {
-            $this->cache->write($cacheKey, self::compileCachePayload($ast));
+            $this->cache->write($cacheKey, self::prepareCachePayload($ast));
         } catch (\Throwable) {
+            // Cache failures are silently ignored
         }
     }
 
-    private static function compileCachePayload(RegexNode $ast): string
+    /**
+     * Prepare AST for cache storage by serializing it.
+     *
+     * @param RegexNode $ast The AST to serialize
+     *
+     * @return string Serialized PHP code
+     */
+    private static function prepareCachePayload(RegexNode $ast): string
     {
-        $serialized = serialize($ast);
-        $exported = var_export($serialized, true);
+        $serializedAst = serialize($ast);
+        $exportedAst = var_export($serializedAst, true);
+        $allowedClasses = self::getAllowedClasses();
+        $exportedAllowedClasses = var_export($allowedClasses, true);
+        $version = self::CACHE_VERSION;
 
         return <<<PHP
             <?php
 
             declare(strict_types=1);
 
-            return unserialize($exported, ['allowed_classes' => true]);
+            if (\RegexParser\Regex::CACHE_VERSION !== $version) {
+                return null;
+            }
+
+            return unserialize($exportedAst, ['allowed_classes' => $exportedAllowedClasses]);
 
             PHP;
     }
 
     /**
-     * @return array{0: string, 1: string, 2: string, 3: int}
+     * Safely extract pattern components from a regex string.
+     *
+     * @param string $regex The regex to extract from
+     *
+     * @return string|null Extracted pattern or null on failure
+     */
+    private function extractPatternSafely(string $regex): ?string
+    {
+        try {
+            [$pattern] = PatternParser::extractPatternAndFlags($regex);
+
+            return (string) $pattern;
+        } catch (ParserException) {
+            return null;
+        }
+    }
+
+    /**
+     * Validate an AST with the appropriate validators.
+     *
+     * @param RegexNode   $ast     The AST to validate
+     * @param string|null $pattern The original pattern for context
+     */
+    private function validateAst(RegexNode $ast, ?string $pattern): void
+    {
+        $validator = new NodeVisitor\ValidatorNodeVisitor($this->maxLookbehindLength, $pattern);
+        $ast->accept($validator);
+    }
+
+    /**
+     * Calculate complexity score for an AST.
+     *
+     * @param RegexNode $ast The AST to score
+     *
+     * @return int Complexity score
+     */
+    private function calculateComplexity(RegexNode $ast): int
+    {
+        $scorer = new NodeVisitor\ComplexityScoreNodeVisitor();
+
+        return $ast->accept($scorer);
+    }
+
+    /**
+     * Build a validation failure result from an exception.
+     *
+     * @param \Throwable $exception The parse exception
+     *
+     * @return ValidationResult Validation failure result
+     */
+    private function buildValidationFailure(\Throwable $exception): ValidationResult
+    {
+        $errorMessage = $exception->getMessage();
+        $visualSnippet = '';
+        if (method_exists($exception, 'getVisualSnippet')) {
+            $snippet = $exception->getVisualSnippet();
+            $visualSnippet = \is_string($snippet) ? $snippet : '';
+        }
+        $position = null;
+        $errorCode = null;
+        $hint = null;
+
+        if ($exception instanceof Exception\RegexException) {
+            $position = $exception->getPosition();
+            $errorCode = $exception->getErrorCode();
+        }
+
+        if ($exception instanceof Exception\SemanticErrorException) {
+            $hint = $exception->getHint();
+        }
+
+        if ('' !== $visualSnippet) {
+            $errorMessage .= "\n".$visualSnippet;
+        }
+
+        if ($exception instanceof Exception\SemanticErrorException) {
+            return new ValidationResult(
+                false,
+                $errorMessage,
+                0,
+                ValidationErrorCategory::SEMANTIC,
+                $position,
+                '' !== $visualSnippet ? $visualSnippet : null,
+                $hint,
+                $errorCode,
+            );
+        }
+
+        return new ValidationResult(
+            false,
+            $errorMessage,
+            0,
+            ValidationErrorCategory::SYNTAX,
+            $position,
+            '' !== $visualSnippet ? $visualSnippet : null,
+            null,
+            $errorCode,
+        );
+    }
+
+    /**
+     * Build a fallback AST when parsing fails.
+     *
+     * @param LexerException|ParserException $exception The parse exception
+     * @param string                         $regex     The original regex
+     *
+     * @return RegexNode Fallback AST
+     */
+    private function buildFallbackAstFromException(LexerException|ParserException $exception, string $regex): RegexNode
+    {
+        [$pattern, $flags, $delimiter, $length] = $this->safeExtractPattern($regex);
+
+        return $this->buildFallbackAst($pattern, $flags, $delimiter, $length, $exception->getPosition());
+    }
+
+    /**
+     * Extract unique literals from a literal set.
+     *
+     * @param mixed $literalSet The literal set from extraction
+     *
+     * @return list<string> Unique literals
+     */
+    private function extractUniqueLiterals(mixed $literalSet): array
+    {
+        if (!\is_object($literalSet)) {
+            return [];
+        }
+
+        /** @var array<string> $prefixes */
+        $prefixes = property_exists($literalSet, 'prefixes') ? $literalSet->prefixes : [];
+
+        /** @var array<string> $suffixes */
+        $suffixes = property_exists($literalSet, 'suffixes') ? $literalSet->suffixes : [];
+
+        return array_values(array_unique(array_merge($prefixes, $suffixes)));
+    }
+
+    /**
+     * Build search patterns from prefixes and suffixes.
+     *
+     * @param mixed $literalSet The literal set containing prefixes/suffixes
+     *
+     * @return list<string> Search patterns
+     */
+    private function buildSearchPatterns(mixed $literalSet): array
+    {
+        $patterns = [];
+
+        if (\is_object($literalSet) && property_exists($literalSet, 'prefixes')) {
+            /** @var array<string> $prefixes */
+            $prefixes = $literalSet->prefixes;
+
+            foreach ($prefixes as $prefix) {
+                if (\is_string($prefix) && '' !== $prefix) {
+                    $patterns[] = '^'.preg_quote($prefix, '/');
+                }
+            }
+        }
+
+        if (\is_object($literalSet) && property_exists($literalSet, 'suffixes')) {
+            /** @var array<string> $suffixes */
+            $suffixes = $literalSet->suffixes;
+
+            foreach ($suffixes as $suffix) {
+                if (\is_string($suffix) && '' !== $suffix) {
+                    $patterns[] = preg_quote($suffix, '/').'$';
+                }
+            }
+        }
+
+        return array_values(array_unique($patterns));
+    }
+
+    /**
+     * Determine confidence level for literal extraction.
+     *
+     * @param mixed $literalSet The literal set to evaluate
+     *
+     * @return string Confidence level ('high', 'medium', or 'low')
+     */
+    private function determineConfidenceLevel(mixed $literalSet): string
+    {
+        if (!\is_object($literalSet)) {
+            return 'low';
+        }
+
+        $isComplete = property_exists($literalSet, 'complete') ? $literalSet->complete : false;
+        $isVoid = (method_exists($literalSet, 'isVoid') && $literalSet->isVoid()) ? true : false;
+
+        if ($isComplete && !$isVoid) {
+            return 'high';
+        }
+
+        if (!$isVoid) {
+            return 'medium';
+        }
+
+        return 'low';
+    }
+
+    /**
+     * Create appropriate explanation visitor based on format.
+     *
+     * @param string $format The desired output format
+     *
+     * @return NodeVisitor\ExplainNodeVisitor|NodeVisitor\HtmlExplainNodeVisitor The explanation visitor
+     */
+    private function createExplanationVisitor(string $format): NodeVisitor\ExplainNodeVisitor|NodeVisitor\HtmlExplainNodeVisitor
+    {
+        return match ($format) {
+            'text' => new NodeVisitor\ExplainNodeVisitor(),
+            'html' => new NodeVisitor\HtmlExplainNodeVisitor(),
+            default => throw new \InvalidArgumentException("Invalid format: $format"),
+        };
+    }
+
+    /**
+     * Safely extract pattern components with error handling.
+     *
+     * @return array{0: string, 1: string, 2: string, 3: int} Pattern components
      */
     private function safeExtractPattern(string $regex): array
     {
         try {
-            [$pattern, $flags, $delimiter] = $this->extractPatternAndFlags($regex);
+            [$pattern, $flags, $delimiter] = PatternParser::extractPatternAndFlags($regex);
             $pattern = (string) $pattern;
             $flags = (string) $flags;
             $delimiter = (string) $delimiter;
-            $length = \strlen((string) $pattern);
+            $patternLength = \strlen($pattern);
 
-            return [$pattern, $flags, $delimiter, $length];
+            return [$pattern, $flags, $delimiter, $patternLength];
         } catch (ParserException) {
             return [$regex, '', '/', \strlen($regex)];
         }
     }
 
-    private function buildFallbackAst(string $pattern, string $flags, string $delimiter, int $patternLength, ?int $errorPosition): Node\RegexNode
-    {
-        $value = null === $errorPosition ? $pattern : substr($pattern, 0, max(0, $errorPosition));
-        $literal = new Node\LiteralNode($value, 0, \strlen($value));
-        $sequence = new Node\SequenceNode([$literal], 0, $literal->getEndPosition());
+    /**
+     * Build a fallback AST for partial parsing.
+     *
+     * @param string   $pattern       The pattern string
+     * @param string   $flags         Regex flags
+     * @param string   $delimiter     Pattern delimiter
+     * @param int      $patternLength Length of the pattern
+     * @param int|null $errorPosition Position where error occurred
+     *
+     * @return Node\RegexNode Fallback AST
+     */
+    private function buildFallbackAst(
+        string $pattern,
+        string $flags,
+        string $delimiter,
+        int $patternLength,
+        ?int $errorPosition
+    ): Node\RegexNode {
+        $validPattern = null === $errorPosition
+            ? $pattern
+            : substr($pattern, 0, max(0, $errorPosition));
 
-        return new Node\RegexNode($sequence, $flags, $delimiter, 0, $patternLength);
+        $literalNode = new Node\LiteralNode($validPattern, 0, \strlen($validPattern));
+        $sequenceNode = new Node\SequenceNode([$literalNode], 0, $literalNode->getEndPosition());
+
+        return new Node\RegexNode($sequenceNode, $flags, $delimiter, 0, $patternLength);
     }
 
-    private function doParse(string $regex, bool $tolerant): RegexNode|TolerantParseResult
+    /**
+     * Perform the actual parsing with caching and resource limits.
+     *
+     * @param string $regex The regex to parse
+     *
+     * @return RegexNode The parsed AST
+     */
+    private function doParse(string $regex): RegexNode
     {
-        try {
-            $ast = $this->performParse($regex);
+        $this->validateResourceLimits($regex);
 
-            return $tolerant ? new TolerantParseResult($ast) : $ast;
-        } catch (LexerException|ParserException $e) {
-            if (!$tolerant) {
-                throw $e;
-            }
-
-            [$pattern, $flags, $delimiter, $length] = $this->safeExtractPattern($regex);
-            $ast = $this->buildFallbackAst($pattern, $flags, $delimiter, $length, $e->getPosition());
-
-            return new TolerantParseResult($ast, [$e]);
+        [$cachedAst, $cacheKey] = $this->loadFromCache($regex);
+        if (null !== $cachedAst) {
+            return $cachedAst;
         }
+
+        $ast = $this->parseFromScratch($regex);
+        $this->storeInCache($cacheKey, $ast);
+
+        return $ast;
     }
 
-    private function performParse(string $regex): RegexNode
+    /**
+     * Validate resource limits for the regex pattern.
+     *
+     * @param string $regex The regex to validate
+     */
+    private function validateResourceLimits(string $regex): void
     {
         if (\strlen($regex) > $this->maxPatternLength) {
             throw ResourceLimitException::withContext(
@@ -528,21 +885,22 @@ final readonly class Regex
                 $regex,
             );
         }
+    }
 
-        [$cached, $cacheKey] = $this->loadFromCache($regex);
-        if (null !== $cached) {
-            return $cached;
-        }
+    /**
+     * Parse a regex from scratch without using cache.
+     *
+     * @param string $regex The regex to parse
+     *
+     * @return RegexNode The parsed AST
+     */
+    private function parseFromScratch(string $regex): RegexNode
+    {
+        [$pattern, $flags, $delimiter] = PatternParser::extractPatternAndFlags($regex);
 
-        [$pattern, $flags, $delimiter] = $this->extractPatternAndFlags($regex);
+        $tokenStream = (new Lexer())->tokenize($pattern);
+        $parser = new Parser();
 
-        $stream = $this->getLexer()->tokenize($pattern);
-        $parser = $this->getParser();
-
-        $ast = $parser->parse($stream, $flags, $delimiter, \strlen($pattern));
-
-        $this->storeInCache((string) $cacheKey, $ast);
-
-        return $ast;
+        return $parser->parse($tokenStream, $flags, $delimiter, \strlen($pattern));
     }
 }

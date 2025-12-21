@@ -10,7 +10,6 @@
     <a href="https://github.com/yoeunes/regex-parser/actions"><img src="https://img.shields.io/github/actions/workflow/status/yoeunes/regex-parser/ci.yml" alt="CI Status"></a>
     <a href="https://www.linkedin.com/in/younes--ennaji"><img src="https://img.shields.io/badge/author-@yoeunes-blue.svg" alt="Author Badge"></a>
     <a href="https://github.com/yoeunes/regex-parser"><img src="https://img.shields.io/badge/source-yoeunes/regex--parser-blue.svg" alt="Source Code Badge"></a>
-    <a href="https://yoeunes.github.io/regex-parser/"><img src="https://img.shields.io/badge/try-online-indigo" alt="Try Online Badge"></a>
     <a href="https://github.com/yoeunes/regex-parser/releases"><img src="https://img.shields.io/github/tag/yoeunes/regex-parser.svg" alt="GitHub Release Badge"></a>
     <a href="https://github.com/yoeunes/regex-parser/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-brightgreen.svg" alt="License Badge"></a>
     <a href="https://packagist.org/packages/yoeunes/regex-parser"><img src="https://img.shields.io/packagist/dt/yoeunes/regex-parser.svg" alt="Packagist Downloads Badge"></a>
@@ -30,6 +29,105 @@ It brings static analysis, security auditing, and automated refactoring to PHP's
 * **Security Auditing** — Detects Catastrophic Backtracking (ReDoS) risks and vulnerabilities at analysis time.
 * **Documentation** — Automatically generates human-readable explanations, HTML visualizations, and valid sample strings.
 * **Transformation** — Manipulate the AST to optimize or refactor patterns programmatically.
+* **PCRE Compliance** — Validated against official PCRE test corpus for enterprise reliability.
+
+### Choose Your Feature
+
+#### Validate Regex
+Quickly check if a regex is valid and get detailed error messages.
+
+```php
+use RegexParser\Regex;
+
+$regex = Regex::create();
+$result = $regex->validate('/(foo|bar)/');
+
+if ($result->isValid) {
+    echo "Valid regex!";
+} else {
+    echo "Error: " . $result->error;
+}
+```
+
+#### Explain Regex
+Generate human-readable explanations of what your regex does.
+
+```php
+use RegexParser\Regex;
+
+$regex = Regex::create();
+$explanation = $regex->explain('/^([a-z]+)\.([a-z]{2,})$/');
+
+echo $explanation;
+// Outputs: Start of string, then capture group containing one or more lowercase letters,
+// followed by a literal dot, then capture group containing 2 or more lowercase letters, end of string.
+```
+
+#### Detect ReDoS
+Analyze patterns for catastrophic backtracking vulnerabilities.
+
+```php
+use RegexParser\Regex;
+
+$regex = Regex::create();
+$analysis = $regex->redos('/(a+)+b/');
+
+if ($analysis->severity->value === 'CRITICAL') {
+    echo "High risk of ReDoS attack!";
+}
+```
+
+#### Optimize
+Automatically optimize and modernize regex patterns.
+
+```php
+use RegexParser\Regex;
+
+$regex = Regex::create();
+$optimized = $regex->optimize('/[0-9]+/');
+
+echo $optimized->original;   // / [0-9]+/
+echo $optimized->optimized;  // /\d+/
+```
+
+#### Generate Samples
+Create valid test strings that match your regex.
+
+```php
+use RegexParser\Regex;
+
+$regex = Regex::create();
+$sample = $regex->generate('/[a-z]{3}\d{2}/');
+
+echo $sample; // e.g., "abc12"
+```
+
+#### Symfony Route Requirements
+Integrate with Symfony routing for automatic regex validation.
+
+```php
+use RegexParser\Bridge\Symfony\RegexRequirementValidator;
+
+$validator = new RegexRequirementValidator();
+$isValid = $validator->validate('/[a-z]+/', 'route_pattern');
+```
+
+#### PHPStan Integration
+Static analysis for regex patterns in your codebase.
+
+```php
+// In your PHPStan config
+parameters:
+    regexParser:
+        enabled: true
+```
+
+#### CI Integration
+Automated linting and security checks in your build pipeline.
+
+```bash
+vendor/bin/regex lint src/ --format=json
+```
 * **Integration** — First-class support for Symfony and PHPStan workflows.
 
 > *"Think of it as `nikic/php-parser` — but for regexes."*
@@ -98,10 +196,10 @@ if ($result->isValid()) {
 }
 ```
 
-There’s also a tolerant parser:
+There’s also a tolerant parse mode:
 
 ```php
-$tolerant = $regex->parseTolerant('/(unclosed(');
+$tolerant = $regex->parse('/(unclosed(', true);
 
 if ($tolerant->hasErrors()) {
     foreach ($tolerant->errors as $error) {
@@ -142,7 +240,7 @@ End of string
 You can also generate **HTML** explanations for documentation or debug UIs:
 
 ```php
-$html = $regex->htmlExplain('/(foo|bar)+\d{2,4}/');
+$html = $regex->explain('/(foo|bar)+\d{2,4}/', 'html');
 ```
 
 ---
@@ -158,7 +256,7 @@ use RegexParser\ReDoS\ReDoSSeverity;
 $regex = Regex::create();
 
 $pattern  = '/^(a+)+$/'; // classic catastrophic backtracking example
-$analysis = $regex->analyzeReDoS($pattern);
+$analysis = $regex->redos($pattern);
 
 echo "Severity: ".$analysis->severity->value.PHP_EOL;
 echo "Score: ".$analysis->score.PHP_EOL;
@@ -172,7 +270,8 @@ if (!$analysis->isSafe()) {
 }
 
 // Quick boolean check (for CI, input validation, etc.)
-if (!$regex->isSafe($pattern, ReDoSSeverity::HIGH)) {
+$analysis = $regex->redos($pattern, ReDoSSeverity::HIGH);
+if (!$analysis->isSafe()) {
     throw new \RuntimeException('Regex is not safe enough for untrusted input.');
 }
 ```
@@ -186,7 +285,9 @@ Under the hood it inspects quantifiers, nested groups, backreferences and charac
 `Regex::create()` accepts a small, validated option array (or a `RegexOptions` value object via `RegexOptions::fromArray()`):
 
 - `max_pattern_length` (int, default: `Regex::DEFAULT_MAX_PATTERN_LENGTH`).
+- `max_lookbehind_length` (int, default: `Regex::DEFAULT_MAX_LOOKBEHIND_LENGTH`).
 - `cache` (`null` | path string | `RegexParser\Cache\CacheInterface`).
+- `runtime_pcre_validation` (bool, default: `false`).
 - `redos_ignored_patterns` (list of strings to skip in ReDoS analysis).
 
 Unknown or invalid keys throw `RegexParser\Exception\InvalidRegexOptionException`.
@@ -197,16 +298,16 @@ Unknown or invalid keys throw `RegexParser\Exception\InvalidRegexOptionException
 
 ### Parsing bare patterns vs PCRE strings
 
-Most high‑level methods (`parse`, `validate`, `analyzeReDoS`) expect a **full PCRE string**:
+Most high‑level methods (`parse`, `validate`, `redos`) expect a **full PCRE string**:
 
 ```php
 $ast = $regex->parse('/pattern/ims');
 ```
 
-If you only have the body, `parsePattern()` will wrap delimiters/flags for you:
+If you only have the pattern body, you can construct the full regex string manually:
 
 ```php
-$ast = $regex->parsePattern('a|b', '#', 'i');
+$ast = $regex->parse('#a|b#i');
 ```
 
 If you already have just the pattern body, you can go lower‑level:
@@ -357,9 +458,14 @@ Clean up messy or legacy regexes automatically:
 
 ```php
 use RegexParser\Regex;
+use RegexParser\NodeVisitor\CompilerNodeVisitor;
+use RegexParser\NodeVisitor\ModernizerNodeVisitor;
 
 $regex = Regex::create();
-$modern = $regex->modernize('/[0-9]+\-[a-z]+\@(?:gmail)\.com/');
+$ast = $regex->parse('/[0-9]+\-[a-z]+\@(?:gmail)\.com/');
+
+$modernizedAst = $ast->accept(new ModernizerNodeVisitor());
+$modern = $modernizedAst->accept(new CompilerNodeVisitor());
 
 echo $modern; // Outputs: /\d+-[a-z]+@gmail\.com/
 ```
@@ -379,15 +485,18 @@ Make complex regexes readable with automatic syntax highlighting:
 
 ```php
 use RegexParser\Regex;
+use RegexParser\NodeVisitor\ConsoleHighlighterVisitor;
+use RegexParser\NodeVisitor\HtmlHighlighterVisitor;
 
 $regex = Regex::create();
+$ast = $regex->parse('/^[0-9]+(\w+)$/');
 
 // For console output
-echo $regex->highlightCli('/^[0-9]+(\w+)$/');
+echo $ast->accept(new ConsoleHighlighterVisitor());
 // Outputs: ^[0-9]+(\w+)$ with ANSI colors
 
 // For web display
-echo $regex->highlightHtml('/^[0-9]+(\w+)$/');
+echo $ast->accept(new HtmlHighlighterVisitor());
 // Outputs: <span class="regex-anchor">^</span>[<span class="regex-type">\d</span>]+(<span class="regex-type">\w</span>+)$
 ```
 
@@ -447,12 +556,13 @@ From lowest to highest:
 * `HIGH` — clear ReDoS risk; avoid on untrusted input.
 * `CRITICAL` — classic catastrophic patterns (nested `+`/`*` etc.).
 
-`analyzeReDoS()` returns a `ReDoSAnalysis` with the severity, score, vulnerable substring (if any), and recommendations. `isSafe()` simply calls `analyzeReDoS()` and returns `true` only for severities considered safe/low (or below the optional threshold you pass in).
+`redos()` returns a `ReDoSAnalysis` with the severity, score, vulnerable substring (if any), and recommendations. `ReDoSAnalysis::isSafe()` returns `true` only for severities considered safe/low, and `exceedsThreshold()` lets you gate on a specific threshold.
 
 You choose what to tolerate:
 
 ```php
-if (!$regex->isSafe($pattern, ReDoSSeverity::HIGH)) {
+$analysis = $regex->redos($pattern, ReDoSSeverity::HIGH);
+if (!$analysis->isSafe()) {
     // block, warn, or open a ticket
 }
 ```
@@ -466,8 +576,8 @@ if (!$regex->isSafe($pattern, ReDoSSeverity::HIGH)) {
 * Symfony bridge provides:
 
   * A **console command** to scan your app’s config for dangerous regexes (`regex-parser:check`).
-  * File-based commands for constant `preg_*` patterns (`regex:lint`, `regex:analyze-redos`, `regex:optimize`).
-  * A **cache warmer** to pre‑parse and pre‑analyze patterns on deploy.
+  * A unified console command (`regex:lint`) that can lint, analyze ReDoS risk, suggest optimizations, and validate Symfony regex patterns with options like `--analyze-redos`, `--optimize`, and `--validate-symfony`, or use `--all` to run everything.
+   * Ability to **pre‑parse** and pre‑analyze patterns on deploy.
   * Easy service wiring for `Regex` in your DI container.
 
 Example (pseudo‑code):
@@ -534,13 +644,14 @@ $regex = Regex::create([
     'cache' => '/path/to/cache/dir',         // or a PSR cache instance
     'max_pattern_length' => 100_000,
     'max_lookbehind_length' => 255,
+    'runtime_pcre_validation' => false,
     'redos_ignored_patterns' => [
         '/^([0-9]{4}-[0-9]{2}-[0-9]{2})$/', // known safe patterns
     ],
 ]);
 ```
 
-For Symfony, a cache warmer can parse and analyze all known patterns at deploy time so runtime costs are minimal.
+For Symfony, you can pre‑parse and analyze all known patterns at deploy time so runtime costs are minimal.
 
 ---
 
@@ -553,57 +664,35 @@ final readonly class Regex
 {
     public static function create(array $options = []): self;
 
-    public function parse(string $regex): Node\RegexNode;
-    public function parsePattern(string $pattern, string $delimiter = '/', string $flags = ''): Node\RegexNode;
-
-    public function parseTolerant(string $regex): TolerantParseResult;
+    public function parse(string $regex, bool $tolerant = false): Node\RegexNode|TolerantParseResult;
 
     public function validate(string $regex): ValidationResult;
-    public function isValid(string $regex): bool;
-    public function assertValid(string $regex): void;
 
-    public function dump(string $regex): string;
+    public function optimize(string $regex): OptimizationResult;
 
     public function explain(string $regex, string $format = 'text'): string;
 
-    public function htmlExplain(string $regex): string;
-
-    public function highlight(string $regex, string $format = 'auto'): string;
-    public function highlightCli(string $regex): string;
-    public function highlightHtml(string $regex): string;
-
-    public function optimize(string $regex): OptimizationResult;
-    public function modernize(string $regex): string;
-
     public function generate(string $regex): string;
-    public function generateTestCases(string $regex): TestCaseGenerationResult;
 
-    public function visualize(string $regex): VisualizationResult;
+    public function highlight(string $regex, string $format = 'console'): string;
 
-    public function getLengthRange(string $regex): array;
+    public function literals(string $regex): LiteralExtractionResult;
 
-    public function extractLiterals(string $regex): LiteralExtractionResult;
-
-    public function analyzeReDoS(string $regex, ?ReDoS\ReDoSSeverity $threshold = null): ReDoS\ReDoSAnalysis;
-
-    public function isSafe(string $regex, ?ReDoS\ReDoSSeverity $threshold = null): bool;
-
-    public function getLexer(): Lexer;
-    public function getParser(): Parser;
+    public function redos(string $regex, ?ReDoS\ReDoSSeverity $threshold = null): ReDoS\ReDoSAnalysis;
 }
 ```
 
-Return types like `ValidationResult`, `OptimizationResult`, `LiteralExtractionResult`, `TestCaseGenerationResult`, `VisualizationResult`, and `ReDoS\ReDoSAnalysis` are small, well‑typed value objects.
+Return types like `ValidationResult`, `TolerantParseResult`, `OptimizationResult`, `LiteralExtractionResult`, and `ReDoS\ReDoSAnalysis` are small, well‑typed value objects.
 
 ---
 
 ## Exceptions
 
 - `Regex::create()` throws `InvalidRegexOptionException` for unknown/invalid options.
-- `parse()` / `parsePattern()` can throw `LexerException`, `SyntaxErrorException` (syntax/structure), `RecursionLimitException` (too deep), and `ResourceLimitException` (pattern too long).
-- `parseTolerant()` wraps those errors into `TolerantParseResult` instead of throwing.
+- `parse()` can throw `LexerException`, `SyntaxErrorException` (syntax/structure), `RecursionLimitException` (too deep), and `ResourceLimitException` (pattern too long).
+- `parse(..., true)` wraps those errors into `TolerantParseResult` instead of throwing.
 - `validate()` converts parser/lexer errors into a `ValidationResult` (no exception on invalid input).
-- `analyzeReDoS()` / `isSafe()` share the same parsing exceptions as `parse()`; `isSafe()` is a boolean wrapper around `analyzeReDoS()`.
+- `redos()` shares the same parsing exceptions as `parse()`.
 
 Generic runtime errors (e.g., wrong argument types) are not part of the stable API surface.
 
@@ -615,7 +704,7 @@ RegexParser follows **Semantic Versioning**:
 
 * **Stable for 1.x** (API surface we commit to keep compatible):
   * Public methods and signatures on `Regex`.
-  * Value objects: `ValidationResult`, `TolerantParseResult`, `OptimizationResult`, `LiteralExtractionResult`, `LiteralSet`, `TestCaseGenerationResult`, `VisualizationResult`, `ReDoS\ReDoSAnalysis`.
+  * Value objects: `ValidationResult`, `TolerantParseResult`, `OptimizationResult`, `LiteralExtractionResult`, `LiteralSet`, `ReDoS\ReDoSAnalysis`.
   * Main exception interfaces/classes: `RegexParserExceptionInterface`, parser/lexer exceptions, `InvalidRegexOptionException`.
   * Supported option keys for `Regex::create()` / `RegexOptions`.
 

@@ -1,0 +1,55 @@
+parameters:
+	ignoreErrors:
+		-
+			rawMessage: Accessing PHPStan\Analyser\Analyser::class is not covered by backward compatibility promise. The class might change in a minor PHPStan version.
+			identifier: phpstanApi.classConstant
+			count: 1
+			path: src/Bridge/Symfony/DependencyInjection/RegexParserExtension.php
+
+		-
+			rawMessage: Access to constant on internal class RegexParser\Lint\PhpRegexPatternSource.
+			identifier: classConstant.internalClass
+			count: 1
+			path: src/Bridge/Symfony/Resources/config/services.php
+
+		-
+			rawMessage: Access to constant on internal class RegexParser\Lint\RegexPatternExtractor.
+			identifier: classConstant.internalClass
+			count: 1
+			path: src/Bridge/Symfony/Resources/config/services.php
+
+		-
+			rawMessage: Access to constant on internal class RegexParser\Lint\RegexPatternSourceCollection.
+			identifier: classConstant.internalClass
+			count: 1
+			path: src/Bridge/Symfony/Resources/config/services.php
+
+		-
+			rawMessage: Access to constant on internal class RegexParser\Bridge\Symfony\Extractor\RouteRegexPatternSource.
+			identifier: classConstant.internalClass
+			count: 1
+			path: src/Bridge/Symfony/Resources/config/services.php
+
+		-
+			rawMessage: Access to constant on internal class RegexParser\Bridge\Symfony\Extractor\ValidatorRegexPatternSource.
+			identifier: classConstant.internalClass
+			count: 1
+			path: src/Bridge/Symfony/Resources/config/services.php
+
+		-
+			rawMessage: Access to constant on internal class RegexParser\Bridge\Symfony\Routing\RouteRequirementNormalizer.
+			identifier: classConstant.internalClass
+			count: 2
+			path: src/Bridge/Symfony/Resources/config/services.php
+
+		-
+			rawMessage: Access to constant on internal class RegexParser\Bridge\Symfony\Routing\RouteControllerFileResolver.
+			identifier: classConstant.internalClass
+			count: 1
+			path: src/Bridge/Symfony/Resources/config/services.php
+
+		-
+			rawMessage: Access to constant on internal class RegexParser\Lint\RegexLintService.
+			identifier: classConstant.internalClass
+			count: 1
+			path: src/Bridge/Symfony/Resources/config/services.php

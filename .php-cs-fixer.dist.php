@@ -24,21 +24,17 @@ $finder = (new PhpCsFixer\Finder())
     ->in([
         __DIR__.'/src',
         __DIR__.'/tests',
-        __DIR__.'/tools',
-        __DIR__.'/public',
         __DIR__.'/benchmarks',
     ])
-    ->exclude([
-        'tools/*/vendor/',
-    ])
+    ->exclude('Fixtures')
     ->name('*.php')
     ->ignoreDotFiles(true)
     ->ignoreVCS(true);
 
 return (new PhpCsFixer\Config())
+    ->setParallelConfig(PhpCsFixer\Runner\Parallel\ParallelConfigFactory::detect())
     ->registerCustomFixers(new PhpCsFixerCustomFixers\Fixers())
     ->setRiskyAllowed(true)
-    ->setParallelConfig(PhpCsFixer\Runner\Parallel\ParallelConfigFactory::detect())
     ->setRules([
         '@PHP8x2Migration' => true,
         '@PHP8x2Migration:risky' => true,

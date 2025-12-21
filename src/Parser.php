@@ -378,9 +378,10 @@ final class Parser
 
         if ($this->match(TokenType::T_CONTROL_CHAR)) {
             $token = $this->previous();
-            $endPosition = $startPosition + 3; // \cM
+            $endPosition = $startPosition + 2 + \strlen($token->value); // \cX (single codepoint)
+            $codePoint = $this->parseControlCharCodePoint($token->value);
 
-            return new Node\ControlCharNode($token->value, $startPosition, $endPosition);
+            return new Node\ControlCharNode($token->value, $codePoint, $startPosition, $endPosition);
         }
 
         if ($this->match(TokenType::T_OCTAL)) {
@@ -664,8 +665,18 @@ final class Parser
         return -1;
     }
 
+    private function parseControlCharCodePoint(string $char): int
+    {
+        if ('' === $char) {
+            return -1;
+        }
+
+        return \ord(strtoupper($char)) ^ 64;
+    }
+
     /**
-     * parses group modifiers like (?=...), (?!...), (?<=...), (?<!...), (?P<name>...), (?P'name'...), (?:...), (?(...)), (?&name), (?R), (?1), (?-1), (?0), and inline flags.
+     * parses group modifiers like (?=...), (?!...), (?<=...), (?<!...), (?P<name>...), (?P'name'...), (?'name'...),
+     * (?P=name), (?:...), (?(...)), (?&name), (?R), (?1), (?-1), (?0), and inline flags.
      */
     private function parseGroupModifier(): Node\NodeInterface
     {
@@ -678,12 +689,27 @@ final class Parser
             return $this->parsePythonGroup($startPosition, $pPos);
         }
 
-        // 2. Check for standard lookarounds and named groups
+        // 2. PCRE-style quoted named groups (?'name'...)
+        if ($this->checkLiteral("'")) {
+            $name = $this->parseGroupName($startPosition);
+            $expr = $this->parseAlternation();
+            $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
+
+            return $this->createGroupNode(
+                $expr,
+                Node\GroupType::T_GROUP_NAMED,
+                $startPosition,
+                $endToken,
+                $name,
+            );
+        }
+
+        // 3. Check for standard lookarounds and named groups
         if ($this->matchLiteral('<')) {
             return $this->parseStandardGroup($startPosition);
         }
 
-        // 3. Check for conditional (?(...)
+        // 4. Check for conditional (?(...)
         $isConditionalWithModifier = null;
         if ($this->match(TokenType::T_GROUP_MODIFIER_OPEN)) {
             $isConditionalWithModifier = true;
@@ -695,7 +721,7 @@ final class Parser
             return $this->parseConditional($startPosition, $isConditionalWithModifier);
         }
 
-        // 4. Check for Subroutines
+        // 5. Check for Subroutines
         if ($this->matchLiteral('&')) { // (?&name)
             $name = $this->parseSubroutineName();
             $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected ) to close subroutine call');
@@ -717,7 +743,7 @@ final class Parser
             return $subroutine;
         }
 
-        // 5. Check for simple non-capturing, lookaheads, atomic, branch reset
+        // 6. Check for simple non-capturing, lookaheads, atomic, branch reset
         if ($this->matchLiteral(':')) {
             $expr = $this->parseAlternation();
             $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
@@ -779,7 +805,7 @@ final class Parser
             );
         }
 
-        // 6. Inline flags
+        // 7. Inline flags
         return $this->parseInlineFlags($startPosition);
     }
 
@@ -865,10 +891,10 @@ final class Parser
         }
 
         if ($this->matchLiteral('=')) {
-            throw $this->parserException(
-                'Backreferences (?P=name) are not supported yet.',
-                $this->current()->position,
-            );
+            $name = $this->parseGroupName($this->current()->position, false);
+            $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
+
+            return new Node\BackrefNode('\\k<'.$name.'>', $startPos, $endToken->position + 1);
         }
 
         throw $this->parserException(
@@ -968,6 +994,25 @@ final class Parser
             [$setFlags, $unsetFlags] = str_contains($flags, '-')
                 ? explode('-', $flags, 2)
                 : [$flags, ''];
+
+            // Handle ^ (unset all flags)
+            if (str_starts_with($setFlags, '^')) {
+                $setFlagsAfter = substr($setFlags, 1);
+                $allFlags = 'imsxADSUXJunr';
+                $unsetFlags = implode('', array_diff(str_split($allFlags), str_split($setFlagsAfter))).$unsetFlags;
+                $setFlags = $setFlagsAfter;
+            }
+
+            // Validate no conflicting flags
+            $setChars = str_split($setFlags);
+            $unsetChars = str_split($unsetFlags);
+            $overlap = array_intersect($setChars, $unsetChars);
+            if (!empty($overlap)) {
+                throw $this->parserException(
+                    \sprintf('Conflicting flags: %s cannot be both set and unset at position %d', implode('', $overlap), $startPosition),
+                    $startPosition,
+                );
+            }
 
             if (str_contains($setFlags, 'J')) {
                 $this->JModifier = true;
@@ -1426,6 +1471,15 @@ final class Parser
                 TokenType::T_UNICODE,
                 $startPosition,
             );
+        } elseif ($this->match(TokenType::T_CONTROL_CHAR)) {
+            $token = $this->previous();
+            $endPosition = $startPosition + 2 + \strlen($token->value);
+            $startNode = new Node\ControlCharNode(
+                $token->value,
+                $this->parseControlCharCodePoint($token->value),
+                $startPosition,
+                $endPosition,
+            );
         } elseif ($this->match(TokenType::T_OCTAL)) {
             $startNode = $this->createCharLiteralNodeFromToken(
                 $this->previous(),
@@ -1495,6 +1549,14 @@ final class Parser
                     $this->previous(),
                     TokenType::T_UNICODE,
                     $endPosition,
+                );
+            } elseif ($this->match(TokenType::T_CONTROL_CHAR)) {
+                $token = $this->previous();
+                $endNode = new Node\ControlCharNode(
+                    $token->value,
+                    $this->parseControlCharCodePoint($token->value),
+                    $endPosition,
+                    $endPosition + 2 + \strlen($token->value),
                 );
             } elseif ($this->match(TokenType::T_OCTAL)) {
                 $endNode = $this->createCharLiteralNodeFromToken(

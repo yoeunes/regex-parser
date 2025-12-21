@@ -14,23 +14,16 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
-use RegexParser\Regex;
+use RegexParser\Lexer;
 
 final class LexerFallbackTest extends TestCase
 {
-    private Regex $regexService;
-
-    protected function setUp(): void
-    {
-        $this->regexService = Regex::create();
-    }
-
     /**
      * Covers the case where consumeQuoteMode reaches the end of the string without finding \E.
      */
     public function test_lex_quote_mode_unterminated(): void
     {
-        $tokens = $this->regexService->getLexer()->tokenize('\Qstart')->getTokens(); // No \E
+        $tokens = (new Lexer())->tokenize('\Qstart')->getTokens(); // No \E
 
         // Now emits T_QUOTE_MODE_START, T_LITERAL "start", T_EOF
         $this->assertCount(3, $tokens);
@@ -45,7 +38,7 @@ final class LexerFallbackTest extends TestCase
     public function test_lex_comment_mode_unterminated_internal(): void
     {
         try {
-            $this->regexService->getLexer()->tokenize('(?#start'); // No )
+            (new Lexer())->tokenize('(?#start'); // No )
         } catch (\Exception $e) {
             // We expect an exception, but we mainly want the code to be executed
             $this->assertStringContainsString('Unclosed comment', $e->getMessage());

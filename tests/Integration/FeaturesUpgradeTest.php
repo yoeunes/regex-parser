@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
+use RegexParser\NodeVisitor\MermaidNodeVisitor;
 use RegexParser\Regex;
 
 /**
@@ -37,7 +38,7 @@ final class FeaturesUpgradeTest extends TestCase
      */
     public function test_mermaid_visitor_generates_valid_syntax(): void
     {
-        $mermaidOutput = $this->regexService->visualize('/abc/')->mermaid;
+        $mermaidOutput = $this->visualize('/abc/');
 
         // Should start with "graph TD;"
         $this->assertStringStartsWith('graph TD;', $mermaidOutput);
@@ -54,7 +55,7 @@ final class FeaturesUpgradeTest extends TestCase
      */
     public function test_mermaid_visitor_simple_pattern(): void
     {
-        $mermaidOutput = $this->regexService->visualize('/test/')->mermaid;
+        $mermaidOutput = $this->visualize('/test/');
 
         $this->assertStringStartsWith('graph TD;', $mermaidOutput);
         $this->assertStringContainsString('Regex:', $mermaidOutput);
@@ -66,7 +67,7 @@ final class FeaturesUpgradeTest extends TestCase
      */
     public function test_mermaid_visitor_complex_pattern(): void
     {
-        $mermaidOutput = $this->regexService->visualize('/(abc)+/')->mermaid;
+        $mermaidOutput = $this->visualize('/(abc)+/');
 
         $this->assertStringStartsWith('graph TD;', $mermaidOutput);
         $this->assertStringContainsString('Group:', $mermaidOutput);
@@ -74,11 +75,11 @@ final class FeaturesUpgradeTest extends TestCase
     }
 
     /**
-     * Test Regex::visualize() integrates with parser.
+     * Test MermaidNodeVisitor integrates with parser.
      */
     public function test_regex_visualize_integration(): void
     {
-        $visualization = $this->regexService->visualize('/[a-z]+/')->mermaid;
+        $visualization = $this->visualize('/[a-z]+/');
 
         $this->assertIsString($visualization);
         $this->assertStringStartsWith('graph TD;', $visualization);
@@ -86,11 +87,11 @@ final class FeaturesUpgradeTest extends TestCase
     }
 
     /**
-     * Test Regex::visualize() with multiple alternatives.
+     * Test MermaidNodeVisitor with multiple alternatives.
      */
     public function test_regex_visualize_alternation(): void
     {
-        $visualization = $this->regexService->visualize('/(cat|dog|bird)/')->mermaid;
+        $visualization = $this->visualize('/(cat|dog|bird)/');
 
         $this->assertStringStartsWith('graph TD;', $visualization);
         $this->assertStringContainsString('Alternation', $visualization);
@@ -114,11 +115,16 @@ final class FeaturesUpgradeTest extends TestCase
         ];
 
         foreach ($patterns as $pattern) {
-            $visualization = $this->regexService->visualize($pattern)->mermaid;
+            $visualization = $this->visualize($pattern);
 
             $this->assertStringStartsWith('graph TD;', $visualization);
             $this->assertStringContainsString('-->', $visualization);
             $this->assertStringContainsString('node', $visualization);
         }
+    }
+
+    private function visualize(string $pattern): string
+    {
+        return $this->regexService->parse($pattern)->accept(new MermaidNodeVisitor());
     }
 }

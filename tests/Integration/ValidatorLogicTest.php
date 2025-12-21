@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
-use RegexParser\Exception\ParserException;
+use RegexParser\Exception\SemanticErrorException;
 use RegexParser\Node\CharLiteralNode;
 use RegexParser\Node\CharLiteralType;
 use RegexParser\Node\LiteralNode;
@@ -31,7 +31,7 @@ final class ValidatorLogicTest extends TestCase
         // \o{8} contains invalid octal digit, but use large codePoint for test
         $node = new CharLiteralNode('\o{8}', 0x100, CharLiteralType::OCTAL, 0, 0);
 
-        $this->expectException(ParserException::class);
+        $this->expectException(SemanticErrorException::class);
         $this->expectExceptionMessage('Invalid octal codepoint');
         $node->accept($validator);
     }

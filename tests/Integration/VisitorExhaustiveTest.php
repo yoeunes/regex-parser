@@ -61,8 +61,8 @@ final class VisitorExhaustiveTest extends TestCase
             new ExplainNodeVisitor(),
             new HtmlExplainNodeVisitor(),
             new OptimizerNodeVisitor(),
-             // Note: SampleGenerator and Validator have strict logics that can throw exceptions
-             // on isolated nodes. We include them but will catch the errors.
+            // Note: SampleGenerator and Validator have strict logics that can throw exceptions
+            // on isolated nodes. We include them but will catch the errors.
             new SampleGeneratorNodeVisitor(),
             new ValidatorNodeVisitor(),
         ];
@@ -96,14 +96,14 @@ final class VisitorExhaustiveTest extends TestCase
 
         foreach ($visitors as $visitor) {
             foreach ($nodes as $node) {
-                 // Specific cases to ignore for the Validator which needs context (existing groups)
+                // Specific cases to ignore for the Validator which needs context (existing groups)
                 if ($visitor instanceof ValidatorNodeVisitor) {
                     if ($node instanceof BackrefNode || $node instanceof SubroutineNode || ($node instanceof CharLiteralNode && CharLiteralType::OCTAL_LEGACY === $node->type)) {
                         continue;
                     }
                 }
 
-                 // Specific case for SampleGenerator which does not support subroutines
+                // Specific case for SampleGenerator which does not support subroutines
                 if ($visitor instanceof SampleGeneratorNodeVisitor && $node instanceof SubroutineNode) {
                     continue;
                 }

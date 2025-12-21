@@ -37,6 +37,7 @@ final readonly class ReDoSAnalysis
         public ?ReDoSConfidence $confidence = null,
         public ?string $falsePositiveRisk = null,
         public array $findings = [],
+        public ?string $suggestedRewrite = null,
     ) {
         $this->vulnerableSubpattern = $vulnerableSubpattern ?? $vulnerablePart;
     }

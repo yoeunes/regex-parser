@@ -33,8 +33,8 @@ final class LengthRangeNodeVisitorTest extends TestCase
         $ast = Regex::create()->parse($regex);
         [$min, $max] = $ast->accept($this->visitor);
 
-        self::assertSame($expectedMin, $min);
-        self::assertSame($expectedMax, $max);
+        $this->assertSame($expectedMin, $min);
+        $this->assertSame($expectedMax, $max);
     }
 
     /**

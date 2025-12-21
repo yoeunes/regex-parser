@@ -15,8 +15,8 @@ namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\ParserException;
+use RegexParser\Internal\PatternParser;
 use RegexParser\Parser;
-use RegexParser\Regex;
 use RegexParser\Tests\TestUtils\ParserAccessor;
 use RegexParser\TokenType;
 
@@ -24,32 +24,25 @@ final class ParserInternalsTest extends TestCase
 {
     public function test_extract_pattern_throws_on_preg_replace_error(): void
     {
-        $regex = Regex::create();
-
-        // extractPatternAndFlags is now on Regex class, use reflection
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('Regex is too short');
-        $regex->extractPatternAndFlags('/');
+        PatternParser::extractPatternAndFlags('/');
     }
 
     public function test_extract_pattern_regex_too_short(): void
     {
-        $regex = Regex::create();
-
         // Calling public method directly to ensure this specific exception path is hit
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('Regex is too short');
-        $regex->extractPatternAndFlags('/');
+        PatternParser::extractPatternAndFlags('/');
     }
 
     public function test_extract_pattern_no_closing_delimiter(): void
     {
-        $regex = Regex::create();
-
         // Forces the loop to finish without finding the delimiter
         $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('No closing delimiter "/" found');
-        $regex->extractPatternAndFlags('/abc');
+        $this->expectExceptionMessage('No closing delimiter "/" found. You opened with "/"; expected closing "/". Tip: escape "/" inside the pattern (\\/) or use a different delimiter, e.g. #abc#.');
+        PatternParser::extractPatternAndFlags('/abc');
     }
 
     public function test_consume_literal_throws_on_mismatch(): void
@@ -70,11 +63,9 @@ final class ParserInternalsTest extends TestCase
 
     public function test_extract_pattern_too_short(): void
     {
-        $regex = Regex::create();
-
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('Regex is too short');
-        $regex->extractPatternAndFlags('/');
+        PatternParser::extractPatternAndFlags('/');
     }
 
     public function test_consume_literal_throws_exception(): void

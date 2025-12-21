@@ -16,22 +16,21 @@ namespace RegexParser\Exception;
 /**
  * Represents a semantic validation error in a regex pattern.
  */
-final class SemanticErrorException extends ParserException implements RegexParserExceptionInterface
+final class SemanticErrorException extends RegexException implements RegexParserExceptionInterface
 {
+    use VisualContextTrait;
+
     public function __construct(
         string $message,
         ?int $position = null,
         ?string $pattern = null,
         ?\Throwable $previous = null,
-        private readonly string $errorCode = 'regex.semantic',
-        private readonly ?string $hint = null,
+        ?string $errorCode = 'regex.semantic',
+        public readonly ?string $hint = null,
     ) {
-        parent::__construct($message, $position, $pattern, $previous);
-    }
+        $this->initializeContext($position, $pattern);
 
-    public function getErrorCode(): string
-    {
-        return $this->errorCode;
+        parent::__construct($message, $position, $this->getVisualSnippet(), $errorCode, $previous);
     }
 
     public function getHint(): ?string

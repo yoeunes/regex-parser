@@ -14,19 +14,12 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
+use RegexParser\Lexer;
 use RegexParser\NodeVisitor\SampleGeneratorNodeVisitor;
-use RegexParser\Regex;
 use RegexParser\TokenType;
 
 final class ReflectionCoverageTest extends TestCase
 {
-    private Regex $regexService;
-
-    protected function setUp(): void
-    {
-        $this->regexService = Regex::create();
-    }
-
     /**
      * Tests the "empty" fallback of getRandomChar in SampleGeneratorVisitor.
      * This case is impossible via the public API as the visitor never passes an empty array.
@@ -50,7 +43,7 @@ final class ReflectionCoverageTest extends TestCase
      */
     public function test_lexer_extract_token_value_default_escape(): void
     {
-        $lexer = $this->regexService->getLexer();
+        $lexer = new Lexer();
         $lexer->tokenize('');
         $reflection = new \ReflectionClass($lexer);
         $method = $reflection->getMethod('extractTokenValue');
@@ -67,7 +60,7 @@ final class ReflectionCoverageTest extends TestCase
      */
     public function test_lexer_extract_token_value_global_default(): void
     {
-        $lexer = $this->regexService->getLexer();
+        $lexer = new Lexer();
         $lexer->tokenize('');
         $reflection = new \ReflectionClass($lexer);
         $method = $reflection->getMethod('extractTokenValue');
@@ -83,13 +76,13 @@ final class ReflectionCoverageTest extends TestCase
      */
     public function test_lexer_normalize_unicode_missing_captures(): void
     {
-        $lexer = $this->regexService->getLexer();
+        $lexer = new Lexer();
         $lexer->tokenize('');
         $reflection = new \ReflectionClass($lexer);
         $method = $reflection->getMethod('normalizeUnicodeProp');
 
-        // No v1_prop or v2_prop in the matches array
-        $result = $method->invoke($lexer, '\p{L}', []);
+        // Empty property to hit the fallback path
+        $result = $method->invoke($lexer, '\p{}');
 
         $this->assertSame('', $result);
     }

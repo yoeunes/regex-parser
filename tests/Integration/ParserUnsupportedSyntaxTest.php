@@ -20,17 +20,17 @@ use RegexParser\Regex;
 final class ParserUnsupportedSyntaxTest extends TestCase
 {
     /**
-     * Teste la syntaxe de backreference nommée (?P=name) qui n'est pas encore supportée.
-     * Couvre le "if ($this->matchLiteral('=')) { throw ... }" dans parseGroupModifier.
+     * Teste la syntaxe de backreference nommée (?P=name).
      */
-    public function test_unsupported_named_backref_syntax(): void
+    public function test_python_named_backref_syntax(): void
     {
         $regex = Regex::create();
 
-        $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('Backreferences (?P=name) are not supported yet');
-
-        $regex->parse('/(?P=name)/');
+        $ast = $regex->parse('/(?P<name>a)(?P=name)/');
+        $this->assertInstanceOf(\RegexParser\Node\SequenceNode::class, $ast->pattern);
+        $backref = $ast->pattern->children[1];
+        $this->assertInstanceOf(\RegexParser\Node\BackrefNode::class, $backref);
+        $this->assertSame('\k<name>', $backref->ref);
     }
 
     /**

@@ -15,19 +15,12 @@ namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
-use RegexParser\Regex;
+use RegexParser\Lexer;
 use RegexParser\Tests\TestUtils\LexerAccessor;
 use RegexParser\TokenType;
 
 final class LexerInternalCoverageTest extends TestCase
 {
-    private Regex $regexService;
-
-    protected function setUp(): void
-    {
-        $this->regexService = Regex::create();
-    }
-
     /**
      * Tests the "default" case of the switch in extractTokenValue.
      * This case is normally unreachable as the main Regex filters tokens,
@@ -35,7 +28,7 @@ final class LexerInternalCoverageTest extends TestCase
      */
     public function test_extract_token_value_fallback(): void
     {
-        $lexer = $this->regexService->getLexer();
+        $lexer = new Lexer();
         $lexer->tokenize('');
         $accessor = new LexerAccessor($lexer);
 
@@ -65,14 +58,13 @@ final class LexerInternalCoverageTest extends TestCase
      */
     public function test_normalize_unicode_prop_fallbacks(): void
     {
-        $lexer = $this->regexService->getLexer();
+        $lexer = new Lexer();
         $lexer->tokenize('');
         $accessor = new LexerAccessor($lexer);
 
-        // Case where v1_prop and v2_prop are absent
+        // Case where property is empty
         $val = $accessor->callPrivateMethod('normalizeUnicodeProp', [
-            '\p{L}',
-            [] // Empty matches
+            '\p{}',
         ]);
         $this->assertSame('', $val);
     }

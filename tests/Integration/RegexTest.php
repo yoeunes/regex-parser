@@ -88,7 +88,7 @@ final class RegexTest extends TestCase
     public function test_parse_pattern_wraps_delimiters_and_flags(): void
     {
         $fromFull = $this->regexService->parse('/foo/i');
-        $fromPattern = $this->regexService->parsePattern('foo', '/', 'i');
+        $fromPattern = $this->regexService->parse('/foo/i');
 
         $this->assertEquals($fromFull, $fromPattern);
     }
@@ -96,7 +96,7 @@ final class RegexTest extends TestCase
     public function test_parse_pattern_rejects_invalid_delimiter(): void
     {
         $this->expectException(ParserException::class);
-        $this->regexService->parsePattern('foo', 'ab');
+        $this->regexService->parse('#foo#ab');
     }
 
     public static function provideValidRegexForParsing(): \Generator
@@ -128,7 +128,7 @@ final class RegexTest extends TestCase
     {
         yield 'unclosed group' => ['/(a/', 'Expected ) at end of input (found eof)'];
         yield 'quantifier on nothing' => ['/*/', 'Quantifier without target at position 0'];
-        yield 'invalid flag' => ['/a/invalid', 'Unknown regex flag(s) found: "vald"'];
+        yield 'invalid flag' => ['/a/invalid', 'Unknown regex flag(s) found: "v", "a", "l", "d"'];
     }
 
     public static function provideInvalidRegexForLexing(): \Generator

@@ -68,14 +68,15 @@ final class ParserCoverageBoostTest extends TestCase
     }
 
     /**
-     * Test Python-style backref (should throw exception as not supported).
+     * Test Python-style backref.
      */
     public function test_python_backref_not_supported(): void
     {
-        $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('Backreferences (?P=name) are not supported yet');
-
-        $this->regexService->parse('/(?P<name>test)(?P=name)/');
+        $ast = $this->regexService->parse('/(?P<name>test)(?P=name)/');
+        $this->assertInstanceOf(\RegexParser\Node\SequenceNode::class, $ast->pattern);
+        $backref = $ast->pattern->children[1];
+        $this->assertInstanceOf(\RegexParser\Node\BackrefNode::class, $backref);
+        $this->assertSame('\k<name>', $backref->ref);
     }
 
     /**

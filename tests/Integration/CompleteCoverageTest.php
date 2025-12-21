@@ -15,6 +15,7 @@ namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
+use RegexParser\Lexer;
 use RegexParser\NodeVisitor\ExplainNodeVisitor;
 use RegexParser\NodeVisitor\HtmlExplainNodeVisitor;
 use RegexParser\NodeVisitor\OptimizerNodeVisitor;
@@ -558,27 +559,27 @@ final class CompleteCoverageTest extends TestCase
 
     public function test_lexer_quote_mode_with_empty_literal(): void
     {
-        $tokens = $this->regexService->getLexer()->tokenize('\Q\E')->getTokens();
+        $tokens = (new Lexer())->tokenize('\Q\E')->getTokens();
         $this->assertNotEmpty($tokens);
     }
 
     public function test_lexer_quote_mode_ending_at_string_end(): void
     {
-        $tokens = $this->regexService->getLexer()->tokenize('\Qtest')->getTokens();
+        $tokens = (new Lexer())->tokenize('\Qtest')->getTokens();
         $this->assertNotEmpty($tokens);
     }
 
     public function test_lexer_extract_token_value_escape_sequences(): void
     {
         // These are tested indirectly through parsing
-        $tokens = $this->regexService->getLexer()->tokenize('\t\n\r\f\v\e')->getTokens();
+        $tokens = (new Lexer())->tokenize('\t\n\r\f\v\e')->getTokens();
         $this->assertNotEmpty($tokens);
     }
 
     public function test_lexer_normalize_unicode_prop_variations(): void
     {
         // Test \p{L}, \P{L}, \p{^L}, \P{^L} variations
-        $tokens = $this->regexService->getLexer()->tokenize('\p{L}\P{L}\p{^L}\P{^L}')->getTokens();
+        $tokens = (new Lexer())->tokenize('\p{L}\P{L}\p{^L}\P{^L}')->getTokens();
         $this->assertNotEmpty($tokens);
     }
 }

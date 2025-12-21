@@ -37,8 +37,8 @@ final class Lexer
     private const TOKENS_INSIDE = [
         'T_CHAR_CLASS_CLOSE', 'T_POSIX_CLASS', 'T_CHAR_TYPE', 'T_OCTAL_LEGACY',
         'T_OCTAL', 'T_UNICODE', 'T_UNICODE_PROP', 'T_UNICODE_NAMED',
-        'T_QUOTE_MODE_START', 'T_LITERAL_ESCAPED', 'T_CLASS_INTERSECTION',
-        'T_CLASS_SUBTRACTION', 'T_LITERAL',
+        'T_CONTROL_CHAR', 'T_QUOTE_MODE_START', 'T_LITERAL_ESCAPED',
+        'T_CLASS_INTERSECTION', 'T_CLASS_SUBTRACTION', 'T_LITERAL',
     ];
 
     // Optimized regex patterns broken into focused components
@@ -62,9 +62,9 @@ final class Lexer
         'T_OCTAL_LEGACY' => '\\\\ [0-7]{1,3}',
         'T_OCTAL' => '\\\\ o\\{[0-7]+\\}',
         'T_UNICODE' => '\\\\ x [0-9a-fA-F]{1,2} | \\\\ u\\{[0-9a-fA-F]+\\} | \\\\ x\\{[0-9a-fA-F]+\\}',
-        'T_UNICODE_PROP' => '\\\\ [pP] (?: \\{ (?<v1_prop> \\^? [a-zA-Z0-9_]+) \\} | (?<v2_prop> [a-zA-Z]) )',
+        'T_UNICODE_PROP' => '\\\\ [pP] (?: \\{ [^}]+ \\} | [a-zA-Z] )',
         'T_UNICODE_NAMED' => '\\\\ N\\{[a-zA-Z0-9_ ]+\\}',
-        'T_CONTROL_CHAR' => '\\\\ c [A-Z]',
+        'T_CONTROL_CHAR' => '\\\\ c [\\x00-\\x7F]',
         'T_QUOTE_MODE_START' => '\\\\ Q',
         'T_QUOTE_MODE_END' => '\\\\ E',
         'T_LITERAL_ESCAPED' => '\\\\ .',
@@ -78,7 +78,8 @@ final class Lexer
         'T_OCTAL_LEGACY' => '\\\\ 0[0-7]{0,2}',
         'T_OCTAL' => '\\\\ o\\{[0-7]+\\}',
         'T_UNICODE' => '\\\\ x [0-9a-fA-F]{1,2} | \\\\ u\\{[0-9a-fA-F]+\\} | \\\\ x\\{[0-9a-fA-F]+\\}',
-        'T_UNICODE_PROP' => '\\\\ [pP] (?: \\{ (?<v1_prop> \\^? [a-zA-Z0-9_]+) \\} | (?<v2_prop> [a-zA-Z]) )',
+        'T_UNICODE_PROP' => '\\\\ [pP] (?: \\{ [^}]+ \\} | [a-zA-Z] )',
+        'T_CONTROL_CHAR' => '\\\\ c [\\x00-\\x7F]',
         'T_QUOTE_MODE_START' => '\\\\ Q',
         'T_LITERAL_ESCAPED' => '\\\\ .',
         'T_CLASS_INTERSECTION' => '&&',
@@ -444,7 +445,7 @@ final class Lexer
             TokenType::T_OCTAL_LEGACY => substr($matchedValue, 1),
             TokenType::T_POSIX_CLASS => $matches['v_posix'] ?? '',
             TokenType::T_UNICODE => $this->parseUnicodeEscape($matchedValue),
-            TokenType::T_UNICODE_PROP => $this->normalizeUnicodeProp($matchedValue, $matches),
+            TokenType::T_UNICODE_PROP => $this->normalizeUnicodeProp($matchedValue),
             TokenType::T_UNICODE_NAMED => substr($matchedValue, 3, -1),
             TokenType::T_CONTROL_CHAR => substr($matchedValue, 2),
             TokenType::T_CLASS_INTERSECTION => '&&',
@@ -466,19 +467,27 @@ final class Lexer
         return $escape;
     }
 
-    /**
-     * @param array<int|string, string|null> $matches
-     */
-    private function normalizeUnicodeProp(string $matchedValue, array $matches): string
+    private function normalizeUnicodeProp(string $matchedValue): string
     {
-        $prop = (string) ($matches['v1_prop'] ?? $matches['v2_prop'] ?? '');
         $isNegated = str_starts_with($matchedValue, '\\P');
+        $prop = substr($matchedValue, 2); // Strip "\p" or "\P"
 
-        if (!$isNegated) {
-            return $prop;
+        if (str_starts_with($prop, '{') && str_ends_with($prop, '}')) {
+            $prop = substr($prop, 1, -1);
         }
 
-        return str_starts_with($prop, '^') ? substr($prop, 1) : '^'.$prop;
+        $isPropNegated = str_starts_with($prop, '^');
+        if ($isPropNegated) {
+            $prop = substr($prop, 1);
+        }
+
+        if ('' === $prop) {
+            return '';
+        }
+
+        $negated = $isNegated !== $isPropNegated;
+
+        return $negated ? '^'.$prop : $prop;
     }
 
     private function validateFinalState(): void

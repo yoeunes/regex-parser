@@ -1,0 +1,31 @@
+<?php
+
+declare(strict_types=1);
+
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+namespace RegexParser\Lint;
+
+/**
+ * Interface for regex pattern extraction implementations.
+ *
+ * @internal
+ */
+interface ExtractorInterface
+{
+    /**
+     * Extract regex patterns from the given PHP files.
+     *
+     * @param list<string> $files List of PHP file paths to analyze
+     *
+     * @return list<RegexPatternOccurrence>
+     */
+    public function extract(array $files): array;
+}

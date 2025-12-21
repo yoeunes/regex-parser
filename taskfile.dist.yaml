@@ -7,6 +7,7 @@ tasks:
             - .php-cs-fixer.dist.php
             - src/**/*.php
             - tests/**/*.php
+            - exclude: tests/Fixtures/**/*
 
     phplint:
         cmd: tools/phplint/vendor/bin/phplint {{.CLI_ARGS}}
@@ -69,7 +70,6 @@ tasks:
             - composer install -d tools/phpbench
             - composer install -d tools/phplint
             - composer install -d tools/phpstan
-            - composer install -d tools/psalm
             - composer install -d tools/rector
 
             - task: link
@@ -104,10 +104,6 @@ tasks:
             - composer outdated --direct -d tools/phpstan
             - composer audit -d tools/phpstan || true
 
-            - composer update -W -d tools/psalm
-            - composer outdated --direct -d tools/psalm
-            - composer audit -d tools/psalm || true
-
             - composer update -W -d tools/rector
             - composer outdated --direct -d tools/rector
             - composer audit -d tools/rector || true
@@ -127,8 +123,6 @@ tasks:
             - ln -sf ../tools/phplint/vendor/bin/phplint ./bin/phplint
 
             - ln -sf ../tools/phpstan/vendor/bin/phpstan ./bin/phpstan
-            - ln -sf ../../tools/psalm/vendor/bin/psalm ./vendor/bin/psalm
-            - ln -sf ../tools/psalm/vendor/bin/psalm ./bin/psalm
 
             - ln -sf ../../tools/rector/vendor/bin/rector ./vendor/bin/rector
             - ln -sf ../tools/rector/vendor/bin/rector ./bin/rector

@@ -23,14 +23,7 @@ use Symfony\Component\Config\Definition\ConfigurationInterface;
 final readonly class Configuration implements ConfigurationInterface
 {
     /**
-     * @param bool $debug The value of the `kernel.debug` parameter.
-     */
-    public function __construct(
-        private bool $debug = false,
-    ) {}
-
-    /**
-     * @return TreeBuilder the tree builder instance
+     * @return TreeBuilder<'array'> the tree builder instance
      */
     public function getConfigTreeBuilder(): TreeBuilder
     {
@@ -38,10 +31,6 @@ final readonly class Configuration implements ConfigurationInterface
 
         $treeBuilder->getRootNode()
             ->children()
-                ->booleanNode('enabled')
-                    ->defaultValue($this->debug)
-                    ->info('Enable or disable the RegexParser bundle entirely. Defaults to dev/test only.')
-                ->end()
                 ->integerNode('max_pattern_length')
                     ->defaultValue(Regex::DEFAULT_MAX_PATTERN_LENGTH)
                     ->info('The maximum allowed length for a regex pattern string to parse.')
@@ -51,17 +40,31 @@ final readonly class Configuration implements ConfigurationInterface
                     ->min(0)
                     ->info('The maximum allowed lookbehind length. Can be overridden per-pattern via (*LIMIT_LOOKBEHIND=...).')
                 ->end()
-                ->scalarNode('cache')
-                    ->defaultNull()
-                    ->info('Directory path for cached AST files. Set to null to disable caching.')
+                ->booleanNode('runtime_pcre_validation')
+                    ->defaultValue('%kernel.debug%')
+                    ->info('Whether to validate patterns against the runtime PCRE engine (preg_match compile check).')
                 ->end()
-                ->scalarNode('cache_pool')
-                    ->defaultNull()
-                    ->info('Symfony cache pool service id (PSR-6). Takes precedence over "cache" when set.')
+                ->arrayNode('cache')
+                    ->addDefaultsIfNotSet()
+                    ->info('Cache configuration for storing parsed regex patterns.')
+                    ->children()
+                        ->scalarNode('pool')
+                            ->defaultNull()
+                            ->info('Symfony cache pool service id (PSR-6). Takes precedence over "directory" when set.')
+                        ->end()
+                        ->scalarNode('directory')
+                            ->defaultNull()
+                            ->info('Directory path for cached AST files. Set to null to disable caching.')
+                        ->end()
+                        ->scalarNode('prefix')
+                            ->defaultValue('regex_')
+                            ->info('Cache key prefix for PSR-6 cache pools.')
+                        ->end()
+                    ->end()
                 ->end()
-                ->scalarNode('cache_prefix')
-                    ->defaultValue('regex_')
-                    ->info('Cache key prefix for PSR-6 cache pools.')
+                ->scalarNode('extractor_service')
+                    ->defaultNull()
+                    ->info('Custom regex pattern extractor service ID. If not provided, PhpStan will be tried first, then token-based extraction.')
                 ->end()
                 ->arrayNode('redos')
                     ->addDefaultsIfNotSet()
@@ -104,6 +107,20 @@ final readonly class Configuration implements ConfigurationInterface
                             ->info('List of regex fragments to treat as safe (e.g. Symfony requirement constants).')
                         ->end()
                     ->end()
+                ->end()
+                ->arrayNode('paths')
+                    ->scalarPrototype()->end()
+                    ->defaultValue(['src'])
+                    ->info('Directories to scan for regex patterns. Defaults to src/ for Symfony applications.')
+                ->end()
+                ->arrayNode('exclude_paths')
+                    ->scalarPrototype()->end()
+                    ->defaultValue(['vendor'])
+                    ->info('Directories to exclude from scanning. Defaults to vendor/ for Symfony applications.')
+                ->end()
+                ->scalarNode('ide')
+                    ->defaultValue('%env(default::SYMFONY_IDE)%')
+                    ->info('IDE shorthand (vscode, phpstorm, etc.) or custom URL template for clickable links (e.g., phpstorm://open?file=%%file%%&line=%%line%%&column=%%column%%). Falls back to framework.ide.')
                 ->end()
             ->end();
 

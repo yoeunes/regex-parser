@@ -37,6 +37,7 @@ use RegexParser\Node\SequenceNode;
 use RegexParser\Node\SubroutineNode;
 use RegexParser\Node\UnicodePropNode;
 use RegexParser\Regex;
+use RegexParser\RegexPattern;
 
 final class ParserTest extends TestCase
 {
@@ -308,7 +309,7 @@ final class ParserTest extends TestCase
     public function test_throws_on_missing_closing_delimiter(): void
     {
         $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('No closing delimiter "/" found.');
+        $this->expectExceptionMessage('No closing delimiter "/" found. You opened with "/"; expected closing "/". Tip: escape "/" inside the pattern (\\/) or use a different delimiter, e.g. #foo#.');
         $this->parse('/foo');
     }
 
@@ -334,6 +335,58 @@ final class ParserTest extends TestCase
         $this->assertInstanceOf(GroupNode::class, $pattern);
         $this->assertSame(GroupType::T_GROUP_INLINE_FLAGS, $pattern->type);
         $this->assertSame('i', $pattern->flags);
+    }
+
+    public function test_parse_inline_flags_unset_all(): void
+    {
+        $ast = $this->parse('/(?^i:foo)/');
+        $pattern = $ast->pattern;
+
+        $this->assertInstanceOf(GroupNode::class, $pattern);
+        $this->assertSame(GroupType::T_GROUP_INLINE_FLAGS, $pattern->type);
+        $this->assertSame('^i', $pattern->flags);
+    }
+
+    public function test_parse_inline_flags_conflicting(): void
+    {
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('Conflicting flags: i cannot be both set and unset');
+
+        $this->parse('/(?i-i:foo)/');
+    }
+
+    public function test_validate_duplicate_named_groups_without_j(): void
+    {
+        $result = $this->regex->validate('/(?<a>.) (?<a>.)/');
+
+        $this->assertFalse($result->isValid());
+        $this->assertNotNull($result->error);
+        $this->assertStringContainsString('Duplicate group name "a"', (string) $result->error);
+    }
+
+    public function test_validate_duplicate_named_groups_with_j(): void
+    {
+        $result = $this->regex->validate('/(?J)(?<a>.) (?<a>.)/');
+
+        $this->assertTrue($result->isValid());
+    }
+
+    public function test_validate_unknown_named_group_suggestions(): void
+    {
+        $result = $this->regex->validate('/(?<name>.) \k<nam>/');
+
+        $this->assertFalse($result->isValid());
+        $this->assertNotNull($result->error);
+        $this->assertStringContainsString('Did you mean: name?', (string) $result->error);
+    }
+
+    public function test_validate_lookbehind_unbounded(): void
+    {
+        $result = $this->regex->validate('/(?<=a*)b/');
+
+        $this->assertFalse($result->isValid());
+        $this->assertNotNull($result->error);
+        $this->assertStringContainsString('Lookbehind is unbounded', (string) $result->error);
     }
 
     public function test_parse_named_group_with_single_quote(): void
@@ -471,10 +524,14 @@ final class ParserTest extends TestCase
 
     public function test_parse_python_backreference_is_rejected(): void
     {
-        $this->expectException(ParserException::class);
-        $this->expectExceptionMessage('Backreferences (?P=name) are not supported yet.');
+        $ast = $this->parse('/(?P<name>a)(?P=name)/');
+        $this->assertInstanceOf(SequenceNode::class, $ast->pattern);
+        $this->assertInstanceOf(GroupNode::class, $ast->pattern->children[0]);
+        $this->assertSame('name', $ast->pattern->children[0]->name);
 
-        $this->parse('/(?P=name)a/');
+        $backref = $ast->pattern->children[1];
+        $this->assertInstanceOf(BackrefNode::class, $backref);
+        $this->assertSame('\k<name>', $backref->ref);
     }
 
     public function test_python_named_group_syntax(): void
@@ -495,11 +552,18 @@ final class ParserTest extends TestCase
         $this->assertSame('baz', $ast->pattern->name);
     }
 
+    public function test_pcre_named_group_single_quotes(): void
+    {
+        $ast = $this->parse("/(?'alias'a)/");
+        $this->assertInstanceOf(GroupNode::class, $ast->pattern);
+        $this->assertSame('alias', $ast->pattern->name);
+    }
+
     public function test_python_named_group_invalid_syntax(): void
     {
         $this->expectException(ParserException::class);
-        // Missing name quotes or brackets
-        $this->parse('/(?P=foo)/'); // Backref syntax, not currently supported in parser logic for groups
+        // Missing group name
+        $this->parse('/(?P<)/');
     }
 
     public function test_max_pattern_length(): void
@@ -574,6 +638,66 @@ final class ParserTest extends TestCase
         // Case 3: Null byte followed by non-digit
         $result3 = $this->regex->validate('/\0a/');
         $this->assertTrue($result3->isValid());
+    }
+
+    public function test_optimize_with_mode(): void
+    {
+        $result = $this->regex->optimize('/a+/', ['mode' => 'safe']);
+        $this->assertSame('/a+/', $result->optimized);
+
+        $result2 = $this->regex->optimize('/a+/', ['mode' => 'aggressive']);
+        $this->assertSame('/a+/', $result2->optimized);
+    }
+
+    public function test_parse_pattern(): void
+    {
+        $ast = $this->regex->parsePattern('foo', 'i', '#');
+
+        $this->assertSame('#', $ast->delimiter);
+        $this->assertSame('i', $ast->flags);
+    }
+
+    public function test_regex_pattern_from_delimited(): void
+    {
+        $pattern = RegexPattern::fromDelimited('/foo/i');
+
+        $this->assertSame('foo', $pattern->pattern);
+        $this->assertSame('i', $pattern->flags);
+        $this->assertSame('/', $pattern->delimiter);
+    }
+
+    public function test_regex_pattern_from_raw(): void
+    {
+        $pattern = RegexPattern::fromRaw('foo', 'i', '#');
+
+        $this->assertSame('foo', $pattern->pattern);
+        $this->assertSame('i', $pattern->flags);
+        $this->assertSame('#', $pattern->delimiter);
+    }
+
+    public function test_analyze_report(): void
+    {
+        $report = $this->regex->analyze('/foo/');
+
+        $this->assertTrue($report->isValid);
+        $this->assertIsArray($report->errors());
+        $this->assertIsArray($report->lintIssues());
+        $this->assertIsString($report->explain());
+        $this->assertIsString($report->highlighted());
+    }
+
+    public function test_regex_new(): void
+    {
+        $regex = Regex::new();
+        $this->assertNotSame($this->regex, $regex);
+    }
+
+    public function test_exception_with_visual_context(): void
+    {
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('Duplicate group name "a" at position 8.');
+
+        $this->regex->parse('/(?<a>.) (?<a>.)/');
     }
 
     /**

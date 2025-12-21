@@ -53,7 +53,7 @@ final class RegexNodeTest extends TestCase
 
     public function test_accept_visitor_calls_visit_regex(): void
     {
-        $pattern = $this->createMock(NodeInterface::class);
+        $pattern = $this->createStub(NodeInterface::class);
         $node = new RegexNode($pattern, 'i', '/', 0, 5);
         $visitor = $this->createMock(NodeVisitorInterface::class);
 

@@ -26,7 +26,7 @@ final class PregValidationRuleMediumThresholdTest extends RuleTestCase
     {
         $this->analyse([__DIR__.'/Fixtures/MyClass.php'], [
             [
-                'Regex syntax error: No closing delimiter "/" found. (Pattern: "/foo")',
+                'Regex syntax error: No closing delimiter "/" found. You opened with "/"; expected closing "/". Tip: escape "/" inside the pattern (\\/) or use a different delimiter, e.g. #foo#. (Pattern: "/foo")',
                 21,
             ],
             [
@@ -59,43 +59,43 @@ final class PregValidationRuleMediumThresholdTest extends RuleTestCase
                 "Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...). Suggested: Consider using possessive quantifiers or atomic groups to limit backtracking.\n\nRead more about possessive quantifiers: https://github.com/yoeunes/regex-parser/blob/master/docs/reference.md#possessive-quantifiers\nRead more about atomic groups: https://github.com/yoeunes/regex-parser/blob/master/docs/reference.md#atomic-groups\nRead more about catastrophic backtracking: https://github.com/yoeunes/regex-parser/blob/master/docs/reference.md#catastrophic-backtracking",
             ],
             [
-                'Regex syntax error: No closing delimiter "/" found. (Pattern: "/foo1")',
+                'Regex syntax error: No closing delimiter "/" found. You opened with "/"; expected closing "/". Tip: escape "/" inside the pattern (\\/) or use a different delimiter, e.g. #foo1#. (Pattern: "/foo1")',
                 35,
             ],
             [
-                'Regex syntax error: No closing delimiter "/" found. (Pattern: "/foo2")',
+                'Regex syntax error: No closing delimiter "/" found. You opened with "/"; expected closing "/". Tip: escape "/" inside the pattern (\\/) or use a different delimiter, e.g. #foo2#. (Pattern: "/foo2")',
                 35,
             ],
             [
-                'Regex syntax error: No closing delimiter "/" found. (Pattern: "/foo3")',
+                'Regex syntax error: No closing delimiter "/" found. You opened with "/"; expected closing "/". Tip: escape "/" inside the pattern (\\/) or use a different delimiter, e.g. #foo3#. (Pattern: "/foo3")',
                 35,
             ],
             [
-                'Regex syntax error: No closing delimiter "/" found. (Pattern: "/foo4")',
+                'Regex syntax error: No closing delimiter "/" found. You opened with "/"; expected closing "/". Tip: escape "/" inside the pattern (\\/) or use a different delimiter, e.g. #foo4#. (Pattern: "/foo4")',
                 35,
             ],
             [
-                'Regex syntax error: No closing delimiter "/" found. (Pattern: "/foo5")',
+                'Regex syntax error: No closing delimiter "/" found. You opened with "/"; expected closing "/". Tip: escape "/" inside the pattern (\\/) or use a different delimiter, e.g. #foo5#. (Pattern: "/foo5")',
                 35,
             ],
             [
-                'Regex syntax error: No closing delimiter "/" found. (Pattern: "/foo6")',
+                'Regex syntax error: No closing delimiter "/" found. You opened with "/"; expected closing "/". Tip: escape "/" inside the pattern (\\/) or use a different delimiter, e.g. #foo6#. (Pattern: "/foo6")',
                 35,
             ],
             [
-                'Regex syntax error: No closing delimiter "/" found. (Pattern: "/foo7")',
+                'Regex syntax error: No closing delimiter "/" found. You opened with "/"; expected closing "/". Tip: escape "/" inside the pattern (\\/) or use a different delimiter, e.g. #foo7#. (Pattern: "/foo7")',
                 35,
             ],
             [
-                'Regex syntax error: No closing delimiter "/" found. (Pattern: "/foo8")',
+                'Regex syntax error: No closing delimiter "/" found. You opened with "/"; expected closing "/". Tip: escape "/" inside the pattern (\\/) or use a different delimiter, e.g. #foo8#. (Pattern: "/foo8")',
                 35,
             ],
             [
-                'Regex syntax error: No closing delimiter "/" found. (Pattern: "/foo9")',
+                'Regex syntax error: No closing delimiter "/" found. You opened with "/"; expected closing "/". Tip: escape "/" inside the pattern (\\/) or use a different delimiter, e.g. #foo9#. (Pattern: "/foo9")',
                 35,
             ],
             [
-                'Regex syntax error: No closing delimiter "/" found. (Pattern: "/foo10")',
+                'Regex syntax error: No closing delimiter "/" found. You opened with "/"; expected closing "/". Tip: escape "/" inside the pattern (\\/) or use a different delimiter, e.g. #foo10#. (Pattern: "/foo10")',
                 35,
             ],
         ]);

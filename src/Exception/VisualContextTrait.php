@@ -20,8 +20,6 @@ trait VisualContextTrait
 {
     private const MAX_CONTEXT_WIDTH = 80;
 
-    private ?int $position = null;
-
     private ?string $pattern = null;
 
     private string $visualSnippet = '';
@@ -43,7 +41,6 @@ trait VisualContextTrait
 
     private function initializeContext(?int $position, ?string $pattern): void
     {
-        $this->position = $position;
         $this->pattern = $pattern;
         $this->visualSnippet = $this->buildVisualSnippet($position, $pattern);
     }

@@ -1,4 +1,5 @@
 includes:
+    - phpstan-baseline.neon
     - extension.neon
     - tools/phpstan/vendor/phpstan/phpstan/conf/bleedingEdge.neon
     - tools/phpstan/vendor/phpstan/phpstan-phpunit/extension.neon
@@ -14,22 +15,15 @@ parameters:
 
     paths:
         - bin
-        - config
         - src
         - tests
 
     excludePaths:
-        - src/Bridge/Symfony/*
-        - src/Bridge/Rector/*
-        - src/Bridge/Psalm/*
         - tests/Benchmark/*
         - tests/Bridge/PHPStan/Fixtures/*
-        - tests/Bridge/Psalm/*
+        - tests/Fixtures/Extractor/*
         - tests/extract_pcre_tests.php
         - tests/validate_library.php
-        - tests/Integration/BehavioralComplianceTest.php
-        - tests/Integration/PregFunctionCompatibilityTest.php
-        - tests/Bridge/Symfony/RegexParserBundleTest.php
-        - tests/Bridge/Symfony/CacheWarmer/RegexParserCacheWarmerTest.php
+
 
     editorUrl: 'phpstorm://open?file=%%file%%&line=%%line%%'

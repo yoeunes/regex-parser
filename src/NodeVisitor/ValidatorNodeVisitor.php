@@ -371,6 +371,8 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
 
         $ref = $node->ref;
 
+        $suggestions = $this->getNameSuggestions($ref);
+
         // Fast path for numeric backreferences
         if (preg_match('/^\\\\(\d++)$/', $ref, $matches)) {
             $num = (int) $matches[1];
@@ -397,8 +399,9 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         if (preg_match('/^\\\\k[<{\'](?<name>\w++)[>}\']$/', $ref, $matches)) {
             $name = $matches['name'];
             if (!$this->groupNumbering->hasNamedGroup($name)) {
+                $suggestions = $this->getNameSuggestions($name);
                 $this->raiseSemanticError(
-                    \sprintf('Backreference to non-existent named group: "%s".', $name),
+                    \sprintf('Backreference to non-existent named group: "%s".', $name).$suggestions,
                     $node->startPosition,
                     'regex.backref.missing_named_group',
                 );
@@ -410,8 +413,9 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         // Bare name validation (conditionals)
         if (preg_match('/^\w++$/', $ref)) {
             if (!$this->groupNumbering->hasNamedGroup($ref)) {
+                $suggestions = $this->getNameSuggestions($ref);
                 $this->raiseSemanticError(
-                    \sprintf('Backreference to non-existent named group: "%s".', $ref),
+                    \sprintf('Backreference to non-existent named group: "%s".', $ref).$suggestions,
                     $node->startPosition,
                     'regex.backref.missing_named_group',
                 );
@@ -508,6 +512,18 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
                 \sprintf('Invalid or unsupported Unicode property: \\%s.', $key),
                 $node->startPosition,
                 'regex.unicode.property_invalid',
+            );
+        }
+    }
+
+    #[\Override]
+    public function visitControlChar(Node\ControlCharNode $node): void
+    {
+        if ($node->codePoint < 0 || $node->codePoint > 0xFF) {
+            $this->raiseSemanticError(
+                \sprintf('Invalid control character "\\c%s".', $node->char),
+                $node->startPosition,
+                'regex.control_char.invalid',
             );
         }
     }
@@ -727,6 +743,22 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         }
     }
 
+    private function getNameSuggestions(string $name): string
+    {
+        $available = array_keys($this->groupNumbering->namedGroups);
+        $suggestions = [];
+        foreach ($available as $avail) {
+            if (levenshtein($name, $avail) <= 2) {
+                $suggestions[] = $avail;
+            }
+        }
+        if (!empty($suggestions)) {
+            return ' Did you mean: '.implode(', ', $suggestions).'?';
+        }
+
+        return '';
+    }
+
     private function validateUnicode(Node\CharLiteralNode $node): void
     {
         // Parse codePoint from the escape string
@@ -782,7 +814,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         $name = $matches[1];
 
         // If the codePoint is -1, the name could not be resolved
-        if ($node->codePoint === -1) {
+        if (-1 === $node->codePoint) {
             throw new ParserException("Invalid Unicode character name: {$name}", $node->getStartPosition());
         }
     }
@@ -815,7 +847,8 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     {
         return $node instanceof Node\LiteralNode
             || $node instanceof Node\CharLiteralNode
-            || $node instanceof Node\UnicodeNode;
+            || $node instanceof Node\UnicodeNode
+            || $node instanceof Node\ControlCharNode;
         // CharTypeNode (e.g., \d) is technically invalid in a standard PCRE range start/end,
         // but we exclude it here to remain spec-compliant unless lenient mode is desired.
     }

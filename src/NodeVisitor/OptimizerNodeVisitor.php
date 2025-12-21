@@ -74,6 +74,13 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
             }
         }
 
+        // Try to merge adjacent character class nodes
+        $mergedAlts = $this->mergeAdjacentCharClasses($optimizedAlts);
+        if ($mergedAlts !== $optimizedAlts) {
+            $hasChanged = true;
+            $optimizedAlts = $mergedAlts;
+        }
+
         $deduplicatedAlts = $this->deduplicateAlternation($optimizedAlts);
         if (\count($deduplicatedAlts) !== \count($optimizedAlts)) {
             $hasChanged = true;
@@ -85,6 +92,12 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
             $expression = new Node\AlternationNode($optimizedAlts, $node->startPosition, $node->endPosition);
 
             return new Node\CharClassNode($expression, false, $node->startPosition, $node->endPosition);
+        }
+
+        // Try to convert simple alternations to character classes
+        $charClass = $this->tryConvertAlternationToCharClass($optimizedAlts, $node->startPosition, $node->endPosition);
+        if (null !== $charClass) {
+            return $charClass;
         }
 
         if (!$hasChanged) {
@@ -998,5 +1011,197 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         }
 
         return $prefix;
+    }
+
+    /**
+     * Merges adjacent character class nodes in an alternation.
+     * For example: [a-z]|[0-9] becomes [a-z0-9]
+     *
+     * @param list<Node\NodeInterface> $alternatives
+     *
+     * @return list<Node\NodeInterface>
+     */
+    private function mergeAdjacentCharClasses(array $alternatives): array
+    {
+        if (\count($alternatives) < 2) {
+            return $alternatives;
+        }
+
+        $merged = [];
+        $i = 0;
+
+        while ($i < \count($alternatives)) {
+            $current = $alternatives[$i];
+
+            // Check if current is a character class or a char type that can be converted
+            $isCharClass = $current instanceof Node\CharClassNode && !$current->isNegated;
+            $isCharType = $current instanceof Node\CharTypeNode && $this->canConvertCharTypeToCharClass($current);
+
+            if (!$isCharClass && !$isCharType) {
+                $merged[] = $current;
+                $i++;
+
+                continue;
+            }
+
+            // Look ahead to find adjacent character classes or char types
+            $nodesToMerge = [$current];
+            $j = $i + 1;
+
+            while ($j < \count($alternatives)) {
+                $next = $alternatives[$j];
+                $isNextCharClass = $next instanceof Node\CharClassNode && !$next->isNegated;
+                $isNextCharType = $next instanceof Node\CharTypeNode && $this->canConvertCharTypeToCharClass($next);
+
+                if ($isNextCharClass || $isNextCharType) {
+                    $nodesToMerge[] = $next;
+                    $j++;
+                } else {
+                    break;
+                }
+            }
+
+            // If we found multiple adjacent character classes/char types, merge them
+            if (\count($nodesToMerge) > 1) {
+                $merged[] = $this->mergeCharClassesAndCharTypes($nodesToMerge);
+                $i = $j;
+            } else {
+                $merged[] = $current;
+                $i++;
+            }
+        }
+
+        return $merged;
+    }
+
+    /**
+     * Checks if a CharTypeNode can be converted to a CharClassNode.
+     */
+    private function canConvertCharTypeToCharClass(Node\CharTypeNode $node): bool
+    {
+        // For now, only handle \d (digits) which can be converted to [0-9]
+        return 'd' === $node->value;
+    }
+
+    /**
+     * Converts a CharTypeNode to an equivalent CharClassNode.
+     */
+    private function convertCharTypeToCharClass(Node\CharTypeNode $node): Node\CharClassNode
+    {
+        $startPos = $node->startPosition;
+        $endPos = $node->endPosition;
+
+        return match ($node->value) {
+            'd' => new Node\CharClassNode(
+                new Node\RangeNode(
+                    new Node\LiteralNode('0', $startPos, $startPos + 1),
+                    new Node\LiteralNode('9', $startPos + 1, $startPos + 2),
+                    $startPos,
+                    $startPos + 2,
+                ),
+                false,
+                $startPos,
+                $endPos,
+            ),
+            default => throw new \InvalidArgumentException("Unsupported char type: {$node->value}"),
+        };
+    }
+
+    /**
+     * Merges character classes and char types into a single character class.
+     *
+     * @param list<Node\NodeInterface> $nodes
+     */
+    private function mergeCharClassesAndCharTypes(array $nodes): Node\CharClassNode
+    {
+        $allParts = [];
+        $startPos = $nodes[0]->getStartPosition();
+        $endPos = $nodes[\count($nodes) - 1]->getEndPosition();
+
+        foreach ($nodes as $node) {
+            if ($node instanceof Node\CharClassNode) {
+                if ($node->expression instanceof Node\AlternationNode) {
+                    $allParts = array_merge($allParts, $node->expression->alternatives);
+                } else {
+                    $allParts[] = $node->expression;
+                }
+            } elseif ($node instanceof Node\CharTypeNode) {
+                // Convert char type to equivalent char class parts
+                $charClass = $this->convertCharTypeToCharClass($node);
+                if ($charClass->expression instanceof Node\AlternationNode) {
+                    $allParts = array_merge($allParts, $charClass->expression->alternatives);
+                } else {
+                    $allParts[] = $charClass->expression;
+                }
+            }
+        }
+
+        // Create a new alternation with all parts
+        $mergedExpression = new Node\AlternationNode($allParts, $startPos, $endPos);
+
+        return new Node\CharClassNode($mergedExpression, false, $startPos, $endPos);
+    }
+
+    /**
+     * Tries to convert an alternation to a character class if it's beneficial.
+     * Only converts when it's clearly safe (no special char class metacharacters).
+     *
+     * @param list<Node\NodeInterface> $alternatives
+     */
+    private function tryConvertAlternationToCharClass(array $alternatives, int $startPos, int $endPos): ?Node\CharClassNode
+    {
+        if (\count($alternatives) < 3) {
+            return null; // Not worth it for small alternations
+        }
+
+        $literals = [];
+        $other = [];
+
+        foreach ($alternatives as $alt) {
+            if ($alt instanceof Node\LiteralNode && 1 === \strlen($alt->value)) {
+                $char = $alt->value;
+                // Don't convert if it contains char class metacharacters that would change meaning
+                if (!isset(self::CHAR_CLASS_META[$char])) {
+                    $literals[] = $char;
+                } else {
+                    return null; // Contains metacharacter, don't convert
+                }
+            } else {
+                $other[] = $alt;
+            }
+        }
+
+        if (!empty($other)) {
+            return null; // Can't convert if there are non-literal parts
+        }
+
+        // Only convert if we have enough literals that form a consecutive range
+        if (\count($literals) >= 3) {
+            $sortedLiterals = $literals;
+            sort($sortedLiterals);
+
+            // Check if they form a consecutive range
+            $first = $sortedLiterals[0];
+            $last = end($sortedLiterals);
+            $expected = [];
+            for ($i = \ord($first); $i <= \ord($last); $i++) {
+                $expected[] = \chr($i);
+            }
+
+            if ($sortedLiterals === $expected) {
+                // Create a range instead
+                $startLiteral = new Node\LiteralNode($first, $startPos, $startPos + 1);
+                $endLiteral = new Node\LiteralNode($last, $endPos - 1, $endPos);
+
+                return new Node\CharClassNode(
+                    new Node\RangeNode($startLiteral, $endLiteral, $startPos, $endPos),
+                    false,
+                    $startPos,
+                    $endPos,
+                );
+            }
+        }
+
+        return null;
     }
 }
