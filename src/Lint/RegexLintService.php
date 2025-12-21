@@ -15,9 +15,9 @@ namespace RegexParser\Lint;
 
 use RegexParser\OptimizationResult;
 use RegexParser\ProblemType;
-use RegexParser\RegexProblem;
 use RegexParser\ReDoS\ReDoSAnalysis;
 use RegexParser\ReDoS\ReDoSSeverity;
+use RegexParser\RegexProblem;
 use RegexParser\Severity;
 use RegexParser\ValidationErrorCategory;
 use RegexParser\ValidationResult;

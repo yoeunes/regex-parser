@@ -671,7 +671,7 @@ final class Parser
             return -1;
         }
 
-        return \ord(\strtoupper($char)) ^ 64;
+        return \ord(strtoupper($char)) ^ 64;
     }
 
     /**

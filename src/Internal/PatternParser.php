@@ -36,6 +36,7 @@ final class PatternParser
         $delimiter = $regex[0];
         if (!self::isValidDelimiter($delimiter)) {
             $suggested = self::suggestPattern($regex);
+
             throw new ParserException(\sprintf(
                 'Invalid delimiter "%s". Delimiters must not be alphanumeric, backslash, or whitespace. Try %s.',
                 $delimiter,

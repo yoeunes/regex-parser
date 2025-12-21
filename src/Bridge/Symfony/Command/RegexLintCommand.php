@@ -247,15 +247,19 @@ final class RegexLintCommand extends Command
         switch ($format) {
             case 'json':
                 $this->renderJsonOutput($output, $stats, $allResults);
+
                 break;
             case 'github':
                 $this->renderGithubOutput($output, $allResults);
+
                 break;
             case 'checkstyle':
                 $this->renderCheckstyleOutput($output, $allResults);
+
                 break;
             case 'junit':
                 $this->renderJunitOutput($output, $allResults);
+
                 break;
             default:
                 if (!empty($allResults)) {
@@ -263,6 +267,7 @@ final class RegexLintCommand extends Command
                 }
 
                 $this->renderSummary($io, $stats);
+
                 break;
         }
 
@@ -292,25 +297,15 @@ final class RegexLintCommand extends Command
     ): int {
         $message = "Failed to collect patterns: {$errorMessage}";
 
-        switch ($format) {
-            case 'json':
-                $output->writeln(json_encode([
-                    'error' => $message,
-                ], \JSON_THROW_ON_ERROR));
-                break;
-            case 'github':
-                $output->writeln($this->formatGithubMessage('error', $message));
-                break;
-            case 'checkstyle':
-                $output->writeln($this->renderCheckstyleError($message));
-                break;
-            case 'junit':
-                $output->writeln($this->renderJunitError($message));
-                break;
-            default:
-                $io->error($message);
-                break;
-        }
+        match ($format) {
+            'json' => $output->writeln(json_encode([
+                'error' => $message,
+            ], \JSON_THROW_ON_ERROR)),
+            'github' => $output->writeln($this->formatGithubMessage('error', $message)),
+            'checkstyle' => $output->writeln($this->renderCheckstyleError($message)),
+            'junit' => $output->writeln($this->renderJunitError($message)),
+            default => $io->error($message),
+        };
 
         return Command::FAILURE;
     }
@@ -322,17 +317,21 @@ final class RegexLintCommand extends Command
         switch ($format) {
             case 'json':
                 $this->renderJsonOutput($output, $stats, []);
+
                 break;
             case 'checkstyle':
                 $this->renderCheckstyleOutput($output, []);
+
                 break;
             case 'junit':
                 $this->renderJunitOutput($output, []);
+
                 break;
             case 'github':
                 break;
             default:
                 $this->renderSummary($io, $stats, isEmpty: true);
+
                 break;
         }
 

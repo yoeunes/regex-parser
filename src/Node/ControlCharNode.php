@@ -27,7 +27,7 @@ final readonly class ControlCharNode extends AbstractNode
      * Initializes a control character node.
      *
      * @param string $char          The control character identifier (e.g., 'M' for \cM).
-     * @param int    $codePoint     The computed control character code point.
+     * @param int    $codePoint     the computed control character code point
      * @param int    $startPosition the start position
      * @param int    $endPosition   the end position
      */
