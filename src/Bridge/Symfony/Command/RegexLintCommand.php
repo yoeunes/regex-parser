@@ -263,6 +263,7 @@ final class RegexLintCommand extends Command
                 break;
             default:
                 if (!empty($allResults)) {
+                    $this->showIssueLegend($io);
                     $this->displayResults($io, $allResults);
                 }
 
@@ -278,6 +279,16 @@ final class RegexLintCommand extends Command
     {
         $io->newLine();
         $io->writeln('  <fg=white;options=bold>🔍 Regex Parser</> <fg=gray>linting...</>');
+        $io->newLine();
+    }
+
+    private function showIssueLegend(SymfonyStyle $io): void
+    {
+        $io->writeln('  <fg=blue;options=bold>Understanding Issue Types:</>');
+        $io->writeln('  <bg=red;fg=white> FAIL </> Syntax errors that prevent the regex from working');
+        $io->writeln('  <bg=yellow;fg=black> WARN </> Potential problems like complexity or unused flags');
+        $io->writeln('  <bg=cyan;fg=white> TIP  </> Optimization suggestions for better performance');
+        $io->writeln('  <bg=gray;fg=white> INFO </> Informational messages');
         $io->newLine();
     }
 
@@ -872,6 +883,23 @@ final class RegexLintCommand extends Command
         // Print the tip in a styled box if present
         if (null !== $tip && '' !== $tip) {
             $io->writeln('    <bg=cyan;fg=white;options=bold> TIP  </> <fg=cyan;options=bold>'.trim($tip).'</>');
+        }
+
+        // Add educational explanations for common issues
+        $this->addEducationalExplanation($io, $message);
+    }
+
+    private function addEducationalExplanation(SymfonyStyle $io, string $message): void
+    {
+        if (str_contains($message, 'vulnerable to ReDoS')) {
+            $io->writeln('         <fg=gray>💡 ReDoS (Regular Expression Denial of Service) occurs when malicious input causes');
+            $io->writeln('         <fg=gray>   excessive backtracking, potentially freezing your application.</>');
+        } elseif (str_contains($message, 'Nested quantifiers')) {
+            $io->writeln('         <fg=gray>💡 Nested quantifiers like (a+)+ can match the same text in multiple ways,');
+            $io->writeln('         <fg=gray>   causing exponential time complexity on certain inputs.</>');
+        } elseif (str_contains($message, 'complex')) {
+            $io->writeln('         <fg=gray>💡 High complexity scores indicate patterns that may be slow or hard to maintain.</>');
+            $io->writeln('         <fg=gray>   Consider breaking complex patterns into simpler alternatives.</>');
         }
     }
 

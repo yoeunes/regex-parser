@@ -161,22 +161,23 @@ final readonly class RegexAnalysisService
                     ];
                 }
 
-                $redos = $this->regex->redos($occurrence->pattern, $this->redosSeverityThreshold);
-                if ($redos->exceedsThreshold($this->redosSeverityThreshold)) {
-                    $issues[] = [
-                        'type' => 'error',
-                        'file' => $occurrence->file,
-                        'line' => $occurrence->line,
-                        'column' => 1,
-                        'issueId' => self::ISSUE_ID_REDOS,
-                        'message' => \sprintf(
-                            'Pattern may be vulnerable to ReDoS (severity: %s).',
-                            strtoupper($redos->severity->value),
-                        ),
-                        'source' => $source,
-                        'analysis' => $redos,
-                    ];
-                }
+                 $redos = $this->regex->redos($occurrence->pattern, $this->redosSeverityThreshold);
+                 if ($redos->exceedsThreshold($this->redosSeverityThreshold)) {
+                     $issues[] = [
+                         'type' => 'error',
+                         'file' => $occurrence->file,
+                         'line' => $occurrence->line,
+                         'column' => 1,
+                         'issueId' => self::ISSUE_ID_REDOS,
+                         'message' => \sprintf(
+                             'Pattern may be vulnerable to ReDoS (severity: %s).',
+                             strtoupper($redos->severity->value),
+                         ),
+                         'hint' => $this->getReDoSHint($redos),
+                         'source' => $source,
+                         'analysis' => $redos,
+                     ];
+                 }
             }
 
             if ($progress) {
@@ -380,7 +381,52 @@ final readonly class RegexAnalysisService
             return 'Escape "/" inside the pattern (\/) or use a different delimiter, e.g. #pattern#.';
         }
 
+        if (str_contains($message, 'Unclosed character class')) {
+            return 'Character classes must be closed with "]". Check for missing or extra "[".';
+        }
+
+        if (str_contains($message, 'Invalid quantifier range')) {
+            return 'Quantifier ranges must have min <= max. For example, {3,2} is invalid; use {2,3} or {2} instead.';
+        }
+
+        if (str_contains($message, 'Unknown regex flag')) {
+            return 'Only valid PCRE flags are: i (case-insensitive), m (multiline), s (dot matches newline), x (extended), U (ungreedy), J (duplicate names).';
+        }
+
+        if (str_contains($message, 'Backreference to non-existent group')) {
+            return 'Backreferences like \\1 refer to capturing groups. Make sure the group number exists.';
+        }
+
+        if (str_contains($message, 'Lookbehind is unbounded')) {
+            return 'Variable-length lookbehinds are not allowed in PCRE. Use fixed-length alternatives like (?<=\w{3}) instead of (?<=\w*).';
+        }
+
+        if (str_contains($message, 'Invalid conditional construct')) {
+            return 'Conditionals need a valid condition: group reference (?(1)...), lookaround (?(?=...)...), or (?(DEFINE)...).';
+        }
+
         return null;
+    }
+
+    private function getReDoSHint(\RegexParser\ReDoS\ReDoSAnalysis $analysis): string
+    {
+        $hints = [];
+
+        if (!empty($analysis->recommendations)) {
+            $hints = array_merge($hints, $analysis->recommendations);
+        }
+
+        if (null !== $analysis->vulnerableSubpattern) {
+            $hints[] = \sprintf('The vulnerable part is: %s', $analysis->vulnerableSubpattern);
+        }
+
+        if (empty($hints)) {
+            $hints[] = 'ReDoS occurs when regex engines spend excessive time backtracking. Use possessive quantifiers (+ instead of *) or atomic groups (?>...) to prevent it.';
+        }
+
+        $hints[] = 'Test with malicious inputs like repeated strings followed by a non-matching character.';
+
+        return implode(' ', $hints);
     }
 
     private function isLikelyPartialRegexError(string $errorMessage): bool

@@ -94,6 +94,19 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
             return new Node\CharClassNode($expression, false, $node->startPosition, $node->endPosition);
         }
 
+        // Try to convert simple alternations to character classes
+        $charClass = $this->tryConvertAlternationToCharClass($optimizedAlts, $node->startPosition, $node->endPosition);
+        if (null !== $charClass) {
+            return $charClass;
+        }
+
+        // Optimize alternation order for better performance (literals and simple patterns first)
+        $orderedAlts = $this->optimizeAlternationOrder($optimizedAlts);
+        if ($orderedAlts !== $optimizedAlts) {
+            $hasChanged = true;
+            $optimizedAlts = $orderedAlts;
+        }
+
         if (!$hasChanged) {
             return $node;
         }
@@ -1134,5 +1147,109 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         $mergedExpression = new Node\AlternationNode($allParts, $startPos, $endPos);
 
         return new Node\CharClassNode($mergedExpression, false, $startPos, $endPos);
+    }
+
+    /**
+     * Optimizes alternation order for better performance by putting simpler patterns first.
+     *
+     * @param list<Node\NodeInterface> $alternatives
+     *
+     * @return list<Node\NodeInterface>
+     */
+    private function optimizeAlternationOrder(array $alternatives): array
+    {
+        if (\count($alternatives) <= 1) {
+            return $alternatives;
+        }
+
+        // Sort by complexity: literals first, then simple char classes, then complex patterns
+        usort($alternatives, function (Node\NodeInterface $a, Node\NodeInterface $b): int {
+            $scoreA = $this->getAlternationComplexityScore($a);
+            $scoreB = $this->getAlternationComplexityScore($b);
+
+            return $scoreA <=> $scoreB;
+        });
+
+        return $alternatives;
+    }
+
+    /**
+     * Gets a complexity score for alternation ordering (lower = simpler = should come first).
+     */
+    private function getAlternationComplexityScore(Node\NodeInterface $node): int
+    {
+        return match (true) {
+            $node instanceof Node\LiteralNode => 1,
+            $node instanceof Node\CharLiteralNode => 2,
+            $node instanceof Node\CharTypeNode => 3,
+            $node instanceof Node\CharClassNode => 4,
+            $node instanceof Node\AnchorNode => 5,
+            $node instanceof Node\AssertionNode => 6,
+            $node instanceof Node\DotNode => 7,
+            default => 10, // Groups, quantifiers, sequences, etc.
+        };
+    }
+
+    /**
+     * Tries to convert an alternation to a character class if it's beneficial.
+     * Only converts when it's clearly safe (no special char class metacharacters).
+     *
+     * @param list<Node\NodeInterface> $alternatives
+     */
+    private function tryConvertAlternationToCharClass(array $alternatives, int $startPos, int $endPos): ?Node\CharClassNode
+    {
+        if (\count($alternatives) < 3) {
+            return null; // Not worth it for small alternations
+        }
+
+        $literals = [];
+        $other = [];
+
+        foreach ($alternatives as $alt) {
+            if ($alt instanceof Node\LiteralNode && 1 === \strlen($alt->value)) {
+                $char = $alt->value;
+                // Don't convert if it contains char class metacharacters that would change meaning
+                if (!isset(self::CHAR_CLASS_META[$char])) {
+                    $literals[] = $char;
+                } else {
+                    return null; // Contains metacharacter, don't convert
+                }
+            } else {
+                $other[] = $alt;
+            }
+        }
+
+        if (!empty($other)) {
+            return null; // Can't convert if there are non-literal parts
+        }
+
+        // Only convert if we have enough literals that form a consecutive range
+        if (\count($literals) >= 3) {
+            $sortedLiterals = $literals;
+            sort($sortedLiterals);
+
+            // Check if they form a consecutive range
+            $first = $sortedLiterals[0];
+            $last = end($sortedLiterals);
+            $expected = [];
+            for ($i = \ord($first); $i <= \ord($last); $i++) {
+                $expected[] = \chr($i);
+            }
+
+            if ($sortedLiterals === $expected) {
+                // Create a range instead
+                $startLiteral = new Node\LiteralNode($first, $startPos, $startPos + 1);
+                $endLiteral = new Node\LiteralNode($last, $endPos - 1, $endPos);
+
+                return new Node\CharClassNode(
+                    new Node\RangeNode($startLiteral, $endLiteral, $startPos, $endPos),
+                    false,
+                    $startPos,
+                    $endPos
+                );
+            }
+        }
+
+        return null;
     }
 }
