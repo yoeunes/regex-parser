@@ -346,6 +346,8 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitRange(Node\RangeNode $node): string
     {
+        error_log("visitRange called: start_class=" . get_class($node->start) . ", end_class=" . get_class($node->end));
+        
         $start = ($node->start instanceof Node\LiteralNode)
             ? $this->explainLiteral($node->start->value)
             : $node->start->accept($this); // Fallback
@@ -354,6 +356,8 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
             ? $this->explainLiteral($node->end->value)
             : $node->end->accept($this); // Fallback
 
+        error_log("visitRange result: start='$start', end='$end'");
+        
         return $this->line(\sprintf('Range: from %s to %s', $start, $end));
     }
 
