@@ -15,9 +15,15 @@ namespace RegexParser\Lint\Formatter;
 
 use RegexParser\Lint\RegexAnalysisService;
 use RegexParser\Lint\RegexLintReport;
+use RegexParser\OptimizationResult;
 
 /**
  * Console output formatter with ANSI colors and verbosity levels.
+ *
+ * @phpstan-import-type LintIssue from \RegexParser\Lint\RegexLintReport
+ * @phpstan-import-type OptimizationEntry from \RegexParser\Lint\RegexLintReport
+ * @phpstan-import-type LintResult from \RegexParser\Lint\RegexLintReport
+ * @phpstan-import-type LintStats from \RegexParser\Lint\RegexLintReport
  */
 class ConsoleFormatter extends AbstractOutputFormatter
 {
@@ -26,7 +32,6 @@ class ConsoleFormatter extends AbstractOutputFormatter
     private const RED = "\033[31m";
     private const GREEN = "\033[32m";
     private const YELLOW = "\033[33m";
-    private const BLUE = "\033[34m";
     private const BLACK = "\033[30m";
     private const CYAN = "\033[36m";
     private const WHITE = "\033[37m";
@@ -36,8 +41,9 @@ class ConsoleFormatter extends AbstractOutputFormatter
     private const BG_GREEN = "\033[42m";
     private const BG_YELLOW = "\033[43m";
     private const BG_CYAN = "\033[46m";
-    private const BG_BLUE = "\033[44m";
     private const BG_GRAY = "\033[100m";
+    private const PEN_LABEL = '✏️';
+    private const ARROW_LABEL = '↳';
 
     public function __construct(
         private readonly ?RegexAnalysisService $analysisService = null,
@@ -48,25 +54,29 @@ class ConsoleFormatter extends AbstractOutputFormatter
 
     public function format(RegexLintReport $report): string
     {
-        $output = '';
-
         if (OutputConfiguration::VERBOSITY_QUIET === $this->config->verbosity) {
             return $this->formatQuiet($report);
         }
 
+        $output = '';
         $groupedResults = $this->groupResults($report->results);
 
         foreach ($groupedResults as $file => $results) {
-            $output .= $this->formatFileHeader($file);
+            $file = (string) $file;
+            if ('' !== $file) {
+                $output .= $this->formatFileHeader($file);
+            }
 
+            /** @var list<LintResult> $results */
             foreach ($results as $result) {
                 $output .= $this->formatPatternContext($result);
-                /** @var array<array<string, mixed>> $issues */
-                $issues = (array) ($result['issues'] ?? []);
+                /** @var list<LintIssue> $issues */
+                $issues = $result['issues'] ?? [];
                 $output .= $this->formatIssues($issues);
-                /** @var array<array<string, mixed>> $optimizations */
-                $optimizations = (array) ($result['optimizations'] ?? []);
+                /** @var list<OptimizationEntry> $optimizations */
+                $optimizations = $result['optimizations'] ?? [];
                 $output .= $this->formatOptimizations($optimizations);
+                $output .= \PHP_EOL;
             }
         }
 
@@ -100,32 +110,46 @@ class ConsoleFormatter extends AbstractOutputFormatter
      */
     private function formatFileHeader(string $file): string
     {
-        return \sprintf('  %s%s%s'.\PHP_EOL,
-            $this->color($file, self::BLUE.self::BOLD),
-            $this->config->ansi ? ' ' : '',
-            $this->config->ansi ? '┈' : '',
-        );
+        if (!$this->config->ansi) {
+            return '  '.$file.\PHP_EOL;
+        }
+
+        return '  '.$this->color(' '.$file.' ', self::BG_GRAY.self::WHITE.self::BOLD).\PHP_EOL;
     }
 
     /**
      * Format pattern context information.
      *
-     * @param array<string, mixed> $result
+     * @phpstan-param LintResult $result
      */
     private function formatPatternContext(array $result): string
     {
-        $line = $result['line'] ?? 0;
-        $pattern = $result['pattern'] ?? '';
-        $location = $result['location'] ?? '';
+        $pattern = $this->extractPatternForResult($result);
+        $line = (int) ($result['line'] ?? 0);
+        $location = $result['location'] ?? null;
 
-        $output = \sprintf('%3d: %s%s'.\PHP_EOL,
-            /* @phpstan-ignore cast.int */ (int) $line,
-            $this->badge('✏️', self::WHITE, self::BG_BLUE),
-            $this->highlightPattern(/* @phpstan-ignore cast.string */ (string) $pattern),
-        );
+        $hasLocation = \is_string($location) && '' !== $location;
+        $showLine = $line > 0 && !$hasLocation;
 
-        if ($location && OutputConfiguration::VERBOSITY_QUIET !== $this->config->verbosity) {
-            $output .= \sprintf('     %s'.\PHP_EOL, $this->dim(/* @phpstan-ignore cast.string */ (string) $location));
+        if ($showLine) {
+            $penLabel = $this->getPenLabel();
+            if (null !== $pattern && '' !== $pattern) {
+                $highlighted = $this->safelyHighlightPattern($pattern);
+
+                return \sprintf('  %s %s %s'.\PHP_EOL, $this->dim($line.':'), $penLabel, $highlighted);
+            }
+
+            return \sprintf('  %s %s'.\PHP_EOL, $this->dim('line '.$line.':'), $penLabel);
+        }
+
+        if (null !== $pattern && '' !== $pattern) {
+            $output = \sprintf('  %s'.\PHP_EOL, $this->safelyHighlightPattern($pattern));
+        } else {
+            $output = '  '.$this->dim('(pattern unavailable)').\PHP_EOL;
+        }
+
+        if ($hasLocation) {
+            $output .= \sprintf('     %s'.\PHP_EOL, $this->dim(self::ARROW_LABEL.' '.$location));
         }
 
         return $output;
@@ -134,26 +158,23 @@ class ConsoleFormatter extends AbstractOutputFormatter
     /**
      * Format issues for a result.
      *
-     * @param array<array<string, mixed>> $issues
+     * @phpstan-param list<LintIssue> $issues
      */
     private function formatIssues(array $issues): string
     {
         $output = '';
 
         foreach ($issues as $issue) {
-            $badge = $this->issueBadge(/* @phpstan-ignore cast.string */ (string) $issue['type']);
-            $cleanMessage = $this->cleanErrorMessage(/* @phpstan-ignore cast.string */ (string) $issue['message']);
-            $output .= \sprintf('     %s %s'.\PHP_EOL,
-                $badge,
-                $this->color($cleanMessage, $this->getSeverityColor(/* @phpstan-ignore cast.string */ (string) $issue['type']).self::BOLD),
-            );
+            $issueType = (string) ($issue['type'] ?? 'info');
+            $badge = $this->issueBadge($issueType);
+            $output .= $this->displaySingleIssue($badge, (string) ($issue['message'] ?? ''));
 
-            $hint = $this->formatIssueHint($issue);
-            if ($hint) {
-                $output .= \sprintf('         %s%s'.\PHP_EOL,
-                    $this->config->ansi ? '↳ ' : '',
-                    $this->dim($hint),
-                );
+            $hint = $issue['hint'] ?? null;
+            if ('error' !== $issueType && \is_string($hint) && '' !== $hint && $this->config->shouldShowHints()) {
+                $formattedHint = $this->formatHint($hint);
+                if ('' !== $formattedHint) {
+                    $output .= \sprintf('         %s'.\PHP_EOL, $this->dim(self::ARROW_LABEL.' '.$formattedHint));
+                }
             }
         }
 
@@ -163,7 +184,7 @@ class ConsoleFormatter extends AbstractOutputFormatter
     /**
      * Format optimizations for a result.
      *
-     * @param array<array<string, mixed>> $optimizations
+     * @phpstan-param list<OptimizationEntry> $optimizations
      */
     private function formatOptimizations(array $optimizations): string
     {
@@ -174,27 +195,27 @@ class ConsoleFormatter extends AbstractOutputFormatter
         $output = '';
 
         foreach ($optimizations as $opt) {
-            $output .= \sprintf('     %s %s'.\PHP_EOL,
+            $output .= \sprintf('    %s %s'.\PHP_EOL,
                 $this->badge('TIP', self::WHITE, self::BG_CYAN),
                 $this->color('Optimization available', self::CYAN.self::BOLD),
             );
 
-            if ($this->analysisService) {
-                $optimization = $opt['optimization'];
-                if ($optimization instanceof \RegexParser\OptimizationResult) {
-                    $original = $this->safelyHighlightPattern($optimization->original);
-                    $optimized = $this->safelyHighlightPattern($optimization->optimized);
-
-                    $output .= \sprintf('         %s%s'.\PHP_EOL,
-                        $this->color('- ', self::RED),
-                        $original,
-                    );
-                    $output .= \sprintf('         %s%s'.\PHP_EOL,
-                        $this->color('+ ', self::GREEN),
-                        $optimized,
-                    );
-                }
+            $optimization = $opt['optimization'] ?? null;
+            if (!$optimization instanceof OptimizationResult) {
+                continue;
             }
+
+            $original = $this->safelyHighlightPattern($optimization->original);
+            $optimized = $this->safelyHighlightPattern($optimization->optimized);
+
+            $output .= \sprintf('         %s%s'.\PHP_EOL,
+                $this->color('- ', self::RED),
+                $original,
+            );
+            $output .= \sprintf('         %s%s'.\PHP_EOL,
+                $this->color('+ ', self::GREEN),
+                $optimized,
+            );
         }
 
         return $output;
@@ -203,15 +224,15 @@ class ConsoleFormatter extends AbstractOutputFormatter
     /**
      * Format summary statistics.
      *
-     * @param array<string, int> $stats
+     * @phpstan-param LintStats $stats
      */
     private function formatSummary(array $stats): string
     {
         $output = \PHP_EOL;
 
-        $errors = $stats['errors'];
-        $warnings = $stats['warnings'];
-        $optimizations = $stats['optimizations'];
+        $errors = (int) $stats['errors'];
+        $warnings = (int) $stats['warnings'];
+        $optimizations = (int) $stats['optimizations'];
 
         if ($errors > 0) {
             $output .= \sprintf('  %s %s%s'.\PHP_EOL,
@@ -241,39 +262,49 @@ class ConsoleFormatter extends AbstractOutputFormatter
      */
     private function formatFooter(): string
     {
-        $output = \PHP_EOL;
+        return \PHP_EOL
+            .'  '.$this->dim('Star the repo: https://github.com/yoeunes/regex-parser')
+            .\PHP_EOL
+            .\PHP_EOL;
+    }
 
-        if ($this->config->ansi) {
-            $output .= $this->dim('  Star this repo: https://github.com/yoeunes/regex-parser').\PHP_EOL;
+    private function displaySingleIssue(string $badge, string $message): string
+    {
+        $lines = explode("\n", $message);
+        $firstLine = array_shift($lines) ?? '';
+
+        $output = \sprintf(
+            '    %s %s'.\PHP_EOL,
+            $badge,
+            $this->color($firstLine, self::WHITE),
+        );
+
+        if (!empty($lines)) {
+            foreach ($lines as $index => $line) {
+                $prefix = 0 === $index ? self::ARROW_LABEL : ' ';
+                $output .= \sprintf(
+                    '         %s %s'.\PHP_EOL,
+                    $this->dim($prefix),
+                    $this->dim($this->stripMessageLine($line)),
+                );
+            }
         }
-
-        $output .= \PHP_EOL;
 
         return $output;
     }
 
-    /**
-     * Highlight a regex pattern.
-     */
-    private function highlightPattern(string $pattern): string
+    private function getPenLabel(): string
     {
-        if (!$this->analysisService || !$this->config->ansi) {
-            return $pattern;
+        if (!$this->config->ansi) {
+            return self::PEN_LABEL;
         }
 
-        try {
-            return $this->analysisService->highlight($pattern);
-        } catch (\Throwable) {
-            return $pattern;
-        }
+        return "\033[24m".self::PEN_LABEL."\033[24m";
     }
 
-    /**
-     * Safely highlight a regex pattern.
-     */
     private function safelyHighlightPattern(string $pattern): string
     {
-        if (!$this->analysisService) {
+        if (!$this->analysisService || !$this->config->ansi) {
             return $pattern;
         }
 
@@ -292,62 +323,9 @@ class ConsoleFormatter extends AbstractOutputFormatter
         return match ($type) {
             'error' => $this->badge('FAIL', self::WHITE, self::BG_RED),
             'warning' => $this->badge('WARN', self::BLACK, self::BG_YELLOW),
-            'info' => $this->badge('INFO', self::WHITE, self::BG_BLUE),
-            default => $this->badge('NOTE', self::BLACK, self::BG_GRAY),
+            'info' => $this->badge('INFO', self::WHITE, self::BG_GRAY),
+            default => $this->badge('INFO', self::WHITE, self::BG_GRAY),
         };
-    }
-
-    /**
-     * Clean up validation error messages for normal mode.
-     */
-    private function cleanErrorMessage(string $message): string
-    {
-        // For normal mode, extract just the core error without tips
-        if (OutputConfiguration::VERBOSITY_NORMAL === $this->config->verbosity) {
-            // Extract the main error before the period
-            $parts = explode('.', $message, 2);
-            $mainError = $parts[0].'.';
-
-            // Clean up common patterns
-            $cleanups = [
-                'No closing delimiter "/" found. You opened with "/"' => 'No closing delimiter "/" found.',
-                'No closing delimiter "/" found' => 'No closing delimiter "/" found.',
-                'Unclosed character class "]"' => 'Unclosed character class.',
-                'Invalid quantifier range' => 'Invalid quantifier range.',
-                'Backreference to non-existent group' => 'Backreference to non-existent group.',
-                'Lookbehind is unbounded' => 'Unbounded lookbehind.',
-                'Unknown regex flag' => 'Unknown regex flag(s) found.',
-                'Invalid conditional construct' => 'Invalid conditional construct.',
-            ];
-
-            foreach ($cleanups as $verbose => $clean) {
-                $mainError = str_replace($verbose, $clean, $mainError);
-            }
-
-            return $mainError;
-        }
-
-        return $message;
-    }
-
-    /**
-     * Format issue hint.
-     *
-     * @param array<string, mixed> $issue
-     */
-    private function formatIssueHint(array $issue): string
-    {
-        $hint = $issue['hint'] ?? null;
-        if (!\is_string($hint) || '' === $hint) {
-            return '';
-        }
-
-        // Special handling for ReDoS hints
-        if (($issue['issueId'] ?? '') === 'regex.lint.redos') {
-            return $this->formatReDoSHint($hint);
-        }
-
-        return $this->formatHint($hint);
     }
 
     /**
@@ -380,5 +358,43 @@ class ConsoleFormatter extends AbstractOutputFormatter
     private function dim(string $text): string
     {
         return $this->color($text, self::GRAY);
+    }
+
+    /**
+     * @phpstan-param LintResult $result
+     */
+    private function extractPatternForResult(array $result): ?string
+    {
+        $pattern = $result['pattern'] ?? null;
+        if (\is_string($pattern) && '' !== $pattern) {
+            return $pattern;
+        }
+
+        if (!empty($result['issues'])) {
+            $firstIssue = $result['issues'][0];
+            $issuePattern = $firstIssue['pattern'] ?? $firstIssue['regex'] ?? null;
+            if (\is_string($issuePattern) && '' !== $issuePattern) {
+                return $issuePattern;
+            }
+        }
+
+        if (!empty($result['optimizations'])) {
+            $firstOpt = $result['optimizations'][0];
+            $optimization = $firstOpt['optimization'] ?? null;
+            if ($optimization instanceof OptimizationResult) {
+                return $optimization->original;
+            }
+        }
+
+        return null;
+    }
+
+    private function stripMessageLine(string $message): string
+    {
+        return preg_replace_callback(
+            '/^Line \d+:/m',
+            static fn (array $matches): string => str_repeat(' ', \strlen($matches[0])),
+            $message,
+        ) ?? $message;
     }
 }

@@ -774,6 +774,15 @@ switch ($command) {
         }
 
         if ([] === $patterns) {
+            if ($format === 'console' && $verbosity !== OutputConfiguration::VERBOSITY_QUIET) {
+                echo renderLintBanner();
+            }
+
+            if ($format === 'console') {
+                renderSummary(['errors' => 0, 'warnings' => 0, 'optimizations' => 0], true);
+                exit(0);
+            }
+
             $emptyReport = new \RegexParser\Lint\RegexLintReport([], ['errors' => 0, 'warnings' => 0, 'optimizations' => 0]);
             echo $formatter->format($emptyReport);
             exit(0);
