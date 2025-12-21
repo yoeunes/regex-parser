@@ -32,4 +32,14 @@ class RegexException extends \Exception implements RegexParserExceptionInterface
     {
         return $this->errorCode;
     }
+
+    public function getPosition(): ?int
+    {
+        return $this->position;
+    }
+
+    public function getSnippet(): ?string
+    {
+        return $this->snippet;
+    }
 }

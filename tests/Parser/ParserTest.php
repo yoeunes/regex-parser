@@ -15,7 +15,6 @@ namespace RegexParser\Tests\Parser;
 
 use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
-use RegexParser\AnalysisReport;
 use RegexParser\Exception\ParserException;
 use RegexParser\Node\AlternationNode;
 use RegexParser\Node\AnchorNode;
@@ -37,8 +36,6 @@ use RegexParser\Node\RegexNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\Node\SubroutineNode;
 use RegexParser\Node\UnicodePropNode;
-use RegexParser\OptimizationResult;
-use RegexParser\ReDoS\ReDoSAnalysis;
 use RegexParser\Regex;
 use RegexParser\RegexPattern;
 
@@ -364,7 +361,7 @@ final class ParserTest extends TestCase
 
         $this->assertFalse($result->isValid());
         $this->assertNotNull($result->error);
-        $this->assertStringContainsString('Duplicate group name "a"', $result->error);
+        $this->assertStringContainsString('Duplicate group name "a"', (string) $result->error);
     }
 
     public function test_validate_duplicate_named_groups_with_j(): void
@@ -380,7 +377,7 @@ final class ParserTest extends TestCase
 
         $this->assertFalse($result->isValid());
         $this->assertNotNull($result->error);
-        $this->assertStringContainsString('Did you mean: name?', $result->error);
+        $this->assertStringContainsString('Did you mean: name?', (string) $result->error);
     }
 
     public function test_validate_lookbehind_unbounded(): void
@@ -389,7 +386,7 @@ final class ParserTest extends TestCase
 
         $this->assertFalse($result->isValid());
         $this->assertNotNull($result->error);
-        $this->assertStringContainsString('Lookbehind is unbounded', $result->error);
+        $this->assertStringContainsString('Lookbehind is unbounded', (string) $result->error);
     }
 
     public function test_parse_named_group_with_single_quote(): void
@@ -646,17 +643,18 @@ final class ParserTest extends TestCase
     public function test_optimize_with_mode(): void
     {
         $result = $this->regex->optimize('/a+/', ['mode' => 'safe']);
-        $this->assertInstanceOf(OptimizationResult::class, $result);
+        $this->assertSame('/a+/', $result->optimized);
 
         $result2 = $this->regex->optimize('/a+/', ['mode' => 'aggressive']);
-        $this->assertInstanceOf(OptimizationResult::class, $result2);
+        $this->assertSame('/a+/', $result2->optimized);
     }
 
     public function test_parse_pattern(): void
     {
         $ast = $this->regex->parsePattern('foo', 'i', '#');
 
-        $this->assertInstanceOf(RegexNode::class, $ast);
+        $this->assertSame('#', $ast->delimiter);
+        $this->assertSame('i', $ast->flags);
     }
 
     public function test_regex_pattern_from_delimited(): void
@@ -681,12 +679,9 @@ final class ParserTest extends TestCase
     {
         $report = $this->regex->analyze('/foo/');
 
-        $this->assertInstanceOf(AnalysisReport::class, $report);
         $this->assertTrue($report->isValid);
         $this->assertIsArray($report->errors());
         $this->assertIsArray($report->lintIssues());
-        $this->assertInstanceOf(ReDoSAnalysis::class, $report->redos());
-        $this->assertInstanceOf(OptimizationResult::class, $report->optimizations());
         $this->assertIsString($report->explain());
         $this->assertIsString($report->highlighted());
     }
@@ -694,7 +689,7 @@ final class ParserTest extends TestCase
     public function test_regex_new(): void
     {
         $regex = Regex::new();
-        $this->assertInstanceOf(Regex::class, $regex);
+        $this->assertNotSame($this->regex, $regex);
     }
 
     public function test_exception_with_visual_context(): void

@@ -48,6 +48,7 @@ final class RegexParserExtension extends Extension
          * @var array{
          *     max_pattern_length: int,
          *     max_lookbehind_length: int,
+         *     runtime_pcre_validation: bool,
          *     cache: array{
          *         pool: string|null,
          *         directory: string|null,
@@ -80,6 +81,7 @@ final class RegexParserExtension extends Extension
         // Set parameters
         $container->setParameter('regex_parser.max_pattern_length', $config['max_pattern_length']);
         $container->setParameter('regex_parser.max_lookbehind_length', $config['max_lookbehind_length']);
+        $container->setParameter('regex_parser.runtime_pcre_validation', $config['runtime_pcre_validation']);
         $container->setParameter('regex_parser.cache', $config['cache']);
         $container->setParameter('regex_parser.extractor_service', $config['extractor_service']);
         $container->setParameter('regex_parser.redos.threshold', $config['redos']['threshold']);

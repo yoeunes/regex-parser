@@ -17,6 +17,7 @@ use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
+use RegexParser\Exception\SemanticErrorException;
 use RegexParser\Lexer;
 use RegexParser\NodeVisitor\ExplainNodeVisitor;
 use RegexParser\NodeVisitor\HtmlExplainNodeVisitor;
@@ -327,7 +328,7 @@ final class FullCoverageTest extends TestCase
     public function test_validator_with_invalid_backref(): void
     {
         // Test ValidatorNodeVisitor with invalid backreference
-        $this->expectException(ParserException::class);
+        $this->expectException(SemanticErrorException::class);
 
         $ast = $this->regexService->parse('/\1/');
 
@@ -338,7 +339,7 @@ final class FullCoverageTest extends TestCase
     public function test_validator_with_invalid_subroutine(): void
     {
         // Test ValidatorNodeVisitor with invalid subroutine
-        $this->expectException(ParserException::class);
+        $this->expectException(SemanticErrorException::class);
 
         $ast = $this->regexService->parse('/(?&nonexistent)/');
 

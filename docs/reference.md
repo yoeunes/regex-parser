@@ -18,7 +18,7 @@ RegexParser targets **PHP’s PCRE2 engine** (`preg_*`). Validation is layered:
 
 - **Parse**: lexer + parser build a PCRE-aware AST.
 - **Semantic validation**: checks common PCRE rules (group references, branch reset numbering, lookbehind boundedness, Unicode ranges, …).
-- **PCRE runtime validation**: `Regex::validate()` also compiles the pattern via `preg_match($regex, '')` and reports failures as `pcre-runtime`.
+- **PCRE runtime validation**: optional compile check via `preg_match($regex, '')` (enable with `runtime_pcre_validation`) and report failures as `pcre-runtime`.
 
 Key behaviors that may surprise users coming from “single-pass” validators:
 

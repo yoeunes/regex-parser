@@ -36,7 +36,7 @@ final readonly class Regex
      * Cache version for AST serialization.
      * Bump this when AST structure changes.
      */
-    public const CACHE_VERSION = 1;
+    public const CACHE_VERSION = 2;
 
     /**
      * Default maximum allowed regex pattern length.
@@ -61,6 +61,7 @@ final readonly class Regex
         private int $maxLookbehindLength,
         private CacheInterface $cache,
         private array $redosIgnoredPatterns,
+        private bool $runtimePcreValidation,
     ) {}
 
     /**
@@ -81,6 +82,7 @@ final readonly class Regex
             $configuration->maxLookbehindLength,
             $configuration->cache,
             $configuration->redosIgnoredPatterns,
+            $configuration->runtimePcreValidation,
         );
     }
 
@@ -112,23 +114,53 @@ final readonly class Regex
         $errors = [];
         $isValid = true;
 
-        try {
-            $validation = $this->validate($regex);
-            if (!$validation->isValid) {
-                $isValid = false;
+        $validation = $this->validate($regex);
+        if (!$validation->isValid) {
+            $isValid = false;
+            if (null !== $validation->error && '' !== $validation->error) {
                 $errors[] = $validation->error;
             }
-        } catch (\Exception $e) {
-            $isValid = false;
-            $errors[] = $e->getMessage();
         }
 
-        $lintIssues = []; // Placeholder for future lint integration
+        $lintIssues = [];
+        $highlighted = '';
+        $explain = '';
+        $optimizations = new OptimizationResult($regex, $regex, []);
 
         $redos = $this->redos($regex);
-        $optimizations = $this->optimize($regex);
-        $explain = $this->explain($regex);
-        $highlighted = $this->generate($regex); // Use generate as highlighted placeholder
+
+        if ($isValid) {
+            try {
+                $ast = $this->parse($regex, false);
+                $linter = new NodeVisitor\LinterNodeVisitor();
+                $ast->accept($linter);
+                $lintIssues = $linter->getIssues();
+            } catch (\Throwable $e) {
+                $errors[] = $e->getMessage();
+                $isValid = false;
+            }
+
+            try {
+                $optimizations = $this->optimize($regex);
+            } catch (\Throwable $e) {
+                $errors[] = $e->getMessage();
+                $isValid = false;
+            }
+
+            try {
+                $explain = $this->explain($regex);
+            } catch (\Throwable $e) {
+                $errors[] = $e->getMessage();
+                $isValid = false;
+            }
+
+            try {
+                $highlighted = $this->highlight($regex);
+            } catch (\Throwable $e) {
+                $errors[] = $e->getMessage();
+                $isValid = false;
+            }
+        }
 
         return new AnalysisReport(
             $isValid,
@@ -194,14 +226,15 @@ final readonly class Regex
             $this->validateAst($ast, $extractedPattern);
             $complexityScore = $this->calculateComplexity($ast);
 
-            // Runtime compilation check - commented out as semantic validation covers most cases
-            // $runtimeError = $this->checkRuntimeCompilation($extractedPattern);
-            // if (null !== $runtimeError) {
-            //     return new ValidationResult(false, $runtimeError, $complexityScore);
-            // }
+            if ($this->runtimePcreValidation) {
+                $runtimeResult = $this->checkRuntimeCompilation($regex, $extractedPattern, $complexityScore);
+                if (null !== $runtimeResult) {
+                    return $runtimeResult;
+                }
+            }
 
             return new ValidationResult(true, null, $complexityScore);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             return $this->buildValidationFailure($e);
         }
     }
@@ -294,6 +327,23 @@ final readonly class Regex
     }
 
     /**
+     * Highlight a regex for console or HTML output.
+     *
+     * @param string $regex  The regular expression to highlight
+     * @param string $format Output format ('console' or 'html')
+     */
+    public function highlight(string $regex, string $format = 'console'): string
+    {
+        $ast = $this->parse($regex, false);
+
+        $visitor = 'html' === $format
+            ? new NodeVisitor\HtmlHighlighterVisitor()
+            : new NodeVisitor\ConsoleHighlighterVisitor();
+
+        return $ast->accept($visitor);
+    }
+
+    /**
      * Get the list of allowed classes for unserialization.
      *
      * @return list<class-string>
@@ -337,6 +387,118 @@ final readonly class Regex
     /**
      * Checks runtime compilation by attempting to use the pattern with preg_match and capturing warnings.
      */
+    private function checkRuntimeCompilation(
+        string $regex,
+        ?string $pattern,
+        int $complexityScore,
+    ): ?ValidationResult {
+        $warning = null;
+
+        set_error_handler(static function (int $errno, string $errstr) use (&$warning): bool {
+            if (\E_WARNING === $errno) {
+                $warning = $errstr;
+            }
+
+            return true;
+        });
+
+        try {
+            $result = preg_match($regex, '');
+        } finally {
+            restore_error_handler();
+        }
+
+        if (false !== $result && null === $warning) {
+            return null;
+        }
+
+        $message = $this->normalizeRuntimeErrorMessage($warning ?? preg_last_error_msg());
+        if ('' === $message || 'No error' === $message) {
+            $message = 'PCRE runtime error.';
+        }
+
+        $offset = $this->extractOffsetFromMessage($message);
+        $snippet = $this->buildVisualSnippet($pattern, $offset);
+        $fullMessage = 'PCRE runtime error: '.$message;
+        if ('' !== $snippet) {
+            $fullMessage .= "\n".$snippet;
+        }
+
+        return new ValidationResult(
+            false,
+            $fullMessage,
+            $complexityScore,
+            ValidationErrorCategory::PCRE_RUNTIME,
+            $offset,
+            '' !== $snippet ? $snippet : null,
+            null,
+            'regex.pcre.runtime',
+        );
+    }
+
+    private function normalizeRuntimeErrorMessage(string $message): string
+    {
+        $normalized = preg_replace('/^preg_[a-z_]+\\(\\):\\s*/i', '', $message) ?? $message;
+
+        return trim($normalized);
+    }
+
+    private function extractOffsetFromMessage(string $message): ?int
+    {
+        if (preg_match('/\\b(?:at offset|offset)\\s+(\\d+)/i', $message, $matches)) {
+            return (int) $matches[1];
+        }
+
+        return null;
+    }
+
+    private function buildVisualSnippet(?string $pattern, ?int $position): string
+    {
+        if (null === $pattern || null === $position || $position < 0) {
+            return '';
+        }
+
+        $length = \strlen($pattern);
+        $caretIndex = $position > $length ? $length : $position;
+
+        $lineStart = strrpos($pattern, "\n", $caretIndex - $length);
+        $lineStart = false === $lineStart ? 0 : $lineStart + 1;
+        $lineEnd = strpos($pattern, "\n", $caretIndex);
+        $lineEnd = false === $lineEnd ? $length : $lineEnd;
+
+        $lineNumber = substr_count($pattern, "\n", 0, $lineStart) + 1;
+
+        $displayStart = $lineStart;
+        $displayEnd = $lineEnd;
+
+        $maxContextWidth = 80;
+        if (($displayEnd - $displayStart) > $maxContextWidth) {
+            $half = intdiv($maxContextWidth, 2);
+            $displayStart = max($lineStart, $caretIndex - $half);
+            $displayEnd = min($lineEnd, $displayStart + $maxContextWidth);
+
+            if (($displayEnd - $displayStart) > $maxContextWidth) {
+                $displayStart = $displayEnd - $maxContextWidth;
+            }
+        }
+
+        $prefixEllipsis = $displayStart > $lineStart ? '...' : '';
+        $suffixEllipsis = $displayEnd < $lineEnd ? '...' : '';
+
+        $excerpt = $prefixEllipsis
+            .substr($pattern, $displayStart, $displayEnd - $displayStart)
+            .$suffixEllipsis;
+
+        $caretOffset = ('' === $prefixEllipsis ? 0 : 3) + ($caretIndex - $displayStart);
+        if ($caretOffset < 0) {
+            $caretOffset = 0;
+        }
+
+        $lineLabel = 'Line '.$lineNumber.': ';
+
+        return $lineLabel.$excerpt."\n"
+            .str_repeat(' ', \strlen($lineLabel) + $caretOffset).'^';
+    }
 
     /**
      * Compile a regex by applying a transformation and compiling back to string.
@@ -404,6 +566,8 @@ final readonly class Regex
     {
         $serializedAst = serialize($ast);
         $exportedAst = var_export($serializedAst, true);
+        $allowedClasses = self::getAllowedClasses();
+        $exportedAllowedClasses = var_export($allowedClasses, true);
         $version = self::CACHE_VERSION;
 
         return <<<PHP
@@ -411,11 +575,11 @@ final readonly class Regex
 
             declare(strict_types=1);
 
-            if (Regex::CACHE_VERSION !== $version) {
+            if (\RegexParser\Regex::CACHE_VERSION !== $version) {
                 return null;
             }
 
-            return unserialize($exportedAst, ['allowed_classes' => Regex::getAllowedClasses()]);
+            return unserialize($exportedAst, ['allowed_classes' => $exportedAllowedClasses]);
 
             PHP;
     }
@@ -467,14 +631,30 @@ final readonly class Regex
     /**
      * Build a validation failure result from an exception.
      *
-     * @param LexerException|ParserException $exception The parse exception
+     * @param \Throwable $exception The parse exception
      *
      * @return ValidationResult Validation failure result
      */
-    private function buildValidationFailure(\Exception $exception): ValidationResult
+    private function buildValidationFailure(\Throwable $exception): ValidationResult
     {
         $errorMessage = $exception->getMessage();
-        $visualSnippet = method_exists($exception, 'getVisualSnippet') ? $exception->getVisualSnippet() : '';
+        $visualSnippet = '';
+        if (method_exists($exception, 'getVisualSnippet')) {
+            $snippet = $exception->getVisualSnippet();
+            $visualSnippet = \is_string($snippet) ? $snippet : '';
+        }
+        $position = null;
+        $errorCode = null;
+        $hint = null;
+
+        if ($exception instanceof Exception\RegexException) {
+            $position = $exception->getPosition();
+            $errorCode = $exception->getErrorCode();
+        }
+
+        if ($exception instanceof Exception\SemanticErrorException) {
+            $hint = $exception->getHint();
+        }
 
         if ('' !== $visualSnippet) {
             $errorMessage .= "\n".$visualSnippet;
@@ -486,10 +666,10 @@ final readonly class Regex
                 $errorMessage,
                 0,
                 ValidationErrorCategory::SEMANTIC,
-                $exception->getPosition(),
+                $position,
                 '' !== $visualSnippet ? $visualSnippet : null,
-                null,
-                $exception->getErrorCode(),
+                $hint,
+                $errorCode,
             );
         }
 
@@ -498,10 +678,10 @@ final readonly class Regex
             $errorMessage,
             0,
             ValidationErrorCategory::SYNTAX,
-            $exception->getPosition(),
+            $position,
             '' !== $visualSnippet ? $visualSnippet : null,
             null,
-            $exception->getErrorCode(),
+            $errorCode,
         );
     }
 

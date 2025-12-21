@@ -26,7 +26,7 @@ final class LexerException extends RegexException implements RegexParserExceptio
     {
         $this->initializeContext($position, $pattern);
 
-        parent::__construct($message, $position, $this->snippet, 'lexer.error', $previous);
+        parent::__construct($message, $position, $this->getVisualSnippet(), 'lexer.error', $previous);
     }
 
     public static function withContext(string $message, int $position, string $pattern, ?\Throwable $previous = null): self

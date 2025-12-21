@@ -34,21 +34,24 @@ final readonly class RegexOptions
         'max_lookbehind_length',
         'cache',
         'redos_ignored_patterns',
+        'runtime_pcre_validation',
     ];
 
     /**
      * Create new configuration options.
      *
-     * @param int            $maxPatternLength     Maximum allowed regex pattern length
-     * @param int            $maxLookbehindLength  Maximum allowed lookbehind length
-     * @param CacheInterface $cache                Cache implementation to use
-     * @param array<string>  $redosIgnoredPatterns Patterns to ignore in ReDoS analysis
+     * @param int            $maxPatternLength      Maximum allowed regex pattern length
+     * @param int            $maxLookbehindLength   Maximum allowed lookbehind length
+     * @param CacheInterface $cache                 Cache implementation to use
+     * @param array<string>  $redosIgnoredPatterns  Patterns to ignore in ReDoS analysis
+     * @param bool           $runtimePcreValidation Whether to validate against the PCRE runtime
      */
     public function __construct(
         public int $maxPatternLength,
         public int $maxLookbehindLength,
         public CacheInterface $cache,
         public array $redosIgnoredPatterns = [],
+        public bool $runtimePcreValidation = false,
     ) {}
 
     /**
@@ -70,8 +73,9 @@ final readonly class RegexOptions
         $lookbehindLength = self::getLookbehindLength($options);
         $cache = self::createCache($options);
         $patterns = self::getIgnoredPatterns($options);
+        $runtimeValidation = self::getRuntimePcreValidation($options);
 
-        return new self($maxLength, $lookbehindLength, $cache, $patterns);
+        return new self($maxLength, $lookbehindLength, $cache, $patterns, $runtimeValidation);
     }
 
     /**
@@ -86,6 +90,7 @@ final readonly class RegexOptions
             Regex::DEFAULT_MAX_LOOKBEHIND_LENGTH,
             new NullCache(),
             [],
+            false,
         );
     }
 
@@ -148,6 +153,24 @@ final readonly class RegexOptions
         }
 
         return $length;
+    }
+
+    /**
+     * Get runtime PCRE validation flag from options.
+     *
+     * @param array<string, mixed> $options Configuration options
+     */
+    private static function getRuntimePcreValidation(array $options): bool
+    {
+        $runtimeValidation = $options['runtime_pcre_validation'] ?? false;
+
+        if (!\is_bool($runtimeValidation)) {
+            throw new InvalidRegexOptionException(
+                '"runtime_pcre_validation" must be a boolean.',
+            );
+        }
+
+        return $runtimeValidation;
     }
 
     /**

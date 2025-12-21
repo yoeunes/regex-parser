@@ -36,6 +36,7 @@ return static function (ContainerConfigurator $container): void {
             'max_lookbehind_length' => param('regex_parser.max_lookbehind_length'),
             'cache' => service('regex_parser.cache'),
             'redos_ignored_patterns' => param('regex_parser.redos.ignored_patterns'),
+            'runtime_pcre_validation' => param('regex_parser.runtime_pcre_validation'),
         ])
         ->public();
 

@@ -28,7 +28,7 @@ class ParserException extends RegexException implements RegexParserExceptionInte
     {
         $this->initializeContext($position, $pattern);
 
-        parent::__construct($message, $position, $this->snippet, 'parser.error', $previous);
+        parent::__construct($message, $position, $this->getVisualSnippet(), 'parser.error', $previous);
     }
 
     public static function withContext(string $message, int $position, string $pattern, ?\Throwable $previous = null): static

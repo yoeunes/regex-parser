@@ -15,6 +15,7 @@ namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\ParserException;
+use RegexParser\Exception\SemanticErrorException;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
 use RegexParser\NodeVisitor\ComplexityScoreNodeVisitor;
 use RegexParser\NodeVisitor\DumperNodeVisitor;
@@ -73,7 +74,7 @@ final class AdvancedPcreFeaturesTest extends TestCase
         $ast->accept($validator); // Should not throw exception
 
         // Invalid numeric callout (too high)
-        $this->expectException(ParserException::class);
+        $this->expectException(SemanticErrorException::class);
         $this->expectExceptionMessage('Callout identifier must be between 0 and 255, got 256.');
         $ast = $regexService->parse('/(?C256)abc/');
         $ast->accept($validator);
@@ -81,7 +82,7 @@ final class AdvancedPcreFeaturesTest extends TestCase
 
     public function test_it_throws_exception_for_empty_string_callout_identifier(): void
     {
-        $this->expectException(ParserException::class);
+        $this->expectException(SemanticErrorException::class);
         $this->expectExceptionMessage('Callout string identifier cannot be empty.');
         $regexService = Regex::create();
         $ast = $regexService->parse('/(?C"")abc/');

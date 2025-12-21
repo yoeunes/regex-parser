@@ -285,7 +285,9 @@ Under the hood it inspects quantifiers, nested groups, backreferences and charac
 `Regex::create()` accepts a small, validated option array (or a `RegexOptions` value object via `RegexOptions::fromArray()`):
 
 - `max_pattern_length` (int, default: `Regex::DEFAULT_MAX_PATTERN_LENGTH`).
+- `max_lookbehind_length` (int, default: `Regex::DEFAULT_MAX_LOOKBEHIND_LENGTH`).
 - `cache` (`null` | path string | `RegexParser\Cache\CacheInterface`).
+- `runtime_pcre_validation` (bool, default: `false`).
 - `redos_ignored_patterns` (list of strings to skip in ReDoS analysis).
 
 Unknown or invalid keys throw `RegexParser\Exception\InvalidRegexOptionException`.
@@ -642,6 +644,7 @@ $regex = Regex::create([
     'cache' => '/path/to/cache/dir',         // or a PSR cache instance
     'max_pattern_length' => 100_000,
     'max_lookbehind_length' => 255,
+    'runtime_pcre_validation' => false,
     'redos_ignored_patterns' => [
         '/^([0-9]{4}-[0-9]{2}-[0-9]{2})$/', // known safe patterns
     ],
@@ -670,6 +673,8 @@ final readonly class Regex
     public function explain(string $regex, string $format = 'text'): string;
 
     public function generate(string $regex): string;
+
+    public function highlight(string $regex, string $format = 'console'): string;
 
     public function literals(string $regex): LiteralExtractionResult;
 

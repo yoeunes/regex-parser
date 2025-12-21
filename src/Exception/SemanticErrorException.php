@@ -26,9 +26,15 @@ final class SemanticErrorException extends RegexException implements RegexParser
         ?string $pattern = null,
         ?\Throwable $previous = null,
         ?string $errorCode = 'regex.semantic',
+        public readonly ?string $hint = null,
     ) {
         $this->initializeContext($position, $pattern);
 
-        parent::__construct($message, $position, $this->snippet, $errorCode, $previous);
+        parent::__construct($message, $position, $this->getVisualSnippet(), $errorCode, $previous);
+    }
+
+    public function getHint(): ?string
+    {
+        return $this->hint;
     }
 }

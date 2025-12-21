@@ -14,8 +14,8 @@ declare(strict_types=1);
 namespace RegexParser\Tests;
 
 use PHPUnit\Framework\TestCase;
-use RegexParser\Regex;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
+use RegexParser\Regex;
 
 class FuzzTest extends TestCase
 {
@@ -29,7 +29,7 @@ class FuzzTest extends TestCase
     /**
      * Property-based fuzzing test for AST round-trip.
      */
-    public function testAstRoundTrip(): void
+    public function test_ast_round_trip(): void
     {
         $patterns = [
             '/a/',
@@ -52,13 +52,11 @@ class FuzzTest extends TestCase
             $recompiled = $ast->accept($compiler);
 
             // Parse the recompiled
-            $ast2 = $this->regex->parse('/' . $recompiled . '/');
+            $ast2 = $this->regex->parse('/'.$recompiled.'/');
 
             // For now, just ensure no exceptions
             $this->assertInstanceOf(\RegexParser\Node\RegexNode::class, $ast);
             $this->assertInstanceOf(\RegexParser\Node\RegexNode::class, $ast2);
         }
     }
-
-
 }
