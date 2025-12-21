@@ -60,6 +60,8 @@ final readonly class Regex
     /**
      * Create a new Regex instance with optional configuration.
      *
+     * Instances are not memoized; use Regex::new() for the same behavior.
+     *
      * @param array<string, mixed> $options Configuration options
      *
      * @return self New Regex instance
@@ -74,6 +76,75 @@ final readonly class Regex
             $configuration->cache,
             $configuration->redosIgnoredPatterns,
         );
+    }
+
+    /**
+     * Parse a regular expression pattern with separate flags and delimiter.
+     *
+     * @param string $pattern   The regex pattern body
+     * @param string $flags     The regex flags
+     * @param string $delimiter The regex delimiter
+     *
+     * @return RegexNode Parsed AST
+     */
+    public function parsePattern(string $pattern, string $flags = '', string $delimiter = '/'): RegexNode
+    {
+        $regex = $delimiter.$pattern.$delimiter.$flags;
+
+        return $this->parse($regex, false);
+    }
+
+    /**
+     * Perform comprehensive analysis of a regex pattern.
+     *
+     * @param string $regex The regular expression to analyze
+     *
+     * @return AnalysisReport Complete analysis report
+     */
+    public function analyze(string $regex): AnalysisReport
+    {
+        $errors = [];
+        $isValid = true;
+
+        try {
+            $validation = $this->validate($regex);
+            if (!$validation->isValid) {
+                $isValid = false;
+                $errors[] = $validation->error;
+            }
+        } catch (\Exception $e) {
+            $isValid = false;
+            $errors[] = $e->getMessage();
+        }
+
+        $lintIssues = []; // Placeholder for future lint integration
+
+        $redos = $this->redos($regex);
+        $optimizations = $this->optimize($regex);
+        $explain = $this->explain($regex);
+        $highlighted = $this->generate($regex); // Use generate as highlighted placeholder
+
+        return new AnalysisReport(
+            $isValid,
+            $errors,
+            $lintIssues,
+            $redos,
+            $optimizations,
+            $explain,
+            $highlighted,
+        );
+    }
+
+    /**
+     * Create a new Regex instance without memoization.
+     *
+     * @param array<string, mixed> $options Configuration options
+     *
+     * @return self New Regex instance
+     */
+    public static function new(array $options = []): self
+    {
+        return self::create($options);
     }
 
     /**
@@ -124,8 +195,8 @@ final readonly class Regex
             // }
 
             return new ValidationResult(true, null, $complexityScore);
-        } catch (LexerException|ParserException $parseException) {
-            return $this->buildValidationFailure($parseException);
+        } catch (\Exception $e) {
+            return $this->buildValidationFailure($e);
         }
     }
 
@@ -219,30 +290,6 @@ final readonly class Regex
     /**
      * Checks runtime compilation by attempting to use the pattern with preg_match and capturing warnings.
      */
-    private function checkRuntimeCompilation(string $pattern): ?string
-    {
-        $errors = [];
-        $oldHandler = set_error_handler(function (int $errno, string $errstr) use (&$errors) {
-            if (\E_WARNING === $errno || \E_NOTICE === $errno) {
-                $errors[] = $errstr;
-            }
-
-            return true; // Suppress the error
-        });
-
-        try {
-            // Try to match against an empty string to trigger compilation
-            preg_match($pattern, '');
-        } finally {
-            restore_error_handler();
-        }
-
-        if (!empty($errors)) {
-            return 'Runtime compilation warning: '.implode('; ', $errors);
-        }
-
-        return null;
-    }
 
     /**
      * Compile a regex by applying a transformation and compiling back to string.
@@ -372,10 +419,10 @@ final readonly class Regex
      *
      * @return ValidationResult Validation failure result
      */
-    private function buildValidationFailure(LexerException|ParserException $exception): ValidationResult
+    private function buildValidationFailure(\Exception $exception): ValidationResult
     {
         $errorMessage = $exception->getMessage();
-        $visualSnippet = $exception->getVisualSnippet();
+        $visualSnippet = method_exists($exception, 'getVisualSnippet') ? $exception->getVisualSnippet() : '';
 
         if ('' !== $visualSnippet) {
             $errorMessage .= "\n".$visualSnippet;
@@ -389,7 +436,7 @@ final readonly class Regex
                 ValidationErrorCategory::SEMANTIC,
                 $exception->getPosition(),
                 '' !== $visualSnippet ? $visualSnippet : null,
-                $exception->getHint(),
+                null,
                 $exception->getErrorCode(),
             );
         }
@@ -402,7 +449,7 @@ final readonly class Regex
             $exception->getPosition(),
             '' !== $visualSnippet ? $visualSnippet : null,
             null,
-            null,
+            $exception->getErrorCode(),
         );
     }
 

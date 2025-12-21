@@ -15,6 +15,7 @@ namespace RegexParser\Tests\Parser;
 
 use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
+use RegexParser\AnalysisReport;
 use RegexParser\Exception\ParserException;
 use RegexParser\Node\AlternationNode;
 use RegexParser\Node\AnchorNode;
@@ -37,7 +38,9 @@ use RegexParser\Node\SequenceNode;
 use RegexParser\Node\SubroutineNode;
 use RegexParser\Node\UnicodePropNode;
 use RegexParser\OptimizationResult;
+use RegexParser\ReDoS\ReDoSAnalysis;
 use RegexParser\Regex;
+use RegexParser\RegexPattern;
 
 final class ParserTest extends TestCase
 {
@@ -647,6 +650,51 @@ final class ParserTest extends TestCase
 
         $result2 = $this->regex->optimize('/a+/', ['mode' => 'aggressive']);
         $this->assertInstanceOf(OptimizationResult::class, $result2);
+    }
+
+    public function test_parse_pattern(): void
+    {
+        $ast = $this->regex->parsePattern('foo', 'i', '#');
+
+        $this->assertInstanceOf(RegexNode::class, $ast);
+    }
+
+    public function test_regex_pattern_from_delimited(): void
+    {
+        $pattern = RegexPattern::fromDelimited('/foo/i');
+
+        $this->assertSame('foo', $pattern->pattern);
+        $this->assertSame('i', $pattern->flags);
+        $this->assertSame('/', $pattern->delimiter);
+    }
+
+    public function test_regex_pattern_from_raw(): void
+    {
+        $pattern = RegexPattern::fromRaw('foo', 'i', '#');
+
+        $this->assertSame('foo', $pattern->pattern);
+        $this->assertSame('i', $pattern->flags);
+        $this->assertSame('#', $pattern->delimiter);
+    }
+
+    public function test_analyze_report(): void
+    {
+        $report = $this->regex->analyze('/foo/');
+
+        $this->assertInstanceOf(AnalysisReport::class, $report);
+        $this->assertTrue($report->isValid);
+        $this->assertIsArray($report->errors());
+        $this->assertIsArray($report->lintIssues());
+        $this->assertInstanceOf(ReDoSAnalysis::class, $report->redos());
+        $this->assertInstanceOf(OptimizationResult::class, $report->optimizations());
+        $this->assertIsString($report->explain());
+        $this->assertIsString($report->highlighted());
+    }
+
+    public function test_regex_new(): void
+    {
+        $regex = Regex::new();
+        $this->assertInstanceOf(Regex::class, $regex);
     }
 
     /**

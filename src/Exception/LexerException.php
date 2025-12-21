@@ -18,7 +18,7 @@ namespace RegexParser\Exception;
  *
  * @see \RegexParser\Lexer
  */
-final class LexerException extends \Exception implements RegexParserExceptionInterface
+final class LexerException extends RegexException implements RegexParserExceptionInterface
 {
     use VisualContextTrait;
 
@@ -26,7 +26,7 @@ final class LexerException extends \Exception implements RegexParserExceptionInt
     {
         $this->initializeContext($position, $pattern);
 
-        parent::__construct($message, 0, $previous);
+        parent::__construct($message, $position, $this->snippet, 'lexer.error', $previous);
     }
 
     public static function withContext(string $message, int $position, string $pattern, ?\Throwable $previous = null): self
