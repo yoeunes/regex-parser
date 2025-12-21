@@ -13,8 +13,8 @@ declare(strict_types=1);
 
 namespace RegexParser\Output;
 
-use RegexParser\Lint\RegexLintReport;
 use RegexParser\Lint\RegexAnalysisService;
+use RegexParser\Lint\RegexLintReport;
 
 /**
  * Console output formatter with ANSI colors and verbosity levels.
@@ -40,7 +40,7 @@ final class ConsoleFormatter extends AbstractOutputFormatter
     private const BG_GRAY = "\033[100m";
 
     public function __construct(
-        private ?RegexAnalysisService $analysisService = null,
+        private readonly ?RegexAnalysisService $analysisService = null,
         OutputConfiguration $config = new OutputConfiguration(),
     ) {
         parent::__construct($config);
@@ -55,7 +55,7 @@ final class ConsoleFormatter extends AbstractOutputFormatter
     {
         $output = '';
 
-        if ($this->config->verbosity === OutputConfiguration::VERBOSITY_QUIET) {
+        if (OutputConfiguration::VERBOSITY_QUIET === $this->config->verbosity) {
             return $this->formatQuiet($report);
         }
 
@@ -66,8 +66,12 @@ final class ConsoleFormatter extends AbstractOutputFormatter
 
             foreach ($results as $result) {
                 $output .= $this->formatPatternContext($result);
-                $output .= $this->formatIssues($result['issues'] ?? []);
-                $output .= $this->formatOptimizations($result['optimizations'] ?? []);
+                /** @var array<array<string, mixed>> $issues */
+                $issues = (array) ($result['issues'] ?? []);
+                $output .= $this->formatIssues($issues);
+                /** @var array<array<string, mixed>> $optimizations */
+                $optimizations = (array) ($result['optimizations'] ?? []);
+                $output .= $this->formatOptimizations($optimizations);
             }
         }
 
@@ -83,30 +87,28 @@ final class ConsoleFormatter extends AbstractOutputFormatter
         $warnings = $report->stats['warnings'];
 
         if ($errors > 0) {
-            return sprintf('FAIL: %d invalid patterns, %d warnings, %d optimizations.' . PHP_EOL,
+            return \sprintf('FAIL: %d invalid patterns, %d warnings, %d optimizations.'.\PHP_EOL,
                 $errors, $warnings, $report->stats['optimizations']);
         }
 
         if ($warnings > 0) {
-            return sprintf('WARN: %d warnings found, %d optimizations available.' . PHP_EOL,
+            return \sprintf('WARN: %d warnings found, %d optimizations available.'.\PHP_EOL,
                 $warnings, $report->stats['optimizations']);
         }
 
-        return sprintf('PASS: No issues found, %d optimizations available.' . PHP_EOL,
+        return \sprintf('PASS: No issues found, %d optimizations available.'.\PHP_EOL,
             $report->stats['optimizations']);
     }
 
     /**
      * Format file header.
-     *
-     * @param string $file
      */
     private function formatFileHeader(string $file): string
     {
-        return sprintf('  %s%s%s' . PHP_EOL,
-            $this->color($file, self::BLUE . self::BOLD),
+        return \sprintf('  %s%s%s'.\PHP_EOL,
+            $this->color($file, self::BLUE.self::BOLD),
             $this->config->ansi ? ' ' : '',
-            $this->config->ansi ? '┈' : ''
+            $this->config->ansi ? '┈' : '',
         );
     }
 
@@ -117,18 +119,18 @@ final class ConsoleFormatter extends AbstractOutputFormatter
      */
     private function formatPatternContext(array $result): string
     {
-        $line = (int) ($result['line'] ?? 0);
-        $pattern = (string) ($result['pattern'] ?? '');
-        $location = (string) ($result['location'] ?? '');
+        $line = $result['line'] ?? 0;
+        $pattern = $result['pattern'] ?? '';
+        $location = $result['location'] ?? '';
 
-        $output = sprintf('%3d: %s%s' . PHP_EOL,
-            $line,
+        $output = \sprintf('%3d: %s%s'.\PHP_EOL,
+            /* @phpstan-ignore cast.int */ (int) $line,
             $this->badge('✏️', self::WHITE, self::BG_BLUE),
-            $this->highlightPattern($pattern)
+            $this->highlightPattern(/* @phpstan-ignore cast.string */ (string) $pattern),
         );
 
-        if ($location && $this->config->verbosity !== OutputConfiguration::VERBOSITY_QUIET) {
-            $output .= sprintf('     %s' . PHP_EOL, $this->dim($location));
+        if ($location && OutputConfiguration::VERBOSITY_QUIET !== $this->config->verbosity) {
+            $output .= \sprintf('     %s'.\PHP_EOL, $this->dim(/* @phpstan-ignore cast.string */ (string) $location));
         }
 
         return $output;
@@ -144,18 +146,18 @@ final class ConsoleFormatter extends AbstractOutputFormatter
         $output = '';
 
         foreach ($issues as $issue) {
-            $badge = $this->issueBadge((string) $issue['type']);
-            $cleanMessage = $this->cleanErrorMessage((string) $issue['message']);
-            $output .= sprintf('     %s %s' . PHP_EOL,
+            $badge = $this->issueBadge(/* @phpstan-ignore cast.string */ (string) $issue['type']);
+            $cleanMessage = $this->cleanErrorMessage(/* @phpstan-ignore cast.string */ (string) $issue['message']);
+            $output .= \sprintf('     %s %s'.\PHP_EOL,
                 $badge,
-                $this->color($cleanMessage, $this->getSeverityColor((string) $issue['type']) . self::BOLD)
+                $this->color($cleanMessage, $this->getSeverityColor(/* @phpstan-ignore cast.string */ (string) $issue['type']).self::BOLD),
             );
 
             $hint = $this->formatIssueHint($issue);
             if ($hint) {
-                $output .= sprintf('         %s%s' . PHP_EOL,
+                $output .= \sprintf('         %s%s'.\PHP_EOL,
                     $this->config->ansi ? '↳ ' : '',
-                    $this->dim($hint)
+                    $this->dim($hint),
                 );
             }
         }
@@ -177,23 +179,26 @@ final class ConsoleFormatter extends AbstractOutputFormatter
         $output = '';
 
         foreach ($optimizations as $opt) {
-            $output .= sprintf('     %s %s' . PHP_EOL,
+            $output .= \sprintf('     %s %s'.\PHP_EOL,
                 $this->badge('TIP', self::WHITE, self::BG_CYAN),
-                $this->color('Optimization available', self::CYAN . self::BOLD)
+                $this->color('Optimization available', self::CYAN.self::BOLD),
             );
 
             if ($this->analysisService) {
-                $original = $this->safelyHighlightPattern((string) $opt['optimization']->original);
-                $optimized = $this->safelyHighlightPattern((string) $opt['optimization']->optimized);
+                $optimization = $opt['optimization'];
+                if ($optimization instanceof \RegexParser\OptimizationResult) {
+                    $original = $this->safelyHighlightPattern($optimization->original);
+                    $optimized = $this->safelyHighlightPattern($optimization->optimized);
 
-                $output .= sprintf('         %s%s' . PHP_EOL,
-                    $this->color('- ', self::RED),
-                    $original
-                );
-                $output .= sprintf('         %s%s' . PHP_EOL,
-                    $this->color('+ ', self::GREEN),
-                    $optimized
-                );
+                    $output .= \sprintf('         %s%s'.\PHP_EOL,
+                        $this->color('- ', self::RED),
+                        $original,
+                    );
+                    $output .= \sprintf('         %s%s'.\PHP_EOL,
+                        $this->color('+ ', self::GREEN),
+                        $optimized,
+                    );
+                }
             }
         }
 
@@ -207,29 +212,29 @@ final class ConsoleFormatter extends AbstractOutputFormatter
      */
     private function formatSummary(array $stats): string
     {
-        $output = PHP_EOL;
+        $output = \PHP_EOL;
 
         $errors = $stats['errors'];
         $warnings = $stats['warnings'];
         $optimizations = $stats['optimizations'];
 
         if ($errors > 0) {
-            $output .= sprintf('  %s %s%s' . PHP_EOL,
+            $output .= \sprintf('  %s %s%s'.\PHP_EOL,
                 $this->badge('FAIL', self::WHITE, self::BG_RED),
-                $this->color(sprintf('%d invalid patterns', $errors), self::RED . self::BOLD),
-                $this->dim(sprintf(', %d warnings, %d optimizations.', $warnings, $optimizations))
+                $this->color(\sprintf('%d invalid patterns', $errors), self::RED.self::BOLD),
+                $this->dim(\sprintf(', %d warnings, %d optimizations.', $warnings, $optimizations)),
             );
         } elseif ($warnings > 0) {
-            $output .= sprintf('  %s %s%s' . PHP_EOL,
+            $output .= \sprintf('  %s %s%s'.\PHP_EOL,
                 $this->badge('PASS', self::BLACK, self::BG_YELLOW),
-                $this->color(sprintf('%d warnings found', $warnings), self::YELLOW . self::BOLD),
-                $this->dim(sprintf(', %d optimizations available.', $optimizations))
+                $this->color(\sprintf('%d warnings found', $warnings), self::YELLOW.self::BOLD),
+                $this->dim(\sprintf(', %d optimizations available.', $optimizations)),
             );
         } else {
-            $output .= sprintf('  %s %s%s' . PHP_EOL,
+            $output .= \sprintf('  %s %s%s'.\PHP_EOL,
                 $this->badge('PASS', self::WHITE, self::BG_GREEN),
-                $this->color('No issues found', self::GREEN . self::BOLD),
-                $this->dim(sprintf(', %d optimizations available.', $optimizations))
+                $this->color('No issues found', self::GREEN.self::BOLD),
+                $this->dim(\sprintf(', %d optimizations available.', $optimizations)),
             );
         }
 
@@ -241,21 +246,19 @@ final class ConsoleFormatter extends AbstractOutputFormatter
      */
     private function formatFooter(): string
     {
-        $output = PHP_EOL;
+        $output = \PHP_EOL;
 
         if ($this->config->ansi) {
-            $output .= $this->dim('  Star this repo: https://github.com/yoeunes/regex-parser') . PHP_EOL;
+            $output .= $this->dim('  Star this repo: https://github.com/yoeunes/regex-parser').\PHP_EOL;
         }
 
-        $output .= PHP_EOL;
+        $output .= \PHP_EOL;
 
         return $output;
     }
 
     /**
      * Highlight a regex pattern.
-     *
-     * @param string $pattern
      */
     private function highlightPattern(string $pattern): string
     {
@@ -272,8 +275,6 @@ final class ConsoleFormatter extends AbstractOutputFormatter
 
     /**
      * Safely highlight a regex pattern.
-     *
-     * @param string $pattern
      */
     private function safelyHighlightPattern(string $pattern): string
     {
@@ -290,8 +291,6 @@ final class ConsoleFormatter extends AbstractOutputFormatter
 
     /**
      * Get badge for issue type.
-     *
-     * @param string $type
      */
     private function issueBadge(string $type): string
     {
@@ -305,17 +304,15 @@ final class ConsoleFormatter extends AbstractOutputFormatter
 
     /**
      * Clean up validation error messages for normal mode.
-     *
-     * @param string $message
      */
     private function cleanErrorMessage(string $message): string
     {
         // For normal mode, extract just the core error without tips
-        if ($this->config->verbosity === OutputConfiguration::VERBOSITY_NORMAL) {
+        if (OutputConfiguration::VERBOSITY_NORMAL === $this->config->verbosity) {
             // Extract the main error before the period
             $parts = explode('.', $message, 2);
-            $mainError = $parts[0] . '.';
-            
+            $mainError = $parts[0].'.';
+
             // Clean up common patterns
             $cleanups = [
                 'No closing delimiter "/" found. You opened with "/"' => 'No closing delimiter "/" found.',
@@ -346,7 +343,7 @@ final class ConsoleFormatter extends AbstractOutputFormatter
     private function formatIssueHint(array $issue): string
     {
         $hint = $issue['hint'] ?? null;
-        if (!is_string($hint) || '' === $hint) {
+        if (!\is_string($hint) || '' === $hint) {
             return '';
         }
 
@@ -360,10 +357,6 @@ final class ConsoleFormatter extends AbstractOutputFormatter
 
     /**
      * Create a badge with colors.
-     *
-     * @param string $text
-     * @param string $fg
-     * @param string $bg
      */
     private function badge(string $text, string $fg, string $bg): string
     {
@@ -371,14 +364,11 @@ final class ConsoleFormatter extends AbstractOutputFormatter
             return '['.$text.']';
         }
 
-        return $this->color(' '.$text.' ', $bg . $fg . self::BOLD);
+        return $this->color(' '.$text.' ', $bg.$fg.self::BOLD);
     }
 
     /**
      * Apply color to text.
-     *
-     * @param string $text
-     * @param string $color
      */
     private function color(string $text, string $color): string
     {
@@ -386,13 +376,11 @@ final class ConsoleFormatter extends AbstractOutputFormatter
             return $text;
         }
 
-        return $color . $text . self::RESET;
+        return $color.$text.self::RESET;
     }
 
     /**
      * Apply dim color to text.
-     *
-     * @param string $text
      */
     private function dim(string $text): string
     {

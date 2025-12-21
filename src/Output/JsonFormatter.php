@@ -21,7 +21,7 @@ use RegexParser\Lint\RegexLintReport;
 final class JsonFormatter extends AbstractOutputFormatter
 {
     /**
-     * @var array<string, mixed>
+     * @var array<array<string, mixed>>
      */
     private array $results = [];
 
@@ -48,19 +48,21 @@ final class JsonFormatter extends AbstractOutputFormatter
 
             foreach ($results as $result) {
                 $patternData = [
-                    'line' => (int) ($result['line'] ?? 0),
-                    'pattern' => (string) ($result['pattern'] ?? ''),
+                    'line' => $result['line'] ?? 0,
+                    'pattern' => $result['pattern'] ?? '',
                     'location' => $result['location'] ?? null,
                 ];
 
                 // Add issues
-                $issues = $result['issues'] ?? [];
+                /** @var array<array<string, mixed>> $issues */
+                $issues = (array) ($result['issues'] ?? []);
                 if (!empty($issues)) {
                     $patternData['issues'] = array_map([$this, 'formatIssue'], $issues);
                 }
 
                 // Add optimizations
-                $optimizations = $result['optimizations'] ?? [];
+                /** @var array<array<string, mixed>> $optimizations */
+                $optimizations = (array) ($result['optimizations'] ?? []);
                 if (!empty($optimizations) && $this->config->shouldShowOptimizations()) {
                     $patternData['optimizations'] = array_map([$this, 'formatOptimization'], $optimizations);
                 }
@@ -71,13 +73,20 @@ final class JsonFormatter extends AbstractOutputFormatter
             $data['results'][] = $fileData;
         }
 
-        return json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+        $json = json_encode($data, \JSON_PRETTY_PRINT | \JSON_UNESCAPED_SLASHES);
+        if (false === $json) {
+            throw new \RuntimeException('Failed to encode JSON');
+        }
+
+        return $json;
     }
 
     /**
      * Format the main JSON structure.
      *
      * @param array<string, int> $stats
+     *
+     * @return array<string, mixed>
      */
     private function formatSummary(array $stats): array
     {
@@ -86,7 +95,7 @@ final class JsonFormatter extends AbstractOutputFormatter
                 'errors' => $stats['errors'],
                 'warnings' => $stats['warnings'],
                 'optimizations' => $stats['optimizations'],
-                'total_patterns' => count($this->results),
+                'total_patterns' => \count($this->results),
             ],
         ];
     }
@@ -95,18 +104,21 @@ final class JsonFormatter extends AbstractOutputFormatter
      * Format issues for JSON output.
      *
      * @param array<string, mixed> $issue
+     *
+     * @return array<string, mixed>
      */
     private function formatIssue(array $issue): array
     {
         $formatted = [
-            'type' => (string) $issue['type'],
-            'message' => (string) $issue['message'],
-            'line' => (int) ($issue['line'] ?? 0),
+            'type' => $issue['type'],
+            'message' => $issue['message'],
+            'line' => $issue['line'] ?? 0,
             'column' => $issue['column'] ?? null,
             'position' => $issue['position'] ?? null,
         ];
 
         if (isset($issue['issueId'])) {
+            /* @phpstan-ignore cast.string */
             $formatted['issue_id'] = (string) $issue['issueId'];
         }
 
@@ -127,20 +139,26 @@ final class JsonFormatter extends AbstractOutputFormatter
      * Format optimization for JSON output.
      *
      * @param array<string, mixed> $optimization
+     *
+     * @return array<string, mixed>
      */
     private function formatOptimization(array $optimization): array
     {
         $opt = $optimization['optimization'];
+        if (!$opt instanceof \RegexParser\OptimizationResult) {
+            return [];
+        }
 
         $formatted = [
-            'original' => (string) $opt->original,
-            'optimized' => (string) $opt->optimized,
-            'savings' => (int) ($optimization['savings'] ?? 0),
+            'original' => $opt->original,
+            'optimized' => $opt->optimized,
+            'savings' => $optimization['savings'] ?? 0,
         ];
 
-        if (isset($opt->description)) {
-            $formatted['description'] = (string) $opt->description;
-        }
+        // OptimizationResult doesn't have description property
+        // if (isset($opt->description)) {
+        //     $formatted['description'] = (string) $opt->description;
+        // }
 
         return $formatted;
     }

@@ -18,17 +18,9 @@ use RegexParser\Lint\RegexLintReport;
 /**
  * Base class for output formatters.
  */
-abstract class AbstractOutputFormatter
+abstract class AbstractOutputFormatter implements OutputFormatterInterface
 {
-    /**
-     * @var OutputConfiguration
-     */
-    protected OutputConfiguration $config;
-
-    public function __construct(OutputConfiguration $config = new OutputConfiguration())
-    {
-        $this->config = $config;
-    }
+    public function __construct(protected OutputConfiguration $config = new OutputConfiguration()) {}
 
     public function supports(string $format): bool
     {
@@ -86,7 +78,7 @@ abstract class AbstractOutputFormatter
         }
 
         // In normal mode, truncate very long hints
-        if (strlen($hint) > 200) {
+        if (\strlen($hint) > 200) {
             return substr($hint, 0, 197).'...';
         }
 
@@ -112,17 +104,22 @@ abstract class AbstractOutputFormatter
 
     /**
      * Group results by file if configured.
+     *
+     * @param array<array<string, mixed>> $results
+     *
+     * @return array<string, array<array<string, mixed>>>
      */
     protected function groupResults(array $results): array
     {
         if (!$this->config->groupByFile) {
-            return $results;
+            return ['' => $results];
         }
 
         $grouped = [];
         foreach ($results as $result) {
             $file = $result['file'] ?? 'unknown';
-            $grouped[$file][] = $result;
+            /* @phpstan-ignore cast.string */
+            $grouped[(string) $file][] = $result;
         }
 
         return $grouped;
@@ -130,6 +127,10 @@ abstract class AbstractOutputFormatter
 
     /**
      * Sort results by severity if configured.
+     *
+     * @param array<array<string, mixed>> $results
+     *
+     * @return array<array<string, mixed>>
      */
     protected function sortResults(array $results): array
     {
@@ -143,7 +144,8 @@ abstract class AbstractOutputFormatter
             $aSeverity = $a['type'] ?? 'info';
             $bSeverity = $b['type'] ?? 'info';
 
-            return $severityOrder[$aSeverity] - $severityOrder[$bSeverity];
+            // @phpstan-ignore-next-line
+            return $severityOrder[(string) $aSeverity] - $severityOrder[(string) $bSeverity];
         });
 
         return $results;
