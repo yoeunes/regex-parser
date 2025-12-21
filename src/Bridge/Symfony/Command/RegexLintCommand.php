@@ -112,7 +112,7 @@ final class RegexLintCommand extends Command
     public function __construct(
         private readonly RegexLintService $lint,
         private readonly RegexAnalysisService $analysis,
-        private readonly ?FormatterRegistry $formatterRegistry = new FormatterRegistry(),
+        private readonly FormatterRegistry $formatterRegistry = new FormatterRegistry(),
         array $defaultPaths = ['src'],
         array $defaultExcludePaths = ['vendor'],
         private readonly ?string $editorUrl = null,
