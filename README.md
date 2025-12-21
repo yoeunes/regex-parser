@@ -29,6 +29,104 @@ It brings static analysis, security auditing, and automated refactoring to PHP's
 * **Security Auditing** — Detects Catastrophic Backtracking (ReDoS) risks and vulnerabilities at analysis time.
 * **Documentation** — Automatically generates human-readable explanations, HTML visualizations, and valid sample strings.
 * **Transformation** — Manipulate the AST to optimize or refactor patterns programmatically.
+
+### Choose Your Feature
+
+#### Validate Regex
+Quickly check if a regex is valid and get detailed error messages.
+
+```php
+use RegexParser\Regex;
+
+$regex = Regex::create();
+$result = $regex->validate('/(foo|bar)/');
+
+if ($result->isValid) {
+    echo "Valid regex!";
+} else {
+    echo "Error: " . $result->error;
+}
+```
+
+#### Explain Regex
+Generate human-readable explanations of what your regex does.
+
+```php
+use RegexParser\Regex;
+
+$regex = Regex::create();
+$explanation = $regex->explain('/^([a-z]+)\.([a-z]{2,})$/');
+
+echo $explanation;
+// Outputs: Start of string, then capture group containing one or more lowercase letters,
+// followed by a literal dot, then capture group containing 2 or more lowercase letters, end of string.
+```
+
+#### Detect ReDoS
+Analyze patterns for catastrophic backtracking vulnerabilities.
+
+```php
+use RegexParser\Regex;
+
+$regex = Regex::create();
+$analysis = $regex->redos('/(a+)+b/');
+
+if ($analysis->severity->value === 'CRITICAL') {
+    echo "High risk of ReDoS attack!";
+}
+```
+
+#### Optimize
+Automatically optimize and modernize regex patterns.
+
+```php
+use RegexParser\Regex;
+
+$regex = Regex::create();
+$optimized = $regex->optimize('/[0-9]+/');
+
+echo $optimized->original;   // / [0-9]+/
+echo $optimized->optimized;  // /\d+/
+```
+
+#### Generate Samples
+Create valid test strings that match your regex.
+
+```php
+use RegexParser\Regex;
+
+$regex = Regex::create();
+$sample = $regex->generate('/[a-z]{3}\d{2}/');
+
+echo $sample; // e.g., "abc12"
+```
+
+#### Symfony Route Requirements
+Integrate with Symfony routing for automatic regex validation.
+
+```php
+use RegexParser\Bridge\Symfony\RegexRequirementValidator;
+
+$validator = new RegexRequirementValidator();
+$isValid = $validator->validate('/[a-z]+/', 'route_pattern');
+```
+
+#### PHPStan Integration
+Static analysis for regex patterns in your codebase.
+
+```php
+// In your PHPStan config
+parameters:
+    regexParser:
+        enabled: true
+```
+
+#### CI Integration
+Automated linting and security checks in your build pipeline.
+
+```bash
+vendor/bin/regex lint src/ --format=json
+```
 * **Integration** — First-class support for Symfony and PHPStan workflows.
 
 > *"Think of it as `nikic/php-parser` — but for regexes."*

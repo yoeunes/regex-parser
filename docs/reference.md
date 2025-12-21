@@ -306,3 +306,88 @@ preg_match('/(?<=ID-)\\d+/', $input);
 **Read more**
 - [PHP: Assertions (Lookahead/Lookbehind)](https://www.php.net/manual/en/regexp.reference.assertions.php)
 - [PCRE2: Lookaround Assertions](https://www.pcre.org/current/doc/html/pcre2pattern.html#SEC23)
+
+---
+
+## Compatibility & Limitations
+
+### Supported PHP Versions
+- PHP 8.2 and above (uses readonly classes and enum features).
+
+### Target Engine
+- **PCRE2** via PHP's `preg_*` functions.
+- Notes on differences from PCRE1 or other engines:
+  - Full Unicode support with `\p{...}` and `\P{...}`.
+  - `\g{0}` recursion supported; `\g<0>` preferred for clarity.
+  - Branch reset groups `(?|...)` fully implemented with correct capture numbering.
+
+### Known Not-Supported Constructs
+- None by v1.0; aims for full PCRE2 compliance.
+- If you encounter a pattern that PHP accepts but RegexParser rejects, please report it.
+
+---
+
+## Diagnostics Catalog
+
+| Error Code | Message Template | Meaning | Fix Example |
+|------------|------------------|---------|-------------|
+| `regex.backref.missing_group` | Backreference to non-existent group: "{ref}" | A backreference points to a group number or name that doesn't exist. | Change `\2` to `\1` if only one group exists. |
+| `regex.backref.missing_named_group` | Backreference to non-existent named group: "{name}" | Named backreference refers to a group not defined in the pattern. | Ensure `(?<name>...)` precedes `\k<name>`. |
+| `regex.backref.zero` | Backreference \0 is not valid. | `\0` is not a valid backreference in PCRE. | Use `\g<0>` for whole-pattern recursion. |
+| `regex.group.duplicate_name` | Duplicate group name "{name}" at position {pos}. | Named groups must have unique names unless J flag is set. | Use different names or add `(?J)` for duplicate names. |
+| `regex.quantifier.invalid_range` | Invalid quantifier range "{quant}": min > max. | Quantifier minimum exceeds maximum. | Fix `{3,2}` to `{2,3}`. |
+| `regex.syntax.delimiter` | Invalid delimiter "{delim}". | Delimiter not allowed. | Use `/pattern/` instead of `!pattern!` if `!` is invalid. |
+| `regex.semantic` | Various semantic errors. | Pattern violates PCRE rules (e.g., unbounded lookbehind). | Add bounds to lookbehind or use assertions. |
+
+---
+
+## Output Formats
+
+### JSON Format for CI/IDE Integration
+
+When using `--format=json` with the lint command, output follows this schema:
+
+```json
+{
+  "files": [
+    {
+      "file": "src/Example.php",
+      "issues": [
+        {
+          "type": "error",
+          "message": "Backreference to non-existent group: \\2",
+          "line": 15,
+          "column": 20,
+          "pattern": "/(a)\\2/",
+          "code": "regex.backref.missing_group"
+        }
+      ],
+      "optimizations": [
+        {
+          "pattern": "/[0-9]+/",
+          "optimization": {
+            "original": "/[0-9]+/",
+            "optimized": "/\\d+/"
+          }
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "errors": 1,
+    "warnings": 0,
+    "optimizations": 1
+  }
+}
+```
+
+- `files[].issues[]`: Array of diagnostic issues.
+  - `type`: "error" | "warning"
+  - `message`: Human-readable description
+  - `line`, `column`: Position in source file
+  - `pattern`: The regex pattern that triggered the issue
+  - `code`: Diagnostic identifier
+- `files[].optimizations[]`: Suggested optimizations.
+  - `pattern`: Original pattern
+  - `optimization`: Object with `original` and `optimized` strings
+- `summary`: Totals for the entire run.
