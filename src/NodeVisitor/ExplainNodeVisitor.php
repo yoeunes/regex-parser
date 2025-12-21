@@ -346,8 +346,6 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitRange(Node\RangeNode $node): string
     {
-        error_log("visitRange called: start_class=" . get_class($node->start) . ", end_class=" . get_class($node->end));
-        
         $start = ($node->start instanceof Node\LiteralNode)
             ? $this->explainLiteral($node->start->value)
             : $node->start->accept($this); // Fallback
@@ -356,8 +354,6 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
             ? $this->explainLiteral($node->end->value)
             : $node->end->accept($this); // Fallback
 
-        error_log("visitRange result: start='$start', end='$end'");
-        
         return $this->line(\sprintf('Range: from %s to %s', $start, $end));
     }
 
@@ -621,9 +617,6 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
 
     private function explainLiteral(string $value): string
     {
-        $ord = ord($value);
-        error_log("explainLiteral called: ord=$ord, char=[$value]");
-        
         return match ($value) {
             ' ' => "' ' (space)",
             "\t" => "'\\t' (tab)",
@@ -642,9 +635,7 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
         
         // Handle control characters and extended ASCII as hex codes
         if (($ord < 32) || (127 === $ord) || ($ord >= 128 && $ord <= 255)) {
-            $result = "'\\x".strtoupper(str_pad(dechex($ord), 2, '0', STR_PAD_LEFT))."'";
-            error_log("formatCharLiteral: ord=$ord, result=$result"); // Debug
-            return $result;
+            return "'\\x".strtoupper(str_pad(dechex($ord), 2, '0', STR_PAD_LEFT))."'";
         }
         
         // Printable characters
