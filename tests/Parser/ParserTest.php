@@ -336,6 +336,40 @@ final class ParserTest extends TestCase
         $this->assertSame('i', $pattern->flags);
     }
 
+    public function test_parse_inline_flags_unset_all(): void
+    {
+        $ast = $this->parse('/(?^i:foo)/');
+        $pattern = $ast->pattern;
+
+        $this->assertInstanceOf(GroupNode::class, $pattern);
+        $this->assertSame(GroupType::T_GROUP_INLINE_FLAGS, $pattern->type);
+        $this->assertSame('^i', $pattern->flags);
+    }
+
+    public function test_parse_inline_flags_conflicting(): void
+    {
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('Conflicting flags: i cannot be both set and unset');
+
+        $this->parse('/(?i-i:foo)/');
+    }
+
+    public function test_validate_duplicate_named_groups_without_j(): void
+    {
+        $result = $this->regex->validate('/(?<a>.) (?<a>.)/');
+
+        $this->assertFalse($result->isValid());
+        $this->assertNotNull($result->error);
+        $this->assertStringContainsString('Duplicate group name "a"', $result->error);
+    }
+
+    public function test_validate_duplicate_named_groups_with_j(): void
+    {
+        $result = $this->regex->validate('/(?J)(?<a>.) (?<a>.)/');
+
+        $this->assertTrue($result->isValid());
+    }
+
     public function test_parse_named_group_with_single_quote(): void
     {
         $ast = $this->parse("/(?P'name'a)/");

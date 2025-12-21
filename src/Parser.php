@@ -995,6 +995,25 @@ final class Parser
                 ? explode('-', $flags, 2)
                 : [$flags, ''];
 
+            // Handle ^ (unset all flags)
+            if (str_starts_with($setFlags, '^')) {
+                $setFlagsAfter = substr($setFlags, 1);
+                $allFlags = 'imsxADSUXJunr';
+                $unsetFlags = implode('', array_diff(str_split($allFlags), str_split($setFlagsAfter))).$unsetFlags;
+                $setFlags = $setFlagsAfter;
+            }
+
+            // Validate no conflicting flags
+            $setChars = str_split($setFlags);
+            $unsetChars = str_split($unsetFlags);
+            $overlap = array_intersect($setChars, $unsetChars);
+            if (!empty($overlap)) {
+                throw $this->parserException(
+                    \sprintf('Conflicting flags: %s cannot be both set and unset at position %d', implode('', $overlap), $startPosition),
+                    $startPosition,
+                );
+            }
+
             if (str_contains($setFlags, 'J')) {
                 $this->JModifier = true;
             }
