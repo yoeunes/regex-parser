@@ -16,6 +16,7 @@ namespace RegexParser\Lint\Formatter;
 use RegexParser\Lint\RegexAnalysisService;
 use RegexParser\Lint\RegexLintReport;
 use RegexParser\OptimizationResult;
+use RegexParser\Internal\PatternParser;
 
 /**
  * Console output formatter with ANSI colors and verbosity levels.
@@ -205,17 +206,35 @@ class ConsoleFormatter extends AbstractOutputFormatter
                 continue;
             }
 
-            // For optimizations, show the raw original and optimized regex so
-            // that textual changes (e.g. escaping inside character classes)
-            // remain visible. Using the highlighter would recompile the
-            // pattern and potentially normalize away differences.
             $original = $optimization->original;
             $optimized = $optimization->optimized;
 
+            $isExtendedWithComments = $this->isExtendedPatternWithComments($original);
+
+            // Always show the original pattern as-is.
             $output .= \sprintf('         %s%s'.\PHP_EOL,
                 $this->color('- ', self::RED),
                 $original,
             );
+
+            // For /x patterns with comments, the fully compiled optimized
+            // pattern can become extremely noisy (heavily escaped, single
+            // line). In that case, omit the raw optimized string from the
+            // console view to keep output readable. Users can still access
+            // the exact optimized pattern via machine-readable formats
+            // (json, github).
+            if ($isExtendedWithComments) {
+                $output .= \sprintf('         %s%s'.\PHP_EOL,
+                    $this->dim('↳'),
+                    $this->dim('Optimized pattern omitted for /x with comments; use --format=json for full diff.'),
+                );
+
+                continue;
+            }
+
+            // For other patterns, show raw original and optimized regex so
+            // that textual changes (e.g. escaping inside character classes)
+            // remain visible.
             $output .= \sprintf('         %s%s'.\PHP_EOL,
                 $this->color('+ ', self::GREEN),
                 $optimized,
@@ -223,6 +242,34 @@ class ConsoleFormatter extends AbstractOutputFormatter
         }
 
         return $output;
+    }
+
+    /**
+     * Heuristic to detect extended-mode patterns with inline comments.
+     *
+     * We inspect the original pattern string to see if it has /x flags and
+     * contains at least one '\n' and '#' in the body; such patterns are
+     * typically written in verbose style, and dumping the fully escaped
+     * optimized variant is not helpful in console output.
+     */
+    private function isExtendedPatternWithComments(string $pattern): bool
+    {
+        $pattern = ltrim($pattern);
+        if ('' === $pattern) {
+            return false;
+        }
+
+        try {
+            [$body, $flags] = PatternParser::extractPatternAndFlags($pattern);
+        } catch (\Throwable) {
+            return false;
+        }
+
+        if (!\is_string($flags) || !str_contains($flags, 'x')) {
+            return false;
+        }
+
+        return \is_string($body) && str_contains($body, "\n") && str_contains($body, '#');
     }
 
     /**
