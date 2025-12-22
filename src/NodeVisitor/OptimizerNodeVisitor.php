@@ -113,7 +113,14 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         $factoredAlts = $this->factorizeAlternation($optimizedAlts);
 
         if ($factoredAlts !== $optimizedAlts) {
-            return new Node\AlternationNode($factoredAlts, $node->startPosition, $node->endPosition);
+            $hasChanged = true;
+            $optimizedAlts = $factoredAlts;
+        }
+
+        $suffixFactoredAlts = $this->factorizeSuffix($optimizedAlts);
+
+        if ($suffixFactoredAlts !== $optimizedAlts) {
+            return new Node\AlternationNode($suffixFactoredAlts, $node->startPosition, $node->endPosition);
         }
 
         return new Node\AlternationNode($optimizedAlts, $node->startPosition, $node->endPosition);
@@ -973,6 +980,92 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
 
         return array_merge([$factored], $withoutPrefix);
 
+    }
+
+    /**
+     * @param array<Node\NodeInterface> $alts
+     * @return array<Node\NodeInterface>
+     */
+    private function factorizeSuffix(array $alts): array
+    {
+        if (\count($alts) < 2) {
+            return $alts;
+        }
+
+        // Get string representations
+        $strings = [];
+        /** @var Node\NodeInterface $alt */
+        foreach ($alts as $alt) {
+            $strings[] = $this->nodeToString($alt);
+        }
+
+        // Find common suffix by reversing strings and finding common prefix
+        $reversedStrings = array_map('strrev', $strings);
+        $suffix = $this->findCommonPrefix($reversedStrings);
+        if (empty($suffix) || \strlen($suffix) < 2 || str_starts_with($suffix, '[')) {
+            return $alts;
+        }
+
+        // Reverse back to get the actual suffix
+        $suffix = strrev($suffix);
+
+        // Split into with suffix and without
+        $withSuffix = [];
+        $withoutSuffix = [];
+        foreach ($alts as $i => $alt) {
+            if (str_ends_with($strings[$i], $suffix)) {
+                $withSuffix[] = $alt;
+            } else {
+                $withoutSuffix[] = $alt;
+            }
+        }
+
+        if (\count($withSuffix) < 2) {
+            return $alts;
+        }
+
+        // Create prefixes (everything before the suffix)
+        $prefixes = [];
+        /**
+         * @var \RegexParser\Node\AbstractNode $alt
+         */
+        foreach ($withSuffix as $alt) {
+            $prefixStr = substr($this->nodeToString($alt), 0, -\strlen($suffix));
+            if (empty($prefixStr)) {
+                $prefixes[] = null;
+            } else {
+                $prefixes[] = $this->stringToNode($prefixStr, $alt->startPosition, $alt->endPosition - \strlen($suffix));
+            }
+        }
+
+        /** @var list<Node\NodeInterface> $nonNullPrefixes */
+        $nonNullPrefixes = array_values(array_filter($prefixes, static fn ($prefix): bool => null !== $prefix));
+        if (empty($nonNullPrefixes)) {
+            // All are just the suffix
+            /** @var \RegexParser\Node\AbstractNode $firstAlt */
+            $firstAlt = $withSuffix[0];
+
+            return [$this->stringToNode($suffix, $firstAlt->endPosition - \strlen($suffix), $firstAlt->endPosition)];
+        }
+
+        /** @var \RegexParser\Node\AbstractNode $firstPrefix */
+        $firstPrefix = $nonNullPrefixes[0];
+        /** @var \RegexParser\Node\AbstractNode $lastPrefix */
+        $lastPrefix = $nonNullPrefixes[\count($nonNullPrefixes) - 1];
+        $newAlt = 1 === \count($nonNullPrefixes)
+            ? $firstPrefix
+            : new Node\AlternationNode($nonNullPrefixes, $firstPrefix->startPosition, $lastPrefix->endPosition);
+        $group = new Node\GroupNode($newAlt, Node\GroupType::T_GROUP_NON_CAPTURING);
+        /** @var \RegexParser\Node\AbstractNode $firstAlt */
+        $firstAlt = $withSuffix[0];
+        $suffixNode = $this->stringToNode($suffix, $firstAlt->endPosition - \strlen($suffix), $firstAlt->endPosition);
+        $factored = new Node\SequenceNode([$group, $suffixNode], $firstAlt->startPosition, $firstAlt->endPosition);
+
+        if (empty($withoutSuffix)) {
+            return [$factored];
+        }
+
+        return array_merge([$factored], $withoutSuffix);
     }
 
     private function nodeToString(Node\NodeInterface $node): string

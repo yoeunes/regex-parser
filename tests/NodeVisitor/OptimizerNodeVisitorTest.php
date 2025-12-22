@@ -688,4 +688,43 @@ final class OptimizerNodeVisitorTest extends TestCase
         yield 'quantified - should optimize' => ['/[0-9]+/', true, '[0-9]+ should optimize to \d+'];
         yield 'quantified with u flag - should not optimize' => ['/[0-9]+/u', false, '[0-9]+ with u flag should remain as CharClass'];
     }
+
+    public function test_suffix_factoring(): void
+    {
+        $regex = Regex::create();
+        $ast = $regex->parse('/abcde|xyzde/');
+        $optimizer = new OptimizerNodeVisitor();
+
+        $optimized = $ast->accept($optimizer);
+        $compiler = new CompilerNodeVisitor();
+        $result = $optimized->accept($compiler);
+
+        $this->assertSame('/(?:abc|xyz)de/', $result, 'Should factor common suffix "de"');
+    }
+
+    public function test_suffix_factoring_no_common_suffix(): void
+    {
+        $regex = Regex::create();
+        $ast = $regex->parse('/abc|def/');
+        $optimizer = new OptimizerNodeVisitor();
+
+        $optimized = $ast->accept($optimizer);
+        $compiler = new CompilerNodeVisitor();
+        $result = $optimized->accept($compiler);
+
+        $this->assertSame('/abc|def/', $result, 'Should not factor when no common suffix');
+    }
+
+    public function test_suffix_factoring_single_char_suffix(): void
+    {
+        $regex = Regex::create();
+        $ast = $regex->parse('/alpha|beta|gamma|delta/');
+        $optimizer = new OptimizerNodeVisitor();
+
+        $optimized = $ast->accept($optimizer);
+        $compiler = new CompilerNodeVisitor();
+        $result = $optimized->accept($compiler);
+
+        $this->assertSame('/alpha|beta|gamma|delta/', $result, 'Should not factor single character suffix');
+    }
 }
