@@ -336,26 +336,46 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitComment(Node\CommentNode $node): string
     {
+        // Extended (/x) mode line comments (starting with '#') should be
+        // preserved as real /x comments, not rewritten into (?#...) blocks.
+        // We still indent them when pretty-printing so they line up with
+        // surrounding constructs, but we keep the original "# ..." text and
+        // trailing newline intact.
+        if (str_contains($this->flags, 'x') && str_starts_with($node->comment, '#')) {
+            if ($this->pretty) {
+                $indent = str_repeat(' ', $this->indentLevel * 4);
+                $lines = explode("\n", rtrim($node->comment, "\n"));
+                $formatted = [];
+                foreach ($lines as $line) {
+                    $formatted[] = $indent.$line;
+                }
+
+                return implode("\n", $formatted)."\n";
+            }
+
+            return $node->comment;
+        }
+
+        // Multi-line inline comments from (?# ... ) are rendered as a block of
+        // "# "-prefixed lines for readability when pretty-printing. This is
+        // only used outside of extended mode so we don't change semantics.
         if ($this->pretty && str_contains($node->comment, "\n")) {
             $indent = str_repeat(' ', $this->indentLevel * 4);
             $lines = explode("\n", rtrim($node->comment, "\n"));
             $formatted = [];
             foreach ($lines as $line) {
-                $formatted[] = $indent . "# " . $line;
+                $formatted[] = $indent.'# '.$line;
             }
-            return implode("\n", $formatted) . "\n";
+
+            return implode("\n", $formatted)."\n";
         }
 
+        // Single-line inline comments that already start with '#' can be
+        // indented in pretty mode for nicer alignment.
         if ($this->pretty && str_starts_with($node->comment, '#')) {
             $indent = str_repeat(' ', $this->indentLevel * 4);
-            return $indent . $node->comment;
-        }
 
-        // For extended (/x) patterns, we may have captured full line comments
-        // starting with '#' and ending at a newline. In that case, emit the
-        // comment verbatim so that formatting and positions are preserved.
-        if (str_contains($this->flags, 'x') && str_starts_with($node->comment, '#')) {
-            return $node->comment;
+            return $indent.$node->comment;
         }
 
         // Inline comments (?#...) keep their original content without the

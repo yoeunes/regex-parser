@@ -244,6 +244,16 @@ final readonly class RegexAnalysisService
                 continue;
             }
 
+            // For patterns written in extended (/x) mode with inline comments,
+            // we deliberately skip structural optimizations. Rewriting these
+            // patterns into a condensed canonical form would strip comments
+            // and destroy the original formatting, which is often more
+            // valuable than the minor character savings an optimization
+            // would provide.
+            if ($this->usesExtendedMode($occurrence->pattern)) {
+                continue;
+            }
+
             try {
                 $optimization = $this->regex->optimize($occurrence->pattern, $optimizationConfig);
             } catch (\Throwable) {
