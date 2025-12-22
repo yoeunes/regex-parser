@@ -5,28 +5,40 @@ tasks:
         cmd: tools/php-cs-fixer/vendor/bin/php-cs-fixer fix --diff -v {{.CLI_ARGS}}
         sources:
             - .php-cs-fixer.dist.php
+            - bin/**/*.php
             - src/**/*.php
             - tests/**/*.php
-            - exclude: tests/Fixtures/**/*
+            - benchmarks/**/*.php
+        excludes:
+            - tests/Fixtures/**/*
 
     phplint:
         cmd: tools/phplint/vendor/bin/phplint {{.CLI_ARGS}}
         sources:
             - .phplint.yml
+            - bin/**/*.php
             - src/**/*.php
             - tests/**/*.php
+            - benchmarks/**/*.php
+        excludes:
+            - tests/Fixtures/**/*
 
     phpstan:
         cmd: tools/phpstan/vendor/bin/phpstan analyse {{.CLI_ARGS}}
         sources:
             - phpstan.dist.neon
+            - phpstan-baseline.neon
+            - extension.neon
+            - bin/**/*.php
             - src/**/*.php
             - tests/**/*.php
+            - benchmarks/**/*.php
 
     rector:
         cmd: tools/rector/vendor/bin/rector process {{.CLI_ARGS}}
         sources:
             - rector.php
+            - bin/**/*.php
             - src/**/*.php
             - tests/**/*.php
 
@@ -52,7 +64,7 @@ tasks:
             - src/**/*.php
             - tests/**/*.php
         generates:
-            - build/coverage
+            - coverage
 
     lint:
         cmds:
