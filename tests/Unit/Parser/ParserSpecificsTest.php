@@ -1,0 +1,44 @@
+<?php
+
+declare(strict_types=1);
+
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+namespace RegexParser\Tests\Unit\Parser;
+
+use PHPUnit\Framework\TestCase;
+use RegexParser\Exception\ParserException;
+use RegexParser\Regex;
+
+final class ParserSpecificsTest extends TestCase
+{
+    public function test_subroutine_name_unexpected_token(): void
+    {
+        // (?&name!) -> '!' is not allowed in subroutine name
+        $regex = Regex::create();
+
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('Unexpected token');
+
+        $regex->parse('/(?&name!)/');
+    }
+
+    public function test_quantifier_on_start_of_pattern(): void
+    {
+        // A quantifier at the very start of the pattern (after delimiter)
+        // hits the "Quantifier without target" check in parseQuantifiedAtom
+        $regex = Regex::create();
+
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('Quantifier without target');
+
+        $regex->parse('/+abc/');
+    }
+}
