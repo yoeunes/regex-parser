@@ -238,24 +238,14 @@ final readonly class RegexAnalysisService
         $suggestions = [];
 
         foreach ($patterns as $occurrence) {
-            $pattern = $occurrence->pattern;
-
-            // Heuristic: skip optimizations for patterns that use extended mode with
-            // verbose comments (/x). Re-compiling those patterns into a compact
-            // canonical form would drop user formatting and inline documentation,
-            // which is often more valuable than a tiny structural optimization.
-            if ($this->usesExtendedMode($pattern)) {
-                continue;
-            }
-
-            $validation = $this->regex->validate($pattern);
+            $validation = $this->regex->validate($occurrence->pattern);
             $source = $occurrence->source;
             if (!$validation->isValid) {
                 continue;
             }
 
             try {
-                $optimization = $this->regex->optimize($pattern, $optimizationConfig);
+                $optimization = $this->regex->optimize($occurrence->pattern, $optimizationConfig);
             } catch (\Throwable) {
                 continue;
             }
