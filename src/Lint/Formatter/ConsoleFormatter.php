@@ -280,8 +280,8 @@ class ConsoleFormatter extends AbstractOutputFormatter
         $prefix = substr($old, 0, $prefixLen);
         $suffix = substr($old, $oldLen - $suffixLen);
 
-        $coloredOld = $prefix.$this->color($middleOld, self::RED).$suffix;
-        $coloredNew = $prefix.$this->color($middleNew, self::GREEN).$suffix;
+        $coloredOld = $prefix.$this->color($middleOld, self::RED.self::BOLD).$suffix;
+        $coloredNew = $prefix.$this->color($middleNew, self::GREEN.self::BOLD).$suffix;
 
         return ['old' => $coloredOld, 'new' => $coloredNew];
     }
