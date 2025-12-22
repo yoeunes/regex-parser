@@ -403,7 +403,10 @@ class ConsoleFormatter extends AbstractOutputFormatter
      */
     private function formatPatternForDisplay(string $pattern): string
     {
-        // No ANSI: return the raw pattern exactly as we received it.
+        // Escape control characters to prevent visual layout issues
+        $pattern = addcslashes($pattern, "\0..\37\177..\377");
+
+        // No ANSI: return the escaped pattern exactly as we received it.
         if (!$this->config->ansi) {
             return $pattern;
         }
@@ -437,6 +440,8 @@ class ConsoleFormatter extends AbstractOutputFormatter
         // ANSI color codes.
         $highlightedBody = $this->safelyHighlightBody($body, $flags, $delimiter);
         if (null === $highlightedBody) {
+            $highlightedBody = $this->highlightPatternBodyPreservingText($body);
+        } elseif ($this->stripAnsi($highlightedBody) !== $body) {
             $highlightedBody = $this->highlightPatternBodyPreservingText($body);
         }
 
@@ -650,6 +655,11 @@ class ConsoleFormatter extends AbstractOutputFormatter
         }
 
         return $color.$text.self::RESET;
+    }
+
+    private function stripAnsi(string $text): string
+    {
+        return preg_replace('/\x1B\\[[0-9;]*m/', '', $text) ?? $text;
     }
 
     /**

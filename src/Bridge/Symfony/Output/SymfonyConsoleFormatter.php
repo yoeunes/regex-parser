@@ -154,16 +154,23 @@ final readonly class SymfonyConsoleFormatter implements OutputFormatterInterface
 
     private function safelyHighlightPattern(string $pattern): string
     {
+        // Always escape control characters to prevent layout issues
+        $escapedPattern = addcslashes($pattern, "\0..\37\177..\377");
+
         if (!$this->decorated) {
-            return OutputFormatter::escape($pattern);
+            return OutputFormatter::escape($escapedPattern);
         }
 
         try {
+            // Try highlighting the escaped pattern, but if it contains escapes, skip highlighting
+            if (strpos($escapedPattern, '\\') !== false) {
+                return OutputFormatter::escape($escapedPattern);
+            }
+            
             $highlighted = $this->analysis->highlight($pattern);
-
             return OutputFormatter::escape($highlighted);
         } catch (\Throwable) {
-            return OutputFormatter::escape($pattern);
+            return OutputFormatter::escape($escapedPattern);
         }
     }
 
