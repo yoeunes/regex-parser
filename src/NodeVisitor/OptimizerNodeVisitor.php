@@ -278,10 +278,11 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitCharClass(Node\CharClassNode $node): Node\NodeInterface
     {
-        $isUnicode = str_contains($this->flags, 'u');
         $parts = $node->expression instanceof Node\AlternationNode ? $node->expression->alternatives : [$node->expression];
 
-        if ($this->optimizeDigits && !$isUnicode && !$node->isNegated && 1 === \count($parts)) {
+        // We must check !str_contains($this->flags, 'u') because in Unicode mode,
+        // \d matches more than just [0-9] (e.g. Arabic digits), so they are not equivalent.
+        if ($this->optimizeDigits && !str_contains($this->flags, 'u') && !$node->isNegated && 1 === \count($parts)) {
             $part = $parts[0];
             if ($part instanceof Node\RangeNode && $part->start instanceof Node\LiteralNode && $part->end instanceof Node\LiteralNode) {
                 if ('0' === $part->start->value && '9' === $part->end->value) {
@@ -290,7 +291,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
             }
         }
 
-        if ($this->optimizeWord && !$isUnicode && !$node->isNegated && 4 === \count($parts)) {
+        if ($this->optimizeWord && !str_contains($this->flags, 'u') && !$node->isNegated && 4 === \count($parts)) {
             if ($this->isFullWordClass($parts)) {
                 return new Node\CharTypeNode('w', $node->startPosition, $node->endPosition);
             }
