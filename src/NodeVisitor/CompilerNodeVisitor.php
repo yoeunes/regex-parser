@@ -51,11 +51,16 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
 
     private string $flags = '';
 
+    private bool $pretty = false;
+
+    private int $indentLevel = 0;
+
     #[\Override]
     public function visitRegex(Node\RegexNode $node): string
     {
         $this->delimiter = $node->delimiter;
         $this->flags = $node->flags;
+        $this->pretty = str_contains($node->flags, 'x');
         $closingDelimiter = $this->getClosingDelimiter($node->delimiter);
 
         return $node->delimiter.$node->pattern->accept($this).$closingDelimiter.$node->flags;
@@ -68,6 +73,14 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
         $alternatives = $node->alternatives;
         if ([] === $alternatives) {
             return '';
+        }
+
+        if ($this->pretty) {
+            $result = $alternatives[0]->accept($this);
+            for ($i = 1, $count = \count($alternatives); $i < $count; $i++) {
+                $result .= "\n" . str_repeat(' ', $this->indentLevel * 4) . '| ' . $alternatives[$i]->accept($this);
+            }
+            return $result;
         }
 
         $separator = $this->inCharClass ? '' : '|';
@@ -101,8 +114,31 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitGroup(Node\GroupNode $node): string
     {
-        $child = $node->child->accept($this);
         $flags = $node->flags ?? '';
+
+        if ($this->pretty) {
+            $prefix = match ($node->type) {
+                GroupType::T_GROUP_CAPTURING => '',
+                GroupType::T_GROUP_NON_CAPTURING => '?:',
+                GroupType::T_GROUP_NAMED => '<'.$node->name.'>',
+                GroupType::T_GROUP_LOOKAHEAD_POSITIVE => '=',
+                GroupType::T_GROUP_LOOKAHEAD_NEGATIVE => '!',
+                GroupType::T_GROUP_LOOKBEHIND_POSITIVE => '<=',
+                GroupType::T_GROUP_LOOKBEHIND_NEGATIVE => '<!',
+                GroupType::T_GROUP_ATOMIC => '>',
+                GroupType::T_GROUP_BRANCH_RESET => '|',
+                GroupType::T_GROUP_INLINE_FLAGS => $flags.':',
+            };
+            $opening = '(' . $prefix;
+            $closing = ')';
+            $this->indentLevel++;
+            $child = $node->child->accept($this);
+            $this->indentLevel--;
+            $indent = str_repeat(' ', $this->indentLevel * 4);
+            return $indent . $opening . "\n" . $child . "\n" . $indent . $closing;
+        }
+
+        $child = $node->child->accept($this);
 
         return match ($node->type) {
             GroupType::T_GROUP_CAPTURING => '('.$child.')',
@@ -292,6 +328,21 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitComment(Node\CommentNode $node): string
     {
+        if ($this->pretty && str_contains($node->comment, "\n")) {
+            $indent = str_repeat(' ', $this->indentLevel * 4);
+            $lines = explode("\n", rtrim($node->comment, "\n"));
+            $formatted = [];
+            foreach ($lines as $line) {
+                $formatted[] = $indent . "# " . $line;
+            }
+            return implode("\n", $formatted) . "\n";
+        }
+
+        if ($this->pretty && str_starts_with($node->comment, '#')) {
+            $indent = str_repeat(' ', $this->indentLevel * 4);
+            return $indent . $node->comment;
+        }
+
         // For extended (/x) patterns, we may have captured full line comments
         // starting with '#' and ending at a newline. In that case, emit the
         // comment verbatim so that formatting and positions are preserved.
@@ -315,6 +366,15 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
 
         $yes = $node->yes->accept($this);
         $no = $node->no->accept($this);
+
+        if ($this->pretty) {
+            $indent = str_repeat(' ', $this->indentLevel * 4);
+            if ('' === $no) {
+                return $indent . '(?('.$cond.')' . "\n" . $yes . "\n" . $indent . ')';
+            }
+            return $indent . '(?('.$cond.')' . "\n" . $yes . "\n" . $indent . '|' . $no . "\n" . $indent . ')';
+        }
+
         if ('' === $no) {
             return '(?('.$cond.')'.$yes.')';
         }
@@ -342,6 +402,13 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitDefine(Node\DefineNode $node): string
     {
+        if ($this->pretty) {
+            $this->indentLevel++;
+            $content = $node->content->accept($this);
+            $this->indentLevel--;
+            $indent = str_repeat(' ', $this->indentLevel * 4);
+            return $indent . "(?(DEFINE)\n" . $content . "\n" . $indent . ")";
+        }
         return '(?(DEFINE)'.$node->content->accept($this).')';
     }
 
