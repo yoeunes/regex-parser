@@ -557,7 +557,7 @@ final class Parser
             $isStringIdentifier = true;
         } elseif (ctype_digit($value)) {
             $identifier = (int) $value;
-        } elseif (preg_match('/^[a-zA-Z_][a-zA-Z0-9_]*+$/', $value)) {
+        } elseif (preg_match('/^[A-Z_a-z]\w*+$/', $value)) {
             $identifier = $value;
         } else {
             throw $this->parserException(
@@ -1689,7 +1689,7 @@ final class Parser
         ) {
             if ($this->check(TokenType::T_LITERAL) || $this->check(TokenType::T_LITERAL_ESCAPED)) {
                 $char = $this->current()->value;
-                if (!preg_match('/^[a-zA-Z0-9_]$/', $char)) {
+                if (!preg_match('/^\w$/', $char)) {
                     throw $this->parserException(
                         'Unexpected token in subroutine name: '.$char,
                         $this->current()->position,
