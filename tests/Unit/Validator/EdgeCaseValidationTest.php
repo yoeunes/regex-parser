@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Tests\Integration;
+namespace RegexParser\Tests\Unit\Validator;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\ParserException;
