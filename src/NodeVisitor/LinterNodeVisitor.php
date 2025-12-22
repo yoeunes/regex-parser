@@ -80,11 +80,16 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         $this->hasDots = false;
         $this->hasAnchors = false;
 
-        // Use a simple visitor to compile the pattern string
+        // Use a simple visitor to compile the pattern string for diagnostics
         $compiler = new \RegexParser\NodeVisitor\CompilerNodeVisitor();
         $this->patternValue = $node->pattern->accept($compiler);
 
-        // Check flags
+        // Traverse the pattern AST so that other visit* methods can record
+        // information (letters, dots, anchors, nested quantifiers, etc.).
+        $node->pattern->accept($this);
+
+        // Finally, compute useless-flag diagnostics based on the collected
+        // state and the fully compiled pattern.
         $this->checkUselessFlags();
 
         return $node;

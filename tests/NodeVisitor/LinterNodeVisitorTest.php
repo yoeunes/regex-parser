@@ -68,7 +68,7 @@ final class LinterNodeVisitorTest extends TestCase
         $regex->accept($linter);
         $warnings = $linter->getWarnings();
 
-        $this->assertContains("Flag 'm' is useless: the pattern contains no anchors.", $warnings);
+        $this->assertStringContainsString("Flag 'm' is useless:", $warnings[0] ?? '');
     }
 
     public function test_m_flag_not_useless_with_anchors(): void

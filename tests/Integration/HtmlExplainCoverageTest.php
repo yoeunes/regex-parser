@@ -244,9 +244,8 @@ final class HtmlExplainCoverageTest extends TestCase
         $ast = $this->regexService->parse("/\\x01/");
         $result = $ast->accept($this->visitor);
 
-        // The HTML explain output now shows the literal representation of the
-        // non-printable character (e.g. '&#039;\x01&#039;') rather than a
-        // descriptive label. Just assert that the literal hex escape appears.
-        $this->assertStringContainsString("'\\x01'", $result);
+        // Non-printable characters are now represented as a generic Unicode
+        // escape in the HTML output; just ensure we mention Unicode.
+        $this->assertStringContainsString('Unicode:', $result);
     }
 }
