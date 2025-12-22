@@ -391,33 +391,55 @@ class ConsoleFormatter extends AbstractOutputFormatter
     }
 
     /**
-     * Format pattern for display, preserving delimiters and flags when ANSI highlighting is enabled.
+     * Format pattern for display.
+     *
+     * The linter output must be text-preserving: the pattern shown in the
+     * console should match exactly what was found in the source file.
+     *
+     * We therefore avoid running the pattern through the AST-based
+     * highlighter, which can legitimately normalize escapes (e.g. literal
+     * "+" vs "+" quantifier) and change the surface representation. Instead
+     * we keep the pattern string as-is and, when ANSI is enabled, only color
+     * the delimiters and trailing flags.
      */
     private function formatPatternForDisplay(string $pattern): string
     {
-        // When ANSI is disabled or no analysis service is configured, we already
-        // have the full pattern (including delimiters and flags), so return it as-is.
-        if (!$this->config->ansi || !$this->analysisService) {
+        // No ANSI: return the raw pattern exactly as we received it.
+        if (!$this->config->ansi) {
             return $pattern;
         }
 
-        $highlightedBody = $this->safelyHighlightPattern($pattern);
+        // Try to split /body/flags or {body}flags so we can color the
+        // delimiters and flags without touching the body itself.
         $parts = $this->splitPatternWithFlags($pattern);
-
         if (null === $parts) {
-            return $highlightedBody;
+            // Unknown structure (e.g. missing delimiters) – fall back to
+            // returning the raw pattern unchanged, just to be safe.
+            return $pattern;
         }
 
         $delimiter = $parts['delimiter'];
         $closingDelimiter = $parts['closingDelimiter'];
         $flags = $parts['flags'];
 
-        // Reconstruct the full pattern: /<highlighted body>/<flags>
-        if ('' === $flags) {
-            return $delimiter.$highlightedBody.$closingDelimiter;
+        // Recompute the last closing-delimiter position so we can slice out
+        // the body without interpreting escapes. This mirrors the behavior of
+        // PatternParser but never alters the bytes.
+        $lastPos = strrpos($pattern, $closingDelimiter);
+        if (false === $lastPos || 0 === $lastPos) {
+            return $pattern;
         }
 
-        return $delimiter.$highlightedBody.$closingDelimiter.$this->color($flags, self::CYAN);
+        $body = substr($pattern, 1, $lastPos - 1);
+
+        $open = $this->color($delimiter, self::CYAN.self::BOLD);
+        $close = $this->color($closingDelimiter, self::CYAN.self::BOLD);
+
+        if ('' === $flags) {
+            return $open.$body.$close;
+        }
+
+        return $open.$body.$close.$this->color($flags, self::CYAN);
     }
 
     /**
