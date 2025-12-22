@@ -805,6 +805,9 @@ switch ($command) {
             exit(0);
         }
 
+        $startTime = microtime(true);
+        $startMemory = memory_get_peak_usage(true);
+
         $progressCallback = null;
         if ('console' === $format && $config->shouldShowProgress()) {
             output('  '.dim('[2/2] Analyzing patterns')."\n");
@@ -820,6 +823,12 @@ switch ($command) {
 
         // Output using formatter
         echo $formatter->format($report);
+        echo $formatter->getSummary($report->stats);
+        $elapsed = microtime(true) - $startTime;
+        $peakMemory = memory_get_peak_usage(true);
+        output("  ".dim("Time: ").bold(round($elapsed, 2)."s")."         ".dim("Memory: ").bold(round($peakMemory / 1024 / 1024, 2)." MB")."\n");
+        output("\n");
+        echo $formatter->formatFooter();
 
         exit($report->stats['errors'] > 0 ? 1 : 0);
 

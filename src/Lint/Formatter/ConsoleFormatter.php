@@ -75,10 +75,23 @@ class ConsoleFormatter extends AbstractOutputFormatter
             }
         }
 
-        $output .= $this->formatSummary($report->stats);
-        $output .= $this->formatFooter();
-
         return $output;
+    }
+
+    /**
+     * @param array{errors: int, warnings: int, optimizations: int} $stats
+     */
+    public function getSummary(array $stats): string
+    {
+        return $this->formatSummary($stats);
+    }
+
+    /**
+     * Format footer.
+     */
+    public function formatFooter(): string
+    {
+        return '  '.$this->dim('Star the repo: https://github.com/yoeunes/regex-parser').\PHP_EOL.\PHP_EOL;
     }
 
     private function formatQuiet(RegexLintReport $report): string
@@ -385,17 +398,6 @@ class ConsoleFormatter extends AbstractOutputFormatter
         }
 
         return $output;
-    }
-
-    /**
-     * Format footer.
-     */
-    private function formatFooter(): string
-    {
-        return \PHP_EOL
-            .'  '.$this->color('Star the repo: https://github.com/yoeunes/regex-parser', self::CYAN)
-            .\PHP_EOL
-            .\PHP_EOL;
     }
 
     private function displaySingleIssue(string $badge, string $message): string
