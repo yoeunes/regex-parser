@@ -31,7 +31,6 @@ tasks:
         excludes:
             - tests/Fixtures/**/*
         generates:
-            - .cache/phplint/*
             - .task/phplint.success
         method: checksum
 
@@ -62,7 +61,6 @@ tasks:
             - src/**/*.php
             - tests/**/*.php
         generates:
-            - .cache/rector/*
             - .task/rector.success
         method: checksum
 
