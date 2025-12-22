@@ -432,14 +432,143 @@ class ConsoleFormatter extends AbstractOutputFormatter
 
         $body = substr($pattern, 1, $lastPos - 1);
 
+        // Apply a lightweight, text-preserving highlighter to the body. This
+        // never changes characters in the pattern; it only wraps segments in
+        // ANSI color codes.
+        $highlightedBody = $this->highlightPatternBodyPreservingText($body);
+
         $open = $this->color($delimiter, self::CYAN.self::BOLD);
         $close = $this->color($closingDelimiter, self::CYAN.self::BOLD);
 
         if ('' === $flags) {
-            return $open.$body.$close;
+            return $open.$highlightedBody.$close;
         }
 
-        return $open.$body.$close.$this->color($flags, self::CYAN);
+        return $open.$highlightedBody.$close.$this->color($flags, self::CYAN);
+    }
+
+    /**
+     * Very small regex highlighter that operates directly on the pattern body
+     * without changing any of its characters.
+     *
+     * It understands only a subset of PCRE syntax (escapes, character
+     * classes, grouping, anchors, and basic quantifiers), but that is enough
+     * to give a pleasant visual layout while guaranteeing the printed text is
+     * identical to the source.
+     */
+    private function highlightPatternBodyPreservingText(string $body): string
+    {
+        if (!$this->config->ansi || '' === $body) {
+            return $body;
+        }
+
+        $len = \strlen($body);
+        $out = '';
+        $inClass = false;
+        $escaped = false;
+
+        for ($i = 0; $i < $len; $i++) {
+            $ch = $body[$i];
+
+            if ($escaped) {
+                // Render "\\X" as a single green escape sequence.
+                $out .= $this->color('\\'.$ch, self::GREEN);
+                $escaped = false;
+
+                continue;
+            }
+
+            if ('\\' === $ch) {
+                $escaped = true;
+
+                continue;
+            }
+
+            if ($inClass) {
+                if (']' === $ch) {
+                    $inClass = false;
+                    $out .= $this->color(']', self::CYAN);
+
+                    continue;
+                }
+
+                // Inside a character class we don't try to be clever; just
+                // echo characters as-is to avoid mis-highlighting.
+                $out .= $ch;
+
+                continue;
+            }
+
+            if ('[' === $ch) {
+                $inClass = true;
+                $out .= $this->color('[', self::CYAN);
+
+                continue;
+            }
+
+            // Grouping and structural meta-chars.
+            if ('(' === $ch || ')' === $ch || '|' === $ch || '.' === $ch) {
+                $out .= $this->color($ch, self::CYAN);
+
+                continue;
+            }
+
+            // Simple quantifiers.
+            if ('+' === $ch || '*' === $ch || '?' === $ch) {
+                $out .= $this->color($ch, self::YELLOW);
+
+                continue;
+            }
+
+            // Bounded quantifier like {2} or {1,3}.
+            if ('{' === $ch) {
+                $j = $i + 1;
+                while ($j < $len && ctype_digit($body[$j])) {
+                    $j++;
+                }
+
+                $isQuant = false;
+                if ($j < $len && '}' === $body[$j]) {
+                    $isQuant = true;
+                } elseif ($j < $len && ',' === $body[$j]) {
+                    $j++;
+                    while ($j < $len && ctype_digit($body[$j])) {
+                        $j++;
+                    }
+                    if ($j < $len && '}' === $body[$j]) {
+                        $isQuant = true;
+                    }
+                }
+
+                if ($isQuant) {
+                    $segment = substr($body, $i, $j - $i + 1);
+                    $out .= $this->color($segment, self::YELLOW);
+                    $i = $j;
+
+                    continue;
+                }
+
+                $out .= '{';
+
+                continue;
+            }
+
+            // Anchors.
+            if ('^' === $ch || '$' === $ch) {
+                $out .= $this->color($ch, self::CYAN);
+
+                continue;
+            }
+
+            $out .= $ch;
+        }
+
+        if ($escaped) {
+            // Trailing backslash with no following char; just output it.
+            $out .= '\\';
+        }
+
+        return $out;
     }
 
     /**
