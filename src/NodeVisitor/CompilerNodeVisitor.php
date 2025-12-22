@@ -49,10 +49,13 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
 
     private string $delimiter = '/';
 
+    private string $flags = '';
+
     #[\Override]
     public function visitRegex(Node\RegexNode $node): string
     {
         $this->delimiter = $node->delimiter;
+        $this->flags = $node->flags;
         $closingDelimiter = $this->getClosingDelimiter($node->delimiter);
 
         return $node->delimiter.$node->pattern->accept($this).$closingDelimiter.$node->flags;
@@ -289,6 +292,15 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitComment(Node\CommentNode $node): string
     {
+        // For extended (/x) patterns, we may have captured full line comments
+        // starting with '#' and ending at a newline. In that case, emit the
+        // comment verbatim so that formatting and positions are preserved.
+        if (str_contains($this->flags, 'x') && str_starts_with($node->comment, '#')) {
+            return $node->comment;
+        }
+
+        // Inline comments (?#...) keep their original content without the
+        // delimiters and are reconstructed using standard PCRE syntax.
         return '(?#'.$node->comment.')';
     }
 

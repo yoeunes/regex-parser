@@ -103,6 +103,22 @@ final readonly class Regex
     }
 
     /**
+     * Tokenize a regex into a token stream with positions.
+     *
+     * This exposes the same lexer the parser uses internally, including all
+     * literal characters, whitespace, and comment markers, each tagged with
+     * its byte offset in the pattern body. Combined with the delimiter and
+     * flags extracted via PatternParser, this allows reconstructing the
+     * original pattern and mapping nodes back to their exact locations.
+     */
+    public static function tokenize(string $regex): TokenStream
+    {
+        [$pattern] = Internal\PatternParser::extractPatternAndFlags($regex);
+
+        return (new Lexer())->tokenize($pattern);
+    }
+
+    /**
      * Perform comprehensive analysis of a regex pattern.
      *
      * @param string $regex The regular expression to analyze

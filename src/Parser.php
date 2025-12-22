@@ -114,7 +114,10 @@ final class Parser
                 continue;
             }
 
-            if ($this->skipExtendedModeContent()) {
+            // In extended (/x) mode, consume whitespace and line comments as
+            // explicit nodes where appropriate so we can preserve them when
+            // reconstructing the pattern.
+            if ($this->consumeExtendedModeContent($nodes)) {
                 continue;
             }
 
@@ -134,6 +137,86 @@ final class Parser
         return new Node\SequenceNode($nodes, $startPosition, $endPosition);
     }
 
+    /**
+     * Consume extended-mode (/x) whitespace and comments at the current
+     * position, adding any comments as CommentNode instances into the
+     * provided node list. This is used at the sequence level so that /x
+     * comments are preserved in the AST with accurate positions.
+     *
+     * @param list<Node\NodeInterface> $nodes
+     */
+    private function consumeExtendedModeContent(array &$nodes): bool
+    {
+        if (!str_contains($this->flags, 'x')) {
+            return false;
+        }
+
+        $skipped = false;
+        while (!$this->isAtEnd() && !$this->check(TokenType::T_GROUP_CLOSE) && !$this->check(TokenType::T_ALTERNATION)) {
+            $token = $this->current();
+            if (TokenType::T_LITERAL !== $token->type) {
+                break;
+            }
+
+            // Skip pure whitespace silently; comments will be explicit nodes.
+            if (ctype_space($token->value)) {
+                $this->advance();
+                $skipped = true;
+
+                continue;
+            }
+
+            // Line comment starting with # until end-of-line.
+            if ('#' === $token->value) {
+                $nodes[] = $this->parseExtendedComment();
+                $skipped = true;
+
+                continue;
+            }
+
+            break;
+        }
+
+        return $skipped;
+    }
+
+    /**
+     * Parse an extended-mode line comment (starting at '#') into a CommentNode,
+     * preserving the exact text and byte offsets.
+     */
+    private function parseExtendedComment(): Node\CommentNode
+    {
+        $startToken = $this->current(); // '#'
+        $startPosition = $startToken->position;
+
+        $comment = $this->reconstructTokenValue($startToken);
+        $this->advance();
+
+        while (!$this->isAtEnd() && !$this->check(TokenType::T_GROUP_CLOSE)) {
+            $token = $this->current();
+
+            // Comment ends at newline (included) or at end of pattern.
+            if (TokenType::T_LITERAL === $token->type && "\n" === $token->value) {
+                $comment .= $this->reconstructTokenValue($token);
+                $this->advance();
+
+                break;
+            }
+
+            $comment .= $this->reconstructTokenValue($token);
+            $this->advance();
+        }
+
+        $endPosition = $startPosition + \strlen($comment);
+
+        return new Node\CommentNode($comment, $startPosition, $endPosition);
+    }
+
+    /**
+     * Skip extended-mode (/x) whitespace and comments *without* producing
+     * nodes. This is used where the parser needs to see through trivia,
+     * for example between an atom and its following quantifier.
+     */
     private function skipExtendedModeContent(): bool
     {
         if (!str_contains($this->flags, 'x')) {
