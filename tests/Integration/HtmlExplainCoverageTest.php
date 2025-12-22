@@ -241,7 +241,7 @@ final class HtmlExplainCoverageTest extends TestCase
     public function test_html_explain_non_printable(): void
     {
         // Caractère ASCII 1 (Start of Heading), non imprimable et non mappé spécifiquement
-        $ast = $this->regexService->parse("/\\x01/");
+        $ast = $this->regexService->parse('/\\x01/');
         $result = $ast->accept($this->visitor);
 
         // Non-printable characters are now represented as a generic Unicode

@@ -848,8 +848,8 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
     /**
      * @param list<array{int, string, int}|string> $tokens
      */
-/**
-     * @param list<array{0:int,1:string,2:int}|string> $tokens
+    /**
+     * @param list<array{0:int, 1:string, 2:int}|string> $tokens
      */
     private function isNamespacedFunctionName(array $tokens, int $index): bool
     {
@@ -878,8 +878,8 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
         return \is_array($prevPrevToken) && $this->isNameToken($prevPrevToken);
     }
 
-/**
-     * @param array{0:int,1:string,2?:int} $token
+    /**
+     * @param array{0:int, 1:string, 2?:int} $token
      */
     private function isNameToken(array $token): bool
     {
@@ -904,8 +904,8 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
         return false;
     }
 
-/**
-     * @param array{0:int,1:string,2?:int}|string $token
+    /**
+     * @param array{0:int, 1:string, 2?:int}|string $token
      */
     private function readNameToken(array|string $token): ?string
     {
@@ -933,24 +933,24 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
         return null;
     }
 
-/**
-     * @param array{0:int,1:string,2?:int}|string $token
+    /**
+     * @param array{0:int, 1:string, 2?:int}|string $token
      */
     private function isDoubleColonToken(array|string $token): bool
     {
         return \is_array($token) && \T_DOUBLE_COLON === $token[0];
     }
 
-/**
-     * @param array{0:int,1:string,2?:int}|string $token
+    /**
+     * @param array{0:int, 1:string, 2?:int}|string $token
      */
     private function isDefinitionToken(array|string $token): bool
     {
         return \is_array($token) && \in_array($token[0], [\T_FUNCTION, \T_FN, \T_NEW], true);
     }
 
-/**
-     * @param array{0:int,1:string,2?:int}|string $token
+    /**
+     * @param array{0:int, 1:string, 2?:int}|string $token
      */
     private function isObjectOrStaticOperator(array|string $token): bool
     {
@@ -966,8 +966,8 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
         return \in_array($token[0], $operators, true);
     }
 
-/**
-     * @param array{0:int,1:string,2?:int}|string $token
+    /**
+     * @param array{0:int, 1:string, 2?:int}|string $token
      */
     private function isIgnorableToken(array|string $token): bool
     {
@@ -1002,16 +1002,16 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
         return null;
     }
 
-/**
-     * @param array{0:int,1:string,2?:int}|string $token
+    /**
+     * @param array{0:int, 1:string, 2?:int}|string $token
      */
     private function isDoubleArrowToken(array|string $token): bool
     {
         return '=>' === $token;
     }
 
-/**
-     * @param array{0:int,1:string,2?:int}|string $token
+    /**
+     * @param array{0:int, 1:string, 2?:int}|string $token
      */
     private function closingTokenFor(array|string $token): string
     {
@@ -1024,7 +1024,7 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
     }
 
     /**
-     * @param array{0:int,1:string,2?:int}|string $token
+     * @param array{0:int, 1:string, 2?:int}|string $token
      */
     private function isClosingToken(array|string $token, string $expected): bool
     {

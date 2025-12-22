@@ -38,7 +38,7 @@ final class LinterNodeVisitorTest extends TestCase
 
         // Ensure we did not incorrectly emit the useless-flag warning when
         // case-sensitive characters are present.
-        $this->assertFalse(in_array("Flag 'i' is useless: the pattern contains no case-sensitive characters.", $warnings, true));
+        $this->assertNotContains("Flag 'i' is useless: the pattern contains no case-sensitive characters.", $warnings);
     }
 
     public function test_useless_s_flag_no_dots(): void
@@ -58,7 +58,7 @@ final class LinterNodeVisitorTest extends TestCase
         $regex->accept($linter);
         $warnings = $linter->getWarnings();
 
-        $this->assertFalse(in_array("Flag 's' is useless: the pattern contains no dots.", $warnings, true));
+        $this->assertNotContains("Flag 's' is useless: the pattern contains no dots.", $warnings);
     }
 
     public function test_useless_m_flag_no_anchors(): void
