@@ -62,11 +62,6 @@ class ConsoleFormatter extends AbstractOutputFormatter
         $groupedResults = $this->groupResults($report->results);
 
         foreach ($groupedResults as $file => $results) {
-            $file = (string) $file;
-            if ('' !== $file) {
-                $output .= $this->formatFileHeader($file);
-            }
-
             /** @var list<LintResult> $results */
             foreach ($results as $result) {
                 $output .= $this->formatPatternContext($result);
@@ -76,7 +71,7 @@ class ConsoleFormatter extends AbstractOutputFormatter
                 /** @var list<OptimizationEntry> $optimizations */
                 $optimizations = $result['optimizations'] ?? [];
                 $output .= $this->formatOptimizations($optimizations);
-                $output .= \PHP_EOL;
+                $output .= PHP_EOL;
             }
         }
 
@@ -125,31 +120,33 @@ class ConsoleFormatter extends AbstractOutputFormatter
     private function formatPatternContext(array $result): string
     {
         $pattern = $this->extractPatternForResult($result);
+        $file = (string) ($result['file'] ?? '');
         $line = (int) ($result['line'] ?? 0);
         $location = $result['location'] ?? null;
 
         $hasLocation = \is_string($location) && '' !== $location;
-        $showLine = $line > 0 && !$hasLocation;
 
-        if ($showLine) {
-            if (null !== $pattern && '' !== $pattern) {
-                $formatted = $this->formatPatternForDisplay($pattern);
-
-                return \sprintf('  %s %s'.\PHP_EOL, $this->dim($line.':'), $formatted);
-            }
-
-            return \sprintf('  %s'.\PHP_EOL, $this->dim('line '.$line.':'));
+        // Build a compact file:line prefix, e.g. "src/Console/Command.php:679".
+        $prefix = '';
+        if ('' !== $file && $line > 0) {
+            $prefix = $file.':'.$line;
+        } elseif ('' !== $file) {
+            $prefix = $file;
+        } elseif ($line > 0) {
+            $prefix = (string) $line;
         }
 
         if (null !== $pattern && '' !== $pattern) {
             $formatted = $this->formatPatternForDisplay($pattern);
-            $output = \sprintf('  %s'.\PHP_EOL, $formatted);
+            $label = '' !== $prefix ? $this->dim($prefix) : $this->dim('(pattern)');
+            $output = sprintf('  %s  %s'.PHP_EOL, $label, $formatted);
         } else {
-            $output = '  '.$this->dim('(pattern unavailable)').\PHP_EOL;
+            $label = '' !== $prefix ? $this->dim($prefix) : $this->dim('(pattern unavailable)');
+            $output = '  '.$label.PHP_EOL;
         }
 
         if ($hasLocation) {
-            $output .= \sprintf('     %s'.\PHP_EOL, $this->dim(self::ARROW_LABEL.' '.$location));
+            $output .= sprintf('     %s'.PHP_EOL, $this->dim(self::ARROW_LABEL.' '.$location));
         }
 
         return $output;
@@ -195,15 +192,9 @@ class ConsoleFormatter extends AbstractOutputFormatter
         $output = '';
 
         foreach ($optimizations as $opt) {
-            $savings = isset($opt['savings']) ? (int) $opt['savings'] : 0;
-            $label = 'Optimization available';
-            if ($savings > 0) {
-                $label .= \sprintf(' (saves %d chars)', $savings);
-            }
-
-            $output .= \sprintf('    %s %s'.\PHP_EOL,
+            $output .= sprintf('    %s %s'.PHP_EOL,
                 $this->badge('TIP', self::WHITE, self::BG_CYAN),
-                $this->color($label, self::CYAN.self::BOLD),
+                $this->color('Optimization available', self::CYAN.self::BOLD),
             );
 
             $optimization = $opt['optimization'] ?? null;
