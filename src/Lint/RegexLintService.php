@@ -126,9 +126,14 @@ final readonly class RegexLintService
     {
         return array_values(array_filter($issues, static function (array $issue): bool {
             $source = $issue['source'] ?? '';
+            $issueId = $issue['issueId'] ?? null;
+
+            // Hide complexity-based warnings ("Pattern is complex (score: N).")
+            if (\is_string($issueId) && 'regex.lint.complexity' === $issueId) {
+                return false;
+            }
 
             if (str_starts_with($source, 'route:')) {
-                $issueId = $issue['issueId'] ?? null;
                 if (\is_string($issueId) && isset(self::ROUTE_IGNORED_ISSUE_IDS[$issueId])) {
                     return false;
                 }

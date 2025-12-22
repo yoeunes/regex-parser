@@ -362,7 +362,16 @@ class ConsoleFormatter extends AbstractOutputFormatter
             return null;
         }
 
-        $lastDelimiterPos = strrpos($pattern, $delimiter);
+        // PCRE supports paired delimiters like {^pattern$}i, (pattern)i, etc.
+        $closingDelimiter = match ($delimiter) {
+            '{' => '}',
+            '(' => ')',
+            '[' => ']',
+            '<' => '>',
+            default => $delimiter,
+        };
+
+        $lastDelimiterPos = strrpos($pattern, $closingDelimiter);
         if (false === $lastDelimiterPos || 0 === $lastDelimiterPos) {
             return null;
         }
