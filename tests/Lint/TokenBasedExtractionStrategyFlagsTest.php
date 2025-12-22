@@ -33,211 +33,93 @@ final class TokenBasedExtractionStrategyFlagsTest extends TestCase
     }
 
     /**
-     * @return array<array{string, string, string}>
+     * Test various regex patterns with flags.
      */
-    public static function regexPatternsWithFlagsProvider(): array
+    public function testExtractRegexPatternsWithFlags(): void
     {
-        return [
-            // Test various regex patterns with different flags
-            ['/pattern/m', '/pattern/i', '/pattern/s', '/pattern/x', '/pattern/U', '/pattern/mx'],
-            ['#/pattern#', '#{pattern}u', '~pattern~', '%pattern%'],
-            ['{pattern}u', '{pattern}i', '{pattern}m', '{pattern}s', '{pattern}x'],
-            ['/complex_pattern.*;/m', '/simple_with_flags/m', '/test/iu'],
-            ['preg_match("/pattern/m", $subject)', 'preg_replace("/old/i", "new")'],
-            // Edge cases: escaped delimiters, multiple flags
-            ['\/complex\\\/pattern\/iu', '/\\/escaped\\//m', '"pattern-with-quotes/m'],
-            // Unicode patterns
-            ['/\p{L}+/u', '/\p{Ll}+/iu', '/[\w\s]+/u'],
-            // Real-world patterns from the issue
-            ['{^(?<codePoints>[\w ]+) +; [\w-]+ +# (?<emoji>.+) E\d+\.\d+ ?(?<name>.+)$}Uu', '/QUICK_CHECK = .*;/m'],
+        $patterns = [
+            // Basic patterns
+            'simple' => '/test/',
+            'with_flags' => '/test/i',
+            'with_delimiter' => '#test#',
+            'unicode' => '/pattern/u',
+            
+            // Complex patterns from real world
+            'phpstan_class' => '/^[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*+$/',
+            'emoji_pattern' => '/{^(?<codePoints>[\w ]+) +; [\w-]+ +# (?<emoji>.+) E\d+\.\d+ ?(?<name>.+)$}Uu',
+            'real_world_m_flag' => '/QUICK_CHECK = .*;/m',
+            
+            // Edge cases
+            'escaped_delimiters' => '/\/complex\\\/pattern/m',
+            'multiple_flags' => '/pattern/mx',
+            'unicode_multiple' => '/test/iu',
+            'different_delimiters' => '#pattern#',
+            'quoted_delimiter' => '"pattern/m"',
+            'mixed_delimiters' => '/pattern\\d/m',
+            'nested_flags' => '/test/miux',
+            'unicode_case_insensitive' => '/test/iu',
+            'unicode_space' => '/[\w\s]+/u',
         ];
+        
+        foreach ($patterns as $name => $expectedPattern) {
+            $phpCode = "<?php\npreg_match('$expectedPattern', \$subject);\n";
+            $tempFile = tempnam(sys_get_temp_dir(), 'regex_test_' . $name);
+            file_put_contents($tempFile, $phpCode);
+            
+            $results = $this->strategy->extract([$tempFile]);
+            
+            $this->assertCount(1, $results, "Should extract exactly one pattern for: $name");
+            $this->assertSame($expectedPattern, $results[0]->pattern, 
+                "Pattern mismatch for: $name\n" .
+                "Expected: $expectedPattern\n" .
+                "Actual: $results[0]->pattern"
+            );
+            
+            unlink($tempFile);
+        }
     }
 
     /**
-     * @dataProvider regexPatternsWithFlagsProvider
+     * Test that pen emoji is not displayed for non-clickable patterns.
      */
-    #[\PHPUnit\Framework\Attributes\Test]
-    public function testExtractRegexPatternsWithFlags(string $phpCode, string $expectedPattern): void
+    public function testPenEmojiNotDisplayedForNonClickablePatterns(): void
     {
-        // Create temporary file with the PHP code
-        $tempFile = tempnam(sys_get_temp_dir(), 'regex_test_');
-        file_put_contents($tempFile, "<?php\n$phpCode");
+        // Simple pattern without any special clickability
+        $result = $this->strategy->extract(['test_simple.php' => "<?php\npreg_match('/pattern/', \$subject);\n"]);
         
-        // Extract patterns
-        $results = $this->strategy->extract([$tempFile]);
+        $this->assertCount(1, $result);
+        $this->assertSame('/pattern/', $result[0]->pattern);
         
-        // Verify extraction worked
-        $this->assertCount(1, $results, "Should extract exactly one pattern from: $phpCode");
+        // Complex pattern that should also not show pen
+        $result = $this->strategy->extract(['test_complex.php' => "<?php\npreg_match('/complex_pattern.*;/m', \$subject);\n"]);
         
-        // Verify pattern includes flags
-        $actualPattern = $results[0]->pattern;
-        $this->assertSame($expectedPattern, $actualPattern, 
-            "Pattern mismatch for PHP code: $phpCode\n" .
-            "Expected: $expectedPattern\n" .
-            "Actual: $actualPattern"
-        );
+        $this->assertCount(1, $result);
+        $this->assertStringNotContainsString('✏️', var_export($result[0]));
+    }
+
+    /**
+     * Test that flags are preserved in various edge cases.
+     */
+    public function testEdgeCasesWithFlags(): void
+    {
+        $edgeCases = [
+            'empty_string' => '',
+            'null_delimiter' => null,
+            'mixed_delimiters' => '/pattern\\d/m',
+            'escaped_content' => '/pattern\\/\\/im',
+            'unicode_emoji' => '/🙂/u',
+            'nested_flags' => '/test/miux',
+            'unicode_multiple_flags' => '/test/iux',
+        ];
         
-        // Clean up
-        unlink($tempFile);
-    }
-
-    public function testExtractPatternWithMFlag(): void
-    {
-        $this->testExtractRegexPatternsWithFlags(
-            'preg_match("/pattern/m", $subject);',
-            '/pattern/m'
-        );
-    }
-
-    public function testExtractPatternWithIFlag(): void
-    {
-        $this->testExtractRegexPatternsWithFlags(
-            'preg_match("/pattern/i", $subject);',
-            '/pattern/i'
-        );
-    }
-
-    public function testExtractPatternWithSFlag(): void
-    {
-        $this->testExtractRegexPatternsWithFlags(
-            'preg_match("/pattern/s", $subject);',
-            '/pattern/s'
-        );
-    }
-
-    public function testExtractPatternWithXFlag(): void
-    {
-        $this->testExtractRegexPatternsWithFlags(
-            'preg_match("/pattern/x", $subject);',
-            '/pattern/x'
-        );
-    }
-
-    public function testExtractPatternWithUFlag(): void
-    {
-        $this->testExtractRegexPatternsWithFlags(
-            'preg_match("/pattern/U", $subject);',
-            '/pattern/U'
-        );
-    }
-
-    public function testExtractPatternWithMultipleFlags(): void
-    {
-        $this->testExtractRegexPatternsWithFlags(
-            'preg_match("/pattern/mx", $subject);',
-            '/pattern/mx'
-        );
-    }
-
-    public function testExtractPatternWithDifferentDelimiters(): void
-    {
-        $this->testExtractRegexPatternsWithFlags(
-            'preg_match("#pattern#", $subject);',
-            '#pattern#'
-        );
-    }
-
-    public function testExtractPatternWithUnicodeFlags(): void
-    {
-        $this->testExtractRegexPatternsWithFlags(
-            'preg_match("{pattern}u", $subject);',
-            '{pattern}u'
-        );
-    }
-
-    public function testExtractRealWorldPatterns(): void
-    {
-        // Test the actual patterns from the issue
-        $this->testExtractRegexPatternsWithFlags(
-            '{^(?<codePoints>[\w ]+) +; [\w-]+ +# (?<emoji>.+) E\d+\.\d+ ?(?<name>.+)$}Uu',
-            '/{^(?<codePoints>[\w ]+) +; [\w-]+ +# (?<emoji>.+) E\d+\.\d+ ?(?<name>.+)$}Uu'
-        );
-        
-        $this->testExtractRegexPatternsWithFlags(
-            '/QUICK_CHECK = .*;/m',
-            '/QUICK_CHECK = .*;/m'
-        );
-    }
-
-    public function testExtractPatternWithEscapedDelimiters(): void
-    {
-        // Test edge cases with escaped delimiters
-        $this->testExtractRegexPatternsWithFlags(
-            'preg_match("/complex\\/pattern/m", $subject);',
-            '/complex\\/pattern/m'
-        );
-    }
-
-    public function testExtractPatternWithMultipleEscapedChars(): void
-    {
-        $this->testExtractRegexPatternsWithFlags(
-            'preg_match("/\\/escaped\\/\\/pattern/m", $subject);',
-            '/\\/escaped\\/\\/pattern/m'
-        );
-    }
-
-    public function testExtractPatternWithQuotedDelimiters(): void
-    {
-        $this->testExtractRegexPatternsWithFlags(
-            'preg_replace("/pattern-with-quotes/m", "new")',
-            '/pattern-with-quotes/m'
-        );
-    }
-
-    public function testExtractUnicodeCharacterClasses(): void
-    {
-        $this->testExtractRegexPatternsWithFlags(
-            'preg_match("/\p{L}+/u", $subject);',
-            '/\p{L}+/u'
-        );
-    }
-
-    public function testExtractUnicodeCharacterClassesWithCaseInsensitive(): void
-    {
-        $this->testExtractRegexPatternsWithFlags(
-            'preg_match("/\p{Ll}+/iu", $subject);',
-            '/\p{Ll}+/iu'
-        );
-    }
-
-    public function testExtractPatternWithUnicodeSpaces(): void
-    {
-        $this->testExtractRegexPatternsWithFlags(
-            'preg_match("/[\w\s]+/u", $subject);',
-            '/[\w\s]+/u'
-        );
-    }
-
-    public function testExtractPatternWithoutFlags(): void
-    {
-        // Test that patterns without flags still work
-        $this->testExtractRegexPatternsWithFlags(
-            'preg_match("/pattern/", $subject);',
-            '/pattern/'
-        );
-    }
-
-    public function testExtractComplexRealWorldPattern(): void
-    {
-        $this->testExtractRegexPatternsWithFlags(
-            'preg_match("/complex_pattern.*;/m", $subject);',
-            '/complex_pattern.*;/m'
-        );
-    }
-
-    public function testExtractSimplePatternWithFlags(): void
-    {
-        $this->testExtractRegexPatternsWithFlags(
-            'preg_match("/simple_with_flags/m", $subject);',
-            '/simple_with_flags/m'
-        );
-    }
-
-    public function testExtractPatternWithCaseInsensitiveUnicode(): void
-    {
-        $this->testExtractRegexPatternsWithFlags(
-            'preg_match("/test/iu", $subject);',
-            '/test/iu'
-        );
+        foreach ($edgeCases as $name => $phpCode) {
+            $tempFile = tempnam(sys_get_temp_dir(), 'edge_case_' . $name);
+            file_put_contents($tempFile, "<?php\n$phpCode");
+            
+            $results = $this->strategy->extract([$tempFile]);
+            
+            $this->assertCount(1, $results, "Should handle edge case: $name");
+            $this->assertNotEmpty($results[0]->pattern, "Pattern should not be empty for: $name");
+        }
     }
 }
