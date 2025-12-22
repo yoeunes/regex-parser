@@ -75,21 +75,30 @@ tasks:
         method: checksum
 
     phpbench:
-        cmd: tools/phpbench/vendor/bin/phpbench run tests/Benchmark --report=default {{.CLI_ARGS}}
+        cmds:
+            - cmd: tools/phpbench/vendor/bin/phpbench run tests/Benchmark --report=default {{.CLI_ARGS}}
+            - cmd: touch .task/phpbench.success
         sources:
             - phpbench.json
             - phpbench.yml
             - src/**/*.php
             - tests/Benchmark/**/*.php
+        generates:
+          - .task/phpbench.success
+        method: checksum
 
     coverage:
-        cmd: vendor/bin/phpunit --coverage-html coverage {{.CLI_ARGS}}
+        cmds:
+            - cmd: vendor/bin/phpunit --coverage-html coverage {{.CLI_ARGS}}
+            - cmd: touch .task/coverage.success
         sources:
             - phpunit.dist.xml
             - src/**/*.php
             - tests/**/*.php
         generates:
             - coverage
+            - .task/phpbench.success
+        method: checksum
 
     lint:
         deps:
