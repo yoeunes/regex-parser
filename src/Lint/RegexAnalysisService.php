@@ -238,14 +238,24 @@ final readonly class RegexAnalysisService
         $suggestions = [];
 
         foreach ($patterns as $occurrence) {
-            $validation = $this->regex->validate($occurrence->pattern);
+            $pattern = $occurrence->pattern;
+
+            // Heuristic: skip optimizations for patterns that use extended mode with
+            // verbose comments (/x). Re-compiling those patterns into a compact
+            // canonical form would drop user formatting and inline documentation,
+            // which is often more valuable than a tiny structural optimization.
+            if ($this->usesExtendedMode($pattern)) {
+                continue;
+            }
+
+            $validation = $this->regex->validate($pattern);
             $source = $occurrence->source;
             if (!$validation->isValid) {
                 continue;
             }
 
             try {
-                $optimization = $this->regex->optimize($occurrence->pattern, $optimizationConfig);
+                $optimization = $this->regex->optimize($pattern, $optimizationConfig);
             } catch (\Throwable) {
                 continue;
             }
@@ -376,6 +386,34 @@ final readonly class RegexAnalysisService
     private function buildIgnoredPatterns(array $userIgnored, array $redosIgnored): array
     {
         return array_values(array_unique([...$redosIgnored, ...$userIgnored]));
+    }
+
+    /**
+     * Detect whether a pattern uses extended (/x) mode, where whitespace and
+     * inline comments are significant for readability. For such patterns we
+     * avoid suggesting structural optimizations that would rewrite the pattern
+     * into a single-line canonical form and drop comments.
+     */
+    private function usesExtendedMode(string $pattern): bool
+    {
+        // Fast path: if there is no trailing flag block, there's no /x.
+        $pattern = ltrim($pattern);
+        if ('' === $pattern) {
+            return false;
+        }
+
+        try {
+            /** @var array{0: string, 1: string, 2: string} $parts */
+            $parts = \RegexParser\Internal\PatternParser::extractPatternAndFlags($pattern);
+        } catch (\Throwable) {
+            // If we cannot reliably extract flags, fall back to not treating it
+            // as extended mode to avoid false positives.
+            return false;
+        }
+
+        $flags = $parts[1] ?? '';
+
+        return \is_string($flags) && str_contains($flags, 'x');
     }
 
     private function getTipForValidationError(string $message, string $pattern, ValidationResult $validation): ?string
