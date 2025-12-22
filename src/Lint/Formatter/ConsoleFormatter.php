@@ -205,8 +205,12 @@ class ConsoleFormatter extends AbstractOutputFormatter
                 continue;
             }
 
-            $original = $this->safelyHighlightPattern($optimization->original);
-            $optimized = $this->safelyHighlightPattern($optimization->optimized);
+            // For optimizations, show the raw original and optimized regex so
+            // that textual changes (e.g. escaping inside character classes)
+            // remain visible. Using the highlighter would recompile the
+            // pattern and potentially normalize away differences.
+            $original = $optimization->original;
+            $optimized = $optimization->optimized;
 
             $output .= \sprintf('         %s%s'.\PHP_EOL,
                 $this->color('- ', self::RED),
