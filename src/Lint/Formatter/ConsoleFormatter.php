@@ -71,7 +71,7 @@ class ConsoleFormatter extends AbstractOutputFormatter
                 /** @var list<OptimizationEntry> $optimizations */
                 $optimizations = $result['optimizations'] ?? [];
                 $output .= $this->formatOptimizations($optimizations);
-                $output .= PHP_EOL;
+                $output .= \PHP_EOL;
             }
         }
 
@@ -147,19 +147,19 @@ class ConsoleFormatter extends AbstractOutputFormatter
             // Measure visible length without ANSI escape codes.
             $plainInline = $this->stripAnsi($label.'  '.$formatted);
             if (\strlen($plainInline) <= $maxInlineWidth) {
-                $output = sprintf('  %s  %s'.PHP_EOL, $label, $formatted);
+                $output = \sprintf('  %s  %s'.\PHP_EOL, $label, $formatted);
             } else {
                 // Wrap: show file:line, then the pattern on the next indented line.
-                $output = '  '.$label.PHP_EOL;
-                $output .= '      '.$formatted.PHP_EOL;
+                $output = '  '.$label.\PHP_EOL;
+                $output .= '      '.$formatted.\PHP_EOL;
             }
         } else {
             $label = '' !== $prefix ? $this->dim($prefix) : $this->dim('(pattern unavailable)');
-            $output = '  '.$label.PHP_EOL;
+            $output = '  '.$label.\PHP_EOL;
         }
 
         if ($hasLocation) {
-            $output .= sprintf('     %s'.PHP_EOL, $this->dim(self::ARROW_LABEL.' '.$location));
+            $output .= \sprintf('     %s'.\PHP_EOL, $this->dim(self::ARROW_LABEL.' '.$location));
         }
 
         return $output;
@@ -205,7 +205,7 @@ class ConsoleFormatter extends AbstractOutputFormatter
         $output = '';
 
         foreach ($optimizations as $opt) {
-            $output .= sprintf('    %s'.PHP_EOL,
+            $output .= \sprintf('    %s'.\PHP_EOL,
                 $this->badge('TIP', self::WHITE, self::BG_CYAN),
             );
 
@@ -219,30 +219,71 @@ class ConsoleFormatter extends AbstractOutputFormatter
 
             $isExtendedWithComments = $this->isExtendedPatternWithComments($original);
 
-            // Always show the original pattern as-is.
-            $output .= \sprintf('         %s%s'.\PHP_EOL,
-                $this->color('- ', self::RED),
-                $original,
-            );
-
             // For /x patterns with comments, format the optimized pattern
             // with proper indentation to make it more readable.
             if ($isExtendedWithComments) {
+                // Always show the original pattern as-is.
+                $output .= \sprintf('         %s%s'.\PHP_EOL,
+                    $this->color('- ', self::RED),
+                    $original,
+                );
                 $output .= $this->formatExtendedOptimizedPattern($optimized);
 
                 continue;
             }
 
-            // For other patterns, show raw original and optimized regex so
-            // that textual changes (e.g. escaping inside character classes)
-            // remain visible.
+            // For other patterns, show a diff highlighting the changes.
+            $diff = $this->computeSimpleDiff($original, $optimized);
+            $output .= \sprintf('         %s%s'.\PHP_EOL,
+                $this->color('- ', self::RED),
+                $diff['old'],
+            );
             $output .= \sprintf('         %s%s'.\PHP_EOL,
                 $this->color('+ ', self::GREEN),
-                $optimized,
+                $diff['new'],
             );
         }
 
         return $output;
+    }
+
+    /**
+     * Compute a diff between two strings by finding common prefix and suffix,
+     * highlighting only the differing middle parts.
+     *
+     * @return array{old: string, new: string}
+     */
+    private function computeSimpleDiff(string $old, string $new): array
+    {
+        $oldLen = \strlen($old);
+        $newLen = \strlen($new);
+
+        // Find common prefix
+        $prefixLen = 0;
+        $minLen = min($oldLen, $newLen);
+        while ($prefixLen < $minLen && $old[$prefixLen] === $new[$prefixLen]) {
+            $prefixLen++;
+        }
+
+        // Find common suffix
+        $suffixLen = 0;
+        $maxSuffix = min($oldLen - $prefixLen, $newLen - $prefixLen);
+        while ($suffixLen < $maxSuffix && $old[$oldLen - 1 - $suffixLen] === $new[$newLen - 1 - $suffixLen]) {
+            $suffixLen++;
+        }
+
+        // Extract middle parts
+        $middleOld = substr($old, $prefixLen, $oldLen - $prefixLen - $suffixLen);
+        $middleNew = substr($new, $prefixLen, $newLen - $prefixLen - $suffixLen);
+
+        // Build colored strings
+        $prefix = substr($old, 0, $prefixLen);
+        $suffix = substr($old, $oldLen - $suffixLen);
+
+        $coloredOld = $prefix.$this->color($middleOld, self::RED).$suffix;
+        $coloredNew = $prefix.$this->color($middleNew, self::GREEN).$suffix;
+
+        return ['old' => $coloredOld, 'new' => $coloredNew];
     }
 
     /**
