@@ -114,7 +114,7 @@ class ConsoleFormatter extends AbstractOutputFormatter
             return '  '.$file.\PHP_EOL;
         }
 
-        return '  '.$this->color(' '.$file.' ', self::BG_GRAY.self::WHITE.self::BOLD).\PHP_EOL;
+        return '  '.$this->dim($file).\PHP_EOL;
     }
 
     /**
@@ -195,9 +195,15 @@ class ConsoleFormatter extends AbstractOutputFormatter
         $output = '';
 
         foreach ($optimizations as $opt) {
+            $savings = isset($opt['savings']) ? (int) $opt['savings'] : 0;
+            $label = 'Optimization available';
+            if ($savings > 0) {
+                $label .= \sprintf(' (saves %d chars)', $savings);
+            }
+
             $output .= \sprintf('    %s %s'.\PHP_EOL,
                 $this->badge('TIP', self::WHITE, self::BG_CYAN),
-                $this->color('Optimization available', self::CYAN.self::BOLD),
+                $this->color($label, self::CYAN.self::BOLD),
             );
 
             $optimization = $opt['optimization'] ?? null;

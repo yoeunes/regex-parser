@@ -516,7 +516,7 @@ function showFooter(): void
 
 function renderLintBanner(): string
 {
-    return "\n  ".color('Regex Parser', WHITE.BOLD).' '.dim('linting...')."\n\n";
+    return color('Regex Parser', CYAN.BOLD).' '.dim('· lint')."\n\n";
 }
 
 function createExtractor(): RegexPatternExtractor
@@ -854,7 +854,7 @@ switch ($command) {
 
         $collectionProgress = null;
         if ('console' === $format && $config->shouldShowProgress()) {
-            output('  '.dim('Scanning files...')."\n\n");
+            output('  '.dim('[1/2] Collecting patterns')."\n");
             $collectionStarted = false;
             $lastCount = 0;
             $collectionProgress = static function (int $current, int $total) use (&$collectionStarted, &$lastCount): void {
@@ -904,7 +904,7 @@ switch ($command) {
 
         $progressCallback = null;
         if ('console' === $format && $config->shouldShowProgress()) {
-            output('  '.dim('Analyzing patterns...')."\n\n");
+            output('  '.dim('[2/2] Analyzing patterns')."\n");
             progressStart(\count($patterns));
             $progressCallback = static fn () => progressAdvance();
         }
