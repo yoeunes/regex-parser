@@ -599,7 +599,8 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
 
         // Special handling for regex patterns with flags that might have been concatenated
         // Check if this looks like a regex that might have flags after closing delimiter
-        /*if (preg_match('/^([\'"{}\/#~%])([^\'"{\/#~%]*)([\'"{\/\#~%])([A-Za-z]*)$/', $pattern, $matches)) {
+        /*
+            * if (preg_match('/^([\'"{}\/#~%])([^\'"{\/#~%]*)([\'"{\/\#~%])([A-Za-z]*)$/', $pattern, $matches)) {
             $delimiter = $matches[1];
             $body = $matches[2];
             $endDelimiter = $matches[3];
@@ -607,7 +608,8 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
 
             // Currently we keep $pattern as-is; this block mainly validates
             // that it already looks like a well-formed /body/flags pattern.
-        // } */
+        // }
+            */
 
         return [
             'pattern' => $pattern,
