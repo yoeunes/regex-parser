@@ -154,6 +154,26 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
             return $this->matchCustomStaticMethod($tokens, $index, $nextIndex, $totalTokens);
         }
 
+        if (isset($this->customFunctionMap[$lookupName])) {
+            continue;
+        }
+
+        // Fallback: check if the function call argument itself might be a regex pattern
+        if ($this->isPregFunction($lookupName) && isset($tokens[$startIndex + 1]) && 
+            \is_array($tokens[$startIndex + 1]) && 
+            \T_CONSTANT_ENCAPSED_STRING === $tokens[$startIndex + 1][0]) {
+            
+            $patternInfo = $this->extractRegexPatternFromTokens($tokens, $startIndex + 1);
+            if (null !== $patternInfo) {
+                return [
+                    $lookupName,
+                    $startIndex + 1,
+                    self::PREG_ARGUMENT_MAP[$lookupName],
+                    false,
+                ];
+            }
+        }
+
         $prevIndex = $this->previousSignificantTokenIndex($tokens, $index - 1);
         if (null !== $prevIndex) {
             $prevToken = $tokens[$prevIndex];
