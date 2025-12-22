@@ -16,6 +16,7 @@ namespace RegexParser\NodeVisitor;
 use RegexParser\LintIssue;
 use RegexParser\Node;
 use RegexParser\Node\GroupType;
+use RegexParser\ReDoS\CharSetAnalyzer;
 
 /**
  * Lints regex patterns for semantic issues like useless flags.
@@ -45,6 +46,13 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
 
     /** @var array<string, bool> */
     private array $definedNamedGroups = [];
+
+    private readonly CharSetAnalyzer $charSetAnalyzer;
+
+    public function __construct()
+    {
+        $this->charSetAnalyzer = new CharSetAnalyzer();
+    }
 
     /**
      * Get the full regex pattern including delimiters and flags
@@ -509,41 +517,68 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
             $literals[] = $literal;
         }
 
-        if ([] === $literals) {
-            return;
-        }
+        // Check for literal-based issues
+        if ([] !== $literals) {
+            $counts = array_count_values($literals);
+            foreach ($counts as $literal => $count) {
+                if ($count > 1) {
+                    $this->addIssue(
+                        'regex.lint.alternation.duplicate',
+                        \sprintf('Duplicate alternation branch "%s".', $literal),
+                        $node->startPosition,
+                    );
 
-        $counts = array_count_values($literals);
-        foreach ($counts as $literal => $count) {
-            if ($count > 1) {
-                $this->addIssue(
-                    'regex.lint.alternation.duplicate',
-                    \sprintf('Duplicate alternation branch "%s".', $literal),
-                    $node->startPosition,
-                );
+                    break;
+                }
+            }
 
-                break;
+            $unique = array_values(array_unique($literals));
+            $total = \count($unique);
+            for ($i = 0; $i < $total; $i++) {
+                for ($j = $i + 1; $j < $total; $j++) {
+                    $a = $unique[$i];
+                    $b = $unique[$j];
+                    if ('' === $a || '' === $b) {
+                        continue;
+                    }
+
+                    if (str_starts_with($a, $b) || str_starts_with($b, $a)) {
+                        $this->addIssue(
+                            'regex.lint.alternation.overlap',
+                            \sprintf('Alternation branches "%s" and "%s" overlap.', $a, $b),
+                            $node->startPosition,
+                            'Consider ordering longer alternatives first or using atomic groups.',
+                        );
+
+                        return;
+                    }
+                }
             }
         }
 
-        $unique = array_values(array_unique($literals));
-        $total = \count($unique);
+        // Check for semantic overlaps using character set analysis
+        $this->checkSemanticOverlaps($node);
+    }
+
+    private function checkSemanticOverlaps(Node\AlternationNode $node): void
+    {
+        $charSets = [];
+        foreach ($node->alternatives as $alt) {
+            $charSet = $this->charSetAnalyzer->firstChars($alt);
+            // Only skip if unknown, but proceed with empty sets
+            $charSets[] = $charSet;
+        }
+
+        $total = \count($charSets);
         for ($i = 0; $i < $total; $i++) {
             for ($j = $i + 1; $j < $total; $j++) {
-                $a = $unique[$i];
-                $b = $unique[$j];
-                if ('' === $a || '' === $b) {
-                    continue;
-                }
-
-                if (str_starts_with($a, $b) || str_starts_with($b, $a)) {
+                if (!$charSets[$i]->isEmpty() && !$charSets[$j]->isEmpty() && $charSets[$i]->intersects($charSets[$j])) {
                     $this->addIssue(
-                        'regex.lint.alternation.overlap',
-                        \sprintf('Alternation branches "%s" and "%s" overlap.', $a, $b),
+                        'regex.lint.alternation.semantic_overlap',
+                        'Alternation branches have overlapping character sets, which may cause unnecessary backtracking.',
                         $node->startPosition,
-                        'Consider ordering longer alternatives first or using atomic groups.',
+                        'Consider reordering alternatives or using atomic groups to improve performance.',
                     );
-
                     return;
                 }
             }
