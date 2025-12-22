@@ -30,12 +30,18 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     private array $issues = [];
 
     private string $flags = '';
-
     private bool $hasCaseSensitiveChars = false;
-
     private bool $hasDots = false;
-
     private bool $hasAnchors = false;
+    private ?string $patternValue = null;
+
+    /**
+     * Get the full regex pattern including delimiters and flags
+     */
+    public function getFullPattern(): string
+    {
+        return $this->delimiter . $this->pattern->value . $this->delimiter . $this->flags;
+    }
 
     /**
      * @return list<string>
@@ -65,8 +71,9 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         $this->hasDots = false;
         $this->hasAnchors = false;
 
-        // Visit the pattern
-        $node->pattern->accept($this);
+        // Use a simple visitor to compile the pattern string
+        $compiler = new \RegexParser\NodeVisitor\CompilerNodeVisitor();
+        $this->patternValue = $node->pattern->accept($compiler);
 
         // Check flags
         $this->checkUselessFlags();
@@ -275,7 +282,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         if (str_contains($this->flags, 'm') && !$this->hasAnchors) {
             $this->addIssue(
                 'regex.lint.flag.useless.m',
-                "Flag 'm' is useless: the pattern contains no anchors.",
+                "Flag 'm' is useless: pattern '{$this->getFullPattern()}' contains no anchors.",
             );
         }
     }

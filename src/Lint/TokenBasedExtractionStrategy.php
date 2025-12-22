@@ -589,8 +589,24 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
             return null;
         }
 
+        $pattern = implode('', $parts);
+        
+        // Special handling for regex patterns with flags that might have been concatenated
+        // Check if this looks like a regex that might have flags after closing delimiter
+        if (preg_match('/^([\\\'"{}\/\#~%])([^\'"{\/\#~%]*)([\'"{\/\#~%])([a-zA-Z]*)$/', $pattern, $matches)) {
+            $delimiter = $matches[1];
+            $body = $matches[2];
+            $endDelimiter = $matches[3];
+            $flags = $matches[4] ?? '';
+            
+            // If the end delimiter is missing and we have flags, fix it
+            if ('' === $endDelimiter && '' !== $flags) {
+                $pattern = $delimiter . $body . $delimiter . $flags;
+            }
+        }
+
         return [
-            'pattern' => implode('', $parts),
+            'pattern' => $pattern,
             'line' => $firstLine,
         ];
     }
