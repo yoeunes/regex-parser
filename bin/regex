@@ -826,7 +826,7 @@ switch ($command) {
         echo $formatter->getSummary($report->stats);
         $elapsed = microtime(true) - $startTime;
         $peakMemory = memory_get_peak_usage(true);
-        output("  ".dim("Time: ").bold(round($elapsed, 2)."s")."         ".dim("Memory: ").bold(round($peakMemory / 1024 / 1024, 2)." MB")."\n");
+        output("  ".bold("Time: ".round($elapsed, 2)."s | Memory: ".round($peakMemory / 1024 / 1024, 2)." MB")."\n");
         output("\n");
         echo $formatter->formatFooter();
 
