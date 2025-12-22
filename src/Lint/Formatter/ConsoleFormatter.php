@@ -334,20 +334,21 @@ class ConsoleFormatter extends AbstractOutputFormatter
         }
 
         $delimiter = $parts['delimiter'];
+        $closingDelimiter = $parts['closingDelimiter'];
         $flags = $parts['flags'];
 
         // Reconstruct the full pattern: /<highlighted body>/<flags>
         if ('' === $flags) {
-            return $delimiter.$highlightedBody.$delimiter;
+            return $delimiter.$highlightedBody.$closingDelimiter;
         }
 
-        return $delimiter.$highlightedBody.$delimiter.$this->color($flags, self::CYAN);
+        return $delimiter.$highlightedBody.$closingDelimiter.$this->color($flags, self::CYAN);
     }
 
     /**
-     * Split a regex pattern of the form /body/flags into its components.
+     * Split a regex pattern of the form /body/flags or {body}flags into its components.
      *
-     * @return array{delimiter: string, flags: string}|null
+     * @return array{delimiter: string, closingDelimiter: string, flags: string}|null
      */
     private function splitPatternWithFlags(string $pattern): ?array
     {
@@ -380,6 +381,7 @@ class ConsoleFormatter extends AbstractOutputFormatter
 
         return [
             'delimiter' => $delimiter,
+            'closingDelimiter' => $closingDelimiter,
             'flags' => $flags,
         ];
     }
