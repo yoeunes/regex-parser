@@ -84,13 +84,11 @@ final class PenEmojiAndCharacterHandlingTest extends TestCase
     public function test_pen_emoji_not_displayed_for_non_clickable_patterns(): void
     {
         $pattern = '/test/';
-        $line = 42;
 
         // Test without any special context - should not show pen
-        $tempFile = tempnam(sys_get_temp_dir(), 'non_clickable_');
-        file_put_contents($tempFile, "<?php\npreg_match('$pattern', \$subject);\n");
+        $fixtureFile = __DIR__.'/../Fixtures/Lint/pen_emoji_non_clickable.php';
 
-        $result = $this->strategy->extract([$tempFile]);
+        $result = $this->strategy->extract([$fixtureFile]);
 
         $this->assertCount(1, $result, 'Should extract exactly one pattern');
         [$expectedBody, $expectedFlags] = PatternParser::extractPatternAndFlags($pattern);
@@ -98,8 +96,6 @@ final class PenEmojiAndCharacterHandlingTest extends TestCase
 
         $this->assertSame($expectedBody, $actualBody, 'Pattern body should match extracted pattern');
         $this->assertSame($expectedFlags, $actualFlags, 'Pattern flags should match extracted pattern');
-
-        unlink($tempFile);
     }
 
     /**
@@ -147,12 +143,22 @@ final class PenEmojiAndCharacterHandlingTest extends TestCase
      */
     public function test_regex_patterns_with_flags(): void
     {
-        foreach (self::regexPatternProvider() as $name => $expectedPattern) {
-            $phpCode = "<?php\npreg_match('$expectedPattern', \$subject);\n";
-            $tempFile = tempnam(sys_get_temp_dir(), 'regex_test_');
-            file_put_contents($tempFile, $phpCode);
+        $fixtureMap = [
+            'simple' => 'tokenbased_simple.php',
+            'with_flags' => 'tokenbased_with_flags.php',
+            'with_delimiter' => 'pen_emoji_with_delimiter.php',
+            'unicode' => 'tokenbased_unicode.php',
+            'phpstan_class' => 'tokenbased_phpstan_class.php',
+            'emoji_pattern' => 'tokenbased_emoji_pattern.php',
+            'real_world_m_flag' => 'tokenbased_real_world_m_flag.php',
+            'escaped_delimiters' => 'pen_emoji_escaped_delimiters.php',
+            'multiple_flags' => 'regex_fixes_multiple_flags.php',
+        ];
 
-            $results = $this->strategy->extract([$tempFile]);
+        foreach (self::regexPatternProvider() as $name => $expectedPattern) {
+            $fixtureFile = __DIR__.'/../Fixtures/Lint/'.$fixtureMap[$name];
+
+            $results = $this->strategy->extract([$fixtureFile]);
 
             $this->assertCount(1, $results, \sprintf('Should extract exactly one pattern for: %s', $name));
 
@@ -166,8 +172,6 @@ final class PenEmojiAndCharacterHandlingTest extends TestCase
                     $results[0]->pattern,
                     'Emoji pattern with Uu flags should be preserved when extracted',
                 );
-
-                unlink($tempFile);
 
                 continue;
             }
@@ -191,7 +195,6 @@ final class PenEmojiAndCharacterHandlingTest extends TestCase
                     ),
                 );
             }
-
             $this->assertSame(
                 $expectedFlags,
                 $actualFlags,
@@ -202,8 +205,6 @@ final class PenEmojiAndCharacterHandlingTest extends TestCase
                     $actualFlags,
                 ),
             );
-
-            unlink($tempFile);
         }
     }
 
@@ -238,21 +239,18 @@ final class PenEmojiAndCharacterHandlingTest extends TestCase
     public function test_edge_cases_with_special_characters(): void
     {
         $edgeCases = [
-            'mixed_delimiters' => "preg_match('/pattern\\d/m', \$subject);",
-            'escaped_content' => "preg_match('/pattern\\/\\/im', \$subject);",
-            'unicode_emoji' => "preg_match('/🙂/u', \$subject);",
-            'nested_flags' => "preg_match('/test/miux', \$subject);",
+            'mixed_delimiters' => 'tokenbased_mixed_delimiters.php',
+            'escaped_content' => 'tokenbased_escaped_content.php',
+            'unicode_emoji' => 'tokenbased_unicode_emoji.php',
+            'nested_flags' => 'tokenbased_nested_flags.php',
         ];
 
-        foreach ($edgeCases as $name => $phpCode) {
-            $tempFile = tempnam(sys_get_temp_dir(), 'edge_case_');
-            file_put_contents($tempFile, "<?php\n$phpCode\n");
+        foreach ($edgeCases as $name => $fixtureFile) {
+            $fixturePath = __DIR__.'/../Fixtures/Lint/'.$fixtureFile;
 
-            $results = $this->strategy->extract([$tempFile]);
+            $results = $this->strategy->extract([$fixturePath]);
 
             $this->assertCount(1, $results, \sprintf('Should handle edge case: %s', $name));
-
-            unlink($tempFile);
         }
     }
 
@@ -262,13 +260,9 @@ final class PenEmojiAndCharacterHandlingTest extends TestCase
     public function test_regression_for_pen_emoji_and_character_encoding(): void
     {
         // Test the exact patterns from the original issue
-        $testFile = tempnam(sys_get_temp_dir(), 'regression_test');
-        $php = "<?php\n".
-            "        \$fs->dumpFile(\$file, preg_replace('/QUICK_CHECK = .*;/m', \"QUICK_CHECK = {\$quickCheck};\", \$fs->readFile(\$file)));\n".
-            "        preg_match('{^(?<codePoints>[\\w ]+) +; [\\w-]+ +# (?<emoji>.+) E\\d+\\.\\d+ ?(?<name>.+)$}Uu', \$line, \$matches);\n";
-        file_put_contents($testFile, $php);
+        $fixtureFile = __DIR__.'/../Fixtures/Lint/pen_emoji_regression.php';
 
-        $results = $this->strategy->extract([$testFile]);
+        $results = $this->strategy->extract([$fixtureFile]);
 
         $this->assertCount(2, $results, 'Should extract 2 patterns from regression test');
 
@@ -281,7 +275,5 @@ final class PenEmojiAndCharacterHandlingTest extends TestCase
 
         $this->assertStringContainsString('/QUICK_CHECK = .*;/m', $all, 'QUICK_CHECK pattern with /m flag not found in regression test');
         $this->assertStringContainsString('}Uu', $all, 'Emoji pattern with Uu flags not found in regression test');
-
-        unlink($testFile);
     }
 }

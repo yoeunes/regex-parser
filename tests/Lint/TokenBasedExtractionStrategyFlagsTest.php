@@ -39,25 +39,23 @@ final class TokenBasedExtractionStrategyFlagsTest extends TestCase
     {
         $patterns = [
             // Basic patterns
-            'simple' => '/test/',
-            'with_flags' => '/test/i',
-            'unicode' => '/pattern/u',
+            'simple' => ['/test/', 'tokenbased_simple.php'],
+            'with_flags' => ['/test/i', 'tokenbased_with_flags.php'],
+            'unicode' => ['/pattern/u', 'tokenbased_unicode.php'],
 
             // Complex patterns from real world
-            'phpstan_class' => '/^[a-zA-Z_\\x7f-\\xff][a-zA-Z0-9_\\x7f-\\xff]*+$/',
+            'phpstan_class' => ['/^[a-zA-Z_\\x7f-\\xff][a-zA-Z0-9_\\x7f-\\xff]*+$/', 'tokenbased_phpstan_class.php'],
             // Emoji pattern using curly-brace delimiters; this representation is
             // already covered in depth in PenEmojiAndCharacterHandlingTest, so
             // here we just verify that it round-trips through extraction.
-            'emoji_pattern' => '{^(?<codePoints>[\\w ]+) +; [\\w-]+ +# (?<emoji>.+) E\\d+\\.\\d+ ?(?<name>.+)$}Uu',
-            'real_world_m_flag' => '/QUICK_CHECK = .*;/m',
+            'emoji_pattern' => ['{^(?<codePoints>[\\w ]+) +; [\\w-]+ +# (?<emoji>.+) E\\d+\\.\\d+ ?(?<name>.+)$}Uu', 'tokenbased_emoji_pattern.php'],
+            'real_world_m_flag' => ['/QUICK_CHECK = .*;/m', 'tokenbased_real_world_m_flag.php'],
         ];
 
-        foreach ($patterns as $name => $expectedPattern) {
-            $phpCode = "<?php\npreg_match('".$expectedPattern."', \$subject);\n";
-            $tempFile = tempnam(sys_get_temp_dir(), 'regex_test_'.$name);
-            file_put_contents($tempFile, $phpCode);
+        foreach ($patterns as $name => [$expectedPattern, $fixtureFile]) {
+            $fixturePath = __DIR__.'/../Fixtures/Lint/'.$fixtureFile;
 
-            $results = $this->strategy->extract([$tempFile]);
+            $results = $this->strategy->extract([$fixturePath]);
 
             $this->assertCount(1, $results, "Should extract exactly one pattern for: $name");
 
@@ -69,8 +67,6 @@ final class TokenBasedExtractionStrategyFlagsTest extends TestCase
                     $results[0]->pattern,
                     "Emoji pattern with Uu flags should be preserved when extracted for: $name",
                 );
-
-                unlink($tempFile);
 
                 continue;
             }
@@ -105,8 +101,6 @@ final class TokenBasedExtractionStrategyFlagsTest extends TestCase
                     $actualFlags,
                 ),
             );
-
-            unlink($tempFile);
         }
     }
 
@@ -116,24 +110,19 @@ final class TokenBasedExtractionStrategyFlagsTest extends TestCase
     public function test_pen_emoji_not_displayed_for_non_clickable_patterns(): void
     {
         // Simple pattern without any special clickability
-        $tempSimple = tempnam(sys_get_temp_dir(), 'non_clickable_simple_');
-        file_put_contents($tempSimple, "<?php\npreg_match('/pattern/', \$subject);\n");
-        $result = $this->strategy->extract([$tempSimple]);
+        $fixtureSimple = __DIR__.'/../Fixtures/Lint/tokenbased_non_clickable_simple.php';
+        $result = $this->strategy->extract([$fixtureSimple]);
 
         $this->assertCount(1, $result);
         $this->assertSame('/pattern/', $result[0]->pattern);
 
         // Complex pattern that should also not show pen; we just verify it is
         // extracted and that the pattern itself does not contain any emoji.
-        $tempComplex = tempnam(sys_get_temp_dir(), 'non_clickable_complex_');
-        file_put_contents($tempComplex, "<?php\npreg_match('/complex_pattern.*;/m', \$subject);\n");
-        $result = $this->strategy->extract([$tempComplex]);
+        $fixtureComplex = __DIR__.'/../Fixtures/Lint/tokenbased_non_clickable_complex.php';
+        $result = $this->strategy->extract([$fixtureComplex]);
 
         $this->assertCount(1, $result);
         $this->assertStringNotContainsString('✏️', $result[0]->pattern);
-
-        unlink($tempSimple);
-        unlink($tempComplex);
     }
 
     /**
@@ -142,23 +131,20 @@ final class TokenBasedExtractionStrategyFlagsTest extends TestCase
     public function test_edge_cases_with_flags(): void
     {
         $edgeCases = [
-            'mixed_delimiters' => 'preg_match(\'/pattern\\d/m\', $subject);',
-            'escaped_content' => 'preg_match(\'/pattern\\/\\/im\', $subject);',
-            'unicode_emoji' => 'preg_match(\'/🙂/u\', $subject);',
-            'nested_flags' => 'preg_match(\'/test/miux\', $subject);',
-            'unicode_multiple_flags' => 'preg_match(\'/test/iux\', $subject);',
+            'mixed_delimiters' => 'tokenbased_mixed_delimiters.php',
+            'escaped_content' => 'tokenbased_escaped_content.php',
+            'unicode_emoji' => 'tokenbased_unicode_emoji.php',
+            'nested_flags' => 'tokenbased_nested_flags.php',
+            'unicode_multiple_flags' => 'tokenbased_unicode_multiple_flags.php',
         ];
 
-        foreach ($edgeCases as $name => $phpCode) {
-            $tempFile = tempnam(sys_get_temp_dir(), 'edge_case_'.$name);
-            file_put_contents($tempFile, "<?php\n$phpCode\n");
+        foreach ($edgeCases as $name => $fixtureFile) {
+            $fixturePath = __DIR__.'/../Fixtures/Lint/'.$fixtureFile;
 
-            $results = $this->strategy->extract([$tempFile]);
+            $results = $this->strategy->extract([$fixturePath]);
 
             $this->assertCount(1, $results, "Should handle edge case: $name");
             $this->assertNotEmpty($results[0]->pattern, "Pattern should not be empty for: $name");
-
-            unlink($tempFile);
         }
     }
 }

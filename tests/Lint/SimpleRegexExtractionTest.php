@@ -30,31 +30,25 @@ final class SimpleRegexExtractionTest extends TestCase
 
     public function test_extract_regex_with_flags(): void
     {
-        $testFile = tempnam(sys_get_temp_dir(), 'regex_test');
-        file_put_contents($testFile, "<?php\npreg_replace('/QUICK_CHECK = .*;/m', \"QUICK_CHECK = {\$quickCheck};\", \$fs->readFile(\$file)));\n");
+        $fixtureFile = __DIR__.'/../Fixtures/Lint/simple_regex_with_flags.php';
 
-        $results = $this->strategy->extract([$testFile]);
+        $results = $this->strategy->extract([$fixtureFile]);
 
         $this->assertCount(1, $results, 'Should extract exactly one pattern');
 
         // Verify pattern includes flags - our improved extraction should detect when flags are actually part of pattern
         $this->assertStringContainsString('/m', $results[0]->pattern);
-
-        unlink($testFile);
     }
 
     public function test_extract_simple_regex(): void
     {
-        $testFile = tempnam(sys_get_temp_dir(), 'simple_test');
-        file_put_contents($testFile, "<?php\npreg_match('/pattern/', \$subject);\n");
+        $fixtureFile = __DIR__.'/../Fixtures/Lint/simple_regex_simple.php';
 
-        $results = $this->strategy->extract([$testFile]);
+        $results = $this->strategy->extract([$fixtureFile]);
 
         $this->assertCount(1, $results, 'Should extract exactly one pattern');
 
         // Verify simple pattern without flags
         $this->assertSame('/pattern/', $results[0]->pattern);
-
-        unlink($testFile);
     }
 }

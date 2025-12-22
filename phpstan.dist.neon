@@ -21,8 +21,7 @@ parameters:
     excludePaths:
         - tests/Benchmark/*
         - tests/Bridge/PHPStan/Fixtures/*
-        - tests/Fixtures/Extractor/*
-        - tests/Fixtures/Functional/*
+        - tests/Fixtures/*
         - tests/extract_pcre_tests.php
         - tests/validate_library.php
 

@@ -33,11 +33,9 @@ final class RegexPatternExtractionFixesTest extends TestCase
      */
     public function test_extract_simple_regex_with_m_flag(): void
     {
-        $phpCode = "<?php\npreg_match('/pattern/m', \$subject);\n";
-        $tempFile = tempnam(sys_get_temp_dir(), 'simple_test');
-        file_put_contents($tempFile, $phpCode);
+        $fixtureFile = __DIR__.'/../Fixtures/Lint/regex_fixes_simple_m_flag.php';
 
-        $results = $this->strategy->extract([$tempFile]);
+        $results = $this->strategy->extract([$fixtureFile]);
 
         $this->assertCount(1, $results, 'Should extract exactly one pattern');
         $this->assertSame('/pattern/m', $results[0]->pattern, 'Pattern with /m flag should be preserved');
@@ -48,11 +46,9 @@ final class RegexPatternExtractionFixesTest extends TestCase
      */
     public function test_extract_regex_with_multiple_flags(): void
     {
-        $phpCode = "<?php\npreg_match('/pattern/mx', \$subject);\n";
-        $tempFile = tempnam(sys_get_temp_dir(), 'multi_test');
-        file_put_contents($tempFile, $phpCode);
+        $fixtureFile = __DIR__.'/../Fixtures/Lint/regex_fixes_multiple_flags.php';
 
-        $results = $this->strategy->extract([$tempFile]);
+        $results = $this->strategy->extract([$fixtureFile]);
 
         $this->assertCount(1, $results, 'Should extract exactly one pattern');
         $this->assertSame('/pattern/mx', $results[0]->pattern, 'Pattern with /mx flags should be preserved');
@@ -63,11 +59,9 @@ final class RegexPatternExtractionFixesTest extends TestCase
      */
     public function test_extract_regex_without_flags(): void
     {
-        $phpCode = "<?php\npreg_match('/pattern/', \$subject);\n";
-        $tempFile = tempnam(sys_get_temp_dir(), 'no_flags_test');
-        file_put_contents($tempFile, $phpCode);
+        $fixtureFile = __DIR__.'/../Fixtures/Lint/regex_fixes_no_flags.php';
 
-        $results = $this->strategy->extract([$tempFile]);
+        $results = $this->strategy->extract([$fixtureFile]);
 
         $this->assertCount(1, $results, 'Should extract exactly one pattern');
         $this->assertSame('/pattern/', $results[0]->pattern, 'Pattern without flags should work');
@@ -78,11 +72,9 @@ final class RegexPatternExtractionFixesTest extends TestCase
      */
     public function test_real_world_case(): void
     {
-        $phpCode = "<?php\npreg_replace('/QUICK_CHECK = .*;/m', \"QUICK_CHECK = {\$quickCheck};\", \$fs->readFile(\$file)));\n";
-        $tempFile = tempnam(sys_get_temp_dir(), 'real_world_test');
-        file_put_contents($tempFile, $phpCode);
+        $fixtureFile = __DIR__.'/../Fixtures/Lint/regex_fixes_real_world.php';
 
-        $results = $this->strategy->extract([$tempFile]);
+        $results = $this->strategy->extract([$fixtureFile]);
 
         // The extractor now returns a single normalized pattern for this
         // real-world case; just assert that the QUICK_CHECK pattern with /m
