@@ -123,6 +123,28 @@ final class CompilerNodeVisitorTest extends TestCase
         $this->assertSame($regex, $this->compile($regex));
     }
 
+    public function test_compile_escapes_paired_delimiter_closing(): void
+    {
+        $this->assertSame('<\>>', $this->compile('<\>>'));
+        $this->assertSame('<a\>b>', $this->compile('<a\>b>'));
+    }
+
+    public function test_compile_extended_comment_allows_closing_paren_in_comment(): void
+    {
+        $pattern = "~(a# comment )\nb)~x";
+        $this->assertSame($pattern, $this->compile($pattern));
+    }
+
+    public function test_compile_quote_mode_preserves_space_in_extended_mode(): void
+    {
+        $this->assertSame('/\\ /x', $this->compile('/\Q \E/x'));
+    }
+
+    public function test_compile_quote_mode_preserves_hash_in_extended_mode(): void
+    {
+        $this->assertSame('/\\#/x', $this->compile('/\Q#\E/x'));
+    }
+
     public function test_compile_subroutines(): void
     {
         $this->assertSame('/(?R)/', $this->compile('/(?R)/'));

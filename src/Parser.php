@@ -26,7 +26,7 @@ use RegexParser\Exception\SyntaxErrorException;
  */
 final class Parser
 {
-    private const INLINE_FLAG_CHARS = 'imsxADSUXJnr-';
+    private const INLINE_FLAG_CHARS = 'imsxUJn-';
     private const MAX_RECURSION_DEPTH = 1024;
 
     private TokenStream $stream;
@@ -36,6 +36,8 @@ final class Parser
     private string $flags = '';
 
     private bool $JModifier = false;
+
+    private bool $inQuoteMode = false;
 
     /**
      * @var array<string, bool>
@@ -62,6 +64,7 @@ final class Parser
         $this->pattern = $stream->getPattern();
         $this->flags = $flags;
         $this->JModifier = str_contains($flags, 'J');
+        $this->inQuoteMode = false;
         $this->groupNames = [];
         $this->lastTokenWasAlternation = false;
         $this->lastInlineFlagsLength = 0;
@@ -110,7 +113,14 @@ final class Parser
         $startPosition = $this->current()->position;
 
         while (!$this->isAtEnd() && !$this->check(TokenType::T_GROUP_CLOSE) && !$this->check(TokenType::T_ALTERNATION)) {
-            if ($this->match(TokenType::T_QUOTE_MODE_START) || $this->match(TokenType::T_QUOTE_MODE_END)) {
+            if ($this->match(TokenType::T_QUOTE_MODE_START)) {
+                $this->inQuoteMode = true;
+
+                continue;
+            }
+            if ($this->match(TokenType::T_QUOTE_MODE_END)) {
+                $this->inQuoteMode = false;
+
                 continue;
             }
 
@@ -147,7 +157,7 @@ final class Parser
      */
     private function consumeExtendedModeContent(array &$nodes): bool
     {
-        if (!str_contains($this->flags, 'x')) {
+        if (!str_contains($this->flags, 'x') || $this->inQuoteMode) {
             return false;
         }
 
@@ -192,7 +202,7 @@ final class Parser
         $comment = $this->reconstructTokenValue($startToken);
         $this->advance();
 
-        while (!$this->isAtEnd() && !$this->check(TokenType::T_GROUP_CLOSE)) {
+        while (!$this->isAtEnd()) {
             $token = $this->current();
 
             // Comment ends at newline (included) or at end of pattern.
@@ -219,7 +229,7 @@ final class Parser
      */
     private function skipExtendedModeContent(): bool
     {
-        if (!str_contains($this->flags, 'x')) {
+        if (!str_contains($this->flags, 'x') || $this->inQuoteMode) {
             return false;
         }
 
@@ -363,7 +373,14 @@ final class Parser
             return $this->parseCallout();
         }
 
-        if ($this->match(TokenType::T_QUOTE_MODE_START) || $this->match(TokenType::T_QUOTE_MODE_END)) {
+        if ($this->match(TokenType::T_QUOTE_MODE_START)) {
+            $this->inQuoteMode = true;
+
+            return $this->parseAtom();
+        }
+        if ($this->match(TokenType::T_QUOTE_MODE_END)) {
+            $this->inQuoteMode = false;
+
             return $this->parseAtom();
         }
 
@@ -1062,7 +1079,7 @@ final class Parser
      */
     private function parseInlineFlags(int $startPosition): Node\NodeInterface
     {
-        // Support all PCRE2 flags including n (NO_AUTO_CAPTURE), r (unicode restricted), and ^ (unset)
+        // Support PHP/PCRE2 inline flags (imsxUJn) plus ^ (unset) and - toggles.
         // Handle ^ (T_ANCHOR) at the start - it means "unset all flags" in PCRE2
         $flags = '';
         if ($this->check(TokenType::T_ANCHOR) && '^' === $this->current()->value) {
@@ -1081,7 +1098,7 @@ final class Parser
             // Handle ^ (unset all flags)
             if (str_starts_with($setFlags, '^')) {
                 $setFlagsAfter = substr($setFlags, 1);
-                $allFlags = 'imsxADSUXJunr';
+                $allFlags = 'imsxUJn';
                 $unsetFlags = implode('', array_diff(str_split($allFlags), str_split($setFlagsAfter))).$unsetFlags;
                 $setFlags = $setFlagsAfter;
             }
@@ -1495,10 +1512,14 @@ final class Parser
             && !$this->isAtEnd()
         ) {
             // Silent tokens inside char class
-            if (
-                $this->match(TokenType::T_QUOTE_MODE_START)
-                || $this->match(TokenType::T_QUOTE_MODE_END)
-            ) {
+            if ($this->match(TokenType::T_QUOTE_MODE_START)) {
+                $this->inQuoteMode = true;
+
+                continue;
+            }
+            if ($this->match(TokenType::T_QUOTE_MODE_END)) {
+                $this->inQuoteMode = false;
+
                 continue;
             }
             $parts[] = $this->parseCharClassPart();

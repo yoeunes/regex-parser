@@ -58,12 +58,45 @@ final class ParserUtilityTest extends TestCase
         $this->assertSame('abc', $pattern);
     }
 
+    /**
+     * @return array<string, array{0: string, 1: string}>
+     */
+    public static function provideWhitespaceSeparatedFlags(): array
+    {
+        return [
+            'space separated single flag' => ['/a/ i', 'i'],
+            'newline before flag' => ["/a/\n i", 'i'],
+            'trailing whitespace after flag' => ['/a/i ', 'i'],
+            'space separated multiple flags' => ['/a/ i u', 'iu'],
+        ];
+    }
+
+    /**
+     * @dataProvider provideWhitespaceSeparatedFlags
+     */
+    public function test_extract_pattern_accepts_whitespace_in_flags(string $regex, string $expectedFlags): void
+    {
+        [$pattern, $flags, $delimiter] = PatternParser::extractPatternAndFlags($regex);
+
+        $this->assertSame('/', $delimiter);
+        $this->assertSame('a', $pattern);
+        $this->assertSame($expectedFlags, $flags);
+    }
+
     public function test_extract_pattern_throws_on_malformed_flags(): void
     {
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('Unknown regex flag(s) found: "!"');
 
         PatternParser::extractPatternAndFlags('/abc/i!');
+    }
+
+    public function test_extract_pattern_rejects_unknown_r_modifier(): void
+    {
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('Unknown regex flag(s) found: "r"');
+
+        PatternParser::extractPatternAndFlags('/a/r');
     }
 
     public function test_extract_pattern_handles_leading_whitespace_with_paired_delimiter(): void

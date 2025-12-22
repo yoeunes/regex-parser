@@ -65,13 +65,14 @@ final class PatternParser
                 if (0 === $escapes % 2) {
                     // Found the end delimiter
                     $pattern = substr($regex, 1, $i - 1);
-                    $flags = substr($regex, $i + 1);
+                    $flagsWithWhitespace = substr($regex, $i + 1);
+                    $flags = preg_replace('/\s+/', '', $flagsWithWhitespace) ?? '';
 
                     // Validate flags (only allow standard PCRE flags)
-                    // n = NO_AUTO_CAPTURE, r = PCRE2_EXTRA_CASELESS_RESTRICT (unicode restricted)
-                    if (!preg_match('/^[imsxADSUXJunr]*+$/', $flags)) {
+                    // n = NO_AUTO_CAPTURE
+                    if (!preg_match('/^[imsxADSUXJun]*+$/', $flags)) {
                         // Find the invalid flag for a better error message
-                        $invalid = preg_replace('/[imsxADSUXJunr]/', '', $flags);
+                        $invalid = preg_replace('/[imsxADSUXJun]/', '', $flags);
 
                         // Format each invalid flag individually with quotes
                         $formattedFlags = implode(', ', array_map(fn ($flag) => \sprintf('"%s"', $flag), str_split($invalid ?? $flags)));

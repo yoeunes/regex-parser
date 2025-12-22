@@ -379,6 +379,32 @@ final class ParserTest extends TestCase
     }
 
     #[Test]
+    public function test_validate_rejects_unsupported_inline_flags(): void
+    {
+        $result = $this->regex->validate('/(?A:a)/');
+
+        $this->assertFalse($result->isValid());
+        $this->assertNotNull($result->error);
+        $this->assertStringContainsString('Invalid group modifier syntax', (string) $result->error);
+    }
+
+    #[Test]
+    public function test_validate_inline_flags_reset_is_valid(): void
+    {
+        $result = $this->regex->validate('/(?^i:a)/');
+
+        $this->assertTrue($result->isValid());
+    }
+
+    #[Test]
+    public function test_validate_inline_no_auto_capture_flag_is_valid(): void
+    {
+        $result = $this->regex->validate('/(?n:(a)(b))/');
+
+        $this->assertTrue($result->isValid());
+    }
+
+    #[Test]
     public function test_validate_duplicate_named_groups_without_j(): void
     {
         $result = $this->regex->validate('/(?<a>.) (?<a>.)/');
