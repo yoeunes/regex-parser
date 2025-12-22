@@ -631,13 +631,13 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
      */
     private function formatCharLiteral(string $value): string
     {
-        $ord = ord($value);
-        
+        $ord = \ord($value);
+
         // Handle control characters and extended ASCII as hex codes
         if (($ord < 32) || (127 === $ord) || ($ord >= 128 && $ord <= 255)) {
-            return "'\\x".strtoupper(str_pad(dechex($ord), 2, '0', STR_PAD_LEFT))."'";
+            return "'\\x".strtoupper(str_pad(dechex($ord), 2, '0', \STR_PAD_LEFT))."'";
         }
-        
+
         // Printable characters
         return "'".$value."'";
     }
@@ -651,15 +651,15 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
         if (str_starts_with($node->originalRepresentation, '\x') || str_starts_with($node->originalRepresentation, '\u')) {
             return $node->originalRepresentation;
         }
-        
+
         // For single character values, convert non-printable/extended ASCII to hex
-        if (strlen($node->originalRepresentation) === 1) {
-            $ord = ord($node->originalRepresentation);
+        if (1 === \strlen($node->originalRepresentation)) {
+            $ord = \ord($node->originalRepresentation);
             if (($ord < 32) || (127 === $ord) || ($ord >= 128 && $ord <= 255)) {
-                return '\\x'.strtoupper(str_pad(dechex($ord), 2, '0', STR_PAD_LEFT));
+                return '\\x'.strtoupper(str_pad(dechex($ord), 2, '0', \STR_PAD_LEFT));
             }
         }
-        
+
         return $node->originalRepresentation;
     }
 

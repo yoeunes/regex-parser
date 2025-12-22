@@ -159,10 +159,10 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
         }
 
         // Fallback: check if the function call argument itself might be a regex pattern
-        if ($this->isPregFunction($lookupName) && isset($tokens[$startIndex + 1]) && 
-            \is_array($tokens[$startIndex + 1]) && 
-            \T_CONSTANT_ENCAPSED_STRING === $tokens[$startIndex + 1][0]) {
-            
+        if ($this->isPregFunction($lookupName) && isset($tokens[$startIndex + 1])
+            && \is_array($tokens[$startIndex + 1])
+            && \T_CONSTANT_ENCAPSED_STRING === $tokens[$startIndex + 1][0]) {
+
             $patternInfo = $this->extractRegexPatternFromTokens($tokens, $startIndex + 1);
             if (null !== $patternInfo) {
                 return [
@@ -538,26 +538,26 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
         }
 
         $pattern = $result['pattern'];
-        
+
         // Check if this looks like a regex with flags (e.g., "/pattern/m" or "{pattern}u")
         // Need to handle escaped delimiters in the string
         if (preg_match('/^([\\\'"{}\/\#~%])(.*?)([\\\'"{}\/\#~%])([a-zA-Z]*)$/', $pattern, $matches)) {
             $delimiter = $matches[1];
             $regexBody = $matches[2];
             $flags = $matches[3];
-            
+
             // Unescape the body to get the actual regex pattern
             $unescapedBody = stripslashes($regexBody);
-            
+
             // Reconstruct the pattern with flags preserved
-            $fullPattern = $delimiter . $unescapedBody . $delimiter . $flags;
-            
+            $fullPattern = $delimiter.$unescapedBody.$delimiter.$flags;
+
             return [
                 'pattern' => $fullPattern,
                 'line' => $result['line'],
             ];
         }
-        
+
         // Not a regex with flags, return as-is
         return $result;
     }
@@ -610,7 +610,7 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
         }
 
         $pattern = implode('', $parts);
-        
+
         // Special handling for regex patterns with flags that might have been concatenated
         // Check if this looks like a regex that might have flags after closing delimiter
         if (preg_match('/^([\\\'"{}\/\#~%])([^\'"{\/\#~%]*)([\'"{\/\#~%])([a-zA-Z]*)$/', $pattern, $matches)) {
@@ -618,10 +618,10 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
             $body = $matches[2];
             $endDelimiter = $matches[3];
             $flags = $matches[4] ?? '';
-            
+
             // If the end delimiter is missing and we have flags, fix it
             if ('' === $endDelimiter && '' !== $flags) {
-                $pattern = $delimiter . $body . $delimiter . $flags;
+                $pattern = $delimiter.$body.$delimiter.$flags;
             }
         }
 

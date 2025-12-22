@@ -918,13 +918,13 @@ final class HtmlExplainNodeVisitor extends AbstractNodeVisitor
      */
     private function formatCharLiteral(string $value): string
     {
-        $ord = ord($value);
-        
+        $ord = \ord($value);
+
         // Handle control characters and extended ASCII as hex codes
         if (($ord < 32) || (127 === $ord) || ($ord >= 128 && $ord <= 255)) {
-            return "'\\x".strtoupper(str_pad(dechex($ord), 2, '0', STR_PAD_LEFT))."'";
+            return "'\\x".strtoupper(str_pad(dechex($ord), 2, '0', \STR_PAD_LEFT))."'";
         }
-        
+
         // Printable characters
         return "'".$value."'";
     }

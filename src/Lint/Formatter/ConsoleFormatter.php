@@ -13,10 +13,10 @@ declare(strict_types=1);
 
 namespace RegexParser\Lint\Formatter;
 
+use RegexParser\Internal\PatternParser;
 use RegexParser\Lint\RegexAnalysisService;
 use RegexParser\Lint\RegexLintReport;
 use RegexParser\OptimizationResult;
-use RegexParser\Internal\PatternParser;
 
 /**
  * Console output formatter with ANSI colors and verbosity levels.

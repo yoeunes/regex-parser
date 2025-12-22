@@ -16,7 +16,6 @@ namespace RegexParser\NodeVisitor;
 use RegexParser\LintIssue;
 use RegexParser\Node;
 use RegexParser\Node\GroupType;
-use RegexParser\NodeVisitor\CompilerNodeVisitor;
 
 /**
  * Lints regex patterns for semantic issues like useless flags.
@@ -31,11 +30,17 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     private array $issues = [];
 
     private string $flags = '';
+
     private string $delimiter = '';
+
     private bool $hasCaseSensitiveChars = false;
+
     private bool $hasDots = false;
+
     private bool $hasAnchors = false;
+
     private ?RegexParser\NodeInterface $patternNode = null;
+
     private ?string $patternValue = null;
 
     /**
@@ -43,7 +48,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
      */
     public function getFullPattern(): string
     {
-        return $this->delimiter . $this->patternValue . $this->delimiter . $this->flags;
+        return $this->delimiter.$this->patternValue.$this->delimiter.$this->flags;
     }
 
     /**

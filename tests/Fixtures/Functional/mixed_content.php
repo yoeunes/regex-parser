@@ -14,7 +14,7 @@ $color = "#FF5733";
 $text = "This is just a regular string";
 
 // Valid regex - SHOULD be detected
-preg_match('/^valid-regex$/', $input);
+preg_match('/^valid-regex$/', (string) $input);
 
 // Concatenated - should NOT be detected
-preg_match("/dynamic_" . $var . "/", $subject);
+preg_match("/dynamic_" . $var . "/", (string) $subject);

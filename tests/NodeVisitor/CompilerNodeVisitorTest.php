@@ -152,7 +152,7 @@ final class CompilerNodeVisitorTest extends TestCase
         $pattern = "/\n# comment\nfoo|bar/x";
         $compiled = $this->compilePretty($pattern);
         $this->assertStringContainsString("\n", $compiled);
-        $this->assertStringContainsString("# comment", $compiled);
+        $this->assertStringContainsString('# comment', $compiled);
     }
 
     private function compile(string $pattern): string

@@ -51,22 +51,16 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
 
     private string $flags = '';
 
-    private readonly bool $pretty;
-
     private int $indentLevel;
 
-    /**
+    public function __construct(private readonly bool $pretty = false, /**
      * When true, comments in extended (/x) mode are collapsed to a generic
      * "(?#...)" placeholder. This is useful for generating a normalized
      * representation of verbose regexes without leaking full comment text.
      */
-    private bool $collapseExtendedComments = false;
-
-    public function __construct(bool $pretty = false, bool $collapseExtendedComments = false)
+        private readonly bool $collapseExtendedComments = false)
     {
-        $this->pretty = $pretty;
         $this->indentLevel = 0;
-        $this->collapseExtendedComments = $collapseExtendedComments;
     }
 
     #[\Override]
@@ -94,8 +88,9 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
                 $this->indentLevel++;
                 $alt = $alternatives[$i]->accept($this);
                 $this->indentLevel--;
-                $result .= "\n" . str_repeat(' ', $this->indentLevel * 4) . '| ' . $alt;
+                $result .= "\n".str_repeat(' ', $this->indentLevel * 4).'| '.$alt;
             }
+
             return $result;
         }
 
@@ -145,13 +140,14 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
                 GroupType::T_GROUP_BRANCH_RESET => '|',
                 GroupType::T_GROUP_INLINE_FLAGS => $flags.':',
             };
-            $opening = '(' . $prefix;
+            $opening = '('.$prefix;
             $closing = ')';
             $this->indentLevel++;
             $child = $node->child->accept($this);
             $this->indentLevel--;
             $indent = str_repeat(' ', $this->indentLevel * 4);
-            return $indent . $opening . "\n" . $child . "\n" . $indent . $closing;
+
+            return $indent.$opening."\n".$child."\n".$indent.$closing;
         }
 
         $child = $node->child->accept($this);
@@ -415,9 +411,10 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
         if ($this->pretty) {
             $indent = str_repeat(' ', $this->indentLevel * 4);
             if ('' === $no) {
-                return $indent . '(?('.$cond.')' . "\n" . $yes . "\n" . $indent . ')';
+                return $indent.'(?('.$cond.")\n".$yes."\n".$indent.')';
             }
-            return $indent . '(?('.$cond.')' . "\n" . $yes . "\n" . $indent . '|' . $no . "\n" . $indent . ')';
+
+            return $indent.'(?('.$cond.")\n".$yes."\n".$indent.'|'.$no."\n".$indent.')';
         }
 
         if ('' === $no) {
@@ -452,8 +449,10 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
             $content = $node->content->accept($this);
             $this->indentLevel--;
             $indent = str_repeat(' ', $this->indentLevel * 4);
-            return $indent . "(?(DEFINE)\n" . $content . "\n" . $indent . ")";
+
+            return $indent."(?(DEFINE)\n".$content."\n".$indent.')';
         }
+
         return '(?(DEFINE)'.$node->content->accept($this).')';
     }
 
