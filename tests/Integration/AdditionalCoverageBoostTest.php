@@ -144,12 +144,17 @@ final class AdditionalCoverageBoostTest extends TestCase
     }
 
     /**
-     * Test all inline flag options: (?imsxADSUXJ)
+     * Test all inline flag options: (?imsxUJn)
      */
     #[DoesNotPerformAssertions]
     public function test_inline_flags_all_options(): void
     {
-        $this->parseRegex('/(?imsxADSUXJ)abc/');
+        $flags = 'imsxUJn';
+        if ($this->supportsInlineModifierR()) {
+            $flags .= 'r';
+        }
+
+        $this->parseRegex('/(?'.$flags.')abc/');
     }
 
     /**
@@ -453,5 +458,12 @@ final class AdditionalCoverageBoostTest extends TestCase
     private function parseRegex(string $pattern): RegexNode
     {
         return $this->regexService->parse($pattern);
+    }
+
+    private function supportsInlineModifierR(): bool
+    {
+        $result = @preg_match('/(?r)a/', '');
+
+        return false !== $result;
     }
 }
