@@ -217,17 +217,10 @@ class ConsoleFormatter extends AbstractOutputFormatter
                 $original,
             );
 
-            // For /x patterns with comments, the fully compiled optimized
-            // pattern can become extremely noisy (heavily escaped, single
-            // line). In that case, omit the raw optimized string from the
-            // console view to keep output readable. Users can still access
-            // the exact optimized pattern via machine-readable formats
-            // (json, github).
+            // For /x patterns with comments, format the optimized pattern
+            // with proper indentation to make it more readable.
             if ($isExtendedWithComments) {
-                $output .= \sprintf('         %s%s'.\PHP_EOL,
-                    $this->dim('↳'),
-                    $this->dim('Optimized pattern omitted for /x with comments; use --format=json for full diff.'),
-                );
+                $output .= $this->formatExtendedOptimizedPattern($optimized);
 
                 continue;
             }
@@ -239,6 +232,43 @@ class ConsoleFormatter extends AbstractOutputFormatter
                 $this->color('+ ', self::GREEN),
                 $optimized,
             );
+        }
+
+        return $output;
+    }
+
+    /**
+     * Format an optimized pattern from an extended (/x) pattern with comments.
+     *
+     * The optimized pattern is typically a single-line, heavily escaped string.
+     * This method formats it with proper indentation to make it more readable.
+     */
+    private function formatExtendedOptimizedPattern(string $optimized): string
+    {
+        $output = '';
+
+        // Show the optimized pattern with green + prefix
+        // For multi-line patterns, indent each line properly
+        $lines = explode("\n", $optimized);
+
+        if (1 === \count($lines)) {
+            // Single line - just show it directly
+            $output .= \sprintf('         %s%s'.\PHP_EOL,
+                $this->color('+ ', self::GREEN),
+                $optimized,
+            );
+        } else {
+            // Multi-line - show each line with proper indentation
+            foreach ($lines as $index => $line) {
+                if (0 === $index) {
+                    $output .= \sprintf('         %s%s'.\PHP_EOL,
+                        $this->color('+ ', self::GREEN),
+                        $line,
+                    );
+                } else {
+                    $output .= \sprintf('           %s'.\PHP_EOL, $line);
+                }
+            }
         }
 
         return $output;
