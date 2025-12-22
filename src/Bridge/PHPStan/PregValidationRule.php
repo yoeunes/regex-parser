@@ -90,7 +90,7 @@ final class PregValidationRule implements Rule
         'regex.lint.group.redundant' => self::DOC_BASE_URL.'#redundant-non-capturing-group',
         'regex.lint.alternation.duplicate' => self::DOC_BASE_URL.'#duplicate-alternation-branches',
         'regex.lint.alternation.overlap' => self::DOC_BASE_URL.'#overlapping-alternation-branches',
-        'regex.lint.alternation.overlap.charset' => self::DOC_BASE_URL.'#overlapping-alternation-branches',
+        'regex.lint.overlap.charset' => self::DOC_BASE_URL.'#overlapping-alternation-branches',
         'regex.lint.charclass.redundant' => self::DOC_BASE_URL.'#redundant-character-class-elements',
         'regex.lint.escape.suspicious' => self::DOC_BASE_URL.'#suspicious-escapes',
         'regex.lint.flag.redundant' => self::DOC_BASE_URL.'#inline-flag-redundant',
