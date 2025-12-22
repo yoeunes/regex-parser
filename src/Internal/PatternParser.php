@@ -20,6 +20,8 @@ use RegexParser\Exception\ParserException;
  */
 final class PatternParser
 {
+    private static ?bool $supportsModifierR = null;
+
     /**
      * @return array{0: string, 1: string, 2: string}
      */
@@ -68,11 +70,17 @@ final class PatternParser
                     $flagsWithWhitespace = substr($regex, $i + 1);
                     $flags = preg_replace('/\s+/', '', $flagsWithWhitespace) ?? '';
 
+                    $allowedFlags = 'imsxADSUXJun';
+                    if (self::supportsModifierR()) {
+                        $allowedFlags .= 'r';
+                    }
+
                     // Validate flags (only allow standard PCRE flags)
-                    // n = NO_AUTO_CAPTURE
-                    if (!preg_match('/^[imsxADSUXJun]*+$/', $flags)) {
+                    // n = NO_AUTO_CAPTURE, r = PCRE2_EXTRA_CASELESS_RESTRICT (if supported)
+                    $allowedPattern = '/^['.preg_quote($allowedFlags, '/').']*+$/';
+                    if (!preg_match($allowedPattern, $flags)) {
                         // Find the invalid flag for a better error message
-                        $invalid = preg_replace('/[imsxADSUXJun]/', '', $flags);
+                        $invalid = preg_replace('/['.preg_quote($allowedFlags, '/').']/', '', $flags);
 
                         // Format each invalid flag individually with quotes
                         $formattedFlags = implode(', ', array_map(fn ($flag) => \sprintf('"%s"', $flag), str_split($invalid ?? $flags)));
@@ -97,6 +105,18 @@ final class PatternParser
             $closingDelimiter,
             $suggested,
         ));
+    }
+
+    private static function supportsModifierR(): bool
+    {
+        if (null !== self::$supportsModifierR) {
+            return self::$supportsModifierR;
+        }
+
+        $result = @preg_match('/a/r', '');
+        self::$supportsModifierR = false !== $result;
+
+        return self::$supportsModifierR;
     }
 
     private static function isValidDelimiter(string $delimiter): bool

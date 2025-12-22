@@ -58,6 +58,8 @@ final class Parser
 
     private int $recursionDepth = 0;
 
+    private static ?bool $supportsInlineModifierR = null;
+
     public function parse(TokenStream $stream, string $flags = '', string $delimiter = '/', int $patternLength = 0): Node\RegexNode
     {
         $this->stream = $stream;
@@ -227,13 +229,13 @@ final class Parser
      * nodes. This is used where the parser needs to see through trivia,
      * for example between an atom and its following quantifier.
      */
-    private function skipExtendedModeContent(): bool
+    private function skipExtendedModeContent(): int
     {
         if (!str_contains($this->flags, 'x') || $this->inQuoteMode) {
-            return false;
+            return 0;
         }
 
-        $skipped = false;
+        $skipped = 0;
         while (!$this->isAtEnd() && !$this->check(TokenType::T_GROUP_CLOSE) && !$this->check(TokenType::T_ALTERNATION)) {
             $token = $this->current();
             if (TokenType::T_LITERAL !== $token->type) {
@@ -242,20 +244,22 @@ final class Parser
 
             if (ctype_space($token->value)) {
                 $this->advance();
-                $skipped = true;
+                $skipped++;
 
                 continue;
             }
 
             if ('#' === $token->value) {
                 $this->advance();
+                $skipped++;
                 while (!$this->isAtEnd() && "\n" !== $this->current()->value) {
                     $this->advance();
+                    $skipped++;
                 }
                 if (!$this->isAtEnd() && "\n" === $this->current()->value) {
                     $this->advance();
+                    $skipped++;
                 }
-                $skipped = true;
 
                 continue;
             }
@@ -270,7 +274,7 @@ final class Parser
     {
         $node = $this->parseAtom();
 
-        $this->skipExtendedModeContent();
+        $skipped = $this->skipExtendedModeContent();
 
         if ($this->match(TokenType::T_QUANTIFIER)) {
             $token = $this->previous();
@@ -283,6 +287,11 @@ final class Parser
             $endPosition = $token->position + \strlen($token->value);
 
             return new Node\QuantifierNode($node, $quantifier, $type, $startPosition, $endPosition);
+        }
+
+        if ($skipped > 0) {
+            $this->stream->rewind($skipped);
+            $this->currentTokenValid = false;
         }
 
         return $node;
@@ -1086,8 +1095,15 @@ final class Parser
             $flags = '^';
             $this->advance();
         }
+        $inlineFlagChars = self::INLINE_FLAG_CHARS;
+        $allFlags = 'imsxUJn';
+        if (self::supportsInlineModifierR()) {
+            $inlineFlagChars .= 'r';
+            $allFlags .= 'r';
+        }
+
         $flags .= $this->consumeWhile(
-            static fn (string $c): bool => str_contains(self::INLINE_FLAG_CHARS, $c),
+            static fn (string $c) => str_contains($inlineFlagChars, $c),
         );
 
         if ('' !== $flags) {
@@ -1098,7 +1114,6 @@ final class Parser
             // Handle ^ (unset all flags)
             if (str_starts_with($setFlags, '^')) {
                 $setFlagsAfter = substr($setFlags, 1);
-                $allFlags = 'imsxUJn';
                 $unsetFlags = implode('', array_diff(str_split($allFlags), str_split($setFlagsAfter))).$unsetFlags;
                 $setFlags = $setFlagsAfter;
             }
@@ -1147,6 +1162,18 @@ final class Parser
             \sprintf('Invalid group modifier syntax at position %d', $startPosition),
             $startPosition,
         );
+    }
+
+    private static function supportsInlineModifierR(): bool
+    {
+        if (null !== self::$supportsInlineModifierR) {
+            return self::$supportsInlineModifierR;
+        }
+
+        $result = @preg_match('/(?r)a/', '');
+        self::$supportsInlineModifierR = false !== $result;
+
+        return self::$supportsInlineModifierR;
     }
 
     /**

@@ -87,8 +87,18 @@ final class ParserUtilityTest extends TestCase
         PatternParser::extractPatternAndFlags('/abc/i!');
     }
 
-    public function test_extract_pattern_rejects_unknown_r_modifier(): void
+    public function test_extract_pattern_handles_r_modifier_based_on_runtime(): void
     {
+        if (self::supportsModifierR()) {
+            [$pattern, $flags, $delimiter] = PatternParser::extractPatternAndFlags('/a/r');
+
+            $this->assertSame('/', $delimiter);
+            $this->assertSame('a', $pattern);
+            $this->assertSame('r', $flags);
+
+            return;
+        }
+
         $this->expectException(ParserException::class);
         $this->expectExceptionMessage('Unknown regex flag(s) found: "r"');
 
@@ -144,6 +154,13 @@ final class ParserUtilityTest extends TestCase
         $this->assertSame('/', $delimiter);
         $this->assertSame('i', $flags);
         $this->assertSame($longPattern, $pattern);
+    }
+
+    private static function supportsModifierR(): bool
+    {
+        $result = @preg_match('/a/r', '');
+
+        return false !== $result;
     }
 
     public function test_parse_group_name_throws_on_missing_name(): void
