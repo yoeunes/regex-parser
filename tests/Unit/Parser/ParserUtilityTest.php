@@ -59,21 +59,17 @@ final class ParserUtilityTest extends TestCase
     }
 
     /**
-     * @return array<string, array{0: string, 1: string}>
+     * @return \Iterator<string, array{string, string}>
      */
-    public static function provideWhitespaceSeparatedFlags(): array
+    public static function provideWhitespaceSeparatedFlags(): \Iterator
     {
-        return [
-            'space separated single flag' => ['/a/ i', 'i'],
-            'newline before flag' => ["/a/\n i", 'i'],
-            'trailing whitespace after flag' => ['/a/i ', 'i'],
-            'space separated multiple flags' => ['/a/ i u', 'iu'],
-        ];
+        yield 'space separated single flag' => ['/a/ i', 'i'];
+        yield 'newline before flag' => ["/a/\n i", 'i'];
+        yield 'trailing whitespace after flag' => ['/a/i ', 'i'];
+        yield 'space separated multiple flags' => ['/a/ i u', 'iu'];
     }
 
-    /**
-     * @dataProvider provideWhitespaceSeparatedFlags
-     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('provideWhitespaceSeparatedFlags')]
     public function test_extract_pattern_accepts_whitespace_in_flags(string $regex, string $expectedFlags): void
     {
         [$pattern, $flags, $delimiter] = PatternParser::extractPatternAndFlags($regex);
