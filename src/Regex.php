@@ -524,13 +524,15 @@ final readonly class Regex
      *
      * @return string Compiled regex string
      */
-    private function compile(string $regex, NodeVisitor\NodeVisitorInterface $transformer): string
+    private function compile(string $regex, NodeVisitor\NodeVisitorInterface $transformer, ?bool $pretty = null): string
     {
         $ast = $this->parse($regex, false);
 
         $transformed = $ast->accept($transformer);
 
-        return $transformed->accept(new NodeVisitor\CompilerNodeVisitor());
+        $pretty ??= str_contains($ast->flags, 'x');
+
+        return $transformed->accept(new NodeVisitor\CompilerNodeVisitor($pretty));
     }
 
     /**

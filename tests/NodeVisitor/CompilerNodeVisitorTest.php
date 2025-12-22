@@ -147,11 +147,28 @@ final class CompilerNodeVisitorTest extends TestCase
         $this->assertSame('/[|]/', $this->compile('/[|]/'));
     }
 
+    public function test_compile_pretty_mode(): void
+    {
+        $pattern = "/\n# comment\nfoo|bar/x";
+        $compiled = $this->compilePretty($pattern);
+        $this->assertStringContainsString("\n", $compiled);
+        $this->assertStringContainsString("# comment", $compiled);
+    }
+
     private function compile(string $pattern): string
     {
         $regex = Regex::create();
         $ast = $regex->parse($pattern);
         $visitor = new CompilerNodeVisitor();
+
+        return $ast->accept($visitor);
+    }
+
+    private function compilePretty(string $pattern): string
+    {
+        $regex = Regex::create();
+        $ast = $regex->parse($pattern);
+        $visitor = new CompilerNodeVisitor(true);
 
         return $ast->accept($visitor);
     }

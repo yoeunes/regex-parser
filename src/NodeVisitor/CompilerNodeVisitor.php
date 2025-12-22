@@ -51,16 +51,21 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
 
     private string $flags = '';
 
-    private bool $pretty = false;
+    private readonly bool $pretty;
 
-    private int $indentLevel = 0;
+    private int $indentLevel;
+
+    public function __construct(bool $pretty = false)
+    {
+        $this->pretty = $pretty;
+        $this->indentLevel = 0;
+    }
 
     #[\Override]
     public function visitRegex(Node\RegexNode $node): string
     {
         $this->delimiter = $node->delimiter;
         $this->flags = $node->flags;
-        $this->pretty = str_contains($node->flags, 'x');
         $closingDelimiter = $this->getClosingDelimiter($node->delimiter);
 
         return $node->delimiter.$node->pattern->accept($this).$closingDelimiter.$node->flags;
@@ -78,7 +83,10 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
         if ($this->pretty) {
             $result = $alternatives[0]->accept($this);
             for ($i = 1, $count = \count($alternatives); $i < $count; $i++) {
-                $result .= "\n" . str_repeat(' ', $this->indentLevel * 4) . '| ' . $alternatives[$i]->accept($this);
+                $this->indentLevel++;
+                $alt = $alternatives[$i]->accept($this);
+                $this->indentLevel--;
+                $result .= "\n" . str_repeat(' ', $this->indentLevel * 4) . '| ' . $alt;
             }
             return $result;
         }
