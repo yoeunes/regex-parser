@@ -921,7 +921,7 @@ final class HtmlExplainNodeVisitor extends AbstractNodeVisitor
         $ord = \ord($value);
 
         // Handle control characters and extended ASCII as hex codes
-        if (($ord < 32) || (127 === $ord) || ($ord >= 128 && $ord <= 255)) {
+        if ($ord < 32 || 127 === $ord || $ord >= 128) {
             return "'\\x".strtoupper(str_pad(dechex($ord), 2, '0', \STR_PAD_LEFT))."'";
         }
 

@@ -526,19 +526,13 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
         if (preg_match('/^([\\\'"{}\/\#~%])(.*?)([\\\'"{}\/\#~%])([a-zA-Z]*)$/', $pattern, $matches)) {
             $delimiter = $matches[1];
             $regexBody = $matches[2];
-            $flags = $matches[4] ?? '';
+            $flags = $matches[4];
 
             // The pattern body returned from parseConstantStringExpression()
             // has already been decoded from the PHP string literal. Avoid
             // running stripslashes() again here, which would incorrectly
             // drop significant escapes like \\d, \\w, or \\x7f.
-            $closingDelimiter = match ($delimiter) {
-                '(' => ')',
-                '[' => ']',
-                '{' => '}',
-                '<' => '>',
-                default => $delimiter,
-            };
+            $closingDelimiter = '{' === $delimiter ? '}' : $delimiter;
 
             // Reconstruct the pattern with flags preserved, using the proper
             // closing delimiter for bracket-style delimiters.
@@ -609,12 +603,10 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
             $delimiter = $matches[1];
             $body = $matches[2];
             $endDelimiter = $matches[3];
-            $flags = $matches[4] ?? '';
+            $flags = $matches[4];
 
-            // If the end delimiter is missing and we have flags, fix it
-            if ('' === $endDelimiter && '' !== $flags) {
-                $pattern = $delimiter.$body.$delimiter.$flags;
-            }
+            // Currently we keep $pattern as-is; this block mainly validates
+            // that it already looks like a well-formed /body/flags pattern.
         }
 
         return [
@@ -783,7 +775,7 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
             return ['value' => '\\x', 'newIndex' => $startPos];
         }
 
-        $charCode = hexdec($hexDigits);
+        $charCode = (int) hexdec($hexDigits);
 
         return ['value' => \chr($charCode), 'newIndex' => $pos];
     }
@@ -810,7 +802,7 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
             return ['value' => substr($body, $i, $closeBrace - $i + 1), 'newIndex' => $closeBrace + 1];
         }
 
-        $codepoint = hexdec($hexPart);
+        $codepoint = (int) hexdec($hexPart);
 
         return ['value' => $this->codepointToUtf8($codepoint), 'newIndex' => $closeBrace + 1];
     }
@@ -833,7 +825,7 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
             return ['value' => '\\', 'newIndex' => $startPos];
         }
 
-        $charCode = octdec($octalDigits);
+        $charCode = (int) octdec($octalDigits);
 
         return ['value' => \chr($charCode & 0xFF), 'newIndex' => $pos];
     }
@@ -855,6 +847,9 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
 
     /**
      * @param list<array{int, string, int}|string> $tokens
+     */
+/**
+     * @param list<array{0:int,1:string,2:int}|string> $tokens
      */
     private function isNamespacedFunctionName(array $tokens, int $index): bool
     {
@@ -883,6 +878,9 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
         return \is_array($prevPrevToken) && $this->isNameToken($prevPrevToken);
     }
 
+/**
+     * @param array{0:int,1:string,2?:int} $token
+     */
     private function isNameToken(array $token): bool
     {
         $id = $token[0];
@@ -906,6 +904,9 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
         return false;
     }
 
+/**
+     * @param array{0:int,1:string,2?:int}|string $token
+     */
     private function readNameToken(array|string $token): ?string
     {
         if (!\is_array($token)) {
@@ -932,16 +933,25 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
         return null;
     }
 
+/**
+     * @param array{0:int,1:string,2?:int}|string $token
+     */
     private function isDoubleColonToken(array|string $token): bool
     {
         return \is_array($token) && \T_DOUBLE_COLON === $token[0];
     }
 
+/**
+     * @param array{0:int,1:string,2?:int}|string $token
+     */
     private function isDefinitionToken(array|string $token): bool
     {
         return \is_array($token) && \in_array($token[0], [\T_FUNCTION, \T_FN, \T_NEW], true);
     }
 
+/**
+     * @param array{0:int,1:string,2?:int}|string $token
+     */
     private function isObjectOrStaticOperator(array|string $token): bool
     {
         if (!\is_array($token)) {
@@ -956,6 +966,9 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
         return \in_array($token[0], $operators, true);
     }
 
+/**
+     * @param array{0:int,1:string,2?:int}|string $token
+     */
     private function isIgnorableToken(array|string $token): bool
     {
         return \is_array($token) && isset(self::IGNORABLE_TOKENS[$token[0]]);
@@ -989,33 +1002,33 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
         return null;
     }
 
+/**
+     * @param array{0:int,1:string,2?:int}|string $token
+     */
     private function isDoubleArrowToken(array|string $token): bool
     {
-        return \is_array($token) && \T_DOUBLE_ARROW === $token[0];
+        return '=>' === $token;
     }
 
+/**
+     * @param array{0:int,1:string,2?:int}|string $token
+     */
     private function closingTokenFor(array|string $token): string
     {
-        if ('(' === $token) {
-            return ')';
-        }
-        if ('[' === $token) {
-            return ']';
-        }
-        if ('{' === $token) {
-            return '}';
-        }
-
-        return ')';
+        return match ($token) {
+            '(' => ')',
+            '[' => ']',
+            '{' => '}',
+            default => ')',
+        };
     }
 
-    private function isClosingToken(array|string $token, ?string $expected): bool
+    /**
+     * @param array{0:int,1:string,2?:int}|string $token
+     */
+    private function isClosingToken(array|string $token, string $expected): bool
     {
-        if (null === $expected) {
-            return false;
-        }
-
-        return \is_string($token) && $token === $expected;
+        return $token === $expected;
     }
 
     /**

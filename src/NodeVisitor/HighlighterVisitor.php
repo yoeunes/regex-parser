@@ -132,9 +132,9 @@ abstract class HighlighterVisitor extends AbstractNodeVisitor
         if (1 === \strlen($node->code)) {
             $charCode = \ord($node->code);
             // Control characters (0x00-0x1F, 0x7F) and extended ASCII (0x80-0xFF)
-            if (($charCode >= 0x00 && $charCode <= 0x1F)
+            if ($charCode <= 0x1F
                 || 0x7F === $charCode
-                || ($charCode >= 0x80 && $charCode <= 0xFF)) {
+                || $charCode >= 0x80) {
                 return $this->wrap('\\x'.strtoupper(str_pad(dechex($charCode), 2, '0', \STR_PAD_LEFT)), 'type');
             }
         }

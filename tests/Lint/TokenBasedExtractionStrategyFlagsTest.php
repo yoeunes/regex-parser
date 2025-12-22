@@ -53,7 +53,7 @@ final class TokenBasedExtractionStrategyFlagsTest extends TestCase
         ];
 
         foreach ($patterns as $name => $expectedPattern) {
-            $phpCode = "<?php\npreg_match('$expectedPattern', \\$subject);\n";
+            $phpCode = '<?php' . "\n" . 'preg_match(\''.$expectedPattern.'\', $subject);' . "\n";
             $tempFile = tempnam(sys_get_temp_dir(), 'regex_test_'.$name);
             file_put_contents($tempFile, $phpCode);
 
@@ -117,7 +117,7 @@ final class TokenBasedExtractionStrategyFlagsTest extends TestCase
     {
         // Simple pattern without any special clickability
         $tempSimple = tempnam(sys_get_temp_dir(), 'non_clickable_simple_');
-        file_put_contents($tempSimple, "<?php\npreg_match('/pattern/', \\$subject);\n");
+        file_put_contents($tempSimple, '<?php' . "\n" . 'preg_match(\'/pattern/\', $subject);' . "\n");
         $result = $this->strategy->extract([$tempSimple]);
 
         $this->assertCount(1, $result);
@@ -126,7 +126,7 @@ final class TokenBasedExtractionStrategyFlagsTest extends TestCase
         // Complex pattern that should also not show pen; we just verify it is
         // extracted and that the pattern itself does not contain any emoji.
         $tempComplex = tempnam(sys_get_temp_dir(), 'non_clickable_complex_');
-        file_put_contents($tempComplex, "<?php\npreg_match('/complex_pattern.*;/m', \\$subject);\n");
+        file_put_contents($tempComplex, '<?php' . "\n" . 'preg_match(\'/complex_pattern.*;/m\', $subject);' . "\n");
         $result = $this->strategy->extract([$tempComplex]);
 
         $this->assertCount(1, $result);
@@ -142,11 +142,11 @@ final class TokenBasedExtractionStrategyFlagsTest extends TestCase
     public function test_edge_cases_with_flags(): void
     {
         $edgeCases = [
-            'mixed_delimiters' => "preg_match('/pattern\\d/m', \\$subject);",
-            'escaped_content' => "preg_match('/pattern\\/\\/im', \\$subject);",
-            'unicode_emoji' => "preg_match('/🙂/u', \\$subject);",
-            'nested_flags' => "preg_match('/test/miux', \\$subject);",
-            'unicode_multiple_flags' => "preg_match('/test/iux', \\$subject);",
+            'mixed_delimiters' => 'preg_match(\'/pattern\\d/m\', $subject);',
+            'escaped_content' => 'preg_match(\'/pattern\\/\\/im\', $subject);',
+            'unicode_emoji' => 'preg_match(\'/🙂/u\', $subject);',
+            'nested_flags' => 'preg_match(\'/test/miux\', $subject);',
+            'unicode_multiple_flags' => 'preg_match(\'/test/iux\', $subject);',
         ];
 
         foreach ($edgeCases as $name => $phpCode) {

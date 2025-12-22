@@ -277,7 +277,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
         // If it's a single character, check if it needs escaping
         if (1 === \strlen($rep)) {
             $ord = \ord($rep);
-            if ($ord < 32 || 127 === $ord || ($ord >= 128 && $ord <= 255)) {
+            if ($ord < 32 || 127 === $ord || $ord >= 128) {
                 // Escape control characters and extended ASCII
                 return match ($ord) {
                     9 => '\\t',
@@ -507,7 +507,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
         for ($i = 0; $i < $len; $i++) {
             $char = $value[$i];
             $ord = \ord($char);
-            if ($char === $this->delimiter || isset($meta[$char]) || $ord < 32 || 127 === $ord || ($ord >= 128 && $ord <= 255)) {
+            if ($char === $this->delimiter || isset($meta[$char]) || $ord < 32 || 127 === $ord || $ord >= 128) {
                 $needsEscape = true;
 
                 break;
@@ -525,7 +525,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
             $char = $value[$i];
             if ($char === $this->delimiter || isset($meta[$char])) {
                 $result .= '\\'.$char;
-            } elseif (\ord($char) < 32 || 127 === \ord($char) || (\ord($char) >= 128 && \ord($char) <= 255)) {
+            } elseif (\ord($char) < 32 || 127 === \ord($char) || \ord($char) >= 128) {
                 // Escape control characters and extended ASCII
                 $result .= match (\ord($char)) {
                     9 => '\\t',

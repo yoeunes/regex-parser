@@ -43,7 +43,6 @@ class ConsoleFormatter extends AbstractOutputFormatter
     private const BG_YELLOW = "\033[43m";
     private const BG_CYAN = "\033[46m";
     private const BG_GRAY = "\033[100m";
-    private const PEN_LABEL = '✏️';
     private const ARROW_LABEL = '↳';
 
     public function __construct(
@@ -374,14 +373,9 @@ class ConsoleFormatter extends AbstractOutputFormatter
         return $output;
     }
 
-    private function getPenLabel(): string
-    {
-        if (!$this->config->ansi) {
-            return self::PEN_LABEL;
-        }
-
-        return "\033[24m".self::PEN_LABEL."\033[24m";
-    }
+    // getPenLabel() is intentionally omitted in this formatter. The plain
+    // console output does not currently render a clickable "pen" link; this
+    // responsibility is handled by the SymfonyConsoleFormatter bridge.
 
     private function safelyHighlightPattern(string $pattern): string
     {

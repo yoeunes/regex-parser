@@ -39,8 +39,6 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
 
     private bool $hasAnchors = false;
 
-    private ?RegexParser\NodeInterface $patternNode = null;
-
     private ?string $patternValue = null;
 
     /**

@@ -634,7 +634,7 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
         $ord = \ord($value);
 
         // Handle control characters and extended ASCII as hex codes
-        if (($ord < 32) || (127 === $ord) || ($ord >= 128 && $ord <= 255)) {
+        if ($ord < 32 || 127 === $ord || $ord >= 128) {
             return "'\\x".strtoupper(str_pad(dechex($ord), 2, '0', \STR_PAD_LEFT))."'";
         }
 
@@ -655,7 +655,7 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
         // For single character values, convert non-printable/extended ASCII to hex
         if (1 === \strlen($node->originalRepresentation)) {
             $ord = \ord($node->originalRepresentation);
-            if (($ord < 32) || (127 === $ord) || ($ord >= 128 && $ord <= 255)) {
+            if ($ord < 32 || 127 === $ord || $ord >= 128) {
                 return '\\x'.strtoupper(str_pad(dechex($ord), 2, '0', \STR_PAD_LEFT));
             }
         }
