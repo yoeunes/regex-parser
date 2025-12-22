@@ -87,8 +87,8 @@ final class PenEmojiAndCharacterHandlingTest extends TestCase
         // Test without any special context - should not show pen
         $result = $this->strategy->extract(['test_non_clickable.php' => "<?php\npreg_match('$pattern', \$subject);\n"]);
         
-        $this->assertCount(1, $result);
-        $this->assertSame($pattern, $result[0]->pattern);
+        $this->assertCount(1, $result, 'Should extract exactly one pattern');
+        $this->assertSame($pattern, $result[0]->pattern, 'Pattern should match extracted pattern');
     }
 
     /**
