@@ -390,17 +390,29 @@ class ConsoleFormatter extends AbstractOutputFormatter
         }
     }
 
+    private function safelyHighlightBody(string $body, string $flags, string $delimiter): ?string
+    {
+        if (!$this->analysisService || !$this->config->ansi) {
+            return null;
+        }
+
+        try {
+            return $this->analysisService->highlightBody($body, $flags, $delimiter);
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
     /**
      * Format pattern for display.
      *
      * The linter output must be text-preserving: the pattern shown in the
      * console should match exactly what was found in the source file.
      *
-     * We therefore avoid running the pattern through the AST-based
-     * highlighter, which can legitimately normalize escapes (e.g. literal
-     * "+" vs "+" quantifier) and change the surface representation. Instead
-     * we keep the pattern string as-is and, when ANSI is enabled, only color
-     * the delimiters and trailing flags.
+     * We try the AST-based highlighter first for better syntax highlighting,
+     * falling back to a lightweight regex-based highlighter if parsing fails.
+     * Both preserve the exact characters while adding ANSI color codes to
+     * delimiters, flags, and pattern elements.
      */
     private function formatPatternForDisplay(string $pattern): string
     {
@@ -432,10 +444,14 @@ class ConsoleFormatter extends AbstractOutputFormatter
 
         $body = substr($pattern, 1, $lastPos - 1);
 
-        // Apply a lightweight, text-preserving highlighter to the body. This
-        // never changes characters in the pattern; it only wraps segments in
+        // Try the AST-based highlighter first for better highlighting, then
+        // fall back to the lightweight, text-preserving highlighter if it fails.
+        // Both never change characters in the pattern; they only wrap segments in
         // ANSI color codes.
-        $highlightedBody = $this->highlightPatternBodyPreservingText($body);
+        $highlightedBody = $this->safelyHighlightBody($body, $flags, $delimiter);
+        if (null === $highlightedBody) {
+            $highlightedBody = $this->highlightPatternBodyPreservingText($body);
+        }
 
         $open = $this->color($delimiter, self::CYAN.self::BOLD);
         $close = $this->color($closingDelimiter, self::CYAN.self::BOLD);

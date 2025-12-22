@@ -293,6 +293,13 @@ final readonly class RegexAnalysisService
         return $ast->accept(new ConsoleHighlighterVisitor());
     }
 
+    public function highlightBody(string $body, string $flags = '', string $delimiter = '/'): string
+    {
+        $ast = $this->regex->parsePattern($body, $flags, $delimiter);
+
+        return $ast->accept(new ConsoleHighlighterVisitor());
+    }
+
     private function shouldSkipRiskAnalysis(RegexPatternOccurrence $occurrence): bool
     {
         $rawPattern = $occurrence->displayPattern ?? $occurrence->pattern;
