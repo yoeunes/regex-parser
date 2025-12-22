@@ -649,4 +649,43 @@ final class OptimizerNodeVisitorTest extends TestCase
 
         $this->assertSame('/[a-z]|[^0-9]/', $result);
     }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('digitOptimizationProvider')]
+    public function test_digit_optimization_with_flags(string $pattern, bool $expectedOptimization, string $description): void
+    {
+        $regex = Regex::create();
+        $ast = $regex->parse($pattern);
+        $optimizer = new OptimizerNodeVisitor();
+
+        /** @var RegexNode $optimized */
+        $optimized = $ast->accept($optimizer);
+
+        if ($expectedOptimization) {
+            // For quantified patterns like [0-9]+, the pattern is QuantifierNode with CharTypeNode inside
+            if ($optimized->pattern instanceof QuantifierNode) {
+                $this->assertInstanceOf(CharTypeNode::class, $optimized->pattern->node, $description);
+                $this->assertSame('d', $optimized->pattern->node->value, $description);
+            } else {
+                $this->assertInstanceOf(CharTypeNode::class, $optimized->pattern, $description);
+                $this->assertSame('d', $optimized->pattern->value, $description);
+            }
+        } else {
+            // For non-optimized cases, check the inner pattern type
+            if ($optimized->pattern instanceof QuantifierNode) {
+                $this->assertInstanceOf(CharClassNode::class, $optimized->pattern->node, $description);
+            } else {
+                $this->assertInstanceOf(CharClassNode::class, $optimized->pattern, $description);
+            }
+        }
+    }
+
+    public static function digitOptimizationProvider(): \Iterator
+    {
+        yield 'no u flag - should optimize' => ['/[0-9]/', true, '[0-9] without u flag should optimize to \d'];
+        yield 'with u flag - should not optimize' => ['/[0-9]/u', false, '[0-9] with u flag should remain as CharClass'];
+        yield 'negated class - should not optimize' => ['/[^0-9]/', false, '[^0-9] negated class should not optimize'];
+        yield 'multiple parts - should not optimize' => ['/[0-9a]/', false, '[0-9a] with multiple parts should not optimize'];
+        yield 'quantified - should optimize' => ['/[0-9]+/', true, '[0-9]+ should optimize to \d+'];
+        yield 'quantified with u flag - should not optimize' => ['/[0-9]+/u', false, '[0-9]+ with u flag should remain as CharClass'];
+    }
 }
