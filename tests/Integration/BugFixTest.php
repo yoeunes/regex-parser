@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\Integration;
 
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Node\AlternationNode;
 use RegexParser\Node\CharClassNode;
@@ -30,6 +31,7 @@ final class BugFixTest extends TestCase
         $this->regexService = Regex::create();
     }
 
+    #[Test]
     public function test_parser_handles_hyphen_as_range_end(): void
     {
         // [a-] should be parsed as LiteralNode('a'), LiteralNode('-')
@@ -45,6 +47,7 @@ final class BugFixTest extends TestCase
         $this->assertSame('-', $charClass->expression->alternatives[1]->value);
     }
 
+    #[Test]
     public function test_parser_handles_hyphen_range(): void
     {
         // [a-z] should be parsed as Range(a, z)
@@ -60,6 +63,7 @@ final class BugFixTest extends TestCase
         $this->assertSame('z', $range->end->value);
     }
 
+    #[Test]
     public function test_re_do_s_analyzer_detects_dot_overlap(): void
     {
         // (a|.)* should be CRITICAL
@@ -67,6 +71,7 @@ final class BugFixTest extends TestCase
         $this->assertSame(ReDoSSeverity::CRITICAL, $analysis->severity);
     }
 
+    #[Test]
     public function test_re_do_s_analyzer_detects_char_class_overlap(): void
     {
         // ([a-z]|[0-9])* -> disjoint branches, should not be critical

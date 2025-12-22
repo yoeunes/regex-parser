@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Unit\Parser;
 
 use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\ParserException;
 use RegexParser\Node\AlternationNode;
@@ -48,6 +49,7 @@ final class ParserTest extends TestCase
         $this->regex = Regex::create();
     }
 
+    #[Test]
     public function test_parse_returns_regex_node_with_flags(): void
     {
         $ast = $this->parse('/foo/imsU');
@@ -56,6 +58,7 @@ final class ParserTest extends TestCase
         $this->assertInstanceOf(SequenceNode::class, $ast->pattern);
     }
 
+    #[Test]
     public function test_parse_literal(): void
     {
         $ast = $this->parse('/foo/');
@@ -66,6 +69,7 @@ final class ParserTest extends TestCase
         $this->assertCount(3, $pattern->children);
     }
 
+    #[Test]
     public function test_parse_char_class(): void
     {
         $ast = $this->parse('/[a-z\d-]/');
@@ -92,6 +96,7 @@ final class ParserTest extends TestCase
         $this->assertSame('-', $pattern->expression->alternatives[2]->value);
     }
 
+    #[Test]
     public function test_parse_negated_char_class(): void
     {
         $ast = $this->parse('/[^a-z]/');
@@ -102,6 +107,7 @@ final class ParserTest extends TestCase
         $this->assertInstanceOf(RangeNode::class, $pattern->expression);
     }
 
+    #[Test]
     public function test_parse_group_with_quantifier(): void
     {
         $ast = $this->parse('/(bar)?/');
@@ -123,6 +129,7 @@ final class ParserTest extends TestCase
         $this->assertSame('b', $sequenceChild->value);
     }
 
+    #[Test]
     public function test_parse_alternation(): void
     {
         $ast = $this->parse('/foo|bar/');
@@ -148,6 +155,7 @@ final class ParserTest extends TestCase
         $this->assertSame('b', $alt2Child->value);
     }
 
+    #[Test]
     public function test_parse_operator_precedence(): void
     {
         $ast = $this->parse('/ab*c/');
@@ -177,6 +185,7 @@ final class ParserTest extends TestCase
         $this->assertSame('c', $childC->value);
     }
 
+    #[Test]
     public function test_parse_char_types_and_dot(): void
     {
         $ast = $this->parse('/.\d\S/');
@@ -192,6 +201,7 @@ final class ParserTest extends TestCase
         $this->assertSame('S', $pattern->children[2]->value);
     }
 
+    #[Test]
     public function test_parse_pcre2_char_types(): void
     {
         $ast = $this->parse('/\X\C/');
@@ -206,6 +216,7 @@ final class ParserTest extends TestCase
         $this->assertSame('C', $pattern->children[1]->value);
     }
 
+    #[Test]
     public function test_parse_anchors(): void
     {
         $ast = $this->parse('/^foo$/');
@@ -225,6 +236,7 @@ final class ParserTest extends TestCase
         $this->assertSame('$', $pattern->children[4]->value);
     }
 
+    #[Test]
     public function test_parse_assertions(): void
     {
         $ast = $this->parse('/\Afoo\b/');
@@ -240,6 +252,7 @@ final class ParserTest extends TestCase
         $this->assertSame('b', $pattern->children[4]->value);
     }
 
+    #[Test]
     public function test_parse_grapheme_assertions(): void
     {
         $ast = $this->parse('/\b{g}foo\B{g}/');
@@ -255,6 +268,7 @@ final class ParserTest extends TestCase
         $this->assertSame('B{g}', $pattern->children[4]->value);
     }
 
+    #[Test]
     public function test_parse_unicode_prop(): void
     {
         $ast = $this->parse('/\p{L}/');
@@ -263,6 +277,7 @@ final class ParserTest extends TestCase
         $this->assertInstanceOf(UnicodePropNode::class, $pattern);
     }
 
+    #[Test]
     public function test_parse_unicode_named(): void
     {
         $ast = $this->parse('/\N{LATIN CAPITAL LETTER A}/');
@@ -274,6 +289,7 @@ final class ParserTest extends TestCase
         $this->assertSame(65, $pattern->codePoint);
     }
 
+    #[Test]
     public function test_parse_comment(): void
     {
         $ast = $this->parse('/(?#test)/');
@@ -283,6 +299,7 @@ final class ParserTest extends TestCase
         $this->assertSame('test', $pattern->comment);
     }
 
+    #[Test]
     public function test_parse_conditional(): void
     {
         $ast = $this->parse('/(?(1)a|b)/');
@@ -299,6 +316,7 @@ final class ParserTest extends TestCase
         $this->assertSame('b', $pattern->no->value);
     }
 
+    #[Test]
     public function test_throws_on_unmatched_group(): void
     {
         $this->expectException(ParserException::class);
@@ -306,6 +324,7 @@ final class ParserTest extends TestCase
         $this->parse('/(foo/');
     }
 
+    #[Test]
     public function test_throws_on_missing_closing_delimiter(): void
     {
         $this->expectException(ParserException::class);
@@ -313,6 +332,7 @@ final class ParserTest extends TestCase
         $this->parse('/foo');
     }
 
+    #[Test]
     public function test_parse_escaped_chars(): void
     {
         $ast = $this->parse('/a\*b/');
@@ -327,6 +347,7 @@ final class ParserTest extends TestCase
         $this->assertSame('*', $childStar->value);
     }
 
+    #[Test]
     public function test_parse_inline_flags(): void
     {
         $ast = $this->parse('/(?i:foo)/');
@@ -337,6 +358,7 @@ final class ParserTest extends TestCase
         $this->assertSame('i', $pattern->flags);
     }
 
+    #[Test]
     public function test_parse_inline_flags_unset_all(): void
     {
         $ast = $this->parse('/(?^i:foo)/');
@@ -347,6 +369,7 @@ final class ParserTest extends TestCase
         $this->assertSame('^i', $pattern->flags);
     }
 
+    #[Test]
     public function test_parse_inline_flags_conflicting(): void
     {
         $this->expectException(ParserException::class);
@@ -355,6 +378,7 @@ final class ParserTest extends TestCase
         $this->parse('/(?i-i:foo)/');
     }
 
+    #[Test]
     public function test_validate_duplicate_named_groups_without_j(): void
     {
         $result = $this->regex->validate('/(?<a>.) (?<a>.)/');
@@ -364,6 +388,7 @@ final class ParserTest extends TestCase
         $this->assertStringContainsString('Duplicate group name "a"', (string) $result->error);
     }
 
+    #[Test]
     public function test_validate_duplicate_named_groups_with_j(): void
     {
         $result = $this->regex->validate('/(?J)(?<a>.) (?<a>.)/');
@@ -371,6 +396,7 @@ final class ParserTest extends TestCase
         $this->assertTrue($result->isValid());
     }
 
+    #[Test]
     public function test_validate_unknown_named_group_suggestions(): void
     {
         $result = $this->regex->validate('/(?<name>.) \k<nam>/');
@@ -380,6 +406,7 @@ final class ParserTest extends TestCase
         $this->assertStringContainsString('Did you mean: name?', (string) $result->error);
     }
 
+    #[Test]
     public function test_validate_lookbehind_unbounded(): void
     {
         $result = $this->regex->validate('/(?<=a*)b/');
@@ -389,6 +416,7 @@ final class ParserTest extends TestCase
         $this->assertStringContainsString('Lookbehind is unbounded', (string) $result->error);
     }
 
+    #[Test]
     public function test_parse_named_group_with_single_quote(): void
     {
         $ast = $this->parse("/(?P'name'a)/");
@@ -397,6 +425,7 @@ final class ParserTest extends TestCase
         $this->assertSame('name', $ast->pattern->name);
     }
 
+    #[Test]
     public function test_parse_named_group_with_double_quote(): void
     {
         $ast = $this->parse('/(?P"name"a)/');
@@ -405,6 +434,7 @@ final class ParserTest extends TestCase
         $this->assertSame('name', $ast->pattern->name);
     }
 
+    #[Test]
     public function test_parse_g_references_as_backref(): void
     {
         $ast = $this->parse('/a\g{1}b\g{-1}c/');
@@ -415,6 +445,7 @@ final class ParserTest extends TestCase
         $this->assertSame('\g{-1}', $ast->pattern->children[3]->ref);
     }
 
+    #[Test]
     public function test_parse_g_references_as_subroutine(): void
     {
         $ast = $this->parse('/(a)\g<name>/');
@@ -424,6 +455,7 @@ final class ParserTest extends TestCase
         $this->assertSame('g', $ast->pattern->children[1]->syntax);
     }
 
+    #[Test]
     public function test_parse_conditional_with_group_ref(): void
     {
         // (?(1)a|b)
@@ -437,6 +469,7 @@ final class ParserTest extends TestCase
         $this->assertSame('b', $ast->pattern->no->value);
     }
 
+    #[Test]
     public function test_parse_conditional_with_multiple_else_alternatives(): void
     {
         $ast = $this->parse('/(?(1)a|b|c)/');
@@ -453,6 +486,7 @@ final class ParserTest extends TestCase
         $this->assertSame('c', $ast->pattern->no->alternatives[1]->value);
     }
 
+    #[Test]
     public function test_parse_conditional_without_else_defaults_to_empty_literal(): void
     {
         $ast = $this->parse('/(?(1)a)/');
@@ -465,6 +499,7 @@ final class ParserTest extends TestCase
         $this->assertSame('', $ast->pattern->no->value);
     }
 
+    #[Test]
     public function test_parse_conditional_with_named_group_ref(): void
     {
         // (?(<name>)a|b)
@@ -476,6 +511,7 @@ final class ParserTest extends TestCase
         $this->assertSame('name', $conditional->condition->ref);
     }
 
+    #[Test]
     public function test_parse_conditional_lookaround_tracks_branch_and_offsets(): void
     {
         $pattern = '(?(?=a)b|c)';
@@ -495,6 +531,7 @@ final class ParserTest extends TestCase
         $this->assertSame('c', $conditional->no->value);
     }
 
+    #[Test]
     public function test_parse_conditional_with_recursion_condition_variants(): void
     {
         $ast = $this->parse('/(?(R)a|b)/');
@@ -512,6 +549,7 @@ final class ParserTest extends TestCase
         $this->assertSame('R-1', $relativeCond->condition->reference);
     }
 
+    #[Test]
     public function test_parse_conditional_with_bare_name_condition(): void
     {
         $ast = $this->parse('/(?<name>x)(?(name)a|b)/');
@@ -522,6 +560,7 @@ final class ParserTest extends TestCase
         $this->assertSame('name', $conditional->condition->ref);
     }
 
+    #[Test]
     public function test_parse_python_backreference_is_rejected(): void
     {
         $ast = $this->parse('/(?P<name>a)(?P=name)/');
@@ -534,6 +573,7 @@ final class ParserTest extends TestCase
         $this->assertSame('\k<name>', $backref->ref);
     }
 
+    #[Test]
     public function test_python_named_group_syntax(): void
     {
         // (?P<name>...)
@@ -552,6 +592,7 @@ final class ParserTest extends TestCase
         $this->assertSame('baz', $ast->pattern->name);
     }
 
+    #[Test]
     public function test_pcre_named_group_single_quotes(): void
     {
         $ast = $this->parse("/(?'alias'a)/");
@@ -559,6 +600,7 @@ final class ParserTest extends TestCase
         $this->assertSame('alias', $ast->pattern->name);
     }
 
+    #[Test]
     public function test_python_named_group_invalid_syntax(): void
     {
         $this->expectException(ParserException::class);
@@ -566,6 +608,7 @@ final class ParserTest extends TestCase
         $this->parse('/(?P<)/');
     }
 
+    #[Test]
     public function test_max_pattern_length(): void
     {
         $this->expectException(ParserException::class);
@@ -576,6 +619,7 @@ final class ParserTest extends TestCase
         $regex->parse('/toolong/');
     }
 
+    #[Test]
     public function test_invalid_range_codepoints_are_parsed_but_invalid(): void
     {
         // The parser itself allows [z-a], checking semantics is done by the Validator.
@@ -587,6 +631,7 @@ final class ParserTest extends TestCase
     }
 
     #[DoesNotPerformAssertions]
+    #[Test]
     public function test_parse_conditional_define(): void
     {
         // (?(DEFINE)...)
@@ -594,6 +639,7 @@ final class ParserTest extends TestCase
     }
 
     #[\PHPUnit\Framework\Attributes\DataProvider('extendedModeProvider')]
+    #[Test]
     public function test_parser_handles_extended_mode_whitespace(string $pattern): void
     {
         $regex = Regex::create();
@@ -625,6 +671,7 @@ final class ParserTest extends TestCase
             /mxu'];
     }
 
+    #[Test]
     public function test_parser_handles_null_byte_escape(): void
     {
         // Case 1: Null byte in a group
@@ -640,6 +687,7 @@ final class ParserTest extends TestCase
         $this->assertTrue($result3->isValid());
     }
 
+    #[Test]
     public function test_optimize_with_mode(): void
     {
         $result = $this->regex->optimize('/a+/', ['mode' => 'safe']);
@@ -649,6 +697,7 @@ final class ParserTest extends TestCase
         $this->assertSame('/a+/', $result2->optimized);
     }
 
+    #[Test]
     public function test_parse_pattern(): void
     {
         $ast = $this->regex->parsePattern('foo', 'i', '#');
@@ -657,6 +706,7 @@ final class ParserTest extends TestCase
         $this->assertSame('i', $ast->flags);
     }
 
+    #[Test]
     public function test_regex_pattern_from_delimited(): void
     {
         $pattern = RegexPattern::fromDelimited('/foo/i');
@@ -666,6 +716,7 @@ final class ParserTest extends TestCase
         $this->assertSame('/', $pattern->delimiter);
     }
 
+    #[Test]
     public function test_regex_pattern_from_raw(): void
     {
         $pattern = RegexPattern::fromRaw('foo', 'i', '#');
@@ -675,6 +726,7 @@ final class ParserTest extends TestCase
         $this->assertSame('#', $pattern->delimiter);
     }
 
+    #[Test]
     public function test_analyze_report(): void
     {
         $report = $this->regex->analyze('/foo/');
@@ -686,12 +738,14 @@ final class ParserTest extends TestCase
         $this->assertIsString($report->highlighted());
     }
 
+    #[Test]
     public function test_regex_new(): void
     {
         $regex = Regex::new();
         $this->assertNotSame($this->regex, $regex);
     }
 
+    #[Test]
     public function test_exception_with_visual_context(): void
     {
         $this->expectException(ParserException::class);

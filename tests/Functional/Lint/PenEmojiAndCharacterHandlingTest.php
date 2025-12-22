@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Functional\Lint;
 
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Internal\PatternParser;
 use RegexParser\Lint\TokenBasedExtractionStrategy;
@@ -81,6 +82,7 @@ final class PenEmojiAndCharacterHandlingTest extends TestCase
     /**
      * Test that pen emoji is not displayed for non-clickable patterns.
      */
+    #[Test]
     public function test_pen_emoji_not_displayed_for_non_clickable_patterns(): void
     {
         $pattern = '/test/';
@@ -102,6 +104,7 @@ final class PenEmojiAndCharacterHandlingTest extends TestCase
      * Test non-printable characters are handled in ExplainNodeVisitor.
      */
     #[DataProvider('nonPrintableCharacterProvider')]
+    #[Test]
     public function test_explain_node_visitor_handles_non_printable_characters(string $inputChar): void
     {
         $charNode = new LiteralNode($inputChar, 0, 1);
@@ -116,6 +119,7 @@ final class PenEmojiAndCharacterHandlingTest extends TestCase
      * Test non-printable characters are handled in CompilerNodeVisitor.
      */
     #[DataProvider('nonPrintableCharacterProvider')]
+    #[Test]
     public function test_compiler_node_visitor_handles_non_printable_characters(string $inputChar): void
     {
         $charNode = new LiteralNode($inputChar, 0, 1);
@@ -130,6 +134,7 @@ final class PenEmojiAndCharacterHandlingTest extends TestCase
      * Test non-printable characters are handled in ConsoleHighlighterVisitor.
      */
     #[DataProvider('nonPrintableCharacterProvider')]
+    #[Test]
     public function test_console_highlighter_visitor_handles_non_printable_characters(string $inputChar): void
     {
         $charNode = new LiteralNode($inputChar, 0, 1);
@@ -141,6 +146,7 @@ final class PenEmojiAndCharacterHandlingTest extends TestCase
     /**
      * Test regex patterns with flags are extracted correctly.
      */
+    #[Test]
     public function test_regex_patterns_with_flags(): void
     {
         $fixtureMap = [
@@ -213,6 +219,7 @@ final class PenEmojiAndCharacterHandlingTest extends TestCase
     /**
      * Test character ranges don't contain weird characters in explanations.
      */
+    #[Test]
     public function test_character_ranges_in_explain_visitor(): void
     {
         $testPatterns = [
@@ -236,6 +243,7 @@ final class PenEmojiAndCharacterHandlingTest extends TestCase
     /**
      * Test edge cases with special characters and delimiters.
      */
+    #[Test]
     public function test_edge_cases_with_special_characters(): void
     {
         $edgeCases = [
@@ -257,6 +265,7 @@ final class PenEmojiAndCharacterHandlingTest extends TestCase
     /**
      * Test regression for the specific issues we fixed.
      */
+    #[Test]
     public function test_regression_for_pen_emoji_and_character_encoding(): void
     {
         // Test the exact patterns from the original issue
