@@ -55,10 +55,18 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
 
     private int $indentLevel;
 
-    public function __construct(bool $pretty = false)
+    /**
+     * When true, comments in extended (/x) mode are collapsed to a generic
+     * "(?#...)" placeholder. This is useful for generating a normalized
+     * representation of verbose regexes without leaking full comment text.
+     */
+    private bool $collapseExtendedComments = false;
+
+    public function __construct(bool $pretty = false, bool $collapseExtendedComments = false)
     {
         $this->pretty = $pretty;
         $this->indentLevel = 0;
+        $this->collapseExtendedComments = $collapseExtendedComments;
     }
 
     #[\Override]
@@ -336,12 +344,21 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitComment(Node\CommentNode $node): string
     {
+        $isExtended = str_contains($this->flags, 'x');
+
+        // In normalized mode, collapse all extended (/x) comments to a
+        // lightweight inline placeholder so that we preserve structure
+        // without leaking (or reflowing) the original comment text.
+        if ($this->collapseExtendedComments && $isExtended) {
+            return '(?#...)';
+        }
+
         // Extended (/x) mode line comments (starting with '#') should be
         // preserved as real /x comments, not rewritten into (?#...) blocks.
         // We still indent them when pretty-printing so they line up with
         // surrounding constructs, but we keep the original "# ..." text and
         // trailing newline intact.
-        if (str_contains($this->flags, 'x') && str_starts_with($node->comment, '#')) {
+        if ($isExtended && str_starts_with($node->comment, '#')) {
             if ($this->pretty) {
                 $indent = str_repeat(' ', $this->indentLevel * 4);
                 $lines = explode("\n", rtrim($node->comment, "\n"));

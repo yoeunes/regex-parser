@@ -244,18 +244,23 @@ final readonly class RegexAnalysisService
                 continue;
             }
 
-            // For patterns written in extended (/x) mode with inline comments,
-            // we deliberately skip structural optimizations. Rewriting these
-            // patterns into a condensed canonical form would strip comments
-            // and destroy the original formatting, which is often more
-            // valuable than the minor character savings an optimization
-            // would provide.
-            if ($this->usesExtendedMode($occurrence->pattern)) {
-                continue;
-            }
+            $isExtended = $this->usesExtendedMode($occurrence->pattern);
 
             try {
-                $optimization = $this->regex->optimize($occurrence->pattern, $optimizationConfig);
+                if ($isExtended) {
+                    // For verbose /x patterns, generate a normalized version
+                    // that keeps the structure but collapses comments to
+                    // lightweight placeholders like (?#...). This gives a
+                    // compact view similar to:
+                    //   (?#...)(?(DEFINE)(?<balanced>((?:(?#...)[^()]|(?#...)(?balanced))*(?#...))))...
+                    // without destroying readability in the original source.
+                    $ast = $this->regex->parse($occurrence->pattern);
+                    $compiler = new \RegexParser\NodeVisitor\CompilerNodeVisitor(false, true);
+                    $normalized = $ast->accept($compiler);
+                    $optimization = new OptimizationResult($occurrence->pattern, $normalized, ['Normalized extended pattern.']);
+                } else {
+                    $optimization = $this->regex->optimize($occurrence->pattern, $optimizationConfig);
+                }
             } catch (\Throwable) {
                 continue;
             }
