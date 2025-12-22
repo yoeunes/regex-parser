@@ -567,7 +567,10 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         $charSets = [];
         foreach ($node->alternatives as $alt) {
             $charSet = $this->charSetAnalyzer->firstChars($alt);
-            // Only skip if unknown, but proceed with empty sets
+            if ($charSet->isUnknown()) {
+                // If we can't analyze any charset, skip semantic overlap detection
+                return;
+            }
             $charSets[] = $charSet;
         }
 
