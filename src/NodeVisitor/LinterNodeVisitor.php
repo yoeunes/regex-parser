@@ -41,6 +41,11 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
 
     private ?string $patternValue = null;
 
+    private int $maxCapturingGroup = 0;
+
+    /** @var array<string, bool> */
+    private array $definedNamedGroups = [];
+
     /**
      * Get the full regex pattern including delimiters and flags
      */
@@ -77,13 +82,17 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         $this->hasCaseSensitiveChars = false;
         $this->hasDots = false;
         $this->hasAnchors = false;
+        $this->maxCapturingGroup = 0;
+        $this->definedNamedGroups = [];
 
         // Use a simple visitor to compile the pattern string for diagnostics
         $compiler = new \RegexParser\NodeVisitor\CompilerNodeVisitor();
         $this->patternValue = $node->pattern->accept($compiler);
 
-        // Traverse the pattern AST so that other visit* methods can record
-        // information (letters, dots, anchors, nested quantifiers, etc.).
+        // First pass: count capturing groups
+        $this->countCapturingGroups($node->pattern);
+
+        // Second pass: traverse and lint
         $node->pattern->accept($this);
 
         // Finally, compute useless-flag diagnostics based on the collected
@@ -91,6 +100,38 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         $this->checkUselessFlags();
 
         return $node;
+    }
+
+    private function countCapturingGroups(Node\NodeInterface $node): void
+    {
+        if ($node instanceof Node\GroupNode && $node->type === GroupType::T_GROUP_CAPTURING) {
+            $this->maxCapturingGroup++;
+            if (null !== $node->name) {
+                $this->definedNamedGroups[$node->name] = true;
+            }
+        }
+
+        // Recursively count in children
+        if ($node instanceof Node\GroupNode) {
+            $this->countCapturingGroups($node->child);
+        } elseif ($node instanceof Node\AlternationNode) {
+            foreach ($node->alternatives as $alt) {
+                $this->countCapturingGroups($alt);
+            }
+        } elseif ($node instanceof Node\SequenceNode) {
+            foreach ($node->children as $child) {
+                $this->countCapturingGroups($child);
+            }
+        } elseif ($node instanceof Node\QuantifierNode) {
+            $this->countCapturingGroups($node->node);
+        } elseif ($node instanceof Node\ConditionalNode) {
+            $this->countCapturingGroups($node->condition);
+            $this->countCapturingGroups($node->yes);
+            $this->countCapturingGroups($node->no);
+        } elseif ($node instanceof Node\CharClassNode) {
+            $this->countCapturingGroups($node->expression);
+        }
+        // Other node types don't contain groups
     }
 
     #[\Override]
@@ -183,6 +224,37 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         }
 
         $node->child->accept($this);
+
+        return $node;
+    }
+
+    #[\Override]
+    public function visitBackref(Node\BackrefNode $node): Node\NodeInterface
+    {
+        $ref = $node->ref;
+
+        // Check numeric backreferences
+        if (preg_match('/^(\d+)$/', $ref, $matches)) {
+            $num = (int) $matches[1];
+            if ($num > $this->maxCapturingGroup) {
+                $this->addIssue(
+                    'regex.lint.backref.undefined',
+                    "Backreference \\{$num} refers to a non-existent capturing group.",
+                    $node->startPosition,
+                );
+            }
+        }
+        // Check named backreferences
+        elseif (preg_match('/^k[<{\'](?<name>\w+)[>}\']$/', $ref, $matches)) {
+            $name = $matches['name'];
+            if (!isset($this->definedNamedGroups[$name])) {
+                $this->addIssue(
+                    'regex.lint.backref.undefined',
+                    "Backreference \\k<{$name}> refers to a non-existent named group.",
+                    $node->startPosition,
+                );
+            }
+        }
 
         return $node;
     }

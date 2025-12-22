@@ -141,4 +141,44 @@ final class LinterNodeVisitorTest extends TestCase
 
         $this->assertContains("Start anchor '^' appears after consuming characters, making it impossible to match.", $warnings);
     }
+
+    public function test_backref_to_nonexistent_group(): void
+    {
+        $regex = Regex::create()->parse('/\\2/');
+        $linter = new LinterNodeVisitor();
+        $regex->accept($linter);
+        $warnings = $linter->getWarnings();
+
+        $this->assertContains('Backreference \\2 refers to a non-existent capturing group.', $warnings);
+    }
+
+    public function test_backref_to_valid_group(): void
+    {
+        $regex = Regex::create()->parse('/(a)\\1/');
+        $linter = new LinterNodeVisitor();
+        $regex->accept($linter);
+        $warnings = $linter->getWarnings();
+
+        $this->assertNotContains('Backreference \\1 refers to a non-existent capturing group.', $warnings);
+    }
+
+    public function test_named_backref_to_nonexistent_group(): void
+    {
+        $regex = Regex::create()->parse('/\\k<foo>/');
+        $linter = new LinterNodeVisitor();
+        $regex->accept($linter);
+        $warnings = $linter->getWarnings();
+
+        $this->assertContains('Backreference \\k<foo> refers to a non-existent named group.', $warnings);
+    }
+
+    public function test_named_backref_to_valid_group(): void
+    {
+        $regex = Regex::create()->parse('/(?<foo>a)\\k<foo>/');
+        $linter = new LinterNodeVisitor();
+        $regex->accept($linter);
+        $warnings = $linter->getWarnings();
+
+        $this->assertNotContains('Backreference \\k<foo> refers to a non-existent named group.', $warnings);
+    }
 }
