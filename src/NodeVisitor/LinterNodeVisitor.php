@@ -35,6 +35,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     private bool $hasCaseSensitiveChars = false;
     private bool $hasDots = false;
     private bool $hasAnchors = false;
+    private ?RegexParser\NodeInterface $patternNode = null;
     private ?string $patternValue = null;
 
     /**
@@ -42,7 +43,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
      */
     public function getFullPattern(): string
     {
-        return $this->delimiter . $this->pattern->value . $this->delimiter . $this->flags;
+        return $this->delimiter . $this->patternValue . $this->delimiter . $this->flags;
     }
 
     /**
