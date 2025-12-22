@@ -142,7 +142,7 @@ class ConsoleFormatter extends AbstractOutputFormatter
 
         if (null !== $pattern && '' !== $pattern) {
             $formatted = $this->formatPatternForDisplay($pattern);
-            $label = '' !== $prefix ? $this->dim($prefix) : $this->dim('(pattern)');
+            $label = '' !== $prefix ? $this->color($prefix, self::CYAN.self::BOLD) : $this->color('(pattern)', self::CYAN.self::BOLD);
 
             // Measure visible length without ANSI escape codes.
             $plainInline = $this->stripAnsi($label.'  '.$formatted);
@@ -154,12 +154,12 @@ class ConsoleFormatter extends AbstractOutputFormatter
                 $output .= '      '.$formatted.\PHP_EOL;
             }
         } else {
-            $label = '' !== $prefix ? $this->dim($prefix) : $this->dim('(pattern unavailable)');
+            $label = '' !== $prefix ? $this->color($prefix, self::CYAN.self::BOLD) : $this->color('(pattern unavailable)', self::CYAN.self::BOLD);
             $output = '  '.$label.\PHP_EOL;
         }
 
         if ($hasLocation) {
-            $output .= \sprintf('     %s'.\PHP_EOL, $this->dim(self::ARROW_LABEL.' '.$location));
+            $output .= \sprintf('     %s'.\PHP_EOL, $this->color(self::ARROW_LABEL.' '.$location, self::CYAN));
         }
 
         return $output;
@@ -393,7 +393,7 @@ class ConsoleFormatter extends AbstractOutputFormatter
     private function formatFooter(): string
     {
         return \PHP_EOL
-            .'  '.$this->dim('Star the repo: https://github.com/yoeunes/regex-parser')
+            .'  '.$this->color('Star the repo: https://github.com/yoeunes/regex-parser', self::CYAN)
             .\PHP_EOL
             .\PHP_EOL;
     }
