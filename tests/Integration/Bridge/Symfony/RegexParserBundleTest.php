@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Tests\Bridge\Symfony;
+namespace RegexParser\Tests\Integration\Bridge\Symfony;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\Bridge\Symfony\Command\RegexLintCommand;

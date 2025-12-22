@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Tests\Bridge\PHPStan;
+namespace RegexParser\Tests\Integration\Bridge\PHPStan;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\Bridge\PHPStan\PregValidationRule;

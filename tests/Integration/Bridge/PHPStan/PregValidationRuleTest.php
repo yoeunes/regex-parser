@@ -11,7 +11,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Tests\Bridge\PHPStan;
+namespace RegexParser\Tests\Integration\Bridge\PHPStan;
 
 use PHPStan\Rules\Rule;
 use PHPStan\Testing\RuleTestCase;
@@ -20,7 +20,7 @@ use RegexParser\Bridge\PHPStan\PregValidationRule;
 /**
  * @extends RuleTestCase<PregValidationRule>
  */
-final class PregValidationRuleMediumThresholdTest extends RuleTestCase
+final class PregValidationRuleTest extends RuleTestCase
 {
     public function test_rule(): void
     {
@@ -101,12 +101,59 @@ final class PregValidationRuleMediumThresholdTest extends RuleTestCase
         ]);
     }
 
+    public function test_preg_replace_callback_array(): void
+    {
+        $this->analyse([__DIR__.'/Fixtures/PregReplaceCallbackArray.php'], [
+            [
+                'Regex syntax error: No closing delimiter "/" found. You opened with "/"; expected closing "/". Tip: escape "/" inside the pattern (\\/) or use a different delimiter, e.g. #foo#. (Pattern: "/foo")',
+                20,
+            ],
+            [
+                'ReDoS vulnerability detected (CRITICAL): /(a+)+$/',
+                20,
+                "Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...). Suggested: Consider using possessive quantifiers or atomic groups to limit backtracking.\n".
+                "Nested unbounded quantifiers detected. This allows exponential backtracking. Consider using atomic groups (?>...) or possessive quantifiers (*+, ++). Suggested: Replace inner quantifiers with possessive variants or wrap them in (?>...).\n".
+                "\n".
+                "Read more about possessive quantifiers: https://github.com/yoeunes/regex-parser/blob/master/docs/reference.md#possessive-quantifiers\n".
+                "Read more about atomic groups: https://github.com/yoeunes/regex-parser/blob/master/docs/reference.md#atomic-groups\n".
+                'Read more about catastrophic backtracking: https://github.com/yoeunes/regex-parser/blob/master/docs/reference.md#catastrophic-backtracking',
+            ],
+            [
+                'Nested quantifiers can cause catastrophic backtracking.',
+                20,
+                "Consider using atomic groups (?>...) or possessive quantifiers.\nRead more: https://github.com/yoeunes/regex-parser/blob/master/docs/reference.md#nested-quantifiers",
+            ],
+        ]);
+    }
+
+    public function test_useless_flag_linter(): void
+    {
+        $this->analyse([__DIR__.'/Fixtures/UselessFlagFixture.php'], [
+            [
+                'Flag \'s\' is useless: the pattern contains no dots.',
+                20,
+                'Read more: https://github.com/yoeunes/regex-parser/blob/master/docs/reference.md#useless-flag-s-dotall',
+            ],
+        ]);
+    }
+
+    public function test_redos_with_links(): void
+    {
+        $this->analyse([__DIR__.'/Fixtures/ReDoSFixture.php'], [
+            [
+                'ReDoS vulnerability detected (MEDIUM): /[0-9]+/',
+                20,
+                "Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...). Suggested: Consider using possessive quantifiers or atomic groups to limit backtracking.\n\nRead more about possessive quantifiers: https://github.com/yoeunes/regex-parser/blob/master/docs/reference.md#possessive-quantifiers\nRead more about atomic groups: https://github.com/yoeunes/regex-parser/blob/master/docs/reference.md#atomic-groups\nRead more about catastrophic backtracking: https://github.com/yoeunes/regex-parser/blob/master/docs/reference.md#catastrophic-backtracking",
+            ],
+        ]);
+    }
+
     protected function getRule(): Rule
     {
         return new PregValidationRule(
-            ignoreParseErrors: false,
+            ignoreParseErrors: false, // Report all errors for testing
             reportRedos: true,
-            redosThreshold: 'medium',
+            redosThreshold: 'low', // Report all ReDoS issues for testing
             suggestOptimizations: false,
         );
     }
