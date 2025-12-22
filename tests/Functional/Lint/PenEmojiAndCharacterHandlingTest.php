@@ -28,6 +28,8 @@ use RegexParser\NodeVisitor\ExplainNodeVisitor;
  */
 final class PenEmojiAndCharacterHandlingTest extends TestCase
 {
+    private const FIXTURE_DIR = __DIR__.'/../../Fixtures/Lint/';
+
     private TokenBasedExtractionStrategy $strategy;
 
     private ExplainNodeVisitor $explainVisitor;
@@ -88,7 +90,7 @@ final class PenEmojiAndCharacterHandlingTest extends TestCase
         $pattern = '/test/';
 
         // Test without any special context - should not show pen
-        $fixtureFile = __DIR__.'/../../Fixtures/Lint/pen_emoji_non_clickable.php';
+        $fixtureFile = self::FIXTURE_DIR.'pen_emoji_non_clickable.php';
 
         $result = $this->strategy->extract([$fixtureFile]);
 
@@ -162,7 +164,7 @@ final class PenEmojiAndCharacterHandlingTest extends TestCase
         ];
 
         foreach (self::regexPatternProvider() as $name => $expectedPattern) {
-            $fixtureFile = __DIR__.'/../../Fixtures/Lint/'.$fixtureMap[$name];
+            $fixtureFile = self::FIXTURE_DIR.$fixtureMap[$name];
 
             $results = $this->strategy->extract([$fixtureFile]);
 
@@ -254,7 +256,7 @@ final class PenEmojiAndCharacterHandlingTest extends TestCase
         ];
 
         foreach ($edgeCases as $name => $fixtureFile) {
-            $fixturePath = __DIR__.'/../../Fixtures/Lint/'.$fixtureFile;
+            $fixturePath = self::FIXTURE_DIR.$fixtureFile;
 
             $results = $this->strategy->extract([$fixturePath]);
 
@@ -269,7 +271,7 @@ final class PenEmojiAndCharacterHandlingTest extends TestCase
     public function test_regression_for_pen_emoji_and_character_encoding(): void
     {
         // Test the exact patterns from the original issue
-        $fixtureFile = __DIR__.'/../../Fixtures/Lint/pen_emoji_regression.php';
+        $fixtureFile = self::FIXTURE_DIR.'pen_emoji_regression.php';
 
         $results = $this->strategy->extract([$fixtureFile]);
 

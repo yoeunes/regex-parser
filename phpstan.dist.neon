@@ -20,8 +20,8 @@ parameters:
 
     excludePaths:
         - tests/Benchmark/*
-        - tests/Bridge/PHPStan/Fixtures/*
         - tests/Fixtures/*
+        - tests/Integration/Bridge/PHPStan/Fixtures/
         - tests/Tools/extract_pcre_tests.php
         - tests/Tools/validate_library.php
 
