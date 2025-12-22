@@ -377,19 +377,6 @@ class ConsoleFormatter extends AbstractOutputFormatter
     // console output does not currently render a clickable "pen" link; this
     // responsibility is handled by the SymfonyConsoleFormatter bridge.
 
-    private function safelyHighlightPattern(string $pattern): string
-    {
-        if (!$this->analysisService || !$this->config->ansi) {
-            return $pattern;
-        }
-
-        try {
-            return $this->analysisService->highlight($pattern);
-        } catch (\Throwable) {
-            return $pattern;
-        }
-    }
-
     private function safelyHighlightBody(string $body, string $flags, string $delimiter): ?string
     {
         if (!$this->analysisService || !$this->config->ansi) {

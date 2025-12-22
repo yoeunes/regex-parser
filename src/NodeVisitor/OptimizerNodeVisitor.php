@@ -113,7 +113,14 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         $factoredAlts = $this->factorizeAlternation($optimizedAlts);
 
         if ($factoredAlts !== $optimizedAlts) {
-            return new Node\AlternationNode($factoredAlts, $node->startPosition, $node->endPosition);
+            $hasChanged = true;
+            $optimizedAlts = $factoredAlts;
+        }
+
+        $suffixFactoredAlts = $this->factorizeSuffix($optimizedAlts);
+
+        if ($suffixFactoredAlts !== $optimizedAlts) {
+            return new Node\AlternationNode($suffixFactoredAlts, $node->startPosition, $node->endPosition);
         }
 
         return new Node\AlternationNode($optimizedAlts, $node->startPosition, $node->endPosition);
@@ -271,10 +278,11 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitCharClass(Node\CharClassNode $node): Node\NodeInterface
     {
-        $isUnicode = str_contains($this->flags, 'u');
         $parts = $node->expression instanceof Node\AlternationNode ? $node->expression->alternatives : [$node->expression];
 
-        if ($this->optimizeDigits && !$isUnicode && !$node->isNegated && 1 === \count($parts)) {
+        // We must check !str_contains($this->flags, 'u') because in Unicode mode,
+        // \d matches more than just [0-9] (e.g. Arabic digits), so they are not equivalent.
+        if ($this->optimizeDigits && !str_contains($this->flags, 'u') && !$node->isNegated && 1 === \count($parts)) {
             $part = $parts[0];
             if ($part instanceof Node\RangeNode && $part->start instanceof Node\LiteralNode && $part->end instanceof Node\LiteralNode) {
                 if ('0' === $part->start->value && '9' === $part->end->value) {
@@ -283,7 +291,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
             }
         }
 
-        if ($this->optimizeWord && !$isUnicode && !$node->isNegated && 4 === \count($parts)) {
+        if ($this->optimizeWord && !str_contains($this->flags, 'u') && !$node->isNegated && 4 === \count($parts)) {
             if ($this->isFullWordClass($parts)) {
                 return new Node\CharTypeNode('w', $node->startPosition, $node->endPosition);
             }
@@ -973,6 +981,100 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
 
         return array_merge([$factored], $withoutPrefix);
 
+    }
+
+    /**
+     * @param array<Node\NodeInterface> $alts
+     *
+     * @return array<Node\NodeInterface>
+     */
+    private function factorizeSuffix(array $alts): array
+    {
+        if (\count($alts) < 2) {
+            return $alts;
+        }
+
+        // Safety check: only factorize if all alternatives are LiteralNode
+        foreach ($alts as $alt) {
+            if (!$alt instanceof Node\LiteralNode) {
+                return $alts; // Trop risqué de factoriser des nœuds complexes par string
+            }
+        }
+
+        // Get string representations
+        $strings = [];
+        /** @var Node\LiteralNode $alt */
+        foreach ($alts as $alt) {
+            $strings[] = $this->nodeToString($alt);
+        }
+
+        // Find common suffix by reversing strings and finding common prefix
+        $reversedStrings = array_map(strrev(...), $strings);
+        $suffix = $this->findCommonPrefix($reversedStrings);
+        if (empty($suffix) || \strlen($suffix) < 2 || str_starts_with($suffix, '[')) {
+            return $alts;
+        }
+
+        // Reverse back to get the actual suffix
+        $suffix = strrev($suffix);
+
+        // Split into with suffix and without
+        $withSuffix = [];
+        $withoutSuffix = [];
+        foreach ($alts as $i => $alt) {
+            if (str_ends_with($strings[$i], $suffix)) {
+                $withSuffix[] = $alt;
+            } else {
+                $withoutSuffix[] = $alt;
+            }
+        }
+
+        if (\count($withSuffix) < 2) {
+            return $alts;
+        }
+
+        // Create prefixes (everything before the suffix)
+        $prefixes = [];
+        /**
+         * @var \RegexParser\Node\AbstractNode $alt
+         */
+        foreach ($withSuffix as $alt) {
+            $prefixStr = substr($this->nodeToString($alt), 0, -\strlen($suffix));
+            if (empty($prefixStr)) {
+                $prefixes[] = null;
+            } else {
+                $prefixes[] = $this->stringToNode($prefixStr, $alt->startPosition, $alt->endPosition - \strlen($suffix));
+            }
+        }
+
+        /** @var list<Node\NodeInterface> $nonNullPrefixes */
+        $nonNullPrefixes = array_values(array_filter($prefixes, static fn ($prefix): bool => null !== $prefix));
+        if (empty($nonNullPrefixes)) {
+            // All are just the suffix
+            /** @var \RegexParser\Node\AbstractNode $firstAlt */
+            $firstAlt = $withSuffix[0];
+
+            return [$this->stringToNode($suffix, $firstAlt->endPosition - \strlen($suffix), $firstAlt->endPosition)];
+        }
+
+        /** @var \RegexParser\Node\AbstractNode $firstPrefix */
+        $firstPrefix = $nonNullPrefixes[0];
+        /** @var \RegexParser\Node\AbstractNode $lastPrefix */
+        $lastPrefix = $nonNullPrefixes[\count($nonNullPrefixes) - 1];
+        $newAlt = 1 === \count($nonNullPrefixes)
+            ? $firstPrefix
+            : new Node\AlternationNode($nonNullPrefixes, $firstPrefix->startPosition, $lastPrefix->endPosition);
+        $group = new Node\GroupNode($newAlt, Node\GroupType::T_GROUP_NON_CAPTURING);
+        /** @var \RegexParser\Node\AbstractNode $firstAlt */
+        $firstAlt = $withSuffix[0];
+        $suffixNode = $this->stringToNode($suffix, $firstAlt->endPosition - \strlen($suffix), $firstAlt->endPosition);
+        $factored = new Node\SequenceNode([$group, $suffixNode], $firstAlt->startPosition, $firstAlt->endPosition);
+
+        if (empty($withoutSuffix)) {
+            return [$factored];
+        }
+
+        return array_merge([$factored], $withoutSuffix);
     }
 
     private function nodeToString(Node\NodeInterface $node): string

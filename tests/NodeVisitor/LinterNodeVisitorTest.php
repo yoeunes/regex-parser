@@ -141,4 +141,74 @@ final class LinterNodeVisitorTest extends TestCase
 
         $this->assertContains("Start anchor '^' appears after consuming characters, making it impossible to match.", $warnings);
     }
+
+    public function test_backref_to_nonexistent_group(): void
+    {
+        $regex = Regex::create()->parse('/\\2/');
+        $linter = new LinterNodeVisitor();
+        $regex->accept($linter);
+        $warnings = $linter->getWarnings();
+
+        $this->assertContains('Backreference \\2 refers to a non-existent capturing group.', $warnings);
+    }
+
+    public function test_backref_to_valid_group(): void
+    {
+        $regex = Regex::create()->parse('/(a)\\1/');
+        $linter = new LinterNodeVisitor();
+        $regex->accept($linter);
+        $warnings = $linter->getWarnings();
+
+        $this->assertNotContains('Backreference \\1 refers to a non-existent capturing group.', $warnings);
+    }
+
+    public function test_named_backref_to_nonexistent_group(): void
+    {
+        $regex = Regex::create()->parse('/\\k<foo>/');
+        $linter = new LinterNodeVisitor();
+        $regex->accept($linter);
+        $warnings = $linter->getWarnings();
+
+        $this->assertContains('Backreference \\k<foo> refers to a non-existent named group.', $warnings);
+    }
+
+    public function test_named_backref_to_valid_group(): void
+    {
+        $regex = Regex::create()->parse('/(?<foo>a)\\k<foo>/');
+        $linter = new LinterNodeVisitor();
+        $regex->accept($linter);
+        $warnings = $linter->getWarnings();
+
+        $this->assertNotContains('Backreference \\k<foo> refers to a non-existent named group.', $warnings);
+    }
+
+    public function test_semantic_overlap_in_alternation(): void
+    {
+        $regex = Regex::create()->parse('/[a-c]|[b-d]/');
+        $linter = new LinterNodeVisitor();
+        $regex->accept($linter);
+        $warnings = $linter->getWarnings();
+
+        $this->assertContains('Alternation branches have overlapping character sets, which may cause unnecessary backtracking.', $warnings);
+    }
+
+    public function test_no_semantic_overlap_in_alternation(): void
+    {
+        $regex = Regex::create()->parse('/[a-c]|[d-e]/');
+        $linter = new LinterNodeVisitor();
+        $regex->accept($linter);
+        $warnings = $linter->getWarnings();
+
+        $this->assertNotContains('Alternation branches have overlapping character sets, which may cause unnecessary backtracking.', $warnings);
+    }
+
+    public function test_semantic_overlap_with_char_types(): void
+    {
+        $regex = Regex::create()->parse('/\\d|[0-9]/');
+        $linter = new LinterNodeVisitor();
+        $regex->accept($linter);
+        $warnings = $linter->getWarnings();
+
+        $this->assertContains('Alternation branches have overlapping character sets, which may cause unnecessary backtracking.', $warnings);
+    }
 }

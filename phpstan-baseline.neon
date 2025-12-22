@@ -53,3 +53,9 @@ parameters:
 			identifier: classConstant.internalClass
 			count: 1
 			path: src/Bridge/Symfony/Resources/config/services.php
+
+		-
+			message: '#Alternation branches have overlapping character sets#'
+			identifier: regex.lint.overlap.charset
+			count: 1
+			path: src/Lint/RegexAnalysisService.php

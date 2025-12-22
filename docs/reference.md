@@ -170,6 +170,16 @@ preg_match('/^\\d{4}-\\d{2}-\\d{2}$/', $date);
 **Read more**
 - [OWASP: ReDoS](https://owasp.org/www-community/attacks/Regular_expression_Denial_of_Service_-_ReDoS)
 
+### Overlapping Character Sets in Alternations
+**Identifier:** `regex.lint.overlap.charset`
+
+**When it triggers:** alternation branches have overlapping character sets (e.g. `[a-c]|[b-d]`). This may cause unnecessary backtracking.
+
+**Fix it:** consider reordering alternatives or using atomic groups to improve performance.
+
+**Read more**
+- [OWASP: ReDoS](https://owasp.org/www-community/attacks/Regular_expression_Denial_of_Service_-_ReDoS)
+
 ---
 
 ## Character Classes

@@ -16,6 +16,7 @@ namespace RegexParser\NodeVisitor;
 use RegexParser\LintIssue;
 use RegexParser\Node;
 use RegexParser\Node\GroupType;
+use RegexParser\ReDoS\CharSetAnalyzer;
 
 /**
  * Lints regex patterns for semantic issues like useless flags.
@@ -40,6 +41,20 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     private bool $hasAnchors = false;
 
     private ?string $patternValue = null;
+
+    private int $maxCapturingGroup = 0;
+
+    /**
+     * @var array<string, bool>
+     */
+    private array $definedNamedGroups = [];
+
+    private readonly CharSetAnalyzer $charSetAnalyzer;
+
+    public function __construct()
+    {
+        $this->charSetAnalyzer = new CharSetAnalyzer();
+    }
 
     /**
      * Get the full regex pattern including delimiters and flags
@@ -77,13 +92,17 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         $this->hasCaseSensitiveChars = false;
         $this->hasDots = false;
         $this->hasAnchors = false;
+        $this->maxCapturingGroup = 0;
+        $this->definedNamedGroups = [];
 
         // Use a simple visitor to compile the pattern string for diagnostics
         $compiler = new \RegexParser\NodeVisitor\CompilerNodeVisitor();
         $this->patternValue = $node->pattern->accept($compiler);
 
-        // Traverse the pattern AST so that other visit* methods can record
-        // information (letters, dots, anchors, nested quantifiers, etc.).
+        // First pass: count capturing groups
+        $this->countCapturingGroups($node->pattern);
+
+        // Second pass: traverse and lint
         $node->pattern->accept($this);
 
         // Finally, compute useless-flag diagnostics based on the collected
@@ -188,6 +207,37 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
+    public function visitBackref(Node\BackrefNode $node): Node\NodeInterface
+    {
+        $ref = $node->ref;
+
+        // Check numeric backreferences
+        if (preg_match('/^\\\\(\d+)$/', $ref, $matches)) {
+            $num = (int) $matches[1];
+            if ($num > $this->maxCapturingGroup) {
+                $this->addIssue(
+                    'regex.lint.backref.undefined',
+                    "Backreference \\{$num} refers to a non-existent capturing group.",
+                    $node->startPosition,
+                );
+            }
+        }
+        // Check named backreferences
+        elseif (preg_match('/^\\\\k[<{\'](?<name>\w+)[>}\']$/', $ref, $matches)) {
+            $name = $matches['name'];
+            if (!isset($this->definedNamedGroups[$name])) {
+                $this->addIssue(
+                    'regex.lint.backref.undefined',
+                    "Backreference \\k<{$name}> refers to a non-existent named group.",
+                    $node->startPosition,
+                );
+            }
+        }
+
+        return $node;
+    }
+
+    #[\Override]
     public function visitQuantifier(Node\QuantifierNode $node): Node\NodeInterface
     {
         if ($this->isVariableQuantifier($node->quantifier)) {
@@ -273,6 +323,38 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         }
 
         return $node;
+    }
+
+    private function countCapturingGroups(Node\NodeInterface $node): void
+    {
+        if ($node instanceof Node\GroupNode && (GroupType::T_GROUP_CAPTURING === $node->type || GroupType::T_GROUP_NAMED === $node->type)) {
+            $this->maxCapturingGroup++;
+            if (null !== $node->name) {
+                $this->definedNamedGroups[$node->name] = true;
+            }
+        }
+
+        // Recursively count in children
+        if ($node instanceof Node\GroupNode) {
+            $this->countCapturingGroups($node->child);
+        } elseif ($node instanceof Node\AlternationNode) {
+            foreach ($node->alternatives as $alt) {
+                $this->countCapturingGroups($alt);
+            }
+        } elseif ($node instanceof Node\SequenceNode) {
+            foreach ($node->children as $child) {
+                $this->countCapturingGroups($child);
+            }
+        } elseif ($node instanceof Node\QuantifierNode) {
+            $this->countCapturingGroups($node->node);
+        } elseif ($node instanceof Node\ConditionalNode) {
+            $this->countCapturingGroups($node->condition);
+            $this->countCapturingGroups($node->yes);
+            $this->countCapturingGroups($node->no);
+        } elseif ($node instanceof Node\CharClassNode) {
+            $this->countCapturingGroups($node->expression);
+        }
+        // Other node types don't contain groups
     }
 
     private function checkUselessFlags(): void
@@ -437,39 +519,70 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
             $literals[] = $literal;
         }
 
-        if ([] === $literals) {
-            return;
-        }
+        // Check for literal-based issues
+        if ([] !== $literals) {
+            $counts = array_count_values($literals);
+            foreach ($counts as $literal => $count) {
+                if ($count > 1) {
+                    $this->addIssue(
+                        'regex.lint.alternation.duplicate',
+                        \sprintf('Duplicate alternation branch "%s".', $literal),
+                        $node->startPosition,
+                    );
 
-        $counts = array_count_values($literals);
-        foreach ($counts as $literal => $count) {
-            if ($count > 1) {
-                $this->addIssue(
-                    'regex.lint.alternation.duplicate',
-                    \sprintf('Duplicate alternation branch "%s".', $literal),
-                    $node->startPosition,
-                );
+                    break;
+                }
+            }
 
-                break;
+            $unique = array_values(array_unique($literals));
+            $total = \count($unique);
+            for ($i = 0; $i < $total; $i++) {
+                for ($j = $i + 1; $j < $total; $j++) {
+                    $a = $unique[$i];
+                    $b = $unique[$j];
+                    if ('' === $a || '' === $b) {
+                        continue;
+                    }
+
+                    if (str_starts_with($a, $b) || str_starts_with($b, $a)) {
+                        $this->addIssue(
+                            'regex.lint.alternation.overlap',
+                            \sprintf('Alternation branches "%s" and "%s" overlap.', $a, $b),
+                            $node->startPosition,
+                            'Consider ordering longer alternatives first or using atomic groups.',
+                        );
+
+                        return;
+                    }
+                }
             }
         }
 
-        $unique = array_values(array_unique($literals));
-        $total = \count($unique);
+        // Check for semantic overlaps using character set analysis
+        $this->checkSemanticOverlaps($node);
+    }
+
+    private function checkSemanticOverlaps(Node\AlternationNode $node): void
+    {
+        $charSets = [];
+        foreach ($node->alternatives as $alt) {
+            $charSet = $this->charSetAnalyzer->firstChars($alt);
+            if ($charSet->isUnknown()) {
+                // If we can't analyze any charset, skip semantic overlap detection
+                return;
+            }
+            $charSets[] = $charSet;
+        }
+
+        $total = \count($charSets);
         for ($i = 0; $i < $total; $i++) {
             for ($j = $i + 1; $j < $total; $j++) {
-                $a = $unique[$i];
-                $b = $unique[$j];
-                if ('' === $a || '' === $b) {
-                    continue;
-                }
-
-                if (str_starts_with($a, $b) || str_starts_with($b, $a)) {
+                if (!$charSets[$i]->isEmpty() && !$charSets[$j]->isEmpty() && $charSets[$i]->intersects($charSets[$j])) {
                     $this->addIssue(
-                        'regex.lint.alternation.overlap',
-                        \sprintf('Alternation branches "%s" and "%s" overlap.', $a, $b),
+                        'regex.lint.overlap.charset',
+                        'Alternation branches have overlapping character sets, which may cause unnecessary backtracking.',
                         $node->startPosition,
-                        'Consider ordering longer alternatives first or using atomic groups.',
+                        'Consider reordering alternatives or using atomic groups to improve performance.',
                     );
 
                     return;
