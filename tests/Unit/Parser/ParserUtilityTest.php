@@ -156,13 +156,6 @@ final class ParserUtilityTest extends TestCase
         $this->assertSame($longPattern, $pattern);
     }
 
-    private static function supportsModifierR(): bool
-    {
-        $result = @preg_match('/a/r', '');
-
-        return false !== $result;
-    }
-
     public function test_parse_group_name_throws_on_missing_name(): void
     {
         // Simulate a state where we have consumed '(?<' but not the name
@@ -348,5 +341,12 @@ final class ParserUtilityTest extends TestCase
         $this->expectExceptionMessage('Invalid conditional construct at position 2. Condition must be a group reference, lookaround, or (DEFINE).');
 
         $this->accessor->callPrivateMethod('parseConditionalCondition');
+    }
+
+    private static function supportsModifierR(): bool
+    {
+        $result = @preg_match('/a/r', '');
+
+        return false !== $result;
     }
 }

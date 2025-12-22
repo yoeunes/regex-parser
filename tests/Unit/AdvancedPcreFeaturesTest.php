@@ -229,7 +229,7 @@ final class AdvancedPcreFeaturesTest extends TestCase
         // Test compilation
         $compiler = new CompilerNodeVisitor();
         $recompiled = $ast->accept($compiler);
-        $this->assertSame('/ab/x', $recompiled);
+        $this->assertSame("/a#comment\nb/x", $recompiled);
     }
 
     public function test_inline_modifier_validation_throws_on_unknown_flags(): void
