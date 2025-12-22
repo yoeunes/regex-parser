@@ -2,7 +2,9 @@ version: 3
 
 tasks:
     phpcs:
-        cmd: tools/php-cs-fixer/vendor/bin/php-cs-fixer fix --diff -v {{.CLI_ARGS}}
+        cmds:
+            - cmd: tools/php-cs-fixer/vendor/bin/php-cs-fixer fix --diff -v {{.CLI_ARGS}}
+            - cmd: touch .task/phpcs.success
         sources:
             - .php-cs-fixer.dist.php
             - bin/**/*.php
@@ -11,9 +13,14 @@ tasks:
             - benchmarks/**/*.php
         excludes:
             - tests/Fixtures/**/*
+        generates:
+            - .task/phpcs.success
+        method: checksum
 
     phplint:
-        cmd: tools/phplint/vendor/bin/phplint {{.CLI_ARGS}}
+        cmds:
+            - cmd: tools/phplint/vendor/bin/phplint {{.CLI_ARGS}}
+            - cmd: touch .task/phplint.success
         sources:
             - .phplint.yml
             - bin/**/*.php
@@ -22,9 +29,14 @@ tasks:
             - benchmarks/**/*.php
         excludes:
             - tests/Fixtures/**/*
+        generates:
+            - .task/phplint.success
+        method: checksum
 
     phpstan:
-        cmd: tools/phpstan/vendor/bin/phpstan analyse {{.CLI_ARGS}}
+        cmds:
+            - cmd: tools/phpstan/vendor/bin/phpstan analyse {{.CLI_ARGS}}
+            - cmd: touch .task/phpstan.success
         sources:
             - phpstan.dist.neon
             - phpstan-baseline.neon
@@ -33,21 +45,34 @@ tasks:
             - src/**/*.php
             - tests/**/*.php
             - benchmarks/**/*.php
+        generates:
+            - .task/phpstan.success
+        method: checksum
 
     rector:
-        cmd: tools/rector/vendor/bin/rector process {{.CLI_ARGS}}
+        cmds:
+            - cmd: tools/rector/vendor/bin/rector process {{.CLI_ARGS}}
+            - cmd: touch .task/rector.success
         sources:
             - rector.php
             - bin/**/*.php
             - src/**/*.php
             - tests/**/*.php
+        generates:
+            - .task/rector.success
+        method: checksum
 
     phpunit:
-        cmd: vendor/bin/phpunit {{.CLI_ARGS}}
+        cmds:
+            - cmd: vendor/bin/phpunit {{.CLI_ARGS}}
+            - cmd: touch .task/phpunit.success
         sources:
             - phpunit.dist.xml
             - src/**/*.php
             - tests/**/*.php
+        generates:
+            - .task/phpunit.success
+        method: checksum
 
     phpbench:
         cmd: tools/phpbench/vendor/bin/phpbench run tests/Benchmark --report=default {{.CLI_ARGS}}
@@ -67,8 +92,9 @@ tasks:
             - coverage
 
     lint:
+        deps:
+            - install
         cmds:
-            - task: install
             - task: rector
             - task: phpcs
             - task: phplint
