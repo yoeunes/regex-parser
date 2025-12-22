@@ -579,7 +579,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
             for ($j = $i + 1; $j < $total; $j++) {
                 if (!$charSets[$i]->isEmpty() && !$charSets[$j]->isEmpty() && $charSets[$i]->intersects($charSets[$j])) {
                     $this->addIssue(
-                        'regex.lint.alternation.charset.overlap',
+                        'regex.lint.alternation.overlap.charset',
                         'Alternation branches have overlapping character sets, which may cause unnecessary backtracking.',
                         $node->startPosition,
                         'Consider reordering alternatives or using atomic groups to improve performance.',
