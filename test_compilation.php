@@ -13,7 +13,7 @@ $regexNode = new RegexNode($patternNode, '/m', '/', 1, 21);
 echo "Original pattern: " . $patternNode->value . "\n";
 
 // Try to compile with our visitor method
-class TestVisitor {
+class TestVisitor implements RegexParser\NodeVisitor\NodeVisitorInterface {
     public function visitLiteral(\RegexParser\Node\LiteralNode $node): string {
         return $node->value;
     }
