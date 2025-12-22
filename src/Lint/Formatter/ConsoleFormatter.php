@@ -136,10 +136,23 @@ class ConsoleFormatter extends AbstractOutputFormatter
             $prefix = (string) $line;
         }
 
+        // Decide whether to keep pattern on the same line or wrap it to the
+        // next line for very long "file:line + pattern" combinations.
+        $maxInlineWidth = 100;
+
         if (null !== $pattern && '' !== $pattern) {
             $formatted = $this->formatPatternForDisplay($pattern);
             $label = '' !== $prefix ? $this->dim($prefix) : $this->dim('(pattern)');
-            $output = sprintf('  %s  %s'.PHP_EOL, $label, $formatted);
+
+            // Measure visible length without ANSI escape codes.
+            $plainInline = $this->stripAnsi($label.'  '.$formatted);
+            if (\strlen($plainInline) <= $maxInlineWidth) {
+                $output = sprintf('  %s  %s'.PHP_EOL, $label, $formatted);
+            } else {
+                // Wrap: show file:line, then the pattern on the next indented line.
+                $output = '  '.$label.PHP_EOL;
+                $output .= '      '.$formatted.PHP_EOL;
+            }
         } else {
             $label = '' !== $prefix ? $this->dim($prefix) : $this->dim('(pattern unavailable)');
             $output = '  '.$label.PHP_EOL;
@@ -192,9 +205,8 @@ class ConsoleFormatter extends AbstractOutputFormatter
         $output = '';
 
         foreach ($optimizations as $opt) {
-            $output .= sprintf('    %s %s'.PHP_EOL,
+            $output .= sprintf('    %s'.PHP_EOL,
                 $this->badge('TIP', self::WHITE, self::BG_CYAN),
-                $this->color('Optimization available', self::CYAN.self::BOLD),
             );
 
             $optimization = $opt['optimization'] ?? null;
