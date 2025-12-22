@@ -521,7 +521,7 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
         
         // Check if this looks like a regex with flags (e.g., "/pattern/m" or "{pattern}u")
         // Need to handle escaped delimiters in the string
-        if (preg_match('/^([\'"{\/\#~%])(.*?)([\'"{\/\#~%])([a-zA-Z]*)$/', $pattern, $matches)) {
+        if (preg_match('/^([\\\'"{}\/\#~%])(.*?)([\\\'"{}\/\#~%])([a-zA-Z]*)$/', $pattern, $matches)) {
             $delimiter = $matches[1];
             $regexBody = $matches[2];
             $flags = $matches[3];
