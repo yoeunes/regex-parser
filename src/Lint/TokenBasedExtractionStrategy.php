@@ -1007,7 +1007,11 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
      */
     private function isDoubleArrowToken(array|string $token): bool
     {
-        return '=>' === $token;
+        if (!\is_array($token)) {
+            return '=>' === $token;
+        }
+
+        return \T_DOUBLE_ARROW === $token[0];
     }
 
     /**
