@@ -155,6 +155,17 @@ final class CompilerNodeVisitorTest extends TestCase
         $this->assertStringContainsString('# comment', $compiled);
     }
 
+    public function test_compile_escaped_literal_metacharacters(): void
+    {
+        // Test that escaped metacharacters used as literals are preserved
+        $this->assertSame('#^application/(?:\w+\+)+json$#i', $this->compile('#^application/(?:\w+\+)+json$#i'));
+
+        // Edge cases for other metacharacters
+        $this->assertSame('/\*/', $this->compile('/\*/'));
+        $this->assertSame('/\?/', $this->compile('/\?/'));
+        $this->assertSame('/\./', $this->compile('/\./'));
+    }
+
     private function compile(string $pattern): string
     {
         $regex = Regex::create();
