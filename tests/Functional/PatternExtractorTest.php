@@ -181,6 +181,21 @@ final class PatternExtractorTest extends TestCase
     }
 
     /**
+     * Test that escaped quantifiers (like \+) are preserved when extracting
+     * patterns with non-slash delimiters (e.g., Symfony's JSON content-type
+     * check using "{...}i").
+     */
+    public function test_escaped_plus_quantifier_is_preserved(): void
+    {
+        $fixtureFile = __DIR__.'/../Fixtures/Functional/escaped_quantifier.php';
+
+        $result = $this->extractor->extract([$fixtureFile]);
+
+        $this->assertCount(1, $result);
+        $this->assertSame('{^application/(?:\w+\++)*json$}i', $result[0]->pattern);
+    }
+
+    /**
      * Test that preg_quote arguments are NOT detected as regex patterns.
      * preg_quote takes a raw string, not a regex pattern.
      */
