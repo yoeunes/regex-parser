@@ -104,7 +104,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
 
     private function countCapturingGroups(Node\NodeInterface $node): void
     {
-        if ($node instanceof Node\GroupNode && $node->type === GroupType::T_GROUP_CAPTURING) {
+        if ($node instanceof Node\GroupNode && ($node->type === GroupType::T_GROUP_CAPTURING || $node->type === GroupType::T_GROUP_NAMED)) {
             $this->maxCapturingGroup++;
             if (null !== $node->name) {
                 $this->definedNamedGroups[$node->name] = true;
