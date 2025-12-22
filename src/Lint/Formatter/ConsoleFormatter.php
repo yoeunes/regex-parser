@@ -133,16 +133,17 @@ class ConsoleFormatter extends AbstractOutputFormatter
 
         if ($showLine) {
             if (null !== $pattern && '' !== $pattern) {
-                $highlighted = $this->safelyHighlightPattern($pattern);
+                $formatted = $this->formatPatternForDisplay($pattern);
 
-                return \sprintf('  %s %s'.\PHP_EOL, $this->dim($line.':'), $highlighted);
+                return \sprintf('  %s %s'.\PHP_EOL, $this->dim($line.':'), $formatted);
             }
 
             return \sprintf('  %s'.\PHP_EOL, $this->dim('line '.$line.':'));
         }
 
         if (null !== $pattern && '' !== $pattern) {
-            $output = \sprintf('  %s'.\PHP_EOL, $this->safelyHighlightPattern($pattern));
+            $formatted = $this->formatPatternForDisplay($pattern);
+            $output = \sprintf('  %s'.\PHP_EOL, $formatted);
         } else {
             $output = '  '.$this->dim('(pattern unavailable)').\PHP_EOL;
         }
@@ -312,6 +313,66 @@ class ConsoleFormatter extends AbstractOutputFormatter
         } catch (\Throwable) {
             return $pattern;
         }
+    }
+
+    /**
+     * Format pattern for display, preserving delimiters and flags when ANSI highlighting is enabled.
+     */
+    private function formatPatternForDisplay(string $pattern): string
+    {
+        // When ANSI is disabled or no analysis service is configured, we already
+        // have the full pattern (including delimiters and flags), so return it as-is.
+        if (!$this->config->ansi || !$this->analysisService) {
+            return $pattern;
+        }
+
+        $highlightedBody = $this->safelyHighlightPattern($pattern);
+        $parts = $this->splitPatternWithFlags($pattern);
+
+        if (null === $parts) {
+            return $highlightedBody;
+        }
+
+        $delimiter = $parts['delimiter'];
+        $flags = $parts['flags'];
+
+        // Reconstruct the full pattern: /<highlighted body>/<flags>
+        if ('' === $flags) {
+            return $delimiter.$highlightedBody.$delimiter;
+        }
+
+        return $delimiter.$highlightedBody.$delimiter.$this->color($flags, self::CYAN);
+    }
+
+    /**
+     * Split a regex pattern of the form /body/flags into its components.
+     *
+     * @return array{delimiter: string, flags: string}|null
+     */
+    private function splitPatternWithFlags(string $pattern): ?array
+    {
+        if ('' === $pattern) {
+            return null;
+        }
+
+        $delimiter = $pattern[0];
+
+        // Delimiters in PCRE must be non-alphanumeric, non-backslash, non-whitespace.
+        if (ctype_alnum($delimiter) || '\\' === $delimiter || ctype_space($delimiter)) {
+            return null;
+        }
+
+        $lastDelimiterPos = strrpos($pattern, $delimiter);
+        if (false === $lastDelimiterPos || 0 === $lastDelimiterPos) {
+            return null;
+        }
+
+        $flags = substr($pattern, $lastDelimiterPos + 1);
+
+        return [
+            'delimiter' => $delimiter,
+            'flags' => $flags,
+        ];
     }
 
     /**
