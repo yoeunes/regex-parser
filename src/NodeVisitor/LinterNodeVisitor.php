@@ -234,7 +234,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         $ref = $node->ref;
 
         // Check numeric backreferences
-        if (preg_match('/^(\d+)$/', $ref, $matches)) {
+        if (preg_match('/^\\\\(\d+)$/', $ref, $matches)) {
             $num = (int) $matches[1];
             if ($num > $this->maxCapturingGroup) {
                 $this->addIssue(
@@ -245,7 +245,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
             }
         }
         // Check named backreferences
-        elseif (preg_match('/^k[<{\'](?<name>\w+)[>}\']$/', $ref, $matches)) {
+        elseif (preg_match('/^\\\\k[<{\'](?<name>\w+)[>}\']$/', $ref, $matches)) {
             $name = $matches['name'];
             if (!isset($this->definedNamedGroups[$name])) {
                 $this->addIssue(
