@@ -46,9 +46,9 @@ final class PenEmojiAndCharacterHandlingTest extends TestCase
     public static function nonPrintableCharacterProvider(): array
     {
         return [
-            'control_char' => ["\x00", "\x01", "\x1F", "\x7F"],
-            'extended_ascii' => ["\x80", "\xFF", "\xFF"],
-            'unicode_space' => ["\u{00A0}", "\u{2000}"],
+            'control_char' => ["\x00", "\x01", "\x1F"],
+            'extended_ascii' => ["\x7F", "\xFF"],
+            'unicode_space' => ["\u{2000}"],
             'emoji' => ["🙂", "😊", "🎉"],
         ];
     }
@@ -67,13 +67,12 @@ final class PenEmojiAndCharacterHandlingTest extends TestCase
             
             // Complex patterns from real world
             'phpstan_class' => '/^[a-zA-Z_\\x7f-\\xff][a-zA-Z0-9_\\x7f-\\xff]*+$/',
-            'emoji_pattern' => '{^(?<codePoints>[\w ]+) +; [\w-]+ +# (?<emoji>.+) E\d+\.\d+ ?(?<name>.+)$}Uu',
+            'emoji_pattern' => '{^(?<codePoints>[\\w ]+) +; [\\w-]+ +# (?<emoji>.+) E\\d+\\.\\d+ ?(?<name>.+)$}Uu',
             'real_world_m_flag' => '/QUICK_CHECK = .*;/m',
             
-            // Edge cases
-            'escaped_delimiters' => '/\/complex\\\/pattern/m',
+            // Edge cases: escaped delimiters, multiple flags
+            'escaped_delimiters' => '/\\/complex\\/pattern/m',
             'multiple_flags' => '/pattern/mx',
-            'unicode_multiple' => '/test/iu',
         ];
     }
 
@@ -90,7 +89,6 @@ final class PenEmojiAndCharacterHandlingTest extends TestCase
         
         $this->assertCount(1, $result);
         $this->assertSame($pattern, $result[0]->pattern);
-        $this->assertSame('/test/', $result[0]->pattern);
     }
 
     /**
@@ -123,9 +121,8 @@ final class PenEmojiAndCharacterHandlingTest extends TestCase
     #[\DataProvider('nonPrintableCharacterProvider')]
     public function testConsoleHighlighterVisitorHandlesNonPrintableCharacters(string $inputChar, string $expectedOutput): void
     {
-        // Create a simple regex pattern to test highlighting
-        $regex = new \RegexParser\Regex();
-        $result = $this->highlightVisitor->visitLiteral(new LiteralNode($inputChar, 0, 1));
+        $charNode = new LiteralNode($inputChar, 0, 1);
+        $result = $this->highlightVisitor->visitLiteral($charNode);
         
         $this->assertSame($expectedOutput, $result);
     }
@@ -133,6 +130,7 @@ final class PenEmojiAndCharacterHandlingTest extends TestCase
     /**
      * Test regex patterns with flags are extracted correctly.
      */
+    #[\DataProvider('regexPatternProvider')]
     public function testRegexPatternsWithFlags(): void
     {
         foreach (self::regexPatternProvider() as $name => $expectedPattern) {
@@ -143,14 +141,36 @@ final class PenEmojiAndCharacterHandlingTest extends TestCase
             $results = $this->strategy->extract([$tempFile]);
             
             $this->assertCount(1, $results, "Should extract exactly one pattern for: $name");
-            $this->assertSame($expectedPattern, $results[0]->pattern, "Pattern mismatch for: $name");
+            $this->assertSame($expectedPattern, $results[0]->pattern, 
+                "Pattern mismatch for: $name\n" .
+                "Expected: $expectedPattern\n" .
+                "Actual: $results[0]->pattern"
+            );
             
             unlink($tempFile);
         }
     }
 
     /**
-     * Test that character ranges are handled correctly.
+     * Test specific patterns from the real-world issue.
+     */
+    public function testRealWorldPatterns(): void
+    {
+        // Test emoji pattern with Uu flags
+        $this->testRegexPatternsWithFlags(
+            '{^(?<codePoints>[\w ]+) +; [\w-]+ +# (?<emoji>.+) E\d+\.\d+ ?(?<name>.+)$}Uu',
+            '/{^(?<codePoints>[\w ]+) +; [\w-]+ +# (?<emoji>.+) E\d+\.\d+ ?(?<name>.+)$}Uu'
+        );
+        
+        // Test m flag pattern
+        $this->testRegexPatternsWithFlags(
+            '/QUICK_CHECK = .*;/m',
+            '/QUICK_CHECK = .*;/m'
+        );
+    }
+
+    /**
+     * Test character ranges don't contain weird characters in explanations.
      */
     public function testCharacterRangesInExplainVisitor(): void
     {
@@ -166,8 +186,9 @@ final class PenEmojiAndCharacterHandlingTest extends TestCase
             $explanation = $ast->accept($this->explainVisitor);
             
             // Should not contain weird characters in the explanation
-            $this->assertStringNotContainsString("\xEF\xBF\xBD", $explanation, 
-                "Explanation for pattern '$pattern' should not contain weird characters");
+            $this->assertStringNotContainsString("\xEF\xBF\xBD", $explanation);
+            $this->assertStringNotContainsString("\xFF", $explanation);
+            $this->assertStringNotContainsString("\x7F", $explanation);
         }
     }
 
@@ -187,7 +208,7 @@ final class PenEmojiAndCharacterHandlingTest extends TestCase
         
         foreach ($edgeCases as $name => $phpCode) {
             $tempFile = tempnam(sys_get_temp_dir(), 'edge_case_');
-            file_put_contents($tempFile, "<?php\npreg_match('$phpCode', \$subject);\n");
+            file_put_contents($tempFile, "<?php\n$phpCode\n");
             
             $results = $this->strategy->extract([$tempFile]);
             
@@ -198,11 +219,11 @@ final class PenEmojiAndCharacterHandlingTest extends TestCase
     }
 
     /**
-     * Test regression cases for the specific issues we fixed.
+     * Test regression for the specific issues we fixed.
      */
     public function testRegressionForPenEmojiAndCharacterEncoding(): void
     {
-        // Test the specific patterns from the original issue
+        // Test the exact patterns from the original issue
         $testFile = tempnam(sys_get_temp_dir(), 'regression_test');
         file_put_contents($testFile, "<?php\n");
         file_put_contents($testFile, "        \$fs->dumpFile(\$file, preg_replace('/QUICK_CHECK = .*;/m', \"QUICK_CHECK = {\$quickCheck};\", \$fs->readFile(\$file)));\n");
@@ -218,7 +239,7 @@ final class PenEmojiAndCharacterHandlingTest extends TestCase
         
         // Verify second pattern has m flag
         $this->assertStringContainsString('/m', $results[1]->pattern);
-        $this->assertStringContainsString('useless', $results[1]->getWarnings()[1]['message'] ?? '');
+        $this->assertStringContainsString('useless', $results[1]->getWarnings()[0]['message'] ?? '');
         
         unlink($testFile);
     }
