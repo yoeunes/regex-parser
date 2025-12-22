@@ -44,7 +44,9 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
 
     private int $maxCapturingGroup = 0;
 
-    /** @var array<string, bool> */
+    /**
+     * @var array<string, bool>
+     */
     private array $definedNamedGroups = [];
 
     private readonly CharSetAnalyzer $charSetAnalyzer;
@@ -108,38 +110,6 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         $this->checkUselessFlags();
 
         return $node;
-    }
-
-    private function countCapturingGroups(Node\NodeInterface $node): void
-    {
-        if ($node instanceof Node\GroupNode && ($node->type === GroupType::T_GROUP_CAPTURING || $node->type === GroupType::T_GROUP_NAMED)) {
-            $this->maxCapturingGroup++;
-            if (null !== $node->name) {
-                $this->definedNamedGroups[$node->name] = true;
-            }
-        }
-
-        // Recursively count in children
-        if ($node instanceof Node\GroupNode) {
-            $this->countCapturingGroups($node->child);
-        } elseif ($node instanceof Node\AlternationNode) {
-            foreach ($node->alternatives as $alt) {
-                $this->countCapturingGroups($alt);
-            }
-        } elseif ($node instanceof Node\SequenceNode) {
-            foreach ($node->children as $child) {
-                $this->countCapturingGroups($child);
-            }
-        } elseif ($node instanceof Node\QuantifierNode) {
-            $this->countCapturingGroups($node->node);
-        } elseif ($node instanceof Node\ConditionalNode) {
-            $this->countCapturingGroups($node->condition);
-            $this->countCapturingGroups($node->yes);
-            $this->countCapturingGroups($node->no);
-        } elseif ($node instanceof Node\CharClassNode) {
-            $this->countCapturingGroups($node->expression);
-        }
-        // Other node types don't contain groups
     }
 
     #[\Override]
@@ -353,6 +323,38 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         }
 
         return $node;
+    }
+
+    private function countCapturingGroups(Node\NodeInterface $node): void
+    {
+        if ($node instanceof Node\GroupNode && (GroupType::T_GROUP_CAPTURING === $node->type || GroupType::T_GROUP_NAMED === $node->type)) {
+            $this->maxCapturingGroup++;
+            if (null !== $node->name) {
+                $this->definedNamedGroups[$node->name] = true;
+            }
+        }
+
+        // Recursively count in children
+        if ($node instanceof Node\GroupNode) {
+            $this->countCapturingGroups($node->child);
+        } elseif ($node instanceof Node\AlternationNode) {
+            foreach ($node->alternatives as $alt) {
+                $this->countCapturingGroups($alt);
+            }
+        } elseif ($node instanceof Node\SequenceNode) {
+            foreach ($node->children as $child) {
+                $this->countCapturingGroups($child);
+            }
+        } elseif ($node instanceof Node\QuantifierNode) {
+            $this->countCapturingGroups($node->node);
+        } elseif ($node instanceof Node\ConditionalNode) {
+            $this->countCapturingGroups($node->condition);
+            $this->countCapturingGroups($node->yes);
+            $this->countCapturingGroups($node->no);
+        } elseif ($node instanceof Node\CharClassNode) {
+            $this->countCapturingGroups($node->expression);
+        }
+        // Other node types don't contain groups
     }
 
     private function checkUselessFlags(): void
@@ -579,6 +581,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
                         $node->startPosition,
                         'Consider reordering alternatives or using atomic groups to improve performance.',
                     );
+
                     return;
                 }
             }

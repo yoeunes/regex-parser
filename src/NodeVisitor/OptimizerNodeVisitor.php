@@ -984,6 +984,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
 
     /**
      * @param array<Node\NodeInterface> $alts
+     *
      * @return array<Node\NodeInterface>
      */
     private function factorizeSuffix(array $alts): array
@@ -992,15 +993,22 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
             return $alts;
         }
 
+        // Safety check: only factorize if all alternatives are LiteralNode
+        foreach ($alts as $alt) {
+            if (!$alt instanceof Node\LiteralNode) {
+                return $alts; // Trop risqué de factoriser des nœuds complexes par string
+            }
+        }
+
         // Get string representations
         $strings = [];
-        /** @var Node\NodeInterface $alt */
+        /** @var Node\LiteralNode $alt */
         foreach ($alts as $alt) {
             $strings[] = $this->nodeToString($alt);
         }
 
         // Find common suffix by reversing strings and finding common prefix
-        $reversedStrings = array_map('strrev', $strings);
+        $reversedStrings = array_map(strrev(...), $strings);
         $suffix = $this->findCommonPrefix($reversedStrings);
         if (empty($suffix) || \strlen($suffix) < 2 || str_starts_with($suffix, '[')) {
             return $alts;
