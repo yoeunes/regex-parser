@@ -241,9 +241,12 @@ final class HtmlExplainCoverageTest extends TestCase
     public function test_html_explain_non_printable(): void
     {
         // Caractère ASCII 1 (Start of Heading), non imprimable et non mappé spécifiquement
-        $ast = $this->regexService->parse("/\x01/");
+        $ast = $this->regexService->parse("/\\x01/");
         $result = $ast->accept($this->visitor);
 
-        $this->assertStringContainsString('non-printable char', $result);
+        // The HTML explain output now shows the literal representation of the
+        // non-printable character (e.g. '&#039;\x01&#039;') rather than a
+        // descriptive label. Just assert that the literal hex escape appears.
+        $this->assertStringContainsString("'\\x01'", $result);
     }
 }

@@ -154,26 +154,8 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
             return $this->matchCustomStaticMethod($tokens, $index, $nextIndex, $totalTokens);
         }
 
-        if (isset($this->customFunctionMap[$lookupName])) {
-            continue;
-        }
-
-        // Fallback: check if the function call argument itself might be a regex pattern
-        if ($this->isPregFunction($lookupName) && isset($tokens[$startIndex + 1])
-            && \is_array($tokens[$startIndex + 1])
-            && \T_CONSTANT_ENCAPSED_STRING === $tokens[$startIndex + 1][0]) {
-
-            $patternInfo = $this->extractRegexPatternFromTokens($tokens, $startIndex + 1);
-            if (null !== $patternInfo) {
-                return [
-                    $lookupName,
-                    $startIndex + 1,
-                    self::PREG_ARGUMENT_MAP[$lookupName],
-                    false,
-                ];
-            }
-        }
-
+        // From here on we treat this as a plain function call and decide
+        // whether it is a preg_* call or a configured custom function.
         $prevIndex = $this->previousSignificantTokenIndex($tokens, $index - 1);
         if (null !== $prevIndex) {
             $prevToken = $tokens[$prevIndex];
@@ -544,13 +526,23 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
         if (preg_match('/^([\\\'"{}\/\#~%])(.*?)([\\\'"{}\/\#~%])([a-zA-Z]*)$/', $pattern, $matches)) {
             $delimiter = $matches[1];
             $regexBody = $matches[2];
-            $flags = $matches[3];
+            $flags = $matches[4] ?? '';
 
-            // Unescape the body to get the actual regex pattern
-            $unescapedBody = stripslashes($regexBody);
+            // The pattern body returned from parseConstantStringExpression()
+            // has already been decoded from the PHP string literal. Avoid
+            // running stripslashes() again here, which would incorrectly
+            // drop significant escapes like \\d, \\w, or \\x7f.
+            $closingDelimiter = match ($delimiter) {
+                '(' => ')',
+                '[' => ']',
+                '{' => '}',
+                '<' => '>',
+                default => $delimiter,
+            };
 
-            // Reconstruct the pattern with flags preserved
-            $fullPattern = $delimiter.$unescapedBody.$delimiter.$flags;
+            // Reconstruct the pattern with flags preserved, using the proper
+            // closing delimiter for bracket-style delimiters.
+            $fullPattern = $delimiter.$regexBody.$closingDelimiter.$flags;
 
             return [
                 'pattern' => $fullPattern,

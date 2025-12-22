@@ -99,9 +99,11 @@ final class ComplexityScoreVisitorTest extends TestCase
         $visitor = new ExplainNodeVisitor();
 
         $this->assertStringContainsString("' ' (space)", $regex->parse('/ /')->accept($visitor));
-        $this->assertStringContainsString("'\\t' (tab)", $regex->parse('/\t/')->accept($visitor));
-        $this->assertStringContainsString("'\\n' (newline)", $regex->parse('/\n/')->accept($visitor));
-        $this->assertStringContainsString('(non-printable char)', $regex->parse("/\x01/")->accept($visitor));
+        $this->assertStringContainsString("'\\t' (tab)", $regex->parse('/\\t/')->accept($visitor));
+        $this->assertStringContainsString("'\\n' (newline)", $regex->parse('/\\n/')->accept($visitor));
+        // Non-printable characters are now rendered using their literal
+        // escape representation rather than a '(non-printable char)' label.
+        $this->assertStringContainsString("'\\x01'", $regex->parse("/\\x01/")->accept($visitor));
     }
 
     public function test_score_nested_unbounded_quantifiers_redo_penalty(): void

@@ -48,6 +48,11 @@ final class PregValidationRuleHighThresholdTest extends RuleTestCase
                 23,
                 "Consider using atomic groups (?>...) or possessive quantifiers.\nRead more: https://github.com/yoeunes/regex-parser/blob/master/docs/reference.md#nested-quantifiers",
             ],
+            [
+                "Flag 'i' is useless: the pattern contains no case-sensitive characters.",
+                27,
+                "Read more: https://github.com/yoeunes/regex-parser/blob/master/docs/reference.md#useless-flag-i-caseless",
+            ],
             // Note: MEDIUM ReDoS on line 24 is filtered out by 'high' threshold
             [
                 'Regex syntax error: No closing delimiter "/" found. You opened with "/"; expected closing "/". Tip: escape "/" inside the pattern (\\/) or use a different delimiter, e.g. #foo1#. (Pattern: "/foo1")',

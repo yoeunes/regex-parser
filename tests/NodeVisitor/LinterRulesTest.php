@@ -69,7 +69,7 @@ final class LinterRulesTest extends TestCase
 
     public function test_suspicious_unicode_escape_warning(): void
     {
-        $issues = $this->lint('/\x{110000}/');
+        $issues = $this->lint('/\\x{110000}/');
         $this->assertContains('regex.lint.escape.suspicious', $issues);
     }
 

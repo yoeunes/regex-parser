@@ -36,7 +36,9 @@ final class LinterNodeVisitorTest extends TestCase
         $regex->accept($linter);
         $warnings = $linter->getWarnings();
 
-        $this->assertNotContains("Flag 'i' is useless: the pattern contains no case-sensitive characters.", $warnings);
+        // Ensure we did not incorrectly emit the useless-flag warning when
+        // case-sensitive characters are present.
+        $this->assertFalse(in_array("Flag 'i' is useless: the pattern contains no case-sensitive characters.", $warnings, true));
     }
 
     public function test_useless_s_flag_no_dots(): void
@@ -56,12 +58,12 @@ final class LinterNodeVisitorTest extends TestCase
         $regex->accept($linter);
         $warnings = $linter->getWarnings();
 
-        $this->assertNotContains("Flag 's' is useless: the pattern contains no dots.", $warnings);
+        $this->assertFalse(in_array("Flag 's' is useless: the pattern contains no dots.", $warnings, true));
     }
 
     public function test_useless_m_flag_no_anchors(): void
     {
-        $regex = Regex::create()->parse('/\d+/m');
+        $regex = Regex::create()->parse('/\\d+/m');
         $linter = new LinterNodeVisitor();
         $regex->accept($linter);
         $warnings = $linter->getWarnings();
@@ -132,7 +134,7 @@ final class LinterNodeVisitorTest extends TestCase
 
     public function test_start_anchor_no_multiline_flag(): void
     {
-        $regex = Regex::create()->parse('/foo\n^bar/');
+        $regex = Regex::create()->parse('/foo\\n^bar/');
         $linter = new LinterNodeVisitor();
         $regex->accept($linter);
         $warnings = $linter->getWarnings();
