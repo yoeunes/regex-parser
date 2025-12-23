@@ -365,15 +365,16 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
             );
         }
 
-        // 2. Validation: Ensure characters are single-byte or single codepoint (for LiteralNodes).
-        if ($node->start instanceof Node\LiteralNode && \strlen($node->start->value) > 1) {
+        // 2. Validation: Ensure characters are single codepoint (for LiteralNodes).
+        // Use mb_strlen for proper Unicode character counting.
+        if ($node->start instanceof Node\LiteralNode && mb_strlen($node->start->value, 'UTF-8') > 1) {
             $this->raiseSemanticError(
                 'Invalid range: start char must be a single character.',
                 $node->startPosition,
                 'regex.range.invalid_start',
             );
         }
-        if ($node->end instanceof Node\LiteralNode && \strlen($node->end->value) > 1) {
+        if ($node->end instanceof Node\LiteralNode && mb_strlen($node->end->value, 'UTF-8') > 1) {
             $this->raiseSemanticError(
                 'Invalid range: end char must be a single character.',
                 $node->startPosition,
