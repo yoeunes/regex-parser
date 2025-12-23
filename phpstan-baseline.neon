@@ -1,36 +1,43 @@
 parameters:
 	ignoreErrors:
 		-
-			rawMessage: 'Regex pattern is invalid: Unknown modifier ''r'' in pattern: /a/r'
-			identifier: regexp.pattern
-			count: 1
-			path: src/Internal/PatternParser.php
-
-		-
-			rawMessage: 'Regex syntax error: Unknown regex flag(s) found: "r" (Pattern: "/a/r")'
-			identifier: regex.syntax.invalid
-			count: 1
-			path: src/Internal/PatternParser.php
-
-		-
-			rawMessage: 'Regex pattern is invalid: Unknown modifier ''r'' in pattern: /a/r'
-			identifier: regexp.pattern
-			count: 1
-			path: tests/Unit/Parser/ParserUtilityTest.php
-
-		-
-			rawMessage: 'Regex syntax error: Unknown regex flag(s) found: "r" (Pattern: "/a/r")'
-			identifier: regex.syntax.invalid
-			count: 1
-			path: tests/Unit/Parser/ParserUtilityTest.php
-		-
 			rawMessage: Accessing PHPStan\Analyser\Analyser::class is not covered by backward compatibility promise. The class might change in a minor PHPStan version.
 			identifier: phpstanApi.classConstant
 			count: 1
 			path: src/Bridge/Symfony/DependencyInjection/RegexParserExtension.php
 
 		-
+			rawMessage: Access to constant on internal class RegexParser\Bridge\Symfony\Extractor\RouteRegexPatternSource.
+			identifier: classConstant.internalClass
+			count: 1
+			path: src/Bridge/Symfony/Resources/config/services.php
+
+		-
+			rawMessage: Access to constant on internal class RegexParser\Bridge\Symfony\Extractor\ValidatorRegexPatternSource.
+			identifier: classConstant.internalClass
+			count: 1
+			path: src/Bridge/Symfony/Resources/config/services.php
+
+		-
+			rawMessage: Access to constant on internal class RegexParser\Bridge\Symfony\Routing\RouteControllerFileResolver.
+			identifier: classConstant.internalClass
+			count: 1
+			path: src/Bridge/Symfony/Resources/config/services.php
+
+		-
+			rawMessage: Access to constant on internal class RegexParser\Bridge\Symfony\Routing\RouteRequirementNormalizer.
+			identifier: classConstant.internalClass
+			count: 2
+			path: src/Bridge/Symfony/Resources/config/services.php
+
+		-
 			rawMessage: Access to constant on internal class RegexParser\Lint\PhpRegexPatternSource.
+			identifier: classConstant.internalClass
+			count: 1
+			path: src/Bridge/Symfony/Resources/config/services.php
+
+		-
+			rawMessage: Access to constant on internal class RegexParser\Lint\RegexLintService.
 			identifier: classConstant.internalClass
 			count: 1
 			path: src/Bridge/Symfony/Resources/config/services.php
@@ -48,37 +55,31 @@ parameters:
 			path: src/Bridge/Symfony/Resources/config/services.php
 
 		-
-			rawMessage: Access to constant on internal class RegexParser\Bridge\Symfony\Extractor\RouteRegexPatternSource.
-			identifier: classConstant.internalClass
+			rawMessage: 'Regex pattern is invalid: Unknown modifier ''r'' in pattern: /a/r'
+			identifier: regexp.pattern
 			count: 1
-			path: src/Bridge/Symfony/Resources/config/services.php
+			path: src/Internal/PatternParser.php
 
 		-
-			rawMessage: Access to constant on internal class RegexParser\Bridge\Symfony\Extractor\ValidatorRegexPatternSource.
-			identifier: classConstant.internalClass
+			rawMessage: 'Regex syntax error: Unknown regex flag(s) found: "r" (Pattern: "/a/r")'
+			identifier: regex.syntax.invalid
 			count: 1
-			path: src/Bridge/Symfony/Resources/config/services.php
+			path: src/Internal/PatternParser.php
 
 		-
-			rawMessage: Access to constant on internal class RegexParser\Bridge\Symfony\Routing\RouteRequirementNormalizer.
-			identifier: classConstant.internalClass
-			count: 2
-			path: src/Bridge/Symfony/Resources/config/services.php
-
-		-
-			rawMessage: Access to constant on internal class RegexParser\Bridge\Symfony\Routing\RouteControllerFileResolver.
-			identifier: classConstant.internalClass
-			count: 1
-			path: src/Bridge/Symfony/Resources/config/services.php
-
-		-
-			rawMessage: Access to constant on internal class RegexParser\Lint\RegexLintService.
-			identifier: classConstant.internalClass
-			count: 1
-			path: src/Bridge/Symfony/Resources/config/services.php
-
-		-
-			message: '#Alternation branches have overlapping character sets#'
+			rawMessage: 'Alternation branches have overlapping character sets, which may cause unnecessary backtracking.'
 			identifier: regex.lint.overlap.charset
 			count: 1
 			path: src/Lint/RegexAnalysisService.php
+
+		-
+			rawMessage: 'Regex pattern is invalid: Unknown modifier ''r'' in pattern: /a/r'
+			identifier: regexp.pattern
+			count: 1
+			path: tests/Unit/Parser/ParserUtilityTest.php
+
+		-
+			rawMessage: 'Regex syntax error: Unknown regex flag(s) found: "r" (Pattern: "/a/r")'
+			identifier: regex.syntax.invalid
+			count: 1
+			path: tests/Unit/Parser/ParserUtilityTest.php
