@@ -326,7 +326,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     {
         $prop = $node->hasBraces ? trim($node->prop, '{}') : $node->prop;
 
-        if (\strlen($prop) > 1 || str_starts_with($prop, '^')) {
+        if ($node->hasBraces || \strlen($prop) > 1 || str_starts_with($prop, '^')) {
             return '\p{'.$prop.'}';
         }
 
