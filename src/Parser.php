@@ -1170,8 +1170,15 @@ final class Parser
             return self::$supportsInlineModifierR;
         }
 
-        $result = @preg_match('/(?r)a/', '');
-        self::$supportsInlineModifierR = false !== $result;
+        if (\PHP_VERSION_ID >= 80400) {
+            self::$supportsInlineModifierR = true;
+
+            return true;
+        }
+
+        $pcreVersion = \defined('PCRE_VERSION') ? explode(' ', \PCRE_VERSION)[0] : '0';
+
+        self::$supportsInlineModifierR = version_compare($pcreVersion, '10.43', '>=');
 
         return self::$supportsInlineModifierR;
     }
