@@ -329,9 +329,10 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitUnicodeProp(Node\UnicodePropNode $node): string
     {
-        if (str_starts_with($node->prop, '^')) {
-            return '\p{'.$node->prop.'}';
-        }
+        return $node->isNegated
+            ? '\P{'.$node->prop.'}'
+            : '\p'.$node->prop;
+    }
 
         if (\strlen($node->prop) > 1) {
             return '\p{'.$node->prop.'}';
