@@ -216,17 +216,10 @@ final class ModernizerNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitConditional(\RegexParser\Node\ConditionalNode $node)
     {
-        // @phpstan-ignore if.alwaysTrue
-        if ($node->no) {
-            $noBranch = $node->no->accept($this);
-        } else {
-            $noBranch = null;
-        }
-
         return new \RegexParser\Node\ConditionalNode(
             $node->condition->accept($this),
             $node->yes->accept($this),
-            $noBranch,
+            $node->no->accept($this),
             $node->getStartPosition(),
             $node->getEndPosition(),
         );
