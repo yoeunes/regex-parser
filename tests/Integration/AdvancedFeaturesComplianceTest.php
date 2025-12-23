@@ -74,4 +74,24 @@ final class AdvancedFeaturesComplianceTest extends TestCase
         yield 'explicit group recursion' => ['/((a))(?(R1)a|b)/'];
         yield 'root recursion check' => ['/(?(R)a|b)/'];
     }
+
+    #[DataProvider('provideQuantifierPatterns')]
+    public function test_php84_quantifier_missing_min_syntax(string $pattern, string $expectedCompiled): void
+    {
+        $regex = Regex::create()->parse($pattern);
+        $compiler = new \RegexParser\NodeVisitor\CompilerNodeVisitor();
+        $compiled = $regex->accept($compiler);
+
+        $this->assertSame($expectedCompiled, $compiled, "PHP 8.4 quantifier syntax should compile correctly: {$pattern}");
+    }
+
+    public static function provideQuantifierPatterns(): \Iterator
+    {
+        yield 'missing_min_no_spaces' => ['/a{,3}/', '/a{,3}/'];
+        yield 'missing_min_with_spaces' => ['/a{ , 3 }/', '/a{,3}/'];
+        yield 'missing_min_with_single_space' => ['/a{ ,3}/', '/a{,3}/'];
+        yield 'missing_max_with_spaces' => ['/a{2, }/', '/a{2,}/'];
+        yield 'both_with_spaces' => ['/a{ 2 , 3 }/', '/a{2,3}/'];
+        yield 'no_spaces' => ['/a{2,3}/', '/a{2,3}/'];
+    }
 }

@@ -35,6 +35,7 @@ final class QuantifierNodeTest extends TestCase
         yield 'greedy_fixed' => [$node, '{5}', QuantifierType::T_GREEDY];
         yield 'lazy_range' => [$node, '{1,3}', QuantifierType::T_LAZY];
         yield 'possessive_unbounded' => [$node, '{2,}', QuantifierType::T_POSSESSIVE];
+        yield 'missing_min_php84' => [$node, '{,3}', QuantifierType::T_GREEDY];
     }
 
     #[DataProvider('data_provider_quantifiers')]

@@ -183,7 +183,14 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
             default => '',
         };
 
-        return $nodeCompiled.$node->quantifier.$suffix;
+        $quantifier = $this->normalizeQuantifier($node->quantifier);
+
+        return $nodeCompiled.$quantifier.$suffix;
+    }
+
+    private function normalizeQuantifier(string $quantifier): string
+    {
+        return preg_replace('/\s+/', '', $quantifier);
     }
 
     #[\Override]

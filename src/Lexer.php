@@ -50,7 +50,7 @@ final class Lexer
         'T_GROUP_OPEN' => '\\(',
         'T_GROUP_CLOSE' => '\\)',
         'T_CHAR_CLASS_OPEN' => '\\[',
-        'T_QUANTIFIER' => '(?: [\\*\\+\\?] | \\{\\d+(?:,\\d*)?\\} ) [\\?\\+]?',
+        'T_QUANTIFIER' => '(?: [\*\+\?] | \{ \s* \d* \s* (?: , \s* \d* \s* )? \} ) [\?\+]?',
         'T_ALTERNATION' => '\\|',
         'T_DOT' => '\\.',
         'T_ANCHOR' => '\\^|\\$',
