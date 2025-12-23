@@ -198,20 +198,23 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         }
 
         // Auto-possessivization (only for + to be conservative)
-        for ($i = 0; $i < \count($optimizedChildren) - 1; $i++) {
-            $current = $optimizedChildren[$i];
-            $next = $optimizedChildren[$i + 1];
+        // This optimization is opt-in because it can change semantics with backreferences
+        if ($this->autoPossessify) {
+            for ($i = 0; $i < \count($optimizedChildren) - 1; $i++) {
+                $current = $optimizedChildren[$i];
+                $next = $optimizedChildren[$i + 1];
 
-            if ($current instanceof Node\QuantifierNode && Node\QuantifierType::T_GREEDY === $current->type && '+' === $current->quantifier) {
-                if ($this->areCharSetsDisjoint($current->node, $next)) {
-                    $optimizedChildren[$i] = new Node\QuantifierNode(
-                        $current->node,
-                        $current->quantifier,
-                        Node\QuantifierType::T_POSSESSIVE,
-                        $current->startPosition,
-                        $current->endPosition,
-                    );
-                    $hasChanged = true;
+                if ($current instanceof Node\QuantifierNode && Node\QuantifierType::T_GREEDY === $current->type && '+' === $current->quantifier) {
+                    if ($this->areCharSetsDisjoint($current->node, $next)) {
+                        $optimizedChildren[$i] = new Node\QuantifierNode(
+                            $current->node,
+                            $current->quantifier,
+                            Node\QuantifierType::T_POSSESSIVE,
+                            $current->startPosition,
+                            $current->endPosition,
+                        );
+                        $hasChanged = true;
+                    }
                 }
             }
         }
