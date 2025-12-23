@@ -18,7 +18,7 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
 final readonly class CalloutNode extends AbstractNode
 {
     public function __construct(
-        public int|string $identifier,
+        public int|string|null $identifier,
         public bool $isStringIdentifier,
         int $startPosition,
         int $endPosition,

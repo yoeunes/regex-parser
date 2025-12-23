@@ -509,11 +509,15 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitCallout(Node\CalloutNode $node): string
     {
-        $label = match (true) {
-            \is_int($node->identifier) => '(?C'.$node->identifier.')',
-            $node->isStringIdentifier => '(?C"'.$node->identifier.'")',
-            default => '(?C'.$node->identifier.')',
-        };
+        if (null === $node->identifier) {
+            $label = '(?C)';
+        } else {
+            $label = match (true) {
+                \is_int($node->identifier) => '(?C'.$node->identifier.')',
+                $node->isStringIdentifier => '(?C"'.$node->identifier.'")',
+                default => '(?C'.$node->identifier.')',
+            };
+        }
 
         $nodeId = $this->nextNodeId();
         $this->lines[] = \sprintf('    %s["Callout: %s"]', $nodeId, $this->escape($label));

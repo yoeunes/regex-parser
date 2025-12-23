@@ -15,6 +15,7 @@ namespace RegexParser\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
+use RegexParser\NodeVisitor\DumperNodeVisitor;
 use RegexParser\Regex;
 
 final class BackreferenceEdgeCasesTest extends TestCase
@@ -196,6 +197,18 @@ final class BackreferenceEdgeCasesTest extends TestCase
         $compiled = $this->roundTrip($pattern);
 
         $this->assertSame($pattern, $compiled);
+    }
+
+    public function test_r_char_type_is_not_backreference(): void
+    {
+        $pattern = '/\R/';
+        $ast = $this->regexService->parse($pattern);
+
+        $dumper = new DumperNodeVisitor();
+        $dump = $ast->accept($dumper);
+
+        $this->assertStringContainsString("CharType('\\R')", $dump);
+        $this->assertStringNotContainsString('Backref', $dump);
     }
 
     public function test_backreference_with_alternation_in_group(): void

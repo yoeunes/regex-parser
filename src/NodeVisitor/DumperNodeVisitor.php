@@ -383,7 +383,11 @@ final class DumperNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitUnicodeProp(Node\UnicodePropNode $node): string
     {
-        return "UnicodeProp(\\p{{$node->prop}})";
+        $inner = $node->hasBraces
+            ? trim($node->prop, '{}')
+            : $node->prop;
+
+        return "UnicodeProp(\\p{{$inner}})";
     }
 
     /**

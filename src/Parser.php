@@ -514,7 +514,7 @@ final class Parser
             }
             $endPosition = $startPosition + $len;
 
-            return new Node\UnicodePropNode($token->value, $startPosition, $endPosition);
+            return new Node\UnicodePropNode($token->value, str_starts_with($token->value, '{'), $startPosition, $endPosition);
         }
 
         if ($this->match(TokenType::T_KEEP)) {
@@ -567,7 +567,7 @@ final class Parser
     }
 
     /**
-     * parses callouts like (?C1), (?C"name"), (?C"string"), and (?Cname)
+     * parses callouts like (?C), (?C1), (?C"name"), (?C"string"), and (?Cname)
      */
     private function parseCallout(): Node\CalloutNode
     {
@@ -575,6 +575,10 @@ final class Parser
         $startPosition = $token->position;
         $value = $token->value;
         $endPosition = $startPosition + \strlen($token->value) + 4; // for (?C)
+
+        if ('' === $value) {
+            return new Node\CalloutNode(null, false, $startPosition, $endPosition);
+        }
 
         $isStringIdentifier = false;
         $identifier = null;
@@ -798,7 +802,17 @@ final class Parser
             return $this->parsePythonGroup($startPosition, $pPos);
         }
 
-        // 2. PCRE-style quoted named groups (?'name'...)
+        // 2. Check for PCRE verbs: (*...)
+        if ($this->matchLiteral('*')) {
+            return $this->parsePcreVerbInGroup($startPosition);
+        }
+
+        // 2.1 PCRE verbs already tokenized inside modifier groups: (?(*VERB)...)
+        if ($this->match(TokenType::T_PCRE_VERB)) {
+            return $this->parsePcreVerbTokenInGroup($startPosition, $this->previous());
+        }
+
+        // 3. PCRE-style quoted named groups (?'name'...)
         if ($this->checkLiteral("'")) {
             $name = $this->parseGroupName($startPosition);
             $expr = $this->parseAlternation();
@@ -813,12 +827,12 @@ final class Parser
             );
         }
 
-        // 3. Check for standard lookarounds and named groups
+        // 4. Check for standard lookarounds and named groups
         if ($this->matchLiteral('<')) {
             return $this->parseStandardGroup($startPosition);
         }
 
-        // 4. Check for conditional (?(...)
+        // 5. Check for conditional (?(...)
         $isConditionalWithModifier = null;
         if ($this->match(TokenType::T_GROUP_MODIFIER_OPEN)) {
             $isConditionalWithModifier = true;
@@ -830,7 +844,7 @@ final class Parser
             return $this->parseConditional($startPosition, $isConditionalWithModifier);
         }
 
-        // 5. Check for Subroutines
+        // 6. Check for Subroutines
         if ($this->matchLiteral('&')) { // (?&name)
             $name = $this->parseSubroutineName();
             $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected ) to close subroutine call');
@@ -852,7 +866,7 @@ final class Parser
             return $subroutine;
         }
 
-        // 6. Check for simple non-capturing, lookaheads, atomic, branch reset
+        // 7. Check for simple non-capturing, lookaheads, atomic, branch reset
         if ($this->matchLiteral(':')) {
             $expr = $this->parseAlternation();
             $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
@@ -914,8 +928,92 @@ final class Parser
             );
         }
 
-        // 7. Inline flags
+        // 8. Inline flags
         return $this->parseInlineFlags($startPosition);
+    }
+
+    /**
+     * Parses PCRE verbs in group context: (?(*VERB)...)
+     */
+    private function parsePcreVerbInGroup(int $startPosition): Node\NodeInterface
+    {
+        $verb = '';
+        $verbStartPosition = $this->current()->position;
+
+        // Collect verb name characters until we hit : or )
+        while (
+            !$this->isAtEnd()
+            && !$this->check(TokenType::T_GROUP_CLOSE)
+            && !$this->checkLiteral(':')
+        ) {
+            if ($this->check(TokenType::T_LITERAL)) {
+                $verb .= $this->current()->value;
+                $this->advance();
+            } else {
+                break;
+            }
+        }
+
+        // Check for verbs with arguments like MARK:name
+        $argument = '';
+        if ($this->matchLiteral(':')) {
+            while (
+                !$this->isAtEnd()
+                && !$this->check(TokenType::T_GROUP_CLOSE)
+            ) {
+                if ($this->check(TokenType::T_LITERAL)) {
+                    $argument .= $this->current()->value;
+                    $this->advance();
+                } else {
+                    break;
+                }
+            }
+        }
+
+        $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected ) to close PCRE verb');
+        $endPosition = $endToken->position + 1;
+
+        // Parse the rest of the pattern after the verb group
+        $expr = null;
+        if (!$this->isAtEnd()) {
+            $expr = $this->parseAlternation();
+        } else {
+            $expr = $this->createEmptyLiteralNodeAt($endPosition);
+        }
+
+        // Create a group node containing the verb and the following expression
+        $verbNode = new Node\PcreVerbNode(
+            '' !== $argument ? $verb.':'.$argument : $verb,
+            $verbStartPosition,
+            $endPosition,
+        );
+
+        // Create a sequence with the verb and the expression
+        return new Node\SequenceNode(
+            [$verbNode, $expr],
+            $startPosition,
+            $expr->getEndPosition(),
+        );
+    }
+
+    /**
+     * Parses a PCRE verb token inside a modifier group: (?(*VERB)...)
+     */
+    private function parsePcreVerbTokenInGroup(int $startPosition, Token $verbToken): Node\NodeInterface
+    {
+        $verbStartPosition = $verbToken->position;
+        $verbEndPosition = $verbStartPosition + \strlen($verbToken->value) + 3; // +3 for "(*)"
+
+        $verbNode = new Node\PcreVerbNode($verbToken->value, $verbStartPosition, $verbEndPosition);
+
+        $expr = $this->parseAlternation();
+        $this->consume(TokenType::T_GROUP_CLOSE, 'Expected ) to close PCRE verb group');
+
+        return new Node\SequenceNode(
+            [$verbNode, $expr],
+            $startPosition,
+            $expr->getEndPosition(),
+        );
     }
 
     /**
@@ -1608,7 +1706,7 @@ final class Parser
             // Basic length calc - Parser logic from original
             $len = 2 + \strlen($token->value)
                 + ((\strlen($token->value) > 1 || str_starts_with($token->value, '^')) ? 2 : 0);
-            $startNode = new Node\UnicodePropNode($token->value, $startPosition, $startPosition + $len);
+            $startNode = new Node\UnicodePropNode($token->value, str_starts_with($token->value, '{'), $startPosition, $startPosition + $len);
         } elseif ($this->match(TokenType::T_UNICODE)) {
             $startNode = $this->createCharLiteralNodeFromToken(
                 $this->previous(),
@@ -1687,7 +1785,7 @@ final class Parser
                 $token = $this->previous();
                 $len = 2 + \strlen($token->value)
                     + ((\strlen($token->value) > 1 || str_starts_with($token->value, '^')) ? 2 : 0);
-                $endNode = new Node\UnicodePropNode($token->value, $endPosition, $endPosition + $len);
+                $endNode = new Node\UnicodePropNode($token->value, str_starts_with($token->value, '{'), $endPosition, $endPosition + $len);
             } elseif ($this->match(TokenType::T_UNICODE)) {
                 $endNode = $this->createCharLiteralNodeFromToken(
                     $this->previous(),

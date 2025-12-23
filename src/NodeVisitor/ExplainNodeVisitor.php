@@ -578,6 +578,10 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitCallout(Node\CalloutNode $node): string
     {
+        if (null === $node->identifier) {
+            return $this->line('Callout: passes control to user function with no argument');
+        }
+
         $arg = \is_int($node->identifier) || !$node->isStringIdentifier
             ? $node->identifier
             : '"'.$node->identifier.'"';

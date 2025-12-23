@@ -183,7 +183,9 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
             default => '',
         };
 
-        return $nodeCompiled.$node->quantifier.$suffix;
+        $quantifier = $this->normalizeQuantifier($node->quantifier);
+
+        return $nodeCompiled.$quantifier.$suffix;
     }
 
     #[\Override]
@@ -322,15 +324,14 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitUnicodeProp(Node\UnicodePropNode $node): string
     {
-        if (str_starts_with($node->prop, '^')) {
-            return '\p{'.$node->prop.'}';
+        $prop = $node->hasBraces ? trim($node->prop, '{}') : $node->prop;
+
+        if ($node->hasBraces || \strlen($prop) > 1 || str_starts_with($prop, '^')) {
+            return '\p{'.$prop.'}';
         }
 
-        if (\strlen($node->prop) > 1) {
-            return '\p{'.$node->prop.'}';
-        }
+        return '\p'.$prop;
 
-        return '\p'.$node->prop;
     }
 
     #[\Override]
@@ -467,15 +468,28 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitCallout(Node\CalloutNode $node): string
     {
+        if (null === $node->identifier) {
+            return '(?C)';
+        }
+
         if (\is_int($node->identifier)) {
             return '(?C'.$node->identifier.')';
         }
 
-        if (!$node->isStringIdentifier && preg_match('/^[A-Z_a-z]\w*+$/', $node->identifier)) {
+        if (
+            !$node->isStringIdentifier
+            && \is_string($node->identifier)
+            && preg_match('/^[A-Z_a-z]\w*+$/', $node->identifier)
+        ) {
             return '(?C'.$node->identifier.')';
         }
 
         return '(?C"'.$node->identifier.'")';
+    }
+
+    private function normalizeQuantifier(string $quantifier): string
+    {
+        return preg_replace('/\\s+/', '', $quantifier) ?? $quantifier;
     }
 
     /**

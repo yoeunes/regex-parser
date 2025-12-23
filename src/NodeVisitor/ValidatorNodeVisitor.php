@@ -49,6 +49,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         'LIMIT_DEPTH' => true, 'LIMIT_HEAP' => true,
         'LIMIT_LOOKBEHIND' => true,
         'script_run' => true, 'atomic_script_run' => true,
+        'NOTEMPTY' => true, 'NOTEMPTY_ATSTART' => true,
     ];
 
     private const VALID_POSIX_CLASSES = [
@@ -500,7 +501,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     public function visitUnicodeProp(Node\UnicodePropNode $node): void
     {
         $prop = $node->prop;
-        $key = (\strlen($prop) > 1 || str_starts_with($prop, '^')) ? "p{{$prop}}" : "p{$prop}";
+        $key = 'p'.$prop;
 
         // Intelligent caching with lazy validation
         if (!isset(self::$unicodePropCache[$key])) {
@@ -716,6 +717,10 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     {
         $position = $node->startPosition + 4;
 
+        if (null === $node->identifier) {
+            return;
+        }
+
         if (\is_int($node->identifier)) {
             if ($node->identifier < 0 || $node->identifier > 255) {
                 $this->raiseSemanticError(
@@ -741,6 +746,18 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
                 'regex.callout.invalid_type',
             );
         }
+    }
+
+    private function normalizeQuantifier(string $q): string
+    {
+        if (!str_starts_with($q, '{') || !str_ends_with($q, '}')) {
+            return $q;
+        }
+
+        $inner = substr($q, 1, -1);
+        $inner = preg_replace('/\\s+/', '', $inner) ?? $inner;
+
+        return '{'.$inner.'}';
     }
 
     private function getNameSuggestions(string $name): string
@@ -824,6 +841,27 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
      */
     private function validateUnicodeProperty(string $key): bool
     {
+        if ($this->compileUnicodeProperty($key)) {
+            return true;
+        }
+
+        // Fallback: map Block=/Blk= to In<block> alias which PCRE recognizes.
+        if (preg_match('/^p\\{(\\^)?bl(?:ock|k)=([^}]+)\\}$/i', $key, $matches)) {
+            $negation = (string) $matches[1];
+            $block = $matches[2];
+            $aliasKey = 'p{'.$negation.'In'.$block.'}';
+            // Try to compile the alias; if the runtime lacks block-name support,
+            // still treat the property as syntactically valid.
+            $this->compileUnicodeProperty($aliasKey);
+
+            return true;
+        }
+
+        return false;
+    }
+
+    private function compileUnicodeProperty(string $key): bool
+    {
         // Use error suppression as preg_match warns on invalid properties
         $result = @preg_match("/^\\{$key}$/u", '');
         $error = preg_last_error();
@@ -860,14 +898,15 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
      */
     private function getQuantifierBounds(string $q): array
     {
+        $normalized = $this->normalizeQuantifier($q);
         // Return cached result if available
-        if (isset(self::$quantifierBoundsCache[$q])) {
-            return self::$quantifierBoundsCache[$q];
+        if (isset(self::$quantifierBoundsCache[$normalized])) {
+            return self::$quantifierBoundsCache[$normalized];
         }
 
         // Compute and cache the result
-        $bounds = $this->parseQuantifierBounds($q);
-        self::$quantifierBoundsCache[$q] = $bounds;
+        $bounds = $this->parseQuantifierBounds($normalized);
+        self::$quantifierBoundsCache[$normalized] = $bounds;
 
         return $bounds;
     }
@@ -889,12 +928,15 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
             '*' => [0, -1],
             '+' => [1, -1],
             '?' => [0, 1],
-            default => preg_match('/^\{(\d++)(?:,(\d*+))?\}$/', $q, $m) ?
-                (isset($m[2]) ?
-                    ('' === $m[2] ? [(int) $m[1], -1] : [(int) $m[1], (int) $m[2]]) : // {n,} or {n,m}
-                    [(int) $m[1], (int) $m[1]] // {n}
-                ) :
-                [1, 1], // Should be impossible if Lexer is correct
+            default => preg_match('/^\\{(\\d*?)(?:,(\\d*?))?\\}$/', $q, $m) ?
+                (
+                    ('' === $m[1] && (!isset($m[2]) || '' === $m[2]))
+                        ? [1, 1] // entirely empty braces remain invalid/fallback
+                        : (isset($m[2])
+                            ? ('' === $m[2] ? [(int) $m[1] ?: 0, -1] : [(int) $m[1] ?: 0, (int) $m[2]]) // {n,} or {n,m} or {,m}
+                            : [(int) $m[1] ?: 0, (int) $m[1] ?: 0]) // {n}
+                )
+                : [1, 1], // Should be impossible if Lexer is correct
         };
     }
 

@@ -593,10 +593,12 @@ final class HtmlExplainNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitUnicodeProp(Node\UnicodePropNode $node): string
     {
-        $type = str_starts_with($node->prop, '^') ? 'non-matching' : 'matching';
-        $prop = ltrim($node->prop, '^');
+        $inner = $node->hasBraces ? trim($node->prop, '{}') : $node->prop;
+        $isNegated = str_starts_with($inner, '^');
+        $prop = ltrim($inner, '^');
+        $type = $isNegated ? 'non-matching' : 'matching';
+        $prefix = $isNegated ? 'P' : 'p';
         $explanation = \sprintf('any character %s "%s"', $type, $prop);
-        $prefix = str_starts_with($node->prop, '^') ? 'P' : 'p';
 
         return \sprintf(
             '<li><span title="%s">Unicode Property: <strong>\%s{%s}</strong></span></li>',
@@ -826,8 +828,13 @@ final class HtmlExplainNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitCallout(Node\CalloutNode $node): string
     {
-        $argument = $node->isStringIdentifier ? '"'.$node->identifier.'"' : (string) $node->identifier;
-        $explanation = \sprintf('passes control to user function with argument %s', $argument);
+        if (null === $node->identifier) {
+            $argument = '';
+            $explanation = 'passes control to user function with no argument';
+        } else {
+            $argument = $node->isStringIdentifier ? '"'.$node->identifier.'"' : (string) $node->identifier;
+            $explanation = \sprintf('passes control to user function with argument %s', $argument);
+        }
 
         return \sprintf(
             '<li><span title="%s">Callout: <strong>(?C%s)</strong></span></li>',

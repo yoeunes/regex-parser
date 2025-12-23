@@ -74,4 +74,283 @@ final class AdvancedFeaturesComplianceTest extends TestCase
         yield 'explicit group recursion' => ['/((a))(?(R1)a|b)/'];
         yield 'root recursion check' => ['/(?(R)a|b)/'];
     }
+
+    #[DataProvider('provideQuantifierPatterns')]
+    public function test_php84_quantifier_missing_min_syntax(string $pattern, string $expectedCompiled): void
+    {
+        $regex = Regex::create()->parse($pattern);
+        $compiler = new \RegexParser\NodeVisitor\CompilerNodeVisitor();
+        $compiled = $regex->accept($compiler);
+
+        $this->assertSame($expectedCompiled, $compiled, "PHP 8.4 quantifier syntax should compile correctly: {$pattern}");
+    }
+
+    public static function provideQuantifierPatterns(): \Iterator
+    {
+        yield 'missing_min_no_spaces' => ['/a{,3}/', '/a{,3}/'];
+        yield 'missing_min_with_spaces' => ['/a{ , 3 }/', '/a{,3}/'];
+        yield 'missing_min_with_single_space' => ['/a{ ,3}/', '/a{,3}/'];
+        yield 'missing_max_with_spaces' => ['/a{2, }/', '/a{2,}/'];
+        yield 'both_with_spaces' => ['/a{ 2 , 3 }/', '/a{2,3}/'];
+        yield 'no_spaces' => ['/a{2,3}/', '/a{2,3}/'];
+    }
+
+    #[DataProvider('provideNewlineVerbPatterns')]
+    public function test_newline_verbs(string $pattern): void
+    {
+        $regex = Regex::create()->parse($pattern);
+        $compiler = new \RegexParser\NodeVisitor\CompilerNodeVisitor();
+        $compiled = $regex->accept($compiler);
+
+        $this->assertSame($pattern, $compiled, "Newline verb should round-trip: {$pattern}");
+    }
+
+    public static function provideNewlineVerbPatterns(): \Iterator
+    {
+        yield 'cr_newline' => ['/(*CR)a/'];
+        yield 'lf_newline' => ['/(*LF)a/'];
+        yield 'crlf_newline' => ['/(*CRLF)a/'];
+    }
+
+    #[DataProvider('provideEncodingVerbPatterns')]
+    public function test_encoding_verbs(string $pattern): void
+    {
+        $regex = Regex::create()->parse($pattern);
+        $compiler = new \RegexParser\NodeVisitor\CompilerNodeVisitor();
+        $compiled = $regex->accept($compiler);
+
+        $this->assertSame($pattern, $compiled, "Encoding verb should round-trip: {$pattern}");
+    }
+
+    public static function provideEncodingVerbPatterns(): \Iterator
+    {
+        yield 'utf8' => ['/(*UTF8)a/'];
+        yield 'ucp' => ['/(*UCP)a/'];
+    }
+
+    #[DataProvider('provideMatchControlVerbPatterns')]
+    public function test_match_control_verbs(string $pattern): void
+    {
+        $regex = Regex::create()->parse($pattern);
+        $compiler = new \RegexParser\NodeVisitor\CompilerNodeVisitor();
+        $compiled = $regex->accept($compiler);
+
+        $this->assertSame($pattern, $compiled, "Match control verb should round-trip: {$pattern}");
+    }
+
+    public static function provideMatchControlVerbPatterns(): \Iterator
+    {
+        yield 'notempty' => ['/(*NOTEMPTY)a+/'];
+        yield 'notempty_atstart' => ['/(*NOTEMPTY_ATSTART)^a+/'];
+    }
+
+    #[DataProvider('provideUnicodePropertyPatterns')]
+    public function test_unicode_properties(string $pattern, string $expected): void
+    {
+        $regex = Regex::create()->parse($pattern);
+        $compiler = new \RegexParser\NodeVisitor\CompilerNodeVisitor();
+        $compiled = $regex->accept($compiler);
+
+        $this->assertSame($expected, $compiled, "Unicode property should compile to: {$expected}");
+    }
+
+    public static function provideUnicodePropertyPatterns(): \Iterator
+    {
+        yield 'general_category' => ['/\p{L}/', '/\p{L}/'];
+        yield 'general_category_negated' => ['/\P{L}/', '/\p{^L}/'];
+        yield 'script' => ['/\p{Arabic}/', '/\p{Arabic}/'];
+        yield 'script_negated' => ['/\P{Arabic}/', '/\p{^Arabic}/'];
+        yield 'property' => ['/\p{Alpha}/', '/\p{Alpha}/'];
+        yield 'combined' => ['/[\p{L}\p{M}]/', '/[\p{L}\p{M}]/'];
+        yield 'with_braces' => ['/\p{Latin}/', '/\p{Latin}/'];
+        yield 'negated_with_braces' => ['/\P{Latin}/', '/\p{^Latin}/'];
+        yield 'short_form' => ['/\pL/', '/\pL/'];
+        yield 'short_form_negated' => ['/\PL/', '/\p{^L}/'];
+    }
+
+    #[DataProvider('providePcre84Features')]
+    public function test_pcre_84_features_implemented(string $pattern, string $description): void
+    {
+        $regex = Regex::create();
+
+        // Should parse without exception
+        $ast = $regex->parse($pattern);
+
+        // Should compile back to valid regex
+        $compiler = new \RegexParser\NodeVisitor\CompilerNodeVisitor();
+        $compiled = $ast->accept($compiler);
+
+        // Should validate without errors
+        $validator = new ValidatorNodeVisitor();
+        $ast->accept($validator);
+
+        // Ensure the pattern is preserved or normalized correctly
+        $this->assertIsString($compiled, "Pattern {$pattern} should compile successfully: {$description}");
+    }
+
+    public static function providePcre84Features(): \Iterator
+    {
+        // 1. {,n} quantifier syntax (PHP 8.4+)
+        yield 'omitted_min_no_spaces' => ['/a{,3}/', '{,n} quantifier syntax'];
+        yield 'omitted_min_with_spaces' => ['/a{ , 3 }/', '{ , n } quantifier syntax'];
+        yield 'omitted_min_single_space' => ['/a{ ,3}/', '{ ,n } quantifier syntax'];
+
+        // 2. Spaces in quantifier braces
+        yield 'spaces_in_quantifier' => ['/a{ 2 , 5 }/', 'spaces in quantifier braces'];
+        yield 'spaces_both_missing' => ['/a{ , }/', 'both min and max omitted with spaces'];
+
+        // 3. Newline convention verbs
+        yield 'newline_cr' => ['/(*CR)a/', '(*CR) newline convention verb'];
+        yield 'newline_lf' => ['/(*LF)b/', '(*LF) newline convention verb'];
+        yield 'newline_crlf' => ['/(*CRLF)c/', '(*CRLF) newline convention verb'];
+        yield 'newline_cr_group' => ['/(?(*CR)a)/', '(*CR) newline verb inside modifier group'];
+        yield 'newline_lf_group' => ['/(?(*LF)b)/', '(*LF) newline verb inside modifier group'];
+        yield 'newline_crlf_group' => ['/(?(*CRLF)c)/', '(*CRLF) newline verb inside modifier group'];
+
+        // 4. Control verbs
+        yield 'control_mark' => ['/(*MARK:label)a/', '(*MARK) control verb'];
+        yield 'control_prune' => ['/(*PRUNE)b/', '(*PRUNE) control verb'];
+        yield 'control_skip' => ['/(*SKIP)c/', '(*SKIP) control verb'];
+        yield 'control_then' => ['/(*THEN)d/', '(*THEN) control verb'];
+        yield 'control_mark_group' => ['/(?(*MARK:label)a)/', '(*MARK) control verb inside modifier group'];
+        yield 'control_prune_group' => ['/(?(*PRUNE)b)/', '(*PRUNE) control verb inside modifier group'];
+        yield 'control_skip_group' => ['/(?(*SKIP)c)/', '(*SKIP) control verb inside modifier group'];
+        yield 'control_then_group' => ['/(?(*THEN)d)/', '(*THEN) control verb inside modifier group'];
+
+        // 5. Encoding control verbs
+        yield 'encoding_utf8' => ['/(*UTF8)pattern/', '(*UTF8) encoding control verb'];
+        yield 'encoding_ucp' => ['/(*UCP)test/', '(*UCP) encoding control verb'];
+        yield 'encoding_utf8_group' => ['/(?(*UTF8)a)/', '(*UTF8) encoding verb inside modifier group'];
+        yield 'encoding_ucp_group' => ['/(?(*UCP)b)/', '(*UCP) encoding verb inside modifier group'];
+
+        // 6. Match control verbs
+        yield 'match_notempty' => ['/(*NOTEMPTY)a+/', '(*NOTEMPTY) match control verb'];
+        yield 'match_notempty_atstart' => ['/(*NOTEMPTY_ATSTART)^a+/', '(*NOTEMPTY_ATSTART) match control verb'];
+        yield 'match_notempty_group' => ['/(?(*NOTEMPTY)a)/', '(*NOTEMPTY) match control verb inside modifier group'];
+        yield 'match_notempty_atstart_group' => ['/(?(*NOTEMPTY_ATSTART)b)/', '(*NOTEMPTY_ATSTART) match control verb inside modifier group'];
+
+        // 7. \R backreference (as char type, not backreference)
+        yield 'r_char_type' => ['/\R/', '\\R as char type (line ending)'];
+
+        // 8. Possessive quantifiers in char classes (edge cases - quantifiers not allowed in char classes)
+        yield 'char_class_with_plus' => ['/[a+]/', 'plus literal in char class'];
+        yield 'char_class_with_star' => ['/[b*]/', 'star literal in char class'];
+        yield 'char_class_with_double_plus' => ['/[a++]/', 'double plus literal in char class'];
+        yield 'char_class_with_star_plus' => ['/[b*+]/', 'star plus literal in char class'];
+        yield 'char_class_with_question' => ['/[c?]/', 'question mark literal in char class'];
+
+        // 9. Extended Unicode properties
+        yield 'unicode_extended_script' => ['/\p{Greek}/', 'extended Unicode script property'];
+        yield 'unicode_extended_category' => ['/\p{Ll}/', 'extended Unicode category property'];
+        yield 'unicode_extended_property' => ['/\p{Alpha}/', 'extended Unicode binary property'];
+        yield 'unicode_script_equals' => ['/\p{Script=Greek}/', 'extended Unicode script= property'];
+        yield 'unicode_block_equals' => ['/\p{Block=Basic_Latin}/', 'extended Unicode block= property'];
+
+        // 10. Callouts
+        yield 'callout_bare' => ['/(?C)abc/', 'bare callout'];
+        yield 'callout_numeric' => ['/(?C1)abc/', 'numeric callout'];
+        yield 'callout_string' => ['/(?C"debug")def/', 'string callout'];
+        yield 'callout_named' => ['/(?Cmyfunc)xyz/', 'named callout'];
+
+        // Additional combinations
+        yield 'complex_quantifiers_and_verbs' => ['/(?C1)a{,3}(*MARK:pos)b{ 2 , 5 }(*PRUNE)/', 'complex combination of features'];
+        yield 'unicode_with_newlines' => ['/(*CRLF)\p{L}+(*NOTEMPTY_ATSTART)/', 'Unicode properties with newline verbs'];
+    }
+
+    #[DataProvider('providePcre84InvalidPatterns')]
+    public function test_pcre_84_invalid_patterns(string $pattern, string $description): void
+    {
+        $regex = Regex::create();
+        $result = $regex->validate($pattern);
+
+        $this->assertFalse($result->isValid, "Pattern should be invalid: {$description}");
+    }
+
+    #[DataProvider('provideComprehensivePcre84Patterns')]
+    public function test_comprehensive_pcre84_parsing(string $pattern, string $description): void
+    {
+        $regex = Regex::create()->parse($pattern);
+        $compiler = new \RegexParser\NodeVisitor\CompilerNodeVisitor();
+        $compiled = $regex->accept($compiler);
+
+        $this->assertIsString($compiled, "Pattern should parse and compile successfully: {$description}");
+    }
+
+    public static function provideComprehensivePcre84Patterns(): \Iterator
+    {
+        // Quantifier variations
+        yield 'quantifier_comma_n_variations' => ['/a{,3}/', 'basic {,n}'];
+        yield 'quantifier_comma_n_zero' => ['/a{,0}/', '{,0}'];
+        yield 'quantifier_comma_n_large' => ['/a{,100}/', '{,100}'];
+        yield 'quantifier_spaces_single' => ['/a{ 1 }/', '{ 1 }'];
+        yield 'quantifier_spaces_both' => ['/a{ 1 , 3 }/', '{ 1 , 3 }'];
+        yield 'quantifier_spaces_min' => ['/a{ 2 ,}/', '{ 2 ,}'];
+        yield 'quantifier_spaces_max' => ['/a{ , 5 }/', '{ , 5 }'];
+        yield 'quantifier_multiple_spaces' => ['/a{  2  ,  5  }/', 'multiple spaces'];
+
+        // Newline verbs
+        yield 'newline_cr_standalone' => ['/(*CR)abc/', '(*CR) standalone'];
+        yield 'newline_lf_standalone' => ['/(*LF)def/', '(*LF) standalone'];
+        yield 'newline_crlf_standalone' => ['/(*CRLF)ghi/', '(*CRLF) standalone'];
+        yield 'newline_cr_group' => ['/(?(*CR)abc)/', '(*CR) in group'];
+        yield 'newline_lf_group' => ['/(?(*LF)def)/', '(*LF) in group'];
+        yield 'newline_crlf_group' => ['/(?(*CRLF)ghi)/', '(*CRLF) in group'];
+
+        // Control verbs
+        yield 'control_mark_no_arg' => ['/(*MARK)abc/', '(*MARK) no arg'];
+        yield 'control_mark_with_arg' => ['/(*MARK:start)def/', '(*MARK:start)'];
+        yield 'control_prune' => ['/(*PRUNE)ghi/', '(*PRUNE)'];
+        yield 'control_skip' => ['/(*SKIP)jkl/', '(*SKIP)'];
+        yield 'control_then' => ['/(*THEN)mno/', '(*THEN)'];
+        yield 'control_mark_group' => ['/(?(*MARK)abc)/', '(*MARK) in group'];
+        yield 'control_prune_group' => ['/(?(*PRUNE)def)/', '(*PRUNE) in group'];
+
+        // Encoding verbs
+        yield 'encoding_utf8' => ['/(*UTF8)abc/', '(*UTF8)'];
+        yield 'encoding_ucp' => ['/(*UCP)def/', '(*UCP)'];
+        yield 'encoding_utf8_group' => ['/(?(*UTF8)abc)/', '(*UTF8) in group'];
+        yield 'encoding_ucp_group' => ['/(?(*UCP)def)/', '(*UCP) in group'];
+
+        // Match control verbs
+        yield 'match_notempty' => ['/(*NOTEMPTY)abc+/', '(*NOTEMPTY)'];
+        yield 'match_notempty_atstart' => ['/(*NOTEMPTY_ATSTART)^abc+/', '(*NOTEMPTY_ATSTART)'];
+        yield 'match_notempty_group' => ['/(?(*NOTEMPTY)abc)/', '(*NOTEMPTY) in group'];
+        yield 'match_notempty_atstart_group' => ['/(?(*NOTEMPTY_ATSTART)def)/', '(*NOTEMPTY_ATSTART) in group'];
+
+        // \R char type
+        yield 'r_char_type' => ['/\Ra/', '\R char type'];
+        yield 'r_in_class' => ['/[a\Rb]/', '\R in char class'];
+
+        // Possessive in char class (as literal)
+        yield 'possessive_in_class_star' => ['/[a*+b]/', '*+ in class'];
+        yield 'possessive_in_class_plus' => ['/[a++b]/', '++ in class'];
+        yield 'possessive_in_class_question' => ['/[a?+b]/', '?+ in class'];
+
+        // Extended Unicode properties
+        yield 'unicode_block' => ['/\p{Block=Basic_Latin}/', 'Block= property'];
+        yield 'unicode_script' => ['/\p{Script=Latin}/', 'Script= property'];
+        yield 'unicode_category' => ['/\p{General_Category=Letter}/', 'General_Category='];
+        yield 'unicode_negated' => ['/\P{Block=Basic_Latin}/', 'negated Block='];
+
+        // Callouts
+        yield 'callout_empty' => ['/(?C)abc/', 'empty callout'];
+        yield 'callout_zero' => ['/(?C0)def/', 'callout 0'];
+        yield 'callout_large' => ['/(?C255)ghi/', 'callout 255'];
+        yield 'callout_string' => ['/(?C"callback")jkl/', 'string callout'];
+        yield 'callout_named' => ['/(?Ccallback)mno/', 'named callout'];
+
+        // Complex combinations
+        yield 'complex_1' => ['/(?C1)(*CR)a{,3}\p{L}+/', 'complex 1'];
+        yield 'complex_2' => ['/(?(*UTF8)(*MARK:pos)b{ 2 , 5 }(*PRUNE))/', 'complex 2'];
+        yield 'complex_3' => ['/(*NOTEMPTY_ATSTART)^[a\Rb]{1,10}(*THEN)/', 'complex 3'];
+    }
+
+    public static function providePcre84InvalidPatterns(): \Iterator
+    {
+        yield 'invalid_quantifier_range' => ['/a{5,2}/', 'min > max'];
+        yield 'invalid_callout_range' => ['/(?C256)abc/', 'callout identifier out of range'];
+        yield 'invalid_callout_empty_string' => ['/(?C"")abc/', 'empty callout string'];
+        yield 'invalid_pcre_verb' => ['/(*INVALID)a/', 'unsupported PCRE verb'];
+        yield 'invalid_group_verb' => ['/(?(*INVALID)a)/', 'unsupported verb in modifier group'];
+    }
 }

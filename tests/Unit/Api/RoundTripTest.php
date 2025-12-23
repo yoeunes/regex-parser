@@ -40,8 +40,8 @@ final class RoundTripTest extends TestCase
         yield ['/(?<name>\w+)/'];
         yield ['/\\/home\\/user/'];
         yield ['#Hash matches#'];
-        // The compiler normalizes \p{L} to \pL
-        yield ['/\p{L}+/u', '/\pL+/u'];
+        // The compiler preserves brace form for Unicode properties
+        yield ['/\\p{L}+/u', '/\\p{L}+/u'];
         // Correction here: We define group 1 (a) so that the condition (?(1)...) is valid
         yield ['/(a)(?(1)b|c)/'];
     }

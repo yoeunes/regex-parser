@@ -45,12 +45,12 @@ final class Lexer
     private const PATTERNS_OUTSIDE = [
         'T_COMMENT_OPEN' => '\\(\\?\\#',
         'T_CALLOUT' => '\\(\\?C [^)]* \\)',
-        'T_PCRE_VERB' => '\\(\\* [^)]+ \\)',
+        'T_PCRE_VERB' => '\\(\\?\\* [^)]+ \\)|\\(\\* [^)]+ \\)',
         'T_GROUP_MODIFIER_OPEN' => '\\(\\?',
         'T_GROUP_OPEN' => '\\(',
         'T_GROUP_CLOSE' => '\\)',
         'T_CHAR_CLASS_OPEN' => '\\[',
-        'T_QUANTIFIER' => '(?: [\\*\\+\\?] | \\{\\d+(?:,\\d*)?\\} ) [\\?\\+]?',
+        'T_QUANTIFIER' => '(?: [\*\+\?] | \{ \s* \d* \s* (?: , \s* \d* \s* )? \} ) [\?\+]?',
         'T_ALTERNATION' => '\\|',
         'T_DOT' => '\\.',
         'T_ANCHOR' => '\\^|\\$',
@@ -472,7 +472,9 @@ final class Lexer
         $isNegated = str_starts_with($matchedValue, '\\P');
         $prop = substr($matchedValue, 2); // Strip "\p" or "\P"
 
-        if (str_starts_with($prop, '{') && str_ends_with($prop, '}')) {
+        $hasBraces = str_starts_with($prop, '{') && str_ends_with($prop, '}');
+
+        if ($hasBraces) {
             $prop = substr($prop, 1, -1);
         }
 
@@ -487,7 +489,9 @@ final class Lexer
 
         $negated = $isNegated !== $isPropNegated;
 
-        return $negated ? '^'.$prop : $prop;
+        $normalized = $negated ? '^'.$prop : $prop;
+
+        return $hasBraces ? '{'.$normalized.'}' : $normalized;
     }
 
     private function validateFinalState(): void
