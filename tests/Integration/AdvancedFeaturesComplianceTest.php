@@ -256,4 +256,22 @@ final class AdvancedFeaturesComplianceTest extends TestCase
         yield 'complex_quantifiers_and_verbs' => ['/(?C1)a{,3}(*MARK:pos)b{ 2 , 5 }(*PRUNE)/', 'complex combination of features'];
         yield 'unicode_with_newlines' => ['/(*CRLF)\p{L}+(*NOTEMPTY_ATSTART)/', 'Unicode properties with newline verbs'];
     }
+
+    #[DataProvider('providePcre84InvalidPatterns')]
+    public function test_pcre_84_invalid_patterns(string $pattern, string $description): void
+    {
+        $regex = Regex::create();
+        $result = $regex->validate($pattern);
+
+        $this->assertFalse($result->isValid, "Pattern should be invalid: {$description}");
+    }
+
+    public static function providePcre84InvalidPatterns(): \Iterator
+    {
+        yield 'invalid_quantifier_range' => ['/a{5,2}/', 'min > max'];
+        yield 'invalid_callout_range' => ['/(?C256)abc/', 'callout identifier out of range'];
+        yield 'invalid_callout_empty_string' => ['/(?C"")abc/', 'empty callout string'];
+        yield 'invalid_pcre_verb' => ['/(*INVALID)a/', 'unsupported PCRE verb'];
+        yield 'invalid_group_verb' => ['/(?(*INVALID)a)/', 'unsupported verb in modifier group'];
+    }
 }
