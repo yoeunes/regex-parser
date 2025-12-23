@@ -158,7 +158,7 @@ final class LexerCoverageBoostTest extends TestCase
 
         $this->assertGreaterThan(0, \count($tokens));
         $this->assertSame(TokenType::T_UNICODE_PROP, $tokens[0]->type);
-        $this->assertSame('L', $tokens[0]->value);
+        $this->assertSame('{L}', $tokens[0]->value);
     }
 
     public function test_unicode_prop_uppercase_p(): void
@@ -168,7 +168,7 @@ final class LexerCoverageBoostTest extends TestCase
 
         $this->assertGreaterThan(0, \count($tokens));
         $this->assertSame(TokenType::T_UNICODE_PROP, $tokens[0]->type);
-        $this->assertSame('^L', $tokens[0]->value);
+        $this->assertSame('{^L}', $tokens[0]->value);
     }
 
     public function test_unicode_prop_lowercase_p_with_negation(): void
@@ -178,7 +178,7 @@ final class LexerCoverageBoostTest extends TestCase
 
         $this->assertGreaterThan(0, \count($tokens));
         $this->assertSame(TokenType::T_UNICODE_PROP, $tokens[0]->type);
-        $this->assertSame('^L', $tokens[0]->value);
+        $this->assertSame('{^L}', $tokens[0]->value);
     }
 
     public function test_unicode_prop_uppercase_p_with_negation_double_negation(): void
@@ -188,7 +188,7 @@ final class LexerCoverageBoostTest extends TestCase
 
         $this->assertGreaterThan(0, \count($tokens));
         $this->assertSame(TokenType::T_UNICODE_PROP, $tokens[0]->type);
-        $this->assertSame('L', $tokens[0]->value);
+        $this->assertSame('{L}', $tokens[0]->value);
     }
 
     public function test_unicode_prop_short_form_lowercase(): void

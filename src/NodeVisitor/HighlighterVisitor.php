@@ -146,12 +146,13 @@ abstract class HighlighterVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitUnicodeProp(Node\UnicodePropNode $node): string
     {
-        $prop = $node->prop;
-        if (\strlen($prop) > 1 || str_starts_with($prop, '^')) {
-            $prop = '{'.$prop.'}';
-        }
+        $inner = $node->hasBraces ? trim($node->prop, '{}') : $node->prop;
+        $isNegated = str_starts_with($inner, '^');
+        $inner = ltrim($inner, '^');
+        $prefix = $isNegated ? 'P' : 'p';
+        $display = '{'.$inner.'}';
 
-        return $this->wrap('\\p'.$this->escape($prop), 'type');
+        return $this->wrap('\\'.$prefix.$this->escape($display), 'type');
     }
 
     #[\Override]
