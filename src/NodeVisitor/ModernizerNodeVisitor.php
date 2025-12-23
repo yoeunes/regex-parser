@@ -69,7 +69,7 @@ final class ModernizerNodeVisitor extends AbstractNodeVisitor
         }
 
         // For other cases, keep as is but modernize parts
-        $modernizedParts = array_map(fn ($part) => $part->accept($this), $parts);
+        $modernizedParts = array_map(fn (Node\NodeInterface $part): Node\NodeInterface => $part->accept($this), $parts);
         $expression = 1 === \count($modernizedParts)
             ? $modernizedParts[0]
             : new \RegexParser\Node\AlternationNode($modernizedParts, $node->getStartPosition(), $node->getEndPosition());
