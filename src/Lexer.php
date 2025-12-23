@@ -37,7 +37,7 @@ final class Lexer
     private const TOKENS_INSIDE = [
         'T_CHAR_CLASS_CLOSE', 'T_POSIX_CLASS', 'T_CHAR_TYPE', 'T_OCTAL_LEGACY',
         'T_OCTAL', 'T_UNICODE', 'T_UNICODE_PROP', 'T_UNICODE_NAMED',
-        'T_CONTROL_CHAR', 'T_QUOTE_MODE_START', 'T_LITERAL_ESCAPED',
+        'T_CONTROL_CHAR', 'T_QUOTE_MODE_START', 'T_QUOTE_MODE_END', 'T_LITERAL_ESCAPED',
         'T_CLASS_INTERSECTION', 'T_CLASS_SUBTRACTION', 'T_LITERAL',
     ];
 
@@ -81,6 +81,7 @@ final class Lexer
         'T_UNICODE_PROP' => '\\\\ [pP] (?: \\{ [^}]+ \\} | [a-zA-Z] )',
         'T_CONTROL_CHAR' => '\\\\ c [\\x00-\\x7F]',
         'T_QUOTE_MODE_START' => '\\\\ Q',
+        'T_QUOTE_MODE_END' => '\\\\ E',
         'T_LITERAL_ESCAPED' => '\\\\ .',
         'T_CLASS_INTERSECTION' => '&&',
         'T_CLASS_SUBTRACTION' => '--',
@@ -367,6 +368,16 @@ final class Lexer
     private function consumeQuoteMode(): ?Token
     {
         if (!preg_match('/(.*?)((\\\\E|$))/suA', $this->pattern, $matches, \PREG_UNMATCHED_AS_NULL, $this->position)) {
+            // Pattern doesn't match - consume remaining content as literal
+            $remaining = substr($this->pattern, $this->position);
+            if ('' !== $remaining) {
+                $startPos = $this->position;
+                $this->position = $this->length;
+                $this->inQuoteMode = false;
+
+                return new Token(TokenType::T_LITERAL, $remaining, $startPos);
+            }
+
             $this->inQuoteMode = false;
             $this->position = $this->length;
 
@@ -391,6 +402,9 @@ final class Lexer
             return $token;
         }
 
+        // End of pattern reached without \E - PCRE treats \Q without \E as valid
+        // (quotes to end of pattern). Exit quote mode gracefully.
+        $this->inQuoteMode = false;
         $this->position = $this->length;
 
         return null;
