@@ -35,7 +35,14 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
     public function __construct(
         private readonly bool $optimizeDigits = true,
         private readonly bool $optimizeWord = true,
-        private readonly bool $strictRanges = true
+        private readonly bool $strictRanges = true,
+        /**
+         * Whether to automatically convert greedy quantifiers to possessive
+         * when followed by a disjoint character set. This is safe in most cases
+         * but can change semantics when backreferences are involved.
+         * Default is false to ensure semantic preservation.
+         */
+        private readonly bool $autoPossessify = false
     ) {
         $this->charSetAnalyzer = new CharSetAnalyzer();
     }
