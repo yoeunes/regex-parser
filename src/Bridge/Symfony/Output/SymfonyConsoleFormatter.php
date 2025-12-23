@@ -163,7 +163,7 @@ final readonly class SymfonyConsoleFormatter implements OutputFormatterInterface
 
         try {
             // Try highlighting the escaped pattern, but if it contains escapes, skip highlighting
-            if (strpos($escapedPattern, '\\') !== false) {
+            if (str_contains($escapedPattern, '\\')) {
                 return OutputFormatter::escape($escapedPattern);
             }
             

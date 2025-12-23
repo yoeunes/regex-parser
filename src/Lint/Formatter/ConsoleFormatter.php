@@ -113,17 +113,7 @@ class ConsoleFormatter extends AbstractOutputFormatter
             $report->stats['optimizations']);
     }
 
-    /**
-     * Format file header.
-     */
-    private function formatFileHeader(string $file): string
-    {
-        if (!$this->config->ansi) {
-            return '  '.$file.\PHP_EOL;
-        }
-
-        return '  '.$this->dim($file).\PHP_EOL;
-    }
+    
 
     /**
      * Format pattern context information.

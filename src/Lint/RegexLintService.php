@@ -121,11 +121,11 @@ final readonly class RegexLintService
     private function filterIssuesByRequest(array $issues, RegexLintRequest $request): array
     {
         return array_values(array_filter($issues, static function (array $issue) use ($request): bool {
-            if (!$request->checkValidation && isset($issue['validation']) && $issue['validation'] instanceof ValidationResult) {
+            if (!$request->checkValidation && isset($issue['validation'])) {
                 return false;
             }
 
-            if (!$request->checkRedos && isset($issue['analysis']) && $issue['analysis'] instanceof ReDoSAnalysis) {
+            if (!$request->checkRedos && isset($issue['analysis'])) {
                 return false;
             }
 

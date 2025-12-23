@@ -114,7 +114,7 @@ final class PatternParser
         }
 
         $result = @preg_match('/a/r', '');
-        self::$supportsModifierR = false !== $result;
+        self::$supportsModifierR = false !== $result && null !== $result;
 
         return self::$supportsModifierR;
     }

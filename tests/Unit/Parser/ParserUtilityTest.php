@@ -347,6 +347,6 @@ final class ParserUtilityTest extends TestCase
     {
         $result = @preg_match('/a/r', '');
 
-        return false !== $result;
+        return false !== $result && null !== $result;
     }
 }
