@@ -97,16 +97,41 @@ final readonly class RegexLintService
     {
         $issues = $this->analysis->lint($patterns, $progress);
         $issues = $this->filterLintIssues($issues);
+        $issues = $this->filterIssuesByRequest($issues, $request);
         $issues = $this->deduplicateIssues($issues);
 
         /** @var list<array{file: string, line: int, optimization: OptimizationResult, savings: int, source?: string}> $optimizations */
-        $optimizations = array_values($this->analysis->suggestOptimizations($patterns, $request->minSavings));
+        $optimizations = $request->checkOptimizations
+            ? array_values($this->analysis->suggestOptimizations($patterns, $request->minSavings))
+            : [];
 
         $results = $this->combineResults($issues, $optimizations, $patterns);
 
         $stats = $this->updateStatsFromResults($this->createStats(), $results);
 
         return new RegexLintReport($results, $stats);
+    }
+
+    /**
+     * Apply high-level toggles from the lint request (validation / ReDoS).
+     *
+     * @phpstan-param list<LintIssue> $issues
+     *
+     * @phpstan-return list<LintIssue>
+     */
+    private function filterIssuesByRequest(array $issues, RegexLintRequest $request): array
+    {
+        return array_values(array_filter($issues, static function (array $issue) use ($request): bool {
+            if (!$request->checkValidation && isset($issue['validation'])) {
+                return false;
+            }
+
+            if (!$request->checkRedos && isset($issue['analysis'])) {
+                return false;
+            }
+
+            return true;
+        }));
     }
 
     /**

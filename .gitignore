@@ -9,7 +9,9 @@
 
 # Cache & Temporary Files
 /.cache/
-/.task/
+/.task/*
+!/.task/
+!/.task/.gitkeep
 /.junie/
 /.phpunit.result.cache
 /.php-cs-fixer.cache

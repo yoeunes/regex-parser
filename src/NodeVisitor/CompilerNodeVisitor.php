@@ -49,6 +49,8 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
 
     private string $delimiter = '/';
 
+    private string $closingDelimiter = '/';
+
     private string $flags = '';
 
     private int $indentLevel;
@@ -68,9 +70,9 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     {
         $this->delimiter = $node->delimiter;
         $this->flags = $node->flags;
-        $closingDelimiter = $this->getClosingDelimiter($node->delimiter);
+        $this->closingDelimiter = $this->getClosingDelimiter($node->delimiter);
 
-        return $node->delimiter.$node->pattern->accept($this).$closingDelimiter.$node->flags;
+        return $node->delimiter.$node->pattern->accept($this).$this->closingDelimiter.$node->flags;
     }
 
     #[\Override]
@@ -195,7 +197,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
         }
 
         // Special case for closing bracket outside char class
-        if (!$this->inCharClass && ']' === $value) {
+        if (!$this->inCharClass && ']' === $value && ']' !== $this->closingDelimiter) {
             return $value;
         }
 
@@ -500,6 +502,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     private function escapeString(string $value): string
     {
         $meta = $this->inCharClass ? self::CHAR_CLASS_META : self::META_CHARACTERS;
+        $escapeExtended = str_contains($this->flags, 'x') && !$this->inCharClass;
         $needsEscape = false;
 
         // Fast pre-scan to check if escaping is needed
@@ -507,7 +510,15 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
         for ($i = 0; $i < $len; $i++) {
             $char = $value[$i];
             $ord = \ord($char);
-            if ($char === $this->delimiter || isset($meta[$char]) || $ord < 32 || 127 === $ord || $ord >= 128) {
+            if (
+                $char === $this->delimiter
+                || $char === $this->closingDelimiter
+                || isset($meta[$char])
+                || ($escapeExtended && (' ' === $char || '#' === $char))
+                || $ord < 32
+                || 127 === $ord
+                || $ord >= 128
+            ) {
                 $needsEscape = true;
 
                 break;
@@ -523,7 +534,12 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
         $result = '';
         for ($i = 0; $i < $len; $i++) {
             $char = $value[$i];
-            if ($char === $this->delimiter || isset($meta[$char])) {
+            if (
+                $char === $this->delimiter
+                || $char === $this->closingDelimiter
+                || isset($meta[$char])
+                || ($escapeExtended && (' ' === $char || '#' === $char))
+            ) {
                 $result .= '\\'.$char;
             } elseif (\ord($char) < 32 || 127 === \ord($char) || \ord($char) >= 128) {
                 // Escape control characters and extended ASCII

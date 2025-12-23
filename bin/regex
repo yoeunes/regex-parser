@@ -229,30 +229,33 @@ function showHelp(): void
     output(color(str_repeat('=', 12), CYAN)."\n\n");
 
     output(color('Description:', MAGENTA)."\n");
-    output('  '.bold('A beautiful CLI tool for regex parsing, validation, and analysis')."\n\n");
+    output('  '.bold('CLI for regex parsing, validation, analysis, and linting')."\n\n");
 
     output(color('Usage:', MAGENTA)."\n");
     output('  regex '.color('<command>', YELLOW).' '.color('[options]', CYAN).' '.color('<pattern>', GREEN)."\n\n");
 
     output(color('Commands:', MAGENTA)."\n");
-    output('  '.info('parse')."     Parse and recompile a regex pattern\n");
-    output('  '.info('analyze')."   Analyze a regex (parse, validate, ReDoS, explain)\n");
-    output('  '.info('highlight')." Highlight regex for display\n");
-    output('  '.info('validate')."  Validate a regex pattern\n");
-    output('  '.info('lint')."      Lint regex patterns in PHP source code\n");
-    output('  '.info('help')."      Display this help message\n\n");
+    output('  '.info('parse')."       Parse and recompile a regex pattern\n");
+    output('  '.info('analyze')."     Parse, validate, and analyze ReDoS risk\n");
+    output('  '.info('highlight')."   Highlight a regex for display\n");
+    output('  '.info('validate')."    Validate a regex pattern\n");
+    output('  '.info('lint')."        Lint regex patterns in PHP source code\n");
+    output('  '.info('help')."        Display this help message\n\n");
 
     output(color('Global Options:', MAGENTA)."\n");
-    output('  '.color('--ansi', CYAN)."          Force ANSI output\n");
-    output('  '.color('--no-ansi', CYAN)."       Disable ANSI output\n");
-    output('  '.color('-q, --quiet', CYAN)."     Suppress output\n");
-    output('  '.color('--silent', CYAN)."        Same as --quiet\n");
-    output('  '.color('--help', CYAN)."          Display this help message\n\n");
+    output('  '.color('--ansi', CYAN)."            Force ANSI output\n");
+    output('  '.color('--no-ansi', CYAN)."         Disable ANSI output\n");
+    output('  '.color('-q, --quiet', CYAN)."       Suppress output\n");
+    output('  '.color('--silent', CYAN)."          Same as --quiet\n");
+    output('  '.color('--help', CYAN)."            Display this help message\n\n");
 
     output(color('Lint Options:', MAGENTA)."\n");
-    output('  '.color('--exclude', CYAN)." <path>     Paths to exclude (repeatable)\n");
-    output('  '.color('--min-savings', CYAN)." <n>   Minimum optimization savings\n");
-    output('  '.color('--format', CYAN)." <format>   Output format (console, json)\n");
+    output('  '.color('--exclude', CYAN)." <path>       Paths to exclude (repeatable)\n");
+    output('  '.color('--min-savings', CYAN)." <n>     Minimum optimization savings\n");
+    output('  '.color('--format', CYAN)." <format>     Output format (console, json, github, checkstyle, junit)\n");
+    output('  '.color('--no-redos', CYAN)."           Skip ReDoS risk analysis\n");
+    output('  '.color('--no-validate', CYAN)."        Skip validation errors (structural lint only)\n");
+    output('  '.color('--no-optimize', CYAN)."        Disable optimization suggestions\n");
     output('  '.color('-v, --verbose', CYAN)."         Show detailed output\n");
     output('  '.color('--debug', CYAN)."              Show debug information\n\n");
 
@@ -336,146 +339,6 @@ function relativePath(string $path): string
     return $normalizedPath;
 }
 
-function stripMessageLine(string $message): string
-{
-    return preg_replace_callback(
-        '/^Line \d+:/m',
-        fn ($matches) => str_repeat(' ', \strlen($matches[0])),
-        $message,
-    ) ?? $message;
-}
-
-function extractPatternForResult(array $result): ?string
-{
-    $pattern = $result['pattern'] ?? null;
-    if (\is_string($pattern) && '' !== $pattern) {
-        return $pattern;
-    }
-
-    if (!empty($result['issues'])) {
-        $firstIssue = $result['issues'][0];
-        $issuePattern = $firstIssue['pattern'] ?? $firstIssue['regex'] ?? null;
-        if (\is_string($issuePattern) && '' !== $issuePattern) {
-            return $issuePattern;
-        }
-    }
-
-    if (!empty($result['optimizations'])) {
-        $firstOpt = $result['optimizations'][0];
-        $optimization = $firstOpt['optimization'] ?? null;
-        if ($optimization instanceof OptimizationResult) {
-            return $optimization->original;
-        }
-    }
-
-    return null;
-}
-
-function severityScore(array $result): int
-{
-    $issueScore = 0;
-    foreach ($result['issues'] as $issue) {
-        $issueScore += match ($issue['type']) {
-            'error' => 100,
-            'warning' => 10,
-            default => 0,
-        };
-    }
-
-    return $issueScore + \count($result['optimizations']);
-}
-
-function groupResultsByFile(array $results): array
-{
-    $grouped = [];
-    foreach ($results as $result) {
-        $grouped[$result['file']][] = $result;
-    }
-
-    return $grouped;
-}
-
-function safelyHighlightPattern(RegexAnalysisService $analysis, string $pattern): string
-{
-    global $ansi;
-
-    if (!$ansi) {
-        return $pattern;
-    }
-
-    try {
-        return $analysis->highlight($pattern);
-    } catch (Throwable) {
-        return $pattern;
-    }
-}
-
-function renderFileHeader(string $file): void
-{
-    $label = relativePath($file);
-    output('  '.badge($label, WHITE, BG_GRAY)."\n");
-}
-
-function displayPatternContext(RegexAnalysisService $analysis, array $result): void
-{
-    $pattern = extractPatternForResult($result);
-    $line = $result['line'];
-
-    if (null !== $pattern && '' !== $pattern) {
-        output(\sprintf("  %s %s\n", dim($line.':'), $pattern));
-    } else {
-        output(\sprintf("  %s\n", dim('line '.$line.':')));
-    }
-}
-
-function displaySingleIssue(string $badge, string $message): void
-{
-    $lines = explode("\n", $message);
-    $firstLine = array_shift($lines) ?: '';
-
-    output(\sprintf("    %s %s\n", $badge, color($firstLine, WHITE)));
-
-    foreach ($lines as $index => $line) {
-        $prefix = 0 === $index ? '↳' : ' ';
-        output(\sprintf("         %s\n", dim($prefix.' '.stripMessageLine($line))));
-    }
-}
-
-function issueBadge(string $type): string
-{
-    return match ($type) {
-        'error' => badge('FAIL', WHITE, BG_RED),
-        'warning' => badge('WARN', BLACK, BG_YELLOW),
-        default => badge('INFO', WHITE, BG_GRAY),
-    };
-}
-
-function displayIssues(array $issues): void
-{
-    foreach ($issues as $issue) {
-        $badge = issueBadge($issue['type']);
-        displaySingleIssue($badge, (string) $issue['message']);
-
-        $hint = $issue['hint'] ?? null;
-        if (\is_string($hint) && '' !== $hint) {
-            output(\sprintf("         %s\n", dim('↳ '.$hint)));
-        }
-    }
-}
-
-function displayOptimizations(RegexAnalysisService $analysis, array $optimizations): void
-{
-    foreach ($optimizations as $opt) {
-        output(\sprintf("    %s %s\n", badge('TIP', WHITE, BG_CYAN), color('Optimization available', CYAN.BOLD)));
-
-        $original = safelyHighlightPattern($analysis, $opt['optimization']->original);
-        $optimized = safelyHighlightPattern($analysis, $opt['optimization']->optimized);
-
-        output('         '.color('- ', RED).$original."\n");
-        output('         '.color('+ ', GREEN).$optimized."\n");
-    }
-}
-
 function renderSummary(array $stats, bool $isEmpty = false): void
 {
     output("\n");
@@ -516,7 +379,7 @@ function showFooter(): void
 
 function renderLintBanner(): string
 {
-    return "\n  ".color('Regex Parser', WHITE.BOLD).' '.dim('linting...')."\n\n";
+    return color('Regex Parser', CYAN.BOLD).' '.dim('· lint')."\n\n";
 }
 
 function createExtractor(): RegexPatternExtractor
@@ -538,6 +401,9 @@ function parseLintArgs(array $args): array
     $verbosity = OutputConfiguration::VERBOSITY_NORMAL;
     $format = 'console';
     $quiet = false;
+    $checkRedos = true;
+    $checkValidation = true;
+    $checkOptimizations = true;
 
     for ($i = 0; $i < \count($args); $i++) {
         $arg = $args[$i];
@@ -561,6 +427,24 @@ function parseLintArgs(array $args): array
 
         if ('--debug' === $arg) {
             $verbosity = OutputConfiguration::VERBOSITY_DEBUG;
+
+            continue;
+        }
+
+        if ('--no-redos' === $arg) {
+            $checkRedos = false;
+
+            continue;
+        }
+
+        if ('--no-validate' === $arg) {
+            $checkValidation = false;
+
+            continue;
+        }
+
+        if ('--no-optimize' === $arg) {
+            $checkOptimizations = false;
 
             continue;
         }
@@ -630,6 +514,9 @@ function parseLintArgs(array $args): array
         'verbosity' => $verbosity,
         'format' => $format,
         'quiet' => $quiet,
+        'checkRedos' => $checkRedos,
+        'checkValidation' => $checkValidation,
+        'checkOptimizations' => $checkOptimizations,
     ];
 }
 
@@ -680,19 +567,20 @@ switch ($command) {
             $ast = $regex->parse($pattern);
             $compiled = $ast->accept(new RegexParser\NodeVisitor\CompilerNodeVisitor());
 
-            output(success("✓ Parsed successfully!\n"));
-            output("Original:   {$pattern}\n");
-            output("Recompiled: {$compiled}\n");
+            output(bold("Parse\n"));
+            output('  Pattern:    '.$pattern."\n");
+            output('  Recompiled: '.$compiled."\n");
 
             if ($validate) {
                 $validation = $regex->validate($pattern);
-                output('Validation: '.($validation->isValid ? success('OK') : error('INVALID'))."\n");
+                $status = $validation->isValid ? success('OK') : error('INVALID');
+                output('  Validation: '.$status."\n");
                 if (!$validation->isValid && $validation->error) {
-                    output(error("Error: {$validation->error}\n"));
+                    output('  '.error($validation->error)."\n");
                 }
             }
         } catch (LexerException|ParserException $e) {
-            output(error("✗ Error: {$e->getMessage()}\n"));
+            output(error('Parse failed: '.$e->getMessage()."\n"));
             exit(1);
         }
 
@@ -712,21 +600,25 @@ switch ($command) {
             $analysis = $regex->redos($pattern);
             $explain = $regex->explain($pattern);
 
-            output(bold('Pattern: ')."{$pattern}\n");
-            output('Parse: '.success('OK')."\n");
-            output('Validation: '.($validation->isValid ? success('OK') : error('INVALID'))."\n");
+            output(bold("Analyze\n"));
+            output('  Pattern:    '.$pattern."\n");
+            output('  Parse:      '.success('OK')."\n");
+            $validationStatus = $validation->isValid ? success('OK') : error('INVALID');
+            output('  Validation: '.$validationStatus."\n");
             if (!$validation->isValid && $validation->error) {
-                output(error("Error: {$validation->error}\n"));
+                output('  '.error($validation->error)."\n");
             }
-            output('ReDoS severity: '.warning($analysis->severity->value)."\n");
-            output("ReDoS score: {$analysis->score}\n");
+
+            $severityLabel = strtoupper($analysis->severity->value);
+            output('  ReDoS:      '.warning($severityLabel).' (score '.$analysis->score.")\n");
             if ($analysis->error) {
-                output(error("ReDoS error: {$analysis->error}\n"));
+                output('  '.error('ReDoS error: '.$analysis->error)."\n");
             }
-            output("\n".bold('Explanation:')."\n");
+
+            output("\n".bold('Explanation')."\n");
             output($explain."\n");
         } catch (LexerException|ParserException $e) {
-            output(error("✗ Error: {$e->getMessage()}\n"));
+            output(error('Analyze failed: '.$e->getMessage()."\n"));
             exit(1);
         }
 
@@ -784,12 +676,17 @@ switch ($command) {
         $regex = Regex::create();
 
         $validation = $regex->validate($pattern);
-        output($validation->isValid ? success('✓ OK') : error('✗ INVALID'));
-        output("\n");
-        if (!$validation->isValid && $validation->error) {
-            output(error("Error: {$validation->error}\n"));
-            exit(1);
+        if ($validation->isValid) {
+            output(success('OK').'  '.$pattern."\n");
+            break;
         }
+
+        output(error('INVALID').'  '.$pattern."\n");
+        if ($validation->error) {
+            output('  '.error($validation->error)."\n");
+        }
+
+        exit(1);
 
         break;
 
@@ -801,7 +698,7 @@ switch ($command) {
         }
         if (isset($parsed['error'])) {
             output(error('Error: '.$parsed['error']."\n"));
-            output("Usage: regex lint [paths...] [--exclude <path>] [--min-savings <n>] [--format console|json] [--verbose|--debug|--quiet]\n");
+            output("Usage: regex lint [paths...] [--exclude <path>] [--min-savings <n>] [--format console|json|github|checkstyle|junit] [--no-redos] [--no-validate] [--no-optimize] [--verbose|--debug|--quiet]\n");
             exit(1);
         }
 
@@ -811,6 +708,9 @@ switch ($command) {
         $verbosity = $parsed['verbosity'] ?? OutputConfiguration::VERBOSITY_NORMAL;
         $format = $parsed['format'] ?? 'console';
         $quiet = $parsed['quiet'] ?? false;
+        $checkRedos = $parsed['checkRedos'] ?? true;
+        $checkValidation = $parsed['checkValidation'] ?? true;
+        $checkOptimizations = $parsed['checkOptimizations'] ?? true;
 
         if ([] === $paths) {
             $paths = ['.'];
@@ -854,7 +754,7 @@ switch ($command) {
 
         $collectionProgress = null;
         if ('console' === $format && $config->shouldShowProgress()) {
-            output('  '.dim('Scanning files...')."\n\n");
+            output('  '.dim('[1/2] Collecting patterns')."\n");
             $collectionStarted = false;
             $lastCount = 0;
             $collectionProgress = static function (int $current, int $total) use (&$collectionStarted, &$lastCount): void {
@@ -884,6 +784,9 @@ switch ($command) {
                 paths: $paths,
                 excludePaths: $exclude,
                 minSavings: $minSavings,
+                checkValidation: $checkValidation,
+                checkRedos: $checkRedos,
+                checkOptimizations: $checkOptimizations,
             );
             $patterns = $lint->collectPatterns($request, $collectionProgress);
         } catch (Throwable $e) {
@@ -902,9 +805,12 @@ switch ($command) {
             exit(0);
         }
 
+        $startTime = microtime(true);
+        $startMemory = memory_get_peak_usage(true);
+
         $progressCallback = null;
         if ('console' === $format && $config->shouldShowProgress()) {
-            output('  '.dim('Analyzing patterns...')."\n\n");
+            output('  '.dim('[2/2] Analyzing patterns')."\n");
             progressStart(\count($patterns));
             $progressCallback = static fn () => progressAdvance();
         }
@@ -917,6 +823,12 @@ switch ($command) {
 
         // Output using formatter
         echo $formatter->format($report);
+        echo $formatter->getSummary($report->stats);
+        $elapsed = microtime(true) - $startTime;
+        $peakMemory = memory_get_peak_usage(true);
+        output("  ".bold("Time: ".round($elapsed, 2)."s | Memory: ".round($peakMemory / 1024 / 1024, 2)." MB")."\n");
+        output("\n");
+        echo $formatter->formatFooter();
 
         exit($report->stats['errors'] > 0 ? 1 : 0);
 

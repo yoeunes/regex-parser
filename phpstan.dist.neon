@@ -20,11 +20,10 @@ parameters:
 
     excludePaths:
         - tests/Benchmark/*
-        - tests/Bridge/PHPStan/Fixtures/*
-        - tests/Fixtures/Extractor/*
-        - tests/Fixtures/Functional/*
-        - tests/extract_pcre_tests.php
-        - tests/validate_library.php
+        - tests/Fixtures/*
+        - tests/Integration/Bridge/PHPStan/Fixtures/
+        - tests/Tools/extract_pcre_tests.php
+        - tests/Tools/validate_library.php
 
 
     editorUrl: 'phpstorm://open?file=%%file%%&line=%%line%%'

@@ -62,11 +62,6 @@ class ConsoleFormatter extends AbstractOutputFormatter
         $groupedResults = $this->groupResults($report->results);
 
         foreach ($groupedResults as $file => $results) {
-            $file = (string) $file;
-            if ('' !== $file) {
-                $output .= $this->formatFileHeader($file);
-            }
-
             /** @var list<LintResult> $results */
             foreach ($results as $result) {
                 $output .= $this->formatPatternContext($result);
@@ -80,10 +75,23 @@ class ConsoleFormatter extends AbstractOutputFormatter
             }
         }
 
-        $output .= $this->formatSummary($report->stats);
-        $output .= $this->formatFooter();
-
         return $output;
+    }
+
+    /**
+     * @param array{errors: int, warnings: int, optimizations: int} $stats
+     */
+    public function getSummary(array $stats): string
+    {
+        return $this->formatSummary($stats);
+    }
+
+    /**
+     * Format footer.
+     */
+    public function formatFooter(): string
+    {
+        return '  '.$this->dim('Star the repo: https://github.com/yoeunes/regex-parser').\PHP_EOL.\PHP_EOL;
     }
 
     private function formatQuiet(RegexLintReport $report): string
@@ -106,18 +114,6 @@ class ConsoleFormatter extends AbstractOutputFormatter
     }
 
     /**
-     * Format file header.
-     */
-    private function formatFileHeader(string $file): string
-    {
-        if (!$this->config->ansi) {
-            return '  '.$file.\PHP_EOL;
-        }
-
-        return '  '.$this->color(' '.$file.' ', self::BG_GRAY.self::WHITE.self::BOLD).\PHP_EOL;
-    }
-
-    /**
      * Format pattern context information.
      *
      * @phpstan-param LintResult $result
@@ -125,31 +121,46 @@ class ConsoleFormatter extends AbstractOutputFormatter
     private function formatPatternContext(array $result): string
     {
         $pattern = $this->extractPatternForResult($result);
+        $file = (string) ($result['file'] ?? '');
         $line = (int) ($result['line'] ?? 0);
         $location = $result['location'] ?? null;
 
         $hasLocation = \is_string($location) && '' !== $location;
-        $showLine = $line > 0 && !$hasLocation;
 
-        if ($showLine) {
-            if (null !== $pattern && '' !== $pattern) {
-                $formatted = $this->formatPatternForDisplay($pattern);
-
-                return \sprintf('  %s %s'.\PHP_EOL, $this->dim($line.':'), $formatted);
-            }
-
-            return \sprintf('  %s'.\PHP_EOL, $this->dim('line '.$line.':'));
+        // Build a compact file:line prefix, e.g. "src/Console/Command.php:679".
+        $prefix = '';
+        if ('' !== $file && $line > 0) {
+            $prefix = $file.':'.$line;
+        } elseif ('' !== $file) {
+            $prefix = $file;
+        } elseif ($line > 0) {
+            $prefix = (string) $line;
         }
+
+        // Decide whether to keep pattern on the same line or wrap it to the
+        // next line for very long "file:line + pattern" combinations.
+        $maxInlineWidth = 100;
 
         if (null !== $pattern && '' !== $pattern) {
             $formatted = $this->formatPatternForDisplay($pattern);
-            $output = \sprintf('  %s'.\PHP_EOL, $formatted);
+            $label = '' !== $prefix ? $this->color($prefix, self::CYAN.self::BOLD) : $this->color('(pattern)', self::CYAN.self::BOLD);
+
+            // Measure visible length without ANSI escape codes.
+            $plainInline = $this->stripAnsi($label.'  '.$formatted);
+            if (\strlen($plainInline) <= $maxInlineWidth) {
+                $output = \sprintf('  %s  %s'.\PHP_EOL, $label, $formatted);
+            } else {
+                // Wrap: show file:line, then the pattern on the next indented line.
+                $output = '  '.$label.\PHP_EOL;
+                $output .= '      '.$formatted.\PHP_EOL;
+            }
         } else {
-            $output = '  '.$this->dim('(pattern unavailable)').\PHP_EOL;
+            $label = '' !== $prefix ? $this->color($prefix, self::CYAN.self::BOLD) : $this->color('(pattern unavailable)', self::CYAN.self::BOLD);
+            $output = '  '.$label.\PHP_EOL;
         }
 
         if ($hasLocation) {
-            $output .= \sprintf('     %s'.\PHP_EOL, $this->dim(self::ARROW_LABEL.' '.$location));
+            $output .= \sprintf('     %s'.\PHP_EOL, $this->color(self::ARROW_LABEL.' '.$location, self::CYAN));
         }
 
         return $output;
@@ -195,9 +206,8 @@ class ConsoleFormatter extends AbstractOutputFormatter
         $output = '';
 
         foreach ($optimizations as $opt) {
-            $output .= \sprintf('    %s %s'.\PHP_EOL,
+            $output .= \sprintf('    %s'.\PHP_EOL,
                 $this->badge('TIP', self::WHITE, self::BG_CYAN),
-                $this->color('Optimization available', self::CYAN.self::BOLD),
             );
 
             $optimization = $opt['optimization'] ?? null;
@@ -210,30 +220,71 @@ class ConsoleFormatter extends AbstractOutputFormatter
 
             $isExtendedWithComments = $this->isExtendedPatternWithComments($original);
 
-            // Always show the original pattern as-is.
-            $output .= \sprintf('         %s%s'.\PHP_EOL,
-                $this->color('- ', self::RED),
-                $original,
-            );
-
             // For /x patterns with comments, format the optimized pattern
             // with proper indentation to make it more readable.
             if ($isExtendedWithComments) {
+                // Always show the original pattern as-is.
+                $output .= \sprintf('         %s%s'.\PHP_EOL,
+                    $this->color('- ', self::RED),
+                    $original,
+                );
                 $output .= $this->formatExtendedOptimizedPattern($optimized);
 
                 continue;
             }
 
-            // For other patterns, show raw original and optimized regex so
-            // that textual changes (e.g. escaping inside character classes)
-            // remain visible.
+            // For other patterns, show a diff highlighting the changes.
+            $diff = $this->computeSimpleDiff($original, $optimized);
+            $output .= \sprintf('         %s%s'.\PHP_EOL,
+                $this->color('- ', self::RED),
+                $diff['old'],
+            );
             $output .= \sprintf('         %s%s'.\PHP_EOL,
                 $this->color('+ ', self::GREEN),
-                $optimized,
+                $diff['new'],
             );
         }
 
         return $output;
+    }
+
+    /**
+     * Compute a diff between two strings by finding common prefix and suffix,
+     * highlighting only the differing middle parts.
+     *
+     * @return array{old: string, new: string}
+     */
+    private function computeSimpleDiff(string $old, string $new): array
+    {
+        $oldLen = \strlen($old);
+        $newLen = \strlen($new);
+
+        // Find common prefix
+        $prefixLen = 0;
+        $minLen = min($oldLen, $newLen);
+        while ($prefixLen < $minLen && $old[$prefixLen] === $new[$prefixLen]) {
+            $prefixLen++;
+        }
+
+        // Find common suffix
+        $suffixLen = 0;
+        $maxSuffix = min($oldLen - $prefixLen, $newLen - $prefixLen);
+        while ($suffixLen < $maxSuffix && $old[$oldLen - 1 - $suffixLen] === $new[$newLen - 1 - $suffixLen]) {
+            $suffixLen++;
+        }
+
+        // Extract middle parts
+        $middleOld = substr($old, $prefixLen, $oldLen - $prefixLen - $suffixLen);
+        $middleNew = substr($new, $prefixLen, $newLen - $prefixLen - $suffixLen);
+
+        // Build colored strings
+        $prefix = substr($old, 0, $prefixLen);
+        $suffix = substr($old, $oldLen - $suffixLen);
+
+        $coloredOld = $prefix.$this->color($middleOld, self::RED.self::BOLD).$suffix;
+        $coloredNew = $prefix.$this->color($middleNew, self::GREEN.self::BOLD).$suffix;
+
+        return ['old' => $coloredOld, 'new' => $coloredNew];
     }
 
     /**
@@ -337,17 +388,6 @@ class ConsoleFormatter extends AbstractOutputFormatter
         return $output;
     }
 
-    /**
-     * Format footer.
-     */
-    private function formatFooter(): string
-    {
-        return \PHP_EOL
-            .'  '.$this->dim('Star the repo: https://github.com/yoeunes/regex-parser')
-            .\PHP_EOL
-            .\PHP_EOL;
-    }
-
     private function displaySingleIssue(string $badge, string $message): string
     {
         $lines = explode("\n", $message);
@@ -403,7 +443,10 @@ class ConsoleFormatter extends AbstractOutputFormatter
      */
     private function formatPatternForDisplay(string $pattern): string
     {
-        // No ANSI: return the raw pattern exactly as we received it.
+        // Escape control characters to prevent visual layout issues
+        $pattern = addcslashes($pattern, "\0..\37\177..\377");
+
+        // No ANSI: return the escaped pattern exactly as we received it.
         if (!$this->config->ansi) {
             return $pattern;
         }
@@ -437,6 +480,8 @@ class ConsoleFormatter extends AbstractOutputFormatter
         // ANSI color codes.
         $highlightedBody = $this->safelyHighlightBody($body, $flags, $delimiter);
         if (null === $highlightedBody) {
+            $highlightedBody = $this->highlightPatternBodyPreservingText($body);
+        } elseif ($this->stripAnsi($highlightedBody) !== $body) {
             $highlightedBody = $this->highlightPatternBodyPreservingText($body);
         }
 
@@ -650,6 +695,11 @@ class ConsoleFormatter extends AbstractOutputFormatter
         }
 
         return $color.$text.self::RESET;
+    }
+
+    private function stripAnsi(string $text): string
+    {
+        return preg_replace('/\x1B\\[[0-9;]*m/', '', $text) ?? $text;
     }
 
     /**

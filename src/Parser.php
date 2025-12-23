@@ -26,7 +26,7 @@ use RegexParser\Exception\SyntaxErrorException;
  */
 final class Parser
 {
-    private const INLINE_FLAG_CHARS = 'imsxADSUXJnr-';
+    private const INLINE_FLAG_CHARS = 'imsxUJn-';
     private const MAX_RECURSION_DEPTH = 1024;
 
     private TokenStream $stream;
@@ -36,6 +36,8 @@ final class Parser
     private string $flags = '';
 
     private bool $JModifier = false;
+
+    private bool $inQuoteMode = false;
 
     /**
      * @var array<string, bool>
@@ -56,12 +58,15 @@ final class Parser
 
     private int $recursionDepth = 0;
 
+    private static ?bool $supportsInlineModifierR = null;
+
     public function parse(TokenStream $stream, string $flags = '', string $delimiter = '/', int $patternLength = 0): Node\RegexNode
     {
         $this->stream = $stream;
         $this->pattern = $stream->getPattern();
         $this->flags = $flags;
         $this->JModifier = str_contains($flags, 'J');
+        $this->inQuoteMode = false;
         $this->groupNames = [];
         $this->lastTokenWasAlternation = false;
         $this->lastInlineFlagsLength = 0;
@@ -110,7 +115,14 @@ final class Parser
         $startPosition = $this->current()->position;
 
         while (!$this->isAtEnd() && !$this->check(TokenType::T_GROUP_CLOSE) && !$this->check(TokenType::T_ALTERNATION)) {
-            if ($this->match(TokenType::T_QUOTE_MODE_START) || $this->match(TokenType::T_QUOTE_MODE_END)) {
+            if ($this->match(TokenType::T_QUOTE_MODE_START)) {
+                $this->inQuoteMode = true;
+
+                continue;
+            }
+            if ($this->match(TokenType::T_QUOTE_MODE_END)) {
+                $this->inQuoteMode = false;
+
                 continue;
             }
 
@@ -147,7 +159,7 @@ final class Parser
      */
     private function consumeExtendedModeContent(array &$nodes): bool
     {
-        if (!str_contains($this->flags, 'x')) {
+        if (!str_contains($this->flags, 'x') || $this->inQuoteMode) {
             return false;
         }
 
@@ -192,7 +204,7 @@ final class Parser
         $comment = $this->reconstructTokenValue($startToken);
         $this->advance();
 
-        while (!$this->isAtEnd() && !$this->check(TokenType::T_GROUP_CLOSE)) {
+        while (!$this->isAtEnd()) {
             $token = $this->current();
 
             // Comment ends at newline (included) or at end of pattern.
@@ -217,13 +229,13 @@ final class Parser
      * nodes. This is used where the parser needs to see through trivia,
      * for example between an atom and its following quantifier.
      */
-    private function skipExtendedModeContent(): bool
+    private function skipExtendedModeContent(): int
     {
-        if (!str_contains($this->flags, 'x')) {
-            return false;
+        if (!str_contains($this->flags, 'x') || $this->inQuoteMode) {
+            return 0;
         }
 
-        $skipped = false;
+        $skipped = 0;
         while (!$this->isAtEnd() && !$this->check(TokenType::T_GROUP_CLOSE) && !$this->check(TokenType::T_ALTERNATION)) {
             $token = $this->current();
             if (TokenType::T_LITERAL !== $token->type) {
@@ -232,20 +244,22 @@ final class Parser
 
             if (ctype_space($token->value)) {
                 $this->advance();
-                $skipped = true;
+                $skipped++;
 
                 continue;
             }
 
             if ('#' === $token->value) {
                 $this->advance();
+                $skipped++;
                 while (!$this->isAtEnd() && "\n" !== $this->current()->value) {
                     $this->advance();
+                    $skipped++;
                 }
                 if (!$this->isAtEnd() && "\n" === $this->current()->value) {
                     $this->advance();
+                    $skipped++;
                 }
-                $skipped = true;
 
                 continue;
             }
@@ -260,7 +274,7 @@ final class Parser
     {
         $node = $this->parseAtom();
 
-        $this->skipExtendedModeContent();
+        $skipped = $this->skipExtendedModeContent();
 
         if ($this->match(TokenType::T_QUANTIFIER)) {
             $token = $this->previous();
@@ -273,6 +287,11 @@ final class Parser
             $endPosition = $token->position + \strlen($token->value);
 
             return new Node\QuantifierNode($node, $quantifier, $type, $startPosition, $endPosition);
+        }
+
+        if ($skipped > 0) {
+            $this->stream->rewind($skipped);
+            $this->currentTokenValid = false;
         }
 
         return $node;
@@ -363,7 +382,14 @@ final class Parser
             return $this->parseCallout();
         }
 
-        if ($this->match(TokenType::T_QUOTE_MODE_START) || $this->match(TokenType::T_QUOTE_MODE_END)) {
+        if ($this->match(TokenType::T_QUOTE_MODE_START)) {
+            $this->inQuoteMode = true;
+
+            return $this->parseAtom();
+        }
+        if ($this->match(TokenType::T_QUOTE_MODE_END)) {
+            $this->inQuoteMode = false;
+
             return $this->parseAtom();
         }
 
@@ -1062,15 +1088,22 @@ final class Parser
      */
     private function parseInlineFlags(int $startPosition): Node\NodeInterface
     {
-        // Support all PCRE2 flags including n (NO_AUTO_CAPTURE), r (unicode restricted), and ^ (unset)
+        // Support PHP/PCRE2 inline flags (imsxUJn) plus ^ (unset) and - toggles.
         // Handle ^ (T_ANCHOR) at the start - it means "unset all flags" in PCRE2
         $flags = '';
         if ($this->check(TokenType::T_ANCHOR) && '^' === $this->current()->value) {
             $flags = '^';
             $this->advance();
         }
+        $inlineFlagChars = self::INLINE_FLAG_CHARS;
+        $allFlags = 'imsxUJn';
+        if (self::supportsInlineModifierR()) {
+            $inlineFlagChars .= 'r';
+            $allFlags .= 'r';
+        }
+
         $flags .= $this->consumeWhile(
-            static fn (string $c): bool => str_contains(self::INLINE_FLAG_CHARS, $c),
+            static fn (string $c) => str_contains($inlineFlagChars, $c),
         );
 
         if ('' !== $flags) {
@@ -1081,7 +1114,6 @@ final class Parser
             // Handle ^ (unset all flags)
             if (str_starts_with($setFlags, '^')) {
                 $setFlagsAfter = substr($setFlags, 1);
-                $allFlags = 'imsxADSUXJunr';
                 $unsetFlags = implode('', array_diff(str_split($allFlags), str_split($setFlagsAfter))).$unsetFlags;
                 $setFlags = $setFlagsAfter;
             }
@@ -1130,6 +1162,31 @@ final class Parser
             \sprintf('Invalid group modifier syntax at position %d', $startPosition),
             $startPosition,
         );
+    }
+
+    // Checks if the 'r' inline modifier is supported by the current PCRE/PHP version
+    // The 'r' modifier was added in PCRE2 10.43 and PHP 8.4
+    private static function supportsInlineModifierR(): bool
+    {
+        // Return cached result if already computed
+        if (null !== self::$supportsInlineModifierR) {
+            return self::$supportsInlineModifierR;
+        }
+
+        // PHP 8.4+ includes PCRE2 10.43+ which supports the 'r' modifier
+        if (\PHP_VERSION_ID >= 80400) {
+            self::$supportsInlineModifierR = true;
+
+            return true;
+        }
+
+        // For older PHP versions, check the PCRE library version directly
+        $pcreVersion = \defined('PCRE_VERSION') ? explode(' ', \PCRE_VERSION)[0] : '0';
+
+        // PCRE2 10.43+ is required for the 'r' modifier support
+        self::$supportsInlineModifierR = version_compare($pcreVersion, '10.43', '>=');
+
+        return self::$supportsInlineModifierR;
     }
 
     /**
@@ -1495,10 +1552,14 @@ final class Parser
             && !$this->isAtEnd()
         ) {
             // Silent tokens inside char class
-            if (
-                $this->match(TokenType::T_QUOTE_MODE_START)
-                || $this->match(TokenType::T_QUOTE_MODE_END)
-            ) {
+            if ($this->match(TokenType::T_QUOTE_MODE_START)) {
+                $this->inQuoteMode = true;
+
+                continue;
+            }
+            if ($this->match(TokenType::T_QUOTE_MODE_END)) {
+                $this->inQuoteMode = false;
+
                 continue;
             }
             $parts[] = $this->parseCharClassPart();

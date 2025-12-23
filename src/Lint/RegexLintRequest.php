@@ -30,6 +30,9 @@ final readonly class RegexLintRequest
         public array $excludePaths,
         public int $minSavings,
         private array $disabledSources = [],
+        public bool $checkValidation = true,
+        public bool $checkRedos = true,
+        public bool $checkOptimizations = true,
     ) {}
 
     /**

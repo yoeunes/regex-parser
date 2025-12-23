@@ -144,12 +144,17 @@ final class AdditionalCoverageBoostTest extends TestCase
     }
 
     /**
-     * Test all inline flag options: (?imsxADSUXJ)
+     * Test all inline flag options: (?imsxUJn)
      */
     #[DoesNotPerformAssertions]
     public function test_inline_flags_all_options(): void
     {
-        $this->parseRegex('/(?imsxADSUXJ)abc/');
+        $flags = 'imsxUJn';
+        if ($this->supportsInlineModifierR()) {
+            $flags .= 'r';
+        }
+
+        $this->parseRegex('/(?'.$flags.')abc/');
     }
 
     /**
@@ -453,5 +458,21 @@ final class AdditionalCoverageBoostTest extends TestCase
     private function parseRegex(string $pattern): RegexNode
     {
         return $this->regexService->parse($pattern);
+    }
+
+    // Checks if the 'r' inline modifier is supported by the current PCRE/PHP version
+    // The 'r' modifier was added in PCRE2 10.43 and PHP 8.4
+    private function supportsInlineModifierR(): bool
+    {
+        // PHP 8.4+ includes PCRE2 10.43+ which supports the 'r' modifier
+        if (\PHP_VERSION_ID >= 80400) {
+            return true;
+        }
+
+        // For older PHP versions, check the PCRE library version directly
+        $pcreVersion = \defined('PCRE_VERSION') ? explode(' ', \PCRE_VERSION)[0] : '0';
+
+        // PCRE2 10.43+ is required for the 'r' modifier support
+        return version_compare($pcreVersion, '10.43', '>=');
     }
 }

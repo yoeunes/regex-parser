@@ -1,0 +1,51 @@
+<?php
+
+declare(strict_types=1);
+
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+namespace RegexParser\Tests\Unit\Visitor;
+
+use PHPUnit\Framework\TestCase;
+use RegexParser\NodeVisitor\SampleGeneratorNodeVisitor;
+
+final class SampleGeneratorEdgeCasesTest extends TestCase
+{
+    /**
+     * Tests the private getRandomChar method with an empty array (impossible via the public API).
+     * Covers the fallback "return '?';".
+     */
+    public function test_get_random_char_with_empty_array(): void
+    {
+        $generator = new SampleGeneratorNodeVisitor();
+        $reflection = new \ReflectionClass($generator);
+        $method = $reflection->getMethod('getRandomChar');
+
+        $result = $method->invoke($generator, []);
+        $this->assertSame('?', $result);
+    }
+
+    /**
+     * Tests the mt_rand fallback for quantifiers.
+     * We can't easily force mt_rand to fail, but we can pass invalid bounds
+     * to the private parseQuantifierRange method to see how it reacts.
+     */
+    public function test_parse_quantifier_range_fallback(): void
+    {
+        $generator = new SampleGeneratorNodeVisitor();
+        $reflection = new \ReflectionClass($generator);
+        $method = $reflection->getMethod('parseQuantifierRange');
+
+        // Cas invalide qui ne matche aucune regex connue
+        $result = $method->invoke($generator, 'INVALID');
+        // The code returns [0, 0] by default via the match
+        $this->assertSame([0, 0], $result);
+    }
+}

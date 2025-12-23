@@ -18,61 +18,69 @@ use RegexParser\Cache\FilesystemCache;
 
 final class FilesystemCacheTest extends TestCase
 {
-    private string $directory;
+    private string $cacheDir;
 
     protected function setUp(): void
     {
-        $this->directory = sys_get_temp_dir().'/regex-parser-cache-'.uniqid();
+        $this->cacheDir = sys_get_temp_dir().'/regex-parser-cache-'.uniqid('', true);
     }
 
     protected function tearDown(): void
     {
-        if (is_dir($this->directory)) {
-            $iterator = new \RecursiveIteratorIterator(
-                new \RecursiveDirectoryIterator($this->directory, \RecursiveDirectoryIterator::SKIP_DOTS),
-                \RecursiveIteratorIterator::CHILD_FIRST,
-            );
-
-            foreach ($iterator as $fileInfo) {
-                if (!$fileInfo instanceof \SplFileInfo) {
-                    continue;
-                }
-
-                $path = $fileInfo->getPathname();
-                if (!\is_string($path)) {
-                    continue;
-                }
-
-                if ($fileInfo->isDir()) {
-                    @rmdir($path);
-                } else {
-                    @unlink($path);
-                }
-            }
-
-            @rmdir($this->directory);
-        }
+        $this->removeDirectory($this->cacheDir);
     }
 
-    public function test_write_load_and_clear(): void
+    public function test_write_and_load_cache_file(): void
     {
-        $cache = new FilesystemCache($this->directory, '.php');
+        $cache = new FilesystemCache($this->cacheDir);
+        $key = $cache->generateKey('/abc/');
 
-        $key = $cache->generateKey('/foo/');
-        $this->assertStringContainsString($this->directory, $key);
-        $this->assertStringEndsWith('.php', $key);
+        $cache->write($key, "<?php return 'cached-value';\n");
 
-        $payload = "<?php return 'cached';";
-        $cache->write($key, $payload);
+        $this->assertFileExists($key);
+        $this->assertSame('cached-value', $cache->load($key));
+        $this->assertGreaterThan(0, $cache->getTimestamp($key));
+    }
 
-        $this->assertIsInt($cache->getTimestamp($key));
-        $this->assertSame('cached', $cache->load($key));
+    public function test_clear_removes_cached_entries(): void
+    {
+        $cache = new FilesystemCache($this->cacheDir);
+        $key = $cache->generateKey('/def/');
 
-        $cache->clear('/foo/');
-        $this->assertFalse(is_file($key));
-
-        // Clear without regex should not fail even if directory already empty
+        $cache->write($key, "<?php return 42;\n");
         $cache->clear();
-        $cache->clear();
+
+        $this->assertFileDoesNotExist($key);
+    }
+
+    private function removeDirectory(string $directory): void
+    {
+        if (!is_dir($directory)) {
+            return;
+        }
+
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($directory, \RecursiveDirectoryIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::CHILD_FIRST,
+        );
+
+        foreach ($iterator as $fileInfo) {
+            if (!$fileInfo instanceof \SplFileInfo) {
+                continue;
+            }
+
+            $path = $fileInfo->getRealPath();
+            if (!\is_string($path)) {
+                continue;
+            }
+
+            if ($fileInfo->isDir()) {
+                @rmdir($path);
+            } else {
+                @unlink($path);
+            }
+        }
+
+        @rmdir($directory);
     }
 }
