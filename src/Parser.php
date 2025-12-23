@@ -930,7 +930,7 @@ final class Parser
     {
         $verb = '';
         $verbStartPosition = $this->current()->position;
-        
+
         // Collect verb name characters until we hit : or )
         while (
             !$this->isAtEnd()
@@ -974,16 +974,16 @@ final class Parser
 
         // Create a group node containing the verb and the following expression
         $verbNode = new Node\PcreVerbNode(
-            '' !== $argument ? $verb . ':' . $argument : $verb,
+            '' !== $argument ? $verb.':'.$argument : $verb,
             $verbStartPosition,
-            $endPosition
+            $endPosition,
         );
 
         // Create a sequence with the verb and the expression
         return new Node\SequenceNode(
             [$verbNode, $expr],
             $startPosition,
-            $expr->getEndPosition()
+            $expr->getEndPosition(),
         );
     }
 
