@@ -269,6 +269,21 @@ function showHelp(): void
     output('  '.color('regex', BLUE).' '.color('lint', YELLOW).' '.color('--verbose', CYAN).' '.color('src/', GREEN)."              # Verbose output\n");
 }
 
+function outputVersion(): void
+{
+    $versionFile = __DIR__.'/../composer.json';
+    if (!file_exists($versionFile)) {
+        output('  '.color('Error:', RED)." unable to read version information.\n");
+        exit(1);
+    }
+
+    $composerData = json_decode(file_get_contents($versionFile), true);
+    $version = $composerData['version'] ?? '1.0.0';
+
+    output('RegexParser '.color($version, GREEN)." by Younes ENNAJI\n");
+    output("https://github.com/yoeunes/regex-parser\n");
+}
+
 function extractGlobalOptions(array $args): array
 {
     $options = [
@@ -552,6 +567,12 @@ switch ($command) {
     case '--help':
     case '-h':
         showHelp();
+        exit(0);
+
+    case 'version':
+    case '--version':
+    case '-v':
+        outputVersion();
         exit(0);
 
     case 'parse':
