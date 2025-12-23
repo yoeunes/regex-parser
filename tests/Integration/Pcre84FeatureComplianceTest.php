@@ -15,7 +15,9 @@ namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use RegexParser\NodeVisitor\DumperNodeVisitor;
+use RegexParser\\Node\\RegexNode;
+use RegexParser\\Node\\RegexNode;
+use RegexParser\\NodeVisitor\\DumperNodeVisitor;
 use RegexParser\NodeVisitor\ValidatorNodeVisitor;
 use RegexParser\Regex;
 
@@ -36,8 +38,8 @@ final class Pcre84FeatureComplianceTest extends TestCase
     {
         $ast = $this->regex->parse($pattern);
         $ast->accept($this->validator);
-
-        $this->assertTrue(true); // reaching here means parsing and validation succeeded
+        $this->assertInstanceOf(RegexNode::class, $ast);
+        $this->addToAssertionCount(1); // reaching here means parsing and validation succeeded
     }
 
     public static function provideOpenLowerQuantifiers(): iterable
@@ -52,8 +54,12 @@ final class Pcre84FeatureComplianceTest extends TestCase
     {
         $ast = $this->regex->parse($pattern);
         $ast->accept($this->validator);
-
-        $this->assertTrue(true);
+        $this->assertInstanceOf(RegexNode::class, $ast);
+de::class, $ast);
+de::class, $ast);
+de::class, $ast);
+de::class, $ast);
+de::class, $ast);
     }
 
     public static function provideNewlineConventionVerbs(): iterable
@@ -68,8 +74,7 @@ final class Pcre84FeatureComplianceTest extends TestCase
     {
         $ast = $this->regex->parse($pattern);
         $ast->accept($this->validator);
-
-        $this->assertTrue(true);
+        $this->assertInstanceOf(RegexNode::class, $ast);
     }
 
     public static function provideControlVerbs(): iterable
@@ -85,9 +90,7 @@ final class Pcre84FeatureComplianceTest extends TestCase
     {
         $ast = $this->regex->parse($pattern);
         $ast->accept($this->validator);
-
-        $this->assertTrue(true);
-    }
+        $this->assertInstanceOf(RegexNode::class, $ast);
 
     public static function provideEncodingVerbs(): iterable
     {
@@ -100,8 +103,7 @@ final class Pcre84FeatureComplianceTest extends TestCase
     {
         $ast = $this->regex->parse($pattern);
         $ast->accept($this->validator);
-
-        $this->assertTrue(true);
+        $this->assertInstanceOf(RegexNode::class, $ast);
     }
 
     public static function provideMatchControlVerbs(): iterable
@@ -134,8 +136,7 @@ final class Pcre84FeatureComplianceTest extends TestCase
     {
         $ast = $this->regex->parse($pattern);
         $ast->accept($this->validator);
-
-        $this->assertTrue(true);
+        $this->assertInstanceOf(RegexNode::class, $ast);
     }
 
     public static function provideUnicodeProperties(): iterable

@@ -846,8 +846,8 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         }
 
         // Fallback: map Block=/Blk= to In<block> alias which PCRE recognizes.
-        if (preg_match('/^p\\{(\\^)?(?:blk|block)=([^}]+)\\}$/i', $key, $matches)) {
-            $negation = $matches[1] ?? '';
+        if (preg_match('/^p\\{(\\^)?bl(?:ock|k)=([^}]+)\\}$/i', $key, $matches)) {
+            $negation = (string) $matches[1];
             $block = $matches[2];
             $aliasKey = 'p{'.$negation.'In'.$block.'}';
             // Try to compile the alias; if the runtime lacks block-name support,
@@ -855,8 +855,6 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
             $this->compileUnicodeProperty($aliasKey);
 
             return true;
-
-            return $this->compileUnicodeProperty($aliasKey);
         }
 
         return false;

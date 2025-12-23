@@ -489,7 +489,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
 
     private function normalizeQuantifier(string $quantifier): string
     {
-        return preg_replace('/\s+/', '', $quantifier);
+        return preg_replace('/\\s+/', '', $quantifier) ?? $quantifier;
     }
 
     /**
