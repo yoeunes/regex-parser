@@ -57,6 +57,9 @@ jobs:
         run: |
           composer update --${{ matrix.dependency }} --prefer-dist --no-interaction
 
+      - name: Clear PHPStan Cache
+        run: rm -rf .cache/phpstan
+
       - name: Install PHPStan Tooling
         run: composer install -d tools/phpstan --no-interaction --no-progress
 
