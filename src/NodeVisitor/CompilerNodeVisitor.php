@@ -331,7 +331,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     {
         return $node->isNegated
             ? '\P{'.$node->prop.'}'
-            : '\p{'.$node->prop.'}';
+            : '\p'.$node->prop;
     }
 
         if (\strlen($node->prop) > 1) {
