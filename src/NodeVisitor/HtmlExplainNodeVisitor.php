@@ -826,8 +826,13 @@ final class HtmlExplainNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitCallout(Node\CalloutNode $node): string
     {
-        $argument = $node->isStringIdentifier ? '"'.$node->identifier.'"' : (string) $node->identifier;
-        $explanation = \sprintf('passes control to user function with argument %s', $argument);
+        if (null === $node->identifier) {
+            $argument = '';
+            $explanation = 'passes control to user function with no argument';
+        } else {
+            $argument = $node->isStringIdentifier ? '"'.$node->identifier.'"' : (string) $node->identifier;
+            $explanation = \sprintf('passes control to user function with argument %s', $argument);
+        }
 
         return \sprintf(
             '<li><span title="%s">Callout: <strong>(?C%s)</strong></span></li>',

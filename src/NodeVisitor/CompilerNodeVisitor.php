@@ -471,11 +471,19 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitCallout(Node\CalloutNode $node): string
     {
+        if (null === $node->identifier) {
+            return '(?C)';
+        }
+
         if (\is_int($node->identifier)) {
             return '(?C'.$node->identifier.')';
         }
 
-        if (!$node->isStringIdentifier && preg_match('/^[A-Z_a-z]\w*+$/', $node->identifier)) {
+        if (
+            !$node->isStringIdentifier
+            && \is_string($node->identifier)
+            && preg_match('/^[A-Z_a-z]\w*+$/', $node->identifier)
+        ) {
             return '(?C'.$node->identifier.')';
         }
 

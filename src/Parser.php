@@ -576,6 +576,10 @@ final class Parser
         $value = $token->value;
         $endPosition = $startPosition + \strlen($token->value) + 4; // for (?C)
 
+        if ('' === $value) {
+            return new Node\CalloutNode(null, false, $startPosition, $endPosition);
+        }
+
         $isStringIdentifier = false;
         $identifier = null;
         if (preg_match('/^"([^"]*+)"$/', $value, $matches)) {
@@ -803,6 +807,11 @@ final class Parser
             return $this->parsePcreVerbInGroup($startPosition);
         }
 
+        // 2.1 PCRE verbs already tokenized inside modifier groups: (?(*VERB)...)
+        if ($this->match(TokenType::T_PCRE_VERB)) {
+            return $this->parsePcreVerbTokenInGroup($startPosition, $this->previous());
+        }
+
         // 3. PCRE-style quoted named groups (?'name'...)
         if ($this->checkLiteral("'")) {
             $name = $this->parseGroupName($startPosition);
@@ -980,6 +989,26 @@ final class Parser
         );
 
         // Create a sequence with the verb and the expression
+        return new Node\SequenceNode(
+            [$verbNode, $expr],
+            $startPosition,
+            $expr->getEndPosition(),
+        );
+    }
+
+    /**
+     * Parses a PCRE verb token inside a modifier group: (?(*VERB)...)
+     */
+    private function parsePcreVerbTokenInGroup(int $startPosition, Token $verbToken): Node\NodeInterface
+    {
+        $verbStartPosition = $verbToken->position;
+        $verbEndPosition = $verbStartPosition + \strlen($verbToken->value) + 3; // +3 for "(*)"
+
+        $verbNode = new Node\PcreVerbNode($verbToken->value, $verbStartPosition, $verbEndPosition);
+
+        $expr = $this->parseAlternation();
+        $this->consume(TokenType::T_GROUP_CLOSE, 'Expected ) to close PCRE verb group');
+
         return new Node\SequenceNode(
             [$verbNode, $expr],
             $startPosition,

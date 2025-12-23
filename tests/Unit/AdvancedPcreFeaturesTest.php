@@ -29,7 +29,7 @@ use RegexParser\Regex;
 final class AdvancedPcreFeaturesTest extends TestCase
 {
     #[\PHPUnit\Framework\Attributes\DataProvider('provideCalloutPatterns')]
-    public function test_it_parses_and_compiles_callouts_correctly(string $pattern, string $expectedIdentifier): void
+    public function test_it_parses_and_compiles_callouts_correctly(string $pattern, ?string $expectedIdentifier): void
     {
         $regexService = Regex::create();
         $ast = $regexService->parse($pattern);
@@ -42,7 +42,9 @@ final class AdvancedPcreFeaturesTest extends TestCase
         // Verify the identifier in the AST (using Dumper for inspection)
         $dumper = new DumperNodeVisitor();
         $dump = $ast->accept($dumper);
-        if (is_numeric($expectedIdentifier)) {
+        if (null === $expectedIdentifier) {
+            $this->assertStringContainsString('Callout()', $dump);
+        } elseif (is_numeric($expectedIdentifier)) {
             $this->assertStringContainsString("Callout({$expectedIdentifier})", $dump);
         } else {
             $this->assertStringContainsString("Callout('{$expectedIdentifier}')", $dump);
@@ -51,6 +53,7 @@ final class AdvancedPcreFeaturesTest extends TestCase
 
     public static function provideCalloutPatterns(): \Iterator
     {
+        yield 'bare callout' => ['/(?C)abc/', null];
         yield 'numeric callout' => ['/(?C1)abc/', '1'];
         yield 'string callout' => ['/(?C"debug_log")abc/', 'debug_log'];
         yield 'callout with spaces' => ['/(?C"my function")def/', 'my function'];
@@ -118,6 +121,21 @@ final class AdvancedPcreFeaturesTest extends TestCase
         $explanation = $ast->accept($explainer);
         $this->assertStringContainsString('Callout: <strong>(?C&quot;my_func&quot;)</strong></span></li>', $explanation);
         $this->assertStringContainsString('title="passes control to user function with argument &quot;my_func&quot;"', $explanation);
+    }
+
+    public function test_it_explains_callouts_without_argument(): void
+    {
+        $regexService = Regex::create();
+        $ast = $regexService->parse('/(?C)abc/');
+
+        $explainer = new ExplainNodeVisitor();
+        $explanation = $ast->accept($explainer);
+        $this->assertStringContainsString('Callout: passes control to user function with no argument', $explanation);
+
+        $htmlExplainer = new HtmlExplainNodeVisitor();
+        $html = $ast->accept($htmlExplainer);
+        $this->assertStringContainsString('Callout: <strong>(?C)</strong></span></li>', $html);
+        $this->assertStringContainsString('title="passes control to user function with no argument"', $html);
     }
 
     public function test_it_optimizes_callouts_correctly(): void

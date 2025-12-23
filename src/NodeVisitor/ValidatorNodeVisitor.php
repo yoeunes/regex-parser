@@ -729,6 +729,10 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     {
         $position = $node->startPosition + 4;
 
+        if (null === $node->identifier) {
+            return;
+        }
+
         if (\is_int($node->identifier)) {
             if ($node->identifier < 0 || $node->identifier > 255) {
                 $this->raiseSemanticError(
