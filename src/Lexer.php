@@ -45,7 +45,7 @@ final class Lexer
     private const PATTERNS_OUTSIDE = [
         'T_COMMENT_OPEN' => '\\(\\?\\#',
         'T_CALLOUT' => '\\(\\?C [^)]* \\)',
-        'T_PCRE_VERB' => '\\(\\* [^)]+ \\)',
+        'T_PCRE_VERB' => '\\(\\?\\* [^)]+ \\)|\\(\\* [^)]+ \\)',
         'T_GROUP_MODIFIER_OPEN' => '\\(\\?',
         'T_GROUP_OPEN' => '\\(',
         'T_GROUP_CLOSE' => '\\)',
