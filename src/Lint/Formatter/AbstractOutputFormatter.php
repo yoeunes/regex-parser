@@ -116,8 +116,8 @@ abstract class AbstractOutputFormatter implements OutputFormatterInterface
         $grouped = [];
         foreach ($results as $result) {
             $file = $result['file'] ?? 'unknown';
-            /* @phpstan-ignore cast.string */
-            $grouped[(string) $file][] = $result;
+            $fileKey = \is_string($file) ? $file : 'unknown';
+            $grouped[$fileKey][] = $result;
         }
 
         return $grouped;
@@ -138,12 +138,11 @@ abstract class AbstractOutputFormatter implements OutputFormatterInterface
 
         $severityOrder = ['error' => 0, 'warning' => 1, 'info' => 2];
 
-        usort($results, function ($a, $b) use ($severityOrder) {
-            $aSeverity = $a['type'] ?? 'info';
-            $bSeverity = $b['type'] ?? 'info';
+        usort($results, function (array $a, array $b) use ($severityOrder): int {
+            $aSeverity = isset($a['type']) && \is_string($a['type']) ? $a['type'] : 'info';
+            $bSeverity = isset($b['type']) && \is_string($b['type']) ? $b['type'] : 'info';
 
-            // @phpstan-ignore-next-line
-            return $severityOrder[(string) $aSeverity] - $severityOrder[(string) $bSeverity];
+            return ($severityOrder[$aSeverity] ?? 2) - ($severityOrder[$bSeverity] ?? 2);
         });
 
         return $results;
