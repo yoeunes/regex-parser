@@ -368,16 +368,7 @@ final class Lexer
     private function consumeQuoteMode(): ?Token
     {
         if (!preg_match('/(.*?)((\\\\E|$))/suA', $this->pattern, $matches, \PREG_UNMATCHED_AS_NULL, $this->position)) {
-            // Pattern doesn't match - consume remaining content as literal
-            $remaining = substr($this->pattern, $this->position);
-            if ('' !== $remaining) {
-                $startPos = $this->position;
-                $this->position = $this->length;
-                $this->inQuoteMode = false;
-
-                return new Token(TokenType::T_LITERAL, $remaining, $startPos);
-            }
-
+            // preg_match failed (e.g., malformed UTF-8) - exit quote mode and move to end
             $this->inQuoteMode = false;
             $this->position = $this->length;
 
@@ -403,8 +394,7 @@ final class Lexer
         }
 
         // End of pattern reached without \E - PCRE treats \Q without \E as valid
-        // (quotes to end of pattern). Exit quote mode gracefully.
-        $this->inQuoteMode = false;
+        // (quotes to end of pattern). Keep inQuoteMode = true per PCRE semantics.
         $this->position = $this->length;
 
         return null;
@@ -471,14 +461,20 @@ final class Lexer
     /**
      * Parses a Unicode escape sequence.
      *
-     * We keep the original escape representation rather than converting to raw bytes
-     * for consistency across all Unicode escape types (\xNN, \x{NNNN}, \u{NNNN}).
-     * This allows the Parser to interpret them uniformly and the Compiler to
-     * reconstruct them accurately.
+     * Simple \xNN escapes (2 hex digits, single-byte) are converted to their character
+     * representation for consistency with PCRE behavior. Extended forms like \x{NNNN}
+     * and \u{NNNN} are kept as strings because they can represent multi-byte UTF-8.
      */
     private function parseUnicodeEscape(string $escape): string
     {
-        // Keep the original escape representation for consistency
+        if (preg_match('/^\\\\x([0-9a-fA-F]{1,2})$/', $escape, $m)) {
+            $code = (int) hexdec($m[1]);
+            if ($code <= 0xFF) {
+                return \chr($code);
+            }
+        }
+
+        // For extended forms (\x{}, \u{}), keep as string
         return $escape;
     }
 
