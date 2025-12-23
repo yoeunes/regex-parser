@@ -407,3 +407,19 @@ When using `--format=json` with the lint command, output follows this schema:
   - `savings`: Character savings count
 
 Additional fields may be present for detailed analysis (e.g., validation or ReDoS metadata).
+
+
+## Memory Management
+
+### Memory Cache Limiting
+RegexParser uses caching for validation operations to improve performance. To prevent memory leaks in long-running processes, the ValidatorNodeVisitor implements cache size limits:
+
+- **Maximum cache entries**: 1000 items per cache
+- **Automatic cleanup**: When cache reaches limit size
+- **Manual cleanup**: `Regex::create()->clearValidatorCaches()`
+
+```php
+// For long-running processes
+$regex = Regex::create();
+$regex->clearValidatorCaches(); // Reset caches periodically
+```

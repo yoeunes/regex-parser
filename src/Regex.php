@@ -49,12 +49,14 @@ final readonly class Regex
     public const DEFAULT_MAX_LOOKBEHIND_LENGTH = 255;
 
     /**
-     * Create a new Regex instance with the specified configuration.
+     * Create a new Regex instance with specified configuration.
      *
-     * @param int            $maxPatternLength     Maximum allowed pattern length
-     * @param int            $maxLookbehindLength  Maximum allowed lookbehind length
-     * @param CacheInterface $cache                Cache implementation for parsed patterns
-     * @param array<string>  $redosIgnoredPatterns Patterns to ignore in ReDoS analysis
+     * @param int            $maxPatternLength      Maximum allowed pattern length
+     * @param int            $maxLookbehindLength   Maximum allowed lookbehind length
+     * @param CacheInterface $cache                 Cache implementation for parsed patterns
+     * @param array<string>  $redosIgnoredPatterns  Patterns to ignore in ReDoS analysis
+     * @param bool           $runtimePcreValidation Whether to validate againsts PCRE runtime
+     * @param int            $maxRecursionDepth     Maximum recursion depth during parsing
      */
     private function __construct(
         private int $maxPatternLength,
@@ -62,6 +64,7 @@ final readonly class Regex
         private CacheInterface $cache,
         private array $redosIgnoredPatterns,
         private bool $runtimePcreValidation,
+        private int $maxRecursionDepth,
     ) {}
 
     /**
@@ -83,6 +86,7 @@ final readonly class Regex
             $configuration->cache,
             $configuration->redosIgnoredPatterns,
             $configuration->runtimePcreValidation,
+            $configuration->maxRecursionDepth,
         );
     }
 
@@ -917,7 +921,7 @@ final readonly class Regex
     {
         [$pattern, $flags, $delimiter] = PatternParser::extractPatternAndFlags($regex);
         $tokenStream = (new Lexer())->tokenize($pattern, $flags);
-        $parser = new Parser();
+        $parser = new Parser($this->maxRecursionDepth);
 
         return $parser->parse($tokenStream, $flags, $delimiter, \strlen($pattern));
     }

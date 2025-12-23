@@ -35,6 +35,7 @@ final readonly class RegexOptions
         'cache',
         'redos_ignored_patterns',
         'runtime_pcre_validation',
+        'max_recursion_depth',
     ];
 
     /**
@@ -45,6 +46,7 @@ final readonly class RegexOptions
      * @param CacheInterface $cache                 Cache implementation to use
      * @param array<string>  $redosIgnoredPatterns  Patterns to ignore in ReDoS analysis
      * @param bool           $runtimePcreValidation Whether to validate against the PCRE runtime
+     * @param int            $maxRecursionDepth     Maximum recursion depth during parsing
      */
     public function __construct(
         public int $maxPatternLength,
@@ -52,6 +54,7 @@ final readonly class RegexOptions
         public CacheInterface $cache,
         public array $redosIgnoredPatterns = [],
         public bool $runtimePcreValidation = false,
+        public int $maxRecursionDepth = 1024,
     ) {}
 
     /**
@@ -74,8 +77,9 @@ final readonly class RegexOptions
         $cache = self::createCache($options);
         $patterns = self::getIgnoredPatterns($options);
         $runtimeValidation = self::getRuntimePcreValidation($options);
+        $recursionDepth = self::getRecursionDepth($options);
 
-        return new self($maxLength, $lookbehindLength, $cache, $patterns, $runtimeValidation);
+        return new self($maxLength, $lookbehindLength, $cache, $patterns, $runtimeValidation, $recursionDepth);
     }
 
     /**
@@ -171,6 +175,26 @@ final readonly class RegexOptions
         }
 
         return $runtimeValidation;
+    }
+
+    /**
+     * Get recursion depth from options.
+     *
+     * @param array<string, mixed> $options Configuration options
+     *
+     * @return int Maximum recursion depth
+     */
+    private static function getRecursionDepth(array $options): int
+    {
+        $depth = $options['max_recursion_depth'] ?? 1024;
+
+        if (!\is_int($depth) || $depth <= 0) {
+            throw new InvalidRegexOptionException(
+                '"max_recursion_depth" must be a positive integer.',
+            );
+        }
+
+        return $depth;
     }
 
     /**

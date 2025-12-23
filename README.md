@@ -90,6 +90,20 @@ echo $optimized->original;   // / [0-9]+/
 echo $optimized->optimized;  // /\d+/
 ```
 
+#### Performance Options
+For performance-critical applications, you can enable auto-possessivization which converts safe quantifiers to possessive form:
+
+```php
+use RegexParser\Regex;
+
+$regex = Regex::create();
+$optimized = $regex->optimize('/\d+a/', ['autoPossessify' => true])->optimized;
+
+echo $optimized;  // /\d++a/
+```
+
+**Note**: Auto-possessivization is opt-in for safety. Use only when you understand the performance implications and ensure no backreferences depend on backtracking.
+
 #### Generate Samples
 Create valid test strings that match your regex.
 
