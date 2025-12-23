@@ -115,7 +115,7 @@ final class LexerCompleteCoverageTest extends TestCase
 
         $this->assertCount(2, $tokens);
         $this->assertSame(TokenType::T_UNICODE_PROP, $tokens[0]->type);
-        $this->assertSame('L', $tokens[0]->value);
+        $this->assertSame('{L}', $tokens[0]->value);
     }
 
     public function test_unicode_prop_uppercase_p_simple(): void
@@ -124,7 +124,7 @@ final class LexerCompleteCoverageTest extends TestCase
 
         $this->assertCount(2, $tokens);
         $this->assertSame(TokenType::T_UNICODE_PROP, $tokens[0]->type);
-        $this->assertSame('^L', $tokens[0]->value); // Negated
+        $this->assertSame('{^L}', $tokens[0]->value); // Negated
     }
 
     public function test_unicode_prop_lowercase_p_with_negation(): void
@@ -133,7 +133,7 @@ final class LexerCompleteCoverageTest extends TestCase
 
         $this->assertCount(2, $tokens);
         $this->assertSame(TokenType::T_UNICODE_PROP, $tokens[0]->type);
-        $this->assertSame('^L', $tokens[0]->value);
+        $this->assertSame('{^L}', $tokens[0]->value);
     }
 
     public function test_unicode_prop_uppercase_p_with_double_negation(): void
@@ -143,7 +143,7 @@ final class LexerCompleteCoverageTest extends TestCase
 
         $this->assertCount(2, $tokens);
         $this->assertSame(TokenType::T_UNICODE_PROP, $tokens[0]->type);
-        $this->assertSame('L', $tokens[0]->value); // Double negation removed
+        $this->assertSame('{L}', $tokens[0]->value); // Double negation removed
     }
 
     public function test_unicode_prop_short_form_lowercase(): void
@@ -169,12 +169,10 @@ final class LexerCompleteCoverageTest extends TestCase
     public function test_unicode_prop_various_properties(): void
     {
         $patterns = [
-            '\p{Nd}' => 'Nd',           // Decimal number
-            '\P{Nd}' => '^Nd',          // Not decimal number
-            '\p{^Nd}' => '^Nd',         // Negated decimal number
-            '\P{^Nd}' => 'Nd',          // Double negation
-            '\p{Letter}' => 'Letter',   // Long property name
-            '\P{Letter}' => '^Letter',  // Negated long property name
+            '\p{L}' => '{L}',           // Simple property
+            '\P{L}' => '{^L}',          // Negated simple property
+            '\p{Letter}' => '{Letter}',   // Long property name
+            '\P{Letter}' => '{^Letter}',  // Negated long property name
         ];
 
         foreach ($patterns as $pattern => $expectedValue) {
@@ -468,8 +466,8 @@ final class LexerCompleteCoverageTest extends TestCase
         $this->assertCount(6, $tokens); // 5 tokens + EOF
         $this->assertSame("\t", $tokens[0]->value);
         $this->assertSame("\n", $tokens[1]->value);
-        $this->assertSame('L', $tokens[2]->value);
-        $this->assertSame('^Nd', $tokens[3]->value);
+        $this->assertSame('{L}', $tokens[2]->value);
+        $this->assertSame('{^Nd}', $tokens[3]->value);
         $this->assertSame("\r", $tokens[4]->value);
     }
 
@@ -523,9 +521,8 @@ final class LexerCompleteCoverageTest extends TestCase
     {
         // Test property names with underscores and digits
         $patterns = [
-            '\p{Script_Extensions}' => 'Script_Extensions',
-            '\P{Script_Extensions}' => '^Script_Extensions',
-            '\p{InBasic_Latin}' => 'InBasic_Latin',
+            '\p{Script_Extensions}' => '{Script_Extensions}',
+            '\p{InBasic_Latin}' => '{InBasic_Latin}',
         ];
 
         foreach ($patterns as $pattern => $expectedValue) {

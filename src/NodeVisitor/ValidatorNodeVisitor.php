@@ -49,6 +49,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         'LIMIT_DEPTH' => true, 'LIMIT_HEAP' => true,
         'LIMIT_LOOKBEHIND' => true,
         'script_run' => true, 'atomic_script_run' => true,
+        'NOTEMPTY' => true, 'NOTEMPTY_ATSTART' => true,
     ];
 
     private const VALID_POSIX_CLASSES = [
@@ -500,7 +501,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     public function visitUnicodeProp(Node\UnicodePropNode $node): void
     {
         $prop = $node->prop;
-        $key = (\strlen($prop) > 1 || str_starts_with($prop, '^')) ? "p{{$prop}}" : "p{$prop}";
+        $key = 'p' . $prop;
 
         // Intelligent caching with lazy validation
         if (!isset(self::$unicodePropCache[$key])) {
@@ -889,10 +890,10 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
             '*' => [0, -1],
             '+' => [1, -1],
             '?' => [0, 1],
-            default => preg_match('/^\{(\d++)(?:,(\d*+))?\}$/', $q, $m) ?
+            default => preg_match('/^\{(\d*+)(?:,(\d*+))?\}$/', $q, $m) ?
                 (isset($m[2]) ?
-                    ('' === $m[2] ? [(int) $m[1], -1] : [(int) $m[1], (int) $m[2]]) : // {n,} or {n,m}
-                    [(int) $m[1], (int) $m[1]] // {n}
+                    ('' === $m[2] ? [(int) $m[1] ?: 0, -1] : [(int) $m[1] ?: 0, (int) $m[2]]) : // {n,} or {n,m}
+                    [(int) $m[1] ?: 0, (int) $m[1] ?: 0] // {n}
                 ) :
                 [1, 1], // Should be impossible if Lexer is correct
         };

@@ -22,6 +22,7 @@ final readonly class UnicodePropNode extends AbstractNode
 {
     public function __construct(
         public string $prop,
+        public bool $hasBraces,
         int $startPosition,
         int $endPosition
     ) {

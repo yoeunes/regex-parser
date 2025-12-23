@@ -514,7 +514,7 @@ final class Parser
             }
             $endPosition = $startPosition + $len;
 
-            return new Node\UnicodePropNode($token->value, $startPosition, $endPosition);
+            return new Node\UnicodePropNode($token->value, str_starts_with($token->value, '{'), $startPosition, $endPosition);
         }
 
         if ($this->match(TokenType::T_KEEP)) {
@@ -1608,7 +1608,7 @@ final class Parser
             // Basic length calc - Parser logic from original
             $len = 2 + \strlen($token->value)
                 + ((\strlen($token->value) > 1 || str_starts_with($token->value, '^')) ? 2 : 0);
-            $startNode = new Node\UnicodePropNode($token->value, $startPosition, $startPosition + $len);
+            $startNode = new Node\UnicodePropNode($token->value, str_starts_with($token->value, '{'), $startPosition, $startPosition + $len);
         } elseif ($this->match(TokenType::T_UNICODE)) {
             $startNode = $this->createCharLiteralNodeFromToken(
                 $this->previous(),
@@ -1687,7 +1687,7 @@ final class Parser
                 $token = $this->previous();
                 $len = 2 + \strlen($token->value)
                     + ((\strlen($token->value) > 1 || str_starts_with($token->value, '^')) ? 2 : 0);
-                $endNode = new Node\UnicodePropNode($token->value, $endPosition, $endPosition + $len);
+                $endNode = new Node\UnicodePropNode($token->value, str_starts_with($token->value, '{'), $endPosition, $endPosition + $len);
             } elseif ($this->match(TokenType::T_UNICODE)) {
                 $endNode = $this->createCharLiteralNodeFromToken(
                     $this->previous(),

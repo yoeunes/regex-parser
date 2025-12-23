@@ -329,12 +329,19 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitUnicodeProp(Node\UnicodePropNode $node): string
     {
-        return $node->isNegated
-            ? '\P{'.$node->prop.'}'
-            : '\p'.$node->prop;
+        $prop = $node->prop;
+        if (str_starts_with($prop, '{') && str_ends_with($prop, '}')) {
+            $inner = substr($prop, 1, -1);
+            return '\p{'.$inner.'}';
+        } elseif (str_starts_with($prop, '^')) {
+            return '\p{'.$prop.'}';
+        } else {
+            return '\p'.$prop;
+        }
     }
 
     #[\Override]
+    public function visitPosixClass(Node\PosixClassNode $node): string
     {
         return '[[:'.$node->class.':]]';
     }

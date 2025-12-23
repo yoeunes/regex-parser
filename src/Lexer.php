@@ -472,7 +472,9 @@ final class Lexer
         $isNegated = str_starts_with($matchedValue, '\\P');
         $prop = substr($matchedValue, 2); // Strip "\p" or "\P"
 
-        if (str_starts_with($prop, '{') && str_ends_with($prop, '}')) {
+        $hasBraces = str_starts_with($prop, '{') && str_ends_with($prop, '}');
+
+        if ($hasBraces) {
             $prop = substr($prop, 1, -1);
         }
 
@@ -487,7 +489,9 @@ final class Lexer
 
         $negated = $isNegated !== $isPropNegated;
 
-        return $negated ? '^'.$prop : $prop;
+        $normalized = $negated ? '^'.$prop : $prop;
+
+        return $hasBraces ? '{'.$normalized.'}' : $normalized;
     }
 
     private function validateFinalState(): void

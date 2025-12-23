@@ -145,13 +145,13 @@ final class AdvancedFeaturesComplianceTest extends TestCase
     }
 
     #[DataProvider('provideUnicodePropertyPatterns')]
-    public function test_unicode_properties(string $pattern): void
+    public function test_unicode_properties(string $pattern, string $expected): void
     {
         $regex = Regex::create()->parse($pattern);
         $compiler = new \RegexParser\NodeVisitor\CompilerNodeVisitor();
         $compiled = $regex->accept($compiler);
 
-        $this->assertSame($pattern, $compiled, "Unicode property should round-trip: {$pattern}");
+        $this->assertSame($expected, $compiled, "Unicode property should compile to: {$expected}");
     }
 
     public static function provideUnicodePropertyPatterns(): \Iterator
