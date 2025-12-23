@@ -49,7 +49,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
      */
     private array $definedNamedGroups = [];
 
-    private readonly CharSetAnalyzer $charSetAnalyzer;
+    private CharSetAnalyzer $charSetAnalyzer;
 
     public function __construct()
     {
@@ -88,6 +88,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     {
         $this->flags = $node->flags;
         $this->delimiter = $node->delimiter;
+        $this->charSetAnalyzer = new CharSetAnalyzer($this->flags);
         $this->issues = [];
         $this->hasCaseSensitiveChars = false;
         $this->hasDots = false;

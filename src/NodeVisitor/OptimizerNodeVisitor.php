@@ -28,7 +28,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
 
     private string $flags = '';
 
-    private readonly CharSetAnalyzer $charSetAnalyzer;
+    private CharSetAnalyzer $charSetAnalyzer;
 
     private bool $isInsideQuantifier = false;
 
@@ -44,6 +44,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
     public function visitRegex(Node\RegexNode $node): Node\NodeInterface
     {
         $this->flags = $node->flags;
+        $this->charSetAnalyzer = new CharSetAnalyzer($this->flags);
         $optimizedPattern = $node->pattern->accept($this);
 
         if ($optimizedPattern === $node->pattern) {

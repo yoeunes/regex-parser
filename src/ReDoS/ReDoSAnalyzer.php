@@ -60,7 +60,7 @@ final class ReDoSAnalyzer
 
         try {
             $ast = ($this->regex ?? Regex::create())->parse($regex);
-            $visitor = new ReDoSProfileNodeVisitor();
+            $visitor = new ReDoSProfileNodeVisitor(new CharSetAnalyzer($ast->flags));
             $ast->accept($visitor);
 
             $result = $visitor->getResult();

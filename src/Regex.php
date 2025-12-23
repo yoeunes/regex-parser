@@ -113,9 +113,9 @@ final readonly class Regex
      */
     public static function tokenize(string $regex): TokenStream
     {
-        [$pattern] = Internal\PatternParser::extractPatternAndFlags($regex);
+        [$pattern, $flags] = Internal\PatternParser::extractPatternAndFlags($regex);
 
-        return (new Lexer())->tokenize($pattern);
+        return (new Lexer())->tokenize($pattern, $flags);
     }
 
     /**
@@ -915,8 +915,7 @@ final readonly class Regex
     private function parseFromScratch(string $regex): RegexNode
     {
         [$pattern, $flags, $delimiter] = PatternParser::extractPatternAndFlags($regex);
-
-        $tokenStream = (new Lexer())->tokenize($pattern);
+        $tokenStream = (new Lexer())->tokenize($pattern, $flags);
         $parser = new Parser();
 
         return $parser->parse($tokenStream, $flags, $delimiter, \strlen($pattern));

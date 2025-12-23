@@ -106,7 +106,7 @@ final class Lexer
 
     private int $charClassStartPosition = 0;
 
-    public function tokenize(string $pattern): TokenStream
+    public function tokenize(string $pattern, string $flags = ''): TokenStream
     {
         if (!preg_match('//u', $pattern)) {
             throw LexerException::withContext('Input string is not valid UTF-8.', 0, $pattern);
