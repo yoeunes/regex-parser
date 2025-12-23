@@ -94,4 +94,53 @@ final class AdvancedFeaturesComplianceTest extends TestCase
         yield 'both_with_spaces' => ['/a{ 2 , 3 }/', '/a{2,3}/'];
         yield 'no_spaces' => ['/a{2,3}/', '/a{2,3}/'];
     }
+
+    #[DataProvider('provideNewlineVerbPatterns')]
+    public function test_newline_verbs(string $pattern): void
+    {
+        $regex = Regex::create()->parse($pattern);
+        $compiler = new \RegexParser\NodeVisitor\CompilerNodeVisitor();
+        $compiled = $regex->accept($compiler);
+
+        $this->assertSame($pattern, $compiled, "Newline verb should round-trip: {$pattern}");
+    }
+
+    public static function provideNewlineVerbPatterns(): \Iterator
+    {
+        yield 'cr_newline' => ['/(*CR)a/'];
+        yield 'lf_newline' => ['/(*LF)a/'];
+        yield 'crlf_newline' => ['/(*CRLF)a/'];
+    }
+
+    #[DataProvider('provideEncodingVerbPatterns')]
+    public function test_encoding_verbs(string $pattern): void
+    {
+        $regex = Regex::create()->parse($pattern);
+        $compiler = new \RegexParser\NodeVisitor\CompilerNodeVisitor();
+        $compiled = $regex->accept($compiler);
+
+        $this->assertSame($pattern, $compiled, "Encoding verb should round-trip: {$pattern}");
+    }
+
+    public static function provideEncodingVerbPatterns(): \Iterator
+    {
+        yield 'utf8' => ['/(*UTF8)a/'];
+        yield 'ucp' => ['/(*UCP)a/'];
+    }
+
+    #[DataProvider('provideMatchControlVerbPatterns')]
+    public function test_match_control_verbs(string $pattern): void
+    {
+        $regex = Regex::create()->parse($pattern);
+        $compiler = new \RegexParser\NodeVisitor\CompilerNodeVisitor();
+        $compiled = $regex->accept($compiler);
+
+        $this->assertSame($pattern, $compiled, "Match control verb should round-trip: {$pattern}");
+    }
+
+    public static function provideMatchControlVerbPatterns(): \Iterator
+    {
+        yield 'notempty' => ['/(*NOTEMPTY)a+/'];
+        yield 'notempty_atstart' => ['/(*NOTEMPTY_ATSTART)^a+/'];
+    }
 }

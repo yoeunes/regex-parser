@@ -31,6 +31,11 @@ final class PcreVerbNodeTest extends TestCase
         yield 'commit' => ['COMMIT', 0, 10];
         yield 'define' => ['DEFINE', 0, 10];
         yield 'then' => ['THEN', 0, 8];
+        yield 'cr_newline' => ['CR', 0, 7];
+        yield 'lf_newline' => ['LF', 0, 7];
+        yield 'crlf_newline' => ['CRLF', 0, 9];
+        yield 'notempty' => ['NOTEMPTY', 0, 13];
+        yield 'notempty_atstart' => ['NOTEMPTY_ATSTART', 0, 19];
     }
 
     #[DataProvider('data_provider_pcre_verbs')]
