@@ -116,6 +116,7 @@ final readonly class RegexLintService
      * Apply high-level toggles from the lint request (validation / ReDoS).
      *
      * @phpstan-param list<LintIssue> $issues
+     *
      * @phpstan-return list<LintIssue>
      */
     private function filterIssuesByRequest(array $issues, RegexLintRequest $request): array

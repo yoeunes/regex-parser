@@ -113,8 +113,6 @@ class ConsoleFormatter extends AbstractOutputFormatter
             $report->stats['optimizations']);
     }
 
-    
-
     /**
      * Format pattern context information.
      *

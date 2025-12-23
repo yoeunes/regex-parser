@@ -166,8 +166,9 @@ final readonly class SymfonyConsoleFormatter implements OutputFormatterInterface
             if (str_contains($escapedPattern, '\\')) {
                 return OutputFormatter::escape($escapedPattern);
             }
-            
+
             $highlighted = $this->analysis->highlight($pattern);
+
             return OutputFormatter::escape($highlighted);
         } catch (\Throwable) {
             return OutputFormatter::escape($escapedPattern);
