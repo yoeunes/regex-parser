@@ -841,6 +841,24 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
      */
     private function validateUnicodeProperty(string $key): bool
     {
+        if ($this->compileUnicodeProperty($key)) {
+            return true;
+        }
+
+        // Fallback: map Block=/Blk= to In<block> alias which PCRE recognizes.
+        if (preg_match('/^p\\{(\\^)?(?:blk|block)=([^}]+)\\}$/i', $key, $matches)) {
+            $negation = $matches[1] ?? '';
+            $block = $matches[2];
+            $aliasKey = 'p{'.$negation.'In'.$block.'}';
+
+            return $this->compileUnicodeProperty($aliasKey);
+        }
+
+        return false;
+    }
+
+    private function compileUnicodeProperty(string $key): bool
+    {
         // Use error suppression as preg_match warns on invalid properties
         $result = @preg_match("/^\\{$key}$/u", '');
         $error = preg_last_error();
