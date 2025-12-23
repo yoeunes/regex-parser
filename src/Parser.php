@@ -567,7 +567,7 @@ final class Parser
     }
 
     /**
-     * parses callouts like (?C1), (?C"name"), (?C"string"), and (?Cname)
+     * parses callouts like (?C), (?C1), (?C"name"), (?C"string"), and (?Cname)
      */
     private function parseCallout(): Node\CalloutNode
     {
