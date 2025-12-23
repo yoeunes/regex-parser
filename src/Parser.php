@@ -59,6 +59,13 @@ final class Parser
     private int $recursionDepth = 0;
 
     private static ?bool $supportsInlineModifierR = null;
+    
+    private readonly int $maxRecursionDepth;
+
+    public function __construct(?int $maxRecursionDepth = null)
+    {
+        $this->maxRecursionDepth = $maxRecursionDepth ?? self::MAX_RECURSION_DEPTH;
+    }
 
     public function parse(TokenStream $stream, string $flags = '', string $delimiter = '/', int $patternLength = 0): Node\RegexNode
     {
@@ -1859,9 +1866,9 @@ final class Parser
 
     private function guardRecursionDepth(int $position): void
     {
-        if ($this->recursionDepth >= self::MAX_RECURSION_DEPTH) {
+        if ($this->recursionDepth >= $this->maxRecursionDepth) {
             throw RecursionLimitException::withContext(
-                \sprintf('Recursion limit of %d exceeded', self::MAX_RECURSION_DEPTH),
+                \sprintf('Recursion limit of %d exceeded', $this->maxRecursionDepth),
                 $position,
                 $this->pattern,
             );
