@@ -11,14 +11,14 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\\Tests\\Integration;
+namespace RegexParser\Tests\Integration;
 
-use PHPUnit\\Framework\\Attributes\\DataProvider;
-use PHPUnit\\Framework\\TestCase;
-use RegexParser\\Node\\RegexNode;
-use RegexParser\\NodeVisitor\\DumperNodeVisitor;
-use RegexParser\\NodeVisitor\\ValidatorNodeVisitor;
-use RegexParser\\Regex;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\TestCase;
+use RegexParser\Node\RegexNode;
+use RegexParser\NodeVisitor\DumperNodeVisitor;
+use RegexParser\NodeVisitor\ValidatorNodeVisitor;
+use RegexParser\Regex;
 
 final class Pcre84FeatureComplianceTest extends TestCase
 {
