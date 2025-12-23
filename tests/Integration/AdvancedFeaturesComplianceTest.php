@@ -266,6 +266,85 @@ final class AdvancedFeaturesComplianceTest extends TestCase
         $this->assertFalse($result->isValid, "Pattern should be invalid: {$description}");
     }
 
+    #[DataProvider('provideComprehensivePcre84Patterns')]
+    public function test_comprehensive_pcre84_parsing(string $pattern, string $description): void
+    {
+        $regex = Regex::create()->parse($pattern);
+        $compiler = new \RegexParser\NodeVisitor\CompilerNodeVisitor();
+        $compiled = $regex->accept($compiler);
+
+        $this->assertIsString($compiled, "Pattern should parse and compile successfully: {$description}");
+    }
+
+    public static function provideComprehensivePcre84Patterns(): \Iterator
+    {
+        // Quantifier variations
+        yield 'quantifier_comma_n_variations' => ['/a{,3}/', 'basic {,n}'];
+        yield 'quantifier_comma_n_zero' => ['/a{,0}/', '{,0}'];
+        yield 'quantifier_comma_n_large' => ['/a{,100}/', '{,100}'];
+        yield 'quantifier_spaces_single' => ['/a{ 1 }/', '{ 1 }'];
+        yield 'quantifier_spaces_both' => ['/a{ 1 , 3 }/', '{ 1 , 3 }'];
+        yield 'quantifier_spaces_min' => ['/a{ 2 ,}/', '{ 2 ,}'];
+        yield 'quantifier_spaces_max' => ['/a{ , 5 }/', '{ , 5 }'];
+        yield 'quantifier_multiple_spaces' => ['/a{  2  ,  5  }/', 'multiple spaces'];
+
+        // Newline verbs
+        yield 'newline_cr_standalone' => ['/(*CR)abc/', '(*CR) standalone'];
+        yield 'newline_lf_standalone' => ['/(*LF)def/', '(*LF) standalone'];
+        yield 'newline_crlf_standalone' => ['/(*CRLF)ghi/', '(*CRLF) standalone'];
+        yield 'newline_cr_group' => ['/(?(*CR)abc)/', '(*CR) in group'];
+        yield 'newline_lf_group' => ['/(?(*LF)def)/', '(*LF) in group'];
+        yield 'newline_crlf_group' => ['/(?(*CRLF)ghi)/', '(*CRLF) in group'];
+
+        // Control verbs
+        yield 'control_mark_no_arg' => ['/(*MARK)abc/', '(*MARK) no arg'];
+        yield 'control_mark_with_arg' => ['/(*MARK:start)def/', '(*MARK:start)'];
+        yield 'control_prune' => ['/(*PRUNE)ghi/', '(*PRUNE)'];
+        yield 'control_skip' => ['/(*SKIP)jkl/', '(*SKIP)'];
+        yield 'control_then' => ['/(*THEN)mno/', '(*THEN)'];
+        yield 'control_mark_group' => ['/(?(*MARK)abc)/', '(*MARK) in group'];
+        yield 'control_prune_group' => ['/(?(*PRUNE)def)/', '(*PRUNE) in group'];
+
+        // Encoding verbs
+        yield 'encoding_utf8' => ['/(*UTF8)abc/', '(*UTF8)'];
+        yield 'encoding_ucp' => ['/(*UCP)def/', '(*UCP)'];
+        yield 'encoding_utf8_group' => ['/(?(*UTF8)abc)/', '(*UTF8) in group'];
+        yield 'encoding_ucp_group' => ['/(?(*UCP)def)/', '(*UCP) in group'];
+
+        // Match control verbs
+        yield 'match_notempty' => ['/(*NOTEMPTY)abc+/', '(*NOTEMPTY)'];
+        yield 'match_notempty_atstart' => ['/(*NOTEMPTY_ATSTART)^abc+/', '(*NOTEMPTY_ATSTART)'];
+        yield 'match_notempty_group' => ['/(?(*NOTEMPTY)abc)/', '(*NOTEMPTY) in group'];
+        yield 'match_notempty_atstart_group' => ['/(?(*NOTEMPTY_ATSTART)def)/', '(*NOTEMPTY_ATSTART) in group'];
+
+        // \R char type
+        yield 'r_char_type' => ['/\Ra/', '\R char type'];
+        yield 'r_in_class' => ['/[a\Rb]/', '\R in char class'];
+
+        // Possessive in char class (as literal)
+        yield 'possessive_in_class_star' => ['/[a*+b]/', '*+ in class'];
+        yield 'possessive_in_class_plus' => ['/[a++b]/', '++ in class'];
+        yield 'possessive_in_class_question' => ['/[a?+b]/', '?+ in class'];
+
+        // Extended Unicode properties
+        yield 'unicode_block' => ['/\p{Block=Basic_Latin}/', 'Block= property'];
+        yield 'unicode_script' => ['/\p{Script=Latin}/', 'Script= property'];
+        yield 'unicode_category' => ['/\p{General_Category=Letter}/', 'General_Category='];
+        yield 'unicode_negated' => ['/\P{Block=Basic_Latin}/', 'negated Block='];
+
+        // Callouts
+        yield 'callout_empty' => ['/(?C)abc/', 'empty callout'];
+        yield 'callout_zero' => ['/(?C0)def/', 'callout 0'];
+        yield 'callout_large' => ['/(?C255)ghi/', 'callout 255'];
+        yield 'callout_string' => ['/(?C"callback")jkl/', 'string callout'];
+        yield 'callout_named' => ['/(?Ccallback)mno/', 'named callout'];
+
+        // Complex combinations
+        yield 'complex_1' => ['/(?C1)(*CR)a{,3}\p{L}+/', 'complex 1'];
+        yield 'complex_2' => ['/(?(*UTF8)(*MARK:pos)b{ 2 , 5 }(*PRUNE))/', 'complex 2'];
+        yield 'complex_3' => ['/(*NOTEMPTY_ATSTART)^[a\Rb]{1,10}(*THEN)/', 'complex 3'];
+    }
+
     public static function providePcre84InvalidPatterns(): \Iterator
     {
         yield 'invalid_quantifier_range' => ['/a{5,2}/', 'min > max'];
