@@ -334,15 +334,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
             : '\p'.$node->prop;
     }
 
-        if (\strlen($node->prop) > 1) {
-            return '\p{'.$node->prop.'}';
-        }
-
-        return '\p'.$node->prop;
-    }
-
     #[\Override]
-    public function visitPosixClass(Node\PosixClassNode $node): string
     {
         return '[[:'.$node->class.':]]';
     }
