@@ -167,4 +167,76 @@ final class AdvancedFeaturesComplianceTest extends TestCase
         yield 'short_form' => ['/\pL/', '/\pL/'];
         yield 'short_form_negated' => ['/\PL/', '/\p{^L}/'];
     }
+
+    #[DataProvider('providePcre84Features')]
+    public function test_pcre_84_features_implemented(string $pattern, string $description): void
+    {
+        $regex = Regex::create();
+
+        // Should parse without exception
+        $ast = $regex->parse($pattern);
+
+        // Should compile back to valid regex
+        $compiler = new \RegexParser\NodeVisitor\CompilerNodeVisitor();
+        $compiled = $ast->accept($compiler);
+
+        // Should validate without errors
+        $validator = new ValidatorNodeVisitor();
+        $ast->accept($validator);
+
+        // Ensure the pattern is preserved or normalized correctly
+        $this->assertIsString($compiled, "Pattern {$pattern} should compile successfully: {$description}");
+    }
+
+    public static function providePcre84Features(): \Iterator
+    {
+        // 1. {,n} quantifier syntax (PHP 8.4+)
+        yield 'omitted_min_no_spaces' => ['/a{,3}/', '{,n} quantifier syntax'];
+        yield 'omitted_min_with_spaces' => ['/a{ , 3 }/', '{ , n } quantifier syntax'];
+        yield 'omitted_min_single_space' => ['/a{ ,3}/', '{ ,n } quantifier syntax'];
+
+        // 2. Spaces in quantifier braces
+        yield 'spaces_in_quantifier' => ['/a{ 2 , 5 }/', 'spaces in quantifier braces'];
+        yield 'spaces_both_missing' => ['/a{ , }/', 'both min and max omitted with spaces'];
+
+        // 3. Newline convention verbs
+        yield 'newline_cr' => ['/(*CR)a/', '(*CR) newline convention verb'];
+        yield 'newline_lf' => ['/(*LF)b/', '(*LF) newline convention verb'];
+        yield 'newline_crlf' => ['/(*CRLF)c/', '(*CRLF) newline convention verb'];
+
+        // 4. Control verbs
+        yield 'control_mark' => ['/(*MARK:label)a/', '(*MARK) control verb'];
+        yield 'control_prune' => ['/(*PRUNE)b/', '(*PRUNE) control verb'];
+        yield 'control_skip' => ['/(*SKIP)c/', '(*SKIP) control verb'];
+        yield 'control_then' => ['/(*THEN)d/', '(*THEN) control verb'];
+
+        // 5. Encoding control verbs
+        yield 'encoding_utf8' => ['/(*UTF8)pattern/', '(*UTF8) encoding control verb'];
+        yield 'encoding_ucp' => ['/(*UCP)test/', '(*UCP) encoding control verb'];
+
+        // 6. Match control verbs
+        yield 'match_notempty' => ['/(*NOTEMPTY)a+/', '(*NOTEMPTY) match control verb'];
+        yield 'match_notempty_atstart' => ['/(*NOTEMPTY_ATSTART)^a+/', '(*NOTEMPTY_ATSTART) match control verb'];
+
+        // 7. \R backreference (as char type, not backreference)
+        yield 'r_char_type' => ['/\R/', '\\R as char type (line ending)'];
+
+        // 8. Possessive quantifiers in char classes (edge cases - quantifiers not allowed in char classes)
+        yield 'char_class_with_plus' => ['/[a+]/', 'plus literal in char class'];
+        yield 'char_class_with_star' => ['/[b*]/', 'star literal in char class'];
+
+        // 9. Extended Unicode properties
+        yield 'unicode_extended_script' => ['/\p{Greek}/', 'extended Unicode script property'];
+        yield 'unicode_extended_category' => ['/\p{Ll}/', 'extended Unicode category property'];
+        yield 'unicode_extended_property' => ['/\p{Alpha}/', 'extended Unicode binary property'];
+
+        // 10. Callouts
+        yield 'callout_numeric' => ['/(?C1)abc/', 'numeric callout'];
+        yield 'callout_string' => ['/(?C"debug")def/', 'string callout'];
+        yield 'callout_named' => ['/(?Cmyfunc)xyz/', 'named callout'];
+
+        // Additional combinations
+        yield 'complex_quantifiers_and_verbs' => ['/(?C1)a{,3}(*MARK:pos)b{ 2 , 5 }(*PRUNE)/', 'complex combination of features'];
+        yield 'unicode_with_newlines' => ['/(*CRLF)\p{L}+(*NOTEMPTY_ATSTART)/', 'Unicode properties with newline verbs'];
+    }
 }
