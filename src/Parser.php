@@ -1159,23 +1159,39 @@ final class Parser
      */
     private function parseNumericSubroutine(int $startPos): ?Node\SubroutineNode
     {
+        $tokensConsumed = 0;
         $num = '';
+
         if ($this->matchLiteral('-')) {
             $num = '-';
+            $tokensConsumed++;
         }
+
         if ($this->isLiteralDigitToken()) {
             $num .= $this->current()->value;
             $this->advance();
-            $num .= $this->consumeWhile(static fn (string $c): bool => ctype_digit($c));
+            $tokensConsumed++;
+
+            // Consume additional digits
+            while ($this->check(TokenType::T_LITERAL) && ctype_digit($this->current()->value)) {
+                $num .= $this->current()->value;
+                $this->advance();
+                $tokensConsumed++;
+            }
 
             if ($this->check(TokenType::T_GROUP_CLOSE)) {
                 $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
 
                 return new Node\SubroutineNode($num, '', $startPos, $endToken->position + 1);
             }
-            $this->stream->rewind(\strlen($num));
+
+            // Not a valid subroutine, rewind all consumed tokens
+            $this->stream->rewind($tokensConsumed);
+            $this->currentTokenValid = false;
         } elseif ('-' === $num) {
+            // Only consumed the minus sign, rewind it
             $this->stream->rewind(1);
+            $this->currentTokenValid = false;
         }
 
         return null;
