@@ -203,20 +203,31 @@ final class AdvancedFeaturesComplianceTest extends TestCase
         yield 'newline_cr' => ['/(*CR)a/', '(*CR) newline convention verb'];
         yield 'newline_lf' => ['/(*LF)b/', '(*LF) newline convention verb'];
         yield 'newline_crlf' => ['/(*CRLF)c/', '(*CRLF) newline convention verb'];
+        yield 'newline_cr_group' => ['/(?(*CR)a)/', '(*CR) newline verb inside modifier group'];
+        yield 'newline_lf_group' => ['/(?(*LF)b)/', '(*LF) newline verb inside modifier group'];
+        yield 'newline_crlf_group' => ['/(?(*CRLF)c)/', '(*CRLF) newline verb inside modifier group'];
 
         // 4. Control verbs
         yield 'control_mark' => ['/(*MARK:label)a/', '(*MARK) control verb'];
         yield 'control_prune' => ['/(*PRUNE)b/', '(*PRUNE) control verb'];
         yield 'control_skip' => ['/(*SKIP)c/', '(*SKIP) control verb'];
         yield 'control_then' => ['/(*THEN)d/', '(*THEN) control verb'];
+        yield 'control_mark_group' => ['/(?(*MARK:label)a)/', '(*MARK) control verb inside modifier group'];
+        yield 'control_prune_group' => ['/(?(*PRUNE)b)/', '(*PRUNE) control verb inside modifier group'];
+        yield 'control_skip_group' => ['/(?(*SKIP)c)/', '(*SKIP) control verb inside modifier group'];
+        yield 'control_then_group' => ['/(?(*THEN)d)/', '(*THEN) control verb inside modifier group'];
 
         // 5. Encoding control verbs
         yield 'encoding_utf8' => ['/(*UTF8)pattern/', '(*UTF8) encoding control verb'];
         yield 'encoding_ucp' => ['/(*UCP)test/', '(*UCP) encoding control verb'];
+        yield 'encoding_utf8_group' => ['/(?(*UTF8)a)/', '(*UTF8) encoding verb inside modifier group'];
+        yield 'encoding_ucp_group' => ['/(?(*UCP)b)/', '(*UCP) encoding verb inside modifier group'];
 
         // 6. Match control verbs
         yield 'match_notempty' => ['/(*NOTEMPTY)a+/', '(*NOTEMPTY) match control verb'];
         yield 'match_notempty_atstart' => ['/(*NOTEMPTY_ATSTART)^a+/', '(*NOTEMPTY_ATSTART) match control verb'];
+        yield 'match_notempty_group' => ['/(?(*NOTEMPTY)a)/', '(*NOTEMPTY) match control verb inside modifier group'];
+        yield 'match_notempty_atstart_group' => ['/(?(*NOTEMPTY_ATSTART)b)/', '(*NOTEMPTY_ATSTART) match control verb inside modifier group'];
 
         // 7. \R backreference (as char type, not backreference)
         yield 'r_char_type' => ['/\R/', '\\R as char type (line ending)'];
@@ -224,13 +235,19 @@ final class AdvancedFeaturesComplianceTest extends TestCase
         // 8. Possessive quantifiers in char classes (edge cases - quantifiers not allowed in char classes)
         yield 'char_class_with_plus' => ['/[a+]/', 'plus literal in char class'];
         yield 'char_class_with_star' => ['/[b*]/', 'star literal in char class'];
+        yield 'char_class_with_double_plus' => ['/[a++]/', 'double plus literal in char class'];
+        yield 'char_class_with_star_plus' => ['/[b*+]/', 'star plus literal in char class'];
+        yield 'char_class_with_question' => ['/[c?]/', 'question mark literal in char class'];
 
         // 9. Extended Unicode properties
         yield 'unicode_extended_script' => ['/\p{Greek}/', 'extended Unicode script property'];
         yield 'unicode_extended_category' => ['/\p{Ll}/', 'extended Unicode category property'];
         yield 'unicode_extended_property' => ['/\p{Alpha}/', 'extended Unicode binary property'];
+        yield 'unicode_script_equals' => ['/\p{Script=Greek}/', 'extended Unicode script= property'];
+        yield 'unicode_block_equals' => ['/\p{Block=Basic_Latin}/', 'extended Unicode block= property'];
 
         // 10. Callouts
+        yield 'callout_bare' => ['/(?C)abc/', 'bare callout'];
         yield 'callout_numeric' => ['/(?C1)abc/', 'numeric callout'];
         yield 'callout_string' => ['/(?C"debug")def/', 'string callout'];
         yield 'callout_named' => ['/(?Cmyfunc)xyz/', 'named callout'];
