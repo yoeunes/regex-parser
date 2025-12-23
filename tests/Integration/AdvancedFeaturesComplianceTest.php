@@ -143,4 +143,28 @@ final class AdvancedFeaturesComplianceTest extends TestCase
         yield 'notempty' => ['/(*NOTEMPTY)a+/'];
         yield 'notempty_atstart' => ['/(*NOTEMPTY_ATSTART)^a+/'];
     }
+
+    #[DataProvider('provideUnicodePropertyPatterns')]
+    public function test_unicode_properties(string $pattern): void
+    {
+        $regex = Regex::create()->parse($pattern);
+        $compiler = new \RegexParser\NodeVisitor\CompilerNodeVisitor();
+        $compiled = $regex->accept($compiler);
+
+        $this->assertSame($pattern, $compiled, "Unicode property should round-trip: {$pattern}");
+    }
+
+    public static function provideUnicodePropertyPatterns(): \Iterator
+    {
+        yield 'general_category' => ['/\p{L}/', '/\p{L}/'];
+        yield 'general_category_negated' => ['/\P{L}/', '/\p{^L}/'];
+        yield 'script' => ['/\p{Arabic}/', '/\p{Arabic}/'];
+        yield 'script_negated' => ['/\P{Arabic}/', '/\p{^Arabic}/'];
+        yield 'property' => ['/\p{Alpha}/', '/\p{Alpha}/'];
+        yield 'combined' => ['/[\p{L}\p{M}]/', '/[\p{L}\p{M}]/'];
+        yield 'with_braces' => ['/\p{Latin}/', '/\p{Latin}/'];
+        yield 'negated_with_braces' => ['/\P{Latin}/', '/\p{^Latin}/'];
+        yield 'short_form' => ['/\pL/', '/\pL/'];
+        yield 'short_form_negated' => ['/\PL/', '/\p{^L}/'];
+    }
 }
