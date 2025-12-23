@@ -800,7 +800,6 @@ final class Parser
 
         // 2. Check for PCRE verbs: (*...)
         if ($this->matchLiteral('*')) {
-            echo "DEBUG: Found * in group modifier\n";
             return $this->parsePcreVerbInGroup($startPosition);
         }
 
