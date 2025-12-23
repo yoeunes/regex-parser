@@ -1177,7 +1177,7 @@ final class Parser
         }
 
         $flags .= $this->consumeWhile(
-            static fn (string $c) => str_contains($inlineFlagChars, $c),
+            static fn (string $c): bool => str_contains($inlineFlagChars, $c),
         );
 
         if ('' !== $flags) {
