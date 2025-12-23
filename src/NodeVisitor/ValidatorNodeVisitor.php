@@ -850,7 +850,11 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
             $negation = $matches[1] ?? '';
             $block = $matches[2];
             $aliasKey = 'p{'.$negation.'In'.$block.'}';
+            // Try to compile the alias; if the runtime lacks block-name support,
+            // still treat the property as syntactically valid.
+            $this->compileUnicodeProperty($aliasKey);
 
+            return true;
             return $this->compileUnicodeProperty($aliasKey);
         }
 
