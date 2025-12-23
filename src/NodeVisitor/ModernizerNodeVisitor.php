@@ -134,7 +134,7 @@ final class ModernizerNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitAlternation(Node\AlternationNode $node): Node\NodeInterface
     {
-        $alternatives = array_map(fn ($alt) => $alt->accept($this), $node->alternatives);
+        $alternatives = array_map(fn (Node\NodeInterface $alt): Node\NodeInterface => $alt->accept($this), $node->alternatives);
 
         return new Node\AlternationNode($alternatives, $node->getStartPosition(), $node->getEndPosition());
     }
@@ -142,7 +142,7 @@ final class ModernizerNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitSequence(Node\SequenceNode $node): Node\NodeInterface
     {
-        $children = array_map(fn ($n) => $n->accept($this), $node->children);
+        $children = array_map(fn (Node\NodeInterface $n): Node\NodeInterface => $n->accept($this), $node->children);
 
         return new Node\SequenceNode($children, $node->getStartPosition(), $node->getEndPosition());
     }
