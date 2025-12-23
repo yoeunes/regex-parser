@@ -107,6 +107,18 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         $node->pattern->accept($this);
     }
 
+    private function normalizeQuantifier(string $q): string
+    {
+        if (!str_starts_with($q, '{') || !str_ends_with($q, '}')) {
+            return $q;
+        }
+
+        $inner = substr($q, 1, -1);
+        $inner = preg_replace('/\\s+/', '', $inner) ?? $inner;
+
+        return '{'.$inner.'}';
+    }
+
     #[\Override]
     public function visitAlternation(Node\AlternationNode $node): void
     {
@@ -861,14 +873,15 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
      */
     private function getQuantifierBounds(string $q): array
     {
+        $normalized = $this->normalizeQuantifier($q);
         // Return cached result if available
-        if (isset(self::$quantifierBoundsCache[$q])) {
-            return self::$quantifierBoundsCache[$q];
+        if (isset(self::$quantifierBoundsCache[$normalized])) {
+            return self::$quantifierBoundsCache[$normalized];
         }
 
         // Compute and cache the result
-        $bounds = $this->parseQuantifierBounds($q);
-        self::$quantifierBoundsCache[$q] = $bounds;
+        $bounds = $this->parseQuantifierBounds($normalized);
+        self::$quantifierBoundsCache[$normalized] = $bounds;
 
         return $bounds;
     }
@@ -890,12 +903,15 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
             '*' => [0, -1],
             '+' => [1, -1],
             '?' => [0, 1],
-            default => preg_match('/^\{(\d*+)(?:,(\d*+))?\}$/', $q, $m) ?
-                (isset($m[2]) ?
-                    ('' === $m[2] ? [(int) $m[1] ?: 0, -1] : [(int) $m[1] ?: 0, (int) $m[2]]) : // {n,} or {n,m}
-                    [(int) $m[1] ?: 0, (int) $m[1] ?: 0] // {n}
-                ) :
-                [1, 1], // Should be impossible if Lexer is correct
+            default => preg_match('/^\\{(\\d*?)(?:,(\\d*?))?\\}$/', $q, $m) ?
+                (
+                    ('' === $m[1] && (!isset($m[2]) || '' === $m[2]))
+                        ? [1, 1] // entirely empty braces remain invalid/fallback
+                        : (isset($m[2])
+                            ? ('' === $m[2] ? [(int) $m[1] ?: 0, -1] : [(int) $m[1] ?: 0, (int) $m[2]]) // {n,} or {n,m} or {,m}
+                            : [(int) $m[1] ?: 0, (int) $m[1] ?: 0]) // {n}
+                )
+                : [1, 1], // Should be impossible if Lexer is correct
         };
     }
 
