@@ -37,7 +37,7 @@ final class Pcre84FeatureComplianceTest extends TestCase
         $ast = $this->regex->parse($pattern);
         $ast->accept($this->validator);
 
-        self::assertTrue(true); // reaching here means parsing and validation succeeded
+        $this->assertTrue(true); // reaching here means parsing and validation succeeded
     }
 
     public static function provideOpenLowerQuantifiers(): iterable
@@ -53,7 +53,7 @@ final class Pcre84FeatureComplianceTest extends TestCase
         $ast = $this->regex->parse($pattern);
         $ast->accept($this->validator);
 
-        self::assertTrue(true);
+        $this->assertTrue(true);
     }
 
     public static function provideNewlineConventionVerbs(): iterable
@@ -69,7 +69,7 @@ final class Pcre84FeatureComplianceTest extends TestCase
         $ast = $this->regex->parse($pattern);
         $ast->accept($this->validator);
 
-        self::assertTrue(true);
+        $this->assertTrue(true);
     }
 
     public static function provideControlVerbs(): iterable
@@ -86,7 +86,7 @@ final class Pcre84FeatureComplianceTest extends TestCase
         $ast = $this->regex->parse($pattern);
         $ast->accept($this->validator);
 
-        self::assertTrue(true);
+        $this->assertTrue(true);
     }
 
     public static function provideEncodingVerbs(): iterable
@@ -101,7 +101,7 @@ final class Pcre84FeatureComplianceTest extends TestCase
         $ast = $this->regex->parse($pattern);
         $ast->accept($this->validator);
 
-        self::assertTrue(true);
+        $this->assertTrue(true);
     }
 
     public static function provideMatchControlVerbs(): iterable
@@ -110,14 +110,14 @@ final class Pcre84FeatureComplianceTest extends TestCase
         yield 'NOTEMPTY_ATSTART' => ['/(*NOTEMPTY_ATSTART)^foo/'];
     }
 
-    public function test_backslash_R_is_treated_as_char_type_not_backreference(): void
+    public function test_backslash_r_is_treated_as_char_type_not_backreference(): void
     {
         $ast = $this->regex->parse('/\R/');
         $ast->accept($this->validator);
 
         $dump = $ast->accept(new DumperNodeVisitor());
-        self::assertStringContainsString("CharType('\\R')", $dump);
-        self::assertStringNotContainsString('Backref', $dump);
+        $this->assertStringContainsString("CharType('\\R')", $dump);
+        $this->assertStringNotContainsString('Backref', $dump);
     }
 
     public function test_possessive_quantifier_after_char_class_is_supported(): void
@@ -126,7 +126,7 @@ final class Pcre84FeatureComplianceTest extends TestCase
         $ast->accept($this->validator);
 
         $dump = $ast->accept(new DumperNodeVisitor());
-        self::assertStringContainsString('type: possessive', $dump);
+        $this->assertStringContainsString('type: possessive', $dump);
     }
 
     #[DataProvider('provideUnicodeProperties')]
@@ -135,7 +135,7 @@ final class Pcre84FeatureComplianceTest extends TestCase
         $ast = $this->regex->parse($pattern);
         $ast->accept($this->validator);
 
-        self::assertTrue(true);
+        $this->assertTrue(true);
     }
 
     public static function provideUnicodeProperties(): iterable
@@ -152,7 +152,7 @@ final class Pcre84FeatureComplianceTest extends TestCase
         $ast->accept($this->validator);
 
         $dump = $ast->accept(new DumperNodeVisitor());
-        self::assertStringContainsString('Callout', $dump);
+        $this->assertStringContainsString('Callout', $dump);
     }
 
     public static function provideCallouts(): iterable

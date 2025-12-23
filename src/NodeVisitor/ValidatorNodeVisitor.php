@@ -107,18 +107,6 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         $node->pattern->accept($this);
     }
 
-    private function normalizeQuantifier(string $q): string
-    {
-        if (!str_starts_with($q, '{') || !str_ends_with($q, '}')) {
-            return $q;
-        }
-
-        $inner = substr($q, 1, -1);
-        $inner = preg_replace('/\\s+/', '', $inner) ?? $inner;
-
-        return '{'.$inner.'}';
-    }
-
     #[\Override]
     public function visitAlternation(Node\AlternationNode $node): void
     {
@@ -760,6 +748,18 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         }
     }
 
+    private function normalizeQuantifier(string $q): string
+    {
+        if (!str_starts_with($q, '{') || !str_ends_with($q, '}')) {
+            return $q;
+        }
+
+        $inner = substr($q, 1, -1);
+        $inner = preg_replace('/\\s+/', '', $inner) ?? $inner;
+
+        return '{'.$inner.'}';
+    }
+
     private function getNameSuggestions(string $name): string
     {
         $available = array_keys($this->groupNumbering->namedGroups);
@@ -855,6 +855,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
             $this->compileUnicodeProperty($aliasKey);
 
             return true;
+
             return $this->compileUnicodeProperty($aliasKey);
         }
 
