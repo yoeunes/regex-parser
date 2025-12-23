@@ -1164,20 +1164,26 @@ final class Parser
         );
     }
 
+    // Checks if the 'r' inline modifier is supported by the current PCRE/PHP version
+    // The 'r' modifier was added in PCRE2 10.43 and PHP 8.4
     private static function supportsInlineModifierR(): bool
     {
+        // Return cached result if already computed
         if (null !== self::$supportsInlineModifierR) {
             return self::$supportsInlineModifierR;
         }
 
+        // PHP 8.4+ includes PCRE2 10.43+ which supports the 'r' modifier
         if (\PHP_VERSION_ID >= 80400) {
             self::$supportsInlineModifierR = true;
 
             return true;
         }
 
+        // For older PHP versions, check the PCRE library version directly
         $pcreVersion = \defined('PCRE_VERSION') ? explode(' ', \PCRE_VERSION)[0] : '0';
 
+        // PCRE2 10.43+ is required for the 'r' modifier support
         self::$supportsInlineModifierR = version_compare($pcreVersion, '10.43', '>=');
 
         return self::$supportsInlineModifierR;
