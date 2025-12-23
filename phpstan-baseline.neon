@@ -1,6 +1,29 @@
 parameters:
 	ignoreErrors:
 		-
+			rawMessage: 'Regex pattern is invalid: Unknown modifier ''r'' in pattern: /a/r'
+			identifier: regexp.pattern
+			count: 1
+			path: src/Internal/PatternParser.php
+
+		-
+			rawMessage: 'Regex syntax error: Unknown regex flag(s) found: "r" (Pattern: "/a/r")'
+			identifier: regex.syntax.invalid
+			count: 1
+			path: src/Internal/PatternParser.php
+
+		-
+			rawMessage: 'Regex pattern is invalid: Unknown modifier ''r'' in pattern: /a/r'
+			identifier: regexp.pattern
+			count: 1
+			path: tests/Unit/Parser/ParserUtilityTest.php
+
+		-
+			rawMessage: 'Regex syntax error: Unknown regex flag(s) found: "r" (Pattern: "/a/r")'
+			identifier: regex.syntax.invalid
+			count: 1
+			path: tests/Unit/Parser/ParserUtilityTest.php
+		-
 			rawMessage: Accessing PHPStan\Analyser\Analyser::class is not covered by backward compatibility promise. The class might change in a minor PHPStan version.
 			identifier: phpstanApi.classConstant
 			count: 1
