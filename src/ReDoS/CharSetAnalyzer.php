@@ -20,8 +20,15 @@ use RegexParser\Node;
  *
  * Used to detect mutually exclusive boundaries that avoid catastrophic backtracking.
  */
-final class CharSetAnalyzer
+final readonly class CharSetAnalyzer
 {
+    private bool $unicodeMode;
+
+    public function __construct(string $flags = '')
+    {
+        $this->unicodeMode = str_contains($flags, 'u');
+    }
+
     public function firstChars(Node\NodeInterface $node): CharSet
     {
         return $this->walk($node, true);
@@ -114,6 +121,10 @@ final class CharSetAnalyzer
 
     private function fromCharType(string $type): CharSet
     {
+        if ($this->unicodeMode && \in_array($type, ['d', 'D', 'w', 'W'], true)) {
+            return CharSet::unknown();
+        }
+
         return match ($type) {
             'd' => CharSet::fromRange(\ord('0'), \ord('9')),
             'D' => CharSet::fromRange(\ord('0'), \ord('9'))->complement(),

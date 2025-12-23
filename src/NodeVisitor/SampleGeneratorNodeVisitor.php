@@ -153,7 +153,7 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitSequence(Node\SequenceNode $node): string
     {
-        $parts = array_map(fn ($child) => $child->accept($this), $node->children);
+        $parts = array_map(fn (Node\NodeInterface $child): string => $child->accept($this), $node->children);
 
         return implode('', $parts);
     }

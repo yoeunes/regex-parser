@@ -69,7 +69,7 @@ final class ModernizerNodeVisitor extends AbstractNodeVisitor
         }
 
         // For other cases, keep as is but modernize parts
-        $modernizedParts = array_map(fn ($part) => $part->accept($this), $parts);
+        $modernizedParts = array_map(fn (Node\NodeInterface $part): Node\NodeInterface => $part->accept($this), $parts);
         $expression = 1 === \count($modernizedParts)
             ? $modernizedParts[0]
             : new \RegexParser\Node\AlternationNode($modernizedParts, $node->getStartPosition(), $node->getEndPosition());
@@ -134,7 +134,7 @@ final class ModernizerNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitAlternation(Node\AlternationNode $node): Node\NodeInterface
     {
-        $alternatives = array_map(fn ($alt) => $alt->accept($this), $node->alternatives);
+        $alternatives = array_map(fn (Node\NodeInterface $alt): Node\NodeInterface => $alt->accept($this), $node->alternatives);
 
         return new Node\AlternationNode($alternatives, $node->getStartPosition(), $node->getEndPosition());
     }
@@ -142,7 +142,7 @@ final class ModernizerNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitSequence(Node\SequenceNode $node): Node\NodeInterface
     {
-        $children = array_map(fn ($n) => $n->accept($this), $node->children);
+        $children = array_map(fn (Node\NodeInterface $n): Node\NodeInterface => $n->accept($this), $node->children);
 
         return new Node\SequenceNode($children, $node->getStartPosition(), $node->getEndPosition());
     }
@@ -216,17 +216,10 @@ final class ModernizerNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitConditional(\RegexParser\Node\ConditionalNode $node)
     {
-        // @phpstan-ignore if.alwaysTrue
-        if ($node->no) {
-            $noBranch = $node->no->accept($this);
-        } else {
-            $noBranch = null;
-        }
-
         return new \RegexParser\Node\ConditionalNode(
             $node->condition->accept($this),
             $node->yes->accept($this),
-            $noBranch,
+            $node->no->accept($this),
             $node->getStartPosition(),
             $node->getEndPosition(),
         );

@@ -128,8 +128,8 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitSequence(Node\SequenceNode $node): string
     {
-        $parts = array_map(fn ($child) => $child->accept($this), $node->children);
-        $parts = array_filter($parts, fn ($part) => '' !== $part);
+        $parts = array_map(fn (Node\NodeInterface $child): string => $child->accept($this), $node->children);
+        $parts = array_filter($parts, fn (string $part): bool => '' !== $part);
 
         return implode("\n", $parts);
     }
@@ -327,7 +327,7 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
     {
         $neg = $node->isNegated ? 'NOT ' : '';
         $parts = $node->expression instanceof Node\AlternationNode ? $node->expression->alternatives : [$node->expression];
-        $explainedParts = array_map(fn (Node\NodeInterface $part) => $part->accept($this), $parts);
+        $explainedParts = array_map(fn (Node\NodeInterface $part): string => $part->accept($this), $parts);
 
         return $this->line(\sprintf('Character Class: any character %sin [ %s ]', $neg, implode(', ', $explainedParts)));
     }

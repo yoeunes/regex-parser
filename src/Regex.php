@@ -113,9 +113,9 @@ final readonly class Regex
      */
     public static function tokenize(string $regex): TokenStream
     {
-        [$pattern] = Internal\PatternParser::extractPatternAndFlags($regex);
+        [$pattern, $flags] = Internal\PatternParser::extractPatternAndFlags($regex);
 
-        return (new Lexer())->tokenize($pattern);
+        return (new Lexer())->tokenize($pattern, $flags);
     }
 
     /**
@@ -293,8 +293,8 @@ final readonly class Regex
     /**
      * Optimize a regular expression for better performance.
      *
-     * @param string                                                 $regex   The regular expression to optimize
-     * @param array{digits?: bool, word?: bool, strictRanges?: bool} $options Optimization options
+     * @param string                                                                        $regex   The regular expression to optimize
+     * @param array{digits?: bool, word?: bool, strictRanges?: bool, autoPossessify?: bool} $options Optimization options
      *
      * @return OptimizationResult Optimization results with changes applied
      */
@@ -304,6 +304,7 @@ final readonly class Regex
             optimizeDigits: (bool) ($options['digits'] ?? true),
             optimizeWord: (bool) ($options['word'] ?? true),
             strictRanges: (bool) ($options['strictRanges'] ?? true),
+            autoPossessify: (bool) ($options['autoPossessify'] ?? true),
         );
         $optimizedPattern = $this->compile($regex, $optimizer);
         $appliedChanges = $optimizedPattern === $regex ? [] : ['Optimized pattern.'];
@@ -915,8 +916,7 @@ final readonly class Regex
     private function parseFromScratch(string $regex): RegexNode
     {
         [$pattern, $flags, $delimiter] = PatternParser::extractPatternAndFlags($regex);
-
-        $tokenStream = (new Lexer())->tokenize($pattern);
+        $tokenStream = (new Lexer())->tokenize($pattern, $flags);
         $parser = new Parser();
 
         return $parser->parse($tokenStream, $flags, $delimiter, \strlen($pattern));

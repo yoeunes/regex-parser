@@ -126,10 +126,11 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
         $boundarySeparated = $boundarySeparatedPrev || $boundarySeparatedNext;
 
         $controlVerbShield = $this->hasTrailingBacktrackingControl($node->node);
+        $isPossessive = QuantifierType::T_POSSESSIVE === $node->type;
 
         // If the quantifier is possessive (*+, ++), its content is implicitly atomic.
         // This means it does not backtrack, preventing ReDoS in nested structures.
-        if (QuantifierType::T_POSSESSIVE === $node->type || $controlVerbShield) {
+        if ($isPossessive || $controlVerbShield) {
             $this->inAtomicGroup = true;
         }
 
@@ -140,7 +141,7 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
             $result = $node->node->accept($this);
             $this->inAtomicGroup = $wasAtomic; // Restore state is crucial here!
 
-            return $controlVerbShield ? $this->reduceSeverity($result, ReDoSSeverity::LOW) : $result;
+            return $this->reduceSeverity($result, ReDoSSeverity::LOW);
         }
 
         // --- Standard ReDoS logic for non-atomic quantifiers ---
@@ -288,8 +289,8 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
         $wasAtomic = $this->inAtomicGroup;
         $previous = $this->previousNode;
         $next = $this->nextNode;
-
-        if (GroupType::T_GROUP_ATOMIC === $node->type) {
+        $isAtomicGroup = GroupType::T_GROUP_ATOMIC === $node->type;
+        if ($isAtomicGroup) {
             $this->inAtomicGroup = true;
         }
 
@@ -301,7 +302,7 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
 
         $this->inAtomicGroup = $wasAtomic;
 
-        return $severity;
+        return $isAtomicGroup ? $this->reduceSeverity($severity, ReDoSSeverity::LOW) : $severity;
     }
 
     #[\Override]

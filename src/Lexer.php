@@ -37,7 +37,7 @@ final class Lexer
     private const TOKENS_INSIDE = [
         'T_CHAR_CLASS_CLOSE', 'T_POSIX_CLASS', 'T_CHAR_TYPE', 'T_OCTAL_LEGACY',
         'T_OCTAL', 'T_UNICODE', 'T_UNICODE_PROP', 'T_UNICODE_NAMED',
-        'T_CONTROL_CHAR', 'T_QUOTE_MODE_START', 'T_LITERAL_ESCAPED',
+        'T_CONTROL_CHAR', 'T_QUOTE_MODE_START', 'T_QUOTE_MODE_END', 'T_LITERAL_ESCAPED',
         'T_CLASS_INTERSECTION', 'T_CLASS_SUBTRACTION', 'T_LITERAL',
     ];
 
@@ -81,6 +81,7 @@ final class Lexer
         'T_UNICODE_PROP' => '\\\\ [pP] (?: \\{ [^}]+ \\} | [a-zA-Z] )',
         'T_CONTROL_CHAR' => '\\\\ c [\\x00-\\x7F]',
         'T_QUOTE_MODE_START' => '\\\\ Q',
+        'T_QUOTE_MODE_END' => '\\\\ E',
         'T_LITERAL_ESCAPED' => '\\\\ .',
         'T_CLASS_INTERSECTION' => '&&',
         'T_CLASS_SUBTRACTION' => '--',
@@ -106,7 +107,7 @@ final class Lexer
 
     private int $charClassStartPosition = 0;
 
-    public function tokenize(string $pattern): TokenStream
+    public function tokenize(string $pattern, string $flags = ''): TokenStream
     {
         if (!preg_match('//u', $pattern)) {
             throw LexerException::withContext('Input string is not valid UTF-8.', 0, $pattern);
@@ -367,6 +368,7 @@ final class Lexer
     private function consumeQuoteMode(): ?Token
     {
         if (!preg_match('/(.*?)((\\\\E|$))/suA', $this->pattern, $matches, \PREG_UNMATCHED_AS_NULL, $this->position)) {
+            // preg_match failed (e.g., malformed UTF-8) - exit quote mode and move to end
             $this->inQuoteMode = false;
             $this->position = $this->length;
 
@@ -391,6 +393,8 @@ final class Lexer
             return $token;
         }
 
+        // End of pattern reached without \E - PCRE treats \Q without \E as valid
+        // (quotes to end of pattern). Keep inQuoteMode = true per PCRE semantics.
         $this->position = $this->length;
 
         return null;
@@ -454,6 +458,13 @@ final class Lexer
         };
     }
 
+    /**
+     * Parses a Unicode escape sequence.
+     *
+     * Simple \xNN escapes (2 hex digits, single-byte) are converted to their character
+     * representation for consistency with PCRE behavior. Extended forms like \x{NNNN}
+     * and \u{NNNN} are kept as strings because they can represent multi-byte UTF-8.
+     */
     private function parseUnicodeEscape(string $escape): string
     {
         if (preg_match('/^\\\\x([0-9a-fA-F]{1,2})$/', $escape, $m)) {
@@ -463,7 +474,7 @@ final class Lexer
             }
         }
 
-        // For other cases, keep as string
+        // For extended forms (\x{}, \u{}), keep as string
         return $escape;
     }
 

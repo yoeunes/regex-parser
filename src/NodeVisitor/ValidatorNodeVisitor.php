@@ -31,25 +31,45 @@ use RegexParser\Regex;
  */
 final class ValidatorNodeVisitor extends AbstractNodeVisitor
 {
+    // Maximum cache size to prevent memory leaks in long-running processes
+    private const MAX_CACHE_SIZE = 1000;
+
     // Precomputed validation sets for maximum performance
     private const VALID_ASSERTIONS = [
         'A' => true, 'z' => true, 'Z' => true,
         'G' => true, 'b' => true, 'B' => true,
+        'b{g}' => true, 'B{g}' => true, // Grapheme boundary assertions (PCRE2)
     ];
 
     private const VALID_PCRE_VERBS = [
-        'FAIL' => true, 'ACCEPT' => true, 'COMMIT' => true,
+        // Backtracking control verbs
+        'FAIL' => true, 'F' => true, 'ACCEPT' => true, 'COMMIT' => true,
         'PRUNE' => true, 'SKIP' => true, 'THEN' => true,
-        'DEFINE' => true, 'MARK' => true,
+        // Definition verb
+        'DEFINE' => true,
+        // Mark verb (with optional :NAME argument)
+        'MARK' => true,
+        // Mode setting verbs
         'UTF8' => true, 'UTF' => true, 'UCP' => true,
-        'CR' => true, 'LF' => true, 'CRLF' => true,
+        // Newline conventions
+        'CR' => true, 'LF' => true, 'CRLF' => true, 'ANYCRLF' => true, 'ANY' => true, 'NUL' => true,
+        // BSR (backslash-R) conventions
         'BSR_ANYCRLF' => true, 'BSR_UNICODE' => true,
-        'NO_AUTO_POSSESS' => true,
+        // Optimization control
+        'NO_AUTO_POSSESS' => true, 'NO_START_OPT' => true, 'NO_DOTSTAR_ANCHOR' => true,
+        // Limit verbs
         'LIMIT_MATCH' => true, 'LIMIT_RECURSION' => true,
         'LIMIT_DEPTH' => true, 'LIMIT_HEAP' => true,
         'LIMIT_LOOKBEHIND' => true,
-        'script_run' => true, 'atomic_script_run' => true,
+        // Script run verbs (also as lowercase aliases)
+        'script_run' => true, 'sr' => true,
+        'atomic_script_run' => true, 'asr' => true,
+        // Empty match control
         'NOTEMPTY' => true, 'NOTEMPTY_ATSTART' => true,
+        // First line anchor
+        'FIRSTLINE' => true,
+        // JIT control (PCRE2)
+        'NO_JIT' => true,
     ];
 
     private const VALID_POSIX_CLASSES = [
@@ -91,6 +111,15 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     private static array $quantifierBoundsCache = [];
 
     public function __construct(private readonly int $maxLookbehindLength = Regex::DEFAULT_MAX_LOOKBEHIND_LENGTH, private readonly ?string $pattern = null) {}
+
+    /**
+     * Clears static caches. Useful for long-running processes or testing.
+     */
+    public static function clearCaches(): void
+    {
+        self::$unicodePropCache = [];
+        self::$quantifierBoundsCache = [];
+    }
 
     #[\Override]
     public function visitRegex(Node\RegexNode $node): void
@@ -336,15 +365,16 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
             );
         }
 
-        // 2. Validation: Ensure characters are single-byte or single codepoint (for LiteralNodes).
-        if ($node->start instanceof Node\LiteralNode && \strlen($node->start->value) > 1) {
+        // 2. Validation: Ensure characters are single codepoint (for LiteralNodes).
+        // Use mb_strlen for proper Unicode character counting.
+        if ($node->start instanceof Node\LiteralNode && mb_strlen($node->start->value, 'UTF-8') > 1) {
             $this->raiseSemanticError(
                 'Invalid range: start char must be a single character.',
                 $node->startPosition,
                 'regex.range.invalid_start',
             );
         }
-        if ($node->end instanceof Node\LiteralNode && \strlen($node->end->value) > 1) {
+        if ($node->end instanceof Node\LiteralNode && mb_strlen($node->end->value, 'UTF-8') > 1) {
             $this->raiseSemanticError(
                 'Invalid range: end char must be a single character.',
                 $node->startPosition,
@@ -503,8 +533,12 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         $prop = $node->prop;
         $key = 'p'.$prop;
 
-        // Intelligent caching with lazy validation
+        // Intelligent caching with lazy validation and size limit
         if (!isset(self::$unicodePropCache[$key])) {
+            // Prevent unbounded cache growth in long-running processes
+            if (\count(self::$unicodePropCache) >= self::MAX_CACHE_SIZE) {
+                self::$unicodePropCache = \array_slice(self::$unicodePropCache, -((int) (self::MAX_CACHE_SIZE / 2)), null, true);
+            }
             self::$unicodePropCache[$key] = $this->validateUnicodeProperty($key);
         }
 
@@ -902,6 +936,11 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         // Return cached result if available
         if (isset(self::$quantifierBoundsCache[$normalized])) {
             return self::$quantifierBoundsCache[$normalized];
+        }
+
+        // Prevent unbounded cache growth in long-running processes
+        if (\count(self::$quantifierBoundsCache) >= self::MAX_CACHE_SIZE) {
+            self::$quantifierBoundsCache = \array_slice(self::$quantifierBoundsCache, -((int) (self::MAX_CACHE_SIZE / 2)), null, true);
         }
 
         // Compute and cache the result

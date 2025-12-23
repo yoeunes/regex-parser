@@ -28,14 +28,21 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
 
     private string $flags = '';
 
-    private readonly CharSetAnalyzer $charSetAnalyzer;
+    private CharSetAnalyzer $charSetAnalyzer;
 
     private bool $isInsideQuantifier = false;
 
     public function __construct(
         private readonly bool $optimizeDigits = true,
         private readonly bool $optimizeWord = true,
-        private readonly bool $strictRanges = true
+        private readonly bool $strictRanges = true,
+        /**
+         * Whether to automatically convert greedy quantifiers to possessive
+         * when followed by a disjoint character set. This is safe in most cases
+         * but can change semantics when backreferences are involved.
+         * Default is false to ensure semantic preservation.
+         */
+        private readonly bool $autoPossessify = false
     ) {
         $this->charSetAnalyzer = new CharSetAnalyzer();
     }
@@ -44,6 +51,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
     public function visitRegex(Node\RegexNode $node): Node\NodeInterface
     {
         $this->flags = $node->flags;
+        $this->charSetAnalyzer = new CharSetAnalyzer($this->flags);
         $optimizedPattern = $node->pattern->accept($this);
 
         if ($optimizedPattern === $node->pattern) {
@@ -190,20 +198,23 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         }
 
         // Auto-possessivization (only for + to be conservative)
-        for ($i = 0; $i < \count($optimizedChildren) - 1; $i++) {
-            $current = $optimizedChildren[$i];
-            $next = $optimizedChildren[$i + 1];
+        // This optimization is opt-in because it can change semantics with backreferences
+        if ($this->autoPossessify) {
+            for ($i = 0; $i < \count($optimizedChildren) - 1; $i++) {
+                $current = $optimizedChildren[$i];
+                $next = $optimizedChildren[$i + 1];
 
-            if ($current instanceof Node\QuantifierNode && Node\QuantifierType::T_GREEDY === $current->type && '+' === $current->quantifier) {
-                if ($this->areCharSetsDisjoint($current->node, $next)) {
-                    $optimizedChildren[$i] = new Node\QuantifierNode(
-                        $current->node,
-                        $current->quantifier,
-                        Node\QuantifierType::T_POSSESSIVE,
-                        $current->startPosition,
-                        $current->endPosition,
-                    );
-                    $hasChanged = true;
+                if ($current instanceof Node\QuantifierNode && Node\QuantifierType::T_GREEDY === $current->type && '+' === $current->quantifier) {
+                    if ($this->areCharSetsDisjoint($current->node, $next)) {
+                        $optimizedChildren[$i] = new Node\QuantifierNode(
+                            $current->node,
+                            $current->quantifier,
+                            Node\QuantifierType::T_POSSESSIVE,
+                            $current->startPosition,
+                            $current->endPosition,
+                        );
+                        $hasChanged = true;
+                    }
                 }
             }
         }

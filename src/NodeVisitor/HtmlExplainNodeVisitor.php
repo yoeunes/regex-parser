@@ -115,7 +115,7 @@ final class HtmlExplainNodeVisitor extends AbstractNodeVisitor
     public function visitAlternation(Node\AlternationNode $node): string
     {
         $alts = array_map(
-            fn (Node\NodeInterface $alt) => $alt->accept($this),
+            fn (Node\NodeInterface $alt): string => $alt->accept($this),
             $node->alternatives,
         );
 
@@ -149,8 +149,8 @@ final class HtmlExplainNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitSequence(Node\SequenceNode $node): string
     {
-        $parts = array_map(fn ($child) => $child->accept($this), $node->children);
-        $parts = array_filter($parts, fn ($part) => '' !== $part);
+        $parts = array_map(fn (Node\NodeInterface $child): string => $child->accept($this), $node->children);
+        $parts = array_filter($parts, fn (string $part): bool => '' !== $part);
 
         return implode("\n", $parts);
     }
@@ -464,7 +464,7 @@ final class HtmlExplainNodeVisitor extends AbstractNodeVisitor
     {
         $neg = $node->isNegated ? '<strong>NOT</strong> ' : '';
         $expressionParts = $node->expression instanceof Node\AlternationNode ? $node->expression->alternatives : [$node->expression];
-        $explainedParts = array_map(fn (Node\NodeInterface $part) => $part->accept($this), $expressionParts);
+        $explainedParts = array_map(fn (Node\NodeInterface $part): string => $part->accept($this), $expressionParts);
 
         // Char class parts are just strings, not <li>
         $parts = array_map(strip_tags(...), $explainedParts);
