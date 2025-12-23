@@ -868,64 +868,24 @@ final class Parser
 
         // 7. Check for simple non-capturing, lookaheads, atomic, branch reset
         if ($this->matchLiteral(':')) {
-            $expr = $this->parseAlternation();
-            $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
-
-            return $this->createGroupNode(
-                $expr,
-                Node\GroupType::T_GROUP_NON_CAPTURING,
-                $startPosition,
-                $endToken,
-            );
+            return $this->parseSimpleGroup($startPosition, Node\GroupType::T_GROUP_NON_CAPTURING);
         }
 
         if ($this->matchLiteral('=')) {
-            $expr = $this->parseAlternation();
-            $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
-
-            return $this->createGroupNode(
-                $expr,
-                Node\GroupType::T_GROUP_LOOKAHEAD_POSITIVE,
-                $startPosition,
-                $endToken,
-            );
+            return $this->parseSimpleGroup($startPosition, Node\GroupType::T_GROUP_LOOKAHEAD_POSITIVE);
         }
 
         if ($this->matchLiteral('!')) {
-            $expr = $this->parseAlternation();
-            $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
-
-            return $this->createGroupNode(
-                $expr,
-                Node\GroupType::T_GROUP_LOOKAHEAD_NEGATIVE,
-                $startPosition,
-                $endToken,
-            );
+            return $this->parseSimpleGroup($startPosition, Node\GroupType::T_GROUP_LOOKAHEAD_NEGATIVE);
         }
 
         if ($this->matchLiteral('>')) {
-            $expr = $this->parseAlternation();
-            $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
-
-            return $this->createGroupNode(
-                $expr,
-                Node\GroupType::T_GROUP_ATOMIC,
-                $startPosition,
-                $endToken,
-            );
+            return $this->parseSimpleGroup($startPosition, Node\GroupType::T_GROUP_ATOMIC);
         }
 
         if ($this->match(TokenType::T_ALTERNATION)) {
             // Branch reset group (?|...)
-            $expr = $this->parseAlternation();
-            $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
-
-            return $this->createGroupNode(
-                $expr,
-                Node\GroupType::T_GROUP_BRANCH_RESET,
-                $startPosition,
-                $endToken,
-            );
+            return $this->parseSimpleGroup($startPosition, Node\GroupType::T_GROUP_BRANCH_RESET);
         }
 
         // 8. Inline flags
@@ -1993,6 +1953,18 @@ final class Parser
         ?string $flags = null
     ): Node\GroupNode {
         return new Node\GroupNode($expr, $type, $name, $flags, $startPosition, $endToken->position + 1);
+    }
+
+    /**
+     * Parses a simple group: alternation content followed by closing paren.
+     * Used for non-capturing groups, lookaheads, atomic groups, etc.
+     */
+    private function parseSimpleGroup(int $startPosition, Node\GroupType $type): Node\GroupNode
+    {
+        $expr = $this->parseAlternation();
+        $endToken = $this->consume(TokenType::T_GROUP_CLOSE, 'Expected )');
+
+        return $this->createGroupNode($expr, $type, $startPosition, $endToken);
     }
 
     /**
