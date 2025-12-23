@@ -460,6 +460,9 @@ final class AdditionalCoverageBoostTest extends TestCase
         return $this->regexService->parse($pattern);
     }
 
+    // Detects if the 'r' inline modifier is supported by actually trying to use it
+    // Attempts to run preg_match with the (?r) modifier - if supported, it returns 0 or 1
+    // If not supported, it returns false (error, suppressed by @ operator)
     private function supportsInlineModifierR(): bool
     {
         $result = @preg_match('/(?r)a/', '');
