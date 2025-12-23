@@ -59,7 +59,7 @@ final class Parser
     private int $recursionDepth = 0;
 
     private static ?bool $supportsInlineModifierR = null;
-    
+
     private readonly int $maxRecursionDepth;
 
     public function __construct(?int $maxRecursionDepth = null)
