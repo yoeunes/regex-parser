@@ -324,12 +324,9 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitUnicodeProp(Node\UnicodePropNode $node): string
     {
-        $prop = $node->prop;
-        if (str_starts_with($prop, '{') && str_ends_with($prop, '}')) {
-            $inner = substr($prop, 1, -1);
+        $prop = $node->hasBraces ? trim($node->prop, '{}') : $node->prop;
 
-            return '\p{'.$inner.'}';
-        } elseif (str_starts_with($prop, '^')) {
+        if (\strlen($prop) > 1 || str_starts_with($prop, '^')) {
             return '\p{'.$prop.'}';
         }
 
