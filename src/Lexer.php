@@ -468,16 +468,17 @@ final class Lexer
         };
     }
 
+    /**
+     * Parses a Unicode escape sequence.
+     *
+     * We keep the original escape representation rather than converting to raw bytes
+     * for consistency across all Unicode escape types (\xNN, \x{NNNN}, \u{NNNN}).
+     * This allows the Parser to interpret them uniformly and the Compiler to
+     * reconstruct them accurately.
+     */
     private function parseUnicodeEscape(string $escape): string
     {
-        if (preg_match('/^\\\\x([0-9a-fA-F]{1,2})$/', $escape, $m)) {
-            $code = (int) hexdec($m[1]);
-            if ($code <= 0xFF) {
-                return \chr($code);
-            }
-        }
-
-        // For other cases, keep as string
+        // Keep the original escape representation for consistency
         return $escape;
     }
 
