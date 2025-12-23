@@ -29,7 +29,7 @@ final readonly class UnicodePropNode extends AbstractNode
         ?int $endPosition = null
     ) {
         // Backward compatibility: allow 3-argument form new UnicodePropNode($prop, $start, $end)
-        if (null === $endPosition && is_int($hasBraces)) {
+        if (null === $endPosition && \is_int($hasBraces)) {
             $endPosition = $startPosition;
             $startPosition = $hasBraces;
             $hasBraces = str_starts_with($prop, '{') && str_ends_with($prop, '}');

@@ -598,9 +598,9 @@ final class HtmlExplainNodeVisitor extends AbstractNodeVisitor
         $prop = ltrim($inner, '^');
         $type = $isNegated ? 'non-matching' : 'matching';
         $prefix = $isNegated ? 'P' : 'p';
-        $explanation = sprintf('any character %s "%s"', $type, $prop);
+        $explanation = \sprintf('any character %s "%s"', $type, $prop);
 
-        return sprintf(
+        return \sprintf(
             '<li><span title="%s">Unicode Property: <strong>\%s{%s}</strong></span></li>',
             $this->e($explanation),
             $prefix,
