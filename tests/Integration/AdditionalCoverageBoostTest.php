@@ -460,13 +460,19 @@ final class AdditionalCoverageBoostTest extends TestCase
         return $this->regexService->parse($pattern);
     }
 
-    // Detects if the 'r' inline modifier is supported by actually trying to use it
-    // Attempts to run preg_match with the (?r) modifier - if supported, it returns 0 or 1
-    // If not supported, it returns false (error, suppressed by @ operator)
+    // Checks if the 'r' inline modifier is supported by the current PCRE/PHP version
+    // The 'r' modifier was added in PCRE2 10.43 and PHP 8.4
     private function supportsInlineModifierR(): bool
     {
-        $result = @preg_match('/(?r)a/', '');
+        // PHP 8.4+ includes PCRE2 10.43+ which supports the 'r' modifier
+        if (\PHP_VERSION_ID >= 80400) {
+            return true;
+        }
 
-        return false !== $result;
+        // For older PHP versions, check the PCRE library version directly
+        $pcreVersion = \defined('PCRE_VERSION') ? explode(' ', \PCRE_VERSION)[0] : '0';
+
+        // PCRE2 10.43+ is required for the 'r' modifier support
+        return version_compare($pcreVersion, '10.43', '>=');
     }
 }
