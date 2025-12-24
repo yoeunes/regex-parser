@@ -543,7 +543,8 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         }
 
         if (false === self::$unicodePropCache[$key]) {
-            $suggestion = $this->suggestUnicodeProperty($key);
+            $propertyKey = $this->extractUnicodePropertyKey($key);
+            $suggestion = $this->suggestUnicodeProperty($propertyKey);
             $message = \sprintf('Invalid or unsupported Unicode property: \\%s.', $key);
             if (null !== $suggestion) {
                 $message .= " Did you mean \\{$suggestion}?";
@@ -785,6 +786,18 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
                 'regex.callout.invalid_type',
             );
         }
+    }
+
+    private function extractUnicodePropertyKey(string $key): string
+    {
+        // Strip \p or \P prefix
+        if (str_starts_with($key, '\\p') || str_starts_with($key, '\\P')) {
+            $key = substr($key, 2);
+        }
+        if (str_starts_with($key, '{') && str_ends_with($key, '}')) {
+            return substr($key, 1, -1);
+        }
+        return $key;
     }
 
     private function suggestUnicodeProperty(string $key): ?string
