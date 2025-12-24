@@ -139,8 +139,9 @@ final class RegexTest extends TestCase
     public function test_analyze_method(): void
     {
         $report = $this->regexService->analyze('/a+/');
-        $this->assertIsInt($report->complexityScore);
-        $this->assertIsArray($report->recommendations);
+        $this->assertIsBool($report->isValid);
+        $this->assertIsArray($report->errors());
+        $this->assertInstanceOf(\RegexParser\ReDoS\ReDoSAnalysis::class, $report->redos());
     }
 
     public function test_validate_method_with_valid_regex(): void
