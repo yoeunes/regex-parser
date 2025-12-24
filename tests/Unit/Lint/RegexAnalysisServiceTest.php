@@ -2,6 +2,15 @@
 
 declare(strict_types=1);
 
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace RegexParser\Tests\Unit\Lint;
 
 use PHPUnit\Framework\TestCase;
@@ -19,14 +28,14 @@ final class RegexAnalysisServiceTest extends TestCase
         $this->analysis = new RegexAnalysisService(Regex::create());
     }
 
-    public function test_analyzeRedos_returns_empty_array_for_no_patterns(): void
+    public function test_analyze_redos_returns_empty_array_for_no_patterns(): void
     {
         $result = $this->analysis->analyzeRedos([], ReDoSSeverity::MEDIUM);
 
         $this->assertSame([], $result);
     }
 
-    public function test_analyzeRedos_returns_empty_array_for_invalid_pattern(): void
+    public function test_analyze_redos_returns_empty_array_for_invalid_pattern(): void
     {
         $patterns = [
             new RegexPatternOccurrence('/[a-z/', 'test.php', 1, 'preg_match'),
@@ -37,7 +46,7 @@ final class RegexAnalysisServiceTest extends TestCase
         $this->assertSame([], $result);
     }
 
-    public function test_analyzeRedos_detects_vulnerable_pattern(): void
+    public function test_analyze_redos_detects_vulnerable_pattern(): void
     {
         $patterns = [
             new RegexPatternOccurrence('/(a+)+/', 'test.php', 1, 'preg_match'),
@@ -51,7 +60,7 @@ final class RegexAnalysisServiceTest extends TestCase
         $this->assertArrayHasKey('analysis', $result[0]);
     }
 
-    public function test_analyzeRedos_filters_by_threshold(): void
+    public function test_analyze_redos_filters_by_threshold(): void
     {
         $patterns = [
             new RegexPatternOccurrence('/\w+/', 'test.php', 1, 'preg_match'),
@@ -62,14 +71,14 @@ final class RegexAnalysisServiceTest extends TestCase
         $this->assertSame([], $result);
     }
 
-    public function test_suggestOptimizations_returns_empty_array_for_no_patterns(): void
+    public function test_suggest_optimizations_returns_empty_array_for_no_patterns(): void
     {
         $result = $this->analysis->suggestOptimizations([], 0);
 
         $this->assertSame([], $result);
     }
 
-    public function test_suggestOptimizations_returns_empty_array_for_invalid_pattern(): void
+    public function test_suggest_optimizations_returns_empty_array_for_invalid_pattern(): void
     {
         $patterns = [
             new RegexPatternOccurrence('/[a-z/', 'test.php', 1, 'preg_match'),
@@ -80,7 +89,7 @@ final class RegexAnalysisServiceTest extends TestCase
         $this->assertSame([], $result);
     }
 
-    public function test_suggestOptimizations_filters_by_min_savings(): void
+    public function test_suggest_optimizations_filters_by_min_savings(): void
     {
         $patterns = [
             new RegexPatternOccurrence('/test/', 'test.php', 1, 'preg_match'),
@@ -100,7 +109,7 @@ final class RegexAnalysisServiceTest extends TestCase
             'high',
             [],
             [],
-            true
+            true,
         );
 
         $this->assertInstanceOf(RegexAnalysisService::class, $analysis);

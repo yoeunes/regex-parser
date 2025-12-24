@@ -3,11 +3,11 @@
 declare(strict_types=1);
 
 /*
- * This file is part of RegexParser package.
+ * This file is part of the RegexParser package.
  *
  * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
  *
- * For full copyright and license information, please view the LICENSE
+ * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
  */
 
@@ -20,8 +20,8 @@ use RegexParser\NodeVisitor\CompilerNodeVisitor;
 use RegexParser\NodeVisitor\DumperNodeVisitor;
 use RegexParser\NodeVisitor\ExplainNodeVisitor;
 use RegexParser\NodeVisitor\HighlighterVisitor;
-use RegexParser\NodeVisitor\HtmlHighlighterVisitor;
 use RegexParser\NodeVisitor\HtmlExplainNodeVisitor;
+use RegexParser\NodeVisitor\HtmlHighlighterVisitor;
 use RegexParser\NodeVisitor\MermaidNodeVisitor;
 use RegexParser\NodeVisitor\MetricsNodeVisitor;
 use RegexParser\OptimizationResult;
@@ -29,7 +29,6 @@ use RegexParser\ReDoS\ReDoSAnalysis;
 use RegexParser\ReDoS\ReDoSConfidence;
 use RegexParser\ReDoS\ReDoSFinding;
 use RegexParser\ReDoS\ReDoSSeverity;
-use RegexParser\Regex;
 
 final class AdditionalMissingCoverageTest extends TestCase
 {
@@ -45,7 +44,7 @@ final class AdditionalMissingCoverageTest extends TestCase
             redos: $redos,
             optimizations: $optimizations,
             explain: 'Test explanation',
-            highlighted: '<span>Test</span>'
+            highlighted: '<span>Test</span>',
         );
 
         $this->assertSame($optimizations, $report->optimizations());
@@ -62,7 +61,7 @@ final class AdditionalMissingCoverageTest extends TestCase
             vulnerableSubpattern: 'nested',
             trigger: 'aaaaaaaaab',
             confidence: ReDoSConfidence::HIGH,
-            findings: []
+            findings: [],
         );
 
         $this->assertSame('nested', $analysis->getVulnerableSubpattern());
@@ -77,7 +76,7 @@ final class AdditionalMissingCoverageTest extends TestCase
             vulnerableSubpattern: null,
             trigger: 'aaaaaaaaab',
             confidence: ReDoSConfidence::HIGH,
-            findings: []
+            findings: [],
         );
 
         $this->assertSame('(a+)+', $analysis->getVulnerableSubpattern());
@@ -89,7 +88,7 @@ final class AdditionalMissingCoverageTest extends TestCase
             ReDoSSeverity::SAFE,
             0,
             vulnerablePart: null,
-            vulnerableSubpattern: null
+            vulnerableSubpattern: null,
         );
 
         $this->assertNull($analysis->getVulnerableSubpattern());
@@ -102,7 +101,7 @@ final class AdditionalMissingCoverageTest extends TestCase
                 ReDoSSeverity::HIGH,
                 'nested quantifiers',
                 '(a+)+',
-                'aaaaaaaaab'
+                'aaaaaaaaab',
             ),
         ];
 
@@ -111,7 +110,7 @@ final class AdditionalMissingCoverageTest extends TestCase
             8,
             vulnerablePart: '(a+)+',
             findings: $findings,
-            confidence: ReDoSConfidence::HIGH
+            confidence: ReDoSConfidence::HIGH,
         );
 
         $this->assertCount(1, $analysis->findings);
@@ -125,7 +124,7 @@ final class AdditionalMissingCoverageTest extends TestCase
             8,
             vulnerablePart: '(a+)+',
             suggestedRewrite: '(?:a+)+',
-            recommendations: ['Use atomic group']
+            recommendations: ['Use atomic group'],
         );
 
         $this->assertSame('(?:a+)+', $analysis->suggestedRewrite);
@@ -241,9 +240,10 @@ final class AdditionalMissingCoverageTest extends TestCase
             {
                 return "<span class=\"{$type}\">{$content}</span>";
             }
+
             protected function escape(string $string): string
             {
-                return htmlspecialchars($string, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+                return htmlspecialchars($string, \ENT_QUOTES | \ENT_HTML5, 'UTF-8');
             }
         };
         $node = new Node\LimitMatchNode(1000, 0, 16);
@@ -258,9 +258,10 @@ final class AdditionalMissingCoverageTest extends TestCase
             {
                 return "<span class=\"{$type}\">{$content}</span>";
             }
+
             protected function escape(string $string): string
             {
-                return htmlspecialchars($string, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+                return htmlspecialchars($string, \ENT_QUOTES | \ENT_HTML5, 'UTF-8');
             }
         };
         $node = new Node\CalloutNode(1, false, 0, 4);
@@ -275,9 +276,10 @@ final class AdditionalMissingCoverageTest extends TestCase
             {
                 return "<span class=\"{$type}\">{$content}</span>";
             }
+
             protected function escape(string $string): string
             {
-                return htmlspecialchars($string, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+                return htmlspecialchars($string, \ENT_QUOTES | \ENT_HTML5, 'UTF-8');
             }
         };
         $node = new Node\ScriptRunNode('Latin', 0, 18);
@@ -292,9 +294,10 @@ final class AdditionalMissingCoverageTest extends TestCase
             {
                 return "<span class=\"{$type}\">{$content}</span>";
             }
+
             protected function escape(string $string): string
             {
-                return htmlspecialchars($string, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+                return htmlspecialchars($string, \ENT_QUOTES | \ENT_HTML5, 'UTF-8');
             }
         };
         $node = new Node\VersionConditionNode('>=', '10.0', 0, 18);
@@ -309,12 +312,13 @@ final class AdditionalMissingCoverageTest extends TestCase
             {
                 return "<span class=\"{$type}\">{$content}</span>";
             }
+
             protected function escape(string $string): string
             {
-                return htmlspecialchars($string, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+                return htmlspecialchars($string, \ENT_QUOTES | \ENT_HTML5, 'UTF-8');
             }
         };
-        $node = new Node\UnicodeNode(chr(0x80), 0, 4);
+        $node = new Node\UnicodeNode(\chr(0x80), 0, 4);
         $result = $node->accept($visitor);
         $this->assertStringContainsString('\\x80', $result);
     }
