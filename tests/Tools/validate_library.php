@@ -95,6 +95,7 @@ $pcreFeatures = [
     'Conditionals' => '/(a)?(?(1)b|c)/',
     'Subroutines' => '/(\w+)(?1)/',
     'Unicode properties' => '/\p{L}+/u',
+    'Unicode Emoji' => '/\p{Emoji}+/u',
     'Branch reset' => '/(?|(a)|(b))/',
     'Recursion' => '/a(?R)?z/',
 ];

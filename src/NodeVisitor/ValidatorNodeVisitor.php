@@ -543,8 +543,13 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         }
 
         if (false === self::$unicodePropCache[$key]) {
+            $suggestion = $this->suggestUnicodeProperty($key);
+            $message = \sprintf('Invalid or unsupported Unicode property: \\%s.', $key);
+            if (null !== $suggestion) {
+                $message .= " Did you mean \\{$suggestion}?";
+            }
             $this->raiseSemanticError(
-                \sprintf('Invalid or unsupported Unicode property: \\%s.', $key),
+                $message,
                 $node->startPosition,
                 'regex.unicode.property_invalid',
             );
@@ -780,6 +785,53 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
                 'regex.callout.invalid_type',
             );
         }
+    }
+
+    private function suggestUnicodeProperty(string $key): ?string
+    {
+        $suggestions = [
+            'Letter' => 'p{L}',
+            'Number' => 'p{N}',
+            'Punctuation' => 'p{P}',
+            'Symbol' => 'p{S}',
+            'Mark' => 'p{M}',
+            'Separator' => 'p{Z}',
+            'Other' => 'p{C}',
+            'Control' => 'p{Cc}',
+            'Format' => 'p{Cf}',
+            'Surrogate' => 'p{Cs}',
+            'Private_Use' => 'p{Co}',
+            'Unassigned' => 'p{Cn}',
+            'Lowercase_Letter' => 'p{Ll}',
+            'Uppercase_Letter' => 'p{Lu}',
+            'Titlecase_Letter' => 'p{Lt}',
+            'Cased_Letter' => 'p{L&}',
+            'Modifier_Letter' => 'p{Lm}',
+            'Other_Letter' => 'p{Lo}',
+            'Nonspacing_Mark' => 'p{Mn}',
+            'Spacing_Mark' => 'p{Mc}',
+            'Enclosing_Mark' => 'p{Me}',
+            'Decimal_Number' => 'p{Nd}',
+            'Letterlike_Number' => 'p{Nl}',
+            'Other_Number' => 'p{No}',
+            'Connector_Punctuation' => 'p{Pc}',
+            'Dash_Punctuation' => 'p{Pd}',
+            'Open_Punctuation' => 'p{Ps}',
+            'Close_Punctuation' => 'p{Pe}',
+            'Initial_Punctuation' => 'p{Pi}',
+            'Final_Punctuation' => 'p{Pf}',
+            'Other_Punctuation' => 'p{Po}',
+            'Math_Symbol' => 'p{Sm}',
+            'Currency_Symbol' => 'p{Sc}',
+            'Modifier_Symbol' => 'p{Sk}',
+            'Other_Symbol' => 'p{So}',
+            'Space_Separator' => 'p{Zs}',
+            'Line_Separator' => 'p{Zl}',
+            'Paragraph_Separator' => 'p{Zp}',
+            'Other_Separator' => 'p{Zo}',
+        ];
+
+        return $suggestions[$key] ?? null;
     }
 
     private function normalizeQuantifier(string $q): string
