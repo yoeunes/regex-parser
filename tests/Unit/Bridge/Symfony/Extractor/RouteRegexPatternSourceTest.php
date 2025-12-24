@@ -375,6 +375,10 @@ YAML;
             $router = $this->createMock(\Symfony\Component\Routing\RouterInterface::class);
             $collection = new \Symfony\Component\Routing\RouteCollection();
 
+            // Add a route with the same name as in YAML
+            $route = new \Symfony\Component\Routing\Route('/test/{slug}');
+            $collection->add('test_route', $route);
+
             // Add the YAML resource
             $yamlResource = new \Symfony\Component\Config\Resource\FileResource($tempYaml);
             $collection->addResource($yamlResource);
@@ -382,7 +386,7 @@ YAML;
             $router->method('getRouteCollection')->willReturn($collection);
 
             $source = new \RegexParser\Bridge\Symfony\Extractor\RouteRegexPatternSource($this->normalizer, $router);
-            $context = new \RegexParser\Lint\RegexPatternSourceContext(['.'], ['test_route']);
+            $context = new \RegexParser\Lint\RegexPatternSourceContext(['.'], []);
 
             $result = $source->extract($context);
 
