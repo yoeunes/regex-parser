@@ -313,6 +313,88 @@ final class RouteRegexPatternSourceTest extends TestCase
         $this->assertSame('#^[\w-]+$#', $result[0]->pattern); // Should be wrapped with #
     }
 
+    public function test_extract_with_yaml_route_definitions(): void
+    {
+        $tempYaml = tempnam(sys_get_temp_dir(), 'routes');
+        $yamlContent = <<<YAML
+test_route:
+  path: /test/{id}/{slug}
+  requirements:
+    id: '\d+'
+    slug: '[a-z-]+'
+YAML;
+        file_put_contents($tempYaml, $yamlContent);
+
+        try {
+            $router = $this->createMock(\Symfony\Component\Routing\RouterInterface::class);
+            $collection = new \Symfony\Component\Routing\RouteCollection();
+
+            // Add a route with the same name as in YAML
+            $route = new \Symfony\Component\Routing\Route('/test/{id}/{slug}');
+            $collection->add('test_route', $route);
+
+            // Add the YAML resource
+            $yamlResource = new \Symfony\Component\Config\Resource\FileResource($tempYaml);
+            $collection->addResource($yamlResource);
+
+            $router->method('getRouteCollection')->willReturn($collection);
+
+            $source = new \RegexParser\Bridge\Symfony\Extractor\RouteRegexPatternSource($this->normalizer, $router);
+            $context = new \RegexParser\Lint\RegexPatternSourceContext(['.'], []);
+
+            $result = $source->extract($context);
+
+            // Should extract patterns from YAML
+            $this->assertGreaterThanOrEqual(2, count($result));
+            $patterns = array_map(fn ($occurrence) => $occurrence->pattern, $result);
+            $this->assertContains('#^\d+$#', $patterns);
+            $this->assertContains('#^[a-z-]+$#', $patterns);
+        } finally {
+            unlink($tempYaml);
+        }
+    }
+
+    public function test_extract_with_yaml_complex_route_definitions(): void
+    {
+        $tempYaml = tempnam(sys_get_temp_dir(), 'routes');
+        $yamlContent = <<<YAML
+when@dev:
+  test_route:
+    path: /dev/test/{id}
+    requirements:
+      id: '\d{3,}'
+
+test_route:
+  path: /test/{slug}
+  requirements:
+    slug: '^[a-z0-9_-]+$'
+YAML;
+        file_put_contents($tempYaml, $yamlContent);
+
+        try {
+            $router = $this->createMock(\Symfony\Component\Routing\RouterInterface::class);
+            $collection = new \Symfony\Component\Routing\RouteCollection();
+
+            // Add the YAML resource
+            $yamlResource = new \Symfony\Component\Config\Resource\FileResource($tempYaml);
+            $collection->addResource($yamlResource);
+
+            $router->method('getRouteCollection')->willReturn($collection);
+
+            $source = new \RegexParser\Bridge\Symfony\Extractor\RouteRegexPatternSource($this->normalizer, $router);
+            $context = new \RegexParser\Lint\RegexPatternSourceContext(['.'], ['test_route']);
+
+            $result = $source->extract($context);
+
+            // Should extract patterns from YAML, handling when@ conditions
+            $this->assertGreaterThanOrEqual(1, count($result));
+            $patterns = array_map(fn ($occurrence) => $occurrence->pattern, $result);
+            $this->assertContains('#^[a-z0-9_-]+$#', $patterns);
+        } finally {
+            unlink($tempYaml);
+        }
+    }
+
     public function test_extract_skips_when_symfony_not_available(): void
     {
         if (class_exists(\Symfony\Component\Routing\Route::class)) {
