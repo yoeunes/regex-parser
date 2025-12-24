@@ -16,6 +16,7 @@ namespace RegexParser\Tests\Unit\Cache;
 use PHPUnit\Framework\TestCase;
 use Psr\SimpleCache\CacheInterface;
 use RegexParser\Cache\PsrSimpleCacheAdapter;
+use RegexParser\Regex;
 
 final class PsrSimpleCacheAdapterTest extends TestCase
 {
@@ -74,6 +75,42 @@ final class PsrSimpleCacheAdapterTest extends TestCase
 
         $key = $adapter->generateKey('/test/');
         $this->assertSame('test_custom_'.md5('/test/'), $key);
+    }
+
+    public function test_decodes_real_cache_payload(): void
+    {
+        $cache = new InMemorySimpleCache();
+        $adapter = new PsrSimpleCacheAdapter($cache, prefix: 'test_');
+
+        $regex = Regex::create();
+        $ast = $regex->parse('/test/');
+
+        // Use reflection to access private method
+        $reflection = new \ReflectionClass($regex);
+        $method = $reflection->getMethod('prepareCachePayload');
+        $method->setAccessible(true);
+        $payload = $method->invoke(null, $ast);
+
+        $key = $adapter->generateKey('/test/');
+        $adapter->write($key, $payload);
+
+        $loaded = $adapter->load($key);
+        $this->assertInstanceOf(\RegexParser\Node\RegexNode::class, $loaded);
+    }
+
+    public function test_extract_serialized_string(): void
+    {
+        $cache = new InMemorySimpleCache();
+        $adapter = new PsrSimpleCacheAdapter($cache);
+
+        // Test the private method through reflection
+        $reflection = new \ReflectionClass($adapter);
+        $method = $reflection->getMethod('extractSerializedString');
+        $method->setAccessible(true);
+
+        $payload = "<?php return unserialize('serialized_data', ['allowed_classes' => []]);";
+        $result = $method->invoke($adapter, $payload);
+        $this->assertSame('serialized_data', $result);
     }
 }
 
