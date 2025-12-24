@@ -234,7 +234,7 @@ final class RegexAnalysisServiceTest extends TestCase
     public function test_validation_error_tips_delimiter_fix(): void
     {
         $service = $this->createService(warningThreshold: 50, redosThreshold: 'high');
-        $pattern = new RegexPatternOccurrence('/test/', 'file.php', 1, 'php:preg_match()', 'test');
+        $pattern = new RegexPatternOccurrence('/test', 'file.php', 1, 'php:preg_match()', 'test');
 
         $issues = $service->lint([$pattern]);
 
