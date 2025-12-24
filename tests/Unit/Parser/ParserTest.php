@@ -780,6 +780,23 @@ final class ParserTest extends TestCase
         $this->regex->parse('/(?<a>.) (?<a>.)/');
     }
 
+    #[Test]
+    public function test_quote_mode_parsing(): void
+    {
+        // Test \Q...\E quote mode parsing
+        $ast = $this->parse('/\Qtest.*\E/');
+
+        // The pattern should be parsed as a sequence with literal 'test.*'
+        $this->assertInstanceOf(RegexNode::class, $ast);
+        $this->assertInstanceOf(LiteralNode::class, $ast->pattern);
+        $this->assertSame('test.*', $ast->pattern->value);
+
+        // Test quote mode with special characters
+        $ast2 = $this->parse('/\Q.+*?{}[]()\E/');
+        $this->assertInstanceOf(LiteralNode::class, $ast2->pattern);
+        $this->assertSame('.+*?{}[]()', $ast2->pattern->value);
+    }
+
     /**
      * Helper method to parse a regex string using the decoupled Lexer and Parser.
      */

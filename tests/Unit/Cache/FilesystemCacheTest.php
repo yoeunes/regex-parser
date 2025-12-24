@@ -22,7 +22,7 @@ namespace RegexParser\Cache {
             return false;
         }
 
-        return tempnam($directory, $prefix);
+        return \tempnam($directory, $prefix);
     }
 
     function file_put_contents(string $filename, mixed $data, int $flags = 0, $context = null): false|int
@@ -31,7 +31,7 @@ namespace RegexParser\Cache {
             return false;
         }
 
-        return file_put_contents($filename, $data, $flags, $context ?? null);
+        return \file_put_contents($filename, $data, $flags, $context ?? null);
     }
 
     function opcache_invalidate(string $filename, bool $force = false): bool
