@@ -95,6 +95,76 @@ final class RegexLintCommandTest extends TestCase
         );
     }
 
+    public function test_normalize_string_list_filters_invalid_values(): void
+    {
+        $command = $this->createCommand();
+
+        // Test the private method through reflection
+        $reflection = new \ReflectionClass($command);
+        $method = $reflection->getMethod('normalizeStringList');
+        $method->setAccessible(true);
+
+        $this->assertSame([], $method->invoke($command, null));
+        $this->assertSame([], $method->invoke($command, 'string'));
+        $this->assertSame(['a', 'b'], $method->invoke($command, ['a', '', 'b', null, 123]));
+    }
+
+    public function test_sort_results_by_file_and_line(): void
+    {
+        $command = $this->createCommand();
+
+        $reflection = new \ReflectionClass($command);
+        $method = $reflection->getMethod('sortResultsByFileAndLine');
+        $method->setAccessible(true);
+
+        $results = [
+            ['file' => 'b.php', 'line' => 10],
+            ['file' => 'a.php', 'line' => 5],
+            ['file' => 'a.php', 'line' => 1],
+        ];
+
+        $sorted = $method->invoke($command, $results);
+
+        $this->assertSame('a.php', $sorted[0]['file']);
+        $this->assertSame(1, $sorted[0]['line']);
+        $this->assertSame('a.php', $sorted[1]['file']);
+        $this->assertSame(5, $sorted[1]['line']);
+        $this->assertSame('b.php', $sorted[2]['file']);
+        $this->assertSame(10, $sorted[2]['line']);
+    }
+
+    public function test_show_banner_outputs_correct_format(): void
+    {
+        $command = $this->createCommand();
+
+        $reflection = new \ReflectionClass($command);
+        $method = $reflection->getMethod('showBanner');
+        $method->setAccessible(true);
+
+        $io = $this->createMock(\Symfony\Component\Console\Style\SymfonyStyle::class);
+        $io->expects($this->exactly(2))->method('newLine');
+        $io->expects($this->once())->method('writeln')
+            ->with('  <fg=white;options=bold>Regex Parser</> <fg=gray>linting...</>');
+
+        $method->invoke($command, $io);
+    }
+
+    public function test_show_footer_outputs_correct_format(): void
+    {
+        $command = $this->createCommand();
+
+        $reflection = new \ReflectionClass($command);
+        $method = $reflection->getMethod('showFooter');
+        $method->setAccessible(true);
+
+        $io = $this->createMock(\Symfony\Component\Console\Style\SymfonyStyle::class);
+        $io->expects($this->exactly(2))->method('newLine');
+        $io->expects($this->once())->method('writeln')
+            ->with('  <fg=gray>Star the repo: https://github.com/yoeunes/regex-parser</>');
+
+        $method->invoke($command, $io);
+    }
+
     private function createCommand(): RegexLintCommand
     {
         $analysis = new RegexAnalysisService(Regex::create());
