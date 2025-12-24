@@ -268,7 +268,7 @@ final class MermaidNodeVisitorTest extends TestCase
         $mermaid = $ast->accept(new MermaidNodeVisitor());
 
         $this->assertStringStartsWith('graph TD;', $mermaid);
-        $this->assertMatches('/node\d+/', $mermaid);
-        $this->assertMatches('/-->/', $mermaid);
+        $this->assertMatchesRegularExpression('/node\d+/', $mermaid);
+        $this->assertMatchesRegularExpression('/-->/', $mermaid);
     }
 }
