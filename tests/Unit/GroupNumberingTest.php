@@ -14,11 +14,9 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
-use RegexParser\Regex;
 
 final class GroupNumberingTest extends TestCase
 {
-
     public function test_construct(): void
     {
         $groupNumbering = new \RegexParser\GroupNumbering(2, [1, 2], ['name' => [1]]);

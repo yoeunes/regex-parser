@@ -97,8 +97,6 @@ final class TokenBasedExtractionStrategyTest extends TestCase
         $this->assertSame('/pattern2/', $result[1]->pattern);
     }
 
-
-
     public function test_skips_unknown_functions(): void
     {
         $strategy = new TokenBasedExtractionStrategy();

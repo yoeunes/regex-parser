@@ -65,8 +65,6 @@ final class ValidatorNodeVisitorTest extends TestCase
         $this->validate('/\p{Letter}/');
     }
 
-
-
     #[\PHPUnit\Framework\Attributes\DoesNotPerformAssertions]
     public function test_valid_unicode_property(): void
     {

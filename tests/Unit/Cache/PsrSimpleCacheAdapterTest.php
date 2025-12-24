@@ -69,11 +69,11 @@ final class PsrSimpleCacheAdapterTest extends TestCase
     public function test_custom_key_factory(): void
     {
         $cache = new InMemorySimpleCache();
-        $keyFactory = fn(string $regex) => 'custom_' . md5($regex);
+        $keyFactory = fn (string $regex) => 'custom_'.md5($regex);
         $adapter = new PsrSimpleCacheAdapter($cache, prefix: 'test_', keyFactory: $keyFactory);
 
         $key = $adapter->generateKey('/test/');
-        $this->assertSame('test_custom_' . md5('/test/'), $key);
+        $this->assertSame('test_custom_'.md5('/test/'), $key);
     }
 }
 

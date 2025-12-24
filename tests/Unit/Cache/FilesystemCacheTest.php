@@ -73,9 +73,9 @@ final class FilesystemCacheTest extends TestCase
     {
         $cache = new FilesystemCache($this->cacheDir);
         $key = $cache->generateKey('/test/');
-        $fileDir = dirname($key);
-        mkdir($fileDir, 0755, true);
-        chmod($fileDir, 0444); // Make the file's directory read-only
+        $fileDir = \dirname($key);
+        mkdir($fileDir, 0o755, true);
+        chmod($fileDir, 0o444); // Make the file's directory read-only
 
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('Failed to move cache file');

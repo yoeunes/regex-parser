@@ -47,8 +47,8 @@ final class RegexOptionsTest extends TestCase
     public function test_from_array_with_empty_array(): void
     {
         $options = RegexOptions::fromArray([]);
-        $this->assertEquals(Regex::DEFAULT_MAX_PATTERN_LENGTH, $options->maxPatternLength);
-        $this->assertEquals(Regex::DEFAULT_MAX_LOOKBEHIND_LENGTH, $options->maxLookbehindLength);
+        $this->assertSame(Regex::DEFAULT_MAX_PATTERN_LENGTH, $options->maxPatternLength);
+        $this->assertSame(Regex::DEFAULT_MAX_LOOKBEHIND_LENGTH, $options->maxLookbehindLength);
         $this->assertInstanceOf(NullCache::class, $options->cache);
         $this->assertFalse($options->runtimePcreValidation);
         $this->assertSame(1024, $options->maxRecursionDepth);

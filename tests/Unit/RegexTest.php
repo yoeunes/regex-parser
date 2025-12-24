@@ -155,7 +155,7 @@ final class RegexTest extends TestCase
     {
         $result = $this->regexService->validate('/a(/');
         $this->assertFalse($result->isValid());
-        $this->assertStringContainsString('Expected )', $result->getErrorMessage());
+        $this->assertStringContainsString('Expected )', (string) $result->getErrorMessage());
     }
 
     public function test_redos_method(): void
