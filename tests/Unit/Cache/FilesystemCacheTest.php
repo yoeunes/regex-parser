@@ -83,6 +83,59 @@ final class FilesystemCacheTest extends TestCase
         $cache->write($key, 'content');
     }
 
+    public function test_clear_specific_regex(): void
+    {
+        $cache = new FilesystemCache($this->cacheDir);
+        $key1 = $cache->generateKey('/abc/');
+        $key2 = $cache->generateKey('/def/');
+
+        $cache->write($key1, "<?php return 'value1';\n");
+        $cache->write($key2, "<?php return 'value2';\n");
+
+        // Clear only the first regex
+        $cache->clear('/abc/');
+
+        $this->assertFileDoesNotExist($key1);
+        $this->assertFileExists($key2);
+        $this->assertSame('value2', $cache->load($key2));
+    }
+
+    public function test_clear_nonexistent_regex(): void
+    {
+        $cache = new FilesystemCache($this->cacheDir);
+        $key = $cache->generateKey('/existing/');
+
+        $cache->write($key, "<?php return 'value';\n");
+
+        // Clear a non-existent regex - should not affect existing files
+        $cache->clear('/nonexistent/');
+
+        $this->assertFileExists($key);
+        $this->assertSame('value', $cache->load($key));
+    }
+
+    public function test_generate_key_with_custom_extension(): void
+    {
+        $cache = new FilesystemCache($this->cacheDir, '.cache');
+        $key = $cache->generateKey('/test/');
+
+        $this->assertStringEndsWith('.cache', $key);
+        $this->assertStringContainsString($this->cacheDir, $key);
+    }
+
+    public function test_load_handles_corrupted_file(): void
+    {
+        $cache = new FilesystemCache($this->cacheDir);
+        $key = $cache->generateKey('/test/');
+
+        // Write invalid PHP that will cause an exception when included
+        $cache->write($key, "<?php throw new Exception('corrupted');\n");
+
+        $result = $cache->load($key);
+
+        $this->assertNull($result);
+    }
+
     private function removeDirectory(string $directory): void
     {
         if (!is_dir($directory)) {

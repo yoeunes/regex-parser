@@ -90,6 +90,147 @@ final class RegexAnalysisServiceTest extends TestCase
         $this->assertSame('error', $redosIssues[0]['type']);
     }
 
+    public function test_scan_method(): void
+    {
+        $service = $this->createService(warningThreshold: 10, redosThreshold: 'high');
+        $patterns = $service->scan(['tests'], ['vendor']);
+
+        $this->assertIsArray($patterns);
+        // We can't predict exact results since it depends on test files, but ensure it's an array
+    }
+
+    public function test_analyze_redos_method(): void
+    {
+        $service = $this->createService(warningThreshold: 50, redosThreshold: 'low');
+        $patterns = [
+            new RegexPatternOccurrence('/(a+)+b/', 'file.php', 1, 'php:preg_match()'),
+        ];
+
+        $issues = $service->analyzeRedos($patterns, \RegexParser\ReDoS\ReDoSSeverity::LOW);
+
+        $this->assertIsArray($issues);
+        $this->assertNotEmpty($issues);
+        $this->assertArrayHasKey('file', $issues[0]);
+        $this->assertArrayHasKey('line', $issues[0]);
+        $this->assertArrayHasKey('analysis', $issues[0]);
+    }
+
+    public function test_suggest_optimizations_method(): void
+    {
+        $service = $this->createService(warningThreshold: 10, redosThreshold: 'high');
+        $patterns = [
+            new RegexPatternOccurrence('/a*b*c*/', 'file.php', 1, 'php:preg_match()'),
+        ];
+
+        $optimizations = $service->suggestOptimizations($patterns, 1);
+
+        $this->assertIsArray($optimizations);
+    }
+
+    public function test_highlight_method(): void
+    {
+        $service = $this->createService(warningThreshold: 10, redosThreshold: 'high');
+
+        $highlighted = $service->highlight('/test/');
+
+        $this->assertIsString($highlighted);
+        $this->assertNotEmpty($highlighted);
+    }
+
+    public function test_highlight_body_method(): void
+    {
+        $service = $this->createService(warningThreshold: 10, redosThreshold: 'high');
+
+        $highlighted = $service->highlightBody('test', 'i');
+
+        $this->assertIsString($highlighted);
+        $this->assertNotEmpty($highlighted);
+    }
+
+    public function test_lint_with_invalid_pattern_and_ignore_parse_errors(): void
+    {
+        $service = new RegexAnalysisService(
+            Regex::create(),
+            null,
+            10,
+            'high',
+            [],
+            [],
+            true, // ignoreParseErrors = true
+        );
+
+        // Use a pattern that would trigger "No closing delimiter" which should be ignored
+        $pattern = new RegexPatternOccurrence('/^test', 'file.php', 1, 'route:test', '^test');
+
+        $issues = $service->lint([$pattern]);
+
+        // Should be empty because parse errors are ignored
+        $this->assertSame([], $issues);
+    }
+
+    public function test_lint_with_linter_warnings(): void
+    {
+        $service = $this->createService(warningThreshold: 50, redosThreshold: 'high');
+        // Use a pattern with nested quantifiers that should trigger linter warnings
+        $pattern = new RegexPatternOccurrence('#(a*)*#', 'file.php', 1, 'route:test', '(a*)*');
+
+        $issues = $service->lint([$pattern]);
+
+        // Should have warnings from the linter
+        $warnings = array_filter($issues, fn($issue) => $issue['type'] === 'warning');
+        $this->assertNotEmpty($warnings);
+    }
+
+    public function test_lint_with_complex_pattern_above_threshold(): void
+    {
+        $service = $this->createService(warningThreshold: 0, redosThreshold: 'critical');
+        // Create a complex pattern that exceeds the threshold
+        $complexPattern = '#^' . str_repeat('(a|b|c|d|e|f|g|h|i|j|k|l|m|n|o|p|q|r|s|t|u|v|w|x|y|z)*', 10) . '$#';
+        $pattern = new RegexPatternOccurrence($complexPattern, 'file.php', 1, 'route:test', substr($complexPattern, 1, -1));
+
+        $issues = $service->lint([$pattern]);
+
+        $complexityIssues = array_filter($issues, fn($issue) => ($issue['issueId'] ?? null) === 'regex.lint.complexity');
+        $this->assertNotEmpty($complexityIssues);
+    }
+
+    public function test_lint_with_redos_pattern(): void
+    {
+        $service = $this->createService(warningThreshold: 50, redosThreshold: 'low');
+        $pattern = new RegexPatternOccurrence('/(x+)+y/', 'file.php', 1, 'php:preg_match()');
+
+        $issues = $service->lint([$pattern]);
+
+        $redosIssues = array_filter($issues, fn($issue) => ($issue['issueId'] ?? null) === 'regex.lint.redos');
+        $this->assertNotEmpty($redosIssues);
+        $this->assertArrayHasKey('analysis', $redosIssues[array_key_first($redosIssues)]);
+    }
+
+    public function test_suggest_optimizations_with_min_savings(): void
+    {
+        $service = $this->createService(warningThreshold: 10, redosThreshold: 'high');
+        $patterns = [
+            new RegexPatternOccurrence('/a*a*a*/', 'file.php', 1, 'php:preg_match()'), // This should be optimizable
+        ];
+
+        $optimizations = $service->suggestOptimizations($patterns, 10); // High min savings
+
+        // May be empty if savings don't meet threshold
+        $this->assertIsArray($optimizations);
+    }
+
+    public function test_suggest_optimizations_with_extended_mode(): void
+    {
+        $service = $this->createService(warningThreshold: 10, redosThreshold: 'high');
+        $patterns = [
+            new RegexPatternOccurrence("/a+\n# comment\nb+/x", 'file.php', 1, 'php:preg_match()'),
+        ];
+
+        $optimizations = $service->suggestOptimizations($patterns, 1);
+
+        $this->assertIsArray($optimizations);
+    }
+
     /**
      * @param list<string> $ignoredPatterns
      */
