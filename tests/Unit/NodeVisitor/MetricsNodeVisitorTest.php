@@ -29,4 +29,175 @@ final class MetricsNodeVisitorTest extends TestCase
         $this->assertSame(1, $metrics['counts']['AlternationNode'] ?? null);
         $this->assertGreaterThanOrEqual(4, $metrics['maxDepth']);
     }
+
+    public function test_it_counts_quantifier_nodes(): void
+    {
+        $ast = Regex::create()->parse('/a+/');
+        $metrics = $ast->accept(new MetricsNodeVisitor());
+
+        $this->assertArrayHasKey('QuantifierNode', $metrics['counts']);
+        $this->assertGreaterThan(0, $metrics['counts']['QuantifierNode']);
+    }
+
+    public function test_it_counts_char_type_nodes(): void
+    {
+        $ast = Regex::create()->parse('/\d+/');
+        $metrics = $ast->accept(new MetricsNodeVisitor());
+
+        $this->assertArrayHasKey('CharTypeNode', $metrics['counts']);
+        $this->assertGreaterThan(0, $metrics['counts']['CharTypeNode']);
+    }
+
+    public function test_it_counts_dot_nodes(): void
+    {
+        $ast = Regex::create()->parse('/./');
+        $metrics = $ast->accept(new MetricsNodeVisitor());
+
+        $this->assertArrayHasKey('DotNode', $metrics['counts']);
+        $this->assertGreaterThan(0, $metrics['counts']['DotNode']);
+    }
+
+    public function test_it_counts_anchor_nodes(): void
+    {
+        $ast = Regex::create()->parse('/^a$/');
+        $metrics = $ast->accept(new MetricsNodeVisitor());
+
+        $this->assertArrayHasKey('AnchorNode', $metrics['counts']);
+        $this->assertGreaterThan(0, $metrics['counts']['AnchorNode']);
+    }
+
+    public function test_it_counts_assertion_nodes(): void
+    {
+        $ast = Regex::create()->parse('/a(?=b)/');
+        $metrics = $ast->accept(new MetricsNodeVisitor());
+
+        $this->assertArrayHasKey('AssertionNode', $metrics['counts']);
+        $this->assertGreaterThan(0, $metrics['counts']['AssertionNode']);
+    }
+
+    public function test_it_counts_keep_nodes(): void
+    {
+        $ast = Regex::create()->parse('/a\K/');
+        $metrics = $ast->accept(new MetricsNodeVisitor());
+
+        $this->assertArrayHasKey('KeepNode', $metrics['counts']);
+        $this->assertGreaterThan(0, $metrics['counts']['KeepNode']);
+    }
+
+    public function test_it_counts_char_class_nodes(): void
+    {
+        $ast = Regex::create()->parse('/[abc]/');
+        $metrics = $ast->accept(new MetricsNodeVisitor());
+
+        $this->assertArrayHasKey('CharClassNode', $metrics['counts']);
+        $this->assertGreaterThan(0, $metrics['counts']['CharClassNode']);
+    }
+
+    public function test_it_counts_range_nodes(): void
+    {
+        $ast = Regex::create()->parse('/[a-z]/');
+        $metrics = $ast->accept(new MetricsNodeVisitor());
+
+        $this->assertArrayHasKey('RangeNode', $metrics['counts']);
+        $this->assertGreaterThan(0, $metrics['counts']['RangeNode']);
+    }
+
+    public function test_it_counts_backreference_nodes(): void
+    {
+        $ast = Regex::create()->parse('/(a)\1/');
+        $metrics = $ast->accept(new MetricsNodeVisitor());
+
+        $this->assertArrayHasKey('BackrefNode', $metrics['counts']);
+        $this->assertGreaterThan(0, $metrics['counts']['BackrefNode']);
+    }
+
+    public function test_it_counts_unicode_nodes(): void
+    {
+        $ast = Regex::create()->parse('/\x{0041}/');
+        $metrics = $ast->accept(new MetricsNodeVisitor());
+
+        $this->assertArrayHasKey('UnicodeNode', $metrics['counts']);
+        $this->assertGreaterThan(0, $metrics['counts']['UnicodeNode']);
+    }
+
+    public function test_it_counts_unicode_prop_nodes(): void
+    {
+        $ast = Regex::create()->parse('/\p{L}/');
+        $metrics = $ast->accept(new MetricsNodeVisitor());
+
+        $this->assertArrayHasKey('UnicodePropNode', $metrics['counts']);
+        $this->assertGreaterThan(0, $metrics['counts']['UnicodePropNode']);
+    }
+
+    public function test_it_counts_posix_class_nodes(): void
+    {
+        $ast = Regex::create()->parse('/[[:alpha:]]/');
+        $metrics = $ast->accept(new MetricsNodeVisitor());
+
+        $this->assertArrayHasKey('PosixClassNode', $metrics['counts']);
+        $this->assertGreaterThan(0, $metrics['counts']['PosixClassNode']);
+    }
+
+    public function test_it_counts_comment_nodes(): void
+    {
+        $ast = Regex::create()->parse('/(?#comment)a/');
+        $metrics = $ast->accept(new MetricsNodeVisitor());
+
+        $this->assertArrayHasKey('CommentNode', $metrics['counts']);
+        $this->assertGreaterThan(0, $metrics['counts']['CommentNode']);
+    }
+
+    public function test_it_counts_conditional_nodes(): void
+    {
+        $ast = Regex::create()->parse('/(?(condition)yes|no)/');
+        $metrics = $ast->accept(new MetricsNodeVisitor());
+
+        $this->assertArrayHasKey('ConditionalNode', $metrics['counts']);
+        $this->assertGreaterThan(0, $metrics['counts']['ConditionalNode']);
+    }
+
+    public function test_it_counts_subroutine_nodes(): void
+    {
+        $ast = Regex::create()->parse('/(?1)/');
+        $metrics = $ast->accept(new MetricsNodeVisitor());
+
+        $this->assertArrayHasKey('SubroutineNode', $metrics['counts']);
+        $this->assertGreaterThan(0, $metrics['counts']['SubroutineNode']);
+    }
+
+    public function test_it_counts_pcre_verb_nodes(): void
+    {
+        $ast = Regex::create()->parse('/(*VERB)a/');
+        $metrics = $ast->accept(new MetricsNodeVisitor());
+
+        $this->assertArrayHasKey('PcreVerbNode', $metrics['counts']);
+        $this->assertGreaterThan(0, $metrics['counts']['PcreVerbNode']);
+    }
+
+    public function test_it_counts_define_nodes(): void
+    {
+        $ast = Regex::create()->parse('/(?(DEFINE)...)/');
+        $metrics = $ast->accept(new MetricsNodeVisitor());
+
+        $this->assertArrayHasKey('DefineNode', $metrics['counts']);
+        $this->assertGreaterThan(0, $metrics['counts']['DefineNode']);
+    }
+
+    public function test_it_counts_limit_match_nodes(): void
+    {
+        $ast = Regex::create()->parse('/(*LIMIT_MATCH=100)a/');
+        $metrics = $ast->accept(new MetricsNodeVisitor());
+
+        $this->assertArrayHasKey('LimitMatchNode', $metrics['counts']);
+        $this->assertGreaterThan(0, $metrics['counts']['LimitMatchNode']);
+    }
+
+    public function test_it_counts_callout_nodes(): void
+    {
+        $ast = Regex::create()->parse('/(?C)a/');
+        $metrics = $ast->accept(new MetricsNodeVisitor());
+
+        $this->assertArrayHasKey('CalloutNode', $metrics['counts']);
+        $this->assertGreaterThan(0, $metrics['counts']['CalloutNode']);
+    }
 }
