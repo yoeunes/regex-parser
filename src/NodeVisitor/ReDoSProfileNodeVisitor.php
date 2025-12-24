@@ -208,7 +208,7 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
                     ReDoSConfidence::LOW,
                     'High false-positive risk; bounded quantifiers may still be safe in context.',
                 );
-            } elseif ($this->totalQuantifierDepth > 1) {
+            } elseif ($this->totalQuantifierDepth > 1 && $this->unboundedQuantifierDepth == 0) {
                 $severity = ReDoSSeverity::LOW;
                 $this->addVulnerability(
                     ReDoSSeverity::LOW,
@@ -933,6 +933,26 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
             'hasBackref' => $hasBackref,
             'hasVariableCapture' => $hasVariableCapture,
         ];
+    }
+
+    private function hasUnboundedQuantifiers(Node\NodeInterface $node): bool
+    {
+        if ($node instanceof Node\QuantifierNode && $this->isUnbounded($node->quantifier)) {
+            return true;
+        }
+        $children = match (true) {
+            $node instanceof Node\SequenceNode => $node->children,
+            $node instanceof Node\AlternationNode => $node->alternatives,
+            $node instanceof Node\QuantifierNode => [$node->node],
+            $node instanceof Node\GroupNode => [$node->child],
+            default => [],
+        };
+        foreach ($children as $child) {
+            if ($this->hasUnboundedQuantifiers($child)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

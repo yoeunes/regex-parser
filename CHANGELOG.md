@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Unicode escape consistency**: Restored original behavior where `\xNN` converts to character while `\u{NNNN}` preserves format
 - **Parser position recovery**: Rewrote parseNumericSubroutine() for accurate token tracking and position rewinding
 - **Auto-possessivization**: Made possessive quantifier conversion opt-in (default: true via API, false for direct use)
+- **ReDoS detection accuracy**: Improved false positive reduction for bounded quantifiers and better handling of nested structures
 
 ### Security
 - Added static cache size limits to prevent unbounded memory growth

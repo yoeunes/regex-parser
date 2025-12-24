@@ -34,7 +34,7 @@ $testPatterns = [
 
 foreach ($testPatterns as $pattern) {
     try {
-        $sample = Regex::create()->generate($pattern);
+        $sample = Regex::create(['runtime_pcre_validation' => true])->generate($pattern);
         $matches = preg_match($pattern, $sample);
         if ($matches) {
             echo "✓ Pattern: $pattern → Sample: '$sample' matches\n";
@@ -64,7 +64,7 @@ $redosPatterns = [
 
 foreach ($redosPatterns as $pattern => $shouldDetect) {
     try {
-        $analysis = Regex::create()->redos($pattern);
+        $analysis = Regex::create(['runtime_pcre_validation' => true])->redos($pattern);
         $detected = !$analysis->isSafe();
         if ($detected === $shouldDetect) {
             echo "✓ Pattern: $pattern → ReDoS detection: ".($detected ? 'YES' : 'NO')." (correct)\n";
@@ -101,7 +101,7 @@ $pcreFeatures = [
 
 foreach ($pcreFeatures as $feature => $pattern) {
     try {
-        $ast = Regex::create()->parse($pattern);
+        $ast = Regex::create(['runtime_pcre_validation' => true])->parse($pattern);
         // Check if it's actually valid PCRE
         $testString = 'test';
         @preg_match($pattern, $testString);
@@ -134,7 +134,7 @@ foreach ($roundTripPatterns as $pattern) {
     try {
         $compiler = new CompilerNodeVisitor();
 
-        $ast = Regex::create()->parse($pattern);
+        $ast = Regex::create(['runtime_pcre_validation' => true])->parse($pattern);
         $compiled = $ast->accept($compiler);
 
         // Test if they behave the same
@@ -171,11 +171,10 @@ echo "----------------------------------\n";
 $invalidPatterns = [
     '/\2(\w+)/' => 'Backreference to non-existent group',
     '/(?<!a*b)/' => 'Variable-length lookbehind',
-    '/(a+)*b/' => 'ReDoS vulnerability',
 ];
 
 foreach ($invalidPatterns as $pattern => $expectedError) {
-    $result = Regex::create()->validate($pattern);
+    $result = Regex::create(['runtime_pcre_validation' => true])->validate($pattern);
     if (!$result->isValid) {
         echo "✓ Pattern: $pattern → Correctly detected as invalid ($expectedError)\n";
         $passedTests++;
@@ -184,6 +183,18 @@ foreach ($invalidPatterns as $pattern => $expectedError) {
         $failedTests++;
         $issues[] = "Failed to detect invalid pattern: $pattern";
     }
+}
+
+// Additional ReDoS check
+$redosPattern = '/(a+)*b/';
+$analysis = Regex::create(['runtime_pcre_validation' => true])->redos($redosPattern);
+if (!$analysis->isSafe()) {
+    echo "✓ Pattern: $redosPattern → Correctly detected as ReDoS vulnerable\n";
+    $passedTests++;
+} else {
+    echo "✗ Pattern: $redosPattern → Should be ReDoS vulnerable but passed\n";
+    $failedTests++;
+    $issues[] = "Failed to detect ReDoS vulnerability: $redosPattern";
 }
 echo "\n";
 
