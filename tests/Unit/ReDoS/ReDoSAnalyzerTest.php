@@ -69,6 +69,23 @@ final class ReDoSAnalyzerTest extends TestCase
         $this->assertNotEmpty($analysis->recommendations);
     }
 
+    public function test_analyze_returns_safe_for_ignored_pattern(): void
+    {
+        $analyzer = new ReDoSAnalyzer(null, ['/foo/']);
+        $analysis = $analyzer->analyze('/foo/');
+
+        $this->assertSame(ReDoSSeverity::SAFE, $analysis->severity);
+        $this->assertSame(0, $analysis->score);
+    }
+
+    public function test_normalize_pattern_falls_back_on_parse_error(): void
+    {
+        $analyzer = new ReDoSAnalyzer(null, ['invalid[']);
+        $analysis = $analyzer->analyze('invalid[');
+
+        $this->assertSame(ReDoSSeverity::SAFE, $analysis->severity);
+    }
+
     public function test_symfony_slug_pattern_is_treated_as_safe(): void
     {
         $analysis = $this->analyzer->analyze('/[a-z0-9]+(?:-[a-z0-9]+)*/');

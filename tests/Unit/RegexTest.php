@@ -24,7 +24,11 @@ use RegexParser\Node\GroupNode;
 use RegexParser\Node\NodeInterface;
 use RegexParser\Node\QuantifierNode;
 use RegexParser\Node\SequenceNode;
+use RegexParser\ReDoS\ReDoSAnalysis;
+use RegexParser\ReDoS\ReDoSSeverity;
+use RegexParser\TokenStream;
 use RegexParser\Regex;
+use RegexParser\ValidationResult;
 
 final class RegexTest extends TestCase
 {
@@ -183,6 +187,97 @@ final class RegexTest extends TestCase
         $highlighted = $this->regexService->highlight('/a+/');
         $this->assertIsString($highlighted);
         $this->assertStringContainsString('a', $highlighted);
+    }
+
+    public function test_highlight_html_branch(): void
+    {
+        $highlighted = $this->regexService->highlight('/a+/', 'html');
+        $this->assertStringContainsString('<span', $highlighted);
+    }
+
+    public function test_tokenize_extracts_pattern_and_flags(): void
+    {
+        $stream = Regex::tokenize('/ab/i');
+        $this->assertInstanceOf(TokenStream::class, $stream);
+        $this->assertSame('ab', $stream->getPattern());
+        $this->assertGreaterThan(0, \count($stream->getTokens()));
+    }
+
+
+    public function test_build_visual_snippet_truncates_and_marks_caret(): void
+    {
+        $regex = Regex::create();
+        $ref = new \ReflectionClass($regex);
+        $method = $ref->getMethod('buildVisualSnippet');
+        $method->setAccessible(true);
+
+        $pattern = str_repeat('a', 120);
+        $snippet = $method->invoke($regex, $pattern, 110);
+
+        $this->assertStringContainsString('Line 1:', $snippet);
+        $this->assertStringContainsString('^', $snippet);
+        $this->assertStringContainsString('...', $snippet);
+    }
+
+    public function test_build_visual_snippet_returns_empty_for_nulls(): void
+    {
+        $regex = Regex::create();
+        $ref = new \ReflectionClass($regex);
+        $method = $ref->getMethod('buildVisualSnippet');
+        $method->setAccessible(true);
+
+        $this->assertSame('', $method->invoke($regex, null, null));
+    }
+
+    public function test_build_search_patterns_and_confidence_levels(): void
+    {
+        $regex = Regex::create();
+        $ref = new \ReflectionClass($regex);
+
+        $buildSearch = $ref->getMethod('buildSearchPatterns');
+        $buildSearch->setAccessible(true);
+        $determine = $ref->getMethod('determineConfidenceLevel');
+        $determine->setAccessible(true);
+
+        $literalSet = new class {
+            public array $prefixes = ['foo'];
+            public array $suffixes = ['bar'];
+            public bool $complete = false;
+            public function isVoid(): bool { return false; }
+        };
+
+        $patterns = $buildSearch->invoke($regex, $literalSet);
+        $this->assertContains('^foo', $patterns);
+        $this->assertContains('bar$', $patterns);
+        $this->assertSame('medium', $determine->invoke($regex, $literalSet));
+
+        $this->assertSame([], $buildSearch->invoke($regex, ['not-an-object']));
+        $this->assertSame('low', $determine->invoke($regex, 'not-an-object'));
+    }
+
+    public function test_create_explanation_visitor_html_and_invalid(): void
+    {
+        $ref = new \ReflectionClass($this->regexService);
+        $method = $ref->getMethod('createExplanationVisitor');
+        $method->setAccessible(true);
+
+        $htmlVisitor = $method->invoke($this->regexService, 'html');
+        $this->assertInstanceOf(\RegexParser\NodeVisitor\HtmlExplainNodeVisitor::class, $htmlVisitor);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $method->invoke($this->regexService, 'invalid');
+    }
+
+    public function test_safe_extract_pattern_handles_parser_exception(): void
+    {
+        $regex = Regex::create();
+        $ref = new \ReflectionClass($regex);
+        $method = $ref->getMethod('safeExtractPattern');
+        $method->setAccessible(true);
+
+        $result = $method->invoke($regex, 'invalid');
+
+        $this->assertSame(['invalid', '', '/', \strlen('invalid')], $result);
     }
 
     public function test_parse_with_tolerant_mode(): void
