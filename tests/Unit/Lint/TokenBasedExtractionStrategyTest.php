@@ -60,4 +60,49 @@ PHP);
 
         $this->assertSame(['/baz/', '/qux/'], array_map(fn (RegexPatternOccurrence $o) => $o->pattern, $occurrences));
     }
+
+    public function test_handles_unicode_escape_in_pattern(): void
+    {
+        $file = $this->tmp.'/unicode.php';
+        file_put_contents($file, <<<'PHP'
+<?php
+preg_match('/\x{41}/', $s);
+PHP);
+
+        $strategy = new TokenBasedExtractionStrategy();
+        $occurrences = $strategy->extract([$file]);
+
+        $patterns = array_map(fn (RegexPatternOccurrence $o) => $o->pattern, $occurrences);
+        $this->assertContains('/\x{41}/', $patterns);
+    }
+
+    public function test_handles_double_quoted_pattern(): void
+    {
+        $file = $this->tmp.'/quoted.php';
+        file_put_contents($file, <<<'PHP'
+<?php
+preg_match("/pattern/i", $s);
+PHP);
+
+        $strategy = new TokenBasedExtractionStrategy();
+        $occurrences = $strategy->extract([$file]);
+
+        $patterns = array_map(fn (RegexPatternOccurrence $o) => $o->pattern, $occurrences);
+        $this->assertContains('/pattern/i', $patterns);
+    }
+
+    public function test_handles_single_quoted_pattern(): void
+    {
+        $file = $this->tmp.'/single-quoted.php';
+        file_put_contents($file, <<<'PHP'
+<?php
+preg_match('/pattern/', $s);
+PHP);
+
+        $strategy = new TokenBasedExtractionStrategy();
+        $occurrences = $strategy->extract([$file]);
+
+        $patterns = array_map(fn (RegexPatternOccurrence $o) => $o->pattern, $occurrences);
+        $this->assertContains('/pattern/', $patterns);
+    }
 }

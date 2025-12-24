@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /*
- * This file is part of the RegexParser package.
+ * This file is part of RegexParser package.
  *
  * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
  *
@@ -113,5 +113,58 @@ final class RegexAnalysisServiceTest extends TestCase
         );
 
         $this->assertInstanceOf(RegexAnalysisService::class, $analysis);
+    }
+
+    public function test_suggest_optimizations_continues_on_parse_error(): void
+    {
+        $patterns = [
+            new RegexPatternOccurrence('/valid/', 'test.php', 1, 'preg_match'),
+            new RegexPatternOccurrence('/[unclosed/', 'test.php', 2, 'preg_match'),
+            new RegexPatternOccurrence('/another-valid/', 'test.php', 3, 'preg_match'),
+        ];
+
+        $result = $this->analysis->suggestOptimizations($patterns, 0);
+
+        $this->assertGreaterThanOrEqual(1, count($result));
+    }
+
+    public function test_analyze_redos_continues_on_parse_error(): void
+    {
+        $patterns = [
+            new RegexPatternOccurrence('/valid/', 'test.php', 1, 'preg_match'),
+            new RegexPatternOccurrence('/[unclosed/', 'test.php', 2, 'preg_match'),
+        ];
+
+        $result = $this->analysis->analyzeRedos($patterns, ReDoSSeverity::MEDIUM);
+
+        $this->assertGreaterThanOrEqual(0, count($result));
+    }
+
+    public function test_extract_fragment_with_empty_pattern(): void
+    {
+        $patterns = [new RegexPatternOccurrence('', 'test.php', 1, 'preg_match')];
+        $result = $this->analysis->analyzeRedos($patterns, ReDoSSeverity::MEDIUM);
+
+        $this->assertSame([], $result);
+    }
+
+    public function test_highlight_body_handles_empty_pattern(): void
+    {
+        $result = $this->analysis->highlightBody('', 'i', '/');
+
+        $this->assertIsString($result);
+    }
+
+    public function test_suggest_optimizations_filters_by_savings_with_zero(): void
+    {
+        $patterns = [
+            new RegexPatternOccurrence('/test/', 'test.php', 1, 'preg_match'),
+        ];
+
+        $result = $this->analysis->suggestOptimizations($patterns, 1000);
+
+        $this->assertSame([], $result);
+    }
+
     }
 }
