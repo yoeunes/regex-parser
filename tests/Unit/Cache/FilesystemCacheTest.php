@@ -11,9 +11,49 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Tests\Unit\Cache;
+namespace RegexParser\Cache {
+    $GLOBALS['__filesystemcache_tempnam_fail'] = false;
+    $GLOBALS['__filesystemcache_file_put_contents_fail'] = false;
+    $GLOBALS['__filesystemcache_opcache_called'] = false;
 
-use PHPUnit\Framework\TestCase;
+    function tempnam(string $directory, string $prefix): false|string
+    {
+        if (!empty($GLOBALS['__filesystemcache_tempnam_fail'])) {
+            return false;
+        }
+
+        return \tempnam($directory, $prefix);
+    }
+
+    function file_put_contents(string $filename, mixed $data, int $flags = 0, $context = null): false|int
+    {
+        if (!empty($GLOBALS['__filesystemcache_file_put_contents_fail'])) {
+            return false;
+        }
+
+        return \file_put_contents($filename, $data, $flags, $context ?? null);
+    }
+
+    function opcache_invalidate(string $filename, bool $force = false): bool
+    {
+        $GLOBALS['__filesystemcache_opcache_called'] = true;
+
+        return true;
+    }
+}
+
+namespace {
+    if (!function_exists('opcache_invalidate')) {
+        function opcache_invalidate(string $filename, bool $force = false): bool
+        {
+            $GLOBALS['__filesystemcache_opcache_called'] = true;
+
+            return true;
+        }
+    }
+}
+
+namespace RegexParser\Tests\Unit\Cache {
 use RegexParser\Cache\FilesystemCache;
 
 final class FilesystemCacheTest extends TestCase
@@ -23,6 +63,9 @@ final class FilesystemCacheTest extends TestCase
     protected function setUp(): void
     {
         $this->cacheDir = sys_get_temp_dir().'/regex-parser-cache-'.uniqid('', true);
+        $GLOBALS['__filesystemcache_tempnam_fail'] = false;
+        $GLOBALS['__filesystemcache_file_put_contents_fail'] = false;
+        $GLOBALS['__filesystemcache_opcache_called'] = false;
     }
 
     protected function tearDown(): void
@@ -68,6 +111,23 @@ final class FilesystemCacheTest extends TestCase
 
         $this->assertSame(0, $cache->getTimestamp($key));
     }
+    public function test_write_throws_when_tempnam_fails(): void
+    {
+        $cache = new FilesystemCache($this->cacheDir);
+        $GLOBALS['__filesystemcache_tempnam_fail'] = true;
+
+        $this->expectException(\RuntimeException::class);
+        $cache->write($cache->generateKey('/tempnam/'), 'content');
+    }
+
+    public function test_write_throws_when_file_put_contents_fails(): void
+    {
+        $cache = new FilesystemCache($this->cacheDir);
+        $GLOBALS['__filesystemcache_file_put_contents_fail'] = true;
+
+        $this->expectException(\RuntimeException::class);
+        $cache->write($cache->generateKey('/fpc/'), 'content');
+    }
 
     public function test_write_throws_on_unwritable_directory(): void
     {
@@ -112,6 +172,41 @@ final class FilesystemCacheTest extends TestCase
 
         $this->assertFileExists($key);
         $this->assertSame('value', $cache->load($key));
+    }
+
+    public function test_write_triggers_opcache_invalidation(): void
+    {
+        $cache = new FilesystemCache($this->cacheDir);
+        $key = $cache->generateKey('/opcache/');
+
+        $cache->write($key, "<?php return 'ok';\n");
+
+        $this->assertTrue($GLOBALS['__filesystemcache_opcache_called']);
+        $this->assertSame('ok', $cache->load($key));
+    }
+
+    public function test_clear_skips_broken_symlink_paths(): void
+    {
+        $cacheDir = $this->cacheDir.'/sub';
+        @mkdir($cacheDir, 0o777, true);
+        $broken = $cacheDir.'/broken';
+        @symlink($cacheDir.'/missing', $broken);
+
+        $cache = new FilesystemCache($cacheDir);
+        $cache->clear();
+
+        $this->assertFileDoesNotExist($broken);
+    }
+
+    public function test_create_directory_throws_when_path_is_file(): void
+    {
+        $filePath = $this->cacheDir.'-file';
+        file_put_contents($filePath, 'x');
+
+        $cache = new FilesystemCache($filePath);
+
+        $this->expectException(\RuntimeException::class);
+        $cache->write($cache->generateKey('/file/'), 'content');
     }
 
     public function test_generate_key_with_custom_extension(): void
