@@ -231,6 +231,141 @@ final class RegexAnalysisServiceTest extends TestCase
         $this->assertIsArray($optimizations);
     }
 
+    public function test_validation_error_tips_delimiter_fix(): void
+    {
+        $service = $this->createService(warningThreshold: 50, redosThreshold: 'high');
+        $pattern = new RegexPatternOccurrence('/test/', 'file.php', 1, 'php:preg_match()', 'test');
+
+        $issues = $service->lint([$pattern]);
+
+        $this->assertNotEmpty($issues);
+        $errorIssue = array_filter($issues, fn($issue) => $issue['type'] === 'error')[0] ?? null;
+        $this->assertNotNull($errorIssue);
+        $this->assertArrayHasKey('tip', $errorIssue);
+        $this->assertStringContainsString('delimiter', $errorIssue['tip']);
+    }
+
+    public function test_validation_error_tips_character_class_fix(): void
+    {
+        $service = $this->createService(warningThreshold: 50, redosThreshold: 'high');
+        $pattern = new RegexPatternOccurrence('/[a-z/', 'file.php', 1, 'php:preg_match()', '[a-z');
+
+        $issues = $service->lint([$pattern]);
+
+        $this->assertNotEmpty($issues);
+        $errorIssue = array_filter($issues, fn($issue) => $issue['type'] === 'error')[0] ?? null;
+        $this->assertNotNull($errorIssue);
+        $this->assertArrayHasKey('tip', $errorIssue);
+    }
+
+    public function test_validation_error_tips_quantifier_range_fix(): void
+    {
+        $service = $this->createService(warningThreshold: 50, redosThreshold: 'high');
+        $pattern = new RegexPatternOccurrence('/a{3,2}/', 'file.php', 1, 'php:preg_match()', 'a{3,2}');
+
+        $issues = $service->lint([$pattern]);
+
+        $this->assertNotEmpty($issues);
+        $errorIssue = array_filter($issues, fn($issue) => $issue['type'] === 'error')[0] ?? null;
+        $this->assertNotNull($errorIssue);
+        $this->assertArrayHasKey('tip', $errorIssue);
+    }
+
+    public function test_validation_error_tips_backreference_fix(): void
+    {
+        $service = $this->createService(warningThreshold: 50, redosThreshold: 'high');
+        $pattern = new RegexPatternOccurrence('/\\2/', 'file.php', 1, 'php:preg_match()', '\\2');
+
+        $issues = $service->lint([$pattern]);
+
+        $this->assertNotEmpty($issues);
+        $errorIssue = array_filter($issues, fn($issue) => $issue['type'] === 'error')[0] ?? null;
+        $this->assertNotNull($errorIssue);
+        $this->assertArrayHasKey('tip', $errorIssue);
+    }
+
+    public function test_validation_error_tips_lookbehind_fix(): void
+    {
+        $service = $this->createService(warningThreshold: 50, redosThreshold: 'high');
+        $pattern = new RegexPatternOccurrence('/(?<=a*)/', 'file.php', 1, 'php:preg_match()', '(?<=a*)');
+
+        $issues = $service->lint([$pattern]);
+
+        $this->assertNotEmpty($issues);
+        $errorIssue = array_filter($issues, fn($issue) => $issue['type'] === 'error')[0] ?? null;
+        $this->assertNotNull($errorIssue);
+        $this->assertArrayHasKey('tip', $errorIssue);
+    }
+
+    public function test_redos_hints_with_nested_quantifiers(): void
+    {
+        $service = $this->createService(warningThreshold: 50, redosThreshold: 'low');
+        $pattern = new RegexPatternOccurrence('/(a+)+/', 'file.php', 1, 'php:preg_match()');
+
+        $issues = $service->lint([$pattern]);
+
+        $redosIssues = array_filter($issues, fn($issue) => ($issue['issueId'] ?? null) === 'regex.lint.redos');
+        $this->assertNotEmpty($redosIssues);
+        $this->assertArrayHasKey('hint', $redosIssues[array_key_first($redosIssues)]);
+        $hint = $redosIssues[array_key_first($redosIssues)]['hint'];
+        $this->assertStringContainsString('atomic groups', $hint);
+    }
+
+    public function test_redos_hints_with_dot_star(): void
+    {
+        $service = $this->createService(warningThreshold: 50, redosThreshold: 'low');
+        $pattern = new RegexPatternOccurrence('/.*a+/', 'file.php', 1, 'php:preg_match()');
+
+        $issues = $service->lint([$pattern]);
+
+        $redosIssues = array_filter($issues, fn($issue) => ($issue['issueId'] ?? null) === 'regex.lint.redos');
+        $this->assertNotEmpty($redosIssues);
+        $this->assertArrayHasKey('hint', $redosIssues[array_key_first($redosIssues)]);
+    }
+
+    public function test_trivially_safe_patterns_skip_analysis(): void
+    {
+        $service = $this->createService(warningThreshold: 0, redosThreshold: 'low');
+        $pattern = new RegexPatternOccurrence('/^simple|word|list$/', 'file.php', 1, 'route:test', 'simple|word|list');
+
+        $issues = $service->lint([$pattern]);
+
+        // Should skip complexity and ReDoS checks for trivially safe patterns
+        $complexityIssues = array_filter($issues, fn($issue) => ($issue['issueId'] ?? null) === 'regex.lint.complexity');
+        $redosIssues = array_filter($issues, fn($issue) => ($issue['issueId'] ?? null) === 'regex.lint.redos');
+        $this->assertEmpty($complexityIssues);
+        $this->assertEmpty($redosIssues);
+    }
+
+    public function test_extended_mode_detection(): void
+    {
+        $service = $this->createService(warningThreshold: 10, redosThreshold: 'high');
+        $patterns = [
+            new RegexPatternOccurrence("/test/x", 'file.php', 1, 'php:preg_match()'),
+        ];
+
+        $optimizations = $service->suggestOptimizations($patterns, 1);
+
+        // Extended mode patterns should be handled differently
+        $this->assertIsArray($optimizations);
+    }
+
+    public function test_ignore_patterns_with_redos(): void
+    {
+        $service = $this->createService(
+            warningThreshold: 50,
+            redosThreshold: 'low',
+            ignoredPatterns: ['(a+)+']
+        );
+        $pattern = new RegexPatternOccurrence('/(a+)+b/', 'file.php', 1, 'php:preg_match()');
+
+        $issues = $service->lint([$pattern]);
+
+        // Should skip ReDoS check for ignored patterns
+        $redosIssues = array_filter($issues, fn($issue) => ($issue['issueId'] ?? null) === 'regex.lint.redos');
+        $this->assertEmpty($redosIssues);
+    }
+
     /**
      * @param list<string> $ignoredPatterns
      */
