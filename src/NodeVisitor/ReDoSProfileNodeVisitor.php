@@ -935,26 +935,6 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
         ];
     }
 
-    private function hasUnboundedQuantifiers(Node\NodeInterface $node): bool
-    {
-        if ($node instanceof Node\QuantifierNode && $this->isUnbounded($node->quantifier)) {
-            return true;
-        }
-        $children = match (true) {
-            $node instanceof Node\SequenceNode => $node->children,
-            $node instanceof Node\AlternationNode => $node->alternatives,
-            $node instanceof Node\QuantifierNode => [$node->node],
-            $node instanceof Node\GroupNode => [$node->child],
-            default => [],
-        };
-        foreach ($children as $child) {
-            if ($this->hasUnboundedQuantifiers($child)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     /**
      * @return array{0:int, 1:int|null}
      */
