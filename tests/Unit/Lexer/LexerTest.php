@@ -197,6 +197,42 @@ final class LexerTest extends TestCase
         $this->assertSame('\\o{777}', $tokens[0]->value);
     }
 
+    /**
+     * @param array<string> $expectedOctals
+     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('provide_legacy_octal_sequences')]
+    public function test_tokenize_legacy_octal_sequences(string $pattern, array $expectedOctals, bool $expectRange): void
+    {
+        $tokens = (new Lexer())->tokenize($pattern)->getTokens();
+
+        $octalTokens = array_values(array_filter(
+            $tokens,
+            static fn ($token) => TokenType::T_OCTAL_LEGACY === $token->type,
+        ));
+
+        $this->assertSame(
+            $expectedOctals,
+            array_map(static fn ($token) => $token->value, $octalTokens),
+        );
+
+        if ($expectRange) {
+            $this->assertSame(TokenType::T_CHAR_CLASS_OPEN, $tokens[0]->type);
+            $this->assertSame(TokenType::T_OCTAL_LEGACY, $tokens[1]->type);
+            $this->assertSame(TokenType::T_RANGE, $tokens[2]->type);
+            $this->assertSame(TokenType::T_OCTAL_LEGACY, $tokens[3]->type);
+        }
+    }
+
+    public static function provide_legacy_octal_sequences(): \Iterator
+    {
+        yield 'null_byte' => ['[\\000]', ['000'], false];
+        yield 'leading_zero' => ['[\\010]', ['010'], false];
+        yield 'upper_byte_limit' => ['[\\377]', ['377'], false];
+        yield 'max_three_digit' => ['[\\777]', ['777'], false];
+        yield 'mixed_digits' => ['[\\123]', ['123'], false];
+        yield 'range_preserves_three_digit' => ['[\\177-\\377]', ['177', '377'], true];
+    }
+
     public function test_throws_on_trailing_backslash(): void
     {
         $this->expectException(LexerException::class);
