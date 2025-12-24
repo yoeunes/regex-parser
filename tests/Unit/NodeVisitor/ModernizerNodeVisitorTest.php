@@ -101,7 +101,7 @@ final class ModernizerNodeVisitorTest extends TestCase
         $quantifier = new \RegexParser\Node\QuantifierNode(
             new \RegexParser\Node\LiteralNode('a', 0, 1),
             '*',
-            \RegexParser\Node\QuantifierType::T_QUANTIFIER_GREEDY,
+            \RegexParser\Node\QuantifierType::T_GREEDY,
             1,
             2
         );
@@ -165,7 +165,7 @@ final class ModernizerNodeVisitorTest extends TestCase
 
     public function test_preserves_char_literal(): void
     {
-        $charLiteral = new \RegexParser\Node\CharLiteralNode('a', 0, 1);
+        $charLiteral = new \RegexParser\Node\CharLiteralNode('a', 65, \RegexParser\Node\CharLiteralType::UNICODE, 0, 1);
         $result = $charLiteral->accept($this->visitor);
 
         $this->assertSame($charLiteral, $result);
@@ -202,7 +202,7 @@ final class ModernizerNodeVisitorTest extends TestCase
 
     public function test_preserves_subroutine(): void
     {
-        $subroutine = new \RegexParser\Node\SubroutineNode('1', 0, 4);
+        $subroutine = new \RegexParser\Node\SubroutineNode('1', 'R', 0, 4);
         $result = $subroutine->accept($this->visitor);
 
         $this->assertSame($subroutine, $result);
@@ -237,7 +237,7 @@ final class ModernizerNodeVisitorTest extends TestCase
 
     public function test_preserves_callout(): void
     {
-        $callout = new \RegexParser\Node\CalloutNode(null, 0, 3);
+        $callout = new \RegexParser\Node\CalloutNode(null, false, 0, 3);
         $result = $callout->accept($this->visitor);
 
         $this->assertSame($callout, $result);
@@ -269,7 +269,7 @@ final class ModernizerNodeVisitorTest extends TestCase
 
     public function test_preserves_control_char(): void
     {
-        $controlChar = new \RegexParser\Node\ControlCharNode('n', 0, 3);
+        $controlChar = new \RegexParser\Node\ControlCharNode('n', 10, 0, 3);
         $result = $controlChar->accept($this->visitor);
 
         $this->assertSame($controlChar, $result);
@@ -278,7 +278,9 @@ final class ModernizerNodeVisitorTest extends TestCase
     public function test_preserves_class_operation(): void
     {
         $classOperation = new \RegexParser\Node\ClassOperationNode(
-            \RegexParser\Node\ClassOperationType::T_MINUS,
+            \RegexParser\Node\ClassOperationType::SUBTRACTION,
+            new \RegexParser\Node\LiteralNode('a', 0, 1),
+            new \RegexParser\Node\LiteralNode('b', 3, 4),
             0, 6
         );
         $result = $classOperation->accept($this->visitor);
