@@ -355,7 +355,7 @@ final class RegexAnalysisServiceTest extends TestCase
         $service = $this->createService(
             warningThreshold: 50,
             redosThreshold: 'low',
-            ignoredPatterns: ['(a+)+']
+            ignoredPatterns: ['(a+)+b']
         );
         $pattern = new RegexPatternOccurrence('/(a+)+b/', 'file.php', 1, 'php:preg_match()');
 
