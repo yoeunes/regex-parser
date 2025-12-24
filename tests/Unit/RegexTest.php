@@ -155,14 +155,14 @@ final class RegexTest extends TestCase
     {
         $result = $this->regexService->validate('/a(/');
         $this->assertFalse($result->isValid());
-        $this->assertStringContains('Expected )', $result->getErrorMessage());
+        $this->assertStringContainsString('Expected )', $result->getErrorMessage());
     }
 
     public function test_redos_method(): void
     {
         $analysis = $this->regexService->redos('/a+/');
         $this->assertIsBool($analysis->isSafe());
-        $this->assertIsString($analysis->getSeverity()->value);
+        $this->assertInstanceOf(\RegexParser\ReDoS\ReDoSSeverity::class, $analysis->severity);
     }
 
     public function test_literals_method(): void
@@ -182,13 +182,13 @@ final class RegexTest extends TestCase
     {
         $highlighted = $this->regexService->highlight('/a+/');
         $this->assertIsString($highlighted);
-        $this->assertStringContains('a', $highlighted);
+        $this->assertStringContainsString('a', $highlighted);
     }
 
     public function test_parse_with_tolerant_mode(): void
     {
         $result = $this->regexService->parse('/a(/', true);
         $this->assertInstanceOf(\RegexParser\TolerantParseResult::class, $result);
-        $this->assertFalse($result->isValid());
+        $this->assertTrue($result->hasErrors());
     }
 }
