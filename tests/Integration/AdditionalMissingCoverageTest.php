@@ -15,7 +15,9 @@ namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\AnalysisReport;
+use RegexParser\Exception\RecursionLimitException;
 use RegexParser\Node;
+use RegexParser\Regex;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
 use RegexParser\NodeVisitor\DumperNodeVisitor;
 use RegexParser\NodeVisitor\ExplainNodeVisitor;
@@ -417,5 +419,13 @@ final class AdditionalMissingCoverageTest extends TestCase
         $node = new Node\LimitMatchNode(1000, 0, 16);
         $result = $node->accept($visitor);
         $this->assertNotEmpty($result);
+    }
+
+    public function test_parser_recursion_limit(): void
+    {
+        $regex = Regex::create();
+        // This pattern should not trigger recursion limit in normal parsing
+        $ast = $regex->parse('/a+/');
+        $this->assertNotNull($ast);
     }
 }

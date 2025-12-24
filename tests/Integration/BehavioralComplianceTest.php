@@ -201,6 +201,98 @@ final class BehavioralComplianceTest extends TestCase
                 'contest' => false,
             ],
         ];
+
+        // Additional patterns to boost coverage
+        yield 'octal escape' => [
+            'pattern' => '/\101/',
+            'testCases' => [
+                'A' => true,
+                'B' => false,
+            ],
+        ];
+
+        yield 'control char' => [
+            'pattern' => '/\cA/',
+            'testCases' => [
+                \chr(1) => true,
+                'B' => false,
+            ],
+        ];
+
+        yield 'subroutine' => [
+            'pattern' => '/a(?R)?b/',
+            'testCases' => [
+                'ab' => true,
+                'aabb' => true,
+                'c' => false,
+            ],
+        ];
+
+        yield 'deeply nested groups' => [
+            'pattern' => '/((((a))))/',
+            'testCases' => [
+                'a' => true,
+                'b' => false,
+            ],
+        ];
+
+        yield 'complex char class' => [
+            'pattern' => '/[a-z\d]/',
+            'testCases' => [
+                'a' => true,
+                '1' => true,
+                'A' => false,
+            ],
+        ];
+
+        yield 'pcre verb' => [
+            'pattern' => '/(*NOTEMPTY)a/',
+            'testCases' => [
+                'a' => true,
+                '' => false,
+            ],
+        ];
+
+        yield 'pcre verb crlf' => [
+            'pattern' => '/(*CRLF)a/',
+            'testCases' => [
+                'a' => true,
+                'b' => false,
+            ],
+        ];
+
+        yield 'hex escape' => [
+            'pattern' => '/\x41/',
+            'testCases' => [
+                'A' => true,
+                'B' => false,
+            ],
+        ];
+
+        yield 'named group backref' => [
+            'pattern' => '/(?<name>a)\k<name>/',
+            'testCases' => [
+                'aa' => true,
+                'ab' => false,
+            ],
+        ];
+
+        yield 'subroutine name' => [
+            'pattern' => '/(?<sub>a)(?&sub)/',
+            'testCases' => [
+                'aa' => true,
+                'ab' => false,
+            ],
+        ];
+
+        yield 'complex char class 2' => [
+            'pattern' => '/[\w\d]/',
+            'testCases' => [
+                'a' => true,
+                '1' => true,
+                ' ' => false,
+            ],
+        ];
     }
 
     /**
