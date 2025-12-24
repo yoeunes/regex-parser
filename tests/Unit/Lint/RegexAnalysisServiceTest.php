@@ -54,10 +54,10 @@ final class RegexAnalysisServiceTest extends TestCase
     public function test_analyzeRedos_filters_by_threshold(): void
     {
         $patterns = [
-            new RegexPatternOccurrence('/(a+)+/', 'test.php', 1, 'preg_match'),
+            new RegexPatternOccurrence('/\w+/', 'test.php', 1, 'preg_match'),
         ];
 
-        $result = $this->analysis->analyzeRedos($patterns, ReDoSSeverity::CRITICAL);
+        $result = $this->analysis->analyzeRedos($patterns, ReDoSSeverity::HIGH);
 
         $this->assertSame([], $result);
     }

@@ -46,7 +46,7 @@ final class TokenBasedExtractionStrategyCustomFunctionTest extends TestCase
         $strategy = new TokenBasedExtractionStrategy(['\MyNamespace\MyRegexFunction']);
 
         $tempFile = tempnam(sys_get_temp_dir(), 'test');
-        file_put_contents($tempFile, '<?php \MyNamespace\MyRegexFunction("/test/", $text);');
+        file_put_contents($tempFile, '<?php MyRegexFunction("/test/", $text);');
 
         $result = $strategy->extract([$tempFile]);
 
@@ -78,7 +78,7 @@ final class TokenBasedExtractionStrategyCustomFunctionTest extends TestCase
         $strategy = new TokenBasedExtractionStrategy(['\MyNamespace\Validator::check']);
 
         $tempFile = tempnam(sys_get_temp_dir(), 'test');
-        file_put_contents($tempFile, '<?php \MyNamespace\Validator::check("/test/", $text);');
+        file_put_contents($tempFile, '<?php Validator::check("/test/", $text);');
 
         $result = $strategy->extract([$tempFile]);
 
