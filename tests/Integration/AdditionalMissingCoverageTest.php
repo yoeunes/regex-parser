@@ -15,9 +15,7 @@ namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\AnalysisReport;
-use RegexParser\Exception\RecursionLimitException;
 use RegexParser\Node;
-use RegexParser\Regex;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
 use RegexParser\NodeVisitor\DumperNodeVisitor;
 use RegexParser\NodeVisitor\ExplainNodeVisitor;
@@ -31,6 +29,7 @@ use RegexParser\ReDoS\ReDoSAnalysis;
 use RegexParser\ReDoS\ReDoSConfidence;
 use RegexParser\ReDoS\ReDoSFinding;
 use RegexParser\ReDoS\ReDoSSeverity;
+use RegexParser\Regex;
 
 final class AdditionalMissingCoverageTest extends TestCase
 {

@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /*
- * This file is part of RegexParser package.
+ * This file is part of the RegexParser package.
  *
  * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
  *
@@ -118,14 +118,14 @@ final class RegexAnalysisServiceTest extends TestCase
     public function test_suggest_optimizations_continues_on_parse_error(): void
     {
         $patterns = [
-            new RegexPatternOccurrence('/valid/', 'test.php', 1, 'preg_match'),
+            new RegexPatternOccurrence('/[0-9]/', 'test.php', 1, 'preg_match'),
             new RegexPatternOccurrence('/[unclosed/', 'test.php', 2, 'preg_match'),
             new RegexPatternOccurrence('/another-valid/', 'test.php', 3, 'preg_match'),
         ];
 
         $result = $this->analysis->suggestOptimizations($patterns, 0);
 
-        $this->assertGreaterThanOrEqual(1, count($result));
+        $this->assertGreaterThanOrEqual(1, \count($result));
     }
 
     public function test_analyze_redos_continues_on_parse_error(): void
@@ -137,7 +137,7 @@ final class RegexAnalysisServiceTest extends TestCase
 
         $result = $this->analysis->analyzeRedos($patterns, ReDoSSeverity::MEDIUM);
 
-        $this->assertGreaterThanOrEqual(0, count($result));
+        $this->assertGreaterThanOrEqual(0, \count($result));
     }
 
     public function test_extract_fragment_with_empty_pattern(): void
@@ -164,7 +164,5 @@ final class RegexAnalysisServiceTest extends TestCase
         $result = $this->analysis->suggestOptimizations($patterns, 1000);
 
         $this->assertSame([], $result);
-    }
-
     }
 }
