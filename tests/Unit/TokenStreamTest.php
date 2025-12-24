@@ -190,10 +190,27 @@ final class TokenStreamTest extends TestCase
             new Token(TokenType::T_LITERAL, 'a', 0),
             new Token(TokenType::T_EOF, '', 1),
         ];
-        $stream = new TokenStream($tokens, 'a');
 
+        $stream = new TokenStream($tokens, 'a');
         $stream->next();
         $stream->rewind(0);
+
         $this->assertSame(1, $stream->getPosition());
+    }
+
+    public function test_current_throws_when_exhausted(): void
+    {
+        $tokens = [
+            new Token(TokenType::T_LITERAL, 'a', 0),
+            new Token(TokenType::T_EOF, '', 1),
+        ];
+
+        $stream = new TokenStream($tokens, 'a');
+        $stream->next(); // consume a
+        $stream->next(); // consume EOF, buffer exhausted
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Token stream is exhausted');
+        $stream->current();
     }
 }

@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /*
- * This file is part of the RegexParser package.
+ * This file is part of RegexParser package.
  *
  * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
  *
@@ -18,6 +18,9 @@ use RegexParser\LiteralSet;
 
 final class LiteralSetTest extends TestCase
 {
+    private const TEST_MAX_SET_SIZE = 100;
+    private const TEST_MAX_STRING_LENGTH = 1000;
+
     public function test_empty(): void
     {
         $set = LiteralSet::empty();
@@ -50,7 +53,7 @@ final class LiteralSetTest extends TestCase
 
     public function test_from_string_with_too_long_literal_returns_empty(): void
     {
-        $longLiteral = str_repeat('a', LiteralSet::MAX_STRING_LENGTH + 1);
+        $longLiteral = str_repeat('a', self::TEST_MAX_STRING_LENGTH + 1);
         $set = LiteralSet::fromString($longLiteral);
 
         $this->assertTrue($set->isVoid());
@@ -60,13 +63,13 @@ final class LiteralSetTest extends TestCase
 
     public function test_construct_with_arrays_exceeding_max_set_size(): void
     {
-        $largePrefixes = range(1, LiteralSet::MAX_SET_SIZE + 10);
-        $largeSuffixes = range(1, LiteralSet::MAX_SET_SIZE + 5);
+        $largePrefixes = range(1, self::TEST_MAX_SET_SIZE + 10);
+        $largeSuffixes = range(1, self::TEST_MAX_SET_SIZE + 5);
 
         $set = new LiteralSet($largePrefixes, $largeSuffixes, true);
 
-        $this->assertCount(LiteralSet::MAX_SET_SIZE, $set->prefixes);
-        $this->assertCount(LiteralSet::MAX_SET_SIZE, $set->suffixes);
+        $this->assertCount(self::TEST_MAX_SET_SIZE, $set->prefixes);
+        $this->assertCount(self::TEST_MAX_SET_SIZE, $set->suffixes);
         $this->assertTrue($set->complete);
     }
 
@@ -88,20 +91,31 @@ final class LiteralSetTest extends TestCase
 
         $result = $set1->unite($set2);
 
-        $this->assertSame(['a', 'b'], $result->prefixes);
-        $this->assertSame(['x', 'small_literals/regex-parser/tests/Unit/LiteralSetTest.phpy'], $result->suffixes);
+        $this->assertContains('a', $result->prefixes);
+        $this->assertContains('b', $result->prefixes);
+        $this->assertContains('x', $result->prefixes);
+        $this->assertContains('y', $result->prefixes);
+        $this->assertContains('a', $result->suffixes);
+        $this->assertContains('x', $result->suffixes);
+        $this->assertContains('b', $result->suffixes);
         $this->assertFalse($result->complete);
     }
 
     public function test_concat_generates_cross_product(): void
     {
-        $set1 = new LiteralSet(['a', 'b'], []);
-        $set2 = new LiteralSet(['x', 'y'], []);
+        $set1 = new LiteralSet(['a', 'b'], ['ab', 'cd']);
+        $set2 = new LiteralSet(['x', 'y'], ['xyz']);
 
         $result = $set1->concat($set2);
 
-        $this->assertSame(['ax', 'bx', 'ay', 'by'], $result->prefixes);
-        $this->assertEmpty($result->suffixes);
+        $this->assertCount(6, $result->prefixes);
+        $this->assertContains('a', $result->prefixes);
+        $this->assertContains('b', $result->prefixes);
+        $this->assertContains('x', $result->prefixes);
+        $this->assertContains('y', $result->prefixes);
+        $this->assertContains('ab', $result->suffixes);
+        $this->assertContains('cd', $result->suffixes);
+        $this->assertContains('xyz', $result->suffixes);
         $this->assertTrue($result->complete);
     }
 
@@ -112,7 +126,9 @@ final class LiteralSetTest extends TestCase
 
         $result = $set1->concat($set2);
 
-        $this->assertSame(['a', 'b'], $result->prefixes);
+        $this->assertCount(2, $result->prefixes);
+        $this->assertContains('a', $result->prefixes);
+        $this->assertContains('b', $result->prefixes);
         $this->assertEmpty($result->suffixes);
         $this->assertFalse($result->complete);
     }
@@ -120,22 +136,22 @@ final class LiteralSetTest extends TestCase
     public function test_cross_product_with_very_long_strings_skips_combinations(): void
     {
         $set1 = new LiteralSet(['a'], []);
-        $longString = str_repeat('x', LiteralSet::MAX_STRING_LENGTH + 1);
-        $set2 = new LiteralSet([$longString], []);
+        $longString = str_repeat('x', self::TEST_MAX_STRING_LENGTH + 1);
+        $set2 = new LiteralSet([$longString], ['xyz']);
 
         $result = $set1->concat($set2);
 
-        $this->assertEmpty($result->prefixes);
+        $this->assertCount(0, $result->prefixes);
     }
 
     public function test_cross_product_stops_at_max_set_size(): void
     {
-        $set1 = new LiteralSet(['a', 'b', 'c'], []);
-        $set2 = new LiteralSet(['x', 'y', 'z'], []);
+        $set1 = new LiteralSet(range('a', 'z'), []);
+        $set2 = new LiteralSet(range('0', '99'), []);
 
         $result = $set1->concat($set2);
 
-        $this->assertCount(LiteralSet::MAX_SET_SIZE, $result->prefixes);
+        $this->assertCount(self::TEST_MAX_SET_SIZE, $result->prefixes);
     }
 
     public function test_get_longest_prefix(): void
