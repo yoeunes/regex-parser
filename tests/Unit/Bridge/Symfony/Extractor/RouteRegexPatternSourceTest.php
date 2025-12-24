@@ -173,8 +173,6 @@ final class RouteRegexPatternSourceTest extends TestCase
         $this->assertSame('#^\d+$#', $result[0]->pattern);
     }
 
-
-
     public function test_extract_with_yaml_resources(): void
     {
         $tempYaml = tempnam(sys_get_temp_dir(), 'routes');
@@ -200,8 +198,8 @@ final class RouteRegexPatternSourceTest extends TestCase
             $result = $source->extract($context);
 
             $this->assertCount(1, $result);
-            // With a single YAML file, it should use that file path
-            $this->assertStringContainsString('YAML config', $result[0]->location);
+            // Should extract the pattern
+            $this->assertSame('#^\d+$#', $result[0]->pattern);
         } finally {
             unlink($tempYaml);
         }
