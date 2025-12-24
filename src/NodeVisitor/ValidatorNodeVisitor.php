@@ -797,6 +797,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         if (str_starts_with($key, '{') && str_ends_with($key, '}')) {
             return substr($key, 1, -1);
         }
+
         return $key;
     }
 
