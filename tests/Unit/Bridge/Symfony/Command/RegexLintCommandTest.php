@@ -102,7 +102,6 @@ final class RegexLintCommandTest extends TestCase
         // Test the private method through reflection
         $reflection = new \ReflectionClass($command);
         $method = $reflection->getMethod('normalizeStringList');
-        $method->setAccessible(true);
 
         $this->assertSame([], $method->invoke($command, null));
         $this->assertSame([], $method->invoke($command, 'string'));
@@ -115,7 +114,6 @@ final class RegexLintCommandTest extends TestCase
 
         $reflection = new \ReflectionClass($command);
         $method = $reflection->getMethod('sortResultsByFileAndLine');
-        $method->setAccessible(true);
 
         $results = [
             ['file' => 'b.php', 'line' => 10],
@@ -139,7 +137,6 @@ final class RegexLintCommandTest extends TestCase
 
         $reflection = new \ReflectionClass($command);
         $method = $reflection->getMethod('showBanner');
-        $method->setAccessible(true);
 
         $io = $this->createMock(\Symfony\Component\Console\Style\SymfonyStyle::class);
         $io->expects($this->exactly(2))->method('newLine');
@@ -155,7 +152,6 @@ final class RegexLintCommandTest extends TestCase
 
         $reflection = new \ReflectionClass($command);
         $method = $reflection->getMethod('showFooter');
-        $method->setAccessible(true);
 
         $io = $this->createMock(\Symfony\Component\Console\Style\SymfonyStyle::class);
         $io->expects($this->exactly(2))->method('newLine');

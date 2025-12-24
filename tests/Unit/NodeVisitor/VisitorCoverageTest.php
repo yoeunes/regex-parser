@@ -20,7 +20,6 @@ use RegexParser\NodeVisitor\ComplexityScoreNodeVisitor;
 use RegexParser\NodeVisitor\ConsoleHighlighterVisitor;
 use RegexParser\NodeVisitor\DumperNodeVisitor;
 use RegexParser\NodeVisitor\ExplainNodeVisitor;
-use RegexParser\NodeVisitor\HighlighterVisitor;
 use RegexParser\NodeVisitor\HtmlExplainNodeVisitor;
 use RegexParser\NodeVisitor\HtmlHighlighterVisitor;
 use RegexParser\NodeVisitor\LengthRangeNodeVisitor;
@@ -112,7 +111,7 @@ final class VisitorCoverageTest extends TestCase
         $this->assertNotEmpty($html);
     }
 
-    public function testAllVisitorsCanBeInstantiated(): void
+    public function test_all_visitors_can_be_instantiated(): void
     {
         // Instantiate all visitor classes to cover class coverage
         new CompilerNodeVisitor();

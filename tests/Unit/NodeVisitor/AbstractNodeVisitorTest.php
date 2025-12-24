@@ -188,7 +188,7 @@ final class AbstractNodeVisitorTest extends TestCase
             new CharClassNode(new LiteralNode('a', 0, 0), false, 0, 0),
             new CharClassNode(new LiteralNode('b', 0, 0), false, 0, 0),
             0,
-            0
+            0,
         );
         $result = $this->visitor->visitClassOperation($node);
         $this->assertSame('default', $result);
@@ -283,7 +283,6 @@ final class AbstractNodeVisitorTest extends TestCase
         // Test the protected defaultReturn method through reflection
         $reflection = new \ReflectionClass($this->visitor);
         $method = $reflection->getMethod('defaultReturn');
-        $method->setAccessible(true);
         $result = $method->invoke($this->visitor);
         $this->assertSame('default', $result);
     }

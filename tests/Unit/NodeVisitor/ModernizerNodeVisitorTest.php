@@ -76,7 +76,7 @@ final class ModernizerNodeVisitorTest extends TestCase
     {
         $alternation = new \RegexParser\Node\AlternationNode(
             [new \RegexParser\Node\LiteralNode('a', 0, 1), new \RegexParser\Node\LiteralNode('b', 3, 4)],
-            0, 5
+            0, 5,
         );
 
         $result = $alternation->accept($this->visitor);
@@ -88,7 +88,7 @@ final class ModernizerNodeVisitorTest extends TestCase
     {
         $sequence = new \RegexParser\Node\SequenceNode(
             [new \RegexParser\Node\LiteralNode('a', 0, 1), new \RegexParser\Node\LiteralNode('b', 2, 3)],
-            0, 4
+            0, 4,
         );
 
         $result = $sequence->accept($this->visitor);
@@ -103,7 +103,7 @@ final class ModernizerNodeVisitorTest extends TestCase
             '*',
             \RegexParser\Node\QuantifierType::T_GREEDY,
             1,
-            2
+            2,
         );
 
         $result = $quantifier->accept($this->visitor);
@@ -148,7 +148,7 @@ final class ModernizerNodeVisitorTest extends TestCase
         $range = new \RegexParser\Node\RangeNode(
             new \RegexParser\Node\LiteralNode('a', 0, 1),
             new \RegexParser\Node\LiteralNode('z', 3, 4),
-            0, 5
+            0, 5,
         );
         $result = $range->accept($this->visitor);
 
@@ -193,7 +193,7 @@ final class ModernizerNodeVisitorTest extends TestCase
             new \RegexParser\Node\LiteralNode('a', 1, 2),
             new \RegexParser\Node\LiteralNode('b', 4, 5),
             new \RegexParser\Node\LiteralNode('c', 7, 8),
-            0, 10
+            0, 10,
         );
         $result = $conditional->accept($this->visitor);
 
@@ -220,7 +220,7 @@ final class ModernizerNodeVisitorTest extends TestCase
     {
         $define = new \RegexParser\Node\DefineNode(
             new \RegexParser\Node\LiteralNode('test', 1, 5),
-            0, 12
+            0, 12,
         );
         $result = $define->accept($this->visitor);
 
@@ -281,7 +281,7 @@ final class ModernizerNodeVisitorTest extends TestCase
             \RegexParser\Node\ClassOperationType::SUBTRACTION,
             new \RegexParser\Node\LiteralNode('a', 0, 1),
             new \RegexParser\Node\LiteralNode('b', 3, 4),
-            0, 6
+            0, 6,
         );
         $result = $classOperation->accept($this->visitor);
 
@@ -299,10 +299,10 @@ final class ModernizerNodeVisitorTest extends TestCase
                     new \RegexParser\Node\LiteralNode("\f", 13, 16),
                     new \RegexParser\Node\LiteralNode("\v", 17, 20),
                 ],
-                0, 21
+                0, 21,
             ),
             false,
-            0, 22
+            0, 22,
         );
 
         $result = $whitespaceClass->accept($this->visitor);

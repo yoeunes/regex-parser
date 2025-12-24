@@ -88,7 +88,6 @@ final class PsrSimpleCacheAdapterTest extends TestCase
         // Use reflection to access private method
         $reflection = new \ReflectionClass($regex);
         $method = $reflection->getMethod('prepareCachePayload');
-        $method->setAccessible(true);
         $payload = $method->invoke(null, $ast);
 
         $key = $adapter->generateKey('/test/');
@@ -106,7 +105,6 @@ final class PsrSimpleCacheAdapterTest extends TestCase
         // Test the private method through reflection
         $reflection = new \ReflectionClass($adapter);
         $method = $reflection->getMethod('extractSerializedString');
-        $method->setAccessible(true);
 
         $payload = "<?php return unserialize('serialized_data', ['allowed_classes' => []]);";
         $result = $method->invoke($adapter, $payload);

@@ -101,7 +101,7 @@ final class RouteRegexPatternSourceTest extends TestCase
         $this->assertSame('Symfony routes', $result[0]->file);
         $this->assertSame('route:test_route:id', $result[0]->source);
         $this->assertSame('\d+', $result[0]->displayPattern);
-        $this->assertStringContainsString('Route "test_route"', $result[0]->location);
+        $this->assertStringContainsString('Route "test_route"', (string) $result[0]->location);
     }
 
     public function test_extract_with_route_having_controller(): void
@@ -122,7 +122,7 @@ final class RouteRegexPatternSourceTest extends TestCase
         $result = $source->extract($context);
 
         $this->assertCount(1, $result);
-        $this->assertStringContainsString('controller: App\\Controller\\TestController::index', $result[0]->location);
+        $this->assertStringContainsString('controller: App\\Controller\\TestController::index', (string) $result[0]->location);
     }
 
     public function test_extract_with_multiple_requirements(): void
@@ -315,14 +315,14 @@ final class RouteRegexPatternSourceTest extends TestCase
 
     public function test_extract_with_yaml_route_definitions(): void
     {
-        $tempYaml = tempnam(sys_get_temp_dir(), 'routes') . '.yaml';
+        $tempYaml = tempnam(sys_get_temp_dir(), 'routes').'.yaml';
         $yamlContent = <<<YAML
-test_route:
-  path: /test/{id}/{slug}
-  requirements:
-    id: '\d+'
-    slug: '[a-z-]+'
-YAML;
+            test_route:
+              path: /test/{id}/{slug}
+              requirements:
+                id: '\d+'
+                slug: '[a-z-]+'
+            YAML;
         file_put_contents($tempYaml, $yamlContent);
 
         try {
@@ -345,7 +345,7 @@ YAML;
             $result = $source->extract($context);
 
             // Should extract patterns from YAML
-            $this->assertGreaterThanOrEqual(2, count($result));
+            $this->assertGreaterThanOrEqual(2, \count($result));
             $patterns = array_map(fn ($occurrence) => $occurrence->pattern, $result);
             $this->assertContains('#^\d+$#', $patterns);
             $this->assertContains('#^[a-z-]+$#', $patterns);
@@ -356,19 +356,19 @@ YAML;
 
     public function test_extract_with_yaml_complex_route_definitions(): void
     {
-        $tempYaml = tempnam(sys_get_temp_dir(), 'routes') . '.yaml';
+        $tempYaml = tempnam(sys_get_temp_dir(), 'routes').'.yaml';
         $yamlContent = <<<YAML
-when@dev:
-  test_route:
-    path: /dev/test/{id}
-    requirements:
-      id: '\d{3,}'
+            when@dev:
+              test_route:
+                path: /dev/test/{id}
+                requirements:
+                  id: '\d{3,}'
 
-test_route:
-  path: /test/{slug}
-  requirements:
-    slug: '^[a-z0-9_-]+$'
-YAML;
+            test_route:
+              path: /test/{slug}
+              requirements:
+                slug: '^[a-z0-9_-]+$'
+            YAML;
         file_put_contents($tempYaml, $yamlContent);
 
         try {
@@ -391,7 +391,7 @@ YAML;
             $result = $source->extract($context);
 
             // Should extract patterns from YAML, handling when@ conditions
-            $this->assertGreaterThanOrEqual(1, count($result));
+            $this->assertGreaterThanOrEqual(1, \count($result));
             $patterns = array_map(fn ($occurrence) => $occurrence->pattern, $result);
             $this->assertContains('#^[a-z0-9_-]+$#', $patterns);
         } finally {

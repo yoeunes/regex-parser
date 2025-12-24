@@ -26,7 +26,7 @@ final class ValidationResultTest extends TestCase
         $this->assertTrue($result->isValid);
         $this->assertNull($result->error);
         $this->assertSame(0, $result->complexityScore);
-        $this->assertNull($result->category);
+        $this->assertNotInstanceOf(\RegexParser\ValidationErrorCategory::class, $result->category);
         $this->assertNull($result->offset);
         $this->assertNull($result->caretSnippet);
         $this->assertNull($result->hint);
@@ -129,7 +129,7 @@ final class ValidationResultTest extends TestCase
         $result = new ValidationResult(true);
 
         $this->assertNull($result->getErrorMessage());
-        $this->assertNull($result->getErrorCategory());
+        $this->assertNotInstanceOf(\RegexParser\ValidationErrorCategory::class, $result->getErrorCategory());
         $this->assertNull($result->getErrorOffset());
         $this->assertNull($result->getCaretSnippet());
         $this->assertNull($result->getHint());

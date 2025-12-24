@@ -352,7 +352,7 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
     public function visitCharLiteral(Node\CharLiteralNode $node): string
     {
         $nodeId = $this->nextNodeId();
-        $label = $node->type->label() . ': ' . $node->originalRepresentation;
+        $label = $node->type->label().': '.$node->originalRepresentation;
         $this->lines[] = \sprintf('    %s["%s"]', $nodeId, $this->escape($label));
 
         return $nodeId;
@@ -490,7 +490,7 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
     public function visitPcreVerb(Node\PcreVerbNode $node): string
     {
         $nodeId = $this->nextNodeId();
-        
+
         // Special handling for LIMIT_MATCH verb
         if (str_starts_with($node->verb, 'LIMIT_MATCH=')) {
             $limit = substr($node->verb, 12); // Remove 'LIMIT_MATCH='

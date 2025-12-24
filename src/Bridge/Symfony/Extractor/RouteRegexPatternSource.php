@@ -100,7 +100,7 @@ final readonly class RouteRegexPatternSource implements RegexPatternSourceInterf
             if (false !== $lines) {
                 foreach ($yamlRequirements as $parameter => $lineIndex) {
                     $line = $lines[$lineIndex] ?? '';
-                    if (!preg_match('/^\s*' . preg_quote($parameter, '/') . '\s*:\s*(.+)$/', $line, $matches)) {
+                    if (!preg_match('/^\s*'.preg_quote($parameter, '/').'\s*:\s*(.+)$/', $line, $matches)) {
                         continue;
                     }
                     $value = trim($matches[1], " \t\n\r\0\x0B'\"");
