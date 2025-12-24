@@ -315,7 +315,7 @@ final class RouteRegexPatternSourceTest extends TestCase
 
     public function test_extract_with_yaml_route_definitions(): void
     {
-        $tempYaml = tempnam(sys_get_temp_dir(), 'routes');
+        $tempYaml = tempnam(sys_get_temp_dir(), 'routes') . '.yaml';
         $yamlContent = <<<YAML
 test_route:
   path: /test/{id}/{slug}
@@ -356,7 +356,7 @@ YAML;
 
     public function test_extract_with_yaml_complex_route_definitions(): void
     {
-        $tempYaml = tempnam(sys_get_temp_dir(), 'routes');
+        $tempYaml = tempnam(sys_get_temp_dir(), 'routes') . '.yaml';
         $yamlContent = <<<YAML
 when@dev:
   test_route:
