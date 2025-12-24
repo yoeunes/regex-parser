@@ -54,6 +54,8 @@ namespace {
 }
 
 namespace RegexParser\Tests\Unit\Cache {
+use Exception;
+use PHPUnit\Framework\TestCase;
 use RegexParser\Cache\FilesystemCache;
 
 final class FilesystemCacheTest extends TestCase
@@ -261,4 +263,5 @@ final class FilesystemCacheTest extends TestCase
 
         @rmdir($directory);
     }
+}
 }

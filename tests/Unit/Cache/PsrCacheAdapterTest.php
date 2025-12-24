@@ -96,6 +96,25 @@ final class PsrCacheAdapterTest extends TestCase
         $this->assertNull($cache->load($key));
     }
 
+    public function test_get_timestamp_returns_zero(): void
+    {
+        $cache = new PsrCacheAdapter(new InMemoryPool());
+
+        $this->assertSame(0, $cache->getTimestamp('unused'));
+    }
+
+    public function test_decode_payload_returns_null_for_non_regex_node(): void
+    {
+        $pool = new InMemoryPool();
+        $cache = new PsrCacheAdapter($pool);
+        $payload = "<?php return unserialize('".serialize('not-a-node')."', ['allowed_classes' => true]);";
+
+        $key = $cache->generateKey('nonnode');
+        $cache->write($key, $payload);
+
+        $this->assertSame($payload, $cache->load($key));
+    }
+
     private function export(string $value): string
     {
         return var_export($value, true);

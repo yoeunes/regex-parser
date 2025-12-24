@@ -110,6 +110,18 @@ final class PsrSimpleCacheAdapterTest extends TestCase
         $result = $method->invoke($adapter, $payload);
         $this->assertSame('serialized_data', $result);
     }
+
+    public function test_decode_payload_returns_null_for_non_regex_node(): void
+    {
+        $cache = new InMemorySimpleCache();
+        $adapter = new PsrSimpleCacheAdapter($cache);
+
+        $payload = "<?php return unserialize('".serialize('plain')."', ['allowed_classes' => true]);";
+        $key = $adapter->generateKey('/nonnode/');
+        $adapter->write($key, $payload);
+
+        $this->assertSame($payload, $adapter->load($key));
+    }
 }
 
 final class InMemorySimpleCache implements CacheInterface
