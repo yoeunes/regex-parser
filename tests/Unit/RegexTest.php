@@ -24,11 +24,8 @@ use RegexParser\Node\GroupNode;
 use RegexParser\Node\NodeInterface;
 use RegexParser\Node\QuantifierNode;
 use RegexParser\Node\SequenceNode;
-use RegexParser\ReDoS\ReDoSAnalysis;
-use RegexParser\ReDoS\ReDoSSeverity;
-use RegexParser\TokenStream;
 use RegexParser\Regex;
-use RegexParser\ValidationResult;
+use RegexParser\TokenStream;
 
 final class RegexTest extends TestCase
 {
@@ -203,20 +200,18 @@ final class RegexTest extends TestCase
         $this->assertGreaterThan(0, \count($stream->getTokens()));
     }
 
-
     public function test_build_visual_snippet_truncates_and_marks_caret(): void
     {
         $regex = Regex::create();
         $ref = new \ReflectionClass($regex);
         $method = $ref->getMethod('buildVisualSnippet');
-        $method->setAccessible(true);
 
         $pattern = str_repeat('a', 120);
         $snippet = $method->invoke($regex, $pattern, 110);
 
-        $this->assertStringContainsString('Line 1:', $snippet);
-        $this->assertStringContainsString('^', $snippet);
-        $this->assertStringContainsString('...', $snippet);
+        $this->assertStringContainsString('Line 1:', (string) $snippet);
+        $this->assertStringContainsString('^', (string) $snippet);
+        $this->assertStringContainsString('...', (string) $snippet);
     }
 
     public function test_build_visual_snippet_returns_empty_for_nulls(): void
@@ -224,7 +219,6 @@ final class RegexTest extends TestCase
         $regex = Regex::create();
         $ref = new \ReflectionClass($regex);
         $method = $ref->getMethod('buildVisualSnippet');
-        $method->setAccessible(true);
 
         $this->assertSame('', $method->invoke($regex, null, null));
     }
@@ -235,15 +229,19 @@ final class RegexTest extends TestCase
         $ref = new \ReflectionClass($regex);
 
         $buildSearch = $ref->getMethod('buildSearchPatterns');
-        $buildSearch->setAccessible(true);
         $determine = $ref->getMethod('determineConfidenceLevel');
-        $determine->setAccessible(true);
 
         $literalSet = new class {
             public array $prefixes = ['foo'];
+
             public array $suffixes = ['bar'];
+
             public bool $complete = false;
-            public function isVoid(): bool { return false; }
+
+            public function isVoid(): bool
+            {
+                return false;
+            }
         };
 
         $patterns = $buildSearch->invoke($regex, $literalSet);
@@ -259,7 +257,6 @@ final class RegexTest extends TestCase
     {
         $ref = new \ReflectionClass($this->regexService);
         $method = $ref->getMethod('createExplanationVisitor');
-        $method->setAccessible(true);
 
         $htmlVisitor = $method->invoke($this->regexService, 'html');
         $this->assertInstanceOf(\RegexParser\NodeVisitor\HtmlExplainNodeVisitor::class, $htmlVisitor);
@@ -273,7 +270,6 @@ final class RegexTest extends TestCase
         $regex = Regex::create();
         $ref = new \ReflectionClass($regex);
         $method = $ref->getMethod('safeExtractPattern');
-        $method->setAccessible(true);
 
         $result = $method->invoke($regex, 'invalid');
 

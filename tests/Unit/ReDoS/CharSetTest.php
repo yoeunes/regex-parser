@@ -2,6 +2,15 @@
 
 declare(strict_types=1);
 
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace RegexParser\Tests\Unit\ReDoS;
 
 use PHPUnit\Framework\TestCase;
@@ -38,7 +47,7 @@ final class CharSetTest extends TestCase
 
     public function test_complement_and_intersects(): void
     {
-        $digits = CharSet::fromRange(ord('0'), ord('9'));
+        $digits = CharSet::fromRange(\ord('0'), \ord('9'));
         $complement = $digits->complement();
 
         $this->assertTrue($complement->intersects(CharSet::fromChar('A')));
