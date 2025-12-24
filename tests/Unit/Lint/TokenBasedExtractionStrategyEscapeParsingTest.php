@@ -19,7 +19,7 @@ final class TokenBasedExtractionStrategyEscapeParsingTest extends TestCase
         $result = $strategy->extract([$tempFile]);
 
         $this->assertCount(1, $result);
-        $this->assertSame("/\x41", $result[0]->pattern);
+        $this->assertSame('/A', $result[0]->pattern);
 
         unlink($tempFile);
     }
@@ -34,7 +34,7 @@ final class TokenBasedExtractionStrategyEscapeParsingTest extends TestCase
         $result = $strategy->extract([$tempFile]);
 
         $this->assertCount(1, $result);
-        $this->assertSame("/\x{41}", $result[0]->pattern);
+        $this->assertSame('/A', $result[0]->pattern);
 
         unlink($tempFile);
     }
@@ -49,7 +49,7 @@ final class TokenBasedExtractionStrategyEscapeParsingTest extends TestCase
         $result = $strategy->extract([$tempFile]);
 
         $this->assertCount(1, $result);
-        $this->assertSame("/\u{41}", $result[0]->pattern);
+        $this->assertSame('/A', $result[0]->pattern);
 
         unlink($tempFile);
     }
@@ -64,7 +64,7 @@ final class TokenBasedExtractionStrategyEscapeParsingTest extends TestCase
         $result = $strategy->extract([$tempFile]);
 
         $this->assertCount(1, $result);
-        $this->assertSame("/\101", $result[0]->pattern);
+        $this->assertSame('/A', $result[0]->pattern);
 
         unlink($tempFile);
     }
@@ -79,7 +79,7 @@ final class TokenBasedExtractionStrategyEscapeParsingTest extends TestCase
         $result = $strategy->extract([$tempFile]);
 
         $this->assertCount(1, $result);
-        $this->assertSame("/\n", $result[0]->pattern);
+        $this->assertSame('/\n', $result[0]->pattern);
 
         unlink($tempFile);
     }
@@ -94,7 +94,7 @@ final class TokenBasedExtractionStrategyEscapeParsingTest extends TestCase
         $result = $strategy->extract([$tempFile]);
 
         $this->assertCount(1, $result);
-        $this->assertSame("/\r", $result[0]->pattern);
+        $this->assertSame('/\r', $result[0]->pattern);
 
         unlink($tempFile);
     }
@@ -109,7 +109,7 @@ final class TokenBasedExtractionStrategyEscapeParsingTest extends TestCase
         $result = $strategy->extract([$tempFile]);
 
         $this->assertCount(1, $result);
-        $this->assertSame("/\t", $result[0]->pattern);
+        $this->assertSame('/\t', $result[0]->pattern);
 
         unlink($tempFile);
     }
@@ -124,7 +124,7 @@ final class TokenBasedExtractionStrategyEscapeParsingTest extends TestCase
         $result = $strategy->extract([$tempFile]);
 
         $this->assertCount(1, $result);
-        $this->assertSame("/\v", $result[0]->pattern);
+        $this->assertSame('/\v', $result[0]->pattern);
 
         unlink($tempFile);
     }
@@ -154,7 +154,7 @@ final class TokenBasedExtractionStrategyEscapeParsingTest extends TestCase
         $result = $strategy->extract([$tempFile]);
 
         $this->assertCount(1, $result);
-        $this->assertSame("/\$", $result[0]->pattern);
+        $this->assertSame('/\$', $result[0]->pattern);
 
         unlink($tempFile);
     }
@@ -169,7 +169,7 @@ final class TokenBasedExtractionStrategyEscapeParsingTest extends TestCase
         $result = $strategy->extract([$tempFile]);
 
         $this->assertCount(1, $result);
-        $this->assertSame("/\f", $result[0]->pattern);
+        $this->assertSame('/\f', $result[0]->pattern);
 
         unlink($tempFile);
     }
@@ -214,7 +214,7 @@ final class TokenBasedExtractionStrategyEscapeParsingTest extends TestCase
         $result = $strategy->extract([$tempFile]);
 
         $this->assertCount(1, $result);
-        $this->assertSame("{test}iu", $result[0]->pattern);
+        $this->assertSame('{test}iu', $result[0]->pattern);
 
         unlink($tempFile);
     }
