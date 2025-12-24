@@ -95,6 +95,13 @@ final class ParserCoverageTest extends TestCase
             '/(a)(b)\1/',  // backref
             '/(a)(b)\2/',
             '/\1/',  // invalid, but test tolerant
+            '/\u{110000}/',  // invalid unicode
+            '/\N{INVALID}/',  // invalid named
+            '/\c9/',  // invalid control
+            '/[a-',  // invalid char class
+            '/(?P<a/',  // invalid group
+            '/(*INVALID)/',  // invalid verb
+            '/\k<invalid>/',  // invalid backref
         ];
 
         foreach ($patterns as $pattern) {
