@@ -53,6 +53,36 @@ final class FilesystemCacheTest extends TestCase
         $this->assertFileDoesNotExist($key);
     }
 
+    public function test_load_returns_null_for_nonexistent_file(): void
+    {
+        $cache = new FilesystemCache($this->cacheDir);
+        $key = $cache->generateKey('/nonexistent/');
+
+        $this->assertNull($cache->load($key));
+    }
+
+    public function test_get_timestamp_returns_zero_for_nonexistent_file(): void
+    {
+        $cache = new FilesystemCache($this->cacheDir);
+        $key = $cache->generateKey('/nonexistent/');
+
+        $this->assertSame(0, $cache->getTimestamp($key));
+    }
+
+    public function test_write_throws_on_unwritable_directory(): void
+    {
+        $cache = new FilesystemCache($this->cacheDir);
+        $key = $cache->generateKey('/test/');
+        $fileDir = dirname($key);
+        mkdir($fileDir, 0755, true);
+        chmod($fileDir, 0444); // Make the file's directory read-only
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Failed to move cache file');
+
+        $cache->write($key, 'content');
+    }
+
     private function removeDirectory(string $directory): void
     {
         if (!is_dir($directory)) {

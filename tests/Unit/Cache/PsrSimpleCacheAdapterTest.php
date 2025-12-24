@@ -41,6 +41,40 @@ final class PsrSimpleCacheAdapterTest extends TestCase
 
         $this->assertNull($adapter->load($key));
     }
+
+    public function test_get_timestamp_always_returns_zero(): void
+    {
+        $cache = new InMemorySimpleCache();
+        $adapter = new PsrSimpleCacheAdapter($cache);
+
+        $this->assertSame(0, $adapter->getTimestamp('any_key'));
+    }
+
+    public function test_clear_without_regex_clears_all(): void
+    {
+        $cache = new InMemorySimpleCache();
+        $adapter = new PsrSimpleCacheAdapter($cache, prefix: 'test_');
+
+        $key1 = $adapter->generateKey('/foo/');
+        $key2 = $adapter->generateKey('/bar/');
+        $adapter->write($key1, 'value1');
+        $adapter->write($key2, 'value2');
+
+        $adapter->clear();
+
+        $this->assertNull($adapter->load($key1));
+        $this->assertNull($adapter->load($key2));
+    }
+
+    public function test_custom_key_factory(): void
+    {
+        $cache = new InMemorySimpleCache();
+        $keyFactory = fn(string $regex) => 'custom_' . md5($regex);
+        $adapter = new PsrSimpleCacheAdapter($cache, prefix: 'test_', keyFactory: $keyFactory);
+
+        $key = $adapter->generateKey('/test/');
+        $this->assertSame('test_custom_' . md5('/test/'), $key);
+    }
 }
 
 final class InMemorySimpleCache implements CacheInterface

@@ -14,9 +14,11 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
+use RegexParser\Cache\FilesystemCache;
 use RegexParser\Cache\NullCache;
 use RegexParser\Exception\InvalidRegexOptionException;
 use RegexParser\Regex;
+use RegexParser\RegexOptions;
 
 final class RegexOptionsTest extends TestCase
 {

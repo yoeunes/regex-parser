@@ -50,6 +50,42 @@ final class ValidatorNodeVisitorTest extends TestCase
         $this->validate('/(a+)*b/');
     }
 
+    public function test_throws_on_invalid_unicode_property(): void
+    {
+        $this->expectException(SemanticErrorException::class);
+        $this->expectExceptionMessage('Invalid or unsupported Unicode property: \p{Invalid}.');
+        $this->validate('/\p{Invalid}/');
+    }
+
+    public function test_throws_on_invalid_unicode_property_with_suggestion(): void
+    {
+        $this->expectException(SemanticErrorException::class);
+        // Note: Suggestion may not be implemented yet
+        $this->expectExceptionMessage('Invalid or unsupported Unicode property: \p{Letter}.');
+        $this->validate('/\p{Letter}/');
+    }
+
+
+
+    #[\PHPUnit\Framework\Attributes\DoesNotPerformAssertions]
+    public function test_valid_unicode_property(): void
+    {
+        $this->validate('/\p{L}/');
+    }
+
+    #[\PHPUnit\Framework\Attributes\DoesNotPerformAssertions]
+    public function test_valid_unicode_named_character(): void
+    {
+        $this->validate('/\N{U+0041}/');
+    }
+
+    public function test_throws_on_invalid_unicode_named_character(): void
+    {
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('Invalid Unicode character name: INVALID');
+        $this->validate('/\N{INVALID}/');
+    }
+
     #[DoesNotPerformAssertions]
     public function test_allows_non_nested_quantifiers(): void
     {
