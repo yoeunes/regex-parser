@@ -135,4 +135,59 @@ final class RegexTest extends TestCase
     {
         yield 'unclosed character class' => ['/[a/', 'Unclosed character class "]" at end of input.'];
     }
+
+    public function test_analyze_method(): void
+    {
+        $report = $this->regexService->analyze('/a+/');
+        $this->assertIsInt($report->complexityScore);
+        $this->assertIsArray($report->recommendations);
+    }
+
+    public function test_validate_method_with_valid_regex(): void
+    {
+        $result = $this->regexService->validate('/a+/');
+        $this->assertTrue($result->isValid());
+        $this->assertNull($result->getErrorMessage());
+    }
+
+    public function test_validate_method_with_invalid_regex(): void
+    {
+        $result = $this->regexService->validate('/a(/');
+        $this->assertFalse($result->isValid());
+        $this->assertStringContains('Expected )', $result->getErrorMessage());
+    }
+
+    public function test_redos_method(): void
+    {
+        $analysis = $this->regexService->redos('/a+/');
+        $this->assertIsBool($analysis->isSafe());
+        $this->assertIsString($analysis->getSeverity()->value);
+    }
+
+    public function test_literals_method(): void
+    {
+        $result = $this->regexService->literals('/a+/');
+        $this->assertIsArray($result->literals);
+    }
+
+    public function test_generate_method(): void
+    {
+        $sample = $this->regexService->generate('/a+/');
+        $this->assertIsString($sample);
+        $this->assertMatchesRegularExpression('/a+/', $sample);
+    }
+
+    public function test_highlight_method(): void
+    {
+        $highlighted = $this->regexService->highlight('/a+/');
+        $this->assertIsString($highlighted);
+        $this->assertStringContains('a', $highlighted);
+    }
+
+    public function test_parse_with_tolerant_mode(): void
+    {
+        $result = $this->regexService->parse('/a(/', true);
+        $this->assertInstanceOf(\RegexParser\TolerantParseResult::class, $result);
+        $this->assertFalse($result->isValid());
+    }
 }
