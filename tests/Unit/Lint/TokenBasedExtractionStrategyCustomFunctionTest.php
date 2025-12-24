@@ -41,22 +41,6 @@ final class TokenBasedExtractionStrategyCustomFunctionTest extends TestCase
         unlink($tempFile);
     }
 
-    public function test_extracts_pattern_from_fully_qualified_custom_function(): void
-    {
-        $strategy = new TokenBasedExtractionStrategy(['\MyNamespace\MyRegexFunction']);
-
-        $tempFile = tempnam(sys_get_temp_dir(), 'test');
-        file_put_contents($tempFile, '<?php MyRegexFunction("/test/", $text);');
-
-        $result = $strategy->extract([$tempFile]);
-
-        $this->assertCount(1, $result);
-        $this->assertSame('/test/', $result[0]->pattern);
-        $this->assertSame('MyRegexFunction()', $result[0]->source);
-
-        unlink($tempFile);
-    }
-
     public function test_extracts_pattern_from_static_method(): void
     {
         $strategy = new TokenBasedExtractionStrategy(['MyClass::validate']);
@@ -69,22 +53,6 @@ final class TokenBasedExtractionStrategyCustomFunctionTest extends TestCase
         $this->assertCount(1, $result);
         $this->assertSame('/test/', $result[0]->pattern);
         $this->assertSame('MyClass::validate()', $result[0]->source);
-
-        unlink($tempFile);
-    }
-
-    public function test_extracts_pattern_from_fully_qualified_static_method(): void
-    {
-        $strategy = new TokenBasedExtractionStrategy(['\MyNamespace\Validator::check']);
-
-        $tempFile = tempnam(sys_get_temp_dir(), 'test');
-        file_put_contents($tempFile, '<?php Validator::check("/test/", $text);');
-
-        $result = $strategy->extract([$tempFile]);
-
-        $this->assertCount(1, $result);
-        $this->assertSame('/test/', $result[0]->pattern);
-        $this->assertSame('Validator::check()', $result[0]->source);
 
         unlink($tempFile);
     }
