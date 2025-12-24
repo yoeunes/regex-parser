@@ -76,8 +76,8 @@ final class HighlighterTest extends TestCase
 
     public function test_highlight_with_unicode_and_special_chars(): void
     {
-        // Test Unicode, control chars, assertions, backrefs, etc.
-        $pattern = '/\A\z\b\B\x00\cA\u{1F600}\1/';
+        // Test Unicode, control chars, assertions, backrefs, anchors, etc.
+        $pattern = '/^\A\z\b\B\x00\cA\u{1F600}\1$/';
         $highlightedCli = $this->highlight($pattern, 'cli');
         $highlightedHtml = $this->highlight($pattern, 'html');
 
