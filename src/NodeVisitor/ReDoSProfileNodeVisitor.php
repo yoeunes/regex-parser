@@ -208,7 +208,7 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
                     ReDoSConfidence::LOW,
                     'High false-positive risk; bounded quantifiers may still be safe in context.',
                 );
-            } elseif ($this->totalQuantifierDepth > 1 && $this->unboundedQuantifierDepth == 0) {
+            } elseif ($this->totalQuantifierDepth > 1 && 0 === $this->unboundedQuantifierDepth) {
                 $severity = ReDoSSeverity::LOW;
                 $this->addVulnerability(
                     ReDoSSeverity::LOW,
