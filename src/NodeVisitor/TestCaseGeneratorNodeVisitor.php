@@ -323,6 +323,16 @@ final class TestCaseGeneratorNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
+    public function visitCharLiteral(Node\CharLiteralNode $node): array
+    {
+        $char = chr($node->codePoint);
+        return [
+            'matching' => [$char],
+            'non_matching' => ['!'],
+        ];
+    }
+
+    #[\Override]
     public function visitUnicode(Node\UnicodeNode $node): array
     {
         return [

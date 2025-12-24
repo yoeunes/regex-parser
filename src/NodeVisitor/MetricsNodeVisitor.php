@@ -80,6 +80,12 @@ final class MetricsNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
+    public function visitCharLiteral(Node\CharLiteralNode $node): array
+    {
+        return $this->record($node);
+    }
+
+    #[\Override]
     public function visitCharType(Node\CharTypeNode $node): array
     {
         return $this->record($node);

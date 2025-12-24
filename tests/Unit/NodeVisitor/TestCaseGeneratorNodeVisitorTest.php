@@ -158,7 +158,7 @@ final class TestCaseGeneratorNodeVisitorTest extends TestCase
         $ast = Regex::create()->parse('/\x{0041}/');
         $cases = $ast->accept($this->visitor);
 
-        $this->assertContains('a', $cases['matching']);
+        $this->assertContains('A', $cases['matching']);
         $this->assertNotEmpty($cases['non_matching']);
     }
 

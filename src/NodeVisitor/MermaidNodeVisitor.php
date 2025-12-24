@@ -340,6 +340,25 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
     }
 
     /**
+     * Generates the graph node for a `CharLiteralNode`.
+     *
+     * Purpose: This method creates a node for a character literal (unicode, octal, etc.).
+     *
+     * @param Node\CharLiteralNode $node the character literal node to visualize
+     *
+     * @return string the unique ID of the generated graph node
+     */
+    #[\Override]
+    public function visitCharLiteral(Node\CharLiteralNode $node): string
+    {
+        $nodeId = $this->nextNodeId();
+        $label = $node->type->label() . ': ' . $node->originalRepresentation;
+        $this->lines[] = \sprintf('    %s["%s"]', $nodeId, $this->escape($label));
+
+        return $nodeId;
+    }
+
+    /**
      * Generates the graph node for a `UnicodeNode`.
      *
      * Purpose: This method creates a node for a Unicode character escape.
@@ -471,7 +490,14 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
     public function visitPcreVerb(Node\PcreVerbNode $node): string
     {
         $nodeId = $this->nextNodeId();
-        $this->lines[] = \sprintf('    %s["PcreVerb: %s"]', $nodeId, $this->escape($node->verb));
+        
+        // Special handling for LIMIT_MATCH verb
+        if (str_starts_with($node->verb, 'LIMIT_MATCH=')) {
+            $limit = substr($node->verb, 12); // Remove 'LIMIT_MATCH='
+            $this->lines[] = \sprintf('    %s["LimitMatch: %s"]', $nodeId, $this->escape($limit));
+        } else {
+            $this->lines[] = \sprintf('    %s["PcreVerb: %s"]', $nodeId, $this->escape($node->verb));
+        }
 
         return $nodeId;
     }
