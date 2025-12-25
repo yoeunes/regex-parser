@@ -1259,7 +1259,7 @@ final class Parser
     private function supportsInlineModifierR(): bool
     {
         $cacheKey = $this->useRuntimePcreDetection ? 'runtime' : $this->phpVersionId;
-        if (array_key_exists($cacheKey, self::$supportsInlineModifierR)) {
+        if (\array_key_exists($cacheKey, self::$supportsInlineModifierR)) {
             return self::$supportsInlineModifierR[$cacheKey];
         }
 

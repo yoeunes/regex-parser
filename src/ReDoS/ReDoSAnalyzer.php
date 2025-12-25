@@ -83,6 +83,9 @@ final class ReDoSAnalyzer
                 $result['confidence'],
                 $result['falsePositiveRisk'],
                 array_values($result['findings']),
+                null,
+                culpritNode: $visitor->getCulpritNode(),
+                hotspots: $visitor->getHotspots(),
             );
         } catch (\Throwable $e) {
             return new ReDoSAnalysis(
@@ -94,6 +97,9 @@ final class ReDoSAnalyzer
                 null,
                 null,
                 ReDoSConfidence::LOW,
+                null,
+                [],
+                null,
                 null,
                 [],
             );

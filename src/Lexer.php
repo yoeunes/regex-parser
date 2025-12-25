@@ -93,7 +93,7 @@ final class Lexer
 
     private static ?string $regexInside = null;
 
-    private int $phpVersionId;
+    private readonly int $phpVersionId;
 
     private string $pattern;
 

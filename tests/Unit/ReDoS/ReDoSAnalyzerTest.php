@@ -16,6 +16,7 @@ namespace RegexParser\Tests\Unit\ReDoS;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RegexParser\ReDoS\ReDoSAnalyzer;
+use RegexParser\ReDoS\ReDoSHotspot;
 use RegexParser\ReDoS\ReDoSSeverity;
 
 final class ReDoSAnalyzerTest extends TestCase
@@ -67,6 +68,30 @@ final class ReDoSAnalyzerTest extends TestCase
         // The visitor detects critical nesting for this specific pattern
         $this->assertSame(ReDoSSeverity::CRITICAL, $analysis->severity);
         $this->assertNotEmpty($analysis->recommendations);
+    }
+
+    public function test_hotspots_capture_culprit_span(): void
+    {
+        $analysis = $this->analyzer->analyze('/(a+)+b/');
+
+        $this->assertNotEmpty($analysis->hotspots);
+        $this->assertInstanceOf(\RegexParser\Node\NodeInterface::class, $analysis->getCulpritNode());
+
+        $matched = false;
+        foreach ($analysis->hotspots as $hotspot) {
+            if (!$hotspot instanceof ReDoSHotspot) {
+                continue;
+            }
+
+            if (0 === $hotspot->start && 5 === $hotspot->end) {
+                $matched = true;
+                $this->assertSame(ReDoSSeverity::CRITICAL, $hotspot->severity);
+
+                break;
+            }
+        }
+
+        $this->assertTrue($matched, 'Expected a hotspot covering (a+)+ span.');
     }
 
     public function test_analyze_returns_safe_for_ignored_pattern(): void

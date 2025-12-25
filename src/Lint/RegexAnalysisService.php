@@ -107,6 +107,63 @@ final readonly class RegexAnalysisService
     /**
      * @param list<RegexPatternOccurrence> $patterns
      *
+     * @return list<array{file: string, line: int, analysis: ReDoSAnalysis}>
+     */
+    public function analyzeRedos(array $patterns, ReDoSSeverity $threshold, int $workers = 1): array
+    {
+        if ($workers <= 1 || \count($patterns) <= 1 || !$this->canRunInParallel()) {
+            return $this->analyzeRedosChunk($patterns, $threshold);
+        }
+
+        return $this->runInParallel(
+            $patterns,
+            $workers,
+            fn (array $chunk): array => $this->analyzeRedosChunk($chunk, $threshold),
+        );
+    }
+
+    /**
+     * @param list<RegexPatternOccurrence>                           $patterns
+     * @param array{digits?: bool, word?: bool, strictRanges?: bool} $optimizationConfig
+     *
+     * @return list<array{
+     *     file: string,
+     *     line: int,
+     *     optimization: OptimizationResult,
+     *     savings: int,
+     *     source?: string
+     * }>
+     */
+    public function suggestOptimizations(array $patterns, int $minSavings, array $optimizationConfig = [], int $workers = 1): array
+    {
+        if ($workers <= 1 || \count($patterns) <= 1 || !$this->canRunInParallel()) {
+            return $this->suggestOptimizationsChunk($patterns, $minSavings, $optimizationConfig);
+        }
+
+        return $this->runInParallel(
+            $patterns,
+            $workers,
+            fn (array $chunk): array => $this->suggestOptimizationsChunk($chunk, $minSavings, $optimizationConfig),
+        );
+    }
+
+    public function highlight(string $pattern): string
+    {
+        $ast = $this->regex->parse($pattern);
+
+        return $ast->accept(new ConsoleHighlighterVisitor());
+    }
+
+    public function highlightBody(string $body, string $flags = '', string $delimiter = '/'): string
+    {
+        $ast = $this->regex->parsePattern($body, $flags, $delimiter);
+
+        return $ast->accept(new ConsoleHighlighterVisitor());
+    }
+
+    /**
+     * @param list<RegexPatternOccurrence> $patterns
+     *
      * @return list<array{
      *     type: string,
      *     file: string,
@@ -225,24 +282,6 @@ final readonly class RegexAnalysisService
      *
      * @return list<array{file: string, line: int, analysis: ReDoSAnalysis}>
      */
-    public function analyzeRedos(array $patterns, ReDoSSeverity $threshold, int $workers = 1): array
-    {
-        if ($workers <= 1 || \count($patterns) <= 1 || !$this->canRunInParallel()) {
-            return $this->analyzeRedosChunk($patterns, $threshold);
-        }
-
-        return $this->runInParallel(
-            $patterns,
-            $workers,
-            fn (array $chunk): array => $this->analyzeRedosChunk($chunk, $threshold),
-        );
-    }
-
-    /**
-     * @param list<RegexPatternOccurrence> $patterns
-     *
-     * @return list<array{file: string, line: int, analysis: ReDoSAnalysis}>
-     */
     private function analyzeRedosChunk(array $patterns, ReDoSSeverity $threshold): array
     {
         $issues = [];
@@ -266,31 +305,6 @@ final readonly class RegexAnalysisService
         }
 
         return $issues;
-    }
-
-    /**
-     * @param list<RegexPatternOccurrence>                           $patterns
-     * @param array{digits?: bool, word?: bool, strictRanges?: bool} $optimizationConfig
-     *
-     * @return list<array{
-     *     file: string,
-     *     line: int,
-     *     optimization: OptimizationResult,
-     *     savings: int,
-     *     source?: string
-     * }>
-     */
-    public function suggestOptimizations(array $patterns, int $minSavings, array $optimizationConfig = [], int $workers = 1): array
-    {
-        if ($workers <= 1 || \count($patterns) <= 1 || !$this->canRunInParallel()) {
-            return $this->suggestOptimizationsChunk($patterns, $minSavings, $optimizationConfig);
-        }
-
-        return $this->runInParallel(
-            $patterns,
-            $workers,
-            fn (array $chunk): array => $this->suggestOptimizationsChunk($chunk, $minSavings, $optimizationConfig),
-        );
     }
 
     /**
@@ -358,24 +372,10 @@ final readonly class RegexAnalysisService
         return $suggestions;
     }
 
-    public function highlight(string $pattern): string
-    {
-        $ast = $this->regex->parse($pattern);
-
-        return $ast->accept(new ConsoleHighlighterVisitor());
-    }
-
-    public function highlightBody(string $body, string $flags = '', string $delimiter = '/'): string
-    {
-        $ast = $this->regex->parsePattern($body, $flags, $delimiter);
-
-        return $ast->accept(new ConsoleHighlighterVisitor());
-    }
-
     /**
      * @template T
      *
-     * @param list<RegexPatternOccurrence>                 $patterns
+     * @param list<RegexPatternOccurrence>                    $patterns
      * @param callable(list<RegexPatternOccurrence>): list<T> $worker
      *
      * @return list<T>
@@ -397,17 +397,20 @@ final readonly class RegexAnalysisService
             $tmpFile = tempnam(sys_get_temp_dir(), 'regexparser_');
             if (false === $tmpFile) {
                 $failed = true;
+
                 break;
             }
 
             $pid = pcntl_fork();
             if (-1 === $pid) {
                 $failed = true;
+
                 break;
             }
 
             if (0 === $pid) {
                 $payload = null;
+
                 try {
                     $payload = ['ok' => true, 'result' => $worker($chunk)];
                 } catch (\Throwable $e) {
@@ -455,6 +458,7 @@ final readonly class RegexAnalysisService
 
             if (!($payload['ok'] ?? false)) {
                 $error = $payload['error'] ?? ['message' => 'Unknown worker failure.', 'class' => \RuntimeException::class];
+
                 throw new \RuntimeException(\sprintf('Parallel analysis failed: %s: %s', $error['class'], $error['message']));
             }
 
@@ -508,7 +512,7 @@ final readonly class RegexAnalysisService
         }
 
         $payload = @unserialize($data, ['allowed_classes' => true]);
-        if (!\is_array($payload) || !array_key_exists('ok', $payload)) {
+        if (!\is_array($payload) || !\array_key_exists('ok', $payload)) {
             return [
                 'ok' => false,
                 'error' => [

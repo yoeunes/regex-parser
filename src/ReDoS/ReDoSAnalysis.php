@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace RegexParser\ReDoS;
 
+use RegexParser\Node\NodeInterface;
+
 /**
  * Encapsulates the results of a Regular Expression Denial of Service (ReDoS) analysis.
  *
@@ -25,6 +27,7 @@ final readonly class ReDoSAnalysis
     /**
      * @param list<string>       $recommendations
      * @param list<ReDoSFinding> $findings
+     * @param list<ReDoSHotspot> $hotspots
      */
     public function __construct(
         public ReDoSSeverity $severity,
@@ -38,6 +41,8 @@ final readonly class ReDoSAnalysis
         public ?string $falsePositiveRisk = null,
         public array $findings = [],
         public ?string $suggestedRewrite = null,
+        private ?NodeInterface $culpritNode = null,
+        public array $hotspots = [],
     ) {
         $this->vulnerableSubpattern = $vulnerableSubpattern ?? $vulnerablePart;
     }
@@ -45,6 +50,11 @@ final readonly class ReDoSAnalysis
     public function getVulnerableSubpattern(): ?string
     {
         return $this->vulnerableSubpattern ?? $this->vulnerablePart;
+    }
+
+    public function getCulpritNode(): ?NodeInterface
+    {
+        return $this->culpritNode;
     }
 
     public function isSafe(): bool

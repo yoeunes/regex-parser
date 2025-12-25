@@ -29,6 +29,7 @@ use RegexParser\NodeVisitor\MermaidNodeVisitor;
 use RegexParser\NodeVisitor\MetricsNodeVisitor;
 use RegexParser\NodeVisitor\ModernizerNodeVisitor;
 use RegexParser\NodeVisitor\OptimizerNodeVisitor;
+use RegexParser\NodeVisitor\RailroadDiagramVisitor;
 use RegexParser\NodeVisitor\ReDoSProfileNodeVisitor;
 use RegexParser\NodeVisitor\SampleGeneratorNodeVisitor;
 use RegexParser\NodeVisitor\TestCaseGeneratorNodeVisitor;
@@ -129,6 +130,7 @@ final class VisitorCoverageTest extends TestCase
             new MetricsNodeVisitor(),
             new ModernizerNodeVisitor(),
             new OptimizerNodeVisitor(),
+            new RailroadDiagramVisitor(),
             new ReDoSProfileNodeVisitor(),
             new SampleGeneratorNodeVisitor(),
             new TestCaseGeneratorNodeVisitor(),
@@ -136,7 +138,7 @@ final class VisitorCoverageTest extends TestCase
         ];
 
         // Visitors instantiated for coverage testing
-        $this->assertCount(18, $visitors);
+        $this->assertCount(19, $visitors);
         $this->assertContainsOnlyInstancesOf(\RegexParser\NodeVisitor\NodeVisitorInterface::class, $visitors);
     }
 }

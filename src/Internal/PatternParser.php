@@ -113,7 +113,7 @@ final class PatternParser
     private static function supportsModifierR(?int $phpVersionId = null): bool
     {
         $key = $phpVersionId ?? 'runtime';
-        if (array_key_exists($key, self::$supportsModifierR)) {
+        if (\array_key_exists($key, self::$supportsModifierR)) {
             return self::$supportsModifierR[$key];
         }
 
