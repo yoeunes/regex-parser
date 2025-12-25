@@ -21,7 +21,7 @@ final class TokenBasedExtractionStrategyTest extends TestCase
     protected function tearDown(): void
     {
         if (is_dir($this->tmp)) {
-            foreach (glob($this->tmp.'/*') as $file) {
+            foreach (glob($this->tmp.'/*') ?: [] as $file) {
                 @unlink($file);
             }
             @rmdir($this->tmp);

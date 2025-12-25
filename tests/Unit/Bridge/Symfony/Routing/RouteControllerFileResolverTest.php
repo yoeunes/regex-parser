@@ -36,7 +36,6 @@ final class RouteControllerFileResolverTest extends TestCase
         }
 
         $resolver = new RouteControllerFileResolver();
-        $this->assertInstanceOf(RouteControllerFileResolver::class, $resolver);
     }
 
     public function test_resolve_returns_null_when_no_controller(): void

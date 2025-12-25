@@ -32,7 +32,6 @@ final class PhpRegexPatternSourceTest extends TestCase
     public function test_construct(): void
     {
         $source = new PhpRegexPatternSource($this->extractor);
-        $this->assertInstanceOf(PhpRegexPatternSource::class, $source);
     }
 
     public function test_get_name(): void

@@ -31,21 +31,18 @@ final class ConsoleFormatterTest extends TestCase
     public function test_construct(): void
     {
         $formatter = new ConsoleFormatter();
-        $this->assertInstanceOf(ConsoleFormatter::class, $formatter);
     }
 
     public function test_construct_with_config(): void
     {
         $config = new OutputConfiguration(ansi: false);
         $formatter = new ConsoleFormatter(config: $config);
-        $this->assertInstanceOf(ConsoleFormatter::class, $formatter);
     }
 
     public function test_construct_with_analysis_service(): void
     {
         // Since RegexAnalysisService is final, we test with null
         $formatter = new ConsoleFormatter(null);
-        $this->assertInstanceOf(ConsoleFormatter::class, $formatter);
     }
 
     public function test_format_empty_report(): void
@@ -144,6 +141,8 @@ final class ConsoleFormatterTest extends TestCase
                 [
                     'type' => 'error',
                     'message' => 'Invalid regex pattern',
+                    'file' => 'test.php',
+                    'line' => 10,
                 ],
             ],
             'optimizations' => [],
@@ -174,6 +173,8 @@ final class ConsoleFormatterTest extends TestCase
                     'type' => 'warning',
                     'message' => 'Complex pattern detected',
                     'hint' => 'Consider simplifying',
+                    'file' => 'test.php',
+                    'line' => 10,
                 ],
             ],
             'optimizations' => [],
@@ -203,6 +204,8 @@ final class ConsoleFormatterTest extends TestCase
             'issues' => [],
             'optimizations' => [
                 [
+                    'file' => 'test.php',
+                    'line' => 10,
                     'optimization' => $optimization,
                     'savings' => 1,
                 ],
@@ -232,6 +235,8 @@ final class ConsoleFormatterTest extends TestCase
                 [
                     'type' => 'error',
                     'message' => 'Invalid pattern',
+                    'file' => 'test.php',
+                    'line' => 10,
                 ],
             ],
             'optimizations' => [],
@@ -258,6 +263,8 @@ final class ConsoleFormatterTest extends TestCase
                 [
                     'type' => 'error',
                     'message' => 'Invalid pattern',
+                    'file' => 'test.php',
+                    'line' => 10,
                 ],
             ],
             'optimizations' => [],
@@ -288,6 +295,8 @@ final class ConsoleFormatterTest extends TestCase
             'issues' => [],
             'optimizations' => [
                 [
+                    'file' => 'test.php',
+                    'line' => 10,
                     'optimization' => $optimization,
                     'savings' => 10,
                 ],

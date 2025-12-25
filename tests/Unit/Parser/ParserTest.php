@@ -787,7 +787,6 @@ final class ParserTest extends TestCase
         $ast = $this->parse('/\Qtest.*\E/');
 
         // The pattern should be parsed as a sequence with literal 'test.*'
-        $this->assertInstanceOf(RegexNode::class, $ast);
         $this->assertInstanceOf(LiteralNode::class, $ast->pattern);
         $this->assertSame('test.*', $ast->pattern->value);
 

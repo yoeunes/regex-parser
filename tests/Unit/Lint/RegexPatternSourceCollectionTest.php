@@ -23,7 +23,6 @@ final class RegexPatternSourceCollectionTest extends TestCase
     {
         $sources = [];
         $collection = new RegexPatternSourceCollection($sources);
-        $this->assertInstanceOf(RegexPatternSourceCollection::class, $collection);
     }
 
     public function test_collect_with_empty_sources(): void

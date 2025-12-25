@@ -32,7 +32,6 @@ final class CheckstyleFormatterTest extends TestCase
     public function test_construct(): void
     {
         $formatter = new CheckstyleFormatter();
-        $this->assertInstanceOf(CheckstyleFormatter::class, $formatter);
     }
 
     public function test_format_empty_report(): void
@@ -65,6 +64,8 @@ final class CheckstyleFormatterTest extends TestCase
             'source' => 'preg_match',
             'pattern' => '/test/',
             'location' => 'in function call',
+            'issues' => [],
+            'optimizations' => [],
             'problems' => [$problem],
         ];
 
@@ -108,12 +109,18 @@ final class CheckstyleFormatterTest extends TestCase
         $result1 = [
             'file' => 'file1.php',
             'line' => 5,
+            'pattern' => '/test1/',
+            'issues' => [],
+            'optimizations' => [],
             'problems' => [$problem1],
         ];
 
         $result2 = [
             'file' => 'file2.php',
             'line' => 15,
+            'pattern' => '/test2/',
+            'issues' => [],
+            'optimizations' => [],
             'problems' => [$problem2],
         ];
 
@@ -141,6 +148,9 @@ final class CheckstyleFormatterTest extends TestCase
         $result = [
             'file' => 'test.php',
             'line' => 1,
+            'pattern' => '/test/',
+            'issues' => [],
+            'optimizations' => [],
             'problems' => $problems,
         ];
 
@@ -164,6 +174,9 @@ final class CheckstyleFormatterTest extends TestCase
         $result = [
             'file' => 'C:\\Windows\\test.php',
             'line' => 1,
+            'pattern' => '/test/',
+            'issues' => [],
+            'optimizations' => [],
             'problems' => [$problem],
         ];
 
@@ -181,6 +194,9 @@ final class CheckstyleFormatterTest extends TestCase
         $result = [
             'file' => 'test.php',
             'line' => 0,
+            'pattern' => '/test/',
+            'issues' => [],
+            'optimizations' => [],
             'problems' => [$problem],
         ];
 
@@ -198,6 +214,9 @@ final class CheckstyleFormatterTest extends TestCase
         $result = [
             'file' => 'test.php',
             'line' => 1,
+            'pattern' => '/test/',
+            'issues' => [],
+            'optimizations' => [],
             'problems' => [$problem],
         ];
 
@@ -223,6 +242,9 @@ final class CheckstyleFormatterTest extends TestCase
         $result = [
             'file' => 'test.php',
             'line' => 1,
+            'pattern' => '/test/',
+            'issues' => [],
+            'optimizations' => [],
             'problems' => [$problem],
         ];
 
@@ -259,8 +281,11 @@ final class CheckstyleFormatterTest extends TestCase
         );
 
         $result = [
-            'file' => '',
+            'file' => 'test.php',
             'line' => 1,
+            'pattern' => '/test/',
+            'issues' => [],
+            'optimizations' => [],
             'problems' => [$problem],
         ];
 

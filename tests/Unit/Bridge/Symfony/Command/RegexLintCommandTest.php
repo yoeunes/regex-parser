@@ -121,6 +121,7 @@ final class RegexLintCommandTest extends TestCase
             ['file' => 'a.php', 'line' => 1],
         ];
 
+        /** @var array<array{file: string, line: int}> $sorted */
         $sorted = $method->invoke($command, $results);
 
         $this->assertSame('a.php', $sorted[0]['file']);

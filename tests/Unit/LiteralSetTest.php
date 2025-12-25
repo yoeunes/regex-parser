@@ -63,8 +63,8 @@ final class LiteralSetTest extends TestCase
 
     public function test_construct_with_arrays_exceeding_max_set_size(): void
     {
-        $largePrefixes = range(1, self::TEST_MAX_SET_SIZE + 10);
-        $largeSuffixes = range(1, self::TEST_MAX_SET_SIZE + 5);
+        $largePrefixes = array_map(strval(...), range(1, self::TEST_MAX_SET_SIZE + 10));
+        $largeSuffixes = array_map(strval(...), range(1, self::TEST_MAX_SET_SIZE + 5));
 
         $set = new LiteralSet($largePrefixes, $largeSuffixes, true);
 
@@ -133,8 +133,8 @@ final class LiteralSetTest extends TestCase
 
     public function test_cross_product_stops_at_max_set_size(): void
     {
-        $set1 = new LiteralSet(range('a', 'z'), [], true);
-        $set2 = new LiteralSet(range('0', '99'), [], true);
+        $set1 = new LiteralSet(array_map(strval(...), range('a', 'z')), [], true);
+        $set2 = new LiteralSet(array_map(strval(...), range('0', '99')), [], true);
 
         $result = $set1->concat($set2);
 
@@ -143,14 +143,14 @@ final class LiteralSetTest extends TestCase
 
     public function test_unite_limits_size_and_deduplicates(): void
     {
-        $set1 = new LiteralSet(range(0, 99), [], true);
-        $set2 = new LiteralSet(range(100, 219), [], true); // truncated to first 100 in constructor
+        $set1 = new LiteralSet(array_map(strval(...), range(0, 99)), [], true);
+        $set2 = new LiteralSet(array_map(strval(...), range(100, 219)), [], true); // truncated to first 100 in constructor
 
         $result = $set1->unite($set2);
 
         $this->assertCount(self::TEST_MAX_SET_SIZE, $result->prefixes);
-        $this->assertSame(0, $result->prefixes[0]);
-        $this->assertSame(99, $result->prefixes[99]);
+        $this->assertSame('0', $result->prefixes[0]);
+        $this->assertSame('99', $result->prefixes[99]);
     }
 
     public function test_get_longest_prefix(): void

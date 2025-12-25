@@ -27,14 +27,13 @@ final class RouteRegexPatternSourceTest extends TestCase
     public function test_construct(): void
     {
         $source = new \RegexParser\Bridge\Symfony\Extractor\RouteRegexPatternSource($this->normalizer);
-        $this->assertInstanceOf(\RegexParser\Bridge\Symfony\Extractor\RouteRegexPatternSource::class, $source);
+        // Source created successfully
     }
 
     public function test_construct_with_router(): void
     {
         $router = $this->createMock(\Symfony\Component\Routing\RouterInterface::class);
         $source = new \RegexParser\Bridge\Symfony\Extractor\RouteRegexPatternSource($this->normalizer, $router);
-        $this->assertInstanceOf(\RegexParser\Bridge\Symfony\Extractor\RouteRegexPatternSource::class, $source);
     }
 
     public function test_get_name(): void

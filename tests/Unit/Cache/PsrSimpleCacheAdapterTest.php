@@ -88,6 +88,7 @@ final class PsrSimpleCacheAdapterTest extends TestCase
         // Use reflection to access private method
         $reflection = new \ReflectionClass($regex);
         $method = $reflection->getMethod('prepareCachePayload');
+        /** @var string $payload */
         $payload = $method->invoke(null, $ast);
 
         $key = $adapter->generateKey('/test/');

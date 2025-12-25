@@ -41,8 +41,6 @@ final class FormatterRegistryTest extends TestCase
     public function test_get_returns_registered_formatter(): void
     {
         $formatter = $this->registry->get('console');
-
-        $this->assertInstanceOf(OutputFormatterInterface::class, $formatter);
     }
 
     public function test_get_throws_exception_for_unknown_formatter(): void

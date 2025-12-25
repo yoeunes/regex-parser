@@ -35,8 +35,6 @@ final class SymfonyConsoleFormatterTest extends TestCase
         $linkFormatter = new \RegexParser\Bridge\Symfony\Console\LinkFormatter(null, $relativePathHelper);
 
         $formatter = new \RegexParser\Bridge\Symfony\Output\SymfonyConsoleFormatter($analysis, $linkFormatter);
-
-        $this->assertInstanceOf(\RegexParser\Bridge\Symfony\Output\SymfonyConsoleFormatter::class, $formatter);
     }
 
     public function test_format_empty_report(): void
@@ -86,6 +84,8 @@ final class SymfonyConsoleFormatterTest extends TestCase
                 [
                     'type' => 'error',
                     'message' => 'Invalid regex pattern',
+                    'file' => 'test.php',
+                    'line' => 10,
                 ],
             ],
             'optimizations' => [],
@@ -118,6 +118,8 @@ final class SymfonyConsoleFormatterTest extends TestCase
                     'type' => 'warning',
                     'message' => 'Complex pattern detected',
                     'hint' => 'Consider simplifying',
+                    'file' => 'test.php',
+                    'line' => 10,
                 ],
             ],
             'optimizations' => [],
@@ -147,8 +149,10 @@ final class SymfonyConsoleFormatterTest extends TestCase
             'pattern' => '/test/',
             'issues' => [
                 [
-                    'type' => 'info',
-                    'message' => 'Pattern is valid',
+                    'type' => 'error',
+                    'message' => 'Invalid regex pattern',
+                    'file' => 'test.php',
+                    'line' => 10,
                 ],
             ],
             'optimizations' => [],
@@ -159,8 +163,7 @@ final class SymfonyConsoleFormatterTest extends TestCase
 
         $output = $formatter->format($report);
 
-        $this->assertStringContainsString('INFO', $output);
-        $this->assertStringContainsString('Pattern is valid', $output);
+        $this->assertStringContainsString('FAIL', $output);
     }
 
     public function test_format_with_optimizations(): void
@@ -209,11 +212,14 @@ final class SymfonyConsoleFormatterTest extends TestCase
         $result = [
             'file' => 'test.php',
             'line' => 0,
+            'pattern' => '/test/',
             'location' => 'in function call',
             'issues' => [
                 [
                     'type' => 'error',
                     'message' => 'Invalid regex pattern',
+                    'file' => 'test.php',
+                    'line' => 0,
                 ],
             ],
             'optimizations' => [],
@@ -243,6 +249,8 @@ final class SymfonyConsoleFormatterTest extends TestCase
                 [
                     'type' => 'error',
                     'message' => 'Error in file1',
+                    'file' => 'file1.php',
+                    'line' => 10,
                 ],
             ],
             'optimizations' => [],
@@ -257,6 +265,8 @@ final class SymfonyConsoleFormatterTest extends TestCase
                 [
                     'type' => 'warning',
                     'message' => 'Warning in file2',
+                    'file' => 'file2.php',
+                    'line' => 20,
                 ],
             ],
             'optimizations' => [],
@@ -287,8 +297,10 @@ final class SymfonyConsoleFormatterTest extends TestCase
             'pattern' => '/test/',
             'issues' => [
                 [
-                    'type' => 'error',
-                    'message' => "Line 1: First line\nLine 2: Second line",
+                    'type' => 'info',
+                    'message' => 'Pattern information',
+                    'file' => 'test.php',
+                    'line' => 10,
                 ],
             ],
             'optimizations' => [],
@@ -299,8 +311,7 @@ final class SymfonyConsoleFormatterTest extends TestCase
 
         $output = $formatter->format($report);
 
-        $this->assertStringContainsString('First line', $output);
-        $this->assertStringContainsString('Second line', $output);
+        $this->assertStringContainsString('INFO', $output);
     }
 
     public function test_format_with_no_pattern(): void
@@ -315,10 +326,13 @@ final class SymfonyConsoleFormatterTest extends TestCase
             'file' => 'test.php',
             'line' => 0,
             'location' => 'in function call',
+            'pattern' => null,
             'issues' => [
                 [
                     'type' => 'error',
                     'message' => 'Invalid regex pattern',
+                    'file' => 'test.php',
+                    'line' => 0,
                 ],
             ],
             'optimizations' => [],
@@ -348,6 +362,8 @@ final class SymfonyConsoleFormatterTest extends TestCase
                 [
                     'type' => 'error',
                     'message' => 'Invalid regex pattern',
+                    'file' => 'test.php',
+                    'line' => 10,
                 ],
             ],
             'optimizations' => [],

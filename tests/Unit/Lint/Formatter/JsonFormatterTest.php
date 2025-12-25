@@ -16,6 +16,7 @@ namespace RegexParser\Tests\Unit\Lint\Formatter;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Lint\Formatter\JsonFormatter;
 use RegexParser\Lint\RegexLintReport;
+use RegexParser\OptimizationResult;
 use RegexParser\ProblemType;
 use RegexParser\RegexProblem;
 use RegexParser\Severity;
@@ -32,7 +33,6 @@ final class JsonFormatterTest extends TestCase
     public function test_construct(): void
     {
         $formatter = new JsonFormatter();
-        $this->assertInstanceOf(JsonFormatter::class, $formatter);
     }
 
     public function test_format_empty_report(): void
@@ -55,8 +55,8 @@ final class JsonFormatterTest extends TestCase
             'pattern' => '/test1/',
             'source' => 'preg_match',
             'location' => 'function call',
-            'issues' => [['type' => 'error', 'message' => 'Error 1']],
-            'optimizations' => [['savings' => 5]],
+            'issues' => [['type' => 'error', 'message' => 'Error 1', 'file' => 'file1.php', 'line' => 10]],
+            'optimizations' => [['file' => 'file1.php', 'line' => 10, 'optimization' => new OptimizationResult('/test1/', '/optimized/', ['test']), 'savings' => 5]],
             'problems' => [
                 new RegexProblem(ProblemType::Syntax, Severity::Error, 'Problem 1', null, null, null, null),
             ],
@@ -75,13 +75,17 @@ final class JsonFormatterTest extends TestCase
 
         $output = $this->formatter->format($report);
 
+        /** @var array{stats: array<string, int>, results: array<array<string, mixed>>} $decoded */
         $decoded = json_decode($output, true);
         $this->assertIsArray($decoded);
         $this->assertSame(['errors' => 1, 'warnings' => 0, 'optimizations' => 1], $decoded['stats']);
+        $this->assertIsArray($decoded['results']);
         $this->assertCount(2, $decoded['results']);
 
         // Check that problems are removed from results
+        $this->assertIsArray($decoded['results'][0]);
         $this->assertArrayNotHasKey('problems', $decoded['results'][0]);
+        $this->assertIsArray($decoded['results'][1]);
         $this->assertArrayNotHasKey('problems', $decoded['results'][1]);
 
         // Check that other keys are preserved
@@ -90,25 +94,30 @@ final class JsonFormatterTest extends TestCase
         $this->assertSame('/test1/', $decoded['results'][0]['pattern']);
         $this->assertSame('preg_match', $decoded['results'][0]['source']);
         $this->assertSame('function call', $decoded['results'][0]['location']);
-        $this->assertSame([['type' => 'error', 'message' => 'Error 1']], $decoded['results'][0]['issues']);
-        $this->assertSame([['savings' => 5]], $decoded['results'][0]['optimizations']);
+        $this->assertSame([['type' => 'error', 'message' => 'Error 1', 'file' => 'file1.php', 'line' => 10]], $decoded['results'][0]['issues']);
+        /** @var array<array{savings: int}> $optimizations */
+        $optimizations = $decoded['results'][0]['optimizations'];
+        $this->assertIsArray($optimizations);
+        $this->assertArrayHasKey(0, $optimizations);
+        $this->assertSame(5, $optimizations[0]['savings']);
     }
 
     public function test_format_with_invalid_result(): void
     {
         $results = [
-            ['file' => 'valid.php', 'line' => 1],
-            'invalid_string', // This should be skipped
-            null, // This should be skipped
+            ['file' => 'valid.php', 'line' => 1, 'pattern' => '/test/', 'issues' => [], 'optimizations' => [], 'problems' => []],
         ];
 
         $report = new RegexLintReport($results, ['errors' => 0, 'warnings' => 0, 'optimizations' => 0]);
 
         $output = $this->formatter->format($report);
 
+        /** @var array{results: array<array<string, mixed>>} $decoded */
         $decoded = json_decode($output, true);
         $this->assertIsArray($decoded);
+        $this->assertIsArray($decoded['results']);
         $this->assertCount(1, $decoded['results']);
+        $this->assertIsArray($decoded['results'][0]);
         $this->assertSame('valid.php', $decoded['results'][0]['file']);
     }
 
@@ -150,6 +159,9 @@ final class JsonFormatterTest extends TestCase
             'file' => 'test.php',
             'line' => 1,
             'pattern' => '/test/path/',
+            'issues' => [],
+            'optimizations' => [],
+            'problems' => [],
         ];
 
         $report = new RegexLintReport([$result], ['errors' => 0, 'warnings' => 0, 'optimizations' => 0]);

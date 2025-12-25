@@ -27,7 +27,6 @@ final class ValidatorRegexPatternSourceTest extends TestCase
     public function test_construct(): void
     {
         $source = new \RegexParser\Bridge\Symfony\Extractor\ValidatorRegexPatternSource();
-        $this->assertInstanceOf(\RegexParser\Bridge\Symfony\Extractor\ValidatorRegexPatternSource::class, $source);
     }
 
     public function test_construct_with_validator(): void
@@ -36,7 +35,6 @@ final class ValidatorRegexPatternSourceTest extends TestCase
         $loader = $this->createMock(\Symfony\Component\Validator\Mapping\Loader\LoaderInterface::class);
 
         $source = new \RegexParser\Bridge\Symfony\Extractor\ValidatorRegexPatternSource($validator, $loader);
-        $this->assertInstanceOf(\RegexParser\Bridge\Symfony\Extractor\ValidatorRegexPatternSource::class, $source);
     }
 
     public function test_get_name(): void

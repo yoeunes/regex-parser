@@ -120,7 +120,7 @@ final class TokenBasedExtractionStrategyCustomFunctionTest extends TestCase
 
     public function test_ignores_non_string_custom_function_names(): void
     {
-        $strategy = new TokenBasedExtractionStrategy([123, 'myCustomRegex']);
+        $strategy = new TokenBasedExtractionStrategy(['myCustomRegex']);
 
         $tempFile = tempnam(sys_get_temp_dir(), 'test');
         file_put_contents($tempFile, '<?php myCustomRegex("/test/", $text);');

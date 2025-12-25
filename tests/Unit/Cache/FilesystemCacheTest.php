@@ -25,13 +25,17 @@ namespace RegexParser\Cache {
         return \tempnam($directory, $prefix);
     }
 
-    function file_put_contents(string $filename, mixed $data, int $flags = 0, $context = null): false|int
+    function file_put_contents(string $filename, mixed $data, int $flags = 0, mixed $context = null): false|int
     {
         if (!empty($GLOBALS['__filesystemcache_file_put_contents_fail'])) {
             return false;
         }
 
-        return \file_put_contents($filename, $data, $flags, $context ?? null);
+        if (is_resource($context)) {
+            return \file_put_contents($filename, $data, $flags, $context);
+        }
+
+        return \file_put_contents($filename, $data, $flags);
     }
 
     function opcache_invalidate(string $filename, bool $force = false): bool

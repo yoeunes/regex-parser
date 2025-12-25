@@ -28,7 +28,6 @@ final class RouteRequirementNormalizerTest extends TestCase
     public function test_construct(): void
     {
         $normalizer = new RouteRequirementNormalizer();
-        $this->assertInstanceOf(RouteRequirementNormalizer::class, $normalizer);
     }
 
     public function test_normalize_already_delimited_pattern(): void

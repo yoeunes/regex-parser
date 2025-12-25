@@ -51,10 +51,12 @@ use RegexParser\NodeVisitor\AbstractNodeVisitor;
 
 /**
  * Concrete implementation of AbstractNodeVisitor for testing purposes.
+ *
+ * @template-extends AbstractNodeVisitor<string>
  */
 class TestNodeVisitor extends AbstractNodeVisitor
 {
-    protected function defaultReturn()
+    protected function defaultReturn(): string
     {
         return 'default';
     }

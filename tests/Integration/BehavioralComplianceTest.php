@@ -36,6 +36,9 @@ final class BehavioralComplianceTest extends TestCase
      *
      * @return \Iterator<string, array{pattern: string, testCases: array<string, bool>}>
      */
+    /**
+     * @return \Iterator<array{pattern: string, testCases: array<int|string, bool>}>
+     */
     public static function providePatternsWithBehavior(): \Iterator
     {
         // Basic patterns
@@ -296,7 +299,7 @@ final class BehavioralComplianceTest extends TestCase
     }
 
     /**
-     * @param array<string, bool> $testCases
+     * @param array<int|string, bool> $testCases
      */
     #[DataProvider('providePatternsWithBehavior')]
     public function test_pattern_behavior_matches_pcre(string $pattern, array $testCases): void

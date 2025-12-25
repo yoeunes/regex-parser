@@ -32,7 +32,6 @@ final class GithubFormatterTest extends TestCase
     public function test_construct(): void
     {
         $formatter = new GithubFormatter();
-        $this->assertInstanceOf(GithubFormatter::class, $formatter);
     }
 
     public function test_format_empty_report(): void
@@ -62,6 +61,8 @@ final class GithubFormatterTest extends TestCase
             'source' => 'preg_match',
             'pattern' => '/test/',
             'location' => 'in function call',
+            'issues' => [],
+            'optimizations' => [],
             'problems' => [$problem],
         ];
 
@@ -89,8 +90,11 @@ final class GithubFormatterTest extends TestCase
         );
 
         $result = [
-            'file' => 'test.php',
-            'line' => 5,
+            'file' => 'file with spaces.php',
+            'line' => 1,
+            'pattern' => '/test/',
+            'issues' => [],
+            'optimizations' => [],
             'problems' => [$problem],
         ];
 
@@ -98,7 +102,7 @@ final class GithubFormatterTest extends TestCase
 
         $output = $this->formatter->format($report);
 
-        $this->assertStringContainsString('::warning file=test.php,line=5,col=1,title=Lint (regex.lint.quantifier.nested)::', $output);
+        $this->assertStringContainsString('::warning file=file with spaces.php,line=1,col=1,title=Lint (regex.lint.quantifier.nested)::', $output);
         $this->assertStringContainsString('Nested quantifier detected', $output);
     }
 
@@ -117,6 +121,9 @@ final class GithubFormatterTest extends TestCase
         $result = [
             'file' => 'info.php',
             'line' => 3,
+            'pattern' => '/test/',
+            'issues' => [],
+            'optimizations' => [],
             'problems' => [$problem],
         ];
 
@@ -143,6 +150,9 @@ final class GithubFormatterTest extends TestCase
         $result = [
             'file' => 'critical.php',
             'line' => 8,
+            'pattern' => '/test/',
+            'issues' => [],
+            'optimizations' => [],
             'problems' => [$problem],
         ];
 
@@ -164,12 +174,18 @@ final class GithubFormatterTest extends TestCase
         $result1 = [
             'file' => 'file1.php',
             'line' => 1,
+            'pattern' => '/test1/',
+            'issues' => [],
+            'optimizations' => [],
             'problems' => [$problem1],
         ];
 
         $result2 = [
             'file' => 'file2.php',
             'line' => 2,
+            'pattern' => '/test2/',
+            'issues' => [],
+            'optimizations' => [],
             'problems' => [$problem2],
         ];
 
@@ -190,6 +206,9 @@ final class GithubFormatterTest extends TestCase
         $result = [
             'file' => '',
             'line' => 1,
+            'pattern' => '/test/',
+            'issues' => [],
+            'optimizations' => [],
             'problems' => [$problem],
         ];
 
@@ -218,6 +237,9 @@ final class GithubFormatterTest extends TestCase
         $result = [
             'file' => 'test.php',
             'line' => 1,
+            'pattern' => '/test/',
+            'issues' => [],
+            'optimizations' => [],
             'problems' => [$problem],
         ];
 
@@ -243,6 +265,9 @@ final class GithubFormatterTest extends TestCase
         $result = [
             'file' => 'test.php',
             'line' => 1,
+            'pattern' => '/test/',
+            'issues' => [],
+            'optimizations' => [],
             'problems' => [$problem],
         ];
 
@@ -266,8 +291,11 @@ final class GithubFormatterTest extends TestCase
         );
 
         $result = [
-            'file' => 'file with spaces.php',
+            'file' => 'test.php',
             'line' => 1,
+            'pattern' => '/test/',
+            'issues' => [],
+            'optimizations' => [],
             'problems' => [$problem],
         ];
 
@@ -275,7 +303,7 @@ final class GithubFormatterTest extends TestCase
 
         $output = $this->formatter->format($report);
 
-        $this->assertStringContainsString('file=file with spaces.php', $output);
+        $this->assertStringContainsString('file=test.php', $output);
     }
 
     public function test_format_escapes_data(): void
@@ -293,6 +321,9 @@ final class GithubFormatterTest extends TestCase
         $result = [
             'file' => 'test.php',
             'line' => 1,
+            'pattern' => '/test/',
+            'issues' => [],
+            'optimizations' => [],
             'problems' => [$problem],
         ];
 
@@ -318,6 +349,9 @@ final class GithubFormatterTest extends TestCase
         $result = [
             'file' => 'test.php',
             'line' => 1,
+            'pattern' => '/test/',
+            'issues' => [],
+            'optimizations' => [],
             'problems' => [$problem],
         ];
 
@@ -352,6 +386,9 @@ final class GithubFormatterTest extends TestCase
         $result = [
             'file' => 'test.php',
             'line' => 1,
+            'pattern' => '/test/',
+            'issues' => [],
+            'optimizations' => [],
             'problems' => [$problem],
         ];
 
@@ -377,7 +414,10 @@ final class GithubFormatterTest extends TestCase
         $result = [
             'file' => 'test.php',
             'line' => 5,
+            'pattern' => '/test/',
             'location' => 'inside preg_match call',
+            'issues' => [],
+            'optimizations' => [],
             'problems' => [$problem],
         ];
 

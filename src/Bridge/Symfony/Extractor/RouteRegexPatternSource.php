@@ -105,7 +105,8 @@ final readonly class RouteRegexPatternSource implements RegexPatternSourceInterf
                     }
                     $value = trim($matches[1], " \t\n\r\0\x0B'\"");
                     $normalized = $this->patternNormalizer->normalize($value);
-                    if (null === $normalized) {
+                    $route = $collection->get($routeName);
+                    if (null === $route) {
                         continue;
                     }
                     $patterns[] = new RegexPatternOccurrence(
@@ -114,7 +115,7 @@ final readonly class RouteRegexPatternSource implements RegexPatternSourceInterf
                         $routeLine ?? $lineIndex + 1,
                         'route:'.$routeName.':'.$parameter,
                         $value,
-                        null === $routeLine ? $this->formatRouteLocation($routeName, $collection->get($routeName), $hasYamlResources) : null,
+                        null === $routeLine ? $this->formatRouteLocation($routeName, $route, $hasYamlResources) : null,
                     );
                 }
             }

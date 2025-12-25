@@ -242,7 +242,9 @@ final class RegexAnalysisServiceTest extends TestCase
         $errorIssue = array_filter($issues, fn ($issue) => 'error' === $issue['type'])[0] ?? null;
         $this->assertNotNull($errorIssue);
         $this->assertArrayHasKey('tip', $errorIssue);
-        $this->assertStringContainsString('delimiter', (string) $errorIssue['tip']);
+        /** @var string $tip */
+        $tip = $errorIssue['tip'];
+        $this->assertStringContainsString('delimiter', $tip);
     }
 
     public function test_validation_error_tips_character_class_fix(): void

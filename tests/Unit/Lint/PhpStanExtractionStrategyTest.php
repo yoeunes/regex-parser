@@ -28,7 +28,6 @@ final class PhpStanExtractionStrategyTest extends TestCase
     public function test_construct(): void
     {
         $strategy = new PhpStanExtractionStrategy();
-        $this->assertInstanceOf(PhpStanExtractionStrategy::class, $strategy);
     }
 
     public function test_extract_with_empty_array(): void

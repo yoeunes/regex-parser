@@ -107,10 +107,10 @@ final class ParserCoverageTest extends TestCase
         foreach ($patterns as $pattern) {
             try {
                 $ast = $regex->parse($pattern);
-                $this->assertNotNull($ast);
-            } catch (\Exception $e) {
+                $this->assertInstanceOf(\RegexParser\Node\RegexNode::class, $ast);
+            } catch (\Exception) {
                 // Some patterns may be invalid, but we test parsing
-                $this->assertInstanceOf(\Exception::class, $e);
+                // Exception caught is expected for some patterns
             }
         }
     }

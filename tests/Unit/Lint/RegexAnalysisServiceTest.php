@@ -111,8 +111,6 @@ final class RegexAnalysisServiceTest extends TestCase
             [],
             true,
         );
-
-        $this->assertInstanceOf(RegexAnalysisService::class, $analysis);
     }
 
     public function test_suggest_optimizations_continues_on_parse_error(): void

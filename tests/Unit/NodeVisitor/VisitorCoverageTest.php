@@ -114,25 +114,29 @@ final class VisitorCoverageTest extends TestCase
     public function test_all_visitors_can_be_instantiated(): void
     {
         // Instantiate all visitor classes to cover class coverage
-        new CompilerNodeVisitor();
-        new ComplexityScoreNodeVisitor();
-        new ConsoleHighlighterVisitor();
-        new DumperNodeVisitor();
-        new ExplainNodeVisitor();
-        new HtmlExplainNodeVisitor();
-        new HtmlHighlighterVisitor();
-        new LengthRangeNodeVisitor();
-        new LinterNodeVisitor();
-        new LiteralExtractorNodeVisitor();
-        new MermaidNodeVisitor();
-        new MetricsNodeVisitor();
-        new ModernizerNodeVisitor();
-        new OptimizerNodeVisitor();
-        new ReDoSProfileNodeVisitor();
-        new SampleGeneratorNodeVisitor();
-        new TestCaseGeneratorNodeVisitor();
-        new ValidatorNodeVisitor();
+        $visitors = [
+            new CompilerNodeVisitor(),
+            new ComplexityScoreNodeVisitor(),
+            new ConsoleHighlighterVisitor(),
+            new DumperNodeVisitor(),
+            new ExplainNodeVisitor(),
+            new HtmlExplainNodeVisitor(),
+            new HtmlHighlighterVisitor(),
+            new LengthRangeNodeVisitor(),
+            new LinterNodeVisitor(),
+            new LiteralExtractorNodeVisitor(),
+            new MermaidNodeVisitor(),
+            new MetricsNodeVisitor(),
+            new ModernizerNodeVisitor(),
+            new OptimizerNodeVisitor(),
+            new ReDoSProfileNodeVisitor(),
+            new SampleGeneratorNodeVisitor(),
+            new TestCaseGeneratorNodeVisitor(),
+            new ValidatorNodeVisitor(),
+        ];
 
-        $this->assertTrue(true); // Just to have an assertion
+        // Visitors instantiated for coverage testing
+        $this->assertCount(18, $visitors);
+        $this->assertContainsOnlyInstancesOf(\RegexParser\NodeVisitor\NodeVisitorInterface::class, $visitors);
     }
 }

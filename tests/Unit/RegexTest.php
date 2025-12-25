@@ -25,7 +25,6 @@ use RegexParser\Node\NodeInterface;
 use RegexParser\Node\QuantifierNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\Regex;
-use RegexParser\TokenStream;
 
 final class RegexTest extends TestCase
 {
@@ -142,7 +141,7 @@ final class RegexTest extends TestCase
         $report = $this->regexService->analyze('/a+/');
         $this->assertIsBool($report->isValid);
         $this->assertIsArray($report->errors());
-        $this->assertInstanceOf(\RegexParser\ReDoS\ReDoSAnalysis::class, $report->redos());
+        $redos = $report->redos();
     }
 
     public function test_validate_method_with_valid_regex(): void
@@ -163,7 +162,6 @@ final class RegexTest extends TestCase
     {
         $analysis = $this->regexService->redos('/a+/');
         $this->assertIsBool($analysis->isSafe());
-        $this->assertInstanceOf(\RegexParser\ReDoS\ReDoSSeverity::class, $analysis->severity);
     }
 
     public function test_literals_method(): void
@@ -195,7 +193,6 @@ final class RegexTest extends TestCase
     public function test_tokenize_extracts_pattern_and_flags(): void
     {
         $stream = Regex::tokenize('/ab/i');
-        $this->assertInstanceOf(TokenStream::class, $stream);
         $this->assertSame('ab', $stream->getPattern());
         $this->assertGreaterThan(0, \count($stream->getTokens()));
     }
@@ -209,9 +206,12 @@ final class RegexTest extends TestCase
         $pattern = str_repeat('a', 120);
         $snippet = $method->invoke($regex, $pattern, 110);
 
-        $this->assertStringContainsString('Line 1:', (string) $snippet);
-        $this->assertStringContainsString('^', (string) $snippet);
-        $this->assertStringContainsString('...', (string) $snippet);
+        $this->assertIsString($snippet);
+        /** @var string $snippetString */
+        $snippetString = $snippet;
+        $this->assertStringContainsString('Line 1:', $snippetString);
+        $this->assertStringContainsString('^', $snippetString);
+        $this->assertStringContainsString('...', $snippetString);
     }
 
     public function test_build_visual_snippet_returns_empty_for_nulls(): void
@@ -232,8 +232,14 @@ final class RegexTest extends TestCase
         $determine = $ref->getMethod('determineConfidenceLevel');
 
         $literalSet = new class {
+            /**
+             * @var array<string>
+             */
             public array $prefixes = ['foo'];
 
+            /**
+             * @var array<string>
+             */
             public array $suffixes = ['bar'];
 
             public bool $complete = false;
@@ -244,6 +250,7 @@ final class RegexTest extends TestCase
             }
         };
 
+        /** @var array<string> $patterns */
         $patterns = $buildSearch->invoke($regex, $literalSet);
         $this->assertContains('^foo', $patterns);
         $this->assertContains('bar$', $patterns);

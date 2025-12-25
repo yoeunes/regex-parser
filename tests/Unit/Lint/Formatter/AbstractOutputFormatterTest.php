@@ -32,7 +32,7 @@ final class AbstractOutputFormatterTest extends TestCase
         $formatter = new TestableAbstractOutputFormatter();
 
         // Test that config is properly initialized
-        $this->assertInstanceOf(OutputConfiguration::class, $formatter->getConfig());
+        $config = $formatter->getConfig();
     }
 
     public function test_construct_with_custom_config(): void

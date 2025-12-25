@@ -32,7 +32,6 @@ final class JunitFormatterTest extends TestCase
     public function test_construct(): void
     {
         $formatter = new JunitFormatter();
-        $this->assertInstanceOf(JunitFormatter::class, $formatter);
     }
 
     public function test_format_empty_report(): void
@@ -64,6 +63,8 @@ final class JunitFormatterTest extends TestCase
             'source' => 'preg_match',
             'pattern' => '/test/',
             'location' => 'in function call',
+            'issues' => [],
+            'optimizations' => [],
             'problems' => [$problem],
         ];
 
@@ -95,6 +96,9 @@ final class JunitFormatterTest extends TestCase
         $result = [
             'file' => 'test.php',
             'line' => 5,
+            'pattern' => '/test/',
+            'issues' => [],
+            'optimizations' => [],
             'problems' => [$problem],
         ];
 
@@ -122,6 +126,9 @@ final class JunitFormatterTest extends TestCase
         $result = [
             'file' => 'file.php',
             'line' => 1,
+            'pattern' => '/test/',
+            'issues' => [],
+            'optimizations' => [],
             'problems' => [$problem],
         ];
 
@@ -149,6 +156,9 @@ final class JunitFormatterTest extends TestCase
         $result = [
             'file' => 'info.php',
             'line' => 2,
+            'pattern' => '/test/',
+            'issues' => [],
+            'optimizations' => [],
             'problems' => [$problem],
         ];
 
@@ -171,6 +181,9 @@ final class JunitFormatterTest extends TestCase
         $result = [
             'file' => 'multi.php',
             'line' => 1,
+            'pattern' => '/test/',
+            'issues' => [],
+            'optimizations' => [],
             'problems' => $problems,
         ];
 
@@ -194,6 +207,9 @@ final class JunitFormatterTest extends TestCase
         $result = [
             'file' => 'C:\\Windows\\test.php',
             'line' => 1,
+            'pattern' => '/test/',
+            'issues' => [],
+            'optimizations' => [],
             'problems' => [$problem],
         ];
 
@@ -211,6 +227,9 @@ final class JunitFormatterTest extends TestCase
         $result = [
             'file' => 'test.php',
             'line' => 0,
+            'pattern' => '/test/',
+            'issues' => [],
+            'optimizations' => [],
             'problems' => [$problem],
         ];
 
@@ -228,6 +247,9 @@ final class JunitFormatterTest extends TestCase
         $result = [
             'file' => 'test.php',
             'line' => 1,
+            'pattern' => '/test/',
+            'issues' => [],
+            'optimizations' => [],
             'problems' => [$problem],
         ];
 
@@ -256,6 +278,9 @@ final class JunitFormatterTest extends TestCase
         $result = [
             'file' => 'test.php',
             'line' => 1,
+            'pattern' => '/test/',
+            'issues' => [],
+            'optimizations' => [],
             'problems' => [$problem],
         ];
 
@@ -281,6 +306,9 @@ final class JunitFormatterTest extends TestCase
         $result = [
             'file' => 'test.php',
             'line' => 1,
+            'pattern' => '/test/',
+            'issues' => [],
+            'optimizations' => [],
             'problems' => [$problem],
         ];
 
@@ -306,6 +334,9 @@ final class JunitFormatterTest extends TestCase
         $result = [
             'file' => 'test.php',
             'line' => 1,
+            'pattern' => '/test/',
+            'issues' => [],
+            'optimizations' => [],
             'problems' => [$problem],
         ];
 

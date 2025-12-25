@@ -425,6 +425,6 @@ final class AdditionalMissingCoverageTest extends TestCase
         $regex = Regex::create();
         // This pattern should not trigger recursion limit in normal parsing
         $ast = $regex->parse('/a+/');
-        $this->assertNotNull($ast);
+        $this->assertInstanceOf(\RegexParser\Node\RegexNode::class, $ast);
     }
 }
