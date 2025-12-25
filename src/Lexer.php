@@ -93,6 +93,8 @@ final class Lexer
 
     private static ?string $regexInside = null;
 
+    private int $phpVersionId;
+
     private string $pattern;
 
     private int $position = 0;
@@ -106,6 +108,11 @@ final class Lexer
     private bool $inCommentMode = false;
 
     private int $charClassStartPosition = 0;
+
+    public function __construct(?int $phpVersionId = null)
+    {
+        $this->phpVersionId = $phpVersionId ?? \PHP_VERSION_ID;
+    }
 
     public function tokenize(string $pattern, string $flags = ''): TokenStream
     {

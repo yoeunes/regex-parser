@@ -21,20 +21,19 @@ final class PatternParserTest extends TestCase
 {
     public function test_extracts_flags_including_modifier_r_when_supported(): void
     {
-        $ref = new \ReflectionClass(PatternParser::class);
-        $prop = $ref->getProperty('supportsModifierR');
-        $original = $prop->getValue();
-        $prop->setValue(null, true);
-
-        try {
-            [$pattern, $flags, $delimiter] = PatternParser::extractPatternAndFlags('/a/r');
-        } finally {
-            $prop->setValue(null, $original);
-        }
+        [$pattern, $flags, $delimiter] = PatternParser::extractPatternAndFlags('/a/r', 80400);
 
         $this->assertSame('a', $pattern);
         $this->assertSame('r', $flags);
         $this->assertSame('/', $delimiter);
+    }
+
+    public function test_rejects_modifier_r_when_target_php_is_older(): void
+    {
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('Unknown regex flag(s) found: "r"');
+
+        PatternParser::extractPatternAndFlags('/a/r', 80300);
     }
 
     public function test_throws_for_missing_closing_delimiter(): void

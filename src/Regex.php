@@ -57,6 +57,7 @@ final readonly class Regex
      * @param array<string>  $redosIgnoredPatterns  Patterns to ignore in ReDoS analysis
      * @param bool           $runtimePcreValidation Whether to validate againsts PCRE runtime
      * @param int            $maxRecursionDepth     Maximum recursion depth during parsing
+     * @param int            $phpVersionId          Target PHP_VERSION_ID for feature validation
      */
     private function __construct(
         private int $maxPatternLength,
@@ -65,6 +66,7 @@ final readonly class Regex
         private array $redosIgnoredPatterns,
         private bool $runtimePcreValidation,
         private int $maxRecursionDepth,
+        private int $phpVersionId,
     ) {}
 
     /**
@@ -87,6 +89,7 @@ final readonly class Regex
             $configuration->redosIgnoredPatterns,
             $configuration->runtimePcreValidation,
             $configuration->maxRecursionDepth,
+            $configuration->phpVersionId,
         );
     }
 
@@ -114,12 +117,15 @@ final readonly class Regex
      * its byte offset in the pattern body. Combined with the delimiter and
      * flags extracted via PatternParser, this allows reconstructing the
      * original pattern and mapping nodes back to their exact locations.
+     *
+     * @param int|null $phpVersionId Target PHP_VERSION_ID for feature validation
      */
-    public static function tokenize(string $regex): TokenStream
+    public static function tokenize(string $regex, ?int $phpVersionId = null): TokenStream
     {
-        [$pattern, $flags] = Internal\PatternParser::extractPatternAndFlags($regex);
+        $versionId = $phpVersionId ?? \PHP_VERSION_ID;
+        [$pattern, $flags] = Internal\PatternParser::extractPatternAndFlags($regex, $phpVersionId);
 
-        return (new Lexer())->tokenize($pattern, $flags);
+        return (new Lexer($versionId))->tokenize($pattern, $flags);
     }
 
     /**
@@ -553,10 +559,15 @@ final readonly class Regex
             return [null, null];
         }
 
-        $cacheKey = $this->cache->generateKey($regex);
+        $cacheKey = $this->cache->generateKey($this->getCacheSeed($regex));
         $cachedResult = $this->cache->load($cacheKey);
 
         return [$cachedResult instanceof RegexNode ? $cachedResult : null, $cacheKey];
+    }
+
+    private function getCacheSeed(string $regex): string
+    {
+        return $regex."\n#php_version=".$this->phpVersionId;
     }
 
     /**
@@ -617,7 +628,7 @@ final readonly class Regex
     private function extractPatternSafely(string $regex): ?string
     {
         try {
-            [$pattern] = PatternParser::extractPatternAndFlags($regex);
+            [$pattern] = PatternParser::extractPatternAndFlags($regex, $this->phpVersionId);
 
             return (string) $pattern;
         } catch (ParserException) {
@@ -633,7 +644,7 @@ final readonly class Regex
      */
     private function validateAst(RegexNode $ast, ?string $pattern): void
     {
-        $validator = new NodeVisitor\ValidatorNodeVisitor($this->maxLookbehindLength, $pattern);
+        $validator = new NodeVisitor\ValidatorNodeVisitor($this->maxLookbehindLength, $pattern, $this->phpVersionId);
         $ast->accept($validator);
     }
 
@@ -832,7 +843,7 @@ final readonly class Regex
     private function safeExtractPattern(string $regex): array
     {
         try {
-            [$pattern, $flags, $delimiter] = PatternParser::extractPatternAndFlags($regex);
+            [$pattern, $flags, $delimiter] = PatternParser::extractPatternAndFlags($regex, $this->phpVersionId);
             $pattern = (string) $pattern;
             $flags = (string) $flags;
             $delimiter = (string) $delimiter;
@@ -919,9 +930,9 @@ final readonly class Regex
      */
     private function parseFromScratch(string $regex): RegexNode
     {
-        [$pattern, $flags, $delimiter] = PatternParser::extractPatternAndFlags($regex);
-        $tokenStream = (new Lexer())->tokenize($pattern, $flags);
-        $parser = new Parser($this->maxRecursionDepth);
+        [$pattern, $flags, $delimiter] = PatternParser::extractPatternAndFlags($regex, $this->phpVersionId);
+        $tokenStream = (new Lexer($this->phpVersionId))->tokenize($pattern, $flags);
+        $parser = new Parser($this->maxRecursionDepth, $this->phpVersionId);
 
         return $parser->parse($tokenStream, $flags, $delimiter, \strlen($pattern));
     }

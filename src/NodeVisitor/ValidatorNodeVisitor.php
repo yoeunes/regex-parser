@@ -110,7 +110,11 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
      */
     private static array $quantifierBoundsCache = [];
 
-    public function __construct(private readonly int $maxLookbehindLength = Regex::DEFAULT_MAX_LOOKBEHIND_LENGTH, private readonly ?string $pattern = null) {}
+    public function __construct(
+        private readonly int $maxLookbehindLength = Regex::DEFAULT_MAX_LOOKBEHIND_LENGTH,
+        private readonly ?string $pattern = null,
+        private readonly int $phpVersionId = \PHP_VERSION_ID,
+    ) {}
 
     /**
      * Clears static caches. Useful for long-running processes or testing.
@@ -139,8 +143,8 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitAlternation(Node\AlternationNode $node): void
     {
-        // Note: PHP 7.3+ (PCRE2) supports variable-length lookbehinds,
-        // so we no longer enforce fixed-length or same-length alternation restrictions.
+        // Note: variable-length lookbehinds are supported in PHP 7.3+ (PCRE2).
+        // Fixed-length enforcement is handled in validateLookbehindLength based on target PHP version.
 
         $previous = $this->previousNode;
         $next = $this->nextNode;
@@ -1204,6 +1208,15 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
             );
         }
 
+        if (!$this->supportsVariableLengthLookbehind() && $min !== $max) {
+            $this->raiseSemanticError(
+                'Variable-length lookbehind is not supported before PHP 7.3.',
+                $node->startPosition,
+                'regex.lookbehind.variable_length_not_supported',
+                'Use a fixed-length lookbehind or target PHP 7.3+.',
+            );
+        }
+
         if ($max > $this->lookbehindLimit) {
             $this->raiseSemanticError(
                 \sprintf('Lookbehind exceeds the maximum length of %d (max=%d).', $this->lookbehindLimit, $max),
@@ -1212,6 +1225,11 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
                 \sprintf('Reduce lookbehind length or use (*LIMIT_LOOKBEHIND=%d).', $max),
             );
         }
+    }
+
+    private function supportsVariableLengthLookbehind(): bool
+    {
+        return $this->phpVersionId >= 70300;
     }
 
     private function findUnboundedLookbehindNode(Node\NodeInterface $node): ?Node\NodeInterface

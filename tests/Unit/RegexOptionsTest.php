@@ -37,11 +37,13 @@ final class RegexOptionsTest extends TestCase
             'redos_ignored_patterns' => ['/safe/'],
             'runtime_pcre_validation' => true,
             'max_recursion_depth' => 2048,
+            'php_version' => '8.3',
         ]);
         $this->assertSame(50_000, (new \ReflectionProperty($regex, 'maxPatternLength'))->getValue($regex));
         $this->assertSame(512, (new \ReflectionProperty($regex, 'maxLookbehindLength'))->getValue($regex));
         $this->assertTrue((new \ReflectionProperty($regex, 'runtimePcreValidation'))->getValue($regex));
         $this->assertSame(2048, (new \ReflectionProperty($regex, 'maxRecursionDepth'))->getValue($regex));
+        $this->assertSame(80300, (new \ReflectionProperty($regex, 'phpVersionId'))->getValue($regex));
     }
 
     public function test_from_array_with_empty_array(): void
@@ -52,6 +54,28 @@ final class RegexOptionsTest extends TestCase
         $this->assertInstanceOf(NullCache::class, $options->cache);
         $this->assertFalse($options->runtimePcreValidation);
         $this->assertSame(1024, $options->maxRecursionDepth);
+        $this->assertSame(\PHP_VERSION_ID, $options->phpVersionId);
+    }
+
+    public function test_from_array_parses_php_version_string(): void
+    {
+        $options = RegexOptions::fromArray(['php_version' => '8.1']);
+
+        $this->assertSame(80100, $options->phpVersionId);
+    }
+
+    public function test_from_array_parses_php_version_id(): void
+    {
+        $options = RegexOptions::fromArray(['php_version' => 80401]);
+
+        $this->assertSame(80401, $options->phpVersionId);
+    }
+
+    public function test_from_array_invalid_php_version(): void
+    {
+        $this->expectException(InvalidRegexOptionException::class);
+        $this->expectExceptionMessage('"php_version" must be a version string like "8.2" or a PHP_VERSION_ID integer.');
+        RegexOptions::fromArray(['php_version' => 'invalid']);
     }
 
     public function test_from_array_invalid_max_pattern_length(): void

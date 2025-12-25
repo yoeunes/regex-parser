@@ -405,6 +405,21 @@ final class ParserTest extends TestCase
     }
 
     #[Test]
+    public function test_inline_modifier_r_respects_target_php_version(): void
+    {
+        $regex83 = Regex::create(['php_version' => '8.3']);
+        $result83 = $regex83->validate('/(?r:foo)/');
+
+        $this->assertFalse($result83->isValid());
+        $this->assertStringContainsString('Invalid group modifier syntax', (string) $result83->error);
+
+        $regex84 = Regex::create(['php_version' => '8.4']);
+        $result84 = $regex84->validate('/(?r:foo)/');
+
+        $this->assertTrue($result84->isValid());
+    }
+
+    #[Test]
     public function test_validate_duplicate_named_groups_without_j(): void
     {
         $result = $this->regex->validate('/(?<a>.) (?<a>.)/');

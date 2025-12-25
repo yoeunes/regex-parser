@@ -58,13 +58,22 @@ final class Parser
 
     private int $recursionDepth = 0;
 
-    private static ?bool $supportsInlineModifierR = null;
+    /**
+     * @var array<int|string, bool>
+     */
+    private static array $supportsInlineModifierR = [];
 
     private readonly int $maxRecursionDepth;
 
-    public function __construct(?int $maxRecursionDepth = null)
+    private readonly int $phpVersionId;
+
+    private readonly bool $useRuntimePcreDetection;
+
+    public function __construct(?int $maxRecursionDepth = null, ?int $phpVersionId = null)
     {
         $this->maxRecursionDepth = $maxRecursionDepth ?? self::MAX_RECURSION_DEPTH;
+        $this->phpVersionId = $phpVersionId ?? \PHP_VERSION_ID;
+        $this->useRuntimePcreDetection = null === $phpVersionId;
     }
 
     public function parse(TokenStream $stream, string $flags = '', string $delimiter = '/', int $patternLength = 0): Node\RegexNode
@@ -1178,7 +1187,7 @@ final class Parser
         }
         $inlineFlagChars = self::INLINE_FLAG_CHARS;
         $allFlags = 'imsxUJn';
-        if (self::supportsInlineModifierR()) {
+        if ($this->supportsInlineModifierR()) {
             $inlineFlagChars .= 'r';
             $allFlags .= 'r';
         }
@@ -1247,27 +1256,24 @@ final class Parser
 
     // Checks if the 'r' inline modifier is supported by the current PCRE/PHP version
     // The 'r' modifier was added in PCRE2 10.43 and PHP 8.4
-    private static function supportsInlineModifierR(): bool
+    private function supportsInlineModifierR(): bool
     {
-        // Return cached result if already computed
-        if (null !== self::$supportsInlineModifierR) {
-            return self::$supportsInlineModifierR;
+        $cacheKey = $this->useRuntimePcreDetection ? 'runtime' : $this->phpVersionId;
+        if (array_key_exists($cacheKey, self::$supportsInlineModifierR)) {
+            return self::$supportsInlineModifierR[$cacheKey];
         }
 
-        // PHP 8.4+ includes PCRE2 10.43+ which supports the 'r' modifier
-        if (\PHP_VERSION_ID >= 80400) {
-            self::$supportsInlineModifierR = true;
+        $supports = $this->phpVersionId >= 80400;
 
-            return true;
+        if (!$supports && $this->useRuntimePcreDetection) {
+            // For runtime detection, check the PCRE library version directly
+            $pcreVersion = \defined('PCRE_VERSION') ? explode(' ', \PCRE_VERSION)[0] : '0';
+            $supports = version_compare($pcreVersion, '10.43', '>=');
         }
 
-        // For older PHP versions, check the PCRE library version directly
-        $pcreVersion = \defined('PCRE_VERSION') ? explode(' ', \PCRE_VERSION)[0] : '0';
+        self::$supportsInlineModifierR[$cacheKey] = $supports;
 
-        // PCRE2 10.43+ is required for the 'r' modifier support
-        self::$supportsInlineModifierR = version_compare($pcreVersion, '10.43', '>=');
-
-        return self::$supportsInlineModifierR;
+        return $supports;
     }
 
     /**

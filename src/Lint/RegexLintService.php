@@ -95,14 +95,14 @@ final readonly class RegexLintService
      */
     public function analyze(array $patterns, RegexLintRequest $request, ?callable $progress = null): RegexLintReport
     {
-        $issues = $this->analysis->lint($patterns, $progress);
+        $issues = $this->analysis->lint($patterns, $progress, $request->analysisWorkers);
         $issues = $this->filterLintIssues($issues);
         $issues = $this->filterIssuesByRequest($issues, $request);
         $issues = $this->deduplicateIssues($issues);
 
         /** @var list<array{file: string, line: int, optimization: OptimizationResult, savings: int, source?: string}> $optimizations */
         $optimizations = $request->checkOptimizations
-            ? array_values($this->analysis->suggestOptimizations($patterns, $request->minSavings))
+            ? array_values($this->analysis->suggestOptimizations($patterns, $request->minSavings, [], $request->analysisWorkers))
             : [];
 
         $results = $this->combineResults($issues, $optimizations, $patterns);

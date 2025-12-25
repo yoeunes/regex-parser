@@ -33,6 +33,7 @@ final readonly class RegexLintRequest
         public bool $checkValidation = true,
         public bool $checkRedos = true,
         public bool $checkOptimizations = true,
+        public int $analysisWorkers = 1,
     ) {}
 
     /**

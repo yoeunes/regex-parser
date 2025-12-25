@@ -21,8 +21,6 @@ use RegexParser\ReDoS\ReDoSSeverity;
 use RegexParser\Regex;
 use RegexParser\ValidationResult;
 
-use function count;
-
 /**
  * Handles regex-related analysis and transformations.
  */
@@ -92,7 +90,38 @@ final readonly class RegexAnalysisService
      *     validation?: \RegexParser\ValidationResult
      * }>
      */
-    public function lint(array $patterns, ?callable $progress = null): array
+    public function lint(array $patterns, ?callable $progress = null, int $workers = 1): array
+    {
+        if ($workers <= 1 || \count($patterns) <= 1 || !$this->canRunInParallel()) {
+            return $this->lintChunk($patterns, $progress);
+        }
+
+        return $this->runInParallel(
+            $patterns,
+            $workers,
+            fn (array $chunk): array => $this->lintChunk($chunk),
+            $progress,
+        );
+    }
+
+    /**
+     * @param list<RegexPatternOccurrence> $patterns
+     *
+     * @return list<array{
+     *     type: string,
+     *     file: string,
+     *     line: int,
+     *     column: int,
+     *     position?: int,
+     *     message: string,
+     *     issueId?: string,
+     *     hint?: string|null,
+     *     source?: string,
+     *     analysis?: ReDoSAnalysis,
+     *     validation?: \RegexParser\ValidationResult
+     * }>
+     */
+    private function lintChunk(array $patterns, ?callable $progress = null): array
     {
         $issues = [];
 
@@ -196,7 +225,25 @@ final readonly class RegexAnalysisService
      *
      * @return list<array{file: string, line: int, analysis: ReDoSAnalysis}>
      */
-    public function analyzeRedos(array $patterns, ReDoSSeverity $threshold): array
+    public function analyzeRedos(array $patterns, ReDoSSeverity $threshold, int $workers = 1): array
+    {
+        if ($workers <= 1 || \count($patterns) <= 1 || !$this->canRunInParallel()) {
+            return $this->analyzeRedosChunk($patterns, $threshold);
+        }
+
+        return $this->runInParallel(
+            $patterns,
+            $workers,
+            fn (array $chunk): array => $this->analyzeRedosChunk($chunk, $threshold),
+        );
+    }
+
+    /**
+     * @param list<RegexPatternOccurrence> $patterns
+     *
+     * @return list<array{file: string, line: int, analysis: ReDoSAnalysis}>
+     */
+    private function analyzeRedosChunk(array $patterns, ReDoSSeverity $threshold): array
     {
         $issues = [];
 
@@ -233,7 +280,32 @@ final readonly class RegexAnalysisService
      *     source?: string
      * }>
      */
-    public function suggestOptimizations(array $patterns, int $minSavings, array $optimizationConfig = []): array
+    public function suggestOptimizations(array $patterns, int $minSavings, array $optimizationConfig = [], int $workers = 1): array
+    {
+        if ($workers <= 1 || \count($patterns) <= 1 || !$this->canRunInParallel()) {
+            return $this->suggestOptimizationsChunk($patterns, $minSavings, $optimizationConfig);
+        }
+
+        return $this->runInParallel(
+            $patterns,
+            $workers,
+            fn (array $chunk): array => $this->suggestOptimizationsChunk($chunk, $minSavings, $optimizationConfig),
+        );
+    }
+
+    /**
+     * @param list<RegexPatternOccurrence>                           $patterns
+     * @param array{digits?: bool, word?: bool, strictRanges?: bool} $optimizationConfig
+     *
+     * @return list<array{
+     *     file: string,
+     *     line: int,
+     *     optimization: OptimizationResult,
+     *     savings: int,
+     *     source?: string
+     * }>
+     */
+    private function suggestOptimizationsChunk(array $patterns, int $minSavings, array $optimizationConfig = []): array
     {
         $suggestions = [];
 
@@ -298,6 +370,155 @@ final readonly class RegexAnalysisService
         $ast = $this->regex->parsePattern($body, $flags, $delimiter);
 
         return $ast->accept(new ConsoleHighlighterVisitor());
+    }
+
+    /**
+     * @template T
+     *
+     * @param list<RegexPatternOccurrence>                 $patterns
+     * @param callable(list<RegexPatternOccurrence>): list<T> $worker
+     *
+     * @return list<T>
+     */
+    private function runInParallel(array $patterns, int $workers, callable $worker, ?callable $progress = null): array
+    {
+        $patternCount = \count($patterns);
+        if (0 === $patternCount) {
+            return [];
+        }
+
+        $workerCount = max(1, min($workers, $patternCount));
+        $chunkSize = (int) ceil($patternCount / $workerCount);
+        $chunks = array_chunk($patterns, $chunkSize);
+        $children = [];
+        $failed = false;
+
+        foreach ($chunks as $index => $chunk) {
+            $tmpFile = tempnam(sys_get_temp_dir(), 'regexparser_');
+            if (false === $tmpFile) {
+                $failed = true;
+                break;
+            }
+
+            $pid = pcntl_fork();
+            if (-1 === $pid) {
+                $failed = true;
+                break;
+            }
+
+            if (0 === $pid) {
+                $payload = null;
+                try {
+                    $payload = ['ok' => true, 'result' => $worker($chunk)];
+                } catch (\Throwable $e) {
+                    $payload = [
+                        'ok' => false,
+                        'error' => [
+                            'message' => $e->getMessage(),
+                            'class' => $e::class,
+                        ],
+                    ];
+                }
+
+                $this->writeWorkerPayload($tmpFile, $payload);
+                exit($payload['ok'] ? 0 : 1);
+            }
+
+            $children[$pid] = [
+                'file' => $tmpFile,
+                'index' => $index,
+                'count' => \count($chunk),
+            ];
+        }
+
+        if ($failed) {
+            foreach ($children as $pid => $meta) {
+                pcntl_waitpid($pid, $status);
+                @unlink($meta['file']);
+            }
+
+            $results = $worker($patterns);
+            if ($progress) {
+                for ($i = 0; $i < $patternCount; $i++) {
+                    $progress();
+                }
+            }
+
+            return $results;
+        }
+
+        $resultsByIndex = [];
+        foreach ($children as $pid => $meta) {
+            pcntl_waitpid($pid, $status);
+            $payload = $this->readWorkerPayload($meta['file']);
+            @unlink($meta['file']);
+
+            if (!($payload['ok'] ?? false)) {
+                $error = $payload['error'] ?? ['message' => 'Unknown worker failure.', 'class' => \RuntimeException::class];
+                throw new \RuntimeException(\sprintf('Parallel analysis failed: %s: %s', $error['class'], $error['message']));
+            }
+
+            $resultsByIndex[$meta['index']] = $payload['result'] ?? [];
+            if ($progress) {
+                for ($i = 0; $i < $meta['count']; $i++) {
+                    $progress();
+                }
+            }
+        }
+
+        ksort($resultsByIndex);
+        $results = [];
+        foreach ($resultsByIndex as $chunkResults) {
+            $results = array_merge($results, $chunkResults);
+        }
+
+        return $results;
+    }
+
+    private function canRunInParallel(): bool
+    {
+        return \PHP_SAPI === 'cli'
+            && \function_exists('pcntl_fork')
+            && \function_exists('pcntl_waitpid');
+    }
+
+    /**
+     * @param array{ok: bool, result?: mixed, error?: array{message: string, class: string}} $payload
+     */
+    private function writeWorkerPayload(string $path, array $payload): void
+    {
+        $serialized = serialize($payload);
+        @file_put_contents($path, $serialized);
+    }
+
+    /**
+     * @return array{ok: bool, result?: mixed, error?: array{message: string, class: string}}
+     */
+    private function readWorkerPayload(string $path): array
+    {
+        $data = @file_get_contents($path);
+        if (false === $data) {
+            return [
+                'ok' => false,
+                'error' => [
+                    'message' => 'Failed to read worker output.',
+                    'class' => \RuntimeException::class,
+                ],
+            ];
+        }
+
+        $payload = @unserialize($data, ['allowed_classes' => true]);
+        if (!\is_array($payload) || !array_key_exists('ok', $payload)) {
+            return [
+                'ok' => false,
+                'error' => [
+                    'message' => 'Invalid worker output.',
+                    'class' => \RuntimeException::class,
+                ],
+            ];
+        }
+
+        return $payload;
     }
 
     private function shouldSkipRiskAnalysis(RegexPatternOccurrence $occurrence): bool

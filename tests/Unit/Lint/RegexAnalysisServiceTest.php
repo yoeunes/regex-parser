@@ -163,4 +163,22 @@ final class RegexAnalysisServiceTest extends TestCase
 
         $this->assertSame([], $result);
     }
+
+    public function test_lint_can_run_in_parallel(): void
+    {
+        if (!\function_exists('pcntl_fork')) {
+            $this->markTestSkipped('pcntl is not available.');
+        }
+
+        $patterns = [
+            new RegexPatternOccurrence('/[a-z/', 'test.php', 1, 'preg_match'),
+            new RegexPatternOccurrence('/(a+)+/', 'test.php', 2, 'preg_match'),
+            new RegexPatternOccurrence('/foo/', 'test.php', 3, 'preg_match'),
+        ];
+
+        $sequential = $this->analysis->lint($patterns);
+        $parallel = $this->analysis->lint($patterns, null, 2);
+
+        $this->assertEquals($sequential, $parallel);
+    }
 }

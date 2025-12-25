@@ -40,6 +40,7 @@ if (null === $autoloadPath) {
 
 require_once $autoloadPath;
 
+use RegexParser\Exception\InvalidRegexOptionException;
 use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
 use RegexParser\Lint\Formatter\ConsoleFormatter;
@@ -247,11 +248,13 @@ function showHelp(): void
     output('  '.color('--no-ansi', CYAN)."         Disable ANSI output\n");
     output('  '.color('-q, --quiet', CYAN)."       Suppress output\n");
     output('  '.color('--silent', CYAN)."          Same as --quiet\n");
+    output('  '.color('--php-version', CYAN)." <ver>  Target PHP version for validation\n");
     output('  '.color('--help', CYAN)."            Display this help message\n\n");
 
     output(color('Lint Options:', MAGENTA)."\n");
     output('  '.color('--exclude', CYAN)." <path>       Paths to exclude (repeatable)\n");
     output('  '.color('--min-savings', CYAN)." <n>     Minimum optimization savings\n");
+    output('  '.color('--jobs', CYAN)." <n>           Parallel workers for analysis\n");
     output('  '.color('--format', CYAN)." <format>     Output format (console, json, github, checkstyle, junit)\n");
     output('  '.color('--no-redos', CYAN)."           Skip ReDoS risk analysis\n");
     output('  '.color('--no-validate', CYAN)."        Skip validation errors (structural lint only)\n");
@@ -284,16 +287,30 @@ function outputVersion(): void
     output("https://github.com/yoeunes/regex-parser\n");
 }
 
+function createRegex(array $options): Regex
+{
+    try {
+        return Regex::create($options);
+    } catch (InvalidRegexOptionException $e) {
+        output(error('Invalid option: '.$e->getMessage()."\n"));
+        exit(1);
+    }
+}
+
 function extractGlobalOptions(array $args): array
 {
     $options = [
         'quiet' => false,
         'ansi' => null,
         'help' => false,
+        'phpVersion' => null,
+        'error' => null,
     ];
     $remaining = [];
 
-    foreach ($args as $arg) {
+    for ($i = 0; $i < \count($args); $i++) {
+        $arg = $args[$i];
+
         if ('-q' === $arg || '--quiet' === $arg || '--silent' === $arg) {
             $options['quiet'] = true;
 
@@ -314,6 +331,25 @@ function extractGlobalOptions(array $args): array
 
         if ('--help' === $arg || '-h' === $arg) {
             $options['help'] = true;
+
+            continue;
+        }
+
+        if (str_starts_with($arg, '--php-version=')) {
+            $options['phpVersion'] = substr($arg, \strlen('--php-version='));
+
+            continue;
+        }
+
+        if ('--php-version' === $arg) {
+            $value = $args[$i + 1] ?? '';
+            if ('' === $value || str_starts_with($value, '-')) {
+                $options['error'] = 'Missing value for --php-version.';
+
+                break;
+            }
+            $options['phpVersion'] = $value;
+            $i++;
 
             continue;
         }
@@ -419,6 +455,7 @@ function parseLintArgs(array $args): array
     $checkRedos = true;
     $checkValidation = true;
     $checkOptimizations = true;
+    $jobs = 1;
 
     for ($i = 0; $i < \count($args); $i++) {
         $arg = $args[$i];
@@ -504,12 +541,35 @@ function parseLintArgs(array $args): array
             continue;
         }
 
+        if (str_starts_with($arg, '--jobs=')) {
+            $jobs = (int) substr($arg, \strlen('--jobs='));
+            if ($jobs < 1) {
+                return ['error' => 'The --jobs value must be a positive integer.'];
+            }
+
+            continue;
+        }
+
         if ('--min-savings' === $arg) {
             $value = $args[$i + 1] ?? '';
             if ('' === $value || str_starts_with($value, '-')) {
                 return ['error' => 'Missing value for --min-savings.'];
             }
             $minSavings = (int) $value;
+            $i++;
+
+            continue;
+        }
+
+        if ('--jobs' === $arg || '-j' === $arg) {
+            $value = $args[$i + 1] ?? '';
+            if ('' === $value || str_starts_with($value, '-')) {
+                return ['error' => 'Missing value for --jobs.'];
+            }
+            $jobs = (int) $value;
+            if ($jobs < 1) {
+                return ['error' => 'The --jobs value must be a positive integer.'];
+            }
             $i++;
 
             continue;
@@ -532,6 +592,7 @@ function parseLintArgs(array $args): array
         'checkRedos' => $checkRedos,
         'checkValidation' => $checkValidation,
         'checkOptimizations' => $checkOptimizations,
+        'jobs' => $jobs,
     ];
 }
 
@@ -540,6 +601,13 @@ array_shift($args);
 [$globalOptions, $args] = extractGlobalOptions($args);
 $quiet = $globalOptions['quiet'];
 $ansi = resolveAnsi($globalOptions['ansi']);
+$phpVersionOption = $globalOptions['phpVersion'];
+$regexOptions = null !== $phpVersionOption ? ['php_version' => $phpVersionOption] : [];
+
+if (null !== $globalOptions['error']) {
+    output(error('Error: '.$globalOptions['error']."\n"));
+    exit(1);
+}
 
 if ($globalOptions['help']) {
     showHelp();
@@ -582,7 +650,7 @@ switch ($command) {
             exit(1);
         }
         $validate = \in_array('--validate', $commandArgs, true);
-        $regex = Regex::create();
+        $regex = createRegex($regexOptions);
 
         try {
             $ast = $regex->parse($pattern);
@@ -613,7 +681,7 @@ switch ($command) {
             output("Usage: regex analyze <pattern>\n");
             exit(1);
         }
-        $regex = Regex::create();
+        $regex = createRegex($regexOptions);
 
         try {
             $ast = $regex->parse($pattern);
@@ -664,7 +732,7 @@ switch ($command) {
                 $i++;
             }
         }
-        $regex = Regex::create();
+        $regex = createRegex($regexOptions);
 
         try {
             if ('auto' === $format) {
@@ -694,7 +762,7 @@ switch ($command) {
             output("Usage: regex validate <pattern>\n");
             exit(1);
         }
-        $regex = Regex::create();
+        $regex = createRegex($regexOptions);
 
         $validation = $regex->validate($pattern);
         if ($validation->isValid) {
@@ -719,7 +787,7 @@ switch ($command) {
         }
         if (isset($parsed['error'])) {
             output(error('Error: '.$parsed['error']."\n"));
-            output("Usage: regex lint [paths...] [--exclude <path>] [--min-savings <n>] [--format console|json|github|checkstyle|junit] [--no-redos] [--no-validate] [--no-optimize] [--verbose|--debug|--quiet]\n");
+            output("Usage: regex lint [paths...] [--exclude <path>] [--min-savings <n>] [--jobs <n>] [--format console|json|github|checkstyle|junit] [--no-redos] [--no-validate] [--no-optimize] [--verbose|--debug|--quiet]\n");
             exit(1);
         }
 
@@ -732,6 +800,7 @@ switch ($command) {
         $checkRedos = $parsed['checkRedos'] ?? true;
         $checkValidation = $parsed['checkValidation'] ?? true;
         $checkOptimizations = $parsed['checkOptimizations'] ?? true;
+        $jobs = (int) ($parsed['jobs'] ?? 1);
 
         if ([] === $paths) {
             $paths = ['.'];
@@ -758,11 +827,11 @@ switch ($command) {
 
         // Update console formatter with analysis service for highlighting
         if ('console' === $format) {
-            $analysis = new RegexAnalysisService(Regex::create());
+            $analysis = new RegexAnalysisService(createRegex($regexOptions));
             $formatter = new ConsoleFormatter($analysis, $config);
         }
 
-        $analysis = new RegexAnalysisService(Regex::create());
+        $analysis = new RegexAnalysisService(createRegex($regexOptions));
         $extractor = createExtractor();
         $sources = new RegexPatternSourceCollection([
             new PhpRegexPatternSource($extractor),
@@ -808,6 +877,7 @@ switch ($command) {
                 checkValidation: $checkValidation,
                 checkRedos: $checkRedos,
                 checkOptimizations: $checkOptimizations,
+                analysisWorkers: $jobs,
             );
             $patterns = $lint->collectPatterns($request, $collectionProgress);
         } catch (Throwable $e) {

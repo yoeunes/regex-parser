@@ -20,12 +20,15 @@ use RegexParser\Exception\ParserException;
  */
 final class PatternParser
 {
-    private static ?bool $supportsModifierR = null;
+    /**
+     * @var array<int|string, bool>
+     */
+    private static array $supportsModifierR = [];
 
     /**
      * @return array{0: string, 1: string, 2: string}
      */
-    public static function extractPatternAndFlags(string $regex): array
+    public static function extractPatternAndFlags(string $regex, ?int $phpVersionId = null): array
     {
         // Trim leading whitespace to match PHP's PCRE behavior
         $regex = ltrim($regex);
@@ -71,7 +74,7 @@ final class PatternParser
                     $flags = preg_replace('/\s+/', '', $flagsWithWhitespace) ?? '';
 
                     $allowedFlags = 'imsxADSUXJun';
-                    if (self::supportsModifierR()) {
+                    if (self::supportsModifierR($phpVersionId)) {
                         $allowedFlags .= 'r';
                     }
 
@@ -107,16 +110,23 @@ final class PatternParser
         ));
     }
 
-    private static function supportsModifierR(): bool
+    private static function supportsModifierR(?int $phpVersionId = null): bool
     {
-        if (null !== self::$supportsModifierR) {
-            return self::$supportsModifierR;
+        $key = $phpVersionId ?? 'runtime';
+        if (array_key_exists($key, self::$supportsModifierR)) {
+            return self::$supportsModifierR[$key];
         }
 
-        $result = @preg_match('/a/r', '');
-        self::$supportsModifierR = false !== $result;
+        if (null === $phpVersionId) {
+            $result = @preg_match('/a/r', '');
+            self::$supportsModifierR[$key] = false !== $result;
 
-        return self::$supportsModifierR;
+            return self::$supportsModifierR[$key];
+        }
+
+        self::$supportsModifierR[$key] = $phpVersionId >= 80400;
+
+        return self::$supportsModifierR[$key];
     }
 
     private static function isValidDelimiter(string $delimiter): bool
