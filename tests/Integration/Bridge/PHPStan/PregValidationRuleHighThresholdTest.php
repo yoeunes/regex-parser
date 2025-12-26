@@ -39,14 +39,14 @@ final class PregValidationRuleHighThresholdTest extends RuleTestCase
                 "Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...). Suggested: Consider using possessive quantifiers or atomic groups to limit backtracking.\n".
                 "Nested unbounded quantifiers detected. This allows exponential backtracking. Consider using atomic groups (?>...) or possessive quantifiers (*+, ++). Suggested: Replace inner quantifiers with possessive variants or wrap them in (?>...).\n".
                 "\n".
-                "Read more about possessive quantifiers: https://github.com/yoeunes/regex-parser/blob/master/docs/reference.md#possessive-quantifiers\n".
-                "Read more about atomic groups: https://github.com/yoeunes/regex-parser/blob/master/docs/reference.md#atomic-groups\n".
-                'Read more about catastrophic backtracking: https://github.com/yoeunes/regex-parser/blob/master/docs/reference.md#catastrophic-backtracking',
+                "Read more about possessive quantifiers: https://github.com/yoeunes/regex-parser/blob/main/docs/reference.md#possessive-quantifiers\n".
+                "Read more about atomic groups: https://github.com/yoeunes/regex-parser/blob/main/docs/reference.md#atomic-groups\n".
+                'Read more about catastrophic backtracking: https://github.com/yoeunes/regex-parser/blob/main/docs/reference.md#catastrophic-backtracking',
             ],
             [
                 'Nested quantifiers can cause catastrophic backtracking.',
                 23,
-                "Consider using atomic groups (?>...) or possessive quantifiers.\nRead more: https://github.com/yoeunes/regex-parser/blob/master/docs/reference.md#nested-quantifiers",
+                "Consider using atomic groups (?>...) or possessive quantifiers.\nRead more: https://github.com/yoeunes/regex-parser/blob/main/docs/reference.md#nested-quantifiers",
             ],
             // Note: MEDIUM ReDoS on line 24 is filtered out by 'high' threshold
             [

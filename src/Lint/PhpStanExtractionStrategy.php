@@ -25,10 +25,10 @@ use PhpParser\Parser;
 use PhpParser\ParserFactory;
 
 /**
- * PHPStan-based regex pattern extraction strategy.
+ * PhpParser-based regex pattern extraction strategy.
  *
- * This strategy uses PHPStan's powerful AST analysis when available
- * to extract regex patterns with better accuracy than token-based approach.
+ * This strategy uses nikic/php-parser to build an AST and extract regex
+ * patterns with better accuracy than the token-based approach.
  *
  * @internal
  */

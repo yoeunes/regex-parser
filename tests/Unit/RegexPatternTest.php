@@ -64,4 +64,14 @@ final class RegexPatternTest extends TestCase
         $this->assertSame('', $pattern->flags);
         $this->assertSame('/', $pattern->delimiter);
     }
+
+    public function test_from_delimited_with_paired_delimiter_round_trip(): void
+    {
+        $pattern = RegexPattern::fromDelimited('(foo)i');
+
+        $this->assertSame('foo', $pattern->pattern);
+        $this->assertSame('i', $pattern->flags);
+        $this->assertSame('(', $pattern->delimiter);
+        $this->assertSame('(foo)i', $pattern->toString());
+    }
 }

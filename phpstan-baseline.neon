@@ -1,12 +1,6 @@
 parameters:
 	ignoreErrors:
 		-
-			rawMessage: Accessing PHPStan\Analyser\Analyser::class is not covered by backward compatibility promise. The class might change in a minor PHPStan version.
-			identifier: phpstanApi.classConstant
-			count: 1
-			path: src/Bridge/Symfony/DependencyInjection/RegexParserExtension.php
-
-		-
 			rawMessage: Access to constant on internal class RegexParser\Bridge\Symfony\Extractor\RouteRegexPatternSource.
 			identifier: classConstant.internalClass
 			count: 1

@@ -106,7 +106,8 @@ final readonly class Regex
      */
     public function parsePattern(string $pattern, string $flags = '', string $delimiter = '/'): RegexNode
     {
-        $regex = $delimiter.$pattern.$delimiter.$flags;
+        $closingDelimiter = PatternParser::closingDelimiter($delimiter);
+        $regex = $delimiter.$pattern.$closingDelimiter.$flags;
 
         return $this->parse($regex, false);
     }

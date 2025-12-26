@@ -19,6 +19,7 @@ use RegexParser\OptimizationResult;
 use RegexParser\ReDoS\ReDoSAnalysis;
 use RegexParser\ReDoS\ReDoSSeverity;
 use RegexParser\Regex;
+use RegexParser\ValidationErrorCategory;
 use RegexParser\ValidationResult;
 
 /**
@@ -519,7 +520,7 @@ final readonly class RegexAnalysisService
             ];
         }
 
-        $payload = @unserialize($data, ['allowed_classes' => true]);
+        $payload = @unserialize($data, ['allowed_classes' => self::allowedWorkerClasses()]);
         if (!\is_array($payload) || !\array_key_exists('ok', $payload) || !\is_bool($payload['ok'])) {
             return [
                 'ok' => false,
@@ -555,6 +556,50 @@ final readonly class RegexAnalysisService
             'ok' => true,
             'result' => $payload['result'] ?? null,
         ];
+    }
+
+    /**
+     * @return array<string>
+     */
+    private static function allowedWorkerClasses(): array
+    {
+        /** @var array<string>|null $allowed */
+        static $allowed = null;
+        if (null !== $allowed) {
+            return $allowed;
+        }
+
+        $allowed = [
+            ValidationResult::class,
+            ValidationErrorCategory::class,
+            OptimizationResult::class,
+            ReDoSAnalysis::class,
+        ];
+
+        $allowed = array_merge(
+            $allowed,
+            self::classNamesFromDir(__DIR__.'/../Node', 'RegexParser\\Node\\'),
+            self::classNamesFromDir(__DIR__.'/../ReDoS', 'RegexParser\\ReDoS\\'),
+        );
+
+        $allowed = array_values(array_unique($allowed));
+
+        return $allowed;
+    }
+
+    /**
+     * @return array<string>
+     */
+    private static function classNamesFromDir(string $dir, string $namespace): array
+    {
+        $paths = glob($dir.'/*.php') ?: [];
+        $classes = [];
+
+        foreach ($paths as $path) {
+            $classes[] = $namespace.basename($path, '.php');
+        }
+
+        return $classes;
     }
 
     private function shouldSkipRiskAnalysis(RegexPatternOccurrence $occurrence): bool

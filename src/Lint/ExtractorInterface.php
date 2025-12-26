@@ -16,7 +16,7 @@ namespace RegexParser\Lint;
 /**
  * Interface for regex pattern extraction implementations.
  *
- * @internal
+ * @api
  */
 interface ExtractorInterface
 {

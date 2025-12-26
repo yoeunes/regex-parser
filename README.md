@@ -670,7 +670,7 @@ parameters:
 RegexParser is designed for **high‑scale applications**:
 
 * Lexer uses a single PCRE state machine with offsets, not repeated substrings.
-* Parser and Lexer instances are **reused** across calls and properly reset.
+* Parser and Lexer instances are lightweight and created per parse; parsed ASTs can be cached and reused.
 * Optional cache (filesystem or PSR‑compatible) stores parsed ASTs and ReDoS analyses.
 
 Example:

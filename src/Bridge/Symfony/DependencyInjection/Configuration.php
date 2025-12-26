@@ -64,7 +64,7 @@ final readonly class Configuration implements ConfigurationInterface
                 ->end()
                 ->scalarNode('extractor_service')
                     ->defaultNull()
-                    ->info('Custom regex pattern extractor service ID. If not provided, PhpStan will be tried first, then token-based extraction.')
+                    ->info('Custom regex pattern extractor service ID. If not provided, PhpParser-based extraction will be tried first, then token-based extraction.')
                 ->end()
                 ->arrayNode('redos')
                     ->addDefaultsIfNotSet()
