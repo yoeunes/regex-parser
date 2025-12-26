@@ -36,6 +36,7 @@ final readonly class RegexPatternSourceContext
         public array $excludePaths,
         private array $disabledSources = [],
         ?callable $progress = null,
+        public int $workers = 1,
     ) {
         $this->progress = $progress;
     }

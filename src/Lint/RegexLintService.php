@@ -85,6 +85,7 @@ final readonly class RegexLintService
             $request->excludePaths,
             $request->getDisabledSources(),
             $progress,
+            $request->analysisWorkers,
         );
 
         return $this->sources->collect($context);

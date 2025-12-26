@@ -82,19 +82,23 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
         $occurrences = [];
 
         foreach ($files as $file) {
-            $occurrences = [...$occurrences, ...$this->extractFromFile($file)];
+            $this->appendOccurrences($occurrences, $this->extractFromFile($file));
         }
 
         return $occurrences;
     }
 
     /**
-     * @return list<RegexPatternOccurrence>
+     * @return array<RegexPatternOccurrence>
      */
     private function extractFromFile(string $file): array
     {
         $content = file_get_contents($file);
         if (false === $content || '' === $content) {
+            return [];
+        }
+
+        if ($this->shouldSkipContent($content)) {
             return [];
         }
 
@@ -245,7 +249,7 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
     }
 
     /**
-     * @param list<array{int, string, int}|string> $tokens
+     * @param array<\PhpParser\Node> $tokens
      *
      * @return list<RegexPatternOccurrence>
      */
@@ -364,7 +368,7 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
     }
 
     /**
-     * @param list<array{int, string, int}|string> $tokens
+     * @param array<\PhpParser\Node> $tokens
      *
      * @return list<RegexPatternOccurrence>
      */
@@ -407,7 +411,7 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
     }
 
     /**
-     * @param list<array{int, string, int}|string> $tokens
+     * @param array<\PhpParser\Node> $tokens
      *
      * @return list<RegexPatternOccurrence>
      */
@@ -933,6 +937,26 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
         }
 
         return null;
+    }
+
+    private function shouldSkipContent(string $content): bool
+    {
+        if ([] !== $this->customFunctionMap || [] !== $this->customStaticFunctionMap) {
+            return false;
+        }
+
+        return false === stripos($content, 'preg_');
+    }
+
+    /**
+     * @param array<RegexPatternOccurrence> $occurrences
+     * @param array<RegexPatternOccurrence> $items
+     */
+    private function appendOccurrences(array &$occurrences, array $items): void
+    {
+        foreach ($items as $item) {
+            $occurrences[] = $item;
+        }
     }
 
     /**

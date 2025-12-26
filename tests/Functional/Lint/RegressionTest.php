@@ -252,11 +252,11 @@ final class RegressionTest extends TestCase
         $this->assertSame('/\s+/', $occurrences[0]->pattern);
     }
 
-    /**
-     * Helper method to extract patterns from fixture file.
-     *
-     * @return list<\RegexParser\Lint\RegexPatternOccurrence>
-     */
+     /**
+      * Helper method to extract patterns from fixture file.
+      *
+      * @return list<\RegexParser\Lint\RegexPatternOccurrence>
+      */
     private function extractFromFixture(string $fixtureName): array
     {
         $fixtureFile = __DIR__.'/../../Fixtures/Lint/'.$fixtureName;

@@ -21,6 +21,7 @@ use PhpParser\Node\Expr\ConstFetch;
 use PhpParser\Node\Expr\FuncCall;
 use PhpParser\Node\Name;
 use PhpParser\Node\Scalar\String_;
+use PhpParser\Parser;
 use PhpParser\ParserFactory;
 
 /**
@@ -33,7 +34,18 @@ use PhpParser\ParserFactory;
  */
 final readonly class PhpStanExtractionStrategy implements ExtractorInterface
 {
-    public function __construct() {}
+    private ?Parser $parser;
+
+    public function __construct()
+    {
+        $parser = null;
+        if (class_exists(ParserFactory::class)) {
+            $parserFactory = new ParserFactory();
+            $parser = $parserFactory->createForHostVersion();
+        }
+
+        $this->parser = $parser;
+    }
 
     public function extract(array $files): array
     {
@@ -49,37 +61,42 @@ final readonly class PhpStanExtractionStrategy implements ExtractorInterface
      *
      * @return list<RegexPatternOccurrence>
      */
+    /**
+     * @param list<string> $files
+     * @return list<RegexPatternOccurrence>
+     */
     private function analyzeFilesWithPhpStan(array $files): array
     {
         $occurrences = [];
 
         foreach ($files as $file) {
             $fileOccurrences = $this->analyzeFileWithPhpStan($file);
-            $occurrences = [...$occurrences, ...$fileOccurrences];
+            $this->appendOccurrences($occurrences, $fileOccurrences);
         }
 
         return $occurrences;
     }
 
     /**
-     * @return list<RegexPatternOccurrence>
+     * @return array<RegexPatternOccurrence>
      */
     private function analyzeFileWithPhpStan(string $file): array
     {
         try {
+            if (null === $this->parser) {
+                return [];
+            }
+
             $content = file_get_contents($file);
             if (false === $content || '' === $content) {
                 return [];
             }
 
-            $parserFactoryClass = \PhpParser\ParserFactory::class;
-            if (!class_exists($parserFactoryClass)) {
+            if (false === stripos($content, 'preg_')) {
                 return [];
             }
-            $parserFactory = new ParserFactory();
-            $parser = $parserFactory->createForHostVersion();
 
-            $ast = $parser->parse($content);
+            $ast = $this->parser->parse($content);
             if (!\is_array($ast)) {
                 return [];
             }
@@ -91,18 +108,18 @@ final readonly class PhpStanExtractionStrategy implements ExtractorInterface
         }
     }
 
-    /**
-     * @param array<\PhpParser\Node> $tokens
-     *
-     * @return list<RegexPatternOccurrence>
-     */
+     /**
+      * @param array<\PhpParser\Node> $tokens
+      *
+      * @return list<RegexPatternOccurrence>
+      */
     private function extractFromTokens(array $tokens, string $file): array
     {
         $occurrences = [];
 
         foreach ($tokens as $node) {
             $nodeOccurrences = $this->extractFromNode($node, $file);
-            $occurrences = [...$occurrences, ...$nodeOccurrences];
+            $this->appendOccurrences($occurrences, $nodeOccurrences);
         }
 
         return $occurrences;
@@ -116,18 +133,18 @@ final readonly class PhpStanExtractionStrategy implements ExtractorInterface
         $occurrences = [];
 
         if ($node instanceof FuncCall) {
-            $occurrences = [...$occurrences, ...$this->extractFromFuncCall($node, $file)];
+            $this->appendOccurrences($occurrences, $this->extractFromFuncCall($node, $file));
         }
 
         // Recursively check child nodes
         foreach ($node->getSubNodeNames() as $subNodeName) {
             $subNode = $node->{$subNodeName};
             if ($subNode instanceof Node) {
-                $occurrences = [...$occurrences, ...$this->extractFromNode($subNode, $file)];
+                $this->appendOccurrences($occurrences, $this->extractFromNode($subNode, $file));
             } elseif (\is_array($subNode)) {
                 foreach ($subNode as $item) {
                     if ($item instanceof Node) {
-                        $occurrences = [...$occurrences, ...$this->extractFromNode($item, $file)];
+                        $this->appendOccurrences($occurrences, $this->extractFromNode($item, $file));
                     }
                 }
             }
@@ -249,5 +266,16 @@ final readonly class PhpStanExtractionStrategy implements ExtractorInterface
         }
 
         return null;
+    }
+
+    /**
+     * @param array<RegexPatternOccurrence> $occurrences
+     * @param array<RegexPatternOccurrence> $items
+     */
+    private function appendOccurrences(array &$occurrences, array $items): void
+    {
+        foreach ($items as $item) {
+            $occurrences[] = $item;
+        }
     }
 }

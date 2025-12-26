@@ -1122,7 +1122,7 @@ switch ($command) {
         if ('console' === $format && $config->shouldShowProgress() && $collectionTime > 1) {
             $collectionInfo = 'Collection: '.round($collectionTime, 2).'s';
             if ($jobs > 1) {
-                $collectionInfo .= ' (serial)';
+                $collectionInfo .= ' (parallel: '.$jobs.' workers)';
             }
             output('  '.dim($collectionInfo)."\n\n");
         }

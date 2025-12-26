@@ -35,20 +35,52 @@ final readonly class RegexPatternExtractor
 
     public function __construct(private ExtractorInterface $extractor) {}
 
-    /**
-     * Extract regex patterns from the given paths.
-     *
-     * @param list<string>                  $paths        Paths to scan for PHP files
-     * @param list<string>|null             $excludePaths Optional paths to exclude (falls back to ['vendor'])
-     * @param callable(int, int): void|null $progress     Reports collection progress as (current, total)
-     *
-     * @return list<RegexPatternOccurrence>
-     */
-    public function extract(array $paths, ?array $excludePaths = null, ?callable $progress = null): array
+    public static function supportsParallel(): bool
+    {
+        return \PHP_SAPI === 'cli'
+            && \function_exists('pcntl_fork')
+            && \function_exists('pcntl_waitpid');
+    }
+
+     /**
+      * Extract regex patterns from the given paths.
+      *
+      * @param list<string>                  $paths        Paths to scan for PHP files
+      * @param list<string>|null             $excludePaths Optional paths to exclude (falls back to ['vendor'])
+      * @param callable(int, int): void|null $progress     Reports collection progress as (current, total)
+      * @param int                           $workers      Number of worker processes to use when supported
+      *
+      * @return list<RegexPatternOccurrence>
+      */
+    public function extract(array $paths, ?array $excludePaths = null, ?callable $progress = null, int $workers = 1): array
     {
         $excludePaths ??= ['vendor'];
         $phpFiles = $this->collectPhpFiles($paths, $excludePaths);
 
+        $total = \count($phpFiles);
+        if (0 === $total) {
+            if (null !== $progress) {
+                $progress(0, 0);
+            }
+
+            return [];
+        }
+
+        if ($workers > 1 && $total > 1 && self::supportsParallel()) {
+            return $this->extractParallel($phpFiles, $workers, $progress);
+        }
+
+        return $this->extractSerial($phpFiles, $progress);
+    }
+
+     /**
+      * @param list<string>                  $phpFiles
+      * @param callable(int, int): void|null $progress
+      *
+      * @return list<RegexPatternOccurrence>
+      */
+    private function extractSerial(array $phpFiles, ?callable $progress = null): array
+    {
         if (null === $progress) {
             return $this->extractor->extract($phpFiles);
         }
@@ -56,20 +88,126 @@ final readonly class RegexPatternExtractor
         $total = \count($phpFiles);
         $progress(0, $total);
 
-        if (0 === $total) {
-            return [];
-        }
-
         $occurrences = [];
         $current = 0;
 
         foreach ($phpFiles as $file) {
-            $occurrences = [...$occurrences, ...$this->extractor->extract([$file])];
+            foreach ($this->extractor->extract([$file]) as $occurrence) {
+                $occurrences[] = $occurrence;
+            }
             $current++;
             $progress($current, $total);
         }
 
         return $occurrences;
+    }
+
+    /**
+     * @param list<string>                  $phpFiles
+     * @param callable(int, int): void|null $progress
+     *
+     * @return list<RegexPatternOccurrence>
+     */
+    private function extractParallel(array $phpFiles, int $workers, ?callable $progress = null): array
+    {
+        $total = \count($phpFiles);
+        if (null !== $progress) {
+            $progress(0, $total);
+        }
+
+        $workerCount = max(1, min($workers, $total));
+        $chunkSize = max(1, (int) ceil($total / $workerCount));
+        $chunks = array_chunk($phpFiles, $chunkSize);
+        $children = [];
+        $failed = false;
+
+        foreach ($chunks as $index => $chunk) {
+            $tmpFile = tempnam(sys_get_temp_dir(), 'regexparser_extract_');
+            if (false === $tmpFile) {
+                $failed = true;
+
+                break;
+            }
+
+            $pid = pcntl_fork();
+            if (-1 === $pid) {
+                $failed = true;
+
+                break;
+            }
+
+            if (0 === $pid) {
+                $payload = null;
+
+                try {
+                    $payload = ['ok' => true, 'result' => $this->extractor->extract($chunk)];
+                } catch (\Throwable $e) {
+                    $payload = [
+                        'ok' => false,
+                        'error' => [
+                            'message' => $e->getMessage(),
+                            'class' => $e::class,
+                        ],
+                    ];
+                }
+
+                $this->writeWorkerPayload($tmpFile, $payload);
+                exit($payload['ok'] ? 0 : 1);
+            }
+
+            $children[$pid] = [
+                'file' => $tmpFile,
+                'index' => $index,
+                'count' => \count($chunk),
+            ];
+        }
+
+        if ($failed) {
+            foreach ($children as $pid => $meta) {
+                pcntl_waitpid($pid, $status);
+                @unlink($meta['file']);
+            }
+
+            return $this->extractSerial($phpFiles, $progress);
+        }
+
+        $resultsByIndex = [];
+        $processed = 0;
+
+        foreach ($children as $pid => $meta) {
+            pcntl_waitpid($pid, $status);
+            $payload = $this->readWorkerPayload($meta['file']);
+            @unlink($meta['file']);
+
+            if (!($payload['ok'] ?? false)) {
+                $error = $payload['error'] ?? ['message' => 'Unknown worker failure.', 'class' => \RuntimeException::class];
+                $errorClass = \is_array($error) && isset($error['class']) && \is_string($error['class']) ? $error['class'] : \RuntimeException::class;
+                $errorMessage = \is_array($error) && isset($error['message']) && \is_string($error['message']) ? $error['message'] : 'Unknown worker failure.';
+
+                throw new \RuntimeException(\sprintf('Parallel collection failed: %s: %s', $errorClass, $errorMessage));
+            }
+
+            $resultsByIndex[$meta['index']] = $payload['result'] ?? [];
+            if (null !== $progress) {
+                $processed += $meta['count'];
+                $progress($processed, $total);
+            }
+        }
+
+        ksort($resultsByIndex);
+        /** @var list<RegexPatternOccurrence> $results */
+        $results = [];
+        foreach ($resultsByIndex as $chunkResults) {
+            if (!\is_array($chunkResults)) {
+                continue;
+            }
+
+            foreach ($chunkResults as $item) {
+                $results[] = $item;
+            }
+        }
+
+        return $results;
     }
 
     /**
@@ -80,6 +218,14 @@ final readonly class RegexPatternExtractor
      */
     private function collectPhpFiles(array $paths, array $excludePaths): array
     {
+        $normalizedExcludePaths = [];
+        foreach ($excludePaths as $excludePath) {
+            $excludePath = trim($excludePath, '/\\');
+            if ('' !== $excludePath) {
+                $normalizedExcludePaths[] = $excludePath;
+            }
+        }
+
         $files = [];
         foreach ($paths as $path) {
             if ('' === $path) {
@@ -115,11 +261,7 @@ final readonly class RegexPatternExtractor
 
                 // Skip excluded directories
                 $excluded = false;
-                foreach ($excludePaths as $excludePath) {
-                    $excludePath = trim($excludePath, '/\\');
-                    if ('' === $excludePath) {
-                        continue;
-                    }
+                foreach ($normalizedExcludePaths as $excludePath) {
                     if (str_contains($filePath, \DIRECTORY_SEPARATOR.$excludePath.\DIRECTORY_SEPARATOR) || str_starts_with($filePath, $excludePath.\DIRECTORY_SEPARATOR)) {
                         $excluded = true;
 
@@ -134,6 +276,69 @@ final readonly class RegexPatternExtractor
         }
 
         return $files;
+    }
+
+    /**
+     * @param array{ok: bool, result?: mixed, error?: array{message: string, class: string}} $payload
+     */
+    private function writeWorkerPayload(string $path, array $payload): void
+    {
+        $serialized = serialize($payload);
+        @file_put_contents($path, $serialized);
+    }
+
+    /**
+     * @return array{ok: bool, result?: mixed, error?: array{message: string, class: string}}
+     */
+    private function readWorkerPayload(string $path): array
+    {
+        $data = @file_get_contents($path);
+        if (false === $data) {
+            return [
+                'ok' => false,
+                'error' => [
+                    'message' => 'Failed to read worker output.',
+                    'class' => \RuntimeException::class,
+                ],
+            ];
+        }
+
+        $payload = @unserialize($data, ['allowed_classes' => true]);
+        if (!\is_array($payload) || !\array_key_exists('ok', $payload) || !\is_bool($payload['ok'])) {
+            return [
+                'ok' => false,
+                'error' => [
+                    'message' => 'Invalid worker output.',
+                    'class' => \RuntimeException::class,
+                ],
+            ];
+        }
+
+        if (false === $payload['ok']) {
+            $error = $payload['error'] ?? null;
+            if (!\is_array($error) || !isset($error['message'], $error['class']) || !\is_string($error['message']) || !\is_string($error['class'])) {
+                return [
+                    'ok' => false,
+                    'error' => [
+                        'message' => 'Invalid worker error payload.',
+                        'class' => \RuntimeException::class,
+                    ],
+                ];
+            }
+
+            return [
+                'ok' => false,
+                'error' => [
+                    'message' => $error['message'],
+                    'class' => $error['class'],
+                ],
+            ];
+        }
+
+        return [
+            'ok' => true,
+            'result' => $payload['result'] ?? null,
+        ];
     }
 
     /**
