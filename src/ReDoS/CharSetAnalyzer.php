@@ -41,6 +41,10 @@ final readonly class CharSetAnalyzer
 
     private function walk(Node\NodeInterface $node, bool $fromStart): CharSet
     {
+        if ($node instanceof Node\RegexNode) {
+            return $this->walk($node->pattern, $fromStart);
+        }
+
         if ($node instanceof Node\LiteralNode) {
             $length = \strlen($node->value);
             if (0 === $length) {

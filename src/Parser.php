@@ -579,7 +579,7 @@ final class Parser
         $token = $this->previous();
         $endPosition = $startPosition + \strlen($token->value) + 3; // +3 for "(*)"
 
-        return new Node\PcreVerbNode($token->value, $startPosition, $endPosition);
+        return $this->createPcreVerbNode($token->value, $startPosition, $endPosition);
     }
 
     /**
@@ -958,7 +958,7 @@ final class Parser
         }
 
         // Create a group node containing the verb and the following expression
-        $verbNode = new Node\PcreVerbNode(
+        $verbNode = $this->createPcreVerbNode(
             '' !== $argument ? $verb.':'.$argument : $verb,
             $verbStartPosition,
             $endPosition,
@@ -980,7 +980,7 @@ final class Parser
         $verbStartPosition = $verbToken->position;
         $verbEndPosition = $verbStartPosition + \strlen($verbToken->value) + 3; // +3 for "(*)"
 
-        $verbNode = new Node\PcreVerbNode($verbToken->value, $verbStartPosition, $verbEndPosition);
+        $verbNode = $this->createPcreVerbNode($verbToken->value, $verbStartPosition, $verbEndPosition);
 
         $expr = $this->parseAlternation();
         $this->consume(TokenType::T_GROUP_CLOSE, 'Expected ) to close PCRE verb group');
@@ -990,6 +990,19 @@ final class Parser
             $startPosition,
             $expr->getEndPosition(),
         );
+    }
+
+    private function createPcreVerbNode(string $verb, int $startPosition, int $endPosition): Node\NodeInterface
+    {
+        if (preg_match('/^LIMIT_MATCH=(\\d++)$/i', $verb, $matches)) {
+            return new Node\LimitMatchNode((int) $matches[1], $startPosition, $endPosition);
+        }
+
+        if (preg_match('/^(?:script_run|sr):(.+)$/i', $verb, $matches)) {
+            return new Node\ScriptRunNode($matches[1], $startPosition, $endPosition);
+        }
+
+        return new Node\PcreVerbNode($verb, $startPosition, $endPosition);
     }
 
     /**
@@ -1411,6 +1424,30 @@ final class Parser
                 return new Node\AssertionNode('DEFINE', $startPosition, $this->current()->position);
             }
             // Not DEFINE, restore position
+            $this->stream->setPosition($savedPos);
+        }
+
+        if ($this->check(TokenType::T_LITERAL) && 'V' === $this->current()->value) {
+            $savedPos = $this->stream->getPosition();
+            $word = '';
+            while (
+                !$this->checkLiteral(')')
+                && !$this->isAtEnd()
+                && ($this->check(TokenType::T_LITERAL) || $this->check(TokenType::T_DOT))
+            ) {
+                $word .= $this->current()->value;
+                $this->advance();
+            }
+
+            if (preg_match('/^VERSION\\s*(>=|<=|==|!=|>|<)\\s*([0-9]+(?:\\.[0-9]+)*)$/', $word, $matches)) {
+                return new Node\VersionConditionNode(
+                    $matches[1],
+                    $matches[2],
+                    $startPosition,
+                    $this->previous()->position,
+                );
+            }
+
             $this->stream->setPosition($savedPos);
         }
 

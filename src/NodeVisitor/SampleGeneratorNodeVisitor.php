@@ -576,8 +576,6 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
                 GroupType::T_GROUP_LOOKAHEAD_POSITIVE,
                 GroupType::T_GROUP_LOOKBEHIND_POSITIVE,
             ], true)) {
-                $condition->accept($this);
-
                 return true;
             }
 

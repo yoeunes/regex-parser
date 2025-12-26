@@ -66,21 +66,37 @@ final class RegexPatternExtractorTest extends TestCase
 
     public function test_extract_with_progress_callback(): void
     {
-        $occurrences = [
-            new RegexPatternOccurrence('/test1/', 'file1.php', 1, 'source1'),
-            new RegexPatternOccurrence('/test2/', 'file2.php', 2, 'source2'),
-        ];
+        $file1 = $this->createTempPhpFile();
+        $file2 = $this->createTempPhpFile();
 
-        $this->extractor->method('extract')->willReturn($occurrences);
+        try {
+            $occurrences = [
+                $file1 => new RegexPatternOccurrence('/test1/', 'file1.php', 1, 'source1'),
+                $file2 => new RegexPatternOccurrence('/test2/', 'file2.php', 2, 'source2'),
+            ];
 
-        $progressCalls = [];
-        $result = $this->patternExtractor->extract(
-            ['file1.php', 'file2.php'],
-            null,
-            function (int $current, int $total) use (&$progressCalls): void {
-                $progressCalls[] = ['current' => $current, 'total' => $total];
-            },
-        );
+            $this->extractor->method('extract')->willReturnCallback(
+                static function (array $files) use ($occurrences): array {
+                    if (1 === \count($files) && isset($occurrences[$files[0]])) {
+                        return [$occurrences[$files[0]]];
+                    }
+
+                    return array_values($occurrences);
+                },
+            );
+
+            $progressCalls = [];
+            $result = $this->patternExtractor->extract(
+                [$file1, $file2],
+                null,
+                function (int $current, int $total) use (&$progressCalls): void {
+                    $progressCalls[] = ['current' => $current, 'total' => $total];
+                },
+            );
+        } finally {
+            @unlink($file1);
+            @unlink($file2);
+        }
 
         $this->assertCount(2, $result);
         $this->assertCount(3, $progressCalls);
@@ -108,7 +124,13 @@ final class RegexPatternExtractorTest extends TestCase
         $occurrence = new RegexPatternOccurrence('/test/', 'file.php', 1, 'source');
         $this->extractor->method('extract')->willReturn([$occurrence]);
 
-        $result = $this->patternExtractor->extract(['file.php'], null, null, 2);
+        $file = $this->createTempPhpFile();
+
+        try {
+            $result = $this->patternExtractor->extract([$file], null, null, 2);
+        } finally {
+            @unlink($file);
+        }
 
         $this->assertCount(1, $result);
     }
@@ -242,5 +264,13 @@ final class RegexPatternExtractorTest extends TestCase
         $method = $reflection->getMethod('isTemplateFile');
 
         $this->assertFalse($method->invoke($this->patternExtractor, 'regular.php'));
+    }
+
+    private function createTempPhpFile(string $content = '<?php'): string
+    {
+        $path = sys_get_temp_dir().'/regexparser_'.uniqid('', true).'.php';
+        file_put_contents($path, $content);
+
+        return $path;
     }
 }

@@ -115,7 +115,7 @@ final class CharSetTest extends TestCase
         $merged = $rangeA->union($rangeB);
 
         $this->assertFalse($merged->isEmpty());
-        $this->assertTrue($merged->intersects(CharSet::fromChar('a')));
+        $this->assertTrue($merged->intersects(CharSet::fromRange(4, 4)));
     }
 
     public function test_union_overlapping_ranges(): void
@@ -124,7 +124,7 @@ final class CharSetTest extends TestCase
         $rangeB = CharSet::fromRange(3, 10);
         $merged = $rangeA->union($rangeB);
 
-        $this->assertTrue($merged->intersects(CharSet::fromChar('a')));
+        $this->assertTrue($merged->intersects(CharSet::fromRange(4, 4)));
     }
 
     public function test_intersects_with_overlapping_ranges(): void

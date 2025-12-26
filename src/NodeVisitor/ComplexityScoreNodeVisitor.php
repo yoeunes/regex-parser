@@ -235,6 +235,18 @@ final class ComplexityScoreNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
+    public function visitScriptRun(Node\ScriptRunNode $node): int
+    {
+        return self::COMPLEX_CONSTRUCT_SCORE;
+    }
+
+    #[\Override]
+    public function visitVersionCondition(Node\VersionConditionNode $node): int
+    {
+        return self::COMPLEX_CONSTRUCT_SCORE;
+    }
+
+    #[\Override]
     public function visitDefine(Node\DefineNode $node): int
     {
         // DEFINE blocks add complexity from their content

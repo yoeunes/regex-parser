@@ -176,7 +176,7 @@ final class RailroadDiagramVisitorTest extends TestCase
 
     public function test_diagram_with_version_condition(): void
     {
-        $ast = Regex::create()->parse('/(1.0)a(*LIMIT_MATCH=x)/');
+        $ast = Regex::create()->parse('/(?(VERSION>=1.0)a|b)/');
         $diagram = $ast->accept(new RailroadDiagramVisitor());
 
         $this->assertStringContainsString('VersionCondition (>= 1.0)', $diagram);
@@ -192,7 +192,7 @@ final class RailroadDiagramVisitorTest extends TestCase
 
     public function test_diagram_with_posix_class(): void
     {
-        $ast = Regex::create()->parse('/[:alpha:]/');
+        $ast = Regex::create()->parse('/[[:alpha:]]/');
         $diagram = $ast->accept(new RailroadDiagramVisitor());
 
         $this->assertStringContainsString('PosixClass ([:alpha:])', $diagram);
@@ -216,7 +216,7 @@ final class RailroadDiagramVisitorTest extends TestCase
 
     public function test_diagram_with_subroutine(): void
     {
-        $ast = Regex::create()->parse('/(?(1)a)/');
+        $ast = Regex::create()->parse('/(a)(?1)/');
         $diagram = $ast->accept(new RailroadDiagramVisitor());
 
         $this->assertStringContainsString('Subroutine (1)', $diagram);
@@ -288,10 +288,10 @@ final class RailroadDiagramVisitorTest extends TestCase
 
     public function test_diagram_with_unicode_escape(): void
     {
-        $ast = Regex::create()->parse('/\\x20AC/');
+        $ast = Regex::create()->parse('/\\x{20AC}/');
         $diagram = $ast->accept(new RailroadDiagramVisitor());
 
-        $this->assertStringContainsString('Unicode (\\x20AC)', $diagram);
+        $this->assertStringContainsString('CharLiteral (\\x{20AC})', $diagram);
     }
 
     public function test_diagram_with_dot(): void
