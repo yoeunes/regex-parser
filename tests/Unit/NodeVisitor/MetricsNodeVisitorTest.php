@@ -188,8 +188,8 @@ final class MetricsNodeVisitorTest extends TestCase
         $ast = Regex::create()->parse('/(*LIMIT_MATCH=100)a/');
         $metrics = $ast->accept(new MetricsNodeVisitor());
 
-        $this->assertArrayHasKey('PcreVerbNode', $metrics['counts']);
-        $this->assertGreaterThan(0, $metrics['counts']['PcreVerbNode']);
+        $this->assertArrayHasKey('LimitMatchNode', $metrics['counts']);
+        $this->assertGreaterThan(0, $metrics['counts']['LimitMatchNode']);
     }
 
     public function test_it_counts_callout_nodes(): void

@@ -19,7 +19,7 @@ final class ValidatorRegexPatternSourceTest extends TestCase
 {
     protected function setUp(): void
     {
-        if (!class_exists(\Symfony\Component\Validator\Validator\ValidatorInterface::class)) {
+        if (!interface_exists(\Symfony\Component\Validator\Validator\ValidatorInterface::class)) {
             $this->markTestSkipped('Symfony Validator component is not available');
         }
     }
@@ -27,14 +27,16 @@ final class ValidatorRegexPatternSourceTest extends TestCase
     public function test_construct(): void
     {
         $source = new \RegexParser\Bridge\Symfony\Extractor\ValidatorRegexPatternSource();
+        $this->assertSame('validators', $source->getName());
     }
 
     public function test_construct_with_validator(): void
     {
         $validator = $this->createMock(\Symfony\Component\Validator\Validator\ValidatorInterface::class);
-        $loader = $this->createMock(\Symfony\Component\Validator\Mapping\Loader\LoaderInterface::class);
+        $loader = $this->createLoaderStub();
 
         $source = new \RegexParser\Bridge\Symfony\Extractor\ValidatorRegexPatternSource($validator, $loader);
+        $this->assertTrue($source->isSupported());
     }
 
     public function test_get_name(): void
@@ -59,7 +61,7 @@ final class ValidatorRegexPatternSourceTest extends TestCase
     public function test_is_supported_returns_true_when_both_present(): void
     {
         $validator = $this->createMock(\Symfony\Component\Validator\Validator\ValidatorInterface::class);
-        $loader = $this->createMock(\Symfony\Component\Validator\Mapping\Loader\LoaderInterface::class);
+        $loader = $this->createLoaderStub();
 
         $source = new \RegexParser\Bridge\Symfony\Extractor\ValidatorRegexPatternSource($validator, $loader);
         $this->assertTrue($source->isSupported());
@@ -78,8 +80,7 @@ final class ValidatorRegexPatternSourceTest extends TestCase
     public function test_extract_with_empty_mapped_classes(): void
     {
         $validator = $this->createMock(\Symfony\Component\Validator\Validator\ValidatorInterface::class);
-        $loader = $this->createMock(\Symfony\Component\Validator\Mapping\Loader\LoaderInterface::class);
-        $loader->method('getMappedClasses')->willReturn([]);
+        $loader = $this->createLoaderStub([]);
 
         $source = new \RegexParser\Bridge\Symfony\Extractor\ValidatorRegexPatternSource($validator, $loader);
         $context = new \RegexParser\Lint\RegexPatternSourceContext(['.'], []);
@@ -92,7 +93,7 @@ final class ValidatorRegexPatternSourceTest extends TestCase
     public function test_extract_with_regex_constraint(): void
     {
         $validator = $this->createMock(\Symfony\Component\Validator\Validator\ValidatorInterface::class);
-        $loader = $this->createMock(\Symfony\Component\Validator\Mapping\Loader\LoaderInterface::class);
+        $loader = $this->createLoaderStub([TestEntity::class]);
 
         // Mock metadata for a class
         $metadata = $this->createMock(\Symfony\Component\Validator\Mapping\ClassMetadataInterface::class);
@@ -107,8 +108,6 @@ final class ValidatorRegexPatternSourceTest extends TestCase
 
         $metadata->method('getPropertyMetadata')->willReturn([$propertyMetadata]);
         $validator->method('getMetadataFor')->willReturn($metadata);
-        $loader->method('getMappedClasses')->willReturn([TestEntity::class]);
-
         $source = new \RegexParser\Bridge\Symfony\Extractor\ValidatorRegexPatternSource($validator, $loader);
         $context = new \RegexParser\Lint\RegexPatternSourceContext(['.'], []);
 
@@ -116,14 +115,14 @@ final class ValidatorRegexPatternSourceTest extends TestCase
 
         $this->assertCount(1, $result);
         $this->assertSame('/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/', $result[0]->pattern);
-        $this->assertSame('Symfony Validator', $result[0]->file);
+        $this->assertSame(__FILE__, $result[0]->file);
         $this->assertSame('validator:'.TestEntity::class.'::$email', $result[0]->source);
     }
 
     public function test_extract_with_class_level_regex_constraint(): void
     {
         $validator = $this->createMock(\Symfony\Component\Validator\Validator\ValidatorInterface::class);
-        $loader = $this->createMock(\Symfony\Component\Validator\Mapping\Loader\LoaderInterface::class);
+        $loader = $this->createLoaderStub([TestEntity::class]);
 
         $regexConstraint = new \Symfony\Component\Validator\Constraints\Regex(pattern: '/^valid$/');
 
@@ -132,8 +131,6 @@ final class ValidatorRegexPatternSourceTest extends TestCase
         $metadata->method('getConstrainedProperties')->willReturn([]);
 
         $validator->method('getMetadataFor')->willReturn($metadata);
-        $loader->method('getMappedClasses')->willReturn([TestEntity::class]);
-
         $source = new \RegexParser\Bridge\Symfony\Extractor\ValidatorRegexPatternSource($validator, $loader);
         $context = new \RegexParser\Lint\RegexPatternSourceContext(['.'], []);
 
@@ -147,17 +144,16 @@ final class ValidatorRegexPatternSourceTest extends TestCase
     public function test_extract_ignores_null_patterns(): void
     {
         $validator = $this->createMock(\Symfony\Component\Validator\Validator\ValidatorInterface::class);
-        $loader = $this->createMock(\Symfony\Component\Validator\Mapping\Loader\LoaderInterface::class);
+        $loader = $this->createLoaderStub([TestEntity::class]);
 
-        $regexConstraint = new \Symfony\Component\Validator\Constraints\Regex(pattern: null);
+        $regexConstraint = new \Symfony\Component\Validator\Constraints\Regex(pattern: '/placeholder/');
+        $regexConstraint->pattern = null;
 
         $metadata = $this->createMock(\Symfony\Component\Validator\Mapping\ClassMetadataInterface::class);
         $metadata->method('getConstraints')->willReturn([$regexConstraint]);
         $metadata->method('getConstrainedProperties')->willReturn([]);
 
         $validator->method('getMetadataFor')->willReturn($metadata);
-        $loader->method('getMappedClasses')->willReturn([TestEntity::class]);
-
         $source = new \RegexParser\Bridge\Symfony\Extractor\ValidatorRegexPatternSource($validator, $loader);
         $context = new \RegexParser\Lint\RegexPatternSourceContext(['.'], []);
 
@@ -169,7 +165,7 @@ final class ValidatorRegexPatternSourceTest extends TestCase
     public function test_extract_ignores_empty_patterns(): void
     {
         $validator = $this->createMock(\Symfony\Component\Validator\Validator\ValidatorInterface::class);
-        $loader = $this->createMock(\Symfony\Component\Validator\Mapping\Loader\LoaderInterface::class);
+        $loader = $this->createLoaderStub([TestEntity::class]);
 
         $regexConstraint = new \Symfony\Component\Validator\Constraints\Regex(pattern: '');
 
@@ -178,8 +174,6 @@ final class ValidatorRegexPatternSourceTest extends TestCase
         $metadata->method('getConstrainedProperties')->willReturn([]);
 
         $validator->method('getMetadataFor')->willReturn($metadata);
-        $loader->method('getMappedClasses')->willReturn([TestEntity::class]);
-
         $source = new \RegexParser\Bridge\Symfony\Extractor\ValidatorRegexPatternSource($validator, $loader);
         $context = new \RegexParser\Lint\RegexPatternSourceContext(['.'], []);
 
@@ -191,7 +185,7 @@ final class ValidatorRegexPatternSourceTest extends TestCase
     public function test_extract_ignores_non_regex_constraints(): void
     {
         $validator = $this->createMock(\Symfony\Component\Validator\Validator\ValidatorInterface::class);
-        $loader = $this->createMock(\Symfony\Component\Validator\Mapping\Loader\LoaderInterface::class);
+        $loader = $this->createLoaderStub([TestEntity::class]);
 
         $notConstraint = new \Symfony\Component\Validator\Constraints\NotBlank();
 
@@ -200,8 +194,6 @@ final class ValidatorRegexPatternSourceTest extends TestCase
         $metadata->method('getConstrainedProperties')->willReturn([]);
 
         $validator->method('getMetadataFor')->willReturn($metadata);
-        $loader->method('getMappedClasses')->willReturn([TestEntity::class]);
-
         $source = new \RegexParser\Bridge\Symfony\Extractor\ValidatorRegexPatternSource($validator, $loader);
         $context = new \RegexParser\Lint\RegexPatternSourceContext(['.'], []);
 
@@ -213,11 +205,9 @@ final class ValidatorRegexPatternSourceTest extends TestCase
     public function test_extract_handles_metadata_exceptions(): void
     {
         $validator = $this->createMock(\Symfony\Component\Validator\Validator\ValidatorInterface::class);
-        $loader = $this->createMock(\Symfony\Component\Validator\Mapping\Loader\LoaderInterface::class);
+        $loader = $this->createLoaderStub([TestEntity::class]);
 
         $validator->method('getMetadataFor')->willThrowException(new \Exception('Metadata not found'));
-        $loader->method('getMappedClasses')->willReturn([TestEntity::class]);
-
         $source = new \RegexParser\Bridge\Symfony\Extractor\ValidatorRegexPatternSource($validator, $loader);
         $context = new \RegexParser\Lint\RegexPatternSourceContext(['.'], []);
 
@@ -229,9 +219,7 @@ final class ValidatorRegexPatternSourceTest extends TestCase
     public function test_extract_handles_invalid_mapped_classes(): void
     {
         $validator = $this->createMock(\Symfony\Component\Validator\Validator\ValidatorInterface::class);
-        $loader = $this->createMock(\Symfony\Component\Validator\Mapping\Loader\LoaderInterface::class);
-
-        $loader->method('getMappedClasses')->willReturn([
+        $loader = $this->createLoaderStub([
             TestEntity::class, // Valid
             '', // Empty string
             null, // Null
@@ -250,7 +238,7 @@ final class ValidatorRegexPatternSourceTest extends TestCase
     public function test_extract_with_class_file(): void
     {
         $validator = $this->createMock(\Symfony\Component\Validator\Validator\ValidatorInterface::class);
-        $loader = $this->createMock(\Symfony\Component\Validator\Mapping\Loader\LoaderInterface::class);
+        $loader = $this->createLoaderStub([TestEntity::class]);
 
         $metadata = $this->createMock(\Symfony\Component\Validator\Mapping\ClassMetadataInterface::class);
         $metadata->method('getConstraints')->willReturn([
@@ -259,23 +247,19 @@ final class ValidatorRegexPatternSourceTest extends TestCase
         $metadata->method('getConstrainedProperties')->willReturn([]);
 
         $validator->method('getMetadataFor')->willReturn($metadata);
-        $loader->method('getMappedClasses')->willReturn([\stdClass::class]);
-
         $source = new \RegexParser\Bridge\Symfony\Extractor\ValidatorRegexPatternSource($validator, $loader);
         $context = new \RegexParser\Lint\RegexPatternSourceContext(['.'], []);
 
         $result = $source->extract($context);
 
         $this->assertCount(1, $result);
-        $this->assertStringEndsWith('stdClass.php', $result[0]->file);
+        $this->assertStringEndsWith('ValidatorRegexPatternSourceTest.php', $result[0]->file);
     }
 
     public function test_extract_handles_loader_exceptions(): void
     {
         $validator = $this->createMock(\Symfony\Component\Validator\Validator\ValidatorInterface::class);
-        $loader = $this->createMock(\Symfony\Component\Validator\Mapping\Loader\LoaderInterface::class);
-
-        $loader->method('getMappedClasses')->willThrowException(new \Exception('Loader error'));
+        $loader = $this->createLoaderStub([], new \Exception('Loader error'));
 
         $source = new \RegexParser\Bridge\Symfony\Extractor\ValidatorRegexPatternSource($validator, $loader);
         $context = new \RegexParser\Lint\RegexPatternSourceContext(['.'], []);
@@ -288,10 +272,7 @@ final class ValidatorRegexPatternSourceTest extends TestCase
     public function test_extract_handles_loader_without_method(): void
     {
         $validator = $this->createMock(\Symfony\Component\Validator\Validator\ValidatorInterface::class);
-        $loader = $this->createMock(\Symfony\Component\Validator\Mapping\Loader\LoaderInterface::class);
-
-        // Mock doesn't have getMappedClasses method
-        $loader->expects($this->never())->method('getMappedClasses');
+        $loader = $this->createLoaderWithoutMappedClasses();
 
         $source = new \RegexParser\Bridge\Symfony\Extractor\ValidatorRegexPatternSource($validator, $loader);
         $context = new \RegexParser\Lint\RegexPatternSourceContext(['.'], []);
@@ -303,7 +284,7 @@ final class ValidatorRegexPatternSourceTest extends TestCase
 
     public function test_extract_skips_when_symfony_not_available(): void
     {
-        if (class_exists(\Symfony\Component\Validator\Validator\ValidatorInterface::class)) {
+        if (interface_exists(\Symfony\Component\Validator\Validator\ValidatorInterface::class)) {
             $this->markTestSkipped('Symfony Validator is available, skipping test');
         }
 
@@ -311,6 +292,49 @@ final class ValidatorRegexPatternSourceTest extends TestCase
         $source = new \RegexParser\Bridge\Symfony\Extractor\ValidatorRegexPatternSource();
         $this->assertFalse($source->isSupported());
         $this->assertSame('validators', $source->getName());
+    }
+
+    /**
+     * @param array<int, string|int|null> $mappedClasses
+     */
+    private function createLoaderStub(array $mappedClasses = [], ?\Throwable $exception = null): \Symfony\Component\Validator\Mapping\Loader\LoaderInterface
+    {
+        return new class($mappedClasses, $exception) implements \Symfony\Component\Validator\Mapping\Loader\LoaderInterface {
+            /**
+             * @param array<int, string|int|null> $mappedClasses
+             */
+            public function __construct(
+                private readonly array $mappedClasses,
+                private readonly ?\Throwable $exception,
+            ) {}
+
+            public function loadClassMetadata(\Symfony\Component\Validator\Mapping\ClassMetadata $metadata): bool
+            {
+                return true;
+            }
+
+            /**
+             * @return array<int, string|int|null>
+             */
+            public function getMappedClasses(): array
+            {
+                if (null !== $this->exception) {
+                    throw $this->exception;
+                }
+
+                return $this->mappedClasses;
+            }
+        };
+    }
+
+    private function createLoaderWithoutMappedClasses(): \Symfony\Component\Validator\Mapping\Loader\LoaderInterface
+    {
+        return new class implements \Symfony\Component\Validator\Mapping\Loader\LoaderInterface {
+            public function loadClassMetadata(\Symfony\Component\Validator\Mapping\ClassMetadata $metadata): bool
+            {
+                return true;
+            }
+        };
     }
 }
 

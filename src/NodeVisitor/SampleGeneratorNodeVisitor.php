@@ -65,6 +65,16 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
     private int $totalGroupCount = 0;
 
     /**
+     * @var array<int, string>
+     */
+    private array $requiredPrefixes = [];
+
+    /**
+     * @var array<int, string>
+     */
+    private array $requiredSuffixes = [];
+
+    /**
      * Constructs a new SampleGeneratorNodeVisitor.
      *
      * Purpose: Initializes the visitor with a maximum repetition limit. This limit is crucial
@@ -123,6 +133,8 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
         $this->namedGroupMap = [];
         $this->groupNumbers = [];
         $this->groupDefinitionCounter = 1;
+        $this->requiredPrefixes = [];
+        $this->requiredSuffixes = [];
         $this->collectGroups($node->pattern);
         $this->totalGroupCount = $this->groupDefinitionCounter - 1;
 
@@ -133,7 +145,9 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
 
         // Note: Flags (like /i) are ignored, as we generate the sample
         // from the literal pattern.
-        return $node->pattern->accept($this);
+        $sample = $node->pattern->accept($this);
+
+        return $this->applyLookaroundHints($sample);
     }
 
     #[\Override]
@@ -168,6 +182,18 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
             GroupType::T_GROUP_LOOKBEHIND_POSITIVE,
             GroupType::T_GROUP_LOOKBEHIND_NEGATIVE,
         ], true)) {
+            if (GroupType::T_GROUP_LOOKBEHIND_POSITIVE === $node->type) {
+                $prefix = $node->child->accept($this);
+                if ('' !== $prefix) {
+                    $this->requiredPrefixes[] = $prefix;
+                }
+            } elseif (GroupType::T_GROUP_LOOKAHEAD_POSITIVE === $node->type) {
+                $suffix = $node->child->accept($this);
+                if ('' !== $suffix) {
+                    $this->requiredSuffixes[] = $suffix;
+                }
+            }
+
             return '';
         }
 
@@ -403,16 +429,10 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitConditional(Node\ConditionalNode $node): string
     {
-        // This is complex. Does the condition (e.g., group 1) exist?
-        // We'll randomly choose to satisfy the condition or not.
-        $choice = $this->randomInt(0, 1);
-
-        if (1 === $choice) {
-            // Simulate "YES" path
+        if ($this->isConditionSatisfied($node->condition)) {
             return $node->yes->accept($this);
         }
 
-        // Simulate "NO" path
         return $node->no->accept($this);
     }
 
@@ -518,6 +538,79 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
         } catch (\Throwable) {
             return $min;
         }
+    }
+
+    private function applyLookaroundHints(string $sample): string
+    {
+        foreach ($this->requiredPrefixes as $prefix) {
+            if ('' === $prefix) {
+                continue;
+            }
+
+            if (!str_starts_with($sample, $prefix)) {
+                $sample = $prefix.$sample;
+            }
+        }
+
+        foreach ($this->requiredSuffixes as $suffix) {
+            if ('' === $suffix) {
+                continue;
+            }
+
+            if (!str_contains($sample, $suffix)) {
+                $sample .= $suffix;
+            }
+        }
+
+        return $sample;
+    }
+
+    private function isConditionSatisfied(Node\NodeInterface $condition): bool
+    {
+        if ($condition instanceof Node\BackrefNode) {
+            return $this->hasCaptureForReference($condition->ref);
+        }
+
+        if ($condition instanceof Node\GroupNode) {
+            if (\in_array($condition->type, [
+                GroupType::T_GROUP_LOOKAHEAD_POSITIVE,
+                GroupType::T_GROUP_LOOKBEHIND_POSITIVE,
+            ], true)) {
+                return true;
+            }
+
+            if (\in_array($condition->type, [
+                GroupType::T_GROUP_LOOKAHEAD_NEGATIVE,
+                GroupType::T_GROUP_LOOKBEHIND_NEGATIVE,
+            ], true)) {
+                return false;
+            }
+
+            return '' !== $condition->accept($this);
+        }
+
+        if ($condition instanceof Node\AssertionNode) {
+            return true;
+        }
+
+        return 1 === $this->randomInt(0, 1);
+    }
+
+    private function hasCaptureForReference(string $reference): bool
+    {
+        if (ctype_digit($reference)) {
+            return isset($this->captures[(int) $reference]);
+        }
+
+        if (isset($this->captures[$reference])) {
+            return true;
+        }
+
+        if (preg_match('/^\\\\(\d++)$/', $reference, $matches)) {
+            return isset($this->captures[(int) $matches[1]]);
+        }
+
+        return false;
     }
 
     /**

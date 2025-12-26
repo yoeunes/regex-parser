@@ -579,7 +579,7 @@ final class Parser
         $token = $this->previous();
         $endPosition = $startPosition + \strlen($token->value) + 3; // +3 for "(*)"
 
-        return new Node\PcreVerbNode($token->value, $startPosition, $endPosition);
+        return $this->createPcreVerbNode($token->value, $startPosition, $endPosition);
     }
 
     /**
@@ -958,7 +958,7 @@ final class Parser
         }
 
         // Create a group node containing the verb and the following expression
-        $verbNode = new Node\PcreVerbNode(
+        $verbNode = $this->createPcreVerbNode(
             '' !== $argument ? $verb.':'.$argument : $verb,
             $verbStartPosition,
             $endPosition,
@@ -980,7 +980,7 @@ final class Parser
         $verbStartPosition = $verbToken->position;
         $verbEndPosition = $verbStartPosition + \strlen($verbToken->value) + 3; // +3 for "(*)"
 
-        $verbNode = new Node\PcreVerbNode($verbToken->value, $verbStartPosition, $verbEndPosition);
+        $verbNode = $this->createPcreVerbNode($verbToken->value, $verbStartPosition, $verbEndPosition);
 
         $expr = $this->parseAlternation();
         $this->consume(TokenType::T_GROUP_CLOSE, 'Expected ) to close PCRE verb group');
@@ -990,6 +990,29 @@ final class Parser
             $startPosition,
             $expr->getEndPosition(),
         );
+    }
+
+    private function createPcreVerbNode(string $verb, int $startPosition, int $endPosition): Node\NodeInterface
+    {
+        if (preg_match('/^LIMIT_MATCH=(\\d++)$/i', $verb, $matches)) {
+            return new Node\LimitMatchNode((int) $matches[1], $startPosition, $endPosition);
+        }
+
+        $lowerVerb = strtolower($verb);
+        if (str_starts_with($lowerVerb, 'script_run:')) {
+            $payload = substr($verb, \strlen('script_run:'));
+            if ('' !== $payload) {
+                return new Node\ScriptRunNode($payload, $startPosition, $endPosition);
+            }
+        }
+        if (str_starts_with($lowerVerb, 'sr:')) {
+            $payload = substr($verb, \strlen('sr:'));
+            if ('' !== $payload) {
+                return new Node\ScriptRunNode($payload, $startPosition, $endPosition);
+            }
+        }
+
+        return new Node\PcreVerbNode($verb, $startPosition, $endPosition);
     }
 
     /**
@@ -1411,6 +1434,56 @@ final class Parser
                 return new Node\AssertionNode('DEFINE', $startPosition, $this->current()->position);
             }
             // Not DEFINE, restore position
+            $this->stream->setPosition($savedPos);
+        }
+
+        if ($this->check(TokenType::T_LITERAL) && 'V' === $this->current()->value) {
+            $savedPos = $this->stream->getPosition();
+            $word = '';
+            while (
+                !$this->checkLiteral(')')
+                && !$this->isAtEnd()
+                && ($this->check(TokenType::T_LITERAL) || $this->check(TokenType::T_DOT))
+            ) {
+                $word .= $this->current()->value;
+                $this->advance();
+            }
+
+            $trimmed = trim($word);
+            if (str_starts_with($trimmed, 'VERSION')) {
+                $rest = ltrim(substr($trimmed, \strlen('VERSION')));
+                $operator = null;
+                foreach (['>=', '<=', '==', '!=', '>', '<'] as $candidate) {
+                    if (str_starts_with($rest, $candidate)) {
+                        $operator = $candidate;
+                        $rest = ltrim(substr($rest, \strlen($candidate)));
+
+                        break;
+                    }
+                }
+
+                if (null !== $operator && '' !== $rest) {
+                    $parts = explode('.', $rest);
+                    $valid = true;
+                    foreach ($parts as $part) {
+                        if ('' === $part || !ctype_digit($part)) {
+                            $valid = false;
+
+                            break;
+                        }
+                    }
+
+                    if ($valid) {
+                        return new Node\VersionConditionNode(
+                            $operator,
+                            $rest,
+                            $startPosition,
+                            $this->previous()->position,
+                        );
+                    }
+                }
+            }
+
             $this->stream->setPosition($savedPos);
         }
 

@@ -181,7 +181,9 @@ final class RailroadDiagramVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitBackref(Node\BackrefNode $node): string
     {
-        $this->addLine('Backref (\\'.$node->ref.')');
+        $ref = $node->ref;
+        $display = str_starts_with($ref, '\\') ? $ref : '\\'.$ref;
+        $this->addLine('Backref ('.$display.')');
 
         return '';
     }

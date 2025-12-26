@@ -535,7 +535,11 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     public function visitUnicodeProp(Node\UnicodePropNode $node): void
     {
         $prop = $node->prop;
-        $key = 'p'.$prop;
+        $key = $node->hasBraces
+            ? 'p'.$prop
+            : ((\strlen($prop) > 1 || str_starts_with($prop, '^'))
+                ? 'p{'.$prop.'}'
+                : 'p'.$prop);
 
         // Intelligent caching with lazy validation and size limit
         if (!isset(self::$unicodePropCache[$key])) {

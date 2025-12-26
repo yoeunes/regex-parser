@@ -41,38 +41,39 @@ final class OfficialPcreComplianceTest extends TestCase
             $nativeValid = false;
         }
 
-        // 2. Parse with the library
-        $regex = Regex::create();
+        // 2. Validate with runtime PCRE checks enabled
+        $regex = Regex::create(['runtime_pcre_validation' => true]);
+        $validation = $regex->validate($pattern);
+
+        // Scenario A: Pattern is natively invalid
+        if (!$nativeValid) {
+            $this->assertFalse(
+                $validation->isValid,
+                \sprintf('Pattern "%s" is invalid in PHP but was accepted by the parser/runtime validation.', $pattern),
+            );
+
+            return;
+        }
+
+        // Scenario B: Pattern is natively valid, but Validation failed
+        if (!$validation->isValid) {
+            $this->fail(\sprintf(
+                'Validation failed on a valid pattern: "%s". Error: %s',
+                $pattern,
+                $validation->error ?? 'unknown error',
+            ));
+        }
+
+        // 3. Parse with the library (should succeed if validation passed)
         $ast = null;
-        $parseException = null;
 
         try {
             $ast = $regex->parse($pattern);
         } catch (\Throwable $e) {
-            $parseException = $e;
-        }
-
-        // Scenario A: Pattern is natively invalid
-        if (!$nativeValid) {
-            if (null !== $parseException) {
-                // Success: Native rejects it, and we reject it too.
-                $this->assertNotEmpty($parseException->getMessage(), 'Native PHP and Parser both rejected the invalid pattern.');
-
-                return;
-            }
-
-            // Native rejects it, but we accept it. This is technically a divergence,
-            // but might be acceptable if we are more permissive or strictly structural.
-            // We mark it skipped to clean up the output without failing the build.
-            $this->markTestSkipped(\sprintf('Pattern "%s" is invalid in PHP but was accepted by the parser.', $pattern));
-        }
-
-        // Scenario B: Pattern is natively valid, but Parser failed
-        if (null !== $parseException) {
             $this->fail(\sprintf(
                 'Parser failed on a valid pattern: "%s". Error: %s',
                 $pattern,
-                $parseException->getMessage(),
+                $e->getMessage(),
             ));
         }
 
