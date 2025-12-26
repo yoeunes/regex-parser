@@ -368,13 +368,28 @@ class ConsoleFormatter extends AbstractOutputFormatter
                 $ops[] = ['type' => 'equal', 'line' => $oldLines[$i - 1]];
                 $i--;
                 $j--;
-            } elseif ($j > 0 && (0 === $i || $lcs[$i][$j - 1] >= $lcs[$i - 1][$j])) {
-                $ops[] = ['type' => 'insert', 'line' => $newLines[$j - 1]];
-                $j--;
-            } else {
-                $ops[] = ['type' => 'delete', 'line' => $oldLines[$i - 1]];
-                $i--;
+
+                continue;
             }
+
+            if ($j > 0) {
+                if (0 === $i) {
+                    $ops[] = ['type' => 'insert', 'line' => $newLines[$j - 1]];
+                    $j--;
+
+                    continue;
+                }
+
+                if ($lcs[$i][$j - 1] >= $lcs[$i - 1][$j]) {
+                    $ops[] = ['type' => 'insert', 'line' => $newLines[$j - 1]];
+                    $j--;
+
+                    continue;
+                }
+            }
+
+            $ops[] = ['type' => 'delete', 'line' => $oldLines[$i - 1]];
+            $i--;
         }
 
         return array_reverse($ops);
