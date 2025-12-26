@@ -270,6 +270,8 @@ function showHelp(): void
     output('  '.color('--no-optimize', CYAN)."        Disable optimization suggestions\n");
     output('  '.color('-v, --verbose', CYAN)."         Show detailed output\n");
     output('  '.color('--debug', CYAN)."              Show debug information\n\n");
+    output(dim('  Config: regex.json or regex.dist.json in the working directory sets lint defaults.')."\n");
+    output(dim('  Inline ignore: // @regex-ignore-next-line or // @regex-ignore')."\n\n");
 
     output(color('Diagram Options:', MAGENTA)."\n");
     output('  '.color('--format', CYAN)." <format>     Output format (ascii)\n\n");
@@ -445,7 +447,7 @@ function showFooter(): void
     output('  '.dim('Star the repo: https://github.com/yoeunes/regex-parser')."\n\n");
 }
 
-function renderLintBanner(int $jobs = 1): string
+function renderLintBanner(int $jobs = 1, array $configFiles = []): string
 {
     $versionFile = __DIR__.'/../composer.json';
     $version = 'dev';
@@ -457,15 +459,214 @@ function renderLintBanner(int $jobs = 1): string
     $output = color('RegexParser', CYAN.BOLD).' '.warning($version).' by Younes ENNAJI'."\n\n";
     $output .= 'Runtime:       PHP '.warning(\PHP_VERSION)."\n";
     $output .= 'Processes:     '.warning((string) $jobs)."\n";
-    
-    $configFile = getcwd().'/.regex.php';
-    if (file_exists($configFile)) {
-        $output .= 'Configuration: '.$configFile."\n";
+
+    if ([] !== $configFiles) {
+        $paths = array_map(static fn (string $path): string => relativePath($path), $configFiles);
+        $output .= 'Configuration: '.implode(', ', $paths)."\n";
     }
-    
+
     $output .= "\n";
     
     return $output;
+}
+
+function loadLintConfig(): array
+{
+    $cwd = getcwd();
+    if (false === $cwd) {
+        return ['config' => [], 'files' => []];
+    }
+
+    $config = [];
+    $files = [];
+    $paths = [$cwd.'/regex.dist.json', $cwd.'/regex.json'];
+
+    foreach ($paths as $path) {
+        if (!file_exists($path)) {
+            continue;
+        }
+
+        $readResult = readLintConfigFile($path);
+        if (isset($readResult['error'])) {
+            return ['error' => $readResult['error']];
+        }
+
+        $normalized = normalizeLintConfig($readResult['config'], $path);
+        if (isset($normalized['error'])) {
+            return ['error' => $normalized['error']];
+        }
+
+        $config = array_replace_recursive($config, $normalized['config']);
+        $files[] = $path;
+    }
+
+    return ['config' => $config, 'files' => $files];
+}
+
+/**
+ * @return array{config: array<string, mixed>}|array{error: string}
+ */
+function readLintConfigFile(string $path): array
+{
+    $contents = @file_get_contents($path);
+    if (false === $contents) {
+        return ['error' => 'Failed to read config file: '.$path];
+    }
+
+    $decoded = json_decode($contents, true);
+    if (null === $decoded && JSON_ERROR_NONE !== json_last_error()) {
+        return ['error' => 'Invalid JSON in '.$path.': '.json_last_error_msg()];
+    }
+
+    if (!\is_array($decoded)) {
+        return ['error' => 'Config file must contain a JSON object: '.$path];
+    }
+
+    return ['config' => $decoded];
+}
+
+/**
+ * @param array<string, mixed> $config
+ *
+ * @return array{config: array<string, mixed>}|array{error: string}
+ */
+function normalizeLintConfig(array $config, string $path): array
+{
+    $normalized = [];
+
+    if (array_key_exists('paths', $config)) {
+        $paths = normalizeStringList($config['paths'], $path, 'paths');
+        if (isset($paths['error'])) {
+            return $paths;
+        }
+        $normalized['paths'] = $paths['values'];
+    }
+
+    if (array_key_exists('exclude', $config)) {
+        $exclude = normalizeStringList($config['exclude'], $path, 'exclude');
+        if (isset($exclude['error'])) {
+            return $exclude;
+        }
+        $normalized['exclude'] = $exclude['values'];
+    }
+
+    if (array_key_exists('jobs', $config)) {
+        if (!\is_int($config['jobs'])) {
+            return ['error' => 'Invalid "jobs" in '.$path.': expected an integer.'];
+        }
+        if ($config['jobs'] < 1) {
+            return ['error' => 'Invalid "jobs" in '.$path.': value must be >= 1.'];
+        }
+        $normalized['jobs'] = $config['jobs'];
+    }
+
+    if (array_key_exists('minSavings', $config)) {
+        if (!\is_int($config['minSavings'])) {
+            return ['error' => 'Invalid "minSavings" in '.$path.': expected an integer.'];
+        }
+        if ($config['minSavings'] < 1) {
+            return ['error' => 'Invalid "minSavings" in '.$path.': value must be >= 1.'];
+        }
+        $normalized['minSavings'] = $config['minSavings'];
+    }
+
+    if (array_key_exists('format', $config)) {
+        if (!\is_string($config['format']) || '' === $config['format']) {
+            return ['error' => 'Invalid "format" in '.$path.': expected a non-empty string.'];
+        }
+        $normalized['format'] = $config['format'];
+    }
+
+    if (array_key_exists('rules', $config)) {
+        if (!\is_array($config['rules'])) {
+            return ['error' => 'Invalid "rules" in '.$path.': expected an object.'];
+        }
+
+        $rules = [];
+        foreach (['redos', 'validation', 'optimization'] as $ruleKey) {
+            if (!array_key_exists($ruleKey, $config['rules'])) {
+                continue;
+            }
+            if (!\is_bool($config['rules'][$ruleKey])) {
+                return ['error' => 'Invalid "rules.'.$ruleKey.'" in '.$path.': expected a boolean.'];
+            }
+            $rules[$ruleKey] = $config['rules'][$ruleKey];
+        }
+
+        if ([] !== $rules) {
+            $normalized['rules'] = $rules;
+        }
+    }
+
+    return ['config' => $normalized];
+}
+
+/**
+ * @return array{values: array<int, string>}|array{error: string}
+ */
+function normalizeStringList(mixed $value, string $path, string $key): array
+{
+    if (\is_string($value)) {
+        $value = [$value];
+    }
+
+    if (!\is_array($value)) {
+        return ['error' => 'Invalid "'.$key.'" in '.$path.': expected an array of strings.'];
+    }
+
+    $normalized = [];
+    foreach ($value as $entry) {
+        if (!\is_string($entry) || '' === $entry) {
+            return ['error' => 'Invalid "'.$key.'" in '.$path.': expected an array of strings.'];
+        }
+        $normalized[] = $entry;
+    }
+
+    return ['values' => $normalized];
+}
+
+/**
+ * @param array<string, mixed> $config
+ *
+ * @return array<string, mixed>
+ */
+function buildLintDefaults(array $config): array
+{
+    $defaults = [];
+
+    if (isset($config['paths'])) {
+        $defaults['paths'] = $config['paths'];
+    }
+
+    if (isset($config['exclude'])) {
+        $defaults['exclude'] = $config['exclude'];
+    }
+
+    if (isset($config['jobs'])) {
+        $defaults['jobs'] = $config['jobs'];
+    }
+
+    if (isset($config['minSavings'])) {
+        $defaults['minSavings'] = $config['minSavings'];
+    }
+
+    if (isset($config['format'])) {
+        $defaults['format'] = $config['format'];
+    }
+
+    if (isset($config['rules']) && \is_array($config['rules'])) {
+        if (array_key_exists('redos', $config['rules'])) {
+            $defaults['checkRedos'] = $config['rules']['redos'];
+        }
+        if (array_key_exists('validation', $config['rules'])) {
+            $defaults['checkValidation'] = $config['rules']['validation'];
+        }
+        if (array_key_exists('optimization', $config['rules'])) {
+            $defaults['checkOptimizations'] = $config['rules']['optimization'];
+        }
+    }
+
+    return $defaults;
 }
 
 function createExtractor(): RegexPatternExtractor
@@ -479,18 +680,19 @@ function createExtractor(): RegexPatternExtractor
     return new RegexPatternExtractor(new TokenBasedExtractionStrategy());
 }
 
-function parseLintArgs(array $args): array
+function parseLintArgs(array $args, array $defaults = []): array
 {
-    $paths = [];
-    $exclude = [];
-    $minSavings = 1;
-    $verbosity = OutputConfiguration::VERBOSITY_NORMAL;
-    $format = 'console';
-    $quiet = false;
-    $checkRedos = true;
-    $checkValidation = true;
-    $checkOptimizations = true;
-    $jobs = 1;
+    $paths = $defaults['paths'] ?? [];
+    $exclude = $defaults['exclude'] ?? [];
+    $minSavings = $defaults['minSavings'] ?? 1;
+    $verbosity = $defaults['verbosity'] ?? OutputConfiguration::VERBOSITY_NORMAL;
+    $format = $defaults['format'] ?? 'console';
+    $quiet = $defaults['quiet'] ?? false;
+    $checkRedos = $defaults['checkRedos'] ?? true;
+    $checkValidation = $defaults['checkValidation'] ?? true;
+    $checkOptimizations = $defaults['checkOptimizations'] ?? true;
+    $jobs = $defaults['jobs'] ?? 1;
+    $pathsProvided = false;
 
     for ($i = 0; $i < \count($args); $i++) {
         $arg = $args[$i];
@@ -614,6 +816,10 @@ function parseLintArgs(array $args): array
             return ['error' => 'Unknown option: '.$arg];
         }
 
+        if (!$pathsProvided) {
+            $paths = [];
+            $pathsProvided = true;
+        }
         $paths[] = $arg;
     }
 
@@ -997,7 +1203,15 @@ switch ($command) {
         break;
 
     case 'lint':
-        $parsed = parseLintArgs($commandArgs);
+        $lintConfigResult = loadLintConfig();
+        if (isset($lintConfigResult['error'])) {
+            output(error('Error: '.$lintConfigResult['error']."\n"));
+            exit(1);
+        }
+        $lintDefaults = buildLintDefaults($lintConfigResult['config'] ?? []);
+        $lintConfigFiles = $lintConfigResult['files'] ?? [];
+
+        $parsed = parseLintArgs($commandArgs, $lintDefaults);
         if (isset($parsed['help'])) {
             showHelp();
             exit(0);
@@ -1022,7 +1236,7 @@ switch ($command) {
         if ([] === $paths) {
             $paths = ['.'];
         }
-        if ([] === $exclude) {
+        if ([] === $exclude && !array_key_exists('exclude', $lintDefaults)) {
             $exclude = ['vendor'];
         }
 
@@ -1056,7 +1270,7 @@ switch ($command) {
         $lint = new RegexLintService($analysis, $sources);
 
         if ('console' === $format && OutputConfiguration::VERBOSITY_QUIET !== $verbosity) {
-            echo renderLintBanner($jobs);
+            echo renderLintBanner($jobs, $lintConfigFiles);
         }
 
         $collectionProgress = null;

@@ -26,6 +26,12 @@ final readonly class RegexPatternExtractor
     private const WORKER_ALLOWED_CLASSES = [
         RegexPatternOccurrence::class,
     ];
+
+    private const SUPPRESSION_MARKERS = [
+        '@regex-ignore-next-line' => 'next',
+        '@regex-ignore' => 'same',
+        '@regex-suppress' => 'same',
+    ];
     /**
      * Template file suffixes to exclude by default.
      * These files often contain template syntax that can be confused with regex quantifiers.
@@ -70,10 +76,10 @@ final readonly class RegexPatternExtractor
         }
 
         if ($workers > 1 && $total > 1 && self::supportsParallel()) {
-            return $this->extractParallel($phpFiles, $workers, $progress);
+            return $this->applyInlineIgnores($this->extractParallel($phpFiles, $workers, $progress));
         }
 
-        return $this->extractSerial($phpFiles, $progress);
+        return $this->applyInlineIgnores($this->extractSerial($phpFiles, $progress));
     }
 
     /**
@@ -343,6 +349,97 @@ final readonly class RegexPatternExtractor
             'ok' => true,
             'result' => $payload['result'] ?? null,
         ];
+    }
+
+    /**
+     * @param array<RegexPatternOccurrence> $occurrences
+     *
+     * @return array<RegexPatternOccurrence>
+     */
+    private function applyInlineIgnores(array $occurrences): array
+    {
+        if ([] === $occurrences) {
+            return [];
+        }
+
+        $suppressedCache = [];
+        $result = [];
+        foreach ($occurrences as $occurrence) {
+            if (!$occurrence instanceof RegexPatternOccurrence) {
+                $result[] = $occurrence;
+
+                continue;
+            }
+
+            $file = $occurrence->file;
+            if (!\array_key_exists($file, $suppressedCache)) {
+                $suppressedCache[$file] = $this->collectSuppressedLines($file);
+            }
+
+            if (isset($suppressedCache[$file][$occurrence->line])) {
+                $result[] = new RegexPatternOccurrence(
+                    $occurrence->pattern,
+                    $occurrence->file,
+                    $occurrence->line,
+                    $occurrence->source,
+                    $occurrence->displayPattern,
+                    $occurrence->location,
+                    true,
+                );
+            } else {
+                $result[] = $occurrence;
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * @return array<int, bool>
+     */
+    private function collectSuppressedLines(string $file): array
+    {
+        $content = @file_get_contents($file);
+        if (false === $content || '' === $content) {
+            return [];
+        }
+
+        $tokens = token_get_all($content);
+        $suppressed = [];
+
+        foreach ($tokens as $token) {
+            if (!\is_array($token)) {
+                continue;
+            }
+
+            if (\T_COMMENT !== $token[0] && \T_DOC_COMMENT !== $token[0]) {
+                continue;
+            }
+
+            $mode = $this->suppressionMode($token[1]);
+            if (null === $mode) {
+                continue;
+            }
+
+            $startLine = (int) $token[2];
+            $endLine = $startLine + substr_count($token[1], "\n");
+            $targetLine = 'next' === $mode ? $endLine + 1 : $endLine;
+
+            $suppressed[$targetLine] = true;
+        }
+
+        return $suppressed;
+    }
+
+    private function suppressionMode(string $comment): ?string
+    {
+        foreach (self::SUPPRESSION_MARKERS as $marker => $mode) {
+            if (str_contains($comment, $marker)) {
+                return $mode;
+            }
+        }
+
+        return null;
     }
 
     /**

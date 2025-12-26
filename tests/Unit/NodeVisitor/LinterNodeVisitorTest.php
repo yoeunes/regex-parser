@@ -41,6 +41,26 @@ final class LinterNodeVisitorTest extends TestCase
         $this->assertNotContains("Flag 'i' is useless: the pattern contains no case-sensitive characters.", $warnings);
     }
 
+    public function test_i_flag_not_useless_with_backreference(): void
+    {
+        $regex = Regex::create()->parse('/^<(\\w+)>.*<\\/\\1>$/i');
+        $linter = new LinterNodeVisitor();
+        $regex->accept($linter);
+        $warnings = $linter->getWarnings();
+
+        $this->assertNotContains("Flag 'i' is useless: the pattern contains no case-sensitive characters.", $warnings);
+    }
+
+    public function test_i_flag_not_useless_with_named_backreference(): void
+    {
+        $regex = Regex::create()->parse('/^<(?<tag>\\w+)>.*<\\/\\k<tag>>$/i');
+        $linter = new LinterNodeVisitor();
+        $regex->accept($linter);
+        $warnings = $linter->getWarnings();
+
+        $this->assertNotContains("Flag 'i' is useless: the pattern contains no case-sensitive characters.", $warnings);
+    }
+
     public function test_useless_s_flag_no_dots(): void
     {
         $regex = Regex::create()->parse('/^\d+$/s');

@@ -42,6 +42,8 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
 
     private bool $hasAnchors = false;
 
+    private bool $hasBackreferences = false;
+
     private ?string $patternValue = null;
 
     private int $maxCapturingGroup = 0;
@@ -97,6 +99,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         $this->hasCaseSensitiveChars = false;
         $this->hasDots = false;
         $this->hasAnchors = false;
+        $this->hasBackreferences = false;
         $this->maxCapturingGroup = 0;
         $this->definedNamedGroups = [];
 
@@ -214,6 +217,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitBackref(Node\BackrefNode $node): Node\NodeInterface
     {
+        $this->hasBackreferences = true;
         $ref = $node->ref;
 
         // Check numeric backreferences
@@ -245,8 +249,11 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitQuantifier(Node\QuantifierNode $node): Node\NodeInterface
     {
+        $isAtomicQuantifier = Node\QuantifierType::T_POSSESSIVE === $node->type
+            || ($node->node instanceof Node\GroupNode && GroupType::T_GROUP_ATOMIC === $node->node->type);
+
         if ($this->isVariableQuantifier($node->quantifier)) {
-            if ($this->isRepeatableQuantifier($node->quantifier)) {
+            if (!$isAtomicQuantifier && $this->isRepeatableQuantifier($node->quantifier)) {
                 $nested = $this->findNestedQuantifier($node->node);
                 if (null !== $nested && $this->isVariableQuantifier($nested->quantifier)) {
                     if (!$this->isSafelySeparatedNestedQuantifier($node, $nested)) {
@@ -260,7 +267,11 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
                 }
             }
 
-            if ($this->isUnboundedQuantifier($node->quantifier) && $this->containsDotStar($node->node)) {
+            if (
+                !$isAtomicQuantifier
+                && $this->isUnboundedQuantifier($node->quantifier)
+                && $this->containsDotStar($node->node)
+            ) {
                 $this->addIssue(
                     'regex.lint.dotstar.nested',
                     'An unbounded quantifier wraps a dot-star, which can cause severe backtracking.',
@@ -366,7 +377,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
 
     private function checkUselessFlags(): void
     {
-        if (str_contains($this->flags, 'i') && !$this->hasCaseSensitiveChars) {
+        if (str_contains($this->flags, 'i') && !$this->hasCaseSensitiveChars && !$this->hasBackreferences) {
             $this->addIssue(
                 'regex.lint.flag.useless.i',
                 "Flag 'i' is useless: the pattern contains no case-sensitive characters.",
@@ -837,10 +848,18 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     private function findNestedQuantifier(Node\NodeInterface $node): ?Node\QuantifierNode
     {
         if ($node instanceof Node\QuantifierNode) {
+            if (Node\QuantifierType::T_POSSESSIVE === $node->type) {
+                return null;
+            }
+
             return $node;
         }
 
         if ($node instanceof Node\GroupNode) {
+            if (GroupType::T_GROUP_ATOMIC === $node->type) {
+                return null;
+            }
+
             return $this->findNestedQuantifier($node->child);
         }
 

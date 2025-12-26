@@ -430,6 +430,28 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
             return;
         }
 
+        // Numeric conditionals without a leading backslash (e.g., (?(2)...))
+        if (preg_match('/^(\d++)$/', $ref, $matches)) {
+            $num = (int) $matches[1];
+            if (0 === $num) {
+                $this->raiseSemanticError(
+                    'Backreference 0 is not valid.',
+                    $node->startPosition,
+                    'regex.backref.zero',
+                    'Use \\g<0> for recursion to the whole pattern, or remove the reference.',
+                );
+            }
+            if ($num > $this->groupNumbering->maxGroupNumber) {
+                $this->raiseSemanticError(
+                    \sprintf('Backreference to non-existent group: %d.', $num),
+                    $node->startPosition,
+                    'regex.backref.missing_group',
+                );
+            }
+
+            return;
+        }
+
         // Optimized named backreference validation
         if (preg_match('/^\\\\k[<{\'](?<name>\w++)[>}\']$/', $ref, $matches)) {
             $name = $matches['name'];
@@ -446,7 +468,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         }
 
         // Bare name validation (conditionals)
-        if (preg_match('/^\w++$/', $ref)) {
+        if ($this->isBareNamedBackref($ref)) {
             if (!$this->groupNumbering->hasNamedGroup($ref)) {
                 $suggestions = $this->getNameSuggestions($ref);
                 $this->raiseSemanticError(
@@ -630,7 +652,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
             // This is (?(1)...) or (?(<name>)...) or (?(name)...)
             // For bare names, check if the group exists before calling accept
             $ref = $node->condition->ref;
-            if (preg_match('/^\w++$/', $ref) && !$this->groupNumbering->hasNamedGroup($ref)) {
+            if ($this->isBareNamedBackref($ref) && !$this->groupNumbering->hasNamedGroup($ref)) {
                 // Bare name that doesn't exist - this is an invalid conditional
                 $this->raiseSemanticError(
                     'Invalid conditional construct. Condition must be a group reference, lookaround, or (DEFINE).',
@@ -882,6 +904,11 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         }
 
         return '';
+    }
+
+    private function isBareNamedBackref(string $ref): bool
+    {
+        return 1 === preg_match('/^[A-Za-z_]\w*+$/', $ref);
     }
 
     private function validateUnicode(Node\CharLiteralNode $node): void

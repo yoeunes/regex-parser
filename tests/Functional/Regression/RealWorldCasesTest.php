@@ -37,7 +37,6 @@ final class RealWorldCasesTest extends TestCase
     public static function provideRealWorldRegex(): \Iterator
     {
         // Nested quantifiers
-        yield ['~{args.((?:[^{}}]++|(?R))*)}~', 'Nested quantifiers can cause catastrophic backtracking.'];
         yield ['/(a+)+/', 'Nested quantifiers can cause catastrophic backtracking.'];
         yield ['/(b*)+/', 'Nested quantifiers can cause catastrophic backtracking.'];
         yield ['/(c?)+/', 'Nested quantifiers can cause catastrophic backtracking.'];
