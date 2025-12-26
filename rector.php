@@ -27,11 +27,9 @@ return static function (RectorConfig $rectorConfig): void {
         __DIR__.'/bin',
     ]);
 
-    // $rectorConfig->import(__DIR__.'/config/rector/regex-parser.php');
-
     $rectorConfig->phpVersion(PhpVersion::PHP_82);
-    // $rectorConfig->importNames();
-    $rectorConfig->importShortClasses();
+    $rectorConfig->importNames();
+    $rectorConfig->importShortClasses(false);
     $rectorConfig->removeUnusedImports();
     $rectorConfig->indent(' ', 4);
     $rectorConfig->cacheDirectory('.cache/rector/');
