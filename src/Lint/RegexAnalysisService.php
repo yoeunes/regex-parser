@@ -17,6 +17,7 @@ use RegexParser\Internal\PatternParser;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
 use RegexParser\NodeVisitor\ConsoleHighlighterVisitor;
 use RegexParser\NodeVisitor\LinterNodeVisitor;
+use RegexParser\NodeVisitor\OptimizerNodeVisitor;
 use RegexParser\OptimizationResult;
 use RegexParser\ReDoS\ReDoSAnalysis;
 use RegexParser\ReDoS\ReDoSSeverity;
@@ -329,16 +330,25 @@ final readonly class RegexAnalysisService
 
             try {
                 if ($isExtended) {
-                    // For verbose /x patterns, generate a normalized version
-                    // that keeps the structure but collapses comments to
-                    // lightweight placeholders like (?#...). This gives a
-                    // compact view similar to:
-                    //   (?#...)(?(DEFINE)(?<balanced>((?:(?#...)[^()]|(?#...)(?balanced))*(?#...))))...
-                    // without destroying readability in the original source.
+                    $optimizer = new OptimizerNodeVisitor(
+                        optimizeDigits: (bool) ($optimizationConfig['digits'] ?? true),
+                        optimizeWord: (bool) ($optimizationConfig['word'] ?? true),
+                        strictRanges: (bool) ($optimizationConfig['strictRanges'] ?? true),
+                        autoPossessify: (bool) ($optimizationConfig['autoPossessify'] ?? true),
+                    );
+
                     $ast = $this->regex->parse($occurrence->pattern);
-                    $compiler = new CompilerNodeVisitor(false, true);
-                    $normalized = $ast->accept($compiler);
-                    $optimization = new OptimizationResult($occurrence->pattern, $normalized, ['Normalized extended pattern.']);
+                    $pretty = str_contains($ast->flags, 'x');
+                    $baseline = $ast->accept(new CompilerNodeVisitor($pretty));
+
+                    $optimizedAst = $ast->accept($optimizer);
+                    $optimizedPattern = $optimizedAst->accept(new CompilerNodeVisitor($pretty));
+
+                    if ($baseline === $optimizedPattern) {
+                        continue;
+                    }
+
+                    $optimization = new OptimizationResult($occurrence->pattern, $optimizedPattern, ['Optimized pattern.']);
                 } else {
                     $optimization = $this->regex->optimize($occurrence->pattern, $optimizationConfig);
                 }
@@ -698,9 +708,9 @@ final readonly class RegexAnalysisService
 
     /**
      * Detect whether a pattern uses extended (/x) mode, where whitespace and
-     * inline comments are significant for readability. For such patterns we
-     * avoid suggesting structural optimizations that would rewrite the pattern
-     * into a single-line canonical form and drop comments.
+     * inline comments are significant for readability. We treat these patterns
+     * specially to preserve comments and pretty formatting when suggesting
+     * optimizations.
      */
     private function usesExtendedMode(string $pattern): bool
     {
