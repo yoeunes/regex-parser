@@ -25,9 +25,7 @@ final class LinterRulesTest extends TestCase
         $this->assertContains('regex.lint.quantifier.nested', $issues);
     }
 
-    /**
-     * @dataProvider provideNestedQuantifierPatterns
-     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('provideNestedQuantifierPatterns')]
     public function test_nested_quantifier_warning_respects_separators(string $pattern, bool $shouldWarn): void
     {
         $issues = $this->lint($pattern);
@@ -91,18 +89,16 @@ final class LinterRulesTest extends TestCase
     }
 
     /**
-     * @return array<string, array{0: string, 1: bool}>
+     * @return \Iterator<string, array{string, bool}>
      */
-    public static function provideNestedQuantifierPatterns(): array
+    public static function provideNestedQuantifierPatterns(): \Iterator
     {
-        return [
-            'safe dot separator' => ['/([0-9]+(?:\\.[0-9]+)*)/', false],
-            'safe hyphen separator' => ['/(a+(?:-a+)*)/', false],
-            'safe comma separator' => ['/(\\d+(?:,\\d+)*)/', false],
-            'unsafe no separator' => ['/(a+(?:a+)*)/', true],
-            'unsafe overlapping separator' => ['/(\\w+(?:_\\w+)*)/', true],
-            'unsafe direct overlap' => ['/([0-9]+(?:[0-9]+)*)/', true],
-        ];
+        yield 'safe dot separator' => ['/([0-9]+(?:\\.[0-9]+)*)/', false];
+        yield 'safe hyphen separator' => ['/(a+(?:-a+)*)/', false];
+        yield 'safe comma separator' => ['/(\\d+(?:,\\d+)*)/', false];
+        yield 'unsafe no separator' => ['/(a+(?:a+)*)/', true];
+        yield 'unsafe overlapping separator' => ['/(\\w+(?:_\\w+)*)/', true];
+        yield 'unsafe direct overlap' => ['/([0-9]+(?:[0-9]+)*)/', true];
     }
 
     /**
