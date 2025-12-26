@@ -203,6 +203,15 @@ wget -O ~/.local/bin/regex https://github.com/yoeunes/regex-parser/releases/late
 
 Make sure `~/.local/bin` is on your PATH (or use `/usr/local/bin`).
 
+Update the installed phar:
+
+```bash
+regex self-update
+```
+
+The updater downloads the latest `regex.phar` plus its SHA-256 checksum, verifies it, and replaces the current binary.
+It only works for the PHAR install (not for Composer installs).
+
 Build the phar locally:
 
 ```bash
