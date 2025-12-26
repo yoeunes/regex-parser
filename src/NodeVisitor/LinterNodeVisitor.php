@@ -42,6 +42,8 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
 
     private bool $hasAnchors = false;
 
+    private bool $hasBackreferences = false;
+
     private ?string $patternValue = null;
 
     private int $maxCapturingGroup = 0;
@@ -97,6 +99,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         $this->hasCaseSensitiveChars = false;
         $this->hasDots = false;
         $this->hasAnchors = false;
+        $this->hasBackreferences = false;
         $this->maxCapturingGroup = 0;
         $this->definedNamedGroups = [];
 
@@ -214,6 +217,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitBackref(Node\BackrefNode $node): Node\NodeInterface
     {
+        $this->hasBackreferences = true;
         $ref = $node->ref;
 
         // Check numeric backreferences
@@ -373,7 +377,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
 
     private function checkUselessFlags(): void
     {
-        if (str_contains($this->flags, 'i') && !$this->hasCaseSensitiveChars) {
+        if (str_contains($this->flags, 'i') && !$this->hasCaseSensitiveChars && !$this->hasBackreferences) {
             $this->addIssue(
                 'regex.lint.flag.useless.i',
                 "Flag 'i' is useless: the pattern contains no case-sensitive characters.",
