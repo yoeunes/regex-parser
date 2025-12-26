@@ -66,6 +66,7 @@ final class OfficialPcreComplianceTest extends TestCase
 
         // 3. Parse with the library (should succeed if validation passed)
         $ast = null;
+
         try {
             $ast = $regex->parse($pattern);
         } catch (\Throwable $e) {

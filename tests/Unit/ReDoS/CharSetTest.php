@@ -54,7 +54,7 @@ final class CharSetTest extends TestCase
         $this->assertFalse($complement->intersects($digits));
     }
 
-    public function test_sampleChar_with_empty_set(): void
+    public function test_sample_char_with_empty_set(): void
     {
         $empty = CharSet::empty();
         $char = $empty->sampleChar();
@@ -62,7 +62,7 @@ final class CharSetTest extends TestCase
         $this->assertNull($char);
     }
 
-    public function test_sampleChar_with_unknown_set(): void
+    public function test_sample_char_with_unknown_set(): void
     {
         $unknown = CharSet::unknown();
         $char = $unknown->sampleChar();
@@ -70,7 +70,7 @@ final class CharSetTest extends TestCase
         $this->assertNull($char);
     }
 
-    public function test_sampleChar_with_single_char(): void
+    public function test_sample_char_with_single_char(): void
     {
         $set = CharSet::fromChar('a');
         $char = $set->sampleChar();
@@ -78,31 +78,31 @@ final class CharSetTest extends TestCase
         $this->assertSame('a', $char);
     }
 
-    public function test_sampleChar_with_range(): void
+    public function test_sample_char_with_range(): void
     {
         $set = CharSet::fromRange(0, 10);
         $char = $set->sampleChar();
 
-        $this->assertSame(chr(0), $char);
+        $this->assertSame(\chr(0), $char);
     }
 
-    public function test_sampleChar_with_merged_ranges(): void
+    public function test_sample_char_with_merged_ranges(): void
     {
         $rangeA = CharSet::fromRange(0, 5);
         $rangeB = CharSet::fromRange(10, 15);
         $merged = $rangeA->union($rangeB);
 
         $char = $merged->sampleChar();
-        $this->assertSame(chr(0), $char);
+        $this->assertSame(\chr(0), $char);
     }
 
-    public function test_fromChar_with_empty_string(): void
+    public function test_from_char_with_empty_string(): void
     {
         $set = CharSet::fromChar('');
         $this->assertTrue($set->isEmpty());
     }
 
-    public function test_fromChar_with_single_byte(): void
+    public function test_from_char_with_single_byte(): void
     {
         $set = CharSet::fromChar('a');
         $this->assertFalse($set->isEmpty());
@@ -167,20 +167,20 @@ final class CharSetTest extends TestCase
         $complement = $set->complement();
 
         $this->assertTrue($complement->intersects(CharSet::fromChar('a')));
-        $this->assertFalse($complement->intersects(CharSet::fromChar(chr(15))));
+        $this->assertFalse($complement->intersects(CharSet::fromChar(\chr(15))));
     }
 
-    public function test_fromRange_clips_to_ascii_max(): void
+    public function test_from_range_clips_to_ascii_max(): void
     {
         $set = CharSet::fromRange(0, 200);
 
-        $this->assertTrue($set->intersects(CharSet::fromChar(chr(127))));
+        $this->assertTrue($set->intersects(CharSet::fromChar(\chr(127))));
     }
 
-    public function test_fromRange_with_negative_start(): void
+    public function test_from_range_with_negative_start(): void
     {
         $set = CharSet::fromRange(-10, 10);
 
-        $this->assertTrue($set->intersects(CharSet::fromChar(chr(0))));
+        $this->assertTrue($set->intersects(CharSet::fromChar(\chr(0))));
     }
 }

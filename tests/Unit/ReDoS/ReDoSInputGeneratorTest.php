@@ -2,12 +2,20 @@
 
 declare(strict_types=1);
 
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace RegexParser\Tests\Unit\ReDoS;
 
 use PHPUnit\Framework\TestCase;
-use RegexParser\ReDoS\CharSet;
-use RegexParser\ReDoS\ReDoSSeverity;
 use RegexParser\ReDoS\ReDoSInputGenerator;
+use RegexParser\ReDoS\ReDoSSeverity;
 use RegexParser\Regex;
 
 final class ReDoSInputGeneratorTest extends TestCase
@@ -78,7 +86,7 @@ final class ReDoSInputGeneratorTest extends TestCase
     {
         $ast = Regex::create()->parse('/[abc]+/');
         $input = $this->generator->generate($ast);
-        $this->assertGreaterThan(20, strlen($input));
+        $this->assertGreaterThan(20, \strlen($input));
     }
 
     public function test_generate_uses_printable_char_from_set(): void

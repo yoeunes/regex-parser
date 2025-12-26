@@ -83,6 +83,10 @@ final readonly class PhpStanExtractionStrategy implements ExtractorInterface
                 return [];
             }
 
+            if (!is_file($file) || !is_readable($file)) {
+                return [];
+            }
+
             $content = file_get_contents($file);
             if (false === $content || '' === $content) {
                 return [];
