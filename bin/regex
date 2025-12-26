@@ -445,9 +445,27 @@ function showFooter(): void
     output('  '.dim('Star the repo: https://github.com/yoeunes/regex-parser')."\n\n");
 }
 
-function renderLintBanner(): string
+function renderLintBanner(int $jobs = 1): string
 {
-    return color('Regex Parser', CYAN.BOLD).' '.dim('· lint')."\n\n";
+    $versionFile = __DIR__.'/../composer.json';
+    $version = 'dev';
+    if (file_exists($versionFile)) {
+        $composerData = json_decode(file_get_contents($versionFile), true);
+        $version = $composerData['version'] ?? 'dev';
+    }
+
+    $output = color('RegexParser', CYAN.BOLD).' '.warning($version).' by Younes ENNAJI'."\n\n";
+    $output .= 'Runtime:       PHP '.warning(\PHP_VERSION)."\n";
+    $output .= 'Processes:     '.warning((string) $jobs)."\n";
+    
+    $configFile = getcwd().'/.regex.php';
+    if (file_exists($configFile)) {
+        $output .= 'Configuration: '.$configFile."\n";
+    }
+    
+    $output .= "\n";
+    
+    return $output;
 }
 
 function createExtractor(): RegexPatternExtractor
@@ -1038,7 +1056,7 @@ switch ($command) {
         $lint = new RegexLintService($analysis, $sources);
 
         if ('console' === $format && OutputConfiguration::VERBOSITY_QUIET !== $verbosity) {
-            echo renderLintBanner();
+            echo renderLintBanner($jobs);
         }
 
         $collectionProgress = null;
