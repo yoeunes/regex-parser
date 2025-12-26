@@ -293,12 +293,14 @@ class ConsoleFormatter extends AbstractOutputFormatter
                         $skipping = true;
                     }
                     $index++;
+
                     continue;
                 }
 
                 $skipping = false;
                 $output .= $this->formatDiffLine(' ', $op['line'], self::GRAY, true);
                 $index++;
+
                 continue;
             }
 

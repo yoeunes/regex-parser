@@ -68,6 +68,7 @@ final class OptimizerSafetyTest extends TestCase
         // --- 6. Prefix Factorization (Safe) ---
         yield 'Common prefix literals' => ['/foo_a|foo_b/', '/foo_(?:a|b)/'];
         yield 'Common prefix mixed' => ['/user_id|user_name/', '/user_(?:id|name)/'];
+        yield 'Prefix is full alternative' => ['/WIN|WINDOWS/', '/WIN(?:DOWS)?/'];
 
         // --- 7. Auto-Possessivization (Safe) ---
         // Digits \d cannot match 'a', so \d+ should become \d++

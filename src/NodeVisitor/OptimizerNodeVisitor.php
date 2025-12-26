@@ -985,6 +985,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
 
         // Create suffixes
         $suffixes = [];
+        $hasEmptySuffix = false;
         /**
          * @var AbstractNode $alt
          */
@@ -992,6 +993,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
             $suffixStr = substr($this->nodeToString($alt), \strlen($prefix));
             if (empty($suffixStr)) {
                 $suffixes[] = null;
+                $hasEmptySuffix = true;
             } else {
                 $suffixes[] = $this->stringToNode($suffixStr, $alt->startPosition + \strlen($prefix), $alt->endPosition);
             }
@@ -1015,6 +1017,15 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
             ? $firstSuffix
             : new AlternationNode($nonNullSuffixes, $firstSuffix->startPosition, $lastSuffix->endPosition);
         $group = new GroupNode($newAlt, GroupType::T_GROUP_NON_CAPTURING);
+        if ($hasEmptySuffix) {
+            $group = new QuantifierNode(
+                $group,
+                '?',
+                QuantifierType::T_GREEDY,
+                $firstSuffix->startPosition,
+                $lastSuffix->endPosition,
+            );
+        }
         /** @var AbstractNode $firstAlt */
         $firstAlt = $withPrefix[0];
         $prefixNode = $this->stringToNode($prefix, $firstAlt->startPosition, $firstAlt->startPosition + \strlen($prefix));
