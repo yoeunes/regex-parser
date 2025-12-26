@@ -16,6 +16,7 @@ namespace RegexParser\NodeVisitor;
 use RegexParser\LintIssue;
 use RegexParser\Node;
 use RegexParser\Node\GroupType;
+use RegexParser\ReDoS\CharSet;
 use RegexParser\ReDoS\CharSetAnalyzer;
 
 /**
@@ -245,12 +246,14 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
             if ($this->isRepeatableQuantifier($node->quantifier)) {
                 $nested = $this->findNestedQuantifier($node->node);
                 if (null !== $nested && $this->isVariableQuantifier($nested->quantifier)) {
-                    $this->addIssue(
-                        'regex.lint.quantifier.nested',
-                        'Nested quantifiers can cause catastrophic backtracking.',
-                        $node->startPosition,
-                        'Consider using atomic groups (?>...) or possessive quantifiers.',
-                    );
+                    if (!$this->isSafelySeparatedNestedQuantifier($node, $nested)) {
+                        $this->addIssue(
+                            'regex.lint.quantifier.nested',
+                            'Nested quantifiers can cause catastrophic backtracking.',
+                            $node->startPosition,
+                            'Consider using atomic groups (?>...) or possessive quantifiers.',
+                        );
+                    }
                 }
             }
 
@@ -865,6 +868,152 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         }
 
         return null;
+    }
+
+    private function isSafelySeparatedNestedQuantifier(Node\QuantifierNode $outer, Node\QuantifierNode $nested): bool
+    {
+        $sequenceInfo = $this->findSequenceForNestedQuantifier($outer->node, $nested);
+        if (null === $sequenceInfo) {
+            return false;
+        }
+
+        $innerBoundary = $this->boundaryCharSet($nested->node);
+        if ($innerBoundary->isUnknown() || $innerBoundary->isEmpty()) {
+            return false;
+        }
+
+        $sequence = $sequenceInfo['sequence'];
+        $index = $sequenceInfo['index'];
+        $neighbors = [];
+        if ($index > 0) {
+            $neighbors[] = $sequence->children[$index - 1];
+        }
+        if ($index + 1 < \count($sequence->children)) {
+            $neighbors[] = $sequence->children[$index + 1];
+        }
+
+        foreach ($neighbors as $neighbor) {
+            if ($this->isExclusiveSeparator($neighbor, $innerBoundary)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @return array{sequence: Node\SequenceNode, index: int}|null
+     */
+    private function findSequenceForNestedQuantifier(Node\NodeInterface $node, Node\QuantifierNode $nested): ?array
+    {
+        if ($node instanceof Node\GroupNode) {
+            return $this->findSequenceForNestedQuantifier($node->child, $nested);
+        }
+
+        if (!($node instanceof Node\SequenceNode)) {
+            return null;
+        }
+
+        foreach ($node->children as $index => $child) {
+            $unwrapped = $this->unwrapTransparentNode($child);
+            if ($unwrapped === $nested) {
+                return ['sequence' => $node, 'index' => $index];
+            }
+        }
+
+        return null;
+    }
+
+    private function unwrapTransparentNode(Node\NodeInterface $node): Node\NodeInterface
+    {
+        if ($node instanceof Node\GroupNode && $this->isTransparentGroup($node->type)) {
+            return $this->unwrapTransparentNode($node->child);
+        }
+
+        if ($node instanceof Node\SequenceNode && 1 === \count($node->children)) {
+            return $this->unwrapTransparentNode($node->children[0]);
+        }
+
+        return $node;
+    }
+
+    private function isTransparentGroup(GroupType $type): bool
+    {
+        return !\in_array($type, [
+            GroupType::T_GROUP_LOOKAHEAD_POSITIVE,
+            GroupType::T_GROUP_LOOKAHEAD_NEGATIVE,
+            GroupType::T_GROUP_LOOKBEHIND_POSITIVE,
+            GroupType::T_GROUP_LOOKBEHIND_NEGATIVE,
+        ], true);
+    }
+
+    private function boundaryCharSet(Node\NodeInterface $node): CharSet
+    {
+        $first = $this->charSetAnalyzer->firstChars($node);
+        $last = $this->charSetAnalyzer->lastChars($node);
+
+        return $first->union($last);
+    }
+
+    private function isExclusiveSeparator(Node\NodeInterface $separator, CharSet $innerBoundary): bool
+    {
+        if ($this->isOptionalNode($separator) || !$this->isConsuming($separator)) {
+            return false;
+        }
+
+        $separatorSet = $this->boundaryCharSet($separator);
+        if ($separatorSet->isUnknown() || $separatorSet->isEmpty()) {
+            return false;
+        }
+
+        return !$separatorSet->intersects($innerBoundary);
+    }
+
+    private function isOptionalNode(Node\NodeInterface $node): bool
+    {
+        if ($node instanceof Node\LiteralNode) {
+            return '' === $node->value;
+        }
+
+        if ($node instanceof Node\QuantifierNode) {
+            [$min] = $this->parseQuantifierRange($node->quantifier);
+
+            return 0 === $min;
+        }
+
+        if ($node instanceof Node\GroupNode) {
+            if ($this->isTransparentGroup($node->type)) {
+                return $this->isOptionalNode($node->child);
+            }
+
+            return true;
+        }
+
+        if ($node instanceof Node\SequenceNode) {
+            foreach ($node->children as $child) {
+                if (!$this->isOptionalNode($child)) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        if ($node instanceof Node\AlternationNode) {
+            foreach ($node->alternatives as $alt) {
+                if ($this->isOptionalNode($alt)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        if ($node instanceof Node\ConditionalNode) {
+            return $this->isOptionalNode($node->yes) || $this->isOptionalNode($node->no);
+        }
+
+        return !$this->isConsuming($node);
     }
 
     private function containsDotStar(Node\NodeInterface $node): bool
