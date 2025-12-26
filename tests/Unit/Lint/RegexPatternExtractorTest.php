@@ -141,6 +141,23 @@ final class RegexPatternExtractorTest extends TestCase
         $this->assertCount(1, $result);
     }
 
+    public function test_extract_marks_inline_ignored_patterns(): void
+    {
+        $file = $this->createTempPhpFile("<?php\n// @regex-ignore-next-line\npreg_match('/(a+)+/', \$input);\n");
+
+        try {
+            $occurrence = new RegexPatternOccurrence('/(a+)+/', $file, 3, 'preg_match');
+            $this->extractor->method('extract')->willReturn([$occurrence]);
+
+            $result = $this->patternExtractor->extract([$file]);
+        } finally {
+            @unlink($file);
+        }
+
+        $this->assertCount(1, $result);
+        $this->assertTrue($result[0]->isIgnored);
+    }
+
     public function test_write_worker_payload_creates_serialized_file(): void
     {
         $reflection = new \ReflectionClass($this->patternExtractor);

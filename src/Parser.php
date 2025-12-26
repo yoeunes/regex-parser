@@ -994,6 +994,10 @@ final class Parser
 
     private function createPcreVerbNode(string $verb, int $startPosition, int $endPosition): Node\NodeInterface
     {
+        if ('' !== $verb && (str_starts_with($verb, ':') || str_starts_with($verb, '='))) {
+            $verb = 'MARK'.$verb;
+        }
+
         if (preg_match('/^LIMIT_MATCH=(\\d++)$/i', $verb, $matches)) {
             return new Node\LimitMatchNode((int) $matches[1], $startPosition, $endPosition);
         }

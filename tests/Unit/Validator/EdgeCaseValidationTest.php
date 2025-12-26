@@ -76,6 +76,18 @@ final class EdgeCaseValidationTest extends TestCase
         $this->assertStringContainsString('Duplicate group name "n"', (string) $result->error);
     }
 
+    public function test_conditional_numeric_reference_is_valid(): void
+    {
+        $result = $this->regexService->validate('/(a)(b)(?(2)\\2)/');
+        $this->assertTrue($result->isValid, 'Numeric conditional references should be allowed.');
+    }
+
+    public function test_mark_verb_shorthand_is_valid(): void
+    {
+        $result = $this->regexService->validate('/foo(*:first)|bar(*:second)([x])/');
+        $this->assertTrue($result->isValid, 'MARK shorthand verbs should be accepted.');
+    }
+
     public function test_unconsumed_tokens(): void
     {
         // Test that invalid flags are properly rejected.

@@ -184,6 +184,14 @@ final readonly class RegexAnalysisService
         $issues = [];
 
         foreach ($patterns as $occurrence) {
+            if ($occurrence->isIgnored) {
+                if ($progress) {
+                    $progress();
+                }
+
+                continue;
+            }
+
             $validation = $this->regex->validate($occurrence->pattern);
             $source = $occurrence->source;
             if (!$validation->isValid) {
@@ -288,6 +296,10 @@ final readonly class RegexAnalysisService
         $issues = [];
 
         foreach ($patterns as $occurrence) {
+            if ($occurrence->isIgnored) {
+                continue;
+            }
+
             $validation = $this->regex->validate($occurrence->pattern);
             if (!$validation->isValid) {
                 continue;
@@ -325,6 +337,10 @@ final readonly class RegexAnalysisService
         $suggestions = [];
 
         foreach ($patterns as $occurrence) {
+            if ($occurrence->isIgnored) {
+                continue;
+            }
+
             $validation = $this->regex->validate($occurrence->pattern);
             $source = $occurrence->source;
             if (!$validation->isValid) {
