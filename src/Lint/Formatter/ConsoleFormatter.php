@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Lint\Formatter;
 
+use RegexParser\Internal\PatternParser;
 use RegexParser\Lint\RegexAnalysisService;
 use RegexParser\Lint\RegexLintReport;
 use RegexParser\OptimizationResult;
@@ -223,11 +224,14 @@ class ConsoleFormatter extends AbstractOutputFormatter
 
     private function formatOptimizationDiff(string $original, string $optimized): string
     {
-        if ($this->isMultilinePattern($original) || $this->isMultilinePattern($optimized)) {
+        if ($this->shouldUseMultilineDiff($original, $optimized)) {
             return $this->formatMultilineDiff($original, $optimized);
         }
 
-        $diff = $this->computeSimpleDiff($original, $optimized);
+        $diff = $this->computeSimpleDiff(
+            $this->escapeControlChars($original),
+            $this->escapeControlChars($optimized),
+        );
 
         return \sprintf('         %s%s'.\PHP_EOL,
             $this->color('- ', self::RED),
@@ -326,6 +330,11 @@ class ConsoleFormatter extends AbstractOutputFormatter
         return $this->formatDiffLine(' ', '...', self::GRAY, true);
     }
 
+    private function formatDiffSeparator(): string
+    {
+        return \sprintf('         %s'.\PHP_EOL, $this->dim('---'));
+    }
+
     /**
      * @param array<int, string> $oldLines
      * @param array<int, string> $newLines
@@ -403,7 +412,9 @@ class ConsoleFormatter extends AbstractOutputFormatter
             $insertLines[] = $this->formatDiffLine('+', $this->color($inserts[$i], self::GREEN), self::GREEN);
         }
 
-        return implode('', $deleteLines).implode('', $insertLines);
+        $separator = (!empty($deleteLines) && !empty($insertLines)) ? $this->formatDiffSeparator() : '';
+
+        return implode('', $deleteLines).$separator.implode('', $insertLines);
     }
 
     /**
@@ -416,9 +427,30 @@ class ConsoleFormatter extends AbstractOutputFormatter
         return explode("\n", $normalized);
     }
 
-    private function isMultilinePattern(string $pattern): bool
+    private function shouldUseMultilineDiff(string $old, string $new): bool
     {
-        return str_contains($pattern, "\n") || str_contains($pattern, "\r");
+        return $this->isExtendedModePattern($old) || $this->isExtendedModePattern($new);
+    }
+
+    private function isExtendedModePattern(string $pattern): bool
+    {
+        $pattern = ltrim($pattern);
+        if ('' === $pattern) {
+            return false;
+        }
+
+        try {
+            [, $flags] = PatternParser::extractPatternAndFlags($pattern);
+        } catch (\Throwable) {
+            return false;
+        }
+
+        return \is_string($flags) && str_contains($flags, 'x');
+    }
+
+    private function escapeControlChars(string $text): string
+    {
+        return addcslashes($text, "\0..\37\177..\377");
     }
 
     /**

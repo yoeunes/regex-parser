@@ -335,6 +335,7 @@ final readonly class RegexAnalysisService
                         optimizeWord: (bool) ($optimizationConfig['word'] ?? true),
                         strictRanges: (bool) ($optimizationConfig['strictRanges'] ?? true),
                         autoPossessify: (bool) ($optimizationConfig['autoPossessify'] ?? true),
+                        allowAlternationFactorization: false,
                     );
 
                     $ast = $this->regex->parse($occurrence->pattern);
