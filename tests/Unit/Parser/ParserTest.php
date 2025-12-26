@@ -745,6 +745,10 @@ final class ParserTest extends TestCase
 
         $this->assertSame('#', $ast->delimiter);
         $this->assertSame('i', $ast->flags);
+
+        $paired = $this->regex->parsePattern('foo', 'i', '(');
+        $this->assertSame('(', $paired->delimiter);
+        $this->assertSame('i', $paired->flags);
     }
 
     #[Test]

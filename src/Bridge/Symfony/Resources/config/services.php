@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use RegexParser\Bridge\Symfony\Command\RegexLintCommand;
+use RegexParser\Lint\ExtractorInterface;
 use RegexParser\Lint\Formatter\FormatterRegistry;
 use RegexParser\Lint\RegexAnalysisService;
 use RegexParser\Lint\RegexLintService;
@@ -48,7 +49,7 @@ return static function (ContainerConfigurator $container): void {
     // Configure extractor with the determined implementation
     $services->set('regex_parser.extractor', \RegexParser\Lint\RegexPatternExtractor::class)
         ->args([
-            '$extractor' => service('regex_parser.extractor.instance')->nullOnInvalid(),
+            '$extractor' => service(ExtractorInterface::class)->nullOnInvalid(),
         ]);
 
     $services->set('regex_parser.service.regex_analysis', RegexAnalysisService::class)

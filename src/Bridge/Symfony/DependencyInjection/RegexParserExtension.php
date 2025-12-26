@@ -95,13 +95,15 @@ final class RegexParserExtension extends Extension
 
         $container->setDefinition('regex_parser.cache', $this->buildCacheDefinition($config));
 
-        // Configure custom extractor service if provided
+        // Configure extractor service or default implementation.
         if (null !== $config['extractor_service'] && '' !== $config['extractor_service']) {
             $container->setAlias(ExtractorInterface::class, $config['extractor_service']);
+            $container->setAlias('regex_parser.extractor.instance', $config['extractor_service']);
         } else {
-            // Determine and register the appropriate extractor
-            $extractorDefinition = $this->createExtractorDefinition($config, $container);
+            // Determine and register the appropriate extractor.
+            $extractorDefinition = $this->createExtractorDefinition();
             $container->setDefinition('regex_parser.extractor.instance', $extractorDefinition);
+            $container->setAlias(ExtractorInterface::class, 'regex_parser.extractor.instance');
         }
 
         $loader = new PhpFileLoader($container, new FileLocator(__DIR__.'/../Resources/config'));
@@ -148,21 +150,12 @@ final class RegexParserExtension extends Extension
     }
 
     /**
-     * Create the appropriate extractor definition based on configuration and availability.
-     *
-     * @param array{extractor_service: string|null} $config
+     * Create the appropriate extractor definition based on availability.
      */
-    private function createExtractorDefinition(array $config, ContainerBuilder $container): Definition
+    private function createExtractorDefinition(): Definition
     {
-        // If user provided custom extractor service, create alias
-        $extractorService = $config['extractor_service'] ?? null;
-        if (\is_string($extractorService) && '' !== $extractorService) {
-            return (new Definition(ExtractorInterface::class))
-                ->setFactory([new Reference($extractorService), '...']);
-        }
-
-        // Check if PHPStan is available and prefer it
-        if ($this->isPhpStanAvailable()) {
+        // Prefer PhpParser-based extraction when available.
+        if ($this->isPhpParserAvailable()) {
             return new Definition(PhpStanExtractionStrategy::class);
         }
 
@@ -193,12 +186,10 @@ final class RegexParserExtension extends Extension
     }
 
     /**
-     * Check if PHPStan classes are available.
+     * Check if PhpParser classes are available.
      */
-    private function isPhpStanAvailable(): bool
+    private function isPhpParserAvailable(): bool
     {
-        return class_exists(\PHPStan\Analyser\Analyser::class)
-            && class_exists(\PHPStan\Parser\Parser::class)
-            && class_exists(\PHPStan\PhpDoc\TypeNodeResolver::class);
+        return class_exists(\PhpParser\ParserFactory::class);
     }
 }

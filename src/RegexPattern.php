@@ -54,6 +54,8 @@ final readonly class RegexPattern implements \Stringable
      */
     public function toString(): string
     {
-        return $this->delimiter.$this->pattern.$this->delimiter.$this->flags;
+        $closingDelimiter = PatternParser::closingDelimiter($this->delimiter);
+
+        return $this->delimiter.$this->pattern.$closingDelimiter.$this->flags;
     }
 }

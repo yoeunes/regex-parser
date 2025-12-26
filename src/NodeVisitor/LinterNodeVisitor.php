@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\NodeVisitor;
 
+use RegexParser\Internal\PatternParser;
 use RegexParser\LintIssue;
 use RegexParser\Node;
 use RegexParser\Node\GroupType;
@@ -62,7 +63,9 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
      */
     public function getFullPattern(): string
     {
-        return $this->delimiter.$this->patternValue.$this->delimiter.$this->flags;
+        $closingDelimiter = PatternParser::closingDelimiter($this->delimiter);
+
+        return $this->delimiter.$this->patternValue.$closingDelimiter.$this->flags;
     }
 
     /**

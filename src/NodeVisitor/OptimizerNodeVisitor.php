@@ -1008,7 +1008,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         // Safety check: only factorize if all alternatives are LiteralNode
         foreach ($alts as $alt) {
             if (!$alt instanceof Node\LiteralNode) {
-                return $alts; // Trop risqué de factoriser des nœuds complexes par string
+                return $alts; // Too risky to factorize complex nodes based on string output.
             }
         }
 

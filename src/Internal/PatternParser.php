@@ -49,13 +49,7 @@ final class PatternParser
             ));
         }
         // Handle bracket delimiters style: (pattern), [pattern], {pattern}, <pattern>
-        $closingDelimiter = match ($delimiter) {
-            '(' => ')',
-            '[' => ']',
-            '{' => '}',
-            '<' => '>',
-            default => $delimiter,
-        };
+        $closingDelimiter = self::closingDelimiter($delimiter);
 
         // Find the last occurrence of the closing delimiter that is NOT escaped
         // We scan from the end to optimize for flags
@@ -108,6 +102,17 @@ final class PatternParser
             $closingDelimiter,
             $suggested,
         ));
+    }
+
+    public static function closingDelimiter(string $delimiter): string
+    {
+        return match ($delimiter) {
+            '(' => ')',
+            '[' => ']',
+            '{' => '}',
+            '<' => '>',
+            default => $delimiter,
+        };
     }
 
     private static function supportsModifierR(?int $phpVersionId = null): bool

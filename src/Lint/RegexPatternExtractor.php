@@ -23,6 +23,9 @@ namespace RegexParser\Lint;
  */
 final readonly class RegexPatternExtractor
 {
+    private const WORKER_ALLOWED_CLASSES = [
+        RegexPatternOccurrence::class,
+    ];
     /**
      * Template file suffixes to exclude by default.
      * These files often contain template syntax that can be confused with regex quantifiers.
@@ -304,7 +307,7 @@ final readonly class RegexPatternExtractor
             ];
         }
 
-        $payload = @unserialize($data, ['allowed_classes' => true]);
+        $payload = @unserialize($data, ['allowed_classes' => self::WORKER_ALLOWED_CLASSES]);
         if (!\is_array($payload) || !\array_key_exists('ok', $payload) || !\is_bool($payload['ok'])) {
             return [
                 'ok' => false,
