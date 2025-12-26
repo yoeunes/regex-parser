@@ -385,24 +385,25 @@ class ConsoleFormatter extends AbstractOutputFormatter
             }
         }
 
-        $output = '';
+        $deleteLines = [];
+        $insertLines = [];
         $pairCount = min(\count($deletes), \count($inserts));
 
         for ($i = 0; $i < $pairCount; $i++) {
             $diff = $this->computeSimpleDiff($deletes[$i], $inserts[$i]);
-            $output .= $this->formatDiffLine('-', $diff['old'], self::RED);
-            $output .= $this->formatDiffLine('+', $diff['new'], self::GREEN);
+            $deleteLines[] = $this->formatDiffLine('-', $diff['old'], self::RED);
+            $insertLines[] = $this->formatDiffLine('+', $diff['new'], self::GREEN);
         }
 
         for ($i = $pairCount, $count = \count($deletes); $i < $count; $i++) {
-            $output .= $this->formatDiffLine('-', $this->color($deletes[$i], self::RED), self::RED);
+            $deleteLines[] = $this->formatDiffLine('-', $this->color($deletes[$i], self::RED), self::RED);
         }
 
         for ($i = $pairCount, $count = \count($inserts); $i < $count; $i++) {
-            $output .= $this->formatDiffLine('+', $this->color($inserts[$i], self::GREEN), self::GREEN);
+            $insertLines[] = $this->formatDiffLine('+', $this->color($inserts[$i], self::GREEN), self::GREEN);
         }
 
-        return $output;
+        return implode('', $deleteLines).implode('', $insertLines);
     }
 
     /**
