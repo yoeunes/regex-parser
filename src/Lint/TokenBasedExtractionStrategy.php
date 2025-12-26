@@ -51,7 +51,7 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
     private array $customStaticFunctionMap;
 
     /**
-     * @param list<string> $customFunctions Additional functions/static methods to check (e.g., 'MyClass::customRegexCheck')
+     * @param array<string> $customFunctions Additional functions/static methods to check (e.g., 'MyClass::customRegexCheck')
      */
     public function __construct(array $customFunctions = [])
     {
@@ -85,7 +85,7 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
             $this->appendOccurrences($occurrences, $this->extractFromFile($file));
         }
 
-        return $occurrences;
+        return array_values($occurrences);
     }
 
     /**
@@ -142,7 +142,7 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
     }
 
     /**
-     * @param list<array{int, string, int}|string> $tokens
+     * @param array<array{int, string, int}|string> $tokens
      *
      * @return array{string, int, int, bool}|null
      */
@@ -205,7 +205,7 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
     }
 
     /**
-     * @param list<array{int, string, int}|string> $tokens
+     * @param array<array{int, string, int}|string> $tokens
      *
      * @return array{string, int, int, bool}|null
      */
@@ -249,9 +249,9 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
     }
 
     /**
-     * @param array<\PhpParser\Node> $tokens
+     * @param array<array{int, string, int}|string> $tokens
      *
-     * @return list<RegexPatternOccurrence>
+     * @return array<RegexPatternOccurrence>
      */
     private function extractFromCall(
         array $tokens,
@@ -368,9 +368,9 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
     }
 
     /**
-     * @param array<\PhpParser\Node> $tokens
+     * @param array<array{int, string, int}|string> $tokens
      *
-     * @return list<RegexPatternOccurrence>
+     * @return array<RegexPatternOccurrence>
      */
     private function extractFromArgumentTokens(array $tokens, string $file, string $sourceName, bool $isCallbackArray): array
     {
@@ -411,9 +411,9 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
     }
 
     /**
-     * @param array<\PhpParser\Node> $tokens
+     * @param array<array{int, string, int}|string> $tokens
      *
-     * @return list<RegexPatternOccurrence>
+     * @return array<RegexPatternOccurrence>
      */
     private function extractFromCallbackArray(array $tokens, string $file, string $sourceName): array
     {
@@ -512,7 +512,7 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
     /**
      * Parse a regex expression, handling patterns with flags.
      *
-     * @param list<array{int, string, int}|string> $tokens
+     * @param array<array{int, string, int}|string> $tokens
      *
      * @return array{pattern: string, line: int}|null
      */
@@ -553,7 +553,7 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
     }
 
     /**
-     * @param list<array{int, string, int}|string> $tokens
+     * @param array<array{int, string, int}|string> $tokens
      *
      * @return array{pattern: string, line: int}|null
      */
@@ -852,10 +852,10 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
     }
 
     /**
-     * @param list<array{int, string, int}|string> $tokens
+     * @param array<array{int, string, int}|string> $tokens
      */
     /**
-     * @param list<array{0:int, 1:string, 2:int}|string> $tokens
+     * @param array<array{0:int, 1:string, 2:int}|string> $tokens
      */
     private function isNamespacedFunctionName(array $tokens, int $index): bool
     {
@@ -1001,7 +1001,7 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
     }
 
     /**
-     * @param list<array{int, string, int}|string> $tokens
+     * @param array<array{int, string, int}|string> $tokens
      */
     private function nextSignificantTokenIndex(array $tokens, int $startIndex, int $totalTokens): ?int
     {
@@ -1015,7 +1015,7 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
     }
 
     /**
-     * @param list<array{int, string, int}|string> $tokens
+     * @param array<array{int, string, int}|string> $tokens
      */
     private function previousSignificantTokenIndex(array $tokens, int $startIndex): ?int
     {
@@ -1062,9 +1062,9 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
     }
 
     /**
-     * @param list<array{int, string, int}|string> $tokens
+     * @param array<array{int, string, int}|string> $tokens
      *
-     * @return list<array{int, string, int}|string>
+     * @return array<array{int, string, int}|string>
      */
     private function stripOuterParentheses(array $tokens): array
     {
@@ -1113,7 +1113,7 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
     }
 
     /**
-     * @param list<array{int, string, int}|string> $tokens
+     * @param array<array{int, string, int}|string> $tokens
      */
     private function findArrayStartIndex(array $tokens): ?int
     {

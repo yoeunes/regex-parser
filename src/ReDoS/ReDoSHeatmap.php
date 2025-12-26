@@ -26,7 +26,7 @@ final class ReDoSHeatmap
     private const GRAY = "\033[90m";
 
     /**
-     * @param list<ReDoSHotspot> $hotspots
+     * @param array<ReDoSHotspot> $hotspots
      */
     public function highlight(string $body, array $hotspots, bool $ansi = true): string
     {

@@ -53,11 +53,11 @@ final readonly class PhpStanExtractionStrategy implements ExtractorInterface
             return [];
         }
 
-        return $this->analyzeFilesWithPhpStan($files);
+        return array_values($this->analyzeFilesWithPhpStan($files));
     }
 
     /**
-     * @param list<string> $files
+     * @param array<string> $files
      *
      * @return array<RegexPatternOccurrence>
      */
@@ -150,7 +150,7 @@ final readonly class PhpStanExtractionStrategy implements ExtractorInterface
     }
 
     /**
-     * @return list<RegexPatternOccurrence>
+     * @return array<RegexPatternOccurrence>
      */
     private function extractFromFuncCall(FuncCall $funcCall, string $file): array
     {
@@ -188,7 +188,7 @@ final readonly class PhpStanExtractionStrategy implements ExtractorInterface
     }
 
     /**
-     * @return list<RegexPatternOccurrence>
+     * @return array<RegexPatternOccurrence>
      */
     private function extractPatternFromArg(Arg $arg, string $file, string $functionName): array
     {

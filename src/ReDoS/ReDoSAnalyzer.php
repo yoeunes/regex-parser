@@ -20,17 +20,17 @@ use RegexParser\Regex;
 final class ReDoSAnalyzer
 {
     /**
-     * @var list<string>
+     * @var array<string>
      */
     private array $ignoredPatternsNormalized = [];
 
     /**
-     * @param list<string> $ignoredPatterns
+     * @param array<string> $ignoredPatterns
      */
     public function __construct(
         private readonly ?Regex $regex = null,
         /**
-         * @var list<string>
+         * @var array<string>
          */
         private array $ignoredPatterns = [],
         private readonly ReDoSSeverity $threshold = ReDoSSeverity::HIGH,
@@ -131,9 +131,9 @@ final class ReDoSAnalyzer
     }
 
     /**
-     * @param list<string> $patterns
+     * @param array<string> $patterns
      *
-     * @return list<string>
+     * @return array<string>
      */
     private function normalizeIgnoredPatterns(array $patterns): array
     {

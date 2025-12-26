@@ -23,12 +23,12 @@ use RegexParser\Node;
 final class RailroadDiagramVisitor extends AbstractNodeVisitor
 {
     /**
-     * @var list<string>
+     * @var array<string>
      */
     private array $lines = [];
 
     /**
-     * @var list<bool>
+     * @var array<bool>
      */
     private array $branchStack = [];
 
@@ -305,7 +305,7 @@ final class RailroadDiagramVisitor extends AbstractNodeVisitor
     }
 
     /**
-     * @param list<Node\NodeInterface> $children
+     * @param array<Node\NodeInterface> $children
      */
     private function visitChildren(array $children): void
     {

@@ -21,8 +21,8 @@ use RegexParser\ReDoS\ReDoSAnalysis;
 final readonly class AnalysisReport
 {
     /**
-     * @param list<string> $errors
-     * @param list<mixed>  $lintIssues
+     * @param array<string> $errors
+     * @param array<mixed>  $lintIssues
      */
     public function __construct(
         public bool $isValid,
@@ -35,7 +35,7 @@ final readonly class AnalysisReport
     ) {}
 
     /**
-     * @return list<string>
+     * @return array<string>
      */
     public function errors(): array
     {
@@ -43,7 +43,7 @@ final readonly class AnalysisReport
     }
 
     /**
-     * @return list<mixed>
+     * @return array<mixed>
      */
     public function lintIssues(): array
     {

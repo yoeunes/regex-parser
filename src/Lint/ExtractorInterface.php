@@ -21,9 +21,9 @@ namespace RegexParser\Lint;
 interface ExtractorInterface
 {
     /**
-     * Extract regex patterns from the given PHP files.
+     * Extract regex patterns from given PHP files.
      *
-     * @param list<string> $files List of PHP file paths to analyze
+     * @param array<string> $files List of PHP file paths to analyze
      *
      * @return array<RegexPatternOccurrence>
      */

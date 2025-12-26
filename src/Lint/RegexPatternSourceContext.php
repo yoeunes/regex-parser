@@ -26,9 +26,9 @@ final readonly class RegexPatternSourceContext
     public mixed $progress;
 
     /**
-     * @param list<string>                  $paths
-     * @param list<string>                  $excludePaths
-     * @param list<string>                  $disabledSources
+     * @param array<string>                  $paths
+     * @param array<string>                  $excludePaths
+     * @param array<string>                  $disabledSources
      * @param callable(int, int): void|null $progress
      */
     public function __construct(

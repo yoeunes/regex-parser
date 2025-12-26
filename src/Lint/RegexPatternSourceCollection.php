@@ -26,7 +26,7 @@ final readonly class RegexPatternSourceCollection
     public function __construct(private iterable $sources) {}
 
     /**
-     * @return list<RegexPatternOccurrence>
+     * @return array<RegexPatternOccurrence>
      */
     public function collect(RegexPatternSourceContext $context): array
     {

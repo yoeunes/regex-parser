@@ -77,7 +77,7 @@ final readonly class ValidatorRegexPatternSource implements RegexPatternSourceIn
     }
 
     /**
-     * @return list<string>
+     * @return array<string>
      */
     private function getMappedClasses(): array
     {
@@ -105,7 +105,7 @@ final readonly class ValidatorRegexPatternSource implements RegexPatternSourceIn
     }
 
     /**
-     * @return list<RegexPatternOccurrence>
+     * @return array<RegexPatternOccurrence>
      */
     private function extractFromMetadata(MetadataInterface $metadata, string $className, string $file, int &$line): array
     {
@@ -138,7 +138,7 @@ final readonly class ValidatorRegexPatternSource implements RegexPatternSourceIn
     /**
      * @param array<Constraint> $constraints
      *
-     * @return list<RegexPatternOccurrence>
+     * @return array<RegexPatternOccurrence>
      */
     private function extractFromConstraints(array $constraints, string $source, string $file, int &$line): array
     {

@@ -375,7 +375,7 @@ final readonly class Regex
     /**
      * Get the list of allowed classes for unserialization.
      *
-     * @return list<class-string>
+     * @return array<class-string>
      */
     private static function getAllowedClasses(): array
     {
@@ -750,7 +750,7 @@ final readonly class Regex
      *
      * @param mixed $literalSet The literal set from extraction
      *
-     * @return list<string> Unique literals
+     * @return array<string> Unique literals
      */
     private function extractUniqueLiterals(mixed $literalSet): array
     {
@@ -772,7 +772,7 @@ final readonly class Regex
      *
      * @param mixed $literalSet The literal set containing prefixes/suffixes
      *
-     * @return list<string> Search patterns
+     * @return array<string> Search patterns
      */
     private function buildSearchPatterns(mixed $literalSet): array
     {

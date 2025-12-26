@@ -37,13 +37,13 @@ final readonly class RegexAnalysisService
     private ReDoSSeverity $redosSeverityThreshold;
 
     /**
-     * @var list<string>
+     * @var array<string>
      */
     private array $ignoredPatterns;
 
     /**
-     * @param list<string> $ignoredPatterns
-     * @param list<string> $redosIgnoredPatterns
+     * @param array<string> $ignoredPatterns
+     * @param array<string> $redosIgnoredPatterns
      */
     public function __construct(
         private Regex $regex,
@@ -59,10 +59,10 @@ final readonly class RegexAnalysisService
     }
 
     /**
-     * @param list<string> $paths
-     * @param list<string> $excludePaths
+     * @param array<string> $paths
+     * @param array<string> $excludePaths
      *
-     * @return list<RegexPatternOccurrence>
+     * @return array<RegexPatternOccurrence>
      */
     public function scan(array $paths, array $excludePaths): array
     {
@@ -70,13 +70,13 @@ final readonly class RegexAnalysisService
             new TokenBasedExtractionStrategy(),
         );
 
-        return $extractor->extract($paths, $excludePaths);
+        return array_values($extractor->extract($paths, $excludePaths));
     }
 
     /**
-     * @param list<RegexPatternOccurrence> $patterns
+     * @param array<RegexPatternOccurrence> $patterns
      *
-     * @return list<array{
+     * @return array<array{
      *     type: string,
      *     file: string,
      *     line: int,
@@ -105,9 +105,9 @@ final readonly class RegexAnalysisService
     }
 
     /**
-     * @param list<RegexPatternOccurrence> $patterns
+     * @param array<RegexPatternOccurrence> $patterns
      *
-     * @return list<array{file: string, line: int, analysis: ReDoSAnalysis}>
+     * @return array<array{file: string, line: int, analysis: ReDoSAnalysis}>
      */
     public function analyzeRedos(array $patterns, ReDoSSeverity $threshold, int $workers = 1): array
     {
@@ -123,10 +123,10 @@ final readonly class RegexAnalysisService
     }
 
     /**
-     * @param list<RegexPatternOccurrence>                           $patterns
+     * @param array<RegexPatternOccurrence>                           $patterns
      * @param array{digits?: bool, word?: bool, strictRanges?: bool} $optimizationConfig
      *
-     * @return list<array{
+     * @return array<array{
      *     file: string,
      *     line: int,
      *     optimization: OptimizationResult,
@@ -162,9 +162,9 @@ final readonly class RegexAnalysisService
     }
 
     /**
-     * @param list<RegexPatternOccurrence> $patterns
+     * @param array<RegexPatternOccurrence> $patterns
      *
-     * @return list<array{
+     * @return array<array{
      *     type: string,
      *     file: string,
      *     line: int,
@@ -278,9 +278,9 @@ final readonly class RegexAnalysisService
     }
 
     /**
-     * @param list<RegexPatternOccurrence> $patterns
+     * @param array<RegexPatternOccurrence> $patterns
      *
-     * @return list<array{file: string, line: int, analysis: ReDoSAnalysis}>
+     * @return array<array{file: string, line: int, analysis: ReDoSAnalysis}>
      */
     private function analyzeRedosChunk(array $patterns, ReDoSSeverity $threshold): array
     {
@@ -308,10 +308,10 @@ final readonly class RegexAnalysisService
     }
 
     /**
-     * @param list<RegexPatternOccurrence>                           $patterns
+     * @param array<RegexPatternOccurrence>                           $patterns
      * @param array{digits?: bool, word?: bool, strictRanges?: bool} $optimizationConfig
      *
-     * @return list<array{
+     * @return array<array{
      *     file: string,
      *     line: int,
      *     optimization: OptimizationResult,
@@ -375,10 +375,10 @@ final readonly class RegexAnalysisService
     /**
      * @template T
      *
-     * @param list<RegexPatternOccurrence>                    $patterns
-     * @param callable(list<RegexPatternOccurrence>): list<T> $worker
+     * @param array<RegexPatternOccurrence>                    $patterns
+     * @param callable(array<RegexPatternOccurrence>): array<T> $worker
      *
-     * @return list<T>
+     * @return array<T>
      */
     private function runInParallel(array $patterns, int $workers, callable $worker, ?callable $progress = null): array
     {
@@ -647,10 +647,10 @@ final readonly class RegexAnalysisService
     }
 
     /**
-     * @param list<string> $userIgnored
-     * @param list<string> $redosIgnored
+     * @param array<string> $userIgnored
+     * @param array<string> $redosIgnored
      *
-     * @return list<string>
+     * @return array<string>
      */
     private function buildIgnoredPatterns(array $userIgnored, array $redosIgnored): array
     {
@@ -885,7 +885,7 @@ final readonly class RegexAnalysisService
     }
 
     /**
-     * @return list<string>
+     * @return array<string>
      */
     private function suggestReDoSFixes(string $pattern, ReDoSAnalysis $analysis): array
     {

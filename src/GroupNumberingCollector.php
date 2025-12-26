@@ -25,12 +25,12 @@ final class GroupNumberingCollector
     private int $maxGroupNumber = 0;
 
     /**
-     * @var list<int>
+     * @var array<int>
      */
     private array $captureSequence = [];
 
     /**
-     * @var array<string, list<int>>
+     * @var array<string, array<int>>
      */
     private array $namedGroups = [];
 

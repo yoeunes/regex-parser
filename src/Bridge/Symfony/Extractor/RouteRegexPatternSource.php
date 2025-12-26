@@ -125,7 +125,7 @@ final readonly class RouteRegexPatternSource implements RegexPatternSourceInterf
     }
 
     /**
-     * @return list<string>
+     * @return array<string>
      */
     private function collectYamlResources(RouteCollection $collection): array
     {
@@ -153,7 +153,7 @@ final readonly class RouteRegexPatternSource implements RegexPatternSourceInterf
     }
 
     /**
-     * @param list<string>        $yamlFiles
+     * @param array<string>        $yamlFiles
      * @param array<string, bool> $routeNames
      *
      * @return array<string, array{file: string, line: int, requirements: array<string, int>}>

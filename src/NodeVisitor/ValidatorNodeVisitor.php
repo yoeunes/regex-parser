@@ -87,7 +87,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     private GroupNumbering $groupNumbering;
 
     /**
-     * @var list<int>
+     * @var array<int>
      */
     private array $captureSequence = [];
 

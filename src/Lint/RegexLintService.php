@@ -55,9 +55,9 @@ use RegexParser\ValidationResult;
  *     source?: string|null,
  *     pattern: string|null,
  *     location?: string|null,
- *     issues: list<LintIssue>,
- *     optimizations: list<OptimizationEntry>,
- *     problems: list<\RegexParser\RegexProblem>
+ *     issues: array<LintIssue>,
+ *     optimizations: array<OptimizationEntry>,
+ *     problems: array<\RegexParser\RegexProblem>
  * }
  * @phpstan-type LintStats array{errors: int, warnings: int, optimizations: int}
  */
@@ -76,7 +76,7 @@ final readonly class RegexLintService
     /**
      * @param callable(int, int): void|null $progress
      *
-     * @return list<RegexPatternOccurrence>
+     * @return array<RegexPatternOccurrence>
      */
     public function collectPatterns(RegexLintRequest $request, ?callable $progress = null): array
     {
@@ -92,7 +92,7 @@ final readonly class RegexLintService
     }
 
     /**
-     * @param list<RegexPatternOccurrence> $patterns
+     * @param array<RegexPatternOccurrence> $patterns
      */
     public function analyze(array $patterns, RegexLintRequest $request, ?callable $progress = null): RegexLintReport
     {
@@ -101,7 +101,7 @@ final readonly class RegexLintService
         $issues = $this->filterIssuesByRequest($issues, $request);
         $issues = $this->deduplicateIssues($issues);
 
-        /** @var list<array{file: string, line: int, optimization: OptimizationResult, savings: int, source?: string}> $optimizations */
+        /** @var array<array{file: string, line: int, optimization: OptimizationResult, savings: int, source?: string}> $optimizations */
         $optimizations = $request->checkOptimizations
             ? array_values($this->analysis->suggestOptimizations($patterns, $request->minSavings, [], $request->analysisWorkers))
             : [];
@@ -116,9 +116,9 @@ final readonly class RegexLintService
     /**
      * Apply high-level toggles from the lint request (validation / ReDoS).
      *
-     * @phpstan-param list<LintIssue> $issues
+     * @phpstan-param array<LintIssue> $issues
      *
-     * @phpstan-return list<LintIssue>
+     * @phpstan-return array<LintIssue>
      */
     private function filterIssuesByRequest(array $issues, RegexLintRequest $request): array
     {
@@ -144,9 +144,9 @@ final readonly class RegexLintService
     }
 
     /**
-     * @phpstan-param list<LintIssue> $issues
+     * @phpstan-param array<LintIssue> $issues
      *
-     * @phpstan-return list<LintIssue>
+     * @phpstan-return array<LintIssue>
      */
     private function filterLintIssues(array $issues): array
     {
@@ -170,9 +170,9 @@ final readonly class RegexLintService
     }
 
     /**
-     * @phpstan-param list<LintIssue> $issues
+     * @phpstan-param array<LintIssue> $issues
      *
-     * @phpstan-return list<LintIssue>
+     * @phpstan-return array<LintIssue>
      */
     private function deduplicateIssues(array $issues): array
     {
@@ -193,12 +193,12 @@ final readonly class RegexLintService
     }
 
     /**
-     * @param list<RegexPatternOccurrence> $originalPatterns
+     * @param array<RegexPatternOccurrence> $originalPatterns
      *
-     * @phpstan-param list<LintIssue> $issues
-     * @phpstan-param list<OptimizationEntry> $optimizations
+     * @phpstan-param array<LintIssue> $issues
+     * @phpstan-param array<OptimizationEntry> $optimizations
      *
-     * @phpstan-return list<LintResult>
+     * @phpstan-return array<LintResult>
      */
     private function combineResults(array $issues, array $optimizations, array $originalPatterns): array
     {
@@ -213,7 +213,7 @@ final readonly class RegexLintService
     }
 
     /**
-     * @param list<RegexPatternOccurrence> $originalPatterns
+     * @param array<RegexPatternOccurrence> $originalPatterns
      *
      * @return array<string, array{pattern: string, location: string|null}>
      */
@@ -237,7 +237,7 @@ final readonly class RegexLintService
     }
 
     /**
-     * @phpstan-param list<LintIssue> $issues
+     * @phpstan-param array<LintIssue> $issues
      * @phpstan-param array<string, array{pattern: string, location: string|null}> $patternMap
      * @phpstan-param array<string, LintResult> $results
      */
@@ -268,7 +268,7 @@ final readonly class RegexLintService
     }
 
     /**
-     * @phpstan-param list<OptimizationEntry> $optimizations
+     * @phpstan-param array<OptimizationEntry> $optimizations
      * @phpstan-param array<string, array{pattern: string, location: string|null}> $patternMap
      * @phpstan-param array<string, LintResult> $results
      */
@@ -451,7 +451,7 @@ final readonly class RegexLintService
 
     /**
      * @param LintStats        $stats
-     * @param list<LintResult> $results
+     * @param array<LintResult> $results
      *
      * @return LintStats
      */

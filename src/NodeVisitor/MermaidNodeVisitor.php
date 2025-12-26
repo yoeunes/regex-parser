@@ -32,7 +32,7 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
     private int $nodeCounter = 0;
 
     /**
-     * @var list<string>
+     * @var array<string>
      */
     private array $lines = [];
 

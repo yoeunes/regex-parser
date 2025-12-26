@@ -26,7 +26,7 @@ use RegexParser\ReDoS\CharSetAnalyzer;
 final class LinterNodeVisitor extends AbstractNodeVisitor
 {
     /**
-     * @var list<LintIssue>
+     * @var array<LintIssue>
      */
     private array $issues = [];
 
@@ -65,7 +65,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     }
 
     /**
-     * @return list<string>
+     * @return array<string>
      */
     public function getWarnings(): array
     {
@@ -76,7 +76,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     }
 
     /**
-     * @return list<LintIssue>
+     * @return array<LintIssue>
      */
     public function getIssues(): array
     {
@@ -676,7 +676,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     }
 
     /**
-     * @return list<Node\NodeInterface>|null
+     * @return array<Node\NodeInterface>|null
      */
     private function collectCharClassParts(Node\NodeInterface $node): ?array
     {
@@ -696,7 +696,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     }
 
     /**
-     * @param list<array{0: int, 1: int}> $ranges
+     * @param array<array{0: int, 1: int}> $ranges
      */
     private function rangeOverlaps(int $start, int $end, array $ranges): bool
     {
@@ -710,7 +710,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     }
 
     /**
-     * @param list<array{0: int, 1: int}> $ranges
+     * @param array<array{0: int, 1: int}> $ranges
      */
     private function isOrdCoveredByRanges(int $ord, array $ranges): bool
     {

@@ -19,7 +19,7 @@ namespace RegexParser;
 final readonly class OptimizationResult
 {
     /**
-     * @param list<string> $changes
+     * @param array<string> $changes
      */
     public function __construct(
         public string $original,

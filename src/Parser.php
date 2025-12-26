@@ -171,7 +171,7 @@ final class Parser
      * provided node list. This is used at the sequence level so that /x
      * comments are preserved in the AST with accurate positions.
      *
-     * @param list<Node\NodeInterface> $nodes
+     * @param array<Node\NodeInterface> $nodes
      */
     private function consumeExtendedModeContent(array &$nodes): bool
     {

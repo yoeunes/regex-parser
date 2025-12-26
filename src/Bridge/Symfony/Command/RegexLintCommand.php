@@ -47,18 +47,18 @@ final class RegexLintCommand extends Command
     private LinkFormatter $linkFormatter;
 
     /**
-     * @var list<string>
+     * @var array<string>
      */
     private array $defaultPaths;
 
     /**
-     * @var list<string>
+     * @var array<string>
      */
     private array $defaultExcludePaths;
 
     /**
-     * @param list<string> $defaultPaths
-     * @param list<string> $defaultExcludePaths
+     * @param array<string> $defaultPaths
+     * @param array<string> $defaultExcludePaths
      */
     public function __construct(
         private readonly RegexLintService $lint,
@@ -88,7 +88,7 @@ final class RegexLintCommand extends Command
     protected function configure(): void
     {
         $this
-            ->addArgument('paths', InputArgument::IS_ARRAY | InputArgument::OPTIONAL, 'The paths to analyze', $this->defaultPaths)
+            ->addArgument('paths', InputArgument::IS_ARRAY | InputArgument::OPTIONAL, 'The paths to analyze', array_values($this->defaultPaths))
             ->addOption('exclude', null, InputOption::VALUE_IS_ARRAY | InputOption::VALUE_OPTIONAL, 'Paths to exclude', $this->defaultExcludePaths)
             ->addOption('min-savings', null, InputOption::VALUE_OPTIONAL, 'Minimum optimization savings in characters', 1)
             ->addOption('jobs', 'j', InputOption::VALUE_OPTIONAL, 'Parallel workers for analysis', 1)
@@ -314,7 +314,7 @@ final class RegexLintCommand extends Command
     }
 
     /**
-     * @return list<string>
+     * @return array<string>
      */
     private function normalizeStringList(mixed $value): array
     {
@@ -326,9 +326,9 @@ final class RegexLintCommand extends Command
     }
 
     /**
-     * @phpstan-param list<LintResult> $results
+     * @phpstan-param array<LintResult> $results
      *
-     * @phpstan-return list<LintResult>
+     * @phpstan-return array<LintResult>
      */
     private function sortResultsByFileAndLine(array $results): array
     {

@@ -369,7 +369,7 @@ final class RegexAnalysisServiceTest extends TestCase
     }
 
     /**
-     * @param list<string> $ignoredPatterns
+     * @param array<string> $ignoredPatterns
      */
     private function createService(int $warningThreshold, string $redosThreshold, array $ignoredPatterns = []): RegexAnalysisService
     {

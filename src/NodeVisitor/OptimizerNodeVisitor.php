@@ -96,7 +96,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         }
 
         if ($this->canAlternationBeCharClass($optimizedAlts)) {
-            /* @var list<Node\LiteralNode> $optimizedAlts */
+            /* @var array<Node\LiteralNode> $optimizedAlts */
             $expression = new Node\AlternationNode($optimizedAlts, $node->startPosition, $node->endPosition);
 
             return new Node\CharClassNode($expression, false, $node->startPosition, $node->endPosition);
@@ -190,7 +190,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
 
         // Sequence compaction
         $originalCount = \count($optimizedChildren);
-        /** @var list<Node\NodeInterface> $optimizedChildren */
+        /** @var array<Node\NodeInterface> $optimizedChildren */
         $optimizedChildren = array_values($optimizedChildren);
         $optimizedChildren = $this->compactSequence($optimizedChildren);
         if (\count($optimizedChildren) !== $originalCount) {
@@ -756,9 +756,9 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
     }
 
     /**
-     * @param list<Node\NodeInterface> $children
+     * @param array<Node\NodeInterface> $children
      *
-     * @return list<Node\NodeInterface>
+     * @return array<Node\NodeInterface>
      */
     private function compactSequence(array $children): array
     {
@@ -891,9 +891,9 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
     }
 
     /**
-     * @param list<Node\NodeInterface> $alts
+     * @param array<Node\NodeInterface> $alts
      *
-     * @return list<Node\NodeInterface>
+     * @return array<Node\NodeInterface>
      */
     private function deduplicateAlternation(array $alts): array
     {
@@ -912,9 +912,9 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
     }
 
     /**
-     * @param list<Node\NodeInterface> $alts
+     * @param array<Node\NodeInterface> $alts
      *
-     * @return list<Node\NodeInterface>
+     * @return array<Node\NodeInterface>
      */
     private function factorizeAlternation(array $alts): array
     {
@@ -963,7 +963,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
             }
         }
 
-        /** @var list<Node\NodeInterface> $nonNullSuffixes */
+        /** @var array<Node\NodeInterface> $nonNullSuffixes */
         $nonNullSuffixes = array_values(array_filter($suffixes, static fn ($suffix): bool => null !== $suffix));
         if (empty($nonNullSuffixes)) {
             // All are just the prefix
@@ -1058,7 +1058,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
             }
         }
 
-        /** @var list<Node\NodeInterface> $nonNullPrefixes */
+        /** @var array<Node\NodeInterface> $nonNullPrefixes */
         $nonNullPrefixes = array_values(array_filter($prefixes, static fn ($prefix): bool => null !== $prefix));
         if (empty($nonNullPrefixes)) {
             // All are just the suffix
@@ -1133,9 +1133,9 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
      * Merges adjacent character class nodes in an alternation.
      * For example: [a-z]|[0-9] becomes [a-z0-9]
      *
-     * @param list<Node\NodeInterface> $alternatives
+     * @param array<Node\NodeInterface> $alternatives
      *
-     * @return list<Node\NodeInterface>
+     * @return array<Node\NodeInterface>
      */
     private function mergeAdjacentCharClasses(array $alternatives): array
     {
@@ -1226,7 +1226,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
     /**
      * Merges character classes and char types into a single character class.
      *
-     * @param list<Node\NodeInterface> $nodes
+     * @param array<Node\NodeInterface> $nodes
      */
     private function mergeCharClassesAndCharTypes(array $nodes): Node\CharClassNode
     {
@@ -1262,7 +1262,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
      * Tries to convert an alternation to a character class if it's beneficial.
      * Only converts when it's clearly safe (no special char class metacharacters).
      *
-     * @param list<Node\NodeInterface> $alternatives
+     * @param array<Node\NodeInterface> $alternatives
      */
     private function tryConvertAlternationToCharClass(array $alternatives, int $startPos, int $endPos): ?Node\CharClassNode
     {

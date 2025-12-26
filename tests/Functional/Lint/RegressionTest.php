@@ -255,12 +255,12 @@ final class RegressionTest extends TestCase
     /**
      * Helper method to extract patterns from fixture file.
      *
-     * @return list<\RegexParser\Lint\RegexPatternOccurrence>
+     * @return array<\RegexParser\Lint\RegexPatternOccurrence>
      */
     private function extractFromFixture(string $fixtureName): array
     {
         $fixtureFile = __DIR__.'/../../Fixtures/Lint/'.$fixtureName;
 
-        return $this->extractor->extract([$fixtureFile]);
+        return array_values($this->extractor->extract([$fixtureFile]));
     }
 }

@@ -39,12 +39,12 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
     /**
      * Stores all detected ReDoS vulnerabilities during the AST traversal.
      *
-     * @var list<ReDoSFinding>
+     * @var array<ReDoSFinding>
      */
     private array $vulnerabilities = [];
 
     /**
-     * @var list<ReDoSHotspot>
+     * @var array<ReDoSHotspot>
      */
     private array $hotspots = [];
 
@@ -113,7 +113,7 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
     }
 
     /**
-     * @return list<ReDoSHotspot>
+     * @return array<ReDoSHotspot>
      */
     public function getHotspots(): array
     {

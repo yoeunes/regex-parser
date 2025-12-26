@@ -46,21 +46,21 @@ namespace RegexParser\Lint;
  *     source?: string|null,
  *     pattern: string|null,
  *     location?: string|null,
- *     issues: list<LintIssue>,
- *     optimizations: list<OptimizationEntry>,
- *     problems: list<\RegexParser\RegexProblem>
+ *     issues: array<LintIssue>,
+ *     optimizations: array<OptimizationEntry>,
+ *     problems: array<\RegexParser\RegexProblem>
  * }
  * @phpstan-type LintStats array{errors: int, warnings: int, optimizations: int}
  */
 final readonly class RegexLintReport
 {
     /**
-     * @param list<LintResult> $results
+     * @param array<LintResult> $results
      * @param LintStats        $stats
      */
     public function __construct(
         /**
-         * @var list<LintResult>
+         * @var array<LintResult>
          */
         public array $results,
         /**

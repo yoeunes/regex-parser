@@ -25,9 +25,9 @@ final readonly class ReDoSAnalysis
     public ?string $vulnerableSubpattern;
 
     /**
-     * @param list<string>       $recommendations
-     * @param list<ReDoSFinding> $findings
-     * @param list<ReDoSHotspot> $hotspots
+     * @param array<string>       $recommendations
+     * @param array<ReDoSFinding> $findings
+     * @param array<ReDoSHotspot> $hotspots
      */
     public function __construct(
         public ReDoSSeverity $severity,
