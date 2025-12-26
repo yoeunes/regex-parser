@@ -209,7 +209,7 @@ final readonly class RegexLintService
         $this->addIssuesToResults($issues, $patternMap, $results);
         $this->addOptimizationsToResults($optimizations, $patternMap, $results);
 
-        return $results;
+        return array_values($results);
     }
 
     /**
