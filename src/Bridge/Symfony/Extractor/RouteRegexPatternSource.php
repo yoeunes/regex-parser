@@ -153,7 +153,7 @@ final readonly class RouteRegexPatternSource implements RegexPatternSourceInterf
     }
 
     /**
-     * @param array<string>        $yamlFiles
+     * @param array<string>       $yamlFiles
      * @param array<string, bool> $routeNames
      *
      * @return array<string, array{file: string, line: int, requirements: array<string, int>}>

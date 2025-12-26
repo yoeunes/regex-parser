@@ -45,8 +45,8 @@ final readonly class RegexPatternExtractor
     /**
      * Extract regex patterns from the given paths.
      *
-     * @param array<string>                  $paths        Paths to scan for PHP files
-     * @param array<string>|null             $excludePaths Optional paths to exclude (falls back to ['vendor'])
+     * @param array<string>                 $paths        Paths to scan for PHP files
+     * @param array<string>|null            $excludePaths Optional paths to exclude (falls back to ['vendor'])
      * @param callable(int, int): void|null $progress     Reports collection progress as (current, total)
      * @param int                           $workers      Number of worker processes to use when supported
      *
@@ -74,7 +74,7 @@ final readonly class RegexPatternExtractor
     }
 
     /**
-     * @param array<string>                  $phpFiles
+     * @param array<string>                 $phpFiles
      * @param callable(int, int): void|null $progress
      *
      * @return array<RegexPatternOccurrence>
@@ -103,7 +103,7 @@ final readonly class RegexPatternExtractor
     }
 
     /**
-     * @param array<string>                  $phpFiles
+     * @param array<string>                 $phpFiles
      * @param callable(int, int): void|null $progress
      *
      * @return array<RegexPatternOccurrence>

@@ -70,7 +70,7 @@ final readonly class RegexAnalysisService
             new TokenBasedExtractionStrategy(),
         );
 
-        return array_values($extractor->extract($paths, $excludePaths));
+        return $extractor->extract($paths, $excludePaths);
     }
 
     /**
@@ -123,7 +123,7 @@ final readonly class RegexAnalysisService
     }
 
     /**
-     * @param array<RegexPatternOccurrence>                           $patterns
+     * @param array<RegexPatternOccurrence>                          $patterns
      * @param array{digits?: bool, word?: bool, strictRanges?: bool} $optimizationConfig
      *
      * @return array<array{
@@ -308,7 +308,7 @@ final readonly class RegexAnalysisService
     }
 
     /**
-     * @param array<RegexPatternOccurrence>                           $patterns
+     * @param array<RegexPatternOccurrence>                          $patterns
      * @param array{digits?: bool, word?: bool, strictRanges?: bool} $optimizationConfig
      *
      * @return array<array{
@@ -375,7 +375,7 @@ final readonly class RegexAnalysisService
     /**
      * @template T
      *
-     * @param array<RegexPatternOccurrence>                    $patterns
+     * @param array<RegexPatternOccurrence>                     $patterns
      * @param callable(array<RegexPatternOccurrence>): array<T> $worker
      *
      * @return array<T>

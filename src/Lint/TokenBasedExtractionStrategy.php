@@ -85,7 +85,7 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
             $this->appendOccurrences($occurrences, $this->extractFromFile($file));
         }
 
-        return array_values($occurrences);
+        return $occurrences;
     }
 
     /**

@@ -277,7 +277,7 @@ final readonly class Regex
      */
     public function redos(string $regex, ?ReDoSSeverity $threshold = null): ReDoSAnalysis
     {
-        $analyzer = new ReDoSAnalyzer($this, array_values($this->redosIgnoredPatterns));
+        $analyzer = new ReDoSAnalyzer($this, $this->redosIgnoredPatterns);
 
         return $analyzer->analyze($regex, $threshold);
     }

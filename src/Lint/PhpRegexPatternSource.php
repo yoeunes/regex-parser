@@ -36,11 +36,11 @@ final readonly class PhpRegexPatternSource implements RegexPatternSourceInterfac
     {
         $progress = \is_callable($context->progress) ? $context->progress : null;
 
-        return array_values($this->extractor->extract(
+        return $this->extractor->extract(
             $context->paths,
             $context->excludePaths,
             $progress,
             $context->workers,
-        ));
+        );
     }
 }

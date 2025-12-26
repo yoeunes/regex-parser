@@ -209,7 +209,7 @@ final readonly class RegexLintService
         $this->addIssuesToResults($issues, $patternMap, $results);
         $this->addOptimizationsToResults($optimizations, $patternMap, $results);
 
-        return array_values($results);
+        return $results;
     }
 
     /**
@@ -450,7 +450,7 @@ final readonly class RegexLintService
     }
 
     /**
-     * @param LintStats        $stats
+     * @param LintStats         $stats
      * @param array<LintResult> $results
      *
      * @return LintStats

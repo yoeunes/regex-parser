@@ -53,7 +53,7 @@ final readonly class PhpStanExtractionStrategy implements ExtractorInterface
             return [];
         }
 
-        return array_values($this->analyzeFilesWithPhpStan($files));
+        return $this->analyzeFilesWithPhpStan($files);
     }
 
     /**

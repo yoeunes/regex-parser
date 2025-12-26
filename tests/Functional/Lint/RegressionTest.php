@@ -261,6 +261,6 @@ final class RegressionTest extends TestCase
     {
         $fixtureFile = __DIR__.'/../../Fixtures/Lint/'.$fixtureName;
 
-        return array_values($this->extractor->extract([$fixtureFile]));
+        return $this->extractor->extract([$fixtureFile]);
     }
 }
