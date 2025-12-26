@@ -388,7 +388,7 @@ final readonly class RegexAnalysisService
         }
 
         $workerCount = max(1, min($workers, $patternCount));
-        $chunkSize = (int) ceil($patternCount / $workerCount);
+        $chunkSize = max(1, (int) ceil($patternCount / $workerCount));
         $chunks = array_chunk($patterns, $chunkSize);
         $children = [];
         $failed = false;
@@ -458,8 +458,10 @@ final readonly class RegexAnalysisService
 
             if (!($payload['ok'] ?? false)) {
                 $error = $payload['error'] ?? ['message' => 'Unknown worker failure.', 'class' => \RuntimeException::class];
+                $errorClass = \is_array($error) && isset($error['class']) && \is_string($error['class']) ? $error['class'] : \RuntimeException::class;
+                $errorMessage = \is_array($error) && isset($error['message']) && \is_string($error['message']) ? $error['message'] : 'Unknown worker failure.';
 
-                throw new \RuntimeException(\sprintf('Parallel analysis failed: %s: %s', $error['class'], $error['message']));
+                throw new \RuntimeException(\sprintf('Parallel analysis failed: %s: %s', $errorClass, $errorMessage));
             }
 
             $resultsByIndex[$meta['index']] = $payload['result'] ?? [];
@@ -473,7 +475,13 @@ final readonly class RegexAnalysisService
         ksort($resultsByIndex);
         $results = [];
         foreach ($resultsByIndex as $chunkResults) {
-            $results = array_merge($results, $chunkResults);
+            if (!\is_array($chunkResults)) {
+                continue;
+            }
+
+            foreach ($chunkResults as $item) {
+                $results[] = $item;
+            }
         }
 
         return $results;
@@ -512,7 +520,7 @@ final readonly class RegexAnalysisService
         }
 
         $payload = @unserialize($data, ['allowed_classes' => true]);
-        if (!\is_array($payload) || !\array_key_exists('ok', $payload)) {
+        if (!\is_array($payload) || !\array_key_exists('ok', $payload) || !\is_bool($payload['ok'])) {
             return [
                 'ok' => false,
                 'error' => [
@@ -522,7 +530,31 @@ final readonly class RegexAnalysisService
             ];
         }
 
-        return $payload;
+        if (false === $payload['ok']) {
+            $error = $payload['error'] ?? null;
+            if (!\is_array($error) || !isset($error['message'], $error['class']) || !\is_string($error['message']) || !\is_string($error['class'])) {
+                return [
+                    'ok' => false,
+                    'error' => [
+                        'message' => 'Invalid worker error payload.',
+                        'class' => \RuntimeException::class,
+                    ],
+                ];
+            }
+
+            return [
+                'ok' => false,
+                'error' => [
+                    'message' => $error['message'],
+                    'class' => $error['class'],
+                ],
+            ];
+        }
+
+        return [
+            'ok' => true,
+            'result' => $payload['result'] ?? null,
+        ];
     }
 
     private function shouldSkipRiskAnalysis(RegexPatternOccurrence $occurrence): bool

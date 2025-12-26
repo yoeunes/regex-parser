@@ -53,7 +53,7 @@ final class RailroadDiagramVisitor extends AbstractNodeVisitor
     public function visitAlternation(Node\AlternationNode $node): string
     {
         $this->addLine('Alternation');
-        $this->visitChildren($node->alternatives);
+        $this->visitChildren(array_values($node->alternatives));
 
         return '';
     }
@@ -62,7 +62,7 @@ final class RailroadDiagramVisitor extends AbstractNodeVisitor
     public function visitSequence(Node\SequenceNode $node): string
     {
         $this->addLine('Sequence');
-        $this->visitChildren($node->children);
+        $this->visitChildren(array_values($node->children));
 
         return '';
     }

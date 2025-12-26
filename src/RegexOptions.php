@@ -49,6 +49,7 @@ final readonly class RegexOptions
      * @param bool           $runtimePcreValidation Whether to validate against the PCRE runtime
      * @param int            $maxRecursionDepth     Maximum recursion depth during parsing
      * @param int            $phpVersionId          Target PHP_VERSION_ID for feature validation
+     * @param bool           $phpVersionExplicit    Whether php_version was explicitly provided
      */
     public function __construct(
         public int $maxPatternLength,
@@ -58,6 +59,7 @@ final readonly class RegexOptions
         public bool $runtimePcreValidation = false,
         public int $maxRecursionDepth = 1024,
         public int $phpVersionId = \PHP_VERSION_ID,
+        public bool $phpVersionExplicit = false,
     ) {}
 
     /**
@@ -75,6 +77,7 @@ final readonly class RegexOptions
 
         self::validateOptionKeys($options);
 
+        $phpVersionExplicit = array_key_exists('php_version', $options);
         $maxLength = self::getPatternLength($options);
         $lookbehindLength = self::getLookbehindLength($options);
         $cache = self::createCache($options);
@@ -83,7 +86,7 @@ final readonly class RegexOptions
         $recursionDepth = self::getRecursionDepth($options);
         $phpVersionId = self::getPhpVersionId($options);
 
-        return new self($maxLength, $lookbehindLength, $cache, $patterns, $runtimeValidation, $recursionDepth, $phpVersionId);
+        return new self($maxLength, $lookbehindLength, $cache, $patterns, $runtimeValidation, $recursionDepth, $phpVersionId, $phpVersionExplicit);
     }
 
     /**

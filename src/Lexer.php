@@ -88,10 +88,16 @@ final class Lexer
         'T_LITERAL' => '[^\\\\]',
     ];
 
-    // Precompiled regex patterns for maximum performance
-    private static ?string $regexOutside = null;
+    // Precompiled regex patterns for maximum performance (version-aware)
+    /**
+     * @var array<int, string>
+     */
+    private static array $regexOutside = [];
 
-    private static ?string $regexInside = null;
+    /**
+     * @var array<int, string>
+     */
+    private static array $regexInside = [];
 
     private readonly int $phpVersionId;
 
@@ -145,12 +151,12 @@ final class Lexer
 
     private function getRegexOutside(): string
     {
-        return self::$regexOutside ??= $this->compilePattern(self::PATTERNS_OUTSIDE);
+        return self::$regexOutside[$this->phpVersionId] ??= $this->compilePattern(self::PATTERNS_OUTSIDE);
     }
 
     private function getRegexInside(): string
     {
-        return self::$regexInside ??= $this->compilePattern(self::PATTERNS_INSIDE);
+        return self::$regexInside[$this->phpVersionId] ??= $this->compilePattern(self::PATTERNS_INSIDE);
     }
 
     /**
