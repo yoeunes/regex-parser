@@ -19,7 +19,7 @@ final class ValidatorRegexPatternSourceTest extends TestCase
 {
     protected function setUp(): void
     {
-        if (!class_exists(\Symfony\Component\Validator\Validator\ValidatorInterface::class)) {
+        if (!interface_exists(\Symfony\Component\Validator\Validator\ValidatorInterface::class)) {
             $this->markTestSkipped('Symfony Validator component is not available');
         }
     }
@@ -303,7 +303,7 @@ final class ValidatorRegexPatternSourceTest extends TestCase
 
     public function test_extract_skips_when_symfony_not_available(): void
     {
-        if (class_exists(\Symfony\Component\Validator\Validator\ValidatorInterface::class)) {
+        if (interface_exists(\Symfony\Component\Validator\Validator\ValidatorInterface::class)) {
             $this->markTestSkipped('Symfony Validator is available, skipping test');
         }
 
