@@ -25,6 +25,15 @@ final class LinterRulesTest extends TestCase
         $this->assertContains('regex.lint.quantifier.nested', $issues);
     }
 
+    public function test_nested_quantifier_warning_skips_possessive_quantifiers(): void
+    {
+        $issues = $this->lint('/(?:a*+)+/');
+        $this->assertNotContains('regex.lint.quantifier.nested', $issues);
+
+        $issues = $this->lint('/(?:a+)++/');
+        $this->assertNotContains('regex.lint.quantifier.nested', $issues);
+    }
+
     #[\PHPUnit\Framework\Attributes\DataProvider('provideNestedQuantifierPatterns')]
     public function test_nested_quantifier_warning_respects_separators(string $pattern, bool $shouldWarn): void
     {
