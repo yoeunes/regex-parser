@@ -7,12 +7,16 @@ on:
 
 jobs:
   release:
-    name: Create Release
+    name: Build and Release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup PHP 8.4
         uses: shivammathur/setup-php@v2
@@ -22,7 +26,15 @@ jobs:
           tools: composer:v2
 
       - name: Install Dependencies
-        run: composer install --no-interaction --no-progress --prefer-dist --no-dev
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Install PHPStan Tooling
+        run: composer install -d tools/phpstan --no-interaction --no-progress
+
+      - name: Install Box
+        run: |
+          curl -Ls https://github.com/box-project/box/releases/latest/download/box.phar -o /usr/local/bin/box
+          chmod +x /usr/local/bin/box
 
       - name: Run Tests
         run: ./vendor/bin/phpunit --colors=always
@@ -30,18 +42,29 @@ jobs:
       - name: Run PHPStan
         run: ./bin/phpstan analyse
 
+      - name: Install Production Dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist --no-dev
+
       - name: Generate Changelog
         id: changelog
         run: |
           # Extract version from tag
-          VERSION=${GITHUB_REF#refs/tags/v}
+          VERSION=${GITHUB_REF_NAME#v}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
           # Generate basic changelog from commits since last tag
           echo "## Changes" > changelog.md
-          git log --oneline --pretty=format="- %s" $(git describe --tags --abbrev=0 HEAD^)..HEAD >> changelog.md
-          echo "" >> changelog.md
-          echo "Full changelog: https://github.com/${{ github.repository }}/compare/$(git describe --tags --abbrev=0 HEAD^)..$VERSION" >> changelog.md
+          LAST_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || true)
+          if [ -n "$LAST_TAG" ]; then
+            git log --oneline --pretty=format="- %s" "${LAST_TAG}..HEAD" >> changelog.md
+            echo "" >> changelog.md
+            echo "Full changelog: https://github.com/${{ github.repository }}/compare/${LAST_TAG}..v${VERSION}" >> changelog.md
+          else
+            git log --oneline --pretty=format="- %s" >> changelog.md
+          fi
+
+      - name: Build Phar
+        run: ./bin/build
 
       - name: Create Archive
         run: |
@@ -49,23 +72,20 @@ jobs:
           composer archive --format=zip --file=regex-parser-${{ steps.changelog.outputs.version }}
           mv regex-parser-${{ steps.changelog.outputs.version }}.zip build/
 
-      - name: Create GitHub Release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ steps.changelog.outputs.version }}
-          body_path: changelog.md
-          draft: false
-          prerelease: false
+      - name: Prepare Release Assets
+        run: |
+          cp bin/regex.phar build/regex.phar
+          chmod +x build/regex.phar
+          sha256sum build/regex.phar > build/regex.phar.sha256
 
-      - name: Upload Release Assets
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: build/regex-parser-${{ steps.changelog.outputs.version }}.zip
-          asset_name: regex-parser-${{ steps.changelog.outputs.version }}.zip
-          asset_content_type: application/zip
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ steps.changelog.outputs.version }}
+          body_path: changelog.md
+          fail_on_unmatched_files: true
+          files: |
+            build/regex.phar
+            build/regex.phar.sha256
+            build/regex-parser-${{ steps.changelog.outputs.version }}.zip
