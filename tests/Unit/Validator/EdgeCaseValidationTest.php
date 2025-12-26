@@ -69,6 +69,13 @@ final class EdgeCaseValidationTest extends TestCase
         $this->assertStringContainsString('Invalid range "z-a"', (string) $result->error);
     }
 
+    public function test_invalid_range_with_char_type_is_rejected(): void
+    {
+        $result = $this->regexService->validate('/[\\w-_]/');
+        $this->assertFalse($result->isValid, 'Char type range should be invalid');
+        $this->assertStringContainsString('Invalid range', (string) $result->error);
+    }
+
     public function test_duplicate_group_name(): void
     {
         $result = $this->regexService->validate('/(?<n>a)(?<n>b)/');
@@ -82,10 +89,22 @@ final class EdgeCaseValidationTest extends TestCase
         $this->assertTrue($result->isValid, 'Numeric conditional references should be allowed.');
     }
 
+    public function test_conditional_numeric_reference_with_else_is_valid(): void
+    {
+        $result = $this->regexService->validate('/(a)(?(1)b|c)/');
+        $this->assertTrue($result->isValid, 'Numeric conditionals with else branch should be allowed.');
+    }
+
     public function test_mark_verb_shorthand_is_valid(): void
     {
         $result = $this->regexService->validate('/foo(*:first)|bar(*:second)([x])/');
         $this->assertTrue($result->isValid, 'MARK shorthand verbs should be accepted.');
+    }
+
+    public function test_mark_verb_equals_shorthand_is_valid(): void
+    {
+        $result = $this->regexService->validate('/foo(*=first)|bar(*=second)([x])/');
+        $this->assertTrue($result->isValid, 'MARK "=" shorthand verbs should be accepted.');
     }
 
     public function test_unconsumed_tokens(): void
