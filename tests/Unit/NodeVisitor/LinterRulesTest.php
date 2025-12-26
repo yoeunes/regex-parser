@@ -25,6 +25,17 @@ final class LinterRulesTest extends TestCase
         $this->assertContains('regex.lint.quantifier.nested', $issues);
     }
 
+    /**
+     * @dataProvider provideNestedQuantifierPatterns
+     */
+    public function test_nested_quantifier_warning_respects_separators(string $pattern, bool $shouldWarn): void
+    {
+        $issues = $this->lint($pattern);
+        $hasWarning = \in_array('regex.lint.quantifier.nested', $issues, true);
+
+        $this->assertSame($shouldWarn, $hasWarning);
+    }
+
     public function test_dotstar_in_unbounded_quantifier_warning(): void
     {
         $issues = $this->lint('/(?:.*)+/');
@@ -77,6 +88,21 @@ final class LinterRulesTest extends TestCase
     {
         $issues = $this->lint('/no_dot/s');
         $this->assertContains('regex.lint.flag.useless.s', $issues);
+    }
+
+    /**
+     * @return array<string, array{0: string, 1: bool}>
+     */
+    public static function provideNestedQuantifierPatterns(): array
+    {
+        return [
+            'safe dot separator' => ['/([0-9]+(?:\\.[0-9]+)*)/', false],
+            'safe hyphen separator' => ['/(a+(?:-a+)*)/', false],
+            'safe comma separator' => ['/(\\d+(?:,\\d+)*)/', false],
+            'unsafe no separator' => ['/(a+(?:a+)*)/', true],
+            'unsafe overlapping separator' => ['/(\\w+(?:_\\w+)*)/', true],
+            'unsafe direct overlap' => ['/([0-9]+(?:[0-9]+)*)/', true],
+        ];
     }
 
     /**
