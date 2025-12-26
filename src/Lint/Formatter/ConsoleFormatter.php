@@ -43,6 +43,7 @@ class ConsoleFormatter extends AbstractOutputFormatter
     private const BG_YELLOW = "\033[43m";
     private const BG_CYAN = "\033[46m";
     private const BG_GRAY = "\033[100m";
+    private const DIFF_CONTEXT_LINES = 2;
     private const ARROW_LABEL = '↳';
 
     public function __construct(
@@ -215,47 +216,272 @@ class ConsoleFormatter extends AbstractOutputFormatter
                 continue;
             }
 
-            $original = $optimization->original;
-            $optimized = $optimization->optimized;
-
-            $isExtendedWithComments = $this->isExtendedPatternWithComments($original);
-
-            // For /x patterns with comments, format the optimized pattern
-            // with proper indentation to make it more readable.
-            if ($isExtendedWithComments) {
-                // Always show the original pattern as-is.
-                $output .= \sprintf('         %s%s'.\PHP_EOL,
-                    $this->color('- ', self::RED),
-                    $original,
-                );
-                $output .= $this->formatExtendedOptimizedPattern($optimized);
-
-                continue;
-            }
-
-            // For other patterns, show a diff highlighting the changes.
-            $diff = $this->computeSimpleDiff($original, $optimized);
-            $output .= \sprintf('         %s%s'.\PHP_EOL,
-                $this->color('- ', self::RED),
-                $diff['old'],
-            );
-            $output .= \sprintf('         %s%s'.\PHP_EOL,
-                $this->color('+ ', self::GREEN),
-                $diff['new'],
-            );
+            $output .= $this->formatOptimizationDiff($optimization->original, $optimization->optimized);
         }
 
         return $output;
     }
 
+    private function formatOptimizationDiff(string $original, string $optimized): string
+    {
+        if ($this->shouldUseMultilineDiff($original, $optimized)) {
+            return $this->formatMultilineDiff($original, $optimized);
+        }
+
+        $diff = $this->computeSimpleDiff(
+            $this->escapeControlChars($original),
+            $this->escapeControlChars($optimized),
+        );
+
+        return \sprintf('         %s%s'.\PHP_EOL,
+            $this->color('- ', self::RED),
+            $diff['old'],
+        ).\sprintf('         %s%s'.\PHP_EOL,
+            $this->color('+ ', self::GREEN),
+            $diff['new'],
+        );
+    }
+
+    private function formatMultilineDiff(string $old, string $new): string
+    {
+        $oldLines = $this->splitLines($old);
+        $newLines = $this->splitLines($new);
+
+        $ops = $this->diffLines($oldLines, $newLines);
+        if (empty($ops)) {
+            return '';
+        }
+
+        $context = self::DIFF_CONTEXT_LINES;
+        $show = array_fill(0, \count($ops), false);
+        $hasChange = false;
+
+        foreach ($ops as $index => $op) {
+            if ('equal' === $op['type']) {
+                continue;
+            }
+
+            $hasChange = true;
+            $start = max(0, $index - $context);
+            $end = min(\count($ops) - 1, $index + $context);
+            for ($i = $start; $i <= $end; $i++) {
+                $show[$i] = true;
+            }
+        }
+
+        if (!$hasChange) {
+            $output = '';
+            foreach ($oldLines as $line) {
+                $output .= $this->formatDiffLine(' ', $line, self::GRAY, true);
+            }
+
+            return $output;
+        }
+
+        $output = '';
+        $skipping = false;
+        $index = 0;
+        $opCount = \count($ops);
+
+        while ($index < $opCount) {
+            $op = $ops[$index];
+
+            if ('equal' === $op['type']) {
+                if (!$show[$index]) {
+                    if (!$skipping) {
+                        $output .= $this->formatDiffEllipsis();
+                        $skipping = true;
+                    }
+                    $index++;
+
+                    continue;
+                }
+
+                $skipping = false;
+                $output .= $this->formatDiffLine(' ', $op['line'], self::GRAY, true);
+                $index++;
+
+                continue;
+            }
+
+            $skipping = false;
+            $block = [];
+            while ($index < $opCount && 'equal' !== $ops[$index]['type']) {
+                $block[] = $ops[$index];
+                $index++;
+            }
+
+            $output .= $this->formatDiffChangeBlock($block);
+        }
+
+        return $output;
+    }
+
+    private function formatDiffLine(string $sign, string $line, string $signColor, bool $dimLine = false): string
+    {
+        $content = $dimLine ? $this->dim($line) : $line;
+
+        return \sprintf('         %s%s'.\PHP_EOL,
+            $this->color($sign.' ', $signColor),
+            $content,
+        );
+    }
+
+    private function formatDiffEllipsis(): string
+    {
+        return $this->formatDiffLine(' ', '...', self::GRAY, true);
+    }
+
+    private function formatDiffSeparator(): string
+    {
+        return \sprintf('         %s'.\PHP_EOL, $this->dim('---'));
+    }
+
+    /**
+     * @param array<int, string> $oldLines
+     * @param array<int, string> $newLines
+     *
+     * @return array<int, array{type: string, line: string}>
+     */
+    private function diffLines(array $oldLines, array $newLines): array
+    {
+        $oldCount = \count($oldLines);
+        $newCount = \count($newLines);
+
+        $lcs = array_fill(0, $oldCount + 1, array_fill(0, $newCount + 1, 0));
+        for ($i = 1; $i <= $oldCount; $i++) {
+            for ($j = 1; $j <= $newCount; $j++) {
+                if ($oldLines[$i - 1] === $newLines[$j - 1]) {
+                    $lcs[$i][$j] = $lcs[$i - 1][$j - 1] + 1;
+                } else {
+                    $lcs[$i][$j] = max($lcs[$i - 1][$j], $lcs[$i][$j - 1]);
+                }
+            }
+        }
+
+        $ops = [];
+        $i = $oldCount;
+        $j = $newCount;
+
+        while ($i > 0 || $j > 0) {
+            if ($i > 0 && $j > 0 && $oldLines[$i - 1] === $newLines[$j - 1]) {
+                $ops[] = ['type' => 'equal', 'line' => $oldLines[$i - 1]];
+                $i--;
+                $j--;
+
+                continue;
+            }
+
+            if ($j > 0) {
+                if (0 === $i) {
+                    $ops[] = ['type' => 'insert', 'line' => $newLines[$j - 1]];
+                    $j--;
+
+                    continue;
+                }
+
+                if ($lcs[$i][$j - 1] >= $lcs[$i - 1][$j]) {
+                    $ops[] = ['type' => 'insert', 'line' => $newLines[$j - 1]];
+                    $j--;
+
+                    continue;
+                }
+            }
+
+            $ops[] = ['type' => 'delete', 'line' => $oldLines[$i - 1]];
+            $i--;
+        }
+
+        return array_reverse($ops);
+    }
+
+    /**
+     * @param array<int, array{type: string, line: string}> $block
+     */
+    private function formatDiffChangeBlock(array $block): string
+    {
+        $deletes = [];
+        $inserts = [];
+
+        foreach ($block as $op) {
+            if ('delete' === $op['type']) {
+                $deletes[] = $op['line'];
+            } else {
+                $inserts[] = $op['line'];
+            }
+        }
+
+        $deleteLines = [];
+        $insertLines = [];
+        $pairCount = min(\count($deletes), \count($inserts));
+
+        for ($i = 0; $i < $pairCount; $i++) {
+            $diff = $this->computeSimpleDiff($deletes[$i], $inserts[$i]);
+            $deleteLines[] = $this->formatDiffLine('-', $diff['old'], self::RED);
+            $insertLines[] = $this->formatDiffLine('+', $diff['new'], self::GREEN);
+        }
+
+        for ($i = $pairCount, $count = \count($deletes); $i < $count; $i++) {
+            $deleteLines[] = $this->formatDiffLine('-', $this->color($deletes[$i], self::RED), self::RED);
+        }
+
+        for ($i = $pairCount, $count = \count($inserts); $i < $count; $i++) {
+            $insertLines[] = $this->formatDiffLine('+', $this->color($inserts[$i], self::GREEN), self::GREEN);
+        }
+
+        $separator = (!empty($deleteLines) && !empty($insertLines)) ? $this->formatDiffSeparator() : '';
+
+        return implode('', $deleteLines).$separator.implode('', $insertLines);
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function splitLines(string $text): array
+    {
+        $normalized = str_replace(["\r\n", "\r"], "\n", $text);
+
+        return explode("\n", $normalized);
+    }
+
+    private function shouldUseMultilineDiff(string $old, string $new): bool
+    {
+        return $this->isExtendedModePattern($old) || $this->isExtendedModePattern($new);
+    }
+
+    private function isExtendedModePattern(string $pattern): bool
+    {
+        $pattern = ltrim($pattern);
+        if ('' === $pattern) {
+            return false;
+        }
+
+        try {
+            [, $flags] = PatternParser::extractPatternAndFlags($pattern);
+        } catch (\Throwable) {
+            return false;
+        }
+
+        return \is_string($flags) && str_contains($flags, 'x');
+    }
+
+    private function escapeControlChars(string $text): string
+    {
+        return addcslashes($text, "\0..\37\177..\377");
+    }
+
     /**
      * Compute a diff between two strings by finding common prefix and suffix,
-     * highlighting only the differing middle parts.
+     * highlighting only the differing middle parts and dimming common spans.
      *
      * @return array{old: string, new: string}
      */
     private function computeSimpleDiff(string $old, string $new): array
     {
+        if ($old === $new) {
+            return ['old' => $old, 'new' => $new];
+        }
+
         $oldLen = \strlen($old);
         $newLen = \strlen($new);
 
@@ -281,75 +507,13 @@ class ConsoleFormatter extends AbstractOutputFormatter
         $prefix = substr($old, 0, $prefixLen);
         $suffix = substr($old, $oldLen - $suffixLen);
 
-        $coloredOld = $prefix.$this->color($middleOld, self::RED.self::BOLD).$suffix;
-        $coloredNew = $prefix.$this->color($middleNew, self::GREEN.self::BOLD).$suffix;
+        $dimPrefix = '' === $prefix ? '' : $this->dim($prefix);
+        $dimSuffix = '' === $suffix ? '' : $this->dim($suffix);
+
+        $coloredOld = $dimPrefix.$this->color($middleOld, self::RED.self::BOLD).$dimSuffix;
+        $coloredNew = $dimPrefix.$this->color($middleNew, self::GREEN.self::BOLD).$dimSuffix;
 
         return ['old' => $coloredOld, 'new' => $coloredNew];
-    }
-
-    /**
-     * Format an optimized pattern from an extended (/x) pattern with comments.
-     *
-     * The optimized pattern is typically a single-line, heavily escaped string.
-     * This method formats it with proper indentation to make it more readable.
-     */
-    private function formatExtendedOptimizedPattern(string $optimized): string
-    {
-        $output = '';
-
-        // Show the optimized pattern with green + prefix
-        // For multi-line patterns, indent each line properly
-        $lines = explode("\n", $optimized);
-
-        if (1 === \count($lines)) {
-            // Single line - just show it directly
-            $output .= \sprintf('         %s%s'.\PHP_EOL,
-                $this->color('+ ', self::GREEN),
-                $optimized,
-            );
-        } else {
-            // Multi-line - show each line with proper indentation
-            foreach ($lines as $index => $line) {
-                if (0 === $index) {
-                    $output .= \sprintf('         %s%s'.\PHP_EOL,
-                        $this->color('+ ', self::GREEN),
-                        $line,
-                    );
-                } else {
-                    $output .= \sprintf('           %s'.\PHP_EOL, $line);
-                }
-            }
-        }
-
-        return $output;
-    }
-
-    /**
-     * Heuristic to detect extended-mode patterns with inline comments.
-     *
-     * We inspect the original pattern string to see if it has /x flags and
-     * contains at least one '\n' and '#' in the body; such patterns are
-     * typically written in verbose style, and dumping the fully escaped
-     * optimized variant is not helpful in console output.
-     */
-    private function isExtendedPatternWithComments(string $pattern): bool
-    {
-        $pattern = ltrim($pattern);
-        if ('' === $pattern) {
-            return false;
-        }
-
-        try {
-            [$body, $flags] = PatternParser::extractPatternAndFlags($pattern);
-        } catch (\Throwable) {
-            return false;
-        }
-
-        if (!\is_string($flags) || !str_contains($flags, 'x')) {
-            return false;
-        }
-
-        return \is_string($body) && str_contains($body, "\n") && str_contains($body, '#');
     }
 
     /**

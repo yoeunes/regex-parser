@@ -69,7 +69,12 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
          * but can change semantics when backreferences are involved.
          * Default is false to ensure semantic preservation.
          */
-        private readonly bool $autoPossessify = false
+        private readonly bool $autoPossessify = false,
+        /**
+         * Whether to perform string-based alternation factorization.
+         * This can make verbose (/x) patterns harder to read.
+         */
+        private readonly bool $allowAlternationFactorization = true
     ) {
         $this->charSetAnalyzer = new CharSetAnalyzer();
     }
@@ -145,17 +150,19 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
             $optimizedAlts = $deduplicatedAlts;
         }
 
-        $factoredAlts = $this->factorizeAlternation($optimizedAlts);
+        if ($this->allowAlternationFactorization) {
+            $factoredAlts = $this->factorizeAlternation($optimizedAlts);
 
-        if ($factoredAlts !== $optimizedAlts) {
-            $hasChanged = true;
-            $optimizedAlts = $factoredAlts;
-        }
+            if ($factoredAlts !== $optimizedAlts) {
+                $hasChanged = true;
+                $optimizedAlts = $factoredAlts;
+            }
 
-        $suffixFactoredAlts = $this->factorizeSuffix($optimizedAlts);
+            $suffixFactoredAlts = $this->factorizeSuffix($optimizedAlts);
 
-        if ($suffixFactoredAlts !== $optimizedAlts) {
-            return new AlternationNode($suffixFactoredAlts, $node->startPosition, $node->endPosition);
+            if ($suffixFactoredAlts !== $optimizedAlts) {
+                return new AlternationNode($suffixFactoredAlts, $node->startPosition, $node->endPosition);
+            }
         }
 
         return new AlternationNode($optimizedAlts, $node->startPosition, $node->endPosition);
@@ -978,6 +985,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
 
         // Create suffixes
         $suffixes = [];
+        $hasEmptySuffix = false;
         /**
          * @var AbstractNode $alt
          */
@@ -985,6 +993,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
             $suffixStr = substr($this->nodeToString($alt), \strlen($prefix));
             if (empty($suffixStr)) {
                 $suffixes[] = null;
+                $hasEmptySuffix = true;
             } else {
                 $suffixes[] = $this->stringToNode($suffixStr, $alt->startPosition + \strlen($prefix), $alt->endPosition);
             }
@@ -1008,6 +1017,15 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
             ? $firstSuffix
             : new AlternationNode($nonNullSuffixes, $firstSuffix->startPosition, $lastSuffix->endPosition);
         $group = new GroupNode($newAlt, GroupType::T_GROUP_NON_CAPTURING);
+        if ($hasEmptySuffix) {
+            $group = new QuantifierNode(
+                $group,
+                '?',
+                QuantifierType::T_GREEDY,
+                $firstSuffix->startPosition,
+                $lastSuffix->endPosition,
+            );
+        }
         /** @var AbstractNode $firstAlt */
         $firstAlt = $withPrefix[0];
         $prefixNode = $this->stringToNode($prefix, $firstAlt->startPosition, $firstAlt->startPosition + \strlen($prefix));
