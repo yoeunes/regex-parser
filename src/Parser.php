@@ -998,8 +998,18 @@ final class Parser
             return new Node\LimitMatchNode((int) $matches[1], $startPosition, $endPosition);
         }
 
-        if (preg_match('/^(?:script_run|sr):(.+)$/i', $verb, $matches)) {
-            return new Node\ScriptRunNode($matches[1], $startPosition, $endPosition);
+        $lowerVerb = strtolower($verb);
+        if (str_starts_with($lowerVerb, 'script_run:')) {
+            $payload = substr($verb, \strlen('script_run:'));
+            if ('' !== $payload) {
+                return new Node\ScriptRunNode($payload, $startPosition, $endPosition);
+            }
+        }
+        if (str_starts_with($lowerVerb, 'sr:')) {
+            $payload = substr($verb, \strlen('sr:'));
+            if ('' !== $payload) {
+                return new Node\ScriptRunNode($payload, $startPosition, $endPosition);
+            }
         }
 
         return new Node\PcreVerbNode($verb, $startPosition, $endPosition);
@@ -1439,13 +1449,39 @@ final class Parser
                 $this->advance();
             }
 
-            if (preg_match('/^VERSION\\s*(>=|<=|==|!=|>|<)\\s*([0-9]+(?:\\.[0-9]+)*)$/', $word, $matches)) {
-                return new Node\VersionConditionNode(
-                    $matches[1],
-                    $matches[2],
-                    $startPosition,
-                    $this->previous()->position,
-                );
+            $trimmed = trim($word);
+            if (str_starts_with($trimmed, 'VERSION')) {
+                $rest = ltrim(substr($trimmed, \strlen('VERSION')));
+                $operator = null;
+                foreach (['>=', '<=', '==', '!=', '>', '<'] as $candidate) {
+                    if (str_starts_with($rest, $candidate)) {
+                        $operator = $candidate;
+                        $rest = ltrim(substr($rest, \strlen($candidate)));
+
+                        break;
+                    }
+                }
+
+                if (null !== $operator && '' !== $rest) {
+                    $parts = explode('.', $rest);
+                    $valid = true;
+                    foreach ($parts as $part) {
+                        if ('' === $part || !ctype_digit($part)) {
+                            $valid = false;
+
+                            break;
+                        }
+                    }
+
+                    if ($valid) {
+                        return new Node\VersionConditionNode(
+                            $operator,
+                            $rest,
+                            $startPosition,
+                            $this->previous()->position,
+                        );
+                    }
+                }
             }
 
             $this->stream->setPosition($savedPos);
