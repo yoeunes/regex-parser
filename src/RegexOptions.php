@@ -77,7 +77,7 @@ final readonly class RegexOptions
 
         self::validateOptionKeys($options);
 
-        $phpVersionExplicit = array_key_exists('php_version', $options);
+        $phpVersionExplicit = \array_key_exists('php_version', $options);
         $maxLength = self::getPatternLength($options);
         $lookbehindLength = self::getLookbehindLength($options);
         $cache = self::createCache($options);

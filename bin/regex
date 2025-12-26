@@ -1060,6 +1060,10 @@ switch ($command) {
         }
 
         $collectionProgress = null;
+        $startTime = microtime(true);
+        $startMemory = memory_get_peak_usage(true);
+        $collectionStartTime = $startTime;
+        
         if ('console' === $format && $config->shouldShowProgress()) {
             output('  '.dim('[1/2] Collecting patterns')."\n");
             $collectionStarted = false;
@@ -1102,6 +1106,8 @@ switch ($command) {
             exit(1);
         }
 
+        $collectionTime = microtime(true) - $collectionStartTime;
+
         if ([] === $patterns) {
             if ($format === 'console') {
                 renderSummary(['errors' => 0, 'warnings' => 0, 'optimizations' => 0], true);
@@ -1113,10 +1119,16 @@ switch ($command) {
             exit(0);
         }
 
-        $startTime = microtime(true);
-        $startMemory = memory_get_peak_usage(true);
+        if ('console' === $format && $config->shouldShowProgress() && $collectionTime > 1) {
+            $collectionInfo = 'Collection: '.round($collectionTime, 2).'s';
+            if ($jobs > 1) {
+                $collectionInfo .= ' (serial)';
+            }
+            output('  '.dim($collectionInfo)."\n\n");
+        }
 
         $progressCallback = null;
+        $analysisStartTime = microtime(true);
         if ('console' === $format && $config->shouldShowProgress()) {
             output('  '.dim('[2/2] Analyzing patterns')."\n");
             progressStart(\count($patterns));
@@ -1127,6 +1139,16 @@ switch ($command) {
 
         if (null !== $progressCallback) {
             progressFinish();
+        }
+
+        $analysisTime = microtime(true) - $analysisStartTime;
+
+        if ('console' === $format && $config->shouldShowProgress() && $analysisTime > 0.1) {
+            $analysisInfo = 'Analysis: '.round($analysisTime, 2).'s';
+            if ($jobs > 1) {
+                $analysisInfo .= ' (parallel: '.$jobs.' workers)';
+            }
+            output('  '.dim($analysisInfo)."\n");
         }
 
         // Output using formatter
