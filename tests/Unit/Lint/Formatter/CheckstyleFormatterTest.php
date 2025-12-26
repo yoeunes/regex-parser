@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\Unit\Lint\Formatter;
 
+use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Lint\Formatter\CheckstyleFormatter;
 use RegexParser\Lint\RegexLintReport;
@@ -29,6 +30,7 @@ final class CheckstyleFormatterTest extends TestCase
         $this->formatter = new CheckstyleFormatter();
     }
 
+    #[DoesNotPerformAssertions]
     public function test_construct(): void
     {
         $formatter = new CheckstyleFormatter();

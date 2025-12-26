@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\Unit\Lint;
 
+use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Lint\ExtractorInterface;
 use RegexParser\Lint\PhpRegexPatternSource;
@@ -29,6 +30,7 @@ final class PhpRegexPatternSourceTest extends TestCase
         $this->extractor = new RegexPatternExtractor($mockExtractorInterface);
     }
 
+    #[DoesNotPerformAssertions]
     public function test_construct(): void
     {
         $source = new PhpRegexPatternSource($this->extractor);

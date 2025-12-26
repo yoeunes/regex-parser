@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\Unit\Bridge\Symfony\Routing;
 
+use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Bridge\Symfony\Routing\RouteRequirementNormalizer;
 
@@ -25,6 +26,7 @@ final class RouteRequirementNormalizerTest extends TestCase
         $this->normalizer = new RouteRequirementNormalizer();
     }
 
+    #[DoesNotPerformAssertions]
     public function test_construct(): void
     {
         $normalizer = new RouteRequirementNormalizer();

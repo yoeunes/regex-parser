@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\Unit\Lint\Formatter;
 
+use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Lint\Formatter\ConsoleFormatter;
 use RegexParser\Lint\Formatter\OutputConfiguration;
@@ -28,17 +29,20 @@ final class ConsoleFormatterTest extends TestCase
         $this->formatter = new ConsoleFormatter();
     }
 
+    #[DoesNotPerformAssertions]
     public function test_construct(): void
     {
         $formatter = new ConsoleFormatter();
     }
 
+    #[DoesNotPerformAssertions]
     public function test_construct_with_config(): void
     {
         $config = new OutputConfiguration(ansi: false);
         $formatter = new ConsoleFormatter(config: $config);
     }
 
+    #[DoesNotPerformAssertions]
     public function test_construct_with_analysis_service(): void
     {
         // Since RegexAnalysisService is final, we test with null

@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\Unit\Lint;
 
+use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Lint\RegexAnalysisService;
 use RegexParser\Lint\RegexLintRequest;
@@ -33,6 +34,7 @@ final class RegexLintServiceTest extends TestCase
         $this->sources = new RegexPatternSourceCollection([]);
     }
 
+    #[DoesNotPerformAssertions]
     public function test_construct(): void
     {
         $service = new RegexLintService($this->analysis, $this->sources);

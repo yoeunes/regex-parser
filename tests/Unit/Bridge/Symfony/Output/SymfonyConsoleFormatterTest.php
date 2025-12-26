@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\Unit\Bridge\Symfony\Output;
 
+use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 
 final class SymfonyConsoleFormatterTest extends TestCase
@@ -28,6 +29,7 @@ final class SymfonyConsoleFormatterTest extends TestCase
         }
     }
 
+    #[DoesNotPerformAssertions]
     public function test_construct(): void
     {
         $analysis = new \RegexParser\Lint\RegexAnalysisService(\RegexParser\Regex::create());

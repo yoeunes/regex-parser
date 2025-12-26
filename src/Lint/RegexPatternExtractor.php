@@ -42,16 +42,16 @@ final readonly class RegexPatternExtractor
             && \function_exists('pcntl_waitpid');
     }
 
-     /**
-      * Extract regex patterns from the given paths.
-      *
-      * @param list<string>                  $paths        Paths to scan for PHP files
-      * @param list<string>|null             $excludePaths Optional paths to exclude (falls back to ['vendor'])
-      * @param callable(int, int): void|null $progress     Reports collection progress as (current, total)
-      * @param int                           $workers      Number of worker processes to use when supported
-      *
-      * @return list<RegexPatternOccurrence>
-      */
+    /**
+     * Extract regex patterns from the given paths.
+     *
+     * @param list<string>                  $paths        Paths to scan for PHP files
+     * @param list<string>|null             $excludePaths Optional paths to exclude (falls back to ['vendor'])
+     * @param callable(int, int): void|null $progress     Reports collection progress as (current, total)
+     * @param int                           $workers      Number of worker processes to use when supported
+     *
+     * @return array<RegexPatternOccurrence>
+     */
     public function extract(array $paths, ?array $excludePaths = null, ?callable $progress = null, int $workers = 1): array
     {
         $excludePaths ??= ['vendor'];
@@ -73,12 +73,12 @@ final readonly class RegexPatternExtractor
         return $this->extractSerial($phpFiles, $progress);
     }
 
-     /**
-      * @param list<string>                  $phpFiles
-      * @param callable(int, int): void|null $progress
-      *
-      * @return list<RegexPatternOccurrence>
-      */
+    /**
+     * @param list<string>                  $phpFiles
+     * @param callable(int, int): void|null $progress
+     *
+     * @return array<RegexPatternOccurrence>
+     */
     private function extractSerial(array $phpFiles, ?callable $progress = null): array
     {
         if (null === $progress) {
@@ -106,7 +106,7 @@ final readonly class RegexPatternExtractor
      * @param list<string>                  $phpFiles
      * @param callable(int, int): void|null $progress
      *
-     * @return list<RegexPatternOccurrence>
+     * @return array<RegexPatternOccurrence>
      */
     private function extractParallel(array $phpFiles, int $workers, ?callable $progress = null): array
     {
@@ -202,6 +202,7 @@ final readonly class RegexPatternExtractor
                 continue;
             }
 
+            /** @var RegexPatternOccurrence $item */
             foreach ($chunkResults as $item) {
                 $results[] = $item;
             }

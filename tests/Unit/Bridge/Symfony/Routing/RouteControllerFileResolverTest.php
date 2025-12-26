@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\Unit\Bridge\Symfony\Routing;
 
+use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Bridge\Symfony\Routing\RouteControllerFileResolver;
 
@@ -29,6 +30,7 @@ final class RouteControllerFileResolverTest extends TestCase
         $this->resolver = new RouteControllerFileResolver();
     }
 
+    #[DoesNotPerformAssertions]
     public function test_construct(): void
     {
         if (!class_exists(\Symfony\Component\Routing\Route::class)) {

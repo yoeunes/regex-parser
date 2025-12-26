@@ -59,11 +59,7 @@ final readonly class PhpStanExtractionStrategy implements ExtractorInterface
     /**
      * @param list<string> $files
      *
-     * @return list<RegexPatternOccurrence>
-     */
-    /**
-     * @param list<string> $files
-     * @return list<RegexPatternOccurrence>
+     * @return array<RegexPatternOccurrence>
      */
     private function analyzeFilesWithPhpStan(array $files): array
     {
@@ -108,11 +104,11 @@ final readonly class PhpStanExtractionStrategy implements ExtractorInterface
         }
     }
 
-     /**
-      * @param array<\PhpParser\Node> $tokens
-      *
-      * @return list<RegexPatternOccurrence>
-      */
+    /**
+     * @param array<\PhpParser\Node> $tokens
+     *
+     * @return array<RegexPatternOccurrence>
+     */
     private function extractFromTokens(array $tokens, string $file): array
     {
         $occurrences = [];
@@ -126,7 +122,7 @@ final readonly class PhpStanExtractionStrategy implements ExtractorInterface
     }
 
     /**
-     * @return list<RegexPatternOccurrence>
+     * @return array<RegexPatternOccurrence>
      */
     private function extractFromNode(Node $node, string $file): array
     {

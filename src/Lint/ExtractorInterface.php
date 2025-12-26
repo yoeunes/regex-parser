@@ -25,7 +25,7 @@ interface ExtractorInterface
      *
      * @param list<string> $files List of PHP file paths to analyze
      *
-     * @return list<RegexPatternOccurrence>
+     * @return array<RegexPatternOccurrence>
      */
     public function extract(array $files): array;
 }

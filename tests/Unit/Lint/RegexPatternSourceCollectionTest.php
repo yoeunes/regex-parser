@@ -13,12 +13,14 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\Unit\Lint;
 
+use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Lint\RegexPatternSourceCollection;
 use RegexParser\Lint\RegexPatternSourceContext;
 
 final class RegexPatternSourceCollectionTest extends TestCase
 {
+    #[DoesNotPerformAssertions]
     public function test_construct(): void
     {
         $sources = [];

@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\Unit\Lint\Formatter;
 
+use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Lint\Formatter\JunitFormatter;
 use RegexParser\Lint\RegexLintReport;
@@ -29,6 +30,7 @@ final class JunitFormatterTest extends TestCase
         $this->formatter = new JunitFormatter();
     }
 
+    #[DoesNotPerformAssertions]
     public function test_construct(): void
     {
         $formatter = new JunitFormatter();

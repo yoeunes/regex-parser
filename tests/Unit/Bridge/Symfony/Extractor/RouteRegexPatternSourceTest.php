@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\Unit\Bridge\Symfony\Extractor;
 
+use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 
 final class RouteRegexPatternSourceTest extends TestCase
@@ -24,12 +25,14 @@ final class RouteRegexPatternSourceTest extends TestCase
         $this->normalizer = new \RegexParser\Bridge\Symfony\Routing\RouteRequirementNormalizer();
     }
 
+    #[DoesNotPerformAssertions]
     public function test_construct(): void
     {
         $source = new \RegexParser\Bridge\Symfony\Extractor\RouteRegexPatternSource($this->normalizer);
         // Source created successfully
     }
 
+    #[DoesNotPerformAssertions]
     public function test_construct_with_router(): void
     {
         $router = $this->createMock(\Symfony\Component\Routing\RouterInterface::class);

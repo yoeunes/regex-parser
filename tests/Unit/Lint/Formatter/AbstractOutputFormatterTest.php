@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\Unit\Lint\Formatter;
 
+use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Lint\Formatter\AbstractOutputFormatter;
 use RegexParser\Lint\Formatter\OutputConfiguration;
@@ -27,6 +28,7 @@ final class AbstractOutputFormatterTest extends TestCase
         $this->formatter = new TestableAbstractOutputFormatter();
     }
 
+    #[DoesNotPerformAssertions]
     public function test_construct_with_default_config(): void
     {
         $formatter = new TestableAbstractOutputFormatter();

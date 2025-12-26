@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\Unit\Lint;
 
+use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Lint\RegexAnalysisService;
 use RegexParser\Lint\RegexPatternOccurrence;
@@ -100,6 +101,7 @@ final class RegexAnalysisServiceTest extends TestCase
         $this->assertSame([], $result);
     }
 
+    #[DoesNotPerformAssertions]
     public function test_construct_with_ignore_parse_errors(): void
     {
         $analysis = new RegexAnalysisService(

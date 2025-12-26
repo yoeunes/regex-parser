@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\Unit\Lint;
 
+use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Lint\PhpStanExtractionStrategy;
 
@@ -25,6 +26,7 @@ final class PhpStanExtractionStrategyTest extends TestCase
         $this->strategy = new PhpStanExtractionStrategy();
     }
 
+    #[DoesNotPerformAssertions]
     public function test_construct(): void
     {
         $strategy = new PhpStanExtractionStrategy();
