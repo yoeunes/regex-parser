@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\Unit\Lint;
 
+use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Lint\ExtractorInterface;
 use RegexParser\Lint\RegexPatternExtractor;
@@ -20,7 +21,7 @@ use RegexParser\Lint\RegexPatternOccurrence;
 
 final class RegexPatternExtractorTest extends TestCase
 {
-    private ExtractorInterface $extractor;
+    private ExtractorInterface&MockObject $extractor;
 
     private RegexPatternExtractor $patternExtractor;
 
@@ -77,7 +78,12 @@ final class RegexPatternExtractorTest extends TestCase
 
             $this->extractor->method('extract')->willReturnCallback(
                 static function (array $files) use ($occurrences): array {
-                    if (1 === \count($files) && isset($occurrences[$files[0]])) {
+                    if (
+                        1 === \count($files)
+                        && isset($files[0])
+                        && \is_string($files[0])
+                        && isset($occurrences[$files[0]])
+                    ) {
                         return [$occurrences[$files[0]]];
                     }
 
@@ -147,7 +153,10 @@ final class RegexPatternExtractorTest extends TestCase
 
         $this->assertFileExists($tmpFile);
         $content = file_get_contents($tmpFile);
+        $this->assertIsString($content);
         $unserialized = unserialize($content);
+        $this->assertIsArray($unserialized);
+        /* @var array{ok: bool, result: array<int, string>} $unserialized */
         $this->assertSame($payload['ok'], $unserialized['ok']);
 
         @unlink($tmpFile);
@@ -163,6 +172,8 @@ final class RegexPatternExtractorTest extends TestCase
         file_put_contents($tmpFile, serialize($payload));
 
         $result = $method->invoke($this->patternExtractor, $tmpFile);
+        $this->assertIsArray($result);
+        /* @var array{ok: bool, result: array<int, string>} $result */
 
         $this->assertTrue($result['ok']);
         $this->assertSame(['test'], $result['result']);
@@ -178,6 +189,8 @@ final class RegexPatternExtractorTest extends TestCase
         $nonExistentFile = sys_get_temp_dir().'/non_existent_'.uniqid();
 
         $result = $method->invoke($this->patternExtractor, $nonExistentFile);
+        $this->assertIsArray($result);
+        /* @var array{ok: bool, error?: mixed} $result */
 
         $this->assertFalse($result['ok']);
         $this->assertArrayHasKey('error', $result);
@@ -192,6 +205,8 @@ final class RegexPatternExtractorTest extends TestCase
         file_put_contents($tmpFile, 'not valid serialized data');
 
         $result = $method->invoke($this->patternExtractor, $tmpFile);
+        $this->assertIsArray($result);
+        /* @var array{ok: bool, error?: mixed} $result */
 
         $this->assertFalse($result['ok']);
         $this->assertArrayHasKey('error', $result);
@@ -209,10 +224,16 @@ final class RegexPatternExtractorTest extends TestCase
         file_put_contents($tmpFile, serialize($payload));
 
         $result = $method->invoke($this->patternExtractor, $tmpFile);
+        $this->assertIsArray($result);
+        /* @var array{ok: bool, error?: array{message?: string, class?: string}} $result */
 
         $this->assertFalse($result['ok']);
-        $this->assertSame('Test error', $result['error']['message']);
-        $this->assertSame('Exception', $result['error']['class']);
+        $this->assertArrayHasKey('error', $result);
+        $this->assertIsArray($result['error']);
+        /* @var array{message?: string, class?: string} $error */
+        $error = $result['error'];
+        $this->assertSame('Test error', $error['message']);
+        $this->assertSame('Exception', $error['class']);
 
         @unlink($tmpFile);
     }
@@ -227,6 +248,8 @@ final class RegexPatternExtractorTest extends TestCase
         file_put_contents($tmpFile, serialize($payload));
 
         $result = $method->invoke($this->patternExtractor, $tmpFile);
+        $this->assertIsArray($result);
+        /* @var array{ok: bool, error?: mixed} $result */
 
         $this->assertFalse($result['ok']);
         $this->assertArrayHasKey('error', $result);

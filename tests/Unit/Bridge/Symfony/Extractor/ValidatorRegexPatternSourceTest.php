@@ -27,7 +27,7 @@ final class ValidatorRegexPatternSourceTest extends TestCase
     public function test_construct(): void
     {
         $source = new \RegexParser\Bridge\Symfony\Extractor\ValidatorRegexPatternSource();
-        $this->assertInstanceOf(\RegexParser\Bridge\Symfony\Extractor\ValidatorRegexPatternSource::class, $source);
+        $this->assertSame('validators', $source->getName());
     }
 
     public function test_construct_with_validator(): void
@@ -36,7 +36,7 @@ final class ValidatorRegexPatternSourceTest extends TestCase
         $loader = $this->createLoaderStub();
 
         $source = new \RegexParser\Bridge\Symfony\Extractor\ValidatorRegexPatternSource($validator, $loader);
-        $this->assertInstanceOf(\RegexParser\Bridge\Symfony\Extractor\ValidatorRegexPatternSource::class, $source);
+        $this->assertTrue($source->isSupported());
     }
 
     public function test_get_name(): void
@@ -294,9 +294,15 @@ final class ValidatorRegexPatternSourceTest extends TestCase
         $this->assertSame('validators', $source->getName());
     }
 
+    /**
+     * @param array<int, string|int|null> $mappedClasses
+     */
     private function createLoaderStub(array $mappedClasses = [], ?\Throwable $exception = null): \Symfony\Component\Validator\Mapping\Loader\LoaderInterface
     {
         return new class($mappedClasses, $exception) implements \Symfony\Component\Validator\Mapping\Loader\LoaderInterface {
+            /**
+             * @param array<int, string|int|null> $mappedClasses
+             */
             public function __construct(
                 private readonly array $mappedClasses,
                 private readonly ?\Throwable $exception,
@@ -307,6 +313,9 @@ final class ValidatorRegexPatternSourceTest extends TestCase
                 return true;
             }
 
+            /**
+             * @return array<int, string|int|null>
+             */
             public function getMappedClasses(): array
             {
                 if (null !== $this->exception) {
