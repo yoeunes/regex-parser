@@ -135,18 +135,13 @@ final class RouteControllerFileResolverTest extends TestCase
         $this->assertNull($result);
     }
 
-    public function test_resolve_with_trait(): void
+    public function test_resolve_with_stringable_interface(): void
     {
-        if (\PHP_VERSION_ID >= 80400) {
-            $route = $this->createMockRoute(\Stringable::class);
+        $route = $this->createMockRoute(\Stringable::class);
 
-            $result = $this->resolver->resolve($route);
+        $result = $this->resolver->resolve($route);
 
-            $this->assertIsString($result);
-            $this->assertStringEndsWith('Stringable.php', $result);
-        } else {
-            $this->markTestSkipped('Stringable interface not available in this PHP version');
-        }
+        $this->assertNull($result);
     }
 
     public function test_resolve_returns_null_for_evaled_code(): void
