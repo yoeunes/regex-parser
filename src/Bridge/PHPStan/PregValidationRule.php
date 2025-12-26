@@ -118,6 +118,9 @@ final class PregValidationRule implements Rule
         return FuncCall::class;
     }
 
+    /**
+     * @return array<IdentifierRuleError>
+     */
     public function processNode(Node $node, Scope $scope): array
     {
         if (!$node instanceof FuncCall) {
@@ -196,7 +199,7 @@ final class PregValidationRule implements Rule
     }
 
     /**
-     * @return list<IdentifierRuleError>
+     * @return array<IdentifierRuleError>
      */
     private function processPregReplaceCallbackArray(Node $arrayNode, Scope $scope, int $lineNumber, string $functionName): array
     {
@@ -221,7 +224,7 @@ final class PregValidationRule implements Rule
     }
 
     /**
-     * @return list<IdentifierRuleError>
+     * @return array<IdentifierRuleError>
      */
     private function validatePattern(string $pattern, int $lineNumber, Scope $scope, string $functionName): array
     {
@@ -302,7 +305,7 @@ final class PregValidationRule implements Rule
         }
 
         if ($this->suggestOptimizations) {
-            /** @var list<array{file: string, line: int, optimization: \RegexParser\OptimizationResult, savings: int, source?: string}> $optimizations */
+            /** @var array<array{file: string, line: int, optimization: \RegexParser\OptimizationResult, savings: int, source?: string}> $optimizations */
             $optimizations = $this->getAnalysisService()->suggestOptimizations(
                 [$occurrence],
                 1,

@@ -140,4 +140,18 @@ final readonly class CharSet
 
         return new self($complement);
     }
+
+    public function sampleChar(): ?string
+    {
+        if ($this->unknown || [] === $this->ranges) {
+            return null;
+        }
+
+        $value = $this->ranges[0][0] ?? null;
+        if (null === $value) {
+            return null;
+        }
+
+        return \chr($value);
+    }
 }

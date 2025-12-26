@@ -14,9 +14,11 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
+use RegexParser\Cache\FilesystemCache;
 use RegexParser\Cache\NullCache;
 use RegexParser\Exception\InvalidRegexOptionException;
 use RegexParser\Regex;
+use RegexParser\RegexOptions;
 
 final class RegexOptionsTest extends TestCase
 {
@@ -33,8 +35,135 @@ final class RegexOptionsTest extends TestCase
             'max_lookbehind_length' => 512,
             'cache' => new NullCache(),
             'redos_ignored_patterns' => ['/safe/'],
+            'runtime_pcre_validation' => true,
+            'max_recursion_depth' => 2048,
+            'php_version' => '8.3',
         ]);
         $this->assertSame(50_000, (new \ReflectionProperty($regex, 'maxPatternLength'))->getValue($regex));
         $this->assertSame(512, (new \ReflectionProperty($regex, 'maxLookbehindLength'))->getValue($regex));
+        $this->assertTrue((new \ReflectionProperty($regex, 'runtimePcreValidation'))->getValue($regex));
+        $this->assertSame(2048, (new \ReflectionProperty($regex, 'maxRecursionDepth'))->getValue($regex));
+        $this->assertSame(80300, (new \ReflectionProperty($regex, 'phpVersionId'))->getValue($regex));
+    }
+
+    public function test_from_array_with_empty_array(): void
+    {
+        $options = RegexOptions::fromArray([]);
+        $this->assertSame(Regex::DEFAULT_MAX_PATTERN_LENGTH, $options->maxPatternLength);
+        $this->assertSame(Regex::DEFAULT_MAX_LOOKBEHIND_LENGTH, $options->maxLookbehindLength);
+        $this->assertInstanceOf(NullCache::class, $options->cache);
+        $this->assertFalse($options->runtimePcreValidation);
+        $this->assertSame(1024, $options->maxRecursionDepth);
+        $this->assertSame(\PHP_VERSION_ID, $options->phpVersionId);
+    }
+
+    public function test_from_array_parses_php_version_string(): void
+    {
+        $options = RegexOptions::fromArray(['php_version' => '8.1']);
+
+        $this->assertSame(80100, $options->phpVersionId);
+    }
+
+    public function test_from_array_parses_php_version_id(): void
+    {
+        $options = RegexOptions::fromArray(['php_version' => 80401]);
+
+        $this->assertSame(80401, $options->phpVersionId);
+    }
+
+    public function test_from_array_invalid_php_version(): void
+    {
+        $this->expectException(InvalidRegexOptionException::class);
+        $this->expectExceptionMessage('"php_version" must be a version string like "8.2" or a PHP_VERSION_ID integer.');
+        RegexOptions::fromArray(['php_version' => 'invalid']);
+    }
+
+    public function test_from_array_invalid_max_pattern_length(): void
+    {
+        $this->expectException(InvalidRegexOptionException::class);
+        $this->expectExceptionMessage('"max_pattern_length" must be a positive integer.');
+        RegexOptions::fromArray(['max_pattern_length' => 0]);
+    }
+
+    public function test_from_array_invalid_max_pattern_length_type(): void
+    {
+        $this->expectException(InvalidRegexOptionException::class);
+        $this->expectExceptionMessage('"max_pattern_length" must be a positive integer.');
+        RegexOptions::fromArray(['max_pattern_length' => 'invalid']);
+    }
+
+    public function test_from_array_invalid_max_lookbehind_length(): void
+    {
+        $this->expectException(InvalidRegexOptionException::class);
+        $this->expectExceptionMessage('"max_lookbehind_length" must be a non-negative integer.');
+        RegexOptions::fromArray(['max_lookbehind_length' => -1]);
+    }
+
+    public function test_from_array_invalid_max_lookbehind_length_type(): void
+    {
+        $this->expectException(InvalidRegexOptionException::class);
+        $this->expectExceptionMessage('"max_lookbehind_length" must be a non-negative integer.');
+        RegexOptions::fromArray(['max_lookbehind_length' => 'invalid']);
+    }
+
+    public function test_from_array_invalid_runtime_pcre_validation(): void
+    {
+        $this->expectException(InvalidRegexOptionException::class);
+        $this->expectExceptionMessage('"runtime_pcre_validation" must be a boolean.');
+        RegexOptions::fromArray(['runtime_pcre_validation' => 'invalid']);
+    }
+
+    public function test_from_array_invalid_max_recursion_depth(): void
+    {
+        $this->expectException(InvalidRegexOptionException::class);
+        $this->expectExceptionMessage('"max_recursion_depth" must be a positive integer.');
+        RegexOptions::fromArray(['max_recursion_depth' => 0]);
+    }
+
+    public function test_from_array_invalid_max_recursion_depth_type(): void
+    {
+        $this->expectException(InvalidRegexOptionException::class);
+        $this->expectExceptionMessage('"max_recursion_depth" must be a positive integer.');
+        RegexOptions::fromArray(['max_recursion_depth' => 'invalid']);
+    }
+
+    public function test_from_array_invalid_cache(): void
+    {
+        $this->expectException(InvalidRegexOptionException::class);
+        $this->expectExceptionMessage('The "cache" option must be null, a cache path, or a CacheInterface implementation.');
+        RegexOptions::fromArray(['cache' => 123]);
+    }
+
+    public function test_from_array_empty_cache_path(): void
+    {
+        $this->expectException(InvalidRegexOptionException::class);
+        $this->expectExceptionMessage('The "cache" option cannot be an empty string.');
+        RegexOptions::fromArray(['cache' => '']);
+    }
+
+    public function test_from_array_valid_cache_path(): void
+    {
+        $options = RegexOptions::fromArray(['cache' => '/tmp']);
+        $this->assertInstanceOf(FilesystemCache::class, $options->cache);
+    }
+
+    public function test_from_array_invalid_redos_ignored_patterns(): void
+    {
+        $this->expectException(InvalidRegexOptionException::class);
+        $this->expectExceptionMessage('"redos_ignored_patterns" must be a list of strings.');
+        RegexOptions::fromArray(['redos_ignored_patterns' => 'invalid']);
+    }
+
+    public function test_from_array_invalid_redos_ignored_patterns_elements(): void
+    {
+        $this->expectException(InvalidRegexOptionException::class);
+        $this->expectExceptionMessage('"redos_ignored_patterns" must contain only strings.');
+        RegexOptions::fromArray(['redos_ignored_patterns' => [123]]);
+    }
+
+    public function test_from_array_redos_ignored_patterns_deduplicates(): void
+    {
+        $options = RegexOptions::fromArray(['redos_ignored_patterns' => ['/a/', '/a/', '/b/']]);
+        $this->assertSame(['/a/', '/b/'], $options->redosIgnoredPatterns);
     }
 }

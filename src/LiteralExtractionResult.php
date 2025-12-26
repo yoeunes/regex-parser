@@ -19,8 +19,8 @@ namespace RegexParser;
 final readonly class LiteralExtractionResult
 {
     /**
-     * @param list<string> $literals
-     * @param list<string> $patterns
+     * @param array<string> $literals
+     * @param array<string> $patterns
      */
     public function __construct(
         public array $literals,

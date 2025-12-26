@@ -92,9 +92,9 @@ final class CheckstyleFormatter extends AbstractOutputFormatter
     }
 
     /**
-     * @phpstan-param list<LintResult> $results
+     * @phpstan-param array<LintResult> $results
      *
-     * @phpstan-return list<FlattenedProblem>
+     * @phpstan-return array<FlattenedProblem>
      */
     private function flattenProblems(array $results): array
     {

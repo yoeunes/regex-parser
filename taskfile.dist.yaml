@@ -91,6 +91,8 @@ tasks:
         method: checksum
 
     coverage:
+        env:
+            XDEBUG_MODE: coverage
         cmds:
             - cmd: vendor/bin/phpunit --coverage-html coverage {{.CLI_ARGS}}
             - cmd: touch .task/coverage.success

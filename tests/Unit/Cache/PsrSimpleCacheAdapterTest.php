@@ -16,6 +16,7 @@ namespace RegexParser\Tests\Unit\Cache;
 use PHPUnit\Framework\TestCase;
 use Psr\SimpleCache\CacheInterface;
 use RegexParser\Cache\PsrSimpleCacheAdapter;
+use RegexParser\Regex;
 
 final class PsrSimpleCacheAdapterTest extends TestCase
 {
@@ -40,6 +41,87 @@ final class PsrSimpleCacheAdapterTest extends TestCase
         $adapter->clear('/bar/');
 
         $this->assertNull($adapter->load($key));
+    }
+
+    public function test_get_timestamp_always_returns_zero(): void
+    {
+        $cache = new InMemorySimpleCache();
+        $adapter = new PsrSimpleCacheAdapter($cache);
+
+        $this->assertSame(0, $adapter->getTimestamp('any_key'));
+    }
+
+    public function test_clear_without_regex_clears_all(): void
+    {
+        $cache = new InMemorySimpleCache();
+        $adapter = new PsrSimpleCacheAdapter($cache, prefix: 'test_');
+
+        $key1 = $adapter->generateKey('/foo/');
+        $key2 = $adapter->generateKey('/bar/');
+        $adapter->write($key1, 'value1');
+        $adapter->write($key2, 'value2');
+
+        $adapter->clear();
+
+        $this->assertNull($adapter->load($key1));
+        $this->assertNull($adapter->load($key2));
+    }
+
+    public function test_custom_key_factory(): void
+    {
+        $cache = new InMemorySimpleCache();
+        $keyFactory = fn (string $regex) => 'custom_'.md5($regex);
+        $adapter = new PsrSimpleCacheAdapter($cache, prefix: 'test_', keyFactory: $keyFactory);
+
+        $key = $adapter->generateKey('/test/');
+        $this->assertSame('test_custom_'.md5('/test/'), $key);
+    }
+
+    public function test_decodes_real_cache_payload(): void
+    {
+        $cache = new InMemorySimpleCache();
+        $adapter = new PsrSimpleCacheAdapter($cache, prefix: 'test_');
+
+        $regex = Regex::create();
+        $ast = $regex->parse('/test/');
+
+        // Use reflection to access private method
+        $reflection = new \ReflectionClass($regex);
+        $method = $reflection->getMethod('prepareCachePayload');
+        /** @var string $payload */
+        $payload = $method->invoke(null, $ast);
+
+        $key = $adapter->generateKey('/test/');
+        $adapter->write($key, $payload);
+
+        $loaded = $adapter->load($key);
+        $this->assertInstanceOf(\RegexParser\Node\RegexNode::class, $loaded);
+    }
+
+    public function test_extract_serialized_string(): void
+    {
+        $cache = new InMemorySimpleCache();
+        $adapter = new PsrSimpleCacheAdapter($cache);
+
+        // Test the private method through reflection
+        $reflection = new \ReflectionClass($adapter);
+        $method = $reflection->getMethod('extractSerializedString');
+
+        $payload = "<?php return unserialize('serialized_data', ['allowed_classes' => []]);";
+        $result = $method->invoke($adapter, $payload);
+        $this->assertSame('serialized_data', $result);
+    }
+
+    public function test_decode_payload_returns_null_for_non_regex_node(): void
+    {
+        $cache = new InMemorySimpleCache();
+        $adapter = new PsrSimpleCacheAdapter($cache);
+
+        $payload = "<?php return unserialize('".serialize('plain')."', ['allowed_classes' => true]);";
+        $key = $adapter->generateKey('/nonnode/');
+        $adapter->write($key, $payload);
+
+        $this->assertSame($payload, $adapter->load($key));
     }
 }
 

@@ -21,8 +21,6 @@ use RegexParser\ReDoS\ReDoSSeverity;
 use RegexParser\Regex;
 use RegexParser\ValidationResult;
 
-use function count;
-
 /**
  * Handles regex-related analysis and transformations.
  */
@@ -39,13 +37,13 @@ final readonly class RegexAnalysisService
     private ReDoSSeverity $redosSeverityThreshold;
 
     /**
-     * @var list<string>
+     * @var array<string>
      */
     private array $ignoredPatterns;
 
     /**
-     * @param list<string> $ignoredPatterns
-     * @param list<string> $redosIgnoredPatterns
+     * @param array<string> $ignoredPatterns
+     * @param array<string> $redosIgnoredPatterns
      */
     public function __construct(
         private Regex $regex,
@@ -61,10 +59,10 @@ final readonly class RegexAnalysisService
     }
 
     /**
-     * @param list<string> $paths
-     * @param list<string> $excludePaths
+     * @param array<string> $paths
+     * @param array<string> $excludePaths
      *
-     * @return list<RegexPatternOccurrence>
+     * @return array<RegexPatternOccurrence>
      */
     public function scan(array $paths, array $excludePaths): array
     {
@@ -76,9 +74,9 @@ final readonly class RegexAnalysisService
     }
 
     /**
-     * @param list<RegexPatternOccurrence> $patterns
+     * @param array<RegexPatternOccurrence> $patterns
      *
-     * @return list<array{
+     * @return array<array{
      *     type: string,
      *     file: string,
      *     line: int,
@@ -92,7 +90,95 @@ final readonly class RegexAnalysisService
      *     validation?: \RegexParser\ValidationResult
      * }>
      */
-    public function lint(array $patterns, ?callable $progress = null): array
+    public function lint(array $patterns, ?callable $progress = null, int $workers = 1): array
+    {
+        if ($workers <= 1 || \count($patterns) <= 1 || !$this->canRunInParallel()) {
+            return $this->lintChunk($patterns, $progress);
+        }
+
+        return $this->runInParallel(
+            $patterns,
+            $workers,
+            fn (array $chunk): array => $this->lintChunk($chunk),
+            $progress,
+        );
+    }
+
+    /**
+     * @param array<RegexPatternOccurrence> $patterns
+     *
+     * @return array<array{file: string, line: int, analysis: ReDoSAnalysis}>
+     */
+    public function analyzeRedos(array $patterns, ReDoSSeverity $threshold, int $workers = 1): array
+    {
+        if ($workers <= 1 || \count($patterns) <= 1 || !$this->canRunInParallel()) {
+            return $this->analyzeRedosChunk($patterns, $threshold);
+        }
+
+        return $this->runInParallel(
+            $patterns,
+            $workers,
+            fn (array $chunk): array => $this->analyzeRedosChunk($chunk, $threshold),
+        );
+    }
+
+    /**
+     * @param array<RegexPatternOccurrence>                          $patterns
+     * @param array{digits?: bool, word?: bool, strictRanges?: bool} $optimizationConfig
+     *
+     * @return array<array{
+     *     file: string,
+     *     line: int,
+     *     optimization: OptimizationResult,
+     *     savings: int,
+     *     source?: string
+     * }>
+     */
+    public function suggestOptimizations(array $patterns, int $minSavings, array $optimizationConfig = [], int $workers = 1): array
+    {
+        if ($workers <= 1 || \count($patterns) <= 1 || !$this->canRunInParallel()) {
+            return $this->suggestOptimizationsChunk($patterns, $minSavings, $optimizationConfig);
+        }
+
+        return $this->runInParallel(
+            $patterns,
+            $workers,
+            fn (array $chunk): array => $this->suggestOptimizationsChunk($chunk, $minSavings, $optimizationConfig),
+        );
+    }
+
+    public function highlight(string $pattern): string
+    {
+        $ast = $this->regex->parse($pattern);
+
+        return $ast->accept(new ConsoleHighlighterVisitor());
+    }
+
+    public function highlightBody(string $body, string $flags = '', string $delimiter = '/'): string
+    {
+        $ast = $this->regex->parsePattern($body, $flags, $delimiter);
+
+        return $ast->accept(new ConsoleHighlighterVisitor());
+    }
+
+    /**
+     * @param array<RegexPatternOccurrence> $patterns
+     *
+     * @return array<array{
+     *     type: string,
+     *     file: string,
+     *     line: int,
+     *     column: int,
+     *     position?: int,
+     *     message: string,
+     *     issueId?: string,
+     *     hint?: string|null,
+     *     source?: string,
+     *     analysis?: ReDoSAnalysis,
+     *     validation?: \RegexParser\ValidationResult
+     * }>
+     */
+    private function lintChunk(array $patterns, ?callable $progress = null): array
     {
         $issues = [];
 
@@ -192,11 +278,11 @@ final readonly class RegexAnalysisService
     }
 
     /**
-     * @param list<RegexPatternOccurrence> $patterns
+     * @param array<RegexPatternOccurrence> $patterns
      *
-     * @return list<array{file: string, line: int, analysis: ReDoSAnalysis}>
+     * @return array<array{file: string, line: int, analysis: ReDoSAnalysis}>
      */
-    public function analyzeRedos(array $patterns, ReDoSSeverity $threshold): array
+    private function analyzeRedosChunk(array $patterns, ReDoSSeverity $threshold): array
     {
         $issues = [];
 
@@ -222,10 +308,10 @@ final readonly class RegexAnalysisService
     }
 
     /**
-     * @param list<RegexPatternOccurrence>                           $patterns
+     * @param array<RegexPatternOccurrence>                          $patterns
      * @param array{digits?: bool, word?: bool, strictRanges?: bool} $optimizationConfig
      *
-     * @return list<array{
+     * @return array<array{
      *     file: string,
      *     line: int,
      *     optimization: OptimizationResult,
@@ -233,7 +319,7 @@ final readonly class RegexAnalysisService
      *     source?: string
      * }>
      */
-    public function suggestOptimizations(array $patterns, int $minSavings, array $optimizationConfig = []): array
+    private function suggestOptimizationsChunk(array $patterns, int $minSavings, array $optimizationConfig = []): array
     {
         $suggestions = [];
 
@@ -286,18 +372,189 @@ final readonly class RegexAnalysisService
         return $suggestions;
     }
 
-    public function highlight(string $pattern): string
+    /**
+     * @template T
+     *
+     * @param array<RegexPatternOccurrence>                     $patterns
+     * @param callable(array<RegexPatternOccurrence>): array<T> $worker
+     *
+     * @return array<T>
+     */
+    private function runInParallel(array $patterns, int $workers, callable $worker, ?callable $progress = null): array
     {
-        $ast = $this->regex->parse($pattern);
+        $patternCount = \count($patterns);
+        if (0 === $patternCount) {
+            return [];
+        }
 
-        return $ast->accept(new ConsoleHighlighterVisitor());
+        $workerCount = max(1, min($workers, $patternCount));
+        $chunkSize = max(1, (int) ceil($patternCount / $workerCount));
+        $chunks = array_chunk($patterns, $chunkSize);
+        $children = [];
+        $failed = false;
+
+        foreach ($chunks as $index => $chunk) {
+            $tmpFile = tempnam(sys_get_temp_dir(), 'regexparser_');
+            if (false === $tmpFile) {
+                $failed = true;
+
+                break;
+            }
+
+            $pid = pcntl_fork();
+            if (-1 === $pid) {
+                $failed = true;
+
+                break;
+            }
+
+            if (0 === $pid) {
+                $payload = null;
+
+                try {
+                    $payload = ['ok' => true, 'result' => $worker($chunk)];
+                } catch (\Throwable $e) {
+                    $payload = [
+                        'ok' => false,
+                        'error' => [
+                            'message' => $e->getMessage(),
+                            'class' => $e::class,
+                        ],
+                    ];
+                }
+
+                $this->writeWorkerPayload($tmpFile, $payload);
+                exit($payload['ok'] ? 0 : 1);
+            }
+
+            $children[$pid] = [
+                'file' => $tmpFile,
+                'index' => $index,
+                'count' => \count($chunk),
+            ];
+        }
+
+        if ($failed) {
+            foreach ($children as $pid => $meta) {
+                pcntl_waitpid($pid, $status);
+                @unlink($meta['file']);
+            }
+
+            $results = $worker($patterns);
+            if ($progress) {
+                for ($i = 0; $i < $patternCount; $i++) {
+                    $progress();
+                }
+            }
+
+            return $results;
+        }
+
+        $resultsByIndex = [];
+        foreach ($children as $pid => $meta) {
+            pcntl_waitpid($pid, $status);
+            $payload = $this->readWorkerPayload($meta['file']);
+            @unlink($meta['file']);
+
+            if (!($payload['ok'] ?? false)) {
+                $error = $payload['error'] ?? ['message' => 'Unknown worker failure.', 'class' => \RuntimeException::class];
+                $errorClass = \is_array($error) && isset($error['class']) && \is_string($error['class']) ? $error['class'] : \RuntimeException::class;
+                $errorMessage = \is_array($error) && isset($error['message']) && \is_string($error['message']) ? $error['message'] : 'Unknown worker failure.';
+
+                throw new \RuntimeException(\sprintf('Parallel analysis failed: %s: %s', $errorClass, $errorMessage));
+            }
+
+            $resultsByIndex[$meta['index']] = $payload['result'] ?? [];
+            if ($progress) {
+                for ($i = 0; $i < $meta['count']; $i++) {
+                    $progress();
+                }
+            }
+        }
+
+        ksort($resultsByIndex);
+        $results = [];
+        foreach ($resultsByIndex as $chunkResults) {
+            if (!\is_array($chunkResults)) {
+                continue;
+            }
+
+            foreach ($chunkResults as $item) {
+                $results[] = $item;
+            }
+        }
+
+        return $results;
     }
 
-    public function highlightBody(string $body, string $flags = '', string $delimiter = '/'): string
+    private function canRunInParallel(): bool
     {
-        $ast = $this->regex->parsePattern($body, $flags, $delimiter);
+        return \PHP_SAPI === 'cli'
+            && \function_exists('pcntl_fork')
+            && \function_exists('pcntl_waitpid');
+    }
 
-        return $ast->accept(new ConsoleHighlighterVisitor());
+    /**
+     * @param array{ok: bool, result?: mixed, error?: array{message: string, class: string}} $payload
+     */
+    private function writeWorkerPayload(string $path, array $payload): void
+    {
+        $serialized = serialize($payload);
+        @file_put_contents($path, $serialized);
+    }
+
+    /**
+     * @return array{ok: bool, result?: mixed, error?: array{message: string, class: string}}
+     */
+    private function readWorkerPayload(string $path): array
+    {
+        $data = @file_get_contents($path);
+        if (false === $data) {
+            return [
+                'ok' => false,
+                'error' => [
+                    'message' => 'Failed to read worker output.',
+                    'class' => \RuntimeException::class,
+                ],
+            ];
+        }
+
+        $payload = @unserialize($data, ['allowed_classes' => true]);
+        if (!\is_array($payload) || !\array_key_exists('ok', $payload) || !\is_bool($payload['ok'])) {
+            return [
+                'ok' => false,
+                'error' => [
+                    'message' => 'Invalid worker output.',
+                    'class' => \RuntimeException::class,
+                ],
+            ];
+        }
+
+        if (false === $payload['ok']) {
+            $error = $payload['error'] ?? null;
+            if (!\is_array($error) || !isset($error['message'], $error['class']) || !\is_string($error['message']) || !\is_string($error['class'])) {
+                return [
+                    'ok' => false,
+                    'error' => [
+                        'message' => 'Invalid worker error payload.',
+                        'class' => \RuntimeException::class,
+                    ],
+                ];
+            }
+
+            return [
+                'ok' => false,
+                'error' => [
+                    'message' => $error['message'],
+                    'class' => $error['class'],
+                ],
+            ];
+        }
+
+        return [
+            'ok' => true,
+            'result' => $payload['result'] ?? null,
+        ];
     }
 
     private function shouldSkipRiskAnalysis(RegexPatternOccurrence $occurrence): bool
@@ -390,10 +647,10 @@ final readonly class RegexAnalysisService
     }
 
     /**
-     * @param list<string> $userIgnored
-     * @param list<string> $redosIgnored
+     * @param array<string> $userIgnored
+     * @param array<string> $redosIgnored
      *
-     * @return list<string>
+     * @return array<string>
      */
     private function buildIgnoredPatterns(array $userIgnored, array $redosIgnored): array
     {
@@ -628,7 +885,7 @@ final readonly class RegexAnalysisService
     }
 
     /**
-     * @return list<string>
+     * @return array<string>
      */
     private function suggestReDoSFixes(string $pattern, ReDoSAnalysis $analysis): array
     {

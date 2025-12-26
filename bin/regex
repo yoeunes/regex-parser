@@ -40,6 +40,7 @@ if (null === $autoloadPath) {
 
 require_once $autoloadPath;
 
+use RegexParser\Exception\InvalidRegexOptionException;
 use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
 use RegexParser\Lint\Formatter\ConsoleFormatter;
@@ -55,8 +56,15 @@ use RegexParser\Lint\RegexPatternSourceCollection;
 use RegexParser\Lint\TokenBasedExtractionStrategy;
 use RegexParser\NodeVisitor\ConsoleHighlighterVisitor;
 use RegexParser\NodeVisitor\HtmlHighlighterVisitor;
+use RegexParser\NodeVisitor\RailroadDiagramVisitor;
 use RegexParser\OptimizationResult;
 use RegexParser\Regex;
+use RegexParser\RegexOptions;
+use RegexParser\RegexPattern;
+use RegexParser\ReDoS\ReDoSHeatmap;
+use RegexParser\ReDoS\ReDoSInputGenerator;
+use RegexParser\ReDoS\ReDoSHotspot;
+use RegexParser\ReDoS\ReDoSSeverity;
 
 // ANSI color codes
 const RESET = "\033[0m";
@@ -237,6 +245,8 @@ function showHelp(): void
     output(color('Commands:', MAGENTA)."\n");
     output('  '.info('parse')."       Parse and recompile a regex pattern\n");
     output('  '.info('analyze')."     Parse, validate, and analyze ReDoS risk\n");
+    output('  '.info('debug')."       Deep ReDoS analysis with heatmap output\n");
+    output('  '.info('diagram')."     Render an ASCII diagram of the AST\n");
     output('  '.info('highlight')."   Highlight a regex for display\n");
     output('  '.info('validate')."    Validate a regex pattern\n");
     output('  '.info('lint')."        Lint regex patterns in PHP source code\n");
@@ -247,11 +257,13 @@ function showHelp(): void
     output('  '.color('--no-ansi', CYAN)."         Disable ANSI output\n");
     output('  '.color('-q, --quiet', CYAN)."       Suppress output\n");
     output('  '.color('--silent', CYAN)."          Same as --quiet\n");
+    output('  '.color('--php-version', CYAN)." <ver>  Target PHP version for validation\n");
     output('  '.color('--help', CYAN)."            Display this help message\n\n");
 
     output(color('Lint Options:', MAGENTA)."\n");
     output('  '.color('--exclude', CYAN)." <path>       Paths to exclude (repeatable)\n");
     output('  '.color('--min-savings', CYAN)." <n>     Minimum optimization savings\n");
+    output('  '.color('--jobs', CYAN)." <n>           Parallel workers for analysis\n");
     output('  '.color('--format', CYAN)." <format>     Output format (console, json, github, checkstyle, junit)\n");
     output('  '.color('--no-redos', CYAN)."           Skip ReDoS risk analysis\n");
     output('  '.color('--no-validate', CYAN)."        Skip validation errors (structural lint only)\n");
@@ -259,14 +271,47 @@ function showHelp(): void
     output('  '.color('-v, --verbose', CYAN)."         Show detailed output\n");
     output('  '.color('--debug', CYAN)."              Show debug information\n\n");
 
+    output(color('Diagram Options:', MAGENTA)."\n");
+    output('  '.color('--format', CYAN)." <format>     Output format (ascii)\n\n");
+
+    output(color('Debug Options:', MAGENTA)."\n");
+    output('  '.color('--input', CYAN)." <string>     Input string to test against the pattern\n\n");
+
     output(color('Examples:', MAGENTA)."\n");
     output('  '.color('regex', BLUE).' '.color("'/a+'", GREEN)."                           # Quick highlight\n");
     output('  '.color('regex', BLUE).' '.color('parse', YELLOW).' '.color("'/a+'", GREEN).' '.color('--validate', CYAN)."          # Parse with validation\n");
     output('  '.color('regex', BLUE).' '.color('analyze', YELLOW).' '.color("'/a+'", GREEN)."                   # Full analysis\n");
+    output('  '.color('regex', BLUE).' '.color('diagram', YELLOW).' '.color("'/^a+$/'", GREEN)."                # ASCII diagram\n");
+    output('  '.color('regex', BLUE).' '.color('debug', YELLOW).' '.color("'/(a+)+$/'", GREEN)."              # Heatmap + ReDoS details\n");
     output('  '.color('regex', BLUE).' '.color('highlight', YELLOW).' '.color("'/a+'", GREEN).' '.color('--format=html', CYAN)."   # HTML highlight\n");
     output('  '.color('regex', BLUE).' '.color('lint', YELLOW).' '.color('src/', GREEN).' '.color('--exclude=vendor', CYAN)."       # Lint a codebase\n");
     output('  '.color('regex', BLUE).' '.color('lint', YELLOW).' '.color('--format=json', CYAN).' '.color('src/', GREEN)."           # JSON output\n");
     output('  '.color('regex', BLUE).' '.color('lint', YELLOW).' '.color('--verbose', CYAN).' '.color('src/', GREEN)."              # Verbose output\n");
+}
+
+function outputVersion(): void
+{
+    $versionFile = __DIR__.'/../composer.json';
+    if (!file_exists($versionFile)) {
+        output('  '.color('Error:', RED)." unable to read version information.\n");
+        exit(1);
+    }
+
+    $composerData = json_decode(file_get_contents($versionFile), true);
+    $version = $composerData['version'] ?? '1.0.0';
+
+    output('RegexParser '.color($version, GREEN)." by Younes ENNAJI\n");
+    output("https://github.com/yoeunes/regex-parser\n");
+}
+
+function createRegex(array $options): Regex
+{
+    try {
+        return Regex::create($options);
+    } catch (InvalidRegexOptionException $e) {
+        output(error('Invalid option: '.$e->getMessage()."\n"));
+        exit(1);
+    }
 }
 
 function extractGlobalOptions(array $args): array
@@ -275,10 +320,14 @@ function extractGlobalOptions(array $args): array
         'quiet' => false,
         'ansi' => null,
         'help' => false,
+        'phpVersion' => null,
+        'error' => null,
     ];
     $remaining = [];
 
-    foreach ($args as $arg) {
+    for ($i = 0; $i < \count($args); $i++) {
+        $arg = $args[$i];
+
         if ('-q' === $arg || '--quiet' === $arg || '--silent' === $arg) {
             $options['quiet'] = true;
 
@@ -299,6 +348,25 @@ function extractGlobalOptions(array $args): array
 
         if ('--help' === $arg || '-h' === $arg) {
             $options['help'] = true;
+
+            continue;
+        }
+
+        if (str_starts_with($arg, '--php-version=')) {
+            $options['phpVersion'] = substr($arg, \strlen('--php-version='));
+
+            continue;
+        }
+
+        if ('--php-version' === $arg) {
+            $value = $args[$i + 1] ?? '';
+            if ('' === $value || str_starts_with($value, '-')) {
+                $options['error'] = 'Missing value for --php-version.';
+
+                break;
+            }
+            $options['phpVersion'] = $value;
+            $i++;
 
             continue;
         }
@@ -377,9 +445,27 @@ function showFooter(): void
     output('  '.dim('Star the repo: https://github.com/yoeunes/regex-parser')."\n\n");
 }
 
-function renderLintBanner(): string
+function renderLintBanner(int $jobs = 1): string
 {
-    return color('Regex Parser', CYAN.BOLD).' '.dim('· lint')."\n\n";
+    $versionFile = __DIR__.'/../composer.json';
+    $version = 'dev';
+    if (file_exists($versionFile)) {
+        $composerData = json_decode(file_get_contents($versionFile), true);
+        $version = $composerData['version'] ?? 'dev';
+    }
+
+    $output = color('RegexParser', CYAN.BOLD).' '.warning($version).' by Younes ENNAJI'."\n\n";
+    $output .= 'Runtime:       PHP '.warning(\PHP_VERSION)."\n";
+    $output .= 'Processes:     '.warning((string) $jobs)."\n";
+    
+    $configFile = getcwd().'/.regex.php';
+    if (file_exists($configFile)) {
+        $output .= 'Configuration: '.$configFile."\n";
+    }
+    
+    $output .= "\n";
+    
+    return $output;
 }
 
 function createExtractor(): RegexPatternExtractor
@@ -404,6 +490,7 @@ function parseLintArgs(array $args): array
     $checkRedos = true;
     $checkValidation = true;
     $checkOptimizations = true;
+    $jobs = 1;
 
     for ($i = 0; $i < \count($args); $i++) {
         $arg = $args[$i];
@@ -489,12 +576,35 @@ function parseLintArgs(array $args): array
             continue;
         }
 
+        if (str_starts_with($arg, '--jobs=')) {
+            $jobs = (int) substr($arg, \strlen('--jobs='));
+            if ($jobs < 1) {
+                return ['error' => 'The --jobs value must be a positive integer.'];
+            }
+
+            continue;
+        }
+
         if ('--min-savings' === $arg) {
             $value = $args[$i + 1] ?? '';
             if ('' === $value || str_starts_with($value, '-')) {
                 return ['error' => 'Missing value for --min-savings.'];
             }
             $minSavings = (int) $value;
+            $i++;
+
+            continue;
+        }
+
+        if ('--jobs' === $arg || '-j' === $arg) {
+            $value = $args[$i + 1] ?? '';
+            if ('' === $value || str_starts_with($value, '-')) {
+                return ['error' => 'Missing value for --jobs.'];
+            }
+            $jobs = (int) $value;
+            if ($jobs < 1) {
+                return ['error' => 'The --jobs value must be a positive integer.'];
+            }
             $i++;
 
             continue;
@@ -517,6 +627,7 @@ function parseLintArgs(array $args): array
         'checkRedos' => $checkRedos,
         'checkValidation' => $checkValidation,
         'checkOptimizations' => $checkOptimizations,
+        'jobs' => $jobs,
     ];
 }
 
@@ -525,6 +636,13 @@ array_shift($args);
 [$globalOptions, $args] = extractGlobalOptions($args);
 $quiet = $globalOptions['quiet'];
 $ansi = resolveAnsi($globalOptions['ansi']);
+$phpVersionOption = $globalOptions['phpVersion'];
+$regexOptions = null !== $phpVersionOption ? ['php_version' => $phpVersionOption] : [];
+
+if (null !== $globalOptions['error']) {
+    output(error('Error: '.$globalOptions['error']."\n"));
+    exit(1);
+}
 
 if ($globalOptions['help']) {
     showHelp();
@@ -554,6 +672,12 @@ switch ($command) {
         showHelp();
         exit(0);
 
+    case 'version':
+    case '--version':
+    case '-v':
+        outputVersion();
+        exit(0);
+
     case 'parse':
         if (empty($pattern)) {
             output(error("Error: Missing pattern\n"));
@@ -561,7 +685,7 @@ switch ($command) {
             exit(1);
         }
         $validate = \in_array('--validate', $commandArgs, true);
-        $regex = Regex::create();
+        $regex = createRegex($regexOptions);
 
         try {
             $ast = $regex->parse($pattern);
@@ -592,7 +716,7 @@ switch ($command) {
             output("Usage: regex analyze <pattern>\n");
             exit(1);
         }
-        $regex = Regex::create();
+        $regex = createRegex($regexOptions);
 
         try {
             $ast = $regex->parse($pattern);
@@ -624,6 +748,188 @@ switch ($command) {
 
         break;
 
+    case 'debug':
+        if (empty($pattern)) {
+            output(error("Error: Missing pattern\n"));
+            output("Usage: regex debug <pattern> [--input <string>]\n");
+            exit(1);
+        }
+
+        $input = null;
+        for ($i = 0; $i < \count($commandArgs); $i++) {
+            $arg = $commandArgs[$i];
+            if (str_starts_with($arg, '--input=')) {
+                $input = substr($arg, \strlen('--input='));
+
+                continue;
+            }
+            if ('--input' === $arg) {
+                $value = $commandArgs[$i + 1] ?? '';
+                if ('' === $value || str_starts_with($value, '-')) {
+                    output(error("Error: Missing value for --input\n"));
+                    exit(1);
+                }
+                $input = $value;
+                $i++;
+            }
+        }
+
+        $regex = createRegex($regexOptions);
+        $phpVersionId = null;
+        if ([] !== $regexOptions) {
+            $phpVersionId = RegexOptions::fromArray($regexOptions)->phpVersionId;
+        }
+
+        try {
+            $patternInfo = RegexPattern::fromDelimited($pattern, $phpVersionId);
+            $analysis = $regex->redos($pattern);
+            $heatmap = new ReDoSHeatmap();
+            $heatmapBody = $heatmap->highlight($patternInfo->pattern, $analysis->hotspots, $ansi);
+            $heatmapPattern = $patternInfo->delimiter.$heatmapBody.$patternInfo->delimiter.$patternInfo->flags;
+
+            output(bold("Debug\n"));
+            output('  Pattern:    '.$heatmapPattern."\n");
+
+            if (null !== $analysis->error) {
+                output('  Error:      '.error($analysis->error)."\n");
+            }
+
+            $severityLabel = strtoupper($analysis->severity->value);
+            $severityOutput = match ($analysis->severity) {
+                ReDoSSeverity::SAFE, ReDoSSeverity::LOW => success($severityLabel),
+                ReDoSSeverity::MEDIUM => warning($severityLabel),
+                ReDoSSeverity::HIGH, ReDoSSeverity::CRITICAL => error($severityLabel),
+                ReDoSSeverity::UNKNOWN => info($severityLabel),
+            };
+
+            output('  ReDoS:      '.$severityOutput.' (score '.$analysis->score.")\n");
+
+            if (null !== $analysis->getVulnerableSubpattern()) {
+                output('  Culprit:    '.$analysis->getVulnerableSubpattern()."\n");
+            }
+
+            if (null !== $analysis->trigger && '' !== $analysis->trigger) {
+                output('  Trigger:    '.$analysis->trigger."\n");
+            }
+
+            if ([] !== $analysis->hotspots) {
+                output('  Hotspots:   '.\count($analysis->hotspots)."\n");
+            }
+
+            $inputSource = '';
+            if (null === $input && null !== $analysis->getCulpritNode()) {
+                $input = (new ReDoSInputGenerator())->generate(
+                    $analysis->getCulpritNode(),
+                    $patternInfo->flags,
+                    $analysis->severity,
+                );
+                $inputSource = ' (auto)';
+            }
+
+            if (null !== $input) {
+                $escaped = addcslashes($input, "\0..\37\177..\377");
+                output('  Input:      "'.$escaped.'"'.$inputSource."\n");
+            }
+
+            $hotspot = null;
+            $hotspotRank = -1;
+            foreach ($analysis->hotspots as $candidate) {
+                if (!$candidate instanceof ReDoSHotspot) {
+                    continue;
+                }
+                $rank = match ($candidate->severity) {
+                    ReDoSSeverity::SAFE => 0,
+                    ReDoSSeverity::LOW => 1,
+                    ReDoSSeverity::MEDIUM => 2,
+                    ReDoSSeverity::HIGH => 3,
+                    ReDoSSeverity::CRITICAL => 4,
+                    ReDoSSeverity::UNKNOWN => 1,
+                };
+                if ($rank > $hotspotRank) {
+                    $hotspotRank = $rank;
+                    $hotspot = $candidate;
+                }
+            }
+
+            if (null !== $hotspot) {
+                $prefix = '  Pattern:    ';
+                $start = max(0, $hotspot->start);
+                $length = max(1, $hotspot->end - $hotspot->start);
+                $caret = str_repeat(' ', \strlen($prefix) + 1 + $start).str_repeat('^', $length);
+                $caretColor = match ($hotspot->severity) {
+                    ReDoSSeverity::SAFE, ReDoSSeverity::LOW => GREEN,
+                    ReDoSSeverity::MEDIUM => YELLOW,
+                    ReDoSSeverity::HIGH, ReDoSSeverity::CRITICAL => RED,
+                    ReDoSSeverity::UNKNOWN => GRAY,
+                };
+                output(color($caret, $caretColor)."\n");
+            }
+
+            if ([] !== $analysis->findings) {
+                output("\n".bold('Findings')."\n");
+                foreach ($analysis->findings as $finding) {
+                    $label = strtoupper($finding->severity->value);
+                    $findingSeverity = match ($finding->severity) {
+                        ReDoSSeverity::SAFE, ReDoSSeverity::LOW => success($label),
+                        ReDoSSeverity::MEDIUM => warning($label),
+                        ReDoSSeverity::HIGH, ReDoSSeverity::CRITICAL => error($label),
+                        ReDoSSeverity::UNKNOWN => info($label),
+                    };
+                    output('  - ['.$findingSeverity.'] '.$finding->message."\n");
+                    if (null !== $finding->suggestedRewrite && '' !== $finding->suggestedRewrite) {
+                        output('      Suggested: '.$finding->suggestedRewrite."\n");
+                    }
+                }
+            }
+        } catch (LexerException|ParserException $e) {
+            output(error('Debug failed: '.$e->getMessage()."\n"));
+            exit(1);
+        } catch (Throwable $e) {
+            output(error('Debug failed: '.$e->getMessage()."\n"));
+            exit(1);
+        }
+
+        break;
+
+    case 'diagram':
+        if (empty($pattern)) {
+            output(error("Error: Missing pattern\n"));
+            output("Usage: regex diagram <pattern> [--format=ascii]\n");
+            exit(1);
+        }
+
+        $format = 'ascii';
+        for ($i = 0; $i < \count($commandArgs); $i++) {
+            $arg = $commandArgs[$i];
+            if (str_starts_with($arg, '--format=')) {
+                $format = substr($arg, \strlen('--format='));
+
+                break;
+            }
+            if ('--format' === $arg) {
+                $format = $commandArgs[$i + 1] ?? $format;
+                $i++;
+            }
+        }
+
+        if (!\in_array($format, ['ascii', 'cli'], true)) {
+            output(error("Error: Unsupported format '{$format}'. Use --format=ascii.\n"));
+            exit(1);
+        }
+
+        $regex = createRegex($regexOptions);
+
+        try {
+            $ast = $regex->parse($pattern);
+            $diagram = $ast->accept(new RailroadDiagramVisitor());
+            output($diagram."\n");
+        } catch (LexerException|ParserException $e) {
+            output(error('Diagram failed: '.$e->getMessage()."\n"));
+            exit(1);
+        }
+
+        break;
+
     case 'highlight':
         if (empty($pattern)) {
             output(error("Error: Missing pattern\n"));
@@ -643,7 +949,7 @@ switch ($command) {
                 $i++;
             }
         }
-        $regex = Regex::create();
+        $regex = createRegex($regexOptions);
 
         try {
             if ('auto' === $format) {
@@ -673,7 +979,7 @@ switch ($command) {
             output("Usage: regex validate <pattern>\n");
             exit(1);
         }
-        $regex = Regex::create();
+        $regex = createRegex($regexOptions);
 
         $validation = $regex->validate($pattern);
         if ($validation->isValid) {
@@ -698,7 +1004,7 @@ switch ($command) {
         }
         if (isset($parsed['error'])) {
             output(error('Error: '.$parsed['error']."\n"));
-            output("Usage: regex lint [paths...] [--exclude <path>] [--min-savings <n>] [--format console|json|github|checkstyle|junit] [--no-redos] [--no-validate] [--no-optimize] [--verbose|--debug|--quiet]\n");
+            output("Usage: regex lint [paths...] [--exclude <path>] [--min-savings <n>] [--jobs <n>] [--format console|json|github|checkstyle|junit] [--no-redos] [--no-validate] [--no-optimize] [--verbose|--debug|--quiet]\n");
             exit(1);
         }
 
@@ -711,6 +1017,7 @@ switch ($command) {
         $checkRedos = $parsed['checkRedos'] ?? true;
         $checkValidation = $parsed['checkValidation'] ?? true;
         $checkOptimizations = $parsed['checkOptimizations'] ?? true;
+        $jobs = (int) ($parsed['jobs'] ?? 1);
 
         if ([] === $paths) {
             $paths = ['.'];
@@ -737,11 +1044,11 @@ switch ($command) {
 
         // Update console formatter with analysis service for highlighting
         if ('console' === $format) {
-            $analysis = new RegexAnalysisService(Regex::create());
+            $analysis = new RegexAnalysisService(createRegex($regexOptions));
             $formatter = new ConsoleFormatter($analysis, $config);
         }
 
-        $analysis = new RegexAnalysisService(Regex::create());
+        $analysis = new RegexAnalysisService(createRegex($regexOptions));
         $extractor = createExtractor();
         $sources = new RegexPatternSourceCollection([
             new PhpRegexPatternSource($extractor),
@@ -749,10 +1056,14 @@ switch ($command) {
         $lint = new RegexLintService($analysis, $sources);
 
         if ('console' === $format && OutputConfiguration::VERBOSITY_QUIET !== $verbosity) {
-            echo renderLintBanner();
+            echo renderLintBanner($jobs);
         }
 
         $collectionProgress = null;
+        $startTime = microtime(true);
+        $startMemory = memory_get_peak_usage(true);
+        $collectionStartTime = $startTime;
+        
         if ('console' === $format && $config->shouldShowProgress()) {
             output('  '.dim('[1/2] Collecting patterns')."\n");
             $collectionStarted = false;
@@ -787,12 +1098,15 @@ switch ($command) {
                 checkValidation: $checkValidation,
                 checkRedos: $checkRedos,
                 checkOptimizations: $checkOptimizations,
+                analysisWorkers: $jobs,
             );
             $patterns = $lint->collectPatterns($request, $collectionProgress);
         } catch (Throwable $e) {
             output(error("Failed to collect patterns: {$e->getMessage()}\n"));
             exit(1);
         }
+
+        $collectionTime = microtime(true) - $collectionStartTime;
 
         if ([] === $patterns) {
             if ($format === 'console') {
@@ -805,10 +1119,16 @@ switch ($command) {
             exit(0);
         }
 
-        $startTime = microtime(true);
-        $startMemory = memory_get_peak_usage(true);
+        if ('console' === $format && $config->shouldShowProgress() && $collectionTime > 1) {
+            $collectionInfo = 'Collection: '.round($collectionTime, 2).'s';
+            if ($jobs > 1) {
+                $collectionInfo .= ' (parallel: '.$jobs.' workers)';
+            }
+            output('  '.dim($collectionInfo)."\n\n");
+        }
 
         $progressCallback = null;
+        $analysisStartTime = microtime(true);
         if ('console' === $format && $config->shouldShowProgress()) {
             output('  '.dim('[2/2] Analyzing patterns')."\n");
             progressStart(\count($patterns));
@@ -819,6 +1139,16 @@ switch ($command) {
 
         if (null !== $progressCallback) {
             progressFinish();
+        }
+
+        $analysisTime = microtime(true) - $analysisStartTime;
+
+        if ('console' === $format && $config->shouldShowProgress() && $analysisTime > 0.1) {
+            $analysisInfo = 'Analysis: '.round($analysisTime, 2).'s';
+            if ($jobs > 1) {
+                $analysisInfo .= ' (parallel: '.$jobs.' workers)';
+            }
+            output('  '.dim($analysisInfo)."\n");
         }
 
         // Output using formatter

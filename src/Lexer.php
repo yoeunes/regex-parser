@@ -59,7 +59,7 @@ final class Lexer
         'T_CHAR_TYPE' => '\\\\ [dswDSWhvRCX]',
         'T_G_REFERENCE' => '\\\\ g (?: \\{[a-zA-Z0-9_+-]+\\} | <[a-zA-Z0-9_]+> | [0-9+-]+ )?',
         'T_BACKREF' => '\\\\ (?: k(?:<[a-zA-Z0-9_]+> | \\{[a-zA-Z0-9_]+\\}) | (?<v_backref_num> [1-9]\\d*) )',
-        'T_OCTAL_LEGACY' => '\\\\ [0-7]{1,3}',
+        'T_OCTAL_LEGACY' => '\\\\ (?: [0-7]{3} | [0-7]{2} | [0-7] )',
         'T_OCTAL' => '\\\\ o\\{[0-7]+\\}',
         'T_UNICODE' => '\\\\ x [0-9a-fA-F]{1,2} | \\\\ u\\{[0-9a-fA-F]+\\} | \\\\ x\\{[0-9a-fA-F]+\\}',
         'T_UNICODE_PROP' => '\\\\ [pP] (?: \\{ [^}]+ \\} | [a-zA-Z] )',
@@ -75,7 +75,7 @@ final class Lexer
         'T_CHAR_CLASS_CLOSE' => '\\]',
         'T_POSIX_CLASS' => '\\[ \\: (?<v_posix> \\^? [a-zA-Z]+) \\: \\]',
         'T_CHAR_TYPE' => '\\\\ [dswDSWhvR]',
-        'T_OCTAL_LEGACY' => '\\\\ 0[0-7]{0,2}',
+        'T_OCTAL_LEGACY' => '\\\\ (?: [0-7]{3} | [0-7]{2} | [0-7] )',
         'T_OCTAL' => '\\\\ o\\{[0-7]+\\}',
         'T_UNICODE' => '\\\\ x [0-9a-fA-F]{1,2} | \\\\ u\\{[0-9a-fA-F]+\\} | \\\\ x\\{[0-9a-fA-F]+\\}',
         'T_UNICODE_PROP' => '\\\\ [pP] (?: \\{ [^}]+ \\} | [a-zA-Z] )',
@@ -88,10 +88,18 @@ final class Lexer
         'T_LITERAL' => '[^\\\\]',
     ];
 
-    // Precompiled regex patterns for maximum performance
-    private static ?string $regexOutside = null;
+    // Precompiled regex patterns for maximum performance (version-aware)
+    /**
+     * @var array<int, string>
+     */
+    private static array $regexOutside = [];
 
-    private static ?string $regexInside = null;
+    /**
+     * @var array<int, string>
+     */
+    private static array $regexInside = [];
+
+    private readonly int $phpVersionId;
 
     private string $pattern;
 
@@ -106,6 +114,11 @@ final class Lexer
     private bool $inCommentMode = false;
 
     private int $charClassStartPosition = 0;
+
+    public function __construct(?int $phpVersionId = null)
+    {
+        $this->phpVersionId = $phpVersionId ?? \PHP_VERSION_ID;
+    }
 
     public function tokenize(string $pattern, string $flags = ''): TokenStream
     {
@@ -138,12 +151,12 @@ final class Lexer
 
     private function getRegexOutside(): string
     {
-        return self::$regexOutside ??= $this->compilePattern(self::PATTERNS_OUTSIDE);
+        return self::$regexOutside[$this->phpVersionId] ??= $this->compilePattern(self::PATTERNS_OUTSIDE);
     }
 
     private function getRegexInside(): string
     {
-        return self::$regexInside ??= $this->compilePattern(self::PATTERNS_INSIDE);
+        return self::$regexInside[$this->phpVersionId] ??= $this->compilePattern(self::PATTERNS_INSIDE);
     }
 
     /**

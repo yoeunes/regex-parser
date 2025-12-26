@@ -19,8 +19,8 @@ namespace RegexParser;
 final readonly class GroupNumbering
 {
     /**
-     * @param list<int>                $captureSequence
-     * @param array<string, list<int>> $namedGroups
+     * @param array<int>                $captureSequence
+     * @param array<string, array<int>> $namedGroups
      */
     public function __construct(
         public int $maxGroupNumber,
@@ -34,7 +34,7 @@ final readonly class GroupNumbering
     }
 
     /**
-     * @return list<int>
+     * @return array<int>
      */
     public function getNamedGroupNumbers(string $name): array
     {

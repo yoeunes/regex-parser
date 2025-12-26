@@ -19,6 +19,7 @@ use RegexParser\Node\QuantifierType;
 use RegexParser\ReDoS\CharSetAnalyzer;
 use RegexParser\ReDoS\ReDoSConfidence;
 use RegexParser\ReDoS\ReDoSFinding;
+use RegexParser\ReDoS\ReDoSHotspot;
 use RegexParser\ReDoS\ReDoSSeverity;
 
 /**
@@ -38,9 +39,14 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
     /**
      * Stores all detected ReDoS vulnerabilities during the AST traversal.
      *
-     * @var list<ReDoSFinding>
+     * @var array<ReDoSFinding>
      */
     private array $vulnerabilities = [];
+
+    /**
+     * @var array<ReDoSHotspot>
+     */
+    private array $hotspots = [];
 
     private bool $inAtomicGroup = false;
 
@@ -49,6 +55,10 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
     private ?Node\NodeInterface $nextNode = null;
 
     private bool $backrefLoopDetected = false;
+
+    private ?Node\NodeInterface $culpritNode = null;
+
+    private ReDoSSeverity $culpritSeverity = ReDoSSeverity::SAFE;
 
     public function __construct(
         private readonly CharSetAnalyzer $charSetAnalyzer = new CharSetAnalyzer(),
@@ -102,16 +112,32 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
         ];
     }
 
+    /**
+     * @return array<ReDoSHotspot>
+     */
+    public function getHotspots(): array
+    {
+        return $this->hotspots;
+    }
+
+    public function getCulpritNode(): ?Node\NodeInterface
+    {
+        return $this->culpritNode;
+    }
+
     #[\Override]
     public function visitRegex(Node\RegexNode $node): ReDoSSeverity
     {
         $this->unboundedQuantifierDepth = 0;
         $this->totalQuantifierDepth = 0;
         $this->vulnerabilities = [];
+        $this->hotspots = [];
         $this->inAtomicGroup = false;
         $this->previousNode = null;
         $this->nextNode = null;
         $this->backrefLoopDetected = false;
+        $this->culpritNode = null;
+        $this->culpritSeverity = ReDoSSeverity::SAFE;
 
         return $node->pattern->accept($this);
     }
@@ -208,7 +234,7 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
                     ReDoSConfidence::LOW,
                     'High false-positive risk; bounded quantifiers may still be safe in context.',
                 );
-            } elseif ($this->totalQuantifierDepth > 1) {
+            } elseif ($this->totalQuantifierDepth > 1 && 0 === $this->unboundedQuantifierDepth) {
                 $severity = ReDoSSeverity::LOW;
                 $this->addVulnerability(
                     ReDoSSeverity::LOW,
@@ -827,6 +853,19 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
             $confidence,
             $falsePositiveRisk,
         );
+
+        $this->hotspots[] = new ReDoSHotspot(
+            $triggerNode->getStartPosition(),
+            $triggerNode->getEndPosition(),
+            $severity,
+            $pattern,
+            $trigger,
+        );
+
+        if ($this->severityGreaterThan($severity, $this->culpritSeverity)) {
+            $this->culpritSeverity = $severity;
+            $this->culpritNode = $triggerNode;
+        }
     }
 
     private function compileNode(Node\NodeInterface $node): string

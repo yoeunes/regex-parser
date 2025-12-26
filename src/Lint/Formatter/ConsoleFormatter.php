@@ -62,13 +62,13 @@ class ConsoleFormatter extends AbstractOutputFormatter
         $groupedResults = $this->groupResults($report->results);
 
         foreach ($groupedResults as $file => $results) {
-            /** @var list<LintResult> $results */
+            /** @var array<LintResult> $results */
             foreach ($results as $result) {
                 $output .= $this->formatPatternContext($result);
-                /** @var list<LintIssue> $issues */
+                /** @var array<LintIssue> $issues */
                 $issues = $result['issues'] ?? [];
                 $output .= $this->formatIssues($issues);
-                /** @var list<OptimizationEntry> $optimizations */
+                /** @var array<OptimizationEntry> $optimizations */
                 $optimizations = $result['optimizations'] ?? [];
                 $output .= $this->formatOptimizations($optimizations);
                 $output .= \PHP_EOL;
@@ -169,7 +169,7 @@ class ConsoleFormatter extends AbstractOutputFormatter
     /**
      * Format issues for a result.
      *
-     * @phpstan-param list<LintIssue> $issues
+     * @phpstan-param array<LintIssue> $issues
      */
     private function formatIssues(array $issues): string
     {
@@ -195,7 +195,7 @@ class ConsoleFormatter extends AbstractOutputFormatter
     /**
      * Format optimizations for a result.
      *
-     * @phpstan-param list<OptimizationEntry> $optimizations
+     * @phpstan-param array<OptimizationEntry> $optimizations
      */
     private function formatOptimizations(array $optimizations): string
     {

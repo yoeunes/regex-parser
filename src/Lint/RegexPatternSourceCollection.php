@@ -26,7 +26,7 @@ final readonly class RegexPatternSourceCollection
     public function __construct(private iterable $sources) {}
 
     /**
-     * @return list<RegexPatternOccurrence>
+     * @return array<RegexPatternOccurrence>
      */
     public function collect(RegexPatternSourceContext $context): array
     {
@@ -41,7 +41,9 @@ final readonly class RegexPatternSourceCollection
                 continue;
             }
 
-            $patterns = [...$patterns, ...$source->extract($context)];
+            foreach ($source->extract($context) as $pattern) {
+                $patterns[] = $pattern;
+            }
         }
 
         return $patterns;

@@ -60,7 +60,7 @@ final readonly class SymfonyConsoleFormatter implements OutputFormatterInterface
     }
 
     /**
-     * @phpstan-param list<LintResult> $results
+     * @phpstan-param array<LintResult> $results
      */
     private function renderResults(array $results): string
     {
@@ -95,9 +95,9 @@ final readonly class SymfonyConsoleFormatter implements OutputFormatterInterface
      */
     private function renderResultCard(array $result): string
     {
-        /** @var list<LintIssue> $issues */
+        /** @var array<LintIssue> $issues */
         $issues = $result['issues'] ?? [];
-        /** @var list<OptimizationEntry> $optimizations */
+        /** @var array<OptimizationEntry> $optimizations */
         $optimizations = $result['optimizations'] ?? [];
 
         $output = '';
@@ -185,7 +185,7 @@ final readonly class SymfonyConsoleFormatter implements OutputFormatterInterface
     }
 
     /**
-     * @phpstan-param list<LintIssue> $issues
+     * @phpstan-param array<LintIssue> $issues
      */
     private function displayIssues(array $issues): string
     {
@@ -219,7 +219,7 @@ final readonly class SymfonyConsoleFormatter implements OutputFormatterInterface
     }
 
     /**
-     * @phpstan-param list<OptimizationEntry> $optimizations
+     * @phpstan-param array<OptimizationEntry> $optimizations
      */
     private function displayOptimizations(array $optimizations): string
     {

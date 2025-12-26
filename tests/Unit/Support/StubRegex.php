@@ -19,7 +19,7 @@ final class StubRegex
 {
     /**
      * @param array<string, array{0: bool, 1: ?string, 2: int}> $results
-     * @param list<string>                                      $ignored
+     * @param array<string>                                     $ignored
      */
     public function __construct(
         private array $results,
@@ -34,7 +34,7 @@ final class StubRegex
     }
 
     /**
-     * @return list<string>
+     * @return array<string>
      */
     public function getRedosIgnoredPatterns(): array
     {

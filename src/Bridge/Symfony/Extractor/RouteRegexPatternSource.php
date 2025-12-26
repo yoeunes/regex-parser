@@ -91,11 +91,41 @@ final readonly class RouteRegexPatternSource implements RegexPatternSourceInterf
             }
         }
 
+        // Process YAML requirements
+        foreach ($yamlIndex as $routeName => $yamlRoute) {
+            $yamlRequirements = $yamlRoute['requirements'] ?? [];
+            $yamlFile = $yamlRoute['file'];
+            $routeLine = $yamlRoute['line'] ?? null;
+            $lines = @file($yamlFile, \FILE_IGNORE_NEW_LINES);
+            if (false !== $lines) {
+                foreach ($yamlRequirements as $parameter => $lineIndex) {
+                    $line = $lines[$lineIndex] ?? '';
+                    if (!preg_match('/^\s*'.preg_quote($parameter, '/').'\s*:\s*(.+)$/', $line, $matches)) {
+                        continue;
+                    }
+                    $value = trim($matches[1], " \t\n\r\0\x0B'\"");
+                    $normalized = $this->patternNormalizer->normalize($value);
+                    $route = $collection->get($routeName);
+                    if (null === $route) {
+                        continue;
+                    }
+                    $patterns[] = new RegexPatternOccurrence(
+                        $normalized,
+                        $yamlFile,
+                        $routeLine ?? $lineIndex + 1,
+                        'route:'.$routeName.':'.$parameter,
+                        $value,
+                        null === $routeLine ? $this->formatRouteLocation($routeName, $route, $hasYamlResources) : null,
+                    );
+                }
+            }
+        }
+
         return $patterns;
     }
 
     /**
-     * @return list<string>
+     * @return array<string>
      */
     private function collectYamlResources(RouteCollection $collection): array
     {
@@ -123,7 +153,7 @@ final readonly class RouteRegexPatternSource implements RegexPatternSourceInterf
     }
 
     /**
-     * @param list<string>        $yamlFiles
+     * @param array<string>       $yamlFiles
      * @param array<string, bool> $routeNames
      *
      * @return array<string, array{file: string, line: int, requirements: array<string, int>}>
@@ -208,7 +238,7 @@ final readonly class RouteRegexPatternSource implements RegexPatternSourceInterf
                     if ($indent === $requirementsEntryIndent && null !== $key) {
                         /** @var array<string, int> $requirements */
                         $requirements = $routes[$currentRoute]['requirements'] ?? [];
-                        $requirements[$key] = $index + 1;
+                        $requirements[$key] = $index;
                         $routes[$currentRoute]['requirements'] = $requirements;
                     }
 

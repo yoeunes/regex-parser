@@ -36,6 +36,7 @@ final readonly class RegexOptions
         'redos_ignored_patterns',
         'runtime_pcre_validation',
         'max_recursion_depth',
+        'php_version',
     ];
 
     /**
@@ -47,6 +48,8 @@ final readonly class RegexOptions
      * @param array<string>  $redosIgnoredPatterns  Patterns to ignore in ReDoS analysis
      * @param bool           $runtimePcreValidation Whether to validate against the PCRE runtime
      * @param int            $maxRecursionDepth     Maximum recursion depth during parsing
+     * @param int            $phpVersionId          Target PHP_VERSION_ID for feature validation
+     * @param bool           $phpVersionExplicit    Whether php_version was explicitly provided
      */
     public function __construct(
         public int $maxPatternLength,
@@ -55,6 +58,8 @@ final readonly class RegexOptions
         public array $redosIgnoredPatterns = [],
         public bool $runtimePcreValidation = false,
         public int $maxRecursionDepth = 1024,
+        public int $phpVersionId = \PHP_VERSION_ID,
+        public bool $phpVersionExplicit = false,
     ) {}
 
     /**
@@ -72,14 +77,16 @@ final readonly class RegexOptions
 
         self::validateOptionKeys($options);
 
+        $phpVersionExplicit = \array_key_exists('php_version', $options);
         $maxLength = self::getPatternLength($options);
         $lookbehindLength = self::getLookbehindLength($options);
         $cache = self::createCache($options);
         $patterns = self::getIgnoredPatterns($options);
         $runtimeValidation = self::getRuntimePcreValidation($options);
         $recursionDepth = self::getRecursionDepth($options);
+        $phpVersionId = self::getPhpVersionId($options);
 
-        return new self($maxLength, $lookbehindLength, $cache, $patterns, $runtimeValidation, $recursionDepth);
+        return new self($maxLength, $lookbehindLength, $cache, $patterns, $runtimeValidation, $recursionDepth, $phpVersionId, $phpVersionExplicit);
     }
 
     /**
@@ -195,6 +202,62 @@ final readonly class RegexOptions
         }
 
         return $depth;
+    }
+
+    /**
+     * Get target PHP version ID from options.
+     *
+     * @param array<string, mixed> $options Configuration options
+     */
+    private static function getPhpVersionId(array $options): int
+    {
+        $version = $options['php_version'] ?? null;
+
+        if (null === $version) {
+            return \PHP_VERSION_ID;
+        }
+
+        if (\is_int($version)) {
+            if ($version <= 0) {
+                throw new InvalidRegexOptionException(
+                    '"php_version" must be a version string like "8.2" or a PHP_VERSION_ID integer.',
+                );
+            }
+
+            return $version;
+        }
+
+        if (\is_string($version)) {
+            $trimmed = trim($version);
+            if ('' === $trimmed) {
+                throw new InvalidRegexOptionException(
+                    '"php_version" must be a version string like "8.2" or a PHP_VERSION_ID integer.',
+                );
+            }
+
+            if (ctype_digit($trimmed)) {
+                $asInt = (int) $trimmed;
+                if ($asInt < 10000) {
+                    throw new InvalidRegexOptionException(
+                        '"php_version" must be a version string like "8.2" or a PHP_VERSION_ID integer.',
+                    );
+                }
+
+                return $asInt;
+            }
+
+            if (preg_match('/^(\d+)(?:\.(\d+))?(?:\.(\d+))?/', $trimmed, $matches)) {
+                $major = (int) $matches[1];
+                $minor = isset($matches[2]) ? (int) $matches[2] : 0;
+                $patch = isset($matches[3]) ? (int) $matches[3] : 0;
+
+                return ($major * 10000) + ($minor * 100) + $patch;
+            }
+        }
+
+        throw new InvalidRegexOptionException(
+            '"php_version" must be a version string like "8.2" or a PHP_VERSION_ID integer.',
+        );
     }
 
     /**

@@ -96,4 +96,19 @@ final class TokenBasedExtractionStrategyTest extends TestCase
         $this->assertSame('/pattern1/', $result[0]->pattern);
         $this->assertSame('/pattern2/', $result[1]->pattern);
     }
+
+    public function test_skips_unknown_functions(): void
+    {
+        $strategy = new TokenBasedExtractionStrategy();
+
+        // Create a temporary file with unknown function
+        $tempFile = tempnam(sys_get_temp_dir(), 'test');
+        file_put_contents($tempFile, '<?php unknown_function("/pattern/", $var);');
+
+        $result = $strategy->extract([$tempFile]);
+
+        $this->assertEmpty($result);
+
+        unlink($tempFile);
+    }
 }

@@ -25,7 +25,7 @@ interface RegexPatternSourceInterface
     public function isSupported(): bool;
 
     /**
-     * @return list<RegexPatternOccurrence>
+     * @return array<RegexPatternOccurrence>
      */
     public function extract(RegexPatternSourceContext $context): array;
 }

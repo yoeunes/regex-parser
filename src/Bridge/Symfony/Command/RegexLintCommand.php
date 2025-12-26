@@ -47,18 +47,18 @@ final class RegexLintCommand extends Command
     private LinkFormatter $linkFormatter;
 
     /**
-     * @var list<string>
+     * @var array<string>
      */
     private array $defaultPaths;
 
     /**
-     * @var list<string>
+     * @var array<string>
      */
     private array $defaultExcludePaths;
 
     /**
-     * @param list<string> $defaultPaths
-     * @param list<string> $defaultExcludePaths
+     * @param array<string> $defaultPaths
+     * @param array<string> $defaultExcludePaths
      */
     public function __construct(
         private readonly RegexLintService $lint,
@@ -88,9 +88,10 @@ final class RegexLintCommand extends Command
     protected function configure(): void
     {
         $this
-            ->addArgument('paths', InputArgument::IS_ARRAY | InputArgument::OPTIONAL, 'The paths to analyze', $this->defaultPaths)
+            ->addArgument('paths', InputArgument::IS_ARRAY | InputArgument::OPTIONAL, 'The paths to analyze', array_values($this->defaultPaths))
             ->addOption('exclude', null, InputOption::VALUE_IS_ARRAY | InputOption::VALUE_OPTIONAL, 'Paths to exclude', $this->defaultExcludePaths)
             ->addOption('min-savings', null, InputOption::VALUE_OPTIONAL, 'Minimum optimization savings in characters', 1)
+            ->addOption('jobs', 'j', InputOption::VALUE_OPTIONAL, 'Parallel workers for analysis', 1)
             ->addOption('no-routes', null, InputOption::VALUE_NONE, 'Skip route validation')
             ->addOption('no-validators', null, InputOption::VALUE_NONE, 'Skip validator validation')
             ->addOption('format', null, InputOption::VALUE_OPTIONAL, 'Output format (console, json, github, checkstyle, junit)', 'console')
@@ -112,6 +113,9 @@ final class RegexLintCommand extends Command
 
                 Show only significant optimizations:
                 <info>php %command.full_name% --min-savings=10</info>
+
+                Run analysis in parallel:
+                <info>php %command.full_name% --jobs=4</info>
 
                 Skip specific validations:
                 <info>php %command.full_name% --no-routes --no-validators</info>
@@ -138,6 +142,13 @@ final class RegexLintCommand extends Command
         $exclude = $this->normalizeStringList($input->getOption('exclude'));
         $minSavingsValue = $input->getOption('min-savings');
         $minSavings = is_numeric($minSavingsValue) ? (int) $minSavingsValue : 1;
+        $jobsValue = $input->getOption('jobs');
+        $jobs = is_numeric($jobsValue) ? (int) $jobsValue : 1;
+        if ($jobs < 1) {
+            $io->error('The --jobs value must be a positive integer.');
+
+            return Command::FAILURE;
+        }
         $skipRoutes = (bool) $input->getOption('no-routes');
         $skipValidators = (bool) $input->getOption('no-validators');
         $formatOption = $input->getOption('format');
@@ -204,6 +215,7 @@ final class RegexLintCommand extends Command
                     $skipRoutes ? 'routes' : null,
                     $skipValidators ? 'validators' : null,
                 ], static fn (?string $source): bool => null !== $source)),
+                analysisWorkers: $jobs,
             );
             $patterns = $this->lint->collectPatterns($request, $collectionProgress);
         } catch (\Throwable $e) {
@@ -302,7 +314,7 @@ final class RegexLintCommand extends Command
     }
 
     /**
-     * @return list<string>
+     * @return array<string>
      */
     private function normalizeStringList(mixed $value): array
     {
@@ -314,9 +326,9 @@ final class RegexLintCommand extends Command
     }
 
     /**
-     * @phpstan-param list<LintResult> $results
+     * @phpstan-param array<LintResult> $results
      *
-     * @phpstan-return list<LintResult>
+     * @phpstan-return array<LintResult>
      */
     private function sortResultsByFileAndLine(array $results): array
     {

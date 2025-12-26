@@ -28,7 +28,7 @@ final class RegexPatternExtractorTest extends TestCase
 
         $extractor = new RegexPatternExtractor($mockExtractor);
 
-        $result = $extractor->extract(['test.php']);
+        $result = $extractor->extract([__FILE__]);
 
         $this->assertSame(['pattern1', 'pattern2'], $result);
     }

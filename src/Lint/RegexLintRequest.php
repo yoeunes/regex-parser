@@ -21,9 +21,9 @@ namespace RegexParser\Lint;
 final readonly class RegexLintRequest
 {
     /**
-     * @param list<string> $paths
-     * @param list<string> $excludePaths
-     * @param list<string> $disabledSources
+     * @param array<string> $paths
+     * @param array<string> $excludePaths
+     * @param array<string> $disabledSources
      */
     public function __construct(
         public array $paths,
@@ -33,10 +33,11 @@ final readonly class RegexLintRequest
         public bool $checkValidation = true,
         public bool $checkRedos = true,
         public bool $checkOptimizations = true,
+        public int $analysisWorkers = 1,
     ) {}
 
     /**
-     * @return list<string>
+     * @return array<string>
      */
     public function getDisabledSources(): array
     {

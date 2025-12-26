@@ -140,4 +140,77 @@ final class TokenStreamTest extends TestCase
         $this->assertCount(2, $stream->getTokens());
         $this->assertTrue($stream->hasMore());
     }
+
+    public function test_set_position_throws_on_out_of_bounds(): void
+    {
+        $tokens = [
+            new Token(TokenType::T_LITERAL, 'a', 0),
+            new Token(TokenType::T_EOF, '', 1),
+        ];
+        $stream = new TokenStream($tokens, 'a');
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Position -1 is out of bounds [0, 2]');
+        $stream->setPosition(-1);
+    }
+
+    public function test_set_position_throws_on_too_high(): void
+    {
+        $tokens = [
+            new Token(TokenType::T_LITERAL, 'a', 0),
+            new Token(TokenType::T_EOF, '', 1),
+        ];
+        $stream = new TokenStream($tokens, 'a');
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Position 3 is out of bounds [0, 2]');
+        $stream->setPosition(3);
+    }
+
+    public function test_is_at_end(): void
+    {
+        $tokens = [
+            new Token(TokenType::T_LITERAL, 'a', 0),
+            new Token(TokenType::T_EOF, '', 1),
+        ];
+        $stream = new TokenStream($tokens, 'a');
+
+        $this->assertFalse($stream->isAtEnd());
+
+        $stream->next();
+        $this->assertTrue($stream->isAtEnd());
+
+        $stream->next();
+        $this->assertTrue($stream->isAtEnd());
+    }
+
+    public function test_rewind_zero_does_nothing(): void
+    {
+        $tokens = [
+            new Token(TokenType::T_LITERAL, 'a', 0),
+            new Token(TokenType::T_EOF, '', 1),
+        ];
+
+        $stream = new TokenStream($tokens, 'a');
+        $stream->next();
+        $stream->rewind(0);
+
+        $this->assertSame(1, $stream->getPosition());
+    }
+
+    public function test_current_throws_when_exhausted(): void
+    {
+        $tokens = [
+            new Token(TokenType::T_LITERAL, 'a', 0),
+            new Token(TokenType::T_EOF, '', 1),
+        ];
+
+        $stream = new TokenStream($tokens, 'a');
+        $stream->next(); // consume a
+        $stream->next(); // consume EOF, buffer exhausted
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Token stream is exhausted');
+        $stream->current();
+    }
 }

@@ -405,6 +405,21 @@ final class ParserTest extends TestCase
     }
 
     #[Test]
+    public function test_inline_modifier_r_respects_target_php_version(): void
+    {
+        $regex83 = Regex::create(['php_version' => '8.3']);
+        $result83 = $regex83->validate('/(?r:foo)/');
+
+        $this->assertFalse($result83->isValid());
+        $this->assertStringContainsString('Invalid group modifier syntax', (string) $result83->error);
+
+        $regex84 = Regex::create(['php_version' => '8.4']);
+        $result84 = $regex84->validate('/(?r:foo)/');
+
+        $this->assertTrue($result84->isValid());
+    }
+
+    #[Test]
     public function test_validate_duplicate_named_groups_without_j(): void
     {
         $result = $this->regex->validate('/(?<a>.) (?<a>.)/');
@@ -778,6 +793,22 @@ final class ParserTest extends TestCase
         $this->expectExceptionMessage('Duplicate group name "a" at position 8.');
 
         $this->regex->parse('/(?<a>.) (?<a>.)/');
+    }
+
+    #[Test]
+    public function test_quote_mode_parsing(): void
+    {
+        // Test \Q...\E quote mode parsing
+        $ast = $this->parse('/\Qtest.*\E/');
+
+        // The pattern should be parsed as a sequence with literal 'test.*'
+        $this->assertInstanceOf(LiteralNode::class, $ast->pattern);
+        $this->assertSame('test.*', $ast->pattern->value);
+
+        // Test quote mode with special characters
+        $ast2 = $this->parse('/\Q.+*?{}[]()\E/');
+        $this->assertInstanceOf(LiteralNode::class, $ast2->pattern);
+        $this->assertSame('.+*?{}[]()', $ast2->pattern->value);
     }
 
     /**

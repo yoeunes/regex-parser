@@ -53,6 +53,15 @@ final class EdgeCaseValidationTest extends TestCase
         $this->assertTrue($result->isValid, 'Variable-length lookbehind with range should be valid in PCRE2');
     }
 
+    public function test_variable_length_lookbehind_is_rejected_for_older_php_versions(): void
+    {
+        $regex = Regex::create(['php_version' => '7.2']);
+        $result = $regex->validate('/(?<=a{1,3})/');
+
+        $this->assertFalse($result->isValid, 'Variable-length lookbehind should be rejected before PHP 7.3.');
+        $this->assertStringContainsString('Variable-length lookbehind', (string) $result->error);
+    }
+
     public function test_invalid_range_start_greater_than_end(): void
     {
         $result = $this->regexService->validate('/[z-a]/');

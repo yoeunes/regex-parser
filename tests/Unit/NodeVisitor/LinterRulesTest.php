@@ -80,7 +80,7 @@ final class LinterRulesTest extends TestCase
     }
 
     /**
-     * @return list<string>
+     * @return array<string>
      */
     private function lint(string $pattern): array
     {

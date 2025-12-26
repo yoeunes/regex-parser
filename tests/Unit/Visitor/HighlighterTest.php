@@ -74,6 +74,77 @@ final class HighlighterTest extends TestCase
         $this->assertStringContainsString('regex-anchor', $highlighted);
     }
 
+    public function test_highlight_with_unicode_and_special_chars(): void
+    {
+        // Test Unicode, control chars, assertions, backrefs, anchors, etc.
+        $pattern = '/^\A\z\b\B\x00\cA\u{1F600}\1$/';
+        $highlightedCli = $this->highlight($pattern, 'cli');
+        $highlightedHtml = $this->highlight($pattern, 'html');
+
+        $this->assertNotEmpty($highlightedCli);
+        $this->assertNotEmpty($highlightedHtml);
+        $this->assertStringContainsString('regex-anchor', $highlightedHtml);
+        $this->assertStringContainsString('regex-type', $highlightedHtml);
+    }
+
+    public function test_highlight_with_character_classes(): void
+    {
+        // Test char classes, ranges, POSIX classes, Unicode props
+        $pattern = '/[a-z0-9] [\p{L}\p{N}] [[:alpha:]]/';
+        $highlightedCli = $this->highlight($pattern, 'cli');
+        $highlightedHtml = $this->highlight($pattern, 'html');
+
+        $this->assertNotEmpty($highlightedCli);
+        $this->assertNotEmpty($highlightedHtml);
+        $this->assertStringContainsString('regex-meta', $highlightedHtml); // [ and ]
+    }
+
+    public function test_highlight_with_quantifiers_and_modifiers(): void
+    {
+        // Test different quantifier types
+        $pattern = '/a* a+ a? a{2,3} a{4,} a{5} a*? a+? a?? a{2,3}?/';
+        $highlightedCli = $this->highlight($pattern, 'cli');
+        $highlightedHtml = $this->highlight($pattern, 'html');
+
+        $this->assertNotEmpty($highlightedCli);
+        $this->assertNotEmpty($highlightedHtml);
+        $this->assertStringContainsString('regex-quantifier', $highlightedHtml);
+    }
+
+    public function test_highlight_with_groups_and_conditionals(): void
+    {
+        // Test groups, conditionals, subroutines
+        $pattern = '/(a)(?<name>b)(?1)(?&name)(?(1)yes|no)/';
+        $highlightedCli = $this->highlight($pattern, 'cli');
+        $highlightedHtml = $this->highlight($pattern, 'html');
+
+        $this->assertNotEmpty($highlightedCli);
+        $this->assertNotEmpty($highlightedHtml);
+    }
+
+    public function test_highlight_with_pcre_verbs_and_special(): void
+    {
+        // Test PCRE verbs, comments, defines, etc.
+        $pattern = '/(*FAIL)(?#comment)(?(DEFINE)a)\K(*LIMIT_MATCH=5)/';
+        $highlightedCli = $this->highlight($pattern, 'cli');
+        $highlightedHtml = $this->highlight($pattern, 'html');
+
+        $this->assertNotEmpty($highlightedCli);
+        $this->assertNotEmpty($highlightedHtml);
+        $this->assertStringContainsString('regex-meta', $highlightedHtml);
+    }
+
+    public function test_highlight_with_class_operations(): void
+    {
+        // Test class operations (intersection/subtraction)
+        $pattern = '/[a&&b] [a--b]/';
+        $highlightedCli = $this->highlight($pattern, 'cli');
+        $highlightedHtml = $this->highlight($pattern, 'html');
+
+        $this->assertNotEmpty($highlightedCli);
+        $this->assertNotEmpty($highlightedHtml);
+    }
+
     private function highlight(string $pattern, string $format): string
     {
         $visitor = match ($format) {
