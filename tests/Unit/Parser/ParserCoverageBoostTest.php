@@ -16,6 +16,8 @@ namespace RegexParser\Tests\Unit\Parser;
 use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\ParserException;
+use RegexParser\Node\BackrefNode;
+use RegexParser\Node\SequenceNode;
 use RegexParser\Regex;
 
 /**
@@ -73,9 +75,9 @@ final class ParserCoverageBoostTest extends TestCase
     public function test_python_backref_not_supported(): void
     {
         $ast = $this->regexService->parse('/(?P<name>test)(?P=name)/');
-        $this->assertInstanceOf(\RegexParser\Node\SequenceNode::class, $ast->pattern);
+        $this->assertInstanceOf(SequenceNode::class, $ast->pattern);
         $backref = $ast->pattern->children[1];
-        $this->assertInstanceOf(\RegexParser\Node\BackrefNode::class, $backref);
+        $this->assertInstanceOf(BackrefNode::class, $backref);
         $this->assertSame('\k<name>', $backref->ref);
     }
 

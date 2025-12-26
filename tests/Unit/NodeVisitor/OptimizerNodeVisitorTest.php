@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\Unit\NodeVisitor;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Node\AlternationNode;
 use RegexParser\Node\CharClassNode;
@@ -242,7 +243,7 @@ final class OptimizerNodeVisitorTest extends TestCase
         $this->assertCount(2, $charClass->expression->alternatives);
 
         $range1 = $charClass->expression->alternatives[0];
-        $this->assertInstanceOf(\RegexParser\Node\RangeNode::class, $range1);
+        $this->assertInstanceOf(RangeNode::class, $range1);
         $this->assertInstanceOf(LiteralNode::class, $range1->start);
         $this->assertInstanceOf(LiteralNode::class, $range1->end);
         $this->assertSame('a', $range1->start->value);
@@ -466,7 +467,7 @@ final class OptimizerNodeVisitorTest extends TestCase
         $this->assertCount(2, $optimized->pattern->alternatives);
     }
 
-    #[\PHPUnit\Framework\Attributes\DataProvider('optimizationProvider')]
+    #[DataProvider('optimizationProvider')]
     public function test_optimizations_with_safety_checks(string $input, string $expected): void
     {
         $ast = $this->regex->parse($input);
@@ -650,7 +651,7 @@ final class OptimizerNodeVisitorTest extends TestCase
         $this->assertSame('/[a-z]|[^0-9]/', $result);
     }
 
-    #[\PHPUnit\Framework\Attributes\DataProvider('digitOptimizationProvider')]
+    #[DataProvider('digitOptimizationProvider')]
     public function test_digit_optimization_with_flags(string $pattern, bool $expectedOptimization, string $description): void
     {
         $regex = Regex::create();

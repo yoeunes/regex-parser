@@ -15,10 +15,12 @@ namespace RegexParser\Tests\Unit\Bridge\Symfony\Command;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\Bridge\Symfony\Command\RegexLintCommand;
+use RegexParser\Lint\Formatter\FormatterRegistry;
 use RegexParser\Lint\RegexAnalysisService;
 use RegexParser\Lint\RegexLintService;
 use RegexParser\Lint\RegexPatternSourceCollection;
 use RegexParser\Regex;
+use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Console\Tester\CommandTester;
 
 final class RegexLintCommandTest extends TestCase
@@ -140,7 +142,7 @@ final class RegexLintCommandTest extends TestCase
         $reflection = new \ReflectionClass($command);
         $method = $reflection->getMethod('showBanner');
 
-        $io = $this->createMock(\Symfony\Component\Console\Style\SymfonyStyle::class);
+        $io = $this->createMock(SymfonyStyle::class);
         $io->expects($this->exactly(2))->method('newLine');
         $io->expects($this->once())->method('writeln')
             ->with('  <fg=white;options=bold>Regex Parser</> <fg=gray>linting...</>');
@@ -155,7 +157,7 @@ final class RegexLintCommandTest extends TestCase
         $reflection = new \ReflectionClass($command);
         $method = $reflection->getMethod('showFooter');
 
-        $io = $this->createMock(\Symfony\Component\Console\Style\SymfonyStyle::class);
+        $io = $this->createMock(SymfonyStyle::class);
         $io->expects($this->exactly(2))->method('newLine');
         $io->expects($this->once())->method('writeln')
             ->with('  <fg=gray>Star the repo: https://github.com/yoeunes/regex-parser</>');
@@ -174,7 +176,7 @@ final class RegexLintCommandTest extends TestCase
         return new RegexLintCommand(
             lint: $lint,
             analysis: $analysis,
-            formatterRegistry: new \RegexParser\Lint\Formatter\FormatterRegistry(),
+            formatterRegistry: new FormatterRegistry(),
             editorUrl: null,
         );
     }

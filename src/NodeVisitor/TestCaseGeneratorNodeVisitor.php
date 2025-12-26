@@ -14,6 +14,31 @@ declare(strict_types=1);
 namespace RegexParser\NodeVisitor;
 
 use RegexParser\Node;
+use RegexParser\Node\AlternationNode;
+use RegexParser\Node\AnchorNode;
+use RegexParser\Node\AssertionNode;
+use RegexParser\Node\BackrefNode;
+use RegexParser\Node\CalloutNode;
+use RegexParser\Node\CharClassNode;
+use RegexParser\Node\CharLiteralNode;
+use RegexParser\Node\CharTypeNode;
+use RegexParser\Node\CommentNode;
+use RegexParser\Node\ConditionalNode;
+use RegexParser\Node\DefineNode;
+use RegexParser\Node\DotNode;
+use RegexParser\Node\GroupNode;
+use RegexParser\Node\KeepNode;
+use RegexParser\Node\LimitMatchNode;
+use RegexParser\Node\LiteralNode;
+use RegexParser\Node\PcreVerbNode;
+use RegexParser\Node\PosixClassNode;
+use RegexParser\Node\QuantifierNode;
+use RegexParser\Node\RangeNode;
+use RegexParser\Node\RegexNode;
+use RegexParser\Node\SequenceNode;
+use RegexParser\Node\SubroutineNode;
+use RegexParser\Node\UnicodeNode;
+use RegexParser\Node\UnicodePropNode;
 
 /**
  * A visitor that generates test cases (matching and non-matching strings) for a regex pattern.
@@ -37,7 +62,7 @@ final class TestCaseGeneratorNodeVisitor extends AbstractNodeVisitor
      * @return array{matching: array<string>, non_matching: array<string>} test cases
      */
     #[\Override]
-    public function visitRegex(Node\RegexNode $node): array
+    public function visitRegex(RegexNode $node): array
     {
         return $node->pattern->accept($this);
     }
@@ -50,7 +75,7 @@ final class TestCaseGeneratorNodeVisitor extends AbstractNodeVisitor
      * @return array{matching: array<string>, non_matching: array<string>} test cases
      */
     #[\Override]
-    public function visitAlternation(Node\AlternationNode $node): array
+    public function visitAlternation(AlternationNode $node): array
     {
         // Choose the first alternative for simplicity
         $cases = $node->alternatives[0]->accept($this);
@@ -76,7 +101,7 @@ final class TestCaseGeneratorNodeVisitor extends AbstractNodeVisitor
      * @return array{matching: array<string>, non_matching: array<string>} test cases
      */
     #[\Override]
-    public function visitSequence(Node\SequenceNode $node): array
+    public function visitSequence(SequenceNode $node): array
     {
         $matching = [''];
         $nonMatching = [''];
@@ -116,7 +141,7 @@ final class TestCaseGeneratorNodeVisitor extends AbstractNodeVisitor
      * @return array{matching: array<string>, non_matching: array<string>} test cases
      */
     #[\Override]
-    public function visitGroup(Node\GroupNode $node): array
+    public function visitGroup(GroupNode $node): array
     {
         return $node->child->accept($this);
     }
@@ -129,7 +154,7 @@ final class TestCaseGeneratorNodeVisitor extends AbstractNodeVisitor
      * @return array{matching: array<string>, non_matching: array<string>} test cases
      */
     #[\Override]
-    public function visitQuantifier(Node\QuantifierNode $node): array
+    public function visitQuantifier(QuantifierNode $node): array
     {
         $childCases = $node->node->accept($this);
         $range = $this->parseQuantifierRange($node->quantifier);
@@ -166,7 +191,7 @@ final class TestCaseGeneratorNodeVisitor extends AbstractNodeVisitor
      * @return array{matching: array<string>, non_matching: array<string>} test cases
      */
     #[\Override]
-    public function visitLiteral(Node\LiteralNode $node): array
+    public function visitLiteral(LiteralNode $node): array
     {
         $value = $node->value;
         $matching = [$value];
@@ -196,7 +221,7 @@ final class TestCaseGeneratorNodeVisitor extends AbstractNodeVisitor
      * @return array{matching: array<string>, non_matching: array<string>} test cases
      */
     #[\Override]
-    public function visitCharType(Node\CharTypeNode $node): array
+    public function visitCharType(CharTypeNode $node): array
     {
         $sample = $this->generateForCharType($node->value);
         $matching = [$sample];
@@ -216,7 +241,7 @@ final class TestCaseGeneratorNodeVisitor extends AbstractNodeVisitor
      * @return array{matching: array<string>, non_matching: array<string>} test cases
      */
     #[\Override]
-    public function visitDot(Node\DotNode $node): array
+    public function visitDot(DotNode $node): array
     {
         return [
             'matching' => ['a'],
@@ -232,7 +257,7 @@ final class TestCaseGeneratorNodeVisitor extends AbstractNodeVisitor
      * @return array{matching: array<string>, non_matching: array<string>} empty test cases
      */
     #[\Override]
-    public function visitAnchor(Node\AnchorNode $node): array
+    public function visitAnchor(AnchorNode $node): array
     {
         return [
             'matching' => [''],
@@ -248,7 +273,7 @@ final class TestCaseGeneratorNodeVisitor extends AbstractNodeVisitor
      * @return array{matching: array<string>, non_matching: array<string>} empty test cases
      */
     #[\Override]
-    public function visitAssertion(Node\AssertionNode $node): array
+    public function visitAssertion(AssertionNode $node): array
     {
         return [
             'matching' => [''],
@@ -264,9 +289,9 @@ final class TestCaseGeneratorNodeVisitor extends AbstractNodeVisitor
      * @return array{matching: array<string>, non_matching: array<string>} test cases
      */
     #[\Override]
-    public function visitCharClass(Node\CharClassNode $node): array
+    public function visitCharClass(CharClassNode $node): array
     {
-        $parts = $node->expression instanceof Node\AlternationNode ? $node->expression->alternatives : [$node->expression];
+        $parts = $node->expression instanceof AlternationNode ? $node->expression->alternatives : [$node->expression];
         if (empty($parts)) {
             return [
                 'matching' => [],
@@ -292,9 +317,9 @@ final class TestCaseGeneratorNodeVisitor extends AbstractNodeVisitor
      * @return array{matching: array<string>, non_matching: array<string>} test cases
      */
     #[\Override]
-    public function visitRange(Node\RangeNode $node): array
+    public function visitRange(RangeNode $node): array
     {
-        if (!$node->start instanceof Node\LiteralNode || !$node->end instanceof Node\LiteralNode) {
+        if (!$node->start instanceof LiteralNode || !$node->end instanceof LiteralNode) {
             return [
                 'matching' => ['a'],
                 'non_matching' => ['!'],
@@ -314,7 +339,7 @@ final class TestCaseGeneratorNodeVisitor extends AbstractNodeVisitor
 
     // Other nodes return basic cases
     #[\Override]
-    public function visitBackref(Node\BackrefNode $node): array
+    public function visitBackref(BackrefNode $node): array
     {
         return [
             'matching' => [''],
@@ -323,7 +348,7 @@ final class TestCaseGeneratorNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitCharLiteral(Node\CharLiteralNode $node): array
+    public function visitCharLiteral(CharLiteralNode $node): array
     {
         $char = \chr($node->codePoint);
 
@@ -334,7 +359,7 @@ final class TestCaseGeneratorNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitUnicode(Node\UnicodeNode $node): array
+    public function visitUnicode(UnicodeNode $node): array
     {
         return [
             'matching' => ['a'],
@@ -343,7 +368,7 @@ final class TestCaseGeneratorNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitUnicodeProp(Node\UnicodePropNode $node): array
+    public function visitUnicodeProp(UnicodePropNode $node): array
     {
         return [
             'matching' => ['a'],
@@ -352,7 +377,7 @@ final class TestCaseGeneratorNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitPosixClass(Node\PosixClassNode $node): array
+    public function visitPosixClass(PosixClassNode $node): array
     {
         return [
             'matching' => ['a'],
@@ -361,7 +386,7 @@ final class TestCaseGeneratorNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitComment(Node\CommentNode $node): array
+    public function visitComment(CommentNode $node): array
     {
         return [
             'matching' => [''],
@@ -370,13 +395,13 @@ final class TestCaseGeneratorNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitConditional(Node\ConditionalNode $node): array
+    public function visitConditional(ConditionalNode $node): array
     {
         return $node->yes->accept($this);
     }
 
     #[\Override]
-    public function visitSubroutine(Node\SubroutineNode $node): array
+    public function visitSubroutine(SubroutineNode $node): array
     {
         return [
             'matching' => [''],
@@ -385,7 +410,7 @@ final class TestCaseGeneratorNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitPcreVerb(Node\PcreVerbNode $node): array
+    public function visitPcreVerb(PcreVerbNode $node): array
     {
         return [
             'matching' => [''],
@@ -394,7 +419,7 @@ final class TestCaseGeneratorNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitDefine(Node\DefineNode $node): array
+    public function visitDefine(DefineNode $node): array
     {
         return [
             'matching' => [''],
@@ -403,7 +428,7 @@ final class TestCaseGeneratorNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitLimitMatch(Node\LimitMatchNode $node): array
+    public function visitLimitMatch(LimitMatchNode $node): array
     {
         return [
             'matching' => [''],
@@ -412,7 +437,7 @@ final class TestCaseGeneratorNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitCallout(Node\CalloutNode $node): array
+    public function visitCallout(CalloutNode $node): array
     {
         return [
             'matching' => [''],
@@ -421,7 +446,7 @@ final class TestCaseGeneratorNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitKeep(Node\KeepNode $node): array
+    public function visitKeep(KeepNode $node): array
     {
         return [
             'matching' => [''],

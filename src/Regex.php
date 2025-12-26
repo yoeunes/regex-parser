@@ -17,9 +17,51 @@ use RegexParser\Cache\CacheInterface;
 use RegexParser\Cache\NullCache;
 use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
+use RegexParser\Exception\RegexException;
 use RegexParser\Exception\ResourceLimitException;
+use RegexParser\Exception\SemanticErrorException;
 use RegexParser\Internal\PatternParser;
+use RegexParser\Node\AlternationNode;
+use RegexParser\Node\AnchorNode;
+use RegexParser\Node\AssertionNode;
+use RegexParser\Node\BackrefNode;
+use RegexParser\Node\CalloutNode;
+use RegexParser\Node\CharClassNode;
+use RegexParser\Node\CharLiteralNode;
+use RegexParser\Node\CharTypeNode;
+use RegexParser\Node\ClassOperationNode;
+use RegexParser\Node\CommentNode;
+use RegexParser\Node\ConditionalNode;
+use RegexParser\Node\ControlCharNode;
+use RegexParser\Node\DefineNode;
+use RegexParser\Node\DotNode;
+use RegexParser\Node\GroupNode;
+use RegexParser\Node\KeepNode;
+use RegexParser\Node\LimitMatchNode;
+use RegexParser\Node\LiteralNode;
+use RegexParser\Node\PcreVerbNode;
+use RegexParser\Node\PosixClassNode;
+use RegexParser\Node\QuantifierNode;
+use RegexParser\Node\RangeNode;
 use RegexParser\Node\RegexNode;
+use RegexParser\Node\ScriptRunNode;
+use RegexParser\Node\SequenceNode;
+use RegexParser\Node\SubroutineNode;
+use RegexParser\Node\UnicodeNode;
+use RegexParser\Node\UnicodePropNode;
+use RegexParser\Node\VersionConditionNode;
+use RegexParser\NodeVisitor\CompilerNodeVisitor;
+use RegexParser\NodeVisitor\ComplexityScoreNodeVisitor;
+use RegexParser\NodeVisitor\ConsoleHighlighterVisitor;
+use RegexParser\NodeVisitor\ExplainNodeVisitor;
+use RegexParser\NodeVisitor\HtmlExplainNodeVisitor;
+use RegexParser\NodeVisitor\HtmlHighlighterVisitor;
+use RegexParser\NodeVisitor\LinterNodeVisitor;
+use RegexParser\NodeVisitor\LiteralExtractorNodeVisitor;
+use RegexParser\NodeVisitor\NodeVisitorInterface;
+use RegexParser\NodeVisitor\OptimizerNodeVisitor;
+use RegexParser\NodeVisitor\SampleGeneratorNodeVisitor;
+use RegexParser\NodeVisitor\ValidatorNodeVisitor;
 use RegexParser\ReDoS\ReDoSAnalysis;
 use RegexParser\ReDoS\ReDoSAnalyzer;
 use RegexParser\ReDoS\ReDoSSeverity;
@@ -126,7 +168,7 @@ final readonly class Regex
     public static function tokenize(string $regex, ?int $phpVersionId = null): TokenStream
     {
         $versionId = $phpVersionId ?? \PHP_VERSION_ID;
-        [$pattern, $flags] = Internal\PatternParser::extractPatternAndFlags($regex, $phpVersionId);
+        [$pattern, $flags] = PatternParser::extractPatternAndFlags($regex, $phpVersionId);
 
         return (new Lexer($versionId))->tokenize($pattern, $flags);
     }
@@ -161,7 +203,7 @@ final readonly class Regex
         if ($isValid) {
             try {
                 $ast = $this->parse($regex, false);
-                $linter = new NodeVisitor\LinterNodeVisitor();
+                $linter = new LinterNodeVisitor();
                 $ast->accept($linter);
                 $lintIssues = $linter->getIssues();
             } catch (\Throwable $e) {
@@ -294,7 +336,7 @@ final readonly class Regex
     {
         $ast = $this->parse($regex, false);
 
-        $literalSet = $ast->accept(new NodeVisitor\LiteralExtractorNodeVisitor());
+        $literalSet = $ast->accept(new LiteralExtractorNodeVisitor());
 
         $uniqueLiterals = $this->extractUniqueLiterals($literalSet);
         $searchPatterns = $this->buildSearchPatterns($literalSet);
@@ -313,7 +355,7 @@ final readonly class Regex
      */
     public function optimize(string $regex, array $options = []): OptimizationResult
     {
-        $optimizer = new NodeVisitor\OptimizerNodeVisitor(
+        $optimizer = new OptimizerNodeVisitor(
             optimizeDigits: (bool) ($options['digits'] ?? true),
             optimizeWord: (bool) ($options['word'] ?? true),
             strictRanges: (bool) ($options['strictRanges'] ?? true),
@@ -336,7 +378,7 @@ final readonly class Regex
     {
         $ast = $this->parse($regex, false);
 
-        return $ast->accept(new NodeVisitor\SampleGeneratorNodeVisitor());
+        return $ast->accept(new SampleGeneratorNodeVisitor());
     }
 
     /**
@@ -367,8 +409,8 @@ final readonly class Regex
         $ast = $this->parse($regex, false);
 
         $visitor = 'html' === $format
-            ? new NodeVisitor\HtmlHighlighterVisitor()
-            : new NodeVisitor\ConsoleHighlighterVisitor();
+            ? new HtmlHighlighterVisitor()
+            : new ConsoleHighlighterVisitor();
 
         return $ast->accept($visitor);
     }
@@ -382,35 +424,35 @@ final readonly class Regex
     {
         return [
             // Node classes
-            Node\RegexNode::class,
-            Node\AlternationNode::class,
-            Node\AnchorNode::class,
-            Node\AssertionNode::class,
-            Node\BackrefNode::class,
-            Node\CalloutNode::class,
-            Node\CharClassNode::class,
-            Node\CharLiteralNode::class,
-            Node\CharTypeNode::class,
-            Node\ClassOperationNode::class,
-            Node\CommentNode::class,
-            Node\ConditionalNode::class,
-            Node\ControlCharNode::class,
-            Node\DefineNode::class,
-            Node\DotNode::class,
-            Node\GroupNode::class,
-            Node\KeepNode::class,
-            Node\LimitMatchNode::class,
-            Node\LiteralNode::class,
-            Node\PcreVerbNode::class,
-            Node\PosixClassNode::class,
-            Node\QuantifierNode::class,
-            Node\RangeNode::class,
-            Node\ScriptRunNode::class,
-            Node\SequenceNode::class,
-            Node\SubroutineNode::class,
-            Node\UnicodeNode::class,
-            Node\UnicodePropNode::class,
-            Node\VersionConditionNode::class,
+            RegexNode::class,
+            AlternationNode::class,
+            AnchorNode::class,
+            AssertionNode::class,
+            BackrefNode::class,
+            CalloutNode::class,
+            CharClassNode::class,
+            CharLiteralNode::class,
+            CharTypeNode::class,
+            ClassOperationNode::class,
+            CommentNode::class,
+            ConditionalNode::class,
+            ControlCharNode::class,
+            DefineNode::class,
+            DotNode::class,
+            GroupNode::class,
+            KeepNode::class,
+            LimitMatchNode::class,
+            LiteralNode::class,
+            PcreVerbNode::class,
+            PosixClassNode::class,
+            QuantifierNode::class,
+            RangeNode::class,
+            ScriptRunNode::class,
+            SequenceNode::class,
+            SubroutineNode::class,
+            UnicodeNode::class,
+            UnicodePropNode::class,
+            VersionConditionNode::class,
         ];
     }
 
@@ -538,7 +580,7 @@ final readonly class Regex
      *
      * @return string Compiled regex string
      */
-    private function compile(string $regex, NodeVisitor\NodeVisitorInterface $transformer, ?bool $pretty = null): string
+    private function compile(string $regex, NodeVisitorInterface $transformer, ?bool $pretty = null): string
     {
         $ast = $this->parse($regex, false);
 
@@ -546,7 +588,7 @@ final readonly class Regex
 
         $pretty ??= str_contains($ast->flags, 'x');
 
-        return $transformed->accept(new NodeVisitor\CompilerNodeVisitor($pretty));
+        return $transformed->accept(new CompilerNodeVisitor($pretty));
     }
 
     /**
@@ -656,7 +698,7 @@ final readonly class Regex
      */
     private function validateAst(RegexNode $ast, ?string $pattern): void
     {
-        $validator = new NodeVisitor\ValidatorNodeVisitor($this->maxLookbehindLength, $pattern, $this->phpVersionId);
+        $validator = new ValidatorNodeVisitor($this->maxLookbehindLength, $pattern, $this->phpVersionId);
         $ast->accept($validator);
     }
 
@@ -669,7 +711,7 @@ final readonly class Regex
      */
     private function calculateComplexity(RegexNode $ast): int
     {
-        $scorer = new NodeVisitor\ComplexityScoreNodeVisitor();
+        $scorer = new ComplexityScoreNodeVisitor();
 
         return $ast->accept($scorer);
     }
@@ -693,12 +735,12 @@ final readonly class Regex
         $errorCode = null;
         $hint = null;
 
-        if ($exception instanceof Exception\RegexException) {
+        if ($exception instanceof RegexException) {
             $position = $exception->getPosition();
             $errorCode = $exception->getErrorCode();
         }
 
-        if ($exception instanceof Exception\SemanticErrorException) {
+        if ($exception instanceof SemanticErrorException) {
             $hint = $exception->getHint();
         }
 
@@ -706,7 +748,7 @@ final readonly class Regex
             $errorMessage .= "\n".$visualSnippet;
         }
 
-        if ($exception instanceof Exception\SemanticErrorException) {
+        if ($exception instanceof SemanticErrorException) {
             return new ValidationResult(
                 false,
                 $errorMessage,
@@ -838,11 +880,11 @@ final readonly class Regex
      *
      * @return NodeVisitor\ExplainNodeVisitor|NodeVisitor\HtmlExplainNodeVisitor The explanation visitor
      */
-    private function createExplanationVisitor(string $format): NodeVisitor\ExplainNodeVisitor|NodeVisitor\HtmlExplainNodeVisitor
+    private function createExplanationVisitor(string $format): ExplainNodeVisitor|HtmlExplainNodeVisitor
     {
         return match ($format) {
-            'text' => new NodeVisitor\ExplainNodeVisitor(),
-            'html' => new NodeVisitor\HtmlExplainNodeVisitor(),
+            'text' => new ExplainNodeVisitor(),
+            'html' => new HtmlExplainNodeVisitor(),
             default => throw new \InvalidArgumentException("Invalid format: $format"),
         };
     }
@@ -884,15 +926,15 @@ final readonly class Regex
         string $delimiter,
         int $patternLength,
         ?int $errorPosition
-    ): Node\RegexNode {
+    ): RegexNode {
         $validPattern = null === $errorPosition
             ? $pattern
             : substr($pattern, 0, max(0, $errorPosition));
 
-        $literalNode = new Node\LiteralNode($validPattern, 0, \strlen($validPattern));
-        $sequenceNode = new Node\SequenceNode([$literalNode], 0, $literalNode->getEndPosition());
+        $literalNode = new LiteralNode($validPattern, 0, \strlen($validPattern));
+        $sequenceNode = new SequenceNode([$literalNode], 0, $literalNode->getEndPosition());
 
-        return new Node\RegexNode($sequenceNode, $flags, $delimiter, 0, $patternLength);
+        return new RegexNode($sequenceNode, $flags, $delimiter, 0, $patternLength);
     }
 
     /**

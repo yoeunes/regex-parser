@@ -13,7 +13,35 @@ declare(strict_types=1);
 
 namespace RegexParser\NodeVisitor;
 
-use RegexParser\Node;
+use RegexParser\Node\AlternationNode;
+use RegexParser\Node\AnchorNode;
+use RegexParser\Node\AssertionNode;
+use RegexParser\Node\BackrefNode;
+use RegexParser\Node\CalloutNode;
+use RegexParser\Node\CharClassNode;
+use RegexParser\Node\CharLiteralNode;
+use RegexParser\Node\CharTypeNode;
+use RegexParser\Node\ClassOperationNode;
+use RegexParser\Node\CommentNode;
+use RegexParser\Node\ConditionalNode;
+use RegexParser\Node\ControlCharNode;
+use RegexParser\Node\DefineNode;
+use RegexParser\Node\DotNode;
+use RegexParser\Node\GroupNode;
+use RegexParser\Node\KeepNode;
+use RegexParser\Node\LimitMatchNode;
+use RegexParser\Node\LiteralNode;
+use RegexParser\Node\PcreVerbNode;
+use RegexParser\Node\PosixClassNode;
+use RegexParser\Node\QuantifierNode;
+use RegexParser\Node\RangeNode;
+use RegexParser\Node\RegexNode;
+use RegexParser\Node\ScriptRunNode;
+use RegexParser\Node\SequenceNode;
+use RegexParser\Node\SubroutineNode;
+use RegexParser\Node\UnicodeNode;
+use RegexParser\Node\UnicodePropNode;
+use RegexParser\Node\VersionConditionNode;
 
 /**
  * Defines the contract for a visitor that traverses the regex Abstract Syntax Tree (AST).
@@ -26,145 +54,145 @@ interface NodeVisitorInterface
     /**
      * @return TReturn
      */
-    public function visitRegex(Node\RegexNode $node);
+    public function visitRegex(RegexNode $node);
 
     /**
      * @return TReturn
      */
-    public function visitAlternation(Node\AlternationNode $node);
+    public function visitAlternation(AlternationNode $node);
 
     /**
      * @return TReturn
      */
-    public function visitSequence(Node\SequenceNode $node);
+    public function visitSequence(SequenceNode $node);
 
     /**
      * @return TReturn
      */
-    public function visitGroup(Node\GroupNode $node);
+    public function visitGroup(GroupNode $node);
 
     /**
      * @return TReturn
      */
-    public function visitQuantifier(Node\QuantifierNode $node);
+    public function visitQuantifier(QuantifierNode $node);
 
     /**
      * @return TReturn
      */
-    public function visitLiteral(Node\LiteralNode $node);
+    public function visitLiteral(LiteralNode $node);
 
     /**
      * @return TReturn
      */
-    public function visitCharLiteral(Node\CharLiteralNode $node);
+    public function visitCharLiteral(CharLiteralNode $node);
 
     /**
      * @return TReturn
      */
-    public function visitCharType(Node\CharTypeNode $node);
+    public function visitCharType(CharTypeNode $node);
 
     /**
      * @return TReturn
      */
-    public function visitUnicode(Node\UnicodeNode $node);
+    public function visitUnicode(UnicodeNode $node);
 
     /**
      * @return TReturn
      */
-    public function visitDot(Node\DotNode $node);
+    public function visitDot(DotNode $node);
 
     /**
      * @return TReturn
      */
-    public function visitAnchor(Node\AnchorNode $node);
+    public function visitAnchor(AnchorNode $node);
 
     /**
      * @return TReturn
      */
-    public function visitAssertion(Node\AssertionNode $node);
+    public function visitAssertion(AssertionNode $node);
 
     /**
      * @return TReturn
      */
-    public function visitKeep(Node\KeepNode $node);
+    public function visitKeep(KeepNode $node);
 
     /**
      * @return TReturn
      */
-    public function visitCharClass(Node\CharClassNode $node);
+    public function visitCharClass(CharClassNode $node);
 
     /**
      * @return TReturn
      */
-    public function visitRange(Node\RangeNode $node);
+    public function visitRange(RangeNode $node);
 
     /**
      * @return TReturn
      */
-    public function visitBackref(Node\BackrefNode $node);
+    public function visitBackref(BackrefNode $node);
 
     /**
      * @return TReturn
      */
-    public function visitClassOperation(Node\ClassOperationNode $node);
+    public function visitClassOperation(ClassOperationNode $node);
 
     /**
      * @return TReturn
      */
-    public function visitControlChar(Node\ControlCharNode $node);
+    public function visitControlChar(ControlCharNode $node);
 
     /**
      * @return TReturn
      */
-    public function visitScriptRun(Node\ScriptRunNode $node);
+    public function visitScriptRun(ScriptRunNode $node);
 
     /**
      * @return TReturn
      */
-    public function visitVersionCondition(Node\VersionConditionNode $node);
+    public function visitVersionCondition(VersionConditionNode $node);
 
     /**
      * @return TReturn
      */
-    public function visitUnicodeProp(Node\UnicodePropNode $node);
+    public function visitUnicodeProp(UnicodePropNode $node);
 
     /**
      * @return TReturn
      */
-    public function visitPosixClass(Node\PosixClassNode $node);
+    public function visitPosixClass(PosixClassNode $node);
 
     /**
      * @return TReturn
      */
-    public function visitComment(Node\CommentNode $node);
+    public function visitComment(CommentNode $node);
 
     /**
      * @return TReturn
      */
-    public function visitConditional(Node\ConditionalNode $node);
+    public function visitConditional(ConditionalNode $node);
 
     /**
      * @return TReturn
      */
-    public function visitSubroutine(Node\SubroutineNode $node);
+    public function visitSubroutine(SubroutineNode $node);
 
     /**
      * @return TReturn
      */
-    public function visitPcreVerb(Node\PcreVerbNode $node);
+    public function visitPcreVerb(PcreVerbNode $node);
 
     /**
      * @return TReturn
      */
-    public function visitDefine(Node\DefineNode $node);
+    public function visitDefine(DefineNode $node);
 
     /**
      * @return TReturn
      */
-    public function visitLimitMatch(Node\LimitMatchNode $node);
+    public function visitLimitMatch(LimitMatchNode $node);
 
     /**
      * @return TReturn
      */
-    public function visitCallout(Node\CalloutNode $node);
+    public function visitCallout(CalloutNode $node);
 }

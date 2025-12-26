@@ -13,7 +13,17 @@ declare(strict_types=1);
 
 namespace RegexParser\ReDoS;
 
-use RegexParser\Node;
+use RegexParser\Node\AlternationNode;
+use RegexParser\Node\CharClassNode;
+use RegexParser\Node\CharTypeNode;
+use RegexParser\Node\DotNode;
+use RegexParser\Node\GroupNode;
+use RegexParser\Node\LiteralNode;
+use RegexParser\Node\NodeInterface;
+use RegexParser\Node\QuantifierNode;
+use RegexParser\Node\RangeNode;
+use RegexParser\Node\RegexNode;
+use RegexParser\Node\SequenceNode;
 
 /**
  * Approximates leading/trailing character sets for AST nodes.
@@ -29,23 +39,23 @@ final readonly class CharSetAnalyzer
         $this->unicodeMode = str_contains($flags, 'u');
     }
 
-    public function firstChars(Node\NodeInterface $node): CharSet
+    public function firstChars(NodeInterface $node): CharSet
     {
         return $this->walk($node, true);
     }
 
-    public function lastChars(Node\NodeInterface $node): CharSet
+    public function lastChars(NodeInterface $node): CharSet
     {
         return $this->walk($node, false);
     }
 
-    private function walk(Node\NodeInterface $node, bool $fromStart): CharSet
+    private function walk(NodeInterface $node, bool $fromStart): CharSet
     {
-        if ($node instanceof Node\RegexNode) {
+        if ($node instanceof RegexNode) {
             return $this->walk($node->pattern, $fromStart);
         }
 
-        if ($node instanceof Node\LiteralNode) {
+        if ($node instanceof LiteralNode) {
             $length = \strlen($node->value);
             if (0 === $length) {
                 return CharSet::empty();
@@ -56,19 +66,19 @@ final readonly class CharSetAnalyzer
             return CharSet::fromChar($char);
         }
 
-        if ($node instanceof Node\CharTypeNode) {
+        if ($node instanceof CharTypeNode) {
             return $this->fromCharType($node->value);
         }
 
-        if ($node instanceof Node\DotNode) {
+        if ($node instanceof DotNode) {
             return CharSet::full();
         }
 
-        if ($node instanceof Node\QuantifierNode) {
+        if ($node instanceof QuantifierNode) {
             return $this->walk($node->node, $fromStart);
         }
 
-        if ($node instanceof Node\RangeNode) {
+        if ($node instanceof RangeNode) {
             $start = $this->literalCodepoint($node->start);
             $end = $this->literalCodepoint($node->end);
 
@@ -79,10 +89,10 @@ final readonly class CharSetAnalyzer
             return CharSet::fromRange(min($start, $end), max($start, $end));
         }
 
-        if ($node instanceof Node\CharClassNode) {
+        if ($node instanceof CharClassNode) {
             $set = CharSet::empty();
 
-            $parts = $node->expression instanceof Node\AlternationNode ? $node->expression->alternatives : [$node->expression];
+            $parts = $node->expression instanceof AlternationNode ? $node->expression->alternatives : [$node->expression];
             foreach ($parts as $part) {
                 $candidate = $this->walk($part, $fromStart);
                 $set = $set->union($candidate);
@@ -91,11 +101,11 @@ final readonly class CharSetAnalyzer
             return $node->isNegated ? $set->complement() : $set;
         }
 
-        if ($node instanceof Node\GroupNode) {
+        if ($node instanceof GroupNode) {
             return $this->walk($node->child, $fromStart);
         }
 
-        if ($node instanceof Node\AlternationNode) {
+        if ($node instanceof AlternationNode) {
             $set = CharSet::empty();
             foreach ($node->alternatives as $alt) {
                 $set = $set->union($this->walk($alt, $fromStart));
@@ -104,7 +114,7 @@ final readonly class CharSetAnalyzer
             return $set;
         }
 
-        if ($node instanceof Node\SequenceNode) {
+        if ($node instanceof SequenceNode) {
             $children = $fromStart ? $node->children : array_reverse($node->children);
             $set = CharSet::empty();
 
@@ -157,9 +167,9 @@ final readonly class CharSetAnalyzer
         return $set;
     }
 
-    private function literalCodepoint(Node\NodeInterface $node): ?int
+    private function literalCodepoint(NodeInterface $node): ?int
     {
-        if (!$node instanceof Node\LiteralNode) {
+        if (!$node instanceof LiteralNode) {
             return null;
         }
 
@@ -170,7 +180,7 @@ final readonly class CharSetAnalyzer
         return \ord($node->value[0]);
     }
 
-    private function isOptional(Node\QuantifierNode $node): bool
+    private function isOptional(QuantifierNode $node): bool
     {
         return 0 === $this->quantifierMin($node->quantifier);
     }
@@ -192,21 +202,21 @@ final readonly class CharSetAnalyzer
         return 1;
     }
 
-    private function isOptionalNode(Node\NodeInterface $node, bool $fromStart): bool
+    private function isOptionalNode(NodeInterface $node, bool $fromStart): bool
     {
-        if ($node instanceof Node\LiteralNode) {
+        if ($node instanceof LiteralNode) {
             return '' === $node->value;
         }
 
-        if ($node instanceof Node\QuantifierNode) {
+        if ($node instanceof QuantifierNode) {
             return $this->isOptional($node);
         }
 
-        if ($node instanceof Node\GroupNode) {
+        if ($node instanceof GroupNode) {
             return $this->isOptionalNode($node->child, $fromStart);
         }
 
-        if ($node instanceof Node\SequenceNode) {
+        if ($node instanceof SequenceNode) {
             $children = $fromStart ? $node->children : array_reverse($node->children);
             foreach ($children as $child) {
                 if ($this->isOptionalNode($child, $fromStart)) {

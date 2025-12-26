@@ -27,21 +27,7 @@ use RegexParser\ValidationResult;
  *
  * @internal
  *
- * @phpstan-type LintIssue array{
- *     type: string,
- *     message: string,
- *     file: string,
- *     line: int,
- *     column?: int,
- *     position?: int,
- *     issueId?: string,
- *     hint?: string|null,
- *     source?: string,
- *     pattern?: string,
- *     regex?: string,
- *     analysis?: \RegexParser\ReDoS\ReDoSAnalysis,
- *     validation?: \RegexParser\ValidationResult
- * }
+ * @phpstan-type LintIssue array{type: string, message: string, file: string, line: int, column?: int, position?: int, issueId?: string, hint?: string|null, source?: string, pattern?: string, regex?: string, analysis?: ReDoSAnalysis, validation?: ValidationResult}
  * @phpstan-type OptimizationEntry array{
  *     file: string,
  *     line: int,
@@ -49,16 +35,7 @@ use RegexParser\ValidationResult;
  *     savings: int,
  *     source?: string
  * }
- * @phpstan-type LintResult array{
- *     file: string,
- *     line: int,
- *     source?: string|null,
- *     pattern: string|null,
- *     location?: string|null,
- *     issues: array<LintIssue>,
- *     optimizations: array<OptimizationEntry>,
- *     problems: array<\RegexParser\RegexProblem>
- * }
+ * @phpstan-type LintResult array{file: string, line: int, source?: string|null, pattern: string|null, location?: string|null, issues: array<LintIssue>, optimizations: array<OptimizationEntry>, problems: array<RegexProblem>}
  * @phpstan-type LintStats array{errors: int, warnings: int, optimizations: int}
  */
 final readonly class RegexLintService

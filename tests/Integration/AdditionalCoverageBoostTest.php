@@ -16,7 +16,9 @@ namespace RegexParser\Tests\Integration;
 use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\ParserException;
+use RegexParser\Node\BackrefNode;
 use RegexParser\Node\RegexNode;
+use RegexParser\Node\SequenceNode;
 use RegexParser\Regex;
 
 /**
@@ -37,9 +39,9 @@ final class AdditionalCoverageBoostTest extends TestCase
     public function test_unsupported_python_backref_syntax(): void
     {
         $ast = $this->parseRegex('/(?<foo>a)(?P=foo)/');
-        $this->assertInstanceOf(\RegexParser\Node\SequenceNode::class, $ast->pattern);
+        $this->assertInstanceOf(SequenceNode::class, $ast->pattern);
         $backref = $ast->pattern->children[1];
-        $this->assertInstanceOf(\RegexParser\Node\BackrefNode::class, $backref);
+        $this->assertInstanceOf(BackrefNode::class, $backref);
         $this->assertSame('\k<foo>', $backref->ref);
     }
 

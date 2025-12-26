@@ -14,6 +14,37 @@ declare(strict_types=1);
 namespace RegexParser\NodeVisitor;
 
 use RegexParser\Node;
+use RegexParser\Node\AlternationNode;
+use RegexParser\Node\AnchorNode;
+use RegexParser\Node\AssertionNode;
+use RegexParser\Node\BackrefNode;
+use RegexParser\Node\CalloutNode;
+use RegexParser\Node\CharClassNode;
+use RegexParser\Node\CharLiteralNode;
+use RegexParser\Node\CharLiteralType;
+use RegexParser\Node\CharTypeNode;
+use RegexParser\Node\ClassOperationNode;
+use RegexParser\Node\ClassOperationType;
+use RegexParser\Node\CommentNode;
+use RegexParser\Node\ConditionalNode;
+use RegexParser\Node\ControlCharNode;
+use RegexParser\Node\DefineNode;
+use RegexParser\Node\DotNode;
+use RegexParser\Node\GroupNode;
+use RegexParser\Node\KeepNode;
+use RegexParser\Node\LimitMatchNode;
+use RegexParser\Node\LiteralNode;
+use RegexParser\Node\PcreVerbNode;
+use RegexParser\Node\PosixClassNode;
+use RegexParser\Node\QuantifierNode;
+use RegexParser\Node\RangeNode;
+use RegexParser\Node\RegexNode;
+use RegexParser\Node\ScriptRunNode;
+use RegexParser\Node\SequenceNode;
+use RegexParser\Node\SubroutineNode;
+use RegexParser\Node\UnicodeNode;
+use RegexParser\Node\UnicodePropNode;
+use RegexParser\Node\VersionConditionNode;
 
 /**
  * Dumps the Abstract Syntax Tree (AST) into a human-readable string format.
@@ -43,7 +74,7 @@ final class DumperNodeVisitor extends AbstractNodeVisitor
      * @return string the string representation of the entire AST
      */
     #[\Override]
-    public function visitRegex(Node\RegexNode $node): string
+    public function visitRegex(RegexNode $node): string
     {
         $str = "Regex(delimiter: {$node->delimiter}, flags: {$node->flags})\n";
         $this->indent += 2;
@@ -66,7 +97,7 @@ final class DumperNodeVisitor extends AbstractNodeVisitor
      * @return string the string representation of the alternation and its children
      */
     #[\Override]
-    public function visitAlternation(Node\AlternationNode $node): string
+    public function visitAlternation(AlternationNode $node): string
     {
         $str = str_repeat(' ', $this->indent)."Alternation:\n";
         $this->indent += 2;
@@ -91,7 +122,7 @@ final class DumperNodeVisitor extends AbstractNodeVisitor
      * @return string the string representation of the sequence and its children
      */
     #[\Override]
-    public function visitSequence(Node\SequenceNode $node): string
+    public function visitSequence(SequenceNode $node): string
     {
         $str = str_repeat(' ', $this->indent)."Sequence:\n";
         $this->indent += 2;
@@ -116,7 +147,7 @@ final class DumperNodeVisitor extends AbstractNodeVisitor
      * @return string the string representation of the group and its child
      */
     #[\Override]
-    public function visitGroup(Node\GroupNode $node): string
+    public function visitGroup(GroupNode $node): string
     {
         $name = $node->name ?? '';
         $flags = $node->flags ?? '';
@@ -144,7 +175,7 @@ final class DumperNodeVisitor extends AbstractNodeVisitor
      * @return string the string representation of the quantifier and its child
      */
     #[\Override]
-    public function visitQuantifier(Node\QuantifierNode $node): string
+    public function visitQuantifier(QuantifierNode $node): string
     {
         return "Quantifier(quant: {$node->quantifier}, type: {$node->type->value})\n".$this->indent(
             $node->node->accept($this),
@@ -163,7 +194,7 @@ final class DumperNodeVisitor extends AbstractNodeVisitor
      * @return string the string representation of the literal
      */
     #[\Override]
-    public function visitLiteral(Node\LiteralNode $node): string
+    public function visitLiteral(LiteralNode $node): string
     {
         return "Literal('{$node->value}')";
     }
@@ -180,7 +211,7 @@ final class DumperNodeVisitor extends AbstractNodeVisitor
      * @return string the string representation of the character type
      */
     #[\Override]
-    public function visitCharType(Node\CharTypeNode $node): string
+    public function visitCharType(CharTypeNode $node): string
     {
         return "CharType('\\{$node->value}')";
     }
@@ -196,7 +227,7 @@ final class DumperNodeVisitor extends AbstractNodeVisitor
      * @return string the string representation of the dot
      */
     #[\Override]
-    public function visitDot(Node\DotNode $node): string
+    public function visitDot(DotNode $node): string
     {
         return 'Dot(.)';
     }
@@ -212,7 +243,7 @@ final class DumperNodeVisitor extends AbstractNodeVisitor
      * @return string the string representation of the anchor
      */
     #[\Override]
-    public function visitAnchor(Node\AnchorNode $node): string
+    public function visitAnchor(AnchorNode $node): string
     {
         return "Anchor({$node->value})";
     }
@@ -229,7 +260,7 @@ final class DumperNodeVisitor extends AbstractNodeVisitor
      * @return string the string representation of the assertion
      */
     #[\Override]
-    public function visitAssertion(Node\AssertionNode $node): string
+    public function visitAssertion(AssertionNode $node): string
     {
         return "Assertion(\\{$node->value})";
     }
@@ -246,7 +277,7 @@ final class DumperNodeVisitor extends AbstractNodeVisitor
      * @return string the string representation of the keep node
      */
     #[\Override]
-    public function visitKeep(Node\KeepNode $node): string
+    public function visitKeep(KeepNode $node): string
     {
         return 'Keep(\K)';
     }
@@ -264,12 +295,12 @@ final class DumperNodeVisitor extends AbstractNodeVisitor
      * @return string the string representation of the character class and its parts
      */
     #[\Override]
-    public function visitCharClass(Node\CharClassNode $node): string
+    public function visitCharClass(CharClassNode $node): string
     {
         $neg = $node->isNegated ? '^' : '';
         $str = "CharClass({$neg})\n";
         $this->indent += 2;
-        $parts = $node->expression instanceof Node\AlternationNode ? $node->expression->alternatives : [$node->expression];
+        $parts = $node->expression instanceof AlternationNode ? $node->expression->alternatives : [$node->expression];
         foreach ($parts as $part) {
             $str .= $this->indent($part->accept($this))."\n";
         }
@@ -290,7 +321,7 @@ final class DumperNodeVisitor extends AbstractNodeVisitor
      * @return string the string representation of the range
      */
     #[\Override]
-    public function visitRange(Node\RangeNode $node): string
+    public function visitRange(RangeNode $node): string
     {
         return "Range({$node->start->accept($this)} - {$node->end->accept($this)})";
     }
@@ -307,7 +338,7 @@ final class DumperNodeVisitor extends AbstractNodeVisitor
      * @return string the string representation of the backreference
      */
     #[\Override]
-    public function visitBackref(Node\BackrefNode $node): string
+    public function visitBackref(BackrefNode $node): string
     {
         return "Backref(\\{$node->ref})";
     }
@@ -324,19 +355,19 @@ final class DumperNodeVisitor extends AbstractNodeVisitor
      * @return string the string representation of the Unicode character
      */
     #[\Override]
-    public function visitUnicode(Node\UnicodeNode $node): string
+    public function visitUnicode(UnicodeNode $node): string
     {
         return "Unicode({$node->code})";
     }
 
     #[\Override]
-    public function visitCharLiteral(Node\CharLiteralNode $node): string
+    public function visitCharLiteral(CharLiteralNode $node): string
     {
         $type = match ($node->type) {
-            Node\CharLiteralType::OCTAL => 'Octal',
-            Node\CharLiteralType::OCTAL_LEGACY => 'OctalLegacy',
-            Node\CharLiteralType::UNICODE => 'Unicode',
-            Node\CharLiteralType::UNICODE_NAMED => 'UnicodeNamed',
+            CharLiteralType::OCTAL => 'Octal',
+            CharLiteralType::OCTAL_LEGACY => 'OctalLegacy',
+            CharLiteralType::UNICODE => 'Unicode',
+            CharLiteralType::UNICODE_NAMED => 'UnicodeNamed',
         };
 
         // For display, use original representation to show the escape
@@ -344,27 +375,27 @@ final class DumperNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitClassOperation(Node\ClassOperationNode $node): string
+    public function visitClassOperation(ClassOperationNode $node): string
     {
-        $op = Node\ClassOperationType::INTERSECTION === $node->type ? '&&' : '--';
+        $op = ClassOperationType::INTERSECTION === $node->type ? '&&' : '--';
 
         return "ClassOperation({$op}, ".$node->left->accept($this).', '.$node->right->accept($this).')';
     }
 
     #[\Override]
-    public function visitControlChar(Node\ControlCharNode $node): string
+    public function visitControlChar(ControlCharNode $node): string
     {
         return "ControlChar({$node->char})";
     }
 
     #[\Override]
-    public function visitScriptRun(Node\ScriptRunNode $node): string
+    public function visitScriptRun(ScriptRunNode $node): string
     {
         return "ScriptRun({$node->script})";
     }
 
     #[\Override]
-    public function visitVersionCondition(Node\VersionConditionNode $node): string
+    public function visitVersionCondition(VersionConditionNode $node): string
     {
         return "VersionCondition({$node->operator}, {$node->version})";
     }
@@ -381,7 +412,7 @@ final class DumperNodeVisitor extends AbstractNodeVisitor
      * @return string the string representation of the Unicode property
      */
     #[\Override]
-    public function visitUnicodeProp(Node\UnicodePropNode $node): string
+    public function visitUnicodeProp(UnicodePropNode $node): string
     {
         $inner = $node->hasBraces
             ? trim($node->prop, '{}')
@@ -402,7 +433,7 @@ final class DumperNodeVisitor extends AbstractNodeVisitor
      * @return string the string representation of the POSIX class
      */
     #[\Override]
-    public function visitPosixClass(Node\PosixClassNode $node): string
+    public function visitPosixClass(PosixClassNode $node): string
     {
         return "PosixClass([[:{$node->class}:]])";
     }
@@ -419,7 +450,7 @@ final class DumperNodeVisitor extends AbstractNodeVisitor
      * @return string the string representation of the comment
      */
     #[\Override]
-    public function visitComment(Node\CommentNode $node): string
+    public function visitComment(CommentNode $node): string
     {
         return "Comment('{$node->comment}')";
     }
@@ -436,7 +467,7 @@ final class DumperNodeVisitor extends AbstractNodeVisitor
      * @return string the string representation of the conditional structure
      */
     #[\Override]
-    public function visitConditional(Node\ConditionalNode $node): string
+    public function visitConditional(ConditionalNode $node): string
     {
         $str = "Conditional:\n";
         $this->indent += 2;
@@ -460,7 +491,7 @@ final class DumperNodeVisitor extends AbstractNodeVisitor
      * @return string the string representation of the subroutine call
      */
     #[\Override]
-    public function visitSubroutine(Node\SubroutineNode $node): string
+    public function visitSubroutine(SubroutineNode $node): string
     {
         return "Subroutine(ref: {$node->reference}, syntax: '{$node->syntax}')";
     }
@@ -477,7 +508,7 @@ final class DumperNodeVisitor extends AbstractNodeVisitor
      * @return string the string representation of the verb
      */
     #[\Override]
-    public function visitPcreVerb(Node\PcreVerbNode $node): string
+    public function visitPcreVerb(PcreVerbNode $node): string
     {
         return "PcreVerb(value: {$node->verb})";
     }
@@ -495,7 +526,7 @@ final class DumperNodeVisitor extends AbstractNodeVisitor
      * @return string the string representation of the define group
      */
     #[\Override]
-    public function visitDefine(Node\DefineNode $node): string
+    public function visitDefine(DefineNode $node): string
     {
         $str = "Define:\n";
         $this->indent += 2;
@@ -506,13 +537,13 @@ final class DumperNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitLimitMatch(Node\LimitMatchNode $node): string
+    public function visitLimitMatch(LimitMatchNode $node): string
     {
         return "LimitMatch(limit: {$node->limit})";
     }
 
     #[\Override]
-    public function visitCallout(Node\CalloutNode $node): string
+    public function visitCallout(CalloutNode $node): string
     {
         $identifier = \is_string($node->identifier) ? "'{$node->identifier}'" : $node->identifier;
 

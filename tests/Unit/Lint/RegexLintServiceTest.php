@@ -20,6 +20,7 @@ use RegexParser\Lint\RegexLintRequest;
 use RegexParser\Lint\RegexLintService;
 use RegexParser\Lint\RegexPatternOccurrence;
 use RegexParser\Lint\RegexPatternSourceCollection;
+use RegexParser\ProblemType;
 use RegexParser\Regex;
 
 final class RegexLintServiceTest extends TestCase
@@ -269,7 +270,7 @@ final class RegexLintServiceTest extends TestCase
                 // Ensure the problems array contains ReDoS problems
                 $redosProblems = array_filter(
                     $result->results[0]['problems'] ?? [],
-                    fn ($problem) => \RegexParser\ProblemType::Security === $problem->type,
+                    fn ($problem) => ProblemType::Security === $problem->type,
                 );
                 $this->assertNotEmpty($redosProblems, 'Should create security problems for ReDoS issues');
             }

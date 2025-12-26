@@ -18,7 +18,36 @@ use RegexParser\Exception\SemanticErrorException;
 use RegexParser\GroupNumbering;
 use RegexParser\GroupNumberingCollector;
 use RegexParser\Node;
+use RegexParser\Node\AlternationNode;
+use RegexParser\Node\AnchorNode;
+use RegexParser\Node\AssertionNode;
+use RegexParser\Node\BackrefNode;
+use RegexParser\Node\CalloutNode;
+use RegexParser\Node\CharClassNode;
+use RegexParser\Node\CharLiteralNode;
+use RegexParser\Node\CharLiteralType;
+use RegexParser\Node\CharTypeNode;
+use RegexParser\Node\ClassOperationNode;
+use RegexParser\Node\CommentNode;
+use RegexParser\Node\ConditionalNode;
+use RegexParser\Node\ControlCharNode;
+use RegexParser\Node\DefineNode;
+use RegexParser\Node\DotNode;
+use RegexParser\Node\GroupNode;
 use RegexParser\Node\GroupType;
+use RegexParser\Node\KeepNode;
+use RegexParser\Node\LimitMatchNode;
+use RegexParser\Node\LiteralNode;
+use RegexParser\Node\NodeInterface;
+use RegexParser\Node\PcreVerbNode;
+use RegexParser\Node\PosixClassNode;
+use RegexParser\Node\QuantifierNode;
+use RegexParser\Node\RangeNode;
+use RegexParser\Node\RegexNode;
+use RegexParser\Node\SequenceNode;
+use RegexParser\Node\SubroutineNode;
+use RegexParser\Node\UnicodeNode;
+use RegexParser\Node\UnicodePropNode;
 use RegexParser\Regex;
 
 /**
@@ -95,9 +124,9 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
 
     private int $lookbehindLimit = 0;
 
-    private ?Node\NodeInterface $previousNode = null;
+    private ?NodeInterface $previousNode = null;
 
-    private ?Node\NodeInterface $nextNode = null;
+    private ?NodeInterface $nextNode = null;
 
     // Intelligent caching for expensive validations
     /**
@@ -126,7 +155,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitRegex(Node\RegexNode $node): void
+    public function visitRegex(RegexNode $node): void
     {
         // Fast state reset with minimal allocations
         $this->inLookbehind = false;
@@ -141,7 +170,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitAlternation(Node\AlternationNode $node): void
+    public function visitAlternation(AlternationNode $node): void
     {
         // Note: variable-length lookbehinds are supported in PHP 7.3+ (PCRE2).
         // Fixed-length enforcement is handled in validateLookbehindLength based on target PHP version.
@@ -160,7 +189,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitSequence(Node\SequenceNode $node): void
+    public function visitSequence(SequenceNode $node): void
     {
         $previous = $this->previousNode;
         $next = $this->nextNode;
@@ -179,7 +208,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitGroup(Node\GroupNode $node): void
+    public function visitGroup(GroupNode $node): void
     {
         $this->ensureGroupNumberingInitialized();
 
@@ -210,7 +239,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitQuantifier(Node\QuantifierNode $node): void
+    public function visitQuantifier(QuantifierNode $node): void
     {
         // Fast cached quantifier bounds parsing
         [$min, $max] = $this->getQuantifierBounds($node->quantifier);
@@ -237,7 +266,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
      * @param Node\LiteralNode $node the literal node to validate
      */
     #[\Override]
-    public function visitLiteral(Node\LiteralNode $node): void
+    public function visitLiteral(LiteralNode $node): void
     {
         // No semantic validation needed for literals
     }
@@ -252,7 +281,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
      * @param Node\CharTypeNode $node the character type node to validate
      */
     #[\Override]
-    public function visitCharType(Node\CharTypeNode $node): void
+    public function visitCharType(CharTypeNode $node): void
     {
         // No semantic validation needed for char types
     }
@@ -267,7 +296,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
      * @param Node\DotNode $node the dot node to validate
      */
     #[\Override]
-    public function visitDot(Node\DotNode $node): void
+    public function visitDot(DotNode $node): void
     {
         // No semantic validation needed for dot
     }
@@ -281,7 +310,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
      * @param Node\AnchorNode $node the anchor node to validate
      */
     #[\Override]
-    public function visitAnchor(Node\AnchorNode $node): void
+    public function visitAnchor(AnchorNode $node): void
     {
         // No semantic validation needed for anchors
     }
@@ -298,7 +327,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
      * @throws SemanticErrorException if an invalid or unknown assertion is encountered
      */
     #[\Override]
-    public function visitAssertion(Node\AssertionNode $node): void
+    public function visitAssertion(AssertionNode $node): void
     {
         // Fast array lookup with early return
         if (!isset(self::VALID_ASSERTIONS[$node->value])) {
@@ -321,7 +350,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
      * @throws SemanticErrorException if `\K` is found within a lookbehind
      */
     #[\Override]
-    public function visitKeep(Node\KeepNode $node): void
+    public function visitKeep(KeepNode $node): void
     {
         if ($this->inLookbehind) {
             $this->raiseSemanticError(
@@ -344,16 +373,16 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
      * @throws SemanticErrorException if any semantic validation rule is violated within a part of the character class
      */
     #[\Override]
-    public function visitCharClass(Node\CharClassNode $node): void
+    public function visitCharClass(CharClassNode $node): void
     {
-        $parts = $node->expression instanceof Node\AlternationNode ? $node->expression->alternatives : [$node->expression];
+        $parts = $node->expression instanceof AlternationNode ? $node->expression->alternatives : [$node->expression];
         foreach ($parts as $part) {
             $part->accept($this);
         }
     }
 
     #[\Override]
-    public function visitRange(Node\RangeNode $node): void
+    public function visitRange(RangeNode $node): void
     {
         // 1. Validation: Ensure start and end nodes represent a single character.
         // We allow LiteralNode, but also CharLiteralNode, UnicodeNode, etc.
@@ -371,14 +400,14 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
 
         // 2. Validation: Ensure characters are single codepoint (for LiteralNodes).
         // Use mb_strlen for proper Unicode character counting.
-        if ($node->start instanceof Node\LiteralNode && mb_strlen($node->start->value, 'UTF-8') > 1) {
+        if ($node->start instanceof LiteralNode && mb_strlen($node->start->value, 'UTF-8') > 1) {
             $this->raiseSemanticError(
                 'Invalid range: start char must be a single character.',
                 $node->startPosition,
                 'regex.range.invalid_start',
             );
         }
-        if ($node->end instanceof Node\LiteralNode && mb_strlen($node->end->value, 'UTF-8') > 1) {
+        if ($node->end instanceof LiteralNode && mb_strlen($node->end->value, 'UTF-8') > 1) {
             $this->raiseSemanticError(
                 'Invalid range: end char must be a single character.',
                 $node->startPosition,
@@ -388,7 +417,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
 
         // 3. Validation: ASCII/Unicode order check.
         // Note: We only strictly compare two LiteralNodes here to avoid complex cross-type decoding logic.
-        if ($node->start instanceof Node\LiteralNode && $node->end instanceof Node\LiteralNode) {
+        if ($node->start instanceof LiteralNode && $node->end instanceof LiteralNode) {
             if (mb_ord($node->start->value) > mb_ord($node->end->value)) {
                 $this->raiseSemanticError(
                     \sprintf('Invalid range "%s-%s": start character comes after end character.', $node->start->value, $node->end->value),
@@ -400,7 +429,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitBackref(Node\BackrefNode $node): void
+    public function visitBackref(BackrefNode $node): void
     {
         $this->ensureGroupNumberingInitialized();
 
@@ -520,7 +549,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitUnicode(Node\UnicodeNode $node): void
+    public function visitUnicode(UnicodeNode $node): void
     {
         // The Lexer/Parser combination already ensures these are
         // syntactically valid hex/octal. We validate the *value*.
@@ -541,20 +570,20 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitCharLiteral(Node\CharLiteralNode $node): void
+    public function visitCharLiteral(CharLiteralNode $node): void
     {
         // The Lexer/Parser combination already ensures these are
         // syntactically valid. We validate the *value*.
         match ($node->type) {
-            Node\CharLiteralType::UNICODE => $this->validateUnicode($node),
-            Node\CharLiteralType::OCTAL => $this->validateOctal($node),
-            Node\CharLiteralType::OCTAL_LEGACY => $this->validateOctalLegacy($node),
-            Node\CharLiteralType::UNICODE_NAMED => $this->validateUnicodeNamed($node),
+            CharLiteralType::UNICODE => $this->validateUnicode($node),
+            CharLiteralType::OCTAL => $this->validateOctal($node),
+            CharLiteralType::OCTAL_LEGACY => $this->validateOctalLegacy($node),
+            CharLiteralType::UNICODE_NAMED => $this->validateUnicodeNamed($node),
         };
     }
 
     #[\Override]
-    public function visitUnicodeProp(Node\UnicodePropNode $node): void
+    public function visitUnicodeProp(UnicodePropNode $node): void
     {
         $prop = $node->prop;
         $key = $node->hasBraces
@@ -588,7 +617,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitControlChar(Node\ControlCharNode $node): void
+    public function visitControlChar(ControlCharNode $node): void
     {
         if ($node->codePoint < 0 || $node->codePoint > 0xFF) {
             $this->raiseSemanticError(
@@ -600,7 +629,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitPosixClass(Node\PosixClassNode $node): void
+    public function visitPosixClass(PosixClassNode $node): void
     {
         $class = strtolower($node->class);
         $isNegated = str_starts_with($class, '^');
@@ -636,19 +665,19 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
      * @param Node\CommentNode $node the comment node to validate
      */
     #[\Override]
-    public function visitComment(Node\CommentNode $node): void
+    public function visitComment(CommentNode $node): void
     {
         // Comments are ignored in validation
     }
 
     #[\Override]
-    public function visitConditional(Node\ConditionalNode $node): void
+    public function visitConditional(ConditionalNode $node): void
     {
         $this->ensureGroupNumberingInitialized();
 
         // Check if the condition is a valid *type* of condition first
         // (e.g., a backreference, a subroutine call, or a lookaround)
-        if ($node->condition instanceof Node\BackrefNode) {
+        if ($node->condition instanceof BackrefNode) {
             // This is (?(1)...) or (?(<name>)...) or (?(name)...)
             // For bare names, check if the group exists before calling accept
             $ref = $node->condition->ref;
@@ -662,7 +691,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
             }
             // Now validate the backreference itself
             $node->condition->accept($this);
-        } elseif ($node->condition instanceof Node\SubroutineNode) {
+        } elseif ($node->condition instanceof SubroutineNode) {
             $ref = $node->condition->reference;
             if ('R' === $ref || '0' === $ref) {
                 // Always valid recursion condition to entire pattern.
@@ -672,7 +701,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
             } else {
                 $node->condition->accept($this);
             }
-        } elseif ($node->condition instanceof Node\GroupNode && \in_array($node->condition->type, [
+        } elseif ($node->condition instanceof GroupNode && \in_array($node->condition->type, [
             GroupType::T_GROUP_LOOKAHEAD_POSITIVE,
             GroupType::T_GROUP_LOOKAHEAD_NEGATIVE,
             GroupType::T_GROUP_LOOKBEHIND_POSITIVE,
@@ -680,7 +709,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         ], true)) {
             // This is (?(?=...)...) etc. This is valid.
             $node->condition->accept($this);
-        } elseif ($node->condition instanceof Node\AssertionNode && 'DEFINE' === $node->condition->value) {
+        } elseif ($node->condition instanceof AssertionNode && 'DEFINE' === $node->condition->value) {
             // (?(DEFINE)...) This is valid.
             $node->condition->accept($this);
         } else {
@@ -697,7 +726,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitSubroutine(Node\SubroutineNode $node): void
+    public function visitSubroutine(SubroutineNode $node): void
     {
         $this->ensureGroupNumberingInitialized();
 
@@ -754,7 +783,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitPcreVerb(Node\PcreVerbNode $node): void
+    public function visitPcreVerb(PcreVerbNode $node): void
     {
         $verbName = preg_split('/[:=]/', $node->verb, 2)[0] ?? $node->verb;
         if ('LIMIT_LOOKBEHIND' === $verbName && preg_match('/^LIMIT_LOOKBEHIND=(\d++)$/', $node->verb, $matches)) {
@@ -771,19 +800,19 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitDefine(Node\DefineNode $node): void
+    public function visitDefine(DefineNode $node): void
     {
         $node->content->accept($this);
     }
 
     #[\Override]
-    public function visitLimitMatch(Node\LimitMatchNode $node): void
+    public function visitLimitMatch(LimitMatchNode $node): void
     {
         // No specific validation needed for this node.
     }
 
     #[\Override]
-    public function visitCallout(Node\CalloutNode $node): void
+    public function visitCallout(CalloutNode $node): void
     {
         $position = $node->startPosition + 4;
 
@@ -911,7 +940,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         return 1 === preg_match('/^[A-Za-z_]\w*+$/', $ref);
     }
 
-    private function validateUnicode(Node\CharLiteralNode $node): void
+    private function validateUnicode(CharLiteralNode $node): void
     {
         // Parse codePoint from the escape string
         $rep = $node->originalRepresentation;
@@ -932,7 +961,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         }
     }
 
-    private function validateOctal(Node\CharLiteralNode $node): void
+    private function validateOctal(CharLiteralNode $node): void
     {
         // PCRE limits \o{} to single-byte values (0-255)
         if ($node->codePoint > 0xFF) {
@@ -944,7 +973,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         }
     }
 
-    private function validateOctalLegacy(Node\CharLiteralNode $node): void
+    private function validateOctalLegacy(CharLiteralNode $node): void
     {
         // Legacy octal is limited to 0-255 in practice (including \0 for null byte)
         if ($node->codePoint > 0xFF) {
@@ -956,7 +985,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         }
     }
 
-    private function validateUnicodeNamed(Node\CharLiteralNode $node): void
+    private function validateUnicodeNamed(CharLiteralNode $node): void
     {
         // Extract the Unicode name from the representation
         if (!preg_match('/^\\\\N\\{(.+)}$/', $node->originalRepresentation, $matches)) {
@@ -1016,12 +1045,12 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
      *
      * @return bool true if the node represents a single character, false otherwise
      */
-    private function isSingleCharNode(Node\NodeInterface $node): bool
+    private function isSingleCharNode(NodeInterface $node): bool
     {
-        return $node instanceof Node\LiteralNode
-            || $node instanceof Node\CharLiteralNode
-            || $node instanceof Node\UnicodeNode
-            || $node instanceof Node\ControlCharNode;
+        return $node instanceof LiteralNode
+            || $node instanceof CharLiteralNode
+            || $node instanceof UnicodeNode
+            || $node instanceof ControlCharNode;
         // CharTypeNode (e.g., \d) is technically invalid in a standard PCRE range start/end,
         // but we exclude it here to remain spec-compliant unless lenient mode is desired.
     }
@@ -1092,17 +1121,17 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
      *
      * @return int|null the fixed length of the node, or `null` if its length is variable
      */
-    private function calculateFixedLength(Node\NodeInterface $node): ?int
+    private function calculateFixedLength(NodeInterface $node): ?int
     {
         return match (true) {
-            $node instanceof Node\LiteralNode => mb_strlen($node->value),
-            $node instanceof Node\CharTypeNode, $node instanceof Node\DotNode => 1,
-            $node instanceof Node\AnchorNode, $node instanceof Node\AssertionNode => 0,
-            $node instanceof Node\SequenceNode => $this->calculateSequenceLength($node),
-            $node instanceof Node\GroupNode => $this->calculateFixedLength($node->child),
-            $node instanceof Node\QuantifierNode => $this->calculateQuantifierLength($node),
-            $node instanceof Node\CharClassNode => 1,
-            $node instanceof Node\AlternationNode => null, // Handled separately
+            $node instanceof LiteralNode => mb_strlen($node->value),
+            $node instanceof CharTypeNode, $node instanceof DotNode => 1,
+            $node instanceof AnchorNode, $node instanceof AssertionNode => 0,
+            $node instanceof SequenceNode => $this->calculateSequenceLength($node),
+            $node instanceof GroupNode => $this->calculateFixedLength($node->child),
+            $node instanceof QuantifierNode => $this->calculateQuantifierLength($node),
+            $node instanceof CharClassNode => 1,
+            $node instanceof AlternationNode => null, // Handled separately
             default => null, // Unknown or variable
         };
     }
@@ -1118,7 +1147,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
      *
      * @return int|null the fixed length of the sequence, or `null` if its length is variable
      */
-    private function calculateSequenceLength(Node\SequenceNode $node): ?int
+    private function calculateSequenceLength(SequenceNode $node): ?int
     {
         $total = 0;
         foreach ($node->children as $child) {
@@ -1144,7 +1173,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
      *
      * @return int|null the fixed length of the quantified node, or `null` if its length is variable
      */
-    private function calculateQuantifierLength(Node\QuantifierNode $node): ?int
+    private function calculateQuantifierLength(QuantifierNode $node): ?int
     {
         [$min, $max] = $this->parseQuantifierBounds($node->quantifier);
 
@@ -1161,17 +1190,17 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         return $min * $childLength;
     }
 
-    private function extractLookbehindLimit(Node\NodeInterface $node): ?int
+    private function extractLookbehindLimit(NodeInterface $node): ?int
     {
-        if ($node instanceof Node\PcreVerbNode && preg_match('/^LIMIT_LOOKBEHIND=(\d++)$/', $node->verb, $matches)) {
+        if ($node instanceof PcreVerbNode && preg_match('/^LIMIT_LOOKBEHIND=(\d++)$/', $node->verb, $matches)) {
             return (int) $matches[1];
         }
 
-        if ($node instanceof Node\GroupNode) {
+        if ($node instanceof GroupNode) {
             return $this->extractLookbehindLimit($node->child);
         }
 
-        if ($node instanceof Node\AlternationNode) {
+        if ($node instanceof AlternationNode) {
             foreach ($node->alternatives as $alt) {
                 $limit = $this->extractLookbehindLimit($alt);
                 if (null !== $limit) {
@@ -1180,7 +1209,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
             }
         }
 
-        if ($node instanceof Node\SequenceNode) {
+        if ($node instanceof SequenceNode) {
             foreach ($node->children as $child) {
                 $limit = $this->extractLookbehindLimit($child);
                 if (null !== $limit) {
@@ -1189,36 +1218,36 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
             }
         }
 
-        if ($node instanceof Node\QuantifierNode) {
+        if ($node instanceof QuantifierNode) {
             return $this->extractLookbehindLimit($node->node);
         }
 
-        if ($node instanceof Node\ConditionalNode) {
+        if ($node instanceof ConditionalNode) {
             return $this->extractLookbehindLimit($node->condition)
                 ?? $this->extractLookbehindLimit($node->yes)
                 ?? $this->extractLookbehindLimit($node->no);
         }
 
-        if ($node instanceof Node\DefineNode) {
+        if ($node instanceof DefineNode) {
             return $this->extractLookbehindLimit($node->content);
         }
 
-        if ($node instanceof Node\CharClassNode) {
+        if ($node instanceof CharClassNode) {
             return $this->extractLookbehindLimit($node->expression);
         }
 
-        if ($node instanceof Node\ClassOperationNode) {
+        if ($node instanceof ClassOperationNode) {
             return $this->extractLookbehindLimit($node->left) ?? $this->extractLookbehindLimit($node->right);
         }
 
-        if ($node instanceof Node\RangeNode) {
+        if ($node instanceof RangeNode) {
             return $this->extractLookbehindLimit($node->start) ?? $this->extractLookbehindLimit($node->end);
         }
 
         return null;
     }
 
-    private function validateLookbehindLength(Node\GroupNode $node): void
+    private function validateLookbehindLength(GroupNode $node): void
     {
         $lengthRange = $node->child->accept(new LengthRangeNodeVisitor());
         [$min, $max] = $lengthRange;
@@ -1226,7 +1255,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         if (null === $max) {
             $culprit = $this->findUnboundedLookbehindNode($node->child);
             $position = $culprit?->getStartPosition() ?? $node->startPosition;
-            $detail = $culprit instanceof Node\QuantifierNode ? $culprit->quantifier : null;
+            $detail = $culprit instanceof QuantifierNode ? $culprit->quantifier : null;
             $hint = null !== $detail
                 ? \sprintf('Use a bounded quantifier instead of "%s".', $detail)
                 : 'Ensure the lookbehind has a bounded maximum length.';
@@ -1263,13 +1292,13 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         return $this->phpVersionId >= 70300;
     }
 
-    private function findUnboundedLookbehindNode(Node\NodeInterface $node): ?Node\NodeInterface
+    private function findUnboundedLookbehindNode(NodeInterface $node): ?NodeInterface
     {
-        if ($node instanceof Node\BackrefNode || $node instanceof Node\SubroutineNode) {
+        if ($node instanceof BackrefNode || $node instanceof SubroutineNode) {
             return $node;
         }
 
-        if ($node instanceof Node\QuantifierNode) {
+        if ($node instanceof QuantifierNode) {
             [, $max] = $this->getQuantifierBounds($node->quantifier);
             if (-1 === $max) {
                 return $node;
@@ -1278,11 +1307,11 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
             return $this->findUnboundedLookbehindNode($node->node);
         }
 
-        if ($node instanceof Node\GroupNode) {
+        if ($node instanceof GroupNode) {
             return $this->findUnboundedLookbehindNode($node->child);
         }
 
-        if ($node instanceof Node\AlternationNode) {
+        if ($node instanceof AlternationNode) {
             foreach ($node->alternatives as $alt) {
                 $culprit = $this->findUnboundedLookbehindNode($alt);
                 if (null !== $culprit) {
@@ -1291,7 +1320,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
             }
         }
 
-        if ($node instanceof Node\SequenceNode) {
+        if ($node instanceof SequenceNode) {
             foreach ($node->children as $child) {
                 $culprit = $this->findUnboundedLookbehindNode($child);
                 if (null !== $culprit) {
@@ -1300,25 +1329,25 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
             }
         }
 
-        if ($node instanceof Node\ConditionalNode) {
+        if ($node instanceof ConditionalNode) {
             return $this->findUnboundedLookbehindNode($node->condition)
                 ?? $this->findUnboundedLookbehindNode($node->yes)
                 ?? $this->findUnboundedLookbehindNode($node->no);
         }
 
-        if ($node instanceof Node\DefineNode) {
+        if ($node instanceof DefineNode) {
             return $this->findUnboundedLookbehindNode($node->content);
         }
 
-        if ($node instanceof Node\CharClassNode) {
+        if ($node instanceof CharClassNode) {
             return $this->findUnboundedLookbehindNode($node->expression);
         }
 
-        if ($node instanceof Node\ClassOperationNode) {
+        if ($node instanceof ClassOperationNode) {
             return $this->findUnboundedLookbehindNode($node->left) ?? $this->findUnboundedLookbehindNode($node->right);
         }
 
-        if ($node instanceof Node\RangeNode) {
+        if ($node instanceof RangeNode) {
             return $this->findUnboundedLookbehindNode($node->start) ?? $this->findUnboundedLookbehindNode($node->end);
         }
 

@@ -24,7 +24,9 @@ use RegexParser\Node\GroupNode;
 use RegexParser\Node\NodeInterface;
 use RegexParser\Node\QuantifierNode;
 use RegexParser\Node\SequenceNode;
+use RegexParser\NodeVisitor\HtmlExplainNodeVisitor;
 use RegexParser\Regex;
+use RegexParser\TolerantParseResult;
 
 final class RegexTest extends TestCase
 {
@@ -266,7 +268,7 @@ final class RegexTest extends TestCase
         $method = $ref->getMethod('createExplanationVisitor');
 
         $htmlVisitor = $method->invoke($this->regexService, 'html');
-        $this->assertInstanceOf(\RegexParser\NodeVisitor\HtmlExplainNodeVisitor::class, $htmlVisitor);
+        $this->assertInstanceOf(HtmlExplainNodeVisitor::class, $htmlVisitor);
 
         $this->expectException(\InvalidArgumentException::class);
         $method->invoke($this->regexService, 'invalid');
@@ -286,7 +288,7 @@ final class RegexTest extends TestCase
     public function test_parse_with_tolerant_mode(): void
     {
         $result = $this->regexService->parse('/a(/', true);
-        $this->assertInstanceOf(\RegexParser\TolerantParseResult::class, $result);
+        $this->assertInstanceOf(TolerantParseResult::class, $result);
         $this->assertTrue($result->hasErrors());
     }
 }

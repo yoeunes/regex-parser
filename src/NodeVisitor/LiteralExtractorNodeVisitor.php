@@ -15,6 +15,30 @@ namespace RegexParser\NodeVisitor;
 
 use RegexParser\LiteralSet;
 use RegexParser\Node;
+use RegexParser\Node\AlternationNode;
+use RegexParser\Node\AnchorNode;
+use RegexParser\Node\AssertionNode;
+use RegexParser\Node\BackrefNode;
+use RegexParser\Node\CalloutNode;
+use RegexParser\Node\CharClassNode;
+use RegexParser\Node\CharLiteralNode;
+use RegexParser\Node\CharTypeNode;
+use RegexParser\Node\CommentNode;
+use RegexParser\Node\ConditionalNode;
+use RegexParser\Node\DefineNode;
+use RegexParser\Node\DotNode;
+use RegexParser\Node\GroupNode;
+use RegexParser\Node\KeepNode;
+use RegexParser\Node\LimitMatchNode;
+use RegexParser\Node\LiteralNode;
+use RegexParser\Node\PcreVerbNode;
+use RegexParser\Node\PosixClassNode;
+use RegexParser\Node\QuantifierNode;
+use RegexParser\Node\RangeNode;
+use RegexParser\Node\RegexNode;
+use RegexParser\Node\SequenceNode;
+use RegexParser\Node\SubroutineNode;
+use RegexParser\Node\UnicodePropNode;
 
 /**
  * Extracts literal strings that must appear in any match.
@@ -61,7 +85,7 @@ final class LiteralExtractorNodeVisitor extends AbstractNodeVisitor
      * ```
      */
     #[\Override]
-    public function visitRegex(Node\RegexNode $node): LiteralSet
+    public function visitRegex(RegexNode $node): LiteralSet
     {
         $this->caseInsensitive = str_contains($node->flags, 'i');
 
@@ -90,7 +114,7 @@ final class LiteralExtractorNodeVisitor extends AbstractNodeVisitor
      * ```
      */
     #[\Override]
-    public function visitAlternation(Node\AlternationNode $node): LiteralSet
+    public function visitAlternation(AlternationNode $node): LiteralSet
     {
         $result = null;
 
@@ -132,7 +156,7 @@ final class LiteralExtractorNodeVisitor extends AbstractNodeVisitor
      * ```
      */
     #[\Override]
-    public function visitSequence(Node\SequenceNode $node): LiteralSet
+    public function visitSequence(SequenceNode $node): LiteralSet
     {
         $result = LiteralSet::fromString(''); // Start with empty complete string
 
@@ -169,7 +193,7 @@ final class LiteralExtractorNodeVisitor extends AbstractNodeVisitor
      * ```
      */
     #[\Override]
-    public function visitGroup(Node\GroupNode $node): LiteralSet
+    public function visitGroup(GroupNode $node): LiteralSet
     {
         // Handle inline flags if present
         $previousState = $this->caseInsensitive;
@@ -217,7 +241,7 @@ final class LiteralExtractorNodeVisitor extends AbstractNodeVisitor
      * ```
      */
     #[\Override]
-    public function visitQuantifier(Node\QuantifierNode $node): LiteralSet
+    public function visitQuantifier(QuantifierNode $node): LiteralSet
     {
         // Case 1: Exact quantifier {n} -> repeat literals n times
         if (preg_match('/^\{(\d++)\}$/', $node->quantifier, $m)) {
@@ -279,7 +303,7 @@ final class LiteralExtractorNodeVisitor extends AbstractNodeVisitor
      * ```
      */
     #[\Override]
-    public function visitLiteral(Node\LiteralNode $node): LiteralSet
+    public function visitLiteral(LiteralNode $node): LiteralSet
     {
         if ($this->caseInsensitive) {
             return $this->expandCaseInsensitive($node->value);
@@ -312,11 +336,11 @@ final class LiteralExtractorNodeVisitor extends AbstractNodeVisitor
      * ```
      */
     #[\Override]
-    public function visitCharClass(Node\CharClassNode $node): LiteralSet
+    public function visitCharClass(CharClassNode $node): LiteralSet
     {
-        $parts = $node->expression instanceof Node\AlternationNode ? $node->expression->alternatives : [$node->expression];
+        $parts = $node->expression instanceof AlternationNode ? $node->expression->alternatives : [$node->expression];
         // Optimization: Single character class [a] is literal 'a'
-        if (!$node->isNegated && 1 === \count($parts) && $parts[0] instanceof Node\LiteralNode) {
+        if (!$node->isNegated && 1 === \count($parts) && $parts[0] instanceof LiteralNode) {
             return $this->visitLiteral($parts[0]);
         }
 
@@ -325,7 +349,7 @@ final class LiteralExtractorNodeVisitor extends AbstractNodeVisitor
         if (!$node->isNegated) {
             $literals = [];
             foreach ($parts as $part) {
-                if ($part instanceof Node\LiteralNode) {
+                if ($part instanceof LiteralNode) {
                     if ($this->caseInsensitive) {
                         $expanded = $this->expandCaseInsensitive($part->value);
                         array_push($literals, ...$expanded->prefixes);
@@ -356,7 +380,7 @@ final class LiteralExtractorNodeVisitor extends AbstractNodeVisitor
      * @return LiteralSet an empty `LiteralSet`
      */
     #[\Override]
-    public function visitCharType(Node\CharTypeNode $node): LiteralSet
+    public function visitCharType(CharTypeNode $node): LiteralSet
     {
         return LiteralSet::empty();
     }
@@ -373,7 +397,7 @@ final class LiteralExtractorNodeVisitor extends AbstractNodeVisitor
      * @return LiteralSet an empty `LiteralSet`
      */
     #[\Override]
-    public function visitDot(Node\DotNode $node): LiteralSet
+    public function visitDot(DotNode $node): LiteralSet
     {
         return LiteralSet::empty();
     }
@@ -391,7 +415,7 @@ final class LiteralExtractorNodeVisitor extends AbstractNodeVisitor
      * @return LiteralSet a `LiteralSet` representing an empty string
      */
     #[\Override]
-    public function visitAnchor(Node\AnchorNode $node): LiteralSet
+    public function visitAnchor(AnchorNode $node): LiteralSet
     {
         // Anchors match empty strings, so they are "complete" empty matches
         // This allows /^abc/ to return prefix 'abc'
@@ -411,7 +435,7 @@ final class LiteralExtractorNodeVisitor extends AbstractNodeVisitor
      * @return LiteralSet a `LiteralSet` representing an empty string
      */
     #[\Override]
-    public function visitAssertion(Node\AssertionNode $node): LiteralSet
+    public function visitAssertion(AssertionNode $node): LiteralSet
     {
         return LiteralSet::fromString('');
     }
@@ -428,7 +452,7 @@ final class LiteralExtractorNodeVisitor extends AbstractNodeVisitor
      * @return LiteralSet a `LiteralSet` representing an empty string
      */
     #[\Override]
-    public function visitKeep(Node\KeepNode $node): LiteralSet
+    public function visitKeep(KeepNode $node): LiteralSet
     {
         return LiteralSet::fromString('');
     }
@@ -445,7 +469,7 @@ final class LiteralExtractorNodeVisitor extends AbstractNodeVisitor
      * @return LiteralSet an empty `LiteralSet`
      */
     #[\Override]
-    public function visitRange(Node\RangeNode $node): LiteralSet
+    public function visitRange(RangeNode $node): LiteralSet
     {
         return LiteralSet::empty();
     }
@@ -462,7 +486,7 @@ final class LiteralExtractorNodeVisitor extends AbstractNodeVisitor
      * @return LiteralSet an empty `LiteralSet`
      */
     #[\Override]
-    public function visitBackref(Node\BackrefNode $node): LiteralSet
+    public function visitBackref(BackrefNode $node): LiteralSet
     {
         return LiteralSet::empty();
     }
@@ -479,13 +503,13 @@ final class LiteralExtractorNodeVisitor extends AbstractNodeVisitor
      * @return LiteralSet an empty `LiteralSet`
      */
     #[\Override]
-    public function visitUnicodeProp(Node\UnicodePropNode $node): LiteralSet
+    public function visitUnicodeProp(UnicodePropNode $node): LiteralSet
     {
         return LiteralSet::empty();
     }
 
     #[\Override]
-    public function visitCharLiteral(Node\CharLiteralNode $node): LiteralSet
+    public function visitCharLiteral(CharLiteralNode $node): LiteralSet
     {
         return LiteralSet::empty();
     }
@@ -502,7 +526,7 @@ final class LiteralExtractorNodeVisitor extends AbstractNodeVisitor
      * @return LiteralSet an empty `LiteralSet`
      */
     #[\Override]
-    public function visitPosixClass(Node\PosixClassNode $node): LiteralSet
+    public function visitPosixClass(PosixClassNode $node): LiteralSet
     {
         return LiteralSet::empty();
     }
@@ -520,7 +544,7 @@ final class LiteralExtractorNodeVisitor extends AbstractNodeVisitor
      * @return LiteralSet a `LiteralSet` representing an empty string
      */
     #[\Override]
-    public function visitComment(Node\CommentNode $node): LiteralSet
+    public function visitComment(CommentNode $node): LiteralSet
     {
         return LiteralSet::fromString('');
     }
@@ -538,7 +562,7 @@ final class LiteralExtractorNodeVisitor extends AbstractNodeVisitor
      * @return LiteralSet an empty `LiteralSet`
      */
     #[\Override]
-    public function visitConditional(Node\ConditionalNode $node): LiteralSet
+    public function visitConditional(ConditionalNode $node): LiteralSet
     {
         return LiteralSet::empty();
     }
@@ -555,7 +579,7 @@ final class LiteralExtractorNodeVisitor extends AbstractNodeVisitor
      * @return LiteralSet an empty `LiteralSet`
      */
     #[\Override]
-    public function visitSubroutine(Node\SubroutineNode $node): LiteralSet
+    public function visitSubroutine(SubroutineNode $node): LiteralSet
     {
         return LiteralSet::empty();
     }
@@ -573,7 +597,7 @@ final class LiteralExtractorNodeVisitor extends AbstractNodeVisitor
      * @return LiteralSet a `LiteralSet` representing an empty string
      */
     #[\Override]
-    public function visitPcreVerb(Node\PcreVerbNode $node): LiteralSet
+    public function visitPcreVerb(PcreVerbNode $node): LiteralSet
     {
         return LiteralSet::fromString('');
     }
@@ -591,20 +615,20 @@ final class LiteralExtractorNodeVisitor extends AbstractNodeVisitor
      * @return LiteralSet an empty `LiteralSet`
      */
     #[\Override]
-    public function visitDefine(Node\DefineNode $node): LiteralSet
+    public function visitDefine(DefineNode $node): LiteralSet
     {
         // DEFINE blocks don't produce any literal matches
         return LiteralSet::empty();
     }
 
     #[\Override]
-    public function visitLimitMatch(Node\LimitMatchNode $node): LiteralSet
+    public function visitLimitMatch(LimitMatchNode $node): LiteralSet
     {
         return LiteralSet::fromString('');
     }
 
     #[\Override]
-    public function visitCallout(Node\CalloutNode $node): LiteralSet
+    public function visitCallout(CalloutNode $node): LiteralSet
     {
         // Callouts do not match characters, so they don't contribute to literal extraction.
         return LiteralSet::fromString('');

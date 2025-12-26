@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace RegexParser\Lint;
 
+use RegexParser\Internal\PatternParser;
+use RegexParser\NodeVisitor\CompilerNodeVisitor;
 use RegexParser\NodeVisitor\ConsoleHighlighterVisitor;
 use RegexParser\NodeVisitor\LinterNodeVisitor;
 use RegexParser\OptimizationResult;
@@ -77,19 +79,7 @@ final readonly class RegexAnalysisService
     /**
      * @param array<RegexPatternOccurrence> $patterns
      *
-     * @return array<array{
-     *     type: string,
-     *     file: string,
-     *     line: int,
-     *     column: int,
-     *     position?: int,
-     *     message: string,
-     *     issueId?: string,
-     *     hint?: string|null,
-     *     source?: string,
-     *     analysis?: ReDoSAnalysis,
-     *     validation?: \RegexParser\ValidationResult
-     * }>
+     * @return array<array{type: string, file: string, line: int, column: int, position?: int, message: string, issueId?: string, hint?: string|null, source?: string, analysis?: ReDoSAnalysis, validation?: ValidationResult}>
      */
     public function lint(array $patterns, ?callable $progress = null, int $workers = 1): array
     {
@@ -165,19 +155,7 @@ final readonly class RegexAnalysisService
     /**
      * @param array<RegexPatternOccurrence> $patterns
      *
-     * @return array<array{
-     *     type: string,
-     *     file: string,
-     *     line: int,
-     *     column: int,
-     *     position?: int,
-     *     message: string,
-     *     issueId?: string,
-     *     hint?: string|null,
-     *     source?: string,
-     *     analysis?: ReDoSAnalysis,
-     *     validation?: \RegexParser\ValidationResult
-     * }>
+     * @return array<array{type: string, file: string, line: int, column: int, position?: int, message: string, issueId?: string, hint?: string|null, source?: string, analysis?: ReDoSAnalysis, validation?: ValidationResult}>
      */
     private function lintChunk(array $patterns, ?callable $progress = null): array
     {
@@ -358,7 +336,7 @@ final readonly class RegexAnalysisService
                     //   (?#...)(?(DEFINE)(?<balanced>((?:(?#...)[^()]|(?#...)(?balanced))*(?#...))))...
                     // without destroying readability in the original source.
                     $ast = $this->regex->parse($occurrence->pattern);
-                    $compiler = new \RegexParser\NodeVisitor\CompilerNodeVisitor(false, true);
+                    $compiler = new CompilerNodeVisitor(false, true);
                     $normalized = $ast->accept($compiler);
                     $optimization = new OptimizationResult($occurrence->pattern, $normalized, ['Normalized extended pattern.']);
                 } else {
@@ -734,7 +712,7 @@ final readonly class RegexAnalysisService
 
         try {
             /** @var array{0: string, 1: string, 2: string} $parts */
-            $parts = \RegexParser\Internal\PatternParser::extractPatternAndFlags($pattern);
+            $parts = PatternParser::extractPatternAndFlags($pattern);
         } catch (\Throwable) {
             // If we cannot reliably extract flags, fall back to not treating it
             // as extended mode to avoid false positives.

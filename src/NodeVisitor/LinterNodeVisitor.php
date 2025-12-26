@@ -16,7 +16,35 @@ namespace RegexParser\NodeVisitor;
 use RegexParser\Internal\PatternParser;
 use RegexParser\LintIssue;
 use RegexParser\Node;
+use RegexParser\Node\AlternationNode;
+use RegexParser\Node\AnchorNode;
+use RegexParser\Node\AssertionNode;
+use RegexParser\Node\BackrefNode;
+use RegexParser\Node\CalloutNode;
+use RegexParser\Node\CharClassNode;
+use RegexParser\Node\CharLiteralNode;
+use RegexParser\Node\CharLiteralType;
+use RegexParser\Node\CharTypeNode;
+use RegexParser\Node\ClassOperationNode;
+use RegexParser\Node\CommentNode;
+use RegexParser\Node\ConditionalNode;
+use RegexParser\Node\ControlCharNode;
+use RegexParser\Node\DefineNode;
+use RegexParser\Node\DotNode;
+use RegexParser\Node\GroupNode;
 use RegexParser\Node\GroupType;
+use RegexParser\Node\KeepNode;
+use RegexParser\Node\LiteralNode;
+use RegexParser\Node\NodeInterface;
+use RegexParser\Node\PosixClassNode;
+use RegexParser\Node\QuantifierNode;
+use RegexParser\Node\QuantifierType;
+use RegexParser\Node\RangeNode;
+use RegexParser\Node\RegexNode;
+use RegexParser\Node\ScriptRunNode;
+use RegexParser\Node\SequenceNode;
+use RegexParser\Node\UnicodeNode;
+use RegexParser\Node\UnicodePropNode;
 use RegexParser\ReDoS\CharSet;
 use RegexParser\ReDoS\CharSetAnalyzer;
 
@@ -90,7 +118,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitRegex(Node\RegexNode $node): Node\NodeInterface
+    public function visitRegex(RegexNode $node): NodeInterface
     {
         $this->flags = $node->flags;
         $this->delimiter = $node->delimiter;
@@ -104,7 +132,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         $this->definedNamedGroups = [];
 
         // Use a simple visitor to compile the pattern string for diagnostics
-        $compiler = new \RegexParser\NodeVisitor\CompilerNodeVisitor();
+        $compiler = new CompilerNodeVisitor();
         $this->patternValue = $node->pattern->accept($compiler);
 
         // First pass: count capturing groups
@@ -121,7 +149,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitLiteral(Node\LiteralNode $node): Node\NodeInterface
+    public function visitLiteral(LiteralNode $node): NodeInterface
     {
         if (preg_match('/[a-zA-Z]/', $node->value) > 0) {
             $this->hasCaseSensitiveChars = true;
@@ -131,11 +159,11 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitCharClass(Node\CharClassNode $node): Node\NodeInterface
+    public function visitCharClass(CharClassNode $node): NodeInterface
     {
         // Check if char class contains letters
         $expression = $node->expression;
-        if ($expression instanceof Node\AlternationNode) {
+        if ($expression instanceof AlternationNode) {
             foreach ($expression->alternatives as $alt) {
                 if ($this->charClassPartHasLetters($alt)) {
                     $this->hasCaseSensitiveChars = true;
@@ -151,7 +179,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitDot(Node\DotNode $node): Node\NodeInterface
+    public function visitDot(DotNode $node): NodeInterface
     {
         $this->hasDots = true;
 
@@ -159,7 +187,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitAnchor(Node\AnchorNode $node): Node\NodeInterface
+    public function visitAnchor(AnchorNode $node): NodeInterface
     {
         if ('^' === $node->value || '$' === $node->value) {
             $this->hasAnchors = true;
@@ -170,7 +198,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
 
     // Implement other visit methods as no-op
     #[\Override]
-    public function visitAlternation(Node\AlternationNode $node): Node\NodeInterface
+    public function visitAlternation(AlternationNode $node): NodeInterface
     {
         $this->lintAlternation($node);
 
@@ -182,7 +210,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitSequence(Node\SequenceNode $node): Node\NodeInterface
+    public function visitSequence(SequenceNode $node): NodeInterface
     {
         // Check for anchor conflicts
         $this->checkAnchorConflicts($node);
@@ -195,7 +223,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitGroup(Node\GroupNode $node): Node\NodeInterface
+    public function visitGroup(GroupNode $node): NodeInterface
     {
         if (GroupType::T_GROUP_INLINE_FLAGS === $node->type && null !== $node->flags) {
             $this->lintInlineFlags($node);
@@ -215,7 +243,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitBackref(Node\BackrefNode $node): Node\NodeInterface
+    public function visitBackref(BackrefNode $node): NodeInterface
     {
         $this->hasBackreferences = true;
         $ref = $node->ref;
@@ -247,10 +275,10 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitQuantifier(Node\QuantifierNode $node): Node\NodeInterface
+    public function visitQuantifier(QuantifierNode $node): NodeInterface
     {
-        $isAtomicQuantifier = Node\QuantifierType::T_POSSESSIVE === $node->type
-            || ($node->node instanceof Node\GroupNode && GroupType::T_GROUP_ATOMIC === $node->node->type);
+        $isAtomicQuantifier = QuantifierType::T_POSSESSIVE === $node->type
+            || ($node->node instanceof GroupNode && GroupType::T_GROUP_ATOMIC === $node->node->type);
 
         if ($this->isVariableQuantifier($node->quantifier)) {
             if (!$isAtomicQuantifier && $this->isRepeatableQuantifier($node->quantifier)) {
@@ -287,7 +315,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitUnicode(Node\UnicodeNode $node): Node\NodeInterface
+    public function visitUnicode(UnicodeNode $node): NodeInterface
     {
         $code = null;
         if (preg_match('/^\\\\x([0-9a-fA-F]{2})$/', $node->code, $m)) {
@@ -308,9 +336,9 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitCharLiteral(Node\CharLiteralNode $node): Node\NodeInterface
+    public function visitCharLiteral(CharLiteralNode $node): NodeInterface
     {
-        if (Node\CharLiteralType::UNICODE === $node->type && $node->codePoint > 0x10FFFF) {
+        if (CharLiteralType::UNICODE === $node->type && $node->codePoint > 0x10FFFF) {
             $this->addIssue(
                 'regex.lint.escape.suspicious',
                 \sprintf('Suspicious Unicode escape "%s" (out of range).', $node->originalRepresentation),
@@ -318,7 +346,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
             );
         }
 
-        if (\in_array($node->type, [Node\CharLiteralType::OCTAL, Node\CharLiteralType::OCTAL_LEGACY], true) && $node->codePoint > 0xFF) {
+        if (\in_array($node->type, [CharLiteralType::OCTAL, CharLiteralType::OCTAL_LEGACY], true) && $node->codePoint > 0xFF) {
             $this->addIssue(
                 'regex.lint.escape.suspicious',
                 \sprintf('Suspicious octal escape "%s" (out of range).', $node->originalRepresentation),
@@ -326,7 +354,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
             );
         }
 
-        if (Node\CharLiteralType::UNICODE_NAMED === $node->type && class_exists(\IntlChar::class)) {
+        if (CharLiteralType::UNICODE_NAMED === $node->type && class_exists(\IntlChar::class)) {
             $name = $node->originalRepresentation;
             if (preg_match('/^\\\\N\\{(.+)}$/', $name, $matches)) {
                 $char = \IntlChar::charFromName($matches[1]);
@@ -343,9 +371,9 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         return $node;
     }
 
-    private function countCapturingGroups(Node\NodeInterface $node): void
+    private function countCapturingGroups(NodeInterface $node): void
     {
-        if ($node instanceof Node\GroupNode && (GroupType::T_GROUP_CAPTURING === $node->type || GroupType::T_GROUP_NAMED === $node->type)) {
+        if ($node instanceof GroupNode && (GroupType::T_GROUP_CAPTURING === $node->type || GroupType::T_GROUP_NAMED === $node->type)) {
             $this->maxCapturingGroup++;
             if (null !== $node->name) {
                 $this->definedNamedGroups[$node->name] = true;
@@ -353,23 +381,23 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         }
 
         // Recursively count in children
-        if ($node instanceof Node\GroupNode) {
+        if ($node instanceof GroupNode) {
             $this->countCapturingGroups($node->child);
-        } elseif ($node instanceof Node\AlternationNode) {
+        } elseif ($node instanceof AlternationNode) {
             foreach ($node->alternatives as $alt) {
                 $this->countCapturingGroups($alt);
             }
-        } elseif ($node instanceof Node\SequenceNode) {
+        } elseif ($node instanceof SequenceNode) {
             foreach ($node->children as $child) {
                 $this->countCapturingGroups($child);
             }
-        } elseif ($node instanceof Node\QuantifierNode) {
+        } elseif ($node instanceof QuantifierNode) {
             $this->countCapturingGroups($node->node);
-        } elseif ($node instanceof Node\ConditionalNode) {
+        } elseif ($node instanceof ConditionalNode) {
             $this->countCapturingGroups($node->condition);
             $this->countCapturingGroups($node->yes);
             $this->countCapturingGroups($node->no);
-        } elseif ($node instanceof Node\CharClassNode) {
+        } elseif ($node instanceof CharClassNode) {
             $this->countCapturingGroups($node->expression);
         }
         // Other node types don't contain groups
@@ -399,12 +427,12 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         }
     }
 
-    private function charClassPartHasLetters(Node\NodeInterface $node): bool
+    private function charClassPartHasLetters(NodeInterface $node): bool
     {
-        if ($node instanceof Node\LiteralNode && preg_match('/[a-zA-Z]/', $node->value) > 0) {
+        if ($node instanceof LiteralNode && preg_match('/[a-zA-Z]/', $node->value) > 0) {
             return true;
         }
-        if ($node instanceof Node\RangeNode) {
+        if ($node instanceof RangeNode) {
             return $this->rangeHasLetters($node);
         }
 
@@ -412,15 +440,15 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         return false;
     }
 
-    private function rangeHasLetters(Node\RangeNode $node): bool
+    private function rangeHasLetters(RangeNode $node): bool
     {
-        $start = $node->start instanceof Node\LiteralNode ? $node->start->value : '';
-        $end = $node->end instanceof Node\LiteralNode ? $node->end->value : '';
+        $start = $node->start instanceof LiteralNode ? $node->start->value : '';
+        $end = $node->end instanceof LiteralNode ? $node->end->value : '';
 
         return preg_match('/[a-zA-Z]/', $start.$end) > 0;
     }
 
-    private function checkAnchorConflicts(Node\SequenceNode $node): void
+    private function checkAnchorConflicts(SequenceNode $node): void
     {
         $children = $node->children;
         $count = \count($children);
@@ -428,7 +456,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         for ($i = 0; $i < $count; $i++) {
             $child = $children[$i];
 
-            if ($child instanceof Node\AnchorNode && '^' === $child->value) {
+            if ($child instanceof AnchorNode && '^' === $child->value) {
                 // Check if there are consuming nodes before ^
                 for ($j = 0; $j < $i; $j++) {
                     if ($this->isConsuming($children[$j])) {
@@ -445,7 +473,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
                 }
             }
 
-            if ($child instanceof Node\AnchorNode && '$' === $child->value) {
+            if ($child instanceof AnchorNode && '$' === $child->value) {
                 // Check if there are consuming nodes after $
                 for ($j = $i + 1; $j < $count; $j++) {
                     if ($this->isConsuming($children[$j])) {
@@ -462,40 +490,40 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         }
     }
 
-    private function isConsuming(Node\NodeInterface $node): bool
+    private function isConsuming(NodeInterface $node): bool
     {
-        if ($node instanceof Node\LiteralNode) {
+        if ($node instanceof LiteralNode) {
             return true;
         }
-        if ($node instanceof Node\CharClassNode) {
+        if ($node instanceof CharClassNode) {
             return true;
         }
-        if ($node instanceof Node\CharTypeNode) {
+        if ($node instanceof CharTypeNode) {
             return true;
         }
-        if ($node instanceof Node\DotNode) {
+        if ($node instanceof DotNode) {
             return true;
         }
-        if ($node instanceof Node\CharLiteralNode) {
+        if ($node instanceof CharLiteralNode) {
             return true;
         }
-        if ($node instanceof Node\UnicodePropNode) {
+        if ($node instanceof UnicodePropNode) {
             return true;
         }
-        if ($node instanceof Node\PosixClassNode) {
+        if ($node instanceof PosixClassNode) {
             return true;
         }
-        if ($node instanceof Node\QuantifierNode) {
+        if ($node instanceof QuantifierNode) {
             return $this->isConsuming($node->node);
         }
-        if ($node instanceof Node\GroupNode) {
+        if ($node instanceof GroupNode) {
             // Lookarounds don't consume
-            return !(\RegexParser\Node\GroupType::T_GROUP_LOOKAHEAD_POSITIVE === $node->type
-                || \RegexParser\Node\GroupType::T_GROUP_LOOKAHEAD_NEGATIVE === $node->type
-                || \RegexParser\Node\GroupType::T_GROUP_LOOKBEHIND_POSITIVE === $node->type
-                || \RegexParser\Node\GroupType::T_GROUP_LOOKBEHIND_NEGATIVE === $node->type);
+            return !(GroupType::T_GROUP_LOOKAHEAD_POSITIVE === $node->type
+                || GroupType::T_GROUP_LOOKAHEAD_NEGATIVE === $node->type
+                || GroupType::T_GROUP_LOOKBEHIND_POSITIVE === $node->type
+                || GroupType::T_GROUP_LOOKBEHIND_NEGATIVE === $node->type);
         }
-        if ($node instanceof Node\AlternationNode) {
+        if ($node instanceof AlternationNode) {
             // If any alternative consumes, consider it consuming
             foreach ($node->alternatives as $alt) {
                 if ($this->isConsuming($alt)) {
@@ -505,7 +533,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
 
             return false;
         }
-        if ($node instanceof Node\SequenceNode) {
+        if ($node instanceof SequenceNode) {
             // If any child consumes, consider it consuming
             foreach ($node->children as $child) {
                 if ($this->isConsuming($child)) {
@@ -525,7 +553,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         $this->issues[] = new LintIssue($id, $message, $offset, $hint);
     }
 
-    private function lintAlternation(Node\AlternationNode $node): void
+    private function lintAlternation(AlternationNode $node): void
     {
         $literals = [];
         foreach ($node->alternatives as $alt) {
@@ -580,7 +608,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         $this->checkSemanticOverlaps($node);
     }
 
-    private function checkSemanticOverlaps(Node\AlternationNode $node): void
+    private function checkSemanticOverlaps(AlternationNode $node): void
     {
         $charSets = [];
         foreach ($node->alternatives as $alt) {
@@ -609,17 +637,17 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         }
     }
 
-    private function extractLiteralSequence(Node\NodeInterface $node): ?string
+    private function extractLiteralSequence(NodeInterface $node): ?string
     {
-        if ($node instanceof Node\LiteralNode) {
+        if ($node instanceof LiteralNode) {
             return $node->value;
         }
 
-        if ($node instanceof Node\GroupNode) {
+        if ($node instanceof GroupNode) {
             return $this->extractLiteralSequence($node->child);
         }
 
-        if ($node instanceof Node\SequenceNode) {
+        if ($node instanceof SequenceNode) {
             $value = '';
             foreach ($node->children as $child) {
                 $literal = $this->extractLiteralSequence($child);
@@ -635,7 +663,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         return null;
     }
 
-    private function lintRedundantCharClass(Node\CharClassNode $node): void
+    private function lintRedundantCharClass(CharClassNode $node): void
     {
         $parts = $this->collectCharClassParts($node->expression);
         if (null === $parts) {
@@ -647,7 +675,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         $redundant = false;
 
         foreach ($parts as $part) {
-            if ($part instanceof Node\LiteralNode && 1 === \strlen($part->value)) {
+            if ($part instanceof LiteralNode && 1 === \strlen($part->value)) {
                 $ord = \ord($part->value);
                 if (isset($literals[$ord]) || $this->isOrdCoveredByRanges($ord, $ranges)) {
                     $redundant = true;
@@ -657,7 +685,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
                 continue;
             }
 
-            if ($part instanceof Node\RangeNode && $part->start instanceof Node\LiteralNode && $part->end instanceof Node\LiteralNode) {
+            if ($part instanceof RangeNode && $part->start instanceof LiteralNode && $part->end instanceof LiteralNode) {
                 if (1 !== \strlen($part->start->value) || 1 !== \strlen($part->end->value)) {
                     continue;
                 }
@@ -695,17 +723,17 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     /**
      * @return array<Node\NodeInterface>|null
      */
-    private function collectCharClassParts(Node\NodeInterface $node): ?array
+    private function collectCharClassParts(NodeInterface $node): ?array
     {
-        if ($node instanceof Node\ClassOperationNode) {
+        if ($node instanceof ClassOperationNode) {
             return null;
         }
 
-        if ($node instanceof Node\AlternationNode) {
+        if ($node instanceof AlternationNode) {
             return array_values($node->alternatives);
         }
 
-        if ($node instanceof Node\SequenceNode) {
+        if ($node instanceof SequenceNode) {
             return array_values($node->children);
         }
 
@@ -740,7 +768,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         return false;
     }
 
-    private function lintInlineFlags(Node\GroupNode $node): void
+    private function lintInlineFlags(GroupNode $node): void
     {
         $flags = (string) $node->flags;
         if ('' === $flags) {
@@ -793,9 +821,9 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         }
     }
 
-    private function isRedundantGroup(Node\NodeInterface $node): bool
+    private function isRedundantGroup(NodeInterface $node): bool
     {
-        if ($node instanceof Node\SequenceNode) {
+        if ($node instanceof SequenceNode) {
             if (1 !== \count($node->children)) {
                 return false;
             }
@@ -803,25 +831,25 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
             return $this->isRedundantGroup($node->children[0]);
         }
 
-        if ($node instanceof Node\AlternationNode || $node instanceof Node\QuantifierNode) {
+        if ($node instanceof AlternationNode || $node instanceof QuantifierNode) {
             return false;
         }
 
-        return $node instanceof Node\LiteralNode
-            || $node instanceof Node\CharTypeNode
-            || $node instanceof Node\CharClassNode
-            || $node instanceof Node\CharLiteralNode
-            || $node instanceof Node\UnicodeNode
-            || $node instanceof Node\DotNode
-            || $node instanceof Node\AnchorNode
-            || $node instanceof Node\AssertionNode
-            || $node instanceof Node\KeepNode
-            || $node instanceof Node\UnicodePropNode
-            || $node instanceof Node\PosixClassNode
-            || $node instanceof Node\ControlCharNode
-            || $node instanceof Node\CommentNode
-            || $node instanceof Node\CalloutNode
-            || $node instanceof Node\ScriptRunNode;
+        return $node instanceof LiteralNode
+            || $node instanceof CharTypeNode
+            || $node instanceof CharClassNode
+            || $node instanceof CharLiteralNode
+            || $node instanceof UnicodeNode
+            || $node instanceof DotNode
+            || $node instanceof AnchorNode
+            || $node instanceof AssertionNode
+            || $node instanceof KeepNode
+            || $node instanceof UnicodePropNode
+            || $node instanceof PosixClassNode
+            || $node instanceof ControlCharNode
+            || $node instanceof CommentNode
+            || $node instanceof CalloutNode
+            || $node instanceof ScriptRunNode;
     }
 
     private function isVariableQuantifier(string $quantifier): bool
@@ -845,17 +873,17 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         return null === $max;
     }
 
-    private function findNestedQuantifier(Node\NodeInterface $node): ?Node\QuantifierNode
+    private function findNestedQuantifier(NodeInterface $node): ?QuantifierNode
     {
-        if ($node instanceof Node\QuantifierNode) {
-            if (Node\QuantifierType::T_POSSESSIVE === $node->type) {
+        if ($node instanceof QuantifierNode) {
+            if (QuantifierType::T_POSSESSIVE === $node->type) {
                 return null;
             }
 
             return $node;
         }
 
-        if ($node instanceof Node\GroupNode) {
+        if ($node instanceof GroupNode) {
             if (GroupType::T_GROUP_ATOMIC === $node->type) {
                 return null;
             }
@@ -863,7 +891,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
             return $this->findNestedQuantifier($node->child);
         }
 
-        if ($node instanceof Node\SequenceNode) {
+        if ($node instanceof SequenceNode) {
             foreach ($node->children as $child) {
                 $nested = $this->findNestedQuantifier($child);
                 if (null !== $nested) {
@@ -872,7 +900,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
             }
         }
 
-        if ($node instanceof Node\AlternationNode) {
+        if ($node instanceof AlternationNode) {
             foreach ($node->alternatives as $alt) {
                 $nested = $this->findNestedQuantifier($alt);
                 if (null !== $nested) {
@@ -881,18 +909,18 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
             }
         }
 
-        if ($node instanceof Node\ConditionalNode) {
+        if ($node instanceof ConditionalNode) {
             return $this->findNestedQuantifier($node->yes) ?? $this->findNestedQuantifier($node->no);
         }
 
-        if ($node instanceof Node\DefineNode) {
+        if ($node instanceof DefineNode) {
             return $this->findNestedQuantifier($node->content);
         }
 
         return null;
     }
 
-    private function isSafelySeparatedNestedQuantifier(Node\QuantifierNode $outer, Node\QuantifierNode $nested): bool
+    private function isSafelySeparatedNestedQuantifier(QuantifierNode $outer, QuantifierNode $nested): bool
     {
         $sequenceInfo = $this->findSequenceForNestedQuantifier($outer->node, $nested);
         if (null === $sequenceInfo) {
@@ -926,13 +954,13 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     /**
      * @return array{sequence: Node\SequenceNode, index: int}|null
      */
-    private function findSequenceForNestedQuantifier(Node\NodeInterface $node, Node\QuantifierNode $nested): ?array
+    private function findSequenceForNestedQuantifier(NodeInterface $node, QuantifierNode $nested): ?array
     {
-        if ($node instanceof Node\GroupNode) {
+        if ($node instanceof GroupNode) {
             return $this->findSequenceForNestedQuantifier($node->child, $nested);
         }
 
-        if (!($node instanceof Node\SequenceNode)) {
+        if (!($node instanceof SequenceNode)) {
             return null;
         }
 
@@ -946,13 +974,13 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         return null;
     }
 
-    private function unwrapTransparentNode(Node\NodeInterface $node): Node\NodeInterface
+    private function unwrapTransparentNode(NodeInterface $node): NodeInterface
     {
-        if ($node instanceof Node\GroupNode && $this->isTransparentGroup($node->type)) {
+        if ($node instanceof GroupNode && $this->isTransparentGroup($node->type)) {
             return $this->unwrapTransparentNode($node->child);
         }
 
-        if ($node instanceof Node\SequenceNode && 1 === \count($node->children)) {
+        if ($node instanceof SequenceNode && 1 === \count($node->children)) {
             return $this->unwrapTransparentNode($node->children[0]);
         }
 
@@ -969,7 +997,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         ], true);
     }
 
-    private function boundaryCharSet(Node\NodeInterface $node): CharSet
+    private function boundaryCharSet(NodeInterface $node): CharSet
     {
         $first = $this->charSetAnalyzer->firstChars($node);
         $last = $this->charSetAnalyzer->lastChars($node);
@@ -977,7 +1005,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         return $first->union($last);
     }
 
-    private function isExclusiveSeparator(Node\NodeInterface $separator, CharSet $innerBoundary): bool
+    private function isExclusiveSeparator(NodeInterface $separator, CharSet $innerBoundary): bool
     {
         if ($this->isOptionalNode($separator) || !$this->isConsuming($separator)) {
             return false;
@@ -991,19 +1019,19 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         return !$separatorSet->intersects($innerBoundary);
     }
 
-    private function isOptionalNode(Node\NodeInterface $node): bool
+    private function isOptionalNode(NodeInterface $node): bool
     {
-        if ($node instanceof Node\LiteralNode) {
+        if ($node instanceof LiteralNode) {
             return '' === $node->value;
         }
 
-        if ($node instanceof Node\QuantifierNode) {
+        if ($node instanceof QuantifierNode) {
             [$min] = $this->parseQuantifierRange($node->quantifier);
 
             return 0 === $min;
         }
 
-        if ($node instanceof Node\GroupNode) {
+        if ($node instanceof GroupNode) {
             if ($this->isTransparentGroup($node->type)) {
                 return $this->isOptionalNode($node->child);
             }
@@ -1011,7 +1039,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
             return true;
         }
 
-        if ($node instanceof Node\SequenceNode) {
+        if ($node instanceof SequenceNode) {
             foreach ($node->children as $child) {
                 if (!$this->isOptionalNode($child)) {
                     return false;
@@ -1021,7 +1049,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
             return true;
         }
 
-        if ($node instanceof Node\AlternationNode) {
+        if ($node instanceof AlternationNode) {
             foreach ($node->alternatives as $alt) {
                 if ($this->isOptionalNode($alt)) {
                     return true;
@@ -1031,24 +1059,24 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
             return false;
         }
 
-        if ($node instanceof Node\ConditionalNode) {
+        if ($node instanceof ConditionalNode) {
             return $this->isOptionalNode($node->yes) || $this->isOptionalNode($node->no);
         }
 
         return !$this->isConsuming($node);
     }
 
-    private function containsDotStar(Node\NodeInterface $node): bool
+    private function containsDotStar(NodeInterface $node): bool
     {
-        if ($node instanceof Node\QuantifierNode && $node->node instanceof Node\DotNode) {
+        if ($node instanceof QuantifierNode && $node->node instanceof DotNode) {
             return $this->isUnboundedQuantifier($node->quantifier);
         }
 
-        if ($node instanceof Node\GroupNode) {
+        if ($node instanceof GroupNode) {
             return $this->containsDotStar($node->child);
         }
 
-        if ($node instanceof Node\SequenceNode) {
+        if ($node instanceof SequenceNode) {
             foreach ($node->children as $child) {
                 if ($this->containsDotStar($child)) {
                     return true;
@@ -1056,7 +1084,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
             }
         }
 
-        if ($node instanceof Node\AlternationNode) {
+        if ($node instanceof AlternationNode) {
             foreach ($node->alternatives as $alt) {
                 if ($this->containsDotStar($alt)) {
                     return true;
@@ -1064,11 +1092,11 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
             }
         }
 
-        if ($node instanceof Node\ConditionalNode) {
+        if ($node instanceof ConditionalNode) {
             return $this->containsDotStar($node->yes) || $this->containsDotStar($node->no);
         }
 
-        if ($node instanceof Node\DefineNode) {
+        if ($node instanceof DefineNode) {
             return $this->containsDotStar($node->content);
         }
 

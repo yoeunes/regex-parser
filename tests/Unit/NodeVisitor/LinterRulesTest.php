@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\Unit\NodeVisitor;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RegexParser\NodeVisitor\LinterNodeVisitor;
 use RegexParser\Regex;
@@ -34,7 +35,7 @@ final class LinterRulesTest extends TestCase
         $this->assertNotContains('regex.lint.quantifier.nested', $issues);
     }
 
-    #[\PHPUnit\Framework\Attributes\DataProvider('provideNestedQuantifierPatterns')]
+    #[DataProvider('provideNestedQuantifierPatterns')]
     public function test_nested_quantifier_warning_respects_separators(string $pattern, bool $shouldWarn): void
     {
         $issues = $this->lint($pattern);

@@ -15,6 +15,8 @@ namespace RegexParser\Tests\Unit\Parser;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\ParserException;
+use RegexParser\Node\BackrefNode;
+use RegexParser\Node\SequenceNode;
 use RegexParser\Regex;
 
 final class ParserUnsupportedSyntaxTest extends TestCase
@@ -27,9 +29,9 @@ final class ParserUnsupportedSyntaxTest extends TestCase
         $regex = Regex::create();
 
         $ast = $regex->parse('/(?P<name>a)(?P=name)/');
-        $this->assertInstanceOf(\RegexParser\Node\SequenceNode::class, $ast->pattern);
+        $this->assertInstanceOf(SequenceNode::class, $ast->pattern);
         $backref = $ast->pattern->children[1];
-        $this->assertInstanceOf(\RegexParser\Node\BackrefNode::class, $backref);
+        $this->assertInstanceOf(BackrefNode::class, $backref);
         $this->assertSame('\k<name>', $backref->ref);
     }
 

@@ -25,6 +25,7 @@ use PHPStan\Rules\Rule;
 use PHPStan\Rules\RuleErrorBuilder;
 use RegexParser\Lint\RegexAnalysisService;
 use RegexParser\Lint\RegexPatternOccurrence;
+use RegexParser\OptimizationResult;
 use RegexParser\ReDoS\ReDoSAnalysis;
 use RegexParser\ReDoS\ReDoSSeverity;
 use RegexParser\Regex;
@@ -305,7 +306,7 @@ final class PregValidationRule implements Rule
         }
 
         if ($this->suggestOptimizations) {
-            /** @var array<array{file: string, line: int, optimization: \RegexParser\OptimizationResult, savings: int, source?: string}> $optimizations */
+            /** @var array<array{file: string, line: int, optimization: OptimizationResult, savings: int, source?: string}> $optimizations */
             $optimizations = $this->getAnalysisService()->suggestOptimizations(
                 [$occurrence],
                 1,
@@ -313,7 +314,7 @@ final class PregValidationRule implements Rule
             );
 
             foreach ($optimizations as $optimizationEntry) {
-                /** @var \RegexParser\OptimizationResult $optimization */
+                /** @var OptimizationResult $optimization */
                 $optimization = $optimizationEntry['optimization'];
                 if (!$this->isOptimizationSafe($pattern, $optimization->optimized)) {
                     continue;

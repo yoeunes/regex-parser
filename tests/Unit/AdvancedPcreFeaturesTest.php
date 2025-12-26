@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\Unit;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\ParserException;
 use RegexParser\Exception\SemanticErrorException;
@@ -28,7 +29,7 @@ use RegexParser\Regex;
 
 final class AdvancedPcreFeaturesTest extends TestCase
 {
-    #[\PHPUnit\Framework\Attributes\DataProvider('provideCalloutPatterns')]
+    #[DataProvider('provideCalloutPatterns')]
     public function test_it_parses_and_compiles_callouts_correctly(string $pattern, ?string $expectedIdentifier): void
     {
         $regexService = Regex::create();

@@ -13,7 +13,34 @@ declare(strict_types=1);
 
 namespace RegexParser\NodeVisitor;
 
-use RegexParser\Node;
+use RegexParser\Node\AlternationNode;
+use RegexParser\Node\AnchorNode;
+use RegexParser\Node\AssertionNode;
+use RegexParser\Node\BackrefNode;
+use RegexParser\Node\CalloutNode;
+use RegexParser\Node\CharClassNode;
+use RegexParser\Node\CharTypeNode;
+use RegexParser\Node\ClassOperationNode;
+use RegexParser\Node\ClassOperationType;
+use RegexParser\Node\CommentNode;
+use RegexParser\Node\ControlCharNode;
+use RegexParser\Node\DefineNode;
+use RegexParser\Node\DotNode;
+use RegexParser\Node\KeepNode;
+use RegexParser\Node\LimitMatchNode;
+use RegexParser\Node\LiteralNode;
+use RegexParser\Node\PcreVerbNode;
+use RegexParser\Node\PosixClassNode;
+use RegexParser\Node\QuantifierNode;
+use RegexParser\Node\QuantifierType;
+use RegexParser\Node\RangeNode;
+use RegexParser\Node\RegexNode;
+use RegexParser\Node\ScriptRunNode;
+use RegexParser\Node\SequenceNode;
+use RegexParser\Node\SubroutineNode;
+use RegexParser\Node\UnicodeNode;
+use RegexParser\Node\UnicodePropNode;
+use RegexParser\Node\VersionConditionNode;
 
 /**
  * Base visitor for highlighting regex syntax.
@@ -23,13 +50,13 @@ use RegexParser\Node;
 abstract class HighlighterVisitor extends AbstractNodeVisitor
 {
     #[\Override]
-    public function visitRegex(Node\RegexNode $node): string
+    public function visitRegex(RegexNode $node): string
     {
         return $node->pattern->accept($this);
     }
 
     #[\Override]
-    public function visitAlternation(Node\AlternationNode $node): string
+    public function visitAlternation(AlternationNode $node): string
     {
         $parts = [];
         foreach ($node->alternatives as $alt) {
@@ -40,7 +67,7 @@ abstract class HighlighterVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitSequence(Node\SequenceNode $node): string
+    public function visitSequence(SequenceNode $node): string
     {
         $parts = [];
         foreach ($node->children as $child) {
@@ -51,13 +78,13 @@ abstract class HighlighterVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitQuantifier(Node\QuantifierNode $node): string
+    public function visitQuantifier(QuantifierNode $node): string
     {
         $inner = $node->node->accept($this);
         $quant = $node->quantifier;
-        if (Node\QuantifierType::T_LAZY === $node->type) {
+        if (QuantifierType::T_LAZY === $node->type) {
             $quant .= '?';
-        } elseif (Node\QuantifierType::T_POSSESSIVE === $node->type) {
+        } elseif (QuantifierType::T_POSSESSIVE === $node->type) {
             $quant .= '+';
         }
 
@@ -65,39 +92,39 @@ abstract class HighlighterVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitLiteral(Node\LiteralNode $node): string
+    public function visitLiteral(LiteralNode $node): string
     {
         return $this->wrap($this->escape($node->value), 'literal');
     }
 
     #[\Override]
-    public function visitCharType(Node\CharTypeNode $node): string
+    public function visitCharType(CharTypeNode $node): string
     {
         return $this->wrap('\\'.$node->value, 'type');
     }
 
     #[\Override]
-    public function visitDot(Node\DotNode $node): string
+    public function visitDot(DotNode $node): string
     {
         return $this->wrap('.', 'meta');
     }
 
     #[\Override]
-    public function visitAnchor(Node\AnchorNode $node): string
+    public function visitAnchor(AnchorNode $node): string
     {
         return $this->wrap($this->escape($node->value), 'anchor');
     }
 
     #[\Override]
-    public function visitAssertion(Node\AssertionNode $node): string
+    public function visitAssertion(AssertionNode $node): string
     {
         return $this->wrap('\\'.$node->value, 'type');
     }
 
     #[\Override]
-    public function visitCharClass(Node\CharClassNode $node): string
+    public function visitCharClass(CharClassNode $node): string
     {
-        $parts = $node->expression instanceof Node\AlternationNode
+        $parts = $node->expression instanceof AlternationNode
             ? $node->expression->alternatives
             : [$node->expression];
         $inner = '';
@@ -110,7 +137,7 @@ abstract class HighlighterVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitRange(Node\RangeNode $node): string
+    public function visitRange(RangeNode $node): string
     {
         $start = $node->start->accept($this);
         $end = $node->end->accept($this);
@@ -119,13 +146,13 @@ abstract class HighlighterVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitBackref(Node\BackrefNode $node): string
+    public function visitBackref(BackrefNode $node): string
     {
         return $this->wrap('\\'.$this->escape($node->ref), 'type');
     }
 
     #[\Override]
-    public function visitUnicode(Node\UnicodeNode $node): string
+    public function visitUnicode(UnicodeNode $node): string
     {
         // For non-printable characters (control chars and extended ASCII),
         // convert back to hex representation to avoid display issues
@@ -144,7 +171,7 @@ abstract class HighlighterVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitUnicodeProp(Node\UnicodePropNode $node): string
+    public function visitUnicodeProp(UnicodePropNode $node): string
     {
         $inner = $node->hasBraces ? trim($node->prop, '{}') : $node->prop;
         $isNegated = str_starts_with($inner, '^');
@@ -156,31 +183,31 @@ abstract class HighlighterVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitPosixClass(Node\PosixClassNode $node): string
+    public function visitPosixClass(PosixClassNode $node): string
     {
         return $this->wrap('[:'.$this->escape($node->class).':]', 'type');
     }
 
     #[\Override]
-    public function visitComment(Node\CommentNode $node): string
+    public function visitComment(CommentNode $node): string
     {
         return $this->wrap('(?#...)', 'meta');
     }
 
     #[\Override]
-    public function visitSubroutine(Node\SubroutineNode $node): string
+    public function visitSubroutine(SubroutineNode $node): string
     {
         return $this->wrap('(?'.$this->escape($node->reference).')', 'type');
     }
 
     #[\Override]
-    public function visitPcreVerb(Node\PcreVerbNode $node): string
+    public function visitPcreVerb(PcreVerbNode $node): string
     {
         return $this->wrap('(*'.$this->escape($node->verb).')', 'meta');
     }
 
     #[\Override]
-    public function visitDefine(Node\DefineNode $node): string
+    public function visitDefine(DefineNode $node): string
     {
         $inner = $node->content->accept($this);
 
@@ -188,13 +215,13 @@ abstract class HighlighterVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitLimitMatch(Node\LimitMatchNode $node): string
+    public function visitLimitMatch(LimitMatchNode $node): string
     {
         return $this->wrap('(*LIMIT_MATCH='.$node->limit.')', 'meta');
     }
 
     #[\Override]
-    public function visitCallout(Node\CalloutNode $node): string
+    public function visitCallout(CalloutNode $node): string
     {
         $content = $node->isStringIdentifier ? '"'.$this->escape((string) $node->identifier).'"' : (string) $node->identifier;
 
@@ -202,35 +229,35 @@ abstract class HighlighterVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitScriptRun(Node\ScriptRunNode $node): string
+    public function visitScriptRun(ScriptRunNode $node): string
     {
         return $this->wrap('(*script_run:'.$this->escape($node->script).')', 'meta');
     }
 
     #[\Override]
-    public function visitVersionCondition(Node\VersionConditionNode $node): string
+    public function visitVersionCondition(VersionConditionNode $node): string
     {
         return $this->wrap('(?(VERSION>='.$node->version.')', 'meta');
     }
 
     #[\Override]
-    public function visitKeep(Node\KeepNode $node): string
+    public function visitKeep(KeepNode $node): string
     {
         return $this->wrap('\\K', 'type');
     }
 
     #[\Override]
-    public function visitControlChar(Node\ControlCharNode $node): string
+    public function visitControlChar(ControlCharNode $node): string
     {
         return $this->wrap('\\c'.$node->char, 'type');
     }
 
     #[\Override]
-    public function visitClassOperation(Node\ClassOperationNode $node): string
+    public function visitClassOperation(ClassOperationNode $node): string
     {
         $left = $node->left->accept($this);
         $right = $node->right->accept($this);
-        $op = Node\ClassOperationType::INTERSECTION === $node->type ? '&&' : '--';
+        $op = ClassOperationType::INTERSECTION === $node->type ? '&&' : '--';
 
         return $this->wrap('[', 'meta').$left.$this->wrap($this->escape($op), 'meta').$right.$this->wrap(']', 'meta');
     }

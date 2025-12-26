@@ -14,8 +14,34 @@ declare(strict_types=1);
 namespace RegexParser\NodeVisitor;
 
 use RegexParser\Node;
+use RegexParser\Node\AlternationNode;
+use RegexParser\Node\AnchorNode;
+use RegexParser\Node\AssertionNode;
+use RegexParser\Node\BackrefNode;
+use RegexParser\Node\CalloutNode;
+use RegexParser\Node\CharClassNode;
+use RegexParser\Node\CharLiteralNode;
+use RegexParser\Node\CharTypeNode;
+use RegexParser\Node\CommentNode;
+use RegexParser\Node\ConditionalNode;
+use RegexParser\Node\DefineNode;
+use RegexParser\Node\DotNode;
+use RegexParser\Node\GroupNode;
 use RegexParser\Node\GroupType;
+use RegexParser\Node\KeepNode;
+use RegexParser\Node\LimitMatchNode;
+use RegexParser\Node\LiteralNode;
+use RegexParser\Node\NodeInterface;
+use RegexParser\Node\PcreVerbNode;
+use RegexParser\Node\PosixClassNode;
+use RegexParser\Node\QuantifierNode;
 use RegexParser\Node\QuantifierType;
+use RegexParser\Node\RangeNode;
+use RegexParser\Node\RegexNode;
+use RegexParser\Node\SequenceNode;
+use RegexParser\Node\SubroutineNode;
+use RegexParser\Node\UnicodeNode;
+use RegexParser\Node\UnicodePropNode;
 use RegexParser\ReDoS\CharSetAnalyzer;
 use RegexParser\ReDoS\ReDoSConfidence;
 use RegexParser\ReDoS\ReDoSFinding;
@@ -50,13 +76,13 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
 
     private bool $inAtomicGroup = false;
 
-    private ?Node\NodeInterface $previousNode = null;
+    private ?NodeInterface $previousNode = null;
 
-    private ?Node\NodeInterface $nextNode = null;
+    private ?NodeInterface $nextNode = null;
 
     private bool $backrefLoopDetected = false;
 
-    private ?Node\NodeInterface $culpritNode = null;
+    private ?NodeInterface $culpritNode = null;
 
     private ReDoSSeverity $culpritSeverity = ReDoSSeverity::SAFE;
 
@@ -120,13 +146,13 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
         return $this->hotspots;
     }
 
-    public function getCulpritNode(): ?Node\NodeInterface
+    public function getCulpritNode(): ?NodeInterface
     {
         return $this->culpritNode;
     }
 
     #[\Override]
-    public function visitRegex(Node\RegexNode $node): ReDoSSeverity
+    public function visitRegex(RegexNode $node): ReDoSSeverity
     {
         $this->unboundedQuantifierDepth = 0;
         $this->totalQuantifierDepth = 0;
@@ -143,7 +169,7 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitQuantifier(Node\QuantifierNode $node): ReDoSSeverity
+    public function visitQuantifier(QuantifierNode $node): ReDoSSeverity
     {
         // Save the current atomic state to restore it later
         $wasAtomic = $this->inAtomicGroup;
@@ -176,7 +202,7 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
         $isUnbounded = $this->isUnbounded($node->quantifier);
 
         // Check if the immediate target is an atomic group (e.g., (? >...)+)
-        $isTargetAtomic = $node->node instanceof Node\GroupNode && GroupType::T_GROUP_ATOMIC === $node->node->type;
+        $isTargetAtomic = $node->node instanceof GroupNode && GroupType::T_GROUP_ATOMIC === $node->node->type;
 
         $severity = ReDoSSeverity::SAFE;
         $entersUnbounded = $isUnbounded && !$isTargetAtomic;
@@ -279,7 +305,7 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitAlternation(Node\AlternationNode $node): ReDoSSeverity
+    public function visitAlternation(AlternationNode $node): ReDoSSeverity
     {
         $max = ReDoSSeverity::SAFE;
         $previous = $this->previousNode;
@@ -310,7 +336,7 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitGroup(Node\GroupNode $node): ReDoSSeverity
+    public function visitGroup(GroupNode $node): ReDoSSeverity
     {
         $wasAtomic = $this->inAtomicGroup;
         $previous = $this->previousNode;
@@ -332,7 +358,7 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitSequence(Node\SequenceNode $node): ReDoSSeverity
+    public function visitSequence(SequenceNode $node): ReDoSSeverity
     {
         $max = ReDoSSeverity::SAFE;
         $previous = $this->previousNode;
@@ -364,7 +390,7 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
      * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
      */
     #[\Override]
-    public function visitLiteral(Node\LiteralNode $node): ReDoSSeverity
+    public function visitLiteral(LiteralNode $node): ReDoSSeverity
     {
         return ReDoSSeverity::SAFE;
     }
@@ -381,7 +407,7 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
      * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
      */
     #[\Override]
-    public function visitCharType(Node\CharTypeNode $node): ReDoSSeverity
+    public function visitCharType(CharTypeNode $node): ReDoSSeverity
     {
         return ReDoSSeverity::SAFE;
     }
@@ -398,7 +424,7 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
      * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
      */
     #[\Override]
-    public function visitDot(Node\DotNode $node): ReDoSSeverity
+    public function visitDot(DotNode $node): ReDoSSeverity
     {
         return ReDoSSeverity::SAFE;
     }
@@ -415,7 +441,7 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
      * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
      */
     #[\Override]
-    public function visitAnchor(Node\AnchorNode $node): ReDoSSeverity
+    public function visitAnchor(AnchorNode $node): ReDoSSeverity
     {
         return ReDoSSeverity::SAFE;
     }
@@ -432,7 +458,7 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
      * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
      */
     #[\Override]
-    public function visitAssertion(Node\AssertionNode $node): ReDoSSeverity
+    public function visitAssertion(AssertionNode $node): ReDoSSeverity
     {
         return ReDoSSeverity::SAFE;
     }
@@ -449,7 +475,7 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
      * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
      */
     #[\Override]
-    public function visitKeep(Node\KeepNode $node): ReDoSSeverity
+    public function visitKeep(KeepNode $node): ReDoSSeverity
     {
         return ReDoSSeverity::SAFE;
     }
@@ -466,7 +492,7 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
      * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
      */
     #[\Override]
-    public function visitCharClass(Node\CharClassNode $node): ReDoSSeverity
+    public function visitCharClass(CharClassNode $node): ReDoSSeverity
     {
         return ReDoSSeverity::SAFE;
     }
@@ -483,7 +509,7 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
      * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
      */
     #[\Override]
-    public function visitRange(Node\RangeNode $node): ReDoSSeverity
+    public function visitRange(RangeNode $node): ReDoSSeverity
     {
         return ReDoSSeverity::SAFE;
     }
@@ -500,7 +526,7 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
      * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
      */
     #[\Override]
-    public function visitBackref(Node\BackrefNode $node): ReDoSSeverity
+    public function visitBackref(BackrefNode $node): ReDoSSeverity
     {
         return ReDoSSeverity::SAFE;
     }
@@ -517,7 +543,7 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
      * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
      */
     #[\Override]
-    public function visitUnicode(Node\UnicodeNode $node): ReDoSSeverity
+    public function visitUnicode(UnicodeNode $node): ReDoSSeverity
     {
         return ReDoSSeverity::SAFE;
     }
@@ -534,7 +560,7 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
      * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
      */
     #[\Override]
-    public function visitUnicodeProp(Node\UnicodePropNode $node): ReDoSSeverity
+    public function visitUnicodeProp(UnicodePropNode $node): ReDoSSeverity
     {
         return ReDoSSeverity::SAFE;
     }
@@ -551,7 +577,7 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
      * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
      */
     #[\Override]
-    public function visitPosixClass(Node\PosixClassNode $node): ReDoSSeverity
+    public function visitPosixClass(PosixClassNode $node): ReDoSSeverity
     {
         return ReDoSSeverity::SAFE;
     }
@@ -568,7 +594,7 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
      * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
      */
     #[\Override]
-    public function visitComment(Node\CommentNode $node): ReDoSSeverity
+    public function visitComment(CommentNode $node): ReDoSSeverity
     {
         return ReDoSSeverity::SAFE;
     }
@@ -585,13 +611,13 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
      * @return ReDoSSeverity always `ReDoSSeverity::SAFE`
      */
     #[\Override]
-    public function visitPcreVerb(Node\PcreVerbNode $node): ReDoSSeverity
+    public function visitPcreVerb(PcreVerbNode $node): ReDoSSeverity
     {
         return ReDoSSeverity::SAFE;
     }
 
     #[\Override]
-    public function visitConditional(Node\ConditionalNode $node): ReDoSSeverity
+    public function visitConditional(ConditionalNode $node): ReDoSSeverity
     {
         return $this->maxSeverity(
             $node->yes->accept($this),
@@ -600,7 +626,7 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitSubroutine(Node\SubroutineNode $node): ReDoSSeverity
+    public function visitSubroutine(SubroutineNode $node): ReDoSSeverity
     {
         $this->addVulnerability(
             ReDoSSeverity::MEDIUM,
@@ -615,14 +641,14 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitDefine(Node\DefineNode $node): ReDoSSeverity
+    public function visitDefine(DefineNode $node): ReDoSSeverity
     {
         // Analyze the content of the DEFINE block for ReDoS vulnerabilities
         return $node->content->accept($this);
     }
 
     #[\Override]
-    public function visitLimitMatch(Node\LimitMatchNode $node): ReDoSSeverity
+    public function visitLimitMatch(LimitMatchNode $node): ReDoSSeverity
     {
         return ReDoSSeverity::SAFE;
     }
@@ -634,7 +660,7 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
      * so they are considered safe in this static analysis.
      */
     #[\Override]
-    public function visitCallout(Node\CalloutNode $node): ReDoSSeverity
+    public function visitCallout(CalloutNode $node): ReDoSSeverity
     {
         return ReDoSSeverity::SAFE;
     }
@@ -699,7 +725,7 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
      *
      * @return bool true if overlapping alternatives are found, false otherwise
      */
-    private function hasOverlappingAlternatives(Node\AlternationNode $node): bool
+    private function hasOverlappingAlternatives(AlternationNode $node): bool
     {
         $sets = [];
 
@@ -739,30 +765,30 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
      *
      * @return string A string representing the prefix signature (e.g., 'DOT' or empty if not applicable).
      */
-    private function getPrefixSignature(Node\NodeInterface $node): string
+    private function getPrefixSignature(NodeInterface $node): string
     {
-        if ($node instanceof Node\DotNode) {
+        if ($node instanceof DotNode) {
             return 'DOT';
         }
-        if ($node instanceof Node\SequenceNode && !empty($node->children)) {
+        if ($node instanceof SequenceNode && !empty($node->children)) {
             return $this->getPrefixSignature($node->children[0]);
         }
-        if ($node instanceof Node\GroupNode) {
+        if ($node instanceof GroupNode) {
             return $this->getPrefixSignature($node->child);
         }
-        if ($node instanceof Node\QuantifierNode) {
+        if ($node instanceof QuantifierNode) {
             return $this->getPrefixSignature($node->node);
         }
 
         return '';
     }
 
-    private function startsWithDot(Node\NodeInterface $node): bool
+    private function startsWithDot(NodeInterface $node): bool
     {
         return 'DOT' === $this->getPrefixSignature($node);
     }
 
-    private function hasTrailingBacktrackingControl(Node\NodeInterface $node): bool
+    private function hasTrailingBacktrackingControl(NodeInterface $node): bool
     {
         $verbNode = $this->extractTrailingVerb($node);
         if (null === $verbNode) {
@@ -774,26 +800,26 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
         return \in_array($verbName, ['COMMIT', 'PRUNE', 'SKIP'], true);
     }
 
-    private function extractTrailingVerb(Node\NodeInterface $node): ?Node\PcreVerbNode
+    private function extractTrailingVerb(NodeInterface $node): ?PcreVerbNode
     {
-        if ($node instanceof Node\PcreVerbNode) {
+        if ($node instanceof PcreVerbNode) {
             return $node;
         }
 
-        if ($node instanceof Node\SequenceNode && !empty($node->children)) {
+        if ($node instanceof SequenceNode && !empty($node->children)) {
             $last = $node->children[\count($node->children) - 1];
 
             return $this->extractTrailingVerb($last);
         }
 
-        if ($node instanceof Node\GroupNode) {
+        if ($node instanceof GroupNode) {
             return $this->extractTrailingVerb($node->child);
         }
 
         return null;
     }
 
-    private function hasMutuallyExclusiveBoundary(?Node\NodeInterface $previous, Node\NodeInterface $current): bool
+    private function hasMutuallyExclusiveBoundary(?NodeInterface $previous, NodeInterface $current): bool
     {
         if (null === $previous) {
             return false;
@@ -809,7 +835,7 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
         return !$previousTail->intersects($currentHead);
     }
 
-    private function hasForwardMutuallyExclusiveBoundary(Node\NodeInterface $current, ?Node\NodeInterface $next): bool
+    private function hasForwardMutuallyExclusiveBoundary(NodeInterface $current, ?NodeInterface $next): bool
     {
         if (null === $next) {
             return false;
@@ -836,7 +862,7 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
     private function addVulnerability(
         ReDoSSeverity $severity,
         string $message,
-        Node\NodeInterface $triggerNode,
+        NodeInterface $triggerNode,
         ?string $suggestedRewrite = null,
         ReDoSConfidence $confidence = ReDoSConfidence::MEDIUM,
         ?string $falsePositiveRisk = null,
@@ -868,18 +894,18 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
         }
     }
 
-    private function compileNode(Node\NodeInterface $node): string
+    private function compileNode(NodeInterface $node): string
     {
         return $node->accept(new CompilerNodeVisitor());
     }
 
-    private function describeTrigger(Node\NodeInterface $node): string
+    private function describeTrigger(NodeInterface $node): string
     {
         return match (true) {
-            $node instanceof Node\QuantifierNode => 'quantifier '.$node->quantifier,
-            $node instanceof Node\AlternationNode => 'alternation',
-            $node instanceof Node\GroupNode => 'group',
-            $node instanceof Node\SubroutineNode => 'subroutine',
+            $node instanceof QuantifierNode => 'quantifier '.$node->quantifier,
+            $node instanceof AlternationNode => 'alternation',
+            $node instanceof GroupNode => 'group',
+            $node instanceof SubroutineNode => 'subroutine',
             default => $node::class,
         };
     }
@@ -931,7 +957,7 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
      * Detects if a subtree contains a backreference and a variable-length capturing group,
      * which can lead to catastrophic backtracking when repeated.
      */
-    private function hasBackrefLoop(Node\NodeInterface $node): bool
+    private function hasBackrefLoop(NodeInterface $node): bool
     {
         $state = $this->analyzeBackrefLoop($node);
 
@@ -941,12 +967,12 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
     /**
      * @return array{hasBackref: bool, hasVariableCapture: bool}
      */
-    private function analyzeBackrefLoop(Node\NodeInterface $node): array
+    private function analyzeBackrefLoop(NodeInterface $node): array
     {
-        $hasBackref = $node instanceof Node\BackrefNode;
+        $hasBackref = $node instanceof BackrefNode;
         $hasVariableCapture = false;
 
-        if ($node instanceof Node\GroupNode && $this->isCapturingGroup($node)) {
+        if ($node instanceof GroupNode && $this->isCapturingGroup($node)) {
             [$min, $max] = $this->lengthRange($node->child);
             if (null === $max || $min !== $max) {
                 $hasVariableCapture = true;
@@ -954,11 +980,11 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
         }
 
         $children = match (true) {
-            $node instanceof Node\SequenceNode => $node->children,
-            $node instanceof Node\AlternationNode => $node->alternatives,
-            $node instanceof Node\QuantifierNode => [$node->node],
-            $node instanceof Node\GroupNode => [$node->child],
-            $node instanceof Node\ConditionalNode => [$node->condition, $node->yes, $node->no],
+            $node instanceof SequenceNode => $node->children,
+            $node instanceof AlternationNode => $node->alternatives,
+            $node instanceof QuantifierNode => [$node->node],
+            $node instanceof GroupNode => [$node->child],
+            $node instanceof ConditionalNode => [$node->condition, $node->yes, $node->no],
             default => [],
         };
 
@@ -977,37 +1003,37 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
     /**
      * @return array{0:int, 1:int|null}
      */
-    private function lengthRange(Node\NodeInterface $node): array
+    private function lengthRange(NodeInterface $node): array
     {
-        if ($node instanceof Node\LiteralNode) {
+        if ($node instanceof LiteralNode) {
             $len = \strlen($node->value);
 
             return [$len, $len];
         }
 
-        if ($node instanceof Node\CharTypeNode
-            || $node instanceof Node\DotNode
-            || $node instanceof Node\CharClassNode
-            || $node instanceof Node\RangeNode
-            || $node instanceof Node\UnicodeNode
-            || $node instanceof Node\UnicodePropNode
-            || $node instanceof Node\CharLiteralNode
-            || $node instanceof Node\PosixClassNode
+        if ($node instanceof CharTypeNode
+            || $node instanceof DotNode
+            || $node instanceof CharClassNode
+            || $node instanceof RangeNode
+            || $node instanceof UnicodeNode
+            || $node instanceof UnicodePropNode
+            || $node instanceof CharLiteralNode
+            || $node instanceof PosixClassNode
         ) {
             return [1, 1];
         }
 
-        if ($node instanceof Node\AnchorNode
-            || $node instanceof Node\AssertionNode
-            || $node instanceof Node\KeepNode
-            || $node instanceof Node\PcreVerbNode
-            || $node instanceof Node\CommentNode
-            || $node instanceof Node\CalloutNode
+        if ($node instanceof AnchorNode
+            || $node instanceof AssertionNode
+            || $node instanceof KeepNode
+            || $node instanceof PcreVerbNode
+            || $node instanceof CommentNode
+            || $node instanceof CalloutNode
         ) {
             return [0, 0];
         }
 
-        if ($node instanceof Node\SequenceNode) {
+        if ($node instanceof SequenceNode) {
             $min = 0;
             $max = 0;
             foreach ($node->children as $child) {
@@ -1019,7 +1045,7 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
             return [$min, $max];
         }
 
-        if ($node instanceof Node\AlternationNode) {
+        if ($node instanceof AlternationNode) {
             $min = null;
             $max = 0;
             foreach ($node->alternatives as $child) {
@@ -1031,11 +1057,11 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
             return [$min ?? 0, $max];
         }
 
-        if ($node instanceof Node\GroupNode) {
+        if ($node instanceof GroupNode) {
             return $this->lengthRange($node->child);
         }
 
-        if ($node instanceof Node\QuantifierNode) {
+        if ($node instanceof QuantifierNode) {
             [$cMin, $cMax] = $this->lengthRange($node->node);
             [$qMin, $qMax] = $this->quantifierBounds($node->quantifier);
 
@@ -1045,7 +1071,7 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
             return [$min, $max];
         }
 
-        if ($node instanceof Node\BackrefNode || $node instanceof Node\SubroutineNode) {
+        if ($node instanceof BackrefNode || $node instanceof SubroutineNode) {
             return [0, null];
         }
 
@@ -1082,7 +1108,7 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
         return [0, null];
     }
 
-    private function isCapturingGroup(Node\GroupNode $group): bool
+    private function isCapturingGroup(GroupNode $group): bool
     {
         return \in_array($group->type, [
             GroupType::T_GROUP_CAPTURING,

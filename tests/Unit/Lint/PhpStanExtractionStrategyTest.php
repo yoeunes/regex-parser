@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\Unit\Lint;
 
+use PhpParser\ParserFactory;
 use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Lint\PhpStanExtractionStrategy;
@@ -265,6 +266,6 @@ final class PhpStanExtractionStrategyTest extends TestCase
 
     private function isPhpParserAvailable(): bool
     {
-        return class_exists(\PhpParser\ParserFactory::class);
+        return class_exists(ParserFactory::class);
     }
 }

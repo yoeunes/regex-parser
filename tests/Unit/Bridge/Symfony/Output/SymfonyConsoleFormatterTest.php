@@ -15,16 +15,24 @@ namespace RegexParser\Tests\Unit\Bridge\Symfony\Output;
 
 use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
+use RegexParser\Bridge\Symfony\Console\LinkFormatter;
+use RegexParser\Bridge\Symfony\Console\RelativePathHelper;
+use RegexParser\Bridge\Symfony\Output\SymfonyConsoleFormatter;
+use RegexParser\Lint\RegexAnalysisService;
+use RegexParser\Lint\RegexLintReport;
+use RegexParser\OptimizationResult;
+use RegexParser\Regex;
+use Symfony\Component\Console\Formatter\OutputFormatter;
 
 final class SymfonyConsoleFormatterTest extends TestCase
 {
     protected function setUp(): void
     {
-        if (!class_exists(\Symfony\Component\Console\Formatter\OutputFormatter::class)) {
+        if (!class_exists(OutputFormatter::class)) {
             $this->markTestSkipped('Symfony Console component is not available');
         }
 
-        if (!class_exists(\RegexParser\Bridge\Symfony\Console\LinkFormatter::class)) {
+        if (!class_exists(LinkFormatter::class)) {
             $this->markTestSkipped('LinkFormatter is not available');
         }
     }
@@ -32,22 +40,22 @@ final class SymfonyConsoleFormatterTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_construct(): void
     {
-        $analysis = new \RegexParser\Lint\RegexAnalysisService(\RegexParser\Regex::create());
-        $relativePathHelper = new \RegexParser\Bridge\Symfony\Console\RelativePathHelper();
-        $linkFormatter = new \RegexParser\Bridge\Symfony\Console\LinkFormatter(null, $relativePathHelper);
+        $analysis = new RegexAnalysisService(Regex::create());
+        $relativePathHelper = new RelativePathHelper();
+        $linkFormatter = new LinkFormatter(null, $relativePathHelper);
 
-        $formatter = new \RegexParser\Bridge\Symfony\Output\SymfonyConsoleFormatter($analysis, $linkFormatter);
+        $formatter = new SymfonyConsoleFormatter($analysis, $linkFormatter);
     }
 
     public function test_format_empty_report(): void
     {
-        $analysis = new \RegexParser\Lint\RegexAnalysisService(\RegexParser\Regex::create());
-        $relativePathHelper = new \RegexParser\Bridge\Symfony\Console\RelativePathHelper();
-        $linkFormatter = new \RegexParser\Bridge\Symfony\Console\LinkFormatter(null, $relativePathHelper);
+        $analysis = new RegexAnalysisService(Regex::create());
+        $relativePathHelper = new RelativePathHelper();
+        $linkFormatter = new LinkFormatter(null, $relativePathHelper);
 
-        $formatter = new \RegexParser\Bridge\Symfony\Output\SymfonyConsoleFormatter($analysis, $linkFormatter);
+        $formatter = new SymfonyConsoleFormatter($analysis, $linkFormatter);
 
-        $report = new \RegexParser\Lint\RegexLintReport([], ['errors' => 0, 'warnings' => 0, 'optimizations' => 0]);
+        $report = new RegexLintReport([], ['errors' => 0, 'warnings' => 0, 'optimizations' => 0]);
 
         $output = $formatter->format($report);
 
@@ -57,11 +65,11 @@ final class SymfonyConsoleFormatterTest extends TestCase
 
     public function test_format_error(): void
     {
-        $analysis = new \RegexParser\Lint\RegexAnalysisService(\RegexParser\Regex::create());
-        $relativePathHelper = new \RegexParser\Bridge\Symfony\Console\RelativePathHelper();
-        $linkFormatter = new \RegexParser\Bridge\Symfony\Console\LinkFormatter(null, $relativePathHelper);
+        $analysis = new RegexAnalysisService(Regex::create());
+        $relativePathHelper = new RelativePathHelper();
+        $linkFormatter = new LinkFormatter(null, $relativePathHelper);
 
-        $formatter = new \RegexParser\Bridge\Symfony\Output\SymfonyConsoleFormatter($analysis, $linkFormatter);
+        $formatter = new SymfonyConsoleFormatter($analysis, $linkFormatter);
 
         $result = 'Test error message';
 
@@ -72,11 +80,11 @@ final class SymfonyConsoleFormatterTest extends TestCase
 
     public function test_format_with_error_issues(): void
     {
-        $analysis = new \RegexParser\Lint\RegexAnalysisService(\RegexParser\Regex::create());
-        $relativePathHelper = new \RegexParser\Bridge\Symfony\Console\RelativePathHelper();
-        $linkFormatter = new \RegexParser\Bridge\Symfony\Console\LinkFormatter(null, $relativePathHelper);
+        $analysis = new RegexAnalysisService(Regex::create());
+        $relativePathHelper = new RelativePathHelper();
+        $linkFormatter = new LinkFormatter(null, $relativePathHelper);
 
-        $formatter = new \RegexParser\Bridge\Symfony\Output\SymfonyConsoleFormatter($analysis, $linkFormatter);
+        $formatter = new SymfonyConsoleFormatter($analysis, $linkFormatter);
 
         $result = [
             'file' => 'test.php',
@@ -94,7 +102,7 @@ final class SymfonyConsoleFormatterTest extends TestCase
             'problems' => [],
         ];
 
-        $report = new \RegexParser\Lint\RegexLintReport([$result], ['errors' => 1, 'warnings' => 0, 'optimizations' => 0]);
+        $report = new RegexLintReport([$result], ['errors' => 1, 'warnings' => 0, 'optimizations' => 0]);
 
         $output = $formatter->format($report);
 
@@ -105,11 +113,11 @@ final class SymfonyConsoleFormatterTest extends TestCase
 
     public function test_format_with_warning_issues(): void
     {
-        $analysis = new \RegexParser\Lint\RegexAnalysisService(\RegexParser\Regex::create());
-        $relativePathHelper = new \RegexParser\Bridge\Symfony\Console\RelativePathHelper();
-        $linkFormatter = new \RegexParser\Bridge\Symfony\Console\LinkFormatter(null, $relativePathHelper);
+        $analysis = new RegexAnalysisService(Regex::create());
+        $relativePathHelper = new RelativePathHelper();
+        $linkFormatter = new LinkFormatter(null, $relativePathHelper);
 
-        $formatter = new \RegexParser\Bridge\Symfony\Output\SymfonyConsoleFormatter($analysis, $linkFormatter);
+        $formatter = new SymfonyConsoleFormatter($analysis, $linkFormatter);
 
         $result = [
             'file' => 'test.php',
@@ -128,7 +136,7 @@ final class SymfonyConsoleFormatterTest extends TestCase
             'problems' => [],
         ];
 
-        $report = new \RegexParser\Lint\RegexLintReport([$result], ['errors' => 0, 'warnings' => 1, 'optimizations' => 0]);
+        $report = new RegexLintReport([$result], ['errors' => 0, 'warnings' => 1, 'optimizations' => 0]);
 
         $output = $formatter->format($report);
 
@@ -139,11 +147,11 @@ final class SymfonyConsoleFormatterTest extends TestCase
 
     public function test_format_with_info_issues(): void
     {
-        $analysis = new \RegexParser\Lint\RegexAnalysisService(\RegexParser\Regex::create());
-        $relativePathHelper = new \RegexParser\Bridge\Symfony\Console\RelativePathHelper();
-        $linkFormatter = new \RegexParser\Bridge\Symfony\Console\LinkFormatter(null, $relativePathHelper);
+        $analysis = new RegexAnalysisService(Regex::create());
+        $relativePathHelper = new RelativePathHelper();
+        $linkFormatter = new LinkFormatter(null, $relativePathHelper);
 
-        $formatter = new \RegexParser\Bridge\Symfony\Output\SymfonyConsoleFormatter($analysis, $linkFormatter);
+        $formatter = new SymfonyConsoleFormatter($analysis, $linkFormatter);
 
         $result = [
             'file' => 'test.php',
@@ -161,7 +169,7 @@ final class SymfonyConsoleFormatterTest extends TestCase
             'problems' => [],
         ];
 
-        $report = new \RegexParser\Lint\RegexLintReport([$result], ['errors' => 0, 'warnings' => 0, 'optimizations' => 0]);
+        $report = new RegexLintReport([$result], ['errors' => 0, 'warnings' => 0, 'optimizations' => 0]);
 
         $output = $formatter->format($report);
 
@@ -170,13 +178,13 @@ final class SymfonyConsoleFormatterTest extends TestCase
 
     public function test_format_with_optimizations(): void
     {
-        $analysis = new \RegexParser\Lint\RegexAnalysisService(\RegexParser\Regex::create());
-        $relativePathHelper = new \RegexParser\Bridge\Symfony\Console\RelativePathHelper();
-        $linkFormatter = new \RegexParser\Bridge\Symfony\Console\LinkFormatter(null, $relativePathHelper);
+        $analysis = new RegexAnalysisService(Regex::create());
+        $relativePathHelper = new RelativePathHelper();
+        $linkFormatter = new LinkFormatter(null, $relativePathHelper);
 
-        $formatter = new \RegexParser\Bridge\Symfony\Output\SymfonyConsoleFormatter($analysis, $linkFormatter);
+        $formatter = new SymfonyConsoleFormatter($analysis, $linkFormatter);
 
-        $optimization = new \RegexParser\OptimizationResult('original', 'optimized');
+        $optimization = new OptimizationResult('original', 'optimized');
         $result = [
             'file' => 'test.php',
             'line' => 10,
@@ -193,7 +201,7 @@ final class SymfonyConsoleFormatterTest extends TestCase
             'problems' => [],
         ];
 
-        $report = new \RegexParser\Lint\RegexLintReport([$result], ['errors' => 0, 'warnings' => 0, 'optimizations' => 1]);
+        $report = new RegexLintReport([$result], ['errors' => 0, 'warnings' => 0, 'optimizations' => 1]);
 
         $output = $formatter->format($report);
 
@@ -205,11 +213,11 @@ final class SymfonyConsoleFormatterTest extends TestCase
 
     public function test_format_with_location(): void
     {
-        $analysis = new \RegexParser\Lint\RegexAnalysisService(\RegexParser\Regex::create());
-        $relativePathHelper = new \RegexParser\Bridge\Symfony\Console\RelativePathHelper();
-        $linkFormatter = new \RegexParser\Bridge\Symfony\Console\LinkFormatter(null, $relativePathHelper);
+        $analysis = new RegexAnalysisService(Regex::create());
+        $relativePathHelper = new RelativePathHelper();
+        $linkFormatter = new LinkFormatter(null, $relativePathHelper);
 
-        $formatter = new \RegexParser\Bridge\Symfony\Output\SymfonyConsoleFormatter($analysis, $linkFormatter);
+        $formatter = new SymfonyConsoleFormatter($analysis, $linkFormatter);
 
         $result = [
             'file' => 'test.php',
@@ -228,7 +236,7 @@ final class SymfonyConsoleFormatterTest extends TestCase
             'problems' => [],
         ];
 
-        $report = new \RegexParser\Lint\RegexLintReport([$result], ['errors' => 1, 'warnings' => 0, 'optimizations' => 0]);
+        $report = new RegexLintReport([$result], ['errors' => 1, 'warnings' => 0, 'optimizations' => 0]);
 
         $output = $formatter->format($report);
 
@@ -237,11 +245,11 @@ final class SymfonyConsoleFormatterTest extends TestCase
 
     public function test_format_with_multiple_files(): void
     {
-        $analysis = new \RegexParser\Lint\RegexAnalysisService(\RegexParser\Regex::create());
-        $relativePathHelper = new \RegexParser\Bridge\Symfony\Console\RelativePathHelper();
-        $linkFormatter = new \RegexParser\Bridge\Symfony\Console\LinkFormatter(null, $relativePathHelper);
+        $analysis = new RegexAnalysisService(Regex::create());
+        $relativePathHelper = new RelativePathHelper();
+        $linkFormatter = new LinkFormatter(null, $relativePathHelper);
 
-        $formatter = new \RegexParser\Bridge\Symfony\Output\SymfonyConsoleFormatter($analysis, $linkFormatter);
+        $formatter = new SymfonyConsoleFormatter($analysis, $linkFormatter);
 
         $result1 = [
             'file' => 'file1.php',
@@ -275,7 +283,7 @@ final class SymfonyConsoleFormatterTest extends TestCase
             'problems' => [],
         ];
 
-        $report = new \RegexParser\Lint\RegexLintReport([$result1, $result2], ['errors' => 1, 'warnings' => 1, 'optimizations' => 0]);
+        $report = new RegexLintReport([$result1, $result2], ['errors' => 1, 'warnings' => 1, 'optimizations' => 0]);
 
         $output = $formatter->format($report);
 
@@ -287,11 +295,11 @@ final class SymfonyConsoleFormatterTest extends TestCase
 
     public function test_format_with_multiline_message(): void
     {
-        $analysis = new \RegexParser\Lint\RegexAnalysisService(\RegexParser\Regex::create());
-        $relativePathHelper = new \RegexParser\Bridge\Symfony\Console\RelativePathHelper();
-        $linkFormatter = new \RegexParser\Bridge\Symfony\Console\LinkFormatter(null, $relativePathHelper);
+        $analysis = new RegexAnalysisService(Regex::create());
+        $relativePathHelper = new RelativePathHelper();
+        $linkFormatter = new LinkFormatter(null, $relativePathHelper);
 
-        $formatter = new \RegexParser\Bridge\Symfony\Output\SymfonyConsoleFormatter($analysis, $linkFormatter);
+        $formatter = new SymfonyConsoleFormatter($analysis, $linkFormatter);
 
         $result = [
             'file' => 'test.php',
@@ -309,7 +317,7 @@ final class SymfonyConsoleFormatterTest extends TestCase
             'problems' => [],
         ];
 
-        $report = new \RegexParser\Lint\RegexLintReport([$result], ['errors' => 1, 'warnings' => 0, 'optimizations' => 0]);
+        $report = new RegexLintReport([$result], ['errors' => 1, 'warnings' => 0, 'optimizations' => 0]);
 
         $output = $formatter->format($report);
 
@@ -318,11 +326,11 @@ final class SymfonyConsoleFormatterTest extends TestCase
 
     public function test_format_with_no_pattern(): void
     {
-        $analysis = new \RegexParser\Lint\RegexAnalysisService(\RegexParser\Regex::create());
-        $relativePathHelper = new \RegexParser\Bridge\Symfony\Console\RelativePathHelper();
-        $linkFormatter = new \RegexParser\Bridge\Symfony\Console\LinkFormatter(null, $relativePathHelper);
+        $analysis = new RegexAnalysisService(Regex::create());
+        $relativePathHelper = new RelativePathHelper();
+        $linkFormatter = new LinkFormatter(null, $relativePathHelper);
 
-        $formatter = new \RegexParser\Bridge\Symfony\Output\SymfonyConsoleFormatter($analysis, $linkFormatter);
+        $formatter = new SymfonyConsoleFormatter($analysis, $linkFormatter);
 
         $result = [
             'file' => 'test.php',
@@ -341,7 +349,7 @@ final class SymfonyConsoleFormatterTest extends TestCase
             'problems' => [],
         ];
 
-        $report = new \RegexParser\Lint\RegexLintReport([$result], ['errors' => 1, 'warnings' => 0, 'optimizations' => 0]);
+        $report = new RegexLintReport([$result], ['errors' => 1, 'warnings' => 0, 'optimizations' => 0]);
 
         $output = $formatter->format($report);
 
@@ -350,11 +358,11 @@ final class SymfonyConsoleFormatterTest extends TestCase
 
     public function test_format_with_decorated_false(): void
     {
-        $analysis = new \RegexParser\Lint\RegexAnalysisService(\RegexParser\Regex::create());
-        $relativePathHelper = new \RegexParser\Bridge\Symfony\Console\RelativePathHelper();
-        $linkFormatter = new \RegexParser\Bridge\Symfony\Console\LinkFormatter(null, $relativePathHelper);
+        $analysis = new RegexAnalysisService(Regex::create());
+        $relativePathHelper = new RelativePathHelper();
+        $linkFormatter = new LinkFormatter(null, $relativePathHelper);
 
-        $formatter = new \RegexParser\Bridge\Symfony\Output\SymfonyConsoleFormatter($analysis, $linkFormatter, false);
+        $formatter = new SymfonyConsoleFormatter($analysis, $linkFormatter, false);
 
         $result = [
             'file' => 'test.php',
@@ -372,7 +380,7 @@ final class SymfonyConsoleFormatterTest extends TestCase
             'problems' => [],
         ];
 
-        $report = new \RegexParser\Lint\RegexLintReport([$result], ['errors' => 1, 'warnings' => 0, 'optimizations' => 0]);
+        $report = new RegexLintReport([$result], ['errors' => 1, 'warnings' => 0, 'optimizations' => 0]);
 
         $output = $formatter->format($report);
 
@@ -383,13 +391,13 @@ final class SymfonyConsoleFormatterTest extends TestCase
 
     public function test_format_summary_with_errors(): void
     {
-        $analysis = new \RegexParser\Lint\RegexAnalysisService(\RegexParser\Regex::create());
-        $relativePathHelper = new \RegexParser\Bridge\Symfony\Console\RelativePathHelper();
-        $linkFormatter = new \RegexParser\Bridge\Symfony\Console\LinkFormatter(null, $relativePathHelper);
+        $analysis = new RegexAnalysisService(Regex::create());
+        $relativePathHelper = new RelativePathHelper();
+        $linkFormatter = new LinkFormatter(null, $relativePathHelper);
 
-        $formatter = new \RegexParser\Bridge\Symfony\Output\SymfonyConsoleFormatter($analysis, $linkFormatter);
+        $formatter = new SymfonyConsoleFormatter($analysis, $linkFormatter);
 
-        $report = new \RegexParser\Lint\RegexLintReport([], ['errors' => 2, 'warnings' => 1, 'optimizations' => 3]);
+        $report = new RegexLintReport([], ['errors' => 2, 'warnings' => 1, 'optimizations' => 3]);
 
         $output = $formatter->format($report);
 
@@ -399,13 +407,13 @@ final class SymfonyConsoleFormatterTest extends TestCase
 
     public function test_format_summary_with_warnings_only(): void
     {
-        $analysis = new \RegexParser\Lint\RegexAnalysisService(\RegexParser\Regex::create());
-        $relativePathHelper = new \RegexParser\Bridge\Symfony\Console\RelativePathHelper();
-        $linkFormatter = new \RegexParser\Bridge\Symfony\Console\LinkFormatter(null, $relativePathHelper);
+        $analysis = new RegexAnalysisService(Regex::create());
+        $relativePathHelper = new RelativePathHelper();
+        $linkFormatter = new LinkFormatter(null, $relativePathHelper);
 
-        $formatter = new \RegexParser\Bridge\Symfony\Output\SymfonyConsoleFormatter($analysis, $linkFormatter);
+        $formatter = new SymfonyConsoleFormatter($analysis, $linkFormatter);
 
-        $report = new \RegexParser\Lint\RegexLintReport([], ['errors' => 0, 'warnings' => 2, 'optimizations' => 1]);
+        $report = new RegexLintReport([], ['errors' => 0, 'warnings' => 2, 'optimizations' => 1]);
 
         $output = $formatter->format($report);
 
@@ -415,13 +423,13 @@ final class SymfonyConsoleFormatterTest extends TestCase
 
     public function test_format_summary_with_optimizations_only(): void
     {
-        $analysis = new \RegexParser\Lint\RegexAnalysisService(\RegexParser\Regex::create());
-        $relativePathHelper = new \RegexParser\Bridge\Symfony\Console\RelativePathHelper();
-        $linkFormatter = new \RegexParser\Bridge\Symfony\Console\LinkFormatter(null, $relativePathHelper);
+        $analysis = new RegexAnalysisService(Regex::create());
+        $relativePathHelper = new RelativePathHelper();
+        $linkFormatter = new LinkFormatter(null, $relativePathHelper);
 
-        $formatter = new \RegexParser\Bridge\Symfony\Output\SymfonyConsoleFormatter($analysis, $linkFormatter);
+        $formatter = new SymfonyConsoleFormatter($analysis, $linkFormatter);
 
-        $report = new \RegexParser\Lint\RegexLintReport([], ['errors' => 0, 'warnings' => 0, 'optimizations' => 3]);
+        $report = new RegexLintReport([], ['errors' => 0, 'warnings' => 0, 'optimizations' => 3]);
 
         $output = $formatter->format($report);
 

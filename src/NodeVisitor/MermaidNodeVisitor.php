@@ -14,6 +14,31 @@ declare(strict_types=1);
 namespace RegexParser\NodeVisitor;
 
 use RegexParser\Node;
+use RegexParser\Node\AlternationNode;
+use RegexParser\Node\AnchorNode;
+use RegexParser\Node\AssertionNode;
+use RegexParser\Node\BackrefNode;
+use RegexParser\Node\CalloutNode;
+use RegexParser\Node\CharClassNode;
+use RegexParser\Node\CharLiteralNode;
+use RegexParser\Node\CharTypeNode;
+use RegexParser\Node\CommentNode;
+use RegexParser\Node\ConditionalNode;
+use RegexParser\Node\DefineNode;
+use RegexParser\Node\DotNode;
+use RegexParser\Node\GroupNode;
+use RegexParser\Node\KeepNode;
+use RegexParser\Node\LimitMatchNode;
+use RegexParser\Node\LiteralNode;
+use RegexParser\Node\PcreVerbNode;
+use RegexParser\Node\PosixClassNode;
+use RegexParser\Node\QuantifierNode;
+use RegexParser\Node\RangeNode;
+use RegexParser\Node\RegexNode;
+use RegexParser\Node\SequenceNode;
+use RegexParser\Node\SubroutineNode;
+use RegexParser\Node\UnicodeNode;
+use RegexParser\Node\UnicodePropNode;
 
 /**
  * Generates a Mermaid.js flowchart to visualize the regex structure.
@@ -49,7 +74,7 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
      * @return string The complete Mermaid.js graph definition.
      */
     #[\Override]
-    public function visitRegex(Node\RegexNode $node): string
+    public function visitRegex(RegexNode $node): string
     {
         $this->nodeCounter = 0;
         $this->lines = [];
@@ -77,7 +102,7 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
      * @return string the unique ID of the generated graph node
      */
     #[\Override]
-    public function visitAlternation(Node\AlternationNode $node): string
+    public function visitAlternation(AlternationNode $node): string
     {
         $nodeId = $this->nextNodeId();
         $this->lines[] = \sprintf('    %s{"Alternation"}', $nodeId);
@@ -101,7 +126,7 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
      * @return string the unique ID of the generated graph node
      */
     #[\Override]
-    public function visitSequence(Node\SequenceNode $node): string
+    public function visitSequence(SequenceNode $node): string
     {
         $nodeId = $this->nextNodeId();
         $this->lines[] = \sprintf('    %s["Sequence"]', $nodeId);
@@ -126,7 +151,7 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
      * @return string the unique ID of the generated graph node
      */
     #[\Override]
-    public function visitGroup(Node\GroupNode $node): string
+    public function visitGroup(GroupNode $node): string
     {
         $nodeId = $this->nextNodeId();
         $label = \sprintf('Group: %s', $node->type->value);
@@ -150,7 +175,7 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
      * @return string the unique ID of the generated graph node
      */
     #[\Override]
-    public function visitQuantifier(Node\QuantifierNode $node): string
+    public function visitQuantifier(QuantifierNode $node): string
     {
         $nodeId = $this->nextNodeId();
         $label = \sprintf('Quantifier: %s', $node->quantifier);
@@ -172,7 +197,7 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
      * @return string the unique ID of the generated graph node
      */
     #[\Override]
-    public function visitLiteral(Node\LiteralNode $node): string
+    public function visitLiteral(LiteralNode $node): string
     {
         $nodeId = $this->nextNodeId();
         $value = '' === $node->value ? '(empty)' : $node->value;
@@ -191,7 +216,7 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
      * @return string the unique ID of the generated graph node
      */
     #[\Override]
-    public function visitCharType(Node\CharTypeNode $node): string
+    public function visitCharType(CharTypeNode $node): string
     {
         $nodeId = $this->nextNodeId();
         $this->lines[] = \sprintf('    %s["CharType: \\%s"]', $nodeId, $this->escape($node->value));
@@ -209,7 +234,7 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
      * @return string the unique ID of the generated graph node
      */
     #[\Override]
-    public function visitDot(Node\DotNode $node): string
+    public function visitDot(DotNode $node): string
     {
         $nodeId = $this->nextNodeId();
         $this->lines[] = \sprintf('    %s["Dot: any char"]', $nodeId);
@@ -227,7 +252,7 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
      * @return string the unique ID of the generated graph node
      */
     #[\Override]
-    public function visitAnchor(Node\AnchorNode $node): string
+    public function visitAnchor(AnchorNode $node): string
     {
         $nodeId = $this->nextNodeId();
         $this->lines[] = \sprintf('    %s(("Anchor: %s"))', $nodeId, $this->escape($node->value));
@@ -245,7 +270,7 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
      * @return string the unique ID of the generated graph node
      */
     #[\Override]
-    public function visitAssertion(Node\AssertionNode $node): string
+    public function visitAssertion(AssertionNode $node): string
     {
         $nodeId = $this->nextNodeId();
         $this->lines[] = \sprintf('    %s["Assertion: %s"]', $nodeId, $this->escape($node->value));
@@ -263,7 +288,7 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
      * @return string the unique ID of the generated graph node
      */
     #[\Override]
-    public function visitKeep(Node\KeepNode $node): string
+    public function visitKeep(KeepNode $node): string
     {
         $nodeId = $this->nextNodeId();
         $this->lines[] = \sprintf('    %s["Keep: \\K"]', $nodeId);
@@ -282,13 +307,13 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
      * @return string the unique ID of the generated graph node
      */
     #[\Override]
-    public function visitCharClass(Node\CharClassNode $node): string
+    public function visitCharClass(CharClassNode $node): string
     {
         $nodeId = $this->nextNodeId();
         $label = 'CharClass'.($node->isNegated ? ' [NOT]' : '');
         $this->lines[] = \sprintf('    %s["%s"]', $nodeId, $label);
 
-        $parts = $node->expression instanceof Node\AlternationNode ? $node->expression->alternatives : [$node->expression];
+        $parts = $node->expression instanceof AlternationNode ? $node->expression->alternatives : [$node->expression];
         foreach ($parts as $child) {
             $childId = $child->accept($this);
             $this->lines[] = \sprintf('    %s --> %s', $nodeId, $childId);
@@ -308,7 +333,7 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
      * @return string the unique ID of the generated graph node
      */
     #[\Override]
-    public function visitRange(Node\RangeNode $node): string
+    public function visitRange(RangeNode $node): string
     {
         $nodeId = $this->nextNodeId();
         $this->lines[] = \sprintf('    %s["Range"]', $nodeId);
@@ -331,7 +356,7 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
      * @return string the unique ID of the generated graph node
      */
     #[\Override]
-    public function visitBackref(Node\BackrefNode $node): string
+    public function visitBackref(BackrefNode $node): string
     {
         $nodeId = $this->nextNodeId();
         $this->lines[] = \sprintf('    %s["Backref: %s"]', $nodeId, $this->escape($node->ref));
@@ -349,7 +374,7 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
      * @return string the unique ID of the generated graph node
      */
     #[\Override]
-    public function visitCharLiteral(Node\CharLiteralNode $node): string
+    public function visitCharLiteral(CharLiteralNode $node): string
     {
         $nodeId = $this->nextNodeId();
         $label = $node->type->label().': '.$node->originalRepresentation;
@@ -368,7 +393,7 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
      * @return string the unique ID of the generated graph node
      */
     #[\Override]
-    public function visitUnicode(Node\UnicodeNode $node): string
+    public function visitUnicode(UnicodeNode $node): string
     {
         $nodeId = $this->nextNodeId();
         $this->lines[] = \sprintf('    %s["Unicode: %s"]', $nodeId, $this->escape($node->code));
@@ -386,7 +411,7 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
      * @return string the unique ID of the generated graph node
      */
     #[\Override]
-    public function visitUnicodeProp(Node\UnicodePropNode $node): string
+    public function visitUnicodeProp(UnicodePropNode $node): string
     {
         $nodeId = $this->nextNodeId();
         $this->lines[] = \sprintf('    %s["UnicodeProp: %s"]', $nodeId, $this->escape($node->prop));
@@ -404,7 +429,7 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
      * @return string the unique ID of the generated graph node
      */
     #[\Override]
-    public function visitPosixClass(Node\PosixClassNode $node): string
+    public function visitPosixClass(PosixClassNode $node): string
     {
         $nodeId = $this->nextNodeId();
         $this->lines[] = \sprintf('    %s["PosixClass: %s"]', $nodeId, $this->escape($node->class));
@@ -422,7 +447,7 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
      * @return string the unique ID of the generated graph node
      */
     #[\Override]
-    public function visitComment(Node\CommentNode $node): string
+    public function visitComment(CommentNode $node): string
     {
         $nodeId = $this->nextNodeId();
         $comment = substr($node->comment, 0, 20);
@@ -442,7 +467,7 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
      * @return string the unique ID of the generated graph node
      */
     #[\Override]
-    public function visitConditional(Node\ConditionalNode $node): string
+    public function visitConditional(ConditionalNode $node): string
     {
         $nodeId = $this->nextNodeId();
         $this->lines[] = \sprintf('    %s{{"Conditional"}}', $nodeId);
@@ -469,7 +494,7 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
      * @return string the unique ID of the generated graph node
      */
     #[\Override]
-    public function visitSubroutine(Node\SubroutineNode $node): string
+    public function visitSubroutine(SubroutineNode $node): string
     {
         $nodeId = $this->nextNodeId();
         $this->lines[] = \sprintf('    %s["Subroutine: %s"]', $nodeId, $this->escape($node->reference));
@@ -487,7 +512,7 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
      * @return string the unique ID of the generated graph node
      */
     #[\Override]
-    public function visitPcreVerb(Node\PcreVerbNode $node): string
+    public function visitPcreVerb(PcreVerbNode $node): string
     {
         $nodeId = $this->nextNodeId();
 
@@ -512,7 +537,7 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
      * @return string the unique ID of the generated graph node
      */
     #[\Override]
-    public function visitDefine(Node\DefineNode $node): string
+    public function visitDefine(DefineNode $node): string
     {
         $nodeId = $this->nextNodeId();
         $this->lines[] = \sprintf('    %s["DEFINE Block"]', $nodeId);
@@ -524,7 +549,7 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitLimitMatch(Node\LimitMatchNode $node): string
+    public function visitLimitMatch(LimitMatchNode $node): string
     {
         $nodeId = $this->nextNodeId();
         $this->lines[] = \sprintf('    %s["LimitMatch: %d"]', $nodeId, $node->limit);
@@ -533,7 +558,7 @@ final class MermaidNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitCallout(Node\CalloutNode $node): string
+    public function visitCallout(CalloutNode $node): string
     {
         if (null === $node->identifier) {
             $label = '(?C)';
