@@ -15,6 +15,7 @@ namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use RegexParser\NodeVisitor\CompilerNodeVisitor;
 use RegexParser\NodeVisitor\ReDoSProfileNodeVisitor;
 use RegexParser\NodeVisitor\SampleGeneratorNodeVisitor;
 use RegexParser\NodeVisitor\ValidatorNodeVisitor;
@@ -79,7 +80,7 @@ final class AdvancedFeaturesComplianceTest extends TestCase
     public function test_php84_quantifier_missing_min_syntax(string $pattern, string $expectedCompiled): void
     {
         $regex = Regex::create()->parse($pattern);
-        $compiler = new \RegexParser\NodeVisitor\CompilerNodeVisitor();
+        $compiler = new CompilerNodeVisitor();
         $compiled = $regex->accept($compiler);
 
         $this->assertSame($expectedCompiled, $compiled, "PHP 8.4 quantifier syntax should compile correctly: {$pattern}");
@@ -99,7 +100,7 @@ final class AdvancedFeaturesComplianceTest extends TestCase
     public function test_newline_verbs(string $pattern): void
     {
         $regex = Regex::create()->parse($pattern);
-        $compiler = new \RegexParser\NodeVisitor\CompilerNodeVisitor();
+        $compiler = new CompilerNodeVisitor();
         $compiled = $regex->accept($compiler);
 
         $this->assertSame($pattern, $compiled, "Newline verb should round-trip: {$pattern}");
@@ -116,7 +117,7 @@ final class AdvancedFeaturesComplianceTest extends TestCase
     public function test_encoding_verbs(string $pattern): void
     {
         $regex = Regex::create()->parse($pattern);
-        $compiler = new \RegexParser\NodeVisitor\CompilerNodeVisitor();
+        $compiler = new CompilerNodeVisitor();
         $compiled = $regex->accept($compiler);
 
         $this->assertSame($pattern, $compiled, "Encoding verb should round-trip: {$pattern}");
@@ -132,7 +133,7 @@ final class AdvancedFeaturesComplianceTest extends TestCase
     public function test_match_control_verbs(string $pattern): void
     {
         $regex = Regex::create()->parse($pattern);
-        $compiler = new \RegexParser\NodeVisitor\CompilerNodeVisitor();
+        $compiler = new CompilerNodeVisitor();
         $compiled = $regex->accept($compiler);
 
         $this->assertSame($pattern, $compiled, "Match control verb should round-trip: {$pattern}");
@@ -148,7 +149,7 @@ final class AdvancedFeaturesComplianceTest extends TestCase
     public function test_unicode_properties(string $pattern, string $expected): void
     {
         $regex = Regex::create()->parse($pattern);
-        $compiler = new \RegexParser\NodeVisitor\CompilerNodeVisitor();
+        $compiler = new CompilerNodeVisitor();
         $compiled = $regex->accept($compiler);
 
         $this->assertSame($expected, $compiled, "Unicode property should compile to: {$expected}");
@@ -177,7 +178,7 @@ final class AdvancedFeaturesComplianceTest extends TestCase
         $ast = $regex->parse($pattern);
 
         // Should compile back to valid regex
-        $compiler = new \RegexParser\NodeVisitor\CompilerNodeVisitor();
+        $compiler = new CompilerNodeVisitor();
         $compiled = $ast->accept($compiler);
 
         // Should validate without errors
@@ -270,7 +271,7 @@ final class AdvancedFeaturesComplianceTest extends TestCase
     public function test_comprehensive_pcre84_parsing(string $pattern, string $description): void
     {
         $regex = Regex::create()->parse($pattern);
-        $compiler = new \RegexParser\NodeVisitor\CompilerNodeVisitor();
+        $compiler = new CompilerNodeVisitor();
         $compiled = $regex->accept($compiler);
 
         $this->assertIsString($compiled, "Pattern should parse and compile successfully: {$description}");

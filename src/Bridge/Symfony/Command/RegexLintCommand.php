@@ -33,8 +33,8 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 /**
  * Lint regex patterns in PHP source code.
  *
- * @phpstan-import-type LintResult from \RegexParser\Lint\RegexLintReport
- * @phpstan-import-type LintStats from \RegexParser\Lint\RegexLintReport
+ * @phpstan-import-type LintResult from RegexLintReport
+ * @phpstan-import-type LintStats from RegexLintReport
  */
 #[AsCommand(
     name: 'regex:lint',

@@ -42,7 +42,7 @@ final class ValidatorNodeVisitorTest extends TestCase
         $this->validate('/foo/imz');
     }
 
-    #[\PHPUnit\Framework\Attributes\DoesNotPerformAssertions]
+    #[DoesNotPerformAssertions]
     public function test_allows_nested_quantifiers(): void
     {
         // Nested quantifiers like /(a+)*b/ are syntactically valid in PCRE
@@ -65,13 +65,13 @@ final class ValidatorNodeVisitorTest extends TestCase
         $this->validate('/\p{Letter}/');
     }
 
-    #[\PHPUnit\Framework\Attributes\DoesNotPerformAssertions]
+    #[DoesNotPerformAssertions]
     public function test_valid_unicode_property(): void
     {
         $this->validate('/\p{L}/');
     }
 
-    #[\PHPUnit\Framework\Attributes\DoesNotPerformAssertions]
+    #[DoesNotPerformAssertions]
     public function test_valid_unicode_named_character(): void
     {
         $this->validate('/\N{U+0041}/');
@@ -207,7 +207,7 @@ final class ValidatorNodeVisitorTest extends TestCase
         $this->validate('/[\d-z]/');
     }
 
-    #[\PHPUnit\Framework\Attributes\DoesNotPerformAssertions]
+    #[DoesNotPerformAssertions]
     public function test_allows_octal_zero_escape_in_validator(): void
     {
         // \0 is now allowed as it represents the null byte
@@ -265,14 +265,14 @@ final class ValidatorNodeVisitorTest extends TestCase
         $this->validate('/\999/');
     }
 
-    #[\PHPUnit\Framework\Attributes\DoesNotPerformAssertions]
+    #[DoesNotPerformAssertions]
     public function test_allows_octal_zero_escape(): void
     {
         // \0 is now allowed as it represents the null byte
         $this->validate('/\0/');
     }
 
-    #[\PHPUnit\Framework\Attributes\DoesNotPerformAssertions]
+    #[DoesNotPerformAssertions]
     public function test_validator_allows_nested_quantifiers(): void
     {
         // Nested quantifiers like /(a+)+/ are syntactically valid in PCRE

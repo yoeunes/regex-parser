@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace RegexParser;
 
+use RegexParser\Node\RegexNode;
+
 /**
  * Outcome of a tolerant parse attempt.
  */
@@ -22,7 +24,7 @@ final readonly class TolerantParseResult
      * @param array<\Throwable> $errors
      */
     public function __construct(
-        public \RegexParser\Node\RegexNode $ast,
+        public RegexNode $ast,
         public array $errors = [],
     ) {}
 

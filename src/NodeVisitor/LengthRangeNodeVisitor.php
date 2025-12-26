@@ -14,7 +14,31 @@ declare(strict_types=1);
 namespace RegexParser\NodeVisitor;
 
 use RegexParser\Node;
+use RegexParser\Node\AlternationNode;
+use RegexParser\Node\AnchorNode;
+use RegexParser\Node\AssertionNode;
+use RegexParser\Node\BackrefNode;
+use RegexParser\Node\CalloutNode;
+use RegexParser\Node\CharClassNode;
+use RegexParser\Node\CharTypeNode;
+use RegexParser\Node\CommentNode;
+use RegexParser\Node\ConditionalNode;
+use RegexParser\Node\DefineNode;
+use RegexParser\Node\DotNode;
+use RegexParser\Node\GroupNode;
 use RegexParser\Node\GroupType;
+use RegexParser\Node\KeepNode;
+use RegexParser\Node\LimitMatchNode;
+use RegexParser\Node\LiteralNode;
+use RegexParser\Node\PcreVerbNode;
+use RegexParser\Node\PosixClassNode;
+use RegexParser\Node\QuantifierNode;
+use RegexParser\Node\RangeNode;
+use RegexParser\Node\RegexNode;
+use RegexParser\Node\SequenceNode;
+use RegexParser\Node\SubroutineNode;
+use RegexParser\Node\UnicodeNode;
+use RegexParser\Node\UnicodePropNode;
 
 /**
  * A visitor that calculates the minimum and maximum possible lengths of strings that match the AST.
@@ -36,7 +60,7 @@ final class LengthRangeNodeVisitor extends AbstractNodeVisitor
      * @return array{0: int, 1: int|null} the minimum and maximum lengths (null for infinite)
      */
     #[\Override]
-    public function visitRegex(Node\RegexNode $node): array
+    public function visitRegex(RegexNode $node): array
     {
         return $node->pattern->accept($this);
     }
@@ -49,7 +73,7 @@ final class LengthRangeNodeVisitor extends AbstractNodeVisitor
      * @return array{0: int, 1: int|null} the minimum and maximum lengths across all alternatives
      */
     #[\Override]
-    public function visitAlternation(Node\AlternationNode $node): array
+    public function visitAlternation(AlternationNode $node): array
     {
         $min = \PHP_INT_MAX;
         $max = 0;
@@ -76,7 +100,7 @@ final class LengthRangeNodeVisitor extends AbstractNodeVisitor
      * @return array{0: int, 1: int|null} the total minimum and maximum lengths
      */
     #[\Override]
-    public function visitSequence(Node\SequenceNode $node): array
+    public function visitSequence(SequenceNode $node): array
     {
         $totalMin = 0;
         $totalMax = 0;
@@ -103,7 +127,7 @@ final class LengthRangeNodeVisitor extends AbstractNodeVisitor
      * @return array{0: int, 1: int|null} the length range of the grouped content
      */
     #[\Override]
-    public function visitGroup(Node\GroupNode $node): array
+    public function visitGroup(GroupNode $node): array
     {
         // Lookarounds are zero-width assertions
         if (\in_array($node->type, [
@@ -126,7 +150,7 @@ final class LengthRangeNodeVisitor extends AbstractNodeVisitor
      * @return array{0: int, 1: int|null} the minimum and maximum lengths for the quantified element
      */
     #[\Override]
-    public function visitQuantifier(Node\QuantifierNode $node): array
+    public function visitQuantifier(QuantifierNode $node): array
     {
         [$childMin, $childMax] = $node->node->accept($this);
 
@@ -152,7 +176,7 @@ final class LengthRangeNodeVisitor extends AbstractNodeVisitor
      * @return array{0: int, 1: int|null} always [1, 1]
      */
     #[\Override]
-    public function visitLiteral(Node\LiteralNode $node): array
+    public function visitLiteral(LiteralNode $node): array
     {
         return [1, 1];
     }
@@ -165,7 +189,7 @@ final class LengthRangeNodeVisitor extends AbstractNodeVisitor
      * @return array{0: int, 1: int|null} always [1, 1]
      */
     #[\Override]
-    public function visitCharType(Node\CharTypeNode $node): array
+    public function visitCharType(CharTypeNode $node): array
     {
         return [1, 1];
     }
@@ -178,7 +202,7 @@ final class LengthRangeNodeVisitor extends AbstractNodeVisitor
      * @return array{0: int, 1: int|null} always [1, 1]
      */
     #[\Override]
-    public function visitDot(Node\DotNode $node): array
+    public function visitDot(DotNode $node): array
     {
         return [1, 1];
     }
@@ -191,7 +215,7 @@ final class LengthRangeNodeVisitor extends AbstractNodeVisitor
      * @return array{0: int, 1: int|null} always [0, 0]
      */
     #[\Override]
-    public function visitAnchor(Node\AnchorNode $node): array
+    public function visitAnchor(AnchorNode $node): array
     {
         return [0, 0];
     }
@@ -204,7 +228,7 @@ final class LengthRangeNodeVisitor extends AbstractNodeVisitor
      * @return array{0: int, 1: int|null} always [0, 0]
      */
     #[\Override]
-    public function visitAssertion(Node\AssertionNode $node): array
+    public function visitAssertion(AssertionNode $node): array
     {
         return [0, 0];
     }
@@ -217,7 +241,7 @@ final class LengthRangeNodeVisitor extends AbstractNodeVisitor
      * @return array{0: int, 1: int|null} always [1, 1]
      */
     #[\Override]
-    public function visitCharClass(Node\CharClassNode $node): array
+    public function visitCharClass(CharClassNode $node): array
     {
         return [1, 1];
     }
@@ -230,7 +254,7 @@ final class LengthRangeNodeVisitor extends AbstractNodeVisitor
      * @return array{0: int, 1: int|null} always [1, 1]
      */
     #[\Override]
-    public function visitRange(Node\RangeNode $node): array
+    public function visitRange(RangeNode $node): array
     {
         return [1, 1];
     }
@@ -243,7 +267,7 @@ final class LengthRangeNodeVisitor extends AbstractNodeVisitor
      * @return array{0: int, 1: int|null} [0, null]
      */
     #[\Override]
-    public function visitBackref(Node\BackrefNode $node): array
+    public function visitBackref(BackrefNode $node): array
     {
         return [0, null]; // Backrefs can match variable lengths
     }
@@ -256,7 +280,7 @@ final class LengthRangeNodeVisitor extends AbstractNodeVisitor
      * @return array{0: int, 1: int|null} always [1, 1]
      */
     #[\Override]
-    public function visitUnicode(Node\UnicodeNode $node): array
+    public function visitUnicode(UnicodeNode $node): array
     {
         return [1, 1];
     }
@@ -269,7 +293,7 @@ final class LengthRangeNodeVisitor extends AbstractNodeVisitor
      * @return array{0: int, 1: int|null} always [1, 1]
      */
     #[\Override]
-    public function visitUnicodeProp(Node\UnicodePropNode $node): array
+    public function visitUnicodeProp(UnicodePropNode $node): array
     {
         return [1, 1];
     }
@@ -282,7 +306,7 @@ final class LengthRangeNodeVisitor extends AbstractNodeVisitor
      * @return array{0: int, 1: int|null} always [1, 1]
      */
     #[\Override]
-    public function visitPosixClass(Node\PosixClassNode $node): array
+    public function visitPosixClass(PosixClassNode $node): array
     {
         return [1, 1];
     }
@@ -295,7 +319,7 @@ final class LengthRangeNodeVisitor extends AbstractNodeVisitor
      * @return array{0: int, 1: int|null} always [0, 0]
      */
     #[\Override]
-    public function visitComment(Node\CommentNode $node): array
+    public function visitComment(CommentNode $node): array
     {
         return [0, 0];
     }
@@ -308,7 +332,7 @@ final class LengthRangeNodeVisitor extends AbstractNodeVisitor
      * @return array{0: int, 1: int|null} the length range of the conditional
      */
     #[\Override]
-    public function visitConditional(Node\ConditionalNode $node): array
+    public function visitConditional(ConditionalNode $node): array
     {
         // For simplicity, take the max of yes and no
         [$yesMin, $yesMax] = $node->yes->accept($this);
@@ -331,7 +355,7 @@ final class LengthRangeNodeVisitor extends AbstractNodeVisitor
      * @return array{0: int, 1: int|null} [0, null]
      */
     #[\Override]
-    public function visitSubroutine(Node\SubroutineNode $node): array
+    public function visitSubroutine(SubroutineNode $node): array
     {
         return [0, null]; // Subroutines can be complex
     }
@@ -344,7 +368,7 @@ final class LengthRangeNodeVisitor extends AbstractNodeVisitor
      * @return array{0: int, 1: int|null} always [0, 0]
      */
     #[\Override]
-    public function visitPcreVerb(Node\PcreVerbNode $node): array
+    public function visitPcreVerb(PcreVerbNode $node): array
     {
         return [0, 0];
     }
@@ -357,25 +381,25 @@ final class LengthRangeNodeVisitor extends AbstractNodeVisitor
      * @return array{0: int, 1: int|null} always [0, 0]
      */
     #[\Override]
-    public function visitDefine(Node\DefineNode $node): array
+    public function visitDefine(DefineNode $node): array
     {
         return [0, 0];
     }
 
     #[\Override]
-    public function visitLimitMatch(Node\LimitMatchNode $node): array
+    public function visitLimitMatch(LimitMatchNode $node): array
     {
         return [0, 0];
     }
 
     #[\Override]
-    public function visitCallout(Node\CalloutNode $node): array
+    public function visitCallout(CalloutNode $node): array
     {
         return [0, 0];
     }
 
     #[\Override]
-    public function visitKeep(Node\KeepNode $node): array
+    public function visitKeep(KeepNode $node): array
     {
         return [0, 0];
     }

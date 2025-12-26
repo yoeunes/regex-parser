@@ -15,6 +15,7 @@ namespace RegexParser\Tests\Unit\NodeVisitor;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use RegexParser\Exception\LexerException;
 use RegexParser\NodeVisitor\SampleGeneratorNodeVisitor;
 use RegexParser\Regex;
 
@@ -163,7 +164,7 @@ final class SampleGeneratorVisitorTest extends TestCase
     public function test_generate_throws_on_empty_char_class(): void
     {
         // Empty character class /[]/ is actually a lexer error (unclosed class with ] as literal)
-        $this->expectException(\RegexParser\Exception\LexerException::class);
+        $this->expectException(LexerException::class);
         $this->expectExceptionMessage('Unclosed character class');
         $this->generateSample('/[]/');
     }
@@ -223,9 +224,9 @@ final class SampleGeneratorVisitorTest extends TestCase
     {
         // Your code returns '!' for complex negated classes.
         // We ensure this line is executed.
-        $regex = \RegexParser\Regex::create();
+        $regex = Regex::create();
         $ast = $regex->parse('/[^abc]/');
-        $generator = new \RegexParser\NodeVisitor\SampleGeneratorNodeVisitor();
+        $generator = new SampleGeneratorNodeVisitor();
 
         $result = $ast->accept($generator);
         $this->assertSame('!', $result);

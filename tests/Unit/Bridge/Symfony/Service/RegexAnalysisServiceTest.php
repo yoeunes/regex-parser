@@ -16,6 +16,7 @@ namespace RegexParser\Tests\Unit\Bridge\Symfony\Service;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Lint\RegexAnalysisService;
 use RegexParser\Lint\RegexPatternOccurrence;
+use RegexParser\ReDoS\ReDoSSeverity;
 use RegexParser\Regex;
 
 final class RegexAnalysisServiceTest extends TestCase
@@ -106,7 +107,7 @@ final class RegexAnalysisServiceTest extends TestCase
             new RegexPatternOccurrence('/(a+)+b/', 'file.php', 1, 'php:preg_match()'),
         ];
 
-        $issues = $service->analyzeRedos($patterns, \RegexParser\ReDoS\ReDoSSeverity::LOW);
+        $issues = $service->analyzeRedos($patterns, ReDoSSeverity::LOW);
 
         $this->assertIsArray($issues);
         $this->assertNotEmpty($issues);

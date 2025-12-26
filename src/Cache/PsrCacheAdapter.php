@@ -14,7 +14,35 @@ declare(strict_types=1);
 namespace RegexParser\Cache;
 
 use Psr\Cache\CacheItemPoolInterface;
+use RegexParser\Node\AlternationNode;
+use RegexParser\Node\AnchorNode;
+use RegexParser\Node\AssertionNode;
+use RegexParser\Node\BackrefNode;
+use RegexParser\Node\CalloutNode;
+use RegexParser\Node\CharClassNode;
+use RegexParser\Node\CharLiteralNode;
+use RegexParser\Node\CharTypeNode;
+use RegexParser\Node\ClassOperationNode;
+use RegexParser\Node\CommentNode;
+use RegexParser\Node\ConditionalNode;
+use RegexParser\Node\ControlCharNode;
+use RegexParser\Node\DefineNode;
+use RegexParser\Node\DotNode;
+use RegexParser\Node\GroupNode;
+use RegexParser\Node\KeepNode;
+use RegexParser\Node\LimitMatchNode;
+use RegexParser\Node\LiteralNode;
+use RegexParser\Node\PcreVerbNode;
+use RegexParser\Node\PosixClassNode;
+use RegexParser\Node\QuantifierNode;
+use RegexParser\Node\RangeNode;
 use RegexParser\Node\RegexNode;
+use RegexParser\Node\ScriptRunNode;
+use RegexParser\Node\SequenceNode;
+use RegexParser\Node\SubroutineNode;
+use RegexParser\Node\UnicodeNode;
+use RegexParser\Node\UnicodePropNode;
+use RegexParser\Node\VersionConditionNode;
 
 /**
  * PSR-6 bridge for AST caching.
@@ -96,35 +124,35 @@ final readonly class PsrCacheAdapter implements RemovableCacheInterface
         }
 
         $allowedClasses = [
-            \RegexParser\Node\RegexNode::class,
-            \RegexParser\Node\AlternationNode::class,
-            \RegexParser\Node\AnchorNode::class,
-            \RegexParser\Node\AssertionNode::class,
-            \RegexParser\Node\BackrefNode::class,
-            \RegexParser\Node\CalloutNode::class,
-            \RegexParser\Node\CharClassNode::class,
-            \RegexParser\Node\CharLiteralNode::class,
-            \RegexParser\Node\CharTypeNode::class,
-            \RegexParser\Node\ClassOperationNode::class,
-            \RegexParser\Node\CommentNode::class,
-            \RegexParser\Node\ConditionalNode::class,
-            \RegexParser\Node\ControlCharNode::class,
-            \RegexParser\Node\DefineNode::class,
-            \RegexParser\Node\DotNode::class,
-            \RegexParser\Node\GroupNode::class,
-            \RegexParser\Node\KeepNode::class,
-            \RegexParser\Node\LimitMatchNode::class,
-            \RegexParser\Node\LiteralNode::class,
-            \RegexParser\Node\PcreVerbNode::class,
-            \RegexParser\Node\PosixClassNode::class,
-            \RegexParser\Node\QuantifierNode::class,
-            \RegexParser\Node\RangeNode::class,
-            \RegexParser\Node\ScriptRunNode::class,
-            \RegexParser\Node\SequenceNode::class,
-            \RegexParser\Node\SubroutineNode::class,
-            \RegexParser\Node\UnicodeNode::class,
-            \RegexParser\Node\UnicodePropNode::class,
-            \RegexParser\Node\VersionConditionNode::class,
+            RegexNode::class,
+            AlternationNode::class,
+            AnchorNode::class,
+            AssertionNode::class,
+            BackrefNode::class,
+            CalloutNode::class,
+            CharClassNode::class,
+            CharLiteralNode::class,
+            CharTypeNode::class,
+            ClassOperationNode::class,
+            CommentNode::class,
+            ConditionalNode::class,
+            ControlCharNode::class,
+            DefineNode::class,
+            DotNode::class,
+            GroupNode::class,
+            KeepNode::class,
+            LimitMatchNode::class,
+            LiteralNode::class,
+            PcreVerbNode::class,
+            PosixClassNode::class,
+            QuantifierNode::class,
+            RangeNode::class,
+            ScriptRunNode::class,
+            SequenceNode::class,
+            SubroutineNode::class,
+            UnicodeNode::class,
+            UnicodePropNode::class,
+            VersionConditionNode::class,
         ];
         $value = @unserialize($serialized, ['allowed_classes' => $allowedClasses]);
 

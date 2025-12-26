@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\Integration;
 
+use PhpParser\Node\Expr\FuncCall;
+use PHPStan\Rules\Rule;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Bridge\PHPStan\PregValidationRule;
 use RegexParser\Regex;
@@ -137,7 +139,7 @@ final class SymfonyCompatibilityTest extends TestCase
     public function test_phpstan_rule_skips_pattern_without_delimiters(): void
     {
         // Skip if PHPStan is not installed
-        if (!interface_exists(\PHPStan\Rules\Rule::class)) {
+        if (!interface_exists(Rule::class)) {
             $this->markTestSkipped('PHPStan is not installed in the test environment.');
         }
 
@@ -147,13 +149,13 @@ final class SymfonyCompatibilityTest extends TestCase
         // Verify the rule is properly configured and can be instantiated
         // The actual partial pattern handling is tested via the processNode method
         // which requires PHPStan's Scope and Node infrastructure
-        $this->assertSame(\PhpParser\Node\Expr\FuncCall::class, $rule->getNodeType());
+        $this->assertSame(FuncCall::class, $rule->getNodeType());
     }
 
     public function test_phpstan_rule_validates_complete_patterns(): void
     {
         // Skip if PHPStan is not installed
-        if (!interface_exists(\PHPStan\Rules\Rule::class)) {
+        if (!interface_exists(Rule::class)) {
             $this->markTestSkipped('PHPStan is not installed in the test environment.');
         }
 
@@ -161,13 +163,13 @@ final class SymfonyCompatibilityTest extends TestCase
         $rule = new PregValidationRule(ignoreParseErrors: true);
 
         // Complete patterns should be validated
-        $this->assertSame(\PhpParser\Node\Expr\FuncCall::class, $rule->getNodeType());
+        $this->assertSame(FuncCall::class, $rule->getNodeType());
     }
 
     public function test_phpstan_rule_with_ignore_parse_errors_disabled(): void
     {
         // Skip if PHPStan is not installed
-        if (!interface_exists(\PHPStan\Rules\Rule::class)) {
+        if (!interface_exists(Rule::class)) {
             $this->markTestSkipped('PHPStan is not installed in the test environment.');
         }
 
@@ -175,7 +177,7 @@ final class SymfonyCompatibilityTest extends TestCase
         $rule = new PregValidationRule(ignoreParseErrors: false);
 
         // Verify the rule is properly configured
-        $this->assertSame(\PhpParser\Node\Expr\FuncCall::class, $rule->getNodeType());
+        $this->assertSame(FuncCall::class, $rule->getNodeType());
     }
 
     public function test_complex_symfony_routing_pattern(): void

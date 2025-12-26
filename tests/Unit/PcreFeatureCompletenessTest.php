@@ -15,7 +15,10 @@ namespace RegexParser\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\ParserException;
+use RegexParser\Node\GroupNode;
 use RegexParser\Node\GroupType;
+use RegexParser\Node\NodeInterface;
+use RegexParser\Node\QuantifierNode;
 use RegexParser\Node\QuantifierType;
 use RegexParser\Regex;
 
@@ -323,19 +326,19 @@ final class PcreFeatureCompletenessTest extends TestCase
 
     private function hasGroupType(object $node, GroupType $type): bool
     {
-        if ($node instanceof \RegexParser\Node\GroupNode && $node->type === $type) {
+        if ($node instanceof GroupNode && $node->type === $type) {
             return true;
         }
 
         $properties = get_object_vars($node);
         foreach ($properties as $prop) {
-            if ($prop instanceof \RegexParser\Node\NodeInterface) {
+            if ($prop instanceof NodeInterface) {
                 if ($this->hasGroupType($prop, $type)) {
                     return true;
                 }
             } elseif (\is_array($prop)) {
                 foreach ($prop as $item) {
-                    if ($item instanceof \RegexParser\Node\NodeInterface) {
+                    if ($item instanceof NodeInterface) {
                         if ($this->hasGroupType($item, $type)) {
                             return true;
                         }
@@ -349,19 +352,19 @@ final class PcreFeatureCompletenessTest extends TestCase
 
     private function hasQuantifierType(object $node, QuantifierType $type): bool
     {
-        if ($node instanceof \RegexParser\Node\QuantifierNode && $node->type === $type) {
+        if ($node instanceof QuantifierNode && $node->type === $type) {
             return true;
         }
 
         $properties = get_object_vars($node);
         foreach ($properties as $prop) {
-            if ($prop instanceof \RegexParser\Node\NodeInterface) {
+            if ($prop instanceof NodeInterface) {
                 if ($this->hasQuantifierType($prop, $type)) {
                     return true;
                 }
             } elseif (\is_array($prop)) {
                 foreach ($prop as $item) {
-                    if ($item instanceof \RegexParser\Node\NodeInterface) {
+                    if ($item instanceof NodeInterface) {
                         if ($this->hasQuantifierType($item, $type)) {
                             return true;
                         }

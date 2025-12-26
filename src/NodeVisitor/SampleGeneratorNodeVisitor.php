@@ -16,7 +16,33 @@ namespace RegexParser\NodeVisitor;
 use Random\Engine\Mt19937;
 use Random\Randomizer;
 use RegexParser\Node;
+use RegexParser\Node\AlternationNode;
+use RegexParser\Node\AnchorNode;
+use RegexParser\Node\AssertionNode;
+use RegexParser\Node\BackrefNode;
+use RegexParser\Node\CalloutNode;
+use RegexParser\Node\CharClassNode;
+use RegexParser\Node\CharLiteralNode;
+use RegexParser\Node\CharTypeNode;
+use RegexParser\Node\CommentNode;
+use RegexParser\Node\ConditionalNode;
+use RegexParser\Node\ControlCharNode;
+use RegexParser\Node\DefineNode;
+use RegexParser\Node\DotNode;
+use RegexParser\Node\GroupNode;
 use RegexParser\Node\GroupType;
+use RegexParser\Node\KeepNode;
+use RegexParser\Node\LimitMatchNode;
+use RegexParser\Node\LiteralNode;
+use RegexParser\Node\NodeInterface;
+use RegexParser\Node\PcreVerbNode;
+use RegexParser\Node\PosixClassNode;
+use RegexParser\Node\QuantifierNode;
+use RegexParser\Node\RangeNode;
+use RegexParser\Node\RegexNode;
+use RegexParser\Node\SequenceNode;
+use RegexParser\Node\SubroutineNode;
+use RegexParser\Node\UnicodePropNode;
 
 /**
  * A visitor that generates a random sample string that matches the AST.
@@ -43,7 +69,7 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
 
     private int $recursionDepth = 0;
 
-    private ?Node\NodeInterface $rootPattern = null;
+    private ?NodeInterface $rootPattern = null;
 
     /**
      * @var array<int, Node\GroupNode>
@@ -122,7 +148,7 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitRegex(Node\RegexNode $node): string
+    public function visitRegex(RegexNode $node): string
     {
         // Reset state for this run
         $this->captures = [];
@@ -151,7 +177,7 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitAlternation(Node\AlternationNode $node): string
+    public function visitAlternation(AlternationNode $node): string
     {
         if (empty($node->alternatives)) {
             return '';
@@ -165,15 +191,15 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitSequence(Node\SequenceNode $node): string
+    public function visitSequence(SequenceNode $node): string
     {
-        $parts = array_map(fn (Node\NodeInterface $child): string => $child->accept($this), $node->children);
+        $parts = array_map(fn (NodeInterface $child): string => $child->accept($this), $node->children);
 
         return implode('', $parts);
     }
 
     #[\Override]
-    public function visitGroup(Node\GroupNode $node): string
+    public function visitGroup(GroupNode $node): string
     {
         // Lookarounds are zero-width assertions and should not generate text
         if (\in_array($node->type, [
@@ -218,7 +244,7 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitQuantifier(Node\QuantifierNode $node): string
+    public function visitQuantifier(QuantifierNode $node): string
     {
         [$min, $max] = $this->parseQuantifierRange($node->quantifier);
 
@@ -236,47 +262,47 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitLiteral(Node\LiteralNode $node): string
+    public function visitLiteral(LiteralNode $node): string
     {
         return $node->value;
     }
 
     #[\Override]
-    public function visitCharType(Node\CharTypeNode $node): string
+    public function visitCharType(CharTypeNode $node): string
     {
         return $this->generateForCharType($node->value);
     }
 
     #[\Override]
-    public function visitDot(Node\DotNode $node): string
+    public function visitDot(DotNode $node): string
     {
         // Generate a random, simple, printable ASCII char
         return $this->getRandomChar(['a', 'b', 'c', '1', '2', '3', ' ']);
     }
 
     #[\Override]
-    public function visitAnchor(Node\AnchorNode $node): string
+    public function visitAnchor(AnchorNode $node): string
     {
         // Anchors do not generate text
         return '';
     }
 
     #[\Override]
-    public function visitAssertion(Node\AssertionNode $node): string
+    public function visitAssertion(AssertionNode $node): string
     {
         // Assertions do not generate text
         return '';
     }
 
     #[\Override]
-    public function visitKeep(Node\KeepNode $node): string
+    public function visitKeep(KeepNode $node): string
     {
         // \K does not generate text
         return '';
     }
 
     #[\Override]
-    public function visitCharClass(Node\CharClassNode $node): string
+    public function visitCharClass(CharClassNode $node): string
     {
         if ($node->isNegated) {
             // Generating for a negated class is complex.
@@ -287,7 +313,7 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
             return '!'; // e.g., a "safe" punctuation mark
         }
 
-        $parts = $node->expression instanceof Node\AlternationNode ? $node->expression->alternatives : [$node->expression];
+        $parts = $node->expression instanceof AlternationNode ? $node->expression->alternatives : [$node->expression];
         if (empty($parts)) {
             // e.g., [] which can never match
             throw new \RuntimeException('Cannot generate sample for empty character class');
@@ -300,9 +326,9 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitRange(Node\RangeNode $node): string
+    public function visitRange(RangeNode $node): string
     {
-        if (!$node->start instanceof Node\LiteralNode || !$node->end instanceof Node\LiteralNode) {
+        if (!$node->start instanceof LiteralNode || !$node->end instanceof LiteralNode) {
             // Should be caught by Validator, but good to check
             return $node->start->accept($this);
         }
@@ -320,7 +346,7 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitBackref(Node\BackrefNode $node): string
+    public function visitBackref(BackrefNode $node): string
     {
         $ref = $node->ref;
 
@@ -358,7 +384,7 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitControlChar(Node\ControlCharNode $node): string
+    public function visitControlChar(ControlCharNode $node): string
     {
         if ($node->codePoint < 0 || $node->codePoint > 0xFF) {
             return '?';
@@ -368,7 +394,7 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitCharLiteral(Node\CharLiteralNode $node): string
+    public function visitCharLiteral(CharLiteralNode $node): string
     {
         if ($node->codePoint < 0 || $node->codePoint > 0x10FFFF) {
             return '?';
@@ -382,7 +408,7 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitUnicodeProp(Node\UnicodePropNode $node): string
+    public function visitUnicodeProp(UnicodePropNode $node): string
     {
         // Too complex to generate a *random* char for a property.
         // Return a known-good sample.
@@ -400,7 +426,7 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitPosixClass(Node\PosixClassNode $node): string
+    public function visitPosixClass(PosixClassNode $node): string
     {
         return match (strtolower($node->class)) {
             'alpha' => $this->getRandomChar(['a', 'b', 'C', 'Z']),
@@ -420,14 +446,14 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitComment(Node\CommentNode $node): string
+    public function visitComment(CommentNode $node): string
     {
         // Comments do not generate text
         return '';
     }
 
     #[\Override]
-    public function visitConditional(Node\ConditionalNode $node): string
+    public function visitConditional(ConditionalNode $node): string
     {
         if ($this->isConditionSatisfied($node->condition)) {
             return $node->yes->accept($this);
@@ -437,9 +463,9 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitSubroutine(Node\SubroutineNode $node): string
+    public function visitSubroutine(SubroutineNode $node): string
     {
-        if (null === $this->rootPattern || $this->rootPattern instanceof Node\SubroutineNode) {
+        if (null === $this->rootPattern || $this->rootPattern instanceof SubroutineNode) {
             throw new \LogicException('Sample generation for subroutines is not supported.');
         }
 
@@ -453,34 +479,34 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
         }
 
         $this->recursionDepth++;
-        $result = $target instanceof Node\GroupNode ? $target->child->accept($this) : $target->accept($this);
+        $result = $target instanceof GroupNode ? $target->child->accept($this) : $target->accept($this);
         $this->recursionDepth--;
 
         return $result;
     }
 
     #[\Override]
-    public function visitPcreVerb(Node\PcreVerbNode $node): string
+    public function visitPcreVerb(PcreVerbNode $node): string
     {
         // Verbs do not generate text
         return '';
     }
 
     #[\Override]
-    public function visitDefine(Node\DefineNode $node): string
+    public function visitDefine(DefineNode $node): string
     {
         // DEFINE blocks do not generate text, they only define subpatterns
         return '';
     }
 
     #[\Override]
-    public function visitLimitMatch(Node\LimitMatchNode $node): string
+    public function visitLimitMatch(LimitMatchNode $node): string
     {
         return '';
     }
 
     #[\Override]
-    public function visitCallout(Node\CalloutNode $node): string
+    public function visitCallout(CalloutNode $node): string
     {
         // Callouts do not match characters, so they generate no sample text.
         return '';
@@ -565,13 +591,13 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
         return $sample;
     }
 
-    private function isConditionSatisfied(Node\NodeInterface $condition): bool
+    private function isConditionSatisfied(NodeInterface $condition): bool
     {
-        if ($condition instanceof Node\BackrefNode) {
+        if ($condition instanceof BackrefNode) {
             return $this->hasCaptureForReference($condition->ref);
         }
 
-        if ($condition instanceof Node\GroupNode) {
+        if ($condition instanceof GroupNode) {
             if (\in_array($condition->type, [
                 GroupType::T_GROUP_LOOKAHEAD_POSITIVE,
                 GroupType::T_GROUP_LOOKBEHIND_POSITIVE,
@@ -589,7 +615,7 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
             return '' !== $condition->accept($this);
         }
 
-        if ($condition instanceof Node\AssertionNode) {
+        if ($condition instanceof AssertionNode) {
             return true;
         }
 
@@ -669,9 +695,9 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
         // @codeCoverageIgnoreEnd
     }
 
-    private function collectGroups(Node\NodeInterface $node): void
+    private function collectGroups(NodeInterface $node): void
     {
-        if ($node instanceof Node\GroupNode) {
+        if ($node instanceof GroupNode) {
             if (\in_array($node->type, [GroupType::T_GROUP_CAPTURING, GroupType::T_GROUP_NAMED], true)) {
                 $index = $this->groupDefinitionCounter++;
                 $this->groupIndexMap[$index] = $node;
@@ -686,7 +712,7 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
             return;
         }
 
-        if ($node instanceof Node\SequenceNode) {
+        if ($node instanceof SequenceNode) {
             foreach ($node->children as $child) {
                 $this->collectGroups($child);
             }
@@ -694,7 +720,7 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
             return;
         }
 
-        if ($node instanceof Node\AlternationNode) {
+        if ($node instanceof AlternationNode) {
             foreach ($node->alternatives as $alt) {
                 $this->collectGroups($alt);
             }
@@ -702,13 +728,13 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
             return;
         }
 
-        if ($node instanceof Node\QuantifierNode) {
+        if ($node instanceof QuantifierNode) {
             $this->collectGroups($node->node);
 
             return;
         }
 
-        if ($node instanceof Node\ConditionalNode) {
+        if ($node instanceof ConditionalNode) {
             $this->collectGroups($node->condition);
             $this->collectGroups($node->yes);
             $this->collectGroups($node->no);
@@ -716,12 +742,12 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
             return;
         }
 
-        if ($node instanceof Node\DefineNode) {
+        if ($node instanceof DefineNode) {
             $this->collectGroups($node->content);
         }
     }
 
-    private function resolveSubroutineTarget(Node\SubroutineNode $node): ?Node\NodeInterface
+    private function resolveSubroutineTarget(SubroutineNode $node): ?NodeInterface
     {
         $ref = $node->reference;
 

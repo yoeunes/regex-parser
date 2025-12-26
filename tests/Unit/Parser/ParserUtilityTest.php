@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\Unit\Parser;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\ParserException;
 use RegexParser\Internal\PatternParser;
@@ -69,7 +70,7 @@ final class ParserUtilityTest extends TestCase
         yield 'space separated multiple flags' => ['/a/ i u', 'iu'];
     }
 
-    #[\PHPUnit\Framework\Attributes\DataProvider('provideWhitespaceSeparatedFlags')]
+    #[DataProvider('provideWhitespaceSeparatedFlags')]
     public function test_extract_pattern_accepts_whitespace_in_flags(string $regex, string $expectedFlags): void
     {
         [$pattern, $flags, $delimiter] = PatternParser::extractPatternAndFlags($regex);
@@ -173,10 +174,10 @@ final class ParserUtilityTest extends TestCase
     {
         // Simuler: 'name' + '>'
         $tokens = [
-            $this->accessor->createToken(\RegexParser\TokenType::T_LITERAL, "'", 1),
-            $this->accessor->createToken(\RegexParser\TokenType::T_LITERAL, 'test_name', 2),
-            $this->accessor->createToken(\RegexParser\TokenType::T_LITERAL, "'", 11),
-            $this->accessor->createToken(\RegexParser\TokenType::T_LITERAL, '>', 12),
+            $this->accessor->createToken(TokenType::T_LITERAL, "'", 1),
+            $this->accessor->createToken(TokenType::T_LITERAL, 'test_name', 2),
+            $this->accessor->createToken(TokenType::T_LITERAL, "'", 11),
+            $this->accessor->createToken(TokenType::T_LITERAL, '>', 12),
         ];
         $this->accessor->setTokens($tokens);
         $this->accessor->setPosition(0);

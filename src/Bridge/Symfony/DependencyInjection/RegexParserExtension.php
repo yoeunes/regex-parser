@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Bridge\Symfony\DependencyInjection;
 
+use PhpParser\ParserFactory;
 use RegexParser\Cache\FilesystemCache;
 use RegexParser\Cache\NullCache;
 use RegexParser\Cache\PsrCacheAdapter;
@@ -190,6 +191,6 @@ final class RegexParserExtension extends Extension
      */
     private function isPhpParserAvailable(): bool
     {
-        return class_exists(\PhpParser\ParserFactory::class);
+        return class_exists(ParserFactory::class);
     }
 }

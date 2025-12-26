@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\Unit\Parser;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -679,7 +680,7 @@ final class ParserTest extends TestCase
         $this->parse('/(?(DEFINE)(?<A>a))(?&A)/');
     }
 
-    #[\PHPUnit\Framework\Attributes\DataProvider('extendedModeProvider')]
+    #[DataProvider('extendedModeProvider')]
     #[Test]
     public function test_parser_handles_extended_mode_whitespace(string $pattern): void
     {

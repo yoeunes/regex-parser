@@ -21,10 +21,10 @@ use RegexParser\OptimizationResult;
 /**
  * Console output formatter with ANSI colors and verbosity levels.
  *
- * @phpstan-import-type LintIssue from \RegexParser\Lint\RegexLintReport
- * @phpstan-import-type OptimizationEntry from \RegexParser\Lint\RegexLintReport
- * @phpstan-import-type LintResult from \RegexParser\Lint\RegexLintReport
- * @phpstan-import-type LintStats from \RegexParser\Lint\RegexLintReport
+ * @phpstan-import-type LintIssue from RegexLintReport
+ * @phpstan-import-type OptimizationEntry from RegexLintReport
+ * @phpstan-import-type LintResult from RegexLintReport
+ * @phpstan-import-type LintStats from RegexLintReport
  */
 class ConsoleFormatter extends AbstractOutputFormatter
 {

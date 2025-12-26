@@ -16,6 +16,7 @@ namespace RegexParser\Tests\Unit\Bridge\Symfony\Routing;
 use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Bridge\Symfony\Routing\RouteControllerFileResolver;
+use Symfony\Component\Routing\Route;
 
 final class RouteControllerFileResolverTest extends TestCase
 {
@@ -23,7 +24,7 @@ final class RouteControllerFileResolverTest extends TestCase
 
     protected function setUp(): void
     {
-        if (!class_exists(\Symfony\Component\Routing\Route::class)) {
+        if (!class_exists(Route::class)) {
             $this->markTestSkipped('Symfony Routing component is not available');
         }
 
@@ -33,7 +34,7 @@ final class RouteControllerFileResolverTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_construct(): void
     {
-        if (!class_exists(\Symfony\Component\Routing\Route::class)) {
+        if (!class_exists(Route::class)) {
             $this->markTestSkipped('Symfony Routing component is not available');
         }
 
@@ -156,7 +157,7 @@ final class RouteControllerFileResolverTest extends TestCase
 
     public function test_resolve_with_namespace(): void
     {
-        $route = $this->createMockRoute(\PHPUnit\Framework\TestCase::class);
+        $route = $this->createMockRoute(TestCase::class);
 
         $result = $this->resolver->resolve($route);
 
@@ -193,9 +194,9 @@ final class RouteControllerFileResolverTest extends TestCase
         $this->assertNull($result);
     }
 
-    private function createMockRoute(mixed $controller): \Symfony\Component\Routing\Route
+    private function createMockRoute(mixed $controller): Route
     {
-        $route = $this->createMock(\Symfony\Component\Routing\Route::class);
+        $route = $this->createMock(Route::class);
         $route->method('getDefault')
               ->with('_controller')
               ->willReturn($controller);

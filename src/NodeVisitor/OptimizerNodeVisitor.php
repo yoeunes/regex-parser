@@ -14,7 +14,34 @@ declare(strict_types=1);
 namespace RegexParser\NodeVisitor;
 
 use RegexParser\Node;
+use RegexParser\Node\AbstractNode;
+use RegexParser\Node\AlternationNode;
+use RegexParser\Node\AnchorNode;
+use RegexParser\Node\AssertionNode;
+use RegexParser\Node\BackrefNode;
+use RegexParser\Node\CalloutNode;
+use RegexParser\Node\CharClassNode;
+use RegexParser\Node\CharLiteralNode;
+use RegexParser\Node\CharTypeNode;
+use RegexParser\Node\CommentNode;
+use RegexParser\Node\ConditionalNode;
+use RegexParser\Node\DefineNode;
+use RegexParser\Node\DotNode;
+use RegexParser\Node\GroupNode;
 use RegexParser\Node\GroupType;
+use RegexParser\Node\KeepNode;
+use RegexParser\Node\LimitMatchNode;
+use RegexParser\Node\LiteralNode;
+use RegexParser\Node\NodeInterface;
+use RegexParser\Node\PcreVerbNode;
+use RegexParser\Node\PosixClassNode;
+use RegexParser\Node\QuantifierNode;
+use RegexParser\Node\QuantifierType;
+use RegexParser\Node\RangeNode;
+use RegexParser\Node\RegexNode;
+use RegexParser\Node\SequenceNode;
+use RegexParser\Node\SubroutineNode;
+use RegexParser\Node\UnicodePropNode;
 use RegexParser\ReDoS\CharSetAnalyzer;
 
 /**
@@ -48,7 +75,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitRegex(Node\RegexNode $node): Node\NodeInterface
+    public function visitRegex(RegexNode $node): NodeInterface
     {
         $this->flags = $node->flags;
         $this->charSetAnalyzer = new CharSetAnalyzer($this->flags);
@@ -58,11 +85,11 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
             return $node;
         }
 
-        return new Node\RegexNode($optimizedPattern, $node->flags, $node->delimiter, $node->startPosition, $node->endPosition);
+        return new RegexNode($optimizedPattern, $node->flags, $node->delimiter, $node->startPosition, $node->endPosition);
     }
 
     #[\Override]
-    public function visitAlternation(Node\AlternationNode $node): Node\NodeInterface
+    public function visitAlternation(AlternationNode $node): NodeInterface
     {
         $optimizedAlts = [];
         $hasChanged = false;
@@ -70,7 +97,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         foreach ($node->alternatives as $alt) {
             $optimizedAlt = $alt->accept($this);
 
-            if ($optimizedAlt instanceof Node\AlternationNode) {
+            if ($optimizedAlt instanceof AlternationNode) {
                 array_push($optimizedAlts, ...$optimizedAlt->alternatives);
                 $hasChanged = true;
             } else {
@@ -97,9 +124,9 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
 
         if ($this->canAlternationBeCharClass($optimizedAlts)) {
             /* @var array<Node\LiteralNode> $optimizedAlts */
-            $expression = new Node\AlternationNode($optimizedAlts, $node->startPosition, $node->endPosition);
+            $expression = new AlternationNode($optimizedAlts, $node->startPosition, $node->endPosition);
 
-            return new Node\CharClassNode($expression, false, $node->startPosition, $node->endPosition);
+            return new CharClassNode($expression, false, $node->startPosition, $node->endPosition);
         }
 
         // Try to convert simple alternations to character classes
@@ -128,14 +155,14 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         $suffixFactoredAlts = $this->factorizeSuffix($optimizedAlts);
 
         if ($suffixFactoredAlts !== $optimizedAlts) {
-            return new Node\AlternationNode($suffixFactoredAlts, $node->startPosition, $node->endPosition);
+            return new AlternationNode($suffixFactoredAlts, $node->startPosition, $node->endPosition);
         }
 
-        return new Node\AlternationNode($optimizedAlts, $node->startPosition, $node->endPosition);
+        return new AlternationNode($optimizedAlts, $node->startPosition, $node->endPosition);
     }
 
     #[\Override]
-    public function visitSequence(Node\SequenceNode $node): Node\NodeInterface
+    public function visitSequence(SequenceNode $node): NodeInterface
     {
         $optimizedChildren = [];
         $hasChanged = false;
@@ -143,10 +170,10 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         foreach ($node->children as $child) {
             $optimizedChild = $child->accept($this);
 
-            if ($optimizedChild instanceof Node\LiteralNode && \count($optimizedChildren) > 0) {
+            if ($optimizedChild instanceof LiteralNode && \count($optimizedChildren) > 0) {
                 $prevNode = $optimizedChildren[\count($optimizedChildren) - 1];
-                if ($prevNode instanceof Node\LiteralNode) {
-                    $optimizedChildren[\count($optimizedChildren) - 1] = new Node\LiteralNode(
+                if ($prevNode instanceof LiteralNode) {
+                    $optimizedChildren[\count($optimizedChildren) - 1] = new LiteralNode(
                         $prevNode->value.$optimizedChild->value,
                         $prevNode->startPosition,
                         $optimizedChild->endPosition,
@@ -157,14 +184,14 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
                 }
             }
 
-            if ($optimizedChild instanceof Node\SequenceNode) {
+            if ($optimizedChild instanceof SequenceNode) {
                 array_push($optimizedChildren, ...$optimizedChild->children);
                 $hasChanged = true;
 
                 continue;
             }
 
-            if ($optimizedChild instanceof Node\LiteralNode && '' === $optimizedChild->value) {
+            if ($optimizedChild instanceof LiteralNode && '' === $optimizedChild->value) {
                 $hasChanged = true;
 
                 continue;
@@ -179,11 +206,11 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
 
         // Compact repeated literal sequences
         foreach ($optimizedChildren as $i => $child) {
-            if ($child instanceof Node\LiteralNode && preg_match('/^(.)\1+$/', $child->value, $matches)) {
+            if ($child instanceof LiteralNode && preg_match('/^(.)\1+$/', $child->value, $matches)) {
                 $char = $matches[1];
                 $count = \strlen($child->value);
-                $baseNode = new Node\LiteralNode($char, $child->startPosition, $child->endPosition);
-                $optimizedChildren[$i] = new Node\QuantifierNode($baseNode, '{'.$count.'}', Node\QuantifierType::T_GREEDY, $child->startPosition, $child->endPosition);
+                $baseNode = new LiteralNode($char, $child->startPosition, $child->endPosition);
+                $optimizedChildren[$i] = new QuantifierNode($baseNode, '{'.$count.'}', QuantifierType::T_GREEDY, $child->startPosition, $child->endPosition);
                 $hasChanged = true;
             }
         }
@@ -204,12 +231,12 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
                 $current = $optimizedChildren[$i];
                 $next = $optimizedChildren[$i + 1];
 
-                if ($current instanceof Node\QuantifierNode && Node\QuantifierType::T_GREEDY === $current->type && '+' === $current->quantifier) {
+                if ($current instanceof QuantifierNode && QuantifierType::T_GREEDY === $current->type && '+' === $current->quantifier) {
                     if ($this->areCharSetsDisjoint($current->node, $next)) {
-                        $optimizedChildren[$i] = new Node\QuantifierNode(
+                        $optimizedChildren[$i] = new QuantifierNode(
                             $current->node,
                             $current->quantifier,
-                            Node\QuantifierType::T_POSSESSIVE,
+                            QuantifierType::T_POSSESSIVE,
                             $current->startPosition,
                             $current->endPosition,
                         );
@@ -228,14 +255,14 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         }
 
         if (0 === \count($optimizedChildren)) {
-            return new Node\LiteralNode('', $node->startPosition, $node->endPosition);
+            return new LiteralNode('', $node->startPosition, $node->endPosition);
         }
 
-        return new Node\SequenceNode($optimizedChildren, $node->startPosition, $node->endPosition);
+        return new SequenceNode($optimizedChildren, $node->startPosition, $node->endPosition);
     }
 
     #[\Override]
-    public function visitGroup(Node\GroupNode $node): Node\NodeInterface
+    public function visitGroup(GroupNode $node): NodeInterface
     {
         $optimizedChild = $node->child->accept($this);
 
@@ -245,37 +272,37 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         // as unwrapping changes semantics when the group has a quantifier.
         if (
             GroupType::T_GROUP_NON_CAPTURING === $node->type
-            && !($this->isInsideQuantifier && ($node->child instanceof Node\SequenceNode || $node->child instanceof Node\AlternationNode))
+            && !($this->isInsideQuantifier && ($node->child instanceof SequenceNode || $node->child instanceof AlternationNode))
             && (
-                $optimizedChild instanceof Node\LiteralNode
-                || $optimizedChild instanceof Node\CharLiteralNode
-                || $optimizedChild instanceof Node\CharTypeNode
-                || $optimizedChild instanceof Node\DotNode
-                || $optimizedChild instanceof Node\CharClassNode
-                || $optimizedChild instanceof Node\AnchorNode
-                || $optimizedChild instanceof Node\AssertionNode
-                || $optimizedChild instanceof Node\UnicodePropNode
+                $optimizedChild instanceof LiteralNode
+                || $optimizedChild instanceof CharLiteralNode
+                || $optimizedChild instanceof CharTypeNode
+                || $optimizedChild instanceof DotNode
+                || $optimizedChild instanceof CharClassNode
+                || $optimizedChild instanceof AnchorNode
+                || $optimizedChild instanceof AssertionNode
+                || $optimizedChild instanceof UnicodePropNode
             )
         ) {
             return $optimizedChild;
         }
 
         if ($optimizedChild !== $node->child) {
-            return new Node\GroupNode($optimizedChild, $node->type, $node->name, $node->flags, $node->startPosition, $node->endPosition);
+            return new GroupNode($optimizedChild, $node->type, $node->name, $node->flags, $node->startPosition, $node->endPosition);
         }
 
         return $node;
     }
 
     #[\Override]
-    public function visitQuantifier(Node\QuantifierNode $node): Node\NodeInterface
+    public function visitQuantifier(QuantifierNode $node): NodeInterface
     {
         $this->isInsideQuantifier = true;
         $optimizedNode = $node->node->accept($this);
         $this->isInsideQuantifier = false;
 
         if ($optimizedNode !== $node->node) {
-            $node = new Node\QuantifierNode($optimizedNode, $node->quantifier, $node->type, $node->startPosition, $node->endPosition);
+            $node = new QuantifierNode($optimizedNode, $node->quantifier, $node->type, $node->startPosition, $node->endPosition);
         }
 
         $normalized = $this->normalizeQuantifier($node);
@@ -287,24 +314,24 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitCharClass(Node\CharClassNode $node): Node\NodeInterface
+    public function visitCharClass(CharClassNode $node): NodeInterface
     {
-        $parts = $node->expression instanceof Node\AlternationNode ? $node->expression->alternatives : [$node->expression];
+        $parts = $node->expression instanceof AlternationNode ? $node->expression->alternatives : [$node->expression];
 
         // We must check !str_contains($this->flags, 'u') because in Unicode mode,
         // \d matches more than just [0-9] (e.g. Arabic digits), so they are not equivalent.
         if ($this->optimizeDigits && !str_contains($this->flags, 'u') && !$node->isNegated && 1 === \count($parts)) {
             $part = $parts[0];
-            if ($part instanceof Node\RangeNode && $part->start instanceof Node\LiteralNode && $part->end instanceof Node\LiteralNode) {
+            if ($part instanceof RangeNode && $part->start instanceof LiteralNode && $part->end instanceof LiteralNode) {
                 if ('0' === $part->start->value && '9' === $part->end->value) {
-                    return new Node\CharTypeNode('d', $node->startPosition, $node->endPosition);
+                    return new CharTypeNode('d', $node->startPosition, $node->endPosition);
                 }
             }
         }
 
         if ($this->optimizeWord && !str_contains($this->flags, 'u') && !$node->isNegated && 4 === \count($parts)) {
             if ($this->isFullWordClass($parts)) {
-                return new Node\CharTypeNode('w', $node->startPosition, $node->endPosition);
+                return new CharTypeNode('w', $node->startPosition, $node->endPosition);
             }
         }
 
@@ -325,37 +352,37 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
             if (1 === \count($optimizedParts)) {
                 $expression = $optimizedParts[0];
             } else {
-                $expression = new Node\AlternationNode($optimizedParts, $node->startPosition, $node->endPosition);
+                $expression = new AlternationNode($optimizedParts, $node->startPosition, $node->endPosition);
             }
 
-            return new Node\CharClassNode($expression, $node->isNegated, $node->startPosition, $node->endPosition);
+            return new CharClassNode($expression, $node->isNegated, $node->startPosition, $node->endPosition);
         }
 
         return $node;
     }
 
     #[\Override]
-    public function visitRange(Node\RangeNode $node): Node\NodeInterface
+    public function visitRange(RangeNode $node): NodeInterface
     {
         return $node;
     }
 
     #[\Override]
-    public function visitConditional(Node\ConditionalNode $node): Node\NodeInterface
+    public function visitConditional(ConditionalNode $node): NodeInterface
     {
         $optimizedCond = $node->condition->accept($this);
         $optimizedYes = $node->yes->accept($this);
         $optimizedNo = $node->no->accept($this);
 
         if ($optimizedCond !== $node->condition || $optimizedYes !== $node->yes || $optimizedNo !== $node->no) {
-            return new Node\ConditionalNode($optimizedCond, $optimizedYes, $optimizedNo, $node->startPosition, $node->endPosition);
+            return new ConditionalNode($optimizedCond, $optimizedYes, $optimizedNo, $node->startPosition, $node->endPosition);
         }
 
         return $node;
     }
 
     #[\Override]
-    public function visitLiteral(Node\LiteralNode $node): Node\NodeInterface
+    public function visitLiteral(LiteralNode $node): NodeInterface
     {
         return $node;
     }
@@ -370,7 +397,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
      * @return Node\NodeInterface the unchanged node
      */
     #[\Override]
-    public function visitCharType(Node\CharTypeNode $node): Node\NodeInterface
+    public function visitCharType(CharTypeNode $node): NodeInterface
     {
         return $node;
     }
@@ -385,7 +412,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
      * @return Node\NodeInterface the unchanged node
      */
     #[\Override]
-    public function visitDot(Node\DotNode $node): Node\NodeInterface
+    public function visitDot(DotNode $node): NodeInterface
     {
         return $node;
     }
@@ -400,7 +427,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
      * @return Node\NodeInterface the unchanged node
      */
     #[\Override]
-    public function visitAnchor(Node\AnchorNode $node): Node\NodeInterface
+    public function visitAnchor(AnchorNode $node): NodeInterface
     {
         return $node;
     }
@@ -415,7 +442,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
      * @return Node\NodeInterface the unchanged node
      */
     #[\Override]
-    public function visitAssertion(Node\AssertionNode $node): Node\NodeInterface
+    public function visitAssertion(AssertionNode $node): NodeInterface
     {
         return $node;
     }
@@ -430,7 +457,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
      * @return Node\NodeInterface the unchanged node
      */
     #[\Override]
-    public function visitKeep(Node\KeepNode $node): Node\NodeInterface
+    public function visitKeep(KeepNode $node): NodeInterface
     {
         return $node;
     }
@@ -445,7 +472,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
      * @return Node\NodeInterface the unchanged node
      */
     #[\Override]
-    public function visitBackref(Node\BackrefNode $node): Node\NodeInterface
+    public function visitBackref(BackrefNode $node): NodeInterface
     {
         return $node;
     }
@@ -460,13 +487,13 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
      * @return Node\NodeInterface the unchanged node
      */
     #[\Override]
-    public function visitUnicodeProp(Node\UnicodePropNode $node): Node\NodeInterface
+    public function visitUnicodeProp(UnicodePropNode $node): NodeInterface
     {
         return $node;
     }
 
     #[\Override]
-    public function visitCharLiteral(Node\CharLiteralNode $node): Node\NodeInterface
+    public function visitCharLiteral(CharLiteralNode $node): NodeInterface
     {
         return $node;
     }
@@ -481,7 +508,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
      * @return Node\NodeInterface the unchanged node
      */
     #[\Override]
-    public function visitPosixClass(Node\PosixClassNode $node): Node\NodeInterface
+    public function visitPosixClass(PosixClassNode $node): NodeInterface
     {
         return $node;
     }
@@ -496,7 +523,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
      * @return Node\NodeInterface the unchanged node
      */
     #[\Override]
-    public function visitComment(Node\CommentNode $node): Node\NodeInterface
+    public function visitComment(CommentNode $node): NodeInterface
     {
         return $node;
     }
@@ -511,7 +538,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
      * @return Node\NodeInterface the unchanged node
      */
     #[\Override]
-    public function visitSubroutine(Node\SubroutineNode $node): Node\NodeInterface
+    public function visitSubroutine(SubroutineNode $node): NodeInterface
     {
         return $node;
     }
@@ -526,7 +553,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
      * @return Node\NodeInterface the unchanged node
      */
     #[\Override]
-    public function visitPcreVerb(Node\PcreVerbNode $node): Node\NodeInterface
+    public function visitPcreVerb(PcreVerbNode $node): NodeInterface
     {
         return $node;
     }
@@ -541,9 +568,9 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
      * @return Node\NodeInterface the new, optimized define node
      */
     #[\Override]
-    public function visitDefine(Node\DefineNode $node): Node\NodeInterface
+    public function visitDefine(DefineNode $node): NodeInterface
     {
-        return new Node\DefineNode(
+        return new DefineNode(
             $node->content->accept($this),
             $node->startPosition,
             $node->endPosition,
@@ -551,13 +578,13 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitLimitMatch(Node\LimitMatchNode $node): Node\NodeInterface
+    public function visitLimitMatch(LimitMatchNode $node): NodeInterface
     {
         return $node;
     }
 
     #[\Override]
-    public function visitCallout(Node\CalloutNode $node): Node\NodeInterface
+    public function visitCallout(CalloutNode $node): NodeInterface
     {
         return $node;
     }
@@ -572,7 +599,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         }
 
         foreach ($alternatives as $alt) {
-            if (!$alt instanceof Node\LiteralNode) {
+            if (!$alt instanceof LiteralNode) {
                 return false;
             }
             if (1 !== \strlen($alt->value)) {  // Also excludes empty strings
@@ -587,18 +614,18 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
     }
 
     /**
-     * @param array<\RegexParser\Node\NodeInterface> $parts
+     * @param array<NodeInterface> $parts
      */
     private function isFullWordClass(array $parts): bool
     {
         $partsFound = ['a-z' => false, 'A-Z' => false, '0-9' => false, '_' => false];
         foreach ($parts as $part) {
-            if ($part instanceof Node\RangeNode && $part->start instanceof Node\LiteralNode && $part->end instanceof Node\LiteralNode) {
+            if ($part instanceof RangeNode && $part->start instanceof LiteralNode && $part->end instanceof LiteralNode) {
                 $range = $part->start->value.'-'.$part->end->value;
                 if (isset($partsFound[$range])) {
                     $partsFound[$range] = true;
                 }
-            } elseif ($part instanceof Node\LiteralNode && '_' === $part->value) {
+            } elseif ($part instanceof LiteralNode && '_' === $part->value) {
                 $partsFound['_'] = true;
             }
         }
@@ -641,7 +668,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         $changed = false;
 
         foreach ($parts as $part) {
-            if ($part instanceof Node\LiteralNode && 1 === \strlen($part->value)) {
+            if ($part instanceof LiteralNode && 1 === \strlen($part->value)) {
                 $ord = mb_ord($part->value);
                 if (isset($scalarChars[$ord])) {
                     $scalarChars[$ord]['start'] = min($scalarChars[$ord]['start'], $part->startPosition);
@@ -654,9 +681,9 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
                 continue;
             }
 
-            if ($part instanceof Node\RangeNode
-                && $part->start instanceof Node\LiteralNode
-                && $part->end instanceof Node\LiteralNode
+            if ($part instanceof RangeNode
+                && $part->start instanceof LiteralNode
+                && $part->end instanceof LiteralNode
                 && 1 === \strlen($part->start->value)
                 && 1 === \strlen($part->end->value)
             ) {
@@ -735,7 +762,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
      */
     private function buildRangeOrLiteral(int $startOrd, int $endOrd, int $startPos, int $endPos): array
     {
-        $startLiteral = new Node\LiteralNode(mb_chr($startOrd), $startPos, $startPos + 1);
+        $startLiteral = new LiteralNode(mb_chr($startOrd), $startPos, $startPos + 1);
 
         if ($startOrd === $endOrd) {
             return [$startLiteral];
@@ -745,14 +772,14 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         $coverage = $endOrd - $startOrd + 1;
         if ($coverage < 3) {
             // For 2 characters, return them as separate literals
-            $endLiteral = new Node\LiteralNode(mb_chr($endOrd), $endPos, $endPos + 1);
+            $endLiteral = new LiteralNode(mb_chr($endOrd), $endPos, $endPos + 1);
 
             return [$startLiteral, $endLiteral];
         }
 
-        $endLiteral = new Node\LiteralNode(mb_chr($endOrd), $endPos, $endPos + 1);
+        $endLiteral = new LiteralNode(mb_chr($endOrd), $endPos, $endPos + 1);
 
-        return [new Node\RangeNode($startLiteral, $endLiteral, $startPos, $endPos)];
+        return [new RangeNode($startLiteral, $endLiteral, $startPos, $endPos)];
     }
 
     /**
@@ -774,7 +801,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
             $baseNode = $child;
             $count = 1;
 
-            if ($child instanceof Node\QuantifierNode) {
+            if ($child instanceof QuantifierNode) {
                 $baseNode = $child->node;
                 $parsedCount = $this->parseQuantifierCount($child->quantifier);
                 if (null === $parsedCount) {
@@ -826,7 +853,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         return null;
     }
 
-    private function areNodesEqual(Node\NodeInterface $a, Node\NodeInterface $b): bool
+    private function areNodesEqual(NodeInterface $a, NodeInterface $b): bool
     {
         // Simple equality: same type and same string representation
         if ($a::class !== $b::class) {
@@ -836,22 +863,22 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         return $this->nodeToString($a) === $this->nodeToString($b);
     }
 
-    private function createQuantifiedNode(Node\NodeInterface $node, int $count): Node\NodeInterface
+    private function createQuantifiedNode(NodeInterface $node, int $count): NodeInterface
     {
         if (1 === $count) {
             return $node;
         }
 
-        return new Node\QuantifierNode(
+        return new QuantifierNode(
             $node,
             '{'.$count.'}',
-            Node\QuantifierType::T_GREEDY,
+            QuantifierType::T_GREEDY,
             $node->getStartPosition(),
             $node->getEndPosition(),
         );
     }
 
-    private function areCharSetsDisjoint(Node\NodeInterface $node1, Node\NodeInterface $node2): bool
+    private function areCharSetsDisjoint(NodeInterface $node1, NodeInterface $node2): bool
     {
         try {
             $set1 = $this->charSetAnalyzer->lastChars($node1);
@@ -863,20 +890,20 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         }
     }
 
-    private function normalizeQuantifier(Node\QuantifierNode $node): Node\NodeInterface
+    private function normalizeQuantifier(QuantifierNode $node): NodeInterface
     {
         $quantifier = $node->quantifier;
 
         if ('{0,}' === $quantifier) {
-            return new Node\QuantifierNode($node->node, '*', $node->type, $node->startPosition, $node->endPosition);
+            return new QuantifierNode($node->node, '*', $node->type, $node->startPosition, $node->endPosition);
         }
 
         if ('{1,}' === $quantifier) {
-            return new Node\QuantifierNode($node->node, '+', $node->type, $node->startPosition, $node->endPosition);
+            return new QuantifierNode($node->node, '+', $node->type, $node->startPosition, $node->endPosition);
         }
 
         if ('{0,1}' === $quantifier) {
-            return new Node\QuantifierNode($node->node, '?', $node->type, $node->startPosition, $node->endPosition);
+            return new QuantifierNode($node->node, '?', $node->type, $node->startPosition, $node->endPosition);
         }
 
         if ('{1}' === $quantifier || '{1,1}' === $quantifier) {
@@ -884,7 +911,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         }
 
         if ('{0}' === $quantifier || '{0,0}' === $quantifier) {
-            return new Node\LiteralNode('', $node->startPosition, $node->endPosition);
+            return new LiteralNode('', $node->startPosition, $node->endPosition);
         }
 
         return $node;
@@ -952,7 +979,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         // Create suffixes
         $suffixes = [];
         /**
-         * @var \RegexParser\Node\AbstractNode $alt
+         * @var AbstractNode $alt
          */
         foreach ($withPrefix as $alt) {
             $suffixStr = substr($this->nodeToString($alt), \strlen($prefix));
@@ -967,24 +994,24 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         $nonNullSuffixes = array_values(array_filter($suffixes, static fn ($suffix): bool => null !== $suffix));
         if (empty($nonNullSuffixes)) {
             // All are just the prefix
-            /** @var \RegexParser\Node\AbstractNode $firstAlt */
+            /** @var AbstractNode $firstAlt */
             $firstAlt = $withPrefix[0];
 
             return [$this->stringToNode($prefix, $firstAlt->startPosition, $firstAlt->startPosition + \strlen($prefix))];
         }
 
-        /** @var \RegexParser\Node\AbstractNode $firstSuffix */
+        /** @var AbstractNode $firstSuffix */
         $firstSuffix = $nonNullSuffixes[0];
-        /** @var \RegexParser\Node\AbstractNode $lastSuffix */
+        /** @var AbstractNode $lastSuffix */
         $lastSuffix = $nonNullSuffixes[\count($nonNullSuffixes) - 1];
         $newAlt = 1 === \count($nonNullSuffixes)
             ? $firstSuffix
-            : new Node\AlternationNode($nonNullSuffixes, $firstSuffix->startPosition, $lastSuffix->endPosition);
-        $group = new Node\GroupNode($newAlt, Node\GroupType::T_GROUP_NON_CAPTURING);
-        /** @var \RegexParser\Node\AbstractNode $firstAlt */
+            : new AlternationNode($nonNullSuffixes, $firstSuffix->startPosition, $lastSuffix->endPosition);
+        $group = new GroupNode($newAlt, GroupType::T_GROUP_NON_CAPTURING);
+        /** @var AbstractNode $firstAlt */
         $firstAlt = $withPrefix[0];
         $prefixNode = $this->stringToNode($prefix, $firstAlt->startPosition, $firstAlt->startPosition + \strlen($prefix));
-        $factored = new Node\SequenceNode([$prefixNode, $group], $firstAlt->startPosition, $firstAlt->endPosition);
+        $factored = new SequenceNode([$prefixNode, $group], $firstAlt->startPosition, $firstAlt->endPosition);
 
         if (empty($withoutPrefix)) {
             return [$factored];
@@ -1007,7 +1034,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
 
         // Safety check: only factorize if all alternatives are LiteralNode
         foreach ($alts as $alt) {
-            if (!$alt instanceof Node\LiteralNode) {
+            if (!$alt instanceof LiteralNode) {
                 return $alts; // Too risky to factorize complex nodes based on string output.
             }
         }
@@ -1047,7 +1074,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         // Create prefixes (everything before the suffix)
         $prefixes = [];
         /**
-         * @var \RegexParser\Node\AbstractNode $alt
+         * @var AbstractNode $alt
          */
         foreach ($withSuffix as $alt) {
             $prefixStr = substr($this->nodeToString($alt), 0, -\strlen($suffix));
@@ -1062,24 +1089,24 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         $nonNullPrefixes = array_values(array_filter($prefixes, static fn ($prefix): bool => null !== $prefix));
         if (empty($nonNullPrefixes)) {
             // All are just the suffix
-            /** @var \RegexParser\Node\AbstractNode $firstAlt */
+            /** @var AbstractNode $firstAlt */
             $firstAlt = $withSuffix[0];
 
             return [$this->stringToNode($suffix, $firstAlt->endPosition - \strlen($suffix), $firstAlt->endPosition)];
         }
 
-        /** @var \RegexParser\Node\AbstractNode $firstPrefix */
+        /** @var AbstractNode $firstPrefix */
         $firstPrefix = $nonNullPrefixes[0];
-        /** @var \RegexParser\Node\AbstractNode $lastPrefix */
+        /** @var AbstractNode $lastPrefix */
         $lastPrefix = $nonNullPrefixes[\count($nonNullPrefixes) - 1];
         $newAlt = 1 === \count($nonNullPrefixes)
             ? $firstPrefix
-            : new Node\AlternationNode($nonNullPrefixes, $firstPrefix->startPosition, $lastPrefix->endPosition);
-        $group = new Node\GroupNode($newAlt, Node\GroupType::T_GROUP_NON_CAPTURING);
-        /** @var \RegexParser\Node\AbstractNode $firstAlt */
+            : new AlternationNode($nonNullPrefixes, $firstPrefix->startPosition, $lastPrefix->endPosition);
+        $group = new GroupNode($newAlt, GroupType::T_GROUP_NON_CAPTURING);
+        /** @var AbstractNode $firstAlt */
         $firstAlt = $withSuffix[0];
         $suffixNode = $this->stringToNode($suffix, $firstAlt->endPosition - \strlen($suffix), $firstAlt->endPosition);
-        $factored = new Node\SequenceNode([$group, $suffixNode], $firstAlt->startPosition, $firstAlt->endPosition);
+        $factored = new SequenceNode([$group, $suffixNode], $firstAlt->startPosition, $firstAlt->endPosition);
 
         if (empty($withoutSuffix)) {
             return [$factored];
@@ -1088,24 +1115,24 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         return array_merge([$factored], $withoutSuffix);
     }
 
-    private function nodeToString(Node\NodeInterface $node): string
+    private function nodeToString(NodeInterface $node): string
     {
         $compiler = new CompilerNodeVisitor();
 
         return $node->accept($compiler);
     }
 
-    private function stringToNode(string $str, int $start, int $end): Node\NodeInterface
+    private function stringToNode(string $str, int $start, int $end): NodeInterface
     {
         if (1 === \strlen($str)) {
-            return new Node\LiteralNode($str, $start, $end);
+            return new LiteralNode($str, $start, $end);
         }
         $children = [];
         for ($i = 0; $i < \strlen($str); $i++) {
-            $children[] = new Node\LiteralNode($str[$i], $start + $i, $start + $i + 1);
+            $children[] = new LiteralNode($str[$i], $start + $i, $start + $i + 1);
         }
 
-        return new Node\SequenceNode($children, $start, $end);
+        return new SequenceNode($children, $start, $end);
     }
 
     /**
@@ -1150,8 +1177,8 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
             $current = $alternatives[$i];
 
             // Check if current is a character class or a char type that can be converted
-            $isCharClass = $current instanceof Node\CharClassNode && !$current->isNegated;
-            $isCharType = $current instanceof Node\CharTypeNode && $this->canConvertCharTypeToCharClass($current);
+            $isCharClass = $current instanceof CharClassNode && !$current->isNegated;
+            $isCharType = $current instanceof CharTypeNode && $this->canConvertCharTypeToCharClass($current);
 
             if (!$isCharClass && !$isCharType) {
                 $merged[] = $current;
@@ -1166,8 +1193,8 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
 
             while ($j < \count($alternatives)) {
                 $next = $alternatives[$j];
-                $isNextCharClass = $next instanceof Node\CharClassNode && !$next->isNegated;
-                $isNextCharType = $next instanceof Node\CharTypeNode && $this->canConvertCharTypeToCharClass($next);
+                $isNextCharClass = $next instanceof CharClassNode && !$next->isNegated;
+                $isNextCharType = $next instanceof CharTypeNode && $this->canConvertCharTypeToCharClass($next);
 
                 if ($isNextCharClass || $isNextCharType) {
                     $nodesToMerge[] = $next;
@@ -1193,7 +1220,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
     /**
      * Checks if a CharTypeNode can be converted to a CharClassNode.
      */
-    private function canConvertCharTypeToCharClass(Node\CharTypeNode $node): bool
+    private function canConvertCharTypeToCharClass(CharTypeNode $node): bool
     {
         // For now, only handle \d (digits) which can be converted to [0-9]
         return 'd' === $node->value;
@@ -1202,16 +1229,16 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
     /**
      * Converts a CharTypeNode to an equivalent CharClassNode.
      */
-    private function convertCharTypeToCharClass(Node\CharTypeNode $node): Node\CharClassNode
+    private function convertCharTypeToCharClass(CharTypeNode $node): CharClassNode
     {
         $startPos = $node->startPosition;
         $endPos = $node->endPosition;
 
         return match ($node->value) {
-            'd' => new Node\CharClassNode(
-                new Node\RangeNode(
-                    new Node\LiteralNode('0', $startPos, $startPos + 1),
-                    new Node\LiteralNode('9', $startPos + 1, $startPos + 2),
+            'd' => new CharClassNode(
+                new RangeNode(
+                    new LiteralNode('0', $startPos, $startPos + 1),
+                    new LiteralNode('9', $startPos + 1, $startPos + 2),
                     $startPos,
                     $startPos + 2,
                 ),
@@ -1228,23 +1255,23 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
      *
      * @param array<Node\NodeInterface> $nodes
      */
-    private function mergeCharClassesAndCharTypes(array $nodes): Node\CharClassNode
+    private function mergeCharClassesAndCharTypes(array $nodes): CharClassNode
     {
         $allParts = [];
         $startPos = $nodes[0]->getStartPosition();
         $endPos = $nodes[\count($nodes) - 1]->getEndPosition();
 
         foreach ($nodes as $node) {
-            if ($node instanceof Node\CharClassNode) {
-                if ($node->expression instanceof Node\AlternationNode) {
+            if ($node instanceof CharClassNode) {
+                if ($node->expression instanceof AlternationNode) {
                     $allParts = array_merge($allParts, $node->expression->alternatives);
                 } else {
                     $allParts[] = $node->expression;
                 }
-            } elseif ($node instanceof Node\CharTypeNode) {
+            } elseif ($node instanceof CharTypeNode) {
                 // Convert char type to equivalent char class parts
                 $charClass = $this->convertCharTypeToCharClass($node);
-                if ($charClass->expression instanceof Node\AlternationNode) {
+                if ($charClass->expression instanceof AlternationNode) {
                     $allParts = array_merge($allParts, $charClass->expression->alternatives);
                 } else {
                     $allParts[] = $charClass->expression;
@@ -1253,9 +1280,9 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         }
 
         // Create a new alternation with all parts
-        $mergedExpression = new Node\AlternationNode($allParts, $startPos, $endPos);
+        $mergedExpression = new AlternationNode($allParts, $startPos, $endPos);
 
-        return new Node\CharClassNode($mergedExpression, false, $startPos, $endPos);
+        return new CharClassNode($mergedExpression, false, $startPos, $endPos);
     }
 
     /**
@@ -1264,7 +1291,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
      *
      * @param array<Node\NodeInterface> $alternatives
      */
-    private function tryConvertAlternationToCharClass(array $alternatives, int $startPos, int $endPos): ?Node\CharClassNode
+    private function tryConvertAlternationToCharClass(array $alternatives, int $startPos, int $endPos): ?CharClassNode
     {
         if (\count($alternatives) < 3) {
             return null; // Not worth it for small alternations
@@ -1274,7 +1301,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         $other = [];
 
         foreach ($alternatives as $alt) {
-            if ($alt instanceof Node\LiteralNode && 1 === \strlen($alt->value)) {
+            if ($alt instanceof LiteralNode && 1 === \strlen($alt->value)) {
                 $char = $alt->value;
                 // Don't convert if it contains char class metacharacters that would change meaning
                 if (!isset(self::CHAR_CLASS_META[$char])) {
@@ -1306,11 +1333,11 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
 
             if ($sortedLiterals === $expected) {
                 // Create a range instead
-                $startLiteral = new Node\LiteralNode($first, $startPos, $startPos + 1);
-                $endLiteral = new Node\LiteralNode($last, $endPos - 1, $endPos);
+                $startLiteral = new LiteralNode($first, $startPos, $startPos + 1);
+                $endLiteral = new LiteralNode($last, $endPos - 1, $endPos);
 
-                return new Node\CharClassNode(
-                    new Node\RangeNode($startLiteral, $endLiteral, $startPos, $endPos),
+                return new CharClassNode(
+                    new RangeNode($startLiteral, $endLiteral, $startPos, $endPos),
                     false,
                     $startPos,
                     $endPos,

@@ -15,6 +15,7 @@ namespace RegexParser\Tests\Unit\ReDoS;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use RegexParser\Node\NodeInterface;
 use RegexParser\ReDoS\ReDoSAnalyzer;
 use RegexParser\ReDoS\ReDoSSeverity;
 
@@ -74,7 +75,7 @@ final class ReDoSAnalyzerTest extends TestCase
         $analysis = $this->analyzer->analyze('/(a+)+b/');
 
         $this->assertNotEmpty($analysis->hotspots);
-        $this->assertInstanceOf(\RegexParser\Node\NodeInterface::class, $analysis->getCulpritNode());
+        $this->assertInstanceOf(NodeInterface::class, $analysis->getCulpritNode());
 
         $matched = false;
         foreach ($analysis->hotspots as $hotspot) {

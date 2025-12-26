@@ -13,8 +13,37 @@ declare(strict_types=1);
 
 namespace RegexParser\NodeVisitor;
 
-use RegexParser\Node;
+use RegexParser\Node\AlternationNode;
+use RegexParser\Node\AnchorNode;
+use RegexParser\Node\AssertionNode;
+use RegexParser\Node\BackrefNode;
+use RegexParser\Node\CalloutNode;
+use RegexParser\Node\CharClassNode;
+use RegexParser\Node\CharLiteralNode;
+use RegexParser\Node\CharTypeNode;
+use RegexParser\Node\ClassOperationNode;
+use RegexParser\Node\ClassOperationType;
+use RegexParser\Node\CommentNode;
+use RegexParser\Node\ConditionalNode;
+use RegexParser\Node\ControlCharNode;
+use RegexParser\Node\DefineNode;
+use RegexParser\Node\DotNode;
+use RegexParser\Node\GroupNode;
 use RegexParser\Node\GroupType;
+use RegexParser\Node\KeepNode;
+use RegexParser\Node\LimitMatchNode;
+use RegexParser\Node\LiteralNode;
+use RegexParser\Node\PcreVerbNode;
+use RegexParser\Node\PosixClassNode;
+use RegexParser\Node\QuantifierNode;
+use RegexParser\Node\QuantifierType;
+use RegexParser\Node\RangeNode;
+use RegexParser\Node\RegexNode;
+use RegexParser\Node\ScriptRunNode;
+use RegexParser\Node\SequenceNode;
+use RegexParser\Node\SubroutineNode;
+use RegexParser\Node\UnicodePropNode;
+use RegexParser\Node\VersionConditionNode;
 
 /**
  * High-performance compiler that recompiles regex AST back into optimized strings.
@@ -66,7 +95,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitRegex(Node\RegexNode $node): string
+    public function visitRegex(RegexNode $node): string
     {
         $this->delimiter = $node->delimiter;
         $this->flags = $node->flags;
@@ -76,7 +105,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitAlternation(Node\AlternationNode $node): string
+    public function visitAlternation(AlternationNode $node): string
     {
         // Optimized: direct compilation without array_map overhead
         $alternatives = $node->alternatives;
@@ -107,7 +136,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitSequence(Node\SequenceNode $node): string
+    public function visitSequence(SequenceNode $node): string
     {
         // Optimized: direct compilation without array_map overhead
         $children = $node->children;
@@ -125,7 +154,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitGroup(Node\GroupNode $node): string
+    public function visitGroup(GroupNode $node): string
     {
         $flags = $node->flags ?? '';
 
@@ -169,17 +198,17 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitQuantifier(Node\QuantifierNode $node): string
+    public function visitQuantifier(QuantifierNode $node): string
     {
         $nodeCompiled = $node->node->accept($this);
 
-        if ($node->node instanceof Node\SequenceNode || $node->node instanceof Node\AlternationNode) {
+        if ($node->node instanceof SequenceNode || $node->node instanceof AlternationNode) {
             $nodeCompiled = '(?:'.$nodeCompiled.')';
         }
 
         $suffix = match ($node->type) {
-            Node\QuantifierType::T_LAZY => '?',
-            Node\QuantifierType::T_POSSESSIVE => '+',
+            QuantifierType::T_LAZY => '?',
+            QuantifierType::T_POSSESSIVE => '+',
             default => '',
         };
 
@@ -189,7 +218,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitLiteral(Node\LiteralNode $node): string
+    public function visitLiteral(LiteralNode $node): string
     {
         $value = $node->value;
 
@@ -208,37 +237,37 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitDot(Node\DotNode $node): string
+    public function visitDot(DotNode $node): string
     {
         return '.';
     }
 
     #[\Override]
-    public function visitAnchor(Node\AnchorNode $node): string
+    public function visitAnchor(AnchorNode $node): string
     {
         return $node->value;
     }
 
     #[\Override]
-    public function visitAssertion(Node\AssertionNode $node): string
+    public function visitAssertion(AssertionNode $node): string
     {
         return '\\'.$node->value;
     }
 
     #[\Override]
-    public function visitCharType(Node\CharTypeNode $node): string
+    public function visitCharType(CharTypeNode $node): string
     {
         return '\\'.$node->value;
     }
 
     #[\Override]
-    public function visitKeep(Node\KeepNode $node): string
+    public function visitKeep(KeepNode $node): string
     {
         return '\K';
     }
 
     #[\Override]
-    public function visitCharClass(Node\CharClassNode $node): string
+    public function visitCharClass(CharClassNode $node): string
     {
         $wasInCharClass = $this->inCharClass;
         $this->inCharClass = true;
@@ -253,13 +282,13 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitRange(Node\RangeNode $node): string
+    public function visitRange(RangeNode $node): string
     {
         return $node->start->accept($this).'-'.$node->end->accept($this);
     }
 
     #[\Override]
-    public function visitBackref(Node\BackrefNode $node): string
+    public function visitBackref(BackrefNode $node): string
     {
         if (ctype_digit($node->ref)) {
             return '\\'.$node->ref;
@@ -269,7 +298,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitCharLiteral(Node\CharLiteralNode $node): string
+    public function visitCharLiteral(CharLiteralNode $node): string
     {
         $rep = $node->originalRepresentation;
 
@@ -298,31 +327,31 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitClassOperation(Node\ClassOperationNode $node): string
+    public function visitClassOperation(ClassOperationNode $node): string
     {
-        return $node->left->accept($this).(Node\ClassOperationType::INTERSECTION === $node->type ? '&&' : '--').$node->right->accept($this);
+        return $node->left->accept($this).(ClassOperationType::INTERSECTION === $node->type ? '&&' : '--').$node->right->accept($this);
     }
 
     #[\Override]
-    public function visitControlChar(Node\ControlCharNode $node): string
+    public function visitControlChar(ControlCharNode $node): string
     {
         return '\\c'.$node->char;
     }
 
     #[\Override]
-    public function visitScriptRun(Node\ScriptRunNode $node): string
+    public function visitScriptRun(ScriptRunNode $node): string
     {
         return '(*script_run:'.$node->script.')';
     }
 
     #[\Override]
-    public function visitVersionCondition(Node\VersionConditionNode $node): string
+    public function visitVersionCondition(VersionConditionNode $node): string
     {
         return '(?(VERSION'.$node->operator.$node->version.')';
     }
 
     #[\Override]
-    public function visitUnicodeProp(Node\UnicodePropNode $node): string
+    public function visitUnicodeProp(UnicodePropNode $node): string
     {
         $prop = $node->hasBraces ? trim($node->prop, '{}') : $node->prop;
 
@@ -335,13 +364,13 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitPosixClass(Node\PosixClassNode $node): string
+    public function visitPosixClass(PosixClassNode $node): string
     {
         return '[[:'.$node->class.':]]';
     }
 
     #[\Override]
-    public function visitComment(Node\CommentNode $node): string
+    public function visitComment(CommentNode $node): string
     {
         $isExtended = str_contains($this->flags, 'x');
 
@@ -400,9 +429,9 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitConditional(Node\ConditionalNode $node): string
+    public function visitConditional(ConditionalNode $node): string
     {
-        if ($node->condition instanceof Node\BackrefNode) {
+        if ($node->condition instanceof BackrefNode) {
             $cond = $node->condition->ref;
         } else {
             $cond = $node->condition->accept($this);
@@ -428,7 +457,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitSubroutine(Node\SubroutineNode $node): string
+    public function visitSubroutine(SubroutineNode $node): string
     {
         return match ($node->syntax) {
             '&' => '(?&'.$node->reference.')',
@@ -439,13 +468,13 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitPcreVerb(Node\PcreVerbNode $node): string
+    public function visitPcreVerb(PcreVerbNode $node): string
     {
         return '(*'.$node->verb.')';
     }
 
     #[\Override]
-    public function visitDefine(Node\DefineNode $node): string
+    public function visitDefine(DefineNode $node): string
     {
         if ($this->pretty) {
             $this->indentLevel++;
@@ -460,13 +489,13 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitLimitMatch(Node\LimitMatchNode $node): string
+    public function visitLimitMatch(LimitMatchNode $node): string
     {
         return '(*LIMIT_MATCH='.$node->limit.')';
     }
 
     #[\Override]
-    public function visitCallout(Node\CalloutNode $node): string
+    public function visitCallout(CalloutNode $node): string
     {
         if (null === $node->identifier) {
             return '(?C)';

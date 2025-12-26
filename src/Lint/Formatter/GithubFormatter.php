@@ -20,7 +20,7 @@ use RegexParser\Severity;
 /**
  * GitHub Actions output formatter.
  *
- * @phpstan-import-type LintResult from \RegexParser\Lint\RegexLintReport
+ * @phpstan-import-type LintResult from RegexLintReport
  *
  * @phpstan-type FlattenedProblem array{
  *     file: string,

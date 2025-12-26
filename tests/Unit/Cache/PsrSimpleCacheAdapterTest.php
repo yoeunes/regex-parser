@@ -16,6 +16,7 @@ namespace RegexParser\Tests\Unit\Cache;
 use PHPUnit\Framework\TestCase;
 use Psr\SimpleCache\CacheInterface;
 use RegexParser\Cache\PsrSimpleCacheAdapter;
+use RegexParser\Node\RegexNode;
 use RegexParser\Regex;
 
 final class PsrSimpleCacheAdapterTest extends TestCase
@@ -95,7 +96,7 @@ final class PsrSimpleCacheAdapterTest extends TestCase
         $adapter->write($key, $payload);
 
         $loaded = $adapter->load($key);
-        $this->assertInstanceOf(\RegexParser\Node\RegexNode::class, $loaded);
+        $this->assertInstanceOf(RegexNode::class, $loaded);
     }
 
     public function test_extract_serialized_string(): void

@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\Unit\Lexer;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\LexerException;
 use RegexParser\Lexer;
@@ -200,7 +201,7 @@ final class LexerTest extends TestCase
     /**
      * @param array<string> $expectedOctals
      */
-    #[\PHPUnit\Framework\Attributes\DataProvider('provide_legacy_octal_sequences')]
+    #[DataProvider('provide_legacy_octal_sequences')]
     public function test_tokenize_legacy_octal_sequences(string $pattern, array $expectedOctals, bool $expectRange): void
     {
         $tokens = (new Lexer())->tokenize($pattern)->getTokens();

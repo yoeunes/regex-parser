@@ -20,7 +20,7 @@ use RegexParser\Severity;
 /**
  * Checkstyle XML output formatter.
  *
- * @phpstan-import-type LintResult from \RegexParser\Lint\RegexLintReport
+ * @phpstan-import-type LintResult from RegexLintReport
  *
  * @phpstan-type FlattenedProblem array{
  *     file: string,

@@ -13,7 +13,18 @@ declare(strict_types=1);
 
 namespace RegexParser;
 
+use RegexParser\Node\AlternationNode;
+use RegexParser\Node\CharClassNode;
+use RegexParser\Node\ClassOperationNode;
+use RegexParser\Node\ConditionalNode;
+use RegexParser\Node\DefineNode;
+use RegexParser\Node\GroupNode;
 use RegexParser\Node\GroupType;
+use RegexParser\Node\NodeInterface;
+use RegexParser\Node\QuantifierNode;
+use RegexParser\Node\RangeNode;
+use RegexParser\Node\RegexNode;
+use RegexParser\Node\SequenceNode;
 
 /**
  * Collects PCRE-aware group numbering metadata, including branch reset groups.
@@ -34,7 +45,7 @@ final class GroupNumberingCollector
      */
     private array $namedGroups = [];
 
-    public function collect(Node\RegexNode $node): GroupNumbering
+    public function collect(RegexNode $node): GroupNumbering
     {
         $this->nextGroupNumber = 1;
         $this->maxGroupNumber = 0;
@@ -50,9 +61,9 @@ final class GroupNumberingCollector
         return new GroupNumbering($this->maxGroupNumber, $this->captureSequence, $this->namedGroups);
     }
 
-    private function collectNode(Node\NodeInterface $node): void
+    private function collectNode(NodeInterface $node): void
     {
-        if ($node instanceof Node\GroupNode) {
+        if ($node instanceof GroupNode) {
             if (GroupType::T_GROUP_BRANCH_RESET === $node->type) {
                 $this->collectBranchReset($node);
 
@@ -68,7 +79,7 @@ final class GroupNumberingCollector
             return;
         }
 
-        if ($node instanceof Node\AlternationNode) {
+        if ($node instanceof AlternationNode) {
             foreach ($node->alternatives as $alt) {
                 $this->collectNode($alt);
             }
@@ -76,7 +87,7 @@ final class GroupNumberingCollector
             return;
         }
 
-        if ($node instanceof Node\SequenceNode) {
+        if ($node instanceof SequenceNode) {
             foreach ($node->children as $child) {
                 $this->collectNode($child);
             }
@@ -84,13 +95,13 @@ final class GroupNumberingCollector
             return;
         }
 
-        if ($node instanceof Node\QuantifierNode) {
+        if ($node instanceof QuantifierNode) {
             $this->collectNode($node->node);
 
             return;
         }
 
-        if ($node instanceof Node\ConditionalNode) {
+        if ($node instanceof ConditionalNode) {
             $this->collectNode($node->condition);
             $this->collectNode($node->yes);
             $this->collectNode($node->no);
@@ -98,32 +109,32 @@ final class GroupNumberingCollector
             return;
         }
 
-        if ($node instanceof Node\DefineNode) {
+        if ($node instanceof DefineNode) {
             $this->collectNode($node->content);
 
             return;
         }
 
-        if ($node instanceof Node\CharClassNode) {
+        if ($node instanceof CharClassNode) {
             $this->collectNode($node->expression);
 
             return;
         }
 
-        if ($node instanceof Node\ClassOperationNode) {
+        if ($node instanceof ClassOperationNode) {
             $this->collectNode($node->left);
             $this->collectNode($node->right);
 
             return;
         }
 
-        if ($node instanceof Node\RangeNode) {
+        if ($node instanceof RangeNode) {
             $this->collectNode($node->start);
             $this->collectNode($node->end);
         }
     }
 
-    private function registerCapturingGroup(Node\GroupNode $node): void
+    private function registerCapturingGroup(GroupNode $node): void
     {
         $number = $this->nextGroupNumber++;
         $this->captureSequence[] = $number;
@@ -134,12 +145,12 @@ final class GroupNumberingCollector
         }
     }
 
-    private function collectBranchReset(Node\GroupNode $node): void
+    private function collectBranchReset(GroupNode $node): void
     {
         $base = $this->nextGroupNumber;
         $maxExtra = 0;
 
-        $alternatives = $node->child instanceof Node\AlternationNode
+        $alternatives = $node->child instanceof AlternationNode
             ? $node->child->alternatives
             : [$node->child];
 

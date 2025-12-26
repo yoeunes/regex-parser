@@ -109,7 +109,7 @@ final readonly class PhpStanExtractionStrategy implements ExtractorInterface
     }
 
     /**
-     * @param array<\PhpParser\Node> $tokens
+     * @param array<Node> $tokens
      *
      * @return array<RegexPatternOccurrence>
      */

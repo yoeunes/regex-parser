@@ -15,53 +15,60 @@ namespace RegexParser\Tests\Unit\Bridge\Symfony\Extractor;
 
 use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
+use RegexParser\Bridge\Symfony\Extractor\RouteRegexPatternSource;
+use RegexParser\Bridge\Symfony\Routing\RouteRequirementNormalizer;
+use RegexParser\Lint\RegexPatternSourceContext;
+use Symfony\Component\Config\Resource\FileResource;
+use Symfony\Component\Routing\Route;
+use Symfony\Component\Routing\RouteCollection;
+use Symfony\Component\Routing\RouterInterface;
 
 final class RouteRegexPatternSourceTest extends TestCase
 {
-    private \RegexParser\Bridge\Symfony\Routing\RouteRequirementNormalizer $normalizer;
+    private RouteRequirementNormalizer $normalizer;
 
     protected function setUp(): void
     {
-        $this->normalizer = new \RegexParser\Bridge\Symfony\Routing\RouteRequirementNormalizer();
+        $this->normalizer = new RouteRequirementNormalizer();
     }
 
     #[DoesNotPerformAssertions]
     public function test_construct(): void
     {
-        $source = new \RegexParser\Bridge\Symfony\Extractor\RouteRegexPatternSource($this->normalizer);
+        $source = new RouteRegexPatternSource($this->normalizer);
         // Source created successfully
     }
 
     #[DoesNotPerformAssertions]
     public function test_construct_with_router(): void
     {
-        $router = $this->createMock(\Symfony\Component\Routing\RouterInterface::class);
-        $source = new \RegexParser\Bridge\Symfony\Extractor\RouteRegexPatternSource($this->normalizer, $router);
+        $router = $this->createMock(RouterInterface::class);
+        $source = new RouteRegexPatternSource($this->normalizer, $router);
     }
 
     public function test_get_name(): void
     {
-        $source = new \RegexParser\Bridge\Symfony\Extractor\RouteRegexPatternSource($this->normalizer);
+        $source = new RouteRegexPatternSource($this->normalizer);
         $this->assertSame('routes', $source->getName());
     }
 
     public function test_is_supported_returns_false_when_no_router(): void
     {
-        $source = new \RegexParser\Bridge\Symfony\Extractor\RouteRegexPatternSource($this->normalizer);
+        $source = new RouteRegexPatternSource($this->normalizer);
         $this->assertFalse($source->isSupported());
     }
 
     public function test_is_supported_returns_true_when_router_present(): void
     {
-        $router = $this->createMock(\Symfony\Component\Routing\RouterInterface::class);
-        $source = new \RegexParser\Bridge\Symfony\Extractor\RouteRegexPatternSource($this->normalizer, $router);
+        $router = $this->createMock(RouterInterface::class);
+        $source = new RouteRegexPatternSource($this->normalizer, $router);
         $this->assertTrue($source->isSupported());
     }
 
     public function test_extract_returns_empty_array_when_no_router(): void
     {
-        $source = new \RegexParser\Bridge\Symfony\Extractor\RouteRegexPatternSource($this->normalizer);
-        $context = new \RegexParser\Lint\RegexPatternSourceContext(['.'], []);
+        $source = new RouteRegexPatternSource($this->normalizer);
+        $context = new RegexPatternSourceContext(['.'], []);
 
         $result = $source->extract($context);
 
@@ -70,12 +77,12 @@ final class RouteRegexPatternSourceTest extends TestCase
 
     public function test_extract_with_empty_route_collection(): void
     {
-        $router = $this->createMock(\Symfony\Component\Routing\RouterInterface::class);
-        $collection = new \Symfony\Component\Routing\RouteCollection();
+        $router = $this->createMock(RouterInterface::class);
+        $collection = new RouteCollection();
         $router->method('getRouteCollection')->willReturn($collection);
 
-        $source = new \RegexParser\Bridge\Symfony\Extractor\RouteRegexPatternSource($this->normalizer, $router);
-        $context = new \RegexParser\Lint\RegexPatternSourceContext(['.'], []);
+        $source = new RouteRegexPatternSource($this->normalizer, $router);
+        $context = new RegexPatternSourceContext(['.'], []);
 
         $result = $source->extract($context);
 
@@ -84,17 +91,17 @@ final class RouteRegexPatternSourceTest extends TestCase
 
     public function test_extract_with_route_having_requirements(): void
     {
-        $router = $this->createMock(\Symfony\Component\Routing\RouterInterface::class);
-        $collection = new \Symfony\Component\Routing\RouteCollection();
+        $router = $this->createMock(RouterInterface::class);
+        $collection = new RouteCollection();
 
-        $route = new \Symfony\Component\Routing\Route('/test/{id}');
+        $route = new Route('/test/{id}');
         $route->setRequirements(['id' => '\d+']);
         $collection->add('test_route', $route);
 
         $router->method('getRouteCollection')->willReturn($collection);
 
-        $source = new \RegexParser\Bridge\Symfony\Extractor\RouteRegexPatternSource($this->normalizer, $router);
-        $context = new \RegexParser\Lint\RegexPatternSourceContext(['.'], []);
+        $source = new RouteRegexPatternSource($this->normalizer, $router);
+        $context = new RegexPatternSourceContext(['.'], []);
 
         $result = $source->extract($context);
 
@@ -108,18 +115,18 @@ final class RouteRegexPatternSourceTest extends TestCase
 
     public function test_extract_with_route_having_controller(): void
     {
-        $router = $this->createMock(\Symfony\Component\Routing\RouterInterface::class);
-        $collection = new \Symfony\Component\Routing\RouteCollection();
+        $router = $this->createMock(RouterInterface::class);
+        $collection = new RouteCollection();
 
-        $route = new \Symfony\Component\Routing\Route('/test/{id}');
+        $route = new Route('/test/{id}');
         $route->setRequirements(['id' => '\d+']);
         $route->setDefault('_controller', 'App\\Controller\\TestController::index');
         $collection->add('test_route', $route);
 
         $router->method('getRouteCollection')->willReturn($collection);
 
-        $source = new \RegexParser\Bridge\Symfony\Extractor\RouteRegexPatternSource($this->normalizer, $router);
-        $context = new \RegexParser\Lint\RegexPatternSourceContext(['.'], []);
+        $source = new RouteRegexPatternSource($this->normalizer, $router);
+        $context = new RegexPatternSourceContext(['.'], []);
 
         $result = $source->extract($context);
 
@@ -129,10 +136,10 @@ final class RouteRegexPatternSourceTest extends TestCase
 
     public function test_extract_with_multiple_requirements(): void
     {
-        $router = $this->createMock(\Symfony\Component\Routing\RouterInterface::class);
-        $collection = new \Symfony\Component\Routing\RouteCollection();
+        $router = $this->createMock(RouterInterface::class);
+        $collection = new RouteCollection();
 
-        $route = new \Symfony\Component\Routing\Route('/test/{id}/{slug}');
+        $route = new Route('/test/{id}/{slug}');
         $route->setRequirements([
             'id' => '\d+',
             'slug' => '[a-z-]+',
@@ -141,8 +148,8 @@ final class RouteRegexPatternSourceTest extends TestCase
 
         $router->method('getRouteCollection')->willReturn($collection);
 
-        $source = new \RegexParser\Bridge\Symfony\Extractor\RouteRegexPatternSource($this->normalizer, $router);
-        $context = new \RegexParser\Lint\RegexPatternSourceContext(['.'], []);
+        $source = new RouteRegexPatternSource($this->normalizer, $router);
+        $context = new RegexPatternSourceContext(['.'], []);
 
         $result = $source->extract($context);
 
@@ -154,10 +161,10 @@ final class RouteRegexPatternSourceTest extends TestCase
 
     public function test_extract_ignores_empty_requirements(): void
     {
-        $router = $this->createMock(\Symfony\Component\Routing\RouterInterface::class);
-        $collection = new \Symfony\Component\Routing\RouteCollection();
+        $router = $this->createMock(RouterInterface::class);
+        $collection = new RouteCollection();
 
-        $route = new \Symfony\Component\Routing\Route('/test/{id}/{slug}');
+        $route = new Route('/test/{id}/{slug}');
         $route->setRequirements([
             'id' => '\d+',
             'slug' => '   ', // Whitespace-only requirement (will be trimmed to empty)
@@ -166,8 +173,8 @@ final class RouteRegexPatternSourceTest extends TestCase
 
         $router->method('getRouteCollection')->willReturn($collection);
 
-        $source = new \RegexParser\Bridge\Symfony\Extractor\RouteRegexPatternSource($this->normalizer, $router);
-        $context = new \RegexParser\Lint\RegexPatternSourceContext(['.'], []);
+        $source = new RouteRegexPatternSource($this->normalizer, $router);
+        $context = new RegexPatternSourceContext(['.'], []);
 
         $result = $source->extract($context);
 
@@ -181,21 +188,21 @@ final class RouteRegexPatternSourceTest extends TestCase
         file_put_contents($tempYaml, 'test: content');
 
         try {
-            $router = $this->createMock(\Symfony\Component\Routing\RouterInterface::class);
-            $collection = new \Symfony\Component\Routing\RouteCollection();
+            $router = $this->createMock(RouterInterface::class);
+            $collection = new RouteCollection();
 
-            $route = new \Symfony\Component\Routing\Route('/test/{id}');
+            $route = new Route('/test/{id}');
             $route->setRequirements(['id' => '\d+']);
             $collection->add('test_route', $route);
 
             // Add a YAML resource
-            $yamlResource = new \Symfony\Component\Config\Resource\FileResource($tempYaml);
+            $yamlResource = new FileResource($tempYaml);
             $collection->addResource($yamlResource);
 
             $router->method('getRouteCollection')->willReturn($collection);
 
-            $source = new \RegexParser\Bridge\Symfony\Extractor\RouteRegexPatternSource($this->normalizer, $router);
-            $context = new \RegexParser\Lint\RegexPatternSourceContext(['.'], []);
+            $source = new RouteRegexPatternSource($this->normalizer, $router);
+            $context = new RegexPatternSourceContext(['.'], []);
 
             $result = $source->extract($context);
 
@@ -215,21 +222,21 @@ final class RouteRegexPatternSourceTest extends TestCase
         file_put_contents($tempYaml2, 'test: content2');
 
         try {
-            $router = $this->createMock(\Symfony\Component\Routing\RouterInterface::class);
-            $collection = new \Symfony\Component\Routing\RouteCollection();
+            $router = $this->createMock(RouterInterface::class);
+            $collection = new RouteCollection();
 
-            $route = new \Symfony\Component\Routing\Route('/test/{id}');
+            $route = new Route('/test/{id}');
             $route->setRequirements(['id' => '\d+']);
             $collection->add('test_route', $route);
 
             // Add multiple YAML resources
-            $collection->addResource(new \Symfony\Component\Config\Resource\FileResource($tempYaml1));
-            $collection->addResource(new \Symfony\Component\Config\Resource\FileResource($tempYaml2));
+            $collection->addResource(new FileResource($tempYaml1));
+            $collection->addResource(new FileResource($tempYaml2));
 
             $router->method('getRouteCollection')->willReturn($collection);
 
-            $source = new \RegexParser\Bridge\Symfony\Extractor\RouteRegexPatternSource($this->normalizer, $router);
-            $context = new \RegexParser\Lint\RegexPatternSourceContext(['.'], []);
+            $source = new RouteRegexPatternSource($this->normalizer, $router);
+            $context = new RegexPatternSourceContext(['.'], []);
 
             $result = $source->extract($context);
 
@@ -249,21 +256,21 @@ final class RouteRegexPatternSourceTest extends TestCase
         file_put_contents($tempXml, '<routes></routes>');
 
         try {
-            $router = $this->createMock(\Symfony\Component\Routing\RouterInterface::class);
-            $collection = new \Symfony\Component\Routing\RouteCollection();
+            $router = $this->createMock(RouterInterface::class);
+            $collection = new RouteCollection();
 
-            $route = new \Symfony\Component\Routing\Route('/test/{id}');
+            $route = new Route('/test/{id}');
             $route->setRequirements(['id' => '\d+']);
             $collection->add('test_route', $route);
 
             // Add non-YAML resources
-            $collection->addResource(new \Symfony\Component\Config\Resource\FileResource($tempPhp));
-            $collection->addResource(new \Symfony\Component\Config\Resource\FileResource($tempXml));
+            $collection->addResource(new FileResource($tempPhp));
+            $collection->addResource(new FileResource($tempXml));
 
             $router->method('getRouteCollection')->willReturn($collection);
 
-            $source = new \RegexParser\Bridge\Symfony\Extractor\RouteRegexPatternSource($this->normalizer, $router);
-            $context = new \RegexParser\Lint\RegexPatternSourceContext(['.'], []);
+            $source = new RouteRegexPatternSource($this->normalizer, $router);
+            $context = new RegexPatternSourceContext(['.'], []);
 
             $result = $source->extract($context);
 
@@ -277,17 +284,17 @@ final class RouteRegexPatternSourceTest extends TestCase
 
     public function test_extract_with_already_delimited_patterns(): void
     {
-        $router = $this->createMock(\Symfony\Component\Routing\RouterInterface::class);
-        $collection = new \Symfony\Component\Routing\RouteCollection();
+        $router = $this->createMock(RouterInterface::class);
+        $collection = new RouteCollection();
 
-        $route = new \Symfony\Component\Routing\Route('/test/{id}');
+        $route = new Route('/test/{id}');
         $route->setRequirements(['id' => '/\d+/']); // Already delimited
         $collection->add('test_route', $route);
 
         $router->method('getRouteCollection')->willReturn($collection);
 
-        $source = new \RegexParser\Bridge\Symfony\Extractor\RouteRegexPatternSource($this->normalizer, $router);
-        $context = new \RegexParser\Lint\RegexPatternSourceContext(['.'], []);
+        $source = new RouteRegexPatternSource($this->normalizer, $router);
+        $context = new RegexPatternSourceContext(['.'], []);
 
         $result = $source->extract($context);
 
@@ -297,17 +304,17 @@ final class RouteRegexPatternSourceTest extends TestCase
 
     public function test_extract_with_anchor_patterns(): void
     {
-        $router = $this->createMock(\Symfony\Component\Routing\RouterInterface::class);
-        $collection = new \Symfony\Component\Routing\RouteCollection();
+        $router = $this->createMock(RouterInterface::class);
+        $collection = new RouteCollection();
 
-        $route = new \Symfony\Component\Routing\Route('/test/{slug}');
+        $route = new Route('/test/{slug}');
         $route->setRequirements(['slug' => '^[\w-]+$']); // Starts and ends with anchors
         $collection->add('test_route', $route);
 
         $router->method('getRouteCollection')->willReturn($collection);
 
-        $source = new \RegexParser\Bridge\Symfony\Extractor\RouteRegexPatternSource($this->normalizer, $router);
-        $context = new \RegexParser\Lint\RegexPatternSourceContext(['.'], []);
+        $source = new RouteRegexPatternSource($this->normalizer, $router);
+        $context = new RegexPatternSourceContext(['.'], []);
 
         $result = $source->extract($context);
 
@@ -328,21 +335,21 @@ final class RouteRegexPatternSourceTest extends TestCase
         file_put_contents($tempYaml, $yamlContent);
 
         try {
-            $router = $this->createMock(\Symfony\Component\Routing\RouterInterface::class);
-            $collection = new \Symfony\Component\Routing\RouteCollection();
+            $router = $this->createMock(RouterInterface::class);
+            $collection = new RouteCollection();
 
             // Add a route with the same name as in YAML
-            $route = new \Symfony\Component\Routing\Route('/test/{id}/{slug}');
+            $route = new Route('/test/{id}/{slug}');
             $collection->add('test_route', $route);
 
             // Add the YAML resource
-            $yamlResource = new \Symfony\Component\Config\Resource\FileResource($tempYaml);
+            $yamlResource = new FileResource($tempYaml);
             $collection->addResource($yamlResource);
 
             $router->method('getRouteCollection')->willReturn($collection);
 
-            $source = new \RegexParser\Bridge\Symfony\Extractor\RouteRegexPatternSource($this->normalizer, $router);
-            $context = new \RegexParser\Lint\RegexPatternSourceContext(['.'], []);
+            $source = new RouteRegexPatternSource($this->normalizer, $router);
+            $context = new RegexPatternSourceContext(['.'], []);
 
             $result = $source->extract($context);
 
@@ -374,21 +381,21 @@ final class RouteRegexPatternSourceTest extends TestCase
         file_put_contents($tempYaml, $yamlContent);
 
         try {
-            $router = $this->createMock(\Symfony\Component\Routing\RouterInterface::class);
-            $collection = new \Symfony\Component\Routing\RouteCollection();
+            $router = $this->createMock(RouterInterface::class);
+            $collection = new RouteCollection();
 
             // Add a route with the same name as in YAML
-            $route = new \Symfony\Component\Routing\Route('/test/{slug}');
+            $route = new Route('/test/{slug}');
             $collection->add('test_route', $route);
 
             // Add the YAML resource
-            $yamlResource = new \Symfony\Component\Config\Resource\FileResource($tempYaml);
+            $yamlResource = new FileResource($tempYaml);
             $collection->addResource($yamlResource);
 
             $router->method('getRouteCollection')->willReturn($collection);
 
-            $source = new \RegexParser\Bridge\Symfony\Extractor\RouteRegexPatternSource($this->normalizer, $router);
-            $context = new \RegexParser\Lint\RegexPatternSourceContext(['.'], []);
+            $source = new RouteRegexPatternSource($this->normalizer, $router);
+            $context = new RegexPatternSourceContext(['.'], []);
 
             $result = $source->extract($context);
 
@@ -403,12 +410,12 @@ final class RouteRegexPatternSourceTest extends TestCase
 
     public function test_extract_skips_when_symfony_not_available(): void
     {
-        if (class_exists(\Symfony\Component\Routing\Route::class)) {
+        if (class_exists(Route::class)) {
             $this->markTestSkipped('Symfony Routing is available, skipping test');
         }
 
         // This test will only run when Symfony is not available
-        $source = new \RegexParser\Bridge\Symfony\Extractor\RouteRegexPatternSource($this->normalizer);
+        $source = new RouteRegexPatternSource($this->normalizer);
         $this->assertFalse($source->isSupported());
         $this->assertSame('routes', $source->getName());
     }

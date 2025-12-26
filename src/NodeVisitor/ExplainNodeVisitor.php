@@ -14,7 +14,38 @@ declare(strict_types=1);
 namespace RegexParser\NodeVisitor;
 
 use RegexParser\Node;
+use RegexParser\Node\AlternationNode;
+use RegexParser\Node\AnchorNode;
+use RegexParser\Node\AssertionNode;
+use RegexParser\Node\BackrefNode;
+use RegexParser\Node\CalloutNode;
+use RegexParser\Node\CharClassNode;
+use RegexParser\Node\CharLiteralNode;
+use RegexParser\Node\CharLiteralType;
+use RegexParser\Node\CharTypeNode;
+use RegexParser\Node\ClassOperationNode;
+use RegexParser\Node\ClassOperationType;
+use RegexParser\Node\CommentNode;
+use RegexParser\Node\ConditionalNode;
+use RegexParser\Node\ControlCharNode;
+use RegexParser\Node\DefineNode;
+use RegexParser\Node\DotNode;
+use RegexParser\Node\GroupNode;
 use RegexParser\Node\GroupType;
+use RegexParser\Node\KeepNode;
+use RegexParser\Node\LimitMatchNode;
+use RegexParser\Node\LiteralNode;
+use RegexParser\Node\NodeInterface;
+use RegexParser\Node\PcreVerbNode;
+use RegexParser\Node\PosixClassNode;
+use RegexParser\Node\QuantifierNode;
+use RegexParser\Node\RangeNode;
+use RegexParser\Node\RegexNode;
+use RegexParser\Node\ScriptRunNode;
+use RegexParser\Node\SequenceNode;
+use RegexParser\Node\SubroutineNode;
+use RegexParser\Node\UnicodePropNode;
+use RegexParser\Node\VersionConditionNode;
 
 /**
  * Generates a human-readable, step-by-step explanation of what a regex does.
@@ -72,7 +103,7 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
      * @return string the complete, human-readable explanation of the regex
      */
     #[\Override]
-    public function visitRegex(Node\RegexNode $node): string
+    public function visitRegex(RegexNode $node): string
     {
         $this->indentLevel = 0;
         $flags = $node->flags ? ' (with flags: '.$node->flags.')' : '';
@@ -97,7 +128,7 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
      * @return string a description of the alternative branches
      */
     #[\Override]
-    public function visitAlternation(Node\AlternationNode $node): string
+    public function visitAlternation(AlternationNode $node): string
     {
         $lines = [];
         $this->indentLevel++;
@@ -126,9 +157,9 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
      * @return string a description of the sequential components
      */
     #[\Override]
-    public function visitSequence(Node\SequenceNode $node): string
+    public function visitSequence(SequenceNode $node): string
     {
-        $parts = array_map(fn (Node\NodeInterface $child): string => $child->accept($this), $node->children);
+        $parts = array_map(fn (NodeInterface $child): string => $child->accept($this), $node->children);
         $parts = array_filter($parts, fn (string $part): bool => '' !== $part);
 
         return implode("\n", $parts);
@@ -147,7 +178,7 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
      * @return string a description of the group and its contents
      */
     #[\Override]
-    public function visitGroup(Node\GroupNode $node): string
+    public function visitGroup(GroupNode $node): string
     {
         $this->indentLevel++;
         $childExplain = $node->child->accept($this);
@@ -186,7 +217,7 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
      * @return string a description of the quantified element
      */
     #[\Override]
-    public function visitQuantifier(Node\QuantifierNode $node): string
+    public function visitQuantifier(QuantifierNode $node): string
     {
         $childExplain = $node->node->accept($this);
         $quantExplain = $this->explainQuantifierValue($node->quantifier, $node->type->value);
@@ -220,7 +251,7 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
      * @return string a description of the literal value
      */
     #[\Override]
-    public function visitLiteral(Node\LiteralNode $node): string
+    public function visitLiteral(LiteralNode $node): string
     {
         return $this->line($this->explainLiteral($node->value));
     }
@@ -237,7 +268,7 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
      * @return string a description of the character type
      */
     #[\Override]
-    public function visitCharType(Node\CharTypeNode $node): string
+    public function visitCharType(CharTypeNode $node): string
     {
         return $this->line('Character Type: '.(self::CHAR_TYPE_MAP[$node->value] ?? 'unknown (\\'.$node->value.')'));
     }
@@ -254,7 +285,7 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
      * @return string a description of the wildcard
      */
     #[\Override]
-    public function visitDot(Node\DotNode $node): string
+    public function visitDot(DotNode $node): string
     {
         return $this->line('Wildcard: any character (except newline, unless /s flag is used)');
     }
@@ -271,7 +302,7 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
      * @return string a description of the anchor
      */
     #[\Override]
-    public function visitAnchor(Node\AnchorNode $node): string
+    public function visitAnchor(AnchorNode $node): string
     {
         return $this->line('Anchor: '.(self::ANCHOR_MAP[$node->value] ?? $node->value));
     }
@@ -288,7 +319,7 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
      * @return string a description of the assertion
      */
     #[\Override]
-    public function visitAssertion(Node\AssertionNode $node): string
+    public function visitAssertion(AssertionNode $node): string
     {
         return $this->line('Assertion: '.(self::ASSERTION_MAP[$node->value] ?? '\\'.$node->value));
     }
@@ -306,7 +337,7 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
      * @return string a description of the `\K` assertion
      */
     #[\Override]
-    public function visitKeep(Node\KeepNode $node): string
+    public function visitKeep(KeepNode $node): string
     {
         return $this->line('Assertion: \K (reset match start)');
     }
@@ -323,11 +354,11 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
      * @return string a description of the character class
      */
     #[\Override]
-    public function visitCharClass(Node\CharClassNode $node): string
+    public function visitCharClass(CharClassNode $node): string
     {
         $neg = $node->isNegated ? 'NOT ' : '';
-        $parts = $node->expression instanceof Node\AlternationNode ? $node->expression->alternatives : [$node->expression];
-        $explainedParts = array_map(fn (Node\NodeInterface $part): string => $part->accept($this), $parts);
+        $parts = $node->expression instanceof AlternationNode ? $node->expression->alternatives : [$node->expression];
+        $explainedParts = array_map(fn (NodeInterface $part): string => $part->accept($this), $parts);
 
         return $this->line(\sprintf('Character Class: any character %sin [ %s ]', $neg, implode(', ', $explainedParts)));
     }
@@ -344,13 +375,13 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
      * @return string a description of the character range
      */
     #[\Override]
-    public function visitRange(Node\RangeNode $node): string
+    public function visitRange(RangeNode $node): string
     {
-        $start = ($node->start instanceof Node\LiteralNode)
+        $start = ($node->start instanceof LiteralNode)
             ? $this->explainLiteral($node->start->value)
             : $node->start->accept($this); // Fallback
 
-        $end = ($node->end instanceof Node\LiteralNode)
+        $end = ($node->end instanceof LiteralNode)
             ? $this->explainLiteral($node->end->value)
             : $node->end->accept($this); // Fallback
 
@@ -369,33 +400,33 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
      * @return string a description of the backreference
      */
     #[\Override]
-    public function visitBackref(Node\BackrefNode $node): string
+    public function visitBackref(BackrefNode $node): string
     {
         return $this->line(\sprintf('Backreference: matches text from group "%s"', $node->ref));
     }
 
     #[\Override]
-    public function visitClassOperation(Node\ClassOperationNode $node): string
+    public function visitClassOperation(ClassOperationNode $node): string
     {
-        $op = Node\ClassOperationType::INTERSECTION === $node->type ? 'intersection' : 'subtraction';
+        $op = ClassOperationType::INTERSECTION === $node->type ? 'intersection' : 'subtraction';
 
         return $this->line(\sprintf('Class %s between %s and %s', $op, $node->left->accept($this), $node->right->accept($this)));
     }
 
     #[\Override]
-    public function visitControlChar(Node\ControlCharNode $node): string
+    public function visitControlChar(ControlCharNode $node): string
     {
         return $this->line(\sprintf('Control character: \\c%s', $node->char));
     }
 
     #[\Override]
-    public function visitScriptRun(Node\ScriptRunNode $node): string
+    public function visitScriptRun(ScriptRunNode $node): string
     {
         return $this->line(\sprintf('Script run assertion for script: %s', $node->script));
     }
 
     #[\Override]
-    public function visitVersionCondition(Node\VersionConditionNode $node): string
+    public function visitVersionCondition(VersionConditionNode $node): string
     {
         return $this->line(\sprintf('Version condition: %s %s', $node->operator, $node->version));
     }
@@ -412,7 +443,7 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
      * @return string a description of the Unicode property match
      */
     #[\Override]
-    public function visitUnicodeProp(Node\UnicodePropNode $node): string
+    public function visitUnicodeProp(UnicodePropNode $node): string
     {
         $type = str_starts_with($node->prop, '^') ? 'non-matching' : 'matching';
         $prop = ltrim($node->prop, '^');
@@ -421,13 +452,13 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitCharLiteral(Node\CharLiteralNode $node): string
+    public function visitCharLiteral(CharLiteralNode $node): string
     {
         return match ($node->type) {
-            Node\CharLiteralType::UNICODE => $this->line('Unicode: '.$this->formatUnicodeChar($node)),
-            Node\CharLiteralType::UNICODE_NAMED => $this->line('Unicode named character: '.$this->extractCharLiteralDetail($node)),
-            Node\CharLiteralType::OCTAL => $this->line('Octal: '.$node->originalRepresentation),
-            Node\CharLiteralType::OCTAL_LEGACY => $this->line('Legacy Octal: \\'.$node->originalRepresentation),
+            CharLiteralType::UNICODE => $this->line('Unicode: '.$this->formatUnicodeChar($node)),
+            CharLiteralType::UNICODE_NAMED => $this->line('Unicode named character: '.$this->extractCharLiteralDetail($node)),
+            CharLiteralType::OCTAL => $this->line('Octal: '.$node->originalRepresentation),
+            CharLiteralType::OCTAL_LEGACY => $this->line('Legacy Octal: \\'.$node->originalRepresentation),
         };
     }
 
@@ -443,7 +474,7 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
      * @return string a description of the POSIX class
      */
     #[\Override]
-    public function visitPosixClass(Node\PosixClassNode $node): string
+    public function visitPosixClass(PosixClassNode $node): string
     {
         return $this->line('POSIX Class: '.$node->class);
     }
@@ -460,7 +491,7 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
      * @return string the content of the comment
      */
     #[\Override]
-    public function visitComment(Node\CommentNode $node): string
+    public function visitComment(CommentNode $node): string
     {
         return $this->line(\sprintf("Comment: '%s'", $node->comment));
     }
@@ -478,14 +509,14 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
      * @return string a description of the conditional logic
      */
     #[\Override]
-    public function visitConditional(Node\ConditionalNode $node): string
+    public function visitConditional(ConditionalNode $node): string
     {
         $this->indentLevel++;
         $cond = $node->condition->accept($this);
         $yes = $node->yes->accept($this);
 
         // Check if the 'no' branch is an empty literal node
-        $hasElseBranch = !($node->no instanceof Node\LiteralNode && '' === $node->no->value);
+        $hasElseBranch = !($node->no instanceof LiteralNode && '' === $node->no->value);
         $no = $hasElseBranch ? $node->no->accept($this) : '';
 
         $this->indentLevel--;
@@ -517,7 +548,7 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
      * @return string a description of the subroutine call
      */
     #[\Override]
-    public function visitSubroutine(Node\SubroutineNode $node): string
+    public function visitSubroutine(SubroutineNode $node): string
     {
         $ref = match ($node->reference) {
             'R', '0' => 'the entire pattern',
@@ -539,7 +570,7 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
      * @return string a description of the PCRE verb
      */
     #[\Override]
-    public function visitPcreVerb(Node\PcreVerbNode $node): string
+    public function visitPcreVerb(PcreVerbNode $node): string
     {
         return $this->line('PCRE Verb: (*'.$node->verb.')');
     }
@@ -556,7 +587,7 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
      * @return string a description of the DEFINE block
      */
     #[\Override]
-    public function visitDefine(Node\DefineNode $node): string
+    public function visitDefine(DefineNode $node): string
     {
         $this->indentLevel++;
         $content = $node->content->accept($this);
@@ -570,13 +601,13 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitLimitMatch(Node\LimitMatchNode $node): string
+    public function visitLimitMatch(LimitMatchNode $node): string
     {
         return $this->line(\sprintf('PCRE Verb: (*LIMIT_MATCH=%d) - sets a match limit for backtracking control', $node->limit));
     }
 
     #[\Override]
-    public function visitCallout(Node\CalloutNode $node): string
+    public function visitCallout(CalloutNode $node): string
     {
         if (null === $node->identifier) {
             return $this->line('Callout: passes control to user function with no argument');
@@ -649,7 +680,7 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
     /**
      * Format Unicode character for explanation, handling non-printable and extended ASCII characters.
      */
-    private function formatUnicodeChar(Node\CharLiteralNode $node): string
+    private function formatUnicodeChar(CharLiteralNode $node): string
     {
         // If the original representation is already in hex format, use it
         if (str_starts_with($node->originalRepresentation, '\x') || str_starts_with($node->originalRepresentation, '\u')) {
@@ -667,9 +698,9 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
         return $node->originalRepresentation;
     }
 
-    private function extractCharLiteralDetail(Node\CharLiteralNode $node): string
+    private function extractCharLiteralDetail(CharLiteralNode $node): string
     {
-        if (Node\CharLiteralType::UNICODE_NAMED === $node->type) {
+        if (CharLiteralType::UNICODE_NAMED === $node->type) {
             if (preg_match('/^\\\\N\\{(.+)}$/', $node->originalRepresentation, $matches)) {
                 return $matches[1];
             }

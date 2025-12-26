@@ -14,8 +14,35 @@ declare(strict_types=1);
 namespace RegexParser\NodeVisitor;
 
 use RegexParser\Node;
+use RegexParser\Node\AlternationNode;
+use RegexParser\Node\AnchorNode;
+use RegexParser\Node\AssertionNode;
+use RegexParser\Node\BackrefNode;
+use RegexParser\Node\CalloutNode;
+use RegexParser\Node\CharClassNode;
+use RegexParser\Node\CharLiteralNode;
+use RegexParser\Node\CharLiteralType;
+use RegexParser\Node\CharTypeNode;
+use RegexParser\Node\CommentNode;
+use RegexParser\Node\ConditionalNode;
+use RegexParser\Node\DefineNode;
+use RegexParser\Node\DotNode;
+use RegexParser\Node\GroupNode;
 use RegexParser\Node\GroupType;
+use RegexParser\Node\KeepNode;
+use RegexParser\Node\LimitMatchNode;
+use RegexParser\Node\LiteralNode;
+use RegexParser\Node\NodeInterface;
+use RegexParser\Node\PcreVerbNode;
+use RegexParser\Node\PosixClassNode;
+use RegexParser\Node\QuantifierNode;
 use RegexParser\Node\QuantifierType;
+use RegexParser\Node\RangeNode;
+use RegexParser\Node\RegexNode;
+use RegexParser\Node\SequenceNode;
+use RegexParser\Node\SubroutineNode;
+use RegexParser\Node\UnicodeNode;
+use RegexParser\Node\UnicodePropNode;
 
 /**
  * A visitor that explains the AST in an HTML format for rich display.
@@ -78,7 +105,7 @@ final class HtmlExplainNodeVisitor extends AbstractNodeVisitor
      * ```
      */
     #[\Override]
-    public function visitRegex(Node\RegexNode $node): string
+    public function visitRegex(RegexNode $node): string
     {
         $patternExplain = $node->pattern->accept($this);
         $flags = $node->flags ? $this->e(' (with flags: '.$node->flags.')') : '';
@@ -112,10 +139,10 @@ final class HtmlExplainNodeVisitor extends AbstractNodeVisitor
      * ```
      */
     #[\Override]
-    public function visitAlternation(Node\AlternationNode $node): string
+    public function visitAlternation(AlternationNode $node): string
     {
         $alts = array_map(
-            fn (Node\NodeInterface $alt): string => $alt->accept($this),
+            fn (NodeInterface $alt): string => $alt->accept($this),
             $node->alternatives,
         );
 
@@ -147,9 +174,9 @@ final class HtmlExplainNodeVisitor extends AbstractNodeVisitor
      * ```
      */
     #[\Override]
-    public function visitSequence(Node\SequenceNode $node): string
+    public function visitSequence(SequenceNode $node): string
     {
-        $parts = array_map(fn (Node\NodeInterface $child): string => $child->accept($this), $node->children);
+        $parts = array_map(fn (NodeInterface $child): string => $child->accept($this), $node->children);
         $parts = array_filter($parts, fn (string $part): bool => '' !== $part);
 
         return implode("\n", $parts);
@@ -183,7 +210,7 @@ final class HtmlExplainNodeVisitor extends AbstractNodeVisitor
      * ```
      */
     #[\Override]
-    public function visitGroup(Node\GroupNode $node): string
+    public function visitGroup(GroupNode $node): string
     {
         $childExplain = $node->child->accept($this);
         $type = match ($node->type) {
@@ -233,7 +260,7 @@ final class HtmlExplainNodeVisitor extends AbstractNodeVisitor
      * ```
      */
     #[\Override]
-    public function visitQuantifier(Node\QuantifierNode $node): string
+    public function visitQuantifier(QuantifierNode $node): string
     {
         $childExplain = $node->node->accept($this);
         $quantExplain = $this->explainQuantifierValue($node->quantifier, $node->type);
@@ -273,7 +300,7 @@ final class HtmlExplainNodeVisitor extends AbstractNodeVisitor
      * ```
      */
     #[\Override]
-    public function visitLiteral(Node\LiteralNode $node): string
+    public function visitLiteral(LiteralNode $node): string
     {
         $explanation = $this->explainLiteral($node->value);
 
@@ -303,7 +330,7 @@ final class HtmlExplainNodeVisitor extends AbstractNodeVisitor
      * ```
      */
     #[\Override]
-    public function visitCharType(Node\CharTypeNode $node): string
+    public function visitCharType(CharTypeNode $node): string
     {
         $explanation = self::CHAR_TYPE_MAP[$node->value] ?? 'unknown (\\'.$node->value.')';
 
@@ -334,7 +361,7 @@ final class HtmlExplainNodeVisitor extends AbstractNodeVisitor
      * ```
      */
     #[\Override]
-    public function visitDot(Node\DotNode $node): string
+    public function visitDot(DotNode $node): string
     {
         $explanation = 'any character (except newline, unless /s flag is used)';
 
@@ -364,7 +391,7 @@ final class HtmlExplainNodeVisitor extends AbstractNodeVisitor
      * ```
      */
     #[\Override]
-    public function visitAnchor(Node\AnchorNode $node): string
+    public function visitAnchor(AnchorNode $node): string
     {
         $explanation = self::ANCHOR_MAP[$node->value] ?? $node->value;
 
@@ -395,7 +422,7 @@ final class HtmlExplainNodeVisitor extends AbstractNodeVisitor
      * ```
      */
     #[\Override]
-    public function visitAssertion(Node\AssertionNode $node): string
+    public function visitAssertion(AssertionNode $node): string
     {
         $explanation = self::ASSERTION_MAP[$node->value] ?? '\\'.$node->value;
 
@@ -426,7 +453,7 @@ final class HtmlExplainNodeVisitor extends AbstractNodeVisitor
      * ```
      */
     #[\Override]
-    public function visitKeep(Node\KeepNode $node): string
+    public function visitKeep(KeepNode $node): string
     {
         $explanation = '\K (reset match start)';
 
@@ -460,11 +487,11 @@ final class HtmlExplainNodeVisitor extends AbstractNodeVisitor
      * ```
      */
     #[\Override]
-    public function visitCharClass(Node\CharClassNode $node): string
+    public function visitCharClass(CharClassNode $node): string
     {
         $neg = $node->isNegated ? '<strong>NOT</strong> ' : '';
-        $expressionParts = $node->expression instanceof Node\AlternationNode ? $node->expression->alternatives : [$node->expression];
-        $explainedParts = array_map(fn (Node\NodeInterface $part): string => $part->accept($this), $expressionParts);
+        $expressionParts = $node->expression instanceof AlternationNode ? $node->expression->alternatives : [$node->expression];
+        $explainedParts = array_map(fn (NodeInterface $part): string => $part->accept($this), $expressionParts);
 
         // Char class parts are just strings, not <li>
         $parts = array_map(strip_tags(...), $explainedParts);
@@ -497,13 +524,13 @@ final class HtmlExplainNodeVisitor extends AbstractNodeVisitor
      * ```
      */
     #[\Override]
-    public function visitRange(Node\RangeNode $node): string
+    public function visitRange(RangeNode $node): string
     {
-        $start = ($node->start instanceof Node\LiteralNode)
+        $start = ($node->start instanceof LiteralNode)
             ? $this->explainLiteral($node->start->value)
             : $node->start->accept($this);
 
-        $end = ($node->end instanceof Node\LiteralNode)
+        $end = ($node->end instanceof LiteralNode)
             ? $this->explainLiteral($node->end->value)
             : $node->end->accept($this);
 
@@ -529,7 +556,7 @@ final class HtmlExplainNodeVisitor extends AbstractNodeVisitor
      * ```
      */
     #[\Override]
-    public function visitBackref(Node\BackrefNode $node): string
+    public function visitBackref(BackrefNode $node): string
     {
         $explanation = \sprintf('matches text from group "%s"', $node->ref);
 
@@ -559,7 +586,7 @@ final class HtmlExplainNodeVisitor extends AbstractNodeVisitor
      * ```
      */
     #[\Override]
-    public function visitUnicode(Node\UnicodeNode $node): string
+    public function visitUnicode(UnicodeNode $node): string
     {
         return \sprintf(
             '<li><span title="Unicode: %s">Unicode: <strong>%s</strong></span></li>',
@@ -591,7 +618,7 @@ final class HtmlExplainNodeVisitor extends AbstractNodeVisitor
      * ```
      */
     #[\Override]
-    public function visitUnicodeProp(Node\UnicodePropNode $node): string
+    public function visitUnicodeProp(UnicodePropNode $node): string
     {
         $inner = $node->hasBraces ? trim($node->prop, '{}') : $node->prop;
         $isNegated = str_starts_with($inner, '^');
@@ -626,7 +653,7 @@ final class HtmlExplainNodeVisitor extends AbstractNodeVisitor
      * ```
      */
     #[\Override]
-    public function visitPosixClass(Node\PosixClassNode $node): string
+    public function visitPosixClass(PosixClassNode $node): string
     {
         return \sprintf('<li>POSIX Class: [[:%s:]]</li>', $this->e($node->class));
     }
@@ -650,7 +677,7 @@ final class HtmlExplainNodeVisitor extends AbstractNodeVisitor
      * ```
      */
     #[\Override]
-    public function visitComment(Node\CommentNode $node): string
+    public function visitComment(CommentNode $node): string
     {
         return \sprintf(
             '<li><span title="Comment" style="color: #888; font-style: italic;">Comment: %s</span></li>',
@@ -687,13 +714,13 @@ final class HtmlExplainNodeVisitor extends AbstractNodeVisitor
      * ```
      */
     #[\Override]
-    public function visitConditional(Node\ConditionalNode $node): string
+    public function visitConditional(ConditionalNode $node): string
     {
         $cond = $node->condition->accept($this);
         $yes = $node->yes->accept($this);
 
         // Check if the 'no' branch is an empty literal node
-        $hasElseBranch = !($node->no instanceof Node\LiteralNode && '' === $node->no->value);
+        $hasElseBranch = !($node->no instanceof LiteralNode && '' === $node->no->value);
         $no = $hasElseBranch ? $node->no->accept($this) : '';
 
         // Condition node will be a <li>, just need its text
@@ -738,7 +765,7 @@ final class HtmlExplainNodeVisitor extends AbstractNodeVisitor
      * ```
      */
     #[\Override]
-    public function visitSubroutine(Node\SubroutineNode $node): string
+    public function visitSubroutine(SubroutineNode $node): string
     {
         $ref = match ($node->reference) {
             'R', '0' => 'the entire pattern',
@@ -773,7 +800,7 @@ final class HtmlExplainNodeVisitor extends AbstractNodeVisitor
      * ```
      */
     #[\Override]
-    public function visitPcreVerb(Node\PcreVerbNode $node): string
+    public function visitPcreVerb(PcreVerbNode $node): string
     {
         return \sprintf(
             '<li><span title="PCRE Verb">PCRE Verb: <strong>(*%s)</strong></span></li>',
@@ -803,7 +830,7 @@ final class HtmlExplainNodeVisitor extends AbstractNodeVisitor
      * ```
      */
     #[\Override]
-    public function visitDefine(Node\DefineNode $node): string
+    public function visitDefine(DefineNode $node): string
     {
         $content = $node->content->accept($this);
 
@@ -814,7 +841,7 @@ final class HtmlExplainNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitLimitMatch(Node\LimitMatchNode $node): string
+    public function visitLimitMatch(LimitMatchNode $node): string
     {
         $explanation = \sprintf('sets the match limit to %d', $node->limit);
 
@@ -826,7 +853,7 @@ final class HtmlExplainNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitCallout(Node\CalloutNode $node): string
+    public function visitCallout(CalloutNode $node): string
     {
         if (null === $node->identifier) {
             $argument = '';
@@ -844,13 +871,13 @@ final class HtmlExplainNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitCharLiteral(Node\CharLiteralNode $node): string
+    public function visitCharLiteral(CharLiteralNode $node): string
     {
         $title = match ($node->type) {
-            Node\CharLiteralType::UNICODE => 'Unicode character escape',
-            Node\CharLiteralType::UNICODE_NAMED => 'Unicode named character',
-            Node\CharLiteralType::OCTAL => 'Octal character escape',
-            Node\CharLiteralType::OCTAL_LEGACY => 'Legacy octal character escape',
+            CharLiteralType::UNICODE => 'Unicode character escape',
+            CharLiteralType::UNICODE_NAMED => 'Unicode named character',
+            CharLiteralType::OCTAL => 'Octal character escape',
+            CharLiteralType::OCTAL_LEGACY => 'Legacy octal character escape',
         };
 
         return \sprintf(

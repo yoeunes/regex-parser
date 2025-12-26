@@ -14,6 +14,36 @@ declare(strict_types=1);
 namespace RegexParser\NodeVisitor;
 
 use RegexParser\Node;
+use RegexParser\Node\AlternationNode;
+use RegexParser\Node\AnchorNode;
+use RegexParser\Node\AssertionNode;
+use RegexParser\Node\BackrefNode;
+use RegexParser\Node\CalloutNode;
+use RegexParser\Node\CharClassNode;
+use RegexParser\Node\CharLiteralNode;
+use RegexParser\Node\CharTypeNode;
+use RegexParser\Node\ClassOperationNode;
+use RegexParser\Node\CommentNode;
+use RegexParser\Node\ConditionalNode;
+use RegexParser\Node\ControlCharNode;
+use RegexParser\Node\DefineNode;
+use RegexParser\Node\DotNode;
+use RegexParser\Node\GroupNode;
+use RegexParser\Node\GroupType;
+use RegexParser\Node\KeepNode;
+use RegexParser\Node\LimitMatchNode;
+use RegexParser\Node\LiteralNode;
+use RegexParser\Node\PcreVerbNode;
+use RegexParser\Node\PosixClassNode;
+use RegexParser\Node\QuantifierNode;
+use RegexParser\Node\RangeNode;
+use RegexParser\Node\RegexNode;
+use RegexParser\Node\ScriptRunNode;
+use RegexParser\Node\SequenceNode;
+use RegexParser\Node\SubroutineNode;
+use RegexParser\Node\UnicodeNode;
+use RegexParser\Node\UnicodePropNode;
+use RegexParser\Node\VersionConditionNode;
 
 /**
  * Renders an ASCII tree diagram of the regex AST.
@@ -33,7 +63,7 @@ final class RailroadDiagramVisitor extends AbstractNodeVisitor
     private array $branchStack = [];
 
     #[\Override]
-    public function visitRegex(Node\RegexNode $node): string
+    public function visitRegex(RegexNode $node): string
     {
         $this->lines = [];
         $this->branchStack = [];
@@ -50,7 +80,7 @@ final class RailroadDiagramVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitAlternation(Node\AlternationNode $node): string
+    public function visitAlternation(AlternationNode $node): string
     {
         $this->addLine('Alternation');
         $this->visitChildren(array_values($node->alternatives));
@@ -59,7 +89,7 @@ final class RailroadDiagramVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitSequence(Node\SequenceNode $node): string
+    public function visitSequence(SequenceNode $node): string
     {
         $this->addLine('Sequence');
         $this->visitChildren(array_values($node->children));
@@ -68,13 +98,13 @@ final class RailroadDiagramVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitGroup(Node\GroupNode $node): string
+    public function visitGroup(GroupNode $node): string
     {
         $label = 'Group ('.$this->describeGroupType($node).')';
-        if (Node\GroupType::T_GROUP_NAMED === $node->type && null !== $node->name) {
+        if (GroupType::T_GROUP_NAMED === $node->type && null !== $node->name) {
             $label .= ' name="'.$node->name.'"';
         }
-        if (Node\GroupType::T_GROUP_INLINE_FLAGS === $node->type && null !== $node->flags && '' !== $node->flags) {
+        if (GroupType::T_GROUP_INLINE_FLAGS === $node->type && null !== $node->flags && '' !== $node->flags) {
             $label .= ' flags="'.$node->flags.'"';
         }
 
@@ -85,7 +115,7 @@ final class RailroadDiagramVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitQuantifier(Node\QuantifierNode $node): string
+    public function visitQuantifier(QuantifierNode $node): string
     {
         $label = 'Quantifier ('.$node->quantifier.', '.$node->type->value.')';
         $this->addLine($label);
@@ -95,7 +125,7 @@ final class RailroadDiagramVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitLiteral(Node\LiteralNode $node): string
+    public function visitLiteral(LiteralNode $node): string
     {
         $value = addcslashes($node->value, "\0..\37\177..\377");
         $this->addLine("Literal ('".$value."')");
@@ -104,7 +134,7 @@ final class RailroadDiagramVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitCharLiteral(Node\CharLiteralNode $node): string
+    public function visitCharLiteral(CharLiteralNode $node): string
     {
         $this->addLine('CharLiteral ('.$node->originalRepresentation.')');
 
@@ -112,7 +142,7 @@ final class RailroadDiagramVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitCharType(Node\CharTypeNode $node): string
+    public function visitCharType(CharTypeNode $node): string
     {
         $this->addLine('CharType (\\'.$node->value.')');
 
@@ -120,7 +150,7 @@ final class RailroadDiagramVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitUnicode(Node\UnicodeNode $node): string
+    public function visitUnicode(UnicodeNode $node): string
     {
         $this->addLine('Unicode (\\x'.$node->code.')');
 
@@ -128,7 +158,7 @@ final class RailroadDiagramVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitDot(Node\DotNode $node): string
+    public function visitDot(DotNode $node): string
     {
         $this->addLine('Dot (.)');
 
@@ -136,7 +166,7 @@ final class RailroadDiagramVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitAnchor(Node\AnchorNode $node): string
+    public function visitAnchor(AnchorNode $node): string
     {
         $this->addLine('Anchor ('.$node->value.')');
 
@@ -144,7 +174,7 @@ final class RailroadDiagramVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitAssertion(Node\AssertionNode $node): string
+    public function visitAssertion(AssertionNode $node): string
     {
         $this->addLine('Assertion (\\'.$node->value.')');
 
@@ -152,7 +182,7 @@ final class RailroadDiagramVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitKeep(Node\KeepNode $node): string
+    public function visitKeep(KeepNode $node): string
     {
         $this->addLine('Keep (\\K)');
 
@@ -160,7 +190,7 @@ final class RailroadDiagramVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitCharClass(Node\CharClassNode $node): string
+    public function visitCharClass(CharClassNode $node): string
     {
         $label = $node->isNegated ? 'CharClass (negated)' : 'CharClass';
         $this->addLine($label);
@@ -170,7 +200,7 @@ final class RailroadDiagramVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitRange(Node\RangeNode $node): string
+    public function visitRange(RangeNode $node): string
     {
         $this->addLine('Range');
         $this->visitChildren([$node->start, $node->end]);
@@ -179,7 +209,7 @@ final class RailroadDiagramVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitBackref(Node\BackrefNode $node): string
+    public function visitBackref(BackrefNode $node): string
     {
         $ref = $node->ref;
         $display = str_starts_with($ref, '\\') ? $ref : '\\'.$ref;
@@ -189,7 +219,7 @@ final class RailroadDiagramVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitClassOperation(Node\ClassOperationNode $node): string
+    public function visitClassOperation(ClassOperationNode $node): string
     {
         $label = 'ClassOperation ('.$node->type->value.')';
         $this->addLine($label);
@@ -199,7 +229,7 @@ final class RailroadDiagramVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitControlChar(Node\ControlCharNode $node): string
+    public function visitControlChar(ControlCharNode $node): string
     {
         $this->addLine('ControlChar (\\c'.$node->char.')');
 
@@ -207,7 +237,7 @@ final class RailroadDiagramVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitScriptRun(Node\ScriptRunNode $node): string
+    public function visitScriptRun(ScriptRunNode $node): string
     {
         $this->addLine('ScriptRun ('.$node->script.')');
 
@@ -215,7 +245,7 @@ final class RailroadDiagramVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitVersionCondition(Node\VersionConditionNode $node): string
+    public function visitVersionCondition(VersionConditionNode $node): string
     {
         $this->addLine('VersionCondition ('.$node->operator.' '.$node->version.')');
 
@@ -223,7 +253,7 @@ final class RailroadDiagramVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitUnicodeProp(Node\UnicodePropNode $node): string
+    public function visitUnicodeProp(UnicodePropNode $node): string
     {
         $inner = $node->hasBraces ? trim($node->prop, '{}') : $node->prop;
         $display = '{'.$inner.'}';
@@ -233,7 +263,7 @@ final class RailroadDiagramVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitPosixClass(Node\PosixClassNode $node): string
+    public function visitPosixClass(PosixClassNode $node): string
     {
         $this->addLine('PosixClass ([:'.$node->class.':])');
 
@@ -241,7 +271,7 @@ final class RailroadDiagramVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitComment(Node\CommentNode $node): string
+    public function visitComment(CommentNode $node): string
     {
         $this->addLine('Comment');
 
@@ -249,7 +279,7 @@ final class RailroadDiagramVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitConditional(Node\ConditionalNode $node): string
+    public function visitConditional(ConditionalNode $node): string
     {
         $this->addLine('Conditional');
         $this->visitChildren([$node->condition, $node->yes, $node->no]);
@@ -258,7 +288,7 @@ final class RailroadDiagramVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitSubroutine(Node\SubroutineNode $node): string
+    public function visitSubroutine(SubroutineNode $node): string
     {
         $this->addLine('Subroutine ('.$node->reference.')');
 
@@ -266,7 +296,7 @@ final class RailroadDiagramVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitPcreVerb(Node\PcreVerbNode $node): string
+    public function visitPcreVerb(PcreVerbNode $node): string
     {
         $this->addLine('PCREVerb (*'.$node->verb.')');
 
@@ -274,7 +304,7 @@ final class RailroadDiagramVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitDefine(Node\DefineNode $node): string
+    public function visitDefine(DefineNode $node): string
     {
         $this->addLine('Define');
         $this->visitChildren([$node->content]);
@@ -283,7 +313,7 @@ final class RailroadDiagramVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitLimitMatch(Node\LimitMatchNode $node): string
+    public function visitLimitMatch(LimitMatchNode $node): string
     {
         $this->addLine('LimitMatch (*LIMIT_MATCH='.$node->limit.')');
 
@@ -291,7 +321,7 @@ final class RailroadDiagramVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitCallout(Node\CalloutNode $node): string
+    public function visitCallout(CalloutNode $node): string
     {
         if (null === $node->identifier) {
             $label = 'Callout (?C)';
@@ -334,19 +364,19 @@ final class RailroadDiagramVisitor extends AbstractNodeVisitor
         $this->lines[] = $prefix.$label;
     }
 
-    private function describeGroupType(Node\GroupNode $node): string
+    private function describeGroupType(GroupNode $node): string
     {
         return match ($node->type) {
-            Node\GroupType::T_GROUP_CAPTURING => 'capturing',
-            Node\GroupType::T_GROUP_NON_CAPTURING => 'non-capturing',
-            Node\GroupType::T_GROUP_NAMED => 'named',
-            Node\GroupType::T_GROUP_LOOKAHEAD_POSITIVE => 'positive lookahead',
-            Node\GroupType::T_GROUP_LOOKAHEAD_NEGATIVE => 'negative lookahead',
-            Node\GroupType::T_GROUP_LOOKBEHIND_POSITIVE => 'positive lookbehind',
-            Node\GroupType::T_GROUP_LOOKBEHIND_NEGATIVE => 'negative lookbehind',
-            Node\GroupType::T_GROUP_INLINE_FLAGS => 'inline flags',
-            Node\GroupType::T_GROUP_ATOMIC => 'atomic',
-            Node\GroupType::T_GROUP_BRANCH_RESET => 'branch reset',
+            GroupType::T_GROUP_CAPTURING => 'capturing',
+            GroupType::T_GROUP_NON_CAPTURING => 'non-capturing',
+            GroupType::T_GROUP_NAMED => 'named',
+            GroupType::T_GROUP_LOOKAHEAD_POSITIVE => 'positive lookahead',
+            GroupType::T_GROUP_LOOKAHEAD_NEGATIVE => 'negative lookahead',
+            GroupType::T_GROUP_LOOKBEHIND_POSITIVE => 'positive lookbehind',
+            GroupType::T_GROUP_LOOKBEHIND_NEGATIVE => 'negative lookbehind',
+            GroupType::T_GROUP_INLINE_FLAGS => 'inline flags',
+            GroupType::T_GROUP_ATOMIC => 'atomic',
+            GroupType::T_GROUP_BRANCH_RESET => 'branch reset',
         };
     }
 }

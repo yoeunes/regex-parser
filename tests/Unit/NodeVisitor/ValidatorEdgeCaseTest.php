@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\Unit\NodeVisitor;
 
+use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Exception\SemanticErrorException;
 use RegexParser\NodeVisitor\ValidatorNodeVisitor;
@@ -37,7 +38,7 @@ final class ValidatorEdgeCaseTest extends TestCase
         $this->validate('/a{5,2}/');
     }
 
-    #[\PHPUnit\Framework\Attributes\DoesNotPerformAssertions]
+    #[DoesNotPerformAssertions]
     public function test_allows_octal_zero_escape(): void
     {
         // \0 is now allowed as it represents the null byte

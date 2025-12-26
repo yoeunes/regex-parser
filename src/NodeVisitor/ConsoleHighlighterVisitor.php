@@ -13,7 +13,9 @@ declare(strict_types=1);
 
 namespace RegexParser\NodeVisitor;
 
-use RegexParser\Node;
+use RegexParser\Node\ConditionalNode;
+use RegexParser\Node\GroupNode;
+use RegexParser\Node\GroupType;
 
 /**
  * Highlights regex syntax for console output using ANSI escape codes.
@@ -31,17 +33,17 @@ final class ConsoleHighlighterVisitor extends HighlighterVisitor
     ];
 
     #[\Override]
-    public function visitGroup(Node\GroupNode $node): string
+    public function visitGroup(GroupNode $node): string
     {
         $inner = $node->child->accept($this);
         $prefix = match ($node->type) {
-            Node\GroupType::T_GROUP_NON_CAPTURING => '?:',
-            Node\GroupType::T_GROUP_LOOKAHEAD_POSITIVE => '?=',
-            Node\GroupType::T_GROUP_LOOKAHEAD_NEGATIVE => '?!',
-            Node\GroupType::T_GROUP_LOOKBEHIND_POSITIVE => '?<=',
-            Node\GroupType::T_GROUP_LOOKBEHIND_NEGATIVE => '?<!',
-            Node\GroupType::T_GROUP_ATOMIC => '?>',
-            Node\GroupType::T_GROUP_NAMED => "?<{$node->name}>",
+            GroupType::T_GROUP_NON_CAPTURING => '?:',
+            GroupType::T_GROUP_LOOKAHEAD_POSITIVE => '?=',
+            GroupType::T_GROUP_LOOKAHEAD_NEGATIVE => '?!',
+            GroupType::T_GROUP_LOOKBEHIND_POSITIVE => '?<=',
+            GroupType::T_GROUP_LOOKBEHIND_NEGATIVE => '?<!',
+            GroupType::T_GROUP_ATOMIC => '?>',
+            GroupType::T_GROUP_NAMED => "?<{$node->name}>",
             default => '',
         };
         $opening = self::COLORS['meta'].'('.$prefix.self::RESET;
@@ -51,7 +53,7 @@ final class ConsoleHighlighterVisitor extends HighlighterVisitor
     }
 
     #[\Override]
-    public function visitConditional(Node\ConditionalNode $node): string
+    public function visitConditional(ConditionalNode $node): string
     {
         $condition = $node->condition->accept($this);
         $yes = $node->yes->accept($this);

@@ -14,12 +14,13 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
+use RegexParser\GroupNumbering;
 
 final class GroupNumberingTest extends TestCase
 {
     public function test_construct(): void
     {
-        $groupNumbering = new \RegexParser\GroupNumbering(2, [1, 2], ['name' => [1]]);
+        $groupNumbering = new GroupNumbering(2, [1, 2], ['name' => [1]]);
         $this->assertSame(2, $groupNumbering->maxGroupNumber);
         $this->assertSame([1, 2], $groupNumbering->captureSequence);
         $this->assertSame(['name' => [1]], $groupNumbering->namedGroups);
@@ -27,21 +28,21 @@ final class GroupNumberingTest extends TestCase
 
     public function test_has_named_group(): void
     {
-        $groupNumbering = new \RegexParser\GroupNumbering(1, [1], ['name' => [1]]);
+        $groupNumbering = new GroupNumbering(1, [1], ['name' => [1]]);
         $this->assertTrue($groupNumbering->hasNamedGroup('name'));
         $this->assertFalse($groupNumbering->hasNamedGroup('nonexistent'));
     }
 
     public function test_get_named_group_numbers(): void
     {
-        $groupNumbering = new \RegexParser\GroupNumbering(1, [1], ['name' => [1]]);
+        $groupNumbering = new GroupNumbering(1, [1], ['name' => [1]]);
         $this->assertSame([1], $groupNumbering->getNamedGroupNumbers('name'));
         $this->assertSame([], $groupNumbering->getNamedGroupNumbers('nonexistent'));
     }
 
     public function test_get_capture_count(): void
     {
-        $groupNumbering = new \RegexParser\GroupNumbering(2, [1, 2], []);
+        $groupNumbering = new GroupNumbering(2, [1, 2], []);
         $this->assertSame(2, $groupNumbering->getCaptureCount());
     }
 }

@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
+use RegexParser\Node\RegexNode;
 use RegexParser\Regex;
 
 final class ParserCoverageTest extends TestCase
@@ -107,7 +108,7 @@ final class ParserCoverageTest extends TestCase
         foreach ($patterns as $pattern) {
             try {
                 $ast = $regex->parse($pattern);
-                $this->assertInstanceOf(\RegexParser\Node\RegexNode::class, $ast);
+                $this->assertInstanceOf(RegexNode::class, $ast);
             } catch (\Exception) {
                 // Some patterns may be invalid, but we test parsing
                 // Exception caught is expected for some patterns

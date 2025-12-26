@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
+use RegexParser\Node\RegexNode;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
 use RegexParser\Regex;
 
@@ -55,8 +56,8 @@ class FuzzTest extends TestCase
             $ast2 = $this->regex->parse('/'.$recompiled.'/');
 
             // For now, just ensure no exceptions
-            $this->assertInstanceOf(\RegexParser\Node\RegexNode::class, $ast);
-            $this->assertInstanceOf(\RegexParser\Node\RegexNode::class, $ast2);
+            $this->assertInstanceOf(RegexNode::class, $ast);
+            $this->assertInstanceOf(RegexNode::class, $ast2);
         }
     }
 }

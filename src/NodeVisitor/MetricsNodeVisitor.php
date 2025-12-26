@@ -14,6 +14,32 @@ declare(strict_types=1);
 namespace RegexParser\NodeVisitor;
 
 use RegexParser\Node;
+use RegexParser\Node\AlternationNode;
+use RegexParser\Node\AnchorNode;
+use RegexParser\Node\AssertionNode;
+use RegexParser\Node\BackrefNode;
+use RegexParser\Node\CalloutNode;
+use RegexParser\Node\CharClassNode;
+use RegexParser\Node\CharLiteralNode;
+use RegexParser\Node\CharTypeNode;
+use RegexParser\Node\CommentNode;
+use RegexParser\Node\ConditionalNode;
+use RegexParser\Node\DefineNode;
+use RegexParser\Node\DotNode;
+use RegexParser\Node\GroupNode;
+use RegexParser\Node\KeepNode;
+use RegexParser\Node\LimitMatchNode;
+use RegexParser\Node\LiteralNode;
+use RegexParser\Node\NodeInterface;
+use RegexParser\Node\PcreVerbNode;
+use RegexParser\Node\PosixClassNode;
+use RegexParser\Node\QuantifierNode;
+use RegexParser\Node\RangeNode;
+use RegexParser\Node\RegexNode;
+use RegexParser\Node\SequenceNode;
+use RegexParser\Node\SubroutineNode;
+use RegexParser\Node\UnicodeNode;
+use RegexParser\Node\UnicodePropNode;
 
 /**
  * Collects structural metrics about an AST (node counts and depth).
@@ -34,7 +60,7 @@ final class MetricsNodeVisitor extends AbstractNodeVisitor
     private int $currentDepth = 0;
 
     #[\Override]
-    public function visitRegex(Node\RegexNode $node): array
+    public function visitRegex(RegexNode $node): array
     {
         return $this->record($node, function () use ($node): void {
             $this->visitChild($node->pattern);
@@ -42,7 +68,7 @@ final class MetricsNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitAlternation(Node\AlternationNode $node): array
+    public function visitAlternation(AlternationNode $node): array
     {
         return $this->record($node, function () use ($node): void {
             $this->visitChildren($node->alternatives);
@@ -50,7 +76,7 @@ final class MetricsNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitSequence(Node\SequenceNode $node): array
+    public function visitSequence(SequenceNode $node): array
     {
         return $this->record($node, function () use ($node): void {
             $this->visitChildren($node->children);
@@ -58,7 +84,7 @@ final class MetricsNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitGroup(Node\GroupNode $node): array
+    public function visitGroup(GroupNode $node): array
     {
         return $this->record($node, function () use ($node): void {
             $this->visitChild($node->child);
@@ -66,7 +92,7 @@ final class MetricsNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitQuantifier(Node\QuantifierNode $node): array
+    public function visitQuantifier(QuantifierNode $node): array
     {
         return $this->record($node, function () use ($node): void {
             $this->visitChild($node->node);
@@ -74,58 +100,58 @@ final class MetricsNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitLiteral(Node\LiteralNode $node): array
+    public function visitLiteral(LiteralNode $node): array
     {
         return $this->record($node);
     }
 
     #[\Override]
-    public function visitCharLiteral(Node\CharLiteralNode $node): array
+    public function visitCharLiteral(CharLiteralNode $node): array
     {
         return $this->record($node);
     }
 
     #[\Override]
-    public function visitCharType(Node\CharTypeNode $node): array
+    public function visitCharType(CharTypeNode $node): array
     {
         return $this->record($node);
     }
 
     #[\Override]
-    public function visitDot(Node\DotNode $node): array
+    public function visitDot(DotNode $node): array
     {
         return $this->record($node);
     }
 
     #[\Override]
-    public function visitAnchor(Node\AnchorNode $node): array
+    public function visitAnchor(AnchorNode $node): array
     {
         return $this->record($node);
     }
 
     #[\Override]
-    public function visitAssertion(Node\AssertionNode $node): array
+    public function visitAssertion(AssertionNode $node): array
     {
         return $this->record($node);
     }
 
     #[\Override]
-    public function visitKeep(Node\KeepNode $node): array
+    public function visitKeep(KeepNode $node): array
     {
         return $this->record($node);
     }
 
     #[\Override]
-    public function visitCharClass(Node\CharClassNode $node): array
+    public function visitCharClass(CharClassNode $node): array
     {
         return $this->record($node, function () use ($node): void {
-            $parts = $node->expression instanceof Node\AlternationNode ? $node->expression->alternatives : [$node->expression];
+            $parts = $node->expression instanceof AlternationNode ? $node->expression->alternatives : [$node->expression];
             $this->visitChildren($parts);
         });
     }
 
     #[\Override]
-    public function visitRange(Node\RangeNode $node): array
+    public function visitRange(RangeNode $node): array
     {
         return $this->record($node, function () use ($node): void {
             $this->visitChild($node->start);
@@ -134,37 +160,37 @@ final class MetricsNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitBackref(Node\BackrefNode $node): array
+    public function visitBackref(BackrefNode $node): array
     {
         return $this->record($node);
     }
 
     #[\Override]
-    public function visitUnicode(Node\UnicodeNode $node): array
+    public function visitUnicode(UnicodeNode $node): array
     {
         return $this->record($node);
     }
 
     #[\Override]
-    public function visitUnicodeProp(Node\UnicodePropNode $node): array
+    public function visitUnicodeProp(UnicodePropNode $node): array
     {
         return $this->record($node);
     }
 
     #[\Override]
-    public function visitPosixClass(Node\PosixClassNode $node): array
+    public function visitPosixClass(PosixClassNode $node): array
     {
         return $this->record($node);
     }
 
     #[\Override]
-    public function visitComment(Node\CommentNode $node): array
+    public function visitComment(CommentNode $node): array
     {
         return $this->record($node);
     }
 
     #[\Override]
-    public function visitConditional(Node\ConditionalNode $node): array
+    public function visitConditional(ConditionalNode $node): array
     {
         return $this->record($node, function () use ($node): void {
             $this->visitChild($node->condition);
@@ -174,19 +200,19 @@ final class MetricsNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitSubroutine(Node\SubroutineNode $node): array
+    public function visitSubroutine(SubroutineNode $node): array
     {
         return $this->record($node);
     }
 
     #[\Override]
-    public function visitPcreVerb(Node\PcreVerbNode $node): array
+    public function visitPcreVerb(PcreVerbNode $node): array
     {
         return $this->record($node);
     }
 
     #[\Override]
-    public function visitDefine(Node\DefineNode $node): array
+    public function visitDefine(DefineNode $node): array
     {
         return $this->record($node, function () use ($node): void {
             $this->visitChild($node->content);
@@ -194,13 +220,13 @@ final class MetricsNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
-    public function visitLimitMatch(Node\LimitMatchNode $node): array
+    public function visitLimitMatch(LimitMatchNode $node): array
     {
         return $this->record($node);
     }
 
     #[\Override]
-    public function visitCallout(Node\CalloutNode $node): array
+    public function visitCallout(CalloutNode $node): array
     {
         return $this->record($node);
     }
@@ -208,7 +234,7 @@ final class MetricsNodeVisitor extends AbstractNodeVisitor
     /**
      * @return array{counts: array<string, int>, total: int, maxDepth: int}
      */
-    private function record(Node\NodeInterface $node, ?callable $traverse = null): array
+    private function record(NodeInterface $node, ?callable $traverse = null): array
     {
         $this->total++;
         $type = $this->shortName($node::class);
@@ -226,7 +252,7 @@ final class MetricsNodeVisitor extends AbstractNodeVisitor
         return $this->snapshot();
     }
 
-    private function visitChild(Node\NodeInterface $child): void
+    private function visitChild(NodeInterface $child): void
     {
         $child->accept($this);
     }

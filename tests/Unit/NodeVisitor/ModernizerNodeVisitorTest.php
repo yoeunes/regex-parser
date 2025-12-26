@@ -14,11 +14,35 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Unit\NodeVisitor;
 
 use PHPUnit\Framework\TestCase;
+use RegexParser\Node\AlternationNode;
+use RegexParser\Node\AnchorNode;
+use RegexParser\Node\AssertionNode;
 use RegexParser\Node\BackrefNode;
+use RegexParser\Node\CalloutNode;
 use RegexParser\Node\CharClassNode;
+use RegexParser\Node\CharLiteralNode;
+use RegexParser\Node\CharLiteralType;
 use RegexParser\Node\CharTypeNode;
+use RegexParser\Node\ClassOperationNode;
+use RegexParser\Node\ClassOperationType;
+use RegexParser\Node\CommentNode;
+use RegexParser\Node\ConditionalNode;
+use RegexParser\Node\ControlCharNode;
+use RegexParser\Node\DefineNode;
+use RegexParser\Node\DotNode;
+use RegexParser\Node\KeepNode;
+use RegexParser\Node\LimitMatchNode;
 use RegexParser\Node\LiteralNode;
+use RegexParser\Node\PcreVerbNode;
+use RegexParser\Node\PosixClassNode;
+use RegexParser\Node\QuantifierNode;
+use RegexParser\Node\QuantifierType;
 use RegexParser\Node\RangeNode;
+use RegexParser\Node\ScriptRunNode;
+use RegexParser\Node\SequenceNode;
+use RegexParser\Node\SubroutineNode;
+use RegexParser\Node\UnicodePropNode;
+use RegexParser\Node\VersionConditionNode;
 use RegexParser\NodeVisitor\ModernizerNodeVisitor;
 
 final class ModernizerNodeVisitorTest extends TestCase
@@ -74,46 +98,46 @@ final class ModernizerNodeVisitorTest extends TestCase
 
     public function test_preserves_alternation(): void
     {
-        $alternation = new \RegexParser\Node\AlternationNode(
-            [new \RegexParser\Node\LiteralNode('a', 0, 1), new \RegexParser\Node\LiteralNode('b', 3, 4)],
+        $alternation = new AlternationNode(
+            [new LiteralNode('a', 0, 1), new LiteralNode('b', 3, 4)],
             0, 5,
         );
 
         $result = $alternation->accept($this->visitor);
 
-        $this->assertInstanceOf(\RegexParser\Node\AlternationNode::class, $result);
+        $this->assertInstanceOf(AlternationNode::class, $result);
     }
 
     public function test_preserves_sequence(): void
     {
-        $sequence = new \RegexParser\Node\SequenceNode(
-            [new \RegexParser\Node\LiteralNode('a', 0, 1), new \RegexParser\Node\LiteralNode('b', 2, 3)],
+        $sequence = new SequenceNode(
+            [new LiteralNode('a', 0, 1), new LiteralNode('b', 2, 3)],
             0, 4,
         );
 
         $result = $sequence->accept($this->visitor);
 
-        $this->assertInstanceOf(\RegexParser\Node\SequenceNode::class, $result);
+        $this->assertInstanceOf(SequenceNode::class, $result);
     }
 
     public function test_preserves_quantifier(): void
     {
-        $quantifier = new \RegexParser\Node\QuantifierNode(
-            new \RegexParser\Node\LiteralNode('a', 0, 1),
+        $quantifier = new QuantifierNode(
+            new LiteralNode('a', 0, 1),
             '*',
-            \RegexParser\Node\QuantifierType::T_GREEDY,
+            QuantifierType::T_GREEDY,
             1,
             2,
         );
 
         $result = $quantifier->accept($this->visitor);
 
-        $this->assertInstanceOf(\RegexParser\Node\QuantifierNode::class, $result);
+        $this->assertInstanceOf(QuantifierNode::class, $result);
     }
 
     public function test_preserves_anchor(): void
     {
-        $anchor = new \RegexParser\Node\AnchorNode('^', 0, 1);
+        $anchor = new AnchorNode('^', 0, 1);
         $result = $anchor->accept($this->visitor);
 
         $this->assertSame($anchor, $result);
@@ -121,7 +145,7 @@ final class ModernizerNodeVisitorTest extends TestCase
 
     public function test_preserves_assertion(): void
     {
-        $assertion = new \RegexParser\Node\AssertionNode('b', 0, 2);
+        $assertion = new AssertionNode('b', 0, 2);
         $result = $assertion->accept($this->visitor);
 
         $this->assertSame($assertion, $result);
@@ -129,7 +153,7 @@ final class ModernizerNodeVisitorTest extends TestCase
 
     public function test_preserves_dot(): void
     {
-        $dot = new \RegexParser\Node\DotNode(0, 1);
+        $dot = new DotNode(0, 1);
         $result = $dot->accept($this->visitor);
 
         $this->assertSame($dot, $result);
@@ -137,7 +161,7 @@ final class ModernizerNodeVisitorTest extends TestCase
 
     public function test_preserves_char_type(): void
     {
-        $charType = new \RegexParser\Node\CharTypeNode('w', 0, 2);
+        $charType = new CharTypeNode('w', 0, 2);
         $result = $charType->accept($this->visitor);
 
         $this->assertSame($charType, $result);
@@ -145,9 +169,9 @@ final class ModernizerNodeVisitorTest extends TestCase
 
     public function test_preserves_range(): void
     {
-        $range = new \RegexParser\Node\RangeNode(
-            new \RegexParser\Node\LiteralNode('a', 0, 1),
-            new \RegexParser\Node\LiteralNode('z', 3, 4),
+        $range = new RangeNode(
+            new LiteralNode('a', 0, 1),
+            new LiteralNode('z', 3, 4),
             0, 5,
         );
         $result = $range->accept($this->visitor);
@@ -157,7 +181,7 @@ final class ModernizerNodeVisitorTest extends TestCase
 
     public function test_preserves_unicode_prop(): void
     {
-        $unicodeProp = new \RegexParser\Node\UnicodePropNode('L', 0, 5);
+        $unicodeProp = new UnicodePropNode('L', 0, 5);
         $result = $unicodeProp->accept($this->visitor);
 
         $this->assertSame($unicodeProp, $result);
@@ -165,7 +189,7 @@ final class ModernizerNodeVisitorTest extends TestCase
 
     public function test_preserves_char_literal(): void
     {
-        $charLiteral = new \RegexParser\Node\CharLiteralNode('a', 65, \RegexParser\Node\CharLiteralType::UNICODE, 0, 1);
+        $charLiteral = new CharLiteralNode('a', 65, CharLiteralType::UNICODE, 0, 1);
         $result = $charLiteral->accept($this->visitor);
 
         $this->assertSame($charLiteral, $result);
@@ -173,7 +197,7 @@ final class ModernizerNodeVisitorTest extends TestCase
 
     public function test_preserves_posix_class(): void
     {
-        $posixClass = new \RegexParser\Node\PosixClassNode('alpha', 0, 9);
+        $posixClass = new PosixClassNode('alpha', 0, 9);
         $result = $posixClass->accept($this->visitor);
 
         $this->assertSame($posixClass, $result);
@@ -181,7 +205,7 @@ final class ModernizerNodeVisitorTest extends TestCase
 
     public function test_preserves_comment(): void
     {
-        $comment = new \RegexParser\Node\CommentNode('test comment', 0, 13);
+        $comment = new CommentNode('test comment', 0, 13);
         $result = $comment->accept($this->visitor);
 
         $this->assertSame($comment, $result);
@@ -189,20 +213,20 @@ final class ModernizerNodeVisitorTest extends TestCase
 
     public function test_preserves_conditional(): void
     {
-        $conditional = new \RegexParser\Node\ConditionalNode(
-            new \RegexParser\Node\LiteralNode('a', 1, 2),
-            new \RegexParser\Node\LiteralNode('b', 4, 5),
-            new \RegexParser\Node\LiteralNode('c', 7, 8),
+        $conditional = new ConditionalNode(
+            new LiteralNode('a', 1, 2),
+            new LiteralNode('b', 4, 5),
+            new LiteralNode('c', 7, 8),
             0, 10,
         );
         $result = $conditional->accept($this->visitor);
 
-        $this->assertInstanceOf(\RegexParser\Node\ConditionalNode::class, $result);
+        $this->assertInstanceOf(ConditionalNode::class, $result);
     }
 
     public function test_preserves_subroutine(): void
     {
-        $subroutine = new \RegexParser\Node\SubroutineNode('1', 'R', 0, 4);
+        $subroutine = new SubroutineNode('1', 'R', 0, 4);
         $result = $subroutine->accept($this->visitor);
 
         $this->assertSame($subroutine, $result);
@@ -210,7 +234,7 @@ final class ModernizerNodeVisitorTest extends TestCase
 
     public function test_preserves_pcre_verb(): void
     {
-        $pcreVerb = new \RegexParser\Node\PcreVerbNode('FAIL', 0, 6);
+        $pcreVerb = new PcreVerbNode('FAIL', 0, 6);
         $result = $pcreVerb->accept($this->visitor);
 
         $this->assertSame($pcreVerb, $result);
@@ -218,8 +242,8 @@ final class ModernizerNodeVisitorTest extends TestCase
 
     public function test_preserves_define(): void
     {
-        $define = new \RegexParser\Node\DefineNode(
-            new \RegexParser\Node\LiteralNode('test', 1, 5),
+        $define = new DefineNode(
+            new LiteralNode('test', 1, 5),
             0, 12,
         );
         $result = $define->accept($this->visitor);
@@ -229,7 +253,7 @@ final class ModernizerNodeVisitorTest extends TestCase
 
     public function test_preserves_limit_match(): void
     {
-        $limitMatch = new \RegexParser\Node\LimitMatchNode(1000, 0, 17);
+        $limitMatch = new LimitMatchNode(1000, 0, 17);
         $result = $limitMatch->accept($this->visitor);
 
         $this->assertSame($limitMatch, $result);
@@ -237,7 +261,7 @@ final class ModernizerNodeVisitorTest extends TestCase
 
     public function test_preserves_callout(): void
     {
-        $callout = new \RegexParser\Node\CalloutNode(null, false, 0, 3);
+        $callout = new CalloutNode(null, false, 0, 3);
         $result = $callout->accept($this->visitor);
 
         $this->assertSame($callout, $result);
@@ -245,7 +269,7 @@ final class ModernizerNodeVisitorTest extends TestCase
 
     public function test_preserves_script_run(): void
     {
-        $scriptRun = new \RegexParser\Node\ScriptRunNode('Latin', 0, 20);
+        $scriptRun = new ScriptRunNode('Latin', 0, 20);
         $result = $scriptRun->accept($this->visitor);
 
         $this->assertSame($scriptRun, $result);
@@ -253,7 +277,7 @@ final class ModernizerNodeVisitorTest extends TestCase
 
     public function test_preserves_version_condition(): void
     {
-        $versionCondition = new \RegexParser\Node\VersionConditionNode('>=', '10.0', 0, 15);
+        $versionCondition = new VersionConditionNode('>=', '10.0', 0, 15);
         $result = $versionCondition->accept($this->visitor);
 
         $this->assertSame($versionCondition, $result);
@@ -261,7 +285,7 @@ final class ModernizerNodeVisitorTest extends TestCase
 
     public function test_preserves_keep(): void
     {
-        $keep = new \RegexParser\Node\KeepNode(0, 2);
+        $keep = new KeepNode(0, 2);
         $result = $keep->accept($this->visitor);
 
         $this->assertSame($keep, $result);
@@ -269,7 +293,7 @@ final class ModernizerNodeVisitorTest extends TestCase
 
     public function test_preserves_control_char(): void
     {
-        $controlChar = new \RegexParser\Node\ControlCharNode('n', 10, 0, 3);
+        $controlChar = new ControlCharNode('n', 10, 0, 3);
         $result = $controlChar->accept($this->visitor);
 
         $this->assertSame($controlChar, $result);
@@ -277,10 +301,10 @@ final class ModernizerNodeVisitorTest extends TestCase
 
     public function test_preserves_class_operation(): void
     {
-        $classOperation = new \RegexParser\Node\ClassOperationNode(
-            \RegexParser\Node\ClassOperationType::SUBTRACTION,
-            new \RegexParser\Node\LiteralNode('a', 0, 1),
-            new \RegexParser\Node\LiteralNode('b', 3, 4),
+        $classOperation = new ClassOperationNode(
+            ClassOperationType::SUBTRACTION,
+            new LiteralNode('a', 0, 1),
+            new LiteralNode('b', 3, 4),
             0, 6,
         );
         $result = $classOperation->accept($this->visitor);
@@ -291,13 +315,13 @@ final class ModernizerNodeVisitorTest extends TestCase
     public function test_modernizes_whitespace_char_class(): void
     {
         $whitespaceClass = new CharClassNode(
-            new \RegexParser\Node\AlternationNode(
+            new AlternationNode(
                 [
-                    new \RegexParser\Node\LiteralNode("\t", 1, 4),
-                    new \RegexParser\Node\LiteralNode("\n", 5, 8),
-                    new \RegexParser\Node\LiteralNode("\r", 9, 12),
-                    new \RegexParser\Node\LiteralNode("\f", 13, 16),
-                    new \RegexParser\Node\LiteralNode("\v", 17, 20),
+                    new LiteralNode("\t", 1, 4),
+                    new LiteralNode("\n", 5, 8),
+                    new LiteralNode("\r", 9, 12),
+                    new LiteralNode("\f", 13, 16),
+                    new LiteralNode("\v", 17, 20),
                 ],
                 0, 21,
             ),
@@ -307,7 +331,7 @@ final class ModernizerNodeVisitorTest extends TestCase
 
         $result = $whitespaceClass->accept($this->visitor);
 
-        $this->assertInstanceOf(\RegexParser\Node\CharTypeNode::class, $result);
+        $this->assertInstanceOf(CharTypeNode::class, $result);
         $this->assertSame('s', $result->value);
     }
 }

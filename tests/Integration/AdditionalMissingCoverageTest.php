@@ -15,7 +15,16 @@ namespace RegexParser\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\AnalysisReport;
-use RegexParser\Node;
+use RegexParser\Node\CalloutNode;
+use RegexParser\Node\ClassOperationNode;
+use RegexParser\Node\ClassOperationType;
+use RegexParser\Node\DotNode;
+use RegexParser\Node\LimitMatchNode;
+use RegexParser\Node\LiteralNode;
+use RegexParser\Node\RegexNode;
+use RegexParser\Node\ScriptRunNode;
+use RegexParser\Node\UnicodeNode;
+use RegexParser\Node\VersionConditionNode;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
 use RegexParser\NodeVisitor\DumperNodeVisitor;
 use RegexParser\NodeVisitor\ExplainNodeVisitor;
@@ -135,7 +144,7 @@ final class AdditionalMissingCoverageTest extends TestCase
     public function test_compiler_visitor_script_run(): void
     {
         $visitor = new CompilerNodeVisitor();
-        $node = new Node\ScriptRunNode('Latin', 0, 18);
+        $node = new ScriptRunNode('Latin', 0, 18);
         $result = $node->accept($visitor);
         $this->assertNotEmpty($result);
     }
@@ -143,7 +152,7 @@ final class AdditionalMissingCoverageTest extends TestCase
     public function test_compiler_visitor_limit_match(): void
     {
         $visitor = new CompilerNodeVisitor();
-        $node = new Node\LimitMatchNode(1000, 0, 16);
+        $node = new LimitMatchNode(1000, 0, 16);
         $result = $node->accept($visitor);
         $this->assertNotEmpty($result);
     }
@@ -151,7 +160,7 @@ final class AdditionalMissingCoverageTest extends TestCase
     public function test_compiler_visitor_version_condition(): void
     {
         $visitor = new CompilerNodeVisitor();
-        $node = new Node\VersionConditionNode('>=', '10.0', 0, 18);
+        $node = new VersionConditionNode('>=', '10.0', 0, 18);
         $result = $node->accept($visitor);
         $this->assertNotEmpty($result);
     }
@@ -159,9 +168,9 @@ final class AdditionalMissingCoverageTest extends TestCase
     public function test_compiler_visitor_class_operation(): void
     {
         $visitor = new CompilerNodeVisitor();
-        $left = new Node\LiteralNode('a', 0, 1);
-        $right = new Node\LiteralNode('b', 2, 3);
-        $node = new Node\ClassOperationNode(Node\ClassOperationType::INTERSECTION, $left, $right, 0, 3);
+        $left = new LiteralNode('a', 0, 1);
+        $right = new LiteralNode('b', 2, 3);
+        $node = new ClassOperationNode(ClassOperationType::INTERSECTION, $left, $right, 0, 3);
         $result = $node->accept($visitor);
         $this->assertNotEmpty($result);
     }
@@ -169,7 +178,7 @@ final class AdditionalMissingCoverageTest extends TestCase
     public function test_dumper_visitor_script_run(): void
     {
         $visitor = new DumperNodeVisitor();
-        $node = new Node\ScriptRunNode('Latin', 0, 18);
+        $node = new ScriptRunNode('Latin', 0, 18);
         $result = $node->accept($visitor);
         $this->assertNotEmpty($result);
     }
@@ -177,7 +186,7 @@ final class AdditionalMissingCoverageTest extends TestCase
     public function test_dumper_visitor_limit_match(): void
     {
         $visitor = new DumperNodeVisitor();
-        $node = new Node\LimitMatchNode(1000, 0, 16);
+        $node = new LimitMatchNode(1000, 0, 16);
         $result = $node->accept($visitor);
         $this->assertNotEmpty($result);
     }
@@ -185,7 +194,7 @@ final class AdditionalMissingCoverageTest extends TestCase
     public function test_dumper_visitor_version_condition(): void
     {
         $visitor = new DumperNodeVisitor();
-        $node = new Node\VersionConditionNode('>=', '10.0', 0, 18);
+        $node = new VersionConditionNode('>=', '10.0', 0, 18);
         $result = $node->accept($visitor);
         $this->assertNotEmpty($result);
     }
@@ -193,9 +202,9 @@ final class AdditionalMissingCoverageTest extends TestCase
     public function test_dumper_visitor_class_operation(): void
     {
         $visitor = new DumperNodeVisitor();
-        $left = new Node\LiteralNode('a', 0, 1);
-        $right = new Node\LiteralNode('b', 2, 3);
-        $node = new Node\ClassOperationNode(Node\ClassOperationType::INTERSECTION, $left, $right, 0, 3);
+        $left = new LiteralNode('a', 0, 1);
+        $right = new LiteralNode('b', 2, 3);
+        $node = new ClassOperationNode(ClassOperationType::INTERSECTION, $left, $right, 0, 3);
         $result = $node->accept($visitor);
         $this->assertNotEmpty($result);
     }
@@ -203,7 +212,7 @@ final class AdditionalMissingCoverageTest extends TestCase
     public function test_explain_visitor_script_run(): void
     {
         $visitor = new ExplainNodeVisitor();
-        $node = new Node\ScriptRunNode('Latin', 0, 18);
+        $node = new ScriptRunNode('Latin', 0, 18);
         $result = $node->accept($visitor);
         $this->assertNotEmpty($result);
     }
@@ -211,7 +220,7 @@ final class AdditionalMissingCoverageTest extends TestCase
     public function test_explain_visitor_limit_match(): void
     {
         $visitor = new ExplainNodeVisitor();
-        $node = new Node\LimitMatchNode(1000, 0, 16);
+        $node = new LimitMatchNode(1000, 0, 16);
         $result = $node->accept($visitor);
         $this->assertNotEmpty($result);
     }
@@ -219,7 +228,7 @@ final class AdditionalMissingCoverageTest extends TestCase
     public function test_explain_visitor_version_condition(): void
     {
         $visitor = new ExplainNodeVisitor();
-        $node = new Node\VersionConditionNode('>=', '10.0', 0, 18);
+        $node = new VersionConditionNode('>=', '10.0', 0, 18);
         $result = $node->accept($visitor);
         $this->assertNotEmpty($result);
     }
@@ -227,9 +236,9 @@ final class AdditionalMissingCoverageTest extends TestCase
     public function test_explain_visitor_class_operation(): void
     {
         $visitor = new ExplainNodeVisitor();
-        $left = new Node\LiteralNode('a', 0, 1);
-        $right = new Node\LiteralNode('b', 2, 3);
-        $node = new Node\ClassOperationNode(Node\ClassOperationType::INTERSECTION, $left, $right, 0, 3);
+        $left = new LiteralNode('a', 0, 1);
+        $right = new LiteralNode('b', 2, 3);
+        $node = new ClassOperationNode(ClassOperationType::INTERSECTION, $left, $right, 0, 3);
         $result = $node->accept($visitor);
         $this->assertNotEmpty($result);
     }
@@ -247,7 +256,7 @@ final class AdditionalMissingCoverageTest extends TestCase
                 return htmlspecialchars($string, \ENT_QUOTES | \ENT_HTML5, 'UTF-8');
             }
         };
-        $node = new Node\LimitMatchNode(1000, 0, 16);
+        $node = new LimitMatchNode(1000, 0, 16);
         $result = $node->accept($visitor);
         $this->assertNotEmpty($result);
     }
@@ -265,7 +274,7 @@ final class AdditionalMissingCoverageTest extends TestCase
                 return htmlspecialchars($string, \ENT_QUOTES | \ENT_HTML5, 'UTF-8');
             }
         };
-        $node = new Node\CalloutNode(1, false, 0, 4);
+        $node = new CalloutNode(1, false, 0, 4);
         $result = $node->accept($visitor);
         $this->assertNotEmpty($result);
     }
@@ -283,7 +292,7 @@ final class AdditionalMissingCoverageTest extends TestCase
                 return htmlspecialchars($string, \ENT_QUOTES | \ENT_HTML5, 'UTF-8');
             }
         };
-        $node = new Node\ScriptRunNode('Latin', 0, 18);
+        $node = new ScriptRunNode('Latin', 0, 18);
         $result = $node->accept($visitor);
         $this->assertNotEmpty($result);
     }
@@ -301,7 +310,7 @@ final class AdditionalMissingCoverageTest extends TestCase
                 return htmlspecialchars($string, \ENT_QUOTES | \ENT_HTML5, 'UTF-8');
             }
         };
-        $node = new Node\VersionConditionNode('>=', '10.0', 0, 18);
+        $node = new VersionConditionNode('>=', '10.0', 0, 18);
         $result = $node->accept($visitor);
         $this->assertNotEmpty($result);
     }
@@ -319,7 +328,7 @@ final class AdditionalMissingCoverageTest extends TestCase
                 return htmlspecialchars($string, \ENT_QUOTES | \ENT_HTML5, 'UTF-8');
             }
         };
-        $node = new Node\UnicodeNode(\chr(0x80), 0, 4);
+        $node = new UnicodeNode(\chr(0x80), 0, 4);
         $result = $node->accept($visitor);
         $this->assertStringContainsString('\\x80', $result);
     }
@@ -327,7 +336,7 @@ final class AdditionalMissingCoverageTest extends TestCase
     public function test_html_highlighter_visitor_dot(): void
     {
         $visitor = new HtmlHighlighterVisitor();
-        $node = new Node\DotNode(1, 2);
+        $node = new DotNode(1, 2);
         $result = $visitor->visitDot($node);
         $this->assertNotEmpty($result);
     }
@@ -335,7 +344,7 @@ final class AdditionalMissingCoverageTest extends TestCase
     public function test_html_highlighter_visitor_unicode(): void
     {
         $visitor = new HtmlHighlighterVisitor();
-        $node = new Node\UnicodeNode('1F600', 0, 7);
+        $node = new UnicodeNode('1F600', 0, 7);
         $result = $node->accept($visitor);
         $this->assertNotEmpty($result);
     }
@@ -343,7 +352,7 @@ final class AdditionalMissingCoverageTest extends TestCase
     public function test_html_highlighter_visitor_limit_match(): void
     {
         $visitor = new HtmlHighlighterVisitor();
-        $node = new Node\LimitMatchNode(1000, 0, 16);
+        $node = new LimitMatchNode(1000, 0, 16);
         $result = $node->accept($visitor);
         $this->assertNotEmpty($result);
     }
@@ -351,7 +360,7 @@ final class AdditionalMissingCoverageTest extends TestCase
     public function test_html_highlighter_visitor_callout(): void
     {
         $visitor = new HtmlHighlighterVisitor();
-        $node = new Node\CalloutNode(1, false, 0, 4);
+        $node = new CalloutNode(1, false, 0, 4);
         $result = $node->accept($visitor);
         $this->assertNotEmpty($result);
     }
@@ -359,7 +368,7 @@ final class AdditionalMissingCoverageTest extends TestCase
     public function test_html_highlighter_visitor_script_run(): void
     {
         $visitor = new HtmlHighlighterVisitor();
-        $node = new Node\ScriptRunNode('Latin', 0, 18);
+        $node = new ScriptRunNode('Latin', 0, 18);
         $result = $node->accept($visitor);
         $this->assertNotEmpty($result);
     }
@@ -367,7 +376,7 @@ final class AdditionalMissingCoverageTest extends TestCase
     public function test_html_highlighter_visitor_version_condition(): void
     {
         $visitor = new HtmlHighlighterVisitor();
-        $node = new Node\VersionConditionNode('>=', '10.0', 0, 18);
+        $node = new VersionConditionNode('>=', '10.0', 0, 18);
         $result = $node->accept($visitor);
         $this->assertNotEmpty($result);
     }
@@ -375,7 +384,7 @@ final class AdditionalMissingCoverageTest extends TestCase
     public function test_html_explain_visitor_unicode(): void
     {
         $visitor = new HtmlExplainNodeVisitor();
-        $node = new Node\UnicodeNode('1F600', 0, 7);
+        $node = new UnicodeNode('1F600', 0, 7);
         $result = $node->accept($visitor);
         $this->assertNotEmpty($result);
     }
@@ -383,7 +392,7 @@ final class AdditionalMissingCoverageTest extends TestCase
     public function test_html_explain_visitor_limit_match(): void
     {
         $visitor = new HtmlExplainNodeVisitor();
-        $node = new Node\LimitMatchNode(1000, 0, 16);
+        $node = new LimitMatchNode(1000, 0, 16);
         $result = $node->accept($visitor);
         $this->assertNotEmpty($result);
     }
@@ -391,7 +400,7 @@ final class AdditionalMissingCoverageTest extends TestCase
     public function test_mermaid_visitor_unicode(): void
     {
         $visitor = new MermaidNodeVisitor();
-        $node = new Node\UnicodeNode('1F600', 0, 7);
+        $node = new UnicodeNode('1F600', 0, 7);
         $result = $node->accept($visitor);
         $this->assertNotEmpty($result);
     }
@@ -399,7 +408,7 @@ final class AdditionalMissingCoverageTest extends TestCase
     public function test_mermaid_visitor_limit_match(): void
     {
         $visitor = new MermaidNodeVisitor();
-        $node = new Node\LimitMatchNode(1000, 0, 16);
+        $node = new LimitMatchNode(1000, 0, 16);
         $result = $node->accept($visitor);
         $this->assertNotEmpty($result);
     }
@@ -407,7 +416,7 @@ final class AdditionalMissingCoverageTest extends TestCase
     public function test_metrics_visitor_unicode(): void
     {
         $visitor = new MetricsNodeVisitor();
-        $node = new Node\UnicodeNode('1F600', 0, 7);
+        $node = new UnicodeNode('1F600', 0, 7);
         $result = $node->accept($visitor);
         $this->assertNotEmpty($result);
     }
@@ -415,7 +424,7 @@ final class AdditionalMissingCoverageTest extends TestCase
     public function test_metrics_visitor_limit_match(): void
     {
         $visitor = new MetricsNodeVisitor();
-        $node = new Node\LimitMatchNode(1000, 0, 16);
+        $node = new LimitMatchNode(1000, 0, 16);
         $result = $node->accept($visitor);
         $this->assertNotEmpty($result);
     }
@@ -425,6 +434,6 @@ final class AdditionalMissingCoverageTest extends TestCase
         $regex = Regex::create();
         // This pattern should not trigger recursion limit in normal parsing
         $ast = $regex->parse('/a+/');
-        $this->assertInstanceOf(\RegexParser\Node\RegexNode::class, $ast);
+        $this->assertInstanceOf(RegexNode::class, $ast);
     }
 }

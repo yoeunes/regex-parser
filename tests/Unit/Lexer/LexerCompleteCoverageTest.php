@@ -15,6 +15,7 @@ namespace RegexParser\Tests\Unit\Lexer;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\Lexer;
+use RegexParser\Token;
 use RegexParser\TokenType;
 
 /**
@@ -335,7 +336,7 @@ final class LexerCompleteCoverageTest extends TestCase
                 }
             }
 
-            $this->assertInstanceOf(\RegexParser\Token::class, $posixToken, "No POSIX class token found for: {$pattern}");
+            $this->assertInstanceOf(Token::class, $posixToken, "No POSIX class token found for: {$pattern}");
             $this->assertSame($expectedValue, $posixToken->value, "Failed for: {$pattern}");
         }
     }

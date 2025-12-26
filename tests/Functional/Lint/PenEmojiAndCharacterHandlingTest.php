@@ -22,6 +22,7 @@ use RegexParser\Node\LiteralNode;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
 use RegexParser\NodeVisitor\ConsoleHighlighterVisitor;
 use RegexParser\NodeVisitor\ExplainNodeVisitor;
+use RegexParser\Regex;
 
 /**
  * Comprehensive tests for pen emoji display and non-printable character handling.
@@ -230,7 +231,7 @@ final class PenEmojiAndCharacterHandlingTest extends TestCase
             '/[\x{2000}-\x{2FFF}]/u', // Unicode range
         ];
 
-        $regex = \RegexParser\Regex::create();
+        $regex = Regex::create();
         foreach ($testPatterns as $pattern) {
             $ast = $regex->parse($pattern);
             $explanation = $ast->accept($this->explainVisitor);

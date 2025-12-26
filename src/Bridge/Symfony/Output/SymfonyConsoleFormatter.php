@@ -25,10 +25,10 @@ use Symfony\Component\Console\Formatter\OutputFormatter;
  *
  * Renders the classic Nuno-style layout with Symfony console tags.
  *
- * @phpstan-import-type LintIssue from \RegexParser\Lint\RegexLintReport
- * @phpstan-import-type OptimizationEntry from \RegexParser\Lint\RegexLintReport
- * @phpstan-import-type LintResult from \RegexParser\Lint\RegexLintReport
- * @phpstan-import-type LintStats from \RegexParser\Lint\RegexLintReport
+ * @phpstan-import-type LintIssue from RegexLintReport
+ * @phpstan-import-type OptimizationEntry from RegexLintReport
+ * @phpstan-import-type LintResult from RegexLintReport
+ * @phpstan-import-type LintStats from RegexLintReport
  */
 final readonly class SymfonyConsoleFormatter implements OutputFormatterInterface
 {
