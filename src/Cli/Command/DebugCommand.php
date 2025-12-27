@@ -15,8 +15,6 @@ namespace RegexParser\Cli\Command;
 
 use RegexParser\Cli\Input;
 use RegexParser\Cli\Output;
-use RegexParser\Exception\LexerException;
-use RegexParser\Exception\ParserException;
 use RegexParser\ReDoS\ReDoSHeatmap;
 use RegexParser\ReDoS\ReDoSHotspot;
 use RegexParser\ReDoS\ReDoSInputGenerator;
@@ -182,7 +180,7 @@ final class DebugCommand extends AbstractCommand
                     }
                 }
             }
-        } catch (LexerException|ParserException|\Throwable $e) {
+        } catch (\Throwable $e) {
             $output->write($output->error('Debug failed: '.$e->getMessage()."\n"));
 
             return 1;

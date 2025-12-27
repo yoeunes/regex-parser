@@ -22,12 +22,22 @@ final class VersionResolver
             return null;
         }
 
-        $composerData = json_decode(file_get_contents($versionFile), true);
+        $contents = file_get_contents($versionFile);
+        if (false === $contents) {
+            return null;
+        }
+
+        $composerData = json_decode($contents, true);
         if (!\is_array($composerData)) {
             return null;
         }
 
-        return $composerData['version'] ?? $fallback;
+        $version = $composerData['version'] ?? $fallback;
+        if (!\is_string($version) || '' === $version) {
+            return $fallback;
+        }
+
+        return $version;
     }
 
     public function getVersionFile(): string

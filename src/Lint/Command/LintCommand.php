@@ -162,7 +162,7 @@ final class LintCommand extends AbstractCommand implements CommandInterface
                     $lastCount = $current;
                 }
 
-                if ($collectionStarted && $current >= $total) {
+                if ($current >= $total) {
                     $output->progressFinish();
                 }
             };
@@ -233,12 +233,15 @@ final class LintCommand extends AbstractCommand implements CommandInterface
         }
 
         echo $formatter->format($report);
-        echo $formatter->getSummary($report->stats);
-        $elapsed = microtime(true) - $startTime;
-        $peakMemory = memory_get_peak_usage(true);
-        $output->write('  '.$output->bold('Time: '.round($elapsed, 2).'s | Memory: '.round($peakMemory / 1024 / 1024, 2).' MB')."\n");
-        $output->write("\n");
-        echo $formatter->formatFooter();
+
+        if ($formatter instanceof ConsoleFormatter) {
+            echo $formatter->getSummary($report->stats);
+            $elapsed = microtime(true) - $startTime;
+            $peakMemory = memory_get_peak_usage(true);
+            $output->write('  '.$output->bold('Time: '.round($elapsed, 2).'s | Memory: '.round($peakMemory / 1024 / 1024, 2).' MB')."\n");
+            $output->write("\n");
+            echo $formatter->formatFooter();
+        }
 
         return $report->stats['errors'] > 0 ? 1 : 0;
     }

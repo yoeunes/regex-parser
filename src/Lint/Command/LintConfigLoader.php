@@ -22,6 +22,7 @@ final class LintConfigLoader
             return new LintConfigResult([], []);
         }
 
+        /** @var array<string, mixed> $config */
         $config = [];
         $files = [];
         $paths = [$cwd.'/regex.dist.json', $cwd.'/regex.json'];
@@ -41,6 +42,7 @@ final class LintConfigLoader
                 return $normalized;
             }
 
+            /** @var array<string, mixed> $config */
             $config = array_replace_recursive($config, $normalized->config);
             $files[] = $path;
         }
@@ -64,9 +66,28 @@ final class LintConfigLoader
             return new LintConfigResult([], [], 'Config file must contain a JSON object: '.$path);
         }
 
-        return new LintConfigResult($decoded, []);
+        return $this->ensureStringKeyedConfig($decoded, $path);
     }
 
+    /**
+     * @param array<mixed, mixed> $config
+     */
+    private function ensureStringKeyedConfig(array $config, string $path): LintConfigResult
+    {
+        $normalized = [];
+        foreach ($config as $key => $value) {
+            if (!\is_string($key)) {
+                return new LintConfigResult([], [], 'Config file must contain a JSON object: '.$path);
+            }
+            $normalized[$key] = $value;
+        }
+
+        return new LintConfigResult($normalized, []);
+    }
+
+    /**
+     * @param array<string, mixed> $config
+     */
     private function normalizeLintConfig(array $config, string $path): LintConfigResult
     {
         $normalized = [];

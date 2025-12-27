@@ -22,11 +22,6 @@ final class Application
      */
     private array $commands = [];
 
-    /**
-     * @var array<int, CommandInterface>
-     */
-    private array $commandList = [];
-
     public function __construct(
         private readonly GlobalOptionsParser $globalOptionsParser,
         private readonly Output $output,
@@ -39,7 +34,6 @@ final class Application
         foreach ($command->getAliases() as $alias) {
             $this->commands[$alias] = $command;
         }
-        $this->commandList[] = $command;
     }
 
     /**

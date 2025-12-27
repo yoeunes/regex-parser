@@ -19,6 +19,9 @@ use RegexParser\Regex;
 
 abstract class AbstractCommand implements CommandInterface
 {
+    /**
+     * @param array<string, mixed> $options
+     */
     protected function createRegex(Output $output, array $options): ?Regex
     {
         try {
