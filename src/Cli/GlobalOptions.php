@@ -19,6 +19,7 @@ final readonly class GlobalOptions
         public bool $quiet,
         public ?bool $ansi,
         public bool $help,
+        public bool $visuals,
         public ?string $phpVersion,
         public ?string $error,
     ) {}

@@ -28,6 +28,7 @@ final class GlobalOptionsParserTest extends TestCase
         $this->assertSame('8.2', $parsed->options->phpVersion);
         $this->assertFalse($parsed->options->quiet);
         $this->assertFalse($parsed->options->help);
+        $this->assertTrue($parsed->options->visuals);
         $this->assertNull($parsed->options->error);
         $this->assertSame(['lint', 'src'], $parsed->args);
     }
@@ -50,5 +51,14 @@ final class GlobalOptionsParserTest extends TestCase
         $this->assertFalse($parsed->options->ansi);
         $this->assertSame('8.3', $parsed->options->phpVersion);
         $this->assertTrue($parsed->options->help);
+    }
+
+    public function test_parse_disables_visuals(): void
+    {
+        $parser = new GlobalOptionsParser();
+
+        $parsed = $parser->parse(['--no-visuals', 'help']);
+
+        $this->assertFalse($parsed->options->visuals);
     }
 }

@@ -23,6 +23,7 @@ final class GlobalOptionsParser
         $quiet = false;
         $ansi = null;
         $help = false;
+        $visuals = true;
         $phpVersion = null;
         $error = null;
         $remaining = [];
@@ -54,6 +55,18 @@ final class GlobalOptionsParser
                 continue;
             }
 
+            if ('--no-visuals' === $arg || '--no-art' === $arg || '--no-splash' === $arg) {
+                $visuals = false;
+
+                continue;
+            }
+
+            if ('--visuals' === $arg) {
+                $visuals = true;
+
+                continue;
+            }
+
             if (str_starts_with($arg, '--php-version=')) {
                 $phpVersion = substr($arg, \strlen('--php-version='));
 
@@ -76,7 +89,7 @@ final class GlobalOptionsParser
             $remaining[] = $arg;
         }
 
-        $options = new GlobalOptions($quiet, $ansi, $help, $phpVersion, $error);
+        $options = new GlobalOptions($quiet, $ansi, $help, $visuals, $phpVersion, $error);
 
         return new ParsedGlobalOptions($options, $remaining);
     }
