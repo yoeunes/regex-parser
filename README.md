@@ -207,6 +207,8 @@ $regex = Regex::create([
 - Docs home: [docs/README.md](docs/README.md)
 - Quick Start: [docs/QUICK_START.md](docs/QUICK_START.md)
 - Reference: [docs/reference.md](docs/reference.md)
+- Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- Maintainers Guide: [docs/MAINTAINERS_GUIDE.md](docs/MAINTAINERS_GUIDE.md)
 - Extending: [docs/EXTENDING_GUIDE.md](docs/EXTENDING_GUIDE.md)
 
 <details>

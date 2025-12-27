@@ -426,4 +426,4 @@ $regex->clearValidatorCaches(); // Reset caches periodically
 
 ---
 
-Previous: [Quick Start](QUICK_START.md) | Next: [Extending Guide](EXTENDING_GUIDE.md)
+Previous: [Quick Start](QUICK_START.md) | Next: [Architecture](ARCHITECTURE.md)

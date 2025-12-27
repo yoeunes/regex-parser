@@ -563,4 +563,4 @@ return null; // Silent failure
 
 ---
 
-Previous: [Reference](reference.md) | Next: [Docs Home](README.md)
+Previous: [Maintainers Guide](MAINTAINERS_GUIDE.md) | Next: [Docs Home](README.md)
