@@ -130,40 +130,24 @@ final readonly class HelpCommand implements CommandInterface
 
     private function renderSignatureArt(Output $output, bool $animate): void
     {
-        $innerLines = $this->signatureInnerLines();
+        $lines = $this->signatureLines();
         $maxLength = 0;
-        foreach ($innerLines as $line) {
-            $maxLength = \max($maxLength, \strlen($line));
+        foreach ($lines as $line) {
+            $maxLength = \max($maxLength, $this->stringLength($line));
         }
 
-        $lineStates = [];
-        foreach ($innerLines as $lineIndex => $line) {
-            $content = $line.\str_repeat(' ', $maxLength - \strlen($line));
-            $positions = $this->visiblePositions($content);
-            $lineStates[] = [
-                'content' => $content,
-                'positions' => $positions,
-                'offset' => $lineIndex * 4,
-            ];
+        $contentLines = [];
+        foreach ($lines as $line) {
+            $contentLines[] = $this->padLine($line, $maxLength);
         }
-
-        $frameCount = 0;
-        foreach ($lineStates as $state) {
-            $frameCount = \max($frameCount, \count($state['positions']));
-        }
-        $frameCount = \max($frameCount, 18);
 
         $width = $this->getTerminalWidth();
-        $border = '+'.\str_repeat('-', $maxLength + 2).'+';
-        $lineCount = \count($innerLines) + 2;
+        $lineCount = \count($contentLines);
 
         if (!$animate) {
-            $this->writeArtLine($output, $border, $width, null, false);
-            foreach ($lineStates as $state) {
-                $line = '| '.$state['content'].' |';
-                $this->writeArtLine($output, $line, $width, null, false);
+            foreach ($contentLines as $content) {
+                $this->writeArtLine($output, $content, $width, null, false);
             }
-            $this->writeArtLine($output, $border, $width, null, false);
             $output->write("\n");
 
             return;
@@ -173,20 +157,19 @@ final readonly class HelpCommand implements CommandInterface
             $output->write("\033[?25l");
         }
 
+        $frameCount = \min(16, \max(8, (int) \ceil($maxLength / 6)));
         for ($frame = 0; $frame < $frameCount; $frame++) {
             if (0 !== $frame) {
                 $output->write("\033[".$lineCount."A");
             }
 
-            $this->writeArtLine($output, $border, $width, null, true);
-            foreach ($lineStates as $state) {
-                $highlightIndex = $this->resolveHighlightIndex($state, $frame);
-                $line = '| '.$state['content'].' |';
-                $this->writeArtLine($output, $line, $width, $highlightIndex, true);
+            $progress = $frameCount > 1 ? $frame / ($frameCount - 1) : 0.0;
+            $highlightIndex = (int) \round($progress * \max(0, $maxLength - 1));
+            foreach ($contentLines as $content) {
+                $this->writeArtLine($output, $content, $width, $highlightIndex, true);
             }
-            $this->writeArtLine($output, $border, $width, null, true);
 
-            \usleep(42000);
+            \usleep(18000);
             if (\function_exists('fflush')) {
                 fflush(\STDOUT);
             }
@@ -202,6 +185,10 @@ final readonly class HelpCommand implements CommandInterface
     private function shouldAnimate(Output $output, bool $showVisuals): bool
     {
         if (!$showVisuals || !$output->isAnsi() || $output->isQuiet()) {
+            return false;
+        }
+
+        if (!\function_exists('posix_isatty') || !posix_isatty(\STDOUT)) {
             return false;
         }
 
@@ -225,55 +212,24 @@ final readonly class HelpCommand implements CommandInterface
     /**
      * @return array<int, string>
      */
-    private function signatureInnerLines(): array
+    private function signatureLines(): array
     {
         return [
-            '[R][E][G][E][X][P][A][R][S][E][R]',
-            '/(?:lint|parse|analyze|learn)/',
-            '/^  Treat regex as code  $/',
+            '██████╗ ███████╗ ██████╗ ███████╗██╗  ██╗██████╗  █████╗ ██████╗ ███████╗██████╗',
+            '██╔══██╗██╔════╝██╔════╝██╔════╝██║ ██║██╔═══██╗██╔══██╗██╔══██╗██╔════╝██╔══██╗',
+            '██████╔╝█████╗ ██║     █████╗  ███████║██║   ██║███████║██████╔╝█████╗  ██████╔╝',
+            '██╔══██╗██╔══╝ ██║     ██╔══╝  ██╔══██║██║   ██║██╔══██║██╔══██╗██╔══╝  ██╔══██╗',
+            '██║  ██║███████╗╚██████╗███████╗██║ ██║╚██████╔╝██║  ██║██║  ██║███████╗██║  ██║',
+            '╚═╝ ╚═╝╚══════╝ ╚═════╝╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝',
         ];
-    }
-
-    /**
-     * @param array{content: string, positions: array<int, int>, offset: int} $state
-     */
-    private function resolveHighlightIndex(array $state, int $frame): ?int
-    {
-        $positions = $state['positions'];
-        if ([] === $positions) {
-            return null;
-        }
-
-        $offset = $state['offset'];
-        $index = ($frame + $offset) % \count($positions);
-
-        return $positions[$index] + 1;
-    }
-
-    /**
-     * @return array<int, int>
-     */
-    private function visiblePositions(string $content): array
-    {
-        $positions = [];
-        $length = \strlen($content);
-
-        for ($i = 0; $i < $length; $i++) {
-            if (' ' !== $content[$i]) {
-                $positions[] = $i;
-            }
-        }
-
-        return $positions;
     }
 
     private function writeArtLine(Output $output, string $line, int $width, ?int $highlightIndex, bool $animate): void
     {
-        $centered = $this->centerLine($line, $width);
-        $isBorder = $this->isBorderLine($line);
-        $colored = $this->colorizeArtLine($output, $centered, $isBorder, $highlightIndex);
+        $leftPad = $this->centerPadding($line, $width);
+        $colored = $this->colorizeArtContent($output, $line, $highlightIndex);
         $prefix = $animate && $output->isAnsi() ? "\r\033[2K" : '';
-        $output->write($prefix.$colored."\n");
+        $output->write($prefix.\str_repeat(' ', $leftPad).$colored."\n");
     }
 
     private function getTerminalWidth(): int
@@ -289,56 +245,31 @@ final readonly class HelpCommand implements CommandInterface
         return 80;
     }
 
-    private function centerLine(string $line, int $width): string
+    private function centerPadding(string $line, int $width): int
     {
-        $length = \strlen($line);
+        $length = $this->stringLength($line);
         if ($length >= $width) {
-            return $line;
+            return 0;
         }
 
-        $leftPad = (int) \floor(($width - $length) / 2);
-
-        return \str_repeat(' ', $leftPad).$line;
-    }
-
-    private function isBorderLine(string $line): bool
-    {
-        $trimmed = \ltrim($line);
-
-        return '' !== $trimmed && $trimmed[0] === '+';
-    }
-
-    private function colorizeArtLine(Output $output, string $line, bool $isBorder, ?int $highlightIndex): string
-    {
-        if (!$output->isAnsi()) {
-            return $line;
-        }
-
-        if ($isBorder) {
-            return $output->color($line, Output::CYAN);
-        }
-
-        $prefixPos = \strpos($line, '|');
-        $suffixPos = \strrpos($line, '|');
-        if (false === $prefixPos || false === $suffixPos || $prefixPos === $suffixPos) {
-            return $output->color($line, Output::CYAN);
-        }
-
-        $prefix = \substr($line, 0, $prefixPos + 1);
-        $suffix = \substr($line, $suffixPos);
-        $inner = \substr($line, $prefixPos + 1, $suffixPos - $prefixPos - 1);
-
-        return $output->color($prefix, Output::CYAN)
-            .$this->colorizeArtContent($output, $inner, $highlightIndex)
-            .$output->color($suffix, Output::CYAN);
+        return (int) \floor(($width - $length) / 2);
     }
 
     private function colorizeArtContent(Output $output, string $content, ?int $highlightIndex): string
     {
+        if (!$output->isAnsi()) {
+            return $content;
+        }
+
         $result = '';
-        $chars = \str_split($content);
+        $chars = $this->splitChars($content);
 
         foreach ($chars as $index => $char) {
+            if (' ' === $char) {
+                $result .= $char;
+
+                continue;
+            }
             $result .= $output->color($char, $this->colorForArtChar($char, $index, $highlightIndex));
         }
 
@@ -361,11 +292,44 @@ final readonly class HelpCommand implements CommandInterface
         }
 
         return match ($char) {
+            '█', '╔', '╗', '╚', '╝', '═' => Output::CYAN,
             '[', ']', '(', ')', '|', '{', '}' => Output::MAGENTA,
             '/', '\\' => Output::GREEN,
             '^', '$', '?', ':', '*', '+' => Output::YELLOW,
             default => Output::WHITE,
         };
+    }
+
+    private function stringLength(string $value): int
+    {
+        if (\function_exists('mb_strlen')) {
+            return (int) mb_strlen($value, 'UTF-8');
+        }
+
+        return \count($this->splitChars($value));
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function splitChars(string $value): array
+    {
+        $chars = \preg_split('//u', $value, -1, \PREG_SPLIT_NO_EMPTY);
+        if (false === $chars) {
+            return \str_split($value);
+        }
+
+        return $chars;
+    }
+
+    private function padLine(string $line, int $length): string
+    {
+        $currentLength = $this->stringLength($line);
+        if ($currentLength >= $length) {
+            return $line;
+        }
+
+        return $line.\str_repeat(' ', $length - $currentLength);
     }
 
     /**
