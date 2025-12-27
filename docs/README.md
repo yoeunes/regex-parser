@@ -20,9 +20,12 @@ entry point quickly.
 ## Reference
 
 - Reference index: [docs/reference/README.md](reference/README.md)
+- API reference: [docs/reference/api.md](reference/api.md)
 - AST Nodes: [docs/nodes/README.md](nodes/README.md)
 - AST Visitors: [docs/visitors/README.md](visitors/README.md)
 - Diagnostics: [docs/reference/diagnostics.md](reference/diagnostics.md)
+- Diagnostics cheat sheet: [docs/reference/diagnostics-cheatsheet.md](reference/diagnostics-cheatsheet.md)
+- FAQ and glossary: [docs/reference/faq-glossary.md](reference/faq-glossary.md)
 - External references: [docs/references/README.md](references/README.md)
 
 ## Core guides
@@ -32,6 +35,9 @@ entry point quickly.
 - CLI Guide: [docs/guides/cli.md](guides/cli.md)
 - Lint Rule Reference: [docs/reference.md](reference.md)
 - Diagnostics: [docs/reference/diagnostics.md](reference/diagnostics.md)
+- Diagnostics cheat sheet: [docs/reference/diagnostics-cheatsheet.md](reference/diagnostics-cheatsheet.md)
+- API reference: [docs/reference/api.md](reference/api.md)
+- FAQ and glossary: [docs/reference/faq-glossary.md](reference/faq-glossary.md)
 - ReDoS Guide: [docs/REDOS_GUIDE.md](REDOS_GUIDE.md)
 - Cookbook: [docs/COOKBOOK.md](COOKBOOK.md)
 - Architecture: [docs/ARCHITECTURE.md](ARCHITECTURE.md)

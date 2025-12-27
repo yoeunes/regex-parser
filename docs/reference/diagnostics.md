@@ -3,6 +3,8 @@
 This page explains how RegexParser reports errors and warnings, how to read
 caret snippets, and how to map diagnostics to fixes.
 
+Need quick fixes? See [docs/reference/diagnostics-cheatsheet.md](diagnostics-cheatsheet.md).
+
 ## Layers of validation
 
 RegexParser validates in layers:
@@ -37,13 +39,13 @@ if (!$result->isValid()) {
 }
 ```
 
-## CLI validation output
+## How to read diagnostics (CLI examples)
+
+Validation error with caret:
 
 ```bash
-regex validate '/(?<=a+)b/'
+bin/regex --no-ansi validate '/(?<=a+)b/'
 ```
-
-Typical output:
 
 ```text
 INVALID  /(?<=a+)b/
@@ -51,6 +53,39 @@ INVALID  /(?<=a+)b/
 Line 1: (?<=a+)b
             ^
 ```
+
+What to notice:
+- The first line is the overall status and the pattern.
+- The message explains the semantic rule that failed.
+- The caret shows the exact byte offset inside the pattern body.
+
+ReDoS analysis summary:
+
+```bash
+bin/regex --no-ansi analyze '/(a+)+$/'
+```
+
+```text
+Analyze
+  Pattern:    /(a+)+$/
+  Parse:      OK
+  Validation: OK
+  ReDoS:      CRITICAL (score 10)
+
+Explanation
+Regex matches
+  Start Quantified Group (one or more times)
+    Capturing group
+            'a' (one or more times)
+    End group
+  End Quantified Group
+  Anchor: the end of the string (or line, with /m flag)
+```
+
+What to notice:
+- Parse/Validation status tells you if the pattern is structurally valid.
+- ReDoS severity highlights risk even when syntax is valid.
+- The explanation section maps the AST back to human language.
 
 ## Lint diagnostics
 
