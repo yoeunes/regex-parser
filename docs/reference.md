@@ -423,3 +423,7 @@ RegexParser uses caching for validation operations to improve performance. To pr
 $regex = Regex::create();
 $regex->clearValidatorCaches(); // Reset caches periodically
 ```
+
+---
+
+Previous: [Quick Start](QUICK_START.md) | Next: [ReDoS Guide](REDOS_GUIDE.md)

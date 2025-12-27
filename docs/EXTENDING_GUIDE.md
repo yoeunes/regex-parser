@@ -38,6 +38,11 @@ User Input (Pattern)
 4. Add tests
 5. Update documentation
 
+Helpful references:
+- [AST Nodes](nodes/README.md)
+- [AST Visitors](visitors/README.md)
+- [AST Traversal Design](design/AST_TRAVERSAL.md)
+
 ---
 
 ## Step-by-Step: Adding a New Feature
@@ -560,3 +565,7 @@ return null; // Silent failure
 ---
 
 **Ready to extend the library?** Start with a simple feature and follow this guide step-by-step!
+
+---
+
+Previous: [Maintainers Guide](MAINTAINERS_GUIDE.md) | Next: [Docs Home](README.md)
