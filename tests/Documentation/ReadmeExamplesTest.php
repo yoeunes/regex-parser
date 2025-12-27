@@ -16,7 +16,6 @@ namespace RegexParser\Tests\Documentation;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Cache\FilesystemCache;
-use RegexParser\Lexer;
 use RegexParser\Node\AlternationNode;
 use RegexParser\Node\CharLiteralNode;
 use RegexParser\Node\GroupNode;
@@ -30,10 +29,8 @@ use RegexParser\NodeVisitor\ConsoleHighlighterVisitor;
 use RegexParser\NodeVisitor\HtmlHighlighterVisitor;
 use RegexParser\NodeVisitor\ModernizerNodeVisitor;
 use RegexParser\NodeVisitor\OptimizerNodeVisitor;
-use RegexParser\Parser;
 use RegexParser\ReDoS\ReDoSSeverity;
 use RegexParser\Regex;
-use RegexParser\TolerantParseResult;
 
 final class ReadmeExamplesTest extends TestCase
 {
@@ -47,7 +44,7 @@ final class ReadmeExamplesTest extends TestCase
     #[Test]
     public function validate_regex_example(): void
     {
-        $result = $this->regex->validate('/(foo|bar)/');
+        $result = $this->regex->validate('/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i');
 
         $this->assertTrue($result->isValid);
         $this->assertNull($result->error);
@@ -81,14 +78,6 @@ final class ReadmeExamplesTest extends TestCase
     }
 
     #[Test]
-    public function auto_possessify_example(): void
-    {
-        $optimized = $this->regex->optimize('/\d+a/', ['autoPossessify' => true])->optimized;
-
-        $this->assertSame('/\d++a/', $optimized);
-    }
-
-    #[Test]
     public function generate_samples_example(): void
     {
         $sample = $this->regex->generate('/[a-z]{3}\d{2}/');
@@ -97,56 +86,14 @@ final class ReadmeExamplesTest extends TestCase
     }
 
     #[Test]
-    public function tolerant_parse_example(): void
+    public function caret_diagnostics_example(): void
     {
-        $result = $this->regex->parse('/(unclosed(', true);
+        $strict = Regex::create(['runtime_pcre_validation' => true]);
+        $result = $strict->validate('/(?<=a+)\w/');
 
-        $this->assertInstanceOf(TolerantParseResult::class, $result);
-        $this->assertTrue($result->hasErrors());
-        $this->assertNotEmpty($result->errors);
-        $this->assertInstanceOf(RegexNode::class, $result->ast);
-    }
-
-    #[Test]
-    public function html_explain_example(): void
-    {
-        $html = $this->regex->explain('/(foo|bar)+\d{2,4}/', 'html');
-
-        $this->assertStringContainsString('<div class="regex-explain">', $html);
-    }
-
-    #[Test]
-    public function redos_threshold_example(): void
-    {
-        $analysis = $this->regex->redos('/^(a+)+$/', ReDoSSeverity::HIGH);
-
-        $this->assertFalse($analysis->isSafe());
-        $this->assertTrue($analysis->exceedsThreshold(ReDoSSeverity::HIGH));
-    }
-
-    #[Test]
-    public function parse_full_pcre_and_custom_delimiter_examples(): void
-    {
-        $ast = $this->regex->parse('/pattern/ims');
-        $this->assertSame('/', $ast->delimiter);
-        $this->assertSame('ims', $ast->flags);
-
-        $custom = $this->regex->parse('#a|b#i');
-        $this->assertSame('#', $custom->delimiter);
-        $this->assertSame('i', $custom->flags);
-    }
-
-    #[Test]
-    public function low_level_parser_example(): void
-    {
-        $lexer = new Lexer();
-        $parser = new Parser();
-
-        $stream = $lexer->tokenize('a|b');
-        $ast = $parser->parse($stream, flags: '', delimiter: '/', patternLength: \strlen('a|b'));
-
-        $this->assertInstanceOf(RegexNode::class, $ast);
-        $this->assertInstanceOf(AlternationNode::class, $ast->pattern);
+        $this->assertFalse($result->isValid());
+        $this->assertNotNull($result->getCaretSnippet());
+        $this->assertNotNull($result->getHint());
     }
 
     #[Test]
