@@ -38,9 +38,8 @@ final readonly class HelpCommand implements CommandInterface
 
     public function run(Input $input, Output $output): int
     {
-        $showVisuals = $input->globalOptions->visuals;
         $binary = $this->resolveInvocation();
-        $this->renderHeader($output, $showVisuals);
+        $this->renderHeader($output);
 
         $this->renderTextSection($output, 'Description', [
             'CLI for regex parsing, validation, analysis, and linting',
@@ -69,7 +68,6 @@ final readonly class HelpCommand implements CommandInterface
             ['-q, --quiet', 'Suppress output'],
             ['--silent', 'Same as --quiet'],
             ['--php-version <ver>', 'Target PHP version for validation'],
-            ['--no-visuals', 'Disable animated art in help output'],
             ['--help', 'Display this help message'],
         ];
         $this->renderTableSection($output, 'Global Options', $globalOptions, fn (string $value): string => $this->formatOption($output, $value));
@@ -116,87 +114,13 @@ final readonly class HelpCommand implements CommandInterface
         return 0;
     }
 
-    private function renderHeader(Output $output, bool $showVisuals): void
+    private function renderHeader(Output $output): void
     {
         $version = $this->versionResolver->resolve('dev') ?? 'dev';
+
         $output->write($this->formatHeaderLine($output, $this->renderStaticName($output), $version)."\n");
 
-        if ($showVisuals) {
-            $this->renderSignatureArt($output, $this->shouldAnimate($output, $showVisuals));
-        }
-
         $output->write($output->dim('Treat Regular Expressions as Code.')."\n\n");
-    }
-
-    private function renderSignatureArt(Output $output, bool $animate): void
-    {
-        $lines = $this->signatureLines();
-        $maxLength = 0;
-        foreach ($lines as $line) {
-            $maxLength = \max($maxLength, $this->stringLength($line));
-        }
-
-        $contentLines = [];
-        foreach ($lines as $line) {
-            $contentLines[] = $this->padLine($line, $maxLength);
-        }
-
-        $width = $this->getTerminalWidth();
-        $lineCount = \count($contentLines);
-
-        if (!$animate) {
-            foreach ($contentLines as $content) {
-                $this->writeArtLine($output, $content, $width, null, false);
-            }
-            $output->write("\n");
-
-            return;
-        }
-
-        if ($output->isAnsi()) {
-            $output->write("\033[?25l");
-        }
-
-        $frameCount = \min(16, \max(8, (int) \ceil($maxLength / 6)));
-        for ($frame = 0; $frame < $frameCount; $frame++) {
-            if (0 !== $frame) {
-                $output->write("\033[".$lineCount."A");
-            }
-
-            $progress = $frameCount > 1 ? $frame / ($frameCount - 1) : 0.0;
-            $highlightIndex = (int) \round($progress * \max(0, $maxLength - 1));
-            foreach ($contentLines as $content) {
-                $this->writeArtLine($output, $content, $width, $highlightIndex, true);
-            }
-
-            \usleep(18000);
-            if (\function_exists('fflush')) {
-                fflush(\STDOUT);
-            }
-        }
-
-        if ($output->isAnsi()) {
-            $output->write("\033[?25h");
-        }
-
-        $output->write("\n");
-    }
-
-    private function shouldAnimate(Output $output, bool $showVisuals): bool
-    {
-        if (!$showVisuals || !$output->isAnsi() || $output->isQuiet()) {
-            return false;
-        }
-
-        if (!\function_exists('posix_isatty') || !posix_isatty(\STDOUT)) {
-            return false;
-        }
-
-        if (false !== \getenv('CI')) {
-            return false;
-        }
-
-        return true;
     }
 
     private function formatHeaderLine(Output $output, string $name, string $version): string
@@ -207,134 +131,6 @@ final readonly class HelpCommand implements CommandInterface
     private function renderStaticName(Output $output): string
     {
         return $output->color('RegexParser', Output::CYAN.Output::BOLD);
-    }
-
-    /**
-     * @return array<int, string>
-     */
-    private function signatureLines(): array
-    {
-        return [
-            '8888888b.                                     8888888b.                                            ',
-            '888   Y88b                                    888   Y88b                                           ',
-            '888    888                                    888    888                                           ',
-            '888   d88P .d88b.   .d88b.   .d88b.  888  888 888   d88P 8888b.  888d888 .d8888b   .d88b.  888d888 ',
-            '8888888P" d8P  Y8b d88P"88b d8P  Y8b `Y8bd8P\' 8888888P"     "88b 888P"   88K      d8P  Y8b 888P"   ',
-            '888 T88b  88888888 888  888 88888888   X88K   888       .d888888 888     "Y8888b. 88888888 888     ',
-            '888  T88b Y8b.     Y88b 888 Y8b.     .d8""8b. 888       888  888 888          X88 Y8b.     888     ',
-            '888   T88b "Y8888   "Y88888  "Y8888  888  888 888       "Y888888 888      88888P\'  "Y8888  888     ',
-            '                        888                                                                         ',
-            '                   Y8b d88P                                                                         ',
-            '                    "Y88P"                                                                          ',
-        ];
-    }
-
-    private function writeArtLine(Output $output, string $line, int $width, ?int $highlightIndex, bool $animate): void
-    {
-        $leftPad = $this->centerPadding($line, $width);
-        $colored = $this->colorizeArtContent($output, $line, $highlightIndex);
-        $prefix = $animate && $output->isAnsi() ? "\r\033[2K" : '';
-        $output->write($prefix.\str_repeat(' ', $leftPad).$colored."\n");
-    }
-
-    private function getTerminalWidth(): int
-    {
-        $columns = \getenv('COLUMNS');
-        if (\is_string($columns) && \ctype_digit($columns)) {
-            $width = (int) $columns;
-            if ($width >= 40) {
-                return $width;
-            }
-        }
-
-        return 80;
-    }
-
-    private function centerPadding(string $line, int $width): int
-    {
-        $length = $this->stringLength($line);
-        if ($length >= $width) {
-            return 0;
-        }
-
-        return (int) \floor(($width - $length) / 2);
-    }
-
-    private function colorizeArtContent(Output $output, string $content, ?int $highlightIndex): string
-    {
-        if (!$output->isAnsi()) {
-            return $content;
-        }
-
-        $result = '';
-        $chars = $this->splitChars($content);
-
-        foreach ($chars as $index => $char) {
-            if (' ' === $char) {
-                $result .= $char;
-
-                continue;
-            }
-            $result .= $output->color($char, $this->colorForArtChar($char, $index, $highlightIndex));
-        }
-
-        return $result;
-    }
-
-    private function colorForArtChar(string $char, int $index, ?int $highlightIndex): string
-    {
-        if (null !== $highlightIndex) {
-            $distance = \abs($index - $highlightIndex);
-            if (0 === $distance) {
-                return Output::GREEN.Output::BOLD;
-            }
-            if (1 === $distance) {
-                return Output::CYAN.Output::BOLD;
-            }
-            if (2 === $distance) {
-                return Output::CYAN;
-            }
-        }
-
-        return match ($char) {
-            '█', '╔', '╗', '╚', '╝', '═' => Output::CYAN,
-            '[', ']', '(', ')', '|', '{', '}' => Output::MAGENTA,
-            '/', '\\' => Output::GREEN,
-            '^', '$', '?', ':', '*', '+' => Output::YELLOW,
-            default => Output::WHITE,
-        };
-    }
-
-    private function stringLength(string $value): int
-    {
-        if (\function_exists('mb_strlen')) {
-            return (int) mb_strlen($value, 'UTF-8');
-        }
-
-        return \count($this->splitChars($value));
-    }
-
-    /**
-     * @return array<int, string>
-     */
-    private function splitChars(string $value): array
-    {
-        $chars = \preg_split('//u', $value, -1, \PREG_SPLIT_NO_EMPTY);
-        if (false === $chars) {
-            return \str_split($value);
-        }
-
-        return $chars;
-    }
-
-    private function padLine(string $line, int $length): string
-    {
-        $currentLength = $this->stringLength($line);
-        if ($currentLength >= $length) {
-            return $line;
-        }
-
-        return $line.\str_repeat(' ', $length - $currentLength);
     }
 
     /**
@@ -370,12 +166,12 @@ final readonly class HelpCommand implements CommandInterface
     {
         $maxWidth = 0;
         foreach ($rows as $row) {
-            $maxWidth = \max($maxWidth, \strlen($row[0]));
+            $maxWidth = max($maxWidth, \strlen($row[0]));
         }
 
         foreach ($rows as [$left, $right]) {
-            $padding = \max(0, $maxWidth - \strlen($left));
-            $output->write('  '.$formatLeft($left).\str_repeat(' ', $padding + 2).$right."\n");
+            $padding = max(0, $maxWidth - \strlen($left));
+            $output->write('  '.$formatLeft($left).str_repeat(' ', $padding + 2).$right."\n");
         }
     }
 
@@ -388,14 +184,14 @@ final readonly class HelpCommand implements CommandInterface
 
         $maxWidth = 0;
         foreach ($examples as [$tokens]) {
-            $command = \implode(' ', $tokens);
-            $maxWidth = \max($maxWidth, \strlen($command));
+            $command = implode(' ', $tokens);
+            $maxWidth = max($maxWidth, \strlen($command));
         }
 
         foreach ($examples as [$tokens, $description]) {
-            $command = \implode(' ', $tokens);
-            $padding = \max(0, $maxWidth - \strlen($command));
-            $output->write('  '.$this->formatExampleCommand($output, $tokens).\str_repeat(' ', $padding + 2).$output->dim('# '.$description)."\n");
+            $command = implode(' ', $tokens);
+            $padding = max(0, $maxWidth - \strlen($command));
+            $output->write('  '.$this->formatExampleCommand($output, $tokens).str_repeat(' ', $padding + 2).$output->dim('# '.$description)."\n");
         }
 
         $output->write("\n");
@@ -430,7 +226,7 @@ final readonly class HelpCommand implements CommandInterface
             return $option;
         }
 
-        $parts = \preg_split('/(<[^>]+>)/', $option, -1, \PREG_SPLIT_DELIM_CAPTURE);
+        $parts = preg_split('/(<[^>]+>)/', $option, -1, \PREG_SPLIT_DELIM_CAPTURE);
         if (false === $parts) {
             return $option;
         }
@@ -463,7 +259,7 @@ final readonly class HelpCommand implements CommandInterface
             $formatted[] = $this->formatExampleToken($output, $token, $index);
         }
 
-        return \implode(' ', $formatted);
+        return implode(' ', $formatted);
     }
 
     private function formatExampleToken(Output $output, string $token, int $index): string
@@ -472,7 +268,7 @@ final readonly class HelpCommand implements CommandInterface
             return $output->color($token, Output::BLUE.Output::BOLD);
         }
 
-        if (\str_starts_with($token, '-')) {
+        if (str_starts_with($token, '-')) {
             return $output->color($token, Output::CYAN);
         }
 
@@ -489,15 +285,15 @@ final readonly class HelpCommand implements CommandInterface
 
     private function isPlaceholder(string $value): bool
     {
-        return \str_starts_with($value, '<') && \str_ends_with($value, '>');
+        return str_starts_with($value, '<') && str_ends_with($value, '>');
     }
 
     private function isPatternToken(string $token): bool
     {
-        if (\str_starts_with($token, "'/") && \str_ends_with($token, "/'")) {
+        if (str_starts_with($token, "'/") && str_ends_with($token, "/'")) {
             return true;
         }
 
-        return \str_starts_with($token, '/') && \str_ends_with($token, '/');
+        return str_starts_with($token, '/') && str_ends_with($token, '/');
     }
 }

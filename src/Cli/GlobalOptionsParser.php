@@ -67,15 +67,15 @@ final class GlobalOptionsParser
                 continue;
             }
 
-            if (\str_starts_with($arg, '--php-version=')) {
-                $phpVersion = \substr($arg, \strlen('--php-version='));
+            if (str_starts_with($arg, '--php-version=')) {
+                $phpVersion = substr($arg, \strlen('--php-version='));
 
                 continue;
             }
 
             if ('--php-version' === $arg) {
                 $value = $args[$i + 1] ?? '';
-                if ('' === $value || \str_starts_with($value, '-')) {
+                if ('' === $value || str_starts_with($value, '-')) {
                     $error = 'Missing value for --php-version.';
 
                     break;
