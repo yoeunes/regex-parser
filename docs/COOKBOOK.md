@@ -1,8 +1,12 @@
-# Regex Cookbook (Certified Safe Patterns)
+# Regex Cookbook (Safer Patterns for PHP)
 
-This page provides a small set of **ReDoS-safe** patterns for common use cases.
+This page provides a small set of **ReDoS-resilient** patterns for common use cases.
 Each pattern is anchored and avoids ambiguous, nested backtracking. The examples
 have been validated with RegexParser's ReDoS analyzer and are optimized by design.
+
+No regex can be guaranteed safe in all contexts. Always apply input limits and
+engine safeguards when matching untrusted data (for example, backtrack limits
+or timeouts).
 
 > These patterns are intentionally conservative. For edge-case validation,
 > consider domain-specific parsing instead of regex.

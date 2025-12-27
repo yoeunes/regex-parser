@@ -6,9 +6,9 @@ entry point quickly.
 
 ## Learning paths
 
-- Beginners: [Regex Tutorial](tutorial/README.md)
-- Practitioners: [Quick Start](QUICK_START.md), [Cookbook](COOKBOOK.md), [ReDoS Guide](REDOS_GUIDE.md)
-- Tooling and framework maintainers: [Maintainers Guide](MAINTAINERS_GUIDE.md), [Lint Rule Reference](reference.md)
+- Beginners: [Regex in PHP](guides/regex-in-php.md), [Regex Tutorial](tutorial/README.md)
+- Practitioners: [Quick Start](QUICK_START.md), [CLI Guide](guides/cli.md), [Cookbook](COOKBOOK.md), [ReDoS Guide](REDOS_GUIDE.md)
+- Tooling and framework maintainers: [CLI Guide](guides/cli.md), [Maintainers Guide](MAINTAINERS_GUIDE.md), [Lint Rule Reference](reference.md)
 - Contributors: [Architecture](ARCHITECTURE.md), [AST Traversal Design](design/AST_TRAVERSAL.md), [Extending Guide](EXTENDING_GUIDE.md)
 
 ## Visual CLI previews
@@ -19,14 +19,19 @@ entry point quickly.
 
 ## Reference
 
+- Reference index: [docs/reference/README.md](reference/README.md)
 - AST Nodes: [docs/nodes/README.md](nodes/README.md)
 - AST Visitors: [docs/visitors/README.md](visitors/README.md)
+- Diagnostics: [docs/reference/diagnostics.md](reference/diagnostics.md)
 - External references: [docs/references/README.md](references/README.md)
 
 ## Core guides
 
 - Quick Start: [docs/QUICK_START.md](QUICK_START.md)
+- Regex in PHP: [docs/guides/regex-in-php.md](guides/regex-in-php.md)
+- CLI Guide: [docs/guides/cli.md](guides/cli.md)
 - Lint Rule Reference: [docs/reference.md](reference.md)
+- Diagnostics: [docs/reference/diagnostics.md](reference/diagnostics.md)
 - ReDoS Guide: [docs/REDOS_GUIDE.md](REDOS_GUIDE.md)
 - Cookbook: [docs/COOKBOOK.md](COOKBOOK.md)
 - Architecture: [docs/ARCHITECTURE.md](ARCHITECTURE.md)

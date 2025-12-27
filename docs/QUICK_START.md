@@ -418,6 +418,8 @@ try {
 ## Next Steps
 
 - **Read API Documentation**: [README.md](../README.md) (API overview, options, exceptions)
+- **Regex in PHP basics**: [docs/guides/regex-in-php.md](guides/regex-in-php.md)
+- **CLI usage**: [docs/guides/cli.md](guides/cli.md)
 - **Extend the Library**: [docs/EXTENDING_GUIDE.md](EXTENDING_GUIDE.md)
 - **See More Examples**: this quick start guide
 - **Understand Nodes**: [docs/nodes/README.md](nodes/README.md)

@@ -192,6 +192,24 @@ includes:
     - vendor/yoeunes/regex-parser/extension.neon
 ```
 
+### CI (GitHub Actions)
+
+```yaml
+name: regex-lint
+on: [pull_request]
+
+jobs:
+  regex:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+      - run: composer install --no-interaction --no-progress
+      - run: vendor/bin/regex lint src/ --format=github
+```
+
 ## Performance & caching
 
 ```php
@@ -211,9 +229,13 @@ $regex = Regex::create([
 ## Docs
 
 - Docs home: [docs/README.md](docs/README.md)
+- Regex in PHP: [docs/guides/regex-in-php.md](docs/guides/regex-in-php.md)
 - Regex Tutorial (zero to advanced): [docs/tutorial/README.md](docs/tutorial/README.md)
 - Quick Start: [docs/QUICK_START.md](docs/QUICK_START.md)
-- Reference: [docs/reference.md](docs/reference.md)
+- CLI Guide: [docs/guides/cli.md](docs/guides/cli.md)
+- Diagnostics: [docs/reference/diagnostics.md](docs/reference/diagnostics.md)
+- Lint Rule Reference: [docs/reference.md](docs/reference.md)
+- Reference index: [docs/reference/README.md](docs/reference/README.md)
 - ReDoS Guide: [docs/REDOS_GUIDE.md](docs/REDOS_GUIDE.md)
 - Cookbook: [docs/COOKBOOK.md](docs/COOKBOOK.md)
 - Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)

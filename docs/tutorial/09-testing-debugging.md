@@ -16,7 +16,7 @@ echo $regex->explain('/^(?<user>\w+)@(?<host>\w+)$/');
 CLI:
 
 ```bash
-bin/regex explain '/^(?<user>\w+)@(?<host>\w+)$/'
+bin/regex analyze '/^(?<user>\w+)@(?<host>\w+)$/'
 bin/regex highlight '/^\d{4}-\d{2}-\d{2}$/' --format=html
 ```
 

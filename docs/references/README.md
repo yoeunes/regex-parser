@@ -16,6 +16,8 @@ when verifying diagnostics and documenting edge cases.
 - PHP PCRE manual: https://www.php.net/manual/en/book.pcre.php
 - Pattern syntax reference: https://www.php.net/manual/en/regexp.reference.php
 - Pattern modifiers: https://www.php.net/manual/en/reference.pcre.pattern.modifiers.php
+- preg_last_error: https://www.php.net/manual/en/function.preg-last-error.php
+- preg_last_error_msg: https://www.php.net/manual/en/function.preg-last-error-msg.php
 
 ## Security and ReDoS
 
@@ -34,6 +36,17 @@ when verifying diagnostics and documenting edge cases.
 - Character classes: https://www.regular-expressions.info/charclass.html
 - Quantifiers and greediness: https://www.regular-expressions.info/repeat.html
 - Lookarounds: https://www.regular-expressions.info/lookaround.html
+- RexEgg tutorial index: https://www.rexegg.com/
+
+## Testing and visualization
+
+- regex101 (use PCRE2 flavor for PHP): https://regex101.com/
+- regexper (visualizer): https://regexper.com/
+- debuggex (visualizer, different flavor): https://www.debuggex.com/
+
+## Unicode references
+
+- Unicode Regular Expressions (UTS #18): https://unicode.org/reports/tr18/
 
 ## Engine compatibility
 
