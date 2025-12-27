@@ -38,6 +38,8 @@ Examples of visitors in the codebase:
 - ReDoS analysis visitors
 
 This keeps the AST stable while allowing new rules and transformations to evolve independently.
+For a deeper explanation of traversal strategy and design trade-offs, see
+[docs/design/AST_TRAVERSAL.md](design/AST_TRAVERSAL.md).
 
 ## Performance architecture: MapReduce-style linting
 

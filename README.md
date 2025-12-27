@@ -205,11 +205,16 @@ $regex = Regex::create([
 ## Docs
 
 - Docs home: [docs/README.md](docs/README.md)
+- Regex Tutorial (zero to advanced): [docs/tutorial/README.md](docs/tutorial/README.md)
 - Quick Start: [docs/QUICK_START.md](docs/QUICK_START.md)
 - Reference: [docs/reference.md](docs/reference.md)
 - ReDoS Guide: [docs/REDOS_GUIDE.md](docs/REDOS_GUIDE.md)
 - Cookbook: [docs/COOKBOOK.md](docs/COOKBOOK.md)
 - Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- AST traversal design: [docs/design/AST_TRAVERSAL.md](docs/design/AST_TRAVERSAL.md)
+- AST nodes: [docs/nodes/README.md](docs/nodes/README.md)
+- AST visitors: [docs/visitors/README.md](docs/visitors/README.md)
+- External references: [docs/references/README.md](docs/references/README.md)
 - Maintainers Guide: [docs/MAINTAINERS_GUIDE.md](docs/MAINTAINERS_GUIDE.md)
 - Extending: [docs/EXTENDING_GUIDE.md](docs/EXTENDING_GUIDE.md)
 
@@ -395,6 +400,7 @@ This library is released under the [MIT License](LICENSE).
 
 # Further Reading
 
+- [RegexParser references](docs/references/README.md)
 - [PCRE Specification](https://www.pcre.org/current/doc/html/pcre2syntax.html)
 - [ReDoS Explained](https://owasp.org/www-community/attacks/Regular_expression_Denial_of_Service_-_ReDoS)
 

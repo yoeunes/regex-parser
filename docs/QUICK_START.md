@@ -205,6 +205,14 @@ function containsGroupType($node, GroupType $type): bool
                 return true;
             }
         }
+
+        if (is_array($prop)) {
+            foreach ($prop as $child) {
+                if ($child instanceof \RegexParser\Node\NodeInterface && containsGroupType($child, $type)) {
+                    return true;
+                }
+            }
+        }
     }
     
     return false;
@@ -402,17 +410,18 @@ try {
 1. **Parse Once, Reuse AST**: Don't re-parse the same pattern
 2. **Validate Early**: Check patterns before deployment
 3. **Cache Compiled Patterns**: Store validated patterns
-4. **Use Static Facade**: `Regex::create()` caches instances
+4. **Reuse the Regex instance**: avoid recreating the facade in hot loops
 5. **Avoid Recursive Patterns**: They can be slow to parse
 
 ---
 
 ## Next Steps
 
-- **Read API Documentation**: `README.md` (API Overview, Options, Exceptions)
-- **Extend the Library**: `docs/EXTENDING_GUIDE.md`
+- **Read API Documentation**: [README.md](../README.md) (API overview, options, exceptions)
+- **Extend the Library**: [docs/EXTENDING_GUIDE.md](EXTENDING_GUIDE.md)
 - **See More Examples**: this quick start guide
-- **Understand Nodes**: `src/Node/README.md`
+- **Understand Nodes**: [docs/nodes/README.md](nodes/README.md)
+- **Learn Regex from zero to advanced**: [docs/tutorial/README.md](tutorial/README.md)
 - **Run Tests**: `./vendor/bin/phpunit`
 
 ---
