@@ -3,6 +3,8 @@
 This page explains how RegexParser reports errors and warnings, how to read
 caret snippets, and how to map diagnostics to fixes.
 
+Need quick fixes? See [docs/reference/diagnostics-cheatsheet.md](diagnostics-cheatsheet.md).
+
 ## Layers of validation
 
 RegexParser validates in layers:
