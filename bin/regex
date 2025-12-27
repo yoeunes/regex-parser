@@ -65,8 +65,8 @@ $globalOptionsParser = new GlobalOptionsParser();
 $progressBarFull = "\xE2\x96\x93";
 $progressBarEmpty = "\xE2\x96\x91";
 $output = new Output(false, false, $progressBarFull, $progressBarEmpty);
-$helpCommand = new HelpCommand();
 $versionResolver = new VersionResolver();
+$helpCommand = new HelpCommand($versionResolver);
 
 $app = new Application($globalOptionsParser, $output, $helpCommand);
 $app->register($helpCommand);
