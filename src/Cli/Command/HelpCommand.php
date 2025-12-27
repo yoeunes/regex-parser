@@ -83,12 +83,12 @@ final class HelpCommand implements CommandInterface
         $output->write('  '.$output->color('--input', Output::CYAN)." <string>     Input string to test against the pattern\n\n");
 
         $output->write($output->color('Examples:', Output::MAGENTA)."\n");
-        $output->write('  '.$output->color('regex', Output::BLUE).' '.$output->color("'/a+'", Output::GREEN)."                           # Quick highlight\n");
-        $output->write('  '.$output->color('regex', Output::BLUE).' '.$output->color('parse', Output::YELLOW).' '.$output->color("'/a+'", Output::GREEN).' '.$output->color('--validate', Output::CYAN)."          # Parse with validation\n");
-        $output->write('  '.$output->color('regex', Output::BLUE).' '.$output->color('analyze', Output::YELLOW).' '.$output->color("'/a+'", Output::GREEN)."                   # Full analysis\n");
+        $output->write('  '.$output->color('regex', Output::BLUE).' '.$output->color("'/a+/'", Output::GREEN)."                          # Quick highlight\n");
+        $output->write('  '.$output->color('regex', Output::BLUE).' '.$output->color('parse', Output::YELLOW).' '.$output->color("'/a+/'", Output::GREEN).' '.$output->color('--validate', Output::CYAN)."         # Parse with validation\n");
+        $output->write('  '.$output->color('regex', Output::BLUE).' '.$output->color('analyze', Output::YELLOW).' '.$output->color("'/a+/'", Output::GREEN)."                  # Full analysis\n");
         $output->write('  '.$output->color('regex', Output::BLUE).' '.$output->color('diagram', Output::YELLOW).' '.$output->color("'/^a+$/'", Output::GREEN)."                # ASCII diagram\n");
         $output->write('  '.$output->color('regex', Output::BLUE).' '.$output->color('debug', Output::YELLOW).' '.$output->color("'/(a+)+$/'", Output::GREEN)."              # Heatmap + ReDoS details\n");
-        $output->write('  '.$output->color('regex', Output::BLUE).' '.$output->color('highlight', Output::YELLOW).' '.$output->color("'/a+'", Output::GREEN).' '.$output->color('--format=html', Output::CYAN)."   # HTML highlight\n");
+        $output->write('  '.$output->color('regex', Output::BLUE).' '.$output->color('highlight', Output::YELLOW).' '.$output->color("'/a+/'", Output::GREEN).' '.$output->color('--format=html', Output::CYAN)."  # HTML highlight\n");
         $output->write('  '.$output->color('regex', Output::BLUE).' '.$output->color('lint', Output::YELLOW).' '.$output->color('src/', Output::GREEN).' '.$output->color('--exclude=vendor', Output::CYAN)."       # Lint a codebase\n");
         $output->write('  '.$output->color('regex', Output::BLUE).' '.$output->color('lint', Output::YELLOW).' '.$output->color('--format=json', Output::CYAN).' '.$output->color('src/', Output::GREEN)."           # JSON output\n");
         $output->write('  '.$output->color('regex', Output::BLUE).' '.$output->color('lint', Output::YELLOW).' '.$output->color('--verbose', Output::CYAN).' '.$output->color('src/', Output::GREEN)."              # Verbose output\n");
