@@ -1,6 +1,6 @@
-# Regex Parser Rule Reference
+# RegexParser Rule Reference
 
-Regex Parser ships with a PHPStan rule (`RegexParser\\Bridge\\PHPStan\\PregValidationRule`) that validates `preg_*` patterns for syntax issues, ReDoS risk, and common performance or readability footguns. This page explains each diagnostic in plain language and links to authoritative references so you understand both the warning and how to fix it.
+RegexParser ships with a PHPStan rule (`RegexParser\\Bridge\\PHPStan\\PregValidationRule`) that validates `preg_*` patterns for syntax issues, ReDoS risk, and common performance or readability footguns. This page explains each diagnostic in plain language and links to authoritative references so you understand both the warning and how to fix it.
 
 If you are new to PCRE-style regular expressions in PHP, you can treat this document as a guided tour of the most common mistakes the rule can detect.
 
@@ -9,6 +9,9 @@ If you are new to PCRE-style regular expressions in PHP, you can treat this docu
 - **When it triggers:** the concrete condition used by the rule.
 - **Fix it:** minimal change that removes the warning while keeping the intent of the pattern clear.
 - **Read more:** links to PHP.net, the PCRE2 manual, or security guidance that describe the underlying rule in depth.
+
+For caret snippets, hints, and error-code semantics, see
+[docs/reference/diagnostics.md](reference/diagnostics.md).
 
 ---
 
@@ -328,7 +331,7 @@ preg_match('/(?<=ID-)\\d+/', $input);
 - **PCRE2** via PHP's `preg_*` functions.
 - Notes on differences from PCRE1 or other engines:
   - Full Unicode support with `\p{...}` and `\P{...}`.
-  - `\g{0}` recursion supported; `\g<0>` preferred for clarity.
+  - `\g{0}` is invalid in PHP; use `\g<0>` or `(?R)` for recursion.
   - Branch reset groups `(?|...)` fully implemented with correct capture numbering.
 
 ### Known Not-Supported Constructs
