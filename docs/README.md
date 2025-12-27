@@ -11,6 +11,12 @@ entry point quickly.
 - Tooling and framework maintainers: [Maintainers Guide](MAINTAINERS_GUIDE.md), [Lint Rule Reference](reference.md)
 - Contributors: [Architecture](ARCHITECTURE.md), [AST Traversal Design](design/AST_TRAVERSAL.md), [Extending Guide](EXTENDING_GUIDE.md)
 
+## Visual CLI previews
+
+![Analyze output preview](assets/cli-analyze.svg)
+![Highlight output preview](assets/cli-highlight.svg)
+![Validation error preview](assets/cli-validate.svg)
+
 ## Reference
 
 - AST Nodes: [docs/nodes/README.md](nodes/README.md)

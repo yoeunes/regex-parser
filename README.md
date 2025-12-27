@@ -105,6 +105,12 @@ Output:
 <span class="regex-anchor">^</span><span class="regex-meta">[</span><span class="regex-literal">0</span><span class="regex-meta">-</span><span class="regex-literal">9</span><span class="regex-meta">]</span><span class="regex-quantifier">+</span><span class="regex-meta">(</span><span class="regex-type">\w</span><span class="regex-quantifier">+</span><span class="regex-meta">)</span><span class="regex-anchor">$</span>
 ```
 
+### CLI output previews
+
+![Analyze output preview](docs/assets/cli-analyze.svg)
+![Highlight output preview](docs/assets/cli-highlight.svg)
+![Validation error preview](docs/assets/cli-validate.svg)
+
 Scan a project (tips + optimizations):
 
 ```bash
