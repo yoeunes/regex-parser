@@ -18,24 +18,6 @@ use PHPUnit\Framework\TestCase;
 
 final class ReadmeCliExamplesTest extends TestCase
 {
-    /**
-     * @param array<string> $args
-     *
-     * @return array{0: string, 1: int}
-     */
-    private function runCli(array $args): array
-    {
-        $script = \dirname(__DIR__, 2).'/bin/regex';
-        $command = \array_merge([\PHP_BINARY, $script], $args);
-        $escaped = \array_map('escapeshellarg', $command);
-        $output = [];
-        $exitCode = 0;
-
-        \exec(\implode(' ', $escaped).' 2>&1', $output, $exitCode);
-
-        return [\implode("\n", $output), $exitCode];
-    }
-
     #[Test]
     public function cli_analyze_example(): void
     {
@@ -63,5 +45,23 @@ final class ReadmeCliExamplesTest extends TestCase
 
         $this->assertSame(0, $exitCode);
         $this->assertStringContainsString('PASS', $output);
+    }
+
+    /**
+     * @param array<string> $args
+     *
+     * @return array{0: string, 1: int}
+     */
+    private function runCli(array $args): array
+    {
+        $script = \dirname(__DIR__, 2).'/bin/regex';
+        $command = array_merge([\PHP_BINARY, $script], $args);
+        $escaped = array_map(escapeshellarg(...), $command);
+        $output = [];
+        $exitCode = 0;
+
+        exec(implode(' ', $escaped).' 2>&1', $output, $exitCode);
+
+        return [implode("\n", $output), $exitCode];
     }
 }

@@ -197,11 +197,6 @@ final class ReadmeExamplesTest extends TestCase
  */
 final class LiteralCountVisitor extends AbstractNodeVisitor
 {
-    protected function defaultReturn(): int
-    {
-        return 0;
-    }
-
     public function visitRegex(RegexNode $node): int
     {
         return $node->pattern->accept($this);
@@ -245,5 +240,10 @@ final class LiteralCountVisitor extends AbstractNodeVisitor
     public function visitQuantifier(QuantifierNode $node): int
     {
         return $node->node->accept($this);
+    }
+
+    protected function defaultReturn(): int
+    {
+        return 0;
     }
 }
