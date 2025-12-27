@@ -116,7 +116,7 @@ final class HtmlHighlighterVisitor extends HighlighterVisitor
         }
         $neg = $node->isNegated ? '^' : '';
 
-        return '<span class="'.self::CLASSES['meta'].'>['.htmlspecialchars($neg).'</span>'.$inner.'<span class="'.self::CLASSES['meta'].'">]</span>';
+        return '<span class="'.self::CLASSES['meta'].'">['.htmlspecialchars($neg).'</span>'.$inner.'<span class="'.self::CLASSES['meta'].'">]</span>';
     }
 
     #[\Override]

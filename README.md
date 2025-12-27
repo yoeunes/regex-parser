@@ -68,11 +68,12 @@ Analyze patterns for catastrophic backtracking vulnerabilities.
 
 ```php
 use RegexParser\Regex;
+use RegexParser\ReDoS\ReDoSSeverity;
 
 $regex = Regex::create();
 $analysis = $regex->redos('/(a+)+b/');
 
-if ($analysis->severity->value === 'CRITICAL') {
+if ($analysis->severity === ReDoSSeverity::CRITICAL) {
     echo "High risk of ReDoS attack!";
 }
 ```
@@ -86,12 +87,12 @@ use RegexParser\Regex;
 $regex = Regex::create();
 $optimized = $regex->optimize('/[0-9]+/');
 
-echo $optimized->original;   // / [0-9]+/
+echo $optimized->original;   // /[0-9]+/
 echo $optimized->optimized;  // /\d+/
 ```
 
 #### Performance Options
-For performance-critical applications, you can enable auto-possessivization which converts safe quantifiers to possessive form:
+For performance-critical applications, you can control auto-possessivization which converts safe quantifiers to possessive form:
 
 ```php
 use RegexParser\Regex;
@@ -102,7 +103,7 @@ $optimized = $regex->optimize('/\d+a/', ['autoPossessify' => true])->optimized;
 echo $optimized;  // /\d++a/
 ```
 
-**Note**: Auto-possessivization is opt-in for safety. Use only when you understand the performance implications and ensure no backreferences depend on backtracking.
+**Note**: Auto-possessivization is enabled by default in `optimize()`. Pass `['autoPossessify' => false]` if you need to preserve backtracking behavior.
 
 #### Generate Samples
 Create valid test strings that match your regex.
@@ -116,14 +117,11 @@ $sample = $regex->generate('/[a-z]{3}\d{2}/');
 echo $sample; // e.g., "abc12"
 ```
 
-#### Symfony Route Requirements
-Integrate with Symfony routing for automatic regex validation.
+#### Symfony Integration
+Lint route requirements and validator patterns via the bundle command:
 
-```php
-use RegexParser\Bridge\Symfony\RegexRequirementValidator;
-
-$validator = new RegexRequirementValidator();
-$isValid = $validator->validate('/[a-z]+/', 'route_pattern');
+```bash
+bin/console regex:lint --format=console
 ```
 
 #### PHPStan Integration
@@ -325,6 +323,8 @@ if (!$analysis->isSafe()) {
 
 Under the hood it inspects quantifiers, nested groups, backreferences and character sets using a real AST, not just regex‑on‑regex strings.
 
+**Docs**: [Quick Start](docs/QUICK_START.md) · [Reference](docs/reference.md) · [Extending Guide](docs/EXTENDING_GUIDE.md)
+
 ---
 
 ## Configuration / Options
@@ -389,7 +389,7 @@ $ast   = $regex->parse('/foo|bar/');
 $pattern = $ast->pattern;
 
 if ($pattern instanceof AlternationNode) {
-    foreach ($pattern->branches as $branch) {
+    foreach ($pattern->alternatives as $branch) {
         foreach ($branch->children as $child) {
             if ($child instanceof LiteralNode) {
                 echo "Literal: ".$child->value.PHP_EOL;
@@ -414,6 +414,9 @@ For experts: the “right” way to analyse patterns is to implement your own vi
 namespace App\Regex;
 
 use RegexParser\Node\LiteralNode;
+use RegexParser\Node\CharLiteralNode;
+use RegexParser\Node\AlternationNode;
+use RegexParser\Node\GroupNode;
 use RegexParser\Node\QuantifierNode;
 use RegexParser\Node\RegexNode;
 use RegexParser\Node\SequenceNode;
@@ -439,12 +442,32 @@ final class LiteralCountVisitor extends AbstractNodeVisitor
         return 1;
     }
 
-    // Aggregate over sequences and groups:
+    public function visitCharLiteral(CharLiteralNode $node): int
+    {
+        return 1;
+    }
+
+    // Aggregate over sequences, groups, and alternations:
     public function visitSequence(SequenceNode $node): int
     {
         $sum = 0;
         foreach ($node->children as $child) {
             $sum += $child->accept($this);
+        }
+
+        return $sum;
+    }
+
+    public function visitGroup(GroupNode $node): int
+    {
+        return $node->child->accept($this);
+    }
+
+    public function visitAlternation(AlternationNode $node): int
+    {
+        $sum = 0;
+        foreach ($node->alternatives as $alternative) {
+            $sum += $alternative->accept($this);
         }
 
         return $sum;
@@ -468,7 +491,7 @@ $regex = Regex::create();
 $ast   = $regex->parse('/ab(c|d)+/');
 
 $visitor = new LiteralCountVisitor();
-$count   = $ast->accept($visitor); // e.g. 3
+$count   = $ast->accept($visitor); // e.g. 4
 ```
 
 Because `NodeVisitorInterface` is templated, static analysers can infer the return type (`int` here).
@@ -493,7 +516,7 @@ $optimizedAst = $ast->accept($optimizer);
 $compiler = new CompilerNodeVisitor();
 $optimizedPattern = $optimizedAst->accept($compiler);
 
-echo $optimizedPattern; // e.g. '/(a)/'
+echo $optimizedPattern; // e.g. '/([a])/'
 ```
 
 This makes it easy to implement automated refactorings (via Rector) or style rules for regexes.
@@ -544,7 +567,7 @@ echo $ast->accept(new ConsoleHighlighterVisitor());
 
 // For web display
 echo $ast->accept(new HtmlHighlighterVisitor());
-// Outputs: <span class="regex-anchor">^</span>[<span class="regex-type">\d</span>]+(<span class="regex-type">\w</span>+)$
+// Outputs: <span class="regex-anchor">^</span><span class="regex-meta">[</span><span class="regex-literal">0</span><span class="regex-meta">-</span><span class="regex-literal">9</span><span class="regex-meta">]</span><span class="regex-quantifier">+</span><span class="regex-meta">(</span><span class="regex-type">\w</span><span class="regex-quantifier">+</span><span class="regex-meta">)</span><span class="regex-anchor">$</span>
 ```
 
 **Color Scheme:**
@@ -622,9 +645,9 @@ if (!$analysis->isSafe()) {
 
 * Symfony bridge provides:
 
-  * A **console command** to scan your app’s config for dangerous regexes (`regex-parser:check`).
-  * A unified console command (`regex:lint`) that can lint, analyze ReDoS risk, suggest optimizations, and validate Symfony regex patterns with options like `--analyze-redos`, `--optimize`, and `--validate-symfony`, or use `--all` to run everything.
-   * Ability to **pre‑parse** and pre‑analyze patterns on deploy.
+  * A unified console command (`regex:lint`) that can lint, validate, analyze ReDoS risk, and suggest optimizations across your codebase.
+  * Flags to scope the scan (`--no-routes`, `--no-validators`) and control output (`--format`, `--min-savings`, `--jobs`).
+  * Ability to **pre‑parse** and pre‑analyze patterns on deploy.
   * Easy service wiring for `Regex` in your DI container.
 
 Example (pseudo‑code):

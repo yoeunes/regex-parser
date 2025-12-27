@@ -426,3 +426,7 @@ try {
 ---
 
 **Ready to parse some regex patterns?** 🚀
+
+---
+
+Next: [Reference](reference.md)

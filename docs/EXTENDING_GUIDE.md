@@ -560,3 +560,7 @@ return null; // Silent failure
 ---
 
 **Ready to extend the library?** Start with a simple feature and follow this guide step-by-step!
+
+---
+
+Previous: [Reference](reference.md)
