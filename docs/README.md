@@ -6,6 +6,8 @@ Start here if you want the full documentation set.
 
 - Quick Start: [docs/QUICK_START.md](QUICK_START.md)
 - Reference: [docs/reference.md](reference.md)
+- ReDoS Guide: [docs/REDOS_GUIDE.md](REDOS_GUIDE.md)
+- Cookbook: [docs/COOKBOOK.md](COOKBOOK.md)
 - Architecture: [docs/ARCHITECTURE.md](ARCHITECTURE.md)
 - Maintainers Guide: [docs/MAINTAINERS_GUIDE.md](MAINTAINERS_GUIDE.md)
 - Extending Guide: [docs/EXTENDING_GUIDE.md](EXTENDING_GUIDE.md)

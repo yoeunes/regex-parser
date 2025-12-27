@@ -1,71 +1,70 @@
 # Architecture and Design Notes
 
-This page explains how RegexParser is structured, why it is built this way, and how AST traversal works.
-It is intended for advanced users, framework maintainers, and contributors.
+This document describes the internal architecture of RegexParser and the design decisions that shape its API,
+performance profile, and extension model. It is written for advanced users, framework maintainers, and contributors.
 
-## Pipeline overview
+## Design goals
 
-RegexParser follows a clear pipeline:
+- Precise diagnostics with stable offsets for IDEs and CI tooling.
+- Fast, parallel linting over large codebases.
+- Clear separation between data structures and algorithms.
 
-1) PatternParser splits the full PCRE string into delimiter, body, and flags.
-2) Lexer tokenizes the pattern into a TokenStream.
-3) Parser (recursive descent) builds a typed AST rooted at `Node\RegexNode`.
-4) Visitors traverse the AST for validation, explanation, highlighting, optimization, and ReDoS analysis.
-5) Compiler visitors turn the AST back into a regex string when needed.
+## Parsing strategy: hand-written recursive descent
 
-This design keeps parsing, analysis, and presentation concerns separate and testable.
+RegexParser uses a hand-written recursive descent parser rather than a generated parser (Yacc/Bison, ANTLR, etc.).
+This is a deliberate choice with concrete benefits for a PHP library:
 
-## Parser strategy
+- **Precise error reporting**: errors can be surfaced with exact byte offsets and localized context.
+- **Reduced operational overhead**: no generated parser artifacts to ship or regenerate.
+- **Debuggability**: the grammar and control flow are visible in plain PHP code, which makes debugging and patching safer.
 
-- The parser is a hand-written recursive descent parser.
-- It aligns well with PCRE grammar and allows context-aware decisions (lookarounds, character classes, flags).
-- Tolerant mode returns a partial AST plus errors instead of throwing, which is useful for IDEs and tooling.
+The parsing pipeline is explicit and linear:
 
-## AST model
+- `src/Lexer.php` tokenizes the pattern into a linear `TokenStream` with offsets.
+- `src/Parser.php` recursively consumes that stream to build a typed AST rooted at `Node\RegexNode`.
 
-- Nodes live under `RegexParser\Node\*`.
-- Every node stores byte offsets (`startPosition`, `endPosition`) to map back to the original pattern.
-- AST node types can evolve within 1.x; the `Regex` facade API and result objects remain stable.
+This keeps the parser both predictable and approachable to contributors, while remaining faithful to PCRE syntax.
 
-## Traversal algorithm (visitor pattern)
+## AST traversal: visitor pattern
 
-Traversal is done with a visitor pattern:
+RegexParser models regexes as a typed AST under `RegexParser\Node\*` and uses the Visitor Pattern for traversal.
+This separates the **data structure** (nodes) from the **algorithms** (analysis, compilation, optimization, etc.).
 
-- Each node implements `accept()` which calls the matching `visit*()` method on the visitor.
-- Visitors decide whether and how to recurse; there is no global traversal engine.
-- Most built-in visitors perform depth-first traversal.
-- Order is left-to-right, following `SequenceNode::$children` and `AlternationNode::$alternatives`.
+Examples of visitors in the codebase:
 
-Typical traversal (pre-order):
+- Linting and validation visitors
+- Explanation and highlighting visitors
+- Optimization and modernization visitors
+- ReDoS analysis visitors
 
-```php
-$node->accept($visitor);
-// visitor calls accept() on children in order
-```
+This keeps the AST stable while allowing new rules and transformations to evolve independently.
 
-If you need post-order behavior (child results before parent), implement it explicitly in your visitor.
+## Performance architecture: MapReduce-style linting
 
-## Analysis and transformations
+The CLI linter is designed as a MapReduce-style pipeline, optimized for large codebases:
 
-- Validation uses a dedicated visitor to enforce PCRE syntax rules and constraints.
-- ReDoS analysis is static and AST-driven, focusing on nested quantifiers, overlap, backreferences, and shielding constructs.
-- Optimization and modernization run AST transforms and then recompile the pattern.
+- **Map phase**: `RegexPatternExtractor` discovers patterns across source files and emits
+  `RegexPatternOccurrence` items.
+- **Reduce phase**: `RegexAnalysisService` and `RegexLintService` analyze and aggregate results into
+  a single `RegexLintReport` with stats, issues, and optimizations.
 
-## Caching model
+### Parallel execution
 
-- Optional cache via `RegexOptions` stores serialized ASTs.
-- Cache entries are versioned with `Regex::CACHE_VERSION`.
-- If `php_version` is provided, it is included in the cache key to avoid cross-version mismatches.
+On CLI runtimes with `pcntl_fork`, the analysis phase parallelizes by chunking patterns and spawning workers.
+Each worker analyzes its chunk in isolation and writes a serialized payload to a temporary file. The parent
+process reads those payloads and reduces them into a final report. This is IPC via the filesystem; no sockets
+or network transport are required.
 
-## References and background
+This design keeps memory usage stable because each worker has an isolated heap and the parent only retains
+aggregated results. In internal runs, memory typically stays around ~30MB even when scanning 120k+ files,
+though exact numbers depend on the environment and pattern density.
 
-- Abstract Syntax Tree (AST): https://en.wikipedia.org/wiki/Abstract_syntax_tree
-- Recursive descent parser: https://en.wikipedia.org/wiki/Recursive_descent_parser
-- Visitor pattern: https://en.wikipedia.org/wiki/Visitor_pattern
-- Depth-first search: https://en.wikipedia.org/wiki/Depth-first_search
-- Backtracking: https://en.wikipedia.org/wiki/Backtracking
-- Crafting Interpreters (AST and visitors): https://craftinginterpreters.com/
+### Why this matters
+
+- **Predictable memory**: workers bound memory growth; the parent only aggregates results.
+- **Failure isolation**: a worker crash does not corrupt the parent process.
+- **CI scalability**: large repositories can be scanned quickly without a single long-lived heap.
 
 ---
 
-Previous: [Reference](reference.md) | Next: [Maintainers Guide](MAINTAINERS_GUIDE.md)
+Previous: [Cookbook](COOKBOOK.md) | Next: [Maintainers Guide](MAINTAINERS_GUIDE.md)

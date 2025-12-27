@@ -1,110 +1,122 @@
 # Maintainers Guide
 
-This page is for framework maintainers, library authors, and tooling teams
-who want to integrate RegexParser at scale.
+This guide is for framework maintainers, library maintainers, and tooling maintainers
+who want to integrate RegexParser as a first-class analysis component.
 
-## Integration surfaces
+## Configuration reference (`Regex::create($options)`)
 
-Choose the level of integration that fits your stack:
+`Regex::create()` accepts a validated array of options. Invalid keys raise `InvalidRegexOptionException`.
 
-- Single pattern checks: use the `Regex` facade (`validate`, `redos`, `optimize`, `explain`).
-- Full analysis report: `Regex::analyze()` bundles validation, ReDoS, optimizations, explain, and highlight output.
-- Bulk linting: use `RegexAnalysisService` + `RegexLintService` with custom sources.
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `cache` | `null` \| `string` \| `CacheInterface` | `null` | Cache for parsed ASTs and analysis results. `null` uses a no-op cache. A string path uses `FilesystemCache`. |
+| `max_pattern_length` | `int` | `100_000` | Upper bound on pattern length. Protects against memory and CPU spikes. |
+| `max_lookbehind_length` | `int` | `255` | Maximum allowed lookbehind length. Prevents unbounded lookbehinds. |
+| `runtime_pcre_validation` | `bool` | `false` | When true, validates against PCRE runtime and provides caret diagnostics. |
+| `redos_ignored_patterns` | `array<string>` | `[]` | Patterns to skip during ReDoS analysis. Useful for false positives or trusted patterns. |
+| `max_recursion_depth` | `int` | `1024` | Maximum parser recursion depth. Avoids runaway recursion on pathological input. |
+| `php_version` | `string` \| `int` | `PHP_VERSION_ID` | Target PHP version for feature validation. Accepts version strings like `"8.2"` or a PHP_VERSION_ID integer. |
 
-## Build a custom pattern source
-
-If your framework stores regexes outside PHP code (routing, config, templates),
-implement a source that yields `RegexPatternOccurrence` objects.
+Example:
 
 ```php
-use RegexParser\Lint\RegexPatternOccurrence;
-use RegexParser\Lint\RegexPatternSourceContext;
-use RegexParser\Lint\RegexPatternSourceInterface;
+use RegexParser\Regex;
 
-final class MyPatternSource implements RegexPatternSourceInterface
-{
-    public function getName(): string
-    {
-        return 'my-source';
-    }
+$regex = Regex::create([
+    'cache' => '/var/cache/regex',
+    'max_pattern_length' => 100_000,
+    'max_lookbehind_length' => 255,
+    'runtime_pcre_validation' => false,
+    'redos_ignored_patterns' => [
+        '/^([0-9]{4}-[0-9]{2}-[0-9]{2})$/',
+    ],
+    'max_recursion_depth' => 1024,
+    'php_version' => '8.2',
+]);
+```
 
-    public function isSupported(): bool
-    {
-        return true;
-    }
+## Exception hierarchy
 
-    public function extract(RegexPatternSourceContext $context): array
-    {
-        if (!$context->isSourceEnabled($this->getName())) {
-            return [];
-        }
+RegexParser exposes a small, stable exception surface:
 
-        // Collect patterns from your config, then map to occurrences.
-        return [
-            new RegexPatternOccurrence(
-                '/^foo$/',
-                'config/routes.yaml',
-                42,
-                $this->getName(),
-                displayPattern: '^foo$',
-                location: 'route:home:slug'
-            ),
-        ];
-    }
+- `RegexParserExceptionInterface` (catch-all interface for parser/lexer failures)
+- `LexerException` (tokenization errors)
+- `ParserException` (grammar or structural errors)
+
+Example handling:
+
+```php
+use RegexParser\Exception\LexerException;
+use RegexParser\Exception\ParserException;
+use RegexParser\Exception\RegexParserExceptionInterface;
+
+try {
+    $ast = RegexParser\Regex::create()->parse('/[a-z]+/');
+} catch (LexerException|ParserException $e) {
+    // expected parse-time errors
+} catch (RegexParserExceptionInterface $e) {
+    // any other parser/lexer error
 }
 ```
 
-Then wire it into the lint pipeline:
+## JSON output schema (CLI linting)
 
-```php
-use RegexParser\Lint\RegexLintRequest;
-use RegexParser\Lint\RegexLintService;
-use RegexParser\Lint\RegexPatternSourceCollection;
-use RegexParser\Lint\RegexAnalysisService;
-use RegexParser\Regex;
+Use `bin/regex lint --format=json` for machine-readable output. The JSON payload includes a `stats` object
+and a `results` array. Each result includes issues and optimization entries for a single pattern occurrence.
 
-$analysis = new RegexAnalysisService(Regex::create());
-$sources = new RegexPatternSourceCollection([
-    new MyPatternSource(),
-]);
-$lint = new RegexLintService($analysis, $sources);
+Example output:
 
-$request = new RegexLintRequest(paths: ['.'], excludePaths: ['vendor'], minSavings: 1);
-$patterns = $lint->collectPatterns($request);
-$report = $lint->analyze($patterns, $request);
+```json
+{
+    "stats": {
+        "errors": 0,
+        "warnings": 1,
+        "optimizations": 1
+    },
+    "results": [
+        {
+            "file": "src/Service/EmailValidator.php",
+            "line": 42,
+            "source": "php",
+            "pattern": "/^[a-z0-9._%+-]+@[a-z0-9-]+(?:\\.[a-z0-9-]+)+$/i",
+            "location": null,
+            "issues": [
+                {
+                    "type": "warning",
+                    "message": "Nested quantifiers detected. Consider using atomic groups or possessive quantifiers.",
+                    "file": "src/Service/EmailValidator.php",
+                    "line": 42,
+                    "column": 9,
+                    "issueId": "regex.lint.quantifier.nested",
+                    "hint": "Use atomic groups (?>...) or possessive quantifiers (*+, ++).",
+                    "source": "php"
+                }
+            ],
+            "optimizations": [
+                {
+                    "file": "src/Service/EmailValidator.php",
+                    "line": 42,
+                    "optimization": {
+                        "original": "/[0-9]+/",
+                        "optimized": "/\\d+/",
+                        "changes": [
+                            "Optimized pattern."
+                        ]
+                    },
+                    "savings": 2,
+                    "source": "php"
+                }
+            ]
+        }
+    ]
+}
 ```
 
-## CI usage and thresholds
+Notes:
 
-- For CI gates, prefer `Regex::redos()` with a severity threshold.
-- For large codebases, use linting with `analysisWorkers` for parallel processing.
-- Parallel analysis uses `pcntl_fork` and requires CLI SAPI.
-
-## Custom visitors in downstreams
-
-If you only need custom analysis, you can ship your own visitor without
-modifying RegexParser itself.
-
-```php
-$regex = RegexParser\Regex::create();
-$ast = $regex->parse('/foo/');
-
-$visitor = new App\Regex\MyVisitor();
-$result = $ast->accept($visitor);
-```
-
-## Performance notes
-
-- Reuse a `Regex` instance instead of creating new ones repeatedly.
-- Cache ASTs with the `cache` option if patterns are reused across requests.
-- Tune limits for your environment: `max_pattern_length`, `max_lookbehind_length`, and `max_recursion_depth`.
-- Use `php_version` to target a specific runtime version when linting multiple runtimes.
-
-## Contributing and stability
-
-- The `Regex` facade and result objects are stable within 1.x.
-- AST node classes and visitor interfaces may evolve; implement visitors defensively.
-- For new nodes or parser changes, follow `docs/EXTENDING_GUIDE.md`.
+- `issues[]` may include `analysis` or `validation` metadata depending on the rule.
+- `optimizations[]` is emitted only when `--no-optimize` is not set and savings exceed `--min-savings`.
+- Optional fields may be omitted if the source does not provide them.
 
 ---
 
