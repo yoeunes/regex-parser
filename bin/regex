@@ -42,6 +42,7 @@ require_once $autoloadPath;
 
 use RegexParser\Cli\Application;
 use RegexParser\Cli\Command\AnalyzeCommand;
+use RegexParser\Cli\Command\ClearCacheCommand;
 use RegexParser\Cli\Command\DebugCommand;
 use RegexParser\Cli\Command\DiagramCommand;
 use RegexParser\Cli\Command\HelpCommand;
@@ -78,6 +79,7 @@ $app->register(new DebugCommand());
 $app->register(new DiagramCommand());
 $app->register(new HighlightCommand());
 $app->register(new ValidateCommand());
+$app->register(new ClearCacheCommand());
 $app->register(new LintCommand(
     $helpCommand,
     new LintConfigLoader(),

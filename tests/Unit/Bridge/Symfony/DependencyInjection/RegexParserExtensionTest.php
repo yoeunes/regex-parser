@@ -15,11 +15,30 @@ namespace RegexParser\Tests\Unit\Bridge\Symfony\DependencyInjection;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\Bridge\Symfony\DependencyInjection\RegexParserExtension;
+use RegexParser\Cache\PsrCacheAdapter;
 use RegexParser\Lint\ExtractorInterface;
+use RegexParser\Lint\TokenBasedExtractionStrategy;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\Definition;
+use Symfony\Component\DependencyInjection\Reference;
+
+final class DependencyInjectionFunctionOverrides
+{
+    public static ?bool $classExistsResult = null;
+
+    public static function reset(): void
+    {
+        self::$classExistsResult = null;
+    }
+}
 
 final class RegexParserExtensionTest extends TestCase
 {
+    protected function tearDown(): void
+    {
+        DependencyInjectionFunctionOverrides::reset();
+    }
+
     public function test_load_sets_parameters_and_services(): void
     {
         $container = new ContainerBuilder();
@@ -63,4 +82,66 @@ final class RegexParserExtensionTest extends TestCase
         $this->assertTrue($container->hasAlias(ExtractorInterface::class));
         $this->assertSame('my_custom_extractor', (string) $container->getAlias(ExtractorInterface::class));
     }
+
+    public function test_build_cache_definition_uses_pool(): void
+    {
+        $extension = new RegexParserExtension();
+        $reflection = new \ReflectionClass($extension);
+        $method = $reflection->getMethod('buildCacheDefinition');
+
+        /** @var Definition $definition */
+        $definition = $method->invoke($extension, [
+            'cache' => [
+                'pool' => 'cache.pool',
+                'directory' => null,
+                'prefix' => 'regex_',
+            ],
+        ]);
+
+        $this->assertSame(PsrCacheAdapter::class, $definition->getClass());
+        $argument = $definition->getArgument(0);
+        $this->assertInstanceOf(Reference::class, $argument);
+        $this->assertSame('cache.pool', $argument->__toString());
+    }
+
+    public function test_create_extractor_definition_falls_back_when_php_parser_missing(): void
+    {
+        DependencyInjectionFunctionOverrides::$classExistsResult = false;
+
+        $extension = new RegexParserExtension();
+        $reflection = new \ReflectionClass($extension);
+        $method = $reflection->getMethod('createExtractorDefinition');
+
+        /** @var Definition $definition */
+        $definition = $method->invoke($extension);
+
+        $this->assertSame(TokenBasedExtractionStrategy::class, $definition->getClass());
+    }
+
+    public function test_resolve_editor_format_uses_framework_ide(): void
+    {
+        $container = new ContainerBuilder();
+        $container->setParameter('framework.ide', 'phpstorm');
+
+        $extension = new RegexParserExtension();
+        $reflection = new \ReflectionClass($extension);
+        $method = $reflection->getMethod('resolveEditorFormat');
+
+        $resolved = $method->invoke($extension, ['ide' => null], $container);
+
+        $this->assertSame('phpstorm', $resolved);
+    }
+}
+
+namespace RegexParser\Bridge\Symfony\DependencyInjection;
+
+use RegexParser\Tests\Unit\Bridge\Symfony\DependencyInjection\DependencyInjectionFunctionOverrides;
+
+function class_exists(string $class, bool $autoload = true): bool
+{
+    if (null !== DependencyInjectionFunctionOverrides::$classExistsResult) {
+        return DependencyInjectionFunctionOverrides::$classExistsResult;
+    }
+
+    return \class_exists($class, $autoload);
 }

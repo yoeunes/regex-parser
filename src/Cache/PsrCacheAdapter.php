@@ -107,6 +107,11 @@ final readonly class PsrCacheAdapter implements RemovableCacheInterface
         $this->pool->clear();
     }
 
+    public function getStats(): array
+    {
+        return ['hits' => 0, 'misses' => 0];
+    }
+
     /**
      * Decodes the compiled cache payload string into a RegexNode instance.
      *

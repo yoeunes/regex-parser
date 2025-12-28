@@ -38,4 +38,10 @@ final readonly class NullCache implements RemovableCacheInterface
 
     #[\Override]
     public function clear(?string $regex = null): void {}
+
+    #[\Override]
+    public function getStats(): array
+    {
+        return ['hits' => 0, 'misses' => 0];
+    }
 }

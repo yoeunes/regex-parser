@@ -1,0 +1,849 @@
+<?php
+
+declare(strict_types=1);
+
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+namespace RegexParser\Tests\Functional\Cli;
+
+use PHPUnit\Framework\TestCase;
+use RegexParser\Cli\Command\AnalyzeCommand;
+use RegexParser\Cli\Command\DebugCommand;
+use RegexParser\Cli\Command\DiagramCommand;
+use RegexParser\Cli\Command\HelpCommand;
+use RegexParser\Cli\Command\HighlightCommand;
+use RegexParser\Cli\Command\ParseCommand;
+use RegexParser\Cli\Command\SelfUpdateCommand;
+use RegexParser\Cli\Command\ValidateCommand;
+use RegexParser\Cli\Command\VersionCommand;
+use RegexParser\Cli\GlobalOptions;
+use RegexParser\Cli\Input;
+use RegexParser\Cli\Output;
+use RegexParser\Cli\SelfUpdate\SelfUpdater;
+use RegexParser\Cli\VersionResolver;
+
+final class CommandTest extends TestCase
+{
+    public function test_analyze_command_reports_missing_pattern(): void
+    {
+        $command = new AnalyzeCommand();
+        $output = new Output(false, false);
+
+        $exitCode = 0;
+        $buffer = $this->captureOutput(static fn (): int => $command->run(self::makeInput('analyze', []), $output), $exitCode);
+
+        $this->assertSame(1, $exitCode);
+        $this->assertStringContainsString('Missing pattern', $buffer);
+    }
+
+    public function test_analyze_command_handles_pattern(): void
+    {
+        $command = new AnalyzeCommand();
+        $output = new Output(false, false);
+
+        $exitCode = 0;
+        $buffer = $this->captureOutput(static fn (): int => $command->run(self::makeInput('analyze', ['/a+/']), $output), $exitCode);
+
+        $this->assertSame(0, $exitCode);
+        $this->assertStringContainsString('ReDoS:', $buffer);
+    }
+
+    public function test_analyze_command_handles_invalid_regex_options(): void
+    {
+        $command = new AnalyzeCommand();
+        $output = new Output(false, false);
+
+        // Create input with invalid regex options
+        $input = new Input(
+            'analyze',
+            ['/a+/'],
+            new GlobalOptions(false, false, false, true, null, null),
+            ['invalid_option' => 'value'],
+        );
+
+        $exitCode = 0;
+        $buffer = $this->captureOutput(static fn (): int => $command->run($input, $output), $exitCode);
+
+        $this->assertSame(1, $exitCode);
+        $this->assertStringContainsString('Invalid option:', $buffer);
+    }
+
+    public function test_analyze_command_reports_invalid_pattern(): void
+    {
+        $command = new AnalyzeCommand();
+        $output = new Output(false, false);
+
+        $exitCode = 0;
+        $buffer = $this->captureOutput(static fn (): int => $command->run(self::makeInput('analyze', ['[unclosed']), $output), $exitCode);
+
+        $this->assertSame(1, $exitCode);
+        $this->assertStringContainsString('Analyze failed:', $buffer);
+    }
+
+    public function test_analyze_command_reports_validation_error(): void
+    {
+        $command = new AnalyzeCommand();
+        $output = new Output(false, false);
+
+        // Pattern that may cause validation error (e.g., invalid quantifier range)
+        $exitCode = 0;
+        $buffer = $this->captureOutput(static fn (): int => $command->run(self::makeInput('analyze', ['/a{5,3}/']), $output), $exitCode);
+
+        $this->assertSame(0, $exitCode);
+        // Check if validation error is shown
+        // This covers the if (!$validation->isValid && $validation->error) branch
+    }
+
+    public function test_debug_command_reports_missing_pattern(): void
+    {
+        $command = new DebugCommand();
+        $output = new Output(false, false);
+
+        $exitCode = 0;
+        $buffer = $this->captureOutput(static fn (): int => $command->run(self::makeInput('debug', []), $output), $exitCode);
+
+        $this->assertSame(1, $exitCode);
+        $this->assertStringContainsString('Missing pattern', $buffer);
+    }
+
+    public function test_debug_command_reports_missing_input_value(): void
+    {
+        $command = new DebugCommand();
+        $output = new Output(false, false);
+
+        $exitCode = 0;
+        $buffer = $this->captureOutput(static fn (): int => $command->run(self::makeInput('debug', ['/(a+)+$/', '--input']), $output), $exitCode);
+
+        $this->assertSame(1, $exitCode);
+        $this->assertStringContainsString('Missing value for --input', $buffer);
+    }
+
+    public function test_debug_command_runs_with_input(): void
+    {
+        $command = new DebugCommand();
+        $output = new Output(false, false);
+
+        $exitCode = 0;
+        $buffer = $this->captureOutput(static fn (): int => $command->run(self::makeInput('debug', ['/(a+)+$/', '--input=aaaa']), $output), $exitCode);
+
+        $this->assertSame(0, $exitCode);
+    }
+
+    public function test_debug_command_reports_invalid_pattern(): void
+    {
+        $command = new DebugCommand();
+        $output = new Output(false, false);
+
+        $exitCode = 0;
+        $buffer = $this->captureOutput(static fn (): int => $command->run(self::makeInput('debug', ['[unclosed']), $output), $exitCode);
+
+        $this->assertSame(1, $exitCode);
+        $this->assertStringContainsString('Debug failed:', $buffer);
+    }
+
+    public function test_debug_command_outputs_with_ansi(): void
+    {
+        $command = new DebugCommand();
+        $output = new Output(true, false);
+
+        $exitCode = 0;
+        $buffer = $this->captureOutput(static fn (): int => $command->run(self::makeInput('debug', ['/(a+)+$/']), $output), $exitCode);
+
+        $this->assertSame(0, $exitCode);
+        $this->assertStringContainsString('Debug', $buffer);
+    }
+
+    public function test_debug_command_generates_auto_input_when_none_provided(): void
+    {
+        $command = new DebugCommand();
+        $output = new Output(false, false);
+
+        $exitCode = 0;
+        $buffer = $this->captureOutput(static fn (): int => $command->run(self::makeInput('debug', ['/(a+)+$/']), $output), $exitCode);
+
+        $this->assertSame(0, $exitCode);
+        $this->assertStringContainsString('Input:', $buffer);
+        $this->assertStringContainsString('(auto)', $buffer);
+    }
+
+    public function test_debug_command_handles_input_option_with_value(): void
+    {
+        $command = new DebugCommand();
+        $output = new Output(false, false);
+
+        $exitCode = 0;
+        $buffer = $this->captureOutput(static fn (): int => $command->run(self::makeInput('debug', ['/(a+)+$/', '--input', 'testinput']), $output), $exitCode);
+
+        $this->assertSame(0, $exitCode);
+        $this->assertStringContainsString('Input:      "testinput"', $buffer);
+    }
+
+    public function test_debug_command_handles_invalid_regex_options(): void
+    {
+        $command = new DebugCommand();
+        $output = new Output(false, false);
+
+        // Create input with invalid regex options
+        $input = new Input(
+            'debug',
+            ['/a+/'],
+            new GlobalOptions(false, false, false, true, null, null),
+            ['invalid_option' => 'value'],
+        );
+
+        $exitCode = 0;
+        $buffer = $this->captureOutput(static fn (): int => $command->run($input, $output), $exitCode);
+
+        $this->assertSame(1, $exitCode);
+        $this->assertStringContainsString('Invalid option:', $buffer);
+    }
+
+    public function test_debug_command_handles_php_version_option(): void
+    {
+        $command = new DebugCommand();
+        $output = new Output(false, false);
+
+        // Create input with php_version regex option
+        $input = new Input(
+            'debug',
+            ['/a+/'],
+            new GlobalOptions(false, false, false, true, null, null),
+            ['php_version' => '8.1'],
+        );
+
+        $exitCode = 0;
+        $buffer = $this->captureOutput(static fn (): int => $command->run($input, $output), $exitCode);
+
+        $this->assertSame(0, $exitCode);
+        // Should process without error
+    }
+
+    public function test_debug_command_handles_simple_pattern(): void
+    {
+        $command = new DebugCommand();
+        $output = new Output(false, false);
+
+        $exitCode = 0;
+        $buffer = $this->captureOutput(static fn (): int => $command->run(self::makeInput('debug', ['/a/']), $output), $exitCode);
+
+        $this->assertSame(0, $exitCode);
+        $this->assertStringContainsString('Debug', $buffer);
+    }
+
+    public function test_diagram_command_reports_missing_pattern(): void
+    {
+        $command = new DiagramCommand();
+        $output = new Output(false, false);
+
+        $exitCode = 0;
+        $buffer = $this->captureOutput(static fn (): int => $command->run(self::makeInput('diagram', []), $output), $exitCode);
+
+        $this->assertSame(1, $exitCode);
+        $this->assertStringContainsString('Missing pattern', $buffer);
+    }
+
+    public function test_diagram_command_rejects_unsupported_format(): void
+    {
+        $command = new DiagramCommand();
+        $output = new Output(false, false);
+
+        $exitCode = 0;
+        $buffer = $this->captureOutput(static fn (): int => $command->run(self::makeInput('diagram', ['/a+/', '--format=svg']), $output), $exitCode);
+
+        $this->assertSame(1, $exitCode);
+        $this->assertStringContainsString('Unsupported format', $buffer);
+    }
+
+    public function test_diagram_command_renders_diagram(): void
+    {
+        $command = new DiagramCommand();
+        $output = new Output(false, false);
+
+        $exitCode = 0;
+        $buffer = $this->captureOutput(static fn (): int => $command->run(self::makeInput('diagram', ['/a+/']), $output), $exitCode);
+
+        $this->assertSame(0, $exitCode);
+    }
+
+    public function test_diagram_command_reports_invalid_pattern(): void
+    {
+        $command = new DiagramCommand();
+        $output = new Output(false, false);
+
+        $exitCode = 0;
+        $buffer = $this->captureOutput(static fn (): int => $command->run(self::makeInput('diagram', ['[unclosed']), $output), $exitCode);
+
+        $this->assertSame(1, $exitCode);
+        $this->assertStringContainsString('Diagram failed:', $buffer);
+    }
+
+    public function test_diagram_command_supports_format_option_with_separate_value(): void
+    {
+        $command = new DiagramCommand();
+        $output = new Output(false, false);
+
+        $exitCode = 0;
+        $buffer = $this->captureOutput(static fn (): int => $command->run(self::makeInput('diagram', ['/a+/', '--format', 'ascii']), $output), $exitCode);
+
+        $this->assertSame(0, $exitCode);
+        $this->assertStringContainsString('a', $buffer); // Should contain diagram output
+    }
+
+    public function test_diagram_command_handles_invalid_regex_options(): void
+    {
+        $command = new DiagramCommand();
+        $output = new Output(false, false);
+
+        // Create input with invalid regex options
+        $input = new Input(
+            'diagram',
+            ['/a+/'],
+            new GlobalOptions(false, false, false, true, null, null),
+            ['invalid_option' => 'value'],
+        );
+
+        $exitCode = 0;
+        $buffer = $this->captureOutput(static fn (): int => $command->run($input, $output), $exitCode);
+
+        $this->assertSame(1, $exitCode);
+        $this->assertStringContainsString('Invalid option:', $buffer);
+    }
+
+    public function test_highlight_command_reports_missing_pattern(): void
+    {
+        $command = new HighlightCommand();
+        $output = new Output(false, false);
+
+        $exitCode = 0;
+        $buffer = $this->captureOutput(static fn (): int => $command->run(self::makeInput('highlight', []), $output), $exitCode);
+
+        $this->assertSame(1, $exitCode);
+        $this->assertStringContainsString('Missing pattern', $buffer);
+    }
+
+    public function test_highlight_command_outputs_highlight(): void
+    {
+        $command = new HighlightCommand();
+        $output = new Output(false, false);
+
+        $exitCode = 0;
+        $buffer = $this->captureOutput(static fn (): int => $command->run(self::makeInput('highlight', ['/a+/']), $output), $exitCode);
+
+        $this->assertSame(0, $exitCode);
+        $this->assertStringContainsString('a', $buffer);
+        $this->assertStringContainsString("\033[", $buffer);
+    }
+
+    public function test_highlight_command_supports_html_format(): void
+    {
+        $command = new HighlightCommand();
+        $output = new Output(false, false);
+
+        $exitCode = 0;
+        $buffer = $this->captureOutput(static fn (): int => $command->run(self::makeInput('highlight', ['/a+/', '--format=html']), $output), $exitCode);
+
+        $this->assertSame(0, $exitCode);
+    }
+
+    public function test_highlight_command_reports_invalid_pattern(): void
+    {
+        $command = new HighlightCommand();
+        $output = new Output(false, false);
+
+        $exitCode = 0;
+        $buffer = $this->captureOutput(static fn (): int => $command->run(self::makeInput('highlight', ['[unclosed']), $output), $exitCode);
+
+        $this->assertSame(1, $exitCode);
+        $this->assertStringContainsString('✗ Error:', $buffer);
+    }
+
+    public function test_highlight_command_supports_format_option_with_separate_value(): void
+    {
+        $command = new HighlightCommand();
+        $output = new Output(false, false);
+
+        $exitCode = 0;
+        $buffer = $this->captureOutput(static fn (): int => $command->run(self::makeInput('highlight', ['/a+/', '--format', 'cli']), $output), $exitCode);
+
+        $this->assertSame(0, $exitCode);
+        $this->assertStringContainsString("\033[", $buffer); // ANSI codes for cli format
+    }
+
+    public function test_highlight_command_reports_invalid_format(): void
+    {
+        $command = new HighlightCommand();
+        $output = new Output(false, false);
+
+        $exitCode = 0;
+        $buffer = $this->captureOutput(static fn (): int => $command->run(self::makeInput('highlight', ['/a+/', '--format=invalid']), $output), $exitCode);
+
+        $this->assertSame(1, $exitCode);
+        $this->assertStringContainsString('✗ Error: Invalid format: invalid', $buffer);
+    }
+
+    public function test_highlight_command_handles_invalid_regex_options(): void
+    {
+        $command = new HighlightCommand();
+        $output = new Output(false, false);
+
+        // Create input with invalid regex options
+        $input = new Input(
+            'highlight',
+            ['/a+/'],
+            new GlobalOptions(false, false, false, true, null, null),
+            ['invalid_option' => 'value'],
+        );
+
+        $exitCode = 0;
+        $buffer = $this->captureOutput(static fn (): int => $command->run($input, $output), $exitCode);
+
+        $this->assertSame(1, $exitCode);
+        $this->assertStringContainsString('Invalid option:', $buffer);
+    }
+
+    public function test_parse_command_reports_missing_pattern(): void
+    {
+        $command = new ParseCommand();
+        $output = new Output(false, false);
+
+        $exitCode = 0;
+        $buffer = $this->captureOutput(static fn (): int => $command->run(self::makeInput('parse', []), $output), $exitCode);
+
+        $this->assertSame(1, $exitCode);
+        $this->assertStringContainsString('Missing pattern', $buffer);
+    }
+
+    public function test_parse_command_outputs_compiled_and_validation(): void
+    {
+        $command = new ParseCommand();
+        $output = new Output(false, false);
+
+        $exitCode = 0;
+        $buffer = $this->captureOutput(static fn (): int => $command->run(self::makeInput('parse', ['/a+/', '--validate']), $output), $exitCode);
+
+        $this->assertSame(0, $exitCode);
+    }
+
+    public function test_parse_command_reports_invalid_pattern(): void
+    {
+        $command = new ParseCommand();
+        $output = new Output(false, false);
+
+        $exitCode = 0;
+        $buffer = $this->captureOutput(static fn (): int => $command->run(self::makeInput('parse', ['[unclosed']), $output), $exitCode);
+
+        $this->assertSame(1, $exitCode);
+        $this->assertStringContainsString('Parse failed:', $buffer);
+    }
+
+    public function test_parse_command_handles_invalid_regex_options(): void
+    {
+        $command = new ParseCommand();
+        $output = new Output(false, false);
+
+        // Create input with invalid regex options
+        $input = new Input(
+            'parse',
+            ['/a+/'],
+            new GlobalOptions(false, false, false, true, null, null),
+            ['invalid_option' => 'value'],
+        );
+
+        $exitCode = 0;
+        $buffer = $this->captureOutput(static fn (): int => $command->run($input, $output), $exitCode);
+
+        $this->assertSame(1, $exitCode);
+        $this->assertStringContainsString('Invalid option:', $buffer);
+    }
+
+    public function test_validate_command_reports_missing_pattern(): void
+    {
+        $command = new ValidateCommand();
+        $output = new Output(false, false);
+
+        $exitCode = 0;
+        $buffer = $this->captureOutput(static fn (): int => $command->run(self::makeInput('validate', []), $output), $exitCode);
+
+        $this->assertSame(1, $exitCode);
+        $this->assertStringContainsString('Missing pattern', $buffer);
+    }
+
+    public function test_validate_command_reports_invalid_pattern(): void
+    {
+        $command = new ValidateCommand();
+        $output = new Output(false, false);
+
+        $exitCode = 0;
+        $buffer = $this->captureOutput(static fn (): int => $command->run(self::makeInput('validate', ['/(abc/']), $output), $exitCode);
+
+        $this->assertSame(1, $exitCode);
+        $this->assertStringContainsString('INVALID', $buffer);
+    }
+
+    public function test_validate_command_accepts_valid_pattern(): void
+    {
+        $command = new ValidateCommand();
+        $output = new Output(false, false);
+
+        $exitCode = 0;
+        $buffer = $this->captureOutput(static fn (): int => $command->run(self::makeInput('validate', ['/abc/']), $output), $exitCode);
+
+        $this->assertSame(0, $exitCode);
+        $this->assertStringContainsString('OK', $buffer);
+    }
+
+    public function test_validate_command_handles_invalid_regex_options(): void
+    {
+        $command = new ValidateCommand();
+        $output = new Output(false, false);
+
+        // Create input with invalid regex options
+        $input = new Input(
+            'validate',
+            ['/a+/'],
+            new GlobalOptions(false, false, false, true, null, null),
+            ['invalid_option' => 'value'],
+        );
+
+        $exitCode = 0;
+        $buffer = $this->captureOutput(static fn (): int => $command->run($input, $output), $exitCode);
+
+        $this->assertSame(1, $exitCode);
+        $this->assertStringContainsString('Invalid option:', $buffer);
+    }
+
+    public function test_help_command_outputs_sections_with_and_without_ansi(): void
+    {
+        $command = new HelpCommand(new VersionResolver());
+        $output = new Output(false, false);
+
+        $exitCode = 0;
+        $buffer = $this->captureOutput(static fn (): int => $command->run(self::makeInput('help', []), $output), $exitCode);
+
+        $this->assertSame(0, $exitCode);
+        $this->assertStringContainsString('Usage', $buffer);
+        $this->assertStringContainsString('Commands', $buffer);
+
+        $ansiOutput = new Output(true, false);
+        $ansiExitCode = 0;
+        $ansiBuffer = $this->captureOutput(static fn (): int => $command->run(self::makeInput('help', []), $ansiOutput), $ansiExitCode);
+
+        $this->assertSame(0, $ansiExitCode);
+        $this->assertStringContainsString('Usage', $ansiBuffer);
+    }
+
+    public function test_version_command_reports_error_when_version_file_missing(): void
+    {
+        $resolver = new VersionResolver();
+        $versionFile = $resolver->getVersionFile();
+        if (!file_exists($versionFile)) {
+            $this->markTestSkipped('composer.json is missing.');
+        }
+
+        $backupFile = $versionFile.'.bak-'.uniqid('', true);
+        if (!@rename($versionFile, $backupFile)) {
+            $this->markTestSkipped('Unable to move composer.json for test.');
+        }
+
+        $command = new VersionCommand($resolver);
+        $output = new Output(false, false);
+
+        try {
+            $exitCode = 0;
+            $buffer = $this->captureOutput(static fn (): int => $command->run(self::makeInput('version', []), $output), $exitCode);
+
+            $this->assertSame(1, $exitCode);
+            $this->assertStringContainsString('unable to read version information', $buffer);
+        } finally {
+            @rename($backupFile, $versionFile);
+        }
+    }
+
+    public function test_version_command_outputs_version(): void
+    {
+        $resolver = new VersionResolver();
+        $command = new VersionCommand($resolver);
+        $output = new Output(false, false);
+
+        $exitCode = 0;
+        $buffer = $this->captureOutput(static fn (): int => $command->run(self::makeInput('version', []), $output), $exitCode);
+
+        $this->assertSame(0, $exitCode);
+        $this->assertStringContainsString('RegexParser', $buffer);
+        $this->assertStringContainsString('github.com/yoeunes/regex-parser', $buffer);
+    }
+
+    public function test_self_update_command_help_and_error_paths(): void
+    {
+        $updater = new SelfUpdater();
+        $command = new SelfUpdateCommand($updater);
+        $output = new Output(false, false);
+
+        $helpExitCode = 0;
+        $helpBuffer = $this->captureOutput(static fn (): int => $command->run(self::makeInput('self-update', ['--help']), $output), $helpExitCode);
+
+        $this->assertSame(0, $helpExitCode);
+        $this->assertStringContainsString('Usage: regex self-update', $helpBuffer);
+
+        $errorExitCode = 0;
+        $errorBuffer = $this->captureOutput(static fn (): int => $command->run(self::makeInput('self-update', []), $output), $errorExitCode);
+
+        $this->assertSame(1, $errorExitCode);
+        $this->assertStringContainsString('Self-update failed', $errorBuffer);
+    }
+
+    public function test_self_update_command_get_name_returns_correct_value(): void
+    {
+        $command = new SelfUpdateCommand(new SelfUpdater());
+
+        $this->assertSame('self-update', $command->getName());
+    }
+
+    public function test_self_update_command_get_aliases_returns_correct_value(): void
+    {
+        $command = new SelfUpdateCommand(new SelfUpdater());
+
+        $this->assertSame(['selfupdate'], $command->getAliases());
+    }
+
+    public function test_self_update_command_get_description_returns_correct_value(): void
+    {
+        $command = new SelfUpdateCommand(new SelfUpdater());
+
+        $this->assertSame('Update the CLI phar to the latest release', $command->getDescription());
+    }
+
+    public function test_self_update_command_run_returns_zero_on_success(): void
+    {
+        $updater = new class extends SelfUpdater {
+            public function run(Output $output): void
+            {
+                // Do nothing
+            }
+        };
+
+        $command = new SelfUpdateCommand($updater);
+        $output = new Output(false, false);
+
+        $exitCode = $command->run(self::makeInput('self-update', []), $output);
+
+        $this->assertSame(0, $exitCode);
+    }
+
+    public function test_version_command_get_name_returns_correct_value(): void
+    {
+        $command = new VersionCommand(new VersionResolver());
+
+        $this->assertSame('version', $command->getName());
+    }
+
+    public function test_version_command_get_aliases_returns_correct_value(): void
+    {
+        $command = new VersionCommand(new VersionResolver());
+
+        $this->assertSame(['--version', '-v'], $command->getAliases());
+    }
+
+    public function test_version_command_get_description_returns_correct_value(): void
+    {
+        $command = new VersionCommand(new VersionResolver());
+
+        $this->assertSame('Display version information', $command->getDescription());
+    }
+
+    public function test_help_command_get_name_returns_correct_value(): void
+    {
+        $command = new HelpCommand(new VersionResolver());
+
+        $this->assertSame('help', $command->getName());
+    }
+
+    public function test_help_command_get_aliases_returns_correct_value(): void
+    {
+        $command = new HelpCommand(new VersionResolver());
+
+        $this->assertSame(['--help', '-h'], $command->getAliases());
+    }
+
+    public function test_help_command_get_description_returns_correct_value(): void
+    {
+        $command = new HelpCommand(new VersionResolver());
+
+        $this->assertSame('Display this help message', $command->getDescription());
+    }
+
+    public function test_analyze_command_get_name_returns_correct_value(): void
+    {
+        $command = new AnalyzeCommand();
+
+        $this->assertSame('analyze', $command->getName());
+    }
+
+    public function test_analyze_command_get_aliases_returns_correct_value(): void
+    {
+        $command = new AnalyzeCommand();
+
+        $this->assertSame([], $command->getAliases());
+    }
+
+    public function test_analyze_command_get_description_returns_correct_value(): void
+    {
+        $command = new AnalyzeCommand();
+
+        $this->assertSame('Parse, validate, and analyze ReDoS risk', $command->getDescription());
+    }
+
+    public function test_debug_command_get_name_returns_correct_value(): void
+    {
+        $command = new DebugCommand();
+
+        $this->assertSame('debug', $command->getName());
+    }
+
+    public function test_debug_command_get_aliases_returns_correct_value(): void
+    {
+        $command = new DebugCommand();
+
+        $this->assertSame([], $command->getAliases());
+    }
+
+    public function test_debug_command_get_description_returns_correct_value(): void
+    {
+        $command = new DebugCommand();
+
+        $this->assertSame('Deep ReDoS analysis with heatmap output', $command->getDescription());
+    }
+
+    public function test_diagram_command_get_name_returns_correct_value(): void
+    {
+        $command = new DiagramCommand();
+
+        $this->assertSame('diagram', $command->getName());
+    }
+
+    public function test_diagram_command_get_aliases_returns_correct_value(): void
+    {
+        $command = new DiagramCommand();
+
+        $this->assertSame([], $command->getAliases());
+    }
+
+    public function test_diagram_command_get_description_returns_correct_value(): void
+    {
+        $command = new DiagramCommand();
+
+        $this->assertSame('Render an ASCII diagram of the AST', $command->getDescription());
+    }
+
+    public function test_highlight_command_get_name_returns_correct_value(): void
+    {
+        $command = new HighlightCommand();
+
+        $this->assertSame('highlight', $command->getName());
+    }
+
+    public function test_highlight_command_get_aliases_returns_correct_value(): void
+    {
+        $command = new HighlightCommand();
+
+        $this->assertSame([], $command->getAliases());
+    }
+
+    public function test_highlight_command_get_description_returns_correct_value(): void
+    {
+        $command = new HighlightCommand();
+
+        $this->assertSame('Highlight a regex for display', $command->getDescription());
+    }
+
+    public function test_parse_command_get_name_returns_correct_value(): void
+    {
+        $command = new ParseCommand();
+
+        $this->assertSame('parse', $command->getName());
+    }
+
+    public function test_parse_command_get_aliases_returns_correct_value(): void
+    {
+        $command = new ParseCommand();
+
+        $this->assertSame([], $command->getAliases());
+    }
+
+    public function test_parse_command_get_description_returns_correct_value(): void
+    {
+        $command = new ParseCommand();
+
+        $this->assertSame('Parse and recompile a regex pattern', $command->getDescription());
+    }
+
+    public function test_validate_command_get_name_returns_correct_value(): void
+    {
+        $command = new ValidateCommand();
+
+        $this->assertSame('validate', $command->getName());
+    }
+
+    public function test_validate_command_get_aliases_returns_correct_value(): void
+    {
+        $command = new ValidateCommand();
+
+        $this->assertSame([], $command->getAliases());
+    }
+
+    public function test_validate_command_get_description_returns_correct_value(): void
+    {
+        $command = new ValidateCommand();
+
+        $this->assertSame('Validate a regex pattern', $command->getDescription());
+    }
+
+    /**
+     * @param array<int, string> $args
+     */
+    private static function makeInput(string $command, array $args): Input
+    {
+        return new Input(
+            $command,
+            $args,
+            new GlobalOptions(false, false, false, true, null, null),
+            [],
+        );
+    }
+
+    /**
+     * @param callable(): int $callback
+     */
+    private function captureOutput(callable $callback, int &$exitCode): string
+    {
+        $initialLevel = ob_get_level();
+        ob_start();
+
+        try {
+            $exitCode = $callback();
+
+            $content = (string) ob_get_clean();
+
+            // Clean up any extra buffers started by the callback
+            while (ob_get_level() > $initialLevel) {
+                ob_end_clean();
+            }
+
+            return $content;
+        } catch (\Throwable $e) {
+            // Clean up any extra buffers on exception
+            while (ob_get_level() > $initialLevel) {
+                ob_end_clean();
+            }
+
+            throw $e;
+        }
+    }
+}

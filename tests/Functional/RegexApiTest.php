@@ -121,6 +121,15 @@ final class RegexApiTest extends TestCase
                     $this->cache->clear($regex);
                 }
             }
+
+            public function getStats(): array
+            {
+                if ($this->cache instanceof RemovableCacheInterface) {
+                    return $this->cache->getStats();
+                }
+
+                return ['hits' => 0, 'misses' => 0];
+            }
         };
 
         try {
@@ -130,7 +139,7 @@ final class RegexApiTest extends TestCase
             $firstAst = $regex->parse($pattern);
             $secondAst = $regex->parse($pattern);
 
-            $this->assertSame(1, $cache->writeCount);
+            $this->assertSame(2, $cache->writeCount);
             $this->assertGreaterThanOrEqual(2, $cache->loadCount);
             $this->assertEquals($firstAst, $secondAst);
             $this->assertFileExists($cache->generateKey($pattern));

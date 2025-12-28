@@ -76,8 +76,8 @@ final class OptimizerNodeVisitorCharClassMergingTest extends TestCase
         $compiler = new CompilerNodeVisitor();
         $result = $optimized->accept($compiler);
 
-        // The [0-9] gets optimized to \d, but [a-z]foo remains unchanged
-        $this->assertSame('/[a-z]foo|\d/', $result);
+        // The [0-9] gets optimized to \d, but [a-z]fo{2} remains unchanged
+        $this->assertSame('/[a-z]fo{2}|\d/', $result);
     }
 
     public function test_single_char_classes_merge(): void

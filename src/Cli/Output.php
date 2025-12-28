@@ -172,7 +172,8 @@ final class Output
         $bar = str_repeat($this->progressBarFull, $filled).str_repeat($this->progressBarEmpty, self::PROGRESS_BAR_WIDTH - $filled);
         $percent = (int) round($ratio * 100);
         $elapsed = $this->formatElapsed((int) (time() - $this->progressStartedAt));
-        $line = \sprintf(' %d/%d [%s] %3d%% %8s', $current, $total, $bar, $percent, $elapsed);
+        $status = str_pad($current.'/'.$total, 15, ' ', \STR_PAD_LEFT);
+        $line = \sprintf(' %s [%s] %3d%% %8s', $status, $bar, $percent, $elapsed);
 
         $this->write("\r".$line);
 

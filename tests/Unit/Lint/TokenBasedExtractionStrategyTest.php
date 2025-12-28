@@ -105,4 +105,18 @@ PHP);
         $patterns = array_map(fn (RegexPatternOccurrence $o) => $o->pattern, $occurrences);
         $this->assertContains('/pattern/', $patterns);
     }
+
+    public function test_extracts_plain_string_pattern_when_not_regex_literal(): void
+    {
+        $file = $this->tmp.'/plain-string.php';
+        file_put_contents($file, <<<'PHP'
+<?php
+preg_match('plainpattern', $subject);
+PHP);
+
+        $strategy = new TokenBasedExtractionStrategy();
+        $occurrences = $strategy->extract([$file]);
+
+        $this->assertSame('plainpattern', $occurrences[0]->pattern ?? null);
+    }
 }

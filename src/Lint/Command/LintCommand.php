@@ -72,17 +72,19 @@ final class LintCommand extends AbstractCommand implements CommandInterface
         }
         if (null !== $parsed->error) {
             $output->write($output->error('Error: '.$parsed->error."\n"));
-            $output->write("Usage: regex lint [paths...] [--exclude <path>] [--min-savings <n>] [--jobs <n>] [--format console|json|github|checkstyle|junit] [--no-redos] [--no-validate] [--no-optimize] [--verbose|--debug|--quiet]\n");
+            $output->write("Usage: regex lint [paths...] [--exclude <path>] [--min-savings <n>] [--jobs <n>] [--format console|json|github|checkstyle|junit] [--output <file>] [--baseline <file>] [--generate-baseline] [--no-redos] [--no-validate] [--no-optimize] [--verbose|--debug|--quiet]\n");
 
             return 1;
         }
 
         $arguments = $parsed->arguments;
+        // @codeCoverageIgnoreStart
         if (null === $arguments) {
             $output->write($output->error("Error: Invalid lint arguments\n"));
 
             return 1;
         }
+        // @codeCoverageIgnoreEnd
 
         $paths = $arguments->paths;
         $exclude = $arguments->exclude;
@@ -94,6 +96,10 @@ final class LintCommand extends AbstractCommand implements CommandInterface
         $checkValidation = $arguments->checkValidation;
         $checkOptimizations = $arguments->checkOptimizations;
         $jobs = (int) $arguments->jobs;
+        if ($jobs < 2) {
+            $jobs = 4;
+        }
+        $outputFile = $arguments->output;
 
         if ([] === $paths) {
             $paths = ['.'];
@@ -114,6 +120,8 @@ final class LintCommand extends AbstractCommand implements CommandInterface
             default => new OutputConfiguration(ansi: $output->isAnsi()),
         };
 
+        $analysis = new RegexAnalysisService($regex);
+
         $formatterRegistry = new FormatterRegistry();
         if (!$formatterRegistry->has($format)) {
             $output->write($output->error(\sprintf('Unknown format: %s. Available formats: %s', $format, implode(', ', $formatterRegistry->getNames()))."\n"));
@@ -123,11 +131,9 @@ final class LintCommand extends AbstractCommand implements CommandInterface
         $formatter = $formatterRegistry->get($format);
 
         if ('console' === $format) {
-            $analysis = new RegexAnalysisService($regex);
             $formatter = new ConsoleFormatter($analysis, $config);
         }
 
-        $analysis = new RegexAnalysisService($regex);
         $extractor = $this->extractorFactory->create();
         $sources = new RegexPatternSourceCollection([
             new PhpRegexPatternSource($extractor),
@@ -139,7 +145,7 @@ final class LintCommand extends AbstractCommand implements CommandInterface
         }
 
         $collectionProgress = null;
-        $startTime = microtime(true);
+        $startTime = (float) microtime(true);
         $collectionStartTime = $startTime;
 
         if ('console' === $format && $config->shouldShowProgress()) {
@@ -185,31 +191,26 @@ final class LintCommand extends AbstractCommand implements CommandInterface
             return 1;
         }
 
-        $collectionTime = microtime(true) - $collectionStartTime;
+        $collectionTime = (float) microtime(true) - $collectionStartTime;
 
         if ([] === $patterns) {
             if ('console' === $format) {
                 $this->outputRenderer->renderSummary($output, ['errors' => 0, 'warnings' => 0, 'optimizations' => 0], true);
-
-                return 0;
+            } else {
+                $emptyReport = new RegexLintReport([], ['errors' => 0, 'warnings' => 0, 'optimizations' => 0]);
+                echo $formatter->format($emptyReport);
             }
-
-            $emptyReport = new RegexLintReport([], ['errors' => 0, 'warnings' => 0, 'optimizations' => 0]);
-            echo $formatter->format($emptyReport);
 
             return 0;
         }
 
         if ('console' === $format && $config->shouldShowProgress() && $collectionTime > 1) {
             $collectionInfo = 'Collection: '.round($collectionTime, 2).'s';
-            if ($jobs > 1) {
-                $collectionInfo .= ' (parallel: '.$jobs.' workers)';
-            }
             $output->write('  '.$output->dim($collectionInfo)."\n\n");
         }
 
         $progressCallback = null;
-        $analysisStartTime = microtime(true);
+        $analysisStartTime = (float) microtime(true);
         if ('console' === $format && $config->shouldShowProgress()) {
             $output->write('  '.$output->dim('[2/2] Analyzing patterns')."\n");
             $output->progressStart(\count($patterns));
@@ -222,27 +223,172 @@ final class LintCommand extends AbstractCommand implements CommandInterface
             $output->progressFinish();
         }
 
-        $analysisTime = microtime(true) - $analysisStartTime;
+        $analysisTime = (float) microtime(true) - $analysisStartTime;
 
-        if ('console' === $format && $config->shouldShowProgress() && $analysisTime > 0.1) {
-            $analysisInfo = 'Analysis: '.round($analysisTime, 2).'s';
-            if ($jobs > 1) {
-                $analysisInfo .= ' (parallel: '.$jobs.' workers)';
-            }
-            $output->write('  '.$output->dim($analysisInfo)."\n");
+        if ($arguments->baseline) {
+            $baseline = $this->loadBaseline($arguments->baseline);
+            $report = $this->filterReportByBaseline($report, $baseline);
         }
 
         echo $formatter->format($report);
 
         if ($formatter instanceof ConsoleFormatter) {
             echo $formatter->getSummary($report->stats);
-            $elapsed = microtime(true) - $startTime;
+            $elapsed = (float) microtime(true) - $startTime;
             $peakMemory = memory_get_peak_usage(true);
-            $output->write('  '.$output->bold('Time: '.round($elapsed, 2).'s | Memory: '.round($peakMemory / 1024 / 1024, 2).' MB')."\n");
+            $cacheStats = $regex->getCacheStats();
+            $output->write('  '.$output->bold('Time: ').$output->warning(round($elapsed, 2).'s').' | '.$output->bold('Memory: ').$output->warning(round($peakMemory / 1024 / 1024, 2).' MB').' | '.$output->bold('Cache: ').$output->warning($cacheStats['hits'].' hits, '.$cacheStats['misses'].' misses').' | '.$output->bold('Processes: ').$output->warning((string) $jobs)."\n");
             $output->write("\n");
             echo $formatter->formatFooter();
         }
 
+        if ($arguments->generateBaseline) {
+            $baseline = $this->generateBaseline($report);
+            file_put_contents($arguments->generateBaseline, json_encode($baseline, \JSON_PRETTY_PRINT | \JSON_UNESCAPED_SLASHES));
+            $output->write("Baseline generated at {$arguments->generateBaseline}\n");
+        }
+
+        if ($arguments->generateBaseline) {
+            $baseline = $this->generateBaseline($report);
+            file_put_contents($arguments->generateBaseline, json_encode($baseline, \JSON_PRETTY_PRINT | \JSON_UNESCAPED_SLASHES));
+            $output->write("Baseline generated at {$arguments->generateBaseline}\n");
+        }
+
+        if ($arguments->baseline) {
+            $baseline = $this->loadBaseline($arguments->baseline);
+            $report = $this->filterReportByBaseline($report, $baseline);
+        }
+
+        if (null !== $outputFile) {
+            $content = $formatter->format($report);
+            if ('console' === $format) {
+                // Strip ANSI codes for file output
+                $content = preg_replace('/\e\[[0-9;]*m/', '', $content);
+            }
+            $dir = dirname($outputFile);
+            if (!is_dir($dir) && !@mkdir($dir, 0o777, true) && !is_dir($dir)) {
+                $output->write($output->error("Could not create directory: $dir\n"));
+            } elseif (false === @file_put_contents($outputFile, $content)) {
+                $output->write($output->error("Could not write to file: $outputFile\n"));
+            } else {
+                $output->write("Output also written to: {$outputFile}\n");
+            }
+        }
+
         return $report->stats['errors'] > 0 ? 1 : 0;
+    }
+
+    /**
+     * @return array<array{file: string, line: int, message: string, type: string, pattern?: string|null}>
+     */
+    private function generateBaseline(RegexLintReport $report): array
+    {
+        $baseline = [];
+        foreach ($report->results as $result) {
+            foreach ($result['issues'] as $issue) {
+                $relativeFile = $this->toRelativePath($issue['file']);
+                $baseline[] = [
+                    'file' => $relativeFile,
+                    'line' => $issue['line'],
+                    'message' => $issue['message'],
+                    'type' => $issue['type'],
+                    'pattern' => $issue['pattern'] ?? null,
+                ];
+            }
+        }
+
+        return $baseline;
+    }
+
+    /**
+     * @return array<array{file: string, line: int, message: string, type: string, pattern?: string|null}>
+     */
+    private function loadBaseline(string $file): array
+    {
+        if (!file_exists($file)) {
+            return [];
+        }
+        $content = file_get_contents($file);
+        if (false === $content) {
+            return [];
+        }
+        /** @var array<array{file: string, line: int, message: string, type: string, pattern?: string|null}> $data */
+        $data = json_decode($content, true);
+
+        return is_array($data) ? $data : [];
+    }
+
+    /**
+     * @param array<array{file: string, line: int, message: string, type: string, pattern?: string|null}> $baseline
+     */
+    private function filterReportByBaseline(RegexLintReport $report, array $baseline): RegexLintReport
+    {
+        $baselineMap = [];
+        foreach ($baseline as $item) {
+            $key = $item['file'].':'.$item['line'].':'.$item['message'];
+            $baselineMap[$key] = true;
+        }
+
+        $filteredResults = [];
+        $errors = 0;
+        $warnings = 0;
+        $optimizations = 0;
+
+        foreach ($report->results as $result) {
+            $filteredIssues = [];
+            foreach ($result['issues'] as $issue) {
+                $relativeFile = $this->toRelativePath($issue['file']);
+                $key = $relativeFile.':'.$issue['line'].':'.$issue['message'];
+                if (!isset($baselineMap[$key])) {
+                    $filteredIssues[] = $issue;
+                    if ('error' === $issue['type']) {
+                        $errors++;
+                    } elseif ('warning' === $issue['type']) {
+                        $warnings++;
+                    } elseif ('optimization' === $issue['type']) {
+                        $optimizations++;
+                    }
+                }
+            }
+            if (!empty($filteredIssues) || !empty($result['optimizations']) || !empty($result['problems'])) {
+                $filteredResults[] = [
+                    'file' => $result['file'],
+                    'line' => $result['line'],
+                    'source' => $result['source'] ?? null,
+                    'pattern' => $result['pattern'] ?? null,
+                    'location' => $result['location'] ?? null,
+                    'issues' => $filteredIssues,
+                    'optimizations' => $result['optimizations'],
+                    'problems' => $result['problems'],
+                ];
+            }
+        }
+
+        return new RegexLintReport($filteredResults, [
+            'errors' => $errors,
+            'warnings' => $warnings,
+            'optimizations' => $optimizations,
+        ]);
+    }
+
+    private function toRelativePath(string $path): string
+    {
+        $normalizedPath = str_replace('\\', '/', $path);
+        $cwd = getcwd();
+        if (false === $cwd) {
+            return $normalizedPath;
+        }
+
+        $normalizedCwd = rtrim(str_replace('\\', '/', $cwd), '/');
+        if ('' === $normalizedCwd) {
+            return $normalizedPath;
+        }
+
+        $prefix = $normalizedCwd.'/';
+        if (str_starts_with($normalizedPath, $prefix)) {
+            return substr($normalizedPath, \strlen($prefix));
+        }
+
+        return $normalizedPath;
     }
 }

@@ -125,12 +125,12 @@ final class ValidatorNodeVisitorTest extends TestCase
         $this->validate('/[z-a]/');
     }
 
-    public function test_throws_on_invalid_range_with_char_type(): void
+    #[DoesNotPerformAssertions]
+    public function test_chartype_at_end_of_range_is_parsed_as_literal(): void
     {
-        $this->expectException(SemanticErrorException::class);
-        $this->expectExceptionMessage('ranges must be between literal characters or single escape sequences.');
-
-        // This regex is invalid because \d is not a literal
+        // In PCRE, when a CharType like \d follows a hyphen in a character class,
+        // the hyphen is treated as a literal, not a range operator.
+        // Pattern /[a-\d]/ should parse as: LiteralNode(a), LiteralNode(-), CharTypeNode(\d)
         $this->validate('/[a-\d]/');
     }
 
@@ -199,11 +199,12 @@ final class ValidatorNodeVisitorTest extends TestCase
         $this->validate('/a\k<name>/');
     }
 
-    public function test_throws_on_invalid_range_non_literal_start_node(): void
+    #[DoesNotPerformAssertions]
+    public function test_chartype_at_start_of_range_is_parsed_as_literal(): void
     {
-        $this->expectException(SemanticErrorException::class);
-        $this->expectExceptionMessage('ranges must be between literal characters or single escape sequences.');
-        // This is invalid because the parser treats `\d` as a CharTypeNode, not LiteralNode
+        // In PCRE, when a hyphen follows a CharType like \d in a character class,
+        // the hyphen is treated as a literal, not a range operator.
+        // Pattern /[\d-z]/ should parse as: CharTypeNode(\d), LiteralNode(-), LiteralNode(z)
         $this->validate('/[\d-z]/');
     }
 

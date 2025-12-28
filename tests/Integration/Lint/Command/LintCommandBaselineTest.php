@@ -1,0 +1,172 @@
+<?php
+
+declare(strict_types=1);
+
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+namespace RegexParser\Tests\Integration\Lint\Command;
+
+use PHPUnit\Framework\TestCase;
+use RegexParser\Cli\Command\HelpCommand;
+use RegexParser\Cli\GlobalOptions;
+use RegexParser\Cli\Input;
+use RegexParser\Cli\Output;
+use RegexParser\Cli\VersionResolver;
+use RegexParser\Lint\Command\LintArgumentParser;
+use RegexParser\Lint\Command\LintCommand;
+use RegexParser\Lint\Command\LintConfigLoader;
+use RegexParser\Lint\Command\LintDefaultsBuilder;
+use RegexParser\Lint\Command\LintExtractorFactory;
+use RegexParser\Lint\Command\LintOutputRenderer;
+
+final class LintCommandBaselineTest extends TestCase
+{
+    /**
+     * @var array<int, string>
+     */
+    private array $tempDirs = [];
+
+    protected function tearDown(): void
+    {
+        foreach ($this->tempDirs as $dir) {
+            $this->removeDirectory($dir);
+        }
+    }
+
+    public function test_generate_baseline_creates_file_with_relative_paths(): void
+    {
+        $dir = $this->makeTempDir();
+        $file = $dir.'/test.php';
+        file_put_contents($file, <<<'PHP'
+            <?php
+            preg_match('/a/r', 'test'); // Invalid flag 'r'
+            PHP
+        );
+
+        $baselineFile = $dir.'/baseline.json';
+
+        $command = $this->makeLintCommand();
+        $output = new Output(true, false);
+        $input = $this->makeInput([$file, '--generate-baseline='.$baselineFile]);
+
+        $exitCode = $command->run($input, $output);
+
+        $this->assertSame(1, $exitCode); // Should have errors
+        $this->assertFileExists($baselineFile);
+
+        $content = file_get_contents($baselineFile);
+        $this->assertIsString($content);
+        /** @var array<array{file: string, line: int, message: string, type: string, pattern?: string|null}> $baseline */
+        $baseline = json_decode($content, true);
+        $this->assertIsArray($baseline);
+        $this->assertCount(1, $baseline);
+
+        $issue = $baseline[0];
+        $this->assertArrayHasKey('file', $issue);
+        $this->assertArrayHasKey('line', $issue);
+        $this->assertArrayHasKey('message', $issue);
+        $this->assertArrayHasKey('type', $issue);
+
+        // File should be relative
+        $this->assertStringStartsNotWith('/', $issue['file']);
+        $this->assertStringStartsNotWith('\\', $issue['file']);
+        $this->assertStringContainsString('test.php', (string) $issue['file']);
+    }
+
+    public function test_baseline_filters_out_known_issues(): void
+    {
+        $dir = $this->makeTempDir();
+        $file = $dir.'/test.php';
+        file_put_contents($file, <<<'PHP'
+            <?php
+            preg_match('/a/r', 'test'); // Invalid flag 'r'
+            PHP
+        );
+
+        $baselineFile = $dir.'/baseline.json';
+
+        $command = $this->makeLintCommand();
+
+        // Generate baseline
+        $output1 = new Output(true, false);
+        $input1 = $this->makeInput([$file, '--generate-baseline='.$baselineFile]);
+        $command->run($input1, $output1);
+
+        // Run with baseline on the same file
+        $output2 = new Output(true, false);
+        $input2 = $this->makeInput([$file, '--baseline='.$baselineFile]);
+
+        $exitCode = 0;
+        $buffer = $this->captureOutput(fn (): int => $command->run($input2, $output2), $exitCode);
+
+        $this->assertSame(0, $exitCode); // No errors after filtering
+        $this->assertStringNotContainsString('Unknown regex flag', $buffer);
+    }
+
+    private function makeLintCommand(): LintCommand
+    {
+        $resolver = new VersionResolver();
+        $helpCommand = new HelpCommand($resolver);
+
+        return new LintCommand(
+            $helpCommand,
+            new LintConfigLoader(),
+            new LintDefaultsBuilder(),
+            new LintArgumentParser(),
+            new LintExtractorFactory(),
+            new LintOutputRenderer($resolver),
+        );
+    }
+
+    /**
+     * @param array<int, string>   $args
+     * @param array<string, mixed> $regexOptions
+     */
+    private function makeInput(array $args, array $regexOptions = []): Input
+    {
+        return new Input('lint', $args, new GlobalOptions(false, false, false, true, null, null), $regexOptions);
+    }
+
+    private function captureOutput(callable $callable, int &$exitCode): string
+    {
+        ob_start();
+        // @phpstan-ignore-next-line
+        $exitCode = $callable();
+        $output = ob_get_clean();
+
+        return $output ?: '';
+    }
+
+    private function removeDirectory(string $dir): void
+    {
+        if (!is_dir($dir)) {
+            return;
+        }
+
+        $files = array_diff(scandir($dir) ?: [], ['.', '..']);
+        foreach ($files as $file) {
+            $path = $dir.'/'.$file;
+            is_dir($path) ? $this->removeDirectory($path) : unlink($path);
+        }
+
+        rmdir($dir);
+    }
+
+    private function makeTempDir(): string
+    {
+        $dir = 'temp-baseline-test';
+        if (!is_dir($dir)) {
+            mkdir($dir, 0o755, true);
+        }
+        $this->tempDirs[] = $dir;
+
+        return $dir;
+    }
+}

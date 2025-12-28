@@ -16,4 +16,9 @@ namespace RegexParser\Cache;
 interface RemovableCacheInterface extends CacheInterface
 {
     public function clear(?string $regex = null): void;
+
+    /**
+     * @return array{hits: int, misses: int}
+     */
+    public function getStats(): array;
 }

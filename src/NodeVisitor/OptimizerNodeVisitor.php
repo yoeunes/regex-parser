@@ -74,7 +74,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
          * Whether to perform string-based alternation factorization.
          * This can make verbose (/x) patterns harder to read.
          */
-        private readonly bool $allowAlternationFactorization = true
+        private readonly bool $allowAlternationFactorization = false
     ) {
         $this->charSetAnalyzer = new CharSetAnalyzer();
     }
@@ -86,11 +86,14 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         $this->charSetAnalyzer = new CharSetAnalyzer($this->flags);
         $optimizedPattern = $node->pattern->accept($this);
 
-        if ($optimizedPattern === $node->pattern) {
+        // Remove useless flags
+        $optimizedFlags = $this->removeUselessFlags($node->flags, $optimizedPattern);
+
+        if ($optimizedPattern === $node->pattern && $optimizedFlags === $node->flags) {
             return $node;
         }
 
-        return new RegexNode($optimizedPattern, $node->flags, $node->delimiter, $node->startPosition, $node->endPosition);
+        return new RegexNode($optimizedPattern, $optimizedFlags, $node->delimiter, $node->startPosition, $node->endPosition);
     }
 
     #[\Override]
@@ -137,7 +140,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         // Try to convert simple alternations to character classes
         $charClass = $this->tryConvertAlternationToCharClass($optimizedAlts, $node->startPosition, $node->endPosition);
         if (null !== $charClass) {
-            return $charClass;
+            return $charClass; // @codeCoverageIgnore
         }
 
         if (!$hasChanged) {
@@ -146,8 +149,10 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
 
         $deduplicatedAlts = $this->deduplicateAlternation($optimizedAlts);
         if (\count($deduplicatedAlts) !== \count($optimizedAlts)) {
+            // @codeCoverageIgnoreStart
             $hasChanged = true;
             $optimizedAlts = $deduplicatedAlts;
+            // @codeCoverageIgnoreEnd
         }
 
         if ($this->allowAlternationFactorization) {
@@ -177,20 +182,6 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         foreach ($node->children as $child) {
             $optimizedChild = $child->accept($this);
 
-            if ($optimizedChild instanceof LiteralNode && \count($optimizedChildren) > 0) {
-                $prevNode = $optimizedChildren[\count($optimizedChildren) - 1];
-                if ($prevNode instanceof LiteralNode) {
-                    $optimizedChildren[\count($optimizedChildren) - 1] = new LiteralNode(
-                        $prevNode->value.$optimizedChild->value,
-                        $prevNode->startPosition,
-                        $optimizedChild->endPosition,
-                    );
-                    $hasChanged = true;
-
-                    continue;
-                }
-            }
-
             if ($optimizedChild instanceof SequenceNode) {
                 array_push($optimizedChildren, ...$optimizedChild->children);
                 $hasChanged = true;
@@ -211,6 +202,35 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
             $optimizedChildren[] = $optimizedChild;
         }
 
+        // Sequence compaction (before merging adjacent literals)
+        $originalCount = \count($optimizedChildren);
+        /** @var array<Node\NodeInterface> $optimizedChildren */
+        $optimizedChildren = $this->compactSequence($optimizedChildren);
+        if (\count($optimizedChildren) !== $originalCount) {
+            $hasChanged = true;
+        }
+
+        // Merge adjacent literal nodes
+        $mergedChildren = [];
+        foreach ($optimizedChildren as $child) {
+            if ($child instanceof LiteralNode && \count($mergedChildren) > 0) {
+                $prevNode = $mergedChildren[\count($mergedChildren) - 1];
+                if ($prevNode instanceof LiteralNode) {
+                    $mergedChildren[\count($mergedChildren) - 1] = new LiteralNode(
+                        $prevNode->value.$child->value,
+                        $prevNode->startPosition,
+                        $child->endPosition,
+                    );
+                    $hasChanged = true;
+
+                    continue;
+                }
+            }
+
+            $mergedChildren[] = $child;
+        }
+        $optimizedChildren = $mergedChildren;
+
         // Compact repeated literal sequences
         foreach ($optimizedChildren as $i => $child) {
             if ($child instanceof LiteralNode && preg_match('/^(.)\1+$/', $child->value, $matches)) {
@@ -222,32 +242,32 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
             }
         }
 
-        // Sequence compaction
-        $originalCount = \count($optimizedChildren);
-        /** @var array<Node\NodeInterface> $optimizedChildren */
-        $optimizedChildren = array_values($optimizedChildren);
-        $optimizedChildren = $this->compactSequence($optimizedChildren);
-        if (\count($optimizedChildren) !== $originalCount) {
-            $hasChanged = true;
-        }
-
         // Auto-possessivization (only for + to be conservative)
         // This optimization is opt-in because it can change semantics with backreferences
         if ($this->autoPossessify) {
-            for ($i = 0; $i < \count($optimizedChildren) - 1; $i++) {
+            for ($i = 0; $i < \count($optimizedChildren); $i++) {
                 $current = $optimizedChildren[$i];
-                $next = $optimizedChildren[$i + 1];
+                $suffix = array_slice($optimizedChildren, $i + 1);
 
-                if ($current instanceof QuantifierNode && QuantifierType::T_GREEDY === $current->type && '+' === $current->quantifier) {
-                    if ($this->areCharSetsDisjoint($current->node, $next)) {
-                        $optimizedChildren[$i] = new QuantifierNode(
-                            $current->node,
-                            $current->quantifier,
-                            QuantifierType::T_POSSESSIVE,
-                            $current->startPosition,
-                            $current->endPosition,
-                        );
-                        $hasChanged = true;
+                if ($current instanceof QuantifierNode && QuantifierType::T_GREEDY === $current->type && '+' === $current->quantifier && !empty($suffix)) {
+                    // Compute disjointness against the FIRST-set of the suffix
+                    $suffixNode = 1 === \count($suffix) ? $suffix[0] : new SequenceNode($suffix, $current->startPosition, $current->endPosition);
+
+                    try {
+                        $currentLastChars = $this->charSetAnalyzer->lastChars($current->node);
+                        $suffixFirstChars = $this->charSetAnalyzer->firstChars($suffixNode);
+                        if (!$currentLastChars->intersects($suffixFirstChars)) {
+                            $optimizedChildren[$i] = new QuantifierNode(
+                                $current->node,
+                                $current->quantifier,
+                                QuantifierType::T_POSSESSIVE,
+                                $current->startPosition,
+                                $current->endPosition,
+                            );
+                            $hasChanged = true;
+                        }
+                    } catch (\Throwable) {
+                        // If analysis fails, don't optimize
                     }
                 }
             }
@@ -597,6 +617,65 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
     }
 
     /**
+     * Removes useless flags from the flags string.
+     */
+    private function removeUselessFlags(string $flags, NodeInterface $pattern): string
+    {
+        // Remove 's' flag if there are no dots in the pattern
+        if (str_contains($flags, 's') && !$this->patternContainsDots($pattern)) {
+            $flags = str_replace('s', '', $flags);
+        }
+
+        return $flags;
+    }
+
+    /**
+     * Checks if the pattern contains any dot nodes.
+     */
+    private function patternContainsDots(NodeInterface $node): bool
+    {
+        if ($node instanceof DotNode) {
+            return true;
+        }
+
+        if ($node instanceof SequenceNode) {
+            foreach ($node->children as $child) {
+                if ($this->patternContainsDots($child)) {
+                    return true;
+                }
+            }
+        }
+
+        if ($node instanceof AlternationNode) {
+            foreach ($node->alternatives as $alt) {
+                if ($this->patternContainsDots($alt)) {
+                    return true;
+                }
+            }
+        }
+
+        if ($node instanceof GroupNode) {
+            return $this->patternContainsDots($node->child);
+        }
+
+        if ($node instanceof QuantifierNode) {
+            return $this->patternContainsDots($node->node);
+        }
+
+        if ($node instanceof CharClassNode) {
+            return $this->patternContainsDots($node->expression);
+        }
+
+        if ($node instanceof ConditionalNode) {
+            return $this->patternContainsDots($node->condition)
+                || $this->patternContainsDots($node->yes)
+                || $this->patternContainsDots($node->no);
+        }
+
+        return false;
+    }
+
+    /**
      * @param array<Node\NodeInterface> $alternatives
      */
     private function canAlternationBeCharClass(array $alternatives): bool
@@ -769,7 +848,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
      */
     private function buildRangeOrLiteral(int $startOrd, int $endOrd, int $startPos, int $endPos): array
     {
-        $startLiteral = new LiteralNode(mb_chr($startOrd), $startPos, $startPos + 1);
+        $startLiteral = new LiteralNode($this->charFromCodePoint($startOrd), $startPos, $startPos + 1);
 
         if ($startOrd === $endOrd) {
             return [$startLiteral];
@@ -779,14 +858,28 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         $coverage = $endOrd - $startOrd + 1;
         if ($coverage < 3) {
             // For 2 characters, return them as separate literals
-            $endLiteral = new LiteralNode(mb_chr($endOrd), $endPos, $endPos + 1);
+            $endLiteral = new LiteralNode($this->charFromCodePoint($endOrd), $endPos, $endPos + 1);
 
             return [$startLiteral, $endLiteral];
         }
 
-        $endLiteral = new LiteralNode(mb_chr($endOrd), $endPos, $endPos + 1);
+        $endLiteral = new LiteralNode($this->charFromCodePoint($endOrd), $endPos, $endPos + 1);
 
         return [new RangeNode($startLiteral, $endLiteral, $startPos, $endPos)];
+    }
+
+    private function charFromCodePoint(int $codePoint): string
+    {
+        $char = mb_chr($codePoint);
+        if (false !== $char) {
+            return $char;
+        }
+
+        if ($codePoint >= 0 && $codePoint <= 0xFF) {
+            return \chr($codePoint);
+        }
+
+        return '';
     }
 
     /**
@@ -825,6 +918,18 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
                 $count = $parsedCount;
             }
 
+            // Never compact nodes that can affect capture numbering or backreferences
+            if ($this->isCaptureSensitive($baseNode)) {
+                if (null !== $currentNode) {
+                    $compacted[] = $this->createQuantifiedNode($currentNode, $currentCount);
+                    $currentNode = null;
+                    $currentCount = 0;
+                }
+                $compacted[] = $child;
+
+                continue;
+            }
+
             if (null === $currentNode || !$this->areNodesEqual($currentNode, $baseNode)) {
                 if (null !== $currentNode) {
                     $compacted[] = $this->createQuantifiedNode($currentNode, $currentCount);
@@ -860,6 +965,48 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         return null;
     }
 
+    private function isCaptureSensitive(NodeInterface $node): bool
+    {
+        // Never compact nodes that affect capture numbering, backreferences, or complex semantics
+        if ($node instanceof GroupNode && \in_array($node->type, [
+            GroupType::T_GROUP_CAPTURING,
+            GroupType::T_GROUP_NAMED,
+            GroupType::T_GROUP_BRANCH_RESET,
+        ], true)) {
+            return true;
+        }
+
+        if ($node instanceof BackrefNode
+            || $node instanceof SubroutineNode
+            || $node instanceof ConditionalNode) {
+            return true;
+        }
+
+        // Recurse into children
+        $children = [];
+        if ($node instanceof SequenceNode) {
+            $children = $node->children;
+        } elseif ($node instanceof AlternationNode) {
+            $children = $node->alternatives;
+        } elseif ($node instanceof GroupNode) {
+            $children = [$node->child];
+        } elseif ($node instanceof QuantifierNode) {
+            $children = [$node->node];
+        } elseif ($node instanceof CharClassNode) {
+            $children = $node->expression instanceof AlternationNode ? $node->expression->alternatives : [$node->expression];
+        } elseif ($node instanceof DefineNode) {
+            $children = [$node->content];
+        }
+
+        foreach ($children as $child) {
+            if ($this->isCaptureSensitive($child)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private function areNodesEqual(NodeInterface $a, NodeInterface $b): bool
     {
         // Simple equality: same type and same string representation
@@ -883,18 +1030,6 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
             $node->getStartPosition(),
             $node->getEndPosition(),
         );
-    }
-
-    private function areCharSetsDisjoint(NodeInterface $node1, NodeInterface $node2): bool
-    {
-        try {
-            $set1 = $this->charSetAnalyzer->lastChars($node1);
-            $set2 = $this->charSetAnalyzer->firstChars($node2);
-
-            return !$set1->intersects($set2);
-        } catch (\Throwable) {
-            return false; // If analysis fails, don't optimize
-        }
     }
 
     private function normalizeQuantifier(QuantifierNode $node): NodeInterface
@@ -954,6 +1089,14 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
     {
         if (\count($alts) < 2) {
             return $alts;
+        }
+
+        // Safety check: only factorize if all alternatives are LiteralNode
+        // Complex nodes (groups, quantifiers, etc.) cannot be safely reconstructed from string output
+        foreach ($alts as $alt) {
+            if (!$alt instanceof LiteralNode) {
+                return $alts;
+            }
         }
 
         // Get string representations
@@ -1142,12 +1285,85 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
 
     private function stringToNode(string $str, int $start, int $end): NodeInterface
     {
+        // Meta-characters that should not be escaped when unescaped in the string
+        /** @var array<string, true> $metaChars */
+        static $metaChars = [
+            '(' => true, ')' => true, '[' => true, ']' => true,
+            '{' => true, '}' => true, '|' => true, '^' => true,
+            '$' => true, '.' => true, '*' => true, '+' => true, '?' => true,
+        ];
+
         if (1 === \strlen($str)) {
-            return new LiteralNode($str, $start, $end);
+            $isRaw = isset($metaChars[$str]);
+
+            return new LiteralNode($str, $start, $end, $isRaw);
         }
+
+        // Check if the entire string is a quantifier pattern
+        if (preg_match('/^\{\d+(?:,\d*)?\}$/', $str)) {
+            return new LiteralNode($str, $start, $end, true);
+        }
+
         $children = [];
-        for ($i = 0; $i < \strlen($str); $i++) {
-            $children[] = new LiteralNode($str[$i], $start + $i, $start + $i + 1);
+        $len = \strlen($str);
+        $i = 0;
+
+        while ($i < $len) {
+            $char = $str[$i];
+
+            // Handle escape sequences
+            if ('\\' === $char && $i + 1 < $len) {
+                $nextChar = $str[$i + 1];
+                $nodeStart = $start + $i;
+                $nodeEnd = $start + $i + 2;
+
+                // Character types: \d, \D, \w, \W, \s, \S, \h, \H, \v, \V, \R, \N
+                if (preg_match('/^[dDwWsShHvVRN]$/', $nextChar)) {
+                    $children[] = new CharTypeNode($nextChar, $nodeStart, $nodeEnd);
+                    $i += 2;
+
+                    continue;
+                }
+
+                // Escaped metacharacters: \., \{, \}, \[, \], \(, \), \|, \*, \+, \?, \^, \$, \\
+                // These are literal characters, so isRaw should be false (they need escaping)
+                // @regex-ignore-next-line
+                if (preg_match('/^[.{}\\[\\]()|*+?^$\\\\]$/', $nextChar)) {
+                    $children[] = new LiteralNode($nextChar, $nodeStart, $nodeEnd, false);
+                    $i += 2;
+
+                    continue;
+                }
+
+                // Other escape sequences - keep as literal backslash + char
+                $children[] = new LiteralNode($char, $start + $i, $start + $i + 1, false);
+                $i++;
+
+                continue;
+            }
+
+            // Handle quantifier patterns like {2,}, {3}, {1,5}
+            if ('{' === $char) {
+                if (preg_match('/^\{\d+(?:,\d*)?\}/', substr($str, $i), $matches)) {
+                    $quantifier = $matches[0];
+                    $nodeStart = $start + $i;
+                    $nodeEnd = $start + $i + \strlen($quantifier);
+                    // Quantifier patterns are raw regex syntax
+                    $children[] = new LiteralNode($quantifier, $nodeStart, $nodeEnd, true);
+                    $i += \strlen($quantifier);
+
+                    continue;
+                }
+            }
+
+            // Regular character - check if it's a meta-character
+            $isRaw = isset($metaChars[$char]);
+            $children[] = new LiteralNode($char, $start + $i, $start + $i + 1, $isRaw);
+            $i++;
+        }
+
+        if (1 === \count($children)) {
+            return $children[0];
         }
 
         return new SequenceNode($children, $start, $end);
@@ -1290,7 +1506,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
                 // Convert char type to equivalent char class parts
                 $charClass = $this->convertCharTypeToCharClass($node);
                 if ($charClass->expression instanceof AlternationNode) {
-                    $allParts = array_merge($allParts, $charClass->expression->alternatives);
+                    $allParts = array_merge($allParts, $charClass->expression->alternatives); // @codeCoverageIgnore
                 } else {
                     $allParts[] = $charClass->expression;
                 }

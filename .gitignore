@@ -30,3 +30,7 @@
 /phpunit.xml
 /phpstan.neon
 /.php-cs-fixer.php
+
+/corpus/*
+!/corpus/
+!/corpus/.gitkeep

@@ -20,25 +20,73 @@ use RegexParser\ReDoS\ReDoSSeverity;
 
 final class ReDoSHeatmapTest extends TestCase
 {
-    public function test_heatmap_preserves_body_text(): void
+    public function test_highlight_returns_green_body_for_empty_hotspots(): void
     {
         $heatmap = new ReDoSHeatmap();
-        $hotspot = new ReDoSHotspot(0, 2, ReDoSSeverity::HIGH, 'a+');
 
-        $rendered = $heatmap->highlight('a+b', [$hotspot], true);
-        $stripped = preg_replace('/\e\[[0-9;]*m/', '', $rendered);
+        $output = $heatmap->highlight('abc', [], true);
 
-        $this->assertSame('a+b', $stripped);
-        $this->assertStringContainsString("\033[", $rendered);
+        $this->assertStringContainsString('abc', $output);
     }
 
-    public function test_heatmap_returns_plain_when_ansi_disabled(): void
+    public function test_highlight_skips_invalid_and_empty_hotspots(): void
     {
         $heatmap = new ReDoSHeatmap();
-        $hotspot = new ReDoSHotspot(0, 2, ReDoSSeverity::HIGH, 'a+');
+        $hotspots = [
+            new ReDoSHotspot(2, 2, ReDoSSeverity::LOW, 'a', null),
+        ];
 
-        $rendered = $heatmap->highlight('a+b', [$hotspot], false);
+        $output = $heatmap->highlight('abc', $hotspots, true);
 
-        $this->assertSame('a+b', $rendered);
+        $this->assertStringContainsString('abc', $output);
+    }
+
+    public function test_highlight_returns_empty_body_when_hotspots_present(): void
+    {
+        $heatmap = new ReDoSHeatmap();
+        $hotspots = [
+            new ReDoSHotspot(0, 1, ReDoSSeverity::LOW, 'a', null),
+        ];
+
+        $output = $heatmap->highlight('', $hotspots, true);
+
+        $this->assertSame('', $output);
+    }
+
+    public function test_highlight_uses_red_for_high_severity(): void
+    {
+        $heatmap = new ReDoSHeatmap();
+        $hotspots = [
+            new ReDoSHotspot(0, 1, ReDoSSeverity::HIGH, 'a', null),
+        ];
+
+        $output = $heatmap->highlight('abc', $hotspots, true);
+
+        $this->assertStringContainsString("\033[31m", $output);
+    }
+
+    public function test_highlight_skips_non_redos_hotspot(): void
+    {
+        $heatmap = new ReDoSHeatmap();
+        $hotspots = [
+            'invalid',
+            new ReDoSHotspot(0, 1, ReDoSSeverity::LOW, 'a', null),
+        ];
+
+        $output = $heatmap->highlight('abc', $hotspots, true);
+
+        $this->assertStringContainsString('a', $output);
+        $this->assertStringContainsString('b', $output);
+        $this->assertStringContainsString('c', $output);
+    }
+
+    public function test_color_for_level_default(): void
+    {
+        $heatmap = new ReDoSHeatmap();
+        $ref = new \ReflectionClass($heatmap);
+        $method = $ref->getMethod('colorForLevel');
+        $color = $method->invoke($heatmap, 5);
+
+        $this->assertSame("\033[90m", $color);
     }
 }

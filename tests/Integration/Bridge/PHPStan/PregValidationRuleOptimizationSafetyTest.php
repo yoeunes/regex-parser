@@ -35,38 +35,47 @@ final class PregValidationRuleOptimizationSafetyTest extends TestCase
 
     public function test_rejects_effectively_empty_patterns(): void
     {
-        $this->assertFalse($this->rule->isOptimizationSafe('/abc/', '##'));
-        $this->assertFalse($this->rule->isOptimizationSafe('/abc/i', '//i'));
-        $this->assertFalse($this->rule->isOptimizationSafe('#test#', '##'));
+        $this->assertFalse($this->rule->isOptimizationFormatSafe('/abc/', '##'));
+        $this->assertFalse($this->rule->isOptimizationFormatSafe('/abc/i', '//i'));
+        $this->assertFalse($this->rule->isOptimizationFormatSafe('#test#', '##'));
     }
 
     public function test_rejects_broken_anchors(): void
     {
-        $this->assertFalse($this->rule->isOptimizationSafe('/abc$/', '$/'));
-        $this->assertFalse($this->rule->isOptimizationSafe('/^abc/', '/^/'));
+        $this->assertFalse($this->rule->isOptimizationFormatSafe('/abc$/', '$/'));
+        $this->assertFalse($this->rule->isOptimizationFormatSafe('/^abc/', '/^/'));
     }
 
     public function test_rejects_patterns_removing_newlines(): void
     {
-        $this->assertFalse($this->rule->isOptimizationSafe('/\r?\n/', '/\r?/'));
-        $this->assertFalse($this->rule->isOptimizationSafe('/-- (.+)\n/', '/-- (.+) /'));
+        $this->assertFalse($this->rule->isOptimizationFormatSafe('/\r?\n/', '/\r?/'));
+        $this->assertFalse($this->rule->isOptimizationFormatSafe('/-- (.+)\n/', '/-- (.+) /'));
     }
 
     public function test_rejects_drastic_length_reduction(): void
     {
-        $this->assertFalse($this->rule->isOptimizationSafe('/abcd/', '/a/'));
-        $this->assertFalse($this->rule->isOptimizationSafe('#longpattern#', '#x#'));
+        $this->assertFalse($this->rule->isOptimizationFormatSafe('/abcd/', '/a/'));
+        $this->assertFalse($this->rule->isOptimizationFormatSafe('#longpattern#', '#x#'));
     }
 
     public function test_accepts_valid_optimizations(): void
     {
-        $this->assertTrue($this->rule->isOptimizationSafe('/[0-9]+/', '/\d+/'));
-        $this->assertTrue($this->rule->isOptimizationSafe('/abc/', '/abc/')); // Same
-        $this->assertTrue($this->rule->isOptimizationSafe('/a+/', '/a+/')); // Not shorter
+        $this->assertTrue($this->rule->isOptimizationFormatSafe('/[0-9]+/', '/\d+/'));
+        $this->assertTrue($this->rule->isOptimizationFormatSafe('/abc/', '/abc/')); // Same
+        $this->assertTrue($this->rule->isOptimizationFormatSafe('/a+/', '/a+/')); // Not shorter
     }
 
     public function test_accepts_short_patterns_if_original_is_short(): void
     {
-        $this->assertFalse($this->rule->isOptimizationSafe('/ab/', '/a/'));
+        $this->assertFalse($this->rule->isOptimizationFormatSafe('/ab/', '/a/'));
+    }
+
+    /**
+     * Test that optimization safety checks are format-based, not semantic.
+     */
+    public function test_optimization_safety_is_format_based(): void
+    {
+        // This should pass format checks even if semantically unsafe (length preserved, no newlines removed)
+        $this->assertTrue($this->rule->isOptimizationFormatSafe('/(a)(a)/', '/(a){2}/'));
     }
 }

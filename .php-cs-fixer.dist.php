@@ -39,6 +39,7 @@ return (new PhpCsFixer\Config())
     ->registerCustomFixers(new PhpCsFixerCustomFixers\Fixers())
     ->setRiskyAllowed(true)
     ->setRules([
+        'psr_autoloading' => true,
         '@PHP8x2Migration' => true,
         '@PHP8x2Migration:risky' => true,
         '@PSR12' => true,
@@ -74,7 +75,7 @@ return (new PhpCsFixer\Config())
         'modernize_strpos' => false,
         'modernize_types_casting' => true,
         'native_constant_invocation' => ['strict' => false],
-        'native_function_invocation' => true,
+        'native_function_invocation' => false,
         'no_alias_functions' => true,
         'no_superfluous_phpdoc_tags' => true,
         'no_unreachable_default_argument_value' => true,
@@ -218,7 +219,6 @@ return (new PhpCsFixer\Config())
         'phpdoc_no_useless_inheritdoc' => true,
         'phpdoc_trim' => true,
         'phpdoc_types' => true,
-        'psr_autoloading' => false,
         'return_type_declaration' => ['space_before' => 'none'],
         'self_accessor' => false,
         'self_static_accessor' => true,

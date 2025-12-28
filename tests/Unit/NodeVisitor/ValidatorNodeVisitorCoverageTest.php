@@ -1,0 +1,654 @@
+<?php
+
+declare(strict_types=1);
+
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+namespace RegexParser\NodeVisitor;
+
+if (!\function_exists(__NAMESPACE__.'\\str_starts_with')) {
+    function str_starts_with(string $haystack, string $needle): bool
+    {
+        $queue = $GLOBALS['__nodevisitor_str_starts_with_queue'] ?? [];
+        if (\is_array($queue) && [] !== $queue) {
+            $next = array_shift($queue);
+            $GLOBALS['__nodevisitor_str_starts_with_queue'] = $queue;
+
+            return (bool) $next;
+        }
+
+        return \str_starts_with($haystack, $needle);
+    }
+}
+
+if (!\function_exists(__NAMESPACE__.'\\str_ends_with')) {
+    function str_ends_with(string $haystack, string $needle): bool
+    {
+        $queue = $GLOBALS['__nodevisitor_str_ends_with_queue'] ?? [];
+        if (\is_array($queue) && [] !== $queue) {
+            $next = array_shift($queue);
+            $GLOBALS['__nodevisitor_str_ends_with_queue'] = $queue;
+
+            return (bool) $next;
+        }
+
+        return \str_ends_with($haystack, $needle);
+    }
+}
+
+namespace RegexParser\Tests\Unit\NodeVisitor;
+
+use PHPUnit\Framework\TestCase;
+use RegexParser\Exception\ParserException;
+use RegexParser\Exception\SemanticErrorException;
+use RegexParser\GroupNumbering;
+use RegexParser\Node\AlternationNode;
+use RegexParser\Node\AssertionNode;
+use RegexParser\Node\BackrefNode;
+use RegexParser\Node\CharClassNode;
+use RegexParser\Node\CharLiteralNode;
+use RegexParser\Node\CharLiteralType;
+use RegexParser\Node\CharTypeNode;
+use RegexParser\Node\ClassOperationNode;
+use RegexParser\Node\ClassOperationType;
+use RegexParser\Node\ConditionalNode;
+use RegexParser\Node\ControlCharNode;
+use RegexParser\Node\DefineNode;
+use RegexParser\Node\DotNode;
+use RegexParser\Node\GroupNode;
+use RegexParser\Node\GroupType;
+use RegexParser\Node\LimitMatchNode;
+use RegexParser\Node\LiteralNode;
+use RegexParser\Node\PcreVerbNode;
+use RegexParser\Node\QuantifierNode;
+use RegexParser\Node\QuantifierType;
+use RegexParser\Node\RangeNode;
+use RegexParser\Node\SequenceNode;
+use RegexParser\Node\SubroutineNode;
+use RegexParser\Node\UnicodeNode;
+use RegexParser\Node\UnicodePropNode;
+use RegexParser\NodeVisitor\ValidatorNodeVisitor;
+use RegexParser\Regex;
+
+final class ValidatorNodeVisitorCoverageTest extends TestCase
+{
+    protected function tearDown(): void
+    {
+        unset($GLOBALS['__nodevisitor_str_starts_with_queue'], $GLOBALS['__nodevisitor_str_ends_with_queue']);
+    }
+
+    public function test_clear_caches_resets_static_state(): void
+    {
+        $ref = new \ReflectionClass(ValidatorNodeVisitor::class);
+
+        $unicodePropCache = $ref->getProperty('unicodePropCache');
+        $unicodePropCache->setValue(['p{X}' => true]);
+
+        $quantifierBoundsCache = $ref->getProperty('quantifierBoundsCache');
+        $quantifierBoundsCache->setValue(['{1,2}' => [1, 2]]);
+
+        ValidatorNodeVisitor::clearCaches();
+
+        $this->assertSame([], $unicodePropCache->getValue());
+        $this->assertSame([], $quantifierBoundsCache->getValue());
+    }
+
+    public function test_invalid_assertion_raises_error(): void
+    {
+        $validator = new ValidatorNodeVisitor();
+        $node = new AssertionNode('X', 0, 0);
+
+        $this->expectException(SemanticErrorException::class);
+        $this->expectExceptionMessage('Invalid assertion');
+
+        $node->accept($validator);
+    }
+
+    public function test_range_invalid_start_length(): void
+    {
+        $validator = new ValidatorNodeVisitor();
+        $range = new RangeNode(new LiteralNode('ab', 0, 0), new LiteralNode('c', 0, 0), 0, 0);
+
+        $this->expectException(SemanticErrorException::class);
+        $this->expectExceptionMessage('start char must be a single character');
+
+        $range->accept($validator);
+    }
+
+    public function test_range_invalid_end_length(): void
+    {
+        $validator = new ValidatorNodeVisitor();
+        $range = new RangeNode(new LiteralNode('a', 0, 0), new LiteralNode('bc', 0, 0), 0, 0);
+
+        $this->expectException(SemanticErrorException::class);
+        $this->expectExceptionMessage('end char must be a single character');
+
+        $range->accept($validator);
+    }
+
+    public function test_backref_zero_variants_are_rejected(): void
+    {
+        $validator = new ValidatorNodeVisitor();
+
+        $this->expectException(SemanticErrorException::class);
+        $this->expectExceptionMessage('Backreference \\0 is not valid.');
+        (new BackrefNode('\\0', 0, 0))->accept($validator);
+    }
+
+    public function test_backref_zero_without_slash_is_rejected(): void
+    {
+        $validator = new ValidatorNodeVisitor();
+
+        $this->expectException(SemanticErrorException::class);
+        $this->expectExceptionMessage('Backreference 0 is not valid.');
+        (new BackrefNode('0', 0, 0))->accept($validator);
+    }
+
+    public function test_backref_missing_named_group_is_rejected(): void
+    {
+        $validator = new ValidatorNodeVisitor();
+
+        $this->expectException(SemanticErrorException::class);
+        $this->expectExceptionMessage('non-existent named group');
+        (new BackrefNode('\\k<missing>', 0, 0))->accept($validator);
+    }
+
+    public function test_backref_bare_name_missing_group_is_rejected(): void
+    {
+        $validator = new ValidatorNodeVisitor();
+
+        $this->expectException(SemanticErrorException::class);
+        $this->expectExceptionMessage('non-existent named group');
+        (new BackrefNode('missing', 0, 0))->accept($validator);
+    }
+
+    public function test_backref_missing_group_is_rejected(): void
+    {
+        $validator = new ValidatorNodeVisitor();
+
+        $this->expectException(SemanticErrorException::class);
+        $this->expectExceptionMessage('non-existent group');
+        (new BackrefNode('\\g{2}', 0, 0))->accept($validator);
+    }
+
+    public function test_backref_relative_zero_is_rejected(): void
+    {
+        $validator = new ValidatorNodeVisitor();
+        $method = (new \ReflectionClass($validator))->getMethod('assertRelativeReferenceExists');
+
+        $this->expectException(SemanticErrorException::class);
+        $this->expectExceptionMessage('relative reference cannot be zero');
+
+        $method->invoke($validator, 0, 0, 'regex.backref.relative', 'Backreference');
+    }
+
+    public function test_valid_backref_returns_cleanly(): void
+    {
+        $regex = Regex::create();
+        $result = $regex->validate('/(a)\\g{1}/');
+
+        $this->assertTrue($result->isValid);
+    }
+
+    public function test_unicode_node_out_of_range_is_rejected(): void
+    {
+        $validator = new ValidatorNodeVisitor();
+        $node = new UnicodeNode('\\u{110000}', 0, 0);
+
+        $this->expectException(SemanticErrorException::class);
+        $this->expectExceptionMessage('out of range');
+
+        $node->accept($validator);
+    }
+
+    public function test_unicode_node_hex_escape_is_accepted(): void
+    {
+        $validator = new ValidatorNodeVisitor();
+
+        $node = new UnicodeNode('\\xFF', 0, 0);
+        $node->accept($validator);
+        $this->expectNotToPerformAssertions();
+    }
+
+    public function test_unicode_property_invalid_includes_suggestion(): void
+    {
+        $validator = new ValidatorNodeVisitor();
+        $ref = new \ReflectionClass(ValidatorNodeVisitor::class);
+        $unicodePropCache = $ref->getProperty('unicodePropCache');
+        $unicodePropCache->setValue(['p{Letter}' => false]);
+
+        $node = new UnicodePropNode('Letter', false, 0, 0);
+
+        $this->expectException(SemanticErrorException::class);
+        $this->expectExceptionMessage('Invalid or unsupported Unicode property');
+
+        $node->accept($validator);
+    }
+
+    public function test_unicode_property_invalid_includes_named_suggestion(): void
+    {
+        $validator = new ValidatorNodeVisitor();
+        $ref = new \ReflectionClass(ValidatorNodeVisitor::class);
+        $unicodePropCache = $ref->getProperty('unicodePropCache');
+        $unicodePropCache->setValue(['pp{Letter}' => false]);
+
+        $GLOBALS['__nodevisitor_str_starts_with_queue'] = [true];
+
+        $node = new UnicodePropNode('p{Letter}', true, 0, 0);
+
+        $this->expectException(SemanticErrorException::class);
+        $this->expectExceptionMessage('Did you mean');
+
+        $node->accept($validator);
+    }
+
+    public function test_unicode_property_cache_eviction_runs(): void
+    {
+        $validator = new ValidatorNodeVisitor();
+        $ref = new \ReflectionClass(ValidatorNodeVisitor::class);
+        $unicodePropCache = $ref->getProperty('unicodePropCache');
+        $cache = [];
+        for ($i = 0; $i < 1000; $i++) {
+            $cache['p{X'.$i.'}'] = true;
+        }
+        $unicodePropCache->setValue($cache);
+
+        $node = new UnicodePropNode('Z', true, 0, 0);
+        $node->accept($validator);
+
+        $this->assertNotEmpty($unicodePropCache->getValue());
+    }
+
+    public function test_control_char_out_of_range_is_rejected(): void
+    {
+        $validator = new ValidatorNodeVisitor();
+        $node = new ControlCharNode('A', 0x1FF, 0, 0);
+
+        $this->expectException(SemanticErrorException::class);
+        $this->expectExceptionMessage('Invalid control character');
+
+        $node->accept($validator);
+    }
+
+    public function test_invalid_conditional_is_rejected(): void
+    {
+        $validator = new ValidatorNodeVisitor();
+        $node = new ConditionalNode(
+            new LiteralNode('a', 0, 0),
+            new LiteralNode('b', 0, 0),
+            new LiteralNode('c', 0, 0),
+            0,
+            0,
+        );
+
+        $this->expectException(SemanticErrorException::class);
+        $this->expectExceptionMessage('Invalid conditional construct');
+
+        $node->accept($validator);
+    }
+
+    public function test_conditional_accepts_lookaround_condition(): void
+    {
+        $validator = new ValidatorNodeVisitor();
+        $lookahead = new GroupNode(new LiteralNode('a', 0, 0), GroupType::T_GROUP_LOOKAHEAD_POSITIVE, null, null, 0, 0);
+        $node = new ConditionalNode(
+            $lookahead,
+            new LiteralNode('b', 0, 0),
+            new LiteralNode('c', 0, 0),
+            0,
+            0,
+        );
+
+        $node->accept($validator);
+        $this->expectNotToPerformAssertions();
+    }
+
+    public function test_conditional_accepts_define_condition(): void
+    {
+        $validator = new ValidatorNodeVisitor();
+        $defineAssertion = new AssertionNode('DEFINE', 0, 0);
+        $node = new ConditionalNode(
+            $defineAssertion,
+            new LiteralNode('b', 0, 0),
+            new LiteralNode('c', 0, 0),
+            0,
+            0,
+        );
+
+        $this->expectException(SemanticErrorException::class);
+        $node->accept($validator);
+    }
+
+    public function test_conditional_subroutine_branch_hits_reference_check(): void
+    {
+        $validator = new ValidatorNodeVisitor();
+        $node = new ConditionalNode(
+            new SubroutineNode('R-1', 'R-1', 0, 0),
+            new LiteralNode('b', 0, 0),
+            new LiteralNode('c', 0, 0),
+            0,
+            0,
+        );
+
+        $this->expectException(SemanticErrorException::class);
+        $node->accept($validator);
+    }
+
+    public function test_conditional_subroutine_accepts_numeric_reference(): void
+    {
+        $validator = new ValidatorNodeVisitor();
+        $node = new ConditionalNode(
+            new SubroutineNode('1', '1', 0, 0),
+            new LiteralNode('b', 0, 0),
+            new LiteralNode('c', 0, 0),
+            0,
+            0,
+        );
+
+        $this->expectException(SemanticErrorException::class);
+        $node->accept($validator);
+    }
+
+    public function test_subroutine_reference_variants_hit_branches(): void
+    {
+        $validator = new ValidatorNodeVisitor();
+
+        (new SubroutineNode('R', 'R', 0, 0))->accept($validator);
+
+        $this->expectException(SemanticErrorException::class);
+        (new SubroutineNode('R1', 'R1', 0, 0))->accept($validator);
+    }
+
+    public function test_subroutine_empty_recursion_reference_returns(): void
+    {
+        $validator = new ValidatorNodeVisitor();
+
+        $GLOBALS['__nodevisitor_str_starts_with_queue'] = [true];
+
+        (new SubroutineNode('', '', 0, 0))->accept($validator);
+        $this->expectNotToPerformAssertions();
+    }
+
+    public function test_subroutine_absolute_recursion_reference_returns(): void
+    {
+        $validator = new ValidatorNodeVisitor();
+        $this->setPrivateProperty($validator, 'groupNumbering', new GroupNumbering(1, [1], []));
+
+        (new SubroutineNode('R1', 'R1', 0, 0))->accept($validator);
+        $this->expectNotToPerformAssertions();
+    }
+
+    public function test_subroutine_relative_recursion_reference_returns(): void
+    {
+        $validator = new ValidatorNodeVisitor();
+        $this->setPrivateProperty($validator, 'groupNumbering', new GroupNumbering(1, [1], []));
+        $this->setPrivateProperty($validator, 'captureSequence', [1]);
+        $this->setPrivateProperty($validator, 'captureIndex', 1);
+
+        (new SubroutineNode('R-1', 'R-1', 0, 0))->accept($validator);
+        $this->expectNotToPerformAssertions();
+    }
+
+    public function test_subroutine_relative_reference_hits_branch(): void
+    {
+        $validator = new ValidatorNodeVisitor();
+
+        $this->expectException(SemanticErrorException::class);
+        (new SubroutineNode('R-1', 'R-1', 0, 0))->accept($validator);
+    }
+
+    public function test_subroutine_zero_reference_returns(): void
+    {
+        $validator = new ValidatorNodeVisitor();
+        (new SubroutineNode('0', '0', 0, 0))->accept($validator);
+        $this->expectNotToPerformAssertions();
+    }
+
+    public function test_subroutine_negative_zero_reference_returns(): void
+    {
+        $validator = new ValidatorNodeVisitor();
+        (new SubroutineNode('-0', '-0', 0, 0))->accept($validator);
+        $this->expectNotToPerformAssertions();
+    }
+
+    public function test_pcre_verb_updates_lookbehind_limit(): void
+    {
+        $validator = new ValidatorNodeVisitor();
+        $verb = new PcreVerbNode('LIMIT_LOOKBEHIND=12', 0, 0);
+
+        $verb->accept($validator);
+
+        $property = (new \ReflectionClass($validator))->getProperty('lookbehindLimit');
+        $this->assertSame(12, $property->getValue($validator));
+    }
+
+    public function test_define_and_limit_match_nodes_are_noops(): void
+    {
+        $validator = new ValidatorNodeVisitor();
+        $define = new DefineNode(new LiteralNode('a', 0, 0), 0, 0);
+        $limit = new LimitMatchNode(10, 0, 0);
+
+        $define->accept($validator);
+        $limit->accept($validator);
+        $this->expectNotToPerformAssertions();
+    }
+
+    public function test_octal_legacy_out_of_range_is_rejected(): void
+    {
+        $validator = new ValidatorNodeVisitor();
+        $node = new CharLiteralNode('\\777', 0x200, CharLiteralType::OCTAL_LEGACY, 0, 0);
+
+        $this->expectException(SemanticErrorException::class);
+        $this->expectExceptionMessage('Invalid legacy octal codepoint');
+
+        $node->accept($validator);
+    }
+
+    public function test_unicode_named_invalid_format_throws_parser_exception(): void
+    {
+        $validator = new ValidatorNodeVisitor();
+        $node = new CharLiteralNode('\\N{', 0, CharLiteralType::UNICODE_NAMED, 0, 0);
+
+        $this->expectException(ParserException::class);
+        $node->accept($validator);
+    }
+
+    public function test_calculate_fixed_length_helpers(): void
+    {
+        $validator = new ValidatorNodeVisitor();
+        $method = (new \ReflectionClass($validator))->getMethod('calculateFixedLength');
+
+        $this->assertSame(1, $method->invoke($validator, new LiteralNode('a', 0, 0)));
+        $this->assertSame(1, $method->invoke($validator, new CharTypeNode('d', 0, 0)));
+        $this->assertSame(1, $method->invoke($validator, new DotNode(0, 0)));
+        $this->assertSame(0, $method->invoke($validator, new AssertionNode('A', 0, 0)));
+
+        $sequence = new SequenceNode([new LiteralNode('a', 0, 0), new LiteralNode('b', 0, 0)], 0, 0);
+        $this->assertSame(2, $method->invoke($validator, $sequence));
+
+        $group = new GroupNode(new LiteralNode('a', 0, 0), GroupType::T_GROUP_CAPTURING, null, null, 0, 0);
+        $this->assertSame(1, $method->invoke($validator, $group));
+
+        $quantifier = new QuantifierNode(new LiteralNode('a', 0, 0), '{2}', QuantifierType::T_GREEDY, 0, 0);
+        $this->assertSame(2, $method->invoke($validator, $quantifier));
+
+        $charClass = new CharClassNode(new LiteralNode('a', 0, 0), false, 0, 0);
+        $this->assertSame(1, $method->invoke($validator, $charClass));
+
+        $alternation = new AlternationNode([
+            new LiteralNode('a', 0, 0),
+            new LiteralNode('b', 0, 0),
+        ], 0, 0);
+        $this->assertNull($method->invoke($validator, $alternation));
+    }
+
+    public function test_calculate_sequence_length_variable_returns_null(): void
+    {
+        $validator = new ValidatorNodeVisitor();
+        $method = (new \ReflectionClass($validator))->getMethod('calculateSequenceLength');
+
+        $sequence = new SequenceNode([
+            new LiteralNode('a', 0, 0),
+            new QuantifierNode(new LiteralNode('b', 0, 0), '*', QuantifierType::T_GREEDY, 0, 0),
+        ], 0, 0);
+
+        $this->assertNull($method->invoke($validator, $sequence));
+    }
+
+    public function test_calculate_quantifier_length_variable_returns_null(): void
+    {
+        $validator = new ValidatorNodeVisitor();
+        $method = (new \ReflectionClass($validator))->getMethod('calculateQuantifierLength');
+
+        $quantifier = new QuantifierNode(new LiteralNode('a', 0, 0), '*', QuantifierType::T_GREEDY, 0, 0);
+        $this->assertNull($method->invoke($validator, $quantifier));
+    }
+
+    public function test_calculate_quantifier_length_child_null_returns_null(): void
+    {
+        $validator = new ValidatorNodeVisitor();
+        $method = (new \ReflectionClass($validator))->getMethod('calculateQuantifierLength');
+
+        $child = new AlternationNode([new LiteralNode('a', 0, 0), new LiteralNode('b', 0, 0)], 0, 0);
+        $quantifier = new QuantifierNode($child, '{2}', QuantifierType::T_GREEDY, 0, 0);
+
+        $this->assertNull($method->invoke($validator, $quantifier));
+    }
+
+    public function test_calculate_quantifier_length_fixed_returns_value(): void
+    {
+        $validator = new ValidatorNodeVisitor();
+        $method = (new \ReflectionClass($validator))->getMethod('calculateQuantifierLength');
+
+        $quantifier = new QuantifierNode(new LiteralNode('a', 0, 0), '{3}', QuantifierType::T_GREEDY, 0, 0);
+        $this->assertSame(3, $method->invoke($validator, $quantifier));
+    }
+
+    public function test_extract_unicode_property_key_handles_wrapped_values(): void
+    {
+        $validator = new ValidatorNodeVisitor();
+        $method = (new \ReflectionClass($validator))->getMethod('extractUnicodePropertyKey');
+
+        $this->assertSame('L', $method->invoke($validator, '\\p{L}'));
+        $this->assertSame('Ll', $method->invoke($validator, '{Ll}'));
+    }
+
+    public function test_quantifier_bounds_cache_eviction_runs(): void
+    {
+        $validator = new ValidatorNodeVisitor();
+        $ref = new \ReflectionClass(ValidatorNodeVisitor::class);
+        $quantifierCache = $ref->getProperty('quantifierBoundsCache');
+        $cache = [];
+        for ($i = 0; $i < 1000; $i++) {
+            $cache['{'.$i.',}'] = [$i, -1];
+        }
+        $quantifierCache->setValue($cache);
+
+        $method = $ref->getMethod('getQuantifierBounds');
+
+        $bounds = $method->invoke($validator, '{2,3}');
+        $this->assertSame([2, 3], $bounds);
+    }
+
+    public function test_extract_lookbehind_limit_from_verb(): void
+    {
+        $validator = new ValidatorNodeVisitor();
+        $method = (new \ReflectionClass($validator))->getMethod('extractLookbehindLimit');
+
+        $limit = $method->invoke($validator, new PcreVerbNode('LIMIT_LOOKBEHIND=5', 0, 0));
+        $this->assertSame(5, $limit);
+    }
+
+    public function test_extract_lookbehind_limit_from_nested_nodes(): void
+    {
+        $validator = new ValidatorNodeVisitor();
+        $method = (new \ReflectionClass($validator))->getMethod('extractLookbehindLimit');
+
+        $verb = new PcreVerbNode('LIMIT_LOOKBEHIND=4', 0, 0);
+        $alt = new AlternationNode([new LiteralNode('a', 0, 0), $verb], 0, 0);
+        $this->assertSame(4, $method->invoke($validator, $alt));
+
+        $define = new DefineNode(new PcreVerbNode('LIMIT_LOOKBEHIND=3', 0, 0), 0, 0);
+        $this->assertSame(3, $method->invoke($validator, $define));
+
+        $classOperation = new ClassOperationNode(
+            ClassOperationType::INTERSECTION,
+            new PcreVerbNode('LIMIT_LOOKBEHIND=2', 0, 0),
+            new LiteralNode('a', 0, 0),
+            0,
+            0,
+        );
+        $this->assertSame(2, $method->invoke($validator, $classOperation));
+    }
+
+    public function test_find_unbounded_lookbehind_node_traverses_branches(): void
+    {
+        $validator = new ValidatorNodeVisitor();
+        $method = (new \ReflectionClass($validator))->getMethod('findUnboundedLookbehindNode');
+
+        $group = new GroupNode(new BackrefNode('1', 0, 0), GroupType::T_GROUP_CAPTURING, null, null, 0, 0);
+        $this->assertInstanceOf(BackrefNode::class, $method->invoke($validator, $group));
+
+        $alternation = new AlternationNode([
+            new LiteralNode('a', 0, 0),
+            new QuantifierNode(new LiteralNode('b', 0, 0), '*', QuantifierType::T_GREEDY, 0, 0),
+        ], 0, 0);
+        $this->assertInstanceOf(QuantifierNode::class, $method->invoke($validator, $alternation));
+
+        $conditional = new ConditionalNode(
+            new LiteralNode('a', 0, 0),
+            new LiteralNode('b', 0, 0),
+            new BackrefNode('1', 0, 0),
+            0,
+            0,
+        );
+        $this->assertInstanceOf(BackrefNode::class, $method->invoke($validator, $conditional));
+
+        $define = new DefineNode(new BackrefNode('1', 0, 0), 0, 0);
+        $this->assertInstanceOf(BackrefNode::class, $method->invoke($validator, $define));
+
+        $classOperation = new ClassOperationNode(
+            ClassOperationType::SUBTRACTION,
+            new BackrefNode('1', 0, 0),
+            new LiteralNode('a', 0, 0),
+            0,
+            0,
+        );
+        $this->assertInstanceOf(BackrefNode::class, $method->invoke($validator, $classOperation));
+
+        $range = new RangeNode(new BackrefNode('1', 0, 0), new LiteralNode('b', 0, 0), 0, 0);
+        $this->assertInstanceOf(BackrefNode::class, $method->invoke($validator, $range));
+    }
+
+    public function test_unbounded_lookbehind_with_backref_has_generic_hint(): void
+    {
+        $regex = Regex::create();
+        $result = $regex->validate('/(a)(?<=\\1)b/');
+
+        $this->assertFalse($result->isValid);
+        $this->assertStringContainsString('bounded maximum length', (string) $result->error);
+    }
+
+    public function test_lookbehind_limit_exceeded(): void
+    {
+        $regex = Regex::create();
+        $result = $regex->validate('/(*LIMIT_LOOKBEHIND=1)(?<=ab)c/');
+
+        $this->assertFalse($result->isValid);
+        $this->assertStringContainsString('Lookbehind exceeds the maximum length', (string) $result->error);
+    }
+
+    private function setPrivateProperty(object $object, string $property, mixed $value): void
+    {
+        $ref = new \ReflectionClass($object);
+        $prop = $ref->getProperty($property);
+        $prop->setValue($object, $value);
+    }
+}

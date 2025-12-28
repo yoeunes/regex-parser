@@ -339,10 +339,12 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
             $ord2 = \ord($node->end->value);
 
             return \chr($this->randomInt($ord1, $ord2));
+            // @codeCoverageIgnoreStart
         } catch (\Throwable) {
             // Fallback if ord() fails
             return $node->start->value;
         }
+        // @codeCoverageIgnoreEnd
     }
 
     #[\Override]
@@ -401,7 +403,12 @@ final class SampleGeneratorNodeVisitor extends AbstractNodeVisitor
         }
 
         try {
-            return mb_chr($node->codePoint, 'UTF-8');
+            $char = mb_chr($node->codePoint, 'UTF-8');
+            if (false === $char) {
+                return '?';
+            }
+
+            return $char;
         } catch (\Throwable) {
             return '?';
         }

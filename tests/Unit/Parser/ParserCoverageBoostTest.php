@@ -15,10 +15,18 @@ namespace RegexParser\Tests\Unit\Parser;
 
 use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
+use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
 use RegexParser\Node\BackrefNode;
+use RegexParser\Node\GroupNode;
+use RegexParser\Node\GroupType;
+use RegexParser\Node\ScriptRunNode;
 use RegexParser\Node\SequenceNode;
+use RegexParser\Parser;
 use RegexParser\Regex;
+use RegexParser\Token;
+use RegexParser\TokenStream;
+use RegexParser\TokenType;
 
 /**
  * Tests to improve code coverage for the Parser class.
@@ -79,6 +87,21 @@ final class ParserCoverageBoostTest extends TestCase
         $backref = $ast->pattern->children[1];
         $this->assertInstanceOf(BackrefNode::class, $backref);
         $this->assertSame('\k<name>', $backref->ref);
+    }
+
+    public function test_pcre_verb_script_run_shortcut(): void
+    {
+        $ast = $this->regexService->parse('/(*sr:payload)/');
+
+        $this->assertTrue($this->containsNode($ast->pattern, ScriptRunNode::class));
+    }
+
+    public function test_python_group_name_rejects_non_literal_token(): void
+    {
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('Unexpected token in group name');
+
+        $this->regexService->parse("/(?P'foo\\d'test)/");
     }
 
     /**
@@ -153,6 +176,39 @@ final class ParserCoverageBoostTest extends TestCase
         $this->regexService->parse('/(?((?<!test))yes|no)/');
     }
 
+    #[DoesNotPerformAssertions]
+    public function test_conditional_non_define_resets_token_stream(): void
+    {
+        $this->regexService->parse('/(?(DEFINEX)yes|no)/');
+    }
+
+    public function test_conditional_version_with_invalid_number_resets_state(): void
+    {
+        $this->expectException(ParserException::class);
+
+        $this->regexService->parse('/(?(VERSION>=1.a)yes|no)/');
+    }
+
+    public function test_conditional_recursion_with_minus_rewinds(): void
+    {
+        $this->expectException(ParserException::class);
+
+        $this->regexService->parse('/(?(R-)yes|no)/');
+    }
+
+    #[DoesNotPerformAssertions]
+    public function test_conditional_lookaround_condition(): void
+    {
+        $this->regexService->parse('/(?(?=a)yes|no)/');
+    }
+
+    public function test_conditional_bare_name_rewinds_when_not_closed(): void
+    {
+        $this->expectException(ParserException::class);
+
+        $this->regexService->parse('/(?(foo+)yes|no)/');
+    }
+
     /**
      * Test conditional without else branch.
      */
@@ -178,6 +234,13 @@ final class ParserCoverageBoostTest extends TestCase
     public function test_subroutine_call_relative(): void
     {
         $this->regexService->parse('/(test)(?-1)/');
+    }
+
+    public function test_numeric_subroutine_rewinds_on_invalid_suffix(): void
+    {
+        $this->expectException(ParserException::class);
+
+        $this->regexService->parse('/(?1a)/');
     }
 
     /**
@@ -645,5 +708,71 @@ final class ParserCoverageBoostTest extends TestCase
         $this->expectExceptionMessage('Invalid conditional condition');
         // (?(?...) où le ? n'est ni = ni ! ni <
         $this->regexService->parse('/(?(?~a)b)/');
+    }
+
+    public function test_empty_character_class_creates_empty_literal(): void
+    {
+        $this->expectException(LexerException::class);
+
+        $this->regexService->parse('/[]/');
+    }
+
+    #[DoesNotPerformAssertions]
+    public function test_char_class_quote_mode_empty_returns_literal(): void
+    {
+        $this->regexService->parse('/[\\Q\\E]/');
+    }
+
+    public function test_conditional_condition_parses_lookaround_literal_question(): void
+    {
+        $parser = new Parser();
+        $tokens = [
+            new Token(TokenType::T_LITERAL, '?', 0),
+            new Token(TokenType::T_LITERAL, '=', 1),
+            new Token(TokenType::T_LITERAL, 'a', 2),
+            new Token(TokenType::T_GROUP_CLOSE, ')', 3),
+            new Token(TokenType::T_EOF, '', 4),
+        ];
+        $stream = new TokenStream($tokens, '?=a)');
+
+        $ref = new \ReflectionClass($parser);
+        $streamProp = $ref->getProperty('stream');
+        $streamProp->setValue($parser, $stream);
+        $patternProp = $ref->getProperty('pattern');
+        $patternProp->setValue($parser, '?=a)');
+
+        $method = $ref->getMethod('parseConditionalCondition');
+        $node = $method->invoke($parser);
+
+        $this->assertInstanceOf(GroupNode::class, $node);
+        $this->assertSame(GroupType::T_GROUP_LOOKAHEAD_POSITIVE, $node->type);
+    }
+
+    /**
+     * @param class-string $class
+     */
+    private function containsNode(mixed $node, string $class): bool
+    {
+        if ($node instanceof $class) {
+            return true;
+        }
+
+        if ($node instanceof SequenceNode) {
+            foreach ($node->children as $child) {
+                if ($this->containsNode($child, $class)) {
+                    return true;
+                }
+            }
+        }
+
+        if (\is_object($node) && property_exists($node, 'child') && $this->containsNode($node->child, $class)) {
+            return true;
+        }
+
+        if (\is_object($node) && property_exists($node, 'expression') && $this->containsNode($node->expression, $class)) {
+            return true;
+        }
+
+        return false;
     }
 }

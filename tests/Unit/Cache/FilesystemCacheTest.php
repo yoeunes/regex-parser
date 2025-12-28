@@ -15,6 +15,8 @@ namespace RegexParser\Cache {
     $GLOBALS['__filesystemcache_tempnam_fail'] = false;
     $GLOBALS['__filesystemcache_file_put_contents_fail'] = false;
     $GLOBALS['__filesystemcache_opcache_called'] = false;
+    $GLOBALS['__filesystemcache_rename_sequence'] = [];
+    $GLOBALS['__filesystemcache_copy_sequence'] = [];
 
     function tempnam(string $directory, string $prefix): false|string
     {
@@ -44,6 +46,34 @@ namespace RegexParser\Cache {
 
         return true;
     }
+
+    function rename(string $from, string $to): bool
+    {
+        $sequence = $GLOBALS['__filesystemcache_rename_sequence'] ?? [];
+        if (\is_array($sequence) && [] !== $sequence) {
+            /** @var array<int, bool> $sequence */
+            $value = array_shift($sequence);
+            $GLOBALS['__filesystemcache_rename_sequence'] = $sequence;
+
+            return (bool) $value;
+        }
+
+        return \rename($from, $to);
+    }
+
+    function copy(string $from, string $to): bool
+    {
+        $sequence = $GLOBALS['__filesystemcache_copy_sequence'] ?? [];
+        if (\is_array($sequence) && [] !== $sequence) {
+            /** @var array<int, bool> $sequence */
+            $value = array_shift($sequence);
+            $GLOBALS['__filesystemcache_copy_sequence'] = $sequence;
+
+            return (bool) $value;
+        }
+
+        return \copy($from, $to);
+    }
 }
 
 namespace {
@@ -71,6 +101,8 @@ namespace RegexParser\Tests\Unit\Cache {
             $GLOBALS['__filesystemcache_tempnam_fail'] = false;
             $GLOBALS['__filesystemcache_file_put_contents_fail'] = false;
             $GLOBALS['__filesystemcache_opcache_called'] = false;
+            $GLOBALS['__filesystemcache_rename_sequence'] = [];
+            $GLOBALS['__filesystemcache_copy_sequence'] = [];
         }
 
         protected function tearDown(): void
@@ -149,6 +181,19 @@ namespace RegexParser\Tests\Unit\Cache {
             $cache->write($key, 'content');
         }
 
+        public function test_write_uses_copy_when_rename_fails(): void
+        {
+            $cache = new FilesystemCache($this->cacheDir);
+            $key = $cache->generateKey('/rename-fallback/');
+
+            $GLOBALS['__filesystemcache_rename_sequence'] = [false];
+
+            $cache->write($key, "<?php return 'ok';\n");
+
+            $this->assertFileExists($key);
+            $this->assertSame('ok', $cache->load($key));
+        }
+
         public function test_clear_specific_regex(): void
         {
             $cache = new FilesystemCache($this->cacheDir);
@@ -178,6 +223,15 @@ namespace RegexParser\Tests\Unit\Cache {
 
             $this->assertFileExists($key);
             $this->assertSame('value', $cache->load($key));
+        }
+
+        public function test_clear_returns_when_directory_missing(): void
+        {
+            $cache = new FilesystemCache($this->cacheDir);
+
+            $cache->clear();
+
+            $this->assertDirectoryDoesNotExist($this->cacheDir);
         }
 
         public function test_write_triggers_opcache_invalidation(): void

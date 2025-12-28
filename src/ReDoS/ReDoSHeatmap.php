@@ -26,16 +26,16 @@ final class ReDoSHeatmap
     private const GRAY = "\033[90m";
 
     /**
-     * @param array<ReDoSHotspot> $hotspots
+     * @param array<ReDoSHotspot|mixed> $hotspots
      */
     public function highlight(string $body, array $hotspots, bool $ansi = true): string
     {
-        if (!$ansi || '' === $body) {
+        if (!$ansi) {
             return $body;
         }
 
         if ([] === $hotspots) {
-            return self::GREEN.$body.self::RESET;
+            return '' === $body ? $body : self::GREEN.$body.self::RESET;
         }
 
         $length = \strlen($body);

@@ -227,6 +227,11 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
             return '';
         }
 
+        // Raw literals should not be escaped (used for regex syntax characters)
+        if ($node->isRaw) {
+            return $value;
+        }
+
         // Special case for closing bracket outside char class
         if (!$this->inCharClass && ']' === $value && ']' !== $this->closingDelimiter) {
             return $value;
@@ -544,6 +549,11 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
      */
     private function escapeString(string $value): string
     {
+        // Check if the entire value is a valid quantifier pattern - don't escape it
+        if (!$this->inCharClass && preg_match('/^\{\d+(?:,\d*)?\}$/', $value)) {
+            return $value;
+        }
+
         $meta = $this->inCharClass ? self::CHAR_CLASS_META : self::META_CHARACTERS;
         $escapeExtended = str_contains($this->flags, 'x') && !$this->inCharClass;
         $needsEscape = false;
@@ -587,6 +597,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
             } elseif (\ord($char) < 32 || 127 === \ord($char) || \ord($char) >= 128) {
                 // Escape control characters and extended ASCII
                 $result .= match (\ord($char)) {
+                    8 => $this->inCharClass ? '\\b' : '\\x08', // Backspace: \b only valid inside char class
                     9 => '\\t',
                     10 => '\\n',
                     13 => '\\r',

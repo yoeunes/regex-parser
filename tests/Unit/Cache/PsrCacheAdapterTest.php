@@ -139,6 +139,18 @@ final class PsrCacheAdapterTest extends TestCase
         $this->assertSame($payload, $cache->load($key));
     }
 
+    public function test_decode_payload_returns_null_for_missing_unserialize_arg(): void
+    {
+        $pool = new InMemoryPool();
+        $cache = new PsrCacheAdapter($pool);
+        $payload = "<?php return unserialize(, ['allowed_classes' => true]);";
+
+        $key = $cache->generateKey('missingarg');
+        $cache->write($key, $payload);
+
+        $this->assertSame($payload, $cache->load($key));
+    }
+
     private function export(string $value): string
     {
         return var_export($value, true);

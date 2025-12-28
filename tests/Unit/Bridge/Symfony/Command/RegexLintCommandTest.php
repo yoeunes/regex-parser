@@ -18,7 +18,10 @@ use RegexParser\Bridge\Symfony\Command\RegexLintCommand;
 use RegexParser\Lint\Formatter\FormatterRegistry;
 use RegexParser\Lint\RegexAnalysisService;
 use RegexParser\Lint\RegexLintService;
+use RegexParser\Lint\RegexPatternOccurrence;
 use RegexParser\Lint\RegexPatternSourceCollection;
+use RegexParser\Lint\RegexPatternSourceContext;
+use RegexParser\Lint\RegexPatternSourceInterface;
 use RegexParser\Regex;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Console\Tester\CommandTester;
@@ -165,12 +168,211 @@ final class RegexLintCommandTest extends TestCase
         $method->invoke($command, $io);
     }
 
+    public function test_constructor_uses_defaults_when_paths_are_empty(): void
+    {
+        $analysis = new RegexAnalysisService(Regex::create());
+        $lint = new RegexLintService($analysis, new RegexPatternSourceCollection([]));
+
+        $command = new RegexLintCommand(
+            lint: $lint,
+            analysis: $analysis,
+            formatterRegistry: new FormatterRegistry(),
+            defaultPaths: [],
+            defaultExcludePaths: [],
+            editorUrl: null,
+        );
+
+        $this->assertSame('regex:lint', $command->getName());
+    }
+
+    public function test_execute_rejects_invalid_jobs_value(): void
+    {
+        $command = $this->createCommand();
+
+        $tester = new CommandTester($command);
+        $status = $tester->execute(['paths' => ['nonexistent'], '--jobs' => '0']);
+
+        $this->assertSame(1, $status);
+        $this->assertStringContainsString('positive integer', $tester->getDisplay());
+    }
+
+    public function test_execute_progress_callback_handles_empty_totals(): void
+    {
+        $progressSource = new class implements RegexPatternSourceInterface {
+            public function getName(): string
+            {
+                return 'progress';
+            }
+
+            public function isSupported(): bool
+            {
+                return true;
+            }
+
+            public function extract(RegexPatternSourceContext $context): array
+            {
+                if (\is_callable($context->progress)) {
+                    ($context->progress)(0, 0);
+                    ($context->progress)(0, 2);
+                    ($context->progress)(1, 2);
+                    ($context->progress)(2, 2);
+                }
+
+                return [];
+            }
+        };
+
+        $command = $this->createCommandWithSources([$progressSource]);
+        $tester = new CommandTester($command);
+
+        $status = $tester->execute(['paths' => ['nonexistent']]);
+
+        $this->assertSame(0, $status);
+        $this->assertStringContainsString('No regex patterns found', $tester->getDisplay());
+    }
+
+    public function test_execute_renders_collection_failure(): void
+    {
+        $failingSource = new class implements RegexPatternSourceInterface {
+            public function getName(): string
+            {
+                return 'fail';
+            }
+
+            public function isSupported(): bool
+            {
+                return true;
+            }
+
+            public function extract(RegexPatternSourceContext $context): array
+            {
+                throw new \RuntimeException('boom');
+            }
+        };
+
+        $command = $this->createCommandWithSources([$failingSource]);
+        $tester = new CommandTester($command);
+
+        $status = $tester->execute(['paths' => ['nonexistent']]);
+
+        $this->assertSame(1, $status);
+        $this->assertStringContainsString('boom', $tester->getDisplay());
+    }
+
+    public function test_execute_renders_collection_failure_for_json(): void
+    {
+        $failingSource = new class implements RegexPatternSourceInterface {
+            public function getName(): string
+            {
+                return 'fail';
+            }
+
+            public function isSupported(): bool
+            {
+                return true;
+            }
+
+            public function extract(RegexPatternSourceContext $context): array
+            {
+                throw new \RuntimeException('boom');
+            }
+        };
+
+        $command = $this->createCommandWithSources([$failingSource]);
+        $tester = new CommandTester($command);
+
+        $status = $tester->execute(['paths' => ['nonexistent'], '--format' => 'json']);
+
+        $this->assertSame(1, $status);
+        $this->assertStringContainsString('Failed to collect patterns', $tester->getDisplay());
+    }
+
+    public function test_execute_analyzes_patterns_with_progress(): void
+    {
+        $source = new class implements RegexPatternSourceInterface {
+            public function getName(): string
+            {
+                return 'custom';
+            }
+
+            public function isSupported(): bool
+            {
+                return true;
+            }
+
+            public function extract(RegexPatternSourceContext $context): array
+            {
+                return [
+                    new RegexPatternOccurrence('/foo/', 'test.php', 12, 'php:preg_match()'),
+                ];
+            }
+        };
+
+        $command = $this->createCommandWithSources([$source]);
+        $tester = new CommandTester($command);
+
+        $status = $tester->execute(['paths' => ['.']]);
+
+        $this->assertSame(0, $status);
+        $this->assertStringContainsString('Analyzing patterns', $tester->getDisplay());
+    }
+
+    public function test_execute_analyzes_patterns_without_progress_in_json(): void
+    {
+        $source = new class implements RegexPatternSourceInterface {
+            public function getName(): string
+            {
+                return 'custom';
+            }
+
+            public function isSupported(): bool
+            {
+                return true;
+            }
+
+            public function extract(RegexPatternSourceContext $context): array
+            {
+                return [
+                    new RegexPatternOccurrence('/foo/', 'test.php', 12, 'php:preg_match()'),
+                ];
+            }
+        };
+
+        $command = $this->createCommandWithSources([$source]);
+        $tester = new CommandTester($command);
+
+        $status = $tester->execute(['paths' => ['.'], '--format' => 'json']);
+
+        $this->assertSame(0, $status);
+        $this->assertStringNotContainsString('Analyzing patterns', $tester->getDisplay());
+        $this->assertIsArray(json_decode($tester->getDisplay(), true));
+    }
+
     private function createCommand(): RegexLintCommand
     {
         $analysis = new RegexAnalysisService(Regex::create());
         $lint = new RegexLintService(
             $analysis,
             new RegexPatternSourceCollection([]),
+        );
+
+        return new RegexLintCommand(
+            lint: $lint,
+            analysis: $analysis,
+            formatterRegistry: new FormatterRegistry(),
+            editorUrl: null,
+        );
+    }
+
+    /**
+     * @param array<int, RegexPatternSourceInterface> $sources
+     */
+    private function createCommandWithSources(array $sources): RegexLintCommand
+    {
+        $analysis = new RegexAnalysisService(Regex::create());
+        $lint = new RegexLintService(
+            $analysis,
+            new RegexPatternSourceCollection($sources),
         );
 
         return new RegexLintCommand(

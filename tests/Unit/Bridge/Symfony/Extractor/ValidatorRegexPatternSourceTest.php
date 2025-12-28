@@ -99,6 +99,20 @@ final class ValidatorRegexPatternSourceTest extends TestCase
         $this->assertSame([], $result);
     }
 
+    public function test_extract_skips_non_string_mapped_classes(): void
+    {
+        $validator = $this->createMock(ValidatorInterface::class);
+        $validator->expects($this->never())->method('getMetadataFor');
+        $loader = $this->createLoaderStub([null, 123, '']);
+
+        $source = new ValidatorRegexPatternSource($validator, $loader);
+        $context = new RegexPatternSourceContext(['.'], []);
+
+        $result = $source->extract($context);
+
+        $this->assertSame([], $result);
+    }
+
     public function test_extract_with_regex_constraint(): void
     {
         $validator = $this->createMock(ValidatorInterface::class);
@@ -301,6 +315,68 @@ final class ValidatorRegexPatternSourceTest extends TestCase
         $source = new ValidatorRegexPatternSource();
         $this->assertFalse($source->isSupported());
         $this->assertSame('validators', $source->getName());
+    }
+
+    public function test_get_mapped_classes_returns_empty_when_loader_missing(): void
+    {
+        $source = new ValidatorRegexPatternSource(null, null);
+
+        $reflection = new \ReflectionClass($source);
+        $method = $reflection->getMethod('getMappedClasses');
+
+        $this->assertSame([], $method->invoke($source));
+    }
+
+    public function test_get_mapped_classes_returns_empty_for_invalid_loader_response(): void
+    {
+        $validator = $this->createMock(ValidatorInterface::class);
+        $loader = new class implements LoaderInterface {
+            public function loadClassMetadata(ClassMetadata $metadata): bool
+            {
+                return true;
+            }
+
+            public function getMappedClasses(): string
+            {
+                return 'invalid';
+            }
+        };
+
+        $source = new ValidatorRegexPatternSource($validator, $loader);
+        $reflection = new \ReflectionClass($source);
+        $method = $reflection->getMethod('getMappedClasses');
+
+        $this->assertSame([], $method->invoke($source));
+    }
+
+    public function test_extract_skips_non_property_metadata_entries(): void
+    {
+        $validator = $this->createMock(ValidatorInterface::class);
+        $loader = $this->createLoaderStub([TestEntity::class]);
+
+        $metadata = $this->createMock(ClassMetadataInterface::class);
+        $metadata->method('getConstraints')->willReturn([]);
+        $metadata->method('getConstrainedProperties')->willReturn(['email']);
+        $metadata->method('getPropertyMetadata')->willReturn([new \stdClass()]);
+
+        $validator->method('getMetadataFor')->willReturn($metadata);
+
+        $source = new ValidatorRegexPatternSource($validator, $loader);
+        $context = new RegexPatternSourceContext(['.'], []);
+
+        $result = $source->extract($context);
+
+        $this->assertSame([], $result);
+    }
+
+    public function test_get_class_file_returns_null_for_unknown_class(): void
+    {
+        $source = new ValidatorRegexPatternSource();
+
+        $reflection = new \ReflectionClass($source);
+        $method = $reflection->getMethod('getClassFile');
+
+        $this->assertNull($method->invoke($source, 'UnknownClassName'));
     }
 
     /**

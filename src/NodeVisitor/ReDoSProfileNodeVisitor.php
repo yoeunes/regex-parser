@@ -119,7 +119,7 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
                 $falsePositiveRisk = $vuln->falsePositiveRisk;
             }
             $recommendations[] = null !== $vuln->suggestedRewrite
-                ? $vuln->message.' Suggested: '.$vuln->suggestedRewrite
+                ? $vuln->message.' Hint: '.$vuln->suggestedRewrite
                 : $vuln->message;
         }
 
@@ -225,10 +225,12 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
             }
 
             if ($isNestedUnbounded) {
-                $severity = $boundarySeparated ? ReDoSSeverity::LOW : ReDoSSeverity::CRITICAL;
+                $hasRecursion = $this->hasRecursion($node->node);
+                $severity = $boundarySeparated ? ReDoSSeverity::LOW : ($hasRecursion ? ReDoSSeverity::MEDIUM : ReDoSSeverity::CRITICAL);
                 if (!$boundarySeparated) {
+                    $vulnSeverity = $hasRecursion ? ReDoSSeverity::MEDIUM : ReDoSSeverity::CRITICAL;
                     $this->addVulnerability(
-                        ReDoSSeverity::CRITICAL,
+                        $vulnSeverity,
                         'Nested unbounded quantifiers detected. This allows exponential backtracking. Consider using atomic groups (?>...) or possessive quantifiers (*+, ++).',
                         $node,
                         'Replace inner quantifiers with possessive variants or wrap them in (?>...).',
@@ -282,14 +284,16 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
         $this->nextNode = $childNext;
 
         if ($entersUnbounded && !$boundarySeparated && ReDoSSeverity::HIGH === $childSeverity) {
-            $severity = ReDoSSeverity::CRITICAL;
+            $hasRecursion = $this->hasRecursion($node->node);
+            $vulnSeverity = $hasRecursion ? ReDoSSeverity::MEDIUM : ReDoSSeverity::CRITICAL;
+            $severity = $hasRecursion ? ReDoSSeverity::MEDIUM : ReDoSSeverity::CRITICAL;
             $this->addVulnerability(
-                ReDoSSeverity::CRITICAL,
+                $vulnSeverity,
                 'Critical nesting of quantifiers detected (Star Height > 1). This is a classic ReDoS vulnerability. Refactor the pattern to avoid nested unbounded quantifiers over the same subpattern.',
                 $node,
                 'Use atomic groups or restructure the repetition to be deterministic.',
                 ReDoSConfidence::HIGH,
-                'Low false-positive risk; star-height > 1 patterns are highly suspect.',
+                $hasRecursion ? 'Medium false-positive risk; recursion may mitigate some backtracking.' : 'Low false-positive risk; star-height > 1 patterns are highly suspect.',
             );
         }
 
@@ -629,7 +633,7 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
     public function visitSubroutine(SubroutineNode $node): ReDoSSeverity
     {
         $this->addVulnerability(
-            ReDoSSeverity::MEDIUM,
+            ReDoSSeverity::LOW,
             'Subroutines can lead to complex backtracking and potential ReDoS if not used carefully, especially with recursion. Review the referenced pattern.',
             $node,
             'Avoid excessive recursion or add atomic groups around recursive parts.',
@@ -637,7 +641,7 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
             'Medium false-positive risk; recursion depth and input shape matter.',
         );
 
-        return ReDoSSeverity::MEDIUM;
+        return ReDoSSeverity::LOW;
     }
 
     #[\Override]
@@ -727,12 +731,19 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
      */
     private function hasOverlappingAlternatives(AlternationNode $node): bool
     {
+        // If any alternative is a subroutine (recursion), consider it non-overlapping for ReDoS purposes
+        foreach ($node->alternatives as $alt) {
+            if ($alt instanceof SubroutineNode) {
+                return false;
+            }
+        }
+
         $sets = [];
 
         foreach ($node->alternatives as $alt) {
             $set = $this->charSetAnalyzer->firstChars($alt);
 
-            if ($set->isUnknown() || $this->startsWithDot($alt)) {
+            if ($this->startsWithDot($alt)) {
                 if (!empty($sets)) {
                     return true;
                 }
@@ -741,9 +752,11 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
                 continue;
             }
 
-            foreach ($sets as $existing) {
-                if ($set->intersects($existing)) {
-                    return true;
+            if (!$set->isUnknown()) {
+                foreach ($sets as $existing) {
+                    if ($set->intersects($existing)) {
+                        return true;
+                    }
                 }
             }
 
@@ -1115,5 +1128,44 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
             GroupType::T_GROUP_NAMED,
             GroupType::T_GROUP_BRANCH_RESET,
         ], true);
+    }
+
+    private function hasRecursion(NodeInterface $node): bool
+    {
+        if ($node instanceof SubroutineNode) {
+            return true;
+        }
+
+        foreach ($this->getChildren($node) as $child) {
+            if ($this->hasRecursion($child)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @return array<NodeInterface>
+     */
+    private function getChildren(NodeInterface $node): array
+    {
+        if ($node instanceof SequenceNode) {
+            return $node->children;
+        }
+        if ($node instanceof AlternationNode) {
+            return $node->alternatives;
+        }
+        if ($node instanceof QuantifierNode) {
+            return [$node->node];
+        }
+        if ($node instanceof GroupNode) {
+            return [$node->child];
+        }
+        if ($node instanceof ConditionalNode) {
+            return [$node->condition, $node->yes, $node->no];
+        }
+
+        return [];
     }
 }

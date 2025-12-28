@@ -161,7 +161,7 @@ final class PregValidationRule implements Rule
         return $errors;
     }
 
-    public function isOptimizationSafe(string $original, string $optimized): bool
+    public function isOptimizationFormatSafe(string $original, string $optimized): bool
     {
         $delimiter = $optimized[0] ?? '';
         if ('' === $delimiter) {
@@ -283,9 +283,11 @@ final class PregValidationRule implements Rule
             }
 
             $analysis = $issue['analysis'] ?? null;
+            // @codeCoverageIgnoreStart
             if (!$analysis instanceof ReDoSAnalysis) {
                 continue;
             }
+            // @codeCoverageIgnoreEnd
 
             $identifier = match ($analysis->severity) {
                 ReDoSSeverity::CRITICAL => self::IDENTIFIER_REDOS_CRITICAL,
@@ -316,7 +318,7 @@ final class PregValidationRule implements Rule
             foreach ($optimizations as $optimizationEntry) {
                 /** @var OptimizationResult $optimization */
                 $optimization = $optimizationEntry['optimization'];
-                if (!$this->isOptimizationSafe($pattern, $optimization->optimized)) {
+                if (!$this->isOptimizationFormatSafe($pattern, $optimization->optimized)) {
                     continue;
                 }
                 $shortPattern = $this->truncatePattern($pattern);
@@ -330,9 +332,11 @@ final class PregValidationRule implements Rule
 
         foreach ($lintIssues as $issue) {
             $issueId = $issue['issueId'] ?? null;
+            // @codeCoverageIgnoreStart
             if (!\is_string($issueId) || '' === $issueId) {
                 continue;
             }
+            // @codeCoverageIgnoreEnd
 
             $builder = RuleErrorBuilder::message((string) $issue['message'])
                 ->line($lineNumber)

@@ -41,6 +41,11 @@ final readonly class HelpCommand implements CommandInterface
         $binary = $this->resolveInvocation();
         $this->renderHeader($output);
 
+        $specificCommand = $input->args[0] ?? null;
+        if (null !== $specificCommand) {
+            return $this->renderCommandHelp($output, $binary, $specificCommand);
+        }
+
         $this->renderTextSection($output, 'Description', [
             'CLI for regex parsing, validation, analysis, and linting',
         ]);
@@ -77,6 +82,7 @@ final readonly class HelpCommand implements CommandInterface
             ['--min-savings <n>', 'Minimum optimization savings'],
             ['--jobs <n>', 'Parallel workers for analysis'],
             ['--format <format>', 'Output format (console, json, github, checkstyle, junit)'],
+            ['--output <file>', 'Write output to file'],
             ['--no-redos', 'Skip ReDoS risk analysis'],
             ['--no-validate', 'Skip validation errors (structural lint only)'],
             ['--no-optimize', 'Disable optimization suggestions'],
@@ -112,6 +118,186 @@ final readonly class HelpCommand implements CommandInterface
         $this->renderExamplesSection($output, $examples);
 
         return 0;
+    }
+
+    private function renderCommandHelp(Output $output, string $binary, string $command): int
+    {
+        $commandData = $this->getCommandData($command);
+        if (null === $commandData) {
+            $output->write($output->error("Unknown command: {$command}\n\n"));
+            $this->renderTextSection($output, 'Available Commands', [
+                'parse', 'analyze', 'debug', 'diagram', 'highlight', 'validate', 'lint', 'self-update', 'help',
+            ]);
+
+            return 1;
+        }
+
+        $this->renderTextSection($output, 'Description', [$commandData['description']]);
+        $this->renderTextSection($output, 'Usage', [$this->formatCommandUsage($output, $binary, $command, $commandData)]);
+
+        if (!empty($commandData['options'])) {
+            $this->renderTableSection($output, 'Options', $commandData['options'], fn (string $value): string => $this->formatOption($output, $value));
+        }
+
+        if (!empty($commandData['notes'])) {
+            foreach ($commandData['notes'] as $note) {
+                $output->write($output->dim('  '.$note)."\n");
+            }
+            $output->write("\n");
+        }
+
+        if (!empty($commandData['examples'])) {
+            $this->renderExamplesSection($output, $commandData['examples']);
+        }
+
+        return 0;
+    }
+
+    /**
+     * @return array{description: string, options: array<int, array{0: string, 1: string}>, notes: array<int, string>, examples: array<int, array{0: array<int, string>, 1: string}>}|null
+     */
+    private function getCommandData(string $command): ?array
+    {
+        return match ($command) {
+            'parse' => [
+                'description' => 'Parse and recompile a regex pattern',
+                'options' => [
+                    ['--validate', 'Validate the pattern after parsing'],
+                    ['--php-version <ver>', 'Target PHP version for validation'],
+                ],
+                'notes' => [],
+                'examples' => [
+                    [[$this->resolveInvocation(), 'parse', "'/a+/'"], 'Basic parsing'],
+                    [[$this->resolveInvocation(), 'parse', "'/a+/'", '--validate'], 'Parse with validation'],
+                    [[$this->resolveInvocation(), 'parse', "'/a+/'", '--php-version=8.1'], 'Parse for specific PHP version'],
+                ],
+            ],
+            'analyze' => [
+                'description' => 'Parse, validate, and analyze ReDoS risk',
+                'options' => [
+                    ['--php-version <ver>', 'Target PHP version for validation'],
+                    ['--no-redos', 'Skip ReDoS risk analysis'],
+                ],
+                'notes' => [],
+                'examples' => [
+                    [[$this->resolveInvocation(), 'analyze', "'/a+/'"], 'Analyze a simple pattern'],
+                    [[$this->resolveInvocation(), 'analyze', "'/(a+)+$/'"], 'Analyze a potentially risky pattern'],
+                ],
+            ],
+            'debug' => [
+                'description' => 'Deep ReDoS analysis with heatmap output',
+                'options' => [
+                    ['--input <string>', 'Input string to test against the pattern'],
+                    ['--php-version <ver>', 'Target PHP version for validation'],
+                ],
+                'notes' => ['Provides detailed ReDoS analysis including attack vectors and complexity heatmaps.'],
+                'examples' => [
+                    [[$this->resolveInvocation(), 'debug', "'/(a+)+$/'"], 'Debug a vulnerable pattern'],
+                    [[$this->resolveInvocation(), 'debug', "'/(a+)+$/'", '--input=aaaaaaaa'], 'Debug with specific input'],
+                ],
+            ],
+            'diagram' => [
+                'description' => 'Render an ASCII diagram of the AST',
+                'options' => [
+                    ['--format <format>', 'Output format (ascii)'],
+                    ['--php-version <ver>', 'Target PHP version for validation'],
+                ],
+                'notes' => [],
+                'examples' => [
+                    [[$this->resolveInvocation(), 'diagram', "'/^a+$/'"], 'Basic diagram'],
+                    [[$this->resolveInvocation(), 'diagram', "'/(a|b)*c/'"], 'Diagram with alternation'],
+                ],
+            ],
+            'highlight' => [
+                'description' => 'Highlight a regex for display',
+                'options' => [
+                    ['--format <format>', 'Output format (console, html)'],
+                    ['--php-version <ver>', 'Target PHP version for validation'],
+                ],
+                'notes' => [],
+                'examples' => [
+                    [[$this->resolveInvocation(), 'highlight', "'/a+/'"], 'Console highlighting'],
+                    [[$this->resolveInvocation(), 'highlight', "'/a+/'", '--format=html'], 'HTML highlighting'],
+                ],
+            ],
+            'validate' => [
+                'description' => 'Validate a regex pattern',
+                'options' => [
+                    ['--php-version <ver>', 'Target PHP version for validation'],
+                ],
+                'notes' => [],
+                'examples' => [
+                    [[$this->resolveInvocation(), 'validate', "'/a+/'"], 'Validate a pattern'],
+                    [[$this->resolveInvocation(), 'validate', "'/a+/'", '--php-version=8.0'], 'Validate for PHP 8.0'],
+                ],
+            ],
+            'lint' => [
+                'description' => 'Lint regex patterns in PHP source code',
+                'options' => [
+                    ['--exclude <path>', 'Paths to exclude (repeatable)'],
+                    ['--min-savings <n>', 'Minimum optimization savings'],
+                    ['--jobs <n>', 'Parallel workers for analysis'],
+                    ['--format <format>', 'Output format (console, json, github, checkstyle, junit)'],
+                    ['--no-redos', 'Skip ReDoS risk analysis'],
+                    ['--no-validate', 'Skip validation errors (structural lint only)'],
+                    ['--no-optimize', 'Disable optimization suggestions'],
+                    ['-v, --verbose', 'Show detailed output'],
+                    ['--debug', 'Show debug information'],
+                ],
+                'notes' => [
+                    'Config: regex.json or regex.dist.json in the working directory sets lint defaults.',
+                    'Inline ignore: // @regex-ignore-next-line or // @regex-ignore',
+                ],
+                'examples' => [
+                    [[$this->resolveInvocation(), 'lint', 'src/'], 'Lint the src/ directory'],
+                    [[$this->resolveInvocation(), 'lint', 'src/', '--exclude=vendor'], 'Lint excluding vendor/'],
+                    [[$this->resolveInvocation(), 'lint', 'src/', '--format=json'], 'JSON output format'],
+                    [[$this->resolveInvocation(), 'lint', 'src/', '--verbose'], 'Verbose linting'],
+                    [[$this->resolveInvocation(), 'lint', 'src/', '--no-redos'], 'Skip ReDoS analysis'],
+                    [[$this->resolveInvocation(), 'lint', 'src/', '--jobs=4'], 'Use 4 parallel workers'],
+                    [[$this->resolveInvocation(), 'lint', 'src/', '--min-savings=10'], 'Only show optimizations saving 10+ chars'],
+                    [[$this->resolveInvocation(), 'lint', 'file.php'], 'Lint a single file'],
+                ],
+            ],
+            'self-update' => [
+                'description' => 'Update the CLI phar to the latest release',
+                'options' => [],
+                'notes' => ['Updates the installed phar file to the latest version.'],
+                'examples' => [
+                    [[$this->resolveInvocation(), 'self-update'], 'Update to latest version'],
+                ],
+            ],
+            'help' => [
+                'description' => 'Display help information',
+                'options' => [
+                    ['<command>', 'Show help for specific command'],
+                ],
+                'notes' => [],
+                'examples' => [
+                    [[$this->resolveInvocation(), '--help'], 'Show general help'],
+                    [[$this->resolveInvocation(), 'lint', '--help'], 'Show lint command help'],
+                ],
+            ],
+            default => null,
+        };
+    }
+
+    /**
+     * @param array{description: string, options: array<int, array{0: string, 1: string}>, notes: array<int, string>, examples: array<int, array{0: array<int, string>, 1: string}>} $commandData
+     */
+    private function formatCommandUsage(Output $output, string $binary, string $command, array $commandData): string
+    {
+        $usage = $output->color($binary, Output::BLUE).' '.$output->color($command, Output::YELLOW.Output::BOLD);
+
+        if ('lint' === $command) {
+            $usage .= ' '.$output->color('[options]', Output::CYAN).' '.$output->color('<path>', Output::GREEN);
+        } elseif (\in_array($command, ['parse', 'analyze', 'debug', 'diagram', 'highlight', 'validate'], true)) {
+            $usage .= ' '.$output->color('[options]', Output::CYAN).' '.$output->color('<pattern>', Output::GREEN);
+        } elseif ('help' === $command) {
+            $usage .= ' '.$output->color('[command]', Output::GREEN);
+        }
+
+        return $usage;
     }
 
     private function renderHeader(Output $output): void
@@ -237,13 +423,15 @@ final readonly class HelpCommand implements CommandInterface
                 continue;
             }
 
-            if ($this->isPlaceholder($part)) {
-                $formatted .= $output->color($part, Output::YELLOW.Output::BOLD);
+            $partText = \is_array($part) ? $part[0] : $part;
+
+            if ($this->isPlaceholder($partText)) {
+                $formatted .= $output->color($partText, Output::YELLOW.Output::BOLD);
 
                 continue;
             }
 
-            $formatted .= $output->color($part, Output::CYAN);
+            $formatted .= $output->color($partText, Output::CYAN);
         }
 
         return $formatted;

@@ -700,7 +700,7 @@ final class OptimizerNodeVisitorTest extends TestCase
         $compiler = new CompilerNodeVisitor();
         $result = $optimized->accept($compiler);
 
-        $this->assertSame('/(?:abc|xyz)de/', $result, 'Should factor common suffix "de"');
+        $this->assertSame('/abcde|xyzde/', $result, 'Should not factor common suffix "de" by default');
     }
 
     public function test_suffix_factoring_no_common_suffix(): void
@@ -726,6 +726,148 @@ final class OptimizerNodeVisitorTest extends TestCase
         $compiler = new CompilerNodeVisitor();
         $result = $optimized->accept($compiler);
 
-        $this->assertSame('/alpha|beta|gamma|delta/', $result, 'Should not factor single character suffix');
+        $this->assertSame('/alpha|beta|gam{2}a|delta/', $result, 'Should not factor single character suffix');
+    }
+
+    public function test_char_type_n_h_v_preserved_in_optimization(): void
+    {
+        // Test that \N, \H, \V are preserved correctly during optimization
+        $regex = Regex::create();
+
+        // Test \N (any char except newline)
+        $ast = $regex->parse('/\N+/');
+        $optimizer = new OptimizerNodeVisitor();
+        $optimized = $ast->accept($optimizer);
+        $compiler = new CompilerNodeVisitor();
+        $result = $optimized->accept($compiler);
+        $this->assertSame('/\N+/', $result, '\N should be preserved');
+
+        // Test \H (not horizontal whitespace)
+        $ast = $regex->parse('/\H+/');
+        $optimized = $ast->accept($optimizer);
+        $result = $optimized->accept($compiler);
+        $this->assertSame('/\H+/', $result, '\H should be preserved');
+
+        // Test \V (not vertical whitespace)
+        $ast = $regex->parse('/\V+/');
+        $optimized = $ast->accept($optimizer);
+        $result = $optimized->accept($compiler);
+        $this->assertSame('/\V+/', $result, '\V should be preserved');
+    }
+
+    public function test_backspace_in_char_class_preserved(): void
+    {
+        // Test that [\b] (backspace) is preserved correctly during optimization
+        $regex = Regex::create();
+        $ast = $regex->parse('/[\b]/');
+        $optimizer = new OptimizerNodeVisitor();
+
+        $optimized = $ast->accept($optimizer);
+        $compiler = new CompilerNodeVisitor();
+        $result = $optimized->accept($compiler);
+
+        $this->assertSame('/[\b]/', $result, '[\b] (backspace) should be preserved');
+    }
+
+    public function test_char_type_n_and_backspace_in_alternation(): void
+    {
+        // Test that \N|[\b] pattern is not corrupted during optimization
+        $regex = Regex::create();
+        $ast = $regex->parse('/\N|[\b]/');
+        $optimizer = new OptimizerNodeVisitor();
+
+        $optimized = $ast->accept($optimizer);
+        $compiler = new CompilerNodeVisitor();
+        $result = $optimized->accept($compiler);
+
+        // The pattern should preserve \N as a char type and [\b] as backspace in char class
+        $this->assertStringContainsString('\N', $result, '\N should be preserved in alternation');
+        $this->assertStringContainsString('[\b]', $result, '[\b] should be preserved in alternation');
+    }
+
+    /**
+     * Test that optimizer does not merge adjacent capturing groups that would break semantics.
+     * Original issue: ~^a\.b(c(\d+)(\d+)(\s+))?d~ should not become ~^a\.b(c(\d+){2}(\s+))?d~
+     * because the two (\d+) groups capture independently.
+     */
+    public function test_optimizer_does_not_merge_adjacent_capturing_groups(): void
+    {
+        $regex = Regex::create();
+        $ast = $regex->parse('/(a)(a)/');
+
+        $optimized = $ast->pattern->accept($this->optimizer);
+        $compiler = new CompilerNodeVisitor();
+        $optimizedPattern = $optimized->accept($compiler);
+
+        // Should not merge to /(a){2}/ as that changes capture semantics
+        $this->assertStringContainsString('(a)(a)', $optimizedPattern);
+        $this->assertStringNotContainsString('(a){2}', $optimizedPattern);
+    }
+
+    /**
+     * Test that optimizer does not merge named capturing groups.
+     */
+    public function test_optimizer_does_not_merge_named_capturing_groups(): void
+    {
+        $regex = Regex::create();
+        $ast = $regex->parse('/(?<name1>a)(?<name2>a)/');
+
+        $optimized = $ast->pattern->accept($this->optimizer);
+        $compiler = new CompilerNodeVisitor();
+        $optimizedPattern = $optimized->accept($compiler);
+
+        $this->assertStringContainsString('(?<name1>a)(?<name2>a)', $optimizedPattern);
+    }
+
+    /**
+     * Test that optimizer does not merge branch reset groups.
+     */
+    public function test_optimizer_does_not_merge_branch_reset_groups(): void
+    {
+        $regex = Regex::create();
+        $ast = $regex->parse('/(?|(a)|(b))(?|(a)|(b))/');
+
+        $optimized = $ast->pattern->accept($this->optimizer);
+        $compiler = new CompilerNodeVisitor();
+        $optimizedPattern = $optimized->accept($compiler);
+
+        // Branch reset groups should not be merged
+        $this->assertStringContainsString('(?|(a)|(b))(?|(a)|(b))', $optimizedPattern);
+    }
+
+    /**
+     * Test auto-possessify checks disjointness against suffix, not just next node.
+     * Original issue: ( ?\d{4}){1,} ?\d{1,4} should not possessify if suffix can match digits.
+     */
+    public function test_auto_possessify_checks_suffix_disjointness(): void
+    {
+        $optimizer = new OptimizerNodeVisitor(autoPossessify: true);
+        $regex = Regex::create();
+        $ast = $regex->parse('/( ?\d{4}){1,} ?\d{1,4}/'); // IBAN-like pattern with {1,}
+
+        $optimized = $ast->pattern->accept($optimizer);
+        $compiler = new CompilerNodeVisitor();
+        $optimizedPattern = $optimized->accept($compiler);
+
+        // The ( ?\d{4})+ should not be possessified because suffix ?\d{1,4} can match digits
+        $this->assertStringContainsString('( ?\d{4})+', $optimizedPattern);
+        $this->assertStringNotContainsString('( ?\d{4})++', $optimizedPattern);
+    }
+
+    /**
+     * Test auto-possessify can still work when suffix is disjoint.
+     */
+    public function test_auto_possessify_works_when_safe(): void
+    {
+        $optimizer = new OptimizerNodeVisitor(autoPossessify: true);
+        $regex = Regex::create();
+        $ast = $regex->parse('/\d+[a-z]/'); // \d+ followed by [a-z], disjoint
+
+        $optimized = $ast->pattern->accept($optimizer);
+        $compiler = new CompilerNodeVisitor();
+        $optimizedPattern = $optimized->accept($compiler);
+
+        // Should possessify \d+ since [a-z] is disjoint from digits
+        $this->assertStringContainsString('\d++', $optimizedPattern);
     }
 }

@@ -183,4 +183,15 @@ final class CharSetTest extends TestCase
 
         $this->assertTrue($set->intersects(CharSet::fromChar(\chr(0))));
     }
+
+    public function test_from_range_non_ascii_returns_unknown(): void
+    {
+        // Range starting above ASCII max should return unknown
+        $set = CharSet::fromRange(0x80, 0x85);
+        $this->assertTrue($set->isUnknown(), 'Non-ASCII range should return unknown');
+
+        // Range ending above ASCII max should return unknown
+        $set = CharSet::fromRange(0, 200);
+        $this->assertTrue($set->isUnknown(), 'Range with end > ASCII_MAX should return unknown');
+    }
 }

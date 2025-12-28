@@ -36,6 +36,14 @@ final class PatternParserTest extends TestCase
         PatternParser::extractPatternAndFlags('/a/r', 80300);
     }
 
+    public function test_rejects_modifier_e_with_improved_message(): void
+    {
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('The \'e\' flag (preg_replace /e) was removed; use preg_replace_callback.');
+
+        PatternParser::extractPatternAndFlags('/a/e');
+    }
+
     public function test_throws_for_missing_closing_delimiter(): void
     {
         $this->expectException(ParserException::class);

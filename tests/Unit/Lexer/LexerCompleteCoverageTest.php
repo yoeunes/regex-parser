@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Unit\Lexer;
 
 use PHPUnit\Framework\TestCase;
+use RegexParser\Exception\LexerException;
 use RegexParser\Lexer;
 use RegexParser\Token;
 use RegexParser\TokenType;
@@ -656,5 +657,85 @@ final class LexerCompleteCoverageTest extends TestCase
             $this->assertSame(TokenType::T_PCRE_VERB, $tokens[0]->type, "Failed for: {$pattern}");
             $this->assertNotEmpty($tokens[0]->value);
         }
+    }
+
+    public function test_callout_extraction(): void
+    {
+        $tokens = (new Lexer())->tokenize('(?C some content )')->getTokens();
+
+        $this->assertSame(TokenType::T_CALLOUT, $tokens[0]->type);
+        $this->assertSame(' some content ', $tokens[0]->value);
+    }
+
+    public function test_unicode_named_extraction(): void
+    {
+        $tokens = (new Lexer())->tokenize('\N{LATIN CAPITAL LETTER A}')->getTokens();
+
+        $this->assertSame(TokenType::T_UNICODE_NAMED, $tokens[0]->type);
+        $this->assertSame('LATIN CAPITAL LETTER A', $tokens[0]->value);
+    }
+
+    public function test_control_char_extraction(): void
+    {
+        $tokens = (new Lexer())->tokenize('\cA')->getTokens();
+
+        $this->assertSame(TokenType::T_CONTROL_CHAR, $tokens[0]->type);
+        $this->assertSame('A', $tokens[0]->value);
+    }
+
+    public function test_char_class_intersection(): void
+    {
+        $tokens = (new Lexer())->tokenize('[a&&b]')->getTokens();
+
+        $intersectionToken = null;
+        foreach ($tokens as $token) {
+            if (TokenType::T_CLASS_INTERSECTION === $token->type) {
+                $intersectionToken = $token;
+
+                break;
+            }
+        }
+
+        $this->assertInstanceOf(Token::class, $intersectionToken);
+        $this->assertSame('&&', $intersectionToken->value);
+    }
+
+    public function test_char_class_subtraction(): void
+    {
+        $tokens = (new Lexer())->tokenize('[a--b]')->getTokens();
+
+        $subtractionToken = null;
+        foreach ($tokens as $token) {
+            if (TokenType::T_CLASS_SUBTRACTION === $token->type) {
+                $subtractionToken = $token;
+
+                break;
+            }
+        }
+
+        $this->assertInstanceOf(Token::class, $subtractionToken);
+        $this->assertSame('--', $subtractionToken->value);
+    }
+
+    public function test_unicode_prop_empty_after_negation(): void
+    {
+        $tokens = (new Lexer())->tokenize('\p{^}')->getTokens();
+
+        $this->assertSame(TokenType::T_UNICODE_PROP, $tokens[0]->type);
+        $this->assertSame('', $tokens[0]->value);
+    }
+
+    public function test_unclosed_character_class_throws(): void
+    {
+        $this->expectException(LexerException::class);
+        $this->expectExceptionMessage('Unclosed character class');
+
+        (new Lexer())->tokenize('[abc');
+    }
+
+    public function test_lexer_custom_php_version(): void
+    {
+        $lexer = new Lexer(80000); // Custom version to trigger regex compilation
+        $lexer->tokenize('test');
     }
 }

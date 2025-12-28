@@ -138,23 +138,15 @@ class ConsoleFormatter extends AbstractOutputFormatter
             $prefix = (string) $line;
         }
 
-        // Decide whether to keep pattern on the same line or wrap it to the
-        // next line for very long "file:line + pattern" combinations.
-        $maxInlineWidth = 100;
+        // Always wrap: show file:line, then the pattern on the next indented line.
 
         if (null !== $pattern && '' !== $pattern) {
             $formatted = $this->formatPatternForDisplay($pattern);
             $label = '' !== $prefix ? $this->color($prefix, self::CYAN.self::BOLD) : $this->color('(pattern)', self::CYAN.self::BOLD);
 
-            // Measure visible length without ANSI escape codes.
-            $plainInline = $this->stripAnsi($label.'  '.$formatted);
-            if (\strlen($plainInline) <= $maxInlineWidth) {
-                $output = \sprintf('  %s  %s'.\PHP_EOL, $label, $formatted);
-            } else {
-                // Wrap: show file:line, then the pattern on the next indented line.
-                $output = '  '.$label.\PHP_EOL;
-                $output .= '      '.$formatted.\PHP_EOL;
-            }
+            // Wrap: show file:line, then the pattern on the next indented line.
+            $output = '  '.$label.\PHP_EOL;
+            $output .= '      '.$this->color('→ ', self::CYAN.self::BOLD).$formatted.\PHP_EOL;
         } else {
             $label = '' !== $prefix ? $this->color($prefix, self::CYAN.self::BOLD) : $this->color('(pattern unavailable)', self::CYAN.self::BOLD);
             $output = '  '.$label.\PHP_EOL;
@@ -440,6 +432,9 @@ class ConsoleFormatter extends AbstractOutputFormatter
     private function splitLines(string $text): array
     {
         $normalized = str_replace(["\r\n", "\r"], "\n", $text);
+        if ('' === $normalized) {
+            return [];
+        }
 
         return explode("\n", $normalized);
     }
@@ -635,7 +630,6 @@ class ConsoleFormatter extends AbstractOutputFormatter
         if (false === $lastPos || 0 === $lastPos) {
             return $pattern;
         }
-
         $body = substr($pattern, 1, $lastPos - 1);
 
         // Try the AST-based highlighter first for better highlighting, then
@@ -814,7 +808,6 @@ class ConsoleFormatter extends AbstractOutputFormatter
         if (false === $lastDelimiterPos || 0 === $lastDelimiterPos) {
             return null;
         }
-
         $flags = substr($pattern, $lastDelimiterPos + 1);
 
         return [
@@ -863,7 +856,7 @@ class ConsoleFormatter extends AbstractOutputFormatter
 
     private function stripAnsi(string $text): string
     {
-        return preg_replace('/\x1B\\[[0-9;]*m/', '', $text) ?? $text;
+        return preg_replace('/\e\\[[0-9;]*m/', '', $text) ?? $text;
     }
 
     /**

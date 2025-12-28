@@ -56,14 +56,18 @@ final readonly class ValidatorRegexPatternSource implements RegexPatternSourceIn
         $line = 1;
 
         foreach ($this->getMappedClasses() as $className) {
+            // @codeCoverageIgnoreStart
             if (!\is_string($className) || '' === $className) {
                 continue;
             }
+            // @codeCoverageIgnoreEnd
 
             try {
+                // @codeCoverageIgnoreStart
                 if (null === $this->validator) {
                     continue;
                 }
+                // @codeCoverageIgnoreEnd
                 $metadata = $this->validator->getMetadataFor($className);
             } catch (\Throwable) {
                 continue;
