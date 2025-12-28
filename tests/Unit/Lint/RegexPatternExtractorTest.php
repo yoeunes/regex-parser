@@ -18,6 +18,7 @@ use PHPUnit\Framework\TestCase;
 use RegexParser\Lint\ExtractorInterface;
 use RegexParser\Lint\RegexPatternExtractor;
 use RegexParser\Lint\RegexPatternOccurrence;
+use RegexParser\Tests\Support\LintFunctionOverrides;
 
 final class RegexPatternExtractorTest extends TestCase
 {
@@ -29,6 +30,11 @@ final class RegexPatternExtractorTest extends TestCase
     {
         $this->extractor = $this->createMock(ExtractorInterface::class);
         $this->patternExtractor = new RegexPatternExtractor($this->extractor);
+    }
+
+    protected function tearDown(): void
+    {
+        LintFunctionOverrides::reset();
     }
 
     public function test_supports_parallel(): void
@@ -125,6 +131,23 @@ final class RegexPatternExtractorTest extends TestCase
         $this->assertNotEmpty($progressCalls);
     }
 
+    public function test_extract_reports_progress_with_no_files(): void
+    {
+        $this->extractor->method('extract')->willReturn([]);
+
+        $progressCalls = [];
+        $result = $this->patternExtractor->extract(
+            [],
+            null,
+            function (int $current, int $total) use (&$progressCalls): void {
+                $progressCalls[] = [$current, $total];
+            },
+        );
+
+        $this->assertSame([], $result);
+        $this->assertSame([[0, 0]], $progressCalls);
+    }
+
     public function test_extract_with_workers_greater_than_one(): void
     {
         $occurrence = new RegexPatternOccurrence('/test/', 'file.php', 1, 'source');
@@ -139,6 +162,59 @@ final class RegexPatternExtractorTest extends TestCase
         }
 
         $this->assertCount(1, $result);
+    }
+
+    public function test_extract_parallel_falls_back_on_fork_failure(): void
+    {
+        $file1 = $this->createTempPhpFile();
+        $file2 = $this->createTempPhpFile();
+        $path1 = sys_get_temp_dir().'/regexparser_extract_'.uniqid('', true);
+        $path2 = sys_get_temp_dir().'/regexparser_extract_'.uniqid('', true);
+
+        LintFunctionOverrides::queueTempnam($path1);
+        LintFunctionOverrides::queueTempnam($path2);
+        LintFunctionOverrides::queuePcntlForkResult(1234);
+        LintFunctionOverrides::queuePcntlForkResult(-1);
+        LintFunctionOverrides::$pcntlWaitpidResult = 0;
+
+        try {
+            $occurrences = [
+                $file1 => new RegexPatternOccurrence('/test1/', $file1, 1, 'source1'),
+                $file2 => new RegexPatternOccurrence('/test2/', $file2, 2, 'source2'),
+            ];
+
+            $this->extractor->method('extract')->willReturnCallback(
+                static function (array $files) use ($occurrences): array {
+                    if (
+                        1 === \count($files)
+                        && isset($files[0])
+                        && \is_string($files[0])
+                        && isset($occurrences[$files[0]])
+                    ) {
+                        return [$occurrences[$files[0]]];
+                    }
+
+                    return array_values($occurrences);
+                },
+            );
+
+            $progressCalls = [];
+            $result = $this->patternExtractor->extract(
+                [$file1, $file2],
+                null,
+                function (int $current, int $total) use (&$progressCalls): void {
+                    $progressCalls[] = [$current, $total];
+                },
+                2,
+            );
+        } finally {
+            @unlink($file1);
+            @unlink($file2);
+            @unlink($path2);
+        }
+
+        $this->assertCount(2, $result);
+        $this->assertNotEmpty($progressCalls);
     }
 
     public function test_extract_marks_inline_ignored_patterns(): void
@@ -306,11 +382,135 @@ final class RegexPatternExtractorTest extends TestCase
         $this->assertFalse($method->invoke($this->patternExtractor, 'regular.php'));
     }
 
+    public function test_collect_php_files_skips_templates_and_excluded_dirs(): void
+    {
+        $reflection = new \ReflectionClass($this->patternExtractor);
+        $method = $reflection->getMethod('collectPhpFiles');
+
+        $root = sys_get_temp_dir().'/regexparser_collect_'.uniqid('', true);
+        $nested = $root.'/nested';
+        $vendor = $root.'/vendor';
+
+        mkdir($nested, 0o777, true);
+        mkdir($vendor, 0o777, true);
+
+        $keep = $root.'/keep.php';
+        $template = $root.'/skip.blade.php';
+        $nestedKeep = $nested.'/ok.php';
+        $nestedTemplate = $nested.'/view.twig.php';
+        $vendorFile = $vendor.'/skip.php';
+
+        file_put_contents($keep, '<?php');
+        file_put_contents($template, '<?php');
+        file_put_contents($nestedKeep, '<?php');
+        file_put_contents($nestedTemplate, '<?php');
+        file_put_contents($vendorFile, '<?php');
+
+        try {
+            $files = $method->invoke($this->patternExtractor, ['', $root], ['vendor']);
+        } finally {
+            @unlink($keep);
+            @unlink($template);
+            @unlink($nestedKeep);
+            @unlink($nestedTemplate);
+            @unlink($vendorFile);
+            @rmdir($vendor);
+            @rmdir($nested);
+            @rmdir($root);
+        }
+
+        $this->assertIsArray($files);
+        $this->assertContains($keep, $files);
+        $this->assertContains($nestedKeep, $files);
+        $this->assertNotContains($template, $files);
+        $this->assertNotContains($nestedTemplate, $files);
+        $this->assertNotContains($vendorFile, $files);
+    }
+
+    public function test_extract_parallel_handles_tempnam_failure(): void
+    {
+        LintFunctionOverrides::queueTempnam(false);
+        $this->extractor->method('extract')->willReturn([]);
+
+        $result = $this->invokePrivate('extractParallel', ['a.php', 'b.php'], 2, null);
+
+        $this->assertSame([], $result);
+    }
+
+    public function test_extract_parallel_merges_results_and_reports_progress(): void
+    {
+        $path1 = sys_get_temp_dir().'/regexparser_payload_'.uniqid('', true);
+        $path2 = sys_get_temp_dir().'/regexparser_payload_'.uniqid('', true);
+
+        $occ1 = new RegexPatternOccurrence('/a+/', 'a.php', 1, 'preg_match');
+        $occ2 = new RegexPatternOccurrence('/b+/', 'b.php', 2, 'preg_match');
+
+        file_put_contents($path1, serialize(['ok' => true, 'result' => [$occ1]]));
+        file_put_contents($path2, serialize(['ok' => true, 'result' => [$occ2]]));
+
+        LintFunctionOverrides::queueTempnam($path1);
+        LintFunctionOverrides::queueTempnam($path2);
+        LintFunctionOverrides::queuePcntlForkResult(111);
+        LintFunctionOverrides::queuePcntlForkResult(222);
+        LintFunctionOverrides::$pcntlWaitpidResult = 0;
+
+        $progressCalls = [];
+        $result = $this->invokePrivate(
+            'extractParallel',
+            ['a.php', 'b.php'],
+            2,
+            function (int $current, int $total) use (&$progressCalls): void {
+                $progressCalls[] = [$current, $total];
+            },
+        );
+
+        $this->assertIsArray($result);
+        $this->assertCount(2, $result);
+        $this->assertNotEmpty($progressCalls);
+    }
+
+    public function test_extract_parallel_throws_on_worker_error_payload(): void
+    {
+        $path = sys_get_temp_dir().'/regexparser_payload_'.uniqid('', true);
+        file_put_contents($path, serialize(['ok' => false, 'error' => ['message' => 'Boom', 'class' => 'RuntimeException']]));
+
+        LintFunctionOverrides::queueTempnam($path);
+        LintFunctionOverrides::queuePcntlForkResult(111);
+        LintFunctionOverrides::$pcntlWaitpidResult = 0;
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Parallel collection failed: RuntimeException: Boom');
+
+        $this->invokePrivate('extractParallel', ['a.php'], 1, null);
+    }
+
+    public function test_extract_parallel_skips_non_array_results(): void
+    {
+        $path = sys_get_temp_dir().'/regexparser_payload_'.uniqid('', true);
+        file_put_contents($path, serialize(['ok' => true, 'result' => 'not-array']));
+
+        LintFunctionOverrides::queueTempnam($path);
+        LintFunctionOverrides::queuePcntlForkResult(111);
+        LintFunctionOverrides::$pcntlWaitpidResult = 0;
+
+        $result = $this->invokePrivate('extractParallel', ['a.php'], 1, null);
+
+        $this->assertSame([], $result);
+    }
+
     private function createTempPhpFile(string $content = '<?php'): string
     {
         $path = sys_get_temp_dir().'/regexparser_'.uniqid('', true).'.php';
         file_put_contents($path, $content);
 
         return $path;
+    }
+
+    private function invokePrivate(string $method, mixed ...$args): mixed
+    {
+        $reflection = new \ReflectionClass($this->patternExtractor);
+        $refMethod = $reflection->getMethod($method);
+
+        return $refMethod->invoke($this->patternExtractor, ...$args);
     }
 }

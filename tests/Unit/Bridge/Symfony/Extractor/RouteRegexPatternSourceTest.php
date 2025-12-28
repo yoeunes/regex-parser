@@ -18,7 +18,9 @@ use PHPUnit\Framework\TestCase;
 use RegexParser\Bridge\Symfony\Extractor\RouteRegexPatternSource;
 use RegexParser\Bridge\Symfony\Routing\RouteRequirementNormalizer;
 use RegexParser\Lint\RegexPatternSourceContext;
+use RegexParser\Tests\Support\SymfonyExtractorFunctionOverrides;
 use Symfony\Component\Config\Resource\FileResource;
+use Symfony\Component\Config\Resource\ResourceInterface;
 use Symfony\Component\Routing\Route;
 use Symfony\Component\Routing\RouteCollection;
 use Symfony\Component\Routing\RouterInterface;
@@ -30,6 +32,11 @@ final class RouteRegexPatternSourceTest extends TestCase
     protected function setUp(): void
     {
         $this->normalizer = new RouteRequirementNormalizer();
+    }
+
+    protected function tearDown(): void
+    {
+        SymfonyExtractorFunctionOverrides::reset();
     }
 
     #[DoesNotPerformAssertions]
@@ -111,6 +118,26 @@ final class RouteRegexPatternSourceTest extends TestCase
         $this->assertSame('route:test_route:id', $result[0]->source);
         $this->assertSame('\d+', $result[0]->displayPattern);
         $this->assertStringContainsString('Route "test_route"', (string) $result[0]->location);
+    }
+
+    public function test_extract_skips_non_scalar_requirements(): void
+    {
+        $router = $this->createMock(RouterInterface::class);
+        $collection = new RouteCollection();
+
+        $route = new Route('/test/{id}');
+        $ref = new \ReflectionProperty(Route::class, 'requirements');
+        $ref->setValue($route, ['id' => ['array']]);
+        $collection->add('test_route', $route);
+
+        $router->method('getRouteCollection')->willReturn($collection);
+
+        $source = new RouteRegexPatternSource($this->normalizer, $router);
+        $context = new RegexPatternSourceContext(['.'], []);
+
+        $result = $source->extract($context);
+
+        $this->assertSame([], $result);
     }
 
     public function test_extract_with_route_having_controller(): void
@@ -363,6 +390,156 @@ final class RouteRegexPatternSourceTest extends TestCase
         }
     }
 
+    public function test_collect_yaml_resources_skips_non_file_resource_and_empty_path(): void
+    {
+        $collection = new RouteCollection();
+        $collection->addResource(new class implements \Stringable, ResourceInterface {
+            public function __toString(): string
+            {
+                return 'dummy';
+            }
+        });
+        $tempYaml = tempnam(sys_get_temp_dir(), 'routes').'.yaml';
+        file_put_contents($tempYaml, "routes:\n");
+
+        try {
+            $resource = new FileResource($tempYaml);
+            $ref = new \ReflectionProperty(FileResource::class, 'resource');
+            $ref->setValue($resource, '');
+            $collection->addResource($resource);
+        } finally {
+            unlink($tempYaml);
+        }
+
+        $source = new RouteRegexPatternSource($this->normalizer);
+        $method = new \ReflectionMethod(RouteRegexPatternSource::class, 'collectYamlResources');
+
+        $this->assertSame([], $method->invoke($source, $collection));
+    }
+
+    public function test_extract_yaml_metadata_returns_empty_when_file_missing(): void
+    {
+        SymfonyExtractorFunctionOverrides::queueFileResult(false);
+
+        $source = new RouteRegexPatternSource($this->normalizer);
+        $method = new \ReflectionMethod(RouteRegexPatternSource::class, 'extractYamlRouteMetadata');
+
+        $result = $method->invoke($source, 'missing.yaml', ['test_route' => true]);
+
+        $this->assertSame([], $result);
+    }
+
+    public function test_extract_yaml_metadata_handles_when_blocks_and_requirements(): void
+    {
+        $tempYaml = tempnam(sys_get_temp_dir(), 'routes').'.yaml';
+        $yamlContent = <<<'YAML'
+            'when@dev':
+              foo:
+                requirements:
+                  id: '\d+'
+                bar:
+                  nested: value
+              bar:
+                requirements:
+                  id: '\w+'
+            foo:
+              requirements:
+                id: '\d+'
+              defaults: {}
+            YAML;
+        file_put_contents($tempYaml, $yamlContent);
+
+        try {
+            $source = new RouteRegexPatternSource($this->normalizer);
+            $method = new \ReflectionMethod(RouteRegexPatternSource::class, 'extractYamlRouteMetadata');
+
+            $result = $method->invoke($source, $tempYaml, ['foo' => true, 'bar' => true]);
+
+            $this->assertIsArray($result);
+            $this->assertArrayHasKey('foo', $result);
+            $this->assertArrayHasKey('bar', $result);
+        } finally {
+            unlink($tempYaml);
+        }
+    }
+
+    public function test_extract_key_from_line_supports_quoted_keys(): void
+    {
+        $source = new RouteRegexPatternSource($this->normalizer);
+        $method = new \ReflectionMethod(RouteRegexPatternSource::class, 'extractKeyFromLine');
+
+        $this->assertSame('single', $method->invoke($source, "  'single': value"));
+        $this->assertSame('double', $method->invoke($source, '  "double": value'));
+    }
+
+    public function test_extract_skips_yaml_requirement_when_line_mismatch(): void
+    {
+        $router = $this->createMock(RouterInterface::class);
+        $collection = new RouteCollection();
+
+        $tempYaml = tempnam(sys_get_temp_dir(), 'routes').'.yaml';
+        file_put_contents($tempYaml, "test_route:\n  requirements:\n    id: '\\\\d+'\n");
+
+        try {
+            $route = new Route('/test/{id}');
+            $collection->add('test_route', $route);
+            $collection->addResource(new FileResource($tempYaml));
+
+            $router->method('getRouteCollection')->willReturn($collection);
+
+            SymfonyExtractorFunctionOverrides::queueFileResult([
+                'test_route:',
+                '  requirements:',
+                "    id: '\\d+'",
+            ]);
+            SymfonyExtractorFunctionOverrides::queueFileResult([
+                'test_route:',
+                '  requirements:',
+                "    other: 'x'",
+            ]);
+
+            $source = new RouteRegexPatternSource($this->normalizer, $router);
+            $context = new RegexPatternSourceContext(['.'], []);
+
+            $result = $source->extract($context);
+
+            $this->assertSame([], $result);
+        } finally {
+            unlink($tempYaml);
+        }
+    }
+
+    public function test_extract_skips_yaml_requirements_when_route_missing(): void
+    {
+        $tempYaml = tempnam(sys_get_temp_dir(), 'routes').'.yaml';
+        $yamlContent = <<<'YAML'
+            test_route:
+              requirements:
+                id: '\d+'
+            YAML;
+        file_put_contents($tempYaml, $yamlContent);
+
+        try {
+            $router = $this->createMock(RouterInterface::class);
+            $collection = new NullGetRouteCollection();
+
+            $route = new Route('/test/{id}');
+            $collection->add('test_route', $route);
+            $collection->addResource(new FileResource($tempYaml));
+
+            $router->method('getRouteCollection')->willReturn($collection);
+
+            $source = new RouteRegexPatternSource($this->normalizer, $router);
+            $context = new RegexPatternSourceContext(['.'], []);
+
+            $result = $source->extract($context);
+
+            $this->assertSame([], $result);
+        } finally {
+            unlink($tempYaml);
+        }
+    }
+
     public function test_extract_with_yaml_complex_route_definitions(): void
     {
         $tempYaml = tempnam(sys_get_temp_dir(), 'routes').'.yaml';
@@ -418,5 +595,13 @@ final class RouteRegexPatternSourceTest extends TestCase
         $source = new RouteRegexPatternSource($this->normalizer);
         $this->assertFalse($source->isSupported());
         $this->assertSame('routes', $source->getName());
+    }
+}
+
+final class NullGetRouteCollection extends RouteCollection
+{
+    public function get(string $name): ?Route
+    {
+        return null;
     }
 }

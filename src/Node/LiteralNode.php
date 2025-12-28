@@ -23,7 +23,8 @@ final readonly class LiteralNode extends AbstractNode
     public function __construct(
         public string $value,
         int $startPosition,
-        int $endPosition
+        int $endPosition,
+        public bool $isRaw = false
     ) {
         parent::__construct($startPosition, $endPosition);
     }

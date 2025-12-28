@@ -15,7 +15,6 @@ namespace RegexParser;
 
 use RegexParser\Cache\CacheInterface;
 use RegexParser\Cache\FilesystemCache;
-use RegexParser\Cache\NullCache;
 use RegexParser\Exception\InvalidRegexOptionException;
 
 /**
@@ -96,10 +95,12 @@ final readonly class RegexOptions
      */
     private static function createDefault(): self
     {
+        $defaultPath = sys_get_temp_dir().\DIRECTORY_SEPARATOR.'regex-parser'.\DIRECTORY_SEPARATOR.'cache';
+
         return new self(
             Regex::DEFAULT_MAX_PATTERN_LENGTH,
             Regex::DEFAULT_MAX_LOOKBEHIND_LENGTH,
-            new NullCache(),
+            new FilesystemCache($defaultPath),
             [],
             false,
         );
@@ -247,9 +248,15 @@ final readonly class RegexOptions
             }
 
             if (preg_match('/^(\d+)(?:\.(\d+))?(?:\.(\d+))?/', $trimmed, $matches)) {
+                if (!isset($matches[1]) || !\is_string($matches[1])) {
+                    throw new InvalidRegexOptionException(
+                        '"php_version" must be a version string like "8.2" or a PHP_VERSION_ID integer.',
+                    );
+                }
+
                 $major = (int) $matches[1];
-                $minor = isset($matches[2]) ? (int) $matches[2] : 0;
-                $patch = isset($matches[3]) ? (int) $matches[3] : 0;
+                $minor = isset($matches[2]) && \is_string($matches[2]) ? (int) $matches[2] : 0;
+                $patch = isset($matches[3]) && \is_string($matches[3]) ? (int) $matches[3] : 0;
 
                 return ($major * 10000) + ($minor * 100) + $patch;
             }
@@ -272,7 +279,9 @@ final readonly class RegexOptions
         $cacheOption = $options['cache'] ?? null;
 
         if (null === $cacheOption) {
-            return new NullCache();
+            $defaultPath = sys_get_temp_dir().\DIRECTORY_SEPARATOR.'regex-parser'.\DIRECTORY_SEPARATOR.'cache';
+
+            return new FilesystemCache($defaultPath);
         }
 
         if (\is_string($cacheOption)) {

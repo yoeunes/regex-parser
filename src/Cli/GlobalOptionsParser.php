@@ -61,12 +61,6 @@ final class GlobalOptionsParser
                 continue;
             }
 
-            if ('--visuals' === $arg) {
-                $visuals = true;
-
-                continue;
-            }
-
             if (str_starts_with($arg, '--php-version=')) {
                 $phpVersion = substr($arg, \strlen('--php-version='));
 

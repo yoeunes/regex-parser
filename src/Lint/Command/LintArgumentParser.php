@@ -45,6 +45,7 @@ final class LintArgumentParser
                     $arguments->checkValidation,
                     $arguments->checkOptimizations,
                     $arguments->jobs,
+                    $arguments->output,
                 );
 
                 continue;
@@ -62,6 +63,7 @@ final class LintArgumentParser
                     $arguments->checkValidation,
                     $arguments->checkOptimizations,
                     $arguments->jobs,
+                    $arguments->output,
                 );
 
                 continue;
@@ -79,6 +81,7 @@ final class LintArgumentParser
                     $arguments->checkValidation,
                     $arguments->checkOptimizations,
                     $arguments->jobs,
+                    $arguments->output,
                 );
 
                 continue;
@@ -96,6 +99,7 @@ final class LintArgumentParser
                     $arguments->checkValidation,
                     $arguments->checkOptimizations,
                     $arguments->jobs,
+                    $arguments->output,
                 );
 
                 continue;
@@ -113,6 +117,7 @@ final class LintArgumentParser
                     false,
                     $arguments->checkOptimizations,
                     $arguments->jobs,
+                    $arguments->output,
                 );
 
                 continue;
@@ -130,6 +135,51 @@ final class LintArgumentParser
                     $arguments->checkValidation,
                     false,
                     $arguments->jobs,
+                    $arguments->output,
+                    $arguments->baseline,
+                    $arguments->generateBaseline,
+                );
+
+                continue;
+            }
+
+            if (str_starts_with($arg, '--generate-baseline=')) {
+                $generateBaseline = substr($arg, \strlen('--generate-baseline='));
+                $arguments = new LintArguments(
+                    $arguments->paths,
+                    $arguments->exclude,
+                    $arguments->minSavings,
+                    $arguments->verbosity,
+                    $arguments->format,
+                    $arguments->quiet,
+                    $arguments->checkRedos,
+                    $arguments->checkValidation,
+                    $arguments->checkOptimizations,
+                    $arguments->jobs,
+                    $arguments->output,
+                    $arguments->baseline,
+                    $generateBaseline,
+                );
+
+                continue;
+            }
+
+            if (str_starts_with($arg, '--baseline=')) {
+                $baseline = substr($arg, \strlen('--baseline='));
+                $arguments = new LintArguments(
+                    $arguments->paths,
+                    $arguments->exclude,
+                    $arguments->minSavings,
+                    $arguments->verbosity,
+                    $arguments->format,
+                    $arguments->quiet,
+                    $arguments->checkRedos,
+                    $arguments->checkValidation,
+                    $arguments->checkOptimizations,
+                    $arguments->jobs,
+                    $arguments->output,
+                    $baseline,
+                    $arguments->generateBaseline,
                 );
 
                 continue;
@@ -147,6 +197,7 @@ final class LintArgumentParser
                     $arguments->checkValidation,
                     $arguments->checkOptimizations,
                     $arguments->jobs,
+                    $arguments->output,
                 );
 
                 continue;
@@ -168,6 +219,7 @@ final class LintArgumentParser
                     $arguments->checkValidation,
                     $arguments->checkOptimizations,
                     $arguments->jobs,
+                    $arguments->output,
                 );
                 $i++;
 
@@ -188,6 +240,7 @@ final class LintArgumentParser
                     $arguments->checkValidation,
                     $arguments->checkOptimizations,
                     $arguments->jobs,
+                    $arguments->output,
                 );
 
                 continue;
@@ -211,6 +264,7 @@ final class LintArgumentParser
                     $arguments->checkValidation,
                     $arguments->checkOptimizations,
                     $arguments->jobs,
+                    $arguments->output,
                 );
                 $i++;
 
@@ -229,6 +283,7 @@ final class LintArgumentParser
                     $arguments->checkValidation,
                     $arguments->checkOptimizations,
                     $arguments->jobs,
+                    $arguments->output,
                 );
 
                 continue;
@@ -250,6 +305,7 @@ final class LintArgumentParser
                     $arguments->checkValidation,
                     $arguments->checkOptimizations,
                     $jobs,
+                    $arguments->output,
                 );
 
                 continue;
@@ -271,6 +327,7 @@ final class LintArgumentParser
                     $arguments->checkValidation,
                     $arguments->checkOptimizations,
                     $arguments->jobs,
+                    $arguments->output,
                 );
                 $i++;
 
@@ -297,6 +354,48 @@ final class LintArgumentParser
                     $arguments->checkValidation,
                     $arguments->checkOptimizations,
                     $jobs,
+                    $arguments->output,
+                );
+                $i++;
+
+                continue;
+            }
+
+            if (str_starts_with($arg, '--output=')) {
+                $arguments = new LintArguments(
+                    $arguments->paths,
+                    $arguments->exclude,
+                    $arguments->minSavings,
+                    $arguments->verbosity,
+                    $arguments->format,
+                    $arguments->quiet,
+                    $arguments->checkRedos,
+                    $arguments->checkValidation,
+                    $arguments->checkOptimizations,
+                    $arguments->jobs,
+                    substr($arg, \strlen('--output=')),
+                );
+
+                continue;
+            }
+
+            if ('--output' === $arg) {
+                $value = $args[$i + 1] ?? '';
+                if ('' === $value || str_starts_with($value, '-')) {
+                    return new LintParseResult(null, 'Missing value for --output.');
+                }
+                $arguments = new LintArguments(
+                    $arguments->paths,
+                    $arguments->exclude,
+                    $arguments->minSavings,
+                    $arguments->verbosity,
+                    $arguments->format,
+                    $arguments->quiet,
+                    $arguments->checkRedos,
+                    $arguments->checkValidation,
+                    $arguments->checkOptimizations,
+                    $arguments->jobs,
+                    $value,
                 );
                 $i++;
 
@@ -324,6 +423,7 @@ final class LintArgumentParser
                 $arguments->checkValidation,
                 $arguments->checkOptimizations,
                 $arguments->jobs,
+                $arguments->output,
             );
         }
 

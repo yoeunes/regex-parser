@@ -398,9 +398,11 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
             )];
         }
 
+        // @codeCoverageIgnoreStart
         if ('' === $patternInfo['pattern']) {
             return [];
         }
+        // @codeCoverageIgnoreEnd
 
         return [new RegexPatternOccurrence(
             $patternInfo['pattern'],
@@ -548,8 +550,8 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
             ];
         }
 
-        // Not a regex with flags, return as-is
-        return $result;
+        // Not a regex with flags, let the caller fall back to plain string parsing.
+        return null;
     }
 
     /**

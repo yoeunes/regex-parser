@@ -168,7 +168,7 @@ preg_match('/^\\d{4}-\\d{2}-\\d{2}$/', $date);
 
 **When it triggers:** one literal alternative is a prefix of another (e.g. `(a|aa)`). Inside repetition this is a common ReDoS trigger.
 
-**Fix it:** order longer branches first or make the alternation atomic.
+**Fix it:** use atomic groups `(?>...)` to prevent backtracking. Do not reorder overlapping alternatives as it changes match semantics.
 
 **Read more**
 - [OWASP: ReDoS](https://owasp.org/www-community/attacks/Regular_expression_Denial_of_Service_-_ReDoS)
@@ -178,7 +178,7 @@ preg_match('/^\\d{4}-\\d{2}-\\d{2}$/', $date);
 
 **When it triggers:** alternation branches have overlapping character sets (e.g. `[a-c]|[b-d]`). This may cause unnecessary backtracking.
 
-**Fix it:** consider reordering alternatives or using atomic groups to improve performance.
+**Fix it:** use atomic groups `(?>...)` to prevent backtracking. Do not reorder overlapping alternatives as it changes match semantics.
 
 **Read more**
 - [OWASP: ReDoS](https://owasp.org/www-community/attacks/Regular_expression_Denial_of_Service_-_ReDoS)

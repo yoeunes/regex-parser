@@ -104,6 +104,77 @@ final class LinkFormatterTest extends TestCase
         $this->assertSame('/tmp/Example.php', $helper->getRelativePath('/tmp/Example.php'));
     }
 
+    public function test_format_returns_label_when_line_missing(): void
+    {
+        $formatter = new LinkFormatter('vscode://file/%f:%l', new RelativePathHelper('/app'));
+
+        $this->assertSame('label', $formatter->format('/app/src/File.php', null, 'label'));
+    }
+
+    public function test_format_uses_fallback_label_when_links_unsupported(): void
+    {
+        putenv('KONSOLE_VERSION=201100');
+
+        $formatter = new LinkFormatter('vscode://file/%f:%l', new RelativePathHelper('/app'));
+
+        $this->assertSame('fallback', $formatter->format('/app/src/File.php', 10, 'label', 1, 'fallback'));
+    }
+
+    public function test_format_disables_links_when_idea_directory_detected(): void
+    {
+        $_SERVER['IDEA_INITIAL_DIRECTORY'] = '/app';
+
+        $formatter = new LinkFormatter('vscode://file/%f:%l', new RelativePathHelper('/app'));
+
+        $this->assertSame('src/File.php:10', $formatter->format('/app/src/File.php', 10, 'label'));
+    }
+
+    public function test_format_returns_label_when_path_is_not_resolvable(): void
+    {
+        $formatter = new LinkFormatter('vscode://file/%f:%l', new RelativePathHelper('/app'));
+
+        $result = $formatter->format('notapath', 10, 'label');
+
+        $this->assertSame('label', $result);
+    }
+
+    public function test_resolve_file_path_returns_normalized_when_base_empty(): void
+    {
+        $formatter = new LinkFormatter('vscode://file/%f:%l', new RelativePathHelper(''));
+
+        $result = $formatter->format('src/File.php', 5, 'label');
+
+        $this->assertSame('<href=vscode://file/src/File.php:5>label</>', $result);
+    }
+
+    public function test_path_helpers_cover_edge_cases(): void
+    {
+        $formatter = new LinkFormatter('vscode://file/%f:%l', new RelativePathHelper('/app'));
+        $this->assertFalse($this->invokePrivate($formatter, 'looksLikePath', ['']));
+        $this->assertTrue($this->invokePrivate($formatter, 'looksLikePath', ['http://example.com']));
+        $this->assertTrue($this->invokePrivate($formatter, 'looksLikePath', ['file.txt']));
+
+        $this->assertFalse($this->invokePrivate($formatter, 'isAbsolutePath', ['']));
+    }
+
+    public function test_relative_path_helper_returns_normalized_when_base_empty(): void
+    {
+        $helper = new RelativePathHelper('');
+
+        $this->assertSame('/tmp/file.php', $helper->getRelativePath('/tmp/file.php'));
+    }
+
+    /**
+     * @param array<int, mixed> $args
+     */
+    private function invokePrivate(object $target, string $method, array $args = []): mixed
+    {
+        $ref = new \ReflectionClass($target);
+        $refMethod = $ref->getMethod($method);
+
+        return $refMethod->invokeArgs($target, $args);
+    }
+
     private function getEnvValue(string $name): ?string
     {
         $value = getenv($name);

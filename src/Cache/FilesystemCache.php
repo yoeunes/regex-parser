@@ -13,11 +13,17 @@ declare(strict_types=1);
 
 namespace RegexParser\Cache;
 
-final readonly class FilesystemCache implements RemovableCacheInterface
-{
-    private string $directory;
+use RegexParser\Regex;
 
-    public function __construct(string $directory, private string $extension = '.php')
+final class FilesystemCache implements RemovableCacheInterface
+{
+    private readonly string $directory;
+
+    private int $hits = 0;
+
+    private int $misses = 0;
+
+    public function __construct(string $directory, private readonly string $extension = '.php')
     {
         $this->directory = rtrim($directory, '\\/');
     }
@@ -25,7 +31,7 @@ final readonly class FilesystemCache implements RemovableCacheInterface
     #[\Override]
     public function generateKey(string $regex): string
     {
-        $hash = hash('sha256', $regex);
+        $hash = hash('sha256', $regex.Regex::CACHE_VERSION);
 
         return \sprintf(
             '%s%s%s%s%s%s',
@@ -76,8 +82,12 @@ final readonly class FilesystemCache implements RemovableCacheInterface
     public function load(string $key): mixed
     {
         if (!is_file($key)) {
+            $this->misses++;
+
             return null;
         }
+
+        $this->hits++;
 
         try {
             return include $key;
@@ -131,6 +141,12 @@ final readonly class FilesystemCache implements RemovableCacheInterface
         }
 
         @rmdir($this->directory);
+    }
+
+    #[\Override]
+    public function getStats(): array
+    {
+        return ['hits' => $this->hits, 'misses' => $this->misses];
     }
 
     private function createDirectory(string $directory): void

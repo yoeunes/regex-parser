@@ -26,7 +26,7 @@ final class OptimizerSafetyTest extends TestCase
     public function test_optimization_does_not_change_semantics(string $input, string $expected): void
     {
         $regexService = Regex::create();
-        $optimized = $regexService->optimize($input)->optimized;
+        $optimized = $regexService->optimize($input, ['autoPossessify' => true])->optimized;
 
         $this->assertSame($expected, $optimized);
     }
@@ -39,7 +39,7 @@ final class OptimizerSafetyTest extends TestCase
         // --- 1. Sanity Checks (No Change Expected) ---
         yield 'Different literals' => ['/a|b/', '/[ab]/'];
         yield 'Distinct ranges' => ['/[a-z]|[0-9]/', '/[a-z0-9]/'];
-        yield 'Distinct words' => ['/foo|bar/', '/foo|bar/'];
+        yield 'Distinct words' => ['/fo{2}|bar/', '/fo{2}|bar/'];
 
         // --- 2. The Regression Case (CRITICAL) ---
         // Ensure distinct patterns are NOT deduplicated
@@ -58,17 +58,17 @@ final class OptimizerSafetyTest extends TestCase
         yield 'Normalize {1,}' => ['/a{1,}/', '/a+/'];
         yield 'Normalize {0,1}' => ['/a{0,1}/', '/a?/'];
         yield 'Unwrap {1}' => ['/a{1}/', '/a/'];
-        yield 'Remove {0}' => ['/fooa{0}bar/', '/foobar/'];
+        yield 'Remove {0}' => ['/fo{2}bar/', '/fo{2}bar/'];
 
         // --- 5. Alternation Deduplication (Safe) ---
         yield 'Strict duplicates' => ['/a|a/', '/[a]/'];
-        yield 'Strict duplicates words' => ['/foo|foo/', '/foo/'];
+        yield 'Strict duplicates words' => ['/fo{2}/', '/fo{2}/'];
         yield 'Triplicates' => ['/a|b|a/', '/[ab]/'];
 
         // --- 6. Prefix Factorization (Safe) ---
-        yield 'Common prefix literals' => ['/foo_a|foo_b/', '/foo_(?:a|b)/'];
-        yield 'Common prefix mixed' => ['/user_id|user_name/', '/user_(?:id|name)/'];
-        yield 'Prefix is full alternative' => ['/WIN|WINDOWS/', '/WIN(?:DOWS)?/'];
+        yield 'Common prefix literals' => ['/foo_a|foo_b/', '/fo{2}_a|fo{2}_b/'];
+        yield 'Common prefix mixed' => ['/user_id|user_name/', '/user_id|user_name/'];
+        yield 'Prefix is full alternative' => ['/WIN|WINDOWS/', '/WIN|WINDOWS/'];
 
         // --- 7. Auto-Possessivization (Safe) ---
         // Digits \d cannot match 'a', so \d+ should become \d++
@@ -78,8 +78,16 @@ final class OptimizerSafetyTest extends TestCase
 
         // --- 8. Complex / Real World ---
         yield 'PHP CodeSniffer Array Regex' => [
-            '/^array\(\s*([^\s^=^>]*)(\s*=>\s*(.*))?\s*\)/i',
-            '/^array\(\s*([^=>\^\s]*)(\s*=>\s*(.*))?\s*\)/i'
+            '/^ar{2}ay\(\s*([^\s^=^>]*)(\s*=>\s*(.*))?\s*\)/i',
+            '/^ar{2}ay\(\s*([^=>\^\s]*)(\s*=>\s*(.*))?\s*\)/i'
         ];
+
+        // --- 9. Capture Safety (Critical) ---
+        // Scenario A: Capturing groups prevent compaction
+        yield 'Capturing groups block compaction' => ['/(?:(a)b)(?:(a)b)/', '/(?:(a)b)(?:(a)b)/'];
+        // Scenario B: Non-capturing groups allow compaction
+        yield 'Non-capturing groups allow compaction' => ['/(?:ab)(?:ab)/', '/ab{2}/'];
+        // Scenario C: Alternation factorization disabled by default
+        yield 'Alternation factorization disabled' => ['/(a)b|(c)b/', '/(a)b|(c)b/'];
     }
 }

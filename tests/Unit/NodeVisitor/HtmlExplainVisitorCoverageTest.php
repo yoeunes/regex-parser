@@ -14,6 +14,9 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Unit\NodeVisitor;
 
 use PHPUnit\Framework\TestCase;
+use RegexParser\Node\CharTypeNode;
+use RegexParser\Node\LiteralNode;
+use RegexParser\Node\RangeNode;
 use RegexParser\NodeVisitor\HtmlExplainNodeVisitor;
 use RegexParser\Regex;
 
@@ -105,5 +108,32 @@ final class HtmlExplainVisitorCoverageTest extends TestCase
 
         // This ensures the logic that injects the quantifier into the child's <li> is hit
         $this->assertStringContainsString('<li>(exactly 2 times) <span title="Literal: &#039;a&#039;">Literal: <strong>&#039;a&#039;</strong></span>', $output);
+    }
+
+    public function test_visit_range_with_non_literal_bounds(): void
+    {
+        $range = new RangeNode(new CharTypeNode('d', 0, 0), new LiteralNode('z', 0, 0), 0, 0);
+        $output = $range->accept($this->visitor);
+
+        $this->assertStringContainsString('Range: from', $output);
+        $this->assertStringContainsString('Character Type', $output);
+    }
+
+    public function test_visit_range_with_non_literal_end(): void
+    {
+        $range = new RangeNode(new LiteralNode('a', 0, 0), new CharTypeNode('w', 0, 0), 0, 0);
+        $output = $range->accept($this->visitor);
+
+        $this->assertStringContainsString('Range: from', $output);
+        $this->assertStringContainsString('Character Type', $output);
+    }
+
+    public function test_question_quantifier_explains_zero_or_one_time(): void
+    {
+        $regex = '/a?/';
+        $ast = $this->regex->parse($regex);
+        $output = $ast->accept($this->visitor);
+
+        $this->assertStringContainsString('zero or one time', $output);
     }
 }

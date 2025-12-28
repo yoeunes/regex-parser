@@ -101,4 +101,84 @@ final class LintConfigLoaderTest extends TestCase
             @rmdir($tempDir);
         }
     }
+
+    public function test_load_returns_error_on_unreadable_config(): void
+    {
+        $cwd = getcwd();
+        $this->assertIsString($cwd);
+
+        $tempDir = sys_get_temp_dir().'/regex-parser-config-'.uniqid('', true);
+        mkdir($tempDir, 0o700, true);
+
+        $configPath = $tempDir.'/regex.json';
+        file_put_contents($configPath, json_encode(['paths' => ['src']], \JSON_THROW_ON_ERROR));
+        chmod($configPath, 0);
+
+        try {
+            chdir($tempDir);
+
+            $loader = new LintConfigLoader();
+            $result = $loader->load();
+
+            $this->assertNotNull($result->error);
+            $this->assertStringContainsString('Failed to read config file', (string) $result->error);
+        } finally {
+            chmod($configPath, 0o600);
+            chdir($cwd);
+            @unlink($configPath);
+            @rmdir($tempDir);
+        }
+    }
+
+    public function test_load_returns_error_on_non_object_json(): void
+    {
+        $cwd = getcwd();
+        $this->assertIsString($cwd);
+
+        $tempDir = sys_get_temp_dir().'/regex-parser-config-'.uniqid('', true);
+        mkdir($tempDir, 0o700, true);
+
+        $configPath = $tempDir.'/regex.json';
+        file_put_contents($configPath, json_encode('string', \JSON_THROW_ON_ERROR));
+
+        try {
+            chdir($tempDir);
+
+            $loader = new LintConfigLoader();
+            $result = $loader->load();
+
+            $this->assertNotNull($result->error);
+            $this->assertStringContainsString('Config file must contain a JSON object', (string) $result->error);
+        } finally {
+            chdir($cwd);
+            @unlink($configPath);
+            @rmdir($tempDir);
+        }
+    }
+
+    public function test_load_returns_error_on_numeric_keys(): void
+    {
+        $cwd = getcwd();
+        $this->assertIsString($cwd);
+
+        $tempDir = sys_get_temp_dir().'/regex-parser-config-'.uniqid('', true);
+        mkdir($tempDir, 0o700, true);
+
+        $configPath = $tempDir.'/regex.json';
+        file_put_contents($configPath, json_encode(['invalid'], \JSON_THROW_ON_ERROR));
+
+        try {
+            chdir($tempDir);
+
+            $loader = new LintConfigLoader();
+            $result = $loader->load();
+
+            $this->assertNotNull($result->error);
+            $this->assertStringContainsString('Config file must contain a JSON object', (string) $result->error);
+        } finally {
+            chdir($cwd);
+            @unlink($configPath);
+            @rmdir($tempDir);
+        }
+    }
 }

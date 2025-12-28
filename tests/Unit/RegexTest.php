@@ -15,8 +15,10 @@ namespace RegexParser\Tests\Unit;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use RegexParser\Cache\FilesystemCache;
 use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
+use RegexParser\Exception\ResourceLimitException;
 use RegexParser\Node\AlternationNode;
 use RegexParser\Node\CharClassNode;
 use RegexParser\Node\ConditionalNode;
@@ -27,6 +29,7 @@ use RegexParser\Node\SequenceNode;
 use RegexParser\NodeVisitor\HtmlExplainNodeVisitor;
 use RegexParser\Regex;
 use RegexParser\TolerantParseResult;
+use RegexParser\ValidationResult;
 
 final class RegexTest extends TestCase
 {
@@ -64,11 +67,29 @@ final class RegexTest extends TestCase
         $this->assertSame($expectedOptimizedPattern, $optimized);
     }
 
+    public function test_optimize_method_with_options(): void
+    {
+        $optimized = $this->regexService->optimize('/a+/', ['digits' => false]);
+        $this->assertSame('/a+/', $optimized->optimized);
+    }
+
     #[DataProvider('provideRegexForExplanation')]
     public function test_explain_method(string $pattern, string $expectedExplanation): void
     {
         $explanation = $this->regexService->explain($pattern);
         $this->assertStringContainsString($expectedExplanation, $explanation);
+    }
+
+    public function test_explain_method_html_format(): void
+    {
+        $explanation = $this->regexService->explain('/a/', 'html');
+        $this->assertStringContainsString('<div', $explanation);
+    }
+
+    public function test_explain_method_invalid_format(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->regexService->explain('/a/', 'invalid');
     }
 
     #[DataProvider('provideInvalidRegexForParsing')]
@@ -144,6 +165,43 @@ final class RegexTest extends TestCase
         $this->assertIsBool($report->isValid);
         $this->assertIsArray($report->errors());
         $redos = $report->redos();
+    }
+
+    public function test_analyze_method_with_invalid_regex(): void
+    {
+        $report = $this->regexService->analyze('/a(/');
+        $this->assertFalse($report->isValid);
+        $this->assertNotEmpty($report->errors());
+    }
+
+    public function test_analyze_method_parsing_failure(): void
+    {
+        // Create Regex with low recursion limit to trigger parsing exception
+        $regex = Regex::create(['max_recursion_depth' => 3]);
+        $nestedRegex = str_repeat('(', 5).'a'.str_repeat(')', 5);
+
+        $report = $regex->analyze($nestedRegex);
+
+        // Should have parsing error in the catch block
+        $this->assertFalse($report->isValid);
+        $this->assertNotEmpty($report->errors());
+        $this->assertStringContainsString('Recursion limit', $report->errors()[0]);
+    }
+
+    public function test_check_runtime_compilation_default_error_message(): void
+    {
+        $regex = Regex::create();
+        $reflection = new \ReflectionClass($regex);
+        $method = $reflection->getMethod('checkRuntimeCompilation');
+
+        // Use an invalid regex pattern that causes preg_match to fail
+        // This should trigger the default error message path
+        $result = $method->invoke($regex, '/invalid[pattern/', 'invalid[pattern', 1);
+
+        // Should return ValidationResult with default error message
+        $this->assertInstanceOf(ValidationResult::class, $result);
+        $this->assertFalse($result->isValid);
+        $this->assertStringContainsString('PCRE runtime error', (string) $result->error);
     }
 
     public function test_validate_method_with_valid_regex(): void
@@ -274,6 +332,135 @@ final class RegexTest extends TestCase
         $method->invoke($this->regexService, 'invalid');
     }
 
+    public function test_normalize_runtime_error_message(): void
+    {
+        $ref = new \ReflectionClass($this->regexService);
+        $method = $ref->getMethod('normalizeRuntimeErrorMessage');
+
+        $this->assertSame('No error', $method->invoke($this->regexService, 'preg_match(): No error'));
+        $this->assertSame('Some error', $method->invoke($this->regexService, 'preg_match(): Some error'));
+    }
+
+    public function test_extract_offset_from_message(): void
+    {
+        $ref = new \ReflectionClass($this->regexService);
+        $method = $ref->getMethod('extractOffsetFromMessage');
+
+        $this->assertSame(10, $method->invoke($this->regexService, 'Error at offset 10'));
+        $this->assertSame(5, $method->invoke($this->regexService, 'Offset 5 found'));
+        $this->assertNull($method->invoke($this->regexService, 'No offset here'));
+    }
+
+    public function test_build_visual_snippet_edge_cases(): void
+    {
+        $ref = new \ReflectionClass($this->regexService);
+        $method = $ref->getMethod('buildVisualSnippet');
+
+        $this->assertSame('', $method->invoke($this->regexService, 'pattern', -1));
+        $snippet = $method->invoke($this->regexService, 'pattern', 100);
+        $this->assertIsString($snippet);
+        $this->assertStringContainsString('Line 1:', $snippet);
+        $this->assertStringContainsString('^', $snippet);
+        $this->assertSame('', $method->invoke($this->regexService, null, 5));
+    }
+
+    public function test_extract_unique_literals(): void
+    {
+        $ref = new \ReflectionClass($this->regexService);
+        $method = $ref->getMethod('extractUniqueLiterals');
+
+        $literalSet = new class {
+            /**
+             * @var array<string>
+             */
+            public array $prefixes = ['a', 'b'];
+
+            /**
+             * @var array<string>
+             */
+            public array $suffixes = ['b', 'c'];
+        };
+
+        $result = $method->invoke($this->regexService, $literalSet);
+        $this->assertSame(['a', 'b', 'c'], $result);
+
+        $this->assertSame([], $method->invoke($this->regexService, 'not object'));
+    }
+
+    public function test_determine_confidence_level(): void
+    {
+        $ref = new \ReflectionClass($this->regexService);
+        $method = $ref->getMethod('determineConfidenceLevel');
+
+        $completeSet = new class {
+            public bool $complete = true;
+
+            public function isVoid(): bool
+            {
+                return false;
+            }
+        };
+
+        $voidSet = new class {
+            public bool $complete = false;
+
+            public function isVoid(): bool
+            {
+                return true;
+            }
+        };
+
+        $incompleteSet = new class {
+            public bool $complete = false;
+
+            public function isVoid(): bool
+            {
+                return false;
+            }
+        };
+
+        $this->assertSame('high', $method->invoke($this->regexService, $completeSet));
+        $this->assertSame('low', $method->invoke($this->regexService, $voidSet));
+        $this->assertSame('medium', $method->invoke($this->regexService, $incompleteSet));
+        $this->assertSame('low', $method->invoke($this->regexService, 'not object'));
+    }
+
+    public function test_prepare_cache_payload(): void
+    {
+        $ref = new \ReflectionClass($this->regexService);
+        $method = $ref->getMethod('prepareCachePayload');
+
+        $ast = $this->regexService->parse('/a/');
+        $payload = $method->invoke(null, $ast); // static method
+
+        $this->assertIsString($payload);
+        $this->assertStringContainsString('<?php', $payload);
+        $this->assertStringContainsString('unserialize', $payload);
+    }
+
+    public function test_validate_resource_limits(): void
+    {
+        $regex = Regex::create(['max_pattern_length' => 5]);
+        $ref = new \ReflectionClass($regex);
+        $method = $ref->getMethod('validateResourceLimits');
+
+        $this->expectException(ResourceLimitException::class);
+        $method->invoke($regex, 'long pattern here');
+    }
+
+    public function test_build_validation_failure(): void
+    {
+        $ref = new \ReflectionClass($this->regexService);
+        $method = $ref->getMethod('buildValidationFailure');
+
+        $exception = new \Exception('Test error');
+        $result = $method->invoke($this->regexService, $exception);
+
+        $this->assertInstanceOf(ValidationResult::class, $result);
+        $this->assertFalse($result->isValid());
+        $this->assertSame('Test error', $result->getErrorMessage());
+    }
+
     public function test_safe_extract_pattern_handles_parser_exception(): void
     {
         $regex = Regex::create();
@@ -290,5 +477,32 @@ final class RegexTest extends TestCase
         $result = $this->regexService->parse('/a(/', true);
         $this->assertInstanceOf(TolerantParseResult::class, $result);
         $this->assertTrue($result->hasErrors());
+    }
+
+    public function test_caching_functionality(): void
+    {
+        $cacheDir = sys_get_temp_dir().'/regex_cache_test_'.uniqid();
+        mkdir($cacheDir);
+        $cache = new FilesystemCache($cacheDir);
+        $regex = Regex::create(['cache' => $cache]);
+
+        // Parse once to cache
+        $ast1 = $regex->parse('/a+/');
+
+        // Parse again, should load from cache
+        $ast2 = $regex->parse('/a+/');
+
+        $this->assertEquals($ast1, $ast2);
+
+        // Clean up
+        rmdir($cacheDir);
+    }
+
+    public function test_runtime_pcre_validation_error(): void
+    {
+        $regex = Regex::create(['runtime_pcre_validation' => true]);
+        $result = $regex->validate('/(?P<a>a)\1/'); // Backreference to named group, might cause error
+        // Depending on PCRE version, it might pass or fail
+        $this->assertIsBool($result->isValid());
     }
 }

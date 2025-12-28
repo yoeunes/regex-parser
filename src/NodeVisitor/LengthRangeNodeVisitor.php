@@ -20,6 +20,7 @@ use RegexParser\Node\AssertionNode;
 use RegexParser\Node\BackrefNode;
 use RegexParser\Node\CalloutNode;
 use RegexParser\Node\CharClassNode;
+use RegexParser\Node\CharLiteralNode;
 use RegexParser\Node\CharTypeNode;
 use RegexParser\Node\CommentNode;
 use RegexParser\Node\ConditionalNode;
@@ -177,6 +178,19 @@ final class LengthRangeNodeVisitor extends AbstractNodeVisitor
      */
     #[\Override]
     public function visitLiteral(LiteralNode $node): array
+    {
+        return [1, 1];
+    }
+
+    /**
+     * Visits a CharLiteralNode and returns [1, 1].
+     *
+     * @param Node\CharLiteralNode $node the `CharLiteralNode` representing a character literal (e.g., Unicode escape)
+     *
+     * @return array{0: int, 1: int|null} always [1, 1]
+     */
+    #[\Override]
+    public function visitCharLiteral(CharLiteralNode $node): array
     {
         return [1, 1];
     }

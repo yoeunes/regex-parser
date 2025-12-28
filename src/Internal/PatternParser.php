@@ -26,6 +26,11 @@ final class PatternParser
     private static array $supportsModifierR = [];
 
     /**
+     * @var array<int|string, bool>
+     */
+    private static array $supportsModifierE = [];
+
+    /**
      * @return array{0: string, 1: string, 2: string}
      */
     public static function extractPatternAndFlags(string $regex, ?int $phpVersionId = null): array
@@ -71,6 +76,9 @@ final class PatternParser
                     if (self::supportsModifierR($phpVersionId)) {
                         $allowedFlags .= 'r';
                     }
+                    if (self::supportsModifierE($phpVersionId)) {
+                        $allowedFlags .= 'e';
+                    }
 
                     // Validate flags (only allow standard PCRE flags)
                     // n = NO_AUTO_CAPTURE, r = PCRE2_EXTRA_CASELESS_RESTRICT (if supported)
@@ -78,6 +86,10 @@ final class PatternParser
                     if (!preg_match($allowedPattern, $flags)) {
                         // Find the invalid flag for a better error message
                         $invalid = preg_replace('/['.preg_quote($allowedFlags, '/').']/', '', $flags);
+
+                        if (str_contains((string) $invalid, 'e')) {
+                            throw new ParserException('The \'e\' flag (preg_replace /e) was removed; use preg_replace_callback.');
+                        }
 
                         // Format each invalid flag individually with quotes
                         $formattedFlags = implode(', ', array_map(fn (string $flag): string => \sprintf('"%s"', $flag), str_split($invalid ?? $flags)));
@@ -123,6 +135,7 @@ final class PatternParser
         }
 
         if (null === $phpVersionId) {
+            // @regex-ignore-next-line
             $result = @preg_match('/a/r', '');
             self::$supportsModifierR[$key] = false !== $result;
 
@@ -132,6 +145,30 @@ final class PatternParser
         self::$supportsModifierR[$key] = $phpVersionId >= 80400;
 
         return self::$supportsModifierR[$key];
+    }
+
+    /**
+     * Check if the 'e' modifier (PREG_REPLACE_EVAL) is supported.
+     * The 'e' modifier was removed in PHP 7.0, so it's only valid for PHP < 7.0.
+     */
+    private static function supportsModifierE(?int $phpVersionId = null): bool
+    {
+        $key = $phpVersionId ?? 'runtime';
+        if (\array_key_exists($key, self::$supportsModifierE)) {
+            return self::$supportsModifierE[$key];
+        }
+
+        if (null === $phpVersionId) {
+            // At runtime, we're always on PHP 7.0+, so 'e' is never supported
+            // @phpstan-ignore-next-line smaller.alwaysFalse
+            self::$supportsModifierE[$key] = \PHP_VERSION_ID < 70000;
+
+            return self::$supportsModifierE[$key];
+        }
+
+        self::$supportsModifierE[$key] = $phpVersionId < 70000;
+
+        return self::$supportsModifierE[$key];
     }
 
     private static function isValidDelimiter(string $delimiter): bool

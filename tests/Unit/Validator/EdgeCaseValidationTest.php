@@ -69,11 +69,13 @@ final class EdgeCaseValidationTest extends TestCase
         $this->assertStringContainsString('Invalid range "z-a"', (string) $result->error);
     }
 
-    public function test_invalid_range_with_char_type_is_rejected(): void
+    public function test_chartype_followed_by_hyphen_is_valid(): void
     {
+        // In PCRE, when a hyphen follows a CharType like \w in a character class,
+        // the hyphen is treated as a literal, not a range operator.
+        // Pattern /[\w-_]/ should parse as: CharTypeNode(\w), LiteralNode(-), LiteralNode(_)
         $result = $this->regexService->validate('/[\\w-_]/');
-        $this->assertFalse($result->isValid, 'Char type range should be invalid');
-        $this->assertStringContainsString('Invalid range', (string) $result->error);
+        $this->assertTrue($result->isValid, 'CharType followed by hyphen should be valid (hyphen is literal)');
     }
 
     public function test_duplicate_group_name(): void

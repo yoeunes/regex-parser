@@ -32,6 +32,9 @@ final readonly class LintArguments
         public bool $checkValidation,
         public bool $checkOptimizations,
         public int $jobs,
+        public ?string $output = null,
+        public ?string $baseline = null,
+        public ?string $generateBaseline = null,
     ) {}
 
     /**
@@ -84,16 +87,31 @@ final readonly class LintArguments
             $checkOptimizations = true;
         }
 
-        $jobs = $defaults['jobs'] ?? 1;
+        $jobs = $defaults['jobs'] ?? 4;
         if (!\is_int($jobs)) {
             if (\is_string($jobs) && ctype_digit($jobs)) {
                 $jobs = (int) $jobs;
             } else {
-                $jobs = 1;
+                $jobs = 4;
             }
         }
         if ($jobs < 1) {
-            $jobs = 1;
+            $jobs = 4;
+        }
+
+        $output = $defaults['output'] ?? null;
+        if (!\is_string($output) || '' === $output) {
+            $output = null;
+        }
+
+        $baseline = $defaults['baseline'] ?? null;
+        if (!\is_string($baseline) || '' === $baseline) {
+            $baseline = null;
+        }
+
+        $generateBaseline = $defaults['generateBaseline'] ?? null;
+        if (!\is_string($generateBaseline) || '' === $generateBaseline) {
+            $generateBaseline = null;
         }
 
         return new self(
@@ -107,6 +125,9 @@ final readonly class LintArguments
             $checkValidation,
             $checkOptimizations,
             $jobs,
+            $output,
+            $baseline,
+            $generateBaseline,
         );
     }
 

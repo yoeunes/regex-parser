@@ -15,6 +15,10 @@ namespace RegexParser\Tests\Unit\NodeVisitor;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use RegexParser\Node\DefineNode;
+use RegexParser\Node\LimitMatchNode;
+use RegexParser\Node\LiteralNode;
+use RegexParser\Node\VersionConditionNode;
 use RegexParser\NodeVisitor\ComplexityScoreNodeVisitor;
 use RegexParser\NodeVisitor\ExplainNodeVisitor;
 use RegexParser\Regex;
@@ -133,6 +137,25 @@ final class ComplexityScoreVisitorTest extends TestCase
         // PcreVerb (COMPLEX_CONSTRUCT_SCORE)
         $pcreVerbScore = $this->getScore('/(*FAIL)/');
         $this->assertSame(5, $pcreVerbScore, 'PcreVerb must be complex (5).');
+    }
+
+    public function test_score_version_define_and_limit_match_nodes(): void
+    {
+        $visitor = new ComplexityScoreNodeVisitor();
+        $ref = new \ReflectionClass(ComplexityScoreNodeVisitor::class);
+        $complexScore = $ref->getConstant('COMPLEX_CONSTRUCT_SCORE');
+        $baseScore = $ref->getConstant('BASE_SCORE');
+        $this->assertIsInt($complexScore);
+        $this->assertIsInt($baseScore);
+
+        $version = new VersionConditionNode('>=', '10.0', 0, 0);
+        $this->assertSame($complexScore, $version->accept($visitor));
+
+        $define = new DefineNode(new LiteralNode('a', 0, 0), 0, 0);
+        $this->assertSame($complexScore + $baseScore, $define->accept($visitor));
+
+        $limitMatch = new LimitMatchNode(5, 0, 0);
+        $this->assertSame($complexScore, $limitMatch->accept($visitor));
     }
 
     public function test_score_complex_group_lookbehinds(): void

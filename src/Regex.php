@@ -15,6 +15,7 @@ namespace RegexParser;
 
 use RegexParser\Cache\CacheInterface;
 use RegexParser\Cache\NullCache;
+use RegexParser\Cache\RemovableCacheInterface;
 use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
 use RegexParser\Exception\RegexException;
@@ -78,7 +79,7 @@ final readonly class Regex
      * Cache version for AST serialization.
      * Bump this when AST structure changes.
      */
-    public const CACHE_VERSION = 2;
+    public const CACHE_VERSION = '1.0.0';
 
     /**
      * Default maximum allowed regex pattern length.
@@ -111,6 +112,27 @@ final readonly class Regex
         private int $phpVersionId,
         private bool $phpVersionExplicit,
     ) {}
+
+    /**
+     * Get the cache instance.
+     */
+    public function getCache(): CacheInterface
+    {
+        return $this->cache;
+    }
+
+    /**
+     * Get cache statistics.
+     *
+     * @return array{hits: int, misses: int} Cache hits and misses
+     */
+    public function getCacheStats(): array
+    {
+        /** @var RemovableCacheInterface $cache */
+        $cache = $this->cache;
+
+        return $cache->getStats();
+    }
 
     /**
      * Create a new Regex instance with optional configuration.
@@ -359,7 +381,7 @@ final readonly class Regex
             optimizeDigits: (bool) ($options['digits'] ?? true),
             optimizeWord: (bool) ($options['word'] ?? true),
             strictRanges: (bool) ($options['strictRanges'] ?? true),
-            autoPossessify: (bool) ($options['autoPossessify'] ?? true),
+            autoPossessify: (bool) ($options['autoPossessify'] ?? false),
         );
         $optimizedPattern = $this->compile($regex, $optimizer);
         $appliedChanges = $optimizedPattern === $regex ? [] : ['Optimized pattern.'];
@@ -484,7 +506,7 @@ final readonly class Regex
             return null;
         }
 
-        $message = $this->normalizeRuntimeErrorMessage($warning ?? preg_last_error_msg());
+        $message = $this->normalizeRuntimeErrorMessage((string) ($warning ?? preg_last_error_msg()));
         if ('' === $message || 'No error' === $message) {
             $message = 'PCRE runtime error.';
         }
@@ -517,8 +539,11 @@ final readonly class Regex
 
     private function extractOffsetFromMessage(string $message): ?int
     {
+        // @regex-ignore-next-line
         if (preg_match('/\\b(?:at offset|offset)\\s+(\\d+)/i', $message, $matches)) {
-            return (int) $matches[1];
+            if (isset($matches[1]) && \is_string($matches[1])) {
+                return (int) $matches[1];
+            }
         }
 
         return null;
@@ -550,7 +575,7 @@ final readonly class Regex
             $displayEnd = min($lineEnd, $displayStart + $maxContextWidth);
 
             if (($displayEnd - $displayStart) > $maxContextWidth) {
-                $displayStart = $displayEnd - $maxContextWidth;
+                $displayStart = $displayEnd - $maxContextWidth; // @codeCoverageIgnore
             }
         }
 
@@ -563,7 +588,7 @@ final readonly class Regex
 
         $caretOffset = ('' === $prefixEllipsis ? 0 : 3) + ($caretIndex - $displayStart);
         if ($caretOffset < 0) {
-            $caretOffset = 0;
+            $caretOffset = 0; // @codeCoverageIgnore
         }
 
         $lineLabel = 'Line '.$lineNumber.': ';

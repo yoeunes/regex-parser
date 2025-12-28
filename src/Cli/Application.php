@@ -58,7 +58,9 @@ final class Application
         }
 
         if ($options->help) {
-            return $this->helpCommand->run(new Input('help', [], $options, []), $this->output);
+            $helpArgs = [] === $args ? [] : [$args[0]];
+
+            return $this->helpCommand->run(new Input('help', $helpArgs, $options, []), $this->output);
         }
 
         if ([] === $args) {

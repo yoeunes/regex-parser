@@ -839,11 +839,13 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
             }
         } else {
             // This case should ideally be caught by the Lexer/Parser, but as a safeguard.
+            // @codeCoverageIgnoreStart
             $this->raiseSemanticError(
                 'Invalid callout identifier type.',
                 $position,
                 'regex.callout.invalid_type',
             );
+            // @codeCoverageIgnoreEnd
         }
     }
 

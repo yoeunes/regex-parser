@@ -28,15 +28,15 @@ final class Lexer
         'T_COMMENT_OPEN', 'T_CALLOUT', 'T_PCRE_VERB', 'T_GROUP_MODIFIER_OPEN',
         'T_GROUP_OPEN', 'T_GROUP_CLOSE', 'T_CHAR_CLASS_OPEN', 'T_QUANTIFIER',
         'T_ALTERNATION', 'T_DOT', 'T_ANCHOR', 'T_ASSERTION', 'T_KEEP',
-        'T_CHAR_TYPE', 'T_G_REFERENCE', 'T_BACKREF', 'T_OCTAL_LEGACY',
-        'T_OCTAL', 'T_UNICODE', 'T_UNICODE_PROP', 'T_UNICODE_NAMED',
+        'T_UNICODE_NAMED', 'T_CHAR_TYPE', 'T_G_REFERENCE', 'T_BACKREF', 'T_OCTAL_LEGACY',
+        'T_OCTAL', 'T_UNICODE', 'T_UNICODE_PROP',
         'T_CONTROL_CHAR', 'T_QUOTE_MODE_START', 'T_QUOTE_MODE_END',
         'T_LITERAL_ESCAPED', 'T_LITERAL',
     ];
 
     private const TOKENS_INSIDE = [
-        'T_CHAR_CLASS_CLOSE', 'T_POSIX_CLASS', 'T_CHAR_TYPE', 'T_OCTAL_LEGACY',
-        'T_OCTAL', 'T_UNICODE', 'T_UNICODE_PROP', 'T_UNICODE_NAMED',
+        'T_CHAR_CLASS_CLOSE', 'T_POSIX_CLASS', 'T_UNICODE_NAMED', 'T_CHAR_TYPE', 'T_OCTAL_LEGACY',
+        'T_OCTAL', 'T_UNICODE', 'T_UNICODE_PROP',
         'T_CONTROL_CHAR', 'T_QUOTE_MODE_START', 'T_QUOTE_MODE_END', 'T_LITERAL_ESCAPED',
         'T_CLASS_INTERSECTION', 'T_CLASS_SUBTRACTION', 'T_LITERAL',
     ];
@@ -56,7 +56,7 @@ final class Lexer
         'T_ANCHOR' => '\\^|\\$',
         'T_ASSERTION' => '\\\\ (?: b\\{g\\} | B\\{g\\} | [AzZGbB] )',
         'T_KEEP' => '\\\\ K',
-        'T_CHAR_TYPE' => '\\\\ [dswDSWhvRCX]',
+        'T_CHAR_TYPE' => '\\\\ (?: N(?!\\{) | [dswDSWhvRCXHV] )',
         'T_G_REFERENCE' => '\\\\ g (?: \\{[a-zA-Z0-9_+-]+\\} | <[a-zA-Z0-9_]+> | [0-9+-]+ )?',
         'T_BACKREF' => '\\\\ (?: k(?:<[a-zA-Z0-9_]+> | \\{[a-zA-Z0-9_]+\\}) | (?<v_backref_num> [1-9]\\d*) )',
         'T_OCTAL_LEGACY' => '\\\\ (?: [0-7]{3} | [0-7]{2} | [0-7] )',
@@ -74,7 +74,8 @@ final class Lexer
     private const PATTERNS_INSIDE = [
         'T_CHAR_CLASS_CLOSE' => '\\]',
         'T_POSIX_CLASS' => '\\[ \\: (?<v_posix> \\^? [a-zA-Z]+) \\: \\]',
-        'T_CHAR_TYPE' => '\\\\ [dswDSWhvR]',
+        'T_UNICODE_NAMED' => '\\\\ N\\{[a-zA-Z0-9_ ]+\\}',
+        'T_CHAR_TYPE' => '\\\\ [dswDSWhvRNHV]',
         'T_OCTAL_LEGACY' => '\\\\ (?: [0-7]{3} | [0-7]{2} | [0-7] )',
         'T_OCTAL' => '\\\\ o\\{[0-7]+\\}',
         'T_UNICODE' => '\\\\ x [0-9a-fA-F]{1,2} | \\\\ u\\{[0-9a-fA-F]+\\} | \\\\ x\\{[0-9a-fA-F]+\\}',
@@ -220,7 +221,7 @@ final class Lexer
     }
 
     /**
-     * @return array{0: string, 1: int, 2: array<int|string, string|null>}
+     * @return array{0: string, 1: int, 2: array<int|string, mixed>}
      */
     private function matchAtPosition(string $regex): array
     {
@@ -228,7 +229,7 @@ final class Lexer
 
         if (false === $result) {
             throw LexerException::withContext(
-                \sprintf('PCRE Error during tokenization: %s', preg_last_error_msg()),
+                \sprintf('PCRE Error during tokenization: %s', (string) preg_last_error_msg()),
                 $this->position,
                 $this->pattern,
             );
@@ -244,6 +245,22 @@ final class Lexer
             );
         }
 
+        if (!\is_array($matches)) {
+            throw LexerException::withContext(
+                'Lexer internal error: Invalid match results.',
+                $this->position,
+                $this->pattern,
+            );
+        }
+
+        if (!isset($matches[0]) || !\is_string($matches[0])) {
+            throw LexerException::withContext(
+                'Lexer internal error: Missing matched token.',
+                $this->position,
+                $this->pattern,
+            );
+        }
+
         $matchedValue = (string) $matches[0];
         $startPos = $this->position;
         $this->position += \strlen($matchedValue);
@@ -252,9 +269,9 @@ final class Lexer
     }
 
     /**
-     * @param array<string>                  $tokenMap
-     * @param array<int|string, string|null> $matches
-     * @param array<Token>                   $currentTokens
+     * @param array<string>            $tokenMap
+     * @param array<int|string, mixed> $matches
+     * @param array<Token>             $currentTokens
      */
     private function createToken(
         array $tokenMap,
@@ -388,8 +405,10 @@ final class Lexer
             return null;
         }
 
-        $literalText = $matches[1];
-        $endSequence = $matches[2];
+        /** @phpstan-ignore cast.string */
+        $literalText = (string) ($matches[1] ?? '');
+        /** @phpstan-ignore cast.string */
+        $endSequence = (string) ($matches[2] ?? '');
         $startPos = $this->position;
 
         if ('' !== $literalText) {
@@ -422,8 +441,10 @@ final class Lexer
             return null;
         }
 
-        $commentText = $matches[1];
-        $endSequence = $matches[2];
+        /** @phpstan-ignore cast.string */
+        $commentText = (string) ($matches[1] ?? '');
+        /** @phpstan-ignore cast.string */
+        $endSequence = (string) ($matches[2] ?? '');
         $startPos = $this->position;
 
         if ('' !== $commentText) {
@@ -446,21 +467,44 @@ final class Lexer
     }
 
     /**
-     * @param array<int|string, string|null> $matches
+     * Extracts the value from an escaped literal token.
+     * Handles special escape sequences and context-sensitive escapes like \b.
+     */
+    private function extractEscapedLiteralValue(string $matchedValue): string
+    {
+        $char = substr($matchedValue, 1);
+
+        // Inside character classes, \b means backspace (0x08), not word boundary
+        if ($this->inCharClass && 'b' === $char) {
+            return "\x08";
+        }
+
+        return match ($char) {
+            't' => "\t",
+            'n' => "\n",
+            'r' => "\r",
+            'f' => "\f",
+            'v' => "\v",
+            'e' => "\x1B",
+            'a' => "\x07",
+            default => $char,
+        };
+    }
+
+    /**
+     * @param array<int|string, mixed> $matches
      */
     private function extractTokenValue(TokenType $type, string $matchedValue, array $matches): string
     {
         return match ($type) {
-            TokenType::T_LITERAL_ESCAPED => match (substr($matchedValue, 1)) {
-                't' => "\t", 'n' => "\n", 'r' => "\r", 'f' => "\f", 'v' => "\v",
-                'e' => "\x1B", 'a' => "\x07", default => substr($matchedValue, 1),
-            },
+            TokenType::T_LITERAL_ESCAPED => $this->extractEscapedLiteralValue($matchedValue),
             TokenType::T_PCRE_VERB => substr($matchedValue, 2, -1),
             TokenType::T_CALLOUT => substr($matchedValue, 3, -1),
             TokenType::T_ASSERTION, TokenType::T_CHAR_TYPE, TokenType::T_KEEP => substr($matchedValue, 1),
             TokenType::T_BACKREF => $matchedValue,
             TokenType::T_OCTAL_LEGACY => substr($matchedValue, 1),
-            TokenType::T_POSIX_CLASS => $matches['v_posix'] ?? '',
+            /* @phpstan-ignore cast.string */
+            TokenType::T_POSIX_CLASS => (string) ($matches['v_posix'] ?? ''),
             TokenType::T_UNICODE => $this->parseUnicodeEscape($matchedValue),
             TokenType::T_UNICODE_PROP => $this->normalizeUnicodeProp($matchedValue),
             TokenType::T_UNICODE_NAMED => substr($matchedValue, 3, -1),
@@ -481,6 +525,10 @@ final class Lexer
     private function parseUnicodeEscape(string $escape): string
     {
         if (preg_match('/^\\\\x([0-9a-fA-F]{1,2})$/', $escape, $m)) {
+            if (!isset($m[1]) || !\is_string($m[1])) {
+                return $escape;
+            }
+
             $code = (int) hexdec($m[1]);
             if ($code <= 0xFF) {
                 return \chr($code);

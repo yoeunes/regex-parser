@@ -436,4 +436,130 @@ final class SymfonyConsoleFormatterTest extends TestCase
         $this->assertStringContainsString('No issues found', $output);
         $this->assertStringContainsString('3 optimizations available', $output);
     }
+
+    public function test_display_pattern_context_shows_line_when_pattern_missing(): void
+    {
+        $analysis = new RegexAnalysisService(Regex::create());
+        $relativePathHelper = new RelativePathHelper('/app');
+        $linkFormatter = new LinkFormatter(null, $relativePathHelper);
+        $formatter = new SymfonyConsoleFormatter($analysis, $linkFormatter);
+
+        $result = [
+            'file' => '/app/src/File.php',
+            'line' => 12,
+            'pattern' => null,
+            'issues' => [],
+            'optimizations' => [],
+            'problems' => [],
+        ];
+
+        $output = $this->invokePrivate($formatter, 'displayPatternContext', [$result]);
+
+        $this->assertIsString($output);
+        $this->assertStringContainsString('line 12', (string) $output);
+    }
+
+    public function test_safely_highlight_pattern_skips_highlight_when_backslash_present(): void
+    {
+        $analysis = new RegexAnalysisService(Regex::create());
+        $relativePathHelper = new RelativePathHelper('/app');
+        $linkFormatter = new LinkFormatter(null, $relativePathHelper);
+        $formatter = new SymfonyConsoleFormatter($analysis, $linkFormatter);
+
+        $output = $this->invokePrivate($formatter, 'safelyHighlightPattern', ['/\d+/']);
+
+        $this->assertIsString($output);
+        $this->assertStringContainsString('\\d', (string) $output);
+    }
+
+    public function test_display_optimizations_skips_invalid_entries(): void
+    {
+        $analysis = new RegexAnalysisService(Regex::create());
+        $relativePathHelper = new RelativePathHelper('/app');
+        $linkFormatter = new LinkFormatter(null, $relativePathHelper);
+        $formatter = new SymfonyConsoleFormatter($analysis, $linkFormatter);
+
+        $output = $this->invokePrivate($formatter, 'displayOptimizations', [[
+            ['optimization' => 'noop'],
+        ]]);
+
+        $this->assertIsString($output);
+        $this->assertStringContainsString('Optimization available', (string) $output);
+    }
+
+    public function test_display_single_issue_handles_multiline_messages(): void
+    {
+        $analysis = new RegexAnalysisService(Regex::create());
+        $relativePathHelper = new RelativePathHelper('/app');
+        $linkFormatter = new LinkFormatter(null, $relativePathHelper);
+        $formatter = new SymfonyConsoleFormatter($analysis, $linkFormatter);
+
+        $badge = '<bg=gray;fg=white;options=bold> INFO </>';
+        $message = "Top line\nLine 12: details\nMore";
+
+        $output = $this->invokePrivate($formatter, 'displaySingleIssue', [$badge, $message]);
+
+        $this->assertIsString($output);
+        $this->assertStringContainsString('details', (string) $output);
+        $this->assertStringContainsString('More', (string) $output);
+    }
+
+    public function test_extract_pattern_for_result_prefers_issue_pattern(): void
+    {
+        $analysis = new RegexAnalysisService(Regex::create());
+        $relativePathHelper = new RelativePathHelper('/app');
+        $linkFormatter = new LinkFormatter(null, $relativePathHelper);
+        $formatter = new SymfonyConsoleFormatter($analysis, $linkFormatter);
+
+        $result = [
+            'file' => 'test.php',
+            'line' => 1,
+            'issues' => [
+                ['pattern' => '/from-issue/'],
+            ],
+            'optimizations' => [],
+            'problems' => [],
+        ];
+
+        $pattern = $this->invokePrivate($formatter, 'extractPatternForResult', [$result]);
+
+        $this->assertIsString($pattern);
+        $this->assertSame('/from-issue/', $pattern);
+    }
+
+    public function test_extract_pattern_for_result_uses_optimization(): void
+    {
+        $analysis = new RegexAnalysisService(Regex::create());
+        $relativePathHelper = new RelativePathHelper('/app');
+        $linkFormatter = new LinkFormatter(null, $relativePathHelper);
+        $formatter = new SymfonyConsoleFormatter($analysis, $linkFormatter);
+
+        $optimization = Regex::create()->optimize('/foo/');
+
+        $result = [
+            'file' => 'test.php',
+            'line' => 1,
+            'issues' => [],
+            'optimizations' => [
+                ['optimization' => $optimization],
+            ],
+            'problems' => [],
+        ];
+
+        $pattern = $this->invokePrivate($formatter, 'extractPatternForResult', [$result]);
+
+        $this->assertIsString($pattern);
+        $this->assertSame($optimization->original, $pattern);
+    }
+
+    /**
+     * @param array<int, mixed> $args
+     */
+    private function invokePrivate(object $target, string $method, array $args = []): mixed
+    {
+        $ref = new \ReflectionClass($target);
+        $refMethod = $ref->getMethod($method);
+
+        return $refMethod->invokeArgs($target, $args);
+    }
 }

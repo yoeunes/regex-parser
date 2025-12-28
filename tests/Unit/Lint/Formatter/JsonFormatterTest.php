@@ -123,6 +123,47 @@ final class JsonFormatterTest extends TestCase
         $this->assertSame('valid.php', $decoded['results'][0]['file']);
     }
 
+    public function test_format_skips_non_array_results(): void
+    {
+        $results = [
+            ['file' => 'valid.php', 'line' => 1, 'pattern' => '/test/', 'issues' => [], 'optimizations' => [], 'problems' => []],
+            'invalid',
+        ];
+
+        /** @phpstan-ignore-next-line intentionally mixing invalid results for coverage */
+        $report = new RegexLintReport($results, ['errors' => 0, 'warnings' => 0, 'optimizations' => 0]);
+
+        $output = $this->formatter->format($report);
+
+        /** @var array{results: array<array<string, mixed>>} $decoded */
+        $decoded = json_decode($output, true);
+        $this->assertIsArray($decoded);
+        $this->assertCount(1, $decoded['results']);
+        $this->assertSame('valid.php', $decoded['results'][0]['file']);
+    }
+
+    public function test_format_throws_on_invalid_utf8(): void
+    {
+        $invalidUtf8 = "invalid-\xB1\x31";
+        $results = [
+            [
+                'file' => $invalidUtf8,
+                'line' => 1,
+                'pattern' => '/test/',
+                'issues' => [],
+                'optimizations' => [],
+                'problems' => [],
+            ],
+        ];
+
+        $report = new RegexLintReport($results, ['errors' => 0, 'warnings' => 0, 'optimizations' => 0]);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Failed to encode JSON');
+
+        $this->formatter->format($report);
+    }
+
     public function test_format_error(): void
     {
         $message = 'Test error message';

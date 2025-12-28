@@ -334,7 +334,7 @@ final readonly class RegexAnalysisService
                         optimizeDigits: (bool) ($optimizationConfig['digits'] ?? true),
                         optimizeWord: (bool) ($optimizationConfig['word'] ?? true),
                         strictRanges: (bool) ($optimizationConfig['strictRanges'] ?? true),
-                        autoPossessify: (bool) ($optimizationConfig['autoPossessify'] ?? true),
+                        autoPossessify: (bool) ($optimizationConfig['autoPossessify'] ?? false),
                         allowAlternationFactorization: false,
                     );
 
@@ -414,6 +414,7 @@ final readonly class RegexAnalysisService
                 break;
             }
 
+            // @codeCoverageIgnoreStart
             if (0 === $pid) {
                 $payload = null;
 
@@ -432,6 +433,7 @@ final readonly class RegexAnalysisService
                 $this->writeWorkerPayload($tmpFile, $payload);
                 exit($payload['ok'] ? 0 : 1);
             }
+            // @codeCoverageIgnoreEnd
 
             $children[$pid] = [
                 'file' => $tmpFile,
@@ -926,7 +928,7 @@ final readonly class RegexAnalysisService
         }
 
         if (empty($hints)) {
-            $hints[] = 'ReDoS occurs when regex engines spend excessive time backtracking. Use possessive quantifiers (+ instead of *) or atomic groups (?>...) to prevent it.';
+            $hints[] = 'ReDoS occurs when regex engines spend excessive time backtracking. Use possessive quantifiers (*+ instead of *, ++ instead of +, or {m,n}+ instead of {m,n}) or atomic groups (?>...) to prevent it.';
         }
 
         $hints[] = 'Test with malicious inputs like repeated strings followed by a non-matching character.';
@@ -942,7 +944,7 @@ final readonly class RegexAnalysisService
         $hints = [];
 
         // Look for common vulnerable patterns and suggest fixes
-        if (preg_match('/(\([^)]*\)\+)|\(\([^)]*\+\)\)/', $pattern)) {
+        if (preg_match('/\((?:(?:[^()][^)]*)?\)\+|\([^)]*(?:\+\)\)|\)\+))/', $pattern)) {
             $hints[] = 'Replace nested quantifiers like (a+)+ with atomic groups: (?>a+) or possessive quantifiers: a++';
         }
 

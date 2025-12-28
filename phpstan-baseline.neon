@@ -60,11 +60,91 @@ parameters:
 			count: 1
 			path: src/Internal/PatternParser.php
 
+
+
 		-
-			rawMessage: 'Alternation branches have overlapping character sets, which may cause unnecessary backtracking.'
-			identifier: regex.lint.overlap.charset
+			rawMessage: 'Call to method PHPUnit\Framework\Assert::assertInstanceOf() with ''RegexParser\\Lint\\Formatter\\ConsoleFormatter'' and RegexParser\Lint\Formatter\ConsoleFormatter will always evaluate to true.'
+			identifier: method.alreadyNarrowedType
+			count: 2
+			path: tests/Unit/ConsoleFormatterTest.php
+
+		-
+			rawMessage: 'Call to method PHPUnit\Framework\Assert::assertInstanceOf() with ''RegexParser\\Lint\\Formatter\\OutputFormatterInterface'' and RegexParser\Lint\Formatter\ConsoleFormatter will always evaluate to true.'
+			identifier: method.alreadyNarrowedType
 			count: 1
-			path: src/Lint/RegexAnalysisService.php
+			path: tests/Unit/ConsoleFormatterTest.php
+
+		-
+			rawMessage: 'Call to method PHPUnit\Framework\Assert::assertInstanceOf() with ''RegexParser\\Lint\\Formatter\\JsonFormatter'' and RegexParser\Lint\Formatter\JsonFormatter will always evaluate to true.'
+			identifier: method.alreadyNarrowedType
+			count: 2
+			path: tests/Unit/JsonFormatterTest.php
+
+		-
+			rawMessage: 'Call to method PHPUnit\Framework\Assert::assertInstanceOf() with ''RegexParser\\Lint\\Formatter\\OutputFormatterInterface'' and RegexParser\Lint\Formatter\JsonFormatter will always evaluate to true.'
+			identifier: method.alreadyNarrowedType
+			count: 1
+			path: tests/Unit/JsonFormatterTest.php
+
+		-
+			rawMessage: 'Call to method PHPUnit\Framework\Assert::assertInstanceOf() with ''RegexParser\\NodeVisitor\\LengthRangeNodeVisitor'' and RegexParser\NodeVisitor\LengthRangeNodeVisitor will always evaluate to true.'
+			identifier: method.alreadyNarrowedType
+			count: 1
+			path: tests/Unit/LengthRangeNodeVisitorTest.php
+
+		-
+			rawMessage: 'Call to method PHPUnit\Framework\Assert::assertInstanceOf() with ''RegexParser\\Lexer'' and RegexParser\Lexer will always evaluate to true.'
+			identifier: method.alreadyNarrowedType
+			count: 1
+			path: tests/Unit/LexerClassCoverageTest.php
+
+		-
+			rawMessage: 'Call to method PHPUnit\Framework\Assert::assertNotNull() with RegexParser\TokenStream will always evaluate to true.'
+			identifier: method.alreadyNarrowedType
+			count: 1
+			path: tests/Unit/LexerClassCoverageTest.php
+
+		-
+			rawMessage: 'Call to method PHPUnit\Framework\Assert::assertInstanceOf() with ''RegexParser\\Lint\\Command\\LintArgumentParser'' and RegexParser\Lint\Command\LintArgumentParser will always evaluate to true.'
+			identifier: method.alreadyNarrowedType
+			count: 1
+			path: tests/Unit/LintArgumentParserTest.php
+
+		-
+			rawMessage: 'Call to method PHPUnit\Framework\Assert::assertInstanceOf() with ''RegexParser\\Lint\\Command\\LintCommand'' and RegexParser\Lint\Command\LintCommand will always evaluate to true.'
+			identifier: method.alreadyNarrowedType
+			count: 1
+			path: tests/Unit/LintCommandClassCoverageTest.php
+
+		-
+			rawMessage: 'Call to method PHPUnit\Framework\Assert::assertInstanceOf() with ''RegexParser\\Lint\\Command\\LintConfigLoader'' and RegexParser\Lint\Command\LintConfigLoader will always evaluate to true.'
+			identifier: method.alreadyNarrowedType
+			count: 1
+			path: tests/Unit/LintConfigLoaderTest.php
+
+		-
+			rawMessage: 'Call to method PHPUnit\Framework\Assert::assertNotNull() with RegexParser\Lint\Command\LintConfigResult will always evaluate to true.'
+			identifier: method.alreadyNarrowedType
+			count: 1
+			path: tests/Unit/LintConfigLoaderTest.php
+
+		-
+			rawMessage: 'Call to method PHPUnit\Framework\Assert::assertInstanceOf() with ''RegexParser\\NodeVisitor\\LinterNodeVisitor'' and RegexParser\NodeVisitor\LinterNodeVisitor will always evaluate to true.'
+			identifier: method.alreadyNarrowedType
+			count: 1
+			path: tests/Unit/LinterNodeVisitorTest.php
+
+		-
+			rawMessage: Cannot access property $prefixes on mixed.
+			identifier: property.nonObject
+			count: 2
+			path: tests/Unit/NodeVisitor/LiteralExtractorNodeVisitorTest.php
+
+		-
+			rawMessage: 'Parameter #2 $haystack of method PHPUnit\Framework\Assert::assertContains() expects iterable, mixed given.'
+			identifier: argument.type
+			count: 1
+			path: tests/Unit/NodeVisitor/LiteralExtractorNodeVisitorTest.php
 
 		-
 			rawMessage: 'Regex pattern is invalid: Unknown modifier ''r'' in pattern: /a/r'
@@ -77,3 +157,51 @@ parameters:
 			identifier: regex.syntax.invalid
 			count: 1
 			path: tests/Unit/Parser/ParserUtilityTest.php
+
+		-
+			rawMessage: 'Call to method PHPUnit\Framework\Assert::assertInstanceOf() with ''RegexParser\\Node\\RegexNode'' and RegexParser\Node\RegexNode will always evaluate to true.'
+			identifier: method.alreadyNarrowedType
+			count: 3
+			path: tests/Unit/ParserClassCoverageTest.php
+
+		-
+			rawMessage: 'Call to method PHPUnit\Framework\Assert::assertInstanceOf() with ''RegexParser\\Parser'' and RegexParser\Parser will always evaluate to true.'
+			identifier: method.alreadyNarrowedType
+			count: 1
+			path: tests/Unit/ParserClassCoverageTest.php
+
+		-
+			rawMessage: 'Call to method PHPUnit\Framework\Assert::assertNotNull() with RegexParser\Node\RegexNode will always evaluate to true.'
+			identifier: method.alreadyNarrowedType
+			count: 3
+			path: tests/Unit/ParserClassCoverageTest.php
+
+		-
+			rawMessage: 'Call to method PHPUnit\Framework\Assert::assertInstanceOf() with ''RegexParser\\Lint\\RegexAnalysisService'' and RegexParser\Lint\RegexAnalysisService will always evaluate to true.'
+			identifier: method.alreadyNarrowedType
+			count: 2
+			path: tests/Unit/RegexAnalysisServiceClassTest.php
+
+		-
+			rawMessage: 'Call to method PHPUnit\Framework\Assert::assertInstanceOf() with ''RegexParser\\Regex'' and RegexParser\Regex will always evaluate to true.'
+			identifier: method.alreadyNarrowedType
+			count: 2
+			path: tests/Unit/RegexClassCoverageTest.php
+
+		-
+			rawMessage: 'Call to method PHPUnit\Framework\Assert::assertNotNull() with RegexParser\Node\RegexNode|RegexParser\TolerantParseResult will always evaluate to true.'
+			identifier: method.alreadyNarrowedType
+			count: 1
+			path: tests/Unit/RegexClassCoverageTest.php
+
+		-
+			rawMessage: 'Call to method PHPUnit\Framework\Assert::assertInstanceOf() with ''RegexParser\\NodeVisitor\\SampleGeneratorNodeVisitor'' and RegexParser\NodeVisitor\SampleGeneratorNodeVisitor will always evaluate to true.'
+			identifier: method.alreadyNarrowedType
+			count: 1
+			path: tests/Unit/SampleGeneratorNodeVisitorTest.php
+
+		-
+			rawMessage: 'Call to method PHPUnit\Framework\Assert::assertInstanceOf() with ''RegexParser\\NodeVisitor\\ValidatorNodeVisitor'' and RegexParser\NodeVisitor\ValidatorNodeVisitor will always evaluate to true.'
+			identifier: method.alreadyNarrowedType
+			count: 1
+			path: tests/Unit/ValidatorNodeVisitorTest.php

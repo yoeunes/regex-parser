@@ -51,7 +51,7 @@ final class RegexOptionsTest extends TestCase
         $options = RegexOptions::fromArray([]);
         $this->assertSame(Regex::DEFAULT_MAX_PATTERN_LENGTH, $options->maxPatternLength);
         $this->assertSame(Regex::DEFAULT_MAX_LOOKBEHIND_LENGTH, $options->maxLookbehindLength);
-        $this->assertInstanceOf(NullCache::class, $options->cache);
+        $this->assertInstanceOf(FilesystemCache::class, $options->cache);
         $this->assertFalse($options->runtimePcreValidation);
         $this->assertSame(1024, $options->maxRecursionDepth);
         $this->assertSame(\PHP_VERSION_ID, $options->phpVersionId);
@@ -76,6 +76,41 @@ final class RegexOptionsTest extends TestCase
         $this->expectException(InvalidRegexOptionException::class);
         $this->expectExceptionMessage('"php_version" must be a version string like "8.2" or a PHP_VERSION_ID integer.');
         RegexOptions::fromArray(['php_version' => 'invalid']);
+    }
+
+    public function test_from_array_invalid_php_version_int_zero(): void
+    {
+        $this->expectException(InvalidRegexOptionException::class);
+        $this->expectExceptionMessage('"php_version" must be a version string like "8.2" or a PHP_VERSION_ID integer.');
+        RegexOptions::fromArray(['php_version' => 0]);
+    }
+
+    public function test_from_array_invalid_php_version_empty_string(): void
+    {
+        $this->expectException(InvalidRegexOptionException::class);
+        $this->expectExceptionMessage('"php_version" must be a version string like "8.2" or a PHP_VERSION_ID integer.');
+        RegexOptions::fromArray(['php_version' => '   ']);
+    }
+
+    public function test_from_array_invalid_php_version_digits_low(): void
+    {
+        $this->expectException(InvalidRegexOptionException::class);
+        $this->expectExceptionMessage('"php_version" must be a version string like "8.2" or a PHP_VERSION_ID integer.');
+        RegexOptions::fromArray(['php_version' => '8000']);
+    }
+
+    public function test_from_array_parses_php_version_digits(): void
+    {
+        $options = RegexOptions::fromArray(['php_version' => '80100']);
+
+        $this->assertSame(80100, $options->phpVersionId);
+    }
+
+    public function test_from_array_parses_php_version_patch(): void
+    {
+        $options = RegexOptions::fromArray(['php_version' => '8.1.2']);
+
+        $this->assertSame(80102, $options->phpVersionId);
     }
 
     public function test_from_array_invalid_max_pattern_length(): void
@@ -165,5 +200,12 @@ final class RegexOptionsTest extends TestCase
     {
         $options = RegexOptions::fromArray(['redos_ignored_patterns' => ['/a/', '/a/', '/b/']]);
         $this->assertSame(['/a/', '/b/'], $options->redosIgnoredPatterns);
+    }
+
+    public function test_from_array_invalid_php_version_type(): void
+    {
+        $this->expectException(InvalidRegexOptionException::class);
+        $this->expectExceptionMessage('"php_version" must be a version string like "8.2" or a PHP_VERSION_ID integer.');
+        RegexOptions::fromArray(['php_version' => []]);
     }
 }

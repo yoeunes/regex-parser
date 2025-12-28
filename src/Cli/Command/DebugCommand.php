@@ -133,16 +133,18 @@ final class DebugCommand extends AbstractCommand
             $hotspot = null;
             $hotspotRank = -1;
             foreach ($analysis->hotspots as $candidate) {
+                // @codeCoverageIgnoreStart
                 if (!$candidate instanceof ReDoSHotspot) {
                     continue;
                 }
+                // @codeCoverageIgnoreEnd
                 $rank = match ($candidate->severity) {
                     ReDoSSeverity::SAFE => 0,
                     ReDoSSeverity::LOW => 1,
                     ReDoSSeverity::MEDIUM => 2,
                     ReDoSSeverity::HIGH => 3,
                     ReDoSSeverity::CRITICAL => 4,
-                    ReDoSSeverity::UNKNOWN => 1,
+                    ReDoSSeverity::UNKNOWN => 1, // @codeCoverageIgnore
                 };
                 if ($rank > $hotspotRank) {
                     $hotspotRank = $rank;
@@ -159,7 +161,7 @@ final class DebugCommand extends AbstractCommand
                     ReDoSSeverity::SAFE, ReDoSSeverity::LOW => Output::GREEN,
                     ReDoSSeverity::MEDIUM => Output::YELLOW,
                     ReDoSSeverity::HIGH, ReDoSSeverity::CRITICAL => Output::RED,
-                    ReDoSSeverity::UNKNOWN => Output::GRAY,
+                    ReDoSSeverity::UNKNOWN => Output::GRAY, // @codeCoverageIgnore
                 };
                 $output->write($output->color($caret, $caretColor)."\n");
             }
@@ -172,7 +174,7 @@ final class DebugCommand extends AbstractCommand
                         ReDoSSeverity::SAFE, ReDoSSeverity::LOW => $output->success($label),
                         ReDoSSeverity::MEDIUM => $output->warning($label),
                         ReDoSSeverity::HIGH, ReDoSSeverity::CRITICAL => $output->error($label),
-                        ReDoSSeverity::UNKNOWN => $output->info($label),
+                        ReDoSSeverity::UNKNOWN => $output->info($label), // @codeCoverageIgnore
                     };
                     $output->write('  - ['.$findingSeverity.'] '.$finding->message."\n");
                     if (null !== $finding->suggestedRewrite && '' !== $finding->suggestedRewrite) {

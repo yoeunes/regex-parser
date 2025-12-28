@@ -124,6 +124,32 @@ final class PsrSimpleCacheAdapterTest extends TestCase
 
         $this->assertSame($payload, $adapter->load($key));
     }
+
+    public function test_extract_serialized_string_returns_null_without_comma(): void
+    {
+        $cache = new InMemorySimpleCache();
+        $adapter = new PsrSimpleCacheAdapter($cache);
+
+        $reflection = new \ReflectionClass($adapter);
+        $method = $reflection->getMethod('extractSerializedString');
+
+        $payload = "<?php return unserialize('data');";
+
+        $this->assertNull($method->invoke($adapter, $payload));
+    }
+
+    public function test_extract_serialized_string_returns_null_for_empty_argument(): void
+    {
+        $cache = new InMemorySimpleCache();
+        $adapter = new PsrSimpleCacheAdapter($cache);
+
+        $reflection = new \ReflectionClass($adapter);
+        $method = $reflection->getMethod('extractSerializedString');
+
+        $payload = "<?php return unserialize(, ['allowed_classes' => true]);";
+
+        $this->assertNull($method->invoke($adapter, $payload));
+    }
 }
 
 final class InMemorySimpleCache implements CacheInterface

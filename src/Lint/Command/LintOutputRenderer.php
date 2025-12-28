@@ -63,12 +63,20 @@ final readonly class LintOutputRenderer
         $version = $this->versionResolver->resolve('dev') ?? 'dev';
 
         $banner = $output->color('RegexParser', Output::CYAN.Output::BOLD).' '.$output->warning($version)." by Younes ENNAJI\n\n";
-        $banner .= 'Runtime:       PHP '.$output->warning(\PHP_VERSION)."\n";
-        $banner .= 'Processes:     '.$output->warning((string) $jobs)."\n";
+
+        $lines = [
+            'Runtime' => 'PHP '.$output->warning(\PHP_VERSION),
+            'Processes' => $output->warning((string) $jobs),
+        ];
 
         if ([] !== $configFiles) {
             $paths = array_map($this->relativePath(...), $configFiles);
-            $banner .= 'Configuration: '.implode(', ', $paths)."\n";
+            $lines['Configuration'] = implode(', ', $paths);
+        }
+
+        $maxLabelLength = max(array_map(strlen(...), array_keys($lines)));
+        foreach ($lines as $label => $value) {
+            $banner .= $output->bold(str_pad($label, $maxLabelLength)).' : '.$value."\n";
         }
 
         $banner .= "\n";
@@ -79,7 +87,8 @@ final readonly class LintOutputRenderer
     private function showFooter(Output $output): void
     {
         $output->write("\n");
-        $output->write('  '.$output->dim('Star the repo: https://github.com/yoeunes/regex-parser')."\n\n");
+        $output->write('  '.$output->dim('Star the repo: https://github.com/yoeunes/regex-parser')."\n");
+        $output->write('  '.$output->dim('Cache: 0 hits, 0 misses')."\n\n");
     }
 
     private function relativePath(string $path): string

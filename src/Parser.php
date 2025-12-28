@@ -632,7 +632,8 @@ final class Parser
         $isStringIdentifier = false;
         $identifier = null;
         if (preg_match('/^"([^"]*+)"$/', $value, $matches)) {
-            $identifier = $matches[1];
+            /** @phpstan-ignore cast.string */
+            $identifier = isset($matches[1]) ? (string) $matches[1] : '';
             $isStringIdentifier = true;
         } elseif (ctype_digit($value)) {
             $identifier = (int) $value;
@@ -663,11 +664,18 @@ final class Parser
         }
 
         // \g<name> or \g{name} (non-numeric) -> Subroutine
-        if (
-            preg_match('/^\\\\g<(\w++)>$/', $value, $m)
-            || preg_match('/^\\\\g\{(\w++)\}$/', $value, $m)
-        ) {
-            return new SubroutineNode($m[1], 'g', $startPosition, $endPosition);
+        if (preg_match('/^\\\\g<(\w++)>$/', $value, $m)) {
+            if (isset($m[1])) {
+                /* @phpstan-ignore cast.string */
+                return new SubroutineNode((string) $m[1], 'g', $startPosition, $endPosition);
+            }
+        }
+
+        if (preg_match('/^\\\\g\{(\w++)\}$/', $value, $m)) {
+            if (isset($m[1])) {
+                /* @phpstan-ignore cast.string */
+                return new SubroutineNode((string) $m[1], 'g', $startPosition, $endPosition);
+            }
         }
 
         throw $this->parserException(
@@ -787,11 +795,19 @@ final class Parser
     private function parseUnicodeCodePoint(string $representation): int
     {
         if (preg_match('/^\\\\x([0-9a-fA-F]{2})$/', $representation, $matches)) {
-            return (int) hexdec($matches[1]);
+            if (isset($matches[1]) && \is_string($matches[1])) {
+                return (int) hexdec($matches[1]);
+            }
+
+            return -1;
         }
 
         if (preg_match('/^\\\\[xu]\\{([0-9a-fA-F]++)\\}$/', $representation, $matches)) {
-            return (int) hexdec($matches[1]);
+            if (isset($matches[1]) && \is_string($matches[1])) {
+                return (int) hexdec($matches[1]);
+            }
+
+            return -1;
         }
 
         return -1;
@@ -800,6 +816,10 @@ final class Parser
     private function parseNamedUnicodeCodePoint(string $representation): int
     {
         if (!preg_match('/^\\\\N\\{(.+)}$/', $representation, $matches)) {
+            return -1;
+        }
+
+        if (!isset($matches[1]) || !\is_string($matches[1])) {
             return -1;
         }
 
@@ -817,11 +837,19 @@ final class Parser
     private function parseOctalCodePoint(string $representation): int
     {
         if (preg_match('/^\\\\o\\{([0-7]++)\\}$/', $representation, $matches)) {
-            return (int) octdec($matches[1]);
+            if (isset($matches[1]) && \is_string($matches[1])) {
+                return (int) octdec($matches[1]);
+            }
+
+            return -1;
         }
 
         if (preg_match('/^\\\\([0-7]{1,3})$/', $representation, $matches)) {
-            return (int) octdec($matches[1]);
+            if (isset($matches[1]) && \is_string($matches[1])) {
+                return (int) octdec($matches[1]);
+            }
+
+            return -1;
         }
 
         return -1;
@@ -1032,7 +1060,9 @@ final class Parser
         }
 
         if (preg_match('/^LIMIT_MATCH=(\\d++)$/i', $verb, $matches)) {
-            return new LimitMatchNode((int) $matches[1], $startPosition, $endPosition);
+            if (isset($matches[1]) && \is_string($matches[1])) {
+                return new LimitMatchNode((int) $matches[1], $startPosition, $endPosition);
+            }
         }
 
         $lowerVerb = strtolower($verb);
@@ -1863,6 +1893,15 @@ final class Parser
                 return $startNode;
             }
 
+            // CharTypeNode, UnicodePropNode, and PosixClassNode cannot be range endpoints.
+            // In PCRE, a hyphen following these types is treated as a literal hyphen.
+            if ($startNode instanceof CharTypeNode || $startNode instanceof UnicodePropNode || $startNode instanceof PosixClassNode) {
+                // Rewind the hyphen so it will be parsed as a literal in the next iteration
+                $this->stream->rewind(1);
+
+                return $startNode;
+            }
+
             // Parse end node without allowing nested ranges
             $endToken = $this->current();
             $endPosition = $endToken->position;
@@ -1927,6 +1966,16 @@ final class Parser
                     ),
                     $this->current()->position,
                 );
+            }
+
+            // CharTypeNode, UnicodePropNode, and PosixClassNode cannot be range endpoints.
+            // In PCRE, if the end of a potential range is one of these types, the hyphen
+            // should be treated as a literal hyphen, not a range operator.
+            if ($endNode instanceof CharTypeNode || $endNode instanceof UnicodePropNode || $endNode instanceof PosixClassNode) {
+                // Rewind both the end token and the hyphen so they will be parsed separately
+                $this->stream->rewind(2);
+
+                return $startNode;
             }
 
             return new RangeNode($startNode, $endNode, $startPosition, $endNode->getEndPosition());

@@ -595,7 +595,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
                             'regex.lint.alternation.overlap',
                             \sprintf('Alternation branches "%s" and "%s" overlap.', $a, $b),
                             $node->startPosition,
-                            'Consider ordering longer alternatives first or using atomic groups.',
+                            'Consider using atomic groups (?>...) to prevent backtracking. Do not reorder overlapping alternatives as it changes match semantics.',
                         );
 
                         return;
@@ -628,7 +628,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
                         'regex.lint.overlap.charset',
                         'Alternation branches have overlapping character sets, which may cause unnecessary backtracking.',
                         $node->startPosition,
-                        'Consider reordering alternatives or using atomic groups to improve performance.',
+                        'Consider using atomic groups (?>...) to prevent backtracking. Do not reorder overlapping alternatives as it changes match semantics.',
                     );
 
                     return;

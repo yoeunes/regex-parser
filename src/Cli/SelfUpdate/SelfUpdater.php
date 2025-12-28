@@ -15,11 +15,11 @@ namespace RegexParser\Cli\SelfUpdate;
 
 use RegexParser\Cli\Output;
 
-final class SelfUpdater
+class SelfUpdater
 {
     public function run(Output $output): void
     {
-        $pharPath = \Phar::running(false);
+        $pharPath = $this->getPharPath();
         if ('' === $pharPath) {
             throw new \RuntimeException('Self-update is only supported for phar installs.');
         }
@@ -32,8 +32,8 @@ final class SelfUpdater
             throw new \RuntimeException('The phar file is not writable: '.$pharPath.'.');
         }
 
-        $updateUrl = 'https://github.com/yoeunes/regex-parser/releases/latest/download/regex.phar';
-        $checksumUrl = $updateUrl.'.sha256';
+        $updateUrl = $this->getUpdateUrl();
+        $checksumUrl = $this->getChecksumUrl();
 
         $output->write($output->info('Downloading latest release...')."\n");
 
@@ -81,6 +81,21 @@ final class SelfUpdater
         $output->write($output->success("RegexParser updated successfully.\n"));
     }
 
+    protected function getPharPath(): string
+    {
+        return \Phar::running(false);
+    }
+
+    protected function getUpdateUrl(): string
+    {
+        return 'https://github.com/yoeunes/regex-parser/releases/latest/download/regex.phar';
+    }
+
+    protected function getChecksumUrl(): string
+    {
+        return $this->getUpdateUrl().'.sha256';
+    }
+
     private function downloadFile(string $url, string $destination): void
     {
         $context = stream_context_create([
@@ -97,9 +112,9 @@ final class SelfUpdater
         ]);
 
         $read = @fopen($url, 'r', false, $context);
-        if (false !== $read) {
+        if (\is_resource($read)) {
             $write = @fopen($destination, 'w');
-            if (false === $write) {
+            if (!\is_resource($write)) {
                 fclose($read);
 
                 throw new \RuntimeException('Unable to write to '.$destination.'.');

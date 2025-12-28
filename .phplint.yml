@@ -1,6 +1,10 @@
-exclude:
-    - .cache/
-    - tools/
+path:
+    - .php-cs-fixer.dist.php
+    - rector.php
+    - bin/regex
+    - src/
+    - tests/
+    - benchmarks/
 
 jobs: 10
 
@@ -8,3 +12,5 @@ extensions:
     - php
 
 cache-dir: .cache/phplint/
+
+warning: true

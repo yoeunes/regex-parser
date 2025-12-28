@@ -320,4 +320,96 @@ final class LexerTest extends TestCase
         $this->assertSame(TokenType::T_LITERAL, $tokens[3]->type);
         $this->assertSame('f', $tokens[3]->value);
     }
+
+    public function test_tokenize_char_type_n_h_v(): void
+    {
+        // Test \N (any char except newline), \H (not horizontal whitespace), \V (not vertical whitespace)
+        $tokens = (new Lexer())->tokenize('\\N\\H\\V')->getTokens();
+
+        $this->assertSame(TokenType::T_CHAR_TYPE, $tokens[0]->type);
+        $this->assertSame('N', $tokens[0]->value);
+
+        $this->assertSame(TokenType::T_CHAR_TYPE, $tokens[1]->type);
+        $this->assertSame('H', $tokens[1]->value);
+
+        $this->assertSame(TokenType::T_CHAR_TYPE, $tokens[2]->type);
+        $this->assertSame('V', $tokens[2]->value);
+
+        $this->assertSame(TokenType::T_EOF, $tokens[3]->type);
+    }
+
+    public function test_tokenize_char_type_n_h_v_inside_char_class(): void
+    {
+        // Test \N, \H, \V inside character classes
+        $tokens = (new Lexer())->tokenize('[\\N\\H\\V]')->getTokens();
+
+        $this->assertSame(TokenType::T_CHAR_CLASS_OPEN, $tokens[0]->type);
+
+        $this->assertSame(TokenType::T_CHAR_TYPE, $tokens[1]->type);
+        $this->assertSame('N', $tokens[1]->value);
+
+        $this->assertSame(TokenType::T_CHAR_TYPE, $tokens[2]->type);
+        $this->assertSame('H', $tokens[2]->value);
+
+        $this->assertSame(TokenType::T_CHAR_TYPE, $tokens[3]->type);
+        $this->assertSame('V', $tokens[3]->value);
+
+        $this->assertSame(TokenType::T_CHAR_CLASS_CLOSE, $tokens[4]->type);
+    }
+
+    public function test_tokenize_backslash_b_inside_char_class_is_backspace(): void
+    {
+        // Inside character class, \b means backspace (0x08), not word boundary
+        $tokens = (new Lexer())->tokenize('[\\b]')->getTokens();
+
+        $this->assertSame(TokenType::T_CHAR_CLASS_OPEN, $tokens[0]->type);
+
+        // \b inside char class should be T_LITERAL_ESCAPED with value \x08 (backspace)
+        $this->assertSame(TokenType::T_LITERAL_ESCAPED, $tokens[1]->type);
+        $this->assertSame("\x08", $tokens[1]->value);
+
+        $this->assertSame(TokenType::T_CHAR_CLASS_CLOSE, $tokens[2]->type);
+    }
+
+    public function test_tokenize_backslash_b_outside_char_class_is_assertion(): void
+    {
+        // Outside character class, \b is word boundary assertion
+        $tokens = (new Lexer())->tokenize('\\bword\\b')->getTokens();
+
+        $this->assertSame(TokenType::T_ASSERTION, $tokens[0]->type);
+        $this->assertSame('b', $tokens[0]->value);
+
+        // w o r d
+        $this->assertSame(TokenType::T_LITERAL, $tokens[1]->type);
+        $this->assertSame(TokenType::T_LITERAL, $tokens[2]->type);
+        $this->assertSame(TokenType::T_LITERAL, $tokens[3]->type);
+        $this->assertSame(TokenType::T_LITERAL, $tokens[4]->type);
+
+        $this->assertSame(TokenType::T_ASSERTION, $tokens[5]->type);
+        $this->assertSame('b', $tokens[5]->value);
+    }
+
+    public function test_tokenize_backslash_b_mixed_context(): void
+    {
+        // Test \b in both contexts: outside (assertion) and inside char class (backspace)
+        $tokens = (new Lexer())->tokenize('\\b[\\b]\\b')->getTokens();
+
+        // First \b - outside, word boundary assertion
+        $this->assertSame(TokenType::T_ASSERTION, $tokens[0]->type);
+        $this->assertSame('b', $tokens[0]->value);
+
+        // [ - char class open
+        $this->assertSame(TokenType::T_CHAR_CLASS_OPEN, $tokens[1]->type);
+
+        // \b inside char class - backspace
+        $this->assertSame(TokenType::T_LITERAL_ESCAPED, $tokens[2]->type);
+        $this->assertSame("\x08", $tokens[2]->value);
+
+        // ] - char class close
+        $this->assertSame(TokenType::T_CHAR_CLASS_CLOSE, $tokens[3]->type);
+
+        // Last \b - outside, word boundary assertion
+        $this->assertSame(TokenType::T_ASSERTION, $tokens[4]->type);
+        $this->assertSame('b', $tokens[4]->value);
+    }
 }

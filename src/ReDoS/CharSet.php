@@ -45,7 +45,18 @@ final readonly class CharSet
 
     public static function fromRange(int $start, int $end): self
     {
-        return new self([[max(0, $start), min(self::ASCII_MAX, $end)]]);
+        if ($start > self::ASCII_MAX || $end < 0 || $end > self::ASCII_MAX) {
+            return self::unknown();
+        }
+
+        $clampedStart = max(0, $start);
+        $clampedEnd = min(self::ASCII_MAX, $end);
+
+        if ($clampedStart > $clampedEnd) {
+            return self::empty();
+        }
+
+        return new self([[$clampedStart, $clampedEnd]]);
     }
 
     public static function fromChar(string $char): self

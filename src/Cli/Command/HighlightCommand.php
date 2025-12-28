@@ -81,7 +81,7 @@ final class HighlightCommand extends AbstractCommand
             $highlighted = $ast->accept($visitor);
 
             $output->write($highlighted."\n");
-        } catch (LexerException|ParserException $e) {
+        } catch (LexerException|ParserException|\InvalidArgumentException $e) {
             $output->write($output->error("✗ Error: {$e->getMessage()}\n"));
 
             return 1;
