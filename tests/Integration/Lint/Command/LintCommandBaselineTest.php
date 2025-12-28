@@ -43,17 +43,17 @@ final class LintCommandBaselineTest extends TestCase
     public function test_generate_baseline_creates_file_with_relative_paths(): void
     {
         $dir = $this->makeTempDir();
-        $file = $dir.'/test.php';
+        $file = realpath($dir).'/test.php';
         file_put_contents($file, <<<'PHP'
             <?php
-            preg_match('/a/r', 'test'); // Invalid flag 'r'
+            preg_match('/invalid[range/', 'test'); // Unclosed character class
             PHP
         );
 
         $baselineFile = $dir.'/baseline.json';
 
         $command = $this->makeLintCommand();
-        $output = new Output(true, false);
+        $output = new Output(true, true);
         $input = $this->makeInput([$file, '--generate-baseline='.$baselineFile]);
 
         $exitCode = $command->run($input, $output);
@@ -83,10 +83,10 @@ final class LintCommandBaselineTest extends TestCase
     public function test_baseline_filters_out_known_issues(): void
     {
         $dir = $this->makeTempDir();
-        $file = $dir.'/test.php';
+        $file = realpath($dir).'/test.php';
         file_put_contents($file, <<<'PHP'
             <?php
-            preg_match('/a/r', 'test'); // Invalid flag 'r'
+            preg_match('/invalid[range/', 'test'); // Unclosed character class
             PHP
         );
 
@@ -95,12 +95,12 @@ final class LintCommandBaselineTest extends TestCase
         $command = $this->makeLintCommand();
 
         // Generate baseline
-        $output1 = new Output(true, false);
+        $output1 = new Output(true, true);
         $input1 = $this->makeInput([$file, '--generate-baseline='.$baselineFile]);
         $command->run($input1, $output1);
 
         // Run with baseline on the same file
-        $output2 = new Output(true, false);
+        $output2 = new Output(true, true);
         $input2 = $this->makeInput([$file, '--baseline='.$baselineFile]);
 
         $exitCode = 0;

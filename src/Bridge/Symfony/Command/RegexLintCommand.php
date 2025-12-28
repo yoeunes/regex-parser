@@ -16,6 +16,7 @@ namespace RegexParser\Bridge\Symfony\Command;
 use RegexParser\Bridge\Symfony\Console\LinkFormatter;
 use RegexParser\Bridge\Symfony\Console\RelativePathHelper;
 use RegexParser\Bridge\Symfony\Output\SymfonyConsoleFormatter;
+use RegexParser\Cli\VersionResolver;
 use RegexParser\Lint\Formatter\FormatterRegistry;
 use RegexParser\Lint\RegexAnalysisService;
 use RegexParser\Lint\RegexLintReport;
@@ -23,7 +24,6 @@ use RegexParser\Lint\RegexLintRequest;
 use RegexParser\Lint\RegexLintService;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -67,6 +67,7 @@ final class RegexLintCommand extends Command
         array $defaultPaths = ['src'],
         array $defaultExcludePaths = ['vendor'],
         private readonly ?string $editorUrl = null,
+        private readonly ?VersionResolver $versionResolver = null,
     ) {
         $this->defaultPaths = $this->normalizeStringList($defaultPaths);
         $this->defaultExcludePaths = $this->normalizeStringList($defaultExcludePaths);
@@ -142,13 +143,6 @@ final class RegexLintCommand extends Command
         $exclude = $this->normalizeStringList($input->getOption('exclude'));
         $minSavingsValue = $input->getOption('min-savings');
         $minSavings = is_numeric($minSavingsValue) ? (int) $minSavingsValue : 1;
-        $jobsValue = $input->getOption('jobs');
-        $jobs = is_numeric($jobsValue) ? (int) $jobsValue : 1;
-        if ($jobs < 1) {
-            $io->error('The --jobs value must be a positive integer.');
-
-            return Command::FAILURE;
-        }
         $skipRoutes = (bool) $input->getOption('no-routes');
         $skipValidators = (bool) $input->getOption('no-validators');
         $formatOption = $input->getOption('format');
@@ -169,18 +163,27 @@ final class RegexLintCommand extends Command
             return Command::FAILURE;
         }
 
-        if ('console' === $format) {
-            $this->showBanner($io);
+        $jobsValue = $input->getOption('jobs');
+        $jobs = is_numeric($jobsValue) ? (int) $jobsValue : 1;
+        if ($jobs < 1) {
+            $io->error('The --jobs value must be a positive integer.');
+
+            return Command::FAILURE;
         }
 
+        if ('console' === $format) {
+            $this->showBanner($io, $jobs);
+        }
+
+        $startTime = (float) microtime(true);
+        $collectionStartTime = $startTime;
         $collectionProgress = null;
         $showProgress = 'console' === $format && OutputInterface::VERBOSITY_QUIET !== $output->getVerbosity();
+        $collectionBar = null;
+        $collectionFinished = false;
+        $lastCount = 0;
         if ($showProgress) {
-            $io->writeln('  <fg=gray>Scanning files...</>');
-            $io->newLine();
-            $collectionBar = null;
-            $collectionFinished = false;
-            $lastCount = 0;
+            $io->writeln('  <fg=gray>[1/2] Collecting patterns</>');
             $collectionProgress = function (int $current, int $total) use ($io, &$collectionBar, &$collectionFinished, &$lastCount): void {
                 if ($collectionFinished || $total <= 0) {
                     return;
@@ -188,10 +191,16 @@ final class RegexLintCommand extends Command
 
                 if (null === $collectionBar) {
                     $collectionBar = $io->createProgressBar($total);
-                    $collectionBar->setFormat(ProgressBar::FORMAT_VERBOSE);
+                    $collectionBar->setFormat(' %message% [%bar%] %percent:3s%% %elapsed:6s%');
+                    $collectionBar->setBarWidth(28);
+                    $collectionBar->setProgressCharacter('▓');
+                    $collectionBar->setEmptyBarCharacter('░');
+                    $collectionBar->setMessage(str_pad('0/'.$total, 15, ' ', \STR_PAD_LEFT));
                     $collectionBar->start();
                 }
 
+                $status = str_pad($current.'/'.$total, 15, ' ', \STR_PAD_LEFT);
+                $collectionBar->setMessage($status);
                 $advance = $current - $lastCount;
                 if ($advance > 0) {
                     $collectionBar->advance($advance);
@@ -199,8 +208,8 @@ final class RegexLintCommand extends Command
                 }
 
                 if ($current >= $total) {
+                    $collectionBar->setMessage(str_pad($total.'/'.$total, 15, ' ', \STR_PAD_LEFT));
                     $collectionBar->finish();
-                    $io->newLine(2);
                     $collectionFinished = true;
                 }
             };
@@ -222,18 +231,38 @@ final class RegexLintCommand extends Command
             return $this->renderCollectionFailure($format, $output, $io, $e->getMessage());
         }
 
+        $collectionTime = (float) microtime(true) - $collectionStartTime;
+        if ($showProgress && $collectionTime > 1) {
+            $io->newLine();
+            $io->writeln('  <fg=gray>Collection: '.round($collectionTime, 2).'s</>');
+            $io->newLine();
+        }
+        if ($showProgress) {
+            $io->newLine();
+        }
+
         if (empty($patterns)) {
             return $this->renderEmptyResults($format, $output, $io);
         }
 
         $analysisBar = null;
+        $currentAnalysis = 0;
         if ($showProgress) {
-            $io->writeln('  <fg=gray>Analyzing patterns...</>');
             $io->newLine();
+            $io->writeln('  <fg=gray>[2/2] Analyzing patterns</>');
             $analysisBar = $io->createProgressBar(\count($patterns));
-            $analysisBar->setFormat(ProgressBar::FORMAT_VERBOSE);
+            $analysisBar->setFormat(' %message% [%bar%] %percent:3s%% %elapsed:6s%');
+            $analysisBar->setBarWidth(28);
+            $analysisBar->setProgressCharacter('▓');
+            $analysisBar->setEmptyBarCharacter('░');
+            $totalPatterns = \count($patterns);
+            $analysisBar->setMessage(str_pad('0/'.$totalPatterns, 15, ' ', \STR_PAD_LEFT));
             $analysisBar->start();
-            $progressCallback = static fn () => $analysisBar->advance();
+            $progressCallback = function () use ($analysisBar, &$currentAnalysis, $totalPatterns): void {
+                $currentAnalysis++;
+                $analysisBar->setMessage(str_pad($currentAnalysis.'/'.$totalPatterns, 15, ' ', \STR_PAD_LEFT));
+                $analysisBar->advance();
+            };
         } else {
             $progressCallback = null;
         }
@@ -241,6 +270,7 @@ final class RegexLintCommand extends Command
         $report = $this->lint->analyze($patterns, $request, $progressCallback);
 
         if (null !== $analysisBar) {
+            $analysisBar->setMessage(str_pad(\count($patterns).'/'.\count($patterns), 15, ' ', \STR_PAD_LEFT));
             $analysisBar->finish();
             $io->newLine(2);
         }
@@ -253,15 +283,32 @@ final class RegexLintCommand extends Command
         $stats = $report->stats;
 
         $formatter = $this->formatterRegistry->get($format);
-        $output->writeln($formatter->format($report));
+        $output->write($formatter->format($report));
+
+        if ('console' === $format) {
+            $elapsed = (float) microtime(true) - $startTime;
+            $peakMemory = memory_get_peak_usage(true);
+            $cacheStats = $this->analysis->getRegex()->getCacheStats();
+            $io->writeln('  <options=bold>Time:</> <fg=yellow>'.round($elapsed, 2).'s</> | <options=bold>Memory:</> <fg=yellow>'.round($peakMemory / 1024 / 1024, 2).' MB</> | <options=bold>Cache:</> <fg=yellow>'.$cacheStats['hits'].' hits, '.$cacheStats['misses'].' misses</> | <options=bold>Processes:</> <fg=yellow>'.$jobs.'</>');
+            $io->newLine();
+            $io->writeln('  <fg=gray>Star the repo: https://github.com/yoeunes/regex-parser</>');
+            $io->newLine();
+        }
 
         return $stats['errors'] > 0 ? Command::FAILURE : Command::SUCCESS;
     }
 
-    private function showBanner(SymfonyStyle $io): void
+    private function showBanner(SymfonyStyle $io, int $jobs): void
     {
+        $version = $this->versionResolver?->resolve('dev') ?? 'dev';
+
+        $io->writeln('<fg=cyan;options=bold>RegexParser</> <fg=yellow>'.$version.'</> by Younes ENNAJI');
         $io->newLine();
-        $io->writeln('  <fg=white;options=bold>Regex Parser</> <fg=gray>linting...</>');
+
+        $maxLabelLength = max(array_map(strlen(...), ['Runtime', 'Processes']));
+        $io->writeln('<fg=white;options=bold>'.str_pad('Runtime', $maxLabelLength).'</> : PHP <fg=yellow>'.\PHP_VERSION.'</>');
+        $io->writeln('<fg=white;options=bold>'.str_pad('Processes', $maxLabelLength).'</> : <fg=yellow>'.$jobs.'</>');
+
         $io->newLine();
     }
 
@@ -294,7 +341,7 @@ final class RegexLintCommand extends Command
         $emptyReport = new RegexLintReport([], ['errors' => 0, 'warnings' => 0, 'optimizations' => 0]);
 
         $formatter = $this->formatterRegistry->get($format);
-        $output->writeln($formatter->format($emptyReport));
+        $output->write($formatter->format($emptyReport));
 
         return Command::SUCCESS;
     }

@@ -52,7 +52,7 @@ final class SelfUpdaterTest extends TestCase
     public function test_run_throws_when_not_running_from_phar(): void
     {
         $updater = new SelfUpdater();
-        $output = new Output(false, false);
+        $output = new Output(false, true);
 
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('Self-update is only supported for phar installs.');
@@ -223,7 +223,7 @@ final class SelfUpdaterTest extends TestCase
 
         file_put_contents($checksumFile, $hash.'  regex.phar');
 
-        $output = new Output(false, false);
+        $output = new Output(false, true);
 
         $updater = new TestableSelfUpdater(
             $originalPhar,
@@ -286,7 +286,7 @@ final class SelfUpdaterTest extends TestCase
 
         file_put_contents($checksumFile, 'wrongchecksum  regex.phar');
 
-        $output = new Output(false, false);
+        $output = new Output(false, true);
 
         $updater = new TestableSelfUpdater(
             $originalPhar,
@@ -349,7 +349,7 @@ final class SelfUpdaterTest extends TestCase
 
         file_put_contents($checksumFile, $hash.'  regex.phar');
 
-        $output = new Output(false, false);
+        $output = new Output(false, true);
 
         $updater = new TestableSelfUpdater(
             $originalPhar,
@@ -372,7 +372,7 @@ final class SelfUpdaterTest extends TestCase
     {
         $nonExistentPath = sys_get_temp_dir().'/non-existent-phar.phar';
 
-        $output = new Output(false, false);
+        $output = new Output(false, true);
 
         $updater = new TestableSelfUpdater(
             $nonExistentPath,
@@ -406,7 +406,7 @@ final class SelfUpdaterTest extends TestCase
         // Make it read-only
         @chmod($readonlyPhar, 0o444);
 
-        $output = new Output(false, false);
+        $output = new Output(false, true);
 
         $updater = new TestableSelfUpdater(
             $readonlyPhar,
@@ -443,7 +443,7 @@ final class SelfUpdaterTest extends TestCase
     public function test_run_throws_when_phar_not_writable_via_override(): void
     {
         $pharPath = $this->copyBundledPhar();
-        $output = new Output(false, false);
+        $output = new Output(false, true);
 
         SelfUpdateFunctionOverrides::queueIsWritable(false);
 
@@ -466,7 +466,7 @@ final class SelfUpdaterTest extends TestCase
     {
         $pharPath = $this->copyBundledPhar();
         $checksumFile = $this->writeChecksumFile($pharPath, $pharPath);
-        $output = new Output(false, false);
+        $output = new Output(false, true);
 
         $checksumTemp = sys_get_temp_dir().'/regex-update-'.bin2hex(random_bytes(4));
         SelfUpdateFunctionOverrides::queueTempnam($checksumTemp);
@@ -492,7 +492,7 @@ final class SelfUpdaterTest extends TestCase
     {
         $pharPath = $this->copyBundledPhar();
         $checksumFile = $this->writeChecksumFile($pharPath, $pharPath);
-        $output = new Output(false, false);
+        $output = new Output(false, true);
 
         SelfUpdateFunctionOverrides::queueHashFile(false);
 
@@ -516,7 +516,7 @@ final class SelfUpdaterTest extends TestCase
     {
         $pharPath = $this->copyBundledPhar();
         $checksumFile = $this->writeChecksumFile($pharPath, $pharPath, str_repeat('a', 64));
-        $output = new Output(false, false);
+        $output = new Output(false, true);
 
         $updater = new TestableSelfUpdater(
             $pharPath,
@@ -538,7 +538,7 @@ final class SelfUpdaterTest extends TestCase
     {
         $pharPath = $this->copyBundledPhar();
         $checksumFile = $this->writeChecksumFile($pharPath, $pharPath);
-        $output = new Output(false, false);
+        $output = new Output(false, true);
 
         SelfUpdateFunctionOverrides::queueRename(false);
         SelfUpdateFunctionOverrides::queueCopy(false);
@@ -563,7 +563,7 @@ final class SelfUpdaterTest extends TestCase
     {
         $pharPath = $this->copyBundledPhar();
         $checksumFile = $this->writeChecksumFile($pharPath, $pharPath);
-        $output = new Output(false, false);
+        $output = new Output(false, true);
 
         SelfUpdateFunctionOverrides::queueRename(false);
         SelfUpdateFunctionOverrides::queueCopy(true);

@@ -62,6 +62,11 @@ final readonly class RegexAnalysisService
         $this->ignoredPatterns = $this->buildIgnoredPatterns($ignoredPatterns, $redosIgnoredPatterns);
     }
 
+    public function getRegex(): Regex
+    {
+        return $this->regex;
+    }
+
     /**
      * @param array<string> $paths
      * @param array<string> $excludePaths

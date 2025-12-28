@@ -45,7 +45,7 @@ final class ConfigurationTest extends TestCase
 
         $this->assertSame(Regex::DEFAULT_MAX_PATTERN_LENGTH, $config['max_pattern_length']);
         $this->assertNull($config['cache']['pool']);
-        $this->assertNull($config['cache']['directory']);
+        $this->assertSame('%kernel.cache_dir%/regex_parser', $config['cache']['directory']);
         $this->assertSame('regex_', $config['cache']['prefix']);
         $this->assertNull($config['extractor_service']);
         $this->assertSame(50, $config['analysis']['warning_threshold']);

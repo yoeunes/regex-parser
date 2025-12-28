@@ -70,6 +70,7 @@ final class RegexParserBundleTest extends TestCase
     {
         $container = new ContainerBuilder();
         $container->setParameter('kernel.debug', true);
+        $container->setParameter('kernel.cache_dir', sys_get_temp_dir());
 
         $extension = new RegexParserExtension();
         $container->registerExtension($extension);

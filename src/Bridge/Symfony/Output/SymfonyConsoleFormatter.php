@@ -32,7 +32,6 @@ use Symfony\Component\Console\Formatter\OutputFormatter;
  */
 final readonly class SymfonyConsoleFormatter implements OutputFormatterInterface
 {
-    private const PEN_LABEL = "\u{270F}\u{FE0F}";
     private const ARROW_LABEL = "\u{21B3}";
 
     public function __construct(
@@ -65,29 +64,12 @@ final readonly class SymfonyConsoleFormatter implements OutputFormatterInterface
     private function renderResults(array $results): string
     {
         $output = '';
-        $currentFile = null;
 
         foreach ($results as $result) {
-            $file = (string) $result['file'];
-            if ($file !== $currentFile) {
-                $currentFile = $file;
-                $output .= $this->renderFileHeader($file);
-            }
-
             $output .= $this->renderResultCard($result);
         }
 
         return $output;
-    }
-
-    private function renderFileHeader(string $file): string
-    {
-        $relPath = $this->linkFormatter->getRelativePath($file);
-
-        return \sprintf(
-            '  <fg=white;bg=gray;options=bold> %s </>'.\PHP_EOL,
-            OutputFormatter::escape($relPath),
-        );
     }
 
     /**
@@ -120,25 +102,22 @@ final readonly class SymfonyConsoleFormatter implements OutputFormatterInterface
         $location = $result['location'] ?? null;
 
         $hasLocation = \is_string($location) && '' !== $location;
-        $showLine = $line > 0 && !$hasLocation;
 
-        if ($showLine) {
-            $penLink = $this->linkFormatter->format($file, $line, $this->getPenLabel(), 1, self::PEN_LABEL);
-
-            if (null !== $pattern && '' !== $pattern) {
-                $highlighted = $this->safelyHighlightPattern($pattern);
-
-                return \sprintf('  <fg=gray>%d:</> %s %s'.\PHP_EOL, $line, $penLink, $highlighted);
-            }
-
-            return \sprintf('  <fg=gray>%s:</> %s'.\PHP_EOL, 'line '.$line, $penLink);
+        $relPath = $this->linkFormatter->getRelativePath($file);
+        if (!str_starts_with($relPath, '/')) {
+            $relPath = './'.$relPath;
         }
+        $label = $relPath;
+        if ($line > 0) {
+            $label .= ':'.$line;
+        }
+        $linkedLabel = $this->linkFormatter->format($file, $line, $label, 1, $label);
+
+        $output = '  <fg=cyan;options=bold>'.$linkedLabel.'</>'.\PHP_EOL;
 
         if (null !== $pattern && '' !== $pattern) {
             $highlighted = $this->safelyHighlightPattern($pattern);
-            $output = \sprintf('  %s'.\PHP_EOL, $highlighted);
-        } else {
-            $output = '  <fg=gray>(pattern unavailable)</>'.\PHP_EOL;
+            $output .= '      <fg=cyan;options=bold>→ </><fg=white>'.$highlighted.'</>'.\PHP_EOL;
         }
 
         if ($hasLocation) {
@@ -154,6 +133,11 @@ final readonly class SymfonyConsoleFormatter implements OutputFormatterInterface
 
     private function safelyHighlightPattern(string $pattern): string
     {
+        // Wrap with / / if no delimiter
+        if (!preg_match('/^[^a-zA-Z0-9\\\\]/', $pattern)) {
+            $pattern = '/'.$pattern.'/';
+        }
+
         // Always escape control characters to prevent layout issues
         $escapedPattern = addcslashes($pattern, "\0..\37\177..\377");
 
@@ -173,15 +157,6 @@ final readonly class SymfonyConsoleFormatter implements OutputFormatterInterface
         } catch (\Throwable) {
             return OutputFormatter::escape($escapedPattern);
         }
-    }
-
-    private function getPenLabel(): string
-    {
-        if (!$this->decorated) {
-            return self::PEN_LABEL;
-        }
-
-        return "\033[24m".self::PEN_LABEL."\033[24m";
     }
 
     /**
@@ -226,7 +201,7 @@ final readonly class SymfonyConsoleFormatter implements OutputFormatterInterface
         $output = '';
 
         foreach ($optimizations as $opt) {
-            $output .= '    <bg=cyan;fg=white;options=bold> TIP </> <fg=cyan;options=bold>Optimization available</>'.\PHP_EOL;
+            $output .= '    <bg=cyan;fg=white;options=bold> TIP </>'.\PHP_EOL;
 
             $optimization = $opt['optimization'] ?? null;
             if (!$optimization instanceof OptimizationResult) {
@@ -274,7 +249,6 @@ final readonly class SymfonyConsoleFormatter implements OutputFormatterInterface
     {
         $output = \PHP_EOL;
         $output .= $this->showSummaryMessage($stats);
-        $output .= $this->showFooter();
 
         return $output;
     }
@@ -307,14 +281,6 @@ final readonly class SymfonyConsoleFormatter implements OutputFormatterInterface
         };
 
         return $message.\PHP_EOL;
-    }
-
-    private function showFooter(): string
-    {
-        return \PHP_EOL
-            .'  <fg=gray>Star the repo: https://github.com/yoeunes/regex-parser</>'
-            .\PHP_EOL
-            .\PHP_EOL;
     }
 
     /**

@@ -182,7 +182,7 @@ final class SymfonyConsoleFormatterTest extends TestCase
         $relativePathHelper = new RelativePathHelper();
         $linkFormatter = new LinkFormatter(null, $relativePathHelper);
 
-        $formatter = new SymfonyConsoleFormatter($analysis, $linkFormatter);
+        $formatter = new SymfonyConsoleFormatter($analysis, $linkFormatter, false);
 
         $optimization = new OptimizationResult('original', 'optimized');
         $result = [
@@ -206,7 +206,6 @@ final class SymfonyConsoleFormatterTest extends TestCase
         $output = $formatter->format($report);
 
         $this->assertStringContainsString('TIP', $output);
-        $this->assertStringContainsString('Optimization available', $output);
         $this->assertStringContainsString('original', $output);
         $this->assertStringContainsString('optimized', $output);
     }
@@ -353,7 +352,8 @@ final class SymfonyConsoleFormatterTest extends TestCase
 
         $output = $formatter->format($report);
 
-        $this->assertStringContainsString('(pattern unavailable)', $output);
+        $this->assertStringContainsString('./test.php', $output);
+        $this->assertStringContainsString('in function call', $output);
     }
 
     public function test_format_with_decorated_false(): void
@@ -456,7 +456,7 @@ final class SymfonyConsoleFormatterTest extends TestCase
         $output = $this->invokePrivate($formatter, 'displayPatternContext', [$result]);
 
         $this->assertIsString($output);
-        $this->assertStringContainsString('line 12', (string) $output);
+        $this->assertStringContainsString('./src/File.php:12', (string) $output);
     }
 
     public function test_safely_highlight_pattern_skips_highlight_when_backslash_present(): void
@@ -484,7 +484,7 @@ final class SymfonyConsoleFormatterTest extends TestCase
         ]]);
 
         $this->assertIsString($output);
-        $this->assertStringContainsString('Optimization available', (string) $output);
+        $this->assertStringContainsString('TIP', (string) $output);
     }
 
     public function test_display_single_issue_handles_multiline_messages(): void

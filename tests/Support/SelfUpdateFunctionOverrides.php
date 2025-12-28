@@ -205,9 +205,10 @@ final class SelfUpdateFunctionOverrides
     /**
      * @param array<int, string>|null $output
      *
-     * @param-out array<int, string>|null $output
+     * @param-out array<int, string> $output
+     * @param-out int $resultCode
      */
-    public static function exec(string $command, ?array &$output = null, ?int &$resultCode = null): string|false
+    public static function exec(string $command, ?array &$output = null, ?int &$resultCode = null): string
     {
         if ([] !== self::$execSequence) {
             $entry = array_shift(self::$execSequence);
@@ -227,7 +228,11 @@ final class SelfUpdateFunctionOverrides
             return $output[0] ?? '';
         }
 
-        return exec($command, $output, $resultCode);
+        // Default mock behavior when no sequence is set up - prevent real exec calls during tests
+        $resultCode = 1;
+        $output = ['Mocked exec: command not mocked'];
+
+        return '';
     }
 
     public static function fileGetContents(string $filename): string|false
@@ -277,9 +282,10 @@ function fopen(string $filename, string $mode, bool $use_include_path = false, m
 /**
  * @param array<int, string>|null $output
  *
- * @param-out array<int, string>|null $output
+ * @param-out array<int, string> $output
+ * @param-out int $result_code
  */
-function exec(string $command, ?array &$output = null, ?int &$result_code = null): string|false
+function exec(string $command, ?array &$output = null, ?int &$result_code = null): string
 {
     return SelfUpdateFunctionOverrides::exec($command, $output, $result_code);
 }

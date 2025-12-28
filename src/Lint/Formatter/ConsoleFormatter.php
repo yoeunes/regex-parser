@@ -135,9 +135,9 @@ class ConsoleFormatter extends AbstractOutputFormatter
             $prefix = $file.':'.$line;
             if ('' !== $this->ide) {
                 $url = $this->generateIdeUrl($file, $line);
-                $prefix = "\e]8;;{$url}\e\\✏️ {$prefix}\e]8;;\e\\";
+                $prefix = "\e]8;;{$url}\e\\{$prefix}\e]8;;\e\\";
             } else {
-                $prefix = "✏️ {$prefix}";
+                $prefix = $prefix;
             }
         } elseif ('' !== $file) {
             $prefix = $file;

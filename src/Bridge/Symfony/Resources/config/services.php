@@ -18,6 +18,7 @@ use RegexParser\Bridge\Symfony\Extractor\RouteRegexPatternSource;
 use RegexParser\Bridge\Symfony\Extractor\ValidatorRegexPatternSource;
 use RegexParser\Bridge\Symfony\Routing\RouteControllerFileResolver;
 use RegexParser\Bridge\Symfony\Routing\RouteRequirementNormalizer;
+use RegexParser\Cli\VersionResolver;
 use RegexParser\Lint\ExtractorInterface;
 use RegexParser\Lint\Formatter\FormatterRegistry;
 use RegexParser\Lint\PhpRegexPatternSource;
@@ -100,6 +101,8 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set('regex_parser.formatter_registry', FormatterRegistry::class);
 
+    $services->set('regex_parser.version_resolver', VersionResolver::class);
+
     $services->set('regex_parser.command.lint', RegexLintCommand::class)
         ->arg('$lint', service('regex_parser.service.regex_lint'))
         ->arg('$analysis', service('regex_parser.service.regex_analysis'))
@@ -107,6 +110,7 @@ return static function (ContainerConfigurator $container): void {
         ->arg('$defaultPaths', param('regex_parser.paths'))
         ->arg('$defaultExcludePaths', param('regex_parser.exclude_paths'))
         ->arg('$editorUrl', param('regex_parser.editor_format'))
+        ->arg('$versionResolver', service('regex_parser.version_resolver'))
         ->tag('console.command')
         ->public();
 

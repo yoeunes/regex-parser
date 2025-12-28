@@ -147,10 +147,9 @@ final class RegexLintCommandTest extends TestCase
 
         $io = $this->createMock(SymfonyStyle::class);
         $io->expects($this->exactly(2))->method('newLine');
-        $io->expects($this->once())->method('writeln')
-            ->with('  <fg=white;options=bold>Regex Parser</> <fg=gray>linting...</>');
+        $io->expects($this->exactly(3))->method('writeln');
 
-        $method->invoke($command, $io);
+        $method->invoke($command, $io, 1);
     }
 
     public function test_show_footer_outputs_correct_format(): void

@@ -141,7 +141,7 @@ final class LintCommand extends AbstractCommand implements CommandInterface
         $lint = new RegexLintService($analysis, $sources);
 
         if ('console' === $format && OutputConfiguration::VERBOSITY_QUIET !== $verbosity) {
-            echo $this->outputRenderer->renderBanner($output, $jobs, $lintConfigFiles);
+            $output->write($this->outputRenderer->renderBanner($output, $jobs, $lintConfigFiles));
         }
 
         $collectionProgress = null;
@@ -198,7 +198,7 @@ final class LintCommand extends AbstractCommand implements CommandInterface
                 $this->outputRenderer->renderSummary($output, ['errors' => 0, 'warnings' => 0, 'optimizations' => 0], true);
             } else {
                 $emptyReport = new RegexLintReport([], ['errors' => 0, 'warnings' => 0, 'optimizations' => 0]);
-                echo $formatter->format($emptyReport);
+                $output->write($formatter->format($emptyReport));
             }
 
             return 0;
@@ -230,22 +230,16 @@ final class LintCommand extends AbstractCommand implements CommandInterface
             $report = $this->filterReportByBaseline($report, $baseline);
         }
 
-        echo $formatter->format($report);
+        $output->write($formatter->format($report));
 
         if ($formatter instanceof ConsoleFormatter) {
-            echo $formatter->getSummary($report->stats);
+            $output->write($formatter->getSummary($report->stats));
             $elapsed = (float) microtime(true) - $startTime;
             $peakMemory = memory_get_peak_usage(true);
             $cacheStats = $regex->getCacheStats();
             $output->write('  '.$output->bold('Time: ').$output->warning(round($elapsed, 2).'s').' | '.$output->bold('Memory: ').$output->warning(round($peakMemory / 1024 / 1024, 2).' MB').' | '.$output->bold('Cache: ').$output->warning($cacheStats['hits'].' hits, '.$cacheStats['misses'].' misses').' | '.$output->bold('Processes: ').$output->warning((string) $jobs)."\n");
             $output->write("\n");
-            echo $formatter->formatFooter();
-        }
-
-        if ($arguments->generateBaseline) {
-            $baseline = $this->generateBaseline($report);
-            file_put_contents($arguments->generateBaseline, json_encode($baseline, \JSON_PRETTY_PRINT | \JSON_UNESCAPED_SLASHES));
-            $output->write("Baseline generated at {$arguments->generateBaseline}\n");
+            $output->write($formatter->formatFooter());
         }
 
         if ($arguments->generateBaseline) {
