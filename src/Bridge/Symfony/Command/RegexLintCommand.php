@@ -30,6 +30,8 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
+use function RegexParser\Bridge\Symfony\Command\parallel\info;
+
 /**
  * Lint regex patterns in PHP source code.
  *
@@ -92,7 +94,7 @@ final class RegexLintCommand extends Command
             ->addArgument('paths', InputArgument::IS_ARRAY | InputArgument::OPTIONAL, 'The paths to analyze', array_values($this->defaultPaths))
             ->addOption('exclude', null, InputOption::VALUE_IS_ARRAY | InputOption::VALUE_OPTIONAL, 'Paths to exclude', $this->defaultExcludePaths)
             ->addOption('min-savings', null, InputOption::VALUE_OPTIONAL, 'Minimum optimization savings in characters', 1)
-            ->addOption('jobs', 'j', InputOption::VALUE_OPTIONAL, 'Parallel workers for analysis', 1)
+             ->addOption('jobs', 'j', InputOption::VALUE_OPTIONAL, 'Parallel workers for analysis (auto-detected if not specified)', -1)
             ->addOption('no-routes', null, InputOption::VALUE_NONE, 'Skip route validation')
             ->addOption('no-validators', null, InputOption::VALUE_NONE, 'Skip validator validation')
             ->addOption('format', null, InputOption::VALUE_OPTIONAL, 'Output format (console, json, github, checkstyle, junit)', 'console')
@@ -115,8 +117,8 @@ final class RegexLintCommand extends Command
                 Show only significant optimizations:
                 <info>php %command.full_name% --min-savings=10</info>
 
-                Run analysis in parallel:
-                <info>php %command.full_name% --jobs=4</info>
+                 Run analysis in parallel (auto-detected by default):
+                 <info>php %command.full_name% --jobs=4</info>
 
                 Skip specific validations:
                 <info>php %command.full_name% --no-routes --no-validators</info>
@@ -163,12 +165,19 @@ final class RegexLintCommand extends Command
             return Command::FAILURE;
         }
 
+        $jobsExplicitlySet = $input->hasParameterOption(['--jobs', '-j']);
         $jobsValue = $input->getOption('jobs');
-        $jobs = is_numeric($jobsValue) ? (int) $jobsValue : 1;
-        if ($jobs < 1) {
-            $io->error('The --jobs value must be a positive integer.');
+        $jobs = is_numeric($jobsValue) ? (int) $jobsValue : -1;
 
-            return Command::FAILURE;
+        if ($jobsExplicitlySet) {
+            if ($jobs < 1) {
+                $io->error('The --jobs value must be a positive integer.');
+
+                return Command::FAILURE;
+            }
+        } else {
+            // Auto-detect optimal number of jobs
+            $jobs = self::detectCpuCount();
         }
 
         if ('console' === $format) {
@@ -370,6 +379,60 @@ final class RegexLintCommand extends Command
         }
 
         return array_values(array_filter($value, static fn ($item): bool => \is_string($item) && '' !== $item));
+    }
+
+    /**
+     * Detect the number of available CPU cores for optimal parallel processing.
+     */
+    private static function detectCpuCount(): int
+    {
+        // Try Swoole extension first (fastest)
+        if (\function_exists('swoole_cpu_num')) {
+            return swoole_cpu_num();
+        }
+
+        // Try parallel extension
+        if (\function_exists('parallel\info')) {
+            $info = info();
+
+            return $info['cpu'] ?? 1;
+        }
+
+        // Unix-like systems
+        if (\DIRECTORY_SEPARATOR === '/') {
+            // Linux
+            if (\is_readable('/proc/cpuinfo')) {
+                $cpuinfo = \file_get_contents('/proc/cpuinfo');
+                if (false !== $cpuinfo) {
+                    $matches = [];
+                    \preg_match_all('/^processor\s*:/m', $cpuinfo, $matches);
+                    if (!empty($matches[0])) {
+                        return \count($matches[0]);
+                    }
+                }
+            }
+
+            // macOS/BSD
+            $result = \shell_exec('sysctl -n hw.ncpu 2>/dev/null');
+            if (null !== $result) {
+                $cpu = (int) \trim($result);
+                if ($cpu > 0) {
+                    return $cpu;
+                }
+            }
+        } else {
+            // Windows
+            $result = \shell_exec('wmic cpu get NumberOfCores 2>nul | findstr /r /v "^$" | findstr /v "NumberOfCores"');
+            if (null !== $result) {
+                $cpu = (int) \trim($result);
+                if ($cpu > 0) {
+                    return $cpu;
+                }
+            }
+        }
+
+        // Fallback
+        return 1;
     }
 
     /**

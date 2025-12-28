@@ -28,6 +28,8 @@ use RegexParser\Lint\RegexLintRequest;
 use RegexParser\Lint\RegexLintService;
 use RegexParser\Lint\RegexPatternSourceCollection;
 
+use function RegexParser\Lint\Command\parallel\info;
+
 final class LintCommand extends AbstractCommand implements CommandInterface
 {
     public function __construct(
@@ -96,8 +98,11 @@ final class LintCommand extends AbstractCommand implements CommandInterface
         $checkValidation = $arguments->checkValidation;
         $checkOptimizations = $arguments->checkOptimizations;
         $jobs = (int) $arguments->jobs;
-        if ($jobs < 2) {
-            $jobs = 4;
+        if (-1 === $jobs) {
+            // Auto-detect optimal number of jobs
+            $jobs = self::detectCpuCount();
+        } elseif ($jobs < 1) {
+            $jobs = 1; // Minimum 1 job
         }
         $outputFile = $arguments->output;
 
@@ -384,5 +389,59 @@ final class LintCommand extends AbstractCommand implements CommandInterface
         }
 
         return $normalizedPath;
+    }
+
+    /**
+     * Detect the number of available CPU cores for optimal parallel processing.
+     */
+    private static function detectCpuCount(): int
+    {
+        // Try Swoole extension first (fastest)
+        if (\function_exists('swoole_cpu_num')) {
+            return swoole_cpu_num();
+        }
+
+        // Try parallel extension
+        if (\function_exists('parallel\info')) {
+            $info = info();
+
+            return $info['cpu'] ?? 1;
+        }
+
+        // Unix-like systems
+        if (\DIRECTORY_SEPARATOR === '/') {
+            // Linux
+            if (\is_readable('/proc/cpuinfo')) {
+                $cpuinfo = \file_get_contents('/proc/cpuinfo');
+                if (false !== $cpuinfo) {
+                    $matches = [];
+                    \preg_match_all('/^processor\s*:/m', $cpuinfo, $matches);
+                    if (!empty($matches[0])) {
+                        return \count($matches[0]);
+                    }
+                }
+            }
+
+            // macOS/BSD
+            $result = \shell_exec('sysctl -n hw.ncpu 2>/dev/null');
+            if (null !== $result) {
+                $cpu = (int) \trim($result);
+                if ($cpu > 0) {
+                    return $cpu;
+                }
+            }
+        } else {
+            // Windows
+            $result = \shell_exec('wmic cpu get NumberOfCores 2>nul | findstr /r /v "^$" | findstr /v "NumberOfCores"');
+            if (null !== $result) {
+                $cpu = (int) \trim($result);
+                if ($cpu > 0) {
+                    return $cpu;
+                }
+            }
+        }
+
+        // Fallback
+        return 1;
     }
 }

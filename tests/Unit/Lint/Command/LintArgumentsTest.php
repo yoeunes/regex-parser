@@ -43,7 +43,7 @@ final class LintArgumentsTest extends TestCase
         $this->assertTrue($arguments->checkRedos);
         $this->assertTrue($arguments->checkValidation);
         $this->assertTrue($arguments->checkOptimizations);
-        $this->assertSame(4, $arguments->jobs);
+        $this->assertSame(-1, $arguments->jobs);
     }
 
     public function test_from_defaults_converts_numeric_strings(): void

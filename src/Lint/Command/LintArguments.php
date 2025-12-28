@@ -88,16 +88,16 @@ final readonly class LintArguments
             $checkOptimizations = true;
         }
 
-        $jobs = $defaults['jobs'] ?? 4;
+        $jobs = $defaults['jobs'] ?? -1; // -1 means auto-detect
         if (!\is_int($jobs)) {
             if (\is_string($jobs) && ctype_digit($jobs)) {
                 $jobs = (int) $jobs;
             } else {
-                $jobs = 4;
+                $jobs = -1;
             }
         }
-        if ($jobs < 1) {
-            $jobs = 4;
+        if ($jobs < 1 && -1 !== $jobs) {
+            $jobs = -1;
         }
 
         $output = $defaults['output'] ?? null;

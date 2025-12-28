@@ -1,7 +1,6 @@
 {
-  "jobs": 10,
+  "ide": "phpstorm",
   "paths": [
     "src"
-  ],
-  "ide": "phpstorm"
+  ]
 }

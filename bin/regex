@@ -18,6 +18,8 @@ if (version_compare('8.2.0', \PHP_VERSION, '>')) {
     exit(1);
 }
 
+gc_disable();
+
 $autoloadPath = null;
 $autoloadPaths = [
     __DIR__.'/../../../../vendor/autoload.php',

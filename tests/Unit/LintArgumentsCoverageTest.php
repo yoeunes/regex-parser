@@ -28,6 +28,6 @@ final class LintArgumentsCoverageTest extends TestCase
         ]);
 
         $this->assertSame(1, $arguments->minSavings);
-        $this->assertSame(4, $arguments->jobs);
+        $this->assertSame(-1, $arguments->jobs);
     }
 }
