@@ -156,6 +156,13 @@ final class LintConfigLoader
             }
         }
 
+        if (\array_key_exists('ide', $config)) {
+            if (!\is_string($config['ide']) || '' === $config['ide']) {
+                return new LintConfigResult([], [], 'Invalid "ide" in '.$path.': expected a non-empty string.');
+            }
+            $normalized['ide'] = $config['ide'];
+        }
+
         return new LintConfigResult($normalized, []);
     }
 

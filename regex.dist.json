@@ -2,5 +2,6 @@
   "jobs": 10,
   "paths": [
     "src"
-  ]
+  ],
+  "ide": "phpstorm"
 }

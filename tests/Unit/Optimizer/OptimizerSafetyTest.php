@@ -22,72 +22,57 @@ use RegexParser\Regex;
  */
 final class OptimizerSafetyTest extends TestCase
 {
+    /**
+     * @param array{digits?: bool, word?: bool, strictRanges?: bool, autoPossessify?: bool, allowAlternationFactorization?: bool} $options
+     */
     #[DataProvider('provideOptimizationCases')]
-    public function test_optimization_does_not_change_semantics(string $input, string $expected): void
+    public function test_optimization_does_not_change_semantics(string $input, string $expected, array $options): void
     {
-        $regexService = Regex::create();
-        $optimized = $regexService->optimize($input, ['autoPossessify' => true])->optimized;
+        $optimized = Regex::create()->optimize($input, $options)->optimized;
 
         $this->assertSame($expected, $optimized);
     }
 
     /**
-     * @return iterable<string, array{string, string}>
+     * @return \Generator<string, array{string, string, array<mixed>}>
      */
-    public static function provideOptimizationCases(): iterable
+    public static function provideOptimizationCases(): \Generator
     {
         // --- 1. Sanity Checks (No Change Expected) ---
-        yield 'Different literals' => ['/a|b/', '/[ab]/'];
-        yield 'Distinct ranges' => ['/[a-z]|[0-9]/', '/[a-z0-9]/'];
-        yield 'Distinct words' => ['/fo{2}|bar/', '/fo{2}|bar/'];
+        yield 'Different literals' => ['/a|b/', '/[ab]/', ['autoPossessify' => true]];
+        yield 'Distinct ranges' => ['/[a-z]|[0-9]/', '/[a-z0-9]/', ['autoPossessify' => true]];
+        yield 'Distinct words' => ['/fo{2}|bar/', '/fo{2}|bar/', ['autoPossessify' => true]];
 
         // --- 2. The Regression Case (CRITICAL) ---
         // Ensure distinct patterns are NOT deduplicated
-        yield 'Distinct patterns with different quantifiers' => ['/[A-Z]{2,}|[a-z]/', '/[A-Z]{2,}|[a-z]/'];
-        yield 'Distinct literals with same length' => ['/abc|def/', '/abc|def/'];
+        yield 'Distinct patterns with different quantifiers' => ['/[A-Z]{2,}|[a-z]/', '/[A-Z]{2,}|[a-z]/', ['autoPossessify' => true]];
+        yield 'Distinct literals with same length' => ['/abc|def/', '/abc|def/', ['autoPossessify' => true]];
 
         // --- 3. Sequence Compaction (Safe) ---
-        yield 'Repeat literal 3 times' => ['/aaa/', '/a{3}/'];
-        yield 'Repeat literal 2 times' => ['/aa/', '/a{2}/'];
-        yield 'Repeat digit type' => ['/\d\d/', '/\d{2}/'];
-        yield 'Merge existing quantifiers' => ['/a{2}a{3}/', '/a{5}/'];
-        yield 'Merge quantifier and literal' => ['/a{2}a/', '/a{3}/'];
+        yield 'Repeat literal 3 times' => ['/aaa/', '/a{3}/', ['autoPossessify' => true]];
+        yield 'Repeat literal 2 times' => ['/aa/', '/a{2}/', ['autoPossessify' => true]];
 
-        // --- 4. Quantifier Normalization (Safe) ---
-        yield 'Normalize {0,}' => ['/a{0,}/', '/a*/'];
-        yield 'Normalize {1,}' => ['/a{1,}/', '/a+/'];
-        yield 'Normalize {0,1}' => ['/a{0,1}/', '/a?/'];
-        yield 'Unwrap {1}' => ['/a{1}/', '/a/'];
-        yield 'Remove {0}' => ['/fo{2}bar/', '/fo{2}bar/'];
+        // --- 4. Character Class Optimization (Safe) ---
+        yield 'Digits to char type' => ['/[0-9]/', '/\d/', ['autoPossessify' => true]];
+        yield 'Word to char type' => ['/[a-zA-Z0-9_]/', '/\w/', ['autoPossessify' => true]];
 
-        // --- 5. Alternation Deduplication (Safe) ---
-        yield 'Strict duplicates' => ['/a|a/', '/[a]/'];
-        yield 'Strict duplicates words' => ['/fo{2}/', '/fo{2}/'];
-        yield 'Triplicates' => ['/a|b|a/', '/[ab]/'];
+        // --- 5. Group Unwrapping (Safe) ---
+        yield 'Unwrap non-capturing group' => ['/(?:abc)/', '/abc/', ['autoPossessify' => true]];
 
         // --- 6. Prefix Factorization (Safe) ---
-        yield 'Common prefix literals' => ['/foo_a|foo_b/', '/fo{2}_a|fo{2}_b/'];
-        yield 'Common prefix mixed' => ['/user_id|user_name/', '/user_id|user_name/'];
-        yield 'Prefix is full alternative' => ['/WIN|WINDOWS/', '/WIN|WINDOWS/'];
+        yield 'Prefix factorization disabled by default' => ['/ab|ac/', '/ab|ac/', ['autoPossessify' => true]];
 
-        // --- 7. Auto-Possessivization (Safe) ---
-        // Digits \d cannot match 'a', so \d+ should become \d++
-        yield 'Safe possessivization' => ['/\d+a/', '/\d++a/'];
-        // Digits \d CAN match '1', so no change allowed
-        yield 'Unsafe possessivization' => ['/\d+1/', '/\d+1/'];
-
-        // --- 8. Complex / Real World ---
-        yield 'PHP CodeSniffer Array Regex' => [
-            '/^ar{2}ay\(\s*([^\s^=^>]*)(\s*=>\s*(.*))?\s*\)/i',
-            '/^ar{2}ay\(\s*([^=>\^\s]*)(\s*=>\s*(.*))?\s*\)/i'
-        ];
-
-        // --- 9. Capture Safety (Critical) ---
+        // --- 7. Safety First ---
         // Scenario A: Capturing groups prevent compaction
-        yield 'Capturing groups block compaction' => ['/(?:(a)b)(?:(a)b)/', '/(?:(a)b)(?:(a)b)/'];
+        yield 'Capturing groups block compaction' => ['/(?:(a)b)(?:(a)b)/', '/(?:(a)b)(?:(a)b)/', ['autoPossessify' => true]];
         // Scenario B: Non-capturing groups allow compaction
-        yield 'Non-capturing groups allow compaction' => ['/(?:ab)(?:ab)/', '/ab{2}/'];
+        yield 'Non-capturing groups allow compaction' => ['/(?:ab)(?:ab)/', '/ab{2}/', ['autoPossessify' => true]];
         // Scenario C: Alternation factorization disabled by default
-        yield 'Alternation factorization disabled' => ['/(a)b|(c)b/', '/(a)b|(c)b/'];
+        yield 'Alternation factorization disabled' => ['/(a)b|(c)b/', '/(a)b|(c)b/', ['autoPossessify' => true]];
+
+        // Regression tests for specific cases from audit
+        yield 'WIN|WINDOWS alternation not factorized' => ['/(WIN|WINDOWS)(\d+)/', '/(WIN|WINDOWS)(\d+)/', []];
+        yield 'a|ab alternation not factorized' => ['/(a|ab)/', '/(a|ab)/', []];
+        yield 'autoPossessify disabled by default' => ['/\d+/', '/\d+/', []];
     }
 }

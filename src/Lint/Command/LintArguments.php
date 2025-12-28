@@ -35,6 +35,7 @@ final readonly class LintArguments
         public ?string $output = null,
         public ?string $baseline = null,
         public ?string $generateBaseline = null,
+        public string $ide = '',
     ) {}
 
     /**
@@ -114,6 +115,11 @@ final readonly class LintArguments
             $generateBaseline = null;
         }
 
+        $ide = $defaults['ide'] ?? '';
+        if (!\is_string($ide)) {
+            $ide = '';
+        }
+
         return new self(
             $paths,
             $exclude,
@@ -128,6 +134,7 @@ final readonly class LintArguments
             $output,
             $baseline,
             $generateBaseline,
+            $ide,
         );
     }
 

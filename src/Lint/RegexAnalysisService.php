@@ -115,8 +115,8 @@ final readonly class RegexAnalysisService
     }
 
     /**
-     * @param array<RegexPatternOccurrence>                          $patterns
-     * @param array{digits?: bool, word?: bool, strictRanges?: bool} $optimizationConfig
+     * @param array<RegexPatternOccurrence>                                                                                       $patterns
+     * @param array{digits?: bool, word?: bool, strictRanges?: bool, autoPossessify?: bool, allowAlternationFactorization?: bool} $optimizationConfig
      *
      * @return array<array{
      *     file: string,
@@ -300,8 +300,8 @@ final readonly class RegexAnalysisService
     }
 
     /**
-     * @param array<RegexPatternOccurrence>                          $patterns
-     * @param array{digits?: bool, word?: bool, strictRanges?: bool} $optimizationConfig
+     * @param array<RegexPatternOccurrence>                                                                                       $patterns
+     * @param array{digits?: bool, word?: bool, strictRanges?: bool, autoPossessify?: bool, allowAlternationFactorization?: bool} $optimizationConfig
      *
      * @return array<array{
      *     file: string,

@@ -49,6 +49,7 @@ class ConsoleFormatter extends AbstractOutputFormatter
     public function __construct(
         private readonly ?RegexAnalysisService $analysisService = null,
         OutputConfiguration $config = new OutputConfiguration(),
+        private readonly string $ide = '',
     ) {
         parent::__construct($config);
     }
@@ -132,6 +133,12 @@ class ConsoleFormatter extends AbstractOutputFormatter
         $prefix = '';
         if ('' !== $file && $line > 0) {
             $prefix = $file.':'.$line;
+            if ('' !== $this->ide) {
+                $url = $this->generateIdeUrl($file, $line);
+                $prefix = "\e]8;;{$url}\e\\✏️ {$prefix}\e]8;;\e\\";
+            } else {
+                $prefix = "✏️ {$prefix}";
+            }
         } elseif ('' !== $file) {
             $prefix = $file;
         } elseif ($line > 0) {
@@ -570,6 +577,14 @@ class ConsoleFormatter extends AbstractOutputFormatter
         }
 
         return $output;
+    }
+
+    private function generateIdeUrl(string $file, int $line): string
+    {
+        return match ($this->ide) {
+            'phpstorm' => "phpstorm://idea/navigate/reference?project=&path={$file}&line={$line}",
+            default => '',
+        };
     }
 
     // getPenLabel() is intentionally omitted in this formatter. The plain
