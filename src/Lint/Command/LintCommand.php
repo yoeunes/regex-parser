@@ -28,8 +28,6 @@ use RegexParser\Lint\RegexLintRequest;
 use RegexParser\Lint\RegexLintService;
 use RegexParser\Lint\RegexPatternSourceCollection;
 
-use function RegexParser\Lint\Command\parallel\info;
-
 final class LintCommand extends AbstractCommand implements CommandInterface
 {
     public function __construct(
@@ -401,13 +399,6 @@ final class LintCommand extends AbstractCommand implements CommandInterface
             return swoole_cpu_num();
         }
 
-        // Try parallel extension
-        if (\function_exists('parallel\info')) {
-            $info = info();
-
-            return $info['cpu'] ?? 1;
-        }
-
         // Unix-like systems
         if (\DIRECTORY_SEPARATOR === '/') {
             // Linux
@@ -425,7 +416,7 @@ final class LintCommand extends AbstractCommand implements CommandInterface
             // macOS/BSD
             $result = \shell_exec('sysctl -n hw.ncpu 2>/dev/null');
             if (null !== $result) {
-                $cpu = (int) \trim($result);
+                $cpu = (int) \trim((string) $result);
                 if ($cpu > 0) {
                     return $cpu;
                 }
@@ -434,7 +425,7 @@ final class LintCommand extends AbstractCommand implements CommandInterface
             // Windows
             $result = \shell_exec('wmic cpu get NumberOfCores 2>nul | findstr /r /v "^$" | findstr /v "NumberOfCores"');
             if (null !== $result) {
-                $cpu = (int) \trim($result);
+                $cpu = (int) \trim((string) $result);
                 if ($cpu > 0) {
                     return $cpu;
                 }
