@@ -1,8 +1,4 @@
 {
-    "name": "regex-parser/php-cs-fixer-tool",
-    "description": "PHP CS Fixer tool for RegexParser",
-    "type": "library",
-    "license": "MIT",
     "require-dev": {
         "friendsofphp/php-cs-fixer": "^3.91",
         "kubawerlos/php-cs-fixer-custom-fixers": "^3.35"

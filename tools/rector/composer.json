@@ -1,8 +1,4 @@
 {
-    "name": "regex-parser/rector-tool",
-    "description": "Rector refactoring tool for RegexParser",
-    "type": "library",
-    "license": "MIT",
     "require-dev": {
         "rector/rector": "^2.0"
     }

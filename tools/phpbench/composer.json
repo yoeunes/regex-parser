@@ -1,8 +1,4 @@
 {
-    "name": "regex-parser/phpbench-tool",
-    "description": "PHPBench tool for RegexParser",
-    "type": "library",
-    "license": "MIT",
     "require-dev": {
         "phpbench/phpbench": "^1.4"
     }

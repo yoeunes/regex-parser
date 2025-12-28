@@ -1,8 +1,4 @@
 {
-    "name": "regex-parser/phplint-tool",
-    "description": "PHP Lint tool for RegexParser",
-    "type": "library",
-    "license": "MIT",
     "require-dev": {
         "overtrue/phplint": "^9.7"
     }

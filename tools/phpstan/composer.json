@@ -1,8 +1,4 @@
 {
-    "name": "regex-parser/phpstan-tool",
-    "description": "PHPStan static analysis tool for RegexParser",
-    "type": "library",
-    "license": "MIT",
     "require-dev": {
         "phpstan/phpstan": "^2.0",
         "phpstan/phpstan-deprecation-rules": "^2.0",
