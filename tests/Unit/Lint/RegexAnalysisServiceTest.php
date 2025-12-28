@@ -676,6 +676,9 @@ final class RegexAnalysisServiceTest extends TestCase
         $hint = $this->invokePrivate('getReDoSHint', $analysis, '/abc/');
         $this->assertIsString($hint);
         $this->assertStringContainsString('ReDoS occurs', (string) $hint);
+        $this->assertStringContainsString('*+', (string) $hint);
+        $this->assertStringContainsString('++', (string) $hint);
+        $this->assertStringContainsString('{m,n}+', (string) $hint);
 
         $analysis = new ReDoSAnalysis(ReDoSSeverity::HIGH, 10, null, ['Keep it linear'], null, 'a+)+');
         $hint = $this->invokePrivate('getReDoSHint', $analysis, '/(a+)+.*+/');

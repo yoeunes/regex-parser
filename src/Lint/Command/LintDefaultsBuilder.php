@@ -56,6 +56,10 @@ final class LintDefaultsBuilder
             }
         }
 
+        if (isset($config['ide'])) {
+            $defaults['ide'] = $config['ide'];
+        }
+
         return $defaults;
     }
 }

@@ -370,8 +370,8 @@ final readonly class Regex
     /**
      * Optimize a regular expression for better performance.
      *
-     * @param string                                                                        $regex   The regular expression to optimize
-     * @param array{digits?: bool, word?: bool, strictRanges?: bool, autoPossessify?: bool} $options Optimization options
+     * @param string                                                                                                              $regex   The regular expression to optimize
+     * @param array{digits?: bool, word?: bool, strictRanges?: bool, autoPossessify?: bool, allowAlternationFactorization?: bool} $options Optimization options
      *
      * @return OptimizationResult Optimization results with changes applied
      */
@@ -382,6 +382,7 @@ final readonly class Regex
             optimizeWord: (bool) ($options['word'] ?? true),
             strictRanges: (bool) ($options['strictRanges'] ?? true),
             autoPossessify: (bool) ($options['autoPossessify'] ?? false),
+            allowAlternationFactorization: (bool) ($options['allowAlternationFactorization'] ?? false),
         );
         $optimizedPattern = $this->compile($regex, $optimizer);
         $appliedChanges = $optimizedPattern === $regex ? [] : ['Optimized pattern.'];

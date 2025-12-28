@@ -131,7 +131,7 @@ final class LintCommand extends AbstractCommand implements CommandInterface
         $formatter = $formatterRegistry->get($format);
 
         if ('console' === $format) {
-            $formatter = new ConsoleFormatter($analysis, $config);
+            $formatter = new ConsoleFormatter($analysis, $config, $arguments->ide);
         }
 
         $extractor = $this->extractorFactory->create();

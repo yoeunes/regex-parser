@@ -231,14 +231,17 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         }
         $optimizedChildren = $mergedChildren;
 
-        // Compact repeated literal sequences
+        // Compact repeated literal sequences (only when beneficial)
         foreach ($optimizedChildren as $i => $child) {
             if ($child instanceof LiteralNode && preg_match('/^(.)\1+$/', $child->value, $matches)) {
                 $char = $matches[1];
                 $count = \strlen($child->value);
-                $baseNode = new LiteralNode($char, $child->startPosition, $child->endPosition);
-                $optimizedChildren[$i] = new QuantifierNode($baseNode, '{'.$count.'}', QuantifierType::T_GREEDY, $child->startPosition, $child->endPosition);
-                $hasChanged = true;
+                // Only compact if count >= 4 (avoids making output longer/less readable)
+                if ($count >= 4) {
+                    $baseNode = new LiteralNode($char, $child->startPosition, $child->endPosition);
+                    $optimizedChildren[$i] = new QuantifierNode($baseNode, '{'.$count.'}', QuantifierType::T_GREEDY, $child->startPosition, $child->endPosition);
+                    $hasChanged = true;
+                }
             }
         }
 
