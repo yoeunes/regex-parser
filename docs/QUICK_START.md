@@ -1,6 +1,31 @@
 # Quick Start Guide - RegexParser
 
-Get started with RegexParser in 5 minutes! This guide covers the 10 most common use cases.
+**Get started with RegexParser in 5 minutes!** Whether you're new to regex or an experienced developer, this guide will help you get productive quickly.
+
+---
+
+## What is RegexParser?
+
+RegexParser is a tool that helps you **understand** and **validate** regular expressions. It:
+
+- 🔍 **Parses** regex patterns into a readable structure
+- 📖 **Explains** patterns in plain English
+- ⚠️ **Finds** errors and security issues
+- 🎨 **Visualizes** complex patterns
+
+### Why Use It?
+
+```
+Without RegexParser:
+  - Stare at /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i
+  - Wonder what it does
+  - Hope it doesn't have bugs
+
+With RegexParser:
+  - See: "Start of string, one or more letters/digits/./_/%/+/-, @, domain, dot, 2+ letters, end"
+  - Validate it automatically
+  - Catch ReDoS vulnerabilities before production
+```
 
 ---
 
@@ -10,28 +35,36 @@ Get started with RegexParser in 5 minutes! This guide covers the 10 most common 
 composer require yoeunes/regex-parser
 ```
 
----
-
-## Start with the CLI (lint first)
-
-If you want the fastest "show me" experience, start here:
-
-```bash
-vendor/bin/regex lint src/
-```
-
-Inspect a single pattern:
-
-```bash
-vendor/bin/regex analyze '/(a+)+$/'
-vendor/bin/regex highlight '/^\d{4}-\d{2}-\d{2}$/' --format=html
-```
-
-All CLI examples use `vendor/bin/regex`. For options and CI usage, see the [CLI Guide](guides/cli.md).
+That's it! No other dependencies.
 
 ---
 
-## 1. Parse a Regex Pattern
+## Try the CLI First (Fastest Way to See Value)
+
+The CLI is the fastest way to understand what RegexParser can do:
+
+```bash
+# 1. Explain a pattern in plain English
+bin/regex explain '/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i'
+
+# 2. Visualize the structure
+bin/regex diagram '/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i'
+
+# 3. Check for security issues
+bin/regex analyze '/(a+)+$/'
+
+# 4. Colorize the pattern
+bin/regex highlight '/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i'
+
+# 5. Lint your entire codebase
+bin/regex lint src/
+```
+
+---
+
+## 10 Common Use Cases
+
+### 1. Parse a Regex Pattern
 
 Convert a regex string into an Abstract Syntax Tree (AST).
 
@@ -41,15 +74,15 @@ use RegexParser\Regex;
 $regex = Regex::create();
 $ast = $regex->parse('/\d{3}-\d{4}/');
 
-// $ast is a RegexNode containing the full AST
-var_dump($ast);
+// $ast is a RegexNode containing the full AST structure
+echo $ast->pattern;  // SequenceNode with pattern parts
 ```
 
-**Use Case**: Understanding pattern structure, static analysis, debugging
+**Use When:** You need to understand or analyze pattern structure.
 
 ---
 
-## 2. Validate a Pattern
+### 2. Validate a Pattern
 
 Check if a pattern is syntactically and semantically valid.
 
@@ -60,13 +93,15 @@ $regex = Regex::create();
 $result = $regex->validate('/(?<year>\d{4})-(?<month>\d{2})/');
 
 if ($result->isValid()) {
-    echo "Pattern is valid! Complexity: ".$result->getComplexityScore();
+    echo "Pattern is valid!\n";
+    echo "Complexity Score: " . $result->getComplexityScore() . "\n";
 } else {
-    echo "Error: ".$result->getErrorMessage();
+    echo "Error: " . $result->getErrorMessage() . "\n";
+    echo "Hint: " . $result->getHint() . "\n";
 }
 ```
 
-**Checks**:
+**Checks Performed:**
 - ✅ Syntax errors
 - ✅ ReDoS vulnerabilities
 - ✅ Invalid backreferences
@@ -75,7 +110,34 @@ if ($result->isValid()) {
 
 ---
 
-## 3. Compile Pattern Back to String
+### 3. Explain Pattern in Plain English
+
+Generate human-readable explanations.
+
+```php
+use RegexParser\Regex;
+
+$regex = Regex::create();
+
+$explanation = $regex->explain('/(?<email>\w+@\w+\.\w+)/');
+
+echo $explanation;
+/*
+Output:
+A named group 'email' containing:
+  - One or more word characters
+  - Literal '@'
+  - One or more word characters
+  - Literal '.'
+  - One or more word characters
+*/
+```
+
+**Use When:** Documenting patterns, code reviews, teaching.
+
+---
+
+### 4. Compile Pattern Back to String
 
 Regenerate a PCRE pattern from an AST.
 
@@ -89,40 +151,14 @@ $ast = $regex->parse('/test/i');
 $compiler = new CompilerNodeVisitor();
 $pattern = $ast->accept($compiler);
 
-echo $pattern; // "/test/i"
+echo $pattern;  // "/test/i"
 ```
 
-**Use Case**: Pattern transformation, optimization, normalization
+**Use When:** Pattern transformation, optimization, normalization.
 
 ---
 
-## 4. Explain Pattern in Plain English
-
-Generate human-readable explanations.
-
-```php
-use RegexParser\Regex;
-
-$regex = Regex::create();
-$explanation = $regex->explain('/(?<email>\w+@\w+\.\w+)/');
-
-echo $explanation;
-/*
-Output:
-"A named group 'email' containing:
-  - One or more word characters
-  - Literal '@'
-  - One or more word characters
-  - Literal '.'
-  - One or more word characters"
-*/
-```
-
-**Use Case**: Documentation, teaching, code reviews
-
----
-
-## 5. Detect ReDoS Vulnerabilities
+### 5. Detect ReDoS Vulnerabilities
 
 Identify Regular Expression Denial of Service risks.
 
@@ -134,26 +170,27 @@ $regex = Regex::create();
 
 // Dangerous pattern
 $analysis = $regex->redos('/(a+)+b/');
-echo "ReDoS Severity: " . $analysis->severity->value; // "critical"
+echo "ReDoS Severity: " . $analysis->severity->value;  // "critical"
 
 // Safe pattern
 $analysis = $regex->redos('/a+b/');
-echo "ReDoS Severity: " . $analysis->severity->value; // "safe"
+echo "ReDoS Severity: " . $analysis->severity->value;  // "safe"
 
+// Check against threshold
 $analysis = $regex->redos('/(a+)+b/', ReDoSSeverity::HIGH);
 if ($analysis->exceedsThreshold(ReDoSSeverity::HIGH)) {
-    echo "Block untrusted input for this pattern.";
+    echo "Pattern exceeds safety threshold!\n";
 }
 ```
 
-**Detected Patterns**:
+**Detected Patterns:**
 - ✅ Nested unbounded quantifiers `(a+)+`
 - ✅ Overlapping alternations `(a|a)*`
 - ✅ Catastrophic backtracking risks
 
 ---
 
-## 6. Generate Sample Strings
+### 6. Generate Sample Strings
 
 Create strings that match your pattern (for testing).
 
@@ -161,16 +198,16 @@ Create strings that match your pattern (for testing).
 use RegexParser\Regex;
 
 $regex = Regex::create();
-$sample = $regex->generate('/\d{3}-[A-Z]{2}/');
 
-echo $sample;
+$sample = $regex->generate('/\d{3}-[A-Z]{2}/');
+echo $sample;  // Example: "123-AB"
 ```
 
-**Use Case**: Test data generation, pattern validation
+**Use When:** Creating test data, validating patterns.
 
 ---
 
-## 7. Extract Literal Strings
+### 7. Extract Literal Strings
 
 Find fixed strings in patterns (for optimization).
 
@@ -178,6 +215,7 @@ Find fixed strings in patterns (for optimization).
 use RegexParser\Regex;
 
 $regex = Regex::create();
+
 $literals = $regex->literals('/prefix-\d+-suffix/');
 
 print_r($literals->literals);
@@ -189,60 +227,36 @@ Output:
 ]
 */
 
-echo $literals->literalSet->getLongestPrefix(); // "prefix-"
-echo $literals->literalSet->getLongestSuffix(); // "-suffix"
+echo $literals->literalSet->getLongestPrefix();  // "prefix-"
+echo $literals->literalSet->getLongestSuffix();  // "-suffix"
 ```
 
-**Use Case**: Search optimization, string matching preprocessing
+**Use When:** Search optimization, string matching preprocessing.
 
 ---
 
-## 8. Check Feature Support
+### 8. Syntax Highlighting
 
-Verify if a pattern uses specific PCRE features.
+Colorize patterns for display.
 
 ```php
 use RegexParser\Regex;
-use RegexParser\Node\GroupType;
+use RegexParser\NodeVisitor\ConsoleHighlighterVisitor;
+use RegexParser\NodeVisitor\HtmlHighlighterVisitor;
 
 $regex = Regex::create();
-$ast = $regex->parse('/(?=test)foo/');
+$ast = $regex->parse('/^[0-9]+(\w+)$/');
 
-// Check for lookahead
-$hasLookahead = containsGroupType($ast, GroupType::T_GROUP_LOOKAHEAD_POSITIVE);
-echo $hasLookahead ? "Has lookahead" : "No lookahead";
+// Console output
+echo $ast->accept(new ConsoleHighlighterVisitor());
 
-function containsGroupType($node, GroupType $type): bool
-{
-    if ($node instanceof \RegexParser\Node\GroupNode && $node->type === $type) {
-        return true;
-    }
-    
-    foreach (get_object_vars($node) as $prop) {
-        if ($prop instanceof \RegexParser\Node\NodeInterface) {
-            if (containsGroupType($prop, $type)) {
-                return true;
-            }
-        }
-
-        if (is_array($prop)) {
-            foreach ($prop as $child) {
-                if ($child instanceof \RegexParser\Node\NodeInterface && containsGroupType($child, $type)) {
-                    return true;
-                }
-            }
-        }
-    }
-    
-    return false;
-}
+// HTML output for web
+$html = $ast->accept(new HtmlHighlighterVisitor());
 ```
-
-**Use Case**: Feature detection, compatibility checking
 
 ---
 
-## 9. Build Custom Analyzer
+### 9. Build Custom Analyzer
 
 Create your own AST visitor for custom analysis.
 
@@ -287,75 +301,79 @@ $ast = $regex->parse('/a+b*c?/');
 $counter = new QuantifierCounter();
 $ast->accept($counter);
 
-echo "Quantifiers: " . $counter->getCount(); // "3"
+echo "Quantifiers: " . $counter->getCount();  // "3"
 ```
 
-**Use Case**: Custom metrics, pattern analysis, code quality tools
+**Use When:** Custom metrics, pattern analysis, code quality tools.
 
 ---
 
-## 10. Normalize/Optimize Patterns
+### 10. Validate Before Production
 
-Transform patterns for consistency or performance.
+Always validate patterns before using them in production.
 
 ```php
 use RegexParser\Regex;
-use RegexParser\NodeVisitor\CompilerNodeVisitor;
-
-class OptimizerVisitor extends CompilerNodeVisitor
-{
-    // Override methods to transform AST nodes
-    public function visitQuantifier(Node\QuantifierNode $node): string
-    {
-        // Example: Convert {1} to no quantifier
-        if ($node->quantifier === '{1}') {
-            return $node->node->accept($this);
-        }
-        
-        return parent::visitQuantifier($node);
-    }
-}
+use RegexParser\Exception\ParserException;
 
 $regex = Regex::create();
-$ast = $regex->parse('/a{1}b{1}/');
 
-$optimizer = new OptimizerVisitor();
-$optimized = $ast->accept($optimizer);
+// Validate early
+$result = $regex->validate($userPattern);
 
-echo $optimized; // "/ab/" (quantifiers removed)
+if (!$result->isValid()) {
+    throw new InvalidArgumentException(
+        "Invalid regex pattern: " . $result->getErrorMessage()
+    );
+}
+
+// Check for ReDoS
+$analysis = $regex->redos($userPattern);
+
+if ($analysis->severity->value === 'critical') {
+    throw new InvalidArgumentException(
+        "Potentially dangerous regex pattern detected"
+    );
+}
+
+// Now safe to use
+preg_match($userPattern, $text, $matches);
 ```
-
-**Use Case**: Pattern optimization, standardization, refactoring
 
 ---
 
-## Common Patterns
+## Common Patterns Reference
 
 ### Email Validation
+
 ```php
 $pattern = '/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/';
 $result = $regex->validate($pattern);
 ```
 
 ### URL Matching
+
 ```php
 $pattern = '/^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&\/\/=]*)$/';
 $result = $regex->validate($pattern);
 ```
 
 ### Phone Number (US)
+
 ```php
 $pattern = '/^\+?1?\s*\(?([0-9]{3})\)?\s*-?\s*([0-9]{3})\s*-?\s*([0-9]{4})$/';
 $result = $regex->validate($pattern);
 ```
 
 ### IPv4 Address
+
 ```php
 $pattern = '/^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/';
 $result = $regex->validate($pattern);
 ```
 
 ### Date (YYYY-MM-DD)
+
 ```php
 $pattern = '/^(?<year>\d{4})-(?<month>0[1-9]|1[0-2])-(?<day>0[1-9]|[12][0-9]|3[01])$/';
 $result = $regex->validate($pattern);
@@ -379,28 +397,28 @@ $ast = $regex->parse('/(?<first>\w+)\s+(?<last>\w+)/');
 ### Conditional Patterns
 
 ```php
-$pattern = '/(a)(?(1)b|c)/'; // If group 1 matches, then 'b', else 'c'
+$pattern = '/(a)(?(1)b|c)/';  // If group 1 matches, then 'b', else 'c'
 $result = $regex->validate($pattern);
 ```
 
 ### Recursion
 
 ```php
-$pattern = '/\((?:[^()]|(?R))*\)/'; // Match balanced parentheses
+$pattern = '/\((?:[^()]|(?R))*\)/';  // Match balanced parentheses
 $result = $regex->validate($pattern);
 ```
 
-### Atomic Groups
+### Atomic Groups (Performance)
 
 ```php
-$pattern = '/(?>a+)b/'; // Atomic group - no backtracking
+$pattern = '/(?>a+)b/';  // Atomic group - no backtracking
 $result = $regex->validate($pattern);
 ```
 
-### Possessive Quantifiers
+### Possessive Quantifiers (Performance)
 
 ```php
-$pattern = '/a++b/'; // Possessive + - no backtracking
+$pattern = '/a++b/';  // Possessive + - no backtracking
 $result = $regex->validate($pattern);
 ```
 
@@ -415,10 +433,11 @@ use RegexParser\Exception\ParserException;
 $regex = Regex::create();
 
 try {
-    $ast = $regex->parse('/invalid[/'); // Unclosed character class
+    $ast = $regex->parse('/invalid[/');  // Unclosed character class
 } catch (ParserException $e) {
-    echo "Parse error: " . $e->getMessage();
-    echo " at position: " . $e->getPosition(); // If available
+    echo "Parse error: " . $e->getMessage() . "\n";
+    echo "Position: " . $e->getPosition() . "\n";
+    echo "Snippet:\n" . $e->getSnippet() . "\n";
 }
 ```
 
@@ -429,30 +448,26 @@ try {
 1. **Parse Once, Reuse AST**: Don't re-parse the same pattern
 2. **Validate Early**: Check patterns before deployment
 3. **Cache Compiled Patterns**: Store validated patterns
-4. **Reuse the Regex instance**: avoid recreating the facade in hot loops
+4. **Reuse the Regex instance**: Avoid recreating the facade in hot loops
 5. **Avoid Recursive Patterns**: They can be slow to parse
 
 ---
 
 ## Next Steps
 
-- **Read API Documentation**: [README.md](../README.md) (API overview, options, exceptions)
-- **API Reference**: [docs/reference/api.md](reference/api.md)
-- **Regex in PHP basics**: [docs/guides/regex-in-php.md](guides/regex-in-php.md)
-- **CLI usage**: [docs/guides/cli.md](guides/cli.md)
-- **Extend the Library**: [docs/EXTENDING_GUIDE.md](EXTENDING_GUIDE.md)
-- **See More Examples**: this quick start guide
-- **Understand Nodes**: [docs/nodes/README.md](nodes/README.md)
-- **Learn Regex from zero to advanced**: [docs/tutorial/README.md](tutorial/README.md)
-- **Run Tests**: `./vendor/bin/phpunit`
+- **[Learn Regex from Scratch](../tutorial/README.md)** - Complete tutorial
+- **[CLI Guide](../guides/cli.md)** - Full command reference
+- **[Regex in PHP](../guides/regex-in-php.md)** - PHP-specific details
+- **[ReDoS Guide](../REDOS_GUIDE.md)** - Security best practices
+- **[API Reference](../reference/api.md)** - Complete documentation
 
 ---
 
 ## Getting Help
 
-- **Issues**: https://github.com/yoeunes/regex-parser/issues
-- **Documentation**: Repository README.md
+- **Issues**: [GitHub Issues](https://github.com/yoeunes/regex-parser/issues)
 - **Examples**: `tests/Integration/` directory
+- **Discord**: [Join our community](#)
 
 ---
 

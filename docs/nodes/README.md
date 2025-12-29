@@ -1,325 +1,1056 @@
 # AST Node Reference
 
-This page documents every node type in the RegexParser AST. It is written for
-library users, tooling authors, and maintainers who need to understand how a
-PCRE pattern is modeled.
+This reference documents every node type in the RegexParser AST. Nodes are the building blocks that represent parsed regex patterns. Understanding nodes is essential for building custom visitors, debugging parsing issues, or extending the library.
 
-## How to read this page
+## How to Read This Reference
 
 Each node includes:
-- Purpose: what the node represents
-- Example: a PCRE snippet that produces the node
-- Fields: public properties you can read
-- Notes: common pitfalls or usage guidance
+- **Purpose** — What the node represents in a pattern
+- **Visual Structure** — ASCII diagram showing the node in context
+- **Fields** — Public properties you can access
+- **Example** — A PHP code snippet showing how the node is created
+- **Common Errors** — Pitfalls to avoid when working with this node type
 
-If you are new to regex, start with the tutorial first:
-- [Regex Tutorial](../tutorial/README.md)
+If you are new to regex, start with the [Tutorial](../tutorial/README.md) first.
 
-## Core structure
+---
+
+## Core Structure Nodes
+
+These nodes form the backbone of every parsed pattern.
 
 ### RegexNode
 
-Purpose: root of the AST; wraps the pattern body, flags, and delimiter.
-Example: `/foo/i`
-Fields:
-- `pattern` (NodeInterface)
-- `flags` (string)
-- `delimiter` (string)
-Notes: use `Regex::parse()` or `Regex::parsePattern()` to get a `RegexNode`.
+**Purpose:** The root node that wraps the entire pattern, including delimiter, pattern body, and flags.
+
+**Visual Structure:**
+```
+┌─────────────────────────────────────────────────────┐
+│ RegexNode                                           │
+│ ┌─────────────────────────────────────────────────┐ │
+│ │ delimiter: '/'                                  │ │
+│ │ pattern: SequenceNode                           │ │
+│ │ flags: 'i'                                      │ │
+│ └─────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────┘
+```
+
+**Fields:**
+
+| Field       | Type          | Description                                   |
+|-------------|---------------|-----------------------------------------------|
+| `delimiter` | string        | The delimiter character (e.g., `/`, `#`, `~`) |
+| `pattern`   | NodeInterface | The parsed pattern body                       |
+| `flags`     | string        | All flags combined (e.g., `imsxu`)            |
+
+**Example:**
+```php
+use RegexParser\Regex;
+
+$ast = Regex::create()->parse('/foo/i');
+
+echo $ast->delimiter;  // '/'
+echo $ast->flags;      // 'i'
+echo $ast->pattern;    // SequenceNode instance
+```
+
+**Common Errors:**
+```php
+// WRONG: Trying to change the pattern directly
+$ast->flags = 'g';  // Flags are immutable
+
+// RIGHT: Create a new RegexNode
+$newFlags = $ast->flags . 's';
+```
+
+---
 
 ### SequenceNode
 
-Purpose: ordered list of nodes that must match in sequence.
-Example: `/abc/`
-Fields:
-- `children` (array<NodeInterface>)
-Notes: most patterns compile to a `SequenceNode` unless they are a single atom.
+**Purpose:** An ordered list of nodes that must match in sequence from left to right.
+
+**Visual Structure:**
+```
+┌─────────────────────────────────────────────────────┐
+│ SequenceNode                                        │
+│ ┌────────────────────────────────────────────────┐  │
+│ │ children: [                                    │  │
+│ │   LiteralNode("f"),                            │  │
+│ │   LiteralNode("o"),                            │  │
+│ │   LiteralNode("o")                             │  │
+│ │ ]                                              │  │
+└─────────────────────────────────────────────────────┘
+```
+
+**Fields:**
+| Field | Type | Description |
+|-------|------|-------------|
+| `children` | array | Array of child nodes in order |
+
+**Example:**
+```php
+use RegexParser\Regex;
+
+$ast = Regex::create()->parse('/foo/');
+$sequence = $ast->pattern;
+
+echo count($sequence->children);  // 3
+echo $sequence->children[0]->value;  // 'f'
+echo $sequence->children[1]->value;  // 'o'
+echo $sequence->children[2]->value;  // 'o'
+```
+
+**Common Errors:**
+```php
+// WRONG: Modifying children array directly
+$sequence->children[] = new LiteralNode('x');
+
+// RIGHT: Create a new SequenceNode
+$newChildren = array_merge($sequence->children, [new LiteralNode('x')]);
+$newSequence = new SequenceNode($newChildren, $sequence->startPosition, $sequence->endPosition);
+```
+
+---
 
 ### AlternationNode
 
-Purpose: branches separated by `|`.
-Example: `/foo|bar/`
-Fields:
-- `alternatives` (array<SequenceNode>)
-Notes: use non-capturing groups to control precedence: `/(?:foo|bar)baz/`.
+**Purpose:** Branches separated by the `|` operator. Matches if any alternative matches.
+
+**Visual Structure:**
+```
+┌─────────────────────────────────────────────────────┐
+│ AlternationNode                                     │
+│ ┌────────────────────────────────────────────────┐  │
+│ │ alternatives: [                                │  │
+│ │   SequenceNode([LiteralNode("foo")]),          │  │
+│ │   SequenceNode([LiteralNode("bar")])           │  │
+│ │ ]                                              │  │
+└─────────────────────────────────────────────────────┘
+```
+
+**Fields:**
+
+| Field          | Type  | Description                        |
+|----------------|-------|------------------------------------|
+| `alternatives` | array | Array of SequenceNode alternatives |
+
+**Example:**
+```php
+use RegexParser\Regex;
+
+$ast = Regex::create()->parse('/foo|bar|baz/');
+$alternation = $ast->pattern;
+
+foreach ($alternation->alternatives as $index => $alt) {
+    echo "Alternative $index: ";
+    echo $alt->children[0]->value . "\n";
+}
+// Output:
+// Alternative 0: foo
+// Alternative 1: bar
+// Alternative 2: baz
+```
+
+**Common Errors:**
+```php
+// WRONG: Assuming alternation contains LiteralNodes
+// Pattern: /foo|bar/ contains SEQUENCE nodes, not literals!
+foreach ($alternation->alternatives as $alt) {
+    // This crashes if alternative has multiple children
+    echo $alt->children[0]->value;  // Safe for single-char alternatives
+}
+
+// RIGHT: Handle sequences
+foreach ($alternation->alternatives as $alt) {
+    $text = '';
+    foreach ($alt->children as $child) {
+        $text .= $child->value ?? '...';
+    }
+    echo $text . "\n";
+}
+```
+
+---
 
 ### GroupNode
 
-Purpose: grouping construct, including capturing, non-capturing, lookarounds,
-atomic groups, and inline flags.
-Example: `/(?:foo)/`, `/(?<name>foo)/`, `/(?=foo)/`
-Fields:
-- `child` (NodeInterface)
-- `type` (GroupType)
-- `name` (?string)
-- `flags` (?string)
-Notes: prefer non-capturing groups when you do not need captures.
+**Purpose:** Groups multiple nodes together. Can be capturing, non-capturing, lookaround, atomic, or inline flags.
+
+**Visual Structure:**
+```
+┌─────────────────────────────────────────────────────┐
+│ GroupNode                                           │
+│ ┌────────────────────────────────────────────────┐  │
+│ │ type: T_GROUP_CAPTURING                        │  │
+│ │ child: SequenceNode                            │  │
+│ │ name: 'foo' (if named)                         │  │
+│ │ flags: null (if no inline flags)               │  │
+└─────────────────────────────────────────────────────┘
+```
+
+**Fields:**
+
+| Field   | Type          | Description                            |
+|---------|---------------|----------------------------------------|
+| `child` | NodeInterface | The grouped content                    |
+| `type`  | GroupType     | The type of group                      |
+| `name`  | string\|null  | Group name for named groups            |
+| `flags` | string\|null  | Inline flags (e.g., `i` in `(?i:foo)`) |
+
+**Group Types:**
+
+| Type Constant                 | Pattern        | Description                    |
+|-------------------------------|----------------|--------------------------------|
+| `T_GROUP_CAPTURING`           | `(foo)`        | Captures matched text          |
+| `T_GROUP_NON_CAPTURING`       | `(?:foo)`      | Groups without capture         |
+| `T_GROUP_NAMED`               | `(?<name>foo)` | Captures with name             |
+| `T_GROUP_LOOKAHEAD_POSITIVE`  | `(?=foo)`      | Lookahead (matches position)   |
+| `T_GROUP_LOOKAHEAD_NEGATIVE`  | `(?!foo)`      | Negative lookahead             |
+| `T_GROUP_LOOKBEHIND_POSITIVE` | `(?<=foo)`     | Lookbehind                     |
+| `T_GROUP_LOOKBEHIND_NEGATIVE` | `(?<!foo)`     | Negative lookbehind            |
+| `T_GROUP_INLINE_FLAGS`        | `(?i:foo)`     | Inline flag modification       |
+| `T_GROUP_ATOMIC`              | `(?>foo)`      | Atomic group (no backtracking) |
+| `T_GROUP_BRANCH_RESET`        | `(?            | foo                            |bar)` | Same group numbers in branches |
+
+**Example:**
+```php
+use RegexParser\Regex;
+use RegexParser\Node\GroupType;
+
+$ast = Regex::create()->parse('/(?<year>\d{4})-(?<month>\d{2})/');
+$group = $ast->pattern->children[0];  // First child is GroupNode
+
+echo $group->type === GroupType::T_GROUP_NAMED;  // true
+echo $group->name;  // 'year'
+echo $group->child->children[0]->value;  // '4 digits'
+```
+
+**Common Errors:**
+```php
+// WRONG: Assuming lookarounds consume characters
+// Pattern: /(?=foo)bar/ matches "bar" at position where "foo" follows
+// It does NOT match "foobar"!
+$lookahead = $ast->pattern->children[0];
+echo $lookahead->type === GroupType::T_GROUP_LOOKAHEAD_POSITIVE;  // true
+
+// RIGHT: Lookarounds are zero-width assertions
+// They match a POSITION, not characters
+```
+
+---
 
 ### QuantifierNode
 
-Purpose: repetition of a child node.
-Example: `/a+/`, `/a{2,4}/`, `/a+?/`
-Fields:
-- `node` (NodeInterface)
-- `quantifier` (string)
-- `type` (QuantifierType)
-Notes: nested variable quantifiers are a common ReDoS risk.
+**Purpose:** Repeats a node a specified number of times.
 
-## Literal and token nodes
+**Visual Structure:**
+```
+┌─────────────────────────────────────────────────────┐
+│ QuantifierNode                                      │
+│ ┌────────────────────────────────────────────────┐  │
+│ │ node: LiteralNode("a")                         │  │
+│ │ quantifier: "+"                                │  │
+│ │ type: T_GREEDY                                 │  │
+│ │ min: 1                                         │  │
+│ │ max: null (unbounded)                          │  │
+└─────────────────────────────────────────────────────┘
+```
+
+**Fields:**
+
+| Field        | Type           | Description                                     |
+|--------------|----------------|-------------------------------------------------|
+| `node`       | NodeInterface  | The node being quantified                       |
+| `quantifier` | string         | The quantifier string (e.g., `+`, `*`, `{2,5}`) |
+| `type`       | QuantifierType | Greedy, lazy, or possessive                     |
+| `min`        | int            | Minimum repetitions                             |
+| `max`        | int\|null      | Maximum repetitions (null = unbounded)          |
+
+**Quantifier Types:**
+
+| Type Constant  | Pattern              | Behavior                                     |
+|----------------|----------------------|----------------------------------------------|
+| `T_GREEDY`     | `+`, `*`, `{m,n}`    | Matches as much as possible, then backtracks |
+| `T_LAZY`       | `+?`, `*?`, `{m,n}?` | Matches as little as possible                |
+| `T_POSSESSIVE` | `++`, `*+`, `{m,n}+` | Matches as much as possible, no backtracking |
+
+**Example:**
+```php
+use RegexParser\Regex;
+use RegexParser\Node\QuantifierType;
+
+$ast = Regex::create()->parse('/a{2,4}?/');  // Lazy quantifier
+$quantifier = $ast->pattern;
+
+echo $quantifier->min;      // 2
+echo $quantifier->max;      // 4
+echo $quantifier->type === QuantifierType::T_LAZY;  // true
+```
+
+**Common Errors:**
+```php
+// WRONG: Confusing quantifier with literal
+// Pattern: /a+/ contains a QUANTIFIER, not a plus literal
+$literal = $ast->pattern;
+echo $literal instanceof QuantifierNode;  // true
+
+// RIGHT: Access the quantified node
+echo $quantifier->node instanceof LiteralNode;  // true
+echo $quantifier->node->value;  // 'a'
+```
+
+---
+
+## Literal and Character Nodes
 
 ### LiteralNode
 
-Purpose: literal text (possibly multiple characters).
-Example: `/hello/`
-Fields:
-- `value` (string)
-Notes: literals are produced for unescaped characters and escaped literals.
+**Purpose:** Represents literal (unescaped) characters or escaped literal sequences.
+
+**Visual Structure:**
+```
+┌─────────────────────────────────────────────────────┐
+│ LiteralNode                                         │
+│ ┌────────────────────────────────────────────────┐  │
+│ │ value: "hello"                                 │  │
+└─────────────────────────────────────────────────────┘
+```
+
+**Fields:**
+
+| Field   | Type   | Description      |
+|---------|--------|------------------|
+| `value` | string | The literal text |
+
+**Example:**
+```php
+use RegexParser\Regex;
+
+$ast = Regex::create()->parse('/hello/');
+$literal = $ast->pattern->children[0];
+
+echo $literal->value;  // 'hello'
+```
+
+**Common Errors:**
+```php
+// WRONG: Assuming LiteralNode only for single characters
+// Pattern: /hello/ creates ONE LiteralNode with value "hello"
+echo count($ast->pattern->children);  // 1 (one literal for "hello")
+
+// Pattern: /he l lo/ creates THREE LiteralNodes
+// "he", "l", "lo"
+```
+
+---
 
 ### CharLiteralNode
 
-Purpose: a single escaped code point (unicode, octal, etc.).
-Example: `/\x{41}/`, `/\o{101}/`
-Fields:
-- `originalRepresentation` (string)
-- `codePoint` (int)
-- `type` (CharLiteralType)
-Notes: use `\x{...}` for clarity in Unicode patterns.
+**Purpose:** Represents a single escaped character with a specific representation (Unicode, octal, hex, etc.).
+
+**Visual Structure:**
+```
+┌─────────────────────────────────────────────────────┐
+│ CharLiteralNode                                     │
+│ ┌────────────────────────────────────────────────┐  │
+│ │ originalRepresentation: "\x{1F600}"            │  │
+│ │ codePoint: 128512                              │  │
+│ │ type: UNICODE                                  │  │
+└─────────────────────────────────────────────────────┘
+```
+
+**Fields:**
+
+| Field                    | Type            | Description                  |
+|--------------------------|-----------------|------------------------------|
+| `originalRepresentation` | string          | The original escape sequence |
+| `codePoint`              | int             | The Unicode code point value |
+| `type`                   | CharLiteralType | The type of escape           |
+
+**CharLiteralType Values:**
+
+| Value           | Example                    | Description                  |
+|-----------------|----------------------------|------------------------------|
+| `UNICODE`       | `\x{1F600}`                | Unicode code point in braces |
+| `UNICODE_NAMED` | `\N{LATIN SMALL LETTER A}` | Named Unicode character      |
+| `OCTAL`         | `\o{141}`                  | Octal representation         |
+| `OCTAL_LEGACY`  | `\141`                     | Legacy octal (3 digits)      |
+
+**Example:**
+```php
+use RegexParser\Regex;
+
+$ast = Regex::create()->parse('/\x{1F600}/');  // Grinning face emoji
+$char = $ast->pattern;
+
+echo $char->codePoint;        // 128512
+echo $char->originalRepresentation;  // '\x{1F600}'
+```
+
+---
 
 ### CharTypeNode
 
-Purpose: character type escapes like `\d`, `\w`, `\s` and their negations.
-Example: `/\d+/`
-Fields:
-- `value` (string)
-Notes: the `value` is the short type name (for example, `d` or `D`).
+**Purpose:** Character type escapes like `\d`, `\w`, `\s`, and their negations.
+
+**Visual Structure:**
+```
+┌─────────────────────────────────────────────────────┐
+│ CharTypeNode                                        │
+│ ┌────────────────────────────────────────────────┐  │
+│ │ value: "d" (or "D", "w", "W", "s", "S")        │  │
+└─────────────────────────────────────────────────────┘
+```
+
+**Fields:**
+
+| Field   | Type   | Description                                       |
+|---------|--------|---------------------------------------------------|
+| `value` | string | The type character (`d`, `D`, `w`, `W`, `s`, `S`) |
+
+**Type Reference:**
+
+
+| Value | Meaning                      | Negation |
+|-------|------------------------------|----------|
+| `\d`  | Digits [0-9]                 | `\D`     |
+| `\w`  | Word characters [a-zA-Z0-9_] | `\W`     |
+| `\s`  | Whitespace                   | `\S`     |
+
+**Example:**
+```php
+use RegexParser\Regex;
+
+$ast = Regex::create()->parse('/\d+/');
+$digitClass = $ast->pattern;
+
+echo $digitClass->value;  // 'd'
+```
+
+---
 
 ### DotNode
 
-Purpose: the dot token `.` (any char except newline unless `s` flag is set).
-Example: `/.+/`
-Fields: none
-Notes: prefer explicit classes over `.` when you know the domain.
+**Purpose:** The dot token `.` which matches any character except newlines (unless `s` flag is set).
+
+**Visual Structure:**
+```
+┌─────────────────────────────────────────────────────┐
+│ DotNode (no fields)                                 │
+│ Matches: any character except \n                    │
+└─────────────────────────────────────────────────────┘
+```
+
+**Example:**
+```php
+use RegexParser\Regex;
+
+$ast = Regex::create()->parse('/./');
+$dot = $ast->pattern;
+
+echo $dot instanceof \RegexParser\Node\DotNode;  // true
+```
+
+**Common Errors:**
+```php
+// WRONG: Assuming . matches newlines
+// Without /s flag, . does NOT match \n
+preg_match('/./', "\n", $matches);  // No match
+
+// With /s flag, . matches newlines
+preg_match('/./s', "\n", $matches);  // Match!
+```
+
+---
 
 ### AnchorNode
 
-Purpose: start/end anchors like `^` and `$` (and related anchors).
-Example: `/^foo$/`
-Fields:
-- `value` (string)
-Notes: anchors are essential for validation patterns.
+**Purpose:** Start (`^`) and end (`$`) anchors, and string anchors like `\A`, `\z`.
+
+**Visual Structure:**
+```
+┌─────────────────────────────────────────────────────┐
+│ AnchorNode                                          │
+│ ┌────────────────────────────────────────────────┐  │
+│ │ value: "^" (or "$", "\A", "\z")                │  │
+└─────────────────────────────────────────────────────┘
+```
+
+**Fields:**
+
+| Field   | Type   | Description          |
+|---------|--------|----------------------|
+| `value` | string | The anchor character |
+
+**Anchor Reference:**
+
+| Anchor | Meaning                                   |
+|--------|-------------------------------------------|
+| `^`    | Start of string (or line with `m` flag)   |
+| `$`    | End of string (or line with `m` flag)     |
+| `\A`   | Absolute start of string                  |
+| `\z`   | Absolute end of string                    |
+| `\Z`   | End of string, or before trailing newline |
+
+**Example:**
+```php
+use RegexParser\Regex;
+
+$ast = Regex::create()->parse('/^foo$/');
+$startAnchor = $ast->pattern->children[0];
+$endAnchor = $ast->pattern->children[1];
+
+echo $startAnchor->value;  // '^'
+echo $endAnchor->value;    // '$'
+```
+
+---
 
 ### AssertionNode
 
-Purpose: zero-width assertions that are not anchors (for example `\b`).
-Example: `/\bword\b/`
-Fields:
-- `value` (string)
-Notes: assertions do not consume characters.
+**Purpose:** Zero-width assertions that are not anchors, like word boundaries (`\b`, `\B`).
 
-### KeepNode
+**Visual Structure:**
+```
+┌─────────────────────────────────────────────────────┐
+│ AssertionNode                                       │
+│ ┌────────────────────────────────────────────────┐  │
+│ │ value: "b" (or "B")                            │  │
+└─────────────────────────────────────────────────────┘
+```
 
-Purpose: `\K` keep-out; resets the start of the reported match.
-Example: `/foo\Kbar/`
-Fields: none
-Notes: use when you need to keep the match short but still search for context.
+**Fields:**
 
-### CommentNode
+| Field   | Type   | Description             |
+|---------|--------|-------------------------|
+| `value` | string | The assertion character |
 
-Purpose: inline comments like `(?# comment )`.
-Example: `/(?#env)prod|dev/`
-Fields:
-- `comment` (string)
-Notes: useful with `x` mode to keep patterns readable.
+**Assertion Reference:**
 
-## Character class nodes
+| Assertion  | Meaning                                      |
+|------------|----------------------------------------------|
+| `\b`       | Word boundary (transition between \w and \W) |
+| `\B`       | Not a word boundary                          |
+| `(?=...)`  | Positive lookahead (GroupNode)               |
+| `(?!...)`  | Negative lookahead (GroupNode)               |
+| `(?<=...)` | Positive lookbehind (GroupNode)              |
+| `(?<!...)` | Negative lookbehind (GroupNode)              |
+
+**Example:**
+```php
+use RegexParser\Regex;
+
+$ast = Regex::create()->parse('/\bword\b/');
+$assertion = $ast->pattern->children[0];
+
+echo $assertion->value;  // 'b'
+```
+
+**Common Errors:**
+```php
+// WRONG: Confusing \b with [a-zA-Z_]
+// \b is a POSITION assertion, not a character class
+preg_match('/\b/', 'word', $matches);  // Matches at position 0
+preg_match('/[a-z]/', 'word', $matches);  // Matches 'w'
+
+// They are different!
+```
+
+---
+
+## Character Class Nodes
 
 ### CharClassNode
 
-Purpose: character class, including negated classes.
-Example: `/[a-z]/`, `/[^0-9]/`
-Fields:
-- `expression` (NodeInterface)
-- `isNegated` (bool)
-Notes: avoid `[A-z]`; use `[A-Za-z]`.
+**Purpose:** Character classes `[...]` including negated classes `[^...]`.
+
+**Visual Structure:**
+```
+┌─────────────────────────────────────────────────────┐
+│ CharClassNode                                       │
+│ ┌────────────────────────────────────────────────┐  │
+│ │ expression: RangeNode or UnionNode             │  │
+│ │ isNegated: false                               │  │
+└─────────────────────────────────────────────────────┘
+```
+
+**Fields:**
+
+| Field        | Type          | Description                                        |
+|--------------|---------------|----------------------------------------------------|
+| `expression` | NodeInterface | The class content (ranges, characters, operations) |
+| `isNegated`  | bool          | True for `[^...]`, false for `[...]`               |
+
+**Example:**
+```php
+use RegexParser\Regex;
+
+$ast = Regex::create()->parse('/[a-z]/');
+$class = $ast->pattern;
+
+echo $class->isNegated;  // false
+echo $class->expression instanceof \RegexParser\Node\RangeNode;  // true
+```
+
+**Common Errors:**
+```php
+// WRONG: [A-z] includes characters between Z and a
+// In ASCII: [, \, ], ^, _, `
+preg_match('/[A-z]/', '_', $matches);  // Match!
+
+// RIGHT: Use [A-Za-z]
+preg_match('/[A-Za-z]/', '_', $matches);  // No match!
+```
+
+---
 
 ### RangeNode
 
-Purpose: a range within a class.
-Example: `/[a-f]/`
-Fields:
-- `start` (NodeInterface)
-- `end` (NodeInterface)
-Notes: start/end are usually `CharLiteralNode` or `LiteralNode`.
+**Purpose:** A range within a character class, like `a-z` or `0-9`.
+
+**Visual Structure:**
+```
+┌─────────────────────────────────────────────────────┐
+│ RangeNode                                           │
+│ ┌────────────────────────────────────────────────┐  │
+│ │ start: CharLiteralNode("a")                    │  │
+│ │ end: CharLiteralNode("z")                      │  │
+└─────────────────────────────────────────────────────┘
+```
+
+**Fields:**
+
+| Field   | Type          | Description                                  |
+|---------|---------------|----------------------------------------------|
+| `start` | NodeInterface | The start of range (usually CharLiteralNode) |
+| `end`   | NodeInterface | The end of range (usually CharLiteralNode)   |
+
+**Example:**
+```php
+use RegexParser\Regex;
+
+$ast = Regex::create()->parse('/[a-z]/');
+$range = $ast->pattern->expression;
+
+echo $range->start->value;  // 'a'
+echo $range->end->value;    // 'z'
+```
+
+---
 
 ### PosixClassNode
 
-Purpose: POSIX class inside a character class.
-Example: `/[[:alpha:]]/`
-Fields:
-- `class` (string)
-Notes: only valid inside `[...]`.
+**Purpose:** POSIX character classes inside character classes, like `[[:alpha:]]`.
+
+**Visual Structure:**
+```
+┌─────────────────────────────────────────────────────┐
+│ PosixClassNode                                      │
+│ ┌────────────────────────────────────────────────┐  │
+│ │ class: "alpha" (or "digit", "space", etc.)     │  │
+└─────────────────────────────────────────────────────┘
+```
+
+**Fields:**
+
+| Field   | Type   | Description          |
+|---------|--------|----------------------|
+| `class` | string | The POSIX class name |
+
+**POSIX Classes:**
+
+| Class        | Meaning            |
+|--------------|--------------------|
+| `[:alpha:]`  | Letters            |
+| `[:digit:]`  | Digits             |
+| `[:alnum:]`  | Letters and digits |
+| `[:space:]`  | Whitespace         |
+| `[:upper:]`  | Uppercase letters  |
+| `[:lower:]`  | Lowercase letters  |
+| `[:xdigit:]` | Hexadecimal digits |
+
+**Example:**
+```php
+use RegexParser\Regex;
+
+$ast = Regex::create()->parse('/[[:digit:]]/');
+$posix = $ast->pattern;
+
+echo $posix->class;  // 'digit'
+```
+
+---
 
 ### UnicodePropNode
 
-Purpose: Unicode property escape like `\p{L}` or `\P{Lu}`.
-Example: `/^\p{L}+$/u`
-Fields:
-- `prop` (string)
-- `hasBraces` (bool)
-Notes: use with the `u` flag for Unicode semantics.
+**Purpose:** Unicode property escapes like `\p{L}` (letters) or `\P{Lu}` (non-uppercase letters).
+
+**Visual Structure:**
+```
+┌─────────────────────────────────────────────────────┐
+│ UnicodePropNode                                     │
+│ ┌────────────────────────────────────────────────┐  │
+│ │ prop: "L" (or "Lu", "Sc", etc.)                │  │
+│ │ hasBraces: true                                │  │
+└─────────────────────────────────────────────────────┘
+```
+
+**Fields:**
+
+| Field       | Type   | Description                       |
+|-------------|--------|-----------------------------------|
+| `prop`      | string | The property specifier            |
+| `hasBraces` | bool   | True for `\p{L}`, false for `\pL` |
+
+**Common Unicode Properties:**
+
+| Property | Meaning          |
+|----------|------------------|
+| `\p{L}`  | Any letter       |
+| `\p{Lu}` | Uppercase letter |
+| `\p{Ll}` | Lowercase letter |
+| `\p{N}`  | Any number       |
+| `\p{P}`  | Any punctuation  |
+| `\p{S}`  | Any symbol       |
+| `\p{Z}`  | Any separator    |
+| `\p{Sc}` | Currency symbol  |
+
+**Example:**
+```php
+use RegexParser\Regex;
+
+$ast = Regex::create()->parse('/^\p{L}+$/u');  // Unicode letters only
+$prop = $ast->pattern->children[0];
+
+echo $prop->prop;       // 'L'
+echo $prop->hasBraces;  // true
+```
+
+---
 
 ### UnicodeNode
 
-Purpose: Unicode code point escape.
-Example: `/\x{1F600}/`
-Fields:
-- `code` (string)
-Notes: prefer hex escapes to avoid encoding ambiguity.
+**Purpose:** A single Unicode code point escape like `\x{1F600}`.
 
-### ControlCharNode
+**Visual Structure:**
+```
+┌─────────────────────────────────────────────────────┐
+│ UnicodeNode                                         │
+│ ┌────────────────────────────────────────────────┐  │
+│ │ code: "1F600"                                  │  │
+└─────────────────────────────────────────────────────┘
+```
 
-Purpose: control character escape like `\cM`.
-Example: `/\cM/`
-Fields:
-- `char` (string)
-- `codePoint` (int)
-Notes: rarely needed in application patterns.
+**Fields:**
 
-### ScriptRunNode
+| Field  | Type   | Description        |
+|--------|--------|--------------------|
+| `code` | string | The hex code point |
 
-Purpose: script run verb assertions like `(*script_run:Latin)`.
-Example: `/(*script_run:Latin)\p{L}+/u`
-Fields:
-- `script` (string)
-Notes: advanced PCRE2 feature for Unicode script validation.
+**Example:**
+```php
+use RegexParser\Regex;
 
-### ClassOperationNode
+$ast = Regex::create()->parse('/\x{1F600}/');
+$unicode = $ast->pattern;
 
-Purpose: set operations inside character classes (`&&`, `--`).
-Example: `/[a-z&&[^aeiou]]/`
-Fields:
-- `type` (ClassOperationType)
-- `left` (NodeInterface)
-- `right` (NodeInterface)
-Notes: use to build precise sets without long manual ranges.
+echo $unicode->code;  // '1F600'
+```
 
-### ClassOperationType (enum)
+---
 
-Values:
-- `INTERSECTION` for `&&`
-- `SUBTRACTION` for `--`
-
-### CharLiteralType (enum)
-
-Values:
-- `UNICODE`, `UNICODE_NAMED`, `OCTAL`, `OCTAL_LEGACY`
-
-## Groups, references, and control flow
-
-### GroupType (enum)
-
-Values (examples):
-- `T_GROUP_CAPTURING`: `(foo)`
-- `T_GROUP_NON_CAPTURING`: `(?:foo)`
-- `T_GROUP_NAMED`: `(?<name>foo)`
-- `T_GROUP_LOOKAHEAD_POSITIVE`: `(?=foo)`
-- `T_GROUP_LOOKAHEAD_NEGATIVE`: `(?!foo)`
-- `T_GROUP_LOOKBEHIND_POSITIVE`: `(?<=foo)`
-- `T_GROUP_LOOKBEHIND_NEGATIVE`: `(?<!foo)`
-- `T_GROUP_INLINE_FLAGS`: `(?i:foo)`
-- `T_GROUP_ATOMIC`: `(?>foo)`
-- `T_GROUP_BRANCH_RESET`: `(?|foo|bar)`
+## Group and Reference Nodes
 
 ### BackrefNode
 
-Purpose: backreference to a previous capture.
-Example: `/(a)\1/`, `/(?<w>\w+)\k<w>/`
-Fields:
-- `ref` (string)
-Notes: powerful but can hurt performance and readability.
+**Purpose:** Backreference to a previously captured group, like `\1` or `\k<name>`.
 
-### SubroutineNode
+**Visual Structure:**
+```
+┌─────────────────────────────────────────────────────┐
+│ BackrefNode                                         │
+│ ┌────────────────────────────────────────────────┐  │
+│ │ ref: "1" (or "name")                           │  │
+└─────────────────────────────────────────────────────┘
+```
 
-Purpose: subroutine calls like `(?1)` or `(?&name)`.
-Example: `/(a)(?1)/`
-Fields:
-- `reference` (string)
-- `syntax` (string)
-Notes: useful for recursion and reuse; use with care.
+**Fields:**
+
+| Field | Type   | Description              |
+|-------|--------|--------------------------|
+| `ref` | string | The group number or name |
+
+**Example:**
+```php
+use RegexParser\Regex;
+
+$ast = Regex::create()->parse('/(\w+)\1/');  // Match doubled word
+$backref = $ast->pattern->children[1];
+
+echo $backref->ref;  // '1'
+```
+
+**Common Errors:**
+```php
+// WRONG: Backreference before capture
+// Pattern: /\1(\w)/ is invalid - no group 1 yet
+preg_match('/\1(\w)/', 'a', $matches);  // Error or no match
+
+// RIGHT: Reference after capture
+preg_match('/(\w)\1/', 'aa', $matches);  // Match!
+```
+
+---
 
 ### ConditionalNode
 
-Purpose: conditional pattern `(?(condition)yes|no)`.
-Example: `/(a)?(?(1)b|c)/`
-Fields:
-- `condition` (NodeInterface)
-- `yes` (NodeInterface)
-- `no` (NodeInterface)
-Notes: conditions can be group numbers, names, or assertions.
+**Purpose:** Conditional pattern `(?(condition)yes|no)` that matches different things based on a condition.
+
+**Visual Structure:**
+```
+┌─────────────────────────────────────────────────────┐
+│ ConditionalNode                                     │
+│ ┌────────────────────────────────────────────────┐  │
+│ │ condition: BackrefNode or AssertionNode        │  │
+│ │ yes: SequenceNode                              │  │
+│ │ no: SequenceNode                               │  │
+└─────────────────────────────────────────────────────┘
+```
+
+**Fields:**
+
+| Field       | Type          | Description                              |
+|-------------|---------------|------------------------------------------|
+| `condition` | NodeInterface | The condition (usually BackrefNode)      |
+| `yes`       | NodeInterface | Pattern if condition is true             |
+| `no`        | NodeInterface | Pattern if condition is false (optional) |
+
+**Example:**
+```php
+use RegexParser\Regex;
+
+$ast = Regex::create()->parse('/(a)?(?(1)b|c)/');  // If 'a' captured, expect 'b'; else expect 'c'
+$conditional = $ast->pattern;
+
+echo $conditional->condition instanceof \RegexParser\Node\BackrefNode;  // true
+echo $conditional->condition->ref;  // '1'
+```
+
+---
+
+### SubroutineNode
+
+**Purpose:** Subroutine call to reuse a capture group pattern, like `(?1)` or `(?&name)`.
+
+**Visual Structure:**
+```
+┌─────────────────────────────────────────────────────┐
+│ SubroutineNode                                      │
+│ ┌────────────────────────────────────────────────┐  │
+│ │ reference: "1" (or "name")                     │  │
+│ │ syntax: "?1" (or "?&name")                     │  │
+└─────────────────────────────────────────────────────┘
+```
+
+**Fields:**
+
+| Field       | Type   | Description              |
+|-------------|--------|--------------------------|
+| `reference` | string | The group number or name |
+| `syntax`    | string | The original syntax used |
+
+**Example:**
+```php
+use RegexParser\Regex;
+
+$ast = Regex::create()->parse('/(?<paren>\((?:[^()]++|(?&paren))*\))/');
+// Match balanced parentheses using recursion
+$subroutine = $ast->pattern->children[0]->child->children[1];  // The (?&paren) part
+
+echo $subroutine->reference;  // 'paren'
+echo $subroutine->syntax;     // '?&paren'
+```
+
+---
 
 ### DefineNode
 
-Purpose: `(?DEFINE...)` block for defining subpatterns.
-Example: `/(?(DEFINE)(?<d>\d+))(?&d)/`
-Fields:
-- `content` (NodeInterface)
-Notes: used with subroutine calls for reusable fragments.
+**Purpose:** `(?DEFINE...)` block that defines subpatterns without matching them.
 
-### CalloutNode
+**Visual Structure:**
+```
+┌─────────────────────────────────────────────────────┐
+│ DefineNode                                          │
+│ ┌────────────────────────────────────────────────┐  │
+│ │ content: NodeInterface                         │  │
+└─────────────────────────────────────────────────────┘
+```
 
-Purpose: callouts like `(?C)` or `(?C42)`.
-Example: `/(?C42)foo/`
-Fields:
-- `identifier` (int|string|null)
-- `isStringIdentifier` (bool)
-Notes: debugging hook in PCRE; uncommon in application code.
+**Fields:**
+
+| Field     | Type          | Description             |
+|-----------|---------------|-------------------------|
+| `content` | NodeInterface | The defined subpatterns |
+
+**Example:**
+```php
+use RegexParser\Regex;
+
+$ast = Regex::create()->parse('/(?(DEFINE)(?<digit>\d+)(?<number>\g<digit>))/');
+$define = $ast->pattern;
+
+echo $define->content instanceof \RegexParser\Node\SequenceNode;  // true
+```
+
+---
+
+## Advanced Nodes
 
 ### PcreVerbNode
 
-Purpose: PCRE verbs like `(*ACCEPT)` or `(*FAIL)`.
-Example: `/(?:foo)(*ACCEPT)/`
-Fields:
-- `verb` (string)
-Notes: can change matching control flow and backtracking behavior.
+**Purpose:** PCRE verbs like `(*ACCEPT)`, `(*FAIL)`, `(*SKIP)` that control matching behavior.
+
+**Visual Structure:**
+```
+┌─────────────────────────────────────────────────────┐
+│ PcreVerbNode                                        │
+│ ┌────────────────────────────────────────────────┐  │
+│ │ verb: "ACCEPT" (or "FAIL", "SKIP", etc.)       │  │
+└─────────────────────────────────────────────────────┘
+```
+
+**Fields:**
+
+| Field  | Type   | Description   |
+|--------|--------|---------------|
+| `verb` | string | The verb name |
+
+**PCRE Verbs:**
+
+| Verb        | Meaning                    |
+|-------------|----------------------------|
+| `(*ACCEPT)` | Force match success        |
+| `(*FAIL)`   | Force match failure        |
+| `(*SKIP)`   | Skip and remember position |
+| `(*COMMIT)` | No backtracking on failure |
+| `(*PRUNE)`  | Prune backtracking stack   |
+| `(*THEN)`   | Jump to alternation branch |
+
+**Example:**
+```php
+use RegexParser\Regex;
+
+$ast = Regex::create()->parse('/foo(*FAIL)bar/');
+$verb = $ast->pattern->children[1];
+
+echo $verb->verb;  // 'FAIL'
+```
+
+---
 
 ### LimitMatchNode
 
-Purpose: `(*LIMIT_MATCH=...)` verb.
-Example: `/(*LIMIT_MATCH=1000)foo/`
-Fields:
-- `limit` (int)
-Notes: protective limit against runaway backtracking.
+**Purpose:** `(*LIMIT_MATCH=...)` verb that sets a protective limit against runaway backtracking.
 
-### VersionConditionNode
+**Visual Structure:**
+```
+┌─────────────────────────────────────────────────────┐
+│ LimitMatchNode                                      │
+│ ┌────────────────────────────────────────────────┐  │
+│ │ limit: 1000                                    │  │
+└─────────────────────────────────────────────────────┘
+```
 
-Purpose: version checks in conditionals `(?(VERSION>=10.0)yes|no)`.
-Example: `/(?(VERSION>=10.30)foo|bar)/`
-Fields:
-- `operator` (string)
-- `version` (string)
-Notes: mostly useful for engine-compatibility shims.
+**Fields:**
 
-## Supporting types
+| Field   | Type | Description     |
+|---------|------|-----------------|
+| `limit` | int  | The match limit |
+
+**Example:**
+```php
+use RegexParser\Regex;
+
+$ast = Regex::create()->parse('/(*LIMIT_MATCH=1000)foo/');
+$limit = $ast->pattern->children[0];
+
+echo $limit->limit;  // 1000
+```
+
+---
+
+## Supporting Types
 
 ### NodeInterface
 
-Purpose: base interface for all AST nodes.
-Notes: defines the `accept()` method for visitors.
+**Purpose:** The base interface that all nodes implement. Defines the visitor pattern entry point.
+
+```php
+interface NodeInterface
+{
+    public function accept(NodeVisitorInterface $visitor): mixed;
+}
+```
+
+---
 
 ### AbstractNode
 
-Purpose: base class for nodes with position tracking.
-Fields:
-- `startPosition` (int)
-- `endPosition` (int)
-Notes: positions refer to offsets in the pattern body, not the full `/.../flags`.
+**Purpose:** Base class for nodes with position tracking. All major nodes extend this.
 
-### QuantifierType (enum)
+**Fields:**
 
-Values:
-- `T_GREEDY` for `*`, `+`, `{m,n}`
-- `T_LAZY` for `*?`, `+?`, `{m,n}?`
-- `T_POSSESSIVE` for `*+`, `++`, `{m,n}+`
+| Field           | Type | Description                         |
+|-----------------|------|-------------------------------------|
+| `startPosition` | int  | Offset in pattern where node begins |
+| `endPosition`   | int  | Offset in pattern where node ends   |
+
+**Position Reference:**
+```php
+use RegexParser\Regex;
+
+$ast = Regex::create()->parse('/foo/');
+$literal = $ast->pattern->children[0];
+
+echo $literal->startPosition;  // 1 (after '/')
+echo $literal->endPosition;    // 4 (position of last 'o' + 1)
+echo strlen('/foo/');          // 6
+echo $literal->startPosition;  // positions are 0-based
+```
+
+---
+
+## Quick Reference Table
+
+| Node              | Purpose         | Key Fields                                 |
+|-------------------|-----------------|--------------------------------------------|
+| `RegexNode`       | Root of AST     | `delimiter`, `pattern`, `flags`            |
+| `SequenceNode`    | Ordered list    | `children[]`                               |
+| `AlternationNode` | Branches        | `alternatives[]`                           |
+| `GroupNode`       | Grouping        | `child`, `type`, `name`                    |
+| `QuantifierNode`  | Repetition      | `node`, `quantifier`, `type`, `min`, `max` |
+| `LiteralNode`     | Literal text    | `value`                                    |
+| `CharLiteralNode` | Escaped char    | `codePoint`, `type`                        |
+| `CharTypeNode`    | Type escape     | `value`                                    |
+| `DotNode`         | Any char        | (none)                                     |
+| `AnchorNode`      | Position anchor | `value`                                    |
+| `AssertionNode`   | Assertion       | `value`                                    |
+| `CharClassNode`   | Character set   | `expression`, `isNegated`                  |
+| `RangeNode`       | Range in class  | `start`, `end`                             |
+| `BackrefNode`     | Backreference   | `ref`                                      |
+| `ConditionalNode` | Conditional     | `condition`, `yes`, `no`                   |
+
+---
+
+## Summary
+
+Understanding nodes is essential for working with the AST directly. Key takeaways:
+
+1. **Nodes are immutable** — create new instances to transform
+2. **Positions are important** — preserved for diagnostics
+3. **GroupNode is versatile** — handles many group types
+4. **QuantifierNode has types** — greedy, lazy, possessive
+5. **Character classes are complex** — can contain ranges, operations, POSIX classes
 
 ---
 

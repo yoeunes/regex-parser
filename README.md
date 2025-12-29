@@ -17,377 +17,289 @@
 
 ---
 
-# RegexParser
+# RegexParser: Parse, Analyze, and Secure PHP Regex
 
-RegexParser is a PHP 8.2+ PCRE regex parser that turns patterns into a typed AST.
-It lets you validate, explain, lint, optimize, and analyze regexes for ReDoS risk, performance, and maintainability.
+> **New to regex?** The [Regex Tutorial](docs/tutorial/README.md) covers everything from basics to PCRE mastery.
 
-Built for library authors, framework teams, security and CI pipelines, and beginners who want to understand regexes as code.
+RegexParser is a PHP 8.2+ library that parses regular expressions into a typed AST. Built for tool maintainers who need to analyze, validate, or transform regex patterns in their CI/CD pipelines, static analyzers, or framework integrations.
 
-## Why RegexParser
+## CLI at a Glance
 
-- Parse PCRE regex strings into a real AST (not regex-on-regex heuristics)
-- Detect ReDoS risk with severity, hotspots, and recommendations
-- Optimize and modernize patterns while preserving behavior
-- Explain and highlight regexes for docs, reviews, and UIs
-- CLI tooling plus Symfony and PHPStan integrations
+### Lint Your Codebase
 
-## Quick Start
+```bash
+$ vendor/bin/regex lint src/
+```
 
-1) Install:
+![Regex Lint Output](docs/assets/regex-lint.png)
+
+### Parse Patterns
+
+```bash
+$ vendor/bin/regex parse '/^hello world$/'
+RegexNode
+└── SequenceNode
+    ├── AnchorNode("^")
+    ├── LiteralNode("hello")
+    ├── LiteralNode(" ")
+    ├── LiteralNode("world")
+    └── AnchorNode("$")
+```
+
+### Analyze ReDoS Risk
+
+```bash
+$ vendor/bin/regex analyze '/(a+)+$/'
+ReDoS Analysis
+  Pattern:  /(a+)+$/
+  Severity: CRITICAL
+  Fix:      Use possessive quantifiers or atomic groups
+```
+
+### Explain Patterns
+
+```bash
+$ vendor/bin/regex explain '/\d{4}-\d{2}-\d{2}/'
+"Match exactly 4 digits, hyphen, 2 digits, hyphen, 2 digits"
+```
+
+### Highlight Syntax
+
+```bash
+$ vendor/bin/regex highlight '/\d+/'
+[32m\d[0m[33m+[0m
+```
+
+## What RegexParser Provides
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    RegexParser Architecture                     │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│   Input Pattern         Parser           AST                    │
+│   "/^hello$/i"  ──►  Tokenizer ──►  RegexNode                   │
+│                                   └── SequenceNode              │
+│                                           └── [LiteralNode]     │
+│                                                                 │
+│                            │                                    │
+│                            ▼                                    │
+│   ┌─────────────────────────────────────────────────────────┐   │
+│   │                     Visitors                            │   │
+│   ├─────────────────────────────────────────────────────────┤   │
+│   │  ValidatorNodeVisitor    → Validation errors            │   │
+│   │  LinterNodeVisitor       → Code quality issues          │   │
+│   │  ReDoSAnalyzerNodeVisitor → Security vulnerabilities    │   │
+│   │  ExplainNodeVisitor      → Human-readable output        │   │
+│   │  CompilerNodeVisitor     → Pattern reconstruction       │   │
+│   └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### For Static Analysis Tools
+
+```php
+use RegexParser\Regex;
+
+// Detect regex issues in user code
+$ast = Regex::create()->parse($userPattern);
+$result = $ast->accept(new LinterNodeVisitor());
+
+foreach ($result->getIssues() as $issue) {
+    // Report to PHPStan/Psalm/Rector
+    reportIssue($issue->getMessage(), $issue->getSeverity());
+}
+```
+
+### For Framework Integrations
+
+```php
+// Symfony validator constraint
+class RegexConstraintValidator extends ConstraintValidator
+{
+    public function validate($value, Constraint $constraint): void
+    {
+        $regex = Regex::create(['runtime_pcre_validation' => true]);
+        $result = $regex->validate($constraint->pattern);
+
+        if (!$result->isValid()) {
+            $this->context->buildViolation($constraint->message)
+                ->setParameter('{{ error }}', $result->error)
+                ->addViolation();
+        }
+
+        // Check ReDoS safety
+        $analysis = $regex->redos($constraint->pattern);
+        if ($analysis->severity->value !== 'safe') {
+            $this->context->buildViolation($constraint->redosMessage)
+                ->setParameter('{{ severity }}', $analysis->severity->value)
+                ->addViolation();
+        }
+    }
+}
+```
+
+### For CI/CD Pipelines
+
+```bash
+# JSON output for CI integration
+vendor/bin/regex lint src/ --format=json > regex-issues.json
+```
+
+```json
+{
+  "stats": { "errors": 2, "warnings": 5 },
+  "results": [
+    {
+      "file": "src/Service/Payment.php",
+      "line": 128,
+      "pattern": "/(a+)+$/",
+      "issues": [
+        {
+          "type": "error",
+          "message": "Nested quantifiers detected",
+          "issueId": "regex.lint.quantifier.nested"
+        }
+      ]
+    }
+  ]
+}
+```
+
+## Installation
 
 ```bash
 composer require yoeunes/regex-parser
 ```
 
-2) Lint your codebase (fastest way to see value):
-
-```bash
-vendor/bin/regex lint src/
-```
-
-Find regexes in your project and report validation issues, ReDoS risk, and optimizations.
-
-![CLI Lint Screenshot](docs/assets/regex-lint.png)
-
-3) Inspect a single pattern:
-
-```bash
-vendor/bin/regex analyze '/(a+)+$/'
-vendor/bin/regex highlight '/^[0-9]+(\w+)$/' --format=html
-```
-
-4) Validate in code:
+## Quick API Reference
 
 ```php
 use RegexParser\Regex;
 
-$regex = Regex::create();
-$result = $regex->validate('/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i');
+$regex = Regex::create([
+    'cache' => '/var/cache/regex-parser',
+    'runtime_pcre_validation' => true,
+]);
 
-echo $result->isValid() ? "OK" : $result->getErrorMessage();
-```
+// Parse pattern into AST
+$ast = $regex->parse('/^hello world$/i');
 
-Want a human explanation? `Regex::explain()` turns a pattern into plain English.
-
-More details: [CLI Guide](docs/guides/cli.md) and [Quick Start](docs/QUICK_START.md).
-
-## Pick your path
-
-Assume:
-
-```php
-use RegexParser\Regex;
-
-$regex = Regex::create();
-```
-
-### Detect ReDoS
-
-```php
-use RegexParser\ReDoS\ReDoSSeverity;
-
-$analysis = $regex->redos('/(a+)+b/');
-
-if ($analysis->severity === ReDoSSeverity::CRITICAL) {
-    echo "High risk of ReDoS attack!";
-}
-```
-
-### Optimize
-
-```php
-$optimized = $regex->optimize('/[0-9]+/');
-
-echo $optimized->original;   // /[0-9]+/
-echo $optimized->optimized;  // /\d+/
-```
-
-Performance note: auto-possessivization is disabled by default in `optimize()` to preserve backtracking behavior. Pass `['autoPossessify' => true]` to enable it.
-
-### Generate samples
-
-```php
-$sample = $regex->generate('/[a-z]{3}\d{2}/');
-```
-
-### Caret diagnostics (runtime PCRE validation)
-
-```php
-use RegexParser\Regex;
-
-$strict = Regex::create(['runtime_pcre_validation' => true]);
-$result = $strict->validate('/(?<=a+)\w/');
-
+// Validate syntax
+$result = $regex->validate('/(?<=test)foo/');
 if (!$result->isValid()) {
-    echo $result->getErrorMessage().PHP_EOL;
-    echo $result->getCaretSnippet().PHP_EOL;
-    echo $result->getHint().PHP_EOL;
+    echo $result->error;  // "Variable-length lookbehind is not supported"
 }
+
+// Check ReDoS safety
+$analysis = $regex->redos('/(a+)+$/');
+echo $analysis->severity->value;  // 'critical'
+
+// Get plain-English explanation
+echo $regex->explain('/\d{4}-\d{2}-\d{2}/');
+// "Four digits, hyphen, two digits, hyphen, two digits"
 ```
 
 ## Integrations
 
 ### Symfony
 
-Run a unified lint across routes, validators, and code:
-
 ```bash
-bin/console regex:lint --format=console
+bin/console regex:lint src/ --format=console
+```
+
+Enable the bundle:
+
+```php
+// config/bundles.php
+Yoeunes\RegexParser\Symfony\RegexParserBundle::class => ['all' => true],
 ```
 
 ### PHPStan
-
-Enable the PHPStan rule:
 
 ```neon
 includes:
     - vendor/yoeunes/regex-parser/extension.neon
 ```
 
-### CI (GitHub Actions)
+Reports patterns like `preg_match('/(a+)+$/', $input)` as ReDoS vulnerabilities.
+
+### Rector
+
+Use RegexParser to detect and automatically fix regex issues in refactoring rules.
+
+### GitHub Actions
 
 ```yaml
-name: regex-lint
-on: [pull_request]
+name: Regex Lint
+on: [push, pull_request]
 
 jobs:
-  regex:
+  lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
-      - run: composer install --no-interaction --no-progress
+      - run: composer install --no-interaction
       - run: vendor/bin/regex lint src/ --format=github
 ```
 
-## Performance & caching
+## Features
 
-```php
-use RegexParser\Regex;
+| Feature            | Description                                                  |
+|--------------------|--------------------------------------------------------------|
+| **Parser**         | Full PCRE2 AST with typed nodes                              |
+| **Validator**      | Syntax + semantic error detection                            |
+| **ReDoS Analyzer** | Static detection of catastrophic backtracking                |
+| **Explainer**      | Human-readable pattern descriptions                          |
+| **Optimizer**      | Performance suggestions (shorthands, possessive quantifiers) |
+| **CLI**            | Full-featured command-line tool                              |
+| **Visitors**       | Extensible analysis via visitor pattern                      |
+| **Caching**        | Persistent AST cache for CI performance                      |
+| **PHPStan Rule**   | First-party integration for static analysis                  |
 
-$regex = Regex::create([
-    'cache' => '/path/to/cache/dir',
-    'max_pattern_length' => 100_000,
-    'max_lookbehind_length' => 255,
-    'runtime_pcre_validation' => false,
-    'redos_ignored_patterns' => [
-        '/^([0-9]{4}-[0-9]{2}-[0-9]{2})$/',
-    ],
-]);
-```
+## Documentation
 
-## Docs
+### 🎯 New to Regex
 
-- Docs home: [docs/README.md](docs/README.md)
-- Regex in PHP: [docs/guides/regex-in-php.md](docs/guides/regex-in-php.md)
-- Regex Tutorial (zero to advanced): [docs/tutorial/README.md](docs/tutorial/README.md)
-- Quick Start: [docs/QUICK_START.md](docs/QUICK_START.md)
-- CLI Guide: [docs/guides/cli.md](docs/guides/cli.md)
-- Diagnostics: [docs/reference/diagnostics.md](docs/reference/diagnostics.md)
-- Diagnostics cheat sheet: [docs/reference/diagnostics-cheatsheet.md](docs/reference/diagnostics-cheatsheet.md)
-- API reference: [docs/reference/api.md](docs/reference/api.md)
-- FAQ and glossary: [docs/reference/faq-glossary.md](docs/reference/faq-glossary.md)
-- Lint Rule Reference: [docs/reference.md](docs/reference.md)
-- Reference index: [docs/reference/README.md](docs/reference/README.md)
-- ReDoS Guide: [docs/REDOS_GUIDE.md](docs/REDOS_GUIDE.md)
-- Cookbook: [docs/COOKBOOK.md](docs/COOKBOOK.md)
-- Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
-- AST traversal design: [docs/design/AST_TRAVERSAL.md](docs/design/AST_TRAVERSAL.md)
-- AST nodes: [docs/nodes/README.md](docs/nodes/README.md)
-- AST visitors: [docs/visitors/README.md](docs/visitors/README.md)
-- External references: [docs/references/README.md](docs/references/README.md)
-- Maintainers Guide: [docs/MAINTAINERS_GUIDE.md](docs/MAINTAINERS_GUIDE.md)
-- Extending: [docs/EXTENDING_GUIDE.md](docs/EXTENDING_GUIDE.md)
+Start here to learn regex from scratch:
 
-<details>
-<summary>Advanced: AST, visitors, and tooling</summary>
+1. **[Regex Tutorial](docs/tutorial/README.md)** - Complete step-by-step guide
+2. **[Quick Start](docs/QUICK_START.md)** - Common use cases with examples
+3. **[Regex in PHP](docs/guides/regex-in-php.md)** - How regex works in PHP
 
-Assume `$regex = Regex::create();`.
+### 🔧 Use RegexParser Tools
 
-### Work with the AST
+1. **[CLI Guide](docs/guides/cli.md)** - Command-line usage
+2. **[Cookbook](docs/COOKBOOK.md)** - Ready-to-use patterns
+3. **[ReDoS Guide](docs/REDOS_GUIDE.md)** - Prevent catastrophic backtracking
 
-```php
-use RegexParser\Node\AlternationNode;
-use RegexParser\Node\LiteralNode;
+### 🛠 Integrate or Extend
 
-$ast = $regex->parse('/foo|bar/');
-$pattern = $ast->pattern;
-
-if ($pattern instanceof AlternationNode) {
-    foreach ($pattern->alternatives as $branch) {
-        foreach ($branch->children as $child) {
-            if ($child instanceof LiteralNode) {
-                echo "Literal: ".$child->value.PHP_EOL;
-            }
-        }
-    }
-}
-```
-
-### Write a custom visitor
-
-```php
-namespace App\Regex;
-
-use RegexParser\Node\AlternationNode;
-use RegexParser\Node\CharLiteralNode;
-use RegexParser\Node\GroupNode;
-use RegexParser\Node\LiteralNode;
-use RegexParser\Node\QuantifierNode;
-use RegexParser\Node\RegexNode;
-use RegexParser\Node\SequenceNode;
-use RegexParser\NodeVisitor\AbstractNodeVisitor;
-
-/**
- * @extends AbstractNodeVisitor<int>
- */
-final class LiteralCountVisitor extends AbstractNodeVisitor
-{
-    protected function defaultReturn(): int
-    {
-        return 0;
-    }
-
-    public function visitRegex(RegexNode $node): int
-    {
-        return $node->pattern->accept($this);
-    }
-
-    public function visitLiteral(LiteralNode $node): int
-    {
-        return 1;
-    }
-
-    public function visitCharLiteral(CharLiteralNode $node): int
-    {
-        return 1;
-    }
-
-    public function visitSequence(SequenceNode $node): int
-    {
-        $sum = 0;
-        foreach ($node->children as $child) {
-            $sum += $child->accept($this);
-        }
-
-        return $sum;
-    }
-
-    public function visitGroup(GroupNode $node): int
-    {
-        return $node->child->accept($this);
-    }
-
-    public function visitAlternation(AlternationNode $node): int
-    {
-        $sum = 0;
-        foreach ($node->alternatives as $alternative) {
-            $sum += $alternative->accept($this);
-        }
-
-        return $sum;
-    }
-
-    public function visitQuantifier(QuantifierNode $node): int
-    {
-        return $node->node->accept($this);
-    }
-}
-```
-
-Usage:
-
-```php
-$ast = $regex->parse('/ab(c|d)+/');
-$count = $ast->accept(new LiteralCountVisitor()); // e.g. 4
-```
-
-### Optimize and recompile
-
-```php
-use RegexParser\NodeVisitor\CompilerNodeVisitor;
-use RegexParser\NodeVisitor\OptimizerNodeVisitor;
-
-$ast = $regex->parse('/(a|a)/');
-$optimizedAst = $ast->accept(new OptimizerNodeVisitor());
-$optimizedPattern = $optimizedAst->accept(new CompilerNodeVisitor());
-
-echo $optimizedPattern; // /([a])/
-```
-
-### Auto-modernize legacy patterns
-
-```php
-use RegexParser\NodeVisitor\CompilerNodeVisitor;
-use RegexParser\NodeVisitor\ModernizerNodeVisitor;
-
-$ast = $regex->parse('/[0-9]+\-[a-z]+\@(?:gmail)\.com/');
-$modern = $ast->accept(new ModernizerNodeVisitor())
-    ->accept(new CompilerNodeVisitor());
-
-echo $modern; // /\d+-[a-z]+@gmail\.com/
-```
-
-### Syntax highlighting
-
-```php
-use RegexParser\NodeVisitor\ConsoleHighlighterVisitor;
-use RegexParser\NodeVisitor\HtmlHighlighterVisitor;
-
-$ast = $regex->parse('/^[0-9]+(\w+)$/');
-
-echo $ast->accept(new ConsoleHighlighterVisitor());
-echo $ast->accept(new HtmlHighlighterVisitor());
-```
-
-### CLI install (PHAR)
-
-```bash
-curl -Ls https://github.com/yoeunes/regex-parser/releases/latest/download/regex.phar -o ~/.local/bin/regex && chmod +x ~/.local/bin/regex
-```
-
-Update the phar:
-
-```bash
-regex self-update
-```
-
-Build locally:
-
-```bash
-bin/build
-```
-
-The build requires `box` and `phar.readonly=0`.
-
-</details>
-
-## Versioning and BC
-
-RegexParser follows Semantic Versioning:
-
-- Stable for 1.x: `Regex` public API, result value objects, and core exception types
-- May evolve in 1.x: AST node types and visitor interfaces
+1. **[API Reference](docs/reference/api.md)** - Full API documentation
+2. **[Architecture](docs/ARCHITECTURE.md)** - How it works internally
+3. **[Extending Guide](docs/EXTENDING_GUIDE.md)** - Custom visitors and analysis
 
 ## Contributing
 
-Contributions are welcome. Please run the full test suite before submitting a PR.
+Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting PRs.
+
+```bash
+composer install
+composer phpunit     # Run tests
+composer phpcs       # Code style
+composer phpstan     # Static analysis
+```
 
 ## License
 
-This library is released under the [MIT License](LICENSE).
+Released under the [MIT License](LICENSE).
 
 ---
 
-# Further Reading
-
-- [RegexParser references](docs/references/README.md)
-- [PCRE Specification](https://www.pcre.org/current/doc/html/pcre2syntax.html)
-- [ReDoS Explained](https://owasp.org/www-community/attacks/Regular_expression_Denial_of_Service_-_ReDoS)
-
----
-
-<p align="center"> <b>Made with ❤️ by <a href="https://www.linkedin.com/in/younes--ennaji/">Younes ENNAJI</a> </b> </p>
+<p align="center">
+  <b>Made with ❤️ by <a href="https://www.linkedin.com/in/younes--ennaji/">Younes ENNAJI</a></b>
+</p>

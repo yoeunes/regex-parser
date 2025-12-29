@@ -16,10 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `parse()` - Parse regex into AST
   - `validate()` - Validate with detailed error codes, caret snippets, and optional runtime PCRE validation
   - `analyze()` - Comprehensive analysis including validation, ReDoS risk, optimizations, and explanations
-  - `analyzeReDoS()` / `isSafe()` - Static ReDoS vulnerability analysis with severity scoring
+  - `redos()` - Static ReDoS vulnerability analysis returning `ReDoSAnalysis` with severity scoring and `isSafe()` check
   - `optimize()` - Pattern optimization with configurable rules
-  - `explain()` / `htmlExplain()` - Human-readable regex explanations
-  - `highlight()` / `htmlHighlight()` - Syntax highlighting for console and HTML
+  - `explain()` - Human-readable regex explanations
+  - `highlight()` - Syntax highlighting for console
   - `generate()` - Generate sample strings matching the pattern
   - `literals()` - Extract literal strings from patterns
 - **AST Visitors**: Extensible visitor pattern for transformations:

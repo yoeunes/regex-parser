@@ -1,150 +1,525 @@
 # API Reference
 
-This page documents the public API surface of RegexParser: entry points,
-configuration options, return objects, and the exception map.
+This complete reference documents the public API surface of RegexParser: entry points, configuration options, return objects, and the exception hierarchy.
 
-## Entry points
+## Entry Points
 
 ### Regex::create(array $options = []): Regex
 
-Creates a configured Regex instance.
+Creates a configured Regex instance. This is the primary entry point for all library operations.
 
+```
+┌─────────────────────────────────────────────────────────────┐
+│              Regex::create() FACTORY                        │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  Regex::create([options])                                   │
+│         │                                                   │
+│         ├── Validate options                                │
+│         ├── Create configured instance                      │
+│         └── Return Regex ready for use                      │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Example:**
 ```php
 use RegexParser\Regex;
 
 $regex = Regex::create([
+    'cache' => '/var/cache/regex',
     'max_pattern_length' => 100_000,
     'max_lookbehind_length' => 255,
-    'cache' => null, // disable caching
-    'redos_ignored_patterns' => [],
     'runtime_pcre_validation' => false,
+    'redos_ignored_patterns' => [],
     'max_recursion_depth' => 1024,
     'php_version' => '8.2',
 ]);
+
+$result = $regex->validate('/foo|bar/');
+echo $result->isValid() ? 'Valid' : 'Invalid';
 ```
+
+---
 
 ### Regex::new(array $options = []): Regex
 
-Alias for `Regex::create()`.
+Alias for `Regex::create()`. Use whichever reads better in your code.
+
+```php
+// These are equivalent
+$regex = Regex::create();
+$regex = Regex::new();
+```
+
+---
 
 ### Regex::tokenize(string $regex, ?int $phpVersionId = null): TokenStream
 
-Lexes a regex into a `TokenStream` with positional offsets.
+Lexes a regex into a `TokenStream` with positional offsets. Useful for custom analysis or debugging.
+
+```php
+use RegexParser\Regex;
+
+$stream = Regex::tokenize('/foo|bar/i');
+
+foreach ($stream as $token) {
+    echo "Type: {$token->type->value}, Value: '{$token->value}'\n";
+    echo "Position: {$token->start} - {$token->end}\n";
+}
+```
+
+---
 
 ### Regex::clearValidatorCaches(): void
 
-Clears static caches used by the validator. Useful for long-running processes.
+Clears static caches used by the validator. Important for long-running processes to prevent memory growth.
 
-## Configuration options
+```php
+use RegexParser\Regex;
 
-All options are validated; unknown keys throw `InvalidRegexOptionException`.
+$regex = Regex::create();
 
-| Option | Type | Default | Description |
-| --- | --- | --- | --- |
-| `max_pattern_length` | `int` | `100_000` | Maximum pattern length accepted. |
-| `max_lookbehind_length` | `int` | `255` | Maximum allowed lookbehind length. |
-| `cache` | `null` \| `string` \| `CacheInterface` | `FilesystemCache` (`sys_get_temp_dir()/regex-parser/cache`) | Cache for parsed ASTs and analysis results. `null` disables caching (`NullCache`). String uses `FilesystemCache`. |
-| `redos_ignored_patterns` | `array<string>` | `[]` | Patterns to skip during ReDoS analysis. |
-| `runtime_pcre_validation` | `bool` | `false` | Compile-check via `preg_match()` for caret diagnostics. |
-| `max_recursion_depth` | `int` | `1024` | Parser recursion guard. |
-| `php_version` | `string` \| `int` | `PHP_VERSION_ID` | Target PHP version for feature validation. |
+// Process many patterns...
+foreach ($patterns as $pattern) {
+    $regex->validate($pattern);
+}
 
-## Parsing
+// Clear caches periodically
+$regex->clearValidatorCaches();
+```
 
-### parsePattern(string $pattern, string $flags = '', string $delimiter = '/')
+---
 
-Parses a pattern body plus flags/delimiter into a `RegexNode`.
+## Configuration Options
 
-### parse(string $regex, bool $tolerant = false)
+All options are validated. Unknown keys throw `InvalidRegexOptionException`.
+
+| Option                    | Type                                   | Default           | Description                    | Performance Impact              |
+|---------------------------|----------------------------------------|-------------------|--------------------------------|---------------------------------|
+| `cache`                   | `null` \| `string` \| `CacheInterface` | `FilesystemCache` | Cache for parsed ASTs          | High - speeds repeated patterns |
+| `max_pattern_length`      | `int`                                  | `100_000`         | Maximum pattern length         | Low - prevents abuse            |
+| `max_lookbehind_length`   | `int`                                  | `255`             | Maximum lookbehind length      | Low - PCRE compliance           |
+| `runtime_pcre_validation` | `bool`                                 | `false`           | Compile-check via preg_match() | Medium - extra compile step     |
+| `redos_ignored_patterns`  | `array<string>`                        | `[]`              | Patterns to skip ReDoS         | Low - reduces false positives   |
+| `max_recursion_depth`     | `int`                                  | `1024`            | Parser recursion guard         | Low - prevents stack overflow   |
+| `php_version`             | `string` \| `int`                      | `PHP_VERSION_ID`  | Target PHP version             | Low - feature validation        |
+
+---
+
+## Parsing Methods
+
+### parsePattern(string $pattern, string $flags = '', string $delimiter = '/'): RegexNode
+
+Parses a pattern body plus flags/delimiter into a `RegexNode`. Use this when you have separate pattern components.
+
+```php
+use RegexParser\Regex;
+
+$pattern = 'foo|bar';
+$flags = 'i';
+$delimiter = '/';
+
+$ast = Regex::create()->parsePattern($pattern, $flags, $delimiter);
+
+echo $ast->flags;      // 'i'
+echo $ast->delimiter;  // '/'
+echo $ast->pattern;    // SequenceNode or AlternationNode
+```
+
+---
+
+### parse(string $regex, bool $tolerant = false): RegexNode|TolerantParseResult
 
 Parses a full PCRE string (`/pattern/flags`).
 
-- `tolerant = false`: returns `RegexNode` or throws.
-- `tolerant = true`: returns `TolerantParseResult` with an AST plus errors.
+```php
+use RegexParser\Regex;
 
-## Validation and analysis
+// Strict parsing (default)
+$ast = Regex::create()->parse('/foo|bar/i');
+echo $ast->flags;      // 'i'
+echo $ast->delimiter;  // '/'
+
+// Tolerant parsing - returns AST even with errors
+$result = Regex::create()->parse('/[unclosed/i', true);
+
+echo $result->ast;          // Partial AST
+echo $result->errors[0]->getMessage();  // First error
+```
+
+---
+
+## Validation and Analysis Methods
 
 ### validate(string $regex): ValidationResult
 
-Returns a structured validation result (no exception bubbling).
+Returns a structured validation result without throwing exceptions.
+
+```php
+use RegexParser\Regex;
+
+$result = Regex::create()->validate('/foo|bar/');
+
+echo $result->isValid();           // true
+echo $result->complexityScore;     // int
+echo $result->category->value;     // ValidationErrorCategory enum
+```
+
+**ValidationResult Fields:**
+
+| Field             | Type                    | Description              |
+|-------------------|-------------------------|--------------------------|
+| `isValid`         | bool                    | Whether pattern is valid |
+| `error`           | string\|null            | Error message if invalid |
+| `errorCode`       | string\|null            | Stable error code        |
+| `offset`          | int\|null               | Byte offset of error     |
+| `caretSnippet`    | string\|null            | Snippet with caret       |
+| `hint`            | string\|null            | Fix suggestion           |
+| `complexityScore` | int                     | Pattern complexity       |
+| `category`        | ValidationErrorCategory | Error category           |
+
+---
 
 ### analyze(string $regex): AnalysisReport
 
-Aggregates validation, lint, ReDoS analysis, optimization, and explanation
-into a single report.
+Aggregates validation, lint, ReDoS analysis, optimization, and explanation into a single report.
+
+```php
+use RegexParser\Regex;
+
+$report = Regex::create()->analyze('/(a+)+b/');
+
+echo $report->isValid;           // true/false
+echo count($report->errors);      // Validation errors
+echo count($report->lintIssues);  // Lint warnings
+echo $report->redos->severity->value;  // 'critical', 'safe', etc.
+echo $report->explain;            // Human explanation
+echo $report->highlighted;        // Syntax-highlighted pattern
+```
+
+**AnalysisReport Fields:**
+
+| Field           | Type          | Description                    |
+|-----------------|---------------|--------------------------------|
+| `isValid`       | bool          | Pattern is syntactically valid |
+| `errors`        | array         | Validation errors              |
+| `lintIssues`    | array         | Linting warnings               |
+| `redos`         | ReDoSAnalysis | ReDoS analysis result          |
+| `optimizations` | array         | Suggested optimizations        |
+| `explain`       | string        | Human explanation              |
+| `highlighted`   | string        | Highlighted pattern            |
+
+---
 
 ### redos(string $regex, ?ReDoSSeverity $threshold = null): ReDoSAnalysis
 
-Returns ReDoS severity, score, hotspots, and recommendations.
+Analyzes ReDoS risk without full analysis report. Use this for quick safety checks.
 
-## Transform and extract
+```php
+use RegexParser\Regex;
+
+$analysis = Regex::create()->redos('/(a+)+b/');
+
+echo $analysis->severity->value;       // 'critical', 'safe', etc.
+echo $analysis->score;                 // int (0-10)
+echo $analysis->confidence->value;     // 'high', 'medium', 'low'
+echo $analysis->vulnerablePart;        // Subpattern causing risk
+echo $analysis->recommendations[0];    // Suggested fix
+```
+
+**ReDoSAnalysis Fields:**
+
+| Field              | Type          | Description           |
+|--------------------|---------------|-----------------------|
+| `severity`         | ReDoSSeverity | Risk level            |
+| `score`            | int           | Risk score (0-10)     |
+| `confidence`       | Confidence    | Analysis confidence   |
+| `vulnerablePart`   | string\|null  | Vulnerable subpattern |
+| `recommendations`  | array         | Suggested fixes       |
+| `hotspots`         | array         | Problem locations     |
+| `suggestedRewrite` | string\|null  | Safer alternative     |
+
+---
+
+## Transform and Extract Methods
 
 ### optimize(string $regex, array $options = []): OptimizationResult
 
-Optimization options:
-- `digits` (bool, default true): `[0-9]` -> `\d`
-- `word` (bool, default true): `[A-Za-z0-9_]` -> `\w`
-- `ranges` (bool, default true): normalize ranges
-- `autoPossessify` (bool, default false): opportunistic possessive quantifiers
-- `allowAlternationFactorization` (bool, default false): factor common prefixes/suffixes in alternations
+Applies safe optimizations to the pattern.
+
+```php
+use RegexParser\Regex;
+
+$result = Regex::create()->optimize('/[0-9]+/', [
+    'digits' => true,              // [0-9] → \d
+    'word' => true,                // [A-Za-z0-9_] → \w
+    'ranges' => true,              // Normalize ranges
+    'autoPossessify' => false,     // Add possessive quantifiers
+    'allowAlternationFactorization' => false,  // Factor common parts
+]);
+
+echo $result->original;    // '/[0-9]+/'
+echo $result->optimized;   // '/\d+/'
+echo $result->changes[0];  // 'Optimized pattern.'
+```
+
+---
 
 ### literals(string $regex): LiteralExtractionResult
 
-Returns literals and prefix/suffix data for fast prefilters.
+Extracts fixed literals and prefix/suffix data for fast prefilters or indexing.
+
+```php
+use RegexParser\Regex;
+
+$result = Regex::create()->literals('/user-\d{4}/');
+
+print_r($result->literals);      // ['user-']
+echo $result->patterns[0];       // '/user-\d{4}/'
+echo $result->prefix;            // 'user-'
+echo $result->suffix;            // ''
+echo $result->literalSet;        // LiteralSet object
+```
+
+---
 
 ### generate(string $regex): string
 
-Generates a sample string that matches the regex.
+Gener that matches the patternates a sample string. Useful for testing or documentation.
+
+```php
+use RegexParser\Regex;
+
+$sample = Regex::create()->generate('/[A-Z][a-z]{3,5}\d{2}/');
+echo $sample;  // e.g., "Word12"
+```
+
+---
 
 ### explain(string $regex, string $format = 'text'): string
 
-`format` is `text` or `html`.
+Generates a human-readable explanation of the pattern.
+
+```php
+use RegexParser\Regex;
+
+// Plain text explanation
+$text = Regex::create()->explain('/\d{3}-\d{4}/');
+echo $text;
+/*
+Match exactly 3 digits, then hyphen, then exactly 4 digits.
+*/
+
+// HTML explanation for docs/UIs
+$html = Regex::create()->explain('/\w+@\w+\.\w+/', 'html');
+echo $html;
+// <p>Match one or more word characters, then @, then...
+```
+
+---
 
 ### highlight(string $regex, string $format = 'console'): string
 
-`format` is `console` or `html`.
+Generates syntax-highlighted output.
 
-## Result objects
+```php
+use RegexParser\Regex;
+
+// ANSI colors for console
+$highlighted = Regex::create()->highlight('/\d+/', 'console');
+echo $highlighted;  // "\033[32m\\d\033[0m\033[33m+\033[0m"
+
+// HTML for web
+$html = Regex::create()->highlight('/[a-z]+/', 'html');
+echo $html;
+// <span class="regex-token regex-literal">[a-z]</span>...
+```
+
+---
+
+## Result Objects
 
 ### ValidationResult
 
-Fields: `isValid`, `error`, `errorCode`, `offset`, `caretSnippet`, `hint`,
-`complexityScore`, `category` (`ValidationErrorCategory`).
+Returned by `validate()`. Provides structured validation feedback.
+
+```php
+$result = Regex::create()->validate('/[unclosed/');
+
+if (!$result->isValid()) {
+    echo $result->error;         // "Unterminated character class"
+    echo $result->errorCode;     // "regex.syntax.unterminated"
+    echo $result->offset;        // 9
+    echo $result->caretSnippet;  // "Pattern: [unclosed\n          ^"
+    echo $result->hint;          // "Close the bracket: ]"
+    echo $result->category->value;  // "syntax"
+}
+```
+
+---
 
 ### TolerantParseResult
 
-Fields: `ast` (RegexNode), `errors` (array<Throwable>).
+Returned by `parse($regex, true)`. Contains partial AST plus errors.
+
+```php
+$result = Regex::create()->parse('/[broken/i', true);
+
+echo $result->ast instanceof \RegexParser\Node\RegexNode;  // true (partial)
+echo count($result->errors);  // 1
+echo $result->errors[0]->getMessage();  // "Unterminated character class"
+```
+
+---
 
 ### AnalysisReport
 
-Fields: `isValid`, `errors`, `lintIssues`, `redos`, `optimizations`,
-`explain`, `highlighted`.
+Returned by `analyze()`. Comprehensive pattern analysis.
+
+```php
+$report = Regex::create()->analyze('/(a+)+b/');
+
+if (!$report->isValid) {
+    // Handle validation errors
+    foreach ($report->errors as $error) {
+        echo $error['message'];
+    }
+}
+
+// Check ReDoS safety
+if ($report->redos->severity->value !== 'safe') {
+    echo "Pattern may be vulnerable!";
+    echo $report->redos->recommendations[0];
+}
+
+// Get explanation
+echo $report->explain;
+```
+
+---
 
 ### OptimizationResult
 
-Fields: `original`, `optimized`, `changes`.
+Returned by `optimize()`. Shows what changed.
+
+```php
+$result = Regex::create()->optimize('/[0-9]+/');
+
+echo $result->original;    // '/[0-9]+/'
+echo $result->optimized;   // '/\d+/'
+
+foreach ($result->changes as $change) {
+    echo "- $change\n";
+}
+// Output:
+// - Replaced [0-9] with \d
+// - Saved 5 characters
+```
+
+---
 
 ### LiteralExtractionResult
 
-Fields: `literals`, `patterns`, `confidence`, `literalSet` (LiteralSet).
+Returned by `literals()`. Extracts fixed content.
 
-### ReDoSAnalysis
+```php
+$result = Regex::create()->literals('/user-\d{4}/');
 
-Fields: `severity`, `score`, `vulnerablePart`, `vulnerableSubpattern`, `error`,
-`recommendations`, `findings`, `hotspots`, `suggestedRewrite`, `trigger`,
-`confidence`, `falsePositiveRisk`.
+echo $result->prefix;              // 'user-'
+echo $result->suffix;              // ''
+echo $result->confidence->value;   // 'high'
 
-## Exception map
+foreach ($result->literals as $literal) {
+    echo "Found literal: $literal\n";
+}
+// Output: Found literal: user-
+```
 
-- `RegexParserExceptionInterface`: catch-all for library errors.
-- `InvalidRegexOptionException`: invalid `Regex::create()` options.
-- `LexerException`: tokenization failure.
-- `ParserException`: syntax/structure errors.
-- `SyntaxErrorException`: specialized parser error for invalid syntax.
-- `SemanticErrorException`: semantic validation failure (includes `hint`).
-- `RecursionLimitException`: exceeded max recursion depth.
-- `ResourceLimitException`: exceeded resource limits while parsing.
-- `RegexException`: base exception with `position`, `snippet`, `errorCode`.
+---
+
+## Exception Map
+
+RegexParser uses a focused exception hierarchy for precise error handling:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│              EXCEPTION HIERARCHY                            │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  RegexParserExceptionInterface                              │
+│      │                                                      │
+│      ├── InvalidRegexOptionException                        │
+│      │   └─ Invalid configuration option                    │
+│      │                                                      │
+│      ├── LexerException                                     │
+│      │   └─ Tokenization failure                            │
+│      │                                                      │
+│      ├── ParserException                                    │
+│      │   ├── SyntaxErrorException                           │
+│      │   │   └─ Invalid syntax                              │
+│      │   └── SemanticErrorException                         │
+│      │       └─ Semantic validation failure                 │
+│      │                                                      │
+│      ├── RecursionLimitException                            │
+│      │   └─ Exceeded max recursion depth                    │
+│      │                                                      │
+│      ├── ResourceLimitException                             │
+│      │   └─ Exceeded resource limits                        │
+│      │                                                      │
+│      └── RegexException                                     │
+│          └─ Base exception with position and errorCode      │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Usage Examples:**
+
+```php
+use RegexParser\Regex;
+use RegexParser\Exception\LexerException;
+use RegexParser\Exception\ParserException;
+use RegexParser\Exception\InvalidRegexOptionException;
+
+try {
+    $regex = Regex::create(['invalid_key' => 'value']);
+} catch (InvalidRegexOptionException $e) {
+    echo "Bad option: {$e->getMessage()}";
+}
+
+try {
+    $ast = Regex::create()->parse('/[unclosed/');
+} catch (LexerException $e) {
+    echo "Tokenization failed: {$e->getMessage()}";
+} catch (ParserException $e) {
+    echo "Parse failed: {$e->getMessage()}";
+}
+
+// Catch-all for any library error
+try {
+    $result = Regex::create()->validate('/test/');
+} catch (\RegexParser\Exception\RegexParserExceptionInterface $e) {
+    echo "RegexParser error: {$e->getMessage()}";
+}
+```
+
+---
+
+## Quick Reference
+
+| Method                  | Returns                 | Purpose           |
+|-------------------------|-------------------------|-------------------|
+| `create($options)`      | Regex                   | Factory method    |
+| `parse($pattern)`       | RegexNode               | Parse to AST      |
+| `parse($pattern, true)` | TolerantParseResult     | Parse with errors |
+| `validate($regex)`      | ValidationResult        | Check validity    |
+| `analyze($regex)`       | AnalysisReport          | Full analysis     |
+| `redos($regex)`         | ReDoSAnalysis           | ReDoS check       |
+| `optimize($regex)`      | OptimizationResult      | Optimize pattern  |
+| `explain($regex)`       | string                  | Human explanation |
+| `highlight($regex)`     | string                  | Syntax highlight  |
+| `generate($regex)`      | string                  | Generate sample   |
+| `literals($regex)`      | LiteralExtractionResult | Extract literals  |
 
 ---
 

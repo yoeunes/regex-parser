@@ -1,61 +1,307 @@
-# Groups and Alternation
+# Chapter 5: Groups and Alternation
 
-Groups control precedence, capture matches, and express sub-structure. Alternation
-(`|`) lets you match one of several branches.
+> **Goal:** Group patterns together and match one of several alternatives.
 
-## Capturing vs non-capturing groups
+---
 
-```php
-preg_match('/(cat|dog)/', 'a dog', $m);
-// $m[1] = 'dog'
+## 🤔 What are Groups?
+
+**Groups** let you treat multiple characters as a single unit. Think of them like **putting things in parentheses** in math:
+
+```
+Without groups:  a+b  means "a followed by one or more b's"
+
+With groups:     (ab)+  means "ab" as a unit, repeated one or more times
+                 "ab", "abab", "ababab", etc.
 ```
 
-If you do not need capture, use non-capturing `(?:...)`.
+### Real-World Analogy
+
+| Scenario             | Without Groups          | With Groups          |
+|----------------------|-------------------------|----------------------|
+| Phone with area code | `5551234567`            | `(555) 123-4567`     |
+| HTTP URL             | `http: / / example.com` | `http://example.com` |
+| Repeated phrase      | "hello hello hello"     | `(hello ){3}`        |
+
+---
+
+## 🎯 Types of Groups
+
+### 1. Capturing Groups `(...)`
+
+Stores the matched text for later use:
 
 ```php
-preg_match('/(?:cat|dog)/', 'a dog');
+// Capture the first word
+preg_match('/^(\w+)/', 'hello world', $matches);
+echo $matches[1];  // Output: "hello"
+
+// Capture both parts
+preg_match('/^(\w+) (\w+)$/', 'hello world', $matches);
+echo $matches[1];  // "hello"
+echo $matches[2];  // "world"
 ```
 
-## Named groups
+### 2. Non-Capturing Groups `(?:...)`
+
+Groups without capturing (faster, no storage):
 
 ```php
-preg_match('/(?<user>\w+)@(?<host>\w+)/', 'alice@example', $m);
-// $m['user'] = 'alice'
+// Non-capturing: groups but doesn't store
+preg_match('/(?:hello) (world)/', 'hello world', $matches);
+echo $matches[0];  // "hello world" (full match)
+echo $matches[1];  // "world" (only second group captured)
+// No $matches[2] because first group was non-capturing
 ```
 
-## Alternation and precedence
+### 3. Named Groups `(?<name>...)`
 
-Alternation has low precedence; group it when you need it.
-
-```php
-// Matches: 'foo' OR 'barbaz'
-'foo|barbaz'
-
-// Matches: 'foobaz' OR 'barbaz'
-'(?:foo|bar)baz'
-```
-
-## Good choice vs bad choice
-
-Good: use non-capturing groups for structure.
-```php
-'/^(?:get|post|put|delete)$/i'
-```
-
-Bad: capture every group by default.
-```php
-'/^(get|post|put|delete)$/i'
-```
-
-## With RegexParser
+Give groups a name for easier access:
 
 ```php
-use RegexParser\Regex;
-
-$regex = Regex::create();
-$ast = $regex->parse('/(?<user>\w+)@(?<host>\w+)/');
+preg_match('/(?<greeting>hello) (?<name>world)/', 'hello world', $matches);
+echo $matches['greeting'];  // "hello"
+echo $matches['name'];      // "world"
 ```
 
 ---
 
-Previous: [Quantifiers and Greediness](04-quantifiers.md) | Next: [Lookarounds and Assertions](06-lookarounds.md)
+## 🔀 Alternation: The Pipe `|`
+
+Match **one of several** alternatives:
+
+```php
+// Match cat OR dog OR bird
+preg_match('/(cat|dog|bird)/', 'I have a dog', $matches);
+echo $matches[0];  // "dog"
+echo $matches[1];  // "dog" (captured group)
+```
+
+### ASCII Diagram: Alternation
+
+```
+Pattern: /(cat|dog|bird)/
+
+Text: "The dog is here"
+
+         ┌── cat ───┐
+         │          │
+Text: ───┤   dog    ├──→ Matches "dog"
+         │          │
+         └── bird ──┘
+
+Only ONE alternative matches!
+```
+
+### Grouping with Alternation
+
+Use parentheses to control scope:
+
+```php
+// Without grouping: foo OR barbaz
+preg_match('/foo|barbaz/', 'foobaz', $m);
+echo $m[0];  // "foo" (first alternative wins!)
+
+// With grouping: foobaz OR barbaz
+preg_match('/(foo|bar)baz/', 'foobaz', $m);
+echo $m[0];  // "foobaz"
+echo $m[1];  // "foo"
+```
+
+---
+
+## 📊 Group Examples
+
+### Capturing Groups
+
+```php
+// Extract date parts
+preg_match('/(\d{4})-(\d{2})-(\d{2})/', '2024-01-15', $m);
+echo $m[0];  // "2024-01-15" (full match)
+echo $m[1];  // "2024" (year)
+echo $m[2];  // "01" (month)
+echo $m[3];  // "15" (day)
+```
+
+### Named Groups
+
+```php
+// Extract with names
+preg_match('/(?<year>\d{4})-(?<month>\d{2})-(?<day>\d{2})/', '2024-01-15', $m);
+echo $m['year'];   // "2024"
+echo $m['month'];  // "01"
+echo $m['day'];    // "15"
+```
+
+### Non-Capturing Groups
+
+```php
+// Group without capturing
+preg_match('/(?:get|post|put|delete) \/api/', 'POST /api', $m);
+echo $m[0];  // "POST /api" (full match)
+// No captured group for HTTP method!
+```
+
+---
+
+## 🏗️ Complex Group Examples
+
+### HTTP Method Validator
+
+```php
+// Match exactly GET, POST, PUT, or DELETE
+preg_match('/^(get|post|put|delete)$/i', 'POST', $matches);
+// ✅ Matches
+
+preg_match('/^(get|post|put|delete)$/i', 'PATCH', $matches);
+// ❌ No match
+```
+
+### Email with Named Groups
+
+```php
+$pattern = '/^(?<user>[^@]+)@(?<domain>[^@]+)$/';
+preg_match($pattern, 'alice@example.com', $m);
+
+echo $m['user'];    // "alice"
+echo $m['domain'];  // "example.com"
+```
+
+### Nested Groups
+
+```php
+// Outer group contains inner groups
+preg_match('/((?<outer>hello) (?<inner>world))/', 'hello world', $m);
+echo $m[0];         // "hello world" (full match)
+echo $m['outer'];   // "hello" (first group)
+echo $m['inner'];   // "world" (second group)
+```
+
+---
+
+## ✅ Good Patterns vs ❌ Bad Patterns
+
+### Good: Clear and Efficient
+
+```php
+// Non-capturing when you don't need the data
+'/(?:get|post|put|delete) \/api/'
+
+// Named groups for clarity
+'/(?<email>[^@]+)@(?<domain>[^@]+)/'
+
+// Proper grouping with alternation
+'/^(?:html|css|js)$/'
+```
+
+### Bad: Confusing or Inefficient
+
+```php
+// ❌ Too many unnamed groups
+'/(\w+) (@) (\w+) (\.) (\w+)/'
+
+// ❌ Missing grouping on alternation
+'/html|css|js\/api/'  // Matches "html", "css", or "js/api"
+
+// ✅ Proper grouping
+'/(?:html|css|js)\/api/'
+```
+
+---
+
+## 🧪 Exercises
+
+### Exercise 1: Match HTTP Methods
+
+Write a pattern that matches GET, POST, PUT, DELETE (case-insensitive):
+
+```php
+$pattern = '/^(?:GET|POST|PUT|DELETE)$/i';
+// or: '/^(get|post|put|delete)$/i'
+```
+
+### Exercise 2: Extract Date Parts
+
+Write a pattern to extract year, month, day from "2024-01-15":
+
+```php
+$pattern = '/(?<year>\d{4})-(?<month>\d{2})-(?<day>\d{2})/';
+preg_match($pattern, '2024-01-15', $m);
+echo $m['year'];   // "2024"
+echo $m['month'];  // "01"
+echo $m['day'];    // "15"
+```
+
+### Exercise 3: Test Alternation Precedence
+
+```php
+// Without grouping
+preg_match('/foo|foobar/', 'foobar', $m);
+echo "Without grouping: " . $m[0] . "\n";  // "foo"
+
+// With grouping
+preg_match('/(?:foo|foo)bar/', 'foobar', $m);
+echo "With grouping: " . $m[0] . "\n";     // "foobar"
+```
+
+---
+
+## 📚 Key Takeaways
+
+1. **Groups** `(...)` treat multiple characters as one unit
+2. **Capturing groups** `(...)` store matched text
+3. **Non-capturing groups** `(?:...)` don't store (faster)
+4. **Named groups** `(?<name>...)` use names instead of numbers
+5. **Alternation** `|` matches one of several alternatives
+6. **Group alternation** with `()` to control scope
+
+---
+
+## 🆘 Common Errors
+
+### Error: Forgetting Grouping with Alternation
+
+```php
+// ❌ Wrong: Matches "html" or "css/api"
+preg_match('/html|css\/api/', 'css/api', $m);
+echo $m[0];  // "css" (first alternative!)
+
+// ✅ Correct: Group the alternatives
+preg_match('/(?:html|css)\/api/', 'css/api', $m);
+echo $m[0];  // "css/api"
+```
+
+### Error: Too Many Capturing Groups
+
+```php
+// ❌ Slow: Many groups when you don't need them
+'/(\w+) (@) (\w+) (\.) (\w+)/'
+
+// ✅ Better: Non-capturing groups for structure
+'/\w+ @ \w+ \. \w+/'
+
+// ✅ Best: Only capture what you need
+'/\w+ (?<user>\w+) @ \w+ \. (?<tld>\w+)/'
+```
+
+---
+
+## 🎉 You're Ready!
+
+You now understand:
+- Capturing vs non-capturing groups
+- Named groups
+- Alternation and precedence
+- Common pitfalls and fixes
+
+**Next:** [Chapter 6: Lookarounds and Assertions](06-lookarounds.md)
+
+---
+
+<p align="center">
+  <b>Chapter 5 Complete! →</b>
+</p>
+
+---
+
+Previous: [Quantifiers](04-quantifiers.md) | Next: [Lookarounds](06-lookarounds.md)

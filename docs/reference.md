@@ -1,271 +1,531 @@
 # RegexParser Rule Reference
 
-RegexParser ships with a PHPStan rule (`RegexParser\\Bridge\\PHPStan\\RegexParserRule`) that validates `preg_*` patterns for syntax issues, ReDoS risk, and common performance or readability footguns. This page explains each diagnostic in plain language and links to authoritative references so you understand both the warning and how to fix it.
+This comprehensive reference documents every diagnostic, lint rule, and optimization that RegexParser produces. It serves as the authoritative guide for understanding what RegexParser checks and how to fix issues.
 
-If you are new to PCRE-style regular expressions in PHP, you can treat this document as a guided tour of the most common mistakes the rule can detect.
+## Table of Contents
 
-## How to read this page
-- **Identifier:** matches the PHPStan rule identifier.
-- **When it triggers:** the concrete condition used by the rule.
-- **Fix it:** minimal change that removes the warning while keeping the intent of the pattern clear.
-- **Read more:** links to PHP.net, the PCRE2 manual, or security guidance that describe the underlying rule in depth.
-
-For caret snippets, hints, and error-code semantics, see
-[docs/reference/diagnostics.md](reference/diagnostics.md).
+| Section                                      | Description                       |
+|----------------------------------------------|-----------------------------------|
+| [Validation Layers](#validation-layers)      | How RegexParser analyzes patterns |
+| [Flags](#flags)                              | Flag-related diagnostics          |
+| [Anchors](#anchors)                          | Anchor positioning issues         |
+| [Quantifiers](#quantifiers)                  | Quantifier-related patterns       |
+| [Groups](#groups)                            | Group-related diagnostics         |
+| [Alternation](#alternation)                  | Alternation patterns              |
+| [Character Classes](#character-classes)      | Character class issues            |
+| [Escapes](#escapes)                          | Escape sequence problems          |
+| [Inline Flags](#inline-flags)                | Inline flag diagnostics           |
+| [ReDoS Security](#security-redos)            | Catastrophic backtracking         |
+| [Advanced Syntax](#advanced-syntax)          | Optimizations and assertions      |
+| [Compatibility](#compatibility--limitations) | PHP and PCRE2 support             |
+| [Diagnostics Catalog](#diagnostics-catalog)  | Complete error code reference     |
 
 ---
 
-## PCRE2 Compatibility Contract
+## Validation Layers
 
-RegexParser targets **PHP’s PCRE2 engine** (`preg_*`). Validation is layered:
+RegexParser validates patterns through three distinct layers, each catching different types of issues:
 
-- **Parse**: lexer + parser build a PCRE-aware AST.
-- **Semantic validation**: checks common PCRE rules (group references, branch reset numbering, lookbehind boundedness, Unicode ranges, …).
-- **PCRE runtime validation**: optional compile check via `preg_match($regex, '')` (enable with `runtime_pcre_validation`) and report failures as `pcre-runtime`.
+```
+┌─────────────────────────────────────────────────────────────┐
+│              VALIDATION LAYERS                              │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │ LAYER 1: Parse (Lexer + Parser)                     │    │
+│  │ ├─ Tokenizes the pattern                            │    │
+│  │ ├─ Builds the AST                                   │    │
+│  │ └─ Catches: syntax errors, malformed patterns       │    │
+│  │                                                     │    │
+│  │ Examples:                                           │    │
+│  │ - Unbalanced brackets                               │    │
+│  │ - Invalid escapes                                   │    │
+│  │ - Missing delimiters                                │    │
+│  └─────────────────────────────────────────────────────┘    │
+│                           │                                 │
+│                           ▼                                 │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │ LAYER 2: Semantic Validation                        │    │
+│  │ ├─ Checks PCRE rules                                │    │
+│  │ ├─ Validates references and groups                  │    │
+│  │ └─ Catches: semantic errors                         │    │
+│  │                                                     │    │
+│  │ Examples:                                           │    │
+│  │ - Unbounded lookbehinds                             │    │
+│  │ - Invalid backreferences                            │    │
+│  │ - Duplicate group names                             │    │
+│  └─────────────────────────────────────────────────────┘    │
+│                           │                                 │
+│                           ▼                                 │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │ LAYER 3: Runtime Validation (Optional)              │    │
+│  │ ├─ Compiles via preg_match()                        │    │
+│  │ └─ Catches: engine-specific issues                  │    │
+│  │                                                     │    │
+│  │ Enable with:                                        │    │
+│  │   'runtime_pcre_validation' => true                 │    │
+│  └─────────────────────────────────────────────────────┘    │
+│                           │                                 │
+│                           ▼                                 │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │ LAYER 4: Linting & Analysis                         │    │
+│  │ ├─ Performance checks                               │    │
+│  │ ├─ ReDoS analysis                                   │    │
+│  │ ├─ Best practices                                   │    │
+│  │ └─ Catches: warnings and suggestions                │    │
+│  └─────────────────────────────────────────────────────┘    │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
 
-Key behaviors that may surprise users coming from “single-pass” validators:
+### PCRE2 Compatibility Contract
 
-- **Forward references are allowed** (e.g. `/\1(a)/`, `/\k<name>(?<name>a)/` compile in PHP).
-- **Branch reset groups** `(?|...)` change capture numbering; `\2` can be invalid even if two captures appear in different branches.
-- **`\g{0}` is invalid** in PHP; use `\g<0>` or `(?R)` for recursion.
-- **Lookbehind must have a bounded maximum length** (unless adjusted via `(*LIMIT_LOOKBEHIND=...)`).
+RegexParser targets **PHP's PCRE2 engine** (`preg_*`). Key behaviors that may surprise users:
 
-This reference documents RegexParser diagnostics, not the full PCRE2 spec. If you find a pattern that PHP accepts but RegexParser rejects, please open an issue with a minimal repro.
+| Behavior           | Description               | Example                         |
+|--------------------|---------------------------|---------------------------------|
+| Forward references | `/\1(a)/` compiles in PHP | May look invalid but works      |
+| Branch reset       | `(?                       | ...)` changes capture numbering | `\2` can be invalid in branches |
+| `\g{0}`            | Invalid in PHP            | Use `\g<0>` or `(?R)`           |
+| Lookbehind         | Must have bounded length  | `(?<=a+)` is invalid            |
+
+---
 
 ## Flags
 
 ### Useless Flag 's' (DOTALL)
+
 **Identifier:** `regex.lint.flag.useless.s`
 
-**When it triggers:** the pattern sets the `s` (DotAll) modifier but contains no dot tokens (`.`). DotAll only changes how the dot behaves, so without a dot it has no effect.
+**When it triggers:** The pattern sets the `s` (DotAll) modifier but contains no dot tokens (`.`). The `s` flag only affects `.` behavior.
 
-**Fix it:** drop the flag or introduce a dot intentionally.
-
-```php
-// Warning: DotAll does nothing because there is no dot
-preg_match('/^user_id:\\d+$/s', $input);
-
-// Preferred
-preg_match('/^user_id:\\d+$/', $input);
+**Visual Explanation:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│  /^\d+$/s  ──► NO DOT IN PATTERN                            │
+│             ──► DOTALL FLAG DOES NOTHING                    │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-**Read more**
+**Example:**
+```php
+// Warning: DotAll does nothing because there is no dot
+preg_match('/^user_id:\d+$/s', $input);
+
+// Preferred: Remove unnecessary flag
+preg_match('/^user_id:\d+$/', $input);
+```
+
+**Fix:** Drop the flag or introduce a dot if intended.
+
+**Read more:**
 - [PHP: Pattern Modifiers (`s` / DOTALL)](https://www.php.net/manual/en/reference.pcre.pattern.modifiers.php)
-- [PCRE2: Pattern Reference (inline modifiers such as `(?s)`)](https://www.pcre.org/current/doc/html/pcre2pattern.html)
 
 ---
 
 ### Useless Flag 'm' (Multiline)
+
 **Identifier:** `regex.lint.flag.useless.m`
 
-**When it triggers:** the pattern sets the `m` (multiline) modifier but contains no start/end anchors (`^` or `$`). Multiline mode only changes how those anchors behave.
+**When it triggers:** The pattern sets the `m` (multiline) modifier but contains no start/end anchors (`^` or `$`).
 
-**Fix it:** remove the flag when you only need a single-line match, or add explicit anchors if you truly want per-line matching.
+**Visual Explanation:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│  /search_term/m  ──► NO ANCHORS IN PATTERN                  │
+│                 ──► MULTILINE FLAG DOES NOTHING             │
+└─────────────────────────────────────────────────────────────┘
+```
 
+**Example:**
 ```php
 // Warning: Multiline mode is unused because there are no anchors
 preg_match('/search_term/m', $text);
 
-// Preferred
+// Preferred: Remove unnecessary flag
 preg_match('/search_term/', $text);
 ```
 
-**Read more**
+**Fix:** Remove the flag or add anchors for per-line matching.
+
+**Read more:**
 - [PHP: Pattern Modifiers (`m` / MULTILINE)](https://www.php.net/manual/en/reference.pcre.pattern.modifiers.php)
-- [Regular-Expressions.info: Anchors](https://www.regular-expressions.info/anchors.html)
 
 ---
 
 ### Useless Flag 'i' (Caseless)
+
 **Identifier:** `regex.lint.flag.useless.i`
 
-**When it triggers:** the pattern sets the `i` (case-insensitive) modifier but the regex contains no case-sensitive characters (only digits, symbols, or whitespace).
+**When it triggers:** The pattern sets the `i` (case-insensitive) modifier but contains no case-sensitive characters.
 
-**Fix it:** drop the flag when matching digits/symbols, or keep the flag and add explicit letters if the pattern should be case-insensitive.
-
+**Example:**
 ```php
 // Warning: No letters to justify case-insensitive matching
-preg_match('/^\\d{4}-\\d{2}-\\d{2}$/i', $date);
+preg_match('/^\d{4}-\d{2}-\d{2}$/i', $date);
 
-// Preferred
-preg_match('/^\\d{4}-\\d{2}-\\d{2}$/', $date);
+// Preferred: Remove unnecessary flag
+preg_match('/^\d{4}-\d{2}-\d{2}$/', $date);
 ```
 
-**Read more**
-- [PHP: Pattern Modifiers (`i` / CASELESS)](https://www.php.net/manual/en/reference.pcre.pattern.modifiers.php)
-- [PCRE2: Case Sensitivity and Inline Modifiers](https://www.pcre.org/current/doc/html/pcre2pattern.html)
+**Fix:** Drop the flag when matching digits/symbols.
 
 ---
 
 ## Anchors
 
 ### Anchor Conflicts
+
 **Identifier:** `regex.lint.anchor.impossible.start`, `regex.lint.anchor.impossible.end`
 
 **When it triggers:**
+- `^` appears after consuming tokens (without `m` flag) — cannot match start
+- `$` appears before consuming tokens — asserts end too early
 
-- `^` appears after consuming tokens (and `m` is not enabled), so it can no longer match “start of subject”.
-- `$` appears before consuming tokens, so it asserts end-of-subject too early.
+**Visual Explanation:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│              ANCHOR CONFLICTS                               │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  VALID:                                                     │
+│  /^abc/        ──► Anchor at start, then literal            │
+│  /abc$/        ──► Literal, then anchor at end              │
+│                                                             │
+│  INVALID:                                                   │
+│  /a^bc/        ──► ^ after consuming 'a'                    │
+│  /^/abc        ──► $ before consuming anything              │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
 
-**Fix it:** move anchors to the correct position, or enable multiline mode intentionally.
-
-**Read more**
-- [PHP: Anchors `^` and `$`](https://www.php.net/manual/en/regexp.reference.anchors.php)
+**Fix:** Move anchors to the correct position.
 
 ---
 
 ## Quantifiers
 
-### Nested Quantifiers
+### Nested Quantifiers (ReDoS Risk)
+
 **Identifier:** `regex.lint.quantifier.nested`
 
-**When it triggers:** a variable quantifier wraps another variable quantifier (e.g. `(a+)+`). This is a classic catastrophic backtracking shape.
+**When it triggers:** A variable quantifier wraps another variable quantifier, creating catastrophic backtracking potential.
 
-**Fix it:** refactor to be deterministic, or use atomic groups / possessive quantifiers.
+**Visual Explanation:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│              NESTED QUANTIFIERS EXPLOSION                   │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  Pattern: /(a+)+b/                                          │
+│                                                             │
+│  Input: a a a a a !                                         │
+│                                                             │
+│  Inner (a+) can match:                                      │
+│    - 5 a's                                                  │
+│    - 4 a's + outer + repeats 2                              │
+│    - 3 a's + outer + repeats 3                              │
+│    - ...                                                    │
+│                                                             │
+│  Each additional 'a' adds MORE combinations!                │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
 
-**Read more**
+**Example:**
+```php
+// VULNERABLE: Nested quantifiers can cause ReDoS
+preg_match('/(a+)+b/', $input);
+
+// SAFER: Use atomic groups
+preg_match('/(?>a+)+b/', $input);
+
+// SAFER: Use possessive quantifier
+preg_match('/(a++)+b/', $input);
+```
+
+**Fix:** Refactor to be deterministic, or use atomic groups/possessive quantifiers.
+
+**Read more:**
 - [OWASP: ReDoS](https://owasp.org/www-community/attacks/Regular_expression_Denial_of_Service_-_ReDoS)
-- [PHP: Atomic groups `(?>...)`](https://www.php.net/manual/en/regexp.reference.onlyonce.php)
 
 ---
 
 ### Dot-Star in Quantifier
+
 **Identifier:** `regex.lint.dotstar.nested`
 
-**When it triggers:** an unbounded quantifier wraps a dot-star (e.g. `(?:.*)+`). This can cause extreme backtracking on non-matching input.
+**When it triggers:** An unbounded quantifier wraps a dot-star, which can cause extreme backtracking.
 
-**Fix it:** make it atomic/possessive or replace `.*` with a more specific class.
+**Example:**
+```php
+// RISKY: .* in repetition can backtrack heavily
+preg_match('/(?:.*)+/', $input);
 
-**Read more**
-- [PCRE2: Performance considerations](https://www.pcre.org/current/doc/html/pcre2perform.html)
+// SAFER: Make it possessive
+preg_match('/(?:.*)+/', $input);  // Still risky for non-matching input
+
+// BETTER: Use negated character class
+preg_match('/(?:[^"]*)+/', $input);  // For double-quoted strings
+```
+
+**Fix:** Make it atomic/possessive or replace `.*` with a specific class.
 
 ---
 
 ## Groups
 
 ### Redundant Non-Capturing Group
+
 **Identifier:** `regex.lint.group.redundant`
 
-**When it triggers:** a non-capturing group `(?:...)` wraps a single atomic token and does not change precedence.
+**When it triggers:** A non-capturing group wraps a single atomic token without changing precedence.
 
-**Fix it:** remove the group.
+**Example:**
+```php
+// WARNING: Unnecessary group
+preg_match('/(?:foo)/', $input);
+
+// PREFERRED: Remove the group
+preg_match('/foo/', $input);
+```
+
+**Fix:** Remove the unnecessary group.
 
 ---
 
 ## Alternation
 
 ### Duplicate Alternation Branches
+
 **Identifier:** `regex.lint.alternation.duplicate`
 
-**When it triggers:** the same literal branch appears more than once (e.g. `(a|a)`).
+**When it triggers:** The same literal branch appears more than once.
 
-**Fix it:** remove duplicates; consider a character class when appropriate (e.g. `(a|b)` → `[ab]`).
+**Example:**
+```php
+// WARNING: Duplicate branch
+preg_match('/(a|a)/', $input);
+
+// PREFERRED: Use character class
+preg_match('/[aa]/', $input);  // or just /a/
+```
+
+**Fix:** Remove duplicates or use a character class.
 
 ---
 
 ### Overlapping Alternation Branches
+
 **Identifier:** `regex.lint.alternation.overlap`
 
-**When it triggers:** one literal alternative is a prefix of another (e.g. `(a|aa)`). Inside repetition this is a common ReDoS trigger.
+**When it triggers:** One literal alternative is a prefix of another.
 
-**Fix it:** use atomic groups `(?>...)` to prevent backtracking. Do not reorder overlapping alternatives as it changes match semantics.
+**Visual Explanation:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│              OVERLAPPING ALTERNATIVES                       │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  Pattern: /(a|aa)+b/                                        │
+│                                                             │
+│  Input: a a a a a b                                         │
+│                                                             │
+│  The engine tries:                                          │
+│    a + a + a + a + a = "aaaaa"                              │
+│    aa + a + a + a = "aaaaa"                                 │
+│    a + aa + a + a = "aaaaa"                                 │
+│    ...                                                      │
+│                                                             │
+│  Result: Exponential backtracking!                          │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
 
-**Read more**
-- [OWASP: ReDoS](https://owasp.org/www-community/attacks/Regular_expression_Denial_of_Service_-_ReDoS)
+**Example:**
+```php
+// VULNERABLE: Overlapping branches in repetition
+preg_match('/(a|aa)+b/', $input);
 
-### Overlapping Character Sets in Alternations
+// SAFER: Use atomic groups
+preg_match('/(?>a|aa)+b/', $input);
+
+// SIMPLER: Just use a+
+preg_match('/a+b/', $input);  // Often equivalent
+```
+
+**Fix:** Use atomic groups or simplify the pattern.
+
+---
+
+### Overlapping Character Sets
+
 **Identifier:** `regex.lint.overlap.charset`
 
-**When it triggers:** alternation branches have overlapping character sets (e.g. `[a-c]|[b-d]`). This may cause unnecessary backtracking.
+**When it triggers:** Alternation branches have overlapping character sets.
 
-**Fix it:** use atomic groups `(?>...)` to prevent backtracking. Do not reorder overlapping alternatives as it changes match semantics.
+**Example:**
+```php
+// WARNING: Overlapping character classes
+preg_match('/[a-c]|[b-d]/', $input);
 
-**Read more**
-- [OWASP: ReDoS](https://owasp.org/www-community/attacks/Regular_expression_Denial_of_Service_-_ReDoS)
+// PREFERRED: Merge or use atomic groups
+preg_match('/[a-d]/', $input);  // Merge
+```
 
 ---
 
 ## Character Classes
 
 ### Redundant Character Class Elements
+
 **Identifier:** `regex.lint.charclass.redundant`
 
-**When it triggers:** a character class contains redundant literals or overlapping ranges (e.g. `[a-zA-Za-z]`).
+**When it triggers:** A character class contains redundant elements or overlapping ranges.
 
-**Fix it:** remove duplicates or merge ranges.
+**Example:**
+```php
+// WARNING: Duplicate letters
+preg_match('/[a-zA-Za-z]/', $input);
+
+// PREFERRED: Remove duplicates
+preg_match('/[a-zA-Z]/', $input);
+
+// WARNING: Overlapping ranges
+preg_match('/[a-fc-d]/', $input);  // 'c' and 'd' already in a-f
+
+// PREFERRED: Use clean ranges
+preg_match('/[a-f]/', $input);
+```
+
+**Fix:** Remove duplicates or merge ranges.
 
 ---
 
 ## Escapes
 
 ### Suspicious Escapes
+
 **Identifier:** `regex.lint.escape.suspicious`
 
-**When it triggers:** escapes that are likely typos or out-of-range values (e.g. `\x{110000}`).
+**When it triggers:** Escapes that are likely typos or out-of-range values.
 
-**Fix it:** correct the codepoint or use a valid escape for your target engine.
+**Example:**
+```php
+// WARNING: Out of range Unicode
+preg_match('/\x{110000}/', $input);  // Max is 0x10FFFF
 
-**Read more**
-- [PHP: Character escapes](https://www.php.net/manual/en/regexp.reference.escape.php)
+// FIX: Use valid code point
+preg_match('/\x{10FFFF}/', $input);
+
+// WARNING: Suspicious escape
+preg_match('/\d/', $input);  // Valid: digit
+
+preg_match('/\8/', $input);  // Ambiguous: not a valid escape
+```
+
+**Fix:** Correct the codepoint or use valid escapes.
 
 ---
 
 ## Inline Flags
 
 ### Inline Flag Redundant
+
 **Identifier:** `regex.lint.flag.redundant`
 
-**When it triggers:** an inline flag sets/unsets a modifier that is already in the desired state given the surrounding flags.
+**When it triggers:** An inline flag sets/unsets a modifier already in the desired state.
 
-**Fix it:** remove redundant inline flags to improve readability.
+**Example:**
+```php
+// WARNING: Redundant inline flag
+preg_match('/(?i)foo(?-i)/i', $input);  // Global i, then toggle off/on
+
+// PREFERRED: Remove redundancy
+preg_match('/(?i)foo/i', $input);
+```
 
 ---
 
 ### Inline Flag Override
+
 **Identifier:** `regex.lint.flag.override`
 
-**When it triggers:** an inline flag explicitly unsets a global modifier (e.g. `/(?-i:foo)/i`).
+**When it triggers:** An inline flag explicitly unsets a global modifier.
 
-**Fix it:** consider scoping the global modifier instead, or document why the override is needed.
+**Example:**
+```php
+// WARNING: Unset global flag
+preg_match('/(?-i:foo)i/', $input);
+
+// CONSIDER: Scope the flag instead
+preg_match('/(?i:foo)/', $input);
+```
 
 ---
 
 ## Security (ReDoS)
 
 ### Catastrophic Backtracking
-**Identifier:** `regex.redos.critical`, `regex.redos.high`, `regex.redos.medium`, `regex.redos.low`
 
-**When it triggers:** the ReDoS analyzer detects nested quantifiers or overlapping alternatives that can explode backtracking time on non-matching inputs.
+**Identifiers:** `regex.redos.critical`, `regex.redos.high`, `regex.redos.medium`, `regex.redos.low`
 
-**Fix it:** make the ambiguous part atomic or possessive, or refactor to avoid ambiguous repetition.
+**When it triggers:** The ReDoS analyzer detects nested quantifiers or overlapping alternatives that can explode backtracking time.
 
+**Risk Levels:**
+
+| Level      | Severity                | Action Required      |
+|------------|-------------------------|----------------------|
+| `critical` | Easily exploitable      | Refactor immediately |
+| `high`     | Requires specific input | Consider refactoring |
+| `medium`   | Requires crafted input  | Monitor and plan fix |
+| `low`      | Minimal risk            | Accept with logging  |
+
+**Example:**
 ```php
-// Vulnerable: `(a+)+` can backtrack exponentially
-preg_match('/(a+)+$/', $input);
+// VULNERABLE: Exponential backtracking
+preg_match('/(a+)+$/', $input);  // CRITICAL
 
-// Safer: atomic group
-preg_match('/(?>a+)+$/', $input);
+// SAFER: Atomic group
+preg_match('/(?>a+)+$/', $input);  // SAFE
 
-// Safer: possessive quantifier
-preg_match('/(a++)+$/', $input);
+// SAFER: Possessive quantifier
+preg_match('/(a++)+$/', $input);  // SAFE
 ```
 
-**Read more**
+**Fix:** Make the ambiguous part atomic or possessive, or refactor.
+
+**Read more:**
 - [OWASP: Regular Expression Denial of Service](https://owasp.org/www-community/attacks/Regular_expression_Denial_of_Service_-_ReDoS)
-- [PCRE2: Performance Considerations](https://www.pcre.org/current/doc/html/pcre2perform.html)
-- [PHP: Backtracking Control and Limits](https://www.php.net/manual/en/regexp.reference.backtrack-control.php)
 
 ---
 
 ## Advanced Syntax
 
 ### Possessive Quantifiers
-**Identifier:** `regex.optimization`
 
-**What they are:** quantifiers with a trailing `+` (`*+`, `++`, `?+`, `{m,n}+`) that consume text without ever backtracking.
+**What they are:** Quantifiers with trailing `+` (`*+`, `++`, `?+`, `{m,n}+`) that consume text without backtracking.
 
-**When to use:** when the consumed text should not be reconsidered, especially near ambiguous alternation, to prevent backtracking blowups.
+**Visual Comparison:**
+```
+┌─────────────────────────────────────────────────────────────┐
+│              GREEDY vs POSSESSIVE                           │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  GREEDY: /".*"/                                             │
+│    - Matches as much as possible                            │
+│    - Backtracks on failure                                  │
+│    - Can be slow on non-matching input                      │
+│                                                             │
+│  POSSESSIVE: /".*+"/                                        │
+│    - Matches as much as possible                            │
+│    - NEVER backtracks                                       │
+│    - Fails fast on non-matching input                       │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
 
+**Example:**
 ```php
 // Greedy: may backtrack heavily
 preg_match('/".*"/', $input);
@@ -274,158 +534,85 @@ preg_match('/".*"/', $input);
 preg_match('/".*+"/', $input);
 ```
 
-**Read more**
-- [PHP: Repetition and Quantifiers](https://www.php.net/manual/en/regexp.reference.repetition.php)
-- [PCRE2: Possessive Quantifiers](https://www.pcre.org/current/doc/html/pcre2pattern.html#SEC11)
-
 ---
 
 ### Atomic Groups
-**Identifier:** `regex.optimization`
 
-**What they are:** groups of the form `(?>...)` that disallow backtracking into their contents once matched.
+**What they are:** Groups of the form `(?>...)` that disallow backtracking into their contents once matched.
 
-**When to use:** to isolate a part of the pattern that must match exactly once, preventing exponential retries when the rest of the pattern fails.
-
+**Example:**
 ```php
-// Risky: catastrophic backtracking on repeated `a`
+// Risky: catastrophic backtracking on repeated 'a'
 preg_match('/(a+)+!/', $input);
 
 // Atomic: once inside the group matches, it cannot backtrack
 preg_match('/(?>a+)+!/', $input);
 ```
 
-**Read more**
-- [PHP: Atomic Grouping `(?>...)`](https://www.php.net/manual/en/regexp.reference.onlyonce.php)
-- [PCRE2: Atomic Groups](https://www.pcre.org/current/doc/html/pcre2pattern.html#SEC12)
-
 ---
 
 ### Assertions
-**Identifier:** `regex.optimization`
 
-**What they are:** zero-width lookarounds such as lookahead `(?=...)` / `(?!...)` and lookbehind `(?<=...)` / `(?<!...)` that assert context without consuming characters.
+**What they are:** Zero-width lookarounds like `(?=...)` / `(?!...)` / `(?<=...)` / `(?<!...)`.
 
-**When to use:** to enforce boundaries or context while keeping the main match focused, and to avoid inserting extra capturing groups solely for validation.
-
+**Example:**
 ```php
 // Lookahead: require a trailing digit without consuming it
-preg_match('/^[A-Z]{2}(?=\\d$)/', $input);
+preg_match('/^[A-Z]{2}(?=\d$)/', $input);
 
 // Lookbehind: ensure the match is preceded by "ID-"
-preg_match('/(?<=ID-)\\d+/', $input);
+preg_match('/(?<=ID-)\d+/', $input);
 ```
-
-**Read more**
-- [PHP: Assertions (Lookahead/Lookbehind)](https://www.php.net/manual/en/regexp.reference.assertions.php)
-- [PCRE2: Lookaround Assertions](https://www.pcre.org/current/doc/html/pcre2pattern.html#SEC23)
 
 ---
 
 ## Compatibility & Limitations
 
 ### Supported PHP Versions
-- PHP 8.2 and above (uses readonly classes and enum features).
+
+- **PHP 8.2** and above
+- Uses readonly classes and enum features
 
 ### Target Engine
-- **PCRE2** via PHP's `preg_*` functions.
-- Notes on differences from PCRE1 or other engines:
-  - Full Unicode support with `\p{...}` and `\P{...}`.
-  - `\g{0}` is invalid in PHP; use `\g<0>` or `(?R)` for recursion.
-  - Branch reset groups `(?|...)` fully implemented with correct capture numbering.
 
-### Known Not-Supported Constructs
-- None by v1.0; aims for full PCRE2 compliance.
-- If you encounter a pattern that PHP accepts but RegexParser rejects, please report it.
+- **PCRE2** via PHP's `preg_*` functions
+
+### Known Differences from PCRE1
+
+| Feature           | PCRE2        | Note                  |
+|-------------------|--------------|-----------------------|
+| `\p{...}` Unicode | Full support |                       |
+| `\g{0}`           | Invalid      | Use `\g<0>` or `(?R)` |
+| Branch reset `(?  | ...)`        | Full support          | |
 
 ---
 
 ## Diagnostics Catalog
 
-| Error Code | Message Template | Meaning | Fix Example |
-|------------|------------------|---------|-------------|
-| `regex.backref.missing_group` | Backreference to non-existent group: "{ref}" | A backreference points to a group number or name that doesn't exist. | Change `\2` to `\1` if only one group exists. |
-| `regex.backref.missing_named_group` | Backreference to non-existent named group: "{name}" | Named backreference refers to a group not defined in the pattern. | Ensure `(?<name>...)` precedes `\k<name>`. |
-| `regex.backref.zero` | Backreference \0 is not valid. | `\0` is not a valid backreference in PCRE. | Use `\g<0>` for whole-pattern recursion. |
-| `regex.group.duplicate_name` | Duplicate group name "{name}" at position {pos}. | Named groups must have unique names unless J flag is set. | Use different names or add `(?J)` for duplicate names. |
-| `regex.quantifier.invalid_range` | Invalid quantifier range "{quant}": min > max. | Quantifier minimum exceeds maximum. | Fix `{3,2}` to `{2,3}`. |
-| `regex.syntax.delimiter` | Invalid delimiter "{delim}". | Delimiter not allowed. | Use `/pattern/` instead of `!pattern!` if `!` is invalid. |
-| `regex.semantic` | Various semantic errors. | Pattern violates PCRE rules (e.g., unbounded lookbehind). | Add bounds to lookbehind or use assertions. |
+| Error Code                          | Message Template                                    | Meaning                               | Fix Example              |
+|-------------------------------------|-----------------------------------------------------|---------------------------------------|--------------------------|
+| `regex.backref.missing_group`       | Backreference to non-existent group: "{ref}"        | Backreference points to missing group | Change `\2` to `\1`      |
+| `regex.backref.missing_named_group` | Backreference to non-existent named group: "{name}" | Named backreference undefined         | Add `(?<name>...)`       |
+| `regex.backref.zero`                | Backreference \0 is not valid                       | `\0` invalid in PCRE                  | Use `\g<0>`              |
+| `regex.group.duplicate_name`        | Duplicate group name "{name}"                       | Named groups must be unique           | Use different names      |
+| `regex.quantifier.invalid_range`    | Invalid quantifier range "{quant}": min > max       | `{3,2}` is invalid                    | Swap to `{2,3}`          |
+| `regex.syntax.delimiter`            | Invalid delimiter "{delim}"                         | Delimiter not allowed                 | Use `/pattern/`          |
+| `regex.semantic`                    | Various semantic errors                             | Pattern violates PCRE rules           | Add bounds to lookbehind |
 
 ---
 
-## Output Formats
+## Quick Reference Table
 
-### JSON Format for CI/IDE Integration
-
-When using `--format=json` with the lint command, output follows this schema:
-
-```json
-{
-  "stats": {
-    "errors": 1,
-    "warnings": 0,
-    "optimizations": 1
-  },
-  "results": [
-    {
-      "file": "src/Example.php",
-      "line": 15,
-      "pattern": "/(a)\\2/",
-      "location": null,
-      "issues": [
-        {
-          "type": "error",
-          "message": "Backreference to non-existent group: \\2",
-          "line": 15,
-          "column": 20,
-          "issueId": "regex.backref.missing_group"
-        }
-      ],
-      "optimizations": [
-        {
-          "file": "src/Example.php",
-          "line": 15,
-          "optimization": {
-            "original": "/[0-9]+/",
-            "optimized": "/\\d+/"
-          },
-          "savings": 2
-        }
-      ]
-    }
-  ]
-}
-```
-
-- `stats`: Totals for the entire run (`errors`, `warnings`, `optimizations`).
-- `results[]`: One entry per pattern occurrence (file + line).
-- `results[].issues[]`: Array of diagnostic issues.
-  - `type`: "error" | "warning"
-  - `message`: Human-readable description
-  - `line`, `column`: Position in source file
-  - `issueId`: Diagnostic identifier (when available)
-- `results[].optimizations[]`: Suggested optimizations.
-  - `optimization`: Object with `original` and `optimized` strings
-  - `savings`: Character savings count
-
-Additional fields may be present for detailed analysis (e.g., validation or ReDoS metadata).
-
-
-## Memory Management
-
-### Memory Cache Limiting
-RegexParser uses caching for validation operations to improve performance. To prevent memory leaks in long-running processes, the ValidatorNodeVisitor implements cache size limits:
-
-- **Maximum cache entries**: 1000 items per cache
-- **Automatic cleanup**: When cache reaches limit size
-- **Manual cleanup**: `Regex::create()->clearValidatorCaches()` (validator caches only)
-
-```php
-// For long-running processes
-$regex = Regex::create();
-$regex->clearValidatorCaches(); // Reset validator caches periodically
-```
+| Category    | Rule ID                     | Severity      | Quick Fix                        |
+|-------------|-----------------------------|---------------|----------------------------------|
+| Flags       | `regex.lint.flag.useless.*` | warning       | Remove unused flag               |
+| Anchors     | `regex.lint.anchor.*`       | error         | Move anchors to correct position |
+| Quantifiers | `regex.lint.quantifier.*`   | warning/error | Use atomic groups                |
+| Groups      | `regex.lint.group.*`        | info          | Remove redundant groups          |
+| Alternation | `regex.lint.alternation.*`  | warning       | Simplify or use atomic           |
+| Character   | `regex.lint.charclass.*`    | warning       | Remove duplicates                |
+| Escapes     | `regex.lint.escape.*`       | warning       | Fix escape sequences             |
+| ReDoS       | `regex.redos.*`             | error/warning | Use possessive quantifiers       |
 
 ---
 

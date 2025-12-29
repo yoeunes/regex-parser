@@ -1,47 +1,254 @@
 # Diagnostics Cheat Sheet
 
-Fast fixes for common RegexParser diagnostics. For full context and rule IDs,
-see the lint reference.
+Fast fixes for the most common RegexParser diagnostics. Use this as a quick reference when you encounter an issue.
 
-## Quick fixes
+## Quick Fix Index
 
-- **Lookbehind is unbounded**
-  - Make the lookbehind fixed length, or rewrite using a lookahead + capture.
-  - Use `(*LIMIT_LOOKBEHIND=...)` only if you control the engine limits.
+| Diagnostic                                                                  | Quick Fix                   |
+|-----------------------------------------------------------------------------|-----------------------------|
+| [Lookbehind is unbounded](#lookbehind-is-unbounded)                         | Add bounds or use lookahead |
+| [Backreference to non-existent group](#backreference-to-non-existent-group) | Check group numbers         |
+| [Duplicate group name](#duplicate-group-name)                               | Use unique names            |
+| [Invalid quantifier range](#invalid-quantifier-range)                       | Swap min/max                |
+| [Nested quantifiers detected](#nested-quantifiers-detected)                 | Use atomic groups           |
+| [Dot-star in repetition](#dot-star-in-repetition)                           | Make atomic or specific     |
+| [Overlapping alternation branches](#overlapping-alternation-branches)       | Order branches or atomic    |
+| [Redundant non-capturing group](#redundant-non-capturing-group)             | Remove group                |
+| [Useless flag](#useless-flag)                                               | Remove flag                 |
+| [Invalid delimiter](#invalid-delimiter)                                     | Use proper delimiter        |
 
-- **Backreference to non-existent group**
-  - Renumber the backreference or add the missing group.
-  - For named backrefs, ensure `(?<name>...)` exists before `\k<name>`.
+---
 
-- **Duplicate group name**
-  - Use unique names, or add the `(?J)` modifier if duplicates are intended.
+## Lookbehind is unbounded
 
-- **Invalid quantifier range**
-  - Fix `{min,max}` where `min` must be <= `max`.
+**Problem:** PCRE requires lookbehinds to have a bounded maximum length.
 
-- **Nested quantifiers detected**
-  - Flatten the quantifier or use an atomic group/possessive quantifier.
+```php
+// ERROR
+preg_match('/(?<=a+)b/', $input);
 
-- **Dot-star in repetition**
-  - Replace `.*` with a specific character class or make it atomic/possessive.
+// FIX 1: Use bounded quantifier
+preg_match('/(?<=a{1,100})b/', $input);
 
-- **Overlapping alternation branches**
-  - Order longer branches first or make the alternation atomic.
+// FIX 2: Use lookahead instead
+preg_match('/(?=(a+))b\1/', $input);
 
-- **Redundant non-capturing group**
-  - Remove the extra `(?:...)` wrapper.
+// FIX 3: Use (*LIMIT_LOOKBEHIND) for controlled patterns
+preg_match('/(*LIMIT_LOOKBEHIND=1000)(?<=a+)b/', $input);
+```
 
-- **Useless flag (i/m/s)**
-  - Remove the flag or add the token it affects (`.` for `s`, anchors for `m`).
+---
 
-- **Invalid delimiter**
-  - Use `/pattern/flags` or escape the chosen delimiter.
+## Backreference to non-existent group
 
-## Where to look next
+**Problem:** The backreference points to a group that doesn't exist.
 
-- Full rule reference: [docs/reference.md](../reference.md)
-- Diagnostics deep dive: [docs/reference/diagnostics.md](diagnostics.md)
-- ReDoS patterns: [docs/REDOS_GUIDE.md](../REDOS_GUIDE.md)
+```php
+// ERROR: \2 doesn't exist (only one group)
+preg_match('/(\w+)\2/', $input);
+
+// FIX 1: Use correct group number
+preg_match('/(\w+)\1/', $input);
+
+// FIX 2: Add the missing group
+preg_match('/(\w+)\s*(\2)/', $input);  // Now \2 exists
+
+// For named backreferences
+// ERROR: No group named 'name'
+preg_match('/(?<name>\w+)\k<other>/', $input);
+
+// FIX: Use correct name
+preg_match('/(?<name>\w+)\k<name>/', $input);
+```
+
+---
+
+## Duplicate group name
+
+**Problem:** Named groups must have unique names (unless `(?J)` is set).
+
+```php
+// ERROR: 'id' appears twice
+preg_match('/(?<id>\w+)(?<id>\d+)/', $input);
+
+// FIX 1: Use unique names
+preg_match('/(?<id>\w+)(?<number>\d+)/', $input);
+
+// FIX 2: Enable J flag for duplicates
+preg_match('/(?J)(?<id>\w+)(?<id>\d+)/', $input);
+```
+
+---
+
+## Invalid quantifier range
+
+**Problem:** Quantifier minimum exceeds maximum.
+
+```php
+// ERROR: {5,2} is invalid
+preg_match('/\d{5,2}/', $input);
+
+// FIX: Swap to {2,5}
+preg_match('/\d{2,5}/', $input);
+```
+
+---
+
+## Nested quantifiers detected
+
+**Problem:** Nested variable quantifiers can cause ReDoS.
+
+```php
+// ERROR: (a+)+ can explode
+preg_match('/(a+)+b/', $input);
+
+// FIX 1: Use atomic group
+preg_match('/(?>a+)+b/', $input);
+
+// FIX 2: Use possessive quantifier
+preg_match('/(a++)+b/', $input);
+
+// FIX 3: Simplify (often equivalent)
+preg_match('/a+b/', $input);
+```
+
+---
+
+## Dot-star in repetition
+
+**Problem:** `.*` inside `+` or `*` can cause extreme backtracking.
+
+```php
+// RISKY: .* in + repetition
+preg_match('/(?:.*)+x/', $input);
+
+// FIX 1: Make possessive
+preg_match('/(?:.*+)x/', $input);
+
+// FIX 2: Use specific character class
+preg_match('/(?:[^x]*)x/', $input);  // If matching until 'x'
+
+// FIX 3: Use atomic group
+preg_match('/(?>.*)x/', $input);
+```
+
+---
+
+## Overlapping alternation branches
+
+**Problem:** One branch is a prefix of another inside repetition.
+
+```php
+// ERROR: 'a' and 'aa' overlap
+preg_match('/(a|aa)+b/', $input);
+
+// FIX 1: Use atomic group
+preg_match('/(?>a|aa)+b/', $input);
+
+// FIX 2: Simplify
+preg_match('/a+b/', $input);
+
+// FIX 3: Order longer first (doesn't fix ReDoS, just semantics)
+preg_match('/(aa|a)+b/', $input);
+```
+
+---
+
+## Redundant non-capturing group
+
+**Problem:** Group wraps single token without changing behavior.
+
+```php
+// WARNING
+preg_match('/(?:foo)/', $input);
+
+// FIX: Remove group
+preg_match('/foo/', $input);
+```
+
+**When groups ARE needed:**
+```php
+// Needed: Change precedence
+preg_match('/(?:foo|bar)baz/', $input);  // Groups foo|bar
+
+// Needed: Apply quantifier to multiple
+preg_match('/(?:foo)+/', $input);  // Repeats "foo"
+```
+
+---
+
+## Useless flag
+
+**Problem:** Flag has no effect on the pattern.
+
+```php
+// WARNING: 's' flag (DotAll) does nothing
+preg_match('/^\d+$/s', $input);
+
+// FIX: Remove unused flag
+preg_match('/^\d+$/', $input);
+
+// WARNING: 'm' flag does nothing
+preg_match('/foo/m', $input);
+
+// FIX: Remove or add anchors
+preg_match('/foo/', $input);  // or
+preg_match('/^foo$/m', $input);  // with anchors
+
+// WARNING: 'i' flag does nothing
+preg_match('/^\d{4}-\d{2}-\d{2}$/i', $input);
+
+// FIX: Remove
+preg_match('/^\d{4}-\d{2}-\d{2}$/', $input);
+```
+
+---
+
+## Invalid delimiter
+
+**Problem:** The delimiter character is not valid.
+
+```php
+// ERROR: Space not valid as delimiter
+preg_match('/^pattern $/', $input);
+
+// FIX 1: Use valid delimiter
+preg_match('/^pattern$/', $input);
+
+// FIX 2: Escape the delimiter
+preg_match('!^pattern$!', $input);
+
+// FIX 3: Use different delimiter
+preg_match('#^pattern$#', $input);
+```
+
+---
+
+## Pattern Too Long
+
+**Problem:** Pattern exceeds configured maximum length.
+
+```php
+// ERROR: Pattern too long
+preg_match('/very long pattern.../', $input);
+
+// FIX 1: Increase limit (if appropriate)
+$regex = Regex::create(['max_pattern_length' => 500000]);
+
+// FIX 2: Shorten the pattern
+// Consider splitting or simplifying
+```
+
+---
+
+## Where to Look Next
+
+| Topic                 | Resource                                        |
+|-----------------------|-------------------------------------------------|
+| Full rule reference   | [docs/reference.md](../reference.md)            |
+| Diagnostics deep dive | [docs/reference/diagnostics.md](diagnostics.md) |
+| ReDoS patterns        | [docs/REDOS_GUIDE.md](../REDOS_GUIDE.md)        |
+| API reference         | [docs/reference/api.md](api.md)                 |
 
 ---
 

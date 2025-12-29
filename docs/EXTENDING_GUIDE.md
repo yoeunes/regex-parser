@@ -1,55 +1,44 @@
-# Extending RegexParser - Complete Guide
+# Extending RegexParser: Complete Guide
 
-This guide shows you how to add new PCRE features to the RegexParser library.
-
----
-
-## Table of Contents
-
-1. [Overview](#overview)
-2. [Step-by-Step: Adding a New Feature](#step-by-step-adding-a-new-feature)
-3. [Example: Adding Callout Support](#example-adding-callout-support)
-4. [Testing Your Changes](#testing-your-changes)
-5. [Updating Documentation](#updating-documentation)
-6. [Best Practices](#best-practices)
+> **Learn how to add new PCRE features, custom visitors, and integrations.**
 
 ---
 
-## Overview
+## 🤔 What Can You Extend?
 
-RegexParser uses the **Visitor Pattern** to separate AST structure from operations:
+RegexParser is designed for extensibility:
 
 ```
-User Input (Pattern)
-      ↓
-   Parser → AST (Nodes)
-      ↓
-   Visitors → Operations
-   - Compiler
-   - Validator
-   - Explainer
-   - Sample Generator
+┌─────────────────────────────────────────────────────────┐
+│                  Your Extension                         │
+├─────────────────────────────────────────────────────────┤
+│  1. New AST Nodes      - Add new pattern constructs     │
+│  2. New Visitors       - Add analysis/transformations   │
+│  3. Custom Linters    - Add your own rules              │
+│  4. Integrations      - Add framework bridges           │
+│  5. CLI Commands      - Add new commands                │
+└─────────────────────────────────────────────────────────┘
 ```
-
-**To add a new PCRE feature**:
-1. Create a new Node class
-2. Update Parser to recognize the feature
-3. Update all Visitors to handle the new Node
-4. Add tests
-5. Update documentation
-
-Helpful references:
-- [AST Nodes](nodes/README.md)
-- [AST Visitors](visitors/README.md)
-- [AST Traversal Design](design/AST_TRAVERSAL.md)
 
 ---
 
-## Step-by-Step: Adding a New Feature
+## 🏗️ Extension Architecture
 
-### Step 1: Create the Node Class
+```
+RegexParser Core
+├── Nodes (src/Node/)     ← Add new node types
+├── Visitors (src/NodeVisitor/) ← Add new visitors
+├── Parser (src/Parser.php) ← Update to recognize features
+└── CLI (src/Cli/)        ← Add new commands
+```
 
-**Location**: `src/Node/YourFeatureNode.php`
+---
+
+## 📝 Step 1: Add a New Node
+
+Create a node class for your new PCRE feature:
+
+**Location:** `src/Node/YourFeatureNode.php`
 
 ```php
 <?php
@@ -61,9 +50,9 @@ namespace RegexParser\Node;
 use RegexParser\NodeVisitor\NodeVisitorInterface;
 
 /**
- * Represents [YOUR PCRE FEATURE].
- * 
- * Example: (?C) or (?C99)
+ * Represents your new PCRE feature.
+ *
+ * Example: (?C) or (?C99) callouts
  */
 readonly class CalloutNode extends AbstractNode
 {
@@ -80,177 +69,230 @@ readonly class CalloutNode extends AbstractNode
         parent::__construct($startPos, $endPos);
     }
 
-    /**
-     * Accept a visitor to perform operations on this node.
-     *
-     * @template T
-     * @param NodeVisitorInterface<T> $visitor
-     * @return T
-     */
-    public function accept(NodeVisitorInterface $visitor)
+    public function accept(NodeVisitorInterface $visitor): mixed
     {
         return $visitor->visitCallout($this);
     }
 }
 ```
 
-**Key Points**:
-- Extend `AbstractNode` (provides `startPosition`, `endPosition`)
-- Use `readonly` properties (immutability)
-- Implement `accept()` method
-- Use strict types: `declare(strict_types=1)`
-- Add PHPDoc comments
+### Checklist for New Nodes
+
+- [ ] Extend `AbstractNode`
+- [ ] Implement `NodeInterface` (via `accept()`)
+- [ ] Add public readonly properties
+- [ ] Call `parent::__construct($startPos, $endPos)`
 
 ---
 
-### Step 2: Update the Parser
+## 🔧 Step 2: Update the Parser
 
-**Location**: `src/Parser.php` (or appropriate parsing class)
-
-```php
-// In parseAtom() or appropriate parsing method:
-
-if ($this->match('(?C')) {
-    $startPos = $this->pos - 3;
-    
-    // Check for numbered callout (?C99)
-    if ($this->match('\d+')) {
-        $number = (int) $this->lastMatch;
-        $this->expect(')');
-        return new CalloutNode($number, $startPos, $this->pos);
-    }
-    
-    // Simple callout (?C)
-    $this->expect(')');
-    return new CalloutNode(null, $startPos, $this->pos);
-}
-```
-
-**Parsing Tips**:
-- Track positions accurately (`startPosition`, `endPosition`)
-- Throw `ParserException` for invalid syntax
-- Handle all syntax variations
-- Test edge cases
-
----
-
-### Step 3: Update All Visitors
-
-You **MUST** update **ALL** visitors. Missing even one will cause runtime errors.
-
-#### 3.1 Update NodeVisitorInterface
-
-**Location**: `src/NodeVisitor/NodeVisitorInterface.php`
+Add parsing logic in `src/Parser.php`:
 
 ```php
-interface NodeVisitorInterface
+// In the parseGroup() method, add your feature
+
+private function parseGroup(int $startPosition): NodeInterface
 {
-    // ... existing methods ...
-    
-    /**
-     * @return T
-     */
-    public function visitCallout(CalloutNode $node);
+    // ... existing code ...
+
+    if ($this->isNextToken('T_GROUP_OPEN')) {
+        // Check for callout pattern: (?C) or (?C<number>)
+        if ($this->isNextToken('T_PCRE_VERB') && str_starts_with($this->currentToken->value, '(*CALLOUT')) {
+            return $this->parseCallout($startPosition);
+        }
+    }
+
+    // ... continue ...
+}
+
+private function parseCallout(int $startPosition): CalloutNode
+{
+    // Consume the callout token
+    $this->consumeToken();
+
+    // Parse callout number if present
+    $number = null;
+    if ($this->isNextToken('T_NUMBER')) {
+        $number = (int) $this->currentToken->value;
+        $this->consumeToken();
+    }
+
+    // Expect closing parenthesis
+    $this->consumeToken('T_GROUP_CLOSE');
+
+    return new CalloutNode(
+        $number,
+        $startPosition,
+        $this->currentToken->endPosition,
+    );
 }
 ```
 
-#### 3.2 Update CompilerNodeVisitor
+---
 
-**Location**: `src/NodeVisitor/CompilerNodeVisitor.php`
+## 👁️ Step 3: Update Visitors
+
+### Add Method to NodeVisitorInterface
+
+**Location:** `src/NodeVisitor/NodeVisitorInterface.php`
+
+```php
+public function visitCallout(CalloutNode $node): mixed;
+```
+
+### Add Default to AbstractNodeVisitor
+
+**Location:** `src/NodeVisitor/AbstractNodeVisitor.php`
+
+```php
+public function visitCallout(CalloutNode $node): mixed
+{
+    return $this->defaultReturn();
+}
+```
+
+### Implement in Your Visitor
+
+**Location:** Your custom visitor class
 
 ```php
 public function visitCallout(CalloutNode $node): string
 {
-    if ($node->number !== null) {
-        return "(?C{$node->number})";
-    }
-    
-    return '(?C)';
-}
-```
-
-**Purpose**: Regenerate PCRE pattern from AST
-
-#### 3.3 Update ValidatorNodeVisitor
-
-**Location**: `src/NodeVisitor/ValidatorNodeVisitor.php`
-
-```php
-public function visitCallout(CalloutNode $node): void
-{
-    // Validate callout number range if needed
-    if ($node->number !== null && ($node->number < 0 || $node->number > 255)) {
-        throw new ParserException("Callout number must be 0-255");
-    }
-    
-    // No further validation needed for callouts
-}
-```
-
-**Purpose**: Semantic validation
-
-#### 3.4 Update ExplainVisitor
-
-**Location**: `src/NodeVisitor/ExplainVisitor.php`
-
-```php
-public function visitCallout(CalloutNode $node): string
-{
-    if ($node->number !== null) {
-        return "Callout #{$node->number} (debugging hook)";
-    }
-    
-    return "Callout (debugging hook)";
-}
-```
-
-**Purpose**: Human-readable explanation
-
-#### 3.5 Update SampleGeneratorVisitor
-
-**Location**: `src/NodeVisitor/SampleGeneratorVisitor.php`
-
-```php
-public function visitCallout(CalloutNode $node): string
-{
-    // Callouts don't match anything - return empty string
-    return '';
-}
-```
-
-**Purpose**: Generate sample strings
-
----
-
-### Step 4: Update NodeRegistry
-
-**Location**: `src/Node/NodeRegistry.php`
-
-```php
-public static function getAllNodes(): array
-{
-    return [
-        // ... existing nodes ...
-        
-        'callout' => [
-            'class' => CalloutNode::class,
-            'pcre_feature' => 'Callouts',
-            'description' => 'Represents callout debugging hooks',
-            'examples' => ['(?C)', '(?C99)', '(?C0)'],
-            'parent' => AbstractNode::class,
-            'children' => [],
-        ],
-    ];
+    return $node->number !== null
+        ? "(?C{$node->number})"
+        : "(?C)";
 }
 ```
 
 ---
 
-### Step 5: Add Tests
+## 🎨 Example: Complete Custom Visitor
 
-#### 5.1 Unit Test
+### Create a Pattern Length Visitor
 
-**Location**: `tests/Unit/Node/CalloutNodeTest.php`
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace App\Regex;
+
+use RegexParser\Node\AlternationNode;
+use RegexParser\Node\AnchorNode;
+use RegexParser\Node\AssertionNode;
+use RegexParser\Node\CharClassNode;
+use RegexParser\Node\CharTypeNode;
+use RegexParser\Node\DotNode;
+use RegexParser\Node\GroupNode;
+use RegexParser\Node\LiteralNode;
+use RegexParser\Node\NodeInterface;
+use RegexParser\Node\QuantifierNode;
+use RegexParser\Node\RegexNode;
+use RegexParser\Node\SequenceNode;
+use RegexParser\NodeVisitor\AbstractNodeVisitor;
+
+/**
+ * Calculates pattern complexity score.
+ */
+final class ComplexityVisitor extends AbstractNodeVisitor
+{
+    private int $score = 0;
+
+    public function getScore(): int
+    {
+        return $this->score;
+    }
+
+    public function visitRegex(RegexNode $node): int
+    {
+        $this->score = 0;
+        $node->pattern->accept($this);
+
+        // Add base score for flags
+        $this->score += strlen($node->flags);
+
+        return $this->score;
+    }
+
+    public function visitSequence(SequenceNode $node): int
+    {
+        foreach ($node->children as $child) {
+            $child->accept($this);
+        }
+
+        return $this->score;
+    }
+
+    public function visitAlternation(AlternationNode $node): int
+    {
+        // Alternations increase complexity
+        $this->score += 10;
+
+        foreach ($node->alternatives as $alternative) {
+            $alternative->accept($this);
+        }
+
+        return $this->score;
+    }
+
+    public function visitQuantifier(QuantifierNode $node): int
+    {
+        // Nested quantifiers increase complexity
+        $this->score += 5;
+
+        $node->node->accept($this);
+
+        return $this->score;
+    }
+
+    public function visitGroup(GroupNode $node): int
+    {
+        $node->child->accept($this);
+
+        return $this->score;
+    }
+
+    public function visitLiteral(LiteralNode $node): int
+    {
+        $this->score += strlen($node->value);
+
+        return $this->score;
+    }
+
+    public function visitCharClass(CharClassNode $node): int
+    {
+        $this->score += 5;
+
+        return $this->score;
+    }
+
+    // Add other visit methods as needed...
+}
+```
+
+### Use Your Visitor
+
+```php
+use App\Regex\ComplexityVisitor;
+use RegexParser\Regex;
+
+$regex = Regex::create();
+$ast = $regex->parse('/^(?:[a-z]+|\d{3,})+$/');
+
+$visitor = new ComplexityVisitor();
+$ast->accept($visitor);
+
+echo "Complexity: " . $visitor->getScore();  // Output: Complexity: 25
+```
+
+---
+
+## 🧪 Step 4: Add Tests
+
+Create tests for your extension:
+
+**Location:** `tests/Unit/Node/CalloutNodeTest.php`
 
 ```php
 <?php
@@ -261,311 +303,162 @@ namespace RegexParser\Tests\Unit\Node;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\Node\CalloutNode;
-use RegexParser\NodeVisitor\CompilerNodeVisitor;
 
 class CalloutNodeTest extends TestCase
 {
-    public function testCalloutWithoutNumber(): void
+    public function testCreateWithNumber(): void
     {
-        $node = new CalloutNode(null, 0, 4);
-        
+        $node = new CalloutNode(42, 0, 10);
+
+        $this->assertSame(42, $node->number);
+        $this->assertSame(0, $node->startPosition);
+        $this->assertSame(10, $node->endPosition);
+    }
+
+    public function testCreateWithoutNumber(): void
+    {
+        $node = new CalloutNode(null, 0, 5);
+
         $this->assertNull($node->number);
-        $this->assertEquals(0, $node->getStartPosition());
-        $this->assertEquals(4, $node->getEndPosition());
-    }
-
-    public function testCalloutWithNumber(): void
-    {
-        $node = new CalloutNode(42, 0, 6);
-        
-        $this->assertEquals(42, $node->number);
-    }
-
-    public function testAcceptVisitor(): void
-    {
-        $node = new CalloutNode(99, 0, 6);
-        $visitor = new CompilerNodeVisitor();
-        
-        $result = $node->accept($visitor);
-        
-        $this->assertEquals('(?C99)', $result);
     }
 }
 ```
 
-#### 5.2 Integration Test
+---
 
-**Location**: `tests/Integration/CalloutTest.php`
+## 📚 Step 5: Update Documentation
 
-```php
-<?php
+Add your new feature to:
 
-declare(strict_types=1);
+1. **[AST Nodes](../nodes/README.md)** - Document the node
+2. **[Visitor Reference](../visitors/README.md)** - Document the visitor method
+3. **Tutorial** - Add examples if it's a user-facing feature
+4. **README** - Update feature list
 
-namespace RegexParser\Tests\Integration;
+---
 
-use PHPUnit\Framework\TestCase;
-use RegexParser\Parser;
-use RegexParser\Node\CalloutNode;
-use RegexParser\NodeVisitor\CompilerNodeVisitor;
+## 🎯 Common Extension Patterns
 
-class CalloutTest extends TestCase
-{
-    public function testParseSimpleCallout(): void
-    {
-        $parser = new Parser();
-        $ast = $parser->parse('/(?C)test/');
-        
-        $this->assertInstanceOf(CalloutNode::class, /* find in AST */);
-    }
-
-    public function testParseNumberedCallout(): void
-    {
-        $parser = new Parser();
-        $ast = $parser->parse('/(?C42)test/');
-        
-        // Assert CalloutNode with number=42 exists in AST
-    }
-
-    public function testRoundTripCompilation(): void
-    {
-        $parser = new Parser();
-        $pattern = '/test(?C99)end/';
-        $ast = $parser->parse($pattern);
-        
-        $compiler = new CompilerNodeVisitor();
-        $compiled = $ast->accept($compiler);
-        
-        $this->assertEquals($pattern, $compiled);
-    }
-
-    /**
-     * @dataProvider calloutPatterns
-     */
-    public function testCalloutPatterns(string $pattern): void
-    {
-        $parser = new Parser();
-        $ast = $parser->parse($pattern);
-        
-        $compiler = new CompilerNodeVisitor();
-        $compiled = $ast->accept($compiler);
-        
-        $this->assertEquals($pattern, $compiled);
-    }
-
-    public static function calloutPatterns(): array
-    {
-        return [
-            ['/(? C)/'],
-            ['/(?C0)/'],
-            ['/(?C255)/'],
-            ['/a(?C)b/'],
-            ['/(?C1)test(?C2)/'],
-        ];
-    }
-}
-```
-
-#### 5.3 Add to Feature Completeness Test
-
-**Location**: `tests/Integration/PcreFeatureCompletenessTest.php`
+### Pattern 1: Custom Lint Rule
 
 ```php
-public function testCallouts(): void
+class YourLinterRule extends AbstractNodeVisitor
 {
-    $patterns = [
-        '/(?C)/',
-        '/(?C0)/',
-        '/(?C99)/',
-        '/test(?C)end/',
-        '/a(?C1)b(?C2)c/',
-    ];
+    /** @var array<int, string> */
+    private array $issues = [];
 
-    foreach ($patterns as $pattern) {
-        try {
-            $ast = $this->parser->parse($pattern);
-            $this->assertNotNull($ast, "Callout pattern should parse: {$pattern}");
-        } catch (ParserException $e) {
-            $this->fail("Callout pattern failed: {$pattern}. Error: {$e->getMessage()}");
+    public function visitQuantifier(QuantifierNode $node): void
+    {
+        if ($node->quantifier === '*') {
+            $this->issues[] = "Avoid * quantifier - use + or bounded {0,n}";
         }
+
+        $node->node->accept($this);
+    }
+
+    public function getIssues(): array
+    {
+        return $this->issues;
+    }
+}
+```
+
+### Pattern 2: Pattern Transformation
+
+```php
+class YourTransformer extends AbstractNodeVisitor
+{
+    public function visitLiteral(LiteralNode $node): NodeInterface
+    {
+        // Transform: lowercase to uppercase
+        return new LiteralNode(
+            strtoupper($node->value),
+            $node->startPosition,
+            $node->endPosition
+        );
+    }
+}
+```
+
+### Pattern 3: Custom Analysis
+
+```php
+class YourAnalyzer extends AbstractNodeVisitor
+{
+    /** @var array<string, int> */
+    private array $counts = [];
+
+    public function getCounts(): array
+    {
+        return $this->counts;
+    }
+
+    public function visitGroup(GroupNode $node): void
+    {
+        $this->counts['groups'] = ($this->counts['groups'] ?? 0) + 1;
+        $node->child->accept($this);
     }
 }
 ```
 
 ---
 
-### Step 6: Update Documentation
+## 🆘 Troubleshooting
 
-#### 6.1 Update Node Documentation
+### "Node not recognized"
 
-Add documentation for the new node type in relevant places (e.g., inline comments, examples).
+Make sure you:
+1. Created the node class
+2. Updated the parser to recognize it
+3. Added the visitor method
 
----
+### "Visitor method not called"
 
-## Example: Adding Callout Support
+Check:
+1. Node's `accept()` calls `visitor->visitYourNode()`
+2. Visitor implements the method
+3. Visitor is registered/used correctly
 
-See the sections above for a complete worked example of adding `(?C)` and `(?C99)` callout support.
+### "Parse error"
 
-**Files Modified**:
-1. `src/Node/CalloutNode.php` - NEW
-2. `src/Parser.php` - Add parsing logic
-3. `src/NodeVisitor/NodeVisitorInterface.php` - Add method signature
-4. `src/NodeVisitor/CompilerNodeVisitor.php` - Add visitCallout()
-5. `src/NodeVisitor/ValidatorNodeVisitor.php` - Add visitCallout()
-6. `src/NodeVisitor/ExplainVisitor.php` - Add visitCallout()
-7. `src/NodeVisitor/SampleGeneratorVisitor.php` - Add visitCallout()
-8. `src/Node/NodeRegistry.php` - Add metadata
-9. `tests/Unit/Node/CalloutNodeTest.php` - NEW
-10. `tests/Integration/CalloutTest.php` - NEW
-11. `tests/Integration/PcreFeatureCompletenessTest.php` - Add test method
+Verify parser logic:
+1. Token type check is correct
+2. Token consumption order is right
+3. Error handling for missing tokens
 
 ---
 
-## Testing Your Changes
+## 📚 Best Practices
 
-### Run Unit Tests
-```bash
-./vendor/bin/phpunit tests/Unit/
-```
-
-### Run Integration Tests
-```bash
-./vendor/bin/phpunit tests/Integration/
-```
-
-### Run Feature Completeness
-```bash
-./vendor/bin/phpunit tests/Integration/PcreFeatureCompletenessTest.php
-```
-
-### Run All Tests
-```bash
-./vendor/bin/phpunit
-```
-
-### Static Analysis
-```bash
-./vendor/bin/phpstan analyze
-```
-
-### Code Style
-```bash
-./vendor/bin/php-cs-fixer fix
-```
+1. **Immutability** - Nodes should be readonly
+2. **Position tracking** - Preserve start/end positions
+3. **Error handling** - Throw meaningful exceptions
+4. **Testing** - Cover edge cases
+5. **Documentation** - Explain the feature clearly
 
 ---
 
-## Best Practices
+## 🎓 Learning Resources
 
-### 1. Immutability
-✅ Use `readonly` properties  
-❌ Don't use mutable state
-
-```php
-// GOOD
-public readonly int $value;
-
-// BAD
-public int $value;
-```
-
-### 2. Type Safety
-✅ Use strict types  
-✅ Type all parameters and returns  
-❌ Avoid `mixed`
-
-```php
-// GOOD
-public function visitCallout(CalloutNode $node): string
-
-// BAD
-public function visitCallout($node)
-```
-
-### 3. Error Handling
-✅ Throw specific exceptions  
-✅ Include position information  
-❌ Don't silently fail
-
-```php
-// GOOD
-throw new ParserException("Invalid callout number at position {$this->pos}");
-
-// BAD
-return null; // Silent failure
-```
-
-### 4. Documentation
-✅ PHPDoc for all public methods  
-✅ Examples in comments  
-✅ Update all docs
-
-### 5. Testing
-✅ Test happy path  
-✅ Test edge cases  
-✅ Test error conditions  
-✅ Test round-trip compilation
+- **[AST Nodes](../nodes/README.md)** - Node reference
+- **[Visitors](../visitors/README.md)** - Visitor patterns
+- **[AST Traversal](../design/AST_TRAVERSAL.md)** - Traversal design
+- **Source code** - Learn from existing implementations
 
 ---
 
-## Common Pitfalls
+## 🚀 Next Steps
 
-### 1. Forgetting to Update a Visitor
-
-**Error**: `Call to undefined method visitYourFeature()`
-
-**Fix**: Update ALL visitors (Compiler, Validator, Explain, Sample Generator)
-
-### 2. Not Updating NodeVisitorInterface
-
-**Error**: Class doesn't implement interface method
-
-**Fix**: Add method signature to `NodeVisitorInterface`
-
-### 3. Parser Position Tracking
-
-**Error**: Incorrect `startPosition`/`endPosition` values
-
-**Fix**: Carefully track `$this->pos` before and after parsing
-
-### 4. Incomplete Tests
-
-**Error**: Feature breaks in edge cases
-
-**Fix**: Test all syntax variations, not just happy path
+1. Pick a simple feature to implement
+2. Follow the steps above
+3. Write tests
+4. Update documentation
+5. Submit a PR!
 
 ---
 
-## Getting Help
-
-- **Review existing Nodes**: Look at similar features
-- **Check tests**: See how other features are tested
-- **Ask questions**: Open GitHub issue or discussion
-- **Read PCRE docs**: Understand the feature specification
+**Happy extending!**
 
 ---
 
-## Checklist for New Features
-
-- [ ] Create Node class in `src/Node/`
-- [ ] Add parsing logic to Parser
-- [ ] Update `NodeVisitorInterface`
-- [ ] Update `CompilerNodeVisitor`
-- [ ] Update `ValidatorNodeVisitor`
-- [ ] Update `ExplainVisitor`
-- [ ] Update `SampleGeneratorVisitor`
-- [ ] Update `NodeRegistry`
-- [ ] Create unit tests
-- [ ] Create integration tests
-- [ ] Add to feature completeness test
-- [ ] Run all tests
-- [ ] Run static analysis
-- [ ] Fix code style
-
----
-
-**Ready to extend the library?** Start with a simple feature and follow this guide step-by-step!
-
----
-
-Previous: [Maintainers Guide](MAINTAINERS_GUIDE.md) | Next: [Docs Home](README.md)
+Previous: [Architecture](../ARCHITECTURE.md) | Next: [Maintainers Guide](MAINTAINERS_GUIDE.md)
