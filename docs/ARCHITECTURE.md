@@ -1,71 +1,446 @@
-# Architecture and Design Notes
+# Architecture and Design Guide
 
-This document describes the internal architecture of RegexParser and the design decisions that shape its API,
-performance profile, and extension model. It is written for advanced users, framework maintainers, and contributors.
+> **Understanding how RegexParser works internally.**
 
-## Design goals
+---
 
-- Precise diagnostics with stable offsets for IDEs and CI tooling.
-- Fast, parallel linting over large codebases.
-- Clear separation between data structures and algorithms.
+## 🎯 What is RegexParser?
 
-## Parsing strategy: hand-written recursive descent
+RegexParser is a PHP 8.2+ library that converts PCRE regex patterns into a structured **Abstract Syntax Tree (AST)**. This enables:
 
-RegexParser uses a hand-written recursive descent parser rather than a generated parser (Yacc/Bison, ANTLR, etc.).
-This is a deliberate choice with concrete benefits for a PHP library:
+- ✅ Pattern validation and error reporting
+- ✅ ReDoS vulnerability detection
+- ✅ Human-readable explanations
+- ✅ Pattern optimization and transformation
+- ✅ CI/CD linting at scale
 
-- **Precise error reporting**: errors can be surfaced with exact byte offsets and localized context.
-- **Reduced operational overhead**: no generated parser artifacts to ship or regenerate.
-- **Debuggability**: the grammar and control flow are visible in plain PHP code, which makes debugging and patching safer.
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                         Your Pattern                                │
+│                         "/^hello/i"                                 │
+└─────────────────────────────────────────────────────────────────────┘
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                         Lexer                                       │
+│              Tokenizes pattern into TokenStream                     │
+│              Tokens: WORD, QUANTIFIER, ANCHOR, etc.                 │
+└─────────────────────────────────────────────────────────────────────┘
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                         Parser                                      │
+│              Builds typed AST from TokenStream                      │
+│              Recursive descent parser                               │
+└─────────────────────────────────────────────────────────────────────┘
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                         AST                                         │
+│              RegexNode                                              │
+│              └── SequenceNode                                       │
+│                  ├── AnchorNode (^)                                 │
+│                  ├── LiteralNode ("hello")                          │
+│                  └── AnchorNode ($)                                 │
+└─────────────────────────────────────────────────────────────────────┘
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                      Visitors                                       │
+│              ┌────────────────┬─────────────────┬───────────────┐   │
+│              │ Validator      │ Explainer       │ Optimizer     │   │
+│              │ Linter         │ Highlighter     │ Compiler      │   │
+│              │ ReDoS Analyzer │ Diagram         │ ...           │   │
+│              └────────────────┴─────────────────┴───────────────┘   │
+└─────────────────────────────────────────────────────────────────────┘
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                     Output                                          │
+│              Validation results, explanations,                      │
+│              optimized patterns, lint reports                       │
+└─────────────────────────────────────────────────────────────────────┘
+```
 
-The parsing pipeline is explicit and linear:
+---
 
-- `src/Lexer.php` tokenizes the pattern into a linear `TokenStream` with offsets.
-- `src/Parser.php` recursively consumes that stream to build a typed AST rooted at `Node\RegexNode`.
+## 🎨 Design Principles
 
-This keeps the parser both predictable and approachable to contributors, while remaining faithful to PCRE syntax.
+### 1. Precise Error Reporting
 
-## AST traversal: visitor pattern
+RegexParser uses **byte offsets** throughout, making error messages accurate for IDE integration:
 
-RegexParser models regexes as a typed AST under `RegexParser\Node\*` and uses the Visitor Pattern for traversal.
-This separates the **data structure** (nodes) from the **algorithms** (analysis, compilation, optimization, etc.).
+```php
+$pattern = '/(?<=a+)b/';  // Variable-length lookbehind
 
-Examples of visitors in the codebase:
+$result = $regex->validate($pattern);
 
-- Linting and validation visitors
-- Explanation and highlighting visitors
-- Optimization and modernization visitors
-- ReDoS analysis visitors
+echo $result->getErrorMessage();
+// "Variable-length lookbehind is not supported in PCRE."
 
-This keeps the AST stable while allowing new rules and transformations to evolve independently.
-For a deeper explanation of traversal strategy and design trade-offs, see
-[docs/design/AST_TRAVERSAL.md](design/AST_TRAVERSAL.md).
+echo $result->getCaretSnippet();
+/*
+Line 1: (?<=a+)b
+            ^
+*/
+```
 
-## Performance architecture: MapReduce-style linting
+### 2. Separation of Concerns
 
-The CLI linter is designed as a MapReduce-style pipeline, optimized for large codebases:
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│   Nodes     │ ──▶ │  Visitors   │ ──▶ │  Results    │
+│ (immutable) │     │ (behavior)  │     │ (output)    │
+└─────────────┘     └─────────────┘     └─────────────┘
+```
 
-- **Map phase**: `RegexPatternExtractor` discovers patterns across source files and emits
-  `RegexPatternOccurrence` items.
-- **Reduce phase**: `RegexAnalysisService` and `RegexLintService` analyze and aggregate results into
-  a single `RegexLintReport` with stats, issues, and optimizations.
+- **Nodes** are data holders - they never change
+- **Visitors** implement behavior - easy to add new ones
+- **Results** are value objects - easy to test
 
-### Parallel execution
+### 3. Performance at Scale
 
-On CLI runtimes with `pcntl_fork`, the analysis phase parallelizes by chunking patterns and spawning workers.
-Each worker analyzes its chunk in isolation and writes a serialized payload to a temporary file. The parent
-process reads those payloads and reduces them into a final report. This is IPC via the filesystem; no sockets
-or network transport are required.
+The CLI linter uses a **MapReduce-style** architecture for scanning large codebases:
 
-This design keeps memory usage stable because each worker has an isolated heap and the parent only retains
-aggregated results. In internal runs, memory typically stays around ~30MB even when scanning 120k+ files,
-though exact numbers depend on the environment and pattern density.
+```
+Phase 1: Map (Extract)
+┌──────────────┐  ┌──────────────┐  ┌──────────────┐
+│   Worker 1   │  │   Worker 2   │  │   Worker N   │
+│ Extracts     │  │ Extracts     │  │ Extracts     │
+│ patterns     │  │ patterns     │  │ patterns     │
+└──────┬───────┘  └──────┬───────┘  └──────┬───────┘
+       │                 │                 │
+       └─────────────────┼─────────────────┘
+                         ▼
+              ┌─────────────────────┐
+              │   Pattern Queue     │
+              └──────────┬──────────┘
+                         │
+                         ▼
+Phase 2: Reduce (Analyze)
+       ┌────────────────┼────────────────┐
+       ▼                ▼                ▼
+┌──────────────┐ ┌──────────────┐ ┌──────────────┐
+│   Analyze    │ │   Analyze    │ │   Analyze    │
+│   Chunk 1    │ │   Chunk 2    │ │   Chunk N    │
+└──────┬───────┘ └──────┬───────┘ └──────┬───────┘
+       │                │                │
+       └────────────────┼────────────────┘
+                         ▼
+              ┌───────────────────────┐
+              │   Final Report        │
+              └───────────────────────┘
+```
 
-### Why this matters
+**Benefits:**
+- Memory stays low (workers have isolated heaps)
+- Parallel execution (uses `pcntl_fork` when available)
+- Failure isolation (one worker crash doesn't corrupt results)
 
-- **Predictable memory**: workers bound memory growth; the parent only aggregates results.
-- **Failure isolation**: a worker crash does not corrupt the parent process.
-- **CI scalability**: large repositories can be scanned quickly without a single long-lived heap.
+---
+
+## 🔍 Component Details
+
+### 1. Lexer (`src/Lexer.php`)
+
+The lexer tokenizes the pattern string:
+
+```php
+$lexer = new Lexer(\PHP_VERSION_ID);
+$tokens = $lexer->tokenize($pattern, $flags);
+```
+
+**Output:** `TokenStream` with tokens and byte offsets.
+
+**Token Types:**
+- `T_WORD` - Word characters
+- `T_QUANTIFIER` - `+`, `*`, `?`, `{m,n}`
+- `T_ANCHOR` - `^`, `$`
+- `T_GROUP_OPEN` - `(`
+- `T_GROUP_CLOSE` - `)`
+- `T_CHAR_CLASS_OPEN` - `[`
+- `T_LITERAL` - Escaped characters
+- And many more...
+
+### 2. Parser (`src/Parser.php`)
+
+The parser builds the AST using recursive descent:
+
+```php
+$parser = new Parser(1024, \PHP_VERSION_ID);
+$ast = $parser->parse($tokens, $flags, '/', $patternLength);
+```
+
+**Output:** `RegexNode` (root of AST)
+
+**Parser Structure:**
+```
+Parser
+├── parse() - Entry point
+├── parseSequence() - Parse consecutive items
+├── parseGroup() - Parse parentheses
+├── parseQuantifier() - Parse repetition
+├── parseCharacterClass() - Parse [...]
+├── parseAssertion() - Parse lookarounds
+└── parseLiteral() - Parse escaped chars
+```
+
+### 3. AST Nodes (`src/Node/`)
+
+All nodes implement `NodeInterface` and extend `AbstractNode`:
+
+```php
+interface NodeInterface
+{
+    public function accept(NodeVisitorInterface $visitor): mixed;
+}
+
+abstract readonly class AbstractNode implements NodeInterface
+{
+    public function __construct(
+        public int $startPosition,
+        public int $endPosition
+    ) {}
+}
+```
+
+**Common Node Types:**
+
+| Node              | Purpose         | Example            |
+|-------------------|-----------------|--------------------|
+| `RegexNode`       | Root of AST     | `/pattern/flags`   |
+| `SequenceNode`    | Ordered list    | `abc`              |
+| `AlternationNode` | Alternatives    | `a\|b\|c`          |
+| `GroupNode`       | Grouping        | `(...)`, `(?=...)` |
+| `QuantifierNode`  | Repetition      | `a+`, `a{2,4}`     |
+| `LiteralNode`     | Literal text    | `hello`            |
+| `CharClassNode`   | Character class | `[a-z]`            |
+| `AnchorNode`      | Position anchor | `^`, `$`           |
+
+### 4. Visitors (`src/NodeVisitor/`)
+
+Visitors traverse the AST and perform operations:
+
+```php
+interface NodeVisitorInterface
+{
+    public function visitRegex(RegexNode $node): mixed;
+    public function visitSequence(SequenceNode $node): mixed;
+    // ... visit methods for each node type
+}
+```
+
+**Built-in Visitors:**
+
+| Visitor                     | Purpose                             |
+|-----------------------------|-------------------------------------|
+| `CompilerNodeVisitor`       | Convert AST back to string          |
+| `ExplainNodeVisitor`        | Generate human-readable explanation |
+| `ValidatorNodeVisitor`      | Validate pattern structure          |
+| `LinterNodeVisitor`         | Find code quality issues            |
+| `ReDoSAnalyzer`             | Detect catastrophic backtracking    |
+| `OptimizerNodeVisitor`      | Optimize pattern                    |
+| `ConsoleHighlighterVisitor` | Colorize for console                |
+| `HtmlHighlighterVisitor`    | Colorize for HTML                   |
+
+---
+
+## 🔄 AST Traversal: The Visitor Pattern
+
+The visitor pattern enables **extensible analysis** without modifying nodes:
+
+```php
+// Create AST
+$ast = $regex->parse('/hello|world/');
+
+// Apply visitor
+$explanation = $ast->accept(new ExplainNodeVisitor());
+echo $explanation;
+/*
+Output:
+Literal 'hello' or literal 'world'
+*/
+```
+
+### How It Works
+
+```
+$ast->accept($visitor)
+        │
+        ▼
+RegexNode::accept($visitor)
+        │
+        ▼
+$visitor->visitRegex($this)
+        │
+        ▼
+$this->pattern->accept($visitor)  // Delegate to child
+        │
+        ▼
+SequenceNode::accept($visitor)
+        │
+        ▼
+$visitor->visitSequence($this)
+        │
+        ▼
+foreach ($this->children as $child) {
+    $child->accept($visitor)  // Visit each child
+}
+```
+
+---
+
+## ⚡ Performance Optimizations
+
+### 1. Precompiled Patterns
+
+The lexer caches compiled regex patterns:
+
+```php
+// First call - compiles pattern
+$lexer->tokenize($pattern, $flags);
+
+// Subsequent calls - uses cached pattern
+$lexer->tokenize($pattern, $flags);
+```
+
+### 2. AST Caching
+
+Parsed patterns can be cached:
+
+```php
+$regex = Regex::create(['cache' => '/path/to/cache']);
+
+// First parse - builds AST
+$ast1 = $regex->parse('/pattern/');
+
+// Second parse - loads from cache
+$ast2 = $regex->parse('/pattern/');
+```
+
+### 3. Parallel Linting
+
+```php
+// Uses pcntl_fork() when available
+// Each worker analyzes a chunk of patterns
+// Results aggregated in parent process
+```
+
+---
+
+## 📊 Data Flow Examples
+
+### Validating a Pattern
+
+```
+Input: "/(?<=a+)b/"
+       │
+       ▼
+Lexer: Tokenize
+       Tokens: [GROUP_OPEN, LOOKBEHIND, LITERAL, GROUP_CLOSE, LITERAL]
+       │
+       ▼
+Parser: Build AST
+       RegexNode
+       └── AssertionNode (lookbehind)
+       │
+       ▼
+ValidatorVisitor: Check structure
+       Finds: Variable-length lookbehind
+       │
+       ▼
+Output: ValidationResult
+        - isValid: false
+        - errorMessage: "Variable-length lookbehind..."
+        - position: 0
+```
+
+### Explaining a Pattern
+
+```
+Input: "/\d{4}-\d{2}-\d{2}/"
+       │
+       ▼
+Lexer + Parser → AST
+       │
+       ▼
+ExplainNodeVisitor: Traverse and explain
+       "Four digits, hyphen, two digits, hyphen, two digits"
+       │
+       ▼
+Output: String explanation
+```
+
+### ReDoS Analysis
+
+```
+Input: "/(a+)+$/"
+       │
+       ▼
+Lexer + Parser → AST
+       │
+       ▼
+ReDoSAnalyzer: Check for patterns
+       - Nested quantifier found: (a+)+
+       - Score: 10 (CRITICAL)
+       │
+       ▼
+Output: ReDoSAnalysis
+        - severity: CRITICAL
+        - score: 10
+        - recommendations: ["Use atomic groups", "Simplify pattern"]
+```
+
+---
+
+## 🎓 Learning Path
+
+### For Users
+1. **[Tutorial](../tutorial/README.md)** - Learn regex basics
+2. **[Quick Start](../QUICK_START.md)** - Get productive quickly
+3. **CLI Guide** - Use the command-line tool
+
+### For Integrators
+1. **This guide** - Understand the architecture
+2. **[API Reference](../reference/api.md)** - Complete API docs
+3. **[Architecture](./ARCHITECTURE.md)** - Design decisions
+
+### For Contributors
+1. **[Extending Guide](./EXTENDING_GUIDE.md)** - Add new features
+2. **AST Traversal** - Visitor pattern deep dive
+3. **Source Code** - Read `src/Parser.php`, `src/NodeVisitor/`
+
+---
+
+## 📚 Related Documentation
+
+- **[AST Nodes](../nodes/README.md)** - Complete node reference
+- **[Visitors](../visitors/README.md)** - Visitor implementation guide
+- **[AST Traversal](./AST_TRAVERSAL.md)** - Traversal design details
+- **[Extending Guide](./EXTENDING_GUIDE.md)** - Adding new features
+
+---
+
+## 🆘 Common Questions
+
+### "Why not use a generated parser?"
+
+Hand-written parsers provide:
+- **Better error messages** with exact positions
+- **Easier debugging** - code is readable PHP
+- **No dependencies** - no generated artifacts
+
+### "Why the visitor pattern?"
+
+Separates **data** (AST nodes) from **behavior** (analysis). Adding a new analysis doesn't require changing any node classes.
+
+### "Is it fast enough for large codebases?"
+
+Yes! The MapReduce-style architecture with parallel workers scales to thousands of files. Memory stays low because workers have isolated heaps.
+
+---
+
+**Next:** [AST Traversal Design](design/AST_TRAVERSAL.md)
 
 ---
 

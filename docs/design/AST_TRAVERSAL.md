@@ -1,78 +1,441 @@
 # AST Traversal Design
 
-This document explains how RegexParser traverses the AST, why the visitor
-pattern was chosen, and how to build safe and maintainable traversals.
+Understanding how RegexParser walks through the Abstract Syntax Tree (AST) is essential for building custom visitors, debugging traversal issues, or extending the library's analysis capabilities.
 
-## Why a visitor pattern?
+## The Tour Guide Analogy
 
-RegexParser treats the AST as a stable data model. Algorithms (validation,
-optimization, explanation) evolve, but node shapes should remain consistent.
-The visitor pattern keeps this separation explicit:
+Think of the AST as a museum floor plan, and a visitor as a tour guide:
 
-- Nodes are immutable data holders.
-- Visitors implement behavior.
-- Adding a new operation does not require modifying node classes.
-
-This approach is common in compilers and static analyzers because it makes
-changes local and testable.
-
-## Double dispatch in practice
-
-Each node implements `accept()` and calls the visitor method that matches its
-concrete type. This is double dispatch: the runtime type of both the node and
-visitor determine the behavior.
-
-```php
-$ast = $regex->parse('/foo|bar/');
-$result = $ast->accept(new ExplainNodeVisitor());
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    REGEXNODE (Entrance)                     │
+│                                                             │
+│   ┌─────────────────────────────────────────────────────┐   │
+│   │               SEQUENCENODE (Main Hall)              │   │
+│   │                                                     │   │
+│   │   ┌─────────┐  ┌─────────┐  ┌─────────────────┐     │   │
+│   │   │LITERAL  │  │ GROUP   │  │   ALTERNATION   │     │   │
+│   │   │ "foo"   │──│  ( )    │──│    ( | )        │     │   │
+│   │   └─────────┘  └─────────┘  └─────────────────┘     │   │
+│   │                         │           │               │   │
+│   │                   ┌─────┴─────┐   ┌─┴───────┐       │   │
+│   │                   │ SEQUENCE  │   │SEQUENCE │       │   │
+│   │                   │ "bar"     │   │"baz"    │       │   │
+│   │                   └───────────┘   └─────────┘       │   │
+│   │                                                     │   │
+│   └─────────────────────────────────────────────────────┘   │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-## Traversal strategy
+The tour guide (visitor) follows a fixed path through each room (node), visiting every exhibit (child node) in order. The guide doesn't change the museum layout—they just observe, take notes, or make copies.
 
-Visitors in RegexParser are explicit about traversal. Most of them follow a
-simple depth-first approach:
+## Why Use the Visitor Pattern?
 
-- `RegexNode` delegates to `pattern`.
-- `SequenceNode` iterates `children`.
-- `AlternationNode` iterates `alternatives`.
-- `GroupNode` delegates to `child`.
-- `QuantifierNode` delegates to `node`.
+RegexParser separates **data** (nodes) from **behavior** (visitors). This separation provides three key benefits:
 
-This keeps control in the visitor and avoids implicit recursion that can hide
-performance or correctness issues.
+| Concern         | Without Visitor Pattern | With Visitor Pattern   |
+|-----------------|-------------------------|------------------------|
+| Adding analysis | Modify every node class | Add one new visitor    |
+| Testing         | Complex node setup      | Isolated visitor tests |
+| Stability       | Breaking changes ripple | Nodes stay unchanged   |
 
-## Return types and state
+### The Core Principle
 
-There are two common patterns in this codebase:
+> Nodes are immutable data holders. Visitors implement behavior.
 
-1. Stateless return value
-   - Example: `CompilerNodeVisitor` returns strings.
-2. Stateful visitor
-   - Example: visitors that collect metrics store internal counters and return
-     the final result via a getter.
+This means you can add a dozen new analysis algorithms without touching a single node class. The AST structure remains stable, while visitors evolve independently.
 
-`AbstractNodeVisitor` exists to reduce boilerplate by providing default return
-values.
+## How Double Dispatch Works
 
-## Transformations
+Every node implements an `accept()` method that receives a visitor. This is called **double dispatch** because the actual method called depends on both:
 
-Visitors that transform the AST should return new nodes instead of mutating
-existing ones. Nodes are `readonly` and store source positions that should be
-preserved. When constructing new nodes, keep the original `startPosition` and
-`endPosition` so diagnostics remain stable.
+1. The **runtime type** of the node (which node class it is)
+2. The **runtime type** of the visitor (which visitor class it is)
 
-## Best practices
+```php
+use RegexParser\Regex;
+use RegexParser\NodeVisitor\ExplainNodeVisitor;
 
-- Prefer explicit traversal over reflection-based recursion.
-- Keep visitors pure when possible to make tests deterministic.
-- Guard against recursion depth for very large or adversarial inputs.
-- For linting and validation, keep error positions stable by preserving offsets.
+$regex = Regex::create();
+$ast = $regex->parse('/foo|bar/');
 
-## Related docs
+// Double dispatch in action:
+// 1. RegexNode::accept(ExplainNodeVisitor)
+// 2. Calls $visitor->visitRegexNode($this)
+// 3. Which recursively calls accept on children
+$result = $ast->accept(new ExplainNodeVisitor());
 
-- [AST Nodes](../nodes/README.md)
-- [AST Visitors](../visitors/README.md)
-- [Architecture](../ARCHITECTURE.md)
+echo $result;
+/*
+Output:
+AlternationNode
+├── Alternative 1 (SequenceNode)
+│   └── LiteralNode("foo")
+└── Alternative 2 (SequenceNode)
+    └── LiteralNode("bar")
+*/
+```
+
+### What Happens Internally
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    CALL SEQUENCE                            │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  1. $ast->accept($visitor)                                  │
+│     └─► RegexNode::accept(visitor)                          │
+│         └─► $visitor->visitRegexNode($this)                 │
+│             └─► $this->pattern->accept($visitor)            │
+│                 └─► SequenceNode::accept(visitor)           │
+│                     └─► $visitor->visitSequenceNode($this)  │
+│                         └─► child[0]->accept($visitor)      │
+│                             └─► ...                         │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## Traversal Strategies
+
+RegexParser uses **depth-first traversal** with explicit control in the visitor. Here's how different node types delegate to their children:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                  TRAVERSAL BEHAVIOR                         │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  RegexNode     → delegates to pattern                       │
+│                                                             │
+│  SequenceNode  → iterates children left-to-right            │
+│                 ┌───────────────────────────────────┐       │
+│                 │ child[0] → child[1] → child[2]    │       │
+│                 └───────────────────────────────────┘       │
+│                                                             │
+│  AlternationNode → iterates alternatives                    │
+│                 ┌───────────────────────────────────┐       │
+│                 │ alt[0] → alt[1] → alt[2]          │       │
+│                 └───────────────────────────────────┘       │
+│                                                             │
+│  GroupNode     → delegates to child                         │
+│                                                             │
+│  QuantifierNode → delegates to node (repeated element)      │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Example: Tracking Depth
+
+```php
+use RegexParser\Regex;
+use RegexParser\NodeVisitor\AbstractNodeVisitor;
+
+$regex = Regex::create();
+$ast = $regex->parse('/(a(b(c)))+/');
+
+class DepthTrackingVisitor extends AbstractNodeVisitor
+{
+    private int $maxDepth = 0;
+    private int $currentDepth = 0;
+
+    public function visitSequence(Node\SequenceNode $node): Node\SequenceNode
+    {
+        $this->currentDepth++;
+        $this->maxDepth = max($this->maxDepth, $this->currentDepth);
+        
+        $children = [];
+        foreach ($node->children as $child) {
+            $children[] = $child->accept($this);
+        }
+        
+        $this->currentDepth--;
+        return new Node\SequenceNode($children, $node->startPosition, $node->endPosition);
+    }
+
+    public function getMaxDepth(): int
+    {
+        return $this->maxDepth;
+    }
+}
+
+$visitor = new DepthTrackingVisitor();
+$ast->accept($visitor);
+echo "Maximum nesting depth: " . $visitor->getMaxDepth(); // Output: 3
+```
+
+## Return Types: Stateless vs Stateful
+
+Visitors typically follow one of two patterns:
+
+### Pattern 1: Stateless (Returns a Value)
+
+```php
+// CompilerNodeVisitor - returns a string
+$pattern = $ast->accept(new CompilerNodeVisitor());
+```
+
+### Pattern 2: Stateful (Accumulates and Returns Result)
+
+```php
+// MetricsNodeVisitor - stores internal state
+$visitor = new MetricsNodeVisitor();
+$ast->accept($visitor);
+$metrics = $visitor->getMetrics(); // Get accumulated data
+```
+
+| Pattern   | Use Case                       | Example Visitor                              |
+|-----------|--------------------------------|----------------------------------------------|
+| Stateless | Transformation, compilation    | `CompilerNodeVisitor`                        |
+| Stateful  | Metrics collection, validation | `MetricsNodeVisitor`, `ValidatorNodeVisitor` |
+
+### Using AbstractNodeVisitor
+
+`AbstractNodeVisitor` provides default implementations that return `null` or a safe default. This reduces boilerplate when you only need to override a few methods:
+
+```php
+use RegexParser\NodeVisitor\AbstractNodeVisitor;
+
+class OnlyLiteralVisitor extends AbstractNodeVisitor
+{
+    private array $literals = [];
+
+    public function visitLiteral(Node\LiteralNode $node): void
+    {
+        $this->literals[] = $node->value;
+    }
+
+    public function getLiterals(): array
+    {
+        return $this->literals;
+    }
+}
+```
+
+## Transformations: Creating New Nodes
+
+When building a visitor that transforms the AST (like the optimizer), you must:
+
+1. **Never mutate existing nodes** — they are `readonly`
+2. **Preserve source positions** — keep `startPosition` and `endPosition`
+3. **Return new node instances** — the transformer pattern
+
+```php
+class OptimizingVisitor extends AbstractNodeVisitor
+{
+    public function visitSequence(Node\SequenceNode $node): Node\SequenceNode
+    {
+        $optimized = [];
+        foreach ($node->children as $child) {
+            $optimizedChild = $child->accept($this);
+            if ($optimizedChild !== null) {
+                $optimized[] = $optimizedChild;
+            }
+        }
+        
+        return new Node\SequenceNode(
+            $optimized,
+            $node->startPosition,  // Preserve original position
+            $node->endPosition     // Preserve original position
+        );
+    }
+}
+```
+
+### Why Preserve Positions?
+
+Source positions are used for:
+- **Error reporting** — showing where syntax errors occurred
+- **IDE integration** — highlighting the relevant code
+- **Refactoring tools** — mapping changes back to source
+
+If you create new nodes without preserving positions, diagnostics will report wrong locations.
+
+## Common Errors and Pitfalls
+
+### Error 1: Forgetting to Return the Node
+
+```php
+// WRONG - loses the transformed node
+public function visitSequence(Node\SequenceNode $node): Node\SequenceNode
+{
+    foreach ($node->children as $child) {
+        $child->accept($this);
+    }
+    // Missing return!
+}
+
+// RIGHT - returns the new node
+public function visitSequence(Node\SequenceNode $node): Node\SequenceNode
+{
+    $newChildren = [];
+    foreach ($node->children as $child) {
+        $newChildren[] = $child->accept($this);
+    }
+    return new Node\SequenceNode($newChildren, $node->startPosition, $node->endPosition);
+}
+```
+
+### Error 2: Infinite Recursion on Unhandled Nodes
+
+```php
+// WRONG - visits parent node again, causing infinite loop
+public function visitGroup(Node\GroupNode $node): Node\GroupNode
+{
+    return $node->accept($this);  // Calls visitGroup again!
+}
+
+// RIGHT - visits the child, not the group itself
+public function visitGroup(Node\GroupNode $node): Node\GroupNode
+{
+    return new Node\GroupNode(
+        $node->child->accept($this),  // Visit child, not group
+        $node->type,
+        $node->name
+    );
+}
+```
+
+### Error 3: Not Handling All Node Types
+
+```php
+// WRONG - crashes when visiting unhandled node types
+public function visitSequence(Node\SequenceNode $node): Node\SequenceNode
+{
+    return new Node\SequenceNode(
+        array_map(fn($c) => $c->accept($this), $node->children)
+    );
+}
+
+// RIGHT - AbstractNodeVisitor returns $node for unhandled types
+// Or explicitly handle all expected types
+```
+
+### Error 4: Mixing Up Child Iteration Order
+
+```php
+// Pattern: /ab|cd/
+// AlternationNode has two alternatives:
+//   alt[0] = SequenceNode([LiteralNode("a"), LiteralNode("b")])
+//   alt[1] = SequenceNode([LiteralNode("c"), LiteralNode("d")])
+
+// When iterating, always process alternatives in order
+foreach ($node->alternatives as $index => $alternative) {
+    // alt[0] is "ab", alt[1] is "cd"
+}
+```
+
+## Best Practices Checklist
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                 VISITOR BEST PRACTICES                      │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  □ Use AbstractNodeVisitor for partial implementations      │
+│                                                             │
+│  □ Always return a node from visit methods (even if same)   │
+│                                                             │
+│  □ Preserve source positions when creating new nodes        │
+│                                                             │
+│  □ Delegate to child.accept($this), not $this.accept($node) │
+│                                                             │
+│  □ Keep visitors pure when possible for testability         │
+│                                                             │
+│  □ Guard against deep recursion with max-depth checks       │
+│                                                             │
+│  □ Handle all node types or inherit safe defaults           │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## Performance Considerations
+
+For large patterns or adversarial input:
+
+```php
+class SafeVisitor extends AbstractNodeVisitor
+{
+    private const MAX_DEPTH = 100;
+    private int $currentDepth = 0;
+
+    public function beforeTraversal(Node\RegexNode $node): void
+    {
+        // Reset state
+        $this->currentDepth = 0;
+    }
+
+    public function enterNode(Node\NodeInterface $node): void
+    {
+        $this->currentDepth++;
+        if ($this->currentDepth > self::MAX_DEPTH) {
+            throw new \RuntimeException('Maximum traversal depth exceeded');
+        }
+    }
+
+    public function leaveNode(Node\NodeInterface $node): void
+    {
+        $this->currentDepth--;
+    }
+}
+```
+
+## Related Documentation
+
+| Topic                 | File                                           |
+|-----------------------|------------------------------------------------|
+| AST Node Reference    | [nodes](../nodes/README.md)                    |
+| AST Visitor Reference | [visitors](../visitors/README.md)              |
+| Architecture Overview | [ARCHITURE](../ARCHITECTURE.md)                |
+| Tutorial: Basics      | [tutorial/01-basics](../tutorial/01-basics.md) |
+
+---
+
+## Exercises
+
+### Exercise 1: Count the Groups
+
+Write a visitor that counts all capturing groups in a pattern.
+
+**Hint:** Look for `GroupNode` with type `T_GROUP_CAPTURING` or `T_GROUP_NAMED`.
+
+```php
+// Starter code:
+class GroupCountingVisitor extends AbstractNodeVisitor
+{
+    // Your code here
+}
+
+// Test:
+$ast = Regex::create()->parse('/(a)(?:b)(?<name>c)(d)/');
+$visitor = new GroupCountingVisitor();
+$ast->accept($visitor);
+// Should output: 3 capturing groups
+```
+
+### Exercise 2: Find Deepest Quantifier
+
+Write a visitor that finds the quantifier with the deepest nesting.
+
+**Hint:** Track depth while traversing, and record the deepest quantifier's position.
+
+### Exercise 3: Extract All Anchors
+
+Write a visitor that extracts all anchors (`^`, `$`, `\b`, `\B`, `(?=...)`, etc.) in order.
+
+**Hint:** Collect anchors during traversal and return an ordered list.
+
+---
+
+## Summary
+
+| Concept               | Key Point                                          |
+|-----------------------|----------------------------------------------------|
+| Visitor Pattern       | Separates data (nodes) from behavior (visitors)    |
+| Double Dispatch       | Both node and visitor types determine behavior     |
+| Depth-First           | Visits children before siblings (for most nodes)   |
+| Stateless vs Stateful | Return values vs accumulate in properties          |
+| Transformations       | Create new nodes, preserve positions               |
+| Best Practices        | Return nodes, preserve positions, handle all types |
 
 ---
 

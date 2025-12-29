@@ -1,9 +1,33 @@
-# Testing and Debugging with RegexParser
+# Chapter 9: Testing and Debugging with RegexParser
 
-RegexParser is useful even if you are not building tooling. It can explain
-patterns, validate them, and generate test strings.
+> **Goal:** Use RegexParser to understand, validate, and test your patterns.
 
-## Explain and highlight
+---
+
+## 🤔 Why Use RegexParser for Testing?
+
+RegexParser turns cryptic patterns into **readable explanations** and helps you find issues **before** they reach production:
+
+```
+Pattern: /^(?<user>\w+)@(?<host>\w+)$/
+
+Without RegexParser:
+  - Stare at the pattern
+  - Guess what it does
+  - Hope it's correct
+
+With RegexParser:
+  - See plain English explanation
+  - Validate syntax automatically
+  - Detect ReDoS vulnerabilities
+  - Generate test strings
+```
+
+---
+
+## 🎯 Core Features for Testing
+
+### 1. Explain Patterns in Plain English
 
 ```php
 use RegexParser\Regex;
@@ -13,37 +37,332 @@ $regex = Regex::create();
 echo $regex->explain('/^(?<user>\w+)@(?<host>\w+)$/');
 ```
 
-CLI:
-
-```bash
-vendor/bin/regex analyze '/^(?<user>\w+)@(?<host>\w+)$/'
-vendor/bin/regex highlight '/^\d{4}-\d{2}-\d{2}$/' --format=html
+**Output:**
+```
+Start of string
+  Named group 'user':
+    One or more word characters
+  Literal '@'
+  Named group 'host':
+    One or more word characters
+End of string
 ```
 
-## Validate early
+### 2. Validate Syntax
 
 ```php
+use RegexParser\Regex;
+
+$regex = Regex::create();
+
 $result = $regex->validate('/(?<=a+)b/');
+
 if (!$result->isValid()) {
-    echo $result->getErrorMessage();
+    echo "Error: " . $result->getErrorMessage() . "\n";
+    echo "Hint: " . $result->getHint() . "\n";
+    echo "Snippet:\n" . $result->getCaretSnippet() . "\n";
 }
 ```
 
-## Generate sample inputs
-
-```php
-$sample = $regex->generate('/[a-z]{3}\d{2}/');
+**Output:**
+```
+Error: Variable-length lookbehind is not supported in PCRE.
+Hint: Use a bounded lookbehind like (?<=a{1,10}) instead.
+Snippet:
+Line 1: (?<=a+)b
+            ^
 ```
 
-## Visualize the AST
+### 3. Visualize Pattern Structure
+
+```bash
+# CLI: Show ASCII diagram
+bin/regex diagram '/^(?<user>\w+)@(?<host>\w+)$/'
+```
+
+**Output:**
+```
+Regex
+└── Sequence
+    ├── Anchor (^)
+    ├── Group (named: user)
+    │   └── Sequence
+    │       └── QuantifierNode (+)
+    │           └── CharTypeNode (\w)
+    ├── Literal (@)
+    ├── Group (named: host)
+    │   └── Sequence
+    │       └── QuantifierNode (+)
+    │           └── CharTypeNode (\w)
+    └── Anchor ($)
+```
+
+### 4. Syntax Highlighting
+
+```bash
+# CLI: Colorized output
+bin/regex highlight '/^(?<user>\w+)@(?<host>\w+)$/'
+```
+
+### 5. Generate Test Strings
 
 ```php
-use RegexParser\NodeVisitor\DumperNodeVisitor;
+use RegexParser\Regex;
 
-$ast = $regex->parse('/foo|bar/');
-print_r($ast->accept(new DumperNodeVisitor()));
+$regex = Regex::create();
+
+// Generate sample that matches pattern
+$sample = $regex->generate('/[a-z]{3}\d{2}/');
+echo $sample;  // Example output: "abc12"
 ```
 
 ---
 
-Previous: [Performance and ReDoS](08-performance-redos.md) | Next: [Real-World Patterns in PHP](10-real-world-php.md)
+## 🧪 Testing Workflow
+
+### Step 1: Write Your Pattern
+
+```php
+// You want to validate email addresses
+$pattern = '/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i';
+```
+
+### Step 2: Explain It
+
+```php
+use RegexParser\Regex;
+
+$regex = Regex::create();
+
+echo $regex->explain($pattern);
+```
+
+**Output:**
+```
+Start of string
+  One or more characters from: a-z, 0-9, ., _, %, +, -
+  Literal '@'
+  One or more characters from: a-z, 0-9, ., -
+  Literal '.'
+  Two or more characters from: a-z
+End of string (case-insensitive)
+```
+
+### Step 3: Check for ReDoS
+
+```php
+$analysis = $regex->redos($pattern);
+
+echo "Severity: " . $analysis->severity->value . "\n";
+echo "Score: " . $analysis->score . "\n";
+
+if ($analysis->severity->value === 'safe') {
+    echo "Pattern is safe!\n";
+}
+```
+
+### Step 4: Generate Test Cases
+
+```php
+// Generate matching samples
+$validSamples = [
+    $regex->generate($pattern),
+    $regex->generate($pattern),
+    $regex->generate($pattern),
+];
+
+print_r($validSamples);
+```
+
+### Step 5: Validate in PHP
+
+```php
+$testCases = [
+    'test@example.com',
+    'user.name@domain.org',
+    'admin@sub.domain.co.uk',
+    'invalid-email',      // Should NOT match
+    '@missing-local.com', // Should NOT match
+];
+
+foreach ($testCases as $email) {
+    $result = preg_match($pattern, $email) ? 'VALID' : 'INVALID';
+    echo "$email: $result\n";
+}
+```
+
+---
+
+## 🔍 Debugging Common Issues
+
+### Issue 1: Pattern Not Matching Expected Input
+
+```php
+// Your pattern
+$pattern = '/^[0-9]+$/';
+$input = '123abc';
+
+preg_match($pattern, $input, $matches);
+echo count($matches) > 0 ? "Match" : "No match";  // "No match"
+```
+
+**Debug with RegexParser:**
+
+```php
+use RegexParser\Regex;
+
+$regex = Regex::create();
+
+echo $regex->explain($pattern);
+// "One or more digits from 0-9, from start to end"
+
+echo "Input: '$input'\n";
+echo "The pattern requires ALL characters to be digits.\n";
+echo "'123abc' contains non-digit characters.\n";
+```
+
+**Solution:**
+```php
+// Match string containing digits (not just digits)
+$pattern = '/[0-9]+/';  // Remove anchors
+```
+
+### Issue 2: ReDoS Vulnerability
+
+```php
+// Suspicious pattern
+$pattern = '/(a+)+$/';
+
+// Test with RegexParser
+$analysis = $regex->redos($pattern);
+
+echo "Severity: " . $analysis->severity->value . "\n";
+// Output: "critical"
+
+echo "Suggestion: " . $analysis->getRecommendations()[0] . "\n";
+```
+
+**Fix:**
+```php
+$safePattern = '/a+$/';  // Simplify!
+```
+
+### Issue 3: Variable-Length Lookbehind
+
+```php
+// Invalid in PCRE
+$pattern = '/(?<=a+)b/';
+
+$result = $regex->validate($pattern);
+
+echo $result->getErrorMessage() . "\n";
+echo $result->getHint() . "\n";
+```
+
+**Output:**
+```
+Variable-length lookbehind is not supported.
+Use (?<=a{1,10}) instead for bounded lookbehind.
+```
+
+---
+
+## 📋 Testing Checklist
+
+Before using a pattern in production:
+
+- [ ] **Explain** - Can you understand what it does?
+- [ ] **Validate** - Does RegexParser report any errors?
+- [ ] **Security** - Does ReDoS analysis show "safe"?
+- [ ] **Coverage** - Does it match all expected cases?
+- [ ] **Edge cases** - Does it handle empty strings, special characters?
+- [ ] **Performance** - Test with long inputs
+
+---
+
+## 🧪 Exercise: Complete Testing Workflow
+
+### Your Task
+
+Test this pattern for password validation:
+
+```php
+$pattern = '/^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)[A-Za-z\d]{8,}$/';
+```
+
+### Solution
+
+```php
+use RegexParser\Regex;
+
+$regex = Regex::create();
+
+// 1. Explain the pattern
+echo "=== Pattern Explanation ===\n";
+echo $regex->explain($pattern) . "\n\n";
+
+// 2. Validate syntax
+echo "=== Syntax Validation ===\n";
+$result = $regex->validate($pattern);
+echo $result->isValid() ? "Valid\n\n" : "Invalid: " . $result->getErrorMessage() . "\n\n";
+
+// 3. Check for ReDoS
+echo "=== ReDoS Analysis ===\n";
+$analysis = $regex->redos($pattern);
+echo "Severity: " . $analysis->severity->value . "\n";
+echo "Score: " . $analysis->score . "\n\n";
+
+// 4. Generate test cases
+echo "=== Sample Matching Strings ===\n";
+for ($i = 0; $i < 3; $i++) {
+    $sample = $regex->generate($pattern);
+    echo "- $sample\n";
+}
+```
+
+---
+
+## 📚 Key Takeaways
+
+1. **Always explain** patterns to ensure understanding
+2. **Validate early** - catch syntax errors before testing
+3. **Check ReDoS** - prevent catastrophic backtracking
+4. **Generate samples** - create test data automatically
+5. **Visualize structure** - see pattern as a tree
+
+---
+
+## 🆘 When You Get Stuck
+
+1. **Use the CLI** - `bin/regex explain <pattern>`
+2. **Try diagram** - `bin/regex diagram <pattern>`
+3. **Check documentation** - `docs/guides/regex-in-php.md`
+4. **Ask for help** - [GitHub Issues](https://github.com/yoeunes/regex-parser/issues)
+
+---
+
+## 🎉 Tutorial Complete!
+
+You've completed the Regex Tutorial! You now know:
+
+- ✅ Pattern basics and structure
+- ✅ Character classes and escapes
+- ✅ Anchors and boundaries
+- ✅ Quantifiers and greediness
+- ✅ Groups and alternation
+- ✅ Lookarounds and assertions
+- ✅ Backreferences and recursion
+- ✅ Performance and ReDoS prevention
+- ✅ Testing and debugging
+
+**Next:** [Chapter 10: Real-World Patterns in PHP](10-real-world-php.md)
+
+---
+
+<p align="center">
+  <b>Chapter 9 Complete! →</b>
+</p>
+
+---
+
+Previous: [Performance & ReDoS](08-performance-redos.md) | Next: [Real-World Patterns](10-real-world-php.md)
