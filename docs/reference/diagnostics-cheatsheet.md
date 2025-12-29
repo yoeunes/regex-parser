@@ -1,255 +1,186 @@
 # Diagnostics Cheat Sheet
 
-Fast fixes for the most common RegexParser diagnostics. Use this as a quick reference when you encounter an issue.
+This is the fast path: what an issue means and how to fix it. We use RegexParser examples instead of raw `preg_*` calls so you can drop them directly into tooling.
 
 ## Quick Fix Index
 
-| Diagnostic                                                                  | Quick Fix                   |
-|-----------------------------------------------------------------------------|-----------------------------|
-| [Lookbehind is unbounded](#lookbehind-is-unbounded)                         | Add bounds or use lookahead |
-| [Backreference to non-existent group](#backreference-to-non-existent-group) | Check group numbers         |
-| [Duplicate group name](#duplicate-group-name)                               | Use unique names            |
-| [Invalid quantifier range](#invalid-quantifier-range)                       | Swap min/max                |
-| [Nested quantifiers detected](#nested-quantifiers-detected)                 | Use atomic groups           |
-| [Dot-star in repetition](#dot-star-in-repetition)                           | Make atomic or specific     |
-| [Overlapping alternation branches](#overlapping-alternation-branches)       | Order branches or atomic    |
-| [Redundant non-capturing group](#redundant-non-capturing-group)             | Remove group                |
-| [Useless flag](#useless-flag)                                               | Remove flag                 |
-| [Invalid delimiter](#invalid-delimiter)                                     | Use proper delimiter        |
-
----
+| Diagnostic | Quick Fix |
+| --- | --- |
+| [Lookbehind is unbounded](#lookbehind-is-unbounded) | Add bounds or rewrite |
+| [Backreference to non-existent group](#backreference-to-non-existent-group) | Check group numbers/names |
+| [Duplicate group name](#duplicate-group-name) | Use unique names or `(?J)` |
+| [Invalid quantifier range](#invalid-quantifier-range) | Swap min/max |
+| [Nested quantifiers detected](#nested-quantifiers-detected) | Use atomic/possessive |
+| [Dot-star in repetition](#dot-star-in-repetition) | Make atomic or narrow |
+| [Overlapping alternation branches](#overlapping-alternation-branches) | Order or refactor |
+| [Redundant non-capturing group](#redundant-non-capturing-group) | Remove group |
+| [Useless flag](#useless-flag) | Remove flag |
+| [Invalid delimiter](#invalid-delimiter) | Use proper delimiter |
 
 ## Lookbehind is unbounded
 
-**Problem:** PCRE requires lookbehinds to have a bounded maximum length.
+Problem: PCRE requires lookbehinds to have a maximum length.
 
 ```php
+use RegexParser\Regex;
+
 // ERROR
-preg_match('/(?<=a+)b/', $input);
+Regex::create()->validate('/(?<=a+)b/');
 
-// FIX 1: Use bounded quantifier
-preg_match('/(?<=a{1,100})b/', $input);
+// FIX 1: Bounded quantifier
+Regex::create()->validate('/(?<=a{1,100})b/');
 
-// FIX 2: Use lookahead instead
-preg_match('/(?=(a+))b\1/', $input);
-
-// FIX 3: Use (*LIMIT_LOOKBEHIND) for controlled patterns
-preg_match('/(*LIMIT_LOOKBEHIND=1000)(?<=a+)b/', $input);
+// FIX 2: Rewrite with a lookahead
+Regex::create()->validate('/(?=(a+))b\1/');
 ```
-
----
 
 ## Backreference to non-existent group
 
-**Problem:** The backreference points to a group that doesn't exist.
+Problem: The backreference points to a group that does not exist yet.
 
 ```php
-// ERROR: \2 doesn't exist (only one group)
-preg_match('/(\w+)\2/', $input);
+use RegexParser\Regex;
 
-// FIX 1: Use correct group number
-preg_match('/(\w+)\1/', $input);
+// ERROR: \2 does not exist
+Regex::create()->validate('/(\w+)\2/');
+
+// FIX 1: Use the correct group number
+Regex::create()->validate('/(\w+)\1/');
 
 // FIX 2: Add the missing group
-preg_match('/(\w+)\s*(\2)/', $input);  // Now \2 exists
+Regex::create()->validate('/(\w+)(\s*)\2/');
 
-// For named backreferences
-// ERROR: No group named 'name'
-preg_match('/(?<name>\w+)\k<other>/', $input);
-
-// FIX: Use correct name
-preg_match('/(?<name>\w+)\k<name>/', $input);
+// Named backreference example
+Regex::create()->validate('/(?<name>\w+)\k<name>/');
 ```
-
----
 
 ## Duplicate group name
 
-**Problem:** Named groups must have unique names (unless `(?J)` is set).
+Problem: Named groups must be unique unless `(?J)` is set.
 
 ```php
-// ERROR: 'id' appears twice
-preg_match('/(?<id>\w+)(?<id>\d+)/', $input);
+use RegexParser\Regex;
 
-// FIX 1: Use unique names
-preg_match('/(?<id>\w+)(?<number>\d+)/', $input);
+// ERROR
+Regex::create()->validate('/(?<id>\w+)(?<id>\d+)/');
 
-// FIX 2: Enable J flag for duplicates
-preg_match('/(?J)(?<id>\w+)(?<id>\d+)/', $input);
+// FIX 1: Unique names
+Regex::create()->validate('/(?<word>\w+)(?<number>\d+)/');
+
+// FIX 2: Allow duplicates with J
+Regex::create()->validate('/(?J)(?<id>\w+)(?<id>\d+)/');
 ```
-
----
 
 ## Invalid quantifier range
 
-**Problem:** Quantifier minimum exceeds maximum.
+Problem: Minimum exceeds maximum.
 
 ```php
-// ERROR: {5,2} is invalid
-preg_match('/\d{5,2}/', $input);
+use RegexParser\Regex;
 
-// FIX: Swap to {2,5}
-preg_match('/\d{2,5}/', $input);
+// ERROR
+Regex::create()->validate('/\d{5,2}/');
+
+// FIX
+Regex::create()->validate('/\d{2,5}/');
 ```
-
----
 
 ## Nested quantifiers detected
 
-**Problem:** Nested variable quantifiers can cause ReDoS.
+Problem: Nested variable quantifiers can explode backtracking.
 
 ```php
-// ERROR: (a+)+ can explode
-preg_match('/(a+)+b/', $input);
+use RegexParser\Regex;
 
-// FIX 1: Use atomic group
-preg_match('/(?>a+)+b/', $input);
+// RISKY
+Regex::create()->redos('/(a+)+b/');
 
-// FIX 2: Use possessive quantifier
-preg_match('/(a++)+b/', $input);
+// FIX 1: Atomic group
+Regex::create()->validate('/(?>a+)+b/');
 
-// FIX 3: Simplify (often equivalent)
-preg_match('/a+b/', $input);
+// FIX 2: Possessive quantifier
+Regex::create()->validate('/(a++)+b/');
+
+// FIX 3: Simplify
+Regex::create()->validate('/a+b/');
 ```
-
----
 
 ## Dot-star in repetition
 
-**Problem:** `.*` inside `+` or `*` can cause extreme backtracking.
+Problem: `.*` inside `+` or `*` is a common ReDoS hotspot.
 
 ```php
-// RISKY: .* in + repetition
-preg_match('/(?:.*)+x/', $input);
+use RegexParser\Regex;
 
-// FIX 1: Make possessive
-preg_match('/(?:.*+)x/', $input);
+// RISKY
+Regex::create()->redos('/(?:.*)+x/');
 
-// FIX 2: Use specific character class
-preg_match('/(?:[^x]*)x/', $input);  // If matching until 'x'
+// FIX 1: Possessive
+Regex::create()->validate('/(?:.*+)x/');
 
-// FIX 3: Use atomic group
-preg_match('/(?>.*)x/', $input);
+// FIX 2: Narrow the class
+Regex::create()->validate('/(?:[^x]*)x/');
 ```
-
----
 
 ## Overlapping alternation branches
 
-**Problem:** One branch is a prefix of another inside repetition.
+Problem: One branch is a prefix of another inside repetition.
 
 ```php
-// ERROR: 'a' and 'aa' overlap
-preg_match('/(a|aa)+b/', $input);
+use RegexParser\Regex;
 
-// FIX 1: Use atomic group
-preg_match('/(?>a|aa)+b/', $input);
+// RISKY
+Regex::create()->redos('/(a|aa)+b/');
+
+// FIX 1: Atomic group
+Regex::create()->validate('/(?>a|aa)+b/');
 
 // FIX 2: Simplify
-preg_match('/a+b/', $input);
-
-// FIX 3: Order longer first (doesn't fix ReDoS, just semantics)
-preg_match('/(aa|a)+b/', $input);
+Regex::create()->validate('/a+b/');
 ```
-
----
 
 ## Redundant non-capturing group
 
-**Problem:** Group wraps single token without changing behavior.
+Problem: The group does not change precedence or capture behavior.
 
 ```php
+use RegexParser\Regex;
+
 // WARNING
-preg_match('/(?:foo)/', $input);
+Regex::create()->validate('/(?:foo)/');
 
-// FIX: Remove group
-preg_match('/foo/', $input);
+// FIX
+Regex::create()->validate('/foo/');
 ```
-
-**When groups ARE needed:**
-```php
-// Needed: Change precedence
-preg_match('/(?:foo|bar)baz/', $input);  // Groups foo|bar
-
-// Needed: Apply quantifier to multiple
-preg_match('/(?:foo)+/', $input);  // Repeats "foo"
-```
-
----
 
 ## Useless flag
 
-**Problem:** Flag has no effect on the pattern.
+Problem: The flag has no effect on the pattern.
 
 ```php
-// WARNING: 's' flag (DotAll) does nothing
-preg_match('/^\d+$/s', $input);
+use RegexParser\Regex;
 
-// FIX: Remove unused flag
-preg_match('/^\d+$/', $input);
+// WARNING: DotAll flag does nothing
+Regex::create()->validate('/^\d+$/s');
 
-// WARNING: 'm' flag does nothing
-preg_match('/foo/m', $input);
-
-// FIX: Remove or add anchors
-preg_match('/foo/', $input);  // or
-preg_match('/^foo$/m', $input);  // with anchors
-
-// WARNING: 'i' flag does nothing
-preg_match('/^\d{4}-\d{2}-\d{2}$/i', $input);
-
-// FIX: Remove
-preg_match('/^\d{4}-\d{2}-\d{2}$/', $input);
+// FIX
+Regex::create()->validate('/^\d+$/');
 ```
-
----
 
 ## Invalid delimiter
 
-**Problem:** The delimiter character is not valid.
+Problem: Pattern is missing a valid delimiter.
 
 ```php
-// ERROR: Space not valid as delimiter
-preg_match('/^pattern $/', $input);
+use RegexParser\Regex;
 
-// FIX 1: Use valid delimiter
-preg_match('/^pattern$/', $input);
+// ERROR
+Regex::create()->validate('^foo$');
 
-// FIX 2: Escape the delimiter
-preg_match('!^pattern$!', $input);
-
-// FIX 3: Use different delimiter
-preg_match('#^pattern$#', $input);
+// FIX
+Regex::create()->validate('/^foo$/');
 ```
 
 ---
 
-## Pattern Too Long
-
-**Problem:** Pattern exceeds configured maximum length.
-
-```php
-// ERROR: Pattern too long
-preg_match('/very long pattern.../', $input);
-
-// FIX 1: Increase limit (if appropriate)
-$regex = Regex::create(['max_pattern_length' => 500000]);
-
-// FIX 2: Shorten the pattern
-// Consider splitting or simplifying
-```
-
----
-
-## Where to Look Next
-
-| Topic                 | Resource                                        |
-|-----------------------|-------------------------------------------------|
-| Full rule reference   | [docs/reference.md](../reference.md)            |
-| Diagnostics deep dive | [docs/reference/diagnostics.md](diagnostics.md) |
-| ReDoS patterns        | [docs/REDOS_GUIDE.md](../REDOS_GUIDE.md)        |
-| API reference         | [docs/reference/api.md](api.md)                 |
-
----
-
-Previous: [FAQ and Glossary](faq-glossary.md) | Next: [Reference Index](README.md)
+Previous: `diagnostics.md` | Next: `faq-glossary.md`

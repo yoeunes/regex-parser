@@ -1,464 +1,125 @@
-# Extending RegexParser: Complete Guide
+# Extending RegexParser
 
-> **Learn how to add new PCRE features, custom visitors, and integrations.**
+We designed RegexParser so you can add new behavior without fighting the core. This guide shows the safe extension paths and the files to touch.
 
----
+> If you can build a visitor, you can add a feature.
 
-## 🤔 What Can You Extend?
+## What You Can Extend
 
-RegexParser is designed for extensibility:
+| Area | What You Add | Typical Files |
+| --- | --- | --- |
+| New analysis | A new visitor | `src/NodeVisitor/*` |
+| New syntax | A new node + parser logic | `src/Node/*`, `src/Parser.php`, `src/Lexer.php` |
+| CLI features | A new command | `src/Cli/Command/*` |
+| Framework bridges | New integration layer | `src/Bridge/*` |
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                  Your Extension                         │
-├─────────────────────────────────────────────────────────┤
-│  1. New AST Nodes      - Add new pattern constructs     │
-│  2. New Visitors       - Add analysis/transformations   │
-│  3. Custom Linters    - Add your own rules              │
-│  4. Integrations      - Add framework bridges           │
-│  5. CLI Commands      - Add new commands                │
-└─────────────────────────────────────────────────────────┘
-```
-
----
-
-## 🏗️ Extension Architecture
+## Extension Flow (One Diagram)
 
 ```
-RegexParser Core
-├── Nodes (src/Node/)     ← Add new node types
-├── Visitors (src/NodeVisitor/) ← Add new visitors
-├── Parser (src/Parser.php) ← Update to recognize features
-└── CLI (src/Cli/)        ← Add new commands
+Idea -> Node -> Parser/Lexer -> Visitor -> Tests -> Docs
 ```
 
----
+We keep that order because the AST is the contract between parsing and analysis.
 
-## 📝 Step 1: Add a New Node
+## Path 1: Add a New Visitor (Recommended First)
 
-Create a node class for your new PCRE feature:
+Visitors are the safest extension point because they do not change syntax.
 
-**Location:** `src/Node/YourFeatureNode.php`
+1. Pick an existing visitor to copy (for example `ExplainNodeVisitor`).
+2. Extend `AbstractNodeVisitor`.
+3. Override the node methods you care about.
+4. Test against a parsed AST.
+
+Example: Count literal nodes.
 
 ```php
-<?php
-
-declare(strict_types=1);
-
-namespace RegexParser\Node;
-
-use RegexParser\NodeVisitor\NodeVisitorInterface;
-
-/**
- * Represents your new PCRE feature.
- *
- * Example: (?C) or (?C99) callouts
- */
-readonly class CalloutNode extends AbstractNode
-{
-    /**
-     * @param int|null $number Callout number (null for (?C))
-     * @param int      $startPos 0-based start offset
-     * @param int      $endPos 0-based end offset (exclusive)
-     */
-    public function __construct(
-        public ?int $number,
-        int $startPos,
-        int $endPos,
-    ) {
-        parent::__construct($startPos, $endPos);
-    }
-
-    public function accept(NodeVisitorInterface $visitor): mixed
-    {
-        return $visitor->visitCallout($this);
-    }
-}
-```
-
-### Checklist for New Nodes
-
-- [ ] Extend `AbstractNode`
-- [ ] Implement `NodeInterface` (via `accept()`)
-- [ ] Add public readonly properties
-- [ ] Call `parent::__construct($startPos, $endPos)`
-
----
-
-## 🔧 Step 2: Update the Parser
-
-Add parsing logic in `src/Parser.php`:
-
-```php
-// In the parseGroup() method, add your feature
-
-private function parseGroup(int $startPosition): NodeInterface
-{
-    // ... existing code ...
-
-    if ($this->isNextToken('T_GROUP_OPEN')) {
-        // Check for callout pattern: (?C) or (?C<number>)
-        if ($this->isNextToken('T_PCRE_VERB') && str_starts_with($this->currentToken->value, '(*CALLOUT')) {
-            return $this->parseCallout($startPosition);
-        }
-    }
-
-    // ... continue ...
-}
-
-private function parseCallout(int $startPosition): CalloutNode
-{
-    // Consume the callout token
-    $this->consumeToken();
-
-    // Parse callout number if present
-    $number = null;
-    if ($this->isNextToken('T_NUMBER')) {
-        $number = (int) $this->currentToken->value;
-        $this->consumeToken();
-    }
-
-    // Expect closing parenthesis
-    $this->consumeToken('T_GROUP_CLOSE');
-
-    return new CalloutNode(
-        $number,
-        $startPosition,
-        $this->currentToken->endPosition,
-    );
-}
-```
-
----
-
-## 👁️ Step 3: Update Visitors
-
-### Add Method to NodeVisitorInterface
-
-**Location:** `src/NodeVisitor/NodeVisitorInterface.php`
-
-```php
-public function visitCallout(CalloutNode $node): mixed;
-```
-
-### Add Default to AbstractNodeVisitor
-
-**Location:** `src/NodeVisitor/AbstractNodeVisitor.php`
-
-```php
-public function visitCallout(CalloutNode $node): mixed
-{
-    return $this->defaultReturn();
-}
-```
-
-### Implement in Your Visitor
-
-**Location:** Your custom visitor class
-
-```php
-public function visitCallout(CalloutNode $node): string
-{
-    return $node->number !== null
-        ? "(?C{$node->number})"
-        : "(?C)";
-}
-```
-
----
-
-## 🎨 Example: Complete Custom Visitor
-
-### Create a Pattern Length Visitor
-
-```php
-<?php
-
-declare(strict_types=1);
-
-namespace App\Regex;
-
-use RegexParser\Node\AlternationNode;
-use RegexParser\Node\AnchorNode;
-use RegexParser\Node\AssertionNode;
-use RegexParser\Node\CharClassNode;
-use RegexParser\Node\CharTypeNode;
-use RegexParser\Node\DotNode;
-use RegexParser\Node\GroupNode;
-use RegexParser\Node\LiteralNode;
-use RegexParser\Node\NodeInterface;
-use RegexParser\Node\QuantifierNode;
-use RegexParser\Node\RegexNode;
-use RegexParser\Node\SequenceNode;
+use RegexParser\Node;
 use RegexParser\NodeVisitor\AbstractNodeVisitor;
 
-/**
- * Calculates pattern complexity score.
- */
-final class ComplexityVisitor extends AbstractNodeVisitor
+final class LiteralCountVisitor extends AbstractNodeVisitor
 {
-    private int $score = 0;
+    private int $count = 0;
 
-    public function getScore(): int
+    public function visitLiteral(Node\LiteralNode $node): int
     {
-        return $this->score;
+        $this->count++;
+        return $this->count;
     }
 
-    public function visitRegex(RegexNode $node): int
+    public function getCount(): int
     {
-        $this->score = 0;
-        $node->pattern->accept($this);
-
-        // Add base score for flags
-        $this->score += strlen($node->flags);
-
-        return $this->score;
-    }
-
-    public function visitSequence(SequenceNode $node): int
-    {
-        foreach ($node->children as $child) {
-            $child->accept($this);
-        }
-
-        return $this->score;
-    }
-
-    public function visitAlternation(AlternationNode $node): int
-    {
-        // Alternations increase complexity
-        $this->score += 10;
-
-        foreach ($node->alternatives as $alternative) {
-            $alternative->accept($this);
-        }
-
-        return $this->score;
-    }
-
-    public function visitQuantifier(QuantifierNode $node): int
-    {
-        // Nested quantifiers increase complexity
-        $this->score += 5;
-
-        $node->node->accept($this);
-
-        return $this->score;
-    }
-
-    public function visitGroup(GroupNode $node): int
-    {
-        $node->child->accept($this);
-
-        return $this->score;
-    }
-
-    public function visitLiteral(LiteralNode $node): int
-    {
-        $this->score += strlen($node->value);
-
-        return $this->score;
-    }
-
-    public function visitCharClass(CharClassNode $node): int
-    {
-        $this->score += 5;
-
-        return $this->score;
-    }
-
-    // Add other visit methods as needed...
-}
-```
-
-### Use Your Visitor
-
-```php
-use App\Regex\ComplexityVisitor;
-use RegexParser\Regex;
-
-$regex = Regex::create();
-$ast = $regex->parse('/^(?:[a-z]+|\d{3,})+$/');
-
-$visitor = new ComplexityVisitor();
-$ast->accept($visitor);
-
-echo "Complexity: " . $visitor->getScore();  // Output: Complexity: 25
-```
-
----
-
-## 🧪 Step 4: Add Tests
-
-Create tests for your extension:
-
-**Location:** `tests/Unit/Node/CalloutNodeTest.php`
-
-```php
-<?php
-
-declare(strict_types=1);
-
-namespace RegexParser\Tests\Unit\Node;
-
-use PHPUnit\Framework\TestCase;
-use RegexParser\Node\CalloutNode;
-
-class CalloutNodeTest extends TestCase
-{
-    public function testCreateWithNumber(): void
-    {
-        $node = new CalloutNode(42, 0, 10);
-
-        $this->assertSame(42, $node->number);
-        $this->assertSame(0, $node->startPosition);
-        $this->assertSame(10, $node->endPosition);
-    }
-
-    public function testCreateWithoutNumber(): void
-    {
-        $node = new CalloutNode(null, 0, 5);
-
-        $this->assertNull($node->number);
+        return $this->count;
     }
 }
 ```
 
----
+> You can test this with `$ast->accept(new LiteralCountVisitor())`.
 
-## 📚 Step 5: Update Documentation
+## Path 2: Add New Syntax (Node + Parser)
 
-Add your new feature to:
+This path requires more care because it changes the AST.
 
-1. **[AST Nodes](../nodes/README.md)** - Document the node
-2. **[Visitor Reference](../visitors/README.md)** - Document the visitor method
-3. **Tutorial** - Add examples if it's a user-facing feature
-4. **README** - Update feature list
+### Step 1: Create a Node Class
 
----
+Use existing nodes as templates. `CalloutNode`, `PcreVerbNode`, and `ConditionalNode` are good examples.
 
-## 🎯 Common Extension Patterns
+Checklist:
+- Extend `AbstractNode`.
+- Implement `accept()` and call the correct `visitX()` method.
+- Keep properties `readonly`.
 
-### Pattern 1: Custom Lint Rule
+### Step 2: Update the Visitor Interface
 
-```php
-class YourLinterRule extends AbstractNodeVisitor
-{
-    /** @var array<int, string> */
-    private array $issues = [];
+Every node needs a matching method in `NodeVisitorInterface` and a default in `AbstractNodeVisitor`.
 
-    public function visitQuantifier(QuantifierNode $node): void
-    {
-        if ($node->quantifier === '*') {
-            $this->issues[] = "Avoid * quantifier - use + or bounded {0,n}";
-        }
-
-        $node->node->accept($this);
-    }
-
-    public function getIssues(): array
-    {
-        return $this->issues;
-    }
-}
+```
+visitYourNewNode(YourNewNode $node): mixed
 ```
 
-### Pattern 2: Pattern Transformation
+### Step 3: Teach the Lexer and Parser
 
-```php
-class YourTransformer extends AbstractNodeVisitor
-{
-    public function visitLiteral(LiteralNode $node): NodeInterface
-    {
-        // Transform: lowercase to uppercase
-        return new LiteralNode(
-            strtoupper($node->value),
-            $node->startPosition,
-            $node->endPosition
-        );
-    }
-}
+- If the syntax introduces new tokens, update `src/Lexer.php` and `src/TokenType.php`.
+- Add parsing logic in `src/Parser.php` where the construct belongs (group, atom, char class, etc).
+
+### Step 4: Update Compiler and Explain
+
+If the syntax must round-trip or explain correctly, update `CompilerNodeVisitor` and `ExplainNodeVisitor`.
+
+### Step 5: Add Tests
+
+- Parser coverage: `tests/Unit/Parser/*`
+- Visitor coverage: `tests/Unit/NodeVisitor/*`
+- Integration behavior: `tests/Integration/*`
+
+> If you add a new node, update `docs/nodes/README.md` and `docs/visitors/README.md`.
+
+## Path 3: Extend the CLI
+
+CLI commands live under `src/Cli/Command/*` and are wired in `src/Cli/Application.php`.
+
+Steps:
+1. Implement `CommandInterface` (or extend `AbstractCommand`).
+2. Register the command in `Application`.
+3. Add tests under `tests/Functional/Cli/*`.
+
+## Path 4: Extend Integrations
+
+Bridge code lives under `src/Bridge/*`. Use existing bridges as templates.
+
+- PHPStan: `src/Bridge/PHPStan/RegexParserRule.php`
+- Symfony: `src/Bridge/Symfony/*`
+
+## Extension Checklist
+
 ```
-
-### Pattern 3: Custom Analysis
-
-```php
-class YourAnalyzer extends AbstractNodeVisitor
-{
-    /** @var array<string, int> */
-    private array $counts = [];
-
-    public function getCounts(): array
-    {
-        return $this->counts;
-    }
-
-    public function visitGroup(GroupNode $node): void
-    {
-        $this->counts['groups'] = ($this->counts['groups'] ?? 0) + 1;
-        $node->child->accept($this);
-    }
-}
+[ ] Node class added (if needed)
+[ ] Visitor interface updated
+[ ] Parser + lexer updated
+[ ] Compiler / explainer updated
+[ ] Tests added
+[ ] Docs updated
 ```
 
 ---
 
-## 🆘 Troubleshooting
-
-### "Node not recognized"
-
-Make sure you:
-1. Created the node class
-2. Updated the parser to recognize it
-3. Added the visitor method
-
-### "Visitor method not called"
-
-Check:
-1. Node's `accept()` calls `visitor->visitYourNode()`
-2. Visitor implements the method
-3. Visitor is registered/used correctly
-
-### "Parse error"
-
-Verify parser logic:
-1. Token type check is correct
-2. Token consumption order is right
-3. Error handling for missing tokens
-
----
-
-## 📚 Best Practices
-
-1. **Immutability** - Nodes should be readonly
-2. **Position tracking** - Preserve start/end positions
-3. **Error handling** - Throw meaningful exceptions
-4. **Testing** - Cover edge cases
-5. **Documentation** - Explain the feature clearly
-
----
-
-## 🎓 Learning Resources
-
-- **[AST Nodes](../nodes/README.md)** - Node reference
-- **[Visitors](../visitors/README.md)** - Visitor patterns
-- **[AST Traversal](../design/AST_TRAVERSAL.md)** - Traversal design
-- **Source code** - Learn from existing implementations
-
----
-
-## 🚀 Next Steps
-
-1. Pick a simple feature to implement
-2. Follow the steps above
-3. Write tests
-4. Update documentation
-5. Submit a PR!
-
----
-
-**Happy extending!**
-
----
-
-Previous: [Architecture](../ARCHITECTURE.md) | Next: [Maintainers Guide](MAINTAINERS_GUIDE.md)
+Previous: `visitors/README.md` | Next: `MAINTAINERS_GUIDE.md`
