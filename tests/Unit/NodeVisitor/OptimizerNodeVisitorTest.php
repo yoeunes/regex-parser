@@ -726,7 +726,7 @@ final class OptimizerNodeVisitorTest extends TestCase
         $compiler = new CompilerNodeVisitor();
         $result = $optimized->accept($compiler);
 
-        $this->assertSame('/alpha|beta|gam{2}a|delta/', $result, 'Should not factor single character suffix');
+        $this->assertSame('/alpha|beta|gamma|delta/', $result, 'Should not factor single character suffix');
     }
 
     public function test_char_type_n_h_v_preserved_in_optimization(): void

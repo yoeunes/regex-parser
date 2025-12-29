@@ -933,7 +933,7 @@ final readonly class RegexAnalysisService
         }
 
         if (empty($hints)) {
-            $hints[] = 'ReDoS occurs when regex engines spend excessive time backtracking. Use possessive quantifiers (*+ instead of *, ++ instead of +, or {m,n}+ instead of {m,n}) or atomic groups (?>...) to prevent it.';
+            $hints[] = 'Use possessive quantifiers (*+ instead of *, ++ instead of +, or {m,n}+ instead of {m,n}) to prevent ReDoS.';
         }
 
         $hints[] = 'Test with malicious inputs like repeated strings followed by a non-matching character.';

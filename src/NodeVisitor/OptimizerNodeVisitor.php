@@ -910,7 +910,13 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
                 if (null === $parsedCount) {
                     // Variable quantifier, don't merge
                     if (null !== $currentNode) {
-                        $compacted[] = $this->createQuantifiedNode($currentNode, $currentCount);
+                        if ($currentCount >= 4) {
+                            $compacted[] = $this->createQuantifiedNode($currentNode, $currentCount);
+                        } else {
+                            for ($i = 0; $i < $currentCount; $i++) {
+                                $compacted[] = $currentNode;
+                            }
+                        }
                         $currentNode = null;
                         $currentCount = 0;
                     }
@@ -924,7 +930,13 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
             // Never compact nodes that can affect capture numbering or backreferences
             if ($this->isCaptureSensitive($baseNode)) {
                 if (null !== $currentNode) {
-                    $compacted[] = $this->createQuantifiedNode($currentNode, $currentCount);
+                    if ($currentCount >= 4) {
+                        $compacted[] = $this->createQuantifiedNode($currentNode, $currentCount);
+                    } else {
+                        for ($i = 0; $i < $currentCount; $i++) {
+                            $compacted[] = $currentNode;
+                        }
+                    }
                     $currentNode = null;
                     $currentCount = 0;
                 }
@@ -935,7 +947,13 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
 
             if (null === $currentNode || !$this->areNodesEqual($currentNode, $baseNode)) {
                 if (null !== $currentNode) {
-                    $compacted[] = $this->createQuantifiedNode($currentNode, $currentCount);
+                    if ($currentCount >= 4) {
+                        $compacted[] = $this->createQuantifiedNode($currentNode, $currentCount);
+                    } else {
+                        for ($i = 0; $i < $currentCount; $i++) {
+                            $compacted[] = $currentNode;
+                        }
+                    }
                 }
                 $currentNode = $baseNode;
                 $currentCount = $count;
@@ -945,7 +963,13 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         }
 
         if (null !== $currentNode) {
-            $compacted[] = $this->createQuantifiedNode($currentNode, $currentCount);
+            if ($currentCount >= 4) {
+                $compacted[] = $this->createQuantifiedNode($currentNode, $currentCount);
+            } else {
+                for ($i = 0; $i < $currentCount; $i++) {
+                    $compacted[] = $currentNode;
+                }
+            }
         }
 
         return $compacted;

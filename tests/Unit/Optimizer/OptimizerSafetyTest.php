@@ -41,7 +41,7 @@ final class OptimizerSafetyTest extends TestCase
         // --- 1. Sanity Checks (No Change Expected) ---
         yield 'Different literals' => ['/a|b/', '/[ab]/', ['autoPossessify' => true]];
         yield 'Distinct ranges' => ['/[a-z]|[0-9]/', '/[a-z0-9]/', ['autoPossessify' => true]];
-        yield 'Distinct words' => ['/fo{2}|bar/', '/fo{2}|bar/', ['autoPossessify' => true]];
+        yield 'Distinct words' => ['/fo{2}|bar/', '/foo|bar/', ['autoPossessify' => true]];
 
         // --- 2. The Regression Case (CRITICAL) ---
         // Ensure distinct patterns are NOT deduplicated
@@ -49,8 +49,9 @@ final class OptimizerSafetyTest extends TestCase
         yield 'Distinct literals with same length' => ['/abc|def/', '/abc|def/', ['autoPossessify' => true]];
 
         // --- 3. Sequence Compaction (Safe) ---
-        yield 'Repeat literal 3 times' => ['/aaa/', '/a{3}/', ['autoPossessify' => true]];
-        yield 'Repeat literal 2 times' => ['/aa/', '/a{2}/', ['autoPossessify' => true]];
+        yield 'Repeat literal 4 times' => ['/aaaa/', '/a{4}/', ['autoPossessify' => true]];
+        yield 'Repeat literal 3 times stays unchanged' => ['/aaa/', '/aaa/', ['autoPossessify' => true]];
+        yield 'Repeat literal 2 times stays unchanged' => ['/aa/', '/aa/', ['autoPossessify' => true]];
 
         // --- 4. Character Class Optimization (Safe) ---
         yield 'Digits to char type' => ['/[0-9]/', '/\d/', ['autoPossessify' => true]];
@@ -66,7 +67,7 @@ final class OptimizerSafetyTest extends TestCase
         // Scenario A: Capturing groups prevent compaction
         yield 'Capturing groups block compaction' => ['/(?:(a)b)(?:(a)b)/', '/(?:(a)b)(?:(a)b)/', ['autoPossessify' => true]];
         // Scenario B: Non-capturing groups allow compaction
-        yield 'Non-capturing groups allow compaction' => ['/(?:ab)(?:ab)/', '/ab{2}/', ['autoPossessify' => true]];
+        yield 'Non-capturing groups allow compaction but count < 4' => ['/(?:ab)(?:ab)/', '/abab/', ['autoPossessify' => true]];
         // Scenario C: Alternation factorization disabled by default
         yield 'Alternation factorization disabled' => ['/(a)b|(c)b/', '/(a)b|(c)b/', ['autoPossessify' => true]];
 

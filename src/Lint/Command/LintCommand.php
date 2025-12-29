@@ -186,6 +186,7 @@ final class LintCommand extends AbstractCommand implements CommandInterface
                 checkRedos: $checkRedos,
                 checkOptimizations: $checkOptimizations,
                 analysisWorkers: $jobs,
+                optimizations: $arguments->optimizations,
             );
             $patterns = $lint->collectPatterns($request, $collectionProgress);
         } catch (\Throwable $e) {

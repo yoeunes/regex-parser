@@ -18,8 +18,9 @@ use RegexParser\Lint\Formatter\OutputConfiguration;
 final readonly class LintArguments
 {
     /**
-     * @param array<int, string> $paths
-     * @param array<int, string> $exclude
+     * @param array<int, string>  $paths
+     * @param array<int, string>  $exclude
+     * @param array<string, bool> $optimizations
      */
     public function __construct(
         public array $paths,
@@ -36,6 +37,7 @@ final readonly class LintArguments
         public ?string $baseline = null,
         public ?string $generateBaseline = null,
         public string $ide = '',
+        public array $optimizations = [],
     ) {}
 
     /**
@@ -120,6 +122,19 @@ final readonly class LintArguments
             $ide = '';
         }
 
+        $optimizations = $defaults['optimizations'] ?? [];
+        if (!\is_array($optimizations)) {
+            $optimizations = [];
+        } else {
+            $validated = [];
+            foreach ($optimizations as $key => $value) {
+                if (\is_string($key) && \is_bool($value)) {
+                    $validated[$key] = $value;
+                }
+            }
+            $optimizations = $validated;
+        }
+
         return new self(
             $paths,
             $exclude,
@@ -135,6 +150,7 @@ final readonly class LintArguments
             $baseline,
             $generateBaseline,
             $ide,
+            $optimizations,
         );
     }
 

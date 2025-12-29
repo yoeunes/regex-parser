@@ -163,6 +163,26 @@ final class LintConfigLoader
             $normalized['ide'] = $config['ide'];
         }
 
+        if (\array_key_exists('optimizations', $config)) {
+            if (!\is_array($config['optimizations'])) {
+                return new LintConfigResult([], [], 'Invalid "optimizations" in '.$path.': expected an object.');
+            }
+
+            $optConfig = [];
+            foreach (['digits', 'word', 'strictRanges', 'autoPossessify', 'allowAlternationFactorization'] as $key) {
+                if (\array_key_exists($key, $config['optimizations'])) {
+                    if (!\is_bool($config['optimizations'][$key])) {
+                        return new LintConfigResult([], [], 'Invalid "optimizations.'.$key.'" in '.$path.': expected a boolean.');
+                    }
+                    $optConfig[$key] = $config['optimizations'][$key];
+                }
+            }
+
+            if ([] !== $optConfig) {
+                $normalized['optimizations'] = $optConfig;
+            }
+        }
+
         return new LintConfigResult($normalized, []);
     }
 

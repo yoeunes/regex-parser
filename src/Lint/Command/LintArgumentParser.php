@@ -46,6 +46,10 @@ final class LintArgumentParser
                     $arguments->checkOptimizations,
                     $arguments->jobs,
                     $arguments->output,
+                    $arguments->baseline,
+                    $arguments->generateBaseline,
+                    $arguments->ide,
+                    $arguments->optimizations,
                 );
 
                 continue;
@@ -64,6 +68,10 @@ final class LintArgumentParser
                     $arguments->checkOptimizations,
                     $arguments->jobs,
                     $arguments->output,
+                    $arguments->baseline,
+                    $arguments->generateBaseline,
+                    $arguments->ide,
+                    $arguments->optimizations,
                 );
 
                 continue;
@@ -82,6 +90,10 @@ final class LintArgumentParser
                     $arguments->checkOptimizations,
                     $arguments->jobs,
                     $arguments->output,
+                    $arguments->baseline,
+                    $arguments->generateBaseline,
+                    $arguments->ide,
+                    $arguments->optimizations,
                 );
 
                 continue;
@@ -100,6 +112,10 @@ final class LintArgumentParser
                     $arguments->checkOptimizations,
                     $arguments->jobs,
                     $arguments->output,
+                    $arguments->baseline,
+                    $arguments->generateBaseline,
+                    $arguments->ide,
+                    $arguments->optimizations,
                 );
 
                 continue;
@@ -118,6 +134,10 @@ final class LintArgumentParser
                     $arguments->checkOptimizations,
                     $arguments->jobs,
                     $arguments->output,
+                    $arguments->baseline,
+                    $arguments->generateBaseline,
+                    $arguments->ide,
+                    $arguments->optimizations,
                 );
 
                 continue;
@@ -138,6 +158,8 @@ final class LintArgumentParser
                     $arguments->output,
                     $arguments->baseline,
                     $arguments->generateBaseline,
+                    $arguments->ide,
+                    $arguments->optimizations,
                 );
 
                 continue;
@@ -159,6 +181,8 @@ final class LintArgumentParser
                     $arguments->output,
                     $arguments->baseline,
                     $generateBaseline,
+                    $arguments->ide,
+                    $arguments->optimizations,
                 );
 
                 continue;
@@ -180,6 +204,8 @@ final class LintArgumentParser
                     $arguments->output,
                     $baseline,
                     $arguments->generateBaseline,
+                    $arguments->ide,
+                    $arguments->optimizations,
                 );
 
                 continue;
@@ -198,6 +224,10 @@ final class LintArgumentParser
                     $arguments->checkOptimizations,
                     $arguments->jobs,
                     $arguments->output,
+                    $arguments->baseline,
+                    $arguments->generateBaseline,
+                    $arguments->ide,
+                    $arguments->optimizations,
                 );
 
                 continue;
@@ -220,6 +250,10 @@ final class LintArgumentParser
                     $arguments->checkOptimizations,
                     $arguments->jobs,
                     $arguments->output,
+                    $arguments->baseline,
+                    $arguments->generateBaseline,
+                    $arguments->ide,
+                    $arguments->optimizations,
                 );
                 $i++;
 
@@ -241,6 +275,10 @@ final class LintArgumentParser
                     $arguments->checkOptimizations,
                     $arguments->jobs,
                     $arguments->output,
+                    $arguments->baseline,
+                    $arguments->generateBaseline,
+                    $arguments->ide,
+                    $arguments->optimizations,
                 );
 
                 continue;
@@ -265,6 +303,10 @@ final class LintArgumentParser
                     $arguments->checkOptimizations,
                     $arguments->jobs,
                     $arguments->output,
+                    $arguments->baseline,
+                    $arguments->generateBaseline,
+                    $arguments->ide,
+                    $arguments->optimizations,
                 );
                 $i++;
 
@@ -284,6 +326,10 @@ final class LintArgumentParser
                     $arguments->checkOptimizations,
                     $arguments->jobs,
                     $arguments->output,
+                    $arguments->baseline,
+                    $arguments->generateBaseline,
+                    $arguments->ide,
+                    $arguments->optimizations,
                 );
 
                 continue;
@@ -316,10 +362,11 @@ final class LintArgumentParser
                 if ('' === $value || str_starts_with($value, '-')) {
                     return new LintParseResult(null, 'Missing value for --min-savings.');
                 }
+                $minSavings = (int) $value;
                 $arguments = new LintArguments(
                     $arguments->paths,
                     $arguments->exclude,
-                    (int) $value,
+                    $minSavings,
                     $arguments->verbosity,
                     $arguments->format,
                     $arguments->quiet,
@@ -328,6 +375,10 @@ final class LintArgumentParser
                     $arguments->checkOptimizations,
                     $arguments->jobs,
                     $arguments->output,
+                    $arguments->baseline,
+                    $arguments->generateBaseline,
+                    $arguments->ide,
+                    $arguments->optimizations,
                 );
                 $i++;
 
@@ -374,6 +425,10 @@ final class LintArgumentParser
                     $arguments->checkOptimizations,
                     $arguments->jobs,
                     substr($arg, \strlen('--output=')),
+                    $arguments->baseline,
+                    $arguments->generateBaseline,
+                    $arguments->ide,
+                    $arguments->optimizations,
                 );
 
                 continue;
@@ -396,6 +451,10 @@ final class LintArgumentParser
                     $arguments->checkOptimizations,
                     $arguments->jobs,
                     $value,
+                    $arguments->baseline,
+                    $arguments->generateBaseline,
+                    $arguments->ide,
+                    $arguments->optimizations,
                 );
                 $i++;
 
@@ -424,6 +483,10 @@ final class LintArgumentParser
                 $arguments->checkOptimizations,
                 $arguments->jobs,
                 $arguments->output,
+                $arguments->baseline,
+                $arguments->generateBaseline,
+                $arguments->ide,
+                $arguments->optimizations,
             );
         }
 

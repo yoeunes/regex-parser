@@ -675,7 +675,7 @@ final class RegexAnalysisServiceTest extends TestCase
         $analysis = new ReDoSAnalysis(ReDoSSeverity::HIGH, 10);
         $hint = $this->invokePrivate('getReDoSHint', $analysis, '/abc/');
         $this->assertIsString($hint);
-        $this->assertStringContainsString('ReDoS occurs', (string) $hint);
+        $this->assertStringContainsString('Use possessive quantifiers', (string) $hint);
         $this->assertStringContainsString('*+', (string) $hint);
         $this->assertStringContainsString('++', (string) $hint);
         $this->assertStringContainsString('{m,n}+', (string) $hint);

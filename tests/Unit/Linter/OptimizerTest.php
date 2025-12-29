@@ -78,7 +78,7 @@ final class OptimizerTest extends TestCase
         // Case 3: Useless flag removal - 's' flag is useless when no dots present
         yield 'useless flag removal' => [
             '#<esi:comment[^>]+>#s',
-            '#<esi:com{2}ent[^>]+>#',
+            '#<esi:comment[^>]+>#',
         ];
 
         // Case 4: Structure optimization - (?P<name>) -> (?<name>)

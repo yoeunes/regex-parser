@@ -56,7 +56,7 @@ final class OptimizerSpecificsTest extends TestCase
     public function test_prefix_factorization_no_common(): void
     {
         $regex = Regex::create()->optimize('/foo|bar/')->optimized;
-        $this->assertSame('/fo{2}|bar/', $regex);
+        $this->assertSame('/foo|bar/', $regex);
     }
 
     public function test_prefix_factorization_complex(): void
@@ -69,7 +69,7 @@ final class OptimizerSpecificsTest extends TestCase
     public function test_sequence_compaction_digits(): void
     {
         $regex = Regex::create()->optimize('/\d\d\d/')->optimized;
-        $this->assertSame('/\d{3}/', $regex);
+        $this->assertSame('/\d\d\d/', $regex);
     }
 
     public function test_sequence_compaction_mixed(): void
@@ -117,7 +117,7 @@ final class OptimizerSpecificsTest extends TestCase
     public function test_full_optimization_combo(): void
     {
         $regex = Regex::create()->optimize('/a{0,}b{1,}c{0,1}d{1}\d\d/', ['autoPossessify' => true])->optimized;
-        $this->assertSame('/a*b++c?d\d{2}/', $regex);
+        $this->assertSame('/a*b++c?d\d\d/', $regex);
     }
 
     public function test_safe_possessivization(): void

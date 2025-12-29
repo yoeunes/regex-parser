@@ -60,6 +60,10 @@ final class LintDefaultsBuilder
             $defaults['ide'] = $config['ide'];
         }
 
+        if (isset($config['optimizations'])) {
+            $defaults['optimizations'] = $config['optimizations'];
+        }
+
         return $defaults;
     }
 }
