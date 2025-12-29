@@ -42,10 +42,18 @@
 # Directories not needed in distribution
 /art                    export-ignore
 /benchmarks             export-ignore
+/corpus                 export-ignore
+/docs                   export-ignore
 /tests                  export-ignore
 /tools                  export-ignore
 /.task                  export-ignore
 /.cache                  export-ignore
+
+# Additional files not needed in distribution
+/bin/build              export-ignore
+/bin/regex.phar         export-ignore
+/CHANGELOG.md           export-ignore
+/regex.dist.json        export-ignore
 
 # PHP files
 *.php text eol=lf diff=php
