@@ -62,7 +62,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
     public function __construct(
         private readonly bool $optimizeDigits = true,
         private readonly bool $optimizeWord = true,
-        private readonly bool $strictRanges = true,
+        private readonly bool $ranges = true,
         /**
          * Whether to automatically convert greedy quantifiers to possessive
          * when followed by a disjoint character set. This is safe in most cases
@@ -825,7 +825,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
                 continue;
             }
 
-            if ($ord === $rangeEnd + 1 && (!$this->strictRanges || $this->getCharCategory($ord) === $this->getCharCategory($rangeEnd))) {
+            if ($ord === $rangeEnd + 1 && (!$this->ranges || $this->getCharCategory($ord) === $this->getCharCategory($rangeEnd))) {
                 $rangeEnd = $ord;
                 $rangeEndPos = max($rangeEndPos, $posEnd);
 

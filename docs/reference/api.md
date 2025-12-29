@@ -80,7 +80,7 @@ Returns ReDoS severity, score, hotspots, and recommendations.
 Optimization options:
 - `digits` (bool, default true): `[0-9]` -> `\d`
 - `word` (bool, default true): `[A-Za-z0-9_]` -> `\w`
-- `strictRanges` (bool, default true): normalize ranges
+- `ranges` (bool, default true): normalize ranges
 - `autoPossessify` (bool, default false): opportunistic possessive quantifiers
 
 ### literals(string $regex): LiteralExtractionResult

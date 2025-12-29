@@ -172,7 +172,7 @@ final class LintConfigLoader
             $keyMapping = [
                 'digits' => 'digits',
                 'word' => 'word',
-                'ranges' => 'strictRanges',
+                'ranges' => 'ranges',
                 'possessive' => 'autoPossessify',
                 'factorize' => 'allowAlternationFactorization',
             ];

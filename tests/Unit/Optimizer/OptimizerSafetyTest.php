@@ -23,7 +23,7 @@ use RegexParser\Regex;
 final class OptimizerSafetyTest extends TestCase
 {
     /**
-     * @param array{digits?: bool, word?: bool, strictRanges?: bool, autoPossessify?: bool, allowAlternationFactorization?: bool} $options
+     * @param array{digits?: bool, word?: bool, ranges?: bool, autoPossessify?: bool, allowAlternationFactorization?: bool} $options
      */
     #[DataProvider('provideOptimizationCases')]
     public function test_optimization_does_not_change_semantics(string $input, string $expected, array $options): void

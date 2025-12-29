@@ -104,14 +104,14 @@ final class PregValidationRule implements Rule
      * @param bool                                                $ignoreParseErrors  Ignore parse errors for partial regex strings
      * @param bool                                                $reportRedos        Report ReDoS vulnerability analysis
      * @param string                                              $redosThreshold     Minimum ReDoS severity level to report
-     * @param array{digits: bool, word: bool, strictRanges: bool} $optimizationConfig
+     * @param array{digits: bool, word: bool, ranges: bool} $optimizationConfig
      */
     public function __construct(
         private readonly bool $ignoreParseErrors = true,
         private readonly bool $reportRedos = true,
         private readonly string $redosThreshold = 'high',
         private readonly bool $suggestOptimizations = false,
-        private readonly array $optimizationConfig = ['digits' => true, 'word' => true, 'strictRanges' => true],
+        private readonly array $optimizationConfig = ['digits' => true, 'word' => true, 'ranges' => true],
     ) {}
 
     public function getNodeType(): string

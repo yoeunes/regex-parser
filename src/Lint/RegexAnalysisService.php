@@ -121,7 +121,7 @@ final readonly class RegexAnalysisService
 
     /**
      * @param array<RegexPatternOccurrence>                                                                                       $patterns
-     * @param array{digits?: bool, word?: bool, strictRanges?: bool, autoPossessify?: bool, allowAlternationFactorization?: bool} $optimizationConfig
+     * @param array{digits?: bool, word?: bool, ranges?: bool, autoPossessify?: bool, allowAlternationFactorization?: bool} $optimizationConfig
      *
      * @return array<array{
      *     file: string,
@@ -306,7 +306,7 @@ final readonly class RegexAnalysisService
 
     /**
      * @param array<RegexPatternOccurrence>                                                                                       $patterns
-     * @param array{digits?: bool, word?: bool, strictRanges?: bool, autoPossessify?: bool, allowAlternationFactorization?: bool} $optimizationConfig
+     * @param array{digits?: bool, word?: bool, ranges?: bool, autoPossessify?: bool, allowAlternationFactorization?: bool} $optimizationConfig
      *
      * @return array<array{
      *     file: string,
@@ -338,7 +338,7 @@ final readonly class RegexAnalysisService
                     $optimizer = new OptimizerNodeVisitor(
                         optimizeDigits: (bool) ($optimizationConfig['digits'] ?? true),
                         optimizeWord: (bool) ($optimizationConfig['word'] ?? true),
-                        strictRanges: (bool) ($optimizationConfig['strictRanges'] ?? true),
+                        ranges: (bool) ($optimizationConfig['ranges'] ?? true),
                         autoPossessify: (bool) ($optimizationConfig['autoPossessify'] ?? false),
                         allowAlternationFactorization: false,
                     );

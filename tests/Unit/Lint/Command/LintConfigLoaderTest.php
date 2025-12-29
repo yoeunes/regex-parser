@@ -213,7 +213,7 @@ final class LintConfigLoaderTest extends TestCase
             $this->assertSame([
                 'digits' => false,
                 'word' => true,
-                'strictRanges' => true,
+                'ranges' => true,
                 'autoPossessify' => false,
                 'allowAlternationFactorization' => false,
             ], $result->config['optimizations']);

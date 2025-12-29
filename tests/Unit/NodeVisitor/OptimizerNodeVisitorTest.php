@@ -542,7 +542,7 @@ final class OptimizerNodeVisitorTest extends TestCase
 
         // Test strict ranges (default): prevent merging different categories
         $ast = $regex->parse('/[0-9:]/');
-        $optimizerStrict = new OptimizerNodeVisitor(strictRanges: true);
+        $optimizerStrict = new OptimizerNodeVisitor(ranges: true);
         $optimizedStrict = $ast->accept($optimizerStrict);
         $resultStrict = $optimizedStrict->accept($compiler);
         // Should remain [0-9:] or equivalent, not [0-: ]
@@ -551,7 +551,7 @@ final class OptimizerNodeVisitorTest extends TestCase
         $this->assertNotSame('/[0-:]/', $resultStrict, 'Strict ranges should not merge digits and symbols');
 
         // Test loose ranges: allow merging different categories
-        $optimizerLoose = new OptimizerNodeVisitor(strictRanges: false);
+        $optimizerLoose = new OptimizerNodeVisitor(ranges: false);
         $optimizedLoose = $ast->accept($optimizerLoose);
         $resultLoose = $optimizedLoose->accept($compiler);
         $this->assertSame('/[0-:]/', $resultLoose, 'Loose ranges should merge digits and symbols');
