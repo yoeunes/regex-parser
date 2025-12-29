@@ -57,6 +57,13 @@ final class RegexOptionsTest extends TestCase
         $this->assertSame(\PHP_VERSION_ID, $options->phpVersionId);
     }
 
+    public function test_from_array_with_null_cache_disables_cache(): void
+    {
+        $options = RegexOptions::fromArray(['cache' => null]);
+
+        $this->assertInstanceOf(NullCache::class, $options->cache);
+    }
+
     public function test_from_array_parses_php_version_string(): void
     {
         $options = RegexOptions::fromArray(['php_version' => '8.1']);

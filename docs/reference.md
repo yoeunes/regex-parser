@@ -419,12 +419,12 @@ RegexParser uses caching for validation operations to improve performance. To pr
 
 - **Maximum cache entries**: 1000 items per cache
 - **Automatic cleanup**: When cache reaches limit size
-- **Manual cleanup**: `Regex::create()->clearValidatorCaches()`
+- **Manual cleanup**: `Regex::create()->clearValidatorCaches()` (validator caches only)
 
 ```php
 // For long-running processes
 $regex = Regex::create();
-$regex->clearValidatorCaches(); // Reset caches periodically
+$regex->clearValidatorCaches(); // Reset validator caches periodically
 ```
 
 ---

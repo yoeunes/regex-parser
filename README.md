@@ -103,7 +103,7 @@ echo $optimized->original;   // /[0-9]+/
 echo $optimized->optimized;  // /\d+/
 ```
 
-Performance note: auto-possessivization is enabled by default in `optimize()`. Pass `['autoPossessify' => false]` if you need to preserve backtracking behavior.
+Performance note: auto-possessivization is disabled by default in `optimize()` to preserve backtracking behavior. Pass `['autoPossessify' => true]` to enable it.
 
 ### Generate samples
 

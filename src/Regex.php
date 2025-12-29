@@ -101,7 +101,7 @@ final readonly class Regex
      * @param int            $maxLookbehindLength   Maximum allowed lookbehind length
      * @param CacheInterface $cache                 Cache implementation for parsed patterns
      * @param array<string>  $redosIgnoredPatterns  Patterns to ignore in ReDoS analysis
-     * @param bool           $runtimePcreValidation Whether to validate againsts PCRE runtime
+     * @param bool           $runtimePcreValidation Whether to validate against PCRE runtime
      * @param int            $maxRecursionDepth     Maximum recursion depth during parsing
      * @param int            $phpVersionId          Target PHP_VERSION_ID for feature validation
      */
@@ -127,14 +127,23 @@ final readonly class Regex
     /**
      * Get cache statistics.
      *
-     * @return array{hits: int, misses: int} Cache hits and misses
+     * @return array{hits: int, misses: int} Cache hits and misses (zeroed if unsupported)
      */
     public function getCacheStats(): array
     {
-        /** @var RemovableCacheInterface $cache */
-        $cache = $this->cache;
+        if (!$this->cache instanceof RemovableCacheInterface) {
+            return ['hits' => 0, 'misses' => 0];
+        }
 
-        return $cache->getStats();
+        return $this->cache->getStats();
+    }
+
+    /**
+     * Clear static validator caches (useful for long-running processes).
+     */
+    public function clearValidatorCaches(): void
+    {
+        ValidatorNodeVisitor::clearCaches();
     }
 
     /**

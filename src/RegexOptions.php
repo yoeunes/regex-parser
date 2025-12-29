@@ -15,6 +15,7 @@ namespace RegexParser;
 
 use RegexParser\Cache\CacheInterface;
 use RegexParser\Cache\FilesystemCache;
+use RegexParser\Cache\NullCache;
 use RegexParser\Exception\InvalidRegexOptionException;
 
 /**
@@ -276,12 +277,16 @@ final readonly class RegexOptions
      */
     private static function createCache(array $options): CacheInterface
     {
-        $cacheOption = $options['cache'] ?? null;
-
-        if (null === $cacheOption) {
+        if (!\array_key_exists('cache', $options)) {
             $defaultPath = sys_get_temp_dir().\DIRECTORY_SEPARATOR.'regex-parser'.\DIRECTORY_SEPARATOR.'cache';
 
             return new FilesystemCache($defaultPath);
+        }
+
+        $cacheOption = $options['cache'];
+
+        if (null === $cacheOption) {
+            return new NullCache();
         }
 
         if (\is_string($cacheOption)) {
