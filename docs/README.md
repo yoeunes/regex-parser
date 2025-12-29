@@ -11,12 +11,6 @@ entry point quickly.
 - Tooling and framework maintainers: [CLI Guide](guides/cli.md), [Maintainers Guide](MAINTAINERS_GUIDE.md), [Lint Rule Reference](reference.md)
 - Contributors: [Architecture](ARCHITECTURE.md), [AST Traversal Design](design/AST_TRAVERSAL.md), [Extending Guide](EXTENDING_GUIDE.md)
 
-## Visual CLI previews
-
-![Analyze output preview](assets/cli-analyze.svg)
-![Highlight output preview](assets/cli-highlight.svg)
-![Validation error preview](assets/cli-validate.svg)
-
 ## Reference
 
 - Reference index: [docs/reference/README.md](reference/README.md)

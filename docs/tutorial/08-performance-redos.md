@@ -53,7 +53,7 @@ if ($analysis->exceedsThreshold(ReDoSSeverity::HIGH)) {
 CLI:
 
 ```bash
-bin/regex analyze '/(a+)+$/'
+vendor/bin/regex analyze '/(a+)+$/'
 ```
 
 ---

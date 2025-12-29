@@ -44,7 +44,7 @@ if (!$result->isValid()) {
 Validation error with caret:
 
 ```bash
-bin/regex --no-ansi validate '/(?<=a+)b/'
+vendor/bin/regex --no-ansi validate '/(?<=a+)b/'
 ```
 
 ```text
@@ -62,7 +62,7 @@ What to notice:
 ReDoS analysis summary:
 
 ```bash
-bin/regex --no-ansi analyze '/(a+)+$/'
+vendor/bin/regex --no-ansi analyze '/(a+)+$/'
 ```
 
 ```text
@@ -95,7 +95,7 @@ These map to the rule reference in `docs/reference.md`.
 For machine-readable output:
 
 ```bash
-regex lint src/ --format=json
+vendor/bin/regex lint src/ --format=json
 ```
 
 Each issue includes:

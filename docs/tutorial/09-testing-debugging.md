@@ -16,8 +16,8 @@ echo $regex->explain('/^(?<user>\w+)@(?<host>\w+)$/');
 CLI:
 
 ```bash
-bin/regex analyze '/^(?<user>\w+)@(?<host>\w+)$/'
-bin/regex highlight '/^\d{4}-\d{2}-\d{2}$/' --format=html
+vendor/bin/regex analyze '/^(?<user>\w+)@(?<host>\w+)$/'
+vendor/bin/regex highlight '/^\d{4}-\d{2}-\d{2}$/' --format=html
 ```
 
 ## Validate early

@@ -26,7 +26,7 @@ Prerequisites:
 - Read the chapter, then run the examples in a PHP REPL or a small script.
 - For each pattern, try `Regex::explain()` and `Regex::validate()` to see how the
   AST and diagnostics map to what you wrote.
-- Use `bin/regex highlight` to visualize your pattern when it starts getting dense.
+- Use `vendor/bin/regex highlight` to visualize your pattern when it starts getting dense.
 
 If you want a short path instead, read:
 - [Quick Start](../QUICK_START.md)

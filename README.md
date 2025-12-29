@@ -32,7 +32,7 @@ Built for library authors, framework teams, security and CI pipelines, and begin
 - Explain and highlight regexes for docs, reviews, and UIs
 - CLI tooling plus Symfony and PHPStan integrations
 
-## Quick Start (3 steps)
+## Quick Start
 
 1) Install:
 
@@ -40,82 +40,37 @@ Built for library authors, framework teams, security and CI pipelines, and begin
 composer require yoeunes/regex-parser
 ```
 
-2) Validate a regex:
+2) Lint your codebase (fastest way to see value):
+
+```bash
+vendor/bin/regex lint src/
+```
+
+Find regexes in your project and report validation issues, ReDoS risk, and optimizations.
+
+![CLI Lint Screenshot](docs/assets/cli-lint.png)
+
+3) Inspect a single pattern:
+
+```bash
+vendor/bin/regex analyze '/(a+)+$/'
+vendor/bin/regex highlight '/^[0-9]+(\w+)$/' --format=html
+```
+
+4) Validate in code:
 
 ```php
 use RegexParser\Regex;
 
 $regex = Regex::create();
-
 $result = $regex->validate('/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i');
 
-if ($result->isValid()) {
-    echo "OK";
-} else {
-    echo $result->getErrorMessage();
-}
+echo $result->isValid() ? "OK" : $result->getErrorMessage();
 ```
 
-3) Explain it (great for reviews and docs):
+Want a human explanation? `Regex::explain()` turns a pattern into plain English.
 
-```php
-echo $regex->explain('/^([a-z]+)\.([a-z]{2,})$/');
-```
-
-## CLI in action (screenshot-friendly)
-
-Composer install: use `vendor/bin/regex` (this repo uses `bin/regex`).
-
-Analyze a single pattern:
-
-```bash
-bin/regex --no-ansi analyze '/(a+)+$/'
-```
-
-Example output:
-
-```text
-Analyze
-  Pattern:    /(a+)+$/
-  Parse:      OK
-  Validation: OK
-  ReDoS:      CRITICAL (score 10)
-
-Explanation
-Regex matches
-  Start Quantified Group (one or more times)
-    Capturing group
-            'a' (one or more times)
-    End group
-  End Quantified Group
-  Anchor: the end of the string (or line, with /m flag)
-```
-
-Highlight for HTML:
-
-```bash
-bin/regex highlight '/^[0-9]+(\w+)$/' --format=html
-```
-
-Output:
-
-```html
-<span class="regex-anchor">^</span><span class="regex-meta">[</span><span class="regex-literal">0</span><span class="regex-meta">-</span><span class="regex-literal">9</span><span class="regex-meta">]</span><span class="regex-quantifier">+</span><span class="regex-meta">(</span><span class="regex-type">\w</span><span class="regex-quantifier">+</span><span class="regex-meta">)</span><span class="regex-anchor">$</span>
-```
-
-### CLI output previews
-
-![Analyze output preview](docs/assets/cli-analyze.svg)
-![Highlight output preview](docs/assets/cli-highlight.svg)
-![Validation error preview](docs/assets/cli-validate.svg)
-
-Scan a project (tips + optimizations):
-
-```bash
-bin/regex lint src/ --format=console --min-savings=2 --no-validate
-```
-
-Tip: drop `--no-ansi` from the first command or add `--ansi` to get colors for screenshots. Remove `--no-validate` to include syntax validation.
+More details: [CLI Guide](docs/guides/cli.md) and [Quick Start](docs/QUICK_START.md).
 
 ## Pick your path
 
