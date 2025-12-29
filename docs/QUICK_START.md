@@ -12,6 +12,25 @@ composer require yoeunes/regex-parser
 
 ---
 
+## Start with the CLI (lint first)
+
+If you want the fastest "show me" experience, start here:
+
+```bash
+vendor/bin/regex lint src/
+```
+
+Inspect a single pattern:
+
+```bash
+vendor/bin/regex analyze '/(a+)+$/'
+vendor/bin/regex highlight '/^\d{4}-\d{2}-\d{2}$/' --format=html
+```
+
+All CLI examples use `vendor/bin/regex`. For options and CI usage, see the [CLI Guide](guides/cli.md).
+
+---
+
 ## 1. Parse a Regex Pattern
 
 Convert a regex string into an Abstract Syntax Tree (AST).

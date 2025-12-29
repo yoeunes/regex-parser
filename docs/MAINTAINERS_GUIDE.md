@@ -61,7 +61,7 @@ try {
 
 ## JSON output schema (CLI linting)
 
-Use `bin/regex lint --format=json` for machine-readable output. The JSON payload includes a `stats` object
+Use `vendor/bin/regex lint --format=json` for machine-readable output. The JSON payload includes a `stats` object
 and a `results` array. Each result includes issues and optimization entries for a single pattern occurrence.
 
 Example output:

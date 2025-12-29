@@ -5,13 +5,11 @@ This guide covers everyday usage and CI integration.
 
 ## Install
 
-Use the project binary when developing in this repo:
+If installed via Composer, use `vendor/bin/regex` (all examples below):
 
 ```bash
-bin/regex --help
+vendor/bin/regex --help
 ```
-
-If installed via Composer, use `vendor/bin/regex`.
 
 Or install the PHAR:
 
@@ -20,30 +18,32 @@ curl -Ls https://github.com/yoeunes/regex-parser/releases/latest/download/regex.
 chmod +x ~/.local/bin/regex
 ```
 
+If you use the PHAR, replace `vendor/bin/regex` with `regex`.
+
 ## Quick commands
+
+Lint a codebase (best first step):
+
+```bash
+vendor/bin/regex lint src/ --format=console --min-savings=2
+```
 
 Analyze a single pattern:
 
 ```bash
-regex analyze '/(a+)+$/'
+vendor/bin/regex analyze '/(a+)+$/'
 ```
 
 Analyze a pattern (includes explanation):
 
 ```bash
-regex analyze '/^(?<user>\w+)@(?<host>\w+)$/'
+vendor/bin/regex analyze '/^(?<user>\w+)@(?<host>\w+)$/'
 ```
 
 Highlight for HTML:
 
 ```bash
-regex highlight '/^\d{4}-\d{2}-\d{2}$/' --format=html
-```
-
-## Lint a codebase
-
-```bash
-regex lint src/ --format=console --min-savings=2
+vendor/bin/regex highlight '/^\d{4}-\d{2}-\d{2}$/' --format=html
 ```
 
 Useful options:
