@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace RegexParser\Lint\Command;
 
+use RegexParser\Bridge\Symfony\Console\LinkFormatter;
+use RegexParser\Bridge\Symfony\Console\RelativePathHelper;
 use RegexParser\Cli\Command\AbstractCommand;
 use RegexParser\Cli\Command\CommandInterface;
 use RegexParser\Cli\Command\HelpCommand;
@@ -134,7 +136,10 @@ final class LintCommand extends AbstractCommand implements CommandInterface
         $formatter = $formatterRegistry->get($format);
 
         if ('console' === $format) {
-            $formatter = new ConsoleFormatter($analysis, $config, $arguments->ide);
+            $linkFormatter = '' !== $arguments->ide
+                ? new LinkFormatter($arguments->ide, new RelativePathHelper())
+                : null;
+            $formatter = new ConsoleFormatter($analysis, $config, $arguments->ide, $linkFormatter);
         }
 
         $extractor = $this->extractorFactory->create();

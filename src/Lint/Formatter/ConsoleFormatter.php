@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Lint\Formatter;
 
+use RegexParser\Bridge\Symfony\Console\LinkFormatter;
 use RegexParser\Internal\PatternParser;
 use RegexParser\Lint\RegexAnalysisService;
 use RegexParser\Lint\RegexLintReport;
@@ -50,6 +51,7 @@ class ConsoleFormatter extends AbstractOutputFormatter
         private readonly ?RegexAnalysisService $analysisService = null,
         OutputConfiguration $config = new OutputConfiguration(),
         private readonly string $ide = '',
+        private readonly ?LinkFormatter $linkFormatter = null,
     ) {
         parent::__construct($config);
     }
@@ -132,12 +134,12 @@ class ConsoleFormatter extends AbstractOutputFormatter
         // Build a compact file:line prefix, e.g. "src/Console/Command.php:679".
         $prefix = '';
         if ('' !== $file && $line > 0) {
-            $prefix = $file.':'.$line;
-            if ('' !== $this->ide) {
-                $url = $this->generateIdeUrl($file, $line);
-                $prefix = "\e]8;;{$url}\e\\{$prefix}\e]8;;\e\\";
+            $fileLine = $file.':'.$line;
+            if ('' !== $this->ide && null !== $this->linkFormatter) {
+                $penLink = $this->formatPenLink($file, $line);
+                $prefix = $fileLine.' '.$penLink;
             } else {
-                $prefix = $prefix;
+                $prefix = $fileLine;
             }
         } elseif ('' !== $file) {
             $prefix = $file;
@@ -579,12 +581,22 @@ class ConsoleFormatter extends AbstractOutputFormatter
         return $output;
     }
 
-    private function generateIdeUrl(string $file, int $line): string
+    /**
+     * Format pen emoji with IDE link.
+     */
+    private function formatPenLink(string $file, int $line): string
     {
-        return match ($this->ide) {
-            'phpstorm' => "phpstorm://idea/navigate/reference?project=&path={$file}&line={$line}",
-            default => '',
-        };
+        // Use LinkFormatter to get the URL, but convert Symfony href format to ANSI escape sequences
+        $href = $this->linkFormatter?->format($file, $line, '✏️');
+
+        // Extract URL from Symfony href format: <href=URL>✏️</>
+        if (preg_match('/<href=([^>]+)>/', (string) $href, $matches)) {
+            $url = $matches[1];
+
+            return "\e]8;;{$url}\e\\✏️\e]8;;\e\\";
+        }
+
+        return '✏️';
     }
 
     // getPenLabel() is intentionally omitted in this formatter. The plain
