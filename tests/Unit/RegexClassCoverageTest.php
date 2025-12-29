@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\Unit;
 
+use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Cache\NullCache;
 use RegexParser\Regex;
@@ -55,5 +56,13 @@ final class RegexClassCoverageTest extends TestCase
         $explanation = $regex->explain('/test/');
         $this->assertIsString($explanation);
         $this->assertNotEmpty($explanation);
+    }
+
+    #[DoesNotPerformAssertions]
+    public function test_regex_can_clear_validator_caches(): void
+    {
+        $regex = Regex::create();
+
+        $regex->clearValidatorCaches();
     }
 }

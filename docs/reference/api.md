@@ -15,7 +15,7 @@ use RegexParser\Regex;
 $regex = Regex::create([
     'max_pattern_length' => 100_000,
     'max_lookbehind_length' => 255,
-    'cache' => null,
+    'cache' => null, // disable caching
     'redos_ignored_patterns' => [],
     'runtime_pcre_validation' => false,
     'max_recursion_depth' => 1024,
@@ -31,6 +31,10 @@ Alias for `Regex::create()`.
 
 Lexes a regex into a `TokenStream` with positional offsets.
 
+### Regex::clearValidatorCaches(): void
+
+Clears static caches used by the validator. Useful for long-running processes.
+
 ## Configuration options
 
 All options are validated; unknown keys throw `InvalidRegexOptionException`.
@@ -39,7 +43,7 @@ All options are validated; unknown keys throw `InvalidRegexOptionException`.
 | --- | --- | --- | --- |
 | `max_pattern_length` | `int` | `100_000` | Maximum pattern length accepted. |
 | `max_lookbehind_length` | `int` | `255` | Maximum allowed lookbehind length. |
-| `cache` | `null` \| `string` \| `CacheInterface` | `null` | `null` uses `NullCache`. String uses `FilesystemCache`. |
+| `cache` | `null` \| `string` \| `CacheInterface` | `FilesystemCache` (`sys_get_temp_dir()/regex-parser/cache`) | Cache for parsed ASTs and analysis results. `null` disables caching (`NullCache`). String uses `FilesystemCache`. |
 | `redos_ignored_patterns` | `array<string>` | `[]` | Patterns to skip during ReDoS analysis. |
 | `runtime_pcre_validation` | `bool` | `false` | Compile-check via `preg_match()` for caret diagnostics. |
 | `max_recursion_depth` | `int` | `1024` | Parser recursion guard. |
@@ -82,6 +86,7 @@ Optimization options:
 - `word` (bool, default true): `[A-Za-z0-9_]` -> `\w`
 - `ranges` (bool, default true): normalize ranges
 - `autoPossessify` (bool, default false): opportunistic possessive quantifiers
+- `allowAlternationFactorization` (bool, default false): factor common prefixes/suffixes in alternations
 
 ### literals(string $regex): LiteralExtractionResult
 

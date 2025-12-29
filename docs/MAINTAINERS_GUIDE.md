@@ -9,7 +9,7 @@ who want to integrate RegexParser as a first-class analysis component.
 
 | Option | Type | Default | Description |
 | --- | --- | --- | --- |
-| `cache` | `null` \| `string` \| `CacheInterface` | `null` | Cache for parsed ASTs and analysis results. `null` uses a no-op cache. A string path uses `FilesystemCache`. |
+| `cache` | `null` \| `string` \| `CacheInterface` | `FilesystemCache` (`sys_get_temp_dir()/regex-parser/cache`) | Cache for parsed ASTs and analysis results. `null` disables caching (`NullCache`). A string path uses `FilesystemCache`. |
 | `max_pattern_length` | `int` | `100_000` | Upper bound on pattern length. Protects against memory and CPU spikes. |
 | `max_lookbehind_length` | `int` | `255` | Maximum allowed lookbehind length. Prevents unbounded lookbehinds. |
 | `runtime_pcre_validation` | `bool` | `false` | When true, validates against PCRE runtime and provides caret diagnostics. |
