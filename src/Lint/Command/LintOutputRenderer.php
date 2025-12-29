@@ -14,12 +14,10 @@ declare(strict_types=1);
 namespace RegexParser\Lint\Command;
 
 use RegexParser\Cli\Output;
-use RegexParser\Cli\VersionResolver;
+use RegexParser\Regex;
 
 final readonly class LintOutputRenderer
 {
-    public function __construct(private VersionResolver $versionResolver) {}
-
     /**
      * @param array<string, int> $stats
      */
@@ -60,7 +58,7 @@ final readonly class LintOutputRenderer
      */
     public function renderBanner(Output $output, int $jobs = 1, array $configFiles = []): string
     {
-        $version = $this->versionResolver->resolve('dev') ?? 'dev';
+        $version = Regex::VERSION;
 
         $banner = $output->color('RegexParser', Output::CYAN.Output::BOLD).' '.$output->warning($version)." by Younes ENNAJI\n\n";
 

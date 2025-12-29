@@ -14,7 +14,6 @@ declare(strict_types=1);
 namespace RegexParser\Bridge\Symfony\Command;
 
 use RegexParser\Bridge\Symfony\Output\SymfonyConsoleFormatter;
-use RegexParser\Cli\VersionResolver;
 use RegexParser\Lint\Formatter\FormatterRegistry;
 use RegexParser\Lint\Formatter\LinkFormatter;
 use RegexParser\Lint\Formatter\RelativePathHelper;
@@ -22,6 +21,7 @@ use RegexParser\Lint\RegexAnalysisService;
 use RegexParser\Lint\RegexLintReport;
 use RegexParser\Lint\RegexLintRequest;
 use RegexParser\Lint\RegexLintService;
+use RegexParser\Regex;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -67,7 +67,6 @@ final class RegexLintCommand extends Command
         array $defaultPaths = ['src'],
         array $defaultExcludePaths = ['vendor'],
         private readonly ?string $editorUrl = null,
-        private readonly ?VersionResolver $versionResolver = null,
     ) {
         $this->defaultPaths = $this->normalizeStringList($defaultPaths);
         $this->defaultExcludePaths = $this->normalizeStringList($defaultExcludePaths);
@@ -307,7 +306,7 @@ final class RegexLintCommand extends Command
 
     private function showBanner(SymfonyStyle $io, int $jobs): void
     {
-        $version = $this->versionResolver?->resolve('dev') ?? 'dev';
+        $version = Regex::VERSION;
 
         $io->writeln('<fg=cyan;options=bold>RegexParser</> <fg=yellow>'.$version.'</> by Younes ENNAJI');
         $io->newLine();

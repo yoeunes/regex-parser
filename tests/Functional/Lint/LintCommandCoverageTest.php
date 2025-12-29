@@ -19,7 +19,6 @@ use RegexParser\Cli\Command\HelpCommand;
 use RegexParser\Cli\GlobalOptions;
 use RegexParser\Cli\Input;
 use RegexParser\Cli\Output;
-use RegexParser\Cli\VersionResolver;
 use RegexParser\Lint\Command\LintArgumentParser;
 use RegexParser\Lint\Command\LintCommand;
 use RegexParser\Lint\Command\LintConfigLoader;
@@ -200,8 +199,7 @@ final class LintCommandCoverageTest extends TestCase
 
     private function makeLintCommand(): LintCommand
     {
-        $resolver = new VersionResolver();
-        $helpCommand = new HelpCommand($resolver);
+        $helpCommand = new HelpCommand();
 
         return new LintCommand(
             $helpCommand,
@@ -209,7 +207,7 @@ final class LintCommandCoverageTest extends TestCase
             new LintDefaultsBuilder(),
             new LintArgumentParser(),
             new LintExtractorFactory(),
-            new LintOutputRenderer($resolver),
+            new LintOutputRenderer(),
         );
     }
 

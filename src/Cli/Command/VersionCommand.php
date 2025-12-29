@@ -15,12 +15,10 @@ namespace RegexParser\Cli\Command;
 
 use RegexParser\Cli\Input;
 use RegexParser\Cli\Output;
-use RegexParser\Cli\VersionResolver;
+use RegexParser\Regex;
 
 final readonly class VersionCommand implements CommandInterface
 {
-    public function __construct(private VersionResolver $versionResolver) {}
-
     public function getName(): string
     {
         return 'version';
@@ -38,14 +36,7 @@ final readonly class VersionCommand implements CommandInterface
 
     public function run(Input $input, Output $output): int
     {
-        $versionFile = $this->versionResolver->getVersionFile();
-        if (!file_exists($versionFile)) {
-            $output->write('  '.$output->color('Error:', Output::RED)." unable to read version information.\n");
-
-            return 1;
-        }
-
-        $version = $this->versionResolver->resolve('1.0.0') ?? '1.0.0';
+        $version = Regex::VERSION;
 
         $output->write('RegexParser '.$output->color($version, Output::GREEN)." by Younes ENNAJI\n");
         $output->write("https://github.com/yoeunes/regex-parser\n");

@@ -15,12 +15,10 @@ namespace RegexParser\Cli\Command;
 
 use RegexParser\Cli\Input;
 use RegexParser\Cli\Output;
-use RegexParser\Cli\VersionResolver;
+use RegexParser\Regex;
 
 final readonly class HelpCommand implements CommandInterface
 {
-    public function __construct(private VersionResolver $versionResolver) {}
-
     public function getName(): string
     {
         return 'help';
@@ -302,7 +300,7 @@ final readonly class HelpCommand implements CommandInterface
 
     private function renderHeader(Output $output): void
     {
-        $version = $this->versionResolver->resolve('dev') ?? 'dev';
+        $version = Regex::VERSION;
 
         $output->write($this->formatHeaderLine($output, $this->renderStaticName($output), $version)."\n");
 

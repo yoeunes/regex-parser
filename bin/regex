@@ -22,9 +22,8 @@ gc_disable();
 
 $autoloadPath = null;
 $autoloadPaths = [
-    __DIR__.'/../../../../vendor/autoload.php',
-    __DIR__.'/../../autoload.php',
     __DIR__.'/../vendor/autoload.php',
+    __DIR__.'/../../../../vendor/autoload.php',
     __DIR__.'/vendor/autoload.php',
 ];
 
@@ -56,7 +55,6 @@ use RegexParser\Cli\Command\VersionCommand;
 use RegexParser\Cli\GlobalOptionsParser;
 use RegexParser\Cli\Output;
 use RegexParser\Cli\SelfUpdate\SelfUpdater;
-use RegexParser\Cli\VersionResolver;
 use RegexParser\Lint\Command\LintArgumentParser;
 use RegexParser\Lint\Command\LintCommand;
 use RegexParser\Lint\Command\LintConfigLoader;
@@ -68,12 +66,11 @@ $globalOptionsParser = new GlobalOptionsParser();
 $progressBarFull = "\xE2\x96\x93";
 $progressBarEmpty = "\xE2\x96\x91";
 $output = new Output(false, false, $progressBarFull, $progressBarEmpty);
-$versionResolver = new VersionResolver();
-$helpCommand = new HelpCommand($versionResolver);
+$helpCommand = new HelpCommand();
 
 $app = new Application($globalOptionsParser, $output, $helpCommand);
 $app->register($helpCommand);
-$app->register(new VersionCommand($versionResolver));
+$app->register(new VersionCommand());
 $app->register(new SelfUpdateCommand(new SelfUpdater()));
 $app->register(new ParseCommand());
 $app->register(new AnalyzeCommand());
@@ -88,7 +85,7 @@ $app->register(new LintCommand(
     new LintDefaultsBuilder(),
     new LintArgumentParser(),
     new LintExtractorFactory(),
-    new LintOutputRenderer($versionResolver),
+    new LintOutputRenderer(),
 ));
 
 exit($app->run($argv));

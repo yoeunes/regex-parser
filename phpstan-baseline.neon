@@ -110,11 +110,7 @@ parameters:
 			count: 1
 			path: tests/Unit/LintArgumentParserTest.php
 
-		-
-			rawMessage: 'Call to method PHPUnit\Framework\Assert::assertInstanceOf() with ''RegexParser\\Lint\\Command\\LintCommand'' and RegexParser\Lint\Command\LintCommand will always evaluate to true.'
-			identifier: method.alreadyNarrowedType
-			count: 1
-			path: tests/Unit/LintCommandClassCoverageTest.php
+
 
 		-
 			rawMessage: 'Call to method PHPUnit\Framework\Assert::assertInstanceOf() with ''RegexParser\\Lint\\Command\\LintConfigLoader'' and RegexParser\Lint\Command\LintConfigLoader will always evaluate to true.'
