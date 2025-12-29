@@ -1,447 +1,104 @@
-# Regex in PHP: The Complete Guide
+# Regex in PHP (Through the Lens of RegexParser)
 
-> **Everything you need to know about using regular expressions in PHP with PCRE2.**
+PHP uses PCRE2 for `preg_*` functions. In this guide we explain PHP regex behavior, but we always show how RegexParser sees the same patterns so you can debug and validate with confidence.
 
----
+> If you know PHP but not regex, start with `docs/tutorial/README.md` first.
 
-## 🤔 What is PCRE?
+## The Shape of a PHP Regex
 
-PHP uses **PCRE2** (Perl Compatible Regular Expressions) for regex operations. This is the same engine used by Perl, and it's powerful and well-tested.
-
-```
-PCRE = Perl Compatible Regular Expressions
-     = The engine that powers preg_* functions
-```
-
----
-
-## 📚 PHP Regex Functions Reference
-
-### The Core Functions
-
-| Function           | What It Does            | Returns    |
-|--------------------|-------------------------|------------|
-| `preg_match()`     | Find first match        | `1` or `0` |
-| `preg_match_all()` | Find all matches        | count      |
-| `preg_replace()`   | Find and replace        | string     |
-| `preg_split()`     | Split string            | array      |
-| `preg_grep()`      | Filter array by pattern | array      |
-
-### Quick Examples
-
-```php
-// Find first match
-preg_match('/\d+/', 'Order 42', $matches);
-echo $matches[0];  // "42"
-
-// Find all matches
-preg_match_all('/\d+/', 'Order 42, Price 99', $matches);
-print_r($matches[0]);  // Array ( [0] => "42", [1] => "99" )
-
-// Replace
-preg_replace('/\s+/', '-', 'hello world');  // "hello-world"
-
-// Split
-preg_split('/,\s*/', 'a, b, c');  // Array ( [0] => "a", [1] => "b", [2] => "c" )
-
-// Filter
-$users = ['admin', 'user1', 'guest', 'moderator'];
-preg_grep('/^admin|moderator/', $users);  // Array ( [0] => "admin", [3] => "moderator" )
-```
-
----
-
-## 🔐 Delimiters: The `/` Characters
-
-Every PHP regex pattern needs **delimiters** - characters that mark the start and end:
-
-### Standard Delimiter
-
-```php
-$pattern = '/hello/i';  // / is the delimiter
-```
-
-### When Your Pattern Contains `/`
-
-Use a different delimiter:
-
-```php
-// Problem: / appears in the pattern
-$pattern = '/https://example.com/';  // ERROR!
-
-// Solution: Use # as delimiter
-$pattern = '#https://example\.com#';
-
-// Or ~ or any non-alphanumeric character
-$pattern = '~https://example\.com~';
-$pattern = '%https://example\.com%';
-```
-
-### Valid Delimiters
-
-```
-/ # ~ % , ; : ! ' " ( ) [ ] { } < > |
-```
-
-### ASCII Diagram: Delimiter Structure
+A PHP regex is a single string with a delimiter, pattern body, and flags.
 
 ```
 Pattern: /^[a-z]+@[a-z]+\.[a-z]+$/i
 
-┌─────────────────────────────────────────────────────────┐
-│  ┌──┐                                     ┌──┐  ┌──┐    │
-│  │ /│  ^[a-z]+@[a-z]+\.[a-z]+  │  │/  │ i │  │  │  │    │
-│  └──┘                                     └──┘  └──┘    │
-│   ▲                                        ▲     ▲      │
-│   │                                        │     │      │
-│   │                                        │     │      │
-│ Start delimiter                      End     Flag       │
-│                                   delimiter             │
-└─────────────────────────────────────────────────────────┘
+/  ^[a-z]+@[a-z]+\.[a-z]+$  /  i
+^  pattern body               ^  flags
+|  delimiter                  |
 ```
 
----
-
-## 🚩 Pattern Modifiers (Flags)
-
-Add flags after the closing delimiter to change behavior:
-
-### Most Common Flags
-
-| Flag | Name             | Effect                            |
-|------|------------------|-----------------------------------|
-| `i`  | Case-insensitive | `/hello/i` matches "HELLO"        |
-| `m`  | Multiline        | `^` and `$` match line boundaries |
-| `s`  | Dot-all          | `.` matches newlines too          |
-| `u`  | Unicode          | Full Unicode support              |
-| `x`  | Extended         | Ignore whitespace, allow comments |
-
-### Examples
-
-```php
-// Case-insensitive
-preg_match('/hello/i', 'HELLO');  // ✅ Matches
-
-// Multiline (^ and $ match each line)
-preg_match('/^error/m', "line1\nerror here");  // ✅ Matches
-
-// Dot-all (. includes newlines)
-preg_match('/hello.world/s', "hello\nworld");  // ✅ Matches
-
-// Unicode
-preg_match('/^\p{L}+$/u', 'café');  // ✅ Matches Unicode letters
-
-// Extended mode (ignores spaces, allows comments)
-$pattern = '/(
-    \d{3}    # Area code
-    -        # Separator
-    \d{4}    # Local number
-)/x';
-```
-
-### Less Common Flags
-
-| Flag | Effect                              |
-|------|-------------------------------------|
-| `A`  | Anchor to start (like `\A`)         |
-| `D`  | Dollar matches end only (like `\z`) |
-| `U`  | Ungreedy by default                 |
-| `J`  | Allow duplicate names in groups     |
-
----
-
-## 🎯 Common Use Cases with Code
-
-### 1. Validate Email
-
-```php
-$pattern = '/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i';
-
-if (preg_match($pattern, $email)) {
-    echo "Valid email format";
-}
-```
-
-### 2. Extract Data
-
-```php
-// Get all email addresses from text
-$text = "Contact us at hello@example.com or support@test.org";
-preg_match_all('/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i', $text, $matches);
-print_r($matches[0]);
-
-// Extract date parts
-preg_match('/(\d{4})-(\d{2})-(\d{2})/', '2024-01-15', $matches);
-$year = $matches[1];  // "2024"
-$month = $matches[2]; // "01"
-$day = $matches[3];   // "15"
-```
-
-### 3. Find and Replace
-
-```php
-// Replace multiple spaces with single space
-preg_replace('/\s+/', ' ', 'hello    world');  // "hello world"
-
-// Convert dates from YYYY-MM-DD to DD/MM/YYYY
-preg_replace('/(\d{4})-(\d{2})-(\d{2})/', '$3/$2/$1', '2024-01-15');  // "15/01/2024"
-```
-
-### 4. Input Validation
-
-```php
-// Validate US phone number
-$pattern = '/^\(?[0-9]{3}\)?[-. ]?[0-9]{3}[-. ]?[0-9]{4}$/';
-
-if (preg_match($pattern, $phone)) {
-    echo "Valid phone number";
-}
-
-// Validate password strength
-$pattern = '/^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,}$/';
-```
-
----
-
-## ⚠️ Important: preg_quote()
-
-When inserting user input into patterns, **always use `preg_quote()`**:
-
-```php
-// ❌ DANGEROUS: User input directly in pattern!
-$userInput = 'test+';  // + is a regex special character!
-$pattern = "/$userInput/";  // Could fail or match unexpected things
-
-// ✅ SAFE: Escape user input
-$userInput = 'test+';
-$pattern = '/'.preg_quote($userInput, '/').'/';
-echo $pattern;  // "/test\+/"
-```
-
-### Syntax
-
-```php
-preg_quote(string $pattern, string $delimiter = null): string
-```
-
----
-
-## 🚨 Error Handling
-
-### Check for Errors
-
-```php
-preg_match('/invalid[/', 'test', $matches);
-
-// Always check the result!
-if (preg_last_error() === PREG_NO_ERROR) {
-    echo "Match attempted successfully";
-} else {
-    echo "Error: " . preg_last_error_msg();
-}
-```
-
-### Error Codes
-
-| Constant                     | Meaning                    |
-|------------------------------|----------------------------|
-| `PREG_NO_ERROR`              | No error                   |
-| `PREG_INTERNAL_ERROR`        | PCRE internal error        |
-| `PREG_BACKTRACK_LIMIT_ERROR` | Backtrack limit reached    |
-| `PREG_RECURSION_LIMIT_ERROR` | Recursion limit reached    |
-| `PREG_BAD_UTF8_ERROR`        | Malformed UTF-8            |
-| `PREG_BAD_UTF8_OFFSET_ERROR` | UTF-8 offset doesn't match |
-
----
-
-## 🔧 Performance: PCRE Limits
-
-For untrusted input, set limits to prevent runaway patterns:
-
-```php
-// Set limits (php.ini or runtime)
-ini_set('pcre.backtrack_limit', '1000000');  // 1 million
-ini_set('pcre.recursion_limit', '100000');   // 100 thousand
-
-// What happens when limits are reached?
-$result = preg_match('/(a+)+$/m', str_repeat('a', 1000000) . '!');
-
-if ($result === false) {
-    echo "Pattern too complex or input too long";
-    echo "Error: " . preg_last_error_msg();
-}
-```
-
-### Why Limits Matter
-
-Without limits, malicious input can cause:
-- **CPU exhaustion** (exponential backtracking)
-- **Memory exhaustion** (deep recursion)
-- **Service denial** (application hangs)
-
----
-
-## 🐛 Common Mistakes and How to Fix Them
-
-### Mistake 1: Forgetting Anchors
-
-```php
-// ❌ Matches "bar" inside "foobar"
-preg_match('/bar/', 'foobar');  // ✅ Matches (not what we want!)
-
-// ✅ Matches only if entire string is "bar"
-preg_match('/^bar$/', 'bar');  // ✅ Matches
-preg_match('/^bar$/', 'foobar');  // ❌ No match
-```
-
-### Mistake 2: Using [A-z]
-
-```php
-// ❌ [A-z] includes characters between Z and a: [ \ ] ^ _ `
-// This matches underscores!
-preg_match('/^[A-z]+$/', 'hello_world');  // ✅ Matches (oops!)
-
-// ✅ Correct: [A-Za-z]
-preg_match('/^[A-Za-z]+$/', 'hello_world');  // ❌ No match
-```
-
-### Mistake 3: Not Escaping Special Characters
-
-```php
-// ❌ . matches any character!
-preg_match('/file.txt/', 'fileXtxt');  // ✅ Matches (wrong!)
-
-// ✅ Escape special characters
-preg_match('/file\.txt/', 'file.txt');  // ✅ Matches
-preg_match('/file\.txt/', 'fileXtxt');  // ❌ No match
-```
-
-### Mistake 4: Greedy Matching
-
-```php
-$html = '<p>Hello</p><p>World</p>';
-
-// ❌ Greedy: matches everything to the last >
-preg_match('/<p>.*<\/p>/', $html, $m);
-echo $m[0];  // "<p>Hello</p><p>World</p>"
-
-// ✅ Lazy: matches to the first >
-preg_match('/<p>.*?<\/p>/', $html, $m);
-echo $m[0];  // "<p>Hello</p>"
-```
-
----
-
-## 🛡️ Where RegexParser Helps
-
-### 1. Validate Patterns Before Use
+RegexParser extracts the body and flags the same way PHP does.
 
 ```php
 use RegexParser\Regex;
 
-$regex = Regex::create();
-
-$result = $regex->validate($userPattern);
-
-if (!$result->isValid()) {
-    echo "Invalid pattern: " . $result->getErrorMessage();
-    echo "Hint: " . $result->getHint();
-    return;
-}
+$ast = Regex::create()->parse('/^[a-z]+@[a-z]+\.[a-z]+$/i');
 ```
 
-### 2. Explain Complex Patterns
+## The preg_* Family (Quick Map)
+
+| Function | Purpose |
+| --- | --- |
+| `preg_match` | First match |
+| `preg_match_all` | All matches |
+| `preg_replace` | Replace |
+| `preg_split` | Split |
+| `preg_grep` | Filter array |
+
+We can validate any pattern we plan to pass into these functions with RegexParser.
 
 ```php
-echo $regex->explain('/^(?<email>[^@]+)@(?<domain>[^@]+)$/');
+$result = Regex::create()->validate('/^user-[0-9]+$/');
 ```
 
-**Output:**
-```
-Start of string
-  Named group 'email':
-    One or more characters that are not @
-  Literal @
-  Named group 'domain':
-    One or more characters that are not @
-End of string
-```
+## Flags (Modifiers)
 
-### 3. Detect ReDoS Vulnerabilities
+Flags change how the engine interprets the pattern.
+
+| Flag | Meaning |
+| --- | --- |
+| `i` | Case-insensitive |
+| `m` | Multiline anchors |
+| `s` | Dot matches newline |
+| `u` | Unicode |
+| `x` | Extended (ignore whitespace) |
+
+RegexParser stores flags on the root node:
 
 ```php
+$ast = Regex::create()->parse('/hello/i');
+$flags = $ast->flags; // "i"
+```
+
+## Delimiters
+
+If your pattern includes `/`, choose a different delimiter like `#` or `~`.
+
+```php
+Regex::create()->validate('#https?://example\.com#');
+```
+
+> This is the most common reason a pattern fails to parse in PHP.
+
+## Unicode and PCRE2
+
+PHP uses PCRE2, so Unicode properties such as `\p{L}` are supported when the `u` flag is set.
+
+```php
+Regex::create()->validate('/^\p{L}+$/u');
+```
+
+## A Safe Workflow for PHP Regex
+
+1. Validate with RegexParser.
+2. Check ReDoS risk.
+3. Add runtime limits where needed.
+
+```php
+$regex = Regex::create(['runtime_pcre_validation' => true]);
+
+$result = $regex->validate('/(a+)+$/');
 $analysis = $regex->redos('/(a+)+$/');
-
-if ($analysis->severity->value === 'critical') {
-    echo "DANGEROUS: This pattern can cause exponential backtracking!";
-    echo "Try: /a+$/ instead";
-}
 ```
 
-### 4. Generate Test Data
+## Common Pitfalls
 
-```php
-// Generate a valid email for testing
-$email = $regex->generate('/^[a-z]+@[a-z]+\.[a-z]+$/i');
-echo $email;  // Example: "user@example.com"
-```
-
----
-
-## 📋 Quick Reference
-
-### Regex to PCRE Translation
-
-| Common Regex    | PCRE Syntax |
-|-----------------|-------------|
-| Start of string | `^`         |
-| End of string   | `$`         |
-| Any character   | `.`         |
-| Word character  | `\w`        |
-| Digit           | `\d`        |
-| Whitespace      | `\s`        |
-| One or more     | `+`         |
-| Zero or more    | `*`         |
-| Optional        | `?`         |
-| Group           | `(...)`     |
-| Alternation     | `           |` |
-
-### Common Patterns
-
-| Task       | Pattern                                  |
-|------------|------------------------------------------|
-| Email      | `/^[^\s@]+@[^\s@]+\.[^\s@]+$/`           |
-| URL        | `/^https?:\/\/[^\s]+$/`                  |
-| Phone      | `/^\d{3}-?\d{3}-?\d{4}$/`                |
-| Date       | `/^\d{4}-\d{2}-\d{2}$/`                  |
-| IP Address | `/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/` |
+| Pitfall | Fix |
+| --- | --- |
+| Missing delimiter | Use `/pattern/` or `#pattern#` |
+| Unbounded lookbehind | Add a max length or rewrite |
+| Backreference before group | Move the backreference |
+| Nested quantifiers | Use atomic or possessive |
 
 ---
 
-## 🎓 Learn More
-
-- **[Regex Tutorial](../tutorial/README.md)** - Complete step-by-step guide
-- **[Quick Start](../QUICK_START.md)** - Get productive in 5 minutes
-- **[ReDoS Guide](../REDOS_GUIDE.md)** - Prevent catastrophic backtracking
-- **[Cookbook](../COOKBOOK.md)** - Ready-to-use patterns
-
----
-
-## 🆘 Troubleshooting
-
-| Problem                  | Solution                           |
-|--------------------------|------------------------------------|
-| Pattern not matching     | Add `^` and `$` anchors            |
-| Partial matches          | Use anchors to match entire string |
-| Error "unknown modifier" | Check your delimiters              |
-| Unicode not working      | Add `u` flag                       |
-| Performance issues       | Check for ReDoS, set limits        |
-| Complex pattern          | Use RegexParser to explain it      |
-
----
-
-**Next:** [CLI Guide](cli.md)
-
----
-
-Previous: [Docs Home](../README.md) | Next: [CLI Guide](cli.md)
+Previous: `../tutorial/10-real-world-php.md` | Next: `cli.md`
