@@ -15,12 +15,12 @@ namespace RegexParser\Tests\Integration\Bridge\PHPStan;
 
 use PHPStan\Rules\Rule;
 use PHPStan\Testing\RuleTestCase;
-use RegexParser\Bridge\PHPStan\PregValidationRule;
+use RegexParser\Bridge\PHPStan\RegexParserRule;
 
 /**
- * @extends RuleTestCase<PregValidationRule>
+ * @extends RuleTestCase<RegexParserRule>
  */
-final class PregValidationRuleMediumThresholdTest extends RuleTestCase
+final class RegexParserRuleMediumThresholdTest extends RuleTestCase
 {
     public function test_rule(): void
     {
@@ -103,7 +103,7 @@ final class PregValidationRuleMediumThresholdTest extends RuleTestCase
 
     protected function getRule(): Rule
     {
-        return new PregValidationRule(
+        return new RegexParserRule(
             ignoreParseErrors: false,
             reportRedos: true,
             redosThreshold: 'medium',

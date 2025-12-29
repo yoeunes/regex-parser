@@ -26,13 +26,13 @@ use PHPStan\Analyser\Scope;
 use PHPStan\Rules\IdentifierRuleError;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use RegexParser\Bridge\PHPStan\PregValidationRule;
+use RegexParser\Bridge\PHPStan\RegexParserRule;
 
-final class PregValidationRuleCoverageTest extends TestCase
+final class RegexParserRuleCoverageTest extends TestCase
 {
     public function test_process_node_returns_empty_for_unknown_function(): void
     {
-        $rule = new PregValidationRule();
+        $rule = new RegexParserRule();
         /** @var Scope&NodeCallbackInvoker&MockObject $scope */
         $scope = $this->createMock(Scope::class);
 
@@ -44,7 +44,7 @@ final class PregValidationRuleCoverageTest extends TestCase
 
     public function test_process_node_returns_empty_for_non_name_function(): void
     {
-        $rule = new PregValidationRule();
+        $rule = new RegexParserRule();
         /** @var Scope&NodeCallbackInvoker&MockObject $scope */
         $scope = $this->createMock(Scope::class);
 
@@ -55,7 +55,7 @@ final class PregValidationRuleCoverageTest extends TestCase
 
     public function test_process_node_returns_empty_when_pattern_arg_missing(): void
     {
-        $rule = new PregValidationRule();
+        $rule = new RegexParserRule();
         /** @var Scope&NodeCallbackInvoker&MockObject $scope */
         $scope = $this->createMock(Scope::class);
 
@@ -66,7 +66,7 @@ final class PregValidationRuleCoverageTest extends TestCase
 
     public function test_process_node_ignores_non_array_callback_patterns(): void
     {
-        $rule = new PregValidationRule();
+        $rule = new RegexParserRule();
         /** @var Scope&NodeCallbackInvoker&MockObject $scope */
         $scope = $this->createMock(Scope::class);
 
@@ -79,7 +79,7 @@ final class PregValidationRuleCoverageTest extends TestCase
 
     public function test_process_node_skips_non_string_callback_keys(): void
     {
-        $rule = new PregValidationRule();
+        $rule = new RegexParserRule();
         /** @var Scope&NodeCallbackInvoker&MockObject $scope */
         $scope = $this->createMock(Scope::class);
 
@@ -96,7 +96,7 @@ final class PregValidationRuleCoverageTest extends TestCase
 
     public function test_validate_pattern_returns_error_for_empty_string(): void
     {
-        $rule = new PregValidationRule();
+        $rule = new RegexParserRule();
         /** @var Scope&NodeCallbackInvoker&MockObject $scope */
         $scope = $this->createMock(Scope::class);
 
@@ -108,7 +108,7 @@ final class PregValidationRuleCoverageTest extends TestCase
 
     public function test_report_redos_flag_skips_redos_issues(): void
     {
-        $rule = new PregValidationRule(reportRedos: false);
+        $rule = new RegexParserRule(reportRedos: false);
         /** @var Scope&NodeCallbackInvoker&MockObject $scope */
         $scope = $this->createMock(Scope::class);
         $scope->method('getFile')->willReturn('file.php');
@@ -122,7 +122,7 @@ final class PregValidationRuleCoverageTest extends TestCase
 
     public function test_redos_low_severity_uses_default_identifier(): void
     {
-        $rule = new PregValidationRule(reportRedos: true, redosThreshold: 'low');
+        $rule = new RegexParserRule(reportRedos: true, redosThreshold: 'low');
         $scope = $this->createMock(Scope::class);
         $scope->method('getFile')->willReturn('file.php');
 
@@ -134,7 +134,7 @@ final class PregValidationRuleCoverageTest extends TestCase
 
     public function test_unsafe_optimizations_are_skipped(): void
     {
-        $rule = new PregValidationRule(reportRedos: false, suggestOptimizations: true);
+        $rule = new RegexParserRule(reportRedos: false, suggestOptimizations: true);
         $scope = $this->createMock(Scope::class);
         $scope->method('getFile')->willReturn('file.php');
 
@@ -147,21 +147,21 @@ final class PregValidationRuleCoverageTest extends TestCase
 
     public function test_is_optimization_safe_rejects_empty_optimized_pattern(): void
     {
-        $rule = new PregValidationRule();
+        $rule = new RegexParserRule();
 
         $this->assertFalse($rule->isOptimizationFormatSafe('/abc/', ''));
     }
 
     public function test_is_optimization_safe_rejects_short_pattern(): void
     {
-        $rule = new PregValidationRule();
+        $rule = new RegexParserRule();
 
         $this->assertFalse($rule->isOptimizationFormatSafe('/a/', '/a/'));
     }
 
     public function test_is_optimization_safe_rejects_delimiter_only(): void
     {
-        $rule = new PregValidationRule();
+        $rule = new RegexParserRule();
 
         $this->assertFalse($rule->isOptimizationFormatSafe('/a/', '/'));
     }
@@ -171,7 +171,7 @@ final class PregValidationRuleCoverageTest extends TestCase
      *
      * @return array<IdentifierRuleError>
      */
-    private function invokePrivate(PregValidationRule $rule, string $method, array $args): array
+    private function invokePrivate(RegexParserRule $rule, string $method, array $args): array
     {
         $ref = new \ReflectionClass($rule);
         $refMethod = $ref->getMethod($method);

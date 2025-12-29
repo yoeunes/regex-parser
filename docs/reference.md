@@ -1,6 +1,6 @@
 # RegexParser Rule Reference
 
-RegexParser ships with a PHPStan rule (`RegexParser\\Bridge\\PHPStan\\PregValidationRule`) that validates `preg_*` patterns for syntax issues, ReDoS risk, and common performance or readability footguns. This page explains each diagnostic in plain language and links to authoritative references so you understand both the warning and how to fix it.
+RegexParser ships with a PHPStan rule (`RegexParser\\Bridge\\PHPStan\\RegexParserRule`) that validates `preg_*` patterns for syntax issues, ReDoS risk, and common performance or readability footguns. This page explains each diagnostic in plain language and links to authoritative references so you understand both the warning and how to fix it.
 
 If you are new to PCRE-style regular expressions in PHP, you can treat this document as a guided tour of the most common mistakes the rule can detect.
 

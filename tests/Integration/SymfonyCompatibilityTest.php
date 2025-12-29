@@ -16,7 +16,7 @@ namespace RegexParser\Tests\Integration;
 use PhpParser\Node\Expr\FuncCall;
 use PHPStan\Rules\Rule;
 use PHPUnit\Framework\TestCase;
-use RegexParser\Bridge\PHPStan\PregValidationRule;
+use RegexParser\Bridge\PHPStan\RegexParserRule;
 use RegexParser\Regex;
 
 /**
@@ -144,7 +144,7 @@ final class SymfonyCompatibilityTest extends TestCase
         }
 
         // Create the PHPStan rule with ignoreParseErrors enabled
-        $rule = new PregValidationRule(ignoreParseErrors: true);
+        $rule = new RegexParserRule(ignoreParseErrors: true);
 
         // Verify the rule is properly configured and can be instantiated
         // The actual partial pattern handling is tested via the processNode method
@@ -160,7 +160,7 @@ final class SymfonyCompatibilityTest extends TestCase
         }
 
         // Create the PHPStan rule
-        $rule = new PregValidationRule(ignoreParseErrors: true);
+        $rule = new RegexParserRule(ignoreParseErrors: true);
 
         // Complete patterns should be validated
         $this->assertSame(FuncCall::class, $rule->getNodeType());
@@ -174,7 +174,7 @@ final class SymfonyCompatibilityTest extends TestCase
         }
 
         // Create the PHPStan rule with ignoreParseErrors disabled
-        $rule = new PregValidationRule(ignoreParseErrors: false);
+        $rule = new RegexParserRule(ignoreParseErrors: false);
 
         // Verify the rule is properly configured
         $this->assertSame(FuncCall::class, $rule->getNodeType());

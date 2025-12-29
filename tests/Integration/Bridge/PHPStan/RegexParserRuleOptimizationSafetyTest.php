@@ -14,18 +14,18 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Integration\Bridge\PHPStan;
 
 use PHPUnit\Framework\TestCase;
-use RegexParser\Bridge\PHPStan\PregValidationRule;
+use RegexParser\Bridge\PHPStan\RegexParserRule;
 
 /**
- * Unit tests for PregValidationRule's optimization safety checks.
+ * Unit tests for RegexParserRule's optimization safety checks.
  */
-final class PregValidationRuleOptimizationSafetyTest extends TestCase
+final class RegexParserRuleOptimizationSafetyTest extends TestCase
 {
-    private PregValidationRule $rule;
+    private RegexParserRule $rule;
 
     protected function setUp(): void
     {
-        $this->rule = new PregValidationRule(
+        $this->rule = new RegexParserRule(
             ignoreParseErrors: false,
             reportRedos: false,
             redosThreshold: 'high',

@@ -15,12 +15,12 @@ namespace RegexParser\Tests\Integration\Bridge\PHPStan;
 
 use PHPStan\Rules\Rule;
 use PHPStan\Testing\RuleTestCase;
-use RegexParser\Bridge\PHPStan\PregValidationRule;
+use RegexParser\Bridge\PHPStan\RegexParserRule;
 
 /**
- * @extends RuleTestCase<PregValidationRule>
+ * @extends RuleTestCase<RegexParserRule>
  */
-final class PregValidationRuleHighThresholdTest extends RuleTestCase
+final class RegexParserRuleOptimizationTest extends RuleTestCase
 {
     public function test_rule(): void
     {
@@ -48,7 +48,21 @@ final class PregValidationRuleHighThresholdTest extends RuleTestCase
                 23,
                 "Consider using atomic groups (?>...) or possessive quantifiers.\nRead more: https://github.com/yoeunes/regex-parser/blob/main/docs/reference.md#nested-quantifiers",
             ],
-            // Note: MEDIUM ReDoS on line 24 is filtered out by 'high' threshold
+            [
+                'ReDoS vulnerability detected (MEDIUM): /a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a...',
+                24,
+                "Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...). Hint: Consider using possessive quantifiers or atomic groups to limit backtracking.\n\nRead more about possessive quantifiers: https://github.com/yoeunes/regex-parser/blob/main/docs/reference.md#possessive-quantifiers\nRead more about atomic groups: https://github.com/yoeunes/regex-parser/blob/main/docs/reference.md#atomic-groups\nRead more about catastrophic backtracking: https://github.com/yoeunes/regex-parser/blob/main/docs/reference.md#catastrophic-backtracking",
+            ],
+            [
+                'ReDoS vulnerability detected (MEDIUM): /[0-9]+/',
+                28,
+                "Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...). Hint: Consider using possessive quantifiers or atomic groups to limit backtracking.\n\nRead more about possessive quantifiers: https://github.com/yoeunes/regex-parser/blob/main/docs/reference.md#possessive-quantifiers\nRead more about atomic groups: https://github.com/yoeunes/regex-parser/blob/main/docs/reference.md#atomic-groups\nRead more about catastrophic backtracking: https://github.com/yoeunes/regex-parser/blob/main/docs/reference.md#catastrophic-backtracking",
+            ],
+            [
+                'Regex pattern can be optimized: "/[0-9]+/"',
+                28,
+                'Consider using: /\d+/',
+            ],
             [
                 'Regex syntax error: No closing delimiter "/" found. You opened with "/"; expected closing "/". Tip: escape "/" inside the pattern (\\/) or use a different delimiter, e.g. #foo1#. (Pattern: "/foo1")',
                 35,
@@ -94,11 +108,11 @@ final class PregValidationRuleHighThresholdTest extends RuleTestCase
 
     protected function getRule(): Rule
     {
-        return new PregValidationRule(
+        return new RegexParserRule(
             ignoreParseErrors: false,
             reportRedos: true,
-            redosThreshold: 'high',
-            suggestOptimizations: false,
+            redosThreshold: 'low',
+            suggestOptimizations: true,
         );
     }
 }

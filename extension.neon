@@ -40,7 +40,7 @@ parameters:
 services:
     # Main regex validation rule for PHPStan
     -
-        class: RegexParser\Bridge\PHPStan\PregValidationRule
+        class: RegexParser\Bridge\PHPStan\RegexParserRule
         arguments:
             ignoreParseErrors: %regexParser.ignoreParseErrors%
             reportRedos: %regexParser.reportRedos%

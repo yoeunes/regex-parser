@@ -15,14 +15,14 @@ namespace RegexParser\Tests\Integration\Bridge\PHPStan;
 
 use PHPStan\Rules\Rule;
 use PHPStan\Testing\RuleTestCase;
-use RegexParser\Bridge\PHPStan\PregValidationRule;
+use RegexParser\Bridge\PHPStan\RegexParserRule;
 
 /**
- * Tests the safeguard in PregValidationRule that prevents suggesting invalid optimizations.
+ * Tests the safeguard in RegexParserRule that prevents suggesting invalid optimizations.
  *
- * @extends RuleTestCase<PregValidationRule>
+ * @extends RuleTestCase<RegexParserRule>
  */
-final class PregValidationRuleSafeguardTest extends RuleTestCase
+final class RegexParserRuleSafeguardTest extends RuleTestCase
 {
     public function test_no_optimization_suggested_for_invalid_optimized_patterns(): void
     {
@@ -33,7 +33,7 @@ final class PregValidationRuleSafeguardTest extends RuleTestCase
 
     protected function getRule(): Rule
     {
-        return new PregValidationRule(
+        return new RegexParserRule(
             ignoreParseErrors: false,
             reportRedos: false,
             redosThreshold: 'high',

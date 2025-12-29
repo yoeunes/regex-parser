@@ -120,7 +120,7 @@ final readonly class RegexAnalysisService
     }
 
     /**
-     * @param array<RegexPatternOccurrence>                                                                                       $patterns
+     * @param array<RegexPatternOccurrence>                                                                                 $patterns
      * @param array{digits?: bool, word?: bool, ranges?: bool, autoPossessify?: bool, allowAlternationFactorization?: bool} $optimizationConfig
      *
      * @return array<array{
@@ -305,7 +305,7 @@ final readonly class RegexAnalysisService
     }
 
     /**
-     * @param array<RegexPatternOccurrence>                                                                                       $patterns
+     * @param array<RegexPatternOccurrence>                                                                                 $patterns
      * @param array{digits?: bool, word?: bool, ranges?: bool, autoPossessify?: bool, allowAlternationFactorization?: bool} $optimizationConfig
      *
      * @return array<array{
