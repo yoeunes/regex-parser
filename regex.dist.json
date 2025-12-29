@@ -6,7 +6,7 @@
   "optimizations": {
     "digits": false,
     "word": true,
-    "strictRanges": true,
+    "ranges": true,
     "possessive": false,
     "factorize": false
   }

@@ -181,4 +181,46 @@ final class LintConfigLoaderTest extends TestCase
             @rmdir($tempDir);
         }
     }
+
+    public function test_load_normalizes_optimizations_config(): void
+    {
+        $cwd = getcwd();
+        $this->assertIsString($cwd);
+
+        $tempDir = sys_get_temp_dir().'/regex-parser-config-'.uniqid('', true);
+        mkdir($tempDir, 0o700, true);
+
+        $configPath = $tempDir.'/regex.json';
+        $config = [
+            'optimizations' => [
+                'digits' => false,
+                'word' => true,
+                'ranges' => true,
+                'possessive' => false,
+                'factorize' => false,
+            ],
+        ];
+
+        file_put_contents($configPath, json_encode($config, \JSON_THROW_ON_ERROR));
+
+        try {
+            chdir($tempDir);
+
+            $loader = new LintConfigLoader();
+            $result = $loader->load();
+
+            $this->assertNull($result->error);
+            $this->assertSame([
+                'digits' => false,
+                'word' => true,
+                'strictRanges' => true,
+                'autoPossessify' => false,
+                'allowAlternationFactorization' => false,
+            ], $result->config['optimizations']);
+        } finally {
+            chdir($cwd);
+            @unlink($configPath);
+            @rmdir($tempDir);
+        }
+    }
 }
