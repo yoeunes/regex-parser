@@ -169,12 +169,19 @@ final class LintConfigLoader
             }
 
             $optConfig = [];
-            foreach (['digits', 'word', 'strictRanges', 'autoPossessify', 'allowAlternationFactorization'] as $key) {
-                if (\array_key_exists($key, $config['optimizations'])) {
-                    if (!\is_bool($config['optimizations'][$key])) {
-                        return new LintConfigResult([], [], 'Invalid "optimizations.'.$key.'" in '.$path.': expected a boolean.');
+            $keyMapping = [
+                'digits' => 'digits',
+                'word' => 'word',
+                'strictRanges' => 'strictRanges',
+                'possessive' => 'autoPossessify',
+                'factorize' => 'allowAlternationFactorization',
+            ];
+            foreach ($keyMapping as $jsonKey => $internalKey) {
+                if (\array_key_exists($jsonKey, $config['optimizations'])) {
+                    if (!\is_bool($config['optimizations'][$jsonKey])) {
+                        return new LintConfigResult([], [], 'Invalid "optimizations.'.$jsonKey.'" in '.$path.': expected a boolean.');
                     }
-                    $optConfig[$key] = $config['optimizations'][$key];
+                    $optConfig[$internalKey] = $config['optimizations'][$jsonKey];
                 }
             }
 

@@ -4,10 +4,10 @@
     "src"
   ],
   "optimizations": {
-    "digits": true,
+    "digits": false,
     "word": true,
     "strictRanges": true,
-    "autoPossessify": false,
-    "allowAlternationFactorization": false
+    "possessive": false,
+    "factorize": false
   }
 }
