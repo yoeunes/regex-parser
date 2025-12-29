@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Bridge\Symfony\Output;
 
-use RegexParser\Bridge\Symfony\Console\LinkFormatter;
+use RegexParser\Lint\Formatter\LinkFormatter;
 use RegexParser\Lint\Formatter\OutputFormatterInterface;
 use RegexParser\Lint\RegexAnalysisService;
 use RegexParser\Lint\RegexLintReport;

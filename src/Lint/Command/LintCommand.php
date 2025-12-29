@@ -20,7 +20,9 @@ use RegexParser\Cli\Input;
 use RegexParser\Cli\Output;
 use RegexParser\Lint\Formatter\ConsoleFormatter;
 use RegexParser\Lint\Formatter\FormatterRegistry;
+use RegexParser\Lint\Formatter\LinkFormatter;
 use RegexParser\Lint\Formatter\OutputConfiguration;
+use RegexParser\Lint\Formatter\RelativePathHelper;
 use RegexParser\Lint\PhpRegexPatternSource;
 use RegexParser\Lint\RegexAnalysisService;
 use RegexParser\Lint\RegexLintReport;
@@ -134,7 +136,10 @@ final class LintCommand extends AbstractCommand implements CommandInterface
         $formatter = $formatterRegistry->get($format);
 
         if ('console' === $format) {
-            $formatter = new ConsoleFormatter($analysis, $config, $arguments->ide);
+            $linkFormatter = '' !== $arguments->ide
+                ? new LinkFormatter($arguments->ide, new RelativePathHelper())
+                : null;
+            $formatter = new ConsoleFormatter($analysis, $config, $arguments->ide, $linkFormatter);
         }
 
         $extractor = $this->extractorFactory->create();

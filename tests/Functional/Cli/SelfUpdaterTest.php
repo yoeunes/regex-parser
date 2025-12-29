@@ -782,7 +782,34 @@ final class SelfUpdaterTest extends TestCase
     {
         $source = __DIR__.'/../../../bin/regex.phar';
         $target = sys_get_temp_dir().'/regex-parser-phar-'.bin2hex(random_bytes(4)).'.phar';
-        copy($source, $target);
+
+        if (file_exists($source)) {
+            copy($source, $target);
+        } else {
+            // Try to find an existing phar to use as a template
+            $composerPhar = getenv('COMPOSER_HOME') ? getenv('COMPOSER_HOME').'/composer.phar' : null;
+            if ($composerPhar && file_exists($composerPhar)) {
+                copy($composerPhar, $target);
+            } elseif (file_exists(sys_get_temp_dir().'/composer.phar')) {
+                copy(sys_get_temp_dir().'/composer.phar', $target);
+            } else {
+                // Try to download composer.phar as a template
+                try {
+                    $composerTemp = sys_get_temp_dir().'/downloaded-composer.phar';
+                    $composerUrl = 'https://getcomposer.org/download/2.8.0/composer.phar';
+                    $composerData = @file_get_contents($composerUrl);
+                    if (false !== $composerData) {
+                        file_put_contents($composerTemp, $composerData);
+                        copy($composerTemp, $target);
+                        @unlink($composerTemp);
+                    } else {
+                        throw new \RuntimeException('Cannot create test phar file: no template available');
+                    }
+                } catch (\Exception $e) {
+                    throw new \RuntimeException('Cannot create test phar file: '.$e->getMessage());
+                }
+            }
+        }
 
         return $target;
     }

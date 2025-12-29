@@ -61,9 +61,33 @@ Place a `regex.json` (or `regex.dist.json`) in your repo:
   "format": "console",
   "minSavings": 2,
   "jobs": 4,
-  "exclude": ["vendor", "var"]
+  "exclude": ["vendor", "var"],
+  "ide": "phpstorm"
 }
 ```
+
+### IDE Integration
+
+Configure your IDE for clickable file links in the lint output:
+
+**Supported IDE options:**
+- `"phpstorm"` - `phpstorm://open?file=%f&line=%l`
+- `"textmate"` - `txmt://open?url=file://%f&line=%l`
+- `"macvim"` - `mvim://open?url=file://%f&line=%l`
+- `"emacs"` - `emacs://open?url=file://%f&line=%l`
+- `"sublime"` - `subl://open?url=file://%f&line=%l`
+- `"atom"` - `atom://core/open/file?filename=%f&line=%l`
+- `"vscode"` - `vscode://file/%f:%l`
+- Custom template with `%f` for file and `%l` for line
+
+Example with PhpStorm:
+```json
+{
+  "ide": "phpstorm"
+}
+```
+
+The pen emoji (✏️) next to file locations will be clickable and open the file at the correct line in your IDE. Set to empty string `""` to disable clickable links.
 
 ## Ignore inline
 
