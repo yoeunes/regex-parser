@@ -16,7 +16,6 @@ namespace RegexParser\Tests\Functional\Lint;
 use PhpParser\ParserFactory;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Cli\Output;
-use RegexParser\Cli\VersionResolver;
 use RegexParser\Lint\Command\LintArgumentParser;
 use RegexParser\Lint\Command\LintArguments;
 use RegexParser\Lint\Command\LintConfigLoader;
@@ -244,7 +243,7 @@ final class LintCommandComponentsTest extends TestCase
 
     public function test_output_renderer_renders_summary_and_banner(): void
     {
-        $renderer = new LintOutputRenderer(new VersionResolver());
+        $renderer = new LintOutputRenderer();
         $output = new Output(false, false);
 
         $emptyBuffer = $this->captureOutput(static function () use ($renderer, $output): void {

@@ -14,7 +14,6 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
-use RegexParser\Cli\VersionResolver;
 use RegexParser\Lint\Command\LintOutputRenderer;
 use RegexParser\Tests\Support\LintFunctionOverrides;
 
@@ -27,7 +26,7 @@ final class LintOutputRendererCoverageTest extends TestCase
 
     public function test_relative_path_returns_normalized_when_cwd_missing(): void
     {
-        $renderer = new LintOutputRenderer(new VersionResolver());
+        $renderer = new LintOutputRenderer();
         LintFunctionOverrides::queueGetcwd(false);
 
         $path = $this->invokePrivate($renderer, 'relativePath', ['C:\\root\\file.php']);
@@ -37,7 +36,7 @@ final class LintOutputRendererCoverageTest extends TestCase
 
     public function test_relative_path_returns_normalized_when_cwd_empty(): void
     {
-        $renderer = new LintOutputRenderer(new VersionResolver());
+        $renderer = new LintOutputRenderer();
         LintFunctionOverrides::queueGetcwd('');
 
         $path = $this->invokePrivate($renderer, 'relativePath', ['/root/file.php']);
@@ -47,7 +46,7 @@ final class LintOutputRendererCoverageTest extends TestCase
 
     public function test_relative_path_returns_original_when_not_prefixed(): void
     {
-        $renderer = new LintOutputRenderer(new VersionResolver());
+        $renderer = new LintOutputRenderer();
         LintFunctionOverrides::queueGetcwd('/base');
 
         $path = $this->invokePrivate($renderer, 'relativePath', ['/other/file.php']);

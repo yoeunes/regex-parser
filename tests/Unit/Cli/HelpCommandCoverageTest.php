@@ -38,7 +38,6 @@ namespace RegexParser\Tests\Unit\Cli;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Cli\Command\HelpCommand;
 use RegexParser\Cli\Output;
-use RegexParser\Cli\VersionResolver;
 
 final class HelpCommandCoverageTest extends TestCase
 {
@@ -49,7 +48,7 @@ final class HelpCommandCoverageTest extends TestCase
 
     public function test_resolve_invocation_defaults_to_regex(): void
     {
-        $command = new HelpCommand(new VersionResolver());
+        $command = new HelpCommand();
         $method = (new \ReflectionClass($command))->getMethod('resolveInvocation');
 
         $_SERVER['argv'] = [''];
@@ -59,7 +58,7 @@ final class HelpCommandCoverageTest extends TestCase
 
     public function test_format_option_returns_raw_when_split_fails(): void
     {
-        $command = new HelpCommand(new VersionResolver());
+        $command = new HelpCommand();
         $method = (new \ReflectionClass($command))->getMethod('formatOption');
         $GLOBALS['__cli_preg_split_queue'] = [false];
 

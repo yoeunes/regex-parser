@@ -18,7 +18,6 @@ use RegexParser\Cli\Command\HelpCommand;
 use RegexParser\Cli\GlobalOptions;
 use RegexParser\Cli\Input;
 use RegexParser\Cli\Output;
-use RegexParser\Cli\VersionResolver;
 
 final class HelpCommandTest extends TestCase
 {
@@ -28,7 +27,7 @@ final class HelpCommandTest extends TestCase
         $_SERVER['argv'] = ['bin/regex'];
 
         try {
-            $command = new HelpCommand(new VersionResolver());
+            $command = new HelpCommand();
             $options = new GlobalOptions(false, null, false, false, null, null);
             $input = new Input('help', [], $options, []);
             $output = new Output(false, false);

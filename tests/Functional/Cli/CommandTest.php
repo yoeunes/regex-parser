@@ -27,7 +27,6 @@ use RegexParser\Cli\GlobalOptions;
 use RegexParser\Cli\Input;
 use RegexParser\Cli\Output;
 use RegexParser\Cli\SelfUpdate\SelfUpdater;
-use RegexParser\Cli\VersionResolver;
 
 final class CommandTest extends TestCase
 {
@@ -521,7 +520,7 @@ final class CommandTest extends TestCase
 
     public function test_help_command_outputs_sections_with_and_without_ansi(): void
     {
-        $command = new HelpCommand(new VersionResolver());
+        $command = new HelpCommand();
         $output = new Output(false, false);
 
         $exitCode = 0;
@@ -539,37 +538,9 @@ final class CommandTest extends TestCase
         $this->assertStringContainsString('Usage', $ansiBuffer);
     }
 
-    public function test_version_command_reports_error_when_version_file_missing(): void
-    {
-        $resolver = new VersionResolver();
-        $versionFile = $resolver->getVersionFile();
-        if (!file_exists($versionFile)) {
-            $this->markTestSkipped('composer.json is missing.');
-        }
-
-        $backupFile = $versionFile.'.bak-'.uniqid('', true);
-        if (!@rename($versionFile, $backupFile)) {
-            $this->markTestSkipped('Unable to move composer.json for test.');
-        }
-
-        $command = new VersionCommand($resolver);
-        $output = new Output(false, false);
-
-        try {
-            $exitCode = 0;
-            $buffer = $this->captureOutput(static fn (): int => $command->run(self::makeInput('version', []), $output), $exitCode);
-
-            $this->assertSame(1, $exitCode);
-            $this->assertStringContainsString('unable to read version information', $buffer);
-        } finally {
-            @rename($backupFile, $versionFile);
-        }
-    }
-
     public function test_version_command_outputs_version(): void
     {
-        $resolver = new VersionResolver();
-        $command = new VersionCommand($resolver);
+        $command = new VersionCommand();
         $output = new Output(false, false);
 
         $exitCode = 0;
@@ -639,42 +610,42 @@ final class CommandTest extends TestCase
 
     public function test_version_command_get_name_returns_correct_value(): void
     {
-        $command = new VersionCommand(new VersionResolver());
+        $command = new VersionCommand();
 
         $this->assertSame('version', $command->getName());
     }
 
     public function test_version_command_get_aliases_returns_correct_value(): void
     {
-        $command = new VersionCommand(new VersionResolver());
+        $command = new VersionCommand();
 
         $this->assertSame(['--version', '-v'], $command->getAliases());
     }
 
     public function test_version_command_get_description_returns_correct_value(): void
     {
-        $command = new VersionCommand(new VersionResolver());
+        $command = new VersionCommand();
 
         $this->assertSame('Display version information', $command->getDescription());
     }
 
     public function test_help_command_get_name_returns_correct_value(): void
     {
-        $command = new HelpCommand(new VersionResolver());
+        $command = new HelpCommand();
 
         $this->assertSame('help', $command->getName());
     }
 
     public function test_help_command_get_aliases_returns_correct_value(): void
     {
-        $command = new HelpCommand(new VersionResolver());
+        $command = new HelpCommand();
 
         $this->assertSame(['--help', '-h'], $command->getAliases());
     }
 
     public function test_help_command_get_description_returns_correct_value(): void
     {
-        $command = new HelpCommand(new VersionResolver());
+        $command = new HelpCommand();
 
         $this->assertSame('Display this help message', $command->getDescription());
     }
