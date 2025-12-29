@@ -79,7 +79,7 @@ final readonly class Regex
      * Cache version for AST serialization.
      * Bump this when AST structure changes.
      */
-    public const CACHE_VERSION = '1.0.0';
+    public const CACHE_VERSION = '1.0.0-RC1';
 
     /**
      * Default maximum allowed regex pattern length.
