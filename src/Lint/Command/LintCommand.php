@@ -13,8 +13,6 @@ declare(strict_types=1);
 
 namespace RegexParser\Lint\Command;
 
-use RegexParser\Bridge\Symfony\Console\LinkFormatter;
-use RegexParser\Bridge\Symfony\Console\RelativePathHelper;
 use RegexParser\Cli\Command\AbstractCommand;
 use RegexParser\Cli\Command\CommandInterface;
 use RegexParser\Cli\Command\HelpCommand;
@@ -22,7 +20,9 @@ use RegexParser\Cli\Input;
 use RegexParser\Cli\Output;
 use RegexParser\Lint\Formatter\ConsoleFormatter;
 use RegexParser\Lint\Formatter\FormatterRegistry;
+use RegexParser\Lint\Formatter\LinkFormatter;
 use RegexParser\Lint\Formatter\OutputConfiguration;
+use RegexParser\Lint\Formatter\RelativePathHelper;
 use RegexParser\Lint\PhpRegexPatternSource;
 use RegexParser\Lint\RegexAnalysisService;
 use RegexParser\Lint\RegexLintReport;

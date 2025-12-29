@@ -13,11 +13,11 @@ declare(strict_types=1);
 
 namespace RegexParser\Bridge\Symfony\Command;
 
-use RegexParser\Bridge\Symfony\Console\LinkFormatter;
-use RegexParser\Bridge\Symfony\Console\RelativePathHelper;
 use RegexParser\Bridge\Symfony\Output\SymfonyConsoleFormatter;
 use RegexParser\Cli\VersionResolver;
 use RegexParser\Lint\Formatter\FormatterRegistry;
+use RegexParser\Lint\Formatter\LinkFormatter;
+use RegexParser\Lint\Formatter\RelativePathHelper;
 use RegexParser\Lint\RegexAnalysisService;
 use RegexParser\Lint\RegexLintReport;
 use RegexParser\Lint\RegexLintRequest;

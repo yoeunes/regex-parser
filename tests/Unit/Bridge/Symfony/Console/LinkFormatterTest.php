@@ -14,8 +14,8 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Unit\Bridge\Symfony\Console;
 
 use PHPUnit\Framework\TestCase;
-use RegexParser\Bridge\Symfony\Console\LinkFormatter;
-use RegexParser\Bridge\Symfony\Console\RelativePathHelper;
+use RegexParser\Lint\Formatter\LinkFormatter;
+use RegexParser\Lint\Formatter\RelativePathHelper;
 
 final class LinkFormatterTest extends TestCase
 {

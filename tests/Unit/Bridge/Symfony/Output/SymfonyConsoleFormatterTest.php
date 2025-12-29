@@ -15,9 +15,9 @@ namespace RegexParser\Tests\Unit\Bridge\Symfony\Output;
 
 use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
-use RegexParser\Bridge\Symfony\Console\LinkFormatter;
-use RegexParser\Bridge\Symfony\Console\RelativePathHelper;
 use RegexParser\Bridge\Symfony\Output\SymfonyConsoleFormatter;
+use RegexParser\Lint\Formatter\LinkFormatter;
+use RegexParser\Lint\Formatter\RelativePathHelper;
 use RegexParser\Lint\RegexAnalysisService;
 use RegexParser\Lint\RegexLintReport;
 use RegexParser\OptimizationResult;

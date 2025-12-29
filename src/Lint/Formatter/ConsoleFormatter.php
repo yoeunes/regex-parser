@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace RegexParser\Lint\Formatter;
 
-use RegexParser\Bridge\Symfony\Console\LinkFormatter;
 use RegexParser\Internal\PatternParser;
 use RegexParser\Lint\RegexAnalysisService;
 use RegexParser\Lint\RegexLintReport;
