@@ -32,7 +32,7 @@ Built for library authors, framework teams, security and CI pipelines, and begin
 - Explain and highlight regexes for docs, reviews, and UIs
 - CLI tooling plus Symfony and PHPStan integrations
 
-## Quick Start (CLI first)
+## Quick Start
 
 1) Install:
 
@@ -47,6 +47,8 @@ vendor/bin/regex lint src/
 ```
 
 Find regexes in your project and report validation issues, ReDoS risk, and optimizations.
+
+![CLI Lint Screenshot](docs/assets/cli-lint.png)
 
 3) Inspect a single pattern:
 
@@ -69,12 +71,6 @@ echo $result->isValid() ? "OK" : $result->getErrorMessage();
 Want a human explanation? `Regex::explain()` turns a pattern into plain English.
 
 More details: [CLI Guide](docs/guides/cli.md) and [Quick Start](docs/QUICK_START.md).
-
-## CLI output previews
-
-![Analyze output preview](docs/assets/cli-analyze.svg)
-![Highlight output preview](docs/assets/cli-highlight.svg)
-![Validation error preview](docs/assets/cli-validate.svg)
 
 ## Pick your path
 
