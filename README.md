@@ -48,7 +48,7 @@ vendor/bin/regex lint src/
 
 Find regexes in your project and report validation issues, ReDoS risk, and optimizations.
 
-![CLI Lint Screenshot](docs/assets/cli-lint.png)
+![CLI Lint Screenshot](docs/assets/regex-lint.png)
 
 3) Inspect a single pattern:
 
