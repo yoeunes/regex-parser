@@ -46,14 +46,17 @@ use RegexParser\Node\VersionConditionNode;
 
 /**
  * Generates a basic railroad-style SVG diagram of the regex AST.
+ * @extends AbstractNodeVisitor<mixed>
  */
 final class RailroadSvgVisitor extends AbstractNodeVisitor
 {
     private const FONT_SIZE = 12;
     private const CHAR_WIDTH = 7;
+    private const LINE_HEIGHT = 14;
     private const NODE_HEIGHT = 26;
     private const NODE_RADIUS = 7;
     private const NODE_PADDING_X = 12;
+    private const NODE_PADDING_Y = 6;
     private const MIN_NODE_WIDTH = 26;
     private const H_GAP = 16;
     private const V_GAP = 14;
@@ -70,6 +73,7 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
     private const GROUP_PADDING_Y = 12;
     private const GROUP_LABEL_HEIGHT = 12;
     private const META_HEIGHT = 12;
+    private const MAX_LABEL_CHARS = 28;
 
     private int $groupCounter = 0;
 
@@ -77,7 +81,9 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
 
     private int $negatedCharClassDepth = 0;
 
-    private int $groupDepth = 0;
+    private bool $isMultiline = false;
+
+    private bool $isDotAll = false;
 
     #[\Override]
     public function visitRegex(RegexNode $node): string
@@ -85,7 +91,8 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
         $this->groupCounter = 0;
         $this->charClassDepth = 0;
         $this->negatedCharClassDepth = 0;
-        $this->groupDepth = 0;
+        $this->isMultiline = str_contains($node->flags, 'm');
+        $this->isDotAll = str_contains($node->flags, 's');
 
         $patternLayout = $node->pattern->accept($this);
         $flags = '' !== $node->flags ? $node->flags : null;
@@ -120,7 +127,7 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
             } else {
                 if ('' !== $buffer) {
                     $value = addcslashes($buffer, "\0..\37\177..\377");
-                    $layouts[] = $this->createNodeLayout($value, 'node literal');
+                    $layouts[] = $this->createNodeLayout($value, 'node literal', true);
                     $buffer = '';
                 }
                 $layouts[] = $child->accept($this);
@@ -129,7 +136,7 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
 
         if ('' !== $buffer) {
             $value = addcslashes($buffer, "\0..\37\177..\377");
-            $layouts[] = $this->createNodeLayout($value, 'node literal');
+            $layouts[] = $this->createNodeLayout($value, 'node literal', true);
         }
 
         return $this->layoutSequence($layouts);
@@ -138,10 +145,8 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitGroup(GroupNode $node)
     {
-        $this->groupDepth++;
         $label = $this->groupLabel($node);
         $result = $this->layoutGroupBox($node->child->accept($this), $label);
-        $this->groupDepth--;
 
         return $result;
     }
@@ -160,13 +165,13 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
             $value = '(empty)';
         }
 
-        return $this->createNodeLayout($value, $this->literalClass());
+        return $this->createNodeLayout($value, $this->literalClass(), true);
     }
 
     #[\Override]
     public function visitCharLiteral(CharLiteralNode $node)
     {
-        return $this->createNodeLayout($node->originalRepresentation, $this->literalClass());
+        return $this->createNodeLayout($node->originalRepresentation, $this->literalClass(), true);
     }
 
     #[\Override]
@@ -184,15 +189,19 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitDot(DotNode $node)
     {
-        return $this->createNodeLayout('.', 'node anychar');
+        $label = $this->isDotAll ? 'Any char' : 'Any char except line breaks';
+
+        return $this->createNodeLayout($label, 'node anychar');
     }
 
     #[\Override]
     public function visitAnchor(AnchorNode $node)
     {
-        $class = ($this->groupDepth > 0 || $this->charClassDepth > 0) ? 'node literal' : 'node anchor';
+        if ($this->charClassDepth > 0) {
+            return $this->createNodeLayout($node->value, $this->literalClass());
+        }
 
-        return $this->createNodeLayout($node->value, $class);
+        return $this->createNodeLayout($this->describeAnchor($node->value), 'node anchor');
     }
 
     #[\Override]
@@ -747,11 +756,12 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
     /**
      * @return array<string, mixed>
      */
-    private function createNodeLayout(string $label, string $class): array
+    private function createNodeLayout(string $label, string $class, bool $preserveWhitespace = false): array
     {
-        $textWidth = max(self::MIN_NODE_WIDTH, $this->measureTextWidth($label));
+        $labelLines = $this->wrapLabel($label, $preserveWhitespace);
+        $textWidth = max(self::MIN_NODE_WIDTH, $this->measureTextLinesWidth($labelLines));
         $width = $textWidth + (self::NODE_PADDING_X * 2);
-        $height = self::NODE_HEIGHT;
+        $height = $this->measureNodeHeight(\count($labelLines));
 
         return [
             'width' => $width,
@@ -766,6 +776,7 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
                 'width' => $width,
                 'height' => $height,
                 'label' => $label,
+                'labelLines' => $labelLines,
                 'class' => $class,
             ]],
             'paths' => [],
@@ -867,6 +878,29 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
         return (int) (\strlen($text) * self::CHAR_WIDTH);
     }
 
+    /**
+     * @param array<int, string> $lines
+     */
+    private function measureTextLinesWidth(array $lines): int
+    {
+        $max = 0;
+        foreach ($lines as $line) {
+            $max = max($max, $this->measureTextWidth($line));
+        }
+
+        return $max;
+    }
+
+    private function measureNodeHeight(int $lineCount): int
+    {
+        $lineCount = max(1, $lineCount);
+
+        return max(
+            self::NODE_HEIGHT,
+            (self::LINE_HEIGHT * $lineCount) + (self::NODE_PADDING_Y * 2),
+        );
+    }
+
     private function renderSvg(array $layout): string
     {
         $offsetLayout = $this->offsetLayout($layout, self::CANVAS_PADDING, self::CANVAS_PADDING);
@@ -952,12 +986,21 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
                 self::NODE_RADIUS,
                 self::NODE_RADIUS,
             );
-            $svg[] = \sprintf(
-                '<text class="label" x="%d" y="%d">%s</text>',
-                $node['x'] + (int) floor($node['width'] / 2),
-                $node['y'] + (int) floor($node['height'] / 2),
-                $this->escapeText($node['label']),
-            );
+            $labelLines = $node['labelLines'] ?? [$node['label']];
+            $lineCount = \count($labelLines);
+            $textBlockHeight = self::LINE_HEIGHT * $lineCount;
+            $centerX = $node['x'] + (int) floor($node['width'] / 2);
+            $startY = $node['y'] + (int) floor(((int) $node['height'] - $textBlockHeight) / 2);
+
+            foreach ($labelLines as $index => $line) {
+                $lineY = $startY + ($index * self::LINE_HEIGHT) + (int) floor(self::LINE_HEIGHT / 2);
+                $svg[] = \sprintf(
+                    '<text class="label" x="%d" y="%d">%s</text>',
+                    $centerX,
+                    $lineY,
+                    $this->escapeText($line),
+                );
+            }
         }
 
         foreach ($offsetLayout['texts'] as $text) {
@@ -1000,6 +1043,80 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
     private function escapeAttribute(string $value): string
     {
         return htmlspecialchars($value, \ENT_QUOTES | \ENT_SUBSTITUTE, 'UTF-8');
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function wrapLabel(string $label, bool $preserveWhitespace = false): array
+    {
+        if ('' === $label) {
+            return ['(empty)'];
+        }
+
+        if (\strlen($label) <= self::MAX_LABEL_CHARS) {
+            return [$label];
+        }
+
+        if ($preserveWhitespace) {
+            return str_split($label, self::MAX_LABEL_CHARS);
+        }
+
+        $label = trim($label);
+        if ('' === $label) {
+            return ['(empty)'];
+        }
+
+        $words = preg_split('/\s+/', $label) ?: [];
+        $lines = [];
+        $current = '';
+
+        foreach ($words as $word) {
+            $candidate = '' === $current ? $word : $current.' '.$word;
+            if (\strlen($candidate) <= self::MAX_LABEL_CHARS) {
+                $current = $candidate;
+                continue;
+            }
+
+            if ('' !== $current) {
+                $lines[] = $current;
+                $current = '';
+            }
+
+            if (\strlen($word) <= self::MAX_LABEL_CHARS) {
+                $current = $word;
+                continue;
+            }
+
+            $chunks = str_split($word, self::MAX_LABEL_CHARS);
+            $lastIndex = \count($chunks) - 1;
+            foreach ($chunks as $index => $chunk) {
+                if ($index === $lastIndex) {
+                    $current = $chunk;
+                } else {
+                    $lines[] = $chunk;
+                }
+            }
+        }
+
+        if ('' !== $current) {
+            $lines[] = $current;
+        }
+
+        return $lines;
+    }
+
+    private function describeAnchor(string $value): string
+    {
+        if ('^' === $value) {
+            return $this->isMultiline ? 'Start of line (^)' : 'Start of input (^)';
+        }
+
+        if ('$' === $value) {
+            return $this->isMultiline ? 'End of line ($)' : 'End of input ($)';
+        }
+
+        return $value;
     }
 
     private function describeGroupType(GroupNode $node): string
