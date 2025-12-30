@@ -7,16 +7,19 @@ If you are new to regex, start with the tutorial. If you are here to extend the 
 ## Documentation Map
 
 Start Here:
+
 - [Tutorial](tutorial/README.md)
 - [Quick Start](QUICK_START.md)
 - [Regex in PHP](guides/regex-in-php.md)
 
 Use RegexParser:
+
 - [CLI Guide](guides/cli.md)
 - [Cookbook](COOKBOOK.md)
 - [ReDoS Guide](REDOS_GUIDE.md)
 
 Internals and Contributors:
+
 - [Architecture](ARCHITECTURE.md)
 - [AST Traversal](design/AST_TRAVERSAL.md)
 - [Nodes Reference](nodes/README.md)
@@ -24,6 +27,7 @@ Internals and Contributors:
 - [Extending Guide](EXTENDING_GUIDE.md)
 
 Reference:
+
 - [API Reference](reference/api.md)
 - [Diagnostics](reference/diagnostics.md)
 - [Diagnostics Cheat Sheet](reference/diagnostics-cheatsheet.md)
@@ -43,7 +47,7 @@ Parser -> RegexNode (AST)
        Visitors -> validation, explanation, analysis, transforms
 ```
 
-RegexParser treats a regex pattern like code. The lexer turns it into tokens, the parser builds a tree, and visitors walk that tree to produce results. Every example in these docs uses RegexParser as the reference implementation.
+**RegexParser** treats a regex pattern like code. The **lexer** turns it into tokens, the **parser** builds a tree, and **visitors** walk that tree to produce results. Every example in these docs uses **RegexParser** as the reference implementation.
 
 ## How RegexParser Works Under the Hood
 

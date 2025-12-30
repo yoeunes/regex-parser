@@ -24,7 +24,7 @@ For first-time contributors, this is a good entry path:
 
 ## The Integration Landscape
 
-RegexParser is typically embedded in:
+**RegexParser** is typically embedded in:
 
 - PHPStan rules and custom static analyzers
 - Symfony bundles and validators

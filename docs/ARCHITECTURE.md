@@ -14,7 +14,7 @@ Parser        -> RegexNode (AST)
 Visitors      -> validation, explanation, analysis, transforms
 ```
 
-RegexParser treats a regex as code. The lexer turns a pattern string into tokens, the parser builds a tree of nodes, and visitors walk that tree to produce results.
+**RegexParser** treats a regex as code. The **lexer** turns a pattern string into tokens, the **parser** builds a tree of nodes, and **visitors** walk that tree to produce results.
 
 ## Step 1: Parse the Regex Literal
 
