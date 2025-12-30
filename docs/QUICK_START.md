@@ -1,19 +1,36 @@
-# Quick Start Guide - RegexParser
+# Quick Start
 
-**Get started with RegexParser in 5 minutes!** Whether you're new to regex or an experienced developer, this guide will help you get productive quickly.
+This guide gets you from install to first analysis quickly. Whether you are new to regex or already use PCRE daily, the steps here are the fastest way to see value.
+
+> We start with `Regex::create()` so options are validated and consistent.
 
 ---
 
-## What is RegexParser?
+## The Pipeline
+
+```
+/^hello$/i
+  |
+  v
+Lexer  -> TokenStream
+Parser -> RegexNode (AST)
+          |
+          v
+       Visitors -> validation, explanation, analysis, transforms
+```
+
+---
+
+## What RegexParser Is
 
 RegexParser is a tool that helps you **understand** and **validate** regular expressions. It:
 
-- 🔍 **Parses** regex patterns into a readable structure
-- 📖 **Explains** patterns in plain English
-- ⚠️ **Finds** errors and security issues
-- 🎨 **Visualizes** complex patterns
+- Parses regex patterns into a readable structure
+- Explains patterns in plain language
+- Finds errors and security issues
+- Visualizes complex patterns
 
-### Why Use It?
+### Why Use It
 
 ```
 Without RegexParser:
@@ -39,7 +56,7 @@ That's it! No other dependencies.
 
 ---
 
-## Try the CLI First (Fastest Way to See Value)
+## CLI First (Fast Feedback)
 
 The CLI is the fastest way to understand what RegexParser can do:
 
@@ -58,6 +75,43 @@ bin/regex highlight '/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i'
 
 # 5. Lint your entire codebase
 bin/regex lint src/
+```
+
+---
+
+## Core API (Five Essentials)
+
+### 1. Parse to AST
+
+```php
+use RegexParser\Regex;
+
+$regex = Regex::create();
+$ast = $regex->parse('/\d{3}-\d{4}/');
+```
+
+### 2. Validate
+
+```php
+$result = $regex->validate('/(?<year>\d{4})-(?<month>\d{2})/');
+```
+
+### 3. Explain
+
+```php
+$text = $regex->explain('/\d{3}-\d{4}/');
+```
+
+### 4. ReDoS Check
+
+```php
+$analysis = $regex->redos('/(a+)+$/');
+```
+
+### 5. Highlight
+
+```php
+$console = $regex->highlight('/\d+/', 'console');
 ```
 
 ---

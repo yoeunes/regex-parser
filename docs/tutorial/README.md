@@ -1,6 +1,6 @@
-# Complete Regex Tutorial (PHP + RegexParser)
+# Regex Tutorial (RegexParser Edition)
 
-> **No prior regex experience required!** This tutorial takes you from "what's a pattern?" to mastering PCRE regular expressions.
+This tutorial takes you from your first pattern to PCRE features used in production. It uses the RegexParser CLI and API throughout, so you learn regex and the parser at the same time.
 
 ## What You'll Learn
 
@@ -19,7 +19,51 @@
 
 ---
 
-## 🤔 What is a Regular Expression?
+## Tools We Use
+
+### CLI (Explains and Diagrams)
+
+```bash
+bin/regex explain '/^cat.*dog$/'
+```
+
+```
+Match:
+  Anchor: start of string
+  Literal: "cat"
+  Any character, zero or more times
+  Literal: "dog"
+  Anchor: end of string
+```
+
+```bash
+bin/regex diagram '/^cat.*dog$/'
+```
+
+```
+RegexNode
++-- SequenceNode
+    |-- AnchorNode("^")
+    |-- LiteralNode("cat")
+    |-- QuantifierNode("*")
+    |   +-- DotNode(".")
+    |-- LiteralNode("dog")
+    +-- AnchorNode("$")
+```
+
+### PHP API
+
+```php
+use RegexParser\Regex;
+
+$regex = Regex::create();
+$ast = $regex->parse('/^cat.*dog$/');
+$explanation = $regex->explain('/^cat.*dog$/');
+```
+
+---
+
+## What Is a Regular Expression?
 
 A **regular expression** (regex) is a pattern that describes text. Think of it like a recipe for matching strings:
 
@@ -52,7 +96,7 @@ Imagine you're in a library looking for a specific book:
 
 ---
 
-## 🛠️ Tools You'll Use
+## Tools You Will Use
 
 ### RegexParser CLI
 
@@ -91,7 +135,7 @@ $sample = $regex->generate('/your-pattern/');
 
 ---
 
-## 📖 How to Use This Tutorial
+## How to Use This Tutorial
 
 ### For Absolute Beginners
 
@@ -109,7 +153,7 @@ $sample = $regex->generate('/your-pattern/');
 
 ---
 
-## 🎯 Quick Reference
+## Quick Reference
 
 ### Most Common Patterns
 
@@ -140,13 +184,13 @@ To match a literal dollar sign: `/\$/`
 
 ---
 
-## 🚀 Start Here
+## Start Here
 
 **[Chapter 1: Regex Basics →](01-basics.md)**
 
 ---
 
-## 🆘 If You Get Stuck
+## If You Get Stuck
 
 1. **Use the explain command**: `bin/regex explain '/your-pattern/'`
 2. **Visualize it**: `bin/regex diagram '/your-pattern/'`
@@ -156,7 +200,7 @@ To match a literal dollar sign: `/\$/`
 
 ---
 
-## 📚 Other Resources
+## Other Resources
 
 - [Regex in PHP Guide](../guides/regex-in-php.md) - PHP-specific regex details
 - [Cookbook](../COOKBOOK.md) - Ready-to-use patterns

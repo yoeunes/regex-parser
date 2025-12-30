@@ -4,7 +4,7 @@
 
 ---
 
-## 🤔 Why Real-World Patterns Are Different
+## Why Real-World Patterns Are Different
 
 Tutorial patterns are simple. Production patterns must:
 
@@ -18,7 +18,7 @@ This chapter shows **battle-tested patterns** with explanations.
 
 ---
 
-## 📧 Email Validation
+## Email Validation
 
 ### The Pattern
 
@@ -94,7 +94,7 @@ if (preg_match($pattern, $userInput)) {
 
 ---
 
-## 📅 Date Validation (YYYY-MM-DD)
+## Date Validation (YYYY-MM-DD)
 
 ### The Pattern
 
@@ -145,7 +145,7 @@ if (preg_match($pattern, $input, $m)) {
 
 ---
 
-## 🔢 Phone Numbers (US Format)
+## Phone Numbers (US Format)
 
 ### The Pattern
 
@@ -178,7 +178,7 @@ $areaCode = $matches[1];  // "555"
 
 ---
 
-## 🌐 URLs (HTTP/HTTPS)
+## URLs (HTTP/HTTPS)
 
 ### The Pattern
 
@@ -210,7 +210,7 @@ if (preg_match($pattern, $url)) {
 
 ---
 
-## 📝 Log Parsing
+## Log Parsing
 
 ### The Pattern
 
@@ -244,7 +244,7 @@ echo $matches['message'];    // "User logged in successfully"
 
 ---
 
-## 🏷️ Tags (HTML-like)
+## Tags (HTML-like)
 
 ### The Pattern
 
@@ -277,7 +277,7 @@ echo $matches[3];   // "Content"
 
 ---
 
-## 🔐 Password Strength
+## Password Strength
 
 ### The Pattern
 
@@ -309,7 +309,7 @@ if (preg_match($pattern, $password)) {
 
 ---
 
-## 📊 Comparison Table
+## Comparison Table
 
 | Use Case | Pattern                                                                                                           | Anchored          | ReDoS Safe | Named Groups |
 |----------|-------------------------------------------------------------------------------------------------------------------|-------------------|------------|--------------|
@@ -321,7 +321,7 @@ if (preg_match($pattern, $password)) {
 
 ---
 
-## 🧪 Exercise: Build and Test a Pattern
+## Exercise: Build and Test a Pattern
 
 ### Challenge
 
@@ -350,7 +350,7 @@ echo $regex->explain($pattern);
 
 ---
 
-## 📚 Key Takeaways
+## Key Takeaways
 
 1. **Production patterns** need anchors (`^...$`) for exact matching
 2. **Use named groups** for clarity and maintainability
@@ -360,7 +360,7 @@ echo $regex->explain($pattern);
 
 ---
 
-## 🎓 You're a Regex Master!
+## You're a Regex Master!
 
 Congratulations! You've completed the complete Regex Tutorial:
 

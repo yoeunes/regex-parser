@@ -4,7 +4,7 @@
 
 ---
 
-## 🤔 What is ReDoS?
+## What is ReDoS?
 
 **ReDoS** (Regular Expression Denial of Service) happens when a pattern takes **exponentially long** to match certain inputs. Think of it like a **traffic jam** - the engine gets stuck trying all possible paths:
 
@@ -27,7 +27,7 @@ Dangerous Pattern: /(a+)+$/
 
 ---
 
-## 💥 Catastrophic Backtracking Explained
+## Catastrophic Backtracking Explained
 
 ### How Backtracking Works
 
@@ -82,7 +82,7 @@ Number of paths: 2^n where n = number of a's
 
 ---
 
-## ⚠️ Common Risk Patterns
+## Common Risk Patterns
 
 ### 1. Nested Quantifiers
 
@@ -118,7 +118,7 @@ Number of paths: 2^n where n = number of a's
 
 ---
 
-## ✅ Safer Patterns
+## Safer Patterns
 
 ### 1. Atomic Groups `(?>...)`
 
@@ -132,7 +132,7 @@ Once inside, the engine **never backtracks**:
 '/(?>a+)+$/'
 ```
 
-### 2. Possessive Quantifiers `++`, `*+`, `?+`
+### 2. Possessive Quantifiers ++, *+, ?+
 
 Once matched, characters are **never released**:
 
@@ -170,7 +170,7 @@ Often you can simplify:
 
 ---
 
-## 🛡️ Prevention Strategies
+## Prevention Strategies
 
 ### Strategy 1: Validate with RegexParser
 
@@ -217,7 +217,7 @@ ini_set('pcre.recursion_limit', '100000');
 
 ---
 
-## 📊 Pattern Comparison Table
+## Pattern Comparison Table
 
 | Pattern       | Risk        | Time (1000 chars) | Safe Alternative        |
 |---------------|-------------|-------------------|-------------------------|
@@ -230,7 +230,7 @@ ini_set('pcre.recursion_limit', '100000');
 
 ---
 
-## 🧪 Exercises
+## Exercises
 
 ### Exercise 1: Identify Dangerous Patterns
 
@@ -293,7 +293,7 @@ foreach ($patterns as $pattern) {
 
 ---
 
-## 📚 Key Takeaways
+## Key Takeaways
 
 1. **ReDoS** = exponential backtracking = DoS vulnerability
 2. **Nested quantifiers** are the main risk
@@ -304,7 +304,7 @@ foreach ($patterns as $pattern) {
 
 ---
 
-## 🆘 Common Errors
+## Common Errors
 
 ### Error: Thinking Short Patterns Are Safe
 
@@ -338,7 +338,7 @@ foreach ($patterns as $pattern) {
 
 ---
 
-## 🎉 You're Ready!
+## You're Ready!
 
 You now understand:
 - What ReDoS is and why it's dangerous

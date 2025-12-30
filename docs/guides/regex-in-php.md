@@ -1,10 +1,10 @@
-# Regex in PHP: The Complete Guide
+# Regex in PHP
 
-> **Everything you need to know about using regular expressions in PHP with PCRE2.**
+This guide explains how PCRE works in PHP and how RegexParser interprets the same syntax. Examples use full regex literals (`/pattern/flags`).
 
 ---
 
-## 🤔 What is PCRE?
+## What Is PCRE?
 
 PHP uses **PCRE2** (Perl Compatible Regular Expressions) for regex operations. This is the same engine used by Perl, and it's powerful and well-tested.
 
@@ -15,7 +15,7 @@ PCRE = Perl Compatible Regular Expressions
 
 ---
 
-## 📚 PHP Regex Functions Reference
+## PHP Regex Functions
 
 ### The Core Functions
 
@@ -51,7 +51,7 @@ preg_grep('/^admin|moderator/', $users);  // Array ( [0] => "admin", [3] => "mod
 
 ---
 
-## 🔐 Delimiters: The `/` Characters
+## Delimiters: The / Characters
 
 Every PHP regex pattern needs **delimiters** - characters that mark the start and end:
 
@@ -61,7 +61,7 @@ Every PHP regex pattern needs **delimiters** - characters that mark the start an
 $pattern = '/hello/i';  // / is the delimiter
 ```
 
-### When Your Pattern Contains `/`
+### When Your Pattern Contains /
 
 Use a different delimiter:
 
@@ -83,26 +83,18 @@ $pattern = '%https://example\.com%';
 / # ~ % , ; : ! ' " ( ) [ ] { } < > |
 ```
 
-### ASCII Diagram: Delimiter Structure
+### Delimiter Anatomy
 
 ```
 Pattern: /^[a-z]+@[a-z]+\.[a-z]+$/i
-
-┌─────────────────────────────────────────────────────────┐
-│  ┌──┐                                     ┌──┐  ┌──┐    │
-│  │ /│  ^[a-z]+@[a-z]+\.[a-z]+  │  │/  │ i │  │  │  │    │
-│  └──┘                                     └──┘  └──┘    │
-│   ▲                                        ▲     ▲      │
-│   │                                        │     │      │
-│   │                                        │     │      │
-│ Start delimiter                      End     Flag       │
-│                                   delimiter             │
-└─────────────────────────────────────────────────────────┘
+Delimiter: /
+Body: ^[a-z]+@[a-z]+\.[a-z]+$
+Flags: i
 ```
 
 ---
 
-## 🚩 Pattern Modifiers (Flags)
+## Pattern Modifiers (Flags)
 
 Add flags after the closing delimiter to change behavior:
 
@@ -150,7 +142,7 @@ $pattern = '/(
 
 ---
 
-## 🎯 Common Use Cases with Code
+## Common Use Cases with Code
 
 ### 1. Validate Email
 
@@ -203,7 +195,7 @@ $pattern = '/^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,}$/';
 
 ---
 
-## ⚠️ Important: preg_quote()
+## Important: preg_quote()
 
 When inserting user input into patterns, **always use `preg_quote()`**:
 
@@ -226,7 +218,7 @@ preg_quote(string $pattern, string $delimiter = null): string
 
 ---
 
-## 🚨 Error Handling
+## Error Handling
 
 ### Check for Errors
 
@@ -254,7 +246,7 @@ if (preg_last_error() === PREG_NO_ERROR) {
 
 ---
 
-## 🔧 Performance: PCRE Limits
+## Performance: PCRE Limits
 
 For untrusted input, set limits to prevent runaway patterns:
 
@@ -281,7 +273,7 @@ Without limits, malicious input can cause:
 
 ---
 
-## 🐛 Common Mistakes and How to Fix Them
+## Common Mistakes and How to Fix Them
 
 ### Mistake 1: Forgetting Anchors
 
@@ -332,7 +324,7 @@ echo $m[0];  // "<p>Hello</p>"
 
 ---
 
-## 🛡️ Where RegexParser Helps
+## Where RegexParser Helps
 
 ### 1. Validate Patterns Before Use
 
@@ -388,7 +380,7 @@ echo $email;  // Example: "user@example.com"
 
 ---
 
-## 📋 Quick Reference
+## Quick Reference
 
 ### Regex to PCRE Translation
 
@@ -418,7 +410,7 @@ echo $email;  // Example: "user@example.com"
 
 ---
 
-## 🎓 Learn More
+## Learn More
 
 - **[Regex Tutorial](../tutorial/README.md)** - Complete step-by-step guide
 - **[Quick Start](../QUICK_START.md)** - Get productive in 5 minutes
@@ -427,7 +419,7 @@ echo $email;  // Example: "user@example.com"
 
 ---
 
-## 🆘 Troubleshooting
+## Troubleshooting
 
 | Problem                  | Solution                           |
 |--------------------------|------------------------------------|

@@ -4,7 +4,7 @@
 
 ---
 
-## 🤔 What is a Pattern?
+## What is a Pattern?
 
 A **regex pattern** is a search template. It describes what text looks like:
 
@@ -26,7 +26,7 @@ Think of a pattern like a **wanted poster** for text. You describe what you're l
 
 ---
 
-## 🎯 Your First Pattern
+## Your First Pattern
 
 ### The Simplest Pattern: Literal Text
 
@@ -77,7 +77,7 @@ if (preg_match($pattern, $text)) {
 
 ---
 
-## 🔧 Pattern Modifiers (Flags)
+## Pattern Modifiers (Flags)
 
 Add flags after the closing `/` to change behavior:
 
@@ -112,7 +112,7 @@ echo $regex->explain('/hello/i');
 
 ---
 
-## 📐 Delimiters: The `/` Characters
+## Delimiters: The / Characters
 
 Every PHP regex pattern needs **delimiters** - characters that mark the beginning and end:
 
@@ -158,7 +158,7 @@ echo $regex->explain('#https://example\.com#');
 
 ---
 
-## 🔤 Escaping Special Characters
+## Escaping Special Characters
 
 Some characters have special meaning in regex. To match them literally, use `\`:
 
@@ -201,7 +201,7 @@ echo $regex->explain('/./');
 
 ---
 
-## 📝 Your First Complete Example
+## Your First Complete Example
 
 ### Validate an Email (Simple Version)
 
@@ -242,7 +242,7 @@ if ($result->isValid()) {
 
 ---
 
-## ✅ Good Patterns vs ❌ Bad Patterns
+## Good Patterns vs Bad Patterns
 
 ### Good: Clear and Specific
 
@@ -273,7 +273,7 @@ if ($result->isValid()) {
 
 ---
 
-## 🧪 Exercises
+## Exercises
 
 ### Exercise 1: Basic Matching
 
@@ -323,7 +323,7 @@ echo $regex->explain('/\$\d+\.\d{2}/');
 
 ---
 
-## 📚 Key Takeaways
+## Key Takeaways
 
 1. **Patterns** describe text you want to match
 2. **Delimiters** (`/`) mark the start and end
@@ -334,7 +334,7 @@ echo $regex->explain('/\$\d+\.\d{2}/');
 
 ---
 
-## 🆘 Common Errors
+## Common Errors
 
 ### Error: "Unknown modifier"
 
@@ -358,7 +358,7 @@ $result = $regex->validate('/(hello)/');
 
 ---
 
-## 🎉 You're Ready!
+## You're Ready!
 
 You now understand:
 - What regex patterns are

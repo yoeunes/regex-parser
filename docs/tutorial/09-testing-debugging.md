@@ -4,7 +4,7 @@
 
 ---
 
-## 🤔 Why Use RegexParser for Testing?
+## Why Use RegexParser for Testing?
 
 RegexParser turns cryptic patterns into **readable explanations** and helps you find issues **before** they reach production:
 
@@ -25,7 +25,7 @@ With RegexParser:
 
 ---
 
-## 🎯 Core Features for Testing
+## Core Features for Testing
 
 ### 1. Explain Patterns in Plain English
 
@@ -118,7 +118,7 @@ echo $sample;  // Example output: "abc12"
 
 ---
 
-## 🧪 Testing Workflow
+## Testing Workflow
 
 ### Step 1: Write Your Pattern
 
@@ -193,7 +193,7 @@ foreach ($testCases as $email) {
 
 ---
 
-## 🔍 Debugging Common Issues
+## Debugging Common Issues
 
 ### Issue 1: Pattern Not Matching Expected Input
 
@@ -267,7 +267,7 @@ Use (?<=a{1,10}) instead for bounded lookbehind.
 
 ---
 
-## 📋 Testing Checklist
+## Testing Checklist
 
 Before using a pattern in production:
 
@@ -280,7 +280,7 @@ Before using a pattern in production:
 
 ---
 
-## 🧪 Exercise: Complete Testing Workflow
+## Exercise: Complete Testing Workflow
 
 ### Your Task
 
@@ -322,7 +322,7 @@ for ($i = 0; $i < 3; $i++) {
 
 ---
 
-## 📚 Key Takeaways
+## Key Takeaways
 
 1. **Always explain** patterns to ensure understanding
 2. **Validate early** - catch syntax errors before testing
@@ -332,7 +332,7 @@ for ($i = 0; $i < 3; $i++) {
 
 ---
 
-## 🆘 When You Get Stuck
+## When You Get Stuck
 
 1. **Use the CLI** - `bin/regex explain <pattern>`
 2. **Try diagram** - `bin/regex diagram <pattern>`
@@ -341,7 +341,7 @@ for ($i = 0; $i < 3; $i++) {
 
 ---
 
-## 🎉 Tutorial Complete!
+## Tutorial Complete!
 
 You've completed the Regex Tutorial! You now know:
 

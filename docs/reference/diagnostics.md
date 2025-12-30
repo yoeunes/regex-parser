@@ -17,70 +17,22 @@ This comprehensive guide explains how RegexParser reports errors and warnings, h
 
 ## Validation Layers
 
-RegexParser validates patterns through three distinct layers, each catching different types of issues:
+RegexParser validates patterns through four layers, each catching different types of issues:
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│              VALIDATION LAYERS                              │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │ LAYER 1: Parse (Lexer + Parser)                     │    │
-│  │                                                     │    │
-│  │ Purpose: Build the AST                              │    │
-│  │ Catches: Syntax errors, malformed patterns          │    │
-│  │                                                     │    │
-│  │ Examples:                                           │    │
-│  │ - Unbalanced brackets `[a-z`                        │    │
-│  │ - Invalid escapes `\x`                              │    │
-│  │ - Missing delimiters `foo`                          │    │
-│  │ - Unknown tokens                                    │    │
-│  │                                                     │    │
-│  └─────────────────────────────────────────────────────┘    │
-│                           │                                 │
-│                           ▼                                 │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │ LAYER 2: Semantic Validation                        │    │
-│  │                                                     │    │
-│  │ Purpose: Check PCRE semantic rules                  │    │
-│  │ Catches: Invalid backrefs, lookbehinds, groups      │    │
-│  │                                                     │    │
-│  │ Examples:                                           │    │
-│  │ - Unbounded lookbehind `(?<=a+)`                    │    │
-│  │ - Invalid backreference `\1` before group           │    │
-│  │ - Duplicate group names                             │    │
-│  │ - Invalid quantifier ranges `{5,2}`                 │    │
-│  │                                                     │    │
-│  └─────────────────────────────────────────────────────┘    │
-│                           │                                 │
-│                           ▼                                 │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │ LAYER 3: Runtime Validation (Optional)              │    │
-│  │                                                     │    │
-│  │ Purpose: Verify with actual PCRE engine             │    │
-│  │ Catches: Engine-specific issues                     │    │
-│  │                                                     │    │
-│  │ Enable with:                                        │    │
-│  │   'runtime_pcre_validation' => true                 │    │
-│  │                                                     │    │
-│  └─────────────────────────────────────────────────────┘    │
-│                           │                                 │
-│                           ▼                                 │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │ LAYER 4: Linting & Analysis                         │    │
-│  │                                                     │    │
-│  │ Purpose: Find issues beyond validity                │    │
-│  │ Catches: ReDoS, performance, best practices         │    │
-│  │                                                     │    │
-│  │ Examples:                                           │    │
-│  │ - Nested quantifiers `(a+)+`                        │    │
-│  │ - Useless flags `/\d+/i`                            │    │
-│  │ - Redundant groups `(?:foo)`                        │    │
-│  │                                                     │    │
-│  └─────────────────────────────────────────────────────┘    │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
+Pattern literal
+  -> Parse (Lexer + Parser): syntax errors, malformed patterns
+  -> Semantic validation: PCRE rules, group and reference checks
+  -> Runtime validation (optional): preg_match compilation
+  -> Linting & analysis: ReDoS, performance, best practices
 ```
+
+Examples by layer:
+
+- Parse: unbalanced brackets `[a-z`, invalid escapes `\x`, missing delimiters `foo`
+- Semantic: unbounded lookbehind `(?<=a+)`, backreference to non-existent group `\2`, duplicate group names
+- Runtime: engine-specific compilation errors
+- Linting & analysis: nested quantifiers `(a+)+`, useless flags `/\d+/i`, redundant groups `(?:foo)`
 
 ---
 
@@ -329,8 +281,8 @@ preg_match('/(\w+)\2/', $input);  // Only one group
 // FIX 1: Use correct group number
 preg_match('/(\w+)\1/', $input);  // \1 refers to group 1
 
-// FIX 2: Add missing group
-preg_match('/(\w+)(?:\s*)(\2)/', $input);  // Now \2 exists
+// FIX 2: Add the missing group
+preg_match('/(\w+)(\w+)\2/', $input);  // Now \2 exists
 ```
 
 ---

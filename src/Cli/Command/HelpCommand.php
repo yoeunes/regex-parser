@@ -55,6 +55,7 @@ final readonly class HelpCommand implements CommandInterface
         $commands = [
             ['parse', 'Parse and recompile a regex pattern'],
             ['analyze', 'Parse, validate, and analyze ReDoS risk'],
+            ['explain', 'Explain a regex pattern'],
             ['debug', 'Deep ReDoS analysis with heatmap output'],
             ['diagram', 'Render an ASCII diagram of the AST'],
             ['highlight', 'Highlight a regex for display'],
@@ -105,6 +106,7 @@ final readonly class HelpCommand implements CommandInterface
             [[$binary, "'/a+/'"], 'Quick highlight'],
             [[$binary, 'parse', "'/a+/'", '--validate'], 'Parse with validation'],
             [[$binary, 'analyze', "'/a+/'"], 'Full analysis'],
+            [[$binary, 'explain', "'/a+/'"], 'Explain a pattern'],
             [[$binary, 'diagram', "'/^a+$/'"], 'ASCII diagram'],
             [[$binary, 'debug', "'/(a+)+$/'"], 'Heatmap + ReDoS details'],
             [[$binary, 'highlight', "'/a+/'", '--format=html'], 'HTML highlight'],
@@ -124,7 +126,7 @@ final readonly class HelpCommand implements CommandInterface
         if (null === $commandData) {
             $output->write($output->error("Unknown command: {$command}\n\n"));
             $this->renderTextSection($output, 'Available Commands', [
-                'parse', 'analyze', 'debug', 'diagram', 'highlight', 'validate', 'lint', 'self-update', 'help',
+                'parse', 'analyze', 'explain', 'debug', 'diagram', 'highlight', 'validate', 'lint', 'self-update', 'help',
             ]);
 
             return 1;
@@ -180,6 +182,17 @@ final readonly class HelpCommand implements CommandInterface
                 'examples' => [
                     [[$this->resolveInvocation(), 'analyze', "'/a+/'"], 'Analyze a simple pattern'],
                     [[$this->resolveInvocation(), 'analyze', "'/(a+)+$/'"], 'Analyze a potentially risky pattern'],
+                ],
+            ],
+            'explain' => [
+                'description' => 'Explain a regex pattern in plain language',
+                'options' => [
+                    ['--format <format>', 'Output format (text, html)'],
+                ],
+                'notes' => [],
+                'examples' => [
+                    [[$this->resolveInvocation(), 'explain', "'/a+/'"], 'Explain a simple pattern'],
+                    [[$this->resolveInvocation(), 'explain', "'/\\d{4}-\\d{2}-\\d{2}/'"], 'Explain a date pattern'],
                 ],
             ],
             'debug' => [
@@ -462,7 +475,7 @@ final readonly class HelpCommand implements CommandInterface
             return $output->color($token, Output::GREEN);
         }
 
-        if (\in_array($token, ['parse', 'analyze', 'debug', 'diagram', 'highlight', 'validate', 'lint', 'self-update', 'help'], true)) {
+        if (\in_array($token, ['parse', 'analyze', 'explain', 'debug', 'diagram', 'highlight', 'validate', 'lint', 'self-update', 'help'], true)) {
             return $output->color($token, Output::YELLOW.Output::BOLD);
         }
 
