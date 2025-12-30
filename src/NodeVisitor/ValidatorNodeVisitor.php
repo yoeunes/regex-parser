@@ -1047,7 +1047,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
             return null;
         }
 
-        $negation = $matches[1] ?? '';
+        $negation = $matches[1];
         $property = strtolower($matches[2]);
         $aliases = [
             'javalowercase' => 'Ll',

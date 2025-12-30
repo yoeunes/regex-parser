@@ -1954,7 +1954,7 @@ final class Parser
             // CharTypeNode, UnicodePropNode, and PosixClassNode cannot be range endpoints.
             // In PCRE, if the end of a potential range is one of these types, the hyphen
             // should be treated as a literal hyphen, not a range operator.
-            if ($endNode instanceof CharTypeNode || $endNode instanceof UnicodePropNode || $endNode instanceof PosixClassNode || $endNode instanceof CharClassNode) {
+            if ($endNode instanceof CharTypeNode || $endNode instanceof UnicodePropNode || $endNode instanceof PosixClassNode) {
                 // Rewind both the end token and the hyphen so they will be parsed separately
                 $this->stream->rewind(2);
 

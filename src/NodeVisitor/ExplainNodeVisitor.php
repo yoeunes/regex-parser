@@ -728,27 +728,6 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
         return "'".$value."'";
     }
 
-    /**
-     * Format Unicode character for explanation, handling non-printable and extended ASCII characters.
-     */
-    private function formatUnicodeChar(CharLiteralNode $node): string
-    {
-        // If the original representation is already in hex format, use it
-        if (str_starts_with($node->originalRepresentation, '\x') || str_starts_with($node->originalRepresentation, '\u')) {
-            return $node->originalRepresentation;
-        }
-
-        // For single character values, convert non-printable/extended ASCII to hex
-        if (1 === \strlen($node->originalRepresentation)) {
-            $ord = \ord($node->originalRepresentation);
-            if ($ord < 32 || 127 === $ord || $ord >= 128) {
-                return '\\x'.strtoupper(str_pad(dechex($ord), 2, '0', \STR_PAD_LEFT));
-            }
-        }
-
-        return $node->originalRepresentation;
-    }
-
     private function formatUnicodeHexValue(CharLiteralNode $node): string
     {
         $rep = $node->originalRepresentation;

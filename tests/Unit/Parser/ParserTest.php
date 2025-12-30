@@ -113,9 +113,12 @@ final class ParserTest extends TestCase
         $this->assertInstanceOf(CharClassNode::class, $pattern->expression->alternatives[1]);
 
         $nested = $pattern->expression->alternatives[1];
-        $this->assertInstanceOf(RangeNode::class, $nested->expression);
-        $this->assertSame('m', $nested->expression->start->value);
-        $this->assertSame('p', $nested->expression->end->value);
+        $range = $nested->expression;
+        $this->assertInstanceOf(RangeNode::class, $range);
+        $this->assertInstanceOf(LiteralNode::class, $range->start);
+        $this->assertSame('m', $range->start->value);
+        $this->assertInstanceOf(LiteralNode::class, $range->end);
+        $this->assertSame('p', $range->end->value);
     }
 
     #[Test]
