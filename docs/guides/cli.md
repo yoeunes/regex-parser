@@ -145,10 +145,22 @@ Findings
 
 ### 4. Diagram (AST Visualization)
 
-Render ASCII diagram of pattern structure:
+Render text diagram of pattern structure (default):
 
 ```bash
 vendor/bin/regex diagram '/^[a-z]+@[a-z]+\.[a-z]+$/i'
+```
+
+Render SVG (iTerm2 inline image when run in a terminal):
+
+```bash
+vendor/bin/regex diagram '/^[a-z]+@[a-z]+\.[a-z]+$/i' --format=svg
+```
+
+Write SVG to a file:
+
+```bash
+vendor/bin/regex diagram '/^[a-z]+@[a-z]+\.[a-z]+$/i' --format=svg --output=graph.svg
 ```
 
 **Output:**

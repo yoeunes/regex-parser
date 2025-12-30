@@ -50,7 +50,7 @@ use RegexParser\Node\VersionConditionNode;
  *
  * @extends AbstractNodeVisitor<string>
  */
-final class RailroadDiagramVisitor extends AbstractNodeVisitor
+final class AsciiTreeVisitor extends AbstractNodeVisitor
 {
     /**
      * @var array<string>

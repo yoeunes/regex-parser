@@ -254,7 +254,7 @@ final class CommandTest extends TestCase
         $output = new Output(false, false);
 
         $exitCode = 0;
-        $buffer = $this->captureOutput(static fn (): int => $command->run(self::makeInput('diagram', ['/a+/', '--format=svg']), $output), $exitCode);
+        $buffer = $this->captureOutput(static fn (): int => $command->run(self::makeInput('diagram', ['/a+/', '--format=bogus']), $output), $exitCode);
 
         $this->assertSame(1, $exitCode);
         $this->assertStringContainsString('Unsupported format', $buffer);
@@ -269,6 +269,25 @@ final class CommandTest extends TestCase
         $buffer = $this->captureOutput(static fn (): int => $command->run(self::makeInput('diagram', ['/a+/']), $output), $exitCode);
 
         $this->assertSame(0, $exitCode);
+    }
+
+    public function test_diagram_command_renders_svg_diagram(): void
+    {
+        $command = new DiagramCommand();
+        $output = new Output(false, false);
+        $tempFile = tempnam(sys_get_temp_dir(), 'regex-svg-');
+        $this->assertNotFalse($tempFile);
+
+        $exitCode = 0;
+        $buffer = $this->captureOutput(static fn (): int => $command->run(self::makeInput('diagram', ['/a+/', '--format=svg', '--output='.$tempFile]), $output), $exitCode);
+
+        $this->assertSame(0, $exitCode);
+        $this->assertSame('', $buffer);
+        $svg = file_get_contents($tempFile);
+        $this->assertNotFalse($svg);
+        $this->assertStringContainsString('<svg', $svg);
+        $this->assertStringContainsString('</svg>', $svg);
+        @unlink($tempFile);
     }
 
     public function test_diagram_command_reports_invalid_pattern(): void
@@ -710,7 +729,7 @@ final class CommandTest extends TestCase
     {
         $command = new DiagramCommand();
 
-        $this->assertSame('Render an ASCII diagram of the AST', $command->getDescription());
+        $this->assertSame('Render a diagram of the AST (text or SVG)', $command->getDescription());
     }
 
     public function test_highlight_command_get_name_returns_correct_value(): void

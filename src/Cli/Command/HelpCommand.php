@@ -57,7 +57,7 @@ final readonly class HelpCommand implements CommandInterface
             ['analyze', 'Parse, validate, and analyze ReDoS risk'],
             ['explain', 'Explain a regex pattern'],
             ['debug', 'Deep ReDoS analysis with heatmap output'],
-            ['diagram', 'Render an ASCII diagram of the AST'],
+            ['diagram', 'Render a text or SVG diagram of the AST'],
             ['highlight', 'Highlight a regex for display'],
             ['validate', 'Validate a regex pattern'],
             ['lint', 'Lint regex patterns in PHP source code'],
@@ -93,7 +93,8 @@ final readonly class HelpCommand implements CommandInterface
         $output->write($output->dim('  Inline ignore: // @regex-ignore-next-line or // @regex-ignore')."\n\n");
 
         $diagramOptions = [
-            ['--format <format>', 'Output format (ascii)'],
+            ['--format <format>', 'Output format (text, svg)'],
+            ['--output <file>', 'Write output to file'],
         ];
         $this->renderTableSection($output, 'Diagram Options', $diagramOptions, fn (string $value): string => $this->formatOption($output, $value));
 
@@ -107,7 +108,8 @@ final readonly class HelpCommand implements CommandInterface
             [[$binary, 'parse', "'/a+/'", '--validate'], 'Parse with validation'],
             [[$binary, 'analyze', "'/a+/'"], 'Full analysis'],
             [[$binary, 'explain', "'/a+/'"], 'Explain a pattern'],
-            [[$binary, 'diagram', "'/^a+$/'"], 'ASCII diagram'],
+            [[$binary, 'diagram', "'/^a+$/'"], 'Text diagram'],
+            [[$binary, 'diagram', "'/^a+$/'", '--format=svg'], 'SVG diagram'],
             [[$binary, 'debug', "'/(a+)+$/'"], 'Heatmap + ReDoS details'],
             [[$binary, 'highlight', "'/a+/'", '--format=html'], 'HTML highlight'],
             [[$binary, 'lint', 'src/', '--exclude=vendor'], 'Lint a codebase'],

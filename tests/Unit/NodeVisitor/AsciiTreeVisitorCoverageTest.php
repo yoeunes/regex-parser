@@ -17,13 +17,13 @@ use PHPUnit\Framework\TestCase;
 use RegexParser\Node\CharTypeNode;
 use RegexParser\Node\RegexNode;
 use RegexParser\Node\UnicodeNode;
-use RegexParser\NodeVisitor\RailroadDiagramVisitor;
+use RegexParser\NodeVisitor\AsciiTreeVisitor;
 
-final class RailroadDiagramVisitorCoverageTest extends TestCase
+final class AsciiTreeVisitorCoverageTest extends TestCase
 {
     public function test_char_type_and_unicode_nodes_are_rendered(): void
     {
-        $visitor = new RailroadDiagramVisitor();
+        $visitor = new AsciiTreeVisitor();
 
         $charTypeRegex = new RegexNode(new CharTypeNode('d', 0, 0), '', '/', 0, 0);
         $diagram = $charTypeRegex->accept($visitor);

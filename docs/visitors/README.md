@@ -463,26 +463,43 @@ graph TD
 
 ---
 
-### RailroadDiagramVisitor
+### AsciiTreeVisitor
 
-**Purpose:** Renders a railroad diagram for the pattern. Useful for documentation.
+**Purpose:** Renders a text-based tree of the AST for quick inspection.
 
 ```php
 use RegexParser\Regex;
-use RegexParser\NodeVisitor\RailroadDiagramVisitor;
+use RegexParser\NodeVisitor\AsciiTreeVisitor;
+
+$ast = Regex::create()->parse('/^a+$/');
+$tree = $ast->accept(new AsciiTreeVisitor());
+
+echo $tree;
+/*
+Regex
+\-- Sequence
+    |-- Anchor (^)
+    |-- Quantifier (+, greedy)
+    |   \-- Literal ('a')
+    \-- Anchor ($)
+*/
+```
+
+---
+
+### RailroadSvgVisitor
+
+**Purpose:** Renders a railroad-style SVG diagram suitable for graphical output.
+
+```php
+use RegexParser\Regex;
+use RegexParser\NodeVisitor\RailroadSvgVisitor;
 
 $ast = Regex::create()->parse('/a|b/');
-$diagram = $ast->accept(new RailroadDiagramVisitor());
+$svg = $ast->accept(new RailroadSvgVisitor());
 
-echo $diagram;
-/*
-┌───┐
-│ a │
-└─┬─┘
-  │ ┌───┐
-  └►│ b │
-    └───┘
-*/
+echo $svg;
+// <svg ...>...</svg>
 ```
 
 ---
@@ -638,7 +655,8 @@ echo $compiler->visit($newAst);  // '/HELLO/'
 │  ├── HtmlExplainNodeVisitor       → HTML explanation              │
 │  ├── DumperNodeVisitor            → Debug AST dump                │
 │  ├── MermaidNodeVisitor           → Mermaid diagram               │
-│  ├── RailroadDiagramVisitor       → Railroad diagram              │
+│  ├── AsciiTreeVisitor             → ASCII tree                    │
+│  ├── RailroadSvgVisitor           → Railroad SVG                  │
 │  ├── ConsoleHighlighterVisitor    → ANSI highlighting             │
 │  └── HtmlHighlighterVisitor       → HTML highlighting             │
 │                                                                   │
@@ -657,7 +675,7 @@ echo $compiler->visit($newAst);  // '/HELLO/'
 | Explain pattern to users | `ExplainNodeVisitor`                     |
 | Generate test cases      | `TestCaseGeneratorNodeVisitor`           |
 | Count groups/metrics     | `MetricsNodeVisitor`                     |
-| Visualize AST            | `MermaidNodeVisitor`                     |
+| Visualize AST            | `MermaidNodeVisitor`, `AsciiTreeVisitor`, `RailroadSvgVisitor` |
 | Highlight in CLI         | `ConsoleHighlighterVisitor`              |
 | Round-trip parsing       | `CompilerNodeVisitor`                    |
 
@@ -672,7 +690,7 @@ echo $compiler->visit($newAst);  // '/HELLO/'
 | Validate  | `ValidatorNodeVisitor`, `LinterNodeVisitor`                  |
 | Analyze   | `ComplexityScoreNodeVisitor`, `MetricsNodeVisitor`           |
 | Generate  | `SampleGeneratorNodeVisitor`, `TestCaseGeneratorNodeVisitor` |
-| Visualize | `ExplainNodeVisitor`, `MermaidNodeVisitor`                   |
+| Visualize | `ExplainNodeVisitor`, `MermaidNodeVisitor`, `AsciiTreeVisitor`, `RailroadSvgVisitor` |
 
 ---
 
