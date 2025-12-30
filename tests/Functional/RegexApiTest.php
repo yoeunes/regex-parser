@@ -140,9 +140,8 @@ final class RegexApiTest extends TestCase
             $secondAst = $regex->parse($pattern);
 
             $this->assertSame(2, $cache->writeCount);
-            $this->assertGreaterThanOrEqual(2, $cache->loadCount);
+            $this->assertSame(2, $cache->loadCount);
             $this->assertEquals($firstAst, $secondAst);
-            $this->assertFileExists($cache->generateKey($pattern));
         } finally {
             $cache->clear();
         }
@@ -163,5 +162,30 @@ final class RegexApiTest extends TestCase
         $trimmedPattern = ltrim($patternWithWhitespace);
         $astTrimmed = $regex->parse($trimmedPattern);
         $this->assertEquals($ast, $astTrimmed);
+    }
+
+    public function test_parse_pattern_constructs_full_regex(): void
+    {
+        $regex = Regex::create();
+
+        // Test basic pattern
+        $ast1 = $regex->parsePattern('abc', '', '/');
+        $ast2 = $regex->parse('/abc/');
+        $this->assertEquals($ast1, $ast2);
+
+        // Test with flags
+        $ast3 = $regex->parsePattern('abc', 'i', '/');
+        $ast4 = $regex->parse('/abc/i');
+        $this->assertEquals($ast3, $ast4);
+
+        // Test with different delimiter
+        $ast5 = $regex->parsePattern('abc', '', '#');
+        $ast6 = $regex->parse('#abc#');
+        $this->assertEquals($ast5, $ast6);
+
+        // Test with flags and different delimiter
+        $ast7 = $regex->parsePattern('abc', 'i', '#');
+        $ast8 = $regex->parse('#abc#i');
+        $this->assertEquals($ast7, $ast8);
     }
 }

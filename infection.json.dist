@@ -1,0 +1,22 @@
+{
+    "source": {
+        "directories": [
+            "src"
+        ]
+    },
+    "timeout": 10,
+    "tmpDir": ".cache",
+    "threads": "max",
+    "logs": {
+        "text": ".cache/infection/infection.log",
+        "summary": ".cache/infection/infection-summary.log",
+        "json": ".cache/infection/infection-log.json",
+        "html": ".cache/infection/infection-report.html"
+    },
+    "mutators": {
+        "@default": true
+    },
+    "testFramework": "phpunit",
+    "minMsi": 50,
+    "minCoveredMsi": 90
+}

@@ -494,7 +494,15 @@ final class RegexTest extends TestCase
 
         $this->assertEquals($ast1, $ast2);
 
-        // Clean up
+        // Clean up - use recursive delete to handle files left by other tests
+        $files = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($cacheDir, \RecursiveDirectoryIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::CHILD_FIRST,
+        );
+        foreach ($files as $file) {
+            /** @var \SplFileInfo $file */
+            $file->isDir() ? rmdir($file->getPathname()) : unlink($file->getPathname());
+        }
         rmdir($cacheDir);
     }
 

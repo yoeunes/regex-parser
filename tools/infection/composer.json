@@ -1,0 +1,12 @@
+{
+    "require-dev": {
+        "infection/infection": "^0.29 || ^0.30 || ^1.0"
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "sort-packages": true,
+        "allow-plugins": {
+            "infection/extension-installer": true
+        }
+    }
+}
