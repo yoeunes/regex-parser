@@ -444,7 +444,7 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitControlChar(ControlCharNode $node): string
     {
-        return $this->line(\sprintf('Control character corresponding to %s', $node->char));
+        return $this->line(\sprintf('Control character corresponding to %s (\\c%s)', $node->char, $node->char));
     }
 
     #[\Override]

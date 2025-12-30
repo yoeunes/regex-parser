@@ -153,7 +153,7 @@ final class ExhaustiveVisitorTest extends TestCase
 
         // Range {1,3}
         $q = new QuantifierNode($node, '{1,3}', QuantifierType::T_GREEDY, 0, 0);
-        $this->assertStringContainsString('between 1 and 3', $q->accept($explainer));
+        $this->assertStringContainsString('at least 1 but not more than 3', $q->accept($explainer));
 
         // At least {1,}
         $q = new QuantifierNode($node, '{1,}', QuantifierType::T_GREEDY, 0, 0);

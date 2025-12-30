@@ -292,8 +292,8 @@ final class ExtendedCoverageTest extends TestCase
     {
         $ast = $this->regexService->parse('/^test$/');
         $result = $ast->accept($this->explainVisitor);
-        $this->assertStringContainsString('start', $result);
-        $this->assertStringContainsString('end', $result);
+        $this->assertStringContainsString('beginning of a line', $result);
+        $this->assertStringContainsString('end of a line', $result);
     }
 
     public function test_explain_visitor_assertions(): void
