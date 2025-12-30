@@ -47,7 +47,7 @@ RegexParser targets **PHP's PCRE2 engine** (`preg_*`). Key behaviors that may su
 
 | Behavior           | Description               | Example                         |
 |--------------------|---------------------------|---------------------------------|
-| Forward references | `/\1(a)/` compiles in PHP | May look invalid but works      |
+| Forward references | Backreference before capture compiles, but the group is unset and the match will fail until it has captured | `/\1(a)/` compiles, but `\1` fails |
 | Branch reset       | `(?|...)` changes capture numbering | `\2` can be invalid in branches |
 | `\g{0}`            | Invalid in PHP            | Use `\g<0>` or `(?R)`           |
 | Lookbehind         | Must have bounded length  | `(?<=a+)` is invalid            |
@@ -150,7 +150,7 @@ Valid:
   /abc$/  -> anchor after content
 Invalid:
   /a^bc/  -> ^ after consuming 'a'
-  /^/abc  -> $ before consuming anything
+  /$abc/  -> $ before consuming anything
 ```
 
 **Fix:** Move anchors to the correct position.
@@ -203,11 +203,12 @@ preg_match('/(a++)+b/', $input);
 // RISKY: .* in repetition can backtrack heavily
 preg_match('/(?:.*)+/', $input);
 
-// SAFER: Make it possessive
-preg_match('/(?:.*)+/', $input);  // Still risky for non-matching input
+// SAFER: Make the dot-star atomic or possessive
+preg_match('/(?>.*)+/', $input);
+preg_match('/.*+/', $input);  // If no outer repetition is needed
 
 // BETTER: Use negated character class
-preg_match('/(?:[^"]*)+/', $input);  // For double-quoted strings
+preg_match('/[^"]*/', $input);  // For double-quoted strings
 ```
 
 **Fix:** Make it atomic/possessive or replace `.*` with a specific class.
@@ -248,8 +249,8 @@ preg_match('/foo/', $input);
 // WARNING: Duplicate branch
 preg_match('/(a|a)/', $input);
 
-// PREFERRED: Use character class
-preg_match('/[aa]/', $input);  // or just /a/
+// PREFERRED: Use a single literal
+preg_match('/a/', $input);
 ```
 
 **Fix:** Remove duplicates or use a character class.
@@ -297,8 +298,11 @@ preg_match('/a+b/', $input);  // Often equivalent
 // WARNING: Overlapping character classes
 preg_match('/[a-c]|[b-d]/', $input);
 
-// PREFERRED: Merge or use atomic groups
-preg_match('/[a-d]/', $input);  // Merge
+// SAFER: Use an atomic group to avoid backtracking
+preg_match('/(?>[a-c]|[b-d])/', $input);
+
+// IF EQUIVALENT: Merge ranges
+preg_match('/[a-d]/', $input);
 ```
 
 ---
@@ -367,10 +371,10 @@ preg_match('/\8/', $input);  // Ambiguous: not a valid escape
 **Example:**
 ```php
 // WARNING: Redundant inline flag
-preg_match('/(?i)foo(?-i)/i', $input);  // Global i, then toggle off/on
+preg_match('/(?i)foo/i', $input);  // Global i already set
 
 // PREFERRED: Remove redundancy
-preg_match('/(?i)foo/i', $input);
+preg_match('/foo/i', $input);
 ```
 
 ---
@@ -384,10 +388,10 @@ preg_match('/(?i)foo/i', $input);
 **Example:**
 ```php
 // WARNING: Unset global flag
-preg_match('/(?-i:foo)i/', $input);
+preg_match('/(?-i:foo)/i', $input);
 
 // CONSIDER: Scope the flag instead
-preg_match('/(?i:foo)/', $input);
+preg_match('/(?i:foo)bar/', $input);
 ```
 
 ---
@@ -503,7 +507,7 @@ preg_match('/(?<=ID-)\d+/', $input);
 |-------------------|--------------|-----------------------|
 | `\p{...}` Unicode | Full support |                       |
 | `\g{0}`           | Invalid      | Use `\g<0>` or `(?R)` |
-| Branch reset `(?  | ...)`        | Full support          | |
+| Branch reset `(?|...)` | Full support | |
 
 ---
 

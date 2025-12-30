@@ -12,6 +12,15 @@ If you are new to the codebase, this short checklist helps you get oriented quic
 - Preserve byte offsets in diagnostics and update [docs/reference/diagnostics.md](reference/diagnostics.md) for new codes.
 - Keep docs in sync with behavior changes, especially [docs/reference.md](reference.md).
 
+## Where to Start
+
+For first-time contributors, this is a good entry path:
+
+- Skim `src/Regex.php` to understand the public API and options flow.
+- Read `src/Lexer.php`, `src/Parser.php`, and `src/NodeVisitor/*` for the core pipeline.
+- Use `tests/Fixtures/*` and `tests/Unit/*` to see real patterns and expected behavior.
+- Run `bin/regex parse '/^hello$/'` and `bin/regex analyze '/(a+)+$/'` to connect CLI output with AST behavior.
+
 ## The Integration Landscape
 
 RegexParser is typically embedded in:
