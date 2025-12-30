@@ -59,7 +59,7 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
     private const V_GAP = 14;
     private const BRANCH_GAP = 18;
     private const SIDE_PADDING = 10;
-    private const LOOP_HEIGHT = 16;
+    private const LOOP_HEIGHT = 24;
     private const BYPASS_HEIGHT = 12;
     private const LABEL_HEIGHT = 12;
     private const LABEL_GAP = 6;
@@ -109,8 +109,27 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
     public function visitSequence(SequenceNode $node)
     {
         $layouts = [];
+        $buffer = '';
+
         foreach ($node->children as $child) {
-            $layouts[] = $child->accept($this);
+            $isLiteral = $child instanceof LiteralNode;
+            $isCharLiteral = $child instanceof CharLiteralNode;
+
+            if ($isLiteral || $isCharLiteral) {
+                $buffer .= $child->value;
+            } else {
+                if ('' !== $buffer) {
+                    $value = addcslashes($buffer, "\0..\37\177..\377");
+                    $layouts[] = $this->createNodeLayout($value, 'node literal');
+                    $buffer = '';
+                }
+                $layouts[] = $child->accept($this);
+            }
+        }
+
+        if ('' !== $buffer) {
+            $value = addcslashes($buffer, "\0..\37\177..\377");
+            $layouts[] = $this->createNodeLayout($value, 'node literal');
         }
 
         return $this->layoutSequence($layouts);
@@ -141,7 +160,7 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
             $value = '(empty)';
         }
 
-        return $this->createNodeLayout("'".$value."'", $this->literalClass());
+        return $this->createNodeLayout($value, $this->literalClass());
     }
 
     #[\Override]
@@ -677,12 +696,11 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
 
         if ($needsLoop) {
             $loopTopY = $childOffsetY - self::LOOP_HEIGHT;
-            $paths[] = $this->polyline([
-                [$childOffsetX + (int) $childLayout['exitX'], $midY],
-                [$childOffsetX + (int) $childLayout['exitX'], $loopTopY],
-                [$childOffsetX + (int) $childLayout['entryX'], $loopTopY],
-                [$childOffsetX + (int) $childLayout['entryX'], $midY],
-            ], 'path loop');
+            $exitX = $childOffsetX + (int) $childLayout['exitX'];
+            $entryX = $childOffsetX + (int) $childLayout['entryX'];
+            $paths[] = $this->line([$exitX, $midY], [$exitX, $loopTopY], 'path loop');
+            $paths[] = $this->line([$exitX, $loopTopY], [$entryX, $loopTopY], 'path loop');
+            $paths[] = $this->line([$entryX, $loopTopY], [$entryX, $midY], 'path loop', true);
         }
 
         if ($needsBypass) {
@@ -770,7 +788,11 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
             foreach ($path['points'] as $point) {
                 $points[] = [$point[0] + $dx, $point[1] + $dy];
             }
-            $paths[] = ['points' => $points, 'class' => $path['class'] ?? 'path'];
+            $newPath = ['points' => $points, 'class' => $path['class'] ?? 'path'];
+            if (isset($path['markerEnd'])) {
+                $newPath['markerEnd'] = $path['markerEnd'];
+            }
+            $paths[] = $newPath;
         }
 
         $texts = [];
@@ -813,11 +835,16 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
      * @param array<int, int> $from
      * @param array<int, int> $to
      *
-     * @return array<string, array<int, array<int, int>>>
+     * @return array<string, mixed>
      */
-    private function line(array $from, array $to, string $class = 'path'): array
+    private function line(array $from, array $to, string $class = 'path', bool $markerEnd = false): array
     {
-        return ['points' => [$from, $to], 'class' => $class];
+        $result = ['points' => [$from, $to], 'class' => $class];
+        if ($markerEnd) {
+            $result['markerEnd'] = true;
+        }
+
+        return $result;
     }
 
     /**
@@ -870,6 +897,9 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
         $svg[] = '  .terminal.start { fill: #62d28c; stroke: #4fb173; stroke-width: 2; }';
         $svg[] = '  .terminal.end { fill: #6aa3ff; stroke: #4a83df; stroke-width: 2; }';
         $svg[] = '</style>';
+        $svg[] = '<marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">';
+        $svg[] = '  <polygon points="0 0, 10 3.5, 0 7" fill="#7b8794" />';
+        $svg[] = '</marker>';
         $svg[] = '</defs>';
         $svg[] = \sprintf('<rect width="%d" height="%d" fill="#f4f7f8"/>', $width, $height);
 
@@ -887,9 +917,11 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
         }
 
         foreach ($offsetLayout['paths'] as $path) {
+            $markerEnd = isset($path['markerEnd']) && $path['markerEnd'] ? ' marker-end="url(#arrowhead)"' : '';
             $svg[] = \sprintf(
-                '<path class="%s" d="%s"/>',
+                '<path class="%s"%s d="%s"/>',
                 $this->escapeAttribute($path['class'] ?? 'path'),
+                $markerEnd,
                 $this->renderPath($path['points']),
             );
         }

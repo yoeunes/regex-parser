@@ -298,8 +298,8 @@ final class CommandTest extends TestCase
         $this->assertSame('', $buffer);
         $svg = file_get_contents($tempFile);
         $this->assertNotFalse($svg);
-        $this->assertStringContainsString('<svg', $svg);
-        $this->assertStringContainsString('</svg>', $svg);
+        $this->assertStringContainsString('<svg', (string) $svg);
+        $this->assertStringContainsString('</svg>', (string) $svg);
         @unlink($tempFile);
     }
 

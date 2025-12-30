@@ -24,10 +24,10 @@ final class RailroadSvgVisitorTest extends TestCase
         $ast = Regex::create()->parse('/^a+$/');
         $svg = $ast->accept(new RailroadSvgVisitor());
 
-        $this->assertStringContainsString('<svg', $svg);
-        $this->assertStringContainsString('</svg>', $svg);
-        $this->assertStringContainsString('class="node literal"', $svg);
-        $this->assertStringContainsString('class="node anchor"', $svg);
-        $this->assertStringContainsString('class="quantifier-label"', $svg);
+        $this->assertStringContainsString('<svg', (string) $svg);
+        $this->assertStringContainsString('</svg>', (string) $svg);
+        $this->assertStringContainsString('class="node literal"', (string) $svg);
+        $this->assertStringContainsString('class="node anchor"', (string) $svg);
+        $this->assertStringContainsString('class="quantifier-label"', (string) $svg);
     }
 }
