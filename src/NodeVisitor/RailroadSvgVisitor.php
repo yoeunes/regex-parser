@@ -32,6 +32,7 @@ use RegexParser\Node\GroupType;
 use RegexParser\Node\KeepNode;
 use RegexParser\Node\LimitMatchNode;
 use RegexParser\Node\LiteralNode;
+use RegexParser\Node\NodeInterface;
 use RegexParser\Node\PcreVerbNode;
 use RegexParser\Node\PosixClassNode;
 use RegexParser\Node\QuantifierNode;
@@ -46,6 +47,26 @@ use RegexParser\Node\VersionConditionNode;
 
 /**
  * Generates a basic railroad-style SVG diagram of the regex AST.
+ *
+ * @phpstan-type SvgPoint array{0: int, 1: int}
+ * @phpstan-type SvgPath array{points: list<SvgPoint>, class: string, markerEnd?: bool}
+ * @phpstan-type SvgNode array{x: int, y: int, width: int, height: int, label: string, labelLines?: list<string>, class: string}
+ * @phpstan-type SvgText array{x: int, y: int, text: string, class: string}
+ * @phpstan-type SvgBox array{x: int, y: int, width: int, height: int, rx: int, ry: int, class: string}
+ * @phpstan-type SvgMarker array{cx: int, cy: int, r: int, class: string}
+ * @phpstan-type SvgLayout array{
+ *   width: int,
+ *   height: int,
+ *   entryX: int,
+ *   entryY: int,
+ *   exitX: int,
+ *   exitY: int,
+ *   nodes: list<SvgNode>,
+ *   paths: list<SvgPath>,
+ *   texts: list<SvgText>,
+ *   boxes: list<SvgBox>,
+ *   markers: list<SvgMarker>
+ * }
  *
  * @extends AbstractNodeVisitor<mixed>
  */
@@ -82,20 +103,14 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
 
     private int $negatedCharClassDepth = 0;
 
-    private bool $isMultiline = false;
-
-    private bool $isDotAll = false;
-
     #[\Override]
     public function visitRegex(RegexNode $node): string
     {
         $this->groupCounter = 0;
         $this->charClassDepth = 0;
         $this->negatedCharClassDepth = 0;
-        $this->isMultiline = str_contains($node->flags, 'm');
-        $this->isDotAll = str_contains($node->flags, 's');
 
-        $patternLayout = $node->pattern->accept($this);
+        $patternLayout = $this->layoutFor($node->pattern);
         $flags = '' !== $node->flags ? $node->flags : null;
         $layout = $this->wrapWithTerminals($patternLayout, $flags);
 
@@ -107,7 +122,7 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
     {
         $layouts = [];
         foreach ($node->alternatives as $child) {
-            $layouts[] = $child->accept($this);
+            $layouts[] = $this->layoutFor($child);
         }
 
         return $this->layoutAlternation($layouts);
@@ -120,19 +135,24 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
         $buffer = '';
 
         foreach ($node->children as $child) {
-            $isLiteral = $child instanceof LiteralNode;
-            $isCharLiteral = $child instanceof CharLiteralNode;
-
-            if ($isLiteral || $isCharLiteral) {
+            if ($child instanceof LiteralNode) {
                 $buffer .= $child->value;
-            } else {
-                if ('' !== $buffer) {
-                    $value = addcslashes($buffer, "\0..\37\177..\377");
-                    $layouts[] = $this->createNodeLayout($value, 'node literal', true);
-                    $buffer = '';
-                }
-                $layouts[] = $child->accept($this);
+
+                continue;
             }
+
+            if ($child instanceof CharLiteralNode) {
+                $buffer .= $child->originalRepresentation;
+
+                continue;
+            }
+
+            if ('' !== $buffer) {
+                $value = addcslashes($buffer, "\0..\37\177..\377");
+                $layouts[] = $this->createNodeLayout($value, 'node literal', true);
+                $buffer = '';
+            }
+            $layouts[] = $this->layoutFor($child);
         }
 
         if ('' !== $buffer) {
@@ -147,7 +167,7 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
     public function visitGroup(GroupNode $node)
     {
         $label = $this->groupLabel($node);
-        $result = $this->layoutGroupBox($node->child->accept($this), $label);
+        $result = $this->layoutGroupBox($this->layoutFor($node->child), $label);
 
         return $result;
     }
@@ -223,7 +243,7 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
             $this->negatedCharClassDepth++;
         }
 
-        $expression = $node->expression->accept($this);
+        $expression = $this->layoutFor($node->expression);
 
         if ($node->isNegated) {
             $this->negatedCharClassDepth--;
@@ -239,8 +259,8 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
     public function visitRange(RangeNode $node)
     {
         return $this->layoutWithLabel('Range', [
-            $node->start->accept($this),
-            $node->end->accept($this),
+            $this->layoutFor($node->start),
+            $this->layoutFor($node->end),
         ]);
     }
 
@@ -257,8 +277,8 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
     public function visitClassOperation(ClassOperationNode $node)
     {
         return $this->layoutWithLabel('ClassOperation ('.$node->type->value.')', [
-            $node->left->accept($this),
-            $node->right->accept($this),
+            $this->layoutFor($node->left),
+            $this->layoutFor($node->right),
         ]);
     }
 
@@ -305,14 +325,14 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
     public function visitConditional(ConditionalNode $node)
     {
         $branches = [
-            $node->yes->accept($this),
-            $node->no->accept($this),
+            $this->layoutFor($node->yes),
+            $this->layoutFor($node->no),
         ];
 
         $branchLayout = $this->layoutAlternation($branches);
 
         return $this->layoutWithLabel('Conditional', [
-            $node->condition->accept($this),
+            $this->layoutFor($node->condition),
             $branchLayout,
         ]);
     }
@@ -332,7 +352,7 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitDefine(DefineNode $node)
     {
-        return $this->layoutWithLabel('Define', [$node->content->accept($this)]);
+        return $this->layoutWithLabel('Define', [$this->layoutFor($node->content)]);
     }
 
     #[\Override]
@@ -356,9 +376,30 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
     }
 
     /**
-     * @param array<int, array<string, mixed>> $layouts
+     * @return SvgLayout
+     */
+    private function layoutFor(NodeInterface $node): array
+    {
+        $layout = $node->accept($this);
+        $this->assertLayout($layout);
+
+        return $layout;
+    }
+
+    /**
+     * @phpstan-assert SvgLayout $layout
+     */
+    private function assertLayout(mixed $layout): void
+    {
+        if (!\is_array($layout)) {
+            throw new \LogicException('Expected layout array.');
+        }
+    }
+
+    /**
+     * @param list<SvgLayout> $layouts
      *
-     * @return array<string, mixed>
+     * @return SvgLayout
      */
     private function layoutSequence(array $layouts): array
     {
@@ -390,10 +431,15 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
         }
         $width += self::H_GAP * (\count($layouts) - 1);
 
+        /** @var list<SvgNode> $nodes */
         $nodes = [];
+        /** @var list<SvgPath> $paths */
         $paths = [];
+        /** @var list<SvgText> $texts */
         $texts = [];
+        /** @var list<SvgBox> $boxes */
         $boxes = [];
+        /** @var list<SvgMarker> $markers */
         $markers = [];
 
         $x = 0;
@@ -437,9 +483,9 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
     }
 
     /**
-     * @param array<int, array<string, mixed>> $layouts
+     * @param list<SvgLayout> $layouts
      *
-     * @return array<string, mixed>
+     * @return SvgLayout
      */
     private function layoutAlternation(array $layouts): array
     {
@@ -460,10 +506,15 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
         $height += self::V_GAP * (\count($layouts) - 1);
 
         $width = $maxWidth + (self::BRANCH_GAP * 2);
+        /** @var list<SvgNode> $nodes */
         $nodes = [];
+        /** @var list<SvgPath> $paths */
         $paths = [];
+        /** @var list<SvgText> $texts */
         $texts = [];
+        /** @var list<SvgBox> $boxes */
         $boxes = [];
+        /** @var list<SvgMarker> $markers */
         $markers = [];
         $y = 0;
         $topY = null;
@@ -505,9 +556,9 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
     }
 
     /**
-     * @param array<int, array<string, mixed>> $childLayouts
+     * @param list<SvgLayout> $childLayouts
      *
-     * @return array<string, mixed>
+     * @return SvgLayout
      */
     private function layoutWithLabel(string $label, array $childLayouts): array
     {
@@ -517,7 +568,9 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
     }
 
     /**
-     * @return array<string, mixed>
+     * @param SvgLayout $childLayout
+     *
+     * @return SvgLayout
      */
     private function layoutGroupBox(array $childLayout, string $label): array
     {
@@ -572,7 +625,9 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
     }
 
     /**
-     * @return array<string, mixed>
+     * @param SvgLayout $childLayout
+     *
+     * @return SvgLayout
      */
     private function layoutLabelAbove(string $label, array $childLayout, string $class): array
     {
@@ -613,7 +668,9 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
     }
 
     /**
-     * @return array<string, mixed>
+     * @param SvgLayout $layout
+     *
+     * @return SvgLayout
      */
     private function wrapWithTerminals(array $layout, ?string $flags): array
     {
@@ -676,11 +733,11 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
     }
 
     /**
-     * @return array<string, mixed>
+     * @return SvgLayout
      */
     private function layoutQuantifier(QuantifierNode $node): array
     {
-        $childLayout = $node->node->accept($this);
+        $childLayout = $this->layoutFor($node->node);
         $needsLoop = $this->isLoopQuantifier($node->quantifier);
         $needsBypass = $this->isOptionalQuantifier($node->quantifier);
         $topExtra = max($needsLoop ? self::LOOP_HEIGHT + 10 + self::LABEL_GAP : 0, $needsBypass ? self::BYPASS_HEIGHT + 10 + self::LABEL_GAP : 0);
@@ -754,10 +811,11 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
     }
 
     /**
-     * @return array<string, mixed>
+     * @return SvgLayout
      */
     private function createNodeLayout(string $label, string $class, bool $preserveWhitespace = false): array
     {
+        /** @var list<string> $labelLines */
         $labelLines = $this->wrapLabel($label, $preserveWhitespace);
         $textWidth = max(self::MIN_NODE_WIDTH, $this->measureTextLinesWidth($labelLines));
         $width = $textWidth + (self::NODE_PADDING_X * 2);
@@ -787,10 +845,13 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
     }
 
     /**
-     * @return array<string, mixed>
+     * @param SvgLayout $layout
+     *
+     * @return SvgLayout
      */
     private function offsetLayout(array $layout, int $dx, int $dy): array
     {
+        /** @var list<SvgNode> $nodes */
         $nodes = [];
         foreach ($layout['nodes'] as $node) {
             $node['x'] += $dx;
@@ -798,6 +859,7 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
             $nodes[] = $node;
         }
 
+        /** @var list<SvgPath> $paths */
         $paths = [];
         foreach ($layout['paths'] as $path) {
             $points = [];
@@ -811,6 +873,7 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
             $paths[] = $newPath;
         }
 
+        /** @var list<SvgText> $texts */
         $texts = [];
         foreach ($layout['texts'] as $text) {
             $text['x'] += $dx;
@@ -818,6 +881,7 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
             $texts[] = $text;
         }
 
+        /** @var list<SvgBox> $boxes */
         $boxes = [];
         foreach ($layout['boxes'] as $box) {
             $box['x'] += $dx;
@@ -825,6 +889,7 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
             $boxes[] = $box;
         }
 
+        /** @var list<SvgMarker> $markers */
         $markers = [];
         foreach ($layout['markers'] as $marker) {
             $marker['cx'] += $dx;
@@ -848,10 +913,10 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
     }
 
     /**
-     * @param array<int, int> $from
-     * @param array<int, int> $to
+     * @param SvgPoint $from
+     * @param SvgPoint $to
      *
-     * @return array<string, mixed>
+     * @return SvgPath
      */
     private function line(array $from, array $to, string $class = 'path', bool $markerEnd = false): array
     {
@@ -864,9 +929,9 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
     }
 
     /**
-     * @param array<int, array<int, int>> $points
+     * @param list<SvgPoint> $points
      *
-     * @return array<string, array<int, array<int, int>>>
+     * @return SvgPath
      */
     private function polyline(array $points, string $class = 'path'): array
     {
@@ -879,7 +944,7 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
     }
 
     /**
-     * @param array<int, string> $lines
+     * @param list<string> $lines
      */
     private function measureTextLinesWidth(array $lines): int
     {
@@ -901,6 +966,9 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
         );
     }
 
+    /**
+     * @param SvgLayout $layout
+     */
     private function renderSvg(array $layout): string
     {
         $offsetLayout = $this->offsetLayout($layout, self::CANVAS_PADDING, self::CANVAS_PADDING);
@@ -1019,7 +1087,7 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
     }
 
     /**
-     * @param array<int, array<int, int>> $points
+     * @param list<SvgPoint> $points
      */
     private function renderPath(array $points): string
     {
@@ -1046,7 +1114,7 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
     }
 
     /**
-     * @return array<int, string>
+     * @return list<string>
      */
     private function wrapLabel(string $label, bool $preserveWhitespace = false): array
     {
