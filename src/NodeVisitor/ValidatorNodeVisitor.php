@@ -382,6 +382,13 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
+    public function visitClassOperation(ClassOperationNode $node): void
+    {
+        $node->left->accept($this);
+        $node->right->accept($this);
+    }
+
+    #[\Override]
     public function visitRange(RangeNode $node): void
     {
         // 1. Validation: Ensure start and end nodes represent a single character.
@@ -948,6 +955,8 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         $rep = $node->originalRepresentation;
         if (preg_match('/^\\\\x([0-9a-fA-F]{1,2})$/', $rep, $m)) {
             $codePoint = (int) hexdec($m[1]);
+        } elseif (preg_match('/^\\\\u([0-9a-fA-F]{4})$/', $rep, $m)) {
+            $codePoint = (int) hexdec($m[1]);
         } elseif (preg_match('/^\\\\(x|u)\\{([0-9a-fA-F]+)\\}$/', $rep, $m)) {
             $codePoint = (int) hexdec($m[2]);
         } else {
@@ -1011,6 +1020,12 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
             return true;
         }
 
+        if (null !== $mappedKey = $this->mapJavaUnicodeProperty($key)) {
+            if ($this->compileUnicodeProperty($mappedKey)) {
+                return true;
+            }
+        }
+
         // Fallback: map Block=/Blk= to In<block> alias which PCRE recognizes.
         if (preg_match('/^p\\{(\\^)?bl(?:ock|k)=([^}]+)\\}$/i', $key, $matches)) {
             $negation = (string) $matches[1];
@@ -1024,6 +1039,28 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
         }
 
         return false;
+    }
+
+    private function mapJavaUnicodeProperty(string $key): ?string
+    {
+        if (!preg_match('/^p\\{(\\^)?([A-Za-z_][A-Za-z0-9_]*)\\}$/', $key, $matches)) {
+            return null;
+        }
+
+        $negation = $matches[1] ?? '';
+        $property = strtolower($matches[2]);
+        $aliases = [
+            'javalowercase' => 'Ll',
+            'javauppercase' => 'Lu',
+            'javawhitespace' => 'White_Space',
+            'javamirrored' => 'Bidi_Mirrored',
+        ];
+
+        if (!isset($aliases[$property])) {
+            return null;
+        }
+
+        return 'p{'.$negation.$aliases[$property].'}';
     }
 
     private function compileUnicodeProperty(string $key): bool

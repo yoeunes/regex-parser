@@ -63,10 +63,10 @@ final class ComplexityScoreVisitorTest extends TestCase
     {
         yield 'greedy_star' => ['/a*/', 'zero or more times'];
         yield 'lazy_plus' => ['/a+?/', 'one or more times (as few as possible)'];
-        yield 'possessive_optional' => ['/a?+/', 'zero or one time (and do not backtrack)'];
+        yield 'possessive_optional' => ['/a?+/', 'once or not at all (and do not backtrack)'];
         yield 'fixed_exact' => ['/a{5}/', 'exactly 5 times'];
         yield 'fixed_range_unbounded' => ['/a{5,}/', 'at least 5 times'];
-        yield 'fixed_range_bounded_lazy' => ['/a{1,2}?/', 'between 1 and 2 times (as few as possible)'];
+        yield 'fixed_range_bounded_lazy' => ['/a{1,2}?/', 'at least 1 but not more than 2 times (as few as possible)'];
     }
 
     #[DataProvider('data_provider_quantifier_explanations')]
@@ -105,9 +105,8 @@ final class ComplexityScoreVisitorTest extends TestCase
         $this->assertStringContainsString("' ' (space)", $regex->parse('/ /')->accept($visitor));
         $this->assertStringContainsString("'\\t' (tab)", $regex->parse('/\\t/')->accept($visitor));
         $this->assertStringContainsString("'\\n' (newline)", $regex->parse('/\\n/')->accept($visitor));
-        // Non-printable characters are now rendered using a Unicode-based
-        // explanation like "Unicode: \x01" rather than a quoted literal.
-        $this->assertStringContainsString('Unicode: \\x01', $regex->parse('/\\x01/')->accept($visitor));
+        // Non-printable characters are rendered using a hex-based explanation.
+        $this->assertStringContainsString('Character with hexadecimal value 0x01', $regex->parse('/\\x01/')->accept($visitor));
     }
 
     public function test_score_nested_unbounded_quantifiers_redo_penalty(): void

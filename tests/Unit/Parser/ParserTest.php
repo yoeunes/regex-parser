@@ -26,6 +26,8 @@ use RegexParser\Node\CharClassNode;
 use RegexParser\Node\CharLiteralNode;
 use RegexParser\Node\CharLiteralType;
 use RegexParser\Node\CharTypeNode;
+use RegexParser\Node\ClassOperationNode;
+use RegexParser\Node\ClassOperationType;
 use RegexParser\Node\CommentNode;
 use RegexParser\Node\ConditionalNode;
 use RegexParser\Node\DotNode;
@@ -95,6 +97,53 @@ final class ParserTest extends TestCase
         // 3. LiteralNode
         $this->assertInstanceOf(LiteralNode::class, $pattern->expression->alternatives[2]);
         $this->assertSame('-', $pattern->expression->alternatives[2]->value);
+    }
+
+    #[Test]
+    public function test_parse_nested_char_class_union(): void
+    {
+        $ast = $this->parse('/[a-d[m-p]]/');
+        $pattern = $ast->pattern;
+
+        $this->assertInstanceOf(CharClassNode::class, $pattern);
+        $this->assertInstanceOf(AlternationNode::class, $pattern->expression);
+        $this->assertCount(2, $pattern->expression->alternatives);
+
+        $this->assertInstanceOf(RangeNode::class, $pattern->expression->alternatives[0]);
+        $this->assertInstanceOf(CharClassNode::class, $pattern->expression->alternatives[1]);
+
+        $nested = $pattern->expression->alternatives[1];
+        $this->assertInstanceOf(RangeNode::class, $nested->expression);
+        $this->assertSame('m', $nested->expression->start->value);
+        $this->assertSame('p', $nested->expression->end->value);
+    }
+
+    #[Test]
+    public function test_parse_nested_char_class_intersection(): void
+    {
+        $ast = $this->parse('/[a-z&&[def]]/');
+        $pattern = $ast->pattern;
+
+        $this->assertInstanceOf(CharClassNode::class, $pattern);
+        $this->assertInstanceOf(ClassOperationNode::class, $pattern->expression);
+        $this->assertSame(ClassOperationType::INTERSECTION, $pattern->expression->type);
+        $this->assertInstanceOf(RangeNode::class, $pattern->expression->left);
+        $this->assertInstanceOf(CharClassNode::class, $pattern->expression->right);
+
+        $right = $pattern->expression->right;
+        $this->assertInstanceOf(AlternationNode::class, $right->expression);
+        $this->assertCount(3, $right->expression->alternatives);
+    }
+
+    #[Test]
+    public function test_parse_char_class_literal_bracket_at_start(): void
+    {
+        $ast = $this->parse('/[[]/');
+        $pattern = $ast->pattern;
+
+        $this->assertInstanceOf(CharClassNode::class, $pattern);
+        $this->assertInstanceOf(LiteralNode::class, $pattern->expression);
+        $this->assertSame('[', $pattern->expression->value);
     }
 
     #[Test]
@@ -215,6 +264,17 @@ final class ParserTest extends TestCase
         $this->assertSame('X', $pattern->children[0]->value);
         $this->assertInstanceOf(CharTypeNode::class, $pattern->children[1]);
         $this->assertSame('C', $pattern->children[1]->value);
+    }
+
+    #[Test]
+    public function test_parse_unicode_four_digit_escape(): void
+    {
+        $ast = $this->parse('/\u0041/');
+        $pattern = $ast->pattern;
+
+        $this->assertInstanceOf(CharLiteralNode::class, $pattern);
+        $this->assertSame(CharLiteralType::UNICODE, $pattern->type);
+        $this->assertSame('\u0041', $pattern->originalRepresentation);
     }
 
     #[Test]

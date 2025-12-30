@@ -128,12 +128,12 @@ final class HtmlExplainVisitorCoverageTest extends TestCase
         $this->assertStringContainsString('Character Type', $output);
     }
 
-    public function test_question_quantifier_explains_zero_or_one_time(): void
+    public function test_question_quantifier_explains_once_or_not_at_all(): void
     {
         $regex = '/a?/';
         $ast = $this->regex->parse($regex);
         $output = $ast->accept($this->visitor);
 
-        $this->assertStringContainsString('zero or one time', $output);
+        $this->assertStringContainsString('once or not at all', $output);
     }
 }

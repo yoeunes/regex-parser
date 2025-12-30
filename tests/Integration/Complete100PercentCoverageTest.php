@@ -88,7 +88,7 @@ final class Complete100PercentCoverageTest extends TestCase
     {
         $ast = $this->regex->parse('/\01/');
         $result = $ast->accept($this->explainVisitor);
-        $this->assertStringContainsString('Legacy Octal', $result);
+        $this->assertStringContainsString('Character with octal value', $result);
     }
 
     public function test_explain_visitor_special_literals(): void
@@ -179,7 +179,7 @@ final class Complete100PercentCoverageTest extends TestCase
     {
         $ast = $this->regex->parse('/\01/');
         $result = $ast->accept($this->htmlExplainVisitor);
-        $this->assertStringContainsString('Legacy Octal', $result);
+        $this->assertStringContainsString('Character with octal value', $result);
     }
 
     public function test_html_explain_visitor_special_literals(): void

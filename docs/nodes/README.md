@@ -371,7 +371,7 @@ echo count($ast->pattern->children);  // 1 (one literal for "hello")
 
 | Value           | Example                    | Description                  |
 |-----------------|----------------------------|------------------------------|
-| `UNICODE`       | `\x{1F600}`                | Unicode code point in braces |
+| `UNICODE`       | `\x{1F600}`                | Unicode code point escape (`\x{...}`, `\u{...}`, `\uFFFF`, `\xFF`) |
 | `UNICODE_NAMED` | `\N{LATIN SMALL LETTER A}` | Named Unicode character      |
 | `OCTAL`         | `\o{141}`                  | Octal representation         |
 | `OCTAL_LEGACY`  | `\141`                     | Legacy octal (3 digits)      |
@@ -562,7 +562,7 @@ preg_match('/[a-z]/', 'word', $matches);  // Matches 'w'
 
 ### CharClassNode
 
-**Purpose:** Character classes `[...]` including negated classes `[^...]`.
+**Purpose:** Character classes `[...]` including negated classes `[^...]`. Supports nested classes and operations like `&&` (intersection) and `--` (subtraction).
 
 **Visual Structure:**
 ```

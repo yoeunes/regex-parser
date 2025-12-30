@@ -450,6 +450,7 @@ final class LexerCompleteCoverageTest extends TestCase
     {
         $testCases = [
             '\x41' => 'A',        // 2-digit hex -> converted to char
+            '\u0041' => '\u0041',  // 4-digit hex -> kept as string
             '\u{0041}' => '\u{0041}',    // Unicode with braces -> kept as string
             '\u{1F600}' => '\u{1F600}',   // Emoji codepoint -> kept as string
         ];
@@ -716,6 +717,25 @@ final class LexerCompleteCoverageTest extends TestCase
 
         $this->assertInstanceOf(Token::class, $subtractionToken);
         $this->assertSame('--', $subtractionToken->value);
+    }
+
+    public function test_nested_char_class_tokens(): void
+    {
+        $tokens = (new Lexer())->tokenize('[a[b]c]')->getTokens();
+
+        $openCount = 0;
+        $closeCount = 0;
+        foreach ($tokens as $token) {
+            if (TokenType::T_CHAR_CLASS_OPEN === $token->type) {
+                $openCount++;
+            }
+            if (TokenType::T_CHAR_CLASS_CLOSE === $token->type) {
+                $closeCount++;
+            }
+        }
+
+        $this->assertSame(2, $openCount);
+        $this->assertSame(2, $closeCount);
     }
 
     public function test_unicode_prop_empty_after_negation(): void

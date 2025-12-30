@@ -55,8 +55,8 @@ final class ReadmeExamplesTest extends TestCase
     {
         $explanation = $this->regex->explain('/^([a-z]+)\.([a-z]{2,})$/');
 
-        $this->assertStringContainsString('Anchor: the start of the string', $explanation);
-        $this->assertStringContainsString('Anchor: the end of the string', $explanation);
+        $this->assertStringContainsString('Anchor: the beginning of a line', $explanation);
+        $this->assertStringContainsString('Anchor: the end of a line', $explanation);
     }
 
     #[Test]

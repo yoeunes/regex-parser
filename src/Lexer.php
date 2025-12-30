@@ -35,7 +35,7 @@ final class Lexer
     ];
 
     private const TOKENS_INSIDE = [
-        'T_CHAR_CLASS_CLOSE', 'T_POSIX_CLASS', 'T_UNICODE_NAMED', 'T_CHAR_TYPE', 'T_OCTAL_LEGACY',
+        'T_CHAR_CLASS_CLOSE', 'T_POSIX_CLASS', 'T_CHAR_CLASS_OPEN', 'T_UNICODE_NAMED', 'T_CHAR_TYPE', 'T_OCTAL_LEGACY',
         'T_OCTAL', 'T_UNICODE', 'T_UNICODE_PROP',
         'T_CONTROL_CHAR', 'T_QUOTE_MODE_START', 'T_QUOTE_MODE_END', 'T_LITERAL_ESCAPED',
         'T_CLASS_INTERSECTION', 'T_CLASS_SUBTRACTION', 'T_LITERAL',
@@ -61,7 +61,7 @@ final class Lexer
         'T_BACKREF' => '\\\\ (?: k(?:<[a-zA-Z0-9_]+> | \\{[a-zA-Z0-9_]+\\}) | (?<v_backref_num> [1-9]\\d*) )',
         'T_OCTAL_LEGACY' => '\\\\ (?: [0-7]{3} | [0-7]{2} | [0-7] )',
         'T_OCTAL' => '\\\\ o\\{[0-7]+\\}',
-        'T_UNICODE' => '\\\\ x [0-9a-fA-F]{1,2} | \\\\ u\\{[0-9a-fA-F]+\\} | \\\\ x\\{[0-9a-fA-F]+\\}',
+        'T_UNICODE' => '\\\\ x [0-9a-fA-F]{1,2} | \\\\ u [0-9a-fA-F]{4} | \\\\ u\\{[0-9a-fA-F]+\\} | \\\\ x\\{[0-9a-fA-F]+\\}',
         'T_UNICODE_PROP' => '\\\\ [pP] (?: \\{ [^}]+ \\} | [a-zA-Z] )',
         'T_UNICODE_NAMED' => '\\\\ N\\{[a-zA-Z0-9_ ]+\\}',
         'T_CONTROL_CHAR' => '\\\\ c [\\x00-\\x7F]',
@@ -74,11 +74,12 @@ final class Lexer
     private const PATTERNS_INSIDE = [
         'T_CHAR_CLASS_CLOSE' => '\\]',
         'T_POSIX_CLASS' => '\\[ \\: (?<v_posix> \\^? [a-zA-Z]+) \\: \\]',
+        'T_CHAR_CLASS_OPEN' => '\\[',
         'T_UNICODE_NAMED' => '\\\\ N\\{[a-zA-Z0-9_ ]+\\}',
         'T_CHAR_TYPE' => '\\\\ [dswDSWhvRNHV]',
         'T_OCTAL_LEGACY' => '\\\\ (?: [0-7]{3} | [0-7]{2} | [0-7] )',
         'T_OCTAL' => '\\\\ o\\{[0-7]+\\}',
-        'T_UNICODE' => '\\\\ x [0-9a-fA-F]{1,2} | \\\\ u\\{[0-9a-fA-F]+\\} | \\\\ x\\{[0-9a-fA-F]+\\}',
+        'T_UNICODE' => '\\\\ x [0-9a-fA-F]{1,2} | \\\\ u [0-9a-fA-F]{4} | \\\\ u\\{[0-9a-fA-F]+\\} | \\\\ x\\{[0-9a-fA-F]+\\}',
         'T_UNICODE_PROP' => '\\\\ [pP] (?: \\{ [^}]+ \\} | [a-zA-Z] )',
         'T_CONTROL_CHAR' => '\\\\ c [\\x00-\\x7F]',
         'T_QUOTE_MODE_START' => '\\\\ Q',
@@ -114,7 +115,10 @@ final class Lexer
 
     private bool $inCommentMode = false;
 
-    private int $charClassStartPosition = 0;
+    /**
+     * @var array<int>
+     */
+    private array $charClassStartPositions = [];
 
     public function __construct(?int $phpVersionId = null)
     {
@@ -181,7 +185,7 @@ final class Lexer
         $this->inCharClass = false;
         $this->inQuoteMode = false;
         $this->inCommentMode = false;
-        $this->charClassStartPosition = 0;
+        $this->charClassStartPositions = [];
     }
 
     /**
@@ -306,7 +310,7 @@ final class Lexer
         array $currentTokens
     ): ?Token {
         return match ($type) {
-            TokenType::T_CHAR_CLASS_OPEN => $this->openCharClass($startPos),
+            TokenType::T_CHAR_CLASS_OPEN => $this->handleCharClassOpen($startPos, $currentTokens),
             TokenType::T_CHAR_CLASS_CLOSE => $this->closeCharClass($startPos, $currentTokens),
             TokenType::T_COMMENT_OPEN => $this->openComment($startPos),
             TokenType::T_QUOTE_MODE_START => $this->openQuoteMode($startPos),
@@ -314,10 +318,22 @@ final class Lexer
         };
     }
 
+    /**
+     * @param array<Token> $currentTokens
+     */
+    private function handleCharClassOpen(int $startPos, array $currentTokens): Token
+    {
+        if ($this->inCharClass && $this->isAtCharClassStart($startPos, $currentTokens)) {
+            return new Token(TokenType::T_LITERAL, '[', $startPos);
+        }
+
+        return $this->openCharClass($startPos);
+    }
+
     private function openCharClass(int $startPos): Token
     {
         $this->inCharClass = true;
-        $this->charClassStartPosition = $startPos;
+        $this->charClassStartPositions[] = $startPos;
 
         return new Token(TokenType::T_CHAR_CLASS_OPEN, '[', $startPos);
     }
@@ -331,7 +347,10 @@ final class Lexer
             return new Token(TokenType::T_LITERAL, ']', $startPos);
         }
 
-        $this->inCharClass = false;
+        array_pop($this->charClassStartPositions);
+        if ([] === $this->charClassStartPositions) {
+            $this->inCharClass = false;
+        }
 
         return new Token(TokenType::T_CHAR_CLASS_CLOSE, ']', $startPos);
     }
@@ -379,10 +398,15 @@ final class Lexer
      */
     private function isAtCharClassStart(int $startPos, array $currentTokens): bool
     {
+        if ([] === $this->charClassStartPositions) {
+            return false;
+        }
+
+        $currentStart = $this->charClassStartPositions[\count($this->charClassStartPositions) - 1];
         $lastToken = end($currentTokens);
 
-        return ($startPos === $this->charClassStartPosition + 1)
-            || ($startPos === $this->charClassStartPosition + 2
+        return ($startPos === $currentStart + 1)
+            || ($startPos === $currentStart + 2
                 && $lastToken instanceof Token
                 && TokenType::T_NEGATION === $lastToken->type);
     }
@@ -552,7 +576,7 @@ final class Lexer
 
     private function validateFinalState(): void
     {
-        if ($this->inCharClass) {
+        if ([] !== $this->charClassStartPositions) {
             throw LexerException::withContext(
                 'Unclosed character class "]" at end of input.',
                 $this->position,
