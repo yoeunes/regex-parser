@@ -2,40 +2,23 @@
 
 This guide is for framework maintainers, library maintainers, and tooling authors who want to integrate RegexParser as a first-class analysis component. Whether you're building a PHPStan rule, a Symfony bundle, or a custom CLI tool, this guide covers everything you need.
 
-## The Integration Landscape
+## The integration landscape
+
+RegexParser is typically embedded in:
+
+- PHPStan rules and custom static analyzers
+- Symfony bundles and validators
+- CLI tools and CI pipelines
+
+Integration flow:
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│              REGEXPARSER INTEGRATION PATTERNS               │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │                    YOUR APPLICATION                 │    │
-│  │                                                     │    │
-│  │   ┌─────────────┐  ┌─────────────┐  ┌──────────┐    │    │
-│  │   │ PHPStan     │  │ Symfony     │  │ CLI      │    │    │
-│  │   │ Integration │  │ Bundle      │  │ Tool     │    │    │
-│  │   └──────┬──────┘  └──────┬──────┘  └────┬─────┘    │    │
-│  │          │                │               │         │    │
-│  └──────────┼────────────────┼───────────────┼─────────┘    │
-│             │                │               │              │
-│             ▼                ▼               ▼              │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │              RegexParser Library                    │    │
-│  │                                                     │    │
-│  │   ┌─────────────┐  ┌─────────────┐  ┌──────────┐    │    │
-│  │   │   Parser    │  │   Visitor   │  │ ReDoS    │    │    │
-│  │   │   (Lexer)   │  │   Pattern   │  │ Analyzer │    │    │
-│  │   └─────────────┘  └─────────────┘  └──────────┘    │    │
-│  │                                                     │    │
-│  └─────────────────────────────────────────────────────┘    │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
+Your app -> RegexParser -> AST + visitors -> results
 ```
 
 ---
 
-## Configuration Reference (`Regex::create($options)`)
+## Configuration Reference (Regex::create($options))
 
 `Regex::create()` accepts a validated array of options. Invalid keys raise `InvalidRegexOptionException`.
 
@@ -53,32 +36,12 @@ This guide is for framework maintainers, library maintainers, and tooling author
 
 For a complete list of options, types, and default values, please refer to the [API Reference](reference/api.md#configuration-options).
 
-### Visual: Configuration Flow
+### Configuration flow
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│              CONFIGURATION VALIDATION FLOW                  │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  Regex::create([options])                                   │
-│          │                                                  │
-│          ▼                                                  │
-│  ┌─────────────────┐                                        │
-│  │ Validate keys   │ ──► InvalidKeyException                │
-│  │ Validate types  │ ──► TypeError                          │
-│  │ Validate values │ ──► InvalidArgumentException           │
-│  └────────┬────────┘                                        │
-│           │                                                 │
-│           ▼                                                 │
-│  ┌─────────────────┐                                        │
-│  │ Build Regex     │                                        │
-│  │ instance        │                                        │
-│  └─────────────────┘                                        │
-│           │                                                 │
-│           ▼                                                 │
-│  Ready to use!                                              │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
+Regex::create([options])
+  -> validate keys/types/values
+  -> build Regex instance
 ```
 
 ### Complete Example

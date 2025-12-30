@@ -1,465 +1,171 @@
-# Architecture and Design Guide
+# RegexParser Architecture
 
-> **Understanding how RegexParser works internally.**
-> 
-> We read regex as code. The architecture is built to make that possible.
+This document explains how RegexParser works under the hood. It is written for future maintainers and contributors who want to understand the AST, the parsing pipeline, and the analysis algorithms.
 
----
-
-## The Big Picture
+## Pipeline Overview
 
 ```
-Regex string -> Lexer -> TokenStream -> Parser -> RegexNode (AST) -> Visitors -> Results
+/^hello$/i
+  |
+  v
+PatternParser -> {pattern, flags}
+Lexer         -> TokenStream (byte offsets)
+Parser        -> RegexNode (AST)
+Visitors      -> validation, explanation, analysis, transforms
 ```
 
-Think of it like this:
-- **Lexing** is breaking a sentence into words
-- **Parsing** is building a grammar tree from those words
-- The **AST** is the DNA of the pattern
-- **Visitors** are tour guides walking the DNA and producing answers
+RegexParser treats a regex as code. The lexer turns a pattern string into tokens, the parser builds a tree of nodes, and visitors walk that tree to produce results.
 
-## The Parsing Pipeline
+## Step 1: Parse the Regex Literal
 
-Before we touch code, we keep one picture in mind.
+`Regex::parse()` accepts a full PCRE literal (`/pattern/flags`). Internally, the literal is split into:
 
-```
-Pattern string
-  "/^hello$/i"
-       |
-       v
-+--------------+     +--------------+     +--------------+
-|   Lexer      | --> |   Parser     | --> |   AST         |
-| TokenStream  |     | RegexNode    |     | Node objects  |
-+--------------+     +--------------+     +--------------+
-       |
-       v
-+--------------+
-|  Visitors    |
-|  Explain     |
-|  Validate    |
-|  ReDoS       |
-+--------------+
-```
+- Pattern body (the text between delimiters)
+- Delimiter (the chosen boundary character)
+- Flags (`i`, `m`, `s`, `u`, `x`, and more)
 
----
+This happens in `RegexParser\Internal\PatternParser`. The output is then passed to the lexer.
 
-## Core Components
+## Step 2: Lexer (Tokenization)
 
-| Component | Class | Mental Model | Output |
-| --- | --- | --- | --- |
-| Lexer | `Lexer` | Split a sentence into tokens | `TokenStream` |
-| Parser | `Parser` | Build a grammar tree | `RegexNode` |
-| AST | `RegexNode` + nodes | Immutable structure | Node graph |
-| Visitors | `NodeVisitorInterface` | Tour guides walking rooms | Values, reports, new AST |
-| ReDoS | `ReDoSAnalyzer` | Risk audit | `ReDoSAnalysis` |
+`src/Lexer.php` scans the pattern body as bytes and emits tokens with start/end offsets. The lexer is stateful because PCRE syntax changes meaning depending on context. The main states include:
 
-> Nodes never change; visitors do the work. That keeps analysis predictable and safe.
+- Default text
+- Character class (`[...]`)
+- Quoted literal blocks (`\Q...\E`)
+- Extended mode comments and whitespace (`/x`)
 
----
+The lexer output is a `TokenStream`, which is a linear sequence of `Token` objects. Tokens are positional, and offsets are byte-based so diagnostics line up with the original string.
 
-## 🎯 What is RegexParser?
+## Step 3: Parser (Recursive Descent)
 
-RegexParser is a PHP 8.2+ library that converts PCRE regex patterns into a structured **Abstract Syntax Tree (AST)**. This enables:
+`src/Parser.php` is a handwritten recursive descent parser. It walks the `TokenStream` and builds an AST that reflects PCRE precedence:
 
-- ✅ Pattern validation and error reporting
-- ✅ ReDoS vulnerability detection
-- ✅ Human-readable explanations
-- ✅ Pattern optimization and transformation
-- ✅ CI/CD linting at scale
+- Atoms (literals, classes, groups)
+- Quantifiers
+- Concatenation (sequence)
+- Alternation (`|`)
 
----
-
-## 🎨 Design Principles
-
-### 1. Precise Error Reporting
-
-RegexParser uses **byte offsets** throughout, making error messages accurate for IDE integration:
-
-```php
-$pattern = '/(?<=a+)b/';  // Variable-length lookbehind
-
-$result = $regex->validate($pattern);
-
-echo $result->getErrorMessage();
-// "Variable-length lookbehind is not supported in PCRE."
-
-echo $result->getCaretSnippet();
-/*
-Line 1: (?<=a+)b
-            ^
-*/
-```
-
-### 2. Separation of Concerns
+The parser entry point is `parse()`, which delegates to smaller methods such as:
 
 ```
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│   Nodes     │ ──▶ │  Visitors   │ ──▶ │  Results    │
-│ (immutable) │     │ (behavior)  │     │ (output)    │
-└─────────────┘     └─────────────┘     └─────────────┘
+parse()
+  -> parseSequence()
+      -> parseGroup()
+      -> parseCharacterClass()
+      -> parseQuantifier()
+      -> parseAssertion()
+      -> parseLiteral()
 ```
 
-- **Nodes** are data holders - they never change
-- **Visitors** implement behavior - easy to add new ones
-- **Results** are value objects - easy to test
+Errors raised here become `SyntaxErrorException` or `SemanticErrorException` and include byte offsets for IDE integration.
 
-### 3. Performance at Scale
+## Step 4: AST Structure
 
-The CLI linter uses a **MapReduce-style** architecture for scanning large codebases:
+Every node:
 
-```
-Phase 1: Map (Extract)
-┌──────────────┐  ┌──────────────┐  ┌──────────────┐
-│   Worker 1   │  │   Worker 2   │  │   Worker N   │
-│ Extracts     │  │ Extracts     │  │ Extracts     │
-│ patterns     │  │ patterns     │  │ patterns     │
-└──────┬───────┘  └──────┬───────┘  └──────┬───────┘
-       │                 │                 │
-       └─────────────────┼─────────────────┘
-                         ▼
-               ┌─────────────────────┐
-               │   Pattern Queue     │
-               └──────────┬──────────┘
-                          │
-                          ▼
-Phase 2: Reduce (Analyze)
-       ┌────────────────┼────────────────┐
-       ▼                ▼                ▼
-┌──────────────┐ ┌──────────────┐ ┌──────────────┐
-│   Analyze    │ │   Analyze    │ │   Analyze    │
-│   Chunk 1    │ │   Chunk 2    │ │   Chunk N    │
-└──────┬───────┘ └──────┬───────┘ └──────┬───────┘
-       │                │                │
-       └────────────────┼────────────────┘
-                         ▼
-               ┌───────────────────────┐
-               │   Final Report        │
-               └───────────────────────┘
-```
+- Is immutable (`readonly`)
+- Holds `startPosition` and `endPosition` byte offsets
+- Implements `NodeInterface::accept()`
 
-**Benefits:**
-- Memory stays low (workers have isolated heaps)
-- Parallel execution (uses `pcntl_fork` when available)
-- Failure isolation (one worker crash doesn't corrupt results)
+The root node is `RegexNode`, which wraps the parsed pattern and flags.
 
----
-
-## 🔍 Component Details
-
-### 1. Lexer (`src/Lexer.php`)
-
-The lexer tokenizes the pattern string:
-
-```php
-$lexer = new Lexer(\PHP_VERSION_ID);
-$tokens = $lexer->tokenize($pattern, $flags);
-```
-
-**Output:** `TokenStream` with tokens and byte offsets.
-
-**Token Types:**
-- `T_WORD` - Word characters
-- `T_QUANTIFIER` - `+`, `*`, `?`, `{m,n}`
-- `T_ANCHOR` - `^`, `$`
-- `T_GROUP_OPEN` - `(`
-- `T_GROUP_CLOSE` - `)`
-- `T_CHAR_CLASS_OPEN` - `[`
-- `T_LITERAL` - Escaped characters
-- And many more...
-
-### 2. Parser (`src/Parser.php`)
-
-The parser builds the AST using recursive descent:
-
-```php
-$parser = new Parser(1024, \PHP_VERSION_ID);
-$ast = $parser->parse($tokens, $flags, '/', $patternLength);
-```
-
-**Output:** `RegexNode` (root of AST)
-
-**Parser Structure:**
-```
-Parser
-├── parse() - Entry point
-├── parseSequence() - Parse consecutive items
-├── parseGroup() - Parse parentheses
-├── parseQuantifier() - Parse repetition
-├── parseCharacterClass() - Parse [...]
-├── parseAssertion() - Parse lookarounds
-└── parseLiteral() - Parse escaped chars
-```
-
-### 3. AST Nodes (`src/Node/`)
-
-All nodes implement `NodeInterface` and extend `AbstractNode`:
-
-```php
-interface NodeInterface
-{
-    public function accept(NodeVisitorInterface $visitor): mixed;
-}
-
-abstract readonly class AbstractNode implements NodeInterface
-{
-    public function __construct(
-        public int $startPosition,
-        public int $endPosition
-    ) {}
-}
-```
-
-**Common Node Types:**
-
-| Node              | Purpose         | Example            |
-|-------------------|-----------------|--------------------|
-| `RegexNode`       | Root of AST     | `/pattern/flags`   |
-| `SequenceNode`    | Ordered list    | `abc`              |
-| `AlternationNode` | Alternatives    | `a\|b\|c`          |
-| `GroupNode`       | Grouping        | `(...)`, `(?=...)` |
-| `QuantifierNode`  | Repetition      | `a+`, `a{2,4}`     |
-| `LiteralNode`     | Literal text    | `hello`            |
-| `CharClassNode`   | Character class | `[a-z]`            |
-| `AnchorNode`      | Position anchor | `^`, `$`           |
-
-### 4. Visitors (`src/NodeVisitor/`)
-
-Visitors traverse the AST and perform operations:
-
-```php
-interface NodeVisitorInterface
-{
-    public function visitRegex(RegexNode $node): mixed;
-    public function visitSequence(SequenceNode $node): mixed;
-    // ... visit methods for each node type
-}
-```
-
-**Built-in Visitors:**
-
-| Visitor                     | Purpose                             |
-|-----------------------------|-------------------------------------|
-| `CompilerNodeVisitor`       | Convert AST back to string          |
-| `ExplainNodeVisitor`        | Generate human-readable explanation |
-| `ValidatorNodeVisitor`      | Validate pattern structure          |
-| `LinterNodeVisitor`         | Find code quality issues            |
-| `ReDoSAnalyzer`             | Detect catastrophic backtracking    |
-| `OptimizerNodeVisitor`      | Optimize pattern                    |
-| `ConsoleHighlighterVisitor` | Colorize for console                |
-| `HtmlHighlighterVisitor`    | Colorize for HTML                   |
-
----
-
-## 🔄 AST Traversal: The Visitor Pattern
-
-The visitor pattern enables **extensible analysis** without modifying nodes:
+Example AST shape:
 
 ```
-Tour guide: Visitor
-Rooms:     Nodes
+Pattern: /^(?<email>\w+@\w+\.\w+)$/
 
-RegexNode.accept(visitor)
-        |
-        v
-visitor.visitRegex(RegexNode)
-        |
-        v
-child.accept(visitor)
+RegexNode
+└── SequenceNode
+    ├── AnchorNode("^")
+    ├── GroupNode(name: email)
+    │   └── SequenceNode
+    │       ├── QuantifierNode("+") -> CharTypeNode("\\w")
+    │       ├── LiteralNode("@")
+    │       ├── QuantifierNode("+") -> CharTypeNode("\\w")
+    │       ├── LiteralNode(".")
+    │       └── QuantifierNode("+") -> CharTypeNode("\\w")
+    └── AnchorNode("$")
 ```
 
-Example with `ExplainNodeVisitor`:
+Node definitions live in `src/Node/`. The full node reference is in [docs/nodes/README.md](nodes/README.md).
 
-```php
-use RegexParser\Regex;
-use RegexParser\NodeVisitor\ExplainNodeVisitor;
+## Step 5: Visitors and Traversal
 
-$ast = $regex->parse('/hello|world/');
-$explanation = $ast->accept(new ExplainNodeVisitor());
-echo $explanation;
-// Output: Literal 'hello' or literal 'world'
-```
-
-### How It Works
+Visitors encapsulate behavior. Each node calls the correct method on the visitor, enabling double-dispatch:
 
 ```
-$ast->accept($visitor)
-        │
-        ▼
-RegexNode::accept($visitor)
-        │
-        ▼
-$visitor->visitRegex($this)
-        │
-        ▼
-$this->pattern->accept($visitor)  // Delegate to child
-        │
-        ▼
-SequenceNode::accept($visitor)
-        │
-        ▼
-$visitor->visitSequence($this)
-        │
-        ▼
-foreach ($this->children as $child) {
-    $child->accept($visitor)  // Visit each child
-}
+$node->accept($visitor)
+  -> $visitor->visitXxx($node)
 ```
 
-For the full double-dispatch walkthrough, see `design/AST_TRAVERSAL.md`.
+Built-in visitors live in `src/NodeVisitor/` and include:
 
----
+- `ValidatorNodeVisitor`
+- `ExplainNodeVisitor`
+- `CompilerNodeVisitor`
+- `ReDoSProfileNodeVisitor`
+- `OptimizerNodeVisitor`
 
-## ⚡ Performance Optimizations
+Traversal details are in [docs/design/AST_TRAVERSAL.md](design/AST_TRAVERSAL.md).
 
-### 1. Precompiled Patterns
+## Diagnostics and Validation
 
-The lexer caches compiled regex patterns:
+Validation runs against the AST and produces structured errors. `Regex::validate()` returns a `ValidationResult` containing:
 
-```php
-// First call - compiles pattern
-$lexer->tokenize($pattern, $flags);
+- `isValid()`
+- Error message and hint
+- Byte offset and caret snippet
 
-// Subsequent calls - uses cached pattern
-$lexer->tokenize($pattern, $flags);
-```
+Diagnostics codes and explanations are documented in [docs/reference/diagnostics.md](reference/diagnostics.md).
 
-### 2. AST Caching
+## ReDoS Analysis (Static)
 
-Parsed patterns can be cached:
+ReDoS analysis uses the AST and never executes the regex. `ReDoSAnalyzer` builds a `ReDoSProfileNodeVisitor` with a `CharSetAnalyzer`, then walks the tree.
 
-```php
-$regex = Regex::create(['cache' => '/path/to/cache']);
+Core heuristics include:
 
-// First parse - builds AST
-$ast1 = $regex->parse('/pattern/');
+- Nested unbounded quantifiers (star height > 1)
+- Overlapping alternation branches inside repetition
+- Backreference loops within unbounded quantifiers
+- Large bounded quantifiers (low risk, but flagged)
+- Atomic groups and possessive quantifiers lowering severity
 
-// Second parse - loads from cache
-$ast2 = $regex->parse('/pattern/');
-```
+Analysis results are wrapped in `ReDoSAnalysis` and include severity, findings, and suggested rewrites. See [docs/REDOS_GUIDE.md](REDOS_GUIDE.md) for user-facing guidance.
 
-### 3. Parallel Linting
+## CLI Lint Pipeline
 
-```php
-// Uses pcntl_fork() when available
-// Each worker analyzes a chunk of patterns
-// Results aggregated in parent process
-```
-
----
-
-## 📊 Data Flow Examples
-
-### Validating a Pattern
+The CLI linter is a two-stage pipeline:
 
 ```
-Input: "/(?<=a+)b/"
-       │
-       ▼
-Lexer: Tokenize
-       Tokens: [GROUP_OPEN, LOOKBEHIND, LITERAL, GROUP_CLOSE, LITERAL]
-       │
-       ▼
-Parser: Build AST
-       RegexNode
-       └── AssertionNode (lookbehind)
-       │
-       ▼
-ValidatorVisitor: Check structure
-       Finds: Variable-length lookbehind
-       │
-       ▼
-Output: ValidationResult
-        - isValid: false
-        - errorMessage: "Variable-length lookbehind..."
-        - position: 0
+Paths -> RegexPatternExtractor -> RegexPatternOccurrence[]
+      -> RegexAnalysisService  -> RegexLintReport
+      -> Formatter (console/json/github)
 ```
 
-### Explaining a Pattern
+When `--jobs` is used and `pcntl_fork` is available, both extraction and analysis run in parallel workers. Each worker handles a chunk of files or patterns, and the parent process aggregates results.
 
-```
-Input: "/\d{4}-\d{2}-\d{2}/"
-       │
-       ▼
-Lexer + Parser → AST
-       │
-       ▼
-ExplainNodeVisitor: Traverse and explain
-       "Four digits, hyphen, two digits, hyphen, two digits"
-       │
-       ▼
-Output: String explanation
-```
+## Caching and Limits
 
-### ReDoS Analysis
+RegexParser can cache ASTs via `CacheInterface`. By default it uses a filesystem cache under the system temp directory. You can disable caching with `cache => null` in `Regex::create()` options.
 
-```
-Input: "/(a+)+$/"
-       │
-       ▼
-Lexer + Parser → AST
-       │
-       ▼
-ReDoSAnalyzer: Check for patterns
-       - Nested quantifier found: (a+)+
-       - Score: 10 (CRITICAL)
-       │
-       ▼
-Output: ReDoSAnalysis
-        - severity: CRITICAL
-        - score: 10
-        - recommendations: ["Use atomic groups", "Simplify pattern"]
-```
+Limits are enforced in `RegexOptions`:
 
----
+- `max_pattern_length`
+- `max_lookbehind_length`
+- `max_recursion_depth`
+- `php_version` (feature validation)
 
-## 🎓 Learning Path
+## Extension Points
 
-### For Users
-1. **[Tutorial](../tutorial/README.md)** - Learn regex basics
-2. **[Quick Start](../QUICK_START.md)** - Get productive quickly
-3. **CLI Guide** - Use the command-line tool
+When you add a new PCRE construct, you typically update:
 
-### For Integrators
-1. **This guide** - Understand the architecture
-2. **[API Reference](../reference/api.md)** - Complete API docs
-3. **[Architecture](./ARCHITECTURE.md)** - Design decisions
+- `src/Node/*` to define a node
+- `src/Parser.php` and `src/Lexer.php` to recognize syntax
+- `src/NodeVisitor/*` to support traversal
+- Tests and fixtures for valid/invalid cases
 
-### For Contributors
-1. **[Extending Guide](./EXTENDING_GUIDE.md)** - Add new features
-2. **AST Traversal** - Visitor pattern deep dive
-3. **Source Code** - Read `src/Parser.php`, `src/NodeVisitor/`
-
----
-
-## 📚 Related Documentation
-
-- **[AST Nodes](../nodes/README.md)** - Complete node reference
-- **[Visitors](../visitors/README.md)** - Visitor implementation guide
-- **[AST Traversal](./AST_TRAVERSAL.md)** - Traversal design details
-- **[Extending Guide](./EXTENDING_GUIDE.md)** - Adding new features
-
----
-
-## 🆘 Common Questions
-
-### "Why not use a generated parser?"
-
-Hand-written parsers provide:
-- **Better error messages** with exact positions
-- **Easier debugging** - code is readable PHP
-- **No dependencies** - no generated artifacts
-
-### "Why the visitor pattern?"
-
-Separates **data** (AST nodes) from **behavior** (analysis). Adding a new analysis doesn't require changing any node classes.
-
-### "Is it fast enough for large codebases?"
-
-Yes! The MapReduce-style architecture with parallel workers scales to thousands of files. Memory stays low because workers have isolated heaps.
-
----
-
-**Next:** [AST Traversal Design](design/AST_TRAVERSAL.md)
+See [docs/EXTENDING_GUIDE.md](EXTENDING_GUIDE.md) for the full workflow.
 
 ---
 

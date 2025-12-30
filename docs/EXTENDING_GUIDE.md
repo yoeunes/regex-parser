@@ -1,28 +1,22 @@
-# Extending RegexParser: Complete Guide
+# Extending RegexParser
 
-> **Learn how to add new PCRE features, custom visitors, and integrations.**
+This guide shows how to add new PCRE features, build custom visitors, and integrate RegexParser into tools.
 
 ---
 
-## 🤔 What Can You Extend?
+## What You Can Extend
 
 RegexParser is designed for extensibility:
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                  Your Extension                         │
-├─────────────────────────────────────────────────────────┤
-│  1. New AST Nodes      - Add new pattern constructs     │
-│  2. New Visitors       - Add analysis/transformations   │
-│  3. Custom Linters    - Add your own rules              │
-│  4. Integrations      - Add framework bridges           │
-│  5. CLI Commands      - Add new commands                │
-└─────────────────────────────────────────────────────────┘
-```
+- New AST nodes for new syntax
+- New visitors for analysis or transformation
+- Custom lint rules
+- Framework integrations
+- CLI commands
 
 ---
 
-## 🏗️ Extension Architecture
+## Extension Architecture
 
 ```
 RegexParser Core
@@ -34,7 +28,7 @@ RegexParser Core
 
 ---
 
-## 📝 Step 1: Add a New Node
+## Step 1: Add a New Node
 
 Create a node class for your new PCRE feature:
 
@@ -85,7 +79,7 @@ readonly class CalloutNode extends AbstractNode
 
 ---
 
-## 🔧 Step 2: Update the Parser
+## Step 2: Update the Parser
 
 Add parsing logic in `src/Parser.php`:
 
@@ -131,7 +125,7 @@ private function parseCallout(int $startPosition): CalloutNode
 
 ---
 
-## 👁️ Step 3: Update Visitors
+## Step 3: Update Visitors
 
 ### Add Method to NodeVisitorInterface
 
@@ -167,7 +161,7 @@ public function visitCallout(CalloutNode $node): string
 
 ---
 
-## 🎨 Example: Complete Custom Visitor
+## Example: Complete Custom Visitor
 
 ### Create a Pattern Length Visitor
 
@@ -288,7 +282,7 @@ echo "Complexity: " . $visitor->getScore();  // Output: Complexity: 25
 
 ---
 
-## 🧪 Step 4: Add Tests
+## Step 4: Add Tests
 
 Create tests for your extension:
 
@@ -326,7 +320,7 @@ class CalloutNodeTest extends TestCase
 
 ---
 
-## 📚 Step 5: Update Documentation
+## Step 5: Update Documentation
 
 Add your new feature to:
 
@@ -337,7 +331,7 @@ Add your new feature to:
 
 ---
 
-## 🎯 Common Extension Patterns
+## Common Extension Patterns
 
 ### Pattern 1: Custom Lint Rule
 
@@ -403,7 +397,7 @@ class YourAnalyzer extends AbstractNodeVisitor
 
 ---
 
-## 🆘 Troubleshooting
+## Troubleshooting
 
 ### "Node not recognized"
 
@@ -428,7 +422,7 @@ Verify parser logic:
 
 ---
 
-## 📚 Best Practices
+## Best Practices
 
 1. **Immutability** - Nodes should be readonly
 2. **Position tracking** - Preserve start/end positions
@@ -438,7 +432,7 @@ Verify parser logic:
 
 ---
 
-## 🎓 Learning Resources
+## Learning Resources
 
 - **[AST Nodes](../nodes/README.md)** - Node reference
 - **[Visitors](../visitors/README.md)** - Visitor patterns
@@ -447,7 +441,7 @@ Verify parser logic:
 
 ---
 
-## 🚀 Next Steps
+## Next Steps
 
 1. Pick a simple feature to implement
 2. Follow the steps above

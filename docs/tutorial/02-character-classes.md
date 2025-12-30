@@ -4,7 +4,7 @@
 
 ---
 
-## 🤔 What is a Character Class?
+## What is a Character Class?
 
 A **character class** is a way to say "match one character from this set." Think of it like a **menu** - you order one item from the available choices:
 
@@ -26,9 +26,9 @@ Matches: "e", "o"  (two separate matches)
 
 ---
 
-## 🎯 Basic Character Classes
+## Basic Character Classes
 
-### The Square Brackets `[...]`
+### The Square Brackets [...]
 
 Put characters inside `[]` to match any one of them:
 
@@ -70,7 +70,7 @@ echo $regex->explain('/[a-zA-Z]/');
 
 ---
 
-## 🚫 Negated Character Classes
+## Negated Character Classes
 
 Use `^` inside `[]` to match anything **except** these characters:
 
@@ -116,7 +116,7 @@ echo $regex->explain('/[^0-9]/');
 
 ---
 
-## 📝 Shorthand Character Classes
+## Shorthand Character Classes
 
 These shortcuts save typing for common character sets:
 
@@ -162,7 +162,7 @@ echo $regex->explain('/\s+/');
 
 ---
 
-## 🔤 Unicode Character Classes
+## Unicode Character Classes
 
 Use `\p{...}` with the `u` flag to match Unicode characters:
 
@@ -201,7 +201,7 @@ echo $regex->explain('/^\p{L}+$/u');
 
 ---
 
-## ✅ Good Patterns vs ❌ Bad Patterns
+## Good Patterns vs Bad Patterns
 
 ### Good: Clear and Specific
 
@@ -238,7 +238,7 @@ preg_match('/file\.txt/', 'myfile.txt');  // Matches "file.txt"
 
 ---
 
-## 🔬 ASCII Diagram: Pattern Structure
+## ASCII Diagram: Pattern Structure
 
 ```
 Pattern: /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i
@@ -268,7 +268,7 @@ This pattern matches email addresses like: user@example.com
 
 ---
 
-## 🧪 Exercises
+## Exercises
 
 ### Exercise 1: Match Different Character Types
 
@@ -331,7 +331,7 @@ foreach ($patterns as $pattern) {
 
 ---
 
-## 📚 Key Takeaways
+## Key Takeaways
 
 1. **Character classes** `[]` match one character from a set
 2. **Ranges** `0-9`, `a-z` define consecutive characters
@@ -342,7 +342,7 @@ foreach ($patterns as $pattern) {
 
 ---
 
-## 🆘 Common Errors
+## Common Errors
 
 ### Error: Forgotten Flag for Unicode
 
@@ -377,7 +377,7 @@ preg_match('/price\.99/', 'price.99');  // Matches!
 
 ---
 
-## 🎉 You're Ready!
+## You're Ready!
 
 You now understand:
 - Character classes and ranges

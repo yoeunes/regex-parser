@@ -4,7 +4,7 @@
 
 ---
 
-## 🤔 What are Quantifiers?
+## What are Quantifiers?
 
 **Quantifiers** specify **how many times** the previous element should match. Think of them like **quantity indicators** in English:
 
@@ -42,9 +42,9 @@ Options:
 
 ---
 
-## 🎯 Basic Quantifiers
+## Basic Quantifiers
 
-### `*` - Zero or More
+### * - Zero or More
 
 Matches 0 or more occurrences:
 
@@ -55,7 +55,7 @@ preg_match('/ab*/', 'ab');     // ✅ Matches (1 b)
 preg_match('/ab*/', 'abbb');   // ✅ Matches (3 b's)
 ```
 
-### `+` - One or More
+### + - One or More
 
 Matches 1 or more occurrences:
 
@@ -66,7 +66,7 @@ preg_match('/ab+/', 'ab');     // ✅ Matches (1 b)
 preg_match('/ab+/', 'abbb');   // ✅ Matches (3 b's)
 ```
 
-### `?` - Zero or One (Optional)
+### ? - Zero or One (Optional)
 
 Matches 0 or 1 occurrence (makes something optional):
 
@@ -109,7 +109,7 @@ Pattern: /ab?/
 
 ---
 
-## 📝 Exact Quantifiers with Braces
+## Exact Quantifiers with Braces
 
 Use `{}` for precise control:
 
@@ -138,7 +138,7 @@ preg_match('/\d{2,4}/', '12345');  // ✅ Matches "1234" (first 4)
 
 ---
 
-## 😈 Greediness: The Default Behavior
+## Greediness: The Default Behavior
 
 By default, quantifiers are **greedy** - they match as many characters as possible:
 
@@ -165,7 +165,7 @@ Greedy match: "<p>hello</p>" (takes everything!)
 
 ---
 
-## 🔄 Lazy (Non-Greedy) Matching
+## Lazy (Non-Greedy) Matching
 
 Add `?` after a quantifier to make it **lazy** - match as few characters as possible:
 
@@ -204,7 +204,7 @@ print_r($matches[1]);  // Output: Array ( [0] => "hello", [1] => "world" )
 
 ---
 
-## 🏃 Possessive Quantifiers (Performance)
+## Possessive Quantifiers (Performance)
 
 Add `++`, `*+`, `?+` to prevent backtracking (great for ReDoS prevention):
 
@@ -226,7 +226,7 @@ preg_match('/a++b/', 'aaab');  // Matches, no backtracking
 
 ---
 
-## ✅ Good Patterns vs ❌ Bad Patterns
+## Good Patterns vs Bad Patterns
 
 ### Good: Specific and Safe
 
@@ -262,7 +262,7 @@ preg_match('/x{1,100}/', $userInput);  // Reasonable limit
 
 ---
 
-## 🧪 Exercises
+## Exercises
 
 ### Exercise 1: Identify Matches
 
@@ -318,7 +318,7 @@ echo "Lazy: " . $m[0] . "\n";
 
 ---
 
-## 📚 Key Takeaways
+## Key Takeaways
 
 1. **Quantifiers** control repetition: `*`, `+`, `?`, `{n,m}`
 2. **`*`** = 0 or more (zero or more)
@@ -331,7 +331,7 @@ echo "Lazy: " . $m[0] . "\n";
 
 ---
 
-## 🆘 Common Errors
+## Common Errors
 
 ### Error: Forgetting Quantifier Defaults to Greedy
 
@@ -370,7 +370,7 @@ preg_match('/a{1,100}/', $userInput);
 
 ---
 
-## 🎉 You're Ready!
+## You're Ready!
 
 You now understand:
 - All quantifier types (`*`, `+`, `?`, `{n,m}`)

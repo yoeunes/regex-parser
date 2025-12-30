@@ -4,7 +4,7 @@
 
 ---
 
-## 🤔 What are Backreferences?
+## What are Backreferences?
 
 **Backreferences** let you match the **same text** that was previously captured. Think of it like **echoing** what you just said:
 
@@ -31,7 +31,7 @@ Pattern: /(\w+) \1/
 
 ---
 
-## 🎯 Using Backreferences
+## Using Backreferences
 
 ### Numbered Backreferences `\1`, `\2`, ...
 
@@ -64,7 +64,7 @@ echo $matches['content']; // "hello"
 
 ---
 
-## 🔄 Subroutines: Reuse Group Patterns
+## Subroutines: Reuse Group Patterns
 
 Subroutines let you **reuse a group's pattern** without capturing:
 
@@ -90,7 +90,7 @@ echo $matches[0];  // "[a[b]c]"
 
 ---
 
-## 🔁 Recursion: Pattern Calls Itself
+## Recursion: Pattern Calls Itself
 
 ### Recursive Pattern for Balanced Structures
 
@@ -137,7 +137,7 @@ Complete match: "(a(b)c)"
 
 ---
 
-## ❓ Conditionals: If-Then Patterns
+## Conditionals: If-Then Patterns
 
 ### Basic Conditional `(?(group)yes|no)`
 
@@ -162,7 +162,7 @@ preg_match($pattern, 'c', $matches);   // ✅ Matches
 
 ---
 
-## 💡 Practical Examples
+## Practical Examples
 
 ### 1. Find Repeated Words
 
@@ -196,7 +196,7 @@ preg_match($pattern, "'world'", $matches);   // ✅ Matches
 
 ---
 
-## ✅ Good Patterns vs ❌ Bad Patterns
+## Good Patterns vs Bad Patterns
 
 ### Good: Clear and Safe
 
@@ -226,7 +226,7 @@ preg_match($pattern, "'world'", $matches);   // ✅ Matches
 
 ---
 
-## 🧪 Exercises
+## Exercises
 
 ### Exercise 1: Match Repeated Words
 
@@ -260,7 +260,7 @@ preg_match($pattern, 'c', $m);   // ✅ Matches
 
 ---
 
-## 📚 Key Takeaways
+## Key Takeaways
 
 1. **Backreferences** `\1`, `\k<name>` reuse captured text
 2. **Subroutines** `(?1)`, `(?&name)` reuse group patterns
@@ -271,7 +271,7 @@ preg_match($pattern, 'c', $m);   // ✅ Matches
 
 ---
 
-## 🆘 Common Errors
+## Common Errors
 
 ### Error: Backreference vs Subroutine
 
@@ -305,7 +305,7 @@ preg_match('/(\d)\1/', '11');  // Matches "11"
 
 ---
 
-## 🎉 You're Ready!
+## You're Ready!
 
 You now understand:
 - Backreferences (numbered and named)

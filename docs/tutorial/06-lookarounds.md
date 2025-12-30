@@ -4,7 +4,7 @@
 
 ---
 
-## 🤔 What are Lookarounds?
+## What are Lookarounds?
 
 **Lookarounds** check what's around a position **without matching it**. Think of them like a **security camera** - they observe but don't take:
 
@@ -31,7 +31,7 @@ Pattern: /(?<=\$)\d+/
 
 ---
 
-## 🎯 Types of Lookarounds
+## Types of Lookarounds
 
 ### 1. Lookahead: What's Ahead?
 
@@ -91,7 +91,7 @@ echo $matches[0];  // "100"
 
 ---
 
-## 📊 ASCII Diagram: Lookaround Behavior
+## ASCII Diagram: Lookaround Behavior
 
 ```
 Text: "price is $100"
@@ -114,7 +114,7 @@ Matches: "100" at positions 7-9
 
 ---
 
-## 🔍 Lookaround Examples
+## Lookaround Examples
 
 ### Validate Without Matching
 
@@ -153,7 +153,7 @@ echo $matches[0];  // "image" (extension not included)
 
 ---
 
-## ⚠️ Important: Lookbehind Limitations
+## Important: Lookbehind Limitations
 
 In PCRE, lookbehind must have a **bounded maximum length**:
 
@@ -181,7 +181,7 @@ if (!$result->isValid()) {
 
 ---
 
-## ✅ Good Patterns vs ❌ Bad Patterns
+## Good Patterns vs Bad Patterns
 
 ### Good: Proper Lookarounds
 
@@ -212,7 +212,7 @@ if (!$result->isValid()) {
 
 ---
 
-## 🧪 Exercises
+## Exercises
 
 ### Exercise 1: Predict Matches
 
@@ -264,7 +264,7 @@ echo $pattern . ": " . ($result->isValid() ? "Valid" : "Invalid") . "\n";
 
 ---
 
-## 📚 Key Takeaways
+## Key Takeaways
 
 1. **Lookarounds** check context without matching
 2. **Lookahead** `(?=...)` checks what's ahead
@@ -276,7 +276,7 @@ echo $pattern . ": " . ($result->isValid() ? "Valid" : "Invalid") . "\n";
 
 ---
 
-## 🆘 Common Errors
+## Common Errors
 
 ### Error: Variable-Length Lookbehind
 
@@ -309,7 +309,7 @@ echo $matches[0];  // "5" (same position checked twice!)
 
 ---
 
-## 🎉 You're Ready!
+## You're Ready!
 
 You now understand:
 - All four lookaround types

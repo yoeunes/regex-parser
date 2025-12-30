@@ -1,10 +1,10 @@
-# CLI Guide: Command-Line Reference
+# CLI Guide
 
-> **The complete guide to using RegexParser's command-line tool.**
+This guide covers RegexParser's command-line tool and the workflows it enables.
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Installation
 
@@ -31,7 +31,7 @@ regex --help
 
 ---
 
-## 📖 Command Overview
+## Command Overview
 
 RegexParser CLI provides these commands:
 
@@ -60,7 +60,7 @@ RegexParser CLI provides these commands:
 
 ---
 
-## 🎯 Command Examples
+## Command Examples
 
 ### 1. Parse a Pattern
 
@@ -274,7 +274,7 @@ Configuration : regex.dist.json
 
 ---
 
-## ⚙️ Configuration File
+## Configuration File
 
 Create `regex.json` or `regex.dist.json` in your project root:
 
@@ -320,7 +320,7 @@ Enable clickable file links in lint output:
 
 ---
 
-## 🚫 Ignoring Patterns
+## Ignoring Patterns
 
 ### Inline Comments
 
@@ -339,7 +339,7 @@ In `regex.json`:
 
 ---
 
-## 📊 Output Formats
+## Output Formats
 
 ### Console (Default)
 
@@ -401,7 +401,7 @@ vendor/bin/regex lint src/ --format=junit --output=junit.xml
 
 ---
 
-## 🧪 Lint Options
+## Lint Options
 
 | Option              | Description                      |
 |---------------------|----------------------------------|
@@ -416,7 +416,7 @@ vendor/bin/regex lint src/ --format=junit --output=junit.xml
 
 ---
 
-## 🔄 CI/CD Integration
+## CI/CD Integration
 
 ### GitHub Actions
 
@@ -457,7 +457,7 @@ vendor/bin/regex lint src/ --format=checkstyle --output=regex-checkstyle.xml
 
 ---
 
-## 💡 Tips and Tricks
+## Tips and Tricks
 
 ### Quick Pattern Test
 
@@ -490,16 +490,16 @@ vendor/bin/regex highlight '/^your-pattern$/' --format=html
 
 ---
 
-## 🆘 Common Issues
+## Common Issues
 
 ### "Unknown command"
 
 Make sure you're using the correct command name:
 ```bash
-# ❌ Wrong
+# Wrong
 vendor/bin/regex explain '/test/'
 
-# ✅ Correct
+# Correct
 vendor/bin/regex analyze '/test/'
 ```
 
@@ -507,10 +507,10 @@ vendor/bin/regex analyze '/test/'
 
 The CLI expects a pattern in a specific format:
 ```bash
-# ❌ Wrong (missing delimiters)
+# Wrong (missing delimiters)
 vendor/bin/regex validate 'test'
 
-# ✅ Correct
+# Correct
 vendor/bin/regex validate '/test/'
 vendor/bin/regex validate '#test#'
 ```
@@ -524,7 +524,7 @@ vendor/bin/regex highlight '/test/' --ansi
 
 ---
 
-## 📚 Learn More
+## Learn More
 
 - **[Regex Tutorial](../tutorial/README.md)** - Learn regex from scratch
 - **[Regex in PHP](regex-in-php.md)** - PHP regex fundamentals
@@ -533,7 +533,7 @@ vendor/bin/regex highlight '/test/' --ansi
 
 ---
 
-## 🔧 Self-Update (PHAR Only)
+## Self-Update (PHAR Only)
 
 If using the PHAR, update to the latest version:
 

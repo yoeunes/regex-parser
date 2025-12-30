@@ -4,7 +4,7 @@
 
 ---
 
-## 🤔 What are Groups?
+## What are Groups?
 
 **Groups** let you treat multiple characters as a single unit. Think of them like **putting things in parentheses** in math:
 
@@ -25,9 +25,9 @@ With groups:     (ab)+  means "ab" as a unit, repeated one or more times
 
 ---
 
-## 🎯 Types of Groups
+## Types of Groups
 
-### 1. Capturing Groups `(...)`
+### 1. Capturing Groups (...)
 
 Stores the matched text for later use:
 
@@ -66,7 +66,7 @@ echo $matches['name'];      // "world"
 
 ---
 
-## 🔀 Alternation: The Pipe `|`
+## Alternation: The Pipe `|`
 
 Match **one of several** alternatives:
 
@@ -110,7 +110,7 @@ echo $m[1];  // "foo"
 
 ---
 
-## 📊 Group Examples
+## Group Examples
 
 ### Capturing Groups
 
@@ -144,7 +144,7 @@ echo $m[0];  // "POST /api" (full match)
 
 ---
 
-## 🏗️ Complex Group Examples
+## Complex Group Examples
 
 ### HTTP Method Validator
 
@@ -179,7 +179,7 @@ echo $m['inner'];   // "world" (second group)
 
 ---
 
-## ✅ Good Patterns vs ❌ Bad Patterns
+## Good Patterns vs Bad Patterns
 
 ### Good: Clear and Efficient
 
@@ -209,7 +209,7 @@ echo $m['inner'];   // "world" (second group)
 
 ---
 
-## 🧪 Exercises
+## Exercises
 
 ### Exercise 1: Match HTTP Methods
 
@@ -246,7 +246,7 @@ echo "With grouping: " . $m[0] . "\n";     // "foobar"
 
 ---
 
-## 📚 Key Takeaways
+## Key Takeaways
 
 1. **Groups** `(...)` treat multiple characters as one unit
 2. **Capturing groups** `(...)` store matched text
@@ -257,7 +257,7 @@ echo "With grouping: " . $m[0] . "\n";     // "foobar"
 
 ---
 
-## 🆘 Common Errors
+## Common Errors
 
 ### Error: Forgetting Grouping with Alternation
 
@@ -286,7 +286,7 @@ echo $m[0];  // "css/api"
 
 ---
 
-## 🎉 You're Ready!
+## You're Ready!
 
 You now understand:
 - Capturing vs non-capturing groups

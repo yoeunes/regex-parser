@@ -1,35 +1,36 @@
-# Quick Start Guide - RegexParser
+# Quick Start
 
-**Get started with RegexParser in 5 minutes!** Whether you're new to regex or an experienced developer, this guide will help you get productive quickly.
+This guide gets you from install to first analysis quickly. Whether you are new to regex or already use PCRE daily, the steps here are the fastest way to see value.
 
-> We always start with `Regex::create()` so options are validated and consistent.
-
----
-
-## The Big Picture
-
-```
-Regex string -> Lexer -> TokenStream -> Parser -> RegexNode (AST) -> Visitors -> Results
-```
-
-Think of it like this:
-- **Lexing** is breaking a sentence into words
-- **Parsing** is building a grammar tree from those words
-- The **AST** is the DNA of the pattern
-- **Visitors** are tour guides walking the DNA and producing answers
+> We start with `Regex::create()` so options are validated and consistent.
 
 ---
 
-## What is RegexParser?
+## The Pipeline
+
+```
+/^hello$/i
+  |
+  v
+Lexer  -> TokenStream
+Parser -> RegexNode (AST)
+          |
+          v
+       Visitors -> validation, explanation, analysis, transforms
+```
+
+---
+
+## What RegexParser Is
 
 RegexParser is a tool that helps you **understand** and **validate** regular expressions. It:
 
-- 🔍 **Parses** regex patterns into a readable structure
-- 📖 **Explains** patterns in plain English
-- ⚠️ **Finds** errors and security issues
-- 🎨 **Visualizes** complex patterns
+- Parses regex patterns into a readable structure
+- Explains patterns in plain language
+- Finds errors and security issues
+- Visualizes complex patterns
 
-### Why Use It?
+### Why Use It
 
 ```
 Without RegexParser:

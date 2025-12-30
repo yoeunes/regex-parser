@@ -4,7 +4,7 @@
 
 ---
 
-## 🤔 What are Anchors?
+## What are Anchors?
 
 **Anchors** don't match characters - they match **positions** in the text. Think of them like **bookmarks** in a document:
 
@@ -30,9 +30,9 @@ Pattern: /world$/
 
 ---
 
-## 🎯 Start and End Anchors
+## Start and End Anchors
 
-### The Caret `^` - Start of String
+### The Caret - Start of String
 
 Matches the beginning of the input:
 
@@ -42,7 +42,7 @@ preg_match('/^error/i', 'Error occurred');     // ✅ Matches
 preg_match('/^error/i', 'File error occurred'); // ❌ No match (not at start)
 ```
 
-### The Dollar Sign `$` - End of String
+### The Dollar Sign $ - End of String
 
 Matches the end of the input:
 
@@ -83,7 +83,7 @@ Pattern: /^error$/
 
 ---
 
-## 🔒 Absolute Anchors
+## Absolute Anchors
 
 ### `\A` - Start of Subject (Always)
 
@@ -126,7 +126,7 @@ preg_match('/line2\z/m', $text); // ❌ No match (not at absolute end)
 
 ---
 
-## 📍 Word Boundaries `\b`
+## Word Boundaries `\b`
 
 A `\b` matches the **boundary between a word character** (`\w`) **and a non-word character** (`\W`):
 
@@ -181,7 +181,7 @@ Positions:
 
 ---
 
-## 🔧 Combining Anchors with Other Patterns
+## Combining Anchors with Other Patterns
 
 ### Anchor Use Cases
 
@@ -211,7 +211,7 @@ preg_match('/^hello world$/', 'hello world!');   // ❌ No match
 
 ---
 
-## ✅ Good Patterns vs ❌ Bad Patterns
+## Good Patterns vs Bad Patterns
 
 ### Good: Properly Anchored
 
@@ -244,7 +244,7 @@ preg_match('/^hello world$/', 'hello world!');   // ❌ No match
 
 ---
 
-## 🧪 Exercises
+## Exercises
 
 ### Exercise 1: Identify Matches
 
@@ -309,7 +309,7 @@ foreach ($patterns as $pattern) {
 
 ---
 
-## 📚 Key Takeaways
+## Key Takeaways
 
 1. **Anchors** `^`, `$`, `\A`, `\z` match positions, not characters
 2. **`^`** matches start of string (every line with `/m`)
@@ -321,7 +321,7 @@ foreach ($patterns as $pattern) {
 
 ---
 
-## 🆘 Common Errors
+## Common Errors
 
 ### Error: Forgetting Anchors in Validation
 
@@ -334,7 +334,7 @@ preg_match('/[0-9]+/', '123-456');    // ✅ Matches "123"
 preg_match('/^[0-9]+$/', '123456');   // ✅ Matches
 ```
 
-### Error: $ vs \z
+### Error: `$` vs `\z`
 
 ```php
 $text = "line1\nline2\nline3";
@@ -358,7 +358,7 @@ preg_match('/__\w+__/', '__hello__');  // ✅ Matches
 
 ---
 
-## 🎉 You're Ready!
+## You're Ready!
 
 You now understand:
 - Start (`^`) and end (`$`) anchors
