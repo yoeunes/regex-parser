@@ -67,7 +67,7 @@ final class RegexCoverageTest extends TestCase
         $seed = $method->invoke($regex, '/abc/');
 
         $this->assertIsString($seed);
-        $this->assertStringContainsString('#php_version=80000', $seed);
+        $this->assertStringContainsString('#php_version=80000', (string) $seed);
     }
 
     public function test_store_in_cache_swallows_write_errors(): void

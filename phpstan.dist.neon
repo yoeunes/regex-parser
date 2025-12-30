@@ -18,6 +18,9 @@ parameters:
         - src
         - tests
 
+    bootstrapFiles:
+        - tools/phpunit/vendor/autoload.php
+
     excludePaths:
         - tests/Benchmark/*
         - tests/Fixtures/*

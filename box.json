@@ -39,6 +39,7 @@
         "bin/phplint",
         "bin/phpstan",
         "bin/rector",
+        "bin/phpunit",
         "bin/regex.phar",
         "box.json",
         "corpus",

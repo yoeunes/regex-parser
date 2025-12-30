@@ -230,7 +230,7 @@ final class ConsoleFormatterTest extends TestCase
         ]]);
 
         $this->assertIsString($output);
-        $this->assertStringNotContainsString('- /', $output);
+        $this->assertStringNotContainsString('- /', (string) $output);
     }
 
     public function test_format_with_optimization(): void
@@ -629,7 +629,7 @@ final class ConsoleFormatterTest extends TestCase
         $output = $this->invokePrivate($formatter, 'formatPatternForDisplay', '/[/');
 
         $this->assertIsString($output);
-        $this->assertStringContainsString('[', $output);
+        $this->assertStringContainsString('[', (string) $output);
     }
 
     public function test_highlight_pattern_body_preserving_text_branches(): void

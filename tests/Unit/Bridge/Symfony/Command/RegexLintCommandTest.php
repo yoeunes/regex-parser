@@ -36,7 +36,7 @@ final class RegexLintCommandTest extends TestCase
         $status = $tester->execute(['paths' => ['nonexistent']]);
 
         $this->assertSame(0, $status);
-        $this->assertStringContainsString('No regex patterns found', $tester->getDisplay());
+        $this->assertStringContainsString('No regex patterns found', (string) $tester->getDisplay());
     }
 
     public function test_command_has_correct_name(): void
@@ -74,8 +74,8 @@ final class RegexLintCommandTest extends TestCase
         $this->assertSame(0, $status);
 
         $output = $tester->getDisplay();
-        $this->assertStringNotContainsString('No regex patterns found', $output);
-        $this->assertStringNotContainsString('Regex Parser', $output);
+        $this->assertStringNotContainsString('No regex patterns found', (string) $output);
+        $this->assertStringNotContainsString('Regex Parser', (string) $output);
 
         // Should be valid JSON
         $data = json_decode($output, true);
@@ -97,7 +97,7 @@ final class RegexLintCommandTest extends TestCase
         $display = preg_replace('/\s+/', ' ', $tester->getDisplay()) ?? '';
         $this->assertStringContainsString(
             'Invalid format \'invalid\'. Supported formats: console, json, github, checkstyle, junit',
-            $display,
+            (string) $display,
         );
     }
 
@@ -192,7 +192,7 @@ final class RegexLintCommandTest extends TestCase
         $status = $tester->execute(['paths' => ['nonexistent'], '--jobs' => '0']);
 
         $this->assertSame(1, $status);
-        $this->assertStringContainsString('positive integer', $tester->getDisplay());
+        $this->assertStringContainsString('positive integer', (string) $tester->getDisplay());
     }
 
     public function test_execute_progress_callback_handles_empty_totals(): void
@@ -227,7 +227,7 @@ final class RegexLintCommandTest extends TestCase
         $status = $tester->execute(['paths' => ['nonexistent']]);
 
         $this->assertSame(0, $status);
-        $this->assertStringContainsString('No regex patterns found', $tester->getDisplay());
+        $this->assertStringContainsString('No regex patterns found', (string) $tester->getDisplay());
     }
 
     public function test_execute_renders_collection_failure(): void
@@ -255,7 +255,7 @@ final class RegexLintCommandTest extends TestCase
         $status = $tester->execute(['paths' => ['nonexistent']]);
 
         $this->assertSame(1, $status);
-        $this->assertStringContainsString('boom', $tester->getDisplay());
+        $this->assertStringContainsString('boom', (string) $tester->getDisplay());
     }
 
     public function test_execute_renders_collection_failure_for_json(): void
@@ -283,7 +283,7 @@ final class RegexLintCommandTest extends TestCase
         $status = $tester->execute(['paths' => ['nonexistent'], '--format' => 'json']);
 
         $this->assertSame(1, $status);
-        $this->assertStringContainsString('Failed to collect patterns', $tester->getDisplay());
+        $this->assertStringContainsString('Failed to collect patterns', (string) $tester->getDisplay());
     }
 
     public function test_execute_analyzes_patterns_with_progress(): void
@@ -313,7 +313,7 @@ final class RegexLintCommandTest extends TestCase
         $status = $tester->execute(['paths' => ['.']]);
 
         $this->assertSame(0, $status);
-        $this->assertStringContainsString('Analyzing patterns', $tester->getDisplay());
+        $this->assertStringContainsString('Analyzing patterns', (string) $tester->getDisplay());
     }
 
     public function test_execute_analyzes_patterns_without_progress_in_json(): void
@@ -343,7 +343,7 @@ final class RegexLintCommandTest extends TestCase
         $status = $tester->execute(['paths' => ['.'], '--format' => 'json']);
 
         $this->assertSame(0, $status);
-        $this->assertStringNotContainsString('Analyzing patterns', $tester->getDisplay());
+        $this->assertStringNotContainsString('Analyzing patterns', (string) $tester->getDisplay());
         $this->assertIsArray(json_decode($tester->getDisplay(), true));
     }
 

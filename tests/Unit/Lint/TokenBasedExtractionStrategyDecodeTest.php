@@ -44,7 +44,7 @@ final class TokenBasedExtractionStrategyDecodeTest extends TestCase
         $decoded = $this->invoke('decodeDoubleQuotedString', '\\2\\3\\4\\5\\6\\7');
 
         $this->assertIsString($decoded);
-        $this->assertSame('020304050607', bin2hex($decoded));
+        $this->assertSame('020304050607', bin2hex((string) $decoded));
     }
 
     public function test_decode_double_quoted_string_handles_unknown_escape(): void

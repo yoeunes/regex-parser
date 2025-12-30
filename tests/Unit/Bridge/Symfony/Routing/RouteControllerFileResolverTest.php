@@ -163,7 +163,7 @@ final class RouteControllerFileResolverTest extends TestCase
 
         // TestCase should have a file (PHPUnit is loaded)
         $this->assertIsString($result);
-        $this->assertStringContainsString('TestCase.php', $result);
+        $this->assertStringContainsString('TestCase.php', (string) $result);
     }
 
     public function test_resolve_with_controller_array(): void
