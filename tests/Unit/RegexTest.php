@@ -359,8 +359,8 @@ final class RegexTest extends TestCase
         $this->assertSame('', $method->invoke($this->regexService, 'pattern', -1));
         $snippet = $method->invoke($this->regexService, 'pattern', 100);
         $this->assertIsString($snippet);
-        $this->assertStringContainsString('Line 1:', $snippet);
-        $this->assertStringContainsString('^', $snippet);
+        $this->assertStringContainsString('Line 1:', (string) $snippet);
+        $this->assertStringContainsString('^', (string) $snippet);
         $this->assertSame('', $method->invoke($this->regexService, null, 5));
     }
 
@@ -434,8 +434,8 @@ final class RegexTest extends TestCase
         $payload = $method->invoke(null, $ast); // static method
 
         $this->assertIsString($payload);
-        $this->assertStringContainsString('<?php', $payload);
-        $this->assertStringContainsString('unserialize', $payload);
+        $this->assertStringContainsString('<?php', (string) $payload);
+        $this->assertStringContainsString('unserialize', (string) $payload);
     }
 
     public function test_validate_resource_limits(): void

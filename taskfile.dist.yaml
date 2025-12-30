@@ -66,7 +66,7 @@ tasks:
 
     phpunit:
         cmds:
-            - cmd: vendor/bin/phpunit {{.CLI_ARGS}}
+            - cmd: tools/phpunit/vendor/bin/phpunit {{.CLI_ARGS}}
             - cmd: touch .task/phpunit.success
         sources:
             - phpunit.dist.xml
@@ -111,7 +111,7 @@ tasks:
         env:
             XDEBUG_MODE: coverage
         cmds:
-            - cmd: vendor/bin/phpunit --coverage-html coverage {{.CLI_ARGS}}
+            - cmd: tools/phpunit/vendor/bin/phpunit --coverage-html coverage {{.CLI_ARGS}}
             - cmd: touch .task/coverage.success
         sources:
             - phpunit.dist.xml
@@ -121,6 +121,10 @@ tasks:
             - coverage
             - .task/phpbench.success
         method: checksum
+
+    phar:
+        cmds:
+            - cmd: phar/build
 
     lint:
         deps:
@@ -141,6 +145,7 @@ tasks:
             - composer install -d tools/phpstan
             - composer install -d tools/rector
             - composer install -d tools/infection
+            - composer install -d tools/phpunit
 
             - task: link
         sources:
@@ -182,10 +187,15 @@ tasks:
             - composer outdated --direct -d tools/infection
             - composer audit -d tools/infection || true
 
+            - composer update -W -d tools/phpunit
+            - composer outdated --direct -d tools/phpunit
+            - composer audit -d tools/phpunit || true
+
             - task: link
 
     link:
         cmds:
+            - mkdir -p ./vendor/bin
             - ln -sf ../../tools/php-cs-fixer/vendor/bin/php-cs-fixer ./vendor/bin/php-cs-fixer
             - ln -sf ../tools/php-cs-fixer/vendor/bin/php-cs-fixer ./bin/php-cs-fixer
             - ln -sf ../tools/php-cs-fixer/vendor/bin/php-cs-fixer ./bin/phpcs
@@ -196,6 +206,7 @@ tasks:
             - ln -sf ../../tools/phplint/vendor/bin/phplint ./vendor/bin/phplint
             - ln -sf ../tools/phplint/vendor/bin/phplint ./bin/phplint
 
+            - ln -sf ../../tools/phpstan/vendor/bin/phpstan ./vendor/bin/phpstan
             - ln -sf ../tools/phpstan/vendor/bin/phpstan ./bin/phpstan
 
             - ln -sf ../../tools/rector/vendor/bin/rector ./vendor/bin/rector
@@ -203,3 +214,6 @@ tasks:
 
             - ln -sf ../../tools/infection/vendor/bin/infection ./vendor/bin/infection
             - ln -sf ../tools/infection/vendor/bin/infection ./bin/infection
+
+            - ln -sf ../../tools/phpunit/vendor/bin/phpunit ./vendor/bin/phpunit
+            - ln -sf ../tools/phpunit/vendor/bin/phpunit ./bin/phpunit

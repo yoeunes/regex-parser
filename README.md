@@ -17,17 +17,17 @@
 
 ---
 
-# RegexParser: Parse, analyze, and learn PCRE in PHP
+# **RegexParser**: Parse, analyze, and learn **PCRE** in PHP
 
-RegexParser is a PHP 8.2+ library that turns PCRE patterns into a typed AST and runs analysis through visitors. The goal is twofold: make regex approachable for newcomers and give tool authors a reliable foundation for validation, linting, and security analysis.
+**RegexParser** is a PHP 8.2+ library that turns **PCRE** patterns into a typed **AST** and runs analysis through **visitors**. The goal is twofold: make regex approachable for newcomers and give tool authors a reliable foundation for validation, linting, and security analysis.
 
 New to regex? Start with the [Regex Tutorial](docs/tutorial/README.md).
 
 ## Start Here
 
-- Docs home: [docs/README.md](docs/README.md)
-- Quick onboarding: [docs/QUICK_START.md](docs/QUICK_START.md)
-- PCRE in PHP: [docs/guides/regex-in-php.md](docs/guides/regex-in-php.md)
+- Docs home: [`docs/README.md`](docs/README.md)
+- Quick onboarding: [`docs/QUICK_START.md`](docs/QUICK_START.md)
+- PCRE in PHP: [`docs/guides/regex-in-php.md`](docs/guides/regex-in-php.md)
 
 ## What RegexParser Does
 
@@ -51,7 +51,7 @@ Parser -> RegexNode (AST)
        Visitors -> validation, explanation, analysis, transforms
 ```
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full internal design and algorithms.
+See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the full internal design and algorithms.
 
 ## CLI Quick Tour
 
@@ -89,24 +89,24 @@ echo $regex->explain('/\d{4}-\d{2}-\d{2}/');
 
 ## Integrations
 
-- Symfony bundle: [docs/guides/cli.md](docs/guides/cli.md)
+- Symfony bundle: [`docs/guides/cli.md`](docs/guides/cli.md)
 - PHPStan: `vendor/yoeunes/regex-parser/extension.neon`
 - Rector rules and custom refactors
 - GitHub Actions via `vendor/bin/regex lint`
 
 ## Documentation
 
-- Learn regex: [docs/tutorial/README.md](docs/tutorial/README.md)
-- CLI usage: [docs/guides/cli.md](docs/guides/cli.md)
-- Cookbook: [docs/COOKBOOK.md](docs/COOKBOOK.md)
-- ReDoS: [docs/REDOS_GUIDE.md](docs/REDOS_GUIDE.md)
-- API reference: [docs/reference/api.md](docs/reference/api.md)
-- Internals: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
-- Extending: [docs/EXTENDING_GUIDE.md](docs/EXTENDING_GUIDE.md)
+- Learn regex: [`docs/tutorial/README.md`](docs/tutorial/README.md)
+- CLI usage: [`docs/guides/cli.md`](docs/guides/cli.md)
+- Cookbook: [`docs/COOKBOOK.md`](docs/COOKBOOK.md)
+- ReDoS: [`docs/REDOS_GUIDE.md`](docs/REDOS_GUIDE.md)
+- API reference: [`docs/reference/api.md`](docs/reference/api.md)
+- Internals: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
+- Extending: [`docs/EXTENDING_GUIDE.md`](docs/EXTENDING_GUIDE.md)
 
 ## Contributing
 
-Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) to get started.
+Contributions are welcome. See [`CONTRIBUTING.md`](CONTRIBUTING.md) to get started.
 
 ```bash
 composer install

@@ -1,5 +1,9 @@
 {
     "compression": "GZ",
+    "compactors": [
+        "KevinGH\\Box\\Compactor\\Json",
+        "KevinGH\\Box\\Compactor\\Php"
+    ],
     "directories": [
         "src",
         "vendor"
@@ -7,51 +11,5 @@
     "files": [
         "composer.json",
         "LICENSE"
-    ],
-    "finder": [
-        {
-            "name": "regex",
-            "in": "bin"
-        }
-    ],
-    "blacklist": [
-        ".cache",
-        ".editorconfig",
-        ".gitattributes",
-        ".github",
-        ".gitignore",
-        ".gitmessage",
-        ".php-cs-fixer.dist.php",
-        ".php-version",
-        ".phplint.yml",
-        ".task",
-        "CHANGELOG.md",
-        "CODE_OF_CONDUCT.md",
-        "CONTRIBUTING.md",
-        "README.md",
-        "SECURITY.md",
-        "art",
-        "benchmarks",
-        "bin/build",
-        "bin/php-cs-fixer",
-        "bin/phpbench",
-        "bin/phpcs",
-        "bin/phplint",
-        "bin/phpstan",
-        "bin/rector",
-        "bin/regex.phar",
-        "box.json",
-        "corpus",
-        "docs",
-        "phpbench.json",
-        "phpbench.yml",
-        "phpstan-baseline.neon",
-        "phpstan.dist.neon",
-        "phpunit.dist.xml",
-        "rector.php",
-        "regex.dist.json",
-        "taskfile.dist.yaml",
-        "tests",
-        "tools"
     ]
 }

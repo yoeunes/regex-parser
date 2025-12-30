@@ -6,7 +6,7 @@ This guide shows how to add new PCRE features, build custom visitors, and integr
 
 ## What You Can Extend
 
-RegexParser is designed for extensibility:
+**RegexParser** is designed for extensibility:
 
 - New AST nodes for new syntax
 - New visitors for analysis or transformation

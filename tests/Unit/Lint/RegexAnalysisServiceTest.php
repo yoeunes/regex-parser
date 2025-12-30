@@ -600,28 +600,28 @@ final class RegexAnalysisServiceTest extends TestCase
         $validation = new ValidationResult(false, 'No closing delimiter', 0, null, 0);
         $tip = $this->invokePrivate('getTipForValidationError', 'No closing delimiter', '#foo', $validation);
         $this->assertIsString($tip);
-        $this->assertStringContainsString('Add the missing closing delimiter', $tip);
+        $this->assertStringContainsString('Add the missing closing delimiter', (string) $tip);
 
         $validation = new ValidationResult(false, 'Unclosed character class', 0, null, 0);
         $tip = $this->invokePrivate('getTipForValidationError', 'Unclosed character class', '/[a-z/', $validation);
         $this->assertIsString($tip);
-        $this->assertStringContainsString('Add missing closing bracket', $tip);
+        $this->assertStringContainsString('Add missing closing bracket', (string) $tip);
 
         $validation = new ValidationResult(false, 'Invalid quantifier range', 0, null, 0);
         $tip = $this->invokePrivate('getTipForValidationError', 'Invalid quantifier range', '/a{3,2}/', $validation);
         $this->assertIsString($tip);
-        $this->assertStringContainsString('Swap min and max values', $tip);
+        $this->assertStringContainsString('Swap min and max values', (string) $tip);
 
         $validation = new ValidationResult(false, 'Backreference to non-existent group', 0, null, 0);
         $tip = $this->invokePrivate('getTipForValidationError', 'Backreference to non-existent group', '/(a)\\2/', $validation);
         $this->assertIsString($tip);
-        $this->assertStringContainsString('Backreference', $tip);
+        $this->assertStringContainsString('Backreference', (string) $tip);
 
         $offset = \strlen('/(?<=\\w*)foo/');
         $validation = new ValidationResult(false, 'Lookbehind is unbounded', 0, null, $offset);
         $tip = $this->invokePrivate('getTipForValidationError', 'Lookbehind is unbounded', '/(?<=\\w*)foo/', $validation);
         $this->assertIsString($tip);
-        $this->assertStringContainsString('Replace unbounded quantifiers', $tip);
+        $this->assertStringContainsString('Replace unbounded quantifiers', (string) $tip);
     }
 
     public function test_validation_tip_helpers_return_null_for_valid_cases(): void
@@ -647,27 +647,27 @@ final class RegexAnalysisServiceTest extends TestCase
     {
         $tip = $this->invokePrivate('getGenericTipForValidationError', 'No closing delimiter');
         $this->assertIsString($tip);
-        $this->assertStringContainsString('Escape "/"', $tip);
+        $this->assertStringContainsString('Escape "/"', (string) $tip);
 
         $tip = $this->invokePrivate('getGenericTipForValidationError', 'Unclosed character class');
         $this->assertIsString($tip);
-        $this->assertStringContainsString('Character classes must be closed', $tip);
+        $this->assertStringContainsString('Character classes must be closed', (string) $tip);
 
         $tip = $this->invokePrivate('getGenericTipForValidationError', 'Invalid quantifier range');
         $this->assertIsString($tip);
-        $this->assertStringContainsString('Quantifier ranges must have min <= max', $tip);
+        $this->assertStringContainsString('Quantifier ranges must have min <= max', (string) $tip);
 
         $tip = $this->invokePrivate('getGenericTipForValidationError', 'Backreference to non-existent group');
         $this->assertIsString($tip);
-        $this->assertStringContainsString('Backreferences like', $tip);
+        $this->assertStringContainsString('Backreferences like', (string) $tip);
 
         $tip = $this->invokePrivate('getGenericTipForValidationError', 'Unknown regex flag');
         $this->assertIsString($tip);
-        $this->assertStringContainsString('Only valid PCRE flags', $tip);
+        $this->assertStringContainsString('Only valid PCRE flags', (string) $tip);
 
         $tip = $this->invokePrivate('getGenericTipForValidationError', 'Invalid conditional construct');
         $this->assertIsString($tip);
-        $this->assertStringContainsString('Conditionals need a valid condition', $tip);
+        $this->assertStringContainsString('Conditionals need a valid condition', (string) $tip);
     }
 
     public function test_redos_hint_helpers(): void

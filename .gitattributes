@@ -25,6 +25,7 @@
 /bin/phplint            export-ignore
 /bin/phpstan            export-ignore
 /bin/rector             export-ignore
+/bin/phpunit            export-ignore
 /phpbench.yml           export-ignore
 /phpbench.json          export-ignore
 /phpstan.dist.neon      export-ignore

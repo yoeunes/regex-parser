@@ -1,6 +1,6 @@
 # Regex Cookbook: Production-Ready Patterns for PHP
 
-This cookbook provides **ReDoS-resilient** patterns for common validation and parsing tasks. Each pattern has been validated with RegexParser's ReDoS analyzer and is designed for production use.
+This cookbook provides **ReDoS**-resilient patterns for common validation and parsing tasks. Each pattern has been validated with **RegexParser**'s **ReDoS** analyzer and is designed for production use.
 
 > These recipes are safe, practical patterns with RegexParser-first examples. We include a short explanation and a quick validation call so you can drop them into tooling or code reviews.
 > 
