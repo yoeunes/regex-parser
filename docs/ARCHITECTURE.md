@@ -1,6 +1,59 @@
 # Architecture and Design Guide
 
 > **Understanding how RegexParser works internally.**
+> 
+> We read regex as code. The architecture is built to make that possible.
+
+---
+
+## The Big Picture
+
+```
+Regex string -> Lexer -> TokenStream -> Parser -> RegexNode (AST) -> Visitors -> Results
+```
+
+Think of it like this:
+- **Lexing** is breaking a sentence into words
+- **Parsing** is building a grammar tree from those words
+- The **AST** is the DNA of the pattern
+- **Visitors** are tour guides walking the DNA and producing answers
+
+## The Parsing Pipeline
+
+Before we touch code, we keep one picture in mind.
+
+```
+Pattern string
+  "/^hello$/i"
+       |
+       v
++--------------+     +--------------+     +--------------+
+|   Lexer      | --> |   Parser     | --> |   AST         |
+| TokenStream  |     | RegexNode    |     | Node objects  |
++--------------+     +--------------+     +--------------+
+       |
+       v
++--------------+
+|  Visitors    |
+|  Explain     |
+|  Validate    |
+|  ReDoS       |
++--------------+
+```
+
+---
+
+## Core Components
+
+| Component | Class | Mental Model | Output |
+| --- | --- | --- | --- |
+| Lexer | `Lexer` | Split a sentence into tokens | `TokenStream` |
+| Parser | `Parser` | Build a grammar tree | `RegexNode` |
+| AST | `RegexNode` + nodes | Immutable structure | Node graph |
+| Visitors | `NodeVisitorInterface` | Tour guides walking rooms | Values, reports, new AST |
+| ReDoS | `ReDoSAnalyzer` | Risk audit | `ReDoSAnalysis` |
+
+> Nodes never change; visitors do the work. That keeps analysis predictable and safe.
 
 ---
 
@@ -13,54 +66,6 @@ RegexParser is a PHP 8.2+ library that converts PCRE regex patterns into a struc
 - ✅ Human-readable explanations
 - ✅ Pattern optimization and transformation
 - ✅ CI/CD linting at scale
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                         Your Pattern                                │
-│                         "/^hello/i"                                 │
-└─────────────────────────────────────────────────────────────────────┘
-                                │
-                                ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                         Lexer                                       │
-│              Tokenizes pattern into TokenStream                     │
-│              Tokens: WORD, QUANTIFIER, ANCHOR, etc.                 │
-└─────────────────────────────────────────────────────────────────────┘
-                                │
-                                ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                         Parser                                      │
-│              Builds typed AST from TokenStream                      │
-│              Recursive descent parser                               │
-└─────────────────────────────────────────────────────────────────────┘
-                                │
-                                ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                         AST                                         │
-│              RegexNode                                              │
-│              └── SequenceNode                                       │
-│                  ├── AnchorNode (^)                                 │
-│                  ├── LiteralNode ("hello")                          │
-│                  └── AnchorNode ($)                                 │
-└─────────────────────────────────────────────────────────────────────┘
-                                │
-                                ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                      Visitors                                       │
-│              ┌────────────────┬─────────────────┬───────────────┐   │
-│              │ Validator      │ Explainer       │ Optimizer     │   │
-│              │ Linter         │ Highlighter     │ Compiler      │   │
-│              │ ReDoS Analyzer │ Diagram         │ ...           │   │
-│              └────────────────┴─────────────────┴───────────────┘   │
-└─────────────────────────────────────────────────────────────────────┘
-                                │
-                                ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                     Output                                          │
-│              Validation results, explanations,                      │
-│              optimized patterns, lint reports                       │
-└─────────────────────────────────────────────────────────────────────┘
-```
 
 ---
 
@@ -112,11 +117,11 @@ Phase 1: Map (Extract)
        │                 │                 │
        └─────────────────┼─────────────────┘
                          ▼
-              ┌─────────────────────┐
-              │   Pattern Queue     │
-              └──────────┬──────────┘
-                         │
-                         ▼
+               ┌─────────────────────┐
+               │   Pattern Queue     │
+               └──────────┬──────────┘
+                          │
+                          ▼
 Phase 2: Reduce (Analyze)
        ┌────────────────┼────────────────┐
        ▼                ▼                ▼
@@ -127,9 +132,9 @@ Phase 2: Reduce (Analyze)
        │                │                │
        └────────────────┼────────────────┘
                          ▼
-              ┌───────────────────────┐
-              │   Final Report        │
-              └───────────────────────┘
+               ┌───────────────────────┐
+               │   Final Report        │
+               └───────────────────────┘
 ```
 
 **Benefits:**
@@ -249,17 +254,29 @@ interface NodeVisitorInterface
 
 The visitor pattern enables **extensible analysis** without modifying nodes:
 
-```php
-// Create AST
-$ast = $regex->parse('/hello|world/');
+```
+Tour guide: Visitor
+Rooms:     Nodes
 
-// Apply visitor
+RegexNode.accept(visitor)
+        |
+        v
+visitor.visitRegex(RegexNode)
+        |
+        v
+child.accept(visitor)
+```
+
+Example with `ExplainNodeVisitor`:
+
+```php
+use RegexParser\Regex;
+use RegexParser\NodeVisitor\ExplainNodeVisitor;
+
+$ast = $regex->parse('/hello|world/');
 $explanation = $ast->accept(new ExplainNodeVisitor());
 echo $explanation;
-/*
-Output:
-Literal 'hello' or literal 'world'
-*/
+// Output: Literal 'hello' or literal 'world'
 ```
 
 ### How It Works
@@ -287,6 +304,8 @@ foreach ($this->children as $child) {
     $child->accept($visitor)  // Visit each child
 }
 ```
+
+For the full double-dispatch walkthrough, see `design/AST_TRAVERSAL.md`.
 
 ---
 

@@ -2,7 +2,20 @@
 
 This cookbook provides **ReDoS-resilient** patterns for common validation and parsing tasks. Each pattern has been validated with RegexParser's ReDoS analyzer and is designed for production use.
 
-> **Note:** No regex can be guaranteed safe in all contexts. Always apply input limits (length, format) and engine safeguards (backtrack limits, timeouts) when processing untrusted data.
+> These recipes are safe, practical patterns with RegexParser-first examples. We include a short explanation and a quick validation call so you can drop them into tooling or code reviews.
+> 
+> **Always validate and run `redos()` before accepting user-defined patterns.**
+
+## Quick Reference
+
+| Pattern | Matches |
+|---------|---------|
+| `/^[^\s@]+@[^\s@]+\.[^\s@]+$/` | Email (basic) |
+| `/^\d{4}-\d{2}-\d{2}$/` | ISO Date |
+| `/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i` | UUID v4 |
+| `/^(?:25[0-5]|2[0-4]\d|[01]?\d\d?)(?:\.(?:25[0-5]|2[0-4]\d|[01]?\d\d?)){3}$/` | IPv4 |
+| `/^[a-z0-9-]+$/` | URL Slug |
+| `/^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i` | Hex Color |
 
 ## How to Use This Cookbook
 

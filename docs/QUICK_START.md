@@ -2,6 +2,22 @@
 
 **Get started with RegexParser in 5 minutes!** Whether you're new to regex or an experienced developer, this guide will help you get productive quickly.
 
+> We always start with `Regex::create()` so options are validated and consistent.
+
+---
+
+## The Big Picture
+
+```
+Regex string -> Lexer -> TokenStream -> Parser -> RegexNode (AST) -> Visitors -> Results
+```
+
+Think of it like this:
+- **Lexing** is breaking a sentence into words
+- **Parsing** is building a grammar tree from those words
+- The **AST** is the DNA of the pattern
+- **Visitors** are tour guides walking the DNA and producing answers
+
 ---
 
 ## What is RegexParser?
@@ -39,7 +55,7 @@ That's it! No other dependencies.
 
 ---
 
-## Try the CLI First (Fastest Way to See Value)
+## CLI First (Fast Feedback)
 
 The CLI is the fastest way to understand what RegexParser can do:
 
@@ -58,6 +74,43 @@ bin/regex highlight '/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i'
 
 # 5. Lint your entire codebase
 bin/regex lint src/
+```
+
+---
+
+## Core API (Five Essentials)
+
+### 1. Parse to AST
+
+```php
+use RegexParser\Regex;
+
+$regex = Regex::create();
+$ast = $regex->parse('/\d{3}-\d{4}/');
+```
+
+### 2. Validate
+
+```php
+$result = $regex->validate('/(?<year>\d{4})-(?<month>\d{2})/');
+```
+
+### 3. Explain
+
+```php
+$text = $regex->explain('/\d{3}-\d{4}/');
+```
+
+### 4. ReDoS Check
+
+```php
+$analysis = $regex->redos('/(a+)+$/');
+```
+
+### 5. Highlight
+
+```php
+$console = $regex->highlight('/\d+/', 'console');
 ```
 
 ---

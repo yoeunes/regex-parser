@@ -1,6 +1,8 @@
-# Complete Regex Tutorial (PHP + RegexParser)
+# Complete Regex Tutorial (RegexParser Edition)
 
 > **No prior regex experience required!** This tutorial takes you from "what's a pattern?" to mastering PCRE regular expressions.
+> 
+> We will use RegexParser CLI and API throughout, so you learn regex and the parser at the same time.
 
 ## What You'll Learn
 
@@ -16,6 +18,50 @@
 | 8       | [Performance & ReDoS](08-performance-redos.md)   | Write safe, fast patterns       |
 | 9       | [Testing & Debugging](09-testing-debugging.md)   | Find and fix issues             |
 | 10      | [Real-World PHP](10-real-world-php.md)           | Common patterns explained       |
+
+---
+
+## Tools We Use
+
+### CLI (Explains and Diagrams)
+
+```bash
+bin/regex explain '/^cat.*dog$/'
+```
+
+```
+Match:
+  Anchor: start of string
+  Literal: "cat"
+  Any character, zero or more times
+  Literal: "dog"
+  Anchor: end of string
+```
+
+```bash
+bin/regex diagram '/^cat.*dog$/'
+```
+
+```
+RegexNode
++-- SequenceNode
+    |-- AnchorNode("^")
+    |-- LiteralNode("cat")
+    |-- QuantifierNode("*")
+    |   +-- DotNode(".")
+    |-- LiteralNode("dog")
+    +-- AnchorNode("$")
+```
+
+### PHP API
+
+```php
+use RegexParser\Regex;
+
+$regex = Regex::create();
+$ast = $regex->parse('/^cat.*dog$/');
+$explanation = $regex->explain('/^cat.*dog$/');
+```
 
 ---
 
