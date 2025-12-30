@@ -490,6 +490,28 @@ preg_match('/(?<=ID-)\d+/', $input);
 
 ---
 
+## Real-World Patterns (from Fixtures)
+
+These examples are copied from `tests/Fixtures/pcre_patterns.php` to show the kinds of patterns RegexParser parses in tests.
+
+### HTML Hex Entities
+
+```
+#(&\#x*)([0-9A-F]+);*#iu
+```
+
+Matches hex entities like `&#x1F4A9;`, capturing the prefix and hex digits. Case-insensitive (`i`) and Unicode-aware (`u`).
+
+### Nested [indent] Tags (Recursive)
+
+```
+#\[indent]((?:[^[]|\[(?!/?indent])|(?R))+)\[/indent]#
+```
+
+Recursively matches nested `[indent]...[/indent]` blocks using `(?R)` to re-enter the whole pattern.
+
+---
+
 ## Compatibility & Limitations
 
 ### Supported PHP Versions

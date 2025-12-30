@@ -19,6 +19,7 @@ For first-time contributors, this is a good entry path:
 - Skim `src/Regex.php` to understand the public API and options flow.
 - Read `src/Lexer.php`, `src/Parser.php`, and `src/NodeVisitor/*` for the core pipeline.
 - Use `tests/Fixtures/*` and `tests/Unit/*` to see real patterns and expected behavior.
+- Scan `tests/Fixtures/pcre_patterns.php` for real-world patterns to reuse in examples.
 - Run `bin/regex parse '/^hello$/'` and `bin/regex analyze '/(a+)+$/'` to connect CLI output with AST behavior.
 
 ## The Integration Landscape

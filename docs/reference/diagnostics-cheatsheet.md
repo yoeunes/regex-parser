@@ -7,12 +7,12 @@ Fast fixes for the most common RegexParser diagnostics. Use this as a quick refe
 | Diagnostic                                                                  | Quick Fix                   |
 |-----------------------------------------------------------------------------|-----------------------------|
 | [Lookbehind is unbounded](#lookbehind-is-unbounded)                         | Add bounds or use lookahead |
-| [Backreference to non-existent group](#backreference-to-non-existent-group) | Check group numbers         |
+| [Backreference to non-existent group](#backreference-to-non-existent-group) | Check group numbers/names   |
 | [Duplicate group name](#duplicate-group-name)                               | Use unique names            |
 | [Invalid quantifier range](#invalid-quantifier-range)                       | Swap min/max                |
 | [Nested quantifiers detected](#nested-quantifiers-detected)                 | Use atomic groups           |
-| [Dot-star in repetition](#dot-star-in-repetition)                           | Make atomic or specific     |
-| [Overlapping alternation branches](#overlapping-alternation-branches)       | Order branches or atomic    |
+| [Dot-star in repetition](#dot-star-in-repetition)                           | Use atomic/possessive       |
+| [Overlapping alternation branches](#overlapping-alternation-branches)       | Atomic or simplify          |
 | [Redundant non-capturing group](#redundant-non-capturing-group)             | Remove group                |
 | [Useless flag](#useless-flag)                                               | Remove flag                 |
 | [Invalid delimiter](#invalid-delimiter)                                     | Use proper delimiter        |
@@ -51,7 +51,7 @@ preg_match('/(\w+)\2/', $input);
 preg_match('/(\w+)\1/', $input);
 
 // FIX 2: Add the missing group
-preg_match('/(\w+)\s*(\2)/', $input);  // Now \2 exists
+preg_match('/(\w+)(\w+)\2/', $input);  // Now \2 exists
 
 // For named backreferences
 // ERROR: No group named 'name'
@@ -122,14 +122,12 @@ preg_match('/a+b/', $input);
 // RISKY: .* in + repetition
 preg_match('/(?:.*)+x/', $input);
 
-// FIX 1: Make possessive
-preg_match('/(?:.*+)x/', $input);
+// FIX 1: Make atomic or possessive
+preg_match('/(?>.*)x/', $input);
+preg_match('/.*+x/', $input);
 
 // FIX 2: Use specific character class
-preg_match('/(?:[^x]*)x/', $input);  // If matching until 'x'
-
-// FIX 3: Use atomic group
-preg_match('/(?>.*)x/', $input);
+preg_match('/[^x]*x/', $input);  // If matching until 'x'
 ```
 
 ---
@@ -147,9 +145,6 @@ preg_match('/(?>a|aa)+b/', $input);
 
 // FIX 2: Simplify
 preg_match('/a+b/', $input);
-
-// FIX 3: Order longer first (doesn't fix ReDoS, just semantics)
-preg_match('/(aa|a)+b/', $input);
 ```
 
 ---
