@@ -7,8 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.0.0] - 2025-12-29
-
 ### Added
 - **Parser & Lexer**: Full PCRE2-compliant recursive descent parser with lexer that produces a well-typed Abstract Syntax Tree (AST)
 - **AST Nodes**: Complete node types including groups, alternations, quantifiers, lookarounds, character classes, subroutines, conditionals, callouts, verbs, and more
@@ -47,6 +45,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **PHPStan Integration**: Static analysis rule for detecting invalid regex patterns
 - **Caching**: PSR-6 / PSR-16 compatible caching with `ArrayCache`, `FilesystemCache`, and stats
 - **Configuration**: Comprehensive options for pattern length, lookbehind limits, recursion depth, PHP version targeting
+- `explain` command to CLI tool for regex explanations
+- `bin/phpunit` and `bin/infection` symlinks for easier tooling access
+- `regex.phar` binary for standalone CLI usage
 
 ### Documentation
 - **Quick Start Guide**: Getting started in 5 minutes
@@ -62,13 +63,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - None (initial release)
 
 ### Changed
-- None (initial release)
+- Updated CI workflows to install PHPUnit tooling consistently across jobs
+- Improved `.gitattributes` for cleaner distribution archives (excluded more dev files)
+- Updated PHP-CS-Fixer config to preserve `@var` tags in `phpdoc_to_comment`
+- Added `Fixtures/` exclusion in PHPLint configuration
+- Completely rewrote README.md for better user onboarding and navigation
 
 ### Deprecated
 - None
 
 ### Removed
-- None
+- Deleted automated release workflow from GitHub Actions (manual releases for pre-versions)
 
 ### Breaking Changes
 - None (initial release)
