@@ -10,33 +10,10 @@ use RegexParser\Lint\TokenBasedExtractionStrategy;
 
 final class TokenBasedExtractionStrategyTest extends TestCase
 {
-    private string $tmp;
-
-    protected function setUp(): void
-    {
-        $this->tmp = sys_get_temp_dir().'/regex-parser-token-test-'.bin2hex(random_bytes(4));
-        @mkdir($this->tmp, 0o777, true);
-    }
-
-    protected function tearDown(): void
-    {
-        if (is_dir($this->tmp)) {
-            foreach (glob($this->tmp.'/*') ?: [] as $file) {
-                @unlink($file);
-            }
-            @rmdir($this->tmp);
-        }
-    }
 
     public function test_extracts_preg_match_and_callback_array(): void
     {
-        $file = $this->tmp.'/sample.php';
-        file_put_contents($file, <<<'PHP'
-<?php
-$subject = 'bar';
-preg_match('/foo/i', $subject);
-preg_replace_callback_array(['#bar#' => 'cb'], $subject);
-PHP);
+        $file = __DIR__.'/../../Fixtures/Extractor/preg_match_and_callback_array.php';
 
         $strategy = new TokenBasedExtractionStrategy();
         $occurrences = $strategy->extract([$file]);
@@ -48,12 +25,7 @@ PHP);
 
     public function test_extracts_custom_function_and_static_method(): void
     {
-        $file = $this->tmp.'/custom.php';
-        file_put_contents($file, <<<'PHP'
-<?php
-My\Util::check("/baz/");
-myfunc('/qux/');
-PHP);
+        $file = __DIR__.'/../../Fixtures/Extractor/custom_function_and_static_method.php';
 
         $strategy = new TokenBasedExtractionStrategy(['My\Util::check', 'myfunc']);
         $occurrences = $strategy->extract([$file]);
@@ -63,11 +35,7 @@ PHP);
 
     public function test_handles_unicode_escape_in_pattern(): void
     {
-        $file = $this->tmp.'/unicode.php';
-        file_put_contents($file, <<<'PHP'
-<?php
-preg_match('/\x{41}/', $s);
-PHP);
+        $file = __DIR__.'/../../Fixtures/Extractor/unicode_escape.php';
 
         $strategy = new TokenBasedExtractionStrategy();
         $occurrences = $strategy->extract([$file]);
@@ -78,11 +46,7 @@ PHP);
 
     public function test_handles_double_quoted_pattern(): void
     {
-        $file = $this->tmp.'/quoted.php';
-        file_put_contents($file, <<<'PHP'
-<?php
-preg_match("/pattern/i", $s);
-PHP);
+        $file = __DIR__.'/../../Fixtures/Extractor/double_quoted_pattern.php';
 
         $strategy = new TokenBasedExtractionStrategy();
         $occurrences = $strategy->extract([$file]);
@@ -93,11 +57,7 @@ PHP);
 
     public function test_handles_single_quoted_pattern(): void
     {
-        $file = $this->tmp.'/single-quoted.php';
-        file_put_contents($file, <<<'PHP'
-<?php
-preg_match('/pattern/', $s);
-PHP);
+        $file = __DIR__.'/../../Fixtures/Extractor/single_quoted_pattern.php';
 
         $strategy = new TokenBasedExtractionStrategy();
         $occurrences = $strategy->extract([$file]);
@@ -108,11 +68,7 @@ PHP);
 
     public function test_extracts_plain_string_pattern_when_not_regex_literal(): void
     {
-        $file = $this->tmp.'/plain-string.php';
-        file_put_contents($file, <<<'PHP'
-<?php
-preg_match('plainpattern', $subject);
-PHP);
+        $file = __DIR__.'/../../Fixtures/Extractor/plain_string_pattern.php';
 
         $strategy = new TokenBasedExtractionStrategy();
         $occurrences = $strategy->extract([$file]);

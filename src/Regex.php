@@ -554,9 +554,7 @@ final readonly class Regex
     {
         // @regex-ignore-next-line
         if (preg_match('/\\b(?:at offset|offset)\\s+(\\d+)/i', $message, $matches)) {
-            if (isset($matches[1]) && \is_string($matches[1])) {
-                return (int) $matches[1];
-            }
+            return (int) $matches[1];
         }
 
         return null;

@@ -1,0 +1,1 @@
+<?php unknown_function("/pattern/", $var);

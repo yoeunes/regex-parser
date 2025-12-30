@@ -178,8 +178,8 @@ final class LintCommandComponentsTest extends TestCase
             'rules' => ['validation' => true, 'optimization' => false],
         ];
 
-        file_put_contents($tempDir.'/regex.dist.json', json_encode($distConfig));
-        file_put_contents($tempDir.'/regex.json', json_encode($jsonConfig));
+        copy(__DIR__.'/../../Fixtures/Config/dist_config.json', $tempDir.'/regex.dist.json');
+        copy(__DIR__.'/../../Fixtures/Config/user_config.json', $tempDir.'/regex.json');
 
         try {
             if (false === @chdir($tempDir)) {
@@ -218,7 +218,7 @@ final class LintCommandComponentsTest extends TestCase
             $this->markTestSkipped('Unable to create temp directory.');
         }
 
-        file_put_contents($tempDir.'/regex.json', '{');
+        copy(__DIR__.'/../../Fixtures/Config/invalid_json.json', $tempDir.'/regex.json');
 
         try {
             if (false === @chdir($tempDir)) {
@@ -320,8 +320,7 @@ final class LintCommandComponentsTest extends TestCase
         if (false === $tempFile) {
             $this->markTestSkipped('Unable to create temp file.');
         }
-        $content = '<?php preg_match(\'/foo/\', $input);';
-        file_put_contents($tempFile, $content);
+        copy(__DIR__.'/../../Fixtures/Lint/token_based_test.php', $tempFile);
 
         try {
             $result = $strategy->extract([$tempFile]);

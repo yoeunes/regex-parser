@@ -1,0 +1,3 @@
+test_route:
+  requirements:
+    id: '\d+'

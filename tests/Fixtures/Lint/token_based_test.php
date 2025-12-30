@@ -1,0 +1,1 @@
+<?php preg_match('/foo/', $input);

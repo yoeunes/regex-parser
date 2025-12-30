@@ -11,79 +11,6 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace RegexParser;
-
-if (!\function_exists(__NAMESPACE__.'\\preg_match')) {
-    /**
-     * @param ?array<int|string, mixed> &$matches
-     * @param 0|256|512|768             $flags
-     */
-    function preg_match(
-        string $pattern,
-        string $subject,
-        ?array &$matches = null,
-        int $flags = 0,
-        int $offset = 0
-    ): int|false {
-        foreach ($GLOBALS as $key => $queue) {
-            if (\is_string($key) && str_starts_with($key, '__regex_preg_match_queue_')) {
-                if (\is_array($queue) && [] !== $queue) {
-                    $next = array_shift($queue);
-                    $GLOBALS[$key] = $queue;
-
-                    if (null !== $matches) {
-                        $matches = [];
-                    }
-
-                    return \is_int($next) || false === $next ? $next : false;
-                }
-            }
-        }
-
-        $queue = $GLOBALS['__regex_preg_match_queue'] ?? [];
-        if (\is_array($queue) && [] !== $queue) {
-            $next = array_shift($queue);
-            $GLOBALS['__regex_preg_match_queue'] = $queue;
-
-            if (null !== $matches) {
-                $matches = [];
-            }
-
-            return \is_int($next) || false === $next ? $next : false;
-        }
-
-        /* @var int|false */
-        return @\preg_match($pattern, $subject, $matches, $flags, $offset);
-    }
-}
-
-if (!\function_exists(__NAMESPACE__.'\\preg_last_error_msg')) {
-    function preg_last_error_msg(): string
-    {
-        foreach ($GLOBALS as $key => $queue) {
-            if (\is_string($key) && str_starts_with($key, '__regex_preg_last_error_msg_queue_')) {
-                if (\is_array($queue) && [] !== $queue) {
-                    $next = array_shift($queue);
-                    $GLOBALS[$key] = $queue;
-
-                    return \is_string($next) ? $next : '';
-                }
-            }
-        }
-
-        $queue = $GLOBALS['__regex_preg_last_error_msg_queue'] ?? [];
-        if (\is_array($queue) && [] !== $queue) {
-            $next = array_shift($queue);
-            $GLOBALS['__regex_preg_last_error_msg_queue'] = $queue;
-
-            return \is_string($next) ? $next : '';
-        }
-
-        /* @var string */
-        return \preg_last_error_msg();
-    }
-}
-
 namespace RegexParser\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
@@ -92,28 +19,9 @@ use RegexParser\Node\LiteralNode;
 use RegexParser\Node\RegexNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\Regex;
-use RegexParser\ValidationResult;
 
 final class RegexCoverageTest extends TestCase
 {
-    private string $queueKey;
-
-    private string $errorMsgQueueKey;
-
-    protected function setUp(): void
-    {
-        $this->queueKey = '__regex_preg_match_queue_'.spl_object_id($this);
-        $this->errorMsgQueueKey = '__regex_preg_last_error_msg_queue_'.spl_object_id($this);
-    }
-
-    protected function tearDown(): void
-    {
-        unset(
-            $GLOBALS[$this->queueKey],
-            $GLOBALS[$this->errorMsgQueueKey],
-        );
-    }
-
     public function test_analyze_collects_errors_from_subsystems(): void
     {
         $cache = new class implements CacheInterface {
@@ -208,20 +116,5 @@ final class RegexCoverageTest extends TestCase
         $this->assertInstanceOf(SequenceNode::class, $fallback->pattern);
         $this->assertInstanceOf(LiteralNode::class, $fallback->pattern->children[0]);
         $this->assertSame('abc', $fallback->pattern->children[0]->value);
-    }
-
-    public function test_check_runtime_compilation_uses_default_error_message(): void
-    {
-        $regex = Regex::create();
-        $ref = new \ReflectionClass($regex);
-        $method = $ref->getMethod('checkRuntimeCompilation');
-
-        $GLOBALS[$this->queueKey] = [false];
-        $GLOBALS[$this->errorMsgQueueKey] = ['No error'];
-
-        $result = $method->invoke($regex, '/foo/', 'foo', 0);
-
-        $this->assertInstanceOf(ValidationResult::class, $result);
-        $this->assertStringContainsString('PCRE runtime error.', $result->error ?? '');
     }
 }

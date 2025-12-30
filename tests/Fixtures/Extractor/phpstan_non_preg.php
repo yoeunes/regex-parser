@@ -1,0 +1,1 @@
+<?php strpos('/test/', (string) $input);

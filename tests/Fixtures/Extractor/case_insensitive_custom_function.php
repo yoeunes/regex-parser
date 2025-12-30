@@ -1,0 +1,1 @@
+<?php mycustomregex("/test/", $text);

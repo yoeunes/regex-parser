@@ -1,0 +1,1 @@
+<?php preg_match("/\101/", $text);

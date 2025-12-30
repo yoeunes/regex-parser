@@ -1,0 +1,1 @@
+<?php $obj?->MyFunction("/test/", $text);

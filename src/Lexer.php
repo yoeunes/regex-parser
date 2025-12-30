@@ -245,14 +245,6 @@ final class Lexer
             );
         }
 
-        if (!\is_array($matches)) {
-            throw LexerException::withContext(
-                'Lexer internal error: Invalid match results.',
-                $this->position,
-                $this->pattern,
-            );
-        }
-
         if (!isset($matches[0]) || !\is_string($matches[0])) {
             throw LexerException::withContext(
                 'Lexer internal error: Missing matched token.',
@@ -405,10 +397,8 @@ final class Lexer
             return null;
         }
 
-        /** @phpstan-ignore cast.string */
-        $literalText = (string) ($matches[1] ?? '');
-        /** @phpstan-ignore cast.string */
-        $endSequence = (string) ($matches[2] ?? '');
+        $literalText = $matches[1];
+        $endSequence = $matches[2];
         $startPos = $this->position;
 
         if ('' !== $literalText) {
@@ -441,10 +431,8 @@ final class Lexer
             return null;
         }
 
-        /** @phpstan-ignore cast.string */
-        $commentText = (string) ($matches[1] ?? '');
-        /** @phpstan-ignore cast.string */
-        $endSequence = (string) ($matches[2] ?? '');
+        $commentText = $matches[1];
+        $endSequence = $matches[2];
         $startPos = $this->position;
 
         if ('' !== $commentText) {
@@ -525,10 +513,6 @@ final class Lexer
     private function parseUnicodeEscape(string $escape): string
     {
         if (preg_match('/^\\\\x([0-9a-fA-F]{1,2})$/', $escape, $m)) {
-            if (!isset($m[1]) || !\is_string($m[1])) {
-                return $escape;
-            }
-
             $code = (int) hexdec($m[1]);
             if ($code <= 0xFF) {
                 return \chr($code);

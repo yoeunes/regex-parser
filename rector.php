@@ -51,5 +51,6 @@ return static function (RectorConfig $rectorConfig): void {
         RegexDashEscapeRector::class,
         FinalizeTestCaseClassRector::class,
         AddInstanceofAssertForNullableInstanceRector::class,
+        __DIR__.'/tests/Fixtures',
     ]);
 };
