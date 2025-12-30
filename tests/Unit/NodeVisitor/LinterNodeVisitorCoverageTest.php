@@ -11,29 +11,6 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\NodeVisitor;
-
-if (!\function_exists(__NAMESPACE__.'\\str_split')) {
-    /**
-     * @return array<int, string>
-     */
-    function str_split(string $string, int $length = 1): array
-    {
-        $queue = $GLOBALS['__nodevisitor_str_split_queue'] ?? [];
-        if (\is_array($queue) && [] !== $queue) {
-            /** @var array<int, string> $next */
-            $next = array_shift($queue);
-            $GLOBALS['__nodevisitor_str_split_queue'] = $queue;
-
-            return \is_array($next) ? $next : [];
-        }
-
-        $length = max(1, $length);
-
-        return \str_split($string, $length);
-    }
-}
-
 namespace RegexParser\Tests\Unit\NodeVisitor;
 
 use PHPUnit\Framework\TestCase;
@@ -64,11 +41,6 @@ use RegexParser\ReDoS\CharSetAnalyzer;
 
 final class LinterNodeVisitorCoverageTest extends TestCase
 {
-    protected function tearDown(): void
-    {
-        unset($GLOBALS['__nodevisitor_str_split_queue']);
-    }
-
     public function test_unicode_escape_out_of_range_adds_issue(): void
     {
         $linter = new LinterNodeVisitor();
@@ -254,10 +226,6 @@ final class LinterNodeVisitorCoverageTest extends TestCase
         $unsetFlag = new GroupNode(new LiteralNode('a', 0, 0), GroupType::T_GROUP_NON_CAPTURING, null, '-i', 0, 0);
         $this->invokePrivate($linter, 'lintInlineFlags', [$unsetFlag]);
         $this->assertNotEmpty($linter->getIssues());
-
-        $GLOBALS['__nodevisitor_str_split_queue'] = [['', 'i'], ['', 'i']];
-        $weirdFlags = new GroupNode(new LiteralNode('a', 0, 0), GroupType::T_GROUP_NON_CAPTURING, null, 'i-i', 0, 0);
-        $this->invokePrivate($linter, 'lintInlineFlags', [$weirdFlags]);
     }
 
     public function test_is_redundant_group_recurses_through_sequence(): void

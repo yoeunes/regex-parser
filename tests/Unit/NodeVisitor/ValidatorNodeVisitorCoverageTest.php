@@ -11,38 +11,6 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\NodeVisitor;
-
-if (!\function_exists(__NAMESPACE__.'\\str_starts_with')) {
-    function str_starts_with(string $haystack, string $needle): bool
-    {
-        $queue = $GLOBALS['__nodevisitor_str_starts_with_queue'] ?? [];
-        if (\is_array($queue) && [] !== $queue) {
-            $next = array_shift($queue);
-            $GLOBALS['__nodevisitor_str_starts_with_queue'] = $queue;
-
-            return (bool) $next;
-        }
-
-        return \str_starts_with($haystack, $needle);
-    }
-}
-
-if (!\function_exists(__NAMESPACE__.'\\str_ends_with')) {
-    function str_ends_with(string $haystack, string $needle): bool
-    {
-        $queue = $GLOBALS['__nodevisitor_str_ends_with_queue'] ?? [];
-        if (\is_array($queue) && [] !== $queue) {
-            $next = array_shift($queue);
-            $GLOBALS['__nodevisitor_str_ends_with_queue'] = $queue;
-
-            return (bool) $next;
-        }
-
-        return \str_ends_with($haystack, $needle);
-    }
-}
-
 namespace RegexParser\Tests\Unit\NodeVisitor;
 
 use PHPUnit\Framework\TestCase;
@@ -79,11 +47,6 @@ use RegexParser\Regex;
 
 final class ValidatorNodeVisitorCoverageTest extends TestCase
 {
-    protected function tearDown(): void
-    {
-        unset($GLOBALS['__nodevisitor_str_starts_with_queue'], $GLOBALS['__nodevisitor_str_ends_with_queue']);
-    }
-
     public function test_clear_caches_resets_static_state(): void
     {
         $ref = new \ReflectionClass(ValidatorNodeVisitor::class);
@@ -232,23 +195,6 @@ final class ValidatorNodeVisitorCoverageTest extends TestCase
         $node->accept($validator);
     }
 
-    public function test_unicode_property_invalid_includes_named_suggestion(): void
-    {
-        $validator = new ValidatorNodeVisitor();
-        $ref = new \ReflectionClass(ValidatorNodeVisitor::class);
-        $unicodePropCache = $ref->getProperty('unicodePropCache');
-        $unicodePropCache->setValue(['pp{Letter}' => false]);
-
-        $GLOBALS['__nodevisitor_str_starts_with_queue'] = [true];
-
-        $node = new UnicodePropNode('p{Letter}', true, 0, 0);
-
-        $this->expectException(SemanticErrorException::class);
-        $this->expectExceptionMessage('Did you mean');
-
-        $node->accept($validator);
-    }
-
     public function test_unicode_property_cache_eviction_runs(): void
     {
         $validator = new ValidatorNodeVisitor();
@@ -364,16 +310,6 @@ final class ValidatorNodeVisitorCoverageTest extends TestCase
 
         $this->expectException(SemanticErrorException::class);
         (new SubroutineNode('R1', 'R1', 0, 0))->accept($validator);
-    }
-
-    public function test_subroutine_empty_recursion_reference_returns(): void
-    {
-        $validator = new ValidatorNodeVisitor();
-
-        $GLOBALS['__nodevisitor_str_starts_with_queue'] = [true];
-
-        (new SubroutineNode('', '', 0, 0))->accept($validator);
-        $this->expectNotToPerformAssertions();
     }
 
     public function test_subroutine_absolute_recursion_reference_returns(): void

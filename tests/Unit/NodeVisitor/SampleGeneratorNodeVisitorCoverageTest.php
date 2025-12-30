@@ -11,37 +11,12 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\NodeVisitor;
-
-if (!\function_exists(__NAMESPACE__.'\\str_starts_with')) {
-    function str_starts_with(string $haystack, string $needle): bool
-    {
-        $queue = $GLOBALS['__nodevisitor_str_starts_with_queue'] ?? [];
-        if (\is_array($queue) && [] !== $queue) {
-            $next = array_shift($queue);
-            $GLOBALS['__nodevisitor_str_starts_with_queue'] = $queue;
-
-            return (bool) $next;
-        }
-
-        return \str_starts_with($haystack, $needle);
-    }
-}
-
-if (!\function_exists(__NAMESPACE__.'\\mb_chr')) {
-    function mb_chr(int $codepoint, ?string $encoding = null): string|false
-    {
-        if (!empty($GLOBALS['__nodevisitor_mb_chr_throw'])) {
-            throw new \RuntimeException('mb_chr forced failure');
-        }
-
-        return \mb_chr($codepoint, $encoding ?? 'UTF-8');
-    }
-}
-
 namespace RegexParser\Tests\Unit\NodeVisitor;
 
 use PHPUnit\Framework\TestCase;
+use Random\Engine;
+use Random\Randomizer;
+use RegexParser\Node\AssertionNode;
 use RegexParser\Node\BackrefNode;
 use RegexParser\Node\CalloutNode;
 use RegexParser\Node\CharLiteralNode;
@@ -60,14 +35,6 @@ use RegexParser\NodeVisitor\SampleGeneratorNodeVisitor;
 
 final class SampleGeneratorNodeVisitorCoverageTest extends TestCase
 {
-    protected function tearDown(): void
-    {
-        unset(
-            $GLOBALS['__nodevisitor_str_starts_with_queue'],
-            $GLOBALS['__nodevisitor_mb_chr_throw'],
-        );
-    }
-
     public function test_range_fallbacks_for_non_literal_nodes(): void
     {
         $generator = new SampleGeneratorNodeVisitor();
@@ -120,12 +87,10 @@ final class SampleGeneratorNodeVisitorCoverageTest extends TestCase
         $this->assertSame('A', (new ControlCharNode('A', 0x41, 0, 0))->accept($generator));
     }
 
-    public function test_char_literal_mb_chr_failure_returns_question(): void
+    public function test_char_literal_out_of_range_returns_question(): void
     {
         $generator = new SampleGeneratorNodeVisitor();
-        $GLOBALS['__nodevisitor_mb_chr_throw'] = true;
-
-        $result = (new CharLiteralNode('\\x41', 0x41, CharLiteralType::UNICODE, 0, 0))->accept($generator);
+        $result = (new CharLiteralNode('\\x{110000}', 0x110000, CharLiteralType::UNICODE, 0, 0))->accept($generator);
 
         $this->assertSame('?', $result);
     }
@@ -176,13 +141,13 @@ final class SampleGeneratorNodeVisitorCoverageTest extends TestCase
     public function test_random_int_falls_back_on_exception(): void
     {
         $generator = new SampleGeneratorNodeVisitor();
-        $engine = new class implements \Random\Engine {
+        $engine = new class implements Engine {
             public function generate(): string
             {
                 throw new \RuntimeException('random failed');
             }
         };
-        $this->setPrivate($generator, 'randomizer', new \Random\Randomizer($engine));
+        $this->setPrivate($generator, 'randomizer', new Randomizer($engine));
 
         $value = $this->invokePrivate($generator, 'randomInt', [5, 1]);
 
@@ -213,7 +178,7 @@ final class SampleGeneratorNodeVisitorCoverageTest extends TestCase
         $nonLookaround = new GroupNode(new LiteralNode('a', 0, 0), GroupType::T_GROUP_NON_CAPTURING, null, null, 0, 0);
         $this->assertTrue($this->invokePrivate($generator, 'isConditionSatisfied', [$nonLookaround]));
 
-        $assertion = new \RegexParser\Node\AssertionNode('A', 0, 0);
+        $assertion = new AssertionNode('A', 0, 0);
         $this->assertTrue($this->invokePrivate($generator, 'isConditionSatisfied', [$assertion]));
 
         $fallback = $this->invokePrivate($generator, 'isConditionSatisfied', [new LiteralNode('b', 0, 0)]);
@@ -263,8 +228,7 @@ final class SampleGeneratorNodeVisitorCoverageTest extends TestCase
         $nullNegative = $this->invokePrivate($generator, 'resolveSubroutineTarget', [new SubroutineNode('-1', '-1', 0, 0)]);
         $this->assertNull($nullNegative);
 
-        $GLOBALS['__nodevisitor_str_starts_with_queue'] = [true];
-        $rootReturn = $this->invokePrivate($generator, 'resolveSubroutineTarget', [new SubroutineNode('', '', 0, 0)]);
+        $rootReturn = $this->invokePrivate($generator, 'resolveSubroutineTarget', [new SubroutineNode('R', 'R', 0, 0)]);
         $this->assertSame($root, $rootReturn);
     }
 

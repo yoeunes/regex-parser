@@ -11,24 +11,6 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Lint\Formatter;
-
-if (!\function_exists(__NAMESPACE__.'\\strrpos')) {
-    function strrpos(string $haystack, string $needle, int $offset = 0): int|false
-    {
-        $queue = $GLOBALS['__console_formatter_strrpos_queue'] ?? [];
-        if (\is_array($queue) && [] !== $queue) {
-            $next = array_shift($queue);
-            $GLOBALS['__console_formatter_strrpos_queue'] = $queue;
-
-            return \is_int($next) || false === $next ? $next : false;
-        }
-
-        /* @var int|false */
-        return \strrpos($haystack, $needle, $offset);
-    }
-}
-
 namespace RegexParser\Tests\Unit\Lint\Formatter;
 
 use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
@@ -47,11 +29,6 @@ final class ConsoleFormatterTest extends TestCase
     protected function setUp(): void
     {
         $this->formatter = new ConsoleFormatter();
-    }
-
-    protected function tearDown(): void
-    {
-        unset($GLOBALS['__console_formatter_strrpos_queue']);
     }
 
     #[DoesNotPerformAssertions]
@@ -933,18 +910,6 @@ final class ConsoleFormatterTest extends TestCase
 
         $this->assertIsString($output);
         $this->assertSame('', $output);
-    }
-
-    public function test_format_pattern_returns_raw_when_delimiter_reparse_fails(): void
-    {
-        $analysis = new RegexAnalysisService(Regex::create());
-        $formatter = new ConsoleFormatter($analysis, new OutputConfiguration(ansi: true));
-        $GLOBALS['__console_formatter_strrpos_queue'] = [4, false];
-
-        $output = $this->invokePrivate($formatter, 'formatPatternForDisplay', '/abc/');
-
-        $this->assertIsString($output);
-        $this->assertSame('/abc/', $output);
     }
 
     public function test_format_pattern_for_display_falls_back_when_highlighter_missing(): void

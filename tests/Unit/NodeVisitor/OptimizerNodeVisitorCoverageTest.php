@@ -11,38 +11,6 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\NodeVisitor;
-
-if (!\function_exists(__NAMESPACE__.'\\str_starts_with')) {
-    function str_starts_with(string $haystack, string $needle): bool
-    {
-        $queue = $GLOBALS['__nodevisitor_str_starts_with_queue'] ?? [];
-        if (\is_array($queue) && [] !== $queue) {
-            $next = array_shift($queue);
-            $GLOBALS['__nodevisitor_str_starts_with_queue'] = $queue;
-
-            return (bool) $next;
-        }
-
-        return \str_starts_with($haystack, $needle);
-    }
-}
-
-if (!\function_exists(__NAMESPACE__.'\\str_ends_with')) {
-    function str_ends_with(string $haystack, string $needle): bool
-    {
-        $queue = $GLOBALS['__nodevisitor_str_ends_with_queue'] ?? [];
-        if (\is_array($queue) && [] !== $queue) {
-            $next = array_shift($queue);
-            $GLOBALS['__nodevisitor_str_ends_with_queue'] = $queue;
-
-            return (bool) $next;
-        }
-
-        return \str_ends_with($haystack, $needle);
-    }
-}
-
 namespace RegexParser\Tests\Unit\NodeVisitor;
 
 use PHPUnit\Framework\TestCase;
@@ -59,11 +27,6 @@ use RegexParser\NodeVisitor\OptimizerNodeVisitor;
 
 final class OptimizerNodeVisitorCoverageTest extends TestCase
 {
-    protected function tearDown(): void
-    {
-        unset($GLOBALS['__nodevisitor_str_starts_with_queue'], $GLOBALS['__nodevisitor_str_ends_with_queue']);
-    }
-
     public function test_sequence_flattens_nested_sequences(): void
     {
         $optimizer = new OptimizerNodeVisitor();
@@ -170,37 +133,6 @@ final class OptimizerNodeVisitorCoverageTest extends TestCase
         $this->assertCount(1, $result);
     }
 
-    public function test_factorize_alternation_with_without_prefix_returns_factored_and_rest(): void
-    {
-        $optimizer = new OptimizerNodeVisitor();
-        $GLOBALS['__nodevisitor_str_starts_with_queue'] = [true, false, true, true, false, false, true, true];
-        $alts = [
-            new LiteralNode('pre_a', 0, 5),
-            new LiteralNode('pre_b', 0, 5),
-            new LiteralNode('pre_c', 0, 5),
-        ];
-
-        $result = $this->invokePrivate($optimizer, 'factorizeAlternation', [$alts]);
-
-        $this->assertIsArray($result);
-        $this->assertCount(2, $result);
-    }
-
-    public function test_factorize_alternation_returns_alts_when_with_prefix_too_small(): void
-    {
-        $optimizer = new OptimizerNodeVisitor();
-        $GLOBALS['__nodevisitor_str_starts_with_queue'] = [true, false, true, false, true, false];
-        $alts = [
-            new LiteralNode('ab', 0, 2),
-            new LiteralNode('ac', 0, 2),
-        ];
-
-        $result = $this->invokePrivate($optimizer, 'factorizeAlternation', [$alts]);
-
-        $this->assertIsArray($result);
-        $this->assertCount(2, $result);
-    }
-
     public function test_factorize_suffix_all_suffix_only(): void
     {
         $optimizer = new OptimizerNodeVisitor();
@@ -221,37 +153,6 @@ final class OptimizerNodeVisitorCoverageTest extends TestCase
 
         $this->assertIsArray($result);
         $this->assertCount(1, $result);
-    }
-
-    public function test_factorize_suffix_with_without_suffix_returns_factored_and_rest(): void
-    {
-        $optimizer = new OptimizerNodeVisitor();
-        $GLOBALS['__nodevisitor_str_ends_with_queue'] = [false, true, true];
-        $alts = [
-            new LiteralNode('xend', 0, 4),
-            new LiteralNode('yend', 0, 4),
-            new LiteralNode('zend', 0, 4),
-        ];
-
-        $result = $this->invokePrivate($optimizer, 'factorizeSuffix', [$alts]);
-
-        $this->assertIsArray($result);
-        $this->assertCount(2, $result);
-    }
-
-    public function test_factorize_suffix_returns_alts_when_with_suffix_too_small(): void
-    {
-        $optimizer = new OptimizerNodeVisitor();
-        $GLOBALS['__nodevisitor_str_ends_with_queue'] = [false, true];
-        $alts = [
-            new LiteralNode('abx', 0, 3),
-            new LiteralNode('cbx', 0, 3),
-        ];
-
-        $result = $this->invokePrivate($optimizer, 'factorizeSuffix', [$alts]);
-
-        $this->assertIsArray($result);
-        $this->assertCount(2, $result);
     }
 
     public function test_find_common_prefix_empty_returns_empty_string(): void

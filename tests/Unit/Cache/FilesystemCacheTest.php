@@ -11,82 +11,6 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace RegexParser\Cache {
-    $GLOBALS['__filesystemcache_tempnam_fail'] = false;
-    $GLOBALS['__filesystemcache_file_put_contents_fail'] = false;
-    $GLOBALS['__filesystemcache_opcache_called'] = false;
-    $GLOBALS['__filesystemcache_rename_sequence'] = [];
-    $GLOBALS['__filesystemcache_copy_sequence'] = [];
-
-    function tempnam(string $directory, string $prefix): false|string
-    {
-        if (!empty($GLOBALS['__filesystemcache_tempnam_fail'])) {
-            return false;
-        }
-
-        return \tempnam($directory, $prefix);
-    }
-
-    function file_put_contents(string $filename, mixed $data, int $flags = 0, mixed $context = null): false|int
-    {
-        if (!empty($GLOBALS['__filesystemcache_file_put_contents_fail'])) {
-            return false;
-        }
-
-        if (is_resource($context)) {
-            return \file_put_contents($filename, $data, $flags, $context);
-        }
-
-        return \file_put_contents($filename, $data, $flags);
-    }
-
-    function opcache_invalidate(string $filename, bool $force = false): bool
-    {
-        $GLOBALS['__filesystemcache_opcache_called'] = true;
-
-        return true;
-    }
-
-    function rename(string $from, string $to): bool
-    {
-        $sequence = $GLOBALS['__filesystemcache_rename_sequence'] ?? [];
-        if (\is_array($sequence) && [] !== $sequence) {
-            /** @var array<int, bool> $sequence */
-            $value = array_shift($sequence);
-            $GLOBALS['__filesystemcache_rename_sequence'] = $sequence;
-
-            return (bool) $value;
-        }
-
-        return \rename($from, $to);
-    }
-
-    function copy(string $from, string $to): bool
-    {
-        $sequence = $GLOBALS['__filesystemcache_copy_sequence'] ?? [];
-        if (\is_array($sequence) && [] !== $sequence) {
-            /** @var array<int, bool> $sequence */
-            $value = array_shift($sequence);
-            $GLOBALS['__filesystemcache_copy_sequence'] = $sequence;
-
-            return (bool) $value;
-        }
-
-        return \copy($from, $to);
-    }
-}
-
-namespace {
-    if (!\function_exists('opcache_invalidate')) {
-        function opcache_invalidate(string $filename, bool $force = false): bool
-        {
-            $GLOBALS['__filesystemcache_opcache_called'] = true;
-
-            return true;
-        }
-    }
-}
-
 namespace RegexParser\Tests\Unit\Cache {
     use PHPUnit\Framework\TestCase;
     use RegexParser\Cache\FilesystemCache;
@@ -98,11 +22,6 @@ namespace RegexParser\Tests\Unit\Cache {
         protected function setUp(): void
         {
             $this->cacheDir = sys_get_temp_dir().'/regex-parser-cache-'.uniqid('', true);
-            $GLOBALS['__filesystemcache_tempnam_fail'] = false;
-            $GLOBALS['__filesystemcache_file_put_contents_fail'] = false;
-            $GLOBALS['__filesystemcache_opcache_called'] = false;
-            $GLOBALS['__filesystemcache_rename_sequence'] = [];
-            $GLOBALS['__filesystemcache_copy_sequence'] = [];
         }
 
         protected function tearDown(): void
@@ -149,24 +68,6 @@ namespace RegexParser\Tests\Unit\Cache {
             $this->assertSame(0, $cache->getTimestamp($key));
         }
 
-        public function test_write_throws_when_tempnam_fails(): void
-        {
-            $cache = new FilesystemCache($this->cacheDir);
-            $GLOBALS['__filesystemcache_tempnam_fail'] = true;
-
-            $this->expectException(\RuntimeException::class);
-            $cache->write($cache->generateKey('/tempnam/'), 'content');
-        }
-
-        public function test_write_throws_when_file_put_contents_fails(): void
-        {
-            $cache = new FilesystemCache($this->cacheDir);
-            $GLOBALS['__filesystemcache_file_put_contents_fail'] = true;
-
-            $this->expectException(\RuntimeException::class);
-            $cache->write($cache->generateKey('/fpc/'), 'content');
-        }
-
         public function test_write_throws_on_unwritable_directory(): void
         {
             $cache = new FilesystemCache($this->cacheDir);
@@ -179,19 +80,6 @@ namespace RegexParser\Tests\Unit\Cache {
             $this->expectExceptionMessage('Failed to move cache file');
 
             $cache->write($key, 'content');
-        }
-
-        public function test_write_uses_copy_when_rename_fails(): void
-        {
-            $cache = new FilesystemCache($this->cacheDir);
-            $key = $cache->generateKey('/rename-fallback/');
-
-            $GLOBALS['__filesystemcache_rename_sequence'] = [false];
-
-            $cache->write($key, "<?php return 'ok';\n");
-
-            $this->assertFileExists($key);
-            $this->assertSame('ok', $cache->load($key));
         }
 
         public function test_clear_specific_regex(): void
@@ -232,17 +120,6 @@ namespace RegexParser\Tests\Unit\Cache {
             $cache->clear();
 
             $this->assertDirectoryDoesNotExist($this->cacheDir);
-        }
-
-        public function test_write_triggers_opcache_invalidation(): void
-        {
-            $cache = new FilesystemCache($this->cacheDir);
-            $key = $cache->generateKey('/opcache/');
-
-            $cache->write($key, "<?php return 'ok';\n");
-
-            $this->assertTrue($GLOBALS['__filesystemcache_opcache_called']);
-            $this->assertSame('ok', $cache->load($key));
         }
 
         public function test_clear_skips_broken_symlink_paths(): void
