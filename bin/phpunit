@@ -1,1 +1,1 @@
-../../tools/phpunit/vendor/bin/phpunit
+../tools/phpunit/vendor/bin/phpunit

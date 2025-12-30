@@ -202,7 +202,7 @@ tasks:
             - ln -sf ../../tools/phplint/vendor/bin/phplint ./vendor/bin/phplint
             - ln -sf ../tools/phplint/vendor/bin/phplint ./bin/phplint
 
-            - ln -sf ../tools/phpstan/vendor/bin/phpstan ./vendor/bin/phpstan
+            - ln -sf ../../tools/phpstan/vendor/bin/phpstan ./vendor/bin/phpstan
             - ln -sf ../tools/phpstan/vendor/bin/phpstan ./bin/phpstan
 
             - ln -sf ../../tools/rector/vendor/bin/rector ./vendor/bin/rector
@@ -212,4 +212,4 @@ tasks:
             - ln -sf ../tools/infection/vendor/bin/infection ./bin/infection
 
             - ln -sf ../../tools/phpunit/vendor/bin/phpunit ./vendor/bin/phpunit
-            - ln -sf ../../tools/phpunit/vendor/bin/phpunit ./bin/phpunit
+            - ln -sf ../tools/phpunit/vendor/bin/phpunit ./bin/phpunit
