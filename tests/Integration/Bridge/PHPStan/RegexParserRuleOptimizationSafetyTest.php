@@ -40,6 +40,11 @@ final class RegexParserRuleOptimizationSafetyTest extends TestCase
         $this->assertFalse($this->rule->isOptimizationFormatSafe('#test#', '##'));
     }
 
+    public function test_rejects_missing_closing_delimiter(): void
+    {
+        $this->assertFalse($this->rule->isOptimizationFormatSafe('/abc/', '/abc'));
+    }
+
     public function test_rejects_broken_anchors(): void
     {
         $this->assertFalse($this->rule->isOptimizationFormatSafe('/abc$/', '$/'));
@@ -56,6 +61,26 @@ final class RegexParserRuleOptimizationSafetyTest extends TestCase
     {
         $this->assertFalse($this->rule->isOptimizationFormatSafe('/abcd/', '/a/'));
         $this->assertFalse($this->rule->isOptimizationFormatSafe('#longpattern#', '#x#'));
+    }
+
+    public function test_accepts_patterns_with_trailing_newline_escape(): void
+    {
+        $this->assertTrue($this->rule->isOptimizationFormatSafe('/A\\n/', '/A\\n/'));
+    }
+
+    public function test_accepts_patterns_with_leading_newline_escape(): void
+    {
+        $this->assertTrue($this->rule->isOptimizationFormatSafe('/\\nA/', '/\\nA/'));
+    }
+
+    public function test_rejects_optimizations_removing_leading_newline_escape(): void
+    {
+        $this->assertFalse($this->rule->isOptimizationFormatSafe('/\\nAB/', '/AB/'));
+    }
+
+    public function test_ignores_newline_escape_outside_the_pattern(): void
+    {
+        $this->assertTrue($this->rule->isOptimizationFormatSafe('/ab/\\n', '/ab/'));
     }
 
     public function test_accepts_valid_optimizations(): void

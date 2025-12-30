@@ -19,6 +19,24 @@ use RegexParser\Lexer;
 
 final class LexerCoverageTest extends TestCase
 {
+    private string $queueKey;
+
+    private string $errorMsgQueueKey;
+
+    protected function setUp(): void
+    {
+        $this->queueKey = '__regex_preg_match_queue_'.spl_object_id($this);
+        $this->errorMsgQueueKey = '__regex_preg_last_error_msg_queue_'.spl_object_id($this);
+    }
+
+    protected function tearDown(): void
+    {
+        unset(
+            $GLOBALS[$this->queueKey],
+            $GLOBALS[$this->errorMsgQueueKey],
+        );
+    }
+
     public function test_match_at_position_with_invalid_regex_throws(): void
     {
         $lexer = new Lexer();

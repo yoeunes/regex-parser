@@ -111,7 +111,9 @@ return (new PhpCsFixer\Config())
         'ternary_to_null_coalescing' => true,
         'trailing_comma_in_multiline' => ['elements' => ['arguments']],
         'unary_operator_spaces' => true,
-        'phpdoc_to_comment' => true,
+         'phpdoc_to_comment' => [
+             'ignored_tags' => ['var'],
+         ],
         'array_indentation' => true,
         'blank_line_after_namespace' => true,
         'blank_line_after_opening_tag' => true,

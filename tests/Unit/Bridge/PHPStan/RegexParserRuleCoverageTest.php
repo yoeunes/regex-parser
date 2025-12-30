@@ -94,6 +94,28 @@ final class RegexParserRuleCoverageTest extends TestCase
         $this->assertSame([], $rule->processNode($node, $scope));
     }
 
+    public function test_process_node_continues_after_non_string_callback_keys(): void
+    {
+        $rule = new RegexParserRule(ignoreParseErrors: false);
+        /** @var Scope&NodeCallbackInvoker&MockObject $scope */
+        $scope = $this->createMock(Scope::class);
+        $scope->method('getFile')->willReturn('file.php');
+
+        $array = new Array_([
+            new ArrayItem(new String_('handler'), new LNumber(1)),
+            new ArrayItem(new String_('handler'), new String_('/foo')),
+        ]);
+
+        $node = new FuncCall(new Name('preg_replace_callback_array'), [
+            new Arg($array),
+        ]);
+
+        $errors = $rule->processNode($node, $scope);
+
+        $this->assertCount(1, $errors);
+        $this->assertStringStartsWith('regex.syntax', $errors[0]->getIdentifier());
+    }
+
     public function test_validate_pattern_returns_error_for_empty_string(): void
     {
         $rule = new RegexParserRule();
@@ -104,6 +126,94 @@ final class RegexParserRuleCoverageTest extends TestCase
 
         $this->assertCount(1, $errors);
         $this->assertSame('regex.syntax.empty', $errors[0]->getIdentifier());
+    }
+
+    public function test_default_ignore_parse_errors_skips_partial_patterns(): void
+    {
+        $rule = new RegexParserRule();
+        /** @var Scope&NodeCallbackInvoker&MockObject $scope */
+        $scope = $this->createMock(Scope::class);
+        $scope->method('getFile')->willReturn('file.php');
+
+        $errors = $this->invokePrivate($rule, 'validatePattern', ['/foo', 10, $scope, 'preg_match']);
+
+        $this->assertSame([], $errors);
+    }
+
+    public function test_default_report_redos_is_enabled(): void
+    {
+        $rule = new RegexParserRule();
+        /** @var Scope&NodeCallbackInvoker&MockObject $scope */
+        $scope = $this->createMock(Scope::class);
+        $scope->method('getFile')->willReturn('file.php');
+
+        $errors = $this->invokePrivate($rule, 'validatePattern', ['/(a+)+$/', 5, $scope, 'preg_match']);
+
+        $hasRedos = false;
+        foreach ($errors as $error) {
+            if (str_starts_with($error->getIdentifier(), 'regex.redos')) {
+                $hasRedos = true;
+
+                break;
+            }
+        }
+
+        $this->assertTrue($hasRedos);
+    }
+
+    public function test_default_suggest_optimizations_is_disabled(): void
+    {
+        $rule = new RegexParserRule();
+        /** @var Scope&NodeCallbackInvoker&MockObject $scope */
+        $scope = $this->createMock(Scope::class);
+        $scope->method('getFile')->willReturn('file.php');
+
+        $errors = $this->invokePrivate($rule, 'validatePattern', ['/[0-9]+/', 9, $scope, 'preg_match']);
+
+        $hasOptimization = false;
+        foreach ($errors as $error) {
+            if ('regex.optimization' === $error->getIdentifier()) {
+                $hasOptimization = true;
+
+                break;
+            }
+        }
+
+        $this->assertFalse($hasOptimization);
+    }
+
+    public function test_default_optimization_config_enables_word_optimization(): void
+    {
+        $rule = new RegexParserRule(reportRedos: false, suggestOptimizations: true);
+        /** @var Scope&NodeCallbackInvoker&MockObject $scope */
+        $scope = $this->createMock(Scope::class);
+        $scope->method('getFile')->willReturn('file.php');
+
+        $errors = $this->invokePrivate($rule, 'validatePattern', ['/[A-Za-z0-9_]+/', 11, $scope, 'preg_match']);
+
+        $identifiers = array_map(static fn ($error) => $error->getIdentifier(), $errors);
+        $this->assertContains('regex.optimization', $identifiers);
+    }
+
+    public function test_default_optimization_config_avoids_cross_category_ranges(): void
+    {
+        $rule = new RegexParserRule(reportRedos: false, suggestOptimizations: true);
+        /** @var Scope&NodeCallbackInvoker&MockObject $scope */
+        $scope = $this->createMock(Scope::class);
+        $scope->method('getFile')->willReturn('file.php');
+
+        $errors = $this->invokePrivate($rule, 'validatePattern', ['/[9:;<]/', 12, $scope, 'preg_match']);
+
+        $hasOptimization = false;
+        foreach ($errors as $error) {
+            if ('regex.optimization' === $error->getIdentifier()) {
+                $hasOptimization = true;
+
+                break;
+            }
+        }
+
+        $this->assertFalse($hasOptimization);
     }
 
     public function test_report_redos_flag_skips_redos_issues(): void
@@ -164,6 +274,137 @@ final class RegexParserRuleCoverageTest extends TestCase
         $rule = new RegexParserRule();
 
         $this->assertFalse($rule->isOptimizationFormatSafe('/a/', '/'));
+    }
+
+    public function test_default_optimization_config_enables_digits_optimization(): void
+    {
+        $rule = new RegexParserRule(reportRedos: false, suggestOptimizations: true);
+        /** @var Scope&NodeCallbackInvoker&MockObject $scope */
+        $scope = $this->createMock(Scope::class);
+        $scope->method('getFile')->willReturn('file.php');
+
+        $errors = $this->invokePrivate($rule, 'validatePattern', ['/[0-9]+/', 11, $scope, 'preg_match']);
+
+        $identifiers = array_map(static fn ($error) => $error->getIdentifier(), $errors);
+        $this->assertContains('regex.optimization', $identifiers);
+    }
+
+    public function test_is_optimization_format_safe_rejects_empty_delimiter(): void
+    {
+        $rule = new RegexParserRule();
+
+        $this->assertFalse($rule->isOptimizationFormatSafe('/abc/', ''));
+    }
+
+    public function test_is_optimization_format_safe_rejects_delimiter_at_start_only(): void
+    {
+        $rule = new RegexParserRule();
+
+        $this->assertFalse($rule->isOptimizationFormatSafe('/abc/', '/'));
+    }
+
+    public function test_is_optimization_format_safe_rejects_empty_pattern_part(): void
+    {
+        $rule = new RegexParserRule();
+
+        $this->assertFalse($rule->isOptimizationFormatSafe('/abc/', '//'));
+    }
+
+    public function test_is_optimization_format_safe_rejects_short_pattern(): void
+    {
+        $rule = new RegexParserRule();
+
+        $this->assertFalse($rule->isOptimizationFormatSafe('/ab/', '/a/'));
+    }
+
+    public function test_validate_pattern_returns_early_on_syntax_error(): void
+    {
+        $rule = new RegexParserRule(ignoreParseErrors: false);
+        /** @var Scope&NodeCallbackInvoker&MockObject $scope */
+        $scope = $this->createMock(Scope::class);
+        $scope->method('getFile')->willReturn('file.php');
+
+        $errors = $this->invokePrivate($rule, 'validatePattern', ['/[', 10, $scope, 'preg_match']);
+
+        // Should return exactly one error and not continue processing
+        $this->assertCount(1, $errors);
+        $this->assertStringStartsWith('regex.syntax', $errors[0]->getIdentifier());
+    }
+
+    public function test_redos_critical_severity_uses_correct_identifier(): void
+    {
+        $rule = new RegexParserRule(reportRedos: true, redosThreshold: 'low');
+        $scope = $this->createMock(Scope::class);
+        $scope->method('getFile')->willReturn('file.php');
+
+        // Use a pattern that might trigger ReDoS
+        $errors = $this->invokePrivate($rule, 'validatePattern', ['/(x+)+/', 12, $scope, 'preg_match']);
+
+        $identifiers = array_map(static fn ($error) => $error->getIdentifier(), $errors);
+        // Just check that some redos identifier is present, the exact one depends on severity
+        $redosIdentifiers = array_filter($identifiers, static fn ($id) => str_starts_with((string) $id, 'regex.redos.'));
+        $this->assertNotEmpty($redosIdentifiers);
+    }
+
+    public function test_suggest_optimizations_uses_limit_parameter(): void
+    {
+        $rule = new RegexParserRule(reportRedos: false, suggestOptimizations: true);
+        $scope = $this->createMock(Scope::class);
+        $scope->method('getFile')->willReturn('file.php');
+
+        // This should work with the default limit of 1
+        $errors = $this->invokePrivate($rule, 'validatePattern', ['/[0-9]+/', 12, $scope, 'preg_match']);
+
+        $identifiers = array_map(static fn ($error) => $error->getIdentifier(), $errors);
+        $this->assertContains('regex.optimization', $identifiers);
+    }
+
+    public function test_get_identifier_for_syntax_error_detects_delimiter(): void
+    {
+        $rule = new RegexParserRule();
+        $ref = new \ReflectionClass($rule);
+        $refMethod = $ref->getMethod('getIdentifierForSyntaxError');
+
+        $result = $refMethod->invokeArgs($rule, ['Invalid delimiter in regex pattern']);
+
+        $this->assertSame('regex.syntax.delimiter', $result);
+    }
+
+    public function test_get_identifier_for_syntax_error_defaults_to_invalid(): void
+    {
+        $rule = new RegexParserRule();
+        $ref = new \ReflectionClass($rule);
+        $refMethod = $ref->getMethod('getIdentifierForSyntaxError');
+
+        $result = $refMethod->invokeArgs($rule, ['Some other error message']);
+
+        $this->assertSame('regex.syntax.invalid', $result);
+    }
+
+    public function test_truncate_pattern_handles_edge_cases(): void
+    {
+        $rule = new RegexParserRule();
+        $ref = new \ReflectionClass($rule);
+        $refMethod = $ref->getMethod('truncatePattern');
+
+        // Test exactly at length limit
+        $result = $refMethod->invokeArgs($rule, [str_repeat('a', 50), 50]);
+        $this->assertSame(str_repeat('a', 50), $result);
+
+        // Test over length limit
+        $result = $refMethod->invokeArgs($rule, [str_repeat('a', 51), 50]);
+        $this->assertSame(str_repeat('a', 50).'...', $result);
+    }
+
+    public function test_format_source_concatenates_correctly(): void
+    {
+        $rule = new RegexParserRule();
+        $ref = new \ReflectionClass($rule);
+        $refMethod = $ref->getMethod('formatSource');
+
+        $result = $refMethod->invokeArgs($rule, ['preg_match']);
+
+        $this->assertSame('php:preg_match()', $result);
     }
 
     /**

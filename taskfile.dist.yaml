@@ -90,6 +90,23 @@ tasks:
           - .task/phpbench.success
         method: checksum
 
+    infection:
+        cmds:
+            - cmd: tools/infection/vendor/bin/infection {{.CLI_ARGS}}
+            - cmd: touch .task/infection.success
+        sources:
+            - infection.json.dist
+            - phpunit.dist.xml
+            - src/**/*.php
+            - tests/**/*.php
+        generates:
+            - .cache/infection/infection.log
+            - .cache/infection/infection-summary.log
+            - .cache/infection/infection-report.html
+            - .cache/infection/infection-log.json
+            - .task/infection.success
+        method: checksum
+
     coverage:
         env:
             XDEBUG_MODE: coverage
@@ -123,6 +140,7 @@ tasks:
             - composer install -d tools/phplint
             - composer install -d tools/phpstan
             - composer install -d tools/rector
+            - composer install -d tools/infection
 
             - task: link
         sources:
@@ -160,6 +178,10 @@ tasks:
             - composer outdated --direct -d tools/rector
             - composer audit -d tools/rector || true
 
+            - composer update -W -d tools/infection
+            - composer outdated --direct -d tools/infection
+            - composer audit -d tools/infection || true
+
             - task: link
 
     link:
@@ -178,3 +200,6 @@ tasks:
 
             - ln -sf ../../tools/rector/vendor/bin/rector ./vendor/bin/rector
             - ln -sf ../tools/rector/vendor/bin/rector ./bin/rector
+
+            - ln -sf ../../tools/infection/vendor/bin/infection ./vendor/bin/infection
+            - ln -sf ../tools/infection/vendor/bin/infection ./bin/infection

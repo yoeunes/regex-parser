@@ -25,6 +25,21 @@ if (!\function_exists(__NAMESPACE__.'\\preg_match')) {
         int $flags = 0,
         int $offset = 0
     ): int|false {
+        foreach ($GLOBALS as $key => $queue) {
+            if (\is_string($key) && str_starts_with($key, '__regex_preg_match_queue_')) {
+                if (\is_array($queue) && [] !== $queue) {
+                    $next = array_shift($queue);
+                    $GLOBALS[$key] = $queue;
+
+                    if (null !== $matches) {
+                        $matches = [];
+                    }
+
+                    return \is_int($next) || false === $next ? $next : false;
+                }
+            }
+        }
+
         $queue = $GLOBALS['__regex_preg_match_queue'] ?? [];
         if (\is_array($queue) && [] !== $queue) {
             $next = array_shift($queue);
@@ -38,21 +53,30 @@ if (!\function_exists(__NAMESPACE__.'\\preg_match')) {
         }
 
         /* @var int|false */
-        return \preg_match($pattern, $subject, $matches, $flags, $offset);
+        return @\preg_match($pattern, $subject, $matches, $flags, $offset);
     }
 }
 
 if (!\function_exists(__NAMESPACE__.'\\preg_last_error_msg')) {
     function preg_last_error_msg(): string
     {
+        foreach ($GLOBALS as $key => $queue) {
+            if (\is_string($key) && str_starts_with($key, '__regex_preg_last_error_msg_queue_')) {
+                if (\is_array($queue) && [] !== $queue) {
+                    $next = array_shift($queue);
+                    $GLOBALS[$key] = $queue;
+
+                    return \is_string($next) ? $next : '';
+                }
+            }
+        }
+
         $queue = $GLOBALS['__regex_preg_last_error_msg_queue'] ?? [];
         if (\is_array($queue) && [] !== $queue) {
             $next = array_shift($queue);
             $GLOBALS['__regex_preg_last_error_msg_queue'] = $queue;
 
-            $value = $next;
-
-            return is_string($value) ? $value : '';
+            return \is_string($next) ? $next : '';
         }
 
         /* @var string */
@@ -72,9 +96,22 @@ use RegexParser\ValidationResult;
 
 final class RegexCoverageTest extends TestCase
 {
+    private string $queueKey;
+
+    private string $errorMsgQueueKey;
+
+    protected function setUp(): void
+    {
+        $this->queueKey = '__regex_preg_match_queue_'.spl_object_id($this);
+        $this->errorMsgQueueKey = '__regex_preg_last_error_msg_queue_'.spl_object_id($this);
+    }
+
     protected function tearDown(): void
     {
-        unset($GLOBALS['__regex_preg_match_queue'], $GLOBALS['__regex_preg_last_error_msg_queue']);
+        unset(
+            $GLOBALS[$this->queueKey],
+            $GLOBALS[$this->errorMsgQueueKey],
+        );
     }
 
     public function test_analyze_collects_errors_from_subsystems(): void
@@ -179,8 +216,8 @@ final class RegexCoverageTest extends TestCase
         $ref = new \ReflectionClass($regex);
         $method = $ref->getMethod('checkRuntimeCompilation');
 
-        $GLOBALS['__regex_preg_match_queue'] = [false];
-        $GLOBALS['__regex_preg_last_error_msg_queue'] = ['No error'];
+        $GLOBALS[$this->queueKey] = [false];
+        $GLOBALS[$this->errorMsgQueueKey] = ['No error'];
 
         $result = $method->invoke($regex, '/foo/', 'foo', 0);
 
