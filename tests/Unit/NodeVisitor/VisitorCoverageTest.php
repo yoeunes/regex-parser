@@ -15,6 +15,7 @@ namespace RegexParser\Tests\Unit\NodeVisitor;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use RegexParser\NodeVisitor\AsciiTreeVisitor;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
 use RegexParser\NodeVisitor\ComplexityScoreNodeVisitor;
 use RegexParser\NodeVisitor\ConsoleHighlighterVisitor;
@@ -30,7 +31,6 @@ use RegexParser\NodeVisitor\MetricsNodeVisitor;
 use RegexParser\NodeVisitor\ModernizerNodeVisitor;
 use RegexParser\NodeVisitor\NodeVisitorInterface;
 use RegexParser\NodeVisitor\OptimizerNodeVisitor;
-use RegexParser\NodeVisitor\AsciiTreeVisitor;
 use RegexParser\NodeVisitor\RailroadSvgVisitor;
 use RegexParser\NodeVisitor\ReDoSProfileNodeVisitor;
 use RegexParser\NodeVisitor\SampleGeneratorNodeVisitor;

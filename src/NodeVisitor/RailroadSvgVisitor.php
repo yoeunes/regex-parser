@@ -77,12 +77,15 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
 
     private int $negatedCharClassDepth = 0;
 
+    private int $groupDepth = 0;
+
     #[\Override]
     public function visitRegex(RegexNode $node): string
     {
         $this->groupCounter = 0;
         $this->charClassDepth = 0;
         $this->negatedCharClassDepth = 0;
+        $this->groupDepth = 0;
 
         $patternLayout = $node->pattern->accept($this);
         $flags = '' !== $node->flags ? $node->flags : null;
@@ -116,9 +119,12 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitGroup(GroupNode $node)
     {
+        $this->groupDepth++;
         $label = $this->groupLabel($node);
+        $result = $this->layoutGroupBox($node->child->accept($this), $label);
+        $this->groupDepth--;
 
-        return $this->layoutGroupBox($node->child->accept($this), $label);
+        return $result;
     }
 
     #[\Override]
@@ -165,7 +171,9 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitAnchor(AnchorNode $node)
     {
-        return $this->createNodeLayout($node->value, 'node anchor');
+        $class = ($this->groupDepth > 0 || $this->charClassDepth > 0) ? 'node literal' : 'node anchor';
+
+        return $this->createNodeLayout($node->value, $class);
     }
 
     #[\Override]
@@ -474,7 +482,7 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
         $labelWidth = $this->measureTextWidth($label);
         $width = (int) max(
             $childLayout['width'] + (self::GROUP_PADDING_X * 2),
-            $labelWidth + (self::GROUP_PADDING_X * 2)
+            $labelWidth + (self::GROUP_PADDING_X * 2),
         );
         $boxTop = self::GROUP_LABEL_HEIGHT + self::LABEL_GAP;
         $height = $boxTop + (int) $childLayout['height'] + (self::GROUP_PADDING_Y * 2);
@@ -826,7 +834,7 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
             $width,
             $height,
             $width,
-            $height
+            $height,
         );
         $svg[] = '<defs>';
         $svg[] = '<style>';
@@ -860,7 +868,7 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
                 $box['width'],
                 $box['height'],
                 $box['rx'],
-                $box['ry']
+                $box['ry'],
             );
         }
 
@@ -868,7 +876,7 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
             $svg[] = \sprintf(
                 '<path class="%s" d="%s"/>',
                 $this->escapeAttribute($path['class'] ?? 'path'),
-                $this->renderPath($path['points'])
+                $this->renderPath($path['points']),
             );
         }
 
@@ -878,7 +886,7 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
                 $this->escapeAttribute($marker['class']),
                 $marker['cx'],
                 $marker['cy'],
-                $marker['r']
+                $marker['r'],
             );
         }
 
@@ -891,13 +899,13 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
                 $node['width'],
                 $node['height'],
                 self::NODE_RADIUS,
-                self::NODE_RADIUS
+                self::NODE_RADIUS,
             );
             $svg[] = \sprintf(
                 '<text class="label" x="%d" y="%d">%s</text>',
                 $node['x'] + (int) floor($node['width'] / 2),
                 $node['y'] + (int) floor($node['height'] / 2),
-                $this->escapeText($node['label'])
+                $this->escapeText($node['label']),
             );
         }
 
@@ -907,7 +915,7 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
                 $this->escapeAttribute($text['class']),
                 $text['x'],
                 $text['y'],
-                $this->escapeText($text['text'])
+                $this->escapeText($text['text']),
             );
         }
 
@@ -935,7 +943,7 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
 
     private function escapeText(string $text): string
     {
-        return htmlspecialchars($text, \ENT_QUOTES | \ENT_SUBSTITUTE, 'UTF-8');
+        return htmlspecialchars($text, \ENT_XML1 | \ENT_SUBSTITUTE, 'UTF-8');
     }
 
     private function escapeAttribute(string $value): string
