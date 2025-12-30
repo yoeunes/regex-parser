@@ -46,6 +46,7 @@ use RegexParser\Node\VersionConditionNode;
 
 /**
  * Generates a basic railroad-style SVG diagram of the regex AST.
+ *
  * @extends AbstractNodeVisitor<mixed>
  */
 final class RailroadSvgVisitor extends AbstractNodeVisitor
@@ -1074,6 +1075,7 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
             $candidate = '' === $current ? $word : $current.' '.$word;
             if (\strlen($candidate) <= self::MAX_LABEL_CHARS) {
                 $current = $candidate;
+
                 continue;
             }
 
@@ -1084,6 +1086,7 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
 
             if (\strlen($word) <= self::MAX_LABEL_CHARS) {
                 $current = $word;
+
                 continue;
             }
 
@@ -1104,8 +1107,6 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
 
         return $lines;
     }
-
-
 
     private function describeGroupType(GroupNode $node): string
     {
