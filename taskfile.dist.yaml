@@ -122,6 +122,10 @@ tasks:
             - .task/phpbench.success
         method: checksum
 
+    phar:
+        cmds:
+            - cmd: phar/build
+
     lint:
         deps:
             - install

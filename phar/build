@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+BOX_BIN=""
+
+if [ -x "${ROOT}/vendor/bin/box" ]; then
+  BOX_BIN="${ROOT}/vendor/bin/box"
+elif command -v box >/dev/null 2>&1; then
+  BOX_BIN="$(command -v box)"
+fi
+
+if [ -z "${BOX_BIN}" ]; then
+  echo "box is not installed. Install humbug/box or download box.phar."
+  echo "https://github.com/box-project/box"
+  exit 1
+fi
+
+TMP_DIR="$(mktemp -d -t regex-parser-phar.XXXXXX)"
+cleanup() {
+  rm -rf "${TMP_DIR}"
+}
+trap cleanup EXIT
+
+rsync -a \
+  --exclude='vendor/' \
+  --exclude='.git/' \
+  --exclude='.idea/' \
+  --exclude='tests/' \
+  --exclude='*.phar' \
+  "${ROOT}/" "${TMP_DIR}/"
+
+(
+  cd "${TMP_DIR}"
+  composer install --no-dev --no-scripts --prefer-dist --optimize-autoloader --classmap-authoritative --no-interaction --quiet
+  php -d phar.readonly=0 "${BOX_BIN}" compile -c "${TMP_DIR}/box.json"
+)
+
+mkdir -p "${ROOT}/bin"
+PHAR_PATH=""
+if [ -f "${TMP_DIR}/bin/regex.phar" ]; then
+  PHAR_PATH="${TMP_DIR}/bin/regex.phar"
+else
+  PHAR_PATH="$(find "${TMP_DIR}" -maxdepth 2 -type f -name '*.phar' -print -quit)"
+fi
+
+if [ -z "${PHAR_PATH}" ]; then
+  echo "Unable to locate generated PHAR."
+  exit 1
+fi
+
+PHAR_NAME="$(basename "${PHAR_PATH}")"
+mv -f "${PHAR_PATH}" "${ROOT}/bin/${PHAR_NAME}"
+
+echo "Phar built at ${ROOT}/bin/${PHAR_NAME}"

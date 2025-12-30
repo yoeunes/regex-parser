@@ -1,5 +1,9 @@
 {
     "compression": "GZ",
+    "compactors": [
+        "KevinGH\\Box\\Compactor\\Json",
+        "KevinGH\\Box\\Compactor\\Php"
+    ],
     "directories": [
         "src",
         "vendor"
@@ -7,11 +11,5 @@
     "files": [
         "composer.json",
         "LICENSE"
-    ],
-    "finder": [
-        {
-            "name": "regex",
-            "in": "bin"
-        }
     ]
 }
