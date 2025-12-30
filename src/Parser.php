@@ -632,8 +632,7 @@ final class Parser
         $isStringIdentifier = false;
         $identifier = null;
         if (preg_match('/^"([^"]*+)"$/', $value, $matches)) {
-            /** @phpstan-ignore cast.string */
-            $identifier = isset($matches[1]) ? (string) $matches[1] : '';
+            $identifier = $matches[1];
             $isStringIdentifier = true;
         } elseif (ctype_digit($value)) {
             $identifier = (int) $value;
@@ -665,17 +664,11 @@ final class Parser
 
         // \g<name> or \g{name} (non-numeric) -> Subroutine
         if (preg_match('/^\\\\g<(\w++)>$/', $value, $m)) {
-            if (isset($m[1])) {
-                /* @phpstan-ignore cast.string */
-                return new SubroutineNode((string) $m[1], 'g', $startPosition, $endPosition);
-            }
+            return new SubroutineNode($m[1], 'g', $startPosition, $endPosition);
         }
 
         if (preg_match('/^\\\\g\{(\w++)\}$/', $value, $m)) {
-            if (isset($m[1])) {
-                /* @phpstan-ignore cast.string */
-                return new SubroutineNode((string) $m[1], 'g', $startPosition, $endPosition);
-            }
+            return new SubroutineNode($m[1], 'g', $startPosition, $endPosition);
         }
 
         throw $this->parserException(
@@ -795,19 +788,11 @@ final class Parser
     private function parseUnicodeCodePoint(string $representation): int
     {
         if (preg_match('/^\\\\x([0-9a-fA-F]{2})$/', $representation, $matches)) {
-            if (isset($matches[1]) && \is_string($matches[1])) {
-                return (int) hexdec($matches[1]);
-            }
-
-            return -1;
+            return (int) hexdec($matches[1]);
         }
 
         if (preg_match('/^\\\\[xu]\\{([0-9a-fA-F]++)\\}$/', $representation, $matches)) {
-            if (isset($matches[1]) && \is_string($matches[1])) {
-                return (int) hexdec($matches[1]);
-            }
-
-            return -1;
+            return (int) hexdec($matches[1]);
         }
 
         return -1;
@@ -816,10 +801,6 @@ final class Parser
     private function parseNamedUnicodeCodePoint(string $representation): int
     {
         if (!preg_match('/^\\\\N\\{(.+)}$/', $representation, $matches)) {
-            return -1;
-        }
-
-        if (!isset($matches[1]) || !\is_string($matches[1])) {
             return -1;
         }
 
@@ -837,19 +818,11 @@ final class Parser
     private function parseOctalCodePoint(string $representation): int
     {
         if (preg_match('/^\\\\o\\{([0-7]++)\\}$/', $representation, $matches)) {
-            if (isset($matches[1]) && \is_string($matches[1])) {
-                return (int) octdec($matches[1]);
-            }
-
-            return -1;
+            return (int) octdec($matches[1]);
         }
 
         if (preg_match('/^\\\\([0-7]{1,3})$/', $representation, $matches)) {
-            if (isset($matches[1]) && \is_string($matches[1])) {
-                return (int) octdec($matches[1]);
-            }
-
-            return -1;
+            return (int) octdec($matches[1]);
         }
 
         return -1;
@@ -1060,9 +1033,7 @@ final class Parser
         }
 
         if (preg_match('/^LIMIT_MATCH=(\\d++)$/i', $verb, $matches)) {
-            if (isset($matches[1]) && \is_string($matches[1])) {
-                return new LimitMatchNode((int) $matches[1], $startPosition, $endPosition);
-            }
+            return new LimitMatchNode((int) $matches[1], $startPosition, $endPosition);
         }
 
         $lowerVerb = strtolower($verb);
