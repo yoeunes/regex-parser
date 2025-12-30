@@ -28,6 +28,6 @@ final class RailroadSvgVisitorTest extends TestCase
         $this->assertStringContainsString('</svg>', $svg);
         $this->assertStringContainsString('class="node literal"', $svg);
         $this->assertStringContainsString('class="node anchor"', $svg);
-        $this->assertStringContainsString('class="quantifier"', $svg);
+        $this->assertStringContainsString('class="quantifier-label"', $svg);
     }
 }

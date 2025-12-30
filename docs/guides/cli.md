@@ -151,7 +151,7 @@ Render text diagram of pattern structure (default):
 vendor/bin/regex diagram '/^[a-z]+@[a-z]+\.[a-z]+$/i'
 ```
 
-Render SVG (iTerm2 inline image when run in a terminal):
+Render SVG (prints XML to stdout):
 
 ```bash
 vendor/bin/regex diagram '/^[a-z]+@[a-z]+\.[a-z]+$/i' --format=svg

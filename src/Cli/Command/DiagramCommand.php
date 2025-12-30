@@ -99,11 +99,7 @@ final class DiagramCommand extends AbstractCommand
                     return 0;
                 }
 
-                if ($this->isStdoutInteractive()) {
-                    $output->write($this->formatItermInlineImage($diagram)."\n");
-                } else {
-                    $output->write($diagram."\n");
-                }
+                $output->write($diagram."\n");
 
                 return 0;
             }
@@ -127,23 +123,5 @@ final class DiagramCommand extends AbstractCommand
         }
 
         return 0;
-    }
-
-    private function isStdoutInteractive(): bool
-    {
-        if (\function_exists('stream_isatty')) {
-            return stream_isatty(\STDOUT);
-        }
-
-        if (\function_exists('posix_isatty')) {
-            return posix_isatty(\STDOUT);
-        }
-
-        return false;
-    }
-
-    private function formatItermInlineImage(string $svg): string
-    {
-        return "\033]1337;File=name=regex.svg;inline=1;preserveAspectRatio=1:".base64_encode($svg)."\007";
     }
 }

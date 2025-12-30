@@ -271,6 +271,19 @@ final class CommandTest extends TestCase
         $this->assertSame(0, $exitCode);
     }
 
+    public function test_diagram_command_renders_svg_to_stdout(): void
+    {
+        $command = new DiagramCommand();
+        $output = new Output(false, false);
+
+        $exitCode = 0;
+        $buffer = $this->captureOutput(static fn (): int => $command->run(self::makeInput('diagram', ['/a+/', '--format=svg']), $output), $exitCode);
+
+        $this->assertSame(0, $exitCode);
+        $this->assertStringContainsString('<svg', $buffer);
+        $this->assertStringContainsString('</svg>', $buffer);
+    }
+
     public function test_diagram_command_renders_svg_diagram(): void
     {
         $command = new DiagramCommand();

@@ -51,31 +51,42 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
 {
     private const FONT_SIZE = 12;
     private const CHAR_WIDTH = 7;
-    private const NODE_HEIGHT = 28;
-    private const NODE_RADIUS = 6;
-    private const NODE_PADDING_X = 10;
-    private const MIN_NODE_WIDTH = 24;
-    private const H_GAP = 20;
-    private const V_GAP = 18;
-    private const BRANCH_GAP = 20;
-    private const SIDE_PADDING = 12;
-    private const LOOP_HEIGHT = 18;
+    private const NODE_HEIGHT = 26;
+    private const NODE_RADIUS = 7;
+    private const NODE_PADDING_X = 12;
+    private const MIN_NODE_WIDTH = 26;
+    private const H_GAP = 16;
+    private const V_GAP = 14;
+    private const BRANCH_GAP = 18;
+    private const SIDE_PADDING = 10;
+    private const LOOP_HEIGHT = 16;
     private const BYPASS_HEIGHT = 12;
-    private const LABEL_HEIGHT = 14;
+    private const LABEL_HEIGHT = 12;
     private const LABEL_GAP = 6;
-    private const CANVAS_PADDING = 20;
+    private const CANVAS_PADDING = 18;
+    private const TERMINAL_RADIUS = 7;
+    private const TERMINAL_GAP = 12;
+    private const GROUP_PADDING_X = 16;
+    private const GROUP_PADDING_Y = 12;
+    private const GROUP_LABEL_HEIGHT = 12;
+    private const META_HEIGHT = 12;
+
+    private int $groupCounter = 0;
+
+    private int $charClassDepth = 0;
+
+    private int $negatedCharClassDepth = 0;
 
     #[\Override]
     public function visitRegex(RegexNode $node): string
     {
-        $label = 'Regex';
-        if ('' !== $node->flags) {
-            $label .= ' (flags: '.$node->flags.')';
-        }
+        $this->groupCounter = 0;
+        $this->charClassDepth = 0;
+        $this->negatedCharClassDepth = 0;
 
-        $labelLayout = $this->createNodeLayout($label, 'node');
         $patternLayout = $node->pattern->accept($this);
-        $layout = $this->layoutSequence([$labelLayout, $patternLayout]);
+        $flags = '' !== $node->flags ? $node->flags : null;
+        $layout = $this->wrapWithTerminals($patternLayout, $flags);
 
         return $this->renderSvg($layout);
     }
@@ -105,15 +116,9 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitGroup(GroupNode $node)
     {
-        $label = 'Group ('.$this->describeGroupType($node).')';
-        if (GroupType::T_GROUP_NAMED === $node->type && null !== $node->name) {
-            $label .= ' name="'.$node->name.'"';
-        }
-        if (GroupType::T_GROUP_INLINE_FLAGS === $node->type && null !== $node->flags && '' !== $node->flags) {
-            $label .= ' flags="'.$node->flags.'"';
-        }
+        $label = $this->groupLabel($node);
 
-        return $this->layoutWithLabel($label, [$node->child->accept($this)]);
+        return $this->layoutGroupBox($node->child->accept($this), $label);
     }
 
     #[\Override]
@@ -130,13 +135,13 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
             $value = '(empty)';
         }
 
-        return $this->createNodeLayout("'".$value."'", 'node literal');
+        return $this->createNodeLayout("'".$value."'", $this->literalClass());
     }
 
     #[\Override]
     public function visitCharLiteral(CharLiteralNode $node)
     {
-        return $this->createNodeLayout($node->originalRepresentation, 'node literal');
+        return $this->createNodeLayout($node->originalRepresentation, $this->literalClass());
     }
 
     #[\Override]
@@ -154,7 +159,7 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitDot(DotNode $node)
     {
-        return $this->createNodeLayout('.', 'node');
+        return $this->createNodeLayout('.', 'node anychar');
     }
 
     #[\Override]
@@ -178,9 +183,21 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitCharClass(CharClassNode $node)
     {
-        $label = $node->isNegated ? 'CharClass (negated)' : 'CharClass';
+        $this->charClassDepth++;
+        if ($node->isNegated) {
+            $this->negatedCharClassDepth++;
+        }
 
-        return $this->layoutWithLabel($label, [$node->expression->accept($this)]);
+        $expression = $node->expression->accept($this);
+
+        if ($node->isNegated) {
+            $this->negatedCharClassDepth--;
+        }
+        $this->charClassDepth--;
+
+        $label = $node->isNegated ? 'None of:' : 'Any of:';
+
+        return $this->layoutLabelAbove($label, $expression, 'class-label');
     }
 
     #[\Override]
@@ -328,6 +345,8 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
         $nodes = [];
         $paths = [];
         $texts = [];
+        $boxes = [];
+        $markers = [];
         $x = 0;
         $prevLayout = null;
         $prevOffsetX = 0;
@@ -337,6 +356,8 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
             $nodes = array_merge($nodes, $offsetLayout['nodes']);
             $paths = array_merge($paths, $offsetLayout['paths']);
             $texts = array_merge($texts, $offsetLayout['texts']);
+            $boxes = array_merge($boxes, $offsetLayout['boxes']);
+            $markers = array_merge($markers, $offsetLayout['markers']);
 
             if (null !== $prevLayout) {
                 $midY = (int) floor($height / 2);
@@ -360,6 +381,8 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
             'nodes' => $nodes,
             'paths' => $paths,
             'texts' => $texts,
+            'boxes' => $boxes,
+            'markers' => $markers,
         ];
     }
 
@@ -390,6 +413,8 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
         $nodes = [];
         $paths = [];
         $texts = [];
+        $boxes = [];
+        $markers = [];
         $y = 0;
         $topY = null;
         $bottomY = null;
@@ -398,6 +423,8 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
             $nodes = array_merge($nodes, $offsetLayout['nodes']);
             $paths = array_merge($paths, $offsetLayout['paths']);
             $texts = array_merge($texts, $offsetLayout['texts']);
+            $boxes = array_merge($boxes, $offsetLayout['boxes']);
+            $markers = array_merge($markers, $offsetLayout['markers']);
 
             $centerY = $y + (int) $layout['entryY'];
             $topY ??= $centerY;
@@ -422,6 +449,8 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
             'nodes' => $nodes,
             'paths' => $paths,
             'texts' => $texts,
+            'boxes' => $boxes,
+            'markers' => $markers,
         ];
     }
 
@@ -440,15 +469,176 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
     /**
      * @return array<string, mixed>
      */
+    private function layoutGroupBox(array $childLayout, string $label): array
+    {
+        $labelWidth = $this->measureTextWidth($label);
+        $width = (int) max(
+            $childLayout['width'] + (self::GROUP_PADDING_X * 2),
+            $labelWidth + (self::GROUP_PADDING_X * 2)
+        );
+        $boxTop = self::GROUP_LABEL_HEIGHT + self::LABEL_GAP;
+        $height = $boxTop + (int) $childLayout['height'] + (self::GROUP_PADDING_Y * 2);
+
+        $childOffsetX = (int) floor(($width - (int) $childLayout['width']) / 2);
+        $childOffsetY = $boxTop + self::GROUP_PADDING_Y;
+
+        $offsetLayout = $this->offsetLayout($childLayout, $childOffsetX, $childOffsetY);
+        $nodes = $offsetLayout['nodes'];
+        $paths = $offsetLayout['paths'];
+        $texts = $offsetLayout['texts'];
+        $boxes = $offsetLayout['boxes'];
+        $markers = $offsetLayout['markers'];
+
+        $boxes[] = [
+            'x' => 0,
+            'y' => $boxTop,
+            'width' => $width,
+            'height' => $height - $boxTop,
+            'rx' => 10,
+            'ry' => 10,
+            'class' => 'group-box',
+        ];
+
+        $texts[] = [
+            'x' => (int) floor($width / 2),
+            'y' => (int) floor(self::GROUP_LABEL_HEIGHT / 2),
+            'text' => $label,
+            'class' => 'group-label',
+        ];
+
+        return [
+            'width' => $width,
+            'height' => $height,
+            'entryX' => $childOffsetX + (int) $childLayout['entryX'],
+            'entryY' => $childOffsetY + (int) $childLayout['entryY'],
+            'exitX' => $childOffsetX + (int) $childLayout['exitX'],
+            'exitY' => $childOffsetY + (int) $childLayout['exitY'],
+            'nodes' => $nodes,
+            'paths' => $paths,
+            'texts' => $texts,
+            'boxes' => $boxes,
+            'markers' => $markers,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function layoutLabelAbove(string $label, array $childLayout, string $class): array
+    {
+        $labelWidth = $this->measureTextWidth($label);
+        $width = (int) max((int) $childLayout['width'], $labelWidth);
+        $height = self::LABEL_HEIGHT + self::LABEL_GAP + (int) $childLayout['height'];
+
+        $childOffsetX = (int) floor(($width - (int) $childLayout['width']) / 2);
+        $childOffsetY = self::LABEL_HEIGHT + self::LABEL_GAP;
+
+        $offsetLayout = $this->offsetLayout($childLayout, $childOffsetX, $childOffsetY);
+        $nodes = $offsetLayout['nodes'];
+        $paths = $offsetLayout['paths'];
+        $texts = $offsetLayout['texts'];
+        $boxes = $offsetLayout['boxes'];
+        $markers = $offsetLayout['markers'];
+
+        $texts[] = [
+            'x' => (int) floor($width / 2),
+            'y' => (int) floor(self::LABEL_HEIGHT / 2),
+            'text' => $label,
+            'class' => $class,
+        ];
+
+        return [
+            'width' => $width,
+            'height' => $height,
+            'entryX' => $childOffsetX + (int) $childLayout['entryX'],
+            'entryY' => $childOffsetY + (int) $childLayout['entryY'],
+            'exitX' => $childOffsetX + (int) $childLayout['exitX'],
+            'exitY' => $childOffsetY + (int) $childLayout['exitY'],
+            'nodes' => $nodes,
+            'paths' => $paths,
+            'texts' => $texts,
+            'boxes' => $boxes,
+            'markers' => $markers,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function wrapWithTerminals(array $layout, ?string $flags): array
+    {
+        $metaOffset = null !== $flags ? self::META_HEIGHT + self::LABEL_GAP : 0;
+        $minHeight = max((int) $layout['height'], self::TERMINAL_RADIUS * 2);
+        $centerOffset = (int) floor(($minHeight - (int) $layout['height']) / 2);
+        $topOffset = $metaOffset + $centerOffset;
+
+        $leftPad = (self::TERMINAL_RADIUS * 2) + self::TERMINAL_GAP;
+        $rightPad = (self::TERMINAL_RADIUS * 2) + self::TERMINAL_GAP;
+        $width = (int) $layout['width'] + $leftPad + $rightPad;
+        $height = $minHeight + $metaOffset;
+
+        $offsetLayout = $this->offsetLayout($layout, $leftPad, $topOffset);
+        $nodes = $offsetLayout['nodes'];
+        $paths = $offsetLayout['paths'];
+        $texts = $offsetLayout['texts'];
+        $boxes = $offsetLayout['boxes'];
+        $markers = $offsetLayout['markers'];
+
+        $trackY = $topOffset + (int) $layout['entryY'];
+        $paths[] = $this->line([self::TERMINAL_RADIUS * 2, $trackY], [$leftPad + (int) $layout['entryX'], $trackY]);
+        $paths[] = $this->line([$leftPad + (int) $layout['exitX'], $trackY], [$width - (self::TERMINAL_RADIUS * 2), $trackY]);
+
+        $markers[] = [
+            'cx' => self::TERMINAL_RADIUS,
+            'cy' => $trackY,
+            'r' => self::TERMINAL_RADIUS,
+            'class' => 'terminal start',
+        ];
+        $markers[] = [
+            'cx' => $width - self::TERMINAL_RADIUS,
+            'cy' => $trackY,
+            'r' => self::TERMINAL_RADIUS,
+            'class' => 'terminal end',
+        ];
+
+        if (null !== $flags) {
+            $texts[] = [
+                'x' => $leftPad,
+                'y' => (int) floor(self::META_HEIGHT / 2),
+                'text' => 'flags: '.$flags,
+                'class' => 'meta',
+            ];
+        }
+
+        return [
+            'width' => $width,
+            'height' => $height,
+            'entryX' => self::TERMINAL_RADIUS * 2,
+            'entryY' => $trackY,
+            'exitX' => $width - (self::TERMINAL_RADIUS * 2),
+            'exitY' => $trackY,
+            'nodes' => $nodes,
+            'paths' => $paths,
+            'texts' => $texts,
+            'boxes' => $boxes,
+            'markers' => $markers,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
     private function layoutQuantifier(QuantifierNode $node): array
     {
         $childLayout = $node->node->accept($this);
         $needsLoop = $this->isLoopQuantifier($node->quantifier);
         $needsBypass = $this->isOptionalQuantifier($node->quantifier);
-        $topExtra = max(self::LABEL_HEIGHT, $needsLoop ? self::LOOP_HEIGHT + self::LABEL_GAP : 0, $needsBypass ? self::BYPASS_HEIGHT + self::LABEL_GAP : 0);
+        $topExtra = max($needsLoop ? self::LOOP_HEIGHT + self::LABEL_GAP : 0, $needsBypass ? self::BYPASS_HEIGHT + self::LABEL_GAP : 0);
+        $labelText = $this->describeQuantifier($node->quantifier);
+        $bottomExtra = '' !== $labelText ? self::LABEL_HEIGHT + self::LABEL_GAP : 0;
 
         $width = (int) $childLayout['width'] + (self::SIDE_PADDING * 2);
-        $height = (int) $childLayout['height'] + $topExtra;
+        $height = (int) $childLayout['height'] + $topExtra + $bottomExtra;
         $childOffsetX = self::SIDE_PADDING;
         $childOffsetY = $topExtra;
 
@@ -456,6 +646,8 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
         $nodes = $offsetLayout['nodes'];
         $paths = $offsetLayout['paths'];
         $texts = $offsetLayout['texts'];
+        $boxes = $offsetLayout['boxes'];
+        $markers = $offsetLayout['markers'];
 
         $midY = $childOffsetY + (int) $childLayout['entryY'];
         $paths[] = $this->line([0, $midY], [$childOffsetX + (int) $childLayout['entryX'], $midY]);
@@ -468,7 +660,7 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
                 [$childOffsetX + (int) $childLayout['exitX'], $loopTopY],
                 [$childOffsetX + (int) $childLayout['entryX'], $loopTopY],
                 [$childOffsetX + (int) $childLayout['entryX'], $midY],
-            ]);
+            ], 'path loop');
         }
 
         if ($needsBypass) {
@@ -478,17 +670,19 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
                 [0, $bypassY],
                 [$width, $bypassY],
                 [$width, $midY],
-            ]);
+            ], 'path bypass');
         }
 
-        $labelX = $childOffsetX + (int) floor((int) $childLayout['width'] / 2);
-        $labelY = max(8, $childOffsetY - 4);
-        $texts[] = [
-            'x' => $labelX,
-            'y' => $labelY,
-            'text' => $node->quantifier,
-            'class' => 'quantifier',
-        ];
+        if ('' !== $labelText) {
+            $labelX = (int) floor($width / 2);
+            $labelY = $childOffsetY + (int) $childLayout['height'] + self::LABEL_GAP + (int) floor(self::LABEL_HEIGHT / 2);
+            $texts[] = [
+                'x' => $labelX,
+                'y' => $labelY,
+                'text' => $labelText,
+                'class' => 'quantifier-label',
+            ];
+        }
 
         return [
             'width' => $width,
@@ -500,6 +694,8 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
             'nodes' => $nodes,
             'paths' => $paths,
             'texts' => $texts,
+            'boxes' => $boxes,
+            'markers' => $markers,
         ];
     }
 
@@ -529,6 +725,8 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
             ]],
             'paths' => [],
             'texts' => [],
+            'boxes' => [],
+            'markers' => [],
         ];
     }
 
@@ -550,7 +748,7 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
             foreach ($path['points'] as $point) {
                 $points[] = [$point[0] + $dx, $point[1] + $dy];
             }
-            $paths[] = ['points' => $points];
+            $paths[] = ['points' => $points, 'class' => $path['class'] ?? 'path'];
         }
 
         $texts = [];
@@ -558,6 +756,20 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
             $text['x'] += $dx;
             $text['y'] += $dy;
             $texts[] = $text;
+        }
+
+        $boxes = [];
+        foreach ($layout['boxes'] as $box) {
+            $box['x'] += $dx;
+            $box['y'] += $dy;
+            $boxes[] = $box;
+        }
+
+        $markers = [];
+        foreach ($layout['markers'] as $marker) {
+            $marker['cx'] += $dx;
+            $marker['cy'] += $dy;
+            $markers[] = $marker;
         }
 
         return [
@@ -570,6 +782,8 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
             'nodes' => $nodes,
             'paths' => $paths,
             'texts' => $texts,
+            'boxes' => $boxes,
+            'markers' => $markers,
         ];
     }
 
@@ -579,9 +793,9 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
      *
      * @return array<string, array<int, array<int, int>>>
      */
-    private function line(array $from, array $to): array
+    private function line(array $from, array $to, string $class = 'path'): array
     {
-        return ['points' => [$from, $to]];
+        return ['points' => [$from, $to], 'class' => $class];
     }
 
     /**
@@ -589,9 +803,9 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
      *
      * @return array<string, array<int, array<int, int>>>
      */
-    private function polyline(array $points): array
+    private function polyline(array $points, string $class = 'path'): array
     {
-        return ['points' => $points];
+        return ['points' => $points, 'class' => $class];
     }
 
     private function measureTextWidth(string $text): int
@@ -616,19 +830,56 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
         );
         $svg[] = '<defs>';
         $svg[] = '<style>';
-        $svg[] = '  .path { stroke: #999999; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }';
-        $svg[] = '  .node { fill: #ffffff; stroke: #b5b5b5; stroke-width: 2; }';
-        $svg[] = '  .node.literal { fill: #f0f0f0; }';
-        $svg[] = '  .node.anchor { fill: #daf5da; stroke: #79b879; }';
-        $svg[] = '  .node.control { fill: #ffd9e1; stroke: #e49ab0; }';
-        $svg[] = '  .label { font-family: monospace; font-size: '.self::FONT_SIZE.'px; fill: #333333; text-anchor: middle; dominant-baseline: middle; }';
-        $svg[] = '  .quantifier { font-family: monospace; font-size: 11px; fill: #666666; text-anchor: middle; dominant-baseline: middle; }';
+        $svg[] = '  .path { stroke: #7b8794; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }';
+        $svg[] = '  .path.loop, .path.bypass { stroke-dasharray: 4 4; }';
+        $svg[] = '  .node { fill: #e1e7ef; stroke: #a3aebd; stroke-width: 1.6; }';
+        $svg[] = '  .node.literal { fill: #dbe2ea; }';
+        $svg[] = '  .node.anchor { fill: #b7e8c9; stroke: #5fb184; }';
+        $svg[] = '  .node.control { fill: #f6c7d6; stroke: #dd8da7; }';
+        $svg[] = '  .node.anychar { fill: #cfe9c8; stroke: #79b879; }';
+        $svg[] = '  .node.class-negated { fill: #f6b6b6; stroke: #e07e7e; }';
+        $svg[] = '  .node.class-positive { fill: #f4d3a1; stroke: #d7a46b; }';
+        $svg[] = '  .label { font-family: monospace; font-size: '.self::FONT_SIZE.'px; fill: #2f3b4c; text-anchor: middle; dominant-baseline: middle; }';
+        $svg[] = '  .group-box { fill: none; stroke: #c2ccd7; stroke-width: 1.5; stroke-dasharray: 3 3; }';
+        $svg[] = '  .group-label { font-family: monospace; font-size: 11px; fill: #6b7785; text-anchor: middle; dominant-baseline: middle; }';
+        $svg[] = '  .class-label { font-family: monospace; font-size: 11px; fill: #6b7785; text-anchor: middle; dominant-baseline: middle; }';
+        $svg[] = '  .quantifier-label { font-family: monospace; font-size: 11px; fill: #6b7785; text-anchor: middle; dominant-baseline: middle; }';
+        $svg[] = '  .meta { font-family: monospace; font-size: 11px; fill: #6b7785; text-anchor: start; dominant-baseline: middle; }';
+        $svg[] = '  .terminal.start { fill: #62d28c; stroke: #4fb173; stroke-width: 2; }';
+        $svg[] = '  .terminal.end { fill: #6aa3ff; stroke: #4a83df; stroke-width: 2; }';
         $svg[] = '</style>';
         $svg[] = '</defs>';
-        $svg[] = \sprintf('<rect width="%d" height="%d" fill="#ffffff"/>', $width, $height);
+        $svg[] = \sprintf('<rect width="%d" height="%d" fill="#f4f7f8"/>', $width, $height);
+
+        foreach ($offsetLayout['boxes'] as $box) {
+            $svg[] = \sprintf(
+                '<rect class="%s" x="%d" y="%d" width="%d" height="%d" rx="%d" ry="%d"/>',
+                $this->escapeAttribute($box['class']),
+                $box['x'],
+                $box['y'],
+                $box['width'],
+                $box['height'],
+                $box['rx'],
+                $box['ry']
+            );
+        }
 
         foreach ($offsetLayout['paths'] as $path) {
-            $svg[] = \sprintf('<path class="path" d="%s"/>', $this->renderPath($path['points']));
+            $svg[] = \sprintf(
+                '<path class="%s" d="%s"/>',
+                $this->escapeAttribute($path['class'] ?? 'path'),
+                $this->renderPath($path['points'])
+            );
+        }
+
+        foreach ($offsetLayout['markers'] as $marker) {
+            $svg[] = \sprintf(
+                '<circle class="%s" cx="%d" cy="%d" r="%d"/>',
+                $this->escapeAttribute($marker['class']),
+                $marker['cx'],
+                $marker['cy'],
+                $marker['r']
+            );
         }
 
         foreach ($offsetLayout['nodes'] as $node) {
@@ -706,6 +957,74 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
             GroupType::T_GROUP_ATOMIC => 'atomic',
             GroupType::T_GROUP_BRANCH_RESET => 'branch reset',
         };
+    }
+
+    private function groupLabel(GroupNode $node): string
+    {
+        if (\in_array($node->type, [GroupType::T_GROUP_CAPTURING, GroupType::T_GROUP_NAMED], true)) {
+            $this->groupCounter++;
+            $label = 'Group #'.$this->groupCounter;
+            if (GroupType::T_GROUP_NAMED === $node->type && null !== $node->name) {
+                $label .= ' ('.$node->name.')';
+            }
+
+            return $label;
+        }
+
+        $label = 'Group ('.$this->describeGroupType($node).')';
+        if (GroupType::T_GROUP_INLINE_FLAGS === $node->type && null !== $node->flags && '' !== $node->flags) {
+            $label .= ' flags: '.$node->flags;
+        }
+
+        return $label;
+    }
+
+    private function literalClass(): string
+    {
+        if ($this->negatedCharClassDepth > 0) {
+            return 'node class-negated';
+        }
+
+        if ($this->charClassDepth > 0) {
+            return 'node class-positive';
+        }
+
+        return 'node literal';
+    }
+
+    private function describeQuantifier(string $quantifier): string
+    {
+        if ('*' === $quantifier) {
+            return '0 or more times';
+        }
+
+        if ('+' === $quantifier) {
+            return '1 or more times';
+        }
+
+        if ('?' === $quantifier) {
+            return '0 or 1 time';
+        }
+
+        $range = $this->parseRangeQuantifier($quantifier);
+        if (null === $range) {
+            return $quantifier;
+        }
+
+        [$min, $max] = $range;
+        if (null === $max) {
+            return $min.' or more times';
+        }
+
+        if (0 === $min) {
+            return '0 to '.$max.' times';
+        }
+
+        if ($min === $max) {
+            return $min.' times';
+        }
+
+        return $min.' to '.$max.' times';
     }
 
     private function isLoopQuantifier(string $quantifier): bool
