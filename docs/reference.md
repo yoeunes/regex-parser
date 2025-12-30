@@ -1,27 +1,24 @@
-# RegexParser Diagnostics and Rule Reference
+# RegexParser Rule Reference
 
-This reference is the definitive catalog of diagnostics, lint rules, and optimizations produced by RegexParser. We use it as a lookup when we need to understand why a pattern was flagged and how to fix it.
-
-> If you are still learning regex or the AST, start with `docs/tutorial/README.md`. This document is optimized for precision, not onboarding.
-> Examples assume `use RegexParser\Regex;`.
+This comprehensive reference documents every diagnostic, lint rule, and optimization that RegexParser produces. It serves as the authoritative guide for understanding what RegexParser checks and how to fix issues.
 
 ## Table of Contents
 
-| Section | Description |
-| --- | --- |
-| [Validation Layers](#validation-layers) | How RegexParser analyzes patterns |
-| [Flags](#flags) | Flag-related diagnostics |
-| [Anchors](#anchors) | Anchor positioning issues |
-| [Quantifiers](#quantifiers) | Quantifier-related patterns |
-| [Groups](#groups) | Group-related diagnostics |
-| [Alternation](#alternation) | Alternation patterns |
-| [Character Classes](#character-classes) | Character class issues |
-| [Escapes](#escapes) | Escape sequence problems |
-| [Inline Flags](#inline-flags) | Inline flag diagnostics |
-| [ReDoS Security](#security-redos) | Catastrophic backtracking |
-| [Advanced Syntax](#advanced-syntax) | Optimizations and assertions |
-| [Compatibility](#compatibility--limitations) | PHP and PCRE2 support |
-| [Diagnostics Catalog](#diagnostics-catalog) | Complete error code reference |
+| Section                                      | Description                       |
+|----------------------------------------------|-----------------------------------|
+| [Validation Layers](#validation-layers)      | How RegexParser analyzes patterns |
+| [Flags](#flags)                              | Flag-related diagnostics          |
+| [Anchors](#anchors)                          | Anchor positioning issues         |
+| [Quantifiers](#quantifiers)                  | Quantifier-related patterns       |
+| [Groups](#groups)                            | Group-related diagnostics         |
+| [Alternation](#alternation)                  | Alternation patterns              |
+| [Character Classes](#character-classes)      | Character class issues            |
+| [Escapes](#escapes)                          | Escape sequence problems          |
+| [Inline Flags](#inline-flags)                | Inline flag diagnostics           |
+| [ReDoS Security](#security-redos)            | Catastrophic backtracking         |
+| [Advanced Syntax](#advanced-syntax)          | Optimizations and assertions      |
+| [Compatibility](#compatibility--limitations) | PHP and PCRE2 support             |
+| [Diagnostics Catalog](#diagnostics-catalog)  | Complete error code reference     |
 
 ---
 
@@ -30,67 +27,67 @@ This reference is the definitive catalog of diagnostics, lint rules, and optimiz
 RegexParser validates patterns through three distinct layers, each catching different types of issues:
 
 ```
-+-------------------------------------------------------------+
-|              VALIDATION LAYERS                              |
-|-------------------------------------------------------------|
-|                                                             |
-|  +-----------------------------------------------------+    |
-|  | LAYER 1: Parse (Lexer + Parser)                     |    |
-|  | |- Tokenizes the pattern                            |    |
-|  | |- Builds the AST                                   |    |
-|  | +- Catches: syntax errors, malformed patterns       |    |
-|  |                                                     |    |
-|  | Examples:                                           |    |
-|  | - Unbalanced brackets                               |    |
-|  | - Invalid escapes                                   |    |
-|  | - Missing delimiters                                |    |
-|  +-----------------------------------------------------+    |
-|                           |                                 |
-|                           v                                 |
-|  +-----------------------------------------------------+    |
-|  | LAYER 2: Semantic Validation                        |    |
-|  | |- Checks PCRE rules                                |    |
-|  | |- Validates references and groups                  |    |
-|  | +- Catches: semantic errors                         |    |
-|  |                                                     |    |
-|  | Examples:                                           |    |
-|  | - Unbounded lookbehinds                             |    |
-|  | - Invalid backreferences                            |    |
-|  | - Duplicate group names                             |    |
-|  +-----------------------------------------------------+    |
-|                           |                                 |
-|                           v                                 |
-|  +-----------------------------------------------------+    |
-|  | LAYER 3: Runtime Validation (Optional)              |    |
-|  | |- Compiles via PCRE runtime                         |    |
-|  | +- Catches: engine-specific issues                  |    |
-|  |                                                     |    |
-|  | Enable with:                                        |    |
-|  |   'runtime_pcre_validation' => true                 |    |
-|  +-----------------------------------------------------+    |
-|                           |                                 |
-|                           v                                 |
-|  +-----------------------------------------------------+    |
-|  | LAYER 4: Linting & Analysis                         |    |
-|  | |- Performance checks                               |    |
-|  | |- ReDoS analysis                                   |    |
-|  | |- Best practices                                   |    |
-|  | +- Catches: warnings and suggestions                |    |
-|  +-----------------------------------------------------+    |
-|                                                             |
-+-------------------------------------------------------------+
+┌─────────────────────────────────────────────────────────────┐
+│              VALIDATION LAYERS                              │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │ LAYER 1: Parse (Lexer + Parser)                     │    │
+│  │ ├─ Tokenizes the pattern                            │    │
+│  │ ├─ Builds the AST                                   │    │
+│  │ └─ Catches: syntax errors, malformed patterns       │    │
+│  │                                                     │    │
+│  │ Examples:                                           │    │
+│  │ - Unbalanced brackets                               │    │
+│  │ - Invalid escapes                                   │    │
+│  │ - Missing delimiters                                │    │
+│  └─────────────────────────────────────────────────────┘    │
+│                           │                                 │
+│                           ▼                                 │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │ LAYER 2: Semantic Validation                        │    │
+│  │ ├─ Checks PCRE rules                                │    │
+│  │ ├─ Validates references and groups                  │    │
+│  │ └─ Catches: semantic errors                         │    │
+│  │                                                     │    │
+│  │ Examples:                                           │    │
+│  │ - Unbounded lookbehinds                             │    │
+│  │ - Invalid backreferences                            │    │
+│  │ - Duplicate group names                             │    │
+│  └─────────────────────────────────────────────────────┘    │
+│                           │                                 │
+│                           ▼                                 │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │ LAYER 3: Runtime Validation (Optional)              │    │
+│  │ ├─ Compiles via preg_match()                        │    │
+│  │ └─ Catches: engine-specific issues                  │    │
+│  │                                                     │    │
+│  │ Enable with:                                        │    │
+│  │   'runtime_pcre_validation' => true                 │    │
+│  └─────────────────────────────────────────────────────┘    │
+│                           │                                 │
+│                           ▼                                 │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │ LAYER 4: Linting & Analysis                         │    │
+│  │ ├─ Performance checks                               │    │
+│  │ ├─ ReDoS analysis                                   │    │
+│  │ ├─ Best practices                                   │    │
+│  │ └─ Catches: warnings and suggestions                │    │
+│  └─────────────────────────────────────────────────────┘    │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ### PCRE2 Compatibility Contract
 
 RegexParser targets **PHP's PCRE2 engine** (`preg_*`). Key behaviors that may surprise users:
 
-| Behavior | Description | Example |
-| --- | --- | --- |
-| Forward references | `/\\1(a)/` compiles in PHP | May look invalid but works |
-| Branch reset | `(?\\|...)` changes capture numbering | `\\2` can be invalid in branches |
-| `\\g{0}` | Invalid in PHP | Use `\\g<0>` or `(?R)` |
-| Lookbehind | Must have bounded length | `(?<=a+)` is invalid |
+| Behavior           | Description               | Example                         |
+|--------------------|---------------------------|---------------------------------|
+| Forward references | `/\1(a)/` compiles in PHP | May look invalid but works      |
+| Branch reset       | `(?                       | ...)` changes capture numbering | `\2` can be invalid in branches |
+| `\g{0}`            | Invalid in PHP            | Use `\g<0>` or `(?R)`           |
+| Lookbehind         | Must have bounded length  | `(?<=a+)` is invalid            |
 
 ---
 
@@ -104,19 +101,19 @@ RegexParser targets **PHP's PCRE2 engine** (`preg_*`). Key behaviors that may su
 
 **Visual Explanation:**
 ```
-+-------------------------------------------------------------+
-|  /^\d+$/s  --> NO DOT IN PATTERN                            |
-|             --> DOTALL FLAG DOES NOTHING                    |
-+-------------------------------------------------------------+
+┌─────────────────────────────────────────────────────────────┐
+│  /^\d+$/s  ──► NO DOT IN PATTERN                            │
+│             ──► DOTALL FLAG DOES NOTHING                    │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 **Example:**
 ```php
 // Warning: DotAll does nothing because there is no dot
-Regex::create()->validate('/^user_id:\d+$/s');
+preg_match('/^user_id:\d+$/s', $input);
 
 // Preferred: Remove unnecessary flag
-Regex::create()->validate('/^user_id:\d+$/');
+preg_match('/^user_id:\d+$/', $input);
 ```
 
 **Fix:** Drop the flag or introduce a dot if intended.
@@ -134,19 +131,19 @@ Regex::create()->validate('/^user_id:\d+$/');
 
 **Visual Explanation:**
 ```
-+-------------------------------------------------------------+
-|  /search_term/m  --> NO ANCHORS IN PATTERN                  |
-|                 --> MULTILINE FLAG DOES NOTHING             |
-+-------------------------------------------------------------+
+┌─────────────────────────────────────────────────────────────┐
+│  /search_term/m  ──► NO ANCHORS IN PATTERN                  │
+│                 ──► MULTILINE FLAG DOES NOTHING             │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 **Example:**
 ```php
 // Warning: Multiline mode is unused because there are no anchors
-Regex::create()->validate('/search_term/m');
+preg_match('/search_term/m', $text);
 
 // Preferred: Remove unnecessary flag
-Regex::create()->validate('/search_term/');
+preg_match('/search_term/', $text);
 ```
 
 **Fix:** Remove the flag or add anchors for per-line matching.
@@ -165,10 +162,10 @@ Regex::create()->validate('/search_term/');
 **Example:**
 ```php
 // Warning: No letters to justify case-insensitive matching
-Regex::create()->validate('/^\d{4}-\d{2}-\d{2}$/i');
+preg_match('/^\d{4}-\d{2}-\d{2}$/i', $date);
 
 // Preferred: Remove unnecessary flag
-Regex::create()->validate('/^\d{4}-\d{2}-\d{2}$/');
+preg_match('/^\d{4}-\d{2}-\d{2}$/', $date);
 ```
 
 **Fix:** Drop the flag when matching digits/symbols.
@@ -182,24 +179,24 @@ Regex::create()->validate('/^\d{4}-\d{2}-\d{2}$/');
 **Identifier:** `regex.lint.anchor.impossible.start`, `regex.lint.anchor.impossible.end`
 
 **When it triggers:**
-- `^` appears after consuming tokens (without `m` flag) -- cannot match start
-- `$` appears before consuming tokens -- asserts end too early
+- `^` appears after consuming tokens (without `m` flag) — cannot match start
+- `$` appears before consuming tokens — asserts end too early
 
 **Visual Explanation:**
 ```
-+-------------------------------------------------------------+
-|              ANCHOR CONFLICTS                               |
-|-------------------------------------------------------------|
-|                                                             |
-|  VALID:                                                     |
-|  /^abc/        --> Anchor at start, then literal            |
-|  /abc$/        --> Literal, then anchor at end              |
-|                                                             |
-|  INVALID:                                                   |
-|  /a^bc/        --> ^ after consuming 'a'                    |
-|  /^/abc        --> $ before consuming anything              |
-|                                                             |
-+-------------------------------------------------------------+
+┌─────────────────────────────────────────────────────────────┐
+│              ANCHOR CONFLICTS                               │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  VALID:                                                     │
+│  /^abc/        ──► Anchor at start, then literal            │
+│  /abc$/        ──► Literal, then anchor at end              │
+│                                                             │
+│  INVALID:                                                   │
+│  /a^bc/        ──► ^ after consuming 'a'                    │
+│  /^/abc        ──► $ before consuming anything              │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 **Fix:** Move anchors to the correct position.
@@ -216,35 +213,35 @@ Regex::create()->validate('/^\d{4}-\d{2}-\d{2}$/');
 
 **Visual Explanation:**
 ```
-+-------------------------------------------------------------+
-|              NESTED QUANTIFIERS EXPLOSION                   |
-|-------------------------------------------------------------|
-|                                                             |
-|  Pattern: /(a+)+b/                                          |
-|                                                             |
-|  Input: a a a a a !                                         |
-|                                                             |
-|  Inner (a+) can match:                                      |
-|    - 5 a's                                                  |
-|    - 4 a's + outer + repeats 2                              |
-|    - 3 a's + outer + repeats 3                              |
-|    - ...                                                    |
-|                                                             |
-|  Each additional 'a' adds MORE combinations!                |
-|                                                             |
-+-------------------------------------------------------------+
+┌─────────────────────────────────────────────────────────────┐
+│              NESTED QUANTIFIERS EXPLOSION                   │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  Pattern: /(a+)+b/                                          │
+│                                                             │
+│  Input: a a a a a !                                         │
+│                                                             │
+│  Inner (a+) can match:                                      │
+│    - 5 a's                                                  │
+│    - 4 a's + outer + repeats 2                              │
+│    - 3 a's + outer + repeats 3                              │
+│    - ...                                                    │
+│                                                             │
+│  Each additional 'a' adds MORE combinations!                │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 **Example:**
 ```php
 // VULNERABLE: Nested quantifiers can cause ReDoS
-Regex::create()->redos('/(a+)+b/');
+preg_match('/(a+)+b/', $input);
 
 // SAFER: Use atomic groups
-Regex::create()->redos('/(?>a+)+b/');
+preg_match('/(?>a+)+b/', $input);
 
 // SAFER: Use possessive quantifier
-Regex::create()->redos('/(a++)+b/');
+preg_match('/(a++)+b/', $input);
 ```
 
 **Fix:** Refactor to be deterministic, or use atomic groups/possessive quantifiers.
@@ -263,13 +260,13 @@ Regex::create()->redos('/(a++)+b/');
 **Example:**
 ```php
 // RISKY: .* in repetition can backtrack heavily
-Regex::create()->redos('/(?:.*)+/');
+preg_match('/(?:.*)+/', $input);
 
-// SAFER: Make it atomic
-Regex::create()->validate('/(?>.*)+/');
+// SAFER: Make it possessive
+preg_match('/(?:.*)+/', $input);  // Still risky for non-matching input
 
 // BETTER: Use negated character class
-Regex::create()->validate('/(?:[^"]*)+/');  // For double-quoted strings
+preg_match('/(?:[^"]*)+/', $input);  // For double-quoted strings
 ```
 
 **Fix:** Make it atomic/possessive or replace `.*` with a specific class.
@@ -287,10 +284,10 @@ Regex::create()->validate('/(?:[^"]*)+/');  // For double-quoted strings
 **Example:**
 ```php
 // WARNING: Unnecessary group
-Regex::create()->validate('/(?:foo)/');
+preg_match('/(?:foo)/', $input);
 
 // PREFERRED: Remove the group
-Regex::create()->validate('/foo/');
+preg_match('/foo/', $input);
 ```
 
 **Fix:** Remove the unnecessary group.
@@ -308,10 +305,10 @@ Regex::create()->validate('/foo/');
 **Example:**
 ```php
 // WARNING: Duplicate branch
-Regex::create()->validate('/(a|a)/');
+preg_match('/(a|a)/', $input);
 
 // PREFERRED: Use character class
-Regex::create()->validate('/[aa]/');  // or just /a/
+preg_match('/[aa]/', $input);  // or just /a/
 ```
 
 **Fix:** Remove duplicates or use a character class.
@@ -326,35 +323,35 @@ Regex::create()->validate('/[aa]/');  // or just /a/
 
 **Visual Explanation:**
 ```
-+-------------------------------------------------------------+
-|              OVERLAPPING ALTERNATIVES                       |
-|-------------------------------------------------------------|
-|                                                             |
-|  Pattern: /(a|aa)+b/                                        |
-|                                                             |
-|  Input: a a a a a b                                         |
-|                                                             |
-|  The engine tries:                                          |
-|    a + a + a + a + a = "aaaaa"                              |
-|    aa + a + a + a = "aaaaa"                                 |
-|    a + aa + a + a = "aaaaa"                                 |
-|    ...                                                      |
-|                                                             |
-|  Result: Exponential backtracking!                          |
-|                                                             |
-+-------------------------------------------------------------+
+┌─────────────────────────────────────────────────────────────┐
+│              OVERLAPPING ALTERNATIVES                       │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  Pattern: /(a|aa)+b/                                        │
+│                                                             │
+│  Input: a a a a a b                                         │
+│                                                             │
+│  The engine tries:                                          │
+│    a + a + a + a + a = "aaaaa"                              │
+│    aa + a + a + a = "aaaaa"                                 │
+│    a + aa + a + a = "aaaaa"                                 │
+│    ...                                                      │
+│                                                             │
+│  Result: Exponential backtracking!                          │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 **Example:**
 ```php
 // VULNERABLE: Overlapping branches in repetition
-Regex::create()->redos('/(a|aa)+b/');
+preg_match('/(a|aa)+b/', $input);
 
 // SAFER: Use atomic groups
-Regex::create()->redos('/(?>a|aa)+b/');
+preg_match('/(?>a|aa)+b/', $input);
 
 // SIMPLER: Just use a+
-Regex::create()->redos('/a+b/');  // Often equivalent
+preg_match('/a+b/', $input);  // Often equivalent
 ```
 
 **Fix:** Use atomic groups or simplify the pattern.
@@ -370,10 +367,10 @@ Regex::create()->redos('/a+b/');  // Often equivalent
 **Example:**
 ```php
 // WARNING: Overlapping character classes
-Regex::create()->validate('/[a-c]|[b-d]/');
+preg_match('/[a-c]|[b-d]/', $input);
 
 // PREFERRED: Merge or use atomic groups
-Regex::create()->validate('/[a-d]/');  // Merge
+preg_match('/[a-d]/', $input);  // Merge
 ```
 
 ---
@@ -389,16 +386,16 @@ Regex::create()->validate('/[a-d]/');  // Merge
 **Example:**
 ```php
 // WARNING: Duplicate letters
-Regex::create()->validate('/[a-zA-Za-z]/');
+preg_match('/[a-zA-Za-z]/', $input);
 
 // PREFERRED: Remove duplicates
-Regex::create()->validate('/[a-zA-Z]/');
+preg_match('/[a-zA-Z]/', $input);
 
 // WARNING: Overlapping ranges
-Regex::create()->validate('/[a-fc-d]/');  // 'c' and 'd' already in a-f
+preg_match('/[a-fc-d]/', $input);  // 'c' and 'd' already in a-f
 
 // PREFERRED: Use clean ranges
-Regex::create()->validate('/[a-f]/');
+preg_match('/[a-f]/', $input);
 ```
 
 **Fix:** Remove duplicates or merge ranges.
@@ -416,15 +413,15 @@ Regex::create()->validate('/[a-f]/');
 **Example:**
 ```php
 // WARNING: Out of range Unicode
-Regex::create()->validate('/\x{110000}/');  // Max is 0x10FFFF
+preg_match('/\x{110000}/', $input);  // Max is 0x10FFFF
 
 // FIX: Use valid code point
-Regex::create()->validate('/\x{10FFFF}/');
+preg_match('/\x{10FFFF}/', $input);
 
 // WARNING: Suspicious escape
-Regex::create()->validate('/\d/');  // Valid: digit
+preg_match('/\d/', $input);  // Valid: digit
 
-Regex::create()->validate('/\8/');  // Ambiguous: not a valid escape
+preg_match('/\8/', $input);  // Ambiguous: not a valid escape
 ```
 
 **Fix:** Correct the codepoint or use valid escapes.
@@ -442,10 +439,10 @@ Regex::create()->validate('/\8/');  // Ambiguous: not a valid escape
 **Example:**
 ```php
 // WARNING: Redundant inline flag
-Regex::create()->validate('/(?i)foo(?-i)/i');  // Global i, then toggle off/on
+preg_match('/(?i)foo(?-i)/i', $input);  // Global i, then toggle off/on
 
 // PREFERRED: Remove redundancy
-Regex::create()->validate('/(?i)foo/i');
+preg_match('/(?i)foo/i', $input);
 ```
 
 ---
@@ -459,10 +456,10 @@ Regex::create()->validate('/(?i)foo/i');
 **Example:**
 ```php
 // WARNING: Unset global flag
-Regex::create()->validate('/(?-i:foo)i/');
+preg_match('/(?-i:foo)i/', $input);
 
 // CONSIDER: Scope the flag instead
-Regex::create()->validate('/(?i:foo)/');
+preg_match('/(?i:foo)/', $input);
 ```
 
 ---
@@ -487,13 +484,13 @@ Regex::create()->validate('/(?i:foo)/');
 **Example:**
 ```php
 // VULNERABLE: Exponential backtracking
-Regex::create()->redos('/(a+)+$/');  // CRITICAL
+preg_match('/(a+)+$/', $input);  // CRITICAL
 
 // SAFER: Atomic group
-Regex::create()->redos('/(?>a+)+$/');  // SAFE
+preg_match('/(?>a+)+$/', $input);  // SAFE
 
 // SAFER: Possessive quantifier
-Regex::create()->redos('/(a++)+$/');  // SAFE
+preg_match('/(a++)+$/', $input);  // SAFE
 ```
 
 **Fix:** Make the ambiguous part atomic or possessive, or refactor.
@@ -511,30 +508,30 @@ Regex::create()->redos('/(a++)+$/');  // SAFE
 
 **Visual Comparison:**
 ```
-+-------------------------------------------------------------+
-|              GREEDY vs POSSESSIVE                           |
-|-------------------------------------------------------------|
-|                                                             |
-|  GREEDY: /".*"/                                             |
-|    - Matches as much as possible                            |
-|    - Backtracks on failure                                  |
-|    - Can be slow on non-matching input                      |
-|                                                             |
-|  POSSESSIVE: /".*+"/                                        |
-|    - Matches as much as possible                            |
-|    - NEVER backtracks                                       |
-|    - Fails fast on non-matching input                       |
-|                                                             |
-+-------------------------------------------------------------+
+┌─────────────────────────────────────────────────────────────┐
+│              GREEDY vs POSSESSIVE                           │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  GREEDY: /".*"/                                             │
+│    - Matches as much as possible                            │
+│    - Backtracks on failure                                  │
+│    - Can be slow on non-matching input                      │
+│                                                             │
+│  POSSESSIVE: /".*+"/                                        │
+│    - Matches as much as possible                            │
+│    - NEVER backtracks                                       │
+│    - Fails fast on non-matching input                       │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 **Example:**
 ```php
 // Greedy: may backtrack heavily
-Regex::create()->validate('/".*"/');
+preg_match('/".*"/', $input);
 
 // Possessive: consumes once and fails fast
-Regex::create()->validate('/".*+"/');
+preg_match('/".*+"/', $input);
 ```
 
 ---
@@ -546,10 +543,10 @@ Regex::create()->validate('/".*+"/');
 **Example:**
 ```php
 // Risky: catastrophic backtracking on repeated 'a'
-Regex::create()->validate('/(a+)+!/');
+preg_match('/(a+)+!/', $input);
 
 // Atomic: once inside the group matches, it cannot backtrack
-Regex::create()->validate('/(?>a+)+!/');
+preg_match('/(?>a+)+!/', $input);
 ```
 
 ---
@@ -561,10 +558,10 @@ Regex::create()->validate('/(?>a+)+!/');
 **Example:**
 ```php
 // Lookahead: require a trailing digit without consuming it
-Regex::create()->validate('/^[A-Z]{2}(?=\d$)/');
+preg_match('/^[A-Z]{2}(?=\d$)/', $input);
 
 // Lookbehind: ensure the match is preceded by "ID-"
-Regex::create()->validate('/(?<=ID-)\d+/');
+preg_match('/(?<=ID-)\d+/', $input);
 ```
 
 ---

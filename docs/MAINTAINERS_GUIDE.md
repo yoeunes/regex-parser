@@ -1,94 +1,560 @@
 # Maintainers Guide
 
-This guide is for maintainers and integrators building tools around RegexParser: linters, framework bridges, CI pipelines, or IDE plugins.
+This guide is for framework maintainers, library maintainers, and tooling authors who want to integrate RegexParser as a first-class analysis component. Whether you're building a PHPStan rule, a Symfony bundle, or a custom CLI tool, this guide covers everything you need.
 
-> We keep the public API stable and the AST immutable so your tooling can evolve safely.
-
-## Integration Checklist
+## The Integration Landscape
 
 ```
-[ ] Create a shared Regex instance via Regex::create()
-[ ] Decide on caching strategy (FilesystemCache vs NullCache)
-[ ] Run validate() before storing patterns
-[ ] Run redos() for security checks
-[ ] Clear validator caches in long-running workers
-[ ] Emit diagnostics with byte offsets
+┌─────────────────────────────────────────────────────────────┐
+│              REGEXPARSER INTEGRATION PATTERNS               │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │                    YOUR APPLICATION                 │    │
+│  │                                                     │    │
+│  │   ┌─────────────┐  ┌─────────────┐  ┌──────────┐    │    │
+│  │   │ PHPStan     │  │ Symfony     │  │ CLI      │    │    │
+│  │   │ Integration │  │ Bundle      │  │ Tool     │    │    │
+│  │   └──────┬──────┘  └──────┬──────┘  └────┬─────┘    │    │
+│  │          │                │               │         │    │
+│  └──────────┼────────────────┼───────────────┼─────────┘    │
+│             │                │               │              │
+│             ▼                ▼               ▼              │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │              RegexParser Library                    │    │
+│  │                                                     │    │
+│  │   ┌─────────────┐  ┌─────────────┐  ┌──────────┐    │    │
+│  │   │   Parser    │  │   Visitor   │  │ ReDoS    │    │    │
+│  │   │   (Lexer)   │  │   Pattern   │  │ Analyzer │    │    │
+│  │   └─────────────┘  └─────────────┘  └──────────┘    │    │
+│  │                                                     │    │
+│  └─────────────────────────────────────────────────────┘    │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-## Integration Patterns
+---
 
-### 1. Wrap RegexParser in a Service
+## Configuration Reference (`Regex::create($options)`)
+
+`Regex::create()` accepts a validated array of options. Invalid keys raise `InvalidRegexOptionException`.
+
+### Available Options
+
+| Option                    | Purpose                                   |
+|---------------------------|-------------------------------------------|
+| `cache`                   | Configure caching behavior                |
+| `max_pattern_length`      | Set maximum pattern length                |
+| `max_lookbehind_length`   | Configure lookbehind limits               |
+| `runtime_pcre_validation` | Enable runtime PCRE checks                |
+| `redos_ignored_patterns`  | Skip ReDoS analysis for specific patterns |
+| `max_recursion_depth`     | Set parser recursion limit                |
+| `php_version`             | Target PHP version for validation         |
+
+For a complete list of options, types, and default values, please refer to the [API Reference](reference/api.md#configuration-options).
+
+### Visual: Configuration Flow
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│              CONFIGURATION VALIDATION FLOW                  │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  Regex::create([options])                                   │
+│          │                                                  │
+│          ▼                                                  │
+│  ┌─────────────────┐                                        │
+│  │ Validate keys   │ ──► InvalidKeyException                │
+│  │ Validate types  │ ──► TypeError                          │
+│  │ Validate values │ ──► InvalidArgumentException           │
+│  └────────┬────────┘                                        │
+│           │                                                 │
+│           ▼                                                 │
+│  ┌─────────────────┐                                        │
+│  │ Build Regex     │                                        │
+│  │ instance        │                                        │
+│  └─────────────────┘                                        │
+│           │                                                 │
+│           ▼                                                 │
+│  Ready to use!                                              │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Complete Example
 
 ```php
 use RegexParser\Regex;
+use RegexParser\Cache\FilesystemCache;
 
-final class RegexAuditService
+$regex = Regex::create([
+    'cache' => new FilesystemCache('/var/cache/regex-parser'),
+    'max_pattern_length' => 100_000,
+    'max_lookbehind_length' => 255,
+    'runtime_pcre_validation' => true,
+    'redos_ignored_patterns' => [
+        '/^([0-9]{4}-[0-9]{2}-[0-9]{2})$/',  // Trusted date pattern
+        '/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/',  // Safe email
+    ],
+    'max_recursion_depth' => 1024,
+    'php_version' => '8.2',
+]);
+
+// Now use $regex for parsing, validation, or analysis
+$result = $regex->validate('/foo|bar/');
+echo $result->isValid() ? 'Valid' : 'Invalid';
+```
+
+### Common Configuration Pitfalls
+
+```php
+// PITFALL 1: Cache path not writable
+// ERROR: Cache directory must exist and be writable
+$regex = Regex::create([
+    'cache' => '/nonexistent/path/cache',  // WRONG
+]);
+
+// FIX: Use null to disable cache, or ensure path exists
+$regex = Regex::create(['cache' => null]);  // OK
+$regex = Regex::create(['cache' => '/tmp/regex-cache']);  // OK if writable
+
+// PITFALL 2: max_lookbehind too high
+// ERROR: Unbounded lookbehinds are invalid in PCRE
+$regex = Regex::create([
+    'max_lookbehind_length' => 1000000,  // Way too high
+]);
+
+// FIX: Use the default 255, or lower for stricter validation
+$regex = Regex::create([
+    'max_lookbehind_length' => 100,  // Stricter
+]);
+
+// PITFALL 3: Invalid PHP version
+// ERROR: Version must be valid semver or PHP_VERSION_ID
+$regex = Regex::create([
+    'php_version' => 'invalid-version',  // WRONG
+]);
+
+// FIX: Use valid version string or integer
+$regex = Regex::create(['php_version' => '8.2']);   // OK
+$regex = Regex::create(['php_version' => 80200]);   // OK (PHP_VERSION_ID)
+```
+
+---
+
+## Exception Hierarchy
+
+RegexParser exposes a clean, stable exception surface designed for precise error handling:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│              EXCEPTION HIERARCHY                            │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  Throwable                                                  │
+│      │                                                      │
+│      ├── RegexException                                     │
+│      │   ├── LexerException                                 │
+│      │   ├── ParserException                                │
+│      │   │   ├── SyntaxErrorException                       │
+│      │   │   └── SemanticErrorException                     │
+│      │   ├── RecursionLimitException                        │
+│      │   └── ResourceLimitException                         │
+│      │                                                      │
+│      └── RegexParserExceptionInterface                      │
+│          (all parser/lexer errors)                          │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────────┐│
+│  │ CATCH-ALL: RegexParserExceptionInterface                ││
+│  │                                                         ││
+│  │ use RegexParser\Exception\RegexParserExceptionInterface;││
+│  │                                                         ││
+│  │ SPECIFIC: LexerException | ParserException              ││
+│  │                                                         ││
+│  │ use RegexParser\Exception\LexerException;               ││
+│  │ use RegexParser\Exception\ParserException;              ││
+│  └─────────────────────────────────────────────────────────┘│
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Exception Handling Examples
+
+```php
+use RegexParser\Regex;
+use RegexParser\Exception\LexerException;
+use RegexParser\Exception\ParserException;
+use RegexParser\Exception\RegexParserExceptionInterface;
+use RegexParser\Exception\InvalidRegexOptionException;
+
+try {
+    $ast = Regex::create()->parse('/[a-z]+/');
+} catch (InvalidRegexOptionException $e) {
+    // Configuration error - check your options
+    echo "Invalid configuration: " . $e->getMessage();
+} catch (LexerException $e) {
+    // Tokenization failed - malformed pattern
+    echo "Tokenization error at position {$e->getPosition()}: {$e->getMessage()}";
+} catch (ParserException $e) {
+    // Grammar failed - invalid structure
+    echo "Parse error: {$e->getMessage()}";
+} catch (RegexParserExceptionInterface $e) {
+    // Any other parser/lexer error
+    echo "RegexParser error: {$e->getMessage()}";
+}
+
+// Handling specific error codes
+try {
+    $result = Regex::create()->validate('/(?<=a+)b/');
+    if (!$result->isValid()) {
+        echo "Error {$result->errorCode}: {$result->error}";
+        echo "Hint: {$result->hint}";
+    }
+} catch (\Throwable $e) {
+    echo "Unexpected error: {$e->getMessage()}";
+}
+```
+
+### Exception Reference Table
+
+| Exception                     | When It's Thrown          | Common Cause                                |
+|-------------------------------|---------------------------|---------------------------------------------|
+| `LexerException`              | Tokenization fails        | Invalid escape, malformed character class   |
+| `ParserException`             | AST construction fails    | Missing delimiter, unbalanced groups        |
+| `SyntaxErrorException`        | Invalid syntax            | Unrecognized token                          |
+| `SemanticErrorException`      | Invalid semantics         | Unbounded lookbehind, invalid backreference |
+| `RecursionLimitException`     | Parser recursion too deep | Nested patterns exceed limit                |
+| `ResourceLimitException`      | Resource limits exceeded  | Pattern too long, too many tokens           |
+| `InvalidRegexOptionException` | Invalid `create()` option | Unknown key, wrong type                     |
+
+---
+
+## JSON Output Schema (CLI Linting)
+
+Use `vendor/bin/regex lint --format=json` for machine-readable output suitable for CI/CD pipelines, IDEs, and custom tooling.
+
+### Output Structure Overview
+
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│              JSON OUTPUT SCHEMA                                      │
+├──────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│  {                                                                   │
+│    "stats": {                ← Run summary                           │
+│      "errors": 0,                                                    │
+│      "warnings": 1,                                                  │
+│      "optimizations": 1                                              │
+│    },                                                                │
+│    "results": [              ← One per pattern occurrence            │
+│      {                                                               │
+│        "file": "src/Service/EmailValidator.php",                     │
+│        "line": 42,                                                   │
+│        "source": "php",                                              │
+│        "pattern": "/^[a-z0-9._%+-]+@[a-z0-9-]+(?:\\.[a-z0-9-]+)+$/i",│
+│        "location": null,                                             │
+│        "issues": [         ← Diagnostic issues                       │
+│          {                                                           │
+│            "type": "warning",                                        │
+│            "message": "Nested quantifiers detected...",              │
+│            "file": "src/Service/EmailValidator.php",                 │
+│            "line": 42,                                               │
+│            "column": 9,                                              │
+│            "issueId": "regex.lint.quantifier.nested",                │
+│            "hint": "Use atomic groups...",                           │
+│            "source": "php"                                           │
+│          }                                                           │
+│        ],                                                            │
+│        "optimizations": [  ← Suggested improvements                  │
+│          {                                                           │
+│            "file": "src/Service/EmailValidator.php",                 │
+│            "line": 42,                                               │
+│            "optimization": {                                         │
+│              "original": "/[0-9]+/",                                 │
+│              "optimized": "/\\d+/",                                  │
+│              "changes": ["Optimized pattern."]                       │
+│            },                                                        │
+│            "savings": 2,           ← Characters saved                │
+│            "source": "php"                                           │
+│          }                                                           │
+│        ]                                                             │
+│      }                                                               │
+│    ]                                                                 │
+│  }                                                                   │
+│                                                                      │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+### Field Reference
+
+| Field                       | Type   | Description                    | Always Present    |
+|-----------------------------|--------|--------------------------------|-------------------|
+| `stats.errors`              | int    | Total error count              | Yes               |
+| `stats.warnings`            | int    | Total warning count            | Yes               |
+| `stats.optimizations`       | int    | Total optimization suggestions | Yes               |
+| `results[].file`            | string | Source file path               | Yes               |
+| `results[].line`            | int    | Line number                    | Yes               |
+| `results[].column`          | int    | Column number                  | Sometimes         |
+| `results[].source`          | string | Source language                | Yes               |
+| `results[].pattern`         | string | The pattern being analyzed     | Yes               |
+| `results[].issues[]`        | array  | Diagnostic issues              | When issues found |
+| `results[].optimizations[]` | array  | Optimization suggestions       | When applicable   |
+
+### CLI Examples
+
+```bash
+# Lint a single pattern
+vendor/bin/regex lint --pattern '/(a+)+b/'
+
+# Lint with JSON output
+vendor/bin/regex lint --format=json src/
+
+# Lint with minimum savings threshold
+vendor/bin/regex lint --min-savings 5 src/
+
+# Lint with optimization suggestions
+vendor/bin/regex lint --optimize src/
+
+# Lint without optimization
+vendor/bin/regex lint --no-optimize src/
+```
+
+### Integrating with CI/CD
+
+```yaml
+# .github/workflows/regex-lint.yml
+name: Regex Lint
+
+on: [push, pull_request]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/cache-extensions@v1
+        with:
+          php-version: '8.2'
+      - name: Install dependencies
+        run: composer install --no-progress
+      - name: Run RegexParser linter
+        run: vendor/bin/regex lint src/ --format=json > regex-issues.json
+      - name: Check for critical issues
+        run: |
+          ERRORS=$(jq '[.results[] | .issues[] | select(.type == "error")] | length' regex-issues.json)
+          if [ "$ERRORS" -gt 0 ]; then
+            echo "Found $ERRORS critical regex issues"
+            cat regex-issues.json | jq '.results[] | select(.issues | length > 0) | {file, line, issues: [.issues[].message]}'
+            exit 1
+          fi
+```
+
+---
+
+## Building Custom Integrations
+
+### Integration Pattern 1: Simple Wrapper
+
+```php
+namespace MyApp\Regex;
+
+use RegexParser\Regex;
+
+class RegexValidator
 {
-    public function __construct(private Regex $regex) {}
+    private Regex $regex;
 
-    public static function create(): self
+    public function __construct()
     {
-        return new self(Regex::create([
+        $this->regex = Regex::create([
             'runtime_pcre_validation' => true,
-        ]));
+            'max_pattern_length' => 10000,
+        ]);
     }
 
-    public function audit(string $pattern): array
+    public function validatePattern(string $pattern): bool
     {
         $result = $this->regex->validate($pattern);
-        $redos = $this->regex->redos($pattern);
+        return $result->isValid();
+    }
 
+    public function checkReDoS(string $pattern): array
+    {
+        $analysis = $this->regex->redos($pattern);
         return [
-            'valid' => $result->isValid(),
-            'error' => $result->error,
-            'redos' => $redos->severity->value,
+            'severity' => $analysis->severity->value,
+            'confidence' => $analysis->confidence->value,
         ];
     }
 }
 ```
 
-### 2. Run Full Analysis in CI
-
-`Regex::analyze()` aggregates validation, lint, optimization, explanation, and ReDoS analysis into one report. This is the simplest path for CI.
-
-### 3. Build a Custom Visitor
-
-If you need a custom rule, add a visitor. Start from `AbstractNodeVisitor` and override only the nodes you care about.
-
-> Visitors are the safest extension point. They do not change the AST contract.
-
-## Long-Running Processes
-
-If you run RegexParser inside workers or daemons, clear static caches periodically.
+### Integration Pattern 2: Custom Visitor
 
 ```php
-$regex = Regex::create();
+namespace MyApp\Regex;
 
-foreach ($patterns as $i => $pattern) {
-    $regex->validate($pattern);
+use RegexParser\Regex;
+use RegexParser\NodeVisitor\AbstractNodeVisitor;
+use RegexParser\Node;
 
-    if (0 === ($i + 1) % 100) {
-        $regex->clearValidatorCaches();
+class LiteralCollector extends AbstractNodeVisitor
+{
+    private array $literals = [];
+
+    public function visitLiteralNode(Node\LiteralNode $node): void
+    {
+        $this->literals[] = $node->value;
+    }
+
+    public function getLiterals(): array
+    {
+        return $this->literals;
+    }
+}
+
+class PatternAnalyzer
+{
+    public function extractLiterals(string $pattern): array
+    {
+        $ast = Regex::create()->parse($pattern);
+        $visitor = new LiteralCollector();
+        $ast->accept($visitor);
+        return $visitor->getLiterals();
     }
 }
 ```
 
-## Design Constraints You Should Respect
+### Integration Pattern 3: Symfony Integration
 
-- Nodes are immutable and carry source positions. Do not mutate.
-- The AST is the contract between the parser and all visitors.
-- The lexer and parser use byte offsets, not Unicode code points.
-- ReDoS analysis depends on structure, not heuristics.
+```php
+// src/Validator/RegexValidator.php
+namespace App\Validator;
 
-> If you change AST structure, bump the cache version and update the node reference.
+use RegexParser\Regex;
+use Symfony\Component\Validator\Constraint;
+use Symfony\Component\Validator\ConstraintValidator;
 
-## Where to Look Next
+class RegexConstraintValidator extends ConstraintValidator
+{
+    public function validate($value, Constraint $constraint): void
+    {
+        if ($value === null || $value === '') {
+            return;
+        }
 
-- Public API and options: `docs/reference/api.md`
-- Diagnostics catalog: `docs/reference.md`
-- CLI usage and JSON output: `docs/guides/cli.md`
-- Visitor mechanics: `docs/design/AST_TRAVERSAL.md`
+        $regex = Regex::create([
+            'runtime_pcre_validation' => true,
+        ]);
+
+        $result = $regex->validate($constraint->pattern);
+
+        if (!$result->isValid()) {
+            $this->context->buildViolation($constraint->message)
+                ->setParameter('{{ error }}', $result->error)
+                ->addViolation();
+            return;
+        }
+
+        // Check ReDoS safety
+        $analysis = $regex->redos($constraint->pattern);
+        if ($analysis->severity->value !== 'safe') {
+            $this->context->buildViolation($constraint->redosMessage)
+                ->setParameter('{{ severity }}', $analysis->severity->value)
+                ->addViolation();
+        }
+    }
+}
+```
 
 ---
 
-Previous: `ARCHITECTURE.md` | Next: `EXTENDING_GUIDE.md`
+## Best Practices for Integrations
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│              INTEGRATION BEST PRACTICES                     │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  □ Always configure max_pattern_length for user patterns    │
+│                                                             │
+│  □ Use runtime_pcre_validation for critical path            │
+│                                                             │
+│  □ Cache ASTs for repeated pattern analysis                 │
+│                                                             │
+│  □ Handle exceptions at the right level                     │
+│                                                             │
+│  □ Clear validator caches in long-running processes         │
+│                                                             │
+│  □ Prefer ValidationResult over exceptions for validation   │
+│                                                             │
+│  □ Use redos() for ReDoS checks before storing patterns     │
+│                                                             │
+│  □ Log diagnostics for debugging integration issues         │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Memory Management for Long-Running Processes
+
+For long-running processes (daemons, workers), manage memory carefully:
+
+```php
+use RegexParser\Regex;
+
+class RegexProcessor
+{
+    private Regex $regex;
+
+    public function __construct()
+    {
+        $this->regex = Regex::create([
+            'cache' => new FilesystemCache('/tmp/regex-cache'),
+        ]);
+    }
+
+    public function processPatterns(array $patterns): void
+    {
+        foreach ($patterns as $pattern) {
+            // Process pattern...
+            $result = $this->regex->validate($pattern);
+
+            // Periodically clear caches
+            static $counter = 0;
+            if (++$counter % 100 === 0) {
+                $this->regex->clearValidatorCaches();
+            }
+        }
+    }
+}
+```
+
+---
+
+## Related Documentation
+
+| Topic           | File                                       |
+|-----------------|--------------------------------------------|
+| API Reference   | [api.md](reference/api.md)                 |
+| Diagnostics     | [diagnostics.md](reference/diagnostics.md) |
+| ReDoS Guide     | [REDOS_GUIDE.md](../REDOS_GUIDE.md)        |
+| Architecture    | [ARCHITECTURE.md](../ARCHITECTURE.md)      |
+| Extending Guide | [EXTENDING_GUIDE.md](EXTENDING_GUIDE.md)   |
+
+---
+
+## Summary
+
+| Topic         | Key Points                                            |
+|---------------|-------------------------------------------------------|
+| Configuration | Use `Regex::create()` with validated options          |
+| Exceptions    | Catch specific types for precise error handling       |
+| JSON Output   | Schema includes stats, results, issues, optimizations |
+| Integration   | Build wrappers, visitors, or Symfony integrations     |
+| Memory        | Clear caches in long-running processes                |
+
+---
+
+Previous: [Architecture](ARCHITECTURE.md) | Next: [Extending Guide](EXTENDING_GUIDE.md)
