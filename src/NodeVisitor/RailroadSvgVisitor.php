@@ -342,10 +342,22 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
             return $layouts[0];
         }
 
-        $height = 0;
+        $maxAscent = 0;
+        $maxDescent = 0;
+
+        foreach ($layouts as $layout) {
+            $ascent = (int) $layout['entryY'];
+            $descent = (int) $layout['height'] - (int) $layout['entryY'];
+
+            $maxAscent = max($maxAscent, $ascent);
+            $maxDescent = max($maxDescent, $descent);
+        }
+
+        $height = $maxAscent + $maxDescent;
+        $baselineY = $maxAscent;
+
         $width = 0;
         foreach ($layouts as $layout) {
-            $height = max($height, (int) $layout['height']);
             $width += (int) $layout['width'];
         }
         $width += self::H_GAP * (\count($layouts) - 1);
@@ -355,11 +367,14 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
         $texts = [];
         $boxes = [];
         $markers = [];
+
         $x = 0;
         $prevLayout = null;
-        $prevOffsetX = 0;
+        $prevExitXAbs = 0;
+
         foreach ($layouts as $index => $layout) {
-            $offsetY = (int) floor(($height - (int) $layout['height']) / 2);
+            $offsetY = $baselineY - (int) $layout['entryY'];
+
             $offsetLayout = $this->offsetLayout($layout, $x, $offsetY);
             $nodes = array_merge($nodes, $offsetLayout['nodes']);
             $paths = array_merge($paths, $offsetLayout['paths']);
@@ -368,14 +383,13 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
             $markers = array_merge($markers, $offsetLayout['markers']);
 
             if (null !== $prevLayout) {
-                $midY = (int) floor($height / 2);
-                $prevExitX = $prevOffsetX + (int) $prevLayout['exitX'];
-                $currEntryX = $x + (int) $layout['entryX'];
-                $paths[] = $this->line([$prevExitX, $midY], [$currEntryX, $midY]);
+                $currEntryXAbs = $x + (int) $layout['entryX'];
+                $paths[] = $this->line([$prevExitXAbs, $baselineY], [$currEntryXAbs, $baselineY]);
             }
 
             $prevLayout = $layout;
-            $prevOffsetX = $x;
+            $prevExitXAbs = $x + (int) $layout['exitX'];
+
             $x += (int) $layout['width'] + self::H_GAP;
         }
 
@@ -383,9 +397,9 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
             'width' => $width,
             'height' => $height,
             'entryX' => 0,
-            'entryY' => (int) floor($height / 2),
+            'entryY' => $baselineY,
             'exitX' => $width,
-            'exitY' => (int) floor($height / 2),
+            'exitY' => $baselineY,
             'nodes' => $nodes,
             'paths' => $paths,
             'texts' => $texts,
