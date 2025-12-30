@@ -42,7 +42,7 @@ final class ExplainNodeVisitorTest extends TestCase
         $node = new CharLiteralNode('077', 0o77, CharLiteralType::OCTAL_LEGACY, 0, 3);
         $visitor = new ExplainNodeVisitor();
 
-        $this->assertSame('Legacy Octal: \\077', $node->accept($visitor));
+        $this->assertSame('Character with octal value 077', $node->accept($visitor));
     }
 
     public function test_visit_alternation_node(): void
@@ -127,7 +127,7 @@ final class ExplainNodeVisitorTest extends TestCase
         $node = new BackrefNode('1', 0, 2);
         $visitor = new ExplainNodeVisitor();
 
-        $this->assertSame('Backreference: matches text from group "1"', $node->accept($visitor));
+        $this->assertSame('Backreference: whatever the capturing group "1" matched', $node->accept($visitor));
     }
 
     public function test_visit_unicode_node(): void
@@ -135,7 +135,7 @@ final class ExplainNodeVisitorTest extends TestCase
         $node = new CharLiteralNode('\x{2603}', 0x2603, CharLiteralType::UNICODE, 0, 7);
         $visitor = new ExplainNodeVisitor();
 
-        $this->assertSame('Unicode: \x{2603}', $node->accept($visitor));
+        $this->assertSame('Character with hexadecimal value 0x2603', $node->accept($visitor));
     }
 
     public function test_visit_unicode_prop_node(): void
@@ -173,7 +173,7 @@ final class ExplainNodeVisitorTest extends TestCase
         );
         $visitor = new ExplainNodeVisitor();
 
-        $this->assertSame("IF (  Backreference: matches text from group \"1\") THEN\n  'a'\nELSE\n  'b'", $node->accept($visitor));
+        $this->assertSame("IF (  Backreference: whatever the capturing group \"1\" matched) THEN\n  'a'\nELSE\n  'b'", $node->accept($visitor));
     }
 
     public function test_visit_subroutine_node(): void

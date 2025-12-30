@@ -61,31 +61,56 @@ use RegexParser\Node\VersionConditionNode;
 final class ExplainNodeVisitor extends AbstractNodeVisitor
 {
     private const CHAR_TYPE_MAP = [
-        'd' => 'any digit (0-9)',
-        'D' => 'any non-digit',
-        's' => 'any whitespace character',
-        'S' => 'any non-whitespace character',
-        'w' => 'any "word" character (alphanumeric or _)',
-        'W' => 'any "non-word" character',
-        'h' => 'any horizontal whitespace',
-        'H' => 'any non-horizontal whitespace',
-        'v' => 'any vertical whitespace',
-        'V' => 'any non-vertical whitespace',
-        'R' => 'a generic newline (\\r\\n, \\r, or \\n)',
+        'd' => 'A digit: [0-9]',
+        'D' => 'A non-digit: [^0-9]',
+        'h' => 'A horizontal whitespace character: [ \\t\\xA0\\u1680\\u180e\\u2000-\\u200a\\u202f\\u205f\\u3000]',
+        'H' => 'A non-horizontal whitespace character: [^\\h]',
+        's' => 'A whitespace character: [ \\t\\n\\x0B\\f\\r]',
+        'S' => 'A non-whitespace character: [^\\s]',
+        'v' => 'A vertical whitespace character: [\\n\\x0B\\f\\r\\x85\\u2028\\u2029]',
+        'V' => 'A non-vertical whitespace character: [^\\v]',
+        'w' => 'A word character: [a-zA-Z_0-9]',
+        'W' => 'A non-word character: [^\\w]',
+        'R' => 'Any Unicode linebreak sequence (\\u000D\\u000A|[\\u000A\\u000B\\u000C\\u000D\\u0085\\u2028\\u2029])',
     ];
 
     private const ANCHOR_MAP = [
-        '^' => 'the start of the string (or line, with /m flag)',
-        '$' => 'the end of the string (or line, with /m flag)',
+        '^' => 'the beginning of a line',
+        '$' => 'the end of a line',
     ];
 
     private const ASSERTION_MAP = [
-        'A' => 'the absolute start of the string',
-        'z' => 'the absolute end of the string',
-        'Z' => 'the end of the string (before final newline)',
-        'G' => 'the position of the last successful match',
+        'A' => 'the beginning of the input',
+        'z' => 'the end of the input',
+        'Z' => 'the end of the input but for the final terminator, if any',
+        'G' => 'the end of the previous match',
         'b' => 'a word boundary',
         'B' => 'a non-word boundary',
+    ];
+
+    private const UNICODE_PROPERTY_MAP = [
+        'lower' => 'A lower-case alphabetic character: [a-z]',
+        'upper' => 'An upper-case alphabetic character: [A-Z]',
+        'ascii' => 'All ASCII: [\\x00-\\x7F]',
+        'alpha' => 'An alphabetic character: [\\p{Lower}\\p{Upper}]',
+        'digit' => 'A decimal digit: [0-9]',
+        'alnum' => 'An alphanumeric character: [\\p{Alpha}\\p{Digit}]',
+        'punct' => 'Punctuation: One of !"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~',
+        'graph' => 'A visible character: [\\p{Alnum}\\p{Punct}]',
+        'print' => 'A printable character: [\\p{Graph}\\x20]',
+        'blank' => 'A space or a tab: [ \\t]',
+        'cntrl' => 'A control character: [\\x00-\\x1F\\x7F]',
+        'xdigit' => 'A hexadecimal digit: [0-9a-fA-F]',
+        'space' => 'A whitespace character: [ \\t\\n\\x0B\\f\\r]',
+        'javalowercase' => 'Equivalent to java.lang.Character.isLowerCase()',
+        'javauppercase' => 'Equivalent to java.lang.Character.isUpperCase()',
+        'javawhitespace' => 'Equivalent to java.lang.Character.isWhitespace()',
+        'javamirrored' => 'Equivalent to java.lang.Character.isMirrored()',
+        'islatin' => 'A Latin script character (script)',
+        'ingreek' => 'A character in the Greek block (block)',
+        'lu' => 'An uppercase letter (category)',
+        'isalphabetic' => 'An alphabetic character (binary property)',
+        'sc' => 'A currency symbol',
     ];
 
     private int $indentLevel = 0;
@@ -287,7 +312,7 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitDot(DotNode $node): string
     {
-        return $this->line('Wildcard: any character (except newline, unless /s flag is used)');
+        return $this->line('Wildcard: any character (may or may not match line terminators)');
     }
 
     /**
@@ -356,11 +381,14 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitCharClass(CharClassNode $node): string
     {
-        $neg = $node->isNegated ? 'NOT ' : '';
         $parts = $node->expression instanceof AlternationNode ? $node->expression->alternatives : [$node->expression];
         $explainedParts = array_map(fn (NodeInterface $part): string => $part->accept($this), $parts);
 
-        return $this->line(\sprintf('Character Class: any character %sin [ %s ]', $neg, implode(', ', $explainedParts)));
+        if ($node->isNegated) {
+            return $this->line(\sprintf('Character Class: any character except [ %s ]', implode(', ', $explainedParts)));
+        }
+
+        return $this->line(\sprintf('Character Class: any character in [ %s ]', implode(', ', $explainedParts)));
     }
 
     /**
@@ -402,7 +430,7 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitBackref(BackrefNode $node): string
     {
-        return $this->line(\sprintf('Backreference: matches text from group "%s"', $node->ref));
+        return $this->line(\sprintf('Backreference: whatever the capturing group "%s" matched', $node->ref));
     }
 
     #[\Override]
@@ -416,7 +444,7 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitControlChar(ControlCharNode $node): string
     {
-        return $this->line(\sprintf('Control character: \\c%s', $node->char));
+        return $this->line(\sprintf('Control character corresponding to %s (\\c%s)', $node->char, $node->char));
     }
 
     #[\Override]
@@ -445,8 +473,28 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitUnicodeProp(UnicodePropNode $node): string
     {
-        $type = str_starts_with($node->prop, '^') ? 'non-matching' : 'matching';
-        $prop = ltrim($node->prop, '^');
+        $inner = $node->prop;
+        if (str_starts_with($inner, '{') && str_ends_with($inner, '}')) {
+            $inner = substr($inner, 1, -1);
+        }
+        $isNegated = str_starts_with($inner, '^');
+        $prop = ltrim($inner, '^');
+        $key = strtolower($prop);
+
+        if (isset(self::UNICODE_PROPERTY_MAP[$key])) {
+            $description = self::UNICODE_PROPERTY_MAP[$key];
+            if ($isNegated) {
+                if ('ingreek' === $key) {
+                    return $this->line('Any character except one in the Greek block (block)');
+                }
+
+                return $this->line('Any character except '.lcfirst($description));
+            }
+
+            return $this->line($description);
+        }
+
+        $type = $isNegated ? 'non-matching' : 'matching';
 
         return $this->line(\sprintf('Unicode Property: any character %s "%s"', $type, $prop));
     }
@@ -455,10 +503,10 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
     public function visitCharLiteral(CharLiteralNode $node): string
     {
         return match ($node->type) {
-            CharLiteralType::UNICODE => $this->line('Unicode: '.$this->formatUnicodeChar($node)),
+            CharLiteralType::UNICODE => $this->line('Character with hexadecimal value 0x'.$this->formatUnicodeHexValue($node)),
             CharLiteralType::UNICODE_NAMED => $this->line('Unicode named character: '.$this->extractCharLiteralDetail($node)),
-            CharLiteralType::OCTAL => $this->line('Octal: '.$node->originalRepresentation),
-            CharLiteralType::OCTAL_LEGACY => $this->line('Legacy Octal: \\'.$node->originalRepresentation),
+            CharLiteralType::OCTAL => $this->line('Character with octal value '.$this->formatOctalValue($node)),
+            CharLiteralType::OCTAL_LEGACY => $this->line('Character with octal value '.$this->formatLegacyOctalValue($node->originalRepresentation)),
         };
     }
 
@@ -625,11 +673,11 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
         $desc = match ($q) {
             '*' => 'zero or more times',
             '+' => 'one or more times',
-            '?' => 'zero or one time',
+            '?' => 'once or not at all',
             default => preg_match('/^\{(\d++)(?:,(\d*+))?\}$/', $q, $m) ?
                 (isset($m[2]) ? ('' === $m[2] ?
                     \sprintf('at least %d times', $m[1]) :
-                    \sprintf('between %d and %d times', $m[1], $m[2])
+                    \sprintf('at least %d but not more than %d times', $m[1], $m[2])
                 ) :
                     \sprintf('exactly %d times', $m[1])
                 ) :
@@ -657,6 +705,9 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
             "\t" => "'\\t' (tab)",
             "\n" => "'\\n' (newline)",
             "\r" => "'\\r' (carriage return)",
+            "\f" => "'\\f' (form feed)",
+            "\x07" => "'\\a' (bell)",
+            "\x1B" => "'\\e' (escape)",
             default => $this->formatCharLiteral($value),
         };
     }
@@ -677,25 +728,43 @@ final class ExplainNodeVisitor extends AbstractNodeVisitor
         return "'".$value."'";
     }
 
-    /**
-     * Format Unicode character for explanation, handling non-printable and extended ASCII characters.
-     */
-    private function formatUnicodeChar(CharLiteralNode $node): string
+    private function formatUnicodeHexValue(CharLiteralNode $node): string
     {
-        // If the original representation is already in hex format, use it
-        if (str_starts_with($node->originalRepresentation, '\x') || str_starts_with($node->originalRepresentation, '\u')) {
-            return $node->originalRepresentation;
+        $rep = $node->originalRepresentation;
+        if (preg_match('/^\\\\x([0-9a-fA-F]{1,2})$/', $rep, $matches)) {
+            return strtoupper($matches[1]);
         }
 
-        // For single character values, convert non-printable/extended ASCII to hex
-        if (1 === \strlen($node->originalRepresentation)) {
-            $ord = \ord($node->originalRepresentation);
-            if ($ord < 32 || 127 === $ord || $ord >= 128) {
-                return '\\x'.strtoupper(str_pad(dechex($ord), 2, '0', \STR_PAD_LEFT));
-            }
+        if (preg_match('/^\\\\u([0-9a-fA-F]{4})$/', $rep, $matches)) {
+            return strtoupper($matches[1]);
         }
 
-        return $node->originalRepresentation;
+        if (preg_match('/^\\\\[xu]\\{([0-9a-fA-F]+)\\}$/', $rep, $matches)) {
+            return strtoupper($matches[1]);
+        }
+
+        if (1 === \strlen($rep)) {
+            return strtoupper(str_pad(dechex(\ord($rep)), 2, '0', \STR_PAD_LEFT));
+        }
+
+        return strtoupper($rep);
+    }
+
+    private function formatOctalValue(CharLiteralNode $node): string
+    {
+        $rep = $node->originalRepresentation;
+        if (preg_match('/^\\\\o\\{([0-7]+)\\}$/', $rep, $matches)) {
+            return '0'.$matches[1];
+        }
+
+        return $this->formatLegacyOctalValue($rep);
+    }
+
+    private function formatLegacyOctalValue(string $value): string
+    {
+        $raw = str_starts_with($value, '\\') ? substr($value, 1) : $value;
+
+        return str_starts_with($raw, '0') ? $raw : '0'.$raw;
     }
 
     private function extractCharLiteralDetail(CharLiteralNode $node): string

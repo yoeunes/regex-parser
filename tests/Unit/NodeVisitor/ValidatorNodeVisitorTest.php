@@ -72,9 +72,24 @@ final class ValidatorNodeVisitorTest extends TestCase
     }
 
     #[DoesNotPerformAssertions]
+    public function test_valid_java_unicode_properties(): void
+    {
+        $this->validate('/\p{javaLowerCase}/u');
+        $this->validate('/\p{javaUpperCase}/u');
+        $this->validate('/\p{javaWhitespace}/u');
+        $this->validate('/\p{javaMirrored}/u');
+    }
+
+    #[DoesNotPerformAssertions]
     public function test_valid_unicode_named_character(): void
     {
         $this->validate('/\N{U+0041}/');
+    }
+
+    #[DoesNotPerformAssertions]
+    public function test_valid_unicode_four_digit_escape(): void
+    {
+        $this->validate('/\u0041/');
     }
 
     public function test_throws_on_invalid_unicode_named_character(): void

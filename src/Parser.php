@@ -59,7 +59,7 @@ use RegexParser\Node\VersionConditionNode;
  */
 final class Parser
 {
-    private const INLINE_FLAG_CHARS = 'imsxUJn-';
+    private const INLINE_FLAG_CHARS = 'imsxUJnud-';
     private const MAX_RECURSION_DEPTH = 1024;
 
     private TokenStream $stream;
@@ -791,6 +791,10 @@ final class Parser
             return (int) hexdec($matches[1]);
         }
 
+        if (preg_match('/^\\\\u([0-9a-fA-F]{4})$/', $representation, $matches)) {
+            return (int) hexdec($matches[1]);
+        }
+
         if (preg_match('/^\\\\[xu]\\{([0-9a-fA-F]++)\\}$/', $representation, $matches)) {
             return (int) hexdec($matches[1]);
         }
@@ -1239,7 +1243,7 @@ final class Parser
      */
     private function parseInlineFlags(int $startPosition): NodeInterface
     {
-        // Support PHP/PCRE2 inline flags (imsxUJn) plus ^ (unset) and - toggles.
+        // Support PHP/PCRE2 inline flags (imsxUJnud) plus ^ (unset) and - toggles.
         // Handle ^ (T_ANCHOR) at the start - it means "unset all flags" in PCRE2
         $flags = '';
         if ($this->check(TokenType::T_ANCHOR) && '^' === $this->current()->value) {
@@ -1247,7 +1251,7 @@ final class Parser
             $this->advance();
         }
         $inlineFlagChars = self::INLINE_FLAG_CHARS;
-        $allFlags = 'imsxUJn';
+        $allFlags = 'imsxUJnud';
         if ($this->supportsInlineModifierR()) {
             $inlineFlagChars .= 'r';
             $allFlags .= 'r';
@@ -1801,6 +1805,8 @@ final class Parser
                 $startPosition,
                 $startPosition + \strlen($token->value) + 1,
             );
+        } elseif ($this->match(TokenType::T_CHAR_CLASS_OPEN)) {
+            $startNode = $this->parseCharClass();
         } elseif ($this->match(TokenType::T_UNICODE_PROP)) {
             $token = $this->previous();
             // Basic length calc - Parser logic from original
@@ -1866,8 +1872,14 @@ final class Parser
 
             // CharTypeNode, UnicodePropNode, and PosixClassNode cannot be range endpoints.
             // In PCRE, a hyphen following these types is treated as a literal hyphen.
-            if ($startNode instanceof CharTypeNode || $startNode instanceof UnicodePropNode || $startNode instanceof PosixClassNode) {
+            if ($startNode instanceof CharTypeNode || $startNode instanceof UnicodePropNode || $startNode instanceof PosixClassNode || $startNode instanceof CharClassNode) {
                 // Rewind the hyphen so it will be parsed as a literal in the next iteration
+                $this->stream->rewind(1);
+
+                return $startNode;
+            }
+
+            if ($this->check(TokenType::T_CHAR_CLASS_OPEN)) {
                 $this->stream->rewind(1);
 
                 return $startNode;

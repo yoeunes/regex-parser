@@ -26,6 +26,7 @@ final class ParserCoverageTest extends TestCase
         // Patterns to cover more parser code
         $patterns = [
             '/\u{41}/',  // unicode
+            '/\u0041/',  // 4-digit unicode
             '/\N{LATIN CAPITAL LETTER A}/',  // named unicode
             '/\x{41}/',  // hex unicode
             '/\o{101}/',  // octal
@@ -37,6 +38,8 @@ final class ParserCoverageTest extends TestCase
             '/\p{L}/u',  // unicode prop
             '/[\w--\d]/',  // char class subtraction
             '/[a-z&&\d]/',  // char class intersection
+            '/[a-d[m-p]]/',  // nested char class union
+            '/[a-z&&[def]]/',  // nested char class intersection
             '/\K/',  // keep
             '/a(*THEN)b/',  // verb
             '/(*LIMIT_DEPTH=10)a/',  // verb

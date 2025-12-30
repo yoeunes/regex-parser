@@ -313,7 +313,7 @@ final class CompleteCoverageTest extends TestCase
 
         $ast = $this->regexService->parse('/a{3,5}/');
         $result = $ast->accept($this->explainVisitor);
-        $this->assertStringContainsString('between 3 and 5 times', $result);
+        $this->assertStringContainsString('at least 3 but not more than 5 times', $result);
     }
 
     public function test_explain_visitor_range_with_escape_sequences(): void

@@ -153,18 +153,27 @@ vendor/bin/regex diagram '/^[a-z]+@[a-z]+\.[a-z]+$/i'
 
 **Output:**
 ```
-Regex
-└── Sequence
-    ├── Anchor (^)
-    ├── QuantifierNode (+)
-    │   └── CharClassNode ([a-z])
-    ├── LiteralNode (@)
-    ├── QuantifierNode (+)
-    │   └── CharClassNode ([a-z])
-    ├── LiteralNode (.)
-    ├── QuantifierNode (+)
-    │   └── CharClassNode ([a-z])
-    └── Anchor ($)
+Regex (flags: i)
+\-- Sequence
+    |-- Anchor (^)
+    |-- Quantifier (+, greedy)
+    |   \-- CharClass
+    |       \-- Range
+    |           |-- Literal ('a')
+    |           \-- Literal ('z')
+    |-- Literal ('@')
+    |-- Quantifier (+, greedy)
+    |   \-- CharClass
+    |       \-- Range
+    |           |-- Literal ('a')
+    |           \-- Literal ('z')
+    |-- Literal ('.')
+    |-- Quantifier (+, greedy)
+    |   \-- CharClass
+    |       \-- Range
+    |           |-- Literal ('a')
+    |           \-- Literal ('z')
+    \-- Anchor ($)
 ```
 
 ---
