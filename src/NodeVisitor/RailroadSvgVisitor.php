@@ -165,33 +165,31 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
             $value = '(empty)';
         }
 
-        return $this->createNodeLayout($value, $this->literalClass(), true);
+        return $this->createNodeLayout("Literal ('".$value."')", $this->literalClass(), true);
     }
 
     #[\Override]
     public function visitCharLiteral(CharLiteralNode $node)
     {
-        return $this->createNodeLayout($node->originalRepresentation, $this->literalClass(), true);
+        return $this->createNodeLayout('CharLiteral ('.$node->originalRepresentation.')', $this->literalClass(), true);
     }
 
     #[\Override]
     public function visitCharType(CharTypeNode $node)
     {
-        return $this->createNodeLayout('\\'.$node->value, 'node control');
+        return $this->createNodeLayout('CharType (\\'.$node->value.')', 'node control');
     }
 
     #[\Override]
     public function visitUnicode(UnicodeNode $node)
     {
-        return $this->createNodeLayout('\\x'.$node->code, 'node control');
+        return $this->createNodeLayout('Unicode (\\x'.$node->code.')', 'node control');
     }
 
     #[\Override]
     public function visitDot(DotNode $node)
     {
-        $label = $this->isDotAll ? 'Any char' : 'Any char except line breaks';
-
-        return $this->createNodeLayout($label, 'node anychar');
+        return $this->createNodeLayout('Dot (.)', 'node anychar');
     }
 
     #[\Override]
@@ -201,19 +199,19 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
             return $this->createNodeLayout($node->value, $this->literalClass());
         }
 
-        return $this->createNodeLayout($this->describeAnchor($node->value), 'node anchor');
+        return $this->createNodeLayout('Anchor ('.$node->value.')', 'node anchor');
     }
 
     #[\Override]
     public function visitAssertion(AssertionNode $node)
     {
-        return $this->createNodeLayout('\\'.$node->value, 'node');
+        return $this->createNodeLayout('Assertion (\\'.$node->value.')', 'node');
     }
 
     #[\Override]
     public function visitKeep(KeepNode $node)
     {
-        return $this->createNodeLayout('\\K', 'node');
+        return $this->createNodeLayout('Keep (\\K)', 'node');
     }
 
     #[\Override]
@@ -231,7 +229,7 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
         }
         $this->charClassDepth--;
 
-        $label = $node->isNegated ? 'None of:' : 'Any of:';
+        $label = $node->isNegated ? 'CharClass (negated)' : 'CharClass';
 
         return $this->layoutLabelAbove($label, $expression, 'class-label');
     }
@@ -251,13 +249,13 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
         $ref = $node->ref;
         $display = str_starts_with($ref, '\\') ? $ref : '\\'.$ref;
 
-        return $this->createNodeLayout('Backref '.$display, 'node');
+        return $this->createNodeLayout('Backref ('.$display.')', 'node');
     }
 
     #[\Override]
     public function visitClassOperation(ClassOperationNode $node)
     {
-        return $this->layoutWithLabel('ClassOp ('.$node->type->value.')', [
+        return $this->layoutWithLabel('ClassOperation ('.$node->type->value.')', [
             $node->left->accept($this),
             $node->right->accept($this),
         ]);
@@ -266,33 +264,34 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitControlChar(ControlCharNode $node)
     {
-        return $this->createNodeLayout('\\c'.$node->char, 'node control');
+        return $this->createNodeLayout('ControlChar (\\c'.$node->char.')', 'node control');
     }
 
     #[\Override]
     public function visitScriptRun(ScriptRunNode $node)
     {
-        return $this->createNodeLayout('script_run:'.$node->script, 'node');
+        return $this->createNodeLayout('ScriptRun ('.$node->script.')', 'node');
     }
 
     #[\Override]
     public function visitVersionCondition(VersionConditionNode $node)
     {
-        return $this->createNodeLayout('VERSION '.$node->operator.' '.$node->version, 'node');
+        return $this->createNodeLayout('VersionCondition ('.$node->operator.' '.$node->version.')', 'node');
     }
 
     #[\Override]
     public function visitUnicodeProp(UnicodePropNode $node)
     {
         $inner = $node->hasBraces ? trim($node->prop, '{}') : $node->prop;
+        $display = '{'.$inner.'}';
 
-        return $this->createNodeLayout('\\p{'.$inner.'}', 'node');
+        return $this->createNodeLayout('UnicodeProperty (\\p'.$display.')', 'node');
     }
 
     #[\Override]
     public function visitPosixClass(PosixClassNode $node)
     {
-        return $this->createNodeLayout('[:'.$node->class.':]', 'node');
+        return $this->createNodeLayout('PosixClass ([:'.$node->class.':])', 'node');
     }
 
     #[\Override]
@@ -320,13 +319,13 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitSubroutine(SubroutineNode $node)
     {
-        return $this->createNodeLayout('Subroutine '.$node->reference, 'node');
+        return $this->createNodeLayout('Subroutine ('.$node->reference.')', 'node');
     }
 
     #[\Override]
     public function visitPcreVerb(PcreVerbNode $node)
     {
-        return $this->createNodeLayout('*'.$node->verb, 'node');
+        return $this->createNodeLayout('PCREVerb (*'.$node->verb.')', 'node');
     }
 
     #[\Override]
@@ -338,18 +337,18 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitLimitMatch(LimitMatchNode $node)
     {
-        return $this->createNodeLayout('*LIMIT_MATCH='.$node->limit, 'node');
+        return $this->createNodeLayout('LimitMatch (*LIMIT_MATCH='.$node->limit.')', 'node');
     }
 
     #[\Override]
     public function visitCallout(CalloutNode $node)
     {
         if (null === $node->identifier) {
-            $label = '?C';
+            $label = 'Callout (?C)';
         } elseif ($node->isStringIdentifier) {
-            $label = '?C="'.$node->identifier.'"';
+            $label = 'Callout (?C="'.$node->identifier.'")';
         } else {
-            $label = '?C'.$node->identifier;
+            $label = 'Callout (?C'.$node->identifier.')';
         }
 
         return $this->createNodeLayout($label, 'node');
@@ -1106,18 +1105,7 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
         return $lines;
     }
 
-    private function describeAnchor(string $value): string
-    {
-        if ('^' === $value) {
-            return $this->isMultiline ? 'Start of line (^)' : 'Start of input (^)';
-        }
 
-        if ('$' === $value) {
-            return $this->isMultiline ? 'End of line ($)' : 'End of input ($)';
-        }
-
-        return $value;
-    }
 
     private function describeGroupType(GroupNode $node): string
     {
