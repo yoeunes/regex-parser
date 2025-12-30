@@ -133,7 +133,7 @@ final class LintFunctionOverrides
             }
 
             if (!is_file($path)) {
-                @file_put_contents($path, '');
+                @copy(__DIR__.'/../../../Fixtures/empty.txt', $path);
             }
 
             return $path;

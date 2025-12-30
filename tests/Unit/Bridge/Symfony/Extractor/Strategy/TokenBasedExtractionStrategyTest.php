@@ -101,14 +101,10 @@ final class TokenBasedExtractionStrategyTest extends TestCase
     {
         $strategy = new TokenBasedExtractionStrategy();
 
-        // Create a temporary file with unknown function
-        $tempFile = tempnam(sys_get_temp_dir(), 'test');
-        file_put_contents($tempFile, '<?php unknown_function("/pattern/", $var);');
+        $file = __DIR__.'/../../../../../Fixtures/Extractor/unknown_function.php';
 
-        $result = $strategy->extract([$tempFile]);
+        $result = $strategy->extract([$file]);
 
         $this->assertEmpty($result);
-
-        unlink($tempFile);
     }
 }

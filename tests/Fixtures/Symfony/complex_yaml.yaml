@@ -1,0 +1,10 @@
+when@dev:
+  test_route:
+    path: /dev/test/{id}
+    requirements:
+      id: '\\d{3,}'
+
+test_route:
+  path: /test/{slug}
+  requirements:
+    slug: '^[a-z0-9_-]+$'

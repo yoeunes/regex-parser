@@ -1,0 +1,13 @@
+'when@dev':
+  foo:
+    requirements:
+      id: '\d+'
+    bar:
+      nested: value
+  bar:
+    requirements:
+      id: '\w+'
+foo:
+  requirements:
+    id: '\d+'
+  defaults: {}

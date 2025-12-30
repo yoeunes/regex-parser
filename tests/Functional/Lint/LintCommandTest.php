@@ -35,7 +35,7 @@ final class LintCommandTest extends TestCase
             $this->markTestSkipped('Unable to create temp directory.');
         }
 
-        file_put_contents($tempDir.'/regex.json', '{');
+        copy(__DIR__.'/../../Fixtures/Config/invalid_json.json', $tempDir.'/regex.json');
 
         try {
             if (false === @chdir($tempDir)) {

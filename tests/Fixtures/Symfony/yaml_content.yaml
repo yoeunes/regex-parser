@@ -1,0 +1,5 @@
+test_route:
+  path: /test/{id}/{slug}
+  requirements:
+    id: '\d+'
+    slug: '[a-z-]+'

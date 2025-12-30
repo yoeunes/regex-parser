@@ -1,0 +1,2 @@
+<?php
+preg_match('/\x{41}/', (string) $s);

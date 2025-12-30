@@ -212,7 +212,7 @@ final class RouteRegexPatternSourceTest extends TestCase
     public function test_extract_with_yaml_resources(): void
     {
         $tempYaml = tempnam(sys_get_temp_dir(), 'routes');
-        file_put_contents($tempYaml, 'test: content');
+        copy(__DIR__.'/../../../../Fixtures/Symfony/test_content.yaml', $tempYaml);
 
         try {
             $router = $this->createMock(RouterInterface::class);
@@ -245,8 +245,8 @@ final class RouteRegexPatternSourceTest extends TestCase
     {
         $tempYaml1 = tempnam(sys_get_temp_dir(), 'routes1');
         $tempYaml2 = tempnam(sys_get_temp_dir(), 'routes2');
-        file_put_contents($tempYaml1, 'test: content1');
-        file_put_contents($tempYaml2, 'test: content2');
+        copy(__DIR__.'/../../../../Fixtures/Symfony/test_content1.yaml', $tempYaml1);
+        copy(__DIR__.'/../../../../Fixtures/Symfony/test_content2.yaml', $tempYaml2);
 
         try {
             $router = $this->createMock(RouterInterface::class);
@@ -279,8 +279,8 @@ final class RouteRegexPatternSourceTest extends TestCase
     {
         $tempPhp = tempnam(sys_get_temp_dir(), 'routes');
         $tempXml = tempnam(sys_get_temp_dir(), 'routes');
-        file_put_contents($tempPhp, '<?php echo "test";');
-        file_put_contents($tempXml, '<routes></routes>');
+        copy(__DIR__.'/../../../../Fixtures/Symfony/test.php', $tempPhp);
+        copy(__DIR__.'/../../../../Fixtures/Symfony/routes.xml', $tempXml);
 
         try {
             $router = $this->createMock(RouterInterface::class);
@@ -359,7 +359,7 @@ final class RouteRegexPatternSourceTest extends TestCase
                 id: '\d+'
                 slug: '[a-z-]+'
             YAML;
-        file_put_contents($tempYaml, $yamlContent);
+        copy(__DIR__.'/../../../../Fixtures/Symfony/yaml_content.yaml', $tempYaml);
 
         try {
             $router = $this->createMock(RouterInterface::class);
@@ -400,7 +400,7 @@ final class RouteRegexPatternSourceTest extends TestCase
             }
         });
         $tempYaml = tempnam(sys_get_temp_dir(), 'routes').'.yaml';
-        file_put_contents($tempYaml, "routes:\n");
+        copy(__DIR__.'/../../../../Fixtures/Symfony/routes_only.yaml', $tempYaml);
 
         try {
             $resource = new FileResource($tempYaml);
@@ -432,22 +432,7 @@ final class RouteRegexPatternSourceTest extends TestCase
     public function test_extract_yaml_metadata_handles_when_blocks_and_requirements(): void
     {
         $tempYaml = tempnam(sys_get_temp_dir(), 'routes').'.yaml';
-        $yamlContent = <<<'YAML'
-            'when@dev':
-              foo:
-                requirements:
-                  id: '\d+'
-                bar:
-                  nested: value
-              bar:
-                requirements:
-                  id: '\w+'
-            foo:
-              requirements:
-                id: '\d+'
-              defaults: {}
-            YAML;
-        file_put_contents($tempYaml, $yamlContent);
+        copy(__DIR__.'/../../../../Fixtures/Symfony/foo_bar_routes.yaml', $tempYaml);
 
         try {
             $source = new RouteRegexPatternSource($this->normalizer);
@@ -478,7 +463,7 @@ final class RouteRegexPatternSourceTest extends TestCase
         $collection = new RouteCollection();
 
         $tempYaml = tempnam(sys_get_temp_dir(), 'routes').'.yaml';
-        file_put_contents($tempYaml, "test_route:\n  requirements:\n    id: '\\\\d+'\n");
+        copy(__DIR__.'/../../../../Fixtures/Symfony/test_route_requirements.yaml', $tempYaml);
 
         try {
             $route = new Route('/test/{id}');
@@ -512,12 +497,7 @@ final class RouteRegexPatternSourceTest extends TestCase
     public function test_extract_skips_yaml_requirements_when_route_missing(): void
     {
         $tempYaml = tempnam(sys_get_temp_dir(), 'routes').'.yaml';
-        $yamlContent = <<<'YAML'
-            test_route:
-              requirements:
-                id: '\d+'
-            YAML;
-        file_put_contents($tempYaml, $yamlContent);
+        copy(__DIR__.'/../../../../Fixtures/Symfony/inline_requirements.yaml', $tempYaml);
 
         try {
             $router = $this->createMock(RouterInterface::class);
@@ -543,19 +523,7 @@ final class RouteRegexPatternSourceTest extends TestCase
     public function test_extract_with_yaml_complex_route_definitions(): void
     {
         $tempYaml = tempnam(sys_get_temp_dir(), 'routes').'.yaml';
-        $yamlContent = <<<YAML
-            when@dev:
-              test_route:
-                path: /dev/test/{id}
-                requirements:
-                  id: '\d{3,}'
-
-            test_route:
-              path: /test/{slug}
-              requirements:
-                slug: '^[a-z0-9_-]+$'
-            YAML;
-        file_put_contents($tempYaml, $yamlContent);
+        copy(__DIR__.'/../../../../Fixtures/Symfony/complex_yaml.yaml', $tempYaml);
 
         try {
             $router = $this->createMock(RouterInterface::class);

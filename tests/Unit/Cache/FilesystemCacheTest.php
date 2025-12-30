@@ -261,7 +261,7 @@ namespace RegexParser\Tests\Unit\Cache {
         public function test_create_directory_throws_when_path_is_file(): void
         {
             $filePath = $this->cacheDir.'-file';
-            file_put_contents($filePath, 'x');
+            copy(__DIR__.'/../../Fixtures/Cache/x.txt', $filePath);
 
             $cache = new FilesystemCache($filePath);
 

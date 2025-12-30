@@ -145,7 +145,7 @@ final class LintCommandCoverageTest extends TestCase
     public function test_lint_command_reports_collection_and_analysis_times(): void
     {
         $dir = $this->makeTempDir();
-        $this->writeFile($dir, 'sample.php', "<?php\npreg_match('/foo/', 'bar');\n");
+        copy(__DIR__.'/../../Fixtures/Lint/coverage_sample.php', $dir.'/sample.php');
 
         LintFunctionOverrides::queueMicrotime(0.0);
         LintFunctionOverrides::queueMicrotime(2.5);
@@ -250,14 +250,6 @@ final class LintCommandCoverageTest extends TestCase
         $this->tempDirs[] = $dir;
 
         return $dir;
-    }
-
-    private function writeFile(string $dir, string $name, string $contents): string
-    {
-        $path = $dir.'/'.$name;
-        file_put_contents($path, $contents);
-
-        return $path;
     }
 
     private function removeDirectory(string $directory): void

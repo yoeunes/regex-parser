@@ -43,11 +43,7 @@ final class LintCommandBaselineTest extends TestCase
     {
         $dir = $this->makeTempDir();
         $file = realpath($dir).'/test.php';
-        file_put_contents($file, <<<'PHP'
-            <?php
-            preg_match('/invalid[range/', 'test'); // Unclosed character class
-            PHP
-        );
+        copy(__DIR__.'/../../../Fixtures/Lint/unclosed_character_class.php', $file);
 
         $baselineFile = $dir.'/baseline.json';
 
@@ -83,11 +79,7 @@ final class LintCommandBaselineTest extends TestCase
     {
         $dir = $this->makeTempDir();
         $file = realpath($dir).'/test.php';
-        file_put_contents($file, <<<'PHP'
-            <?php
-            preg_match('/invalid[range/', 'test'); // Unclosed character class
-            PHP
-        );
+        copy(__DIR__.'/../../../Fixtures/Lint/unclosed_character_class.php', $file);
 
         $baselineFile = $dir.'/baseline.json';
 

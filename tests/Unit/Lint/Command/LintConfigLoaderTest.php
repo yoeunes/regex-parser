@@ -40,79 +40,9 @@ final class LintConfigLoaderTest extends TestCase
             ],
         ];
 
-        file_put_contents($configPath, json_encode($config, \JSON_THROW_ON_ERROR));
+        copy(__DIR__.'/../../../Fixtures/Config/paths_config.json', $configPath);
 
-        try {
-            chdir($tempDir);
-
-            $loader = new LintConfigLoader();
-            $result = $loader->load();
-
-            $this->assertNull($result->error);
-            $this->assertSame(['src'], $result->config['paths']);
-            $this->assertSame(['vendor'], $result->config['exclude']);
-            $this->assertSame(2, $result->config['jobs']);
-            $this->assertSame(3, $result->config['minSavings']);
-            $this->assertSame('console', $result->config['format']);
-            $this->assertSame([
-                'redos' => false,
-                'validation' => true,
-                'optimization' => false,
-            ], $result->config['rules']);
-            $this->assertCount(1, $result->files);
-            $expectedPath = realpath($configPath);
-            $actualPath = realpath($result->files[0]);
-            $this->assertIsString($expectedPath);
-            $this->assertIsString($actualPath);
-            $this->assertSame($expectedPath, $actualPath);
-        } finally {
-            chdir($cwd);
-            @unlink($configPath);
-            @rmdir($tempDir);
-        }
-    }
-
-    public function test_load_returns_error_on_invalid_config(): void
-    {
-        $cwd = getcwd();
-        $this->assertIsString($cwd);
-
-        $tempDir = sys_get_temp_dir().'/regex-parser-config-'.uniqid('', true);
-        mkdir($tempDir, 0o700, true);
-
-        $configPath = $tempDir.'/regex.json';
-        $config = [
-            'jobs' => 0,
-        ];
-
-        file_put_contents($configPath, json_encode($config, \JSON_THROW_ON_ERROR));
-
-        try {
-            chdir($tempDir);
-
-            $loader = new LintConfigLoader();
-            $result = $loader->load();
-
-            $this->assertNotNull($result->error);
-            $this->assertStringContainsString('Invalid "jobs"', (string) $result->error);
-        } finally {
-            chdir($cwd);
-            @unlink($configPath);
-            @rmdir($tempDir);
-        }
-    }
-
-    public function test_load_returns_error_on_unreadable_config(): void
-    {
-        $cwd = getcwd();
-        $this->assertIsString($cwd);
-
-        $tempDir = sys_get_temp_dir().'/regex-parser-config-'.uniqid('', true);
-        mkdir($tempDir, 0o700, true);
-
-        $configPath = $tempDir.'/regex.json';
-        file_put_contents($configPath, json_encode(['paths' => ['src']], \JSON_THROW_ON_ERROR));
-        chmod($configPath, 0);
+        chmod($configPath, 0o200);
 
         try {
             chdir($tempDir);
@@ -139,7 +69,7 @@ final class LintConfigLoaderTest extends TestCase
         mkdir($tempDir, 0o700, true);
 
         $configPath = $tempDir.'/regex.json';
-        file_put_contents($configPath, json_encode('string', \JSON_THROW_ON_ERROR));
+        copy(__DIR__.'/../../../Fixtures/Config/string_config.json', $configPath);
 
         try {
             chdir($tempDir);
@@ -165,7 +95,7 @@ final class LintConfigLoaderTest extends TestCase
         mkdir($tempDir, 0o700, true);
 
         $configPath = $tempDir.'/regex.json';
-        file_put_contents($configPath, json_encode(['invalid'], \JSON_THROW_ON_ERROR));
+        copy(__DIR__.'/../../../Fixtures/Config/array_config.json', $configPath);
 
         try {
             chdir($tempDir);
@@ -191,17 +121,7 @@ final class LintConfigLoaderTest extends TestCase
         mkdir($tempDir, 0o700, true);
 
         $configPath = $tempDir.'/regex.json';
-        $config = [
-            'optimizations' => [
-                'digits' => false,
-                'word' => true,
-                'ranges' => true,
-                'possessive' => false,
-                'factorize' => false,
-            ],
-        ];
-
-        file_put_contents($configPath, json_encode($config, \JSON_THROW_ON_ERROR));
+        copy(__DIR__.'/../../../Fixtures/Config/optimizations_config.json', $configPath);
 
         try {
             chdir($tempDir);

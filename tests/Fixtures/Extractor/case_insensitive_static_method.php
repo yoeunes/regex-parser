@@ -1,0 +1,1 @@
+<?php Myclass::validate("/test/", $text);

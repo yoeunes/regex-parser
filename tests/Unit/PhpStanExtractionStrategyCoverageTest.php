@@ -49,17 +49,9 @@ final class PhpStanExtractionStrategyCoverageTest extends TestCase
         $strategy = $this->newStrategyWithParser($parser);
         $method = $this->getPrivateMethod($strategy, 'analyzeFileWithPhpStan');
 
-        $tempFile = tempnam(sys_get_temp_dir(), 'phpstan');
-        if (false === $tempFile) {
-            $this->markTestSkipped('Unable to create temp file.');
-        }
-        file_put_contents($tempFile, '<?php preg_match("/a/", "a");');
+        $file = __DIR__.'/../Fixtures/Extractor/phpstan_coverage.php';
 
-        try {
-            $this->assertSame([], $method->invoke($strategy, $tempFile));
-        } finally {
-            @unlink($tempFile);
-        }
+        $this->assertSame([], $method->invoke($strategy, $file));
     }
 
     public function test_extract_from_func_call_handles_invalid_nodes(): void

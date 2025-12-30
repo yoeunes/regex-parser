@@ -47,221 +47,141 @@ final class PhpStanExtractionStrategyTest extends TestCase
 
     public function test_extract_with_empty_file(): void
     {
-        $tempFile = tempnam(sys_get_temp_dir(), 'phpstan_test');
-        file_put_contents($tempFile, '');
+        $file = __DIR__.'/../../Fixtures/Extractor/empty.php';
 
-        try {
-            $result = $this->strategy->extract([$tempFile]);
-            $this->assertSame([], $result);
-        } finally {
-            unlink($tempFile);
-        }
+        $result = $this->strategy->extract([$file]);
+        $this->assertSame([], $result);
     }
 
     public function test_extract_with_preg_match(): void
     {
-        $tempFile = tempnam(sys_get_temp_dir(), 'phpstan_test');
-        $phpCode = '<?php preg_match(\'/test/\', $input);';
-        file_put_contents($tempFile, $phpCode);
+        $file = __DIR__.'/../../Fixtures/Extractor/phpstan_preg_match.php';
 
-        try {
-            $result = $this->strategy->extract([$tempFile]);
+        $result = $this->strategy->extract([$file]);
 
-            if ($this->isPhpParserAvailable()) {
-                $this->assertCount(1, $result);
-                $this->assertSame('/test/', $result[0]->pattern);
-                $this->assertSame($tempFile, $result[0]->file);
-                $this->assertSame(1, $result[0]->line);
-                $this->assertSame('php:preg_match()', $result[0]->source);
-            } else {
-                $this->assertSame([], $result);
-            }
-        } finally {
-            unlink($tempFile);
+        if ($this->isPhpParserAvailable()) {
+            $this->assertCount(1, $result);
+            $this->assertSame('/test/', $result[0]->pattern);
+            $this->assertSame($file, $result[0]->file);
+            $this->assertSame(1, $result[0]->line);
+            $this->assertSame('php:preg_match()', $result[0]->source);
+        } else {
+            $this->assertSame([], $result);
         }
     }
 
     public function test_extract_with_multiple_preg_functions(): void
     {
-        $tempFile = tempnam(sys_get_temp_dir(), 'phpstan_test');
-        $phpCode = '<?php
-            preg_match(\'/pattern1/\', $input);
-            preg_replace(\'/pattern2/\', \'replacement\', $input);
-            preg_split(\'/pattern3/\', $input);
-        ';
-        file_put_contents($tempFile, $phpCode);
+        $file = __DIR__.'/../../Fixtures/Extractor/phpstan_multiple_preg.php';
 
-        try {
-            $result = $this->strategy->extract([$tempFile]);
+        $result = $this->strategy->extract([$file]);
 
-            if ($this->isPhpParserAvailable()) {
-                $this->assertCount(3, $result);
-                $patterns = array_map(fn ($occurrence) => $occurrence->pattern, $result);
-                $this->assertContains('/pattern1/', $patterns);
-                $this->assertContains('/pattern2/', $patterns);
-                $this->assertContains('/pattern3/', $patterns);
-            } else {
-                $this->assertSame([], $result);
-            }
-        } finally {
-            unlink($tempFile);
+        if ($this->isPhpParserAvailable()) {
+            $this->assertCount(3, $result);
+            $patterns = array_map(fn ($occurrence) => $occurrence->pattern, $result);
+            $this->assertContains('/pattern1/', $patterns);
+            $this->assertContains('/pattern2/', $patterns);
+            $this->assertContains('/pattern3/', $patterns);
+        } else {
+            $this->assertSame([], $result);
         }
     }
 
     public function test_extract_with_concatenated_strings(): void
     {
-        $tempFile = tempnam(sys_get_temp_dir(), 'phpstan_test');
-        $phpCode = '<?php preg_match(\'/test\' . \'ing/\', $input);';
-        file_put_contents($tempFile, $phpCode);
+        $file = __DIR__.'/../../Fixtures/Extractor/phpstan_concatenated.php';
 
-        try {
-            $result = $this->strategy->extract([$tempFile]);
+        $result = $this->strategy->extract([$file]);
 
-            if ($this->isPhpParserAvailable()) {
-                $this->assertCount(1, $result);
-                $this->assertSame('/testing/', $result[0]->pattern);
-            } else {
-                $this->assertSame([], $result);
-            }
-        } finally {
-            unlink($tempFile);
+        if ($this->isPhpParserAvailable()) {
+            $this->assertCount(1, $result);
+            $this->assertSame('/testing/', $result[0]->pattern);
+        } else {
+            $this->assertSame([], $result);
         }
     }
 
     public function test_extract_ignores_empty_patterns(): void
     {
-        $tempFile = tempnam(sys_get_temp_dir(), 'phpstan_test');
-        $phpCode = '<?php preg_match(\'\', $input);';
-        file_put_contents($tempFile, $phpCode);
+        $file = __DIR__.'/../../Fixtures/Extractor/phpstan_empty_pattern.php';
 
-        try {
-            $result = $this->strategy->extract([$tempFile]);
-            $this->assertSame([], $result);
-        } finally {
-            unlink($tempFile);
-        }
+        $result = $this->strategy->extract([$file]);
+        $this->assertSame([], $result);
     }
 
     public function test_extract_ignores_null_patterns(): void
     {
-        $tempFile = tempnam(sys_get_temp_dir(), 'phpstan_test');
-        $phpCode = '<?php preg_match(null, $input);';
-        file_put_contents($tempFile, $phpCode);
+        $file = __DIR__.'/../../Fixtures/Extractor/phpstan_null_pattern.php';
 
-        try {
-            $result = $this->strategy->extract([$tempFile]);
-            $this->assertSame([], $result);
-        } finally {
-            unlink($tempFile);
-        }
+        $result = $this->strategy->extract([$file]);
+        $this->assertSame([], $result);
     }
 
     public function test_extract_with_non_preg_function(): void
     {
-        $tempFile = tempnam(sys_get_temp_dir(), 'phpstan_test');
-        $phpCode = '<?php strpos(\'/test/\', $input);';
-        file_put_contents($tempFile, $phpCode);
+        $file = __DIR__.'/../../Fixtures/Extractor/phpstan_non_preg.php';
 
-        try {
-            $result = $this->strategy->extract([$tempFile]);
-            $this->assertSame([], $result);
-        } finally {
-            unlink($tempFile);
-        }
+        $result = $this->strategy->extract([$file]);
+        $this->assertSame([], $result);
     }
 
     public function test_extract_with_complex_concatenation(): void
     {
-        $tempFile = tempnam(sys_get_temp_dir(), 'phpstan_test');
-        $phpCode = '<?php preg_match(\'/\'. $prefix . \'test\' . $suffix . \'/\', $input);';
-        file_put_contents($tempFile, $phpCode);
+        $file = __DIR__.'/../../Fixtures/Extractor/phpstan_complex_concat.php';
 
-        try {
-            $result = $this->strategy->extract([$tempFile]);
-            // Complex concatenation with variables should not extract patterns
-            $this->assertSame([], $result);
-        } finally {
-            unlink($tempFile);
-        }
+        $result = $this->strategy->extract([$file]);
+        // Complex concatenation with variables should not extract patterns
+        $this->assertSame([], $result);
     }
 
     public function test_extract_with_malformed_php(): void
     {
-        $tempFile = tempnam(sys_get_temp_dir(), 'phpstan_test');
-        $phpCode = '<?php preg_match(\'/test/\' $input);'; // Missing comma
-        file_put_contents($tempFile, $phpCode);
+        $file = __DIR__.'/../../Fixtures/Extractor/phpstan_malformed.php';
 
-        try {
-            $result = $this->strategy->extract([$tempFile]);
-            // Malformed PHP should not crash and should return empty
-            $this->assertSame([], $result);
-        } finally {
-            unlink($tempFile);
-        }
+        $result = $this->strategy->extract([$file]);
+        // Malformed PHP should not crash and should return empty
+        $this->assertSame([], $result);
     }
 
     public function test_extract_with_multiple_files(): void
     {
-        $tempFile1 = tempnam(sys_get_temp_dir(), 'phpstan_test');
-        $tempFile2 = tempnam(sys_get_temp_dir(), 'phpstan_test');
+        $file1 = __DIR__.'/../../Fixtures/Extractor/phpstan_test1.php';
+        $file2 = __DIR__.'/../../Fixtures/Extractor/phpstan_test2.php';
 
-        $phpCode1 = '<?php preg_match(\'/test1/\', $input);';
-        $phpCode2 = '<?php preg_match(\'/test2/\', $input);';
+        $result = $this->strategy->extract([$file1, $file2]);
 
-        file_put_contents($tempFile1, $phpCode1);
-        file_put_contents($tempFile2, $phpCode2);
-
-        try {
-            $result = $this->strategy->extract([$tempFile1, $tempFile2]);
-
-            if ($this->isPhpParserAvailable()) {
-                $this->assertCount(2, $result);
-                $patterns = array_map(fn ($occurrence) => $occurrence->pattern, $result);
-                $this->assertContains('/test1/', $patterns);
-                $this->assertContains('/test2/', $patterns);
-            } else {
-                $this->assertSame([], $result);
-            }
-        } finally {
-            unlink($tempFile1);
-            unlink($tempFile2);
+        if ($this->isPhpParserAvailable()) {
+            $this->assertCount(2, $result);
+            $patterns = array_map(fn ($occurrence) => $occurrence->pattern, $result);
+            $this->assertContains('/test1/', $patterns);
+            $this->assertContains('/test2/', $patterns);
+        } else {
+            $this->assertSame([], $result);
         }
     }
 
     public function test_extract_with_preg_replace_callback(): void
     {
-        $tempFile = tempnam(sys_get_temp_dir(), 'phpstan_test');
-        $phpCode = '<?php preg_replace_callback(\'/test/\', $callback, $input);';
-        file_put_contents($tempFile, $phpCode);
+        $file = __DIR__.'/../../Fixtures/Extractor/phpstan_preg_replace_callback.php';
 
-        try {
-            $result = $this->strategy->extract([$tempFile]);
+        $result = $this->strategy->extract([$file]);
 
-            if ($this->isPhpParserAvailable()) {
-                $this->assertCount(1, $result);
-                $this->assertSame('/test/', $result[0]->pattern);
-                $this->assertSame('php:preg_replace_callback()', $result[0]->source);
-            } else {
-                $this->assertSame([], $result);
-            }
-        } finally {
-            unlink($tempFile);
+        if ($this->isPhpParserAvailable()) {
+            $this->assertCount(1, $result);
+            $this->assertSame('/test/', $result[0]->pattern);
+            $this->assertSame('php:preg_replace_callback()', $result[0]->source);
+        } else {
+            $this->assertSame([], $result);
         }
     }
 
     public function test_extract_with_preg_replace_callback_array(): void
     {
-        $tempFile = tempnam(sys_get_temp_dir(), 'phpstan_test');
-        $phpCode = '<?php preg_replace_callback_array([\'/test/\' => $callback], $input);';
-        file_put_contents($tempFile, $phpCode);
+        $file = __DIR__.'/../../Fixtures/Extractor/phpstan_preg_replace_callback_array.php';
 
-        try {
-            $result = $this->strategy->extract([$tempFile]);
-            // preg_replace_callback_array takes an array as first arg, so no pattern is extracted
-            $this->assertSame([], $result);
-        } finally {
-            unlink($tempFile);
-        }
+        $result = $this->strategy->extract([$file]);
+        // preg_replace_callback_array takes an array as first arg, so no pattern is extracted
+        $this->assertSame([], $result);
     }
 
     private function isPhpParserAvailable(): bool

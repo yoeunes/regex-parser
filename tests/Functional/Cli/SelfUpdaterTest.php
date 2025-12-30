@@ -85,7 +85,7 @@ final class SelfUpdaterTest extends TestCase
         }
 
         $content = "payload\n";
-        file_put_contents($source, $content);
+        copy(__DIR__.'/../../Fixtures/Cli/payload.txt', $source);
 
         $destination = tempnam(sys_get_temp_dir(), 'regex-dest-');
         if (false === $destination) {
@@ -116,7 +116,7 @@ final class SelfUpdaterTest extends TestCase
         if (false === $file) {
             $this->markTestSkipped('Unable to create temp file.');
         }
-        file_put_contents($file, 'not a phar');
+        copy(__DIR__.'/../../Fixtures/Cli/not_a_phar.txt', $file);
 
         try {
             $this->expectException(\RuntimeException::class);
@@ -144,8 +144,7 @@ final class SelfUpdaterTest extends TestCase
         @unlink($tempBase);
         $file = $tempBase.'.phar';
 
-        $phar = new \Phar($file);
-        $phar->addFromString('test.php', '<?php echo "test";');
+        copy(__DIR__.'/../../Fixtures/Cli/test.phar', $file);
 
         try {
             $method->invoke($updater, $file);
@@ -190,8 +189,7 @@ final class SelfUpdaterTest extends TestCase
         @unlink($tempBase);
         $originalPhar = $tempBase.'.phar';
 
-        $phar = new \Phar($originalPhar);
-        $phar->addFromString('test.php', '<?php echo "original";');
+        copy(__DIR__.'/../../Fixtures/Cli/original.phar', $originalPhar);
 
         // Create a new phar to download
         $tempBase2 = tempnam(sys_get_temp_dir(), 'new-phar-');
@@ -203,15 +201,7 @@ final class SelfUpdaterTest extends TestCase
         @unlink($tempBase2);
         $newPhar = $tempBase2.'.phar';
 
-        $newPharObj = new \Phar($newPhar);
-        $newPharObj->addFromString('test.php', '<?php echo "updated";');
-
-        $hash = hash_file('sha256', $newPhar);
-        if (false === $hash) {
-            @unlink($originalPhar);
-            @unlink($newPhar);
-            $this->markTestSkipped('Unable to hash file.');
-        }
+        copy(__DIR__.'/../../Fixtures/Cli/updated.phar', $newPhar);
 
         // Create checksum file
         $checksumFile = tempnam(sys_get_temp_dir(), 'checksum-');
@@ -221,7 +211,7 @@ final class SelfUpdaterTest extends TestCase
             $this->markTestSkipped('Unable to create temp file.');
         }
 
-        file_put_contents($checksumFile, $hash.'  regex.phar');
+        copy(__DIR__.'/../../Fixtures/Cli/checksum.txt', $checksumFile);
 
         $output = new Output(false, true);
 
@@ -260,8 +250,7 @@ final class SelfUpdaterTest extends TestCase
         @unlink($tempBase);
         $originalPhar = $tempBase.'.phar';
 
-        $phar = new \Phar($originalPhar);
-        $phar->addFromString('test.php', '<?php echo "original";');
+        copy(__DIR__.'/../../Fixtures/Cli/original.phar', $originalPhar);
 
         // Create a new phar to download
         $tempBase2 = tempnam(sys_get_temp_dir(), 'new-phar-');
@@ -273,8 +262,7 @@ final class SelfUpdaterTest extends TestCase
         @unlink($tempBase2);
         $newPhar = $tempBase2.'.phar';
 
-        $newPharObj = new \Phar($newPhar);
-        $newPharObj->addFromString('test.php', '<?php echo "updated";');
+        copy(__DIR__.'/../../Fixtures/Cli/updated.phar', $newPhar);
 
         // Create wrong checksum file
         $checksumFile = tempnam(sys_get_temp_dir(), 'checksum-');
@@ -284,7 +272,7 @@ final class SelfUpdaterTest extends TestCase
             $this->markTestSkipped('Unable to create temp file.');
         }
 
-        file_put_contents($checksumFile, 'wrongchecksum  regex.phar');
+        copy(__DIR__.'/../../Fixtures/Cli/wrong_checksum.txt', $checksumFile);
 
         $output = new Output(false, true);
 
@@ -320,8 +308,7 @@ final class SelfUpdaterTest extends TestCase
         @unlink($tempBase);
         $originalPhar = $tempBase.'.phar';
 
-        $phar = new \Phar($originalPhar);
-        $phar->addFromString('test.php', '<?php echo "original";');
+        copy(__DIR__.'/../../Fixtures/Cli/original.phar', $originalPhar);
 
         // Create a invalid 'phar' to download
         $invalidPhar = tempnam(sys_get_temp_dir(), 'invalid-phar-');
@@ -330,7 +317,7 @@ final class SelfUpdaterTest extends TestCase
             $this->markTestSkipped('Unable to create temp file.');
         }
 
-        file_put_contents($invalidPhar, 'not a phar');
+        copy(__DIR__.'/../../Fixtures/Cli/not_a_phar.txt', $invalidPhar);
 
         $hash = hash_file('sha256', $invalidPhar);
         if (false === $hash) {
@@ -400,8 +387,7 @@ final class SelfUpdaterTest extends TestCase
         @unlink($tempBase);
         $readonlyPhar = $tempBase.'.phar';
 
-        $phar = new \Phar($readonlyPhar);
-        $phar->addFromString('test.php', '<?php echo "test";');
+        copy(__DIR__.'/../../Fixtures/Cli/test.phar', $readonlyPhar);
 
         // Make it read-only
         @chmod($readonlyPhar, 0o444);
@@ -593,7 +579,7 @@ final class SelfUpdaterTest extends TestCase
             $this->markTestSkipped('Unable to create temp file.');
         }
 
-        file_put_contents($source, 'payload');
+        copy(__DIR__.'/../../Fixtures/Cli/payload_no_nl.txt', $source);
 
         $destinationDir = sys_get_temp_dir().'/regex-unwritable-'.bin2hex(random_bytes(4));
         @mkdir($destinationDir, 0o444, true);
@@ -624,7 +610,7 @@ final class SelfUpdaterTest extends TestCase
             $this->markTestSkipped('Unable to create temp file.');
         }
 
-        file_put_contents($source, '');
+        copy(__DIR__.'/../../Fixtures/empty.txt', $source);
 
         $destination = tempnam(sys_get_temp_dir(), 'regex-dest-');
         if (false === $destination) {
@@ -766,7 +752,7 @@ final class SelfUpdaterTest extends TestCase
             $this->markTestSkipped('Unable to create temp file.');
         }
 
-        file_put_contents($source, 'payload');
+        copy(__DIR__.'/../../Fixtures/Cli/payload_no_nl.txt', $source);
         SelfUpdateFunctionOverrides::queueFileGetContents(false);
 
         try {

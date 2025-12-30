@@ -219,7 +219,7 @@ final class RegexPatternExtractorTest extends TestCase
 
     public function test_extract_marks_inline_ignored_patterns(): void
     {
-        $file = $this->createTempPhpFile("<?php\n// @regex-ignore-next-line\npreg_match('/(a+)+/', \$input);\n");
+        $file = $this->createTempPhpFile('ignored_pattern.php');
 
         try {
             $occurrence = new RegexPatternOccurrence('/(a+)+/', $file, 3, 'preg_match');
@@ -261,8 +261,7 @@ final class RegexPatternExtractorTest extends TestCase
         $method = $reflection->getMethod('readWorkerPayload');
 
         $tmpFile = sys_get_temp_dir().'/test_read_payload_'.uniqid();
-        $payload = ['ok' => true, 'result' => ['test']];
-        file_put_contents($tmpFile, serialize($payload));
+        copy(__DIR__.'/../../Fixtures/Lint/valid_result_payload.txt', $tmpFile);
 
         $result = $method->invoke($this->patternExtractor, $tmpFile);
         $this->assertIsArray($result);
@@ -295,7 +294,7 @@ final class RegexPatternExtractorTest extends TestCase
         $method = $reflection->getMethod('readWorkerPayload');
 
         $tmpFile = sys_get_temp_dir().'/test_invalid_payload_'.uniqid();
-        file_put_contents($tmpFile, 'not valid serialized data');
+        copy(__DIR__.'/../../Fixtures/Lint/invalid_serialized.txt', $tmpFile);
 
         $result = $method->invoke($this->patternExtractor, $tmpFile);
         $this->assertIsArray($result);
@@ -313,8 +312,7 @@ final class RegexPatternExtractorTest extends TestCase
         $method = $reflection->getMethod('readWorkerPayload');
 
         $tmpFile = sys_get_temp_dir().'/test_error_payload_'.uniqid();
-        $payload = ['ok' => false, 'error' => ['message' => 'Test error', 'class' => 'Exception']];
-        file_put_contents($tmpFile, serialize($payload));
+        copy(__DIR__.'/../../Fixtures/Lint/test_error_payload.txt', $tmpFile);
 
         $result = $method->invoke($this->patternExtractor, $tmpFile);
         $this->assertIsArray($result);
@@ -337,8 +335,7 @@ final class RegexPatternExtractorTest extends TestCase
         $method = $reflection->getMethod('readWorkerPayload');
 
         $tmpFile = sys_get_temp_dir().'/test_bad_error_payload_'.uniqid();
-        $payload = ['ok' => false, 'error' => 'invalid'];
-        file_put_contents($tmpFile, serialize($payload));
+        copy(__DIR__.'/../../Fixtures/Lint/invalid_error_payload.txt', $tmpFile);
 
         $result = $method->invoke($this->patternExtractor, $tmpFile);
         $this->assertIsArray($result);
@@ -400,11 +397,11 @@ final class RegexPatternExtractorTest extends TestCase
         $nestedTemplate = $nested.'/view.twig.php';
         $vendorFile = $vendor.'/skip.php';
 
-        file_put_contents($keep, '<?php');
-        file_put_contents($template, '<?php');
-        file_put_contents($nestedKeep, '<?php');
-        file_put_contents($nestedTemplate, '<?php');
-        file_put_contents($vendorFile, '<?php');
+        copy(__DIR__.'/../../Fixtures/php.txt', $keep);
+        copy(__DIR__.'/../../Fixtures/php.txt', $template);
+        copy(__DIR__.'/../../Fixtures/php.txt', $nestedKeep);
+        copy(__DIR__.'/../../Fixtures/php.txt', $nestedTemplate);
+        copy(__DIR__.'/../../Fixtures/php.txt', $vendorFile);
 
         try {
             $files = $method->invoke($this->patternExtractor, ['', $root], ['vendor']);
@@ -445,8 +442,8 @@ final class RegexPatternExtractorTest extends TestCase
         $occ1 = new RegexPatternOccurrence('/a+/', 'a.php', 1, 'preg_match');
         $occ2 = new RegexPatternOccurrence('/b+/', 'b.php', 2, 'preg_match');
 
-        file_put_contents($path1, serialize(['ok' => true, 'result' => [$occ1]]));
-        file_put_contents($path2, serialize(['ok' => true, 'result' => [$occ2]]));
+        copy(__DIR__.'/../../Fixtures/Lint/occ_a_payload.txt', $path1);
+        copy(__DIR__.'/../../Fixtures/Lint/occ_b_payload.txt', $path2);
 
         LintFunctionOverrides::queueTempnam($path1);
         LintFunctionOverrides::queueTempnam($path2);
@@ -472,7 +469,7 @@ final class RegexPatternExtractorTest extends TestCase
     public function test_extract_parallel_throws_on_worker_error_payload(): void
     {
         $path = sys_get_temp_dir().'/regexparser_payload_'.uniqid('', true);
-        file_put_contents($path, serialize(['ok' => false, 'error' => ['message' => 'Boom', 'class' => 'RuntimeException']]));
+        copy(__DIR__.'/../../Fixtures/Lint/error_payload.txt', $path);
 
         LintFunctionOverrides::queueTempnam($path);
         LintFunctionOverrides::queuePcntlForkResult(111);
@@ -487,7 +484,7 @@ final class RegexPatternExtractorTest extends TestCase
     public function test_extract_parallel_skips_non_array_results(): void
     {
         $path = sys_get_temp_dir().'/regexparser_payload_'.uniqid('', true);
-        file_put_contents($path, serialize(['ok' => true, 'result' => 'not-array']));
+        copy(__DIR__.'/../../Fixtures/Lint/not_array_result_payload.txt', $path);
 
         LintFunctionOverrides::queueTempnam($path);
         LintFunctionOverrides::queuePcntlForkResult(111);
@@ -498,10 +495,10 @@ final class RegexPatternExtractorTest extends TestCase
         $this->assertSame([], $result);
     }
 
-    private function createTempPhpFile(string $content = '<?php'): string
+    private function createTempPhpFile(string $fixture = 'default.php'): string
     {
         $path = sys_get_temp_dir().'/regexparser_'.uniqid('', true).'.php';
-        file_put_contents($path, $content);
+        copy(__DIR__.'/../../Fixtures/Lint/'.$fixture, $path);
 
         return $path;
     }

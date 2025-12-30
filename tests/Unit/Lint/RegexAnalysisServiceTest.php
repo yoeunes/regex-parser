@@ -457,7 +457,7 @@ final class RegexAnalysisServiceTest extends TestCase
     public function test_run_in_parallel_throws_for_worker_error_payload(): void
     {
         $path = sys_get_temp_dir().'/regexparser_parallel_'.uniqid('', true);
-        file_put_contents($path, serialize(['ok' => false, 'error' => ['message' => 'Boom', 'class' => 'RuntimeException']]));
+        copy(__DIR__.'/../../Fixtures/Lint/error_payload.txt', $path);
 
         LintFunctionOverrides::queueTempnam($path);
         LintFunctionOverrides::queuePcntlForkResult(1234);
@@ -481,8 +481,8 @@ final class RegexAnalysisServiceTest extends TestCase
         $path1 = sys_get_temp_dir().'/regexparser_parallel_'.uniqid('', true);
         $path2 = sys_get_temp_dir().'/regexparser_parallel_'.uniqid('', true);
 
-        file_put_contents($path1, serialize(['ok' => true, 'result' => ['first']]));
-        file_put_contents($path2, serialize(['ok' => true, 'result' => ['second']]));
+        copy(__DIR__.'/../../Fixtures/Lint/first_payload.txt', $path1);
+        copy(__DIR__.'/../../Fixtures/Lint/second_payload.txt', $path2);
 
         LintFunctionOverrides::queueTempnam($path1);
         LintFunctionOverrides::queueTempnam($path2);
@@ -513,7 +513,7 @@ final class RegexAnalysisServiceTest extends TestCase
     public function test_run_in_parallel_skips_non_array_results(): void
     {
         $path = sys_get_temp_dir().'/regexparser_parallel_'.uniqid('', true);
-        file_put_contents($path, serialize(['ok' => true, 'result' => 'not-array']));
+        copy(__DIR__.'/../../Fixtures/Lint/not_array_payload.txt', $path);
 
         LintFunctionOverrides::queueTempnam($path);
         LintFunctionOverrides::queuePcntlForkResult(111);
@@ -549,7 +549,7 @@ final class RegexAnalysisServiceTest extends TestCase
         $this->assertFalse((bool) $missingPayload['ok']);
 
         $invalidFile = sys_get_temp_dir().'/regexparser_payload_'.uniqid('', true);
-        file_put_contents($invalidFile, 'not-serialized');
+        copy(__DIR__.'/../../Fixtures/Lint/not_serialized.txt', $invalidFile);
         $invalidPayload = $readMethod->invoke($this->analysis, $invalidFile);
         $this->assertIsArray($invalidPayload);
         $this->assertArrayHasKey('ok', $invalidPayload);
@@ -557,7 +557,7 @@ final class RegexAnalysisServiceTest extends TestCase
         @unlink($invalidFile);
 
         $badErrorFile = sys_get_temp_dir().'/regexparser_payload_'.uniqid('', true);
-        file_put_contents($badErrorFile, serialize(['ok' => false, 'error' => 'bad']));
+        copy(__DIR__.'/../../Fixtures/Lint/bad_error_payload.txt', $badErrorFile);
         $badError = $readMethod->invoke($this->analysis, $badErrorFile);
         $this->assertIsArray($badError);
         $this->assertArrayHasKey('ok', $badError);
@@ -565,7 +565,7 @@ final class RegexAnalysisServiceTest extends TestCase
         @unlink($badErrorFile);
 
         $validErrorFile = sys_get_temp_dir().'/regexparser_payload_'.uniqid('', true);
-        file_put_contents($validErrorFile, serialize(['ok' => false, 'error' => ['message' => 'fail', 'class' => 'RuntimeException']]));
+        copy(__DIR__.'/../../Fixtures/Lint/valid_error_payload.txt', $validErrorFile);
         $validError = $readMethod->invoke($this->analysis, $validErrorFile);
         $this->assertIsArray($validError);
         $this->assertArrayHasKey('ok', $validError);

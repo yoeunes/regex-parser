@@ -1,0 +1,1 @@
+<?php preg_replace_callback_array(['/test/' => $callback], $input);

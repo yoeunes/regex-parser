@@ -1,0 +1,4 @@
+test_route:
+  path: /test/{id}
+  requirements:
+    id: '\\d{3,}'

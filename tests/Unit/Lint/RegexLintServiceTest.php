@@ -149,24 +149,18 @@ final class RegexLintServiceTest extends TestCase
 
     public function test_analyze_ignores_issues_with_ignore_comment(): void
     {
-        // Create a temporary file with the ignore comment
-        $tempFile = tempnam(sys_get_temp_dir(), 'regex_test');
-        file_put_contents($tempFile, "<?php\n// @regex-lint-ignore\npreg_match('/(a+)+/', \$input);\n");
+        $file = __DIR__.'/../../Fixtures/Extractor/regex_lint_ignore.php';
 
-        try {
-            $request = new RegexLintRequest(['.'], [], 0);
-            $patterns = [
-                new RegexPatternOccurrence('/(a+)+/', $tempFile, 3, 'preg_match'), // Line 3 has the pattern
-            ];
+        $request = new RegexLintRequest(['.'], [], 0);
+        $patterns = [
+            new RegexPatternOccurrence('/(a+)+/', $file, 3, 'preg_match'), // Line 3 has the pattern
+        ];
 
-            $service = new RegexLintService($this->analysis, $this->sources);
-            $result = $service->analyze($patterns, $request, null);
+        $service = new RegexLintService($this->analysis, $this->sources);
+        $result = $service->analyze($patterns, $request, null);
 
-            // The issue should be ignored due to the comment on the previous line
-            $this->assertCount(0, $result->results);
-        } finally {
-            unlink($tempFile);
-        }
+        // The issue should be ignored due to the comment on the previous line
+        $this->assertCount(0, $result->results);
     }
 
     public function test_analyze_filters_complexity_issues(): void
