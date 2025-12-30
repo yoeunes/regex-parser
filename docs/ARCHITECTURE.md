@@ -33,9 +33,33 @@ This happens in `RegexParser\Internal\PatternParser`. The output is then passed 
 - Default text
 - Character class (`[...]`)
 - Quoted literal blocks (`\Q...\E`)
-- Extended mode comments and whitespace (`/x`)
+- Comment blocks (`(?#...)`)
 
 The lexer output is a `TokenStream`, which is a linear sequence of `Token` objects. Tokens are positional, and offsets are byte-based so diagnostics line up with the original string.
+
+### Lexer Contexts and Tunnel Modes
+
+The lexer maintains explicit state flags:
+
+- `inCharClass` switches to the character-class token set until a closing `]`.
+- `inQuoteMode` treats everything as literal until `\E`.
+- `inCommentMode` consumes `(?# ... )` as literal content until `)`.
+
+Quote mode is allowed to run to end-of-pattern (PCRE treats `\Q` without `\E` as valid). Comment mode and character classes must be closed, or the lexer raises a `LexerException` in `validateFinalState()`.
+
+### Token Priority and Matching
+
+Tokens are matched by compiling two prioritized token maps into a single regex:
+
+- `TOKENS_OUTSIDE` for normal parsing
+- `TOKENS_INSIDE` for character-class parsing
+
+At each position, the lexer runs the compiled pattern with an anchored match (`/A`) to find the next token. Context-sensitive literals are adjusted after matching; for example:
+
+- `^` at the start of a class becomes `T_NEGATION`
+- `-` within a class becomes `T_RANGE`
+
+This keeps lexing fast and deterministic while preserving byte offsets.
 
 ## Step 3: Parser (Recursive Descent)
 
@@ -50,15 +74,24 @@ The parser entry point is `parse()`, which delegates to smaller methods such as:
 
 ```
 parse()
-  -> parseSequence()
-      -> parseGroup()
-      -> parseCharacterClass()
-      -> parseQuantifier()
-      -> parseAssertion()
-      -> parseLiteral()
+  -> parseAlternation()
+     -> parseSequence()
+        -> parseQuantifiedAtom()
+           -> parseAtom()
 ```
 
 Errors raised here become `SyntaxErrorException` or `SemanticErrorException` and include byte offsets for IDE integration.
+
+### Parser Precedence and Flow
+
+The parser implements precedence by control flow:
+
+- `parseAlternation()` splits on `|` and builds `AlternationNode` only when multiple branches exist.
+- `parseSequence()` consumes consecutive items until it hits `|` or `)`, building a `SequenceNode`.
+- `parseQuantifiedAtom()` parses one atom, then checks for a trailing quantifier and wraps it in a `QuantifierNode`.
+- `parseAtom()` delegates to specialized handlers for groups, character classes, verbs, assertions, and literals.
+
+Extended mode (`/x`) is handled inside `parseSequence()` via `consumeExtendedModeContent()`. Whitespace and inline comments become nodes where necessary so the compiler can round-trip the original pattern.
 
 ## Step 4: AST Structure
 
@@ -132,6 +165,17 @@ Core heuristics include:
 - Atomic groups and possessive quantifiers lowering severity
 
 Analysis results are wrapped in `ReDoSAnalysis` and include severity, findings, and suggested rewrites. See [docs/REDOS_GUIDE.md](REDOS_GUIDE.md) for user-facing guidance.
+
+### ReDoS Heuristics in Practice
+
+`ReDoSProfileNodeVisitor` tracks quantifier depth and atomic context while walking the AST:
+
+- `unboundedQuantifierDepth` and `totalQuantifierDepth` model star height and nesting.
+- Atomic groups (`(?>...)`) and possessive quantifiers (`*+`, `++`, `{m,n}+`) toggle `inAtomicGroup`, which reduces or avoids severity.
+- `CharSetAnalyzer` compares alternation branches to detect overlap inside repetition.
+- Backreference loops inside unbounded quantifiers are flagged as high risk.
+
+Findings are collected as `ReDoSFinding` objects, and the visitor records a `culpritNode` and `hotspots` so the CLI can highlight where the risk originates.
 
 ## CLI Lint Pipeline
 

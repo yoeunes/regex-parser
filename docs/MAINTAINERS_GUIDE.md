@@ -2,7 +2,17 @@
 
 This guide is for framework maintainers, library maintainers, and tooling authors who want to integrate RegexParser as a first-class analysis component. Whether you're building a PHPStan rule, a Symfony bundle, or a custom CLI tool, this guide covers everything you need.
 
-## The integration landscape
+## Contributor Checklist
+
+If you are new to the codebase, this short checklist helps you get oriented quickly:
+
+- Read [docs/ARCHITECTURE.md](ARCHITECTURE.md) and [docs/EXTENDING_GUIDE.md](EXTENDING_GUIDE.md).
+- Run `composer install` and verify `composer phpunit` passes before changes.
+- When touching Lexer/Parser or AST nodes, update relevant visitors and add tests.
+- Preserve byte offsets in diagnostics and update [docs/reference/diagnostics.md](reference/diagnostics.md) for new codes.
+- Keep docs in sync with behavior changes, especially [docs/reference.md](reference.md).
+
+## The Integration Landscape
 
 RegexParser is typically embedded in:
 

@@ -24,59 +24,22 @@ This comprehensive reference documents every diagnostic, lint rule, and optimiza
 
 ## Validation Layers
 
-RegexParser validates patterns through three distinct layers, each catching different types of issues:
+RegexParser validates patterns through four layers, each catching different types of issues:
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│              VALIDATION LAYERS                              │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │ LAYER 1: Parse (Lexer + Parser)                     │    │
-│  │ ├─ Tokenizes the pattern                            │    │
-│  │ ├─ Builds the AST                                   │    │
-│  │ └─ Catches: syntax errors, malformed patterns       │    │
-│  │                                                     │    │
-│  │ Examples:                                           │    │
-│  │ - Unbalanced brackets                               │    │
-│  │ - Invalid escapes                                   │    │
-│  │ - Missing delimiters                                │    │
-│  └─────────────────────────────────────────────────────┘    │
-│                           │                                 │
-│                           ▼                                 │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │ LAYER 2: Semantic Validation                        │    │
-│  │ ├─ Checks PCRE rules                                │    │
-│  │ ├─ Validates references and groups                  │    │
-│  │ └─ Catches: semantic errors                         │    │
-│  │                                                     │    │
-│  │ Examples:                                           │    │
-│  │ - Unbounded lookbehinds                             │    │
-│  │ - Invalid backreferences                            │    │
-│  │ - Duplicate group names                             │    │
-│  └─────────────────────────────────────────────────────┘    │
-│                           │                                 │
-│                           ▼                                 │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │ LAYER 3: Runtime Validation (Optional)              │    │
-│  │ ├─ Compiles via preg_match()                        │    │
-│  │ └─ Catches: engine-specific issues                  │    │
-│  │                                                     │    │
-│  │ Enable with:                                        │    │
-│  │   'runtime_pcre_validation' => true                 │    │
-│  └─────────────────────────────────────────────────────┘    │
-│                           │                                 │
-│                           ▼                                 │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │ LAYER 4: Linting & Analysis                         │    │
-│  │ ├─ Performance checks                               │    │
-│  │ ├─ ReDoS analysis                                   │    │
-│  │ ├─ Best practices                                   │    │
-│  │ └─ Catches: warnings and suggestions                │    │
-│  └─────────────────────────────────────────────────────┘    │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
+Pattern literal
+  -> Parse (Lexer + Parser): syntax errors, malformed patterns
+  -> Semantic validation: PCRE rules, group and reference checks
+  -> Runtime validation (optional): preg_match compilation
+  -> Linting & analysis: ReDoS, performance, best practices
 ```
+
+Examples by layer:
+
+- Parse: unbalanced brackets, invalid escapes, missing delimiters
+- Semantic: unbounded lookbehinds, invalid backreferences, duplicate group names
+- Runtime: engine-specific compilation errors
+- Linting & analysis: ReDoS hotspots, risky quantifiers, optimization hints
 
 ### PCRE2 Compatibility Contract
 
@@ -85,7 +48,7 @@ RegexParser targets **PHP's PCRE2 engine** (`preg_*`). Key behaviors that may su
 | Behavior           | Description               | Example                         |
 |--------------------|---------------------------|---------------------------------|
 | Forward references | `/\1(a)/` compiles in PHP | May look invalid but works      |
-| Branch reset       | `(?                       | ...)` changes capture numbering | `\2` can be invalid in branches |
+| Branch reset       | `(?|...)` changes capture numbering | `\2` can be invalid in branches |
 | `\g{0}`            | Invalid in PHP            | Use `\g<0>` or `(?R)`           |
 | Lookbehind         | Must have bounded length  | `(?<=a+)` is invalid            |
 
@@ -101,10 +64,9 @@ RegexParser targets **PHP's PCRE2 engine** (`preg_*`). Key behaviors that may su
 
 **Visual Explanation:**
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  /^\d+$/s  ──► NO DOT IN PATTERN                            │
-│             ──► DOTALL FLAG DOES NOTHING                    │
-└─────────────────────────────────────────────────────────────┘
+/^\d+$/s
+  -> no dot in pattern
+  -> s has no effect
 ```
 
 **Example:**
@@ -131,10 +93,9 @@ preg_match('/^user_id:\d+$/', $input);
 
 **Visual Explanation:**
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  /search_term/m  ──► NO ANCHORS IN PATTERN                  │
-│                 ──► MULTILINE FLAG DOES NOTHING             │
-└─────────────────────────────────────────────────────────────┘
+/search_term/m
+  -> no ^ or $ anchors
+  -> m has no effect
 ```
 
 **Example:**
@@ -184,19 +145,12 @@ preg_match('/^\d{4}-\d{2}-\d{2}$/', $date);
 
 **Visual Explanation:**
 ```
-┌─────────────────────────────────────────────────────────────┐
-│              ANCHOR CONFLICTS                               │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  VALID:                                                     │
-│  /^abc/        ──► Anchor at start, then literal            │
-│  /abc$/        ──► Literal, then anchor at end              │
-│                                                             │
-│  INVALID:                                                   │
-│  /a^bc/        ──► ^ after consuming 'a'                    │
-│  /^/abc        ──► $ before consuming anything              │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
+Valid:
+  /^abc/  -> anchor before content
+  /abc$/  -> anchor after content
+Invalid:
+  /a^bc/  -> ^ after consuming 'a'
+  /^/abc  -> $ before consuming anything
 ```
 
 **Fix:** Move anchors to the correct position.
@@ -213,23 +167,10 @@ preg_match('/^\d{4}-\d{2}-\d{2}$/', $date);
 
 **Visual Explanation:**
 ```
-┌─────────────────────────────────────────────────────────────┐
-│              NESTED QUANTIFIERS EXPLOSION                   │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  Pattern: /(a+)+b/                                          │
-│                                                             │
-│  Input: a a a a a !                                         │
-│                                                             │
-│  Inner (a+) can match:                                      │
-│    - 5 a's                                                  │
-│    - 4 a's + outer + repeats 2                              │
-│    - 3 a's + outer + repeats 3                              │
-│    - ...                                                    │
-│                                                             │
-│  Each additional 'a' adds MORE combinations!                │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
+Pattern: /(a+)+b/
+Input: "aaaaa!"
+Inner (a+) can match 1..n and the outer + repeats 1..n
+Result: many backtracking paths
 ```
 
 **Example:**
@@ -323,23 +264,10 @@ preg_match('/[aa]/', $input);  // or just /a/
 
 **Visual Explanation:**
 ```
-┌─────────────────────────────────────────────────────────────┐
-│              OVERLAPPING ALTERNATIVES                       │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  Pattern: /(a|aa)+b/                                        │
-│                                                             │
-│  Input: a a a a a b                                         │
-│                                                             │
-│  The engine tries:                                          │
-│    a + a + a + a + a = "aaaaa"                              │
-│    aa + a + a + a = "aaaaa"                                 │
-│    a + aa + a + a = "aaaaa"                                 │
-│    ...                                                      │
-│                                                             │
-│  Result: Exponential backtracking!                          │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
+Pattern: /(a|aa)+b/
+Input: "aaaaab"
+The engine can split the a's as: a+a+a+a+a or aa+a+a+a, ...
+Result: overlapping paths trigger heavy backtracking
 ```
 
 **Example:**
@@ -508,21 +436,13 @@ preg_match('/(a++)+$/', $input);  // SAFE
 
 **Visual Comparison:**
 ```
-┌─────────────────────────────────────────────────────────────┐
-│              GREEDY vs POSSESSIVE                           │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  GREEDY: /".*"/                                             │
-│    - Matches as much as possible                            │
-│    - Backtracks on failure                                  │
-│    - Can be slow on non-matching input                      │
-│                                                             │
-│  POSSESSIVE: /".*+"/                                        │
-│    - Matches as much as possible                            │
-│    - NEVER backtracks                                       │
-│    - Fails fast on non-matching input                       │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
+Greedy: /".*"/
+  -> matches as much as possible
+  -> backtracks on failure
+
+Possessive: /".*+"/
+  -> matches as much as possible
+  -> never backtracks
 ```
 
 **Example:**
