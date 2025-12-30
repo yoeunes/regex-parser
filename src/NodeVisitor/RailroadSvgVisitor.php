@@ -674,7 +674,7 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
         $childLayout = $node->node->accept($this);
         $needsLoop = $this->isLoopQuantifier($node->quantifier);
         $needsBypass = $this->isOptionalQuantifier($node->quantifier);
-        $topExtra = max($needsLoop ? self::LOOP_HEIGHT + self::LABEL_GAP : 0, $needsBypass ? self::BYPASS_HEIGHT + self::LABEL_GAP : 0);
+        $topExtra = max($needsLoop ? self::LOOP_HEIGHT + 10 + self::LABEL_GAP : 0, $needsBypass ? self::BYPASS_HEIGHT + 10 + self::LABEL_GAP : 0);
         $labelText = $this->describeQuantifier($node->quantifier);
         $bottomExtra = '' !== $labelText ? self::LABEL_HEIGHT + self::LABEL_GAP : 0;
 
@@ -695,7 +695,7 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
         $paths[] = $this->line([$childOffsetX + (int) $childLayout['exitX'], $midY], [$width, $midY]);
 
         if ($needsLoop) {
-            $loopTopY = $childOffsetY - self::LOOP_HEIGHT;
+            $loopTopY = $childOffsetY - self::LOOP_HEIGHT - 10; // Add 10px margin below the loop
             $exitX = $childOffsetX + (int) $childLayout['exitX'];
             $entryX = $childOffsetX + (int) $childLayout['entryX'];
             $paths[] = $this->line([$exitX, $midY], [$exitX, $loopTopY], 'path loop');
@@ -704,7 +704,7 @@ final class RailroadSvgVisitor extends AbstractNodeVisitor
         }
 
         if ($needsBypass) {
-            $bypassY = $childOffsetY - self::BYPASS_HEIGHT;
+            $bypassY = $childOffsetY - self::BYPASS_HEIGHT - 10; // Add 10px margin below the bypass
             $paths[] = $this->polyline([
                 [0, $midY],
                 [0, $bypassY],
