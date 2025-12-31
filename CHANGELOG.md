@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2025-12-31
+
+### Added
+- Regression coverage for optimized character class ranges that include the delimiter.
+
+### Fixed
+- Character class compilation now preserves literal `[` where safe and escapes delimiters to prevent invalid ranges.
+- Lexer tests updated to reflect literal `[` handling inside character classes.
+- Linter anchor checks now reindex sliced sequences to satisfy static analysis.
+
 ## [1.0.0] - 2025-12-31
 
 ### Added
