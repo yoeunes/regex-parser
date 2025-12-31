@@ -458,7 +458,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
 
             if ($child instanceof AnchorNode && '^' === $child->value) {
                 if (!str_contains($this->flags, 'm')) {
-                    $prefix = array_slice($children, 0, $i);
+                    $prefix = array_values(array_slice($children, 0, $i));
                     if ([] !== $prefix && !$this->sequenceCanBeEmpty($prefix)) {
                         $this->addIssue(
                             'regex.lint.anchor.impossible.start',
@@ -470,7 +470,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
             }
 
             if ($child instanceof AnchorNode && '$' === $child->value) {
-                $tail = array_slice($children, $i + 1);
+                $tail = array_values(array_slice($children, $i + 1));
                 if ([] !== $tail && !$this->sequenceCanBeEmpty($tail)) {
                     $this->addIssue(
                         'regex.lint.anchor.impossible.end',
@@ -580,7 +580,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         }
 
         if ($node instanceof SequenceNode) {
-            return $this->sequenceCanBeEmpty($node->children);
+            return $this->sequenceCanBeEmpty(array_values($node->children));
         }
 
         if ($node instanceof AlternationNode) {

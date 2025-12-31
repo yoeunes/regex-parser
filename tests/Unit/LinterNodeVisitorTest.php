@@ -14,8 +14,8 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
-use RegexParser\Regex;
 use RegexParser\NodeVisitor\LinterNodeVisitor;
+use RegexParser\Regex;
 
 final class LinterNodeVisitorTest extends TestCase
 {

@@ -33,6 +33,7 @@ use RegexParser\Node\GroupType;
 use RegexParser\Node\KeepNode;
 use RegexParser\Node\LimitMatchNode;
 use RegexParser\Node\LiteralNode;
+use RegexParser\Node\NodeInterface;
 use RegexParser\Node\PcreVerbNode;
 use RegexParser\Node\PosixClassNode;
 use RegexParser\Node\QuantifierNode;
@@ -113,6 +114,15 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
             return '';
         }
 
+        if ($this->inCharClass) {
+            $result = $this->compileCharClassNode($alternatives[0], $alternatives[1] ?? null);
+            for ($i = 1, $count = \count($alternatives); $i < $count; $i++) {
+                $result .= $this->compileCharClassNode($alternatives[$i], $alternatives[$i + 1] ?? null);
+            }
+
+            return $result;
+        }
+
         if ($this->pretty) {
             $result = $alternatives[0]->accept($this);
             for ($i = 1, $count = \count($alternatives); $i < $count; $i++) {
@@ -125,7 +135,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
             return $result;
         }
 
-        $separator = $this->inCharClass ? '' : '|';
+        $separator = '|';
         $result = $alternatives[0]->accept($this);
 
         for ($i = 1, $count = \count($alternatives); $i < $count; $i++) {
@@ -142,6 +152,15 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
         $children = $node->children;
         if ([] === $children) {
             return '';
+        }
+
+        if ($this->inCharClass) {
+            $result = $this->compileCharClassNode($children[0], $children[1] ?? null);
+            for ($i = 1, $count = \count($children); $i < $count; $i++) {
+                $result .= $this->compileCharClassNode($children[$i], $children[$i + 1] ?? null);
+            }
+
+            return $result;
         }
 
         $result = $children[0]->accept($this);
@@ -613,5 +632,32 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
         }
 
         return $result;
+    }
+
+    private function compileCharClassNode(NodeInterface $node, ?NodeInterface $next): string
+    {
+        if ($node instanceof LiteralNode && '[' === $node->value) {
+            return $this->shouldEscapeCharClassOpen($next) ? '\\[' : '[';
+        }
+
+        if ($node instanceof RangeNode) {
+            $start = $node->start;
+            $startCompiled = $start instanceof LiteralNode && '[' === $start->value
+                ? '['
+                : $start->accept($this);
+
+            return $startCompiled.'-'.$node->end->accept($this);
+        }
+
+        return $node->accept($this);
+    }
+
+    private function shouldEscapeCharClassOpen(?NodeInterface $next): bool
+    {
+        if (!$next instanceof LiteralNode) {
+            return false;
+        }
+
+        return \in_array($next->value, [':', '.', '='], true);
     }
 }

@@ -162,7 +162,7 @@ final class ParserTest extends TestCase
 
         $values = array_map(
             static fn (NodeInterface $node): string => $node instanceof LiteralNode ? $node->value : '',
-            $pattern->expression->alternatives
+            $pattern->expression->alternatives,
         );
 
         $this->assertSame(['.', '['], $values);
