@@ -119,8 +119,6 @@ composer phpstan
 
 Released under the [MIT License](LICENSE).
 
----
-
 <p align="center">
-  <b>Made by <a href="https://www.linkedin.com/in/younes--ennaji/">Younes ENNAJI</a></b>
+  <b>Made by <a href="https://www.linkedin.com/in/yoeunes/">Younes ENNAJI</a></b>
 </p>
