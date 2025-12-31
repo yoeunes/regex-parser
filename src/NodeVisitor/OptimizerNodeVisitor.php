@@ -899,80 +899,76 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         $compacted = [];
         $currentNode = null;
         $currentCount = 0;
+        $currentFromQuantifier = false;
 
         foreach ($children as $child) {
             $baseNode = $child;
             $count = 1;
+            $fromQuantifier = false;
 
             if ($child instanceof QuantifierNode) {
                 $baseNode = $child->node;
                 $parsedCount = $this->parseQuantifierCount($child->quantifier);
                 if (null === $parsedCount) {
                     // Variable quantifier, don't merge
-                    if (null !== $currentNode) {
-                        if ($currentCount >= 4) {
-                            $compacted[] = $this->createQuantifiedNode($currentNode, $currentCount);
-                        } else {
-                            for ($i = 0; $i < $currentCount; $i++) {
-                                $compacted[] = $currentNode;
-                            }
-                        }
-                        $currentNode = null;
-                        $currentCount = 0;
-                    }
+                    $this->flushCompactedSequence($compacted, $currentNode, $currentCount, $currentFromQuantifier);
                     $compacted[] = $child;
 
                     continue;
                 }
                 $count = $parsedCount;
+                $fromQuantifier = true;
             }
 
             // Never compact nodes that can affect capture numbering or backreferences
             if ($this->isCaptureSensitive($baseNode)) {
-                if (null !== $currentNode) {
-                    if ($currentCount >= 4) {
-                        $compacted[] = $this->createQuantifiedNode($currentNode, $currentCount);
-                    } else {
-                        for ($i = 0; $i < $currentCount; $i++) {
-                            $compacted[] = $currentNode;
-                        }
-                    }
-                    $currentNode = null;
-                    $currentCount = 0;
-                }
+                $this->flushCompactedSequence($compacted, $currentNode, $currentCount, $currentFromQuantifier);
                 $compacted[] = $child;
 
                 continue;
             }
 
             if (null === $currentNode || !$this->areNodesEqual($currentNode, $baseNode)) {
-                if (null !== $currentNode) {
-                    if ($currentCount >= 4) {
-                        $compacted[] = $this->createQuantifiedNode($currentNode, $currentCount);
-                    } else {
-                        for ($i = 0; $i < $currentCount; $i++) {
-                            $compacted[] = $currentNode;
-                        }
-                    }
-                }
+                $this->flushCompactedSequence($compacted, $currentNode, $currentCount, $currentFromQuantifier);
                 $currentNode = $baseNode;
                 $currentCount = $count;
+                $currentFromQuantifier = $fromQuantifier;
             } else {
                 $currentCount += $count;
+                $currentFromQuantifier = $currentFromQuantifier || $fromQuantifier;
             }
         }
 
-        if (null !== $currentNode) {
-            if ($currentCount >= 4) {
-                $compacted[] = $this->createQuantifiedNode($currentNode, $currentCount);
-            } else {
-                for ($i = 0; $i < $currentCount; $i++) {
-                    $compacted[] = $currentNode;
-                }
-            }
-        }
+        $this->flushCompactedSequence($compacted, $currentNode, $currentCount, $currentFromQuantifier);
 
         return $compacted;
+    }
+
+    /**
+     * @param array<Node\NodeInterface> $compacted
+     */
+    private function flushCompactedSequence(
+        array &$compacted,
+        ?NodeInterface &$currentNode,
+        int &$currentCount,
+        bool &$currentFromQuantifier
+    ): void
+    {
+        if (null === $currentNode) {
+            return;
+        }
+
+        if ($currentCount >= 4 || $currentFromQuantifier) {
+            $compacted[] = $this->createQuantifiedNode($currentNode, $currentCount);
+        } else {
+            for ($i = 0; $i < $currentCount; $i++) {
+                $compacted[] = $currentNode;
+            }
+        }
+
+        $currentNode = null;
+        $currentCount = 0;
+        $currentFromQuantifier = false;
     }
 
     private function parseQuantifierCount(string $quantifier): ?int

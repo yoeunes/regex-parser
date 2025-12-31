@@ -72,6 +72,12 @@ final class OptimizerSpecificsTest extends TestCase
         $this->assertSame('/\d\d\d/', $regex);
     }
 
+    public function test_preserve_explicit_quantifier(): void
+    {
+        $regex = Regex::create()->optimize('/\d{2}/')->optimized;
+        $this->assertSame('/\d{2}/', $regex);
+    }
+
     public function test_sequence_compaction_mixed(): void
     {
         $regex = Regex::create()->optimize('/a{2}a{3}/')->optimized;
