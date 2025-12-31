@@ -106,20 +106,21 @@ final class ParserTest extends TestCase
         $ast = $this->parse('/[a-d[m-p]]/');
         $pattern = $ast->pattern;
 
-        $this->assertInstanceOf(CharClassNode::class, $pattern);
-        $this->assertInstanceOf(AlternationNode::class, $pattern->expression);
-        $this->assertCount(2, $pattern->expression->alternatives);
+        $this->assertInstanceOf(SequenceNode::class, $pattern);
+        $this->assertCount(2, $pattern->children);
 
-        $this->assertInstanceOf(RangeNode::class, $pattern->expression->alternatives[0]);
-        $this->assertInstanceOf(CharClassNode::class, $pattern->expression->alternatives[1]);
+        $this->assertInstanceOf(CharClassNode::class, $pattern->children[0]);
+        $this->assertInstanceOf(LiteralNode::class, $pattern->children[1]);
+        $this->assertSame(']', $pattern->children[1]->value);
 
-        $nested = $pattern->expression->alternatives[1];
-        $range = $nested->expression;
-        $this->assertInstanceOf(RangeNode::class, $range);
-        $this->assertInstanceOf(LiteralNode::class, $range->start);
-        $this->assertSame('m', $range->start->value);
-        $this->assertInstanceOf(LiteralNode::class, $range->end);
-        $this->assertSame('p', $range->end->value);
+        $class = $pattern->children[0];
+        $this->assertInstanceOf(AlternationNode::class, $class->expression);
+        $this->assertCount(3, $class->expression->alternatives);
+
+        $this->assertInstanceOf(RangeNode::class, $class->expression->alternatives[0]);
+        $this->assertInstanceOf(LiteralNode::class, $class->expression->alternatives[1]);
+        $this->assertSame('[', $class->expression->alternatives[1]->value);
+        $this->assertInstanceOf(RangeNode::class, $class->expression->alternatives[2]);
     }
 
     #[Test]

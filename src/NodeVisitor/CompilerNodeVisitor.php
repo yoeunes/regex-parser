@@ -326,6 +326,8 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
                     default => '\\x'.strtoupper(str_pad(dechex($ord), 2, '0', \STR_PAD_LEFT)),
                 };
             }
+
+            return $this->escapeString($rep);
         }
 
         return $rep;

@@ -75,13 +75,19 @@ final class OptimizerTest extends TestCase
             '/^[1-9]\d*$/',
         ];
 
-        // Case 3: Useless flag removal - 's' flag is useless when no dots present
+        // Case 3: Escape delimiter when optimizing printable ranges in char classes
+        yield 'char class range escapes delimiter' => [
+            '/[\x20-\x2F]/',
+            '/[ -\/]/',
+        ];
+
+        // Case 4: Useless flag removal - 's' flag is useless when no dots present
         yield 'useless flag removal' => [
             '#<esi:comment[^>]+>#s',
             '#<esi:comment[^>]+>#',
         ];
 
-        // Case 4: Structure optimization - (?P<name>) -> (?<name>)
+        // Case 5: Structure optimization - (?P<name>) -> (?<name>)
         yield 'structure optimization - named groups' => [
             '/^(?P<year>\d{4})-W(?P<week>\d{2})$/',
             '/^(?<year>\d{4})-W(?<week>\d{2})$/',

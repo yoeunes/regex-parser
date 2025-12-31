@@ -38,7 +38,7 @@ final class ParserCoverageTest extends TestCase
             '/\p{L}/u',  // unicode prop
             '/[\w--\d]/',  // char class subtraction
             '/[a-z&&\d]/',  // char class intersection
-            '/[a-d[m-p]]/',  // nested char class union
+            '/[a-d[m-p]]/',  // char class with literal "[" then trailing "]"
             '/[a-z&&[def]]/',  // nested char class intersection
             '/\K/',  // keep
             '/a(*THEN)b/',  // verb
