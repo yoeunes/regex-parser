@@ -34,6 +34,7 @@ use RegexParser\Node\DotNode;
 use RegexParser\Node\GroupNode;
 use RegexParser\Node\GroupType;
 use RegexParser\Node\LiteralNode;
+use RegexParser\Node\NodeInterface;
 use RegexParser\Node\QuantifierNode;
 use RegexParser\Node\RangeNode;
 use RegexParser\Node\RegexNode;
@@ -147,6 +148,23 @@ final class ParserTest extends TestCase
         $this->assertInstanceOf(CharClassNode::class, $pattern);
         $this->assertInstanceOf(LiteralNode::class, $pattern->expression);
         $this->assertSame('[', $pattern->expression->value);
+    }
+
+    #[Test]
+    public function test_parse_char_class_literal_bracket_inside(): void
+    {
+        $ast = $this->parse('/[.[]/');
+        $pattern = $ast->pattern;
+
+        $this->assertInstanceOf(CharClassNode::class, $pattern);
+        $this->assertInstanceOf(AlternationNode::class, $pattern->expression);
+
+        $values = array_map(
+            static fn (NodeInterface $node): string => $node instanceof LiteralNode ? $node->value : '',
+            $pattern->expression->alternatives
+        );
+
+        $this->assertSame(['.', '['], $values);
     }
 
     #[Test]

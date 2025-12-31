@@ -323,7 +323,16 @@ final class Lexer
      */
     private function handleCharClassOpen(int $startPos, array $currentTokens): Token
     {
-        if ($this->inCharClass && $this->isAtCharClassStart($startPos, $currentTokens)) {
+        if ($this->inCharClass) {
+            if ($this->isAtCharClassStart($startPos, $currentTokens)) {
+                return new Token(TokenType::T_LITERAL, '[', $startPos);
+            }
+
+            $lastToken = end($currentTokens);
+            if ($lastToken instanceof Token && \in_array($lastToken->type, [TokenType::T_CLASS_INTERSECTION, TokenType::T_CLASS_SUBTRACTION], true)) {
+                return $this->openCharClass($startPos);
+            }
+
             return new Token(TokenType::T_LITERAL, '[', $startPos);
         }
 
