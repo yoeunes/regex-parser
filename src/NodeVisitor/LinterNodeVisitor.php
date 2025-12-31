@@ -457,34 +457,26 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
             $child = $children[$i];
 
             if ($child instanceof AnchorNode && '^' === $child->value) {
-                // Check if there are consuming nodes before ^
-                for ($j = 0; $j < $i; $j++) {
-                    if ($this->isConsuming($children[$j])) {
-                        if (!str_contains($this->flags, 'm')) {
-                            $this->addIssue(
-                                'regex.lint.anchor.impossible.start',
-                                "Start anchor '^' appears after consuming characters, making it impossible to match.",
-                                $child->startPosition,
-                            );
-                        }
-
-                        break;
+                if (!str_contains($this->flags, 'm')) {
+                    $prefix = array_values(array_slice($children, 0, $i));
+                    if ([] !== $prefix && !$this->sequenceCanBeEmpty($prefix)) {
+                        $this->addIssue(
+                            'regex.lint.anchor.impossible.start',
+                            "Start anchor '^' appears after consuming characters, making it impossible to match.",
+                            $child->startPosition,
+                        );
                     }
                 }
             }
 
             if ($child instanceof AnchorNode && '$' === $child->value) {
-                // Check if there are consuming nodes after $
-                for ($j = $i + 1; $j < $count; $j++) {
-                    if ($this->isConsuming($children[$j])) {
-                        $this->addIssue(
-                            'regex.lint.anchor.impossible.end',
-                            "End anchor '$' appears before consuming characters, making it impossible to match.",
-                            $child->startPosition,
-                        );
-
-                        break;
-                    }
+                $tail = array_values(array_slice($children, $i + 1));
+                if ([] !== $tail && !$this->sequenceCanBeEmpty($tail)) {
+                    $this->addIssue(
+                        'regex.lint.anchor.impossible.end',
+                        "End anchor '$' appears before consuming characters, making it impossible to match.",
+                        $child->startPosition,
+                    );
                 }
             }
         }
@@ -545,6 +537,79 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         }
 
         // Anchors, assertions, etc. don't consume
+        return false;
+    }
+
+    /**
+     * Determine if the given sequence can match an empty string.
+     *
+     * @param array<int, NodeInterface> $nodes
+     */
+    private function sequenceCanBeEmpty(array $nodes): bool
+    {
+        foreach ($nodes as $node) {
+            if (!$this->canBeEmpty($node)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private function canBeEmpty(NodeInterface $node): bool
+    {
+        if ($node instanceof AnchorNode
+            || $node instanceof AssertionNode
+            || $node instanceof KeepNode
+            || $node instanceof CommentNode
+            || $node instanceof CalloutNode
+            || $node instanceof ScriptRunNode
+            || $node instanceof DefineNode
+        ) {
+            return true;
+        }
+
+        if ($node instanceof LiteralNode) {
+            return '' === $node->value;
+        }
+
+        if ($node instanceof QuantifierNode) {
+            [$min] = $this->parseQuantifierRange($node->quantifier);
+
+            return 0 === $min || $this->canBeEmpty($node->node);
+        }
+
+        if ($node instanceof SequenceNode) {
+            return $this->sequenceCanBeEmpty(array_values($node->children));
+        }
+
+        if ($node instanceof AlternationNode) {
+            foreach ($node->alternatives as $alt) {
+                if ($this->canBeEmpty($alt)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        if ($node instanceof GroupNode) {
+            if (\in_array($node->type, [
+                GroupType::T_GROUP_LOOKAHEAD_POSITIVE,
+                GroupType::T_GROUP_LOOKAHEAD_NEGATIVE,
+                GroupType::T_GROUP_LOOKBEHIND_POSITIVE,
+                GroupType::T_GROUP_LOOKBEHIND_NEGATIVE,
+            ], true)) {
+                return true;
+            }
+
+            return $this->canBeEmpty($node->child);
+        }
+
+        if ($node instanceof ConditionalNode) {
+            return $this->canBeEmpty($node->yes) || $this->canBeEmpty($node->no);
+        }
+
         return false;
     }
 

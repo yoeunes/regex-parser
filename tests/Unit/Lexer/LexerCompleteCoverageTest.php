@@ -725,6 +725,7 @@ final class LexerCompleteCoverageTest extends TestCase
 
         $openCount = 0;
         $closeCount = 0;
+        $hasLiteralOpen = false;
         foreach ($tokens as $token) {
             if (TokenType::T_CHAR_CLASS_OPEN === $token->type) {
                 $openCount++;
@@ -732,10 +733,14 @@ final class LexerCompleteCoverageTest extends TestCase
             if (TokenType::T_CHAR_CLASS_CLOSE === $token->type) {
                 $closeCount++;
             }
+            if (TokenType::T_LITERAL === $token->type && '[' === $token->value) {
+                $hasLiteralOpen = true;
+            }
         }
 
-        $this->assertSame(2, $openCount);
-        $this->assertSame(2, $closeCount);
+        $this->assertSame(1, $openCount);
+        $this->assertSame(1, $closeCount);
+        $this->assertTrue($hasLiteralOpen);
     }
 
     public function test_unicode_prop_empty_after_negation(): void
