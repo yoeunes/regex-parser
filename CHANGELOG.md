@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.2] - 2025-12-31
+
+### Added
+- Optimization option `minQuantifierCount` to control when repeats are compacted into `{n}`.
+
+### Fixed
+- Optimizer now preserves explicit fixed quantifiers (e.g., `\d{2}`) instead of expanding them into repeated literals.
+
 ## [1.0.1] - 2025-12-31
 
 ### Added
