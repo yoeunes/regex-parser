@@ -21,10 +21,10 @@ namespace RegexParser\Lint;
 final readonly class RegexLintRequest
 {
     /**
-     * @param array<string>       $paths
-     * @param array<string>       $excludePaths
-     * @param array<string>       $disabledSources
-     * @param array<string, bool> $optimizations
+     * @param array<string>           $paths
+     * @param array<string>           $excludePaths
+     * @param array<string>           $disabledSources
+     * @param array<string, bool|int> $optimizations
      */
     public function __construct(
         public array $paths,

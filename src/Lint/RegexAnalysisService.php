@@ -120,8 +120,8 @@ final readonly class RegexAnalysisService
     }
 
     /**
-     * @param array<RegexPatternOccurrence>                                                                                 $patterns
-     * @param array{digits?: bool, word?: bool, ranges?: bool, autoPossessify?: bool, allowAlternationFactorization?: bool} $optimizationConfig
+     * @param array<RegexPatternOccurrence>                                                                                                           $patterns
+     * @param array{digits?: bool, word?: bool, ranges?: bool, autoPossessify?: bool, allowAlternationFactorization?: bool, minQuantifierCount?: int} $optimizationConfig
      *
      * @return array<array{
      *     file: string,
@@ -305,8 +305,8 @@ final readonly class RegexAnalysisService
     }
 
     /**
-     * @param array<RegexPatternOccurrence>                                                                                 $patterns
-     * @param array{digits?: bool, word?: bool, ranges?: bool, autoPossessify?: bool, allowAlternationFactorization?: bool} $optimizationConfig
+     * @param array<RegexPatternOccurrence>                                                                                                           $patterns
+     * @param array{digits?: bool, word?: bool, ranges?: bool, autoPossessify?: bool, allowAlternationFactorization?: bool, minQuantifierCount?: int} $optimizationConfig
      *
      * @return array<array{
      *     file: string,
@@ -341,6 +341,7 @@ final readonly class RegexAnalysisService
                         ranges: (bool) ($optimizationConfig['ranges'] ?? true),
                         autoPossessify: (bool) ($optimizationConfig['autoPossessify'] ?? false),
                         allowAlternationFactorization: false,
+                        minQuantifierCount: (int) ($optimizationConfig['minQuantifierCount'] ?? 4),
                     );
 
                     $ast = $this->regex->parse($occurrence->pattern);

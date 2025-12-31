@@ -18,9 +18,9 @@ use RegexParser\Lint\Formatter\OutputConfiguration;
 final readonly class LintArguments
 {
     /**
-     * @param array<int, string>  $paths
-     * @param array<int, string>  $exclude
-     * @param array<string, bool> $optimizations
+     * @param array<int, string>      $paths
+     * @param array<int, string>      $exclude
+     * @param array<string, bool|int> $optimizations
      */
     public function __construct(
         public array $paths,
@@ -128,7 +128,22 @@ final readonly class LintArguments
         } else {
             $validated = [];
             foreach ($optimizations as $key => $value) {
-                if (\is_string($key) && \is_bool($value)) {
+                if (!\is_string($key)) {
+                    continue;
+                }
+                if ('minQuantifierCount' === $key) {
+                    if (\is_int($value)) {
+                        $validated[$key] = $value;
+
+                        continue;
+                    }
+                    if (\is_string($value) && ctype_digit($value)) {
+                        $validated[$key] = (int) $value;
+
+                        continue;
+                    }
+                }
+                if (\is_bool($value)) {
                     $validated[$key] = $value;
                 }
             }

@@ -305,19 +305,26 @@ Create `regex.json` or `regex.dist.json` in your project root:
   "minSavings": 2,
   "jobs": 4,
   "exclude": ["vendor", "var", "tests"],
-  "ide": "phpstorm"
+  "ide": "phpstorm",
+  "optimizations": {
+    "digits": true,
+    "word": true,
+    "ranges": true,
+    "minQuantifierCount": 4
+  }
 }
 ```
 
 ### Configuration Options
 
-| Option       | Type   | Description                                              |
-|--------------|--------|----------------------------------------------------------|
-| `format`     | string | Output format (console, json, github, checkstyle, junit) |
-| `minSavings` | int    | Minimum optimization savings threshold                   |
-| `jobs`       | int    | Number of parallel workers                               |
-| `exclude`    | array  | Paths to exclude                                         |
-| `ide`        | string | IDE for clickable links                                  |
+| Option          | Type   | Description                                              |
+|-----------------|--------|----------------------------------------------------------|
+| `format`        | string | Output format (console, json, github, checkstyle, junit) |
+| `minSavings`    | int    | Minimum optimization savings threshold                   |
+| `jobs`          | int    | Number of parallel workers                               |
+| `exclude`       | array  | Paths to exclude                                         |
+| `ide`           | string | IDE for clickable links                                  |
+| `optimizations` | object | Optimization options (digits/word/ranges/possessive/factorize/minQuantifierCount) |
 
 ### IDE Integration
 

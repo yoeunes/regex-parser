@@ -78,6 +78,12 @@ final class OptimizerSpecificsTest extends TestCase
         $this->assertSame('/\d{2}/', $regex);
     }
 
+    public function test_min_quantifier_count_respects_threshold(): void
+    {
+        $regex = Regex::create()->optimize('/aaaa/', ['minQuantifierCount' => 5])->optimized;
+        $this->assertSame('/aaaa/', $regex);
+    }
+
     public function test_sequence_compaction_mixed(): void
     {
         $regex = Regex::create()->optimize('/a{2}a{3}/')->optimized;

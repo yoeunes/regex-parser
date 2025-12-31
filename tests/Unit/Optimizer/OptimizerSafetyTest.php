@@ -41,7 +41,7 @@ final class OptimizerSafetyTest extends TestCase
         // --- 1. Sanity Checks (No Change Expected) ---
         yield 'Different literals' => ['/a|b/', '/[ab]/', ['autoPossessify' => true]];
         yield 'Distinct ranges' => ['/[a-z]|[0-9]/', '/[a-z0-9]/', ['autoPossessify' => true]];
-        yield 'Distinct words' => ['/fo{2}|bar/', '/foo|bar/', ['autoPossessify' => true]];
+        yield 'Distinct words' => ['/fo{2}|bar/', '/fo{2}|bar/', ['autoPossessify' => true]];
 
         // --- 2. The Regression Case (CRITICAL) ---
         // Ensure distinct patterns are NOT deduplicated

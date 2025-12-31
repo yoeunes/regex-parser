@@ -59,6 +59,8 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
 
     private bool $isInsideQuantifier = false;
 
+    private readonly int $minQuantifierCount;
+
     public function __construct(
         private readonly bool $optimizeDigits = true,
         private readonly bool $optimizeWord = true,
@@ -74,8 +76,10 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
          * Whether to perform string-based alternation factorization.
          * This can make verbose (/x) patterns harder to read.
          */
-        private readonly bool $allowAlternationFactorization = false
+        private readonly bool $allowAlternationFactorization = false,
+        int $minQuantifierCount = 4
     ) {
+        $this->minQuantifierCount = max(2, $minQuantifierCount);
         $this->charSetAnalyzer = new CharSetAnalyzer();
     }
 
@@ -236,8 +240,8 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
             if ($child instanceof LiteralNode && preg_match('/^(.)\1+$/', $child->value, $matches)) {
                 $char = $matches[1];
                 $count = \strlen($child->value);
-                // Only compact if count >= 4 (avoids making output longer/less readable)
-                if ($count >= 4) {
+                // Only compact if count meets the configured minimum (avoids making output longer/less readable)
+                if ($count >= $this->minQuantifierCount) {
                     $baseNode = new LiteralNode($char, $child->startPosition, $child->endPosition);
                     $optimizedChildren[$i] = new QuantifierNode($baseNode, '{'.$count.'}', QuantifierType::T_GREEDY, $child->startPosition, $child->endPosition);
                     $hasChanged = true;
@@ -946,19 +950,20 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
 
     /**
      * @param array<Node\NodeInterface> $compacted
+     *
+     * @param-out null $currentNode
      */
     private function flushCompactedSequence(
         array &$compacted,
         ?NodeInterface &$currentNode,
         int &$currentCount,
         bool &$currentFromQuantifier
-    ): void
-    {
+    ): void {
         if (null === $currentNode) {
             return;
         }
 
-        if ($currentCount >= 4 || $currentFromQuantifier) {
+        if ($currentCount >= $this->minQuantifierCount || $currentFromQuantifier) {
             $compacted[] = $this->createQuantifiedNode($currentNode, $currentCount);
         } else {
             for ($i = 0; $i < $currentCount; $i++) {

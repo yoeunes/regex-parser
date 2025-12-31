@@ -8,6 +8,7 @@
     "word": true,
     "ranges": true,
     "possessive": false,
-    "factorize": false
+    "factorize": false,
+    "minQuantifierCount": 4
   }
 }

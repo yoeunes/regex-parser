@@ -257,6 +257,7 @@ $result = Regex::create()->optimize('/[0-9]+/', [
     'ranges' => true,              // Normalize ranges
     'autoPossessify' => false,     // Add possessive quantifiers
     'allowAlternationFactorization' => false,  // Factor common parts
+    'minQuantifierCount' => 4,     // Use {n} only when repetition >= 4
 ]);
 
 echo $result->original;    // '/[0-9]+/'

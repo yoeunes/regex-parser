@@ -101,10 +101,10 @@ final class RegexParserRule implements Rule
     private ?RegexAnalysisService $analysis = null;
 
     /**
-     * @param bool                                          $ignoreParseErrors  Ignore parse errors for partial regex strings
-     * @param bool                                          $reportRedos        Report ReDoS vulnerability analysis
-     * @param string                                        $redosThreshold     Minimum ReDoS severity level to report
-     * @param array{digits: bool, word: bool, ranges: bool} $optimizationConfig
+     * @param bool                                                                    $ignoreParseErrors  Ignore parse errors for partial regex strings
+     * @param bool                                                                    $reportRedos        Report ReDoS vulnerability analysis
+     * @param string                                                                  $redosThreshold     Minimum ReDoS severity level to report
+     * @param array{digits: bool, word: bool, ranges: bool, minQuantifierCount?: int} $optimizationConfig
      */
     public function __construct(
         private readonly bool $ignoreParseErrors = true,

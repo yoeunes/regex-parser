@@ -185,6 +185,16 @@ final class LintConfigLoader
                 }
             }
 
+            if (\array_key_exists('minQuantifierCount', $config['optimizations'])) {
+                if (!\is_int($config['optimizations']['minQuantifierCount'])) {
+                    return new LintConfigResult([], [], 'Invalid "optimizations.minQuantifierCount" in '.$path.': expected an integer.');
+                }
+                if ($config['optimizations']['minQuantifierCount'] < 2) {
+                    return new LintConfigResult([], [], 'Invalid "optimizations.minQuantifierCount" in '.$path.': value must be >= 2.');
+                }
+                $optConfig['minQuantifierCount'] = $config['optimizations']['minQuantifierCount'];
+            }
+
             if ([] !== $optConfig) {
                 $normalized['optimizations'] = $optConfig;
             }
