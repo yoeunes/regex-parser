@@ -64,7 +64,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     ];
 
     private const CHAR_CLASS_META = [
-        '\\' => true, ']' => true, '-' => true, '^' => true,
+        '\\' => true, ']' => true, '-' => true, '^' => true, '[' => true,
     ];
 
     // Intelligent delimiter mapping cache
