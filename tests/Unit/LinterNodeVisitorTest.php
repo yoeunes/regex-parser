@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
+use RegexParser\Regex;
 use RegexParser\NodeVisitor\LinterNodeVisitor;
 
 final class LinterNodeVisitorTest extends TestCase
@@ -22,5 +23,29 @@ final class LinterNodeVisitorTest extends TestCase
     {
         $visitor = new LinterNodeVisitor();
         $this->assertInstanceOf(LinterNodeVisitor::class, $visitor);
+    }
+
+    public function test_anchor_end_allows_optional_suffix(): void
+    {
+        $regex = Regex::create();
+        $ast = $regex->parse('/^use [^;{]+;$\n?/m');
+        $visitor = new LinterNodeVisitor();
+
+        $ast->accept($visitor);
+
+        $issueIds = array_map(static fn ($issue): string => $issue->id, $visitor->getIssues());
+        $this->assertNotContains('regex.lint.anchor.impossible.end', $issueIds);
+    }
+
+    public function test_anchor_end_reports_required_suffix(): void
+    {
+        $regex = Regex::create();
+        $ast = $regex->parse('/^foo$bar/');
+        $visitor = new LinterNodeVisitor();
+
+        $ast->accept($visitor);
+
+        $issueIds = array_map(static fn ($issue): string => $issue->id, $visitor->getIssues());
+        $this->assertContains('regex.lint.anchor.impossible.end', $issueIds);
     }
 }
