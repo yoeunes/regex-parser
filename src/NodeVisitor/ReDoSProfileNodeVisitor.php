@@ -24,6 +24,7 @@ use RegexParser\Node\CharLiteralNode;
 use RegexParser\Node\CharTypeNode;
 use RegexParser\Node\CommentNode;
 use RegexParser\Node\ConditionalNode;
+use RegexParser\Node\ControlCharNode;
 use RegexParser\Node\DefineNode;
 use RegexParser\Node\DotNode;
 use RegexParser\Node\GroupNode;
@@ -38,10 +39,12 @@ use RegexParser\Node\QuantifierNode;
 use RegexParser\Node\QuantifierType;
 use RegexParser\Node\RangeNode;
 use RegexParser\Node\RegexNode;
+use RegexParser\Node\ScriptRunNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\Node\SubroutineNode;
 use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
+use RegexParser\Node\VersionConditionNode;
 use RegexParser\ReDoS\CharSetAnalyzer;
 use RegexParser\ReDoS\ReDoSConfidence;
 use RegexParser\ReDoS\ReDoSFinding;
@@ -98,6 +101,7 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
      *     trigger: ?string,
      *     confidence: ?ReDoSConfidence,
      *     falsePositiveRisk: ?string,
+     *     suggestedRewrite: ?string,
      *     findings: array<ReDoSFinding>
      * }
      */
@@ -109,6 +113,7 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
         $trigger = null;
         $confidence = null;
         $falsePositiveRisk = null;
+        $suggestedRewrite = null;
 
         foreach ($this->vulnerabilities as $vuln) {
             if ($this->severityGreaterThan($vuln->severity, $maxSeverity)) {
@@ -117,6 +122,9 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
                 $trigger = $vuln->trigger;
                 $confidence = $vuln->confidence;
                 $falsePositiveRisk = $vuln->falsePositiveRisk;
+                $suggestedRewrite = $vuln->suggestedRewrite;
+            } elseif ($vuln->severity === $maxSeverity && null === $suggestedRewrite) {
+                $suggestedRewrite = $vuln->suggestedRewrite;
             }
             $recommendations[] = null !== $vuln->suggestedRewrite
                 ? $vuln->message.' Hint: '.$vuln->suggestedRewrite
@@ -134,6 +142,7 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
             'trigger' => $trigger,
             'confidence' => $confidence,
             'falsePositiveRisk' => $falsePositiveRisk,
+            'suggestedRewrite' => $suggestedRewrite,
             'findings' => $this->vulnerabilities,
         ];
     }
@@ -199,6 +208,7 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
         // --- Standard ReDoS logic for non-atomic quantifiers ---
 
         $this->totalQuantifierDepth++;
+        [, $qMax] = $this->quantifierBounds($node->quantifier);
         $isUnbounded = $this->isUnbounded($node->quantifier);
 
         // Check if the immediate target is an atomic group (e.g., (? >...)+)
@@ -273,6 +283,24 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
                     'Medium false-positive risk; bounded quantifiers are often acceptable.',
                 );
             }
+        }
+
+        if ($this->shouldFlagEmptyRepeat($node->node, $qMax)) {
+            $repeatEmptySeverity = $this->emptyRepeatSeverity($isUnbounded, $qMax);
+            if ($this->unboundedQuantifierDepth > 1) {
+                $repeatEmptySeverity = ReDoSSeverity::CRITICAL;
+            }
+
+            $severity = $this->maxSeverity($severity, $repeatEmptySeverity);
+            $this->addVulnerability(
+                $repeatEmptySeverity,
+                'Quantifier repeats a subpattern that can match empty. This creates ambiguous backtracking paths and can be catastrophic.',
+                $node,
+                'Ensure the repeated subpattern consumes at least one character, or wrap it in (?>...) / use possessive quantifiers.',
+                ReDoSConfidence::HIGH,
+                'Low false-positive risk; repeated empty matches are a known backtracking hotspot.',
+                'quantifier repeating empty',
+            );
         }
 
         $childPrevious = $this->previousNode;
@@ -369,6 +397,11 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
         $next = $this->nextNode;
         $last = null;
         $total = \count($node->children);
+
+        if (!$this->inAtomicGroup) {
+            $max = $this->maxSeverity($max, $this->analyzeAdjacentQuantifiers($node));
+        }
+
         foreach ($node->children as $index => $child) {
             $this->previousNode = $last;
             $this->nextNode = $index + 1 < $total ? $node->children[$index + 1] : null;
@@ -879,9 +912,10 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
         ?string $suggestedRewrite = null,
         ReDoSConfidence $confidence = ReDoSConfidence::MEDIUM,
         ?string $falsePositiveRisk = null,
+        ?string $triggerOverride = null,
     ): void {
         $pattern = $this->compileNode($triggerNode);
-        $trigger = $this->describeTrigger($triggerNode);
+        $trigger = $triggerOverride ?? $this->describeTrigger($triggerNode);
 
         $this->vulnerabilities[] = new ReDoSFinding(
             $severity,
@@ -1091,6 +1125,121 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
         return [0, null];
     }
 
+    private function nullableStatus(NodeInterface $node): ?bool
+    {
+        if ($node instanceof RegexNode) {
+            return $this->nullableStatus($node->pattern);
+        }
+
+        if ($node instanceof LiteralNode) {
+            return '' === $node->value;
+        }
+
+        if ($node instanceof CharTypeNode
+            || $node instanceof DotNode
+            || $node instanceof CharClassNode
+            || $node instanceof RangeNode
+            || $node instanceof UnicodeNode
+            || $node instanceof UnicodePropNode
+            || $node instanceof CharLiteralNode
+            || $node instanceof PosixClassNode
+            || $node instanceof ControlCharNode
+        ) {
+            return false;
+        }
+
+        if ($node instanceof AnchorNode
+            || $node instanceof AssertionNode
+            || $node instanceof KeepNode
+            || $node instanceof PcreVerbNode
+            || $node instanceof CommentNode
+            || $node instanceof CalloutNode
+            || $node instanceof LimitMatchNode
+            || $node instanceof ScriptRunNode
+            || $node instanceof VersionConditionNode
+            || $node instanceof DefineNode
+        ) {
+            return true;
+        }
+
+        if ($node instanceof BackrefNode || $node instanceof SubroutineNode) {
+            return null;
+        }
+
+        if ($node instanceof GroupNode) {
+            if (\in_array($node->type, [
+                GroupType::T_GROUP_LOOKAHEAD_POSITIVE,
+                GroupType::T_GROUP_LOOKAHEAD_NEGATIVE,
+                GroupType::T_GROUP_LOOKBEHIND_POSITIVE,
+                GroupType::T_GROUP_LOOKBEHIND_NEGATIVE,
+            ], true)) {
+                return true;
+            }
+
+            return $this->nullableStatus($node->child);
+        }
+
+        if ($node instanceof QuantifierNode) {
+            [$min,] = $this->quantifierBounds($node->quantifier);
+            if (0 === $min) {
+                return true;
+            }
+
+            $childNullable = $this->nullableStatus($node->node);
+            if (null === $childNullable) {
+                return null;
+            }
+
+            return $childNullable;
+        }
+
+        if ($node instanceof SequenceNode) {
+            $unknown = false;
+            foreach ($node->children as $child) {
+                $childNullable = $this->nullableStatus($child);
+                if (false === $childNullable) {
+                    return false;
+                }
+                if (null === $childNullable) {
+                    $unknown = true;
+                }
+            }
+
+            return $unknown ? null : true;
+        }
+
+        if ($node instanceof AlternationNode) {
+            $unknown = false;
+            foreach ($node->alternatives as $alt) {
+                $altNullable = $this->nullableStatus($alt);
+                if (true === $altNullable) {
+                    return true;
+                }
+                if (null === $altNullable) {
+                    $unknown = true;
+                }
+            }
+
+            return $unknown ? null : false;
+        }
+
+        if ($node instanceof ConditionalNode) {
+            $yes = $this->nullableStatus($node->yes);
+            $no = $this->nullableStatus($node->no);
+
+            if (true === $yes || true === $no) {
+                return true;
+            }
+            if (false === $yes && false === $no) {
+                return false;
+            }
+
+            return null;
+        }
+
+        return null;
+    }
+
     /**
      * @return array{0:int, 1:int|null}
      */
@@ -1119,6 +1268,129 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
         }
 
         return [0, null];
+    }
+
+    private function shouldFlagEmptyRepeat(NodeInterface $node, ?int $max): bool
+    {
+        if (!$this->quantifierAllowsMultiple($max)) {
+            return false;
+        }
+
+        return true === $this->nullableStatus($node);
+    }
+
+    private function quantifierAllowsMultiple(?int $max): bool
+    {
+        return null === $max || $max > 1;
+    }
+
+    private function emptyRepeatSeverity(bool $isUnbounded, ?int $max): ReDoSSeverity
+    {
+        if ($isUnbounded) {
+            return ReDoSSeverity::HIGH;
+        }
+
+        if (null !== $max && $max <= 3) {
+            return ReDoSSeverity::LOW;
+        }
+
+        return ReDoSSeverity::MEDIUM;
+    }
+
+    private function analyzeAdjacentQuantifiers(SequenceNode $node): ReDoSSeverity
+    {
+        $max = ReDoSSeverity::SAFE;
+        $children = $node->children;
+        $count = \count($children);
+
+        for ($i = 0; $i < $count - 1; $i++) {
+            $left = $children[$i];
+            $right = $children[$i + 1];
+
+            $leftQuantifier = $this->unwrapAdjacentQuantifier($left);
+            $rightQuantifier = $this->unwrapAdjacentQuantifier($right);
+
+            if (null === $leftQuantifier || null === $rightQuantifier) {
+                continue;
+            }
+
+            if ($this->isQuantifierShielded($leftQuantifier) || $this->isQuantifierShielded($rightQuantifier)) {
+                continue;
+            }
+
+            [$leftMin, $leftMax] = $this->quantifierBounds($leftQuantifier->quantifier);
+            [$rightMin, $rightMax] = $this->quantifierBounds($rightQuantifier->quantifier);
+
+            if (!$this->quantifierAllowsMultiple($leftMax) || !$this->quantifierAllowsMultiple($rightMax)) {
+                continue;
+            }
+
+            $leftTail = $this->charSetAnalyzer->lastChars($leftQuantifier->node);
+            $rightHead = $this->charSetAnalyzer->firstChars($rightQuantifier->node);
+            $overlapKnown = !$leftTail->isUnknown() && !$rightHead->isUnknown();
+
+            if ($overlapKnown && !$leftTail->intersects($rightHead)) {
+                continue;
+            }
+
+            $leftUnbounded = $this->isUnbounded($leftQuantifier->quantifier);
+            $rightUnbounded = $this->isUnbounded($rightQuantifier->quantifier);
+            $leftLarge = $this->isLargeBounded($leftQuantifier->quantifier);
+            $rightLarge = $this->isLargeBounded($rightQuantifier->quantifier);
+
+            if (!$overlapKnown && !$leftUnbounded && !$rightUnbounded && !$leftLarge && !$rightLarge) {
+                continue;
+            }
+
+            $severity = ($leftUnbounded || $rightUnbounded) ? ReDoSSeverity::MEDIUM : ReDoSSeverity::LOW;
+            if ($this->unboundedQuantifierDepth > 0) {
+                $severity = $this->maxSeverity($severity, ReDoSSeverity::HIGH);
+            }
+
+            $confidence = $overlapKnown ? ReDoSConfidence::MEDIUM : ReDoSConfidence::LOW;
+            $falsePositiveRisk = $overlapKnown
+                ? 'Medium false-positive risk; overlap is inferred from boundary character sets.'
+                : 'High false-positive risk; overlap could not be determined precisely.';
+
+            $adjacentSpan = new SequenceNode([$left, $right], $left->getStartPosition(), $right->getEndPosition());
+
+            $this->addVulnerability(
+                $severity,
+                'Adjacent quantified tokens with overlapping character sets can cause ambiguous backtracking (e.g., a+a+ or a*a*).',
+                $adjacentSpan,
+                'Merge repetitions, add a delimiter, or make one quantifier possessive to remove ambiguity.',
+                $confidence,
+                $falsePositiveRisk,
+                'adjacent quantifiers',
+            );
+
+            $max = $this->maxSeverity($max, $severity);
+        }
+
+        return $max;
+    }
+
+    private function unwrapAdjacentQuantifier(NodeInterface $node): ?QuantifierNode
+    {
+        if ($node instanceof GroupNode) {
+            if (GroupType::T_GROUP_ATOMIC === $node->type) {
+                return null;
+            }
+
+            return $this->unwrapAdjacentQuantifier($node->child);
+        }
+
+        if ($node instanceof SequenceNode && 1 === \count($node->children)) {
+            return $this->unwrapAdjacentQuantifier($node->children[0]);
+        }
+
+        return $node instanceof QuantifierNode ? $node : null;
+    }
+
+    private function isQuantifierShielded(QuantifierNode $node): bool
+    {
+        return QuantifierType::T_POSSESSIVE === $node->type
+            || $this->hasTrailingBacktrackingControl($node->node);
     }
 
     private function isCapturingGroup(GroupNode $group): bool

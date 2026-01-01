@@ -51,6 +51,7 @@ final class RegexParserRuleOptimizationTest extends RuleTestCase
             [
                 'ReDoS vulnerability detected (MEDIUM): /a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a...',
                 24,
+                "Adjacent quantified tokens with overlapping character sets can cause ambiguous backtracking (e.g., a+a+ or a*a*). Hint: Merge repetitions, add a delimiter, or make one quantifier possessive to remove ambiguity.\n".
                 "Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...). Hint: Consider using possessive quantifiers or atomic groups to limit backtracking.\n\nRead more about possessive quantifiers: https://github.com/yoeunes/regex-parser/blob/main/docs/reference.md#possessive-quantifiers\nRead more about atomic groups: https://github.com/yoeunes/regex-parser/blob/main/docs/reference.md#atomic-groups\nRead more about catastrophic backtracking: https://github.com/yoeunes/regex-parser/blob/main/docs/reference.md#catastrophic-backtracking",
             ],
             [
