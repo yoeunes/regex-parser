@@ -1318,8 +1318,8 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
                 continue;
             }
 
-            [$leftMin, $leftMax] = $this->quantifierBounds($leftQuantifier->quantifier);
-            [$rightMin, $rightMax] = $this->quantifierBounds($rightQuantifier->quantifier);
+            [, $leftMax] = $this->quantifierBounds($leftQuantifier->quantifier);
+            [, $rightMax] = $this->quantifierBounds($rightQuantifier->quantifier);
 
             if (!$this->quantifierAllowsMultiple($leftMax) || !$this->quantifierAllowsMultiple($rightMax)) {
                 continue;
