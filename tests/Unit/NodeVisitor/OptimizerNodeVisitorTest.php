@@ -639,7 +639,7 @@ final class OptimizerNodeVisitorTest extends TestCase
 
     public function test_no_merging_with_negated_classes(): void
     {
-        // Test that [a-z]|[^0-9] remains unchanged (negated class prevents merging)
+        // Test that [a-z]|[^0-9] does not merge, even if [^0-9] becomes \D
         $regex = Regex::create();
         $ast = $regex->parse('/[a-z]|[^0-9]/');
         $optimizer = new OptimizerNodeVisitor();
@@ -648,11 +648,11 @@ final class OptimizerNodeVisitorTest extends TestCase
         $compiler = new CompilerNodeVisitor();
         $result = $optimized->accept($compiler);
 
-        $this->assertSame('/[a-z]|[^0-9]/', $result);
+        $this->assertSame('/[a-z]|\D/', $result);
     }
 
     #[DataProvider('digitOptimizationProvider')]
-    public function test_digit_optimization_with_flags(string $pattern, bool $expectedOptimization, string $description): void
+    public function test_digit_optimization_with_flags(string $pattern, ?string $expectedCharType, string $description): void
     {
         $regex = Regex::create();
         $ast = $regex->parse($pattern);
@@ -661,14 +661,14 @@ final class OptimizerNodeVisitorTest extends TestCase
         /** @var RegexNode $optimized */
         $optimized = $ast->accept($optimizer);
 
-        if ($expectedOptimization) {
+        if (null !== $expectedCharType) {
             // For quantified patterns like [0-9]+, the pattern is QuantifierNode with CharTypeNode inside
             if ($optimized->pattern instanceof QuantifierNode) {
                 $this->assertInstanceOf(CharTypeNode::class, $optimized->pattern->node, $description);
-                $this->assertSame('d', $optimized->pattern->node->value, $description);
+                $this->assertSame($expectedCharType, $optimized->pattern->node->value, $description);
             } else {
                 $this->assertInstanceOf(CharTypeNode::class, $optimized->pattern, $description);
-                $this->assertSame('d', $optimized->pattern->value, $description);
+                $this->assertSame($expectedCharType, $optimized->pattern->value, $description);
             }
         } else {
             // For non-optimized cases, check the inner pattern type
@@ -682,12 +682,122 @@ final class OptimizerNodeVisitorTest extends TestCase
 
     public static function digitOptimizationProvider(): \Iterator
     {
-        yield 'no u flag - should optimize' => ['/[0-9]/', true, '[0-9] without u flag should optimize to \d'];
-        yield 'with u flag - should not optimize' => ['/[0-9]/u', false, '[0-9] with u flag should remain as CharClass'];
-        yield 'negated class - should not optimize' => ['/[^0-9]/', false, '[^0-9] negated class should not optimize'];
-        yield 'multiple parts - should not optimize' => ['/[0-9a]/', false, '[0-9a] with multiple parts should not optimize'];
-        yield 'quantified - should optimize' => ['/[0-9]+/', true, '[0-9]+ should optimize to \d+'];
-        yield 'quantified with u flag - should not optimize' => ['/[0-9]+/u', false, '[0-9]+ with u flag should remain as CharClass'];
+        yield 'no u flag - should optimize' => ['/[0-9]/', 'd', '[0-9] without u flag should optimize to \d'];
+        yield 'with u flag - should not optimize' => ['/[0-9]/u', null, '[0-9] with u flag should remain as CharClass'];
+        yield 'negated class - should optimize' => ['/[^0-9]/', 'D', '[^0-9] negated class should optimize to \D'];
+        yield 'multiple parts - should not optimize' => ['/[0-9a]/', null, '[0-9a] with multiple parts should not optimize'];
+        yield 'quantified - should optimize' => ['/[0-9]+/', 'd', '[0-9]+ should optimize to \d+'];
+        yield 'quantified with u flag - should not optimize' => ['/[0-9]+/u', null, '[0-9]+ with u flag should remain as CharClass'];
+    }
+
+    public function test_negated_word_class_optimizes_to_uppercase_w(): void
+    {
+        $regex = Regex::create();
+        $ast = $regex->parse('/[^a-zA-Z0-9_]+/');
+        $optimizer = new OptimizerNodeVisitor();
+
+        $optimized = $ast->accept($optimizer);
+        $compiler = new CompilerNodeVisitor();
+        $result = $optimized->accept($compiler);
+
+        $this->assertSame('/\W+/', $result);
+    }
+
+    public function test_negated_word_class_not_optimized_in_unicode_mode(): void
+    {
+        $regex = Regex::create();
+        $ast = $regex->parse('/[^a-zA-Z0-9_]+/u');
+        $optimizer = new OptimizerNodeVisitor();
+
+        $optimized = $ast->accept($optimizer);
+        $compiler = new CompilerNodeVisitor();
+        $result = $optimized->accept($compiler);
+
+        $this->assertSame('/[^a-zA-Z0-9_]+/u', $result);
+    }
+
+    public function test_negated_digit_class_not_optimized_in_unicode_mode(): void
+    {
+        $regex = Regex::create();
+        $ast = $regex->parse('/[^0-9]+/u');
+        $optimizer = new OptimizerNodeVisitor();
+
+        $optimized = $ast->accept($optimizer);
+        $compiler = new CompilerNodeVisitor();
+        $result = $optimized->accept($compiler);
+
+        $this->assertSame('/[^0-9]+/u', $result);
+    }
+
+    public function test_multiline_flag_removed_when_unused(): void
+    {
+        $regex = Regex::create();
+        $ast = $regex->parse('/abc/m');
+        $optimizer = new OptimizerNodeVisitor();
+
+        $optimized = $ast->accept($optimizer);
+        $compiler = new CompilerNodeVisitor();
+        $result = $optimized->accept($compiler);
+
+        $this->assertSame('/abc/', $result);
+    }
+
+    public function test_multiline_flag_preserved_when_anchors_present(): void
+    {
+        $regex = Regex::create();
+        $ast = $regex->parse('/^abc$/m');
+        $optimizer = new OptimizerNodeVisitor();
+
+        $optimized = $ast->accept($optimizer);
+        $compiler = new CompilerNodeVisitor();
+        $result = $optimized->accept($compiler);
+
+        $this->assertSame('/^abc$/m', $result);
+    }
+
+    public function test_auto_possessify_skips_nullable_subpattern(): void
+    {
+        $optimizer = new OptimizerNodeVisitor(autoPossessify: true);
+        $regex = Regex::create();
+        $ast = $regex->parse('/(?:a?)+b/');
+
+        $optimized = $ast->pattern->accept($optimizer);
+        $compiler = new CompilerNodeVisitor();
+        $optimizedPattern = $optimized->accept($compiler);
+
+        $this->assertStringContainsString('(?:a?)+b', $optimizedPattern);
+        $this->assertStringNotContainsString('++', $optimizedPattern);
+    }
+
+    public function test_auto_possessify_skips_capture_sensitive_group(): void
+    {
+        $optimizer = new OptimizerNodeVisitor(autoPossessify: true);
+        $regex = Regex::create();
+        $ast = $regex->parse('/(a+)+b/');
+
+        $optimized = $ast->pattern->accept($optimizer);
+        $compiler = new CompilerNodeVisitor();
+        $optimizedPattern = $optimized->accept($compiler);
+
+        $this->assertStringContainsString('(a+)+b', $optimizedPattern);
+        $this->assertStringNotContainsString('++', $optimizedPattern);
+    }
+
+    public function test_auto_possessify_applies_to_star_and_range(): void
+    {
+        $optimizer = new OptimizerNodeVisitor(autoPossessify: true);
+        $regex = Regex::create();
+
+        $ast = $regex->parse('/a*b/');
+        $optimized = $ast->pattern->accept($optimizer);
+        $compiler = new CompilerNodeVisitor();
+        $optimizedPattern = $optimized->accept($compiler);
+        $this->assertStringContainsString('a*+b', $optimizedPattern);
+
+        $ast = $regex->parse('/a{2,}b/');
+        $optimized = $ast->pattern->accept($optimizer);
+        $optimizedPattern = $optimized->accept($compiler);
+        $this->assertStringContainsString('a{2,}+', $optimizedPattern);
     }
 
     public function test_suffix_factoring(): void

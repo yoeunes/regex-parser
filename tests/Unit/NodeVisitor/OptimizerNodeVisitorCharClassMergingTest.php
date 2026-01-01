@@ -57,14 +57,25 @@ final class OptimizerNodeVisitorCharClassMergingTest extends TestCase
 
     public function test_no_merging_with_negated_classes(): void
     {
-        // Test that [a-z]|[^0-9] remains unchanged (negated class prevents merging)
+        // Test that [a-z]|[^0-9] does not merge, even if [^0-9] is optimized to \D
         $ast = $this->regex->parse('/[a-z]|[^0-9]/');
 
         $optimized = $ast->accept($this->optimizer);
         $compiler = new CompilerNodeVisitor();
         $result = $optimized->accept($compiler);
 
-        $this->assertSame('/[a-z]|[^0-9]/', $result);
+        $this->assertSame('/[a-z]|\D/', $result);
+    }
+
+    public function test_no_char_type_merging_in_unicode_mode(): void
+    {
+        $ast = $this->regex->parse('/\d|[0-9]/u');
+
+        $optimized = $ast->accept($this->optimizer);
+        $compiler = new CompilerNodeVisitor();
+        $result = $optimized->accept($compiler);
+
+        $this->assertSame('/\d|[0-9]/u', $result);
     }
 
     public function test_no_merging_with_non_adjacent_classes(): void

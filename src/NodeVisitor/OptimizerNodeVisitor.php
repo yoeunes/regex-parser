@@ -41,6 +41,7 @@ use RegexParser\Node\RangeNode;
 use RegexParser\Node\RegexNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\Node\SubroutineNode;
+use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
 use RegexParser\ReDoS\CharSetAnalyzer;
 
@@ -56,6 +57,8 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
     private string $flags = '';
 
     private CharSetAnalyzer $charSetAnalyzer;
+
+    private bool $unicodeMode = false;
 
     private bool $isInsideQuantifier = false;
 
@@ -87,6 +90,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
     public function visitRegex(RegexNode $node): NodeInterface
     {
         $this->flags = $node->flags;
+        $this->unicodeMode = str_contains($this->flags, 'u');
         $this->charSetAnalyzer = new CharSetAnalyzer($this->flags);
         $optimizedPattern = $node->pattern->accept($this);
 
@@ -249,14 +253,17 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
             }
         }
 
-        // Auto-possessivization (only for + to be conservative)
+        // Auto-possessivization (opt-in, conservative by default)
         // This optimization is opt-in because it can change semantics with backreferences
         if ($this->autoPossessify) {
             for ($i = 0; $i < \count($optimizedChildren); $i++) {
                 $current = $optimizedChildren[$i];
                 $suffix = array_slice($optimizedChildren, $i + 1);
 
-                if ($current instanceof QuantifierNode && QuantifierType::T_GREEDY === $current->type && '+' === $current->quantifier && !empty($suffix)) {
+                if ($current instanceof QuantifierNode && QuantifierType::T_GREEDY === $current->type && $this->isPossessifyCandidate($current) && !empty($suffix)) {
+                    if ($this->isCaptureSensitive($current->node) || $this->canMatchEmpty($current->node)) {
+                        continue;
+                    }
                     // Compute disjointness against the FIRST-set of the suffix
                     $suffixNode = 1 === \count($suffix) ? $suffix[0] : new SequenceNode($suffix, $current->startPosition, $current->endPosition);
 
@@ -354,18 +361,18 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
 
         // We must check !str_contains($this->flags, 'u') because in Unicode mode,
         // \d matches more than just [0-9] (e.g. Arabic digits), so they are not equivalent.
-        if ($this->optimizeDigits && !str_contains($this->flags, 'u') && !$node->isNegated && 1 === \count($parts)) {
+        if ($this->optimizeDigits && !$this->unicodeMode && 1 === \count($parts)) {
             $part = $parts[0];
             if ($part instanceof RangeNode && $part->start instanceof LiteralNode && $part->end instanceof LiteralNode) {
                 if ('0' === $part->start->value && '9' === $part->end->value) {
-                    return new CharTypeNode('d', $node->startPosition, $node->endPosition);
+                    return new CharTypeNode($node->isNegated ? 'D' : 'd', $node->startPosition, $node->endPosition);
                 }
             }
         }
 
-        if ($this->optimizeWord && !str_contains($this->flags, 'u') && !$node->isNegated && 4 === \count($parts)) {
+        if ($this->optimizeWord && !$this->unicodeMode && 4 === \count($parts)) {
             if ($this->isFullWordClass($parts)) {
-                return new CharTypeNode('w', $node->startPosition, $node->endPosition);
+                return new CharTypeNode($node->isNegated ? 'W' : 'w', $node->startPosition, $node->endPosition);
             }
         }
 
@@ -633,6 +640,11 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
             $flags = str_replace('s', '', $flags);
         }
 
+        // Remove 'm' flag if there are no ^ or $ anchors
+        if (str_contains($flags, 'm') && !$this->patternContainsMultilineAnchors($pattern)) {
+            $flags = str_replace('m', '', $flags);
+        }
+
         return $flags;
     }
 
@@ -677,6 +689,193 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
             return $this->patternContainsDots($node->condition)
                 || $this->patternContainsDots($node->yes)
                 || $this->patternContainsDots($node->no);
+        }
+
+        return false;
+    }
+
+    /**
+     * Checks if the pattern contains ^ or $ anchors that depend on multiline mode.
+     */
+    private function patternContainsMultilineAnchors(NodeInterface $node): bool
+    {
+        if ($node instanceof AnchorNode) {
+            return '^' === $node->value || '$' === $node->value;
+        }
+
+        if ($node instanceof SequenceNode) {
+            foreach ($node->children as $child) {
+                if ($this->patternContainsMultilineAnchors($child)) {
+                    return true;
+                }
+            }
+        }
+
+        if ($node instanceof AlternationNode) {
+            foreach ($node->alternatives as $alt) {
+                if ($this->patternContainsMultilineAnchors($alt)) {
+                    return true;
+                }
+            }
+        }
+
+        if ($node instanceof GroupNode) {
+            return $this->patternContainsMultilineAnchors($node->child);
+        }
+
+        if ($node instanceof QuantifierNode) {
+            return $this->patternContainsMultilineAnchors($node->node);
+        }
+
+        if ($node instanceof CharClassNode) {
+            return $this->patternContainsMultilineAnchors($node->expression);
+        }
+
+        if ($node instanceof ConditionalNode) {
+            return $this->patternContainsMultilineAnchors($node->condition)
+                || $this->patternContainsMultilineAnchors($node->yes)
+                || $this->patternContainsMultilineAnchors($node->no);
+        }
+
+        if ($node instanceof DefineNode) {
+            return $this->patternContainsMultilineAnchors($node->content);
+        }
+
+        return false;
+    }
+
+    private function isPossessifyCandidate(QuantifierNode $node): bool
+    {
+        if (!\in_array($node->quantifier, ['+', '*'], true)) {
+            return 1 === preg_match('/^\{\d+,\}$/', $node->quantifier);
+        }
+
+        return true;
+    }
+
+    private function canMatchEmpty(NodeInterface $node): bool
+    {
+        $nullable = $this->nullableStatus($node);
+
+        return null === $nullable ? true : $nullable;
+    }
+
+    /**
+     * @return bool|null True if nullable, false if consumes, null if unknown.
+     */
+    private function nullableStatus(NodeInterface $node): ?bool
+    {
+        if ($node instanceof LiteralNode) {
+            return '' === $node->value;
+        }
+
+        if ($node instanceof CharTypeNode
+            || $node instanceof DotNode
+            || $node instanceof CharClassNode
+            || $node instanceof RangeNode
+            || $node instanceof UnicodeNode
+            || $node instanceof UnicodePropNode
+            || $node instanceof CharLiteralNode
+            || $node instanceof PosixClassNode
+        ) {
+            return false;
+        }
+
+        if ($node instanceof AnchorNode
+            || $node instanceof AssertionNode
+            || $node instanceof KeepNode
+            || $node instanceof CommentNode
+            || $node instanceof CalloutNode
+            || $node instanceof LimitMatchNode
+            || $node instanceof PcreVerbNode
+        ) {
+            return true;
+        }
+
+        if ($node instanceof BackrefNode || $node instanceof SubroutineNode) {
+            return null;
+        }
+
+        if ($node instanceof GroupNode) {
+            if (\in_array($node->type, [
+                GroupType::T_GROUP_LOOKAHEAD_POSITIVE,
+                GroupType::T_GROUP_LOOKAHEAD_NEGATIVE,
+                GroupType::T_GROUP_LOOKBEHIND_POSITIVE,
+                GroupType::T_GROUP_LOOKBEHIND_NEGATIVE,
+            ], true)) {
+                return true;
+            }
+
+            return $this->nullableStatus($node->child);
+        }
+
+        if ($node instanceof QuantifierNode) {
+            if ($this->quantifierAllowsZero($node->quantifier)) {
+                return true;
+            }
+
+            return $this->nullableStatus($node->node);
+        }
+
+        if ($node instanceof SequenceNode) {
+            $unknown = false;
+            foreach ($node->children as $child) {
+                $childNullable = $this->nullableStatus($child);
+                if (false === $childNullable) {
+                    return false;
+                }
+                if (null === $childNullable) {
+                    $unknown = true;
+                }
+            }
+
+            return $unknown ? null : true;
+        }
+
+        if ($node instanceof AlternationNode) {
+            $unknown = false;
+            foreach ($node->alternatives as $alt) {
+                $altNullable = $this->nullableStatus($alt);
+                if (true === $altNullable) {
+                    return true;
+                }
+                if (null === $altNullable) {
+                    $unknown = true;
+                }
+            }
+
+            return $unknown ? null : false;
+        }
+
+        if ($node instanceof ConditionalNode) {
+            $yes = $this->nullableStatus($node->yes);
+            $no = $this->nullableStatus($node->no);
+
+            if (true === $yes || true === $no) {
+                return true;
+            }
+            if (false === $yes && false === $no) {
+                return false;
+            }
+
+            return null;
+        }
+
+        if ($node instanceof DefineNode) {
+            return $this->nullableStatus($node->content);
+        }
+
+        return null;
+    }
+
+    private function quantifierAllowsZero(string $quantifier): bool
+    {
+        if ('*' === $quantifier || '?' === $quantifier) {
+            return true;
+        }
+
+        if (preg_match('/^\{0,(?:\d*)\}$/', $quantifier)) {
+            return true;
         }
 
         return false;
@@ -1485,7 +1684,15 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
     private function canConvertCharTypeToCharClass(CharTypeNode $node): bool
     {
         // For now, only handle \d (digits) which can be converted to [0-9]
-        return 'd' === $node->value;
+        if ('d' !== $node->value) {
+            return false;
+        }
+
+        if ($this->unicodeMode) {
+            return false;
+        }
+
+        return $this->optimizeDigits;
     }
 
     /**
