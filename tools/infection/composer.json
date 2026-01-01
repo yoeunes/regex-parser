@@ -1,6 +1,6 @@
 {
     "require-dev": {
-        "infection/infection": "^0.29 || ^0.30 || ^1.0"
+        "infection/infection": "^0.31.1"
     },
     "config": {
         "optimize-autoloader": true,
