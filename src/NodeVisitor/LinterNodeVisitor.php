@@ -760,7 +760,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
                                 "Start anchor '%s' appears after consuming characters, making it impossible to match.",
                                 $anchorLabel,
                             ),
-                            $child->startPosition,
+                            $child->getStartPosition(),
                         );
                     }
                 }
@@ -776,7 +776,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
                             "End anchor '%s' appears before consuming characters, making it impossible to match.",
                             $anchorLabel,
                         ),
-                        $child->startPosition,
+                        $child->getStartPosition(),
                     );
                 }
             }

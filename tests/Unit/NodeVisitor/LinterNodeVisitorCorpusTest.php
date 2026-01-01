@@ -23,6 +23,9 @@ final class LinterNodeVisitorCorpusTest extends TestCase
 {
     private const ARROW = "\xE2\x86\x92";
 
+    /**
+     * @param array<int, string> $expectedIssueIds
+     */
     #[DataProvider('provideCorpusCases')]
     public function test_corpus_warnings_are_reported(string $pattern, array $expectedIssueIds): void
     {
@@ -212,9 +215,39 @@ final class LinterNodeVisitorCorpusTest extends TestCase
             return false;
         }
 
-        $body = preg_replace('/\\[(?:\\\\.|[^\\]]++)*\\]/', '', $body) ?? $body;
+        $escaped = false;
+        $inCharClass = false;
+        $length = \strlen($body);
 
-        return preg_match('/(?<!\\\\)[\\^$]/', $body) > 0;
+        for ($i = 0; $i < $length; $i++) {
+            $char = $body[$i];
+
+            if ($escaped) {
+                $escaped = false;
+                continue;
+            }
+
+            if ('\\' === $char) {
+                $escaped = true;
+                continue;
+            }
+
+            if ('[' === $char && !$inCharClass) {
+                $inCharClass = true;
+                continue;
+            }
+
+            if (']' === $char && $inCharClass) {
+                $inCharClass = false;
+                continue;
+            }
+
+            if (!$inCharClass && ('^' === $char || '$' === $char)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static function mapWarningToIssueId(string $message): string
