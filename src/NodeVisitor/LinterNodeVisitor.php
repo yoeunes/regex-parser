@@ -637,7 +637,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
                 if ($count > 1) {
                     $this->addIssue(
                         'regex.lint.alternation.duplicate',
-                        \sprintf('Duplicate alternation branch "%s".', $literal),
+                        \sprintf('Duplicate alternation branch "%s".', addcslashes($literal, "\0..\37\177..\377")),
                         $node->startPosition,
                     );
 
@@ -655,16 +655,16 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
                         continue;
                     }
 
-                    if (str_starts_with($a, $b) || str_starts_with($b, $a)) {
-                        $this->addIssue(
-                            'regex.lint.alternation.overlap',
-                            \sprintf('Alternation branches "%s" and "%s" overlap.', $a, $b),
-                            $node->startPosition,
-                            'Consider using atomic groups (?>...) to prevent backtracking. Do not reorder overlapping alternatives as it changes match semantics.',
-                        );
+                     if (str_starts_with($a, $b) || str_starts_with($b, $a)) {
+                         $this->addIssue(
+                             'regex.lint.alternation.overlap',
+                             \sprintf('Alternation branches "%s" and "%s" overlap.', addcslashes($a, "\0..\37\177..\377"), addcslashes($b, "\0..\37\177..\377")),
+                             $node->startPosition,
+                             'Consider using atomic groups (?>...) to prevent backtracking. Do not reorder overlapping alternatives as it changes match semantics.',
+                         );
 
-                        return;
-                    }
+                         return;
+                     }
                 }
             }
         }
