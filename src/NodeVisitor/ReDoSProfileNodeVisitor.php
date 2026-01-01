@@ -1390,7 +1390,8 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
     private function isQuantifierShielded(QuantifierNode $node): bool
     {
         return QuantifierType::T_POSSESSIVE === $node->type
-            || $this->hasTrailingBacktrackingControl($node->node);
+            || $this->hasTrailingBacktrackingControl($node->node)
+            || ($node->node instanceof GroupNode && GroupType::T_GROUP_ATOMIC === $node->node->type);
     }
 
     private function isCapturingGroup(GroupNode $group): bool
