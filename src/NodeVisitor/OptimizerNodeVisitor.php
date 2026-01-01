@@ -874,7 +874,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
             return true;
         }
 
-        if (preg_match('/^\{0,(?:\d*)\}$/', $quantifier)) {
+        if (preg_match('/^\{(?:0)?(?:,\d*)\}$/', $quantifier)) {
             return true;
         }
 
