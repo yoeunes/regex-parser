@@ -713,7 +713,7 @@ final class OptimizerNodeVisitorTest extends TestCase
         $compiler = new CompilerNodeVisitor();
         $result = $optimized->accept($compiler);
 
-        $this->assertSame('/[^a-zA-Z0-9_]+/u', $result);
+        $this->assertSame('/[^0-9A-Z_a-z]+/u', $result);
     }
 
     public function test_negated_digit_class_not_optimized_in_unicode_mode(): void

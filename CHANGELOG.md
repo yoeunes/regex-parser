@@ -11,11 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ReDoS analysis now detects empty-match repetitions and ambiguous adjacent quantifiers.
 - Suggested rewrites are surfaced for the highest-severity ReDoS finding.
 
+### Changed
+- Optimizer now respects Unicode mode when merging digit classes and cleans up unused multiline flags.
+- Optimizer can reduce negated digit/word classes to `\D`/`\W` and applies safer auto-possessify rules.
+
 ### Fixed
 - Lint output now properly escapes special characters in alternation branch literals to prevent display issues.
 
 ### Tests
 - Expanded the ReDoS test suite with real-world patterns and mitigation cases.
+- Added optimizer coverage for Unicode handling, negated classes, auto-possessify safety, and flag cleanup.
 
 ## [1.0.2] - 2025-12-31
 
