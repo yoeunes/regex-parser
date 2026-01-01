@@ -75,8 +75,8 @@ use RegexParser\ReDoS\ReDoSSeverity;
  */
 final readonly class Regex
 {
-    public const VERSION = '1.0.2';
-    public const VERSION_ID = 10002;
+    public const VERSION = '1.0.3';
+    public const VERSION_ID = 10003;
 
     /**
      * Cache version for AST serialization.
