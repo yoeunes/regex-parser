@@ -34,3 +34,4 @@
 /corpus/*
 !/corpus/
 !/corpus/.gitkeep
+!/corpus/corpus.log

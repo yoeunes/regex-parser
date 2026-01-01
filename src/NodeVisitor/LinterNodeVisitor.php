@@ -83,9 +83,16 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
 
     private CharSetAnalyzer $charSetAnalyzer;
 
+    private bool $trackCaseSensitivity = false;
+
+    private bool $unicodeMode = false;
+
+    private bool $intlAvailable = false;
+
     public function __construct()
     {
         $this->charSetAnalyzer = new CharSetAnalyzer();
+        $this->intlAvailable = class_exists(\IntlChar::class);
     }
 
     /**
@@ -122,6 +129,9 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     {
         $this->flags = $node->flags;
         $this->delimiter = $node->delimiter;
+        $this->unicodeMode = str_contains($this->flags, 'u');
+        $this->trackCaseSensitivity = str_contains($this->flags, 'i');
+        $this->intlAvailable = class_exists(\IntlChar::class);
         $this->charSetAnalyzer = new CharSetAnalyzer($this->flags);
         $this->issues = [];
         $this->hasCaseSensitiveChars = false;
@@ -151,7 +161,10 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitLiteral(LiteralNode $node): NodeInterface
     {
-        if (preg_match('/[a-zA-Z]/', $node->value) > 0) {
+        if ($this->trackCaseSensitivity
+            && !$this->hasCaseSensitiveChars
+            && $this->stringHasCaseSensitiveLetters($node->value)
+        ) {
             $this->hasCaseSensitiveChars = true;
         }
 
@@ -161,16 +174,20 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitCharClass(CharClassNode $node): NodeInterface
     {
-        // Check if char class contains letters
-        $expression = $node->expression;
-        if ($expression instanceof AlternationNode) {
-            foreach ($expression->alternatives as $alt) {
-                if ($this->charClassPartHasLetters($alt)) {
-                    $this->hasCaseSensitiveChars = true;
+        if ($this->trackCaseSensitivity && !$this->hasCaseSensitiveChars) {
+            // Check if char class contains case-sensitive letters
+            $expression = $node->expression;
+            if ($expression instanceof AlternationNode) {
+                foreach ($expression->alternatives as $alt) {
+                    if ($this->charClassPartHasLetters($alt)) {
+                        $this->hasCaseSensitiveChars = true;
+
+                        break;
+                    }
                 }
+            } elseif ($this->charClassPartHasLetters($expression)) {
+                $this->hasCaseSensitiveChars = true;
             }
-        } elseif ($this->charClassPartHasLetters($expression)) {
-            $this->hasCaseSensitiveChars = true;
         }
 
         $this->lintRedundantCharClass($node);
@@ -249,8 +266,16 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         $ref = $node->ref;
 
         // Check numeric backreferences
-        if (preg_match('/^\\\\(\d+)$/', $ref, $matches)) {
+        if (preg_match('/^\\\\g\{?[+-]\d+\\}?$/', $ref) > 0) {
+            return $node;
+        }
+
+        if (preg_match('/^\\\\(\d+)$/', $ref, $matches) || preg_match('/^\\\\g\{?(\d+)\\}?$/', $ref, $matches)) {
             $num = (int) $matches[1];
+            if (0 === $num) {
+                return $node;
+            }
+
             if ($num > $this->maxCapturingGroup) {
                 $this->addIssue(
                     'regex.lint.backref.undefined',
@@ -317,12 +342,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitUnicode(UnicodeNode $node): NodeInterface
     {
-        $code = null;
-        if (preg_match('/^\\\\x([0-9a-fA-F]{2})$/', $node->code, $m)) {
-            $code = (int) hexdec($m[1]);
-        } elseif (preg_match('/^\\\\u\{([0-9a-fA-F]++)\}$/', $node->code, $m)) {
-            $code = (int) hexdec($m[1]);
-        }
+        $code = $this->parseUnicodeEscapeCodePoint($node->code);
 
         if (null !== $code && $code > 0x10FFFF) {
             $this->addIssue(
@@ -330,6 +350,14 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
                 \sprintf('Suspicious Unicode escape "%s" (out of range).', $node->code),
                 $node->startPosition,
             );
+        }
+
+        if ($this->trackCaseSensitivity
+            && !$this->hasCaseSensitiveChars
+            && null !== $code
+            && $this->codePointHasCase($code)
+        ) {
+            $this->hasCaseSensitiveChars = true;
         }
 
         return $node;
@@ -366,6 +394,26 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
                     );
                 }
             }
+        }
+
+        if ($this->trackCaseSensitivity
+            && !$this->hasCaseSensitiveChars
+            && $this->charLiteralHasCaseSensitiveLetter($node)
+        ) {
+            $this->hasCaseSensitiveChars = true;
+        }
+
+        return $node;
+    }
+
+    #[\Override]
+    public function visitUnicodeProp(UnicodePropNode $node): NodeInterface
+    {
+        if ($this->trackCaseSensitivity
+            && !$this->hasCaseSensitiveChars
+            && $this->unicodePropIsCaseSensitive($node->prop)
+        ) {
+            $this->hasCaseSensitiveChars = true;
         }
 
         return $node;
@@ -429,23 +477,264 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
 
     private function charClassPartHasLetters(NodeInterface $node): bool
     {
-        if ($node instanceof LiteralNode && preg_match('/[a-zA-Z]/', $node->value) > 0) {
-            return true;
+        if ($node instanceof LiteralNode) {
+            return $this->stringHasCaseSensitiveLetters($node->value);
         }
+
+        if ($node instanceof CharLiteralNode) {
+            return $this->charLiteralHasCaseSensitiveLetter($node);
+        }
+
+        if ($node instanceof UnicodeNode) {
+            $codePoint = $this->parseUnicodeEscapeCodePoint($node->code);
+
+            return null !== $codePoint && $this->codePointHasCase($codePoint);
+        }
+
+        if ($node instanceof UnicodePropNode) {
+            return $this->unicodePropIsCaseSensitive($node->prop);
+        }
+
+        if ($node instanceof PosixClassNode) {
+            return $this->posixClassHasCaseSensitiveLetters($node->class);
+        }
+
         if ($node instanceof RangeNode) {
             return $this->rangeHasLetters($node);
         }
 
-        // Other types like CharTypeNode might have letters, but for simplicity, assume not
+        // Other types like CharTypeNode are case-insensitive by design.
         return false;
     }
 
     private function rangeHasLetters(RangeNode $node): bool
     {
-        $start = $node->start instanceof LiteralNode ? $node->start->value : '';
-        $end = $node->end instanceof LiteralNode ? $node->end->value : '';
+        $start = $this->codePointFromNode($node->start);
+        $end = $this->codePointFromNode($node->end);
 
-        return preg_match('/[a-zA-Z]/', $start.$end) > 0;
+        if (null === $start || null === $end) {
+            return false;
+        }
+
+        $min = min($start, $end);
+        $max = max($start, $end);
+
+        if ($this->rangeHasAsciiLetters($min, $max)) {
+            return true;
+        }
+
+        if (!$this->unicodeMode || !$this->intlAvailable) {
+            return false;
+        }
+
+        return $this->codePointHasCase($start) || $this->codePointHasCase($end);
+    }
+
+    private function rangeHasAsciiLetters(int $min, int $max): bool
+    {
+        return ($min <= \ord('Z') && $max >= \ord('A'))
+            || ($min <= \ord('z') && $max >= \ord('a'));
+    }
+
+    private function codePointFromNode(NodeInterface $node): ?int
+    {
+        if ($node instanceof LiteralNode) {
+            return $this->codePointFromLiteral($node->value);
+        }
+
+        if ($node instanceof CharLiteralNode) {
+            return $node->codePoint >= 0 ? $node->codePoint : null;
+        }
+
+        if ($node instanceof UnicodeNode) {
+            return $this->parseUnicodeEscapeCodePoint($node->code);
+        }
+
+        return null;
+    }
+
+    private function codePointFromLiteral(string $value): ?int
+    {
+        if ('' === $value) {
+            return null;
+        }
+
+        if ($this->unicodeMode && $this->intlAvailable) {
+            $chars = preg_split('//u', $value, -1, \PREG_SPLIT_NO_EMPTY);
+            if (false === $chars || 1 !== \count($chars)) {
+                return null;
+            }
+
+            return \IntlChar::ord($chars[0]);
+        }
+
+        if (1 !== \strlen($value)) {
+            return null;
+        }
+
+        return \ord($value[0]);
+    }
+
+    private function parseUnicodeEscapeCodePoint(string $escape): ?int
+    {
+        if (preg_match('/^\\\\x([0-9a-fA-F]{2})$/', $escape, $matches)) {
+            return (int) hexdec($matches[1]);
+        }
+
+        if (preg_match('/^\\\\u([0-9a-fA-F]{4})$/', $escape, $matches)) {
+            return (int) hexdec($matches[1]);
+        }
+
+        if (preg_match('/^\\\\[xu]\\{([0-9a-fA-F]++)\\}$/', $escape, $matches)) {
+            return (int) hexdec($matches[1]);
+        }
+
+        return null;
+    }
+
+    private function stringHasCaseSensitiveLetters(string $value): bool
+    {
+        if ('' === $value) {
+            return false;
+        }
+
+        if (preg_match('/[A-Za-z]/', $value) > 0) {
+            return true;
+        }
+
+        if (!$this->unicodeMode || !$this->intlAvailable) {
+            return false;
+        }
+
+        $chars = preg_split('//u', $value, -1, \PREG_SPLIT_NO_EMPTY);
+        if (false === $chars) {
+            return false;
+        }
+
+        foreach ($chars as $char) {
+            $codePoint = \IntlChar::ord($char);
+            if ($this->codePointHasCase($codePoint)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function charLiteralHasCaseSensitiveLetter(CharLiteralNode $node): bool
+    {
+        $codePoint = $node->codePoint;
+        if ($codePoint < 0) {
+            $codePoint = $this->parseUnicodeEscapeCodePoint($node->originalRepresentation) ?? $codePoint;
+        }
+
+        if ($codePoint >= 0) {
+            return $this->codePointHasCase($codePoint);
+        }
+
+        if (1 === \strlen($node->originalRepresentation)) {
+            return $this->stringHasCaseSensitiveLetters($node->originalRepresentation);
+        }
+
+        return false;
+    }
+
+    private function codePointHasCase(int $codePoint): bool
+    {
+        if ($codePoint < 0 || $codePoint > 0x10FFFF) {
+            return false;
+        }
+
+        if (!$this->intlAvailable) {
+            return ($codePoint >= \ord('A') && $codePoint <= \ord('Z'))
+                || ($codePoint >= \ord('a') && $codePoint <= \ord('z'));
+        }
+
+        if (!\IntlChar::isalpha($codePoint)) {
+            return false;
+        }
+
+        return \IntlChar::toupper($codePoint) !== $codePoint
+            || \IntlChar::tolower($codePoint) !== $codePoint;
+    }
+
+    private function unicodePropIsCaseSensitive(string $prop): bool
+    {
+        if ('' === $prop) {
+            return false;
+        }
+
+        $normalized = $this->normalizeUnicodePropName($prop);
+
+        return \in_array($normalized, [
+            'lu',
+            'll',
+            'lt',
+            'lc',
+            'l&',
+            'upper',
+            'lower',
+            'title',
+            'uppercase_letter',
+            'lowercase_letter',
+            'titlecase_letter',
+            'cased_letter',
+        ], true);
+    }
+
+    private function normalizeUnicodePropName(string $prop): string
+    {
+        $normalized = ltrim($prop, '^');
+        $normalized = trim($normalized, '{}');
+        $normalized = str_replace(['-', ' '], '_', $normalized);
+
+        return strtolower($normalized);
+    }
+
+    private function posixClassHasCaseSensitiveLetters(string $class): bool
+    {
+        $normalized = strtolower(ltrim($class, '^'));
+
+        return \in_array($normalized, ['upper', 'lower'], true);
+    }
+
+    private function isStartAnchorNode(NodeInterface $node): bool
+    {
+        if ($node instanceof AnchorNode) {
+            return '^' === $node->value;
+        }
+
+        if ($node instanceof AssertionNode) {
+            return \in_array($node->value, ['A', 'G'], true);
+        }
+
+        return false;
+    }
+
+    private function isEndAnchorNode(NodeInterface $node): bool
+    {
+        if ($node instanceof AnchorNode) {
+            return '$' === $node->value;
+        }
+
+        if ($node instanceof AssertionNode) {
+            return \in_array($node->value, ['z', 'Z'], true);
+        }
+
+        return false;
+    }
+
+    private function anchorDisplay(NodeInterface $node): string
+    {
+        if ($node instanceof AnchorNode) {
+            return $node->value;
+        }
+
+        if ($node instanceof AssertionNode) {
+            return '\\'.$node->value;
+        }
+
+        return '';
     }
 
     private function checkAnchorConflicts(SequenceNode $node): void
@@ -456,25 +745,37 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         for ($i = 0; $i < $count; $i++) {
             $child = $children[$i];
 
-            if ($child instanceof AnchorNode && '^' === $child->value) {
-                if (!str_contains($this->flags, 'm')) {
+            if ($this->isStartAnchorNode($child)) {
+                $skipForMultiline = $child instanceof AnchorNode
+                    && '^' === $child->value
+                    && str_contains($this->flags, 'm');
+
+                if (!$skipForMultiline) {
+                    $anchorLabel = $this->anchorDisplay($child);
                     $prefix = array_values(array_slice($children, 0, $i));
                     if ([] !== $prefix && !$this->sequenceCanBeEmpty($prefix)) {
                         $this->addIssue(
                             'regex.lint.anchor.impossible.start',
-                            "Start anchor '^' appears after consuming characters, making it impossible to match.",
+                            \sprintf(
+                                "Start anchor '%s' appears after consuming characters, making it impossible to match.",
+                                $anchorLabel,
+                            ),
                             $child->startPosition,
                         );
                     }
                 }
             }
 
-            if ($child instanceof AnchorNode && '$' === $child->value) {
+            if ($this->isEndAnchorNode($child)) {
+                $anchorLabel = $this->anchorDisplay($child);
                 $tail = array_values(array_slice($children, $i + 1));
                 if ([] !== $tail && !$this->sequenceCanBeEmpty($tail)) {
                     $this->addIssue(
                         'regex.lint.anchor.impossible.end',
-                        "End anchor '$' appears before consuming characters, making it impossible to match.",
+                        \sprintf(
+                            "End anchor '%s' appears before consuming characters, making it impossible to match.",
+                            $anchorLabel,
+                        ),
                         $child->startPosition,
                     );
                 }
@@ -637,7 +938,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
                 if ($count > 1) {
                     $this->addIssue(
                         'regex.lint.alternation.duplicate',
-                        \sprintf('Duplicate alternation branch "%s".', addcslashes($literal, "\0..\37\177..\377")),
+                        \sprintf('Duplicate alternation branch "%s".', addcslashes((string) $literal, "\0..\37\177..\377")),
                         $node->startPosition,
                     );
 
@@ -655,16 +956,16 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
                         continue;
                     }
 
-                     if (str_starts_with($a, $b) || str_starts_with($b, $a)) {
-                         $this->addIssue(
-                             'regex.lint.alternation.overlap',
-                             \sprintf('Alternation branches "%s" and "%s" overlap.', addcslashes($a, "\0..\37\177..\377"), addcslashes($b, "\0..\37\177..\377")),
-                             $node->startPosition,
-                             'Consider using atomic groups (?>...) to prevent backtracking. Do not reorder overlapping alternatives as it changes match semantics.',
-                         );
+                    if (str_starts_with($a, $b) || str_starts_with($b, $a)) {
+                        $this->addIssue(
+                            'regex.lint.alternation.overlap',
+                            \sprintf('Alternation branches "%s" and "%s" overlap.', addcslashes($a, "\0..\37\177..\377"), addcslashes($b, "\0..\37\177..\377")),
+                            $node->startPosition,
+                            'Consider using atomic groups (?>...) to prevent backtracking. Do not reorder overlapping alternatives as it changes match semantics.',
+                        );
 
-                         return;
-                     }
+                        return;
+                    }
                 }
             }
         }

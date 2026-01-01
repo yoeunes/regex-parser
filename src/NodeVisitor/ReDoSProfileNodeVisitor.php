@@ -1180,7 +1180,7 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
         }
 
         if ($node instanceof QuantifierNode) {
-            [$min,] = $this->quantifierBounds($node->quantifier);
+            [$min] = $this->quantifierBounds($node->quantifier);
             if (0 === $min) {
                 return true;
             }

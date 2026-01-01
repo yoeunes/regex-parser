@@ -61,6 +61,36 @@ final class LinterNodeVisitorTest extends TestCase
         $this->assertNotContains("Flag 'i' is useless: the pattern contains no case-sensitive characters.", $warnings);
     }
 
+    public function test_i_flag_not_useless_on_unicode_escape(): void
+    {
+        $regex = Regex::create()->parse('/\\x41/i');
+        $linter = new LinterNodeVisitor();
+        $regex->accept($linter);
+        $warnings = $linter->getWarnings();
+
+        $this->assertNotContains("Flag 'i' is useless: the pattern contains no case-sensitive characters.", $warnings);
+    }
+
+    public function test_i_flag_not_useless_on_char_class_unicode_escape(): void
+    {
+        $regex = Regex::create()->parse('/[\\x41]/i');
+        $linter = new LinterNodeVisitor();
+        $regex->accept($linter);
+        $warnings = $linter->getWarnings();
+
+        $this->assertNotContains("Flag 'i' is useless: the pattern contains no case-sensitive characters.", $warnings);
+    }
+
+    public function test_i_flag_not_useless_on_unicode_property(): void
+    {
+        $regex = Regex::create()->parse('/\\p{Lu}/iu');
+        $linter = new LinterNodeVisitor();
+        $regex->accept($linter);
+        $warnings = $linter->getWarnings();
+
+        $this->assertNotContains("Flag 'i' is useless: the pattern contains no case-sensitive characters.", $warnings);
+    }
+
     public function test_useless_s_flag_no_dots(): void
     {
         $regex = Regex::create()->parse('/^\d+$/s');
@@ -121,6 +151,26 @@ final class LinterNodeVisitorTest extends TestCase
         $this->assertContains("End anchor '$' appears before consuming characters, making it impossible to match.", $warnings);
     }
 
+    public function test_start_anchor_assertion_conflict(): void
+    {
+        $regex = Regex::create()->parse('/foo\\Abar/');
+        $linter = new LinterNodeVisitor();
+        $regex->accept($linter);
+
+        $issueIds = array_map(static fn ($issue): string => $issue->id, $linter->getIssues());
+        $this->assertContains('regex.lint.anchor.impossible.start', $issueIds);
+    }
+
+    public function test_end_anchor_assertion_conflict(): void
+    {
+        $regex = Regex::create()->parse('/foo\\zbar/');
+        $linter = new LinterNodeVisitor();
+        $regex->accept($linter);
+
+        $issueIds = array_map(static fn ($issue): string => $issue->id, $linter->getIssues());
+        $this->assertContains('regex.lint.anchor.impossible.end', $issueIds);
+    }
+
     public function test_no_anchor_conflict_at_boundaries(): void
     {
         $regex = Regex::create()->parse('/^foo$/');
@@ -175,6 +225,26 @@ final class LinterNodeVisitorTest extends TestCase
     public function test_backref_to_valid_group(): void
     {
         $regex = Regex::create()->parse('/(a)\\1/');
+        $linter = new LinterNodeVisitor();
+        $regex->accept($linter);
+        $warnings = $linter->getWarnings();
+
+        $this->assertNotContains('Backreference \\1 refers to a non-existent capturing group.', $warnings);
+    }
+
+    public function test_g_backref_to_nonexistent_group(): void
+    {
+        $regex = Regex::create()->parse('/\\g{2}/');
+        $linter = new LinterNodeVisitor();
+        $regex->accept($linter);
+        $warnings = $linter->getWarnings();
+
+        $this->assertContains('Backreference \\2 refers to a non-existent capturing group.', $warnings);
+    }
+
+    public function test_g_backref_relative_reference_is_not_flagged(): void
+    {
+        $regex = Regex::create()->parse('/(a)\\g{-1}/');
         $linter = new LinterNodeVisitor();
         $regex->accept($linter);
         $warnings = $linter->getWarnings();

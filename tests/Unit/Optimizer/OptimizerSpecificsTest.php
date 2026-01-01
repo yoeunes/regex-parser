@@ -129,7 +129,7 @@ final class OptimizerSpecificsTest extends TestCase
     public function test_full_optimization_combo(): void
     {
         $regex = Regex::create()->optimize('/a{0,}b{1,}c{0,1}d{1}\d\d/', ['autoPossessify' => true])->optimized;
-        $this->assertSame('/a*b++c?d\d\d/', $regex);
+        $this->assertSame('/a*+b++c?d\d\d/', $regex);
     }
 
     public function test_safe_possessivization(): void

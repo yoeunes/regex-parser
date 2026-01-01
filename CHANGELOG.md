@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Optimizer now respects Unicode mode when merging digit classes and cleans up unused multiline flags.
 - Optimizer can reduce negated digit/word classes to `\D`/`\W` and applies safer auto-possessify rules.
+- Linter now recognizes escaped literals and Unicode property classes when evaluating case-sensitive flags, and validates `\g{n}` backreferences and anchor assertions more consistently.
 
 ### Fixed
 - Lint output now properly escapes special characters in alternation branch literals to prevent display issues.
@@ -21,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Tests
 - Expanded the ReDoS test suite with real-world patterns and mitigation cases.
 - Added optimizer coverage for Unicode handling, negated classes, auto-possessify safety, and flag cleanup.
+- Added a corpus-driven linter regression suite plus new unit coverage for Unicode escapes, property flags, anchor assertions, and `\g{}` backreferences.
 
 ## [1.0.2] - 2025-12-31
 

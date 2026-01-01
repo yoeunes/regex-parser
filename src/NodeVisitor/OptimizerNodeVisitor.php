@@ -757,11 +757,11 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
     {
         $nullable = $this->nullableStatus($node);
 
-        return null === $nullable ? true : $nullable;
+        return $nullable ?? true;
     }
 
     /**
-     * @return bool|null True if nullable, false if consumes, null if unknown.
+     * @return bool|null true if nullable, false if consumes, null if unknown
      */
     private function nullableStatus(NodeInterface $node): ?bool
     {
