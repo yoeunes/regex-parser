@@ -224,21 +224,25 @@ final class LinterNodeVisitorCorpusTest extends TestCase
 
             if ($escaped) {
                 $escaped = false;
+
                 continue;
             }
 
             if ('\\' === $char) {
                 $escaped = true;
+
                 continue;
             }
 
             if ('[' === $char && !$inCharClass) {
                 $inCharClass = true;
+
                 continue;
             }
 
             if (']' === $char && $inCharClass) {
                 $inCharClass = false;
+
                 continue;
             }
 

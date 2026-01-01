@@ -93,6 +93,8 @@ final class RegexParserRule implements Rule
         'regex.lint.alternation.overlap' => self::DOC_BASE_URL.'#overlapping-alternation-branches',
         'regex.lint.overlap.charset' => self::DOC_BASE_URL.'#overlapping-alternation-branches',
         'regex.lint.charclass.redundant' => self::DOC_BASE_URL.'#redundant-character-class-elements',
+        'regex.lint.charclass.suspicious_range' => self::DOC_BASE_URL.'#suspicious-ascii-ranges',
+        'regex.lint.charclass.suspicious_pipe' => self::DOC_BASE_URL.'#alternation-like-character-classes',
         'regex.lint.escape.suspicious' => self::DOC_BASE_URL.'#suspicious-escapes',
         'regex.lint.flag.redundant' => self::DOC_BASE_URL.'#inline-flag-redundant',
         'regex.lint.flag.override' => self::DOC_BASE_URL.'#inline-flag-override',

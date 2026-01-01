@@ -32,6 +32,12 @@ final class OptimizerSpecificsTest extends TestCase
         $this->assertSame('/[=>]/', $regex);
     }
 
+    public function test_range_avoids_hyphen_start_for_literal_sets(): void
+    {
+        $regex = Regex::create()->optimize('/[\\-./]/')->optimized;
+        $this->assertStringNotContainsString('\\--', $regex);
+    }
+
     public function test_valid_range_created(): void
     {
         $regex = Regex::create()->optimize('/[abc]/')->optimized;

@@ -191,6 +191,8 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         }
 
         $this->lintRedundantCharClass($node);
+        $this->lintSuspiciousCharClassRange($node);
+        $this->lintSuspiciousCharClassPipe($node);
 
         return $node;
     }
@@ -1086,6 +1088,95 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         }
     }
 
+    private function lintSuspiciousCharClassRange(CharClassNode $node): void
+    {
+        $parts = $this->collectCharClassParts($node->expression);
+        if (null === $parts) {
+            return;
+        }
+
+        foreach ($parts as $part) {
+            if (!$part instanceof RangeNode) {
+                continue;
+            }
+
+            if (!$part->start instanceof LiteralNode || !$part->end instanceof LiteralNode) {
+                continue;
+            }
+
+            if (1 !== \strlen($part->start->value) || 1 !== \strlen($part->end->value)) {
+                continue;
+            }
+
+            $startOrd = \ord($part->start->value);
+            $endOrd = \ord($part->end->value);
+            if ($startOrd > 127 || $endOrd > 127) {
+                continue;
+            }
+
+            $minOrd = min($startOrd, $endOrd);
+            $maxOrd = max($startOrd, $endOrd);
+
+            if ($this->isAsciiLetter($startOrd) && $this->isAsciiLetter($endOrd) && $minOrd <= 90 && $maxOrd >= 97) {
+                $rangeLabel = $part->start->value.'-'.$part->end->value;
+                $this->addIssue(
+                    'regex.lint.charclass.suspicious_range',
+                    \sprintf('Suspicious ASCII range "%s" includes non-letters between "Z" and "a".', $rangeLabel),
+                    $part->startPosition,
+                    'Use separate ranges like [A-Z] and [a-z] (or combine as [A-Za-z]).',
+                );
+
+                return;
+            }
+        }
+    }
+
+    private function lintSuspiciousCharClassPipe(CharClassNode $node): void
+    {
+        $parts = $this->collectCharClassParts($node->expression);
+        if (null === $parts) {
+            return;
+        }
+
+        $letters = 0;
+        $pipes = 0;
+
+        foreach ($parts as $part) {
+            if (!$part instanceof LiteralNode || 1 !== \strlen($part->value)) {
+                return;
+            }
+
+            $value = $part->value;
+            if ('|' === $value) {
+                $pipes++;
+
+                continue;
+            }
+
+            $ord = \ord($value);
+            if ($ord > 127) {
+                return;
+            }
+
+            if ($this->isAsciiLetter($ord)) {
+                $letters++;
+
+                continue;
+            }
+
+            return;
+        }
+
+        if ($pipes > 0 && $letters >= 4) {
+            $this->addIssue(
+                'regex.lint.charclass.suspicious_pipe',
+                'Character class contains "|" which is literal inside []. It looks like an alternation typo.',
+                $node->startPosition,
+                'Did you mean an alternation like "(error|failure)" instead of a character class?',
+            );
+        }
+    }
+
     /**
      * @return array<Node\NodeInterface>|null
      */
@@ -1104,6 +1195,11 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         }
 
         return [$node];
+    }
+
+    private function isAsciiLetter(int $ord): bool
+    {
+        return ($ord >= 65 && $ord <= 90) || ($ord >= 97 && $ord <= 122);
     }
 
     /**

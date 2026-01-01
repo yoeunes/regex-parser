@@ -341,6 +341,28 @@ preg_match('/\d{2,5}/', $input);
 
 ---
 
+### Character Class Pitfalls
+
+**Problem:** Suspicious ASCII ranges or alternation-like character classes.
+
+**Solution:** Split ranges or use alternation groups.
+
+```php
+// WARNING: Includes punctuation between Z and a
+preg_match('/[A-z]/', $input);
+
+// FIX: Split ranges
+preg_match('/[A-Za-z]/', $input);
+
+// WARNING: | is literal in []
+preg_match('/[error|failure]/', $input);
+
+// FIX: Use alternation
+preg_match('/(error|failure)/', $input);
+```
+
+---
+
 ## Error Code Categories
 
 | Category      | Meaning                   | Examples                              |

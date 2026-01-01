@@ -956,7 +956,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
      */
     private function normalizeCharClassParts(array $parts): array
     {
-        /** @var array<int, array{start: int, end: int}> $scalarChars */
+        /** @var array<int, array{start: int, end: int, fromRange: bool}> $scalarChars */
         $scalarChars = [];
         $otherParts = [];
         $changed = false;
@@ -969,7 +969,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
                     $scalarChars[$ord]['end'] = max($scalarChars[$ord]['end'], $part->endPosition);
                     $changed = true;
                 } else {
-                    $scalarChars[$ord] = ['start' => $part->startPosition, 'end' => $part->endPosition];
+                    $scalarChars[$ord] = ['start' => $part->startPosition, 'end' => $part->endPosition, 'fromRange' => false];
                 }
 
                 continue;
@@ -990,8 +990,13 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
                     if (isset($scalarChars[$ord])) {
                         $scalarChars[$ord]['start'] = min($scalarChars[$ord]['start'], $part->startPosition);
                         $scalarChars[$ord]['end'] = max($scalarChars[$ord]['end'], $part->endPosition);
+                        $scalarChars[$ord]['fromRange'] = true;
                     } else {
-                        $scalarChars[$ord] = ['start' => $part->startPosition, 'end' => $part->endPosition];
+                        $scalarChars[$ord] = [
+                            'start' => $part->startPosition,
+                            'end' => $part->endPosition,
+                            'fromRange' => true,
+                        ];
                     }
                 }
                 $changed = true;
@@ -1014,37 +1019,70 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         $rangeEnd = 0;
         $rangeStartPos = 0;
         $rangeEndPos = 0;
+        $rangeHasExplicit = false;
+        $rangeCategory = 0;
 
         foreach ($scalarChars as $ord => $pos) {
             $ord = (int) $ord;
             $posStart = (int) $pos['start'];
             $posEnd = (int) $pos['end'];
+            $fromRange = (bool) $pos['fromRange'];
 
             if (!$hasRange) {
                 $rangeStart = $ord;
                 $rangeEnd = $ord;
                 $rangeStartPos = $posStart;
                 $rangeEndPos = $posEnd;
+                $rangeHasExplicit = $fromRange;
+                $rangeCategory = $this->getCharCategory($ord);
                 $hasRange = true;
 
                 continue;
             }
 
-            if ($ord === $rangeEnd + 1 && (!$this->ranges || $this->getCharCategory($ord) === $this->getCharCategory($rangeEnd))) {
+            $category = $this->getCharCategory($ord);
+            $canMerge = $ord === $rangeEnd + 1;
+            if ($canMerge && $this->ranges && $category !== $rangeCategory) {
+                $canMerge = false;
+            }
+
+            if ($canMerge) {
                 $rangeEnd = $ord;
                 $rangeEndPos = max($rangeEndPos, $posEnd);
+                $rangeHasExplicit = $rangeHasExplicit || $fromRange;
+                $rangeCategory = $category;
 
                 continue;
             }
 
-            $normalized = array_merge($normalized, $this->buildRangeOrLiteral($rangeStart, $rangeEnd, $rangeStartPos, $rangeEndPos));
+            $normalized = array_merge(
+                $normalized,
+                $this->buildRangeOrLiteral(
+                    $rangeStart,
+                    $rangeEnd,
+                    $rangeStartPos,
+                    $rangeEndPos,
+                    $this->shouldBuildRange($rangeStart, $rangeEnd, $rangeHasExplicit),
+                ),
+            );
             $rangeStart = $ord;
             $rangeEnd = $ord;
             $rangeStartPos = $posStart;
             $rangeEndPos = $posEnd;
+            $rangeHasExplicit = $fromRange;
+            $rangeCategory = $category;
         }
 
-        $normalized = array_merge($normalized, $this->buildRangeOrLiteral($rangeStart, $rangeEnd, $rangeStartPos, $rangeEndPos));
+        $normalized = array_merge(
+            $normalized,
+            $this->buildRangeOrLiteral(
+                $rangeStart,
+                $rangeEnd,
+                $rangeStartPos,
+                $rangeEndPos,
+                $this->shouldBuildRange($rangeStart, $rangeEnd, $rangeHasExplicit),
+            ),
+        );
 
         $finalParts = array_merge($normalized, $otherParts);
 
@@ -1054,12 +1092,16 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
     /**
      * @return array<Node\NodeInterface>
      */
-    private function buildRangeOrLiteral(int $startOrd, int $endOrd, int $startPos, int $endPos): array
+    private function buildRangeOrLiteral(int $startOrd, int $endOrd, int $startPos, int $endPos, bool $allowRange = true): array
     {
         $startLiteral = new LiteralNode($this->charFromCodePoint($startOrd), $startPos, $startPos + 1);
 
         if ($startOrd === $endOrd) {
             return [$startLiteral];
+        }
+
+        if (!$allowRange) {
+            return $this->buildLiteralSequence($startOrd, $endOrd, $startPos);
         }
 
         // Only create a range if it covers 3 or more characters to save space
@@ -1074,6 +1116,30 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         $endLiteral = new LiteralNode($this->charFromCodePoint($endOrd), $endPos, $endPos + 1);
 
         return [new RangeNode($startLiteral, $endLiteral, $startPos, $endPos)];
+    }
+
+    /**
+     * @return array<Node\NodeInterface>
+     */
+    private function buildLiteralSequence(int $startOrd, int $endOrd, int $startPos): array
+    {
+        $literals = [];
+        $pos = $startPos;
+        for ($ord = $startOrd; $ord <= $endOrd; $ord++) {
+            $literals[] = new LiteralNode($this->charFromCodePoint($ord), $pos, $pos + 1);
+            $pos++;
+        }
+
+        return $literals;
+    }
+
+    private function shouldBuildRange(int $startOrd, int $endOrd, bool $hasExplicitRange): bool
+    {
+        if ($hasExplicitRange) {
+            return true;
+        }
+
+        return 45 !== $startOrd && 45 !== $endOrd;
     }
 
     private function charFromCodePoint(int $codePoint): string

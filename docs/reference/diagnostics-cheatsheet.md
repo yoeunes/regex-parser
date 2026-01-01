@@ -14,6 +14,8 @@ Fast fixes for the most common RegexParser diagnostics. Use this as a quick refe
 | [Dot-star in repetition](#dot-star-in-repetition)                           | Use atomic/possessive       |
 | [Overlapping alternation branches](#overlapping-alternation-branches)       | Atomic or simplify          |
 | [Redundant non-capturing group](#redundant-non-capturing-group)             | Remove group                |
+| [Suspicious ASCII range](#suspicious-ascii-range)                           | Split A-Z and a-z           |
+| [Alternation-like character class](#alternation-like-character-class)       | Use (foo\|bar)              |
 | [Useless flag](#useless-flag)                                               | Remove flag                 |
 | [Invalid delimiter](#invalid-delimiter)                                     | Use proper delimiter        |
 
@@ -168,6 +170,34 @@ preg_match('/(?:foo|bar)baz/', $input);  // Groups foo|bar
 
 // Needed: Apply quantifier to multiple
 preg_match('/(?:foo)+/', $input);  // Repeats "foo"
+```
+
+---
+
+## Suspicious ASCII range
+
+**Problem:** `[A-z]` spans ASCII punctuation between `Z` and `a`.
+
+```php
+// WARNING
+preg_match('/[A-z]/', $input);
+
+// FIX
+preg_match('/[A-Za-z]/', $input);
+```
+
+---
+
+## Alternation-like character class
+
+**Problem:** `|` is literal inside `[]`, so `[error|failure]` matches single characters.
+
+```php
+// WARNING
+preg_match('/[error|failure]/', $input);
+
+// FIX
+preg_match('/(error|failure)/', $input);
 ```
 
 ---

@@ -74,6 +74,24 @@ final class LinterRulesTest extends TestCase
         $this->assertContains('regex.lint.charclass.redundant', $issues);
     }
 
+    public function test_suspicious_char_class_range_warning(): void
+    {
+        $issues = $this->lint('/[A-z]/');
+        $this->assertContains('regex.lint.charclass.suspicious_range', $issues);
+    }
+
+    public function test_suspicious_char_class_pipe_warning(): void
+    {
+        $issues = $this->lint('/[error|failure]/');
+        $this->assertContains('regex.lint.charclass.suspicious_pipe', $issues);
+    }
+
+    public function test_suspicious_char_class_pipe_ignores_small_sets(): void
+    {
+        $issues = $this->lint('/[a|b]/');
+        $this->assertNotContains('regex.lint.charclass.suspicious_pipe', $issues);
+    }
+
     public function test_inline_flag_redundant_warning(): void
     {
         $issues = $this->lint('/(?i:foo)/i');

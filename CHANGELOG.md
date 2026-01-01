@@ -10,11 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - ReDoS analysis now detects empty-match repetitions and ambiguous adjacent quantifiers.
 - Suggested rewrites are surfaced for the highest-severity ReDoS finding.
+- Linter warns about suspicious ASCII ranges like `[A-z]` and alternation-like character classes such as `[error|failure]`.
 
 ### Changed
 - Optimizer now respects Unicode mode when merging digit classes and cleans up unused multiline flags.
 - Optimizer can reduce negated digit/word classes to `\D`/`\W` and applies safer auto-possessify rules.
 - Linter now recognizes escaped literals and Unicode property classes when evaluating case-sensitive flags, and validates `\g{n}` backreferences and anchor assertions more consistently.
+- Optimizer avoids creating new character-class ranges that start or end with `-` unless the range was explicit in the original pattern.
 
 ### Fixed
 - Lint output now properly escapes special characters in alternation branch literals to prevent display issues.

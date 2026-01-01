@@ -334,6 +334,44 @@ preg_match('/[a-f]/', $input);
 
 ---
 
+### Suspicious ASCII Ranges
+
+**Identifier:** `regex.lint.charclass.suspicious_range`
+
+**When it triggers:** A character range spans the ASCII gap between `Z` and `a` (e.g. `[A-z]`), which includes `[ \ ] ^ _ `.
+
+**Example:**
+```php
+// WARNING: Includes non-letters between Z and a
+preg_match('/[A-z]/', $input);
+
+// PREFERRED: Use two ranges
+preg_match('/[A-Za-z]/', $input);
+```
+
+**Fix:** Split into `[A-Z]` and `[a-z]`, or combine as `[A-Za-z]`.
+
+---
+
+### Alternation-like Character Classes
+
+**Identifier:** `regex.lint.charclass.suspicious_pipe`
+
+**When it triggers:** A character class contains `|` alongside many letters, suggesting an alternation typo.
+
+**Example:**
+```php
+// WARNING: | is literal inside []
+preg_match('/[error|failure]/', $input);
+
+// PREFERRED: Use alternation
+preg_match('/(error|failure)/', $input);
+```
+
+**Fix:** Replace the class with an alternation group when you intend multi-character words.
+
+---
+
 ## Escapes
 
 ### Suspicious Escapes
