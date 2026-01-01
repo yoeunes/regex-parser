@@ -329,7 +329,7 @@ use RegexParser\Regex;
 
 // ANSI colors for console
 $highlighted = Regex::create()->highlight('/\d+/', 'console');
-echo $highlighted;  // "\033[32m\\d\033[0m\033[33m+\033[0m"
+echo $highlighted;  // "\033[38;2;78;201;176m\\d\033[0m\033[38;2;215;186;125m+\033[0m"
 
 // HTML for web
 $html = Regex::create()->highlight('/[a-z]+/', 'html');

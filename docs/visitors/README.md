@@ -513,6 +513,8 @@ Base classes for syntax highlighting:
 | `ConsoleHighlighterVisitor` | ANSI colors   | CLI output |
 | `HtmlHighlighterVisitor`    | HTML spans    | Web output |
 
+HTML spans include a base `regex-token` class plus semantic classes like `regex-escape`, `regex-group`, `regex-comment`, and `regex-backref` so themes can style them distinctly.
+
 ```php
 use RegexParser\Regex;
 use RegexParser\NodeVisitor\ConsoleHighlighterVisitor;
@@ -521,7 +523,7 @@ $ast = Regex::create()->parse('/\d+/');
 $highlighted = $ast->accept(new ConsoleHighlighterVisitor());
 
 echo $highlighted;
-// "\033[32m\\d\033[0m\033[33m+\033[0m"
+// "\033[38;2;78;201;176m\\d\033[0m\033[38;2;215;186;125m+\033[0m"
 ```
 
 ---

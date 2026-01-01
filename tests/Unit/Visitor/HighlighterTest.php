@@ -42,6 +42,7 @@ final class HighlighterTest extends TestCase
 
         $this->assertStringContainsString('<span', $highlighted);
         $this->assertStringContainsString('</span>', $highlighted);
+        $this->assertStringContainsString('regex-token', $highlighted);
         $this->assertStringContainsString('regex-literal', $highlighted);
         $this->assertStringContainsString('regex-quantifier', $highlighted);
     }
@@ -59,9 +60,9 @@ final class HighlighterTest extends TestCase
     {
         $highlighted = $this->highlight('/^[0-9]+(\w+)$/', 'cli');
 
-        $this->assertStringContainsString("\033[1;34m", $highlighted); // Meta chars
-        $this->assertStringContainsString("\033[1;33m", $highlighted); // Quantifiers
-        $this->assertStringContainsString("\033[0;32m", $highlighted); // Types
+        $this->assertStringContainsString("\033[38;2;86;156;214m", $highlighted); // Meta chars
+        $this->assertStringContainsString("\033[38;2;215;186;125m", $highlighted); // Quantifiers
+        $this->assertStringContainsString("\033[38;2;78;201;176m", $highlighted); // Escapes
     }
 
     public function test_highlight_html_complex_pattern(): void
@@ -132,6 +133,8 @@ final class HighlighterTest extends TestCase
         $this->assertNotEmpty($highlightedCli);
         $this->assertNotEmpty($highlightedHtml);
         $this->assertStringContainsString('regex-meta', $highlightedHtml);
+        $this->assertStringContainsString('regex-token', $highlightedHtml);
+        $this->assertStringContainsString('regex-comment', $highlightedHtml);
     }
 
     public function test_highlight_with_class_operations(): void

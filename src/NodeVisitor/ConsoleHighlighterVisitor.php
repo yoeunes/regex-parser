@@ -13,10 +13,6 @@ declare(strict_types=1);
 
 namespace RegexParser\NodeVisitor;
 
-use RegexParser\Node\ConditionalNode;
-use RegexParser\Node\GroupNode;
-use RegexParser\Node\GroupType;
-
 /**
  * Highlights regex syntax for console output using ANSI escape codes.
  */
@@ -25,47 +21,32 @@ final class ConsoleHighlighterVisitor extends HighlighterVisitor
     private const RESET = "\033[0m";
 
     private const COLORS = [
-        'meta' => "\033[1;34m",      // Bold Blue
-        'quantifier' => "\033[1;33m", // Bold Yellow
-        'type' => "\033[0;32m",      // Green
-        'anchor' => "\033[0;35m",    // Magenta
-        'literal' => '',             // Default
+        'meta' => "\033[38;2;86;156;214m",       // Blue
+        'quantifier' => "\033[38;2;215;186;125m", // Gold
+        'literal' => "\033[38;2;206;145;120m",   // Orange
+        'anchor' => "\033[38;2;209;105;105m",    // Red
+        'escape' => "\033[38;2;78;201;176m",     // Teal
+        'backref' => "\033[38;2;156;220;254m",   // Light Blue
+        'group' => "\033[38;2;197;134;192m",     // Purple
+        'comment' => "\033[38;2;106;153;85m",    // Green
+        'keyword' => "\033[38;2;220;220;170m",   // Yellow
+        'flag' => "\033[38;2;181;206;168m",      // Light Green
+        'identifier' => "\033[38;2;156;220;254m", // Light Blue
+        'number' => "\033[38;2;181;206;168m",    // Light Green
     ];
-
-    #[\Override]
-    public function visitGroup(GroupNode $node): string
-    {
-        $inner = $node->child->accept($this);
-        $prefix = match ($node->type) {
-            GroupType::T_GROUP_NON_CAPTURING => '?:',
-            GroupType::T_GROUP_LOOKAHEAD_POSITIVE => '?=',
-            GroupType::T_GROUP_LOOKAHEAD_NEGATIVE => '?!',
-            GroupType::T_GROUP_LOOKBEHIND_POSITIVE => '?<=',
-            GroupType::T_GROUP_LOOKBEHIND_NEGATIVE => '?<!',
-            GroupType::T_GROUP_ATOMIC => '?>',
-            GroupType::T_GROUP_NAMED => "?<{$node->name}>",
-            default => '',
-        };
-        $opening = self::COLORS['meta'].'('.$prefix.self::RESET;
-        $closing = self::COLORS['meta'].')'.self::RESET;
-
-        return $opening.$inner.$closing;
-    }
-
-    #[\Override]
-    public function visitConditional(ConditionalNode $node): string
-    {
-        $condition = $node->condition->accept($this);
-        $yes = $node->yes->accept($this);
-        $no = $node->no->accept($this);
-        $noPart = $no ? self::COLORS['meta'].'|'.self::RESET.$no : '';
-
-        return self::COLORS['meta'].'(?('.self::RESET.$condition.self::COLORS['meta'].')'.self::RESET.$yes.$noPart.self::COLORS['meta'].')'.self::RESET;
-    }
 
     protected function wrap(string $content, string $type): string
     {
-        return self::COLORS[$type].$content.self::RESET;
+        if ('' === $content) {
+            return '';
+        }
+
+        $color = self::COLORS[$type] ?? '';
+        if ('' === $color) {
+            return $content;
+        }
+
+        return $color.$content.self::RESET;
     }
 
     protected function escape(string $string): string

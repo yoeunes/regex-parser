@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Optimizer can reduce negated digit/word classes to `\D`/`\W` and applies safer auto-possessify rules.
 - Linter now recognizes escaped literals and Unicode property classes when evaluating case-sensitive flags, and validates `\g{n}` backreferences and anchor assertions more consistently.
 - Optimizer avoids creating new character-class ranges that start or end with `-` unless the range was explicit in the original pattern.
+- Highlighter visitors now cover all AST nodes, preserve inline comment text, and emit richer HTML token classes with updated console colors.
 
 ### Fixed
 - Lint output now properly escapes special characters in alternation branch literals to prevent display issues.

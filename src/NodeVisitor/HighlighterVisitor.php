@@ -19,13 +19,17 @@ use RegexParser\Node\AssertionNode;
 use RegexParser\Node\BackrefNode;
 use RegexParser\Node\CalloutNode;
 use RegexParser\Node\CharClassNode;
+use RegexParser\Node\CharLiteralNode;
 use RegexParser\Node\CharTypeNode;
 use RegexParser\Node\ClassOperationNode;
 use RegexParser\Node\ClassOperationType;
 use RegexParser\Node\CommentNode;
+use RegexParser\Node\ConditionalNode;
 use RegexParser\Node\ControlCharNode;
 use RegexParser\Node\DefineNode;
 use RegexParser\Node\DotNode;
+use RegexParser\Node\GroupNode;
+use RegexParser\Node\GroupType;
 use RegexParser\Node\KeepNode;
 use RegexParser\Node\LimitMatchNode;
 use RegexParser\Node\LiteralNode;
@@ -78,6 +82,33 @@ abstract class HighlighterVisitor extends AbstractNodeVisitor
     }
 
     #[\Override]
+    public function visitGroup(GroupNode $node): string
+    {
+        $child = $node->child->accept($this);
+        $open = $this->wrap('(', 'group');
+        $close = $this->wrap(')', 'group');
+        $flags = $node->flags ?? '';
+
+        return match ($node->type) {
+            GroupType::T_GROUP_CAPTURING => $open.$child.$close,
+            GroupType::T_GROUP_NON_CAPTURING => $open.$this->wrap('?:', 'group').$child.$close,
+            GroupType::T_GROUP_NAMED => $open
+                .$this->wrap('?<', 'group')
+                .$this->wrapReference($node->name ?? '')
+                .$this->wrap('>', 'group')
+                .$child
+                .$close,
+            GroupType::T_GROUP_LOOKAHEAD_POSITIVE => $open.$this->wrap('?=', 'group').$child.$close,
+            GroupType::T_GROUP_LOOKAHEAD_NEGATIVE => $open.$this->wrap('?!', 'group').$child.$close,
+            GroupType::T_GROUP_LOOKBEHIND_POSITIVE => $open.$this->wrap('?<=', 'group').$child.$close,
+            GroupType::T_GROUP_LOOKBEHIND_NEGATIVE => $open.$this->wrap('?<!', 'group').$child.$close,
+            GroupType::T_GROUP_ATOMIC => $open.$this->wrap('?>', 'group').$child.$close,
+            GroupType::T_GROUP_BRANCH_RESET => $open.$this->wrap('?|', 'group').$child.$close,
+            GroupType::T_GROUP_INLINE_FLAGS => $this->renderInlineFlagsGroup($flags, $child, $open, $close),
+        };
+    }
+
+    #[\Override]
     public function visitQuantifier(QuantifierNode $node): string
     {
         $inner = $node->node->accept($this);
@@ -94,13 +125,27 @@ abstract class HighlighterVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitLiteral(LiteralNode $node): string
     {
+        if ('' === $node->value) {
+            return '';
+        }
+
         return $this->wrap($this->escape($node->value), 'literal');
+    }
+
+    #[\Override]
+    public function visitCharLiteral(CharLiteralNode $node): string
+    {
+        if ('' === $node->originalRepresentation) {
+            return '';
+        }
+
+        return $this->wrap($this->escape($node->originalRepresentation), 'escape');
     }
 
     #[\Override]
     public function visitCharType(CharTypeNode $node): string
     {
-        return $this->wrap('\\'.$node->value, 'type');
+        return $this->wrap($this->escape('\\'.$node->value), 'escape');
     }
 
     #[\Override]
@@ -118,7 +163,13 @@ abstract class HighlighterVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitAssertion(AssertionNode $node): string
     {
-        return $this->wrap('\\'.$node->value, 'type');
+        return $this->wrap($this->escape('\\'.$node->value), 'anchor');
+    }
+
+    #[\Override]
+    public function visitKeep(KeepNode $node): string
+    {
+        return $this->wrap($this->escape('\\K'), 'escape');
     }
 
     #[\Override]
@@ -131,9 +182,9 @@ abstract class HighlighterVisitor extends AbstractNodeVisitor
         foreach ($parts as $part) {
             $inner .= $part->accept($this);
         }
-        $neg = $node->isNegated ? '^' : '';
+        $neg = $node->isNegated ? $this->wrap('^', 'meta') : '';
 
-        return $this->wrap('[', 'meta').$this->escape($neg).$inner.$this->wrap(']', 'meta');
+        return $this->wrap('[', 'meta').$neg.$inner.$this->wrap(']', 'meta');
     }
 
     #[\Override]
@@ -148,7 +199,46 @@ abstract class HighlighterVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitBackref(BackrefNode $node): string
     {
-        return $this->wrap('\\'.$this->escape($node->ref), 'type');
+        $reference = $this->formatBackref($node);
+        if ('' === $reference) {
+            return '';
+        }
+
+        return $this->wrap($this->escape($reference), 'backref');
+    }
+
+    #[\Override]
+    public function visitClassOperation(ClassOperationNode $node): string
+    {
+        $left = $node->left->accept($this);
+        $right = $node->right->accept($this);
+        $op = ClassOperationType::INTERSECTION === $node->type ? '&&' : '--';
+
+        return $left.$this->wrap($this->escape($op), 'meta').$right;
+    }
+
+    #[\Override]
+    public function visitControlChar(ControlCharNode $node): string
+    {
+        return $this->wrap($this->escape('\\c'.$node->char), 'escape');
+    }
+
+    #[\Override]
+    public function visitScriptRun(ScriptRunNode $node): string
+    {
+        return $this->wrap('(*', 'group')
+            .$this->wrap('script_run', 'keyword')
+            .$this->wrap(':', 'meta')
+            .$this->wrapReference($node->script)
+            .$this->wrap(')', 'group');
+    }
+
+    #[\Override]
+    public function visitVersionCondition(VersionConditionNode $node): string
+    {
+        return $this->wrap('VERSION', 'keyword')
+            .$this->wrap($this->escape($node->operator), 'meta')
+            .$this->wrap($this->escape($node->version), 'number');
     }
 
     #[\Override]
@@ -162,12 +252,15 @@ abstract class HighlighterVisitor extends AbstractNodeVisitor
             if ($charCode <= 0x1F
                 || 0x7F === $charCode
                 || $charCode >= 0x80) {
-                return $this->wrap('\\x'.strtoupper(str_pad(dechex($charCode), 2, '0', \STR_PAD_LEFT)), 'type');
+                return $this->wrap(
+                    $this->escape('\\x'.strtoupper(str_pad(dechex($charCode), 2, '0', \STR_PAD_LEFT))),
+                    'escape',
+                );
             }
         }
 
         // For regular Unicode escape sequences, use the original format
-        return $this->wrap('\\x'.$node->code, 'type');
+        return $this->wrap($this->escape('\\x'.$node->code), 'escape');
     }
 
     #[\Override]
@@ -179,31 +272,81 @@ abstract class HighlighterVisitor extends AbstractNodeVisitor
         $prefix = $isNegated ? 'P' : 'p';
         $display = '{'.$inner.'}';
 
-        return $this->wrap('\\'.$prefix.$this->escape($display), 'type');
+        return $this->wrap($this->escape('\\'.$prefix.$display), 'escape');
     }
 
     #[\Override]
     public function visitPosixClass(PosixClassNode $node): string
     {
-        return $this->wrap('[:'.$this->escape($node->class).':]', 'type');
+        return $this->wrap($this->escape('[:'.$node->class.':]'), 'escape');
     }
 
     #[\Override]
     public function visitComment(CommentNode $node): string
     {
-        return $this->wrap('(?#...)', 'meta');
+        return $this->wrap('(?#', 'meta')
+            .$this->wrap($this->escape($node->comment), 'comment')
+            .$this->wrap(')', 'meta');
+    }
+
+    #[\Override]
+    public function visitConditional(ConditionalNode $node): string
+    {
+        if ($node->condition instanceof BackrefNode) {
+            $condition = $this->wrap($this->escape($node->condition->ref), 'backref');
+        } else {
+            $condition = $node->condition->accept($this);
+        }
+
+        $yes = $node->yes->accept($this);
+        $no = $node->no->accept($this);
+        $noPart = '' !== $no ? $this->wrap('|', 'meta').$no : '';
+
+        return $this->wrap('(?(', 'group')
+            .$condition
+            .$this->wrap(')', 'group')
+            .$yes
+            .$noPart
+            .$this->wrap(')', 'group');
     }
 
     #[\Override]
     public function visitSubroutine(SubroutineNode $node): string
     {
-        return $this->wrap('(?'.$this->escape($node->reference).')', 'type');
+        return match ($node->syntax) {
+            '&' => $this->wrap('(?', 'group')
+                .$this->wrap('&', 'keyword')
+                .$this->wrapReference($node->reference)
+                .$this->wrap(')', 'group'),
+            'P>' => $this->wrap('(?', 'group')
+                .$this->wrap('P>', 'keyword')
+                .$this->wrapReference($node->reference)
+                .$this->wrap(')', 'group'),
+            'g' => $this->wrap($this->escape('\\g<'), 'escape')
+                .$this->wrapReference($node->reference)
+                .$this->wrap($this->escape('>'), 'escape'),
+            default => $this->wrap('(?', 'group')
+                .$this->wrapReference($node->reference)
+                .$this->wrap(')', 'group'),
+        };
     }
 
     #[\Override]
     public function visitPcreVerb(PcreVerbNode $node): string
     {
-        return $this->wrap('(*'.$this->escape($node->verb).')', 'meta');
+        if (str_contains($node->verb, ':')) {
+            [$verb, $arg] = explode(':', $node->verb, 2);
+
+            return $this->wrap('(*', 'group')
+                .$this->wrap($this->escape($verb), 'keyword')
+                .$this->wrap(':', 'meta')
+                .$this->wrapReference($arg)
+                .$this->wrap(')', 'group');
+        }
+
+        return $this->wrap('(*', 'group')
+            .$this->wrap($this->escape($node->verb), 'keyword')
+            .$this->wrap(')', 'group');
     }
 
     #[\Override]
@@ -211,58 +354,89 @@ abstract class HighlighterVisitor extends AbstractNodeVisitor
     {
         $inner = $node->content->accept($this);
 
-        return $this->wrap('(?(DEFINE)', 'meta').$inner.$this->wrap(')', 'meta');
+        return $this->wrap('(?(', 'group')
+            .$this->wrap('DEFINE', 'keyword')
+            .$this->wrap(')', 'group')
+            .$inner
+            .$this->wrap(')', 'group');
     }
 
     #[\Override]
     public function visitLimitMatch(LimitMatchNode $node): string
     {
-        return $this->wrap('(*LIMIT_MATCH='.$node->limit.')', 'meta');
+        return $this->wrap('(*', 'group')
+            .$this->wrap('LIMIT_MATCH', 'keyword')
+            .$this->wrap('=', 'meta')
+            .$this->wrap((string) $node->limit, 'number')
+            .$this->wrap(')', 'group');
     }
 
     #[\Override]
     public function visitCallout(CalloutNode $node): string
     {
-        $content = $node->isStringIdentifier ? '"'.$this->escape((string) $node->identifier).'"' : (string) $node->identifier;
+        $content = '';
+        if (null !== $node->identifier) {
+            if ($node->isStringIdentifier) {
+                $content = $this->wrap('"', 'meta')
+                    .$this->wrap($this->escape((string) $node->identifier), 'identifier')
+                    .$this->wrap('"', 'meta');
+            } elseif (\is_int($node->identifier)) {
+                $content = $this->wrap((string) $node->identifier, 'number');
+            } else {
+                $content = $this->wrap($this->escape((string) $node->identifier), 'identifier');
+            }
+        }
 
-        return $this->wrap('(?C'.$content.')', 'meta');
-    }
-
-    #[\Override]
-    public function visitScriptRun(ScriptRunNode $node): string
-    {
-        return $this->wrap('(*script_run:'.$this->escape($node->script).')', 'meta');
-    }
-
-    #[\Override]
-    public function visitVersionCondition(VersionConditionNode $node): string
-    {
-        return $this->wrap('(?(VERSION>='.$node->version.')', 'meta');
-    }
-
-    #[\Override]
-    public function visitKeep(KeepNode $node): string
-    {
-        return $this->wrap('\\K', 'type');
-    }
-
-    #[\Override]
-    public function visitControlChar(ControlCharNode $node): string
-    {
-        return $this->wrap('\\c'.$node->char, 'type');
-    }
-
-    #[\Override]
-    public function visitClassOperation(ClassOperationNode $node): string
-    {
-        $left = $node->left->accept($this);
-        $right = $node->right->accept($this);
-        $op = ClassOperationType::INTERSECTION === $node->type ? '&&' : '--';
-
-        return $this->wrap('[', 'meta').$left.$this->wrap($this->escape($op), 'meta').$right.$this->wrap(']', 'meta');
+        return $this->wrap('(?', 'group')
+            .$this->wrap('C', 'keyword')
+            .$content
+            .$this->wrap(')', 'group');
     }
 
     abstract protected function wrap(string $content, string $type): string;
 
     abstract protected function escape(string $string): string;
+
+    private function renderInlineFlagsGroup(string $flags, string $child, string $open, string $close): string
+    {
+        $flagToken = '' !== $flags ? $this->wrap($this->escape($flags), 'flag') : '';
+
+        if ('' === $child) {
+            return $open.$this->wrap('?', 'group').$flagToken.$close;
+        }
+
+        return $open
+            .$this->wrap('?', 'group')
+            .$flagToken
+            .$this->wrap(':', 'group')
+            .$child
+            .$close;
+    }
+
+    private function formatBackref(BackrefNode $node): string
+    {
+        $ref = $node->ref;
+        if ('' === $ref) {
+            return '';
+        }
+
+        if (ctype_digit($ref)) {
+            return '\\'.$ref;
+        }
+
+        return $ref;
+    }
+
+    private function wrapReference(string $reference): string
+    {
+        if ('' === $reference) {
+            return '';
+        }
+
+        if (1 === preg_match('/^[+-]?\d+$/', $reference)) {
+            return $this->wrap($this->escape($reference), 'number');
+        }
+
+        return $this->wrap($this->escape($reference), 'identifier');
+    }
 }

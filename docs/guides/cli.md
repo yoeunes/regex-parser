@@ -206,7 +206,7 @@ vendor/bin/regex highlight '/^hello$/' --format=html
 
 **Output (HTML):**
 ```html
-<span class="regex-anchor">^</span><span class="regex-literal">hello</span><span class="regex-anchor">$</span>
+<span class="regex-token regex-anchor">^</span><span class="regex-token regex-literal">hello</span><span class="regex-token regex-anchor">$</span>
 ```
 
 ---
