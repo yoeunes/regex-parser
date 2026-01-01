@@ -83,6 +83,7 @@ final class ReDoSEnterpriseAnalyzerTest extends TestCase
         yield 'date format' => ['/^\d{4}-\d{2}-\d{2}$/'];
         yield 'slug' => ['/^[a-z0-9]+(?:-[a-z0-9]+)*$/'];
         yield 'hex color' => ['/^#[0-9a-f]{6}$/i'];
+        yield 'hex string' => ['/^#[0-9a-f]+$/i'];
         yield 'iso code' => ['/^(?:[A-Z]{2}\d{2})$/'];
         yield 'ipv4' => ['/^(?:\d{1,3}\.){3}\d{1,3}$/'];
         yield 'atomic repetition' => ['/(?>a+)+/'];
@@ -102,7 +103,6 @@ final class ReDoSEnterpriseAnalyzerTest extends TestCase
         yield 'url-ish' => ['/^https?:\/\/\S+$/'];
         yield 'disjoint alternation' => ['/(?:foo|bar)+/'];
         yield 'unicode class' => ['/\\p{L}+/u'];
-        yield 'hex string' => ['/^#[0-9a-f]+$/i'];
     }
 
     public static function provideHighPatterns(): \Iterator

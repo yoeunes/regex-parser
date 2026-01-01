@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- ReDoS analysis now detects empty-match repetitions and ambiguous adjacent quantifiers.
+- Suggested rewrites are surfaced for the highest-severity ReDoS finding.
+
+### Tests
+- Expanded the ReDoS test suite with real-world patterns and mitigation cases.
+
 ## [1.0.2] - 2025-12-31
 
 ### Added

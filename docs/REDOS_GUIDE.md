@@ -22,6 +22,8 @@ RegexParser focuses on structural patterns that cause backtracking blowups:
 - Nested unbounded quantifiers: `(a+)+`, `(.*)*`
 - Overlapping alternation inside repetition: `(a|aa)+`
 - Backreference loops inside repetition: `(\w+)\1+`
+- Quantifiers over empty-match subpatterns: `(a?)+`, `(a*)*`, `(\b)+`
+- Ambiguous adjacent quantifiers: `a+a+`, `(\w+)(\w+)`
 - Very large bounded repeats: `{1,10000}` (lower severity but still slow)
 
 These are not always unsafe, but they are the common sources of catastrophic backtracking.
@@ -48,6 +50,8 @@ Key heuristics in `ReDoSProfileNodeVisitor` include:
 - Star-height detection (nested unbounded quantifiers)
 - Alternation overlap detection via `CharSetAnalyzer`
 - Backreference loops combined with repetition
+- Empty-match repetition inside quantified groups
+- Ambiguous adjacent quantifiers with overlapping character sets
 - Atomic groups and possessive quantifiers reducing severity
 
 ## Using RegexParser
@@ -94,6 +98,22 @@ Vulnerable: /(a+)+b/
 Equivalent: /a+b/
 ```
 
+### Avoid empty-match repetition
+
+```
+Vulnerable: /(a?)+/
+Safer:      /a*/
+Safer:      /a+/   (if empty should not match)
+```
+
+### Avoid ambiguous adjacent quantifiers
+
+```
+Vulnerable: /a+a+/
+Safer:      /a+/
+Safer:      /a++a+/   (if the split must be preserved)
+```
+
 ### Prefer character classes over alternation
 
 ```
@@ -115,6 +135,8 @@ Safer:      /\d{1,10}/
 (a|aa)+      -> a+
 (\d+)+       -> \d++       or \d{1,10}
 (.+)+        -> .++        or .{1,100}
+(a?)+        -> a*         or a+
+a+a+         -> a+         or a++a+
 (a|b)+       -> [ab]+
 (\w+\d+)+    -> (?>\w+\d+)+
 ```

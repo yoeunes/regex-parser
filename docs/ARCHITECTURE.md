@@ -161,6 +161,8 @@ Core heuristics include:
 - Nested unbounded quantifiers (star height > 1)
 - Overlapping alternation branches inside repetition
 - Backreference loops within unbounded quantifiers
+- Quantifiers that repeat empty-match subpatterns
+- Adjacent quantified tokens with overlapping character sets
 - Large bounded quantifiers (low risk, but flagged)
 - Atomic groups and possessive quantifiers lowering severity
 
