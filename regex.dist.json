@@ -5,6 +5,7 @@
   "exclude": [
     "vendor",
     "tests",
+    "Tests",
     "Fixtures"
   ],
   "optimizations": {

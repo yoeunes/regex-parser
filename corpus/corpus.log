@@ -178,41 +178,6 @@
          - /### Usage\n([^#]*)\n\n###/s
          + /### Usage\n([^#]*)\n\n###/
 
-  corpus/device-detector/Tests/DeviceDetectorTest.php:885:33
-      → #(?<!\\)(\|\))#is
-     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
-     WARN  Flag 's' is useless: the pattern contains no dots.
-     TIP 
-         - #(?<!\\)(\|\))#is
-         + #(?<!\\)(\|\))#i
-
-  corpus/device-detector/Tests/DeviceDetectorTest.php:919:29
-      → ~(\[[);\\ ]{4}\])~m
-     WARN  Flag 'm' is useless: pattern '~(\[[);\\ ]{4}])~m' contains no anchors.
-     TIP 
-         - ~(\[[);\\ ]{4}\])~m
-         + ~(\[[);\\ ]{4}])~
-
-  corpus/device-detector/Tests/DeviceDetectorTest.php:924:29
-      → ~(?<!(?:\(\[\^[;\/)]{3}\][\+\*]\)))(\[[);\/ ]{3,4}\])~m
-     WARN  Flag 'm' is useless: pattern '~(?<!(?:\(\[\^[;\/)]{3}][+*]\)))(\[[);\/ ]{3,4}])~m' contains no anchors.
-     TIP 
-         - ~(?<!(?:\(\[\^[;\/)]{3}\][\+\*]\)))(\[[);\/ ]{3,4}\])~m
-         + ~(?<!(?:\(\[\^[;/)]{3}][+*]\)))(\[[);/ ]{3,4}])~
-
-  corpus/device-detector/Tests/DeviceDetectorTest.php:926:34
-      → ~(?:(?<=(?:\?:))(\[[);\/ ]{3,4}\])(?=\|\$))~m
-     WARN  Flag 'm' is useless: pattern '~(?:(?<=(?:\?:))(\[[);\/ ]{3,4}])(?=\|\$))~m' contains no anchors.
-     TIP 
-         - ~(?:(?<=(?:\?:))(\[[);\/ ]{3,4}\])(?=\|\$))~m
-         + ~(?:(?<=\?:)(\[[);/ ]{3,4}])(?=\|\$))~
-
-  corpus/device-detector/Tests/DeviceDetectorTest.php:903:33
-      → ~android (\d|\[\d+\]);~
-     TIP 
-         - ~android (\d|\[\d+\]);~
-         + ~android (\d|\[\d+]);~
-
   corpus/infection/src/TestFramework/Coverage/CoverageChecker.php:172:13
       → /(zend_extension\s*=.*xdebug.*)/mi
      WARN  Flag 'm' is useless: pattern '/(zend_extension\s*=.*xdebug.*)/mi' contains no anchors.
