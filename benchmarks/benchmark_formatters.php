@@ -71,7 +71,7 @@ foreach ($formatters as $label => $formatter) {
     gc_collect_cycles();
 }
 
-echo "Total memory usage: ".(memory_get_peak_usage(true) / 1024 / 1024)." MB\n";
+echo 'Total memory usage: '.(memory_get_peak_usage(true) / 1024 / 1024)." MB\n";
 
 function buildReport(int $count): RegexLintReport
 {

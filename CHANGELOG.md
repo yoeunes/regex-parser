@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Added a formatter benchmark script to measure lint output throughput and memory usage.
+- Added atomic-group tip suggestions for nested-quantifier and dot-star lint warnings.
 
 ### Documentation
 - Documented formatter benchmark usage in the README and benchmarks guide.
@@ -17,12 +18,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Optimizer now reuses a compiler visitor while resetting its state between string conversions.
 - Lint output formatters now assemble output using buffered chunks for large reports.
 - PHPStan pattern truncation now relies on a named constant.
+- Suspicious ASCII range warnings now describe the ASCII-order endpoints of the reported range.
 
 ### Tests
 - Added regression coverage to ensure non-alternation patterns do not trigger overlap warnings.
 - Added ReDoS coverage for nested possessive quantifier patterns that should remain safe.
 - Added coverage for compiler state resets between compilations.
 - Added coverage for the PHPStan truncation default length.
+- Added coverage for lint suggestion tips and the updated ASCII range message.
 
 ## [1.0.3] - 2026-01-02
 

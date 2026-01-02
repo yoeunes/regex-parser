@@ -67,10 +67,11 @@ class ConsoleFormatter extends AbstractOutputFormatter
         foreach ($groupedResults as $file => $results) {
             /** @var array<LintResult> $results */
             foreach ($results as $result) {
+                $pattern = $this->extractPatternForResult($result);
                 $parts[] = $this->formatPatternContext($result);
                 /** @var array<LintIssue> $issues */
                 $issues = $result['issues'] ?? [];
-                $parts[] = $this->formatIssues($issues);
+                $parts[] = $this->formatIssues($issues, $pattern);
                 /** @var array<OptimizationEntry> $optimizations */
                 $optimizations = $result['optimizations'] ?? [];
                 $parts[] = $this->formatOptimizations($optimizations);
@@ -172,9 +173,10 @@ class ConsoleFormatter extends AbstractOutputFormatter
      *
      * @phpstan-param array<LintIssue> $issues
      */
-    private function formatIssues(array $issues): string
+    private function formatIssues(array $issues, ?string $pattern): string
     {
         $parts = [];
+        $seenSuggestions = [];
 
         foreach ($issues as $issue) {
             $issueType = (string) ($issue['type'] ?? 'info');
@@ -187,6 +189,22 @@ class ConsoleFormatter extends AbstractOutputFormatter
                 if ('' !== $formattedHint) {
                     $parts[] = \sprintf('         %s'.\PHP_EOL, $this->dim(self::ARROW_LABEL.' '.$formattedHint));
                 }
+            }
+
+            $suggestedPattern = $issue['suggestedPattern'] ?? null;
+            if (
+                $this->config->shouldShowOptimizations()
+                && \is_string($suggestedPattern)
+                && '' !== $suggestedPattern
+                && \is_string($pattern)
+                && '' !== $pattern
+                && !isset($seenSuggestions[$suggestedPattern])
+            ) {
+                $seenSuggestions[$suggestedPattern] = true;
+                $parts[] = \sprintf('    %s'.\PHP_EOL,
+                    $this->badge('TIP', self::WHITE, self::BG_CYAN),
+                );
+                $parts[] = $this->formatOptimizationDiff($pattern, $suggestedPattern);
             }
         }
 

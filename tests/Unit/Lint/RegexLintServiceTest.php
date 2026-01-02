@@ -113,6 +113,35 @@ final class RegexLintServiceTest extends TestCase
         // Should have warnings from the linter
         $warnings = array_filter($result->results[0]['issues'], fn ($issue) => 'warning' === $issue['type']);
         $this->assertGreaterThan(0, \count($warnings));
+
+        $nestedWarnings = array_values(array_filter(
+            $result->results[0]['issues'],
+            fn (array $issue): bool => ($issue['issueId'] ?? '') === 'regex.lint.quantifier.nested',
+        ));
+
+        $this->assertCount(1, $nestedWarnings);
+        $this->assertArrayHasKey('suggestedPattern', $nestedWarnings[0]);
+        $this->assertSame('/(?>(a+))+/', $nestedWarnings[0]['suggestedPattern']);
+    }
+
+    public function test_analyze_adds_atomic_group_tip_for_dotstar_warning(): void
+    {
+        $request = new RegexLintRequest(['.'], [], 0);
+        $patterns = [
+            new RegexPatternOccurrence('/(?:.*)+/', 'test.php', 1, 'preg_match'),
+        ];
+
+        $service = new RegexLintService($this->analysis, $this->sources);
+        $result = $service->analyze($patterns, $request, null);
+
+        $dotstarWarnings = array_values(array_filter(
+            $result->results[0]['issues'],
+            fn (array $issue): bool => ($issue['issueId'] ?? '') === 'regex.lint.dotstar.nested',
+        ));
+
+        $this->assertCount(1, $dotstarWarnings);
+        $this->assertArrayHasKey('suggestedPattern', $dotstarWarnings[0]);
+        $this->assertSame('/(?>(?:.*))+/', $dotstarWarnings[0]['suggestedPattern']);
     }
 
     public function test_analyze_deduplicates_issues(): void

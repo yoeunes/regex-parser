@@ -14,6 +14,19 @@ declare(strict_types=1);
 namespace RegexParser\Lint;
 
 use RegexParser\Internal\PatternParser;
+use RegexParser\Node\AlternationNode;
+use RegexParser\Node\CharClassNode;
+use RegexParser\Node\ClassOperationNode;
+use RegexParser\Node\ConditionalNode;
+use RegexParser\Node\DefineNode;
+use RegexParser\Node\GroupNode;
+use RegexParser\Node\GroupType;
+use RegexParser\Node\NodeInterface;
+use RegexParser\Node\QuantifierNode;
+use RegexParser\Node\QuantifierType;
+use RegexParser\Node\RangeNode;
+use RegexParser\Node\RegexNode;
+use RegexParser\Node\SequenceNode;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
 use RegexParser\NodeVisitor\ConsoleHighlighterVisitor;
 use RegexParser\NodeVisitor\LinterNodeVisitor;
@@ -85,7 +98,7 @@ final readonly class RegexAnalysisService
     /**
      * @param array<RegexPatternOccurrence> $patterns
      *
-     * @return array<array{type: string, file: string, line: int, column: int, position?: int, message: string, issueId?: string, hint?: string|null, source?: string, analysis?: ReDoSAnalysis, validation?: ValidationResult}>
+     * @return array<array{type: string, file: string, line: int, column: int, position?: int, message: string, issueId?: string, hint?: string|null, suggestedPattern?: string, source?: string, analysis?: ReDoSAnalysis, validation?: ValidationResult}>
      */
     public function lint(array $patterns, ?callable $progress = null, int $workers = 1): array
     {
@@ -161,7 +174,7 @@ final readonly class RegexAnalysisService
     /**
      * @param array<RegexPatternOccurrence> $patterns
      *
-     * @return array<array{type: string, file: string, line: int, column: int, position?: int, message: string, issueId?: string, hint?: string|null, source?: string, analysis?: ReDoSAnalysis, validation?: ValidationResult}>
+     * @return array<array{type: string, file: string, line: int, column: int, position?: int, message: string, issueId?: string, hint?: string|null, suggestedPattern?: string, source?: string, analysis?: ReDoSAnalysis, validation?: ValidationResult}>
      */
     private function lintChunk(array $patterns, ?callable $progress = null): array
     {
@@ -217,7 +230,12 @@ final readonly class RegexAnalysisService
                     continue;
                 }
 
-                $issues[] = [
+                $suggestedPattern = null;
+                if (isset(self::RISK_LINT_ISSUE_IDS[$issue->id]) && \is_int($issue->offset)) {
+                    $suggestedPattern = $this->buildAtomicGroupSuggestion($occurrence->pattern, $ast, $issue->offset);
+                }
+
+                $issueEntry = [
                     'type' => 'warning',
                     'file' => $occurrence->file,
                     'line' => $occurrence->line,
@@ -228,6 +246,12 @@ final readonly class RegexAnalysisService
                     'hint' => $issue->hint,
                     'source' => $source,
                 ];
+
+                if (null !== $suggestedPattern && $suggestedPattern !== $occurrence->pattern) {
+                    $issueEntry['suggestedPattern'] = $suggestedPattern;
+                }
+
+                $issues[] = $issueEntry;
             }
 
             if (!$skipRiskAnalysis) {
@@ -268,6 +292,122 @@ final readonly class RegexAnalysisService
         }
 
         return $issues;
+    }
+
+    private function buildAtomicGroupSuggestion(string $pattern, RegexNode $ast, int $offset): ?string
+    {
+        $quantifier = $this->findQuantifierByOffset($ast->pattern, $offset);
+        if (null === $quantifier) {
+            return null;
+        }
+
+        if (QuantifierType::T_POSSESSIVE === $quantifier->type) {
+            return null;
+        }
+
+        if ($quantifier->node instanceof GroupNode && GroupType::T_GROUP_ATOMIC === $quantifier->node->type) {
+            return null;
+        }
+
+        $target = $quantifier->node;
+        $start = $target->getStartPosition();
+        $end = $target->getEndPosition();
+
+        try {
+            [$body, $flags, $delimiter] = PatternParser::extractPatternAndFlags($pattern);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        $length = \strlen($body);
+        if ($start < 0 || $end <= $start || $end > $length) {
+            return null;
+        }
+
+        $suggestedBody = substr($body, 0, $start).'(?>'.substr($body, $start, $end - $start).')'.substr($body, $end);
+        $closingDelimiter = PatternParser::closingDelimiter($delimiter);
+
+        return $delimiter.$suggestedBody.$closingDelimiter.$flags;
+    }
+
+    private function findQuantifierByOffset(NodeInterface $node, int $offset): ?QuantifierNode
+    {
+        if ($node instanceof QuantifierNode) {
+            if ($node->getStartPosition() === $offset) {
+                return $node;
+            }
+
+            return $this->findQuantifierByOffset($node->node, $offset);
+        }
+
+        if ($node instanceof RegexNode) {
+            return $this->findQuantifierByOffset($node->pattern, $offset);
+        }
+
+        if ($node instanceof GroupNode) {
+            return $this->findQuantifierByOffset($node->child, $offset);
+        }
+
+        if ($node instanceof SequenceNode) {
+            foreach ($node->children as $child) {
+                $found = $this->findQuantifierByOffset($child, $offset);
+                if (null !== $found) {
+                    return $found;
+                }
+            }
+
+            return null;
+        }
+
+        if ($node instanceof AlternationNode) {
+            foreach ($node->alternatives as $alt) {
+                $found = $this->findQuantifierByOffset($alt, $offset);
+                if (null !== $found) {
+                    return $found;
+                }
+            }
+
+            return null;
+        }
+
+        if ($node instanceof ConditionalNode) {
+            foreach ([$node->condition, $node->yes, $node->no] as $child) {
+                $found = $this->findQuantifierByOffset($child, $offset);
+                if (null !== $found) {
+                    return $found;
+                }
+            }
+
+            return null;
+        }
+
+        if ($node instanceof DefineNode) {
+            return $this->findQuantifierByOffset($node->content, $offset);
+        }
+
+        if ($node instanceof CharClassNode) {
+            return $this->findQuantifierByOffset($node->expression, $offset);
+        }
+
+        if ($node instanceof ClassOperationNode) {
+            $found = $this->findQuantifierByOffset($node->left, $offset);
+            if (null !== $found) {
+                return $found;
+            }
+
+            return $this->findQuantifierByOffset($node->right, $offset);
+        }
+
+        if ($node instanceof RangeNode) {
+            $found = $this->findQuantifierByOffset($node->start, $offset);
+            if (null !== $found) {
+                return $found;
+            }
+
+            return $this->findQuantifierByOffset($node->end, $offset);
+        }
+
+        return null;
     }
 
     /**

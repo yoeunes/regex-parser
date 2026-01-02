@@ -80,6 +80,24 @@ final class LinterRulesTest extends TestCase
         $this->assertContains('regex.lint.charclass.suspicious_range', $issues);
     }
 
+    public function test_suspicious_char_class_range_message_uses_ascii_order(): void
+    {
+        $regex = Regex::create()->parse('/[A-z]/');
+        $linter = new LinterNodeVisitor();
+        $regex->accept($linter);
+
+        $issues = array_values(array_filter(
+            $linter->getIssues(),
+            static fn ($issue): bool => 'regex.lint.charclass.suspicious_range' === $issue->id,
+        ));
+
+        $this->assertCount(1, $issues);
+        $this->assertSame(
+            'Suspicious ASCII range "A-z" includes non-letters between "A" and "z" in ASCII order.',
+            $issues[0]->message,
+        );
+    }
+
     public function test_suspicious_char_class_pipe_warning(): void
     {
         $issues = $this->lint('/[error|failure]/');

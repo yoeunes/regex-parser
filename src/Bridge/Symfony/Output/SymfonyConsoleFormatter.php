@@ -81,10 +81,11 @@ final readonly class SymfonyConsoleFormatter implements OutputFormatterInterface
         $issues = $result['issues'] ?? [];
         /** @var array<OptimizationEntry> $optimizations */
         $optimizations = $result['optimizations'] ?? [];
+        $pattern = $this->extractPatternForResult($result);
 
         $output = '';
         $output .= $this->displayPatternContext($result);
-        $output .= $this->displayIssues($issues);
+        $output .= $this->displayIssues($issues, $pattern);
         $output .= $this->displayOptimizations($optimizations);
         $output .= \PHP_EOL;
 
@@ -162,9 +163,10 @@ final readonly class SymfonyConsoleFormatter implements OutputFormatterInterface
     /**
      * @phpstan-param array<LintIssue> $issues
      */
-    private function displayIssues(array $issues): string
+    private function displayIssues(array $issues, ?string $pattern = null): string
     {
         $parts = [];
+        $seenSuggestions = [];
 
         foreach ($issues as $issue) {
             $issueType = (string) ($issue['type'] ?? 'info');
@@ -178,6 +180,23 @@ final readonly class SymfonyConsoleFormatter implements OutputFormatterInterface
                     self::ARROW_LABEL,
                     OutputFormatter::escape($hint),
                 );
+            }
+
+            $suggestedPattern = $issue['suggestedPattern'] ?? null;
+            if (
+                \is_string($suggestedPattern)
+                && '' !== $suggestedPattern
+                && \is_string($pattern)
+                && '' !== $pattern
+                && !isset($seenSuggestions[$suggestedPattern])
+            ) {
+                $seenSuggestions[$suggestedPattern] = true;
+                $original = $this->safelyHighlightPattern($pattern);
+                $optimized = $this->safelyHighlightPattern($suggestedPattern);
+
+                $parts[] = '    <bg=cyan;fg=white;options=bold> TIP </>'.\PHP_EOL;
+                $parts[] = \sprintf('         <fg=red>- %s</>'.\PHP_EOL, $original);
+                $parts[] = \sprintf('         <fg=green>+ %s</>'.\PHP_EOL, $optimized);
             }
         }
 

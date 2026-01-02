@@ -1119,9 +1119,16 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
 
             if ($this->isAsciiLetter($startOrd) && $this->isAsciiLetter($endOrd) && $minOrd <= 90 && $maxOrd >= 97) {
                 $rangeLabel = $part->start->value.'-'.$part->end->value;
+                $minChar = \chr($minOrd);
+                $maxChar = \chr($maxOrd);
                 $this->addIssue(
                     'regex.lint.charclass.suspicious_range',
-                    \sprintf('Suspicious ASCII range "%s" includes non-letters between "Z" and "a".', $rangeLabel),
+                    \sprintf(
+                        'Suspicious ASCII range "%s" includes non-letters between "%s" and "%s" in ASCII order.',
+                        $rangeLabel,
+                        $minChar,
+                        $maxChar,
+                    ),
                     $part->startPosition,
                     'Use separate ranges like [A-Z] and [a-z] (or combine as [A-Za-z]).',
                 );

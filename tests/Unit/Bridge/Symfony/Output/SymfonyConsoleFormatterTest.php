@@ -210,6 +210,42 @@ final class SymfonyConsoleFormatterTest extends TestCase
         $this->assertStringContainsString('optimized', $output);
     }
 
+    public function test_format_with_issue_suggested_pattern_tip(): void
+    {
+        $analysis = new RegexAnalysisService(Regex::create());
+        $relativePathHelper = new RelativePathHelper();
+        $linkFormatter = new LinkFormatter(null, $relativePathHelper);
+
+        $formatter = new SymfonyConsoleFormatter($analysis, $linkFormatter, false);
+
+        $result = [
+            'file' => 'test.php',
+            'line' => 10,
+            'pattern' => '/(a+)+/',
+            'issues' => [
+                [
+                    'type' => 'warning',
+                    'message' => 'Nested quantifiers can cause catastrophic backtracking.',
+                    'file' => 'test.php',
+                    'line' => 10,
+                    'issueId' => 'regex.lint.quantifier.nested',
+                    'hint' => 'Consider using atomic groups (?>...) or possessive quantifiers.',
+                    'suggestedPattern' => '/(?>(a+))+/',
+                ],
+            ],
+            'optimizations' => [],
+            'problems' => [],
+        ];
+
+        $report = new RegexLintReport([$result], ['errors' => 0, 'warnings' => 1, 'optimizations' => 0]);
+
+        $output = $formatter->format($report);
+
+        $this->assertStringContainsString('TIP', $output);
+        $this->assertStringContainsString('- /(a+)+/', $output);
+        $this->assertStringContainsString('+ /(?\>(a+))+/', $output);
+    }
+
     public function test_format_with_location(): void
     {
         $analysis = new RegexAnalysisService(Regex::create());

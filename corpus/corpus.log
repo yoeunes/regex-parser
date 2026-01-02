@@ -9,36 +9,57 @@
       → /(\d+\.?)+(-p\d+)?$/
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /(\d+\.?)+(-p\d+)?$/
+         + /(?>(\d+\.?))+(-p\d+)?$/
 
   corpus/deployer/recipe/symfony.php:11
       → /(\d+\.?)+/
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /(\d+\.?)+/
+         + /(?>(\d+\.?))+/
 
   corpus/deployer/recipe/codeigniter4.php:28
       → /(\d+\.?)+/
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /(\d+\.?)+/
+         + /(?>(\d+\.?))+/
 
   corpus/deployer/recipe/statamic.php:18
       → /(\d+\.?)+/
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /(\d+\.?)+/
+         + /(?>(\d+\.?))+/
 
   corpus/deployer/recipe/contao.php:36
       → /(\d+\.?)+/
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /(\d+\.?)+/
+         + /(?>(\d+\.?))+/
 
   corpus/deployer/recipe/contao.php:42
       → /(\d+\.?)+/
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /(\d+\.?)+/
+         + /(?>(\d+\.?))+/
 
   corpus/deployer/recipe/laravel.php:28
       → /(\d+\.?)+/
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /(\d+\.?)+/
+         + /(?>(\d+\.?))+/
 
   corpus/deployer/src/Documentation/DocGen.php:354
       → #^(/\*\*?\s?|\s\*\s?|//\s?)#
@@ -94,6 +115,9 @@
       → #// line (?<line_number>\d+)+#
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - #// line (?<line_number>\d+)+#
+         + #// line (?>(?<line_number>\d+))+#
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
 
   corpus/phpstorm-stubs/tests/Parsers/ParserUtils.php:20
@@ -104,6 +128,9 @@
       → /^\$PHPMAILER_LANG\['([a-z\d_]+)'\]\s*=\s*(["'])(.+)*?\2;/
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /^\$PHPMAILER_LANG\['([a-z\d_]+)'\]\s*=\s*(["'])(.+)*?\2;/
+         + /^\$PHPMAILER_LANG\['([a-z\d_]+)'\]\s*=\s*(["'])(?>(.+))*?\2;/
      WARN  An unbounded quantifier wraps a dot-star, which can cause severe backtracking.
          ↳ Refactor with atomic groups or a more specific character class.
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
@@ -123,6 +150,9 @@
          ↳ Consider using atomic groups (?>...) to prevent backtracking. Do not reorder overlapping alternatives as it changes match semantics.
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /^(?!(?>(?1)"?(?>\\[ -~]|[^"])"?(?1)){255,})(?!(?>(?1)"?(?>\\[ -~]|[^"])"?(?1)){65,}@)((?>(?>(?>((?>(?>(?>\x0D\x0A)?[\t ])+|(?>[\t ]*\x0D\x0A)?[\t ]+)?)(\((?>(?2)(?>[\x01-\x08\x0B\x0C\x0E-'*-\[\]-\x7F]|\\[\x00-\x7F]|(?3)))*(?2)\)))+(?2))|(?2))?)([!#-'*+\/-9=?^-~-]+|"(?>(?2)(?>[\x01-\x08\x0B\x0C\x0E-!#-\[\]-\x7F]|\\[\x00-\x7F]))*(?2)")(?>(?1)\.(?1)(?4))*(?1)@(?!(?1)[a-z0-9-]{64,})(?1)(?>([a-z0-9](?>[a-z0-9-]*[a-z0-9])?)(?>(?1)\.(?!(?1)[a-z0-9-]{64,})(?1)(?5)){0,126}|\[(?:(?>IPv6:(?>([a-f0-9]{1,4})(?>:(?6)){7}|(?!(?:.*[a-f0-9][:\]]){8,})((?6)(?>:(?6)){0,6})?::(?7)?))|(?>(?>IPv6:(?>(?6)(?>:(?6)){5}:|(?!(?:.*[a-f0-9]:){6,})(?8)?::(?>((?6)(?>:(?6)){0,4}):)?))?(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])(?>\.(?9)){3}))\])(?1)$/isD
+         + /^(?!(?>(?1)"?(?>\\[ -~]|[^"])"?(?1)){255,})(?!(?>(?1)"?(?>\\[ -~]|[^"])"?(?1)){65,}@)((?>(?>(?>((?>(?>(?>\x0D\x0A)?[\t ])+|(?>[\t ]*\x0D\x0A)?[\t ]+)?)(\((?>(?2)(?>[\x01-\x08\x0B\x0C\x0E-'*-\[\]-\x7F]|\\[\x00-\x7F]|(?3)))*(?2)\)))+(?2))|(?2))?)([!#-'*+\/-9=?^-~-]+|"(?>(?2)(?>[\x01-\x08\x0B\x0C\x0E-!#-\[\]-\x7F]|\\[\x00-\x7F]))*(?2)")(?>(?1)\.(?1)(?4))*(?1)@(?!(?1)[a-z0-9-]{64,})(?1)(?>([a-z0-9](?>[a-z0-9-]*[a-z0-9])?)(?>(?1)\.(?!(?1)[a-z0-9-]{64,})(?1)(?5)){0,126}|\[(?:(?>IPv6:(?>([a-f0-9]{1,4})(?>:(?6)){7}|(?!(?>(?:.*[a-f0-9][:\]])){8,})((?6)(?>:(?6)){0,6})?::(?7)?))|(?>(?>IPv6:(?>(?6)(?>:(?6)){5}:|(?!(?:.*[a-f0-9]:){6,})(?8)?::(?>((?6)(?>:(?6)){0,4}):)?))?(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])(?>\.(?9)){3}))\])(?1)$/isD
      WARN  An unbounded quantifier wraps a dot-star, which can cause severe backtracking.
          ↳ Refactor with atomic groups or a more specific character class.
 
@@ -130,18 +160,27 @@
       → /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/sD
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/sD
+         + /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?>(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?))*$/sD
      WARN  Flag 's' is useless: the pattern contains no dots.
 
   corpus/PHPMailer/src/PHPMailer.php:1529
       → /^[-\p{L}\p{N}\p{M}.!#$%&'*+\/=?^_`{|}~]+@[\p{L}\p{N}\p{M}](?:[\p{L}\p{N}\p{M}-]{0,61}[\p{L}\p{N}\p{M}])?(?:\.[\p{L}\p{N}\p{M}](?:[-\p{L}\p{N}\p{M}]{0,61}[\p{L}\p{N}\p{M}])?)*$/usD
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /^[-\p{L}\p{N}\p{M}.!#$%&'*+\/=?^_`{|}~]+@[\p{L}\p{N}\p{M}](?:[\p{L}\p{N}\p{M}-]{0,61}[\p{L}\p{N}\p{M}])?(?:\.[\p{L}\p{N}\p{M}](?:[-\p{L}\p{N}\p{M}]{0,61}[\p{L}\p{N}\p{M}])?)*$/usD
+         + /^[-\p{L}\p{N}\p{M}.!#$%&'*+\/=?^_`{|}~]+@[\p{L}\p{N}\p{M}](?:[\p{L}\p{N}\p{M}-]{0,61}[\p{L}\p{N}\p{M}])?(?>(?:\.[\p{L}\p{N}\p{M}](?:[-\p{L}\p{N}\p{M}]{0,61}[\p{L}\p{N}\p{M}])?))*$/usD
      WARN  Flag 's' is useless: the pattern contains no dots.
 
   corpus/PHPMailer/src/PHPMailer.php:2546
       → /^\$PHPMAILER_LANG\['([a-z\d_]+)'\]\s*=\s*(["'])(.+)*?\2;/
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /^\$PHPMAILER_LANG\['([a-z\d_]+)'\]\s*=\s*(["'])(.+)*?\2;/
+         + /^\$PHPMAILER_LANG\['([a-z\d_]+)'\]\s*=\s*(["'])(?>(.+))*?\2;/
      WARN  An unbounded quantifier wraps a dot-star, which can cause severe backtracking.
          ↳ Refactor with atomic groups or a more specific character class.
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
@@ -201,6 +240,9 @@
       → /^<\?php\s*(\/\*[\s\S]*?\*\/|\/\/[^\r\n]*(?:\r?\n|$)|\s)*declare\s*\(\s*strict_types\s*=\s*1\s*\)\s*;/m
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /^<\?php\s*(\/\*[\s\S]*?\*\/|\/\/[^\r\n]*(?:\r?\n|$)|\s)*declare\s*\(\s*strict_types\s*=\s*1\s*\)\s*;/m
+         + /^<\?php\s*(?>(\/\*[\s\S]*?\*\/|\/\/[^\r\n]*(?:\r?\n|$)|\s))*declare\s*\(\s*strict_types\s*=\s*1\s*\)\s*;/m
      WARN  Alternation branches have overlapping character sets, which may cause unnecessary backtracking.
          ↳ Consider using atomic groups (?>...) to prevent backtracking. Do not reorder overlapping alternatives as it changes match semantics.
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
@@ -392,6 +434,9 @@
       → /^\[(.+,?)*\]$/
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /^\[(.+,?)*\]$/
+         + /^\[(?>(.+,?))*\]$/
      WARN  An unbounded quantifier wraps a dot-star, which can cause severe backtracking.
          ↳ Refactor with atomic groups or a more specific character class.
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
@@ -403,6 +448,9 @@
       → /^(?:(.+,?)|(x))*$/
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /^(?:(.+,?)|(x))*$/
+         + /^(?>(?:(.+,?)|(x)))*$/
      WARN  An unbounded quantifier wraps a dot-star, which can cause severe backtracking.
          ↳ Refactor with atomic groups or a more specific character class.
      WARN  Alternation branches have overlapping character sets, which may cause unnecessary backtracking.
@@ -546,12 +594,18 @@
       → /(\D+)*[12]/
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /(\D+)*[12]/
+         + /(?>(\D+))*[12]/
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
 
   corpus/phpstan-src/tests/PHPStan/Analyser/nsrt/bug-11547.php:47
       → /(\D+)*[12]/
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /(\D+)*[12]/
+         + /(?>(\D+))*[12]/
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
 
   corpus/phpstan-src/tests/PHPStan/Analyser/data/passed-by-reference.php:13
@@ -696,6 +750,9 @@
       → /^([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}$/
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /^([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}$/
+         + /^(?>([a-z0-9]+(-[a-z0-9]+)*\.))+[a-z]{2,}$/
 
   corpus/aidingapp/app-modules/engagement/src/Actions/GenerateTipTapBodyJson.php:54
       → /{{2}[\s\S]*?}{2}|\s*\S+\s*/
@@ -848,7 +905,7 @@
   corpus/server/core/Migrations/Version13000Date20170718121200.php:1021
       → /(calendar)\/([A-z0-9-@_]+)\//
      WARN  Redundant elements detected in character class.
-     WARN  Suspicious ASCII range "A-z" includes non-letters between "Z" and "a".
+     WARN  Suspicious ASCII range "A-z" includes non-letters between "A" and "z" in ASCII order.
          ↳ Use separate ranges like [A-Z] and [a-z] (or combine as [A-Za-z]).
 
   corpus/server/core/Command/Db/ConvertType.php:246
@@ -1044,12 +1101,18 @@
       → /(@[^{]+{(?:[^{}]*|(?R))*})/
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /(@[^{]+{(?:[^{}]*|(?R))*})/
+         + /(@[^{]+{(?>(?:[^{}]*|(?R)))*})/
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
 
   corpus/server/apps/theming/lib/Controller/ThemingController.php:413
       → /(@[^{]+{(?:[^{}]*|(?R))*})/
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /(@[^{]+{(?:[^{}]*|(?R))*})/
+         + /(@[^{]+{(?>(?:[^{}]*|(?R)))*})/
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
 
   corpus/server/apps/theming/lib/ThemingDefaults.php:187
@@ -1182,7 +1245,7 @@
   corpus/elementor/php-scoper/twig-inc.php:34
       → /("use )([A-z\\]+;[\\n]*")/
      WARN  Redundant elements detected in character class.
-     WARN  Suspicious ASCII range "A-z" includes non-letters between "Z" and "a".
+     WARN  Suspicious ASCII range "A-z" includes non-letters between "A" and "z" in ASCII order.
          ↳ Use separate ranges like [A-Z] and [a-z] (or combine as [A-Za-z]).
 
   corpus/elementor/includes/stylesheet.php:320
@@ -1203,6 +1266,9 @@
       → /-.*?(\{% block (.*?) %})+/
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /-.*?(\{% block (.*?) %})+/
+         + /-.*?(?>(\{% block (.*?) %}))+/
      WARN  An unbounded quantifier wraps a dot-star, which can cause severe backtracking.
          ↳ Refactor with atomic groups or a more specific character class.
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
@@ -1211,6 +1277,9 @@
       → /\+.*?(\{% block (.*?) %})+/
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /\+.*?(\{% block (.*?) %})+/
+         + /\+.*?(?>(\{% block (.*?) %}))+/
      WARN  An unbounded quantifier wraps a dot-star, which can cause severe backtracking.
          ↳ Refactor with atomic groups or a more specific character class.
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
@@ -1247,6 +1316,9 @@
       → /.*?(\$(?![0-9])(?:[a-zA-Z0-9-_]|(?:\[!"#$%&'\(\)*+,.\/:;<=>?@\[\]^{|}~]))+)/
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /.*?(\$(?![0-9])(?:[a-zA-Z0-9-_]|(?:\[!"#$%&'\(\)*+,.\/:;<=>?@\[\]^{|}~]))+)/
+         + /.*?(\$(?![0-9])(?>(?:[a-zA-Z0-9-_]|(?:\[!"#$%&'\(\)*+,.\/:;<=>?@\[\]^{|}~])))+)/
      WARN  End anchor '$' appears before consuming characters, making it impossible to match.
      WARN  Start anchor '^' appears after consuming characters, making it impossible to match.
 
@@ -1254,6 +1326,9 @@
       → /^(?:[A-Z]+(_[A-Z]+)*)+$/
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /^(?:[A-Z]+(_[A-Z]+)*)+$/
+         + /^(?>(?:[A-Z]+(_[A-Z]+)*))+$/
 
   corpus/shopware/src/Core/DevOps/StaticAnalyze/PHPStan/Rules/NoUpdatesInExecuteQueryRule.php:68
       → /\b(UPDATE|DELETE|INSERT|REPLACE|DROP|TRUNCATE)\b/
@@ -1269,6 +1344,9 @@
       → /^[_a-zA-Z][_a-zA-Z0-9]*(\\[_a-zA-Z][_a-zA-Z0-9]*)*\\$/
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /^[_a-zA-Z][_a-zA-Z0-9]*(\\[_a-zA-Z][_a-zA-Z0-9]*)*\\$/
+         + /^[_a-zA-Z][_a-zA-Z0-9]*(?>(\\[_a-zA-Z][_a-zA-Z0-9]*))*\\$/
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
      TIP 
          - /^[_a-zA-Z][_a-zA-Z0-9]*(\\[_a-zA-Z][_a-zA-Z0-9]*)*\\$/
@@ -1292,6 +1370,9 @@
       → /^([a-z\d](-*[a-z\d])*)(\.([a-z\d](-*[a-z\d])*))*\.?$/i
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /^([a-z\d](-*[a-z\d])*)(\.([a-z\d](-*[a-z\d])*))*\.?$/i
+         + /^([a-z\d](-*[a-z\d])*)(?>(\.([a-z\d](-*[a-z\d])*)))*\.?$/i
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
 
   corpus/pie/src/Platform/TargetPhp/PhpBinaryPath.php:453
@@ -1551,6 +1632,9 @@
          ↳ Consider using atomic groups (?>...) to prevent backtracking. Do not reorder overlapping alternatives as it changes match semantics.
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /^(crop|cover)(-top-left|-top|-top-right|-left|-center|-right|-bottom-left|-bottom|-bottom-right?)*$/
+         + /^(crop|cover)(?>(-top-left|-top|-top-right|-left|-center|-right|-bottom-left|-bottom|-bottom-right?))*$/
      WARN  Alternation branches "-top-left" and "-top" overlap.
          ↳ Consider using atomic groups (?>...) to prevent backtracking. Do not reorder overlapping alternatives as it changes match semantics.
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
@@ -1559,6 +1643,9 @@
       → /^crop-([\d]{1,3})-([\d]{1,3})(?:-([\d]{1,3}(?:\.\d+)?))*$/
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /^crop-([\d]{1,3})-([\d]{1,3})(?:-([\d]{1,3}(?:\.\d+)?))*$/
+         + /^crop-([\d]{1,3})-([\d]{1,3})(?>(?:-([\d]{1,3}(?:\.\d+)?)))*$/
 
   corpus/thephpleague/glide/src/Manipulators/Helpers/Dimension.php:46
       → /^(\d{1,2}(?!\d)|100)(w|h)$/
@@ -2080,6 +2167,9 @@
       → /^(RH|r)?((Z?F)?[N]{0,2})?(([ZJ]?G(JN?)?)[CR]J?((Z?F)?[N]{0,2})?){0,4}((([ZJ]?G(JN?)?)|GZ)|(GJ)?([ZJ]{0,3}MN?(H|JHJR)?){0,4})(G([CR]J?((Z?F)?[N]{0,2})?|V))?(SZ?)?[v]{0,2}/
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /^(RH|r)?((Z?F)?[N]{0,2})?(([ZJ]?G(JN?)?)[CR]J?((Z?F)?[N]{0,2})?){0,4}((([ZJ]?G(JN?)?)|GZ)|(GJ)?([ZJ]{0,3}MN?(H|JHJR)?){0,4})(G([CR]J?((Z?F)?[N]{0,2})?|V))?(SZ?)?[v]{0,2}/
+         + /^(RH|r)?((Z?F)?[N]{0,2})?(?>(([ZJ]?G(JN?)?)[CR]J?((Z?F)?[N]{0,2})?)){0,4}((([ZJ]?G(JN?)?)|GZ)|(GJ)?([ZJ]{0,3}MN?(H|JHJR)?){0,4})(G([CR]J?((Z?F)?[N]{0,2})?|V))?(SZ?)?[v]{0,2}/
      WARN  Alternation branches have overlapping character sets, which may cause unnecessary backtracking.
          ↳ Consider using atomic groups (?>...) to prevent backtracking. Do not reorder overlapping alternatives as it changes match semantics.
 
@@ -2093,6 +2183,9 @@
       → /([a-z]|[A-Z])([ ,\-.\d]+)*/
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /([a-z]|[A-Z])([ ,\-.\d]+)*/
+         + /([a-z]|[A-Z])(?>([ ,\-.\d]+))*/
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
      TIP 
          - /([a-z]|[A-Z])([ ,\-.\d]+)*/
@@ -2204,6 +2297,9 @@
       → /([MZLHVCSQTAmzlhvcsqta])([eE ,\-.\d]+)*/
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /([MZLHVCSQTAmzlhvcsqta])([eE ,\-.\d]+)*/
+         + /([MZLHVCSQTAmzlhvcsqta])(?>([eE ,\-.\d]+))*/
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
      TIP 
          - /([MZLHVCSQTAmzlhvcsqta])([eE ,\-.\d]+)*/
@@ -2365,6 +2461,9 @@
       → /([MZLHVCSQTAmzlhvcsqta])([eE ,\-.\d]+)*/
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /([MZLHVCSQTAmzlhvcsqta])([eE ,\-.\d]+)*/
+         + /([MZLHVCSQTAmzlhvcsqta])(?>([eE ,\-.\d]+))*/
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
      TIP 
          - /([MZLHVCSQTAmzlhvcsqta])([eE ,\-.\d]+)*/
@@ -2713,6 +2812,9 @@
       → #{%.?block subject.?%}((.*?)+){%.?endblock.?%}#
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - #{%.?block subject.?%}((.*?)+){%.?endblock.?%}#
+         + #{%.?block subject.?%}((?>(.*?))+){%.?endblock.?%}#
      WARN  An unbounded quantifier wraps a dot-star, which can cause severe backtracking.
          ↳ Refactor with atomic groups or a more specific character class.
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
@@ -2721,6 +2823,9 @@
       → /{%.?block content.?%}((.*?\n)+){%.?endblock.?%}/m
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /{%.?block content.?%}((.*?\n)+){%.?endblock.?%}/m
+         + /{%.?block content.?%}((?>(.*?\n))+){%.?endblock.?%}/m
      WARN  An unbounded quantifier wraps a dot-star, which can cause severe backtracking.
          ↳ Refactor with atomic groups or a more specific character class.
      WARN  Flag 'm' is useless: pattern '/\{%.?block content.?%\}((.*?\n)+)\{%.?endblock.?%\}/m' contains no anchors.
@@ -2829,6 +2934,9 @@
       → /"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'/As
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'/As
+         + /"([^"\\]*(?>(?:\\.[^"\\]*))*)"|'([^'\\]*(?:\\.[^'\\]*)*)'/As
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
 
   corpus/symfony/src/Symfony/Component/ExpressionLanguage/Lexer.php:75
@@ -2840,6 +2948,9 @@
       → /(^[^,\\]*(?:\\.[^,\\]*)*),/
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /(^[^,\\]*(?:\\.[^,\\]*)*),/
+         + /(^[^,\\]*(?>(?:\\.[^,\\]*))*),/
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
 
   corpus/symfony/src/Symfony/Component/Emoji/Resources/bin/build.php:237
@@ -2863,6 +2974,9 @@
       → /^(?:\\?[a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]*)+$/
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /^(?:\\?[a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]*)+$/
+         + /^(?>(?:\\?[a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]*))+$/
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
 
   corpus/symfony/src/Symfony/Component/ErrorHandler/DebugClassLoader.php:1243
@@ -2881,6 +2995,9 @@
       → ~(?:(?:\\\*){2,}(/?))+~
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - ~(?:(?:\\\*){2,}(/?))+~
+         + ~(?>(?:(?:\\\*){2,}(/?)))+~
 
   corpus/symfony/src/Symfony/Component/Finder/Gitignore.php:82
       → ~\\\[((?:\\!)?)([^\[\]]*)\\\]~
@@ -2902,6 +3019,9 @@
       → #^(\#.*?\n)+#s
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - #^(\#.*?\n)+#s
+         + #^(?>(\#.*?\n))+#s
      WARN  An unbounded quantifier wraps a dot-star, which can cause severe backtracking.
          ↳ Refactor with atomic groups or a more specific character class.
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
@@ -2959,6 +3079,9 @@
          ↳ Consider using atomic groups (?>...) to prevent backtracking. Do not reorder overlapping alternatives as it changes match semantics.
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /\(\?(?:=|<=|!|<!)((?:[^()\\]+|\\.|\((?1)\))*)\)/
+         + /\(\?(?:=|<=|!|<!)((?>(?:[^()\\]+|\\.|\((?1)\)))*)\)/
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
 
   corpus/symfony/src/Symfony/Component/Routing/Generator/UrlGenerator.php:228
@@ -2967,12 +3090,18 @@
          ↳ Consider using atomic groups (?>...) to prevent backtracking. Do not reorder overlapping alternatives as it changes match semantics.
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /\(\?(?:=|<=|!|<!)((?:[^()\\]+|\\.|\((?1)\))*)\)/
+         + /\(\?(?:=|<=|!|<!)((?>(?:[^()\\]+|\\.|\((?1)\)))*)\)/
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
 
   corpus/symfony/src/Symfony/Component/Routing/Loader/AttributeClassLoader.php:245
       → /^(?:\\?[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*)+$/
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /^(?:\\?[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*)+$/
+         + /^(?>(?:\\?[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*))+$/
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
 
   corpus/symfony/src/Symfony/Component/HtmlSanitizer/TextSanitizer/UrlSanitizer.php:153
@@ -3008,6 +3137,9 @@
       → /^'(?:\\{2})?[A-Z_a-z\x7F-\xFF][0-9A-Z_a-z\x7F-\xFF]*(?:\\\\[A-Z_a-z\x7F-\xFF][0-9A-Z_a-z\x7F-\xFF]*)*'$/
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /^'(?:\\{2})?[A-Z_a-z\x7F-\xFF][0-9A-Z_a-z\x7F-\xFF]*(?:\\\\[A-Z_a-z\x7F-\xFF][0-9A-Z_a-z\x7F-\xFF]*)*'$/
+         + /^'(?:\\{2})?[A-Z_a-z\x7F-\xFF][0-9A-Z_a-z\x7F-\xFF]*(?>(?:\\\\[A-Z_a-z\x7F-\xFF][0-9A-Z_a-z\x7F-\xFF]*))*'$/
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
 
   corpus/symfony/src/Symfony/Component/DependencyInjection/Dumper/PhpDumper.php:1680
@@ -3022,6 +3154,9 @@
       → /^'(?:\\{2})?[A-Z_a-z\x7F-\xFF][0-9A-Z_a-z\x7F-\xFF]*(?:\\\\[A-Z_a-z\x7F-\xFF][0-9A-Z_a-z\x7F-\xFF]*)*'$/
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /^'(?:\\{2})?[A-Z_a-z\x7F-\xFF][0-9A-Z_a-z\x7F-\xFF]*(?:\\\\[A-Z_a-z\x7F-\xFF][0-9A-Z_a-z\x7F-\xFF]*)*'$/
+         + /^'(?:\\{2})?[A-Z_a-z\x7F-\xFF][0-9A-Z_a-z\x7F-\xFF]*(?>(?:\\\\[A-Z_a-z\x7F-\xFF][0-9A-Z_a-z\x7F-\xFF]*))*'$/
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
 
   corpus/symfony/src/Symfony/Component/Process/Process.php:1558
@@ -3071,12 +3206,19 @@
       → /--TEST--\s*(.*?)\s*(?:--CONDITION--\s*(.*))?\s*(?:--DEPRECATION--\s*(.*?))?\s*((?:--TEMPLATE(?:\(.*?\))?--(?:.*?))+)\s*(?:--DATA--\s*(.*))?\s*--EXCEPTION--\s*(.*)/sx
      WARN  An unbounded quantifier wraps a dot-star, which can cause severe backtracking.
          ↳ Refactor with atomic groups or a more specific character class.
+     TIP 
+         - /--TEST--\s*(.*?)\s*(?:--CONDITION--\s*(.*))?\s*(?:--DEPRECATION--\s*(.*?))?\s*((?:--TEMPLATE(?:\(.*?\))?--(?:.*?))+)\s*(?:--DATA--\s*(.*))?\s*--EXCEPTION--\s*(.*)/sx
+         ---
+         + /--TEST--\s*(.*?)\s*(?:--CONDITION--\s*(.*))?\s*(?:--DEPRECATION--\s*(.*?))?\s*((?>(?:--TEMPLATE(?:\(.*?\))?--(?:.*?)))+)\s*(?:--DATA--\s*(.*))?\s*--EXCEPTION--\s*(.*)/sx
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
 
   corpus/Twig/src/Test/IntegrationTestCase.php:177
       → /--TEST--\s*(.*?)\s*(?:--CONDITION--\s*(.*))?\s*(?:--DEPRECATION--\s*(.*?))?\s*((?:--TEMPLATE(?:\(.*?\))?--(?:.*?))+)--DATA--.*?--EXPECT--.*/s
      WARN  An unbounded quantifier wraps a dot-star, which can cause severe backtracking.
          ↳ Refactor with atomic groups or a more specific character class.
+     TIP 
+         - /--TEST--\s*(.*?)\s*(?:--CONDITION--\s*(.*))?\s*(?:--DEPRECATION--\s*(.*?))?\s*((?:--TEMPLATE(?:\(.*?\))?--(?:.*?))+)--DATA--.*?--EXPECT--.*/s
+         + /--TEST--\s*(.*?)\s*(?:--CONDITION--\s*(.*))?\s*(?:--DEPRECATION--\s*(.*?))?\s*((?>(?:--TEMPLATE(?:\(.*?\))?--(?:.*?)))+)--DATA--.*?--EXPECT--.*/s
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
 
   corpus/Twig/src/Test/IntegrationTestCase.php:183
@@ -3094,13 +3236,13 @@
   corpus/squizlabs/PHP_CodeSniffer/src/Tokenizers/JS.php:471
       → |[a-zA-z0-9_]|
      WARN  Redundant elements detected in character class.
-     WARN  Suspicious ASCII range "A-z" includes non-letters between "Z" and "a".
+     WARN  Suspicious ASCII range "A-z" includes non-letters between "A" and "z" in ASCII order.
          ↳ Use separate ranges like [A-Z] and [a-z] (or combine as [A-Za-z]).
 
   corpus/squizlabs/PHP_CodeSniffer/src/Tokenizers/JS.php:473
       → |[a-zA-z0-9_]|
      WARN  Redundant elements detected in character class.
-     WARN  Suspicious ASCII range "A-z" includes non-letters between "Z" and "a".
+     WARN  Suspicious ASCII range "A-z" includes non-letters between "A" and "z" in ASCII order.
          ↳ Use separate ranges like [A-Z] and [a-z] (or combine as [A-Za-z]).
 
   corpus/squizlabs/PHP_CodeSniffer/src/Tokenizers/JS.php:852
@@ -3113,6 +3255,9 @@
       → `^((?<!\.)_[0-9A-F][0-9A-F\.]*)+$`iD
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - `^((?<!\.)_[0-9A-F][0-9A-F\.]*)+$`iD
+         + `^(?>((?<!\.)_[0-9A-F][0-9A-F\.]*))+$`iD
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
      TIP 
          - `^((?<!\.)_[0-9A-F][0-9A-F\.]*)+$`iD
@@ -3122,6 +3267,9 @@
       → `^(?:(?<![\.e])_[0-9][0-9e\.]*)+$`iD
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - `^(?:(?<![\.e])_[0-9][0-9e\.]*)+$`iD
+         + `^(?>(?:(?<![\.e])_[0-9][0-9e\.]*))+$`iD
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
      TIP 
          - `^(?:(?<![\.e])_[0-9][0-9e\.]*)+$`iD
@@ -3182,6 +3330,9 @@
       → /(^[a-zA-Z0-9_-]+([.][^\001)\ ]+)+$)/siU
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /(^[a-zA-Z0-9_-]+([.][^\001)\ ]+)+$)/siU
+         + /(^[a-zA-Z0-9_-]+(?>([.][^\001)\ ]+))+$)/siU
      WARN  Flag 's' is useless: the pattern contains no dots.
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
 
@@ -3217,10 +3368,13 @@
 
   corpus/freescout/overrides/filp/whoops/src/Whoops/Util/TemplateHelper.php:90
       → @([A-z]+?://([-\w\.]+[-\w])+(:\d+)?(/([\w/_\.#-]*(\?\S+)?[^\.\s])?)?)@
-     WARN  Suspicious ASCII range "A-z" includes non-letters between "Z" and "a".
+     WARN  Suspicious ASCII range "A-z" includes non-letters between "A" and "z" in ASCII order.
          ↳ Use separate ranges like [A-Z] and [a-z] (or combine as [A-Za-z]).
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - @([A-z]+?://([-\w\.]+[-\w])+(:\d+)?(/([\w/_\.#-]*(\?\S+)?[^\.\s])?)?)@
+         + @([A-z]+?://(?>([-\w\.]+[-\w]))+(:\d+)?(/([\w/_\.#-]*(\?\S+)?[^\.\s])?)?)@
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
 
   corpus/freescout/overrides/filp/whoops/src/Whoops/Util/TemplateHelper.php:225
@@ -3291,6 +3445,9 @@
       → /([A-Z]{2,3}[\,|\ \,]\ [0-9]{1,2}\ [A-Z]{2,3}\ [0-9]{4}\ [0-9]{1,2}\:[0-9]{1,2}\:[0-9]{1,2}.*)+$/i
      WARN  An unbounded quantifier wraps a dot-star, which can cause severe backtracking.
          ↳ Refactor with atomic groups or a more specific character class.
+     TIP 
+         - /([A-Z]{2,3}[\,|\ \,]\ [0-9]{1,2}\ [A-Z]{2,3}\ [0-9]{4}\ [0-9]{1,2}\:[0-9]{1,2}\:[0-9]{1,2}.*)+$/i
+         + /(?>([A-Z]{2,3}[\,|\ \,]\ [0-9]{1,2}\ [A-Z]{2,3}\ [0-9]{4}\ [0-9]{1,2}\:[0-9]{1,2}\:[0-9]{1,2}.*))+$/i
      WARN  Redundant elements detected in character class.
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
      TIP 
@@ -3433,6 +3590,9 @@
       → /([A-Z]{2,3}[\,|\ \,]\ [0-9]{1,2}\ [A-Z]{2,3}\ [0-9]{4}\ [0-9]{1,2}\:[0-9]{1,2}\:[0-9]{1,2}.*)+$/i
      WARN  An unbounded quantifier wraps a dot-star, which can cause severe backtracking.
          ↳ Refactor with atomic groups or a more specific character class.
+     TIP 
+         - /([A-Z]{2,3}[\,|\ \,]\ [0-9]{1,2}\ [A-Z]{2,3}\ [0-9]{4}\ [0-9]{1,2}\:[0-9]{1,2}\:[0-9]{1,2}.*)+$/i
+         + /(?>([A-Z]{2,3}[\,|\ \,]\ [0-9]{1,2}\ [A-Z]{2,3}\ [0-9]{4}\ [0-9]{1,2}\:[0-9]{1,2}\:[0-9]{1,2}.*))+$/i
      WARN  Redundant elements detected in character class.
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
      TIP 
@@ -3598,10 +3758,16 @@
       → /^(?!(?:(?:\x22?\x5C[\x00-\x7E]\x22?)|(?:\x22?[^\x5C\x22]\x22?)){255,})(?!(?:(?:\x22?\x5C[\x00-\x7E]\x22?)|(?:\x22?[^\x5C\x22]\x22?)){65,}@)(?:(?:[\x21\x23-\x27\x2A\x2B\x2D\x2F-\x39\x3D\x3F\x5E-\x7E\pL\pN]+)|(?:\x22(?:[\x01-\x08\x0B\x0C\x0E-\x1F\x21\x23-\x5B\x5D-\x7F\pL\pN]|(?:\x5C[\x00-\x7F]))*\x22))(?:\.(?:(?:[\x21\x23-\x27\x2A\x2B\x2D\x2F-\x39\x3D\x3F\x5E-\x7E\pL\pN]+)|(?:\x22(?:[\x01-\x08\x0B\x0C\x0E-\x1F\x21\x23-\x5B\x5D-\x7F\pL\pN]|(?:\x5C[\x00-\x7F]))*\x22)))*@(?:(?:(?!.*[^.]{64,})(?:(?:(?:xn--)?[a-z0-9]+(?:-+[a-z0-9]+)*\.){1,126}){1,}(?:(?:[a-z][a-z0-9]*)|(?:(?:xn--)[a-z0-9]+))(?:-+[a-z0-9]+)*)|(?:\[(?:(?:IPv6:(?:(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){7})|(?:(?!(?:.*[a-f0-9][:\]]){7,})(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){0,5})?::(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){0,5})?)))|(?:(?:IPv6:(?:(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){5}:)|(?:(?!(?:.*[a-f0-9]:){5,})(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){0,3})?::(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){0,3}:)?)))?(?:(?:25[0-5])|(?:2[0-4][0-9])|(?:1[0-9]{2})|(?:[1-9]?[0-9]))(?:\.(?:(?:25[0-5])|(?:2[0-4][0-9])|(?:1[0-9]{2})|(?:[1-9]?[0-9]))){3}))]))$/iDu
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /^(?!(?:(?:\x22?\x5C[\x00-\x7E]\x22?)|(?:\x22?[^\x5C\x22]\x22?)){255,})(?!(?:(?:\x22?\x5C[\x00-\x7E]\x22?)|(?:\x22?[^\x5C\x22]\x22?)){65,}@)(?:(?:[\x21\x23-\x27\x2A\x2B\x2D\x2F-\x39\x3D\x3F\x5E-\x7E\pL\pN]+)|(?:\x22(?:[\x01-\x08\x0B\x0C\x0E-\x1F\x21\x23-\x5B\x5D-\x7F\pL\pN]|(?:\x5C[\x00-\x7F]))*\x22))(?:\.(?:(?:[\x21\x23-\x27\x2A\x2B\x2D\x2F-\x39\x3D\x3F\x5E-\x7E\pL\pN]+)|(?:\x22(?:[\x01-\x08\x0B\x0C\x0E-\x1F\x21\x23-\x5B\x5D-\x7F\pL\pN]|(?:\x5C[\x00-\x7F]))*\x22)))*@(?:(?:(?!.*[^.]{64,})(?:(?:(?:xn--)?[a-z0-9]+(?:-+[a-z0-9]+)*\.){1,126}){1,}(?:(?:[a-z][a-z0-9]*)|(?:(?:xn--)[a-z0-9]+))(?:-+[a-z0-9]+)*)|(?:\[(?:(?:IPv6:(?:(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){7})|(?:(?!(?:.*[a-f0-9][:\]]){7,})(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){0,5})?::(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){0,5})?)))|(?:(?:IPv6:(?:(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){5}:)|(?:(?!(?:.*[a-f0-9]:){5,})(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){0,3})?::(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){0,3}:)?)))?(?:(?:25[0-5])|(?:2[0-4][0-9])|(?:1[0-9]{2})|(?:[1-9]?[0-9]))(?:\.(?:(?:25[0-5])|(?:2[0-4][0-9])|(?:1[0-9]{2})|(?:[1-9]?[0-9]))){3}))]))$/iDu
+         + /^(?!(?>(?:(?:\x22?\x5C[\x00-\x7E]\x22?)|(?:\x22?[^\x5C\x22]\x22?))){255,})(?!(?:(?:\x22?\x5C[\x00-\x7E]\x22?)|(?:\x22?[^\x5C\x22]\x22?)){65,}@)(?:(?:[\x21\x23-\x27\x2A\x2B\x2D\x2F-\x39\x3D\x3F\x5E-\x7E\pL\pN]+)|(?:\x22(?:[\x01-\x08\x0B\x0C\x0E-\x1F\x21\x23-\x5B\x5D-\x7F\pL\pN]|(?:\x5C[\x00-\x7F]))*\x22))(?:\.(?:(?:[\x21\x23-\x27\x2A\x2B\x2D\x2F-\x39\x3D\x3F\x5E-\x7E\pL\pN]+)|(?:\x22(?:[\x01-\x08\x0B\x0C\x0E-\x1F\x21\x23-\x5B\x5D-\x7F\pL\pN]|(?:\x5C[\x00-\x7F]))*\x22)))*@(?:(?:(?!.*[^.]{64,})(?:(?:(?:xn--)?[a-z0-9]+(?:-+[a-z0-9]+)*\.){1,126}){1,}(?:(?:[a-z][a-z0-9]*)|(?:(?:xn--)[a-z0-9]+))(?:-+[a-z0-9]+)*)|(?:\[(?:(?:IPv6:(?:(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){7})|(?:(?!(?:.*[a-f0-9][:\]]){7,})(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){0,5})?::(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){0,5})?)))|(?:(?:IPv6:(?:(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){5}:)|(?:(?!(?:.*[a-f0-9]:){5,})(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){0,3})?::(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){0,3}:)?)))?(?:(?:25[0-5])|(?:2[0-4][0-9])|(?:1[0-9]{2})|(?:[1-9]?[0-9]))(?:\.(?:(?:25[0-5])|(?:2[0-4][0-9])|(?:1[0-9]{2})|(?:[1-9]?[0-9]))){3}))]))$/iDu
      WARN  Alternation branches have overlapping character sets, which may cause unnecessary backtracking.
          ↳ Consider using atomic groups (?>...) to prevent backtracking. Do not reorder overlapping alternatives as it changes match semantics.
      WARN  An unbounded quantifier wraps a dot-star, which can cause severe backtracking.
          ↳ Refactor with atomic groups or a more specific character class.
+     TIP 
+         - /^(?!(?:(?:\x22?\x5C[\x00-\x7E]\x22?)|(?:\x22?[^\x5C\x22]\x22?)){255,})(?!(?:(?:\x22?\x5C[\x00-\x7E]\x22?)|(?:\x22?[^\x5C\x22]\x22?)){65,}@)(?:(?:[\x21\x23-\x27\x2A\x2B\x2D\x2F-\x39\x3D\x3F\x5E-\x7E\pL\pN]+)|(?:\x22(?:[\x01-\x08\x0B\x0C\x0E-\x1F\x21\x23-\x5B\x5D-\x7F\pL\pN]|(?:\x5C[\x00-\x7F]))*\x22))(?:\.(?:(?:[\x21\x23-\x27\x2A\x2B\x2D\x2F-\x39\x3D\x3F\x5E-\x7E\pL\pN]+)|(?:\x22(?:[\x01-\x08\x0B\x0C\x0E-\x1F\x21\x23-\x5B\x5D-\x7F\pL\pN]|(?:\x5C[\x00-\x7F]))*\x22)))*@(?:(?:(?!.*[^.]{64,})(?:(?:(?:xn--)?[a-z0-9]+(?:-+[a-z0-9]+)*\.){1,126}){1,}(?:(?:[a-z][a-z0-9]*)|(?:(?:xn--)[a-z0-9]+))(?:-+[a-z0-9]+)*)|(?:\[(?:(?:IPv6:(?:(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){7})|(?:(?!(?:.*[a-f0-9][:\]]){7,})(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){0,5})?::(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){0,5})?)))|(?:(?:IPv6:(?:(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){5}:)|(?:(?!(?:.*[a-f0-9]:){5,})(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){0,3})?::(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){0,3}:)?)))?(?:(?:25[0-5])|(?:2[0-4][0-9])|(?:1[0-9]{2})|(?:[1-9]?[0-9]))(?:\.(?:(?:25[0-5])|(?:2[0-4][0-9])|(?:1[0-9]{2})|(?:[1-9]?[0-9]))){3}))]))$/iDu
+         + /^(?!(?:(?:\x22?\x5C[\x00-\x7E]\x22?)|(?:\x22?[^\x5C\x22]\x22?)){255,})(?!(?:(?:\x22?\x5C[\x00-\x7E]\x22?)|(?:\x22?[^\x5C\x22]\x22?)){65,}@)(?:(?:[\x21\x23-\x27\x2A\x2B\x2D\x2F-\x39\x3D\x3F\x5E-\x7E\pL\pN]+)|(?:\x22(?:[\x01-\x08\x0B\x0C\x0E-\x1F\x21\x23-\x5B\x5D-\x7F\pL\pN]|(?:\x5C[\x00-\x7F]))*\x22))(?:\.(?:(?:[\x21\x23-\x27\x2A\x2B\x2D\x2F-\x39\x3D\x3F\x5E-\x7E\pL\pN]+)|(?:\x22(?:[\x01-\x08\x0B\x0C\x0E-\x1F\x21\x23-\x5B\x5D-\x7F\pL\pN]|(?:\x5C[\x00-\x7F]))*\x22)))*@(?:(?:(?!.*[^.]{64,})(?:(?:(?:xn--)?[a-z0-9]+(?:-+[a-z0-9]+)*\.){1,126}){1,}(?:(?:[a-z][a-z0-9]*)|(?:(?:xn--)[a-z0-9]+))(?:-+[a-z0-9]+)*)|(?:\[(?:(?:IPv6:(?:(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){7})|(?:(?!(?>(?:.*[a-f0-9][:\]])){7,})(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){0,5})?::(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){0,5})?)))|(?:(?:IPv6:(?:(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){5}:)|(?:(?!(?:.*[a-f0-9]:){5,})(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){0,3})?::(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){0,3}:)?)))?(?:(?:25[0-5])|(?:2[0-4][0-9])|(?:1[0-9]{2})|(?:[1-9]?[0-9]))(?:\.(?:(?:25[0-5])|(?:2[0-4][0-9])|(?:1[0-9]{2})|(?:[1-9]?[0-9]))){3}))]))$/iDu
      TIP 
          - /^(?!(?:(?:\x22?\x5C[\x00-\x7E]\x22?)|(?:\x22?[^\x5C\x22]\x22?)){255,})(?!(?:(?:\x22?\x5C[\x00-\x7E]\x22?)|(?:\x22?[^\x5C\x22]\x22?)){65,}@)(?:(?:[\x21\x23-\x27\x2A\x2B\x2D\x2F-\x39\x3D\x3F\x5E-\x7E\pL\pN]+)|(?:\x22(?:[\x01-\x08\x0B\x0C\x0E-\x1F\x21\x23-\x5B\x5D-\x7F\pL\pN]|(?:\x5C[\x00-\x7F]))*\x22))(?:\.(?:(?:[\x21\x23-\x27\x2A\x2B\x2D\x2F-\x39\x3D\x3F\x5E-\x7E\pL\pN]+)|(?:\x22(?:[\x01-\x08\x0B\x0C\x0E-\x1F\x21\x23-\x5B\x5D-\x7F\pL\pN]|(?:\x5C[\x00-\x7F]))*\x22)))*@(?:(?:(?!.*[^.]{64,})(?:(?:(?:xn--)?[a-z0-9]+(?:-+[a-z0-9]+)*\.){1,126}){1,}(?:(?:[a-z][a-z0-9]*)|(?:(?:xn--)[a-z0-9]+))(?:-+[a-z0-9]+)*)|(?:\[(?:(?:IPv6:(?:(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){7})|(?:(?!(?:.*[a-f0-9][:\]]){7,})(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){0,5})?::(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){0,5})?)))|(?:(?:IPv6:(?:(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){5}:)|(?:(?!(?:.*[a-f0-9]:){5,})(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){0,3})?::(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){0,3}:)?)))?(?:(?:25[0-5])|(?:2[0-4][0-9])|(?:1[0-9]{2})|(?:[1-9]?[0-9]))(?:\.(?:(?:25[0-5])|(?:2[0-4][0-9])|(?:1[0-9]{2})|(?:[1-9]?[0-9]))){3}))]))$/iDu
          + /^(?!(?:(?:"?\[\x00-~]"?)|(?:"?[^\"]"?)){255,})(?!(?:(?:"?\[\x00-~]"?)|(?:"?[^\"]"?)){65,}@)(?:(?:[!#-'*+\-\/-9=?\^-~\pL\pN]+)|(?:"(?:[\x01-\x08\x0B\f\x0E-\x1F!#-\[\]-\x7F\pL\pN]|(?:\[\x00-\x7F]))*"))(?:\.(?:(?:[!#-'*+\-\/-9=?\^-~\pL\pN]+)|(?:"(?:[\x01-\x08\x0B\f\x0E-\x1F!#-\[\]-\x7F\pL\pN]|(?:\[\x00-\x7F]))*")))*@(?:(?:(?!.*[^.]{64,})(?:(?:(?:xn--)?[0-9a-z]+(?:-+[0-9a-z]+)*\.){1,126})+(?:(?:[a-z][0-9a-z]*)|(?:xn--[0-9a-z]+))(?:-+[0-9a-z]+)*)|(?:\[(?:(?:IPv6:(?:(?:[0-9a-f]{1,4}(?::[0-9a-f]{1,4}){7})|(?:(?!(?:.*[0-9a-f][:\]]){7,})(?:[0-9a-f]{1,4}(?::[0-9a-f]{1,4}){0,5})?::(?:[0-9a-f]{1,4}(?::[0-9a-f]{1,4}){0,5})?)))|(?:(?:IPv6:(?:(?:[0-9a-f]{1,4}(?::[0-9a-f]{1,4}){5}:)|(?:(?!(?:.*[0-9a-f]:){5,})(?:[0-9a-f]{1,4}(?::[0-9a-f]{1,4}){0,3})?::(?:[0-9a-f]{1,4}(?::[0-9a-f]{1,4}){0,3}:)?)))?(?:(?:25[0-5])|(?:2[0-4][0-9])|(?:1[0-9]{2})|(?:[1-9]?[0-9]))(?:\.(?:(?:25[0-5])|(?:2[0-4][0-9])|(?:1[0-9]{2})|(?:[1-9]?[0-9]))){3}))]))$/iDu
@@ -3610,6 +3776,9 @@
       → /^[+(]?(\d+[ +()\/-]*)+$/
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /^[+(]?(\d+[ +()\/-]*)+$/
+         + /^[+(]?(?>(\d+[ +()\/-]*))+$/
 
   corpus/contao/contao/core-bundle/contao/library/Contao/Validator.php:163
       → /^[\w\/.*+?$#%:,;{}()[\]@&!=~|-]+$/u
@@ -3674,6 +3843,9 @@
       → /^(?:[a-z_\x80-\xff][a-z0-9_\x80-\xff]*\\?)+(?<!\\)$/i
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /^(?:[a-z_\x80-\xff][a-z0-9_\x80-\xff]*\\?)+(?<!\\)$/i
+         + /^(?>(?:[a-z_\x80-\xff][a-z0-9_\x80-\xff]*\\?))+(?<!\\)$/i
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
 
   corpus/contao/contao/core-bundle/src/Translation/LegacyGlobalsProcessor.php:23
@@ -3746,7 +3918,7 @@
   corpus/laravel/framework/src/Illuminate/Support/Env.php:190
       → /^[a-zA-z0-9]+$/
      WARN  Redundant elements detected in character class.
-     WARN  Suspicious ASCII range "A-z" includes non-letters between "Z" and "a".
+     WARN  Suspicious ASCII range "A-z" includes non-letters between "A" and "z" in ASCII order.
          ↳ Use separate ranges like [A-Z] and [a-z] (or combine as [A-Za-z]).
 
   corpus/laravel/framework/src/Illuminate/Notifications/Messages/SimpleMessage.php:242

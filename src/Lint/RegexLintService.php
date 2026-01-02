@@ -27,7 +27,7 @@ use RegexParser\ValidationResult;
  *
  * @internal
  *
- * @phpstan-type LintIssue array{type: string, message: string, file: string, line: int, column?: int, position?: int, issueId?: string, hint?: string|null, source?: string, pattern?: string, regex?: string, analysis?: ReDoSAnalysis, validation?: ValidationResult}
+ * @phpstan-type LintIssue array{type: string, message: string, file: string, line: int, column?: int, position?: int, issueId?: string, hint?: string|null, suggestedPattern?: string, source?: string, pattern?: string, regex?: string, analysis?: ReDoSAnalysis, validation?: ValidationResult}
  * @phpstan-type OptimizationEntry array{
  *     file: string,
  *     line: int,
