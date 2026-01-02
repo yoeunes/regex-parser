@@ -48,7 +48,7 @@ Parser -> RegexNode (AST) (builds a tree structure)
 
 **Don't worry if this seems complex!** You don't need to understand the internals to use RegexParser effectively.
 
-🔍 **Want to learn more?** See [What is an AST?](../concepts/ast.md)
+🔍 **Want to learn more?** See [What is an AST?](concepts/ast.md)
 
 ---
 
@@ -98,7 +98,7 @@ $ast = $regex->parse('/\d{3}-\d{4}/');
 
 **Use when:** You need to understand or analyze pattern structure.
 
-🔍 **Learn more:** [What is an AST?](../concepts/ast.md)
+🔍 **Learn more:** [What is an AST?](concepts/ast.md)
 
 ---
 
@@ -172,7 +172,7 @@ echo "ReDoS Severity: " . $analysis->severity->value;  // "safe"
 
 **What is ReDoS?** Regular Expression Denial of Service - where certain inputs can make your regex take forever to process.
 
-🔍 **Learn more:** [ReDoS Deep Dive](../concepts/redos.md)
+🔍 **Learn more:** [ReDoS Deep Dive](concepts/redos.md)
 
 ---
 
@@ -282,7 +282,7 @@ $ast->accept($counter);
 echo "Quantifiers: " . $counter->getCount(); // "3"
 ```
 
-🔍 **Learn more:** [Understanding Visitors](../concepts/visitors.md)
+🔍 **Learn more:** [Understanding Visitors](concepts/visitors.md)
 
 ---
 

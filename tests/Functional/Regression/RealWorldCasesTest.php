@@ -59,16 +59,10 @@ final class RealWorldCasesTest extends TestCase
         yield ['/000/i', "Flag 'i' is useless: the pattern contains no case-sensitive characters."];
         yield ['/111/i', "Flag 'i' is useless: the pattern contains no case-sensitive characters."];
 
-        // Alternation overlapping
-        yield ['@^(([0-9]*.[0-9]+)|([0-9]+(.[0-9]*)?))(e[+-]?[0-9]+)?$@i', 'Alternation branches have overlapping character sets, which may cause unnecessary backtracking.'];
-        yield ['/=(([a-f][a-f0-9])|([a-f0-9][a-f]))/', 'Alternation branches have overlapping character sets, which may cause unnecessary backtracking.'];
-        yield ['@200|301|302|307@', 'Alternation branches have overlapping character sets, which may cause unnecessary backtracking.'];
-        yield ['/^(http|https|ftp):.+/i', 'Alternation branches "http" and "https" overlap.'];
-        yield ['/^(img|image|source|input|video|audio)$/i', 'Alternation branches have overlapping character sets, which may cause unnecessary backtracking.'];
-        yield ['/<(html|head|body)/i', 'Alternation branches have overlapping character sets, which may cause unnecessary backtracking.'];
-        yield ['/(WIN|WINDOWS)([0-9]+)/', 'Alternation branches "WIN" and "WINDOWS" overlap.'];
-        yield ['/(\s|	)?/', 'Alternation branches have overlapping character sets, which may cause unnecessary backtracking.'];
-        yield ['/^((xn--)?([A-Za-z0-9][A-Za-z0-9-]{0,61}[A-Za-z0-9])|([A-Za-z0-9]))$/', 'Alternation branches have overlapping character sets, which may cause unnecessary backtracking.'];
+        // Alternation overlapping - only flagged when inside an unbounded quantifier
+        // These patterns wrap overlapping alternations in quantifiers, creating ReDoS risk
+        yield ['/(([0-9]*.[0-9]+)|([0-9]+(.[0-9]*)?))+/', 'Alternation branches have overlapping character sets, which may cause unnecessary backtracking.'];
+        yield ['/(([a-f][a-f0-9])|([a-f0-9][a-f]))+/', 'Alternation branches have overlapping character sets, which may cause unnecessary backtracking.'];
         yield ['%^(?:[-]|[-][-]|[-][-]|[-][-]{2}|[-][-]|[-][-]{2}|[-][-]{3}|[-][-]{2})*$%xs', 'Alternation branches have overlapping character sets, which may cause unnecessary backtracking.'];
 
         // Redundant elements

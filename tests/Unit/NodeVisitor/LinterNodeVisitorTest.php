@@ -297,14 +297,26 @@ final class LinterNodeVisitorTest extends TestCase
         $this->assertNotContains('Backreference \\k<foo> refers to a non-existent named group.', $warnings);
     }
 
-    public function test_semantic_overlap_in_alternation(): void
+    public function test_semantic_overlap_in_alternation_inside_quantifier(): void
     {
-        $regex = Regex::create()->parse('/[a-c]|[b-d]/');
+        // Overlapping alternations should only be flagged when inside an unbounded quantifier
+        $regex = Regex::create()->parse('/([a-c]|[b-d])+/');
         $linter = new LinterNodeVisitor();
         $regex->accept($linter);
         $warnings = $linter->getWarnings();
 
         $this->assertContains('Alternation branches have overlapping character sets, which may cause unnecessary backtracking.', $warnings);
+    }
+
+    public function test_no_semantic_overlap_when_not_inside_quantifier(): void
+    {
+        // Without a quantifier, overlapping alternations don't cause ReDoS
+        $regex = Regex::create()->parse('/[a-c]|[b-d]/');
+        $linter = new LinterNodeVisitor();
+        $regex->accept($linter);
+        $warnings = $linter->getWarnings();
+
+        $this->assertNotContains('Alternation branches have overlapping character sets, which may cause unnecessary backtracking.', $warnings);
     }
 
     public function test_no_semantic_overlap_in_alternation(): void
@@ -327,13 +339,58 @@ final class LinterNodeVisitorTest extends TestCase
         $this->assertNotContains('Alternation branches have overlapping character sets, which may cause unnecessary backtracking.', $warnings);
     }
 
-    public function test_semantic_overlap_with_char_types(): void
+    public function test_semantic_overlap_with_char_types_inside_quantifier(): void
     {
-        $regex = Regex::create()->parse('/\\d|[0-9]/');
+        // Overlapping alternations should only be flagged when inside an unbounded quantifier
+        $regex = Regex::create()->parse('/(\\d|[0-9])+/');
         $linter = new LinterNodeVisitor();
         $regex->accept($linter);
         $warnings = $linter->getWarnings();
 
         $this->assertContains('Alternation branches have overlapping character sets, which may cause unnecessary backtracking.', $warnings);
+    }
+
+    public function test_no_overlap_for_line_ending_pattern(): void
+    {
+        // The canonical line-ending pattern should NOT be flagged as it's safe
+        $regex = Regex::create()->parse('/\\r\\n|\\r|\\n/');
+        $linter = new LinterNodeVisitor();
+        $regex->accept($linter);
+        $warnings = $linter->getWarnings();
+
+        $this->assertNotContains('Alternation branches have overlapping character sets, which may cause unnecessary backtracking.', $warnings);
+    }
+
+    public function test_no_overlap_for_isbn_prefix_pattern(): void
+    {
+        // Fixed-length literal alternations should NOT be flagged
+        $regex = Regex::create()->parse('/^(978|979)/');
+        $linter = new LinterNodeVisitor();
+        $regex->accept($linter);
+        $warnings = $linter->getWarnings();
+
+        $this->assertNotContains('Alternation branches have overlapping character sets, which may cause unnecessary backtracking.', $warnings);
+    }
+
+    public function test_overlap_inside_possessive_quantifier_not_flagged(): void
+    {
+        // Possessive quantifiers don't backtrack, so overlaps are safe
+        $regex = Regex::create()->parse('/([a-c]|[b-d])++/');
+        $linter = new LinterNodeVisitor();
+        $regex->accept($linter);
+        $warnings = $linter->getWarnings();
+
+        $this->assertNotContains('Alternation branches have overlapping character sets, which may cause unnecessary backtracking.', $warnings);
+    }
+
+    public function test_overlap_inside_atomic_group_not_flagged(): void
+    {
+        // Atomic groups don't backtrack, so overlaps are safe
+        $regex = Regex::create()->parse('/(?>[a-c]|[b-d])+/');
+        $linter = new LinterNodeVisitor();
+        $regex->accept($linter);
+        $warnings = $linter->getWarnings();
+
+        $this->assertNotContains('Alternation branches have overlapping character sets, which may cause unnecessary backtracking.', $warnings);
     }
 }

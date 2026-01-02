@@ -197,6 +197,16 @@ final class LinterNodeVisitorCorpusTest extends TestCase
                 $issueIds = array_values(array_diff($issueIds, ['regex.lint.overlap.charset']));
             } elseif (\in_array('regex.lint.alternation.overlap', $issueIds, true)) {
                 $issueIds = array_values(array_diff($issueIds, ['regex.lint.overlap.charset']));
+            } elseif (!self::hasAlternationInsideUnboundedQuantifier($pattern)) {
+                // Overlapping alternations are only flagged when inside an unbounded quantifier
+                $issueIds = array_values(array_diff($issueIds, ['regex.lint.overlap.charset']));
+            }
+        }
+
+        // Overlapping alternation literals are only flagged when inside an unbounded quantifier
+        if (\in_array('regex.lint.alternation.overlap', $issueIds, true)) {
+            if (!self::hasAlternationInsideUnboundedQuantifier($pattern)) {
+                $issueIds = array_values(array_diff($issueIds, ['regex.lint.alternation.overlap']));
             }
         }
 
@@ -205,6 +215,60 @@ final class LinterNodeVisitorCorpusTest extends TestCase
         }
 
         return $issueIds;
+    }
+
+    /**
+     * Simple heuristic to check if a pattern has an alternation inside an unbounded quantifier.
+     * This is a conservative check - it may have false negatives (allow some patterns that
+     * should be filtered) but should not have false positives.
+     *
+     * Important: We only flag overlaps inside UNBOUNDED, NON-POSSESSIVE quantifiers:
+     * - `+`, `*`, `{n,}` are unbounded
+     * - `++`, `*+`, `{n,}+` are possessive (don't backtrack)
+     * - `{n}`, `{n,m}` are bounded (don't cause exponential backtracking)
+     *
+     * Note: This is a simple text-based heuristic. The actual linter uses AST traversal
+     * with parent tracking, which is more accurate. This heuristic is used to filter
+     * corpus test expectations.
+     */
+    private static function hasAlternationInsideUnboundedQuantifier(string $pattern): bool
+    {
+        try {
+            [$body] = PatternParser::extractPatternAndFlags($pattern);
+        } catch (\Throwable) {
+            return false;
+        }
+
+        // Quick heuristic: look for patterns like (|)+ or (|)* or (|){n,}
+        // Exclude possessive quantifiers (++, *+, ?+) and bounded quantifiers {n,m}
+
+        // Check for greedy/lazy unbounded quantifier after a group containing alternation
+        // Patterns like: (...|...)+, (...|...)*, (...|...)+?, (...|...)*?
+        // But NOT: (...|...)++, (...|...)*+, (...|...){0,8}
+        if (preg_match('/\([^)]*\|[^)]*\)\s*[+*][?]?(?![+])/', $body)) {
+            return true;
+        }
+
+        // Check for unbounded {n,} quantifier (NOT {n,m}) after group with alternation
+        // Patterns like: (...|...){2,}
+        // But NOT: (...|...){2,5}, (...|...){2,}+
+        if (preg_match('/\([^)]*\|[^)]*\)\s*\{\d+,\}(?![+])/', $body)) {
+            return true;
+        }
+
+        // Check for alternation inside a quantified non-capturing group: (?:...|...)+
+        if (preg_match('/\(\?:[^)]*\|[^)]*\)\s*[+*][?]?(?![+])/', $body)) {
+            return true;
+        }
+
+        if (preg_match('/\(\?:[^)]*\|[^)]*\)\s*\{\d+,\}(?![+])/', $body)) {
+            return true;
+        }
+
+        // For patterns with nested groups and quantifiers inside alternatives,
+        // the actual linter uses AST traversal which is more accurate.
+        // Return false for cases where the heuristic can't determine safely.
+        return false;
     }
 
     private static function patternHasAnchors(string $pattern): bool

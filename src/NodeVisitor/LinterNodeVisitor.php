@@ -89,6 +89,14 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
 
     private bool $intlAvailable = false;
 
+    /**
+     * Stack of parent nodes to track context.
+     * Used to determine if an alternation is inside a quantifier.
+     *
+     * @var array<NodeInterface>
+     */
+    private array $parentStack = [];
+
     public function __construct()
     {
         $this->charSetAnalyzer = new CharSetAnalyzer();
@@ -140,6 +148,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         $this->hasBackreferences = false;
         $this->maxCapturingGroup = 0;
         $this->definedNamedGroups = [];
+        $this->parentStack = [];
 
         // Use a simple visitor to compile the pattern string for diagnostics
         $compiler = new CompilerNodeVisitor();
@@ -221,9 +230,11 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     {
         $this->lintAlternation($node);
 
+        $this->parentStack[] = $node;
         foreach ($node->alternatives as $alt) {
             $alt->accept($this);
         }
+        array_pop($this->parentStack);
 
         return $node;
     }
@@ -234,9 +245,11 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         // Check for anchor conflicts
         $this->checkAnchorConflicts($node);
 
+        $this->parentStack[] = $node;
         foreach ($node->children as $child) {
             $child->accept($this);
         }
+        array_pop($this->parentStack);
 
         return $node;
     }
@@ -256,7 +269,9 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
             );
         }
 
+        $this->parentStack[] = $node;
         $node->child->accept($this);
+        array_pop($this->parentStack);
 
         return $node;
     }
@@ -336,7 +351,9 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
             }
         }
 
+        $this->parentStack[] = $node;
         $node->node->accept($this);
+        array_pop($this->parentStack);
 
         return $node;
     }
@@ -921,6 +938,58 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         $this->issues[] = new LintIssue($id, $message, $offset, $hint);
     }
 
+    /**
+     * Check if we're currently inside an unbounded quantifier (*, +, {n,}).
+     * This is used to determine if overlapping alternations pose a ReDoS risk.
+     */
+    private function isInsideUnboundedQuantifier(): bool
+    {
+        foreach ($this->parentStack as $parent) {
+            if ($parent instanceof QuantifierNode) {
+                // Skip possessive quantifiers - they don't backtrack
+                if (QuantifierType::T_POSSESSIVE === $parent->type) {
+                    continue;
+                }
+
+                // Check if the quantifier's child is an atomic group - atomic groups don't backtrack
+                if ($parent->node instanceof GroupNode && GroupType::T_GROUP_ATOMIC === $parent->node->type) {
+                    continue;
+                }
+
+                if ($this->isUnboundedQuantifier($parent->quantifier)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if we're currently inside any quantifier (bounded or unbounded).
+     * This is a more permissive check than isInsideUnboundedQuantifier.
+     */
+    private function isInsideQuantifier(): bool
+    {
+        foreach ($this->parentStack as $parent) {
+            if ($parent instanceof QuantifierNode) {
+                // Skip possessive quantifiers - they don't backtrack
+                if (QuantifierType::T_POSSESSIVE === $parent->type) {
+                    continue;
+                }
+
+                // Check if the quantifier's child is an atomic group - atomic groups don't backtrack
+                if ($parent->node instanceof GroupNode && GroupType::T_GROUP_ATOMIC === $parent->node->type) {
+                    continue;
+                }
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private function lintAlternation(AlternationNode $node): void
     {
         $literals = [];
@@ -948,25 +1017,30 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
                 }
             }
 
-            $unique = array_values(array_unique($literals));
-            $total = \count($unique);
-            for ($i = 0; $i < $total; $i++) {
-                for ($j = $i + 1; $j < $total; $j++) {
-                    $a = $unique[$i];
-                    $b = $unique[$j];
-                    if ('' === $a || '' === $b) {
-                        continue;
-                    }
+            // Only flag overlapping literal branches when they're inside an unbounded quantifier.
+            // Overlapping alternations without a quantifier (e.g., /\r\n|\r|\n/ or /^(978|979)/)
+            // do not pose a ReDoS risk because there's no exponential backtracking.
+            if ($this->isInsideUnboundedQuantifier()) {
+                $unique = array_values(array_unique($literals));
+                $total = \count($unique);
+                for ($i = 0; $i < $total; $i++) {
+                    for ($j = $i + 1; $j < $total; $j++) {
+                        $a = $unique[$i];
+                        $b = $unique[$j];
+                        if ('' === $a || '' === $b) {
+                            continue;
+                        }
 
-                    if (str_starts_with($a, $b) || str_starts_with($b, $a)) {
-                        $this->addIssue(
-                            'regex.lint.alternation.overlap',
-                            \sprintf('Alternation branches "%s" and "%s" overlap.', addcslashes($a, "\0..\37\177..\377"), addcslashes($b, "\0..\37\177..\377")),
-                            $node->startPosition,
-                            'Consider using atomic groups (?>...) to prevent backtracking. Do not reorder overlapping alternatives as it changes match semantics.',
-                        );
+                        if (str_starts_with($a, $b) || str_starts_with($b, $a)) {
+                            $this->addIssue(
+                                'regex.lint.alternation.overlap',
+                                \sprintf('Alternation branches "%s" and "%s" overlap.', addcslashes($a, "\0..\37\177..\377"), addcslashes($b, "\0..\37\177..\377")),
+                                $node->startPosition,
+                                'Consider using atomic groups (?>...) to prevent backtracking. Do not reorder overlapping alternatives as it changes match semantics.',
+                            );
 
-                        return;
+                            return;
+                        }
                     }
                 }
             }
@@ -978,6 +1052,13 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
 
     private function checkSemanticOverlaps(AlternationNode $node): void
     {
+        // Only flag overlapping alternations when they're inside an unbounded quantifier.
+        // Overlapping alternations without a quantifier (e.g., /\r\n|\r|\n/ or /^(978|979)/)
+        // do not pose a ReDoS risk because there's no exponential backtracking.
+        if (!$this->isInsideUnboundedQuantifier()) {
+            return;
+        }
+
         $charSets = [];
         foreach ($node->alternatives as $alt) {
             $charSet = $this->charSetAnalyzer->firstChars($alt);
