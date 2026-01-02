@@ -187,19 +187,20 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
         $flags = $node->flags ?? '';
 
         if ($this->pretty) {
-            $prefix = match ($node->type) {
-                GroupType::T_GROUP_CAPTURING => '',
-                GroupType::T_GROUP_NON_CAPTURING => '?:',
-                GroupType::T_GROUP_NAMED => '<'.$node->name.'>',
-                GroupType::T_GROUP_LOOKAHEAD_POSITIVE => '=',
-                GroupType::T_GROUP_LOOKAHEAD_NEGATIVE => '!',
-                GroupType::T_GROUP_LOOKBEHIND_POSITIVE => '<=',
-                GroupType::T_GROUP_LOOKBEHIND_NEGATIVE => '<!',
-                GroupType::T_GROUP_ATOMIC => '>',
-                GroupType::T_GROUP_BRANCH_RESET => '|',
-                GroupType::T_GROUP_INLINE_FLAGS => $flags.':',
+            $opening = match ($node->type) {
+                GroupType::T_GROUP_CAPTURING => '(',
+                GroupType::T_GROUP_NON_CAPTURING => '(?:',
+                GroupType::T_GROUP_NAMED => $node->usePythonSyntax
+                    ? '(?P<'.$node->name.'>'
+                    : '(?<'.$node->name.'>',
+                GroupType::T_GROUP_LOOKAHEAD_POSITIVE => '(?=',
+                GroupType::T_GROUP_LOOKAHEAD_NEGATIVE => '(?!',
+                GroupType::T_GROUP_LOOKBEHIND_POSITIVE => '(?<=',
+                GroupType::T_GROUP_LOOKBEHIND_NEGATIVE => '(?<!',
+                GroupType::T_GROUP_ATOMIC => '(?>',
+                GroupType::T_GROUP_BRANCH_RESET => '(?|',
+                GroupType::T_GROUP_INLINE_FLAGS => '(?'.$flags.':',
             };
-            $opening = '('.$prefix;
             $closing = ')';
             $this->indentLevel++;
             $child = $node->child->accept($this);
@@ -214,7 +215,9 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
         return match ($node->type) {
             GroupType::T_GROUP_CAPTURING => '('.$child.')',
             GroupType::T_GROUP_NON_CAPTURING => '(?:'.$child.')',
-            GroupType::T_GROUP_NAMED => '(?<'.$node->name.'>'.$child.')',
+            GroupType::T_GROUP_NAMED => $node->usePythonSyntax
+                ? '(?P<'.$node->name.'>'.$child.')'
+                : '(?<'.$node->name.'>'.$child.')',
             GroupType::T_GROUP_LOOKAHEAD_POSITIVE => '(?='.$child.')',
             GroupType::T_GROUP_LOOKAHEAD_NEGATIVE => '(?!'.$child.')',
             GroupType::T_GROUP_LOOKBEHIND_POSITIVE => '(?<='.$child.')',

@@ -37,19 +37,19 @@ final class CompilerNodeVisitorCoverageTest extends TestCase
         $this->assertStringContainsString('<name>', $named->accept($visitor));
 
         $lookahead = new GroupNode($child, GroupType::T_GROUP_LOOKAHEAD_POSITIVE, null, null, 0, 0);
-        $this->assertStringContainsString('(=', $lookahead->accept($visitor));
+        $this->assertStringContainsString('(?=', $lookahead->accept($visitor));
 
         $lookbehind = new GroupNode($child, GroupType::T_GROUP_LOOKBEHIND_NEGATIVE, null, null, 0, 0);
-        $this->assertStringContainsString('(<!', $lookbehind->accept($visitor));
+        $this->assertStringContainsString('(?<!', $lookbehind->accept($visitor));
 
         $atomic = new GroupNode($child, GroupType::T_GROUP_ATOMIC, null, null, 0, 0);
-        $this->assertStringContainsString('(>', $atomic->accept($visitor));
+        $this->assertStringContainsString('(?>', $atomic->accept($visitor));
 
         $branchReset = new GroupNode($child, GroupType::T_GROUP_BRANCH_RESET, null, null, 0, 0);
-        $this->assertStringContainsString('(|', $branchReset->accept($visitor));
+        $this->assertStringContainsString('(?|', $branchReset->accept($visitor));
 
         $inlineFlags = new GroupNode($child, GroupType::T_GROUP_INLINE_FLAGS, null, 'im', 0, 0);
-        $this->assertStringContainsString('(im:', $inlineFlags->accept($visitor));
+        $this->assertStringContainsString('(?im:', $inlineFlags->accept($visitor));
     }
 
     public function test_char_literal_control_escapes_use_f_and_e(): void

@@ -60,13 +60,13 @@ final class OptimizerTest extends TestCase
     public static function optimizationProvider(): \Iterator
     {
         // Case 1: The escaping bug - tests that backslashes are not double-escaped
-        // Input uses (?P<name>) syntax which should be converted to (?<name>)
+        // Input uses (?P<name>) syntax which is preserved (Python syntax)
         // Also tests digit class optimization [0-9] -> \d
         // Note: Factorization is not applied here because it would produce invalid regex
         // (e.g., {2,} without a preceding element)
         yield 'escaping bug - version pattern' => [
             '/^(?P<version>[0-9]\.[0-9]|[0-9]{2,})/',
-            '/^(?<version>\d\.\d|\d{2,})/',
+            '/^(?P<version>\d\.\d|\d{2,})/',
         ];
 
         // Case 2: Character class simplification [0-9] -> \d
@@ -87,10 +87,10 @@ final class OptimizerTest extends TestCase
             '#<esi:comment[^>]+>#',
         ];
 
-        // Case 5: Structure optimization - (?P<name>) -> (?<name>)
+        // Case 5: Python syntax preservation - (?P<name>) is preserved
         yield 'structure optimization - named groups' => [
             '/^(?P<year>\d{4})-W(?P<week>\d{2})$/',
-            '/^(?<year>\d{4})-W(?<week>\d{2})$/',
+            '/^(?P<year>\d{4})-W(?P<week>\d{2})$/',
         ];
     }
 

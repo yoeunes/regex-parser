@@ -47,6 +47,7 @@ use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
 use RegexParser\ReDoS\CharSet;
 use RegexParser\ReDoS\CharSetAnalyzer;
+use RegexParser\Severity;
 
 /**
  * Lints regex patterns for semantic issues like useless flags.
@@ -933,9 +934,9 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         return false;
     }
 
-    private function addIssue(string $id, string $message, ?int $offset = null, ?string $hint = null): void
+    private function addIssue(string $id, string $message, ?int $offset = null, ?string $hint = null, Severity $severity = Severity::Warning): void
     {
-        $this->issues[] = new LintIssue($id, $message, $offset, $hint);
+        $this->issues[] = new LintIssue($id, $message, $offset, $hint, $severity);
     }
 
     /**
@@ -959,31 +960,6 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
                 if ($this->isUnboundedQuantifier($parent->quantifier)) {
                     return true;
                 }
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * Check if we're currently inside any quantifier (bounded or unbounded).
-     * This is a more permissive check than isInsideUnboundedQuantifier.
-     */
-    private function isInsideQuantifier(): bool
-    {
-        foreach ($this->parentStack as $parent) {
-            if ($parent instanceof QuantifierNode) {
-                // Skip possessive quantifiers - they don't backtrack
-                if (QuantifierType::T_POSSESSIVE === $parent->type) {
-                    continue;
-                }
-
-                // Check if the quantifier's child is an atomic group - atomic groups don't backtrack
-                if ($parent->node instanceof GroupNode && GroupType::T_GROUP_ATOMIC === $parent->node->type) {
-                    continue;
-                }
-
-                return true;
             }
         }
 

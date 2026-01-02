@@ -1113,6 +1113,8 @@ final class Parser
                 $startPos,
                 $endToken,
                 $name,
+                null,
+                true, // Python syntax: (?P'name'...) or (?P"name"...)
             );
         }
 
@@ -1128,6 +1130,8 @@ final class Parser
                 $startPos,
                 $endToken,
                 $name,
+                null,
+                true, // Python syntax: (?P<name>...)
             );
         }
 
@@ -2105,9 +2109,10 @@ final class Parser
         int $startPosition,
         Token $endToken,
         ?string $name = null,
-        ?string $flags = null
+        ?string $flags = null,
+        bool $usePythonSyntax = false,
     ): GroupNode {
-        return new GroupNode($expr, $type, $name, $flags, $startPosition, $endToken->position + 1);
+        return new GroupNode($expr, $type, $name, $flags, $startPosition, $endToken->position + 1, $usePythonSyntax);
     }
 
     /**

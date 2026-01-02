@@ -139,7 +139,7 @@ final class CheckstyleFormatter extends AbstractOutputFormatter
     {
         return match ($severity) {
             Severity::Error, Severity::Critical => 'error',
-            Severity::Warning => 'warning',
+            Severity::Warning, Severity::Style, Severity::Perf => 'warning',
             Severity::Info => 'info',
         };
     }

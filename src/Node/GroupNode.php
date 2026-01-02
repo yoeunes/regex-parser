@@ -26,7 +26,8 @@ final readonly class GroupNode extends AbstractNode
         public ?string $name = null,
         public ?string $flags = null,
         int $startPosition = 0,
-        int $endPosition = 0
+        int $endPosition = 0,
+        public bool $usePythonSyntax = false,
     ) {
         parent::__construct($startPosition, $endPosition);
     }

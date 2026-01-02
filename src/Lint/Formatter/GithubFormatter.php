@@ -112,10 +112,9 @@ final class GithubFormatter extends AbstractOutputFormatter
     private function mapAnnotationLevel(Severity $severity): string
     {
         return match ($severity) {
-            Severity::Error => 'error',
-            Severity::Warning => 'warning',
+            Severity::Error, Severity::Critical => 'error',
+            Severity::Warning, Severity::Style, Severity::Perf => 'warning',
             Severity::Info => 'notice',
-            Severity::Critical => 'error',
         };
     }
 

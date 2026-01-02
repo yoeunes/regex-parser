@@ -64,7 +64,9 @@ final class LinterRulesTest extends TestCase
 
     public function test_alternation_overlap_warning(): void
     {
-        $issues = $this->lint('/(a|aa)/');
+        // Overlapping alternation must be inside an unbounded quantifier to trigger warning
+        // (patterns like /(a|aa)/ without quantifier don't pose ReDoS risk)
+        $issues = $this->lint('/(a|aa)+/');
         $this->assertContains('regex.lint.alternation.overlap', $issues);
     }
 

@@ -23,5 +23,6 @@ final readonly class LintIssue
         public string $message,
         public ?int $offset = null,
         public ?string $hint = null,
+        public Severity $severity = Severity::Warning,
     ) {}
 }

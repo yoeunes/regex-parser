@@ -13,10 +13,22 @@ declare(strict_types=1);
 
 namespace RegexParser;
 
+/**
+ * Severity levels for lint issues.
+ *
+ * - Critical: Security vulnerabilities (e.g., severe ReDoS)
+ * - Error: Critical issues that will cause the regex to fail or have security implications
+ * - Warning: Potential bugs or issues that should be addressed
+ * - Style: Style preferences that don't affect functionality
+ * - Perf: Performance suggestions for optimization
+ * - Info: Informational messages
+ */
 enum Severity: string
 {
-    case Info = 'info';
-    case Warning = 'warning';
-    case Error = 'error';
     case Critical = 'critical';
+    case Error = 'error';
+    case Warning = 'warning';
+    case Style = 'style';
+    case Perf = 'perf';
+    case Info = 'info';
 }

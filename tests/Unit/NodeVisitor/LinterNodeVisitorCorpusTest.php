@@ -218,16 +218,15 @@ final class LinterNodeVisitorCorpusTest extends TestCase
     }
 
     /**
-     * Simple heuristic to check if a pattern has an alternation inside an unbounded quantifier.
-     * This is a conservative check - it may have false negatives (allow some patterns that
-     * should be filtered) but should not have false positives.
+     * Check if a pattern has an alternation inside an unbounded quantifier.
+     * This uses a character-by-character approach to properly handle nested parentheses.
      *
      * Important: We only flag overlaps inside UNBOUNDED, NON-POSSESSIVE quantifiers:
      * - `+`, `*`, `{n,}` are unbounded
      * - `++`, `*+`, `{n,}+` are possessive (don't backtrack)
      * - `{n}`, `{n,m}` are bounded (don't cause exponential backtracking)
      *
-     * Note: This is a simple text-based heuristic. The actual linter uses AST traversal
+     * Note: This is a heuristic. The actual linter uses AST traversal
      * with parent tracking, which is more accurate. This heuristic is used to filter
      * corpus test expectations.
      */
@@ -239,36 +238,124 @@ final class LinterNodeVisitorCorpusTest extends TestCase
             return false;
         }
 
-        // Quick heuristic: look for patterns like (|)+ or (|)* or (|){n,}
-        // Exclude possessive quantifiers (++, *+, ?+) and bounded quantifiers {n,m}
+        // Find all top-level groups that contain alternation and check if they're followed by unbounded quantifier
+        $groups = self::findTopLevelGroupsWithAlternation($body);
 
-        // Check for greedy/lazy unbounded quantifier after a group containing alternation
-        // Patterns like: (...|...)+, (...|...)*, (...|...)+?, (...|...)*?
-        // But NOT: (...|...)++, (...|...)*+, (...|...){0,8}
-        if (preg_match('/\([^)]*\|[^)]*\)\s*[+*][?]?(?![+])/', $body)) {
-            return true;
+        foreach ($groups as $group) {
+            $afterGroup = substr($body, $group['end']);
+            // Check if followed by unbounded, non-possessive quantifier
+            // +, *, {n,} but NOT ++, *+, {n,}+, {n,m}
+            if (preg_match('/^\s*([+*][?]?(?!\+)|\{\d+,\}(?!\+))/', $afterGroup)) {
+                return true;
+            }
         }
 
-        // Check for unbounded {n,} quantifier (NOT {n,m}) after group with alternation
-        // Patterns like: (...|...){2,}
-        // But NOT: (...|...){2,5}, (...|...){2,}+
-        if (preg_match('/\([^)]*\|[^)]*\)\s*\{\d+,\}(?![+])/', $body)) {
-            return true;
-        }
-
-        // Check for alternation inside a quantified non-capturing group: (?:...|...)+
-        if (preg_match('/\(\?:[^)]*\|[^)]*\)\s*[+*][?]?(?![+])/', $body)) {
-            return true;
-        }
-
-        if (preg_match('/\(\?:[^)]*\|[^)]*\)\s*\{\d+,\}(?![+])/', $body)) {
-            return true;
-        }
-
-        // For patterns with nested groups and quantifiers inside alternatives,
-        // the actual linter uses AST traversal which is more accurate.
-        // Return false for cases where the heuristic can't determine safely.
         return false;
+    }
+
+    /**
+     * Find all top-level groups (properly balanced) that contain alternation.
+     *
+     * @return array<int, array{start: int, end: int}>
+     */
+    private static function findTopLevelGroupsWithAlternation(string $body): array
+    {
+        $groups = [];
+        $length = \strlen($body);
+        $i = 0;
+
+        while ($i < $length) {
+            $char = $body[$i];
+
+            // Skip escaped characters
+            if ('\\' === $char && $i + 1 < $length) {
+                $i += 2;
+
+                continue;
+            }
+
+            // Skip character classes
+            if ('[' === $char) {
+                $i++;
+                while ($i < $length) {
+                    if ('\\' === $body[$i] && $i + 1 < $length) {
+                        $i += 2;
+
+                        continue;
+                    }
+                    if (']' === $body[$i]) {
+                        $i++;
+
+                        break;
+                    }
+                    $i++;
+                }
+
+                continue;
+            }
+
+            // Found a group start
+            if ('(' === $char) {
+                $groupStart = $i;
+                $depth = 1;
+                $hasAlternation = false;
+                $alternationDepth = 0;
+                $i++;
+
+                while ($i < $length && $depth > 0) {
+                    $c = $body[$i];
+
+                    // Skip escaped characters
+                    if ('\\' === $c && $i + 1 < $length) {
+                        $i += 2;
+
+                        continue;
+                    }
+
+                    // Skip character classes
+                    if ('[' === $c) {
+                        $i++;
+                        while ($i < $length) {
+                            if ('\\' === $body[$i] && $i + 1 < $length) {
+                                $i += 2;
+
+                                continue;
+                            }
+                            if (']' === $body[$i]) {
+                                $i++;
+
+                                break;
+                            }
+                            $i++;
+                        }
+
+                        continue;
+                    }
+
+                    if ('(' === $c) {
+                        $depth++;
+                    } elseif (')' === $c) {
+                        $depth--;
+                    } elseif ('|' === $c && 1 === $depth) {
+                        // Alternation at the top level of this group
+                        $hasAlternation = true;
+                        $alternationDepth = $depth;
+                    }
+
+                    $i++;
+                }
+
+                if ($hasAlternation && 1 === $alternationDepth) {
+                    $groups[] = ['start' => $groupStart, 'end' => $i];
+                }
+
+                continue;
+            }
+
+            $i++;
+        }
+
+        return $groups;
     }
 
     private static function patternHasAnchors(string $pattern): bool

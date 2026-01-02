@@ -7,10 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Python named group syntax preservation: `(?P<name>...)` syntax is now preserved when parsing and compiling regex patterns instead of being converted to `(?<name>...)`.
+- Added `usePythonSyntax` property to `GroupNode` to track original named group syntax.
+- Added `Style` and `Perf` severity levels to the `Severity` enum for categorizing lint issues.
+- Added `severity` property to `LintIssue` class for categorizing issues by severity level.
+
+### Changed
+- Linter now only flags overlapping alternation warnings when the alternation is inside an unbounded quantifier (e.g., `+`, `*`, `{n,}`), reducing false positives for safe patterns like `/\r\n|\r|\n/` and `/^(978|979)/`.
+- Improved heuristic for detecting alternations inside unbounded quantifiers to properly handle nested parentheses.
+
 ### Fixed
+- Fixed false positive overlap warnings for patterns without quantifiers that don't pose ReDoS risk.
+- Fixed pretty-print mode in `CompilerNodeVisitor` to output correct regex syntax for lookaheads (`(?=`), lookbehinds (`(?<!`), atomic groups (`(?>`), branch resets (`(?|`), and inline flags (`(?im:`).
 - Built the `/r` modifier probe regex dynamically to avoid static regex validation false positives.
 
 ### Tests
+- Updated `LinterRulesTest::test_alternation_overlap_warning` to use pattern with unbounded quantifier.
+- Updated `OptimizerTest` to expect Python syntax preservation.
+- Updated `CompilerNodeVisitorCoverageTest` to expect correct regex syntax in pretty-print mode.
 - Reworked formatter and visitor coverage tests to assert behavior, and added coverage for JSON payload normalization and validator errors.
 
 ## [1.0.4] - 2026-01-02
