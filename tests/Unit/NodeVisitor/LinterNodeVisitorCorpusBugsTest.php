@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /*
- * This file is part of RegexParser package.
+ * This file is part of the RegexParser package.
  *
  * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
  *
@@ -25,7 +25,6 @@ final class LinterNodeVisitorCorpusBugsTest extends TestCase
      * These are patterns from real-world projects that triggered false positives
      * or were incorrectly parsed.
      *
-     * @param string $pattern
      * @param array<int, string> $expectedIssueIds
      * @param array<int, string> $unexpectedIssueIds
      */
@@ -97,7 +96,7 @@ final class LinterNodeVisitorCorpusBugsTest extends TestCase
      * Test that suspicious ASCII range A-z is properly detected.
      * The range A-z includes [\ \ ] ^ _ ` between Z and a in ASCII order.
      */
-    public function test_suspicious_A_z_range_is_detected(): void
+    public function test_suspicious_a_z_range_is_detected(): void
     {
         $pattern = '/^[a-zA-z0-9_]+$/';
         $regex = Regex::create()->parse($pattern);
@@ -118,7 +117,7 @@ final class LinterNodeVisitorCorpusBugsTest extends TestCase
     /**
      * Test that proper A-Za-z range does NOT trigger suspicious range warning.
      */
-    public function test_proper_A_Za_z_range_is_not_flagged(): void
+    public function test_proper_a_za_z_range_is_not_flagged(): void
     {
         $pattern = '/^[A-Za-z0-9_]+$/';
         $regex = Regex::create()->parse($pattern);
