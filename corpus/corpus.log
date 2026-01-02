@@ -70,6 +70,21 @@
          + #// line (?>(?<line_number>\d+))+#
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
 
+  corpus/phpseclib/phpseclib/File/ASN1.php:1350:34
+      → #-+END.*[\r\n ]*.*#ms
+     WARN  Flag 'm' is useless: pattern '#-+END.*[\r\n ]*.*#ms' contains no anchors.
+     TIP 
+         - #-+END.*[\r\n ]*.*#ms
+         + #-+END.*[\r\n ]*.*#s
+
+  corpus/phpseclib/phpseclib/Crypt/EC/Formats/Keys/PKCS1.php:66:24
+      → #-*BEGIN EC PRIVATE KEY-*[^-]*-*END EC PRIVATE KEY-*#s
+     WARN  Flag 's' is useless: the pattern contains no dots.
+
+  corpus/phpseclib/phpseclib/Crypt/EC/Formats/Keys/PKCS1.php:84:24
+      → #-*BEGIN EC PARAMETERS-*[^-]*-*END EC PARAMETERS-*#s
+     WARN  Flag 's' is useless: the pattern contains no dots.
+
   corpus/PHPMailer/test/Language/TranslationCompletenessTest.php:71:29
       → /^\$PHPMAILER_LANG\['([a-z\d_]+)'\]\s*=\s*(["'])(.+)*?\2;/
      WARN  Nested quantifiers can cause catastrophic backtracking.
@@ -163,6 +178,69 @@
          ↳ Consider using atomic groups (?>...) to prevent backtracking. Do not reorder overlapping alternatives as it changes match semantics.
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
 
+  corpus/carbon/phpdoc.php:46:44
+      → /(\/\/ <methods[\s\S]*>)([\s\S]+)(<\/methods>)/mU
+     WARN  Flag 'm' is useless: pattern '/(\/\/ <methods[\s\S]*>)([\s\S]+)(<\/methods>)/mU' contains no anchors.
+     TIP 
+         - /(\/\/ <methods[\s\S]*>)([\s\S]+)(<\/methods>)/mU
+         + /(\/\/ <methods[\s\S]*>)([\s\S]+)(<\/methods>)/U
+
+  corpus/carbon/phpdoc.php:716:43
+      → /(<autodoc[\s\S]*>)([\s\S]+)(<\/autodoc>)/mU
+     WARN  Flag 'm' is useless: pattern '/(<autodoc[\s\S]*>)([\s\S]+)(<\/autodoc>)/mU' contains no anchors.
+     TIP 
+         - /(<autodoc[\s\S]*>)([\s\S]+)(<\/autodoc>)/mU
+         + /(<autodoc[\s\S]*>)([\s\S]+)(<\/autodoc>)/U
+
+  corpus/carbon/phpdoc.php:834:5
+      → /(\/\/ <methods[\s\S]*>)([\s\S]+)(<\/methods>)/mU
+     WARN  Flag 'm' is useless: pattern '/(\/\/ <methods[\s\S]*>)([\s\S]+)(<\/methods>)/mU' contains no anchors.
+     TIP 
+         - /(\/\/ <methods[\s\S]*>)([\s\S]+)(<\/methods>)/mU
+         + /(\/\/ <methods[\s\S]*>)([\s\S]+)(<\/methods>)/U
+
+  corpus/carbon/phpdoc.php:852:9
+      → /(<autodoc[\s\S]*>)([\s\S]+)(<\/autodoc>)/mU
+     WARN  Flag 'm' is useless: pattern '/(<autodoc[\s\S]*>)([\s\S]+)(<\/autodoc>)/mU' contains no anchors.
+     TIP 
+         - /(<autodoc[\s\S]*>)([\s\S]+)(<\/autodoc>)/mU
+         + /(<autodoc[\s\S]*>)([\s\S]+)(<\/autodoc>)/U
+
+  corpus/carbon/src/Carbon/CarbonInterval.php:1250:24
+      → /^(?:\h*-?\d+(?:\.\d+)?\h*[a-z]+)+$/i
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /^(?:\h*-?\d+(?:\.\d+)?\h*[a-z]+)+$/i
+         + /^(?>(?:\h*-?\d+(?:\.\d+)?\h*[a-z]+))+$/i
+     FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
+
+  corpus/carbon/src/Carbon/CarbonPeriod.php:666:25
+      → /^(-?\d(\d(?![\/-])|[^\d\/-]([\/-])?)*|P[T\d].*|(?:\h*\d+(?:\.\d+)?\h*[a-z]+)+)$/i
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /^(-?\d(\d(?![\/-])|[^\d\/-]([\/-])?)*|P[T\d].*|(?:\h*\d+(?:\.\d+)?\h*[a-z]+)+)$/i
+         + /^(-?\d(?>(\d(?![\/-])|[^\d\/-]([\/-])?))*|P[T\d].*|(?:\h*\d+(?:\.\d+)?\h*[a-z]+)+)$/i
+     FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
+
+  corpus/mockery/library/Mockery/Generator/StringManipulation/Pass/RemoveDestructorPass.php:34:33
+      → /public function __destruct\(\)\s+\{.*?\}/sm
+     WARN  Flag 'm' is useless: pattern '/public function __destruct\(\)\s+\{.*?\}/sm' contains no anchors.
+     TIP 
+         - /public function __destruct\(\)\s+\{.*?\}/sm
+         + /public function __destruct\(\)\s+\{.*?\}/s
+
+  corpus/mockery/library/Mockery/Generator/StringManipulation/Pass/MagicMethodTypeHintsPass.php:178:28
+      → /(?<=\$)(\w+)+/i
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /(?<=\$)(\w+)+/i
+         + /(?<=\$)(?>(\w+))+/i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+     FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
+
   corpus/aidingapp/app-modules/form/src/Rules/IsDomain.php:52:26
       → /^([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}$/
      WARN  Nested quantifiers can cause catastrophic backtracking.
@@ -177,6 +255,33 @@
      TIP 
          - /### Usage\n([^#]*)\n\n###/s
          + /### Usage\n([^#]*)\n\n###/
+
+  corpus/phpDocumentor/ReflectionDocBlock/src/DocBlockFactory.php:177:13
+      → /\n            \A\n            # 1. Extract the template marker\n            (?:(\#\@\+|\#\@\-)\n?)?\n\n            # 2. Extract the summary\n            (?:\n              (?! @\pL ) # The summary may not start with an @\n              (\n                [^\n.]+\n                (?:\n                  (?! \. \n | \n{2} )     # End summary upon a dot followed by newline or two newlines\n                  [\n.]* (?! [ \t]* @\pL ) # End summary when an @ is found as first character on a new line\n                  [^\n.]+                 # Include anything else\n                )*\n                \.?\n              )?\n            )\n\n            # 3. Extract the description\n            (?:\n              \s*        # Some form of whitespace _must_ precede a description because a summary must be there\n              (?! @\pL ) # The description may not start with an @\n              (\n                [^\n]+\n                (?: \n+\n                  (?! [ \t]* @\pL ) # End description when an @ is found as first character on a new line\n                  [^\n]+            # Include anything else\n                )*\n              )\n            )?\n\n            # 4. Extract the tags (anything that follows)\n            (\s+ [\s\S]*)? # everything that follows\n            /ux
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+           ...
+                         (
+                           [^\n]+
+         -                 (?: \n+
+         ---
+         +                 (?>(?: \n+
+                             (?! [ \t]* @\pL ) # End description when an @ is found as first character on a new line
+                             [^\n]+            # Include anything else
+         -                 )*
+         ---
+         +                 ))*
+                         )
+                       )?
+           ...
+     FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
+
+  corpus/phpDocumentor/ReflectionDocBlock/src/DocBlockFactory.php:124:33
+      → #[ \t]*(?:\/\*\*|\*\/|\*)?[ \t]?(.*)?#u
+     TIP 
+         - #[ \t]*(?:\/\*\*|\*\/|\*)?[ \t]?(.*)?#u
+         + #[ \t]*(?:/\*\*|\*/|\*)?[ \t]?(.*)?#u
 
   corpus/infection/src/TestFramework/Coverage/CoverageChecker.php:172:13
       → /(zend_extension\s*=.*xdebug.*)/mi
@@ -326,6 +431,52 @@
       → /([ ,-:;\x{2013}\x{2014}]+$)/us
      WARN  Flag 's' is useless: the pattern contains no dots.
 
+  corpus/nette/tracy/src/Tracy/BlueScreen/BlueScreen.php:389:4
+      → #'\S(?:[^']|\\')*\S'|"\S(?:[^"]|\\")*\S"#
+     WARN  Alternation branches have overlapping character sets, which may cause unnecessary backtracking.
+         ↳ Consider using atomic groups (?>...) to prevent backtracking. Do not reorder overlapping alternatives as it changes match semantics.
+     FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
+
+  corpus/nette/tracy/src/Tracy/Session/FileSession.php:52:19
+      → #^\w{10}\z#i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/nette/utils/src/Utils/Finder.php:294:20
+      → #^(?:([=<>!]=?|<>)\s*)?(.+)$#Di
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/nette/latte/src/Latte/Essential/Filters.php:69:4
+      → #[ \t\r\n]+|<(/)?(textarea|pre|script)(?=\W)#si
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - #[ \t\r\n]+|<(/)?(textarea|pre|script)(?=\W)#si
+         + #[ \t\r\n]+|<(/)?(textarea|pre|script)(?=\W)#i
+
+  corpus/nette/tester/src/Framework/Helpers.php:87:18
+      → #^[ \t\*]*+([^\s@].*)#mi
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+     TIP 
+         - #^[ \t\*]*+([^\s@].*)#mi
+         + #^[ \t*]*+([^\s@].*)#mi
+
+  corpus/nette/tester/src/Framework/Helpers.php:91:18
+      → #^[ \t\*]*@(\w+)([^\w\r\n].*)?#mi
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+     TIP 
+         - #^[ \t\*]*@(\w+)([^\w\r\n].*)?#mi
+         + #^[ \t*]*@(\w+)([^\w\r\n].*)?#mi
+
+  corpus/jsonlint/src/Seld/JsonLint/JsonParser.php:276:46
+      → {"(?:[^"]+|\\")*$}m
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - {"(?:[^"]+|\\")*$}m
+         + {"(?>(?:[^"]+|\\"))*$}m
+     WARN  Alternation branches have overlapping character sets, which may cause unnecessary backtracking.
+         ↳ Consider using atomic groups (?>...) to prevent backtracking. Do not reorder overlapping alternatives as it changes match semantics.
+     FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
+
   corpus/elementor/core/files/css/base.php:368:52
       → /{{(?:([^.}]+)\.)?([^}| ]*)(?: *\|\| *(?:([^.}]+)\.)?([^}| ]*) *)*}}/
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
@@ -336,9 +487,31 @@
      WARN  Suspicious ASCII range "A-z" includes non-letters between "A" and "z" in ASCII order.
          ↳ Use separate ranges like [A-Z] and [a-z] (or combine as [A-Za-z]).
 
+  corpus/CssToInlineStyles/src/Css/Rule/Processor.php:91:43
+      → /  \#/ix
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
   corpus/alice/src/FixtureBuilder/ExpressionLanguage/Lexer/FunctionTreeTokenizer.php:47:13
       → /(.*?)<((?:.*?:)?(?:\p{L}|_|[0-9])+?)\((.*?)/
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
+
+  corpus/whoops/src/Whoops/Util/TemplateHelper.php:90:13
+      → @([A-z]+?://([-\w\.]+[-\w])+(:\d+)?(/([\w/_\.#-]*(\?\S+)?[^\.\s])?)?)@
+     WARN  Suspicious ASCII range "A-z" includes non-letters between "A" and "z" in ASCII order.
+         ↳ Use separate ranges like [A-Z] and [a-z] (or combine as [A-Za-z]).
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - @([A-z]+?://([-\w\.]+[-\w])+(:\d+)?(/([\w/_\.#-]*(\?\S+)?[^\.\s])?)?)@
+         + @([A-z]+?://(?>([-\w\.]+[-\w]))+(:\d+)?(/([\w/_\.#-]*(\?\S+)?[^\.\s])?)?)@
+     FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
+
+  corpus/whoops/src/Whoops/Util/TemplateHelper.php:225:30
+      → /[^\w\d\-\_]/i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+     TIP 
+         - /[^\w\d\-\_]/i
+         + /[^\w\d\-_]/i
 
   corpus/shopware/.danger.php:197:28
       → /-.*?(\{% block (.*?) %})+/
@@ -491,6 +664,34 @@
   corpus/expose/app/Support/ConsoleSectionOutput.php:134:37
       → /]8;;(.*)]8;;/m
      WARN  Flag 'm' is useless: pattern '/]8;;(.*)]8;;/m' contains no anchors.
+
+  corpus/PHP-Parser/lib/PhpParser/Comment.php:127:24
+      → (^.*(?:\n\s+\*.*)+$)
+     WARN  An unbounded quantifier wraps a dot-star, which can cause severe backtracking.
+         ↳ Refactor with atomic groups or a more specific character class.
+     TIP 
+         - (^.*(?:\n\s+\*.*)+$)
+         + (^.*(?>(?:\n\s+\*.*))+$)
+     FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
+
+  corpus/htmlpurifier/library/HTMLPurifier/AttrDef/URI/IPv6.php:81:29
+      → #^[0-9a-fA-F]{4}$#s
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - #^[0-9a-fA-F]{4}$#s
+         + #^[0-9A-Fa-f]{4}$#
+
+  corpus/htmlpurifier/library/HTMLPurifier/Injector/Linkify.php:40:13
+      → /\b((?:[a-z][\w\-]+:(?:\/{1,3}|[a-z0-9%])|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}\/)(?:[^\s()<>]|\((?:[^\s()<>]|(?:\([^\s()<>]+\)))*\))+(?:\((?:[^\s()<>]|(?:\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?\x{00ab}\x{00bb}\x{201c}\x{201d}\x{2018}\x{2019}]))/iu
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /\b((?:[a-z][\w\-]+:(?:\/{1,3}|[a-z0-9%])|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}\/)(?:[^\s()<>]|\((?:[^\s()<>]|(?:\([^\s()<>]+\)))*\))+(?:\((?:[^\s()<>]|(?:\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?\x{00ab}\x{00bb}\x{201c}\x{201d}\x{2018}\x{2019}]))/iu
+         + /\b((?:[a-z][\w\-]+:(?:\/{1,3}|[a-z0-9%])|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}\/)(?>(?:[^\s()<>]|\((?:[^\s()<>]|(?:\([^\s()<>]+\)))*\)))+(?:\((?:[^\s()<>]|(?:\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?\x{00ab}\x{00bb}\x{201c}\x{201d}\x{2018}\x{2019}]))/iu
+     FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
+     TIP 
+         - /\b((?:[a-z][\w\-]+:(?:\/{1,3}|[a-z0-9%])|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}\/)(?:[^\s()<>]|\((?:[^\s()<>]|(?:\([^\s()<>]+\)))*\))+(?:\((?:[^\s()<>]|(?:\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?\x{00ab}\x{00bb}\x{201c}\x{201d}\x{2018}\x{2019}]))/iu
+         + /\b((?:[a-z][\w\-]+:(?:\/{1,3}|[%0-9a-z])|www\d{0,3}[.]|[\-.0-9a-z]+[.][a-z]{2,4}\/)(?:[^\s()<>]|\((?:[^\s()<>]|(?:\([^\s()<>]+\)))*\))+(?:\((?:[^\s()<>]|(?:\([^\s()<>]+\)))*\)|[^!"'-),.:-<>?[\]`{}\s\x{00ab}\x{00bb}\x{201c}\x{201d}\x{2018}\x{2019}]))/iu
 
   corpus/thephpleague/geotools/src/Coordinate/Coordinate.php:223:24
       → /(\-?[0-9]{1,2})\D+([0-9]{1,2}\.?\d*)[, ] ?(\-?[0-9]{1,3})\D+([0-9]{1,2}\.?\d*)$/i
@@ -1262,23 +1463,23 @@
      WARN  Flag 'm' is useless: pattern '/\{%.?block content.?%\}((.*?\n)+)\{%.?endblock.?%\}/m' contains no anchors.
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
 
-  corpus/symfony/src/Symfony/Component/Serializer/Encoder/XmlEncoder.php:225:27
+  corpus/symfony/symfony/src/Symfony/Component/Serializer/Encoder/XmlEncoder.php:225:27
       → #^[\pL_][\pL0-9._:-]*$#ui
      WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
 
-  corpus/symfony/src/Symfony/Component/Serializer/NameConverter/SnakeCaseToCamelCaseNameConverter.php:49:13
+  corpus/symfony/symfony/src/Symfony/Component/Serializer/NameConverter/SnakeCaseToCamelCaseNameConverter.php:49:13
       → /(^|_|\.)+(.)/
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
 
-  corpus/symfony/src/Symfony/Component/Serializer/NameConverter/CamelCaseToSnakeCaseNameConverter.php:66:49
+  corpus/symfony/symfony/src/Symfony/Component/Serializer/NameConverter/CamelCaseToSnakeCaseNameConverter.php:66:49
       → /(^|_|\.)+(.)/
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
 
-  corpus/symfony/src/Symfony/Component/Notifier/Bridge/Telegram/TelegramTransport.php:102:34
+  corpus/symfony/symfony/src/Symfony/Component/Notifier/Bridge/Telegram/TelegramTransport.php:102:34
       → /([.!#>+-=|{}~])/
      WARN  Redundant elements detected in character class.
 
-  corpus/symfony/src/Symfony/Component/ExpressionLanguage/Lexer.php:68:34
+  corpus/symfony/symfony/src/Symfony/Component/ExpressionLanguage/Lexer.php:68:34
       → /"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'/As
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
@@ -1287,7 +1488,7 @@
          + /"([^"\\]*(?>(?:\\.[^"\\]*))*)"|'([^'\\]*(?:\\.[^'\\]*)*)'/As
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
 
-  corpus/symfony/src/Symfony/Component/Ldap/Adapter/ExtLdap/EntryManager.php:183:25
+  corpus/symfony/symfony/src/Symfony/Component/Ldap/Adapter/ExtLdap/EntryManager.php:183:25
       → /(^[^,\\]*(?:\\.[^,\\]*)*),/
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
@@ -1296,14 +1497,14 @@
          + /(^[^,\\]*(?>(?:\\.[^,\\]*))*),/
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
 
-  corpus/symfony/src/Symfony/Component/Emoji/Resources/bin/build.php:237:43
+  corpus/symfony/symfony/src/Symfony/Component/Emoji/Resources/bin/build.php:237:43
       → /QUICK_CHECK = .*;/m
      WARN  Flag 'm' is useless: pattern '/QUICK_CHECK = .*;/m' contains no anchors.
      TIP 
          - /QUICK_CHECK = .*;/m
          + /QUICK_CHECK = .*;/
 
-  corpus/symfony/src/Symfony/Component/ErrorHandler/DebugClassLoader.php:901:29
+  corpus/symfony/symfony/src/Symfony/Component/ErrorHandler/DebugClassLoader.php:901:29
       → /^(?:\\?[a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]*)+$/
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
@@ -1312,7 +1513,7 @@
          + /^(?>(?:\\?[a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]*))+$/
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
 
-  corpus/symfony/src/Symfony/Component/Finder/Gitignore.php:83:31
+  corpus/symfony/symfony/src/Symfony/Component/Finder/Gitignore.php:83:31
       → ~(?:(?:\\\*){2,}(/?))+~
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
@@ -1320,13 +1521,13 @@
          - ~(?:(?:\\\*){2,}(/?))+~
          + ~(?>(?:(?:\\\*){2,}(/?)))+~
 
-  corpus/symfony/src/Symfony/Component/Finder/Gitignore.php:82:40
+  corpus/symfony/symfony/src/Symfony/Component/Finder/Gitignore.php:82:40
       → ~\\\[((?:\\!)?)([^\[\]]*)\\\]~
      TIP 
          - ~\\\[((?:\\!)?)([^\[\]]*)\\\]~
          + ~\\\[((?:\\!)?)([^[\]]*)\\\]~
 
-  corpus/symfony/src/Symfony/Component/Yaml/Parser.php:998:38
+  corpus/symfony/symfony/src/Symfony/Component/Yaml/Parser.php:998:38
       → #^(\#.*?\n)+#s
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
@@ -1337,7 +1538,7 @@
          ↳ Refactor with atomic groups or a more specific character class.
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
 
-  corpus/symfony/src/Symfony/Component/String/AbstractUnicodeString.php:519:35
+  corpus/symfony/symfony/src/Symfony/Component/String/AbstractUnicodeString.php:519:35
       → /(?:\n\e    (?:\n\[[0-?]*+[ -\/]*+[@-~]\n        | [P\n            | X\n            | \]-_].*?\e\\\n        | [A-~]\n    )\n    | [\p{Cc}\n        | \x7F]++\n)/xu
      WARN  Redundant elements detected in character class.
      TIP 
@@ -1356,14 +1557,14 @@
          +     | [\n |\p{Cc}\x7F]++
            )/xu
 
-  corpus/symfony/src/Symfony/Component/Routing/RouteCompiler.php:182:53
+  corpus/symfony/symfony/src/Symfony/Component/Routing/RouteCompiler.php:182:53
       → /[\x80-\xFF]|(?<!\\)\\(?:\\\\)*+(?-i:X|[pP][\{CLMNPSZ]|x\{[A-Fa-f0-9]{3})/
      WARN  Inline flag '-i' is redundant; the flag is not set globally.
      TIP 
          - /[\x80-\xFF]|(?<!\\)\\(?:\\\\)*+(?-i:X|[pP][\{CLMNPSZ]|x\{[A-Fa-f0-9]{3})/
          + /[\x80-\xFF]|(?<!\\)\\(?:\\\\)*+(?-i:X|[pP][CL-NPSZ{]|x\{[0-9A-Fa-f]{3})/
 
-  corpus/symfony/src/Symfony/Component/Routing/Generator/UrlGenerator.php:175:93
+  corpus/symfony/symfony/src/Symfony/Component/Routing/Generator/UrlGenerator.php:175:93
       → /\(\?(?:=|<=|!|<!)((?:[^()\\]+|\\.|\((?1)\))*)\)/
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
@@ -1372,7 +1573,7 @@
          + /\(\?(?:=|<=|!|<!)((?>(?:[^()\\]+|\\.|\((?1)\)))*)\)/
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
 
-  corpus/symfony/src/Symfony/Component/Routing/Generator/UrlGenerator.php:228:93
+  corpus/symfony/symfony/src/Symfony/Component/Routing/Generator/UrlGenerator.php:228:93
       → /\(\?(?:=|<=|!|<!)((?:[^()\\]+|\\.|\((?1)\))*)\)/
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
@@ -1381,7 +1582,7 @@
          + /\(\?(?:=|<=|!|<!)((?>(?:[^()\\]+|\\.|\((?1)\)))*)\)/
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
 
-  corpus/symfony/src/Symfony/Component/Routing/Loader/AttributeClassLoader.php:245:52
+  corpus/symfony/symfony/src/Symfony/Component/Routing/Loader/AttributeClassLoader.php:245:52
       → /^(?:\\?[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*)+$/
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
@@ -1390,11 +1591,11 @@
          + /^(?>(?:\\?[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*))+$/
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
 
-  corpus/symfony/src/Symfony/Component/DependencyInjection/Dumper/GraphvizDumper.php:235:29
+  corpus/symfony/symfony/src/Symfony/Component/DependencyInjection/Dumper/GraphvizDumper.php:235:29
       → /\W/i
      WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
 
-  corpus/symfony/src/Symfony/Component/DependencyInjection/Dumper/PhpDumper.php:681:87
+  corpus/symfony/symfony/src/Symfony/Component/DependencyInjection/Dumper/PhpDumper.php:681:87
       → /^'(?:\\{2})?[A-Z_a-z\x7F-\xFF][0-9A-Z_a-z\x7F-\xFF]*(?:\\\\[A-Z_a-z\x7F-\xFF][0-9A-Z_a-z\x7F-\xFF]*)*'$/
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
@@ -1403,15 +1604,15 @@
          + /^'(?:\\{2})?[A-Z_a-z\x7F-\xFF][0-9A-Z_a-z\x7F-\xFF]*(?>(?:\\\\[A-Z_a-z\x7F-\xFF][0-9A-Z_a-z\x7F-\xFF]*))*'$/
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
 
-  corpus/symfony/src/Symfony/Component/DependencyInjection/Dumper/PhpDumper.php:1680:34
+  corpus/symfony/symfony/src/Symfony/Component/DependencyInjection/Dumper/PhpDumper.php:1680:34
       → /\n.*DEPRECATED_PARAMETERS.*\n.*\n.*\n/m
      WARN  Flag 'm' is useless: pattern '/\n.*DEPRECATED_PARAMETERS.*\n.*\n.*\n/m' contains no anchors.
 
-  corpus/symfony/src/Symfony/Component/DependencyInjection/Dumper/PhpDumper.php:1687:34
+  corpus/symfony/symfony/src/Symfony/Component/DependencyInjection/Dumper/PhpDumper.php:1687:34
       → /\n.*NONEMPTY_PARAMETERS.*\n.*\n.*\n/m
      WARN  Flag 'm' is useless: pattern '/\n.*NONEMPTY_PARAMETERS.*\n.*\n.*\n/m' contains no anchors.
 
-  corpus/symfony/src/Symfony/Component/DependencyInjection/Dumper/PhpDumper.php:2014:58
+  corpus/symfony/symfony/src/Symfony/Component/DependencyInjection/Dumper/PhpDumper.php:2014:58
       → /^'(?:\\{2})?[A-Z_a-z\x7F-\xFF][0-9A-Z_a-z\x7F-\xFF]*(?:\\\\[A-Z_a-z\x7F-\xFF][0-9A-Z_a-z\x7F-\xFF]*)*'$/
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
@@ -1420,14 +1621,14 @@
          + /^'(?:\\{2})?[A-Z_a-z\x7F-\xFF][0-9A-Z_a-z\x7F-\xFF]*(?>(?:\\\\[A-Z_a-z\x7F-\xFF][0-9A-Z_a-z\x7F-\xFF]*))*'$/
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
 
-  corpus/symfony/src/Symfony/Bundle/FrameworkBundle/Resources/bin/check-unused-known-tags.php:22:26
+  corpus/symfony/symfony/src/Symfony/Bundle/FrameworkBundle/Resources/bin/check-unused-known-tags.php:22:26
       → {private const KNOWN_TAGS = \[(.+?)\];}sm
      WARN  Flag 'm' is useless: pattern '{private const KNOWN_TAGS = \[(.+?)];}sm' contains no anchors.
      TIP 
          - {private const KNOWN_TAGS = \[(.+?)\];}sm
          + {private const KNOWN_TAGS = \[(.+?)\];}s
 
-  corpus/symfony/src/Symfony/Bundle/FrameworkBundle/Console/Descriptor/Descriptor.php:143:29
+  corpus/symfony/symfony/src/Symfony/Bundle/FrameworkBundle/Console/Descriptor/Descriptor.php:143:29
       → /\n\s*/s
      WARN  Flag 's' is useless: the pattern contains no dots.
 
@@ -1534,6 +1735,14 @@
      TIP 
          - /([^$&.]+)(?:((?:\.\.\.)?(?:\$|&)[^\s]+)(?:(\s+)(.*))?)?/
          + /([^$&.]+)(?:((?:\.\.\.)?[$&][^\s]+)(?:(\s+)(.*))?)?/
+
+  corpus/php-debugbar/src/DebugBar/DataFormatter/QueryFormatter.php:17:29
+      → /\?(?=(?:[^'\\']*'[^'\']*')*[^'\\']*$)(?:\?)/
+     WARN  Redundant elements detected in character class.
+     WARN  Redundant non-capturing group; it can be removed without changing behavior.
+     TIP 
+         - /\?(?=(?:[^'\\']*'[^'\']*')*[^'\\']*$)(?:\?)/
+         + /\?(?=(?:[^'\\]*'[^']*')*[^'\\]*$)\?/
 
   corpus/phpspec/src/PhpSpec/Util/MethodAnalyser.php:108:34
       → /^[\s{}]*$/s
@@ -1960,11 +2169,42 @@
          - /\s/isSu
          + /\s/iSu
 
+  corpus/guzzle/psr7/src/Uri.php:118:13
+      → %[^:/@?&=#]+%usD
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - %[^:/@?&=#]+%usD
+         + %[^:/@?&=#]+%uD
+
+  corpus/guzzle/psr7/src/Uri.php:110:24
+      → %^(.*://\[[0-9:a-fA-F]+\])(.*?)$%
+     TIP 
+         - %^(.*://\[[0-9:a-fA-F]+\])(.*?)$%
+         + %^(.*://\[[0-9:A-Fa-f]+])(.*?)$%
+
   corpus/phpstan/phpdoc-parser/src/Printer/Printer.php:790:23
       → ~\n(?<before>[\x09\x20]*)\*(?<after>\x20*)~
      TIP 
          - ~\n(?<before>[\x09\x20]*)\*(?<after>\x20*)~
          + ~\n(?<before>[\t ]*)\*(?<after> *)~
+
+  corpus/reactphp/http/examples/82-server-upgrade-chat.php:62:35
+      → /[^\w \.\,\-\!\?]/u
+     TIP 
+         - /[^\w \.\,\-\!\?]/u
+         + /[^ !,-.?\w]/u
+
+  corpus/reactphp/socket/examples/02-chat-server.php:40:35
+      → /[^\w\d \.\,\-\!\?]/u
+     TIP 
+         - /[^\w\d \.\,\-\!\?]/u
+         + /[^ !,-.?\w\d]/u
+
+  corpus/reactphp/socket/src/UnixServer.php:69:29
+      → /\(([^\)]+)\)|\[(\d+)\]: (.*)/
+     TIP 
+         - /\(([^\)]+)\)|\[(\d+)\]: (.*)/
+         + /\(([^)]+)\)|\[(\d+)\]: (.*)/
 
   corpus/deployer/src/Documentation/DocGen.php:381:25
       → /:(bowtie|smile|laughing|blush|smiley|relaxed|smirk|heart_eyes|kissing_heart|kissing_closed_eyes|flushed|relieved|satisfied|grin|wink|stuck_out_tongue_winking_eye|stuck_out_tongue_closed_eyes|grinning|kissing|kissing_smiling_eyes|stuck_out_tongue|sleeping|worried|frowning|anguished|open_mouth|grimacing|confused|hushed|expressionless|unamused|sweat_smile|sweat|disappointed_relieved|weary|pensive|disappointed|confounded|fearful|cold_sweat|persevere|cry|sob|joy|astonished|scream|neckbeard|tired_face|angry|rage|triumph|sleepy|yum|mask|sunglasses|dizzy_face|imp|smiling_imp|neutral_face|no_mouth|innocent|alien|yellow_heart|blue_heart|purple_heart|heart|green_heart|broken_heart|heartbeat|heartpulse|two_hearts|revolving_hearts|cupid|sparkling_heart|sparkles|star|star2|dizzy|boom|collision|anger|exclamation|question|grey_exclamation|grey_question|zzz|dash|sweat_drops|notes|musical_note|fire|hankey|poop|shit|\+1|thumbsup|\-1|thumbsdown|ok_hand|punch|facepunch|fist|v|wave|hand|raised_hand|open_hands|point_up|point_down|point_left|point_right|raised_hands|pray|point_up_2|clap|muscle|metal|fu|walking|runner|running|couple|family|two_men_holding_hands|two_women_holding_hands|dancer|dancers|ok_woman|no_good|information_desk_person|raising_hand|bride_with_veil|person_with_pouting_face|person_frowning|bow|couplekiss|couple_with_heart|massage|haircut|nail_care|boy|girl|woman|man|baby|older_woman|older_man|person_with_blond_hair|man_with_gua_pi_mao|man_with_turban|construction_worker|cop|angel|princess|smiley_cat|smile_cat|heart_eyes_cat|kissing_cat|smirk_cat|scream_cat|crying_cat_face|joy_cat|pouting_cat|japanese_ogre|japanese_goblin|see_no_evil|hear_no_evil|speak_no_evil|guardsman|skull|feet|lips|kiss|droplet|ear|eyes|nose|tongue|love_letter|bust_in_silhouette|busts_in_silhouette|speech_balloon|thought_balloon|feelsgood|finnadie|goberserk|godmode|hurtrealbad|rage1|rage2|rage3|rage4|suspect|trollface|sunny|umbrella|cloud|snowflake|snowman|zap|cyclone|foggy|ocean|cat|dog|mouse|hamster|rabbit|wolf|frog|tiger|koala|bear|pig|pig_nose|cow|boar|monkey_face|monkey|horse|racehorse|camel|sheep|elephant|panda_face|snake|bird|baby_chick|hatched_chick|hatching_chick|chicken|penguin|turtle|bug|honeybee|ant|beetle|snail|octopus|tropical_fish|fish|whale|whale2|dolphin|cow2|ram|rat|water_buffalo|tiger2|rabbit2|dragon|goat|rooster|dog2|pig2|mouse2|ox|dragon_face|blowfish|crocodile|dromedary_camel|leopard|cat2|poodle|paw_prints|bouquet|cherry_blossom|tulip|four_leaf_clover|rose|sunflower|hibiscus|maple_leaf|leaves|fallen_leaf|herb|mushroom|cactus|palm_tree|evergreen_tree|deciduous_tree|chestnut|seedling|blossom|ear_of_rice|shell|globe_with_meridians|sun_with_face|full_moon_with_face|new_moon_with_face|new_moon|waxing_crescent_moon|first_quarter_moon|waxing_gibbous_moon|full_moon|waning_gibbous_moon|last_quarter_moon|waning_crescent_moon|last_quarter_moon_with_face|first_quarter_moon_with_face|moon|earth_africa|earth_americas|earth_asia|volcano|milky_way|partly_sunny|octocat|squirrel|bamboo|gift_heart|dolls|school_satchel|mortar_board|flags|fireworks|sparkler|wind_chime|rice_scene|jack_o_lantern|ghost|santa|christmas_tree|gift|bell|no_bell|tanabata_tree|tada|confetti_ball|balloon|crystal_ball|cd|dvd|floppy_disk|camera|video_camera|movie_camera|computer|tv|iphone|phone|telephone|telephone_receiver|pager|fax|minidisc|vhs|sound|speaker|mute|loudspeaker|mega|hourglass|hourglass_flowing_sand|alarm_clock|watch|radio|satellite|loop|mag|mag_right|unlock|lock|lock_with_ink_pen|closed_lock_with_key|key|bulb|flashlight|high_brightness|low_brightness|electric_plug|battery|calling|email|mailbox|postbox|bath|bathtub|shower|toilet|wrench|nut_and_bolt|hammer|seat|moneybag|yen|dollar|pound|euro|credit_card|money_with_wings|e-mail|inbox_tray|outbox_tray|envelope|incoming_envelope|postal_horn|mailbox_closed|mailbox_with_mail|mailbox_with_no_mail|door|smoking|bomb|gun|hocho|pill|syringe|page_facing_up|page_with_curl|bookmark_tabs|bar_chart|chart_with_upwards_trend|chart_with_downwards_trend|scroll|clipboard|calendar|date|card_index|file_folder|open_file_folder|scissors|pushpin|paperclip|black_nib|pencil2|straight_ruler|triangular_ruler|closed_book|green_book|blue_book|orange_book|notebook|notebook_with_decorative_cover|ledger|books|bookmark|name_badge|microscope|telescope|newspaper|football|basketball|soccer|baseball|tennis|8ball|rugby_football|bowling|golf|mountain_bicyclist|bicyclist|horse_racing|snowboarder|swimmer|surfer|ski|spades|hearts|clubs|diamonds|gem|ring|trophy|musical_score|musical_keyboard|violin|space_invader|video_game|black_joker|flower_playing_cards|game_die|dart|mahjong|clapper|memo|pencil|book|art|microphone|headphones|trumpet|saxophone|guitar|shoe|sandal|high_heel|lipstick|boot|shirt|tshirt|necktie|womans_clothes|dress|running_shirt_with_sash|jeans|kimono|bikini|ribbon|tophat|crown|womans_hat|mans_shoe|closed_umbrella|briefcase|handbag|pouch|purse|eyeglasses|fishing_pole_and_fish|coffee|tea|sake|baby_bottle|beer|beers|cocktail|tropical_drink|wine_glass|fork_and_knife|pizza|hamburger|fries|poultry_leg|meat_on_bone|spaghetti|curry|fried_shrimp|bento|sushi|fish_cake|rice_ball|rice_cracker|rice|ramen|stew|oden|dango|egg|bread|doughnut|custard|icecream|ice_cream|shaved_ice|birthday|cake|cookie|chocolate_bar|candy|lollipop|honey_pot|apple|green_apple|tangerine|lemon|cherries|grapes|watermelon|strawberry|peach|melon|banana|pear|pineapple|sweet_potato|eggplant|tomato|corn|house|house_with_garden|school|office|post_office|hospital|bank|convenience_store|love_hotel|hotel|wedding|church|department_store|european_post_office|city_sunrise|city_sunset|japanese_castle|european_castle|tent|factory|tokyo_tower|japan|mount_fuji|sunrise_over_mountains|sunrise|stars|statue_of_liberty|bridge_at_night|carousel_horse|rainbow|ferris_wheel|fountain|roller_coaster|ship|speedboat|boat|sailboat|rowboat|anchor|rocket|airplane|helicopter|steam_locomotive|tram|mountain_railway|bike|aerial_tramway|suspension_railway|mountain_cableway|tractor|blue_car|oncoming_automobile|car|red_car|taxi|oncoming_taxi|articulated_lorry|bus|oncoming_bus|rotating_light|police_car|oncoming_police_car|fire_engine|ambulance|minibus|truck|train|station|train2|bullettrain_front|bullettrain_side|light_rail|monorail|railway_car|trolleybus|ticket|fuelpump|vertical_traffic_light|traffic_light|warning|construction|beginner|atm|slot_machine|busstop|barber|hotsprings|checkered_flag|crossed_flags|izakaya_lantern|moyai|circus_tent|performing_arts|round_pushpin|triangular_flag_on_post|jp|kr|cn|us|fr|es|it|ru|gb|uk|de|one|two|three|four|five|six|seven|eight|nine|keycap_ten|1234|zero|hash|symbols|arrow_backward|arrow_down|arrow_forward|arrow_left|capital_abcd|abcd|abc|arrow_lower_left|arrow_lower_right|arrow_right|arrow_up|arrow_upper_left|arrow_upper_right|arrow_double_down|arrow_double_up|arrow_down_small|arrow_heading_down|arrow_heading_up|leftwards_arrow_with_hook|arrow_right_hook|left_right_arrow|arrow_up_down|arrow_up_small|arrows_clockwise|arrows_counterclockwise|rewind|fast_forward|information_source|ok|twisted_rightwards_arrows|repeat|repeat_one|new|top|up|cool|free|ng|cinema|koko|signal_strength|u5272|u5408|u55b6|u6307|u6708|u6709|u6e80|u7121|u7533|u7a7a|u7981|sa|restroom|mens|womens|baby_symbol|no_smoking|parking|wheelchair|metro|baggage_claim|accept|wc|potable_water|put_litter_in_its_place|secret|congratulations|m|passport_control|left_luggage|customs|ideograph_advantage|cl|sos|id|no_entry_sign|underage|no_mobile_phones|do_not_litter|non-potable_water|no_bicycles|no_pedestrians|children_crossing|no_entry|eight_spoked_asterisk|eight_pointed_black_star|heart_decoration|vs|vibration_mode|mobile_phone_off|chart|currency_exchange|aries|taurus|gemini|cancer|leo|virgo|libra|scorpius|sagittarius|capricorn|aquarius|pisces|ophiuchus|six_pointed_star|negative_squared_cross_mark|a|b|ab|o2|diamond_shape_with_a_dot_inside|recycle|end|on|soon|clock1|clock130|clock10|clock1030|clock11|clock1130|clock12|clock1230|clock2|clock230|clock3|clock330|clock4|clock430|clock5|clock530|clock6|clock630|clock7|clock730|clock8|clock830|clock9|clock930|heavy_dollar_sign|copyright|registered|tm|x|heavy_exclamation_mark|bangbang|interrobang|o|heavy_multiplication_x|heavy_plus_sign|heavy_minus_sign|heavy_division_sign|white_flower|100|heavy_check_mark|ballot_box_with_check|radio_button|link|curly_loop|wavy_dash|part_alternation_mark|trident|black_square|white_square|white_check_mark|black_square_button|white_square_button|black_circle|white_circle|red_circle|large_blue_circle|large_blue_diamond|large_orange_diamond|small_blue_diamond|small_orange_diamond|small_red_triangle|small_red_triangle_down|shipit):/i
@@ -1990,6 +2230,12 @@
          - /^(?!\-)[a-z0-9\-]{1,63}(?<!\-)$/i
          + /^(?!-)[\-0-9a-z]{1,63}(?<!-)$/i
 
+  corpus/pusher-http-php/src/Pusher.php:104:48
+      → /http[s]?\:\/\//
+     TIP 
+         - /http[s]?\:\/\//
+         + /http[s]?:\/\//
+
   corpus/snipe-it/app/Models/Labels/Label.php:703:36
       → /\/*(.+?)(?:\/|\.)/
      TIP 
@@ -2007,6 +2253,84 @@
      TIP 
          - /^localhost$|^127(?:\.[0-9]+){0,2}\.[0-9]+$|^(?:0*\:)*?:?0*1$/i
          + /^localhost$|^127(?:\.[0-9]+){0,2}\.[0-9]+$|^(?:0*:)*?:?0*1$/i
+
+  corpus/phpseclib/phpseclib/Net/SSH2.php:4476:37
+      → #[^\x20-\x7E]|<#
+     TIP 
+         - #[^\x20-\x7E]|<#
+         + #[^ -~]|<#
+
+  corpus/phpseclib/phpseclib/File/ASN1/Types/OID.php:62:28
+      → #^\d[\d\.]+\d$#
+     TIP 
+         - #^\d[\d\.]+\d$#
+         + #^\d[\d.]+\d$#
+
+  corpus/phpseclib/phpseclib/File/SPKAC.php:131:30
+      → #(?:SPKAC=)|[ \r\n\\]#
+     TIP 
+         - #(?:SPKAC=)|[ \r\n\\]#
+         + #SPKAC=|[ \r\n\\]#
+
+  corpus/phpseclib/phpseclib/File/ANSI.php:259:45
+      → #\x1B\[(\d+)B#
+     TIP 
+         - #\x1B\[(\d+)B#
+         + #\e\[(\d+)B#
+
+  corpus/phpseclib/phpseclib/File/ANSI.php:263:45
+      → #\x1B\[(\d+);(\d+)H#
+     TIP 
+         - #\x1B\[(\d+);(\d+)H#
+         + #\e\[(\d+);(\d+)H#
+
+  corpus/phpseclib/phpseclib/File/ANSI.php:269:45
+      → #\x1B\[(\d+)C#
+     TIP 
+         - #\x1B\[(\d+)C#
+         + #\e\[(\d+)C#
+
+  corpus/phpseclib/phpseclib/File/ANSI.php:273:45
+      → #\x1B\[(\d+)D#
+     TIP 
+         - #\x1B\[(\d+)D#
+         + #\e\[(\d+)D#
+
+  corpus/phpseclib/phpseclib/File/ANSI.php:280:45
+      → #\x1B\[(\d+);(\d+)r#
+     TIP 
+         - #\x1B\[(\d+);(\d+)r#
+         + #\e\[(\d+);(\d+)r#
+
+  corpus/phpseclib/phpseclib/File/ANSI.php:282:45
+      → #\x1B\[(\d*(?:;\d*)*)m#
+     TIP 
+         - #\x1B\[(\d*(?:;\d*)*)m#
+         + #\e\[(\d*(?:;\d*)*)m#
+
+  corpus/phpseclib/phpseclib/File/Common/Traits/DN.php:361:24
+      → #[^\x20-\x7E]#
+     TIP 
+         - #[^\x20-\x7E]#
+         + #[^ -~]#
+
+  corpus/phpseclib/phpseclib/File/Common/Traits/DN.php:372:28
+      → #(^[a-zA-Z0-9\.]+)=(.*)#
+     TIP 
+         - #(^[a-zA-Z0-9\.]+)=(.*)#
+         + #(^[.0-9A-Za-z]+)=(.*)#
+
+  corpus/phpseclib/phpseclib/File/Common/Traits/DN.php:406:29
+      → #(^[a-zA-Z0-9\.]+)[ ]?=[ ]?(.*)#
+     TIP 
+         - #(^[a-zA-Z0-9\.]+)[ ]?=[ ]?(.*)#
+         + #(^[.0-9A-Za-z]+)[ ]?=[ ]?(.*)#
+
+  corpus/phpseclib/phpseclib/File/Common/Traits/DN.php:545:44
+      → #[^\x20-\x7E]#
+     TIP 
+         - #[^\x20-\x7E]#
+         + #[^ -~]#
 
   corpus/foundry/src/Persistence/ProxyGenerator.php:177:13
       → /^(\s*(?:#\[\\ReturnTypeWillChange\]\s*)?(?:public|protected|private)?\s*function\s+(?!__)\w+\s*\([^\)]*\)\s*):?\s*\??[\w\\|&]*\s*\{\s*$/m
@@ -2052,11 +2376,59 @@
            (
            ...
 
+  corpus/aws-crt-php/gen_stub.php:934:36
+      → /^[a-zA-Z_][a-zA-Z_0-9]*$/
+     TIP 
+         - /^[a-zA-Z_][a-zA-Z_0-9]*$/
+         + /^[A-Z_a-z]\w*$/
+
+  corpus/aws-crt-php/gen_stub.php:1034:24
+      → /^\s*([\w\|\\\[\]]+)\s*\$\w+.*$/
+     TIP 
+         - /^\s*([\w\|\\\[\]]+)\s*\$\w+.*$/
+         + /^\s*([[-\]|\w]+)\s*\$\w+.*$/
+
+  corpus/aws-crt-php/gen_stub.php:1036:24
+      → /^\s*([\w\|\\\[\]]+)\s*$/
+     TIP 
+         - /^\s*([\w\|\\\[\]]+)\s*$/
+         + /^\s*([[-\]|\w]+)\s*$/
+
+  corpus/aws-crt-php/gen_stub.php:1055:24
+      → /^\s*[\w\|\\\[\]]+\s*\$(\w+).*$/
+     TIP 
+         - /^\s*[\w\|\\\[\]]+\s*\$(\w+).*$/
+         + /^\s*[[-\]|\w]+\s*\$(\w+).*$/
+
+  corpus/carbon/src/Carbon/Traits/Localization.php:678:13
+      → /\{(?:-?\d+(?:\.\d+)?|-?Inf)(?:,(?:-?\d+|-?Inf))?}|[\[\]](?:-?\d+(?:\.\d+)?|-?Inf)(?:,(?:-?\d+|-?Inf))?[\[\]]/
+     TIP 
+         - /\{(?:-?\d+(?:\.\d+)?|-?Inf)(?:,(?:-?\d+|-?Inf))?}|[\[\]](?:-?\d+(?:\.\d+)?|-?Inf)(?:,(?:-?\d+|-?Inf))?[\[\]]/
+         + /\{(?:-?\d+(?:\.\d+)?|-?Inf)(?:,(?:-?\d+|-?Inf))?\}|[[\]](?:-?\d+(?:\.\d+)?|-?Inf)(?:,(?:-?\d+|-?Inf))?[[\]]/
+
+  corpus/carbon/src/Carbon/Traits/Creator.php:572:24
+      → /(?<!\\)(?:\\{2})*(h|g|H|G)/
+     TIP 
+         - /(?<!\\)(?:\\{2})*(h|g|H|G)/
+         + /(?<!\\)(?:\\{2})*([hgHG])/
+
+  corpus/carbon/src/Carbon/Unit.php:57:33
+      → /[{\[\]].+?[}\[\]]/
+     TIP 
+         - /[{\[\]].+?[}\[\]]/
+         + /[{[\]].+?[}[\]]/
+
   corpus/aidingapp/app-modules/engagement/src/Jobs/ProcessSesS3InboundEmail.php:128:32
       → /([a-z0-9\-]+)\-([a-z0-9]+)/
      TIP 
          - /([a-z0-9\-]+)\-([a-z0-9]+)/
          + /([\-0-9a-z]+)-([0-9a-z]+)/
+
+  corpus/tokenizer/tools/php-cs-fixer.d/PhpdocSingleLineVarFixer.php:51:28
+      → #^/\*\*[\s\*]+(@var[^\r\n]+)[\s\*]*\*\/$#u
+     TIP 
+         - #^/\*\*[\s\*]+(@var[^\r\n]+)[\s\*]*\*\/$#u
+         + #^/\*\*[\s*]+(@var[^\r\n]+)[\s*]*\*/$#u
 
   corpus/composer/ca-bundle/src/CaBundle.php:169:38
       → /^(\-+(?:BEGIN|END))\s+TRUSTED\s+(CERTIFICATE\-+)$/m
@@ -2069,6 +2441,12 @@
      TIP 
          - /^\"(.*)\"$/
          + /^"(.*)"$/
+
+  corpus/phpDocumentor/ReflectionDocBlock/src/DocBlock/Tags/Author.php:92:39
+      → /^([^\<]*)(?:\<([^\>]*)\>)?$/u
+     TIP 
+         - /^([^\<]*)(?:\<([^\>]*)\>)?$/u
+         + /^([^<]*)(?:<([^>]*)>)?$/u
 
   corpus/termwind/src/Actions/StyleToMethod.php:50:45
       → /(?![^\[]*\])\s/
@@ -2280,6 +2658,24 @@
          - /\[([^\]]+)\]/
          + /\[([^\]]+)]/
 
+  corpus/nette/latte/src/Latte/Runtime/XmlHelpers.php:41:21
+      → #[\x00-\x08\x0B\x0C\x0E-\x1F]#
+     TIP 
+         - #[\x00-\x08\x0B\x0C\x0E-\x1F]#
+         + #[\x00-\x08\x0B\f\x0E-\x1F]#
+
+  corpus/nette/latte/src/Latte/Compiler/TemplateLexer.php:324:24
+      → #(.*?)([\x00-\x08\x0B\x0C\x0E-\x1F\x7F])#s
+     TIP 
+         - #(.*?)([\x00-\x08\x0B\x0C\x0E-\x1F\x7F])#s
+         + #(.*?)([\x00-\x08\x0B\f\x0E-\x1F\x7F])#s
+
+  corpus/nette/tester/src/Framework/Dumper.php:354:27
+      → #[\x00-\x09\x0B-\x1F]+#
+     TIP 
+         - #[\x00-\x09\x0B-\x1F]+#
+         + #[\x00-\t\x0B-\x1F]+#
+
   corpus/elementor/core/utils/svg/svg-sanitizer.php:768:28
       → /<\%(.*)\%>/Us
      TIP 
@@ -2309,6 +2705,12 @@
      TIP 
          - /<iframe.*src=\"(.*)\".*><\/iframe>/isU
          + /<iframe.*src="(.*)".*><\/iframe>/isU
+
+  corpus/whoops/src/Whoops/Handler/XmlResponseHandler.php:80:33
+      → /[^a-z0-9\-\_\.\:]/i
+     TIP 
+         - /[^a-z0-9\-\_\.\:]/i
+         + /[^\-.0-9:_a-z]/i
 
   corpus/shopware/src/Core/DevOps/StaticAnalyze/print-ignored-errors-by-area.php:12:16
       → /^\s*path\: (.*.php)$/m
@@ -2460,6 +2862,342 @@
          - ~[^\x20-\x7E\t\r\n]~
          + ~[^ -\~\t\r\n]~
 
+  corpus/htmlpurifier/plugins/phorum/settings/migrate-sigs.php:46:29
+      → /<((http|https|ftp):\/\/[a-z0-9;\/\?:@=\&$\-_\.\+!*'\(\),~%]+?)>/i
+     TIP 
+         - /<((http|https|ftp):\/\/[a-z0-9;\/\?:@=\&$\-_\.\+!*'\(\),~%]+?)>/i
+         + /<((http|https|ftp):\/\/[!$-\/0-9:;=?@_a-z~]+?)>/i
+
+  corpus/htmlpurifier/library/HTMLPurifier/Lexer/PH5P.php:734:29
+      → /[\t\n\x0b\x0c >\/]/
+     TIP 
+         - /[\t\n\x0b\x0c >\/]/
+         + /[\t\n\x0B\f >\/]/
+
+  corpus/htmlpurifier/library/HTMLPurifier/Lexer/PH5P.php:814:24
+      → /^[\t\n\x0b\x0c ]$/
+     TIP 
+         - /^[\t\n\x0b\x0c ]$/
+         + /^[\t\n\x0B\f ]$/
+
+  corpus/htmlpurifier/library/HTMLPurifier/Lexer/PH5P.php:859:24
+      → /^[\t\n\x0b\x0c ]$/
+     TIP 
+         - /^[\t\n\x0b\x0c ]$/
+         + /^[\t\n\x0B\f ]$/
+
+  corpus/htmlpurifier/library/HTMLPurifier/Lexer/PH5P.php:909:24
+      → /^[\t\n\x0b\x0c ]$/
+     TIP 
+         - /^[\t\n\x0b\x0c ]$/
+         + /^[\t\n\x0B\f ]$/
+
+  corpus/htmlpurifier/library/HTMLPurifier/Lexer/PH5P.php:961:24
+      → /^[\t\n\x0b\x0c ]$/
+     TIP 
+         - /^[\t\n\x0b\x0c ]$/
+         + /^[\t\n\x0B\f ]$/
+
+  corpus/htmlpurifier/library/HTMLPurifier/Lexer/PH5P.php:1016:24
+      → /^[\t\n\x0b\x0c ]$/
+     TIP 
+         - /^[\t\n\x0b\x0c ]$/
+         + /^[\t\n\x0B\f ]$/
+
+  corpus/htmlpurifier/library/HTMLPurifier/Lexer/PH5P.php:1137:24
+      → /^[\t\n\x0b\x0c ]$/
+     TIP 
+         - /^[\t\n\x0b\x0c ]$/
+         + /^[\t\n\x0B\f ]$/
+
+  corpus/htmlpurifier/library/HTMLPurifier/Lexer/PH5P.php:1327:24
+      → /^[\t\n\x0b\x0c ]$/
+     TIP 
+         - /^[\t\n\x0b\x0c ]$/
+         + /^[\t\n\x0B\f ]$/
+
+  corpus/htmlpurifier/library/HTMLPurifier/Lexer/PH5P.php:1342:24
+      → /^[\t\n\x0b\x0c ]$/
+     TIP 
+         - /^[\t\n\x0b\x0c ]$/
+         + /^[\t\n\x0B\f ]$/
+
+  corpus/htmlpurifier/library/HTMLPurifier/Lexer/PH5P.php:1394:24
+      → /^[\t\n\x0b\x0c ]$/
+     TIP 
+         - /^[\t\n\x0b\x0c ]$/
+         + /^[\t\n\x0B\f ]$/
+
+  corpus/htmlpurifier/library/HTMLPurifier/Lexer/PH5P.php:1424:24
+      → /^[\t\n\x0b\x0c ]$/
+     TIP 
+         - /^[\t\n\x0b\x0c ]$/
+         + /^[\t\n\x0B\f ]$/
+
+  corpus/htmlpurifier/library/HTMLPurifier/Lexer/PH5P.php:1750:29
+      → /^[\t\n\x0b\x0c ]+$/
+     TIP 
+         - /^[\t\n\x0b\x0c ]+$/
+         + /^[\t\n\x0B\f ]+$/
+
+  corpus/htmlpurifier/library/HTMLPurifier/Lexer/PH5P.php:1776:17
+      → /^[\t\n\x0b\x0c ]+$/
+     TIP 
+         - /^[\t\n\x0b\x0c ]+$/
+         + /^[\t\n\x0B\f ]+$/
+
+  corpus/htmlpurifier/library/HTMLPurifier/Lexer/PH5P.php:1806:24
+      → /^[\t\n\x0b\x0c ]+$/
+     TIP 
+         - /^[\t\n\x0b\x0c ]+$/
+         + /^[\t\n\x0B\f ]+$/
+
+  corpus/htmlpurifier/library/HTMLPurifier/Lexer/PH5P.php:1819:29
+      → /^[\t\n\x0b\x0c ]+$/
+     TIP 
+         - /^[\t\n\x0b\x0c ]+$/
+         + /^[\t\n\x0B\f ]+$/
+
+  corpus/htmlpurifier/library/HTMLPurifier/Lexer/PH5P.php:1925:24
+      → /^[\t\n\x0b\x0c ]+$/
+     TIP 
+         - /^[\t\n\x0b\x0c ]+$/
+         + /^[\t\n\x0B\f ]+$/
+
+  corpus/htmlpurifier/library/HTMLPurifier/Lexer/PH5P.php:1956:21
+      → /^[\t\n\x0b\x0c ]$/
+     TIP 
+         - /^[\t\n\x0b\x0c ]$/
+         + /^[\t\n\x0B\f ]$/
+
+  corpus/htmlpurifier/library/HTMLPurifier/Lexer/PH5P.php:1990:28
+      → /^[\t\n\x0b\x0c ]+$/
+     TIP 
+         - /^[\t\n\x0b\x0c ]+$/
+         + /^[\t\n\x0B\f ]+$/
+
+  corpus/htmlpurifier/library/HTMLPurifier/Lexer/PH5P.php:2121:24
+      → /^[\t\n\x0b\x0c ]+$/
+     TIP 
+         - /^[\t\n\x0b\x0c ]+$/
+         + /^[\t\n\x0B\f ]+$/
+
+  corpus/htmlpurifier/library/HTMLPurifier/Lexer/PH5P.php:3324:24
+      → /^[\t\n\x0b\x0c ]+$/
+     TIP 
+         - /^[\t\n\x0b\x0c ]+$/
+         + /^[\t\n\x0B\f ]+$/
+
+  corpus/htmlpurifier/library/HTMLPurifier/Lexer/PH5P.php:3629:24
+      → /^[\t\n\x0b\x0c ]+$/
+     TIP 
+         - /^[\t\n\x0b\x0c ]+$/
+         + /^[\t\n\x0B\f ]+$/
+
+  corpus/htmlpurifier/library/HTMLPurifier/Lexer/PH5P.php:4210:24
+      → /^[\t\n\x0b\x0c ]+$/
+     TIP 
+         - /^[\t\n\x0b\x0c ]+$/
+         + /^[\t\n\x0B\f ]+$/
+
+  corpus/htmlpurifier/library/HTMLPurifier/Lexer/PH5P.php:4251:24
+      → /^[\t\n\x0b\x0c ]+$/
+     TIP 
+         - /^[\t\n\x0b\x0c ]+$/
+         + /^[\t\n\x0B\f ]+$/
+
+  corpus/htmlpurifier/library/HTMLPurifier/Lexer/PH5P.php:4320:24
+      → /^[\t\n\x0b\x0c ]+$/
+     TIP 
+         - /^[\t\n\x0b\x0c ]+$/
+         + /^[\t\n\x0B\f ]+$/
+
+  corpus/htmlpurifier/library/HTMLPurifier/Lexer/PH5P.php:4371:24
+      → /^[\t\n\x0b\x0c ]+$/
+     TIP 
+         - /^[\t\n\x0b\x0c ]+$/
+         + /^[\t\n\x0B\f ]+$/
+
+  corpus/htmlpurifier/library/HTMLPurifier/Lexer/PH5P.php:4380:28
+      → /^[\t\n\x0b\x0c ]+$/
+     TIP 
+         - /^[\t\n\x0b\x0c ]+$/
+         + /^[\t\n\x0B\f ]+$/
+
+  corpus/htmlpurifier/library/HTMLPurifier/AttrDef/HTML/ID.php:76:28
+      → /[\t\n\x0b\x0c ]/
+     TIP 
+         - /[\t\n\x0b\x0c ]/
+         + /[\t\n\x0B\f ]/
+
+  corpus/htmlpurifier/library/HTMLPurifier/Filter/ExtractStyleBlocks.php:113:39
+      → #<style(?:\s.*)?>(.*)<\/style>#isU
+     TIP 
+         - #<style(?:\s.*)?>(.*)<\/style>#isU
+         + #<style(?:\s.*)?>(.*)</style>#isU
+
+  corpus/htmlpurifier/maintenance/PH5P.php:320:51
+      → /[\t\n\x0b\x0c >\/]/
+     TIP 
+         - /[\t\n\x0b\x0c >\/]/
+         + /[\t\n\x0B\f >\/]/
+
+  corpus/htmlpurifier/maintenance/PH5P.php:394:23
+      → /^[\t\n\x0b\x0c ]$/
+     TIP 
+         - /^[\t\n\x0b\x0c ]$/
+         + /^[\t\n\x0B\f ]$/
+
+  corpus/htmlpurifier/maintenance/PH5P.php:439:23
+      → /^[\t\n\x0b\x0c ]$/
+     TIP 
+         - /^[\t\n\x0b\x0c ]$/
+         + /^[\t\n\x0B\f ]$/
+
+  corpus/htmlpurifier/maintenance/PH5P.php:489:23
+      → /^[\t\n\x0b\x0c ]$/
+     TIP 
+         - /^[\t\n\x0b\x0c ]$/
+         + /^[\t\n\x0B\f ]$/
+
+  corpus/htmlpurifier/maintenance/PH5P.php:541:23
+      → /^[\t\n\x0b\x0c ]$/
+     TIP 
+         - /^[\t\n\x0b\x0c ]$/
+         + /^[\t\n\x0B\f ]$/
+
+  corpus/htmlpurifier/maintenance/PH5P.php:596:23
+      → /^[\t\n\x0b\x0c ]$/
+     TIP 
+         - /^[\t\n\x0b\x0c ]$/
+         + /^[\t\n\x0B\f ]$/
+
+  corpus/htmlpurifier/maintenance/PH5P.php:717:23
+      → /^[\t\n\x0b\x0c ]$/
+     TIP 
+         - /^[\t\n\x0b\x0c ]$/
+         + /^[\t\n\x0B\f ]$/
+
+  corpus/htmlpurifier/maintenance/PH5P.php:904:23
+      → /^[\t\n\x0b\x0c ]$/
+     TIP 
+         - /^[\t\n\x0b\x0c ]$/
+         + /^[\t\n\x0B\f ]$/
+
+  corpus/htmlpurifier/maintenance/PH5P.php:919:23
+      → /^[\t\n\x0b\x0c ]$/
+     TIP 
+         - /^[\t\n\x0b\x0c ]$/
+         + /^[\t\n\x0B\f ]$/
+
+  corpus/htmlpurifier/maintenance/PH5P.php:967:23
+      → /^[\t\n\x0b\x0c ]$/
+     TIP 
+         - /^[\t\n\x0b\x0c ]$/
+         + /^[\t\n\x0B\f ]$/
+
+  corpus/htmlpurifier/maintenance/PH5P.php:997:23
+      → /^[\t\n\x0b\x0c ]$/
+     TIP 
+         - /^[\t\n\x0b\x0c ]$/
+         + /^[\t\n\x0B\f ]$/
+
+  corpus/htmlpurifier/maintenance/PH5P.php:1237:21
+      → /^[\t\n\x0b\x0c ]+$/
+     TIP 
+         - /^[\t\n\x0b\x0c ]+$/
+         + /^[\t\n\x0B\f ]+$/
+
+  corpus/htmlpurifier/maintenance/PH5P.php:1261:54
+      → /^[\t\n\x0b\x0c ]+$/
+     TIP 
+         - /^[\t\n\x0b\x0c ]+$/
+         + /^[\t\n\x0B\f ]+$/
+
+  corpus/htmlpurifier/maintenance/PH5P.php:1289:20
+      → /^[\t\n\x0b\x0c ]+$/
+     TIP 
+         - /^[\t\n\x0b\x0c ]+$/
+         + /^[\t\n\x0B\f ]+$/
+
+  corpus/htmlpurifier/maintenance/PH5P.php:1301:21
+      → /^[\t\n\x0b\x0c ]+$/
+     TIP 
+         - /^[\t\n\x0b\x0c ]+$/
+         + /^[\t\n\x0B\f ]+$/
+
+  corpus/htmlpurifier/maintenance/PH5P.php:1376:20
+      → /^[\t\n\x0b\x0c ]+$/
+     TIP 
+         - /^[\t\n\x0b\x0c ]+$/
+         + /^[\t\n\x0B\f ]+$/
+
+  corpus/htmlpurifier/maintenance/PH5P.php:1405:60
+      → /^[\t\n\x0b\x0c ]$/
+     TIP 
+         - /^[\t\n\x0b\x0c ]$/
+         + /^[\t\n\x0B\f ]$/
+
+  corpus/htmlpurifier/maintenance/PH5P.php:1435:20
+      → /^[\t\n\x0b\x0c ]+$/
+     TIP 
+         - /^[\t\n\x0b\x0c ]+$/
+         + /^[\t\n\x0B\f ]+$/
+
+  corpus/htmlpurifier/maintenance/PH5P.php:1556:20
+      → /^[\t\n\x0b\x0c ]+$/
+     TIP 
+         - /^[\t\n\x0b\x0c ]+$/
+         + /^[\t\n\x0B\f ]+$/
+
+  corpus/htmlpurifier/maintenance/PH5P.php:2612:20
+      → /^[\t\n\x0b\x0c ]+$/
+     TIP 
+         - /^[\t\n\x0b\x0c ]+$/
+         + /^[\t\n\x0B\f ]+$/
+
+  corpus/htmlpurifier/maintenance/PH5P.php:2857:20
+      → /^[\t\n\x0b\x0c ]+$/
+     TIP 
+         - /^[\t\n\x0b\x0c ]+$/
+         + /^[\t\n\x0B\f ]+$/
+
+  corpus/htmlpurifier/maintenance/PH5P.php:3348:20
+      → /^[\t\n\x0b\x0c ]+$/
+     TIP 
+         - /^[\t\n\x0b\x0c ]+$/
+         + /^[\t\n\x0B\f ]+$/
+
+  corpus/htmlpurifier/maintenance/PH5P.php:3388:20
+      → /^[\t\n\x0b\x0c ]+$/
+     TIP 
+         - /^[\t\n\x0b\x0c ]+$/
+         + /^[\t\n\x0B\f ]+$/
+
+  corpus/htmlpurifier/maintenance/PH5P.php:3452:20
+      → /^[\t\n\x0b\x0c ]+$/
+     TIP 
+         - /^[\t\n\x0b\x0c ]+$/
+         + /^[\t\n\x0B\f ]+$/
+
+  corpus/htmlpurifier/maintenance/PH5P.php:3500:20
+      → /^[\t\n\x0b\x0c ]+$/
+     TIP 
+         - /^[\t\n\x0b\x0c ]+$/
+         + /^[\t\n\x0B\f ]+$/
+
+  corpus/htmlpurifier/maintenance/PH5P.php:3508:20
+      → /^[\t\n\x0b\x0c ]+$/
+     TIP 
+         - /^[\t\n\x0b\x0c ]+$/
+         + /^[\t\n\x0B\f ]+$/
+
+  corpus/prophecy/src/Prophecy/Util/ExportUtil.php:130:28
+      → /[^\x09-\x0d\x20-\xff]/
+     TIP 
+         - /[^\x09-\x0d\x20-\xff]/
+         + /[^\t-\r -\xFF]/
+
   corpus/thephpleague/fractal/src/Manager.php:149:28
       → /([\w]+)(\(([^\)]+)\))?/
      TIP 
@@ -2592,31 +3330,31 @@
          - /Windows NT ([0-9\.]+)/
          + /Windows NT ([.0-9]+)/
 
-  corpus/symfony/src/Symfony/Component/HttpClient/HttpClientTrait.php:704:51
+  corpus/symfony/symfony/src/Symfony/Component/HttpClient/HttpClientTrait.php:704:51
       → #[^!$-/0-9:;=@A-Z\[\]_a-z{}~]++#
      TIP 
          - #[^!$-/0-9:;=@A-Z\[\]_a-z{}~]++#
          + #[^!$-/0-9:;=@A-Z[\]_a-z{}~]++#
 
-  corpus/symfony/src/Symfony/Component/JsonPath/JsonCrawler.php:75:28
+  corpus/symfony/symfony/src/Symfony/Component/JsonPath/JsonCrawler.php:75:28
       → /^\$\[([^\[\]]+)]$/
      TIP 
          - /^\$\[([^\[\]]+)]$/
          + /^\$\[([^[\]]+)]$/
 
-  corpus/symfony/src/Symfony/Component/JsonPath/JsonCrawler.php:141:25
+  corpus/symfony/symfony/src/Symfony/Component/JsonPath/JsonCrawler.php:141:25
       → /^\$\[([^\[\]]+)]$/
      TIP 
          - /^\$\[([^\[\]]+)]$/
          + /^\$\[([^[\]]+)]$/
 
-  corpus/symfony/src/Symfony/Component/Security/Core/Dumper/MermaidDumper.php:86:29
+  corpus/symfony/symfony/src/Symfony/Component/Security/Core/Dumper/MermaidDumper.php:86:29
       → /[^a-zA-Z0-9_]/
      TIP 
          - /[^a-zA-Z0-9_]/
          + /\W/
 
-  corpus/symfony/src/Symfony/Component/Yaml/Escaper.php:85:31
+  corpus/symfony/symfony/src/Symfony/Component/Yaml/Escaper.php:85:31
       → /[\s'"\:\{\}\[\],&\*\#\?] | \A[\-?|<>=!%@`\p{Zs}]/xu
      TIP 
            /[\s'":{}[\],&*#?]
@@ -2624,13 +3362,13 @@
          ---
          + | \A[!%\-<-@`|\p{Zs}]/xu
 
-  corpus/symfony/src/Symfony/Component/Mime/Header/MailboxHeader.php:83:27
+  corpus/symfony/symfony/src/Symfony/Component/Mime/Header/MailboxHeader.php:83:27
       → /["(),.:-<>@\[\]]/
      TIP 
          - /["(),.:-<>@\[\]]/
          + /["(),.:-<>@[\]]/
 
-  corpus/symfony/src/Symfony/Component/Mime/Header/MailboxListHeader.php:134:27
+  corpus/symfony/symfony/src/Symfony/Component/Mime/Header/MailboxListHeader.php:134:27
       → /["(),.:-<>@\[\]]/
      TIP 
          - /["(),.:-<>@\[\]]/
@@ -2647,6 +3385,12 @@
      TIP 
          - /:\s*([0-9,\.]+)\s*MB/i
          + /:\s*([,.0-9]+)\s*MB/i
+
+  corpus/openspout/src/Reader/XLSX/Helper/DateFormatHelper.php:66:36
+      → /^(?:\[\$[^\]]+?\])?([^;]*).*/
+     TIP 
+         - /^(?:\[\$[^\]]+?\])?([^;]*).*/
+         + /^(?:\[\$[^\]]+?])?([^;]*).*/
 
   corpus/Twig/src/Runtime/EscaperRuntime.php:194:49
       → #[^a-zA-Z0-9,\._]#Su
@@ -2870,6 +3614,36 @@
          - #[^a-zA-Z0-9,.\-_]#Su
          + #[^,-.0-9A-Z_a-z]#Su
 
+  corpus/elasticsearch-php/util/ActionTest.php:166:28
+      → /\#base64EncodeCredentials\((\w+),(\w+)\)/
+     TIP 
+         - /\#base64EncodeCredentials\((\w+),(\w+)\)/
+         + /#base64EncodeCredentials\((\w+),(\w+)\)/
+
+  corpus/elasticsearch-php/util/ActionTest.php:560:27
+      → /^\'\s?\/\^?/
+     TIP 
+         - /^\'\s?\/\^?/
+         + /^'\s?\/\^?/
+
+  corpus/elasticsearch-php/util/YamlTests.php:430:32
+      → /[^a-zA-Z0-9_]/
+     TIP 
+         - /[^a-zA-Z0-9_]/
+         + /\W/
+
+  corpus/elasticsearch-php/src/Utility.php:41:29
+      → /[^a-zA-Z0-9_]/
+     TIP 
+         - /[^a-zA-Z0-9_]/
+         + /\W/
+
+  corpus/elasticsearch-php/src/Helper/Esql/EsqlBase.php:32:24
+      → /[A-Za-z_@][A-Za-z0-9_\.]*/
+     TIP 
+         - /[A-Za-z_@][A-Za-z0-9_\.]*/
+         + /[@A-Z_a-z][.0-9A-Z_a-z]*/
+
   corpus/laravel/framework/src/Illuminate/Database/Eloquent/ModelInspector.php:251:24
       → /eloquent.([a-zA-Z]+)\: /
      TIP 
@@ -3013,4 +3787,16 @@
      TIP 
          - /\[([^\]]+)\]/
          + /\[([^\]]+)]/
+
+  corpus/guzzle/psr7/src/MessageTrait.php:255:25
+      → /^[\x20\x09\x21-\x7E\x80-\xFF]*$/D
+     TIP 
+         - /^[\x20\x09\x21-\x7E\x80-\xFF]*$/D
+         + /^[ \t!-~\x80-\xFF]*$/D
+
+  corpus/guzzle/guzzle/src/Cookie/SetCookie.php:468:13
+      → /[\x00-\x20\x22\x28-\x29\x2c\x2f\x3a-\x40\x5c\x7b\x7d\x7f]/
+     TIP 
+         - /[\x00-\x20\x22\x28-\x29\x2c\x2f\x3a-\x40\x5c\x7b\x7d\x7f]/
+         + /[\x00- "(-),\/:-@\{}\x7F]/
 
