@@ -55,7 +55,7 @@ final class RegexLintServiceCoverageTest extends TestCase
         if (false === $tempFile) {
             $this->markTestSkipped('Unable to create temp file.');
         }
-        copy(__DIR__.'/../../Fixtures/Lint/multiline.txt', $tempFile);
+        copy(__DIR__.'/../Fixtures/Lint/multiline.txt', $tempFile);
         chmod($tempFile, 0o200);
 
         try {

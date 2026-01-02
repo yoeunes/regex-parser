@@ -32,7 +32,13 @@ final class LexerCoverageTest extends TestCase
         $method = $ref->getMethod('matchAtPosition');
 
         $this->expectException(LexerException::class);
-        $method->invoke($lexer, '/[a-/');
+        set_error_handler(static fn (int $errno): bool => \E_WARNING === $errno);
+
+        try {
+            $method->invoke($lexer, '/[a-/');
+        } finally {
+            restore_error_handler();
+        }
     }
 
     public function test_create_token_without_matching_map_throws(): void
