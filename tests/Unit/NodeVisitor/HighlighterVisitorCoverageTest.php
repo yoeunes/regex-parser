@@ -45,7 +45,6 @@ final class HighlighterVisitorCoverageTest extends TestCase
         $visitor = new ConsoleHighlighterVisitor();
         $reflection = new \ReflectionClass($visitor);
         $wrapMethod = $reflection->getMethod('wrap');
-        $wrapMethod->setAccessible(true);
 
         $result = $wrapMethod->invoke($visitor, '', 'literal');
 
@@ -57,7 +56,6 @@ final class HighlighterVisitorCoverageTest extends TestCase
         $visitor = new ConsoleHighlighterVisitor();
         $reflection = new \ReflectionClass($visitor);
         $wrapMethod = $reflection->getMethod('wrap');
-        $wrapMethod->setAccessible(true);
 
         $result = $wrapMethod->invoke($visitor, 'test', 'unknown_type');
 
@@ -69,7 +67,6 @@ final class HighlighterVisitorCoverageTest extends TestCase
         $visitor = new HtmlHighlighterVisitor();
         $reflection = new \ReflectionClass($visitor);
         $wrapMethod = $reflection->getMethod('wrap');
-        $wrapMethod->setAccessible(true);
 
         $result = $wrapMethod->invoke($visitor, '', 'literal');
 

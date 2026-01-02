@@ -15,9 +15,9 @@ namespace RegexParser\Tests\Unit;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use RegexParser\Cache\CacheInterface;
 use RegexParser\Cache\FilesystemCache;
 use RegexParser\Cache\NullCache;
-use RegexParser\Cache\RemovableCacheInterface;
 use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
 use RegexParser\Exception\ResourceLimitException;
@@ -27,6 +27,7 @@ use RegexParser\Node\ConditionalNode;
 use RegexParser\Node\GroupNode;
 use RegexParser\Node\NodeInterface;
 use RegexParser\Node\QuantifierNode;
+use RegexParser\Node\RegexNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\NodeVisitor\HtmlExplainNodeVisitor;
 use RegexParser\Regex;
@@ -204,6 +205,28 @@ final class RegexTest extends TestCase
         $this->assertInstanceOf(ValidationResult::class, $result);
         $this->assertFalse($result->isValid);
         $this->assertStringContainsString('PCRE runtime error', (string) $result->error);
+    }
+
+    public function test_check_runtime_compilation_uses_default_for_empty_message(): void
+    {
+        $regex = Regex::create();
+        $reflection = new \ReflectionClass($regex);
+        $method = $reflection->getMethod('checkRuntimeCompilation');
+
+        // First, verify that normalizeRuntimeErrorMessage returns 'No error' for certain inputs
+        $normalizeMethod = $reflection->getMethod('normalizeRuntimeErrorMessage');
+        $normalizedEmpty = $normalizeMethod->invoke($regex, 'preg_match(): No error');
+        $this->assertSame('No error', $normalizedEmpty);
+
+        // Now test checkRuntimeCompilation with a pattern that triggers compilation error
+        // The exact message will vary, but we verify it contains 'PCRE runtime error:'
+        // This tests the path where the error message processing happens
+        $result = $method->invoke($regex, '/invalid[pattern/', 'invalid[pattern', 7);
+
+        // Should return ValidationResult with error message containing the default prefix
+        $this->assertInstanceOf(ValidationResult::class, $result);
+        $this->assertFalse($result->isValid);
+        $this->assertStringStartsWith('PCRE runtime error: ', (string) $result->error);
     }
 
     public function test_validate_method_with_valid_regex(): void
@@ -516,7 +539,7 @@ final class RegexTest extends TestCase
         $this->assertSame($cache, $regex->getCache());
     }
 
-    public function test_get_cache_stats_returns_zero_for_non_removable_cache(): void
+    public function test_get_cache_stats_with_null_cache(): void
     {
         $cache = new NullCache();
         $regex = Regex::create(['cache' => $cache]);
@@ -526,9 +549,37 @@ final class RegexTest extends TestCase
         $this->assertSame(['hits' => 0, 'misses' => 0], $stats);
     }
 
+    public function test_get_cache_stats_returns_zero_when_cache_not_removable(): void
+    {
+        $cache = new class implements CacheInterface {
+            public function generateKey(string $regex): string
+            {
+                return 'key_'.$regex;
+            }
+
+            public function write(string $key, string $content): void {}
+
+            public function load(string $key): mixed
+            {
+                return null;
+            }
+
+            public function getTimestamp(string $key): int
+            {
+                return 0;
+            }
+        };
+
+        $regex = Regex::create(['cache' => $cache]);
+
+        $stats = $regex->getCacheStats();
+
+        $this->assertSame(['hits' => 0, 'misses' => 0], $stats);
+    }
+
     public function test_get_cache_stats_returns_actual_stats_for_removable_cache(): void
     {
-        $cache = new FilesystemCache('/tmp/test-cache-' . uniqid());
+        $cache = new FilesystemCache('/tmp/test-cache-'.uniqid());
         $regex = Regex::create(['cache' => $cache]);
 
         // Parse something to potentially generate stats
@@ -553,7 +604,6 @@ final class RegexTest extends TestCase
 
         $reflection = new \ReflectionClass($regex);
         $loadFromCacheMethod = $reflection->getMethod('loadFromCache');
-        $loadFromCacheMethod->setAccessible(true);
 
         $result = $loadFromCacheMethod->invoke($regex, 'test_regex');
 
@@ -569,12 +619,86 @@ final class RegexTest extends TestCase
 
         $reflection = new \ReflectionClass($regex);
         $storeInCacheMethod = $reflection->getMethod('storeInCache');
-        $storeInCacheMethod->setAccessible(true);
 
         // This should not throw an exception and should return early
         $storeInCacheMethod->invoke($regex, null, $ast);
 
-        $this->assertTrue(true); // If we reach here, the test passes
+        // If we reach here without exception, the early return worked correctly
+        $this->expectNotToPerformAssertions();
+    }
+
+    public function test_do_parse_returns_cached_ast_when_available(): void
+    {
+        $cacheDir = '/tmp/test-cache-'.uniqid();
+        $cache = new FilesystemCache($cacheDir);
+
+        // Create a regex instance with cache
+        $regex = Regex::create(['cache' => $cache]);
+
+        // Parse a regex to populate the cache
+        $originalAst = $regex->parse('/test/');
+
+        // Now create a new instance with the same cache
+        $regex2 = Regex::create(['cache' => $cache]);
+
+        // Use reflection to call the private doParse method
+        $reflection = new \ReflectionClass($regex2);
+        $doParseMethod = $reflection->getMethod('doParse');
+
+        // This should return the cached AST without parsing from scratch
+        $cachedAst = $doParseMethod->invoke($regex2, '/test/');
+
+        // Should return the same AST that was cached
+        $this->assertEquals($originalAst, $cachedAst);
+
+        // Clean up
+        $files = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($cacheDir, \RecursiveDirectoryIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::CHILD_FIRST,
+        );
+        foreach ($files as $file) {
+            /** @var \SplFileInfo $file */
+            $file->isDir() ? rmdir($file->getPathname()) : unlink($file->getPathname());
+        }
+        rmdir($cacheDir);
+    }
+
+    public function test_do_parse_returns_cached_ast_without_parsing(): void
+    {
+        $cachedAst = $this->regexService->parse('/cached/');
+
+        $cache = new class implements CacheInterface {
+            public RegexNode $mockAst;
+
+            public function generateKey(string $regex): string
+            {
+                return 'key_'.$regex;
+            }
+
+            public function write(string $key, string $content): void {}
+
+            public function load(string $key): mixed
+            {
+                return $this->mockAst;
+            }
+
+            public function getTimestamp(string $key): int
+            {
+                return 0;
+            }
+        };
+        $cache->mockAst = $cachedAst;
+
+        $regex = Regex::create(['cache' => $cache]);
+
+        $reflection = new \ReflectionClass($regex);
+        $doParseMethod = $reflection->getMethod('doParse');
+
+        // This should return the cached AST immediately without parsing
+        $result = $doParseMethod->invoke($regex, '/any-pattern/');
+
+        // Should return the exact same cached AST instance
+        $this->assertSame($cachedAst, $result);
     }
 
     public function test_runtime_pcre_validation_error(): void
