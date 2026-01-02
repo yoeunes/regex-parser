@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.4] - 2026-01-02
+
 ### Added
 - Added a formatter benchmark script to measure lint output throughput and memory usage.
 - Added atomic-group tip suggestions for nested-quantifier and dot-star lint warnings.
