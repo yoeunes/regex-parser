@@ -124,6 +124,26 @@ final class RegexLintServiceTest extends TestCase
         $this->assertSame('/(?>(a+))+/', $nestedWarnings[0]['suggestedPattern']);
     }
 
+    public function test_analyze_skips_atomic_tip_when_pattern_limit_exceeded(): void
+    {
+        $analysis = new RegexAnalysisService(Regex::create(['max_pattern_length' => 10]));
+        $service = new RegexLintService($analysis, $this->sources);
+        $request = new RegexLintRequest(['.'], [], 0);
+        $patterns = [
+            new RegexPatternOccurrence('/(a+)+/', 'test.php', 1, 'preg_match'),
+        ];
+
+        $result = $service->analyze($patterns, $request, null);
+
+        $nestedWarnings = array_values(array_filter(
+            $result->results[0]['issues'],
+            fn (array $issue): bool => ($issue['issueId'] ?? '') === 'regex.lint.quantifier.nested',
+        ));
+
+        $this->assertCount(1, $nestedWarnings);
+        $this->assertArrayNotHasKey('suggestedPattern', $nestedWarnings[0]);
+    }
+
     public function test_analyze_adds_atomic_group_tip_for_dotstar_warning(): void
     {
         $request = new RegexLintRequest(['.'], [], 0);

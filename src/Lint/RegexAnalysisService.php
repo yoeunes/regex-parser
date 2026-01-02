@@ -325,6 +325,13 @@ final readonly class RegexAnalysisService
         }
 
         $suggestedBody = substr($body, 0, $start).'(?>'.substr($body, $start, $end - $start).')'.substr($body, $end);
+
+        try {
+            $this->regex->parsePattern($suggestedBody, $flags, $delimiter);
+        } catch (\Throwable) {
+            return null;
+        }
+
         $closingDelimiter = PatternParser::closingDelimiter($delimiter);
 
         return $delimiter.$suggestedBody.$closingDelimiter.$flags;

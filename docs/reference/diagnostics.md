@@ -241,6 +241,7 @@ vendor/bin/regex lint src/ --format=json
 | `column`  | Column number              |
 | `issueId` | Diagnostic identifier      |
 | `hint`    | Suggested fix              |
+| `suggestedPattern` | Suggested pattern rewrite (optional) |
 | `source`  | Source language            |
 
 ---
