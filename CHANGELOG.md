@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Tests
+- Added regression coverage to ensure non-alternation patterns do not trigger overlap warnings.
+- Added ReDoS coverage for nested possessive quantifier patterns that should remain safe.
+
 ## [1.0.3] - 2026-01-02
 
 ### Added

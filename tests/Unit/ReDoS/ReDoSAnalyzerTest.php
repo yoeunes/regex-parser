@@ -59,6 +59,7 @@ final class ReDoSAnalyzerTest extends TestCase
         // Atomic groups (Mitigation)
         yield ['/(?>a+)+/', ReDoSSeverity::SAFE];
         yield ['/a++/', ReDoSSeverity::SAFE];
+        yield ['/(\\d++\\. )*\\d++$/', ReDoSSeverity::SAFE];
     }
 
     public function test_analysis_details(): void

@@ -292,6 +292,16 @@ final class LinterNodeVisitorTest extends TestCase
         $this->assertNotContains('Alternation branches have overlapping character sets, which may cause unnecessary backtracking.', $warnings);
     }
 
+    public function test_no_overlap_warning_without_alternation(): void
+    {
+        $regex = Regex::create()->parse('/[0-9]/');
+        $linter = new LinterNodeVisitor();
+        $regex->accept($linter);
+        $warnings = $linter->getWarnings();
+
+        $this->assertNotContains('Alternation branches have overlapping character sets, which may cause unnecessary backtracking.', $warnings);
+    }
+
     public function test_semantic_overlap_with_char_types(): void
     {
         $regex = Regex::create()->parse('/\\d|[0-9]/');
