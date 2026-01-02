@@ -18,13 +18,19 @@ use RegexParser\Lint\Command\LintConfigLoader;
 
 final class LintConfigLoaderTest extends TestCase
 {
-    public function test_config_loader_class_instantiation(): void
+    public function test_config_loader_reads_repo_defaults(): void
     {
         $loader = new LintConfigLoader();
-        $this->assertInstanceOf(LintConfigLoader::class, $loader);
 
         $result = $loader->load();
-        $this->assertNotNull($result);
         $this->assertNull($result->error);
+        $this->assertIsArray($result->config);
+        $this->assertIsArray($result->files);
+
+        $configPath = getcwd().'/regex.dist.json';
+        if (false !== getcwd() && file_exists($configPath)) {
+            $this->assertContains($configPath, $result->files);
+            $this->assertSame(['src'], $result->config['paths'] ?? []);
+        }
     }
 }

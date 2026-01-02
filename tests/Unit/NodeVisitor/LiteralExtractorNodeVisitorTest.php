@@ -192,6 +192,7 @@ final class LiteralExtractorNodeVisitorTest extends TestCase
 
         $result = $method->invoke($this->visitor, 'a');
 
+        $this->assertInstanceOf(LiteralSet::class, $result);
         $this->assertContains('a', $result->prefixes);
         $this->assertContains('A', $result->prefixes);
     }

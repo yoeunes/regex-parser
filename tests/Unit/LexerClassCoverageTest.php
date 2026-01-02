@@ -15,21 +15,20 @@ namespace RegexParser\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\Lexer;
+use RegexParser\TokenType;
 
 final class LexerClassCoverageTest extends TestCase
 {
-    public function test_lexer_class_instantiation(): void
+    public function test_lexer_tokenizes_literals_and_eof(): void
     {
         $lexer = new Lexer();
-        $this->assertInstanceOf(Lexer::class, $lexer);
 
-        // Test basic tokenization to ensure the class is used
         $tokenStream = $lexer->tokenize('test');
-        $this->assertNotNull($tokenStream);
-
-        // Test that we can get tokens from the stream
         $tokens = $tokenStream->getTokens();
-        $this->assertIsArray($tokens);
-        $this->assertNotEmpty($tokens);
+
+        $this->assertSame('test', $tokenStream->getPattern());
+        $this->assertSame(TokenType::T_LITERAL, $tokens[0]->type);
+        $this->assertSame('t', $tokens[0]->value);
+        $this->assertSame(TokenType::T_EOF, $tokens[\count($tokens) - 1]->type);
     }
 }

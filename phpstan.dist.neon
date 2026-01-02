@@ -1,5 +1,4 @@
 includes:
-    - phpstan-baseline.neon
     - extension.neon
     - tools/phpstan/vendor/phpstan/phpstan/conf/bleedingEdge.neon
     - tools/phpstan/vendor/phpstan/phpstan-phpunit/extension.neon
@@ -30,3 +29,9 @@ parameters:
 
 
     editorUrl: 'phpstorm://open?file=%%file%%&line=%%line%%'
+
+    ignoreErrors:
+        - identifiers:
+            - classConstant.internalClass
+        - '#^Regex pattern is invalid: Unknown modifier .+$#'
+        - '#^Regex syntax error: Unknown regex flag.*$#'

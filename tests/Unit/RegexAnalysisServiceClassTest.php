@@ -15,19 +15,21 @@ namespace RegexParser\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\Lint\RegexAnalysisService;
+use RegexParser\Lint\RegexPatternOccurrence;
 use RegexParser\ReDoS\ReDoSSeverity;
 use RegexParser\Regex;
 
 final class RegexAnalysisServiceClassTest extends TestCase
 {
-    public function test_regex_analysis_service_class_instantiation(): void
+    public function test_regex_analysis_service_exposes_regex_instance(): void
     {
         $regex = Regex::create();
         $service = new RegexAnalysisService($regex);
-        $this->assertInstanceOf(RegexAnalysisService::class, $service);
+
+        $this->assertSame($regex, $service->getRegex());
     }
 
-    public function test_regex_analysis_service_with_options(): void
+    public function test_regex_analysis_service_lints_patterns_without_issues(): void
     {
         $regex = Regex::create();
         $service = new RegexAnalysisService(
@@ -39,6 +41,10 @@ final class RegexAnalysisServiceClassTest extends TestCase
             [],     // redosIgnoredPatterns
             false,    // ignoreParseErrors
         );
-        $this->assertInstanceOf(RegexAnalysisService::class, $service);
+
+        $occurrence = new RegexPatternOccurrence('/a+/', 'test.php', 1, 'preg_match');
+        $issues = $service->lint([$occurrence]);
+
+        $this->assertSame([], $issues);
     }
 }

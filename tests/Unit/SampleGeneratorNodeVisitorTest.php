@@ -15,12 +15,19 @@ namespace RegexParser\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\NodeVisitor\SampleGeneratorNodeVisitor;
+use RegexParser\Regex;
 
 final class SampleGeneratorNodeVisitorTest extends TestCase
 {
-    public function test_sample_generator_visitor_class_instantiation(): void
+    public function test_sample_generator_produces_matching_text(): void
     {
+        $regex = Regex::create();
+        $ast = $regex->parse('/a[bc]/');
         $visitor = new SampleGeneratorNodeVisitor();
-        $this->assertInstanceOf(SampleGeneratorNodeVisitor::class, $visitor);
+        $visitor->setSeed(123);
+
+        $sample = $ast->accept($visitor);
+
+        $this->assertMatchesRegularExpression('/a[bc]/', $sample);
     }
 }

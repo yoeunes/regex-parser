@@ -15,12 +15,17 @@ namespace RegexParser\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\Lint\Command\LintArgumentParser;
+use RegexParser\Lint\Command\LintArguments;
 
 final class LintArgumentParserTest extends TestCase
 {
-    public function test_argument_parser_class_instantiation(): void
+    public function test_argument_parser_returns_help_flag(): void
     {
         $parser = new LintArgumentParser();
-        $this->assertInstanceOf(LintArgumentParser::class, $parser);
+
+        $result = $parser->parse(['--help']);
+
+        $this->assertTrue($result->help);
+        $this->assertNotInstanceOf(LintArguments::class, $result->arguments);
     }
 }

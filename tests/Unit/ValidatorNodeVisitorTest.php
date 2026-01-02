@@ -14,13 +14,21 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
+use RegexParser\Exception\SemanticErrorException;
 use RegexParser\NodeVisitor\ValidatorNodeVisitor;
+use RegexParser\Regex;
 
 final class ValidatorNodeVisitorTest extends TestCase
 {
-    public function test_validator_visitor_class_instantiation(): void
+    public function test_validator_visitor_rejects_invalid_quantifier_range(): void
     {
+        $regex = Regex::create();
+        $ast = $regex->parse('/a{2,1}/');
         $visitor = new ValidatorNodeVisitor();
-        $this->assertInstanceOf(ValidatorNodeVisitor::class, $visitor);
+
+        $this->expectException(SemanticErrorException::class);
+        $this->expectExceptionMessage('Invalid quantifier range');
+
+        $ast->accept($visitor);
     }
 }

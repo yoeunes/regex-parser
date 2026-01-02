@@ -23,13 +23,17 @@ final class RegexClassCoverageTest extends TestCase
     public function test_regex_class_instantiation(): void
     {
         $regex = Regex::create();
-        $this->assertInstanceOf(Regex::class, $regex);
+
+        $ast = $regex->parse('/test/i');
+
+        $this->assertSame('i', $ast->flags);
+        $this->assertSame('/', $ast->delimiter);
     }
 
     public function test_regex_can_be_created_with_options(): void
     {
         $regex = Regex::create([
-            'max_pattern_length' => 1000,
+            'max_pattern_length' => 5,
             'max_lookbehind_length' => 100,
             'cache' => new NullCache(),
             'redos_ignored_patterns' => [],
@@ -37,7 +41,10 @@ final class RegexClassCoverageTest extends TestCase
             'max_recursion_depth' => 100,
             'php_version' => 80200,
         ]);
-        $this->assertInstanceOf(Regex::class, $regex);
+
+        $validation = $regex->validate('/abcdef/');
+        $this->assertFalse($validation->isValid);
+        $this->assertStringContainsString('maximum length', (string) $validation->error);
     }
 
     public function test_regex_basic_functionality(): void
@@ -46,7 +53,7 @@ final class RegexClassCoverageTest extends TestCase
 
         // Test basic parsing
         $ast = $regex->parse('/test/');
-        $this->assertNotNull($ast);
+        $this->assertSame('/', $ast->delimiter);
 
         // Test validation
         $validation = $regex->validate('/test/');

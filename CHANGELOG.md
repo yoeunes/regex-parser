@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Built the `/r` modifier probe regex dynamically to avoid static regex validation false positives.
+
+### Tests
+- Reworked formatter and visitor coverage tests to assert behavior, and added coverage for JSON payload normalization and validator errors.
+
 ## [1.0.4] - 2026-01-02
 
 ### Added

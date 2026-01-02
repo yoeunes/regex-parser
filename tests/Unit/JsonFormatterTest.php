@@ -15,31 +15,48 @@ namespace RegexParser\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\Lint\Formatter\JsonFormatter;
-use RegexParser\Lint\Formatter\OutputConfiguration;
-use RegexParser\Lint\Formatter\OutputFormatterInterface;
+use RegexParser\Lint\RegexLintReport;
+use RegexParser\ProblemType;
+use RegexParser\RegexProblem;
+use RegexParser\Severity;
 
 final class JsonFormatterTest extends TestCase
 {
-    public function test_json_formatter_class_instantiation(): void
+    public function test_json_formatter_outputs_report_payload(): void
     {
         $formatter = new JsonFormatter();
-        $this->assertInstanceOf(JsonFormatter::class, $formatter);
-    }
 
-    public function test_json_formatter_with_configuration(): void
-    {
-        $config = new OutputConfiguration(
-            verbosity: OutputConfiguration::VERBOSITY_NORMAL,
-            ansi: false,
-            showProgress: false,
+        $report = new RegexLintReport(
+            results: [[
+                'file' => './test.php',
+                'line' => 10,
+                'pattern' => '/a+/',
+                'issues' => [],
+                'optimizations' => [],
+                'problems' => [
+                    new RegexProblem(ProblemType::Lint, Severity::Warning, 'noise'),
+                ],
+            ]],
+            stats: ['errors' => 0, 'warnings' => 0, 'optimizations' => 0],
         );
-        $formatter = new JsonFormatter($config);
-        $this->assertInstanceOf(JsonFormatter::class, $formatter);
+
+        $payload = $formatter->format($report);
+        /** @var array{stats: array{errors: int, warnings: int, optimizations: int}, results: array<int, array<string, mixed>>} $decoded */
+        $decoded = json_decode($payload, true, 512, \JSON_THROW_ON_ERROR);
+
+        $this->assertSame(['errors' => 0, 'warnings' => 0, 'optimizations' => 0], $decoded['stats']);
+        $this->assertSame('/a+/', $decoded['results'][0]['pattern']);
+        $this->assertArrayNotHasKey('problems', $decoded['results'][0]);
     }
 
-    public function test_json_formatter_implements_interface(): void
+    public function test_json_formatter_formats_errors_as_json(): void
     {
         $formatter = new JsonFormatter();
-        $this->assertInstanceOf(OutputFormatterInterface::class, $formatter);
+
+        $payload = $formatter->formatError('boom');
+        /** @var array{error: string} $decoded */
+        $decoded = json_decode($payload, true, 512, \JSON_THROW_ON_ERROR);
+
+        $this->assertSame('boom', $decoded['error']);
     }
 }

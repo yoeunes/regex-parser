@@ -15,28 +15,21 @@ namespace RegexParser\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\Lexer;
-use RegexParser\Node\RegexNode;
 use RegexParser\Parser;
 
 final class ParserClassCoverageTest extends TestCase
 {
-    public function test_parser_class_instantiation(): void
-    {
-        $parser = new Parser();
-
-        $this->assertInstanceOf(Parser::class, $parser);
-    }
-
     public function test_parser_can_parse_simple_pattern(): void
     {
         $parser = new Parser();
         $lexer = new Lexer();
 
         $tokenStream = $lexer->tokenize('test');
-        $ast = $parser->parse($tokenStream);
+        $ast = $parser->parse($tokenStream, '', '/', \strlen('test'));
 
-        $this->assertNotNull($ast);
-        $this->assertInstanceOf(RegexNode::class, $ast);
+        $this->assertSame('', $ast->flags);
+        $this->assertSame('/', $ast->delimiter);
+        $this->assertSame(4, $ast->getEndPosition());
     }
 
     public function test_parser_can_parse_with_flags(): void
@@ -45,11 +38,11 @@ final class ParserClassCoverageTest extends TestCase
         $lexer = new Lexer();
 
         $tokenStream = $lexer->tokenize('test');
-        $ast = $parser->parse($tokenStream, 'i');
+        $ast = $parser->parse($tokenStream, 'i', '#', \strlen('test'));
 
-        $this->assertNotNull($ast);
-        $this->assertInstanceOf(RegexNode::class, $ast);
         $this->assertSame('i', $ast->flags);
+        $this->assertSame('#', $ast->delimiter);
+        $this->assertSame(4, $ast->getEndPosition());
     }
 
     public function test_parser_with_custom_recursion_depth(): void
@@ -58,9 +51,8 @@ final class ParserClassCoverageTest extends TestCase
         $lexer = new Lexer();
 
         $tokenStream = $lexer->tokenize('test');
-        $ast = $parser->parse($tokenStream);
+        $ast = $parser->parse($tokenStream, '', '/', \strlen('test'));
 
-        $this->assertNotNull($ast);
-        $this->assertInstanceOf(RegexNode::class, $ast);
+        $this->assertSame(4, $ast->getEndPosition());
     }
 }

@@ -16,30 +16,60 @@ namespace RegexParser\Tests\Unit;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Lint\Formatter\ConsoleFormatter;
 use RegexParser\Lint\Formatter\OutputConfiguration;
-use RegexParser\Lint\Formatter\OutputFormatterInterface;
+use RegexParser\Lint\RegexLintReport;
 
 final class ConsoleFormatterTest extends TestCase
 {
-    public function test_console_formatter_class_instantiation(): void
-    {
-        $formatter = new ConsoleFormatter();
-        $this->assertInstanceOf(ConsoleFormatter::class, $formatter);
-    }
-
-    public function test_console_formatter_with_configuration(): void
+    public function test_console_formatter_outputs_pattern_context(): void
     {
         $config = new OutputConfiguration(
             verbosity: OutputConfiguration::VERBOSITY_NORMAL,
-            ansi: true,
-            showProgress: true,
+            ansi: false,
+            showProgress: false,
+            showOptimizations: false,
+            showHints: false,
         );
         $formatter = new ConsoleFormatter(null, $config);
-        $this->assertInstanceOf(ConsoleFormatter::class, $formatter);
+
+        $report = new RegexLintReport(
+            results: [[
+                'file' => './test.php',
+                'line' => 10,
+                'pattern' => '/a+/',
+                'issues' => [],
+                'optimizations' => [],
+                'problems' => [],
+            ]],
+            stats: ['errors' => 0, 'warnings' => 0, 'optimizations' => 0],
+        );
+
+        $output = $formatter->format($report);
+
+        $this->assertStringContainsString('./test.php:10', $output);
+        $this->assertStringContainsString('/a+/', $output);
     }
 
-    public function test_console_formatter_implements_interface(): void
+    public function test_console_formatter_outputs_quiet_summary(): void
+    {
+        $config = OutputConfiguration::quiet();
+        $formatter = new ConsoleFormatter(null, $config);
+
+        $report = new RegexLintReport(
+            results: [],
+            stats: ['errors' => 0, 'warnings' => 0, 'optimizations' => 0],
+        );
+
+        $output = $formatter->format($report);
+
+        $this->assertStringContainsString('PASS: No issues found', $output);
+    }
+
+    public function test_console_formatter_footer_includes_repo_link(): void
     {
         $formatter = new ConsoleFormatter();
-        $this->assertInstanceOf(OutputFormatterInterface::class, $formatter);
+
+        $footer = $formatter->formatFooter();
+
+        $this->assertStringContainsString('https://github.com/yoeunes/regex-parser', $footer);
     }
 }

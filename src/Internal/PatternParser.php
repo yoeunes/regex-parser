@@ -135,7 +135,6 @@ final class PatternParser
         }
 
         if (null === $phpVersionId) {
-            // @regex-ignore-next-line
             $result = @preg_match('/a/r', '');
             self::$supportsModifierR[$key] = false !== $result;
 

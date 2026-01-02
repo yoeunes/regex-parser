@@ -15,12 +15,18 @@ namespace RegexParser\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
 use RegexParser\NodeVisitor\LengthRangeNodeVisitor;
+use RegexParser\Regex;
 
 final class LengthRangeNodeVisitorTest extends TestCase
 {
-    public function test_length_range_visitor_class_instantiation(): void
+    public function test_length_range_visitor_reports_quantifier_bounds(): void
     {
+        $regex = Regex::create();
+        $ast = $regex->parse('/a{2,3}/');
         $visitor = new LengthRangeNodeVisitor();
-        $this->assertInstanceOf(LengthRangeNodeVisitor::class, $visitor);
+
+        $range = $ast->accept($visitor);
+
+        $this->assertSame([2, 3], $range);
     }
 }

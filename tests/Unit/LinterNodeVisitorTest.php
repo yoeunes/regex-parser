@@ -19,10 +19,15 @@ use RegexParser\Regex;
 
 final class LinterNodeVisitorTest extends TestCase
 {
-    public function test_linter_visitor_class_instantiation(): void
+    public function test_linter_visitor_reports_no_issues_for_literal(): void
     {
+        $regex = Regex::create();
+        $ast = $regex->parse('/abc/');
         $visitor = new LinterNodeVisitor();
-        $this->assertInstanceOf(LinterNodeVisitor::class, $visitor);
+
+        $ast->accept($visitor);
+
+        $this->assertSame([], $visitor->getIssues());
     }
 
     public function test_anchor_end_allows_optional_suffix(): void

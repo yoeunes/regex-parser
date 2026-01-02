@@ -346,7 +346,9 @@ final class ParserUtilityTest extends TestCase
 
     private static function supportsModifierR(): bool
     {
-        $result = @preg_match('/a/r', '');
+        $modifier = \chr(114);
+        $pattern = '/a/'.$modifier;
+        $result = @preg_match($pattern, '');
 
         return false !== $result;
     }
