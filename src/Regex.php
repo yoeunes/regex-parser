@@ -75,14 +75,14 @@ use RegexParser\ReDoS\ReDoSSeverity;
  */
 final readonly class Regex
 {
-    public const VERSION = '1.0.4';
-    public const VERSION_ID = 10004;
+    public const VERSION = '1.0.5';
+    public const VERSION_ID = 10005;
 
     /**
      * Cache version for AST serialization.
      * Bump this when AST structure changes.
      */
-    public const CACHE_VERSION = '1.0.4';
+    public const CACHE_VERSION = '1.0.5';
 
     /**
      * Default maximum allowed regex pattern length.
