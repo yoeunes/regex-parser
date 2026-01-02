@@ -16,6 +16,8 @@ namespace RegexParser\Tests\Unit;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Cache\FilesystemCache;
+use RegexParser\Cache\NullCache;
+use RegexParser\Cache\RemovableCacheInterface;
 use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
 use RegexParser\Exception\ResourceLimitException;
@@ -504,6 +506,75 @@ final class RegexTest extends TestCase
             $file->isDir() ? rmdir($file->getPathname()) : unlink($file->getPathname());
         }
         rmdir($cacheDir);
+    }
+
+    public function test_get_cache_returns_cache_instance(): void
+    {
+        $cache = new NullCache();
+        $regex = Regex::create(['cache' => $cache]);
+
+        $this->assertSame($cache, $regex->getCache());
+    }
+
+    public function test_get_cache_stats_returns_zero_for_non_removable_cache(): void
+    {
+        $cache = new NullCache();
+        $regex = Regex::create(['cache' => $cache]);
+
+        $stats = $regex->getCacheStats();
+
+        $this->assertSame(['hits' => 0, 'misses' => 0], $stats);
+    }
+
+    public function test_get_cache_stats_returns_actual_stats_for_removable_cache(): void
+    {
+        $cache = new FilesystemCache('/tmp/test-cache-' . uniqid());
+        $regex = Regex::create(['cache' => $cache]);
+
+        // Parse something to potentially generate stats
+        $regex->parse('/test/');
+
+        $stats = $regex->getCacheStats();
+
+        $this->assertIsArray($stats);
+        $this->assertArrayHasKey('hits', $stats);
+        $this->assertArrayHasKey('misses', $stats);
+        $this->assertIsInt($stats['hits']);
+        $this->assertIsInt($stats['misses']);
+
+        // Clean up
+        $cache->clear();
+    }
+
+    public function test_load_from_cache_returns_null_for_null_cache(): void
+    {
+        $cache = new NullCache();
+        $regex = Regex::create(['cache' => $cache]);
+
+        $reflection = new \ReflectionClass($regex);
+        $loadFromCacheMethod = $reflection->getMethod('loadFromCache');
+        $loadFromCacheMethod->setAccessible(true);
+
+        $result = $loadFromCacheMethod->invoke($regex, 'test_regex');
+
+        $this->assertSame([null, null], $result);
+    }
+
+    public function test_store_in_cache_returns_early_for_null_cache_key(): void
+    {
+        $cache = new NullCache();
+        $regex = Regex::create(['cache' => $cache]);
+
+        $ast = $regex->parse('/test/');
+
+        $reflection = new \ReflectionClass($regex);
+        $storeInCacheMethod = $reflection->getMethod('storeInCache');
+        $storeInCacheMethod->setAccessible(true);
+
+        // This should not throw an exception and should return early
+        $storeInCacheMethod->invoke($regex, null, $ast);
+
+        $this->assertTrue(true); // If we reach here, the test passes
     }
 
     public function test_runtime_pcre_validation_error(): void

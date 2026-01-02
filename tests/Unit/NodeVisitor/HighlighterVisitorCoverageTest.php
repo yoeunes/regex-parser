@@ -39,4 +39,40 @@ final class HighlighterVisitorCoverageTest extends TestCase
 
         $this->assertStringContainsString('\\x41', $output);
     }
+
+    public function test_console_highlighter_visitor_wrap_with_empty_content(): void
+    {
+        $visitor = new ConsoleHighlighterVisitor();
+        $reflection = new \ReflectionClass($visitor);
+        $wrapMethod = $reflection->getMethod('wrap');
+        $wrapMethod->setAccessible(true);
+
+        $result = $wrapMethod->invoke($visitor, '', 'literal');
+
+        $this->assertSame('', $result);
+    }
+
+    public function test_console_highlighter_visitor_wrap_with_unknown_type(): void
+    {
+        $visitor = new ConsoleHighlighterVisitor();
+        $reflection = new \ReflectionClass($visitor);
+        $wrapMethod = $reflection->getMethod('wrap');
+        $wrapMethod->setAccessible(true);
+
+        $result = $wrapMethod->invoke($visitor, 'test', 'unknown_type');
+
+        $this->assertSame('test', $result);
+    }
+
+    public function test_html_highlighter_visitor_wrap_with_empty_content(): void
+    {
+        $visitor = new HtmlHighlighterVisitor();
+        $reflection = new \ReflectionClass($visitor);
+        $wrapMethod = $reflection->getMethod('wrap');
+        $wrapMethod->setAccessible(true);
+
+        $result = $wrapMethod->invoke($visitor, '', 'literal');
+
+        $this->assertSame('', $result);
+    }
 }
