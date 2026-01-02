@@ -35,13 +35,13 @@ final class GithubFormatter extends AbstractOutputFormatter
 {
     public function format(RegexLintReport $report): string
     {
-        $output = '';
+        $lines = [];
 
         foreach ($this->flattenProblems($report->results) as $entry) {
-            $output .= $this->formatGithubAnnotation($entry)."\n";
+            $lines[] = $this->formatGithubAnnotation($entry)."\n";
         }
 
-        return $output;
+        return implode('', $lines);
     }
 
     public function formatError(string $message): string

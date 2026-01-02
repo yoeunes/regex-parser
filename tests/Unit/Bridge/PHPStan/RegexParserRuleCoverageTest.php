@@ -394,6 +394,10 @@ final class RegexParserRuleCoverageTest extends TestCase
         // Test over length limit
         $result = $refMethod->invokeArgs($rule, [str_repeat('a', 51), 50]);
         $this->assertSame(str_repeat('a', 50).'...', $result);
+
+        // Test default length parameter
+        $result = $refMethod->invokeArgs($rule, [str_repeat('a', 55)]);
+        $this->assertSame(str_repeat('a', 50).'...', $result);
     }
 
     public function test_format_source_concatenates_correctly(): void

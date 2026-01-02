@@ -95,6 +95,15 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
         $this->indentLevel = 0;
     }
 
+    public function resetState(): void
+    {
+        $this->inCharClass = false;
+        $this->delimiter = '/';
+        $this->closingDelimiter = '/';
+        $this->flags = '';
+        $this->indentLevel = 0;
+    }
+
     #[\Override]
     public function visitRegex(RegexNode $node): string
     {

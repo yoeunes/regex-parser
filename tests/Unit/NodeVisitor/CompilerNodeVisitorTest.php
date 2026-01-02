@@ -14,6 +14,8 @@ declare(strict_types=1);
 namespace RegexParser\Tests\Unit\NodeVisitor;
 
 use PHPUnit\Framework\TestCase;
+use RegexParser\Node\LiteralNode;
+use RegexParser\Node\RegexNode;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
 use RegexParser\Regex;
 
@@ -143,6 +145,21 @@ final class CompilerNodeVisitorTest extends TestCase
     public function test_compile_quote_mode_preserves_hash_in_extended_mode(): void
     {
         $this->assertSame('/\\#/x', $this->compile('/\Q#\E/x'));
+    }
+
+    public function test_reset_state_clears_compiler_flags(): void
+    {
+        $visitor = new CompilerNodeVisitor();
+        $regexNode = new RegexNode(new LiteralNode('a', 0, 1), 'x', '/', 0, 1);
+
+        $regexNode->accept($visitor);
+
+        $literal = new LiteralNode('a b', 0, 3);
+        $this->assertSame('a\\ b', $literal->accept($visitor));
+
+        $visitor->resetState();
+
+        $this->assertSame('a b', $literal->accept($visitor));
     }
 
     public function test_compile_subroutines(): void

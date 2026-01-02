@@ -7,9 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Optimizer now reuses a compiler visitor while resetting its state between string conversions.
+- Lint output formatters now assemble output using buffered chunks for large reports.
+- PHPStan pattern truncation now relies on a named constant.
+
 ### Tests
 - Added regression coverage to ensure non-alternation patterns do not trigger overlap warnings.
 - Added ReDoS coverage for nested possessive quantifier patterns that should remain safe.
+- Added coverage for compiler state resets between compilations.
+- Added coverage for the PHPStan truncation default length.
 
 ## [1.0.3] - 2026-01-02
 

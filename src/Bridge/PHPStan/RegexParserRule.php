@@ -48,6 +48,7 @@ final class RegexParserRule implements Rule
 
     private const ISSUE_ID_REDOS = 'regex.lint.redos';
     private const ISSUE_ID_COMPLEXITY = 'regex.lint.complexity';
+    private const MAX_PATTERN_DISPLAY_LENGTH = 50;
 
     private const PREG_FUNCTION_MAP = [
         'preg_match' => 0,
@@ -369,7 +370,7 @@ final class RegexParserRule implements Rule
         return self::IDENTIFIER_SYNTAX_INVALID;
     }
 
-    private function truncatePattern(string $pattern, int $length = 50): string
+    private function truncatePattern(string $pattern, int $length = self::MAX_PATTERN_DISPLAY_LENGTH): string
     {
         return \strlen($pattern) > $length ? substr($pattern, 0, $length).'...' : $pattern;
     }

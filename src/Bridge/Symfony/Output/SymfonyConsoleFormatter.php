@@ -42,15 +42,15 @@ final readonly class SymfonyConsoleFormatter implements OutputFormatterInterface
 
     public function format(RegexLintReport $report): string
     {
-        $output = '';
+        $parts = [];
 
         if (!empty($report->results)) {
-            $output .= $this->renderResults($report->results);
+            $parts[] = $this->renderResults($report->results);
         }
 
-        $output .= $this->renderSummary($report->stats);
+        $parts[] = $this->renderSummary($report->stats);
 
-        return $output;
+        return implode('', $parts);
     }
 
     public function formatError(string $message): string
@@ -63,13 +63,13 @@ final readonly class SymfonyConsoleFormatter implements OutputFormatterInterface
      */
     private function renderResults(array $results): string
     {
-        $output = '';
+        $parts = [];
 
         foreach ($results as $result) {
-            $output .= $this->renderResultCard($result);
+            $parts[] = $this->renderResultCard($result);
         }
 
-        return $output;
+        return implode('', $parts);
     }
 
     /**
@@ -164,16 +164,16 @@ final readonly class SymfonyConsoleFormatter implements OutputFormatterInterface
      */
     private function displayIssues(array $issues): string
     {
-        $output = '';
+        $parts = [];
 
         foreach ($issues as $issue) {
             $issueType = (string) ($issue['type'] ?? 'info');
             $badge = $this->getIssueBadge($issueType);
-            $output .= $this->displaySingleIssue($badge, (string) ($issue['message'] ?? ''));
+            $parts[] = $this->displaySingleIssue($badge, (string) ($issue['message'] ?? ''));
 
             $hint = $issue['hint'] ?? null;
             if ('error' !== $issueType && \is_string($hint) && '' !== $hint) {
-                $output .= \sprintf(
+                $parts[] = \sprintf(
                     '         <fg=gray>%s %s</>'.\PHP_EOL,
                     self::ARROW_LABEL,
                     OutputFormatter::escape($hint),
@@ -181,7 +181,7 @@ final readonly class SymfonyConsoleFormatter implements OutputFormatterInterface
             }
         }
 
-        return $output;
+        return implode('', $parts);
     }
 
     private function getIssueBadge(string $type): string
@@ -198,10 +198,10 @@ final readonly class SymfonyConsoleFormatter implements OutputFormatterInterface
      */
     private function displayOptimizations(array $optimizations): string
     {
-        $output = '';
+        $parts = [];
 
         foreach ($optimizations as $opt) {
-            $output .= '    <bg=cyan;fg=white;options=bold> TIP </>'.\PHP_EOL;
+            $parts[] = '    <bg=cyan;fg=white;options=bold> TIP </>'.\PHP_EOL;
 
             $optimization = $opt['optimization'] ?? null;
             if (!$optimization instanceof OptimizationResult) {
@@ -211,11 +211,11 @@ final readonly class SymfonyConsoleFormatter implements OutputFormatterInterface
             $original = $this->safelyHighlightPattern($optimization->original);
             $optimized = $this->safelyHighlightPattern($optimization->optimized);
 
-            $output .= \sprintf('         <fg=red>- %s</>'.\PHP_EOL, $original);
-            $output .= \sprintf('         <fg=green>+ %s</>'.\PHP_EOL, $optimized);
+            $parts[] = \sprintf('         <fg=red>- %s</>'.\PHP_EOL, $original);
+            $parts[] = \sprintf('         <fg=green>+ %s</>'.\PHP_EOL, $optimized);
         }
 
-        return $output;
+        return implode('', $parts);
     }
 
     private function displaySingleIssue(string $badge, string $message): string
@@ -223,15 +223,15 @@ final readonly class SymfonyConsoleFormatter implements OutputFormatterInterface
         $lines = explode("\n", $message);
         $firstLine = array_shift($lines) ?? '';
 
-        $output = \sprintf(
+        $parts = [\sprintf(
             '    %s <fg=white>%s</>'.\PHP_EOL,
             $badge,
             OutputFormatter::escape($firstLine),
-        );
+        )];
 
         if (!empty($lines)) {
             foreach ($lines as $index => $line) {
-                $output .= \sprintf(
+                $parts[] = \sprintf(
                     '         <fg=gray>%s %s</>'.\PHP_EOL,
                     0 === $index ? self::ARROW_LABEL : ' ',
                     OutputFormatter::escape($this->stripMessageLine($line)),
@@ -239,7 +239,7 @@ final readonly class SymfonyConsoleFormatter implements OutputFormatterInterface
             }
         }
 
-        return $output;
+        return implode('', $parts);
     }
 
     /**

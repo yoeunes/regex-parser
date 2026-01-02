@@ -61,24 +61,24 @@ class ConsoleFormatter extends AbstractOutputFormatter
             return $this->formatQuiet($report);
         }
 
-        $output = '';
+        $parts = [];
         $groupedResults = $this->groupResults($report->results);
 
         foreach ($groupedResults as $file => $results) {
             /** @var array<LintResult> $results */
             foreach ($results as $result) {
-                $output .= $this->formatPatternContext($result);
+                $parts[] = $this->formatPatternContext($result);
                 /** @var array<LintIssue> $issues */
                 $issues = $result['issues'] ?? [];
-                $output .= $this->formatIssues($issues);
+                $parts[] = $this->formatIssues($issues);
                 /** @var array<OptimizationEntry> $optimizations */
                 $optimizations = $result['optimizations'] ?? [];
-                $output .= $this->formatOptimizations($optimizations);
-                $output .= \PHP_EOL;
+                $parts[] = $this->formatOptimizations($optimizations);
+                $parts[] = \PHP_EOL;
             }
         }
 
-        return $output;
+        return implode('', $parts);
     }
 
     /**
@@ -174,23 +174,23 @@ class ConsoleFormatter extends AbstractOutputFormatter
      */
     private function formatIssues(array $issues): string
     {
-        $output = '';
+        $parts = [];
 
         foreach ($issues as $issue) {
             $issueType = (string) ($issue['type'] ?? 'info');
             $badge = $this->issueBadge($issueType);
-            $output .= $this->displaySingleIssue($badge, (string) ($issue['message'] ?? ''));
+            $parts[] = $this->displaySingleIssue($badge, (string) ($issue['message'] ?? ''));
 
             $hint = $issue['hint'] ?? null;
             if ('error' !== $issueType && \is_string($hint) && '' !== $hint && $this->config->shouldShowHints()) {
                 $formattedHint = $this->formatHint($hint);
                 if ('' !== $formattedHint) {
-                    $output .= \sprintf('         %s'.\PHP_EOL, $this->dim(self::ARROW_LABEL.' '.$formattedHint));
+                    $parts[] = \sprintf('         %s'.\PHP_EOL, $this->dim(self::ARROW_LABEL.' '.$formattedHint));
                 }
             }
         }
 
-        return $output;
+        return implode('', $parts);
     }
 
     /**
@@ -204,10 +204,10 @@ class ConsoleFormatter extends AbstractOutputFormatter
             return '';
         }
 
-        $output = '';
+        $parts = [];
 
         foreach ($optimizations as $opt) {
-            $output .= \sprintf('    %s'.\PHP_EOL,
+            $parts[] = \sprintf('    %s'.\PHP_EOL,
                 $this->badge('TIP', self::WHITE, self::BG_CYAN),
             );
 
@@ -216,10 +216,10 @@ class ConsoleFormatter extends AbstractOutputFormatter
                 continue;
             }
 
-            $output .= $this->formatOptimizationDiff($optimization->original, $optimization->optimized);
+            $parts[] = $this->formatOptimizationDiff($optimization->original, $optimization->optimized);
         }
 
-        return $output;
+        return implode('', $parts);
     }
 
     private function formatOptimizationDiff(string $original, string $optimized): string

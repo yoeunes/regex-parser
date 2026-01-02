@@ -62,6 +62,8 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
 
     private bool $isInsideQuantifier = false;
 
+    private ?CompilerNodeVisitor $compiler = null;
+
     private readonly int $minQuantifierCount;
 
     public function __construct(
@@ -1573,9 +1575,10 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
 
     private function nodeToString(NodeInterface $node): string
     {
-        $compiler = new CompilerNodeVisitor();
+        $this->compiler ??= new CompilerNodeVisitor();
+        $this->compiler->resetState();
 
-        return $node->accept($compiler);
+        return $node->accept($this->compiler);
     }
 
     private function stringToNode(string $str, int $start, int $end): NodeInterface
