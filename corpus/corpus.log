@@ -731,6 +731,18 @@
   corpus/phpstan-src/tests/PHPStan/Rules/Arrays/data/bug-12406b.php:11
       → ~\n\t\t\tcommit[ ][a-z0-9]{40}\n\n\t\t\tAuthor:\s+(.+)\s+<[^>]+>\n\n\t\t\tAuthorDate:[^\n]+\n\n\t\t\tCommit:[^\n]+\n\n\t\t\tCommitDate:[^\n]+\n\n\n\t\t\t(\s+(?:[^\n]+\n)+)\n\n\t\t\t[ ](\d+)[ ]files?[ ]changed,(?:[ ](\d+)[ ]insertions?\(\+\),?)?(?:[ ](\d+)[ ]deletions?\(-\))?\n\t\t~mx
      WARN  Flag 'm' is useless: pattern '~commit[ ][a-z0-9]{40}\nAuthor:\s+(.+)\s+<[^>]+>\nAuthorDate:[^\n]+\nCommit:[^\n]+\nCommitDate:[^\n]+\n\n(\s+(?:[^\n]+\n)+)\n[ ](\d+)[ ]files?[ ]changed,(?:[ ](\d+)[ ]insertions?\(\+\),?)?(?:[ ](\d+)[ ]deletions?\(-\))?~mx' contains no anchors.
+     TIP 
+         - ~commit[ ][a-z0-9]{40}\nAuthor:\s+(
+         ---
+         + ~commit[ ][0-9a-z]{40}\nAuthor:\s+(
+           .+
+           )\s+<[^>]+>\nAuthorDate:[^\n]+\nCommit:[^\n]+\nCommitDate:[^\n]+\n\n(
+           ...
+           \d+
+               )[ ]deletions?\(-\)
+         - )?~mx
+         ---
+         + )?~x
 
   corpus/phpstan-src/tests/PHPStan/Rules/Functions/data/passed-by-reference.php:36
       → a
@@ -937,18 +949,11 @@
       → %(?:\n      \xF0[\x90-\xBF][\x80-\xBF]{2}      # planes 1-3\n    | [\xF1-\xF3][\x80-\xBF]{3}          # planes 4-15\n    | \xF4[\x80-\x8F][\x80-\xBF]{2}      # plane 16\n)%xs
      WARN  Flag 's' is useless: the pattern contains no dots.
      TIP 
-           %(?:
-         -       \xF0[\x90-\xBF][\x80-\xBF]{2}      # planes 1-3
-         -     | [\xF1-\xF3][\x80-\xBF]{3}          # planes 4-15
-         -     | \xF4[\x80-\x8F][\x80-\xBF]{2}      # plane 16
+           ...
+               | \xF4[\x80-\x8F][\x80-\xBF]{2}        # plane 16
+           
          - )%xs
          ---
-         + \xF0[\x90-\xBF][\x80-\xBF]{2}    # planes 1-3
-         + 
-         +     | [\xF1-\xF3][\x80-\xBF]{3}        # planes 4-15
-         + 
-         +     | \xF4[\x80-\x8F][\x80-\xBF]{2}        # plane 16
-         + 
          + )%x
 
   corpus/server/lib/private/Preview/MarkDown.php:38
@@ -3051,17 +3056,14 @@
            /(?:
            \e    (?:
          - \[[0-?]*+[ -\/]*+[@-~]
-         -         | [P
-         -             | X
-         -             | \]-_].*?\e\\
+         -         | [P\n            | X\n            | \]-_].*?\e\\
          -         | [A-~]
          ---
          + \[[0-9:-?]*+[ -\/]*+[@A-Z[-`a-z{-~]
          +         | [\n PX\]-_|].*?\e\\
          +         | [A-Z[-`a-z{-~]
                )
-         -     | [\p{Cc}
-         -         | \x7F]++
+         -     | [\p{Cc}\n        | \x7F]++
          ---
          +     | [\n |\p{Cc}\x7F]++
            )/xu
@@ -3914,6 +3916,12 @@
   corpus/laravel/framework/src/Illuminate/Foundation/Exceptions/Renderer/Mappers/BladeMapper.php:259
       → /<\s*x[-:]([\w\-:.]*)/mx
      WARN  Flag 'm' is useless: pattern '/<\s*x[\-:]([\w\-:.]*)/mx' contains no anchors.
+     TIP 
+           /<\s*x[\-:](
+           [\w\-:.]*
+         - )/mx
+         ---
+         + )/x
 
   corpus/laravel/framework/src/Illuminate/Support/Env.php:190
       → /^[a-zA-z0-9]+$/
@@ -4181,39 +4189,16 @@
   corpus/phpstan-src/e2e/bug13425/plugins/oepnvMobilePlugin/lib/mobileService/MobileServiceApi.php:889
       → /\n      \s*((?:\w+-)*\w+)     # key                               \1\n      \s*=\s*               # =\n      ('|")?               # values may be included in ' or " \2\n      (.*?)                 # value                             \3\n      (?(2) \2)            # matching ' or " if needed        \4\n      \s*(?:\n        (?=\w+\s*=) | \s*$  # followed by another key= or the end of the string\n      )\n    /x
      TIP 
-         - /
-         -       \s*((?:\w+-)*\w+)     # key                               \1
-         -       \s*=\s*               # =
-         -       ('|")?               # values may be included in ' or " \2
-         -       (.*?)                 # value                             \3
-         -       (?(2) \2)            # matching ' or " if needed        \4
-         -       \s*(?:
-         -         (?=\w+\s*=) | \s*$  # followed by another key= or the end of the string
-         -       )
-         -     /x
+           ...
+           \s*=\s*# =
+           (
+         - '
+         -     | "
          ---
-         + /\s*(
-         +     (?:
-         + \w+-
-         +     )*\w+
-         + )# key                               \1
-         + \s*=\s*# =
-         + (
          + ['"]
-         + )?# values may be included in ' or " \2
-         + (
-         + .*?
-         + )# value                             \3
-         + (?(2)
-         + \2
-         + )# matching ' or " if needed        \4
-         + \s*(?:
-         +     (=
-         + \w+\s*=
-         +     )
-         +     | \s*$        # followed by another key= or the end of the string
-         + 
-         + )/x
+           )?# values may be included in ' or " \2
+           (
+           ...
 
   corpus/aidingapp/app-modules/engagement/src/Jobs/ProcessSesS3InboundEmail.php:128
       → /([a-z0-9\-]+)\-([a-z0-9]+)/
@@ -4728,9 +4713,9 @@
   corpus/symfony/src/Symfony/Component/Yaml/Escaper.php:85
       → /[\s'"\:\{\}\[\],&\*\#\?] | \A[\-?|<>=!%@`\p{Zs}]/xu
      TIP 
-         - /[\s'"\:\{\}\[\],&\*\#\?] | \A[\-?|<>=!%@`\p{Zs}]/xu
+           /[\s'":{}[\],&*#?]
+         - | \A[\-?|<>=!%@`\p{Zs}]/xu
          ---
-         + /[\s'":{}[\],&*#?]
          + | \A[!%\-<-@`|\p{Zs}]/xu
 
   corpus/symfony/src/Symfony/Component/Mime/Header/MailboxHeader.php:83

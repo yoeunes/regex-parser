@@ -502,7 +502,7 @@ final readonly class RegexAnalysisService
                         continue;
                     }
 
-                    $optimization = new OptimizationResult($occurrence->pattern, $optimizedPattern, ['Optimized pattern.']);
+                    $optimization = new OptimizationResult($baseline, $optimizedPattern, ['Optimized pattern.']);
                 } else {
                     $optimization = $this->regex->optimize($occurrence->pattern, $optimizationConfig);
                 }

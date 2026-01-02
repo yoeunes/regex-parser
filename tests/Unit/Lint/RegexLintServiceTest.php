@@ -80,6 +80,28 @@ final class RegexLintServiceTest extends TestCase
         $this->assertSame(['errors' => 1, 'warnings' => 0, 'optimizations' => 0], $result->stats);
     }
 
+    public function test_analyze_reports_invalid_delimiter_patterns(): void
+    {
+        $request = new RegexLintRequest(['.'], [], 0);
+        $patterns = [
+            new RegexPatternOccurrence('nok', 'test.php', 1, 'preg_match'),
+        ];
+
+        $service = new RegexLintService($this->analysis, $this->sources);
+        $result = $service->analyze($patterns, $request, null);
+
+        $this->assertCount(1, $result->results);
+
+        $messages = array_map(
+            static fn (array $issue): string => (string) $issue['message'],
+            $result->results[0]['issues'],
+        );
+
+        $this->assertTrue(
+            (bool) array_filter($messages, static fn (string $message): bool => str_contains($message, 'Invalid delimiter')),
+        );
+    }
+
     public function test_analyze_filters_validation_issues_when_disabled(): void
     {
         $request = new RegexLintRequest(['.'], [], 0, [], true, false, true); // checkValidation = false

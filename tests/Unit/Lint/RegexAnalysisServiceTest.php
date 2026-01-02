@@ -18,6 +18,7 @@ use PHPUnit\Framework\TestCase;
 use RegexParser\Cache\CacheInterface;
 use RegexParser\Lint\RegexAnalysisService;
 use RegexParser\Lint\RegexPatternOccurrence;
+use RegexParser\NodeVisitor\CompilerNodeVisitor;
 use RegexParser\ReDoS\ReDoSAnalysis;
 use RegexParser\ReDoS\ReDoSSeverity;
 use RegexParser\Regex;
@@ -308,6 +309,23 @@ final class RegexAnalysisServiceTest extends TestCase
 
         $this->assertCount(1, $result);
         $this->assertSame('/a/x', $result[0]['optimization']->optimized);
+    }
+
+    public function test_suggest_optimizations_extended_mode_uses_pretty_baseline(): void
+    {
+        $pattern = "/a{1}  # comment\n/x";
+        $patterns = [
+            new RegexPatternOccurrence($pattern, 'test.php', 1, 'preg_match'),
+        ];
+
+        $result = $this->analysis->suggestOptimizations($patterns, 0);
+
+        $this->assertCount(1, $result);
+
+        $ast = Regex::create()->parse($pattern);
+        $baseline = $ast->accept(new CompilerNodeVisitor(str_contains($ast->flags, 'x')));
+
+        $this->assertSame($baseline, $result[0]['optimization']->original);
     }
 
     public function test_suggest_optimizations_skips_when_optimizer_throws(): void

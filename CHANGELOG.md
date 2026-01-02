@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - PHPStan pattern truncation now relies on a named constant.
 - Suspicious ASCII range warnings now describe the ASCII-order endpoints of the reported range.
 - Atomic-group lint suggestions are now validated before being emitted.
+- Extended-mode optimization tips now diff against a normalized baseline to avoid mixing raw formatting with pretty-printed suggestions.
 
 ### Tests
 - Added regression coverage to ensure non-alternation patterns do not trigger overlap warnings.
@@ -28,6 +29,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added coverage for compiler state resets between compilations.
 - Added coverage for the PHPStan truncation default length.
 - Added coverage for lint suggestion tips and the updated ASCII range message.
+- Added coverage for escaped dollar literals, char-class group-like tokens, and extended-mode optimization baselines.
+- Added coverage for invalid delimiter validation in lint analysis.
 
 ## [1.0.3] - 2026-01-02
 

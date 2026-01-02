@@ -212,6 +212,31 @@ final class LinterNodeVisitorTest extends TestCase
         $this->assertContains("Start anchor '^' appears after consuming characters, making it impossible to match.", $warnings);
     }
 
+    public function test_escaped_dollar_does_not_trigger_anchor_conflict(): void
+    {
+        $regex = Regex::create()->parse('/foo\\$bar/');
+        $linter = new LinterNodeVisitor();
+        $regex->accept($linter);
+        $warnings = $linter->getWarnings();
+
+        $this->assertNotContains("End anchor '$' appears before consuming characters, making it impossible to match.", $warnings);
+        $this->assertNotContains("Start anchor '^' appears after consuming characters, making it impossible to match.", $warnings);
+    }
+
+    public function test_char_class_group_tokens_are_literal(): void
+    {
+        $regex = Regex::create()->parse('/[?:()]+/');
+        $linter = new LinterNodeVisitor();
+        $regex->accept($linter);
+
+        $issueIds = array_map(static fn ($issue): string => $issue->id, $linter->getIssues());
+        $warnings = $linter->getWarnings();
+
+        $this->assertNotContains('regex.lint.charclass.redundant', $issueIds);
+        $this->assertNotContains("Start anchor '^' appears after consuming characters", $warnings);
+        $this->assertNotContains("End anchor '$' appears before consuming characters", $warnings);
+    }
+
     public function test_backref_to_nonexistent_group(): void
     {
         $regex = Regex::create()->parse('/\\2/');
