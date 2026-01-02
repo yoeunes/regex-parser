@@ -150,6 +150,35 @@ final class PsrSimpleCacheAdapterTest extends TestCase
 
         $this->assertNull($method->invoke($adapter, $payload));
     }
+
+    public function test_get_stats_returns_zero_stats(): void
+    {
+        $adapter = new PsrSimpleCacheAdapter(new InMemorySimpleCache());
+
+        $stats = $adapter->getStats();
+
+        $this->assertIsArray($stats);
+        $this->assertArrayHasKey('hits', $stats);
+        $this->assertArrayHasKey('misses', $stats);
+        $this->assertSame(0, $stats['hits']);
+        $this->assertSame(0, $stats['misses']);
+    }
+
+    public function test_get_stats_returns_zero_stats_after_cache_operations(): void
+    {
+        $cache = new InMemorySimpleCache();
+        $adapter = new PsrSimpleCacheAdapter($cache);
+
+        $key = $adapter->generateKey('test');
+        $adapter->write($key, 'value');
+        $adapter->load($key);
+        $adapter->load($adapter->generateKey('nonexistent'));
+
+        $stats = $adapter->getStats();
+
+        $this->assertSame(0, $stats['hits']);
+        $this->assertSame(0, $stats['misses']);
+    }
 }
 
 final class InMemorySimpleCache implements CacheInterface

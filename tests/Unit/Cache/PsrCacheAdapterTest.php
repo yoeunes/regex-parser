@@ -151,6 +151,35 @@ final class PsrCacheAdapterTest extends TestCase
         $this->assertSame($payload, $cache->load($key));
     }
 
+    public function test_get_stats_returns_zero_stats(): void
+    {
+        $cache = new PsrCacheAdapter(new InMemoryPool());
+
+        $stats = $cache->getStats();
+
+        $this->assertIsArray($stats);
+        $this->assertArrayHasKey('hits', $stats);
+        $this->assertArrayHasKey('misses', $stats);
+        $this->assertSame(0, $stats['hits']);
+        $this->assertSame(0, $stats['misses']);
+    }
+
+    public function test_get_stats_returns_zero_stats_after_cache_operations(): void
+    {
+        $pool = new InMemoryPool();
+        $cache = new PsrCacheAdapter($pool);
+
+        $key = $cache->generateKey('test');
+        $cache->write($key, 'value');
+        $cache->load($key);
+        $cache->load($cache->generateKey('nonexistent'));
+
+        $stats = $cache->getStats();
+
+        $this->assertSame(0, $stats['hits']);
+        $this->assertSame(0, $stats['misses']);
+    }
+
     private function export(string $value): string
     {
         return var_export($value, true);
