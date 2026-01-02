@@ -60,13 +60,13 @@ final class PhpStanExtractionStrategyCoverageTest extends TestCase
         $method = $this->getPrivateMethod($strategy, 'extractFromFuncCall');
 
         $funcCall = new FuncCall(new Variable('preg_match'), []);
-        $this->assertSame([], $method->invoke($strategy, $funcCall, __FILE__));
+        $this->assertSame([], $method->invoke($strategy, $funcCall, __FILE__, ''));
 
         $funcCall = new FuncCall(new Name('strpos'), []);
-        $this->assertSame([], $method->invoke($strategy, $funcCall, __FILE__));
+        $this->assertSame([], $method->invoke($strategy, $funcCall, __FILE__, ''));
 
         $funcCall = new FuncCall(new Name('preg_match'), []);
-        $this->assertSame([], $method->invoke($strategy, $funcCall, __FILE__));
+        $this->assertSame([], $method->invoke($strategy, $funcCall, __FILE__, ''));
     }
 
     public function test_concat_extraction_handles_empty_and_nested_values(): void
@@ -75,7 +75,7 @@ final class PhpStanExtractionStrategyCoverageTest extends TestCase
 
         $extractFromConcat = $this->getPrivateMethod($strategy, 'extractFromConcat');
         $emptyConcat = new Concat(new String_(''), new String_(''));
-        $this->assertNull($extractFromConcat->invoke($strategy, $emptyConcat, __FILE__, 'preg_match'));
+        $this->assertNull($extractFromConcat->invoke($strategy, $emptyConcat, __FILE__, '', 'preg_match'));
 
         $extractStringValue = $this->getPrivateMethod($strategy, 'extractStringValue');
         $nested = new Concat(new String_('a'), new String_('b'));

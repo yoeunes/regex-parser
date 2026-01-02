@@ -291,14 +291,22 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
                 $repeatEmptySeverity = ReDoSSeverity::CRITICAL;
             }
 
+            $repeatConfidence = ReDoSConfidence::HIGH;
+            $repeatFalsePositiveRisk = 'Low false-positive risk; repeated empty matches are a known backtracking hotspot.';
+            if ($this->shouldDowngradeEmptyRepeat($node->node)) {
+                $repeatEmptySeverity = $this->reduceSeverity($repeatEmptySeverity, ReDoSSeverity::MEDIUM);
+                $repeatConfidence = ReDoSConfidence::MEDIUM;
+                $repeatFalsePositiveRisk = 'Medium false-positive risk; possessive or atomic branches with recursion can reduce backtracking.';
+            }
+
             $severity = $this->maxSeverity($severity, $repeatEmptySeverity);
             $this->addVulnerability(
                 $repeatEmptySeverity,
                 'Quantifier repeats a subpattern that can match empty. This creates ambiguous backtracking paths and can be catastrophic.',
                 $node,
                 'Ensure the repeated subpattern consumes at least one character, or wrap it in (?>...) / use possessive quantifiers.',
-                ReDoSConfidence::HIGH,
-                'Low false-positive risk; repeated empty matches are a known backtracking hotspot.',
+                $repeatConfidence,
+                $repeatFalsePositiveRisk,
                 'quantifier repeating empty',
             );
         }
@@ -1277,6 +1285,70 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
         }
 
         return true === $this->nullableStatus($node);
+    }
+
+    private function shouldDowngradeEmptyRepeat(NodeInterface $node): bool
+    {
+        if (!$this->hasRecursion($node)) {
+            return false;
+        }
+
+        return $this->hasAtomicNullableBranch($node);
+    }
+
+    private function hasAtomicNullableBranch(NodeInterface $node): bool
+    {
+        if (true !== $this->nullableStatus($node)) {
+            return false;
+        }
+
+        if ($node instanceof GroupNode) {
+            return $this->hasAtomicNullableBranch($node->child);
+        }
+
+        if ($node instanceof AlternationNode) {
+            foreach ($node->alternatives as $alt) {
+                if (true === $this->nullableStatus($alt) && $this->isAtomicNullableNode($alt)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        if ($node instanceof SequenceNode) {
+            foreach ($node->children as $child) {
+                if ($this->isAtomicNullableNode($child)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        return $this->isAtomicNullableNode($node);
+    }
+
+    private function isAtomicNullableNode(NodeInterface $node): bool
+    {
+        if ($node instanceof QuantifierNode) {
+            [$min] = $this->quantifierBounds($node->quantifier);
+            if (0 !== $min) {
+                return false;
+            }
+
+            if (QuantifierType::T_POSSESSIVE === $node->type) {
+                return true;
+            }
+
+            return $node->node instanceof GroupNode && GroupType::T_GROUP_ATOMIC === $node->node->type;
+        }
+
+        if ($node instanceof GroupNode && GroupType::T_GROUP_ATOMIC === $node->type) {
+            return true === $this->nullableStatus($node->child);
+        }
+
+        return false;
     }
 
     private function quantifierAllowsMultiple(?int $max): bool

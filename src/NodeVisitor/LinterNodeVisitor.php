@@ -63,6 +63,8 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
 
     private string $flags = '';
 
+    private string $activeFlags = '';
+
     private string $delimiter = '';
 
     private bool $hasCaseSensitiveChars = false;
@@ -137,6 +139,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     public function visitRegex(RegexNode $node): NodeInterface
     {
         $this->flags = $node->flags;
+        $this->activeFlags = $node->flags;
         $this->delimiter = $node->delimiter;
         $this->unicodeMode = str_contains($this->flags, 'u');
         $this->trackCaseSensitivity = str_contains($this->flags, 'i');
@@ -247,9 +250,15 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         $this->checkAnchorConflicts($node);
 
         $this->parentStack[] = $node;
+        $sequenceFlags = $this->activeFlags;
         foreach ($node->children as $child) {
             $child->accept($this);
+
+            if ($child instanceof GroupNode && $this->isStandaloneInlineFlagsGroup($child)) {
+                $this->activeFlags = $this->applyInlineFlags($this->activeFlags, (string) $child->flags);
+            }
         }
+        $this->activeFlags = $sequenceFlags;
         array_pop($this->parentStack);
 
         return $node;
@@ -258,8 +267,14 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitGroup(GroupNode $node): NodeInterface
     {
+        $previousFlags = $this->activeFlags;
+
         if (GroupType::T_GROUP_INLINE_FLAGS === $node->type && null !== $node->flags) {
             $this->lintInlineFlags($node);
+
+            if (!$this->isStandaloneInlineFlagsGroup($node)) {
+                $this->activeFlags = $this->applyInlineFlags($this->activeFlags, (string) $node->flags);
+            }
         }
 
         if (GroupType::T_GROUP_NON_CAPTURING === $node->type && $this->isRedundantGroup($node->child)) {
@@ -273,6 +288,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         $this->parentStack[] = $node;
         $node->child->accept($this);
         array_pop($this->parentStack);
+        $this->activeFlags = $previousFlags;
 
         return $node;
     }
@@ -1069,6 +1085,15 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         }
 
         if ($node instanceof GroupNode) {
+            if (\in_array($node->type, [
+                GroupType::T_GROUP_LOOKAHEAD_POSITIVE,
+                GroupType::T_GROUP_LOOKAHEAD_NEGATIVE,
+                GroupType::T_GROUP_LOOKBEHIND_POSITIVE,
+                GroupType::T_GROUP_LOOKBEHIND_NEGATIVE,
+            ], true)) {
+                return null;
+            }
+
             return $this->extractLiteralSequence($node->child);
         }
 
@@ -1294,6 +1319,57 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         return false;
     }
 
+    private function isStandaloneInlineFlagsGroup(GroupNode $node): bool
+    {
+        if (GroupType::T_GROUP_INLINE_FLAGS !== $node->type || null === $node->flags) {
+            return false;
+        }
+
+        if ($node->child instanceof LiteralNode) {
+            return '' === $node->child->value;
+        }
+
+        if ($node->child instanceof SequenceNode) {
+            return 0 === \count($node->child->children);
+        }
+
+        return false;
+    }
+
+    private function applyInlineFlags(string $baseFlags, string $inlineFlags): string
+    {
+        $resetAll = str_starts_with($inlineFlags, '^');
+        if ($resetAll) {
+            $baseFlags = '';
+            $inlineFlags = substr($inlineFlags, 1);
+        }
+
+        [$setFlags, $unsetFlags] = str_contains($inlineFlags, '-')
+            ? explode('-', $inlineFlags, 2)
+            : [$inlineFlags, ''];
+
+        $flags = [];
+        foreach (str_split($baseFlags) as $flag) {
+            if ('' !== $flag) {
+                $flags[$flag] = true;
+            }
+        }
+
+        foreach (str_split($setFlags) as $flag) {
+            if ('' !== $flag) {
+                $flags[$flag] = true;
+            }
+        }
+
+        foreach (str_split($unsetFlags) as $flag) {
+            if ('' !== $flag) {
+                unset($flags[$flag]);
+            }
+        }
+
+        return implode('', array_keys($flags));
+    }
+
     private function lintInlineFlags(GroupNode $node): void
     {
         $flags = (string) $node->flags;
@@ -1310,7 +1386,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
             ? explode('-', $flags, 2)
             : [$flags, ''];
 
-        $baseFlags = $resetAll ? '' : $this->flags;
+        $baseFlags = $resetAll ? '' : $this->activeFlags;
 
         foreach (str_split($set) as $flag) {
             if ('' === $flag) {

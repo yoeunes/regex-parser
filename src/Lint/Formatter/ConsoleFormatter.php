@@ -127,6 +127,7 @@ class ConsoleFormatter extends AbstractOutputFormatter
         $pattern = $this->extractPatternForResult($result);
         $file = (string) ($result['file'] ?? '');
         $line = (int) ($result['line'] ?? 0);
+        $column = (int) ($result['column'] ?? 0);
         $location = $result['location'] ?? null;
 
         $hasLocation = \is_string($location) && '' !== $location;
@@ -135,8 +136,11 @@ class ConsoleFormatter extends AbstractOutputFormatter
         $prefix = '';
         if ('' !== $file && $line > 0) {
             $fileLine = $file.':'.$line;
+            if ($column > 1) {
+                $fileLine .= ':'.$column;
+            }
             if ('' !== $this->ide && null !== $this->linkFormatter) {
-                $penLink = $this->formatPenLink($file, $line);
+                $penLink = $this->formatPenLink($file, $line, $column > 0 ? $column : 1);
                 $prefix = $fileLine.' '.$penLink;
             } else {
                 $prefix = $fileLine;
@@ -601,10 +605,10 @@ class ConsoleFormatter extends AbstractOutputFormatter
     /**
      * Format pen emoji with IDE link.
      */
-    private function formatPenLink(string $file, int $line): string
+    private function formatPenLink(string $file, int $line, int $column): string
     {
         // Use LinkFormatter to get the URL, but convert Symfony href format to ANSI escape sequences
-        $href = $this->linkFormatter?->format($file, $line, '✏️');
+        $href = $this->linkFormatter?->format($file, $line, '✏️', $column);
 
         // Extract URL from Symfony href format: <href=URL>✏️</>
         if (preg_match('/<href=([^>]+)>/', (string) $href, $matches)) {

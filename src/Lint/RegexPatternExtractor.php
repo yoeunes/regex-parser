@@ -387,6 +387,8 @@ final readonly class RegexPatternExtractor
                     $occurrence->displayPattern,
                     $occurrence->location,
                     true,
+                    $occurrence->column,
+                    $occurrence->fileOffset,
                 );
             } else {
                 $result[] = $occurrence;

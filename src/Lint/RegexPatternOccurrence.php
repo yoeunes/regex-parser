@@ -28,5 +28,7 @@ final readonly class RegexPatternOccurrence
         public ?string $displayPattern = null,
         public ?string $location = null,
         public bool $isIgnored = false,
+        public ?int $column = null,
+        public ?int $fileOffset = null,
     ) {}
 }

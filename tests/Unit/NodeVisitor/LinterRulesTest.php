@@ -70,6 +70,12 @@ final class LinterRulesTest extends TestCase
         $this->assertContains('regex.lint.alternation.overlap', $issues);
     }
 
+    public function test_alternation_duplicate_ignores_lookarounds(): void
+    {
+        $issues = $this->lint('/(?=foo)|(?=foo)/');
+        $this->assertNotContains('regex.lint.alternation.duplicate', $issues);
+    }
+
     public function test_redundant_char_class_warning(): void
     {
         $issues = $this->lint('/[a-zA-Za-z]/');
@@ -122,6 +128,13 @@ final class LinterRulesTest extends TestCase
     {
         $issues = $this->lint('/(?-i:foo)/i');
         $this->assertContains('regex.lint.flag.override', $issues);
+    }
+
+    public function test_inline_flag_override_respects_preceding_inline_flag(): void
+    {
+        $issues = $this->lint('/(?i)(?-i:foo)/');
+        $this->assertContains('regex.lint.flag.override', $issues);
+        $this->assertNotContains('regex.lint.flag.redundant', $issues);
     }
 
     public function test_suspicious_unicode_escape_warning(): void

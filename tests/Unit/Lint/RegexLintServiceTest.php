@@ -201,6 +201,38 @@ final class RegexLintServiceTest extends TestCase
         $this->assertCount(1, $result->results); // Should be deduplicated to one result
     }
 
+    public function test_analyze_does_not_deduplicate_patterns_with_different_offsets(): void
+    {
+        $request = new RegexLintRequest(['.'], [], 0);
+        $patterns = [
+            new RegexPatternOccurrence(
+                pattern: '/(a+)+/',
+                file: 'test.php',
+                line: 1,
+                source: 'preg_match',
+                column: 5,
+                fileOffset: 10,
+            ),
+            new RegexPatternOccurrence(
+                pattern: '/(a+)+/',
+                file: 'test.php',
+                line: 1,
+                source: 'preg_match',
+                column: 20,
+                fileOffset: 40,
+            ),
+        ];
+
+        $service = new RegexLintService($this->analysis, $this->sources);
+        $result = $service->analyze($patterns, $request, null);
+
+        $this->assertCount(2, $result->results);
+
+        $offsets = array_map(static fn (array $item): ?int => $item['fileOffset'] ?? null, $result->results);
+        sort($offsets);
+        $this->assertSame([10, 40], $offsets);
+    }
+
     public function test_analyze_with_optimizations(): void
     {
         $request = new RegexLintRequest(['.'], [], 0, [], true, true, true); // checkOptimizations = true

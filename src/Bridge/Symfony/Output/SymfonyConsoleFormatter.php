@@ -99,6 +99,7 @@ final readonly class SymfonyConsoleFormatter implements OutputFormatterInterface
     {
         $pattern = $this->extractPatternForResult($result);
         $line = (int) $result['line'];
+        $column = (int) ($result['column'] ?? 0);
         $file = (string) $result['file'];
         $location = $result['location'] ?? null;
 
@@ -111,8 +112,11 @@ final readonly class SymfonyConsoleFormatter implements OutputFormatterInterface
         $label = $relPath;
         if ($line > 0) {
             $label .= ':'.$line;
+            if ($column > 1) {
+                $label .= ':'.$column;
+            }
         }
-        $linkedLabel = $this->linkFormatter->format($file, $line, $label, 1, $label);
+        $linkedLabel = $this->linkFormatter->format($file, $line, $label, $column > 0 ? $column : 1, $label);
 
         $output = '  <fg=cyan;options=bold>'.$linkedLabel.'</>'.\PHP_EOL;
 

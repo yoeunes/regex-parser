@@ -32,6 +32,19 @@ final class ReDoSTest extends TestCase
         $this->assertSame(ReDoSSeverity::MEDIUM, $result->severity);
     }
 
+    public function test_redos_symfony_route_requirement_is_not_high(): void
+    {
+        $analyzer = new ReDoSAnalyzer();
+        $pattern = '{(\\s++|\\((?:[^()]*+|(?R))*\\)(?: *: *[^ ]++)?|<(?:[^<>]*+|(?R))*>|\\{(?:[^{}]*+|(?R))*\\})}';
+        $result = $analyzer->analyze($pattern);
+
+        $this->assertContains(
+            $result->severity,
+            [ReDoSSeverity::SAFE, ReDoSSeverity::LOW, ReDoSSeverity::MEDIUM],
+            'Expected ReDoS severity to be SAFE, LOW, or MEDIUM for Symfony route requirements.',
+        );
+    }
+
     /**
      * Test ReDoS analysis on standard patterns.
      */

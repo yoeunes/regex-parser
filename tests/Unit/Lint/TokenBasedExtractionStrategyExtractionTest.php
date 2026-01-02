@@ -101,6 +101,8 @@ final class TokenBasedExtractionStrategyExtractionTest extends TestCase
         $tokens = token_get_all('<?php preg_replace("/foo/", "bar", $subject);');
         $nameIndex = $this->findTokenIndex($tokens, 'preg_replace');
         $openParenIndex = $this->findNextToken($tokens, '(', $nameIndex);
+        $tokenOffsets = $this->buildTokenOffsets($tokens);
+        $content = $this->tokensToContent($tokens);
 
         $occurrences = $this->invoke(
             $strategy,
@@ -112,6 +114,8 @@ final class TokenBasedExtractionStrategyExtractionTest extends TestCase
             'preg_replace',
             'test.php',
             false,
+            $tokenOffsets,
+            $content,
         );
 
         $this->assertIsArray($occurrences);
@@ -129,6 +133,8 @@ final class TokenBasedExtractionStrategyExtractionTest extends TestCase
             '}',
             ')',
         ];
+        $tokenOffsets = $this->buildTokenOffsets($tokens);
+        $content = $this->tokensToContent($tokens);
 
         $occurrences = $this->invoke(
             $strategy,
@@ -140,6 +146,8 @@ final class TokenBasedExtractionStrategyExtractionTest extends TestCase
             'preg_match',
             'test.php',
             false,
+            $tokenOffsets,
+            $content,
         );
 
         $this->assertSame([], $occurrences);
@@ -151,6 +159,8 @@ final class TokenBasedExtractionStrategyExtractionTest extends TestCase
         $tokens = [
             [\T_CONSTANT_ENCAPSED_STRING, "'/a/'", 1],
         ];
+        $tokenOffsets = $this->buildTokenOffsets($tokens);
+        $content = $this->tokensToContent($tokens);
 
         $occurrences = $this->invoke(
             $strategy,
@@ -162,6 +172,8 @@ final class TokenBasedExtractionStrategyExtractionTest extends TestCase
             'preg_match',
             'test.php',
             false,
+            $tokenOffsets,
+            $content,
         );
 
         $this->assertIsArray($occurrences);
@@ -176,6 +188,8 @@ final class TokenBasedExtractionStrategyExtractionTest extends TestCase
         $tokens = [
             [\T_CONSTANT_ENCAPSED_STRING, "'/a/'", 1],
         ];
+        $tokenOffsets = $this->buildTokenOffsets($tokens);
+        $content = $this->tokensToContent($tokens);
 
         $occurrences = $this->invoke(
             $strategy,
@@ -187,6 +201,8 @@ final class TokenBasedExtractionStrategyExtractionTest extends TestCase
             'preg_match',
             'test.php',
             false,
+            $tokenOffsets,
+            $content,
         );
 
         $this->assertSame([], $occurrences);
@@ -198,6 +214,8 @@ final class TokenBasedExtractionStrategyExtractionTest extends TestCase
         $tokens = token_get_all('<?php preg_match("/foo/", $subject);');
         $nameIndex = $this->findTokenIndex($tokens, 'preg_match');
         $openParenIndex = $this->findNextToken($tokens, '(', $nameIndex);
+        $tokenOffsets = $this->buildTokenOffsets($tokens);
+        $content = $this->tokensToContent($tokens);
 
         $occurrences = $this->invoke(
             $strategy,
@@ -209,6 +227,8 @@ final class TokenBasedExtractionStrategyExtractionTest extends TestCase
             'preg_match',
             'test.php',
             false,
+            $tokenOffsets,
+            $content,
         );
 
         $this->assertSame([], $occurrences);
@@ -221,7 +241,21 @@ final class TokenBasedExtractionStrategyExtractionTest extends TestCase
             [\T_VARIABLE, '$pattern', 1],
         ];
 
-        $occurrences = $this->invoke($strategy, 'extractFromArgumentTokens', $tokens, 'test.php', 'preg_match', false);
+        $tokenIndexes = array_keys($tokens);
+        $tokenOffsets = $this->buildTokenOffsets($tokens);
+        $content = $this->tokensToContent($tokens);
+
+        $occurrences = $this->invoke(
+            $strategy,
+            'extractFromArgumentTokens',
+            $tokens,
+            $tokenIndexes,
+            $tokenOffsets,
+            $content,
+            'test.php',
+            'preg_match',
+            false,
+        );
 
         $this->assertSame([], $occurrences);
     }
@@ -233,7 +267,21 @@ final class TokenBasedExtractionStrategyExtractionTest extends TestCase
             [\T_CONSTANT_ENCAPSED_STRING, "''", 1],
         ];
 
-        $occurrences = $this->invoke($strategy, 'extractFromArgumentTokens', $tokens, 'test.php', 'preg_match', false);
+        $tokenIndexes = array_keys($tokens);
+        $tokenOffsets = $this->buildTokenOffsets($tokens);
+        $content = $this->tokensToContent($tokens);
+
+        $occurrences = $this->invoke(
+            $strategy,
+            'extractFromArgumentTokens',
+            $tokens,
+            $tokenIndexes,
+            $tokenOffsets,
+            $content,
+            'test.php',
+            'preg_match',
+            false,
+        );
 
         $this->assertSame([], $occurrences);
     }
@@ -254,7 +302,20 @@ final class TokenBasedExtractionStrategyExtractionTest extends TestCase
             ')',
         ];
 
-        $occurrences = $this->invoke($strategy, 'extractFromCallbackArray', $tokens, 'test.php', 'preg_replace_callback_array');
+        $tokenIndexes = array_keys($tokens);
+        $tokenOffsets = $this->buildTokenOffsets($tokens);
+        $content = $this->tokensToContent($tokens);
+
+        $occurrences = $this->invoke(
+            $strategy,
+            'extractFromCallbackArray',
+            $tokens,
+            $tokenIndexes,
+            $tokenOffsets,
+            $content,
+            'test.php',
+            'preg_replace_callback_array',
+        );
 
         $this->assertIsArray($occurrences);
         $this->assertCount(2, $occurrences);
@@ -271,7 +332,20 @@ final class TokenBasedExtractionStrategyExtractionTest extends TestCase
             [\T_STRING, 'foo', 1],
         ];
 
-        $occurrences = $this->invoke($strategy, 'extractFromCallbackArray', $tokens, 'test.php', 'preg_replace_callback_array');
+        $tokenIndexes = array_keys($tokens);
+        $tokenOffsets = $this->buildTokenOffsets($tokens);
+        $content = $this->tokensToContent($tokens);
+
+        $occurrences = $this->invoke(
+            $strategy,
+            'extractFromCallbackArray',
+            $tokens,
+            $tokenIndexes,
+            $tokenOffsets,
+            $content,
+            'test.php',
+            'preg_replace_callback_array',
+        );
 
         $this->assertSame([], $occurrences);
     }
@@ -291,7 +365,20 @@ final class TokenBasedExtractionStrategyExtractionTest extends TestCase
             ')',
         ];
 
-        $occurrences = $this->invoke($strategy, 'extractFromCallbackArray', $tokens, 'test.php', 'preg_replace_callback_array');
+        $tokenIndexes = array_keys($tokens);
+        $tokenOffsets = $this->buildTokenOffsets($tokens);
+        $content = $this->tokensToContent($tokens);
+
+        $occurrences = $this->invoke(
+            $strategy,
+            'extractFromCallbackArray',
+            $tokens,
+            $tokenIndexes,
+            $tokenOffsets,
+            $content,
+            'test.php',
+            'preg_replace_callback_array',
+        );
 
         $this->assertSame([], $occurrences);
     }
@@ -309,7 +396,20 @@ final class TokenBasedExtractionStrategyExtractionTest extends TestCase
             ']',
         ];
 
-        $occurrences = $this->invoke($strategy, 'extractFromCallbackArray', $tokens, 'test.php', 'preg_replace_callback_array');
+        $tokenIndexes = array_keys($tokens);
+        $tokenOffsets = $this->buildTokenOffsets($tokens);
+        $content = $this->tokensToContent($tokens);
+
+        $occurrences = $this->invoke(
+            $strategy,
+            'extractFromCallbackArray',
+            $tokens,
+            $tokenIndexes,
+            $tokenOffsets,
+            $content,
+            'test.php',
+            'preg_replace_callback_array',
+        );
 
         $this->assertIsArray($occurrences);
         $this->assertCount(1, $occurrences);
@@ -324,7 +424,11 @@ final class TokenBasedExtractionStrategyExtractionTest extends TestCase
             [\T_CONSTANT_ENCAPSED_STRING, "'/foo/i'", 1],
         ];
 
-        $result = $this->invoke($strategy, 'parseRegexExpression', $tokens);
+        $tokenIndexes = array_keys($tokens);
+        $tokenOffsets = $this->buildTokenOffsets($tokens);
+        $content = $this->tokensToContent($tokens);
+
+        $result = $this->invoke($strategy, 'parseRegexExpression', $tokens, $tokenIndexes, $tokenOffsets, $content);
 
         $this->assertIsArray($result);
         $this->assertArrayHasKey('pattern', $result);
@@ -340,7 +444,11 @@ final class TokenBasedExtractionStrategyExtractionTest extends TestCase
             [\T_CONSTANT_ENCAPSED_STRING, "'bar'", 1],
         ];
 
-        $result = $this->invoke($strategy, 'parseConstantStringExpression', $tokens);
+        $tokenIndexes = array_keys($tokens);
+        $tokenOffsets = $this->buildTokenOffsets($tokens);
+        $content = $this->tokensToContent($tokens);
+
+        $result = $this->invoke($strategy, 'parseConstantStringExpression', $tokens, $tokenIndexes, $tokenOffsets, $content);
 
         $this->assertIsArray($result);
         $this->assertArrayHasKey('pattern', $result);
@@ -356,7 +464,11 @@ final class TokenBasedExtractionStrategyExtractionTest extends TestCase
             ')',
         ];
 
-        $result = $this->invoke($strategy, 'parseConstantStringExpression', $tokens);
+        $tokenIndexes = array_keys($tokens);
+        $tokenOffsets = $this->buildTokenOffsets($tokens);
+        $content = $this->tokensToContent($tokens);
+
+        $result = $this->invoke($strategy, 'parseConstantStringExpression', $tokens, $tokenIndexes, $tokenOffsets, $content);
 
         $this->assertIsArray($result);
         $this->assertArrayHasKey('pattern', $result);
@@ -371,7 +483,11 @@ final class TokenBasedExtractionStrategyExtractionTest extends TestCase
             [\T_VARIABLE, '$bar', 1],
         ];
 
-        $result = $this->invoke($strategy, 'parseConstantStringExpression', $tokens);
+        $tokenIndexes = array_keys($tokens);
+        $tokenOffsets = $this->buildTokenOffsets($tokens);
+        $content = $this->tokensToContent($tokens);
+
+        $result = $this->invoke($strategy, 'parseConstantStringExpression', $tokens, $tokenIndexes, $tokenOffsets, $content);
 
         $this->assertNull($result);
     }
@@ -411,6 +527,38 @@ final class TokenBasedExtractionStrategyExtractionTest extends TestCase
         }
 
         throw new \RuntimeException('Token not found: '.$tokenValue);
+    }
+
+    /**
+     * @param array<int, array{0: int, 1: string, 2: int}|string> $tokens
+     *
+     * @return array<int, int>
+     */
+    private function buildTokenOffsets(array $tokens): array
+    {
+        $offsets = [];
+        $offset = 0;
+
+        foreach ($tokens as $index => $token) {
+            $offsets[$index] = $offset;
+            $text = \is_array($token) ? $token[1] : $token;
+            $offset += \strlen($text);
+        }
+
+        return $offsets;
+    }
+
+    /**
+     * @param array<int, array{0: int, 1: string, 2: int}|string> $tokens
+     */
+    private function tokensToContent(array $tokens): string
+    {
+        $content = '';
+        foreach ($tokens as $token) {
+            $content .= \is_array($token) ? $token[1] : $token;
+        }
+
+        return $content;
     }
 
     private function invoke(TokenBasedExtractionStrategy $strategy, string $method, mixed ...$args): mixed

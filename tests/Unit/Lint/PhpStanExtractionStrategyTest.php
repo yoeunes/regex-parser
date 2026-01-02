@@ -65,6 +65,15 @@ final class PhpStanExtractionStrategyTest extends TestCase
             $this->assertSame($file, $result[0]->file);
             $this->assertSame(1, $result[0]->line);
             $this->assertSame('php:preg_match()', $result[0]->source);
+
+            $content = file_get_contents($file);
+            $this->assertIsString($content);
+
+            $expectedOffset = strpos($content, "'/test/'");
+            $this->assertIsInt($expectedOffset);
+
+            $this->assertSame($expectedOffset, $result[0]->fileOffset);
+            $this->assertSame($expectedOffset + 1, $result[0]->column);
         } else {
             $this->assertSame([], $result);
         }

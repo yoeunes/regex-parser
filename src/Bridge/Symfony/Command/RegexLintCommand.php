@@ -65,7 +65,7 @@ final class RegexLintCommand extends Command
         private readonly RegexAnalysisService $analysis,
         private readonly FormatterRegistry $formatterRegistry = new FormatterRegistry(),
         array $defaultPaths = ['src'],
-        array $defaultExcludePaths = ['vendor'],
+        array $defaultExcludePaths = ['vendor', 'tests', 'Fixtures'],
         private readonly ?string $editorUrl = null,
     ) {
         $this->defaultPaths = $this->normalizeStringList($defaultPaths);

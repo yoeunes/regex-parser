@@ -139,18 +139,18 @@ final class TokenBasedExtractionStrategyTokenHelperTest extends TestCase
     {
         $strategy = new TokenBasedExtractionStrategy();
 
-        $this->assertSame([], $this->invoke($strategy, 'stripOuterParentheses', []));
+        $this->assertSame([[], []], $this->invoke($strategy, 'stripOuterParentheses', [], []));
 
         $tokens = ['(', 'a', ')'];
-        $this->assertSame(['a'], $this->invoke($strategy, 'stripOuterParentheses', $tokens));
+        $this->assertSame([['a'], [1]], $this->invoke($strategy, 'stripOuterParentheses', $tokens, array_keys($tokens)));
 
         $tokens = [
             [\T_WHITESPACE, ' ', 1],
         ];
-        $this->assertSame($tokens, $this->invoke($strategy, 'stripOuterParentheses', $tokens));
+        $this->assertSame([$tokens, [0]], $this->invoke($strategy, 'stripOuterParentheses', $tokens, array_keys($tokens)));
 
         $tokens = ['(', 'a', ')', '(', 'b', ')'];
-        $this->assertSame($tokens, $this->invoke($strategy, 'stripOuterParentheses', $tokens));
+        $this->assertSame([$tokens, array_keys($tokens)], $this->invoke($strategy, 'stripOuterParentheses', $tokens, array_keys($tokens)));
     }
 
     public function test_find_array_start_index_variants(): void

@@ -27,15 +27,17 @@ use RegexParser\ValidationResult;
  *
  * @internal
  *
- * @phpstan-type LintIssue array{type: string, message: string, file: string, line: int, column?: int, position?: int, issueId?: string, hint?: string|null, suggestedPattern?: string, source?: string, pattern?: string, regex?: string, analysis?: ReDoSAnalysis, validation?: ValidationResult}
+ * @phpstan-type LintIssue array{type: string, message: string, file: string, line: int, column?: int, fileOffset?: int|null, position?: int, issueId?: string, hint?: string|null, suggestedPattern?: string, source?: string, pattern?: string, regex?: string, analysis?: ReDoSAnalysis, validation?: ValidationResult}
  * @phpstan-type OptimizationEntry array{
  *     file: string,
  *     line: int,
+ *     column?: int,
+ *     fileOffset?: int|null,
  *     optimization: OptimizationResult,
  *     savings: int,
  *     source?: string
  * }
- * @phpstan-type LintResult array{file: string, line: int, source?: string|null, pattern: string|null, location?: string|null, issues: array<LintIssue>, optimizations: array<OptimizationEntry>, problems: array<RegexProblem>}
+ * @phpstan-type LintResult array{file: string, line: int, column?: int, fileOffset?: int|null, source?: string|null, pattern: string|null, location?: string|null, issues: array<LintIssue>, optimizations: array<OptimizationEntry>, problems: array<RegexProblem>}
  * @phpstan-type LintStats array{errors: int, warnings: int, optimizations: int}
  */
 final readonly class RegexLintService
@@ -163,7 +165,11 @@ final readonly class RegexLintService
         $unique = [];
 
         foreach ($issues as $issue) {
-            $key = ($issue['file'] ?? '').':'.($issue['line'] ?? 0).':'.($issue['message'] ?? '');
+            $key = ($issue['file'] ?? '')
+                .':'.($issue['line'] ?? 0)
+                .':'.($issue['column'] ?? 0)
+                .':'.($issue['fileOffset'] ?? '')
+                .':'.($issue['message'] ?? '');
             if (isset($seen[$key])) {
                 continue;
             }
@@ -204,7 +210,7 @@ final readonly class RegexLintService
     {
         $map = [];
         foreach ($originalPatterns as $pattern) {
-            $key = $this->createPatternKey($pattern->file, $pattern->line, $pattern->source);
+            $key = $this->createPatternKey($pattern->file, $pattern->line, $pattern->source, $pattern->fileOffset);
             $map[$key] = [
                 'pattern' => $pattern->displayPattern ?? $pattern->pattern,
                 'location' => $pattern->location,
@@ -214,9 +220,11 @@ final readonly class RegexLintService
         return $map;
     }
 
-    private function createPatternKey(string $file, int $line, ?string $source = null): string
+    private function createPatternKey(string $file, int $line, ?string $source = null, ?int $fileOffset = null): string
     {
-        return $file.':'.$line.':'.($source ?? '');
+        $offsetKey = null !== $fileOffset ? (string) $fileOffset : '';
+
+        return $file.':'.$line.':'.$offsetKey.':'.($source ?? '');
     }
 
     /**
@@ -235,6 +243,7 @@ final readonly class RegexLintService
                 $issue['file'],
                 $issue['line'],
                 $issue['source'] ?? null,
+                $issue['fileOffset'] ?? null,
             );
 
             $patternData = $patternMap[$key] ?? null;
@@ -262,6 +271,7 @@ final readonly class RegexLintService
                 $opt['file'],
                 $opt['line'],
                 $opt['source'] ?? null,
+                $opt['fileOffset'] ?? null,
             );
             $patternData = $patternMap[$key] ?? null;
             $pattern = \is_array($patternData) ? $patternData['pattern'] : null;
@@ -320,6 +330,8 @@ final readonly class RegexLintService
         return [
             'file' => $item['file'],
             'line' => $item['line'],
+            'column' => $item['column'] ?? 1,
+            'fileOffset' => $item['fileOffset'] ?? null,
             'source' => $item['source'] ?? null,
             'pattern' => $pattern,
             'location' => $location,

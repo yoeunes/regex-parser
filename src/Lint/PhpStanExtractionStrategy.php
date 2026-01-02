@@ -101,7 +101,7 @@ final readonly class PhpStanExtractionStrategy implements ExtractorInterface
                 return [];
             }
 
-            return $this->extractFromTokens($ast, $file);
+            return $this->extractFromTokens($ast, $file, $content);
         } catch (\Throwable) {
             // If analysis fails for this file, return empty results
             return [];
@@ -113,12 +113,12 @@ final readonly class PhpStanExtractionStrategy implements ExtractorInterface
      *
      * @return array<RegexPatternOccurrence>
      */
-    private function extractFromTokens(array $tokens, string $file): array
+    private function extractFromTokens(array $tokens, string $file, string $content): array
     {
         $occurrences = [];
 
         foreach ($tokens as $node) {
-            $nodeOccurrences = $this->extractFromNode($node, $file);
+            $nodeOccurrences = $this->extractFromNode($node, $file, $content);
             $this->appendOccurrences($occurrences, $nodeOccurrences);
         }
 
@@ -128,23 +128,23 @@ final readonly class PhpStanExtractionStrategy implements ExtractorInterface
     /**
      * @return array<RegexPatternOccurrence>
      */
-    private function extractFromNode(Node $node, string $file): array
+    private function extractFromNode(Node $node, string $file, string $content): array
     {
         $occurrences = [];
 
         if ($node instanceof FuncCall) {
-            $this->appendOccurrences($occurrences, $this->extractFromFuncCall($node, $file));
+            $this->appendOccurrences($occurrences, $this->extractFromFuncCall($node, $file, $content));
         }
 
         // Recursively check child nodes
         foreach ($node->getSubNodeNames() as $subNodeName) {
             $subNode = $node->{$subNodeName};
             if ($subNode instanceof Node) {
-                $this->appendOccurrences($occurrences, $this->extractFromNode($subNode, $file));
+                $this->appendOccurrences($occurrences, $this->extractFromNode($subNode, $file, $content));
             } elseif (\is_array($subNode)) {
                 foreach ($subNode as $item) {
                     if ($item instanceof Node) {
-                        $this->appendOccurrences($occurrences, $this->extractFromNode($item, $file));
+                        $this->appendOccurrences($occurrences, $this->extractFromNode($item, $file, $content));
                     }
                 }
             }
@@ -156,7 +156,7 @@ final readonly class PhpStanExtractionStrategy implements ExtractorInterface
     /**
      * @return array<RegexPatternOccurrence>
      */
-    private function extractFromFuncCall(FuncCall $funcCall, string $file): array
+    private function extractFromFuncCall(FuncCall $funcCall, string $file, string $content): array
     {
         if (!$funcCall->name instanceof Name) {
             return [];
@@ -174,7 +174,7 @@ final readonly class PhpStanExtractionStrategy implements ExtractorInterface
 
         $firstArg = $args[0];
 
-        return $this->extractPatternFromArg($firstArg, $file, $functionName);
+        return $this->extractPatternFromArg($firstArg, $file, $content, $functionName);
     }
 
     private function isPregFunction(string $functionName): bool
@@ -194,7 +194,7 @@ final readonly class PhpStanExtractionStrategy implements ExtractorInterface
     /**
      * @return array<RegexPatternOccurrence>
      */
-    private function extractPatternFromArg(Arg $arg, string $file, string $functionName): array
+    private function extractPatternFromArg(Arg $arg, string $file, string $content, string $functionName): array
     {
         $value = $arg->value;
 
@@ -208,17 +208,22 @@ final readonly class PhpStanExtractionStrategy implements ExtractorInterface
                 return [];
             }
 
+            $offset = $this->normalizeOffset($value->getStartFilePos());
+            $column = null !== $offset ? $this->columnFromOffset($content, $offset) : null;
+
             return [new RegexPatternOccurrence(
                 $pattern,
                 $file,
                 $value->getStartLine(),
                 'php:'.$functionName.'()',
+                column: $column,
+                fileOffset: $offset,
             )];
         }
 
         // Handle concatenation of strings
         if ($value instanceof Concat) {
-            $result = $this->extractFromConcat($value, $file, $functionName);
+            $result = $this->extractFromConcat($value, $file, $content, $functionName);
 
             return $result ? [$result] : [];
         }
@@ -226,7 +231,7 @@ final readonly class PhpStanExtractionStrategy implements ExtractorInterface
         return [];
     }
 
-    private function extractFromConcat(Concat $concat, string $file, string $functionName): ?RegexPatternOccurrence
+    private function extractFromConcat(Concat $concat, string $file, string $content, string $functionName): ?RegexPatternOccurrence
     {
         $left = $this->extractStringValue($concat->left);
         $right = $this->extractStringValue($concat->right);
@@ -245,6 +250,8 @@ final readonly class PhpStanExtractionStrategy implements ExtractorInterface
             $file,
             $concat->getStartLine(),
             'php:'.$functionName.'()',
+            column: $this->columnFromOffset($content, $this->normalizeOffset($concat->getStartFilePos())),
+            fileOffset: $this->normalizeOffset($concat->getStartFilePos()),
         );
     }
 
@@ -266,6 +273,30 @@ final readonly class PhpStanExtractionStrategy implements ExtractorInterface
         }
 
         return null;
+    }
+
+    private function normalizeOffset(?int $offset): ?int
+    {
+        if (null === $offset || $offset < 0) {
+            return null;
+        }
+
+        return $offset;
+    }
+
+    private function columnFromOffset(string $content, ?int $offset): ?int
+    {
+        if (null === $offset || $offset < 0) {
+            return null;
+        }
+
+        $prefix = substr($content, 0, $offset);
+        $lastNewline = strrpos($prefix, "\n");
+        if (false === $lastNewline) {
+            return $offset + 1;
+        }
+
+        return $offset - $lastNewline;
     }
 
     /**

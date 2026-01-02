@@ -2,6 +2,11 @@
   "paths": [
     "src"
   ],
+  "exclude": [
+    "vendor",
+    "tests",
+    "Fixtures"
+  ],
   "optimizations": {
     "digits": false,
     "word": true,

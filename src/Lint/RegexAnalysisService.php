@@ -98,7 +98,7 @@ final readonly class RegexAnalysisService
     /**
      * @param array<RegexPatternOccurrence> $patterns
      *
-     * @return array<array{type: string, file: string, line: int, column: int, position?: int, message: string, issueId?: string, hint?: string|null, suggestedPattern?: string, source?: string, analysis?: ReDoSAnalysis, validation?: ValidationResult}>
+     * @return array<array{type: string, file: string, line: int, column: int, fileOffset?: int|null, position?: int, message: string, issueId?: string, hint?: string|null, suggestedPattern?: string, source?: string, analysis?: ReDoSAnalysis, validation?: ValidationResult}>
      */
     public function lint(array $patterns, ?callable $progress = null, int $workers = 1): array
     {
@@ -117,7 +117,7 @@ final readonly class RegexAnalysisService
     /**
      * @param array<RegexPatternOccurrence> $patterns
      *
-     * @return array<array{file: string, line: int, analysis: ReDoSAnalysis}>
+     * @return array<array{file: string, line: int, column?: int, fileOffset?: int|null, analysis: ReDoSAnalysis}>
      */
     public function analyzeRedos(array $patterns, ReDoSSeverity $threshold, int $workers = 1): array
     {
@@ -139,6 +139,8 @@ final readonly class RegexAnalysisService
      * @return array<array{
      *     file: string,
      *     line: int,
+     *     column?: int,
+     *     fileOffset?: int|null,
      *     optimization: OptimizationResult,
      *     savings: int,
      *     source?: string
@@ -205,7 +207,8 @@ final readonly class RegexAnalysisService
                     'type' => 'error',
                     'file' => $occurrence->file,
                     'line' => $occurrence->line,
-                    'column' => 1,
+                    'column' => $this->resolveColumn($occurrence),
+                    'fileOffset' => $occurrence->fileOffset,
                     'position' => $validation->offset,
                     'message' => $message,
                     'source' => $source,
@@ -239,7 +242,8 @@ final readonly class RegexAnalysisService
                     'type' => 'warning',
                     'file' => $occurrence->file,
                     'line' => $occurrence->line,
-                    'column' => 1,
+                    'column' => $this->resolveColumn($occurrence),
+                    'fileOffset' => $occurrence->fileOffset,
                     'position' => $issue->offset,
                     'issueId' => $issue->id,
                     'message' => $issue->message,
@@ -260,7 +264,8 @@ final readonly class RegexAnalysisService
                         'type' => 'warning',
                         'file' => $occurrence->file,
                         'line' => $occurrence->line,
-                        'column' => 1,
+                        'column' => $this->resolveColumn($occurrence),
+                        'fileOffset' => $occurrence->fileOffset,
                         'issueId' => self::ISSUE_ID_COMPLEXITY,
                         'message' => \sprintf('Pattern is complex (score: %d).', $validation->complexityScore),
                         'source' => $source,
@@ -273,7 +278,8 @@ final readonly class RegexAnalysisService
                         'type' => 'error',
                         'file' => $occurrence->file,
                         'line' => $occurrence->line,
-                        'column' => 1,
+                        'column' => $this->resolveColumn($occurrence),
+                        'fileOffset' => $occurrence->fileOffset,
                         'issueId' => self::ISSUE_ID_REDOS,
                         'message' => \sprintf(
                             'Pattern may be vulnerable to ReDoS (severity: %s).',
@@ -292,6 +298,11 @@ final readonly class RegexAnalysisService
         }
 
         return $issues;
+    }
+
+    private function resolveColumn(RegexPatternOccurrence $occurrence): int
+    {
+        return $occurrence->column ?? 1;
     }
 
     private function buildAtomicGroupSuggestion(string $pattern, RegexNode $ast, int $offset): ?string
@@ -444,6 +455,8 @@ final readonly class RegexAnalysisService
             $issues[] = [
                 'file' => $occurrence->file,
                 'line' => $occurrence->line,
+                'column' => $this->resolveColumn($occurrence),
+                'fileOffset' => $occurrence->fileOffset,
                 'analysis' => $analysis,
             ];
         }
@@ -522,6 +535,8 @@ final readonly class RegexAnalysisService
             $suggestions[] = [
                 'file' => $occurrence->file,
                 'line' => $occurrence->line,
+                'column' => $this->resolveColumn($occurrence),
+                'fileOffset' => $occurrence->fileOffset,
                 'optimization' => $optimization,
                 'savings' => $savings,
                 'source' => $source,

@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Lint results now include pattern columns and file offsets to disambiguate multiple patterns on the same line.
+
+### Changed
+- Default lint excludes now skip `vendor`, `tests`, and `Fixtures` in the CLI and Symfony bridge configuration.
+- Console and Symfony lint output now include column numbers when available.
+
+### Fixed
+- Inline flag linting now respects flags set by earlier inline modifiers in the same sequence.
+- Alternation duplicate linting now ignores lookaround-only branches to avoid false positives.
+- ReDoS empty-repeat severity is downgraded for recursive patterns with possessive/atomic branches.
+
+### Tests
+- Added coverage for token-based and PHPStan extraction column/offset metadata, inline-flag sequencing, lookaround alternations, and Symfony route requirement patterns.
+
 ## [1.0.5] - 2026-01-02
 
 ### Added

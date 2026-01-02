@@ -108,6 +108,7 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
         }
 
         $tokens = token_get_all($content);
+        $tokenOffsets = $this->buildTokenOffsets($tokens);
         $occurrences = [];
         $totalTokens = \count($tokens);
 
@@ -134,6 +135,8 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
                     $sourceName,
                     $file,
                     $isCallbackArray,
+                    $tokenOffsets,
+                    $content,
                 ),
             ];
         }
@@ -142,7 +145,7 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
     }
 
     /**
-     * @param array<array{int, string, int}|string> $tokens
+     * @param array<int, array{int, string, int}|string> $tokens
      *
      * @return array{string, int, int, bool}|null
      */
@@ -205,7 +208,7 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
     }
 
     /**
-     * @param array<array{int, string, int}|string> $tokens
+     * @param array<int, array{int, string, int}|string> $tokens
      *
      * @return array{string, int, int, bool}|null
      */
@@ -249,7 +252,8 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
     }
 
     /**
-     * @param array<array{int, string, int}|string> $tokens
+     * @param array<int, array{int, string, int}|string> $tokens
+     * @param array<int, int>                            $tokenOffsets
      *
      * @return array<RegexPatternOccurrence>
      */
@@ -261,12 +265,15 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
         string $sourceName,
         string $file,
         bool $isCallbackArray,
+        array $tokenOffsets,
+        string $content,
     ): array {
         $argIndex = 0;
         $parenDepth = 0;
         $bracketDepth = 0;
         $braceDepth = 0;
         $argTokens = [];
+        $argTokenIndexes = [];
         $collecting = $argIndex === $targetArgIndex;
 
         for ($i = $startIndex; $i < $totalTokens; $i++) {
@@ -276,6 +283,7 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
                 $parenDepth++;
                 if ($collecting) {
                     $argTokens[] = $token;
+                    $argTokenIndexes[] = $i;
                 }
 
                 continue;
@@ -284,7 +292,7 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
             if (')' === $token) {
                 if (0 === $parenDepth && 0 === $bracketDepth && 0 === $braceDepth) {
                     if ($collecting) {
-                        return $this->extractFromArgumentTokens($argTokens, $file, $sourceName, $isCallbackArray);
+                        return $this->extractFromArgumentTokens($argTokens, $argTokenIndexes, $tokenOffsets, $content, $file, $sourceName, $isCallbackArray);
                     }
 
                     return [];
@@ -296,6 +304,7 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
 
                 if ($collecting) {
                     $argTokens[] = $token;
+                    $argTokenIndexes[] = $i;
                 }
 
                 continue;
@@ -305,6 +314,7 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
                 $bracketDepth++;
                 if ($collecting) {
                     $argTokens[] = $token;
+                    $argTokenIndexes[] = $i;
                 }
 
                 continue;
@@ -317,6 +327,7 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
 
                 if ($collecting) {
                     $argTokens[] = $token;
+                    $argTokenIndexes[] = $i;
                 }
 
                 continue;
@@ -345,43 +356,54 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
 
             if (',' === $token && 0 === $parenDepth && 0 === $bracketDepth && 0 === $braceDepth) {
                 if ($collecting) {
-                    return $this->extractFromArgumentTokens($argTokens, $file, $sourceName, $isCallbackArray);
+                    return $this->extractFromArgumentTokens($argTokens, $argTokenIndexes, $tokenOffsets, $content, $file, $sourceName, $isCallbackArray);
                 }
 
                 $argIndex++;
                 $collecting = $argIndex === $targetArgIndex;
                 $argTokens = [];
+                $argTokenIndexes = [];
 
                 continue;
             }
 
             if ($collecting) {
                 $argTokens[] = $token;
+                $argTokenIndexes[] = $i;
             }
         }
 
         if ($collecting) {
-            return $this->extractFromArgumentTokens($argTokens, $file, $sourceName, $isCallbackArray);
+            return $this->extractFromArgumentTokens($argTokens, $argTokenIndexes, $tokenOffsets, $content, $file, $sourceName, $isCallbackArray);
         }
 
         return [];
     }
 
     /**
-     * @param array<array{int, string, int}|string> $tokens
+     * @param array<int, array{int, string, int}|string> $tokens
+     * @param array<int, int>                            $tokenIndexes
+     * @param array<int, int>                            $tokenOffsets
      *
      * @return array<RegexPatternOccurrence>
      */
-    private function extractFromArgumentTokens(array $tokens, string $file, string $sourceName, bool $isCallbackArray): array
-    {
+    private function extractFromArgumentTokens(
+        array $tokens,
+        array $tokenIndexes,
+        array $tokenOffsets,
+        string $content,
+        string $file,
+        string $sourceName,
+        bool $isCallbackArray
+    ): array {
         if ($isCallbackArray) {
-            return $this->extractFromCallbackArray($tokens, $file, $sourceName);
+            return $this->extractFromCallbackArray($tokens, $tokenIndexes, $tokenOffsets, $content, $file, $sourceName);
         }
 
-        $patternInfo = $this->parseRegexExpression($tokens);
+        $patternInfo = $this->parseRegexExpression($tokens, $tokenIndexes, $tokenOffsets, $content);
         if (null === $patternInfo) {
             // Fallback to regular string parsing
-            $patternInfo = $this->parseConstantStringExpression($tokens);
+            $patternInfo = $this->parseConstantStringExpression($tokens, $tokenIndexes, $tokenOffsets, $content);
             if (null === $patternInfo) {
                 return [];
             }
@@ -395,6 +417,8 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
                 $file,
                 $patternInfo['line'],
                 $sourceName.'()',
+                column: $patternInfo['column'] ?? null,
+                fileOffset: $patternInfo['offset'] ?? null,
             )];
         }
 
@@ -409,17 +433,27 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
             $file,
             $patternInfo['line'],
             $sourceName.'()',
+            column: $patternInfo['column'] ?? null,
+            fileOffset: $patternInfo['offset'] ?? null,
         )];
     }
 
     /**
-     * @param array<array{int, string, int}|string> $tokens
+     * @param array<int, array{int, string, int}|string> $tokens
+     * @param array<int, int>                            $tokenIndexes
+     * @param array<int, int>                            $tokenOffsets
      *
      * @return array<RegexPatternOccurrence>
      */
-    private function extractFromCallbackArray(array $tokens, string $file, string $sourceName): array
-    {
-        $tokens = $this->stripOuterParentheses($tokens);
+    private function extractFromCallbackArray(
+        array $tokens,
+        array $tokenIndexes,
+        array $tokenOffsets,
+        string $content,
+        string $file,
+        string $sourceName
+    ): array {
+        [$tokens, $tokenIndexes] = $this->stripOuterParentheses($tokens, $tokenIndexes);
         $startIndex = $this->findArrayStartIndex($tokens);
         if (null === $startIndex) {
             return [];
@@ -430,13 +464,17 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
         $stack = [$this->closingTokenFor($tokens[$startIndex])];
         $collectingKey = true;
         $keyTokens = [];
+        /** @var array<int, int> $keyTokenIndexes */
+        $keyTokenIndexes = [];
 
         for ($i = $startIndex + 1; $i < $totalTokens; $i++) {
             $token = $tokens[$i];
+            $tokenIndex = $tokenIndexes[$i] ?? -1;
 
             if ($this->isIgnorableToken($token)) {
                 if ($collectingKey) {
                     $keyTokens[] = $token;
+                    $keyTokenIndexes[] = $tokenIndex;
                 }
 
                 continue;
@@ -448,6 +486,7 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
                     $stack[] = ')';
                     if ($collectingKey) {
                         $keyTokens[] = '(';
+                        $keyTokenIndexes[] = $tokenIndex;
                     }
                     $i = $nextIndex;
 
@@ -459,6 +498,7 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
                 $stack[] = $this->closingTokenFor($token);
                 if ($collectingKey) {
                     $keyTokens[] = $token;
+                    $keyTokenIndexes[] = $tokenIndex;
                 }
 
                 continue;
@@ -472,6 +512,7 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
 
                 if ($collectingKey) {
                     $keyTokens[] = $token;
+                    $keyTokenIndexes[] = $tokenIndex;
                 }
 
                 continue;
@@ -482,29 +523,34 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
             if ($atTopLevel && ',' === $token) {
                 $collectingKey = true;
                 $keyTokens = [];
+                $keyTokenIndexes = [];
 
                 continue;
             }
 
             if ($atTopLevel && $this->isDoubleArrowToken($token)) {
-                $patternInfo = $this->parseConstantStringExpression($keyTokens);
+                $patternInfo = $this->parseConstantStringExpression($keyTokens, $keyTokenIndexes, $tokenOffsets, $content);
                 if (null !== $patternInfo && '' !== $patternInfo['pattern']) {
                     $occurrences[] = new RegexPatternOccurrence(
                         $patternInfo['pattern'],
                         $file,
                         $patternInfo['line'],
                         $sourceName.'()',
+                        column: $patternInfo['column'] ?? null,
+                        fileOffset: $patternInfo['offset'] ?? null,
                     );
                 }
 
                 $collectingKey = false;
                 $keyTokens = [];
+                $keyTokenIndexes = [];
 
                 continue;
             }
 
             if ($collectingKey) {
                 $keyTokens[] = $token;
+                $keyTokenIndexes[] = $tokenIndex;
             }
         }
 
@@ -514,13 +560,15 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
     /**
      * Parse a regex expression, handling patterns with flags.
      *
-     * @param array<array{int, string, int}|string> $tokens
+     * @param array<int, array{int, string, int}|string> $tokens
+     * @param array<int, int>                            $tokenIndexes
+     * @param array<int, int>                            $tokenOffsets
      *
-     * @return array{pattern: string, line: int}|null
+     * @return array{pattern: string, line: int, offset?: int|null, column?: int|null}|null
      */
-    private function parseRegexExpression(array $tokens): ?array
+    private function parseRegexExpression(array $tokens, array $tokenIndexes, array $tokenOffsets, string $content): ?array
     {
-        $result = $this->parseConstantStringExpression($tokens);
+        $result = $this->parseConstantStringExpression($tokens, $tokenIndexes, $tokenOffsets, $content);
         if (null === $result) {
             return null;
         }
@@ -547,6 +595,8 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
             return [
                 'pattern' => $fullPattern,
                 'line' => $result['line'],
+                'offset' => $result['offset'] ?? null,
+                'column' => $result['column'] ?? null,
             ];
         }
 
@@ -555,17 +605,21 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
     }
 
     /**
-     * @param array<array{int, string, int}|string> $tokens
+     * @param array<int, array{int, string, int}|string> $tokens
+     * @param array<int, int>                            $tokenIndexes
+     * @param array<int, int>                            $tokenOffsets
      *
-     * @return array{pattern: string, line: int}|null
+     * @return array{pattern: string, line: int, offset?: int|null, column?: int|null}|null
      */
-    private function parseConstantStringExpression(array $tokens): ?array
+    private function parseConstantStringExpression(array $tokens, array $tokenIndexes, array $tokenOffsets, string $content): ?array
     {
         $parts = [];
         $firstLine = null;
+        $firstTokenOffset = null;
+        $firstTokenColumn = null;
         $expectString = true;
 
-        foreach ($tokens as $token) {
+        foreach ($tokens as $index => $token) {
             if ($this->isIgnorableToken($token)) {
                 continue;
             }
@@ -579,6 +633,13 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
                     $parts[] = $this->decodeStringToken($token[1]);
                     if (null === $firstLine) {
                         $firstLine = $token[2];
+                    }
+                    if (null === $firstTokenOffset) {
+                        $tokenIndex = $tokenIndexes[$index] ?? null;
+                        if (\is_int($tokenIndex) && isset($tokenOffsets[$tokenIndex])) {
+                            $firstTokenOffset = $tokenOffsets[$tokenIndex];
+                            $firstTokenColumn = $this->columnFromOffset($content, $firstTokenOffset);
+                        }
                     }
                     $expectString = false;
 
@@ -620,7 +681,43 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
         return [
             'pattern' => $pattern,
             'line' => $firstLine,
+            'offset' => $firstTokenOffset,
+            'column' => $firstTokenColumn,
         ];
+    }
+
+    /**
+     * @param array<int, array{int, string, int}|string> $tokens
+     *
+     * @return array<int, int>
+     */
+    private function buildTokenOffsets(array $tokens): array
+    {
+        $offsets = [];
+        $offset = 0;
+
+        foreach ($tokens as $index => $token) {
+            $offsets[$index] = $offset;
+            $text = \is_array($token) ? $token[1] : $token;
+            $offset += \strlen($text);
+        }
+
+        return $offsets;
+    }
+
+    private function columnFromOffset(string $content, int $offset): ?int
+    {
+        if ($offset < 0) {
+            return null;
+        }
+
+        $prefix = substr($content, 0, $offset);
+        $lastNewline = strrpos($prefix, "\n");
+        if (false === $lastNewline) {
+            return $offset + 1;
+        }
+
+        return $offset - $lastNewline;
     }
 
     private function decodeStringToken(string $token): string
@@ -854,10 +951,7 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
     }
 
     /**
-     * @param array<array{int, string, int}|string> $tokens
-     */
-    /**
-     * @param array<array{0:int, 1:string, 2:int}|string> $tokens
+     * @param array<int, array{int, string, int}|string> $tokens
      */
     private function isNamespacedFunctionName(array $tokens, int $index): bool
     {
@@ -1003,7 +1097,7 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
     }
 
     /**
-     * @param array<array{int, string, int}|string> $tokens
+     * @param array<int, array{int, string, int}|string> $tokens
      */
     private function nextSignificantTokenIndex(array $tokens, int $startIndex, int $totalTokens): ?int
     {
@@ -1017,7 +1111,7 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
     }
 
     /**
-     * @param array<array{int, string, int}|string> $tokens
+     * @param array<int, array{int, string, int}|string> $tokens
      */
     private function previousSignificantTokenIndex(array $tokens, int $startIndex): ?int
     {
@@ -1064,15 +1158,16 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
     }
 
     /**
-     * @param array<array{int, string, int}|string> $tokens
+     * @param array<int, array{int, string, int}|string> $tokens
+     * @param array<int, int>                            $tokenIndexes
      *
-     * @return array<array{int, string, int}|string>
+     * @return array{0: array<int, array{int, string, int}|string>, 1: array<int, int>}
      */
-    private function stripOuterParentheses(array $tokens): array
+    private function stripOuterParentheses(array $tokens, array $tokenIndexes): array
     {
         $totalTokens = \count($tokens);
         if (0 === $totalTokens) {
-            return $tokens;
+            return [$tokens, $tokenIndexes];
         }
 
         while (true) {
@@ -1108,14 +1203,15 @@ final readonly class TokenBasedExtractionStrategy implements ExtractorInterface
             }
 
             $tokens = \array_slice($tokens, $startIndex + 1, $endIndex - $startIndex - 1);
+            $tokenIndexes = \array_slice($tokenIndexes, $startIndex + 1, $endIndex - $startIndex - 1);
             $totalTokens = \count($tokens);
         }
 
-        return $tokens;
+        return [$tokens, $tokenIndexes];
     }
 
     /**
-     * @param array<array{int, string, int}|string> $tokens
+     * @param array<int, array{int, string, int}|string> $tokens
      */
     private function findArrayStartIndex(array $tokens): ?int
     {

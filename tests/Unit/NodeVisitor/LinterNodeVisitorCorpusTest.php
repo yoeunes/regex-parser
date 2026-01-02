@@ -214,6 +214,16 @@ final class LinterNodeVisitorCorpusTest extends TestCase
             $issueIds = array_values(array_diff($issueIds, ['regex.lint.flag.useless.m']));
         }
 
+        if (\in_array('regex.lint.flag.redundant', $issueIds, true)
+            && self::hasInlineFlagSetBeforeUnset($pattern, 'i')
+        ) {
+            $issueIds = array_values(array_diff($issueIds, ['regex.lint.flag.redundant']));
+        }
+
+        if (\in_array('regex.lint.alternation.duplicate', $issueIds, true) && self::patternHasLookaround($pattern)) {
+            $issueIds = array_values(array_diff($issueIds, ['regex.lint.alternation.duplicate']));
+        }
+
         return $issueIds;
     }
 
@@ -251,6 +261,30 @@ final class LinterNodeVisitorCorpusTest extends TestCase
         }
 
         return false;
+    }
+
+    private static function hasInlineFlagSetBeforeUnset(string $pattern, string $flag): bool
+    {
+        $setRegex = '/\\(\\?[a-z]*'.preg_quote($flag, '/').'[a-z]*\\)/i';
+        $unsetRegex = '/\\(\\?[^)]*-'.preg_quote($flag, '/').'[^)]*\\)/i';
+
+        if (!preg_match($setRegex, $pattern, $setMatch, \PREG_OFFSET_CAPTURE)) {
+            return false;
+        }
+
+        if (!preg_match($unsetRegex, $pattern, $unsetMatch, \PREG_OFFSET_CAPTURE)) {
+            return false;
+        }
+
+        return $setMatch[0][1] < $unsetMatch[0][1];
+    }
+
+    private static function patternHasLookaround(string $pattern): bool
+    {
+        return str_contains($pattern, '(?=')
+            || str_contains($pattern, '(?!')
+            || str_contains($pattern, '(?<=')
+            || str_contains($pattern, '(?<!');
     }
 
     /**

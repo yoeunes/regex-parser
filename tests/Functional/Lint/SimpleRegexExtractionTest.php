@@ -51,4 +51,23 @@ final class SimpleRegexExtractionTest extends TestCase
         // Verify simple pattern without flags
         $this->assertSame('/pattern/', $results[0]->pattern);
     }
+
+    public function test_extract_includes_column_and_offset(): void
+    {
+        $fixtureFile = __DIR__.'/../../Fixtures/Lint/tokenbased_column_offset.php';
+
+        $results = $this->strategy->extract([$fixtureFile]);
+
+        $this->assertCount(1, $results, 'Should extract exactly one pattern');
+
+        $content = file_get_contents($fixtureFile);
+        $this->assertIsString($content);
+
+        $expectedOffset = strpos($content, "'/foo/'");
+        $this->assertIsInt($expectedOffset);
+
+        $this->assertSame(5, $results[0]->line);
+        $this->assertSame(16, $results[0]->column);
+        $this->assertSame($expectedOffset, $results[0]->fileOffset);
+    }
 }
