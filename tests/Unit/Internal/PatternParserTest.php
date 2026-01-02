@@ -132,23 +132,97 @@ final class PatternParserTest extends TestCase
 
     public function test_supports_modifier_r_caching_behavior(): void
     {
-        // Test that the caching mechanism works correctly
-        // First call should trigger runtime detection and cache the result
         if (PHP_VERSION_ID >= 80400) {
             $result1 = PatternParser::extractPatternAndFlags('/a/r');
             $this->assertIsArray($result1);
-            
-            // Second call should use cached result
+
             $result2 = PatternParser::extractPatternAndFlags('/b/r');
             $this->assertIsArray($result2);
-            
-            // Both should succeed on PHP 8.4+
+
             $this->assertSame('b', $result2[0]);
             $this->assertSame('r', $result2[1]);
         } else {
-            // On older versions, both calls should fail
             $this->expectException(ParserException::class);
             PatternParser::extractPatternAndFlags('/a/r');
         }
+    }
+
+    public function test_supports_modifier_r_with_null_version_at_runtime(): void
+    {
+        $this->markTestSkipped('This test is replaced by test_supports_modifier_r_runtime_true and test_supports_modifier_r_runtime_false');
+    }
+
+    public function test_supports_modifier_r_runtime_true(): void
+    {
+        if (PHP_VERSION_ID < 80400) {
+            $this->markTestSkipped('Only relevant for PHP < 8.4');
+        }
+
+        $result = PatternParser::extractPatternAndFlags('/a/r');
+        $this->assertIsArray($result);
+        $this->assertSame('a', $result[0]);
+        $this->assertSame('r', $result[1]);
+        $this->assertSame('/', $result[2]);
+    }
+
+    public function test_supports_modifier_r_runtime_false(): void
+    {
+        if (PHP_VERSION_ID >= 80400) {
+            $this->markTestSkipped('Only relevant for PHP < 8.4');
+        }
+
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('Unknown regex flag(s) found: "r"');
+        PatternParser::extractPatternAndFlags('/a/r');
+    }
+
+    public function test_supports_modifier_e_with_null_version_at_runtime(): void
+    {
+        $this->markTestSkipped('This test is replaced by test_supports_modifier_e_runtime_true and test_supports_modifier_e_runtime_false');
+    }
+
+    public function test_supports_modifier_e_runtime_true(): void
+    {
+        if (PHP_VERSION_ID >= 70000) {
+            $this->markTestSkipped('Only relevant for PHP < 7.0');
+        }
+
+        $result = PatternParser::extractPatternAndFlags('/a/e');
+        $this->assertIsArray($result);
+        $this->assertSame('a', $result[0]);
+        $this->assertSame('e', $result[1]);
+        $this->assertSame('/', $result[2]);
+    }
+
+    public function test_supports_modifier_e_runtime_false(): void
+    {
+        if (PHP_VERSION_ID < 70000) {
+            $this->markTestSkipped('Only relevant for PHP >= 7.0');
+        }
+
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('The \'e\' flag (preg_replace /e) was removed; use preg_replace_callback.');
+        PatternParser::extractPatternAndFlags('/a/e');
+    }
+
+    public function test_supports_modifier_r_with_specific_versions(): void
+    {
+        $this->assertSame(['a', 'r', '/'], PatternParser::extractPatternAndFlags('/a/r', 80400));
+        $this->assertSame(['a', 'r', '/'], PatternParser::extractPatternAndFlags('/a/r', 80500));
+        $this->assertSame(['a', 'r', '/'], PatternParser::extractPatternAndFlags('/a/r', 90000));
+
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('Unknown regex flag(s) found: "r"');
+        PatternParser::extractPatternAndFlags('/a/r', 80300);
+    }
+
+    public function test_supports_modifier_e_with_specific_versions(): void
+    {
+        $this->assertSame(['a', 'e', '/'], PatternParser::extractPatternAndFlags('/a/e', 50600));
+        $this->assertSame(['a', 'e', '/'], PatternParser::extractPatternAndFlags('/a/e', 50500));
+
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('The \'e\' flag (preg_replace /e) was removed; use preg_replace_callback.');
+        PatternParser::extractPatternAndFlags('/a/e', 70000);
     }
 }
