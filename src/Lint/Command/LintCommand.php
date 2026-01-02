@@ -110,7 +110,7 @@ final class LintCommand extends AbstractCommand implements CommandInterface
             $paths = ['.'];
         }
         if ([] === $exclude && !\array_key_exists('exclude', $lintDefaults)) {
-            $exclude = ['vendor', 'tests', 'Fixtures'];
+            $exclude = ['vendor'];
         }
 
         $regex = $this->createRegex($output, $input->regexOptions);

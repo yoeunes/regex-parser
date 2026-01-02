@@ -115,7 +115,7 @@ final readonly class Configuration implements ConfigurationInterface
                 ->end()
                 ->arrayNode('exclude_paths')
                     ->scalarPrototype()->end()
-                    ->defaultValue(['vendor', 'tests', 'Fixtures'])
+                    ->defaultValue(['vendor'])
                     ->info('Directories to exclude from scanning. Defaults to vendor/, tests/, and Fixtures/ for Symfony applications.')
                 ->end()
                 ->scalarNode('ide')
