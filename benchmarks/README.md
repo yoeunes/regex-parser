@@ -12,6 +12,9 @@ This directory contains performance benchmark scripts for various components of 
 - `benchmark_validator.php` - ValidatorNodeVisitor performance tests
 - `benchmark_compiler.php` - CompilerNodeVisitor performance tests
 - `benchmark_regexoptions.php` - RegexOptions performance tests
+- `benchmark_formatters.php` - Console, GitHub, and Symfony formatter output benchmarks
+
+Note: The Symfony formatter benchmark runs only when `symfony/console` is installed.
 
 ## Running Benchmarks
 

@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added a formatter benchmark script to measure lint output throughput and memory usage.
+
+### Documentation
+- Documented formatter benchmark usage in the README and benchmarks guide.
+
 ### Changed
 - Optimizer now reuses a compiler visitor while resetting its state between string conversions.
 - Lint output formatters now assemble output using buffered chunks for large reports.

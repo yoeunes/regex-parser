@@ -117,6 +117,13 @@ RegexParser works seamlessly with your existing tools:
 - **Rector**: Custom refactoring rules
 - **GitHub Actions**: `vendor/bin/regex lint` in your CI pipeline
 
+## Performance
+
+RegexParser ships lightweight benchmark scripts in `benchmarks/` to track parser, compiler, and formatter throughput.
+
+- Run formatter benchmarks: `php benchmarks/benchmark_formatters.php`
+- Run all benchmarks: `for file in benchmarks/benchmark_*.php; do echo "Running $file"; php "$file"; echo; done`
+
 ## 📖 Documentation Roadmap
 
 **For Beginners:**
