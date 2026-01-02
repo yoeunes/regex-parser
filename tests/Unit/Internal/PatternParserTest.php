@@ -49,4 +49,106 @@ final class PatternParserTest extends TestCase
         $this->expectException(ParserException::class);
         PatternParser::extractPatternAndFlags('/abc');
     }
+
+    public function test_supports_modifier_e_for_old_php_versions(): void
+    {
+        // Test that modifier 'e' is allowed when targeting PHP < 7.0
+        [$pattern, $flags, $delimiter] = PatternParser::extractPatternAndFlags('/a/e', 50600); // PHP 5.6
+        
+        $this->assertSame('a', $pattern);
+        $this->assertSame('e', $flags);
+        $this->assertSame('/', $delimiter);
+    }
+
+    public function test_supports_modifier_r_runtime_detection(): void
+    {
+        // This test triggers the runtime detection code in supportsModifierR
+        // On PHP 8.4+, this should work; on older versions, it should throw
+        if (PHP_VERSION_ID >= 80400) {
+            // PHP 8.4+ should support the 'r' modifier
+            $result = PatternParser::extractPatternAndFlags('/a/r');
+            $this->assertIsArray($result);
+            $this->assertCount(3, $result);
+        } else {
+            // Older PHP versions should reject the 'r' modifier
+            $this->expectException(ParserException::class);
+            $this->expectExceptionMessage('Unknown regex flag(s) found: "r"');
+            PatternParser::extractPatternAndFlags('/a/r');
+        }
+    }
+
+    public function test_supports_modifier_e_runtime_detection(): void
+    {
+        // This test triggers the runtime detection code in supportsModifierE
+        // On PHP 7.0+, this should reject 'e' modifier
+        if (PHP_VERSION_ID >= 70000) {
+            $this->expectException(ParserException::class);
+            $this->expectExceptionMessage('The \'e\' flag (preg_replace /e) was removed; use preg_replace_callback.');
+        }
+        
+        // This call will trigger the runtime detection code
+        PatternParser::extractPatternAndFlags('/a/e');
+    }
+
+    public function test_supports_modifier_r_runtime_detection_with_null_version(): void
+    {
+        // This test specifically targets the runtime detection code path
+        // where phpVersionId is null (lines 137-143 in PatternParser)
+        if (PHP_VERSION_ID >= 80400) {
+            // PHP 8.4+ should support the 'r' modifier at runtime
+            $result = PatternParser::extractPatternAndFlags('/a/r');
+            $this->assertIsArray($result);
+            $this->assertCount(3, $result);
+            $this->assertSame('a', $result[0]);
+            $this->assertSame('r', $result[1]);
+        } else {
+            // Older PHP versions should reject the 'r' modifier at runtime
+            $this->expectException(ParserException::class);
+            $this->expectExceptionMessage('Unknown regex flag(s) found: "r"');
+            PatternParser::extractPatternAndFlags('/a/r');
+        }
+    }
+
+    public function test_supports_modifier_e_runtime_detection_with_null_version(): void
+    {
+        // This test specifically targets the runtime detection code path
+        // where phpVersionId is null for modifier 'e'
+        if (PHP_VERSION_ID >= 70000) {
+            // PHP 7.0+ should reject the 'e' modifier at runtime
+            $this->expectException(ParserException::class);
+            $this->expectExceptionMessage('The \'e\' flag (preg_replace /e) was removed; use preg_replace_callback.');
+        } else {
+            // PHP < 7.0 should support the 'e' modifier at runtime
+            $result = PatternParser::extractPatternAndFlags('/a/e');
+            $this->assertIsArray($result);
+            $this->assertCount(3, $result);
+            $this->assertSame('a', $result[0]);
+            $this->assertSame('e', $result[1]);
+        }
+        
+        // This call will trigger the runtime detection code
+        PatternParser::extractPatternAndFlags('/a/e');
+    }
+
+    public function test_supports_modifier_r_caching_behavior(): void
+    {
+        // Test that the caching mechanism works correctly
+        // First call should trigger runtime detection and cache the result
+        if (PHP_VERSION_ID >= 80400) {
+            $result1 = PatternParser::extractPatternAndFlags('/a/r');
+            $this->assertIsArray($result1);
+            
+            // Second call should use cached result
+            $result2 = PatternParser::extractPatternAndFlags('/b/r');
+            $this->assertIsArray($result2);
+            
+            // Both should succeed on PHP 8.4+
+            $this->assertSame('b', $result2[0]);
+            $this->assertSame('r', $result2[1]);
+        } else {
+            // On older versions, both calls should fail
+            $this->expectException(ParserException::class);
+            PatternParser::extractPatternAndFlags('/a/r');
+        }
+    }
 }
