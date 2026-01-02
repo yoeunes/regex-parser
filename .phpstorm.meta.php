@@ -3,7 +3,7 @@
 namespace PHPSTORM_META;
 
 registerArgumentsSet(
-    'regex_config_keys',
+    'regex_option_keys',
     'max_pattern_length',
     'max_lookbehind_length',
     'cache',
@@ -14,12 +14,40 @@ registerArgumentsSet(
 );
 
 registerArgumentsSet(
-    'optimization_flags',
+    'optimize_option_keys',
     'digits',
     'word',
     'ranges',
-    'possessive',
-    'factorize'
+    'autoPossessify',
+    'allowAlternationFactorization',
+    'minQuantifierCount'
+);
+
+registerArgumentsSet(
+    'regex_flags',
+    'i',
+    'm',
+    's',
+    'x',
+    'u',
+    'A',
+    'D',
+    'S',
+    'U',
+    'X',
+    'J',
+    'r'
+);
+
+registerArgumentsSet(
+    'regex_delimiters',
+    '/',
+    '#',
+    '~',
+    '%',
+    '@',
+    '!',
+    '`'
 );
 
 registerArgumentsSet(
@@ -31,32 +59,44 @@ registerArgumentsSet(
 registerArgumentsSet(
     'highlight_formats',
     'console',
-    'html',
-    'ansi'
+    'html'
 );
 
 registerArgumentsSet(
-    'redos_severities',
-    'LOW',
-    'MEDIUM',
-    'HIGH',
-    'CRITICAL'
+    'redos_thresholds',
+    null,
+    \RegexParser\ReDoS\ReDoSSeverity::SAFE,
+    \RegexParser\ReDoS\ReDoSSeverity::LOW,
+    \RegexParser\ReDoS\ReDoSSeverity::MEDIUM,
+    \RegexParser\ReDoS\ReDoSSeverity::HIGH,
+    \RegexParser\ReDoS\ReDoSSeverity::CRITICAL,
+    \RegexParser\ReDoS\ReDoSSeverity::UNKNOWN
 );
 
-// Static methods
 expectedArguments(
     \RegexParser\Regex::create(),
     0,
-    argumentsSet('regex_config_keys')
+    argumentsSet('regex_option_keys')
+);
+
+expectedArguments(
+    \RegexParser\Regex::new(),
+    0,
+    argumentsSet('regex_option_keys')
+);
+
+expectedArguments(
+    \RegexParser\RegexOptions::fromArray(),
+    0,
+    argumentsSet('regex_option_keys')
 );
 
 expectedArguments(
     \RegexParser\Regex::optimize(),
     1,
-    argumentsSet('optimization_flags')
+    argumentsSet('optimize_option_keys')
 );
 
-// Instance methods
 expectedArguments(
     \RegexParser\Regex::explain(),
     1,
@@ -72,5 +112,25 @@ expectedArguments(
 expectedArguments(
     \RegexParser\Regex::redos(),
     1,
-    argumentsSet('redos_severities')
+    argumentsSet('redos_thresholds')
+);
+
+expectedArguments(
+    \RegexParser\Regex::parsePattern(),
+    1,
+    argumentsSet('regex_flags')
+);
+
+expectedArguments(
+    \RegexParser\Regex::parsePattern(),
+    2,
+    argumentsSet('regex_delimiters')
+);
+
+override(
+    \RegexParser\Regex::parse(1),
+    map([
+        true => \RegexParser\TolerantParseResult::class,
+        false => \RegexParser\Node\RegexNode::class,
+    ])
 );
