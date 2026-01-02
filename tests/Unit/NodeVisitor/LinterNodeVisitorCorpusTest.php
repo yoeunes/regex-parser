@@ -284,6 +284,14 @@ final class LinterNodeVisitorCorpusTest extends TestCase
             return 'regex.lint.charclass.redundant';
         }
 
+        if (str_starts_with($message, 'Suspicious ASCII range')) {
+            return 'regex.lint.charclass.suspicious_range';
+        }
+
+        if (str_starts_with($message, 'Character class contains "|"')) {
+            return 'regex.lint.charclass.suspicious_pipe';
+        }
+
         if (str_starts_with($message, 'Alternation branches have overlapping character sets')) {
             return 'regex.lint.overlap.charset';
         }
