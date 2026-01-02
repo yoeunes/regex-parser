@@ -54,7 +54,7 @@ final class PatternParserTest extends TestCase
     {
         // Test that modifier 'e' is allowed when targeting PHP < 7.0
         [$pattern, $flags, $delimiter] = PatternParser::extractPatternAndFlags('/a/e', 50600); // PHP 5.6
-        
+
         $this->assertSame('a', $pattern);
         $this->assertSame('e', $flags);
         $this->assertSame('/', $delimiter);
@@ -64,7 +64,7 @@ final class PatternParserTest extends TestCase
     {
         // This test triggers the runtime detection code in supportsModifierR
         // On PHP 8.4+, this should work; on older versions, it should throw
-        if (PHP_VERSION_ID >= 80400) {
+        if (\PHP_VERSION_ID >= 80400) {
             // PHP 8.4+ should support the 'r' modifier
             $result = PatternParser::extractPatternAndFlags('/a/r');
             $this->assertIsArray($result);
@@ -81,11 +81,9 @@ final class PatternParserTest extends TestCase
     {
         // This test triggers the runtime detection code in supportsModifierE
         // On PHP 7.0+, this should reject 'e' modifier
-        if (PHP_VERSION_ID >= 70000) {
-            $this->expectException(ParserException::class);
-            $this->expectExceptionMessage('The \'e\' flag (preg_replace /e) was removed; use preg_replace_callback.');
-        }
-        
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('The \'e\' flag (preg_replace /e) was removed; use preg_replace_callback.');
+
         // This call will trigger the runtime detection code
         PatternParser::extractPatternAndFlags('/a/e');
     }
@@ -94,7 +92,7 @@ final class PatternParserTest extends TestCase
     {
         // This test specifically targets the runtime detection code path
         // where phpVersionId is null (lines 137-143 in PatternParser)
-        if (PHP_VERSION_ID >= 80400) {
+        if (\PHP_VERSION_ID >= 80400) {
             // PHP 8.4+ should support the 'r' modifier at runtime
             $result = PatternParser::extractPatternAndFlags('/a/r');
             $this->assertIsArray($result);
@@ -113,26 +111,17 @@ final class PatternParserTest extends TestCase
     {
         // This test specifically targets the runtime detection code path
         // where phpVersionId is null for modifier 'e'
-        if (PHP_VERSION_ID >= 70000) {
-            // PHP 7.0+ should reject the 'e' modifier at runtime
-            $this->expectException(ParserException::class);
-            $this->expectExceptionMessage('The \'e\' flag (preg_replace /e) was removed; use preg_replace_callback.');
-        } else {
-            // PHP < 7.0 should support the 'e' modifier at runtime
-            $result = PatternParser::extractPatternAndFlags('/a/e');
-            $this->assertIsArray($result);
-            $this->assertCount(3, $result);
-            $this->assertSame('a', $result[0]);
-            $this->assertSame('e', $result[1]);
-        }
-        
+        // PHP 7.0+ should reject the 'e' modifier at runtime
+        $this->expectException(ParserException::class);
+        $this->expectExceptionMessage('The \'e\' flag (preg_replace /e) was removed; use preg_replace_callback.');
+
         // This call will trigger the runtime detection code
         PatternParser::extractPatternAndFlags('/a/e');
     }
 
     public function test_supports_modifier_r_caching_behavior(): void
     {
-        if (PHP_VERSION_ID >= 80400) {
+        if (\PHP_VERSION_ID >= 80400) {
             $result1 = PatternParser::extractPatternAndFlags('/a/r');
             $this->assertIsArray($result1);
 
@@ -171,28 +160,24 @@ final class PatternParserTest extends TestCase
     public function test_supports_modifier_r_with_null_version_clears_cache_first(): void
     {
         $reflectionMethod = new \ReflectionMethod(PatternParser::class, 'supportsModifierR');
-        $reflectionMethod->setAccessible(true);
 
         $supportsModifierRProperty = new \ReflectionProperty(PatternParser::class, 'supportsModifierR');
-        $supportsModifierRProperty->setAccessible(true);
         $supportsModifierRProperty->setValue([]);
 
         $result = $reflectionMethod->invoke(null, null);
 
-        $this->assertSame(PHP_VERSION_ID >= 80400, $result);
+        $this->assertSame(\PHP_VERSION_ID >= 80400, $result);
     }
 
     public function test_supports_modifier_e_with_null_version_clears_cache_first(): void
     {
         $reflectionMethod = new \ReflectionMethod(PatternParser::class, 'supportsModifierE');
-        $reflectionMethod->setAccessible(true);
 
         $supportsModifierEProperty = new \ReflectionProperty(PatternParser::class, 'supportsModifierE');
-        $supportsModifierEProperty->setAccessible(true);
         $supportsModifierEProperty->setValue([]);
 
         $result = $reflectionMethod->invoke(null, null);
 
-        $this->assertSame(PHP_VERSION_ID < 70000, $result);
+        $this->assertFalse($result);
     }
 }
