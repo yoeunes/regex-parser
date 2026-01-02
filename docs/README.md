@@ -90,7 +90,7 @@ Want to understand the magic? Start with [Architecture](ARCHITECTURE.md). It exp
 - **Issues & Bug Reports**: [GitHub Issues](https://github.com/yoeunes/regex-parser/issues)
 - **Real-world Examples**: Check the `tests/Integration/` directory
 - **Interactive Playground**: [regex101.com](https://regex101.com) (PCRE2 mode)
-- **Community**: Join our [Discord community](#) for live help
+- **Community**: Open an issue on [GitHub](https://github.com/yoeunes/regex-parser/issues) for help
 
 ## 📖 Key Concepts Explained
 

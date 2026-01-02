@@ -196,5 +196,5 @@ Released under the [MIT License](LICENSE).
 composer require yoeunes/regex-parser
 bin/regex explain '/your-pattern-here/'
 ```
+**Need help?** [Open an issue](https://github.com/yoeunes/regex-parser/issues) for support.
 
-**Need help?** [Open an issue](https://github.com/yoeunes/regex-parser/issues) or join our [Discord community](#).

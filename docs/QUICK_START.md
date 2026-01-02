@@ -29,7 +29,7 @@ composer require yoeunes/regex-parser
 
 That's it! No other dependencies needed.
 
-**Want to try without installing?** Use the [online demo](#) (coming soon).
+**Want to try without installing?** Try the interactive playground at [regex101.com](https://regex101.com) (PCRE2 mode).
 
 ---
 
@@ -421,7 +421,7 @@ Now that you've seen what RegexParser can do, here's where to go next:
 - **Issues & Bug Reports**: [GitHub Issues](https://github.com/yoeunes/regex-parser/issues)
 - **Real-world Examples**: Check the `tests/Integration/` directory
 - **Interactive Playground**: [regex101.com](https://regex101.com) (PCRE2 mode)
-- **Community**: Join our [Discord community](#) for live help
+- **Community**: Open an issue on [GitHub](https://github.com/yoeunes/regex-parser/issues) for help
 
 ---
 
