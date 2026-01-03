@@ -167,7 +167,7 @@ final class LintCommandCoverageTest extends TestCase
         ]), $output), $exitCode);
 
         $this->assertSame(0, $exitCode);
-        $this->assertStringContainsString('Collection:', $buffer);
+        $this->assertStringContainsString('Scanned 1 files, found 1 patterns', $buffer);
     }
 
     public function test_lint_command_reports_collection_failure(): void

@@ -155,15 +155,18 @@ final class LintCommand extends AbstractCommand implements CommandInterface
         $collectionProgress = null;
         $startTime = (float) microtime(true);
         $collectionStartTime = $startTime;
+        $fileCount = 0;
 
         if ('console' === $format && $config->shouldShowProgress()) {
-            $output->write('  '.$output->dim('[1/2] Collecting patterns')."\n");
+            $output->write('  '.$output->dim('[1/2] Scanning files')."\n");
             $collectionStarted = false;
             $lastCount = 0;
-            $collectionProgress = static function (int $current, int $total) use (&$collectionStarted, &$lastCount, $output): void {
+            $collectionProgress = static function (int $current, int $total) use (&$collectionStarted, &$lastCount, $output, &$fileCount): void {
                 if ($total <= 0) {
                     return;
                 }
+
+                $fileCount = $total;
 
                 if (!$collectionStarted) {
                     $output->progressStart($total);
@@ -213,10 +216,8 @@ final class LintCommand extends AbstractCommand implements CommandInterface
             return 0;
         }
 
-        if ('console' === $format && $config->shouldShowProgress() && $collectionTime > 1) {
-            $collectionInfo = 'Collection: '.round($collectionTime, 2).'s';
-            $output->write('  '.$output->dim($collectionInfo)."\n\n");
-        }
+        $patternCount = \count($patterns);
+        $output->write('  '.$output->dim("Scanned {$fileCount} files, found {$patternCount} patterns.\n\n"));
 
         $progressCallback = null;
         $analysisStartTime = (float) microtime(true);

@@ -188,12 +188,15 @@ final class RegexLintCommand extends Command
         $collectionBar = null;
         $collectionFinished = false;
         $lastCount = 0;
+        $fileCount = 0;
         if ($showProgress) {
-            $io->writeln('  <fg=gray>[1/2] Collecting patterns</>');
-            $collectionProgress = function (int $current, int $total) use ($io, &$collectionBar, &$collectionFinished, &$lastCount): void {
+            $io->writeln('  <fg=gray>[1/2] Scanning files</>');
+            $collectionProgress = function (int $current, int $total) use ($io, &$collectionBar, &$collectionFinished, &$lastCount, &$fileCount): void {
                 if ($collectionFinished || $total <= 0) {
                     return;
                 }
+
+                $fileCount = $total;
 
                 if (null === $collectionBar) {
                     $collectionBar = $io->createProgressBar($total);
@@ -237,13 +240,10 @@ final class RegexLintCommand extends Command
             return $this->renderCollectionFailure($format, $output, $io, $e->getMessage());
         }
 
-        $collectionTime = (float) microtime(true) - $collectionStartTime;
-        if ($showProgress && $collectionTime > 1) {
-            $io->newLine();
-            $io->writeln('  <fg=gray>Collection: '.round($collectionTime, 2).'s</>');
-            $io->newLine();
-        }
+        $patternCount = \count($patterns);
         if ($showProgress) {
+            $io->newLine();
+            $io->writeln('  <fg=gray>Scanned '.$fileCount.' files, found '.$patternCount.' patterns.</>');
             $io->newLine();
         }
 
