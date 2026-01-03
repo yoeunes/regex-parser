@@ -41,7 +41,8 @@ final class RegexParserBundleTest extends TestCase
         $regex->parse('/abc/');
 
         $cache = new FilesystemCache($cacheDir);
-        $cacheFile = $cache->generateKey('/abc/');
+        $cacheSeed = '/abc/'."\n#cache=".Regex::CACHE_VERSION;
+        $cacheFile = $cache->generateKey($cacheSeed);
 
         $this->assertFileExists($cacheFile);
 
