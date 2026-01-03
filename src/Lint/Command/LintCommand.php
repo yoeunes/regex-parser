@@ -246,8 +246,11 @@ final class LintCommand extends AbstractCommand implements CommandInterface
             $elapsed = (float) microtime(true) - $startTime;
             $peakMemory = memory_get_peak_usage(true);
             $cacheStats = $regex->getCacheStats();
-            $output->write('  '.$output->bold('Time: ').$output->warning(round($elapsed, 2).'s').' | '.$output->bold('Memory: ').$output->warning(round($peakMemory / 1024 / 1024, 2).' MB').' | '.$output->bold('Cache: ').$output->warning($cacheStats['hits'].' hits, '.$cacheStats['misses'].' misses').' | '.$output->bold('Processes: ').$output->warning((string) $jobs)."\n");
-            $output->write("\n");
+            $timeStr = round($elapsed, 2).'s';
+            $memoryStr = round($peakMemory / 1024 / 1024, 2).' MB';
+            $cacheStr = $cacheStats['hits'].' hits, '.$cacheStats['misses'].' misses';
+            $processesStr = (string) $jobs;
+            $output->write('  '.$output->dim('Time: ').$output->warning($timeStr).'  '.$output->dim('Memory: ').$output->warning($memoryStr).'  '.$output->dim('Cache: ').$output->warning($cacheStr).'  '.$output->dim('Processes: ').$output->warning($processesStr)."\n");
             $output->write($formatter->formatFooter());
         }
 
