@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.9] - 2026-01-03
+
+### Changed
+- Unified CLI output styling across commands (banner, sections, badges, and pattern blocks) to match the lint command's look.
+- Debug command now shows a syntax-highlighted pattern block alongside the heatmap output.
+- Highlight/parse/analyze/validate/diagram/self-update/version/clear-cache/help outputs now use the shared console presentation style.
+
 ## [1.0.8] - 2026-01-03
 
 ### Changed
