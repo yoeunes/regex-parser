@@ -7,12 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.7] - 2026-01-03
+
 ### Added
 - Corpus-based test suite (`LinterNodeVisitorCorpusBugsTest`) to prevent regressions based on real-world patterns from open-source projects.
 - Tests to verify suspicious ASCII range `A-z` detection (includes non-letter characters between Z and a).
 
 ### Fixed
 - Corrected suspicious ASCII range detection to properly identify `A-z` as including non-letter characters (`[ \ ] ^ _ \` `) and recommend `A-Za-z` instead.
+- Linter now correctly skips unparseable regex patterns in test extraction to prevent crashes.
+- Improved corpus log generation to include accurate pattern column and file offset metadata.
 
 ## [1.0.6] - 2026-01-02
 
