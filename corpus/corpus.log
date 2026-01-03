@@ -249,6 +249,29 @@
          - /^([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}$/
          + /^(?>([a-z0-9]+(-[a-z0-9]+)*\.))+[a-z]{2,}$/
 
+  corpus/google/recaptcha/src/ReCaptcha/RequestMethod/SocketPost.php:106:29
+      → #\n\s*\n#Uis
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+     WARN  Flag 's' is useless: the pattern contains no dots.
+
+  corpus/google/google-cloud-php/dev/src/DocFx/Node/FencedCodeBlockTrait.php:32:13
+      → /^(\s+)?```(\w+)?\n((.|\n)*)\n^(\s+)?```$/mU
+     WARN  Alternation branches have overlapping character sets, which may cause unnecessary backtracking.
+         ↳ Consider using atomic groups (?>...) to prevent backtracking. Do not reorder overlapping alternatives as it changes match semantics.
+     FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
+
+  corpus/google/google-cloud-php/dev/src/ComponentPackage.php:215:52
+      → /^{(.|\n)*?(^})/m
+     WARN  Alternation branches have overlapping character sets, which may cause unnecessary backtracking.
+         ↳ Consider using atomic groups (?>...) to prevent backtracking. Do not reorder overlapping alternatives as it changes match semantics.
+     FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
+
+  corpus/google/google-cloud-php/dev/src/Command/ComponentUpdateReadmeSampleCommand.php:77:28
+      → /### Sample\n\n(```(.|\n)*```)/
+     WARN  Alternation branches have overlapping character sets, which may cause unnecessary backtracking.
+         ↳ Consider using atomic groups (?>...) to prevent backtracking. Do not reorder overlapping alternatives as it changes match semantics.
+     FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
+
   corpus/castor/tools/mkdocs/castor.php:137:37
       → /### Usage\n([^#]*)\n\n###/s
      WARN  Flag 's' is useless: the pattern contains no dots.
@@ -578,6 +601,13 @@
          + /^([a-z\d](-*[a-z\d])*)(?>(\.([a-z\d](-*[a-z\d])*)))*\.?$/i
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
 
+  corpus/filament/packages/support/src/SupportServiceProvider.php:168:33
+      → /\s*@trim\s*/m
+     WARN  Flag 'm' is useless: pattern '/\s*@trim\s*/m' contains no anchors.
+     TIP 
+         - /\s*@trim\s*/m
+         + /\s*@trim\s*/
+
   corpus/phpunit/phpunit/src/Framework/Constraint/Operator/LogicalNot.php:52:20
       → /('[\w\W]*')([\w\W]*)("[\w\W]*")/i
      WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
@@ -613,23 +643,70 @@
          - /^[0-9\.]+[0-9]/
          + /^[.0-9]+[0-9]/
 
-  corpus/google-cloud-php/dev/src/DocFx/Node/FencedCodeBlockTrait.php:32:13
-      → /^(\s+)?```(\w+)?\n((.|\n)*)\n^(\s+)?```$/mU
-     WARN  Alternation branches have overlapping character sets, which may cause unnecessary backtracking.
-         ↳ Consider using atomic groups (?>...) to prevent backtracking. Do not reorder overlapping alternatives as it changes match semantics.
-     FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
+  corpus/facebook/open-graph-protocol/lib/Michelf/Markdown.php:705:33
+      → {\n\t\t\t(\t\t\t\t\t# wrap whole match in $1\n\t\t\t  \[\n\t\t\t\t([^\[\]]+)\t\t# link text = $2; can't contain [ or ]\n\t\t\t  \]\n\t\t\t)\n\t\t\t}xs
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+           ...
+               )    # link text = $2; can't contain [ or ]
+           ]
+         - )}xs
+         ---
+         + )}x
 
-  corpus/google-cloud-php/dev/src/ComponentPackage.php:215:52
-      → /^{(.|\n)*?(^})/m
-     WARN  Alternation branches have overlapping character sets, which may cause unnecessary backtracking.
-         ↳ Consider using atomic groups (?>...) to prevent backtracking. Do not reorder overlapping alternatives as it changes match semantics.
-     FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
+  corpus/facebook/open-graph-protocol/lib/Michelf/Markdown.php:1429:33
+      → /\n\t\t\t  (\t\t\t\t\t\t\t\t# Wrap whole match in $1\n\t\t\t\t(?>\n\t\t\t\t  ^[ ]*>[ ]?\t\t\t# ">" at the start of a line\n\t\t\t\t\t.+\n\t\t\t\t\t# rest of the first line\n\t\t\t\t  (.+\n)*\t\t\t\t\t# subsequent consecutive lines\n\t\t\t\t  \n*\t\t\t\t\t\t# blanks\n\t\t\t\t)+\n\t\t\t  )\n\t\t\t/xm
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+           ...
+           				  ^[ ]*>[ ]?			# ">" at the start of a line
+           					.+\n					# rest of the first line
+         - 				  (.+\n)*					# subsequent consecutive lines
+         ---
+         + 				  (?>(.+\n))*					# subsequent consecutive lines
+           				  \n*						# blanks
+           				)+
+           ...
+     WARN  An unbounded quantifier wraps a dot-star, which can cause severe backtracking.
+         ↳ Refactor with atomic groups or a more specific character class.
 
-  corpus/google-cloud-php/dev/src/Command/ComponentUpdateReadmeSampleCommand.php:77:28
-      → /### Sample\n\n(```(.|\n)*```)/
-     WARN  Alternation branches have overlapping character sets, which may cause unnecessary backtracking.
-         ↳ Consider using atomic groups (?>...) to prevent backtracking. Do not reorder overlapping alternatives as it changes match semantics.
+  corpus/facebook/open-graph-protocol/lib/Michelf/Markdown.php:1618:33
+      → {\n\t\t\t<\n\t\t\t(?:mailto:)?\n\t\t\t(\n\t\t\t\t(?:\n\t\t\t\t\t[-!#$%&'*+/=?^_`.{|}~\w\x80-\xFF]+\n\t\t\t\t|\n\t\t\t\t\t".*?"\n\t\t\t\t)\n\t\t\t\t\@\n\t\t\t\t(?:\n\t\t\t\t\t[-a-z0-9\x80-\xFF]+(\.[-a-z0-9\x80-\xFF]+)*\.[a-z]+\n\t\t\t\t|\n\t\t\t\t\t\[[\d.a-fA-F:]+\]\t# IPv4 & IPv6\n\t\t\t\t)\n\t\t\t)\n\t\t\t>\n\t\t\t}xi
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+           ...
+           				\@
+           				(?:
+         - 					[-a-z0-9\x80-\xFF]+(\.[-a-z0-9\x80-\xFF]+)*\.[a-z]+
+         ---
+         + 					[-a-z0-9\x80-\xFF]+(?>(\.[-a-z0-9\x80-\xFF]+))*\.[a-z]+
+           				|
+           					\[[\d.a-fA-F:]+\]	# IPv4 & IPv6
+           ...
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
+     TIP 
+           ...
+           )?(
+               (?:
+         - [\-!#$%&'*+/=?\^_`.\{|\}~\w\x80-\xFF]+
+         ---
+         + [!#-'*+\-./=?\^-`\{-~\w\x80-\xFF]+
+                   | ".*?"
+               )@    (?:
+         - [\-a-z0-9\x80-\xFF]+        (
+         - \.[\-a-z0-9\x80-\xFF]+
+         ---
+         + [\-0-9a-z\x80-\xFF]+        (
+         + \.[\-0-9a-z\x80-\xFF]+
+                   )*\.[a-z]+
+         -         | \[[\d.a-fA-F:]+]            # IPv4 & IPv6
+         ---
+         +         | \[[.:A-Fa-f\d]+]            # IPv4 & IPv6
+           
+               )
+           ...
 
   corpus/Wixel/GUMP/ci/boot.php:46:20
       → /<div id="available_validators">(.*?)<.div>/ms
@@ -692,6 +769,10 @@
      TIP 
          - /\b((?:[a-z][\w\-]+:(?:\/{1,3}|[a-z0-9%])|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}\/)(?:[^\s()<>]|\((?:[^\s()<>]|(?:\([^\s()<>]+\)))*\))+(?:\((?:[^\s()<>]|(?:\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?\x{00ab}\x{00bb}\x{201c}\x{201d}\x{2018}\x{2019}]))/iu
          + /\b((?:[a-z][\w\-]+:(?:\/{1,3}|[%0-9a-z])|www\d{0,3}[.]|[\-.0-9a-z]+[.][a-z]{2,4}\/)(?:[^\s()<>]|\((?:[^\s()<>]|(?:\([^\s()<>]+\)))*\))+(?:\((?:[^\s()<>]|(?:\([^\s()<>]+\)))*\)|[^!"'-),.:-<>?[\]`{}\s\x{00ab}\x{00bb}\x{201c}\x{201d}\x{2018}\x{2019}]))/iu
+
+  corpus/api-platform/core/src/Metadata/Util/CamelCaseToSnakeCaseNameConverter.php:56:13
+      → /(^|_|\.)+(.)/
+     FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
 
   corpus/thephpleague/geotools/src/Coordinate/Coordinate.php:223:24
       → /(\-?[0-9]{1,2})\D+([0-9]{1,2}\.?\d*)[, ] ?(\-?[0-9]{1,3})\D+([0-9]{1,2}\.?\d*)$/i
@@ -2430,6 +2511,30 @@
          - #^/\*\*[\s\*]+(@var[^\r\n]+)[\s\*]*\*\/$#u
          + #^/\*\*[\s*]+(@var[^\r\n]+)[\s*]*\*/$#u
 
+  corpus/microsoft/o365-moodle/auth/oidc/classes/loginflow/authcode.php:96:34
+      → /[^A-Za-z0-9\_\-\.\+\/\=]/i
+     TIP 
+         - /[^A-Za-z0-9\_\-\.\+\/\=]/i
+         + /[^+\-.\/0-9=A-Z_a-z]/i
+
+  corpus/microsoft/o365-moodle/local/o365/classes/feature/userconnections/table.php:81:29
+      → #\:ex\_text[0-9]+#
+     TIP 
+         - #\:ex\_text[0-9]+#
+         + #:ex_text[0-9]+#
+
+  corpus/microsoft/o365-moodle/local/o365/classes/feature/userconnections/table.php:95:29
+      → #\:ex\_text[0-9]+#
+     TIP 
+         - #\:ex\_text[0-9]+#
+         + #:ex_text[0-9]+#
+
+  corpus/microsoft/o365-moodle/local/o365/classes/rest/unified.php:1941:28
+      → ~[^\x20-\x7E\t\r\n]~
+     TIP 
+         - ~[^\x20-\x7E\t\r\n]~
+         + ~[^ -\~\t\r\n]~
+
   corpus/composer/ca-bundle/src/CaBundle.php:169:38
       → /^(\-+(?:BEGIN|END))\s+TRUSTED\s+(CERTIFICATE\-+)$/m
      TIP 
@@ -2675,6 +2780,24 @@
      TIP 
          - #[\x00-\x09\x0B-\x1F]+#
          + #[\x00-\t\x0B-\x1F]+#
+
+  corpus/Roave/BetterReflection/src/Util/FileHelper.php:43:20
+      → ~^([a-z]+)\:\/\/(.+)~
+     TIP 
+         - ~^([a-z]+)\:\/\/(.+)~
+         + ~^([a-z]+)://(.+)~
+
+  corpus/Roave/DocbookTool/src/Writer/ConfluenceWriter.php:269:13
+      → /<img src="data:([^;]+);base64,([a-zA-Z0-9=+\/]+)" alt="([^\"]+)" \/>/
+     TIP 
+         - /<img src="data:([^;]+);base64,([a-zA-Z0-9=+\/]+)" alt="([^\"]+)" \/>/
+         + /<img src="data:([^;]+);base64,([+\/0-9=A-Za-z]+)" alt="([^"]+)" \/>/
+
+  corpus/Roave/DocbookTool/src/Writer/ConfluenceWriter.php:299:13
+      → /<a href="([^\"]+)">/
+     TIP 
+         - /<a href="([^\"]+)">/
+         + /<a href="([^"]+)">/
 
   corpus/elementor/core/utils/svg/svg-sanitizer.php:768:28
       → /<\%(.*)\%>/Us
@@ -3197,6 +3320,12 @@
      TIP 
          - /[^\x09-\x0d\x20-\xff]/
          + /[^\t-\r -\xFF]/
+
+  corpus/api-platform/core/src/State/Util/ParameterParserTrait.php:62:28
+      → /[^\[\]]+/
+     TIP 
+         - /[^\[\]]+/
+         + /[^[\]]+/
 
   corpus/thephpleague/fractal/src/Manager.php:149:28
       → /([\w]+)(\(([^\)]+)\))?/
