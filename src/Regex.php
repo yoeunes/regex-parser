@@ -649,11 +649,13 @@ final readonly class Regex
 
     private function getCacheSeed(string $regex): string
     {
+        $seed = $regex."\n#cache=".self::CACHE_VERSION;
+
         if (!$this->phpVersionExplicit) {
-            return $regex;
+            return $seed;
         }
 
-        return $regex."\n#php_version=".$this->phpVersionId;
+        return $seed."\n#php_version=".$this->phpVersionId;
     }
 
     private function getParserPhpVersionId(): ?int

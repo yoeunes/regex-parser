@@ -104,8 +104,8 @@ final class SampleGeneratorVisitorTest extends TestCase
         $generator = new SampleGeneratorNodeVisitor();
         $sample = $ast->accept($generator);
 
-        // Expected: \x41 = 'A', \xE9 = '?', \o{40} = ' ' (space, octal 40 = decimal 32), \010 = backspace (octal 10 = decimal 8)
-        $expected = "?? \x08"; // 'A' + '?' + space + backspace
+        // Expected: \x41 = 'A', \xE9 = U+00E9, \o{40} = ' ' (space, octal 40 = decimal 32), \010 = backspace (octal 10 = decimal 8)
+        $expected = "A\u{00E9} \x08";
         $this->assertSame($expected, $sample);
     }
 

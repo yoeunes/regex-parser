@@ -337,6 +337,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     public function visitCharLiteral(CharLiteralNode $node): string
     {
         $rep = $node->originalRepresentation;
+        $unicodeMode = str_contains($this->flags, 'u');
 
         // If it's already an escape sequence, return as is
         if (str_starts_with($rep, '\\')) {
@@ -346,7 +347,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
         // If it's a single character, check if it needs escaping
         if (1 === \strlen($rep)) {
             $ord = \ord($rep);
-            if ($ord < 32 || 127 === $ord || $ord >= 128) {
+            if ($ord < 32 || 127 === $ord || (!$unicodeMode && $ord >= 128)) {
                 // Escape control characters and extended ASCII
                 return match ($ord) {
                     9 => '\\t',
@@ -589,6 +590,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
 
         $meta = $this->inCharClass ? self::CHAR_CLASS_META : self::META_CHARACTERS;
         $escapeExtended = str_contains($this->flags, 'x') && !$this->inCharClass;
+        $unicodeMode = str_contains($this->flags, 'u');
         $needsEscape = false;
 
         // Fast pre-scan to check if escaping is needed
@@ -603,7 +605,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
                 || ($escapeExtended && (' ' === $char || '#' === $char))
                 || $ord < 32
                 || 127 === $ord
-                || $ord >= 128
+                || (!$unicodeMode && $ord >= 128)
             ) {
                 $needsEscape = true;
 
@@ -627,7 +629,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
                 || ($escapeExtended && (' ' === $char || '#' === $char))
             ) {
                 $result .= '\\'.$char;
-            } elseif (\ord($char) < 32 || 127 === \ord($char) || \ord($char) >= 128) {
+            } elseif (\ord($char) < 32 || 127 === \ord($char) || (!$unicodeMode && \ord($char) >= 128)) {
                 // Escape control characters and extended ASCII
                 $result .= match (\ord($char)) {
                     8 => $this->inCharClass ? '\\b' : '\\x08', // Backspace: \b only valid inside char class

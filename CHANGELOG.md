@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fixed Lexer token offsets for `\xNN` escape sequences.
+- Fixed Compiler output for non-ASCII characters when using the `/u` flag.
+- Fixed cache key generation to include library versioning.
+- Improved CLI pattern detection for non-standard delimiters.
+
 ## [1.0.7] - 2026-01-03
 
 ### Added

@@ -15,6 +15,8 @@ namespace RegexParser\Cli\Command;
 
 use RegexParser\Cli\Input;
 use RegexParser\Cli\Output;
+use RegexParser\Exception\ParserException;
+use RegexParser\Internal\PatternParser;
 use RegexParser\Regex;
 
 final readonly class HelpCommand implements CommandInterface
@@ -491,10 +493,21 @@ final readonly class HelpCommand implements CommandInterface
 
     private function isPatternToken(string $token): bool
     {
-        if (str_starts_with($token, "'/") && str_ends_with($token, "/'")) {
-            return true;
+        $candidate = $token;
+
+        if (
+            (str_starts_with($candidate, "'") && str_ends_with($candidate, "'"))
+            || (str_starts_with($candidate, '"') && str_ends_with($candidate, '"'))
+        ) {
+            $candidate = substr($candidate, 1, -1);
         }
 
-        return str_starts_with($token, '/') && str_ends_with($token, '/');
+        try {
+            PatternParser::extractPatternAndFlags($candidate);
+
+            return true;
+        } catch (ParserException) {
+            return false;
+        }
     }
 }

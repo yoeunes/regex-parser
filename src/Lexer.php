@@ -539,20 +539,11 @@ final class Lexer
     /**
      * Parses a Unicode escape sequence.
      *
-     * Simple \xNN escapes (2 hex digits, single-byte) are converted to their character
-     * representation for consistency with PCRE behavior. Extended forms like \x{NNNN}
-     * and \u{NNNN} are kept as strings because they can represent multi-byte UTF-8.
+     * Preserve the original escape lexeme so token offsets stay byte-accurate and
+     * round-tripping remains stable.
      */
     private function parseUnicodeEscape(string $escape): string
     {
-        if (preg_match('/^\\\\x([0-9a-fA-F]{1,2})$/', $escape, $m)) {
-            $code = (int) hexdec($m[1]);
-            if ($code <= 0xFF) {
-                return \chr($code);
-            }
-        }
-
-        // For extended forms (\x{}, \u{}), keep as string
         return $escape;
     }
 

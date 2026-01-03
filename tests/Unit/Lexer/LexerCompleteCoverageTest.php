@@ -449,7 +449,7 @@ final class LexerCompleteCoverageTest extends TestCase
     public function test_unicode_hex_variations(): void
     {
         $testCases = [
-            '\x41' => 'A',        // 2-digit hex -> converted to char
+            '\x41' => '\x41',        // 2-digit hex -> kept as string
             '\u0041' => '\u0041',  // 4-digit hex -> kept as string
             '\u{0041}' => '\u{0041}',    // Unicode with braces -> kept as string
             '\u{1F600}' => '\u{1F600}',   // Emoji codepoint -> kept as string

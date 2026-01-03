@@ -273,7 +273,7 @@ final class RailroadSvgVisitorTest extends TestCase
         /** @var string $svg */
         $svg = $ast->accept(new RailroadSvgVisitor());
 
-        $this->assertStringContainsString('CharLiteral (A)', $svg);
+        $this->assertStringContainsString('CharLiteral (\\x41)', $svg);
     }
 
     public function test_svg_renders_backref(): void
