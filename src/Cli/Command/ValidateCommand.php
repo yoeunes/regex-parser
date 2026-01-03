@@ -13,8 +13,12 @@ declare(strict_types=1);
 
 namespace RegexParser\Cli\Command;
 
+use RegexParser\Cli\ConsoleStyle;
 use RegexParser\Cli\Input;
 use RegexParser\Cli\Output;
+use RegexParser\Exception\LexerException;
+use RegexParser\Exception\ParserException;
+use RegexParser\NodeVisitor\ConsoleHighlighterVisitor;
 
 final class ValidateCommand extends AbstractCommand
 {
@@ -48,14 +52,38 @@ final class ValidateCommand extends AbstractCommand
             return 1;
         }
 
+        $style = new ConsoleStyle($output, $input->globalOptions->visuals);
+        $meta = [];
+        if (null !== $input->globalOptions->phpVersion) {
+            $meta['Target PHP'] = $output->warning('PHP '.$input->globalOptions->phpVersion);
+        }
+        $style->renderBanner('validate', $meta);
+
         $validation = $regex->validate($pattern);
+        $highlightedPattern = $pattern;
+        if ($output->isAnsi() && $validation->isValid) {
+            try {
+                $ast = $regex->parse($pattern);
+                $highlightedPattern = $ast->accept(new ConsoleHighlighterVisitor());
+            } catch (LexerException|ParserException) {
+                $highlightedPattern = $pattern;
+            }
+        }
+
+        $style->renderSection('Validating pattern', 1, 1);
+        $style->renderPattern($highlightedPattern);
+
         if ($validation->isValid) {
-            $output->write($output->success('OK').'  '.$pattern."\n");
+            $style->renderKeyValueBlock([
+                'Status' => $output->success('OK'),
+            ]);
 
             return 0;
         }
 
-        $output->write($output->error('INVALID').'  '.$pattern."\n");
+        $style->renderKeyValueBlock([
+            'Status' => $output->error('INVALID'),
+        ]);
         if ($validation->error) {
             $output->write('  '.$output->error($validation->error)."\n");
         }

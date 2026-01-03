@@ -51,7 +51,7 @@ final class CommandTest extends TestCase
         $buffer = $this->captureOutput(static fn (): int => $command->run(self::makeInput('analyze', ['/a+/']), $output), $exitCode);
 
         $this->assertSame(0, $exitCode);
-        $this->assertStringContainsString('ReDoS:', $buffer);
+        $this->assertStringContainsString('Severity', $buffer);
     }
 
     public function test_analyze_command_handles_invalid_regex_options(): void
@@ -368,8 +368,8 @@ final class CommandTest extends TestCase
         $buffer = $this->captureOutput(static fn (): int => $command->run(self::makeInput('highlight', ['/a+/']), $output), $exitCode);
 
         $this->assertSame(0, $exitCode);
-        $this->assertStringContainsString('a', $buffer);
-        $this->assertStringContainsString("\033[", $buffer);
+        $this->assertStringContainsString('/a+/', $buffer);
+        $this->assertStringContainsString('Highlighting pattern', $buffer);
     }
 
     public function test_highlight_command_supports_html_format(): void
@@ -392,7 +392,7 @@ final class CommandTest extends TestCase
         $buffer = $this->captureOutput(static fn (): int => $command->run(self::makeInput('highlight', ['[unclosed']), $output), $exitCode);
 
         $this->assertSame(1, $exitCode);
-        $this->assertStringContainsString('✗ Error:', $buffer);
+        $this->assertStringContainsString('[FAIL] Error:', $buffer);
     }
 
     public function test_highlight_command_supports_format_option_with_separate_value(): void
@@ -404,7 +404,7 @@ final class CommandTest extends TestCase
         $buffer = $this->captureOutput(static fn (): int => $command->run(self::makeInput('highlight', ['/a+/', '--format', 'cli']), $output), $exitCode);
 
         $this->assertSame(0, $exitCode);
-        $this->assertStringContainsString("\033[", $buffer); // ANSI codes for cli format
+        $this->assertStringContainsString('/a+/', $buffer);
     }
 
     public function test_highlight_command_reports_invalid_format(): void
@@ -416,7 +416,7 @@ final class CommandTest extends TestCase
         $buffer = $this->captureOutput(static fn (): int => $command->run(self::makeInput('highlight', ['/a+/', '--format=invalid']), $output), $exitCode);
 
         $this->assertSame(1, $exitCode);
-        $this->assertStringContainsString('✗ Error: Invalid format: invalid', $buffer);
+        $this->assertStringContainsString('[FAIL] Error: Invalid format: invalid', $buffer);
     }
 
     public function test_highlight_command_handles_invalid_regex_options(): void
@@ -693,7 +693,7 @@ final class CommandTest extends TestCase
     {
         $command = new AnalyzeCommand();
 
-        $this->assertSame([], $command->getAliases());
+        $this->assertSame(['analyse'], $command->getAliases());
     }
 
     public function test_analyze_command_get_description_returns_correct_value(): void

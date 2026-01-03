@@ -13,10 +13,13 @@ declare(strict_types=1);
 
 namespace RegexParser\Cli\Command;
 
+use RegexParser\Cli\ConsoleStyle;
 use RegexParser\Cli\Input;
 use RegexParser\Cli\Output;
 use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
+use RegexParser\NodeVisitor\ConsoleHighlighterVisitor;
+use RegexParser\ReDoS\ReDoSSeverity;
 
 final class AnalyzeCommand extends AbstractCommand
 {
@@ -27,7 +30,7 @@ final class AnalyzeCommand extends AbstractCommand
 
     public function getAliases(): array
     {
-        return [];
+        return ['analyse'];
     }
 
     public function getDescription(): string
@@ -50,31 +53,71 @@ final class AnalyzeCommand extends AbstractCommand
             return 1;
         }
 
+        $style = new ConsoleStyle($output, $input->globalOptions->visuals);
+        $meta = [];
+        if (null !== $input->globalOptions->phpVersion) {
+            $meta['Target PHP'] = $output->warning('PHP '.$input->globalOptions->phpVersion);
+        }
+
+        $style->renderBanner('analyze', $meta);
+
         try {
-            $regex->parse($pattern);
+            $ast = $regex->parse($pattern);
             $validation = $regex->validate($pattern);
             $analysis = $regex->redos($pattern);
             $explain = $regex->explain($pattern);
 
-            $output->write($output->bold("Analyze\n"));
-            $output->write('  Pattern:    '.$pattern."\n");
-            $output->write('  Parse:      '.$output->success('OK')."\n");
+            $highlightedPattern = $output->isAnsi()
+                ? $ast->accept(new ConsoleHighlighterVisitor())
+                : $pattern;
+
+            $steps = 4;
+            $style->renderSection('Parsing pattern', 1, $steps);
+            $style->renderPattern($highlightedPattern);
+            $style->renderKeyValueBlock([
+                'Parse' => $output->success('OK'),
+            ]);
+
+            if ($style->visualsEnabled()) {
+                $output->write("\n");
+            }
+
+            $style->renderSection('Validation', 2, $steps);
             $validationStatus = $validation->isValid ? $output->success('OK') : $output->error('INVALID');
-            $output->write('  Validation: '.$validationStatus."\n");
+            $style->renderKeyValueBlock([
+                'Status' => $validationStatus,
+            ]);
             if (!$validation->isValid && $validation->error) {
                 $output->write('  '.$output->error($validation->error)."\n");
             }
 
+            if ($style->visualsEnabled()) {
+                $output->write("\n");
+            }
+
+            $style->renderSection('ReDoS analysis', 3, $steps);
             $severityLabel = strtoupper($analysis->severity->value);
-            $output->write('  ReDoS:      '.$output->warning($severityLabel).' (score '.$analysis->score.")\n");
+            $severityOutput = match ($analysis->severity) {
+                ReDoSSeverity::SAFE, ReDoSSeverity::LOW => $output->success($severityLabel),
+                ReDoSSeverity::MEDIUM => $output->warning($severityLabel),
+                ReDoSSeverity::HIGH, ReDoSSeverity::CRITICAL => $output->error($severityLabel),
+                ReDoSSeverity::UNKNOWN => $output->info($severityLabel),
+            };
+            $style->renderKeyValueBlock([
+                'Severity' => $severityOutput.' (score '.$analysis->score.')',
+            ]);
             if ($analysis->error) {
                 $output->write('  '.$output->error('ReDoS error: '.$analysis->error)."\n");
             }
 
-            $output->write("\n".$output->bold('Explanation')."\n");
+            if ($style->visualsEnabled()) {
+                $output->write("\n");
+            }
+
+            $style->renderSection('Explanation', 4, $steps);
             $output->write($explain."\n");
         } catch (LexerException|ParserException $e) {
-            $output->write($output->error('Analyze failed: '.$e->getMessage()."\n"));
+            $output->write('  '.$output->badge('FAIL', Output::WHITE, Output::BG_RED).' '.$output->error('Analyze failed: '.$e->getMessage())."\n");
 
             return 1;
         }

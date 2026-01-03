@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace RegexParser\Cli\Command;
 
 use RegexParser\Cache\RemovableCacheInterface;
+use RegexParser\Cli\ConsoleStyle;
 use RegexParser\Cli\Input;
 use RegexParser\Cli\Output;
 use RegexParser\RegexOptions;
@@ -40,11 +41,15 @@ final class ClearCacheCommand extends AbstractCommand implements CommandInterfac
         $options = RegexOptions::fromArray($input->regexOptions);
         $cache = $options->cache;
 
+        $style = new ConsoleStyle($output, $input->globalOptions->visuals);
+        $style->renderBanner('clear-cache');
+        $style->renderSection('Cache', 1, 1);
+
         if ($cache instanceof RemovableCacheInterface) {
             $cache->clear();
-            $output->write("Cache cleared.\n");
+            $output->write('  '.$output->badge('PASS', Output::WHITE, Output::BG_GREEN).' '.$output->success('Cache cleared.')."\n");
         } else {
-            $output->write("No clearable cache configured.\n");
+            $output->write('  '.$output->badge('INFO', Output::BLACK, Output::BG_YELLOW).' '.$output->warning('No clearable cache configured.')."\n");
         }
 
         return 0;

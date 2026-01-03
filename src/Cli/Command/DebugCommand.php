@@ -13,8 +13,12 @@ declare(strict_types=1);
 
 namespace RegexParser\Cli\Command;
 
+use RegexParser\Cli\ConsoleStyle;
 use RegexParser\Cli\Input;
 use RegexParser\Cli\Output;
+use RegexParser\Exception\LexerException;
+use RegexParser\Exception\ParserException;
+use RegexParser\NodeVisitor\ConsoleHighlighterVisitor;
 use RegexParser\ReDoS\ReDoSHeatmap;
 use RegexParser\ReDoS\ReDoSHotspot;
 use RegexParser\ReDoS\ReDoSInputGenerator;
@@ -74,6 +78,14 @@ final class DebugCommand extends AbstractCommand
             return 1;
         }
 
+        $style = new ConsoleStyle($output, $input->globalOptions->visuals);
+        $meta = [];
+        if (null !== $input->globalOptions->phpVersion) {
+            $meta['Target PHP'] = $output->warning('PHP '.$input->globalOptions->phpVersion);
+        }
+
+        $style->renderBanner('Debug', $meta);
+
         $phpVersionId = null;
         if ([] !== $input->regexOptions) {
             $phpVersionId = RegexOptions::fromArray($input->regexOptions)->phpVersionId;
@@ -82,12 +94,35 @@ final class DebugCommand extends AbstractCommand
         try {
             $patternInfo = RegexPattern::fromDelimited($pattern, $phpVersionId);
             $analysis = $regex->redos($pattern);
+            $steps = [] !== $analysis->findings ? 2 : 1;
             $heatmap = new ReDoSHeatmap();
             $heatmapBody = $heatmap->highlight($patternInfo->pattern, $analysis->hotspots, $output->isAnsi());
             $heatmapPattern = $patternInfo->delimiter.$heatmapBody.$patternInfo->delimiter.$patternInfo->flags;
+            $highlightedPattern = $pattern;
+            $showSyntaxPattern = $output->isAnsi() && $style->visualsEnabled();
 
-            $output->write($output->bold("Debug\n"));
-            $output->write('  Pattern:    '.$heatmapPattern."\n");
+            if ($showSyntaxPattern) {
+                try {
+                    $ast = $regex->parse($pattern);
+                    $highlightedBody = $ast->accept(new ConsoleHighlighterVisitor());
+                    $highlightedPattern = $patternInfo->delimiter.$highlightedBody.$patternInfo->delimiter.$patternInfo->flags;
+                } catch (LexerException|ParserException) {
+                    $highlightedPattern = $pattern;
+                }
+            }
+
+            $style->renderSection('Heatmap', 1, $steps);
+            if ($showSyntaxPattern) {
+                $style->renderPattern($highlightedPattern);
+            }
+
+            $showHeatmapLine = [] !== $analysis->hotspots || !$showSyntaxPattern;
+            $heatmapPrefix = '';
+            if ($showHeatmapLine) {
+                $label = $showSyntaxPattern ? 'Heatmap' : 'Pattern';
+                $heatmapPrefix = '  '.$label.':    ';
+                $output->write($heatmapPrefix.$heatmapPattern."\n");
+            }
 
             if (null !== $analysis->error) {
                 $output->write('  Error:      '.$output->error($analysis->error)."\n");
@@ -152,8 +187,8 @@ final class DebugCommand extends AbstractCommand
                 }
             }
 
-            if (null !== $hotspot) {
-                $prefix = '  Pattern:    ';
+            if (null !== $hotspot && '' !== $heatmapPrefix) {
+                $prefix = $heatmapPrefix;
                 $start = max(0, $hotspot->start);
                 $length = max(1, $hotspot->end - $hotspot->start);
                 $caret = str_repeat(' ', \strlen($prefix) + 1 + $start).str_repeat('^', $length);
@@ -167,7 +202,8 @@ final class DebugCommand extends AbstractCommand
             }
 
             if ([] !== $analysis->findings) {
-                $output->write("\n".$output->bold('Findings')."\n");
+                $output->write("\n");
+                $style->renderSection('Findings', $steps, $steps);
                 foreach ($analysis->findings as $finding) {
                     $label = strtoupper($finding->severity->value);
                     $findingSeverity = match ($finding->severity) {
@@ -183,7 +219,7 @@ final class DebugCommand extends AbstractCommand
                 }
             }
         } catch (\Throwable $e) {
-            $output->write($output->error('Debug failed: '.$e->getMessage()."\n"));
+            $output->write('  '.$output->badge('FAIL', Output::WHITE, Output::BG_RED).' '.$output->error('Debug failed: '.$e->getMessage())."\n");
 
             return 1;
         }

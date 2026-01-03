@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Cli\Command;
 
+use RegexParser\Cli\ConsoleStyle;
 use RegexParser\Cli\Input;
 use RegexParser\Cli\Output;
 use RegexParser\Exception\LexerException;
@@ -66,9 +67,20 @@ final class HighlightCommand extends AbstractCommand
             return 1;
         }
 
+        $style = new ConsoleStyle($output, $input->globalOptions->visuals);
+        $meta = [];
+        if (null !== $input->globalOptions->phpVersion) {
+            $meta['Target PHP'] = $output->warning('PHP '.$input->globalOptions->phpVersion);
+        }
+
         try {
             if ('auto' === $format) {
                 $format = \PHP_SAPI === 'cli' ? 'cli' : 'html';
+            }
+
+            if ('cli' === $format && $style->visualsEnabled()) {
+                $meta['Format'] = $output->warning('cli');
+                $style->renderBanner('highlight', $meta);
             }
 
             $visitor = match ($format) {
@@ -80,9 +92,18 @@ final class HighlightCommand extends AbstractCommand
             $ast = $regex->parse($pattern);
             $highlighted = $ast->accept($visitor);
 
-            $output->write($highlighted."\n");
+            if ('cli' === $format && !$output->isAnsi()) {
+                $highlighted = $pattern;
+            }
+
+            if ('cli' === $format && $style->visualsEnabled()) {
+                $style->renderSection('Highlighting pattern', 1, 1);
+                $style->renderPattern($highlighted);
+            } else {
+                $output->write($highlighted."\n");
+            }
         } catch (LexerException|ParserException|\InvalidArgumentException $e) {
-            $output->write($output->error("✗ Error: {$e->getMessage()}\n"));
+            $output->write('  '.$output->badge('FAIL', Output::WHITE, Output::BG_RED).' '.$output->error("Error: {$e->getMessage()}")."\n");
 
             return 1;
         }

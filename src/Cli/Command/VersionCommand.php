@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Cli\Command;
 
+use RegexParser\Cli\ConsoleStyle;
 use RegexParser\Cli\Input;
 use RegexParser\Cli\Output;
 use RegexParser\Regex;
@@ -36,8 +37,15 @@ final readonly class VersionCommand implements CommandInterface
 
     public function run(Input $input, Output $output): int
     {
-        $version = Regex::VERSION;
+        $style = new ConsoleStyle($output, $input->globalOptions->visuals);
+        if ($style->visualsEnabled()) {
+            $style->renderBanner('version');
+            $output->write('  '.$output->dim('Repository: https://github.com/yoeunes/regex-parser')."\n");
 
+            return 0;
+        }
+
+        $version = Regex::VERSION;
         $output->write('RegexParser '.$output->color($version, Output::GREEN)." by Younes ENNAJI\n");
         $output->write("https://github.com/yoeunes/regex-parser\n");
 

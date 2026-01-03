@@ -13,11 +13,13 @@ declare(strict_types=1);
 
 namespace RegexParser\Cli\Command;
 
+use RegexParser\Cli\ConsoleStyle;
 use RegexParser\Cli\Input;
 use RegexParser\Cli\Output;
 use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
 use RegexParser\NodeVisitor\AsciiTreeVisitor;
+use RegexParser\NodeVisitor\ConsoleHighlighterVisitor;
 use RegexParser\NodeVisitor\RailroadSvgVisitor;
 
 final class DiagramCommand extends AbstractCommand
@@ -85,6 +87,17 @@ final class DiagramCommand extends AbstractCommand
             return 1;
         }
 
+        $style = new ConsoleStyle($output, $input->globalOptions->visuals);
+        $meta = [];
+        if (null !== $input->globalOptions->phpVersion) {
+            $meta['Target PHP'] = $output->warning('PHP '.$input->globalOptions->phpVersion);
+        }
+        $showConsoleOutput = 'svg' !== $format && null === $outputPath;
+        if ($showConsoleOutput && $style->visualsEnabled()) {
+            $meta['Format'] = $output->warning('text');
+            $style->renderBanner('diagram', $meta);
+        }
+
         try {
             $ast = $regex->parse($pattern);
             if ('svg' === $format) {
@@ -116,9 +129,18 @@ final class DiagramCommand extends AbstractCommand
                 return 0;
             }
 
+            if ($style->visualsEnabled()) {
+                $style->renderSection('Rendering diagram', 1, 1);
+                $highlightedPattern = $output->isAnsi()
+                    ? $ast->accept(new ConsoleHighlighterVisitor())
+                    : $pattern;
+                $style->renderPattern($highlightedPattern);
+                $output->write("\n");
+            }
+
             $output->write($diagram."\n");
         } catch (LexerException|ParserException $e) {
-            $output->write($output->error('Diagram failed: '.$e->getMessage()."\n"));
+            $output->write('  '.$output->badge('FAIL', Output::WHITE, Output::BG_RED).' '.$output->error('Diagram failed: '.$e->getMessage())."\n");
 
             return 1;
         }

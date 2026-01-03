@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Cli\Command;
 
+use RegexParser\Cli\ConsoleStyle;
 use RegexParser\Cli\Input;
 use RegexParser\Cli\Output;
 use RegexParser\Cli\SelfUpdate\SelfUpdater;
@@ -44,10 +45,14 @@ final readonly class SelfUpdateCommand implements CommandInterface
             return 0;
         }
 
+        $style = new ConsoleStyle($output, $input->globalOptions->visuals);
+        $style->renderBanner('self-update');
+        $style->renderSection('Updating', 1, 1);
+
         try {
             $this->updater->run($output);
         } catch (\RuntimeException $e) {
-            $output->write($output->error('Self-update failed: '.$e->getMessage()."\n"));
+            $output->write('  '.$output->badge('FAIL', Output::WHITE, Output::BG_RED).' '.$output->error('Self-update failed: '.$e->getMessage())."\n");
 
             return 1;
         }

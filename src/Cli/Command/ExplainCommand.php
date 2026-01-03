@@ -13,10 +13,12 @@ declare(strict_types=1);
 
 namespace RegexParser\Cli\Command;
 
+use RegexParser\Cli\ConsoleStyle;
 use RegexParser\Cli\Input;
 use RegexParser\Cli\Output;
 use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
+use RegexParser\NodeVisitor\ConsoleHighlighterVisitor;
 
 final class ExplainCommand extends AbstractCommand
 {
@@ -70,11 +72,38 @@ final class ExplainCommand extends AbstractCommand
             return 1;
         }
 
+        $style = new ConsoleStyle($output, $input->globalOptions->visuals);
+        $meta = [];
+        if (null !== $input->globalOptions->phpVersion) {
+            $meta['Target PHP'] = $output->warning('PHP '.$input->globalOptions->phpVersion);
+        }
+        if ('text' === $format && $style->visualsEnabled()) {
+            $meta['Format'] = $output->warning('text');
+        }
+
+        if ('text' === $format) {
+            $style->renderBanner('explain', $meta);
+        }
+
         try {
+            $highlightedPattern = $pattern;
+            if ('text' === $format && $style->visualsEnabled() && $output->isAnsi()) {
+                $ast = $regex->parse($pattern);
+                $highlightedPattern = $ast->accept(new ConsoleHighlighterVisitor());
+            }
+
             $explanation = $regex->explain($pattern, $format);
+
+            if ('text' === $format && $style->visualsEnabled()) {
+                $style->renderSection('Pattern', 1, 2);
+                $style->renderPattern($highlightedPattern);
+                $output->write("\n");
+                $style->renderSection('Explanation', 2, 2);
+            }
+
             $output->write($explanation."\n");
         } catch (LexerException|ParserException $e) {
-            $output->write($output->error('Explain failed: '.$e->getMessage()."\n"));
+            $output->write('  '.$output->badge('FAIL', Output::WHITE, Output::BG_RED).' '.$output->error('Explain failed: '.$e->getMessage())."\n");
 
             return 1;
         }

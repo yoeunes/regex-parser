@@ -13,11 +13,13 @@ declare(strict_types=1);
 
 namespace RegexParser\Cli\Command;
 
+use RegexParser\Cli\ConsoleStyle;
 use RegexParser\Cli\Input;
 use RegexParser\Cli\Output;
 use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
+use RegexParser\NodeVisitor\ConsoleHighlighterVisitor;
 
 final class ParseCommand extends AbstractCommand
 {
@@ -52,24 +54,49 @@ final class ParseCommand extends AbstractCommand
             return 1;
         }
 
+        $style = new ConsoleStyle($output, $input->globalOptions->visuals);
+        $meta = [];
+        if (null !== $input->globalOptions->phpVersion) {
+            $meta['Target PHP'] = $output->warning('PHP '.$input->globalOptions->phpVersion);
+        }
+        if ($validate) {
+            $meta['Validation'] = $output->warning('on');
+        }
+
+        $style->renderBanner('parse', $meta);
+
         try {
             $ast = $regex->parse($pattern);
             $compiled = $ast->accept(new CompilerNodeVisitor());
+            $highlightedPattern = $output->isAnsi()
+                ? $ast->accept(new ConsoleHighlighterVisitor())
+                : $pattern;
 
-            $output->write($output->bold("Parse\n"));
-            $output->write('  Pattern:    '.$pattern."\n");
-            $output->write('  Recompiled: '.$compiled."\n");
+            $steps = $validate ? 2 : 1;
+            $style->renderSection('Parsing pattern', 1, $steps);
+            $style->renderPattern($highlightedPattern);
+            $style->renderKeyValueBlock([
+                'Parse' => $output->success('OK'),
+                'Recompiled' => $compiled,
+            ]);
 
             if ($validate) {
+                if ($style->visualsEnabled()) {
+                    $output->write("\n");
+                }
+
+                $style->renderSection('Validation', 2, $steps);
                 $validation = $regex->validate($pattern);
                 $status = $validation->isValid ? $output->success('OK') : $output->error('INVALID');
-                $output->write('  Validation: '.$status."\n");
+                $style->renderKeyValueBlock([
+                    'Status' => $status,
+                ]);
                 if (!$validation->isValid && $validation->error) {
                     $output->write('  '.$output->error($validation->error)."\n");
                 }
             }
         } catch (LexerException|ParserException $e) {
-            $output->write($output->error('Parse failed: '.$e->getMessage()."\n"));
+            $output->write('  '.$output->badge('FAIL', Output::WHITE, Output::BG_RED).' '.$output->error('Parse failed: '.$e->getMessage())."\n");
 
             return 1;
         }

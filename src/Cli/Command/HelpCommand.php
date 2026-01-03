@@ -13,11 +13,11 @@ declare(strict_types=1);
 
 namespace RegexParser\Cli\Command;
 
+use RegexParser\Cli\ConsoleStyle;
 use RegexParser\Cli\Input;
 use RegexParser\Cli\Output;
 use RegexParser\Exception\ParserException;
 use RegexParser\Internal\PatternParser;
-use RegexParser\Regex;
 
 final readonly class HelpCommand implements CommandInterface
 {
@@ -39,7 +39,12 @@ final readonly class HelpCommand implements CommandInterface
     public function run(Input $input, Output $output): int
     {
         $binary = $this->resolveInvocation();
-        $this->renderHeader($output);
+        $style = new ConsoleStyle($output, $input->globalOptions->visuals);
+        $meta = [];
+        if (null !== $input->globalOptions->phpVersion) {
+            $meta['Target PHP'] = $output->warning('PHP '.$input->globalOptions->phpVersion);
+        }
+        $this->renderHeader($style, $meta);
 
         $specificCommand = $input->args[0] ?? null;
         if (null !== $specificCommand) {
@@ -73,6 +78,7 @@ final readonly class HelpCommand implements CommandInterface
             ['--no-ansi', 'Disable ANSI output'],
             ['-q, --quiet', 'Suppress output'],
             ['--silent', 'Same as --quiet'],
+            ['--no-visuals', 'Disable banner and section visuals'],
             ['--php-version <ver>', 'Target PHP version for validation'],
             ['--help', 'Display this help message'],
         ];
@@ -315,23 +321,12 @@ final readonly class HelpCommand implements CommandInterface
         return $usage;
     }
 
-    private function renderHeader(Output $output): void
+    /**
+     * @param array<string, string> $meta
+     */
+    private function renderHeader(ConsoleStyle $style, array $meta): void
     {
-        $version = Regex::VERSION;
-
-        $output->write($this->formatHeaderLine($output, $this->renderStaticName($output), $version)."\n");
-
-        $output->write($output->dim('Treat Regular Expressions as Code.')."\n\n");
-    }
-
-    private function formatHeaderLine(Output $output, string $name, string $version): string
-    {
-        return $name.' '.$output->warning($version).' by Younes ENNAJI';
-    }
-
-    private function renderStaticName(Output $output): string
-    {
-        return $output->color('RegexParser', Output::CYAN.Output::BOLD);
+        $style->renderBanner('help', $meta, 'Treat Regular Expressions as Code.');
     }
 
     /**

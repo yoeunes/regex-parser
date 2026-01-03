@@ -24,8 +24,8 @@ final class ReadmeCliExamplesTest extends TestCase
         [$output, $exitCode] = $this->runCli(['--no-ansi', 'analyze', '/(a+)+$/']);
 
         $this->assertSame(0, $exitCode);
-        $this->assertStringContainsString('ReDoS:      CRITICAL', $output);
-        $this->assertStringContainsString('Analyze', $output);
+        $this->assertStringContainsString('Severity : CRITICAL', $output);
+        $this->assertStringContainsString('Command : analyze', $output);
     }
 
     #[Test]

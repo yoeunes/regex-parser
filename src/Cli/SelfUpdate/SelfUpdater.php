@@ -35,7 +35,7 @@ class SelfUpdater
         $updateUrl = $this->getUpdateUrl();
         $checksumUrl = $this->getChecksumUrl();
 
-        $output->write($output->info('Downloading latest release...')."\n");
+        $output->write('  '.$output->dim('Downloading latest release...')."\n");
 
         $checksum = $this->parseChecksum($this->fetchRemoteString($checksumUrl));
 
@@ -78,7 +78,7 @@ class SelfUpdater
             @unlink($tempPath);
         }
 
-        $output->write($output->success("RegexParser updated successfully.\n"));
+        $output->write('  '.$output->badge('PASS', Output::WHITE, Output::BG_GREEN).' '.$output->success('RegexParser updated successfully.')."\n");
     }
 
     protected function getPharPath(): string
