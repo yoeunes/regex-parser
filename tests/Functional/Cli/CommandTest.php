@@ -635,7 +635,8 @@ final class CommandTest extends TestCase
         $command = new SelfUpdateCommand($updater);
         $output = new Output(false, false);
 
-        $exitCode = $command->run(self::makeInput('self-update', []), $output);
+        $exitCode = 0;
+        $buffer = $this->captureOutput(static fn (): int => $command->run(self::makeInput('self-update', []), $output), $exitCode);
 
         $this->assertSame(0, $exitCode);
     }
