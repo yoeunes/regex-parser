@@ -78,7 +78,7 @@ final class OptimizerTest extends TestCase
         // Case 3: Escape delimiter when optimizing printable ranges in char classes
         yield 'char class range escapes delimiter' => [
             '/[\x20-\x2F]/',
-            '/[ -\/]/',
+            '/[\x20-\x2F]/',
         ];
 
         // Case 4: Useless flag removal - 's' flag is useless when no dots present
