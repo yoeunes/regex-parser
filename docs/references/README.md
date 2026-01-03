@@ -24,7 +24,7 @@ The authoritative source for PCRE2 syntax and behavior.
 | Resource                                                                        | Description                    |
 |---------------------------------------------------------------------------------|--------------------------------|
 | [PCRE2 Syntax Overview](https://www.pcre.org/current/doc/html/pcre2syntax.html) | Quick syntax reference         |
-| [PCRE2 Pattern Syntax](https://www.pcre.org/current/doc/html/pcre2pattern.html) | Complete pattern documentation |
+| [PCRE2 Pattern Syntax](https://www.pcre.org/current/doc/html/pcre2pattern.html) | Pattern documentation |
 | [PCRE2 Performance](https://www.pcre.org/current/doc/html/pcre2perform.html)    | Performance considerations     |
 | [PCRE2 API](https://www.pcre.org/current/doc/html/pcre2api.html)                | Engine API details             |
 
@@ -43,7 +43,7 @@ PHP's implementation of PCRE and language-specific features.
 
 | Resource                                                                                | Description                       |
 |-----------------------------------------------------------------------------------------|-----------------------------------|
-| [PHP PCRE Manual](https://www.php.net/manual/en/book.pcre.php)                          | Complete PCRE extension reference |
+| [PHP PCRE Manual](https://www.php.net/manual/en/book.pcre.php)                          | PCRE extension reference |
 | [Pattern Syntax Reference](https://www.php.net/manual/en/regexp.reference.php)          | PHP pattern syntax                |
 | [Pattern Modifiers](https://www.php.net/manual/en/reference.pcre.pattern.modifiers.php) | Modifier documentation            |
 | [preg_last_error()](https://www.php.net/manual/en/function.preg-last-error.php)         | Error detection function          |

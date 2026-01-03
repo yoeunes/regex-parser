@@ -1,6 +1,6 @@
 # API Reference
 
-This complete reference documents the public API surface of RegexParser: entry points, configuration options, return objects, and the exception hierarchy.
+This reference documents the public API surface of RegexParser: entry points, configuration options, return objects, and the exception hierarchy.
 
 ## Entry Points
 
@@ -8,19 +8,10 @@ This complete reference documents the public API surface of RegexParser: entry p
 
 Creates a configured Regex instance. This is the primary entry point for all library operations.
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│              Regex::create() FACTORY                        │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  Regex::create([options])                                   │
-│         │                                                   │
-│         ├── Validate options                                │
-│         ├── Create configured instance                      │
-│         └── Return Regex ready for use                      │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
+Factory steps:
+- Validate options.
+- Create a configured instance.
+- Return a ready-to-use `Regex`.
 
 **Example:**
 ```php
@@ -214,7 +205,7 @@ echo $report->highlighted;        // Syntax-highlighted pattern
 
 ### redos(string $regex, ?ReDoSSeverity $threshold = null): ReDoSAnalysis
 
-Analyzes ReDoS risk without full analysis report. Use this for quick safety checks.
+Analyzes ReDoS risk without an analysis report. Use this for quick safety checks.
 
 ```php
 use RegexParser\Regex;
@@ -252,8 +243,8 @@ Applies safe optimizations to the pattern.
 use RegexParser\Regex;
 
 $result = Regex::create()->optimize('/[0-9]+/', [
-    'digits' => true,              // [0-9] → \d
-    'word' => true,                // [A-Za-z0-9_] → \w
+    'digits' => true,              // [0-9] -> \d
+    'word' => true,                // [A-Za-z0-9_] -> \w
     'ranges' => true,              // Normalize ranges
     'autoPossessify' => false,     // Add possessive quantifiers
     'allowAlternationFactorization' => false,  // Factor common parts
@@ -443,36 +434,16 @@ foreach ($result->literals as $literal) {
 
 RegexParser uses a focused exception hierarchy for precise error handling:
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│              EXCEPTION HIERARCHY                            │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  RegexParserExceptionInterface                              │
-│      │                                                      │
-│      ├── InvalidRegexOptionException                        │
-│      │   └─ Invalid configuration option                    │
-│      │                                                      │
-│      ├── LexerException                                     │
-│      │   └─ Tokenization failure                            │
-│      │                                                      │
-│      ├── ParserException                                    │
-│      │   ├── SyntaxErrorException                           │
-│      │   │   └─ Invalid syntax                              │
-│      │   └── SemanticErrorException                         │
-│      │       └─ Semantic validation failure                 │
-│      │                                                      │
-│      ├── RecursionLimitException                            │
-│      │   └─ Exceeded max recursion depth                    │
-│      │                                                      │
-│      ├── ResourceLimitException                             │
-│      │   └─ Exceeded resource limits                        │
-│      │                                                      │
-│      └── RegexException                                     │
-│          └─ Base exception with position and errorCode      │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
+Exception hierarchy (simplified):
+- `RegexParserExceptionInterface`
+  - `InvalidRegexOptionException` (invalid configuration option)
+  - `LexerException` (tokenization failure)
+  - `ParserException`
+    - `SyntaxErrorException` (invalid syntax)
+    - `SemanticErrorException` (semantic validation failure)
+  - `RecursionLimitException` (max recursion depth)
+  - `ResourceLimitException` (resource limits)
+  - `RegexException` (base exception with position and error code)
 
 **Usage Examples:**
 
@@ -514,7 +485,7 @@ try {
 | `parse($pattern)`       | RegexNode               | Parse to AST      |
 | `parse($pattern, true)` | TolerantParseResult     | Parse with errors |
 | `validate($regex)`      | ValidationResult        | Check validity    |
-| `analyze($regex)`       | AnalysisReport          | Full analysis     |
+| `analyze($regex)`       | AnalysisReport          | Analysis report   |
 | `redos($regex)`         | ReDoSAnalysis           | ReDoS check       |
 | `optimize($regex)`      | OptimizationResult      | Optimize pattern  |
 | `explain($regex)`       | string                  | Human explanation |

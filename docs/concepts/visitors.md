@@ -1,8 +1,8 @@
-# 👣 Understanding Visitors
+# Understanding Visitors
 
-The **Visitor Pattern** is a powerful design pattern that allows you to add new operations to objects without changing their structure. In RegexParser, visitors process the AST to perform various analyses and transformations.
+The **Visitor Pattern** is a common design pattern that allows you to add new operations to objects without changing their structure. In RegexParser, visitors process the AST to perform analyses and transformations.
 
-## 🎯 Simple Explanation
+## Simple explanation
 
 Imagine you have an AST (tree structure) and you want to do different things with it:
 
@@ -13,7 +13,7 @@ Imagine you have an AST (tree structure) and you want to do different things wit
 
 Instead of putting all this logic in the AST nodes themselves, we use **visitors** that "walk" the tree and perform specific tasks.
 
-## 🔍 How Visitors Work
+## How visitors work
 
 ### Basic Visitor Structure
 
@@ -22,21 +22,18 @@ class MyCustomVisitor extends AbstractNodeVisitor
 {
     public function visitRegex(RegexNode $node): void
     {
-        // Process the root regex node
         $node->pattern->accept($this);
     }
 
     public function visitLiteral(LiteralNode $node): void
     {
-        // Process literal nodes
         echo "Found literal: " . $node->value;
     }
 
     public function visitQuantifier(QuantifierNode $node): void
     {
-        // Process quantifier nodes
         echo "Found quantifier: " . $node->quantifier;
-        $node->node->accept($this); // Continue traversal
+        $node->node->accept($this);
     }
 }
 ```
@@ -51,7 +48,7 @@ $visitor = new MyCustomVisitor();
 $ast->accept($visitor); // Start the traversal
 ```
 
-## 🧩 Built-in Visitors
+## Built-in visitors
 
 RegexParser includes several useful visitors:
 
@@ -63,11 +60,11 @@ $compiler = new CompilerNodeVisitor();
 $pattern = $ast->accept($compiler); // Regenerate the pattern
 ```
 
-### 2. ExplanationVisitor
+### 2. ExplainNodeVisitor
 ```php
-use RegexParser\NodeVisitor\ExplanationVisitor;
+use RegexParser\NodeVisitor\ExplainNodeVisitor;
 
-$explainer = new ExplanationVisitor();
+$explainer = new ExplainNodeVisitor();
 $explanation = $ast->accept($explainer); // Get plain English explanation
 ```
 
@@ -83,7 +80,7 @@ $consoleOutput = $ast->accept($consoleHighlighter);
 $htmlOutput = $ast->accept($htmlHighlighter);
 ```
 
-## 💡 Creating Custom Visitors
+## Creating custom visitors
 
 ### Step 1: Extend AbstractNodeVisitor
 
@@ -127,7 +124,7 @@ $ast->accept($counter);
 echo "Quantifiers found: " . $counter->getCount(); // "3"
 ```
 
-## 🎨 Real-world Examples
+## Real-world examples
 
 ### Example 1: Pattern Complexity Analyzer
 
@@ -157,35 +154,35 @@ class ComplexityAnalyzer extends AbstractNodeVisitor
 }
 ```
 
-### Example 2: Pattern Optimizer
+### Example 2: Named group collector
 
 ```php
-class PatternOptimizer extends AbstractNodeVisitor
+class GroupNameCollector extends AbstractNodeVisitor
 {
-    private array $optimizations = [];
+    private array $names = [];
 
-    public function visitCharacterClass(Node\CharacterClassNode $node): void
+    public function visitGroup(Node\GroupNode $node): void
     {
-        // Check for common optimizations
-        if ($node->getCharacters() === '0-9') {
-            $this->optimizations[] = 'Replace [0-9] with \\d';
+        if ($node->name !== null) {
+            $this->names[] = $node->name;
         }
+        $node->child->accept($this);
     }
 
-    public function getOptimizations(): array
+    public function getNames(): array
     {
-        return $this->optimizations;
+        return $this->names;
     }
 }
 ```
 
-## 🔗 Related Concepts
+## Related concepts
 
 - **[What is an AST?](ast.md)** - The structure visitors process
 - **[Architecture](../ARCHITECTURE.md)** - How visitors fit into the system
-- **[Visitors Reference](../visitors/README.md)** - Complete list of built-in visitors
+- **[Visitors Reference](../visitors/README.md)** - List of built-in visitors
 
-## 📚 Further Reading
+## Further reading
 
 - [Visitor Pattern (Wikipedia)](https://en.wikipedia.org/wiki/Visitor_pattern) - Design pattern explanation
 - [RegexParser Architecture](../ARCHITECTURE.md) - Technical implementation details
@@ -193,4 +190,4 @@ class PatternOptimizer extends AbstractNodeVisitor
 
 ---
 
-📖 **Previous**: [What is an AST?](ast.md) | 🚀 **Next**: [ReDoS Deep Dive](redos.md)
+Previous: [What is an AST?](ast.md) | Next: [ReDoS Deep Dive](redos.md)

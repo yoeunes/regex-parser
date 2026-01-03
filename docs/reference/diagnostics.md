@@ -133,9 +133,7 @@ vendor/bin/regex --no-ansi analyze '/(a+)+$/'
 ```
 Analyze
   Pattern:    /(a+)+$/
-  Parse:      OK
-  Validation: OK
-  ReDoS:      CRITICAL (score 10)
+  Parse:      Validation: ReDoS:      CRITICAL (score 10)
 
 Explanation
   Match
@@ -157,7 +155,7 @@ Explanation
 | Command                 | Output                      | Use Case      |
 |-------------------------|-----------------------------|---------------|
 | `validate '/pattern/'`  | Validation status + errors  | Quick check   |
-| `analyze '/pattern/'`   | Full analysis + explanation | Deep dive     |
+| `analyze '/pattern/'`   | Analysis + explanation      | Deep dive     |
 | `explain '/pattern/'`   | Plain text explanation      | Documentation |
 | `highlight '/pattern/'` | Colored pattern             | Display       |
 | `lint src/`             | Issues across codebase      | CI/CD         |

@@ -6,20 +6,13 @@
 
 ## What are Backreferences?
 
-**Backreferences** let you match the **same text** that was previously captured. Think of it like **echoing** what you just said:
+**Backreferences** let you match the same text that was previously captured.
 
-```
-Text: "hello hello"
-
-Pattern: /(\w+) \1/
-         │      │
-         │      └── Backreference: match what group 1 matched
-         └───────── Group 1: capture a word
-
-         Match: "hello hello"
-         Group 1: "hello"
-         \1: "hello" (same as group 1)
-```
+Example:
+- Text: `"hello hello"`
+- Pattern: `/(\w+) \1/`
+- Group 1 captures `"hello"`.
+- `\1` matches the same text, so the full match is `"hello hello"`.
 
 ### Real-World Analogy
 
@@ -105,35 +98,15 @@ preg_match($pattern, '(nested (deep))', $matches);
 echo $matches[0];  // "(nested (deep))"
 ```
 
-### ASCII Diagram: How Recursion Works
+### How recursion works
 
-```
-Pattern: /\((?:[^()]|(?R))*\)/
+Pattern: `/\((?:[^()]|(?R))*\)/`
 
-Text: "(a(b)c)"
+Text: `"(a(b)c)"`
 
-Level 1: Open paren → content → Close paren
-         │
-         ├── Matches: "("
-         │
-         ├── Content (recursive):
-         │   │
-         │   ├── Match: "a"
-         │   │
-         │   ├── Open paren → inner content → Close paren
-         │   │   │
-         │   │   ├── Matches: "("
-         │   │   │
-         │   │   ├── Inner: "b"
-         │   │   │
-         │   │   ├── Matches: ")"
-         │   │   │
-         │   └── Match: "c"
-         │
-         └── Matches: ")"
-
-Complete match: "(a(b)c)"
-```
+- The outer pattern matches an opening `(` and a closing `)`.
+- Inside, it alternates between non-parentheses and a recursive call `(?R)`.
+- The recursive call handles nested parentheses such as `"(b)"`.
 
 ---
 
@@ -145,9 +118,9 @@ Complete match: "(a(b)c)"
 // If group 1 matched, require 'X', else require 'Y'
 $pattern = '/(a)?(?(1)b|c)/';
 
-preg_match($pattern, 'ab', $matches);  // ✅ Matches (group 1=a, so 'b')
-preg_match($pattern, 'c', $matches);   // ✅ Matches (no group 1, so 'c')
-preg_match($pattern, 'ac', $matches);  // ❌ No match (group 1=a, expected 'b')
+preg_match($pattern, 'ab', $matches);  // Match: yes (group 1=a, so 'b')
+preg_match($pattern, 'c', $matches);   // Match: yes (no group 1, so 'c')
+preg_match($pattern, 'ac', $matches);  // Match: no (group 1=a, expected 'b')
 ```
 
 ### Named Conditionals
@@ -156,8 +129,8 @@ preg_match($pattern, 'ac', $matches);  // ❌ No match (group 1=a, expected 'b')
 // If named group matched
 $pattern = '/(?<has_a>a)?(?(has_a)b|c)/';
 
-preg_match($pattern, 'ab', $matches);  // ✅ Matches
-preg_match($pattern, 'c', $matches);   // ✅ Matches
+preg_match($pattern, 'ab', $matches);  // Match: yes
+preg_match($pattern, 'c', $matches);   // Match: yes
 ```
 
 ---
@@ -190,8 +163,8 @@ echo $matches[0];  // "<div><span>text</span></div>"
 // Match text in balanced quotes (single or double)
 $pattern = '/(?<quote>[\'"])(?:(?&quote)|[^\\1])*\1/';
 
-preg_match($pattern, '"hello"', $matches);   // ✅ Matches
-preg_match($pattern, "'world'", $matches);   // ✅ Matches
+preg_match($pattern, '"hello"', $matches);   // Match: yes
+preg_match($pattern, "'world'", $matches);   // Match: yes
 ```
 
 ---
@@ -214,13 +187,13 @@ preg_match($pattern, "'world'", $matches);   // ✅ Matches
 ### Bad: Complex or Dangerous
 
 ```php
-// ❌ Deep recursion without limits (ReDoS risk)
+// Deep recursion without limits (ReDoS risk)
 /\((?:[^()]|(?R))*\)/  // On deeply nested input!
 
-// ❌ Overly complex conditionals
+// Overly complex conditionals
 '/(?(1)(?(2)(?(3)yes|no)|maybe)|no)/'
 
-// ❌ Missing base case in recursion
+// Missing base case in recursion
 // This will cause issues with certain inputs
 ```
 
@@ -254,8 +227,8 @@ Write a pattern that matches "ab" if there's an "a", or "c" otherwise:
 
 ```php
 $pattern = '/(a)?(?(1)b|c)/';
-preg_match($pattern, 'ab', $m);  // ✅ Matches
-preg_match($pattern, 'c', $m);   // ✅ Matches
+preg_match($pattern, 'ab', $m);  // Match: yes
+preg_match($pattern, 'c', $m);   // Match: yes
 ```
 
 ---
@@ -266,7 +239,7 @@ preg_match($pattern, 'c', $m);   // ✅ Matches
 2. **Subroutines** `(?1)`, `(?&name)` reuse group patterns
 3. **Recursion** `(?R)` makes pattern call itself
 4. **Conditionals** `(?(group)yes|no)` add logic
-5. These features are **powerful but complex**
+5. These features are **flexible but complex**
 6. Use **carefully** to avoid performance issues
 
 ---
@@ -277,35 +250,35 @@ preg_match($pattern, 'c', $m);   // ✅ Matches
 
 ```php
 // Backreference: matches same text as group 1
-'/(a)\1/'   // Matches "aa"
+'/(a)\1/'   // Example match: "aa"
 
 // Subroutine: uses group 1's PATTERN
-'/(a)(?1)/' // Matches "aa" (group 1 pattern is "a")
+'/(a)(?1)/' // Example match: "aa" (group 1 pattern is "a")
 ```
 
 ### Error: Missing Base Case in Recursion
 
 ```php
-// ❌ Infinite recursion risk
-'/(?:a|(?R))*/'  // Matches "", "a", "aa", but can hang on some engines
+// Infinite recursion risk
+'/(?:a|(?R))*/'  // Example match: "", "a", "aa" (may hang on some engines)
 
-// ✅ With base case
+// With base case
 '/(?:a|(?R))+?/'  // Better controlled
 ```
 
 ### Error: Backreference Outside Group
 
 ```php
-// ❌ No group to reference
-preg_match('/\1/', '1');  // ERROR: no such group
+// No group to reference
+preg_match('/\1/', '1');  // Error: no such group
 
-// ✅ Define group first
-preg_match('/(\d)\1/', '11');  // Matches "11"
+// Define group first
+preg_match('/(\d)\1/', '11');  // Match: yes ("11")
 ```
 
 ---
 
-## You're Ready!
+## Recap
 
 You now understand:
 - Backreferences (numbered and named)
@@ -318,10 +291,5 @@ You now understand:
 
 ---
 
-<p align="center">
-  <b>Chapter 7 Complete! →</b>
-</p>
-
----
 
 Previous: [Lookarounds](06-lookarounds.md) | Next: [Performance & ReDoS](08-performance-redos.md)

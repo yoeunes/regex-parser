@@ -34,10 +34,10 @@ Put characters inside `[]` to match any one of them:
 
 ```php
 // Match any vowel
-preg_match('/[aeiou]/', 'hello');  // Matches 'e' and 'o'
+preg_match('/[aeiou]/', 'hello');  // Match: yes ('e' and 'o')
 
 // Match any consonant
-preg_match('/[bcdfghjklmnpqrstvwxyz]/', 'hello');  // Matches 'h', 'l', 'l'
+preg_match('/[bcdfghjklmnpqrstvwxyz]/', 'hello');  // Match: yes ('h', 'l', 'l')
 ```
 
 ### Character Ranges
@@ -76,32 +76,16 @@ Use `^` inside `[]` to match anything **except** these characters:
 
 ```php
 // Match any non-digit
-preg_match('/[^0-9]/', 'A1B2');  // Matches 'A', 'B'
+preg_match('/[^0-9]/', 'A1B2');  // Match: yes ('A', 'B')
 
 // Match any character except a, b, or c
-preg_match('/[^abc]/', 'def');   // Matches 'd', 'e', 'f'
+preg_match('/[^abc]/', 'def');   // Match: yes ('d', 'e', 'f')
 ```
 
-### ASCII Diagram
+### Explanation
 
-```
-Pattern: /[^0-9]/
-
-┌─────────────────────────────────────┐
-│  Negated character class [^0-9]     │
-│  ────────────────────────────────   │
-│  Matches ANY character EXCEPT:      │
-│    - 0                              │
-│    - 1                              │
-│    - 2                              │
-│    - ...                            │
-│    - 9                              │
-└─────────────────────────────────────┘
-
-Text: "A1B2"
-      ^
-      Matches 'A' (not a digit)
-```
+- `[^0-9]` matches any single character that is not a digit.
+- In `"A1B2"`, the first match is `"A"`.
 
 ### Try It
 
@@ -134,13 +118,13 @@ These shortcuts save typing for common character sets:
 
 ```php
 // Match a digit
-preg_match('/\d/', 'Phone123');  // Matches '1', '2', '3'
+preg_match('/\d/', 'Phone123');  // Match: yes ('1', '2', '3')
 
 // Match a word character (letter, number, underscore)
-preg_match('/\w/', 'hello_world');  // Matches all characters
+preg_match('/\w/', 'hello_world');  // Match: yes (all characters)
 
 // Match whitespace
-preg_match('/\s/', "hello world");  // Matches the space
+preg_match('/\s/', "hello world");  // Match: yes (the space)
 ```
 
 ### Try It
@@ -168,13 +152,13 @@ Use `\p{...}` with the `u` flag to match Unicode characters:
 
 ```php
 // Match any Unicode letter
-preg_match('/^\p{L}+$/u', 'cafe');  // ✅ Matches (all letters)
+preg_match('/^\p{L}+$/u', 'cafe');  // Match: yes (all letters)
 
 // Match any Unicode number
-preg_match('/^\p{N}+$/u', '123');   // ✅ Matches (all numbers)
+preg_match('/^\p{N}+$/u', '123');   // Match: yes (all numbers)
 
 // Match emoji (symbols)
-preg_match('/\p{Emoji}/u', 'Hello 👋');  // Matches '👋'
+preg_match('/\p{Emoji}/u', 'Hello 👋');  // Match: yes ('👋')
 ```
 
 ### Common Unicode Properties
@@ -222,49 +206,36 @@ echo $regex->explain('/^\p{L}+$/u');
 ### Bad: Common Mistakes
 
 ```php
-// ❌ [A-z] includes characters between Z and a in ASCII!
+// [A-z] includes characters between Z and a in ASCII!
 // This includes [ \ ] ^ _ `
 '/^[A-z]+$/'
 
-// ✅ Correct: [A-Za-z]
+// Correct: [A-Za-z]
 '/^[A-Za-z]+$/'
 
-// ❌ Using . when you mean literal dot
+// Using . when you mean literal dot
 preg_match('/file.txt/', 'myfile.txt');  // Won't work as expected!
 
-// ✅ Correct: Escape the dot
-preg_match('/file\.txt/', 'myfile.txt');  // Matches "file.txt"
+// Correct: Escape the dot
+preg_match('/file\.txt/', 'myfile.txt');  // Match: yes ("file.txt")
 ```
 
 ---
 
-## ASCII Diagram: Pattern Structure
+## Pattern structure
 
-```
-Pattern: /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i
+Pattern: `/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i`
 
 Structure:
-┌─────────────────────────────────────────────────────────────┐
-│  Start of string (^)                                        │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │ Character class: a-z, 0-9, ., _, %, +, -            │    │
-│  │ Quantifier: + (one or more)                         │    │
-│  └─────────────────────────────────────────────────────┘    │
-│  │ Literal: @                                          │    │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │ Character class: a-z, 0-9, ., -                     │    │
-│  │ Quantifier: + (one or more)                         │    │
-│  └─────────────────────────────────────────────────────┘    │
-│  │ Literal: . (escaped)                                │    │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │ Character class: a-z                                │    │
-│  │ Quantifier: {2,} (2 or more)                        │    │
-│  └─────────────────────────────────────────────────────┘    │
-│  End of string ($)                                          │
-└─────────────────────────────────────────────────────────────┘
+- Start anchor `^`.
+- Local part: `[a-z0-9._%+-]+`.
+- Literal `@`.
+- Domain: `[a-z0-9.-]+`.
+- Literal dot `\.`.
+- TLD: `[a-z]{2,}`.
+- End anchor `$`.
 
-This pattern matches email addresses like: user@example.com
-```
+This pattern matches email addresses like `user@example.com`.
 
 ---
 
@@ -347,37 +318,37 @@ foreach ($patterns as $pattern) {
 ### Error: Forgotten Flag for Unicode
 
 ```php
-// ❌ Wrong: Unicode properties need the 'u' flag
+// Wrong: Unicode properties need the 'u' flag
 preg_match('/^\p{L}+$/', 'café');  // May not work!
 
-// ✅ Correct: Add the 'u' flag
+// Correct: Add the 'u' flag
 preg_match('/^\p{L}+$/u', 'café');  // Works!
 ```
 
 ### Error: [A-z] Trap
 
 ```php
-// ❌ Wrong: [A-z] includes special characters!
-preg_match('/^[A-z]+$/', 'test_test');  // Matches! (includes _)
+// Wrong: [A-z] includes special characters!
+preg_match('/^[A-z]+$/', 'test_test');  // Match: yes (includes _)
 
-// ✅ Correct: Be explicit
-preg_match('/^[A-Za-z]+$/', 'test_test');  // No match (no _)
+// Correct: Be explicit
+preg_match('/^[A-Za-z]+$/', 'test_test');  // Match: no (no _)
 ```
 
 ### Error: Forgetting to Escape Special Chars
 
 ```php
-// ❌ Wrong: . matches any character
-preg_match('/price.99/', 'priceX99');  // Matches! (X instead of .)
+// Wrong: . matches any character
+preg_match('/price.99/', 'priceX99');  // Match: yes (X instead of .)
 
-// ✅ Correct: Escape the dot
-preg_match('/price\.99/', 'priceX99');  // No match
-preg_match('/price\.99/', 'price.99');  // Matches!
+// Correct: Escape the dot
+preg_match('/price\.99/', 'priceX99');  // Match: no
+preg_match('/price\.99/', 'price.99');  // Match: yes
 ```
 
 ---
 
-## You're Ready!
+## Recap
 
 You now understand:
 - Character classes and ranges
@@ -390,10 +361,5 @@ You now understand:
 
 ---
 
-<p align="center">
-  <b>Chapter 2 Complete! →</b>
-</p>
-
----
 
 Previous: [Basics](01-basics.md) | Next: [Anchors & Boundaries](03-anchors-boundaries.md)

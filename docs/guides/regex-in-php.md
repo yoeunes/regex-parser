@@ -6,7 +6,7 @@ This guide explains how PCRE works in PHP and how RegexParser interprets the sam
 
 ## What Is PCRE?
 
-PHP uses **PCRE2** (Perl Compatible Regular Expressions) for regex operations. This is the same engine used by Perl, and it's powerful and well-tested.
+PHP uses **PCRE2** (Perl Compatible Regular Expressions) for regex operations. This is the same engine used by Perl, and it is widely used and well-tested.
 
 ```
 PCRE = Perl Compatible Regular Expressions
@@ -67,7 +67,7 @@ Use a different delimiter:
 
 ```php
 // Problem: / appears in the pattern
-$pattern = '/https://example.com/';  // ERROR!
+$pattern = '/https://example.com/';  // Error: unescaped delimiter
 
 // Solution: Use # as delimiter
 $pattern = '#https://example\.com#';
@@ -105,23 +105,23 @@ Add flags after the closing delimiter to change behavior:
 | `i`  | Case-insensitive | `/hello/i` matches "HELLO"        |
 | `m`  | Multiline        | `^` and `$` match line boundaries |
 | `s`  | Dot-all          | `.` matches newlines too          |
-| `u`  | Unicode          | Full Unicode support              |
+| `u`  | Unicode          | Unicode support                   |
 | `x`  | Extended         | Ignore whitespace, allow comments |
 
 ### Examples
 
 ```php
 // Case-insensitive
-preg_match('/hello/i', 'HELLO');  // ✅ Matches
+preg_match('/hello/i', 'HELLO');  // Match: yes
 
 // Multiline (^ and $ match each line)
-preg_match('/^error/m', "line1\nerror here");  // ✅ Matches
+preg_match('/^error/m', "line1\nerror here");  // Match: yes
 
 // Dot-all (. includes newlines)
-preg_match('/hello.world/s', "hello\nworld");  // ✅ Matches
+preg_match('/hello.world/s', "hello\nworld");  // Match: yes
 
 // Unicode
-preg_match('/^\p{L}+$/u', 'café');  // ✅ Matches Unicode letters
+preg_match('/^\p{L}+$/u', 'café');  // Match: yes (Unicode letters)
 
 // Extended mode (ignores spaces, allows comments)
 $pattern = '/(
@@ -200,11 +200,11 @@ $pattern = '/^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)[A-Za-z\d@$!%*?&]{8,}$/';
 When inserting user input into patterns, **always use `preg_quote()`**:
 
 ```php
-// ❌ DANGEROUS: User input directly in pattern!
+// DANGEROUS: User input directly in pattern!
 $userInput = 'test+';  // + is a regex special character!
 $pattern = "/$userInput/";  // Could fail or match unexpected things
 
-// ✅ SAFE: Escape user input
+// SAFE: Escape user input
 $userInput = 'test+';
 $pattern = '/'.preg_quote($userInput, '/').'/';
 echo $pattern;  // "/test\+/"
@@ -278,34 +278,34 @@ Without limits, malicious input can cause:
 ### Mistake 1: Forgetting Anchors
 
 ```php
-// ❌ Matches "bar" inside "foobar"
-preg_match('/bar/', 'foobar');  // ✅ Matches (not what we want!)
+// Unanchored pattern matches inside longer text
+preg_match('/bar/', 'foobar');  // Match: yes (not desired)
 
-// ✅ Matches only if entire string is "bar"
-preg_match('/^bar$/', 'bar');  // ✅ Matches
-preg_match('/^bar$/', 'foobar');  // ❌ No match
+// Anchors require a full-string match
+preg_match('/^bar$/', 'bar');  // Match: yes
+preg_match('/^bar$/', 'foobar');  // Match: no
 ```
 
 ### Mistake 2: Using [A-z]
 
 ```php
-// ❌ [A-z] includes characters between Z and a: [ \ ] ^ _ `
+// [A-z] includes characters between Z and a: [ \ ] ^ _ `
 // This matches underscores!
-preg_match('/^[A-z]+$/', 'hello_world');  // ✅ Matches (oops!)
+preg_match('/^[A-z]+$/', 'hello_world');  // Match: yes (unexpected)
 
-// ✅ Correct: [A-Za-z]
-preg_match('/^[A-Za-z]+$/', 'hello_world');  // ❌ No match
+// Correct: [A-Za-z]
+preg_match('/^[A-Za-z]+$/', 'hello_world');  // Match: no
 ```
 
 ### Mistake 3: Not Escaping Special Characters
 
 ```php
-// ❌ . matches any character!
-preg_match('/file.txt/', 'fileXtxt');  // ✅ Matches (wrong!)
+// . matches any character!
+preg_match('/file.txt/', 'fileXtxt');  // Match: yes (incorrect)
 
-// ✅ Escape special characters
-preg_match('/file\.txt/', 'file.txt');  // ✅ Matches
-preg_match('/file\.txt/', 'fileXtxt');  // ❌ No match
+// Escape special characters
+preg_match('/file\.txt/', 'file.txt');  // Match: yes
+preg_match('/file\.txt/', 'fileXtxt');  // Match: no
 ```
 
 ### Mistake 4: Greedy Matching
@@ -313,11 +313,11 @@ preg_match('/file\.txt/', 'fileXtxt');  // ❌ No match
 ```php
 $html = '<p>Hello</p><p>World</p>';
 
-// ❌ Greedy: matches everything to the last >
+// Greedy: matches everything to the last >
 preg_match('/<p>.*<\/p>/', $html, $m);
 echo $m[0];  // "<p>Hello</p><p>World</p>"
 
-// ✅ Lazy: matches to the first >
+// Lazy: matches to the first >
 preg_match('/<p>.*?<\/p>/', $html, $m);
 echo $m[0];  // "<p>Hello</p>"
 ```
@@ -412,7 +412,7 @@ echo $email;  // Example: "user@example.com"
 
 ## Learn More
 
-- **[Regex Tutorial](../tutorial/README.md)** - Complete step-by-step guide
+- **[Regex Tutorial](../tutorial/README.md)** - Step-by-step guide
 - **[Quick Start](../QUICK_START.md)** - Get productive in 5 minutes
 - **[ReDoS Guide](../REDOS_GUIDE.md)** - Prevent catastrophic backtracking
 - **[Cookbook](../COOKBOOK.md)** - Ready-to-use patterns

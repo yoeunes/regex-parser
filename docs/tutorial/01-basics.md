@@ -35,10 +35,10 @@ $pattern = '/hello/';  // Match the word "hello"
 ```
 
 The pattern `/hello/` will match:
-- ✅ "**hello** world"
-- ✅ "say **hello**"
-- ❌ "HELLO" (case-sensitive by default)
-- ❌ "hell" (missing "o")
+- Yes "**hello** world"
+- Yes "say **hello**"
+- No "HELLO" (case-sensitive by default)
+- No "hell" (missing "o")
 
 ### Try It
 
@@ -88,7 +88,7 @@ Add flags after the closing `/` to change behavior:
 | `i`  | Case-insensitive | `/hello/i` matches "HELLO"        |
 | `m`  | Multiline        | `^` and `$` match line boundaries |
 | `s`  | Dot-all          | `.` matches newlines              |
-| `u`  | Unicode          | Full Unicode support              |
+| `u`  | Unicode          | Unicode support                   |
 | `x`  | Extended         | Ignore whitespace, allow comments |
 
 ### Example: Case-Insensitive Match
@@ -96,9 +96,9 @@ Add flags after the closing `/` to change behavior:
 ```php
 $pattern = '/hello/i';
 
-preg_match($pattern, 'HELLO world');  // ✅ Matches!
-preg_match($pattern, 'Hello PHP');    // ✅ Matches!
-preg_match($pattern, 'heLLo');        // ✅ Matches!
+preg_match($pattern, 'HELLO world');  // Match: yes
+preg_match($pattern, 'Hello PHP');    // Match: yes
+preg_match($pattern, 'heLLo');        // Match: yes
 ```
 
 ### Try It
@@ -121,8 +121,8 @@ Every PHP regex pattern needs **delimiters** - characters that mark the beginnin
 '/pattern/'
 
 // When pattern contains /, use a different delimiter
-'#https?://#'   // Matches http:// or https://
-'~email: \S+~'  // Matches "email: something@something"
+'#https?://#'   // Example match: http:// or https://
+'~email: \S+~'  // Example match: "email: something@something"
 ```
 
 ### Valid Delimiters
@@ -139,10 +139,10 @@ Every PHP regex pattern needs **delimiters** - characters that mark the beginnin
 ### Example: URL Pattern
 
 ```php
-// ❌ Problem: / appears in the pattern
+// Problem: / appears in the pattern
 '/https://example.com/'
 
-// ✅ Solution: Use different delimiter
+// Solution: Use different delimiter
 '#https://example\.com#'
 # Note: We escape the . with \.
 ```
@@ -201,7 +201,7 @@ echo $regex->explain('/./');
 
 ---
 
-## Your First Complete Example
+## Your First Example
 
 ### Validate an Email (Simple Version)
 
@@ -225,20 +225,15 @@ if ($result->isValid()) {
 
 ### What the Pattern Does
 
-```
-/ ^ [a-z] + @ [a-z] + \. [a-z] + $ /
-│ │  │     │ │  │     │  │     │ │
-│ │  │     │ │  │     │  │     │ └─ End of string
-│ │  │     │ │  │     │  │     └─── One or more letters
-│ │  │     │ │  │     │  └───────── Literal dot
-│ │  │     │ │  │     └──────────── One or more letters
-│ │  │     │ │  └────────────────── Literal @
-│ │  │     │ └───────────────────── One or more letters
-│ │  │     └─────────────────────── Start of string
-│ │  └───────────────────────────── Character class: a-z
-│ └──────────────────────────────── Anchor: start
-└────────────────────────────────── Delimiter
-```
+Pattern components:
+- `/` delimiters
+- `^` start of string
+- `[a-z]+` one or more letters (local part)
+- `@` literal at sign
+- `[a-z]+` one or more letters (domain)
+- `\.` literal dot
+- `[a-z]+` one or more letters (TLD)
+- `$` end of string
 
 ---
 
@@ -260,13 +255,13 @@ if ($result->isValid()) {
 ### Bad: Too Broad or Wrong
 
 ```php
-// ❌ Too broad - matches almost anything
+// Too broad - matches almost anything
 '/.*/'
 
-// ❌ No anchors - matches partial emails
+// No anchors - matches partial emails
 '/[a-z]+@[a-z]+\.[a-z]+/'
 
-// ❌ Using [A-z] instead of [A-Za-z]
+// Using [A-z] instead of [A-Za-z]
 # [A-z] includes characters between Z and a in ASCII!
 '/^[A-z]+$/'
 ```
@@ -339,26 +334,26 @@ echo $regex->explain('/\$\d+\.\d{2}/');
 ### Error: "Unknown modifier"
 
 ```php
-// ❌ Wrong: /hello/a is invalid
+// Wrong: /hello/a is invalid
 $result = $regex->validate('/hello/a');
 
-// ✅ Right: Put flags after the closing /
+// Right: Put flags after the closing /
 $result = $regex->validate('/hello/i');
 ```
 
 ### Error: "Unmatched parentheses"
 
 ```php
-// ❌ Wrong: Unclosed parenthesis
+// Wrong: Unclosed parenthesis
 $result = $regex->validate('/(hello/');
 
-// ✅ Right: Matching parentheses
+// Right: Matching parentheses
 $result = $regex->validate('/(hello)/');
 ```
 
 ---
 
-## You're Ready!
+## Recap
 
 You now understand:
 - What regex patterns are
@@ -370,10 +365,5 @@ You now understand:
 
 ---
 
-<p align="center">
-  <b>Chapter 1 Complete! →</b>
-</p>
-
----
 
 Previous: [Tutorial Home](README.md) | Next: [Character Classes](02-character-classes.md)

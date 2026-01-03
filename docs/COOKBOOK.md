@@ -1,10 +1,10 @@
-# Regex Cookbook: Production-Ready Patterns for PHP
+# Regex Cookbook: Practical Patterns for PHP
 
-This cookbook provides **ReDoS**-resilient patterns for common validation and parsing tasks. Each pattern has been validated with **RegexParser**'s **ReDoS** analyzer and is designed for production use.
+This cookbook collects patterns for common validation and parsing tasks. Each pattern is checked with RegexParser's ReDoS analyzer, but you should still review and adapt them for your context.
 
-> These recipes are safe, practical patterns with RegexParser-first examples. We include a short explanation and a quick validation call so you can drop them into tooling or code reviews.
-> 
-> **Always validate and run `redos()` before accepting user-defined patterns.**
+> These recipes include a short explanation and a quick validation call so you can use them in tooling or code reviews.
+>
+> Always validate and run `redos()` before accepting user-defined patterns.
 
 ## Quick Reference
 
@@ -75,23 +75,10 @@ Each pattern includes:
 
 ### Why It's Safe
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│              PATTERN BREAKDOWN                              │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  [a-z0-9]          ──┬── Start with alphanumeric            │
-│  (...[a-z0-9])?    ──┴── Optional middle with trailing dot  │
-│  @                  ── Literal @ symbol                     │
-│  [a-z0-9]           ─── Domain starts with alphanumeric     │
-│  (...-*[a-z0-9])?  ─── Optional domain parts                │
-│  (\....)+           ─── At least one TLD                    │
-│                                                             │
-│  All quantifiers are bounded by character class limits.     │
-│  No nested or overlapping quantifiers.                      │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
+- Local part starts with an alphanumeric and allows dots, underscores, and hyphens in the middle.
+- Domain starts with an alphanumeric and allows hyphenated parts.
+- Requires at least one dot-separated TLD.
+- Quantifiers are bounded by character classes; there are no nested or overlapping repeats.
 
 ### PHP Example
 
@@ -101,8 +88,12 @@ use RegexParser\Regex;
 $email = 'user@example.com';
 $pattern = '/^[a-z0-9]([a-z0-9._-]*[a-z0-9])?@[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/i';
 
-$result = Regex::create()->validate($pattern, $email);
-echo $result->isValid() ? 'Valid' : 'Invalid';  // Output: Valid
+$regex = Regex::create();
+$result = $regex->validate($pattern);
+echo $result->isValid() ? 'Valid pattern' : 'Invalid pattern';
+
+$isMatch = preg_match($pattern, $email) === 1;
+echo $isMatch ? 'Matches' : 'Does not match';
 
 // ReDoS check
 $analysis = Regex::create()->redos($pattern);
@@ -136,21 +127,10 @@ echo $analysis->severity->value;  // Output: safe
 
 ### Why It's Safe
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│              PATTERN BREAKDOWN                              │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  https?        ─── Literal http:// or https://              │
-│  :\/\/         ─── Literal ://                              │
-│  [a-z0-9]      ─── Host starts with alphanumeric            │
-│  (...-*[a-z0-9])? ── Optional host continuation             │
-│  (\/[^\s]*)?   ─── Optional path (no spaces)                │
-│                                                             │
-│  [^\s]* is bounded by end of string and no spaces.          │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
+- Accepts `http` or `https`, then `://`.
+- Host starts with an alphanumeric and allows dots or hyphens.
+- Optional path is limited to non-space characters.
+- Repeats are bounded by character classes and string anchors.
 
 ### PHP Example
 
@@ -160,8 +140,12 @@ use RegexParser\Regex;
 $url = 'https://example.com/path?query=1';
 $pattern = '/^https?:\/\/[a-z0-9]([a-z0-9.-]*[a-z0-9])?(\/[^\s]*)?$/i';
 
-$result = Regex::create()->validate($pattern, $url);
-echo $result->isValid() ? 'Valid' : 'Invalid';  // Output: Valid
+$regex = Regex::create();
+$result = $regex->validate($pattern);
+echo $result->isValid() ? 'Valid pattern' : 'Invalid pattern';
+
+$isMatch = preg_match($pattern, $url) === 1;
+echo $isMatch ? 'Matches' : 'Does not match';
 ```
 
 ---
@@ -190,27 +174,9 @@ echo $result->isValid() ? 'Valid' : 'Invalid';  // Output: Valid
 
 ### Why It's Safe
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│              PATTERN BREAKDOWN                              │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  [0-9a-f]{8}   ─── 8 hex digits (time-low)                  │
-│  -             ─── Literal hyphen                           │
-│  [0-9a-f]{4}   ─── 4 hex digits (time-mid)                  │
-│  -             ─── Literal hyphen                           │
-│  [1-5]         ─── Version (1-5)                            │
-│  [0-9a-f]{3}   ─── 3 hex digits (time-high)                 │
-│  -             ─── Literal hyphen                           │
-│  [89ab]        ─── Variant (8, 9, a, b)                     │
-│  [0-9a-f]{3}   ─── 3 hex digits (clock-seq)                 │
-│  -             ─── Literal hyphen                           │
-│  [0-9a-f]{12}  ─── 12 hex digits (node)                     │
-│                                                             │
-│  ALL quantifiers are exact or bounded. No backtracking.     │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
+- Fixed-length hex groups with exact bounds.
+- Version and variant positions are constrained.
+- No nested quantifiers or ambiguous overlaps.
 
 ---
 
@@ -283,21 +249,9 @@ echo $result->isValid() ? 'Valid' : 'Invalid';  // Output: Valid
 
 ### Why It's Safe
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│              DATE PATTERN STRUCTURE                         │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  \d{4}          ─── 4-digit year (1000-9999)                │
-│  -              ─── Separator                               │
-│  (?:0[1-9]|1[0-2]) ── Month (01-12)                         │
-│  -              ─── Separator                               │
-│  (?:0[1-9]|[12][0-9]|3[01]) ── Day (01-31)                  │
-│                                                             │
-│  All ranges are explicit. No backtracking possible.         │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
+- Year, month, and day are bounded with explicit ranges.
+- Separators are literal and consistent.
+- No nested quantifiers or ambiguous overlaps.
 
 ### Note on Calendar Correctness
 
@@ -384,19 +338,9 @@ if (preg_match('/^\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])$/', $date))
 
 ### Why It's Safe
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│              SLUG PATTERN STRUCTURE                         │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  [a-z0-9]+        ─── At least one alphanumeric             │
-│  (?:-[a-z0-9]+)*  ─── Optional: hyphen + alphanumeric       │
-│                                                             │
-│  The second group is possessive (*) - no backtracking.      │
-│  Each segment is bounded by hyphens or end of string.       │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
+- Requires at least one alphanumeric character.
+- Allows additional segments separated by hyphens.
+- Each segment is bounded by hyphens or end of string.
 
 ---
 
@@ -463,21 +407,12 @@ if (preg_match('/^\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])$/', $date))
 
 ### Pattern Breakdown
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│              PASSWORD PATTERN ELEMENTS                      │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  (?=.*[a-z])     ─── At least one lowercase                 │
-│  (?=.*[A-Z])     ─── At least one uppercase                 │
-│  (?=.*[0-9])     ─── At least one digit                     │
-│  (?=.*[!@#$%...]) ── At least one special (strong only)     │
-│  .{8,}           ─── Minimum 8 characters                   │
-│                                                             │
-│  Lookaheads do not consume characters - no backtracking.    │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
+- `(?=.*[a-z])` requires at least one lowercase letter.
+- `(?=.*[A-Z])` requires at least one uppercase letter.
+- `(?=.*[0-9])` requires at least one digit.
+- `(?=.*[!@#$%...])` requires at least one special character (strong pattern).
+- `.{8,}` enforces minimum length.
+- Lookaheads do not consume characters, so they do not introduce backtracking.
 
 ---
 
@@ -621,53 +556,38 @@ function luhnCheck(string $number): bool
 
 ### Guidelines for ReDoS-Safe Patterns
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│              SAFE PATTERN CHECKLIST                         │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  □ Avoid nested quantifiers                                 │
-│    BAD:  /(a+)+b/                                           │
-│    GOOD: /a++b/ or /(?>a+)b/                                │
-│                                                             │
-│  □ Avoid overlapping quantifiers                            │
-│    BAD:  /(a|aa)+b/                                         │
-│    GOOD: /a+b/ (simplify when possible)                     │
-│                                                             │
-│  □ Use atomic groups or possessive quantifiers              │
-│    Use:  /a*+b/, /(?>a+)b/                                  │
-│                                                             │
-│  □ Prefer character classes over alternation                │
-│    BAD:  /(a|b|c|d)/                                        │
-│    GOOD: /[abcd]/                                           │
-│                                                             │
-│  □ Validate length before matching                          │
-│    if (strlen($input) > 100) { reject(); }                  │
-│                                                             │
-│  □ Use lookaheads for flexible validation                   │
-│    Use:  /(?=.*[a-z])[a-z]+/                                │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
+- Avoid nested quantifiers. Example: prefer `/a++b/` over `/(a+)+b/`.
+- Avoid overlapping alternations. Example: simplify `/(a|aa)+b/` to `/a+b/` when possible.
+- Use atomic groups or possessive quantifiers where appropriate (for example, `/a*+b/`).
+- Prefer character classes over alternation for simple sets (for example, `/[abcd]/`).
+- Validate input length before matching.
+- Use lookaheads for flexible validation (for example, `/(?=.*[a-z])[a-z]+/`).
 
 ### Validation Workflow
 
 ```php
 use RegexParser\Regex;
 
+$regex = Regex::create();
+
 // Step 1: Check if pattern is safe
-$analysis = Regex::create()->redos($pattern);
+$analysis = $regex->redos($pattern);
 if ($analysis->severity->value !== 'safe') {
     throw new \InvalidArgumentException('Pattern may be vulnerable to ReDoS');
 }
 
-// Step 2: Validate input format
-$result = Regex::create()->validate($pattern, $input);
+// Step 2: Validate the pattern itself
+$result = $regex->validate($pattern);
 if (!$result->isValid()) {
+    throw new \InvalidArgumentException('Invalid pattern');
+}
+
+// Step 3: Validate input format
+if (preg_match($pattern, $input) !== 1) {
     throw new \InvalidArgumentException('Invalid input format');
 }
 
-// Step 3: Apply business logic validation
+// Step 4: Apply business logic validation
 // (e.g., checkdate(), luhnCheck(), etc.)
 ```
 

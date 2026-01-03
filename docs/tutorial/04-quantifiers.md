@@ -26,18 +26,18 @@ Pattern: /pizza+/
          "pizz" + "a" one or more times
 
 Options:
-  pizza    ✅ Matches (1 a)
-  pizzza   ✅ Matches (3 a's)
-  pizz     ❌ No match (need at least 1 a)
+  pizza    Match: yes (1 a)
+  pizzza   Match: yes (3 a's)
+  pizz     Match: no (need at least 1 a)
 
 Pattern: /chips{0,2}/
          "chip" + "s" 0 to 2 times
 
 Options:
-  chip     ✅ Matches (0 s)
-  chips    ✅ Matches (1 s)
-  chipss   ✅ Matches (2 s)
-  chipsss  ❌ No match (too many s)
+  chip     Match: yes (0 s)
+  chips    Match: yes (1 s)
+  chipss   Match: yes (2 s)
+  chipsss  Match: no (too many s)
 ```
 
 ---
@@ -50,9 +50,9 @@ Matches 0 or more occurrences:
 
 ```php
 // "a" followed by zero or more "b"s
-preg_match('/ab*/', 'a');      // ✅ Matches (0 b's)
-preg_match('/ab*/', 'ab');     // ✅ Matches (1 b)
-preg_match('/ab*/', 'abbb');   // ✅ Matches (3 b's)
+preg_match('/ab*/', 'a');      // Match: yes (0 b's)
+preg_match('/ab*/', 'ab');     // Match: yes (1 b)
+preg_match('/ab*/', 'abbb');   // Match: yes (3 b's)
 ```
 
 ### + - One or More
@@ -61,9 +61,9 @@ Matches 1 or more occurrences:
 
 ```php
 // "a" followed by one or more "b"s
-preg_match('/ab+/', 'a');      // ❌ No match (need at least 1 b)
-preg_match('/ab+/', 'ab');     // ✅ Matches (1 b)
-preg_match('/ab+/', 'abbb');   // ✅ Matches (3 b's)
+preg_match('/ab+/', 'a');      // Match: no (need at least 1 b)
+preg_match('/ab+/', 'ab');     // Match: yes (1 b)
+preg_match('/ab+/', 'abbb');   // Match: yes (3 b's)
 ```
 
 ### ? - Zero or One (Optional)
@@ -72,40 +72,16 @@ Matches 0 or 1 occurrence (makes something optional):
 
 ```php
 // "a" followed by optional "b"
-preg_match('/ab?/', 'a');      // ✅ Matches (0 b)
-preg_match('/ab?/', 'ab');     // ✅ Matches (1 b)
-preg_match('/ab?/', 'abb');    // ✅ Matches "ab" (only 1 b)
+preg_match('/ab?/', 'a');      // Match: yes (0 b)
+preg_match('/ab?/', 'ab');     // Match: yes (1 b)
+preg_match('/ab?/', 'abb');    // Match: yes ("ab", only 1 b)
 ```
 
-### ASCII Diagram
+### Examples with "abbb"
 
-```
-Text: "abbb"
-
-Pattern: /ab*/
-         a  b*
-         │  └─────── b, zero or more times
-         └────────── a, exactly once
-
-         Matches: "a" + "bbb" = "abbb"
-         Matches at: "abbb" (entire string)
-
-Pattern: /ab+/
-         a  b+
-         │  └─────── b, one or more times
-         └────────── a, exactly once
-
-         Matches: "a" + "bbb" = "abbb"
-         Matches at: "abbb" (entire string)
-
-Pattern: /ab?/
-         a  b?
-         │  └─────── b, zero or one time
-         └────────── a, exactly once
-
-         Matches: "a" + "b" = "ab"
-         Matches at: "ab" (first 2 characters)
-```
+- `/ab*/` matches `"abbb"` (a followed by zero or more b).
+- `/ab+/` matches `"abbb"` (a followed by one or more b).
+- `/ab?/` matches `"ab"` (a followed by an optional b).
 
 ---
 
@@ -115,25 +91,25 @@ Use `{}` for precise control:
 
 | Pattern | Meaning          | Example Matches                  |
 |---------|------------------|----------------------------------|
-| `{n}`   | Exactly n times  | `a{3}` → "aaa"                   |
-| `{n,}`  | At least n times | `a{2,}` → "aa", "aaa", "aaaa"... |
-| `{n,m}` | Between n and m  | `a{2,4}` → "aa", "aaa", "aaaa"   |
+| `{n}`   | Exactly n times  | `a{3}` -> "aaa"                   |
+| `{n,}`  | At least n times | `a{2,}` -> "aa", "aaa", "aaaa"... |
+| `{n,m}` | Between n and m  | `a{2,4}` -> "aa", "aaa", "aaaa"   |
 
 ### Examples
 
 ```php
 // Exactly 3 digits
-preg_match('/\d{3}/', '123');      // ✅ Matches
-preg_match('/\d{3}/', '12');       // ❌ No match (only 2)
-preg_match('/\d{3}/', '1234');     // ✅ Matches "123" (first 3)
+preg_match('/\d{3}/', '123');      // Match: yes
+preg_match('/\d{3}/', '12');       // Match: no (only 2)
+preg_match('/\d{3}/', '1234');     // Match: yes ("123", first 3)
 
 // At least 2 digits
-preg_match('/\d{2,}/', '123');     // ✅ Matches
-preg_match('/\d{2,}/', '1');       // ❌ No match (only 1)
+preg_match('/\d{2,}/', '123');     // Match: yes
+preg_match('/\d{2,}/', '1');       // Match: no (only 1)
 
 // Between 2 and 4 digits
-preg_match('/\d{2,4}/', '123');    // ✅ Matches
-preg_match('/\d{2,4}/', '12345');  // ✅ Matches "1234" (first 4)
+preg_match('/\d{2,4}/', '123');    // Match: yes
+preg_match('/\d{2,4}/', '12345');  // Match: yes ("1234", first 4)
 ```
 
 ---
@@ -151,17 +127,13 @@ echo $matches[0];  // Output: "12345" (ALL digits!)
 
 ### How Greedy Matching Works
 
-```
-Text: "<p>hello</p>"
+Text: `"<p>hello</p>"`
 
-Pattern: /<.+>/
-         <  .  +>
-         │  │  └─ One or more
-         │  └──── Any character
-         └─────── Literal <
-
-Greedy match: "<p>hello</p>" (takes everything!)
-```
+- Pattern: `/<.+>/`
+- `<` is literal.
+- `.` matches any character.
+- `+` repeats one or more times.
+- Greedy matching consumes the longest possible span, so the match is `"<p>hello</p>"`.
 
 ---
 
@@ -210,10 +182,10 @@ Add `++`, `*+`, `?+` to prevent backtracking (great for ReDoS prevention):
 
 ```php
 // Regular quantifier (can backtrack)
-preg_match('/a++b/', 'aaab');  // Matches, but may cause ReDoS
+preg_match('/a++b/', 'aaab');  // Match: yes (but may cause ReDoS)
 
 // Possessive (never backtracks - faster, safer)
-preg_match('/a++b/', 'aaab');  // Matches, no backtracking
+preg_match('/a++b/', 'aaab');  // Match: yes (no backtracking)
 ```
 
 ### When to Use Possessive
@@ -247,16 +219,16 @@ preg_match('/a++b/', 'aaab');  // Matches, no backtracking
 ### Bad: Too Vague or Dangerous
 
 ```php
-// ❌ Too greedy - matches too much
+// Too greedy - matches too much
 '/.*/
 
-// ❌ Nested quantifiers - ReDoS risk!
+// Nested quantifiers - ReDoS risk!
 '/(a+)+$/
 
-// ❌ Missing bounds on user input
+// Missing bounds on user input
 preg_match('/x{0,}/', $userInput);  // Could be huge!
 
-// ✅ Better: Set reasonable limits
+// Better: Set reasonable limits
 preg_match('/x{1,100}/', $userInput);  // Reasonable limit
 ```
 
@@ -338,11 +310,11 @@ echo "Lazy: " . $m[0] . "\n";
 ```php
 $text = "123 456 789";
 
-// ❌ Wrong: Gets everything!
+// Wrong: Gets everything!
 preg_match('/\d+\s+\d+/', $text, $m);
 echo $m[0];  // "123 456 789" (all of it)
 
-// ✅ Correct: Lazy for minimal match
+// Correct: Lazy for minimal match
 preg_match('/\d+?\s+\d+?/', $text, $m);
 echo $m[0];  // "123 456" (first pair)
 ```
@@ -350,10 +322,10 @@ echo $m[0];  // "123 456" (first pair)
 ### Error: Nested Quantifiers (ReDoS Risk)
 
 ```php
-// ❌ Dangerous: Can cause exponential backtracking
+// Dangerous: Can cause exponential backtracking
 '/ (a+)+ $ /'  // DO NOT USE!
 
-// ✅ Safe: Use possessive quantifiers
+// Safe: Use possessive quantifiers
 '/(a++)+$/'   // Better
 '/a+$/'       // Even better - simplify!
 ```
@@ -361,16 +333,16 @@ echo $m[0];  // "123 456" (first pair)
 ### Error: Unbounded User Input
 
 ```php
-// ❌ Dangerous: No limit
+// Dangerous: No limit
 preg_match('/a{1,}/', $userInput);
 
-// ✅ Safe: Set reasonable limit
+// Safe: Set reasonable limit
 preg_match('/a{1,100}/', $userInput);
 ```
 
 ---
 
-## You're Ready!
+## Recap
 
 You now understand:
 - All quantifier types (`*`, `+`, `?`, `{n,m}`)
@@ -382,10 +354,5 @@ You now understand:
 
 ---
 
-<p align="center">
-  <b>Chapter 4 Complete! →</b>
-</p>
-
----
 
 Previous: [Anchors & Boundaries](03-anchors-boundaries.md) | Next: [Groups & Alternation](05-groups-alternation.md)

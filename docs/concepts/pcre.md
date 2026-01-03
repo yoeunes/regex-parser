@@ -1,8 +1,8 @@
-# 🔤 PCRE vs Other Engines
+# PCRE vs Other Engines
 
 **PCRE** (Perl Compatible Regular Expressions) is the regex engine used by PHP's `preg_*` functions. Understanding PCRE helps you write better patterns and avoid compatibility issues.
 
-## 🎯 What is PCRE?
+## What is PCRE?
 
 PCRE is a regular expression engine that:
 
@@ -11,7 +11,7 @@ PCRE is a regular expression engine that:
 - Supports advanced features like lookarounds, recursion, and Unicode
 - Uses backtracking for pattern matching
 
-## 🔍 PCRE in PHP
+## PCRE in PHP
 
 ### PHP's Regex Functions
 
@@ -30,21 +30,21 @@ preg_match_all('/pattern/', $subject, $matches); // Find all matches
 echo PCRE_VERSION; // e.g., "10.42 2022-12-11"
 ```
 
-## 🆚 PCRE vs Other Regex Engines
+## PCRE vs other regex engines
 
 | Feature               | PCRE (PHP) | JavaScript | Python | .NET |
 |-----------------------|------------|------------|--------|------|
-| Lookaheads            | ✅ Yes      | ✅ Yes      | ✅ Yes  | ✅ Yes |
-| Lookbehinds           | ✅ Yes      | ❌ No       | ✅ Yes  | ✅ Yes |
-| Variable-length lookbehind | ❌ No | ❌ No | ❌ No | ✅ Yes |
-| Recursion             | ✅ Yes      | ❌ No       | ❌ No   | ✅ Yes |
-| Atomic groups         | ✅ Yes      | ❌ No       | ✅ Yes  | ✅ Yes |
-| Possessive quantifiers| ✅ Yes      | ❌ No       | ❌ No   | ✅ Yes |
-| Unicode properties    | ✅ Yes      | ✅ Yes      | ✅ Yes  | ✅ Yes |
-| Named groups          | ✅ Yes      | ✅ Yes      | ✅ Yes  | ✅ Yes |
-| Branch reset          | ✅ Yes      | ❌ No       | ❌ No   | ❌ No  |
+| Lookaheads            | Yes        | Yes        | Yes    | Yes  |
+| Lookbehinds           | Yes        | No         | Yes    | Yes  |
+| Variable-length lookbehind | No   | No         | No     | Yes  |
+| Recursion             | Yes        | No         | No     | Yes  |
+| Atomic groups         | Yes        | No         | Yes    | Yes  |
+| Possessive quantifiers| Yes        | No         | No     | Yes  |
+| Unicode properties    | Yes        | Yes        | Yes    | Yes  |
+| Named groups          | Yes        | Yes        | Yes    | Yes  |
+| Branch reset          | Yes        | No         | No     | No   |
 
-## 🧩 PCRE-Specific Features
+## PCRE-specific features
 
 ### 1. Recursion
 
@@ -78,7 +78,7 @@ $pattern = '/a++b/';
 preg_match($pattern, 'aaaa!', $matches); // Fails quickly
 ```
 
-## 💡 PCRE Best Practices
+## PCRE best practices
 
 ### 1. Use Delimiters
 
@@ -115,13 +115,13 @@ $pattern = '/\d{3}-\d{4}/'; // Good
 $pattern = "/\d{3}-\d{4}/"; // Also works but harder to read
 ```
 
-## 🔗 Related Concepts
+## Related concepts
 
 - **[ReDoS Deep Dive](redos.md)** - PCRE's backtracking vulnerabilities
 - **[Architecture](../ARCHITECTURE.md)** - How RegexParser handles PCRE
 - **[Regex in PHP Guide](../guides/regex-in-php.md)** - PHP-specific regex details
 
-## 📚 Further Reading
+## Further reading
 
 - [PCRE Documentation](https://www.pcre.org/) - Official PCRE docs
 - [PHP Regex Functions](https://www.php.net/manual/en/book.pcre.php) - PHP manual
@@ -129,4 +129,4 @@ $pattern = "/\d{3}-\d{4}/"; // Also works but harder to read
 
 ---
 
-📖 **Previous**: [ReDoS Deep Dive](redos.md) | 🚀 **Next**: [Concepts Home](README.md)
+Previous: [ReDoS Deep Dive](redos.md) | Next: [Concepts Home](README.md)

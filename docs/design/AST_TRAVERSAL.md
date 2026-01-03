@@ -4,31 +4,7 @@ Understanding how RegexParser walks through the Abstract Syntax Tree (AST) is es
 
 ## The Tour Guide Analogy
 
-Think of the AST as a museum floor plan, and a visitor as a tour guide:
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    REGEXNODE (Entrance)                     │
-│                                                             │
-│   ┌─────────────────────────────────────────────────────┐   │
-│   │               SEQUENCENODE (Main Hall)              │   │
-│   │                                                     │   │
-│   │   ┌─────────┐  ┌─────────┐  ┌─────────────────┐     │   │
-│   │   │LITERAL  │  │ GROUP   │  │   ALTERNATION   │     │   │
-│   │   │ "foo"   │──│  ( )    │──│    ( | )        │     │   │
-│   │   └─────────┘  └─────────┘  └─────────────────┘     │   │
-│   │                         │           │               │   │
-│   │                   ┌─────┴─────┐   ┌─┴───────┐       │   │
-│   │                   │ SEQUENCE  │   │SEQUENCE │       │   │
-│   │                   │ "bar"     │   │"baz"    │       │   │
-│   │                   └───────────┘   └─────────┘       │   │
-│   │                                                     │   │
-│   └─────────────────────────────────────────────────────┘   │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
-
-The tour guide (visitor) follows a fixed path through each room (node), visiting every exhibit (child node) in order. The guide doesn't change the museum layout—they just observe, take notes, or make copies.
+Think of the AST as a museum floor plan and the visitor as a tour guide. The visitor follows a fixed path through each room (node), visiting every exhibit (child node) in order. The guide does not change the layout; it observes, records, or transforms as needed.
 
 ## Why Use the Visitor Pattern?
 
@@ -62,7 +38,7 @@ $ast = $regex->parse('/foo|bar/');
 
 // Double dispatch in action:
 // 1. RegexNode::accept(ExplainNodeVisitor)
-// 2. Calls $visitor->visitRegexNode($this)
+// 2. Calls $visitor->visitRegex($this)
 // 3. Which recursively calls accept on children
 $result = $ast->accept(new ExplainNodeVisitor());
 
@@ -77,52 +53,22 @@ AlternationNode
 */
 ```
 
-### What Happens Internally
+### What happens internally
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    CALL SEQUENCE                            │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  1. $ast->accept($visitor)                                  │
-│     └─► RegexNode::accept(visitor)                          │
-│         └─► $visitor->visitRegexNode($this)                 │
-│             └─► $this->pattern->accept($visitor)            │
-│                 └─► SequenceNode::accept(visitor)           │
-│                     └─► $visitor->visitSequenceNode($this)  │
-│                         └─► child[0]->accept($visitor)      │
-│                             └─► ...                         │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
+1. `$ast->accept($visitor)` starts the traversal.
+2. `RegexNode::accept()` calls `$visitor->visitRegex($this)`.
+3. The visitor delegates to `$this->pattern->accept($visitor)`.
+4. Each node repeats this pattern and controls how children are visited.
 
-## Traversal Strategies
+## Traversal strategies
 
-RegexParser uses **depth-first traversal** with explicit control in the visitor. Here's how different node types delegate to their children:
+RegexParser uses depth-first traversal with explicit control in the visitor. Typical delegation:
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                  TRAVERSAL BEHAVIOR                         │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  RegexNode     → delegates to pattern                       │
-│                                                             │
-│  SequenceNode  → iterates children left-to-right            │
-│                 ┌───────────────────────────────────┐       │
-│                 │ child[0] → child[1] → child[2]    │       │
-│                 └───────────────────────────────────┘       │
-│                                                             │
-│  AlternationNode → iterates alternatives                    │
-│                 ┌───────────────────────────────────┐       │
-│                 │ alt[0] → alt[1] → alt[2]          │       │
-│                 └───────────────────────────────────┘       │
-│                                                             │
-│  GroupNode     → delegates to child                         │
-│                                                             │
-│  QuantifierNode → delegates to node (repeated element)      │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
+- `RegexNode` delegates to `pattern`.
+- `SequenceNode` iterates children left-to-right.
+- `AlternationNode` iterates alternatives in order.
+- `GroupNode` delegates to `child`.
+- `QuantifierNode` delegates to the repeated node.
 
 ### Example: Tracking Depth
 
@@ -326,27 +272,13 @@ foreach ($node->alternatives as $index => $alternative) {
 
 ## Best Practices Checklist
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                 VISITOR BEST PRACTICES                      │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  □ Use AbstractNodeVisitor for partial implementations      │
-│                                                             │
-│  □ Always return a node from visit methods (even if same)   │
-│                                                             │
-│  □ Preserve source positions when creating new nodes        │
-│                                                             │
-│  □ Delegate to child.accept($this), not $this.accept($node) │
-│                                                             │
-│  □ Keep visitors pure when possible for testability         │
-│                                                             │
-│  □ Guard against deep recursion with max-depth checks       │
-│                                                             │
-│  □ Handle all node types or inherit safe defaults           │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
+- Use `AbstractNodeVisitor` for partial implementations.
+- Always return a node from visit methods (even if unchanged).
+- Preserve source positions when creating new nodes.
+- Delegate to `child->accept($this)`, not `$this->accept($node)`.
+- Keep visitors pure when possible for testability.
+- Guard against deep recursion with max-depth checks.
+- Handle all node types or inherit safe defaults.
 
 ## Performance Considerations
 

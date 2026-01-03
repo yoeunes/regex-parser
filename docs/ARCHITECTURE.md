@@ -4,17 +4,12 @@ This document explains how RegexParser works under the hood. It is written for f
 
 ## Pipeline Overview
 
-```
-/^hello$/i
-  |
-  v
-PatternParser -> {pattern, flags}
-Lexer         -> TokenStream (byte offsets)
-Parser        -> RegexNode (AST)
-Visitors      -> validation, explanation, analysis, transforms
-```
+RegexParser treats a regex literal as structured input:
 
-**RegexParser** treats a regex as code. The **lexer** turns a pattern string into tokens, the **parser** builds a tree of nodes, and **visitors** walk that tree to produce results.
+- `PatternParser` splits the literal into pattern and flags.
+- The lexer builds a `TokenStream` with byte offsets.
+- The parser builds a `RegexNode` AST.
+- Visitors walk the AST to validate, explain, analyze, or transform.
 
 ## Step 1: Parse the Regex Literal
 
@@ -72,13 +67,10 @@ This keeps lexing fast and deterministic while preserving byte offsets.
 
 The parser entry point is `parse()`, which delegates to smaller methods such as:
 
-```
-parse()
-  -> parseAlternation()
-     -> parseSequence()
-        -> parseQuantifiedAtom()
-           -> parseAtom()
-```
+- `parseAlternation()`
+- `parseSequence()`
+- `parseQuantifiedAtom()`
+- `parseAtom()`
 
 Errors raised here become `SyntaxErrorException` or `SemanticErrorException` and include byte offsets for IDE integration.
 
@@ -181,13 +173,10 @@ Findings are collected as `ReDoSFinding` objects, and the visitor records a `cul
 
 ## CLI Lint Pipeline
 
-The CLI linter is a two-stage pipeline:
+The CLI linter runs in two stages:
 
-```
-Paths -> RegexPatternExtractor -> RegexPatternOccurrence[]
-      -> RegexAnalysisService  -> RegexLintReport
-      -> Formatter (console/json/github)
-```
+1. Extract patterns from files into `RegexPatternOccurrence` entries.
+2. Analyze and format the results into a `RegexLintReport` (console/json/github).
 
 When `--jobs` is used and `pcntl_fork` is available, both extraction and analysis run in parallel workers. Each worker handles a chunk of files or patterns, and the parent process aggregates results.
 

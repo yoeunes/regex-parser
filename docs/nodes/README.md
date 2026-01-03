@@ -6,7 +6,6 @@ This reference documents every node type in the RegexParser AST. Nodes are the b
 
 Each node includes:
 - **Purpose** — What the node represents in a pattern
-- **Visual Structure** — ASCII diagram showing the node in context
 - **Fields** — Public properties you can access
 - **Example** — A PHP code snippet showing how the node is created
 - **Common Errors** — Pitfalls to avoid when working with this node type
@@ -23,17 +22,6 @@ These nodes form the backbone of every parsed pattern.
 
 **Purpose:** The root node that wraps the entire pattern, including delimiter, pattern body, and flags.
 
-**Visual Structure:**
-```
-┌─────────────────────────────────────────────────────┐
-│ RegexNode                                           │
-│ ┌─────────────────────────────────────────────────┐ │
-│ │ delimiter: '/'                                  │ │
-│ │ pattern: SequenceNode                           │ │
-│ │ flags: 'i'                                      │ │
-│ └─────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────┘
-```
 
 **Fields:**
 
@@ -69,18 +57,6 @@ $newFlags = $ast->flags . 's';
 
 **Purpose:** An ordered list of nodes that must match in sequence from left to right.
 
-**Visual Structure:**
-```
-┌─────────────────────────────────────────────────────┐
-│ SequenceNode                                        │
-│ ┌────────────────────────────────────────────────┐  │
-│ │ children: [                                    │  │
-│ │   LiteralNode("f"),                            │  │
-│ │   LiteralNode("o"),                            │  │
-│ │   LiteralNode("o")                             │  │
-│ │ ]                                              │  │
-└─────────────────────────────────────────────────────┘
-```
 
 **Fields:**
 | Field | Type | Description |
@@ -116,17 +92,6 @@ $newSequence = new SequenceNode($newChildren, $sequence->startPosition, $sequenc
 
 **Purpose:** Branches separated by the `|` operator. Matches if any alternative matches.
 
-**Visual Structure:**
-```
-┌─────────────────────────────────────────────────────┐
-│ AlternationNode                                     │
-│ ┌────────────────────────────────────────────────┐  │
-│ │ alternatives: [                                │  │
-│ │   SequenceNode([LiteralNode("foo")]),          │  │
-│ │   SequenceNode([LiteralNode("bar")])           │  │
-│ │ ]                                              │  │
-└─────────────────────────────────────────────────────┘
-```
 
 **Fields:**
 
@@ -176,17 +141,6 @@ foreach ($alternation->alternatives as $alt) {
 
 **Purpose:** Groups multiple nodes together. Can be capturing, non-capturing, lookaround, atomic, or inline flags.
 
-**Visual Structure:**
-```
-┌─────────────────────────────────────────────────────┐
-│ GroupNode                                           │
-│ ┌────────────────────────────────────────────────┐  │
-│ │ type: T_GROUP_CAPTURING                        │  │
-│ │ child: SequenceNode                            │  │
-│ │ name: 'foo' (if named)                         │  │
-│ │ flags: null (if no inline flags)               │  │
-└─────────────────────────────────────────────────────┘
-```
 
 **Fields:**
 
@@ -243,18 +197,6 @@ echo $lookahead->type === GroupType::T_GROUP_LOOKAHEAD_POSITIVE;  // true
 
 **Purpose:** Repeats a node a specified number of times.
 
-**Visual Structure:**
-```
-┌─────────────────────────────────────────────────────┐
-│ QuantifierNode                                      │
-│ ┌────────────────────────────────────────────────┐  │
-│ │ node: LiteralNode("a")                         │  │
-│ │ quantifier: "+"                                │  │
-│ │ type: T_GREEDY                                 │  │
-│ │ min: 1                                         │  │
-│ │ max: null (unbounded)                          │  │
-└─────────────────────────────────────────────────────┘
-```
 
 **Fields:**
 
@@ -307,14 +249,6 @@ echo $quantifier->node->value;  // 'a'
 
 **Purpose:** Represents literal (unescaped) characters or escaped literal sequences.
 
-**Visual Structure:**
-```
-┌─────────────────────────────────────────────────────┐
-│ LiteralNode                                         │
-│ ┌────────────────────────────────────────────────┐  │
-│ │ value: "hello"                                 │  │
-└─────────────────────────────────────────────────────┘
-```
 
 **Fields:**
 
@@ -348,16 +282,6 @@ echo count($ast->pattern->children);  // 1 (one literal for "hello")
 
 **Purpose:** Represents a single escaped character with a specific representation (Unicode, octal, hex, etc.).
 
-**Visual Structure:**
-```
-┌─────────────────────────────────────────────────────┐
-│ CharLiteralNode                                     │
-│ ┌────────────────────────────────────────────────┐  │
-│ │ originalRepresentation: "\x{1F600}"            │  │
-│ │ codePoint: 128512                              │  │
-│ │ type: UNICODE                                  │  │
-└─────────────────────────────────────────────────────┘
-```
 
 **Fields:**
 
@@ -393,14 +317,6 @@ echo $char->originalRepresentation;  // '\x{1F600}'
 
 **Purpose:** Character type escapes like `\d`, `\w`, `\s`, and their negations.
 
-**Visual Structure:**
-```
-┌─────────────────────────────────────────────────────┐
-│ CharTypeNode                                        │
-│ ┌────────────────────────────────────────────────┐  │
-│ │ value: "d" (or "D", "w", "W", "s", "S")        │  │
-└─────────────────────────────────────────────────────┘
-```
 
 **Fields:**
 
@@ -433,13 +349,6 @@ echo $digitClass->value;  // 'd'
 
 **Purpose:** The dot token `.` which matches any character except newlines (unless `s` flag is set).
 
-**Visual Structure:**
-```
-┌─────────────────────────────────────────────────────┐
-│ DotNode (no fields)                                 │
-│ Matches: any character except \n                    │
-└─────────────────────────────────────────────────────┘
-```
 
 **Example:**
 ```php
@@ -455,10 +364,10 @@ echo $dot instanceof \RegexParser\Node\DotNode;  // true
 ```php
 // WRONG: Assuming . matches newlines
 // Without /s flag, . does NOT match \n
-preg_match('/./', "\n", $matches);  // No match
+preg_match('/./', "\n", $matches);  // Match: no
 
 // With /s flag, . matches newlines
-preg_match('/./s', "\n", $matches);  // Match!
+preg_match('/./s', "\n", $matches);  // Match: yes
 ```
 
 ---
@@ -467,14 +376,6 @@ preg_match('/./s', "\n", $matches);  // Match!
 
 **Purpose:** Start (`^`) and end (`$`) anchors, and string anchors like `\A`, `\z`.
 
-**Visual Structure:**
-```
-┌─────────────────────────────────────────────────────┐
-│ AnchorNode                                          │
-│ ┌────────────────────────────────────────────────┐  │
-│ │ value: "^" (or "$", "\A", "\z")                │  │
-└─────────────────────────────────────────────────────┘
-```
 
 **Fields:**
 
@@ -510,14 +411,6 @@ echo $endAnchor->value;    // '$'
 
 **Purpose:** Zero-width assertions that are not anchors, like word boundaries (`\b`, `\B`).
 
-**Visual Structure:**
-```
-┌─────────────────────────────────────────────────────┐
-│ AssertionNode                                       │
-│ ┌────────────────────────────────────────────────┐  │
-│ │ value: "b" (or "B")                            │  │
-└─────────────────────────────────────────────────────┘
-```
 
 **Fields:**
 
@@ -550,8 +443,8 @@ echo $assertion->value;  // 'b'
 ```php
 // WRONG: Confusing \b with [a-zA-Z_]
 // \b is a POSITION assertion, not a character class
-preg_match('/\b/', 'word', $matches);  // Matches at position 0
-preg_match('/[a-z]/', 'word', $matches);  // Matches 'w'
+preg_match('/\b/', 'word', $matches);  // Match: yes (at position 0)
+preg_match('/[a-z]/', 'word', $matches);  // Match: yes ('w')
 
 // They are different!
 ```
@@ -564,15 +457,6 @@ preg_match('/[a-z]/', 'word', $matches);  // Matches 'w'
 
 **Purpose:** Character classes `[...]` including negated classes `[^...]`. Supports nested classes and operations like `&&` (intersection) and `--` (subtraction).
 
-**Visual Structure:**
-```
-┌─────────────────────────────────────────────────────┐
-│ CharClassNode                                       │
-│ ┌────────────────────────────────────────────────┐  │
-│ │ expression: RangeNode or UnionNode             │  │
-│ │ isNegated: false                               │  │
-└─────────────────────────────────────────────────────┘
-```
 
 **Fields:**
 
@@ -596,10 +480,10 @@ echo $class->expression instanceof \RegexParser\Node\RangeNode;  // true
 ```php
 // WRONG: [A-z] includes characters between Z and a
 // In ASCII: [, \, ], ^, _, `
-preg_match('/[A-z]/', '_', $matches);  // Match!
+preg_match('/[A-z]/', '_', $matches);  // Match: yes (includes _)
 
 // RIGHT: Use [A-Za-z]
-preg_match('/[A-Za-z]/', '_', $matches);  // No match!
+preg_match('/[A-Za-z]/', '_', $matches);  // Match: no (no underscore)
 ```
 
 ---
@@ -608,15 +492,6 @@ preg_match('/[A-Za-z]/', '_', $matches);  // No match!
 
 **Purpose:** A range within a character class, like `a-z` or `0-9`.
 
-**Visual Structure:**
-```
-┌─────────────────────────────────────────────────────┐
-│ RangeNode                                           │
-│ ┌────────────────────────────────────────────────┐  │
-│ │ start: CharLiteralNode("a")                    │  │
-│ │ end: CharLiteralNode("z")                      │  │
-└─────────────────────────────────────────────────────┘
-```
 
 **Fields:**
 
@@ -642,14 +517,6 @@ echo $range->end->value;    // 'z'
 
 **Purpose:** POSIX character classes inside character classes, like `[[:alpha:]]`.
 
-**Visual Structure:**
-```
-┌─────────────────────────────────────────────────────┐
-│ PosixClassNode                                      │
-│ ┌────────────────────────────────────────────────┐  │
-│ │ class: "alpha" (or "digit", "space", etc.)     │  │
-└─────────────────────────────────────────────────────┘
-```
 
 **Fields:**
 
@@ -685,15 +552,6 @@ echo $posix->class;  // 'digit'
 
 **Purpose:** Unicode property escapes like `\p{L}` (letters) or `\P{Lu}` (non-uppercase letters).
 
-**Visual Structure:**
-```
-┌─────────────────────────────────────────────────────┐
-│ UnicodePropNode                                     │
-│ ┌────────────────────────────────────────────────┐  │
-│ │ prop: "L" (or "Lu", "Sc", etc.)                │  │
-│ │ hasBraces: true                                │  │
-└─────────────────────────────────────────────────────┘
-```
 
 **Fields:**
 
@@ -732,14 +590,6 @@ echo $prop->hasBraces;  // true
 
 **Purpose:** A single Unicode code point escape like `\x{1F600}`.
 
-**Visual Structure:**
-```
-┌─────────────────────────────────────────────────────┐
-│ UnicodeNode                                         │
-│ ┌────────────────────────────────────────────────┐  │
-│ │ code: "1F600"                                  │  │
-└─────────────────────────────────────────────────────┘
-```
 
 **Fields:**
 
@@ -765,14 +615,6 @@ echo $unicode->code;  // '1F600'
 
 **Purpose:** Backreference to a previously captured group, like `\1` or `\k<name>`.
 
-**Visual Structure:**
-```
-┌─────────────────────────────────────────────────────┐
-│ BackrefNode                                         │
-│ ┌────────────────────────────────────────────────┐  │
-│ │ ref: "1" (or "name")                           │  │
-└─────────────────────────────────────────────────────┘
-```
 
 **Fields:**
 
@@ -797,7 +639,7 @@ echo $backref->ref;  // '1'
 preg_match('/\1(\w)/', 'a', $matches);  // Error or no match
 
 // RIGHT: Reference after capture
-preg_match('/(\w)\1/', 'aa', $matches);  // Match!
+preg_match('/(\w)\1/', 'aa', $matches);  // Match: yes
 ```
 
 ---
@@ -806,16 +648,6 @@ preg_match('/(\w)\1/', 'aa', $matches);  // Match!
 
 **Purpose:** Conditional pattern `(?(condition)yes|no)` that matches different things based on a condition.
 
-**Visual Structure:**
-```
-┌─────────────────────────────────────────────────────┐
-│ ConditionalNode                                     │
-│ ┌────────────────────────────────────────────────┐  │
-│ │ condition: BackrefNode or AssertionNode        │  │
-│ │ yes: SequenceNode                              │  │
-│ │ no: SequenceNode                               │  │
-└─────────────────────────────────────────────────────┘
-```
 
 **Fields:**
 
@@ -842,15 +674,6 @@ echo $conditional->condition->ref;  // '1'
 
 **Purpose:** Subroutine call to reuse a capture group pattern, like `(?1)` or `(?&name)`.
 
-**Visual Structure:**
-```
-┌─────────────────────────────────────────────────────┐
-│ SubroutineNode                                      │
-│ ┌────────────────────────────────────────────────┐  │
-│ │ reference: "1" (or "name")                     │  │
-│ │ syntax: "?1" (or "?&name")                     │  │
-└─────────────────────────────────────────────────────┘
-```
 
 **Fields:**
 
@@ -877,14 +700,6 @@ echo $subroutine->syntax;     // '?&paren'
 
 **Purpose:** `(?DEFINE...)` block that defines subpatterns without matching them.
 
-**Visual Structure:**
-```
-┌─────────────────────────────────────────────────────┐
-│ DefineNode                                          │
-│ ┌────────────────────────────────────────────────┐  │
-│ │ content: NodeInterface                         │  │
-└─────────────────────────────────────────────────────┘
-```
 
 **Fields:**
 
@@ -910,14 +725,6 @@ echo $define->content instanceof \RegexParser\Node\SequenceNode;  // true
 
 **Purpose:** PCRE verbs like `(*ACCEPT)`, `(*FAIL)`, `(*SKIP)` that control matching behavior.
 
-**Visual Structure:**
-```
-┌─────────────────────────────────────────────────────┐
-│ PcreVerbNode                                        │
-│ ┌────────────────────────────────────────────────┐  │
-│ │ verb: "ACCEPT" (or "FAIL", "SKIP", etc.)       │  │
-└─────────────────────────────────────────────────────┘
-```
 
 **Fields:**
 
@@ -952,14 +759,6 @@ echo $verb->verb;  // 'FAIL'
 
 **Purpose:** `(*LIMIT_MATCH=...)` verb that sets a protective limit against runaway backtracking.
 
-**Visual Structure:**
-```
-┌─────────────────────────────────────────────────────┐
-│ LimitMatchNode                                      │
-│ ┌────────────────────────────────────────────────┐  │
-│ │ limit: 1000                                    │  │
-└─────────────────────────────────────────────────────┘
-```
 
 **Fields:**
 

@@ -38,8 +38,8 @@ Matches the beginning of the input:
 
 ```php
 // Does the string START with "error"?
-preg_match('/^error/i', 'Error occurred');     // ✅ Matches
-preg_match('/^error/i', 'File error occurred'); // ❌ No match (not at start)
+preg_match('/^error/i', 'Error occurred');     // Match: yes
+preg_match('/^error/i', 'File error occurred'); // Match: no (not at start)
 ```
 
 ### The Dollar Sign $ - End of String
@@ -48,8 +48,8 @@ Matches the end of the input:
 
 ```php
 // Does the string END with "error"?
-preg_match('/error$/i', 'File error');         // ✅ Matches
-preg_match('/error$/i', 'error in file');      // ❌ No match (not at end)
+preg_match('/error$/i', 'File error');         // Match: yes
+preg_match('/error$/i', 'error in file');      // Match: no (not at end)
 ```
 
 ### Together: Exact Match
@@ -58,28 +58,18 @@ Combine `^` and `$` to match the **entire** string:
 
 ```php
 // Is the string EXACTLY "hello"?
-preg_match('/^hello$/', 'hello');    // ✅ Matches
-preg_match('/^hello$/', 'hello!');   // ❌ No match (has '!')
-preg_match('/^hello$/', 'say hello'); // ❌ No match (not exact)
+preg_match('/^hello$/', 'hello');    // Match: yes
+preg_match('/^hello$/', 'hello!');   // Match: no (has '!')
+preg_match('/^hello$/', 'say hello'); // Match: no (not exact)
 ```
 
-### ASCII Diagram
+### Anchor intuition
 
-```
-Text: "error occurred"
+Text: `"error occurred"`
 
-Pattern: /^error/
-         ^^^^^^
-         Matches at position 0 (start)
-         
-Pattern: /error$/
-              ^^^^^
-              No match (error is not at end)
-
-Pattern: /^error$/
-         ^^^^^^^^
-         No match (entire string is not "error")
-```
+- `/^error/` matches because `error` starts at position 0.
+- `/error$/` does not match because `error` is not at the end.
+- `/^error$/` does not match because the string has extra characters.
 
 ---
 
@@ -94,10 +84,10 @@ Unlike `^`, `\A` never matches at line boundaries (even with `/m` flag):
 $text = "line1\nline2\nline3";
 
 // ^ matches at start of ANY line with /m
-preg_match('/^line/m', $text);  // ✅ Matches (line1)
+preg_match('/^line/m', $text);  // Match: yes (line1)
 
 // \A ONLY matches at the absolute start
-preg_match('/\Aline/m', $text); // ✅ Matches (line1 only)
+preg_match('/\Aline/m', $text); // Match: yes (line1 only)
 ```
 
 ### `\z` - End of Subject (Always)
@@ -108,11 +98,11 @@ Unlike `$`, `\z` only matches the absolute end:
 $text = "line1\nline2\nline3";
 
 // $ matches at end of ANY line with /m
-preg_match('/line3$/m', $text);  // ✅ Matches
+preg_match('/line3$/m', $text);  // Match: yes
 
 // \z ONLY matches at the absolute end
-preg_match('/line3\z/m', $text); // ✅ Matches
-preg_match('/line2\z/m', $text); // ❌ No match (not at absolute end)
+preg_match('/line3\z/m', $text); // Match: yes
+preg_match('/line2\z/m', $text); // Match: no (not at absolute end)
 ```
 
 ### When to Use Absolute Anchors
@@ -132,52 +122,24 @@ A `\b` matches the **boundary between a word character** (`\w`) **and a non-word
 
 ```php
 // Match whole word "cat"
-preg_match('/\bcat\b/', 'category');    // ❌ No match (cat is part of word)
-preg_match('/\bcat\b/', 'the cat sat'); // ✅ Matches (standalone word)
-preg_match('/\bcat\b/', 'catastrophe'); // ❌ No match (starts word)
+preg_match('/\bcat\b/', 'category');    // Match: no (cat is part of word)
+preg_match('/\bcat\b/', 'the cat sat'); // Match: yes (standalone word)
+preg_match('/\bcat\b/', 'catastrophe'); // Match: no (starts word)
 ```
 
 ### Word Boundary Examples
 
 | Pattern     | Text              | Match? | Why                      |
 |-------------|-------------------|--------|--------------------------|
-| `/\bcat\b/` | "the **cat** sat" | ✅      | Boundaries on both sides |
-| `/\bcat\b/` | "**cat**astrophe" | ❌      | No boundary after cat    |
-| `/\bcat\b/` | "wild**cat**"     | ❌      | No boundary before cat   |
-| `/\bcat/`   | "**cat**egory"    | ✅      | Boundary before cat      |
-| `/cat\b/`   | "wild**cat**"     | ✅      | Boundary after cat       |
+| `/\bcat\b/` | "the **cat** sat" | Yes      | Boundaries on both sides |
+| `/\bcat\b/` | "**cat**astrophe" | No      | No boundary after cat    |
+| `/\bcat\b/` | "wild**cat**"     | No      | No boundary before cat   |
+| `/\bcat/`   | "**cat**egory"    | Yes      | Boundary before cat      |
+| `/cat\b/`   | "wild**cat**"     | Yes      | Boundary after cat       |
 
-### ASCII Diagram: Word Boundaries
+### Word boundary intuition
 
-```
-Text: "the cat sat"
-
-Word characters: \w = [a-zA-Z0-9_]
-Non-word characters: \W = everything else
-
-Positions:
-  t h e   c a t   s a t
-  ↑ ↑ ↑   ↑ ↑ ↑   ↑ ↑ ↑
-  │ │ │   │ │ │   │ │ │
-  │ │ │   │ │ │   │ │ └── \b (t is word, end is word) → NO BOUNDARY
-  │ │ │   │ │ │   │ │
-  │ │ │   │ │ │   │ └──── \b (t is word, space is not) → BOUNDARY ✓
-  │ │ │   │ │ │   │
-  │ │ │   │ │ │   └────── \b (space is not, s is word) → BOUNDARY ✓
-  │ │ │   │ │ │
-  │ │ │   │ │ └────────── \b (t is word, space is not) → BOUNDARY ✓
-  │ │ │   │ │           Matches "cat" here! ✓
-  │ │ │   │ │
-  │ │ │   │ └──────────── \b (a is word, t is word) → NO BOUNDARY
-  │ │ │   │
-  │ │ │   └────────────── \b (space is not, c is word) → BOUNDARY ✓
-  │ │ │
-  │ │ └────────────────── \b (e is word, space is not) → BOUNDARY ✓
-  │ │
-  │ └──────────────────── \b (h is word, e is word) → NO BOUNDARY
-  │
-  └────────────────────── \b (start is not, t is word) → BOUNDARY ✓
-```
+`\b` matches the boundary between a word character (`[A-Za-z0-9_]`) and a non-word character. In `"the cat sat"`, the word "cat" is bounded by spaces, so `\bcat\b` matches.
 
 ---
 
@@ -197,16 +159,16 @@ Positions:
 
 ```php
 // Check if string is a number
-preg_match('/^\d+$/', '12345');     // ✅ Matches
-preg_match('/^\d+$/', '123-45');    // ❌ No match (has hyphen)
+preg_match('/^\d+$/', '12345');     // Match: yes
+preg_match('/^\d+$/', '123-45');    // Match: no (has hyphen)
 
 // Validate file extension
-preg_match('/\.(jpg|png|gif)$/i', 'image.jpg');  // ✅ Matches
-preg_match('/\.(jpg|png|gif)$/i', 'image.doc');  // ❌ No match
+preg_match('/\.(jpg|png|gif)$/i', 'image.jpg');  // Match: yes
+preg_match('/\.(jpg|png|gif)$/i', 'image.doc');  // Match: no
 
 // Check for exact phrase
-preg_match('/^hello world$/', 'hello world');    // ✅ Matches
-preg_match('/^hello world$/', 'hello world!');   // ❌ No match
+preg_match('/^hello world$/', 'hello world');    // Match: yes
+preg_match('/^hello world$/', 'hello world!');   // Match: no
 ```
 
 ---
@@ -229,16 +191,16 @@ preg_match('/^hello world$/', 'hello world!');   // ❌ No match
 ### Bad: Missing Anchors
 
 ```php
-// ❌ Without anchors, matches partial strings
-'/[a-z]+@[a-z]+\.[a-z]+/'  // Matches "foo@bar.com" in "xyz foo@bar.com xyz"
+// Without anchors, matches partial strings
+'/[a-z]+@[a-z]+\.[a-z]+/'  // Example match: "foo@bar.com" in "xyz foo@bar.com xyz"
 
-// ✅ With anchors, matches entire string
+// With anchors, matches entire string
 '/^[a-z]+@[a-z]+\.[a-z]+$/'  // Only matches if ENTIRE string is an email
 
-// ❌ Forgetting \b allows partial word matches
-'/cat/'  // Matches "cat" in "category"
+// Forgetting \b allows partial word matches
+'/cat/'  // Example match: "cat" in "category"
 
-// ✅ With \b, matches whole words only
+// With \b, matches whole words only
 '/\bcat\b/'  // Only matches "cat" as a standalone word
 ```
 
@@ -257,10 +219,10 @@ For each pattern, determine if it matches the text:
 
 ```php
 // Answers:
-// 1. ❌ No - "hello world" is not exactly "hello"
-// 2. ✅ Yes - text ends with "hello"
-// 3. ❌ No - "category" has "cat" as part of a larger word
-// 4. ❌ No - "123abc" contains non-digits
+// 1. No - "hello world" is not exactly "hello"
+// 2. Yes - text ends with "hello"
+// 3. No - "category" has "cat" as part of a larger word
+// 4. No - "123abc" contains non-digits
 ```
 
 ### Exercise 2: Write Patterns
@@ -326,12 +288,12 @@ foreach ($patterns as $pattern) {
 ### Error: Forgetting Anchors in Validation
 
 ```php
-// ❌ Wrong: Partial match
-preg_match('/^[0-9]+$/', '123-456');  // ❌ No match (has hyphen)
-preg_match('/[0-9]+/', '123-456');    // ✅ Matches "123"
+// Wrong: Partial match
+preg_match('/^[0-9]+$/', '123-456');  // Match: no (has hyphen)
+preg_match('/[0-9]+/', '123-456');    // Match: yes ("123")
 
-// ✅ Correct: Anchors for validation
-preg_match('/^[0-9]+$/', '123456');   // ✅ Matches
+// Correct: Anchors for validation
+preg_match('/^[0-9]+$/', '123456');   // Match: yes
 ```
 
 ### Error: `$` vs `\z`
@@ -340,25 +302,25 @@ preg_match('/^[0-9]+$/', '123456');   // ✅ Matches
 $text = "line1\nline2\nline3";
 
 // $ matches the last line with /m
-preg_match('/line2$/m', $text);  // ✅ Matches (line2 is end of a line)
+preg_match('/line2$/m', $text);  // Match: yes (line2 is end of a line)
 
 // \z only matches the absolute end
-preg_match('/line2\z/m', $text); // ❌ No match (line2 is not at end)
+preg_match('/line2\z/m', $text); // Match: no (line2 is not at end)
 ```
 
 ### Error: Word Boundary Confusion
 
 ```php
 // \b at start and end of underscores
-preg_match('/\b_\w+_\b/', '_hello_');  // ❌ No match (_ is part of \w)
+preg_match('/\b_\w+_\b/', '_hello_');  // Match: no (_ is part of \w)
 
 // Underscores are word characters!
-preg_match('/__\w+__/', '__hello__');  // ✅ Matches
+preg_match('/__\w+__/', '__hello__');  // Match: yes
 ```
 
 ---
 
-## You're Ready!
+## Recap
 
 You now understand:
 - Start (`^`) and end (`$`) anchors
@@ -371,10 +333,5 @@ You now understand:
 
 ---
 
-<p align="center">
-  <b>Chapter 3 Complete! →</b>
-</p>
-
----
 
 Previous: [Character Classes](02-character-classes.md) | Next: [Quantifiers](04-quantifiers.md)

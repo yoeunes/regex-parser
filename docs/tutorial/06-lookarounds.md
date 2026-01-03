@@ -6,19 +6,13 @@
 
 ## What are Lookarounds?
 
-**Lookarounds** check what's around a position **without matching it**. Think of them like a **security camera** - they observe but don't take:
+**Lookarounds** check what's around a position without consuming it. They assert context rather than match text.
 
-```
-Text: "price is $100"
-
-Pattern: /(?<=\$)\d+/
-         └────┬────┘ └┘
-         Lookbehind  Digits
-         
-         Matches: "100"
-         Lookbehind: "Must be preceded by $"
-         (The $ is NOT included in the match!)
-```
+Example:
+- Pattern: `/(?<=\$)\d+/`
+- `(?<=\$)` asserts that a `$` appears before the digits.
+- `\d+` matches the digits.
+- Match: `"100"` (the `$` is not included).
 
 ### Real-World Analogy
 
@@ -91,26 +85,15 @@ echo $matches[0];  // "100"
 
 ---
 
-## ASCII Diagram: Lookaround Behavior
+## Lookaround behavior example
 
-```
-Text: "price is $100"
+Text: `"price is $100"`
 
-Pattern: /(?<=\$)\d+/
+Pattern: `/(?<=\$)\d+/`
 
-Position analysis:
-  p r i c e   i s   $ 1 0 0
-              ^    ^  ^  ^  ^
-              │    │  │  │  │
-              │    │  │  │  └─ Position 9: Digit, preceded by 0 ✓
-              │    │  │  └──── Position 8: Digit, preceded by $ ✓
-              │    │  └─────── Position 7: $, not a digit
-              │    └────────── Position 6: Space
-              └─────────────── Position 0-5: Not relevant
-
-Matches: "100" at positions 7-9
-         The $ at position 7 is CHECKED but NOT MATCHED
-```
+- The engine checks each digit position for a preceding `$`.
+- It matches `"100"`.
+- The `$` is asserted by the lookbehind but not included in the match.
 
 ---
 
@@ -158,11 +141,11 @@ echo $matches[0];  // "image" (extension not included)
 In PCRE, lookbehind must have a **bounded maximum length**:
 
 ```php
-// ❌ Invalid: Unbounded lookbehind (infinite possible)
-preg_match('/(?<=a+)b/', 'aaab');  // ERROR!
+// Invalid: Unbounded lookbehind (infinite possible)
+preg_match('/(?<=a+)b/', 'aaab');  // Error: unbounded lookbehind
 
-// ✅ Valid: Bounded lookbehind (max 3 characters)
-preg_match('/(?<=a{1,3})b/', 'aaab');  // OK
+// Valid: Bounded lookbehind (max 3 characters)
+preg_match('/(?<=a{1,3})b/', 'aaab');  // Match: yes
 ```
 
 ### Variable-Length Lookbehind Detection
@@ -199,14 +182,14 @@ if (!$result->isValid()) {
 ### Bad: Invalid or Confusing
 
 ```php
-// ❌ Variable-length lookbehind (invalid in PCRE)
+// Variable-length lookbehind (invalid in PCRE)
 /(?<=a+)b/
 
-// ❌ Using lookbehind when lookahead is clearer
+// Using lookbehind when lookahead is clearer
 // Match "foo" after "bar" - lookbehind is harder
 /(?<=bar)foo/
 
-// ✅ Match "bar" before "foo" - lookahead is clearer
+// Match "bar" before "foo" - lookahead is clearer
 /(?=bar)foo/
 ```
 
@@ -281,11 +264,11 @@ echo $pattern . ": " . ($result->isValid() ? "Valid" : "Invalid") . "\n";
 ### Error: Variable-Length Lookbehind
 
 ```php
-// ❌ Invalid in PCRE
-preg_match('/(?<=a+)b/', 'aaab');  // ERROR!
+// Invalid in PCRE
+preg_match('/(?<=a+)b/', 'aaab');  // Error: unbounded lookbehind
 
-// ✅ Valid: Specify bounds
-preg_match('/(?<=a{1,10})b/', 'aaab');  // OK
+// Valid: Specify bounds
+preg_match('/(?<=a{1,10})b/', 'aaab');  // Match: yes
 ```
 
 ### Error: Forgetting Lookaround is Zero-Width
@@ -300,16 +283,16 @@ echo $matches[0];  // "5" (same position checked twice!)
 
 ```php
 // Checking if "foo" comes after "bar"
-// ❌ Unnatural: Lookbehind reads backward
+// Unnatural: Lookbehind reads backward
 /(?<=bar)foo/
 
-// ✅ Better: Lookahead reads forward
+// Better: Lookahead reads forward
 /(?=bar)foo/
 ```
 
 ---
 
-## You're Ready!
+## Recap
 
 You now understand:
 - All four lookaround types
@@ -321,10 +304,5 @@ You now understand:
 
 ---
 
-<p align="center">
-  <b>Chapter 6 Complete! →</b>
-</p>
-
----
 
 Previous: [Groups & Alternation](05-groups-alternation.md) | Next: [Backreferences](07-backreferences-recursion.md)

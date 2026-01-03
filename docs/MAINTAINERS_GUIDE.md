@@ -54,7 +54,7 @@ Your app -> RegexParser -> AST + visitors -> results
 | `max_recursion_depth`     | Set parser recursion limit                |
 | `php_version`             | Target PHP version for validation         |
 
-For a complete list of options, types, and default values, please refer to the [API Reference](reference/api.md#configuration-options).
+For a full list of options, types, and default values, see the [API Reference](reference/api.md#configuration-options).
 
 ### Configuration flow
 
@@ -64,7 +64,7 @@ Regex::create([options])
   -> build Regex instance
 ```
 
-### Complete Example
+### Example
 
 ```php
 use RegexParser\Regex;
@@ -98,8 +98,7 @@ $regex = Regex::create([
 ]);
 
 // FIX: Use null to disable cache, or ensure path exists
-$regex = Regex::create(['cache' => null]);  // OK
-$regex = Regex::create(['cache' => '/tmp/regex-cache']);  // OK if writable
+$regex = Regex::create(['cache' => null]);  // $regex = Regex::create(['cache' => '/tmp/regex-cache']);  // if writable
 
 // PITFALL 2: max_lookbehind too high
 // ERROR: Unbounded lookbehinds are invalid in PCRE
@@ -119,47 +118,32 @@ $regex = Regex::create([
 ]);
 
 // FIX: Use valid version string or integer
-$regex = Regex::create(['php_version' => '8.2']);   // OK
-$regex = Regex::create(['php_version' => 80200]);   // OK (PHP_VERSION_ID)
+$regex = Regex::create(['php_version' => '8.2']);   // $regex = Regex::create(['php_version' => 80200]);   // (PHP_VERSION_ID)
 ```
 
 ---
 
 ## Exception Hierarchy
 
-RegexParser exposes a clean, stable exception surface designed for precise error handling:
+RegexParser exposes a stable exception surface for precise error handling:
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│              EXCEPTION HIERARCHY                            │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  Throwable                                                  │
-│      │                                                      │
-│      ├── RegexException                                     │
-│      │   ├── LexerException                                 │
-│      │   ├── ParserException                                │
-│      │   │   ├── SyntaxErrorException                       │
-│      │   │   └── SemanticErrorException                     │
-│      │   ├── RecursionLimitException                        │
-│      │   └── ResourceLimitException                         │
-│      │                                                      │
-│      └── RegexParserExceptionInterface                      │
-│          (all parser/lexer errors)                          │
-│                                                             │
-│  ┌─────────────────────────────────────────────────────────┐│
-│  │ CATCH-ALL: RegexParserExceptionInterface                ││
-│  │                                                         ││
-│  │ use RegexParser\Exception\RegexParserExceptionInterface;││
-│  │                                                         ││
-│  │ SPECIFIC: LexerException | ParserException              ││
-│  │                                                         ││
-│  │ use RegexParser\Exception\LexerException;               ││
-│  │ use RegexParser\Exception\ParserException;              ││
-│  └─────────────────────────────────────────────────────────┘│
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
+Exception hierarchy (simplified):
+- `Throwable`
+  - `RegexException`
+    - `LexerException`
+    - `ParserException`
+      - `SyntaxErrorException`
+      - `SemanticErrorException`
+    - `RecursionLimitException`
+    - `ResourceLimitException`
+- `RegexParserExceptionInterface` (implemented by parser/lexer exceptions)
+
+Catch-all:
+- `RegexParserExceptionInterface`
+
+Specific catches:
+- `LexerException`
+- `ParserException`
 
 ### Exception Handling Examples
 
@@ -218,55 +202,54 @@ Use `vendor/bin/regex lint --format=json` for machine-readable output suitable f
 
 ### Output Structure Overview
 
+```json
+{
+  "stats": {
+    "errors": 0,
+    "warnings": 1,
+    "optimizations": 1
+  },
+  "results": [
+    {
+      "file": "src/Service/EmailValidator.php",
+      "line": 42,
+      "source": "php",
+      "pattern": "/^[a-z0-9._%+-]+@[a-z0-9-]+(?:\\.[a-z0-9-]+)+$/i",
+      "location": null,
+      "issues": [
+        {
+          "type": "warning",
+          "message": "Nested quantifiers detected...",
+          "file": "src/Service/EmailValidator.php",
+          "line": 42,
+          "column": 9,
+          "issueId": "regex.lint.quantifier.nested",
+          "hint": "Use atomic groups...",
+          "source": "php"
+        }
+      ],
+      "optimizations": [
+        {
+          "file": "src/Service/EmailValidator.php",
+          "line": 42,
+          "optimization": {
+            "original": "/[0-9]+/",
+            "optimized": "/\\d+/",
+            "changes": ["Optimized pattern."]
+          },
+          "savings": 2,
+          "source": "php"
+        }
+      ]
+    }
+  ]
+}
 ```
-┌──────────────────────────────────────────────────────────────────────┐
-│              JSON OUTPUT SCHEMA                                      │
-├──────────────────────────────────────────────────────────────────────┤
-│                                                                      │
-│  {                                                                   │
-│    "stats": {                ← Run summary                           │
-│      "errors": 0,                                                    │
-│      "warnings": 1,                                                  │
-│      "optimizations": 1                                              │
-│    },                                                                │
-│    "results": [              ← One per pattern occurrence            │
-│      {                                                               │
-│        "file": "src/Service/EmailValidator.php",                     │
-│        "line": 42,                                                   │
-│        "source": "php",                                              │
-│        "pattern": "/^[a-z0-9._%+-]+@[a-z0-9-]+(?:\\.[a-z0-9-]+)+$/i",│
-│        "location": null,                                             │
-│        "issues": [         ← Diagnostic issues                       │
-│          {                                                           │
-│            "type": "warning",                                        │
-│            "message": "Nested quantifiers detected...",              │
-│            "file": "src/Service/EmailValidator.php",                 │
-│            "line": 42,                                               │
-│            "column": 9,                                              │
-│            "issueId": "regex.lint.quantifier.nested",                │
-│            "hint": "Use atomic groups...",                           │
-│            "source": "php"                                           │
-│          }                                                           │
-│        ],                                                            │
-│        "optimizations": [  ← Suggested improvements                  │
-│          {                                                           │
-│            "file": "src/Service/EmailValidator.php",                 │
-│            "line": 42,                                               │
-│            "optimization": {                                         │
-│              "original": "/[0-9]+/",                                 │
-│              "optimized": "/\\d+/",                                  │
-│              "changes": ["Optimized pattern."]                       │
-│            },                                                        │
-│            "savings": 2,           ← Characters saved                │
-│            "source": "php"                                           │
-│          }                                                           │
-│        ]                                                             │
-│      }                                                               │
-│    ]                                                                 │
-│  }                                                                   │
-│                                                                      │
-└──────────────────────────────────────────────────────────────────────┘
-```
+
+Notes:
+- `stats` contains the run summary.
+- `results` contains one entry per pattern occurrence.
+- `issues` and `optimizations` are present only when applicable.
 
 ### Field Reference
 
@@ -385,7 +368,7 @@ class LiteralCollector extends AbstractNodeVisitor
 {
     private array $literals = [];
 
-    public function visitLiteralNode(Node\LiteralNode $node): void
+    public function visitLiteral(Node\LiteralNode $node): void
     {
         $this->literals[] = $node->value;
     }
@@ -454,29 +437,14 @@ class RegexConstraintValidator extends ConstraintValidator
 
 ## Best Practices for Integrations
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│              INTEGRATION BEST PRACTICES                     │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  □ Always configure max_pattern_length for user patterns    │
-│                                                             │
-│  □ Use runtime_pcre_validation for critical path            │
-│                                                             │
-│  □ Cache ASTs for repeated pattern analysis                 │
-│                                                             │
-│  □ Handle exceptions at the right level                     │
-│                                                             │
-│  □ Clear validator caches in long-running processes         │
-│                                                             │
-│  □ Prefer ValidationResult over exceptions for validation   │
-│                                                             │
-│  □ Use redos() for ReDoS checks before storing patterns     │
-│                                                             │
-│  □ Log diagnostics for debugging integration issues         │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
+- Always configure `max_pattern_length` for user-supplied patterns.
+- Use `runtime_pcre_validation` for critical paths.
+- Cache ASTs for repeated pattern analysis.
+- Handle exceptions at the right level.
+- Clear validator caches in long-running processes.
+- Prefer `ValidationResult` over exceptions for validation.
+- Use `redos()` for ReDoS checks before storing patterns.
+- Log diagnostics for debugging integration issues.
 
 ---
 

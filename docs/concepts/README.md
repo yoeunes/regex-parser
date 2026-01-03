@@ -1,15 +1,15 @@
-# 🧠 Key Concepts
+# Key Concepts
 
 This section explains the fundamental concepts behind RegexParser and regular expressions. These pages provide deeper explanations for topics that might be challenging for beginners.
 
-## 📚 Available Concept Guides
+## Available concept guides
 
 - **[What is an AST?](ast.md)** - Abstract Syntax Tree explained simply
 - **[Understanding Visitors](visitors.md)** - How the visitor pattern works
 - **[ReDoS Deep Dive](redos.md)** - Regular Expression Denial of Service
 - **[PCRE vs Other Engines](pcre.md)** - PHP's regex engine explained
 
-## 🎯 When to Read These
+## When to read these
 
 These concept guides are designed to help you understand specific topics in depth:
 
@@ -18,7 +18,7 @@ These concept guides are designed to help you understand specific topics in dept
 - **Need deeper understanding?** Read the relevant concept guide
 - **Building tools?** Study the [Architecture](../ARCHITECTURE.md) and [Extending Guide](../EXTENDING_GUIDE.md)
 
-## 🔗 Related Resources
+## Related resources
 
 - [FAQ & Glossary](../reference/faq-glossary.md) - Quick definitions
 - [Architecture](../ARCHITECTURE.md) - Technical deep dive
@@ -26,4 +26,4 @@ These concept guides are designed to help you understand specific topics in dept
 
 ---
 
-📖 **Previous**: [Docs Home](../README.md) | 🚀 **Next**: [What is an AST?](ast.md)
+Previous: [Docs Home](../README.md) | Next: [What is an AST?](ast.md)

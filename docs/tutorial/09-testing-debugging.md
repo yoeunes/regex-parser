@@ -76,7 +76,7 @@ Line 1: (?<=a+)b
 ### 3. Visualize Pattern Structure
 
 ```bash
-# CLI: Show ASCII diagram
+# CLI: Show AST diagram
 bin/regex diagram '/^(?<user>\w+)@(?<host>\w+)$/'
 ```
 
@@ -280,7 +280,7 @@ Before using a pattern in production:
 
 ---
 
-## Exercise: Complete Testing Workflow
+## Exercise: Testing Workflow
 
 ### Your Task
 
@@ -341,28 +341,23 @@ for ($i = 0; $i < 3; $i++) {
 
 ---
 
-## Tutorial Complete!
+## Recap
 
-You've completed the Regex Tutorial! You now know:
+Topics covered:
 
-- ✅ Pattern basics and structure
-- ✅ Character classes and escapes
-- ✅ Anchors and boundaries
-- ✅ Quantifiers and greediness
-- ✅ Groups and alternation
-- ✅ Lookarounds and assertions
-- ✅ Backreferences and recursion
-- ✅ Performance and ReDoS prevention
-- ✅ Testing and debugging
+- Pattern basics and structure
+- Character classes and escapes
+- Anchors and boundaries
+- Quantifiers and greediness
+- Groups and alternation
+- Lookarounds and assertions
+- Backreferences and recursion
+- Performance and ReDoS prevention
+- Testing and debugging
 
 **Next:** [Chapter 10: Real-World Patterns in PHP](10-real-world-php.md)
 
 ---
 
-<p align="center">
-  <b>Chapter 9 Complete! →</b>
-</p>
-
----
 
 Previous: [Performance & ReDoS](08-performance-redos.md) | Next: [Real-World Patterns](10-real-world-php.md)

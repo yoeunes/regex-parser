@@ -142,7 +142,7 @@ $sample = $regex->generate('/your-pattern/');
 1. Read each chapter in order
 2. Try every example in a PHP REPL or script
 3. Use `bin/regex explain` to see what your pattern does
-4. Complete the exercises at the end of each chapter
+4. Work through the exercises at the end of each chapter
 
 ### For Those Who Know Regex
 
@@ -186,7 +186,7 @@ To match a literal dollar sign: `/\$/`
 
 ## Start Here
 
-**[Chapter 1: Regex Basics →](01-basics.md)**
+**[Chapter 1: Regex Basics](01-basics.md)**
 
 ---
 
@@ -209,10 +209,5 @@ To match a literal dollar sign: `/\$/`
 
 ---
 
-<p align="center">
-  <b>Ready to master regex? Let's begin! →</b>
-</p>
-
----
 
 Previous: [Docs Home](../README.md) | Next: [Chapter 1: Basics](01-basics.md)

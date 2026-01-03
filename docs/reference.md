@@ -18,7 +18,7 @@ This comprehensive reference documents every diagnostic, lint rule, and optimiza
 | [ReDoS Security](#security-redos)            | Catastrophic backtracking         |
 | [Advanced Syntax](#advanced-syntax)          | Optimizations and assertions      |
 | [Compatibility](#compatibility--limitations) | PHP and PCRE2 support             |
-| [Diagnostics Catalog](#diagnostics-catalog)  | Complete error code reference     |
+| [Diagnostics Catalog](#diagnostics-catalog)  | Error code reference     |
 
 ---
 
@@ -565,9 +565,9 @@ Recursively matches nested `[indent]...[/indent]` blocks using `(?R)` to re-ente
 
 | Feature           | PCRE2        | Note                  |
 |-------------------|--------------|-----------------------|
-| `\p{...}` Unicode | Full support |                       |
+| `\p{...}` Unicode | Supported    |                       |
 | `\g{0}`           | Invalid      | Use `\g<0>` or `(?R)` |
-| Branch reset `(?|...)` | Full support | |
+| Branch reset `(?|...)` | Supported    | |
 
 ---
 

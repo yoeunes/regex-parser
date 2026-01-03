@@ -49,36 +49,9 @@ Step 8: ...and so on...
 Combinations grow exponentially!
 ```
 
-### ASCII Diagram: Backtracking Tree
+### Backtracking intuition
 
-```
-Pattern: /(a+)+b/
-Text:    "aaab"
-
-Backtracking tree:
-                    aaab
-                   /    \
-                aaab     (no match)
-               /    \
-            aaab      aaab (backtrack outer)
-           /    \
-        aaab      aaab (backtrack inner)
-       /    \
-    aaab      aaab
-     |        |
-   fail     try shorter
-            inner a+
-              |
-            aaab (inner a+ = "a")
-              |
-            fail, backtrack...
-              |
-            try outer (a+)+ = ""
-              |
-            fail completely
-
-Number of paths: 2^n where n = number of a's
-```
+For `/(a+)+b/` on `"aaab"`, the engine tries many ways to split the `a`s between the nested quantifiers. The number of paths grows quickly with input length, which is why nested quantifiers are risky.
 
 ---
 
@@ -87,20 +60,20 @@ Number of paths: 2^n where n = number of a's
 ### 1. Nested Quantifiers
 
 ```php
-// ❌ DANGEROUS: Nested + inside +
+// DANGEROUS: Nested + inside +
 '/(a+)+$/'
 
-// ❌ DANGEROUS: Nested * inside +
+// DANGEROUS: Nested * inside +
 '/(a*)+$/'
 
-// ❌ DANGEROUS: Quantifier inside quantifier
+// DANGEROUS: Quantifier inside quantifier
 '/((a|b){2,})+$/'
 ```
 
 ### 2. Overlapping Alternations
 
 ```php
-// ❌ DANGEROUS: Overlapping alternatives
+// DANGEROUS: Overlapping alternatives
 '/(a|aa)+$/'
 
 // Why dangerous? Engine tries "a" then "aa" in various combinations
@@ -109,10 +82,10 @@ Number of paths: 2^n where n = number of a's
 ### 3. Dot-Star Inside Repetition
 
 ```php
-// ❌ DANGEROUS: .* inside +
+// DANGEROUS: .* inside +
 '/(.*)+$/'
 
-// ❌ DANGEROUS: Dot-star with alternation
+// DANGEROUS: Dot-star with alternation
 '/((.|\n)+)$/'
 ```
 
@@ -125,10 +98,10 @@ Number of paths: 2^n where n = number of a's
 Once inside, the engine **never backtracks**:
 
 ```php
-// ❌ Risky: Can backtrack
+// Risky: Can backtrack
 '/(a+)+$/'
 
-// ✅ Safe: Atomic group prevents backtracking
+// Safe: Atomic group prevents backtracking
 '/(?>a+)+$/'
 ```
 
@@ -137,10 +110,10 @@ Once inside, the engine **never backtracks**:
 Once matched, characters are **never released**:
 
 ```php
-// ❌ Risky: Can backtrack
+// Risky: Can backtrack
 '/(a+)+$/'
 
-// ✅ Safe: Possessive quantifiers
+// Safe: Possessive quantifiers
 '/(a++)+$/'
 ```
 
@@ -149,10 +122,10 @@ Once matched, characters are **never released**:
 Make alternatives **non-overlapping**:
 
 ```php
-// ❌ Risky: Overlapping (a|aa)
+// Risky: Overlapping (a|aa)
 '/(a|aa)+$/'
 
-// ✅ Better: Put longer patterns first
+// Better: Put longer patterns first
 '/(aa|a)+$/'
 ```
 
@@ -161,10 +134,10 @@ Make alternatives **non-overlapping**:
 Often you can simplify:
 
 ```php
-// ❌ Complex and risky
+// Complex and risky
 '/(a+)+$/'
 
-// ✅ Simple and safe
+// Simple and safe
 '/a+$/'  // Same effect for most cases!
 ```
 
@@ -243,10 +216,10 @@ Which patterns are dangerous?
 
 ```php
 // Answers:
-// 1. ✅ Safe
-// 2. ❌ CRITICAL - nested quantifiers
-// 3. ✅ Safe
-// 4. ❌ HIGH - overlapping alternations
+// 1. Yes Safe
+// 2. No CRITICAL - nested quantifiers
+// 3. Yes Safe
+// 4. No HIGH - overlapping alternations
 ```
 
 ### Exercise 2: Fix Dangerous Patterns
@@ -309,7 +282,7 @@ foreach ($patterns as $pattern) {
 ### Error: Thinking Short Patterns Are Safe
 
 ```php
-// ❌ Looks harmless but is dangerous!
+// Looks harmless but is dangerous!
 '/((a+)+)+$/'
 
 // Even nested once can be problematic
@@ -319,26 +292,26 @@ foreach ($patterns as $pattern) {
 ### Error: Forgetting Alternation Order
 
 ```php
-// ❌ Shorter first = more backtracking
+// Shorter first = more backtracking
 '/(a|aa)+$/'
 
-// ✅ Longer first = less backtracking
+// Longer first = less backtracking
 '/(aa|a)+$/'
 ```
 
 ### Error: Using .* When You Mean Something Specific
 
 ```php
-// ❌ .* can match anything, including too much
+// .* can match anything, including too much
 '/.*tag/'
 
-// ✅ Be specific
+// Be specific
 '/[a-z]*tag/'
 ```
 
 ---
 
-## You're Ready!
+## Recap
 
 You now understand:
 - What ReDoS is and why it's dangerous
@@ -350,10 +323,5 @@ You now understand:
 
 ---
 
-<p align="center">
-  <b>Chapter 8 Complete! →</b>
-</p>
-
----
 
 Previous: [Backreferences](07-backreferences-recursion.md) | Next: [Testing & Debugging](09-testing-debugging.md)

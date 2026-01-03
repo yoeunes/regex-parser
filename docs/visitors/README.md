@@ -4,29 +4,7 @@ Visitors are the algorithms that process the AST. They implement all the interes
 
 ## How Visitors Work
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    VISITOR PATTERN                          │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  $ast = $regex->parse('/foo|bar/');                         │
-│                                                             │
-│  $ast->accept(new ExplainNodeVisitor());                    │
-│           │                                                 │
-│           ▼                                                 │
-│  ┌─────────────────────────────────────────────────────┐    │
-│  │ RegexNode::accept($visitor)                         │    │
-│  │   └─► $visitor->visitRegexNode($this)               │    │
-│  │       └─► $this->pattern->accept($visitor)          │    │
-│  │           └─► SequenceNode::accept($visitor)        │    │
-│  │               └─► AlternationNode::accept(...)      │    │
-│  │                   └─► ...                           │    │
-│  └─────────────────────────────────────────────────────┘    │
-│                                                             │
-│  Result: Visitor processes each node type appropriately     │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
+Visitors walk the AST using `accept()` on each node. Each node dispatches to the matching `visit*()` method on the visitor, and the visitor controls whether and how to continue traversal.
 
 ---
 
@@ -43,9 +21,9 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
 
 class MyVisitor implements NodeVisitorInterface
 {
-    public function visitRegexNode(Node\RegexNode $node): mixed { /* ... */ }
-    public function visitSequenceNode(Node\SequenceNode $node): mixed { /* ... */ }
-    public function visitAlternationNode(Node\AlternationNode $node): mixed { /* ... */ }
+    public function visitRegex(Node\RegexNode $node): mixed { /* ... */ }
+    public function visitSequence(Node\SequenceNode $node): mixed { /* ... */ }
+    public function visitAlternation(Node\AlternationNode $node): mixed { /* ... */ }
     // ... one method for each node type
 }
 ```
@@ -65,7 +43,7 @@ class LiteralCollector extends AbstractNodeVisitor
 {
     private array $literals = [];
 
-    public function visitLiteralNode(Node\LiteralNode $node): void
+    public function visitLiteral(Node\LiteralNode $node): void
     {
         $this->literals[] = $node->value;
     }
@@ -131,8 +109,8 @@ use RegexParser\NodeVisitor\OptimizerNodeVisitor;
 $ast = Regex::create()->parse('/(?:foo)/');
 $optimized = $ast->accept(new OptimizerNodeVisitor());
 
-$compiler = new CompilerNodeVisitor();
-echo $compiler->visit($optimized);  // '/foo/'
+$pattern = $optimized->accept(new CompilerNodeVisitor());
+echo $pattern;  // '/foo/'
 ```
 
 ---
@@ -156,8 +134,8 @@ use RegexParser\NodeVisitor\ModernizerNodeVisitor;
 $ast = Regex::create()->parse('/(?i)foo/');
 $modernized = $ast->accept(new ModernizerNodeVisitor());
 
-$compiler = new CompilerNodeVisitor();
-echo $compiler->visit($modernized);  // Modernized version
+$pattern = $modernized->accept(new CompilerNodeVisitor());
+echo $pattern;  // Modernized version
 ```
 
 ---
@@ -537,12 +515,12 @@ use RegexParser\NodeVisitor\AbstractNodeVisitor;
 
 class LiteralCountVisitor extends AbstractNodeVisitor
 {
-    public function visitLiteralNode(Node\LiteralNode $node): int
+    public function visitLiteral(Node\LiteralNode $node): int
     {
         return 1;
     }
 
-    public function visitSequenceNode(Node\SequenceNode $node): int
+    public function visitSequence(Node\SequenceNode $node): int
     {
         return array_sum(
             array_map(fn($child) => $child->accept($this), $node->children)
@@ -569,7 +547,7 @@ class GroupCollectorVisitor extends AbstractNodeVisitor
 {
     private array $groups = [];
 
-    public function visitGroupNode(Node\GroupNode $node): Node\GroupNode
+    public function visitGroup(Node\GroupNode $node): Node\GroupNode
     {
         if ($node->name !== null) {
             $this->groups[] = $node->name;
@@ -606,7 +584,7 @@ use RegexParser\NodeVisitor\AbstractNodeVisitor;
 
 class UppercaserVisitor extends AbstractNodeVisitor
 {
-    public function visitLiteralNode(Node\LiteralNode $node): Node\LiteralNode
+    public function visitLiteral(Node\LiteralNode $node): Node\LiteralNode
     {
         return new Node\LiteralNode(
             strtoupper($node->value),
@@ -621,49 +599,39 @@ $ast = Regex::create()->parse('/hello/');
 $visitor = new UppercaserVisitor();
 $newAst = $ast->accept($visitor);
 
-$compiler = new CompilerNodeVisitor();
-echo $compiler->visit($newAst);  // '/HELLO/'
+echo $newAst->accept(new CompilerNodeVisitor());  // '/HELLO/'
 ```
 
 ---
 
 ## Visitor Quick Reference
 
-```
-┌───────────────────────────────────────────────────────────────────┐
-│                    VISITOR QUICK REFERENCE                        │
-├───────────────────────────────────────────────────────────────────┤
-│                                                                   │
-│  COMPILATION & TRANSFORMATION                                     │
-│  ├── CompilerNodeVisitor          → Convert AST to pattern string │
-│  ├── OptimizerNodeVisitor         → Safe optimizations            │
-│  └── ModernizerNodeVisitor        → Modernize legacy syntax       │
-│                                                                   │
-│  VALIDATION & LINTING                                             │
-│  ├── ValidatorNodeVisitor         → Semantic validation           │
-│  ├── LinterNodeVisitor            → Performance/readability       │
-│  ├── ReDoSAnalyzerNodeVisitor     → ReDoS risk classification     │
-│  ├── ComplexityScoreNodeVisitor   → Complexity score              │
-│  ├── MetricsNodeVisitor           → Collect metrics               │
-│  └── LengthRangeNodeVisitor       → Estimate match length         │
-│                                                                   │
-│  EXTRACTION & GENERATION                                          │
-│  ├── LiteralExtractorNodeVisitor  → Extract literals              │
-│  ├── SampleGeneratorNodeVisitor   → Generate matching string      │
-│  └── TestCaseGeneratorNodeVisitor → Generate test cases           │
-│                                                                   │
-│  PRESENTATION & VISUALIZATION                                     │
-│  ├── ExplainNodeVisitor           → Plain-text explanation        │
-│  ├── HtmlExplainNodeVisitor       → HTML explanation              │
-│  ├── DumperNodeVisitor            → Debug AST dump                │
-│  ├── MermaidNodeVisitor           → Mermaid diagram               │
-│  ├── AsciiTreeVisitor             → ASCII tree                    │
-│  ├── RailroadSvgVisitor           → Railroad SVG                  │
-│  ├── ConsoleHighlighterVisitor    → ANSI highlighting             │
-│  └── HtmlHighlighterVisitor       → HTML highlighting             │
-│                                                                   │
-└───────────────────────────────────────────────────────────────────┘
-```
+Compilation and transformation:
+- `CompilerNodeVisitor` converts the AST to a pattern string.
+- `OptimizerNodeVisitor` applies safe optimizations.
+- `ModernizerNodeVisitor` modernizes legacy syntax.
+
+Validation and linting:
+- `ValidatorNodeVisitor` performs semantic validation.
+- `LinterNodeVisitor` checks performance and readability.
+- `ComplexityScoreNodeVisitor` computes a complexity score.
+- `MetricsNodeVisitor` collects metrics.
+- `LengthRangeNodeVisitor` estimates match length.
+
+Extraction and generation:
+- `LiteralExtractorNodeVisitor` extracts literals.
+- `SampleGeneratorNodeVisitor` generates matching strings.
+- `TestCaseGeneratorNodeVisitor` generates test cases.
+
+Presentation and visualization:
+- `ExplainNodeVisitor` provides plain-text explanations.
+- `HtmlExplainNodeVisitor` provides HTML explanations.
+- `DumperNodeVisitor` dumps the AST for debugging.
+- `MermaidNodeVisitor` builds Mermaid diagrams.
+- `AsciiTreeVisitor` prints an ASCII tree.
+- `RailroadSvgVisitor` renders railroad SVGs.
+- `ConsoleHighlighterVisitor` outputs ANSI highlighting.
+- `HtmlHighlighterVisitor` outputs HTML highlighting.
 
 ---
 

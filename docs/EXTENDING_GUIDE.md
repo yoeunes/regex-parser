@@ -18,13 +18,11 @@ This guide shows how to add new PCRE features, build custom visitors, and integr
 
 ## Extension Architecture
 
-```
-RegexParser Core
-├── Nodes (src/Node/)     ← Add new node types
-├── Visitors (src/NodeVisitor/) ← Add new visitors
-├── Parser (src/Parser.php) ← Update to recognize features
-└── CLI (src/Cli/)        ← Add new commands
-```
+RegexParser core extension points:
+- Nodes (`src/Node/`) for new node types.
+- Visitors (`src/NodeVisitor/`) for new analyses or transforms.
+- Parser (`src/Parser.php`) to recognize new syntax.
+- CLI (`src/Cli/`) for new commands.
 
 ---
 
@@ -161,7 +159,7 @@ public function visitCallout(CalloutNode $node): string
 
 ---
 
-## Example: Complete Custom Visitor
+## Example: Custom Visitor
 
 ### Create a Pattern Length Visitor
 
@@ -409,7 +407,7 @@ Make sure you:
 ### "Visitor method not called"
 
 Check:
-1. Node's `accept()` calls `visitor->visitYourNode()`
+1. Node's `accept()` calls the matching `visitXxx()` method on the visitor
 2. Visitor implements the method
 3. Visitor is registered/used correctly
 
@@ -451,7 +449,7 @@ Verify parser logic:
 
 ---
 
-**Happy extending!**
+End of extending guide.
 
 ---
 

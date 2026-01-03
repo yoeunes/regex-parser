@@ -7,12 +7,11 @@
 ## Why Real-World Patterns Are Different
 
 Tutorial patterns are simple. Production patterns must:
-
-- ✅ Validate user input
-- ✅ Handle edge cases
-- ✅ Be secure (no ReDoS)
-- ✅ Be maintainable
-- ✅ Be documented
+- Yes Validate user input
+- Yes Handle edge cases
+- Yes Be secure (no ReDoS)
+- Yes Be maintainable
+- Yes Be documented
 
 This chapter shows **battle-tested patterns** with explanations.
 
@@ -42,20 +41,12 @@ Start of string
 End of string (case-insensitive)
 ```
 
-### ASCII Diagram
+### Structure summary
 
-```
-Email Structure: user@sub.domain.com
-
-Pattern:
-┌─────────────────────────────────────────────────────────┐
-│ ┌──────────┐   ┌─────────────────┐   ┌──────────────┐   │
-│ │  user    │ @ │   sub.domain    │ . │     com      │   │
-│ │ [a-z0-9]+│   │ [a-z0-9-]+      │   │ [a-z0-9-]+   │   │
-│ └──────────┘   └─────────────────┘   └──────────────┘   │
-│    Local              Domain                TLD         │
-└─────────────────────────────────────────────────────────┘
-```
+- Local part: `[a-z0-9]+`
+- Separator: `@`
+- Domain: `[a-z0-9-]+` with dot-separated segments
+- TLD: `[a-z0-9-]+`
 
 ### Usage
 
@@ -313,11 +304,11 @@ if (preg_match($pattern, $password)) {
 
 | Use Case | Pattern                                                                                                           | Anchored          | ReDoS Safe | Named Groups |
 |----------|-------------------------------------------------------------------------------------------------------------------|-------------------|------------|--------------|
-| Email    | `/^[a-z0-9]+(?:[._%+-][a-z0-9]+)*+@[a-z0-9-]+(?:\.[a-z0-9-]+)*+$/i`                                               | ✅                 | ✅          | ❌            |
-| Date     | `/^\d{4}-(?:0[1-9]                                                                                                | 1[0-2])-(?:0[1-9] | [12]\d     | 3[01])$/`    | ✅ | ✅ | ❌ |
-| URL      | `/^https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&\/\/=]*)$/` | ✅                 | ✅          | ❌            |
-| Phone    | `/^\+?1?\s*\(?[0-9]{3}\)?\s*-?[0-9]{3}\s*-?[0-9]{4}$/`                                                            | ✅                 | ✅          | ❌            |
-| Password | `/^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/`                                          | ✅                 | ✅          | ❌            |
+| Email    | `/^[a-z0-9]+(?:[._%+-][a-z0-9]+)*+@[a-z0-9-]+(?:\.[a-z0-9-]+)*+$/i`                                               | Yes                 | Yes          | No            |
+| Date     | `/^\d{4}-(?:0[1-9]                                                                                                | 1[0-2])-(?:0[1-9] | [12]\d     | 3[01])$/`    | Yes | Yes | No |
+| URL      | `/^https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&\/\/=]*)$/` | Yes                 | Yes          | No            |
+| Phone    | `/^\+?1?\s*\(?[0-9]{3}\)?\s*-?[0-9]{3}\s*-?[0-9]{4}$/`                                                            | Yes                 | Yes          | No            |
+| Password | `/^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/`                                          | Yes                 | Yes          | No            |
 
 ---
 
@@ -362,31 +353,29 @@ echo $regex->explain($pattern);
 
 ## You're a Regex Master!
 
-Congratulations! You've completed the complete Regex Tutorial:
+Tutorial summary:
 
-1. ✅ Basics - Your first patterns
-2. ✅ Character Classes - Matching sets
-3. ✅ Anchors - Controlling position
-4. ✅ Quantifiers - Controlling repetition
-5. ✅ Groups - Structuring patterns
-6. ✅ Lookarounds - Context matching
-7. ✅ Backreferences - Self-reference
-8. ✅ Performance - Avoiding ReDoS
-9. ✅ Testing - Debugging patterns
-10. ✅ Real-World - Production patterns
+1. Yes Basics - Your first patterns
+2. Character Classes - Matching sets
+3. Anchors - Controlling position
+4. Quantifiers - Controlling repetition
+5. Groups - Structuring patterns
+6. Lookarounds - Context matching
+7. Backreferences - Self-reference
+8. Performance - Avoiding ReDoS
+9. Testing - Debugging patterns
+10. Real-World - Practical patterns
 
 ### Next Steps
 
-- **[Cookbook](../COOKBOOK.md)** - More ready-to-use patterns
+- **[Cookbook](../COOKBOOK.md)** - More pattern examples
 - **[ReDoS Guide](../REDOS_GUIDE.md)** - Deep dive on security
-- **[API Reference](../reference/api.md)** - Full documentation
-- **Build something!** - Apply what you've learned
+- **[API Reference](../reference/api.md)** - API documentation
+- Apply what you've learned in your own project
 
 ---
 
-<p align="center">
-  <b>🎉 Tutorial Complete! 🎉</b>
-</p>
+Tutorial finished.
 
 ---
 

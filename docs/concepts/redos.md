@@ -1,12 +1,12 @@
-# 🔒 ReDoS Deep Dive
+# ReDoS Deep Dive
 
 **ReDoS** (Regular Expression Denial of Service) is a security vulnerability where specially crafted input can cause a regex engine to take exponential time to process, potentially crashing your application.
 
-## 🎯 Simple Explanation
+## Simple explanation
 
-Imagine you have a regex pattern like `/(a+)+b/` and someone gives you this input: `"aaaaa!"`. The regex engine tries many different ways to match this pattern, and with certain inputs, it can take **forever** to figure out that there's no match.
+Imagine you have a regex pattern like `/(a+)+b/` and someone gives you this input: `"aaaaa!"`. The regex engine tries many different ways to match this pattern, and with certain inputs it can take a very long time to conclude there is no match.
 
-## 🔍 How ReDoS Happens
+## How ReDoS happens
 
 ### The Problem: Backtracking
 
@@ -33,22 +33,13 @@ RegexParser detects these common problematic patterns:
 4. **Empty-match repetition**: `(a?)+`, `(a*)*`
 5. **Ambiguous adjacent quantifiers**: `a+a+`, `(\w+)(\w+)`
 
-## 🩺 How RegexParser Detects ReDoS
+## How RegexParser detects ReDoS
 
-RegexParser analyzes the AST **without executing** the pattern:
+RegexParser analyzes the AST without executing the pattern:
 
-```
-/pattern/flags
-  |
-  v
-Lexer -> Parser -> RegexNode (AST)
-                   |
-                   v
-         ReDoSProfileNodeVisitor
-                   |
-                   v
-         ReDoSAnalysis (severity, findings, hints)
-```
+- The lexer and parser build a `RegexNode` AST.
+- `ReDoSProfileNodeVisitor` walks the tree.
+- The result is a `ReDoSAnalysis` with severity, findings, and hints.
 
 ### Detection Methods
 
@@ -58,7 +49,7 @@ Lexer -> Parser -> RegexNode (AST)
 4. **Empty-match detection**: Finds quantifiers over optional patterns
 5. **Atomic group mitigation**: Reduces severity for patterns using `(?>...)`
 
-## 🛡️ Using RegexParser for ReDoS Protection
+## Using RegexParser for ReDoS protection
 
 ### CLI Usage
 
@@ -93,13 +84,13 @@ foreach ($analysis->recommendations as $recommendation) {
 }
 ```
 
-## 🔧 Fixing Vulnerable Patterns
+## Fixing vulnerable patterns
 
 ### 1. Use Possessive Quantifiers
 
 ```
-❌ Vulnerable: /(a+)+b/
-✅ Safer:      /a++b/
+Vulnerable: /(a+)+b/
+Safer:      /a++b/
 ```
 
 Possessive quantifiers (`*+`, `++`, `?+`, `{m,n}+`) don't backtrack.
@@ -107,8 +98,8 @@ Possessive quantifiers (`*+`, `++`, `?+`, `{m,n}+`) don't backtrack.
 ### 2. Use Atomic Groups
 
 ```
-❌ Vulnerable: /(a+)+b/
-✅ Safer:      /(?>a+)b/
+Vulnerable: /(a+)+b/
+Safer:      /(?>a+)b/
 ```
 
 Atomic groups `(?>...)` commit to the first successful match.
@@ -116,8 +107,8 @@ Atomic groups `(?>...)` commit to the first successful match.
 ### 3. Simplify Nested Repeats
 
 ```
-❌ Vulnerable: /(a+)+b/
-✅ Equivalent: /a+b/
+Vulnerable: /(a+)+b/
+Equivalent: /a+b/
 ```
 
 Often, nested quantifiers can be simplified.
@@ -125,48 +116,48 @@ Often, nested quantifiers can be simplified.
 ### 4. Avoid Empty-Match Repetition
 
 ```
-❌ Vulnerable: /(a?)+/
-✅ Safer:      /a*/
-✅ Safer:      /a+/   (if empty should not match)
+Vulnerable: /(a?)+/
+Safer:      /a*/
+Safer:      /a+/   (if empty should not match)
 ```
 
 ### 5. Avoid Ambiguous Adjacent Quantifiers
 
 ```
-❌ Vulnerable: /a+a+/
-✅ Safer:      /a+/
-✅ Safer:      /a++a+/   (if the split must be preserved)
+Vulnerable: /a+a+/
+Safer:      /a+/
+Safer:      /a++a+/   (if the split must be preserved)
 ```
 
 ### 6. Prefer Character Classes Over Alternation
 
 ```
-❌ Vulnerable: /(a|b)+c/
-✅ Safer:      /[ab]+c/
+Vulnerable: /(a|b)+c/
+Safer:      /[ab]+c/
 ```
 
 ### 7. Bound Your Repeats
 
 ```
-❌ Vulnerable: /(\d+)+/
-✅ Safer:      /\d{1,10}/   (limit to reasonable bounds)
+Vulnerable: /(\d+)+/
+Safer:      /\d{1,10}/   (limit to reasonable bounds)
 ```
 
-## 🎯 Quick Reference: Bad vs Better
+## Quick reference: risky vs safer patterns
 
 ```
-(a+)+        → a++        or (?>a+)
-(a|aa)+      → a+
-(\d+)+       → \d++       or \d{1,10}
-(.+)+        → .++        or .{1,100}
-(a?)+        → a*         or a+
-(a*)*        → a*
-a+a+         → a+         or a++a+
-(a|b)+       → [ab]+
-(\w+\d+)+    → (?>\w+\d+)+
+(a+)+        -> a++        or (?>a+)
+(a|aa)+      -> a+
+(\d+)+       -> \d++       or \d{1,10}
+(.+)+        -> .++        or .{1,100}
+(a?)+        -> a*         or a+
+(a*)*        -> a*
+a+a+         -> a+         or a++a+
+(a|b)+       -> [ab]+
+(\w+\d+)+    -> (?>\w+\d+)+
 ```
 
-## 🛡️ Defense in Depth
+## Defense in depth
 
 1. **Validate patterns early**: Check patterns before deployment
 2. **Use input limits**: Set reasonable length limits for regex inputs
@@ -174,13 +165,13 @@ a+a+         → a+         or a++a+
 4. **Monitor performance**: Watch for slow regex operations in production
 5. **Use RegexParser in CI**: Add `bin/regex lint` to your build pipeline
 
-## 🔗 Related Concepts
+## Related concepts
 
 - **[ReDoS Guide](../REDOS_GUIDE.md)** - Practical guide to fixing ReDoS
 - **[Architecture](../ARCHITECTURE.md)** - How ReDoS detection works
 - **[FAQ & Glossary](../reference/faq-glossary.md)** - Common ReDoS questions
 
-## 📚 Further Reading
+## Further reading
 
 - [OWASP ReDoS Guide](https://owasp.org/www-community/attacks/Regular_expression_Denial_of_Service_-_ReDoS) - Security best practices
 - [Regex Performance](https://sw.kovidgoyal.net/kitty/conf/#regex-performance) - Optimization techniques
@@ -188,4 +179,4 @@ a+a+         → a+         or a++a+
 
 ---
 
-📖 **Previous**: [Understanding Visitors](visitors.md) | 🚀 **Next**: [PCRE vs Other Engines](pcre.md)
+Previous: [Understanding Visitors](visitors.md) | Next: [PCRE vs Other Engines](pcre.md)

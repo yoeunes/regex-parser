@@ -1,27 +1,27 @@
-# 🌲 What is an AST?
+# What is an AST?
 
 **AST** stands for **Abstract Syntax Tree** - it's a structured representation of your regex pattern that makes it easier to analyze and understand.
 
-## 🎯 Simple Explanation
+## Simple explanation
 
 Imagine you have a regex pattern like `/^hello\d+$/`. To a computer, this is just a string. But to understand what it means, we need to break it down:
 
 ```
 String: "/^hello\d+$"
 
-AST Structure:
+AST structure:
 RegexNode
 ├── SequenceNode
-│   ├── AnchorNode (^")
+│   ├── AnchorNode ("^")
 │   ├── LiteralNode ("hello")
-│   ├── QuantifierNode (+)
-│   │   └── ShorthandClassNode (\d)
-│   └── AnchorNode ($)
+│   ├── QuantifierNode ("+")
+│   │   └── CharTypeNode ("\\d")
+│   └── AnchorNode ("$")
 ```
 
-## 🔍 Why Use an AST?
+## Why use an AST?
 
-### Before AST (String-based Analysis)
+### Before AST (string-based analysis)
 
 ```php
 // Old way: String manipulation
@@ -31,7 +31,7 @@ if (strpos($pattern, 'hello') !== false) {
 }
 ```
 
-### After AST (Structured Analysis)
+### After AST (structured analysis)
 
 ```php
 // New way: Precise analysis
@@ -40,24 +40,24 @@ $sequence = $ast->pattern; // Exact structure known
 $literal = $sequence->children[1]; // The "hello" literal
 ```
 
-## 🧩 AST Components
+## AST components
 
-### Root Node
+### Root node
 - **RegexNode**: Contains the entire pattern and flags
 
-### Pattern Nodes
-- **SequenceNode**: Contains ordered elements (e.g., `hello` then `\d+`)
-- **AlternationNode**: Contains choices (e.g., `a|b`)
-- **GroupNode**: Contains sub-patterns (e.g., `(hello)`)
+### Pattern nodes
+- **SequenceNode**: Contains ordered elements (for example, `hello` then `\d+`).
+- **AlternationNode**: Contains choices (for example, `a|b`).
+- **GroupNode**: Contains sub-patterns (for example, `(hello)`).
 
-### Element Nodes
-- **LiteralNode**: Fixed text (e.g., `hello`)
-- **ShorthandClassNode**: Character classes (e.g., `\d`, `\w`)
-- **CharacterClassNode**: Custom character sets (e.g., `[a-z]`)
-- **QuantifierNode**: Repetition (e.g., `+`, `*`, `{2,4}`)
-- **AnchorNode**: Position markers (e.g., `^`, `$`)
+### Element nodes
+- **LiteralNode**: Fixed text (for example, `hello`).
+- **CharTypeNode**: Shorthand character classes (for example, `\d`, `\w`).
+- **CharClassNode**: Custom character sets (for example, `[a-z]`).
+- **QuantifierNode**: Repetition (for example, `+`, `*`, `{2,4}`).
+- **AnchorNode**: Position markers (for example, `^`, `$`).
 
-## 🎨 Visualizing ASTs
+## Visualizing ASTs
 
 Use the CLI to see the AST structure:
 
@@ -69,7 +69,7 @@ bin/regex diagram '/^hello\d+$/'
 bin/regex parse '/^hello\d+$/' --ast
 ```
 
-## 💡 Real-world Benefits
+## Real-world benefits
 
 ### 1. Precise Error Reporting
 ```php
@@ -96,13 +96,13 @@ $analysis = Regex::create()->redos('/(a+)+$/');
 // AST allows deep structural analysis
 ```
 
-## 🔗 Related Concepts
+## Related concepts
 
 - **[Understanding Visitors](visitors.md)** - How visitors process ASTs
 - **[Architecture](../ARCHITECTURE.md)** - How RegexParser builds ASTs
-- **[Nodes Reference](../nodes/README.md)** - Complete list of node types
+- **[Nodes Reference](../nodes/README.md)** - Node type reference
 
-## 📚 Further Reading
+## Further reading
 
 - [RegexParser Architecture](../ARCHITECTURE.md) - Technical deep dive
 - [AST Traversal Design](../design/AST_TRAVERSAL.md) - How trees are processed
@@ -110,4 +110,4 @@ $analysis = Regex::create()->redos('/(a+)+$/');
 
 ---
 
-📖 **Previous**: [Concepts Home](README.md) | 🚀 **Next**: [Understanding Visitors](visitors.md)
+Previous: [Concepts Home](README.md) | Next: [Understanding Visitors](visitors.md)

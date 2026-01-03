@@ -38,9 +38,9 @@ RegexParser CLI provides these commands:
 | Command       | Description                                              |
 |---------------|----------------------------------------------------------|
 | `parse`       | Parse and recompile a pattern                            |
-| `analyze`     | Full pattern analysis (validation + ReDoS + explanation) |
-| `debug`       | Deep ReDoS analysis with heatmap                         |
-| `diagram`     | Render ASCII AST diagram                                 |
+| `analyze`     | Pattern analysis (validation + ReDoS + explanation)      |
+| `debug`       | Detailed ReDoS analysis with heatmap                     |
+| `diagram`     | Render AST diagram                                       |
 | `highlight`   | Syntax highlighting (console or HTML)                    |
 | `validate`    | Validate pattern syntax                                  |
 | `lint`        | Lint entire codebase for regex issues                    |
@@ -84,7 +84,7 @@ Recompiled: /^hello/
 
 ### 2. Analyze a Pattern
 
-Complete analysis including validation, ReDoS risk, and explanation:
+Detailed analysis including validation, ReDoS risk, and explanation:
 
 ```bash
 # Analyze email pattern
@@ -95,9 +95,7 @@ vendor/bin/regex analyze '/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i'
 ```
 Analyze
   Pattern:    /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i
-  Parse:      OK
-  Validation: OK
-  ReDoS:      SAFE (score 0)
+  Parse:      Validation: ReDoS:      SAFE (score 0)
 
 Explanation
 Start of string
@@ -225,7 +223,7 @@ vendor/bin/regex validate '/(?<=a+)b/'
 
 **Valid Output:**
 ```
-OK  /^[a-z]+$/
+/^[a-z]+$/
 ```
 
 **Invalid Output:**
@@ -571,7 +569,7 @@ regex self-update
 
 ---
 
-**Happy linting!** ✅
+End of CLI guide.
 
 ---
 

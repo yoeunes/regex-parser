@@ -17,15 +17,18 @@
 
 ---
 
-# **RegexParser**: Parse, analyze, and learn **PCRE** in PHP
+# RegexParser: Parse and analyze PCRE patterns in PHP
 
-**RegexParser** is a PHP 8.2+ library that turns **PCRE** patterns into a typed **AST** and runs analysis through **visitors**. The goal is twofold: make regex approachable for newcomers and give tool authors a reliable foundation for validation, linting, and security analysis.
+RegexParser is a PHP 8.2+ library that parses PCRE regex literals into a typed AST and runs analysis through visitors. It is built for learning, validation, and tooling in PHP projects.
 
-👉 **New to regex?** Start with the [Regex Tutorial](docs/tutorial/README.md) - no prior knowledge needed!
+Project goals:
+- Make regex approachable for newcomers with clear explanations and practical examples.
+- Provide a stable foundation for validation, linting, and security analysis.
+- Aim to become a common community reference for working with regex in PHP by staying accurate, transparent, and easy to integrate.
 
-👉 **Need quick results?** Try the [Quick Start Guide](docs/QUICK_START.md) for immediate value.
+If you are new to regex, start with the [Regex Tutorial](docs/tutorial/README.md). If you want a short overview, see the [Quick Start Guide](docs/QUICK_START.md).
 
-## 🚀 Getting Started in 30 Seconds
+## Getting started
 
 ```bash
 # Install the library
@@ -35,33 +38,25 @@ composer require yoeunes/regex-parser
 vendor/bin/regex explain '/\d{4}-\d{2}-\d{2}/'
 ```
 
-## 🎯 What RegexParser Does
+## What RegexParser provides
 
-RegexParser helps you **understand, validate, and improve** regular expressions:
+- Parse `/pattern/flags` into a structured AST.
+- Validate syntax and semantics with precise error locations.
+- Explain patterns in plain English.
+- Analyze ReDoS risk and suggest safer alternatives.
+- Lint codebases via the CLI.
+- Provide a visitor API for custom tooling.
 
-- ✅ **Parse** `/pattern/flags` into a structured AST
-- ✅ **Validate** syntax and semantics with precise error locations
-- ✅ **Explain** patterns in plain English
-- ✅ **Analyze** ReDoS risk and suggest safer alternatives
-- ✅ **Power** CLI linting for codebases and CI
-- ✅ **Provide** a visitor API for custom tools
+## How it works
 
-## 🔧 How It Works (Simple Explanation)
+- `Regex::parse()` splits the literal into pattern and flags.
+- The lexer produces a token stream.
+- The parser builds an AST (`RegexNode`).
+- Visitors walk the AST to validate, explain, analyze, or transform.
 
-```
-/^hello$/i
-  |
-  v
-Lexer  -> TokenStream (breaks pattern into pieces)
-Parser -> RegexNode (AST) (builds a tree structure)
-          |
-          v
-       Visitors -> validation, explanation, analysis, transforms
-```
+For the full architecture, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-**Want the full story?** See [How RegexParser Works](docs/ARCHITECTURE.md) for the complete architecture.
-
-## 💻 CLI Quick Tour
+## CLI quick tour
 
 ```bash
 # Parse and validate a pattern
@@ -82,7 +77,7 @@ vendor/bin/regex lint src/
 
 ![Regex Lint Output](docs/assets/regex-lint.png)
 
-## 📚 PHP API at a Glance
+## PHP API at a glance
 
 ```php
 use RegexParser\Regex;
@@ -108,11 +103,11 @@ echo $analysis->severity->value; // 'critical', 'safe', etc.
 echo $regex->explain('/\d{4}-\d{2}-\d{2}/');
 ```
 
-## 🔌 Integrations
+## Integrations
 
-RegexParser works seamlessly with your existing tools:
+RegexParser integrates with common PHP tooling:
 
-- **Symfony bundle**: [`docs/guides/cli.md`](docs/guides/cli.md)
+- **Symfony bundle**: [docs/guides/cli.md](docs/guides/cli.md)
 - **PHPStan**: `vendor/yoeunes/regex-parser/extension.neon`
 - **Rector**: Custom refactoring rules
 - **GitHub Actions**: `vendor/bin/regex lint` in your CI pipeline
@@ -124,36 +119,20 @@ RegexParser ships lightweight benchmark scripts in `benchmarks/` to track parser
 - Run formatter benchmarks: `php benchmarks/benchmark_formatters.php`
 - Run all benchmarks: `for file in benchmarks/benchmark_*.php; do echo "Running $file"; php "$file"; echo; done`
 
-## 📖 Documentation Roadmap
+## Documentation
 
-**For Beginners:**
-- 🧑‍🎓 [Learn Regex from Scratch](docs/tutorial/README.md) - Complete tutorial
-- 🚀 [Quick Start Guide](docs/QUICK_START.md) - Immediate results
-- 📝 [Regex in PHP](docs/guides/regex-in-php.md) - PHP-specific details
+Start here:
+- [Docs Home](docs/README.md)
+- [Quick Start](docs/QUICK_START.md)
+- [Tutorial](docs/tutorial/README.md)
 
-**Key Concepts:**
-- 🌲 [What is an AST?](docs/concepts/ast.md) - Abstract Syntax Tree explained
-- 👣 [Understanding Visitors](docs/concepts/visitors.md) - How visitors work
-- 🔒 [ReDoS Deep Dive](docs/concepts/redos.md) - Security vulnerabilities
-- 🔤 [PCRE vs Other Engines](docs/concepts/pcre.md) - PHP's regex engine
+Key references:
+- [Architecture](docs/ARCHITECTURE.md)
+- [API Reference](docs/reference/api.md)
+- [Diagnostics](docs/reference/diagnostics.md)
+- [FAQ & Glossary](docs/reference/faq-glossary.md)
 
-**For Users:**
-- 🔧 [CLI Guide](docs/guides/cli.md) - Full command reference
-- 🍳 [Cookbook](docs/COOKBOOK.md) - Ready-to-use patterns
-- 🔒 [ReDoS Guide](docs/REDOS_GUIDE.md) - Security best practices
-
-**For Developers:**
-- 🏗️ [Architecture](docs/ARCHITECTURE.md) - Internal design
-- 🌲 [AST Reference](docs/nodes/README.md) - Node types
-- 👣 [Visitors Reference](docs/visitors/README.md) - Custom analysis
-- 🔧 [Extending Guide](docs/EXTENDING_GUIDE.md) - Build your own tools
-
-**Reference:**
-- 📚 [API Reference](docs/reference/api.md) - Complete documentation
-- 🩺 [Diagnostics](docs/reference/diagnostics.md) - Error types
-- ❓ [FAQ & Glossary](docs/reference/faq-glossary.md) - Common questions
-
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! See [`CONTRIBUTING.md`](CONTRIBUTING.md) to get started.
 
@@ -171,30 +150,10 @@ composer phpcs
 composer phpstan
 ```
 
-## 🎯 Quick Summary
-
-**RegexParser helps you:**
-- ✅ **Understand** complex regex patterns with plain English explanations
-- ✅ **Validate** patterns for syntax errors and security issues
-- ✅ **Analyze** ReDoS vulnerabilities before they reach production
-- ✅ **Visualize** pattern structure with AST diagrams
-- ✅ **Build** custom regex analysis tools
-
-**Perfect for:** Developers, security teams, educators, and anyone working with regular expressions in PHP.
-
-## 📄 License
+## License
 
 Released under the [MIT License](LICENSE).
 
-<p align="center">
-  <b>Made with ❤️ by <a href="https://www.linkedin.com/in/yoeunes/">Younes ENNAJI</a></b>
-</p>
+## Support
 
-## 🚀 Ready to Start?
-
-```bash
-composer require yoeunes/regex-parser
-bin/regex explain '/your-pattern-here/'
-```
-**Need help?** [Open an issue](https://github.com/yoeunes/regex-parser/issues) for support.
-
+If you run into issues or have questions, please open an issue on GitHub: <https://github.com/yoeunes/regex-parser/issues>.

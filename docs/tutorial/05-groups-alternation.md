@@ -77,21 +77,9 @@ echo $matches[0];  // "dog"
 echo $matches[1];  // "dog" (captured group)
 ```
 
-### ASCII Diagram: Alternation
+### Alternation behavior
 
-```
-Pattern: /(cat|dog|bird)/
-
-Text: "The dog is here"
-
-         ┌── cat ───┐
-         │          │
-Text: ───┤   dog    ├──→ Matches "dog"
-         │          │
-         └── bird ──┘
-
-Only ONE alternative matches!
-```
+Alternation tries options from left to right and returns the first match. For `/(cat|dog|bird)/` against `"The dog is here"`, the match is `"dog"`.
 
 ### Grouping with Alternation
 
@@ -150,11 +138,8 @@ echo $m[0];  // "POST /api" (full match)
 
 ```php
 // Match exactly GET, POST, PUT, or DELETE
-preg_match('/^(get|post|put|delete)$/i', 'POST', $matches);
-// ✅ Matches
-
-preg_match('/^(get|post|put|delete)$/i', 'PATCH', $matches);
-// ❌ No match
+preg_match('/^(get|post|put|delete)$/i', 'POST', $matches);  // Match: yes
+preg_match('/^(get|post|put|delete)$/i', 'PATCH', $matches);  // Match: no
 ```
 
 ### Email with Named Groups
@@ -197,13 +182,13 @@ echo $m['inner'];   // "world" (second group)
 ### Bad: Confusing or Inefficient
 
 ```php
-// ❌ Too many unnamed groups
+// Too many unnamed groups
 '/(\w+) (@) (\w+) (\.) (\w+)/'
 
-// ❌ Missing grouping on alternation
-'/html|css|js\/api/'  // Matches "html", "css", or "js/api"
+// Missing grouping on alternation
+'/html|css|js\/api/'  // Example match: "html", "css", or "js/api"
 
-// ✅ Proper grouping
+// Proper grouping
 '/(?:html|css|js)\/api/'
 ```
 
@@ -262,11 +247,11 @@ echo "With grouping: " . $m[0] . "\n";     // "foobar"
 ### Error: Forgetting Grouping with Alternation
 
 ```php
-// ❌ Wrong: Matches "html" or "css/api"
+// Wrong: Matches "html" or "css/api"
 preg_match('/html|css\/api/', 'css/api', $m);
 echo $m[0];  // "css" (first alternative!)
 
-// ✅ Correct: Group the alternatives
+// Correct: Group the alternatives
 preg_match('/(?:html|css)\/api/', 'css/api', $m);
 echo $m[0];  // "css/api"
 ```
@@ -274,19 +259,19 @@ echo $m[0];  // "css/api"
 ### Error: Too Many Capturing Groups
 
 ```php
-// ❌ Slow: Many groups when you don't need them
+// Slow: Many groups when you don't need them
 '/(\w+) (@) (\w+) (\.) (\w+)/'
 
-// ✅ Better: Non-capturing groups for structure
+// Better: Non-capturing groups for structure
 '/\w+ @ \w+ \. \w+/'
 
-// ✅ Best: Only capture what you need
+// Best: Only capture what you need
 '/\w+ (?<user>\w+) @ \w+ \. (?<tld>\w+)/'
 ```
 
 ---
 
-## You're Ready!
+## Recap
 
 You now understand:
 - Capturing vs non-capturing groups
@@ -298,10 +283,5 @@ You now understand:
 
 ---
 
-<p align="center">
-  <b>Chapter 5 Complete! →</b>
-</p>
-
----
 
 Previous: [Quantifiers](04-quantifiers.md) | Next: [Lookarounds](06-lookarounds.md)

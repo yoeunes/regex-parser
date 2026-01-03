@@ -1,60 +1,40 @@
-# 🚀 Quick Start Guide
+# Quick Start Guide
 
-Welcome to RegexParser! This guide will get you from installation to your first regex analysis in minutes. Whether you're new to regex or an experienced developer, these steps will show you immediate value.
+This guide gets you from installation to a first analysis in a few steps. It is intentionally brief; the tutorial covers concepts in depth.
 
-👉 **New to regex?** No problem! This guide assumes no prior knowledge.
+If you are new to regex, start here and follow the examples. If you already know regex, you can jump to [Advanced Features](#advanced-features).
 
-👉 **Experienced with regex?** Skip to the [Advanced Features](#advanced-features) section.
+## What this guide covers
 
----
+- Install RegexParser.
+- Use the CLI for quick analysis.
+- Parse and validate patterns in PHP.
+- Explain patterns in plain English.
+- Check for security vulnerabilities.
+- Build custom analysis tools.
 
-## 🎯 What You'll Achieve
-
-In this guide, you'll learn how to:
-
-1. ✅ Install RegexParser
-2. ✅ Use the CLI for quick analysis
-3. ✅ Parse and validate patterns in PHP
-4. ✅ Explain patterns in plain English
-5. ✅ Check for security vulnerabilities
-6. ✅ Build custom analysis tools
-
----
-
-## 📦 Installation
+## Installation
 
 ```bash
 composer require yoeunes/regex-parser
 ```
 
-That's it! No other dependencies needed.
+No additional dependencies are required.
 
-**Want to try without installing?** Try the interactive playground at [regex101.com](https://regex101.com) (PCRE2 mode).
+If you want to experiment without installing, use <https://regex101.com> in PCRE2 mode.
 
----
+## How RegexParser works (short version)
 
-## 🔧 How RegexParser Works (Simple Explanation)
+- The literal is split into pattern and flags.
+- The lexer emits a token stream.
+- The parser builds an AST.
+- Visitors walk the AST to validate, explain, analyze, or transform.
 
-```
-/^hello$/i
-  |
-  v
-Lexer  -> TokenStream (breaks pattern into pieces)
-Parser -> RegexNode (AST) (builds a tree structure)
-          |
-          v
-       Visitors -> validation, explanation, analysis, transforms
-```
+You do not need these details to use the API. For background, see [What is an AST?](concepts/ast.md).
 
-**Don't worry if this seems complex!** You don't need to understand the internals to use RegexParser effectively.
+## CLI quick start
 
-🔍 **Want to learn more?** See [What is an AST?](concepts/ast.md)
-
----
-
-## 💻 CLI Quick Start (Fastest Way to See Results)
-
-The CLI gives you immediate feedback. Try these commands:
+The CLI gives you direct feedback. Try these commands:
 
 ```bash
 # 1. Explain a pattern in plain English
@@ -73,18 +53,16 @@ bin/regex highlight '/\d{4}-\d{2}-\d{2}/'
 bin/regex lint src/
 ```
 
-**Example Output:**
+Example output:
 ```
 $ bin/regex explain '/\d{4}-\d{2}-\d{2}/'
 Match exactly 4 digits, then hyphen, then exactly 2 digits, 
 then hyphen, then exactly 2 digits.
 ```
 
----
+## PHP API: five essential operations
 
-## 📚 PHP API: 5 Essential Operations
-
-### 1️⃣ Parse a Pattern (Turn regex into structured data)
+### 1. Parse a pattern (turn regex into structured data)
 
 ```php
 use RegexParser\Regex;
@@ -96,13 +74,11 @@ $ast = $regex->parse('/\d{3}-\d{4}/');
 // You can analyze, transform, or validate it
 ```
 
-**Use when:** You need to understand or analyze pattern structure.
+Use when you need to understand or analyze pattern structure.
 
-🔍 **Learn more:** [What is an AST?](concepts/ast.md)
+Learn more: [What is an AST?](concepts/ast.md)
 
----
-
-### 2️⃣ Validate a Pattern (Check for errors)
+### 2. Validate a pattern (check for errors)
 
 ```php
 use RegexParser\Regex;
@@ -111,24 +87,22 @@ $regex = Regex::create();
 $result = $regex->validate('/(?<year>\d{4})-(?<month>\d{2})/');
 
 if ($result->isValid()) {
-    echo "✅ Pattern is valid!\n";
-    echo "Complexity Score: " . $result->getComplexityScore() . "\n";
+    echo "Pattern is valid.\n";
+    echo "Complexity score: " . $result->getComplexityScore() . "\n";
 } else {
-    echo "❌ Error: " . $result->getErrorMessage() . "\n";
-    echo "💡 Hint: " . $result->getHint() . "\n";
+    echo "Error: " . $result->getErrorMessage() . "\n";
+    echo "Hint: " . $result->getHint() . "\n";
 }
 ```
 
-**Checks performed:**
-- ✅ Syntax errors (missing brackets, invalid escapes)
-- ✅ ReDoS vulnerabilities (security risks)
-- ✅ Invalid backreferences
-- ✅ Variable-length lookbehinds
-- ✅ Invalid Unicode properties
+Checks performed:
+- Syntax errors (missing brackets, invalid escapes)
+- ReDoS vulnerabilities (security risks)
+- Invalid backreferences
+- Variable-length lookbehinds
+- Invalid Unicode properties
 
----
-
-### 3️⃣ Explain a Pattern (Get plain English description)
+### 3. Explain a pattern (get a plain English description)
 
 ```php
 use RegexParser\Regex;
@@ -149,11 +123,9 @@ A named group 'email' containing:
   - One or more word characters
 ```
 
-**Use when:** Documenting patterns, code reviews, teaching regex to others.
+Use when documenting patterns, doing code reviews, or teaching regex.
 
----
-
-### 4️⃣ Check for ReDoS Vulnerabilities (Security check)
+### 4. Check for ReDoS vulnerabilities (security check)
 
 ```php
 use RegexParser\Regex;
@@ -170,13 +142,11 @@ $analysis = $regex->redos('/a+b/');
 echo "ReDoS Severity: " . $analysis->severity->value;  // "safe"
 ```
 
-**What is ReDoS?** Regular Expression Denial of Service - where certain inputs can make your regex take forever to process.
+ReDoS (Regular Expression Denial of Service) is a performance risk where certain inputs can make a backtracking engine take a very long time.
 
-🔍 **Learn more:** [ReDoS Deep Dive](concepts/redos.md)
+Learn more: [ReDoS Deep Dive](concepts/redos.md)
 
----
-
-### 5️⃣ Highlight Patterns (Make regex readable)
+### 5. Highlight patterns (make regex readable)
 
 ```php
 use RegexParser\Regex;
@@ -189,11 +159,9 @@ $consoleOutput = $ast->accept(new ConsoleHighlighterVisitor());
 echo $consoleOutput;
 ```
 
-Perfect for documentation and teaching!
+This is useful for documentation and reviews.
 
----
-
-## 🎯 10 Practical Use Cases
+## Practical use cases
 
 ### 1. Parse and Understand Complex Patterns
 
@@ -282,11 +250,11 @@ $ast->accept($counter);
 echo "Quantifiers: " . $counter->getCount(); // "3"
 ```
 
-🔍 **Learn more:** [Understanding Visitors](concepts/visitors.md)
+Learn more: [Understanding Visitors](concepts/visitors.md)
 
 ---
 
-## 📋 Common Pattern Examples
+## Common pattern examples
 
 ### Email Validation
 
@@ -329,9 +297,9 @@ $regex = Regex::create();
 try {
     $ast = $regex->parse('/invalid[/');  // Unclosed character class
 } catch (ParserException $e) {
-    echo "❌ Parse error: " . $e->getMessage() . "\n";
-    echo "📍 Position: " . $e->getPosition() . "\n";
-    echo "📄 Snippet:\n" . $e->getSnippet() . "\n";
+    echo "Parse error: " . $e->getMessage() . "\n";
+    echo "Position: " . $e->getPosition() . "\n";
+    echo "Snippet:\n" . $e->getSnippet() . "\n";
 }
 ```
 
@@ -347,7 +315,7 @@ try {
 
 ---
 
-## 🎓 Advanced Features
+## Advanced features
 
 ### Working with Named Groups
 
@@ -390,53 +358,36 @@ $result = $regex->validate($pattern);
 
 ---
 
-## 🚀 Next Steps
+## Next steps
 
 Now that you've seen what RegexParser can do, here's where to go next:
 
-**For Beginners:**
-- 🧑‍🎓 **[Learn Regex from Scratch](../tutorial/README.md)** - Complete step-by-step tutorial
-- 📝 **[Regex in PHP Guide](../guides/regex-in-php.md)** - PHP-specific regex details
+For beginners:
+- [Learn Regex from Scratch](../tutorial/README.md)
+- [Regex in PHP Guide](../guides/regex-in-php.md)
 
-**For Users:**
-- 🔧 **[CLI Guide](../guides/cli.md)** - Full command reference
-- 🍳 **[Cookbook](../COOKBOOK.md)** - Ready-to-use patterns and recipes
-- 🔒 **[ReDoS Guide](../REDOS_GUIDE.md)** - Security best practices
+For users:
+- [CLI Guide](../guides/cli.md)
+- [Cookbook](../COOKBOOK.md)
+- [ReDoS Guide](../REDOS_GUIDE.md)
 
-**For Developers:**
-- 🏗️ **[Architecture](../ARCHITECTURE.md)** - Internal design
-- 🌲 **[AST Reference](../nodes/README.md)** - Node types
-- 👣 **[Visitors Guide](../visitors/README.md)** - Custom analysis
-- 🔧 **[Extending Guide](../EXTENDING_GUIDE.md)** - Build your own tools
+For developers:
+- [Architecture](../ARCHITECTURE.md)
+- [AST Reference](../nodes/README.md)
+- [Visitors Guide](../visitors/README.md)
+- [Extending Guide](../EXTENDING_GUIDE.md)
 
-**Reference:**
-- 📚 **[API Reference](../reference/api.md)** - Complete documentation
-- 🩺 **[Diagnostics](../reference/diagnostics.md)** - Error types
-- ❓ **[FAQ & Glossary](../reference/faq-glossary.md)** - Common questions
+Reference:
+- [API Reference](../reference/api.md)
+- [Diagnostics](../reference/diagnostics.md)
+- [FAQ & Glossary](../reference/faq-glossary.md)
 
----
+## Getting help
 
-## 🆘 Getting Help
-
-- **Issues & Bug Reports**: [GitHub Issues](https://github.com/yoeunes/regex-parser/issues)
-- **Real-world Examples**: Check the `tests/Integration/` directory
-- **Interactive Playground**: [regex101.com](https://regex101.com) (PCRE2 mode)
-- **Community**: Open an issue on [GitHub](https://github.com/yoeunes/regex-parser/issues) for help
+- Issues and bug reports: <https://github.com/yoeunes/regex-parser/issues>
+- Real-world examples: see `tests/Integration/`
+- Interactive playground: <https://regex101.com> (PCRE2 mode)
 
 ---
 
-## 🎉 You're Ready!
-
-You've learned the essentials of RegexParser. Now you can:
-
-✅ Parse and validate regex patterns
-✅ Explain patterns in plain English
-✅ Check for security vulnerabilities
-✅ Build custom analysis tools
-✅ Improve your regex skills
-
-**What will you build with RegexParser?** 🚀
-
----
-
-📖 **Previous**: [Docs Home](README.md) | 🚀 **Next**: [Regex Tutorial](../tutorial/README.md)
+Previous: [Docs Home](README.md) | Next: [Regex Tutorial](../tutorial/README.md)
