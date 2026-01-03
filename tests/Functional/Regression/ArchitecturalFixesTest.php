@@ -13,13 +13,13 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\Functional\Regression;
 
-use RegexParser\Token;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Cli\Command\HelpCommand;
 use RegexParser\Lexer;
 use RegexParser\NodeVisitor\CompilerNodeVisitor;
 use RegexParser\Regex;
+use RegexParser\Token;
 use RegexParser\TokenType;
 
 final class ArchitecturalFixesTest extends TestCase
@@ -38,6 +38,7 @@ final class ArchitecturalFixesTest extends TestCase
         foreach ($stream->getTokens() as $token) {
             if (TokenType::T_UNICODE === $token->type) {
                 $unicodeToken = $token;
+
                 break;
             }
         }
