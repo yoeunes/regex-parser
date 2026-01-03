@@ -146,7 +146,7 @@
       → /^<((([a-z\d!#$%&'*+\/=?^_`{|}~-]+(\.[a-z\d!#$%&'*+\/=?^_`{|}~-]+)*)|("(([\x01-\x08\x0B\x0C\x0E-\x1F\x7F]|[\x21\x23-\x5B\x5D-\x7E])|(\[\x01-\x09\x0B\x0C\x0E-\x7F]))*"))@(([a-z\d!#$%&'*+\/=?^_`{|}~-]+(\.[a-z\d!#$%&'*+\/=?^_`{|}~-]+)*)|(\[(([\x01-\x08\x0B\x0C\x0E-\x1F\x7F]|[\x21-\x5A\x5E-\x7E])|(\[\x01-\x09\x0B\x0C\x0E-\x7F]))*\])))>$/Di
      TIP 
          - /^<((([a-z\d!#$%&'*+\/=?^_`{|}~-]+(\.[a-z\d!#$%&'*+\/=?^_`{|}~-]+)*)|("(([\x01-\x08\x0B\x0C\x0E-\x1F\x7F]|[\x21\x23-\x5B\x5D-\x7E])|(\[\x01-\x09\x0B\x0C\x0E-\x7F]))*"))@(([a-z\d!#$%&'*+\/=?^_`{|}~-]+(\.[a-z\d!#$%&'*+\/=?^_`{|}~-]+)*)|(\[(([\x01-\x08\x0B\x0C\x0E-\x1F\x7F]|[\x21-\x5A\x5E-\x7E])|(\[\x01-\x09\x0B\x0C\x0E-\x7F]))*\])))>$/Di
-         + /^<((([!#-'*+\-\/=?\^-`a-z{-~\d]+(\.[!#-'*+\-\/=?\^-`a-z{-~\d]+)*)|("(([\x01-\x08\x0B\f\x0E-\x1F\x7F!#-\[\]-~])|(\[\x01-\t\x0B\f\x0E-\x7F]))*"))@(([!#-'*+\-\/=?\^-`a-z{-~\d]+(\.[!#-'*+\-\/=?\^-`a-z{-~\d]+)*)|(\[(([\x01-\x08\x0B\f\x0E-\x1F\x7F!-Z\^-~])|(\[\x01-\t\x0B\f\x0E-\x7F]))*])))>$/Di
+         + /^<((([!#-'*+\-\/=?\^-`a-z{-~\d]+(\.[!#-'*+\-\/=?\^-`a-z{-~\d]+)*)|("(([\x01-\x08\x0B\x0C\x0E-\x1F\x7F\x21\x23-\x5B\x5D-\x7E])|(\[\x01-\x09\x0B\x0C\x0E-\x7F]))*"))@(([!#-'*+\-\/=?\^-`a-z{-~\d]+(\.[!#-'*+\-\/=?\^-`a-z{-~\d]+)*)|(\[(([\x01-\x08\x0B\x0C\x0E-\x1F\x7F\x21-\x5A\x5E-\x7E])|(\[\x01-\x09\x0B\x0C\x0E-\x7F]))*])))>$/Di
 
   corpus/PHPMailer/src/PHPMailer.php:3670:60
       → /[^A-Za-z0-9!#$%&'*+\/=?^_`{|}~ -]/
@@ -2131,21 +2131,6 @@
   corpus/contao/contao/core-bundle/contao/library/Contao/StringUtil.php:214:27
       → /(&#*\w+)[\x00-\x20]+;/i
      WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
-     TIP 
-         - /(&#*\w+)[\x00-\x20]+;/i
-         + /(&#*\w+)[\x00- ]+;/i
-
-  corpus/contao/contao/core-bundle/contao/library/Contao/StringUtil.php:396:18
-      → /mailto:(?:[^\x00-\x20\x22\x40\x7F]{1,64}+|\x22[^\x00-\x1F\x7F]{1,64}?\x22)@(?:\[(?:IPv)?[a-f0-9.:]{1,47}]|[\w.-]{1,252}\.[a-z]{2,63}\b)/u
-     TIP 
-         - /mailto:(?:[^\x00-\x20\x22\x40\x7F]{1,64}+|\x22[^\x00-\x1F\x7F]{1,64}?\x22)@(?:\[(?:IPv)?[a-f0-9.:]{1,47}]|[\w.-]{1,252}\.[a-z]{2,63}\b)/u
-         + /mailto:(?:[^\x00- "@\x7F]{1,64}+|"[^\x00-\x1F\x7F]{1,64}?")@(?:\[(?:IPv)?[.0-9:a-f]{1,47}]|[\w.\-]{1,252}\.[a-z]{2,63}\b)/u
-
-  corpus/contao/contao/core-bundle/contao/library/Contao/StringUtil.php:421:18
-      → /(?:[^\x00-\x20\x22\x40\x7F]{1,64}|\x22[^\x00-\x1F\x7F]{1,64}?\x22)@(?:\[(?:IPv)?[a-f0-9.:]{1,47}]|[\w.-]{1,252}\.[a-z]{2,63}\b)/u
-     TIP 
-         - /(?:[^\x00-\x20\x22\x40\x7F]{1,64}|\x22[^\x00-\x1F\x7F]{1,64}?\x22)@(?:\[(?:IPv)?[a-f0-9.:]{1,47}]|[\w.-]{1,252}\.[a-z]{2,63}\b)/u
-         + /(?:[^\x00- "@\x7F]{1,64}|"[^\x00-\x1F\x7F]{1,64}?")@(?:\[(?:IPv)?[.0-9:a-f]{1,47}]|[\w.\-]{1,252}\.[a-z]{2,63}\b)/u
 
   corpus/contao/contao/core-bundle/contao/library/Contao/Validator.php:143:21
       → /^(?!(?:(?:\x22?\x5C[\x00-\x7E]\x22?)|(?:\x22?[^\x5C\x22]\x22?)){255,})(?!(?:(?:\x22?\x5C[\x00-\x7E]\x22?)|(?:\x22?[^\x5C\x22]\x22?)){65,}@)(?:(?:[\x21\x23-\x27\x2A\x2B\x2D\x2F-\x39\x3D\x3F\x5E-\x7E\pL\pN]+)|(?:\x22(?:[\x01-\x08\x0B\x0C\x0E-\x1F\x21\x23-\x5B\x5D-\x7F\pL\pN]|(?:\x5C[\x00-\x7F]))*\x22))(?:\.(?:(?:[\x21\x23-\x27\x2A\x2B\x2D\x2F-\x39\x3D\x3F\x5E-\x7E\pL\pN]+)|(?:\x22(?:[\x01-\x08\x0B\x0C\x0E-\x1F\x21\x23-\x5B\x5D-\x7F\pL\pN]|(?:\x5C[\x00-\x7F]))*\x22)))*@(?:(?:(?!.*[^.]{64,})(?:(?:(?:xn--)?[a-z0-9]+(?:-+[a-z0-9]+)*\.){1,126}){1,}(?:(?:[a-z][a-z0-9]*)|(?:(?:xn--)[a-z0-9]+))(?:-+[a-z0-9]+)*)|(?:\[(?:(?:IPv6:(?:(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){7})|(?:(?!(?:.*[a-f0-9][:\]]){7,})(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){0,5})?::(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){0,5})?)))|(?:(?:IPv6:(?:(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){5}:)|(?:(?!(?:.*[a-f0-9]:){5,})(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){0,3})?::(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){0,3}:)?)))?(?:(?:25[0-5])|(?:2[0-4][0-9])|(?:1[0-9]{2})|(?:[1-9]?[0-9]))(?:\.(?:(?:25[0-5])|(?:2[0-4][0-9])|(?:1[0-9]{2})|(?:[1-9]?[0-9]))){3}))]))$/iDu
@@ -2161,7 +2146,7 @@
          + /^(?!(?:(?:\x22?\x5C[\x00-\x7E]\x22?)|(?:\x22?[^\x5C\x22]\x22?)){255,})(?!(?:(?:\x22?\x5C[\x00-\x7E]\x22?)|(?:\x22?[^\x5C\x22]\x22?)){65,}@)(?:(?:[\x21\x23-\x27\x2A\x2B\x2D\x2F-\x39\x3D\x3F\x5E-\x7E\pL\pN]+)|(?:\x22(?:[\x01-\x08\x0B\x0C\x0E-\x1F\x21\x23-\x5B\x5D-\x7F\pL\pN]|(?:\x5C[\x00-\x7F]))*\x22))(?:\.(?:(?:[\x21\x23-\x27\x2A\x2B\x2D\x2F-\x39\x3D\x3F\x5E-\x7E\pL\pN]+)|(?:\x22(?:[\x01-\x08\x0B\x0C\x0E-\x1F\x21\x23-\x5B\x5D-\x7F\pL\pN]|(?:\x5C[\x00-\x7F]))*\x22)))*@(?:(?:(?!.*[^.]{64,})(?:(?:(?:xn--)?[a-z0-9]+(?:-+[a-z0-9]+)*\.){1,126}){1,}(?:(?:[a-z][a-z0-9]*)|(?:(?:xn--)[a-z0-9]+))(?:-+[a-z0-9]+)*)|(?:\[(?:(?:IPv6:(?:(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){7})|(?:(?!(?>(?:.*[a-f0-9][:\]])){7,})(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){0,5})?::(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){0,5})?)))|(?:(?:IPv6:(?:(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){5}:)|(?:(?!(?:.*[a-f0-9]:){5,})(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){0,3})?::(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){0,3}:)?)))?(?:(?:25[0-5])|(?:2[0-4][0-9])|(?:1[0-9]{2})|(?:[1-9]?[0-9]))(?:\.(?:(?:25[0-5])|(?:2[0-4][0-9])|(?:1[0-9]{2})|(?:[1-9]?[0-9]))){3}))]))$/iDu
      TIP 
          - /^(?!(?:(?:\x22?\x5C[\x00-\x7E]\x22?)|(?:\x22?[^\x5C\x22]\x22?)){255,})(?!(?:(?:\x22?\x5C[\x00-\x7E]\x22?)|(?:\x22?[^\x5C\x22]\x22?)){65,}@)(?:(?:[\x21\x23-\x27\x2A\x2B\x2D\x2F-\x39\x3D\x3F\x5E-\x7E\pL\pN]+)|(?:\x22(?:[\x01-\x08\x0B\x0C\x0E-\x1F\x21\x23-\x5B\x5D-\x7F\pL\pN]|(?:\x5C[\x00-\x7F]))*\x22))(?:\.(?:(?:[\x21\x23-\x27\x2A\x2B\x2D\x2F-\x39\x3D\x3F\x5E-\x7E\pL\pN]+)|(?:\x22(?:[\x01-\x08\x0B\x0C\x0E-\x1F\x21\x23-\x5B\x5D-\x7F\pL\pN]|(?:\x5C[\x00-\x7F]))*\x22)))*@(?:(?:(?!.*[^.]{64,})(?:(?:(?:xn--)?[a-z0-9]+(?:-+[a-z0-9]+)*\.){1,126}){1,}(?:(?:[a-z][a-z0-9]*)|(?:(?:xn--)[a-z0-9]+))(?:-+[a-z0-9]+)*)|(?:\[(?:(?:IPv6:(?:(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){7})|(?:(?!(?:.*[a-f0-9][:\]]){7,})(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){0,5})?::(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){0,5})?)))|(?:(?:IPv6:(?:(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){5}:)|(?:(?!(?:.*[a-f0-9]:){5,})(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){0,3})?::(?:[a-f0-9]{1,4}(?::[a-f0-9]{1,4}){0,3}:)?)))?(?:(?:25[0-5])|(?:2[0-4][0-9])|(?:1[0-9]{2})|(?:[1-9]?[0-9]))(?:\.(?:(?:25[0-5])|(?:2[0-4][0-9])|(?:1[0-9]{2})|(?:[1-9]?[0-9]))){3}))]))$/iDu
-         + /^(?!(?:(?:"?\[\x00-~]"?)|(?:"?[^\"]"?)){255,})(?!(?:(?:"?\[\x00-~]"?)|(?:"?[^\"]"?)){65,}@)(?:(?:[!#-'*+\-\/-9=?\^-~\pL\pN]+)|(?:"(?:[\x01-\x08\x0B\f\x0E-\x1F!#-\[\]-\x7F\pL\pN]|(?:\[\x00-\x7F]))*"))(?:\.(?:(?:[!#-'*+\-\/-9=?\^-~\pL\pN]+)|(?:"(?:[\x01-\x08\x0B\f\x0E-\x1F!#-\[\]-\x7F\pL\pN]|(?:\[\x00-\x7F]))*")))*@(?:(?:(?!.*[^.]{64,})(?:(?:(?:xn--)?[0-9a-z]+(?:-+[0-9a-z]+)*\.){1,126})+(?:(?:[a-z][0-9a-z]*)|(?:xn--[0-9a-z]+))(?:-+[0-9a-z]+)*)|(?:\[(?:(?:IPv6:(?:(?:[0-9a-f]{1,4}(?::[0-9a-f]{1,4}){7})|(?:(?!(?:.*[0-9a-f][:\]]){7,})(?:[0-9a-f]{1,4}(?::[0-9a-f]{1,4}){0,5})?::(?:[0-9a-f]{1,4}(?::[0-9a-f]{1,4}){0,5})?)))|(?:(?:IPv6:(?:(?:[0-9a-f]{1,4}(?::[0-9a-f]{1,4}){5}:)|(?:(?!(?:.*[0-9a-f]:){5,})(?:[0-9a-f]{1,4}(?::[0-9a-f]{1,4}){0,3})?::(?:[0-9a-f]{1,4}(?::[0-9a-f]{1,4}){0,3}:)?)))?(?:(?:25[0-5])|(?:2[0-4][0-9])|(?:1[0-9]{2})|(?:[1-9]?[0-9]))(?:\.(?:(?:25[0-5])|(?:2[0-4][0-9])|(?:1[0-9]{2})|(?:[1-9]?[0-9]))){3}))]))$/iDu
+         + /^(?!(?:(?:\x22?\x5C[\x00-\x7E]\x22?)|(?:\x22?[^\x5C\x22]\x22?)){255,})(?!(?:(?:\x22?\x5C[\x00-\x7E]\x22?)|(?:\x22?[^\x5C\x22]\x22?)){65,}@)(?:(?:[\x21\x23-\x27\x2A\x2B\x2D\x2F-\x39\x3D\x3F\x5E-\x7E\pL\pN]+)|(?:\x22(?:[\x01-\x08\x0B\x0C\x0E-\x1F\x21\x23-\x5B\x5D-\x7F\pL\pN]|(?:\x5C[\x00-\x7F]))*\x22))(?:\.(?:(?:[\x21\x23-\x27\x2A\x2B\x2D\x2F-\x39\x3D\x3F\x5E-\x7E\pL\pN]+)|(?:\x22(?:[\x01-\x08\x0B\x0C\x0E-\x1F\x21\x23-\x5B\x5D-\x7F\pL\pN]|(?:\x5C[\x00-\x7F]))*\x22)))*@(?:(?:(?!.*[^.]{64,})(?:(?:(?:xn--)?[0-9a-z]+(?:-+[0-9a-z]+)*\.){1,126})+(?:(?:[a-z][0-9a-z]*)|(?:xn--[0-9a-z]+))(?:-+[0-9a-z]+)*)|(?:\[(?:(?:IPv6:(?:(?:[0-9a-f]{1,4}(?::[0-9a-f]{1,4}){7})|(?:(?!(?:.*[0-9a-f][:\]]){7,})(?:[0-9a-f]{1,4}(?::[0-9a-f]{1,4}){0,5})?::(?:[0-9a-f]{1,4}(?::[0-9a-f]{1,4}){0,5})?)))|(?:(?:IPv6:(?:(?:[0-9a-f]{1,4}(?::[0-9a-f]{1,4}){5}:)|(?:(?!(?:.*[0-9a-f]:){5,})(?:[0-9a-f]{1,4}(?::[0-9a-f]{1,4}){0,3})?::(?:[0-9a-f]{1,4}(?::[0-9a-f]{1,4}){0,3}:)?)))?(?:(?:25[0-5])|(?:2[0-4][0-9])|(?:1[0-9]{2})|(?:[1-9]?[0-9]))(?:\.(?:(?:25[0-5])|(?:2[0-4][0-9])|(?:1[0-9]{2})|(?:[1-9]?[0-9]))){3}))]))$/iDu
 
   corpus/contao/contao/core-bundle/contao/library/Contao/Validator.php:211:21
       → /^[+(]?(\d+[ +()\/-]*)+$/
@@ -2180,9 +2165,6 @@
   corpus/contao/contao/core-bundle/contao/library/Contao/Input.php:836:28
       → /(&#*\w+)[\x00-\x20]+;/i
      WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
-     TIP 
-         - /(&#*\w+)[\x00-\x20]+;/i
-         + /(&#*\w+)[\x00- ]+;/i
 
   corpus/contao/contao/core-bundle/contao/dca/tl_content.php:1060:25
       → /<!--(.|\s)*?-->/
@@ -2263,12 +2245,6 @@
          - %^(.*://\[[0-9:a-fA-F]+\])(.*?)$%
          + %^(.*://\[[0-9:A-Fa-f]+])(.*?)$%
 
-  corpus/phpstan/phpdoc-parser/src/Printer/Printer.php:790:23
-      → ~\n(?<before>[\x09\x20]*)\*(?<after>\x20*)~
-     TIP 
-         - ~\n(?<before>[\x09\x20]*)\*(?<after>\x20*)~
-         + ~\n(?<before>[\t ]*)\*(?<after> *)~
-
   corpus/reactphp/http/examples/82-server-upgrade-chat.php:62:35
       → /[^\w \.\,\-\!\?]/u
      TIP 
@@ -2335,12 +2311,6 @@
          - /^localhost$|^127(?:\.[0-9]+){0,2}\.[0-9]+$|^(?:0*\:)*?:?0*1$/i
          + /^localhost$|^127(?:\.[0-9]+){0,2}\.[0-9]+$|^(?:0*:)*?:?0*1$/i
 
-  corpus/phpseclib/phpseclib/Net/SSH2.php:4476:37
-      → #[^\x20-\x7E]|<#
-     TIP 
-         - #[^\x20-\x7E]|<#
-         + #[^ -~]|<#
-
   corpus/phpseclib/phpseclib/File/ASN1/Types/OID.php:62:28
       → #^\d[\d\.]+\d$#
      TIP 
@@ -2353,48 +2323,6 @@
          - #(?:SPKAC=)|[ \r\n\\]#
          + #SPKAC=|[ \r\n\\]#
 
-  corpus/phpseclib/phpseclib/File/ANSI.php:259:45
-      → #\x1B\[(\d+)B#
-     TIP 
-         - #\x1B\[(\d+)B#
-         + #\e\[(\d+)B#
-
-  corpus/phpseclib/phpseclib/File/ANSI.php:263:45
-      → #\x1B\[(\d+);(\d+)H#
-     TIP 
-         - #\x1B\[(\d+);(\d+)H#
-         + #\e\[(\d+);(\d+)H#
-
-  corpus/phpseclib/phpseclib/File/ANSI.php:269:45
-      → #\x1B\[(\d+)C#
-     TIP 
-         - #\x1B\[(\d+)C#
-         + #\e\[(\d+)C#
-
-  corpus/phpseclib/phpseclib/File/ANSI.php:273:45
-      → #\x1B\[(\d+)D#
-     TIP 
-         - #\x1B\[(\d+)D#
-         + #\e\[(\d+)D#
-
-  corpus/phpseclib/phpseclib/File/ANSI.php:280:45
-      → #\x1B\[(\d+);(\d+)r#
-     TIP 
-         - #\x1B\[(\d+);(\d+)r#
-         + #\e\[(\d+);(\d+)r#
-
-  corpus/phpseclib/phpseclib/File/ANSI.php:282:45
-      → #\x1B\[(\d*(?:;\d*)*)m#
-     TIP 
-         - #\x1B\[(\d*(?:;\d*)*)m#
-         + #\e\[(\d*(?:;\d*)*)m#
-
-  corpus/phpseclib/phpseclib/File/Common/Traits/DN.php:361:24
-      → #[^\x20-\x7E]#
-     TIP 
-         - #[^\x20-\x7E]#
-         + #[^ -~]#
-
   corpus/phpseclib/phpseclib/File/Common/Traits/DN.php:372:28
       → #(^[a-zA-Z0-9\.]+)=(.*)#
      TIP 
@@ -2406,12 +2334,6 @@
      TIP 
          - #(^[a-zA-Z0-9\.]+)[ ]?=[ ]?(.*)#
          + #(^[.0-9A-Za-z]+)[ ]?=[ ]?(.*)#
-
-  corpus/phpseclib/phpseclib/File/Common/Traits/DN.php:545:44
-      → #[^\x20-\x7E]#
-     TIP 
-         - #[^\x20-\x7E]#
-         + #[^ -~]#
 
   corpus/foundry/src/Persistence/ProxyGenerator.php:177:13
       → /^(\s*(?:#\[\\ReturnTypeWillChange\]\s*)?(?:public|protected|private)?\s*function\s+(?!__)\w+\s*\([^\)]*\)\s*):?\s*\??[\w\\|&]*\s*\{\s*$/m
@@ -2499,6 +2421,18 @@
          - /[{\[\]].+?[}\[\]]/
          + /[{[\]].+?[}[\]]/
 
+  corpus/carbon/src/Carbon/Lang/uk.php:175:32
+      → /(\[(\320\222|\320\262|\320\243|\321\203)\])\s+dddd/u
+     TIP 
+         - /(\[(\320\222|\320\262|\320\243|\321\203)\])\s+dddd/u
+         + /(\[(\320\222|\320\262|\320\243|\321\203)])\s+d{4}/u
+
+  corpus/carbon/src/Carbon/Lang/uk.php:178:28
+      → /\[?(?:\320\274\320\270\320\275\321\203\320\273\320\276\321\227|\320\275\320\260\321\201\321\202\321\203\320\277\320\275\320\276\321\227)?\s*\]\s+dddd/u
+     TIP 
+         - /\[?(?:\320\274\320\270\320\275\321\203\320\273\320\276\321\227|\320\275\320\260\321\201\321\202\321\203\320\277\320\275\320\276\321\227)?\s*\]\s+dddd/u
+         + /\[?(?:\320\274\320\270\320\275\321\203\320\273\320\276\321\227|\320\275\320\260\321\201\321\202\321\203\320\277\320\275\320\276\321\227)?\s*]\s+d{4}/u
+
   corpus/aidingapp/app-modules/engagement/src/Jobs/ProcessSesS3InboundEmail.php:128:32
       → /([a-z0-9\-]+)\-([a-z0-9]+)/
      TIP 
@@ -2528,12 +2462,6 @@
      TIP 
          - #\:ex\_text[0-9]+#
          + #:ex_text[0-9]+#
-
-  corpus/microsoft/o365-moodle/local/o365/classes/rest/unified.php:1941:28
-      → ~[^\x20-\x7E\t\r\n]~
-     TIP 
-         - ~[^\x20-\x7E\t\r\n]~
-         + ~[^ -\~\t\r\n]~
 
   corpus/composer/ca-bundle/src/CaBundle.php:169:38
       → /^(\-+(?:BEGIN|END))\s+TRUSTED\s+(CERTIFICATE\-+)$/m
@@ -2763,24 +2691,6 @@
          - /\[([^\]]+)\]/
          + /\[([^\]]+)]/
 
-  corpus/nette/latte/src/Latte/Runtime/XmlHelpers.php:41:21
-      → #[\x00-\x08\x0B\x0C\x0E-\x1F]#
-     TIP 
-         - #[\x00-\x08\x0B\x0C\x0E-\x1F]#
-         + #[\x00-\x08\x0B\f\x0E-\x1F]#
-
-  corpus/nette/latte/src/Latte/Compiler/TemplateLexer.php:324:24
-      → #(.*?)([\x00-\x08\x0B\x0C\x0E-\x1F\x7F])#s
-     TIP 
-         - #(.*?)([\x00-\x08\x0B\x0C\x0E-\x1F\x7F])#s
-         + #(.*?)([\x00-\x08\x0B\f\x0E-\x1F\x7F])#s
-
-  corpus/nette/tester/src/Framework/Dumper.php:354:27
-      → #[\x00-\x09\x0B-\x1F]+#
-     TIP 
-         - #[\x00-\x09\x0B-\x1F]+#
-         + #[\x00-\t\x0B-\x1F]+#
-
   corpus/Roave/BetterReflection/src/Util/FileHelper.php:43:20
       → ~^([a-z]+)\:\/\/(.+)~
      TIP 
@@ -2847,12 +2757,6 @@
          - /^[a-zA-Z0-9\_]*$/
          + /^\w*$/
 
-  corpus/shopware/src/Core/Content/Media/TypeDetector/ImageTypeDetector.php:83:44
-      → #\x00\x21\xF9\x04.{4}\x00(\x2C|\x21)#s
-     TIP 
-         - #\x00\x21\xF9\x04.{4}\x00(\x2C|\x21)#s
-         + #\x00!\xF9\x04.{4}\x00(,|!)#s
-
   corpus/shopware/src/Core/System/Snippet/SnippetValidator.php:257:48
       → /^(\{0\}.+\|)?(\{1\}.+\|)(\[0,inf\[.+)/i
      TIP 
@@ -2883,12 +2787,6 @@
          - /^Processes:     \d+\nRuntime:       PHP \d+\.\d+\.\w+(-.+)?\n\n/
          + /^Processes: {5}\d+\nRuntime: {7}PHP \d+\.\d+\.\w+(-.+)?\n\n/
 
-  corpus/phpunit/phpunit/src/Util/Xml/Xml.php:37:13
-      → /[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/
-     TIP 
-         - /[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/
-         + /[\x00-\x08\x0B\f\x0E-\x1F\x7F]/
-
   corpus/phpunit/phpunit/src/Runner/Phpt/TestCase.php:571:24
       → /^[\-+](['\"]?)(.*)\1$/
      TIP 
@@ -2900,12 +2798,6 @@
      TIP 
          - /--------+\r?\n.+?(\d+)\r?\n.+?(\d+)\r?\n/
          + /-{7}-+\r?\n.+?(\d+)\r?\n.+?(\d+)\r?\n/
-
-  corpus/phpunit/exporter/src/Exporter.php:369:24
-      → /[^\x09-\x0d\x1b\x20-\xff]/
-     TIP 
-         - /[^\x09-\x0d\x1b\x20-\xff]/
-         + /[^\t-\r\e -\xFF]/
 
   corpus/espocrm/install/core/Installer.php:341:42
       → /[^A-Za-z0-9_\-@$#\(\)]+/
@@ -2979,347 +2871,17 @@
          - /[\\]{1}/
          + /[\\]/
 
-  corpus/expose/app/Logger/LoggedRequest.php:155:27
-      → ~[^\x20-\x7E\t\r\n]~
-     TIP 
-         - ~[^\x20-\x7E\t\r\n]~
-         + ~[^ -\~\t\r\n]~
-
   corpus/htmlpurifier/plugins/phorum/settings/migrate-sigs.php:46:29
       → /<((http|https|ftp):\/\/[a-z0-9;\/\?:@=\&$\-_\.\+!*'\(\),~%]+?)>/i
      TIP 
          - /<((http|https|ftp):\/\/[a-z0-9;\/\?:@=\&$\-_\.\+!*'\(\),~%]+?)>/i
          + /<((http|https|ftp):\/\/[!$-\/0-9:;=?@_a-z~]+?)>/i
 
-  corpus/htmlpurifier/library/HTMLPurifier/Lexer/PH5P.php:734:29
-      → /[\t\n\x0b\x0c >\/]/
-     TIP 
-         - /[\t\n\x0b\x0c >\/]/
-         + /[\t\n\x0B\f >\/]/
-
-  corpus/htmlpurifier/library/HTMLPurifier/Lexer/PH5P.php:814:24
-      → /^[\t\n\x0b\x0c ]$/
-     TIP 
-         - /^[\t\n\x0b\x0c ]$/
-         + /^[\t\n\x0B\f ]$/
-
-  corpus/htmlpurifier/library/HTMLPurifier/Lexer/PH5P.php:859:24
-      → /^[\t\n\x0b\x0c ]$/
-     TIP 
-         - /^[\t\n\x0b\x0c ]$/
-         + /^[\t\n\x0B\f ]$/
-
-  corpus/htmlpurifier/library/HTMLPurifier/Lexer/PH5P.php:909:24
-      → /^[\t\n\x0b\x0c ]$/
-     TIP 
-         - /^[\t\n\x0b\x0c ]$/
-         + /^[\t\n\x0B\f ]$/
-
-  corpus/htmlpurifier/library/HTMLPurifier/Lexer/PH5P.php:961:24
-      → /^[\t\n\x0b\x0c ]$/
-     TIP 
-         - /^[\t\n\x0b\x0c ]$/
-         + /^[\t\n\x0B\f ]$/
-
-  corpus/htmlpurifier/library/HTMLPurifier/Lexer/PH5P.php:1016:24
-      → /^[\t\n\x0b\x0c ]$/
-     TIP 
-         - /^[\t\n\x0b\x0c ]$/
-         + /^[\t\n\x0B\f ]$/
-
-  corpus/htmlpurifier/library/HTMLPurifier/Lexer/PH5P.php:1137:24
-      → /^[\t\n\x0b\x0c ]$/
-     TIP 
-         - /^[\t\n\x0b\x0c ]$/
-         + /^[\t\n\x0B\f ]$/
-
-  corpus/htmlpurifier/library/HTMLPurifier/Lexer/PH5P.php:1327:24
-      → /^[\t\n\x0b\x0c ]$/
-     TIP 
-         - /^[\t\n\x0b\x0c ]$/
-         + /^[\t\n\x0B\f ]$/
-
-  corpus/htmlpurifier/library/HTMLPurifier/Lexer/PH5P.php:1342:24
-      → /^[\t\n\x0b\x0c ]$/
-     TIP 
-         - /^[\t\n\x0b\x0c ]$/
-         + /^[\t\n\x0B\f ]$/
-
-  corpus/htmlpurifier/library/HTMLPurifier/Lexer/PH5P.php:1394:24
-      → /^[\t\n\x0b\x0c ]$/
-     TIP 
-         - /^[\t\n\x0b\x0c ]$/
-         + /^[\t\n\x0B\f ]$/
-
-  corpus/htmlpurifier/library/HTMLPurifier/Lexer/PH5P.php:1424:24
-      → /^[\t\n\x0b\x0c ]$/
-     TIP 
-         - /^[\t\n\x0b\x0c ]$/
-         + /^[\t\n\x0B\f ]$/
-
-  corpus/htmlpurifier/library/HTMLPurifier/Lexer/PH5P.php:1750:29
-      → /^[\t\n\x0b\x0c ]+$/
-     TIP 
-         - /^[\t\n\x0b\x0c ]+$/
-         + /^[\t\n\x0B\f ]+$/
-
-  corpus/htmlpurifier/library/HTMLPurifier/Lexer/PH5P.php:1776:17
-      → /^[\t\n\x0b\x0c ]+$/
-     TIP 
-         - /^[\t\n\x0b\x0c ]+$/
-         + /^[\t\n\x0B\f ]+$/
-
-  corpus/htmlpurifier/library/HTMLPurifier/Lexer/PH5P.php:1806:24
-      → /^[\t\n\x0b\x0c ]+$/
-     TIP 
-         - /^[\t\n\x0b\x0c ]+$/
-         + /^[\t\n\x0B\f ]+$/
-
-  corpus/htmlpurifier/library/HTMLPurifier/Lexer/PH5P.php:1819:29
-      → /^[\t\n\x0b\x0c ]+$/
-     TIP 
-         - /^[\t\n\x0b\x0c ]+$/
-         + /^[\t\n\x0B\f ]+$/
-
-  corpus/htmlpurifier/library/HTMLPurifier/Lexer/PH5P.php:1925:24
-      → /^[\t\n\x0b\x0c ]+$/
-     TIP 
-         - /^[\t\n\x0b\x0c ]+$/
-         + /^[\t\n\x0B\f ]+$/
-
-  corpus/htmlpurifier/library/HTMLPurifier/Lexer/PH5P.php:1956:21
-      → /^[\t\n\x0b\x0c ]$/
-     TIP 
-         - /^[\t\n\x0b\x0c ]$/
-         + /^[\t\n\x0B\f ]$/
-
-  corpus/htmlpurifier/library/HTMLPurifier/Lexer/PH5P.php:1990:28
-      → /^[\t\n\x0b\x0c ]+$/
-     TIP 
-         - /^[\t\n\x0b\x0c ]+$/
-         + /^[\t\n\x0B\f ]+$/
-
-  corpus/htmlpurifier/library/HTMLPurifier/Lexer/PH5P.php:2121:24
-      → /^[\t\n\x0b\x0c ]+$/
-     TIP 
-         - /^[\t\n\x0b\x0c ]+$/
-         + /^[\t\n\x0B\f ]+$/
-
-  corpus/htmlpurifier/library/HTMLPurifier/Lexer/PH5P.php:3324:24
-      → /^[\t\n\x0b\x0c ]+$/
-     TIP 
-         - /^[\t\n\x0b\x0c ]+$/
-         + /^[\t\n\x0B\f ]+$/
-
-  corpus/htmlpurifier/library/HTMLPurifier/Lexer/PH5P.php:3629:24
-      → /^[\t\n\x0b\x0c ]+$/
-     TIP 
-         - /^[\t\n\x0b\x0c ]+$/
-         + /^[\t\n\x0B\f ]+$/
-
-  corpus/htmlpurifier/library/HTMLPurifier/Lexer/PH5P.php:4210:24
-      → /^[\t\n\x0b\x0c ]+$/
-     TIP 
-         - /^[\t\n\x0b\x0c ]+$/
-         + /^[\t\n\x0B\f ]+$/
-
-  corpus/htmlpurifier/library/HTMLPurifier/Lexer/PH5P.php:4251:24
-      → /^[\t\n\x0b\x0c ]+$/
-     TIP 
-         - /^[\t\n\x0b\x0c ]+$/
-         + /^[\t\n\x0B\f ]+$/
-
-  corpus/htmlpurifier/library/HTMLPurifier/Lexer/PH5P.php:4320:24
-      → /^[\t\n\x0b\x0c ]+$/
-     TIP 
-         - /^[\t\n\x0b\x0c ]+$/
-         + /^[\t\n\x0B\f ]+$/
-
-  corpus/htmlpurifier/library/HTMLPurifier/Lexer/PH5P.php:4371:24
-      → /^[\t\n\x0b\x0c ]+$/
-     TIP 
-         - /^[\t\n\x0b\x0c ]+$/
-         + /^[\t\n\x0B\f ]+$/
-
-  corpus/htmlpurifier/library/HTMLPurifier/Lexer/PH5P.php:4380:28
-      → /^[\t\n\x0b\x0c ]+$/
-     TIP 
-         - /^[\t\n\x0b\x0c ]+$/
-         + /^[\t\n\x0B\f ]+$/
-
-  corpus/htmlpurifier/library/HTMLPurifier/AttrDef/HTML/ID.php:76:28
-      → /[\t\n\x0b\x0c ]/
-     TIP 
-         - /[\t\n\x0b\x0c ]/
-         + /[\t\n\x0B\f ]/
-
   corpus/htmlpurifier/library/HTMLPurifier/Filter/ExtractStyleBlocks.php:113:39
       → #<style(?:\s.*)?>(.*)<\/style>#isU
      TIP 
          - #<style(?:\s.*)?>(.*)<\/style>#isU
          + #<style(?:\s.*)?>(.*)</style>#isU
-
-  corpus/htmlpurifier/maintenance/PH5P.php:320:51
-      → /[\t\n\x0b\x0c >\/]/
-     TIP 
-         - /[\t\n\x0b\x0c >\/]/
-         + /[\t\n\x0B\f >\/]/
-
-  corpus/htmlpurifier/maintenance/PH5P.php:394:23
-      → /^[\t\n\x0b\x0c ]$/
-     TIP 
-         - /^[\t\n\x0b\x0c ]$/
-         + /^[\t\n\x0B\f ]$/
-
-  corpus/htmlpurifier/maintenance/PH5P.php:439:23
-      → /^[\t\n\x0b\x0c ]$/
-     TIP 
-         - /^[\t\n\x0b\x0c ]$/
-         + /^[\t\n\x0B\f ]$/
-
-  corpus/htmlpurifier/maintenance/PH5P.php:489:23
-      → /^[\t\n\x0b\x0c ]$/
-     TIP 
-         - /^[\t\n\x0b\x0c ]$/
-         + /^[\t\n\x0B\f ]$/
-
-  corpus/htmlpurifier/maintenance/PH5P.php:541:23
-      → /^[\t\n\x0b\x0c ]$/
-     TIP 
-         - /^[\t\n\x0b\x0c ]$/
-         + /^[\t\n\x0B\f ]$/
-
-  corpus/htmlpurifier/maintenance/PH5P.php:596:23
-      → /^[\t\n\x0b\x0c ]$/
-     TIP 
-         - /^[\t\n\x0b\x0c ]$/
-         + /^[\t\n\x0B\f ]$/
-
-  corpus/htmlpurifier/maintenance/PH5P.php:717:23
-      → /^[\t\n\x0b\x0c ]$/
-     TIP 
-         - /^[\t\n\x0b\x0c ]$/
-         + /^[\t\n\x0B\f ]$/
-
-  corpus/htmlpurifier/maintenance/PH5P.php:904:23
-      → /^[\t\n\x0b\x0c ]$/
-     TIP 
-         - /^[\t\n\x0b\x0c ]$/
-         + /^[\t\n\x0B\f ]$/
-
-  corpus/htmlpurifier/maintenance/PH5P.php:919:23
-      → /^[\t\n\x0b\x0c ]$/
-     TIP 
-         - /^[\t\n\x0b\x0c ]$/
-         + /^[\t\n\x0B\f ]$/
-
-  corpus/htmlpurifier/maintenance/PH5P.php:967:23
-      → /^[\t\n\x0b\x0c ]$/
-     TIP 
-         - /^[\t\n\x0b\x0c ]$/
-         + /^[\t\n\x0B\f ]$/
-
-  corpus/htmlpurifier/maintenance/PH5P.php:997:23
-      → /^[\t\n\x0b\x0c ]$/
-     TIP 
-         - /^[\t\n\x0b\x0c ]$/
-         + /^[\t\n\x0B\f ]$/
-
-  corpus/htmlpurifier/maintenance/PH5P.php:1237:21
-      → /^[\t\n\x0b\x0c ]+$/
-     TIP 
-         - /^[\t\n\x0b\x0c ]+$/
-         + /^[\t\n\x0B\f ]+$/
-
-  corpus/htmlpurifier/maintenance/PH5P.php:1261:54
-      → /^[\t\n\x0b\x0c ]+$/
-     TIP 
-         - /^[\t\n\x0b\x0c ]+$/
-         + /^[\t\n\x0B\f ]+$/
-
-  corpus/htmlpurifier/maintenance/PH5P.php:1289:20
-      → /^[\t\n\x0b\x0c ]+$/
-     TIP 
-         - /^[\t\n\x0b\x0c ]+$/
-         + /^[\t\n\x0B\f ]+$/
-
-  corpus/htmlpurifier/maintenance/PH5P.php:1301:21
-      → /^[\t\n\x0b\x0c ]+$/
-     TIP 
-         - /^[\t\n\x0b\x0c ]+$/
-         + /^[\t\n\x0B\f ]+$/
-
-  corpus/htmlpurifier/maintenance/PH5P.php:1376:20
-      → /^[\t\n\x0b\x0c ]+$/
-     TIP 
-         - /^[\t\n\x0b\x0c ]+$/
-         + /^[\t\n\x0B\f ]+$/
-
-  corpus/htmlpurifier/maintenance/PH5P.php:1405:60
-      → /^[\t\n\x0b\x0c ]$/
-     TIP 
-         - /^[\t\n\x0b\x0c ]$/
-         + /^[\t\n\x0B\f ]$/
-
-  corpus/htmlpurifier/maintenance/PH5P.php:1435:20
-      → /^[\t\n\x0b\x0c ]+$/
-     TIP 
-         - /^[\t\n\x0b\x0c ]+$/
-         + /^[\t\n\x0B\f ]+$/
-
-  corpus/htmlpurifier/maintenance/PH5P.php:1556:20
-      → /^[\t\n\x0b\x0c ]+$/
-     TIP 
-         - /^[\t\n\x0b\x0c ]+$/
-         + /^[\t\n\x0B\f ]+$/
-
-  corpus/htmlpurifier/maintenance/PH5P.php:2612:20
-      → /^[\t\n\x0b\x0c ]+$/
-     TIP 
-         - /^[\t\n\x0b\x0c ]+$/
-         + /^[\t\n\x0B\f ]+$/
-
-  corpus/htmlpurifier/maintenance/PH5P.php:2857:20
-      → /^[\t\n\x0b\x0c ]+$/
-     TIP 
-         - /^[\t\n\x0b\x0c ]+$/
-         + /^[\t\n\x0B\f ]+$/
-
-  corpus/htmlpurifier/maintenance/PH5P.php:3348:20
-      → /^[\t\n\x0b\x0c ]+$/
-     TIP 
-         - /^[\t\n\x0b\x0c ]+$/
-         + /^[\t\n\x0B\f ]+$/
-
-  corpus/htmlpurifier/maintenance/PH5P.php:3388:20
-      → /^[\t\n\x0b\x0c ]+$/
-     TIP 
-         - /^[\t\n\x0b\x0c ]+$/
-         + /^[\t\n\x0B\f ]+$/
-
-  corpus/htmlpurifier/maintenance/PH5P.php:3452:20
-      → /^[\t\n\x0b\x0c ]+$/
-     TIP 
-         - /^[\t\n\x0b\x0c ]+$/
-         + /^[\t\n\x0B\f ]+$/
-
-  corpus/htmlpurifier/maintenance/PH5P.php:3500:20
-      → /^[\t\n\x0b\x0c ]+$/
-     TIP 
-         - /^[\t\n\x0b\x0c ]+$/
-         + /^[\t\n\x0B\f ]+$/
-
-  corpus/htmlpurifier/maintenance/PH5P.php:3508:20
-      → /^[\t\n\x0b\x0c ]+$/
-     TIP 
-         - /^[\t\n\x0b\x0c ]+$/
-         + /^[\t\n\x0B\f ]+$/
-
-  corpus/prophecy/src/Prophecy/Util/ExportUtil.php:130:28
-      → /[^\x09-\x0d\x20-\xff]/
-     TIP 
-         - /[^\x09-\x0d\x20-\xff]/
-         + /[^\t-\r -\xFF]/
 
   corpus/api-platform/core/src/State/Util/ParameterParserTrait.php:62:28
       → /[^\[\]]+/
@@ -3333,23 +2895,11 @@
          - /([\w]+)(\(([^\)]+)\))?/
          + /([\w]+)(\(([^)]+)\))?/
 
-  corpus/thephpleague/html-to-markdown/src/Converter/LinkConverter.php:64:46
-      → /^[A-Za-z][A-Za-z0-9.+-]{1,31}:[^<>\x00-\x20]*/i
-     TIP 
-         - /^[A-Za-z][A-Za-z0-9.+-]{1,31}:[^<>\x00-\x20]*/i
-         + /^[A-Za-z][+\-.0-9A-Za-z]{1,31}:[^<>\x00- ]*/i
-
   corpus/thephpleague/html-to-markdown/src/Converter/TextConverter.php:24:39
       → ~([*_\[\]\\])~u
      TIP 
          - ~([*_\[\]\\])~u
          + ~([*[-\]_])~u
-
-  corpus/thephpleague/csv/src/AbstractCsv.php:551:30
-      → /[^\x20-\x7E]/
-     TIP 
-         - /[^\x20-\x7E]/
-         + /[^ -~]/
 
   corpus/thephpleague/commonmark/src/Util/UrlEncoder.php:36:25
       → /^[A-Za-z0-9~!@#$&*()\-_=+;:,.\/?]+$/
@@ -3581,18 +3131,6 @@
          - /[()<>\[\]:;@\,."]/
          + /["(),.:-<>@[\]]/
 
-  corpus/freescout/overrides/swiftmailer/swiftmailer/lib/classes/Swift/Mime/Headers/AbstractHeader.php:212:28
-      → /^[\x00-\x08\x0B\x0C\x0E-\x7F]*$/D
-     TIP 
-         - /^[\x00-\x08\x0B\x0C\x0E-\x7F]*$/D
-         + /^[\x00-\x08\x0B\f\x0E-\x7F]*$/D
-
-  corpus/freescout/overrides/swiftmailer/swiftmailer/lib/classes/Swift/Mime/Headers/ParameterizedHeader.php:189:29
-      → /^[\x00-\x08\x0B\x0C\x0E-\x7F]*$/D
-     TIP 
-         - /^[\x00-\x08\x0B\x0C\x0E-\x7F]*$/D
-         + /^[\x00-\x08\x0B\f\x0E-\x7F]*$/D
-
   corpus/freescout/overrides/fzaninotto/faker/src/Faker/Provider/Base.php:481:40
       → /(\[[^\]]+\])\{(\d+),(\d+)\}/
      TIP 
@@ -3646,12 +3184,6 @@
      TIP 
          - /^[^\:]++(\:[^\:]++)*$/
          + /^[^:]++(:[^:]++)*$/
-
-  corpus/freescout/overrides/laravel/framework/src/Illuminate/Support/Str.php:63:29
-      → /[^\x20-\x7E]/u
-     TIP 
-         - /[^\x20-\x7E]/u
-         + /[^ -~]/u
 
   corpus/freescout/overrides/laravel/framework/src/Illuminate/Validation/Concerns/ValidatesAttributes.php:667:24
       → /\[(.*)\]/
@@ -3724,12 +3256,6 @@
      TIP 
          - #<esi\:include\s+(.*?)\s*(?:/|</esi\:include)>#
          + #<esi:include\s+(.*?)\s*(?:/|</esi:include)>#
-
-  corpus/contao/contao/core-bundle/src/Doctrine/Backup/Dumper.php:163:24
-      → /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\xFF]/
-     TIP 
-         - /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\xFF]/
-         + /[\x00-\x08\x0B\f\x0E-\x1F\x7F-\xFF]/
 
   corpus/contao/contao/core-bundle/src/Csp/WysiwygStyleProcessor.php:27:24
       → / style="([^\"]+)"/i
@@ -3916,16 +3442,4 @@
      TIP 
          - /\[([^\]]+)\]/
          + /\[([^\]]+)]/
-
-  corpus/guzzle/psr7/src/MessageTrait.php:255:25
-      → /^[\x20\x09\x21-\x7E\x80-\xFF]*$/D
-     TIP 
-         - /^[\x20\x09\x21-\x7E\x80-\xFF]*$/D
-         + /^[ \t!-~\x80-\xFF]*$/D
-
-  corpus/guzzle/guzzle/src/Cookie/SetCookie.php:468:13
-      → /[\x00-\x20\x22\x28-\x29\x2c\x2f\x3a-\x40\x5c\x7b\x7d\x7f]/
-     TIP 
-         - /[\x00-\x20\x22\x28-\x29\x2c\x2f\x3a-\x40\x5c\x7b\x7d\x7f]/
-         + /[\x00- "(-),\/:-@\{}\x7F]/
 
