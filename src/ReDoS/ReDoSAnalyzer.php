@@ -45,8 +45,7 @@ final class ReDoSAnalyzer
         ?ReDoSSeverity $threshold = null,
         ReDoSMode $mode = ReDoSMode::THEORETICAL,
         ?ReDoSConfirmOptions $confirmOptions = null,
-    ): ReDoSAnalysis
-    {
+    ): ReDoSAnalysis {
         $threshold ??= $this->threshold;
 
         if (ReDoSMode::OFF === $mode) {

@@ -135,7 +135,7 @@ final class LintCommand extends AbstractCommand implements CommandInterface
             $regex,
             redosThreshold: $arguments->redosThreshold ?? ReDoSSeverity::HIGH->value,
             redosMode: $arguments->redosMode,
-            confirmOptions: $confirmOptions,
+            redosConfirmOptions: $confirmOptions,
         );
 
         $formatterRegistry = new FormatterRegistry();

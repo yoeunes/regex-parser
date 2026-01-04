@@ -81,7 +81,7 @@ final class RegexLintServiceCoverageTest extends TestCase
         $this->assertSame('error', $issueSeverity->value);
 
         $mapRedosSeverity = $this->getPrivateMethod($service, 'mapRedosSeverity');
-        
+
         $analysis = new ReDoSAnalysis(ReDoSSeverity::HIGH, 10, null, [], null, null);
         $redosSeverity = $mapRedosSeverity->invoke($service, $analysis);
         $this->assertInstanceOf(Severity::class, $redosSeverity);

@@ -358,8 +358,7 @@ final readonly class Regex
         ?ReDoSSeverity $threshold = null,
         ReDoSMode $mode = ReDoSMode::THEORETICAL,
         ?ReDoSConfirmOptions $confirmOptions = null,
-    ): ReDoSAnalysis
-    {
+    ): ReDoSAnalysis {
         $analyzer = new ReDoSAnalyzer($this, $this->redosIgnoredPatterns);
 
         return $analyzer->analyze($regex, $threshold, $mode, $confirmOptions);

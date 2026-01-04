@@ -62,8 +62,6 @@ final readonly class RegexAnalysisService
 
     private ReDoSMode $redosMode;
 
-    private ?ReDoSConfirmOptions $redosConfirmOptions;
-
     /**
      * @param array<string> $ignoredPatterns
      * @param array<string> $redosIgnoredPatterns
@@ -77,14 +75,13 @@ final readonly class RegexAnalysisService
         array $redosIgnoredPatterns = [],
         private bool $ignoreParseErrors = false,
         ReDoSMode|string $redosMode = ReDoSMode::THEORETICAL,
-        ?ReDoSConfirmOptions $confirmOptions = null,
+        private ?ReDoSConfirmOptions $redosConfirmOptions = null,
     ) {
         $this->redosSeverityThreshold = ReDoSSeverity::tryFrom(strtolower($redosThreshold)) ?? ReDoSSeverity::HIGH;
         $this->ignoredPatterns = $this->buildIgnoredPatterns($ignoredPatterns, $redosIgnoredPatterns);
         $this->redosMode = $redosMode instanceof ReDoSMode
             ? $redosMode
             : (ReDoSMode::tryFrom(strtolower((string) $redosMode)) ?? ReDoSMode::THEORETICAL);
-        $this->redosConfirmOptions = $confirmOptions;
     }
 
     public function getRegex(): Regex

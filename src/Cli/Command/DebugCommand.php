@@ -19,11 +19,11 @@ use RegexParser\Cli\Output;
 use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
 use RegexParser\NodeVisitor\ConsoleHighlighterVisitor;
+use RegexParser\ReDoS\ReDoSAnalysis;
+use RegexParser\ReDoS\ReDoSConfirmOptions;
 use RegexParser\ReDoS\ReDoSHeatmap;
 use RegexParser\ReDoS\ReDoSHotspot;
 use RegexParser\ReDoS\ReDoSInputGenerator;
-use RegexParser\ReDoS\ReDoSAnalysis;
-use RegexParser\ReDoS\ReDoSConfirmOptions;
 use RegexParser\ReDoS\ReDoSMode;
 use RegexParser\ReDoS\ReDoSSeverity;
 use RegexParser\RegexOptions;
@@ -211,7 +211,7 @@ final class DebugCommand extends AbstractCommand
                 $output->write('  Backtrack: '.($confirmation->backtrackLimit ?? 'unknown')."\n");
                 $output->write('  Recursion: '.($confirmation->recursionLimit ?? 'unknown')."\n");
                 if ($confirmation->timedOut) {
-                    $output->write('  Note:      confirmation timed out within limits'."\n");
+                    $output->write("  Note:      confirmation timed out within limits\n");
                 }
                 if (null !== $confirmation->note) {
                     $output->write('  Note:      '.$confirmation->note."\n");
