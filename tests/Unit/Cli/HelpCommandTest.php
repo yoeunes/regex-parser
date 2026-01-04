@@ -97,7 +97,7 @@ final class HelpCommandTest extends TestCase
 
         $this->assertStringContainsString('Options:', $text);
         $this->assertStringContainsString('--php-version', $text);
-        $this->assertStringContainsString('--no-redos', $text);
+        $this->assertStringContainsString('--redos-mode', $text);
     }
 
     public function test_render_command_help_includes_notes(): void
@@ -279,7 +279,7 @@ final class HelpCommandTest extends TestCase
         $this->assertArrayHasKey('examples', $data);
         $this->assertIsArray($data['options']);
         $this->assertIsArray($data['notes']);
-        $this->assertCount(9, $data['options']);
+        $this->assertCount(12, $data['options']);
         $this->assertCount(2, $data['notes']);
     }
 

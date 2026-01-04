@@ -199,7 +199,7 @@ final class AbstractOutputFormatterTest extends TestCase
 
         $result = $formatter->formatReDoSHint('Test ReDoS hint');
 
-        $this->assertSame('Nested quantifiers detected. Consider using atomic groups (?>...) or possessive quantifiers (*+, ++).', $result);
+        $this->assertSame('Nested quantifiers detected. Suggested (verify behavior): use atomic groups (?>...) or possessive quantifiers (*+, ++).', $result);
     }
 
     public function test_format_redos_hint_with_verbose_verbosity(): void

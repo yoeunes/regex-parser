@@ -34,10 +34,10 @@ final class RegexParserRuleTest extends RuleTestCase
                 22,
             ],
             [
-                'ReDoS vulnerability detected (CRITICAL): /(a+)+$/',
+                'Potential ReDoS risk (theoretical) (severity: CRITICAL, confidence: HIGH): /(a+)+$/',
                 23,
-                "Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...). Hint: Consider using possessive quantifiers or atomic groups to limit backtracking.\n".
-                "Nested unbounded quantifiers detected. This allows exponential backtracking. Consider using atomic groups (?>...) or possessive quantifiers (*+, ++). Hint: Replace inner quantifiers with possessive variants or wrap them in (?>...).\n".
+                "Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...). Suggested (verify behavior): Consider using possessive quantifiers or atomic groups to limit backtracking.\n".
+                "Nested unbounded quantifiers detected. This allows exponential backtracking. Consider using atomic groups (?>...) or possessive quantifiers (*+, ++). Suggested (verify behavior): Replace inner quantifiers with possessive variants or wrap them in (?>...).\n".
                 "\n".
                 "Read more about possessive quantifiers: https://github.com/yoeunes/regex-parser/blob/main/docs/reference.md#possessive-quantifiers\n".
                 "Read more about atomic groups: https://github.com/yoeunes/regex-parser/blob/main/docs/reference.md#atomic-groups\n".
@@ -49,15 +49,15 @@ final class RegexParserRuleTest extends RuleTestCase
                 "Consider using atomic groups (?>...) or possessive quantifiers.\nRead more: https://github.com/yoeunes/regex-parser/blob/main/docs/reference.md#nested-quantifiers",
             ],
             [
-                'ReDoS vulnerability detected (MEDIUM): /a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a...',
+                'Potential ReDoS risk (theoretical) (severity: MEDIUM, confidence: MEDIUM): /a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a*a...',
                 24,
-                "Adjacent quantified tokens with overlapping character sets can cause ambiguous backtracking (e.g., a+a+ or a*a*). Hint: Merge repetitions, add a delimiter, or make one quantifier possessive to remove ambiguity.\n".
-                "Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...). Hint: Consider using possessive quantifiers or atomic groups to limit backtracking.\n\nRead more about possessive quantifiers: https://github.com/yoeunes/regex-parser/blob/main/docs/reference.md#possessive-quantifiers\nRead more about atomic groups: https://github.com/yoeunes/regex-parser/blob/main/docs/reference.md#atomic-groups\nRead more about catastrophic backtracking: https://github.com/yoeunes/regex-parser/blob/main/docs/reference.md#catastrophic-backtracking",
+                "Adjacent quantified tokens with overlapping character sets can cause ambiguous backtracking (e.g., a+a+ or a*a*). Suggested (verify behavior): Merge repetitions, add a delimiter, or make one quantifier possessive to remove ambiguity.\n".
+                "Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...). Suggested (verify behavior): Consider using possessive quantifiers or atomic groups to limit backtracking.\n\nRead more about possessive quantifiers: https://github.com/yoeunes/regex-parser/blob/main/docs/reference.md#possessive-quantifiers\nRead more about atomic groups: https://github.com/yoeunes/regex-parser/blob/main/docs/reference.md#atomic-groups\nRead more about catastrophic backtracking: https://github.com/yoeunes/regex-parser/blob/main/docs/reference.md#catastrophic-backtracking",
             ],
             [
-                'ReDoS vulnerability detected (MEDIUM): /[0-9]+/',
+                'Potential ReDoS risk (theoretical) (severity: MEDIUM, confidence: MEDIUM): /[0-9]+/',
                 28,
-                "Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...). Hint: Consider using possessive quantifiers or atomic groups to limit backtracking.\n\nRead more about possessive quantifiers: https://github.com/yoeunes/regex-parser/blob/main/docs/reference.md#possessive-quantifiers\nRead more about atomic groups: https://github.com/yoeunes/regex-parser/blob/main/docs/reference.md#atomic-groups\nRead more about catastrophic backtracking: https://github.com/yoeunes/regex-parser/blob/main/docs/reference.md#catastrophic-backtracking",
+                "Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...). Suggested (verify behavior): Consider using possessive quantifiers or atomic groups to limit backtracking.\n\nRead more about possessive quantifiers: https://github.com/yoeunes/regex-parser/blob/main/docs/reference.md#possessive-quantifiers\nRead more about atomic groups: https://github.com/yoeunes/regex-parser/blob/main/docs/reference.md#atomic-groups\nRead more about catastrophic backtracking: https://github.com/yoeunes/regex-parser/blob/main/docs/reference.md#catastrophic-backtracking",
             ],
             [
                 'Regex syntax error: No closing delimiter "/" found. You opened with "/"; expected closing "/". Tip: escape "/" inside the pattern (\\/) or use a different delimiter, e.g. #foo1#. (Pattern: "/foo1")',
@@ -110,10 +110,10 @@ final class RegexParserRuleTest extends RuleTestCase
                 20,
             ],
             [
-                'ReDoS vulnerability detected (CRITICAL): /(a+)+$/',
+                'Potential ReDoS risk (theoretical) (severity: CRITICAL, confidence: HIGH): /(a+)+$/',
                 20,
-                "Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...). Hint: Consider using possessive quantifiers or atomic groups to limit backtracking.\n".
-                "Nested unbounded quantifiers detected. This allows exponential backtracking. Consider using atomic groups (?>...) or possessive quantifiers (*+, ++). Hint: Replace inner quantifiers with possessive variants or wrap them in (?>...).\n".
+                "Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...). Suggested (verify behavior): Consider using possessive quantifiers or atomic groups to limit backtracking.\n".
+                "Nested unbounded quantifiers detected. This allows exponential backtracking. Consider using atomic groups (?>...) or possessive quantifiers (*+, ++). Suggested (verify behavior): Replace inner quantifiers with possessive variants or wrap them in (?>...).\n".
                 "\n".
                 "Read more about possessive quantifiers: https://github.com/yoeunes/regex-parser/blob/main/docs/reference.md#possessive-quantifiers\n".
                 "Read more about atomic groups: https://github.com/yoeunes/regex-parser/blob/main/docs/reference.md#atomic-groups\n".
@@ -142,9 +142,9 @@ final class RegexParserRuleTest extends RuleTestCase
     {
         $this->analyse([__DIR__.'/Fixtures/ReDoSFixture.php'], [
             [
-                'ReDoS vulnerability detected (MEDIUM): /[0-9]+/',
+                'Potential ReDoS risk (theoretical) (severity: MEDIUM, confidence: MEDIUM): /[0-9]+/',
                 20,
-                "Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...). Hint: Consider using possessive quantifiers or atomic groups to limit backtracking.\n\nRead more about possessive quantifiers: https://github.com/yoeunes/regex-parser/blob/main/docs/reference.md#possessive-quantifiers\nRead more about atomic groups: https://github.com/yoeunes/regex-parser/blob/main/docs/reference.md#atomic-groups\nRead more about catastrophic backtracking: https://github.com/yoeunes/regex-parser/blob/main/docs/reference.md#catastrophic-backtracking",
+                "Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...). Suggested (verify behavior): Consider using possessive quantifiers or atomic groups to limit backtracking.\n\nRead more about possessive quantifiers: https://github.com/yoeunes/regex-parser/blob/main/docs/reference.md#possessive-quantifiers\nRead more about atomic groups: https://github.com/yoeunes/regex-parser/blob/main/docs/reference.md#atomic-groups\nRead more about catastrophic backtracking: https://github.com/yoeunes/regex-parser/blob/main/docs/reference.md#catastrophic-backtracking",
             ],
         ]);
     }

@@ -88,7 +88,7 @@ final class RegexAnalysisServiceTest extends TestCase
         ));
 
         $this->assertNotEmpty($redosIssues);
-        $this->assertSame('error', $redosIssues[0]['type']);
+        $this->assertSame('warning', $redosIssues[0]['type']);
     }
 
     public function test_scan_method(): void

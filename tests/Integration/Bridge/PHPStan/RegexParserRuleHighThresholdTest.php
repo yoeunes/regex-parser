@@ -34,10 +34,10 @@ final class RegexParserRuleHighThresholdTest extends RuleTestCase
                 22,
             ],
             [
-                'ReDoS vulnerability detected (CRITICAL): /(a+)+$/',
+                'Potential ReDoS risk (theoretical) (severity: CRITICAL, confidence: HIGH): /(a+)+$/',
                 23,
-                "Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...). Hint: Consider using possessive quantifiers or atomic groups to limit backtracking.\n".
-                "Nested unbounded quantifiers detected. This allows exponential backtracking. Consider using atomic groups (?>...) or possessive quantifiers (*+, ++). Hint: Replace inner quantifiers with possessive variants or wrap them in (?>...).\n".
+                "Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...). Suggested (verify behavior): Consider using possessive quantifiers or atomic groups to limit backtracking.\n".
+                "Nested unbounded quantifiers detected. This allows exponential backtracking. Consider using atomic groups (?>...) or possessive quantifiers (*+, ++). Suggested (verify behavior): Replace inner quantifiers with possessive variants or wrap them in (?>...).\n".
                 "\n".
                 "Read more about possessive quantifiers: https://github.com/yoeunes/regex-parser/blob/main/docs/reference.md#possessive-quantifiers\n".
                 "Read more about atomic groups: https://github.com/yoeunes/regex-parser/blob/main/docs/reference.md#atomic-groups\n".

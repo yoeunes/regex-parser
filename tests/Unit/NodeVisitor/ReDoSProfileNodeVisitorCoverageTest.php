@@ -72,7 +72,7 @@ final class ReDoSProfileNodeVisitorCoverageTest extends TestCase
 
         $result = $visitor->getResult();
 
-        $this->assertSame(['Test vulnerability with suggestion Hint: Use possessive quantifiers'], $result['recommendations']);
+        $this->assertSame(['Test vulnerability with suggestion Suggested (verify behavior): Use possessive quantifiers'], $result['recommendations']);
     }
 
     public function test_large_bounded_quantifier_adds_low_vulnerability(): void

@@ -18,6 +18,7 @@ use RegexParser\Lint\RegexAnalysisService;
 use RegexParser\Lint\RegexLintRequest;
 use RegexParser\Lint\RegexLintService;
 use RegexParser\Lint\RegexPatternSourceCollection;
+use RegexParser\ReDoS\ReDoSAnalysis;
 use RegexParser\ReDoS\ReDoSSeverity;
 use RegexParser\Regex;
 use RegexParser\Severity;
@@ -80,15 +81,19 @@ final class RegexLintServiceCoverageTest extends TestCase
         $this->assertSame('error', $issueSeverity->value);
 
         $mapRedosSeverity = $this->getPrivateMethod($service, 'mapRedosSeverity');
-        $redosSeverity = $mapRedosSeverity->invoke($service, ReDoSSeverity::HIGH);
-        $this->assertInstanceOf(Severity::class, $redosSeverity);
-        $this->assertSame('error', $redosSeverity->value);
-
-        $redosSeverity = $mapRedosSeverity->invoke($service, ReDoSSeverity::MEDIUM);
+        
+        $analysis = new ReDoSAnalysis(ReDoSSeverity::HIGH, 10, null, [], null, null);
+        $redosSeverity = $mapRedosSeverity->invoke($service, $analysis);
         $this->assertInstanceOf(Severity::class, $redosSeverity);
         $this->assertSame('warning', $redosSeverity->value);
 
-        $redosSeverity = $mapRedosSeverity->invoke($service, ReDoSSeverity::UNKNOWN);
+        $analysis = new ReDoSAnalysis(ReDoSSeverity::MEDIUM, 10, null, [], null, null);
+        $redosSeverity = $mapRedosSeverity->invoke($service, $analysis);
+        $this->assertInstanceOf(Severity::class, $redosSeverity);
+        $this->assertSame('warning', $redosSeverity->value);
+
+        $analysis = new ReDoSAnalysis(ReDoSSeverity::UNKNOWN, 10, null, [], null, null);
+        $redosSeverity = $mapRedosSeverity->invoke($service, $analysis);
         $this->assertInstanceOf(Severity::class, $redosSeverity);
         $this->assertSame('warning', $redosSeverity->value);
 

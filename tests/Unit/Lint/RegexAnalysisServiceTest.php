@@ -702,7 +702,7 @@ final class RegexAnalysisServiceTest extends TestCase
         $hint = $this->invokePrivate('getReDoSHint', $analysis, '/(a+)+.*+/');
         $this->assertIsString($hint);
         $this->assertStringContainsString('Keep it linear', (string) $hint);
-        $this->assertStringContainsString('vulnerable part', (string) $hint);
+        $this->assertStringContainsString('Suggested (verify behavior)', (string) $hint);
         $this->assertStringContainsString('possessive', (string) $hint);
     }
 

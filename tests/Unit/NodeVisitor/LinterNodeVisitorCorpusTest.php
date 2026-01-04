@@ -510,6 +510,10 @@ final class LinterNodeVisitorCorpusTest extends TestCase
             return 'regex.lint.anchor.impossible.end';
         }
 
+        if (str_starts_with($message, 'Potential ReDoS risk')) {
+            return 'regex.lint.redos';
+        }
+
         throw new \RuntimeException(\sprintf('Unmapped warning: %s', $message));
     }
 }
