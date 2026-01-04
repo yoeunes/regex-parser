@@ -64,6 +64,7 @@ final readonly class HelpCommand implements CommandInterface
             ['analyze', 'Parse, validate, and analyze ReDoS risk'],
             ['explain', 'Explain a regex pattern'],
             ['debug', 'Deep ReDoS analysis with heatmap output'],
+            ['redos', 'Benchmark regex patterns for ReDoS behavior'],
             ['diagram', 'Render a text or SVG diagram of the AST'],
             ['highlight', 'Highlight a regex for display'],
             ['validate', 'Validate a regex pattern'],
@@ -126,6 +127,24 @@ final readonly class HelpCommand implements CommandInterface
         ];
         $this->renderTableSection($output, 'Debug Options', $debugOptions, fn (string $value): string => $this->formatOption($output, $value));
 
+        $redosOptions = [
+            ['--safe <pattern>', 'Safe pattern to compare against'],
+            ['--input <string>', 'Input string to benchmark (auto-generated when omitted)'],
+            ['--input-file <path>', 'Read input from a file'],
+            ['--repeat <n>', 'Repeat input N times (default: 1)'],
+            ['--prefix <string>', 'Prefix for the input'],
+            ['--suffix <string>', 'Suffix for the input'],
+            ['--iterations <n>', 'Number of iterations (default: 1)'],
+            ['--warmup <n>', 'Warmup iterations (default: 0)'],
+            ['--jit <0|1>', 'Override pcre.jit'],
+            ['--backtrack-limit <n>', 'Override pcre.backtrack_limit'],
+            ['--recursion-limit <n>', 'Override pcre.recursion_limit'],
+            ['--time-limit <n>', 'Set max_execution_time in seconds'],
+            ['--format <format>', 'Output format (console, json)'],
+            ['--show-input', 'Print full input string'],
+        ];
+        $this->renderTableSection($output, 'ReDoS Benchmark Options', $redosOptions, fn (string $value): string => $this->formatOption($output, $value));
+
         $examples = [
             [[$binary, "'/a+/'"], 'Quick highlight'],
             [[$binary, 'parse', "'/a+/'", '--validate'], 'Parse with validation'],
@@ -134,6 +153,7 @@ final readonly class HelpCommand implements CommandInterface
             [[$binary, 'diagram', "'/^a+$/'"], 'Text diagram'],
             [[$binary, 'diagram', "'/^a+$/'", '--format=svg'], 'SVG diagram'],
             [[$binary, 'debug', "'/(a+)+$/'"], 'Heatmap + ReDoS details'],
+            [[$binary, 'redos', "'/(a+)+$/'", '--safe', "'/a+$/'", '--input', "'a'", '--repeat=50000', "--suffix='!'"], 'Benchmark vulnerable vs safe'],
             [[$binary, 'highlight', "'/a+/'", '--format=html'], 'HTML highlight'],
             [[$binary, 'lint', 'src/', '--exclude=vendor'], 'Lint a codebase'],
             [[$binary, 'lint', '--format=json', 'src/'], 'JSON output'],
@@ -151,7 +171,7 @@ final readonly class HelpCommand implements CommandInterface
         if (null === $commandData) {
             $output->write($output->error("Unknown command: {$command}\n\n"));
             $this->renderTextSection($output, 'Available Commands', [
-                'parse', 'analyze', 'explain', 'debug', 'diagram', 'highlight', 'validate', 'lint', 'self-update', 'help',
+                'parse', 'analyze', 'explain', 'debug', 'redos', 'diagram', 'highlight', 'validate', 'lint', 'self-update', 'help',
             ]);
 
             return 1;
@@ -238,6 +258,32 @@ final readonly class HelpCommand implements CommandInterface
                 'examples' => [
                     [[$this->resolveInvocation(), 'debug', "'/(a+)+$/'"], 'Debug a pattern with potential ReDoS risk'],
                     [[$this->resolveInvocation(), 'debug', "'/(a+)+$/'", '--input=aaaaaaaa'], 'Debug with specific input'],
+                ],
+            ],
+            'redos' => [
+                'description' => 'Benchmark regex patterns for ReDoS behavior',
+                'options' => [
+                    ['--safe <pattern>', 'Safe pattern to compare against'],
+                    ['--input <string>', 'Input string to benchmark (auto-generated when omitted)'],
+                    ['--input-file <path>', 'Read input from a file'],
+                    ['--repeat <n>', 'Repeat input N times'],
+                    ['--prefix <string>', 'Prefix for the input'],
+                    ['--suffix <string>', 'Suffix for the input'],
+                    ['--iterations <n>', 'Number of iterations'],
+                    ['--warmup <n>', 'Warmup iterations'],
+                    ['--jit <0|1>', 'Override pcre.jit'],
+                    ['--backtrack-limit <n>', 'Override pcre.backtrack_limit'],
+                    ['--recursion-limit <n>', 'Override pcre.recursion_limit'],
+                    ['--time-limit <n>', 'Set max_execution_time in seconds'],
+                    ['--format <format>', 'Output format (console, json)'],
+                    ['--show-input', 'Print full input string'],
+                    ['--php-version <ver>', 'Target PHP version for validation'],
+                ],
+                'notes' => ['Use the same input for both patterns to compare timing and resource usage.'],
+                'examples' => [
+                    [[$this->resolveInvocation(), 'redos', "'/(a+)+$/'", '--safe', "'/a+$/'", '--input', "'a'", '--repeat=50000', "--suffix='!'"], 'Benchmark vulnerable vs safe'],
+                    [[$this->resolveInvocation(), 'redos', "'/(a+)+$/'", '--input', "'aaaaa!'"], 'Benchmark a single pattern'],
+                    [[$this->resolveInvocation(), 'redos', "'/(a+)+$/'", '--format=json', '--input', "'a!'" ], 'JSON output'],
                 ],
             ],
             'diagram' => [
@@ -338,7 +384,7 @@ final readonly class HelpCommand implements CommandInterface
 
         if ('lint' === $command) {
             $usage .= ' '.$output->color('[options]', Output::CYAN).' '.$output->color('<path>', Output::GREEN);
-        } elseif (\in_array($command, ['parse', 'analyze', 'debug', 'diagram', 'highlight', 'validate'], true)) {
+        } elseif (\in_array($command, ['parse', 'analyze', 'debug', 'redos', 'diagram', 'highlight', 'validate'], true)) {
             $usage .= ' '.$output->color('[options]', Output::CYAN).' '.$output->color('<pattern>', Output::GREEN);
         } elseif ('help' === $command) {
             $usage .= ' '.$output->color('[command]', Output::GREEN);
@@ -500,7 +546,7 @@ final readonly class HelpCommand implements CommandInterface
             return $output->color($token, Output::GREEN);
         }
 
-        if (\in_array($token, ['parse', 'analyze', 'explain', 'debug', 'diagram', 'highlight', 'validate', 'lint', 'self-update', 'help'], true)) {
+        if (\in_array($token, ['parse', 'analyze', 'explain', 'debug', 'redos', 'diagram', 'highlight', 'validate', 'lint', 'self-update', 'help'], true)) {
             return $output->color($token, Output::YELLOW.Output::BOLD);
         }
 
