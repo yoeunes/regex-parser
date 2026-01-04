@@ -466,16 +466,21 @@ function prepareRepo(string $repoPath, bool $force, string $corpusDir, ConsoleSt
             return ['status' => 'FAIL', 'proceed' => false, 'message' => $reset['output']];
         }
 
+        $clean = runGit($repoPath, ['clean', '-fd'], $io, $debug);
+        if (0 !== $clean['code']) {
+            return ['status' => 'FAIL', 'proceed' => false, 'message' => $clean['output']];
+        }
+
         $afterReset = runGit($repoPath, ['status', '--porcelain'], $io, $debug);
         if (0 === $afterReset['code'] && '' !== $afterReset['output']) {
             return [
                 'status' => 'RESET',
                 'proceed' => true,
-                'message' => 'Force reset applied (working tree still dirty; untracked files may remain).',
+                'message' => 'Force reset applied (working tree still dirty; ignored or nested files may remain).',
             ];
         }
 
-        return ['status' => 'RESET', 'proceed' => true, 'message' => 'Force reset applied.'];
+        return ['status' => 'RESET', 'proceed' => true, 'message' => 'Force reset applied (including untracked cleanup).'];
     }
 
     if (!isInteractive()) {
