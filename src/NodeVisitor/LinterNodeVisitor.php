@@ -2499,6 +2499,10 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
                     'Consider tightening the first quantifier to its minimum.',
                 );
 
+                while ($i + 1 < $count && $children[$i + 1] instanceof QuantifierNode) {
+                    $i++;
+                }
+
                 continue;
             }
 
@@ -2509,6 +2513,10 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
                     $right->startPosition,
                     'Consider tightening the second quantifier to its minimum.',
                 );
+
+                while ($i + 1 < $count && $children[$i + 1] instanceof QuantifierNode) {
+                    $i++;
+                }
             }
         }
     }

@@ -50,6 +50,11 @@ final class RegexParserRuleHighThresholdTest extends RuleTestCase
             ],
             // Note: MEDIUM ReDoS on line 24 is filtered out by 'high' threshold
             [
+                'Concatenated quantifiers can be optimized when one character set is a subset of the other.',
+                24,
+                "Consider tightening the first quantifier to its minimum.\nRead more: https://github.com/yoeunes/regex-parser/blob/main/docs/reference.md#optimal-quantifier-concatenation",
+            ],
+            [
                 'Regex syntax error: No closing delimiter "/" found. You opened with "/"; expected closing "/". Tip: escape "/" inside the pattern (\\/) or use a different delimiter, e.g. #foo1#. (Pattern: "/foo1")',
                 35,
             ],
