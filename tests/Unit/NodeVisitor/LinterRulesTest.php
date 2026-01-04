@@ -59,7 +59,7 @@ final class LinterRulesTest extends TestCase
     public function test_alternation_duplicate_warning(): void
     {
         $issues = $this->lint('/(a|a)/');
-        $this->assertContains('regex.lint.alternation.duplicate', $issues);
+        $this->assertContains('regex.lint.alternation.duplicate_disjunction', $issues);
     }
 
     public function test_alternation_overlap_warning(): void
@@ -70,10 +70,10 @@ final class LinterRulesTest extends TestCase
         $this->assertContains('regex.lint.alternation.overlap', $issues);
     }
 
-    public function test_alternation_duplicate_ignores_lookarounds(): void
+    public function test_alternation_duplicate_with_lookarounds(): void
     {
         $issues = $this->lint('/(?=foo)|(?=foo)/');
-        $this->assertNotContains('regex.lint.alternation.duplicate', $issues);
+        $this->assertContains('regex.lint.alternation.duplicate_disjunction', $issues);
     }
 
     public function test_redundant_char_class_warning(): void

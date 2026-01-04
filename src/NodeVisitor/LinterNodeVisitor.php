@@ -45,6 +45,7 @@ use RegexParser\Node\ScriptRunNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
+use RegexParser\NodeVisitor\LengthRangeNodeVisitor;
 use RegexParser\ReDoS\CharSet;
 use RegexParser\ReDoS\CharSetAnalyzer;
 use RegexParser\Severity;
@@ -84,6 +85,20 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
      */
     private array $definedNamedGroups = [];
 
+    /**
+     * @var array<int, array{node: GroupNode, start: int, end: int, alternation: array<string, int>, alwaysEmpty: bool}>
+     */
+    private array $capturingGroups = [];
+
+    /**
+     * @var array<string, array<int, array{node: GroupNode, start: int, end: int, alternation: array<string, int>, alwaysEmpty: bool}>>
+     */
+    private array $capturingGroupsByName = [];
+
+    private int $nextCapturingGroupNumber = 1;
+
+    private bool $skipUselessBackref = false;
+
     private CharSetAnalyzer $charSetAnalyzer;
 
     private bool $trackCaseSensitivity = false;
@@ -99,6 +114,13 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
      * @var array<NodeInterface>
      */
     private array $parentStack = [];
+
+    /**
+     * Tracks the current alternation branch for disjunction analysis.
+     *
+     * @var array<array{id: string, index: int}>
+     */
+    private array $alternationStack = [];
 
     public function __construct()
     {
@@ -153,10 +175,17 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         $this->maxCapturingGroup = 0;
         $this->definedNamedGroups = [];
         $this->parentStack = [];
+        $this->alternationStack = [];
+        $this->capturingGroups = [];
+        $this->capturingGroupsByName = [];
+        $this->nextCapturingGroupNumber = 1;
+        $this->skipUselessBackref = false;
 
         // Use a simple visitor to compile the pattern string for diagnostics
         $compiler = new CompilerNodeVisitor();
         $this->patternValue = $node->pattern->accept($compiler);
+
+        $this->collectCapturingGroupInfo($node->pattern);
 
         // First pass: count capturing groups
         $this->countCapturingGroups($node->pattern);
@@ -234,11 +263,16 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitAlternation(AlternationNode $node): NodeInterface
     {
+        $this->lintEmptyAlternation($node);
+        $this->lintDuplicateDisjunctions($node);
         $this->lintAlternation($node);
 
         $this->parentStack[] = $node;
-        foreach ($node->alternatives as $alt) {
+        $altKey = $this->alternationKey($node);
+        foreach ($node->alternatives as $index => $alt) {
+            $this->alternationStack[] = ['id' => $altKey, 'index' => $index];
             $alt->accept($this);
+            array_pop($this->alternationStack);
         }
         array_pop($this->parentStack);
 
@@ -250,6 +284,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     {
         // Check for anchor conflicts
         $this->checkAnchorConflicts($node);
+        $this->lintOptimalQuantifierConcatenation($node);
 
         $this->parentStack[] = $node;
         $sequenceFlags = $this->activeFlags;
@@ -301,13 +336,13 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         $this->hasBackreferences = true;
         $ref = $node->ref;
 
-        // Check numeric backreferences
-        if (preg_match('/^\\\\g\{?[+-]\d+\\}?$/', $ref) > 0) {
+        $target = $this->parseBackreferenceTarget($ref);
+        if (null === $target) {
             return $node;
         }
 
-        if (preg_match('/^\\\\(\d+)$/', $ref, $matches) || preg_match('/^\\\\g\{?(\d+)\\}?$/', $ref, $matches)) {
-            $num = (int) $matches[1];
+        if ('number' === $target['type']) {
+            $num = $target['value'];
             if (0 === $num) {
                 return $node;
             }
@@ -318,19 +353,23 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
                     "Backreference \\{$num} refers to a non-existent capturing group.",
                     $node->startPosition,
                 );
+
+                return $node;
             }
-        }
-        // Check named backreferences
-        elseif (preg_match('/^\\\\k[<{\'](?<name>\w+)[>}\']$/', $ref, $matches)) {
-            $name = $matches['name'];
+        } else {
+            $name = $target['value'];
             if (!isset($this->definedNamedGroups[$name])) {
                 $this->addIssue(
                     'regex.lint.backref.undefined',
                     "Backreference \\k<{$name}> refers to a non-existent named group.",
                     $node->startPosition,
                 );
+
+                return $node;
             }
         }
+
+        $this->lintUselessBackreference($node, $target);
 
         return $node;
     }
@@ -492,6 +531,102 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         // Other node types don't contain groups
     }
 
+    /**
+     * @param array<string, int> $alternation
+     */
+    private function collectCapturingGroupInfo(NodeInterface $node, array $alternation = []): void
+    {
+        if ($this->skipUselessBackref) {
+            return;
+        }
+
+        if ($node instanceof GroupNode) {
+            if (GroupType::T_GROUP_BRANCH_RESET === $node->type) {
+                $this->skipUselessBackref = true;
+
+                return;
+            }
+
+            if (GroupType::T_GROUP_CAPTURING === $node->type || GroupType::T_GROUP_NAMED === $node->type) {
+                $number = $this->nextCapturingGroupNumber++;
+                $info = [
+                    'node' => $node,
+                    'start' => $node->getStartPosition(),
+                    'end' => $node->getEndPosition(),
+                    'alternation' => $alternation,
+                    'alwaysEmpty' => $this->nodeIsAlwaysEmpty($node->child),
+                ];
+
+                $this->capturingGroups[$number] = $info;
+
+                if (GroupType::T_GROUP_NAMED === $node->type && null !== $node->name) {
+                    $this->capturingGroupsByName[$node->name][] = $info;
+                }
+            }
+
+            $this->collectCapturingGroupInfo($node->child, $alternation);
+
+            return;
+        }
+
+        if ($node instanceof AlternationNode) {
+            $key = $this->alternationKey($node);
+            foreach ($node->alternatives as $index => $alt) {
+                $nextAlternation = $alternation;
+                $nextAlternation[$key] = $index;
+                $this->collectCapturingGroupInfo($alt, $nextAlternation);
+            }
+
+            return;
+        }
+
+        if ($node instanceof SequenceNode) {
+            foreach ($node->children as $child) {
+                $this->collectCapturingGroupInfo($child, $alternation);
+            }
+
+            return;
+        }
+
+        if ($node instanceof QuantifierNode) {
+            $this->collectCapturingGroupInfo($node->node, $alternation);
+
+            return;
+        }
+
+        if ($node instanceof ConditionalNode) {
+            $this->collectCapturingGroupInfo($node->condition, $alternation);
+            $this->collectCapturingGroupInfo($node->yes, $alternation);
+            $this->collectCapturingGroupInfo($node->no, $alternation);
+
+            return;
+        }
+
+        if ($node instanceof DefineNode) {
+            $this->collectCapturingGroupInfo($node->content, $alternation);
+
+            return;
+        }
+
+        if ($node instanceof CharClassNode) {
+            $this->collectCapturingGroupInfo($node->expression, $alternation);
+
+            return;
+        }
+
+        if ($node instanceof ClassOperationNode) {
+            $this->collectCapturingGroupInfo($node->left, $alternation);
+            $this->collectCapturingGroupInfo($node->right, $alternation);
+
+            return;
+        }
+
+        if ($node instanceof RangeNode) {
+            $this->collectCapturingGroupInfo($node->start, $alternation);
+            $this->collectCapturingGroupInfo($node->end, $alternation);
+        }
+    }
+
     private function checkUselessFlags(): void
     {
         if (str_contains($this->flags, 'i') && !$this->hasCaseSensitiveChars && !$this->hasBackreferences) {
@@ -514,6 +649,46 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
                 "Flag 'm' is useless: pattern '{$this->getFullPattern()}' contains no anchors.",
             );
         }
+    }
+
+    private function nodeIsAlwaysEmpty(NodeInterface $node): bool
+    {
+        [$min, $max] = $node->accept(new LengthRangeNodeVisitor());
+
+        return 0 === $min && 0 === $max;
+    }
+
+    private function alternationKey(AlternationNode $node): string
+    {
+        return (string) spl_object_id($node);
+    }
+
+    /**
+     * @return array<string, int>
+     */
+    private function currentAlternationSignature(): array
+    {
+        $signature = [];
+        foreach ($this->alternationStack as $entry) {
+            $signature[$entry['id']] = $entry['index'];
+        }
+
+        return $signature;
+    }
+
+    /**
+     * @param array<string, int> $a
+     * @param array<string, int> $b
+     */
+    private function alternationSignaturesConflict(array $a, array $b): bool
+    {
+        foreach ($a as $id => $index) {
+            if (isset($b[$id]) && $b[$id] !== $index) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function charClassPartHasLetters(NodeInterface $node): bool
@@ -961,6 +1136,82 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     }
 
     /**
+     * @return array{type: 'number'|'name', value: int|string}|null
+     */
+    private function parseBackreferenceTarget(string $ref): ?array
+    {
+        if (preg_match('/^\\\\g\{?[+-]\d+\\}?$/', $ref) > 0) {
+            return null;
+        }
+
+        if (preg_match('/^\\\\(\d+)$/', $ref, $matches) || preg_match('/^\\\\g\{?(\d+)\\}?$/', $ref, $matches)) {
+            return ['type' => 'number', 'value' => (int) $matches[1]];
+        }
+
+        if (preg_match('/^\\\\k[<{\'](?<name>\w+)[>}\']$/', $ref, $matches)) {
+            return ['type' => 'name', 'value' => $matches['name']];
+        }
+
+        return null;
+    }
+
+    /**
+     * @param array{type: 'number'|'name', value: int|string} $target
+     */
+    private function lintUselessBackreference(BackrefNode $node, array $target): void
+    {
+        if ($this->skipUselessBackref) {
+            return;
+        }
+
+        $groupInfo = null;
+        if ('number' === $target['type']) {
+            $groupInfo = $this->capturingGroups[$target['value']] ?? null;
+        } else {
+            $groups = $this->capturingGroupsByName[$target['value']] ?? [];
+            if (1 === \count($groups)) {
+                $groupInfo = $groups[0];
+            }
+        }
+
+        if (null === $groupInfo) {
+            return;
+        }
+
+        $backrefPos = $node->getStartPosition();
+        if ($backrefPos < $groupInfo['end']) {
+            $this->addIssue(
+                'regex.lint.backref.useless',
+                'Backreference refers to a group that has not been closed yet.',
+                $node->startPosition,
+                'Move the backreference after the capturing group or rewrite the pattern.',
+            );
+
+            return;
+        }
+
+        if ($this->alternationSignaturesConflict($this->currentAlternationSignature(), $groupInfo['alternation'])) {
+            $this->addIssue(
+                'regex.lint.backref.useless',
+                'Backreference refers to a group in a different alternative.',
+                $node->startPosition,
+                'Place the backreference in the same alternative as its capturing group.',
+            );
+
+            return;
+        }
+
+        if ($groupInfo['alwaysEmpty']) {
+            $this->addIssue(
+                'regex.lint.backref.useless',
+                'Backreference refers to a capturing group that always matches an empty string.',
+                $node->startPosition,
+                'Remove the backreference or replace the capturing group with literal text.',
+            );
+        }
+    }
+
+    /**
      * Check if we're currently inside an unbounded quantifier (*, +, {n,}).
      * This is used to determine if overlapping alternations pose a ReDoS risk.
      */
@@ -999,21 +1250,8 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
             $literals[] = $literal;
         }
 
-        // Check for literal-based issues
+        // Check for literal-based overlaps
         if ([] !== $literals) {
-            $counts = array_count_values($literals);
-            foreach ($counts as $literal => $count) {
-                if ($count > 1) {
-                    $this->addIssue(
-                        'regex.lint.alternation.duplicate',
-                        \sprintf('Duplicate alternation branch "%s".', addcslashes((string) $literal, "\0..\37\177..\377")),
-                        $node->startPosition,
-                    );
-
-                    break;
-                }
-            }
-
             // Only flag overlapping literal branches when they're inside an unbounded quantifier.
             // Overlapping alternations without a quantifier (e.g., /\r\n|\r|\n/ or /^(978|979)/)
             // do not pose a ReDoS risk because there's no exponential backtracking.
@@ -1045,6 +1283,146 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
 
         // Check for semantic overlaps using character set analysis
         $this->checkSemanticOverlaps($node);
+    }
+
+    private function lintEmptyAlternation(AlternationNode $node): void
+    {
+        foreach ($node->alternatives as $alt) {
+            if ($this->isSyntacticallyEmptyAlternative($alt)) {
+                $this->addIssue(
+                    'regex.lint.alternation.empty',
+                    'Alternation contains an empty alternative.',
+                    $alt->getStartPosition(),
+                    'Use a quantifier (e.g., "?") if the empty string should be allowed.',
+                );
+            }
+        }
+    }
+
+    private function lintDuplicateDisjunctions(AlternationNode $node): void
+    {
+        $seen = [];
+
+        foreach ($node->alternatives as $alt) {
+            if ($this->isSyntacticallyEmptyAlternative($alt)) {
+                continue;
+            }
+
+            if ($this->alternativeHasCapturingGroupOrBackref($alt)) {
+                continue;
+            }
+
+            $compiler = new CompilerNodeVisitor();
+            $signature = $alt->accept($compiler);
+            if (isset($seen[$signature])) {
+                $display = addcslashes($signature, "\0..\37\177..\377");
+                $this->addIssue(
+                    'regex.lint.alternation.duplicate_disjunction',
+                    \sprintf('Duplicate alternation branch "%s".', $display),
+                    $alt->getStartPosition(),
+                    'Remove the redundant alternative.',
+                );
+
+                return;
+            }
+
+            $seen[$signature] = true;
+        }
+    }
+
+    private function isSyntacticallyEmptyAlternative(NodeInterface $node): bool
+    {
+        if ($node instanceof LiteralNode) {
+            return '' === $node->value;
+        }
+
+        if ($node instanceof CommentNode) {
+            return true;
+        }
+
+        if ($node instanceof SequenceNode) {
+            if ([] === $node->children) {
+                return true;
+            }
+
+            foreach ($node->children as $child) {
+                if (!$child instanceof CommentNode) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    private function alternativeHasCapturingGroupOrBackref(NodeInterface $node): bool
+    {
+        if ($node instanceof BackrefNode) {
+            return true;
+        }
+
+        if ($node instanceof GroupNode) {
+            if (GroupType::T_GROUP_BRANCH_RESET === $node->type
+                || GroupType::T_GROUP_CAPTURING === $node->type
+                || GroupType::T_GROUP_NAMED === $node->type
+            ) {
+                return true;
+            }
+
+            return $this->alternativeHasCapturingGroupOrBackref($node->child);
+        }
+
+        if ($node instanceof AlternationNode) {
+            foreach ($node->alternatives as $alt) {
+                if ($this->alternativeHasCapturingGroupOrBackref($alt)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        if ($node instanceof SequenceNode) {
+            foreach ($node->children as $child) {
+                if ($this->alternativeHasCapturingGroupOrBackref($child)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        if ($node instanceof QuantifierNode) {
+            return $this->alternativeHasCapturingGroupOrBackref($node->node);
+        }
+
+        if ($node instanceof ConditionalNode) {
+            return $this->alternativeHasCapturingGroupOrBackref($node->condition)
+                || $this->alternativeHasCapturingGroupOrBackref($node->yes)
+                || $this->alternativeHasCapturingGroupOrBackref($node->no);
+        }
+
+        if ($node instanceof DefineNode) {
+            return $this->alternativeHasCapturingGroupOrBackref($node->content);
+        }
+
+        if ($node instanceof CharClassNode) {
+            return $this->alternativeHasCapturingGroupOrBackref($node->expression);
+        }
+
+        if ($node instanceof ClassOperationNode) {
+            return $this->alternativeHasCapturingGroupOrBackref($node->left)
+                || $this->alternativeHasCapturingGroupOrBackref($node->right);
+        }
+
+        if ($node instanceof RangeNode) {
+            return $this->alternativeHasCapturingGroupOrBackref($node->start)
+                || $this->alternativeHasCapturingGroupOrBackref($node->end);
+        }
+
+        return false;
     }
 
     private function checkSemanticOverlaps(AlternationNode $node): void
@@ -2066,6 +2444,156 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
 
         if ($node instanceof DefineNode) {
             return $this->containsDotStar($node->content);
+        }
+
+        return false;
+    }
+
+    private function lintOptimalQuantifierConcatenation(SequenceNode $node): void
+    {
+        $children = $node->children;
+        $count = \count($children);
+
+        for ($i = 0; $i < $count - 1; $i++) {
+            $left = $children[$i];
+            $right = $children[$i + 1];
+
+            if (!$left instanceof QuantifierNode || !$right instanceof QuantifierNode) {
+                continue;
+            }
+
+            if ($left->type !== $right->type || QuantifierType::T_POSSESSIVE === $left->type) {
+                continue;
+            }
+
+            if (!$this->isVariableQuantifier($left->quantifier) || !$this->isVariableQuantifier($right->quantifier)) {
+                continue;
+            }
+
+            if ($left->node instanceof GroupNode && null !== $left->node->flags) {
+                continue;
+            }
+
+            if ($right->node instanceof GroupNode && null !== $right->node->flags) {
+                continue;
+            }
+
+            if ($this->nodeContainsCapturingGroup($left->node) || $this->nodeContainsCapturingGroup($right->node)) {
+                continue;
+            }
+
+            $leftSet = $this->singleCharNodeCharSet($left->node);
+            $rightSet = $this->singleCharNodeCharSet($right->node);
+            if (null === $leftSet || null === $rightSet) {
+                continue;
+            }
+
+            [, $leftMax] = $this->parseQuantifierRange($left->quantifier);
+            [, $rightMax] = $this->parseQuantifierRange($right->quantifier);
+
+            if (null === $rightMax && $this->charSetIsSubset($leftSet, $rightSet)) {
+                $this->addIssue(
+                    'regex.lint.quantifier.concatenation',
+                    'Concatenated quantifiers can be optimized when one character set is a subset of the other.',
+                    $left->startPosition,
+                    'Consider tightening the first quantifier to its minimum.',
+                );
+
+                continue;
+            }
+
+            if (null === $leftMax && $this->charSetIsSubset($rightSet, $leftSet)) {
+                $this->addIssue(
+                    'regex.lint.quantifier.concatenation',
+                    'Concatenated quantifiers can be optimized when one character set is a subset of the other.',
+                    $right->startPosition,
+                    'Consider tightening the second quantifier to its minimum.',
+                );
+            }
+        }
+    }
+
+    private function singleCharNodeCharSet(NodeInterface $node): ?CharSet
+    {
+        if (!$this->nodeIsSingleChar($node) || !$this->isConsuming($node)) {
+            return null;
+        }
+
+        $set = $this->charSetAnalyzer->firstChars($node);
+
+        if ($set->isUnknown() || $set->isEmpty()) {
+            return null;
+        }
+
+        return $set;
+    }
+
+    private function nodeIsSingleChar(NodeInterface $node): bool
+    {
+        [$min, $max] = $node->accept(new LengthRangeNodeVisitor());
+
+        return 1 === $min && 1 === $max;
+    }
+
+    private function nodeContainsCapturingGroup(NodeInterface $node): bool
+    {
+        if ($node instanceof GroupNode) {
+            if (GroupType::T_GROUP_BRANCH_RESET === $node->type
+                || GroupType::T_GROUP_CAPTURING === $node->type
+                || GroupType::T_GROUP_NAMED === $node->type
+            ) {
+                return true;
+            }
+
+            return $this->nodeContainsCapturingGroup($node->child);
+        }
+
+        if ($node instanceof AlternationNode) {
+            foreach ($node->alternatives as $alt) {
+                if ($this->nodeContainsCapturingGroup($alt)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        if ($node instanceof SequenceNode) {
+            foreach ($node->children as $child) {
+                if ($this->nodeContainsCapturingGroup($child)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        if ($node instanceof QuantifierNode) {
+            return $this->nodeContainsCapturingGroup($node->node);
+        }
+
+        if ($node instanceof ConditionalNode) {
+            return $this->nodeContainsCapturingGroup($node->condition)
+                || $this->nodeContainsCapturingGroup($node->yes)
+                || $this->nodeContainsCapturingGroup($node->no);
+        }
+
+        if ($node instanceof DefineNode) {
+            return $this->nodeContainsCapturingGroup($node->content);
+        }
+
+        if ($node instanceof CharClassNode) {
+            return $this->nodeContainsCapturingGroup($node->expression);
+        }
+
+        if ($node instanceof ClassOperationNode) {
+            return $this->nodeContainsCapturingGroup($node->left)
+                || $this->nodeContainsCapturingGroup($node->right);
+        }
+
+        if ($node instanceof RangeNode) {
+            return $this->nodeContainsCapturingGroup($node->start)
+                || $this->nodeContainsCapturingGroup($node->end);
         }
 
         return false;

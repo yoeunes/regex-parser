@@ -253,6 +253,25 @@ preg_match('/ac/', $input);
 
 ---
 
+### Optimal Quantifier Concatenation
+
+**Identifier:** `regex.lint.quantifier.concatenation`
+
+**When it triggers:** Two adjacent quantified tokens can be simplified because one character set is a subset of the other.
+
+**Example:**
+```php
+// WARNING: \d is a subset of \w
+preg_match('/\d+\w+/', $input);
+
+// PREFERRED: Keep the superset quantifier unbounded
+preg_match('/\d\w+/', $input);
+```
+
+**Fix:** Tighten the smaller quantifier to its minimum or remove redundant repetition.
+
+---
+
 ## Groups
 
 ### Redundant Non-Capturing Group
@@ -278,9 +297,9 @@ preg_match('/foo/', $input);
 
 ### Duplicate Alternation Branches
 
-**Identifier:** `regex.lint.alternation.duplicate`
+**Identifier:** `regex.lint.alternation.duplicate_disjunction`
 
-**When it triggers:** The same literal branch appears more than once.
+**When it triggers:** The same alternative appears more than once.
 
 **Example:**
 ```php
@@ -292,6 +311,25 @@ preg_match('/a/', $input);
 ```
 
 **Fix:** Remove duplicates or use a character class.
+
+---
+
+### Empty Alternatives
+
+**Identifier:** `regex.lint.alternation.empty`
+
+**When it triggers:** An alternation contains an empty branch (e.g., trailing `|` or `||`).
+
+**Example:**
+```php
+// WARNING: Empty alternative
+preg_match('/a|/', $input);
+
+// PREFERRED: Use a quantifier
+preg_match('/a?/', $input);
+```
+
+**Fix:** Replace the empty alternative with a quantifier or an explicit empty group if intentional.
 
 ---
 
@@ -342,6 +380,30 @@ preg_match('/(?>[a-c]|[b-d])/', $input);
 // IF EQUIVALENT: Merge ranges
 preg_match('/[a-d]/', $input);
 ```
+
+---
+
+## Backreferences
+
+### Useless Backreferences
+
+**Identifier:** `regex.lint.backref.useless`
+
+**When it triggers:** A backreference is used before its capturing group can be set or when the group is guaranteed to be empty.
+
+**Example:**
+```php
+// WARNING: Backreference appears before the group closes
+preg_match('/\1(a)/', $input);
+
+// WARNING: Capturing group is always empty
+preg_match('/(\b)a\1/', $input);
+
+// PREFERRED: Move the backreference after the group
+preg_match('/(a)\1/', $input);
+```
+
+**Fix:** Move the backreference after the capturing group or remove it if it adds no constraint.
 
 ---
 
@@ -678,6 +740,7 @@ Recursively matches nested `[indent]...[/indent]` blocks using `(?R)` to re-ente
 | Quantifiers | `regex.lint.quantifier.*`   | warning/error | Use atomic groups                |
 | Groups      | `regex.lint.group.*`        | info          | Remove redundant groups          |
 | Alternation | `regex.lint.alternation.*`  | warning       | Simplify or use atomic           |
+| Backrefs    | `regex.lint.backref.*`      | warning       | Move or remove backreferences    |
 | Character   | `regex.lint.charclass.*`    | warning       | Remove duplicates                |
 | Ranges      | `regex.lint.range.*`        | warning       | Replace with literals            |
 | Escapes     | `regex.lint.escape.*`       | warning       | Fix escape sequences             |

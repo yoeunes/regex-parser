@@ -13,9 +13,13 @@ Fast fixes for the most common RegexParser diagnostics. Use this as a quick refe
 | [Nested quantifiers detected](#nested-quantifiers-detected)                 | Use atomic groups           |
 | [Dot-star in repetition](#dot-star-in-repetition)                           | Use atomic/possessive       |
 | [Overlapping alternation branches](#overlapping-alternation-branches)       | Atomic or simplify          |
+| [Duplicate alternation branch](#duplicate-alternation-branch)               | Remove duplicate            |
+| [Empty alternative](#empty-alternative)                                     | Use `?` quantifier          |
 | [Redundant non-capturing group](#redundant-non-capturing-group)             | Remove group                |
 | [Suspicious ASCII range](#suspicious-ascii-range)                           | Split A-Z and a-z           |
 | [Alternation-like character class](#alternation-like-character-class)       | Use (foo\|bar)              |
+| [Useless backreference](#useless-backreference)                             | Move or remove              |
+| [Concatenated quantifiers](#concatenated-quantifiers)                       | Tighten quantifier          |
 | [Useless flag](#useless-flag)                                               | Remove flag                 |
 | [Invalid delimiter](#invalid-delimiter)                                     | Use proper delimiter        |
 
@@ -151,6 +155,34 @@ preg_match('/a+b/', $input);
 
 ---
 
+## Duplicate alternation branch
+
+**Problem:** The same alternative appears more than once.
+
+```php
+// WARNING: Duplicate branch
+preg_match('/(foo|foo)/', $input);
+
+// FIX: Keep one copy
+preg_match('/foo/', $input);
+```
+
+---
+
+## Empty alternative
+
+**Problem:** An alternation includes an empty branch (e.g., trailing `|`).
+
+```php
+// WARNING: Empty alternative
+preg_match('/foo|/', $input);
+
+// FIX: Use a quantifier instead
+preg_match('/foo?/', $input);
+```
+
+---
+
 ## Redundant non-capturing group
 
 **Problem:** Group wraps single token without changing behavior.
@@ -198,6 +230,34 @@ preg_match('/[error|failure]/', $input);
 
 // FIX
 preg_match('/(error|failure)/', $input);
+```
+
+---
+
+## Useless backreference
+
+**Problem:** The backreference is used before its group is set or the group is always empty.
+
+```php
+// WARNING: Backreference before group closes
+preg_match('/\1(a)/', $input);
+
+// FIX: Move the backreference
+preg_match('/(a)\1/', $input);
+```
+
+---
+
+## Concatenated quantifiers
+
+**Problem:** Adjacent quantifiers can be simplified when one set is a subset of the other.
+
+```php
+// WARNING: \d is a subset of \w
+preg_match('/\d+\w+/', $input);
+
+// FIX: Tighten the smaller quantifier
+preg_match('/\d\w+/', $input);
 ```
 
 ---

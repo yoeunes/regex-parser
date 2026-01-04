@@ -92,9 +92,11 @@ final class RegexParserRule implements Rule
         'regex.lint.quantifier.useless' => self::DOC_BASE_URL.'#useless-quantifier',
         'regex.lint.quantifier.zero' => self::DOC_BASE_URL.'#zero-quantifier',
         'regex.lint.group.redundant' => self::DOC_BASE_URL.'#redundant-non-capturing-group',
-        'regex.lint.alternation.duplicate' => self::DOC_BASE_URL.'#duplicate-alternation-branches',
+        'regex.lint.alternation.duplicate_disjunction' => self::DOC_BASE_URL.'#duplicate-alternation-branches',
+        'regex.lint.alternation.empty' => self::DOC_BASE_URL.'#empty-alternatives',
         'regex.lint.alternation.overlap' => self::DOC_BASE_URL.'#overlapping-alternation-branches',
         'regex.lint.overlap.charset' => self::DOC_BASE_URL.'#overlapping-alternation-branches',
+        'regex.lint.backref.useless' => self::DOC_BASE_URL.'#useless-backreferences',
         'regex.lint.charclass.redundant' => self::DOC_BASE_URL.'#redundant-character-class-elements',
         'regex.lint.charclass.duplicate_chars' => self::DOC_BASE_URL.'#duplicate-character-class-elements',
         'regex.lint.range.useless' => self::DOC_BASE_URL.'#useless-character-range',
@@ -103,6 +105,7 @@ final class RegexParserRule implements Rule
         'regex.lint.escape.suspicious' => self::DOC_BASE_URL.'#suspicious-escapes',
         'regex.lint.flag.redundant' => self::DOC_BASE_URL.'#inline-flag-redundant',
         'regex.lint.flag.override' => self::DOC_BASE_URL.'#inline-flag-override',
+        'regex.lint.quantifier.concatenation' => self::DOC_BASE_URL.'#optimal-quantifier-concatenation',
     ];
 
     private ?RegexAnalysisService $analysis = null;

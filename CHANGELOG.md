@@ -9,12 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - New lint rules ported from eslint-plugin-regexp for duplicate character class elements, useless character ranges, zero quantifiers, and redundant `{1}` quantifiers.
+- New lint rules for empty alternatives, duplicate disjunctions, useless backreferences, and optimal quantifier concatenation.
 
 ### Documentation
 - Documented new lint rule identifiers and examples in the reference guide.
 
 ### Tests
 - Added data-provider coverage for the new lint rules.
+
+### Changed
+- Alternation duplicate warnings now use the `regex.lint.alternation.duplicate_disjunction` identifier.
 
 ## [1.0.10] - 2026-01-04
 

@@ -234,10 +234,6 @@ final class LinterNodeVisitorCorpusTest extends TestCase
             $issueIds = array_values(array_diff($issueIds, ['regex.lint.flag.redundant']));
         }
 
-        if (\in_array('regex.lint.alternation.duplicate', $issueIds, true) && self::patternHasLookaround($pattern)) {
-            $issueIds = array_values(array_diff($issueIds, ['regex.lint.alternation.duplicate']));
-        }
-
         return $issueIds;
     }
 
@@ -291,14 +287,6 @@ final class LinterNodeVisitorCorpusTest extends TestCase
         }
 
         return $setMatch[0][1] < $unsetMatch[0][1];
-    }
-
-    private static function patternHasLookaround(string $pattern): bool
-    {
-        return str_contains($pattern, '(?=')
-            || str_contains($pattern, '(?!')
-            || str_contains($pattern, '(?<=')
-            || str_contains($pattern, '(?<!');
     }
 
     /**
@@ -499,12 +487,26 @@ final class LinterNodeVisitorCorpusTest extends TestCase
             return 'regex.lint.charclass.suspicious_pipe';
         }
 
+        if (str_starts_with($message, 'Alternation contains an empty alternative.')) {
+            return 'regex.lint.alternation.empty';
+        }
+
         if (str_starts_with($message, 'Quantifier always repeats zero times')) {
             return 'regex.lint.quantifier.zero';
         }
 
         if (str_starts_with($message, 'Quantifier is redundant; it matches exactly once.')) {
             return 'regex.lint.quantifier.useless';
+        }
+
+        if (str_starts_with($message, 'Concatenated quantifiers can be optimized')) {
+            return 'regex.lint.quantifier.concatenation';
+        }
+
+        if (str_starts_with($message, 'Backreference refers to a group')
+            || str_starts_with($message, 'Backreference refers to a capturing group')
+        ) {
+            return 'regex.lint.backref.useless';
         }
 
         if (str_starts_with($message, 'Alternation branches have overlapping character sets')) {
@@ -516,7 +518,7 @@ final class LinterNodeVisitorCorpusTest extends TestCase
         }
 
         if (str_starts_with($message, 'Duplicate alternation branch')) {
-            return 'regex.lint.alternation.duplicate';
+            return 'regex.lint.alternation.duplicate_disjunction';
         }
 
         if (str_starts_with($message, 'Inline flag') && str_contains($message, 'overrides')) {
