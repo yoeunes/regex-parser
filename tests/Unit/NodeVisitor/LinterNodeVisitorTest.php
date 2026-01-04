@@ -15,6 +15,7 @@ namespace RegexParser\Tests\Unit\NodeVisitor;
 
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use RegexParser\LintIssue;
 use RegexParser\NodeVisitor\LinterNodeVisitor;
 use RegexParser\Regex;
 
@@ -269,6 +270,76 @@ final class LinterNodeVisitorTest extends TestCase
             false,
             false,
         ];
+    }
+
+    #[DataProvider('provideRedundantCharClassHints')]
+    public function test_redundant_char_class_hints(string $pattern, string $expectedHint): void
+    {
+        $regex = Regex::create()->parse($pattern);
+        $linter = new LinterNodeVisitor();
+        $regex->accept($linter);
+
+        $issue = $this->findIssueById($linter->getIssues(), 'regex.lint.charclass.redundant');
+        $this->assertNotNull($issue);
+        $this->assertNotNull($issue->hint);
+        $this->assertStringContainsString($expectedHint, $issue->hint);
+    }
+
+    public static function provideRedundantCharClassHints(): \Generator
+    {
+        yield 'multipart boundary underscore duplicate' => [
+            trim(<<<'REGEX'
+                {multipart/form-data; boundary=(?|"([^"\r\n]++)"|([-!#$%&'*+.^_`|~_A-Za-z0-9]++))}
+                REGEX
+            ),
+            "'_' (duplicate)",
+        ];
+        yield 'telegram punctuation range overlap' => [
+            '/([.!#>+-=|{}~])/',
+            "'.' (covered by range '+'-'=')",
+        ];
+    }
+
+    #[DataProvider('provideInlineFlagRedundantHints')]
+    public function test_inline_flag_redundant_hints(string $pattern, string $expectedHint): void
+    {
+        $regex = Regex::create()->parse($pattern);
+        $linter = new LinterNodeVisitor();
+        $regex->accept($linter);
+
+        $issue = $this->findIssueById($linter->getIssues(), 'regex.lint.flag.redundant');
+        $this->assertNotNull($issue);
+        $this->assertNotNull($issue->hint);
+        $this->assertStringContainsString($expectedHint, $issue->hint);
+    }
+
+    public static function provideInlineFlagRedundantHints(): \Generator
+    {
+        yield 'simple redundant inline flag' => [
+            '/(?-i:foo)/',
+            "Remove '-i' from the inline flag group",
+        ];
+        yield 'symfony inline flag' => [
+            trim(<<<'REGEX'
+                /[\x80-\xFF]|(?<!\\)\\(?:\\\\)*+(?-i:X|[pP][\{CLMNPSZ]|x\{[A-Fa-f0-9]{3})/
+                REGEX
+            ),
+            "Remove '-i' from the inline flag group",
+        ];
+    }
+
+    /**
+     * @param array<LintIssue> $issues
+     */
+    private function findIssueById(array $issues, string $id): ?LintIssue
+    {
+        foreach ($issues as $issue) {
+            if ($issue->id === $id) {
+                return $issue;
+            }
+        }
+
+        return null;
     }
 
     public function test_char_class_group_tokens_are_literal(): void

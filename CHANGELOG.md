@@ -13,12 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Optimization output now preserves the original pattern body when only flags are removed, reducing escape-only diff noise.
 - Symfony bundle now exposes default lint optimization settings via `regex_parser.optimizations`.
+- Linter warnings for redundant character classes and redundant inline flags now include hints with actionable details.
 
 ### Documentation
 - Documented `canonicalizeCharClasses` in the CLI config and optimize API.
 
 ### Tests
 - Added data-provider coverage for canonicalization toggles, anchor conflict cases, and flag-only optimization outputs.
+- Added data-provider coverage for redundant character class hints and redundant inline flag hints.
 
 ## [1.0.9] - 2026-01-03
 

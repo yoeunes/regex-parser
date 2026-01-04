@@ -1123,12 +1123,29 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         $ranges = [];
         $literals = [];
         $redundant = false;
+        $redundantNotes = [];
+        $redundantOverflow = 0;
 
         foreach ($parts as $part) {
             if ($part instanceof LiteralNode && 1 === \strlen($part->value)) {
                 $ord = \ord($part->value);
-                if (isset($literals[$ord]) || $this->isOrdCoveredByRanges($ord, $ranges)) {
+                if (isset($literals[$ord])) {
                     $redundant = true;
+                    $this->recordRedundantNote(
+                        $redundantNotes,
+                        $redundantOverflow,
+                        $this->formatCharLiteralForHint($part->value).' (duplicate)',
+                    );
+                } else {
+                    $coveringRange = $this->findCoveringRange($ord, $ranges);
+                    if (null !== $coveringRange) {
+                        $redundant = true;
+                        $this->recordRedundantNote(
+                            $redundantNotes,
+                            $redundantOverflow,
+                            $this->formatCharLiteralForHint($part->value).' (covered by range '.$coveringRange['label'].')',
+                        );
+                    }
                 }
                 $literals[$ord] = true;
 
@@ -1146,26 +1163,42 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
                     continue;
                 }
 
-                if ($this->rangeOverlaps($start, $end, $ranges)) {
-                    $redundant = true;
+                $rangeLabel = $this->formatRangeForHint($part->start->value, $part->end->value);
+                foreach ($ranges as $existingRange) {
+                    if ($start <= $existingRange['end'] && $end >= $existingRange['start']) {
+                        $redundant = true;
+                        $this->recordRedundantNote(
+                            $redundantNotes,
+                            $redundantOverflow,
+                            'range '.$rangeLabel.' (overlaps '.$existingRange['label'].')',
+                        );
+                        break;
+                    }
                 }
 
                 foreach ($literals as $ord => $seen) {
                     if ($ord >= $start && $ord <= $end) {
                         $redundant = true;
+                        $this->recordRedundantNote(
+                            $redundantNotes,
+                            $redundantOverflow,
+                            $this->formatCharLiteralForHint(\chr($ord)).' (covered by range '.$rangeLabel.')',
+                        );
                         unset($literals[$ord]);
                     }
                 }
 
-                $ranges[] = [$start, $end];
+                $ranges[] = ['start' => $start, 'end' => $end, 'label' => $rangeLabel];
             }
         }
 
         if ($redundant) {
+            $hint = $this->formatRedundantCharClassHint($redundantNotes, $redundantOverflow);
             $this->addIssue(
                 'regex.lint.charclass.redundant',
                 'Redundant elements detected in character class.',
                 $node->startPosition,
+                $hint,
             );
         }
     }
@@ -1286,37 +1319,84 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         return [$node];
     }
 
+    /**
+     * @param array<int, array{start: int, end: int, label: string}> $ranges
+     *
+     * @return array{start: int, end: int, label: string}|null
+     */
+    private function findCoveringRange(int $ord, array $ranges): ?array
+    {
+        foreach ($ranges as $range) {
+            if ($ord >= $range['start'] && $ord <= $range['end']) {
+                return $range;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param array<string, true> $notes
+     */
+    private function recordRedundantNote(array &$notes, int &$overflow, string $note, int $limit = 4): void
+    {
+        if (isset($notes[$note])) {
+            return;
+        }
+
+        if (\count($notes) >= $limit) {
+            $overflow++;
+
+            return;
+        }
+
+        $notes[$note] = true;
+    }
+
+    /**
+     * @param array<string, true> $notes
+     */
+    private function formatRedundantCharClassHint(array $notes, int $overflow): string
+    {
+        if ([] === $notes) {
+            return 'Remove duplicate characters or overlapping ranges from the character class.';
+        }
+
+        $hint = 'Redundant elements: '.implode(', ', array_keys($notes));
+        if ($overflow > 0) {
+            $hint .= \sprintf(' (and %d more).', $overflow);
+        }
+
+        return $hint;
+    }
+
+    private function formatCharLiteralForHint(string $value): string
+    {
+        $ord = \ord($value);
+
+        if ($ord < 32 || 127 === $ord || $ord >= 128) {
+            return "'\\x".strtoupper(str_pad(dechex($ord), 2, '0', \STR_PAD_LEFT))."'";
+        }
+
+        if ("'" === $value) {
+            return "'\\''";
+        }
+
+        if ('\\' === $value) {
+            return "'\\\\'";
+        }
+
+        return "'".$value."'";
+    }
+
+    private function formatRangeForHint(string $start, string $end): string
+    {
+        return $this->formatCharLiteralForHint($start).'-'.$this->formatCharLiteralForHint($end);
+    }
+
     private function isAsciiLetter(int $ord): bool
     {
         return ($ord >= 65 && $ord <= 90) || ($ord >= 97 && $ord <= 122);
-    }
-
-    /**
-     * @param array<array{0: int, 1: int}> $ranges
-     */
-    private function rangeOverlaps(int $start, int $end, array $ranges): bool
-    {
-        foreach ($ranges as [$rStart, $rEnd]) {
-            if ($start <= $rEnd && $end >= $rStart) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * @param array<array{0: int, 1: int}> $ranges
-     */
-    private function isOrdCoveredByRanges(int $ord, array $ranges): bool
-    {
-        foreach ($ranges as [$rStart, $rEnd]) {
-            if ($ord >= $rStart && $ord <= $rEnd) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     private function isStandaloneInlineFlagsGroup(GroupNode $node): bool
@@ -1411,6 +1491,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
                     'regex.lint.flag.redundant',
                     \sprintf("Inline flag '-%s' is redundant; the flag is not set globally.", $flag),
                     $node->startPosition,
+                    \sprintf("Remove '-%s' from the inline flag group; it has no effect unless the flag is enabled globally.", $flag),
                 );
             } else {
                 $this->addIssue(
