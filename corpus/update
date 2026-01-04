@@ -1,0 +1,610 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+/**
+ * Corpus Update Script
+ *
+ * Updates git repositories under corpus/ with optional parallelism.
+ */
+
+final class ConsoleStyle
+{
+    private bool $useColor;
+
+    public function __construct()
+    {
+        $this->useColor = $this->supportsColor();
+    }
+
+    public function header(string $title): void
+    {
+        $line = str_repeat('=', \strlen($title));
+        echo $this->bold($title).PHP_EOL;
+        echo $this->dim($line).PHP_EOL;
+    }
+
+    public function section(string $title, int $step, int $totalSteps): void
+    {
+        $label = sprintf('[%d/%d] %s', $step, $totalSteps, $title);
+        echo PHP_EOL.$this->bold($label).PHP_EOL;
+    }
+
+    public function status(string $label, string $message, ?string $detail = null): void
+    {
+        $plainLabel = preg_replace('/\e\[[\d;]*m/', '', $label);
+        $plainLabel ??= $label;
+        $pad = max(0, 6 - \strlen($plainLabel));
+        $label = $label.str_repeat(' ', $pad);
+        echo '  '.$label.' '.$message.PHP_EOL;
+        if (null !== $detail && '' !== $detail) {
+            echo $this->indent($detail, '       ');
+        }
+    }
+
+    public function info(string $message): void
+    {
+        echo $message.PHP_EOL;
+    }
+
+    public function warn(string $message): void
+    {
+        echo $this->yellow('Warning: ').$message.PHP_EOL;
+    }
+
+    public function error(string $message): void
+    {
+        fwrite(\STDERR, $this->red('Error: ').$message.PHP_EOL);
+    }
+
+    public function dim(string $text): string
+    {
+        return $this->colorize($text, '2');
+    }
+
+    public function bold(string $text): string
+    {
+        return $this->colorize($text, '1');
+    }
+
+    public function green(string $text): string
+    {
+        return $this->colorize($text, '32');
+    }
+
+    public function red(string $text): string
+    {
+        return $this->colorize($text, '31');
+    }
+
+    public function yellow(string $text): string
+    {
+        return $this->colorize($text, '33');
+    }
+
+    public function cyan(string $text): string
+    {
+        return $this->colorize($text, '36');
+    }
+
+    private function colorize(string $text, string $code): string
+    {
+        if (!$this->useColor) {
+            return $text;
+        }
+
+        return "\033[".$code."m".$text."\033[0m";
+    }
+
+    private function supportsColor(): bool
+    {
+        if ('1' === getenv('NO_COLOR')) {
+            return false;
+        }
+
+        if (!\function_exists('posix_isatty')) {
+            return false;
+        }
+
+        return posix_isatty(\STDOUT);
+    }
+
+    private function indent(string $text, string $prefix): string
+    {
+        $lines = preg_split("/\\r?\\n/", trim($text));
+        if (!\is_array($lines)) {
+            return '';
+        }
+
+        $indented = array_map(static fn (string $line): string => $prefix.$line, $lines);
+
+        return implode(PHP_EOL, $indented).PHP_EOL;
+    }
+}
+
+/**
+ * @return array<string, mixed>
+ */
+function parseArgs(array $argv): array
+{
+    $options = [
+        'jobs' => null,
+        'force' => false,
+        'help' => false,
+    ];
+
+    for ($i = 1; $i < \count($argv); $i++) {
+        $arg = $argv[$i];
+        if ('--help' === $arg || '-h' === $arg) {
+            $options['help'] = true;
+            continue;
+        }
+        if ('--force' === $arg) {
+            $options['force'] = true;
+            continue;
+        }
+        if ('--jobs' === $arg || '-j' === $arg) {
+            $next = $argv[$i + 1] ?? null;
+            if (null === $next || str_starts_with($next, '-')) {
+                $options['jobs'] = null;
+                continue;
+            }
+            $options['jobs'] = $next;
+            $i++;
+            continue;
+        }
+        if (str_starts_with($arg, '--jobs=')) {
+            $options['jobs'] = substr($arg, \strlen('--jobs='));
+            continue;
+        }
+
+        throw new InvalidArgumentException(sprintf('Unknown argument: %s', $arg));
+    }
+
+    return $options;
+}
+
+function printUsage(): void
+{
+    echo <<<TXT
+Usage: corpus/update [--jobs[=<n>|auto]] [--force] [--help]
+
+Options:
+  --jobs, -j   Number of parallel workers (default: auto-detected CPUs)
+  --force      Reset local changes before pulling (corpus repos only)
+  --help, -h   Show this help message
+
+TXT;
+}
+
+function detectCpuCount(): int
+{
+    if (\function_exists('swoole_cpu_num')) {
+        return swoole_cpu_num();
+    }
+
+    if (\DIRECTORY_SEPARATOR === '/') {
+        if (\is_readable('/proc/cpuinfo')) {
+            $cpuinfo = \file_get_contents('/proc/cpuinfo');
+            if (false !== $cpuinfo) {
+                $matches = [];
+                \preg_match_all('/^processor\\s*:/m', $cpuinfo, $matches);
+                if (!empty($matches[0])) {
+                    return \count($matches[0]);
+                }
+            }
+        }
+
+        $result = \shell_exec('sysctl -n hw.ncpu 2>/dev/null');
+        if (null !== $result) {
+            $cpu = (int) trim((string) $result);
+            if ($cpu > 0) {
+                return $cpu;
+            }
+        }
+    } else {
+        $result = \shell_exec('wmic cpu get NumberOfCores 2>nul | findstr /r /v "^$" | findstr /v "NumberOfCores"');
+        if (null !== $result) {
+            $cpu = (int) trim((string) $result);
+            if ($cpu > 0) {
+                return $cpu;
+            }
+        }
+    }
+
+    return 1;
+}
+
+function supportsParallel(): bool
+{
+    return \PHP_SAPI === 'cli'
+        && \function_exists('pcntl_fork')
+        && \function_exists('pcntl_waitpid');
+}
+
+/**
+ * @return array<string>
+ */
+function findGitRepos(string $dir): array
+{
+    $repos = [];
+    $subdirs = glob($dir.'/*', GLOB_ONLYDIR);
+    foreach ($subdirs as $subdir) {
+        if (is_dir($subdir.'/.git')) {
+            $repos[] = $subdir;
+        }
+    }
+
+    sort($repos);
+
+    return $repos;
+}
+
+function isSafeRepo(string $repoPath, string $corpusDir): bool
+{
+    $repoReal = realpath($repoPath);
+    $corpusReal = realpath($corpusDir);
+    if (false === $repoReal || false === $corpusReal) {
+        return false;
+    }
+
+    $prefix = rtrim($corpusReal, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR;
+
+    return str_starts_with($repoReal, $prefix) && is_dir($repoReal.'/.git');
+}
+
+/**
+ * @return array{code: int, output: string}
+ */
+function runGit(string $repoPath, array $args): array
+{
+    $command = array_merge(['git'], $args);
+    $descriptors = [
+        1 => ['pipe', 'w'],
+        2 => ['pipe', 'w'],
+    ];
+
+    $process = proc_open($command, $descriptors, $pipes, $repoPath, ['GIT_TERMINAL_PROMPT' => '0']);
+    if (!\is_resource($process)) {
+        return ['code' => 1, 'output' => 'Failed to start git process.'];
+    }
+
+    $stdout = stream_get_contents($pipes[1]);
+    $stderr = stream_get_contents($pipes[2]);
+    fclose($pipes[1]);
+    fclose($pipes[2]);
+
+    $code = proc_close($process);
+    $output = trim($stdout."\n".$stderr);
+
+    return ['code' => $code, 'output' => $output];
+}
+
+/**
+ * @return array{status: string, proceed: bool, message: string}
+ */
+function prepareRepo(string $repoPath, bool $force, string $corpusDir, ConsoleStyle $io): array
+{
+    if (!isSafeRepo($repoPath, $corpusDir)) {
+        return ['status' => 'SKIP', 'proceed' => false, 'message' => 'Outside corpus directory.'];
+    }
+
+    $status = runGit($repoPath, ['status', '--porcelain']);
+    if (0 !== $status['code']) {
+        return ['status' => 'FAIL', 'proceed' => false, 'message' => $status['output']];
+    }
+
+    if ('' === $status['output']) {
+        return ['status' => 'OK', 'proceed' => true, 'message' => 'Clean working tree.'];
+    }
+
+    if ($force) {
+        $reset = runGit($repoPath, ['reset', '--hard', 'HEAD']);
+        if (0 !== $reset['code']) {
+            return ['status' => 'FAIL', 'proceed' => false, 'message' => $reset['output']];
+        }
+
+        return ['status' => 'RESET', 'proceed' => true, 'message' => 'Force reset applied.'];
+    }
+
+    if (!isInteractive()) {
+        return ['status' => 'SKIP', 'proceed' => false, 'message' => 'Dirty repository (non-interactive).'];
+    }
+
+    $io->info('');
+    $io->info('Repository: '.$repoPath);
+    $io->info('Uncommitted changes detected:');
+    $short = runGit($repoPath, ['status', '--short']);
+    if ('' !== $short['output']) {
+        $io->info($short['output']);
+    }
+    $io->info('');
+    $io->info('Options:');
+    $io->info('  (k)eep changes');
+    $io->info('  (r)eset changes (git reset --hard HEAD)');
+    $io->info('  (c)ommit changes (git add . && git commit -m "Auto-commit before pull")');
+    $io->info('  (s)kip this repository');
+
+    $choice = strtolower(trim(readInput('Choose: ')));
+
+    switch ($choice) {
+        case 'k':
+            return ['status' => 'KEEP', 'proceed' => true, 'message' => 'Keeping local changes.'];
+        case 'r':
+            $reset = runGit($repoPath, ['reset', '--hard', 'HEAD']);
+            if (0 !== $reset['code']) {
+                return ['status' => 'FAIL', 'proceed' => false, 'message' => $reset['output']];
+            }
+            return ['status' => 'RESET', 'proceed' => true, 'message' => 'Changes reset.'];
+        case 'c':
+            $add = runGit($repoPath, ['add', '.']);
+            if (0 !== $add['code']) {
+                return ['status' => 'FAIL', 'proceed' => false, 'message' => $add['output']];
+            }
+            $commit = runGit($repoPath, ['commit', '-m', 'Auto-commit before pull']);
+            if (0 !== $commit['code']) {
+                return ['status' => 'FAIL', 'proceed' => false, 'message' => $commit['output']];
+            }
+            return ['status' => 'COMMIT', 'proceed' => true, 'message' => 'Changes committed.'];
+        case 's':
+        default:
+            return ['status' => 'SKIP', 'proceed' => false, 'message' => 'Skipped by user.'];
+    }
+}
+
+/**
+ * @return array{path: string, status: string, output: string}
+ */
+function updateRepo(string $repoPath): array
+{
+    $result = runGit($repoPath, ['pull', '--rebase']);
+    if (0 !== $result['code']) {
+        return ['path' => $repoPath, 'status' => 'FAIL', 'output' => $result['output']];
+    }
+
+    return ['path' => $repoPath, 'status' => 'OK', 'output' => $result['output']];
+}
+
+/**
+ * @param array<string> $repos
+ *
+ * @return array<int, array{path: string, status: string, output: string}>
+ */
+function updateReposParallel(array $repos, int $jobs): array
+{
+    $total = \count($repos);
+    if (0 === $total) {
+        return [];
+    }
+
+    $workerCount = max(1, min($jobs, $total));
+    $chunkSize = (int) ceil($total / $workerCount);
+    $chunks = array_chunk($repos, $chunkSize);
+
+    $children = [];
+    $results = [];
+    $fallback = [];
+
+    foreach ($chunks as $chunk) {
+        $tmpFile = tempnam(sys_get_temp_dir(), 'corpus_update_');
+        if (false === $tmpFile) {
+            $fallback = array_merge($fallback, $chunk);
+            continue;
+        }
+
+        $pid = pcntl_fork();
+        if (-1 === $pid) {
+            @unlink($tmpFile);
+            $fallback = array_merge($fallback, $chunk);
+            continue;
+        }
+
+        if (0 === $pid) {
+            $payload = [];
+            foreach ($chunk as $repo) {
+                $payload[] = updateRepo($repo);
+            }
+
+            file_put_contents($tmpFile, serialize($payload));
+            exit(0);
+        }
+
+        $children[$pid] = $tmpFile;
+    }
+
+    foreach ($children as $pid => $tmpFile) {
+        pcntl_waitpid($pid, $status);
+        $payload = file_get_contents($tmpFile);
+        @unlink($tmpFile);
+
+        if (false === $payload) {
+            continue;
+        }
+
+        $decoded = @unserialize($payload);
+        if (\is_array($decoded)) {
+            $results = array_merge($results, $decoded);
+        }
+    }
+
+    if ([] !== $fallback) {
+        foreach ($fallback as $repo) {
+            $results[] = updateRepo($repo);
+        }
+    }
+
+    return $results;
+}
+
+function isInteractive(): bool
+{
+    return \function_exists('posix_isatty') && posix_isatty(\STDIN);
+}
+
+function readInput(string $prompt): string
+{
+    if (\function_exists('readline')) {
+        return (string) readline($prompt);
+    }
+
+    echo $prompt;
+
+    return (string) fgets(\STDIN);
+}
+
+function formatRepoLabel(string $repoPath, string $corpusDir): string
+{
+    $repoReal = realpath($repoPath) ?: $repoPath;
+    $corpusReal = realpath($corpusDir) ?: $corpusDir;
+    $prefix = rtrim($corpusReal, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR;
+
+    if (str_starts_with($repoReal, $prefix)) {
+        return substr($repoReal, \strlen($prefix));
+    }
+
+    return $repoReal;
+}
+
+function main(array $argv): int
+{
+    $io = new ConsoleStyle();
+
+    try {
+        $options = parseArgs($argv);
+    } catch (InvalidArgumentException $e) {
+        $io->error($e->getMessage());
+        printUsage();
+
+        return 1;
+    }
+
+    if ($options['help']) {
+        printUsage();
+
+        return 0;
+    }
+
+    $corpusDir = realpath(__DIR__);
+    if (false === $corpusDir) {
+        $io->error('Unable to resolve corpus directory.');
+
+        return 1;
+    }
+
+    $repos = findGitRepos($corpusDir);
+    if ([] === $repos) {
+        $io->info('No git repositories found in corpus/.');
+
+        return 0;
+    }
+
+    $jobs = $options['jobs'];
+    if (null === $jobs || '' === $jobs || 'auto' === $jobs) {
+        $jobs = detectCpuCount();
+    } else {
+        $jobs = trim((string) $jobs);
+        if (!ctype_digit($jobs)) {
+            $io->error('The --jobs value must be a positive integer or "auto".');
+
+            return 1;
+        }
+    }
+
+    $jobs = (int) $jobs;
+    if ($jobs < 1) {
+        $io->error('The --jobs value must be a positive integer or "auto".');
+
+        return 1;
+    }
+
+    if ($jobs > 1 && !supportsParallel()) {
+        $io->warn('Parallel jobs requested but pcntl is unavailable; falling back to 1 job.');
+        $jobs = 1;
+    }
+
+    $io->header('Corpus Updater');
+    $io->info('Runtime : PHP '.PHP_VERSION);
+    $io->info('Corpus  : '.$corpusDir);
+    $io->info('Jobs    : '.$jobs);
+    $io->info('Force   : '.($options['force'] ? 'yes' : 'no'));
+    $io->info('Repos   : '.\count($repos));
+
+    $io->section('Checking repositories', 1, 3);
+    $readyRepos = [];
+    $skipped = 0;
+
+    foreach ($repos as $repo) {
+        $label = formatRepoLabel($repo, $corpusDir);
+        $prep = prepareRepo($repo, (bool) $options['force'], $corpusDir, $io);
+        $statusLabel = $prep['status'];
+        $message = $label;
+        $detail = $prep['message'] ?? '';
+
+        switch ($statusLabel) {
+            case 'OK':
+                $io->status($io->green('[OK]'), $message, $detail);
+                break;
+            case 'RESET':
+                $io->status($io->yellow('[RESET]'), $message, $detail);
+                break;
+            case 'KEEP':
+            case 'COMMIT':
+                $io->status($io->cyan('['.$statusLabel.']'), $message, $detail);
+                break;
+            case 'SKIP':
+                $io->status($io->yellow('[SKIP]'), $message, $detail);
+                $skipped++;
+                break;
+            default:
+                $io->status($io->red('[FAIL]'), $message, $detail);
+                $skipped++;
+                break;
+        }
+
+        if ($prep['proceed']) {
+            $readyRepos[] = $repo;
+        }
+    }
+
+    if ([] === $readyRepos) {
+        $io->section('Summary', 3, 3);
+        $io->info('Nothing to update.');
+
+        return 0;
+    }
+
+    $io->section('Updating repositories', 2, 3);
+    $results = $jobs > 1 ? updateReposParallel($readyRepos, $jobs) : array_map('updateRepo', $readyRepos);
+
+    $resultsByPath = [];
+    foreach ($results as $result) {
+        if (isset($result['path'])) {
+            $resultsByPath[$result['path']] = $result;
+        }
+    }
+
+    $ok = 0;
+    $failed = 0;
+
+    foreach ($readyRepos as $repo) {
+        $label = formatRepoLabel($repo, $corpusDir);
+        $result = $resultsByPath[$repo] ?? ['status' => 'FAIL', 'output' => 'No result returned.'];
+        if ('OK' === $result['status']) {
+            $io->status($io->green('[OK]'), $label, $result['output']);
+            $ok++;
+        } else {
+            $io->status($io->red('[FAIL]'), $label, $result['output']);
+            $failed++;
+        }
+    }
+
+    $io->section('Summary', 3, 3);
+    $io->info('Updated : '.$ok);
+    $io->info('Failed  : '.$failed);
+    $io->info('Skipped : '.$skipped);
+
+    return $failed > 0 ? 1 : 0;
+}
+
+exit(main($argv));
