@@ -99,6 +99,25 @@ final readonly class ReDoSAnalysis implements \JsonSerializable
         return $this->severityScore($this->severity) >= $this->severityScore($threshold);
     }
 
+    /**
+     * @return array{
+     *     severity: string,
+     *     score: int,
+     *     mode: string,
+     *     confirmed: bool,
+     *     confidence: string,
+     *     vulnerable_part: string|null,
+     *     vulnerable_subpattern: string|null,
+     *     trigger: string|null,
+     *     false_positive_risk: string|null,
+     *     suggested_rewrite: string|null,
+     *     recommendations: array<int|string, string>,
+     *     error: string|null,
+     *     findings: array<int|string, ReDoSFinding>,
+     *     hotspots: array<int|string, ReDoSHotspot>,
+     *     confirmation: ReDoSConfirmation|null,
+     * }
+     */
     public function jsonSerialize(): array
     {
         return [

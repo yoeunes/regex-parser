@@ -26,6 +26,15 @@ final readonly class ReDoSHotspot implements \JsonSerializable
         public ?string $trigger = null,
     ) {}
 
+    /**
+     * @return array{
+     *     start: int,
+     *     end: int,
+     *     severity: string,
+     *     pattern: string,
+     *     trigger: string|null,
+     * }
+     */
     public function jsonSerialize(): array
     {
         return [

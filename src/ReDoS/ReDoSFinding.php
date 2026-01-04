@@ -28,6 +28,17 @@ final readonly class ReDoSFinding implements \JsonSerializable
         public ?string $falsePositiveRisk = null,
     ) {}
 
+    /**
+     * @return array{
+     *     severity: string,
+     *     message: string,
+     *     pattern: string,
+     *     trigger: string|null,
+     *     suggested_rewrite: string|null,
+     *     confidence: string,
+     *     false_positive_risk: string|null,
+     * }
+     */
     public function jsonSerialize(): array
     {
         return [

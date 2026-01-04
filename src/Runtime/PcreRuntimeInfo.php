@@ -39,6 +39,14 @@ final readonly class PcreRuntimeInfo implements \JsonSerializable
         );
     }
 
+    /**
+     * @return array{
+     *     version: string,
+     *     jit: string|null,
+     *     backtrack_limit: int|null,
+     *     recursion_limit: int|null,
+     * }
+     */
     public function jsonSerialize(): array
     {
         return [
@@ -62,7 +70,7 @@ final readonly class PcreRuntimeInfo implements \JsonSerializable
     private static function iniInt(string $key): ?int
     {
         $value = ini_get($key);
-        if (false === $value || null === $value) {
+        if (false === $value) {
             return null;
         }
 

@@ -56,7 +56,9 @@ final class LinterNodeVisitorCorpusTest extends TestCase
             );
         }
 
-        $this->assertTrue(true);
+        if (!$hasAssertions) {
+            $this->assertSame([], $linter->getIssues());
+        }
     }
 
     /**
