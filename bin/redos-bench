@@ -1,0 +1,343 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+/*
+ * This file is part of the RegexParser package.
+ *
+ * (c) Younes ENNAJI <younes.ennaji.pro@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+const EXIT_USAGE = 64;
+
+$script = basename(__FILE__);
+
+function usage(string $script): void
+{
+    $help = <<<TXT
+ReDoS benchmark helper (raw PHP).
+
+Usage:
+  $script --vuln '/(a+)+$/' --safe '/a+$/' --input 'aaaaa!'
+  $script --regex '/(a+)+$/' --input 'aaaaa!'
+  $script --vuln '/(a+)+$/' --safe '/a+$/' --input 'a' --repeat 50000 --suffix '!'
+  $script --vuln '/(a+)+$/' --safe '/a+$/' --input-file payload.txt
+
+Required:
+  --vuln PATTERN          Vulnerable pattern (with delimiters).
+  --safe PATTERN          Safe pattern (optional; for before/after).
+  --regex PATTERN         Single-pattern mode (alternative to --vuln/--safe).
+  --input STRING          Input string (quote in shell).
+  --input-file PATH       Read input from a file (alternative to --input).
+
+Input shaping:
+  --repeat N              Repeat input N times (default: 1).
+  --prefix STRING         Prefix for the input (default: '').
+  --suffix STRING         Suffix for the input (default: '').
+
+Benchmarking:
+  --iterations N          Number of iterations (default: 1).
+  --warmup N              Warmup iterations (default: 0).
+  --jit 0|1               Override pcre.jit (default: keep ini).
+  --backtrack-limit N     Override pcre.backtrack_limit.
+  --recursion-limit N     Override pcre.recursion_limit.
+  --time-limit N          Set max_execution_time in seconds.
+  --show-input            Print the full input string.
+  -h, --help              Show this help.
+
+Notes:
+  - Use full PCRE literals with delimiters (e.g. "/pattern/flags").
+  - For large inputs, prefer --input-file or --repeat to avoid shell limits.
+TXT;
+
+    echo $help.PHP_EOL;
+}
+
+function fail(string $message, string $script): void
+{
+    fwrite(STDERR, $message.PHP_EOL);
+    usage($script);
+    exit(EXIT_USAGE);
+}
+
+function readIntOption(array $options, string $key, int $default, string $script): int
+{
+    if (!array_key_exists($key, $options)) {
+        return $default;
+    }
+
+    $value = filter_var($options[$key], FILTER_VALIDATE_INT);
+    if ($value === false) {
+        fail("Option --{$key} expects an integer.", $script);
+    }
+
+    return $value;
+}
+
+function readStringOption(array $options, string $key, string $default): string
+{
+    if (!array_key_exists($key, $options)) {
+        return $default;
+    }
+
+    return (string) $options[$key];
+}
+
+function usageToMs(array $usage, string $prefix): float
+{
+    $secKey = $prefix.'.tv_sec';
+    $usecKey = $prefix.'.tv_usec';
+
+    return ($usage[$secKey] ?? 0) * 1000 + ($usage[$usecKey] ?? 0) / 1000;
+}
+
+function formatMs(float $ms): string
+{
+    return number_format($ms, 2);
+}
+
+function formatKb(int $bytes): string
+{
+    return sprintf('%+.1f', $bytes / 1024);
+}
+
+function matchResultName(int|false $result): string
+{
+    if ($result === 1) {
+        return 'match';
+    }
+
+    if ($result === 0) {
+        return 'no';
+    }
+
+    return 'error';
+}
+
+function bench(string $label, string $pattern, string $subject, int $warmup, int $iterations): array
+{
+    for ($i = 0; $i < $warmup; $i++) {
+        @preg_match($pattern, $subject);
+    }
+
+    $usageStart = function_exists('getrusage') ? getrusage() : null;
+    $memStart = memory_get_usage(true);
+    $peakStart = memory_get_peak_usage(true);
+
+    $t0 = hrtime(true);
+    $result = false;
+    $err = PREG_NO_ERROR;
+
+    for ($i = 0; $i < $iterations; $i++) {
+        $result = @preg_match($pattern, $subject);
+        $err = preg_last_error();
+
+        if ($result === false && $err !== PREG_NO_ERROR) {
+            break;
+        }
+    }
+
+    $wallMs = (hrtime(true) - $t0) / 1e6;
+    $usageEnd = function_exists('getrusage') ? getrusage() : null;
+    $memEnd = memory_get_usage(true);
+    $peakEnd = memory_get_peak_usage(true);
+
+    $cpuMs = null;
+    if (is_array($usageStart) && is_array($usageEnd)) {
+        $cpuMs = (usageToMs($usageEnd, 'ru_utime') - usageToMs($usageStart, 'ru_utime'))
+            + (usageToMs($usageEnd, 'ru_stime') - usageToMs($usageStart, 'ru_stime'));
+    }
+
+    $errMsg = '-';
+    if ($err !== PREG_NO_ERROR) {
+        $errMsg = function_exists('preg_last_error_msg') ? preg_last_error_msg() : (string) $err;
+    }
+
+    return [
+        'label' => $label,
+        'result' => matchResultName($result),
+        'wall_ms' => $wallMs,
+        'avg_ms' => $wallMs / max(1, $iterations),
+        'cpu_ms' => $cpuMs,
+        'mem_kb' => formatKb($memEnd - $memStart),
+        'peak_kb' => formatKb($peakEnd - $peakStart),
+        'err_msg' => $errMsg,
+    ];
+}
+
+$options = getopt('h', [
+    'help',
+    'vuln:',
+    'safe:',
+    'regex:',
+    'input:',
+    'input-file:',
+    'repeat:',
+    'prefix:',
+    'suffix:',
+    'iterations:',
+    'warmup:',
+    'jit:',
+    'backtrack-limit:',
+    'recursion-limit:',
+    'time-limit:',
+    'show-input',
+]);
+
+if (isset($options['h']) || isset($options['help'])) {
+    usage($script);
+    exit(0);
+}
+
+$regex = $options['regex'] ?? null;
+$vuln = $options['vuln'] ?? null;
+$safe = $options['safe'] ?? null;
+
+if ($regex !== null && ($vuln !== null || $safe !== null)) {
+    fail('Use --regex OR --vuln/--safe, not both.', $script);
+}
+
+if ($regex === null && $vuln === null) {
+    fail('Provide --regex or --vuln.', $script);
+}
+
+if ($regex !== null) {
+    $vuln = $regex;
+    $safe = null;
+}
+
+$input = $options['input'] ?? null;
+$inputFile = $options['input-file'] ?? null;
+
+if ($input !== null && $inputFile !== null) {
+    fail('Use only one of --input or --input-file.', $script);
+}
+
+if ($input === null && $inputFile === null) {
+    fail('Provide --input or --input-file.', $script);
+}
+
+if ($inputFile !== null) {
+    if (!is_readable($inputFile)) {
+        fail("Input file not readable: {$inputFile}", $script);
+    }
+    $input = file_get_contents($inputFile);
+    if ($input === false) {
+        fail("Failed to read input file: {$inputFile}", $script);
+    }
+}
+
+$repeat = readIntOption($options, 'repeat', 1, $script);
+if ($repeat < 1) {
+    fail('Option --repeat must be >= 1.', $script);
+}
+
+$iterations = readIntOption($options, 'iterations', 1, $script);
+if ($iterations < 1) {
+    fail('Option --iterations must be >= 1.', $script);
+}
+
+$warmup = readIntOption($options, 'warmup', 0, $script);
+if ($warmup < 0) {
+    fail('Option --warmup must be >= 0.', $script);
+}
+
+$prefix = readStringOption($options, 'prefix', '');
+$suffix = readStringOption($options, 'suffix', '');
+
+$subject = $prefix.str_repeat((string) $input, $repeat).$suffix;
+
+if (array_key_exists('jit', $options)) {
+    $jit = (string) $options['jit'];
+    if ($jit !== '0' && $jit !== '1') {
+        fail('Option --jit expects 0 or 1.', $script);
+    }
+    ini_set('pcre.jit', $jit);
+}
+
+if (array_key_exists('backtrack-limit', $options)) {
+    $limit = readIntOption($options, 'backtrack-limit', 0, $script);
+    if ($limit < 1) {
+        fail('Option --backtrack-limit must be >= 1.', $script);
+    }
+    ini_set('pcre.backtrack_limit', (string) $limit);
+}
+
+if (array_key_exists('recursion-limit', $options)) {
+    $limit = readIntOption($options, 'recursion-limit', 0, $script);
+    if ($limit < 1) {
+        fail('Option --recursion-limit must be >= 1.', $script);
+    }
+    ini_set('pcre.recursion_limit', (string) $limit);
+}
+
+if (array_key_exists('time-limit', $options)) {
+    $limit = readIntOption($options, 'time-limit', 0, $script);
+    if ($limit < 0) {
+        fail('Option --time-limit must be >= 0.', $script);
+    }
+    if ($limit > 0) {
+        set_time_limit($limit);
+    }
+}
+
+echo 'ReDoS benchmark'.PHP_EOL;
+echo 'PHP version        : '.PHP_VERSION.PHP_EOL;
+echo 'PCRE version       : '.(defined('PCRE_VERSION') ? PCRE_VERSION : 'unknown').PHP_EOL;
+echo 'pcre.jit           : '.ini_get('pcre.jit').PHP_EOL;
+echo 'backtrack_limit    : '.ini_get('pcre.backtrack_limit').PHP_EOL;
+echo 'recursion_limit    : '.ini_get('pcre.recursion_limit').PHP_EOL;
+echo 'iterations/warmup  : '.$iterations.' / '.$warmup.PHP_EOL;
+echo 'input length       : '.strlen($subject).PHP_EOL;
+if (isset($options['show-input'])) {
+    echo 'input              : '.$subject.PHP_EOL;
+}
+echo PHP_EOL;
+echo 'vulnerable pattern : '.$vuln.PHP_EOL;
+if ($safe !== null) {
+    echo 'safe pattern       : '.$safe.PHP_EOL;
+}
+echo PHP_EOL;
+
+printf(
+    "%-8s | %-6s | %10s | %10s | %10s | %10s | %10s | %s\n",
+    'case',
+    'result',
+    'wall_ms',
+    'avg_ms',
+    'cpu_ms',
+    'mem_kb',
+    'peak_kb',
+    'err'
+);
+echo str_repeat('-', 92).PHP_EOL;
+
+$rows = [];
+$rows[] = bench('vuln', $vuln, $subject, $warmup, $iterations);
+if ($safe !== null) {
+    $rows[] = bench('safe', $safe, $subject, $warmup, $iterations);
+}
+
+foreach ($rows as $row) {
+    $cpu = $row['cpu_ms'] === null ? 'n/a' : formatMs($row['cpu_ms']);
+    printf(
+        "%-8s | %-6s | %10s | %10s | %10s | %10s | %10s | %s\n",
+        $row['label'],
+        $row['result'],
+        formatMs($row['wall_ms']),
+        formatMs($row['avg_ms']),
+        $cpu,
+        $row['mem_kb'],
+        $row['peak_kb'],
+        $row['err_msg']
+    );
+}
+
+if (count($rows) === 2) {
+    $sameResult = $rows[0]['result'] === $rows[1]['result'];
+    echo PHP_EOL.'result parity      : '.($sameResult ? 'same' : 'different').PHP_EOL;
+}
