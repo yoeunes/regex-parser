@@ -25,7 +25,7 @@ final class ReadmeCliExamplesTest extends TestCase
 
         $this->assertSame(0, $exitCode);
         $this->assertStringContainsString('Severity   : CRITICAL', $output);
-        $this->assertStringContainsString('Command : analyze', $output);
+        $this->assertStringContainsString('Command   : analyze', $output);
     }
 
     #[Test]
