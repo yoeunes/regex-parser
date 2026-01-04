@@ -182,7 +182,7 @@ Usage: corpus/update [--jobs[=<n>|auto]] [--force] [--debug] [--help]
 
 Options:
   --jobs, -j   Number of parallel workers (default: auto-detected CPUs)
-  --force      Reset local changes before pulling (corpus repos only)
+  --force      Reset tracked changes and remove untracked files before pulling
   --debug      Show git commands and detailed diagnostics
   --help, -h   Show this help message
 
@@ -384,17 +384,35 @@ function prepareRepo(string $repoPath, bool $force, string $corpusDir, ConsoleSt
 }
 
 /**
- * @return array{path: string, status: string, output: string}
+ * @return array{path: string, status: string, output: string, command: string, code: int}
  */
 function updateRepo(string $repoPath, ?ConsoleStyle $io = null, bool $debug = false): array
 {
-    $command = 'git pull --rebase';
-    $result = runGit($repoPath, ['pull', '--rebase'], $io, $debug);
+    $resolved = resolvePullCommand($repoPath, $io, $debug);
+    if (!($resolved['ok'] ?? false)) {
+        return [
+            'path' => $repoPath,
+            'status' => 'FAIL',
+            'output' => $resolved['message'] ?? 'Unable to resolve pull command.',
+            'command' => $resolved['command'] ?? 'git pull --rebase',
+            'code' => 1,
+        ];
+    }
+
+    /** @var array<int, string> $args */
+    $args = $resolved['args'] ?? ['pull', '--rebase'];
+    $command = $resolved['command'] ?? 'git pull --rebase';
+    $result = runGit($repoPath, $args, $io, $debug);
+    $output = $result['output'];
+    if (isset($resolved['note']) && '' !== $resolved['note']) {
+        $output = $resolved['note'].('' === $output ? '' : PHP_EOL.$output);
+    }
+
     if (0 !== $result['code']) {
         return [
             'path' => $repoPath,
             'status' => 'FAIL',
-            'output' => $result['output'],
+            'output' => $output,
             'command' => $command,
             'code' => $result['code'],
         ];
@@ -403,7 +421,7 @@ function updateRepo(string $repoPath, ?ConsoleStyle $io = null, bool $debug = fa
     return [
         'path' => $repoPath,
         'status' => 'OK',
-        'output' => $result['output'],
+        'output' => $output,
         'command' => $command,
         'code' => $result['code'],
     ];
@@ -412,13 +430,17 @@ function updateRepo(string $repoPath, ?ConsoleStyle $io = null, bool $debug = fa
 /**
  * @param array<string> $repos
  *
- * @return array<int, array{path: string, status: string, output: string}>
+ * @return array<int, array{path: string, status: string, output: string, command?: string, code?: int}>
  */
-function updateReposParallel(array $repos, int $jobs): array
+function updateReposParallel(array $repos, int $jobs, ?callable $progress = null): array
 {
     $total = \count($repos);
     if (0 === $total) {
         return [];
+    }
+
+    if (null !== $progress) {
+        $progress(0, $total, false);
     }
 
     $workerCount = max(1, min($jobs, $total));
@@ -428,6 +450,7 @@ function updateReposParallel(array $repos, int $jobs): array
     $children = [];
     $results = [];
     $fallback = [];
+    $processed = 0;
 
     foreach ($chunks as $chunk) {
         $tmpFile = tempnam(sys_get_temp_dir(), 'corpus_update_');
@@ -467,13 +490,26 @@ function updateReposParallel(array $repos, int $jobs): array
 
         $decoded = @unserialize($payload);
         if (\is_array($decoded)) {
-            $results = array_merge($results, $decoded);
+            foreach ($decoded as $item) {
+                if (!\is_array($item)) {
+                    continue;
+                }
+                $results[] = $item;
+                $processed++;
+                if (null !== $progress) {
+                    $progress($processed, $total, $processed >= $total);
+                }
+            }
         }
     }
 
     if ([] !== $fallback) {
         foreach ($fallback as $repo) {
             $results[] = updateRepo($repo);
+            $processed++;
+            if (null !== $progress) {
+                $progress($processed, $total, $processed >= $total);
+            }
         }
     }
 
@@ -561,12 +597,16 @@ function main(array $argv): int
         return 1;
     }
 
+    $debug = (bool) $options['debug'];
+    if ($debug && $jobs > 1) {
+        $io->warn('Debug mode forces jobs=1 for readable output.');
+        $jobs = 1;
+    }
+
     if ($jobs > 1 && !supportsParallel()) {
         $io->warn('Parallel jobs requested but pcntl is unavailable; falling back to 1 job.');
         $jobs = 1;
     }
-
-    $debug = (bool) $options['debug'];
 
     $io->header('Corpus Updater');
     $io->info('Runtime : PHP '.PHP_VERSION);
@@ -579,13 +619,14 @@ function main(array $argv): int
         $io->debug('Parallel support', supportsParallel() ? 'available' : 'unavailable');
     }
 
-    $io->section('Checking repositories', 1, 3);
+    $io->info('');
+    $io->info($io->bold('Updating repositories'));
     $readyRepos = [];
     $skipped = 0;
 
     foreach ($repos as $repo) {
         $label = formatRepoLabel($repo, $corpusDir);
-        $prep = prepareRepo($repo, (bool) $options['force'], $corpusDir, $io, (bool) $options['debug']);
+        $prep = prepareRepo($repo, (bool) $options['force'], $corpusDir, $io, $debug);
         $statusLabel = $prep['status'];
         $message = $label;
         $detail = $prep['message'] ?? '';
@@ -617,19 +658,29 @@ function main(array $argv): int
     }
 
     if ([] === $readyRepos) {
-        $io->section('Summary', 3, 3);
+        $io->info('');
+        $io->info($io->bold('Summary'));
         $io->info('Nothing to update.');
 
         return 0;
     }
 
-    $io->section('Updating repositories', 2, 3);
+    $progressDynamic = canUseDynamicProgress($debug);
+    $progress = static function (int $current, int $total, bool $final) use ($progressDynamic): void {
+        renderProgress($current, $total, $progressDynamic, $final);
+    };
+
     if ($jobs > 1) {
-        $results = updateReposParallel($readyRepos, $jobs);
+        $results = updateReposParallel($readyRepos, $jobs, $progress);
     } else {
         $results = [];
+        $total = \count($readyRepos);
+        $processed = 0;
+        $progress(0, $total, false);
         foreach ($readyRepos as $repo) {
             $results[] = updateRepo($repo, $io, $debug);
+            $processed++;
+            $progress($processed, $total, $processed >= $total);
         }
     }
 
@@ -669,7 +720,8 @@ function main(array $argv): int
         }
     }
 
-    $io->section('Summary', 3, 3);
+    $io->info('');
+    $io->info($io->bold('Summary'));
     $io->info('Updated : '.$ok);
     $io->info('Failed  : '.$failed);
     $io->info('Skipped : '.$skipped);
