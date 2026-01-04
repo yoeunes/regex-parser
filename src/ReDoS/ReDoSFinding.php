@@ -16,7 +16,7 @@ namespace RegexParser\ReDoS;
 /**
  * Describes a specific ReDoS risk detection.
  */
-final readonly class ReDoSFinding
+final readonly class ReDoSFinding implements \JsonSerializable
 {
     public function __construct(
         public ReDoSSeverity $severity,
@@ -27,4 +27,17 @@ final readonly class ReDoSFinding
         public ReDoSConfidence $confidence = ReDoSConfidence::MEDIUM,
         public ?string $falsePositiveRisk = null,
     ) {}
+
+    public function jsonSerialize(): array
+    {
+        return [
+            'severity' => $this->severity->value,
+            'message' => $this->message,
+            'pattern' => $this->pattern,
+            'trigger' => $this->trigger,
+            'suggested_rewrite' => $this->suggestedRewrite,
+            'confidence' => $this->confidence->value,
+            'false_positive_risk' => $this->falsePositiveRisk,
+        ];
+    }
 }

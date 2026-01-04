@@ -14,6 +14,8 @@ declare(strict_types=1);
 namespace RegexParser\Lint\Command;
 
 use RegexParser\Lint\Formatter\OutputConfiguration;
+use RegexParser\ReDoS\ReDoSMode;
+use RegexParser\ReDoS\ReDoSSeverity;
 
 final class LintArgumentParser
 {
@@ -50,6 +52,9 @@ final class LintArgumentParser
                     $arguments->generateBaseline,
                     $arguments->ide,
                     $arguments->optimizations,
+                    $arguments->redosMode,
+                    $arguments->redosThreshold,
+                    $arguments->redosNoJit,
                 );
 
                 continue;
@@ -72,6 +77,9 @@ final class LintArgumentParser
                     $arguments->generateBaseline,
                     $arguments->ide,
                     $arguments->optimizations,
+                    $arguments->redosMode,
+                    $arguments->redosThreshold,
+                    $arguments->redosNoJit,
                 );
 
                 continue;
@@ -94,6 +102,9 @@ final class LintArgumentParser
                     $arguments->generateBaseline,
                     $arguments->ide,
                     $arguments->optimizations,
+                    $arguments->redosMode,
+                    $arguments->redosThreshold,
+                    $arguments->redosNoJit,
                 );
 
                 continue;
@@ -116,6 +127,163 @@ final class LintArgumentParser
                     $arguments->generateBaseline,
                     $arguments->ide,
                     $arguments->optimizations,
+                    $arguments->redosMode,
+                    $arguments->redosThreshold,
+                    $arguments->redosNoJit,
+                );
+
+                continue;
+            }
+
+            if (str_starts_with($arg, '--redos-mode=')) {
+                $value = strtolower(substr($arg, \strlen('--redos-mode=')));
+                $mode = ReDoSMode::tryFrom($value);
+                if (null === $mode) {
+                    return new LintParseResult(null, 'Invalid value for --redos-mode.');
+                }
+                $checkRedos = ReDoSMode::OFF !== $mode;
+                $arguments = new LintArguments(
+                    $arguments->paths,
+                    $arguments->exclude,
+                    $arguments->minSavings,
+                    $arguments->verbosity,
+                    $arguments->format,
+                    $arguments->quiet,
+                    $checkRedos,
+                    $arguments->checkValidation,
+                    $arguments->checkOptimizations,
+                    $arguments->jobs,
+                    $arguments->output,
+                    $arguments->baseline,
+                    $arguments->generateBaseline,
+                    $arguments->ide,
+                    $arguments->optimizations,
+                    $mode->value,
+                    $arguments->redosThreshold,
+                    $arguments->redosNoJit,
+                );
+
+                continue;
+            }
+
+            if ('--redos-mode' === $arg) {
+                $value = $args[$i + 1] ?? '';
+                if ('' === $value || str_starts_with($value, '-')) {
+                    return new LintParseResult(null, 'Missing value for --redos-mode.');
+                }
+                $mode = ReDoSMode::tryFrom(strtolower($value));
+                if (null === $mode) {
+                    return new LintParseResult(null, 'Invalid value for --redos-mode.');
+                }
+                $checkRedos = ReDoSMode::OFF !== $mode;
+                $arguments = new LintArguments(
+                    $arguments->paths,
+                    $arguments->exclude,
+                    $arguments->minSavings,
+                    $arguments->verbosity,
+                    $arguments->format,
+                    $arguments->quiet,
+                    $checkRedos,
+                    $arguments->checkValidation,
+                    $arguments->checkOptimizations,
+                    $arguments->jobs,
+                    $arguments->output,
+                    $arguments->baseline,
+                    $arguments->generateBaseline,
+                    $arguments->ide,
+                    $arguments->optimizations,
+                    $mode->value,
+                    $arguments->redosThreshold,
+                    $arguments->redosNoJit,
+                );
+                $i++;
+
+                continue;
+            }
+
+            if (str_starts_with($arg, '--redos-threshold=')) {
+                $value = strtolower(substr($arg, \strlen('--redos-threshold=')));
+                if (null === ReDoSSeverity::tryFrom($value)) {
+                    return new LintParseResult(null, 'Invalid value for --redos-threshold.');
+                }
+                $arguments = new LintArguments(
+                    $arguments->paths,
+                    $arguments->exclude,
+                    $arguments->minSavings,
+                    $arguments->verbosity,
+                    $arguments->format,
+                    $arguments->quiet,
+                    $arguments->checkRedos,
+                    $arguments->checkValidation,
+                    $arguments->checkOptimizations,
+                    $arguments->jobs,
+                    $arguments->output,
+                    $arguments->baseline,
+                    $arguments->generateBaseline,
+                    $arguments->ide,
+                    $arguments->optimizations,
+                    $arguments->redosMode,
+                    $value,
+                    $arguments->redosNoJit,
+                );
+
+                continue;
+            }
+
+            if ('--redos-threshold' === $arg) {
+                $value = $args[$i + 1] ?? '';
+                if ('' === $value || str_starts_with($value, '-')) {
+                    return new LintParseResult(null, 'Missing value for --redos-threshold.');
+                }
+                $value = strtolower($value);
+                if (null === ReDoSSeverity::tryFrom($value)) {
+                    return new LintParseResult(null, 'Invalid value for --redos-threshold.');
+                }
+                $arguments = new LintArguments(
+                    $arguments->paths,
+                    $arguments->exclude,
+                    $arguments->minSavings,
+                    $arguments->verbosity,
+                    $arguments->format,
+                    $arguments->quiet,
+                    $arguments->checkRedos,
+                    $arguments->checkValidation,
+                    $arguments->checkOptimizations,
+                    $arguments->jobs,
+                    $arguments->output,
+                    $arguments->baseline,
+                    $arguments->generateBaseline,
+                    $arguments->ide,
+                    $arguments->optimizations,
+                    $arguments->redosMode,
+                    $value,
+                    $arguments->redosNoJit,
+                );
+                $i++;
+
+                continue;
+            }
+
+            if ('--redos-no-jit' === $arg) {
+                $arguments = new LintArguments(
+                    $arguments->paths,
+                    $arguments->exclude,
+                    $arguments->minSavings,
+                    $arguments->verbosity,
+                    $arguments->format,
+                    $arguments->quiet,
+                    $arguments->checkRedos,
+                    $arguments->checkValidation,
+                    $arguments->checkOptimizations,
+                    $arguments->jobs,
+                    $arguments->output,
+                    $arguments->baseline,
+                    $arguments->generateBaseline,
+                    $arguments->ide,
+                    $arguments->optimizations,
+                    $arguments->redosMode,
+                    $arguments->redosThreshold,
+                    true,
                 );
 
                 continue;
@@ -138,6 +306,9 @@ final class LintArgumentParser
                     $arguments->generateBaseline,
                     $arguments->ide,
                     $arguments->optimizations,
+                    $arguments->redosMode,
+                    $arguments->redosThreshold,
+                    $arguments->redosNoJit,
                 );
 
                 continue;
@@ -160,6 +331,9 @@ final class LintArgumentParser
                     $arguments->generateBaseline,
                     $arguments->ide,
                     $arguments->optimizations,
+                    $arguments->redosMode,
+                    $arguments->redosThreshold,
+                    $arguments->redosNoJit,
                 );
 
                 continue;
@@ -183,6 +357,9 @@ final class LintArgumentParser
                     $generateBaseline,
                     $arguments->ide,
                     $arguments->optimizations,
+                    $arguments->redosMode,
+                    $arguments->redosThreshold,
+                    $arguments->redosNoJit,
                 );
 
                 continue;
@@ -206,6 +383,9 @@ final class LintArgumentParser
                     $arguments->generateBaseline,
                     $arguments->ide,
                     $arguments->optimizations,
+                    $arguments->redosMode,
+                    $arguments->redosThreshold,
+                    $arguments->redosNoJit,
                 );
 
                 continue;
@@ -228,6 +408,9 @@ final class LintArgumentParser
                     $arguments->generateBaseline,
                     $arguments->ide,
                     $arguments->optimizations,
+                    $arguments->redosMode,
+                    $arguments->redosThreshold,
+                    $arguments->redosNoJit,
                 );
 
                 continue;
@@ -254,6 +437,9 @@ final class LintArgumentParser
                     $arguments->generateBaseline,
                     $arguments->ide,
                     $arguments->optimizations,
+                    $arguments->redosMode,
+                    $arguments->redosThreshold,
+                    $arguments->redosNoJit,
                 );
                 $i++;
 
@@ -279,6 +465,9 @@ final class LintArgumentParser
                     $arguments->generateBaseline,
                     $arguments->ide,
                     $arguments->optimizations,
+                    $arguments->redosMode,
+                    $arguments->redosThreshold,
+                    $arguments->redosNoJit,
                 );
 
                 continue;
@@ -307,6 +496,9 @@ final class LintArgumentParser
                     $arguments->generateBaseline,
                     $arguments->ide,
                     $arguments->optimizations,
+                    $arguments->redosMode,
+                    $arguments->redosThreshold,
+                    $arguments->redosNoJit,
                 );
                 $i++;
 
@@ -330,6 +522,9 @@ final class LintArgumentParser
                     $arguments->generateBaseline,
                     $arguments->ide,
                     $arguments->optimizations,
+                    $arguments->redosMode,
+                    $arguments->redosThreshold,
+                    $arguments->redosNoJit,
                 );
 
                 continue;
@@ -352,6 +547,13 @@ final class LintArgumentParser
                     $arguments->checkOptimizations,
                     $jobs,
                     $arguments->output,
+                    $arguments->baseline,
+                    $arguments->generateBaseline,
+                    $arguments->ide,
+                    $arguments->optimizations,
+                    $arguments->redosMode,
+                    $arguments->redosThreshold,
+                    $arguments->redosNoJit,
                 );
 
                 continue;
@@ -379,6 +581,9 @@ final class LintArgumentParser
                     $arguments->generateBaseline,
                     $arguments->ide,
                     $arguments->optimizations,
+                    $arguments->redosMode,
+                    $arguments->redosThreshold,
+                    $arguments->redosNoJit,
                 );
                 $i++;
 
@@ -406,6 +611,13 @@ final class LintArgumentParser
                     $arguments->checkOptimizations,
                     $jobs,
                     $arguments->output,
+                    $arguments->baseline,
+                    $arguments->generateBaseline,
+                    $arguments->ide,
+                    $arguments->optimizations,
+                    $arguments->redosMode,
+                    $arguments->redosThreshold,
+                    $arguments->redosNoJit,
                 );
                 $i++;
 
@@ -429,6 +641,9 @@ final class LintArgumentParser
                     $arguments->generateBaseline,
                     $arguments->ide,
                     $arguments->optimizations,
+                    $arguments->redosMode,
+                    $arguments->redosThreshold,
+                    $arguments->redosNoJit,
                 );
 
                 continue;
@@ -455,6 +670,9 @@ final class LintArgumentParser
                     $arguments->generateBaseline,
                     $arguments->ide,
                     $arguments->optimizations,
+                    $arguments->redosMode,
+                    $arguments->redosThreshold,
+                    $arguments->redosNoJit,
                 );
                 $i++;
 
@@ -487,6 +705,9 @@ final class LintArgumentParser
                 $arguments->generateBaseline,
                 $arguments->ide,
                 $arguments->optimizations,
+                $arguments->redosMode,
+                $arguments->redosThreshold,
+                $arguments->redosNoJit,
             );
         }
 

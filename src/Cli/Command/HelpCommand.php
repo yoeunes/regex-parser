@@ -91,6 +91,9 @@ final readonly class HelpCommand implements CommandInterface
             ['--format <format>', 'Output format (console, json, github, checkstyle, junit)'],
             ['--output <file>', 'Write output to file'],
             ['--no-redos', 'Skip ReDoS risk analysis'],
+            ['--redos-mode <mode>', 'ReDoS mode (off, theoretical, confirmed)'],
+            ['--redos-threshold <sev>', 'Minimum ReDoS severity (low, medium, high, critical)'],
+            ['--redos-no-jit', 'Disable JIT during confirmation runs'],
             ['--no-validate', 'Skip validation errors (structural lint only)'],
             ['--no-optimize', 'Disable optimization suggestions'],
             ['-v, --verbose', 'Show detailed output'],
@@ -106,8 +109,20 @@ final readonly class HelpCommand implements CommandInterface
         ];
         $this->renderTableSection($output, 'Diagram Options', $diagramOptions, fn (string $value): string => $this->formatOption($output, $value));
 
+        $analyzeOptions = [
+            ['--format <format>', 'Output format (console, json)'],
+            ['--redos-mode <mode>', 'ReDoS mode (off, theoretical, confirmed)'],
+            ['--redos-threshold <sev>', 'Minimum ReDoS severity (low, medium, high, critical)'],
+            ['--redos-no-jit', 'Disable JIT during confirmation runs'],
+        ];
+        $this->renderTableSection($output, 'Analyze Options', $analyzeOptions, fn (string $value): string => $this->formatOption($output, $value));
+
         $debugOptions = [
             ['--input <string>', 'Input string to test against the pattern'],
+            ['--format <format>', 'Output format (console, json)'],
+            ['--redos-mode <mode>', 'ReDoS mode (off, theoretical, confirmed)'],
+            ['--redos-threshold <sev>', 'Minimum ReDoS severity (low, medium, high, critical)'],
+            ['--redos-no-jit', 'Disable JIT during confirmation runs'],
         ];
         $this->renderTableSection($output, 'Debug Options', $debugOptions, fn (string $value): string => $this->formatOption($output, $value));
 
@@ -185,13 +200,17 @@ final readonly class HelpCommand implements CommandInterface
             'analyze' => [
                 'description' => 'Parse, validate, and analyze ReDoS risk',
                 'options' => [
+                    ['--format <format>', 'Output format (console, json)'],
                     ['--php-version <ver>', 'Target PHP version for validation'],
-                    ['--no-redos', 'Skip ReDoS risk analysis'],
+                    ['--redos-mode <mode>', 'ReDoS mode (off, theoretical, confirmed)'],
+                    ['--redos-threshold <sev>', 'Minimum ReDoS severity (low, medium, high, critical)'],
+                    ['--redos-no-jit', 'Disable JIT during confirmation runs'],
                 ],
                 'notes' => [],
                 'examples' => [
                     [[$this->resolveInvocation(), 'analyze', "'/a+/'"], 'Analyze a simple pattern'],
                     [[$this->resolveInvocation(), 'analyze', "'/(a+)+$/'"], 'Analyze a potentially risky pattern'],
+                    [[$this->resolveInvocation(), 'analyze', "'/(a+)+$/'", '--format=json'], 'Analyze with JSON output'],
                 ],
             ],
             'explain' => [
@@ -209,11 +228,15 @@ final readonly class HelpCommand implements CommandInterface
                 'description' => 'Deep ReDoS analysis with heatmap output',
                 'options' => [
                     ['--input <string>', 'Input string to test against the pattern'],
+                    ['--format <format>', 'Output format (console, json)'],
+                    ['--redos-mode <mode>', 'ReDoS mode (off, theoretical, confirmed)'],
+                    ['--redos-threshold <sev>', 'Minimum ReDoS severity (low, medium, high, critical)'],
+                    ['--redos-no-jit', 'Disable JIT during confirmation runs'],
                     ['--php-version <ver>', 'Target PHP version for validation'],
                 ],
                 'notes' => ['Provides detailed ReDoS analysis including attack vectors and complexity heatmaps.'],
                 'examples' => [
-                    [[$this->resolveInvocation(), 'debug', "'/(a+)+$/'"], 'Debug a vulnerable pattern'],
+                    [[$this->resolveInvocation(), 'debug', "'/(a+)+$/'"], 'Debug a pattern with potential ReDoS risk'],
                     [[$this->resolveInvocation(), 'debug', "'/(a+)+$/'", '--input=aaaaaaaa'], 'Debug with specific input'],
                 ],
             ],
@@ -260,6 +283,9 @@ final readonly class HelpCommand implements CommandInterface
                     ['--jobs <n>', 'Parallel workers for analysis'],
                     ['--format <format>', 'Output format (console, json, github, checkstyle, junit)'],
                     ['--no-redos', 'Skip ReDoS risk analysis'],
+                    ['--redos-mode <mode>', 'ReDoS mode (off, theoretical, confirmed)'],
+                    ['--redos-threshold <sev>', 'Minimum ReDoS severity (low, medium, high, critical)'],
+                    ['--redos-no-jit', 'Disable JIT during confirmation runs'],
                     ['--no-validate', 'Skip validation errors (structural lint only)'],
                     ['--no-optimize', 'Disable optimization suggestions'],
                     ['-v, --verbose', 'Show detailed output'],

@@ -33,6 +33,8 @@ use RegexParser\NodeVisitor\LinterNodeVisitor;
 use RegexParser\NodeVisitor\OptimizerNodeVisitor;
 use RegexParser\OptimizationResult;
 use RegexParser\ReDoS\ReDoSAnalysis;
+use RegexParser\ReDoS\ReDoSConfirmOptions;
+use RegexParser\ReDoS\ReDoSMode;
 use RegexParser\ReDoS\ReDoSSeverity;
 use RegexParser\Regex;
 use RegexParser\ValidationErrorCategory;
@@ -58,6 +60,10 @@ final readonly class RegexAnalysisService
      */
     private array $ignoredPatterns;
 
+    private ReDoSMode $redosMode;
+
+    private ?ReDoSConfirmOptions $redosConfirmOptions;
+
     /**
      * @param array<string> $ignoredPatterns
      * @param array<string> $redosIgnoredPatterns
@@ -70,9 +76,15 @@ final readonly class RegexAnalysisService
         array $ignoredPatterns = [],
         array $redosIgnoredPatterns = [],
         private bool $ignoreParseErrors = false,
+        ReDoSMode|string $redosMode = ReDoSMode::THEORETICAL,
+        ?ReDoSConfirmOptions $confirmOptions = null,
     ) {
         $this->redosSeverityThreshold = ReDoSSeverity::tryFrom(strtolower($redosThreshold)) ?? ReDoSSeverity::HIGH;
         $this->ignoredPatterns = $this->buildIgnoredPatterns($ignoredPatterns, $redosIgnoredPatterns);
+        $this->redosMode = $redosMode instanceof ReDoSMode
+            ? $redosMode
+            : (ReDoSMode::tryFrom(strtolower((string) $redosMode)) ?? ReDoSMode::THEORETICAL);
+        $this->redosConfirmOptions = $confirmOptions;
     }
 
     public function getRegex(): Regex
@@ -272,19 +284,21 @@ final readonly class RegexAnalysisService
                     ];
                 }
 
-                $redos = $this->regex->redos($occurrence->pattern, $this->redosSeverityThreshold);
+                $redos = $this->regex->redos(
+                    $occurrence->pattern,
+                    $this->redosSeverityThreshold,
+                    $this->redosMode,
+                    $this->redosConfirmOptions,
+                );
                 if ($redos->exceedsThreshold($this->redosSeverityThreshold)) {
                     $issues[] = [
-                        'type' => 'error',
+                        'type' => $this->resolveRedosIssueType($redos),
                         'file' => $occurrence->file,
                         'line' => $occurrence->line,
                         'column' => $this->resolveColumn($occurrence),
                         'fileOffset' => $occurrence->fileOffset,
                         'issueId' => self::ISSUE_ID_REDOS,
-                        'message' => \sprintf(
-                            'Pattern may be vulnerable to ReDoS (severity: %s).',
-                            strtoupper($redos->severity->value),
-                        ),
+                        'message' => $this->formatRedosMessage($redos),
                         'hint' => $this->getReDoSHint($redos, $occurrence->pattern),
                         'source' => $source,
                         'analysis' => $redos,
@@ -447,7 +461,12 @@ final readonly class RegexAnalysisService
                 continue;
             }
 
-            $analysis = $this->regex->redos($occurrence->pattern);
+            $analysis = $this->regex->redos(
+                $occurrence->pattern,
+                $threshold,
+                $this->redosMode,
+                $this->redosConfirmOptions,
+            );
             if (!$analysis->exceedsThreshold($threshold)) {
                 continue;
             }
@@ -1087,7 +1106,12 @@ final readonly class RegexAnalysisService
         }
 
         if (null !== $analysis->vulnerableSubpattern) {
-            $hints[] = \sprintf('The vulnerable part is: %s', $analysis->vulnerableSubpattern);
+            $hints[] = \sprintf('The risky part is: %s', $analysis->vulnerableSubpattern);
+        }
+
+        $hotspot = $analysis->getPrimaryHotspot();
+        if (null !== $hotspot) {
+            $hints[] = \sprintf('Hotspot offsets: %d-%d', $hotspot->start, $hotspot->end);
         }
 
         // Try to suggest specific fixes based on the pattern
@@ -1100,7 +1124,15 @@ final readonly class RegexAnalysisService
             $hints[] = 'Use possessive quantifiers (*+ instead of *, ++ instead of +, or {m,n}+ instead of {m,n}) to prevent ReDoS.';
         }
 
-        $hints[] = 'Test with malicious inputs like repeated strings followed by a non-matching character.';
+        if (ReDoSMode::CONFIRMED === $analysis->mode && null !== $analysis->confirmation) {
+            if ($analysis->confirmation->confirmed) {
+                $hints[] = 'Confirmation: bounded runtime checks observed evidence of excessive backtracking.';
+            } else {
+                $hints[] = 'Confirmation: bounded runtime checks found no evidence within limits.';
+            }
+        }
+
+        $hints[] = 'Test with adversarial inputs like repeated strings followed by a non-matching character.';
 
         return implode(' ', $hints);
     }
@@ -1114,15 +1146,15 @@ final readonly class RegexAnalysisService
 
         // Look for common vulnerable patterns and suggest fixes
         if (preg_match('/\((?:(?:[^()][^)]*)?\)\+|\([^)]*(?:\+\)\)|\)\+))/', $pattern)) {
-            $hints[] = 'Replace nested quantifiers like (a+)+ with atomic groups: (?>a+) or possessive quantifiers: a++';
+            $hints[] = 'Suggested (verify behavior): replace nested quantifiers like (a+)+ with atomic groups (?>a+) or possessive quantifiers a++.';
         }
 
         if (str_contains($pattern, '.*') && str_contains($pattern, '+')) {
-            $hints[] = 'Consider using possessive quantifiers .*+ instead of .* to prevent backtracking.';
+            $hints[] = 'Suggested (verify behavior): use possessive quantifiers .*+ instead of .* to prevent backtracking.';
         }
 
         if (preg_match('/\([^)]*\*\)/', $pattern)) {
-            $hints[] = 'Replace * with *+ (possessive) in groups to prevent backtracking: (?>...)';
+            $hints[] = 'Suggested (verify behavior): replace * with *+ in groups to prevent backtracking or wrap in (?>...).';
         }
 
         // If we have a vulnerable subpattern, try to suggest a specific fix
@@ -1130,11 +1162,44 @@ final readonly class RegexAnalysisService
             $vulnerable = $analysis->vulnerableSubpattern;
             if (preg_match('/(\w+)\+(\)\+)/', $vulnerable, $matches)) {
                 $char = $matches[1];
-                $hints[] = "Replace ($char+)+ with atomic group: (?>$char+) or possessive: $char++";
+                $hints[] = "Suggested (verify behavior): replace ($char+)+ with atomic group (?>$char+) or possessive $char++.";
             }
         }
 
         return $hints;
+    }
+
+    private function resolveRedosIssueType(ReDoSAnalysis $analysis): string
+    {
+        if ($analysis->isConfirmed() && $analysis->exceedsThreshold(ReDoSSeverity::HIGH)) {
+            return 'error';
+        }
+
+        return 'warning';
+    }
+
+    private function formatRedosMessage(ReDoSAnalysis $analysis): string
+    {
+        $severity = strtoupper($analysis->severity->value);
+        $confidence = strtoupper($analysis->confidenceLevel()->value);
+
+        if ($analysis->isConfirmed()) {
+            $evidence = $analysis->confirmation?->evidence;
+            $evidenceLabel = null !== $evidence ? 'evidence: '.$evidence : 'evidence present';
+
+            return \sprintf(
+                'Confirmed ReDoS risk (%s, severity: %s, confidence: %s).',
+                $evidenceLabel,
+                $severity,
+                $confidence,
+            );
+        }
+
+        return \sprintf(
+            'Potential ReDoS risk (theoretical, severity: %s, confidence: %s).',
+            $severity,
+            $confidence,
+        );
     }
 
     private function isLikelyPartialRegexError(string $errorMessage): bool

@@ -9,7 +9,7 @@ Imagine you have an AST (tree structure) and you want to do different things wit
 - **Explain** the pattern in plain English
 - **Validate** the pattern for errors
 - **Highlight** the pattern with colors
-- **Analyze** for ReDoS vulnerabilities
+- **Analyze** for potential ReDoS risk
 
 Instead of putting all this logic in the AST nodes themselves, we use **visitors** that "walk" the tree and perform specific tasks.
 

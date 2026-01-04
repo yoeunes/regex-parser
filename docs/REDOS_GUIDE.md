@@ -1,6 +1,6 @@
 # ReDoS Guide
 
-ReDoS (Regular Expression Denial of Service) happens when a regex takes exponential time to match certain inputs. This guide explains the risky shapes, how RegexParser detects them, and how to fix them.
+ReDoS (Regular Expression Denial of Service) happens when a regex takes exponential time to match certain inputs. This guide explains the risky shapes, how RegexParser detects them, and how to mitigate them.
 
 ## What Is ReDoS?
 
@@ -14,6 +14,62 @@ Input:   "aaaaa!"
 ```
 
 `(a+)` can consume 1..n characters, and the outer `+` can repeat the group 1..n times. When the final `b` fails, the engine tries many combinations of those choices.
+
+## Philosophy & Accuracy
+
+RegexParser separates what is guaranteed from what is heuristic:
+
+- **Guaranteed:** parsing, AST structure, error offsets, and syntax validation for the targeted PHP/PCRE version.
+- **Heuristic:** ReDoS analysis is structural and conservative; treat findings as potential risk unless confirmed.
+- **Runtime matters:** PCRE version, JIT, and backtrack/recursion limits change practical impact.
+
+## Confirmation Mode (Bounded Evidence)
+
+ReDoS analysis defaults to **theoretical** mode. You can opt into **confirmed** mode to run a bounded confirmation pass that:
+
+- Generates witness inputs based on the AST hotspot
+- Runs a short, limited micro-benchmark
+- Captures JIT setting and PCRE limits
+
+Example CLI:
+
+```bash
+bin/regex analyze '/(a+)+$/' --redos-mode=confirmed --redos-no-jit
+```
+
+Example PHP:
+
+```php
+use RegexParser\Regex;
+use RegexParser\ReDoS\ReDoSMode;
+
+$analysis = Regex::create()->redos('/(a+)+$/', mode: ReDoSMode::CONFIRMED);
+if ($analysis->isConfirmed()) {
+    echo "Confirmed with bounded evidence\n";
+}
+```
+
+**Note:** confirmation is intentionally conservative and bounded; it may fail to confirm real issues.
+
+## Runtime Context (Why It Matters)
+
+Practical risk depends on runtime settings:
+
+- **PCRE version** affects engine behavior and optimizations.
+- **JIT** can drastically change performance characteristics.
+- **Backtrack/recursion limits** cap how much work the engine can do before failing.
+
+RegexParser reports these values in the CLI so you can interpret findings in context.
+
+## How to Report a Vulnerability Responsibly
+
+Before filing a security issue:
+
+1. Use **confirmed** mode and capture a reproducible PoC.
+2. Include pattern, input lengths, timings, JIT setting, and PCRE limits.
+3. Verify the issue in the real code path (not just synthetic tests).
+
+See [SECURITY.md](../SECURITY.md) for reporting channels.
 
 ## Risky Pattern Shapes
 
@@ -59,25 +115,32 @@ Key heuristics in `ReDoSProfileNodeVisitor` include:
 ### CLI
 
 ```bash
+# Theoretical mode (default)
 bin/regex analyze '/(a+)+$/'
+
+# Confirmed mode (bounded evidence)
+bin/regex analyze '/(a+)+$/' --redos-mode=confirmed --redos-no-jit
 ```
 
 ### PHP
 
 ```php
 use RegexParser\Regex;
+use RegexParser\ReDoS\ReDoSMode;
 
-$analysis = Regex::create()->redos('/(a+)+b/');
+$analysis = Regex::create()->redos('/(a+)+b/', mode: ReDoSMode::THEORETICAL);
 echo $analysis->severity->value;
 ```
 
-## Fixing Vulnerable Patterns
+## Fixing Risky Patterns (Verify Behavior)
+
+These mitigations reduce backtracking but can change matching results or capture behavior. Validate with tests.
 
 ### Use possessive quantifiers
 
 ```
-Vulnerable: /(a+)+b/
-Safer:      /a++b/
+Risky:      /(a+)+b/
+Safer:      /a++b/   (verify behavior)
 ```
 
 Possessive quantifiers do not backtrack.
@@ -85,8 +148,8 @@ Possessive quantifiers do not backtrack.
 ### Use atomic groups
 
 ```
-Vulnerable: /(a+)+b/
-Safer:      /(?>a+)b/
+Risky:      /(a+)+b/
+Safer:      /(?>a+)b/   (verify behavior)
 ```
 
 Atomic groups commit to the first successful match inside the group.
@@ -94,14 +157,14 @@ Atomic groups commit to the first successful match inside the group.
 ### Simplify nested repeats
 
 ```
-Vulnerable: /(a+)+b/
-Equivalent: /a+b/
+Risky:      /(a+)+b/
+Equivalent: /a+b/   (verify captures)
 ```
 
 ### Avoid empty-match repetition
 
 ```
-Vulnerable: /(a?)+/
+Risky:      /(a?)+/
 Safer:      /a*/
 Safer:      /a+/   (if empty should not match)
 ```
@@ -109,26 +172,26 @@ Safer:      /a+/   (if empty should not match)
 ### Avoid ambiguous adjacent quantifiers
 
 ```
-Vulnerable: /a+a+/
+Risky:      /a+a+/
 Safer:      /a+/
-Safer:      /a++a+/   (if the split must be preserved)
+Safer:      /a++a+/   (if the split must be preserved, verify behavior)
 ```
 
 ### Prefer character classes over alternation
 
 ```
-Vulnerable: /(a|b)+c/
+Risky:      /(a|b)+c/
 Safer:      /[ab]+c/
 ```
 
 ### Bound your repeats
 
 ```
-Vulnerable: /(\d+)+/
+Risky:      /(\d+)+/
 Safer:      /\d{1,10}/
 ```
 
-## Quick Reference: Bad vs Better
+## Quick Reference: Risky vs Safer (Verify Behavior)
 
 ```
 (a+)+        -> a++        or (?>a+)

@@ -60,6 +60,18 @@ final class LintDefaultsBuilder
             $defaults['ide'] = $config['ide'];
         }
 
+        if (isset($config['redosMode'])) {
+            $defaults['redosMode'] = $config['redosMode'];
+        }
+
+        if (isset($config['redosThreshold'])) {
+            $defaults['redosThreshold'] = $config['redosThreshold'];
+        }
+
+        if (isset($config['redosNoJit'])) {
+            $defaults['redosNoJit'] = $config['redosNoJit'];
+        }
+
         if (isset($config['optimizations'])) {
             $defaults['optimizations'] = $config['optimizations'];
         }

@@ -13,6 +13,9 @@ declare(strict_types=1);
 
 namespace RegexParser\Lint\Command;
 
+use RegexParser\ReDoS\ReDoSMode;
+use RegexParser\ReDoS\ReDoSSeverity;
+
 final class LintConfigLoader
 {
     public function load(): LintConfigResult
@@ -133,6 +136,35 @@ final class LintConfigLoader
                 return new LintConfigResult([], [], 'Invalid "format" in '.$path.': expected a non-empty string.');
             }
             $normalized['format'] = $config['format'];
+        }
+
+        if (\array_key_exists('redosMode', $config)) {
+            if (!\is_string($config['redosMode']) || '' === $config['redosMode']) {
+                return new LintConfigResult([], [], 'Invalid "redosMode" in '.$path.': expected a non-empty string.');
+            }
+            $mode = ReDoSMode::tryFrom(strtolower($config['redosMode']));
+            if (null === $mode) {
+                return new LintConfigResult([], [], 'Invalid "redosMode" in '.$path.': expected off, theoretical, or confirmed.');
+            }
+            $normalized['redosMode'] = $mode->value;
+        }
+
+        if (\array_key_exists('redosThreshold', $config)) {
+            if (!\is_string($config['redosThreshold']) || '' === $config['redosThreshold']) {
+                return new LintConfigResult([], [], 'Invalid "redosThreshold" in '.$path.': expected a non-empty string.');
+            }
+            $threshold = ReDoSSeverity::tryFrom(strtolower($config['redosThreshold']));
+            if (null === $threshold) {
+                return new LintConfigResult([], [], 'Invalid "redosThreshold" in '.$path.': expected low, medium, high, or critical.');
+            }
+            $normalized['redosThreshold'] = $threshold->value;
+        }
+
+        if (\array_key_exists('redosNoJit', $config)) {
+            if (!\is_bool($config['redosNoJit'])) {
+                return new LintConfigResult([], [], 'Invalid "redosNoJit" in '.$path.': expected a boolean.');
+            }
+            $normalized['redosNoJit'] = $config['redosNoJit'];
         }
 
         if (\array_key_exists('rules', $config)) {

@@ -570,10 +570,10 @@ use RegexParser\Regex;
 
 $regex = Regex::create();
 
-// Step 1: Check if pattern is safe
+// Step 1: Check for potential ReDoS risk (theoretical)
 $analysis = $regex->redos($pattern);
 if ($analysis->severity->value !== 'safe') {
-    throw new \InvalidArgumentException('Pattern may be vulnerable to ReDoS');
+    throw new \InvalidArgumentException('Potential ReDoS risk detected');
 }
 
 // Step 2: Validate the pattern itself

@@ -4,6 +4,8 @@ parametersSchema:
         ignoreParseErrors: bool(),
         # Enable/disable ReDoS vulnerability detection
         reportRedos: bool(),
+        # ReDoS reporting mode: 'off', 'theoretical', 'confirmed'
+        redosMode: string(),
         # Minimum severity level to report: 'low', 'medium', 'high', 'critical'
         redosThreshold: string(),
         # Enable/disable regex optimization suggestions
@@ -25,9 +27,12 @@ parameters:
         # Enable comprehensive ReDoS vulnerability detection
         reportRedos: true
 
-        # Report only high and critical severity ReDoS issues
+        # Report only critical ReDoS issues by default (conservative)
         # Options: 'low' (most sensitive), 'medium', 'high', 'critical' (least sensitive)
-        redosThreshold: 'high'
+        redosThreshold: 'critical'
+
+        # ReDoS reporting mode (theoretical by default)
+        redosMode: 'theoretical'
 
         # Enable regex optimization suggestions
         suggestOptimizations: false
@@ -47,6 +52,7 @@ services:
             ignoreParseErrors: %regexParser.ignoreParseErrors%
             reportRedos: %regexParser.reportRedos%
             redosThreshold: %regexParser.redosThreshold%
+            redosMode: %regexParser.redosMode%
             suggestOptimizations: %regexParser.suggestOptimizations%
             optimizationConfig: %regexParser.optimizationConfig%
         tags:

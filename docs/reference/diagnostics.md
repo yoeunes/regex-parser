@@ -368,7 +368,7 @@ preg_match('/(error|failure)/', $input);
 |---------------|---------------------------|---------------------------------------|
 | `syntax`      | Invalid pattern structure | Unterminated class, missing delimiter |
 | `semantic`    | Violates PCRE rules       | Unbounded lookbehind, bad backref     |
-| `redos`       | ReDoS vulnerability       | Nested quantifiers                    |
+| `redos`       | Potential ReDoS risk       | Nested quantifiers                    |
 | `performance` | Suboptimal pattern        | Redundant group                       |
 | `style`       | Code style issue          | Useless flag                          |
 

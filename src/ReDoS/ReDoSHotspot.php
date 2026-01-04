@@ -16,7 +16,7 @@ namespace RegexParser\ReDoS;
 /**
  * Identifies a vulnerable span within the pattern for heatmap rendering.
  */
-final readonly class ReDoSHotspot
+final readonly class ReDoSHotspot implements \JsonSerializable
 {
     public function __construct(
         public int $start,
@@ -25,4 +25,15 @@ final readonly class ReDoSHotspot
         public string $pattern,
         public ?string $trigger = null,
     ) {}
+
+    public function jsonSerialize(): array
+    {
+        return [
+            'start' => $this->start,
+            'end' => $this->end,
+            'severity' => $this->severity->value,
+            'pattern' => $this->pattern,
+            'trigger' => $this->trigger,
+        ];
+    }
 }

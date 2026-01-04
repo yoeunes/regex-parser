@@ -105,14 +105,16 @@ final class RegexParserRule implements Rule
 
     /**
      * @param bool                                                                                                    $ignoreParseErrors  Ignore parse errors for partial regex strings
-     * @param bool                                                                                                    $reportRedos        Report ReDoS vulnerability analysis
+     * @param bool                                                                                                    $reportRedos        Report ReDoS risk analysis
      * @param string                                                                                                  $redosThreshold     Minimum ReDoS severity level to report
+     * @param string                                                                                                  $redosMode          ReDoS reporting mode (off|theoretical|confirmed)
      * @param array{digits: bool, word: bool, ranges: bool, canonicalizeCharClasses?: bool, minQuantifierCount?: int} $optimizationConfig
      */
     public function __construct(
         private readonly bool $ignoreParseErrors = true,
         private readonly bool $reportRedos = true,
         private readonly string $redosThreshold = 'high',
+        private readonly string $redosMode = 'theoretical',
         private readonly bool $suggestOptimizations = false,
         private readonly array $optimizationConfig = ['digits' => true, 'word' => true, 'ranges' => true, 'canonicalizeCharClasses' => true],
     ) {}
@@ -299,9 +301,15 @@ final class RegexParserRule implements Rule
                 default => self::IDENTIFIER_REDOS_LOW,
             };
 
+            $status = $analysis->isConfirmed()
+                ? 'Confirmed ReDoS risk'
+                : 'Potential ReDoS risk (theoretical)';
+            $confidence = strtoupper($analysis->confidenceLevel()->value);
             $errors[] = RuleErrorBuilder::message(\sprintf(
-                'ReDoS vulnerability detected (%s): %s',
+                '%s (severity: %s, confidence: %s): %s',
+                $status,
                 strtoupper($analysis->severity->value),
+                $confidence,
                 $this->truncatePattern($pattern),
             ))
                 ->line($lineNumber)
@@ -393,6 +401,7 @@ final class RegexParserRule implements Rule
             Regex::create(),
             null,
             redosThreshold: $this->redosThreshold,
+            redosMode: $this->redosMode,
             ignoreParseErrors: $this->ignoreParseErrors,
         );
     }

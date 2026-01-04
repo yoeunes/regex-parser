@@ -38,6 +38,9 @@ final readonly class LintArguments
         public ?string $generateBaseline = null,
         public string $ide = '',
         public array $optimizations = [],
+        public string $redosMode = 'theoretical',
+        public ?string $redosThreshold = null,
+        public bool $redosNoJit = false,
     ) {}
 
     /**
@@ -122,6 +125,24 @@ final readonly class LintArguments
             $ide = '';
         }
 
+        $redosMode = $defaults['redosMode'] ?? 'theoretical';
+        if (!\is_string($redosMode) || '' === $redosMode) {
+            $redosMode = 'theoretical';
+        }
+        $redosMode = strtolower($redosMode);
+
+        $redosThreshold = $defaults['redosThreshold'] ?? null;
+        if (!\is_string($redosThreshold) || '' === $redosThreshold) {
+            $redosThreshold = null;
+        } else {
+            $redosThreshold = strtolower($redosThreshold);
+        }
+
+        $redosNoJit = $defaults['redosNoJit'] ?? false;
+        if (!\is_bool($redosNoJit)) {
+            $redosNoJit = false;
+        }
+
         $optimizations = $defaults['optimizations'] ?? [];
         if (!\is_array($optimizations)) {
             $optimizations = [];
@@ -166,6 +187,9 @@ final readonly class LintArguments
             $generateBaseline,
             $ide,
             $optimizations,
+            $redosMode,
+            $redosThreshold,
+            $redosNoJit,
         );
     }
 

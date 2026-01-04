@@ -29,6 +29,8 @@ use RegexParser\Lint\RegexLintReport;
 use RegexParser\Lint\RegexLintRequest;
 use RegexParser\Lint\RegexLintService;
 use RegexParser\Lint\RegexPatternSourceCollection;
+use RegexParser\ReDoS\ReDoSConfirmOptions;
+use RegexParser\ReDoS\ReDoSSeverity;
 
 final class LintCommand extends AbstractCommand implements CommandInterface
 {
@@ -74,7 +76,7 @@ final class LintCommand extends AbstractCommand implements CommandInterface
         }
         if (null !== $parsed->error) {
             $output->write($output->error('Error: '.$parsed->error."\n"));
-            $output->write("Usage: regex lint [paths...] [--exclude <path>] [--min-savings <n>] [--jobs <n>] [--format console|json|github|checkstyle|junit] [--output <file>] [--baseline <file>] [--generate-baseline] [--no-redos] [--no-validate] [--no-optimize] [--verbose|--debug|--quiet]\n");
+            $output->write("Usage: regex lint [paths...] [--exclude <path>] [--min-savings <n>] [--jobs <n>] [--format console|json|github|checkstyle|junit] [--output <file>] [--baseline <file>] [--generate-baseline] [--no-redos] [--redos-mode=off|theoretical|confirmed] [--redos-threshold=low|medium|high|critical] [--redos-no-jit] [--no-validate] [--no-optimize] [--verbose|--debug|--quiet]\n");
 
             return 1;
         }
@@ -95,6 +97,9 @@ final class LintCommand extends AbstractCommand implements CommandInterface
         $format = $arguments->format;
         $quiet = $arguments->quiet;
         $checkRedos = $arguments->checkRedos;
+        if ('off' === $arguments->redosMode) {
+            $checkRedos = false;
+        }
         $checkValidation = $arguments->checkValidation;
         $checkOptimizations = $arguments->checkOptimizations;
         $jobs = (int) $arguments->jobs;
@@ -125,7 +130,13 @@ final class LintCommand extends AbstractCommand implements CommandInterface
             default => new OutputConfiguration(ansi: $output->isAnsi()),
         };
 
-        $analysis = new RegexAnalysisService($regex);
+        $confirmOptions = $arguments->redosNoJit ? new ReDoSConfirmOptions(disableJit: true) : null;
+        $analysis = new RegexAnalysisService(
+            $regex,
+            redosThreshold: $arguments->redosThreshold ?? ReDoSSeverity::HIGH->value,
+            redosMode: $arguments->redosMode,
+            confirmOptions: $confirmOptions,
+        );
 
         $formatterRegistry = new FormatterRegistry();
         if (!$formatterRegistry->has($format)) {

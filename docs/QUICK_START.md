@@ -10,7 +10,7 @@ If you are new to regex, start here and follow the examples. If you already know
 - Use the CLI for quick analysis.
 - Parse and validate patterns in PHP.
 - Explain patterns in plain English.
-- Check for security vulnerabilities.
+- Check for potential ReDoS risk.
 - Build custom analysis tools.
 
 ## Installation
@@ -43,7 +43,7 @@ bin/regex explain '/\d{4}-\d{2}-\d{2}/'
 # 2. Visualize the pattern structure
 bin/regex diagram '/\d{4}-\d{2}-\d{2}/'
 
-# 3. Check for security issues (ReDoS)
+# 3. Check for potential ReDoS risk (theoretical)
 bin/regex analyze '/(a+)+$/'
 
 # 4. Colorize the pattern for better readability
@@ -97,7 +97,7 @@ if ($result->isValid()) {
 
 Checks performed:
 - Syntax errors (missing brackets, invalid escapes)
-- ReDoS vulnerabilities (security risks)
+- Potential ReDoS risk (heuristic, structural)
 - Invalid backreferences
 - Variable-length lookbehinds
 - Invalid Unicode properties
@@ -125,21 +125,26 @@ A named group 'email' containing:
 
 Use when documenting patterns, doing code reviews, or teaching regex.
 
-### 4. Check for ReDoS vulnerabilities (security check)
+### 4. Check for ReDoS risk (theoretical by default)
 
 ```php
 use RegexParser\Regex;
 use RegexParser\ReDoS\ReDoSSeverity;
+use RegexParser\ReDoS\ReDoSMode;
 
 $regex = Regex::create();
 
-// Check a potentially dangerous pattern
+// Check a potentially risky pattern (theoretical)
 $analysis = $regex->redos('/(a+)+b/');
 echo "ReDoS Severity: " . $analysis->severity->value;  // "critical"
 
 // Check a safe pattern
 $analysis = $regex->redos('/a+b/');
 echo "ReDoS Severity: " . $analysis->severity->value;  // "safe"
+
+// Optional: attempt bounded confirmation
+$confirmed = $regex->redos('/(a+)+b/', mode: ReDoSMode::CONFIRMED);
+echo $confirmed->isConfirmed() ? "confirmed\n" : "theoretical\n";
 ```
 
 ReDoS (Regular Expression Denial of Service) is a performance risk where certain inputs can make a backtracking engine take a very long time.
@@ -200,7 +205,7 @@ function documentPattern(string $pattern, string $description): void
 documentPattern('/\d{4}-\d{2}-\d{2}/', 'Date format');
 ```
 
-### 4. Find Security Issues in Your Codebase
+### 4. Find Potential ReDoS Risk in Your Codebase
 
 ```bash
 # Scan your entire project

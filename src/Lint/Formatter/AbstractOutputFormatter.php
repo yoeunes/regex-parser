@@ -94,7 +94,7 @@ abstract class AbstractOutputFormatter implements OutputFormatterInterface
 
         // In normal mode, provide a concise ReDoS hint
         if (!$this->config->shouldShowDetailedReDoS()) {
-            return 'Nested quantifiers detected. Consider using atomic groups (?>...) or possessive quantifiers (*+, ++).';
+            return 'Nested quantifiers detected. Suggested (verify behavior): use atomic groups (?>...) or possessive quantifiers (*+, ++).';
         }
 
         return $hint;

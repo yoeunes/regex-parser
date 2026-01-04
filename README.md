@@ -43,9 +43,38 @@ vendor/bin/regex explain '/\d{4}-\d{2}-\d{2}/'
 - Parse `/pattern/flags` into a structured AST.
 - Validate syntax and semantics with precise error locations.
 - Explain patterns in plain English.
-- Analyze ReDoS risk and suggest safer alternatives.
+- Analyze potential ReDoS risk (theoretical by default) and provide cautious suggestions.
 - Lint codebases via the CLI.
 - Provide a visitor API for custom tooling.
+
+## Philosophy & Accuracy
+
+RegexParser separates what it can guarantee from what is heuristic:
+
+- Guaranteed: parsing, AST structure, error offsets, and syntax validation for the targeted PHP/PCRE version.
+- Heuristic: ReDoS analysis is structural and conservative; treat it as potential risk unless confirmed.
+- Context matters: PCRE version, JIT, and backtrack/recursion limits change practical impact.
+
+## How to report a vulnerability responsibly
+
+If you believe a pattern is exploitable:
+
+1. Run confirmed mode and capture a bounded, reproducible PoC.
+2. Include the pattern, input lengths, timings, JIT setting, and PCRE limits.
+3. Verify impact in the real code path before filing a security issue.
+
+See [SECURITY.md](SECURITY.md) for reporting channels.
+
+## Safer rewrites (verify behavior)
+
+These techniques reduce backtracking but can change matching behavior. Always validate with tests.
+
+```
+/(a+)+$/     -> /a+$/      (semantics often preserved, but verify captures)
+/(a+)+$/     -> /a++$/     (possessive, no backtracking)
+/(a|aa)+/    -> /a+/       (only if alternation is redundant)
+/(a|aa)+/    -> /(?>a|aa)+/ (atomic, avoids backtracking)
+```
 
 ## How it works
 
@@ -65,7 +94,7 @@ vendor/bin/regex parse '/^hello world$/'
 # Get plain English explanation
 vendor/bin/regex explain '/\d{4}-\d{2}-\d{2}/'
 
-# Check for security issues (ReDoS)
+# Check for potential ReDoS risk (theoretical by default)
 vendor/bin/regex analyze '/(a+)+$/'
 
 # Colorize pattern for better readability
@@ -81,6 +110,7 @@ vendor/bin/regex lint src/
 
 ```php
 use RegexParser\Regex;
+use RegexParser\ReDoS\ReDoSMode;
 
 $regex = Regex::create([
     'runtime_pcre_validation' => true,
@@ -95,9 +125,13 @@ if (!$result->isValid()) {
     echo $result->getErrorMessage();
 }
 
-// Check for ReDoS vulnerabilities
+// Check for ReDoS risk (theoretical by default)
 $analysis = $regex->redos('/(a+)+$/');
 echo $analysis->severity->value; // 'critical', 'safe', etc.
+
+// Optional: attempt bounded confirmation
+$confirmed = $regex->redos('/(a+)+$/', mode: ReDoSMode::CONFIRMED);
+echo $confirmed->isConfirmed() ? 'confirmed' : 'theoretical';
 
 // Get human-readable explanation
 echo $regex->explain('/\d{4}-\d{2}-\d{2}/');

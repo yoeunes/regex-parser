@@ -182,12 +182,12 @@ echo count($result->getProblems());
 use RegexParser\Regex;
 use RegexParser\NodeVisitor\LinterNodeVisitor;
 
-$ast = Regex::create()->parse('/(a+)+b/');  // ReDoS vulnerable
+$ast = Regex::create()->parse('/(a+)+b/');  // Potential ReDoS risk
 $result = $ast->accept(new LinterNodeVisitor());
 
 foreach ($result->getIssues() as $issue) {
     echo $issue->getMessage() . "\n";
-    // "Pattern may be vulnerable to ReDoS"
+    // "Potential ReDoS risk (theoretical)"
 }
 ```
 
@@ -204,7 +204,7 @@ foreach ($result->getIssues() as $issue) {
 | `safe`     | No exponential backtracking | Accept pattern         |
 | `low`      | Minimal risk                | Accept with monitoring |
 | `medium`   | Requires specific input     | Consider refactoring   |
-| `critical` | Easily exploitable          | Reject pattern         |
+| `critical` | High structural risk        | Review and refactor    |
 
 ```php
 use RegexParser\Regex;

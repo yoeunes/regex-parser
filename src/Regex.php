@@ -64,6 +64,8 @@ use RegexParser\NodeVisitor\SampleGeneratorNodeVisitor;
 use RegexParser\NodeVisitor\ValidatorNodeVisitor;
 use RegexParser\ReDoS\ReDoSAnalysis;
 use RegexParser\ReDoS\ReDoSAnalyzer;
+use RegexParser\ReDoS\ReDoSConfirmOptions;
+use RegexParser\ReDoS\ReDoSMode;
 use RegexParser\ReDoS\ReDoSSeverity;
 
 /**
@@ -351,11 +353,16 @@ final readonly class Regex
      *
      * @return ReDoSAnalysis Detailed ReDoS analysis results
      */
-    public function redos(string $regex, ?ReDoSSeverity $threshold = null): ReDoSAnalysis
+    public function redos(
+        string $regex,
+        ?ReDoSSeverity $threshold = null,
+        ReDoSMode $mode = ReDoSMode::THEORETICAL,
+        ?ReDoSConfirmOptions $confirmOptions = null,
+    ): ReDoSAnalysis
     {
         $analyzer = new ReDoSAnalyzer($this, $this->redosIgnoredPatterns);
 
-        return $analyzer->analyze($regex, $threshold);
+        return $analyzer->analyze($regex, $threshold, $mode, $confirmOptions);
     }
 
     /**

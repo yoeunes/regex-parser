@@ -20,7 +20,7 @@ use RegexParser\Node\NodeInterface;
  *
  * @api
  */
-final readonly class ReDoSAnalysis
+final readonly class ReDoSAnalysis implements \JsonSerializable
 {
     public ?string $vulnerableSubpattern;
 
@@ -43,6 +43,8 @@ final readonly class ReDoSAnalysis
         public ?string $suggestedRewrite = null,
         private ?NodeInterface $culpritNode = null,
         public array $hotspots = [],
+        public ReDoSMode $mode = ReDoSMode::THEORETICAL,
+        public ?ReDoSConfirmation $confirmation = null,
     ) {
         $this->vulnerableSubpattern = $vulnerableSubpattern ?? $vulnerablePart;
     }
@@ -62,9 +64,60 @@ final readonly class ReDoSAnalysis
         return ReDoSSeverity::SAFE === $this->severity || ReDoSSeverity::LOW === $this->severity;
     }
 
+    public function isConfirmed(): bool
+    {
+        return ReDoSMode::CONFIRMED === $this->mode && (null !== $this->confirmation && $this->confirmation->confirmed);
+    }
+
+    public function confidenceLevel(): ReDoSConfidence
+    {
+        return $this->confidence ?? ReDoSConfidence::LOW;
+    }
+
+    public function getPrimaryHotspot(): ?ReDoSHotspot
+    {
+        $best = null;
+        $bestRank = -1;
+
+        foreach ($this->hotspots as $hotspot) {
+            if (!$hotspot instanceof ReDoSHotspot) {
+                continue;
+            }
+
+            $rank = $this->severityScore($hotspot->severity);
+            if ($rank > $bestRank) {
+                $bestRank = $rank;
+                $best = $hotspot;
+            }
+        }
+
+        return $best;
+    }
+
     public function exceedsThreshold(ReDoSSeverity $threshold): bool
     {
         return $this->severityScore($this->severity) >= $this->severityScore($threshold);
+    }
+
+    public function jsonSerialize(): array
+    {
+        return [
+            'severity' => $this->severity->value,
+            'score' => $this->score,
+            'mode' => $this->mode->value,
+            'confirmed' => $this->isConfirmed(),
+            'confidence' => $this->confidenceLevel()->value,
+            'vulnerable_part' => $this->vulnerablePart,
+            'vulnerable_subpattern' => $this->vulnerableSubpattern,
+            'trigger' => $this->trigger,
+            'false_positive_risk' => $this->falsePositiveRisk,
+            'suggested_rewrite' => $this->suggestedRewrite,
+            'recommendations' => $this->recommendations,
+            'error' => $this->error,
+            'findings' => $this->findings,
+            'hotspots' => $this->hotspots,
+            'confirmation' => $this->confirmation,
+        ];
     }
 
     private function severityScore(ReDoSSeverity $severity): int

@@ -15,6 +15,7 @@ namespace RegexParser\Lint\Command;
 
 use RegexParser\Cli\Output;
 use RegexParser\Regex;
+use RegexParser\Runtime\PcreRuntimeInfo;
 
 final readonly class LintOutputRenderer
 {
@@ -66,6 +67,11 @@ final readonly class LintOutputRenderer
             'Runtime' => 'PHP '.$output->warning(\PHP_VERSION),
             'Processes' => $output->warning((string) $jobs),
         ];
+        $runtime = PcreRuntimeInfo::fromIni();
+        $lines['PCRE'] = $output->warning($runtime->version);
+        $lines['PCRE JIT'] = $output->warning($runtime->jitSetting ?? 'unknown');
+        $lines['Backtrack'] = $output->warning((string) ($runtime->backtrackLimit ?? 'unknown'));
+        $lines['Recursion'] = $output->warning((string) ($runtime->recursionLimit ?? 'unknown'));
 
         if ([] !== $configFiles) {
             $paths = array_map($this->relativePath(...), $configFiles);

@@ -91,7 +91,7 @@ $ast = Regex::create()->parse('/\d{3}-\d{4}/');
 
 ### 3. Complex Analysis
 ```php
-// Detect ReDoS vulnerabilities
+// Detect potential ReDoS risk
 $analysis = Regex::create()->redos('/(a+)+$/');
 // AST allows deep structural analysis
 ```

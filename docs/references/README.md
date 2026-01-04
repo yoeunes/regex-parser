@@ -69,7 +69,7 @@ Understanding and preventing Regular Expression Denial of Service attacks.
 
 **Key concepts:**
 - Exponential vs polynomial backtracking
-- Common vulnerable patterns
+- Common risky patterns
 - Mitigation strategies
 - Detection techniques
 

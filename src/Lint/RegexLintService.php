@@ -369,7 +369,7 @@ final readonly class RegexLintService
 
             return new RegexProblem(
                 ProblemType::Security,
-                $this->mapRedosSeverity($analysis->severity),
+                $this->mapRedosSeverity($analysis),
                 $issue['message'],
                 $issue['issueId'] ?? null,
                 null,
@@ -419,9 +419,16 @@ final readonly class RegexLintService
         };
     }
 
-    private function mapRedosSeverity(ReDoSSeverity $severity): Severity
+    private function mapRedosSeverity(ReDoSAnalysis $analysis): Severity
     {
-        return match ($severity) {
+        if (!$analysis->isConfirmed()) {
+            return match ($analysis->severity) {
+                ReDoSSeverity::LOW, ReDoSSeverity::SAFE => Severity::Info,
+                default => Severity::Warning,
+            };
+        }
+
+        return match ($analysis->severity) {
             ReDoSSeverity::CRITICAL => Severity::Critical,
             ReDoSSeverity::HIGH => Severity::Error,
             ReDoSSeverity::MEDIUM => Severity::Warning,

@@ -22,9 +22,13 @@ use RegexParser\NodeVisitor\ConsoleHighlighterVisitor;
 use RegexParser\ReDoS\ReDoSHeatmap;
 use RegexParser\ReDoS\ReDoSHotspot;
 use RegexParser\ReDoS\ReDoSInputGenerator;
+use RegexParser\ReDoS\ReDoSAnalysis;
+use RegexParser\ReDoS\ReDoSConfirmOptions;
+use RegexParser\ReDoS\ReDoSMode;
 use RegexParser\ReDoS\ReDoSSeverity;
 use RegexParser\RegexOptions;
 use RegexParser\RegexPattern;
+use RegexParser\Runtime\PcreRuntimeInfo;
 
 final class DebugCommand extends AbstractCommand
 {
@@ -45,33 +49,20 @@ final class DebugCommand extends AbstractCommand
 
     public function run(Input $input, Output $output): int
     {
-        $pattern = $input->args[0] ?? '';
-        if ('' === $pattern) {
-            $output->write($output->error("Error: Missing pattern\n"));
-            $output->write("Usage: regex debug <pattern> [--input <string>]\n");
+        $parsed = $this->parseArguments($input->args);
+        if (null !== $parsed['error']) {
+            $output->write($output->error('Error: '.$parsed['error']."\n"));
+            $output->write("Usage: regex debug <pattern> [--input <string>] [--format=json] [--redos-mode=off|theoretical|confirmed] [--redos-threshold=low|medium|high|critical] [--redos-no-jit]\n");
 
             return 1;
         }
 
-        $inputValue = null;
-        for ($i = 0; $i < \count($input->args); $i++) {
-            $arg = $input->args[$i];
-            if (str_starts_with($arg, '--input=')) {
-                $inputValue = substr($arg, \strlen('--input='));
-
-                continue;
-            }
-            if ('--input' === $arg) {
-                $value = $input->args[$i + 1] ?? '';
-                if ('' === $value || str_starts_with($value, '-')) {
-                    $output->write($output->error("Error: Missing value for --input\n"));
-
-                    return 1;
-                }
-                $inputValue = $value;
-                $i++;
-            }
-        }
+        $pattern = $parsed['pattern'];
+        $inputValue = $parsed['inputValue'];
+        $format = $parsed['format'];
+        $redosMode = $parsed['redosMode'];
+        $redosThreshold = $parsed['redosThreshold'];
+        $confirmOptions = $parsed['confirmOptions'];
 
         $regex = $this->createRegex($output, $input->regexOptions);
         if (null === $regex) {
@@ -83,8 +74,15 @@ final class DebugCommand extends AbstractCommand
         if (null !== $input->globalOptions->phpVersion) {
             $meta['Target PHP'] = $output->warning('PHP '.$input->globalOptions->phpVersion);
         }
+        $runtime = PcreRuntimeInfo::fromIni();
+        $meta['PCRE'] = $output->warning($runtime->version);
+        $meta['PCRE JIT'] = $output->warning($runtime->jitSetting ?? 'unknown');
+        $meta['Backtrack'] = $output->warning((string) ($runtime->backtrackLimit ?? 'unknown'));
+        $meta['Recursion'] = $output->warning((string) ($runtime->recursionLimit ?? 'unknown'));
 
-        $style->renderBanner('Debug', $meta);
+        if ('json' !== $format) {
+            $style->renderBanner('Debug', $meta);
+        }
 
         $phpVersionId = null;
         if ([] !== $input->regexOptions) {
@@ -93,7 +91,7 @@ final class DebugCommand extends AbstractCommand
 
         try {
             $patternInfo = RegexPattern::fromDelimited($pattern, $phpVersionId);
-            $analysis = $regex->redos($pattern);
+            $analysis = $regex->redos($pattern, $redosThreshold, $redosMode, $confirmOptions);
             $steps = [] !== $analysis->findings ? 2 : 1;
             $heatmap = new ReDoSHeatmap();
             $heatmapBody = $heatmap->highlight($patternInfo->pattern, $analysis->hotspots, $output->isAnsi());
@@ -109,6 +107,41 @@ final class DebugCommand extends AbstractCommand
                 } catch (LexerException|ParserException) {
                     $highlightedPattern = $pattern;
                 }
+            }
+
+            $inputSource = '';
+            if (null === $inputValue && null !== $analysis->getCulpritNode()) {
+                $inputValue = (new ReDoSInputGenerator())->generate(
+                    $analysis->getCulpritNode(),
+                    $patternInfo->flags,
+                    $analysis->severity,
+                );
+                $inputSource = ' (auto)';
+            }
+            $inputSourceLabel = null;
+            if (null !== $inputValue) {
+                $inputSourceLabel = '' !== $inputSource ? 'auto' : 'user';
+            }
+
+            if ('json' === $format) {
+                $payload = [
+                    'pattern' => $pattern,
+                    'runtime' => $runtime,
+                    'analysis' => $analysis,
+                    'input' => [
+                        'value' => $inputValue,
+                        'source' => $inputSourceLabel,
+                    ],
+                ];
+                $json = json_encode($payload, \JSON_PRETTY_PRINT | \JSON_UNESCAPED_SLASHES);
+                if (false === $json) {
+                    $output->write($output->error("Error: Failed to encode JSON\n"));
+
+                    return 1;
+                }
+                $output->write($json."\n");
+
+                return 0;
             }
 
             $style->renderSection('Heatmap', 1, $steps);
@@ -128,15 +161,19 @@ final class DebugCommand extends AbstractCommand
                 $output->write('  Error:      '.$output->error($analysis->error)."\n");
             }
 
-            $severityLabel = strtoupper($analysis->severity->value);
-            $severityOutput = match ($analysis->severity) {
-                ReDoSSeverity::SAFE, ReDoSSeverity::LOW => $output->success($severityLabel),
-                ReDoSSeverity::MEDIUM => $output->warning($severityLabel),
-                ReDoSSeverity::HIGH, ReDoSSeverity::CRITICAL => $output->error($severityLabel),
-                ReDoSSeverity::UNKNOWN => $output->info($severityLabel),
+            $severityOutput = $this->formatRedosSeverity($analysis, $output);
+            $status = match ($analysis->mode) {
+                ReDoSMode::OFF => 'ReDoS analysis disabled',
+                ReDoSMode::CONFIRMED => $analysis->isConfirmed()
+                    ? 'Confirmed ReDoS risk'
+                    : 'Potential ReDoS risk (theoretical)',
+                default => 'Potential ReDoS risk (theoretical)',
             };
 
-            $output->write('  ReDoS:      '.$severityOutput.' (score '.$analysis->score.")\n");
+            $output->write('  Status:    '.$status."\n");
+            $output->write('  Severity:  '.$severityOutput.' (score '.$analysis->score.")\n");
+            $output->write('  Mode:      '.strtoupper($analysis->mode->value)."\n");
+            $output->write('  Confidence: '.strtoupper($analysis->confidenceLevel()->value)."\n");
 
             if (null !== $analysis->getVulnerableSubpattern()) {
                 $output->write('  Culprit:    '.$analysis->getVulnerableSubpattern()."\n");
@@ -150,19 +187,35 @@ final class DebugCommand extends AbstractCommand
                 $output->write('  Hotspots:   '.\count($analysis->hotspots)."\n");
             }
 
-            $inputSource = '';
-            if (null === $inputValue && null !== $analysis->getCulpritNode()) {
-                $inputValue = (new ReDoSInputGenerator())->generate(
-                    $analysis->getCulpritNode(),
-                    $patternInfo->flags,
-                    $analysis->severity,
-                );
-                $inputSource = ' (auto)';
-            }
-
             if (null !== $inputValue) {
                 $escaped = addcslashes($inputValue, "\0..\37\177..\377");
                 $output->write('  Input:      "'.$escaped.'"'.$inputSource."\n");
+            }
+
+            if (ReDoSMode::CONFIRMED === $analysis->mode && null !== $analysis->confirmation) {
+                $confirmation = $analysis->confirmation;
+                $output->write("\n");
+                $style->renderSection('Confirmation', $steps, $steps);
+                $sampleParts = [];
+                foreach ($confirmation->samples as $sample) {
+                    $sampleParts[] = \sprintf('len=%d avg=%.2fms', $sample->inputLength, $sample->durationMs);
+                }
+                $output->write('  Status:    '.($confirmation->confirmed ? 'CONFIRMED' : 'NOT CONFIRMED')."\n");
+                if (null !== $confirmation->evidence) {
+                    $output->write('  Evidence:  '.$confirmation->evidence."\n");
+                }
+                if ([] !== $sampleParts) {
+                    $output->write('  Samples:   '.implode(', ', $sampleParts)."\n");
+                }
+                $output->write('  JIT:       '.($confirmation->jitSetting ?? 'unknown')."\n");
+                $output->write('  Backtrack: '.($confirmation->backtrackLimit ?? 'unknown')."\n");
+                $output->write('  Recursion: '.($confirmation->recursionLimit ?? 'unknown')."\n");
+                if ($confirmation->timedOut) {
+                    $output->write('  Note:      confirmation timed out within limits'."\n");
+                }
+                if (null !== $confirmation->note) {
+                    $output->write('  Note:      '.$confirmation->note."\n");
+                }
             }
 
             $hotspot = null;
@@ -214,16 +267,196 @@ final class DebugCommand extends AbstractCommand
                     };
                     $output->write('  - ['.$findingSeverity.'] '.$finding->message."\n");
                     if (null !== $finding->suggestedRewrite && '' !== $finding->suggestedRewrite) {
-                        $output->write('      Suggested: '.$finding->suggestedRewrite."\n");
+                        $output->write('      Suggested (verify behavior): '.$finding->suggestedRewrite."\n");
                     }
                 }
             }
         } catch (\Throwable $e) {
+            if ('json' === $format) {
+                $json = json_encode(['error' => $e->getMessage(), 'stage' => 'debug'], \JSON_PRETTY_PRINT | \JSON_UNESCAPED_SLASHES);
+                $output->write(($json ?: '{"error":"Debug failed"}')."\n");
+
+                return 1;
+            }
+
             $output->write('  '.$output->badge('FAIL', Output::WHITE, Output::BG_RED).' '.$output->error('Debug failed: '.$e->getMessage())."\n");
 
             return 1;
         }
 
         return 0;
+    }
+
+    /**
+     * @param array<int, string> $args
+     *
+     * @return array{pattern: string, inputValue: ?string, format: string, redosMode: ReDoSMode, redosThreshold: ?ReDoSSeverity, confirmOptions: ?ReDoSConfirmOptions, error: ?string}
+     */
+    private function parseArguments(array $args): array
+    {
+        $pattern = '';
+        $inputValue = null;
+        $format = 'console';
+        $redosMode = ReDoSMode::THEORETICAL;
+        $redosThreshold = null;
+        $confirmOptions = null;
+        $disableJit = false;
+        $stopParsing = false;
+
+        for ($i = 0; $i < \count($args); $i++) {
+            $arg = $args[$i];
+
+            if (!$stopParsing && '--' === $arg) {
+                $stopParsing = true;
+
+                continue;
+            }
+
+            if (!$stopParsing && str_starts_with($arg, '--input=')) {
+                $inputValue = substr($arg, \strlen('--input='));
+
+                continue;
+            }
+
+            if (!$stopParsing && '--input' === $arg) {
+                $value = $args[$i + 1] ?? '';
+                if ('' === $value || str_starts_with($value, '-')) {
+                    return ['pattern' => '', 'inputValue' => null, 'format' => $format, 'redosMode' => $redosMode, 'redosThreshold' => $redosThreshold, 'confirmOptions' => null, 'error' => 'Missing value for --input.'];
+                }
+                $inputValue = $value;
+                $i++;
+
+                continue;
+            }
+
+            if (!$stopParsing && ('--json' === $arg)) {
+                $format = 'json';
+
+                continue;
+            }
+
+            if (!$stopParsing && str_starts_with($arg, '--format=')) {
+                $format = strtolower(substr($arg, \strlen('--format=')));
+
+                continue;
+            }
+
+            if (!$stopParsing && '--format' === $arg) {
+                $value = $args[$i + 1] ?? '';
+                if ('' === $value || str_starts_with($value, '-')) {
+                    return ['pattern' => '', 'inputValue' => null, 'format' => $format, 'redosMode' => $redosMode, 'redosThreshold' => $redosThreshold, 'confirmOptions' => null, 'error' => 'Missing value for --format.'];
+                }
+                $format = strtolower($value);
+                $i++;
+
+                continue;
+            }
+
+            if (!$stopParsing && str_starts_with($arg, '--redos-mode=')) {
+                $value = strtolower(substr($arg, \strlen('--redos-mode=')));
+                $mode = ReDoSMode::tryFrom($value);
+                if (null === $mode) {
+                    return ['pattern' => '', 'inputValue' => null, 'format' => $format, 'redosMode' => $redosMode, 'redosThreshold' => $redosThreshold, 'confirmOptions' => null, 'error' => 'Invalid value for --redos-mode.'];
+                }
+                $redosMode = $mode;
+
+                continue;
+            }
+
+            if (!$stopParsing && '--redos-mode' === $arg) {
+                $value = $args[$i + 1] ?? '';
+                if ('' === $value || str_starts_with($value, '-')) {
+                    return ['pattern' => '', 'inputValue' => null, 'format' => $format, 'redosMode' => $redosMode, 'redosThreshold' => $redosThreshold, 'confirmOptions' => null, 'error' => 'Missing value for --redos-mode.'];
+                }
+                $mode = ReDoSMode::tryFrom(strtolower($value));
+                if (null === $mode) {
+                    return ['pattern' => '', 'inputValue' => null, 'format' => $format, 'redosMode' => $redosMode, 'redosThreshold' => $redosThreshold, 'confirmOptions' => null, 'error' => 'Invalid value for --redos-mode.'];
+                }
+                $redosMode = $mode;
+                $i++;
+
+                continue;
+            }
+
+            if (!$stopParsing && str_starts_with($arg, '--redos-threshold=')) {
+                $value = strtolower(substr($arg, \strlen('--redos-threshold=')));
+                $threshold = ReDoSSeverity::tryFrom($value);
+                if (null === $threshold) {
+                    return ['pattern' => '', 'inputValue' => null, 'format' => $format, 'redosMode' => $redosMode, 'redosThreshold' => $redosThreshold, 'confirmOptions' => null, 'error' => 'Invalid value for --redos-threshold.'];
+                }
+                $redosThreshold = $threshold;
+
+                continue;
+            }
+
+            if (!$stopParsing && '--redos-threshold' === $arg) {
+                $value = $args[$i + 1] ?? '';
+                if ('' === $value || str_starts_with($value, '-')) {
+                    return ['pattern' => '', 'inputValue' => null, 'format' => $format, 'redosMode' => $redosMode, 'redosThreshold' => $redosThreshold, 'confirmOptions' => null, 'error' => 'Missing value for --redos-threshold.'];
+                }
+                $threshold = ReDoSSeverity::tryFrom(strtolower($value));
+                if (null === $threshold) {
+                    return ['pattern' => '', 'inputValue' => null, 'format' => $format, 'redosMode' => $redosMode, 'redosThreshold' => $redosThreshold, 'confirmOptions' => null, 'error' => 'Invalid value for --redos-threshold.'];
+                }
+                $redosThreshold = $threshold;
+                $i++;
+
+                continue;
+            }
+
+            if (!$stopParsing && '--redos-no-jit' === $arg) {
+                $disableJit = true;
+
+                continue;
+            }
+
+            if (!$stopParsing && str_starts_with($arg, '-')) {
+                return ['pattern' => '', 'inputValue' => null, 'format' => $format, 'redosMode' => $redosMode, 'redosThreshold' => $redosThreshold, 'confirmOptions' => null, 'error' => 'Unknown option: '.$arg];
+            }
+
+            if ('' === $pattern) {
+                $pattern = $arg;
+
+                continue;
+            }
+        }
+
+        if ('' === $pattern) {
+            return ['pattern' => '', 'inputValue' => null, 'format' => $format, 'redosMode' => $redosMode, 'redosThreshold' => $redosThreshold, 'confirmOptions' => null, 'error' => 'Missing pattern.'];
+        }
+
+        if (!\in_array($format, ['console', 'json'], true)) {
+            return ['pattern' => '', 'inputValue' => null, 'format' => $format, 'redosMode' => $redosMode, 'redosThreshold' => $redosThreshold, 'confirmOptions' => null, 'error' => 'Invalid value for --format.'];
+        }
+
+        if ($disableJit) {
+            $confirmOptions = new ReDoSConfirmOptions(disableJit: true);
+        }
+
+        return [
+            'pattern' => $pattern,
+            'inputValue' => $inputValue,
+            'format' => $format,
+            'redosMode' => $redosMode,
+            'redosThreshold' => $redosThreshold,
+            'confirmOptions' => $confirmOptions,
+            'error' => null,
+        ];
+    }
+
+    private function formatRedosSeverity(ReDoSAnalysis $analysis, Output $output): string
+    {
+        $label = strtoupper($analysis->severity->value);
+
+        $color = match ($analysis->severity) {
+            ReDoSSeverity::SAFE, ReDoSSeverity::LOW => $output->success($label),
+            ReDoSSeverity::MEDIUM => $output->warning($label),
+            ReDoSSeverity::HIGH, ReDoSSeverity::CRITICAL => $analysis->isConfirmed()
+                ? $output->error($label)
+                : $output->warning($label),
+            ReDoSSeverity::UNKNOWN => $output->info($label),
+        };
+
+        return $color;
     }
 }

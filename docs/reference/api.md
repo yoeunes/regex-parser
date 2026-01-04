@@ -203,33 +203,40 @@ echo $report->highlighted;        // Syntax-highlighted pattern
 
 ---
 
-### redos(string $regex, ?ReDoSSeverity $threshold = null): ReDoSAnalysis
+### redos(string $regex, ?ReDoSSeverity $threshold = null, ReDoSMode $mode = ReDoSMode::THEORETICAL, ?ReDoSConfirmOptions $confirmOptions = null): ReDoSAnalysis
 
-Analyzes ReDoS risk without an analysis report. Use this for quick safety checks.
+Analyzes ReDoS risk without an analysis report. Default mode is **theoretical** (structural). Use **confirmed** mode to attempt bounded evidence collection.
 
 ```php
 use RegexParser\Regex;
+use RegexParser\ReDoS\ReDoSMode;
 
-$analysis = Regex::create()->redos('/(a+)+b/');
+$analysis = Regex::create()->redos('/(a+)+b/', mode: ReDoSMode::THEORETICAL);
 
 echo $analysis->severity->value;       // 'critical', 'safe', etc.
 echo $analysis->score;                 // int (0-10)
-echo $analysis->confidence->value;     // 'high', 'medium', 'low'
+echo $analysis->confidenceLevel()->value; // 'high', 'medium', 'low'
 echo $analysis->vulnerablePart;        // Subpattern causing risk
 echo $analysis->recommendations[0];    // Suggested fix
+
+// Optional: bounded confirmation
+$confirmed = Regex::create()->redos('/(a+)+b/', mode: ReDoSMode::CONFIRMED);
+echo $confirmed->isConfirmed() ? 'confirmed' : 'theoretical';
 ```
 
 **ReDoSAnalysis Fields:**
 
-| Field              | Type          | Description           |
-|--------------------|---------------|-----------------------|
-| `severity`         | ReDoSSeverity | Risk level            |
-| `score`            | int           | Risk score (0-10)     |
-| `confidence`       | Confidence    | Analysis confidence   |
-| `vulnerablePart`   | string\|null  | Vulnerable subpattern |
-| `recommendations`  | array         | Suggested fixes       |
-| `hotspots`         | array         | Problem locations     |
-| `suggestedRewrite` | string\|null  | Safer alternative     |
+| Field              | Type              | Description                              |
+|--------------------|-------------------|------------------------------------------|
+| `severity`         | ReDoSSeverity      | Risk level                                |
+| `score`            | int               | Risk score (0-10)                         |
+| `mode`             | ReDoSMode          | off, theoretical, or confirmed            |
+| `confidence`       | Confidence         | Analysis confidence (use `confidenceLevel()`) |
+| `confirmation`     | ReDoSConfirmation\|null | Bounded evidence details              |
+| `vulnerablePart`   | string\|null       | Risky subpattern                          |
+| `recommendations`  | array              | Suggested fixes (verify behavior)         |
+| `hotspots`         | array              | Problem locations                         |
+| `suggestedRewrite` | string\|null       | Suggested rewrite (verify behavior)       |
 
 ---
 

@@ -62,10 +62,10 @@ if (!$result->isValid()) {
     return;
 }
 
-// Check for ReDoS
+// Check for potential ReDoS risk
 $analysis = $regex->redos($pattern);
 if ($analysis->severity->value !== 'safe') {
-    throw new RuntimeException("Pattern has ReDoS vulnerability");
+    throw new RuntimeException("Pattern has potential ReDoS risk");
 }
 
 // Use safely
@@ -346,7 +346,7 @@ echo $regex->explain($pattern);
 1. **Production patterns** need anchors (`^...$`) for exact matching
 2. **Use named groups** for clarity and maintainability
 3. **Validate format first**, then validate logic separately
-4. **Always check ReDoS** before using patterns
+4. **Always check ReDoS risk** before using patterns
 5. **Lookaheads** are great for validation without consuming
 
 ---
@@ -369,7 +369,7 @@ Tutorial summary:
 ### Next Steps
 
 - **[Cookbook](../COOKBOOK.md)** - More pattern examples
-- **[ReDoS Guide](../REDOS_GUIDE.md)** - Deep dive on security
+- **[ReDoS Guide](../REDOS_GUIDE.md)** - Deep dive on risk and mitigation
 - **[API Reference](../reference/api.md)** - API documentation
 - Apply what you've learned in your own project
 

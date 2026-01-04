@@ -34,14 +34,40 @@ final class ReDoSAnalyzer
          */
         private array $ignoredPatterns = [],
         private readonly ReDoSSeverity $threshold = ReDoSSeverity::HIGH,
+        private readonly ?ReDoSConfirmationRunnerInterface $confirmationRunner = null,
     ) {
         $this->ignoredPatterns = array_values(array_unique($this->ignoredPatterns));
         $this->ignoredPatternsNormalized = $this->normalizeIgnoredPatterns($this->ignoredPatterns);
     }
 
-    public function analyze(string $regex, ?ReDoSSeverity $threshold = null): ReDoSAnalysis
+    public function analyze(
+        string $regex,
+        ?ReDoSSeverity $threshold = null,
+        ReDoSMode $mode = ReDoSMode::THEORETICAL,
+        ?ReDoSConfirmOptions $confirmOptions = null,
+    ): ReDoSAnalysis
     {
         $threshold ??= $this->threshold;
+
+        if (ReDoSMode::OFF === $mode) {
+            return new ReDoSAnalysis(
+                ReDoSSeverity::SAFE,
+                0,
+                null,
+                [],
+                null,
+                null,
+                null,
+                ReDoSConfidence::LOW,
+                null,
+                [],
+                null,
+                null,
+                [],
+                ReDoSMode::OFF,
+                null,
+            );
+        }
 
         if ($this->shouldIgnore($regex)) {
             return new ReDoSAnalysis(
@@ -55,6 +81,11 @@ final class ReDoSAnalyzer
                 ReDoSConfidence::LOW,
                 null,
                 [],
+                null,
+                null,
+                [],
+                $mode,
+                null,
             );
         }
 
@@ -64,8 +95,9 @@ final class ReDoSAnalyzer
             $ast->accept($visitor);
 
             $result = $visitor->getResult();
+            $confidence = $result['confidence'] ?? ReDoSConfidence::LOW;
 
-            return new ReDoSAnalysis(
+            $analysis = new ReDoSAnalysis(
                 $result['severity'],
                 match ($result['severity']) {
                     ReDoSSeverity::SAFE => 0,
@@ -80,13 +112,44 @@ final class ReDoSAnalyzer
                 null,
                 $result['vulnerablePattern'],
                 $result['trigger'],
-                $result['confidence'],
+                $confidence,
                 $result['falsePositiveRisk'],
                 array_values($result['findings']),
                 $result['suggestedRewrite'] ?? null,
                 culpritNode: $visitor->getCulpritNode(),
                 hotspots: $visitor->getHotspots(),
+                mode: $mode,
+                confirmation: null,
             );
+
+            if (ReDoSMode::CONFIRMED === $mode && $analysis->exceedsThreshold($threshold)) {
+                $runner = $this->confirmationRunner ?? new ReDoSConfirmationRunner();
+                $confirmation = $runner->confirm($regex, $analysis, $confirmOptions);
+                $confirmedConfidence = $analysis->confidenceLevel();
+                if ($confirmation->confirmed && ReDoSConfidence::HIGH !== $confirmedConfidence) {
+                    $confirmedConfidence = ReDoSConfidence::HIGH;
+                }
+
+                return new ReDoSAnalysis(
+                    $analysis->severity,
+                    $analysis->score,
+                    $analysis->vulnerablePart,
+                    $analysis->recommendations,
+                    $analysis->error,
+                    $analysis->vulnerableSubpattern,
+                    $analysis->trigger,
+                    $confirmedConfidence,
+                    $analysis->falsePositiveRisk,
+                    $analysis->findings,
+                    $analysis->suggestedRewrite,
+                    culpritNode: $analysis->getCulpritNode(),
+                    hotspots: $analysis->hotspots,
+                    mode: $mode,
+                    confirmation: $confirmation,
+                );
+            }
+
+            return $analysis;
         } catch (\Throwable $e) {
             return new ReDoSAnalysis(
                 ReDoSSeverity::UNKNOWN,
@@ -102,6 +165,8 @@ final class ReDoSAnalyzer
                 null,
                 null,
                 [],
+                $mode,
+                null,
             );
         }
     }

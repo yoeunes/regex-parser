@@ -127,7 +127,7 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
                 $suggestedRewrite = $vuln->suggestedRewrite;
             }
             $recommendations[] = null !== $vuln->suggestedRewrite
-                ? $vuln->message.' Hint: '.$vuln->suggestedRewrite
+                ? $vuln->message.' Suggested (verify behavior): '.$vuln->suggestedRewrite
                 : $vuln->message;
         }
 
@@ -325,7 +325,7 @@ final class ReDoSProfileNodeVisitor extends AbstractNodeVisitor
             $severity = $hasRecursion ? ReDoSSeverity::MEDIUM : ReDoSSeverity::CRITICAL;
             $this->addVulnerability(
                 $vulnSeverity,
-                'Critical nesting of quantifiers detected (Star Height > 1). This is a classic ReDoS vulnerability. Refactor the pattern to avoid nested unbounded quantifiers over the same subpattern.',
+                'Critical nesting of quantifiers detected (Star Height > 1). This is a classic ReDoS risk. Refactor the pattern to avoid nested unbounded quantifiers over the same subpattern.',
                 $node,
                 'Use atomic groups or restructure the repetition to be deterministic.',
                 ReDoSConfidence::HIGH,

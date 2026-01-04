@@ -19,7 +19,7 @@ Without RegexParser:
 With RegexParser:
   - See plain English explanation
   - Validate syntax automatically
-  - Detect ReDoS vulnerabilities
+  - Detect potential ReDoS risk
   - Generate test strings
 ```
 
@@ -148,7 +148,7 @@ Start of string
 End of string (case-insensitive)
 ```
 
-### Step 3: Check for ReDoS
+### Step 3: Check for ReDoS Risk (Theoretical)
 
 ```php
 $analysis = $regex->redos($pattern);
@@ -157,7 +157,7 @@ echo "Severity: " . $analysis->severity->value . "\n";
 echo "Score: " . $analysis->score . "\n";
 
 if ($analysis->severity->value === 'safe') {
-    echo "Pattern is safe!\n";
+    echo "No structural ReDoS risk detected.\n";
 }
 ```
 
@@ -227,7 +227,7 @@ echo "'123abc' contains non-digit characters.\n";
 $pattern = '/[0-9]+/';  // Remove anchors
 ```
 
-### Issue 2: ReDoS Vulnerability
+### Issue 2: Potential ReDoS Risk
 
 ```php
 // Suspicious pattern
@@ -237,9 +237,9 @@ $pattern = '/(a+)+$/';
 $analysis = $regex->redos($pattern);
 
 echo "Severity: " . $analysis->severity->value . "\n";
-// Output: "critical"
+// Output: "critical" (structural severity)
 
-echo "Suggestion: " . $analysis->getRecommendations()[0] . "\n";
+echo "Suggestion (verify behavior): " . $analysis->getRecommendations()[0] . "\n";
 ```
 
 **Fix:**
