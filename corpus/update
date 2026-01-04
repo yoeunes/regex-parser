@@ -302,6 +302,146 @@ function runGit(string $repoPath, array $args, ?ConsoleStyle $io = null, bool $d
     return ['code' => $code, 'output' => $output];
 }
 
+function canUseDynamicProgress(bool $debug): bool
+{
+    return !$debug
+        && \function_exists('posix_isatty')
+        && posix_isatty(\STDOUT);
+}
+
+function renderProgress(int $current, int $total, bool $dynamic, bool $final = false): void
+{
+    $total = max(1, $total);
+    $ratio = min(1, $current / $total);
+    $width = 28;
+    $filled = (int) floor($ratio * $width);
+    $bar = str_repeat('#', $filled).str_repeat('-', $width - $filled);
+    $percent = str_pad((string) round($ratio * 100), 3, ' ', \STR_PAD_LEFT);
+    $line = sprintf('  [%s] %s%% %d/%d', $bar, $percent, $current, $total);
+
+    if ($dynamic) {
+        echo "\r\033[2K".$line;
+        if ($final) {
+            echo PHP_EOL;
+        }
+
+        return;
+    }
+
+    echo $line.PHP_EOL;
+}
+
+function getCurrentBranch(string $repoPath, ?ConsoleStyle $io = null, bool $debug = false): ?string
+{
+    $result = runGit($repoPath, ['rev-parse', '--abbrev-ref', 'HEAD'], $io, $debug);
+    if (0 !== $result['code']) {
+        return null;
+    }
+
+    $branch = trim($result['output']);
+    if ('' === $branch || 'HEAD' === $branch) {
+        return null;
+    }
+
+    return $branch;
+}
+
+function getUpstreamRef(string $repoPath, ?ConsoleStyle $io = null, bool $debug = false): ?string
+{
+    $result = runGit($repoPath, ['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{u}'], $io, $debug);
+    if (0 !== $result['code']) {
+        return null;
+    }
+
+    $ref = trim($result['output']);
+
+    return '' === $ref ? null : $ref;
+}
+
+function remoteExists(string $repoPath, string $remote, ?ConsoleStyle $io = null, bool $debug = false): bool
+{
+    $result = runGit($repoPath, ['remote', 'get-url', $remote], $io, $debug);
+
+    return 0 === $result['code'] && '' !== trim($result['output']);
+}
+
+function getBranchRemote(string $repoPath, string $branch, ?ConsoleStyle $io = null, bool $debug = false): ?string
+{
+    $result = runGit($repoPath, ['config', '--get', 'branch.'.$branch.'.remote'], $io, $debug);
+    if (0 === $result['code']) {
+        $remote = trim($result['output']);
+        if ('' !== $remote) {
+            return $remote;
+        }
+    }
+
+    return remoteExists($repoPath, 'origin', $io, $debug) ? 'origin' : null;
+}
+
+function getBranchMergeRef(string $repoPath, string $branch, ?ConsoleStyle $io = null, bool $debug = false): ?string
+{
+    $result = runGit($repoPath, ['config', '--get', 'branch.'.$branch.'.merge'], $io, $debug);
+    if (0 !== $result['code']) {
+        return null;
+    }
+
+    $mergeRef = trim($result['output']);
+
+    return '' === $mergeRef ? null : $mergeRef;
+}
+
+function normalizeMergeRef(string $mergeRef): string
+{
+    $mergeRef = trim($mergeRef);
+    $prefix = 'refs/heads/';
+    if (str_starts_with($mergeRef, $prefix)) {
+        return substr($mergeRef, \strlen($prefix));
+    }
+
+    return $mergeRef;
+}
+
+/**
+ * @return array{ok: bool, args?: array<int, string>, command?: string, note?: string, message?: string}
+ */
+function resolvePullCommand(string $repoPath, ?ConsoleStyle $io = null, bool $debug = false): array
+{
+    $upstream = getUpstreamRef($repoPath, $io, $debug);
+    if (null !== $upstream) {
+        return [
+            'ok' => true,
+            'args' => ['pull', '--rebase'],
+            'command' => 'git pull --rebase',
+        ];
+    }
+
+    $branch = getCurrentBranch($repoPath, $io, $debug);
+    if (null === $branch) {
+        return [
+            'ok' => false,
+            'message' => 'Detached HEAD or unable to determine current branch.',
+        ];
+    }
+
+    $remote = getBranchRemote($repoPath, $branch, $io, $debug);
+    if (null === $remote) {
+        return [
+            'ok' => false,
+            'message' => 'No git remote found for branch '.$branch.'.',
+        ];
+    }
+
+    $mergeRef = getBranchMergeRef($repoPath, $branch, $io, $debug);
+    $remoteBranch = null !== $mergeRef ? normalizeMergeRef($mergeRef) : $branch;
+
+    return [
+        'ok' => true,
+        'args' => ['pull', '--rebase', $remote, $remoteBranch],
+        'command' => 'git pull --rebase '.$remote.' '.$remoteBranch,
+        'note' => 'No upstream configured; pulling '.$remote.'/'.$remoteBranch.'.',
+    ];
+}
+
 /**
  * @return array{status: string, proceed: bool, message: string}
  */
