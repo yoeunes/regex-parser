@@ -314,6 +314,7 @@
   corpus/server/core/Migrations/Version13000Date20170718121200.php:1021:15
       → /(calendar)\/([A-z0-9-@_]+)\//
      WARN  Redundant elements detected in character class.
+         ↳ Redundant elements: '_' (covered by range 'A'-'z')
      WARN  Suspicious ASCII range "A-z" includes non-letters between "A" and "z" in ASCII order.
          ↳ Use separate ranges like [A-Z] and [a-z] (or combine as [A-Za-z]).
 
@@ -363,7 +364,7 @@
       → /(.*)@\[.*\]/i
      WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
 
-  corpus/server/build/integration/features/bootstrap/BasicStructure.php:292:45
+  corpus/server/build/integration/features/bootstrap/BasicStructure.php:272:45
       → /(.*)data-requesttoken="(.*)">(.*)/sm
      WARN  Flag 'm' is useless: pattern '/(.*)data-requesttoken="(.*)">(.*)/sm' contains no anchors.
      TIP 
@@ -377,7 +378,7 @@
          - /^## (?:\[)?(?:v)?(\d+\.\d+(\.\d+)?)/m
          + /^## \[?v?(\d+\.\d+(\.\d+)?)/m
 
-  corpus/server/apps/theming/lib/Controller/ThemingController.php:411:19
+  corpus/server/apps/theming/lib/Controller/ThemingController.php:430:19
       → /(@[^{]+{(?:[^{}]*|(?R))*})/
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
@@ -386,7 +387,7 @@
          + /(@[^{]+{(?>(?:[^{}]*|(?R)))*})/
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
 
-  corpus/server/apps/theming/lib/Controller/ThemingController.php:413:30
+  corpus/server/apps/theming/lib/Controller/ThemingController.php:432:30
       → /(@[^{]+{(?:[^{}]*|(?R))*})/
      WARN  Nested quantifiers can cause catastrophic backtracking.
          ↳ Consider using atomic groups (?>...) or possessive quantifiers.
@@ -456,6 +457,7 @@
   corpus/elementor/php-scoper/twig-inc.php:34:5
       → /("use )([A-z\\]+;[\\n]*")/
      WARN  Redundant elements detected in character class.
+         ↳ Redundant elements: '\\' (covered by range 'A'-'z')
      WARN  Suspicious ASCII range "A-z" includes non-letters between "A" and "z" in ASCII order.
          ↳ Use separate ranges like [A-Z] and [a-z] (or combine as [A-Za-z]).
 
@@ -550,6 +552,13 @@
          + /^([a-z\d](-*[a-z\d])*)(?>(\.([a-z\d](-*[a-z\d])*)))*\.?$/i
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
 
+  corpus/aws-sdk-php/src/CloudFront/Signer.php:83:36
+      → /\s/s
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /\s/s
+         + /\s/
+
   corpus/filament/packages/support/src/SupportServiceProvider.php:168:33
       → /\s*@trim\s*/m
      WARN  Flag 'm' is useless: pattern '/\s*@trim\s*/m' contains no anchors.
@@ -568,6 +577,7 @@
   corpus/espocrm/application/Espo/Core/Mail/Account/GroupAccount/BouncedRecognizer.php:89:24
       → /permanent[ ]*[error|failure]/
      WARN  Redundant elements detected in character class.
+         ↳ Redundant elements: 'r' (duplicate), 'e' (duplicate)
      WARN  Character class contains "|" which is literal inside []. It looks like an alternation typo.
          ↳ Did you mean an alternation like "(error|failure)" instead of a character class?
 
@@ -644,6 +654,7 @@
   corpus/Wixel/GUMP/gump.class.php:1703:27
       → /^([a-z \p{L} '-])+$/i
      WARN  Redundant elements detected in character class.
+         ↳ Redundant elements: ' ' (duplicate)
 
   corpus/Wixel/GUMP/gump.class.php:1746:25
       → /\A[A-Z]{2}\d{2} ?[A-Z\d]{4}( ?\d{4}){1,} ?\d{1,4}\z/
@@ -990,6 +1001,7 @@
   corpus/mpdf/src/Shaper/Myanmar.php:274:19
       → /^(RaH)?([C|R]|V|d|D)[s]?(H([C|R|V])[s]?)*(H|[a]*[n]?[l]?((m[k]?|k)[a]?)?[e]*[v]*[b]*[A]*(N[a]?)?(t[k]?[a]*[v]*[A]*(N[a]?)?)*(p[A]*(N[a]?)?)*S*[J|Z]?)/
      WARN  Redundant elements detected in character class.
+         ↳ Redundant elements: '|' (duplicate)
 
   corpus/mpdf/src/Shaper/Indic.php:317:23
       → /^(RH|r)?((Z?F)?[N]{0,2})?(([ZJ]?G(JN?)?)[CR]J?((Z?F)?[N]{0,2})?){0,4}((([ZJ]?G(JN?)?)|GZ)|(GJ)?([ZJ]{0,3}MN?(H|JHJR)?){0,4})(G([CR]J?((Z?F)?[N]{0,2})?|V))?(SZ?)?[v]{0,2}/
@@ -1251,6 +1263,7 @@
   corpus/symfony/symfony/src/Symfony/Component/HttpClient/HttpClientTrait.php:372:28
       → {multipart/form-data; boundary=(?|"([^"\r\n]++)"|([-!#$%&'*+.^_`|~_A-Za-z0-9]++))}
      WARN  Redundant elements detected in character class.
+         ↳ Redundant elements: '_' (duplicate)
 
   corpus/symfony/symfony/src/Symfony/Component/Serializer/Encoder/XmlEncoder.php:225:27
       → #^[\pL_][\pL0-9._:-]*$#ui
@@ -1267,6 +1280,7 @@
   corpus/symfony/symfony/src/Symfony/Component/Notifier/Bridge/Telegram/TelegramTransport.php:102:34
       → /([.!#>+-=|{}~])/
      WARN  Redundant elements detected in character class.
+         ↳ Redundant elements: '.' (covered by range '+'-'=')
 
   corpus/symfony/symfony/src/Symfony/Component/ExpressionLanguage/Lexer.php:68:34
       → /"([^"\\]*(?:\\.[^"\\]*)*)"|'([^'\\]*(?:\\.[^'\\]*)*)'/As
@@ -1330,6 +1344,7 @@
   corpus/symfony/symfony/src/Symfony/Component/Routing/RouteCompiler.php:182:53
       → /[\x80-\xFF]|(?<!\\)\\(?:\\\\)*+(?-i:X|[pP][\{CLMNPSZ]|x\{[A-Fa-f0-9]{3})/
      WARN  Inline flag '-i' is redundant; the flag is not set globally.
+         ↳ Remove '-i' from the inline flag group; it has no effect unless the flag is enabled globally.
 
   corpus/symfony/symfony/src/Symfony/Component/Routing/Generator/UrlGenerator.php:175:93
       → /\(\?(?:=|<=|!|<!)((?:[^()\\]+|\\.|\((?1)\))*)\)/
@@ -1427,12 +1442,14 @@
   corpus/squizlabs/PHP_CodeSniffer/src/Tokenizers/JS.php:471:32
       → |[a-zA-z0-9_]|
      WARN  Redundant elements detected in character class.
+         ↳ Redundant elements: range 'A'-'z' (overlaps 'a'-'z'), '_' (covered by range 'A'-'z')
      WARN  Suspicious ASCII range "A-z" includes non-letters between "A" and "z" in ASCII order.
          ↳ Use separate ranges like [A-Z] and [a-z] (or combine as [A-Za-z]).
 
   corpus/squizlabs/PHP_CodeSniffer/src/Tokenizers/JS.php:473:31
       → |[a-zA-z0-9_]|
      WARN  Redundant elements detected in character class.
+         ↳ Redundant elements: range 'A'-'z' (overlaps 'a'-'z'), '_' (covered by range 'A'-'z')
      WARN  Suspicious ASCII range "A-z" includes non-letters between "A" and "z" in ASCII order.
          ↳ Use separate ranges like [A-Z] and [a-z] (or combine as [A-Za-z]).
 
@@ -1475,6 +1492,7 @@
   corpus/php-debugbar/src/DebugBar/DataFormatter/QueryFormatter.php:17:29
       → /\?(?=(?:[^'\\']*'[^'\']*')*[^'\\']*$)(?:\?)/
      WARN  Redundant elements detected in character class.
+         ↳ Redundant elements: '\'' (duplicate)
      WARN  Redundant non-capturing group; it can be removed without changing behavior.
      TIP 
          - /\?(?=(?:[^'\\']*'[^'\']*')*[^'\\']*$)(?:\?)/
@@ -1552,6 +1570,7 @@
          - /([A-Z]{2,3}[\,|\ \,]\ [0-9]{1,2}\ [A-Z]{2,3}\ [0-9]{4}\ [0-9]{1,2}\:[0-9]{1,2}\:[0-9]{1,2}.*)+$/i
          + /(?>([A-Z]{2,3}[\,|\ \,]\ [0-9]{1,2}\ [A-Z]{2,3}\ [0-9]{4}\ [0-9]{1,2}\:[0-9]{1,2}\:[0-9]{1,2}.*))+$/i
      WARN  Redundant elements detected in character class.
+         ↳ Redundant elements: ',' (duplicate)
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
 
   corpus/freescout/app/Misc/Mail.php:1138:66
@@ -1565,7 +1584,7 @@
          - /\s+/mu
          + /\s+/u
 
-  corpus/freescout/app/Misc/Helper.php:2047:33
+  corpus/freescout/app/Misc/Helper.php:2051:33
       → /([A-Z]{2,3}[\,|\ \,]\ [0-9]{1,2}\ [A-Z]{2,3}\ [0-9]{4}\ [0-9]{1,2}\:[0-9]{1,2}\:[0-9]{1,2}.*)+$/i
      WARN  An unbounded quantifier wraps a dot-star, which can cause severe backtracking.
          ↳ Refactor with atomic groups or a more specific character class.
@@ -1573,9 +1592,10 @@
          - /([A-Z]{2,3}[\,|\ \,]\ [0-9]{1,2}\ [A-Z]{2,3}\ [0-9]{4}\ [0-9]{1,2}\:[0-9]{1,2}\:[0-9]{1,2}.*)+$/i
          + /(?>([A-Z]{2,3}[\,|\ \,]\ [0-9]{1,2}\ [A-Z]{2,3}\ [0-9]{4}\ [0-9]{1,2}\:[0-9]{1,2}\:[0-9]{1,2}.*))+$/i
      WARN  Redundant elements detected in character class.
+         ↳ Redundant elements: ',' (duplicate)
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
 
-  corpus/freescout/app/Misc/Helper.php:2130:41
+  corpus/freescout/app/Misc/Helper.php:2134:41
       → /enable/m
      WARN  Flag 'm' is useless: pattern '/enable/m' contains no anchors.
      TIP 
@@ -1672,6 +1692,7 @@
   corpus/laravel/framework/src/Illuminate/Support/Env.php:190:35
       → /^[a-zA-z0-9]+$/
      WARN  Redundant elements detected in character class.
+         ↳ Redundant elements: range 'A'-'z' (overlaps 'a'-'z')
      WARN  Suspicious ASCII range "A-z" includes non-letters between "A" and "z" in ASCII order.
          ↳ Use separate ranges like [A-Z] and [a-z] (or combine as [A-Za-z]).
 
@@ -1682,6 +1703,7 @@
   corpus/laravel/framework/src/Illuminate/Console/View/Components/Task.php:32:52
       → /\<[\w=#\/\;,:.&,%?]+\>|\e\[\d+m/
      WARN  Redundant elements detected in character class.
+         ↳ Redundant elements: ',' (duplicate)
 
   corpus/PHP-CSS-Parser/src/Value/CSSString.php:59:31
       → /[\s{}()<>\[\]]/isu
@@ -1699,7 +1721,7 @@
          - /\s/isSu
          + /\s/iSu
 
-  corpus/PHP-CSS-Parser/src/Parsing/ParserState.php:200:31
+  corpus/PHP-CSS-Parser/src/Parsing/ParserState.php:204:31
       → /\s/isSu
      WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
      WARN  Flag 's' is useless: the pattern contains no dots.
@@ -1781,24 +1803,6 @@
      TIP 
          - /\[?(?:\320\274\320\270\320\275\321\203\320\273\320\276\321\227|\320\275\320\260\321\201\321\202\321\203\320\277\320\275\320\276\321\227)?\s*\]\s+dddd/u
          + /\[?(?:\320\274\320\270\320\275\321\203\320\273\320\276\321\227|\320\275\320\260\321\201\321\202\321\203\320\277\320\275\320\276\321\227)?\s*]\s+d{4}/u
-
-  corpus/server/lib/composer/yoeunes/regex-parser/src/NodeVisitor/CompilerNodeVisitor.php:344:54
-      → /^[A-Za-z_][A-Za-z0-9_]*+$/
-     TIP 
-         - /^[A-Za-z_][A-Za-z0-9_]*+$/
-         + /^[A-Za-z_]\w*+$/
-
-  corpus/server/lib/composer/yoeunes/regex-parser/src/Parser.php:478:30
-      → /^[a-zA-Z_][a-zA-Z0-9_]*+$/
-     TIP 
-         - /^[a-zA-Z_][a-zA-Z0-9_]*+$/
-         + /^[a-zA-Z_]\w*+$/
-
-  corpus/server/lib/composer/yoeunes/regex-parser/src/Parser.php:1483:33
-      → /^[a-zA-Z0-9_]$/
-     TIP 
-         - /^[a-zA-Z0-9_]$/
-         + /^\w$/
 
   corpus/server/lib/private/Comments/Comment.php:196:24
       → /\B(?<![^a-z0-9_\-@\.\'\s])@("(guest|email)\/[a-f0-9]+"|"(?:federated_)?(?:group|team|user){1}\/[a-z0-9_\-@\.\' \/:]+"|"[a-z0-9_\-@\.\' ]+"|[a-z0-9_\-@\.\']+)/i
