@@ -69,61 +69,53 @@ final class LinterLogicRulesTest extends TestCase
     }
 
     /**
-     * @return array<string, array{string, bool}>
+     * @return \Iterator<string, array{string, bool}>
      */
-    public static function provideEmptyAlternativePatterns(): array
+    public static function provideEmptyAlternativePatterns(): \Iterator
     {
-        return [
-            'trailing empty' => ['/a|/', true],
-            'leading empty' => ['/|a/', true],
-            'double pipe' => ['/a||b/', true],
-            'explicit empty group' => ['/(?:)|a/', false],
-            'no alternation' => ['/a/', false],
-        ];
+        yield 'trailing empty' => ['/a|/', true];
+        yield 'leading empty' => ['/|a/', true];
+        yield 'double pipe' => ['/a||b/', true];
+        yield 'explicit empty group' => ['/(?:)|a/', false];
+        yield 'no alternation' => ['/a/', false];
     }
 
     /**
-     * @return array<string, array{string, bool}>
+     * @return \Iterator<string, array{string, bool}>
      */
-    public static function provideDuplicateDisjunctionPatterns(): array
+    public static function provideDuplicateDisjunctionPatterns(): \Iterator
     {
-        return [
-            'duplicate literal' => ['/a|a/', true],
-            'duplicate class' => ['/[ab]|[ab]/', true],
-            'duplicate non-capturing' => ['/(?:a)|(?:a)/', true],
-            'capturing groups skipped' => ['/(a)|(a)/', false],
-            'no duplicates' => ['/a|b/', false],
-        ];
+        yield 'duplicate literal' => ['/a|a/', true];
+        yield 'duplicate class' => ['/[ab]|[ab]/', true];
+        yield 'duplicate non-capturing' => ['/(?:a)|(?:a)/', true];
+        yield 'capturing groups skipped' => ['/(a)|(a)/', false];
+        yield 'no duplicates' => ['/a|b/', false];
     }
 
     /**
-     * @return array<string, array{string, bool}>
+     * @return \Iterator<string, array{string, bool}>
      */
-    public static function provideOptimalQuantifierConcatenationPatterns(): array
+    public static function provideOptimalQuantifierConcatenationPatterns(): \Iterator
     {
-        return [
-            'left subset right' => ['/\d+\w+/', true],
-            'right subset left' => ['/\w+\d+/', true],
-            'equal sets' => ['/a+a+/', true],
-            'bounded left' => ['/\w{3,5}\d*/', false],
-            'fixed right' => ['/\w+\d{4}/', false],
-            'capturing group' => ['/(a)+a+/', false],
-        ];
+        yield 'left subset right' => ['/\d+\w+/', true];
+        yield 'right subset left' => ['/\w+\d+/', true];
+        yield 'equal sets' => ['/a+a+/', true];
+        yield 'bounded left' => ['/\w{3,5}\d*/', false];
+        yield 'fixed right' => ['/\w+\d{4}/', false];
+        yield 'capturing group' => ['/(a)+a+/', false];
     }
 
     /**
-     * @return array<string, array{string, bool}>
+     * @return \Iterator<string, array{string, bool}>
      */
-    public static function provideUselessBackreferencePatterns(): array
+    public static function provideUselessBackreferencePatterns(): \Iterator
     {
-        return [
-            'forward reference' => ['/\1(a)/', true],
-            'nested backreference' => ['/(a\1)/', true],
-            'different alternative' => ['/(a)|\1/', true],
-            'empty group' => ['/(\\b)a\\1/', true],
-            'valid backreference' => ['/(a)\\1/', false],
-            'optional group' => ['/(a)?\\1/', false],
-        ];
+        yield 'forward reference' => ['/\1(a)/', true];
+        yield 'nested backreference' => ['/(a\1)/', true];
+        yield 'different alternative' => ['/(a)|\1/', true];
+        yield 'empty group' => ['/(\\b)a\\1/', true];
+        yield 'valid backreference' => ['/(a)\\1/', false];
+        yield 'optional group' => ['/(a)?\\1/', false];
     }
 
     /**

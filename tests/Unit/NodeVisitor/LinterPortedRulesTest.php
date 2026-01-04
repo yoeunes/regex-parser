@@ -69,59 +69,51 @@ final class LinterPortedRulesTest extends TestCase
     }
 
     /**
-     * @return array<string, array{string, bool}>
+     * @return \Iterator<string, array{string, bool}>
      */
-    public static function provideUselessRangePatterns(): array
+    public static function provideUselessRangePatterns(): \Iterator
     {
-        return [
-            'single char range' => ['/[\x61-\x61]/', true],
-            'adjacent range' => ['/[\x61-\x62]/', true],
-            'three chars range' => ['/[\x61-\x63]/', false],
-            'digit range' => ['/[\x30-\x39]/', false],
-        ];
+        yield 'single char range' => ['/[\x61-\x61]/', true];
+        yield 'adjacent range' => ['/[\x61-\x62]/', true];
+        yield 'three chars range' => ['/[\x61-\x63]/', false];
+        yield 'digit range' => ['/[\x30-\x39]/', false];
     }
 
     /**
-     * @return array<string, array{string, bool}>
+     * @return \Iterator<string, array{string, bool}>
      */
-    public static function provideDuplicateCharClassPatterns(): array
+    public static function provideDuplicateCharClassPatterns(): \Iterator
     {
-        return [
-            'digit class with range' => ['/[\d0-9]/', true],
-            'range with digit class' => ['/[0-9\d]/', true],
-            'word class with range' => ['/[\wA-Z]/', true],
-            'escaped literal duplicate' => ['/[\x41A]/', true],
-            'basic duplicate is handled elsewhere' => ['/[aa]/', false],
-            'no duplicates' => ['/[A-Z0-9_]/', false],
-            'unicode digit class is skipped' => ['/[\d0-9]/u', false],
-        ];
+        yield 'digit class with range' => ['/[\d0-9]/', true];
+        yield 'range with digit class' => ['/[0-9\d]/', true];
+        yield 'word class with range' => ['/[\wA-Z]/', true];
+        yield 'escaped literal duplicate' => ['/[\x41A]/', true];
+        yield 'basic duplicate is handled elsewhere' => ['/[aa]/', false];
+        yield 'no duplicates' => ['/[A-Z0-9_]/', false];
+        yield 'unicode digit class is skipped' => ['/[\d0-9]/u', false];
     }
 
     /**
-     * @return array<string, array{string, bool}>
+     * @return \Iterator<string, array{string, bool}>
      */
-    public static function provideZeroQuantifierPatterns(): array
+    public static function provideZeroQuantifierPatterns(): \Iterator
     {
-        return [
-            'zero quantifier' => ['/a{0}/', true],
-            'zero range quantifier' => ['/(?:a){0,0}/', true],
-            'zero quantifier in class' => ['/\\d{0}/', true],
-            'optional quantifier' => ['/a{0,1}/', false],
-            'unbounded quantifier' => ['/a{0,}/', false],
-        ];
+        yield 'zero quantifier' => ['/a{0}/', true];
+        yield 'zero range quantifier' => ['/(?:a){0,0}/', true];
+        yield 'zero quantifier in class' => ['/\\d{0}/', true];
+        yield 'optional quantifier' => ['/a{0,1}/', false];
+        yield 'unbounded quantifier' => ['/a{0,}/', false];
     }
 
     /**
-     * @return array<string, array{string, bool}>
+     * @return \Iterator<string, array{string, bool}>
      */
-    public static function provideUselessQuantifierPatterns(): array
+    public static function provideUselessQuantifierPatterns(): \Iterator
     {
-        return [
-            'constant one quantifier' => ['/a{1}/', true],
-            'explicit one range quantifier' => ['/(?:a){1,1}/', true],
-            'literal quantifier' => ['/a{2}/', false],
-            'plus quantifier' => ['/a+/', false],
-        ];
+        yield 'constant one quantifier' => ['/a{1}/', true];
+        yield 'explicit one range quantifier' => ['/(?:a){1,1}/', true];
+        yield 'literal quantifier' => ['/a{2}/', false];
+        yield 'plus quantifier' => ['/a+/', false];
     }
 
     /**

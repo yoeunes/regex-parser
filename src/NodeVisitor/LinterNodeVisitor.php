@@ -45,7 +45,6 @@ use RegexParser\Node\ScriptRunNode;
 use RegexParser\Node\SequenceNode;
 use RegexParser\Node\UnicodeNode;
 use RegexParser\Node\UnicodePropNode;
-use RegexParser\NodeVisitor\LengthRangeNodeVisitor;
 use RegexParser\ReDoS\CharSet;
 use RegexParser\ReDoS\CharSetAnalyzer;
 use RegexParser\Severity;
