@@ -252,8 +252,11 @@ final class LinterNodeVisitorTest extends TestCase
     public static function provideAnchorConflictCases(): \Generator
     {
         yield 'escaped dollar literal' => ['/foo\\$bar/', false, false];
+        yield 'escaped caret literal' => ['/foo\\^bar/', false, false];
         yield 'start anchor in sequence' => ['/foo^bar/', true, false];
         yield 'end anchor in sequence' => ['/$foo/', false, true];
+        yield 'pcre verb before anchor' => ['/(*MARK:foo)^bar/', false, false];
+        yield 'limit match verb before anchor' => ['/(*LIMIT_MATCH=10)^bar/', false, false];
         yield 'broken char class from corpus' => [
             trim(<<<'REGEX'
                 /.*?(\$(?![0-9])(?:[a-zA-Z0-9-_]|(?:\[!"#$%&'\(\)*+,.\/:;<=>?@\[\]^{|}~]))+)/

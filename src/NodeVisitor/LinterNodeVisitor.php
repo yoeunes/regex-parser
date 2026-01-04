@@ -34,9 +34,11 @@ use RegexParser\Node\DotNode;
 use RegexParser\Node\GroupNode;
 use RegexParser\Node\GroupType;
 use RegexParser\Node\KeepNode;
+use RegexParser\Node\LimitMatchNode;
 use RegexParser\Node\LiteralNode;
 use RegexParser\Node\NodeInterface;
 use RegexParser\Node\PosixClassNode;
+use RegexParser\Node\PcreVerbNode;
 use RegexParser\Node\QuantifierNode;
 use RegexParser\Node\QuantifierType;
 use RegexParser\Node\RangeNode;
@@ -1081,6 +1083,8 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
             || $node instanceof CalloutNode
             || $node instanceof ScriptRunNode
             || $node instanceof DefineNode
+            || $node instanceof PcreVerbNode
+            || $node instanceof LimitMatchNode
         ) {
             return true;
         }
