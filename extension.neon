@@ -9,11 +9,12 @@ parametersSchema:
         # Enable/disable regex optimization suggestions
         suggestOptimizations: bool(),
         # Configuration for specific optimizations
-         optimizationConfig: structure([
-             digits: bool(),
-             word: bool(),
-             ranges: bool()
-         ])
+        optimizationConfig: structure([
+            digits: bool(),
+            word: bool(),
+            ranges: bool(),
+            canonicalizeCharClasses: bool()
+        ])
     ])
 
 parameters:
@@ -36,6 +37,7 @@ parameters:
             digits: true
             word: true
             ranges: true
+            canonicalizeCharClasses: true
 
 services:
     # Main regex validation rule for PHPStan

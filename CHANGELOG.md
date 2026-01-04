@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added `canonicalizeCharClasses` optimization toggle for character class normalization (CLI config, PHPStan, Symfony bundle).
+
+### Changed
+- Optimization output now preserves the original pattern body when only flags are removed, reducing escape-only diff noise.
+- Symfony bundle now exposes default lint optimization settings via `regex_parser.optimizations`.
+
+### Documentation
+- Documented `canonicalizeCharClasses` in the CLI config and optimize API.
+
+### Tests
+- Added data-provider coverage for canonicalization toggles, anchor conflict cases, and flag-only optimization outputs.
+
 ## [1.0.9] - 2026-01-03
 
 ### Changed

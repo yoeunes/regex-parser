@@ -173,6 +173,7 @@ final class LintConfigLoader
                 'digits' => 'digits',
                 'word' => 'word',
                 'ranges' => 'ranges',
+                'canonicalizeCharClasses' => 'canonicalizeCharClasses',
                 'possessive' => 'autoPossessify',
                 'factorize' => 'allowAlternationFactorization',
             ];

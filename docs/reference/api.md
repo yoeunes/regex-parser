@@ -246,6 +246,7 @@ $result = Regex::create()->optimize('/[0-9]+/', [
     'digits' => true,              // [0-9] -> \d
     'word' => true,                // [A-Za-z0-9_] -> \w
     'ranges' => true,              // Normalize ranges
+    'canonicalizeCharClasses' => true, // Normalize character class order/dedup
     'autoPossessify' => false,     // Add possessive quantifiers
     'allowAlternationFactorization' => false,  // Factor common parts
     'minQuantifierCount' => 4,     // Use {n} only when repetition >= 4

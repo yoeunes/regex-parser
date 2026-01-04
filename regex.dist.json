@@ -12,6 +12,7 @@
     "digits": false,
     "word": true,
     "ranges": true,
+    "canonicalizeCharClasses": false,
     "possessive": false,
     "factorize": false,
     "minQuantifierCount": 4

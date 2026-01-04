@@ -104,17 +104,17 @@ final class RegexParserRule implements Rule
     private ?RegexAnalysisService $analysis = null;
 
     /**
-     * @param bool                                                                    $ignoreParseErrors  Ignore parse errors for partial regex strings
-     * @param bool                                                                    $reportRedos        Report ReDoS vulnerability analysis
-     * @param string                                                                  $redosThreshold     Minimum ReDoS severity level to report
-     * @param array{digits: bool, word: bool, ranges: bool, minQuantifierCount?: int} $optimizationConfig
+     * @param bool                                                                                                    $ignoreParseErrors  Ignore parse errors for partial regex strings
+     * @param bool                                                                                                    $reportRedos        Report ReDoS vulnerability analysis
+     * @param string                                                                                                  $redosThreshold     Minimum ReDoS severity level to report
+     * @param array{digits: bool, word: bool, ranges: bool, canonicalizeCharClasses?: bool, minQuantifierCount?: int} $optimizationConfig
      */
     public function __construct(
         private readonly bool $ignoreParseErrors = true,
         private readonly bool $reportRedos = true,
         private readonly string $redosThreshold = 'high',
         private readonly bool $suggestOptimizations = false,
-        private readonly array $optimizationConfig = ['digits' => true, 'word' => true, 'ranges' => true],
+        private readonly array $optimizationConfig = ['digits' => true, 'word' => true, 'ranges' => true, 'canonicalizeCharClasses' => true],
     ) {}
 
     public function getNodeType(): string

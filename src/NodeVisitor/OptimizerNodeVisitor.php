@@ -70,6 +70,7 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
         private readonly bool $optimizeDigits = true,
         private readonly bool $optimizeWord = true,
         private readonly bool $ranges = true,
+        private readonly bool $canonicalizeCharClasses = true,
         /**
          * Whether to automatically convert greedy quantifiers to possessive
          * when followed by a disjoint character set. This is safe in most cases
@@ -388,8 +389,10 @@ final class OptimizerNodeVisitor extends AbstractNodeVisitor
             }
         }
 
-        [$optimizedParts, $normalizedChanged] = $this->normalizeCharClassParts($optimizedParts);
-        $hasChanged = $hasChanged || $normalizedChanged;
+        if ($this->canonicalizeCharClasses) {
+            [$optimizedParts, $normalizedChanged] = $this->normalizeCharClassParts($optimizedParts);
+            $hasChanged = $hasChanged || $normalizedChanged;
+        }
 
         if ($hasChanged) {
             if (1 === \count($optimizedParts)) {

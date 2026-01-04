@@ -1,1 +1,1 @@
-{"optimizations":{"digits":false,"word":true,"ranges":true,"possessive":false,"factorize":false}}
+{"optimizations":{"digits":false,"word":true,"ranges":true,"canonicalizeCharClasses":false,"possessive":false,"factorize":false}}

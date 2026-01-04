@@ -133,8 +133,8 @@ final readonly class RegexAnalysisService
     }
 
     /**
-     * @param array<RegexPatternOccurrence>                                                                                                           $patterns
-     * @param array{digits?: bool, word?: bool, ranges?: bool, autoPossessify?: bool, allowAlternationFactorization?: bool, minQuantifierCount?: int} $optimizationConfig
+     * @param array<RegexPatternOccurrence>                                                                                                                                           $patterns
+     * @param array{digits?: bool, word?: bool, ranges?: bool, canonicalizeCharClasses?: bool, autoPossessify?: bool, allowAlternationFactorization?: bool, minQuantifierCount?: int} $optimizationConfig
      *
      * @return array<array{
      *     file: string,
@@ -465,8 +465,8 @@ final readonly class RegexAnalysisService
     }
 
     /**
-     * @param array<RegexPatternOccurrence>                                                                                                           $patterns
-     * @param array{digits?: bool, word?: bool, ranges?: bool, autoPossessify?: bool, allowAlternationFactorization?: bool, minQuantifierCount?: int} $optimizationConfig
+     * @param array<RegexPatternOccurrence>                                                                                                                                           $patterns
+     * @param array{digits?: bool, word?: bool, ranges?: bool, canonicalizeCharClasses?: bool, autoPossessify?: bool, allowAlternationFactorization?: bool, minQuantifierCount?: int} $optimizationConfig
      *
      * @return array<array{
      *     file: string,
@@ -499,6 +499,7 @@ final readonly class RegexAnalysisService
                         optimizeDigits: (bool) ($optimizationConfig['digits'] ?? true),
                         optimizeWord: (bool) ($optimizationConfig['word'] ?? true),
                         ranges: (bool) ($optimizationConfig['ranges'] ?? true),
+                        canonicalizeCharClasses: (bool) ($optimizationConfig['canonicalizeCharClasses'] ?? true),
                         autoPossessify: (bool) ($optimizationConfig['autoPossessify'] ?? false),
                         allowAlternationFactorization: false,
                         minQuantifierCount: (int) ($optimizationConfig['minQuantifierCount'] ?? 4),

@@ -38,6 +38,15 @@ final class ConfigurationTest extends TestCase
          *         warning_threshold: int,
          *         redos_threshold: int,
          *         ignore_patterns: array<int, string>
+         *     },
+         *     optimizations: array{
+         *         digits: bool,
+         *         word: bool,
+         *         ranges: bool,
+         *         canonicalize_char_classes: bool,
+         *         possessive: bool,
+         *         factorize: bool,
+         *         min_quantifier_count: int
          *     }
          * } $config
          */
@@ -51,6 +60,13 @@ final class ConfigurationTest extends TestCase
         $this->assertSame(50, $config['analysis']['warning_threshold']);
         $this->assertSame(100, $config['analysis']['redos_threshold']);
         $this->assertSame([], $config['analysis']['ignore_patterns']);
+        $this->assertTrue($config['optimizations']['digits']);
+        $this->assertTrue($config['optimizations']['word']);
+        $this->assertTrue($config['optimizations']['ranges']);
+        $this->assertTrue($config['optimizations']['canonicalize_char_classes']);
+        $this->assertFalse($config['optimizations']['possessive']);
+        $this->assertFalse($config['optimizations']['factorize']);
+        $this->assertSame(4, $config['optimizations']['min_quantifier_count']);
     }
 
     public function test_custom_configuration(): void
@@ -71,6 +87,15 @@ final class ConfigurationTest extends TestCase
          *         warning_threshold: int,
          *         redos_threshold: int,
          *         ignore_patterns: array<int, string>
+         *     },
+         *     optimizations: array{
+         *         digits: bool,
+         *         word: bool,
+         *         ranges: bool,
+         *         canonicalize_char_classes: bool,
+         *         possessive: bool,
+         *         factorize: bool,
+         *         min_quantifier_count: int
          *     }
          * } $config
          */
@@ -84,6 +109,15 @@ final class ConfigurationTest extends TestCase
                 'warning_threshold' => 1,
                 'redos_threshold' => 2,
                 'ignore_patterns' => ['foo', 'bar'],
+            ],
+            'optimizations' => [
+                'digits' => false,
+                'word' => false,
+                'ranges' => false,
+                'canonicalize_char_classes' => false,
+                'possessive' => true,
+                'factorize' => true,
+                'min_quantifier_count' => 6,
             ],
         ]]);
 
@@ -107,5 +141,12 @@ final class ConfigurationTest extends TestCase
         $this->assertSame(['foo', 'bar'], $config['analysis']['ignore_patterns'] ?? []);
         $this->assertSame(1, $config['analysis']['warning_threshold'] ?? 0);
         $this->assertSame(2, $config['analysis']['redos_threshold'] ?? 'high');
+        $this->assertFalse($config['optimizations']['digits']);
+        $this->assertFalse($config['optimizations']['word']);
+        $this->assertFalse($config['optimizations']['ranges']);
+        $this->assertFalse($config['optimizations']['canonicalize_char_classes']);
+        $this->assertTrue($config['optimizations']['possessive']);
+        $this->assertTrue($config['optimizations']['factorize']);
+        $this->assertSame(6, $config['optimizations']['min_quantifier_count']);
     }
 }

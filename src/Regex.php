@@ -59,7 +59,6 @@ use RegexParser\NodeVisitor\HtmlExplainNodeVisitor;
 use RegexParser\NodeVisitor\HtmlHighlighterVisitor;
 use RegexParser\NodeVisitor\LinterNodeVisitor;
 use RegexParser\NodeVisitor\LiteralExtractorNodeVisitor;
-use RegexParser\NodeVisitor\NodeVisitorInterface;
 use RegexParser\NodeVisitor\OptimizerNodeVisitor;
 use RegexParser\NodeVisitor\SampleGeneratorNodeVisitor;
 use RegexParser\NodeVisitor\ValidatorNodeVisitor;
@@ -382,8 +381,8 @@ final readonly class Regex
     /**
      * Optimize a regular expression for better performance.
      *
-     * @param string                                                                                                                                  $regex   The regular expression to optimize
-     * @param array{digits?: bool, word?: bool, ranges?: bool, autoPossessify?: bool, allowAlternationFactorization?: bool, minQuantifierCount?: int} $options Optimization options
+     * @param string                                                                                                                                                                  $regex   The regular expression to optimize
+     * @param array{digits?: bool, word?: bool, ranges?: bool, canonicalizeCharClasses?: bool, autoPossessify?: bool, allowAlternationFactorization?: bool, minQuantifierCount?: int} $options Optimization options
      *
      * @return OptimizationResult Optimization results with changes applied
      */
@@ -393,11 +392,38 @@ final readonly class Regex
             optimizeDigits: (bool) ($options['digits'] ?? true),
             optimizeWord: (bool) ($options['word'] ?? true),
             ranges: (bool) ($options['ranges'] ?? true),
+            canonicalizeCharClasses: (bool) ($options['canonicalizeCharClasses'] ?? true),
             autoPossessify: (bool) ($options['autoPossessify'] ?? false),
             allowAlternationFactorization: (bool) ($options['allowAlternationFactorization'] ?? false),
             minQuantifierCount: (int) ($options['minQuantifierCount'] ?? 4),
         );
-        $optimizedPattern = $this->compile($regex, $optimizer);
+
+        $ast = $this->parse($regex, false);
+        $optimizedAst = $ast->accept($optimizer);
+
+        if (!$optimizedAst instanceof RegexNode) {
+            throw new RegexException('Optimizer returned an unexpected AST root.');
+        }
+
+        if ($optimizedAst === $ast) {
+            return new OptimizationResult($regex, $regex, []);
+        }
+
+        $pretty = str_contains($ast->flags, 'x');
+        $originalCompiled = $ast->accept(new CompilerNodeVisitor($pretty));
+        $optimizedCompiled = $optimizedAst->accept(new CompilerNodeVisitor($pretty));
+
+        [$originalPattern] = PatternParser::extractPatternAndFlags($originalCompiled, $this->getParserPhpVersionId());
+        [$optimizedPatternPart] = PatternParser::extractPatternAndFlags($optimizedCompiled, $this->getParserPhpVersionId());
+
+        if ($originalPattern === $optimizedPatternPart) {
+            [$pattern, , $delimiter] = PatternParser::extractPatternAndFlags($regex, $this->getParserPhpVersionId());
+            $closingDelimiter = PatternParser::closingDelimiter($delimiter);
+            $optimizedPattern = $delimiter.$pattern.$closingDelimiter.$optimizedAst->flags;
+        } else {
+            $optimizedPattern = $optimizedCompiled;
+        }
+
         $appliedChanges = $optimizedPattern === $regex ? [] : ['Optimized pattern.'];
 
         return new OptimizationResult($regex, $optimizedPattern, $appliedChanges);
@@ -607,25 +633,6 @@ final readonly class Regex
 
         return $lineLabel.$excerpt."\n"
             .str_repeat(' ', \strlen($lineLabel) + $caretOffset).'^';
-    }
-
-    /**
-     * Compile a regex by applying a transformation and compiling back to string.
-     *
-     * @param string                                               $regex       The regular expression to compile
-     * @param NodeVisitor\NodeVisitorInterface<Node\NodeInterface> $transformer The transformation to apply
-     *
-     * @return string Compiled regex string
-     */
-    private function compile(string $regex, NodeVisitorInterface $transformer, ?bool $pretty = null): string
-    {
-        $ast = $this->parse($regex, false);
-
-        $transformed = $ast->accept($transformer);
-
-        $pretty ??= str_contains($ast->flags, 'x');
-
-        return $transformed->accept(new CompilerNodeVisitor($pretty));
     }
 
     /**

@@ -134,6 +134,7 @@ final class LintConfigLoaderTest extends TestCase
                 'digits' => false,
                 'word' => true,
                 'ranges' => true,
+                'canonicalizeCharClasses' => false,
                 'autoPossessify' => false,
                 'allowAlternationFactorization' => false,
             ], $result->config['optimizations']);

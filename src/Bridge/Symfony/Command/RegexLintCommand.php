@@ -57,8 +57,14 @@ final class RegexLintCommand extends Command
     private array $defaultExcludePaths;
 
     /**
-     * @param array<string> $defaultPaths
-     * @param array<string> $defaultExcludePaths
+     * @var array<string, bool|int>
+     */
+    private readonly array $defaultOptimizations;
+
+    /**
+     * @param array<string>           $defaultPaths
+     * @param array<string>           $defaultExcludePaths
+     * @param array<string, bool|int> $defaultOptimizations
      */
     public function __construct(
         private readonly RegexLintService $lint,
@@ -66,10 +72,12 @@ final class RegexLintCommand extends Command
         private readonly FormatterRegistry $formatterRegistry = new FormatterRegistry(),
         array $defaultPaths = ['src'],
         array $defaultExcludePaths = ['vendor'],
+        array $defaultOptimizations = [],
         private readonly ?string $editorUrl = null,
     ) {
         $this->defaultPaths = $this->normalizeStringList($defaultPaths);
         $this->defaultExcludePaths = $this->normalizeStringList($defaultExcludePaths);
+        $this->defaultOptimizations = $this->normalizeOptimizations($defaultOptimizations);
 
         if ([] === $this->defaultPaths) {
             $this->defaultPaths = ['src'];
@@ -234,6 +242,7 @@ final class RegexLintCommand extends Command
                     $skipValidators ? 'validators' : null,
                 ], static fn (?string $source): bool => null !== $source)),
                 analysisWorkers: $jobs,
+                optimizations: $this->defaultOptimizations,
             );
             $patterns = $this->lint->collectPatterns($request, $collectionProgress);
         } catch (\Throwable $e) {
@@ -376,6 +385,26 @@ final class RegexLintCommand extends Command
         }
 
         return array_values(array_filter($value, static fn ($item): bool => \is_string($item) && '' !== $item));
+    }
+
+    /**
+     * @param array<string, bool|int> $optimizations
+     *
+     * @return array<string, bool|int>
+     */
+    private function normalizeOptimizations(array $optimizations): array
+    {
+        $normalized = [];
+        foreach ($optimizations as $key => $value) {
+            if (!\is_string($key)) {
+                continue;
+            }
+            if (\is_bool($value) || \is_int($value)) {
+                $normalized[$key] = $value;
+            }
+        }
+
+        return $normalized;
     }
 
     /**

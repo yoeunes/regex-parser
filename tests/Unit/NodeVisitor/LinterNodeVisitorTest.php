@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace RegexParser\Tests\Unit\NodeVisitor;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RegexParser\NodeVisitor\LinterNodeVisitor;
 use RegexParser\Regex;
@@ -221,6 +222,53 @@ final class LinterNodeVisitorTest extends TestCase
 
         $this->assertNotContains("End anchor '$' appears before consuming characters, making it impossible to match.", $warnings);
         $this->assertNotContains("Start anchor '^' appears after consuming characters, making it impossible to match.", $warnings);
+    }
+
+    #[DataProvider('provideAnchorConflictCases')]
+    public function test_anchor_conflict_detection(string $pattern, bool $expectStart, bool $expectEnd): void
+    {
+        $regex = Regex::create()->parse($pattern);
+        $linter = new LinterNodeVisitor();
+        $regex->accept($linter);
+        $warnings = $linter->getWarnings();
+
+        $startMessage = "Start anchor '^' appears after consuming characters, making it impossible to match.";
+        $endMessage = "End anchor '$' appears before consuming characters, making it impossible to match.";
+
+        if ($expectStart) {
+            $this->assertContains($startMessage, $warnings);
+        } else {
+            $this->assertNotContains($startMessage, $warnings);
+        }
+
+        if ($expectEnd) {
+            $this->assertContains($endMessage, $warnings);
+        } else {
+            $this->assertNotContains($endMessage, $warnings);
+        }
+    }
+
+    public static function provideAnchorConflictCases(): \Generator
+    {
+        yield 'escaped dollar literal' => ['/foo\\$bar/', false, false];
+        yield 'start anchor in sequence' => ['/foo^bar/', true, false];
+        yield 'end anchor in sequence' => ['/$foo/', false, true];
+        yield 'broken char class from corpus' => [
+            trim(<<<'REGEX'
+                /.*?(\$(?![0-9])(?:[a-zA-Z0-9-_]|(?:\[!"#$%&'\(\)*+,.\/:;<=>?@\[\]^{|}~]))+)/
+                REGEX
+            ),
+            true,
+            true,
+        ];
+        yield 'proper punctuation class' => [
+            trim(<<<'REGEX'
+                /.*?(\$(?![0-9])(?:[a-zA-Z0-9-_]|(?:[!"#$%&'\(\)*+,.\/:;<=>?@\[\]^{|}~]))+)/
+                REGEX
+            ),
+            false,
+            false,
+        ];
     }
 
     public function test_char_class_group_tokens_are_literal(): void

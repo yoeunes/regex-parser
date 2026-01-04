@@ -308,6 +308,7 @@ Create `regex.json` or `regex.dist.json` in your project root:
     "digits": true,
     "word": true,
     "ranges": true,
+    "canonicalizeCharClasses": true,
     "minQuantifierCount": 4
   }
 }
@@ -322,7 +323,7 @@ Create `regex.json` or `regex.dist.json` in your project root:
 | `jobs`          | int    | Number of parallel workers                               |
 | `exclude`       | array  | Paths to exclude                                         |
 | `ide`           | string | IDE for clickable links                                  |
-| `optimizations` | object | Optimization options (digits/word/ranges/possessive/factorize/minQuantifierCount) |
+| `optimizations` | object | Optimization options (digits/word/ranges/canonicalizeCharClasses/possessive/factorize/minQuantifierCount) |
 
 ### IDE Integration
 

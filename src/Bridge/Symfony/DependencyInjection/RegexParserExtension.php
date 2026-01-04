@@ -65,6 +65,15 @@ final class RegexParserExtension extends Extension
          *         redos_threshold: int,
          *         ignore_patterns: array<int, string>,
          *     },
+         *     optimizations: array{
+         *         digits: bool,
+         *         word: bool,
+         *         ranges: bool,
+         *         canonicalize_char_classes: bool,
+         *         possessive: bool,
+         *         factorize: bool,
+         *         min_quantifier_count: int,
+         *     },
          *     paths: array<int, string>,
          *     exclude_paths: array<int, string>,
          *     ide: string|null,
@@ -90,6 +99,15 @@ final class RegexParserExtension extends Extension
         $container->setParameter('regex_parser.analysis.warning_threshold', $config['analysis']['warning_threshold']);
         $container->setParameter('regex_parser.analysis.redos_threshold', $config['analysis']['redos_threshold']);
         $container->setParameter('regex_parser.analysis.ignore_patterns', $ignoredPatterns);
+        $container->setParameter('regex_parser.optimizations', [
+            'digits' => $config['optimizations']['digits'],
+            'word' => $config['optimizations']['word'],
+            'ranges' => $config['optimizations']['ranges'],
+            'canonicalizeCharClasses' => $config['optimizations']['canonicalize_char_classes'],
+            'autoPossessify' => $config['optimizations']['possessive'],
+            'allowAlternationFactorization' => $config['optimizations']['factorize'],
+            'minQuantifierCount' => $config['optimizations']['min_quantifier_count'],
+        ]);
         $container->setParameter('regex_parser.paths', $config['paths']);
         $container->setParameter('regex_parser.exclude_paths', $config['exclude_paths']);
         $container->setParameter('regex_parser.editor_format', $editorFormat);

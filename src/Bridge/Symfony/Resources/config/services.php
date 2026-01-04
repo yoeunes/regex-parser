@@ -106,6 +106,7 @@ return static function (ContainerConfigurator $container): void {
         ->arg('$formatterRegistry', service('regex_parser.formatter_registry'))
         ->arg('$defaultPaths', param('regex_parser.paths'))
         ->arg('$defaultExcludePaths', param('regex_parser.exclude_paths'))
+        ->arg('$defaultOptimizations', param('regex_parser.optimizations'))
         ->arg('$editorUrl', param('regex_parser.editor_format'))
         ->tag('console.command')
         ->public();
