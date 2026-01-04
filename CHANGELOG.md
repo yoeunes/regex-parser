@@ -7,20 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.10] - 2026-01-04
+
 ### Added
-- Added `canonicalizeCharClasses` optimization toggle for character class normalization (CLI config, PHPStan, Symfony bundle).
+- JSON schema for regex-parser configuration to provide validation and IDE autocompletion for config files.
+- JSON schema validation for regex config to catch configuration errors early.
+- Corpus update script (`corpus/update`) for automated test pattern collection from open-source projects.
+- Git helper functions for corpus management and repository operations.
+- Debug option to corpus update process to show git commands being executed.
 
 ### Changed
+- ReDoS risk analysis improved with better clarity, control, and reporting.
+- ReDoS analysis configuration refactored for improved maintainability.
+- `canonicalizeCharClasses` optimization toggle for character class normalization (CLI config, PHPStan, Symfony bundle).
 - Optimization output now preserves the original pattern body when only flags are removed, reducing escape-only diff noise.
 - Symfony bundle now exposes default lint optimization settings via `regex_parser.optimizations`.
 - Linter warnings for redundant character classes and redundant inline flags now include hints with actionable details.
+- Corpus update process improved with better error handling and file cleanup.
+
+### Fixed
+- CLI analyze command output spacing issue resolved.
+- PHPUnit output break fixed by capturing SelfUpdateCommand banner in test.
 
 ### Documentation
 - Documented `canonicalizeCharClasses` in the CLI config and optimize API.
 
 ### Tests
+- Improved test assertions for command output validation.
 - Added data-provider coverage for canonicalization toggles, anchor conflict cases, and flag-only optimization outputs.
 - Added data-provider coverage for redundant character class hints and redundant inline flag hints.
+- Fixed linter test assertions for more reliable test validation.
+- Added return type array shapes for `jsonSerialize()` methods.
 
 ## [1.0.9] - 2026-01-03
 
