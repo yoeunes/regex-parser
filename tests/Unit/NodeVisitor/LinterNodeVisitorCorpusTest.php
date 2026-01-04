@@ -483,12 +483,28 @@ final class LinterNodeVisitorCorpusTest extends TestCase
             return 'regex.lint.charclass.redundant';
         }
 
+        if (str_starts_with($message, 'Character class contains duplicate elements')) {
+            return 'regex.lint.charclass.duplicate_chars';
+        }
+
+        if (str_starts_with($message, 'Character range is unnecessary')) {
+            return 'regex.lint.range.useless';
+        }
+
         if (str_starts_with($message, 'Suspicious ASCII range')) {
             return 'regex.lint.charclass.suspicious_range';
         }
 
         if (str_starts_with($message, 'Character class contains "|"')) {
             return 'regex.lint.charclass.suspicious_pipe';
+        }
+
+        if (str_starts_with($message, 'Quantifier always repeats zero times')) {
+            return 'regex.lint.quantifier.zero';
+        }
+
+        if (str_starts_with($message, 'Quantifier is redundant; it matches exactly once.')) {
+            return 'regex.lint.quantifier.useless';
         }
 
         if (str_starts_with($message, 'Alternation branches have overlapping character sets')) {

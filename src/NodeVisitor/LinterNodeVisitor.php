@@ -206,6 +206,8 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         $this->lintRedundantCharClass($node);
         $this->lintSuspiciousCharClassRange($node);
         $this->lintSuspiciousCharClassPipe($node);
+        $this->lintUselessCharClassRange($node);
+        $this->lintDuplicateCharClassElements($node);
 
         return $node;
     }
@@ -336,6 +338,9 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
     #[\Override]
     public function visitQuantifier(QuantifierNode $node): NodeInterface
     {
+        $this->lintZeroQuantifier($node);
+        $this->lintUselessQuantifier($node);
+
         $isAtomicQuantifier = QuantifierType::T_POSSESSIVE === $node->type
             || ($node->node instanceof GroupNode && GroupType::T_GROUP_ATOMIC === $node->node->type);
 
@@ -1300,6 +1305,108 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         }
     }
 
+    private function lintUselessCharClassRange(CharClassNode $node): void
+    {
+        $parts = $this->collectCharClassParts($node->expression);
+        if (null === $parts) {
+            return;
+        }
+
+        foreach ($parts as $part) {
+            if (!$part instanceof RangeNode) {
+                continue;
+            }
+
+            $start = $this->codePointFromNode($part->start);
+            $end = $this->codePointFromNode($part->end);
+            if (null === $start || null === $end) {
+                continue;
+            }
+
+            $min = min($start, $end);
+            $max = max($start, $end);
+
+            if ($max - $min > 1) {
+                continue;
+            }
+
+            $hint = $max === $min
+                ? \sprintf('Use %s directly instead of a range.', $this->formatCodePointForHint($min))
+                : \sprintf(
+                    'Use %s and %s explicitly instead of a range.',
+                    $this->formatCodePointForHint($min),
+                    $this->formatCodePointForHint($max),
+                );
+
+            $this->addIssue(
+                'regex.lint.range.useless',
+                'Character range is unnecessary; list the characters explicitly.',
+                $part->startPosition,
+                $hint,
+            );
+        }
+    }
+
+    private function lintDuplicateCharClassElements(CharClassNode $node): void
+    {
+        $parts = $this->collectCharClassParts($node->expression);
+        if (null === $parts || \count($parts) < 2) {
+            return;
+        }
+
+        $entries = [];
+        foreach ($parts as $part) {
+            $set = $this->charClassPartCharSet($part);
+            $entries[] = [
+                'node' => $part,
+                'set' => $set,
+                'basic' => $this->isBasicCharClassPart($part),
+            ];
+        }
+
+        foreach ($entries as $index => $entry) {
+            if (!$entry['set'] instanceof CharSet || $entry['set']->isUnknown() || $entry['set']->isEmpty()) {
+                continue;
+            }
+
+            $otherUnion = CharSet::empty();
+            $otherBasicUnion = CharSet::empty();
+            foreach ($entries as $j => $other) {
+                if ($j === $index) {
+                    continue;
+                }
+
+                if (!$other['set'] instanceof CharSet || $other['set']->isUnknown() || $other['set']->isEmpty()) {
+                    continue;
+                }
+
+                $otherUnion = $otherUnion->union($other['set']);
+                if ($other['basic']) {
+                    $otherBasicUnion = $otherBasicUnion->union($other['set']);
+                }
+            }
+
+            if ($otherUnion->isEmpty()) {
+                continue;
+            }
+
+            if ($this->charSetIsSubset($entry['set'], $otherUnion)) {
+                if ($entry['basic'] && $this->charSetIsSubset($entry['set'], $otherBasicUnion)) {
+                    continue;
+                }
+
+                $this->addIssue(
+                    'regex.lint.charclass.duplicate_chars',
+                    'Character class contains duplicate elements that do not add new matches.',
+                    $entry['node']->getStartPosition(),
+                    'Remove the redundant character class element.',
+                );
+
+                return;
+            }
+        }
+    }
+
     /**
      * @return array<Node\NodeInterface>|null
      */
@@ -1318,6 +1425,136 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         }
 
         return [$node];
+    }
+
+    private function charClassPartCharSet(NodeInterface $node): ?CharSet
+    {
+        if ($node instanceof LiteralNode || $node instanceof CharLiteralNode || $node instanceof UnicodeNode) {
+            $codePoint = $this->codePointFromNode($node);
+            if (null === $codePoint) {
+                return null;
+            }
+
+            $set = CharSet::fromRange($codePoint, $codePoint);
+
+            return $set->isUnknown() ? null : $set;
+        }
+
+        if ($node instanceof RangeNode) {
+            $start = $this->codePointFromNode($node->start);
+            $end = $this->codePointFromNode($node->end);
+            if (null === $start || null === $end) {
+                return null;
+            }
+
+            $set = CharSet::fromRange(min($start, $end), max($start, $end));
+
+            return $set->isUnknown() ? null : $set;
+        }
+
+        if ($node instanceof CharTypeNode) {
+            return $this->charSetFromCharType($node->value);
+        }
+
+        if ($node instanceof PosixClassNode) {
+            return $this->charSetFromPosixClass($node->class);
+        }
+
+        return null;
+    }
+
+    private function charSetFromCharType(string $type): ?CharSet
+    {
+        if ($this->unicodeMode && \in_array($type, ['d', 'D', 'w', 'W'], true)) {
+            return null;
+        }
+
+        $set = match ($type) {
+            'd' => CharSet::fromRange(\ord('0'), \ord('9')),
+            'D' => CharSet::fromRange(\ord('0'), \ord('9'))->complement(),
+            'w' => CharSet::fromRange(\ord('0'), \ord('9'))
+                ->union(CharSet::fromRange(\ord('A'), \ord('Z')))
+                ->union(CharSet::fromRange(\ord('a'), \ord('z')))
+                ->union(CharSet::fromRange(\ord('_'), \ord('_'))),
+            'W' => CharSet::fromRange(\ord('0'), \ord('9'))
+                ->union(CharSet::fromRange(\ord('A'), \ord('Z')))
+                ->union(CharSet::fromRange(\ord('a'), \ord('z')))
+                ->union(CharSet::fromRange(\ord('_'), \ord('_')))
+                ->complement(),
+            's' => $this->asciiWhitespaceCharSet(),
+            'S' => $this->asciiWhitespaceCharSet()->complement(),
+            default => null,
+        };
+
+        if (null === $set || $set->isUnknown()) {
+            return null;
+        }
+
+        return $set;
+    }
+
+    private function charSetFromPosixClass(string $class): ?CharSet
+    {
+        $negated = str_starts_with($class, '^');
+        $normalized = strtolower(ltrim($class, '^'));
+
+        $set = match ($normalized) {
+            'digit' => CharSet::fromRange(\ord('0'), \ord('9')),
+            'lower' => CharSet::fromRange(\ord('a'), \ord('z')),
+            'upper' => CharSet::fromRange(\ord('A'), \ord('Z')),
+            'alpha' => CharSet::fromRange(\ord('A'), \ord('Z'))
+                ->union(CharSet::fromRange(\ord('a'), \ord('z'))),
+            'alnum' => CharSet::fromRange(\ord('0'), \ord('9'))
+                ->union(CharSet::fromRange(\ord('A'), \ord('Z')))
+                ->union(CharSet::fromRange(\ord('a'), \ord('z'))),
+            'word' => CharSet::fromRange(\ord('0'), \ord('9'))
+                ->union(CharSet::fromRange(\ord('A'), \ord('Z')))
+                ->union(CharSet::fromRange(\ord('a'), \ord('z')))
+                ->union(CharSet::fromRange(\ord('_'), \ord('_'))),
+            'xdigit' => CharSet::fromRange(\ord('0'), \ord('9'))
+                ->union(CharSet::fromRange(\ord('A'), \ord('F')))
+                ->union(CharSet::fromRange(\ord('a'), \ord('f'))),
+            'space' => $this->asciiWhitespaceCharSet(),
+            default => null,
+        };
+
+        if (null === $set || $set->isUnknown()) {
+            return null;
+        }
+
+        return $negated ? $set->complement() : $set;
+    }
+
+    private function asciiWhitespaceCharSet(): CharSet
+    {
+        $set = CharSet::empty();
+        foreach ([9, 10, 11, 12, 13, 32] as $code) {
+            $set = $set->union(CharSet::fromRange($code, $code));
+        }
+
+        return $set;
+    }
+
+    private function isBasicCharClassPart(NodeInterface $node): bool
+    {
+        if ($node instanceof LiteralNode) {
+            return 1 === \strlen($node->value);
+        }
+
+        if ($node instanceof RangeNode && $node->start instanceof LiteralNode && $node->end instanceof LiteralNode) {
+            return 1 === \strlen($node->start->value) && 1 === \strlen($node->end->value);
+        }
+
+        return false;
+    }
+
+    private function charSetIsSubset(CharSet $candidate, CharSet $other): bool
+    {
+        if ($candidate->isUnknown() || $other->isUnknown()) {
+            return false;
+        }
+
+        return !$candidate->intersects($other->complement());
     }
 
     /**
@@ -1388,6 +1625,15 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
         }
 
         return "'".$value."'";
+    }
+
+    private function formatCodePointForHint(int $codePoint): string
+    {
+        if ($codePoint >= 0 && $codePoint <= 0x7F) {
+            return $this->formatCharLiteralForHint(\chr($codePoint));
+        }
+
+        return "'\\x{".strtoupper(dechex($codePoint))."}'";
     }
 
     private function formatRangeForHint(string $start, string $end): string
@@ -1534,6 +1780,44 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
             || $node instanceof CommentNode
             || $node instanceof CalloutNode
             || $node instanceof ScriptRunNode;
+    }
+
+    private function lintZeroQuantifier(QuantifierNode $node): void
+    {
+        if (!str_starts_with($node->quantifier, '{')) {
+            return;
+        }
+
+        [$min, $max] = $this->parseQuantifierRange($node->quantifier);
+        if (0 !== $min || 0 !== $max) {
+            return;
+        }
+
+        $this->addIssue(
+            'regex.lint.quantifier.zero',
+            'Quantifier always repeats zero times; it can be removed.',
+            $node->startPosition,
+            'Remove the quantified element or replace it with an empty pattern.',
+        );
+    }
+
+    private function lintUselessQuantifier(QuantifierNode $node): void
+    {
+        if (!str_starts_with($node->quantifier, '{')) {
+            return;
+        }
+
+        [$min, $max] = $this->parseQuantifierRange($node->quantifier);
+        if (1 !== $min || 1 !== $max) {
+            return;
+        }
+
+        $this->addIssue(
+            'regex.lint.quantifier.useless',
+            'Quantifier is redundant; it matches exactly once.',
+            $node->startPosition,
+            'Remove the {1} quantifier; it does not change the match.',
+        );
     }
 
     private function isVariableQuantifier(string $quantifier): bool

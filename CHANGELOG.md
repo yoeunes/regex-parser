@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- New lint rules ported from eslint-plugin-regexp for duplicate character class elements, useless character ranges, zero quantifiers, and redundant `{1}` quantifiers.
+
+### Documentation
+- Documented new lint rule identifiers and examples in the reference guide.
+
+### Tests
+- Added data-provider coverage for the new lint rules.
+
 ## [1.0.10] - 2026-01-04
 
 ### Added

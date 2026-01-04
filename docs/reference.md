@@ -215,6 +215,44 @@ preg_match('/[^"]*/', $input);  // For double-quoted strings
 
 ---
 
+### Useless Quantifier
+
+**Identifier:** `regex.lint.quantifier.useless`
+
+**When it triggers:** A quantifier that matches exactly once (e.g., `{1}` or `{1,1}`).
+
+**Example:**
+```php
+// WARNING: {1} does not change the match
+preg_match('/a{1}/', $input);
+
+// PREFERRED: Remove the quantifier
+preg_match('/a/', $input);
+```
+
+**Fix:** Remove the `{1}` quantifier.
+
+---
+
+### Zero Quantifier
+
+**Identifier:** `regex.lint.quantifier.zero`
+
+**When it triggers:** A quantifier with a maximum of zero (e.g., `{0}` or `{0,0}`), which makes the element disappear.
+
+**Example:**
+```php
+// WARNING: {0} always matches zero occurrences
+preg_match('/ab{0}c/', $input);
+
+// PREFERRED: Remove the quantified element
+preg_match('/ac/', $input);
+```
+
+**Fix:** Remove the quantified element or replace it with an empty pattern.
+
+---
+
 ## Groups
 
 ### Redundant Non-Capturing Group
@@ -331,6 +369,52 @@ preg_match('/[a-f]/', $input);
 ```
 
 **Fix:** Remove duplicates or merge ranges.
+
+---
+
+### Duplicate Character Class Elements
+
+**Identifier:** `regex.lint.charclass.duplicate_chars`
+
+**When it triggers:** A character class contains an element that is fully covered by another element (e.g., `\d` plus `0-9`).
+
+**Example:**
+```php
+// WARNING: \d already includes 0-9
+preg_match('/[\d0-9]/', $input);
+
+// WARNING: \w already includes A-Z
+preg_match('/[\wA-Z]/', $input);
+
+// PREFERRED: Remove the redundant element
+preg_match('/[\d]/', $input);
+preg_match('/[\w]/', $input);
+```
+
+**Fix:** Remove the redundant character class element.
+
+---
+
+### Useless Character Range
+
+**Identifier:** `regex.lint.range.useless`
+
+**When it triggers:** A range spans only one or two characters (e.g., `[a-a]` or `[a-b]`) and can be written explicitly.
+
+**Example:**
+```php
+// WARNING: Range only spans one character
+preg_match('/[a-a]/', $input);
+
+// WARNING: Range only spans two characters
+preg_match('/[a-b]/', $input);
+
+// PREFERRED: List characters explicitly
+preg_match('/[a]/', $input);
+preg_match('/[ab]/', $input);
+```
+
+**Fix:** Replace the range with literal characters inside the class.
 
 ---
 
@@ -595,6 +679,7 @@ Recursively matches nested `[indent]...[/indent]` blocks using `(?R)` to re-ente
 | Groups      | `regex.lint.group.*`        | info          | Remove redundant groups          |
 | Alternation | `regex.lint.alternation.*`  | warning       | Simplify or use atomic           |
 | Character   | `regex.lint.charclass.*`    | warning       | Remove duplicates                |
+| Ranges      | `regex.lint.range.*`        | warning       | Replace with literals            |
 | Escapes     | `regex.lint.escape.*`       | warning       | Fix escape sequences             |
 | ReDoS       | `regex.redos.*`             | error/warning | Use possessive quantifiers       |
 
