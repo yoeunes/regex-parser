@@ -54,6 +54,13 @@
          - /(\d+\.?)+/
          + /(?>(\d+\.?))+/
 
+  corpus/Codeception/src/Codeception/Lib/Parser.php:182:20
+      → #/\*(.*?)\*/#ms
+     WARN  Flag 'm' is useless: pattern '#\/\*(.*?)\*\/#ms' contains no anchors.
+     TIP 
+         - #/\*(.*?)\*/#ms
+         + #/\*(.*?)\*/#s
+
   corpus/symfony-console-completion/src/CompletionContext.php:300:35
       → /^(?:['"])(.*?)(?:['"])?$/
      WARN  Redundant non-capturing group; it can be removed without changing behavior.
@@ -70,6 +77,159 @@
          + #// line (?>(?<line_number>\d+))+#
      WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
          ↳ Nested unbounded quantifiers detected. This allows exponential backtracking. Consider using atomic groups (?>...) or possessive quantifiers (*+, ++). Suggested (verify behavior): Replace inner quan...
+
+  corpus/wp-cli/bundle/rmccue/requests/src/Requests.php:767:17
+      → #(\s+)#i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/wp-cli/bundle/rmccue/requests/src/Requests.php:855:19
+      → /^([0-9a-f]+)(?:;(?:[\w-]*)(?:=(?:(?:[\w-]*)*|"(?:[^\r\n])*"))?)*\r\n/i
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /^([0-9a-f]+)(?:;(?:[\w-]*)(?:=(?:(?:[\w-]*)*|"(?:[^\r\n])*"))?)*\r\n/i
+         + /^([0-9a-f]+)(?:;(?:[\w-]*)(?:=(?:(?>(?:[\w-]*))*|"(?:[^\r\n])*"))?)*\r\n/i
+     WARN  Redundant non-capturing group; it can be removed without changing behavior.
+     WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
+         ↳ Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...). Suggested (verify behavior): Consider using possessiv...
+     TIP 
+         - /^([0-9a-f]+)(?:;(?:[\w-]*)(?:=(?:(?:[\w-]*)*|"(?:[^\r\n])*"))?)*\r\n/i
+         + /^([0-9a-f]+)(?:;(?:[\w\-]*)(?:=(?:(?:[\w\-]*)*|"[^\r\n]*"))?)*\r\n/i
+
+  corpus/wp-cli/bundle/rmccue/requests/src/Requests.php:863:36
+      → /^([0-9a-f]+)(?:;(?:[\w-]*)(?:=(?:(?:[\w-]*)*|"(?:[^\r\n])*"))?)*\r\n/i
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /^([0-9a-f]+)(?:;(?:[\w-]*)(?:=(?:(?:[\w-]*)*|"(?:[^\r\n])*"))?)*\r\n/i
+         + /^([0-9a-f]+)(?:;(?:[\w-]*)(?:=(?:(?>(?:[\w-]*))*|"(?:[^\r\n])*"))?)*\r\n/i
+     WARN  Redundant non-capturing group; it can be removed without changing behavior.
+     WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
+         ↳ Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...). Suggested (verify behavior): Consider using possessiv...
+     TIP 
+         - /^([0-9a-f]+)(?:;(?:[\w-]*)(?:=(?:(?:[\w-]*)*|"(?:[^\r\n])*"))?)*\r\n/i
+         + /^([0-9a-f]+)(?:;(?:[\w\-]*)(?:=(?:(?:[\w\-]*)*|"[^\r\n]*"))?)*\r\n/i
+
+  corpus/wp-cli/bundle/rmccue/requests/src/IdnaEncoder.php:144:22
+      → /(?:[^\x00-\x7F])/
+     WARN  Redundant non-capturing group; it can be removed without changing behavior.
+     TIP 
+         - /(?:[^\x00-\x7F])/
+         + /[^\x00-\x7F]/
+
+  corpus/wp-cli/php/commands/src/CLI_Alias_Command.php:512:37
+      → /^@(\w+)/i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/CodeIgniter/system/database/drivers/postgre/postgre_driver.php:277:18
+      → #^(INSERT|UPDATE).*RETURNING\s.+(\,\s?.+)*$#is
+     WARN  An unbounded quantifier wraps a dot-star, which can cause severe backtracking.
+         ↳ Refactor with atomic groups or a more specific character class.
+     TIP 
+         - #^(INSERT|UPDATE).*RETURNING\s.+(\,\s?.+)*$#is
+         + #^(INSERT|UPDATE).*RETURNING\s.+(?>(\,\s?.+))*$#is
+     WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
+         ↳ Adjacent quantified tokens with overlapping character sets can cause ambiguous backtracking (e.g., a+a+ or a*a*). Suggested (verify behavior): Merge repetitions, add a delimiter, or make one quanti...
+
+  corpus/CodeIgniter/system/database/drivers/pdo/subdrivers/pdo_odbc_driver.php:185:18
+      → #^(INSERT|UPDATE).*RETURNING\s.+(\,\s?.+)*$#is
+     WARN  An unbounded quantifier wraps a dot-star, which can cause severe backtracking.
+         ↳ Refactor with atomic groups or a more specific character class.
+     TIP 
+         - #^(INSERT|UPDATE).*RETURNING\s.+(\,\s?.+)*$#is
+         + #^(INSERT|UPDATE).*RETURNING\s.+(?>(\,\s?.+))*$#is
+     WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
+         ↳ Adjacent quantified tokens with overlapping character sets can cause ambiguous backtracking (e.g., a+a+ or a*a*). Suggested (verify behavior): Merge repetitions, add a delimiter, or make one quanti...
+
+  corpus/CodeIgniter/system/database/drivers/pdo/subdrivers/pdo_pgsql_driver.php:158:18
+      → #^(INSERT|UPDATE).*RETURNING\s.+(\,\s?.+)*$#is
+     WARN  An unbounded quantifier wraps a dot-star, which can cause severe backtracking.
+         ↳ Refactor with atomic groups or a more specific character class.
+     TIP 
+         - #^(INSERT|UPDATE).*RETURNING\s.+(\,\s?.+)*$#is
+         + #^(INSERT|UPDATE).*RETURNING\s.+(?>(\,\s?.+))*$#is
+     WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
+         ↳ Adjacent quantified tokens with overlapping character sets can cause ambiguous backtracking (e.g., a+a+ or a*a*). Suggested (verify behavior): Merge repetitions, add a delimiter, or make one quanti...
+
+  corpus/CodeIgniter/system/database/drivers/odbc/odbc_driver.php:176:27
+      → /'[^']*'|"[^"]*"/i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/CodeIgniter/system/database/drivers/odbc/odbc_driver.php:302:18
+      → #^(INSERT|UPDATE).*RETURNING\s.+(\,\s?.+)*$#is
+     WARN  An unbounded quantifier wraps a dot-star, which can cause severe backtracking.
+         ↳ Refactor with atomic groups or a more specific character class.
+     TIP 
+         - #^(INSERT|UPDATE).*RETURNING\s.+(\,\s?.+)*$#is
+         + #^(INSERT|UPDATE).*RETURNING\s.+(?>(\,\s?.+))*$#is
+     WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
+         ↳ Adjacent quantified tokens with overlapping character sets can cause ambiguous backtracking (e.g., a+a+ or a*a*). Suggested (verify behavior): Merge repetitions, add a delimiter, or make one quanti...
+
+  corpus/CodeIgniter/system/database/DB_driver.php:955:27
+      → /'[^']*'|"[^"]*"/i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/CodeIgniter/system/core/Security.php:422:32
+      → /<\w+.*/si
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/CodeIgniter/system/core/Security.php:503:34
+      → #<a(?:rea)?[^a-z0-9>]+([^>]*?)(?:>|$)#si
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - #<a(?:rea)?[^a-z0-9>]+([^>]*?)(?:>|$)#si
+         + #<a(?:rea)?[^a-z0-9>]+([^>]*?)(?:>|$)#i
+
+  corpus/CodeIgniter/system/core/Security.php:508:34
+      → #<img[^a-z0-9]+([^>]*?)(?:\s?/?>|$)#si
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - #<img[^a-z0-9]+([^>]*?)(?:\s?/?>|$)#si
+         + #<img[^a-z0-9]+([^>]*?)(?:\s?/?>|$)#i
+
+  corpus/CodeIgniter/system/core/Security.php:825:23
+      → /\s+/s
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /\s+/s
+         + /\s+/
+
+  corpus/CodeIgniter/system/core/Security.php:1004:22
+      → #\s*[a-z\-]+\s*=\s*(\042|\047)([^\1]*?)\1#is
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - #\s*[a-z\-]+\s*=\s*(\042|\047)([^\1]*?)\1#is
+         + #\s*[a-z\-]+\s*=\s*(\042|\047)([^\1]*?)\1#i
+
+  corpus/CodeIgniter/system/libraries/Typography.php:148:32
+      → #<.+?>#si
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/CodeIgniter/system/libraries/Typography.php:153:33
+      → #\{.+?\}#si
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/CodeIgniter/system/libraries/Typography.php:171:24
+      → /(<(?:[^<>]+(?:"[^"]*"|'[^']*')?)+>)/
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /(<(?:[^<>]+(?:"[^"]*"|'[^']*')?)+>)/
+         + /(<(?>(?:[^<>]+(?:"[^"]*"|'[^']*')?))+>)/
+     WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
+         ↳ Nested unbounded quantifiers detected. This allows exponential backtracking. Consider using atomic groups (?>...) or possessive quantifiers (*+, ++). Suggested (verify behavior): Replace inner quan...
+
+  corpus/CodeIgniter/system/helpers/url_helper.php:165:18
+      → #^(\w+:)?//#i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/CodeIgniter/system/helpers/url_helper.php:199:26
+      → #^(\w+:)?//#i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/CodeIgniter/system/helpers/url_helper.php:524:21
+      → #^(\w+:)?//#i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
 
   corpus/phpseclib/phpseclib/File/ASN1.php:1350:34
       → #-+END.*[\r\n ]*.*#ms
@@ -164,6 +324,34 @@
          - /\r\n|\r/m
          + /\r\n|\r/
 
+  corpus/pest/src/Expectation.php:516:71
+      → /^<\?php\s*(\/\*[\s\S]*?\*\/|\/\/[^\r\n]*(?:\r?\n|$)|\s)*declare\s*\(\s*strict_types\s*=\s*1\s*\)\s*;/m
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /^<\?php\s*(\/\*[\s\S]*?\*\/|\/\/[^\r\n]*(?:\r?\n|$)|\s)*declare\s*\(\s*strict_types\s*=\s*1\s*\)\s*;/m
+         + /^<\?php\s*(?>(\/\*[\s\S]*?\*\/|\/\/[^\r\n]*(?:\r?\n|$)|\s))*declare\s*\(\s*strict_types\s*=\s*1\s*\)\s*;/m
+     WARN  Alternation branches have overlapping character sets, which may cause unnecessary backtracking.
+         ↳ Consider using atomic groups (?>...) to prevent backtracking. Do not reorder overlapping alternatives as it changes match semantics.
+     WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
+         ↳ Adjacent quantified tokens with overlapping character sets can cause ambiguous backtracking (e.g., a+a+ or a*a*). Suggested (verify behavior): Merge repetitions, add a delimiter, or make one quanti...
+
+  corpus/october/modules/system/models/SiteDefinition.php:211:17
+      → /^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$/
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$/
+         + /^(?>(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.))*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$/
+     WARN  Alternation branches have overlapping character sets, which may cause unnecessary backtracking.
+         ↳ Consider using atomic groups (?>...) to prevent backtracking. Do not reorder overlapping alternatives as it changes match semantics.
+     WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
+         ↳ Overlapping alternation branches inside a quantifier. e.g. (a|a)* or (ab|a)*. This can lead to catastrophic backtracking. Suggested (verify behavior): Make alternatives mutually exclusive or order ...
+
+  corpus/october/modules/media/widgets/MediaManager.php:1677:25
+      → /^[\w@.\s_\-]+$/iu
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
   corpus/nunomaduro/pest/src/Expectation.php:516:71
       → /^<\?php\s*(\/\*[\s\S]*?\*\/|\/\/[^\r\n]*(?:\r?\n|$)|\s)*declare\s*\(\s*strict_types\s*=\s*1\s*\)\s*;/m
      WARN  Nested quantifiers can cause catastrophic backtracking.
@@ -250,6 +438,97 @@
          - /^([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}$/
          + /^(?>([a-z0-9]+(-[a-z0-9]+)*\.))+[a-z]{2,}$/
 
+  corpus/CodeIgniter4/system/Typography/Typography.php:113:38
+      → #<.+?>#si
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/CodeIgniter4/system/Typography/Typography.php:117:42
+      → #\{.+?\}#si
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/CodeIgniter4/system/Typography/Typography.php:135:30
+      → /(<(?:[^<>]+(?:"[^"]*"|'[^']*')?)+>)/
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /(<(?:[^<>]+(?:"[^"]*"|'[^']*')?)+>)/
+         + /(<(?>(?:[^<>]+(?:"[^"]*"|'[^']*')?))+>)/
+     WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
+         ↳ Nested unbounded quantifiers detected. This allows exponential backtracking. Consider using atomic groups (?>...) or possessive quantifiers (*+, ++). Suggested (verify behavior): Replace inner quan...
+
+  corpus/CodeIgniter4/system/Helpers/url_helper.php:158:81
+      → #^(\w+:)?//#i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/CodeIgniter4/system/Helpers/url_helper.php:191:31
+      → #^(\w+:)?//#i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/CodeIgniter4/system/Helpers/url_helper.php:425:33
+      → /^(?:http):/i
+     TIP 
+         - /^(?:http):/i
+         + /^http:/i
+
+  corpus/CodeIgniter4/system/ThirdParty/Kint/Renderer/Rich/CallablePlugin.php:75:33
+      → /@return\s+(.*)\r?\n/m
+     WARN  Flag 'm' is useless: pattern '/@return\s+(.*)\r?\n/m' contains no anchors.
+     TIP 
+         - /@return\s+(.*)\r?\n/m
+         + /@return\s+(.*)\r?\n/
+
+  corpus/CodeIgniter4/system/Debug/Toolbar.php:515:24
+      → /\d+\.\d{6}/s
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /\d+\.\d{6}/s
+         + /\d+\.\d{6}/
+
+  corpus/cakephp/src/Database/IdentifierQuoter.php:85:24
+      → /^([\w-]+(\.[\w\s-]+|\(.*\))*)\s+AS\s*([\w-]+)$/ui
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /^([\w-]+(\.[\w\s-]+|\(.*\))*)\s+AS\s*([\w-]+)$/ui
+         + /^([\w-]+(?>(\.[\w\s-]+|\(.*\)))*)\s+AS\s*([\w-]+)$/ui
+     WARN  An unbounded quantifier wraps a dot-star, which can cause severe backtracking.
+         ↳ Refactor with atomic groups or a more specific character class.
+     WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
+         ↳ Adjacent quantified tokens with overlapping character sets can cause ambiguous backtracking (e.g., a+a+ or a*a*). Suggested (verify behavior): Merge repetitions, add a delimiter, or make one quanti...
+
+  corpus/cakephp/src/TestSuite/TestCase.php:709:45
+      → /\s+/m
+     WARN  Flag 'm' is useless: pattern '/\s+/m' contains no anchors.
+     TIP 
+         - /\s+/m
+         + /\s+/
+
+  corpus/cakephp/src/Http/HeaderUtility.php:35:20
+      → /<(.*)>[; ]?[; ]?(.*)?/i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/cakephp/src/Http/HeaderUtility.php:56:28
+      → /(.*)'(.*)'(.*)/i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/cakephp/src/Http/HeaderUtility.php:117:13
+      → @(\w+)=(?:(?:")([^"]+)"|([^\s,$]+))@
+     WARN  Redundant non-capturing group; it can be removed without changing behavior.
+     TIP 
+         - @(\w+)=(?:(?:")([^"]+)"|([^\s,$]+))@
+         + @(\w+)=(?:"([^"]+)"|([^\s,$]+))@
+
+  corpus/cakephp/src/Console/ConsoleOutput.php:243:17
+      → /<(?P<tag>[a-z0-9-_.]+)>(?P<text>.*?)<\/(\1)>/ims
+     WARN  Flag 'm' is useless: pattern '/<(?P<tag>[a-z0-9\-_.]+)>(?P<text>.*?)<\/(\1)>/ims' contains no anchors.
+     TIP 
+         - /<(?P<tag>[a-z0-9-_.]+)>(?P<text>.*?)<\/(\1)>/ims
+         + /<(?P<tag>[a-z0-9-_.]+)>(?P<text>.*?)<\/(\1)>/is
+
+  corpus/cakephp/src/Console/CommandCollection.php:78:25
+      → /^[^\s]+(?:(?: [^\s]+){1,2})?$/ui
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
   corpus/google/recaptcha/src/ReCaptcha/RequestMethod/SocketPost.php:106:29
       → #\n\s*\n#Uis
      WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
@@ -286,6 +565,18 @@
          - /### Usage\n([^#]*)\n\n###/s
          + /### Usage\n([^#]*)\n\n###/
 
+  corpus/cycle/database/src/Driver/SQLite/Schema/SQLiteColumn.php:149:28
+      → /^['""].*?['"]$/
+     WARN  Redundant elements detected in character class.
+         ↳ Redundant elements: '"' (duplicate)
+
+  corpus/cycle/database/src/Query/Interpolator.php:41:13
+      → /(?<dq>"(?:\\\"|[^"])*")|(?<sq>'(?:\\'|[^'])*')|(?<ph>\?)|(?<named>:[a-z_\d]+)/
+     WARN  Alternation branches have overlapping character sets, which may cause unnecessary backtracking.
+         ↳ Consider using atomic groups (?>...) to prevent backtracking. Do not reorder overlapping alternatives as it changes match semantics.
+     WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
+         ↳ Overlapping alternation branches inside a quantifier. e.g. (a|a)* or (ab|a)*. This can lead to catastrophic backtracking. Suggested (verify behavior): Make alternatives mutually exclusive or order ...
+
   corpus/phpDocumentor/ReflectionDocBlock/src/DocBlockFactory.php:177:13
       → /\n            \A\n            # 1. Extract the template marker\n            (?:(\#\@\+|\#\@\-)\n?)?\n\n            # 2. Extract the summary\n            (?:\n              (?! @\pL ) # The summary may not start with an @\n              (\n                [^\n.]+\n                (?:\n                  (?! \. \n | \n{2} )     # End summary upon a dot followed by newline or two newlines\n                  [\n.]* (?! [ \t]* @\pL ) # End summary when an @ is found as first character on a new line\n                  [^\n.]+                 # Include anything else\n                )*\n                \.?\n              )?\n            )\n\n            # 3. Extract the description\n            (?:\n              \s*        # Some form of whitespace _must_ precede a description because a summary must be there\n              (?! @\pL ) # The description may not start with an @\n              (\n                [^\n]+\n                (?: \n+\n                  (?! [ \t]* @\pL ) # End description when an @ is found as first character on a new line\n                  [^\n]+            # Include anything else\n                )*\n              )\n            )?\n\n            # 4. Extract the tags (anything that follows)\n            (\s+ [\s\S]*)? # everything that follows\n            /ux
      WARN  Nested quantifiers can cause catastrophic backtracking.
@@ -307,6 +598,329 @@
            ...
      WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
          ↳ Nested bounded quantifiers detected. May cause polynomial backtracking. Consider simplifying the pattern or using atomic groups (?>...). Suggested (verify behavior): Flatten nested quantifiers or i...
+
+  corpus/yiisoft/yii2/framework/mail/BaseMailer.php:215:34
+      → ~\R\R+~mu
+     WARN  Flag 'm' is useless: pattern '~\R\R+~mu' contains no anchors.
+     TIP 
+         - ~\R\R+~mu
+         + ~\R\R+~u
+
+  corpus/yiisoft/yii2/framework/web/ViewAction.php:124:50
+      → ~^\w(?:(?!\/\.{0,2}\/)[\w\/\-\.])*$~
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - ~^\w(?:(?!\/\.{0,2}\/)[\w\/\-\.])*$~
+         + ~^\w(?>(?:(?!\/\.{0,2}\/)[\w\/\-\.]))*$~
+
+  corpus/yiisoft/yii2/framework/web/MultipartFormDataParser.php:221:35
+      → /\R/su
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /\R/su
+         + /\R/u
+
+  corpus/yiisoft/yii2/framework/web/MultipartFormDataParser.php:260:33
+      → /\]\[|\[/s
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /\]\[|\[/s
+         + /\]\[|\[/
+
+  corpus/yiisoft/yii2/framework/web/MultipartFormDataParser.php:301:33
+      → /\]\[|\[/s
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /\]\[|\[/s
+         + /\]\[|\[/
+
+  corpus/yiisoft/yii2/framework/web/Request.php:995:25
+      → %^(?:\n            [\x09\x0A\x0D\x20-\x7E]              # ASCII\n            | [\xC2-\xDF][\x80-\xBF]             # non-overlong 2-byte\n            | \xE0[\xA0-\xBF][\x80-\xBF]         # excluding overlongs\n            | [\xE1-\xEC\xEE\xEF][\x80-\xBF]{2}  # straight 3-byte\n            | \xED[\x80-\x9F][\x80-\xBF]         # excluding surrogates\n            | \xF0[\x90-\xBF][\x80-\xBF]{2}      # planes 1-3\n            | [\xF1-\xF3][\x80-\xBF]{3}          # planes 4-15\n            | \xF4[\x80-\x8F][\x80-\xBF]{2}      # plane 16\n            )*$%xs
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+           ...
+               | \xF4[\x80-\x8F][\x80-\xBF]{2}        # plane 16
+           
+         - )*$%xs
+         ---
+         + )*$%x
+
+  corpus/yiisoft/yii2/framework/validators/EmailValidator.php:95:31
+      → /^(?P<name>(?:"?([^"]*)"?\s)?)(?:\s+)?(?:(?P<open><?)((?P<local>.+)@(?P<domain>[^>]+))(?P<close>>?))$/i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/yiisoft/yii2/framework/helpers/BaseConsole.php:717:32
+      → /rows\s+(\d+);\s*columns\s+(\d+);/mi
+     WARN  Flag 'm' is useless: pattern '/rows\s+(\d+);\s*columns\s+(\d+);/mi' contains no anchors.
+     TIP 
+         - /rows\s+(\d+);\s*columns\s+(\d+);/mi
+         + /rows\s+(\d+);\s*columns\s+(\d+);/i
+
+  corpus/yiisoft/yii2/framework/helpers/BaseConsole.php:722:32
+      → /(\d+)\s+rows;\s*(\d+)\s+columns;/mi
+     WARN  Flag 'm' is useless: pattern '/(\d+)\s+rows;\s*(\d+)\s+columns;/mi' contains no anchors.
+     TIP 
+         - /(\d+)\s+rows;\s*(\d+)\s+columns;/mi
+         + /(\d+)\s+rows;\s*(\d+)\s+columns;/i
+
+  corpus/yiisoft/yii/framework/vendors/markdown/markdown.php:531:33
+      → {\n\t\t\t(\t\t\t\t\t# wrap whole match in $1\n\t\t\t  \[\n\t\t\t\t([^\[\]]+)\t\t# link text = $2; can't contain [ or ]\n\t\t\t  \]\n\t\t\t)\n\t\t\t}xs
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+           ...
+               )    # link text = $2; can't contain [ or ]
+           ]
+         - )}xs
+         ---
+         + )}x
+
+  corpus/yiisoft/yii/framework/vendors/markdown/markdown.php:1108:33
+      → /\n\t\t\t  (\t\t\t\t\t\t\t\t# Wrap whole match in $1\n\t\t\t\t(?>\n\t\t\t\t  ^[ ]*>[ ]?\t\t\t# ">" at the start of a line\n\t\t\t\t\t.+\n\t\t\t\t\t# rest of the first line\n\t\t\t\t  (.+\n)*\t\t\t\t\t# subsequent consecutive lines\n\t\t\t\t  \n*\t\t\t\t\t\t# blanks\n\t\t\t\t)+\n\t\t\t  )\n\t\t\t/xm
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+           ...
+           				  ^[ ]*>[ ]?			# ">" at the start of a line
+           					.+\n					# rest of the first line
+         - 				  (.+\n)*					# subsequent consecutive lines
+         ---
+         + 				  (?>(.+\n))*					# subsequent consecutive lines
+           				  \n*						# blanks
+           				)+
+           ...
+     WARN  An unbounded quantifier wraps a dot-star, which can cause severe backtracking.
+         ↳ Refactor with atomic groups or a more specific character class.
+
+  corpus/yiisoft/yii/framework/vendors/markdown/markdown.php:1252:33
+      → {\n\t\t\t<\n\t\t\t(?:mailto:)?\n\t\t\t(\n\t\t\t\t(?:\n\t\t\t\t\t[-!#$%&'*+/=?^_`.{|}~\w\x80-\xFF]+\n\t\t\t\t|\n\t\t\t\t\t".*?"\n\t\t\t\t)\n\t\t\t\t\@\n\t\t\t\t(?:\n\t\t\t\t\t[-a-z0-9\x80-\xFF]+(\.[-a-z0-9\x80-\xFF]+)*\.[a-z]+\n\t\t\t\t|\n\t\t\t\t\t\[[\d.a-fA-F:]+\]\t# IPv4 & IPv6\n\t\t\t\t)\n\t\t\t)\n\t\t\t>\n\t\t\t}xi
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+           ...
+           				\@
+           				(?:
+         - 					[-a-z0-9\x80-\xFF]+(\.[-a-z0-9\x80-\xFF]+)*\.[a-z]+
+         ---
+         + 					[-a-z0-9\x80-\xFF]+(?>(\.[-a-z0-9\x80-\xFF]+))*\.[a-z]+
+           				|
+           					\[[\d.a-fA-F:]+\]	# IPv4 & IPv6
+           ...
+     WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
+         ↳ Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...). Suggested (verify behavior): Consider using possessiv...
+
+  corpus/yiisoft/yii/framework/vendors/markdown/markdown.php:2345:33
+      → {\n\t\t\t\t(?:\n|\A)\n\t\t\t\t# 1: Opening marker\n\t\t\t\t(\n\t\t\t\t\t~{3,} # Marker: three tilde or more.\n\t\t\t\t)\n\t\t\t\t[ ]* \n # Whitespace and newline following marker.\n\n\t\t\t\t# 2: Content\n\t\t\t\t(\n\t\t\t\t\t(?>\n\t\t\t\t\t\t(?!\1 [ ]* \n)\t# Not a closing marker.\n\t\t\t\t\t\t.*\n+\n\t\t\t\t\t)+\n\t\t\t\t)\n\n\t\t\t\t# Closing marker.\n\t\t\t\t\1 [ ]* \n\n\t\t\t}xm
+     WARN  Flag 'm' is useless: pattern '{(?:\n|\A)(?## 1: Opening marker
+         ↳ )(~{3,}(?## Marker: three tilde or more.
+           ))[ ]*\n(?## Whitespace and newline following marker.
+           )(?## 2: Content
+           )((?>(?!\1[ ]*\n)(?## Not a closing marker.
+           ).*\n+)+)(?## Closing marker.
+           )\1[ ]*\n}xm' contains no anchors.
+     TIP 
+           ...
+               )+
+           )# Closing marker.
+         - \1[ ]*\n}xm
+         ---
+         + \1[ ]*\n}x
+
+  corpus/yiisoft/yii/framework/vendors/htmlpurifier/HTMLPurifier.standalone.php:13617:29
+      → #^[0-9a-fA-F]{4}$#s
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - #^[0-9a-fA-F]{4}$#s
+         + #^[0-9a-fA-F]{4}$#
+
+  corpus/yiisoft/yii/framework/vendors/htmlpurifier/HTMLPurifier.standalone.php:18563:13
+      → /\b((?:[a-z][\w\-]+:(?:\/{1,3}|[a-z0-9%])|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}\/)(?:[^\s()<>]|\((?:[^\s()<>]|(?:\([^\s()<>]+\)))*\))+(?:\((?:[^\s()<>]|(?:\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?\x{00ab}\x{00bb}\x{201c}\x{201d}\x{2018}\x{2019}]))/iu
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /\b((?:[a-z][\w\-]+:(?:\/{1,3}|[a-z0-9%])|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}\/)(?:[^\s()<>]|\((?:[^\s()<>]|(?:\([^\s()<>]+\)))*\))+(?:\((?:[^\s()<>]|(?:\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?\x{00ab}\x{00bb}\x{201c}\x{201d}\x{2018}\x{2019}]))/iu
+         + /\b((?:[a-z][\w\-]+:(?:\/{1,3}|[a-z0-9%])|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}\/)(?>(?:[^\s()<>]|\((?:[^\s()<>]|(?:\([^\s()<>]+\)))*\)))+(?:\((?:[^\s()<>]|(?:\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?\x{00ab}\x{00bb}\x{201c}\x{201d}\x{2018}\x{2019}]))/iu
+     WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
+         ↳ Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...). Suggested (verify behavior): Consider using possessiv...
+
+  corpus/yiisoft/yii/framework/yiilite.php:2546:17
+      → %^(?:\n\t\t   [\x09\x0A\x0D\x20-\x7E]            # ASCII\n\t\t | [\xC2-\xDF][\x80-\xBF]             # non-overlong 2-byte\n\t\t | \xE0[\xA0-\xBF][\x80-\xBF]         # excluding overlongs\n\t\t | [\xE1-\xEC\xEE\xEF][\x80-\xBF]{2}  # straight 3-byte\n\t\t | \xED[\x80-\x9F][\x80-\xBF]         # excluding surrogates\n\t\t | \xF0[\x90-\xBF][\x80-\xBF]{2}      # planes 1-3\n\t\t | [\xF1-\xF3][\x80-\xBF]{3}          # planes 4-15\n\t\t | \xF4[\x80-\x8F][\x80-\xBF]{2}      # plane 16\n\t\t)*$%xs
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+           ...
+               | \xF4[\x80-\x8F][\x80-\xBF]{2}        # plane 16
+           
+         - )*$%xs
+         ---
+         + )*$%x
+
+  corpus/yiisoft/yii/framework/yiilite.php:6652:25
+      → /(<title\b[^>]*>|<\/head\s*>)/is
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /(<title\b[^>]*>|<\/head\s*>)/is
+         + /(<title\b[^>]*>|<\/head\s*>)/i
+
+  corpus/yiisoft/yii/framework/yiilite.php:6677:25
+      → /(<body\b[^>]*>)/is
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /(<body\b[^>]*>)/is
+         + /(<body\b[^>]*>)/i
+
+  corpus/yiisoft/yii/framework/yiilite.php:6690:24
+      → /(<\/body\s*>)/is
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /(<\/body\s*>)/is
+         + /(<\/body\s*>)/i
+
+  corpus/yiisoft/yii/framework/web/CClientScript.php:414:25
+      → /(<title\b[^>]*>|<\/head\s*>)/is
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /(<title\b[^>]*>|<\/head\s*>)/is
+         + /(<title\b[^>]*>|<\/head\s*>)/i
+
+  corpus/yiisoft/yii/framework/web/CClientScript.php:445:25
+      → /(<body\b[^>]*>)/is
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /(<body\b[^>]*>)/is
+         + /(<body\b[^>]*>)/i
+
+  corpus/yiisoft/yii/framework/web/CClientScript.php:464:24
+      → /(<\/body\s*>)/is
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /(<\/body\s*>)/is
+         + /(<\/body\s*>)/i
+
+  corpus/yiisoft/yii/framework/web/CHttpRequest.php:514:17
+      → %^(?:\n\t\t   [\x09\x0A\x0D\x20-\x7E]            # ASCII\n\t\t | [\xC2-\xDF][\x80-\xBF]             # non-overlong 2-byte\n\t\t | \xE0[\xA0-\xBF][\x80-\xBF]         # excluding overlongs\n\t\t | [\xE1-\xEC\xEE\xEF][\x80-\xBF]{2}  # straight 3-byte\n\t\t | \xED[\x80-\x9F][\x80-\xBF]         # excluding surrogates\n\t\t | \xF0[\x90-\xBF][\x80-\xBF]{2}      # planes 1-3\n\t\t | [\xF1-\xF3][\x80-\xBF]{3}          # planes 4-15\n\t\t | \xF4[\x80-\x8F][\x80-\xBF]{2}      # plane 16\n\t\t)*$%xs
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+           ...
+               | \xF4[\x80-\x8F][\x80-\xBF]{2}        # plane 16
+           
+         - )*$%xs
+         ---
+         + )*$%x
+
+  corpus/yiisoft/yii/framework/web/helpers/CJSON.php:522:24
+      → /^\s*(["'].*[^\\]["'])\s*:\s*(\S.*),?$/Uis
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/yiisoft/yii/framework/web/helpers/CJSON.php:532:30
+      → /^\s*(\w+)\s*:\s*(\S.*),?$/Uis
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/yiisoft/yii/framework/web/services/CWebService.php:246:18
+      → /<.*?:Body[^>]*>\s*<.*?:(\w+)/mi
+     WARN  Flag 'm' is useless: pattern '/<.*?:Body[^>]*>\s*<.*?:(\w+)/mi' contains no anchors.
+     TIP 
+         - /<.*?:Body[^>]*>\s*<.*?:(\w+)/mi
+         + /<.*?:Body[^>]*>\s*<.*?:(\w+)/i
+
+  corpus/yiisoft/yii/framework/web/services/CWsdlGenerator.php:352:17
+      → /^\/\*+\s*([^@]*?)\n@/s
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /^\/\*+\s*([^@]*?)\n@/s
+         + /^\/\*+\s*([^@]*?)\n@/
+
+  corpus/yiisoft/yii/framework/web/services/CWsdlGenerator.php:427:21
+      → /@example[:]?(.+)/mi
+     WARN  Flag 'm' is useless: pattern '/@example[:]?(.+)/mi' contains no anchors.
+     TIP 
+         - /@example[:]?(.+)/mi
+         + /@example[:]?(.+)/i
+
+  corpus/yiisoft/yii/framework/web/services/CWsdlGenerator.php:454:22
+      → /((\w+)\s*=\s*(\w+))/mi
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+     WARN  Flag 'm' is useless: pattern '/((\w+)\s*=\s*(\w+))/mi' contains no anchors.
+     TIP 
+         - /((\w+)\s*=\s*(\w+))/mi
+         + /((\w+)\s*=\s*(\w+))/i
+
+  corpus/yiisoft/yii/framework/db/schema/mssql/CMssqlCommandBuilder.php:330:24
+      → /\s+\[[^\]]+\]\.(\[[^\]]+\])/i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+     TIP 
+         - /\s+\[[^\]]+\]\.(\[[^\]]+\])/i
+         + /\s+\[[^\]]+\]\.(\[[^\]]+])/i
+
+  corpus/yiisoft/yii/framework/logging/CEmailLogRoute.php:87:19
+      → /([^<]*)<([^>]*)>/iu
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/yiisoft/yii/requirements/index.php:213:17
+      → /public static function getVersion.*?return '(.*?)'/ms
+     WARN  Flag 'm' is useless: pattern '/public static function getVersion.*?return '(.*?)'/ms' contains no anchors.
+     TIP 
+         - /public static function getVersion.*?return '(.*?)'/ms
+         + /public static function getVersion.*?return '(.*?)'/s
+
+  corpus/yiisoft/yii/docs/viewer/components/MarkdownParser.php:57:31
+      → /^(\s*<p>\s*)([^:]+):\s*/sxi
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+           ...
+           )(
+           [^:]+
+         - ):\s*/sxi
+         ---
+         + ):\s*/xi
+
+  corpus/yiisoft/yii/build/tasks/YiiInitTask.php:52:18
+      → /public static function getVersion.*?return '(.*?)'/ms
+     WARN  Flag 'm' is useless: pattern '/public static function getVersion.*?return '(.*?)'/ms' contains no anchors.
+     TIP 
+         - /public static function getVersion.*?return '(.*?)'/ms
+         + /public static function getVersion.*?return '(.*?)'/s
+
+  corpus/yiisoft/yii/build/commands/markdown/MarkdownHtml2Tex.php:228:24
+      → /<(i|em)>([^<]*)+?<\/(i|em)>/
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /<(i|em)>([^<]*)+?<\/(i|em)>/
+         + /<(i|em)>(?>([^<]*))+?<\/(i|em)>/
+     WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
+         ↳ Quantifier repeats a subpattern that can match empty. This creates ambiguous backtracking paths and can be catastrophic. Suggested (verify behavior): Ensure the repeated subpattern consumes at leas...
+
+  corpus/yiisoft/yii/build/commands/markdown/MarkdownHtml2Tex.php:256:33
+      → /<blockquote class="([^"]+)">((.|\n)*?)<\/blockquote>/
+     WARN  Alternation branches have overlapping character sets, which may cause unnecessary backtracking.
+         ↳ Consider using atomic groups (?>...) to prevent backtracking. Do not reorder overlapping alternatives as it changes match semantics.
+     WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
+         ↳ Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...). Suggested (verify behavior): Consider using possessiv...
+
+  corpus/yiisoft/yii/build/commands/markdown/MarkdownHtml2Tex.php:258:24
+      → /<div class="revision">((.|\n)*?)<\/div>/
+     WARN  Alternation branches have overlapping character sets, which may cause unnecessary backtracking.
+         ↳ Consider using atomic groups (?>...) to prevent backtracking. Do not reorder overlapping alternatives as it changes match semantics.
+     WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
+         ↳ Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...). Suggested (verify behavior): Consider using possessiv...
+
+  corpus/yiisoft/yii/build/commands/markdown/MarkdownParser.php:50:31
+      → /^(\s*<p>\s*)([a-z]+):\s*/sxi
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+           ...
+           )(
+           [a-z]+
+         - ):\s*/sxi
+         ---
+         + ):\s*/xi
+
+  corpus/yiisoft/yii/build/commands/api/ApiModel.php:154:31
+      → /\{@include\s+([^\s\}]+)\s*\}/s
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /\{@include\s+([^\s\}]+)\s*\}/s
+         + /\{@include\s+([^\s\}]+)\s*\}/
 
   corpus/infection/src/TestFramework/Coverage/CoverageChecker.php:172:13
       → /(zend_extension\s*=.*xdebug.*)/mi
@@ -657,6 +1271,13 @@
            ...
      WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
          ↳ Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...). Suggested (verify behavior): Consider using possessiv...
+
+  corpus/flarum/framework/extensions/package-manager/src/Exception/ComposerCommandFailedException.php:32:29
+      → /^([A-z0-9-_\/]+)(?::.*|)$/i
+     WARN  Redundant elements detected in character class.
+         ↳ Redundant elements: '_' (covered by range 'A'-'z')
+     WARN  Suspicious ASCII range "A-z" includes non-letters between "A" and "z" in ASCII order.
+         ↳ Use separate ranges like [A-Z] and [a-z] (or combine as [A-Za-z]).
 
   corpus/Wixel/GUMP/ci/boot.php:46:20
       → /<div id="available_validators">(.*?)<.div>/ms
@@ -1744,6 +2365,32 @@
          - /\s/isSu
          + /\s/iSu
 
+  corpus/hyperf/src/database/src/Commands/Ast/ModelRewriteInheritanceVisitor.php:31:28
+      → /\s*([a-z0-9\\]+)(as)?([a-z0-9]+)?;?\s*/is
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /\s*([a-z0-9\\]+)(as)?([a-z0-9]+)?;?\s*/is
+         + /\s*([a-z0-9\\]+)(as)?([a-z0-9]+)?;?\s*/i
+
+  corpus/hyperf/src/crontab/src/Parser.php:71:26
+      → #^((\*(/[0-9]+)?)|[0-9\-,/]+)\s+((\*(/[0-9]+)?)|[0-9\-,/]+)\s+((\*(/[0-9]+)?)|[0-9\-,/]+)\s+((\*(/[0-9]+)?)|[0-9\-,/]+)\s+((\*(/[0-9]+)?)|[0-9\-,/]+)\s+((\*(/[0-9]+)?)|[0-9\-,/]+)$#i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/hyperf/src/crontab/src/Parser.php:72:30
+      → #^((\*(/[0-9]+)?)|[0-9\-,/]+)\s+((\*(/[0-9]+)?)|[0-9\-,/]+)\s+((\*(/[0-9]+)?)|[0-9\-,/]+)\s+((\*(/[0-9]+)?)|[0-9\-,/]+)\s+((\*(/[0-9]+)?)|[0-9\-,/]+)$#i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/hyperf/src/crontab/src/Parser.php:152:28
+      → /\s+/i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/hyperf/src/rpn/src/Calculator.php:93:24
+      → /((?:[0-9\.]+)|(?:[\(\)\+\-\*\/])){1}/
+     WARN  Redundant non-capturing group; it can be removed without changing behavior.
+     TIP 
+         - /((?:[0-9\.]+)|(?:[\(\)\+\-\*\/])){1}/
+         + /((?:[0-9.]+)|[()+\-*\/])/
+
   corpus/guzzle/psr7/src/Uri.php:118:13
       → %[^:/@?&=#]+%usD
      WARN  Flag 's' is useless: the pattern contains no dots.
@@ -1763,6 +2410,24 @@
          - /\/*(.+?)(?:\/|\.)/
          + /\/*(.+?)[\/.]/
 
+  corpus/wp-cli/php/utils.php:1231:14
+      → #^((docker|docker\-compose|docker\-compose\-run|ssh|vagrant):)?(([^@:]+)@)?([^:/~]+)(:([\d]*))?((/|~)(.+))?$#
+     TIP 
+         - #^((docker|docker\-compose|docker\-compose\-run|ssh|vagrant):)?(([^@:]+)@)?([^:/~]+)(:([\d]*))?((/|~)(.+))?$#
+         + #^((docker|docker-compose|docker-compose-run|ssh|vagrant):)?(([^@:]+)@)?([^:/~]+)(:([\d]*))?(([/~])(.+))?$#
+
+  corpus/wp-cli/php/utils.php:1315:18
+      → /(?:--[^\s=]+=(["'])((\{2})*|(?:[^\1]+?[^\\](\{2})*))\1|--[^\s=]+=[^\s]+|--[^\s=]+|(["'])((\{2})*|(?:[^\5]+?[^\\](\{2})*))\5|[^\s]+)/
+     TIP 
+         - /(?:--[^\s=]+=(["'])((\{2})*|(?:[^\1]+?[^\\](\{2})*))\1|--[^\s=]+=[^\s]+|--[^\s=]+|(["'])((\{2})*|(?:[^\5]+?[^\\](\{2})*))\5|[^\s]+)/
+         + /(?:--[^\s=]+=(["'])(({2})*|(?:[^\1]+?[^\\]({2})*))\1|--[^\s=]+=[^\s]+|--[^\s=]+|(["'])(({2})*|(?:[^\5]+?[^\\]({2})*))\5|[^\s]+)/
+
+  corpus/CodeIgniter/system/helpers/date_helper.php:117:17
+      → /([a-z]+?){1}/i
+     TIP 
+         - /([a-z]+?){1}/i
+         + /([a-z]+?)/i
+
   corpus/phpseclib/phpseclib/File/SPKAC.php:131:30
       → #(?:SPKAC=)|[ \r\n\\]#
      TIP 
@@ -1774,6 +2439,30 @@
      TIP 
          - /^(\s*(?:#\[\\ReturnTypeWillChange\]\s*)?(?:public|protected|private)?\s*function\s+(?!__)\w+\s*\([^\)]*\)\s*):?\s*\??[\w\\|&]*\s*\{\s*$/m
          + /^(\s*(?:#\[\\ReturnTypeWillChange\]\s*)?(?:public|protected|private)?\s*function\s+(?!__)\w+\s*\([^)]*\)\s*):?\s*\??[\w\\|&]*\s*\{\s*$/m
+
+  corpus/october/modules/cms/classes/controller/HasAjaxRequests.php:126:29
+      → /^(?:\w+\:{2})?on[A-Z]{1}[\w+]*$/
+     TIP 
+         - /^(?:\w+\:{2})?on[A-Z]{1}[\w+]*$/
+         + /^(?:\w+:{2})?on[A-Z][\w+]*$/
+
+  corpus/october/modules/cms/classes/controller/HasAjaxRequests.php:235:25
+      → /^(?:\w+\:{2})?on[A-Z]{1}[\w+]*$/
+     TIP 
+         - /^(?:\w+\:{2})?on[A-Z]{1}[\w+]*$/
+         + /^(?:\w+:{2})?on[A-Z][\w+]*$/
+
+  corpus/october/modules/cms/twig/DebugExtension.php:519:28
+      → /^on[A-Z]{1}[\w+]*$/
+     TIP 
+         - /^on[A-Z]{1}[\w+]*$/
+         + /^on[A-Z][\w+]*$/
+
+  corpus/october/modules/cms/twig/DebugExtension.php:523:28
+      → /^get[A-Z]{1}[\w+]*Options$/
+     TIP 
+         - /^get[A-Z]{1}[\w+]*Options$/
+         + /^get[A-Z][\w+]*Options$/
 
   corpus/phpstan-src/e2e/bug13425/plugins/oepnvMobilePlugin/lib/mobileService/MobileServiceApi.php:889:24
       → /\n      \s*((?:\w+-)*\w+)     # key                               \1\n      \s*=\s*               # =\n      ('|")?               # values may be included in ' or " \2\n      (.*?)                 # value                             \3\n      (?(2) \2)            # matching ' or " if needed        \4\n      \s*(?:\n        (?=\w+\s*=) | \s*$  # followed by another key= or the end of the string\n      )\n    /x
@@ -1806,6 +2495,48 @@
      TIP 
          - /\[?(?:\320\274\320\270\320\275\321\203\320\273\320\276\321\227|\320\275\320\260\321\201\321\202\321\203\320\277\320\275\320\276\321\227)?\s*\]\s+dddd/u
          + /\[?(?:\320\274\320\270\320\275\321\203\320\273\320\276\321\227|\320\275\320\260\321\201\321\202\321\203\320\277\320\275\320\276\321\227)?\s*]\s+d{4}/u
+
+  corpus/CodeIgniter4/system/Database/OCI8/Connection.php:256:20
+      → /(?is)\b(?:into)\s+("?\w+"?)/
+     TIP 
+         - /(?is)\b(?:into)\s+("?\w+"?)/
+         + /(?is)\binto\s+("?\w+"?)/
+
+  corpus/CodeIgniter4/system/Validation/FormatRules.php:160:34
+      → /\A[-+]?\d{0,}\.?\d+\z/
+     TIP 
+         - /\A[-+]?\d{0,}\.?\d+\z/
+         + /\A[\-+]?\d*\.?\d+\z/
+
+  corpus/cakephp/src/Core/functions.php:449:28
+      → /^0+[^0]{1}/
+     TIP 
+         - /^0+[^0]{1}/
+         + /^0+[^0]/
+
+  corpus/cakephp/src/Core/functions.php:490:28
+      → /^0+[^0]{1}/
+     TIP 
+         - /^0+[^0]{1}/
+         + /^0+[^0]/
+
+  corpus/yiisoft/yii2/framework/db/Connection.php:1001:13
+      → /(\{\{(%?[\w\-\. ]+%?)\}\}|\[\[([\w\-\. ]+)\]\])/
+     TIP 
+         - /(\{\{(%?[\w\-\. ]+%?)\}\}|\[\[([\w\-\. ]+)\]\])/
+         + /(\{\{(%?[\w\-. ]+%?)\}\}|\[\[([\w\-. ]+)\]\])/
+
+  corpus/spiral/framework/src/Console/src/Configurator/Signature/Parser.php:94:32
+      → /(.+)\[\]\=(.+)/
+     TIP 
+         - /(.+)\[\]\=(.+)/
+         + /(.+)\[\]=(.+)/
+
+  corpus/spiral/framework/src/Console/src/Configurator/Signature/Parser.php:141:32
+      → /(.+)\[\]\=(.+)/
+     TIP 
+         - /(.+)\[\]\=(.+)/
+         + /(.+)\[\]=(.+)/
 
   corpus/server/lib/private/Comments/Comment.php:196:24
       → /\B(?<![^a-z0-9_\-@\.\'\s])@("(guest|email)\/[a-f0-9]+"|"(?:federated_)?(?:group|team|user){1}\/[a-z0-9_\-@\.\' \/:]+"|"[a-z0-9_\-@\.\' ]+"|[a-z0-9_\-@\.\']+)/i
