@@ -1172,6 +1172,7 @@ final class LinterNodeVisitor extends AbstractNodeVisitor
                             $redundantOverflow,
                             'range '.$rangeLabel.' (overlaps '.$existingRange['label'].')',
                         );
+
                         break;
                     }
                 }

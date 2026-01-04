@@ -280,9 +280,9 @@ final class LinterNodeVisitorTest extends TestCase
         $regex->accept($linter);
 
         $issue = $this->findIssueById($linter->getIssues(), 'regex.lint.charclass.redundant');
-        $this->assertNotNull($issue);
+        $this->assertInstanceOf(LintIssue::class, $issue);
         $this->assertNotNull($issue->hint);
-        $this->assertStringContainsString($expectedHint, $issue->hint);
+        $this->assertStringContainsString($expectedHint, (string) $issue->hint);
     }
 
     public static function provideRedundantCharClassHints(): \Generator
@@ -308,9 +308,9 @@ final class LinterNodeVisitorTest extends TestCase
         $regex->accept($linter);
 
         $issue = $this->findIssueById($linter->getIssues(), 'regex.lint.flag.redundant');
-        $this->assertNotNull($issue);
+        $this->assertInstanceOf(LintIssue::class, $issue);
         $this->assertNotNull($issue->hint);
-        $this->assertStringContainsString($expectedHint, $issue->hint);
+        $this->assertStringContainsString($expectedHint, (string) $issue->hint);
     }
 
     public static function provideInlineFlagRedundantHints(): \Generator
@@ -326,20 +326,6 @@ final class LinterNodeVisitorTest extends TestCase
             ),
             "Remove '-i' from the inline flag group",
         ];
-    }
-
-    /**
-     * @param array<LintIssue> $issues
-     */
-    private function findIssueById(array $issues, string $id): ?LintIssue
-    {
-        foreach ($issues as $issue) {
-            if ($issue->id === $id) {
-                return $issue;
-            }
-        }
-
-        return null;
     }
 
     public function test_char_class_group_tokens_are_literal(): void
@@ -511,5 +497,19 @@ final class LinterNodeVisitorTest extends TestCase
         $warnings = $linter->getWarnings();
 
         $this->assertNotContains('Alternation branches have overlapping character sets, which may cause unnecessary backtracking.', $warnings);
+    }
+
+    /**
+     * @param array<LintIssue> $issues
+     */
+    private function findIssueById(array $issues, string $id): ?LintIssue
+    {
+        foreach ($issues as $issue) {
+            if ($issue->id === $id) {
+                return $issue;
+            }
+        }
+
+        return null;
     }
 }
