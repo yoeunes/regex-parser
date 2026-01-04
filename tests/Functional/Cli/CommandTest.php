@@ -64,14 +64,21 @@ final class CommandTest extends TestCase
 
         $this->assertSame(0, $exitCode);
 
-        $payload = json_decode($buffer, true, 512, \JSON_THROW_ON_ERROR);
+        $payload = $this->decodeJsonPayload($buffer);
         $this->assertSame('/a+/', $payload['pattern']);
-        $this->assertSame(true, $payload['parse']['ok']);
-        $this->assertArrayHasKey('runtime', $payload);
-        $this->assertArrayHasKey('validation', $payload);
-        $this->assertArrayHasKey('redos', $payload);
-        $this->assertArrayHasKey('mode', $payload['redos']);
+        $this->assertIsString($payload['pattern']);
+
+        $parse = $this->requireArrayKey($payload, 'parse');
+        $this->assertArrayHasKey('ok', $parse);
+        $this->assertTrue((bool) $parse['ok']);
+
+        $this->requireArrayKey($payload, 'runtime');
+        $this->requireArrayKey($payload, 'validation');
+        $redos = $this->requireArrayKey($payload, 'redos');
+        $this->assertArrayHasKey('mode', $redos);
+
         $this->assertArrayHasKey('explain', $payload);
+        $this->assertIsString($payload['explain']);
     }
 
     public function test_analyze_command_handles_invalid_regex_options(): void
@@ -154,15 +161,18 @@ final class CommandTest extends TestCase
 
         $this->assertSame(0, $exitCode);
 
-        $payload = json_decode($buffer, true, 512, \JSON_THROW_ON_ERROR);
+        $payload = $this->decodeJsonPayload($buffer);
         $this->assertSame('/(a+)+$/', $payload['pattern']);
-        $this->assertArrayHasKey('runtime', $payload);
-        $this->assertArrayHasKey('analysis', $payload);
-        $this->assertArrayHasKey('severity', $payload['analysis']);
-        $this->assertArrayHasKey('mode', $payload['analysis']);
-        $this->assertArrayHasKey('input', $payload);
-        $this->assertArrayHasKey('value', $payload['input']);
-        $this->assertArrayHasKey('source', $payload['input']);
+        $this->assertIsString($payload['pattern']);
+
+        $this->requireArrayKey($payload, 'runtime');
+        $analysis = $this->requireArrayKey($payload, 'analysis');
+        $this->assertArrayHasKey('severity', $analysis);
+        $this->assertArrayHasKey('mode', $analysis);
+
+        $input = $this->requireArrayKey($payload, 'input');
+        $this->assertArrayHasKey('value', $input);
+        $this->assertArrayHasKey('source', $input);
     }
 
     public function test_debug_command_runs_with_input(): void
@@ -861,6 +871,31 @@ final class CommandTest extends TestCase
             new GlobalOptions(false, false, false, true, null, null),
             [],
         );
+    }
+
+    /**
+     * @return array<mixed, mixed>
+     */
+    private function decodeJsonPayload(string $buffer): array
+    {
+        $payload = json_decode($buffer, true, 512, \JSON_THROW_ON_ERROR);
+        $this->assertIsArray($payload);
+
+        return $payload;
+    }
+
+    /**
+     * @param array<mixed, mixed> $payload
+     *
+     * @return array<mixed, mixed>
+     */
+    private function requireArrayKey(array $payload, string $key): array
+    {
+        $this->assertArrayHasKey($key, $payload);
+        $value = $payload[$key];
+        $this->assertIsArray($value);
+
+        return $value;
     }
 
     /**

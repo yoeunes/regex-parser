@@ -16,12 +16,13 @@ namespace RegexParser\Tests\Unit\ReDoS;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use RegexParser\Node\NodeInterface;
+use RegexParser\ReDoS\ReDoSAnalysis;
 use RegexParser\ReDoS\ReDoSAnalyzer;
 use RegexParser\ReDoS\ReDoSConfidence;
-use RegexParser\ReDoS\ReDoSConfirmOptions;
 use RegexParser\ReDoS\ReDoSConfirmation;
 use RegexParser\ReDoS\ReDoSConfirmationRunnerInterface;
 use RegexParser\ReDoS\ReDoSConfirmationSample;
+use RegexParser\ReDoS\ReDoSConfirmOptions;
 use RegexParser\ReDoS\ReDoSMode;
 use RegexParser\ReDoS\ReDoSSeverity;
 
@@ -82,7 +83,7 @@ final class ReDoSAnalyzerTest extends TestCase
         $runner = new class implements ReDoSConfirmationRunnerInterface {
             public int $calls = 0;
 
-            public function confirm(string $regex, \RegexParser\ReDoS\ReDoSAnalysis $analysis, ?ReDoSConfirmOptions $options = null): ReDoSConfirmation
+            public function confirm(string $regex, ReDoSAnalysis $analysis, ?ReDoSConfirmOptions $options = null): ReDoSConfirmation
             {
                 $this->calls++;
 
@@ -109,7 +110,7 @@ final class ReDoSAnalyzerTest extends TestCase
         $this->assertSame(1, $runner->calls);
         $this->assertSame(ReDoSMode::CONFIRMED, $analysis->mode);
         $this->assertTrue($analysis->isConfirmed());
-        $this->assertNotNull($analysis->confirmation);
+        $this->assertInstanceOf(ReDoSConfirmation::class, $analysis->confirmation);
         $this->assertSame('backtrack_limit', $analysis->confirmation->evidence);
         $this->assertTrue($analysis->confirmation->jitDisableRequested);
         $this->assertSame(ReDoSConfidence::HIGH, $analysis->confidenceLevel());
