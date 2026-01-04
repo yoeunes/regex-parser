@@ -2,7 +2,7 @@ parametersSchema:
     regexParser: structure([
         # Whether to ignore regex parsing errors (e.g., missing delimiters)
         ignoreParseErrors: bool(),
-        # Enable/disable ReDoS vulnerability detection
+        # Enable/disable ReDoS risk detection
         reportRedos: bool(),
         # ReDoS reporting mode: 'off', 'theoretical', 'confirmed'
         redosMode: string(),
@@ -24,7 +24,7 @@ parameters:
         # Ignore parsing errors like missing delimiters (common in dynamic regex)
         ignoreParseErrors: true
 
-        # Enable comprehensive ReDoS vulnerability detection
+        # Enable comprehensive ReDoS risk detection
         reportRedos: true
 
         # Report only critical ReDoS issues by default (conservative)

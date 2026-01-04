@@ -142,11 +142,10 @@ final class AnalyzeCommand extends AbstractCommand
 
             $style->renderSection('ReDoS analysis', 3, $steps);
             $severityOutput = $this->formatRedosSeverity($analysis, $output);
-            $status = match ($analysis->mode) {
-                ReDoSMode::OFF => 'ReDoS analysis disabled',
-                ReDoSMode::CONFIRMED => $analysis->isConfirmed()
-                    ? 'Confirmed ReDoS risk'
-                    : 'Potential ReDoS risk (theoretical)',
+            $status = match (true) {
+                ReDoSMode::OFF === $analysis->mode => 'ReDoS analysis disabled',
+                \in_array($analysis->severity, [ReDoSSeverity::SAFE, ReDoSSeverity::LOW], true) => 'No significant ReDoS risk detected',
+                $analysis->isConfirmed() => 'Confirmed ReDoS risk',
                 default => 'Potential ReDoS risk (theoretical)',
             };
 

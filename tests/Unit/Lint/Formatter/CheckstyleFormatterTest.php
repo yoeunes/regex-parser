@@ -101,7 +101,7 @@ final class CheckstyleFormatterTest extends TestCase
         $problem2 = new RegexProblem(
             ProblemType::Security,
             Severity::Error,
-            'ReDoS vulnerability',
+            'ReDoS risk',
             'regex.redos',
             2,
             'vulnerable pattern',

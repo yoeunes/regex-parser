@@ -46,7 +46,7 @@ final class ReDoSProfileNodeVisitorCoverageTest extends TestCase
         $visitor = new ReDoSProfileNodeVisitor();
         $this->invokePrivate($visitor, 'addVulnerability', [
             ReDoSSeverity::LOW,
-            'Test vulnerability',
+            'Test risk',
             new LiteralNode('a', 0, 0),
             null,
             ReDoSConfidence::LOW,
@@ -55,7 +55,7 @@ final class ReDoSProfileNodeVisitorCoverageTest extends TestCase
 
         $result = $visitor->getResult();
 
-        $this->assertSame(['Test vulnerability'], $result['recommendations']);
+        $this->assertSame(['Test risk'], $result['recommendations']);
     }
 
     public function test_get_result_includes_hint_for_suggested_rewrite(): void
@@ -63,7 +63,7 @@ final class ReDoSProfileNodeVisitorCoverageTest extends TestCase
         $visitor = new ReDoSProfileNodeVisitor();
         $this->invokePrivate($visitor, 'addVulnerability', [
             ReDoSSeverity::MEDIUM,
-            'Test vulnerability with suggestion',
+            'Test risk with suggestion',
             new LiteralNode('a', 0, 0),
             'Use possessive quantifiers',
             ReDoSConfidence::MEDIUM,
@@ -72,10 +72,10 @@ final class ReDoSProfileNodeVisitorCoverageTest extends TestCase
 
         $result = $visitor->getResult();
 
-        $this->assertSame(['Test vulnerability with suggestion Suggested (verify behavior): Use possessive quantifiers'], $result['recommendations']);
+        $this->assertSame(['Test risk with suggestion Suggested (verify behavior): Use possessive quantifiers'], $result['recommendations']);
     }
 
-    public function test_large_bounded_quantifier_adds_low_vulnerability(): void
+    public function test_large_bounded_quantifier_adds_low_risk(): void
     {
         $visitor = new ReDoSProfileNodeVisitor();
         $quantifier = new QuantifierNode(new LiteralNode('a', 0, 0), '{1,2001}', QuantifierType::T_GREEDY, 0, 0);

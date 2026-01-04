@@ -162,11 +162,10 @@ final class DebugCommand extends AbstractCommand
             }
 
             $severityOutput = $this->formatRedosSeverity($analysis, $output);
-            $status = match ($analysis->mode) {
-                ReDoSMode::OFF => 'ReDoS analysis disabled',
-                ReDoSMode::CONFIRMED => $analysis->isConfirmed()
-                    ? 'Confirmed ReDoS risk'
-                    : 'Potential ReDoS risk (theoretical)',
+            $status = match (true) {
+                ReDoSMode::OFF === $analysis->mode => 'ReDoS analysis disabled',
+                \in_array($analysis->severity, [ReDoSSeverity::SAFE, ReDoSSeverity::LOW], true) => 'No significant ReDoS risk detected',
+                $analysis->isConfirmed() => 'Confirmed ReDoS risk',
                 default => 'Potential ReDoS risk (theoretical)',
             };
 
@@ -262,7 +261,9 @@ final class DebugCommand extends AbstractCommand
                     $findingSeverity = match ($finding->severity) {
                         ReDoSSeverity::SAFE, ReDoSSeverity::LOW => $output->success($label),
                         ReDoSSeverity::MEDIUM => $output->warning($label),
-                        ReDoSSeverity::HIGH, ReDoSSeverity::CRITICAL => $output->error($label),
+                        ReDoSSeverity::HIGH, ReDoSSeverity::CRITICAL => $analysis->isConfirmed()
+                            ? $output->error($label)
+                            : $output->warning($label),
                         ReDoSSeverity::UNKNOWN => $output->info($label), // @codeCoverageIgnore
                     };
                     $output->write('  - ['.$findingSeverity.'] '.$finding->message."\n");

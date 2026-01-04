@@ -54,6 +54,26 @@ final class CommandTest extends TestCase
         $this->assertStringContainsString('Severity', $buffer);
     }
 
+    public function test_analyze_command_outputs_json(): void
+    {
+        $command = new AnalyzeCommand();
+        $output = new Output(false, false);
+
+        $exitCode = 0;
+        $buffer = $this->captureOutput(static fn (): int => $command->run(self::makeInput('analyze', ['/a+/', '--format=json']), $output), $exitCode);
+
+        $this->assertSame(0, $exitCode);
+
+        $payload = json_decode($buffer, true, 512, \JSON_THROW_ON_ERROR);
+        $this->assertSame('/a+/', $payload['pattern']);
+        $this->assertSame(true, $payload['parse']['ok']);
+        $this->assertArrayHasKey('runtime', $payload);
+        $this->assertArrayHasKey('validation', $payload);
+        $this->assertArrayHasKey('redos', $payload);
+        $this->assertArrayHasKey('mode', $payload['redos']);
+        $this->assertArrayHasKey('explain', $payload);
+    }
+
     public function test_analyze_command_handles_invalid_regex_options(): void
     {
         $command = new AnalyzeCommand();
@@ -122,6 +142,27 @@ final class CommandTest extends TestCase
 
         $this->assertSame(1, $exitCode);
         $this->assertStringContainsString('Missing value for --input', $buffer);
+    }
+
+    public function test_debug_command_outputs_json(): void
+    {
+        $command = new DebugCommand();
+        $output = new Output(false, false);
+
+        $exitCode = 0;
+        $buffer = $this->captureOutput(static fn (): int => $command->run(self::makeInput('debug', ['/(a+)+$/', '--format=json']), $output), $exitCode);
+
+        $this->assertSame(0, $exitCode);
+
+        $payload = json_decode($buffer, true, 512, \JSON_THROW_ON_ERROR);
+        $this->assertSame('/(a+)+$/', $payload['pattern']);
+        $this->assertArrayHasKey('runtime', $payload);
+        $this->assertArrayHasKey('analysis', $payload);
+        $this->assertArrayHasKey('severity', $payload['analysis']);
+        $this->assertArrayHasKey('mode', $payload['analysis']);
+        $this->assertArrayHasKey('input', $payload);
+        $this->assertArrayHasKey('value', $payload['input']);
+        $this->assertArrayHasKey('source', $payload['input']);
     }
 
     public function test_debug_command_runs_with_input(): void
