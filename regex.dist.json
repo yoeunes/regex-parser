@@ -1,20 +1,21 @@
 {
-  "paths": [
-    "src"
-  ],
-  "exclude": [
-    "vendor",
-    "tests",
-    "Tests",
-    "Fixtures"
-  ],
-  "optimizations": {
-    "digits": false,
-    "word": false,
-    "ranges": false,
-    "canonicalizeCharClasses": false,
-    "possessive": false,
-    "factorize": false,
-    "minQuantifierCount": 4
-  }
+    "$schema": "./regex.schema.json",
+    "paths": [
+        "src"
+    ],
+    "exclude": [
+        "vendor",
+        "tests",
+        "Tests",
+        "Fixtures"
+    ],
+    "optimizations": {
+        "digits": false,
+        "word": false,
+        "ranges": false,
+        "canonicalizeCharClasses": false,
+        "possessive": false,
+        "factorize": false,
+        "minQuantifierCount": 4
+    }
 }

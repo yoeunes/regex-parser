@@ -1,0 +1,142 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/yoeunes/regex-parser/main/regex.schema.json",
+  "title": "RegexParser Configuration",
+  "description": "Configuration schema for RegexParser CLI and linting tool",
+  "type": "object",
+  "properties": {
+    "paths": {
+      "type": "array",
+      "description": "Directories to scan for regex patterns",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1,
+      "default": ["src"]
+    },
+    "exclude": {
+      "type": "array",
+      "description": "Paths to exclude from scanning",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "default": ["vendor", "tests", "Tests", "Fixtures"]
+    },
+    "jobs": {
+      "type": "integer",
+      "description": "Number of parallel workers for linting",
+      "minimum": 1,
+      "default": 4
+    },
+    "minSavings": {
+      "type": "integer",
+      "description": "Minimum character savings threshold to report optimization suggestions",
+      "minimum": 1,
+      "default": 2
+    },
+    "format": {
+      "type": "string",
+      "description": "Output format for lint results",
+      "enum": ["console", "json", "github", "checkstyle", "junit"],
+      "default": "console"
+    },
+    "ide": {
+      "type": "string",
+      "description": "IDE for generating clickable file links in output",
+      "enum": ["phpstorm", "vscode", "textmate", "sublime", "emacs", "atom", "macvim", ""],
+      "default": ""
+    },
+    "rules": {
+      "type": "object",
+      "description": "Enable or disable specific rule categories",
+      "properties": {
+        "redos": {
+          "type": "boolean",
+          "description": "Enable ReDoS vulnerability analysis",
+          "default": true
+        },
+        "validation": {
+          "type": "boolean",
+          "description": "Enable regex syntax validation",
+          "default": true
+        },
+        "optimization": {
+          "type": "boolean",
+          "description": "Enable regex optimization suggestions",
+          "default": true
+        }
+      }
+    },
+    "redosMode": {
+      "type": "string",
+      "description": "ReDoS analysis mode",
+      "enum": ["off", "theoretical", "confirmed"],
+      "default": "theoretical"
+    },
+    "redosThreshold": {
+      "type": "string",
+      "description": "Minimum severity threshold for reporting ReDoS issues",
+      "enum": ["low", "medium", "high", "critical"],
+      "default": "medium"
+    },
+    "redosNoJit": {
+      "type": "boolean",
+      "description": "Disable PHP JIT when running ReDoS analysis (prevents false positives)",
+      "default": false
+    },
+    "optimizations": {
+      "type": "object",
+      "description": "Regex optimization settings",
+      "properties": {
+        "digits": {
+          "type": "boolean",
+          "description": "Optimize digit sequences like [0-9] to \\d",
+          "default": true
+        },
+        "word": {
+          "type": "boolean",
+          "description": "Optimize word character sequences like [a-zA-Z0-9_] to \\w",
+          "default": true
+        },
+        "ranges": {
+          "type": "boolean",
+          "description": "Optimize consecutive character ranges",
+          "default": true
+        },
+        "canonicalizeCharClasses": {
+          "type": "boolean",
+          "description": "Canonicalize character classes (sort ranges, remove duplicates)",
+          "default": true
+        },
+        "possessive": {
+          "type": "boolean",
+          "description": "Suggest possessive quantifiers (*+, ++, {m,n}+) to prevent ReDoS",
+          "default": true
+        },
+        "factorize": {
+          "type": "boolean",
+          "description": "Factorize common prefixes/suffixes in alternations",
+          "default": true
+        },
+        "minQuantifierCount": {
+          "type": "integer",
+          "description": "Minimum quantifier count required to suggest optimizations (min: 2)",
+          "minimum": 2,
+          "default": 4
+        }
+      },
+      "additionalProperties": false
+    },
+    "$schema": {
+      "type": "string",
+      "description": "JSON Schema version (meta-property, allowed in config files)"
+    },
+    "$id": {
+      "type": "string",
+      "description": "Schema identifier (meta-property, allowed in config files)"
+    }
+  },
+  "additionalProperties": false
+}

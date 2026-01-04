@@ -64,6 +64,9 @@
             "includes": [
                 "extension.neon"
             ]
+        },
+        "ide": {
+            "regex.dist.json": "./regex.schema.json"
         }
     },
     "suggest": {
