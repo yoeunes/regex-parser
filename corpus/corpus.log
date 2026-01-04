@@ -532,9 +532,6 @@
          - /^[_a-zA-Z][_a-zA-Z0-9]*(\\[_a-zA-Z][_a-zA-Z0-9]*)*\\$/
          + /^[_a-zA-Z][_a-zA-Z0-9]*(?>(\\[_a-zA-Z][_a-zA-Z0-9]*))*\\$/
      FAIL  Pattern may be vulnerable to ReDoS (severity: CRITICAL).
-     TIP 
-         - /^[_a-zA-Z][_a-zA-Z0-9]*(\\[_a-zA-Z][_a-zA-Z0-9]*)*\\$/
-         + /^[_a-zA-Z]\w*(\\[_a-zA-Z]\w*)*\\$/
 
   corpus/shopware/src/Core/Test/FixtureLoader.php:57:48
       → /"{.*}"/mU
@@ -661,12 +658,6 @@
      TIP 
          - /\A[A-Z]{2}\d{2} ?[A-Z\d]{4}( ?\d{4}){1,} ?\d{1,4}\z/
          + /\A[A-Z]{2}\d{2} ?[A-Z\d]{4}( ?\d{4})+ ?\d{1,4}\z/
-
-  corpus/Wixel/GUMP/gump.class.php:2389:27
-      → /^@?[A-Za-z0-9_]{1,15}$/
-     TIP 
-         - /^@?[A-Za-z0-9_]{1,15}$/
-         + /^@?\w{1,15}$/
 
   corpus/expose/app/Support/ConsoleSectionOutput.php:134:37
       → /]8;;(.*)]8;;/m
@@ -914,35 +905,11 @@
          - /startxref\n(\d+)\n%%EOF/s
          + /startxref\n(\d+)\n%%EOF/
 
-  corpus/mpdf/src/Mpdf.php:3625:22
-      → /{iteration ([a-zA-Z0-9_]+)}/
-     TIP 
-         - /{iteration ([a-zA-Z0-9_]+)}/
-         + /\{iteration (\w+)\}/
-
-  corpus/mpdf/src/Mpdf.php:11930:43
-      → /{iteration ([a-zA-Z0-9_]+)}/
-     TIP 
-         - /{iteration ([a-zA-Z0-9_]+)}/
-         + /\{iteration (\w+)\}/
-
   corpus/mpdf/src/Mpdf.php:18899:23
       → /[\"']([a-zA-Z0-9]{4})[\"']\s*(on|off|\d*){0,1}/
      TIP 
          - /[\"']([a-zA-Z0-9]{4})[\"']\s*(on|off|\d*){0,1}/
          + /["']([a-zA-Z0-9]{4})["']\s*(on|off|\d*)?/
-
-  corpus/mpdf/src/Mpdf.php:19186:26
-      → /{iteration ([a-zA-Z0-9_]+)}/
-     TIP 
-         - /{iteration ([a-zA-Z0-9_]+)}/
-         + /\{iteration (\w+)\}/
-
-  corpus/mpdf/src/Mpdf.php:22984:24
-      → /{iteration ([a-zA-Z0-9_]+)}/
-     TIP 
-         - /{iteration ([a-zA-Z0-9_]+)}/
-         + /\{iteration (\w+)\}/
 
   corpus/mpdf/src/Mpdf.php:24576:26
       → /\d+\.\d\d+ (\d+\.\d\d+) \d+\.\d\d+ [\-]{0,1}\d+\.\d\d+ re/
@@ -1518,12 +1485,6 @@
          - /(^[a-zA-Z0-9_-]+([.][^\001)\ ]+)+$)/siU
          + /(^[a-zA-Z0-9_-]+([.][^\001)\ ]+)+$)/iU
 
-  corpus/freescout/overrides/barryvdh/laravel-translation-manager/src/Manager.php:217:24
-      → /^([a-zA-Z0-9_]+)\./
-     TIP 
-         - /^([a-zA-Z0-9_]+)\./
-         + /^(\w+)\./
-
   corpus/freescout/overrides/guzzlehttp/psr7/src/Uri.php:105:13
       → %[^:/@?&=#]+%usD
      WARN  Flag 's' is useless: the pattern contains no dots.
@@ -1601,12 +1562,6 @@
      TIP 
          - /enable/m
          + /enable/
-
-  corpus/freescout/app/Misc/Helper.php:1036:31
-      → /^[a-zA-Z0-9_]+$/
-     TIP 
-         - /^[a-zA-Z0-9_]+$/
-         + /^\w+$/
 
   corpus/freescout/app/Http/Controllers/SystemController.php:59:53
       → #[\r\n].+#m
@@ -1742,12 +1697,6 @@
          - /\(([^\)]+)\)|\[(\d+)\]: (.*)/
          + /\(([^)]+)\)|\[(\d+)\]: (.*)/
 
-  corpus/symfony-console-completion/src/HookFactory.php:197:29
-      → /[^A-Za-z0-9_]+/
-     TIP 
-         - /[^A-Za-z0-9_]+/
-         + /\W+/
-
   corpus/snipe-it/app/Models/Labels/Label.php:703:36
       → /\/*(.+?)(?:\/|\.)/
      TIP 
@@ -1780,12 +1729,6 @@
            (
            ...
 
-  corpus/aws-crt-php/gen_stub.php:934:36
-      → /^[a-zA-Z_][a-zA-Z_0-9]*$/
-     TIP 
-         - /^[a-zA-Z_][a-zA-Z_0-9]*$/
-         + /^[a-zA-Z_]\w*$/
-
   corpus/carbon/src/Carbon/Traits/Creator.php:572:24
       → /(?<!\\)(?:\\{2})*(h|g|H|G)/
      TIP 
@@ -1810,18 +1753,6 @@
          - /\B(?<![^a-z0-9_\-@\.\'\s])@("(guest|email)\/[a-f0-9]+"|"(?:federated_)?(?:group|team|user){1}\/[a-z0-9_\-@\.\' \/:]+"|"[a-z0-9_\-@\.\' ]+"|[a-z0-9_\-@\.\']+)/i
          + /\B(?<![^a-z0-9_\-@.'\s])@("(guest|email)\/[a-f0-9]+"|"(?:federated_)?(?:group|team|user)\/[a-z0-9_\-@.' \/:]+"|"[a-z0-9_\-@.' ]+"|[a-z0-9_\-@.']+)/i
 
-  corpus/server/lib/private/Accounts/AccountManager.php:716:19
-      → /^@?([a-zA-Z0-9_]{2,15})$/
-     TIP 
-         - /^@?([a-zA-Z0-9_]{2,15})$/
-         + /^@?(\w{2,15})$/
-
-  corpus/server/lib/private/EventSource.php:76:28
-      → /^[A-Za-z0-9_]+$/
-     TIP 
-         - /^[A-Za-z0-9_]+$/
-         + /^\w+$/
-
   corpus/server/apps/user_ldap/lib/Access.php:1380:24
       → #&([A-Za-z]{2})(?:lig);#
      TIP 
@@ -1833,12 +1764,6 @@
      TIP 
          - /(?|(?:[\?|\&]h={1})([\w]+)|\d\/([\w]+))/
          + /(?|(?:[?|&]h=)([\w]+)|\d\/([\w]+))/
-
-  corpus/shopware/src/Core/Framework/Migration/Command/CreateMigrationCommand.php:58:25
-      → /^[a-zA-Z0-9\_]*$/
-     TIP 
-         - /^[a-zA-Z0-9\_]*$/
-         + /^\w*$/
 
   corpus/shopware/src/Core/System/Snippet/SnippetValidator.php:257:48
       → /^(\{0\}.+\|)?(\{1\}.+\|)(\[0,inf\[.+)/i
@@ -1870,30 +1795,6 @@
          - /--------+\r?\n.+?(\d+)\r?\n.+?(\d+)\r?\n/
          + /-{7}-+\r?\n.+?(\d+)\r?\n.+?(\d+)\r?\n/
 
-  corpus/espocrm/application/Espo/Tools/EntityManager/Rename/Renamer.php:389:29
-      → /[^A-Za-z0-9_]+/
-     TIP 
-         - /[^A-Za-z0-9_]+/
-         + /\W+/
-
-  corpus/espocrm/application/Espo/Core/Utils/Database/DetailsProviders/PostgresqlDetailsProvider.php:65:30
-      → /[^A-Za-z0-9_]+/
-     TIP 
-         - /[^A-Za-z0-9_]+/
-         + /\W+/
-
-  corpus/espocrm/application/Espo/ORM/QueryComposer/BaseQueryComposer.php:3023:29
-      → /[^A-Za-z0-9_]+/
-     TIP 
-         - /[^A-Za-z0-9_]+/
-         + /\W+/
-
-  corpus/espocrm/application/Espo/ORM/QueryComposer/BaseQueryComposer.php:3044:29
-      → /[^A-Za-z0-9_]+/
-     TIP 
-         - /[^A-Za-z0-9_]+/
-         + /\W+/
-
   corpus/doctor-rst/src/Helper/PhpHelper.php:35:34
       → /[\\]{1}/
      TIP 
@@ -1924,12 +1825,6 @@
          - /\d+\.\d\d+ \d+\.\d\d+ \d+\.\d\d+ ([\-]{0,1}\d+\.\d\d+) re/
          + /\d+\.\d\d+ \d+\.\d\d+ \d+\.\d\d+ ([\-]?\d+\.\d\d+) re/
 
-  corpus/symfony/symfony/src/Symfony/Component/Form/FormConfigBuilder.php:651:61
-      → /^[a-zA-Z0-9_][a-zA-Z0-9_\-:]*$/D
-     TIP 
-         - /^[a-zA-Z0-9_][a-zA-Z0-9_\-:]*$/D
-         + /^\w[a-zA-Z0-9_\-:]*$/D
-
   corpus/symfony/symfony/src/Symfony/Component/Intl/Resources/bin/update-data.php:80:59
       → #^release-[0-9]{1,}[.-][0-9]{1}$#
      TIP 
@@ -1941,12 +1836,6 @@
      TIP 
          - #release-([0-9]{1,})[.-]([0-9]{1,})#
          + #release-([0-9]+)[.\-]([0-9]+)#
-
-  corpus/symfony/symfony/src/Symfony/Component/Security/Core/Dumper/MermaidDumper.php:86:29
-      → /[^a-zA-Z0-9_]/
-     TIP 
-         - /[^a-zA-Z0-9_]/
-         + /\W/
 
   corpus/symfony/symfony/src/Symfony/Component/PropertyInfo/Extractor/PhpStanExtractor.php:262:47
       → /^#@[+-]{1}/m
@@ -1978,18 +1867,6 @@
          - / => \[\n        (\[.+?),\n    \],/
          + / => \[\n {8}(\[.+?),\n {4}\],/
 
-  corpus/symfony/symfony/src/Symfony/Component/DependencyInjection/Loader/YamlFileLoader.php:344:24
-      → /^_[a-zA-Z0-9_]*$/
-     TIP 
-         - /^_[a-zA-Z0-9_]*$/
-         + /^_\w*$/
-
-  corpus/symfony/symfony/src/Symfony/Component/Process/Process.php:1675:38
-      → /"\$\{:([_a-zA-Z]++[_a-zA-Z0-9]*+)\}"/
-     TIP 
-         - /"\$\{:([_a-zA-Z]++[_a-zA-Z0-9]*+)\}"/
-         + /"\$\{:([_a-zA-Z]++\w*+)\}"/
-
   corpus/symfony/symfony/src/Symfony/Component/Console/Terminal.php:184:43
       → /--------+\r?\n.+?(\d+)\r?\n.+?(\d+)\r?\n/
      TIP 
@@ -2013,16 +1890,4 @@
      TIP 
          - /<!\-\-\[if [^>]+\]><!\-\->(.*?)<![ ]+\-\-<!\[endif\]\-\->/s
          + /<!--\[if [^>]+\]><!-->(.*?)<![ ]+--<!\[endif\]-->/s
-
-  corpus/elasticsearch-php/util/YamlTests.php:430:32
-      → /[^a-zA-Z0-9_]/
-     TIP 
-         - /[^a-zA-Z0-9_]/
-         + /\W/
-
-  corpus/elasticsearch-php/src/Utility.php:41:29
-      → /[^a-zA-Z0-9_]/
-     TIP 
-         - /[^a-zA-Z0-9_]/
-         + /\W/
 

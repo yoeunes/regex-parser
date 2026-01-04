@@ -10,8 +10,8 @@
   ],
   "optimizations": {
     "digits": false,
-    "word": true,
-    "ranges": true,
+    "word": false,
+    "ranges": false,
     "canonicalizeCharClasses": false,
     "possessive": false,
     "factorize": false,
