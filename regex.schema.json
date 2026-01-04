@@ -1,142 +1,304 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/yoeunes/regex-parser/main/regex.schema.json",
-  "title": "RegexParser Configuration",
-  "description": "Configuration schema for RegexParser CLI and linting tool",
+  "title": "RegexParser Lint Configuration",
+  "description": "Configuration schema for RegexParser CLI lint defaults (regex.json or regex.dist.json).",
   "type": "object",
+  "additionalProperties": false,
+  "$defs": {
+    "nonEmptyString": {
+      "type": "string",
+      "minLength": 1
+    },
+    "stringList": {
+      "description": "A single string or a list of strings.",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/nonEmptyString"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/nonEmptyString"
+          }
+        }
+      ]
+    }
+  },
   "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "JSON Schema reference for editor integration.",
+      "format": "uri-reference",
+      "examples": ["./regex.schema.json"]
+    },
+    "$id": {
+      "type": "string",
+      "description": "Schema identifier (usually a URL).",
+      "format": "uri-reference"
+    },
     "paths": {
-      "type": "array",
-      "description": "Directories to scan for regex patterns",
-      "items": {
-        "type": "string",
-        "minLength": 1
-      },
-      "minItems": 1,
-      "default": ["src"]
+      "allOf": [
+        {
+          "$ref": "#/$defs/stringList"
+        }
+      ],
+      "description": "Directories or files to scan for regex patterns. Omit to scan the working directory.",
+      "examples": ["src", ["src", "tests"]]
     },
     "exclude": {
-      "type": "array",
-      "description": "Paths to exclude from scanning",
-      "items": {
-        "type": "string",
-        "minLength": 1
-      },
-      "default": ["vendor", "tests", "Tests", "Fixtures"]
+      "allOf": [
+        {
+          "$ref": "#/$defs/stringList"
+        }
+      ],
+      "description": "Paths to exclude from scanning. Omit to use the CLI default (vendor).",
+      "examples": ["vendor", ["vendor", "tests", "Fixtures"]]
     },
     "jobs": {
       "type": "integer",
-      "description": "Number of parallel workers for linting",
+      "description": "Number of parallel workers. Omit to auto-detect based on CPU cores.",
       "minimum": 1,
-      "default": 4
+      "examples": [4]
     },
     "minSavings": {
       "type": "integer",
-      "description": "Minimum character savings threshold to report optimization suggestions",
+      "description": "Minimum character savings threshold to report optimization suggestions.",
       "minimum": 1,
-      "default": 2
+      "default": 1,
+      "examples": [2]
     },
     "format": {
       "type": "string",
-      "description": "Output format for lint results",
+      "description": "Output format for lint results.",
       "enum": ["console", "json", "github", "checkstyle", "junit"],
+      "enumDescriptions": [
+        "Human-friendly console output.",
+        "Machine-readable JSON report.",
+        "GitHub Actions annotations format.",
+        "Checkstyle XML report.",
+        "JUnit XML report."
+      ],
+      "x-intellij-enum-metadata": [
+        {
+          "value": "console",
+          "description": "Human-friendly console output."
+        },
+        {
+          "value": "json",
+          "description": "Machine-readable JSON report."
+        },
+        {
+          "value": "github",
+          "description": "GitHub Actions annotations format."
+        },
+        {
+          "value": "checkstyle",
+          "description": "Checkstyle XML report."
+        },
+        {
+          "value": "junit",
+          "description": "JUnit XML report."
+        }
+      ],
       "default": "console"
     },
     "ide": {
-      "type": "string",
-      "description": "IDE for generating clickable file links in output",
-      "enum": ["phpstorm", "vscode", "textmate", "sublime", "emacs", "atom", "macvim", ""],
-      "default": ""
+      "description": "IDE name or custom URL template for clickable file links. Use placeholders like %f, %l, %c, or %relFile%.",
+      "default": "",
+      "oneOf": [
+        {
+          "const": "",
+          "description": "Disable clickable links."
+        },
+        {
+          "const": "phpstorm",
+          "description": "Use phpstorm://open?file=%f&line=%l"
+        },
+        {
+          "const": "vscode",
+          "description": "Use vscode://file/%f:%l"
+        },
+        {
+          "const": "textmate",
+          "description": "Use txmt://open?url=file://%f&line=%l"
+        },
+        {
+          "const": "sublime",
+          "description": "Use subl://open?url=file://%f&line=%l"
+        },
+        {
+          "const": "emacs",
+          "description": "Use emacs://open?url=file://%f&line=%l"
+        },
+        {
+          "const": "atom",
+          "description": "Use atom://core/open/file?filename=%f&line=%l"
+        },
+        {
+          "const": "macvim",
+          "description": "Use mvim://open?url=file://%f&line=%l"
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "pattern": ".*%(?:f|file%|relFile%|l|line%|c|column%).*",
+          "description": "Custom URL template with placeholders."
+        }
+      ],
+      "examples": ["phpstorm", "vscode", "vscode://file/%f:%l"]
     },
     "rules": {
       "type": "object",
-      "description": "Enable or disable specific rule categories",
+      "description": "Enable or disable high-level rule categories.",
+      "additionalProperties": false,
       "properties": {
         "redos": {
           "type": "boolean",
-          "description": "Enable ReDoS vulnerability analysis",
+          "description": "Enable ReDoS vulnerability analysis.",
           "default": true
         },
         "validation": {
           "type": "boolean",
-          "description": "Enable regex syntax validation",
+          "description": "Enable regex syntax validation.",
           "default": true
         },
         "optimization": {
           "type": "boolean",
-          "description": "Enable regex optimization suggestions",
+          "description": "Enable regex optimization suggestions.",
           "default": true
         }
       }
     },
     "redosMode": {
       "type": "string",
-      "description": "ReDoS analysis mode",
+      "description": "ReDoS analysis mode.",
       "enum": ["off", "theoretical", "confirmed"],
+      "enumDescriptions": [
+        "Disable ReDoS analysis.",
+        "Report theoretical ReDoS risks.",
+        "Only report confirmed ReDoS risks."
+      ],
+      "x-intellij-enum-metadata": [
+        {
+          "value": "off",
+          "description": "Disable ReDoS analysis."
+        },
+        {
+          "value": "theoretical",
+          "description": "Report theoretical ReDoS risks."
+        },
+        {
+          "value": "confirmed",
+          "description": "Only report confirmed ReDoS risks."
+        }
+      ],
       "default": "theoretical"
     },
     "redosThreshold": {
       "type": "string",
-      "description": "Minimum severity threshold for reporting ReDoS issues",
+      "description": "Minimum severity threshold for reporting ReDoS issues.",
       "enum": ["low", "medium", "high", "critical"],
-      "default": "medium"
+      "enumDescriptions": [
+        "Report low and higher.",
+        "Report medium and higher.",
+        "Report high and higher.",
+        "Report only critical."
+      ],
+      "x-intellij-enum-metadata": [
+        {
+          "value": "low",
+          "description": "Report low and higher."
+        },
+        {
+          "value": "medium",
+          "description": "Report medium and higher."
+        },
+        {
+          "value": "high",
+          "description": "Report high and higher."
+        },
+        {
+          "value": "critical",
+          "description": "Report only critical."
+        }
+      ],
+      "default": "high"
     },
     "redosNoJit": {
       "type": "boolean",
-      "description": "Disable PHP JIT when running ReDoS analysis (prevents false positives)",
+      "description": "Disable PHP JIT when running ReDoS analysis (prevents false positives).",
       "default": false
     },
     "optimizations": {
       "type": "object",
-      "description": "Regex optimization settings",
+      "description": "Regex optimization settings (applies when optimization rules are enabled).",
+      "additionalProperties": false,
       "properties": {
         "digits": {
           "type": "boolean",
-          "description": "Optimize digit sequences like [0-9] to \\d",
+          "description": "Optimize digit character classes like [0-9] to \\d.",
           "default": true
         },
         "word": {
           "type": "boolean",
-          "description": "Optimize word character sequences like [a-zA-Z0-9_] to \\w",
+          "description": "Optimize word character classes like [A-Za-z0-9_] to \\w.",
           "default": true
         },
         "ranges": {
           "type": "boolean",
-          "description": "Optimize consecutive character ranges",
+          "description": "Optimize consecutive character ranges.",
           "default": true
         },
         "canonicalizeCharClasses": {
           "type": "boolean",
-          "description": "Canonicalize character classes (sort ranges, remove duplicates)",
+          "description": "Canonicalize character classes (sort ranges, remove duplicates).",
           "default": true
         },
         "possessive": {
           "type": "boolean",
-          "description": "Suggest possessive quantifiers (*+, ++, {m,n}+) to prevent ReDoS",
-          "default": true
+          "description": "Suggest possessive quantifiers (*+, ++, {m,n}+) to prevent ReDoS.",
+          "default": false
         },
         "factorize": {
           "type": "boolean",
-          "description": "Factorize common prefixes/suffixes in alternations",
-          "default": true
+          "description": "Factorize common prefixes/suffixes in alternations.",
+          "default": false
         },
         "minQuantifierCount": {
           "type": "integer",
-          "description": "Minimum quantifier count required to suggest optimizations (min: 2)",
+          "description": "Minimum quantifier count required to suggest optimizations (min: 2).",
           "minimum": 2,
           "default": 4
         }
-      },
-      "additionalProperties": false
-    },
-    "$schema": {
-      "type": "string",
-      "description": "JSON Schema version (meta-property, allowed in config files)"
-    },
-    "$id": {
-      "type": "string",
-      "description": "Schema identifier (meta-property, allowed in config files)"
+      }
     }
   },
-  "additionalProperties": false
+  "examples": [
+    {
+      "$schema": "./regex.schema.json",
+      "paths": ["src"],
+      "exclude": ["vendor", "tests"],
+      "format": "console",
+      "minSavings": 2,
+      "jobs": 4,
+      "ide": "phpstorm",
+      "rules": {
+        "redos": true,
+        "validation": true,
+        "optimization": true
+      },
+      "redosMode": "theoretical",
+      "redosThreshold": "high",
+      "optimizations": {
+        "digits": true,
+        "word": true,
+        "ranges": true,
+        "canonicalizeCharClasses": true,
+        "possessive": false,
+        "factorize": false,
+        "minQuantifierCount": 4
+      }
+    }
+  ]
 }
