@@ -51,10 +51,10 @@ use RegexParser\Node\UnicodePropNode;
 use RegexParser\Node\VersionConditionNode;
 
 /**
- * High-performance recursive descent parser for regex patterns.
+ * Recursive descent parser for regex patterns.
  *
- * This optimized parser uses intelligent caching, reduced method calls, and
- * streamlined parsing logic for maximum performance while maintaining full
+ * This parser uses intelligent caching, reduced method calls, and
+ * streamlined parsing logic for efficiency while maintaining full
  * compatibility with PCRE syntax.
  */
 final class Parser

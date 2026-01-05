@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace RegexParser;
 
 /**
- * High-performance token stream with direct indexing and intelligent caching.
+ * Token stream with direct indexing and intelligent caching.
  *
  * This implementation eliminates O(n) array operations and provides constant-time
  * access to tokens through direct array indexing with minimal memory overhead.

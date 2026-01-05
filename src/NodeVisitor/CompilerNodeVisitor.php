@@ -47,10 +47,10 @@ use RegexParser\Node\UnicodePropNode;
 use RegexParser\Node\VersionConditionNode;
 
 /**
- * High-performance compiler that recompiles regex AST back into optimized strings.
+ * Compiler that recompiles regex AST back into optimized strings.
  *
- * This optimized visitor provides intelligent compilation with caching and
- * streamlined string building for maximum performance while maintaining
+ * This visitor provides intelligent compilation with caching and
+ * streamlined string building for efficiency while maintaining
  * full PCRE compatibility.
  *
  * @extends AbstractNodeVisitor<string>
@@ -579,7 +579,7 @@ final class CompilerNodeVisitor extends AbstractNodeVisitor
     }
 
     /**
-     * High-performance string escaping with minimal allocations.
+     * String escaping with minimal allocations.
      */
     private function escapeString(string $value): string
     {

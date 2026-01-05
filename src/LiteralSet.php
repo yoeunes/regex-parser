@@ -14,9 +14,9 @@ declare(strict_types=1);
 namespace RegexParser;
 
 /**
- * High-performance immutable set of literal strings extracted from regex patterns.
+ * Immutable set of literal strings extracted from regex patterns.
  *
- * This optimized data structure provides efficient literal extraction with intelligent
+ * This data structure provides literal extraction with intelligent
  * size limits, lazy evaluation, and memory-efficient operations for regex optimization.
  */
 final readonly class LiteralSet

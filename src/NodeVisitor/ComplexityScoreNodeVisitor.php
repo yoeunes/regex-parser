@@ -42,10 +42,10 @@ use RegexParser\Node\UnicodePropNode;
 use RegexParser\Node\VersionConditionNode;
 
 /**
- * High-performance visitor that calculates numeric complexity scores for regex patterns.
+ * Visitor that calculates numeric complexity scores for regex patterns.
  *
- * This optimized visitor provides intelligent complexity analysis with caching and
- * streamlined scoring algorithms for maximum performance while detecting ReDoS patterns.
+ * This visitor provides intelligent complexity analysis with caching and
+ * streamlined scoring algorithms for efficiency while detecting ReDoS patterns.
  *
  * @extends AbstractNodeVisitor<int>
  */
@@ -292,7 +292,7 @@ final class ComplexityScoreNodeVisitor extends AbstractNodeVisitor
     }
 
     /**
-     * High-performance cached unbounded quantifier detection.
+     * Cached unbounded quantifier detection.
      */
     private function isUnboundedQuantifier(string $quant): bool
     {

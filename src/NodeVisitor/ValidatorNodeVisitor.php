@@ -51,9 +51,9 @@ use RegexParser\Node\UnicodePropNode;
 use RegexParser\Regex;
 
 /**
- * High-performance validator for regex Abstract Syntax Trees with intelligent caching and optimization.
+ * Validator for regex Abstract Syntax Trees with intelligent caching and optimization.
  *
- * This optimized validator provides comprehensive semantic validation while minimizing
+ * This validator provides comprehensive semantic validation while minimizing
  * computational overhead through intelligent caching and streamlined validation logic.
  *
  * @extends AbstractNodeVisitor<void>
@@ -1095,7 +1095,7 @@ final class ValidatorNodeVisitor extends AbstractNodeVisitor
     }
 
     /**
-     * High-performance cached quantifier bounds parsing.
+     * Cached quantifier bounds parsing.
      *
      * @return array{0: int, 1: int}
      */
