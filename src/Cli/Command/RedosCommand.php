@@ -664,7 +664,7 @@ final class RedosCommand extends AbstractCommand
             @preg_match($pattern, $subject);
         }
 
-        $usageStart = \function_exists('getrusage') ? getrusage() : null;
+        $usageStart = \function_exists('getrusage') ? (array) getrusage() : null;
         $memStart = memory_get_usage(true);
         $peakStart = memory_get_peak_usage(true);
 
@@ -684,7 +684,7 @@ final class RedosCommand extends AbstractCommand
         }
 
         $wallMs = (hrtime(true) - $t0) / 1e6;
-        $usageEnd = \function_exists('getrusage') ? getrusage() : null;
+        $usageEnd = \function_exists('getrusage') ? (array) getrusage() : null;
         $memEnd = memory_get_usage(true);
         $peakEnd = memory_get_peak_usage(true);
 
@@ -911,14 +911,17 @@ final class RedosCommand extends AbstractCommand
     }
 
     /**
-     * @param array<string, mixed> $usage
+     * @param array<mixed, mixed> $usage
      */
     private function usageToMs(array $usage, string $prefix): float
     {
         $secKey = $prefix.'.tv_sec';
         $usecKey = $prefix.'.tv_usec';
 
-        return ($usage[$secKey] ?? 0) * 1000 + ($usage[$usecKey] ?? 0) / 1000;
+        $sec = isset($usage[$secKey]) && is_numeric($usage[$secKey]) ? (float) $usage[$secKey] : 0.0;
+        $usec = isset($usage[$usecKey]) && is_numeric($usage[$usecKey]) ? (float) $usage[$usecKey] : 0.0;
+
+        return $sec * 1000 + $usec / 1000;
     }
 
     private function matchResultName(int|false $result): string
