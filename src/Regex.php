@@ -69,10 +69,10 @@ use RegexParser\ReDoS\ReDoSMode;
 use RegexParser\ReDoS\ReDoSSeverity;
 
 /**
- * Main entry point for the RegexParser library.
+ * Entry point for the RegexParser library.
  *
- * Provides an API for parsing, validating, optimizing, and analyzing
- * regular expressions with comprehensive error handling and caching support.
+ * Provides methods for parsing, validating, optimizing, and analyzing
+ * regular expressions. Supports caching and runtime PCRE validation.
  */
 final readonly class Regex
 {
@@ -118,36 +118,6 @@ final readonly class Regex
     ) {}
 
     /**
-     * Get the cache instance.
-     */
-    public function getCache(): CacheInterface
-    {
-        return $this->cache;
-    }
-
-    /**
-     * Get cache statistics.
-     *
-     * @return array{hits: int, misses: int} Cache hits and misses (zeroed if unsupported)
-     */
-    public function getCacheStats(): array
-    {
-        if (!$this->cache instanceof RemovableCacheInterface) {
-            return ['hits' => 0, 'misses' => 0];
-        }
-
-        return $this->cache->getStats();
-    }
-
-    /**
-     * Clear static validator caches (useful for long-running processes).
-     */
-    public function clearValidatorCaches(): void
-    {
-        ValidatorNodeVisitor::clearCaches();
-    }
-
-    /**
      * Create a new Regex instance with optional configuration.
      *
      * Instances are not memoized; use Regex::new() for the same behavior.
@@ -173,39 +143,28 @@ final readonly class Regex
     }
 
     /**
-     * Parse a regular expression pattern with separate flags and delimiter.
+     * Parse a regular expression into an Abstract Syntax Tree (AST).
      *
-     * @param string $pattern   The regex pattern body
-     * @param string $flags     The regex flags
-     * @param string $delimiter The regex delimiter
+     * @param string $regex    The regular expression to parse
+     * @param bool   $tolerant Whether to return a tolerant result on parse errors
      *
-     * @return RegexNode Parsed AST
+     * @return ($tolerant is true ? TolerantParseResult : RegexNode) Parsed AST or tolerant result
      */
-    public function parsePattern(string $pattern, string $flags = '', string $delimiter = '/'): RegexNode
+    public function parse(string $regex, bool $tolerant = false): RegexNode|TolerantParseResult
     {
-        $closingDelimiter = PatternParser::closingDelimiter($delimiter);
-        $regex = $delimiter.$pattern.$closingDelimiter.$flags;
+        try {
+            $ast = $this->doParse($regex);
 
-        return $this->parse($regex, false);
-    }
+            return $tolerant ? new TolerantParseResult($ast) : $ast;
+        } catch (LexerException|ParserException $parseException) {
+            if (!$tolerant) {
+                throw $parseException;
+            }
 
-    /**
-     * Tokenize a regex into a token stream with positions.
-     *
-     * This exposes the same lexer the parser uses internally, including all
-     * literal characters, whitespace, and comment markers, each tagged with
-     * its byte offset in the pattern body. Combined with the delimiter and
-     * flags extracted via PatternParser, this allows reconstructing the
-     * original pattern and mapping nodes back to their exact locations.
-     *
-     * @param int|null $phpVersionId Target PHP_VERSION_ID for feature validation
-     */
-    public static function tokenize(string $regex, ?int $phpVersionId = null): TokenStream
-    {
-        $versionId = $phpVersionId ?? \PHP_VERSION_ID;
-        [$pattern, $flags] = PatternParser::extractPatternAndFlags($regex, $phpVersionId);
+            $fallbackAst = $this->buildFallbackAstFromException($parseException, $regex);
 
-        return (new Lexer($versionId))->tokenize($pattern, $flags);
+            return new TolerantParseResult($fallbackAst, [$parseException]);
+        }
     }
 
     /**
@@ -280,43 +239,6 @@ final readonly class Regex
     }
 
     /**
-     * Create a new Regex instance without memoization.
-     *
-     * @param array<string, mixed> $options Configuration options
-     *
-     * @return self New Regex instance
-     */
-    public static function new(array $options = []): self
-    {
-        return self::create($options);
-    }
-
-    /**
-     * Parse a regular expression into an Abstract Syntax Tree (AST).
-     *
-     * @param string $regex    The regular expression to parse
-     * @param bool   $tolerant Whether to return a tolerant result on parse errors
-     *
-     * @return ($tolerant is true ? TolerantParseResult : RegexNode) Parsed AST or tolerant result
-     */
-    public function parse(string $regex, bool $tolerant = false): RegexNode|TolerantParseResult
-    {
-        try {
-            $ast = $this->doParse($regex);
-
-            return $tolerant ? new TolerantParseResult($ast) : $ast;
-        } catch (LexerException|ParserException $parseException) {
-            if (!$tolerant) {
-                throw $parseException;
-            }
-
-            $fallbackAst = $this->buildFallbackAstFromException($parseException, $regex);
-
-            return new TolerantParseResult($fallbackAst, [$parseException]);
-        }
-    }
-
-    /**
      * Validate a regular expression and return detailed validation results.
      *
      * @param string $regex The regular expression to validate
@@ -362,26 +284,6 @@ final readonly class Regex
         $analyzer = new ReDoSAnalyzer($this, $this->redosIgnoredPatterns);
 
         return $analyzer->analyze($regex, $threshold, $mode, $confirmOptions);
-    }
-
-    /**
-     * Extract literal strings from a regular expression pattern.
-     *
-     * @param string $regex The regular expression to analyze
-     *
-     * @return LiteralExtractionResult Extracted literals and search patterns
-     */
-    public function literals(string $regex): LiteralExtractionResult
-    {
-        $ast = $this->parse($regex, false);
-
-        $literalSet = $ast->accept(new LiteralExtractorNodeVisitor());
-
-        $uniqueLiterals = $this->extractUniqueLiterals($literalSet);
-        $searchPatterns = $this->buildSearchPatterns($literalSet);
-        $confidenceLevel = $this->determineConfidenceLevel($literalSet);
-
-        return new LiteralExtractionResult($uniqueLiterals, $searchPatterns, $confidenceLevel, $literalSet);
     }
 
     /**
@@ -436,20 +338,6 @@ final readonly class Regex
     }
 
     /**
-     * Generate a sample string that matches the regular expression.
-     *
-     * @param string $regex The regular expression to generate a sample for
-     *
-     * @return string Generated sample string
-     */
-    public function generate(string $regex): string
-    {
-        $ast = $this->parse($regex, false);
-
-        return $ast->accept(new SampleGeneratorNodeVisitor());
-    }
-
-    /**
      * Generate a human-readable explanation of the regular expression.
      *
      * @param string $regex  The regular expression to explain
@@ -481,6 +369,140 @@ final readonly class Regex
             : new ConsoleHighlighterVisitor();
 
         return $ast->accept($visitor);
+    }
+
+    /**
+     * Extract literal strings from a regular expression pattern.
+     *
+     * @param string $regex The regular expression to analyze
+     *
+     * @return LiteralExtractionResult Extracted literals and search patterns
+     */
+    public function literals(string $regex): LiteralExtractionResult
+    {
+        $ast = $this->parse($regex, false);
+
+        $literalSet = $ast->accept(new LiteralExtractorNodeVisitor());
+
+        $uniqueLiterals = $this->extractUniqueLiterals($literalSet);
+        $searchPatterns = $this->buildSearchPatterns($literalSet);
+        $confidenceLevel = $this->determineConfidenceLevel($literalSet);
+
+        return new LiteralExtractionResult($uniqueLiterals, $searchPatterns, $confidenceLevel, $literalSet);
+    }
+
+    /**
+     * Generate a sample string that matches the regular expression.
+     *
+     * @param string $regex The regular expression to generate a sample for
+     *
+     * @return string Generated sample string
+     */
+    public function generate(string $regex): string
+    {
+        $ast = $this->parse($regex, false);
+
+        return $ast->accept(new SampleGeneratorNodeVisitor());
+    }
+
+    /**
+     * Parse a regular expression pattern with separate flags and delimiter.
+     *
+     * @param string $pattern   The regex pattern body
+     * @param string $flags     The regex flags
+     * @param string $delimiter The regex delimiter
+     *
+     * @return RegexNode Parsed AST
+     */
+    public function parsePattern(string $pattern, string $flags = '', string $delimiter = '/'): RegexNode
+    {
+        $closingDelimiter = PatternParser::closingDelimiter($delimiter);
+        $regex = $delimiter.$pattern.$closingDelimiter.$flags;
+
+        return $this->parse($regex, false);
+    }
+
+    /**
+     * Tokenize a regex into a token stream with positions.
+     *
+     * This exposes the same lexer the parser uses internally, including all
+     * literal characters, whitespace, and comment markers, each tagged with
+     * its byte offset in the pattern body. Combined with the delimiter and
+     * flags extracted via PatternParser, this allows reconstructing the
+     * original pattern and mapping nodes back to their exact locations.
+     *
+     * @param int|null $phpVersionId Target PHP_VERSION_ID for feature validation
+     */
+    public static function tokenize(string $regex, ?int $phpVersionId = null): TokenStream
+    {
+        $versionId = $phpVersionId ?? \PHP_VERSION_ID;
+        [$pattern, $flags] = PatternParser::extractPatternAndFlags($regex, $phpVersionId);
+
+        return (new Lexer($versionId))->tokenize($pattern, $flags);
+    }
+
+    /**
+     * Create a new Regex instance without memoization.
+     *
+     * @param array<string, mixed> $options Configuration options
+     *
+     * @return self New Regex instance
+     */
+    public static function new(array $options = []): self
+    {
+        return self::create($options);
+    }
+
+    /**
+     * Get the cache instance.
+     */
+    public function getCache(): CacheInterface
+    {
+        return $this->cache;
+    }
+
+    /**
+     * Get cache statistics.
+     *
+     * @return array{hits: int, misses: int} Cache hits and misses (zeroed if unsupported)
+     */
+    public function getCacheStats(): array
+    {
+        if (!$this->cache instanceof RemovableCacheInterface) {
+            return ['hits' => 0, 'misses' => 0];
+        }
+
+        return $this->cache->getStats();
+    }
+
+    /**
+     * Clear static validator caches (useful for long-running processes).
+     */
+    public function clearValidatorCaches(): void
+    {
+        ValidatorNodeVisitor::clearCaches();
+    }
+
+    /**
+     * Perform the actual parsing with caching and resource limits.
+     *
+     * @param string $regex The regex to parse
+     *
+     * @return RegexNode The parsed AST
+     */
+    private function doParse(string $regex): RegexNode
+    {
+        $this->validateResourceLimits($regex);
+
+        [$cachedAst, $cacheKey] = $this->loadFromCache($regex);
+        if (null !== $cachedAst) {
+            return $cachedAst;
+        }
+
+        $ast = $this->parseFromScratch($regex);
+        $this->storeInCache($cacheKey, $ast);
+
+        return $ast;
     }
 
     /**
@@ -987,28 +1009,6 @@ final readonly class Regex
         $sequenceNode = new SequenceNode([$literalNode], 0, $literalNode->getEndPosition());
 
         return new RegexNode($sequenceNode, $flags, $delimiter, 0, $patternLength);
-    }
-
-    /**
-     * Perform the actual parsing with caching and resource limits.
-     *
-     * @param string $regex The regex to parse
-     *
-     * @return RegexNode The parsed AST
-     */
-    private function doParse(string $regex): RegexNode
-    {
-        $this->validateResourceLimits($regex);
-
-        [$cachedAst, $cacheKey] = $this->loadFromCache($regex);
-        if (null !== $cachedAst) {
-            return $cachedAst;
-        }
-
-        $ast = $this->parseFromScratch($regex);
-        $this->storeInCache($cacheKey, $ast);
-
-        return $ast;
     }
 
     /**
