@@ -1695,6 +1695,218 @@
      WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
          ↳ Adjacent quantified tokens with overlapping character sets can cause ambiguous backtracking (e.g., a+a+ or a*a*). Suggested (verify behavior): Merge repetitions, add a delimiter, or make one quanti...
 
+  corpus/TYPO3/Fluid/src/Core/Parser/SyntaxTree/Expression/TernaryExpressionNode.php:48:29
+      → /([\?:])/s
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /([\?:])/s
+         + /([\?:])/
+
+  corpus/TYPO3/Fluid/src/Core/Parser/SyntaxTree/Expression/TernaryExpressionNode.php:108:29
+      → /([\?:])/s
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /([\?:])/s
+         + /([\?:])/
+
+  corpus/TYPO3/Fluid/src/Core/Parser/SyntaxTree/Expression/MathExpressionNode.php:44:24
+      → /([+\-*\^\/\%]|[_a-zA-Z0-9\.]+)/s
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /([+\-*\^\/\%]|[_a-zA-Z0-9\.]+)/s
+         + /([+\-*\^\/\%]|[_a-zA-Z0-9\.]+)/
+
+  corpus/TYPO3/typo3/typo3/sysext/install/Classes/Controller/MaintenanceController.php:492:34
+      → /\s/i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/TYPO3/typo3/typo3/sysext/install/Classes/SystemEnvironment/DatabaseCheck/Platform/MySql.php:150:20
+      → /MySQL (5\.5\.5-|)((\d+\.)*(\d+\.)*\d+)/
+     WARN  Alternation contains an empty alternative.
+         ↳ Use a quantifier (e.g., "?") if the empty string should be allowed.
+
+  corpus/TYPO3/typo3/typo3/sysext/core/Classes/Database/Query/QueryHelper.php:49:31
+      → /^(?:ORDER[[:space:]]*BY[[:space:]]*)+/i
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /^(?:ORDER[[:space:]]*BY[[:space:]]*)+/i
+         + /^(?>(?:ORDER[[:space:]]*BY[[:space:]]*))+/i
+     WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
+         ↳ Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...). Suggested (verify behavior): Consider using possessiv...
+
+  corpus/TYPO3/typo3/typo3/sysext/core/Classes/Database/Query/QueryHelper.php:80:31
+      → /^(?:FROM[[:space:]]+)+/i
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /^(?:FROM[[:space:]]+)+/i
+         + /^(?>(?:FROM[[:space:]]+))+/i
+     WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
+         ↳ Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...). Suggested (verify behavior): Consider using possessiv...
+
+  corpus/TYPO3/typo3/typo3/sysext/core/Classes/Database/Query/QueryHelper.php:113:31
+      → /^(?:GROUP[[:space:]]*BY[[:space:]]*)+/i
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /^(?:GROUP[[:space:]]*BY[[:space:]]*)+/i
+         + /^(?>(?:GROUP[[:space:]]*BY[[:space:]]*))+/i
+     WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
+         ↳ Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...). Suggested (verify behavior): Consider using possessiv...
+
+  corpus/TYPO3/typo3/typo3/sysext/core/Classes/Database/Query/QueryHelper.php:183:29
+      → /^(?:(AND|OR)[[:space:]]*)+/i
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /^(?:(AND|OR)[[:space:]]*)+/i
+         + /^(?>(?:(AND|OR)[[:space:]]*))+/i
+     WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
+         ↳ Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...). Suggested (verify behavior): Consider using possessiv...
+
+  corpus/TYPO3/typo3/typo3/sysext/core/Classes/Configuration/Extension/ExtLocalconfFactory.php:87:40
+      → /<\?php|\?>/is
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /<\?php|\?>/is
+         + /<\?php|\?>/i
+
+  corpus/TYPO3/typo3/typo3/sysext/core/Classes/Configuration/Extension/ExtLocalconfFactory.php:88:40
+      → /declare\s?+\(\s?+strict_types\s?+=\s?+1\s?+\);/is
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /declare\s?+\(\s?+strict_types\s?+=\s?+1\s?+\);/is
+         + /declare\s?+\(\s?+strict_types\s?+=\s?+1\s?+\);/i
+
+  corpus/TYPO3/typo3/typo3/sysext/core/Classes/Configuration/Extension/ExtTablesFactory.php:86:40
+      → /<\?php|\?>/is
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /<\?php|\?>/is
+         + /<\?php|\?>/i
+
+  corpus/TYPO3/typo3/typo3/sysext/core/Classes/Configuration/Extension/ExtTablesFactory.php:87:40
+      → /declare\s?+\(\s?+strict_types\s?+=\s?+1\s?+\);/is
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /declare\s?+\(\s?+strict_types\s?+=\s?+1\s?+\);/is
+         + /declare\s?+\(\s?+strict_types\s?+=\s?+1\s?+\);/i
+
+  corpus/TYPO3/typo3/typo3/sysext/core/Classes/Html/HtmlParser.php:327:28
+      → /("[^"]*"|'[^']*'|[^\s"'\=]+|\=)/s
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /("[^"]*"|'[^']*'|[^\s"'\=]+|\=)/s
+         + /("[^"]*"|'[^']*'|[^\s"'\=]+|\=)/
+
+  corpus/TYPO3/typo3/typo3/sysext/core/Classes/Html/HtmlParser.php:452:44
+      → /\s+/s
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /\s+/s
+         + /\s+/
+
+  corpus/TYPO3/typo3/typo3/sysext/core/Classes/Html/HtmlParser.php:788:44
+      → /\s+/s
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /\s+/s
+         + /\s+/
+
+  corpus/TYPO3/typo3/typo3/sysext/core/Classes/Html/RteHtmlParser.php:625:88
+      → /\<(img)(\s[^>]*)?\/?>/si
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /\<(img)(\s[^>]*)?\/?>/si
+         + /\<(img)(\s[^>]*)?\/?>/i
+
+  corpus/TYPO3/typo3/typo3/sysext/core/Classes/Html/RteHtmlParser.php:625:157
+      → /\<([^>]*)?( align| class| style| id| title| dir| lang| xml:lang)([^>]*)?>/si
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /\<([^>]*)?( align| class| style| id| title| dir| lang| xml:lang)([^>]*)?>/si
+         + /\<([^>]*)?( align| class| style| id| title| dir| lang| xml:lang)([^>]*)?>/i
+
+  corpus/TYPO3/typo3/typo3/sysext/core/Classes/Log/LogDataTrait.php:66:47
+      → /{([A-z]+)}/
+     WARN  Suspicious ASCII range "A-z" includes non-letters between "A" and "z" in ASCII order.
+         ↳ Use separate ranges like [A-Z] and [a-z] (or combine as [A-Za-z]).
+
+  corpus/TYPO3/typo3/typo3/sysext/core/Classes/Service/Archive/ZipService.php:72:28
+      → #/(?:\.{2,})+#
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - #/(?:\.{2,})+#
+         + #/(?>(?:\.{2,}))+#
+     WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
+         ↳ Nested unbounded quantifiers detected. This allows exponential backtracking. Consider using atomic groups (?>...) or possessive quantifiers (*+, ++). Suggested (verify behavior): Replace inner quan...
+
+  corpus/TYPO3/typo3/typo3/sysext/core/Classes/Service/Archive/ZipService.php:73:31
+      → #^(?:\.{2,})+/#
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - #^(?:\.{2,})+/#
+         + #^(?>(?:\.{2,}))+/#
+     WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
+         ↳ Nested unbounded quantifiers detected. This allows exponential backtracking. Consider using atomic groups (?>...) or possessive quantifiers (*+, ++). Suggested (verify behavior): Replace inner quan...
+
+  corpus/TYPO3/typo3/typo3/sysext/core/Classes/Service/MarkerBasedTemplateService.php:417:42
+      → /###([^#](?:[^#]*+|#{1,2}[^#])+)###/
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /###([^#](?:[^#]*+|#{1,2}[^#])+)###/
+         + /###([^#](?>(?:[^#]*+|#{1,2}[^#]))+)###/
+     WARN  Potential ReDoS risk (theoretical, severity: HIGH, confidence: HIGH).
+         ↳ Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...). Suggested (verify behavior): Consider using possessiv...
+
+  corpus/TYPO3/typo3/typo3/sysext/core/Classes/Localization/LabelFileResolver.php:107:60
+      → /^[a-z]{2}([_-][A-z]{2,3})?\./
+     WARN  Suspicious ASCII range "A-z" includes non-letters between "A" and "z" in ASCII order.
+         ↳ Use separate ranges like [A-Z] and [a-z] (or combine as [A-Za-z]).
+
+  corpus/TYPO3/typo3/typo3/sysext/core/Classes/Utility/CsvUtility.php:143:29
+      → #^([\t\v=+*%/@-]+)+#
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - #^([\t\v=+*%/@-]+)+#
+         + #^(?>([\t\v=+*%/@-]+))+#
+     WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
+         ↳ Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...). Suggested (verify behavior): Consider using possessiv...
+
+  corpus/TYPO3/typo3/typo3/sysext/core/Classes/Utility/GeneralUtility.php:1612:32
+      → #^(?:[[:alnum:]_]+/)+$#
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - #^(?:[[:alnum:]_]+/)+$#
+         + #^(?>(?:[[:alnum:]_]+/))+$#
+     WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
+         ↳ Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...). Suggested (verify behavior): Consider using possessiv...
+
+  corpus/TYPO3/typo3/typo3/sysext/extensionmanager/Classes/ViewHelpers/ProcessAvailableActionsViewHelper.php:46:31
+      → #\n\s*#s
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - #\n\s*#s
+         + #\n\s*#
+
+  corpus/TYPO3/typo3/typo3/sysext/extensionmanager/Classes/Controller/UploadExtensionFileController.php:213:37
+      → /_(\d+)(\.|\-)(\d+)(\.|\-)(\d+).*/i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/TYPO3/typo3/typo3/sysext/rte_ckeditor/Classes/Configuration/CKEditor5Migrator.php:731:17
+      → /^([a-z0-9\-*\s]+)((?:\s*\{[!\w\-,\s\*]+\}\s*|\s*\[[!\w\-,\s\*]+\]\s*|\s*\([!\w\-,\s\*]+\)\s*){0,3})(?:;\s*|$)/i
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /^([a-z0-9\-*\s]+)((?:\s*\{[!\w\-,\s\*]+\}\s*|\s*\[[!\w\-,\s\*]+\]\s*|\s*\([!\w\-,\s\*]+\)\s*){0,3})(?:;\s*|$)/i
+         + /^([a-z0-9\-*\s]+)((?>(?:\s*\{[!\w\-,\s\*]+\}\s*|\s*\[[!\w\-,\s\*]+\]\s*|\s*\([!\w\-,\s\*]+\)\s*)){0,3})(?:;\s*|$)/i
+
   corpus/htmlpurifier/library/HTMLPurifier/AttrDef/URI/IPv6.php:81:29
       → #^[0-9a-fA-F]{4}$#s
      WARN  Flag 's' is useless: the pattern contains no dots.
@@ -3157,6 +3369,48 @@
      TIP 
          - /--------+\r?\n.+?(\d+)\r?\n.+?(\d+)\r?\n/
          + /-{7}-+\r?\n.+?(\d+)\r?\n.+?(\d+)\r?\n/
+
+  corpus/TYPO3/typo3/typo3/sysext/extbase/Classes/Validation/Validator/FileSizeValidator.php:107:25
+      → /^(\d*\.?\d+)(B|K|M|G)$/i
+     TIP 
+         - /^(\d*\.?\d+)(B|K|M|G)$/i
+         + /^(\d*\.?\d+)([BKMG])$/i
+
+  corpus/TYPO3/typo3/typo3/sysext/extbase/Classes/Validation/Validator/FileSizeValidator.php:110:25
+      → /^(\d*\.?\d+)(B|K|M|G)$/i
+     TIP 
+         - /^(\d*\.?\d+)(B|K|M|G)$/i
+         + /^(\d*\.?\d+)([BKMG])$/i
+
+  corpus/TYPO3/typo3/typo3/sysext/form/Classes/Mvc/Validation/FileSizeValidator.php:103:25
+      → /^(\d*\.?\d+)(B|K|M|G)$/i
+     TIP 
+         - /^(\d*\.?\d+)(B|K|M|G)$/i
+         + /^(\d*\.?\d+)([BKMG])$/i
+
+  corpus/TYPO3/typo3/typo3/sysext/form/Classes/Mvc/Validation/FileSizeValidator.php:106:25
+      → /^(\d*\.?\d+)(B|K|M|G)$/i
+     TIP 
+         - /^(\d*\.?\d+)(B|K|M|G)$/i
+         + /^(\d*\.?\d+)([BKMG])$/i
+
+  corpus/TYPO3/typo3/typo3/sysext/form/Classes/ViewHelpers/Be/MaximumFileSizeViewHelper.php:37:29
+      → /(\d+)(.+\d{2})?([kMGTPEZY]{0,1})/
+     TIP 
+         - /(\d+)(.+\d{2})?([kMGTPEZY]{0,1})/
+         + /(\d+)(.+\d{2})?([kMGTPEZY]?)/
+
+  corpus/TYPO3/typo3/typo3/sysext/linkvalidator/Classes/Linktype/ExternalLinktype.php:363:24
+      → /((?:http|https))(?::\/\/)(?:[^\s<>]+)/i
+     TIP 
+         - /((?:http|https))(?::\/\/)(?:[^\s<>]+)/i
+         + /((?:http|https)):\/\/(?:[^\s<>]+)/i
+
+  corpus/TYPO3/typo3/typo3/sysext/fluid/Classes/ViewHelpers/Form/AbstractFormFieldViewHelper.php:230:44
+      → /(\]\[|\[|\])/
+     TIP 
+         - /(\]\[|\[|\])/
+         + /(\]\[|\[|])/
 
   corpus/mpdf/utils/font_coverage.php:34:23
       → /^([12]{0,1}[0-9A-Za-z]{4});<(.*?), Last>/
