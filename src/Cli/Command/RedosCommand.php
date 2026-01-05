@@ -20,10 +20,10 @@ use RegexParser\Exception\LexerException;
 use RegexParser\Exception\ParserException;
 use RegexParser\Internal\PatternParser;
 use RegexParser\NodeVisitor\ConsoleHighlighterVisitor;
+use RegexParser\ReDoS\ReDoSInputGenerator;
 use RegexParser\Regex;
 use RegexParser\RegexOptions;
 use RegexParser\RegexPattern;
-use RegexParser\ReDoS\ReDoSInputGenerator;
 use RegexParser\Runtime\PcreRuntimeInfo;
 
 final class RedosCommand extends AbstractCommand
@@ -782,7 +782,7 @@ final class RedosCommand extends AbstractCommand
             'cpu_ms',
             'mem_kb',
             'peak_kb',
-            'err'
+            'err',
         );
         $output->write($output->dim($header));
         $output->write(str_repeat('-', 92)."\n");
@@ -794,7 +794,7 @@ final class RedosCommand extends AbstractCommand
             $result = $this->formatResult($output, $resultText, $row['result']);
             $wall = str_pad($this->formatMs($row['wall_ms']), 10, ' ', \STR_PAD_LEFT);
             $avg = str_pad($this->formatMs($row['avg_ms']), 10, ' ', \STR_PAD_LEFT);
-            $cpu = $row['cpu_ms'] === null ? 'n/a' : $this->formatMs($row['cpu_ms']);
+            $cpu = null === $row['cpu_ms'] ? 'n/a' : $this->formatMs($row['cpu_ms']);
             $cpu = str_pad($cpu, 10, ' ', \STR_PAD_LEFT);
             $mem = str_pad($this->formatKb($row['mem_bytes']), 10, ' ', \STR_PAD_LEFT);
             $peak = str_pad($this->formatKb($row['peak_bytes']), 10, ' ', \STR_PAD_LEFT);
@@ -811,7 +811,7 @@ final class RedosCommand extends AbstractCommand
                 .$cpu.' | '
                 .$mem.' | '
                 .$peak.' | '
-                .$err."\n"
+                .$err."\n",
             );
         }
     }
@@ -845,7 +845,7 @@ final class RedosCommand extends AbstractCommand
     private function renderSummary(Output $output, array $vuln, array $safe): void
     {
         $summary = $this->buildSummary($vuln, $safe);
-        $parity = $summary['result_parity'] === 'same'
+        $parity = 'same' === $summary['result_parity']
             ? $output->success('same')
             : $output->warning('different');
 

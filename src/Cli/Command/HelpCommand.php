@@ -283,7 +283,7 @@ final readonly class HelpCommand implements CommandInterface
                 'examples' => [
                     [[$this->resolveInvocation(), 'redos', "'/(a+)+$/'", '--safe', "'/a+$/'", '--input', "'a'", '--repeat=50000', "--suffix='!'"], 'Benchmark vulnerable vs safe'],
                     [[$this->resolveInvocation(), 'redos', "'/(a+)+$/'", '--input', "'aaaaa!'"], 'Benchmark a single pattern'],
-                    [[$this->resolveInvocation(), 'redos', "'/(a+)+$/'", '--format=json', '--input', "'a!'" ], 'JSON output'],
+                    [[$this->resolveInvocation(), 'redos', "'/(a+)+$/'", '--format=json', '--input', "'a!'"], 'JSON output'],
                 ],
             ],
             'diagram' => [
