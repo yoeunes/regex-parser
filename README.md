@@ -24,6 +24,7 @@ RegexParser is a PHP 8.2+ library that parses PCRE regex literals into a typed A
 Project goals:
 - Make regex approachable for newcomers with clear explanations and practical examples.
 - Provide a stable foundation for validation, linting, and security analysis.
+- Stay accurate, transparent, and easy to integrate.
 
 If you are new to regex, start with the [Regex Tutorial](docs/tutorial/README.md). If you want a short overview, see the [Quick Start Guide](docs/QUICK_START.md).
 
