@@ -1,3 +1,16 @@
+  corpus/phpcheckstyle/test/sample/issue61.php:43:36
+      → /^20[123][0-9]-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[01])$/
+     WARN  Character range is unnecessary; list the characters explicitly.
+         ↳ Use '1' and '2' explicitly instead of a range.
+
+  corpus/swagger-php/src/Annotations/Operation.php:223:115
+      → /^([12345]{1}\d{2})|([12345]{1}XX)$/
+     WARN  Quantifier is redundant; it matches exactly once.
+         ↳ Remove the {1} quantifier; it does not change the match.
+     TIP 
+         - /^([12345]{1}\d{2})|([12345]{1}XX)$/
+         + /^([12345]\d{2})|([12345]XX)$/
+
   corpus/deployer/recipe/magento2.php:114:16
       → /(\d+\.?)+(-p\d+)?$/
      WARN  Nested quantifiers can cause catastrophic backtracking.
@@ -92,6 +105,27 @@
          + #// line (?>(?<line_number>\d+))+#
      WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
          ↳ Nested unbounded quantifiers detected. This allows exponential backtracking. Consider using atomic groups (?>...) or possessive quantifiers (*+, ++). Suggested (verify behavior): Replace inner quan...
+
+  corpus/phpqa/src/Tools/GetVersions.php:173:29
+      → /\.0$/s
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /\.0$/s
+         + /\.0$/
+
+  corpus/phpdox/src/collector/project/InlineComment.php:37:25
+      → =//(.*)$|/\*{1,}(.*)\*/$|/\*{1,}(.*)$|^(.*)\*/$|#(.*)$|\*{1}(.*)$|^(.*)$=
+     WARN  Quantifier is redundant; it matches exactly once.
+         ↳ Remove the {1} quantifier; it does not change the match.
+     TIP 
+         - =//(.*)$|/\*{1,}(.*)\*/$|/\*{1,}(.*)$|^(.*)\*/$|#(.*)$|\*{1}(.*)$|^(.*)$=
+         + =//(.*)$|/\*+(.*)\*/$|/\*+(.*)$|^(.*)\*/$|#(.*)$|\*(.*)$|^(.*)$=
+
+  corpus/phpdox/src/collector/project/InlineComment.php:50:25
+      → =^@{0,1}(todo|var|fixme):{0,1}(.*)=i
+     TIP 
+         - =^@{0,1}(todo|var|fixme):{0,1}(.*)=i
+         + =^@?(todo|var|fixme):?(.*)=i
 
   corpus/wp-cli/bundle/rmccue/requests/src/Requests.php:767:17
       → #(\s+)#i
@@ -717,6 +751,32 @@
      TIP 
          - /### Usage\n([^#]*)\n\n###/s
          + /### Usage\n([^#]*)\n\n###/
+
+  corpus/psysh/scoper.inc.php:146:17
+      → /'(PhpParser\\.+(?:\\)?)'/
+     WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
+         ↳ Consider tightening the second quantifier to its minimum.
+     WARN  Redundant non-capturing group; it can be removed without changing behavior.
+     TIP 
+         - /'(PhpParser\\.+(?:\\)?)'/
+         + /'(PhpParser\\.+\\?)'/
+
+  corpus/psysh/src/Util/Str.php:125:28
+      → /^[a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]*(\\[a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]*)*$/
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /^[a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]*(\\[a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]*)*$/
+         + /^[a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]*(?>(\\[a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]*))*$/
+     WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
+         ↳ Adjacent quantified tokens with overlapping character sets can cause ambiguous backtracking (e.g., a+a+ or a*a*). Suggested (verify behavior): Merge repetitions, add a delimiter, or make one quanti...
+
+  corpus/psysh/src/Readline/Hoa/FileFinder.php:229:31
+      → #^(<|<=|>|>=|=)\s*(\d+)\s*((?:[KMGTPEZY])b)?$#
+     WARN  Redundant non-capturing group; it can be removed without changing behavior.
+     TIP 
+         - #^(<|<=|>|>=|=)\s*(\d+)\s*((?:[KMGTPEZY])b)?$#
+         + #^(<|<=|>|>=|=)\s*(\d+)\s*([KMGTPEZY]b)?$#
 
   corpus/cycle/database/src/Driver/SQLite/Schema/SQLiteColumn.php:149:28
       → /^['""].*?['"]$/
@@ -1404,6 +1464,36 @@
      WARN  Alternation contains an empty alternative.
          ↳ Use a quantifier (e.g., "?") if the empty string should be allowed.
 
+  corpus/chrome-php/phpseclib/phpseclib/File/ASN1.php:1350:34
+      → #-+END.*[\r\n ]*.*#ms
+     WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
+         ↳ Consider tightening the second quantifier to its minimum.
+     WARN  Flag 'm' is useless: pattern '#-+END.*[\r\n ]*.*#ms' contains no anchors.
+     TIP 
+         - #-+END.*[\r\n ]*.*#ms
+         + #-+END.*[\r\n ]*.*#s
+
+  corpus/chrome-php/phpseclib/phpseclib/Crypt/EC/Formats/Keys/PKCS1.php:66:24
+      → #-*BEGIN EC PRIVATE KEY-*[^-]*-*END EC PRIVATE KEY-*#s
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - #-*BEGIN EC PRIVATE KEY-*[^-]*-*END EC PRIVATE KEY-*#s
+         + #-*BEGIN EC PRIVATE KEY-*[^-]*-*END EC PRIVATE KEY-*#
+
+  corpus/chrome-php/phpseclib/phpseclib/Crypt/EC/Formats/Keys/PKCS1.php:84:24
+      → #-*BEGIN EC PARAMETERS-*[^-]*-*END EC PARAMETERS-*#s
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - #-*BEGIN EC PARAMETERS-*[^-]*-*END EC PARAMETERS-*#s
+         + #-*BEGIN EC PARAMETERS-*[^-]*-*END EC PARAMETERS-*#
+
+  corpus/chrome-php/Faker/src/Provider/Text.php:200:29
+      → /([ ,-:;\x{2013}\x{2014}]+$)/us
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - /([ ,-:;\x{2013}\x{2014}]+$)/us
+         + /([ ,-:;\x{2013}\x{2014}]+$)/u
+
   corpus/jsonlint/src/Seld/JsonLint/JsonParser.php:276:46
       → {"(?:[^"]+|\\")*$}m
      WARN  Nested quantifiers can cause catastrophic backtracking.
@@ -1560,6 +1650,34 @@
          - /\s*@trim\s*/m
          + /\s*@trim\s*/
 
+  corpus/phpactor/lib/Extension/LanguageServerPhpCsFixer/Provider/PhpCsFixerDiagnosticsProvider.php:178:49
+      → /Description of ([\w\-\_ ]+) rule.*/
+     WARN  Character class contains duplicate elements that do not add new matches.
+         ↳ Remove the redundant character class element.
+
+  corpus/phpactor/lib/Completion/Core/Util/OffsetHelper.php:12:32
+      → /[ \t\x0d\n\r\f]+$/u
+     WARN  Character class contains duplicate elements that do not add new matches.
+         ↳ Remove the redundant character class element.
+
+  corpus/phpactor/lib/Completion/Bridge/TolerantParser/WorseReflection/DoctrineAnnotationCompletor.php:137:36
+      → /.*@([^\@\s\t*]+)$/s
+     WARN  Character class contains duplicate elements that do not add new matches.
+         ↳ Remove the redundant character class element.
+
+  corpus/phpactor/lib/Completion/Bridge/TolerantParser/CompletionContext.php:265:24
+      → {(class|interface|trait)\s+[^\s]+\s*(implements|extends)\s+([^,\s\{]+[,\s]*)*$}
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - {(class|interface|trait)\s+[^\s]+\s*(implements|extends)\s+([^,\s\{]+[,\s]*)*$}
+         + {(class|interface|trait)\s+[^\s]+\s*(implements|extends)\s+(?>([^,\s\{]+[,\s]*))*$}
+
+  corpus/phpactor/lib/Indexer/Util/PhpNameMatcher.php:15:33
+      → {^[a-zA-Z_\x80-\xff\][\a-zA-Z0-9_\x80-\xff]*$}
+     WARN  Redundant elements detected in character class.
+         ↳ Redundant elements: range '\x07'-'z' (overlaps 'a'-'z'), '_' (covered by range '\x07'-'z'), ']' (covered by range '\x07'-'z'), '[' (covered by range '\x07'-'z') (and 2 more).
+
   corpus/phpunit/phpunit/src/Framework/Constraint/Operator/LogicalNot.php:52:20
       → /('[\w\W]*')([\w\W]*)("[\w\W]*")/i
      WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
@@ -1679,6 +1797,35 @@
   corpus/expose/app/Support/ConsoleSectionOutput.php:134:37
       → /]8;;(.*)]8;;/m
      WARN  Flag 'm' is useless: pattern '/]8;;(.*)]8;;/m' contains no anchors.
+
+  corpus/psalm/src/Psalm/Config/FileFilter.php:346:37
+      → /^[a-zA-Z_\x80-\xff](?:[\\]?[a-zA-Z0-9_\x80-\xff]+)*$/
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /^[a-zA-Z_\x80-\xff](?:[\\]?[a-zA-Z0-9_\x80-\xff]+)*$/
+         + /^[a-zA-Z_\x80-\xff](?>(?:[\\]?[a-zA-Z0-9_\x80-\xff]+))*$/
+     WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
+         ↳ Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...). Suggested (verify behavior): Consider using possessiv...
+
+  corpus/psalm/src/Psalm/Internal/PhpVisitor/Reflector/FunctionLikeDocblockParser.php:125:33
+      → /\n \*\s+/um
+     WARN  Flag 'm' is useless: pattern '/\n \*\s+/um' contains no anchors.
+     TIP 
+         - /\n \*\s+/um
+         + /\n \*\s+/u
+
+  corpus/psalm/src/Psalm/Internal/Analyzer/CommentAnalyzer.php:156:62
+      → /\n \*\s+/um
+     WARN  Flag 'm' is useless: pattern '/\n \*\s+/um' contains no anchors.
+     TIP 
+         - /\n \*\s+/um
+         + /\n \*\s+/u
+
+  corpus/psalm/src/Psalm/Internal/Analyzer/CommentAnalyzer.php:264:48
+      → /,[\n\s]+}/
+     WARN  Character class contains duplicate elements that do not add new matches.
+         ↳ Remove the redundant character class element.
 
   corpus/PHP-Parser/lib/PhpParser/ParserAbstract.php:698:81
       → /\A#!.*\r?\n\z/
@@ -2011,6 +2158,10 @@
      TIP 
          - /\n/m
          + /\n/
+
+  corpus/captainhook/src/Runner/Action/PHP.php:159:33
+      → #^\\.+::.+$#i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
 
   corpus/mpdf/src/Mpdf.php:10063:39
       → /\/OC[BG]{0,1}Z-index \/ZI(\d+) BDC/is
@@ -2571,6 +2722,45 @@
          - /{%.?block content.?%}((.*?\n)+){%.?endblock.?%}/m
          + /{%.?block content.?%}((.*?\n)+){%.?endblock.?%}/
 
+  corpus/phpmd/src/site/scripts/update-rules.php:70:25
+      → (\s+)s
+     WARN  Flag 's' is useless: the pattern contains no dots.
+     TIP 
+         - (\s+)s
+         + (\s+)
+
+  corpus/phpmd/src/main/php/PHPMD/Rule/Controversial/CamelCaseMethodName.php:83:31
+      → /^test[a-zA-Z0-9]*(_[a-z0-9][a-zA-Z0-9]*)*$/
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /^test[a-zA-Z0-9]*(_[a-z0-9][a-zA-Z0-9]*)*$/
+         + /^test[a-zA-Z0-9]*(?>(_[a-z0-9][a-zA-Z0-9]*))*$/
+     WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
+         ↳ Nested unbounded quantifiers detected. This allows exponential backtracking. Consider using atomic groups (?>...) or possessive quantifiers (*+, ++). Suggested (verify behavior): Replace inner quan...
+
+  corpus/symfony/ux/ux.symfony.com/src/LiveMemory/Asset/CssCompiler.php:36:38
+      → #@import (?:"|')(.*)(?:'|");#m
+     WARN  Flag 'm' is useless: pattern '#@import (?:"|')(.*)(?:'|");#m' contains no anchors.
+     TIP 
+         - #@import (?:"|')(.*)(?:'|");#m
+         + #@import ["'](.*)['"];#
+
+  corpus/symfony/ux/ux.symfony.com/src/LiveMemory/Asset/CssCompiler.php:50:37
+      → #^//.*\n?#m
+     WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
+         ↳ Consider tightening the second quantifier to its minimum.
+
+  corpus/symfony/ux/src/Toolkit/src/Assert.php:39:30
+      → /^[A-Z][a-zA-Z0-9]*(?::[A-Z][a-zA-Z0-9]*)*$/
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /^[A-Z][a-zA-Z0-9]*(?::[A-Z][a-zA-Z0-9]*)*$/
+         + /^[A-Z][a-zA-Z0-9]*(?>(?::[A-Z][a-zA-Z0-9]*))*$/
+     WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
+         ↳ Nested unbounded quantifiers detected. This allows exponential backtracking. Consider using atomic groups (?>...) or possessive quantifiers (*+, ++). Suggested (verify behavior): Replace inner quan...
+
   corpus/symfony/symfony/src/Symfony/Component/HttpKernel/HttpCache/Esi.php:72:33
       → #<esi\:comment[^>]+>#s
      WARN  Flag 's' is useless: the pattern contains no dots.
@@ -2779,10 +2969,29 @@
          - /\n\s*/s
          + /\n\s*/
 
+  corpus/symfony/flex/src/Response.php:78:28
+      → {^([^:]++):\s*(.+?)\s*$}i
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/symfony/flex/src/Configurator/ContainerConfigurator.php:80:29
+      → /^\s+.*/
+     WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
+         ↳ Consider tightening the first quantifier to its minimum.
+
   corpus/Sylius/src/Sylius/Behat/Service/Checker/EmailChecker.php:47:55
       → /\n+\s+/
      WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
          ↳ Consider tightening the first quantifier to its minimum.
+
+  corpus/Negotiation/src/Negotiation/AbstractNegotiator.php:137:31
+      → /(?:[^,"]*+(?:"[^"]*+")?)+[^,"]*+/
+     WARN  Nested quantifiers can cause catastrophic backtracking.
+         ↳ Consider using atomic groups (?>...) or possessive quantifiers.
+     TIP 
+         - /(?:[^,"]*+(?:"[^"]*+")?)+[^,"]*+/
+         + /(?>(?:[^,"]*+(?:"[^"]*+")?))+[^,"]*+/
+     WARN  Potential ReDoS risk (theoretical, severity: HIGH, confidence: HIGH).
+         ↳ Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...). Suggested (verify behavior): Consider using possessiv...
 
   corpus/laravel-page-speed/src/Middleware/InlineCss.php:94:13
       → /<([^>]+)>/s
@@ -2816,6 +3025,10 @@
       → #^[0-1][0-9]:[0-5][0-9]$#
      WARN  Character range is unnecessary; list the characters explicitly.
          ↳ Use '0' and '1' explicitly instead of a range.
+
+  corpus/PHP-FFMpeg/src/FFMpeg/Media/AbstractVideo.php:236:40
+      → /^\[[^\]]+\](.*?)\[[^\]]+\]$/is
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
 
   corpus/squizlabs/PHP_CodeSniffer/src/Tokenizers/JS.php:471:32
       → |[a-zA-z0-9_]|
@@ -3055,6 +3268,24 @@
       → /^[[:alpha:]]{1,3}\s*:(.*)/i
      WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
 
+  corpus/anti-xss/src/voku/helper/AntiXSS.php:890:29
+      → /(?<html_entity>&[A-Za-z]{2,};{0})/
+     WARN  Quantifier always repeats zero times; it can be removed.
+         ↳ Remove the quantified element or replace it with an empty pattern.
+     TIP 
+         - /(?<html_entity>&[A-Za-z]{2,};{0})/
+         + /(?<html_entity>&[A-Za-z]{2,})/
+
+  corpus/anti-xss/src/voku/helper/AntiXSS.php:1485:13
+      → #\+([\p{L}\d]+)-#iu
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
+  corpus/anti-xss/src/voku/helper/AntiXSS.php:1600:17
+      → #<(?!!--|!\[)((?<start>/*\s*)((?<tagName>[\p{L}:]+)(?=[^\p{L}]|$|)|.+)[^\s"'\p{L}>/=]*[^>]*)(?<closeTag>>)?#iusS
+     WARN  Alternation contains an empty alternative.
+         ↳ Use a quantifier (e.g., "?") if the empty string should be allowed.
+     WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
+
   corpus/contao/contao/core-bundle/contao/drivers/DC_Table.php:4159:34
       → /\s+.*$/
      WARN  Concatenated quantifiers can be optimized when one character set is a subset of the other.
@@ -3133,6 +3364,19 @@
      TIP 
          - /^(?:[a-z_\x80-\xff][a-z0-9_\x80-\xff]*\\?)+(?<!\\)$/i
          + /^(?>(?:[a-z_\x80-\xff][a-z0-9_\x80-\xff]*\\?))+(?<!\\)$/i
+     WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
+         ↳ Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...). Suggested (verify behavior): Consider using possessiv...
+
+  corpus/janephp/src/Component/JsonSchema/Registry/Schema.php:190:30
+      → #([^:]){1}/{2,}#
+     WARN  Quantifier is redundant; it matches exactly once.
+         ↳ Remove the {1} quantifier; it does not change the match.
+     TIP 
+         - #([^:]){1}/{2,}#
+         + #([^:])/{2,}#
+
+  corpus/janephp/src/Component/OpenApiCommon/Naming/OperationUrlNaming.php:58:25
+      → /(^|_|\.)+(.)/
      WARN  Potential ReDoS risk (theoretical, severity: CRITICAL, confidence: HIGH).
          ↳ Unbounded quantifier detected. May cause backtracking on non-matching input. Consider making it possessive (*+) or using atomic groups (?>...). Suggested (verify behavior): Consider using possessiv...
 
@@ -3340,6 +3584,24 @@
          - #&([A-Za-z]{2})(?:lig);#
          + #&([A-Za-z]{2})lig;#
 
+  corpus/chrome-php/phpseclib/phpseclib/File/SPKAC.php:131:30
+      → #(?:SPKAC=)|[ \r\n\\]#
+     TIP 
+         - #(?:SPKAC=)|[ \r\n\\]#
+         + #SPKAC=|[ \r\n\\]#
+
+  corpus/grumphp/src/Linter/Xml/XmlLinter.php:165:33
+      → /\s{1,}/
+     TIP 
+         - /\s{1,}/
+         + /\s+/
+
+  corpus/grumphp/src/Linter/Xml/XmlLinter.php:174:57
+      → /\s{1,}/
+     TIP 
+         - /\s{1,}/
+         + /\s+/
+
   corpus/shopware/src/Core/System/Snippet/SnippetValidator.php:257:48
       → /^(\{0\}.+\|)?(\{1\}.+\|)(\[0,inf\[.+)/i
      TIP 
@@ -3369,6 +3631,12 @@
      TIP 
          - /--------+\r?\n.+?(\d+)\r?\n.+?(\d+)\r?\n/
          + /-{7}-+\r?\n.+?(\d+)\r?\n.+?(\d+)\r?\n/
+
+  corpus/psalm/src/Psalm/Internal/Type/TypeParser.php:430:24
+      → /^\-?(0|[1-9][0-9]*)(\.[0-9]{1,})$/
+     TIP 
+         - /^\-?(0|[1-9][0-9]*)(\.[0-9]{1,})$/
+         + /^-?(0|[1-9][0-9]*)(\.[0-9]+)$/
 
   corpus/TYPO3/typo3/typo3/sysext/extbase/Classes/Validation/Validator/FileSizeValidator.php:107:25
       → /^(\d*\.?\d+)(B|K|M|G)$/i
@@ -3411,6 +3679,12 @@
      TIP 
          - /(\]\[|\[|\])/
          + /(\]\[|\[|])/
+
+  corpus/atoum/classes/script/arguments/parser.php:276:28
+      → /^(\+{1,}|-{1,})[a-z][-_a-z0-9]*/i
+     TIP 
+         - /^(\+{1,}|-{1,})[a-z][-_a-z0-9]*/i
+         + /^(\++|-+)[a-z][\-_a-z0-9]*/i
 
   corpus/mpdf/utils/font_coverage.php:34:23
       → /^([12]{0,1}[0-9A-Za-z]{4});<(.*?), Last>/
