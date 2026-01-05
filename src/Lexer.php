@@ -16,10 +16,10 @@ namespace RegexParser;
 use RegexParser\Exception\LexerException;
 
 /**
- * Regex lexer with precompiled patterns and intelligent token recognition.
+ * Regex lexer that tokenizes PCRE pattern strings.
  *
- * This lexer uses precompiled regex patterns and priority-based matching
- * for efficiency while maintaining full compatibility with PCRE syntax.
+ * Uses precompiled regex patterns and priority-based matching
+ * for efficiency while maintaining compatibility with PCRE syntax.
  */
 final class Lexer
 {

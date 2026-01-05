@@ -44,7 +44,7 @@ use RegexParser\Node\VersionConditionNode;
 /**
  * Visitor that calculates numeric complexity scores for regex patterns.
  *
- * This visitor provides intelligent complexity analysis with caching and
+ * This visitor provides complexity analysis with caching and
  * streamlined scoring algorithms for efficiency while detecting ReDoS patterns.
  *
  * @extends AbstractNodeVisitor<int>
@@ -57,7 +57,7 @@ final class ComplexityScoreNodeVisitor extends AbstractNodeVisitor
     private const COMPLEX_CONSTRUCT_SCORE = 5;
     private const NESTING_MULTIPLIER = 2;
 
-    // Intelligent caching for expensive operations
+    // Caching for expensive operations
     /**
      * @var array<string, bool>
      */

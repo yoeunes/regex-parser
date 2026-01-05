@@ -16,8 +16,8 @@ namespace RegexParser;
 /**
  * Immutable set of literal strings extracted from regex patterns.
  *
- * This data structure provides literal extraction with intelligent
- * size limits, lazy evaluation, and memory-efficient operations for regex optimization.
+ * Provides literal extraction with size limits, lazy evaluation,
+ * and memory-efficient operations for regex optimization.
  */
 final readonly class LiteralSet
 {

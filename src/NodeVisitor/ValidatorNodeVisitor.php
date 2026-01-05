@@ -51,10 +51,10 @@ use RegexParser\Node\UnicodePropNode;
 use RegexParser\Regex;
 
 /**
- * Validator for regex Abstract Syntax Trees with intelligent caching and optimization.
+ * Validator for regex Abstract Syntax Trees with caching and optimization.
  *
- * This validator provides comprehensive semantic validation while minimizing
- * computational overhead through intelligent caching and streamlined validation logic.
+ * This validator provides semantic validation while minimizing
+ * computational overhead through caching and streamlined validation logic.
  *
  * @extends AbstractNodeVisitor<void>
  */

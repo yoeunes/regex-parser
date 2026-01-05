@@ -49,7 +49,7 @@ use RegexParser\Node\VersionConditionNode;
 /**
  * Compiler that recompiles regex AST back into optimized strings.
  *
- * This visitor provides intelligent compilation with caching and
+ * This visitor provides compilation with caching and
  * streamlined string building for efficiency while maintaining
  * full PCRE compatibility.
  *

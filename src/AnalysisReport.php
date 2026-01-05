@@ -16,7 +16,7 @@ namespace RegexParser;
 use RegexParser\ReDoS\ReDoSAnalysis;
 
 /**
- * Comprehensive analysis report for a regex pattern.
+ * Analysis report for a regex pattern.
  */
 final readonly class AnalysisReport
 {
