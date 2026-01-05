@@ -2950,7 +2950,7 @@
      WARN  Redundant elements detected in character class.
          ↳ Redundant elements: ',' (duplicate)
 
-  corpus/PHP-CSS-Parser/src/Value/CSSString.php:59:31
+  corpus/PHP-CSS-Parser/src/Value/CSSString.php:62:31
       → /[\s{}()<>\[\]]/isu
      WARN  Flag 'i' is useless: the pattern contains no case-sensitive characters.
      WARN  Flag 's' is useless: the pattern contains no dots.
