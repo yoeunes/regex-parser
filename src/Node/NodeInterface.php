@@ -21,7 +21,7 @@ use RegexParser\NodeVisitor\NodeVisitorInterface;
 interface NodeInterface
 {
     /**
-     * @template T
+     * @template-covariant  T
      *
      * @param NodeVisitorInterface<T> $visitor
      *

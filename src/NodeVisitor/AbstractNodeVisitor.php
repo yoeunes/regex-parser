@@ -46,7 +46,7 @@ use RegexParser\Node\VersionConditionNode;
 /**
  * Base visitor that returns a default value for every node.
  *
- * @template TReturn
+ * @template-covariant TReturn
  *
  * @implements NodeVisitorInterface<TReturn>
  */
